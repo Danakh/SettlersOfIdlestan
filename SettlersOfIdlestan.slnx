@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="SettlersOfIdlestan/SettlersOfIdlestan.csproj" />
+  <Project Path="SettlersOfIdlestanGame/SettlersOfIdlestanGame.csproj" />
+  <Project Path="SOITests/SOITests.csproj" />
+</Solution>
