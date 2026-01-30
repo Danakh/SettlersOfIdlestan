@@ -1,5 +1,9 @@
 <Solution>
   <Project Path="SettlersOfIdlestan/SettlersOfIdlestan.csproj" />
-  <Project Path="SettlersOfIdlestanGame/SettlersOfIdlestanGame.csproj" />
-  <Project Path="SOITests/SOITests.csproj" />
+  <Project Path="SettlersOfIdlestanGame/SettlersOfIdlestanGame.csproj">
+    <BuildDependency Project="SettlersOfIdlestan/SettlersOfIdlestan.csproj" />
+  </Project>
+  <Project Path="SOITests/SOITests.csproj">
+    <BuildDependency Project="SettlersOfIdlestan/SettlersOfIdlestan.csproj" />
+  </Project>
 </Solution>
