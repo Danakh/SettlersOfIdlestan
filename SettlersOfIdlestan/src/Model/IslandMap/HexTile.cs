@@ -7,27 +7,22 @@ namespace SettlersOfIdlestan.Model.IslandMap;
 /// </summary>
 public class HexTile
 {
-    public HexTile(HexCoord coord, TerrainType terrainType, Resource? resource = null, int? productionNumber = null)
+    public HexTile(HexCoord coord, TerrainType terrainType, int? productionNumber = null)
     {
         Coord = coord;
         TerrainType = terrainType;
-        Resource = resource;
         ProductionNumber = productionNumber;
 
-        // Validation: only Land tiles can have resources
-        if (terrainType != TerrainType.Land && resource.HasValue)
+        // Validation: only producing terrains can have production numbers
+        if (productionNumber.HasValue && !Resource.HasValue)
         {
-            throw new ArgumentException("Only Land tiles can have resources.");
-        }
-        if (terrainType == TerrainType.Land && !resource.HasValue)
-        {
-            throw new ArgumentException("Land tiles must have a resource.");
+            throw new ArgumentException("Only terrain types that produce resources can have production numbers.");
         }
     }
 
     public HexCoord Coord { get; }
     public TerrainType TerrainType { get; }
-    public Resource? Resource { get; }
+    public Resource? Resource => TerrainTypeMappings.TerrainResourceMap[TerrainType];
     public int? ProductionNumber { get; }
 
     public override string ToString()

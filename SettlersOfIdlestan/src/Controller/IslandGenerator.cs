@@ -16,40 +16,48 @@ public class IslandGenerator
     /// The tiles are shuffled and assigned to coordinates in a spiral order to ensure connectivity.
     /// Water tiles are added around the land tiles.
     /// </summary>
-    /// <param name="landData">The list of land tile data (resource and production number).</param>
+    /// <param name="tileData">The list of land tile data (resource and tile count).</param>
     /// <returns>The generated island map.</returns>
-    public IslandMap GenerateIsland(IEnumerable<(Resource resource, int? productionNumber)> landData)
+    public IslandMap GenerateIsland(IEnumerable<(TerrainType terrainType, int tileCount)> tileData)
     {
-        var landList = landData.ToList();
-        if (landList.Count == 0)
+        var tileList = new List<TerrainType>();
+        foreach (var (terrainType, tileCount) in tileData)
+        {
+            for (int i = 0; i < tileCount; i++)
+            {
+                tileList.Add(terrainType);
+            }
+        }
+        if (tileList.Count == 0)
         {
             return new IslandMap([]);
         }
 
         // Shuffle the land tiles for randomness
-        var shuffledLand = Shuffle(landList);
+        var shuffledTiles = Shuffle(tileList);
 
         // Generate coordinates in spiral order
-        var landCoords = GenerateSpiralCoords(shuffledLand.Count).ToList();
+        var coords = GenerateSpiralCoords(shuffledTiles.Count).ToList();
 
         // Create new land tiles with assigned coordinates
         var tiles = new List<HexTile>();
-        for (int i = 0; i < shuffledLand.Count; i++)
+        for (int i = 0; i < shuffledTiles.Count; i++)
         {
-            var (resource, productionNumber) = shuffledLand[i];
-            var newTile = new HexTile(landCoords[i], TerrainType.Land, resource, productionNumber);
+            var terrainType = shuffledTiles[i];
+
+            var newTile = new HexTile(coords[i], terrainType, null);
             tiles.Add(newTile);
         }
 
         // Find water coordinates: neighbors of land that are not land
-        var landCoordSet = new HashSet<HexCoord>(landCoords);
+        var coordset = new HashSet<HexCoord>(coords);
         var waterCoords = new HashSet<HexCoord>();
-        foreach (var landCoord in landCoords)
+        foreach (var landCoord in coords)
         {
             foreach (var direction in HexDirectionUtils.AllHexDirections)
             {
                 var neighbor = landCoord.Neighbor(direction);
-                if (!landCoordSet.Contains(neighbor))
+                if (!coordset.Contains(neighbor))
                 {
                     waterCoords.Add(neighbor);
                 }

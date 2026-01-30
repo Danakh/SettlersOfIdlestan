@@ -14,19 +14,43 @@ public class IslandGeneratorTests
     {
         // Arrange
         var generator = new IslandGenerator();
-        var landData = new List<(Resource resource, int? productionNumber)>
+        var tileData = new List<(TerrainType terrainType, int tileCount)>
         {
-            (Resource.Wood, 5),
-            (Resource.Brick, 6),
-            (Resource.Sheep, 8),
+            (TerrainType.Forest, 5),
+            (TerrainType.Hill, 6),
+            (TerrainType.Pasture, 8),
         };
 
         // Act
-        var map = generator.GenerateIsland(landData);
+        var map = generator.GenerateIsland(tileData);
+        Assert.NotNull(map);
+        Assert.Equal(5 + 6 + 8, map.Tiles.Count(t => t.Value.TerrainType != TerrainType.Water));
+        Assert.Equal(5, map.Tiles.Count(t => t.Value.TerrainType == TerrainType.Forest));
+        Assert.DoesNotContain(map.Tiles, t => t.Value.TerrainType == TerrainType.Desert);
+    }
+
+    [Fact]
+    public void GenerateIsland_LandTilesHaveAtLeastTwoNeighborsSmall()
+    {
+        // Arrange
+        var generator = new IslandGenerator();
+        var tileData = new List<(TerrainType terrainType, int productionNumber)>
+        {
+            (TerrainType.Forest, 1),
+            (TerrainType.Hill, 1),
+            (TerrainType.Pasture, 1),
+        };
+
+        // Act
+        var map = generator.GenerateIsland(tileData);
 
         // Assert
-        Assert.Equal(3, map.Tiles.Count(t => t.Value.TerrainType == TerrainType.Land));
-        Assert.True(map.Tiles.Any(t => t.Value.TerrainType == TerrainType.Water));
+        var landTilesInMap = map.Tiles.Values.Where(t => t.Resource.HasValue).ToList();
+        foreach (var tile in landTilesInMap)
+        {
+            var landNeighbors = map.GetNeighbors(tile.Coord).Count(n => n.Resource.HasValue);
+            Assert.True(landNeighbors >= 2, $"Tile at {tile.Coord} has only {landNeighbors} land neighbors");
+        }
     }
 
     [Fact]
@@ -34,25 +58,25 @@ public class IslandGeneratorTests
     {
         // Arrange
         var generator = new IslandGenerator();
-        var landData = new List<(Resource resource, int? productionNumber)>
+        var tileData = new List<(TerrainType terrainType, int productionNumber)>
         {
-            (Resource.Wood, 5),
-            (Resource.Brick, 6),
-            (Resource.Sheep, 8),
-            (Resource.Wheat, 9),
-            (Resource.Ore, 10),
-            (Resource.Wood, 11),
-            (Resource.Brick, 12),
+            (TerrainType.Forest, 5),
+            (TerrainType.Hill, 6),
+            (TerrainType.Pasture, 8),
+            (TerrainType.Field, 9),
+            (TerrainType.Mountain, 10),
+            (TerrainType.Forest, 11),
+            (TerrainType.Hill, 12),
         };
 
         // Act
-        var map = generator.GenerateIsland(landData);
+        var map = generator.GenerateIsland(tileData);
 
         // Assert
-        var landTilesInMap = map.Tiles.Values.Where(t => t.TerrainType == TerrainType.Land).ToList();
+        var landTilesInMap = map.Tiles.Values.Where(t => t.Resource.HasValue).ToList();
         foreach (var tile in landTilesInMap)
         {
-            var landNeighbors = map.GetNeighbors(tile.Coord).Count(n => n.TerrainType == TerrainType.Land);
+            var landNeighbors = map.GetNeighbors(tile.Coord).Count(n => n.Resource.HasValue);
             Assert.True(landNeighbors >= 2, $"Tile at {tile.Coord} has only {landNeighbors} land neighbors");
         }
     }
@@ -62,18 +86,18 @@ public class IslandGeneratorTests
     {
         // Arrange
         var generator = new IslandGenerator();
-        var landData = new List<(Resource resource, int? productionNumber)>
+        var tileData = new List<(TerrainType terrainType, int productionNumber)>
         {
-            (Resource.Wood, 5),
-            (Resource.Brick, 6),
-            (Resource.Sheep, 8),
+            (TerrainType.Forest, 5),
+            (TerrainType.Hill, 6),
+            (TerrainType.Pasture, 8),
         };
 
         // Act
-        var map = generator.GenerateIsland(landData);
+        var map = generator.GenerateIsland(tileData);
 
         // Assert
-        var landTilesInMap = map.Tiles.Values.Where(t => t.TerrainType == TerrainType.Land).ToList();
+        var landTilesInMap = map.Tiles.Values.Where(t => t.Resource.HasValue).ToList();
         foreach (var tile in landTilesInMap)
         {
             var waterNeighbors = map.GetNeighbors(tile.Coord).Count(n => n.TerrainType == TerrainType.Water);
@@ -86,23 +110,23 @@ public class IslandGeneratorTests
     {
         // Arrange
         var generator = new IslandGenerator();
-        var landData = new List<(Resource resource, int? productionNumber)>
+        var tileData = new List<(TerrainType terrainType, int productionNumber)>
         {
-            (Resource.Wood, 5),
-            (Resource.Brick, 6),
-            (Resource.Sheep, 8),
-            (Resource.Wheat, 9),
-            (Resource.Ore, 10),
+            (TerrainType.Forest, 5),
+            (TerrainType.Hill, 6),
+            (TerrainType.Pasture, 8),
+            (TerrainType.Field, 9),
+            (TerrainType.Mountain, 10),
         };
 
         // Act
-        var map = generator.GenerateIsland(landData);
+        var map = generator.GenerateIsland(tileData);
 
         // Assert
-        var resources = map.Tiles.Values.Where(t => t.TerrainType == TerrainType.Land).Select(t => t.Resource).ToList();
+        var resources = map.Tiles.Values.Where(t => t.Resource.HasValue).Select(t => t.Resource!.Value).ToList();
         Assert.Contains(Resource.Wood, resources);
         Assert.Contains(Resource.Brick, resources);
-        Assert.True(map.Tiles.Values.Any(t => t.TerrainType == TerrainType.Water));
+        Assert.Contains(map.Tiles.Values, t => t.TerrainType == TerrainType.Water);
     }
 
     [Fact]
@@ -110,7 +134,7 @@ public class IslandGeneratorTests
     {
         // Arrange
         var generator = new IslandGenerator();
-        var landData = new List<(Resource resource, int? productionNumber)>();
+        var landData = new List<(TerrainType resource, int count)>();
 
         // Act
         var map = generator.GenerateIsland(landData);
