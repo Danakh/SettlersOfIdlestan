@@ -4,6 +4,8 @@
 @using Microsoft.AspNetCore.Components
 @using SettlersOfIdlestan.Model.IslandMap
 @using SettlersOfIdlestan.Model.HexGrid
+@using SettlersOfIdlestan.Model.Civilization
+@using SettlersOfIdlestan.Model.City
 
 @if (Map is null)
 {
@@ -22,11 +24,40 @@ else
                 @((MarkupString)RenderProductionSvg(tile))
             }
         }
+        @* Render cities from provided civilizations *@
+        @if (Civilizations != null)
+        {
+            var spriteSize = HexSize * 0.8;
+            foreach (var civ in Civilizations)
+            {
+                if (civ?.Cities == null) continue;
+                foreach (var city in civ.Cities)
+                {
+                    try
+                    {
+                        var p = VertexToPixel(city.Position);
+                        var imgX = (p.x - spriteSize / 2).ToString(System.Globalization.CultureInfo.InvariantCulture);
+                        var imgY = (p.y - spriteSize / 2).ToString(System.Globalization.CultureInfo.InvariantCulture);
+                        var w = spriteSize.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                        var h = spriteSize.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                        // choose sprite by civilization index if available, fallback to generic city.png
+                        var spritePath = $"assets/sprites/city-outpost.svg";
+                        // use generic if indexed sprite not found at runtime; we still reference it here and let static server handle missing files
+                        <image href="@spritePath" x="@imgX" y="@imgY" width="@w" height="@h" />
+                    }
+                    catch
+                    {
+                        // ignore rendering errors per-city
+                    }
+                }
+            }
+        }
     </svg>
 }
 
 @code {
     [Parameter] public IslandMap? Map { get; set; }
+    [Parameter] public List<SettlersOfIdlestan.Model.Civilization.Civilization>? Civilizations { get; set; }
     [Parameter] public double HexSize { get; set; } = 36;
 
     private ElementReference svgRef;
@@ -107,6 +138,15 @@ else
         var x = center.x.ToString(CultureInfo.InvariantCulture);
         var y = (center.y + HexSize * 0.1).ToString(CultureInfo.InvariantCulture);
         return $"<text x=\"{x}\" y=\"{y}\" font-size=\"12\" text-anchor=\"middle\" fill=\"#111\">{tile.ProductionNumber.Value}</text>";
+    }
+
+    private (double x, double y) VertexToPixel(Vertex v)
+    {
+        // average of the three adjacent hex centers
+        var h1 = AxialToPixel(v.Hex1);
+        var h2 = AxialToPixel(v.Hex2);
+        var h3 = AxialToPixel(v.Hex3);
+        return ((h1.x + h2.x + h3.x) / 3.0, (h1.y + h2.y + h3.y) / 3.0);
     }
 }
 

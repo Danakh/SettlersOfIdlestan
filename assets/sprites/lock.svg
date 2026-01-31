@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 32" width="48" height="32">
+  <!-- Lock icon - simple and clean -->
+  <!-- Shackle (U-shaped top) -->
+  <path d="M24 10 L24 8 Q24 6 26 6 L28 6 Q30 6 30 8 L30 12" 
+        stroke="#000000" 
+        stroke-width="2" 
+        fill="none" 
+        stroke-linecap="round"/>
+  <!-- Lock body -->
+  <rect x="18" y="12" width="12" height="14" rx="2" 
+        fill="#000000" 
+        stroke="#000000" 
+        stroke-width="1.5"/>
+  <!-- Keyhole -->
+  <circle cx="24" cy="18" r="2.5" fill="#FFFFFF"/>
+  <rect x="23" y="18" width="2" height="6" fill="#FFFFFF"/>
+</svg>
