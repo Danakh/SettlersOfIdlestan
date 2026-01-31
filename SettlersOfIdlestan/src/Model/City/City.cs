@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using SettlersOfIdlestan.Model.Buildings;
+using SettlersOfIdlestan.Model.HexGrid;
 
 namespace SettlersOfIdlestan.Model.City;
 
@@ -8,6 +9,16 @@ namespace SettlersOfIdlestan.Model.City;
 /// </summary>
 public class City
 {
+    /// <summary>
+    /// Gets or sets the position of the city on the hex grid.
+    /// </summary>
+    public Vertex Position { get; set; }
+
+    /// <summary>
+    /// Gets or sets the index of the civilization this city belongs to.
+    /// </summary>
+    public int CivilizationIndex { get; set; }
+
     /// <summary>
     /// Gets the list of buildings in the city.
     /// </summary>
