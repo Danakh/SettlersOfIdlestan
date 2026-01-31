@@ -131,5 +131,32 @@ public class Building
     {
         Type = type;
         Level = level;
+        Description = GetDefaultDescription(type);
+    }
+
+    /// <summary>
+    /// Gets the default description for the specified building type.
+    /// </summary>
+    /// <param name="type">The building type.</param>
+    /// <returns>The default description.</returns>
+    private static string GetDefaultDescription(BuildingType type)
+    {
+        return type switch
+        {
+            BuildingType.TownHall => "Hôtel de ville - Permet l'amélioration de la ville",
+            BuildingType.Market => "Marché - Permet le commerce (4:1)",
+            BuildingType.Sawmill => "Scierie - Produit du bois",
+            BuildingType.Brickworks => "Briqueterie - Produit de la brique",
+            BuildingType.Mill => "Moulin - Produit du blé",
+            BuildingType.Sheepfold => "Bergerie - Produit du mouton",
+            BuildingType.Mine => "Mine - Produit du minerai",
+            BuildingType.Seaport => "Port maritime - Permet le commerce maritime (3:1), nécessite de l'eau. Disponible au niveau Ville (2). Niveau 4 débloque l'action Prestige.",
+            BuildingType.Warehouse => "Entrepôt - Augmente la capacité de stockage des ressources",
+            BuildingType.Forge => "Forge - Améliore la production de minerai et permet la création d'outils",
+            BuildingType.Library => "Bibliothèque - Augmente la production de connaissances et permet des améliorations",
+            BuildingType.Temple => "Temple - Ajoute des points de civilisation",
+            BuildingType.BuildersGuild => "Guilde des batisseurs - Permet l'automatisation de constructions. Disponible au niveau Capitale (4).",
+            _ => "Description inconnue"
+        };
     }
 }

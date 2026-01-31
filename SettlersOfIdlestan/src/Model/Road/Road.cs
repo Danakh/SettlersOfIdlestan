@@ -19,4 +19,13 @@ public class Road
     /// Gets or sets the index of the civilization this road belongs to.
     /// </summary>
     public int CivilizationIndex { get; set; }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Road"/> class with the specified position.
+    /// </summary>
+    /// <param name="position">The position of the road on the hex grid.</param>
+    public Road(Edge position)
+    {
+        Position = position;
+    }
 }

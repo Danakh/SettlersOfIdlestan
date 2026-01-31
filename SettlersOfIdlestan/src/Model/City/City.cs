@@ -25,4 +25,13 @@ public class City
     /// Gets the list of buildings in the city.
     /// </summary>
     public List<Building> Buildings { get; } = new();
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="City"/> class with the specified position.
+    /// </summary>
+    /// <param name="position">The position of the city on the hex grid.</param>
+    public City(Vertex position)
+    {
+        Position = position;
+    }
 }

@@ -17,5 +17,21 @@ public class IslandState
     /// <summary>
     /// Gets the list of civilizations on the island.
     /// </summary>
-    public List<SettlersOfIdlestan.Model.Civilization.Civilization> Civilizations { get; } = new();
+    public List<SettlersOfIdlestan.Model.Civilization.Civilization> Civilizations { get; }
+
+    /// <summary>
+    /// Gets the player's civilization (always at index 0).
+    /// </summary>
+    public SettlersOfIdlestan.Model.Civilization.Civilization PlayerCivilization => Civilizations[0];
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="IslandState"/> class.
+    /// </summary>
+    /// <param name="map">The island map.</param>
+    /// <param name="civilizations">The list of civilizations.</param>
+    public IslandState(IslandMap map, List<SettlersOfIdlestan.Model.Civilization.Civilization> civilizations)
+    {
+        Map = map;
+        Civilizations = civilizations;
+    }
 }
