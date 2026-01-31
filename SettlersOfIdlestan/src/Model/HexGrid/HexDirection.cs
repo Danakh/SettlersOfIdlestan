@@ -18,14 +18,14 @@ public enum HexDirection
 {
     /// <summary> Ouest </summary>
     W = 0,
-    /// <summary> Est </summary>
-    E = 1,
+    /// <summary> Nord-Ouest </summary>
+    NW = 1,
     /// <summary> Nord-Est </summary>
     NE = 2,
+    /// <summary> Est </summary>
+    E = 3,
     /// <summary> Sud-Est </summary>
-    SE = 3,
-    /// <summary> Nord-Ouest </summary>
-    NW = 4,
+    SE = 4,
     /// <summary> Sud-Ouest </summary>
     SW = 5,
 }
@@ -40,10 +40,10 @@ public static class HexDirectionUtils
     /// </summary>
     public static readonly HexDirection[] AllHexDirections = [
         HexDirection.W,
-        HexDirection.E,
-        HexDirection.NE,
-        HexDirection.SE,
         HexDirection.NW,
+        HexDirection.NE,
+        HexDirection.E,
+        HexDirection.SE,
         HexDirection.SW,
     ];
 
@@ -71,5 +71,13 @@ public static class HexDirectionUtils
     public static HexDirection Next(this HexDirection direction)
     {
         return (HexDirection)((int)(direction + 1) % 6);
+    }
+
+    /// <summary>
+    /// Retourne la direction précédante dans le sens horaire.
+    /// </summary>
+    public static HexDirection Previous(this HexDirection direction)
+    {
+        return (HexDirection)((int)(direction + 5) % 6);
     }
 }

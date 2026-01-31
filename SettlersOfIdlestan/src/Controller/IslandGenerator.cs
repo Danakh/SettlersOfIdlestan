@@ -2,6 +2,8 @@ using System.Collections.Generic;
 using System.Linq;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
+using SettlersOfIdlestan.Model.Civilization;
+using SettlersOfIdlestan.Model.City;
 
 namespace SettlersOfIdlestan.Controller;
 
@@ -18,9 +20,15 @@ public class IslandGenerator
     /// Water tiles are added around the land tiles.
     /// </summary>
     /// <param name="tileData">The list of land tile data (resource and tile count).</param>
-    /// <returns>The generated island map.</returns>
-    public IslandMap GenerateIsland(IEnumerable<(TerrainType terrainType, int tileCount)> tileData)
+    /// <param name="civilizations">The list of civilizations.</param>
+    /// <returns>The generated island map, or null if generation fails.</returns>
+    public IslandMap? GenerateIsland(IEnumerable<(TerrainType terrainType, int tileCount)> tileData, List<Civilization> civilizations)
     {
+        if (civilizations == null || civilizations.Count == 0)
+        {
+            return null;
+        }
+
         var tileList = new List<TerrainType>();
         foreach (var (terrainType, tileCount) in tileData)
         {
@@ -37,6 +45,7 @@ public class IslandGenerator
         bool hasHill = tileList.Contains(TerrainType.Hill);
         bool hasForest = tileList.Contains(TerrainType.Forest);
         IslandMap map;
+        Vertex? vertex = null;
         int attempts = 0;
         do
         {
@@ -129,8 +138,22 @@ public class IslandGenerator
             }
 
             map = new IslandMap(tiles);
+            vertex = FindVertexAdjacentToHillForestWater(map);
             attempts++;
-        } while (hasHill && hasForest && !HasVertexAdjacentToHillForestWater(map) && attempts < 10);
+        } while (hasHill && hasForest && vertex == null && attempts < 10);
+
+        if (hasHill && hasForest && vertex == null)
+        {
+            return null;
+        }
+
+        if (vertex != null)
+        {
+            var civ = civilizations[0];
+            var city = new City(vertex);
+            city.CivilizationIndex = civ.Index;
+            civ.Cities.Add(city);
+        }
 
         return map;
     }
@@ -194,28 +217,41 @@ public class IslandGenerator
     }
 
     /// <summary>
-    /// Checks if the map has a vertex adjacent to Hill, Forest, and Water.
+    /// Finds a vertex adjacent to Hill, Forest, and Water tiles.
     /// </summary>
-    private bool HasVertexAdjacentToHillForestWater(IslandMap map)
+    static public Vertex? FindVertexAdjacentToHillForestWater(IslandMap map)
     {
         var coordToTerrain = map.Tiles.ToDictionary(t => t.Key, t => t.Value.TerrainType);
         foreach (var kvp in map.Tiles)
         {
             var a = kvp.Key;
             var terrainA = kvp.Value.TerrainType;
+            if (terrainA != TerrainType.Hill)
+            {
+                continue;
+            }
             foreach (var d in HexDirectionUtils.AllHexDirections)
             {
                 var b = a.Neighbor(d);
-                var terrainB = coordToTerrain.TryGetValue(b, out var tb) ? tb : TerrainType.Water;
-                var c = a.Neighbor(d.Next());
-                var terrainC = coordToTerrain.TryGetValue(c, out var tc) ? tc : TerrainType.Water;
-                var terrains = new HashSet<TerrainType> { terrainA, terrainB, terrainC };
-                if (terrains.SetEquals(new HashSet<TerrainType> { TerrainType.Hill, TerrainType.Forest, TerrainType.Water }))
+                var terrainB = coordToTerrain.TryGetValue(b, out var tb) ? tb : TerrainType.Desert;
+                if (terrainB != TerrainType.Forest)
                 {
-                    return true;
+                    continue;
+                }
+                var c = a.Neighbor(d.Next());
+                var terrainC = coordToTerrain.TryGetValue(c, out var tc) ? tc : TerrainType.Desert;
+                if (terrainC == TerrainType.Water)
+                {
+                    return Vertex.Create(a, b, c);
+                }
+                c = a.Neighbor(d.Previous());
+                terrainC = coordToTerrain.TryGetValue(c, out tc) ? tc : TerrainType.Desert;
+                if (terrainC == TerrainType.Water)
+                {
+                    return Vertex.Create(a, b, c);
                 }
             }
         }
-        return false;
+        return null;
     }
 }
