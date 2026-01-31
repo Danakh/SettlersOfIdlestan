@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using SettlersOfIdlestan.Model.HexGrid;
 
@@ -6,6 +7,7 @@ namespace SettlersOfIdlestan.Model.IslandMap;
 /// <summary>
 /// Represents the island map, containing a collection of hex tiles.
 /// </summary>
+[Serializable]
 public class IslandMap
 {
     private readonly Dictionary<HexCoord, HexTile> _tiles = new();

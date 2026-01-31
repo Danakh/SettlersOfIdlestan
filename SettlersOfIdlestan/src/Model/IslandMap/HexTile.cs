@@ -1,3 +1,4 @@
+using System;
 using SettlersOfIdlestan.Model.HexGrid;
 
 namespace SettlersOfIdlestan.Model.IslandMap;
@@ -5,6 +6,7 @@ namespace SettlersOfIdlestan.Model.IslandMap;
 /// <summary>
 /// Represents a tile on the island map, which is a hexagon with a terrain type and optional resource.
 /// </summary>
+[Serializable]
 public class HexTile
 {
     public HexTile(HexCoord coord, TerrainType terrainType, int? productionNumber = null)

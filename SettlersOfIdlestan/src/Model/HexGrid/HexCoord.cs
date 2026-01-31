@@ -13,6 +13,7 @@ namespace SettlersOfIdlestan.Model.HexGrid;
 /// selon la direction choisie. Ce système est plus simple que les coordonnées
 /// cubiques (q, r, s) car la troisième coordonnée peut être dérivée: s = -q - r
 /// </summary>
+[Serializable]
 public class HexCoord
 {
     public HexCoord(int q, int r)

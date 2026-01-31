@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.HexGrid;
@@ -7,6 +8,7 @@ namespace SettlersOfIdlestan.Model.City;
 /// <summary>
 /// Represents a city in the game.
 /// </summary>
+[Serializable]
 public class City
 {
     /// <summary>

@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 
 namespace SettlersOfIdlestan.Model.HexGrid;
@@ -13,6 +14,7 @@ namespace SettlersOfIdlestan.Model.HexGrid;
 /// qui se rencontrent à ce point. L'ordre des hexagones est normalisé pour
 /// garantir l'unicité.
 /// </summary>
+[Serializable]
 public class Vertex
 {
     private Vertex(HexCoord hex1, HexCoord hex2, HexCoord hex3)

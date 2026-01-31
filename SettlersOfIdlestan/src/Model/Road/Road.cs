@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using SettlersOfIdlestan.Model.HexGrid;
 
@@ -6,6 +7,7 @@ namespace SettlersOfIdlestan.Model.Road;
 /// <summary>
 /// Represents a road connecting two cities.
 /// </summary>
+[Serializable]
 public class Road
 {
     /// <summary>

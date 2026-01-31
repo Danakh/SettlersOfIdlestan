@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 namespace SettlersOfIdlestan.Model.IslandMap;
@@ -5,6 +6,7 @@ namespace SettlersOfIdlestan.Model.IslandMap;
 /// <summary>
 /// Represents the state of an island, containing the map and all civilizations.
 /// </summary>
+[Serializable]
 public class IslandState
 {
     /// <summary>

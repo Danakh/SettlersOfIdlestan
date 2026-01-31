@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 namespace SettlersOfIdlestan.Model.Civilization;
@@ -5,6 +6,7 @@ namespace SettlersOfIdlestan.Model.Civilization;
 /// <summary>
 /// Represents a civilization with a list of cities and roads.
 /// </summary>
+[Serializable]
 public class Civilization
 {
     /// <summary>

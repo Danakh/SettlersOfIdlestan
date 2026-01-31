@@ -1,4 +1,5 @@
 using SettlersOfIdlestan.Model.Buildings;
+using System;
 using System.Collections.Generic;
 using SettlersOfIdlestan.Model.IslandMap;
 
@@ -66,6 +67,7 @@ public enum BuildingType
 /// <summary>
 /// Represents a building in the game.
 /// </summary>
+[Serializable]
 public class Building
 {
     /// <summary>
