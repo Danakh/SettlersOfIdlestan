@@ -86,11 +86,11 @@ public class IslandGeneratorTests
     {
         // Arrange
         var generator = new IslandGenerator();
-        var tileData = new List<(TerrainType terrainType, int productionNumber)>
+        var tileData = new List<(TerrainType terrainType, int tileCount)>
         {
-            (TerrainType.Forest, 5),
-            (TerrainType.Hill, 6),
-            (TerrainType.Pasture, 8),
+            (TerrainType.Forest, 1),
+            (TerrainType.Hill, 1),
+            (TerrainType.Pasture, 1),
         };
 
         // Act
@@ -141,5 +141,47 @@ public class IslandGeneratorTests
 
         // Assert
         Assert.Empty(map.Tiles);
+    }
+
+    [Fact]
+    public void GenerateIsland_HasVertexAdjacentToHillForestWater_WhenPossible()
+    {
+        // Arrange
+        var generator = new IslandGenerator();
+        var tileData = new List<(TerrainType terrainType, int tileCount)>
+        {
+            (TerrainType.Hill, 1),
+            (TerrainType.Forest, 1),
+            (TerrainType.Pasture, 1),
+        };
+
+        // Act
+        var map = generator.GenerateIsland(tileData);
+
+        // Assert
+        Assert.True(HasVertexAdjacentToHillForestWater(map), "No vertex adjacent to Hill, Forest, and Water found.");
+    }
+
+    private bool HasVertexAdjacentToHillForestWater(IslandMap map)
+    {
+        var coordToTerrain = map.Tiles.ToDictionary(t => t.Key, t => t.Value.TerrainType);
+        foreach (var kvp in map.Tiles)
+        {
+            var a = kvp.Key;
+            var terrainA = kvp.Value.TerrainType;
+            foreach (var d in HexDirectionUtils.AllHexDirections)
+            {
+                var b = a.Neighbor(d);
+                var terrainB = coordToTerrain.TryGetValue(b, out var tb) ? tb : TerrainType.Water;
+                var c = a.Neighbor(d.Next());
+                var terrainC = coordToTerrain.TryGetValue(c, out var tc) ? tc : TerrainType.Water;
+                var terrains = new HashSet<TerrainType> { terrainA, terrainB, terrainC };
+                if (terrains.SetEquals(new HashSet<TerrainType> { TerrainType.Hill, TerrainType.Forest, TerrainType.Water }))
+                {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 }

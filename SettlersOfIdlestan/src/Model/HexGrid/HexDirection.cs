@@ -64,4 +64,12 @@ public static class HexDirectionUtils
             _ => throw new ArgumentOutOfRangeException(nameof(direction)),
         };
     }
+
+    /// <summary>
+    /// Retourne la direction suivante dans le sens horaire.
+    /// </summary>
+    public static HexDirection Next(this HexDirection direction)
+    {
+        return (HexDirection)((int)(direction + 1) % 6);
+    }
 }
