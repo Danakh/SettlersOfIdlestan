@@ -12,17 +12,20 @@ namespace SettlersOfIdlestan.Model.Game
     {
         public GodState GodState { get; set; }
         public GameClock Clock { get; set; }
+        public GamePRNG PRNG { get; set; }
 
         public MainGameState()
         {
             GodState = new GodState();
             Clock = new GameClock();
+            PRNG = new GamePRNG();
         }
 
         public MainGameState(GodState godState, GameClock clock)
         {
             GodState = godState;
             Clock = clock;
+            PRNG = new GamePRNG();
         }
     }
 }

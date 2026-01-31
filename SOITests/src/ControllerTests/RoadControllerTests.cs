@@ -119,12 +119,14 @@ public class RoadControllerTests
         var a = new HexCoord(0, 0);
         var b = new HexCoord(1, 0);
         var c = new HexCoord(0, 1);
+        var d = new HexCoord(1, 1);
 
         var tiles = new[]
         {
             new HexTile(a, TerrainType.Field),
             new HexTile(b, TerrainType.Field),
             new HexTile(c, TerrainType.Field),
+            new HexTile(d, TerrainType.Field),
         };
 
         var map = new IslandMap(tiles);
@@ -140,8 +142,8 @@ public class RoadControllerTests
         civ.Cities.Add(new City(vertex) { CivilizationIndex = 0 });
 
         var controller = new RoadController(state);
-        var e1 = Edge.Create(a, b);
-        var e2 = Edge.Create(b, c);
+        var e1 = Edge.Create(b, c);
+        var e2 = Edge.Create(b, d);
 
         var r1 = controller.BuildRoad(0, e1);
         Assert.Contains(civ.Roads, r => r.Position.Equals(e1));

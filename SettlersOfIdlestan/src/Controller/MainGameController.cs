@@ -35,16 +35,24 @@ namespace SettlersOfIdlestan.Controller
                 var civ = new Civilization { Index = i };
                 civs.Add(civ);
             }
+            // Create a main state early so we can use its PRNG for deterministic generation
+            var mainState = new MainGameState();
 
-            var map = _islandGenerator.GenerateIsland(tileData, civs);
+            // Use a generator wired with the main state's PRNG to ensure reproducible maps
+            var generator = new IslandGenerator(mainState.PRNG);
+            var map = generator.GenerateIsland(tileData, civs);
             if (map is null) return null;
 
             var islandState = new IslandState(map, civs);
             var prestigeState = new PrestigeState(islandState);
             var godState = new GodState(prestigeState);
-            var clock = new GameClock();
+            var clock = mainState.Clock;
 
-            return new MainGameState(godState, clock);
+            // populate the main state with the created sub-states
+            mainState.GodState = godState;
+            mainState.Clock = clock;
+
+            return mainState;
         }
     }
 }

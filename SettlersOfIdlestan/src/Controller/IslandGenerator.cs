@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using SettlersOfIdlestan.Model.HexGrid;
+using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.City;
@@ -14,6 +15,12 @@ namespace SettlersOfIdlestan.Controller;
 /// </summary>
 public class IslandGenerator
 {
+    private readonly GamePRNG _prng;
+
+    public IslandGenerator(GamePRNG? prng = null)
+    {
+        _prng = prng ?? new GamePRNG();
+    }
     /// <summary>
     /// Generates an island map from the provided land tile data.
     /// The tiles are shuffled and assigned to coordinates in a spiral order to ensure connectivity.
@@ -202,17 +209,12 @@ public class IslandGenerator
     }
 
     /// <summary>
-    /// Shuffles a list randomly.
+    /// Shuffles a list randomly using the configured PRNG if available.
     /// </summary>
-    private static List<T> Shuffle<T>(List<T> list)
+    private List<T> Shuffle<T>(List<T> list)
     {
         var shuffled = new List<T>(list);
-        var random = new Random();
-        for (int i = shuffled.Count - 1; i > 0; i--)
-        {
-            int j = random.Next(i + 1);
-            (shuffled[i], shuffled[j]) = (shuffled[j], shuffled[i]);
-        }
+        _prng.Shuffle(shuffled);
         return shuffled;
     }
 
