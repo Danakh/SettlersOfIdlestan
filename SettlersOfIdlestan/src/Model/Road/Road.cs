@@ -21,6 +21,11 @@ public class Road
     public int CivilizationIndex { get; set; }
 
     /// <summary>
+    /// Distance to the nearest city of the same civilization (1 = adjacent to a city).
+    /// </summary>
+    public int DistanceToNearestCity { get; set; }
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="Road"/> class with the specified position.
     /// </summary>
     /// <param name="position">The position of the road on the hex grid.</param>

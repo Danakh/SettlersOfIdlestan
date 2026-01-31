@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using SettlersOfIdlestan.Model.IslandMap;
 
 namespace SettlersOfIdlestan.Model.Civilization;
 
@@ -23,4 +24,9 @@ public class Civilization
     /// Gets the list of roads in the civilization.
     /// </summary>
     public List<SettlersOfIdlestan.Model.Road.Road> Roads { get; } = new();
+
+    /// <summary>
+    /// Liste des ressources détenues par la civilisation.
+    /// </summary>
+    public List<Resource> Resources { get; } = new();
 }

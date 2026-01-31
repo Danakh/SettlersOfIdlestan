@@ -169,7 +169,7 @@ public class Edge
     public int[][] Serialize()
     {
         var (a, b) = GetHexes();
-        return [a.Serialize(), b.Serialize()];
+        return new[] { a.Serialize(), b.Serialize() };
     }
 
     /// <summary>
@@ -178,5 +178,33 @@ public class Edge
     public static Edge Deserialize(int[][] data)
     {
         return Create(HexCoord.Deserialize(data[0]), HexCoord.Deserialize(data[1]));
+    }
+
+    /// <summary>
+    /// Retourne les deux vertex (sommets) partagés par les deux hexagones formant l'arête.
+    /// </summary>
+    public Vertex[] GetVertices()
+    {
+        var (h1, h2) = GetHexes();
+        var verticesH1 = new[]
+        {
+            h1.Vertex(SecondaryHexDirection.N),
+            h1.Vertex(SecondaryHexDirection.EN),
+            h1.Vertex(SecondaryHexDirection.ES),
+            h1.Vertex(SecondaryHexDirection.S),
+            h1.Vertex(SecondaryHexDirection.WS),
+            h1.Vertex(SecondaryHexDirection.WN)
+        };
+        var verticesH2 = new[]
+        {
+            h2.Vertex(SecondaryHexDirection.N),
+            h2.Vertex(SecondaryHexDirection.EN),
+            h2.Vertex(SecondaryHexDirection.ES),
+            h2.Vertex(SecondaryHexDirection.S),
+            h2.Vertex(SecondaryHexDirection.WS),
+            h2.Vertex(SecondaryHexDirection.WN)
+        };
+
+        return verticesH1.Where(v1 => verticesH2.Any(v2 => v1.Equals(v2))).Distinct().ToArray();
     }
 }
