@@ -92,10 +92,8 @@ public class RoadControllerTests
         var map = new IslandMap(tiles);
         var civ = new Civilization { Index = 0 };
         // give enough resources: 2 wood and 2 brick
-        civ.Resources.Add(Resource.Wood);
-        civ.Resources.Add(Resource.Wood);
-        civ.Resources.Add(Resource.Brick);
-        civ.Resources.Add(Resource.Brick);
+        civ.AddResource(Resource.Wood, 2);
+        civ.AddResource(Resource.Brick, 2);
 
         var civs = new List<Civilization> { civ };
         var state = new IslandState(map, civs);
@@ -109,8 +107,8 @@ public class RoadControllerTests
 
         Assert.Contains(civ.Roads, r => r.Position.Equals(edge));
         Assert.Equal(1, road.DistanceToNearestCity);
-        Assert.Equal(0, civ.Resources.Count(r => r == Resource.Wood));
-        Assert.Equal(0, civ.Resources.Count(r => r == Resource.Brick));
+        Assert.Equal(0, civ.GetResourceQuantity(Resource.Wood));
+        Assert.Equal(0, civ.GetResourceQuantity(Resource.Brick));
     }
 
     [Fact]
@@ -132,8 +130,8 @@ public class RoadControllerTests
         var map = new IslandMap(tiles);
         var civ = new Civilization { Index = 0 };
         // give enough resources for two roads: first costs 2 each, second costs 8 each => total 10 each
-        for (int i = 0; i < 10; i++) civ.Resources.Add(Resource.Wood);
-        for (int i = 0; i < 10; i++) civ.Resources.Add(Resource.Brick);
+        civ.AddResource(Resource.Wood, 10);
+        civ.AddResource(Resource.Brick, 10);
 
         var civs = new List<Civilization> { civ };
         var state = new IslandState(map, civs);
@@ -153,7 +151,7 @@ public class RoadControllerTests
         Assert.Contains(civ.Roads, r => r.Position.Equals(e2));
         Assert.Equal(2, r2.DistanceToNearestCity);
 
-        Assert.Equal(0, civ.Resources.Count(r => r == Resource.Wood));
-        Assert.Equal(0, civ.Resources.Count(r => r == Resource.Brick));
+        Assert.Equal(0, civ.GetResourceQuantity(Resource.Wood));
+        Assert.Equal(0, civ.GetResourceQuantity(Resource.Brick));
     }
 }

@@ -28,5 +28,50 @@ public class Civilization
     /// <summary>
     /// Liste des ressources détenues par la civilisation.
     /// </summary>
-    public List<Resource> Resources { get; } = new();
+    // Resources are stored as a map from Resource -> quantity.
+    // Made private: access should be done through AddResource/RemoveResource and GetResourceQuantity.
+    private readonly Dictionary<Resource, int> _resources = new();
+
+    /// <summary>
+    /// Adds the given quantity of a resource to the civilization's stock.
+    /// </summary>
+    public void AddResource(Resource resource, int quantity)
+    {
+        if (quantity <= 0) throw new ArgumentOutOfRangeException(nameof(quantity), "Quantity must be positive.");
+
+        if (_resources.TryGetValue(resource, out var current))
+        {
+            _resources[resource] = current + quantity;
+        }
+        else
+        {
+            _resources[resource] = quantity;
+        }
+    }
+
+    /// <summary>
+    /// Removes the given quantity of a resource from the civilization's stock.
+    /// Throws InvalidOperationException if not enough resource is available.
+    /// </summary>
+    public void RemoveResource(Resource resource, int quantity)
+    {
+        if (quantity <= 0) throw new ArgumentOutOfRangeException(nameof(quantity), "Quantity must be positive.");
+
+        if (!_resources.TryGetValue(resource, out var current) || current < quantity)
+            throw new InvalidOperationException($"Not enough {resource} to remove: requested {quantity}, available {current}.");
+
+        var remaining = current - quantity;
+        if (remaining > 0)
+            _resources[resource] = remaining;
+        else
+            _resources.Remove(resource);
+    }
+
+    /// <summary>
+    /// Gets the current quantity of the given resource (0 if none).
+    /// </summary>
+    public int GetResourceQuantity(Resource resource)
+    {
+        return _resources.TryGetValue(resource, out var q) ? q : 0;
+    }
 }

@@ -125,20 +125,15 @@ namespace SettlersOfIdlestan.Controller
             // cost = 2 * distance^2 for both wood and brick
             var cost = 2 * (distance * distance);
 
-            var woodCount = civ.Resources.Count(r => r == Resource.Wood);
-            var brickCount = civ.Resources.Count(r => r == Resource.Brick);
+            var woodCount = civ.GetResourceQuantity(Resource.Wood);
+            var brickCount = civ.GetResourceQuantity(Resource.Brick);
 
             if (woodCount < cost || brickCount < cost)
                 throw new InvalidOperationException("Not enough resources to build the road");
 
             // consume resources
-            for (int i = 0; i < cost; i++)
-            {
-                var w = civ.Resources.IndexOf(Resource.Wood);
-                if (w >= 0) civ.Resources.RemoveAt(w);
-                var b = civ.Resources.IndexOf(Resource.Brick);
-                if (b >= 0) civ.Resources.RemoveAt(b);
-            }
+            civ.RemoveResource(Resource.Wood, cost);
+            civ.RemoveResource(Resource.Brick, cost);
 
             var road = new Road(edge) { CivilizationIndex = civilizationIndex, DistanceToNearestCity = distance };
             civ.Roads.Add(road);
