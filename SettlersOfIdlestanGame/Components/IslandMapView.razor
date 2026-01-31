@@ -1,0 +1,112 @@
+
+@using System.Linq
+@using System.Globalization
+@using Microsoft.AspNetCore.Components
+@using SettlersOfIdlestan.Model.IslandMap
+@using SettlersOfIdlestan.Model.HexGrid
+
+@if (Map is null)
+{
+    <div class="map-placeholder">Aucune carte fournie</div>
+}
+else
+{
+    <svg @ref="svgRef" width="@SvgWidth" height="@SvgHeight" viewBox="@ViewBox" style="background:#eef2f5">
+        @foreach (var tile in Map.Tiles.Values)
+        {
+            var center = AxialToPixel(tile.Coord);
+            var points = GetHexPoints(center.x, center.y);
+            <polygon points="@points" fill="@TerrainColor(tile.TerrainType)" stroke="#333" stroke-width="1"></polygon>
+            @if (tile.ProductionNumber.HasValue)
+            {
+                @((MarkupString)RenderProductionSvg(tile))
+            }
+        }
+    </svg>
+}
+
+@code {
+    [Parameter] public IslandMap? Map { get; set; }
+    [Parameter] public double HexSize { get; set; } = 36;
+
+    private ElementReference svgRef;
+
+    // Bounds used to set the SVG viewBox
+    private double MinX = 0, MinY = 0, MaxX = 0, MaxY = 0;
+
+    private double SvgWidth => (MaxX - MinX) + HexSize * 2;
+    private double SvgHeight => (MaxY - MinY) + HexSize * 2;
+    private string ViewBox => $"{(MinX - HexSize).ToString(CultureInfo.InvariantCulture)} {(MinY - HexSize).ToString(CultureInfo.InvariantCulture)} {SvgWidth.ToString(CultureInfo.InvariantCulture)} {SvgHeight.ToString(CultureInfo.InvariantCulture)}";
+
+    protected override void OnParametersSet()
+    {
+        base.OnParametersSet();
+        if (Map is null) return;
+        ComputeBounds();
+    }
+
+    private void ComputeBounds()
+    {
+        bool first = true;
+        foreach (var t in Map.Tiles.Values)
+        {
+            var p = AxialToPixel(t.Coord);
+            if (first)
+            {
+                MinX = MaxX = p.x;
+                MinY = MaxY = p.y;
+                first = false;
+            }
+            else
+            {
+                MinX = Math.Min(MinX, p.x);
+                MinY = Math.Min(MinY, p.y);
+                MaxX = Math.Max(MaxX, p.x);
+                MaxY = Math.Max(MaxY, p.y);
+            }
+        }
+    }
+
+    // Axial -> pixel (pointy-top hex layout)
+    private (double x, double y) AxialToPixel(HexCoord c)
+    {
+        var size = HexSize;
+        var x = size * Math.Sqrt(3) * (c.Q + c.R / 2.0);
+        var y = size * 3.0 / 2.0 * c.R;
+        return (x, y);
+    }
+
+    private string GetHexPoints(double cx, double cy)
+    {
+        var pts = Enumerable.Range(0, 6).Select(i =>
+        {
+            // pointy-top: start angle -30°
+            var angle = Math.PI / 180.0 * (60 * i - 30);
+            var x = cx + HexSize * Math.Cos(angle);
+            var y = cy + HexSize * Math.Sin(angle);
+            return $"{x.ToString(CultureInfo.InvariantCulture)},{y.ToString(CultureInfo.InvariantCulture)}";
+        });
+        return string.Join(" ", pts);
+    }
+
+    private string TerrainColor(TerrainType t) => t switch
+    {
+        TerrainType.Forest => "#2e8b57",
+        TerrainType.Hill => "#c37b4a",
+        TerrainType.Pasture => "#9acd32",
+        TerrainType.Field => "#f4d35e",
+        TerrainType.Mountain => "#8b8f8f",
+        TerrainType.Desert => "#f0e1a1",
+        TerrainType.Water => "#6fb3ff",
+        _ => "#cccccc"
+    };
+
+    private string RenderProductionSvg(HexTile tile)
+    {
+        var center = AxialToPixel(tile.Coord);
+        var x = center.x.ToString(CultureInfo.InvariantCulture);
+        var y = (center.y + HexSize * 0.1).ToString(CultureInfo.InvariantCulture);
+        return $"<text x=\"{x}\" y=\"{y}\" font-size=\"12\" text-anchor=\"middle\" fill=\"#111\">{tile.ProductionNumber.Value}</text>";
+    }
+}
+

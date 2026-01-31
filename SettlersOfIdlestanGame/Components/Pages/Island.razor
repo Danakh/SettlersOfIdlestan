@@ -1,0 +1,54 @@
+@page "/"
+@attribute [StreamRendering]
+
+@using SettlersOfIdlestanGame.Components
+@using SettlersOfIdlestan.Model.IslandMap
+@using SettlersOfIdlestan.Controller
+@using SettlersOfIdlestan.Model.Civilization
+@using System.Collections.Generic
+
+<PageTitle>Île</PageTitle>
+
+<h1>Carte de l'île</h1>
+
+<div class="mb-2">
+    <button class="btn btn-primary" @onclick="Generate">Générer / Régénérer</button>
+</div>
+
+@if (map is null)
+{
+    <p><em>Génération en cours...</em></p>
+}
+else
+{
+    <IslandMapView Map="map" HexSize="36" />
+}
+
+@code {
+    private IslandMap? map;
+    private readonly IslandGenerator generator = new IslandGenerator();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Task.Delay(50);
+        Generate();
+    }
+
+    private void Generate()
+    {
+        var civs = new List<Civilization> { new Civilization { Index = 0 } };
+
+        var tileData = new List<(TerrainType, int)>
+        {
+            (TerrainType.Forest, 4),
+            (TerrainType.Hill, 3),
+            (TerrainType.Pasture, 4),
+            (TerrainType.Field, 4),
+            (TerrainType.Mountain, 3),
+            (TerrainType.Desert, 1)
+        };
+
+        map = generator.GenerateIsland(tileData, civs);
+        StateHasChanged();
+    }
+}
