@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 using SettlersOfIdlestan.Model.HexGrid;
 
 namespace SettlersOfIdlestan.Model.IslandMap;
@@ -8,6 +9,7 @@ namespace SettlersOfIdlestan.Model.IslandMap;
 /// Represents the island map, containing a collection of hex tiles.
 /// </summary>
 [Serializable]
+[JsonConverter(typeof(IslandMapJsonConverter))]
 public class IslandMap
 {
     private readonly Dictionary<HexCoord, HexTile> _tiles = new();

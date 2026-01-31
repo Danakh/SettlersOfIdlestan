@@ -5,6 +5,7 @@ using SettlersOfIdlestan.Controller;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.Civilization;
+using System.Text.Json;
 
 namespace SOITests.IslandMapTests;
 
@@ -271,5 +272,32 @@ public class IslandGeneratorTests
             }
         }
         return false;
+    }
+
+    [Fact]
+    public void IslandState_Serialization_RoundTrip()
+    {
+        // Arrange
+        var generator = new IslandGenerator();
+        var tileData = new List<(TerrainType terrainType, int tileCount)>
+        {
+            (TerrainType.Forest, 5),
+            (TerrainType.Hill, 6),
+            (TerrainType.Pasture, 8),
+        };
+        var civilizations = new List<Civilization> { new() { Index = 0 } };
+        var originalMap = generator.GenerateIsland(tileData, civilizations);
+        Assert.NotNull(originalMap);
+        var original = new IslandState(originalMap, civilizations);
+
+        // Act
+        var json = JsonSerializer.Serialize(original);
+        var deserialized = JsonSerializer.Deserialize<IslandState>(json);
+
+        // Assert
+        Assert.NotNull(deserialized);
+        Assert.Equal(original.Map.Tiles.Count, deserialized.Map.Tiles.Count);
+        Assert.Equal(original.Civilizations.Count, deserialized.Civilizations.Count);
+        Assert.Equal(original.PlayerCivilization.Index, deserialized.PlayerCivilization.Index);
     }
 }

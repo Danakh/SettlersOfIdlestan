@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
 namespace SettlersOfIdlestan.Model.HexGrid;
 
@@ -14,6 +15,7 @@ namespace SettlersOfIdlestan.Model.HexGrid;
 /// cubiques (q, r, s) car la troisième coordonnée peut être dérivée: s = -q - r
 /// </summary>
 [Serializable]
+[JsonConverter(typeof(HexCoordJsonConverter))]
 public class HexCoord
 {
     public HexCoord(int q, int r)

@@ -9,7 +9,7 @@ public class HexDirectionTests
     [Fact]
     public void AllHexDirections_ContainsAllDirections()
     {
-        var expected = new[] { HexDirection.W, HexDirection.E, HexDirection.NE, HexDirection.SE, HexDirection.NW, HexDirection.SW };
+        var expected = new[] { HexDirection.W, HexDirection.NW, HexDirection.NE, HexDirection.E, HexDirection.SE, HexDirection.SW };
         Assert.Equal(expected, HexDirectionUtils.AllHexDirections);
     }
 
