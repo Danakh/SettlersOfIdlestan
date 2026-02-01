@@ -12,7 +12,7 @@ namespace SettlersOfIdlestan.Model.PrestigeMap
         /// <summary>
         /// L'état de prestige associé au dieu.
         /// </summary>
-        public PrestigeState PrestigeState { get; set; }
+        public PrestigeState? PrestigeState { get; set; }
 
         /// <summary>
         /// Constructeur parameterless requis par certains sérialiseurs.

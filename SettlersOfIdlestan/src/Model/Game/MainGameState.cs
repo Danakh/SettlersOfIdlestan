@@ -1,4 +1,5 @@
 using System;
+using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.PrestigeMap;
 
 namespace SettlersOfIdlestan.Model.Game
@@ -11,6 +12,8 @@ namespace SettlersOfIdlestan.Model.Game
     public class MainGameState
     {
         public GodState GodState { get; set; }
+        public PrestigeState? PrestigeState => GodState.PrestigeState;
+        public IslandState? CurrentIslandState => PrestigeState?.IslandState;
         public GameClock Clock { get; set; }
         public GamePRNG PRNG { get; set; }
 

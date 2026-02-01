@@ -17,7 +17,7 @@
 
     <div class="resource-capsule d-flex align-items-center px-3 py-1 rounded-pill"
          style="background:#f8f9fa;border:1px solid #ddd;min-width:220px;max-width:60%;">
-        @if (state is null)
+        @if (State is null)
         {
             <span class="text-muted">Chargement ressources…</span>
         }
@@ -26,7 +26,7 @@
             @foreach (var rObj in System.Enum.GetValues(typeof(SettlersOfIdlestan.Model.IslandMap.Resource)))
             {
                 var r = (SettlersOfIdlestan.Model.IslandMap.Resource)rObj;
-                var qty = state.PlayerCivilization.GetResourceQuantity(r);
+                var qty = State.PlayerCivilization.GetResourceQuantity(r);
                 <div class="me-3 d-flex align-items-center">
                     <span class="badge bg-secondary me-1" style="min-width:26px;text-align:center">
                         @r.ToString().Substring(0,1)
@@ -42,17 +42,17 @@
     <button class="btn btn-primary" @onclick="Generate">Générer / Régénérer</button>
 </div>
 
-@if (state is null)
+@if (State is null)
 {
     <p><em>Génération en cours...</em></p>
 }
 else
 {
-    <IslandMapView State="state" Controller="mainController" />
+    <IslandMapView State="State" Controller="mainController" />
 }
 
 @code {
-    private IslandState? state;
+    private IslandState? State;
     private MainGameController? mainController;
     private CancellationTokenSource? renderLoopCts;
     private Stopwatch? renderLoopStopwatch;
@@ -75,7 +75,7 @@ else
         };
 
         var mainState = mainController.CreateNewGame(tileData, 1);
-        state = mainState!.GodState.PrestigeState.IslandState;
+        State = mainState!.CurrentIslandState;
 
         // start clock and render loop
         if (mainController.Clock != null)
@@ -102,7 +102,7 @@ else
         };
 
         var mainState = mainController.CreateNewGame(tileData, 1);
-        state = mainState!.GodState.PrestigeState.IslandState;
+        State = mainState!.CurrentIslandState;
 
         // restart clock and render loop for the new controller
         renderLoopCts?.Cancel();

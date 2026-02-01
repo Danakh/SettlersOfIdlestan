@@ -13,7 +13,7 @@ namespace SettlersOfIdlestan.Model.PrestigeMap
         /// <summary>
         /// L'état de l'île associé au prestige.
         /// </summary>
-        public IslandState IslandState { get; set; }
+        public IslandState? IslandState { get; set; }
 
         /// <summary>
         /// Constructeur parameterless requis par certains sérialiseurs.
