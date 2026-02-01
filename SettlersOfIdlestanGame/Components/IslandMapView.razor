@@ -163,12 +163,13 @@ else
 
     private IslandMap? Map { get { return State?.Map; } }
     private List<SettlersOfIdlestan.Model.Civilization.Civilization>? Civilizations { get { return State?.Civilizations; } }
+    private SettlersOfIdlestan.Model.Game.GameClock gameClock { get { return Controller!.Clock!; } }
+
     // hovered edge for buildable highlighting
     private SettlersOfIdlestan.Model.HexGrid.Edge? hoveredEdge;
     private string? buildMessage;
     // small local islandState and clock to query cooldowns
     private SettlersOfIdlestan.Model.IslandMap.IslandState? islandState;
-    private SettlersOfIdlestan.Model.Game.GameClock? gameClock;
     private readonly TimeSpan harvestCooldown = TimeSpan.FromSeconds(2);
 
     private ElementReference svgRef;
@@ -185,14 +186,6 @@ else
         base.OnParametersSet();
         if (Map is null) return;
         ComputeBounds();
-        // create lightweight islandState/clock for harvest cooldown display
-        if (Map != null && Civilizations != null)
-        {
-            islandState = new SettlersOfIdlestan.Model.IslandMap.IslandState(Map, Civilizations);
-            gameClock = new GameClock();
-            // start the clock so CurrentTime advances if Advance is called externally
-            gameClock.Start();
-        }
     }
 
     private void ComputeBounds()

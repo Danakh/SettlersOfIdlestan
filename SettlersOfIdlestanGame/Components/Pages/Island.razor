@@ -6,6 +6,9 @@
 @using SettlersOfIdlestan.Controller
 @using SettlersOfIdlestan.Model.Civilization
 @using System.Collections.Generic
+@using System.Threading
+@using System.Threading.Tasks
+@using System.Diagnostics
 
 <PageTitle>Île</PageTitle>
 
@@ -27,6 +30,8 @@ else
 @code {
     private IslandState? state;
     private MainGameController? mainController;
+    private CancellationTokenSource? renderLoopCts;
+    private Stopwatch? renderLoopStopwatch;
 
     protected override async Task OnInitializedAsync()
     {
@@ -48,6 +53,13 @@ else
         var mainState = mainController.CreateNewGame(tileData, 1);
         state = mainState!.GodState.PrestigeState.IslandState;
 
+        // start clock and render loop
+        if (mainController.Clock != null)
+        {
+            mainController.Clock.Start();
+            StartRenderLoop();
+        }
+
         StateHasChanged();
     }
 
@@ -68,6 +80,63 @@ else
         var mainState = mainController.CreateNewGame(tileData, 1);
         state = mainState!.GodState.PrestigeState.IslandState;
 
+        // restart clock and render loop for the new controller
+        renderLoopCts?.Cancel();
+        if (mainController.Clock != null)
+        {
+            mainController.Clock.Start();
+            StartRenderLoop();
+        }
+
         StateHasChanged();
+    }
+
+    private void StartRenderLoop()
+    {
+        // cancel previous loop if any
+        renderLoopCts?.Cancel();
+
+        renderLoopCts = new CancellationTokenSource();
+        renderLoopStopwatch = Stopwatch.StartNew();
+
+        var token = renderLoopCts.Token;
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                while (!token.IsCancellationRequested)
+                {
+                    var sw = renderLoopStopwatch!;
+                    var elapsed = sw.Elapsed;
+                    sw.Restart();
+
+                    try
+                    {
+                        if (mainController?.Clock != null)
+                        {
+                            mainController.Clock.Advance(elapsed);
+                        }
+                    }
+                    catch
+                    {
+                        // ignore clock advance errors
+                    }
+
+                    // trigger UI update so child components can reflect clock changes
+                    try { await InvokeAsync(StateHasChanged); } catch { }
+
+                    // aim for ~60fps; actual delta comes from stopwatch
+                    await Task.Delay(16, token);
+                }
+            }
+            catch (OperationCanceledException) { }
+            catch { }
+        }, token);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        renderLoopCts?.Cancel();
+        await Task.CompletedTask;
     }
 }
