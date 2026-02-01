@@ -12,11 +12,11 @@ namespace SettlersOfIdlestan.Controller
     /// </summary>
     public class MainGameController
     {
-        private readonly IslandGenerator _islandGenerator;
+        private readonly IslandMapGenerator _islandGenerator;
 
-        public MainGameController(IslandGenerator? islandGenerator = null)
+        public MainGameController(IslandMapGenerator? islandGenerator = null)
         {
-            _islandGenerator = islandGenerator ?? new IslandGenerator();
+            _islandGenerator = islandGenerator ?? new IslandMapGenerator();
         }
 
         /// <summary>
@@ -39,7 +39,7 @@ namespace SettlersOfIdlestan.Controller
             var mainState = new MainGameState();
 
             // Use a generator wired with the main state's PRNG to ensure reproducible maps
-            var generator = new IslandGenerator(mainState.PRNG);
+            var generator = new IslandMapGenerator(mainState.PRNG);
             var map = generator.GenerateIsland(tileData, civs);
             if (map is null) return null;
 

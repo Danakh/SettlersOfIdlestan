@@ -7,7 +7,7 @@ namespace SettlersOfIdlestan.Controller;
 /// <summary>
 /// Generates a fixed prestige map with 3 prestige tiles.
 /// </summary>
-public class PrestigeGenerator
+public class PrestigeMapGenerator
 {
     /// <summary>
     /// Generates the prestige map, always identical with 3 tiles.

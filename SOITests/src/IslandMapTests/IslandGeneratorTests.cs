@@ -15,7 +15,7 @@ public class IslandGeneratorTests
     public void GenerateIsland_WithLandTiles_PlacesAllTiles()
     {
         // Arrange
-        var generator = new IslandGenerator();
+        var generator = new IslandMapGenerator();
         var tileData = new List<(TerrainType terrainType, int tileCount)>
         {
             (TerrainType.Forest, 5),
@@ -36,7 +36,7 @@ public class IslandGeneratorTests
     public void GenerateIsland_LandTilesHaveAtLeastTwoNeighborsSmall()
     {
         // Arrange
-        var generator = new IslandGenerator();
+        var generator = new IslandMapGenerator();
         var tileData = new List<(TerrainType terrainType, int tileCount)>
         {
             (TerrainType.Forest, 1),
@@ -62,7 +62,7 @@ public class IslandGeneratorTests
     public void GenerateIsland_LandTilesHaveAtLeastTwoNeighbors()
     {
         // Arrange
-        var generator = new IslandGenerator();
+        var generator = new IslandMapGenerator();
         var tileData = new List<(TerrainType terrainType, int tileCount)>
         {
             (TerrainType.Forest, 5),
@@ -92,7 +92,7 @@ public class IslandGeneratorTests
     public void GenerateIsland_LandTilesAreSurroundedByWater()
     {
         // Arrange
-        var generator = new IslandGenerator();
+        var generator = new IslandMapGenerator();
         var tileData = new List<(TerrainType terrainType, int tileCount)>
         {
             (TerrainType.Forest, 1),
@@ -118,7 +118,7 @@ public class IslandGeneratorTests
     public void GenerateIsland_ContainsRequiredResourcesAndWater()
     {
         // Arrange
-        var generator = new IslandGenerator();
+        var generator = new IslandMapGenerator();
         var tileData = new List<(TerrainType terrainType, int tileCount)>
         {
             (TerrainType.Forest, 5),
@@ -144,7 +144,7 @@ public class IslandGeneratorTests
     public void GenerateIsland_EmptyList_ReturnsEmptyMap()
     {
         // Arrange
-        var generator = new IslandGenerator();
+        var generator = new IslandMapGenerator();
         var landData = new List<(TerrainType terrainType, int tileCount)>();
         var civilizations = new List<Civilization> { new() { Index = 0 } };
 
@@ -160,7 +160,7 @@ public class IslandGeneratorTests
     public void GenerateIsland_HasVertexAdjacentToHillForestWater_WhenPossible()
     {
         // Arrange
-        var generator = new IslandGenerator();
+        var generator = new IslandMapGenerator();
         var tileData = new List<(TerrainType terrainType, int tileCount)>
         {
             (TerrainType.Hill, 1),
@@ -204,7 +204,7 @@ public class IslandGeneratorTests
         var map = new IslandMap(tiles);
 
         // Act
-        var vertex = IslandGenerator.FindVertexAdjacentToHillForestWater(map);
+        var vertex = IslandMapGenerator.FindVertexAdjacentToHillForestWater(map);
 
         // Assert
         Assert.NotNull(vertex);
@@ -226,7 +226,7 @@ public class IslandGeneratorTests
         var map = new IslandMap(tiles);
 
         // Act
-        var vertex = IslandGenerator.FindVertexAdjacentToHillForestWater(map);
+        var vertex = IslandMapGenerator.FindVertexAdjacentToHillForestWater(map);
 
         // Assert
         Assert.Null(vertex);
@@ -245,7 +245,7 @@ public class IslandGeneratorTests
         var map = new IslandMap(tiles);
 
         // Act
-        var vertex = IslandGenerator.FindVertexAdjacentToHillForestWater(map);
+        var vertex = IslandMapGenerator.FindVertexAdjacentToHillForestWater(map);
 
         // Assert
         Assert.Null(vertex);
@@ -278,7 +278,7 @@ public class IslandGeneratorTests
     public void IslandState_Serialization_RoundTrip()
     {
         // Arrange
-        var generator = new IslandGenerator();
+        var generator = new IslandMapGenerator();
         var tileData = new List<(TerrainType terrainType, int tileCount)>
         {
             (TerrainType.Forest, 5),
