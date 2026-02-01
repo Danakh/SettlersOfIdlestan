@@ -21,11 +21,12 @@
 }
 else
 {
-    <IslandMapView Map="map" HexSize="36" />
+    <IslandMapView Map="map" HexSize="36" Civilizations="civs"/>
 }
 
 @code {
     private IslandMap? map;
+    private List<Civilization>? civs;
     private readonly IslandGenerator generator = new IslandGenerator();
 
     protected override async Task OnInitializedAsync()
@@ -36,7 +37,7 @@ else
 
     private void Generate()
     {
-        var civs = new List<Civilization> { new Civilization { Index = 0 } };
+        civs = new List<Civilization> { new Civilization { Index = 0 } };
 
         var tileData = new List<(TerrainType, int)>
         {
