@@ -22,8 +22,9 @@ namespace SettlersOfIdlestan.Controller
         private readonly HarvestController _harvestController;
         private readonly BuildingController _buildingController;
         private readonly CityBuilderController _cityBuilderController;
+        private readonly TradeController _tradeController;
 
-        public CivilizationAutoplayer(Civilization civ, IslandMap map, RoadController roadController, HarvestController harvestController, CityBuilderController? cityBuilderController = null, BuildingController? buildingController = null)
+        public CivilizationAutoplayer(Civilization civ, IslandMap map, RoadController roadController, HarvestController harvestController, CityBuilderController? cityBuilderController = null, BuildingController? buildingController = null, TradeController? tradeController = null)
         {
             _civ = civ ?? throw new ArgumentNullException(nameof(civ));
             _map = map ?? throw new ArgumentNullException(nameof(map));
@@ -31,6 +32,7 @@ namespace SettlersOfIdlestan.Controller
             _harvestController = harvestController ?? throw new ArgumentNullException(nameof(harvestController));
             _cityBuilderController = cityBuilderController ?? new CityBuilderController(new IslandState(map, new List<Civilization> { civ }));
             _buildingController = buildingController ?? new BuildingController(new IslandState(map, new List<Civilization> { civ }));
+            _tradeController = tradeController ?? new TradeController(new IslandState(map, new List<Civilization> { civ }));
         }
 
         /// <summary>
@@ -94,6 +96,32 @@ namespace SettlersOfIdlestan.Controller
                     }
                 }
 
+                // Après récolte manuelle, tenter un trade qui aiderait la construction (une tentative)
+                try
+                {
+                    // Determine cost for this road using the Road entry returned by controller
+                    var buildableRoads = _roadController.GetBuildableRoads(_civ.Index);
+                    var road = buildableRoads.FirstOrDefault(r => r.Position.Equals(edge));
+                    if (road != null)
+                    {
+                        var distance = road.DistanceToNearestCity;
+                        if (distance != int.MaxValue)
+                        {
+                            var cost = 2 * (distance * distance);
+                            var required = new Dictionary<Resource, int>
+                            {
+                                { Resource.Wood, cost },
+                                { Resource.Brick, cost }
+                            };
+                            _tradeController.TryAutoTradeForPurchase(_civ.Index, required);
+                        }
+                    }
+                }
+                catch
+                {
+                    // ignore trade failures
+                }
+
                 return false;
             }
         }
@@ -153,6 +181,23 @@ namespace SettlersOfIdlestan.Controller
                     }
                 }
 
+                // Après récolte manuelle, tenter un trade unique pour aider la construction de la ville
+                try
+                {
+                    var required = new Dictionary<Resource, int>
+                    {
+                        { Resource.Brick, 10 },
+                        { Resource.Wood, 10 },
+                        { Resource.Wheat, 10 },
+                        { Resource.Sheep, 10 }
+                    };
+                    _tradeController.TryAutoTradeForPurchase(_civ.Index, required);
+                }
+                catch
+                {
+                    // ignore
+                }
+
                 return false;
             }
         }
@@ -203,6 +248,35 @@ namespace SettlersOfIdlestan.Controller
                     catch
                     {
                     }
+                }
+
+                // Après la récolte, tenter un trade unique qui pourrait aider la construction
+                try
+                {
+                    // Attempt to get the buildable entry for this building to compute cost
+                    var buildables = _buildingController.GetBuildableBuildings(_civ.Index, cityVertex);
+                    var target = buildables.FirstOrDefault(b => b.Type == buildingType);
+                    if (target != null)
+                    {
+                        Dictionary<Resource, int> required;
+                        if (target.Level <= 1)
+                        {
+                            required = target.GetBuildCost();
+                        }
+                        else
+                        {
+                            required = target.GetUpgradeCost(target.Level);
+                        }
+
+                        if (required != null && required.Any())
+                        {
+                            _tradeController.TryAutoTradeForPurchase(_civ.Index, required);
+                        }
+                    }
+                }
+                catch
+                {
+                    // ignore trade errors
                 }
 
                 return false;

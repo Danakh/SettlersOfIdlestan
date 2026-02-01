@@ -74,12 +74,6 @@ namespace SOITests.ControllerTests
             // Verify that at least 20 seconds of in-game time have passed
             Assert.True(clock.Elapsed >= TimeSpan.FromSeconds(18), $"Expected at least 18s elapsed in the GameClock, was {clock.Elapsed}");
 
-            // Now attempt to build a city (outpost) with the autoplayer. This may require
-            // harvesting sheep and wheat tiles over time; repeatedly try while advancing clock.
-            var cityBuilder = new CityBuilderController(state);
-            var buildableVertex = cityBuilder.GetBuildableVertices(0).FirstOrDefault();
-            Assert.NotNull(buildableVertex);
-
             // Attempt to build a Market in the initial city using the autoplayer.
             // This may require harvesting over time; repeatedly try while advancing clock.
             bool TryBuildMarketWithAuto(Vertex cityV)
@@ -97,21 +91,26 @@ namespace SOITests.ControllerTests
             Assert.True(marketBuilt, "Autoplayer should eventually build a market in the city");
             Assert.True(civ.Cities.SelectMany(c => c.Buildings).Any(b => b.Type == BuildingType.Market), "City should contain a Market building");
 
-            // TODO reactivate after trade system is implemented
-            //bool TryBuildOutpostWithAuto(Vertex v)
-            //{
-            //    const int maxIterations = 500;
-            //    for (int i = 0; i < maxIterations; i++)
-            //    {
-            //        if (auto.AutoBuildOutpost(v)) return true;
-            //        clock.Advance(TimeSpan.FromSeconds(0.1));
-            //    }
-            //    return false;
-            //}
+            // Now attempt to build a city (outpost) with the autoplayer. This may require
+            // trading sheep and wheat tiles over time; repeatedly try while advancing clock.
+            var cityBuilder = new CityBuilderController(state);
+            var buildableVertex = cityBuilder.GetBuildableVertices(0).FirstOrDefault();
+            Assert.NotNull(buildableVertex);
 
-            //var outpostBuilt = TryBuildOutpostWithAuto(buildableVertex);
-            //Assert.True(outpostBuilt, "Autoplayer should eventually build an outpost after roads");
-            //Assert.Contains(civ.Cities, c => c.Position.Equals(buildableVertex));
+            bool TryBuildOutpostWithAuto(Vertex v)
+            {
+                const int maxIterations = 500;
+                for (int i = 0; i < maxIterations; i++)
+                {
+                    if (auto.AutoBuildOutpost(v)) return true;
+                    clock.Advance(TimeSpan.FromSeconds(0.1));
+                }
+                return false;
+            }
+
+            var outpostBuilt = TryBuildOutpostWithAuto(buildableVertex);
+            Assert.True(outpostBuilt, "Autoplayer should eventually build an outpost after roads");
+            Assert.Contains(civ.Cities, c => c.Position.Equals(buildableVertex));
         }
     }
 }

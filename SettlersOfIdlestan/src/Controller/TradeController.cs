@@ -95,7 +95,7 @@ namespace SettlersOfIdlestan.Controller
                     if (!requiredCosts.ContainsKey(kv.Key)) return true;
                     int req;
                     if (requiredCosts.TryGetValue(kv.Key, out req))
-                        return kv.Value > req;
+                        return kv.Value >= (req + TradeRate);
                     return true;
                 })
                 .OrderByDescending(kv => kv.Value)
