@@ -25,8 +25,8 @@ namespace SOITests.ControllerTests
             {
                 new HexTile(a, TerrainType.Forest), // wood
                 new HexTile(b, TerrainType.Hill),   // brick
-                new HexTile(c, TerrainType.Forest), // wood
-                new HexTile(d, TerrainType.Hill),   // brick
+                new HexTile(c, TerrainType.Pasture), // sheep
+                new HexTile(d, TerrainType.Field),   // wheat
             };
 
             var map = new IslandMap(tiles);
@@ -72,6 +72,28 @@ namespace SOITests.ControllerTests
 
             // Verify that at least 20 seconds of in-game time have passed
             Assert.True(clock.Elapsed >= TimeSpan.FromSeconds(18), $"Expected at least 18s elapsed in the GameClock, was {clock.Elapsed}");
+
+            // Now attempt to build a city (outpost) with the autoplayer. This may require
+            // harvesting sheep and wheat tiles over time; repeatedly try while advancing clock.
+            var cityBuilder = new CityBuilderController(state);
+            var buildableVertex = cityBuilder.GetBuildableVertices(0).FirstOrDefault();
+            Assert.NotNull(buildableVertex);
+
+            // TODO reactivate after trade system is implemented
+            //bool TryBuildOutpostWithAuto(Vertex v)
+            //{
+            //    const int maxIterations = 500;
+            //    for (int i = 0; i < maxIterations; i++)
+            //    {
+            //        if (auto.AutoBuildOutpost(v)) return true;
+            //        clock.Advance(TimeSpan.FromSeconds(0.1));
+            //    }
+            //    return false;
+            //}
+
+            //var outpostBuilt = TryBuildOutpostWithAuto(buildableVertex);
+            //Assert.True(outpostBuilt, "Autoplayer should eventually build an outpost after roads");
+            //Assert.Contains(civ.Cities, c => c.Position.Equals(buildableVertex));
         }
     }
 }
