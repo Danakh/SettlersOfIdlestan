@@ -8,6 +8,7 @@
 @using SettlersOfIdlestan.Model.Road
 @using SettlersOfIdlestan.Controller
 @using SettlersOfIdlestan.Model.Game
+@using System.Diagnostics
 
 @if (Map is null)
 {
@@ -33,11 +34,11 @@ else
 
             if (canHarvest)
             {
-                <polygon points="@points" fill="@TerrainColor(tile.TerrainType)" stroke="#333" stroke-width="1" style="cursor:pointer" @onclick="() => OnClickHex(tile.Coord)"></polygon>
+                <polygon points="@points" fill="@TerrainColor(tile.TerrainType)" stroke="#333" stroke-width="1" style="cursor:pointer;pointer-events:auto" @onclick="() => OnClickHex(tile.Coord)"></polygon>
             }
             else
             {
-                <polygon points="@points" fill="@TerrainColor(tile.TerrainType)" stroke="#333" stroke-width="1"></polygon>
+                <polygon points="@points" fill="@TerrainColor(tile.TerrainType)" stroke="#333" stroke-width="1" style="pointer-events:auto"></polygon>
             }
 
             @* Show production number as before *@
@@ -62,7 +63,7 @@ else
 
                 if (remaining > 0)
                 {
-                    var cooldownSvg = $"<text x=\"{centerX}\" y=\"{centerY}\" font-size=\"12\" text-anchor=\"middle\" fill=\"#900\">{remaining.ToString("0.0", CultureInfo.InvariantCulture)}s</text>";
+                    var cooldownSvg = $"<text x=\"{centerX}\" y=\"{centerY}\" font-size=\"12\" text-anchor=\"middle\" fill=\"#900\" pointer-events=\"none\">{remaining.ToString("0.0", CultureInfo.InvariantCulture)}s</text>";
                     @((MarkupString)cooldownSvg)
                 }
             }
@@ -89,7 +90,7 @@ else
                         // choose sprite by civilization index if available, fallback to generic city.png
                         var spritePath = $"assets/sprites/city-outpost.svg";
                         // use generic if indexed sprite not found at runtime; we still reference it here and let static server handle missing files
-                        <image href="@spritePath" x="@imgX" y="@imgY" width="@w" height="@h" />
+                        <image href="@spritePath" x="@imgX" y="@imgY" width="@w" height="@h" style="pointer-events:none" />
                     }
                     catch
                     {
@@ -109,7 +110,7 @@ else
                         var y1 = (p1.y).ToString(CultureInfo.InvariantCulture);
                         var x2 = (p2.x).ToString(CultureInfo.InvariantCulture);
                         var y2 = (p2.y).ToString(CultureInfo.InvariantCulture);
-                        <line x1="@x1" y1="@y1" x2="@x2" y2="@y2" stroke="@color" stroke-width="@roadStrokeWidth" stroke-linecap="round" />
+                        <line x1="@x1" y1="@y1" x2="@x2" y2="@y2" stroke="@color" stroke-width="@roadStrokeWidth" stroke-linecap="round" style="pointer-events:none" />
                     }
                     catch
                     {

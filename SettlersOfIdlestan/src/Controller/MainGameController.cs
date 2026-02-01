@@ -1,9 +1,9 @@
+using SettlersOfIdlestan.Model.Civilization;
+using SettlersOfIdlestan.Model.Game;
+using SettlersOfIdlestan.Model.IslandMap;
+using SettlersOfIdlestan.Model.PrestigeMap;
 using System;
 using System.Collections.Generic;
-using SettlersOfIdlestan.Model.Game;
-using SettlersOfIdlestan.Model.PrestigeMap;
-using SettlersOfIdlestan.Model.IslandMap;
-using SettlersOfIdlestan.Model.Civilization;
 
 namespace SettlersOfIdlestan.Controller
 {
@@ -12,6 +12,7 @@ namespace SettlersOfIdlestan.Controller
     /// </summary>
     public class MainGameController
     {
+        private readonly GamePRNG _prng;
         private readonly IslandMapGenerator _islandGenerator;
         // Controllers created and exposed as read-only properties
         public RoadController RoadController { get; private set; }
@@ -24,7 +25,8 @@ namespace SettlersOfIdlestan.Controller
 
         public MainGameController()
         {
-            _islandGenerator = new IslandMapGenerator();
+            _prng = new GamePRNG();
+            _islandGenerator = new IslandMapGenerator(_prng);
 
             // create a default empty state for controllers; callers should replace with real state when available
             var emptyMap = new IslandMap(new List<SettlersOfIdlestan.Model.IslandMap.HexTile>());
