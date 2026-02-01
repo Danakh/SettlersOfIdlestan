@@ -6,13 +6,14 @@ using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.City;
+using SettlersOfIdlestan.Model.Buildings;
 
 namespace SOITests.ControllerTests
 {
     public class AutoplayerTests
     {
         [Fact]
-        public void Autoplayer_BuildsTwoRoadsByHarvestingAndAdvancingClock()
+        public void Autoplayer_BuildingASecondCity()
         {
             // Create a small map with 4 tiles around the initial area
             var a = new HexCoord(0, 0);
@@ -78,6 +79,23 @@ namespace SOITests.ControllerTests
             var cityBuilder = new CityBuilderController(state);
             var buildableVertex = cityBuilder.GetBuildableVertices(0).FirstOrDefault();
             Assert.NotNull(buildableVertex);
+
+            // Attempt to build a Market in the initial city using the autoplayer.
+            // This may require harvesting over time; repeatedly try while advancing clock.
+            bool TryBuildMarketWithAuto(Vertex cityV)
+            {
+                const int maxIterations = 500;
+                for (int i = 0; i < maxIterations; i++)
+                {
+                    if (auto.AutoBuildBuilding(cityV, BuildingType.Market)) return true;
+                    clock.Advance(TimeSpan.FromSeconds(0.1));
+                }
+                return false;
+            }
+
+            var marketBuilt = TryBuildMarketWithAuto(vertex);
+            Assert.True(marketBuilt, "Autoplayer should eventually build a market in the city");
+            Assert.True(civ.Cities.SelectMany(c => c.Buildings).Any(b => b.Type == BuildingType.Market), "City should contain a Market building");
 
             // TODO reactivate after trade system is implemented
             //bool TryBuildOutpostWithAuto(Vertex v)

@@ -4,6 +4,7 @@ using System.Linq;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.HexGrid;
+using SettlersOfIdlestan.Model.Buildings;
 
 namespace SettlersOfIdlestan.Controller
 {
@@ -19,15 +20,17 @@ namespace SettlersOfIdlestan.Controller
         private readonly IslandMap _map;
         private readonly RoadController _roadController;
         private readonly HarvestController _harvestController;
+        private readonly BuildingController _buildingController;
         private readonly CityBuilderController _cityBuilderController;
 
-        public CivilizationAutoplayer(Civilization civ, IslandMap map, RoadController roadController, HarvestController harvestController, CityBuilderController? cityBuilderController = null)
+        public CivilizationAutoplayer(Civilization civ, IslandMap map, RoadController roadController, HarvestController harvestController, CityBuilderController? cityBuilderController = null, BuildingController? buildingController = null)
         {
             _civ = civ ?? throw new ArgumentNullException(nameof(civ));
             _map = map ?? throw new ArgumentNullException(nameof(map));
             _roadController = roadController ?? throw new ArgumentNullException(nameof(roadController));
             _harvestController = harvestController ?? throw new ArgumentNullException(nameof(harvestController));
             _cityBuilderController = cityBuilderController ?? new CityBuilderController(new IslandState(map, new List<Civilization> { civ }));
+            _buildingController = buildingController ?? new BuildingController(new IslandState(map, new List<Civilization> { civ }));
         }
 
         /// <summary>
@@ -147,6 +150,58 @@ namespace SettlersOfIdlestan.Controller
                     catch
                     {
                         // ignore
+                    }
+                }
+
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Tente de construire ou améliorer un bâtiment dans la ville spécifiée.
+        /// Si pas constructible retourne false. Si pas assez de ressources, effectue des récoltes autour des villes puis retourne false.
+        /// Retourne true si la construction/rénovation a réussi.
+        /// </summary>
+        public bool AutoBuildBuilding(Vertex cityVertex, BuildingType buildingType)
+        {
+            if (cityVertex == null) throw new ArgumentNullException(nameof(cityVertex));
+
+            var buildable = _buildingController.GetBuildableBuildings(_civ.Index, cityVertex);
+            var isConstructible = buildable.Any(b => b.Type == buildingType);
+            if (!isConstructible) return false;
+
+            try
+            {
+                _buildingController.BuildBuilding(_civ.Index, cityVertex, buildingType);
+                return true;
+            }
+            catch (InvalidOperationException)
+            {
+                var toHarvest = new HashSet<HexCoord>();
+                foreach (var city in _civ.Cities)
+                {
+                    try
+                    {
+                        var hexes = city.Position.GetHexes();
+                        foreach (var h in hexes)
+                        {
+                            if (h != null)
+                                toHarvest.Add(h);
+                        }
+                    }
+                    catch
+                    {
+                    }
+                }
+
+                foreach (var hex in toHarvest)
+                {
+                    try
+                    {
+                        _harvestController.ManualHarvest(_civ.Index, hex);
+                    }
+                    catch
+                    {
                     }
                 }
 

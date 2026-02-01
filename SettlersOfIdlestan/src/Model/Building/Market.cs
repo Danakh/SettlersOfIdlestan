@@ -20,10 +20,8 @@ public class Market : Building
 
     public override Dictionary<Resource, int> GetBuildCost() => new Dictionary<Resource, int>
     {
-        { Resource.Wood, 2 },
-        { Resource.Brick, 2 },
-        { Resource.Sheep, 1 },
-        { Resource.Wheat, 1 }
+        { Resource.Wood, 5 },
+        { Resource.Brick, 5 }
     };
 
     public override Dictionary<Resource, int> GetUpgradeCost(int level) => new();
