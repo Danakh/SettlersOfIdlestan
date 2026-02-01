@@ -7,7 +7,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Folder Include="SettlersOfIdlestan\src\Model\PrestigeMap\" />
+    <Compile Remove="SettlersOfIdlestan\**" />
+    <EmbeddedResource Remove="SettlersOfIdlestan\**" />
+    <None Remove="SettlersOfIdlestan\**" />
   </ItemGroup>
 
 </Project>

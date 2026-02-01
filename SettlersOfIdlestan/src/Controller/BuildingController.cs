@@ -56,18 +56,8 @@ namespace SettlersOfIdlestan.Controller
                 {
                     // can build new
                     var toAdd = CreateBuilding(bt);
-                    toAdd.Level = 1;
+                    if (toAdd == null) continue;
                     result.Add(toAdd);
-                }
-                else
-                {
-                    // if upgradable, propose upgrade to existing.Level + 1
-                    if (existing.Level < existing.MaxLevel)
-                    {
-                        var toUpgrade = CreateBuilding(bt);
-                        toUpgrade.Level = existing.Level + 1;
-                        result.Add(toUpgrade);
-                    }
                 }
             }
 
@@ -167,7 +157,7 @@ namespace SettlersOfIdlestan.Controller
             return 1 + city.Buildings.Count;
         }
 
-        private static Building CreateBuilding(BuildingType type)
+        private static Building? CreateBuilding(BuildingType type)
         {
             return type switch
             {

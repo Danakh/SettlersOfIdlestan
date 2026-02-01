@@ -21,7 +21,7 @@ else
             var center = AxialToPixel(tile.Coord);
             var points = GetHexPoints(center.x, center.y);
             // Determine if player can harvest this tile (has a city adjacent and tile has resource)
-            var player = Civilizations?.FirstOrDefault(c => c != null && c.Index == 0) ?? Civilizations?.FirstOrDefault();
+            Civilization? player = Civilizations?.FirstOrDefault(c => c != null && c.Index == 0) ?? Civilizations?.FirstOrDefault();
             var canHarvest = false;
             if (player != null && tile.Resource.HasValue)
             {
@@ -47,11 +47,11 @@ else
             }
 
             @* Show harvest cooldown overlay when applicable *@
-            if (canHarvest && islandState != null && gameClock != null)
+            if (canHarvest && State != null && gameClock != null)
             {
                 double remaining = 0.0;
-                var civMap = islandState.HarvestLastTimesByCivilization;
-                if (civMap.TryGetValue(player.Index, out var perHex) && perHex.TryGetValue(tile.Coord, out var last))
+                var civMap = State.HarvestLastTimesByCivilization;
+                if (civMap.TryGetValue(player!.Index, out var perHex) && perHex.TryGetValue(tile.Coord, out var last))
                 {
                     var elapsed = gameClock.CurrentTime - last;
                     if (elapsed < harvestCooldown)
@@ -116,35 +116,33 @@ else
                         // ignore rendering errors per-road
                     }
                 }
+            }
+            // Buildable roads: use RoadController to obtain buildable edges for the player (prefer civ index 0)
+            Civilization? player = Civilizations.FirstOrDefault(c => c != null && c.Index == 0) ?? Civilizations.FirstOrDefault();
+            if (player != null && Map != null)
+            {
+                var buildableRoads = Controller!.RoadController.GetBuildableRoads(player.Index);
+                var dashColor = "#333";
 
-                // Buildable roads: use RoadController to obtain buildable edges for the player (prefer civ index 0)
-                var player = Civilizations.FirstOrDefault(c => c != null && c.Index == 0) ?? Civilizations.FirstOrDefault();
-                if (player != null && Map != null)
+                foreach (var road in buildableRoads)
                 {
-                    var state = new IslandState(Map, Civilizations);
-                    var buildableRoads = Controller!.RoadController.GetBuildableRoads(player.Index);
-                    var dashColor = "#333";
-
-                    foreach (var road in buildableRoads)
+                    try
                     {
-                        try
-                        {
-                            var verts = road.Position.GetVertices();
-                            var p1 = VertexToPixel(verts[0]);
-                            var p2 = VertexToPixel(verts[1]);
-                            var x1 = (p1.x).ToString(CultureInfo.InvariantCulture);
-                            var y1 = (p1.y).ToString(CultureInfo.InvariantCulture);
-                            var x2 = (p2.x).ToString(CultureInfo.InvariantCulture);
-                            var y2 = (p2.y).ToString(CultureInfo.InvariantCulture);
-                            var isHovered = hoveredEdge != null && hoveredEdge.Equals(road.Position);
-                            var lineColor = isHovered ? "#ffd54f" : dashColor;
-                            var lineWidth = isHovered ? roadStrokeWidth * 1.6 : roadStrokeWidth;
-                            <line x1="@x1" y1="@y1" x2="@x2" y2="@y2" stroke="@lineColor" stroke-width="@lineWidth" stroke-linecap="round" stroke-dasharray="3" stroke-opacity="0.9" style="cursor:pointer" @onmouseover="(()=>OnHoverBuildableEdge(road.Position))" @onmouseout="OnLeaveBuildableEdge" @onclick="(()=>OnClickBuildableRoad(road))" />
-                        }
-                        catch
-                        {
-                            // ignore per-road errors
-                        }
+                        var verts = road.Position.GetVertices();
+                        var p1 = VertexToPixel(verts[0]);
+                        var p2 = VertexToPixel(verts[1]);
+                        var x1 = (p1.x).ToString(CultureInfo.InvariantCulture);
+                        var y1 = (p1.y).ToString(CultureInfo.InvariantCulture);
+                        var x2 = (p2.x).ToString(CultureInfo.InvariantCulture);
+                        var y2 = (p2.y).ToString(CultureInfo.InvariantCulture);
+                        var isHovered = hoveredEdge != null && hoveredEdge.Equals(road.Position);
+                        var lineColor = isHovered ? "#ffd54f" : dashColor;
+                        var lineWidth = isHovered ? roadStrokeWidth * 1.6 : roadStrokeWidth;
+                        <line x1="@x1" y1="@y1" x2="@x2" y2="@y2" stroke="@lineColor" stroke-width="@lineWidth" stroke-linecap="round" stroke-dasharray="3" stroke-opacity="0.9" style="cursor:pointer" @onmouseover="(()=>OnHoverBuildableEdge(road.Position))" @onmouseout="OnLeaveBuildableEdge" @onclick="(()=>OnClickBuildableRoad(road))" />
+                    }
+                    catch
+                    {
+                        // ignore per-road errors
                     }
                 }
             }
@@ -169,7 +167,6 @@ else
     private SettlersOfIdlestan.Model.HexGrid.Edge? hoveredEdge;
     private string? buildMessage;
     // small local islandState and clock to query cooldowns
-    private SettlersOfIdlestan.Model.IslandMap.IslandState? islandState;
     private readonly TimeSpan harvestCooldown = TimeSpan.FromSeconds(2);
 
     private ElementReference svgRef;
@@ -191,21 +188,29 @@ else
     private void ComputeBounds()
     {
         bool first = true;
-        foreach (var t in Map.Tiles.Values)
-        {
-            var p = AxialToPixel(t.Coord);
-            if (first)
+        if (Map is null) {            
+            MinX = 0;
+            MinY = 0;
+            MaxX = 0;
+            MaxY = 0;
+        }
+        else {
+            foreach (var t in Map.Tiles.Values)
             {
-                MinX = MaxX = p.x;
-                MinY = MaxY = p.y;
-                first = false;
-            }
-            else
-            {
-                MinX = Math.Min(MinX, p.x);
-                MinY = Math.Min(MinY, p.y);
-                MaxX = Math.Max(MaxX, p.x);
-                MaxY = Math.Max(MaxY, p.y);
+                var p = AxialToPixel(t.Coord);
+                if (first)
+                {
+                    MinX = MaxX = p.x;
+                    MinY = MaxY = p.y;
+                    first = false;
+                }
+                else
+                {
+                    MinX = Math.Min(MinX, p.x);
+                    MinY = Math.Min(MinY, p.y);
+                    MaxX = Math.Max(MaxX, p.x);
+                    MaxY = Math.Max(MaxY, p.y);
+                }
             }
         }
     }
@@ -246,6 +251,8 @@ else
 
     private string RenderProductionSvg(HexTile tile)
     {
+        if (tile.ProductionNumber is null) return string.Empty;
+
         var center = AxialToPixel(tile.Coord);
         var x = center.x.ToString(CultureInfo.InvariantCulture);
         var y = (center.y + HexSize * 0.1).ToString(CultureInfo.InvariantCulture);
@@ -277,8 +284,6 @@ else
     {
         try
         {
-            if (Map == null || Civilizations == null) return;
-            var state = new IslandState(Map, Civilizations);
             Controller!.RoadController.BuildRoad(road.CivilizationIndex, road.Position);
             buildMessage = "Route construite";
         }
