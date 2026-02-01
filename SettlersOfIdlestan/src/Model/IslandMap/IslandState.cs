@@ -33,5 +33,15 @@ public class IslandState
     {
         Map = map;
         Civilizations = civilizations;
+        // Initialize per-civilization per-hex last-harvest timestamps so cooldowns
+        // are part of the persisted model.
+        HarvestLastTimesByCivilization = new Dictionary<int, Dictionary<SettlersOfIdlestan.Model.HexGrid.HexCoord, DateTimeOffset>>();
     }
+
+    /// <summary>
+    /// Tracks the last in-game time each civilization harvested each hex.
+    /// Key: civilization index. Value: map HexCoord -> last harvest time.
+    /// Stored here so harvest cooldowns are persisted with the island state.
+    /// </summary>
+    public Dictionary<int, Dictionary<SettlersOfIdlestan.Model.HexGrid.HexCoord, DateTimeOffset>> HarvestLastTimesByCivilization { get; }
 }
