@@ -17,7 +17,7 @@ namespace SettlersOfIdlestan.Controller
     {
         private readonly IslandState _state;
 
-        public BuildingController(IslandState state)
+        internal BuildingController(IslandState state)
         {
             _state = state ?? throw new ArgumentNullException(nameof(state));
         }

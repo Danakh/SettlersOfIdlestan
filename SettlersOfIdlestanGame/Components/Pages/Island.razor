@@ -15,29 +15,25 @@
     <button class="btn btn-primary" @onclick="Generate">Générer / Régénérer</button>
 </div>
 
-@if (map is null)
+@if (state is null)
 {
     <p><em>Génération en cours...</em></p>
 }
 else
 {
-    <IslandMapView Map="map" HexSize="36" Civilizations="civs"/>
+    <IslandMapView State="state" Controller="mainController" />
 }
 
 @code {
-    private IslandMap? map;
-    private List<Civilization>? civs;
-    private readonly IslandMapGenerator generator = new IslandMapGenerator();
+    private IslandState? state;
+    private MainGameController? mainController;
 
     protected override async Task OnInitializedAsync()
     {
         await Task.Delay(50);
-        Generate();
-    }
 
-    private void Generate()
-    {
-        civs = new List<Civilization> { new Civilization { Index = 0 } };
+        // Create main controller and a new game
+        mainController = new MainGameController();
 
         var tileData = new List<(TerrainType, int)>
         {
@@ -49,7 +45,29 @@ else
             (TerrainType.Desert, 1)
         };
 
-        map = generator.GenerateIsland(tileData, civs);
+        var mainState = mainController.CreateNewGame(tileData, 1);
+        state = mainState!.GodState.PrestigeState.IslandState;
+
+        StateHasChanged();
+    }
+
+    private void Generate()
+    {
+        if (mainController == null) mainController = new MainGameController();
+
+        var tileData = new List<(TerrainType, int)>
+        {
+            (TerrainType.Forest, 4),
+            (TerrainType.Hill, 3),
+            (TerrainType.Pasture, 4),
+            (TerrainType.Field, 4),
+            (TerrainType.Mountain, 3),
+            (TerrainType.Desert, 1)
+        };
+
+        var mainState = mainController.CreateNewGame(tileData, 1);
+        state = mainState!.GodState.PrestigeState.IslandState;
+
         StateHasChanged();
     }
 }

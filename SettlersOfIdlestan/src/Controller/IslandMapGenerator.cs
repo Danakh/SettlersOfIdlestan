@@ -13,11 +13,11 @@ namespace SettlersOfIdlestan.Controller;
 /// The land tiles are placed in a connected hexagonal layout with each having at least two neighbors,
 /// then surrounded by water tiles.
 /// </summary>
-public class IslandMapGenerator
+    public class IslandMapGenerator
 {
     private readonly GamePRNG _prng;
 
-    public IslandMapGenerator(GamePRNG? prng = null)
+    internal IslandMapGenerator(GamePRNG? prng = null)
     {
         _prng = prng ?? new GamePRNG();
     }

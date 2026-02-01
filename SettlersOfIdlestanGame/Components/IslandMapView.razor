@@ -7,6 +7,7 @@
 @using SettlersOfIdlestan.Model.City
 @using SettlersOfIdlestan.Model.Road
 @using SettlersOfIdlestan.Controller
+@using SettlersOfIdlestan.Model.Game
 
 @if (Map is null)
 {
@@ -19,10 +20,51 @@ else
         {
             var center = AxialToPixel(tile.Coord);
             var points = GetHexPoints(center.x, center.y);
-            <polygon points="@points" fill="@TerrainColor(tile.TerrainType)" stroke="#333" stroke-width="1"></polygon>
+            // Determine if player can harvest this tile (has a city adjacent and tile has resource)
+            var player = Civilizations?.FirstOrDefault(c => c != null && c.Index == 0) ?? Civilizations?.FirstOrDefault();
+            var canHarvest = false;
+            if (player != null && tile.Resource.HasValue)
+            {
+                canHarvest = player.Cities.Any(city => city.Position.IsAdjacentTo(tile.Coord));
+            }
+
+            var centerX = center.x.ToString(CultureInfo.InvariantCulture);
+            var centerY = center.y.ToString(CultureInfo.InvariantCulture);
+
+            if (canHarvest)
+            {
+                <polygon points="@points" fill="@TerrainColor(tile.TerrainType)" stroke="#333" stroke-width="1" style="cursor:pointer" @onclick="() => OnClickHex(tile.Coord)"></polygon>
+            }
+            else
+            {
+                <polygon points="@points" fill="@TerrainColor(tile.TerrainType)" stroke="#333" stroke-width="1"></polygon>
+            }
+
+            @* Show production number as before *@
             @if (tile.ProductionNumber.HasValue)
             {
                 @((MarkupString)RenderProductionSvg(tile))
+            }
+
+            @* Show harvest cooldown overlay when applicable *@
+            if (canHarvest && islandState != null && gameClock != null)
+            {
+                double remaining = 0.0;
+                var civMap = islandState.HarvestLastTimesByCivilization;
+                if (civMap.TryGetValue(player.Index, out var perHex) && perHex.TryGetValue(tile.Coord, out var last))
+                {
+                    var elapsed = gameClock.CurrentTime - last;
+                    if (elapsed < harvestCooldown)
+                    {
+                        remaining = (harvestCooldown - elapsed).TotalSeconds;
+                    }
+                }
+
+                if (remaining > 0)
+                {
+                    var cooldownSvg = $"<text x=\"{centerX}\" y=\"{centerY}\" font-size=\"12\" text-anchor=\"middle\" fill=\"#900\">{remaining.ToString("0.0", CultureInfo.InvariantCulture)}s</text>";
+                    @((MarkupString)cooldownSvg)
+                }
             }
         }
         @* Render cities from provided civilizations *@
@@ -80,8 +122,7 @@ else
                 if (player != null && Map != null)
                 {
                     var state = new IslandState(Map, Civilizations);
-                    var roadController = new RoadController(state);
-                    var buildableRoads = roadController.GetBuildableRoads(player.Index);
+                    var buildableRoads = Controller!.RoadController.GetBuildableRoads(player.Index);
                     var dashColor = "#333";
 
                     foreach (var road in buildableRoads)
@@ -116,12 +157,19 @@ else
 }
 
 @code {
-    [Parameter] public IslandMap? Map { get; set; }
-    [Parameter] public List<SettlersOfIdlestan.Model.Civilization.Civilization>? Civilizations { get; set; }
+    [Parameter] public IslandState? State { get; set; }
+    [Parameter] public MainGameController? Controller { get; set; }
     [Parameter] public double HexSize { get; set; } = 36;
+
+    private IslandMap? Map { get { return State?.Map; } }
+    private List<SettlersOfIdlestan.Model.Civilization.Civilization>? Civilizations { get { return State?.Civilizations; } }
     // hovered edge for buildable highlighting
     private SettlersOfIdlestan.Model.HexGrid.Edge? hoveredEdge;
     private string? buildMessage;
+    // small local islandState and clock to query cooldowns
+    private SettlersOfIdlestan.Model.IslandMap.IslandState? islandState;
+    private SettlersOfIdlestan.Model.Game.GameClock? gameClock;
+    private readonly TimeSpan harvestCooldown = TimeSpan.FromSeconds(2);
 
     private ElementReference svgRef;
 
@@ -137,6 +185,14 @@ else
         base.OnParametersSet();
         if (Map is null) return;
         ComputeBounds();
+        // create lightweight islandState/clock for harvest cooldown display
+        if (Map != null && Civilizations != null)
+        {
+            islandState = new SettlersOfIdlestan.Model.IslandMap.IslandState(Map, Civilizations);
+            gameClock = new GameClock();
+            // start the clock so CurrentTime advances if Advance is called externally
+            gameClock.Start();
+        }
     }
 
     private void ComputeBounds()
@@ -230,9 +286,24 @@ else
         {
             if (Map == null || Civilizations == null) return;
             var state = new IslandState(Map, Civilizations);
-            var controller = new RoadController(state);
-            controller.BuildRoad(road.CivilizationIndex, road.Position);
+            Controller!.RoadController.BuildRoad(road.CivilizationIndex, road.Position);
             buildMessage = "Route construite";
+        }
+        catch (Exception ex)
+        {
+            buildMessage = ex.Message;
+        }
+        StateHasChanged();
+    }
+
+    private void OnClickHex(HexCoord coord)
+    {
+        try
+        {
+            if (Map == null || Civilizations == null) return;
+            // perform a manual harvest for player (index 0)
+            var success = Controller!.HarvestController.ManualHarvest(0, coord);
+            buildMessage = success ? "Récolte réussie" : "Récolte en cooldown ou impossible";
         }
         catch (Exception ex)
         {

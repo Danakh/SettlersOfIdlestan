@@ -16,7 +16,7 @@ namespace SettlersOfIdlestan.Controller
         private readonly IslandState _state;
         private const int TradeRate = 4; // 4:1
 
-        public TradeController(IslandState state)
+        internal TradeController(IslandState state)
         {
             _state = state ?? throw new ArgumentNullException(nameof(state));
         }

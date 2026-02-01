@@ -18,7 +18,7 @@ namespace SettlersOfIdlestan.Controller
         private readonly GameClock _clock;
         private static readonly TimeSpan HarvestCooldown = TimeSpan.FromSeconds(2);
 
-        public HarvestController(IslandState state, GameClock clock)
+        internal HarvestController(IslandState state, GameClock clock)
         {
             _state = state ?? throw new ArgumentNullException(nameof(state));
             _clock = clock ?? throw new ArgumentNullException(nameof(clock));

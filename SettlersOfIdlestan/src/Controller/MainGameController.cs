@@ -13,10 +13,30 @@ namespace SettlersOfIdlestan.Controller
     public class MainGameController
     {
         private readonly IslandMapGenerator _islandGenerator;
+        // Controllers created and exposed as read-only properties
+        public RoadController RoadController { get; private set; }
+        public HarvestController HarvestController { get; private set; }
+        public TradeController TradeController { get; private set; }
+        public BuildingController BuildingController { get; private set; }
+        public CityBuilderController CityBuilderController { get; private set; }
+        public CivilizationAutoplayer CivilizationAutoplayer { get; private set; }
+        public GameClock? Clock { get; private set; }
 
-        public MainGameController(IslandMapGenerator? islandGenerator = null)
+        public MainGameController()
         {
-            _islandGenerator = islandGenerator ?? new IslandMapGenerator();
+            _islandGenerator = new IslandMapGenerator();
+
+            // create a default empty state for controllers; callers should replace with real state when available
+            var emptyMap = new IslandMap(new List<SettlersOfIdlestan.Model.IslandMap.HexTile>());
+            var emptyCivs = new List<Civilization>();
+            var emptyState = new IslandState(emptyMap, emptyCivs);
+
+            RoadController = new RoadController(emptyState);
+            HarvestController = new HarvestController(emptyState, new GameClock());
+            TradeController = new TradeController(emptyState);
+            BuildingController = new BuildingController(emptyState);
+            CityBuilderController = new CityBuilderController(emptyState);
+            CivilizationAutoplayer = new CivilizationAutoplayer(new Civilization(), emptyMap, RoadController, HarvestController);
         }
 
         /// <summary>
@@ -51,6 +71,21 @@ namespace SettlersOfIdlestan.Controller
             // populate the main state with the created sub-states
             mainState.GodState = godState;
             mainState.Clock = clock;
+
+            // Recreate controllers to operate on the real island state and clock
+            RoadController = new RoadController(islandState);
+            HarvestController = new HarvestController(islandState, clock);
+            TradeController = new TradeController(islandState);
+            BuildingController = new BuildingController(islandState);
+            CityBuilderController = new CityBuilderController(islandState);
+            // create a civilization autoplayer for first civ if available
+            if (civs.Count > 0)
+            {
+                CivilizationAutoplayer = new CivilizationAutoplayer(civs[0], map, RoadController, HarvestController, CityBuilderController, BuildingController, TradeController);
+            }
+
+            // expose clock
+            Clock = clock;
 
             return mainState;
         }
