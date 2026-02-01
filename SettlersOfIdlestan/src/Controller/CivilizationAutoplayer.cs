@@ -19,13 +19,15 @@ namespace SettlersOfIdlestan.Controller
         private readonly IslandMap _map;
         private readonly RoadController _roadController;
         private readonly HarvestController _harvestController;
+        private readonly CityBuilderController _cityBuilderController;
 
-        public CivilizationAutoplayer(Civilization civ, IslandMap map, RoadController roadController, HarvestController harvestController)
+        public CivilizationAutoplayer(Civilization civ, IslandMap map, RoadController roadController, HarvestController harvestController, CityBuilderController? cityBuilderController = null)
         {
             _civ = civ ?? throw new ArgumentNullException(nameof(civ));
             _map = map ?? throw new ArgumentNullException(nameof(map));
             _roadController = roadController ?? throw new ArgumentNullException(nameof(roadController));
             _harvestController = harvestController ?? throw new ArgumentNullException(nameof(harvestController));
+            _cityBuilderController = cityBuilderController ?? new CityBuilderController(new IslandState(map, new List<Civilization> { civ }));
         }
 
         /// <summary>
@@ -86,6 +88,65 @@ namespace SettlersOfIdlestan.Controller
                     catch
                     {
                         // ignorer les exceptions individuelles
+                    }
+                }
+
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Tente de construire une ville (outpost) sur le vertex spécifié. Si la construction est impossible
+        /// pour des raisons de ressources, alors l'autoplayer effectue une récolte manuelle de tous les
+        /// hexagones autour des villes de la civilisation et retourne false. Retourne true si la ville a
+        /// été construite avec succès.
+        /// </summary>
+        public bool AutoBuildOutpost(Vertex vertex)
+        {
+            if (vertex == null) throw new ArgumentNullException(nameof(vertex));
+
+            var buildable = _cityBuilderController.GetBuildableVertices(_civ.Index);
+            var isConstructible = buildable.Any(v => v.Equals(vertex));
+            if (!isConstructible)
+            {
+                return false;
+            }
+
+            try
+            {
+                _cityBuilderController.BuildCity(_civ.Index, vertex);
+                return true;
+            }
+            catch (InvalidOperationException)
+            {
+                // Not enough resources: harvest all hexes around civ's cities
+                var toHarvest = new HashSet<HexCoord>();
+                foreach (var city in _civ.Cities)
+                {
+                    try
+                    {
+                        var hexes = city.Position.GetHexes();
+                        foreach (var h in hexes)
+                        {
+                            if (h != null)
+                                toHarvest.Add(h);
+                        }
+                    }
+                    catch
+                    {
+                        // ignore
+                    }
+                }
+
+                foreach (var hex in toHarvest)
+                {
+                    try
+                    {
+                        _harvestController.ManualHarvest(_civ.Index, hex);
+                    }
+                    catch
+                    {
+                        // ignore
                     }
                 }
 
