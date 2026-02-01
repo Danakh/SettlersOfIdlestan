@@ -5,6 +5,8 @@
 @using SettlersOfIdlestan.Model.HexGrid
 @using SettlersOfIdlestan.Model.Civilization
 @using SettlersOfIdlestan.Model.City
+@using SettlersOfIdlestan.Model.Road
+@using SettlersOfIdlestan.Controller
 
 @if (Map is null)
 {
@@ -27,10 +29,13 @@ else
         @if (Civilizations != null)
         {
             var spriteSize = HexSize * 0.8;
+            var roadStrokeWidth = Math.Max(8.0, HexSize * 0.18);
+            var civColors = new[] { "#e6194b", "#3cb44b", "#4363d8", "#f58231", "#911eb4", "#46f0f0", "#f032e6", "#bcf60c" };
             foreach (var civ in Civilizations)
             {
-                if (civ?.Cities == null) continue;
-                foreach (var city in civ.Cities)
+                var color = civColors[(civ.Index >= 0 ? civ.Index : 0) % civColors.Length];
+
+                foreach (var city in civ.Cities ?? Enumerable.Empty<City>())
                 {
                     try
                     {
@@ -49,15 +54,74 @@ else
                         // ignore rendering errors per-city
                     }
                 }
+
+                // Built roads: draw a solid line per road using civilization color
+                foreach (var road in civ.Roads ?? Enumerable.Empty<Road>())
+                {
+                    try
+                    {
+                        var verts = road.Position.GetVertices();
+                        var p1 = VertexToPixel(verts[0]);
+                        var p2 = VertexToPixel(verts[1]);
+                        var x1 = (p1.x).ToString(CultureInfo.InvariantCulture);
+                        var y1 = (p1.y).ToString(CultureInfo.InvariantCulture);
+                        var x2 = (p2.x).ToString(CultureInfo.InvariantCulture);
+                        var y2 = (p2.y).ToString(CultureInfo.InvariantCulture);
+                        <line x1="@x1" y1="@y1" x2="@x2" y2="@y2" stroke="@color" stroke-width="@roadStrokeWidth" stroke-linecap="round" />
+                    }
+                    catch
+                    {
+                        // ignore rendering errors per-road
+                    }
+                }
+
+                // Buildable roads: use RoadController to obtain buildable edges for the player (prefer civ index 0)
+                var player = Civilizations.FirstOrDefault(c => c != null && c.Index == 0) ?? Civilizations.FirstOrDefault();
+                if (player != null && Map != null)
+                {
+                    var state = new IslandState(Map, Civilizations);
+                    var roadController = new RoadController(state);
+                    var buildableRoads = roadController.GetBuildableRoads(player.Index);
+                    var dashColor = "#333";
+
+                    foreach (var road in buildableRoads)
+                    {
+                        try
+                        {
+                            var verts = road.Position.GetVertices();
+                            var p1 = VertexToPixel(verts[0]);
+                            var p2 = VertexToPixel(verts[1]);
+                            var x1 = (p1.x).ToString(CultureInfo.InvariantCulture);
+                            var y1 = (p1.y).ToString(CultureInfo.InvariantCulture);
+                            var x2 = (p2.x).ToString(CultureInfo.InvariantCulture);
+                            var y2 = (p2.y).ToString(CultureInfo.InvariantCulture);
+                            var isHovered = hoveredEdge != null && hoveredEdge.Equals(road.Position);
+                            var lineColor = isHovered ? "#ffd54f" : dashColor;
+                            var lineWidth = isHovered ? roadStrokeWidth * 1.6 : roadStrokeWidth;
+                            <line x1="@x1" y1="@y1" x2="@x2" y2="@y2" stroke="@lineColor" stroke-width="@lineWidth" stroke-linecap="round" stroke-dasharray="3" stroke-opacity="0.9" style="cursor:pointer" @onmouseover="(()=>OnHoverBuildableEdge(road.Position))" @onmouseout="OnLeaveBuildableEdge" @onclick="(()=>OnClickBuildableRoad(road))" />
+                        }
+                        catch
+                        {
+                            // ignore per-road errors
+                        }
+                    }
+                }
             }
         }
-    </svg>
+	</svg>
+    @if (!string.IsNullOrEmpty(buildMessage))
+    {
+        <div class="build-message" style="margin-top:6px;color:#900">@buildMessage</div>
+    }
 }
 
 @code {
     [Parameter] public IslandMap? Map { get; set; }
     [Parameter] public List<SettlersOfIdlestan.Model.Civilization.Civilization>? Civilizations { get; set; }
     [Parameter] public double HexSize { get; set; } = 36;
+    // hovered edge for buildable highlighting
+    private SettlersOfIdlestan.Model.HexGrid.Edge? hoveredEdge;
+    private string? buildMessage;
 
     private ElementReference svgRef;
 
@@ -146,6 +210,35 @@ else
         var h2 = AxialToPixel(v.Hex2);
         var h3 = AxialToPixel(v.Hex3);
         return ((h1.x + h2.x + h3.x) / 3.0, (h1.y + h2.y + h3.y) / 3.0);
+    }
+
+    private void OnHoverBuildableEdge(SettlersOfIdlestan.Model.HexGrid.Edge edge)
+    {
+        hoveredEdge = edge;
+        StateHasChanged();
+    }
+
+    private void OnLeaveBuildableEdge()
+    {
+        hoveredEdge = null;
+        StateHasChanged();
+    }
+
+    private void OnClickBuildableRoad(SettlersOfIdlestan.Model.Road.Road road)
+    {
+        try
+        {
+            if (Map == null || Civilizations == null) return;
+            var state = new IslandState(Map, Civilizations);
+            var controller = new RoadController(state);
+            controller.BuildRoad(road.CivilizationIndex, road.Position);
+            buildMessage = "Route construite";
+        }
+        catch (Exception ex)
+        {
+            buildMessage = ex.Message;
+        }
+        StateHasChanged();
     }
 }
 
