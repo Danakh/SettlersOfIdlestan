@@ -136,6 +136,24 @@ else
                         // ignore per-road errors
                     }
                 }
+                // Render buildable city vertices (small green dotted circles)
+                try
+                {
+                    var buildableVerts = Controller!.CityBuilderController.GetBuildableVertices(player.Index);
+                    foreach (var v in buildableVerts)
+                    {
+                        var p = VertexToPixel(v);
+                        var cx = (p.x).ToString(CultureInfo.InvariantCulture);
+                        var cy = (p.y).ToString(CultureInfo.InvariantCulture);
+                        var isHoveredV = hoveredBuildableVertex != null && hoveredBuildableVertex.Equals(v);
+                        var strokeW = (isHoveredV ? 3.0 : 2.0).ToString(CultureInfo.InvariantCulture);
+                        <circle cx="@cx" cy="@cy" r="6" stroke="#2ecc71" stroke-width="@strokeW" stroke-dasharray="4 4" fill="none" style="cursor:pointer;pointer-events:auto" @onmouseover="(()=>OnHoverBuildableVertex(v))" @onmouseout="OnLeaveBuildableVertex" @onclick:stopPropagation="true" @onclick="(()=>OnClickBuildableVertex(v))" />
+                    }
+                }
+                catch
+                {
+                    // ignore errors retrieving buildable vertices
+                }
             }
 
             // Now render city sprites on top of roads so they are visible
@@ -209,6 +227,7 @@ else
     // hovered edge for buildable highlighting
     private SettlersOfIdlestan.Model.HexGrid.Edge? hoveredEdge;
     private SettlersOfIdlestan.Model.City.City? hoveredCity;
+    private SettlersOfIdlestan.Model.HexGrid.Vertex? hoveredBuildableVertex;
     private string? buildMessage;
     // small local islandState and clock to query cooldowns
     private readonly TimeSpan harvestCooldown = TimeSpan.FromSeconds(2);
@@ -330,6 +349,32 @@ else
         {
             Controller!.RoadController.BuildRoad(road.CivilizationIndex, road.Position);
             buildMessage = "Route construite";
+        }
+        catch (Exception ex)
+        {
+            buildMessage = ex.Message;
+        }
+        StateHasChanged();
+    }
+
+    private void OnHoverBuildableVertex(SettlersOfIdlestan.Model.HexGrid.Vertex v)
+    {
+        hoveredBuildableVertex = v;
+        StateHasChanged();
+    }
+
+    private void OnLeaveBuildableVertex()
+    {
+        hoveredBuildableVertex = null;
+        StateHasChanged();
+    }
+
+    private void OnClickBuildableVertex(SettlersOfIdlestan.Model.HexGrid.Vertex v)
+    {
+        try
+        {
+            Controller!.CityBuilderController.BuildCity(0, v);
+            buildMessage = "Ville construite";
         }
         catch (Exception ex)
         {
