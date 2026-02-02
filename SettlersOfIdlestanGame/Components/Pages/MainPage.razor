@@ -7,6 +7,8 @@
 @using SettlersOfIdlestan.Model.IslandMap
 @using SettlersOfIdlestan.Controller
 @using SettlersOfIdlestan.Model.Civilization
+@using SettlersOfIdlestan.Model.City
+@using SettlersOfIdlestan.Model.Buildings
 @using System.Collections.Generic
 @using System.Threading
 @using System.Threading.Tasks
@@ -44,20 +46,98 @@
     <button class="btn btn-primary" @onclick="Generate">Générer / Régénérer</button>
 </div>
 
-@if (State is null)
-{
-    <p><em>Génération en cours...</em></p>
-}
-else
-{
-    <IslandMapView State="State" Controller="mainController" />
-}
+<div class="d-flex">
+    <div style="flex:1;">
+        @if (State is null)
+        {
+            <p><em>Génération en cours...</em></p>
+        }
+        else
+        {
+            <IslandMapView State="State" Controller="mainController" OnCitySelected="OnCitySelected" />
+        }
+    </div>
+
+    <div class="ms-3" style="width:320px;">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Ville sélectionnée</h5>
+                @if (selectedCity is null)
+                {
+                    <p class="text-muted">Aucune ville sélectionnée. Cliquez sur une ville dans la carte.</p>
+                }
+                else
+                {
+                    <p><strong>Civilisation :</strong> @selectedCity.CivilizationIndex</p>
+                    <p><strong>Position :</strong> @selectedCity.Position</p>
+
+                    <h6>Bâtiments construits</h6>
+                    @if (selectedCity.Buildings == null || selectedCity.Buildings.Count == 0)
+                    {
+                        <p class="text-muted">Aucun bâtiment</p>
+                    }
+                    else
+                    {
+                        <ul class="list-group mb-2">
+                            @foreach (var b in selectedCity.Buildings)
+                            {
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <div><strong>@b.Type</strong> (Niveau @b.Level)</div>
+                                        <small class="text-muted">@b.Description</small>
+                                    </div>
+                                    <div>
+                                        @if (b.Level < b.MaxLevel)
+                                        {
+                                            <button class="btn btn-sm btn-outline-primary" @onclick="(()=>UpgradeBuilding(b.Type))">Améliorer</button>
+                                        }
+                                    </div>
+                                </li>
+                            }
+                        </ul>
+                    }
+
+                    <h6>Bâtiments disponibles</h6>
+                    var buildables = mainController?.BuildingController?.GetBuildableBuildings(selectedCity.CivilizationIndex, selectedCity.Position) ?? new List<Building>();
+                    @if (buildables.Count == 0)
+                    {
+                        <p class="text-muted">Aucun bâtiment disponible</p>
+                    }
+                    else
+                    {
+                        <ul class="list-group">
+                            @foreach (var proto in buildables)
+                            {
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <div><strong>@proto.Type</strong></div>
+                                        <small class="text-muted">@proto.Description</small>
+                                    </div>
+                                    <div>
+                                        <button class="btn btn-sm btn-primary" @onclick="(()=>BuildBuilding(proto.Type))">Construire</button>
+                                    </div>
+                                </li>
+                            }
+                        </ul>
+                    }
+
+                    @if (!string.IsNullOrEmpty(sideBuildMessage))
+                    {
+                        <div class="mt-2 text-danger">@sideBuildMessage</div>
+                    }
+                }
+            </div>
+        </div>
+    </div>
+</div>
 
 @code {
     private IslandState? State;
     private MainGameController? mainController;
     private CancellationTokenSource? renderLoopCts;
     private Stopwatch? renderLoopStopwatch;
+    private SettlersOfIdlestan.Model.City.City? selectedCity;
+    private string? sideBuildMessage;
 
     protected override async Task OnInitializedAsync()
     {
@@ -164,5 +244,42 @@ else
     {
         renderLoopCts?.Cancel();
         await Task.CompletedTask;
+    }
+
+    private void OnCitySelected(SettlersOfIdlestan.Model.City.City city)
+    {
+        selectedCity = city;
+        sideBuildMessage = null;
+        StateHasChanged();
+    }
+
+    private void BuildBuilding(BuildingType type)
+    {
+        if (selectedCity == null || mainController == null) return;
+        try
+        {
+            mainController.BuildingController.BuildBuilding(selectedCity.CivilizationIndex, selectedCity.Position, type);
+            sideBuildMessage = "Bâtiment construit";
+        }
+        catch (Exception ex)
+        {
+            sideBuildMessage = ex.Message;
+        }
+        StateHasChanged();
+    }
+
+    private void UpgradeBuilding(BuildingType type)
+    {
+        if (selectedCity == null || mainController == null) return;
+        try
+        {
+            mainController.BuildingController.BuildBuilding(selectedCity.CivilizationIndex, selectedCity.Position, type);
+            sideBuildMessage = "Bâtiment amélioré";
+        }
+        catch (Exception ex)
+        {
+            sideBuildMessage = ex.Message;
+        }
+        StateHasChanged();
     }
 }

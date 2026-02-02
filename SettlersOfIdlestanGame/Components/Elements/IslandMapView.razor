@@ -68,7 +68,7 @@ else
                 }
             }
         }
-        @* Render cities from provided civilizations *@
+        @* Render roads first, then cities on top for proper z-ordering *@
         @if (Civilizations != null)
         {
             var spriteSize = HexSize * 0.8;
@@ -76,31 +76,11 @@ else
             var roadStrokeWidth = Math.Max(4.0, HexSize * 0.15);
             var roadInnerWidth = roadStrokeWidth * 0.5;
             var civColors = new[] { "#e6194b", "#3cb44b", "#4363d8", "#f58231", "#911eb4", "#46f0f0", "#f032e6", "#bcf60c" };
+
+            // Built roads per civilization
             foreach (var civ in Civilizations)
             {
                 var color = civColors[(civ.Index >= 0 ? civ.Index : 0) % civColors.Length];
-
-                foreach (var city in civ.Cities ?? Enumerable.Empty<City>())
-                {
-                    try
-                    {
-                        var p = VertexToPixel(city.Position);
-                        var imgX = (p.x - spriteSize / 2).ToString(System.Globalization.CultureInfo.InvariantCulture);
-                        var imgY = (p.y - spriteSize / 2).ToString(System.Globalization.CultureInfo.InvariantCulture);
-                        var w = spriteSize.ToString(System.Globalization.CultureInfo.InvariantCulture);
-                        var h = spriteSize.ToString(System.Globalization.CultureInfo.InvariantCulture);
-                        // choose sprite by civilization index if available, fallback to generic city.png
-                        var spritePath = $"assets/sprites/city-outpost.svg";
-                        // use generic if indexed sprite not found at runtime; we still reference it here and let static server handle missing files
-                        <image href="@spritePath" x="@imgX" y="@imgY" width="@w" height="@h" style="pointer-events:none" />
-                    }
-                    catch
-                    {
-                        // ignore rendering errors per-city
-                    }
-                }
-
-                // Built roads: draw a solid line per road using civilization color
                 foreach (var road in civ.Roads ?? Enumerable.Empty<Road>())
                 {
                     try
@@ -122,6 +102,7 @@ else
                     }
                 }
             }
+
             // Buildable roads: use RoadController to obtain buildable edges for the player (prefer civ index 0)
             Civilization? player = Civilizations.FirstOrDefault(c => c != null && c.Index == 0) ?? Civilizations.FirstOrDefault();
             if (player != null && Map != null)
@@ -156,6 +137,42 @@ else
                     }
                 }
             }
+
+            // Now render city sprites on top of roads so they are visible
+            foreach (var civ in Civilizations)
+            {
+                foreach (var city in civ.Cities ?? Enumerable.Empty<City>())
+                {
+                    try
+                    {
+                        var p = VertexToPixel(city.Position);
+                        var imgX = (p.x - spriteSize / 2).ToString(System.Globalization.CultureInfo.InvariantCulture);
+                        var imgY = (p.y - spriteSize / 2).ToString(System.Globalization.CultureInfo.InvariantCulture);
+                        var w = spriteSize.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                        var h = spriteSize.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                        var spritePath = $"assets/sprites/city-outpost.svg";
+                        <image href="@spritePath" x="@imgX" y="@imgY" width="@w" height="@h" style="cursor:pointer;pointer-events:auto" @onclick="(()=>CityClicked(city))" @onmouseover="(()=>OnHoverCity(city))" @onmouseout="OnLeaveCity" />
+                    }
+                    catch
+                    {
+                        // ignore rendering errors per-city
+                    }
+                }
+            }
+
+            // draw highlight for hovered city above everything
+            if (hoveredCity != null)
+            {
+                try
+                {
+                    var hp = VertexToPixel(hoveredCity.Position);
+                    var cx = hp.x.ToString(CultureInfo.InvariantCulture);
+                    var cy = hp.y.ToString(CultureInfo.InvariantCulture);
+                    var r = (spriteSize / 2.0 + 6.0).ToString(CultureInfo.InvariantCulture);
+                    <circle cx="@cx" cy="@cy" r="@r" stroke="#ffd54f" stroke-width="3" fill="none" pointer-events="none" />
+                }
+                catch { }
+            }
         }
 	</svg>
     @if (!string.IsNullOrEmpty(buildMessage))
@@ -165,6 +182,7 @@ else
 }
 
 @code {
+    [Parameter] public EventCallback<SettlersOfIdlestan.Model.City.City> OnCitySelected { get; set; }
     [Parameter] public IslandState? State { get; set; }
     [Parameter] public MainGameController? Controller { get; set; }
     [Parameter] public double HexSize { get; set; } = 36;
@@ -175,6 +193,7 @@ else
 
     // hovered edge for buildable highlighting
     private SettlersOfIdlestan.Model.HexGrid.Edge? hoveredEdge;
+    private SettlersOfIdlestan.Model.City.City? hoveredCity;
     private string? buildMessage;
     // small local islandState and clock to query cooldowns
     private readonly TimeSpan harvestCooldown = TimeSpan.FromSeconds(2);
@@ -317,6 +336,31 @@ else
         {
             buildMessage = ex.Message;
         }
+        StateHasChanged();
+    }
+
+    private async System.Threading.Tasks.Task CityClicked(SettlersOfIdlestan.Model.City.City city)
+    {
+        try
+        {
+            if (OnCitySelected.HasDelegate)
+                await OnCitySelected.InvokeAsync(city);
+        }
+        catch
+        {
+            // ignore
+        }
+    }
+
+    private void OnHoverCity(SettlersOfIdlestan.Model.City.City city)
+    {
+        hoveredCity = city;
+        StateHasChanged();
+    }
+
+    private void OnLeaveCity()
+    {
+        hoveredCity = null;
         StateHasChanged();
     }
 }
