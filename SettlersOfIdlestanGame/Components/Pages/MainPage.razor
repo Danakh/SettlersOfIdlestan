@@ -18,7 +18,17 @@
 
 <div class="d-flex align-items-center justify-content-between mb-2">
     <h1 class="mb-0">Carte de l'île</h1>
-
+    <div class="btn-group">
+        <button class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">Settings</button>
+        <ul class="dropdown-menu dropdown-menu-end p-2" style="min-width:200px">
+            <li>
+                <button class="dropdown-item" @onclick="ExportGame">Export (sauver)</button>
+            </li>
+            <li>
+                <button class="dropdown-item" @onclick="TriggerImport">Import (charger)</button>
+            </li>
+        </ul>
+    </div>
     <div class="resource-capsule d-flex align-items-center px-3 py-1 rounded-pill"
          style="background:#f8f9fa;border:1px solid #ddd;min-width:220px;max-width:60%;">
         @if (State is null)
@@ -41,6 +51,8 @@
         }
     </div>
 </div>
+
+<InputFile id="importFile" style="display:none" OnChange="OnImportFileSelected" />
 
 <div class="mb-2">
     <button class="btn btn-primary" @onclick="Generate">Générer / Régénérer</button>
@@ -138,6 +150,7 @@
     private Stopwatch? renderLoopStopwatch;
     private SettlersOfIdlestan.Model.City.City? selectedCity;
     private string? sideBuildMessage;
+    [Inject] private IJSRuntime JS { get; set; } = default!;
 
     protected override async Task OnInitializedAsync()
     {
@@ -167,6 +180,67 @@
         }
 
         StateHasChanged();
+    }
+
+    private async Task ExportGame()
+    {
+        if (mainController == null)
+        {
+            sideBuildMessage = "Aucun jeu à exporter";
+            return;
+        }
+
+        try
+        {
+            var json = mainController.ExportMainState();
+            // use JS to trigger download
+            var fileName = $"settlers_export_{DateTime.Now:yyyyMMdd_HHmmss}.json";
+            await JS.InvokeVoidAsync("downloadFile", fileName, json);
+        }
+        catch (Exception ex)
+        {
+            sideBuildMessage = "Export failed: " + ex.Message;
+        }
+    }
+
+    private async Task TriggerImport()
+    {
+        // trigger the hidden input click
+        await JS.InvokeVoidAsync("clickElementById", "importFile");
+    }
+
+    private async Task OnImportFileSelected(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file == null) return;
+
+        try
+        {
+            using var stream = file.OpenReadStream(maxAllowedSize: 10_000_000);
+            using var ms = new MemoryStream();
+            await stream.CopyToAsync(ms);
+            var bytes = ms.ToArray();
+            var json = System.Text.Encoding.UTF8.GetString(bytes);
+
+            if (mainController == null) mainController = new MainGameController();
+            var mainState = mainController.ImportMainState(json);
+            State = mainState.CurrentIslandState;
+
+            // restart clock and render loop for imported state
+            renderLoopCts?.Cancel();
+            if (mainController.Clock != null)
+            {
+                mainController.Clock.Start();
+                StartRenderLoop();
+            }
+
+            sideBuildMessage = "Import effectué";
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            sideBuildMessage = "Import failed: " + ex.Message;
+        }
     }
 
     private void Generate()

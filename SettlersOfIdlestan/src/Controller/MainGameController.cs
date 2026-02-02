@@ -22,6 +22,8 @@ namespace SettlersOfIdlestan.Controller
         public CityBuilderController CityBuilderController { get; private set; }
         public CivilizationAutoplayer CivilizationAutoplayer { get; private set; }
         public GameClock? Clock { get; private set; }
+        // Holds the currently loaded main game state when created or imported
+        public SettlersOfIdlestan.Model.Game.MainGameState? CurrentMainState { get; private set; }
 
         public MainGameController()
         {
@@ -39,6 +41,62 @@ namespace SettlersOfIdlestan.Controller
             BuildingController = new BuildingController(emptyState);
             CityBuilderController = new CityBuilderController(emptyState);
             CivilizationAutoplayer = new CivilizationAutoplayer(new Civilization(), emptyMap, RoadController, HarvestController);
+        }
+
+        /// <summary>
+        /// Export the current MainGameState as a JSON string. Uses available JSON converters for island map types.
+        /// </summary>
+        public string ExportMainState()
+        {
+            if (CurrentMainState == null) throw new InvalidOperationException("No main state available to export.");
+
+            var options = new System.Text.Json.JsonSerializerOptions
+            {
+                WriteIndented = true
+            };
+            // register converters for hex coord and island map types
+            options.Converters.Add(new SettlersOfIdlestan.Model.HexGrid.HexCoordJsonConverter());
+            options.Converters.Add(new SettlersOfIdlestan.Model.IslandMap.IslandMapJsonConverter());
+
+            return System.Text.Json.JsonSerializer.Serialize(CurrentMainState, options);
+        }
+
+        /// <summary>
+        /// Import a MainGameState from JSON and wire controllers to operate on it.
+        /// Returns the deserialized MainGameState.
+        /// </summary>
+        public SettlersOfIdlestan.Model.Game.MainGameState ImportMainState(string json)
+        {
+            if (string.IsNullOrWhiteSpace(json)) throw new ArgumentException("json cannot be empty", nameof(json));
+
+            var options = new System.Text.Json.JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            };
+            options.Converters.Add(new SettlersOfIdlestan.Model.HexGrid.HexCoordJsonConverter());
+            options.Converters.Add(new SettlersOfIdlestan.Model.IslandMap.IslandMapJsonConverter());
+
+            var mainState = System.Text.Json.JsonSerializer.Deserialize<SettlersOfIdlestan.Model.Game.MainGameState>(json, options)
+                            ?? throw new InvalidOperationException("Failed to deserialize MainGameState.");
+
+            var islandState = mainState.CurrentIslandState ?? throw new InvalidOperationException("Imported state does not contain an island state.");
+
+            // Recreate controllers to operate on the imported island state and clock
+            RoadController = new RoadController(islandState);
+            HarvestController = new HarvestController(islandState, mainState.Clock);
+            TradeController = new TradeController(islandState);
+            BuildingController = new BuildingController(islandState);
+            CityBuilderController = new CityBuilderController(islandState);
+            if (islandState.Civilizations.Count > 0)
+            {
+                CivilizationAutoplayer = new CivilizationAutoplayer(islandState.Civilizations[0], islandState.Map, RoadController, HarvestController, CityBuilderController, BuildingController, TradeController);
+            }
+
+            // expose clock and keep reference to main state
+            Clock = mainState.Clock;
+            CurrentMainState = mainState;
+
+            return mainState;
         }
 
         /// <summary>
@@ -73,6 +131,8 @@ namespace SettlersOfIdlestan.Controller
             // populate the main state with the created sub-states
             mainState.GodState = godState;
             mainState.Clock = clock;
+            // keep reference to the created main state for export/import
+            CurrentMainState = mainState;
 
             // Recreate controllers to operate on the real island state and clock
             RoadController = new RoadController(islandState);
