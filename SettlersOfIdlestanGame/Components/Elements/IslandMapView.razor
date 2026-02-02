@@ -16,7 +16,7 @@
 }
 else
 {
-    <svg @ref="svgRef" width="@SvgWidth" height="@SvgHeight" viewBox="@ViewBox" style="background:#eef2f5">
+    <svg @ref="svgRef" width="@SvgWidth" height="@SvgHeight" viewBox="@ViewBox" style="background:#eef2f5" @onclick="OnMapBackgroundClick">
         @foreach (var tile in Map.Tiles.Values)
         {
             var center = AxialToPixel(tile.Coord);
@@ -34,7 +34,7 @@ else
 
             if (canHarvest)
             {
-                <polygon points="@points" fill="@TerrainColor(tile.TerrainType)" stroke="#333" stroke-width="1" style="cursor:pointer;pointer-events:auto" @onclick="() => OnClickHex(tile.Coord)"></polygon>
+                <polygon points="@points" fill="@TerrainColor(tile.TerrainType)" stroke="#333" stroke-width="1" style="cursor:pointer;pointer-events:auto" @onclick:stopPropagation="true" @onclick="() => OnClickHex(tile.Coord)"></polygon>
             }
             else
             {
@@ -128,7 +128,7 @@ else
                         var innerLineWidth = isHovered ? roadInnerWidth * 1.2 : roadInnerWidth;
                         // background to make dashed line readable (black line underneath)
                         // make background capture pointer events so hover/click area matches its width
-                        <line x1="@x1" y1="@y1" x2="@x2" y2="@y2" stroke="#000" stroke-width="@(lineWidth.ToString(CultureInfo.InvariantCulture))" stroke-linecap="butt" stroke-opacity="@((isHovered?1:0.4).ToString(CultureInfo.InvariantCulture))" style="cursor:pointer" @onmouseover="(() => OnHoverBuildableEdge(road.Position))" @onmouseout="OnLeaveBuildableEdge" @onclick="(() => OnClickBuildableRoad(road))" />
+                        <line x1="@x1" y1="@y1" x2="@x2" y2="@y2" stroke="#000" stroke-width="@(lineWidth.ToString(CultureInfo.InvariantCulture))" stroke-linecap="butt" stroke-opacity="@((isHovered?1:0.4).ToString(CultureInfo.InvariantCulture))" style="cursor:pointer" @onmouseover="(() => OnHoverBuildableEdge(road.Position))" @onmouseout="OnLeaveBuildableEdge" @onclick:stopPropagation="true" @onclick="(() => OnClickBuildableRoad(road))" />
                         <line x1="@x1" y1="@y1" x2="@x2" y2="@y2" stroke="@lineColor" stroke-width="@(innerLineWidth.ToString(CultureInfo.InvariantCulture))" stroke-linecap="butt" stroke-dasharray="6 6" stroke-opacity="1" style="pointer-events:none" />
                     }
                     catch
@@ -151,13 +151,27 @@ else
                         var w = spriteSize.ToString(System.Globalization.CultureInfo.InvariantCulture);
                         var h = spriteSize.ToString(System.Globalization.CultureInfo.InvariantCulture);
                         var spritePath = $"assets/sprites/city-outpost.svg";
-                        <image href="@spritePath" x="@imgX" y="@imgY" width="@w" height="@h" style="cursor:pointer;pointer-events:auto" @onclick="(()=>CityClicked(city))" @onmouseover="(()=>OnHoverCity(city))" @onmouseout="OnLeaveCity" />
+                        <image href="@spritePath" x="@imgX" y="@imgY" width="@w" height="@h" style="cursor:pointer;pointer-events:auto" @onclick:stopPropagation="true" @onclick="(()=>CityClicked(city))" @onmouseover="(()=>OnHoverCity(city))" @onmouseout="OnLeaveCity" />
                     }
                     catch
                     {
                         // ignore rendering errors per-city
                     }
                 }
+            }
+
+            // draw persistent selection highlight (below hover)
+            if (SelectedCity != null)
+            {
+                try
+                {
+                    var sp = VertexToPixel(SelectedCity.Position);
+                    var scx = sp.x.ToString(CultureInfo.InvariantCulture);
+                    var scy = sp.y.ToString(CultureInfo.InvariantCulture);
+                    var sr = (spriteSize / 2.0 + 4.0).ToString(CultureInfo.InvariantCulture);
+                    <circle cx="@scx" cy="@scy" r="@sr" stroke="#ffd59a" stroke-width="3" fill="none" pointer-events="none" />
+                }
+                catch { }
             }
 
             // draw highlight for hovered city above everything
@@ -183,6 +197,7 @@ else
 
 @code {
     [Parameter] public EventCallback<SettlersOfIdlestan.Model.City.City> OnCitySelected { get; set; }
+    [Parameter] public SettlersOfIdlestan.Model.City.City? SelectedCity { get; set; }
     [Parameter] public IslandState? State { get; set; }
     [Parameter] public MainGameController? Controller { get; set; }
     [Parameter] public double HexSize { get; set; } = 36;
@@ -343,13 +358,32 @@ else
     {
         try
         {
-            if (OnCitySelected.HasDelegate)
-                await OnCitySelected.InvokeAsync(city);
+            // toggle selection: if same as current selected, deselect
+            if (SelectedCity != null && SelectedCity.Position.Equals(city.Position))
+            {
+                if (OnCitySelected.HasDelegate)
+                    await OnCitySelected.InvokeAsync((SettlersOfIdlestan.Model.City.City?)null);
+            }
+            else
+            {
+                if (OnCitySelected.HasDelegate)
+                    await OnCitySelected.InvokeAsync(city);
+            }
         }
         catch
         {
             // ignore
         }
+    }
+
+    private async System.Threading.Tasks.Task OnMapBackgroundClick()
+    {
+        try
+        {
+            if (OnCitySelected.HasDelegate)
+                await OnCitySelected.InvokeAsync((SettlersOfIdlestan.Model.City.City?)null);
+        }
+        catch { }
     }
 
     private void OnHoverCity(SettlersOfIdlestan.Model.City.City city)
