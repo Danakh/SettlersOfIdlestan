@@ -8,6 +8,7 @@ using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.City;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Game;
+using SOITests.TestUtilities;
 
 namespace SOITests.ControllerTests
 {
@@ -117,6 +118,9 @@ namespace SOITests.ControllerTests
             var outpostBuilt = TryBuildOutpostWithAuto(buildableVertex);
             Assert.True(outpostBuilt, "Autoplayer should eventually build an outpost after roads");
             Assert.Contains(civ.Cities, c => c.Position.Equals(buildableVertex));
+
+            // Save the resulting game state and verify round-trip using test utility
+            SaveUtils.SaveAndReloadAndAssertEqual(mainController, "4HexsMapWithTwoCities");
         }
     }
 }
