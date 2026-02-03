@@ -55,6 +55,9 @@ namespace SettlersOfIdlestan.Controller
             };
             // register converters for hex coord and island map types
             options.Converters.Add(new SettlersOfIdlestan.Model.HexGrid.HexCoordJsonConverter());
+            options.Converters.Add(new SettlersOfIdlestan.Model.HexGrid.EdgeJsonConverter());
+            // ensure Building polymorphic types are serialized
+            options.Converters.Add(new SettlersOfIdlestan.Model.Buildings.BuildingJsonConverter());
             options.Converters.Add(new SettlersOfIdlestan.Model.IslandMap.IslandMapJsonConverter());
             // ensure Vertex (city positions) are properly serialized when exporting
             options.Converters.Add(new SettlersOfIdlestan.Model.HexGrid.VertexJsonConverter());
@@ -75,6 +78,9 @@ namespace SettlersOfIdlestan.Controller
                 PropertyNameCaseInsensitive = true
             };
             options.Converters.Add(new SettlersOfIdlestan.Model.HexGrid.HexCoordJsonConverter());
+            options.Converters.Add(new SettlersOfIdlestan.Model.HexGrid.EdgeJsonConverter());
+            // ensure Building polymorphic types are deserialized
+            options.Converters.Add(new SettlersOfIdlestan.Model.Buildings.BuildingJsonConverter());
             options.Converters.Add(new SettlersOfIdlestan.Model.IslandMap.IslandMapJsonConverter());
             // ensure Vertex (city positions) are properly deserialized when importing
             options.Converters.Add(new SettlersOfIdlestan.Model.HexGrid.VertexJsonConverter());
