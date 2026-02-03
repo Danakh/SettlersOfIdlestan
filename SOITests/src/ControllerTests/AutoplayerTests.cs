@@ -7,6 +7,7 @@ using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.City;
 using SettlersOfIdlestan.Model.Buildings;
+using SettlersOfIdlestan.Model.Game;
 
 namespace SOITests.ControllerTests
 {
@@ -42,9 +43,14 @@ namespace SOITests.ControllerTests
             var clock = new SettlersOfIdlestan.Model.Game.GameClock();
             clock.Start();
 
-            var roadController = new RoadController(state);
-            var harvestController = new HarvestController(state, clock);
-            var auto = new CivilizationAutoplayer(civ, map, roadController, harvestController);
+            // Create a MainGameController and wire its controllers to operate on the
+            // prepared island state and clock so the autoplayer can use them.
+            var mainController = new MainGameController();
+            mainController.SetGame(new MainGameState(state, clock));
+            var auto = new CivilizationAutoplayer(civ, map, mainController);
+
+            var roadController = mainController.RoadController;
+            var harvestController = mainController.HarvestController;
 
             // Helper to repeatedly attempt building an edge with the autoplayer while advancing the clock
             bool TryBuildWithAuto(Edge edge)

@@ -24,15 +24,26 @@ namespace SettlersOfIdlestan.Controller
         private readonly CityBuilderController _cityBuilderController;
         private readonly TradeController _tradeController;
 
-        public CivilizationAutoplayer(Civilization civ, IslandMap map, RoadController roadController, HarvestController harvestController, CityBuilderController? cityBuilderController = null, BuildingController? buildingController = null, TradeController? tradeController = null)
+        // Optional reference to a MainGameController so the autoplayer can use the
+        // controllers exposed by it. When provided the other controller parameters
+        // passed to the older constructor are ignored.
+        private readonly MainGameController? _mainController;
+
+        /// <summary>
+        /// Constructor that accepts a MainGameController and uses its exposed sub-controllers.
+        /// </summary>
+        public CivilizationAutoplayer(Civilization civ, IslandMap map, MainGameController mainController)
         {
             _civ = civ ?? throw new ArgumentNullException(nameof(civ));
             _map = map ?? throw new ArgumentNullException(nameof(map));
-            _roadController = roadController ?? throw new ArgumentNullException(nameof(roadController));
-            _harvestController = harvestController ?? throw new ArgumentNullException(nameof(harvestController));
-            _cityBuilderController = cityBuilderController ?? new CityBuilderController(new IslandState(map, new List<Civilization> { civ }));
-            _buildingController = buildingController ?? new BuildingController(new IslandState(map, new List<Civilization> { civ }));
-            _tradeController = tradeController ?? new TradeController(new IslandState(map, new List<Civilization> { civ }));
+            _mainController = mainController ?? throw new ArgumentNullException(nameof(mainController));
+
+            // Use controllers from the main controller so the autoplayer operates on the same state
+            _roadController = mainController.RoadController;
+            _harvestController = mainController.HarvestController;
+            _cityBuilderController = mainController.CityBuilderController;
+            _buildingController = mainController.BuildingController;
+            _tradeController = mainController.TradeController;
         }
 
         /// <summary>

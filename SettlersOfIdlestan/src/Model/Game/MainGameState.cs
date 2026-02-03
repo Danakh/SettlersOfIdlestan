@@ -24,6 +24,13 @@ namespace SettlersOfIdlestan.Model.Game
             PRNG = new GamePRNG();
         }
 
+        public MainGameState(IslandState islandState, GameClock clock)
+        {
+            var prestigeState = new PrestigeState(islandState);
+            GodState = new GodState(prestigeState);
+            Clock = clock;
+            PRNG = new GamePRNG();
+        }
         public MainGameState(GodState godState, GameClock clock)
         {
             GodState = godState;

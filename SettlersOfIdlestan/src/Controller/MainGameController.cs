@@ -40,7 +40,6 @@ namespace SettlersOfIdlestan.Controller
             TradeController = new TradeController(emptyState);
             BuildingController = new BuildingController(emptyState);
             CityBuilderController = new CityBuilderController(emptyState);
-            CivilizationAutoplayer = new CivilizationAutoplayer(new Civilization(), emptyMap, RoadController, HarvestController);
         }
 
         /// <summary>
@@ -91,10 +90,6 @@ namespace SettlersOfIdlestan.Controller
             TradeController = new TradeController(islandState);
             BuildingController = new BuildingController(islandState);
             CityBuilderController = new CityBuilderController(islandState);
-            if (islandState.Civilizations.Count > 0)
-            {
-                CivilizationAutoplayer = new CivilizationAutoplayer(islandState.Civilizations[0], islandState.Map, RoadController, HarvestController, CityBuilderController, BuildingController, TradeController);
-            }
 
             // expose clock and keep reference to main state
             Clock = mainState.Clock;
@@ -135,25 +130,32 @@ namespace SettlersOfIdlestan.Controller
             // populate the main state with the created sub-states
             mainState.GodState = godState;
             mainState.Clock = clock;
-            // keep reference to the created main state for export/import
-            CurrentMainState = mainState;
 
-            // Recreate controllers to operate on the real island state and clock
-            RoadController = new RoadController(islandState);
-            HarvestController = new HarvestController(islandState, clock);
-            TradeController = new TradeController(islandState);
-            BuildingController = new BuildingController(islandState);
-            CityBuilderController = new CityBuilderController(islandState);
-            // create a civilization autoplayer for first civ if available
-            if (civs.Count > 0)
-            {
-                CivilizationAutoplayer = new CivilizationAutoplayer(civs[0], map, RoadController, HarvestController, CityBuilderController, BuildingController, TradeController);
-            }
-
-            // expose clock
-            Clock = clock;
-
+            SetGame(mainState);
             return mainState;
+        }
+
+
+        /// <summary>
+        /// Uses a already created game.
+        /// </summary>
+        public void SetGame(MainGameState mainGame)
+        {
+            // keep reference to the created main state for export/import
+            CurrentMainState = mainGame;
+            Clock = mainGame.Clock;
+
+            var islandState = mainGame.CurrentIslandState;
+
+            if (islandState is not null)
+            {
+                // Recreate controllers to operate on the real island state and clock
+                RoadController = new RoadController(islandState);
+                HarvestController = new HarvestController(islandState, mainGame.Clock);
+                TradeController = new TradeController(islandState);
+                BuildingController = new BuildingController(islandState);
+                CityBuilderController = new CityBuilderController(islandState);
+            }
         }
     }
 }
