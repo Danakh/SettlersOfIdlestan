@@ -57,6 +57,8 @@ namespace SettlersOfIdlestan.Controller
             // register converters for hex coord and island map types
             options.Converters.Add(new SettlersOfIdlestan.Model.HexGrid.HexCoordJsonConverter());
             options.Converters.Add(new SettlersOfIdlestan.Model.IslandMap.IslandMapJsonConverter());
+            // ensure Vertex (city positions) are properly serialized when exporting
+            options.Converters.Add(new SettlersOfIdlestan.Model.HexGrid.VertexJsonConverter());
 
             return System.Text.Json.JsonSerializer.Serialize(CurrentMainState, options);
         }
@@ -75,6 +77,8 @@ namespace SettlersOfIdlestan.Controller
             };
             options.Converters.Add(new SettlersOfIdlestan.Model.HexGrid.HexCoordJsonConverter());
             options.Converters.Add(new SettlersOfIdlestan.Model.IslandMap.IslandMapJsonConverter());
+            // ensure Vertex (city positions) are properly deserialized when importing
+            options.Converters.Add(new SettlersOfIdlestan.Model.HexGrid.VertexJsonConverter());
 
             var mainState = System.Text.Json.JsonSerializer.Deserialize<SettlersOfIdlestan.Model.Game.MainGameState>(json, options)
                             ?? throw new InvalidOperationException("Failed to deserialize MainGameState.");

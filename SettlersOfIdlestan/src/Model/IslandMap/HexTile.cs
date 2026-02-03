@@ -1,4 +1,5 @@
 using System;
+using System.Text.Json.Serialization;
 using SettlersOfIdlestan.Model.HexGrid;
 
 namespace SettlersOfIdlestan.Model.IslandMap;
@@ -9,6 +10,12 @@ namespace SettlersOfIdlestan.Model.IslandMap;
 [Serializable]
 public class HexTile
 {
+    [JsonConstructor]
+    public HexTile()
+    {
+        // Parameterless constructor for deserialization
+    }
+
     public HexTile(HexCoord coord, TerrainType terrainType, int? productionNumber = null)
     {
         Coord = coord;
@@ -22,10 +29,10 @@ public class HexTile
         }
     }
 
-    public HexCoord Coord { get; }
-    public TerrainType TerrainType { get; }
+    public HexCoord Coord { get; set; }
+    public TerrainType TerrainType { get; set; }
     public Resource? Resource => TerrainTypeMappings.TerrainResourceMap[TerrainType];
-    public int? ProductionNumber { get; }
+    public int? ProductionNumber { get; set; }
 
     public override string ToString()
     {

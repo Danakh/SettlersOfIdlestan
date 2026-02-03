@@ -16,14 +16,14 @@ public class Civilization
     public int Index { get; set; }
 
     /// <summary>
-    /// Gets the list of cities in the civilization.
+    /// Gets or sets the list of cities in the civilization.
     /// </summary>
-    public List<SettlersOfIdlestan.Model.City.City> Cities { get; } = new();
+    public List<SettlersOfIdlestan.Model.City.City> Cities { get; set; } = new();
 
     /// <summary>
-    /// Gets the list of roads in the civilization.
+    /// Gets or sets the list of roads in the civilization.
     /// </summary>
-    public List<SettlersOfIdlestan.Model.Road.Road> Roads { get; } = new();
+    public List<SettlersOfIdlestan.Model.Road.Road> Roads { get; set; } = new();
 
     /// <summary>
     /// Liste des ressources détenues par la civilisation.

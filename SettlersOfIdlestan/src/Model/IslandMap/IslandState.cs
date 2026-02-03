@@ -17,7 +17,7 @@ public class IslandState
     /// <summary>
     /// Gets the list of civilizations on the island.
     /// </summary>
-    public List<SettlersOfIdlestan.Model.Civilization.Civilization> Civilizations { get; }
+    public List<SettlersOfIdlestan.Model.Civilization.Civilization> Civilizations { get; set; }
 
     /// <summary>
     /// Gets the player's civilization (always at index 0).
@@ -39,9 +39,20 @@ public class IslandState
     }
 
     /// <summary>
+    /// Parameterless constructor for deserialization.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonConstructor]
+    public IslandState()
+    {
+        Map = new IslandMap(Array.Empty<HexTile>());
+        Civilizations = new List<SettlersOfIdlestan.Model.Civilization.Civilization>();
+        HarvestLastTimesByCivilization = new Dictionary<int, Dictionary<SettlersOfIdlestan.Model.HexGrid.HexCoord, DateTimeOffset>>();
+    }
+
+    /// <summary>
     /// Tracks the last in-game time each civilization harvested each hex.
     /// Key: civilization index. Value: map HexCoord -> last harvest time.
     /// Stored here so harvest cooldowns are persisted with the island state.
     /// </summary>
-    public Dictionary<int, Dictionary<SettlersOfIdlestan.Model.HexGrid.HexCoord, DateTimeOffset>> HarvestLastTimesByCivilization { get; }
+    public Dictionary<int, Dictionary<SettlersOfIdlestan.Model.HexGrid.HexCoord, DateTimeOffset>> HarvestLastTimesByCivilization { get; set; }
 }

@@ -135,7 +135,7 @@ public class HexCoord
     /// </summary>
     public int[] Serialize()
     {
-        return [Q, R];
+        return new[] { Q, R };
     }
 
     /// <summary>

@@ -15,6 +15,7 @@ namespace SettlersOfIdlestan.Model.HexGrid;
 /// garantir l'unicité.
 /// </summary>
 [Serializable]
+[System.Text.Json.Serialization.JsonConverter(typeof(SettlersOfIdlestan.Model.HexGrid.VertexJsonConverter))]
 public class Vertex
 {
     private Vertex(HexCoord hex1, HexCoord hex2, HexCoord hex3)
@@ -30,9 +31,9 @@ public class Vertex
         Hex3 = hex3;
     }
 
-    public HexCoord Hex1 { get; }
-    public HexCoord Hex2 { get; }
-    public HexCoord Hex3 { get; }
+    public HexCoord Hex1 { get; private set; }
+    public HexCoord Hex2 { get; private set; }
+    public HexCoord Hex3 { get; private set; }
 
     /// <summary>
     /// Crée un sommet à partir de trois hexagones adjacents.
@@ -93,7 +94,7 @@ public class Vertex
     /// </summary>
     public HexCoord[] GetHexes()
     {
-        return [Hex1, Hex2, Hex3];
+        return new[] { Hex1, Hex2, Hex3 };
     }
 
     /// <summary>

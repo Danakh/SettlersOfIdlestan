@@ -22,9 +22,17 @@ public class City
     public int CivilizationIndex { get; set; }
 
     /// <summary>
-    /// Gets the list of buildings in the city.
+    /// Gets or sets the list of buildings in the city.
     /// </summary>
-    public List<Building> Buildings { get; } = new();
+    public List<Building> Buildings { get; set; } = new();
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="City"/> class.
+    /// </summary>
+    public City()
+    {
+        Position = null!;
+    }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="City"/> class with the specified position.
