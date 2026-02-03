@@ -62,12 +62,41 @@ namespace SettlersOfIdlestan.Model.Game
         {
             if (!IsRunning) return;
             var scaledTicks = (long)(realTime.Ticks * Speed);
+            var previous = Elapsed;
             Elapsed = Elapsed.Add(TimeSpan.FromTicks(scaledTicks));
+
+            // Raise Advanced event to notify listeners that time progressed
+            try
+            {
+                Advanced?.Invoke(this, new GameClockAdvancedEventArgs(previous, Elapsed));
+            }
+            catch
+            {
+                // swallow listener exceptions to avoid breaking time progression
+            }
         }
 
         /// <summary>
         /// Gets the current in-game time (StartTime + Elapsed).
         /// </summary>
         public DateTimeOffset CurrentTime => StartTime + Elapsed;
+
+        /// <summary>
+        /// Raised after the clock has been advanced. Listeners can react to time progression.
+        /// </summary>
+        public event EventHandler<GameClockAdvancedEventArgs>? Advanced;
+    }
+
+    [Serializable]
+    public class GameClockAdvancedEventArgs : EventArgs
+    {
+        public TimeSpan PreviousElapsed { get; }
+        public TimeSpan NewElapsed { get; }
+
+        public GameClockAdvancedEventArgs(TimeSpan previous, TimeSpan current)
+        {
+            PreviousElapsed = previous;
+            NewElapsed = current;
+        }
     }
 }

@@ -17,11 +17,82 @@ namespace SettlersOfIdlestan.Controller
         private readonly IslandState _state;
         private readonly GameClock _clock;
         private static readonly TimeSpan HarvestCooldown = TimeSpan.FromSeconds(2);
+        // Cooldown for automatic production harvests triggered by producer buildings
+        private static readonly TimeSpan AutomaticHarvestCooldown = TimeSpan.FromSeconds(5);
+
+        private bool _subscribedToClock = false;
 
         internal HarvestController(IslandState state, GameClock clock)
         {
             _state = state ?? throw new ArgumentNullException(nameof(state));
             _clock = clock ?? throw new ArgumentNullException(nameof(clock));
+            // subscribe to clock advanced events to perform periodic automatic production harvesting
+            _clock.Advanced += OnClockAdvanced;
+            _subscribedToClock = true;
+        }
+
+        private void OnClockAdvanced(object? sender, GameClockAdvancedEventArgs e)
+        {
+            try
+            {
+                PerformAutomaticProductionHarvests();
+            }
+            catch
+            {
+                // swallow exceptions to avoid affecting clock propagation
+            }
+        }
+
+        private void PerformAutomaticProductionHarvests()
+        {
+            // For each civilization and each of its cities, for each building that produces,
+            // harvest adjacent hexes corresponding to the building's produced resource, subject to per-hex automatic cooldown.
+            foreach (var civ in _state.Civilizations)
+            {
+                if (!_state.AutomaticHarvestLastTimesByCivilization.TryGetValue(civ.Index, out var autoMap))
+                {
+                    autoMap = new System.Collections.Generic.Dictionary<HexCoord, DateTimeOffset>();
+                    _state.AutomaticHarvestLastTimesByCivilization[civ.Index] = autoMap;
+                }
+
+                var now = _clock.CurrentTime;
+
+                foreach (var city in civ.Cities)
+                {
+                    foreach (var building in city.Buildings)
+                    {
+                        // Buildings without production skip
+                        if (building.Production == null || building.Production.Count == 0) continue;
+
+                        // For each produced resource, attempt to harvest one adjacent hex that contains this resource.
+                        foreach (var prod in building.Production)
+                        {
+                            var resource = prod.Key;
+                            // find an adjacent tile of the city that provides this resource
+                            var hexes = city.Position.GetHexes();
+                            foreach (var hex in hexes)
+                            {
+                                if (hex == null) continue;
+                                var tile = _state.Map.GetTile(hex);
+                                if (tile == null || tile.Resource == null) continue;
+                                if (tile.Resource.Value != resource) continue;
+
+                                // check automatic cooldown
+                                if (autoMap.TryGetValue(hex, out var lastAuto) && now - lastAuto < AutomaticHarvestCooldown)
+                                {
+                                    continue;
+                                }
+
+                                // perform harvest: add one unit
+                                civ.AddResource(resource, 1);
+                                autoMap[hex] = now;
+                                // only harvest one hex per production entry per invocation
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         /// <summary>
