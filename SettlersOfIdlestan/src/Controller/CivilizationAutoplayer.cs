@@ -46,6 +46,53 @@ namespace SettlersOfIdlestan.Controller
             _tradeController = mainController.TradeController;
         }
 
+        public void AutoGrind(Dictionary<Resource, int>? requiredResources)
+        {
+            // Récolter manuellement tous les hexagones autour des villes de la civilisation.
+            var toHarvest = new HashSet<HexCoord>();
+            foreach (var city in _civ.Cities)
+            {
+                try
+                {
+                    var hexes = city.Position.GetHexes();
+                    foreach (var h in hexes)
+                    {
+                        if (h != null)
+                            toHarvest.Add(h);
+                    }
+                }
+                catch
+                {
+                    // ignore local errors when retrieving city hexes
+                }
+            }
+
+            foreach (var hex in toHarvest)
+            {
+                try
+                {
+                    _harvestController.ManualHarvest(_civ.Index, hex);
+                }
+                catch
+                {
+                    // ignore individual harvest failures
+                }
+            }
+
+            // If a required resource set was provided, attempt a single trade to fulfill it
+            if (requiredResources != null && requiredResources.Any())
+            {
+                try
+                {
+                    _tradeController.TryAutoTradeForPurchase(_civ.Index, requiredResources);
+                }
+                catch
+                {
+                    // ignore trade failures
+                }
+            }
+        }
+
         /// <summary>
         /// Tente de construire une route sur l'arête spécifiée. Si l'arête n'est pas
         /// constructible par la civilisation, la méthode échoue (retourne false).
@@ -75,39 +122,7 @@ namespace SettlersOfIdlestan.Controller
             catch (InvalidOperationException)
             {
                 // Construction impossible (probablement pas assez de ressources).
-                // Récolter manuellement tous les hexagones autour des villes de la civilisation.
-                var toHarvest = new HashSet<HexCoord>();
-                foreach (var city in _civ.Cities)
-                {
-                    try
-                    {
-                        var hexes = city.Position.GetHexes();
-                        foreach (var h in hexes)
-                        {
-                            if (h != null)
-                                toHarvest.Add(h);
-                        }
-                    }
-                    catch
-                    {
-                        // Ignorer toute erreur locale lors de l'obtention des hex d'une ville
-                    }
-                }
-
-                foreach (var hex in toHarvest)
-                {
-                    try
-                    {
-                        // Lancer la récolte et ignorer le résultat (cooldown ou échec possible)
-                        _harvestController.ManualHarvest(_civ.Index, hex);
-                    }
-                    catch
-                    {
-                        // ignorer les exceptions individuelles
-                    }
-                }
-
-                // Après récolte manuelle, tenter un trade qui aiderait la construction (une tentative)
+                // Effectuer un grind automatique (récolte + tentative de trade) pour obtenir les ressources
                 try
                 {
                     // Determine cost for this road using the Road entry returned by controller
@@ -124,13 +139,23 @@ namespace SettlersOfIdlestan.Controller
                                 { Resource.Wood, cost },
                                 { Resource.Brick, cost }
                             };
-                            _tradeController.TryAutoTradeForPurchase(_civ.Index, required);
+                            AutoGrind(required);
                         }
+                        else
+                        {
+                            // no determinable cost - still attempt basic grind (harvest only)
+                            AutoGrind(null);
+                        }
+                    }
+                    else
+                    {
+                        // no matching road found - just harvest
+                        AutoGrind(null);
                     }
                 }
                 catch
                 {
-                    // ignore trade failures
+                    // ignore trade/grind failures
                 }
 
                 return false;
@@ -161,38 +186,7 @@ namespace SettlersOfIdlestan.Controller
             }
             catch (InvalidOperationException)
             {
-                // Not enough resources: harvest all hexes around civ's cities
-                var toHarvest = new HashSet<HexCoord>();
-                foreach (var city in _civ.Cities)
-                {
-                    try
-                    {
-                        var hexes = city.Position.GetHexes();
-                        foreach (var h in hexes)
-                        {
-                            if (h != null)
-                                toHarvest.Add(h);
-                        }
-                    }
-                    catch
-                    {
-                        // ignore
-                    }
-                }
-
-                foreach (var hex in toHarvest)
-                {
-                    try
-                    {
-                        _harvestController.ManualHarvest(_civ.Index, hex);
-                    }
-                    catch
-                    {
-                        // ignore
-                    }
-                }
-
-                // Après récolte manuelle, tenter un trade unique pour aider la construction de la ville
+                // Not enough resources: attempt grind (harvest + one trade attempt)
                 try
                 {
                     var required = new Dictionary<Resource, int>
@@ -202,7 +196,7 @@ namespace SettlersOfIdlestan.Controller
                         { Resource.Wheat, 10 },
                         { Resource.Sheep, 10 }
                     };
-                    _tradeController.TryAutoTradeForPurchase(_civ.Index, required);
+                    AutoGrind(required);
                 }
                 catch
                 {

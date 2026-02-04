@@ -36,8 +36,8 @@
                 0,
                 -1
               ],
-              "TerrainType": 4,
-              "Resource": 4,
+              "TerrainType": 1,
+              "Resource": 1,
               "ProductionNumber": null
             },
             "0,1": {
@@ -63,8 +63,8 @@
                 1,
                 0
               ],
-              "TerrainType": 4,
-              "Resource": 4,
+              "TerrainType": 2,
+              "Resource": 2,
               "ProductionNumber": null
             },
             "-2,0": {
@@ -72,8 +72,8 @@
                 -2,
                 0
               ],
-              "TerrainType": 1,
-              "Resource": 1,
+              "TerrainType": 0,
+              "Resource": 0,
               "ProductionNumber": null
             },
             "-2,1": {
@@ -81,8 +81,8 @@
                 -2,
                 1
               ],
-              "TerrainType": 0,
-              "Resource": 0,
+              "TerrainType": 1,
+              "Resource": 1,
               "ProductionNumber": null
             },
             "-2,2": {
@@ -90,8 +90,8 @@
                 -2,
                 2
               ],
-              "TerrainType": 1,
-              "Resource": 1,
+              "TerrainType": 3,
+              "Resource": 3,
               "ProductionNumber": null
             },
             "-1,-1": {
@@ -99,8 +99,8 @@
                 -1,
                 -1
               ],
-              "TerrainType": 3,
-              "Resource": 3,
+              "TerrainType": 4,
+              "Resource": 4,
               "ProductionNumber": null
             },
             "-1,2": {
@@ -108,8 +108,8 @@
                 -1,
                 2
               ],
-              "TerrainType": 2,
-              "Resource": 2,
+              "TerrainType": 4,
+              "Resource": 4,
               "ProductionNumber": null
             },
             "0,-2": {
@@ -117,8 +117,8 @@
                 0,
                 -2
               ],
-              "TerrainType": 4,
-              "Resource": 4,
+              "TerrainType": 2,
+              "Resource": 2,
               "ProductionNumber": null
             },
             "0,2": {
@@ -126,8 +126,8 @@
                 0,
                 2
               ],
-              "TerrainType": 2,
-              "Resource": 2,
+              "TerrainType": 4,
+              "Resource": 4,
               "ProductionNumber": null
             },
             "1,-2": {
@@ -348,8 +348,15 @@
           ],
           "Roads": []
         },
-        "HarvestLastTimesByCivilization": {},
-        "AutomaticHarvestLastTimesByCivilization": {}
+        "HarvestLastTimesByCivilization": {
+          "0": {
+            "-2,0": "2026-02-04T21:45:47.5638019+00:00",
+            "-2,1": "2026-02-04T21:45:47.5638019+00:00"
+          }
+        },
+        "AutomaticHarvestLastTimesByCivilization": {
+          "0": {}
+        }
       }
     }
   },
@@ -389,8 +396,8 @@
               0,
               -1
             ],
-            "TerrainType": 4,
-            "Resource": 4,
+            "TerrainType": 1,
+            "Resource": 1,
             "ProductionNumber": null
           },
           "0,1": {
@@ -416,8 +423,8 @@
               1,
               0
             ],
-            "TerrainType": 4,
-            "Resource": 4,
+            "TerrainType": 2,
+            "Resource": 2,
             "ProductionNumber": null
           },
           "-2,0": {
@@ -425,8 +432,8 @@
               -2,
               0
             ],
-            "TerrainType": 1,
-            "Resource": 1,
+            "TerrainType": 0,
+            "Resource": 0,
             "ProductionNumber": null
           },
           "-2,1": {
@@ -434,8 +441,8 @@
               -2,
               1
             ],
-            "TerrainType": 0,
-            "Resource": 0,
+            "TerrainType": 1,
+            "Resource": 1,
             "ProductionNumber": null
           },
           "-2,2": {
@@ -443,8 +450,8 @@
               -2,
               2
             ],
-            "TerrainType": 1,
-            "Resource": 1,
+            "TerrainType": 3,
+            "Resource": 3,
             "ProductionNumber": null
           },
           "-1,-1": {
@@ -452,8 +459,8 @@
               -1,
               -1
             ],
-            "TerrainType": 3,
-            "Resource": 3,
+            "TerrainType": 4,
+            "Resource": 4,
             "ProductionNumber": null
           },
           "-1,2": {
@@ -461,8 +468,8 @@
               -1,
               2
             ],
-            "TerrainType": 2,
-            "Resource": 2,
+            "TerrainType": 4,
+            "Resource": 4,
             "ProductionNumber": null
           },
           "0,-2": {
@@ -470,8 +477,8 @@
               0,
               -2
             ],
-            "TerrainType": 4,
-            "Resource": 4,
+            "TerrainType": 2,
+            "Resource": 2,
             "ProductionNumber": null
           },
           "0,2": {
@@ -479,8 +486,8 @@
               0,
               2
             ],
-            "TerrainType": 2,
-            "Resource": 2,
+            "TerrainType": 4,
+            "Resource": 4,
             "ProductionNumber": null
           },
           "1,-2": {
@@ -701,8 +708,15 @@
         ],
         "Roads": []
       },
-      "HarvestLastTimesByCivilization": {},
-      "AutomaticHarvestLastTimesByCivilization": {}
+      "HarvestLastTimesByCivilization": {
+        "0": {
+          "-2,0": "2026-02-04T21:45:47.5638019+00:00",
+          "-2,1": "2026-02-04T21:45:47.5638019+00:00"
+        }
+      },
+      "AutomaticHarvestLastTimesByCivilization": {
+        "0": {}
+      }
     }
   },
   "CurrentIslandState": {
@@ -740,8 +754,8 @@
             0,
             -1
           ],
-          "TerrainType": 4,
-          "Resource": 4,
+          "TerrainType": 1,
+          "Resource": 1,
           "ProductionNumber": null
         },
         "0,1": {
@@ -767,8 +781,8 @@
             1,
             0
           ],
-          "TerrainType": 4,
-          "Resource": 4,
+          "TerrainType": 2,
+          "Resource": 2,
           "ProductionNumber": null
         },
         "-2,0": {
@@ -776,8 +790,8 @@
             -2,
             0
           ],
-          "TerrainType": 1,
-          "Resource": 1,
+          "TerrainType": 0,
+          "Resource": 0,
           "ProductionNumber": null
         },
         "-2,1": {
@@ -785,8 +799,8 @@
             -2,
             1
           ],
-          "TerrainType": 0,
-          "Resource": 0,
+          "TerrainType": 1,
+          "Resource": 1,
           "ProductionNumber": null
         },
         "-2,2": {
@@ -794,8 +808,8 @@
             -2,
             2
           ],
-          "TerrainType": 1,
-          "Resource": 1,
+          "TerrainType": 3,
+          "Resource": 3,
           "ProductionNumber": null
         },
         "-1,-1": {
@@ -803,8 +817,8 @@
             -1,
             -1
           ],
-          "TerrainType": 3,
-          "Resource": 3,
+          "TerrainType": 4,
+          "Resource": 4,
           "ProductionNumber": null
         },
         "-1,2": {
@@ -812,8 +826,8 @@
             -1,
             2
           ],
-          "TerrainType": 2,
-          "Resource": 2,
+          "TerrainType": 4,
+          "Resource": 4,
           "ProductionNumber": null
         },
         "0,-2": {
@@ -821,8 +835,8 @@
             0,
             -2
           ],
-          "TerrainType": 4,
-          "Resource": 4,
+          "TerrainType": 2,
+          "Resource": 2,
           "ProductionNumber": null
         },
         "0,2": {
@@ -830,8 +844,8 @@
             0,
             2
           ],
-          "TerrainType": 2,
-          "Resource": 2,
+          "TerrainType": 4,
+          "Resource": 4,
           "ProductionNumber": null
         },
         "1,-2": {
@@ -1052,17 +1066,24 @@
       ],
       "Roads": []
     },
-    "HarvestLastTimesByCivilization": {},
-    "AutomaticHarvestLastTimesByCivilization": {}
+    "HarvestLastTimesByCivilization": {
+      "0": {
+        "-2,0": "2026-02-04T21:45:47.5638019+00:00",
+        "-2,1": "2026-02-04T21:45:47.5638019+00:00"
+      }
+    },
+    "AutomaticHarvestLastTimesByCivilization": {
+      "0": {}
+    }
   },
   "Clock": {
-    "StartTime": "2026-02-04T20:39:59.5687707+00:00",
-    "Elapsed": "00:00:00",
-    "IsRunning": false,
+    "StartTime": "2026-02-04T21:45:39.5638019+00:00",
+    "Elapsed": "00:00:08.1000000",
+    "IsRunning": true,
     "Speed": 1,
-    "CurrentTime": "2026-02-04T20:39:59.5687707+00:00"
+    "CurrentTime": "2026-02-04T21:45:47.6638019+00:00"
   },
   "PRNG": {
-    "Seed": 662008437
+    "Seed": 665948421
   }
 }
