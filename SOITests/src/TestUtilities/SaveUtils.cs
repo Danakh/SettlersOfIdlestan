@@ -1,4 +1,5 @@
 using System.IO;
+using System.Linq;
 using SettlersOfIdlestan.Controller;
 using Xunit;
 
@@ -16,7 +17,8 @@ public static class SaveUtils
         if (controller == null) throw new System.ArgumentNullException(nameof(controller));
         if (string.IsNullOrWhiteSpace(name)) throw new System.ArgumentException("name cannot be empty", nameof(name));
 
-        var savesDir = Path.Combine(Directory.GetCurrentDirectory(), "saves");
+        var solutionRoot = GetSolutionRootDirectory(Directory.GetCurrentDirectory());
+        var savesDir = Path.Combine(solutionRoot, "saves");
         if (!Directory.Exists(savesDir)) Directory.CreateDirectory(savesDir);
 
         var filePath = Path.Combine(savesDir, name + ".json");
@@ -33,5 +35,23 @@ public static class SaveUtils
 
         // Assert the two JSON representations match exactly
         Assert.Equal(exported, roundtrip);
+    }
+
+    private static string GetSolutionRootDirectory(string startDirectory)
+    {
+        var dir = new DirectoryInfo(startDirectory);
+        while (dir != null)
+        {
+            // Consider this the solution root if we find a solution file or a .git folder
+            if (dir.GetFiles("*.sln").Any() || Directory.Exists(Path.Combine(dir.FullName, ".git")))
+            {
+                return dir.FullName;
+            }
+
+            dir = dir.Parent;
+        }
+
+        // Fallback to the starting directory if nothing found
+        return startDirectory;
     }
 }

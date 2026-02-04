@@ -1,0 +1,696 @@
+{
+  "GodState": {
+    "PrestigeState": {
+      "IslandState": {
+        "Map": {
+          "Tiles": {
+            "0,0": {
+              "Coord": [
+                0,
+                0
+              ],
+              "TerrainType": 0,
+              "Resource": 0,
+              "ProductionNumber": null
+            },
+            "1,0": {
+              "Coord": [
+                1,
+                0
+              ],
+              "TerrainType": 1,
+              "Resource": 1,
+              "ProductionNumber": null
+            },
+            "0,1": {
+              "Coord": [
+                0,
+                1
+              ],
+              "TerrainType": 2,
+              "Resource": 2,
+              "ProductionNumber": null
+            },
+            "1,1": {
+              "Coord": [
+                1,
+                1
+              ],
+              "TerrainType": 3,
+              "Resource": 3,
+              "ProductionNumber": null
+            }
+          }
+        },
+        "Civilizations": [
+          {
+            "Index": 0,
+            "Cities": [
+              {
+                "Position": [
+                  [
+                    0,
+                    0
+                  ],
+                  [
+                    0,
+                    1
+                  ],
+                  [
+                    1,
+                    0
+                  ]
+                ],
+                "CivilizationIndex": 0,
+                "Buildings": [
+                  {
+                    "Type": 1,
+                    "Level": 1,
+                    "Production": {},
+                    "MaxLevel": 1,
+                    "Description": "March\u00E9 - Permet le commerce (4:1)",
+                    "RequiresWater": false,
+                    "AvailableAtLevel": 1,
+                    "Actions": []
+                  }
+                ],
+                "Level": 1,
+                "LevelName": "outpost"
+              },
+              {
+                "Position": [
+                  [
+                    -1,
+                    0
+                  ],
+                  [
+                    -1,
+                    1
+                  ],
+                  [
+                    0,
+                    0
+                  ]
+                ],
+                "CivilizationIndex": 0,
+                "Buildings": [],
+                "Level": 1,
+                "LevelName": "outpost"
+              }
+            ],
+            "Roads": [
+              {
+                "Position": [
+                  [
+                    0,
+                    0
+                  ],
+                  [
+                    0,
+                    1
+                  ]
+                ],
+                "CivilizationIndex": 0,
+                "DistanceToNearestCity": 1
+              },
+              {
+                "Position": [
+                  [
+                    -1,
+                    1
+                  ],
+                  [
+                    0,
+                    0
+                  ]
+                ],
+                "CivilizationIndex": 0,
+                "DistanceToNearestCity": 2
+              }
+            ]
+          }
+        ],
+        "PlayerCivilization": {
+          "Index": 0,
+          "Cities": [
+            {
+              "Position": [
+                [
+                  0,
+                  0
+                ],
+                [
+                  0,
+                  1
+                ],
+                [
+                  1,
+                  0
+                ]
+              ],
+              "CivilizationIndex": 0,
+              "Buildings": [
+                {
+                  "Type": 1,
+                  "Level": 1,
+                  "Production": {},
+                  "MaxLevel": 1,
+                  "Description": "March\u00E9 - Permet le commerce (4:1)",
+                  "RequiresWater": false,
+                  "AvailableAtLevel": 1,
+                  "Actions": []
+                }
+              ],
+              "Level": 1,
+              "LevelName": "outpost"
+            },
+            {
+              "Position": [
+                [
+                  -1,
+                  0
+                ],
+                [
+                  -1,
+                  1
+                ],
+                [
+                  0,
+                  0
+                ]
+              ],
+              "CivilizationIndex": 0,
+              "Buildings": [],
+              "Level": 1,
+              "LevelName": "outpost"
+            }
+          ],
+          "Roads": [
+            {
+              "Position": [
+                [
+                  0,
+                  0
+                ],
+                [
+                  0,
+                  1
+                ]
+              ],
+              "CivilizationIndex": 0,
+              "DistanceToNearestCity": 1
+            },
+            {
+              "Position": [
+                [
+                  -1,
+                  1
+                ],
+                [
+                  0,
+                  0
+                ]
+              ],
+              "CivilizationIndex": 0,
+              "DistanceToNearestCity": 2
+            }
+          ]
+        },
+        "HarvestLastTimesByCivilization": {
+          "0": {
+            "0,0": "2026-02-04T20:34:57.5723802+00:00",
+            "0,1": "2026-02-04T20:34:57.5723802+00:00",
+            "1,0": "2026-02-04T20:34:57.5723802+00:00"
+          }
+        },
+        "AutomaticHarvestLastTimesByCivilization": {
+          "0": {}
+        }
+      }
+    }
+  },
+  "PrestigeState": {
+    "IslandState": {
+      "Map": {
+        "Tiles": {
+          "0,0": {
+            "Coord": [
+              0,
+              0
+            ],
+            "TerrainType": 0,
+            "Resource": 0,
+            "ProductionNumber": null
+          },
+          "1,0": {
+            "Coord": [
+              1,
+              0
+            ],
+            "TerrainType": 1,
+            "Resource": 1,
+            "ProductionNumber": null
+          },
+          "0,1": {
+            "Coord": [
+              0,
+              1
+            ],
+            "TerrainType": 2,
+            "Resource": 2,
+            "ProductionNumber": null
+          },
+          "1,1": {
+            "Coord": [
+              1,
+              1
+            ],
+            "TerrainType": 3,
+            "Resource": 3,
+            "ProductionNumber": null
+          }
+        }
+      },
+      "Civilizations": [
+        {
+          "Index": 0,
+          "Cities": [
+            {
+              "Position": [
+                [
+                  0,
+                  0
+                ],
+                [
+                  0,
+                  1
+                ],
+                [
+                  1,
+                  0
+                ]
+              ],
+              "CivilizationIndex": 0,
+              "Buildings": [
+                {
+                  "Type": 1,
+                  "Level": 1,
+                  "Production": {},
+                  "MaxLevel": 1,
+                  "Description": "March\u00E9 - Permet le commerce (4:1)",
+                  "RequiresWater": false,
+                  "AvailableAtLevel": 1,
+                  "Actions": []
+                }
+              ],
+              "Level": 1,
+              "LevelName": "outpost"
+            },
+            {
+              "Position": [
+                [
+                  -1,
+                  0
+                ],
+                [
+                  -1,
+                  1
+                ],
+                [
+                  0,
+                  0
+                ]
+              ],
+              "CivilizationIndex": 0,
+              "Buildings": [],
+              "Level": 1,
+              "LevelName": "outpost"
+            }
+          ],
+          "Roads": [
+            {
+              "Position": [
+                [
+                  0,
+                  0
+                ],
+                [
+                  0,
+                  1
+                ]
+              ],
+              "CivilizationIndex": 0,
+              "DistanceToNearestCity": 1
+            },
+            {
+              "Position": [
+                [
+                  -1,
+                  1
+                ],
+                [
+                  0,
+                  0
+                ]
+              ],
+              "CivilizationIndex": 0,
+              "DistanceToNearestCity": 2
+            }
+          ]
+        }
+      ],
+      "PlayerCivilization": {
+        "Index": 0,
+        "Cities": [
+          {
+            "Position": [
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                1
+              ],
+              [
+                1,
+                0
+              ]
+            ],
+            "CivilizationIndex": 0,
+            "Buildings": [
+              {
+                "Type": 1,
+                "Level": 1,
+                "Production": {},
+                "MaxLevel": 1,
+                "Description": "March\u00E9 - Permet le commerce (4:1)",
+                "RequiresWater": false,
+                "AvailableAtLevel": 1,
+                "Actions": []
+              }
+            ],
+            "Level": 1,
+            "LevelName": "outpost"
+          },
+          {
+            "Position": [
+              [
+                -1,
+                0
+              ],
+              [
+                -1,
+                1
+              ],
+              [
+                0,
+                0
+              ]
+            ],
+            "CivilizationIndex": 0,
+            "Buildings": [],
+            "Level": 1,
+            "LevelName": "outpost"
+          }
+        ],
+        "Roads": [
+          {
+            "Position": [
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                1
+              ]
+            ],
+            "CivilizationIndex": 0,
+            "DistanceToNearestCity": 1
+          },
+          {
+            "Position": [
+              [
+                -1,
+                1
+              ],
+              [
+                0,
+                0
+              ]
+            ],
+            "CivilizationIndex": 0,
+            "DistanceToNearestCity": 2
+          }
+        ]
+      },
+      "HarvestLastTimesByCivilization": {
+        "0": {
+          "0,0": "2026-02-04T20:34:57.5723802+00:00",
+          "0,1": "2026-02-04T20:34:57.5723802+00:00",
+          "1,0": "2026-02-04T20:34:57.5723802+00:00"
+        }
+      },
+      "AutomaticHarvestLastTimesByCivilization": {
+        "0": {}
+      }
+    }
+  },
+  "CurrentIslandState": {
+    "Map": {
+      "Tiles": {
+        "0,0": {
+          "Coord": [
+            0,
+            0
+          ],
+          "TerrainType": 0,
+          "Resource": 0,
+          "ProductionNumber": null
+        },
+        "1,0": {
+          "Coord": [
+            1,
+            0
+          ],
+          "TerrainType": 1,
+          "Resource": 1,
+          "ProductionNumber": null
+        },
+        "0,1": {
+          "Coord": [
+            0,
+            1
+          ],
+          "TerrainType": 2,
+          "Resource": 2,
+          "ProductionNumber": null
+        },
+        "1,1": {
+          "Coord": [
+            1,
+            1
+          ],
+          "TerrainType": 3,
+          "Resource": 3,
+          "ProductionNumber": null
+        }
+      }
+    },
+    "Civilizations": [
+      {
+        "Index": 0,
+        "Cities": [
+          {
+            "Position": [
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                1
+              ],
+              [
+                1,
+                0
+              ]
+            ],
+            "CivilizationIndex": 0,
+            "Buildings": [
+              {
+                "Type": 1,
+                "Level": 1,
+                "Production": {},
+                "MaxLevel": 1,
+                "Description": "March\u00E9 - Permet le commerce (4:1)",
+                "RequiresWater": false,
+                "AvailableAtLevel": 1,
+                "Actions": []
+              }
+            ],
+            "Level": 1,
+            "LevelName": "outpost"
+          },
+          {
+            "Position": [
+              [
+                -1,
+                0
+              ],
+              [
+                -1,
+                1
+              ],
+              [
+                0,
+                0
+              ]
+            ],
+            "CivilizationIndex": 0,
+            "Buildings": [],
+            "Level": 1,
+            "LevelName": "outpost"
+          }
+        ],
+        "Roads": [
+          {
+            "Position": [
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                1
+              ]
+            ],
+            "CivilizationIndex": 0,
+            "DistanceToNearestCity": 1
+          },
+          {
+            "Position": [
+              [
+                -1,
+                1
+              ],
+              [
+                0,
+                0
+              ]
+            ],
+            "CivilizationIndex": 0,
+            "DistanceToNearestCity": 2
+          }
+        ]
+      }
+    ],
+    "PlayerCivilization": {
+      "Index": 0,
+      "Cities": [
+        {
+          "Position": [
+            [
+              0,
+              0
+            ],
+            [
+              0,
+              1
+            ],
+            [
+              1,
+              0
+            ]
+          ],
+          "CivilizationIndex": 0,
+          "Buildings": [
+            {
+              "Type": 1,
+              "Level": 1,
+              "Production": {},
+              "MaxLevel": 1,
+              "Description": "March\u00E9 - Permet le commerce (4:1)",
+              "RequiresWater": false,
+              "AvailableAtLevel": 1,
+              "Actions": []
+            }
+          ],
+          "Level": 1,
+          "LevelName": "outpost"
+        },
+        {
+          "Position": [
+            [
+              -1,
+              0
+            ],
+            [
+              -1,
+              1
+            ],
+            [
+              0,
+              0
+            ]
+          ],
+          "CivilizationIndex": 0,
+          "Buildings": [],
+          "Level": 1,
+          "LevelName": "outpost"
+        }
+      ],
+      "Roads": [
+        {
+          "Position": [
+            [
+              0,
+              0
+            ],
+            [
+              0,
+              1
+            ]
+          ],
+          "CivilizationIndex": 0,
+          "DistanceToNearestCity": 1
+        },
+        {
+          "Position": [
+            [
+              -1,
+              1
+            ],
+            [
+              0,
+              0
+            ]
+          ],
+          "CivilizationIndex": 0,
+          "DistanceToNearestCity": 2
+        }
+      ]
+    },
+    "HarvestLastTimesByCivilization": {
+      "0": {
+        "0,0": "2026-02-04T20:34:57.5723802+00:00",
+        "0,1": "2026-02-04T20:34:57.5723802+00:00",
+        "1,0": "2026-02-04T20:34:57.5723802+00:00"
+      }
+    },
+    "AutomaticHarvestLastTimesByCivilization": {
+      "0": {}
+    }
+  },
+  "Clock": {
+    "StartTime": "2026-02-04T20:33:47.5723802+00:00",
+    "Elapsed": "00:01:10.1000000",
+    "IsRunning": true,
+    "Speed": 1,
+    "CurrentTime": "2026-02-04T20:34:57.6723802+00:00"
+  },
+  "PRNG": {
+    "Seed": 661636437
+  }
+}

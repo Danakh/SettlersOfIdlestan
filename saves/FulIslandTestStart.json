@@ -1,0 +1,1068 @@
+{
+  "GodState": {
+    "PrestigeState": {
+      "IslandState": {
+        "Map": {
+          "Tiles": {
+            "0,0": {
+              "Coord": [
+                0,
+                0
+              ],
+              "TerrainType": 3,
+              "Resource": 3,
+              "ProductionNumber": null
+            },
+            "-1,0": {
+              "Coord": [
+                -1,
+                0
+              ],
+              "TerrainType": 1,
+              "Resource": 1,
+              "ProductionNumber": null
+            },
+            "-1,1": {
+              "Coord": [
+                -1,
+                1
+              ],
+              "TerrainType": 0,
+              "Resource": 0,
+              "ProductionNumber": null
+            },
+            "0,-1": {
+              "Coord": [
+                0,
+                -1
+              ],
+              "TerrainType": 2,
+              "Resource": 2,
+              "ProductionNumber": null
+            },
+            "0,1": {
+              "Coord": [
+                0,
+                1
+              ],
+              "TerrainType": 3,
+              "Resource": 3,
+              "ProductionNumber": null
+            },
+            "1,-1": {
+              "Coord": [
+                1,
+                -1
+              ],
+              "TerrainType": 4,
+              "Resource": 4,
+              "ProductionNumber": null
+            },
+            "1,0": {
+              "Coord": [
+                1,
+                0
+              ],
+              "TerrainType": 1,
+              "Resource": 1,
+              "ProductionNumber": null
+            },
+            "-2,0": {
+              "Coord": [
+                -2,
+                0
+              ],
+              "TerrainType": 0,
+              "Resource": 0,
+              "ProductionNumber": null
+            },
+            "-2,1": {
+              "Coord": [
+                -2,
+                1
+              ],
+              "TerrainType": 3,
+              "Resource": 3,
+              "ProductionNumber": null
+            },
+            "-2,2": {
+              "Coord": [
+                -2,
+                2
+              ],
+              "TerrainType": 2,
+              "Resource": 2,
+              "ProductionNumber": null
+            },
+            "-1,-1": {
+              "Coord": [
+                -1,
+                -1
+              ],
+              "TerrainType": 1,
+              "Resource": 1,
+              "ProductionNumber": null
+            },
+            "-1,2": {
+              "Coord": [
+                -1,
+                2
+              ],
+              "TerrainType": 4,
+              "Resource": 4,
+              "ProductionNumber": null
+            },
+            "0,-2": {
+              "Coord": [
+                0,
+                -2
+              ],
+              "TerrainType": 4,
+              "Resource": 4,
+              "ProductionNumber": null
+            },
+            "0,2": {
+              "Coord": [
+                0,
+                2
+              ],
+              "TerrainType": 2,
+              "Resource": 2,
+              "ProductionNumber": null
+            },
+            "1,-2": {
+              "Coord": [
+                1,
+                -2
+              ],
+              "TerrainType": 0,
+              "Resource": 0,
+              "ProductionNumber": null
+            },
+            "1,1": {
+              "Coord": [
+                1,
+                1
+              ],
+              "TerrainType": 6,
+              "Resource": null,
+              "ProductionNumber": null
+            },
+            "2,-1": {
+              "Coord": [
+                2,
+                -1
+              ],
+              "TerrainType": 6,
+              "Resource": null,
+              "ProductionNumber": null
+            },
+            "2,-2": {
+              "Coord": [
+                2,
+                -2
+              ],
+              "TerrainType": 6,
+              "Resource": null,
+              "ProductionNumber": null
+            },
+            "2,0": {
+              "Coord": [
+                2,
+                0
+              ],
+              "TerrainType": 6,
+              "Resource": null,
+              "ProductionNumber": null
+            },
+            "-3,0": {
+              "Coord": [
+                -3,
+                0
+              ],
+              "TerrainType": 6,
+              "Resource": null,
+              "ProductionNumber": null
+            },
+            "-3,1": {
+              "Coord": [
+                -3,
+                1
+              ],
+              "TerrainType": 6,
+              "Resource": null,
+              "ProductionNumber": null
+            },
+            "-2,-1": {
+              "Coord": [
+                -2,
+                -1
+              ],
+              "TerrainType": 6,
+              "Resource": null,
+              "ProductionNumber": null
+            },
+            "-3,2": {
+              "Coord": [
+                -3,
+                2
+              ],
+              "TerrainType": 6,
+              "Resource": null,
+              "ProductionNumber": null
+            },
+            "-3,3": {
+              "Coord": [
+                -3,
+                3
+              ],
+              "TerrainType": 6,
+              "Resource": null,
+              "ProductionNumber": null
+            },
+            "-2,3": {
+              "Coord": [
+                -2,
+                3
+              ],
+              "TerrainType": 6,
+              "Resource": null,
+              "ProductionNumber": null
+            },
+            "-1,-2": {
+              "Coord": [
+                -1,
+                -2
+              ],
+              "TerrainType": 6,
+              "Resource": null,
+              "ProductionNumber": null
+            },
+            "-1,3": {
+              "Coord": [
+                -1,
+                3
+              ],
+              "TerrainType": 6,
+              "Resource": null,
+              "ProductionNumber": null
+            },
+            "1,-3": {
+              "Coord": [
+                1,
+                -3
+              ],
+              "TerrainType": 6,
+              "Resource": null,
+              "ProductionNumber": null
+            },
+            "0,-3": {
+              "Coord": [
+                0,
+                -3
+              ],
+              "TerrainType": 6,
+              "Resource": null,
+              "ProductionNumber": null
+            },
+            "0,3": {
+              "Coord": [
+                0,
+                3
+              ],
+              "TerrainType": 6,
+              "Resource": null,
+              "ProductionNumber": null
+            },
+            "1,2": {
+              "Coord": [
+                1,
+                2
+              ],
+              "TerrainType": 6,
+              "Resource": null,
+              "ProductionNumber": null
+            },
+            "2,-3": {
+              "Coord": [
+                2,
+                -3
+              ],
+              "TerrainType": 6,
+              "Resource": null,
+              "ProductionNumber": null
+            }
+          }
+        },
+        "Civilizations": [
+          {
+            "Index": 0,
+            "Cities": [
+              {
+                "Position": [
+                  [
+                    -2,
+                    -1
+                  ],
+                  [
+                    -2,
+                    0
+                  ],
+                  [
+                    -1,
+                    -1
+                  ]
+                ],
+                "CivilizationIndex": 0,
+                "Buildings": [],
+                "Level": 1,
+                "LevelName": "outpost"
+              }
+            ],
+            "Roads": []
+          }
+        ],
+        "PlayerCivilization": {
+          "Index": 0,
+          "Cities": [
+            {
+              "Position": [
+                [
+                  -2,
+                  -1
+                ],
+                [
+                  -2,
+                  0
+                ],
+                [
+                  -1,
+                  -1
+                ]
+              ],
+              "CivilizationIndex": 0,
+              "Buildings": [],
+              "Level": 1,
+              "LevelName": "outpost"
+            }
+          ],
+          "Roads": []
+        },
+        "HarvestLastTimesByCivilization": {},
+        "AutomaticHarvestLastTimesByCivilization": {}
+      }
+    }
+  },
+  "PrestigeState": {
+    "IslandState": {
+      "Map": {
+        "Tiles": {
+          "0,0": {
+            "Coord": [
+              0,
+              0
+            ],
+            "TerrainType": 3,
+            "Resource": 3,
+            "ProductionNumber": null
+          },
+          "-1,0": {
+            "Coord": [
+              -1,
+              0
+            ],
+            "TerrainType": 1,
+            "Resource": 1,
+            "ProductionNumber": null
+          },
+          "-1,1": {
+            "Coord": [
+              -1,
+              1
+            ],
+            "TerrainType": 0,
+            "Resource": 0,
+            "ProductionNumber": null
+          },
+          "0,-1": {
+            "Coord": [
+              0,
+              -1
+            ],
+            "TerrainType": 2,
+            "Resource": 2,
+            "ProductionNumber": null
+          },
+          "0,1": {
+            "Coord": [
+              0,
+              1
+            ],
+            "TerrainType": 3,
+            "Resource": 3,
+            "ProductionNumber": null
+          },
+          "1,-1": {
+            "Coord": [
+              1,
+              -1
+            ],
+            "TerrainType": 4,
+            "Resource": 4,
+            "ProductionNumber": null
+          },
+          "1,0": {
+            "Coord": [
+              1,
+              0
+            ],
+            "TerrainType": 1,
+            "Resource": 1,
+            "ProductionNumber": null
+          },
+          "-2,0": {
+            "Coord": [
+              -2,
+              0
+            ],
+            "TerrainType": 0,
+            "Resource": 0,
+            "ProductionNumber": null
+          },
+          "-2,1": {
+            "Coord": [
+              -2,
+              1
+            ],
+            "TerrainType": 3,
+            "Resource": 3,
+            "ProductionNumber": null
+          },
+          "-2,2": {
+            "Coord": [
+              -2,
+              2
+            ],
+            "TerrainType": 2,
+            "Resource": 2,
+            "ProductionNumber": null
+          },
+          "-1,-1": {
+            "Coord": [
+              -1,
+              -1
+            ],
+            "TerrainType": 1,
+            "Resource": 1,
+            "ProductionNumber": null
+          },
+          "-1,2": {
+            "Coord": [
+              -1,
+              2
+            ],
+            "TerrainType": 4,
+            "Resource": 4,
+            "ProductionNumber": null
+          },
+          "0,-2": {
+            "Coord": [
+              0,
+              -2
+            ],
+            "TerrainType": 4,
+            "Resource": 4,
+            "ProductionNumber": null
+          },
+          "0,2": {
+            "Coord": [
+              0,
+              2
+            ],
+            "TerrainType": 2,
+            "Resource": 2,
+            "ProductionNumber": null
+          },
+          "1,-2": {
+            "Coord": [
+              1,
+              -2
+            ],
+            "TerrainType": 0,
+            "Resource": 0,
+            "ProductionNumber": null
+          },
+          "1,1": {
+            "Coord": [
+              1,
+              1
+            ],
+            "TerrainType": 6,
+            "Resource": null,
+            "ProductionNumber": null
+          },
+          "2,-1": {
+            "Coord": [
+              2,
+              -1
+            ],
+            "TerrainType": 6,
+            "Resource": null,
+            "ProductionNumber": null
+          },
+          "2,-2": {
+            "Coord": [
+              2,
+              -2
+            ],
+            "TerrainType": 6,
+            "Resource": null,
+            "ProductionNumber": null
+          },
+          "2,0": {
+            "Coord": [
+              2,
+              0
+            ],
+            "TerrainType": 6,
+            "Resource": null,
+            "ProductionNumber": null
+          },
+          "-3,0": {
+            "Coord": [
+              -3,
+              0
+            ],
+            "TerrainType": 6,
+            "Resource": null,
+            "ProductionNumber": null
+          },
+          "-3,1": {
+            "Coord": [
+              -3,
+              1
+            ],
+            "TerrainType": 6,
+            "Resource": null,
+            "ProductionNumber": null
+          },
+          "-2,-1": {
+            "Coord": [
+              -2,
+              -1
+            ],
+            "TerrainType": 6,
+            "Resource": null,
+            "ProductionNumber": null
+          },
+          "-3,2": {
+            "Coord": [
+              -3,
+              2
+            ],
+            "TerrainType": 6,
+            "Resource": null,
+            "ProductionNumber": null
+          },
+          "-3,3": {
+            "Coord": [
+              -3,
+              3
+            ],
+            "TerrainType": 6,
+            "Resource": null,
+            "ProductionNumber": null
+          },
+          "-2,3": {
+            "Coord": [
+              -2,
+              3
+            ],
+            "TerrainType": 6,
+            "Resource": null,
+            "ProductionNumber": null
+          },
+          "-1,-2": {
+            "Coord": [
+              -1,
+              -2
+            ],
+            "TerrainType": 6,
+            "Resource": null,
+            "ProductionNumber": null
+          },
+          "-1,3": {
+            "Coord": [
+              -1,
+              3
+            ],
+            "TerrainType": 6,
+            "Resource": null,
+            "ProductionNumber": null
+          },
+          "1,-3": {
+            "Coord": [
+              1,
+              -3
+            ],
+            "TerrainType": 6,
+            "Resource": null,
+            "ProductionNumber": null
+          },
+          "0,-3": {
+            "Coord": [
+              0,
+              -3
+            ],
+            "TerrainType": 6,
+            "Resource": null,
+            "ProductionNumber": null
+          },
+          "0,3": {
+            "Coord": [
+              0,
+              3
+            ],
+            "TerrainType": 6,
+            "Resource": null,
+            "ProductionNumber": null
+          },
+          "1,2": {
+            "Coord": [
+              1,
+              2
+            ],
+            "TerrainType": 6,
+            "Resource": null,
+            "ProductionNumber": null
+          },
+          "2,-3": {
+            "Coord": [
+              2,
+              -3
+            ],
+            "TerrainType": 6,
+            "Resource": null,
+            "ProductionNumber": null
+          }
+        }
+      },
+      "Civilizations": [
+        {
+          "Index": 0,
+          "Cities": [
+            {
+              "Position": [
+                [
+                  -2,
+                  -1
+                ],
+                [
+                  -2,
+                  0
+                ],
+                [
+                  -1,
+                  -1
+                ]
+              ],
+              "CivilizationIndex": 0,
+              "Buildings": [],
+              "Level": 1,
+              "LevelName": "outpost"
+            }
+          ],
+          "Roads": []
+        }
+      ],
+      "PlayerCivilization": {
+        "Index": 0,
+        "Cities": [
+          {
+            "Position": [
+              [
+                -2,
+                -1
+              ],
+              [
+                -2,
+                0
+              ],
+              [
+                -1,
+                -1
+              ]
+            ],
+            "CivilizationIndex": 0,
+            "Buildings": [],
+            "Level": 1,
+            "LevelName": "outpost"
+          }
+        ],
+        "Roads": []
+      },
+      "HarvestLastTimesByCivilization": {},
+      "AutomaticHarvestLastTimesByCivilization": {}
+    }
+  },
+  "CurrentIslandState": {
+    "Map": {
+      "Tiles": {
+        "0,0": {
+          "Coord": [
+            0,
+            0
+          ],
+          "TerrainType": 3,
+          "Resource": 3,
+          "ProductionNumber": null
+        },
+        "-1,0": {
+          "Coord": [
+            -1,
+            0
+          ],
+          "TerrainType": 1,
+          "Resource": 1,
+          "ProductionNumber": null
+        },
+        "-1,1": {
+          "Coord": [
+            -1,
+            1
+          ],
+          "TerrainType": 0,
+          "Resource": 0,
+          "ProductionNumber": null
+        },
+        "0,-1": {
+          "Coord": [
+            0,
+            -1
+          ],
+          "TerrainType": 2,
+          "Resource": 2,
+          "ProductionNumber": null
+        },
+        "0,1": {
+          "Coord": [
+            0,
+            1
+          ],
+          "TerrainType": 3,
+          "Resource": 3,
+          "ProductionNumber": null
+        },
+        "1,-1": {
+          "Coord": [
+            1,
+            -1
+          ],
+          "TerrainType": 4,
+          "Resource": 4,
+          "ProductionNumber": null
+        },
+        "1,0": {
+          "Coord": [
+            1,
+            0
+          ],
+          "TerrainType": 1,
+          "Resource": 1,
+          "ProductionNumber": null
+        },
+        "-2,0": {
+          "Coord": [
+            -2,
+            0
+          ],
+          "TerrainType": 0,
+          "Resource": 0,
+          "ProductionNumber": null
+        },
+        "-2,1": {
+          "Coord": [
+            -2,
+            1
+          ],
+          "TerrainType": 3,
+          "Resource": 3,
+          "ProductionNumber": null
+        },
+        "-2,2": {
+          "Coord": [
+            -2,
+            2
+          ],
+          "TerrainType": 2,
+          "Resource": 2,
+          "ProductionNumber": null
+        },
+        "-1,-1": {
+          "Coord": [
+            -1,
+            -1
+          ],
+          "TerrainType": 1,
+          "Resource": 1,
+          "ProductionNumber": null
+        },
+        "-1,2": {
+          "Coord": [
+            -1,
+            2
+          ],
+          "TerrainType": 4,
+          "Resource": 4,
+          "ProductionNumber": null
+        },
+        "0,-2": {
+          "Coord": [
+            0,
+            -2
+          ],
+          "TerrainType": 4,
+          "Resource": 4,
+          "ProductionNumber": null
+        },
+        "0,2": {
+          "Coord": [
+            0,
+            2
+          ],
+          "TerrainType": 2,
+          "Resource": 2,
+          "ProductionNumber": null
+        },
+        "1,-2": {
+          "Coord": [
+            1,
+            -2
+          ],
+          "TerrainType": 0,
+          "Resource": 0,
+          "ProductionNumber": null
+        },
+        "1,1": {
+          "Coord": [
+            1,
+            1
+          ],
+          "TerrainType": 6,
+          "Resource": null,
+          "ProductionNumber": null
+        },
+        "2,-1": {
+          "Coord": [
+            2,
+            -1
+          ],
+          "TerrainType": 6,
+          "Resource": null,
+          "ProductionNumber": null
+        },
+        "2,-2": {
+          "Coord": [
+            2,
+            -2
+          ],
+          "TerrainType": 6,
+          "Resource": null,
+          "ProductionNumber": null
+        },
+        "2,0": {
+          "Coord": [
+            2,
+            0
+          ],
+          "TerrainType": 6,
+          "Resource": null,
+          "ProductionNumber": null
+        },
+        "-3,0": {
+          "Coord": [
+            -3,
+            0
+          ],
+          "TerrainType": 6,
+          "Resource": null,
+          "ProductionNumber": null
+        },
+        "-3,1": {
+          "Coord": [
+            -3,
+            1
+          ],
+          "TerrainType": 6,
+          "Resource": null,
+          "ProductionNumber": null
+        },
+        "-2,-1": {
+          "Coord": [
+            -2,
+            -1
+          ],
+          "TerrainType": 6,
+          "Resource": null,
+          "ProductionNumber": null
+        },
+        "-3,2": {
+          "Coord": [
+            -3,
+            2
+          ],
+          "TerrainType": 6,
+          "Resource": null,
+          "ProductionNumber": null
+        },
+        "-3,3": {
+          "Coord": [
+            -3,
+            3
+          ],
+          "TerrainType": 6,
+          "Resource": null,
+          "ProductionNumber": null
+        },
+        "-2,3": {
+          "Coord": [
+            -2,
+            3
+          ],
+          "TerrainType": 6,
+          "Resource": null,
+          "ProductionNumber": null
+        },
+        "-1,-2": {
+          "Coord": [
+            -1,
+            -2
+          ],
+          "TerrainType": 6,
+          "Resource": null,
+          "ProductionNumber": null
+        },
+        "-1,3": {
+          "Coord": [
+            -1,
+            3
+          ],
+          "TerrainType": 6,
+          "Resource": null,
+          "ProductionNumber": null
+        },
+        "1,-3": {
+          "Coord": [
+            1,
+            -3
+          ],
+          "TerrainType": 6,
+          "Resource": null,
+          "ProductionNumber": null
+        },
+        "0,-3": {
+          "Coord": [
+            0,
+            -3
+          ],
+          "TerrainType": 6,
+          "Resource": null,
+          "ProductionNumber": null
+        },
+        "0,3": {
+          "Coord": [
+            0,
+            3
+          ],
+          "TerrainType": 6,
+          "Resource": null,
+          "ProductionNumber": null
+        },
+        "1,2": {
+          "Coord": [
+            1,
+            2
+          ],
+          "TerrainType": 6,
+          "Resource": null,
+          "ProductionNumber": null
+        },
+        "2,-3": {
+          "Coord": [
+            2,
+            -3
+          ],
+          "TerrainType": 6,
+          "Resource": null,
+          "ProductionNumber": null
+        }
+      }
+    },
+    "Civilizations": [
+      {
+        "Index": 0,
+        "Cities": [
+          {
+            "Position": [
+              [
+                -2,
+                -1
+              ],
+              [
+                -2,
+                0
+              ],
+              [
+                -1,
+                -1
+              ]
+            ],
+            "CivilizationIndex": 0,
+            "Buildings": [],
+            "Level": 1,
+            "LevelName": "outpost"
+          }
+        ],
+        "Roads": []
+      }
+    ],
+    "PlayerCivilization": {
+      "Index": 0,
+      "Cities": [
+        {
+          "Position": [
+            [
+              -2,
+              -1
+            ],
+            [
+              -2,
+              0
+            ],
+            [
+              -1,
+              -1
+            ]
+          ],
+          "CivilizationIndex": 0,
+          "Buildings": [],
+          "Level": 1,
+          "LevelName": "outpost"
+        }
+      ],
+      "Roads": []
+    },
+    "HarvestLastTimesByCivilization": {},
+    "AutomaticHarvestLastTimesByCivilization": {}
+  },
+  "Clock": {
+    "StartTime": "2026-02-04T20:33:47.5782661+00:00",
+    "Elapsed": "00:00:00",
+    "IsRunning": false,
+    "Speed": 1,
+    "CurrentTime": "2026-02-04T20:33:47.5782661+00:00"
+  },
+  "PRNG": {
+    "Seed": 661636437
+  }
+}
