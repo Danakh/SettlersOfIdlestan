@@ -9,6 +9,7 @@
 @using SettlersOfIdlestan.Model.Civilization
 @using SettlersOfIdlestan.Model.City
 @using SettlersOfIdlestan.Model.Buildings
+@using System.Linq
 @using System.Collections.Generic
 @using System.Threading
 @using System.Threading.Tasks
@@ -86,53 +87,65 @@
                     <p><strong>Civilisation :</strong> @selectedCity.CivilizationIndex</p>
                     <p><strong>Position :</strong> @selectedCity.Position</p>
 
-                    <h6>Bâtiments construits</h6>
-                    @if (selectedCity.Buildings == null || selectedCity.Buildings.Count == 0)
+                    <h6>Bâtiments</h6>
                     {
-                        <p class="text-muted">Aucun bâtiment</p>
-                    }
-                    else
-                    {
+                        var built = selectedCity.Buildings ?? new List<SettlersOfIdlestan.Model.Buildings.Building>();
+                        var buildables = mainController?.BuildingController?.GetBuildableBuildings(selectedCity.CivilizationIndex, selectedCity.Position) ?? new List<SettlersOfIdlestan.Model.Buildings.Building>();
+                        var allTypes = Enum.GetValues(typeof(BuildingType)).Cast<BuildingType>().ToList();
+
                         <ul class="list-group mb-2">
-                            @foreach (var b in selectedCity.Buildings)
-                            {
-                                <li class="list-group-item d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <div><strong>@b.Type</strong> (Niveau @b.Level)</div>
-                                        <small class="text-muted">@b.Description</small>
-                                    </div>
-                                    <div>
-                                        @if (b.Level < b.MaxLevel)
+                        @foreach (var t in allTypes)
+                        {
+                            var builtB = built.FirstOrDefault(b => b.Type == t);
+                            var proto = buildables.FirstOrDefault(b => b.Type == t);
+
+                            <li class="list-group-item">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div title="@((builtB != null ? builtB.Description : proto?.Description ?? string.Empty))">
+                                        <strong>@t</strong>
+                                        @if (builtB != null)
                                         {
-                                            <button class="btn btn-sm btn-outline-primary" @onclick="(()=>UpgradeBuilding(b.Type))">Améliorer</button>
+                                            <span> (Niveau @builtB.Level)</span>
                                         }
                                     </div>
-                                </li>
-                            }
-                        </ul>
-                    }
 
-                    <h6>Bâtiments disponibles</h6>
-                    var buildables = mainController?.BuildingController?.GetBuildableBuildings(selectedCity.CivilizationIndex, selectedCity.Position) ?? new List<Building>();
-                    @if (buildables.Count == 0)
-                    {
-                        <p class="text-muted">Aucun bâtiment disponible</p>
-                    }
-                    else
-                    {
-                        <ul class="list-group">
-                            @foreach (var proto in buildables)
-                            {
-                                <li class="list-group-item d-flex justify-content-between align-items-center">
                                     <div>
-                                        <div><strong>@proto.Type</strong></div>
-                                        <small class="text-muted">@proto.Description</small>
+                                        @if (builtB != null && builtB.Level < builtB.MaxLevel)
+                                        {
+                                            <button class="btn btn-sm btn-outline-primary" @onclick="(() => UpgradeBuilding(t))">Améliorer</button>
+                                        }
+                                        else if (proto != null && builtB == null)
+                                        {
+                                            <button class="btn btn-sm btn-primary" @onclick="(() => BuildBuilding(t))">Construire</button>
+                                        }
+                                        else
+                                        {
+                                            <button class="btn btn-sm btn-secondary" disabled>Indisponible</button>
+                                        }
                                     </div>
-                                    <div>
-                                        <button class="btn btn-sm btn-primary" @onclick="(()=>BuildBuilding(proto.Type))">Construire</button>
-                                    </div>
-                                </li>
-                            }
+                                </div>
+
+                                @* Cost line spanning full width, italic *@
+                                @if (builtB != null && builtB.Level < builtB.MaxLevel)
+                                {
+                                    var upgradeCost = builtB.GetUpgradeCost(builtB.Level + 1);
+                                    <div class="mt-2"><em>@FormatCost(upgradeCost)</em></div>
+                                }
+                                else if (builtB != null)
+                                {
+                                    // no mention
+                                }
+                                else if (proto != null)
+                                {
+                                    var buildCost = proto.GetBuildCost();
+                                    <div class="mt-2"><em>@FormatCost(buildCost)</em></div>
+                                }
+                                else
+                                {
+                                    <div class="mt-2"><em>Non disponible</em></div>
+                                }
+                            </li>
+                        }
                         </ul>
                     }
 
@@ -385,5 +398,11 @@
             sideBuildMessage = ex.Message;
         }
         StateHasChanged();
+    }
+
+    private string FormatCost(System.Collections.Generic.Dictionary<SettlersOfIdlestan.Model.IslandMap.Resource, int> cost)
+    {
+        if (cost == null || cost.Count == 0) return "Aucun coût";
+        return string.Join(", ", cost.Select(kv => $"{kv.Value} {kv.Key}"));
     }
 }
