@@ -12,24 +12,18 @@ namespace SettlersOfIdlestan.Controller
     /// </summary>
     public class MainGameController
     {
-        private readonly GamePRNG _prng;
-        private readonly IslandMapGenerator _islandGenerator;
         // Controllers created and exposed as read-only properties
         public RoadController RoadController { get; private set; }
         public HarvestController HarvestController { get; private set; }
         public TradeController TradeController { get; private set; }
         public BuildingController BuildingController { get; private set; }
         public CityBuilderController CityBuilderController { get; private set; }
-        public CivilizationAutoplayer CivilizationAutoplayer { get; private set; }
         public GameClock? Clock { get; private set; }
         // Holds the currently loaded main game state when created or imported
         public SettlersOfIdlestan.Model.Game.MainGameState? CurrentMainState { get; private set; }
 
         public MainGameController()
         {
-            _prng = new GamePRNG();
-            _islandGenerator = new IslandMapGenerator(_prng);
-
             // create a default empty state for controllers; callers should replace with real state when available
             var emptyMap = new IslandMap(new List<SettlersOfIdlestan.Model.IslandMap.HexTile>());
             var emptyCivs = new List<Civilization>();

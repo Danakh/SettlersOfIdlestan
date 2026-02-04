@@ -20,15 +20,12 @@ namespace SettlersOfIdlestan.Controller
         // Cooldown for automatic production harvests triggered by producer buildings
         private static readonly TimeSpan AutomaticHarvestCooldown = TimeSpan.FromSeconds(5);
 
-        private bool _subscribedToClock = false;
-
         internal HarvestController(IslandState state, GameClock clock)
         {
             _state = state ?? throw new ArgumentNullException(nameof(state));
             _clock = clock ?? throw new ArgumentNullException(nameof(clock));
             // subscribe to clock advanced events to perform periodic automatic production harvesting
             _clock.Advanced += OnClockAdvanced;
-            _subscribedToClock = true;
         }
 
         private void OnClockAdvanced(object? sender, GameClockAdvancedEventArgs e)

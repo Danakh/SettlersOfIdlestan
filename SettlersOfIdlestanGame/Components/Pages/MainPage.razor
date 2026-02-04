@@ -47,7 +47,7 @@
                 var qty = State.PlayerCivilization.GetResourceQuantity(r);
                 <div class="me-3 d-flex align-items-center">
                     <span class="badge bg-secondary me-1" style="min-width:26px;text-align:center">
-                        @r.ToString().Substring(0,1)
+                        @r.ToString().Substring(0, 1)
                     </span>
                     <small class="text-nowrap">@r.ToString(): @qty</small>
                 </div>
@@ -94,58 +94,58 @@
                         var allTypes = Enum.GetValues(typeof(BuildingType)).Cast<BuildingType>().ToList();
 
                         <ul class="list-group mb-2">
-                        @foreach (var t in allTypes)
-                        {
-                            var builtB = built.FirstOrDefault(b => b.Type == t);
-                            var proto = buildables.FirstOrDefault(b => b.Type == t);
+                            @foreach (var t in allTypes)
+                            {
+                                var builtB = built.FirstOrDefault(b => b.Type == t);
+                                var proto = buildables.FirstOrDefault(b => b.Type == t);
 
-                            <li class="list-group-item">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div title="@((builtB != null ? builtB.Description : proto?.Description ?? string.Empty))">
-                                        <strong>@t</strong>
-                                        @if (builtB != null)
-                                        {
-                                            <span> (Niveau @builtB.Level)</span>
-                                        }
+                                <li class="list-group-item">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div title="@((builtB != null ? builtB.Description : proto?.Description ?? string.Empty))">
+                                            <strong>@t</strong>
+                                            @if (builtB != null)
+                                            {
+                                                <span> (Niveau @builtB.Level)</span>
+                                            }
+                                        </div>
+
+                                        <div>
+                                            @if (builtB != null && builtB.Level < builtB.MaxLevel)
+                                            {
+                                                <button class="btn btn-sm btn-outline-primary" @onclick="(() => UpgradeBuilding(t))">Améliorer</button>
+                                            }
+                                            else if (proto != null && builtB == null)
+                                            {
+                                                <button class="btn btn-sm btn-primary" @onclick="(() => BuildBuilding(t))">Construire</button>
+                                            }
+                                            else
+                                            {
+                                                <button class="btn btn-sm btn-secondary" disabled>Indisponible</button>
+                                            }
+                                        </div>
                                     </div>
 
-                                    <div>
-                                        @if (builtB != null && builtB.Level < builtB.MaxLevel)
-                                        {
-                                            <button class="btn btn-sm btn-outline-primary" @onclick="(() => UpgradeBuilding(t))">Améliorer</button>
-                                        }
-                                        else if (proto != null && builtB == null)
-                                        {
-                                            <button class="btn btn-sm btn-primary" @onclick="(() => BuildBuilding(t))">Construire</button>
-                                        }
-                                        else
-                                        {
-                                            <button class="btn btn-sm btn-secondary" disabled>Indisponible</button>
-                                        }
-                                    </div>
-                                </div>
-
-                                @* Cost line spanning full width, italic *@
-                                @if (builtB != null && builtB.Level < builtB.MaxLevel)
-                                {
-                                    var upgradeCost = builtB.GetUpgradeCost(builtB.Level + 1);
-                                    <div class="mt-2"><em>@FormatCost(upgradeCost)</em></div>
-                                }
-                                else if (builtB != null)
-                                {
-                                    // no mention
-                                }
-                                else if (proto != null)
-                                {
-                                    var buildCost = proto.GetBuildCost();
-                                    <div class="mt-2"><em>@FormatCost(buildCost)</em></div>
-                                }
-                                else
-                                {
-                                    <div class="mt-2"><em>Non disponible</em></div>
-                                }
-                            </li>
-                        }
+                                    @* Cost line spanning full width, italic *@
+                                    @if (builtB != null && builtB.Level < builtB.MaxLevel)
+                                    {
+                                        var upgradeCost = builtB.GetUpgradeCost(builtB.Level + 1);
+                                        <div class="mt-2"><em>@FormatCost(upgradeCost)</em></div>
+                                    }
+                                    else if (builtB != null)
+                                    {
+                                        // no mention
+                                    }
+                                    else if (proto != null)
+                                    {
+                                        var buildCost = proto.GetBuildCost();
+                                        <div class="mt-2"><em>@FormatCost(buildCost)</em></div>
+                                    }
+                                    else
+                                    {
+                                        <div class="mt-2"><em>Non disponible</em></div>
+                                    }
+                                </li>
+                            }
                         </ul>
                     }
 
@@ -181,23 +181,13 @@
             var saved = await JS.InvokeAsync<string>("getLocalSave", AutosaveKey);
             if (!string.IsNullOrEmpty(saved))
             {
-                try
-                {
-                    var mainState = mainController.ImportMainState(saved);
-                    State = mainState.CurrentIslandState;
-                }
-                catch
-                {
-                    // fallback to creating a new game if import fails
-                    State = CreateNewDefaultState();
-                }
-            }
-            else
-            {
-                State = CreateNewDefaultState();
+                var mainState = mainController.ImportMainState(saved);
+                State = mainState.CurrentIslandState;
             }
         }
-        catch
+        catch { }
+
+        if (State == null)
         {
             State = CreateNewDefaultState();
         }
@@ -229,7 +219,7 @@
         };
 
         var mainState = mainController!.CreateNewGame(tileData, 1);
-        return mainState!.CurrentIslandState;
+        return mainState!.CurrentIslandState!;
     }
 
     private async Task ExportGame()
