@@ -27,6 +27,9 @@
             <li>
                 <button class="dropdown-item" @onclick="TriggerImport">Import (charger)</button>
             </li>
+            <li>
+                <button class="dropdown-item" @onclick="CheatAddResources">Cheat (ajouter 100 de chaque)</button>
+            </li>
         </ul>
     </div>
     <div class="resource-capsule d-flex align-items-center px-3 py-1 rounded-pill"
@@ -207,6 +210,33 @@
     {
         // trigger the hidden input click
         await JS.InvokeVoidAsync("clickElementById", "importFile");
+    }
+
+    private void CheatAddResources()
+    {
+        if (mainController == null || State == null)
+        {
+            sideBuildMessage = "Aucun jeu actif";
+            StateHasChanged();
+            return;
+        }
+
+        try
+        {
+            var player = State.PlayerCivilization;
+            foreach (var rObj in System.Enum.GetValues(typeof(SettlersOfIdlestan.Model.IslandMap.Resource)))
+            {
+                var r = (SettlersOfIdlestan.Model.IslandMap.Resource)rObj;
+                // using AddResource on Civilization
+                player.AddResource(r, 100);
+            }
+            sideBuildMessage = "Cheat appliqué: +100 de chaque ressource";
+        }
+        catch (Exception ex)
+        {
+            sideBuildMessage = "Cheat failed: " + ex.Message;
+        }
+        StateHasChanged();
     }
 
     private async Task OnImportFileSelected(InputFileChangeEventArgs e)
