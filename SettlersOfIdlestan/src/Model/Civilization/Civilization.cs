@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using SettlersOfIdlestan.Model.IslandMap;
+using System.Text.Json.Serialization;
 
 namespace SettlersOfIdlestan.Model.Civilization;
 
@@ -31,6 +32,24 @@ public class Civilization
     // Resources are stored as a map from Resource -> quantity.
     // Made private: access should be done through AddResource/RemoveResource and GetResourceQuantity.
     private readonly Dictionary<Resource, int> _resources = new();
+
+    // Expose resources for serialization. The public property is annotated so System.Text.Json
+    // will include it during export/import. The private setter maps values back to the private
+    // dictionary to preserve encapsulation for runtime access.
+    [JsonInclude]
+    public Dictionary<Resource, int> Resources
+    {
+        get => _resources;
+        private set
+        {
+            _resources.Clear();
+            if (value == null) return;
+            foreach (var kv in value)
+            {
+                _resources[kv.Key] = kv.Value;
+            }
+        }
+    }
 
     /// <summary>
     /// Adds the given quantity of a resource to the civilization's stock.

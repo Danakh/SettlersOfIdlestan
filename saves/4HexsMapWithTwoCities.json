@@ -127,7 +127,11 @@
                 "CivilizationIndex": 0,
                 "DistanceToNearestCity": 2
               }
-            ]
+            ],
+            "Resources": {
+              "Wood": 3,
+              "Sheep": 2
+            }
           }
         ],
         "PlayerCivilization": {
@@ -214,13 +218,17 @@
               "CivilizationIndex": 0,
               "DistanceToNearestCity": 2
             }
-          ]
+          ],
+          "Resources": {
+            "Wood": 3,
+            "Sheep": 2
+          }
         },
         "HarvestLastTimesByCivilization": {
           "0": {
-            "0,0": "2026-02-04T21:24:04.0255762+00:00",
-            "0,1": "2026-02-04T21:24:04.0255762+00:00",
-            "1,0": "2026-02-04T21:24:04.0255762+00:00"
+            "0,0": "2026-02-04T22:31:29.6772483+00:00",
+            "0,1": "2026-02-04T22:31:29.6772483+00:00",
+            "1,0": "2026-02-04T22:31:29.6772483+00:00"
           }
         },
         "AutomaticHarvestLastTimesByCivilization": {
@@ -356,7 +364,11 @@
               "CivilizationIndex": 0,
               "DistanceToNearestCity": 2
             }
-          ]
+          ],
+          "Resources": {
+            "Wood": 3,
+            "Sheep": 2
+          }
         }
       ],
       "PlayerCivilization": {
@@ -443,13 +455,17 @@
             "CivilizationIndex": 0,
             "DistanceToNearestCity": 2
           }
-        ]
+        ],
+        "Resources": {
+          "Wood": 3,
+          "Sheep": 2
+        }
       },
       "HarvestLastTimesByCivilization": {
         "0": {
-          "0,0": "2026-02-04T21:24:04.0255762+00:00",
-          "0,1": "2026-02-04T21:24:04.0255762+00:00",
-          "1,0": "2026-02-04T21:24:04.0255762+00:00"
+          "0,0": "2026-02-04T22:31:29.6772483+00:00",
+          "0,1": "2026-02-04T22:31:29.6772483+00:00",
+          "1,0": "2026-02-04T22:31:29.6772483+00:00"
         }
       },
       "AutomaticHarvestLastTimesByCivilization": {
@@ -583,7 +599,11 @@
             "CivilizationIndex": 0,
             "DistanceToNearestCity": 2
           }
-        ]
+        ],
+        "Resources": {
+          "Wood": 3,
+          "Sheep": 2
+        }
       }
     ],
     "PlayerCivilization": {
@@ -670,13 +690,17 @@
           "CivilizationIndex": 0,
           "DistanceToNearestCity": 2
         }
-      ]
+      ],
+      "Resources": {
+        "Wood": 3,
+        "Sheep": 2
+      }
     },
     "HarvestLastTimesByCivilization": {
       "0": {
-        "0,0": "2026-02-04T21:24:04.0255762+00:00",
-        "0,1": "2026-02-04T21:24:04.0255762+00:00",
-        "1,0": "2026-02-04T21:24:04.0255762+00:00"
+        "0,0": "2026-02-04T22:31:29.6772483+00:00",
+        "0,1": "2026-02-04T22:31:29.6772483+00:00",
+        "1,0": "2026-02-04T22:31:29.6772483+00:00"
       }
     },
     "AutomaticHarvestLastTimesByCivilization": {
@@ -684,13 +708,13 @@
     }
   },
   "Clock": {
-    "StartTime": "2026-02-04T21:22:54.0255762+00:00",
+    "StartTime": "2026-02-04T22:30:19.6772483+00:00",
     "Elapsed": "00:01:10.1000000",
     "IsRunning": true,
     "Speed": 1,
-    "CurrentTime": "2026-02-04T21:24:04.1255762+00:00"
+    "CurrentTime": "2026-02-04T22:31:29.7772483+00:00"
   },
   "PRNG": {
-    "Seed": 664582890
+    "Seed": 668628562
   }
 }
