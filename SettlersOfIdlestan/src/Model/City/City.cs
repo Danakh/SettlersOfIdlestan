@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.HexGrid;
 
@@ -25,6 +26,34 @@ public class City
     /// Gets or sets the list of buildings in the city.
     /// </summary>
     public List<Building> Buildings { get; set; } = new();
+
+    /// <summary>
+    /// Gets the effective level of the city.
+    /// Level 1 is the base level (outpost) when no TownHall is built.
+    /// When a TownHall is present the city level is TownHall.Level + 1.
+    /// Levels map as: 1=outpost, 2=colony, 3=town, 4=metropolis, 5=capital.
+    /// </summary>
+    public int Level
+    {
+        get
+        {
+            var th = Buildings.FirstOrDefault(b => b.Type == BuildingType.TownHall);
+            return th != null ? Math.Min(5, th.Level + 1) : 1;
+        }
+    }
+
+    /// <summary>
+    /// Gets the textual name of the city level used for sprite selection.
+    /// </summary>
+    public string LevelName => Level switch
+    {
+        1 => "outpost",
+        2 => "colony",
+        3 => "town",
+        4 => "metropolis",
+        5 => "capital",
+        _ => "outpost",
+    };
 
     /// <summary>
     /// Initializes a new instance of the <see cref="City"/> class.

@@ -168,7 +168,7 @@ else
                         var imgY = (p.y - spriteSize / 2).ToString(System.Globalization.CultureInfo.InvariantCulture);
                         var w = spriteSize.ToString(System.Globalization.CultureInfo.InvariantCulture);
                         var h = spriteSize.ToString(System.Globalization.CultureInfo.InvariantCulture);
-                        var spritePath = $"assets/sprites/city-outpost.svg";
+                        var spritePath = $"assets/sprites/city-{city.LevelName}.svg";
                         <image href="@spritePath" x="@imgX" y="@imgY" width="@w" height="@h" style="cursor:pointer;pointer-events:auto" @onclick:stopPropagation="true" @onclick="(()=>CityClicked(city))" @onmouseover="(()=>OnHoverCity(city))" @onmouseout="OnLeaveCity" />
                     }
                     catch
