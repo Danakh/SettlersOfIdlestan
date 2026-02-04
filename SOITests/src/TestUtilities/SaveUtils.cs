@@ -1,5 +1,7 @@
+using System;
 using System.IO;
 using System.Linq;
+using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Controller;
 using Xunit;
 
@@ -35,6 +37,52 @@ public static class SaveUtils
 
         // Assert the two JSON representations match exactly
         Assert.Equal(exported, roundtrip);
+
+        // Additionally compare some important IslandState metrics to give clearer test failures
+        var originalIsland = controller.CurrentMainState?.CurrentIslandState
+                             ?? throw new System.InvalidOperationException("Controller does not have a current island state");
+        var reloadedIsland = reloadedController.CurrentMainState?.CurrentIslandState
+                             ?? throw new System.InvalidOperationException("Reloaded controller does not have a current island state");
+
+        // number of hex tiles
+        var originalHexCount = originalIsland.Map.Tiles.Count;
+        var reloadedHexCount = reloadedIsland.Map.Tiles.Count;
+        Assert.Equal(originalHexCount, reloadedHexCount);
+
+        // number of civilizations
+        var originalCivCount = originalIsland.Civilizations.Count;
+        var reloadedCivCount = reloadedIsland.Civilizations.Count;
+        Assert.Equal(originalCivCount, reloadedCivCount);
+
+        // total numbers across all civilizations: roads and cities
+        var originalRoads = originalIsland.Civilizations.Sum(c => c.Roads.Count);
+        var reloadedRoads = reloadedIsland.Civilizations.Sum(c => c.Roads.Count);
+        Assert.Equal(originalRoads, reloadedRoads);
+
+        var originalCities = originalIsland.Civilizations.Sum(c => c.Cities.Count);
+        var reloadedCities = reloadedIsland.Civilizations.Sum(c => c.Cities.Count);
+        Assert.Equal(originalCities, reloadedCities);
+
+        // total buildings across all cities
+        var originalBuildings = originalIsland.Civilizations.Sum(c => c.Cities.Sum(city => city.Buildings.Count));
+        var reloadedBuildings = reloadedIsland.Civilizations.Sum(c => c.Cities.Sum(city => city.Buildings.Count));
+        Assert.Equal(originalBuildings, reloadedBuildings);
+
+        // Compare resources for each civilization for every Resource type
+        foreach (var civPair in originalIsland.Civilizations.Select((c, idx) => (c, idx)))
+        {
+            var idx = civPair.idx;
+            var originalCiv = civPair.c;
+            var reloadedCiv = reloadedIsland.Civilizations.FirstOrDefault(c => c.Index == originalCiv.Index)
+                              ?? throw new InvalidOperationException($"Missing civilization with index {originalCiv.Index} in reloaded state");
+
+            foreach (Resource res in Enum.GetValues(typeof(Resource)))
+            {
+                var origQty = originalCiv.GetResourceQuantity((SettlersOfIdlestan.Model.IslandMap.Resource)res);
+                var relQty = reloadedCiv.GetResourceQuantity((SettlersOfIdlestan.Model.IslandMap.Resource)res);
+                Assert.Equal(origQty, relQty);
+            }
+        }
     }
 
     private static string GetSolutionRootDirectory(string startDirectory)
