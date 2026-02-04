@@ -110,7 +110,6 @@ else
                 var buildableRoads = Controller!.RoadController.GetBuildableRoads(player.Index);
                 // use player's civ color for buildable road suggestion to make it obvious who can build
                 var dashColor = civColors[(player.Index >= 0 ? player.Index : 0) % civColors.Length];
-
                 foreach (var road in buildableRoads)
                 {
                     try
@@ -147,7 +146,7 @@ else
                         var cy = (p.y).ToString(CultureInfo.InvariantCulture);
                         var isHoveredV = hoveredBuildableVertex != null && hoveredBuildableVertex.Equals(v);
                         var strokeW = (isHoveredV ? 3.0 : 2.0).ToString(CultureInfo.InvariantCulture);
-                        <circle cx="@cx" cy="@cy" r="6" stroke="#2ecc71" stroke-width="@strokeW" stroke-dasharray="4 4" fill="none" style="cursor:pointer;pointer-events:auto" @onmouseover="(()=>OnHoverBuildableVertex(v))" @onmouseout="OnLeaveBuildableVertex" @onclick:stopPropagation="true" @onclick="(()=>OnClickBuildableVertex(v))" />
+                        <circle cx="@cx" cy="@cy" r="6" stroke="#2ecc71" stroke-width="@strokeW" stroke-dasharray="4 4" fill="#2ecc71" fill-opacity="0.03" style="cursor:pointer;pointer-events:auto" @onmouseover="(() => OnHoverBuildableVertex(v))" @onmouseout="OnLeaveBuildableVertex" @onclick:stopPropagation="true" @onclick="(() => OnClickBuildableVertex(v))" />
                     }
                 }
                 catch
