@@ -161,20 +161,63 @@
 
 @code {
     private IslandState? State;
-    private MainGameController? mainController;
+    private MainGameController mainController = new MainGameController();
     private CancellationTokenSource? renderLoopCts;
+    private CancellationTokenSource? autosaveCts;
     private Stopwatch? renderLoopStopwatch;
     private SettlersOfIdlestan.Model.City.City? selectedCity;
     private string? sideBuildMessage;
+    private const string AutosaveKey = "settlers_autosave";
     [Inject] private IJSRuntime JS { get; set; } = default!;
 
-    protected override async Task OnInitializedAsync()
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        await Task.Delay(50);
+        if (!firstRender) return;
 
-        // Create main controller and a new game
-        mainController = new MainGameController();
+        // Try to restore autosave from localStorage via JS interop after first render
+        try
+        {
+            var saved = await JS.InvokeAsync<string>("getLocalSave", AutosaveKey);
+            if (!string.IsNullOrEmpty(saved))
+            {
+                try
+                {
+                    var mainState = mainController.ImportMainState(saved);
+                    State = mainState.CurrentIslandState;
+                }
+                catch
+                {
+                    // fallback to creating a new game if import fails
+                    State = CreateNewDefaultState();
+                }
+            }
+            else
+            {
+                State = CreateNewDefaultState();
+            }
+        }
+        catch
+        {
+            State = CreateNewDefaultState();
+        }
 
+        // start clock and render loop
+        if (mainController.Clock != null)
+        {
+            mainController.Clock.Start();
+            StartRenderLoop();
+        }
+
+        // start autosave loop
+        StartAutosaveLoop();
+
+        StateHasChanged();
+    }
+
+    private IslandState CreateNewDefaultState()
+    {
+        // mainController already initialized at construction
         var tileData = new List<(TerrainType, int)>
         {
             (TerrainType.Forest, 4),
@@ -185,26 +228,13 @@
             (TerrainType.Desert, 1)
         };
 
-        var mainState = mainController.CreateNewGame(tileData, 1);
-        State = mainState!.CurrentIslandState;
-
-        // start clock and render loop
-        if (mainController.Clock != null)
-        {
-            mainController.Clock.Start();
-            StartRenderLoop();
-        }
-
-        StateHasChanged();
+        var mainState = mainController!.CreateNewGame(tileData, 1);
+        return mainState!.CurrentIslandState;
     }
 
     private async Task ExportGame()
     {
-        if (mainController == null)
-        {
-            sideBuildMessage = "Aucun jeu à exporter";
-            return;
-        }
+        // mainController always exists
 
         try
         {
@@ -265,7 +295,6 @@
             var bytes = ms.ToArray();
             var json = System.Text.Encoding.UTF8.GetString(bytes);
 
-            if (mainController == null) mainController = new MainGameController();
             var mainState = mainController.ImportMainState(json);
             State = mainState.CurrentIslandState;
 
@@ -276,6 +305,9 @@
                 mainController.Clock.Start();
                 StartRenderLoop();
             }
+
+            // persist imported state immediately
+            try { await JS.InvokeVoidAsync("setLocalSave", AutosaveKey, json); } catch { }
 
             sideBuildMessage = "Import effectué";
             StateHasChanged();
@@ -288,20 +320,7 @@
 
     private void Generate()
     {
-        if (mainController == null) mainController = new MainGameController();
-
-        var tileData = new List<(TerrainType, int)>
-        {
-            (TerrainType.Forest, 4),
-            (TerrainType.Hill, 3),
-            (TerrainType.Pasture, 4),
-            (TerrainType.Field, 4),
-            (TerrainType.Mountain, 3),
-            (TerrainType.Desert, 1)
-        };
-
-        var mainState = mainController.CreateNewGame(tileData, 1);
-        State = mainState!.CurrentIslandState;
+        State = CreateNewDefaultState();
 
         // restart clock and render loop for the new controller
         renderLoopCts?.Cancel();
@@ -310,6 +329,9 @@
             mainController.Clock.Start();
             StartRenderLoop();
         }
+
+        // persist immediately
+        try { var json = mainController.ExportMainState(); _ = JS.InvokeVoidAsync("setLocalSave", AutosaveKey, json); } catch { }
 
         StateHasChanged();
     }
@@ -357,9 +379,44 @@
         }, token);
     }
 
+    private void StartAutosaveLoop()
+    {
+        // cancel previous autosave if any
+        autosaveCts?.Cancel();
+        autosaveCts = new CancellationTokenSource();
+        var token = autosaveCts.Token;
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                while (!token.IsCancellationRequested)
+                {
+                    try
+                    {
+                        var json = mainController.ExportMainState();
+                        await JS.InvokeVoidAsync("setLocalSave", AutosaveKey, json);
+                    }
+                    catch { }
+
+                    await Task.Delay(1000, token);
+                }
+            }
+            catch (OperationCanceledException) { }
+            catch { }
+        }, token);
+    }
+
+    private void StopAutosaveLoop()
+    {
+        autosaveCts?.Cancel();
+        autosaveCts = null;
+    }
+
     public async ValueTask DisposeAsync()
     {
         renderLoopCts?.Cancel();
+        StopAutosaveLoop();
         await Task.CompletedTask;
     }
 

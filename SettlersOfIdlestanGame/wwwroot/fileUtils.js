@@ -20,3 +20,29 @@ window.clickElementById = (id) => {
     const el = document.getElementById(id);
     if (el) el.click();
 };
+
+// Local storage helpers for autosave
+window.setLocalSave = (key, content) => {
+    try {
+        localStorage.setItem(key, content);
+    } catch (e) {
+        console.error('setLocalSave error', e);
+    }
+};
+
+window.getLocalSave = (key) => {
+    try {
+        return localStorage.getItem(key);
+    } catch (e) {
+        console.error('getLocalSave error', e);
+        return null;
+    }
+};
+
+window.removeLocalSave = (key) => {
+    try {
+        localStorage.removeItem(key);
+    } catch (e) {
+        console.error('removeLocalSave error', e);
+    }
+};
