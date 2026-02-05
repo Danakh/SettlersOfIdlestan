@@ -16,6 +16,7 @@ namespace SettlersOfIdlestan.Controller
     /// </summary>
     public class CivilizationAutoplayer
     {
+        private readonly Double _timeStep = 0.5;
         private readonly Civilization _civ;
         private readonly IslandMap _map;
         private readonly RoadController _roadController;
@@ -66,7 +67,7 @@ namespace SettlersOfIdlestan.Controller
 
                 if (clock != null)
                 {
-                    clock.Advance(TimeSpan.FromSeconds(0.1));
+                    clock.Advance(TimeSpan.FromSeconds(_timeStep));
                 }
             }
             return false;
@@ -111,7 +112,7 @@ namespace SettlersOfIdlestan.Controller
 
                 if (clock != null)
                 {
-                    clock.Advance(TimeSpan.FromSeconds(0.1));
+                    clock.Advance(TimeSpan.FromSeconds(_timeStep));
                 }
             }
 
@@ -178,8 +179,8 @@ namespace SettlersOfIdlestan.Controller
 
                 if (clock != null)
                 {
-                    // advance by 0.1 seconds of real time -> scaled by GameClock.Speed
-                    clock.Advance(TimeSpan.FromSeconds(0.1));
+                    // advance by _timeStep seconds of real time -> scaled by GameClock.Speed
+                    clock.Advance(TimeSpan.FromSeconds(_timeStep));
                 }
             }
         }
@@ -301,7 +302,7 @@ namespace SettlersOfIdlestan.Controller
 
                 if (clock != null)
                 {
-                    clock.Advance(TimeSpan.FromSeconds(0.1));
+                    clock.Advance(TimeSpan.FromSeconds(_timeStep));
                 }
             }
 
@@ -376,7 +377,7 @@ namespace SettlersOfIdlestan.Controller
 
                 if (clock != null)
                 {
-                    clock.Advance(TimeSpan.FromSeconds(0.1));
+                    clock.Advance(TimeSpan.FromSeconds(_timeStep));
                 }
             }
 

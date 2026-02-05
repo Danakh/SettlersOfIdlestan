@@ -101,7 +101,6 @@ namespace SOITests.src.IslandMapTests
             // Build roads until we have a buildable road at distance 2
             autoplayer.AutoBuildRoadToDistance(2);
 
-
             // Find a buildable vertex for a new outpost (different from original city)
             var buildableVerts = controller.CityBuilderController.GetBuildableVertices(civ.Index);
             var newVertex = buildableVerts.FirstOrDefault(v => !v.Equals(originalCity.Position));
