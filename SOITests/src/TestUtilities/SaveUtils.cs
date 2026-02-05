@@ -85,6 +85,22 @@ public static class SaveUtils
         }
     }
 
+    public static MainGameController LoadSave(string name)
+    {
+        // Locate the saved start file produced by the previous test
+        var solutionRoot = GetSolutionRootDirectory(Directory.GetCurrentDirectory());
+        var savesDir = Path.Combine(solutionRoot, "saves");
+        var startPath = Path.Combine(savesDir, name);
+        var filePath = Path.Combine(savesDir, name + ".json");
+        Assert.True(File.Exists(filePath), $"Expected save file at {filePath}");
+
+        var controller = new MainGameController();
+        var json = File.ReadAllText(filePath);
+        controller.ImportMainState(json);
+
+        return controller;
+    }
+
     private static string GetSolutionRootDirectory(string startDirectory)
     {
         var dir = new DirectoryInfo(startDirectory);

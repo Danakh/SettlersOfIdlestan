@@ -56,15 +56,8 @@ namespace SOITests.src.IslandMapTests
         [Fact]
         public void LoadStart_BuildFirstColony_And_Save()
         {
-            // Locate the saved start file produced by the previous test
-            var solutionRoot = GetSolutionRootDirectory(Directory.GetCurrentDirectory());
-            var savesDir = Path.Combine(solutionRoot, "saves");
-            var startPath = Path.Combine(savesDir, "FulIslandTestStart.json");
-            Assert.True(File.Exists(startPath), $"Expected save file at {startPath}");
-
-            var controller = new MainGameController();
-            var json = File.ReadAllText(startPath);
-            controller.ImportMainState(json);
+            var controller = SaveUtils.LoadSave("FulIslandTestStart");
+            // Load the previously saved game state
 
             var civ = controller.CurrentMainState?.CurrentIslandState?.Civilizations.FirstOrDefault();
             Assert.NotNull(civ);
@@ -89,22 +82,6 @@ namespace SOITests.src.IslandMapTests
 
             // Save the generated game and verify a round-trip load produces identical state
             SaveUtils.SaveAndReloadAndAssertEqual(controller, "FulIslandTestFirstColony");
-        }
-
-        private static string GetSolutionRootDirectory(string startDirectory)
-        {
-            var dir = new System.IO.DirectoryInfo(startDirectory);
-            while (dir != null)
-            {
-                if (dir.GetFiles("*.sln").Any() || System.IO.Directory.Exists(System.IO.Path.Combine(dir.FullName, ".git")))
-                {
-                    return dir.FullName;
-                }
-
-                dir = dir.Parent;
-            }
-
-            return startDirectory;
         }
     }
 }
