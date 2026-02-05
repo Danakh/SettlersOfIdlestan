@@ -72,6 +72,52 @@ namespace SettlersOfIdlestan.Controller
             return false;
         }
 
+        /// <summary>
+        /// Attempt to build a road whose distance to the nearest city equals the specified distance.
+        /// If no such buildable road currently exists the method will try to extend the network by
+        /// building intermediate roads until a candidate at the requested distance appears.
+        /// Returns true if a road at the requested distance was successfully built.
+        /// </summary>
+        public bool AutoBuildRoadToDistance(int distance)
+        {
+            if (distance <= 0) throw new ArgumentException("distance must be >= 1", nameof(distance));
+
+            const int maxIterations = 10;
+            var clock = _mainController?.Clock;
+
+            for (int i = 0; i < maxIterations; i++)
+            {
+                try
+                {
+                    var candidates = _roadController.GetBuildableRoadsAtDistance(_civ.Index, distance);
+                    if (candidates != null && candidates.Any())
+                    {
+                        var target = candidates.First();
+                        if (AutoBuildRoad(target.Position)) return true;
+                    }
+
+                    // No distance-x road available yet: try to expand by building the nearest available road
+                    var buildables = _roadController.GetBuildableRoads(_civ.Index);
+                    var toBuild = buildables.OrderBy(r => r.DistanceToNearestCity).FirstOrDefault();
+                    if (toBuild != null)
+                    {
+                        AutoBuildRoad(toBuild.Position);
+                    }
+                }
+                catch
+                {
+                    // ignore transient failures and continue attempts
+                }
+
+                if (clock != null)
+                {
+                    clock.Advance(TimeSpan.FromSeconds(0.1));
+                }
+            }
+
+            return false;
+        }
+
         public void TryGrindOnce(Dictionary<Resource, int>? requiredResources)
         {
             // Récolter manuellement tous les hexagones autour des villes de la civilisation.

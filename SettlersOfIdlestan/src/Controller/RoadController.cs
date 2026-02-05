@@ -85,6 +85,19 @@ namespace SettlersOfIdlestan.Controller
         }
 
         /// <summary>
+        /// Retourne les routes constructibles pour la civilisation d'indice spécifi? dont la distance
+        /// ? la ville la plus proche est ?gale ? la valeur fournie (ex: 2).
+        /// </summary>
+        public List<Road> GetBuildableRoadsAtDistance(int civilizationIndex, int distance)
+        {
+            if (distance <= 0) throw new ArgumentException("Distance must be >= 1", nameof(distance));
+
+            // R?utilise la logique existante puis filtre par distance
+            var all = GetBuildableRoads(civilizationIndex);
+            return all.Where(r => r.DistanceToNearestCity == distance).ToList();
+        }
+
+        /// <summary>
         /// Construit une route pour la civilisation si l'arête est constructible.
         /// Lance une exception si la civilisation ou l'arête n'est pas trouvée ou si l'arête n'est pas constructible.
         /// </summary>
