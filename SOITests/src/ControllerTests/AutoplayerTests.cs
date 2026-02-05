@@ -53,28 +53,15 @@ namespace SOITests.ControllerTests
             var roadController = mainController.RoadController;
             var harvestController = mainController.HarvestController;
 
-            // Helper to repeatedly attempt building an edge with the autoplayer while advancing the clock
-            bool TryBuildWithAuto(Edge edge)
-            {
-                const int maxIterations = 500; // safety to avoid infinite loops
-                for (int i = 0; i < maxIterations; i++)
-                {
-                    if (auto.AutoBuildRoad(edge)) return true;
-                    // advance by 0.1 seconds of real time -> scaled by GameClock.Speed (1.0 by default)
-                    clock.Advance(TimeSpan.FromSeconds(0.1));
-                }
-                return false;
-            }
-
             // Pick a first buildable edge adjacent to the city
             var firstBuildable = roadController.GetBuildableRoads(0).First().Position;
-            var firstBuilt = TryBuildWithAuto(firstBuildable);
+            var firstBuilt = auto.AutoBuildRoad(firstBuildable);
             Assert.True(firstBuilt, "First road should eventually be built by the autoplayer");
             Assert.Contains(civ.Roads, r => r.Position.Equals(firstBuildable));
 
             // Pick a second buildable road that is not the first one (should extend away from the city)
             var secondBuildable = roadController.GetBuildableRoads(0).Select(r => r.Position).First(e => !e.Equals(firstBuildable));
-            var secondBuilt = TryBuildWithAuto(secondBuildable);
+            var secondBuilt = auto.AutoBuildRoad(secondBuildable);
             Assert.True(secondBuilt, "Second road should eventually be built by the autoplayer");
             Assert.Contains(civ.Roads, r => r.Position.Equals(secondBuildable));
 
@@ -82,19 +69,7 @@ namespace SOITests.ControllerTests
             Assert.True(clock.Elapsed >= TimeSpan.FromSeconds(18), $"Expected at least 18s elapsed in the GameClock, was {clock.Elapsed}");
 
             // Attempt to build a Market in the initial city using the autoplayer.
-            // This may require harvesting over time; repeatedly try while advancing clock.
-            bool TryBuildMarketWithAuto(Vertex cityV)
-            {
-                const int maxIterations = 500;
-                for (int i = 0; i < maxIterations; i++)
-                {
-                    if (auto.AutoBuildBuilding(cityV, BuildingType.Market)) return true;
-                    clock.Advance(TimeSpan.FromSeconds(0.1));
-                }
-                return false;
-            }
-
-            var marketBuilt = TryBuildMarketWithAuto(vertex);
+            var marketBuilt = auto.AutoBuildBuilding(vertex, BuildingType.Market);
             Assert.True(marketBuilt, "Autoplayer should eventually build a market in the city");
             Assert.True(civ.Cities.SelectMany(c => c.Buildings).Any(b => b.Type == BuildingType.Market), "City should contain a Market building");
 
@@ -104,18 +79,7 @@ namespace SOITests.ControllerTests
             var buildableVertex = cityBuilder.GetBuildableVertices(0).FirstOrDefault();
             Assert.NotNull(buildableVertex);
 
-            bool TryBuildOutpostWithAuto(Vertex v)
-            {
-                const int maxIterations = 500;
-                for (int i = 0; i < maxIterations; i++)
-                {
-                    if (auto.AutoBuildOutpost(v)) return true;
-                    clock.Advance(TimeSpan.FromSeconds(0.1));
-                }
-                return false;
-            }
-
-            var outpostBuilt = TryBuildOutpostWithAuto(buildableVertex);
+            var outpostBuilt = auto.AutoBuildOutpost(buildableVertex);
             Assert.True(outpostBuilt, "Autoplayer should eventually build an outpost after roads");
             Assert.Contains(civ.Cities, c => c.Position.Equals(buildableVertex));
 

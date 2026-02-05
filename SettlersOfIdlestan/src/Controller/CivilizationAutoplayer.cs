@@ -46,24 +46,43 @@ namespace SettlersOfIdlestan.Controller
             _tradeController = mainController.TradeController;
         }
 
-        public void AutoGrind(Dictionary<Resource, int>? requiredResources)
+        /// <summary>
+        /// Attempt to build the specified road up to 500 times. Between failed attempts advance the main controller's clock when available.
+        /// </summary>
+        public bool AutoBuildRoad(Edge edge)
+        {
+            const int maxIterations = 500;
+            var clock = _mainController?.Clock;
+            for (int i = 0; i < maxIterations; i++)
+            {
+                try
+                {
+                    if (TryBuildRoadOnce(edge)) return true;
+                }
+                catch
+                {
+                    // ignore
+                }
+
+                if (clock != null)
+                {
+                    clock.Advance(TimeSpan.FromSeconds(0.1));
+                }
+            }
+            return false;
+        }
+
+        public void TryGrindOnce(Dictionary<Resource, int>? requiredResources)
         {
             // Récolter manuellement tous les hexagones autour des villes de la civilisation.
             var toHarvest = new HashSet<HexCoord>();
             foreach (var city in _civ.Cities)
             {
-                try
+                var hexes = city.Position.GetHexes();
+                foreach (var h in hexes)
                 {
-                    var hexes = city.Position.GetHexes();
-                    foreach (var h in hexes)
-                    {
-                        if (h != null)
-                            toHarvest.Add(h);
-                    }
-                }
-                catch
-                {
-                    // ignore local errors when retrieving city hexes
+                    if (h != null)
+                        toHarvest.Add(h);
                 }
             }
 
@@ -94,6 +113,32 @@ namespace SettlersOfIdlestan.Controller
         }
 
         /// <summary>
+        /// Attempt to perform the grind operation up to 500 times. Between failed attempts advance the main controller's clock when available.
+        /// </summary>
+        public void AutoGrind(Dictionary<Resource, int>? requiredResources)
+        {
+            const int maxIterations = 500;
+            var clock = _mainController?.Clock;
+            for (int i = 0; i < maxIterations; i++)
+            {
+                try
+                {
+                    TryGrindOnce(requiredResources);
+                }
+                catch
+                {
+                    // ignore
+                }
+
+                if (clock != null)
+                {
+                    // advance by 0.1 seconds of real time -> scaled by GameClock.Speed
+                    clock.Advance(TimeSpan.FromSeconds(0.1));
+                }
+            }
+        }
+
+        /// <summary>
         /// Tente de construire une route sur l'arête spécifiée. Si l'arête n'est pas
         /// constructible par la civilisation, la méthode échoue (retourne false).
         /// Si l'arête est constructible mais que la construction échoue (par ex. pas
@@ -101,7 +146,7 @@ namespace SettlersOfIdlestan.Controller
         /// tous les hexagones autour des villes de la civilisation et retourne false.
         /// Retourne true si la route a été construite avec succès.
         /// </summary>
-        public bool AutoBuildRoad(Edge edge)
+        public bool TryBuildRoadOnce(Edge edge)
         {
             if (edge == null) throw new ArgumentNullException(nameof(edge));
 
@@ -128,7 +173,7 @@ namespace SettlersOfIdlestan.Controller
                     // Determine cost for this road using the Road entry returned by controller
                     var buildableRoads = _roadController.GetBuildableRoads(_civ.Index);
                     var road = buildableRoads.FirstOrDefault(r => r.Position.Equals(edge));
-                    if (road != null)
+                            if (road != null)
                     {
                         var distance = road.DistanceToNearestCity;
                         if (distance != int.MaxValue)
@@ -139,18 +184,8 @@ namespace SettlersOfIdlestan.Controller
                                 { Resource.Wood, cost },
                                 { Resource.Brick, cost }
                             };
-                            AutoGrind(required);
+                            TryGrindOnce(required);
                         }
-                        else
-                        {
-                            // no determinable cost - still attempt basic grind (harvest only)
-                            AutoGrind(null);
-                        }
-                    }
-                    else
-                    {
-                        // no matching road found - just harvest
-                        AutoGrind(null);
                     }
                 }
                 catch
@@ -168,7 +203,7 @@ namespace SettlersOfIdlestan.Controller
         /// hexagones autour des villes de la civilisation et retourne false. Retourne true si la ville a
         /// été construite avec succès.
         /// </summary>
-        public bool AutoBuildOutpost(Vertex vertex)
+        public bool TryBuildOutpostOnce(Vertex vertex)
         {
             if (vertex == null) throw new ArgumentNullException(nameof(vertex));
 
@@ -179,32 +214,52 @@ namespace SettlersOfIdlestan.Controller
                 return false;
             }
 
-            try
-            {
-                _cityBuilderController.BuildCity(_civ.Index, vertex);
-                return true;
-            }
-            catch (InvalidOperationException)
-            {
-                // Not enough resources: attempt grind (harvest + one trade attempt)
                 try
                 {
-                    var required = new Dictionary<Resource, int>
-                    {
-                        { Resource.Brick, 10 },
-                        { Resource.Wood, 10 },
-                        { Resource.Wheat, 10 },
-                        { Resource.Sheep, 10 }
-                    };
-                    AutoGrind(required);
+                    _cityBuilderController.BuildCity(_civ.Index, vertex);
+                    return true;
+                }
+                catch (InvalidOperationException)
+            {
+                // Not enough resources: attempt grind (harvest + one trade attempt)
+                var required = new Dictionary<Resource, int>
+                {
+                    { Resource.Brick, 10 },
+                    { Resource.Wood, 10 },
+                    { Resource.Wheat, 10 },
+                    { Resource.Sheep, 10 }
+                };
+                TryGrindOnce(required);
+
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Attempt to build the specified outpost up to 500 times. Between failed attempts advance the main controller's clock when available.
+        /// </summary>
+        public bool AutoBuildOutpost(Vertex vertex)
+        {
+            const int maxIterations = 500;
+            var clock = _mainController?.Clock;
+            for (int i = 0; i < maxIterations; i++)
+            {
+                try
+                {
+                    if (TryBuildOutpostOnce(vertex)) return true;
                 }
                 catch
                 {
                     // ignore
                 }
 
-                return false;
+                if (clock != null)
+                {
+                    clock.Advance(TimeSpan.FromSeconds(0.1));
+                }
             }
+
+            return false;
         }
 
         /// <summary>
@@ -212,7 +267,7 @@ namespace SettlersOfIdlestan.Controller
         /// Si pas constructible retourne false. Si pas assez de ressources, effectue des récoltes autour des villes puis retourne false.
         /// Retourne true si la construction/rénovation a réussi.
         /// </summary>
-        public bool AutoBuildBuilding(Vertex cityVertex, BuildingType buildingType)
+        public bool TryBuildBuildingOnce(Vertex cityVertex, BuildingType buildingType)
         {
             if (cityVertex == null) throw new ArgumentNullException(nameof(cityVertex));
 
@@ -220,42 +275,13 @@ namespace SettlersOfIdlestan.Controller
             var isConstructible = buildable.Any(b => b.Type == buildingType);
             if (!isConstructible) return false;
 
-            try
-            {
-                _buildingController.BuildBuilding(_civ.Index, cityVertex, buildingType);
-                return true;
-            }
-            catch (InvalidOperationException)
-            {
-                var toHarvest = new HashSet<HexCoord>();
-                foreach (var city in _civ.Cities)
+                try
                 {
-                    try
-                    {
-                        var hexes = city.Position.GetHexes();
-                        foreach (var h in hexes)
-                        {
-                            if (h != null)
-                                toHarvest.Add(h);
-                        }
-                    }
-                    catch
-                    {
-                    }
+                    _buildingController.BuildBuilding(_civ.Index, cityVertex, buildingType);
+                    return true;
                 }
-
-                foreach (var hex in toHarvest)
-                {
-                    try
-                    {
-                        _harvestController.ManualHarvest(_civ.Index, hex);
-                    }
-                    catch
-                    {
-                    }
-                }
-
-                // Après la récolte, tenter un trade unique qui pourrait aider la construction
+                catch (InvalidOperationException)
+            {
                 try
                 {
                     // Attempt to get the buildable entry for this building to compute cost
@@ -272,11 +298,7 @@ namespace SettlersOfIdlestan.Controller
                         {
                             required = target.GetUpgradeCost(target.Level);
                         }
-
-                        if (required != null && required.Any())
-                        {
-                            _tradeController.TryAutoTradeForPurchase(_civ.Index, required);
-                        }
+                        TryGrindOnce(required);
                     }
                 }
                 catch
@@ -286,6 +308,33 @@ namespace SettlersOfIdlestan.Controller
 
                 return false;
             }
+        }
+
+        /// <summary>
+        /// Attempt to build the specified building up to 500 times. Between failed attempts advance the main controller's clock when available.
+        /// </summary>
+        public bool AutoBuildBuilding(Vertex cityVertex, BuildingType buildingType)
+        {
+            const int maxIterations = 500;
+            var clock = _mainController?.Clock;
+            for (int i = 0; i < maxIterations; i++)
+            {
+                try
+                {
+                    if (TryBuildBuildingOnce(cityVertex, buildingType)) return true;
+                }
+                catch
+                {
+                    // ignore
+                }
+
+                if (clock != null)
+                {
+                    clock.Advance(TimeSpan.FromSeconds(0.1));
+                }
+            }
+
+            return false;
         }
     }
 }

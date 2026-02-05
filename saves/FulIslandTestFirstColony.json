@@ -314,15 +314,60 @@
                   ]
                 ],
                 "CivilizationIndex": 0,
-                "Buildings": [],
-                "Level": 1,
-                "LevelName": "outpost"
+                "Buildings": [
+                  {
+                    "Type": 1,
+                    "Level": 1,
+                    "Production": {},
+                    "MaxLevel": 1,
+                    "Description": "March\u00E9 - Permet le commerce (4:1)",
+                    "RequiresWater": false,
+                    "AvailableAtLevel": 1,
+                    "Actions": []
+                  },
+                  {
+                    "Type": 0,
+                    "Level": 1,
+                    "Production": {},
+                    "MaxLevel": 4,
+                    "Description": "H\u00F4tel de ville - Permet l\u0027am\u00E9lioration de la ville",
+                    "RequiresWater": false,
+                    "AvailableAtLevel": 1,
+                    "Actions": []
+                  },
+                  {
+                    "Type": 3,
+                    "Level": 1,
+                    "Production": {
+                      "Brick": 1
+                    },
+                    "MaxLevel": 4,
+                    "Description": "Briqueterie - Produit de la brique",
+                    "RequiresWater": false,
+                    "AvailableAtLevel": 1,
+                    "Actions": []
+                  },
+                  {
+                    "Type": 2,
+                    "Level": 1,
+                    "Production": {
+                      "Wood": 1
+                    },
+                    "MaxLevel": 4,
+                    "Description": "Scierie - Produit du bois",
+                    "RequiresWater": false,
+                    "AvailableAtLevel": 1,
+                    "Actions": []
+                  }
+                ],
+                "Level": 2,
+                "LevelName": "colony"
               }
             ],
             "Roads": [],
             "Resources": {
-              "Brick": 25,
-              "Wood": 25
+              "Brick": 16,
+              "Wood": 16
             }
           }
         ],
@@ -345,15 +390,60 @@
                 ]
               ],
               "CivilizationIndex": 0,
-              "Buildings": [],
-              "Level": 1,
-              "LevelName": "outpost"
+              "Buildings": [
+                {
+                  "Type": 1,
+                  "Level": 1,
+                  "Production": {},
+                  "MaxLevel": 1,
+                  "Description": "March\u00E9 - Permet le commerce (4:1)",
+                  "RequiresWater": false,
+                  "AvailableAtLevel": 1,
+                  "Actions": []
+                },
+                {
+                  "Type": 0,
+                  "Level": 1,
+                  "Production": {},
+                  "MaxLevel": 4,
+                  "Description": "H\u00F4tel de ville - Permet l\u0027am\u00E9lioration de la ville",
+                  "RequiresWater": false,
+                  "AvailableAtLevel": 1,
+                  "Actions": []
+                },
+                {
+                  "Type": 3,
+                  "Level": 1,
+                  "Production": {
+                    "Brick": 1
+                  },
+                  "MaxLevel": 4,
+                  "Description": "Briqueterie - Produit de la brique",
+                  "RequiresWater": false,
+                  "AvailableAtLevel": 1,
+                  "Actions": []
+                },
+                {
+                  "Type": 2,
+                  "Level": 1,
+                  "Production": {
+                    "Wood": 1
+                  },
+                  "MaxLevel": 4,
+                  "Description": "Scierie - Produit du bois",
+                  "RequiresWater": false,
+                  "AvailableAtLevel": 1,
+                  "Actions": []
+                }
+              ],
+              "Level": 2,
+              "LevelName": "colony"
             }
           ],
           "Roads": [],
           "Resources": {
-            "Brick": 25,
-            "Wood": 25
+            "Brick": 16,
+            "Wood": 16
           }
         },
         "HarvestLastTimesByCivilization": {
@@ -682,15 +772,60 @@
                 ]
               ],
               "CivilizationIndex": 0,
-              "Buildings": [],
-              "Level": 1,
-              "LevelName": "outpost"
+              "Buildings": [
+                {
+                  "Type": 1,
+                  "Level": 1,
+                  "Production": {},
+                  "MaxLevel": 1,
+                  "Description": "March\u00E9 - Permet le commerce (4:1)",
+                  "RequiresWater": false,
+                  "AvailableAtLevel": 1,
+                  "Actions": []
+                },
+                {
+                  "Type": 0,
+                  "Level": 1,
+                  "Production": {},
+                  "MaxLevel": 4,
+                  "Description": "H\u00F4tel de ville - Permet l\u0027am\u00E9lioration de la ville",
+                  "RequiresWater": false,
+                  "AvailableAtLevel": 1,
+                  "Actions": []
+                },
+                {
+                  "Type": 3,
+                  "Level": 1,
+                  "Production": {
+                    "Brick": 1
+                  },
+                  "MaxLevel": 4,
+                  "Description": "Briqueterie - Produit de la brique",
+                  "RequiresWater": false,
+                  "AvailableAtLevel": 1,
+                  "Actions": []
+                },
+                {
+                  "Type": 2,
+                  "Level": 1,
+                  "Production": {
+                    "Wood": 1
+                  },
+                  "MaxLevel": 4,
+                  "Description": "Scierie - Produit du bois",
+                  "RequiresWater": false,
+                  "AvailableAtLevel": 1,
+                  "Actions": []
+                }
+              ],
+              "Level": 2,
+              "LevelName": "colony"
             }
           ],
           "Roads": [],
           "Resources": {
-            "Brick": 25,
-            "Wood": 25
+            "Brick": 16,
+            "Wood": 16
           }
         }
       ],
@@ -713,15 +848,60 @@
               ]
             ],
             "CivilizationIndex": 0,
-            "Buildings": [],
-            "Level": 1,
-            "LevelName": "outpost"
+            "Buildings": [
+              {
+                "Type": 1,
+                "Level": 1,
+                "Production": {},
+                "MaxLevel": 1,
+                "Description": "March\u00E9 - Permet le commerce (4:1)",
+                "RequiresWater": false,
+                "AvailableAtLevel": 1,
+                "Actions": []
+              },
+              {
+                "Type": 0,
+                "Level": 1,
+                "Production": {},
+                "MaxLevel": 4,
+                "Description": "H\u00F4tel de ville - Permet l\u0027am\u00E9lioration de la ville",
+                "RequiresWater": false,
+                "AvailableAtLevel": 1,
+                "Actions": []
+              },
+              {
+                "Type": 3,
+                "Level": 1,
+                "Production": {
+                  "Brick": 1
+                },
+                "MaxLevel": 4,
+                "Description": "Briqueterie - Produit de la brique",
+                "RequiresWater": false,
+                "AvailableAtLevel": 1,
+                "Actions": []
+              },
+              {
+                "Type": 2,
+                "Level": 1,
+                "Production": {
+                  "Wood": 1
+                },
+                "MaxLevel": 4,
+                "Description": "Scierie - Produit du bois",
+                "RequiresWater": false,
+                "AvailableAtLevel": 1,
+                "Actions": []
+              }
+            ],
+            "Level": 2,
+            "LevelName": "colony"
           }
         ],
         "Roads": [],
         "Resources": {
-          "Brick": 25,
-          "Wood": 25
+          "Brick": 16,
+          "Wood": 16
         }
       },
       "HarvestLastTimesByCivilization": {
@@ -1048,15 +1228,60 @@
               ]
             ],
             "CivilizationIndex": 0,
-            "Buildings": [],
-            "Level": 1,
-            "LevelName": "outpost"
+            "Buildings": [
+              {
+                "Type": 1,
+                "Level": 1,
+                "Production": {},
+                "MaxLevel": 1,
+                "Description": "March\u00E9 - Permet le commerce (4:1)",
+                "RequiresWater": false,
+                "AvailableAtLevel": 1,
+                "Actions": []
+              },
+              {
+                "Type": 0,
+                "Level": 1,
+                "Production": {},
+                "MaxLevel": 4,
+                "Description": "H\u00F4tel de ville - Permet l\u0027am\u00E9lioration de la ville",
+                "RequiresWater": false,
+                "AvailableAtLevel": 1,
+                "Actions": []
+              },
+              {
+                "Type": 3,
+                "Level": 1,
+                "Production": {
+                  "Brick": 1
+                },
+                "MaxLevel": 4,
+                "Description": "Briqueterie - Produit de la brique",
+                "RequiresWater": false,
+                "AvailableAtLevel": 1,
+                "Actions": []
+              },
+              {
+                "Type": 2,
+                "Level": 1,
+                "Production": {
+                  "Wood": 1
+                },
+                "MaxLevel": 4,
+                "Description": "Scierie - Produit du bois",
+                "RequiresWater": false,
+                "AvailableAtLevel": 1,
+                "Actions": []
+              }
+            ],
+            "Level": 2,
+            "LevelName": "colony"
           }
         ],
         "Roads": [],
         "Resources": {
-          "Brick": 25,
-          "Wood": 25
+          "Brick": 16,
+          "Wood": 16
         }
       }
     ],
@@ -1079,15 +1304,60 @@
             ]
           ],
           "CivilizationIndex": 0,
-          "Buildings": [],
-          "Level": 1,
-          "LevelName": "outpost"
+          "Buildings": [
+            {
+              "Type": 1,
+              "Level": 1,
+              "Production": {},
+              "MaxLevel": 1,
+              "Description": "March\u00E9 - Permet le commerce (4:1)",
+              "RequiresWater": false,
+              "AvailableAtLevel": 1,
+              "Actions": []
+            },
+            {
+              "Type": 0,
+              "Level": 1,
+              "Production": {},
+              "MaxLevel": 4,
+              "Description": "H\u00F4tel de ville - Permet l\u0027am\u00E9lioration de la ville",
+              "RequiresWater": false,
+              "AvailableAtLevel": 1,
+              "Actions": []
+            },
+            {
+              "Type": 3,
+              "Level": 1,
+              "Production": {
+                "Brick": 1
+              },
+              "MaxLevel": 4,
+              "Description": "Briqueterie - Produit de la brique",
+              "RequiresWater": false,
+              "AvailableAtLevel": 1,
+              "Actions": []
+            },
+            {
+              "Type": 2,
+              "Level": 1,
+              "Production": {
+                "Wood": 1
+              },
+              "MaxLevel": 4,
+              "Description": "Scierie - Produit du bois",
+              "RequiresWater": false,
+              "AvailableAtLevel": 1,
+              "Actions": []
+            }
+          ],
+          "Level": 2,
+          "LevelName": "colony"
         }
       ],
       "Roads": [],
       "Resources": {
-        "Brick": 25,
-        "Wood": 25
+        "Brick": 16,
+        "Wood": 16
       }
     },
     "HarvestLastTimesByCivilization": {

@@ -3,6 +3,9 @@ using SettlersOfIdlestan.Controller;
 using SettlersOfIdlestan.Model.IslandMap;
 using SOITests.TestUtilities;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using SettlersOfIdlestan.Model.Buildings;
 
 namespace SOITests.src.IslandMapTests
 {
@@ -35,15 +38,10 @@ namespace SOITests.src.IslandMapTests
 
             var autoplayer = new CivilizationAutoplayer(civ, controller.CurrentMainState!.CurrentIslandState!.Map, controller);
 
-            const int maxIterations = 1000;
-            int iter = 0;
-            while ((civ.GetResourceQuantity(SettlersOfIdlestan.Model.IslandMap.Resource.Wood) < 5 || civ.GetResourceQuantity(SettlersOfIdlestan.Model.IslandMap.Resource.Brick) < 5) && iter < maxIterations)
-            {
-                autoplayer.AutoGrind(null);
-                // advance by 0.1 seconds of real time
-                controller.Clock?.Advance(System.TimeSpan.FromSeconds(0.1));
-                iter++;
-            }
+            Dictionary<Resource, int> requiredResources = new Dictionary<Resource, int>(); // No specific resource requirements for grinding
+            requiredResources.Add(Resource.Wood, 5);
+            requiredResources.Add(Resource.Brick, 5);
+            autoplayer.AutoGrind(requiredResources);
 
             Assert.True(civ.GetResourceQuantity(SettlersOfIdlestan.Model.IslandMap.Resource.Wood) >= 5, "Expected at least 5 wood after grinding");
             Assert.True(civ.GetResourceQuantity(SettlersOfIdlestan.Model.IslandMap.Resource.Brick) >= 5, "Expected at least 5 brick after grinding");
@@ -53,6 +51,60 @@ namespace SOITests.src.IslandMapTests
 
             // Save the generated game and verify a round-trip load produces identical state
             SaveUtils.SaveAndReloadAndAssertEqual(controller, "FulIslandTestStart");
+        }
+
+        [Fact]
+        public void LoadStart_BuildFirstColony_And_Save()
+        {
+            // Locate the saved start file produced by the previous test
+            var solutionRoot = GetSolutionRootDirectory(Directory.GetCurrentDirectory());
+            var savesDir = Path.Combine(solutionRoot, "saves");
+            var startPath = Path.Combine(savesDir, "FulIslandTestStart.json");
+            Assert.True(File.Exists(startPath), $"Expected save file at {startPath}");
+
+            var controller = new MainGameController();
+            var json = File.ReadAllText(startPath);
+            controller.ImportMainState(json);
+
+            var civ = controller.CurrentMainState?.CurrentIslandState?.Civilizations.FirstOrDefault();
+            Assert.NotNull(civ);
+
+            var city = civ.Cities.FirstOrDefault();
+            Assert.NotNull(city);
+
+            var vertex = city.Position;
+
+            var autoplayer = new CivilizationAutoplayer(civ, controller.CurrentMainState!.CurrentIslandState!.Map, controller);
+
+            // Build Market, TownHall, then production buildings Brickworks and Sawmill
+            autoplayer.AutoBuildBuilding(vertex, BuildingType.Market);
+            autoplayer.AutoBuildBuilding(vertex, BuildingType.TownHall);
+            autoplayer.AutoBuildBuilding(vertex, BuildingType.Brickworks);
+            autoplayer.AutoBuildBuilding(vertex, BuildingType.Sawmill);
+
+            // Verify the colony has the expected buildings
+            var expectedBuildings = new HashSet<BuildingType> { BuildingType.Market, BuildingType.TownHall, BuildingType.Brickworks, BuildingType.Sawmill };
+            var actualBuildings = city.Buildings.Select(b => b.Type).ToHashSet();
+            Assert.Equal(expectedBuildings, actualBuildings);
+
+            // Save the generated game and verify a round-trip load produces identical state
+            SaveUtils.SaveAndReloadAndAssertEqual(controller, "FulIslandTestFirstColony");
+        }
+
+        private static string GetSolutionRootDirectory(string startDirectory)
+        {
+            var dir = new System.IO.DirectoryInfo(startDirectory);
+            while (dir != null)
+            {
+                if (dir.GetFiles("*.sln").Any() || System.IO.Directory.Exists(System.IO.Path.Combine(dir.FullName, ".git")))
+                {
+                    return dir.FullName;
+                }
+
+                dir = dir.Parent;
+            }
+
+            return startDirectory;
         }
     }
 }
