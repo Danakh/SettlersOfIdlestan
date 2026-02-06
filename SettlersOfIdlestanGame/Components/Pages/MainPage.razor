@@ -161,9 +161,11 @@
 
 @code {
     private IslandState? State;
-    private MainGameController mainController = new MainGameController();
+    private MainGameController? mainController;
     private CancellationTokenSource? renderLoopCts;
     private CancellationTokenSource? autosaveCts;
+    private Task? renderLoopTask;
+    private Task? autosaveTask;
     private Stopwatch? renderLoopStopwatch;
     private SettlersOfIdlestan.Model.City.City? selectedCity;
     private string? sideBuildMessage;
@@ -175,10 +177,15 @@
     {
         if (!firstRender) return;
 
-        // Try to restore autosave from localStorage via JS interop after first render
+        // Initialize main controller first
+        mainController = new MainGameController();
+
+        // Try to restore autosave from localStorage via JS interop after first render.
+        // On server-side rendering the JS runtime may not be available immediately (prerendering),
+        // so use a small retry loop and swallow transient failures to avoid breaking the load sequence.
         try
         {
-            var saved = await JS.InvokeAsync<string>("getLocalSave", AutosaveKey);
+            var saved = await TryGetLocalSaveAsync();
             if (!string.IsNullOrEmpty(saved))
             {
                 var mainState = mainController.ImportMainState(saved);
@@ -205,9 +212,46 @@
         StateHasChanged();
     }
 
+    // Try to call the JS localStorage helper with a small retry loop. During
+    // prerendering or immediately after a refresh the JS runtime may be
+    // temporarily unavailable which causes InvokeAsync to throw; swallow
+    // transient errors and return null if no value could be read.
+    private async Task<string?> TryGetLocalSaveAsync(int maxAttempts = 6, int delayMs = 150)
+    {
+        if (JS == null) return null;
+
+        for (int attempt = 0; attempt < maxAttempts; attempt++)
+        {
+            try
+            {
+                Log("Attempting to read local save, attempt " + (attempt + 1));
+                var result = await JS.InvokeAsync<string>("getLocalSave", AutosaveKey);
+                Log("Successfully read local save on attempt " + (attempt + 1));
+                return result;
+            }
+            catch
+            {
+                Log("Failed to read local save on attempt " + (attempt + 1));
+                // transient error (JS runtime not ready / disconnected). Retry a few times.
+                if (attempt == maxAttempts - 1)
+                {
+                    return null;
+                }
+                try { await Task.Delay(delayMs); } catch { }
+            }
+        }
+
+        return null;
+    }
+
     private IslandState CreateNewDefaultState()
     {
-        // mainController already initialized at construction
+        // Ensure mainController is initialized
+        if (mainController == null)
+        {
+            mainController = new MainGameController();
+        }
+
         var tileData = new List<(TerrainType, int)>
         {
             (TerrainType.Forest, 4),
@@ -218,13 +262,13 @@
             (TerrainType.Desert, 1)
         };
 
-        var mainState = mainController!.CreateNewGame(tileData, 1);
+        var mainState = mainController.CreateNewGame(tileData, 1);
         return mainState!.CurrentIslandState!;
     }
 
     private async Task ExportGame()
     {
-        // mainController always exists
+        if (mainController == null) return;
 
         try
         {
@@ -279,6 +323,12 @@
 
         try
         {
+            // Ensure mainController exists before import
+            if (mainController == null)
+            {
+                mainController = new MainGameController();
+            }
+
             using var stream = file.OpenReadStream(maxAllowedSize: 10_000_000);
             using var ms = new MemoryStream();
             await stream.CopyToAsync(ms);
@@ -297,7 +347,8 @@
             }
 
             // persist imported state immediately
-            try { await JS.InvokeVoidAsync("setLocalSave", AutosaveKey, json); } catch { }
+            var saveString = mainController.ExportMainState();
+            await SaveInLocalSave(saveString);
 
             sideBuildMessage = "Import effectué";
             StateHasChanged();
@@ -308,20 +359,25 @@
         }
     }
 
-    private void Generate()
+    private async Task Generate()
     {
         State = CreateNewDefaultState();
 
         // restart clock and render loop for the new controller
         renderLoopCts?.Cancel();
-        if (mainController.Clock != null)
+        if (mainController?.Clock != null)
         {
             mainController.Clock.Start();
             StartRenderLoop();
         }
 
         // persist immediately
-        try { var json = mainController.ExportMainState(); _ = JS.InvokeVoidAsync("setLocalSave", AutosaveKey, json); } catch { }
+        try
+        {
+            var saveString = mainController!.ExportMainState();
+            await SaveInLocalSave(saveString);
+        }
+        catch { }
 
         StateHasChanged();
     }
@@ -335,38 +391,41 @@
         renderLoopStopwatch = Stopwatch.StartNew();
 
         var token = renderLoopCts.Token;
-        _ = Task.Run(async () =>
+        // store the task so DisposeAsync can await it
+        renderLoopTask = RunRenderLoopAsync(token);
+    }
+
+    private async Task RunRenderLoopAsync(CancellationToken token)
+    {
+        try
         {
-            try
+            while (!token.IsCancellationRequested)
             {
-                while (!token.IsCancellationRequested)
+                var sw = renderLoopStopwatch!;
+                var elapsed = sw.Elapsed;
+                sw.Restart();
+
+                try
                 {
-                    var sw = renderLoopStopwatch!;
-                    var elapsed = sw.Elapsed;
-                    sw.Restart();
-
-                    try
+                    if (mainController?.Clock != null)
                     {
-                        if (mainController?.Clock != null)
-                        {
-                            mainController.Clock.Advance(elapsed);
-                        }
+                        mainController.Clock.Advance(elapsed);
                     }
-                    catch
-                    {
-                        // ignore clock advance errors
-                    }
-
-                    // trigger UI update so child components can reflect clock changes
-                    try { await InvokeAsync(StateHasChanged); } catch { }
-
-                    // aim for ~60fps; actual delta comes from stopwatch
-                    await Task.Delay(16, token);
                 }
+                catch
+                {
+                    // ignore clock advance errors
+                }
+
+                // trigger UI update so child components can reflect clock changes
+                try { await InvokeAsync(StateHasChanged); } catch { }
+
+                // aim for ~60fps; actual delta comes from stopwatch
+                await Task.Delay(16, token);
             }
-            catch (OperationCanceledException) { }
-            catch { }
-        }, token);
+        }
+        catch (OperationCanceledException) { }
+        catch { }
     }
 
     private void StartAutosaveLoop()
@@ -376,25 +435,45 @@
         autosaveCts = new CancellationTokenSource();
         var token = autosaveCts.Token;
 
-        _ = Task.Run(async () =>
-        {
-            try
-            {
-                while (!token.IsCancellationRequested)
-                {
-                    try
-                    {
-                        var json = mainController.ExportMainState();
-                        await JS.InvokeVoidAsync("setLocalSave", AutosaveKey, json);
-                    }
-                    catch { }
+        // store the task so DisposeAsync can await it
+        autosaveTask = RunAutosaveLoopAsync(token);
+    }
 
-                    await Task.Delay(1000, token);
+    private async Task RunAutosaveLoopAsync(CancellationToken token)
+    {
+        try
+        {
+            while (!token.IsCancellationRequested)
+            {
+                try
+                {
+                    if ((mainController is not null) && (State is not null))
+                    {
+                        var saveString = mainController.ExportMainState();
+                        try
+                        {
+                            await SaveInLocalSave(saveString);
+                        }
+                        catch
+                        {
+                            // swallow save errors (e.g. JS disconnected)
+                        }
+                    }
                 }
+                catch { }
+
+                await Task.Delay(1000, token);
             }
-            catch (OperationCanceledException) { }
-            catch { }
-        }, token);
+        }
+        catch (OperationCanceledException) { }
+        catch { }
+    }
+
+    private async Task SaveInLocalSave(string json)
+    {
+        Log("Saving game state to local save");
+        await JS.InvokeVoidAsync("setLocalSave", AutosaveKey, json);
+        Log("Game state saved to local save");
     }
 
     private void StopAutosaveLoop()
@@ -405,9 +484,28 @@
 
     public async ValueTask DisposeAsync()
     {
+        // request cancellation
         renderLoopCts?.Cancel();
+        autosaveCts?.Cancel();
+
+        // wait for tasks to finish, but don't block indefinitely
+        var waitTasks = new List<Task>();
+        if (renderLoopTask != null) waitTasks.Add(renderLoopTask);
+        if (autosaveTask != null) waitTasks.Add(autosaveTask);
+
+        if (waitTasks.Count > 0)
+        {
+            try
+            {
+                var all = Task.WhenAll(waitTasks);
+                var completed = await Task.WhenAny(all, Task.Delay(5000));
+                // ignore timeout; ensure no unobserved exceptions
+                try { await all; } catch { }
+            }
+            catch { }
+        }
+
         StopAutosaveLoop();
-        await Task.CompletedTask;
     }
 
     private void OnCitySelected(SettlersOfIdlestan.Model.City.City city)
@@ -451,5 +549,11 @@
     {
         if (cost == null || cost.Count == 0) return "Aucun coût";
         return string.Join(", ", cost.Select(kv => $"{kv.Value} {kv.Key}"));
+    }
+
+    private void Log(string message)
+    {
+        Console.WriteLine($"[MainPage] {message}");
+        Debug.WriteLine($"[MainPage] {message}");
     }
 }

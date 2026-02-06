@@ -221,7 +221,7 @@ else
 
     private IslandMap? Map { get { return State?.Map; } }
     private List<SettlersOfIdlestan.Model.Civilization.Civilization>? Civilizations { get { return State?.Civilizations; } }
-    private SettlersOfIdlestan.Model.Game.GameClock gameClock { get { return Controller!.Clock!; } }
+    private SettlersOfIdlestan.Model.Game.GameClock? gameClock { get { return Controller?.Clock; } }
 
     // hovered edge for buildable highlighting
     private SettlersOfIdlestan.Model.HexGrid.Edge? hoveredEdge;
