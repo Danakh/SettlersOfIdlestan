@@ -6,6 +6,12 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
+// Increase SignalR message size limit to accommodate larger game saves (default is 32KB)
+builder.Services.AddSignalR(options =>
+{
+    options.MaximumReceiveMessageSize = 1024 * 1024; // 1 MB
+});
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
