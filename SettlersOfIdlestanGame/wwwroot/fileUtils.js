@@ -76,3 +76,44 @@ window.testPageUnregister = (selector) => {
         console.error('testPageUnregister error', e);
     }
 };
+
+// Register click handlers for all elements matching a selector and call .NET method with element data-jsid
+window.registerSelector = (dotNetRef, selector, methodName) => {
+    try {
+        const els = document.querySelectorAll(selector);
+        if (!window._selectorListeners) window._selectorListeners = {};
+        // ensure no duplicate handlers for this selector
+        if (window._selectorListeners[selector]) {
+            // remove existing
+            window.unregisterSelector(selector);
+        }
+
+        const handlers = [];
+        els.forEach(el => {
+            const handler = (e) => {
+                const id = el.getAttribute('data-jsid');
+                // invoke .NET instance method, pass id (may be null)
+                dotNetRef.invokeMethodAsync(methodName, id).catch(err => console.error('invokeMethodAsync failed', err));
+            };
+            el.addEventListener('click', handler);
+            handlers.push({ el, handler });
+        });
+        window._selectorListeners[selector] = handlers;
+    } catch (e) {
+        console.error('registerSelector error', e);
+    }
+};
+
+window.unregisterSelector = (selector) => {
+    try {
+        if (!window._selectorListeners) return;
+        const handlers = window._selectorListeners[selector];
+        if (!handlers) return;
+        handlers.forEach(h => {
+            try { h.el.removeEventListener('click', h.handler); } catch (e) { }
+        });
+        delete window._selectorListeners[selector];
+    } catch (e) {
+        console.error('unregisterSelector error', e);
+    }
+};
