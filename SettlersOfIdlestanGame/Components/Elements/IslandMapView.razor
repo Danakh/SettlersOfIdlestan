@@ -28,7 +28,7 @@ else
             var center = AxialToPixel(tile.Coord);
             var points = GetHexPoints(center.x, center.y);
             // Determine if player can harvest this tile (has a city adjacent and tile has resource)
-            Civilization? player = Civilizations?.FirstOrDefault(c => c != null && c.Index == 0) ?? Civilizations?.FirstOrDefault();
+            var player = GetPreferredPlayer();
             var canHarvest = false;
             if (player != null && tile.Resource.HasValue)
             {
@@ -76,13 +76,13 @@ else
             }
         }
         @* Render roads first, then cities on top for proper z-ordering *@
-        @if (Civilizations != null)
+            @if (Civilizations != null)
         {
             var spriteSize = HexSize * 0.8;
             // increase road stroke so roads are more visible at various zooms
             var roadStrokeWidth = Math.Max(4.0, HexSize * 0.15);
             var roadInnerWidth = roadStrokeWidth * 0.5;
-            var civColors = new[] { "#e6194b", "#3cb44b", "#4363d8", "#f58231", "#911eb4", "#46f0f0", "#f032e6", "#bcf60c" };
+                var civColors = CivColors;
 
             // Built roads per civilization
             foreach (var civ in Civilizations)
@@ -111,7 +111,7 @@ else
             }
 
             // Buildable roads: use RoadController to obtain buildable edges for the player (prefer civ index 0)
-            Civilization? player = Civilizations.FirstOrDefault(c => c != null && c.Index == 0) ?? Civilizations.FirstOrDefault();
+            var player = GetPreferredPlayer();
             if (player != null && Map != null)
             {
                 var buildableRoads = Controller!.RoadController.GetBuildableRoads(player.Index);
@@ -246,6 +246,17 @@ else
     // small local islandState and clock to query cooldowns
     private readonly TimeSpan harvestCooldown = TimeSpan.FromSeconds(2);
 
+    // cached civ colors to avoid reallocating the array on each render
+    private static readonly string[] CivColors = new[] { "#e6194b", "#3cb44b", "#4363d8", "#f58231", "#911eb4", "#46f0f0", "#f032e6", "#bcf60c" };
+
+    // Helper to pick preferred player (prefer index 0)
+    private SettlersOfIdlestan.Model.Civilization.Civilization? GetPreferredPlayer()
+    {
+        if (Civilizations == null || Civilizations.Count == 0) return null;
+        var p = Civilizations.FirstOrDefault(c => c != null && c.Index == 0);
+        return p ?? Civilizations.FirstOrDefault();
+    }
+
     private ElementReference svgRef;
     private DotNetObjectReference<IslandMapView>? dotNetRef;
 
@@ -314,7 +325,7 @@ else
             var h1 = parts[1].Split(',');
             var e = Edge.Create(new HexCoord(int.Parse(h0[0]), int.Parse(h0[1])), new HexCoord(int.Parse(h1[0]), int.Parse(h1[1])));
             // find corresponding buildable road from controller
-            var player = Civilizations?.FirstOrDefault(c => c != null && c.Index == 0) ?? Civilizations?.FirstOrDefault();
+            var player = GetPreferredPlayer();
             if (player != null)
             {
                 var buildable = Controller!.RoadController.GetBuildableRoads(player.Index).FirstOrDefault(r => r.Position.Equals(e));
@@ -382,15 +393,17 @@ else
 
     private string GetHexPoints(double cx, double cy)
     {
-        var pts = Enumerable.Range(0, 6).Select(i =>
+        // avoid LINQ allocations in hot path by using a simple loop
+        var parts = new string[6];
+        for (int i = 0; i < 6; i++)
         {
             // pointy-top: start angle -30°
             var angle = Math.PI / 180.0 * (60 * i - 30);
             var x = cx + HexSize * Math.Cos(angle);
             var y = cy + HexSize * Math.Sin(angle);
-            return $"{x.ToString(CultureInfo.InvariantCulture)},{y.ToString(CultureInfo.InvariantCulture)}";
-        });
-        return string.Join(" ", pts);
+            parts[i] = x.ToString(CultureInfo.InvariantCulture) + "," + y.ToString(CultureInfo.InvariantCulture);
+        }
+        return string.Join(" ", parts);
     }
 
     private string TerrainColor(TerrainType t) => t switch
