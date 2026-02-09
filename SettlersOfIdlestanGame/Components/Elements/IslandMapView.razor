@@ -14,7 +14,9 @@
 }
 else
 {
-    <svg @ref="svgRef" width="@SvgWidth" height="@SvgHeight" viewBox="@ViewBox" style="background:#eef2f5" @onclick="OnMapBackgroundClick">
+    <svg @ref="svgRef" width="@SvgWidth" height="@SvgHeight" viewBox="@ViewBox" style="background:#eef2f5;user-select:none;-webkit-user-select:none" @onclick="OnMapBackgroundClick">
+        @* Background rect for deselection click - placed first so polygons render on top *@
+        <rect x="@((MinX - HexSize).ToString(CultureInfo.InvariantCulture))" y="@((MinY - HexSize).ToString(CultureInfo.InvariantCulture))" width="@SvgWidth.ToString(CultureInfo.InvariantCulture)" height="@SvgHeight.ToString(CultureInfo.InvariantCulture)" fill="transparent" style="pointer-events:none" />
         @foreach (var tile in Map.Tiles.Values)
         {
             var center = AxialToPixel(tile.Coord);
@@ -32,7 +34,8 @@ else
 
             if (canHarvest)
             {
-                <polygon points="@points" fill="@TerrainColor(tile.TerrainType)" stroke="#333" stroke-width="1" style="cursor:pointer;pointer-events:auto" @onclick:stopPropagation="true" @onclick="() => OnClickHex(tile.Coord)"></polygon>
+                var clickCoord = tile.Coord;
+                <polygon points="@points" fill="@TerrainColor(tile.TerrainType)" stroke="#333" stroke-width="1" style="cursor:pointer" @onmousedown="() => OnClickHex(clickCoord)" @onmousedown:stopPropagation="true" @onmousedown:preventDefault="true" @onmouseup:preventDefault="true" @ondblclick:preventDefault="true"></polygon>
             }
             else
             {
@@ -316,7 +319,8 @@ else
         var center = AxialToPixel(tile.Coord);
         var x = center.x.ToString(CultureInfo.InvariantCulture);
         var y = (center.y + HexSize * 0.1).ToString(CultureInfo.InvariantCulture);
-        return $"<text x=\"{x}\" y=\"{y}\" font-size=\"12\" text-anchor=\"middle\" fill=\"#111\">{tile.ProductionNumber.Value}</text>";
+        // Ensure production text does not capture pointer events so underlying polygon receives clicks
+        return $"<text x=\"{x}\" y=\"{y}\" font-size=\"12\" text-anchor=\"middle\" fill=\"#111\" pointer-events=\"none\">{tile.ProductionNumber.Value}</text>";
     }
 
     private (double x, double y) VertexToPixel(Vertex v)
