@@ -225,14 +225,14 @@
         {
             try
             {
-                Log("Attempting to read local save, attempt " + (attempt + 1));
+                Console.WriteLine("Attempting to read local save, attempt " + (attempt + 1));
                 var result = await JS.InvokeAsync<string>("getLocalSave", AutosaveKey);
-                Log("Successfully read local save on attempt " + (attempt + 1));
+                Console.WriteLine("Successfully read local save on attempt " + (attempt + 1));
                 return result;
             }
             catch
             {
-                Log("Failed to read local save on attempt " + (attempt + 1));
+                Console.WriteLine("Failed to read local save on attempt " + (attempt + 1));
                 // transient error (JS runtime not ready / disconnected). Retry a few times.
                 if (attempt == maxAttempts - 1)
                 {
@@ -472,9 +472,7 @@
 
     private async Task SaveInLocalSave(string json)
     {
-        Log("Saving game state to local save");
         await JS.InvokeVoidAsync("setLocalSave", AutosaveKey, json);
-        Log("Game state saved to local save");
     }
 
     private void StopAutosaveLoop()
@@ -550,11 +548,5 @@
     {
         if (cost == null || cost.Count == 0) return "Aucun coût";
         return string.Join(", ", cost.Select(kv => $"{kv.Value} {kv.Key}"));
-    }
-
-    private void Log(string message)
-    {
-        Console.WriteLine($"[MainPage] {message}");
-        Debug.WriteLine($"[MainPage] {message}");
     }
 }

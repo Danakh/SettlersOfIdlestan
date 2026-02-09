@@ -7,6 +7,7 @@
 @using SettlersOfIdlestan.Model.Road
 @using SettlersOfIdlestan.Controller
 @using SettlersOfIdlestan.Model.Game
+@inject Microsoft.Extensions.Logging.ILogger<IslandMapView>? Logger
 
 @if (Map is null)
 {
@@ -14,7 +15,7 @@
 }
 else
 {
-    <svg @ref="svgRef" width="@SvgWidth" height="@SvgHeight" viewBox="@ViewBox" style="background:#eef2f5;user-select:none;-webkit-user-select:none" @onclick="OnMapBackgroundClick">
+    <svg @ref="svgRef" length="@SvgWidth" height="@SvgHeight" viewBox="@ViewBox" style="background:#eef2f5;user-select:none;-webkit-user-select:none" @onclick="OnMapBackgroundClick">
         @* Background rect for deselection click - placed first so polygons render on top *@
         <rect x="@((MinX - HexSize).ToString(CultureInfo.InvariantCulture))" y="@((MinY - HexSize).ToString(CultureInfo.InvariantCulture))" width="@SvgWidth.ToString(CultureInfo.InvariantCulture)" height="@SvgHeight.ToString(CultureInfo.InvariantCulture)" fill="transparent" style="pointer-events:none" />
         @foreach (var tile in Map.Tiles.Values)
@@ -386,6 +387,7 @@ else
 
     private void OnClickHex(HexCoord coord)
     {
+        Logger?.LogInformation("Clicked hex at {coord}", coord);
         try
         {
             if (Map == null || Civilizations == null) return;
