@@ -15,6 +15,50 @@ window.downloadFile = (fileName, content) => {
     }
 };
 
+// Register hover (mouseenter/mouseleave) handlers for elements matching selector
+window.registerHoverSelector = (dotNetRef, selector, enterMethod, leaveMethod) => {
+    try {
+        const els = document.querySelectorAll(selector);
+        if (!window._hoverListeners) window._hoverListeners = {};
+        if (window._hoverListeners[selector]) {
+            window.unregisterHoverSelector(selector);
+        }
+
+        const handlers = [];
+        els.forEach(el => {
+            const enter = (e) => {
+                const id = el.getAttribute('data-jsid');
+                dotNetRef.invokeMethodAsync(enterMethod, id).catch(err => console.error('hover enter invoke failed', err));
+            };
+            const leave = (e) => {
+                const id = el.getAttribute('data-jsid');
+                dotNetRef.invokeMethodAsync(leaveMethod, id).catch(err => console.error('hover leave invoke failed', err));
+            };
+            el.addEventListener('mouseenter', enter);
+            el.addEventListener('mouseleave', leave);
+            handlers.push({ el, enter, leave });
+        });
+        window._hoverListeners[selector] = handlers;
+    } catch (e) {
+        console.error('registerHoverSelector error', e);
+    }
+};
+
+window.unregisterHoverSelector = (selector) => {
+    try {
+        if (!window._hoverListeners) return;
+        const handlers = window._hoverListeners[selector];
+        if (!handlers) return;
+        handlers.forEach(h => {
+            try { h.el.removeEventListener('mouseenter', h.enter); } catch (e) {}
+            try { h.el.removeEventListener('mouseleave', h.leave); } catch (e) {}
+        });
+        delete window._hoverListeners[selector];
+    } catch (e) {
+        console.error('unregisterHoverSelector error', e);
+    }
+};
+
 // Trigger click on an element with the given id
 window.clickElementById = (id) => {
     const el = document.getElementById(id);

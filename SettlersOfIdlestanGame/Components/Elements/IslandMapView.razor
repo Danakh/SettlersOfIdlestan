@@ -16,6 +16,8 @@
 {
     <div class="map-placeholder">Aucune carte fournie</div>
 }
+
+
 else
 {
     <svg @ref="svgRef" width="@SvgWidth" height="@SvgHeight" viewBox="@ViewBox" style="background:#eef2f5;user-select:none;-webkit-user-select:none" @onclick="OnMapBackgroundClick">
@@ -245,6 +247,7 @@ else
     private readonly TimeSpan harvestCooldown = TimeSpan.FromSeconds(2);
 
     private ElementReference svgRef;
+    private DotNetObjectReference<IslandMapView>? dotNetRef;
 
     // Bounds used to set the SVG viewBox
     private double MinX = 0, MinY = 0, MaxX = 0, MaxY = 0;
@@ -264,15 +267,17 @@ else
     {
         if (firstRender)
         {
-            try
-            {
-                var dotRef = DotNetObjectReference.Create(this);
-                // register harvestable hexes, buildable roads and buildable vertices selectors
-                await JS!.InvokeVoidAsync("registerSelector", dotRef, "polygon.hex-polygon.harvestable", "OnJsHexClicked");
-                await JS!.InvokeVoidAsync("registerSelector", dotRef, "line.buildable-road", "OnJsRoadClicked");
-                await JS!.InvokeVoidAsync("registerSelector", dotRef, "circle.buildable-vertex", "OnJsVertexClicked");
-            }
-            catch { }
+                try
+                {
+                    dotNetRef = DotNetObjectReference.Create(this);
+                    // register harvestable hexes, buildable roads and buildable vertices selectors
+                    await JS!.InvokeVoidAsync("registerSelector", dotNetRef, "polygon.hex-polygon.harvestable", "OnJsHexClicked");
+                    await JS!.InvokeVoidAsync("registerSelector", dotNetRef, "line.buildable-road", "OnJsRoadClicked");
+                    await JS!.InvokeVoidAsync("registerSelector", dotNetRef, "circle.buildable-vertex", "OnJsVertexClicked");
+                    // register hover handlers for buildable roads to improve hover highlight reliability
+                    await JS!.InvokeVoidAsync("registerHoverSelector", dotNetRef, "line.buildable-road", "OnJsRoadHoverEnter", "OnJsRoadHoverLeave");
+                }
+                catch { }
         }
     }
 
@@ -281,6 +286,8 @@ else
         try { JS!.InvokeVoidAsync("unregisterSelector", "polygon.hex-polygon.harvestable"); } catch { }
         try { JS!.InvokeVoidAsync("unregisterSelector", "line.buildable-road"); } catch { }
         try { JS!.InvokeVoidAsync("unregisterSelector", "circle.buildable-vertex"); } catch { }
+        try { JS!.InvokeVoidAsync("unregisterHoverSelector", "line.buildable-road"); } catch { }
+        try { dotNetRef?.Dispose(); } catch { }
     }
 
     [JSInvokable]
