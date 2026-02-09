@@ -1,0 +1,85 @@
+@page "/test"
+@using Microsoft.AspNetCore.Components
+@implements System.IDisposable
+@using Microsoft.JSInterop
+
+<PageTitle>Test Page</PageTitle>
+
+<h3>SVG Triangle Test</h3>
+
+<svg width="200" height="200" viewBox="0 0 100 100" style="background:#fff;border:1px solid #ddd;user-select:none;-webkit-user-select:none;outline:none;-webkit-tap-highlight-color:transparent" @onclick="OnSvgClick">
+    <!-- Triangle polygon: clickable -->
+    <!-- keep pointer events and remove focus outline -->
+    <polygon points="50,10 90,80 10,80" focusable="false" fill="#4287f5" style="cursor:pointer;pointer-events:all;user-select:none;-webkit-user-select:none;outline:none;stroke:none;-webkit-tap-highlight-color:transparent" @onclick="OnTriangleClick" @onpointerdown="OnTrianglePointerDown" @onmousedown="OnTrianglePointerDown" onclick="console.log('DOM polygon click'); this.setAttribute('fill', '#ff6b6b');"></polygon>
+</svg>
+
+<div style="margin-top:10px">
+    <p>Nombre de clics sur le triangle : @clickCount</p>
+    <p>Dernier événement reçu : @lastEvent</p>
+    <button class="btn btn-sm btn-outline-primary" @onclick="(()=>{ clickCount++; lastEvent = \"button\"; StateHasChanged(); })">Test bouton Blazor</button>
+</div>
+
+@code {
+    private int clickCount = 0;
+
+    private void OnTriangleClick()
+    {
+        // click event reached polygon
+        lastEvent = "onclick";
+        StateHasChanged();
+    }
+
+    private void OnSvgClick()
+    {
+        // Fallback: if polygon click somehow didn't fire, count svg clicks as well
+        clickCount++;
+        StateHasChanged();
+    }
+
+    private void OnTrianglePointerDown()
+    {
+        // handle pointer/mouse down as a more reliable event for SVG elements in some browsers
+        clickCount++;
+        lastEvent = "pointerdown";
+        StateHasChanged();
+    }
+
+    private string? lastEvent;
+
+    [Inject] private IJSRuntime JS { get; set; } = default!;
+    private DotNetObjectReference<TestPage>? dotNetRef;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            dotNetRef = DotNetObjectReference.Create(this);
+            try
+            {
+                await JS.InvokeVoidAsync("testPageRegister", dotNetRef, "svg polygon");
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine("testPageRegister failed: " + ex.Message);
+            }
+        }
+    }
+
+    public void Dispose()
+    {
+        try
+        {
+            JS.InvokeVoidAsync("testPageUnregister", "svg polygon");
+        }
+        catch { }
+        dotNetRef?.Dispose();
+    }
+
+    [JSInvokable]
+    public void NotifyClicked()
+    {
+        clickCount++;
+        lastEvent = "jsinterop";
+        InvokeAsync(StateHasChanged);
+    }
+}
