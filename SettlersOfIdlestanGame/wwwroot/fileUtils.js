@@ -15,30 +15,38 @@ window.downloadFile = (fileName, content) => {
     }
 };
 
-// Register hover (mouseenter/mouseleave) handlers for elements matching selector
+// Register hover handlers using event delegation so they survive Blazor re-renders
 window.registerHoverSelector = (dotNetRef, selector, enterMethod, leaveMethod) => {
     try {
-        const els = document.querySelectorAll(selector);
         if (!window._hoverListeners) window._hoverListeners = {};
         if (window._hoverListeners[selector]) {
             window.unregisterHoverSelector(selector);
         }
 
-        const handlers = [];
-        els.forEach(el => {
-            const enter = (e) => {
-                const id = el.getAttribute('data-jsid');
-                dotNetRef.invokeMethodAsync(enterMethod, id).catch(err => console.error('hover enter invoke failed', err));
-            };
-            const leave = (e) => {
-                const id = el.getAttribute('data-jsid');
-                dotNetRef.invokeMethodAsync(leaveMethod, id).catch(err => console.error('hover leave invoke failed', err));
-            };
-            el.addEventListener('mouseenter', enter);
-            el.addEventListener('mouseleave', leave);
-            handlers.push({ el, enter, leave });
-        });
-        window._hoverListeners[selector] = handlers;
+        let hovered = null;
+
+        const overHandler = (e) => {
+            const el = e.target.closest(selector);
+            if (!el || el === hovered) return;
+            hovered = el;
+            const id = el.getAttribute('data-jsid');
+            dotNetRef.invokeMethodAsync(enterMethod, id).catch(err => console.error('hover enter invoke failed', err));
+        };
+
+        const outHandler = (e) => {
+            if (!hovered) return;
+            const el = e.target.closest(selector);
+            if (!el || el !== hovered) return;
+            const related = e.relatedTarget;
+            if (related && el.contains(related)) return;
+            const id = el.getAttribute('data-jsid');
+            hovered = null;
+            dotNetRef.invokeMethodAsync(leaveMethod, id).catch(err => console.error('hover leave invoke failed', err));
+        };
+
+        document.addEventListener('mouseover', overHandler);
+        document.addEventListener('mouseout', outHandler);
+        window._hoverListeners[selector] = { over: overHandler, out: outHandler };
     } catch (e) {
         console.error('registerHoverSelector error', e);
     }
@@ -49,10 +57,8 @@ window.unregisterHoverSelector = (selector) => {
         if (!window._hoverListeners) return;
         const handlers = window._hoverListeners[selector];
         if (!handlers) return;
-        handlers.forEach(h => {
-            try { h.el.removeEventListener('mouseenter', h.enter); } catch (e) {}
-            try { h.el.removeEventListener('mouseleave', h.leave); } catch (e) {}
-        });
+        document.removeEventListener('mouseover', handlers.over);
+        document.removeEventListener('mouseout', handlers.out);
         delete window._hoverListeners[selector];
     } catch (e) {
         console.error('unregisterHoverSelector error', e);
@@ -121,28 +127,23 @@ window.testPageUnregister = (selector) => {
     }
 };
 
-// Register click handlers for all elements matching a selector and call .NET method with element data-jsid
+// Register click handlers using event delegation so they survive Blazor re-renders
 window.registerSelector = (dotNetRef, selector, methodName) => {
     try {
-        const els = document.querySelectorAll(selector);
         if (!window._selectorListeners) window._selectorListeners = {};
-        // ensure no duplicate handlers for this selector
         if (window._selectorListeners[selector]) {
-            // remove existing
             window.unregisterSelector(selector);
         }
 
-        const handlers = [];
-        els.forEach(el => {
-            const handler = (e) => {
-                const id = el.getAttribute('data-jsid');
-                // invoke .NET instance method, pass id (may be null)
-                dotNetRef.invokeMethodAsync(methodName, id).catch(err => console.error('invokeMethodAsync failed', err));
-            };
-            el.addEventListener('click', handler);
-            handlers.push({ el, handler });
-        });
-        window._selectorListeners[selector] = handlers;
+        const handler = (e) => {
+            const el = e.target.closest(selector);
+            if (!el) return;
+            const id = el.getAttribute('data-jsid');
+            dotNetRef.invokeMethodAsync(methodName, id).catch(err => console.error('invokeMethodAsync failed', err));
+        };
+
+        document.addEventListener('click', handler);
+        window._selectorListeners[selector] = handler;
     } catch (e) {
         console.error('registerSelector error', e);
     }
@@ -151,11 +152,9 @@ window.registerSelector = (dotNetRef, selector, methodName) => {
 window.unregisterSelector = (selector) => {
     try {
         if (!window._selectorListeners) return;
-        const handlers = window._selectorListeners[selector];
-        if (!handlers) return;
-        handlers.forEach(h => {
-            try { h.el.removeEventListener('click', h.handler); } catch (e) { }
-        });
+        const handler = window._selectorListeners[selector];
+        if (!handler) return;
+        document.removeEventListener('click', handler);
         delete window._selectorListeners[selector];
     } catch (e) {
         console.error('unregisterSelector error', e);

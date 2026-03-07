@@ -41,11 +41,11 @@ else
             if (canHarvest)
             {
                 var clickCoord = tile.Coord;
-                <polygon class="hex-polygon harvestable" data-jsid="@($"{tile.Coord.Q},{tile.Coord.R}")" points="@points" fill="@TerrainColor(tile.TerrainType)" stroke="#333" stroke-width="1" style="cursor:pointer" @onclick="() => OnClickHex(clickCoord)" @onclick:stopPropagation="true"></polygon>
+                <polygon @key="tile.Coord" class="hex-polygon harvestable" data-jsid="@($"{tile.Coord.Q},{tile.Coord.R}")" points="@points" fill="@TerrainColor(tile.TerrainType)" stroke="#333" stroke-width="1" style="cursor:pointer" @onclick="() => OnClickHex(clickCoord)" @onclick:stopPropagation="true"></polygon>
             }
             else
             {
-                <polygon class="hex-polygon" points="@points" fill="@TerrainColor(tile.TerrainType)" stroke="#333" stroke-width="1" style="pointer-events:auto"></polygon>
+                <polygon @key="tile.Coord" class="hex-polygon" points="@points" fill="@TerrainColor(tile.TerrainType)" stroke="#333" stroke-width="1" style="pointer-events:auto"></polygon>
             }
 
             @* Show production number as before *@
@@ -485,6 +485,7 @@ else
 
     private void OnHoverBuildableVertex(SettlersOfIdlestan.Model.HexGrid.Vertex v)
     {
+        Logger?.LogInformation("Hovering buildable vertex at {v}", v);
         hoveredBuildableVertex = v;
         StateHasChanged();
     }
