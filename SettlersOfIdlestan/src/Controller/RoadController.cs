@@ -29,56 +29,36 @@ namespace SettlersOfIdlestan.Controller
         public List<Road> GetBuildableRoads(int civilizationIndex)
         {
             var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex)
-                      ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
+                          ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
 
-            // Recompute distances for existing roads of the civilization so we can expose costs
-            ComputeRoadDistancesForCivilization(civ);
-
-            // Collecte toutes les ar?tes g?om?triques de la carte
-            var edges = new HashSet<Edge>();
-            foreach (var tile in _state.Map.Tiles.Values)
-            {
-                foreach (var dir in HexDirectionUtils.AllHexDirections)
-                {
-                    edges.Add(tile.Coord.Edge(dir));
-                }
-            }
+            var mapTiles = _state.Map.Tiles;
 
             // Routes d?j? pr?sentes (toutes civilisations confondues)
             var occupied = new HashSet<Edge>(_state.Civilizations.SelectMany(c => c.Roads).Select(r => r.Position));
 
-            var result = new List<Road>();
-            foreach (var edge in edges)
+            // Collecte les arêtes candidates depuis les vertices des villes
+            // et les arêtes voisines des routes existantes
+            var candidates = new HashSet<Edge>();
+            foreach (var city in civ.Cities)
             {
-                if (occupied.Any(e => e.Equals(edge))) continue; // deja occup?e
+                foreach (var edge in GetEdgesAtVertex(city.Position))
+                    candidates.Add(edge);
+            }
+            foreach (var road in civ.Roads)
+            {
+                foreach (var edge in road.Position.GetNeighboringEdges())
+                    candidates.Add(edge);
+            }
 
-                var vertices = edge.GetVertices();
+            var result = new List<Road>();
+            foreach (var edge in candidates)
+            {
+                if (occupied.Any(e => e.Equals(edge))) continue;
 
-                bool buildable = false;
-                foreach (var vertex in vertices)
-                {
-                    // Si un city appartient ? la civilisation sur ce vertex
-                    if (civ.Cities.Any(city => city.Position.Equals(vertex)))
-                    {
-                        buildable = true;
-                        break;
-                    }
-
-                    // Ou si une autre route de la civilisation touche ce vertex
-                    if (civ.Roads.Any(road => RoadTouchesVertex(road, vertex)))
-                    {
-                        buildable = true;
-                        break;
-                    }
-                }
-
-                if (buildable)
-                {
-                    var road = new Road(edge) { CivilizationIndex = civilizationIndex };
-                    // assign a distance so callers can know the build cost
-                    road.DistanceToNearestCity = GetDistanceForEdge(edge, civ);
-                    result.Add(road);
-                }
+                var road = new Road(edge) { CivilizationIndex = civilizationIndex };
+                // assign a distance so callers can know the build cost
+                road.DistanceToNearestCity = GetDistanceForEdge(edge, civ);
+                result.Add(road);
             }
 
             return result;
@@ -107,16 +87,8 @@ namespace SettlersOfIdlestan.Controller
                       ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
 
             // Vérifier que l'arête fait partie de la carte
-            var edges = new HashSet<Edge>();
-            foreach (var tile in _state.Map.Tiles.Values)
-            {
-                foreach (var dir in HexDirectionUtils.AllHexDirections)
-                {
-                    edges.Add(tile.Coord.Edge(dir));
-                }
-            }
-
-            if (!edges.Any(e => e.Equals(edge)))
+            var mapTiles = _state.Map.Tiles;
+            if (!mapTiles.ContainsKey(edge.Hex1) || !mapTiles.ContainsKey(edge.Hex2))
                 throw new ArgumentException("Edge not part of the map", nameof(edge));
 
             // Vérifier occupée
@@ -150,6 +122,8 @@ namespace SettlersOfIdlestan.Controller
 
             var road = new Road(edge) { CivilizationIndex = civilizationIndex, DistanceToNearestCity = distance };
             civ.Roads.Add(road);
+
+            ComputeRoadDistancesForCivilization(civ);
             return road;
         }
 
@@ -230,13 +204,21 @@ namespace SettlersOfIdlestan.Controller
             return min;
         }
 
-        
-        
-
         private static bool RoadTouchesVertex(Road road, Vertex vertex)
         {
             var verts = road.Position.GetVertices();
             return verts.Any(v => v.Equals(vertex));
+        }
+
+        private static Edge[] GetEdgesAtVertex(Vertex vertex)
+        {
+            var hexes = vertex.GetHexes();
+            return new[]
+            {
+                Edge.Create(hexes[0], hexes[1]),
+                Edge.Create(hexes[0], hexes[2]),
+                Edge.Create(hexes[1], hexes[2])
+            };
         }
     }
 }

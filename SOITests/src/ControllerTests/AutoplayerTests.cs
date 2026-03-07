@@ -53,14 +53,16 @@ namespace SOITests.ControllerTests
             var roadController = mainController.RoadController;
             var harvestController = mainController.HarvestController;
 
-            // Pick a first buildable edge adjacent to the city
-            var firstBuildable = roadController.GetBuildableRoads(0).First().Position;
+            // Pick edge b-c as the first road: it is the only edge connecting vertex(a,b,c)
+            // to vertex(b,c,d), which exposes distance-2 edges towards d.
+            var firstBuildable = Edge.Create(b, c);
             var firstBuilt = auto.AutoBuildRoad(firstBuildable);
             Assert.True(firstBuilt, "First road should eventually be built by the autoplayer");
             Assert.Contains(civ.Roads, r => r.Position.Equals(firstBuildable));
 
-            // Pick a second buildable road that is not the first one (should extend away from the city)
-            var secondBuildable = roadController.GetBuildableRoads(0).Select(r => r.Position).First(e => !e.Equals(firstBuildable));
+            // Pick a second buildable road not linked with the initial city (distance 2):
+            // after b-c is built, b-d and c-d become reachable via vertex(b,c,d).
+            var secondBuildable = roadController.GetBuildableRoadsAtDistance(0, 2).First().Position;
             var secondBuilt = auto.AutoBuildRoad(secondBuildable);
             Assert.True(secondBuilt, "Second road should eventually be built by the autoplayer");
             Assert.Contains(civ.Roads, r => r.Position.Equals(secondBuildable));

@@ -207,4 +207,27 @@ public class Edge
 
         return verticesH1.Where(v1 => verticesH2.Any(v2 => v1.Equals(v2))).Distinct().ToArray();
     }
+
+    /// <summary>
+    /// Retourne les 4 arêtes voisines, c'est-à-dire les arêtes qui partagent exactement
+    /// un vertex avec cette arête.
+    /// Chaque vertex de l'arête est commun à un troisième hexagone (en plus de Hex1 et Hex2) ;
+    /// les deux arêtes formées par ce troisième hexagone avec Hex1 et Hex2 sont les voisines
+    /// associées à ce vertex, soit 4 voisines au total.
+    /// </summary>
+    public Edge[] GetNeighboringEdges()
+    {
+        var vertices = GetVertices();
+        var neighbors = new Edge[4];
+        int i = 0;
+
+        foreach (var vertex in vertices)
+        {
+            var thirdHex = vertex.GetHexes().First(h => !h.Equals(Hex1) && !h.Equals(Hex2));
+            neighbors[i++] = Edge.Create(Hex1, thirdHex);
+            neighbors[i++] = Edge.Create(Hex2, thirdHex);
+        }
+
+        return neighbors;
+    }
 }
