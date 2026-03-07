@@ -76,13 +76,13 @@ else
             }
         }
         @* Render roads first, then cities on top for proper z-ordering *@
-            @if (Civilizations != null)
+        @if (Civilizations != null)
         {
             var spriteSize = HexSize * 0.8;
             // increase road stroke so roads are more visible at various zooms
             var roadStrokeWidth = Math.Max(4.0, HexSize * 0.15);
             var roadInnerWidth = roadStrokeWidth * 0.5;
-                var civColors = CivColors;
+            var civColors = CivColors;
 
             // Built roads per civilization
             foreach (var civ in Civilizations)
@@ -90,23 +90,16 @@ else
                 var color = civColors[(civ.Index >= 0 ? civ.Index : 0) % civColors.Length];
                 foreach (var road in civ.Roads ?? Enumerable.Empty<Road>())
                 {
-                    try
-                    {
-                        var verts = road.Position.GetVertices();
-                        var p1 = VertexToPixel(verts[0]);
-                        var p2 = VertexToPixel(verts[1]);
-                        var x1 = (p1.x).ToString(CultureInfo.InvariantCulture);
-                        var y1 = (p1.y).ToString(CultureInfo.InvariantCulture);
-                        var x2 = (p2.x).ToString(CultureInfo.InvariantCulture);
-                        var y2 = (p2.y).ToString(CultureInfo.InvariantCulture);
-                        // darker background stroke to improve contrast (mimic canvas: black line behind colored line)
-                        <line x1="@x1" y1="@y1" x2="@x2" y2="@y2" stroke="#000" stroke-width="@(roadStrokeWidth.ToString(CultureInfo.InvariantCulture))" stroke-linecap="round" stroke-opacity="1" style="pointer-events:none" />
-                        <line x1="@x1" y1="@y1" x2="@x2" y2="@y2" stroke="@color" stroke-width="@(roadInnerWidth.ToString(CultureInfo.InvariantCulture))" stroke-linecap="round" stroke-opacity="1" style="pointer-events:none" />
-                    }
-                    catch
-                    {
-                        // ignore rendering errors per-road
-                    }
+                    var verts = road.Position.GetVertices();
+                    var p1 = VertexToPixel(verts[0]);
+                    var p2 = VertexToPixel(verts[1]);
+                    var x1 = (p1.x).ToString(CultureInfo.InvariantCulture);
+                    var y1 = (p1.y).ToString(CultureInfo.InvariantCulture);
+                    var x2 = (p2.x).ToString(CultureInfo.InvariantCulture);
+                    var y2 = (p2.y).ToString(CultureInfo.InvariantCulture);
+                    // darker background stroke to improve contrast (mimic canvas: black line behind colored line)
+                    <line x1="@x1" y1="@y1" x2="@x2" y2="@y2" stroke="#000" stroke-width="@(roadStrokeWidth.ToString(CultureInfo.InvariantCulture))" stroke-linecap="round" stroke-opacity="1" style="pointer-events:none" />
+                    <line x1="@x1" y1="@y1" x2="@x2" y2="@y2" stroke="@color" stroke-width="@(roadInnerWidth.ToString(CultureInfo.InvariantCulture))" stroke-linecap="round" stroke-opacity="1" style="pointer-events:none" />
                 }
             }
 
@@ -119,54 +112,40 @@ else
                 var dashColor = civColors[(player.Index >= 0 ? player.Index : 0) % civColors.Length];
                 foreach (var road in buildableRoads)
                 {
-                    try
-                    {
-                        var verts = road.Position.GetVertices();
-                        var p1 = VertexToPixel(verts[0]);
-                        var p2 = VertexToPixel(verts[1]);
-                        var x1 = (p1.x).ToString(CultureInfo.InvariantCulture);
-                        var y1 = (p1.y).ToString(CultureInfo.InvariantCulture);
-                        var x2 = (p2.x).ToString(CultureInfo.InvariantCulture);
-                        var y2 = (p2.y).ToString(CultureInfo.InvariantCulture);
-                        var isHovered = hoveredEdge != null && hoveredEdge.Equals(road.Position);
-                        var lineColor = isHovered ? "#ffd54f" : dashColor;
-                        var lineWidth = isHovered ? roadStrokeWidth * 1.2 : roadStrokeWidth;
-                        var innerLineWidth = isHovered ? roadInnerWidth * 1.2 : roadInnerWidth;
-                        // background to make dashed line readable (black line underneath)
-                        // make background capture pointer events so hover/click area matches its width
-                            // data-jsid for selector fallback: serialized edge as "q1,r1;q2,r2"
-                            var hexes = road.Position.GetHexes();
-                            var h0 = hexes.Item1;
-                            var h1 = hexes.Item2;
-                            var roadId = $"{h0.Q},{h0.R};{h1.Q},{h1.R}";
-                        <line class="buildable-road" data-jsid="@roadId" x1="@x1" y1="@y1" x2="@x2" y2="@y2" stroke="#000" stroke-width="@(lineWidth.ToString(CultureInfo.InvariantCulture))" stroke-linecap="butt" stroke-opacity="@((isHovered?1:0.4).ToString(CultureInfo.InvariantCulture))" style="cursor:pointer" @onmouseover="(() => OnHoverBuildableEdge(road.Position))" @onmouseout="OnLeaveBuildableEdge" @onclick:stopPropagation="true" @onclick="(() => OnClickBuildableRoad(road))" />
-                        <line x1="@x1" y1="@y1" x2="@x2" y2="@y2" stroke="@lineColor" stroke-width="@(innerLineWidth.ToString(CultureInfo.InvariantCulture))" stroke-linecap="butt" stroke-dasharray="6 6" stroke-opacity="1" style="pointer-events:none" />
-                    }
-                    catch
-                    {
-                        // ignore per-road errors
-                    }
+                    var verts = road.Position.GetVertices();
+                    var p1 = VertexToPixel(verts[0]);
+                    var p2 = VertexToPixel(verts[1]);
+                    var x1 = (p1.x).ToString(CultureInfo.InvariantCulture);
+                    var y1 = (p1.y).ToString(CultureInfo.InvariantCulture);
+                    var x2 = (p2.x).ToString(CultureInfo.InvariantCulture);
+                    var y2 = (p2.y).ToString(CultureInfo.InvariantCulture);
+                    var isHovered = hoveredEdge != null && hoveredEdge.Equals(road.Position);
+                    var lineColor = isHovered ? "#ffd54f" : dashColor;
+                    var lineWidth = isHovered ? roadStrokeWidth * 1.2 : roadStrokeWidth;
+                    var innerLineWidth = isHovered ? roadInnerWidth * 1.2 : roadInnerWidth;
+                    // background to make dashed line readable (black line underneath)
+                    // make background capture pointer events so hover/click area matches its width
+                    // data-jsid for selector fallback: serialized edge as "q1,r1;q2,r2"
+                    var hexes = road.Position.GetHexes();
+                    var h0 = hexes.Item1;
+                    var h1 = hexes.Item2;
+                    var roadId = $"{h0.Q},{h0.R};{h1.Q},{h1.R}";
+                    <line class="buildable-road" data-jsid="@roadId" x1="@x1" y1="@y1" x2="@x2" y2="@y2" stroke="#000" stroke-width="@(lineWidth.ToString(CultureInfo.InvariantCulture))" stroke-linecap="butt" stroke-opacity="@((isHovered ? 1 : 0.4).ToString(CultureInfo.InvariantCulture))" style="cursor:pointer" @onmouseover="(() => OnHoverBuildableEdge(road.Position))" @onmouseout="OnLeaveBuildableEdge" @onclick:stopPropagation="true" @onclick="(() => OnClickBuildableRoad(road))" />
+                    <line x1="@x1" y1="@y1" x2="@x2" y2="@y2" stroke="@lineColor" stroke-width="@(innerLineWidth.ToString(CultureInfo.InvariantCulture))" stroke-linecap="butt" stroke-dasharray="6 6" stroke-opacity="1" style="pointer-events:none" />
                 }
                 // Render buildable city vertices (small green dotted circles)
-                try
+                var buildableVerts = Controller!.CityBuilderController.GetBuildableVertices(player.Index);
+                foreach (var v in buildableVerts)
                 {
-                    var buildableVerts = Controller!.CityBuilderController.GetBuildableVertices(player.Index);
-                        foreach (var v in buildableVerts)
-                        {
-                            var p = VertexToPixel(v);
-                            var cx = (p.x).ToString(CultureInfo.InvariantCulture);
-                            var cy = (p.y).ToString(CultureInfo.InvariantCulture);
-                            var isHoveredV = hoveredBuildableVertex != null && hoveredBuildableVertex.Equals(v);
-                            var strokeW = (isHoveredV ? 3.0 : 2.0).ToString(CultureInfo.InvariantCulture);
-                            // serialize vertex as "q1,r1;q2,r2;q3,r3"
-                            var vh = v.GetHexes();
-                            var vid = $"{vh[0].Q},{vh[0].R};{vh[1].Q},{vh[1].R};{vh[2].Q},{vh[2].R}";
-                            <circle class="buildable-vertex" data-jsid="@vid" cx="@cx" cy="@cy" r="6" stroke="#2ecc71" stroke-width="@strokeW" stroke-dasharray="4 4" fill="#2ecc71" fill-opacity="0.03" style="cursor:pointer;pointer-events:auto" @onmouseover="(() => OnHoverBuildableVertex(v))" @onmouseout="OnLeaveBuildableVertex" @onclick:stopPropagation="true" @onclick="(() => OnClickBuildableVertex(v))" />
-                        }
-                }
-                catch
-                {
-                    // ignore errors retrieving buildable vertices
+                    var p = VertexToPixel(v);
+                    var cx = (p.x).ToString(CultureInfo.InvariantCulture);
+                    var cy = (p.y).ToString(CultureInfo.InvariantCulture);
+                    var isHoveredV = hoveredBuildableVertex != null && hoveredBuildableVertex.Equals(v);
+                    var strokeW = (isHoveredV ? 3.0 : 2.0).ToString(CultureInfo.InvariantCulture);
+                    // serialize vertex as "q1,r1;q2,r2;q3,r3"
+                    var vh = v.GetHexes();
+                    var vid = $"{vh[0].Q},{vh[0].R};{vh[1].Q},{vh[1].R};{vh[2].Q},{vh[2].R}";
+                    <circle class="buildable-vertex" data-jsid="@vid" cx="@cx" cy="@cy" r="6" stroke="#2ecc71" stroke-width="@strokeW" stroke-dasharray="4 4" fill="#2ecc71" fill-opacity="0.03" style="cursor:pointer;pointer-events:auto" @onmouseover="(() => OnHoverBuildableVertex(v))" @onmouseout="OnLeaveBuildableVertex" @onclick:stopPropagation="true" @onclick="(() => OnClickBuildableVertex(v))" />
                 }
             }
 
@@ -175,52 +154,37 @@ else
             {
                 foreach (var city in civ.Cities ?? Enumerable.Empty<City>())
                 {
-                    try
-                    {
-                        var p = VertexToPixel(city.Position);
-                        var imgX = (p.x - spriteSize / 2).ToString(System.Globalization.CultureInfo.InvariantCulture);
-                        var imgY = (p.y - spriteSize / 2).ToString(System.Globalization.CultureInfo.InvariantCulture);
-                        var w = spriteSize.ToString(System.Globalization.CultureInfo.InvariantCulture);
-                        var h = spriteSize.ToString(System.Globalization.CultureInfo.InvariantCulture);
-                        var spritePath = $"assets/sprites/city-{city.LevelName}.svg";
-                        <image href="@spritePath" x="@imgX" y="@imgY" width="@w" height="@h" style="cursor:pointer;pointer-events:auto" @onclick:stopPropagation="true" @onclick="(()=>CityClicked(city))" @onmouseover="(()=>OnHoverCity(city))" @onmouseout="OnLeaveCity" />
-                    }
-                    catch
-                    {
-                        // ignore rendering errors per-city
-                    }
+                    var p = VertexToPixel(city.Position);
+                    var imgX = (p.x - spriteSize / 2).ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    var imgY = (p.y - spriteSize / 2).ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    var w = spriteSize.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    var h = spriteSize.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    var spritePath = $"assets/sprites/city-{city.LevelName}.svg";
+                    <image href="@spritePath" x="@imgX" y="@imgY" width="@w" height="@h" style="cursor:pointer;pointer-events:auto" @onclick:stopPropagation="true" @onclick="(()=>CityClicked(city))" @onmouseover="(()=>OnHoverCity(city))" @onmouseout="OnLeaveCity" />
                 }
             }
 
             // draw persistent selection highlight (below hover)
             if (SelectedCity != null)
             {
-                try
-                {
-                    var sp = VertexToPixel(SelectedCity.Position);
-                    var scx = sp.x.ToString(CultureInfo.InvariantCulture);
-                    var scy = sp.y.ToString(CultureInfo.InvariantCulture);
-                    var sr = (spriteSize / 2.0 + 4.0).ToString(CultureInfo.InvariantCulture);
-                    <circle cx="@scx" cy="@scy" r="@sr" stroke="#ffd59a" stroke-width="3" fill="none" pointer-events="none" />
-                }
-                catch { }
+                var sp = VertexToPixel(SelectedCity.Position);
+                var scx = sp.x.ToString(CultureInfo.InvariantCulture);
+                var scy = sp.y.ToString(CultureInfo.InvariantCulture);
+                var sr = (spriteSize / 2.0 + 4.0).ToString(CultureInfo.InvariantCulture);
+                <circle cx="@scx" cy="@scy" r="@sr" stroke="#ffd59a" stroke-width="3" fill="none" pointer-events="none" />
             }
 
             // draw highlight for hovered city above everything
             if (hoveredCity != null)
             {
-                try
-                {
-                    var hp = VertexToPixel(hoveredCity.Position);
-                    var cx = hp.x.ToString(CultureInfo.InvariantCulture);
-                    var cy = hp.y.ToString(CultureInfo.InvariantCulture);
-                    var r = (spriteSize / 2.0 + 6.0).ToString(CultureInfo.InvariantCulture);
-                    <circle cx="@cx" cy="@cy" r="@r" stroke="#ffd54f" stroke-width="3" fill="none" pointer-events="none" />
-                }
-                catch { }
+                var hp = VertexToPixel(hoveredCity.Position);
+                var cx = hp.x.ToString(CultureInfo.InvariantCulture);
+                var cy = hp.y.ToString(CultureInfo.InvariantCulture);
+                var r = (spriteSize / 2.0 + 6.0).ToString(CultureInfo.InvariantCulture);
+                <circle cx="@cx" cy="@cy" r="@r" stroke="#ffd54f" stroke-width="3" fill="none" pointer-events="none" />
             }
         }
-	</svg>
+    </svg>
     @if (!string.IsNullOrEmpty(buildMessage))
     {
         <div class="build-message" style="margin-top:6px;color:#900">@buildMessage</div>
@@ -278,17 +242,17 @@ else
     {
         if (firstRender)
         {
-                try
-                {
-                    dotNetRef = DotNetObjectReference.Create(this);
-                    // register harvestable hexes, buildable roads and buildable vertices selectors
-                    await JS!.InvokeVoidAsync("registerSelector", dotNetRef, "polygon.hex-polygon.harvestable", "OnJsHexClicked");
-                    await JS!.InvokeVoidAsync("registerSelector", dotNetRef, "line.buildable-road", "OnJsRoadClicked");
-                    await JS!.InvokeVoidAsync("registerSelector", dotNetRef, "circle.buildable-vertex", "OnJsVertexClicked");
-                    // register hover handlers for buildable roads to improve hover highlight reliability
-                    await JS!.InvokeVoidAsync("registerHoverSelector", dotNetRef, "line.buildable-road", "OnJsRoadHoverEnter", "OnJsRoadHoverLeave");
-                }
-                catch { }
+            try
+            {
+                dotNetRef = DotNetObjectReference.Create(this);
+                // register harvestable hexes, buildable roads and buildable vertices selectors
+                await JS!.InvokeVoidAsync("registerSelector", dotNetRef, "polygon.hex-polygon.harvestable", "OnJsHexClicked");
+                await JS!.InvokeVoidAsync("registerSelector", dotNetRef, "line.buildable-road", "OnJsRoadClicked");
+                await JS!.InvokeVoidAsync("registerSelector", dotNetRef, "circle.buildable-vertex", "OnJsVertexClicked");
+                // register hover handlers for buildable roads to improve hover highlight reliability
+                await JS!.InvokeVoidAsync("registerHoverSelector", dotNetRef, "line.buildable-road", "OnJsRoadHoverEnter", "OnJsRoadHoverLeave");
+            }
+            catch { }
         }
     }
 
@@ -355,13 +319,15 @@ else
     private void ComputeBounds()
     {
         bool first = true;
-        if (Map is null) {            
+        if (Map is null)
+        {
             MinX = 0;
             MinY = 0;
             MaxX = 0;
             MaxY = 0;
         }
-        else {
+        else
+        {
             foreach (var t in Map.Tiles.Values)
             {
                 var p = AxialToPixel(t.Coord);
