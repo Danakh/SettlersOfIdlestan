@@ -58,6 +58,7 @@ namespace SettlersOfIdlestan.Controller
             foreach (var edge in candidates)
             {
                 if (occupied.Any(e => e.Equals(edge))) continue;
+                if (!IsEdgeOnLand(edge)) continue;
 
                 var road = new Road(edge) { CivilizationIndex = civilizationIndex };
                 // assign a distance so callers can know the build cost
@@ -95,6 +96,10 @@ namespace SettlersOfIdlestan.Controller
             var mapTiles = _state.Map.Tiles;
             if (!mapTiles.ContainsKey(edge.Hex1) || !mapTiles.ContainsKey(edge.Hex2))
                 throw new ArgumentException("Edge not part of the map", nameof(edge));
+
+            // Vérifier que l'arête n'est pas entre deux hexagones de type eau
+            if (mapTiles[edge.Hex1].TerrainType == TerrainType.Water && mapTiles[edge.Hex2].TerrainType == TerrainType.Water)
+                throw new InvalidOperationException("Cannot build a road on an edge between two water hexes");
 
             // Vérifier occupée
             var occupied = new HashSet<Edge>(_state.Civilizations.SelectMany(c => c.Roads).Select(r => r.Position));
@@ -214,6 +219,14 @@ namespace SettlersOfIdlestan.Controller
         {
             var verts = road.Position.GetVertices();
             return verts.Any(v => v.Equals(vertex));
+        }
+
+        private bool IsEdgeOnLand(Edge edge)
+        {
+            var mapTiles = _state.Map.Tiles;
+            bool hex1IsWaterOrAbsent = !mapTiles.TryGetValue(edge.Hex1, out var tile1) || tile1.TerrainType == TerrainType.Water;
+            bool hex2IsWaterOrAbsent = !mapTiles.TryGetValue(edge.Hex2, out var tile2) || tile2.TerrainType == TerrainType.Water;
+            return !(hex1IsWaterOrAbsent && hex2IsWaterOrAbsent);
         }
 
         private static Edge[] GetEdgesAtVertex(Vertex vertex)
