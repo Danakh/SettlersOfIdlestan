@@ -14,6 +14,7 @@ namespace SettlersOfIdlestan.Controller
     public class RoadController
     {
         private readonly IslandState _state;
+        private readonly Dictionary<int, List<Road>> _buildableRoadsCache = new();
 
         internal RoadController(IslandState state)
         {
@@ -28,6 +29,9 @@ namespace SettlersOfIdlestan.Controller
         /// </summary>
         public List<Road> GetBuildableRoads(int civilizationIndex)
         {
+            if (_buildableRoadsCache.TryGetValue(civilizationIndex, out var cached))
+                return cached;
+
             var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex)
                           ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
 
@@ -61,6 +65,7 @@ namespace SettlersOfIdlestan.Controller
                 result.Add(road);
             }
 
+            _buildableRoadsCache[civilizationIndex] = result;
             return result;
         }
 
@@ -124,6 +129,7 @@ namespace SettlersOfIdlestan.Controller
             civ.Roads.Add(road);
 
             ComputeRoadDistancesForCivilization(civ);
+            _buildableRoadsCache.Remove(civilizationIndex);
             return road;
         }
 
