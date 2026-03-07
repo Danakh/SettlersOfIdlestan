@@ -37,31 +37,27 @@ namespace SettlersOfIdlestan.Controller
             var rc = new RoadController(_state);
             rc.GetBuildableRoads(civilizationIndex);
 
-            var vertices = new HashSet<Vertex>();
-            foreach (var tile in _state.Map.Tiles.Values)
+            // Build vertex → touching roads map directly from the civilization's roads
+            var vertexRoads = new Dictionary<Vertex, List<Model.Road.Road>>();
+            foreach (var road in civ.Roads)
             {
-                foreach (var dir in SecondaryHexDirectionUtils.AllSecondaryDirections)
+                foreach (var v in road.Position.GetVertices())
                 {
-                    try
+                    if (!vertexRoads.TryGetValue(v, out var list))
                     {
-                        vertices.Add(tile.Coord.Vertex(dir));
+                        list = new List<Model.Road.Road>();
+                        vertexRoads[v] = list;
                     }
-                    catch
-                    {
-                        // ignore invalid vertex creation
-                    }
+                    list.Add(road);
                 }
             }
 
             var occupied = new HashSet<Vertex>(_state.Civilizations.SelectMany(c => c.Cities).Select(ct => ct.Position));
 
             var result = new List<Vertex>();
-            foreach (var v in vertices)
+            foreach (var (v, touchingRoads) in vertexRoads)
             {
                 if (occupied.Any(o => o.Equals(v))) continue;
-
-                var touchingRoads = civ.Roads.Where(r => RoadTouchesVertex(r, v)).ToList();
-                if (!touchingRoads.Any()) continue;
 
                 // ensure no existing city is at distance 1 (shares 2 hexes)
                 if (civ.Cities.Any(city => SharedHexCount(city.Position, v) >= 2)) continue;
@@ -107,12 +103,6 @@ namespace SettlersOfIdlestan.Controller
             var city = new City(vertex) { CivilizationIndex = civilizationIndex };
             civ.Cities.Add(city);
             return city;
-        }
-
-        private static bool RoadTouchesVertex(Model.Road.Road road, Vertex vertex)
-        {
-            var verts = road.Position.GetVertices();
-            return verts.Any(v => v.Equals(vertex));
         }
 
         private static int SharedHexCount(Vertex a, Vertex b)
