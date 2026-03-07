@@ -131,7 +131,7 @@ else
                     var h1 = hexes.Item2;
                     var roadId = $"{h0.Q},{h0.R};{h1.Q},{h1.R}";
                     <line class="buildable-road" data-jsid="@roadId" x1="@x1" y1="@y1" x2="@x2" y2="@y2" stroke="#000" stroke-width="@(lineWidth.ToString(CultureInfo.InvariantCulture))" stroke-linecap="butt" stroke-opacity="@((isHovered ? 1 : 0.4).ToString(CultureInfo.InvariantCulture))" style="cursor:pointer" @onmouseover="(() => OnHoverBuildableEdge(road.Position))" @onmouseout="OnLeaveBuildableEdge" @onclick:stopPropagation="true" @onclick="(() => OnClickBuildableRoad(road))" />
-                    <line x1="@x1" y1="@y1" x2="@x2" y2="@y2" stroke="@lineColor" stroke-width="@(innerLineWidth.ToString(CultureInfo.InvariantCulture))" stroke-linecap="butt" stroke-dasharray="6 6" stroke-opacity="1" style="pointer-events:none" />
+                    <line x1="@x1" y1="@y1" x2="@x2" y2="@y2" stroke="@lineColor" stroke-width="@(innerLineWidth.ToString(CultureInfo.InvariantCulture))" stroke-linecap="butt" stroke-dasharray="@(isHovered ? "" : "6 6")" stroke-opacity="1" style="pointer-events:none" />
                 }
                 // Render buildable city vertices (small green dotted circles)
                 var buildableVerts = Controller!.CityBuilderController.GetBuildableVertices(player.Index);
@@ -141,11 +141,14 @@ else
                     var cx = (p.x).ToString(CultureInfo.InvariantCulture);
                     var cy = (p.y).ToString(CultureInfo.InvariantCulture);
                     var isHoveredV = hoveredBuildableVertex != null && hoveredBuildableVertex.Equals(v);
-                    var strokeW = (isHoveredV ? 3.0 : 2.0).ToString(CultureInfo.InvariantCulture);
+                    var circleR = (isHoveredV ? 10.0 : 6.0).ToString(CultureInfo.InvariantCulture);
+                    var strokeW = (isHoveredV ? 3.5 : 2.0).ToString(CultureInfo.InvariantCulture);
+                    var fillOpacity = isHoveredV ? "0.45" : "0.03";
+                    var dashArray = isHoveredV ? "" : "4 4";
                     // serialize vertex as "q1,r1;q2,r2;q3,r3"
                     var vh = v.GetHexes();
                     var vid = $"{vh[0].Q},{vh[0].R};{vh[1].Q},{vh[1].R};{vh[2].Q},{vh[2].R}";
-                    <circle class="buildable-vertex" data-jsid="@vid" cx="@cx" cy="@cy" r="6" stroke="#2ecc71" stroke-width="@strokeW" stroke-dasharray="4 4" fill="#2ecc71" fill-opacity="0.03" style="cursor:pointer;pointer-events:auto" @onmouseover="(() => OnHoverBuildableVertex(v))" @onmouseout="OnLeaveBuildableVertex" @onclick:stopPropagation="true" @onclick="(() => OnClickBuildableVertex(v))" />
+                    <circle class="buildable-vertex" data-jsid="@vid" cx="@cx" cy="@cy" r="@circleR" stroke="#2ecc71" stroke-width="@strokeW" stroke-dasharray="@dashArray" fill="#2ecc71" fill-opacity="@fillOpacity" style="cursor:pointer;pointer-events:auto" @onmouseover="(() => OnHoverBuildableVertex(v))" @onmouseout="OnLeaveBuildableVertex" @onclick:stopPropagation="true" @onclick="(() => OnClickBuildableVertex(v))" />
                 }
             }
 
@@ -251,6 +254,8 @@ else
                 await JS!.InvokeVoidAsync("registerSelector", dotNetRef, "circle.buildable-vertex", "OnJsVertexClicked");
                 // register hover handlers for buildable roads to improve hover highlight reliability
                 await JS!.InvokeVoidAsync("registerHoverSelector", dotNetRef, "line.buildable-road", "OnJsRoadHoverEnter", "OnJsRoadHoverLeave");
+                // register hover handlers for buildable city vertices
+                await JS!.InvokeVoidAsync("registerHoverSelector", dotNetRef, "circle.buildable-vertex", "OnJsVertexHoverEnter", "OnJsVertexHoverLeave");
             }
             catch { }
         }
@@ -262,6 +267,7 @@ else
         try { JS!.InvokeVoidAsync("unregisterSelector", "line.buildable-road"); } catch { }
         try { JS!.InvokeVoidAsync("unregisterSelector", "circle.buildable-vertex"); } catch { }
         try { JS!.InvokeVoidAsync("unregisterHoverSelector", "line.buildable-road"); } catch { }
+        try { JS!.InvokeVoidAsync("unregisterHoverSelector", "circle.buildable-vertex"); } catch { }
         try { dotNetRef?.Dispose(); } catch { }
     }
 
@@ -314,6 +320,53 @@ else
             OnClickBuildableVertex(v);
         }
         catch { }
+    }
+
+    [JSInvokable]
+    public void OnJsRoadHoverEnter(string? id)
+    {
+        if (string.IsNullOrEmpty(id)) return;
+        var parts = id.Split(';');
+        if (parts.Length != 2) return;
+        try
+        {
+            var h0 = parts[0].Split(',');
+            var h1 = parts[1].Split(',');
+            hoveredEdge = Edge.Create(new HexCoord(int.Parse(h0[0]), int.Parse(h0[1])), new HexCoord(int.Parse(h1[0]), int.Parse(h1[1])));
+            StateHasChanged();
+        }
+        catch { }
+    }
+
+    [JSInvokable]
+    public void OnJsRoadHoverLeave(string? id)
+    {
+        hoveredEdge = null;
+        StateHasChanged();
+    }
+
+    [JSInvokable]
+    public void OnJsVertexHoverEnter(string? id)
+    {
+        if (string.IsNullOrEmpty(id)) return;
+        var parts = id.Split(';');
+        if (parts.Length != 3) return;
+        try
+        {
+            var h0 = parts[0].Split(',');
+            var h1 = parts[1].Split(',');
+            var h2 = parts[2].Split(',');
+            hoveredBuildableVertex = Vertex.Create(new HexCoord(int.Parse(h0[0]), int.Parse(h0[1])), new HexCoord(int.Parse(h1[0]), int.Parse(h1[1])), new HexCoord(int.Parse(h2[0]), int.Parse(h2[1])));
+            StateHasChanged();
+        }
+        catch { }
+    }
+
+    [JSInvokable]
+    public void OnJsVertexHoverLeave(string? id)
+    {
+        hoveredBuildableVertex = null;
+        StateHasChanged();
     }
 
     private void ComputeBounds()
