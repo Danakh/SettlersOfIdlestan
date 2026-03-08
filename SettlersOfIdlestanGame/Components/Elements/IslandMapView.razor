@@ -163,7 +163,9 @@ else
                     var w = spriteSize.ToString(System.Globalization.CultureInfo.InvariantCulture);
                     var h = spriteSize.ToString(System.Globalization.CultureInfo.InvariantCulture);
                     var spritePath = $"assets/sprites/city-{city.LevelName}.svg";
-                    <image href="@spritePath" x="@imgX" y="@imgY" width="@w" height="@h" style="cursor:pointer;pointer-events:auto" @onclick:stopPropagation="true" @onclick="(()=>CityClicked(city))" @onmouseover="(()=>OnHoverCity(city))" @onmouseout="OnLeaveCity" />
+                    var vh2 = city.Position.GetHexes();
+                    var cityId = $"{vh2[0].Q},{vh2[0].R};{vh2[1].Q},{vh2[1].R};{vh2[2].Q},{vh2[2].R}";
+                    <image class="city-image" data-jsid="@cityId" href="@spritePath" x="@imgX" y="@imgY" width="@w" height="@h" style="cursor:pointer;pointer-events:bounding-box" />
                 }
             }
 
@@ -256,6 +258,8 @@ else
                 await JS!.InvokeVoidAsync("registerHoverSelector", dotNetRef, "line.buildable-road", "OnJsRoadHoverEnter", "OnJsRoadHoverLeave");
                 // register hover handlers for buildable city vertices
                 await JS!.InvokeVoidAsync("registerHoverSelector", dotNetRef, "circle.buildable-vertex", "OnJsVertexHoverEnter", "OnJsVertexHoverLeave");
+                await JS!.InvokeVoidAsync("registerSelector", dotNetRef, "image.city-image", "OnJsCityClicked");
+                await JS!.InvokeVoidAsync("registerHoverSelector", dotNetRef, "image.city-image", "OnJsCityHoverEnter", "OnJsCityHoverLeave");
             }
             catch { }
         }
@@ -268,6 +272,8 @@ else
         try { JS!.InvokeVoidAsync("unregisterSelector", "circle.buildable-vertex"); } catch { }
         try { JS!.InvokeVoidAsync("unregisterHoverSelector", "line.buildable-road"); } catch { }
         try { JS!.InvokeVoidAsync("unregisterHoverSelector", "circle.buildable-vertex"); } catch { }
+        try { JS!.InvokeVoidAsync("unregisterSelector", "image.city-image"); } catch { }
+        try { JS!.InvokeVoidAsync("unregisterHoverSelector", "image.city-image"); } catch { }
         try { dotNetRef?.Dispose(); } catch { }
     }
 
@@ -367,6 +373,43 @@ else
     {
         hoveredBuildableVertex = null;
         StateHasChanged();
+    }
+
+    [JSInvokable]
+    public async System.Threading.Tasks.Task OnJsCityClicked(string? id)
+    {
+        if (string.IsNullOrEmpty(id)) return;
+        var city = FindCityByVertexId(id);
+        if (city != null) await CityClicked(city);
+    }
+
+    [JSInvokable]
+    public void OnJsCityHoverEnter(string? id)
+    {
+        if (string.IsNullOrEmpty(id)) return;
+        var city = FindCityByVertexId(id);
+        if (city != null) OnHoverCity(city);
+    }
+
+    [JSInvokable]
+    public void OnJsCityHoverLeave(string? id)
+    {
+        OnLeaveCity();
+    }
+
+    private SettlersOfIdlestan.Model.City.City? FindCityByVertexId(string id)
+    {
+        var parts = id.Split(';');
+        if (parts.Length != 3) return null;
+        try
+        {
+            var h0 = parts[0].Split(',');
+            var h1 = parts[1].Split(',');
+            var h2 = parts[2].Split(',');
+            var v = Vertex.Create(new HexCoord(int.Parse(h0[0]), int.Parse(h0[1])), new HexCoord(int.Parse(h1[0]), int.Parse(h1[1])), new HexCoord(int.Parse(h2[0]), int.Parse(h2[1])));
+            return Civilizations?.SelectMany(c => c.Cities ?? Enumerable.Empty<SettlersOfIdlestan.Model.City.City>()).FirstOrDefault(c => c.Position.Equals(v));
+        }
+        catch { return null; }
     }
 
     private void ComputeBounds()
@@ -533,6 +576,7 @@ else
     {
         try
         {
+            Logger?.LogInformation("CityClicked");
             // toggle selection: if same as current selected, deselect
             if (SelectedCity != null && SelectedCity.Position.Equals(city.Position))
             {
@@ -553,6 +597,9 @@ else
 
     private async System.Threading.Tasks.Task OnMapBackgroundClick()
     {
+        // hoveredCity is set whenever the mouse is over a city rect; in that case the click
+        // is on a city, not the SVG background — skip deselection to avoid overriding CityClicked.
+        if (hoveredCity != null) return;
         try
         {
             if (OnCitySelected.HasDelegate)
