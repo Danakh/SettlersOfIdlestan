@@ -306,7 +306,7 @@ else
     }
 
     [JSInvokable]
-    public void OnJsVertexClicked(string? id)
+    public async System.Threading.Tasks.Task OnJsVertexClicked(string? id)
     {
         if (string.IsNullOrEmpty(id)) return;
         var parts = id.Split(';');
@@ -317,7 +317,7 @@ else
             var h1 = parts[1].Split(',');
             var h2 = parts[2].Split(',');
             var v = Vertex.Create(new HexCoord(int.Parse(h0[0]), int.Parse(h0[1])), new HexCoord(int.Parse(h1[0]), int.Parse(h1[1])), new HexCoord(int.Parse(h2[0]), int.Parse(h2[1])));
-            OnClickBuildableVertex(v);
+            await OnClickBuildableVertex(v);
         }
         catch { }
     }
@@ -496,12 +496,14 @@ else
         StateHasChanged();
     }
 
-    private void OnClickBuildableVertex(SettlersOfIdlestan.Model.HexGrid.Vertex v)
+    private async System.Threading.Tasks.Task OnClickBuildableVertex(SettlersOfIdlestan.Model.HexGrid.Vertex v)
     {
         try
         {
-            Controller!.CityBuilderController.BuildCity(0, v);
+            var city = Controller!.CityBuilderController.BuildCity(0, v);
             buildMessage = "Ville construite";
+            if (OnCitySelected.HasDelegate)
+                await OnCitySelected.InvokeAsync(city);
         }
         catch (Exception ex)
         {
