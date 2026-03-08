@@ -33,10 +33,6 @@ namespace SettlersOfIdlestan.Controller
             var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex)
                       ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
 
-            // Ensure road distances are computed by invoking RoadController
-            var rc = new RoadController(_state);
-            rc.GetBuildableRoads(civilizationIndex);
-
             // Build vertex → touching roads map directly from the civilization's roads
             var vertexRoads = new Dictionary<Vertex, List<Model.Road.Road>>();
             foreach (var road in civ.Roads)
