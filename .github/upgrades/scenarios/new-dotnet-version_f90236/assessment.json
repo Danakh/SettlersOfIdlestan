@@ -1,0 +1,978 @@
+{
+  "settings": {
+    "components": {
+      "code": true,
+      "binaries": false
+    },
+    "targetId": "net10.0",
+    "targetDisplayName": ".NETCoreApp,Version=v10.0"
+  },
+  "analysisStartTime": "2026-04-19T12:08:48.3625993Z",
+  "analysisEndTime": "2026-04-19T12:08:51.297726Z",
+  "privacyModeHelpUrl": "https://go.microsoft.com/fwlink/?linkid=2270980",
+  "stats": {
+    "summary": {
+      "projects": 6,
+      "issues": 4,
+      "incidents": 28,
+      "effort": 28
+    },
+    "charts": {
+      "severity": {
+        "Mandatory": 5,
+        "Optional": 0,
+        "Potential": 23,
+        "Information": 0
+      },
+      "category": {
+        "Project": 5,
+        "Api": 18,
+        "NuGet": 5
+      }
+    }
+  },
+  "projects": [
+    {
+      "path": "SettlersOfIdlestan\\SettlersOfIdlestan.csproj",
+      "startingProject": true,
+      "issues": 3,
+      "storyPoints": 15,
+      "properties": {
+        "appName": "SettlersOfIdlestan",
+        "projectKind": "ClassLibrary",
+        "frameworks": [
+          "net8.0"
+        ],
+        "languages": [
+          "C#"
+        ],
+        "tools": [
+          "MSBuild"
+        ],
+        "isSdkStyle": true,
+        "numberOfFiles": 52,
+        "numberOfCodeFiles": 52,
+        "linesTotal": 4155,
+        "linesOfCode": 4155,
+        "totalApiScanned": 2591,
+        "minLinesOfCodeToChange": 14,
+        "maxLinesOfCodeToChange": 14
+      },
+      "ruleInstances": [
+        {
+          "incidentId": "32488ab9-1ba5-4f82-be4e-a3de41646a86",
+          "ruleId": "Project.0002",
+          "projectPath": "SettlersOfIdlestan\\SettlersOfIdlestan.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Infrastructure cible actuelle: net8.0\nInfrastructure cible recommand\u00E9: net10.0",
+              "protected": "Infrastructure cible actuelle: net8.0\nInfrastructure cible recommand\u00E9: net10.0"
+            },
+            "kind": "File",
+            "path": "SettlersOfIdlestan\\SettlersOfIdlestan.csproj",
+            "snippet": "Infrastructure cible actuelle: net8.0\nInfrastructure cible recommand\u00E9: net10.0",
+            "protectedSnippet": "Infrastructure cible actuelle: net8.0\nInfrastructure cible recommand\u00E9: net10.0",
+            "properties": {
+              "CurrentTargetFramework": "net8.0",
+              "RecommendedTargetFramework": "net10.0"
+            }
+          }
+        },
+        {
+          "incidentId": "06ba680e-b046-4823-994d-71f17144f01e",
+          "ruleId": "Api.0002",
+          "description": "Breaking change: New TimeSpan.From*() overloads that take integers ",
+          "projectPath": "SettlersOfIdlestan\\SettlersOfIdlestan.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "clock.Advance(TimeSpan.FromSeconds(_timeStep));",
+              "protected": "M:System.TimeSpan.FromSeconds(System.Double)"
+            },
+            "kind": "File",
+            "path": "SettlersOfIdlestan\\src\\Controller\\CivilizationAutoplayer.cs",
+            "snippet": "clock.Advance(TimeSpan.FromSeconds(_timeStep));",
+            "protectedSnippet": "M:System.TimeSpan.FromSeconds(System.Double)",
+            "label": "M:System.TimeSpan.FromSeconds(System.Double)",
+            "links": [
+              {
+                "title": "Documentation sur les API",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/core-libraries/9.0/timespan-from-overloads.md",
+                "isCustom": false
+              }
+            ],
+            "line": 379,
+            "column": 20
+          }
+        },
+        {
+          "incidentId": "eb8c5cea-c7d7-42fb-a647-be0fb503c814",
+          "ruleId": "Api.0002",
+          "description": "Breaking change: New TimeSpan.From*() overloads that take integers ",
+          "projectPath": "SettlersOfIdlestan\\SettlersOfIdlestan.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "clock.Advance(TimeSpan.FromSeconds(_timeStep));",
+              "protected": "M:System.TimeSpan.FromSeconds(System.Double)"
+            },
+            "kind": "File",
+            "path": "SettlersOfIdlestan\\src\\Controller\\CivilizationAutoplayer.cs",
+            "snippet": "clock.Advance(TimeSpan.FromSeconds(_timeStep));",
+            "protectedSnippet": "M:System.TimeSpan.FromSeconds(System.Double)",
+            "label": "M:System.TimeSpan.FromSeconds(System.Double)",
+            "links": [
+              {
+                "title": "Documentation sur les API",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/core-libraries/9.0/timespan-from-overloads.md",
+                "isCustom": false
+              }
+            ],
+            "line": 304,
+            "column": 20
+          }
+        },
+        {
+          "incidentId": "c141b1cc-112d-4ec0-974a-b663d195da04",
+          "ruleId": "Api.0002",
+          "description": "Breaking change: New TimeSpan.From*() overloads that take integers ",
+          "projectPath": "SettlersOfIdlestan\\SettlersOfIdlestan.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "clock.Advance(TimeSpan.FromSeconds(_timeStep));",
+              "protected": "M:System.TimeSpan.FromSeconds(System.Double)"
+            },
+            "kind": "File",
+            "path": "SettlersOfIdlestan\\src\\Controller\\CivilizationAutoplayer.cs",
+            "snippet": "clock.Advance(TimeSpan.FromSeconds(_timeStep));",
+            "protectedSnippet": "M:System.TimeSpan.FromSeconds(System.Double)",
+            "label": "M:System.TimeSpan.FromSeconds(System.Double)",
+            "links": [
+              {
+                "title": "Documentation sur les API",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/core-libraries/9.0/timespan-from-overloads.md",
+                "isCustom": false
+              }
+            ],
+            "line": 182,
+            "column": 20
+          }
+        },
+        {
+          "incidentId": "4271f464-59f9-46bf-8788-022e78d1f531",
+          "ruleId": "Api.0002",
+          "description": "Breaking change: New TimeSpan.From*() overloads that take integers ",
+          "projectPath": "SettlersOfIdlestan\\SettlersOfIdlestan.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "clock.Advance(TimeSpan.FromSeconds(_timeStep));",
+              "protected": "M:System.TimeSpan.FromSeconds(System.Double)"
+            },
+            "kind": "File",
+            "path": "SettlersOfIdlestan\\src\\Controller\\CivilizationAutoplayer.cs",
+            "snippet": "clock.Advance(TimeSpan.FromSeconds(_timeStep));",
+            "protectedSnippet": "M:System.TimeSpan.FromSeconds(System.Double)",
+            "label": "M:System.TimeSpan.FromSeconds(System.Double)",
+            "links": [
+              {
+                "title": "Documentation sur les API",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/core-libraries/9.0/timespan-from-overloads.md",
+                "isCustom": false
+              }
+            ],
+            "line": 114,
+            "column": 20
+          }
+        },
+        {
+          "incidentId": "74aed552-8e57-4c86-a62e-6c43cf53e484",
+          "ruleId": "Api.0002",
+          "description": "Breaking change: New TimeSpan.From*() overloads that take integers ",
+          "projectPath": "SettlersOfIdlestan\\SettlersOfIdlestan.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "clock.Advance(TimeSpan.FromSeconds(_timeStep));",
+              "protected": "M:System.TimeSpan.FromSeconds(System.Double)"
+            },
+            "kind": "File",
+            "path": "SettlersOfIdlestan\\src\\Controller\\CivilizationAutoplayer.cs",
+            "snippet": "clock.Advance(TimeSpan.FromSeconds(_timeStep));",
+            "protectedSnippet": "M:System.TimeSpan.FromSeconds(System.Double)",
+            "label": "M:System.TimeSpan.FromSeconds(System.Double)",
+            "links": [
+              {
+                "title": "Documentation sur les API",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/core-libraries/9.0/timespan-from-overloads.md",
+                "isCustom": false
+              }
+            ],
+            "line": 69,
+            "column": 20
+          }
+        },
+        {
+          "incidentId": "b546ea19-5f5a-4490-ae07-1114cf4b3167",
+          "ruleId": "Api.0003",
+          "description": "Breaking change: System.Text.Json metadata reader now unescapes metadata property names ",
+          "projectPath": "SettlersOfIdlestan\\SettlersOfIdlestan.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "var result = (Building?)JsonSerializer.Deserialize(raw, concrete, options);",
+              "protected": "M:System.Text.Json.JsonSerializer.Deserialize(System.String,System.Type,System.Text.Json.JsonSerializerOptions)"
+            },
+            "kind": "File",
+            "path": "SettlersOfIdlestan\\src\\Model\\Building\\BuildingJsonConverter.cs",
+            "snippet": "var result = (Building?)JsonSerializer.Deserialize(raw, concrete, options);",
+            "protectedSnippet": "M:System.Text.Json.JsonSerializer.Deserialize(System.String,System.Type,System.Text.Json.JsonSerializerOptions)",
+            "label": "M:System.Text.Json.JsonSerializer.Deserialize(System.String,System.Type,System.Text.Json.JsonSerializerOptions)",
+            "links": [
+              {
+                "title": "Documentation sur les API",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/serialization/9.0/json-metadata-reader.md",
+                "isCustom": false
+              }
+            ],
+            "line": 56,
+            "column": 12
+          }
+        },
+        {
+          "incidentId": "3930d944-1c9f-4fc7-80fd-d6f2a158e46c",
+          "ruleId": "Api.0003",
+          "description": "Nullable JsonDocument properties deserialize to JsonValueKind.Null ",
+          "projectPath": "SettlersOfIdlestan\\SettlersOfIdlestan.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "using var doc = JsonDocument.ParseValue(ref reader);",
+              "protected": "T:System.Text.Json.JsonDocument"
+            },
+            "kind": "File",
+            "path": "SettlersOfIdlestan\\src\\Model\\Building\\BuildingJsonConverter.cs",
+            "snippet": "using var doc = JsonDocument.ParseValue(ref reader);",
+            "protectedSnippet": "T:System.Text.Json.JsonDocument",
+            "label": "T:System.Text.Json.JsonDocument",
+            "links": [
+              {
+                "title": "Documentation sur les API",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/serialization/9.0/jsondocument-props.md",
+                "isCustom": false
+              }
+            ],
+            "line": 13,
+            "column": 12
+          }
+        },
+        {
+          "incidentId": "db4b53bf-7381-4a01-8570-419539a2315e",
+          "ruleId": "Api.0003",
+          "description": "Nullable JsonDocument properties deserialize to JsonValueKind.Null ",
+          "projectPath": "SettlersOfIdlestan\\SettlersOfIdlestan.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "using var doc = JsonDocument.ParseValue(ref reader);",
+              "protected": "T:System.Text.Json.JsonDocument"
+            },
+            "kind": "File",
+            "path": "SettlersOfIdlestan\\src\\Model\\Building\\BuildingJsonConverter.cs",
+            "snippet": "using var doc = JsonDocument.ParseValue(ref reader);",
+            "protectedSnippet": "T:System.Text.Json.JsonDocument",
+            "label": "T:System.Text.Json.JsonDocument",
+            "links": [
+              {
+                "title": "Documentation sur les API",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/serialization/9.0/jsondocument-props.md",
+                "isCustom": false
+              }
+            ],
+            "line": 13,
+            "column": 12
+          }
+        },
+        {
+          "incidentId": "ad6e1f14-01a7-4f7c-9a23-6608ea7209da",
+          "ruleId": "Api.0003",
+          "description": "Nullable JsonDocument properties deserialize to JsonValueKind.Null ",
+          "projectPath": "SettlersOfIdlestan\\SettlersOfIdlestan.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "using var doc = JsonDocument.ParseValue(ref reader);",
+              "protected": "T:System.Text.Json.JsonDocument"
+            },
+            "kind": "File",
+            "path": "SettlersOfIdlestan\\SettlersOfIdlestan\\src\\Model\\HexGrid\\VertexJsonConverter.cs",
+            "snippet": "using var doc = JsonDocument.ParseValue(ref reader);",
+            "protectedSnippet": "T:System.Text.Json.JsonDocument",
+            "label": "T:System.Text.Json.JsonDocument",
+            "links": [
+              {
+                "title": "Documentation sur les API",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/serialization/9.0/jsondocument-props.md",
+                "isCustom": false
+              }
+            ],
+            "line": 10,
+            "column": 8
+          }
+        },
+        {
+          "incidentId": "e4fd7fc8-61bb-400e-8f20-3dc488c0e3ce",
+          "ruleId": "Api.0003",
+          "description": "Nullable JsonDocument properties deserialize to JsonValueKind.Null ",
+          "projectPath": "SettlersOfIdlestan\\SettlersOfIdlestan.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "using var doc = JsonDocument.ParseValue(ref reader);",
+              "protected": "T:System.Text.Json.JsonDocument"
+            },
+            "kind": "File",
+            "path": "SettlersOfIdlestan\\SettlersOfIdlestan\\src\\Model\\HexGrid\\VertexJsonConverter.cs",
+            "snippet": "using var doc = JsonDocument.ParseValue(ref reader);",
+            "protectedSnippet": "T:System.Text.Json.JsonDocument",
+            "label": "T:System.Text.Json.JsonDocument",
+            "links": [
+              {
+                "title": "Documentation sur les API",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/serialization/9.0/jsondocument-props.md",
+                "isCustom": false
+              }
+            ],
+            "line": 10,
+            "column": 8
+          }
+        },
+        {
+          "incidentId": "37e5d6a1-ab71-4efe-bcd2-b286ecde00b9",
+          "ruleId": "Api.0003",
+          "description": "Nullable JsonDocument properties deserialize to JsonValueKind.Null ",
+          "projectPath": "SettlersOfIdlestan\\SettlersOfIdlestan.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "using var doc = JsonDocument.ParseValue(ref reader);",
+              "protected": "T:System.Text.Json.JsonDocument"
+            },
+            "kind": "File",
+            "path": "SettlersOfIdlestan\\src\\Model\\HexGrid\\EdgeJsonConverter.cs",
+            "snippet": "using var doc = JsonDocument.ParseValue(ref reader);",
+            "protectedSnippet": "T:System.Text.Json.JsonDocument",
+            "label": "T:System.Text.Json.JsonDocument",
+            "links": [
+              {
+                "title": "Documentation sur les API",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/serialization/9.0/jsondocument-props.md",
+                "isCustom": false
+              }
+            ],
+            "line": 10,
+            "column": 12
+          }
+        },
+        {
+          "incidentId": "6bab605d-b23a-4cbc-b9b7-37feb98e8042",
+          "ruleId": "Api.0003",
+          "description": "Nullable JsonDocument properties deserialize to JsonValueKind.Null ",
+          "projectPath": "SettlersOfIdlestan\\SettlersOfIdlestan.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "using var doc = JsonDocument.ParseValue(ref reader);",
+              "protected": "T:System.Text.Json.JsonDocument"
+            },
+            "kind": "File",
+            "path": "SettlersOfIdlestan\\src\\Model\\HexGrid\\EdgeJsonConverter.cs",
+            "snippet": "using var doc = JsonDocument.ParseValue(ref reader);",
+            "protectedSnippet": "T:System.Text.Json.JsonDocument",
+            "label": "T:System.Text.Json.JsonDocument",
+            "links": [
+              {
+                "title": "Documentation sur les API",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/serialization/9.0/jsondocument-props.md",
+                "isCustom": false
+              }
+            ],
+            "line": 10,
+            "column": 12
+          }
+        },
+        {
+          "incidentId": "7167715a-65de-48ed-aeac-986563877647",
+          "ruleId": "Api.0003",
+          "description": "Nullable JsonDocument properties deserialize to JsonValueKind.Null ",
+          "projectPath": "SettlersOfIdlestan\\SettlersOfIdlestan.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "using var doc = JsonDocument.ParseValue(ref reader);",
+              "protected": "T:System.Text.Json.JsonDocument"
+            },
+            "kind": "File",
+            "path": "SettlersOfIdlestan\\src\\Model\\IslandMap\\IslandMapJsonConverter.cs",
+            "snippet": "using var doc = JsonDocument.ParseValue(ref reader);",
+            "protectedSnippet": "T:System.Text.Json.JsonDocument",
+            "label": "T:System.Text.Json.JsonDocument",
+            "links": [
+              {
+                "title": "Documentation sur les API",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/serialization/9.0/jsondocument-props.md",
+                "isCustom": false
+              }
+            ],
+            "line": 12,
+            "column": 12
+          }
+        },
+        {
+          "incidentId": "401a2ef7-184a-4607-aa43-65a4874e17f5",
+          "ruleId": "Api.0003",
+          "description": "Nullable JsonDocument properties deserialize to JsonValueKind.Null ",
+          "projectPath": "SettlersOfIdlestan\\SettlersOfIdlestan.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "using var doc = JsonDocument.ParseValue(ref reader);",
+              "protected": "T:System.Text.Json.JsonDocument"
+            },
+            "kind": "File",
+            "path": "SettlersOfIdlestan\\src\\Model\\IslandMap\\IslandMapJsonConverter.cs",
+            "snippet": "using var doc = JsonDocument.ParseValue(ref reader);",
+            "protectedSnippet": "T:System.Text.Json.JsonDocument",
+            "label": "T:System.Text.Json.JsonDocument",
+            "links": [
+              {
+                "title": "Documentation sur les API",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/serialization/9.0/jsondocument-props.md",
+                "isCustom": false
+              }
+            ],
+            "line": 12,
+            "column": 12
+          }
+        }
+      ],
+      "features": []
+    },
+    {
+      "path": "SettlersOfIdlestanDesktop\\SettlersOfIdlestanDesktop.csproj",
+      "startingProject": true,
+      "issues": 2,
+      "storyPoints": 2,
+      "properties": {
+        "appName": "SettlersOfIdlestanDesktop",
+        "projectKind": "DotNetCoreApp",
+        "frameworks": [
+          "net8.0-windows10.0.19041.0",
+          "net10.0-ios",
+          "net10.0-maccatalyst",
+          "net10.0-windows10.0.19041.0"
+        ],
+        "languages": [
+          "C#"
+        ],
+        "tools": [
+          "MSBuild"
+        ],
+        "isSdkStyle": true,
+        "numberOfFiles": 11,
+        "numberOfCodeFiles": 11,
+        "linesTotal": 169,
+        "linesOfCode": 169,
+        "totalApiScanned": 23,
+        "minLinesOfCodeToChange": 0,
+        "maxLinesOfCodeToChange": 0
+      },
+      "ruleInstances": [
+        {
+          "incidentId": "84cbc058-edf5-4bff-ae9b-ced129faf74f",
+          "ruleId": "NuGet.0002",
+          "projectPath": "SettlersOfIdlestanDesktop\\SettlersOfIdlestanDesktop.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Microsoft.Extensions.Logging.Debug, 10.0.0\n\nRecommandation\u00A0:\n\nRemove Microsoft.Extensions.Logging.Debug, and replace with new package Microsoft.Extensions.Logging.Debug 10.0.6",
+              "protected": "Microsoft.Extensions.Logging.Debug, 10.0.0\n\nRecommandation\u00A0:\n\nRemove Microsoft.Extensions.Logging.Debug, and replace with new package Microsoft.Extensions.Logging.Debug 10.0.6"
+            },
+            "kind": "File",
+            "path": "SettlersOfIdlestanDesktop\\SettlersOfIdlestanDesktop.csproj",
+            "snippet": "Microsoft.Extensions.Logging.Debug, 10.0.0\n\nRecommandation\u00A0:\n\nRemove Microsoft.Extensions.Logging.Debug, and replace with new package Microsoft.Extensions.Logging.Debug 10.0.6",
+            "protectedSnippet": "Microsoft.Extensions.Logging.Debug, 10.0.0\n\nRecommandation\u00A0:\n\nRemove Microsoft.Extensions.Logging.Debug, and replace with new package Microsoft.Extensions.Logging.Debug 10.0.6",
+            "label": "Microsoft.Extensions.Logging.Debug 10.0.0",
+            "properties": {
+              "PackageId": "Microsoft.Extensions.Logging.Debug",
+              "PackageVersion": "10.0.0",
+              "PackageNewVersion": "10.0.6",
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "6d950f1d-2da3-4c2f-9872-f667167d78e7",
+          "ruleId": "Project.0002",
+          "projectPath": "SettlersOfIdlestanDesktop\\SettlersOfIdlestanDesktop.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Infrastructure cible actuelle: net8.0-windows10.0.19041.0;net10.0-ios;net10.0-maccatalyst;net10.0-windows10.0.19041.0\nInfrastructure cible recommand\u00E9: net8.0-windows10.0.19041.0;net10.0-ios;net10.0-maccatalyst;net10.0-windows10.0.19041.0;net10.0-windows",
+              "protected": "Infrastructure cible actuelle: net8.0-windows10.0.19041.0;net10.0-ios;net10.0-maccatalyst;net10.0-windows10.0.19041.0\nInfrastructure cible recommand\u00E9: net8.0-windows10.0.19041.0;net10.0-ios;net10.0-maccatalyst;net10.0-windows10.0.19041.0;net10.0-windows"
+            },
+            "kind": "File",
+            "path": "SettlersOfIdlestanDesktop\\SettlersOfIdlestanDesktop.csproj",
+            "snippet": "Infrastructure cible actuelle: net8.0-windows10.0.19041.0;net10.0-ios;net10.0-maccatalyst;net10.0-windows10.0.19041.0\nInfrastructure cible recommand\u00E9: net8.0-windows10.0.19041.0;net10.0-ios;net10.0-maccatalyst;net10.0-windows10.0.19041.0;net10.0-windows",
+            "protectedSnippet": "Infrastructure cible actuelle: net8.0-windows10.0.19041.0;net10.0-ios;net10.0-maccatalyst;net10.0-windows10.0.19041.0\nInfrastructure cible recommand\u00E9: net8.0-windows10.0.19041.0;net10.0-ios;net10.0-maccatalyst;net10.0-windows10.0.19041.0;net10.0-windows",
+            "properties": {
+              "CurrentTargetFramework": "net8.0-windows10.0.19041.0;net10.0-ios;net10.0-maccatalyst;net10.0-windows10.0.19041.0",
+              "RecommendedTargetFramework": "net8.0-windows10.0.19041.0;net10.0-ios;net10.0-maccatalyst;net10.0-windows10.0.19041.0;net10.0-windows"
+            }
+          }
+        }
+      ],
+      "features": []
+    },
+    {
+      "path": "SettlersOfIdlestanGame\\SettlersOfIdlestanGame.csproj",
+      "startingProject": true,
+      "issues": 3,
+      "storyPoints": 6,
+      "properties": {
+        "appName": "SettlersOfIdlestanGame",
+        "projectKind": "AspNetCore",
+        "frameworks": [
+          "net8.0"
+        ],
+        "languages": [
+          "C#"
+        ],
+        "tools": [
+          "MSBuild"
+        ],
+        "isSdkStyle": true,
+        "numberOfFiles": 22,
+        "numberOfCodeFiles": 1,
+        "linesTotal": 1720,
+        "linesOfCode": 15,
+        "totalApiScanned": 2259,
+        "minLinesOfCodeToChange": 3,
+        "maxLinesOfCodeToChange": 3
+      },
+      "ruleInstances": [
+        {
+          "incidentId": "ad7b29c7-d7dd-491b-b228-8c1fe22f5df4",
+          "ruleId": "NuGet.0002",
+          "projectPath": "SettlersOfIdlestanGame\\SettlersOfIdlestanGame.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Microsoft.AspNetCore.Components.WebAssembly, 8.0.0\n\nRecommandation\u00A0:\n\nRemove Microsoft.AspNetCore.Components.WebAssembly, and replace with new package Microsoft.AspNetCore.Components.WebAssembly 10.0.6",
+              "protected": "Microsoft.AspNetCore.Components.WebAssembly, 8.0.0\n\nRecommandation\u00A0:\n\nRemove Microsoft.AspNetCore.Components.WebAssembly, and replace with new package Microsoft.AspNetCore.Components.WebAssembly 10.0.6"
+            },
+            "kind": "File",
+            "path": "SettlersOfIdlestanGame\\SettlersOfIdlestanGame.csproj",
+            "snippet": "Microsoft.AspNetCore.Components.WebAssembly, 8.0.0\n\nRecommandation\u00A0:\n\nRemove Microsoft.AspNetCore.Components.WebAssembly, and replace with new package Microsoft.AspNetCore.Components.WebAssembly 10.0.6",
+            "protectedSnippet": "Microsoft.AspNetCore.Components.WebAssembly, 8.0.0\n\nRecommandation\u00A0:\n\nRemove Microsoft.AspNetCore.Components.WebAssembly, and replace with new package Microsoft.AspNetCore.Components.WebAssembly 10.0.6",
+            "label": "Microsoft.AspNetCore.Components.WebAssembly 8.0.0",
+            "properties": {
+              "PackageId": "Microsoft.AspNetCore.Components.WebAssembly",
+              "PackageVersion": "8.0.0",
+              "PackageNewVersion": "10.0.6",
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "9de62d22-b84b-4e7d-8e3c-24f863ef3b37",
+          "ruleId": "NuGet.0002",
+          "projectPath": "SettlersOfIdlestanGame\\SettlersOfIdlestanGame.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Microsoft.AspNetCore.Components.WebAssembly.DevServer, 8.0.0\n\nRecommandation\u00A0:\n\nRemove Microsoft.AspNetCore.Components.WebAssembly.DevServer, and replace with new package Microsoft.AspNetCore.Components.WebAssembly.DevServer 10.0.6",
+              "protected": "Microsoft.AspNetCore.Components.WebAssembly.DevServer, 8.0.0\n\nRecommandation\u00A0:\n\nRemove Microsoft.AspNetCore.Components.WebAssembly.DevServer, and replace with new package Microsoft.AspNetCore.Components.WebAssembly.DevServer 10.0.6"
+            },
+            "kind": "File",
+            "path": "SettlersOfIdlestanGame\\SettlersOfIdlestanGame.csproj",
+            "snippet": "Microsoft.AspNetCore.Components.WebAssembly.DevServer, 8.0.0\n\nRecommandation\u00A0:\n\nRemove Microsoft.AspNetCore.Components.WebAssembly.DevServer, and replace with new package Microsoft.AspNetCore.Components.WebAssembly.DevServer 10.0.6",
+            "protectedSnippet": "Microsoft.AspNetCore.Components.WebAssembly.DevServer, 8.0.0\n\nRecommandation\u00A0:\n\nRemove Microsoft.AspNetCore.Components.WebAssembly.DevServer, and replace with new package Microsoft.AspNetCore.Components.WebAssembly.DevServer 10.0.6",
+            "label": "Microsoft.AspNetCore.Components.WebAssembly.DevServer 8.0.0",
+            "properties": {
+              "PackageId": "Microsoft.AspNetCore.Components.WebAssembly.DevServer",
+              "PackageVersion": "8.0.0",
+              "PackageNewVersion": "10.0.6",
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "5f2a02bc-f11f-4c4f-b3b3-7db2809aee4c",
+          "ruleId": "Project.0002",
+          "projectPath": "SettlersOfIdlestanGame\\SettlersOfIdlestanGame.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Infrastructure cible actuelle: net8.0\nInfrastructure cible recommand\u00E9: net10.0",
+              "protected": "Infrastructure cible actuelle: net8.0\nInfrastructure cible recommand\u00E9: net10.0"
+            },
+            "kind": "File",
+            "path": "SettlersOfIdlestanGame\\SettlersOfIdlestanGame.csproj",
+            "snippet": "Infrastructure cible actuelle: net8.0\nInfrastructure cible recommand\u00E9: net10.0",
+            "protectedSnippet": "Infrastructure cible actuelle: net8.0\nInfrastructure cible recommand\u00E9: net10.0",
+            "properties": {
+              "CurrentTargetFramework": "net8.0",
+              "RecommendedTargetFramework": "net10.0"
+            }
+          }
+        },
+        {
+          "incidentId": "9ee82a46-0464-4ea7-9bdb-5996bd52b3d1",
+          "ruleId": "Api.0003",
+          "description": "Breaking change: URI length limits removed ",
+          "projectPath": "SettlersOfIdlestanGame\\SettlersOfIdlestanGame.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "builder.Services.AddScoped(sp =\u003E new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });",
+              "protected": "T:System.Uri"
+            },
+            "kind": "File",
+            "path": "SettlersOfIdlestanGame\\Program.cs",
+            "snippet": "builder.Services.AddScoped(sp =\u003E new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });",
+            "protectedSnippet": "T:System.Uri",
+            "label": "T:System.Uri",
+            "links": [
+              {
+                "title": "Documentation sur les API",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/networking/10.0/uri-length-limits-removed.md",
+                "isCustom": false
+              }
+            ],
+            "line": 12,
+            "column": 0
+          }
+        },
+        {
+          "incidentId": "a2b0aaa2-2701-4dc7-83a1-ffa5d19cd17e",
+          "ruleId": "Api.0003",
+          "description": "Breaking change: URI length limits removed ",
+          "projectPath": "SettlersOfIdlestanGame\\SettlersOfIdlestanGame.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "builder.Services.AddScoped(sp =\u003E new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });",
+              "protected": "M:System.Uri.#ctor(System.String)"
+            },
+            "kind": "File",
+            "path": "SettlersOfIdlestanGame\\Program.cs",
+            "snippet": "builder.Services.AddScoped(sp =\u003E new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });",
+            "protectedSnippet": "M:System.Uri.#ctor(System.String)",
+            "label": "M:System.Uri.#ctor(System.String)",
+            "links": [
+              {
+                "title": "Documentation sur les API",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/networking/10.0/uri-length-limits-removed.md",
+                "isCustom": false
+              }
+            ],
+            "line": 12,
+            "column": 0
+          }
+        },
+        {
+          "incidentId": "e2ae47a2-4a8e-4213-b9b7-649f39580047",
+          "ruleId": "Api.0003",
+          "description": "Breaking change: URI length limits removed ",
+          "projectPath": "SettlersOfIdlestanGame\\SettlersOfIdlestanGame.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "builder.Services.AddScoped(sp =\u003E new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });",
+              "protected": "T:System.Uri"
+            },
+            "kind": "File",
+            "path": "SettlersOfIdlestanGame\\Program.cs",
+            "snippet": "builder.Services.AddScoped(sp =\u003E new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });",
+            "protectedSnippet": "T:System.Uri",
+            "label": "T:System.Uri",
+            "links": [
+              {
+                "title": "Documentation sur les API",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/networking/10.0/uri-length-limits-removed.md",
+                "isCustom": false
+              }
+            ],
+            "line": 12,
+            "column": 0
+          }
+        }
+      ],
+      "features": []
+    },
+    {
+      "path": "SettlersOfIdlestanSkia\\SettlersOfIdlestanSkia.csproj",
+      "startingProject": true,
+      "issues": 1,
+      "storyPoints": 1,
+      "properties": {
+        "appName": "SettlersOfIdlestanSkia",
+        "projectKind": "ClassLibrary",
+        "frameworks": [
+          "net8.0"
+        ],
+        "languages": [
+          "C#"
+        ],
+        "tools": [
+          "MSBuild"
+        ],
+        "isSdkStyle": true,
+        "numberOfFiles": 1,
+        "numberOfCodeFiles": 1,
+        "linesTotal": 7,
+        "linesOfCode": 7,
+        "totalApiScanned": 0,
+        "minLinesOfCodeToChange": 0,
+        "maxLinesOfCodeToChange": 0
+      },
+      "ruleInstances": [
+        {
+          "incidentId": "669f7371-6e01-4ed3-b6b1-b5b3437cc89e",
+          "ruleId": "Project.0002",
+          "projectPath": "SettlersOfIdlestanSkia\\SettlersOfIdlestanSkia.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Infrastructure cible actuelle: net8.0\nInfrastructure cible recommand\u00E9: net10.0",
+              "protected": "Infrastructure cible actuelle: net8.0\nInfrastructure cible recommand\u00E9: net10.0"
+            },
+            "kind": "File",
+            "path": "SettlersOfIdlestanSkia\\SettlersOfIdlestanSkia.csproj",
+            "snippet": "Infrastructure cible actuelle: net8.0\nInfrastructure cible recommand\u00E9: net10.0",
+            "protectedSnippet": "Infrastructure cible actuelle: net8.0\nInfrastructure cible recommand\u00E9: net10.0",
+            "properties": {
+              "CurrentTargetFramework": "net8.0",
+              "RecommendedTargetFramework": "net10.0"
+            }
+          }
+        }
+      ],
+      "features": []
+    },
+    {
+      "path": "SettlersOfIdlestanWeb\\SettlersOfIdlestanWeb.csproj",
+      "startingProject": true,
+      "issues": 3,
+      "storyPoints": 4,
+      "properties": {
+        "appName": "SettlersOfIdlestanWeb",
+        "projectKind": "AspNetCore",
+        "frameworks": [
+          "net8.0"
+        ],
+        "languages": [
+          "C#"
+        ],
+        "tools": [
+          "MSBuild"
+        ],
+        "isSdkStyle": true,
+        "numberOfFiles": 14,
+        "numberOfCodeFiles": 1,
+        "linesTotal": 383,
+        "linesOfCode": 11,
+        "totalApiScanned": 42,
+        "minLinesOfCodeToChange": 1,
+        "maxLinesOfCodeToChange": 1
+      },
+      "ruleInstances": [
+        {
+          "incidentId": "ce945a52-0b29-485e-9ef9-98ede273c726",
+          "ruleId": "NuGet.0002",
+          "projectPath": "SettlersOfIdlestanWeb\\SettlersOfIdlestanWeb.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Microsoft.AspNetCore.Components.WebAssembly, 10.0.5\n\nRecommandation\u00A0:\n\nRemove Microsoft.AspNetCore.Components.WebAssembly, and replace with new package Microsoft.AspNetCore.Components.WebAssembly 10.0.6",
+              "protected": "Microsoft.AspNetCore.Components.WebAssembly, 10.0.5\n\nRecommandation\u00A0:\n\nRemove Microsoft.AspNetCore.Components.WebAssembly, and replace with new package Microsoft.AspNetCore.Components.WebAssembly 10.0.6"
+            },
+            "kind": "File",
+            "path": "SettlersOfIdlestanWeb\\SettlersOfIdlestanWeb.csproj",
+            "snippet": "Microsoft.AspNetCore.Components.WebAssembly, 10.0.5\n\nRecommandation\u00A0:\n\nRemove Microsoft.AspNetCore.Components.WebAssembly, and replace with new package Microsoft.AspNetCore.Components.WebAssembly 10.0.6",
+            "protectedSnippet": "Microsoft.AspNetCore.Components.WebAssembly, 10.0.5\n\nRecommandation\u00A0:\n\nRemove Microsoft.AspNetCore.Components.WebAssembly, and replace with new package Microsoft.AspNetCore.Components.WebAssembly 10.0.6",
+            "label": "Microsoft.AspNetCore.Components.WebAssembly 10.0.5",
+            "properties": {
+              "PackageId": "Microsoft.AspNetCore.Components.WebAssembly",
+              "PackageVersion": "10.0.5",
+              "PackageNewVersion": "10.0.6",
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "256a781d-ebca-497a-99a6-911d160fef34",
+          "ruleId": "NuGet.0002",
+          "projectPath": "SettlersOfIdlestanWeb\\SettlersOfIdlestanWeb.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Microsoft.AspNetCore.Components.WebAssembly.DevServer, 10.0.5\n\nRecommandation\u00A0:\n\nRemove Microsoft.AspNetCore.Components.WebAssembly.DevServer, and replace with new package Microsoft.AspNetCore.Components.WebAssembly.DevServer 10.0.6",
+              "protected": "Microsoft.AspNetCore.Components.WebAssembly.DevServer, 10.0.5\n\nRecommandation\u00A0:\n\nRemove Microsoft.AspNetCore.Components.WebAssembly.DevServer, and replace with new package Microsoft.AspNetCore.Components.WebAssembly.DevServer 10.0.6"
+            },
+            "kind": "File",
+            "path": "SettlersOfIdlestanWeb\\SettlersOfIdlestanWeb.csproj",
+            "snippet": "Microsoft.AspNetCore.Components.WebAssembly.DevServer, 10.0.5\n\nRecommandation\u00A0:\n\nRemove Microsoft.AspNetCore.Components.WebAssembly.DevServer, and replace with new package Microsoft.AspNetCore.Components.WebAssembly.DevServer 10.0.6",
+            "protectedSnippet": "Microsoft.AspNetCore.Components.WebAssembly.DevServer, 10.0.5\n\nRecommandation\u00A0:\n\nRemove Microsoft.AspNetCore.Components.WebAssembly.DevServer, and replace with new package Microsoft.AspNetCore.Components.WebAssembly.DevServer 10.0.6",
+            "label": "Microsoft.AspNetCore.Components.WebAssembly.DevServer 10.0.5",
+            "properties": {
+              "PackageId": "Microsoft.AspNetCore.Components.WebAssembly.DevServer",
+              "PackageVersion": "10.0.5",
+              "PackageNewVersion": "10.0.6",
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "76b3b23b-b80f-47e6-a3e7-d0c3bbc5f4c1",
+          "ruleId": "Project.0002",
+          "projectPath": "SettlersOfIdlestanWeb\\SettlersOfIdlestanWeb.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Infrastructure cible actuelle: net8.0\nInfrastructure cible recommand\u00E9: net10.0",
+              "protected": "Infrastructure cible actuelle: net8.0\nInfrastructure cible recommand\u00E9: net10.0"
+            },
+            "kind": "File",
+            "path": "SettlersOfIdlestanWeb\\SettlersOfIdlestanWeb.csproj",
+            "snippet": "Infrastructure cible actuelle: net8.0\nInfrastructure cible recommand\u00E9: net10.0",
+            "protectedSnippet": "Infrastructure cible actuelle: net8.0\nInfrastructure cible recommand\u00E9: net10.0",
+            "properties": {
+              "CurrentTargetFramework": "net8.0",
+              "RecommendedTargetFramework": "net10.0"
+            }
+          }
+        },
+        {
+          "incidentId": "9c58be9b-1019-443a-b2e8-4ab3548e92a0",
+          "ruleId": "Api.0003",
+          "description": "Breaking change: URI length limits removed ",
+          "projectPath": "SettlersOfIdlestanWeb\\SettlersOfIdlestanWeb.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "builder.Services.AddScoped(sp =\u003E new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });",
+              "protected": "T:System.Uri"
+            },
+            "kind": "File",
+            "path": "SettlersOfIdlestanWeb\\Program.cs",
+            "snippet": "builder.Services.AddScoped(sp =\u003E new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });",
+            "protectedSnippet": "T:System.Uri",
+            "label": "T:System.Uri",
+            "links": [
+              {
+                "title": "Documentation sur les API",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/networking/10.0/uri-length-limits-removed.md",
+                "isCustom": false
+              }
+            ],
+            "line": 8,
+            "column": 0
+          }
+        }
+      ],
+      "features": []
+    },
+    {
+      "path": "SOITests\\SOITests.csproj",
+      "startingProject": true,
+      "issues": 0,
+      "storyPoints": 0,
+      "properties": {
+        "appName": "SOITests",
+        "projectKind": "DotNetCoreApp",
+        "frameworks": [
+          "net10.0"
+        ],
+        "languages": [
+          "C#"
+        ],
+        "tools": [
+          "MSBuild"
+        ],
+        "isSdkStyle": true,
+        "numberOfFiles": 18,
+        "numberOfCodeFiles": 16,
+        "linesTotal": 3451,
+        "linesOfCode": 1666,
+        "totalApiScanned": 0,
+        "minLinesOfCodeToChange": 0,
+        "maxLinesOfCodeToChange": 0
+      },
+      "ruleInstances": [],
+      "features": []
+    }
+  ],
+  "rules": {
+    "Project.0002": {
+      "id": "Project.0002",
+      "isFeature": false,
+      "description": "Le ou les infrastructures cibles du projet doivent \u00EAtre remplac\u00E9es par la nouvelle infrastructure cible que vous avez s\u00E9lectionn\u00E9e pour cette mise \u00E0 niveau.\n\nPendant la mise \u00E0 niveau, l\u2019infrastructure cible est ajust\u00E9e en fonction de la plateforme correspondante, le cas \u00E9ch\u00E9ant. Dans certains cas, le projet entra\u00EEnera plusieurs infrastructures cibles apr\u00E8s la mise \u00E0 niveau s\u2019il utilisait des fonctionnalit\u00E9s qui ont d\u00E9sormais leurs propres plateformes dans les infrastructures .NET modernes (Windows, iOS, Android, etc.).",
+      "label": "Le ou les frameworks cibles du projet doivent \u00EAtre modifi\u00E9s",
+      "severity": "Mandatory",
+      "effort": 1,
+      "links": [
+        {
+          "title": "Vue d\u2019ensemble du transfert de .NET Framework vers .NET",
+          "url": "https://go.microsoft.com/fwlink/?linkid=2265227",
+          "isCustom": false
+        },
+        {
+          "title": "Kits de d\u00E9veloppement logiciel (SDK) de projet .NET",
+          "url": "https://go.microsoft.com/fwlink/?linkid=2265226",
+          "isCustom": false
+        }
+      ]
+    },
+    "Api.0002": {
+      "id": "Api.0002",
+      "isFeature": false,
+      "description": "L\u2019API est incompatible au niveau du code source pour la version .NET s\u00E9lectionn\u00E9e\u00A0: des modifications du code sont n\u00E9cessaires pour compiler avec succ\u00E8s en ciblant une nouvelle version, comme la suppression d\u2019API obsol\u00E8tes ou la modification des signatures de m\u00E9thode.",
+      "label": "Source incompatible avec la version .NET s\u00E9lectionn\u00E9e",
+      "severity": "Potential",
+      "effort": 1,
+      "links": [
+        {
+          "title": "Changements cassants dans .NET",
+          "url": "https://go.microsoft.com/fwlink/?linkid=2262679",
+          "isCustom": false
+        }
+      ]
+    },
+    "Api.0003": {
+      "id": "Api.0003",
+      "isFeature": false,
+      "description": "L\u2019API pr\u00E9sente un changement de comportement dans la version .NET s\u00E9lectionn\u00E9e\u00A0: le code et les binaires peuvent se comporter diff\u00E9remment \u00E0 l\u2019ex\u00E9cution sans n\u00E9cessiter de recompilation, mais ce nouveau comportement peut \u00EAtre ind\u00E9sirable et n\u00E9cessiter des mises \u00E0 jour.",
+      "label": "Modification du comportement dans la version .NET s\u00E9lectionn\u00E9e",
+      "severity": "Potential",
+      "effort": 1
+    },
+    "NuGet.0002": {
+      "id": "NuGet.0002",
+      "isFeature": false,
+      "description": "La mise \u00E0 niveau du package NuGet est recommand\u00E9e pour l\u2019infrastructure cible s\u00E9lectionn\u00E9e.\n\nLes packages .NET standard sont recommand\u00E9s pour avoir des versions correspondant \u00E0 la version de .NET cibl\u00E9e par le projet.\n\nCertains autres packages fonctionnent \u00E9galement mieux pour les infrastructures cibles s\u00E9lectionn\u00E9es.",
+      "label": "La mise \u00E0 niveau du package NuGet est recommand\u00E9e",
+      "severity": "Potential",
+      "effort": 1,
+      "links": [
+        {
+          "url": "https://go.microsoft.com/fwlink/?linkid=2262530",
+          "isCustom": false
+        }
+      ]
+    }
+  }
+}
