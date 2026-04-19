@@ -9,15 +9,11 @@ namespace SettlersOfIdlestanSkia.Renderers;
 /// Renderer de base pour le plateau de jeu hexagonal.
 /// Responsable du rendu des hexagones, du terrain et des ressources.
 /// </summary>
-public class GameBoardRenderer : IGameRenderer
+public class GameBoardRenderer : HexBasedRenderer
 {
-    private const float HexSize = 40f;
-
     private SKPaint? _hexBorderPaint;
     private SKPaint? _hexFillPaint;
     private SKPaint? _textPaint;
-    private SKSize _canvasSize;
-    private bool _disposed;
 
     // Dictionnaire de couleurs pour les types de terrain
     private static readonly Dictionary<TerrainType, SKColor> TerrainColors = new()
@@ -31,9 +27,9 @@ public class GameBoardRenderer : IGameRenderer
         { TerrainType.Water, new SKColor(30, 144, 255) },        // Bleu
     };
 
-    public void Initialize(SKSize canvasSize)
+    public override void Initialize(SKSize canvasSize)
     {
-        _canvasSize = canvasSize;
+        CanvasSize = canvasSize;
 
         _hexBorderPaint = new SKPaint
         {
@@ -58,7 +54,7 @@ public class GameBoardRenderer : IGameRenderer
         };
     }
 
-    public void Render(SKCanvas canvas, GameRenderContext context)
+    public override void Render(SKCanvas canvas, GameRenderContext context)
     {
         if (context.GameState == null)
             return;
@@ -71,11 +67,8 @@ public class GameBoardRenderer : IGameRenderer
 
         try
         {
-            // Applique la transformation de caméra :
-            // 1. Translate pour mettre le centre du canvas au (0,0) du monde
-            // 2. Applique le zoom
-            // 3. La position de la caméra est déjà un offset complet (inclut le centrage)
-            canvas.Translate(_canvasSize.Width / 2, _canvasSize.Height / 2);
+            // Applique la transformation de caméra correctement :
+            canvas.Translate(CanvasSize.Width / 2, CanvasSize.Height / 2);
             canvas.Scale(context.ZoomLevel, context.ZoomLevel);
 
             // Récupère le MainGameState et l'IslandState
@@ -86,15 +79,6 @@ public class GameBoardRenderer : IGameRenderer
                 {
                     DrawIslandMap(canvas, islandState.Map);
                 }
-                else
-                {
-                    // Si pas d'îlot, on dessine une grille de test
-                    DrawTestHexagonGrid(canvas);
-                }
-            }
-            else
-            {
-                DrawTestHexagonGrid(canvas);
             }
         }
         finally
@@ -145,22 +129,6 @@ public class GameBoardRenderer : IGameRenderer
     }
 
     /// <summary>
-    /// Dessine une grille de test pour valider le système de rendu.
-    /// À remplacer par le vrai rendu du plateau de jeu.
-    /// </summary>
-    private void DrawTestHexagonGrid(SKCanvas canvas)
-    {
-        for (int q = -3; q <= 3; q++)
-        {
-            for (int r = -3; r <= 3; r++)
-            {
-                var (x, y) = AxialToPixel(q, r);
-                DrawHexagon(canvas, x, y, HexSize);
-            }
-        }
-    }
-
-    /// <summary>
     /// Dessine un hexagone centré à (centerX, centerY).
     /// </summary>
     private void DrawHexagon(SKCanvas canvas, float centerX, float centerY, float size)
@@ -184,60 +152,14 @@ public class GameBoardRenderer : IGameRenderer
         }
     }
 
-    /// <summary>
-    /// Convertit des points en chemin SKPath.
-    /// </summary>
-    private SKPath PointsToPath(SKPoint[] points)
+    public override void Dispose()
     {
-        var path = new SKPath();
-        if (points.Length > 0)
-        {
-            path.MoveTo(points[0]);
-            for (int i = 1; i < points.Length; i++)
-                path.LineTo(points[i]);
-            path.Close();
-        }
-        return path;
-    }
-
-    /// <summary>
-    /// Convertit des coordonnées axiales (q, r) en coordonnées pixel (x, y).
-    /// </summary>
-    private (float x, float y) AxialToPixel(int q, int r)
-    {
-        float x = HexSize * (3f / 2 * q);
-        float y = HexSize * (float)System.Math.Sqrt(3) / 2 * q + HexSize * (float)System.Math.Sqrt(3) * r;
-
-        return (x, y);
-    }
-
-    /// <summary>
-    /// Génère les 6 points d'un hexagone régulier.
-    /// </summary>
-    private SKPoint[] GetHexagonPoints(float centerX, float centerY, float size)
-    {
-        var points = new SKPoint[6];
-
-        for (int i = 0; i < 6; i++)
-        {
-            float angle = (float)System.Math.PI / 3 * i;
-            points[i] = new SKPoint(
-                centerX + size * (float)System.Math.Cos(angle),
-                centerY + size * (float)System.Math.Sin(angle)
-            );
-        }
-
-        return points;
-    }
-
-    public void Dispose()
-    {
-        if (_disposed)
+        if (Disposed)
             return;
 
         _hexBorderPaint?.Dispose();
         _hexFillPaint?.Dispose();
         _textPaint?.Dispose();
-        _disposed = true;
+        Disposed = true;
     }
 }

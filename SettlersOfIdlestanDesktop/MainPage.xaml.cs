@@ -46,8 +46,13 @@ public partial class MainPage : ContentPage
 			if (gameState == null)
 				throw new InvalidOperationException("Impossible de créer le jeu.");
 
-			// Enregistre les renderers (ordre = z-order)
+			// Enregistre les renderers dans l'ordre (de bas en haut):
+			// 1. Plateau de jeu (hexagones et terrain)
 			_renderService.RegisterRenderer(new GameBoardRenderer());
+			// 2. Routes
+			_renderService.RegisterRenderer(new RoadRenderer());
+			// 3. Villes
+			_renderService.RegisterRenderer(new CityRenderer());
 			// TODO: Ajouter d'autres renderers (UI, animations, etc.)
 
 			StateLabel.Text = "Prêt";
@@ -73,14 +78,26 @@ public partial class MainPage : ContentPage
 			{
 				var canvasSize = new SKSize(e.Surface.Canvas.DeviceClipBounds.Width, e.Surface.Canvas.DeviceClipBounds.Height);
 				_cameraService.Initialize(canvasSize);
-				_cameraService.CenterOnOrigin();
+				
+				// Fit la caméra sur toute la carte
+				var gameState = _gameControllerService.CurrentGameState;
+				var hexCoords = gameState?.CurrentIslandState?.Map.Tiles.Keys ?? new List<SettlersOfIdlestan.Model.HexGrid.HexCoord>();
+				_cameraService.FitMapToView(hexCoords);
+				
 				_renderService.Initialize(canvasSize);
 				_isInitialized = true;
 			}
 
-			// Crée le contexte avec la caméra
-			var gameState = _gameControllerService.CurrentGameState;
-			_renderService.RenderFrame(e.Surface.Canvas, gameState, _cameraService);
+			// Affiche des infos de débogage
+			var gameState2 = _gameControllerService.CurrentGameState;
+			var cityCount = gameState2?.CurrentIslandState?.Civilizations.FirstOrDefault()?.Cities.Count ?? 0;
+			var roadCount = gameState2?.CurrentIslandState?.Civilizations.FirstOrDefault()?.Roads.Count ?? 0;
+			MainThread.BeginInvokeOnMainThread(() => 
+			{
+				CameraLabel.Text = $"Villes: {cityCount}, Routes: {roadCount}";
+			});
+
+			_renderService.RenderFrame(e.Surface.Canvas, gameState2, _cameraService);
 		}
 		catch (Exception ex)
 		{
