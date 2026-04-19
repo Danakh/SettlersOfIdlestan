@@ -33,7 +33,7 @@ else
                         ? "list-group-item"
                         : "list-group-item list-group-item-light text-muted";
 
-                <li class="@rowClass" title="@desc">
+                <li @key="t" class="@rowClass" title="@desc">
                     <div class="d-flex justify-content-between align-items-center">
 
                         <div>
@@ -101,6 +101,7 @@ else
 
     private async Task DoAction(BuildingType type)
     {
+        Console.WriteLine($"DoAction appelé pour {type}");
         if (City == null || BuildingController == null) return;
         var isUpgrade = City.Buildings?.Any(b => b.Type == type) == true;
         try
@@ -109,6 +110,7 @@ else
             _message = isUpgrade ? "Bâtiment amélioré ✓" : "Bâtiment construit ✓";
             _isError = false;
             await OnBuildingChanged.InvokeAsync();
+            StateHasChanged();
         }
         catch (Exception ex)
         {

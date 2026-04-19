@@ -1,8 +1,11 @@
 <Solution>
   <Project Path="SettlersOfIdlestan/SettlersOfIdlestan.csproj" />
+  <Project Path="SettlersOfIdlestanDesktop/SettlersOfIdlestanDesktop.csproj" />
   <Project Path="SettlersOfIdlestanGame/SettlersOfIdlestanGame.csproj">
     <BuildDependency Project="SettlersOfIdlestan/SettlersOfIdlestan.csproj" />
   </Project>
+  <Project Path="SettlersOfIdlestanSkia/SettlersOfIdlestanSkia.csproj" Id="543bfa41-33ea-4bbc-b08b-6df3220306d1" />
+  <Project Path="SettlersOfIdlestanWeb/SettlersOfIdlestanWeb.csproj" />
   <Project Path="SOITests/SOITests.csproj">
     <BuildDependency Project="SettlersOfIdlestan/SettlersOfIdlestan.csproj" />
   </Project>
