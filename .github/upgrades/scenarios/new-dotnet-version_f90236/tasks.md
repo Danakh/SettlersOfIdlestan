@@ -4,23 +4,23 @@
 
 This document tracks execution of the atomic upgrade of the `SettlersOfIdlestan` solution from .NET 8.0 to .NET 10.0 per the Plan. All projects and package updates will be applied in a single coordinated operation, followed by testing and a final commit.
 
-**Progress**: 0/4 tasks complete (0%) ![0%](https://progress-bar.xyz/0)
+**Progress**: 1/4 tasks complete (25%) ![0%](https://progress-bar.xyz/25)
 
 ---
 
 ## Tasks
 
-### [▶] TASK-001: Verify prerequisites
+### [✓] TASK-001: Verify prerequisites *(Completed: 2026-04-19 13:11)*
 **References**: Plan §Phase 0 (Prerequisite Validation)
 
-- [ ] (1) Verify .NET 10 SDK is installed on the build machine per Plan §Phase 0
-- [ ] (2) .NET 10 SDK version meets minimum requirements (**Verify**)
-- [ ] (3) Validate `global.json` compatibility (update if present) per Plan §Phase 0
-- [ ] (4) `global.json` compatible or updated (**Verify**)
-- [ ] (5) Verify required NuGet packages are available for `net10.0` per Plan §Package Update Reference
-- [ ] (6) Package availability confirmed for all updates (**Verify**)
+- [✓] (1) Verify .NET 10 SDK is installed on the build machine per Plan §Phase 0
+- [✓] (2) .NET 10 SDK version meets minimum requirements (**Verify**)
+- [✓] (3) Validate `global.json` compatibility (update if present) per Plan §Phase 0
+- [✓] (4) `global.json` compatible or updated (**Verify**)
+- [✓] (5) Verify required NuGet packages are available for `net10.0` per Plan §Package Update Reference
+- [✓] (6) Package availability confirmed for all updates (**Verify**)
 
-### [ ] TASK-002: Atomic framework and package upgrade with compilation fixes
+### [▶] TASK-002: Atomic framework and package upgrade with compilation fixes
 **References**: Plan §Phase 1 (Atomic Upgrade), Plan §Project-by-Project Plans, Plan §Package Update Reference, Plan §Breaking Changes Catalog
 
 - [ ] (1) Update TargetFramework in all project files per Plan §Project-by-Project Plans:
@@ -52,4 +52,6 @@ This document tracks execution of the atomic upgrade of the `SettlersOfIdlestan`
 **References**: Plan §Source Control Strategy (Commit Strategy)
 
 - [ ] (1) Commit all remaining changes with message: "TASK-004: Upgrade solution to .NET 10.0 — update project targets and package references; fix breaking changes"
+
+
 
