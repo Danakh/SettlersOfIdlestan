@@ -1,5 +1,7 @@
 using SkiaSharp;
 using SettlersOfIdlestanSkia.Core;
+using SettlersOfIdlestan.Model.Game;
+using SettlersOfIdlestan.Model.IslandMap;
 
 namespace SettlersOfIdlestanSkia.Renderers;
 
@@ -10,13 +12,24 @@ namespace SettlersOfIdlestanSkia.Renderers;
 public class GameBoardRenderer : IGameRenderer
 {
     private const float HexSize = 40f;
-    private const float Padding = 20f;
 
     private SKPaint? _hexBorderPaint;
     private SKPaint? _hexFillPaint;
     private SKPaint? _textPaint;
     private SKSize _canvasSize;
     private bool _disposed;
+
+    // Dictionnaire de couleurs pour les types de terrain
+    private static readonly Dictionary<TerrainType, SKColor> TerrainColors = new()
+    {
+        { TerrainType.Mountain, new SKColor(139, 69, 19) },      // Marron
+        { TerrainType.Forest, new SKColor(34, 139, 34) },        // Vert foncé
+        { TerrainType.Pasture, new SKColor(144, 238, 144) },     // Vert clair
+        { TerrainType.Hill, new SKColor(210, 180, 140) },        // Tan
+        { TerrainType.Field, new SKColor(255, 215, 0) },         // Or
+        { TerrainType.Desert, new SKColor(238, 214, 175) },      // Sable
+        { TerrainType.Water, new SKColor(30, 144, 255) },        // Bleu
+    };
 
     public void Initialize(SKSize canvasSize)
     {
@@ -39,7 +52,7 @@ public class GameBoardRenderer : IGameRenderer
         _textPaint = new SKPaint
         {
             Color = SKColors.Black,
-            TextSize = 14,
+            TextSize = 12,
             IsAntialias = true,
             TextAlign = SKTextAlign.Center
         };
@@ -53,9 +66,82 @@ public class GameBoardRenderer : IGameRenderer
         // Clear the canvas with a light background
         canvas.DrawColor(new SKColor(238, 242, 245));
 
-        // TODO: Récupérer la carte depuis gameState et rendre les hexagones
-        // Pour maintenant, on dessine juste une grille de test
-        DrawTestHexagonGrid(canvas);
+        // Sauvegarde le state du canvas
+        canvas.Save();
+
+        try
+        {
+            // Applique la transformation de caméra :
+            // 1. Translate pour mettre le centre du canvas au (0,0) du monde
+            // 2. Applique le zoom
+            // 3. La position de la caméra est déjà un offset complet (inclut le centrage)
+            canvas.Translate(_canvasSize.Width / 2, _canvasSize.Height / 2);
+            canvas.Scale(context.ZoomLevel, context.ZoomLevel);
+
+            // Récupère le MainGameState et l'IslandState
+            if (context.GameState is MainGameState mainGameState)
+            {
+                var islandState = mainGameState.CurrentIslandState;
+                if (islandState != null)
+                {
+                    DrawIslandMap(canvas, islandState.Map);
+                }
+                else
+                {
+                    // Si pas d'îlot, on dessine une grille de test
+                    DrawTestHexagonGrid(canvas);
+                }
+            }
+            else
+            {
+                DrawTestHexagonGrid(canvas);
+            }
+        }
+        finally
+        {
+            // Restaure le state du canvas
+            canvas.Restore();
+        }
+    }
+
+    /// <summary>
+    /// Dessine la carte d'une île basée sur son IslandMap.
+    /// </summary>
+    private void DrawIslandMap(SKCanvas canvas, IslandMap map)
+    {
+        foreach (var (coord, tile) in map.Tiles)
+        {
+            var (x, y) = AxialToPixel(coord.Q, coord.R);
+            DrawHexagonTile(canvas, x, y, HexSize, tile);
+        }
+    }
+
+    /// <summary>
+    /// Dessine un hexagone représentant une tuile avec sa couleur de terrain.
+    /// </summary>
+    private void DrawHexagonTile(SKCanvas canvas, float centerX, float centerY, float size, HexTile tile)
+    {
+        var points = GetHexagonPoints(centerX, centerY, size);
+
+        if (_hexFillPaint != null)
+        {
+            // Utilise la couleur du type de terrain
+            _hexFillPaint.Color = TerrainColors.TryGetValue(tile.TerrainType, out var color) 
+                ? color 
+                : new SKColor(200, 200, 200);
+            
+            canvas.DrawPath(PointsToPath(points), _hexFillPaint);
+        }
+
+        if (_hexBorderPaint != null)
+            canvas.DrawPath(PointsToPath(points), _hexBorderPaint);
+
+        // Affiche le numéro de production si applicable
+        if (_textPaint != null && tile.ProductionNumber.HasValue)
+        {
+            _textPaint.Color = SKColors.White;
+            canvas.DrawText(tile.ProductionNumber.ToString(), centerX, centerY, _textPaint);
+        }
     }
 
     /// <summary>
@@ -92,7 +178,10 @@ public class GameBoardRenderer : IGameRenderer
 
         // Affiche les coordonnées
         if (_textPaint != null)
+        {
+            _textPaint.Color = SKColors.Black;
             canvas.DrawText($"({centerX:F0},{centerY:F0})", centerX, centerY, _textPaint);
+        }
     }
 
     /// <summary>
@@ -119,7 +208,7 @@ public class GameBoardRenderer : IGameRenderer
         float x = HexSize * (3f / 2 * q);
         float y = HexSize * (float)System.Math.Sqrt(3) / 2 * q + HexSize * (float)System.Math.Sqrt(3) * r;
 
-        return (x + Padding + _canvasSize.Width / 2, y + Padding + _canvasSize.Height / 2);
+        return (x, y);
     }
 
     /// <summary>
@@ -149,7 +238,6 @@ public class GameBoardRenderer : IGameRenderer
         _hexBorderPaint?.Dispose();
         _hexFillPaint?.Dispose();
         _textPaint?.Dispose();
-
         _disposed = true;
     }
 }

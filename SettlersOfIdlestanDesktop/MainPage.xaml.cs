@@ -11,9 +11,11 @@ public partial class MainPage : ContentPage
 	private RenderService? _renderService;
 	private InputHandlingService? _inputService;
 	private ResourceManager? _resourceManager;
-	private object? _gameState;
+	private GameControllerService? _gameControllerService;
+	private CameraService? _cameraService;
 	private int _frameCount;
 	private DateTime _lastFpsUpdate = DateTime.UtcNow;
+	private bool _isInitialized = false;
 
 	public MainPage()
 	{
@@ -24,7 +26,7 @@ public partial class MainPage : ContentPage
 	{
 		base.OnAppearing();
 		
-		// Initialise les services
+		// Initialise les services (sans caméra pour l'instant)
 		await InitializeGameServices();
 	}
 
@@ -32,25 +34,25 @@ public partial class MainPage : ContentPage
 	{
 		try
 		{
-			// Crée les services
+			// Crée les services (sauf la caméra qui attend les vraies dimensions du canvas)
 			_resourceManager = new ResourceManager();
 			_inputService = new InputHandlingService();
 			_renderService = new RenderService();
+			_gameControllerService = new GameControllerService();
+			_cameraService = new CameraService();
+
+			// Initialise un nouveau jeu via le controller
+			var gameState = _gameControllerService.InitializeNewGame();
+			if (gameState == null)
+				throw new InvalidOperationException("Impossible de créer le jeu.");
 
 			// Enregistre les renderers (ordre = z-order)
 			_renderService.RegisterRenderer(new GameBoardRenderer());
 			// TODO: Ajouter d'autres renderers (UI, animations, etc.)
 
-			// Initialise avec les dimensions du canvas
-			var canvasSize = new SKSize((float)GameCanvas.Width, (float)GameCanvas.Height);
-			_renderService.Initialize(canvasSize);
-
-			// Crée un état de jeu factice pour la démo
-			_gameState = new object(); // À remplacer par le vrai GameState
-
 			StateLabel.Text = "Prêt";
 			
-			// Démarre la boucle de rendu
+			// Démarre la boucle de rendu - elle finira d'initialiser la caméra au premier frame
 			MainThread.BeginInvokeOnMainThread(() => Dispatcher.StartTimer(TimeSpan.FromMilliseconds(16), RenderFrame));
 		}
 		catch (Exception ex)
@@ -61,12 +63,24 @@ public partial class MainPage : ContentPage
 
 	private void OnCanvasPaintSurface(object? sender, SKPaintSurfaceEventArgs e)
 	{
-		if (_renderService == null || _gameState == null)
+		if (_renderService == null || _gameControllerService?.CurrentGameState == null || _cameraService == null)
 			return;
 
 		try
 		{
-			_renderService.RenderFrame(e.Surface.Canvas, _gameState);
+			// PREMIER APPEL: Initialise la caméra avec les vraies dimensions du canvas
+			if (!_isInitialized)
+			{
+				var canvasSize = new SKSize(e.Surface.Canvas.DeviceClipBounds.Width, e.Surface.Canvas.DeviceClipBounds.Height);
+				_cameraService.Initialize(canvasSize);
+				_cameraService.CenterOnOrigin();
+				_renderService.Initialize(canvasSize);
+				_isInitialized = true;
+			}
+
+			// Crée le contexte avec la caméra
+			var gameState = _gameControllerService.CurrentGameState;
+			_renderService.RenderFrame(e.Surface.Canvas, gameState, _cameraService);
 		}
 		catch (Exception ex)
 		{
@@ -101,13 +115,16 @@ public partial class MainPage : ContentPage
 
 	private bool RenderFrame()
 	{
-		if (GameCanvas == null)
+		if (GameCanvas == null || _gameControllerService == null || _cameraService == null)
 			return false;
+
+		// Met à jour l'état du jeu
+		_gameControllerService.Update(0.016f); // ~60 FPS
 
 		// Force le redraw du canvas
 		GameCanvas.InvalidateSurface();
 
-		// Met à jour le FPS tous les 500ms
+		// Met à jour le FPS et la position de la caméra tous les 500ms
 		_frameCount++;
 		var now = DateTime.UtcNow;
 		var elapsed = now - _lastFpsUpdate;
@@ -115,7 +132,12 @@ public partial class MainPage : ContentPage
 		if (elapsed.TotalMilliseconds >= 500)
 		{
 			var fps = _frameCount / elapsed.TotalSeconds;
-			MainThread.BeginInvokeOnMainThread(() => FpsLabel.Text = $"FPS: {fps:F1}");
+			var camPos = _cameraService.Position;
+			MainThread.BeginInvokeOnMainThread(() => 
+			{
+				FpsLabel.Text = $"FPS: {fps:F1}";
+				CameraLabel.Text = $"Camera: {camPos.X:F1}, {camPos.Y:F1}";
+			});
 			
 			_frameCount = 0;
 			_lastFpsUpdate = now;

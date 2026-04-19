@@ -48,7 +48,7 @@ public class RenderService : IDisposable
     /// <summary>
     /// Rend un frame en appelant tous les renderers dans l'ordre.
     /// </summary>
-    public void RenderFrame(SKCanvas canvas, object gameState)
+    public void RenderFrame(SKCanvas canvas, object gameState, CameraService? cameraService = null)
     {
         if (_disposed)
             throw new ObjectDisposedException(nameof(RenderService));
@@ -73,8 +73,8 @@ public class RenderService : IDisposable
             DeltaTime = deltaTime,
             CanvasSize = canvasSize,
             TotalTime = _totalTime,
-            CameraPosition = SKPoint.Empty,
-            ZoomLevel = 1.0f
+            CameraPosition = cameraService?.Position ?? SKPoint.Empty,
+            ZoomLevel = cameraService?.ZoomLevel ?? 1.0f
         };
 
         // Appelle chaque renderer dans l'ordre

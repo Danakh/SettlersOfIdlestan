@@ -26,6 +26,10 @@
                    Text="FPS: 0"
                    FontSize="12"
                    VerticalOptions="Center" />
+            <Label x:Name="CameraLabel"
+                   Text="Camera: 0,0"
+                   FontSize="12"
+                   VerticalOptions="Center" />
             <Label x:Name="StateLabel"
                    Text="Chargement..."
                    FontSize="12"
