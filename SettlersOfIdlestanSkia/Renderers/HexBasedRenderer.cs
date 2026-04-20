@@ -4,8 +4,37 @@ using SettlersOfIdlestanSkia.Core;
 namespace SettlersOfIdlestanSkia.Renderers;
 
 /// <summary>
+/// Classe utilitaire pour gérer les transformations de caméra sur le canvas.
+/// Automatise le Save/Restore du canvas.
+/// </summary>
+public class CameraTransformScope : IDisposable
+{
+    private readonly SKCanvas _canvas;
+    private bool _disposed;
+
+    public CameraTransformScope(SKCanvas canvas, SKSize canvasSize, float zoomLevel)
+    {
+        _canvas = canvas;
+        _canvas.Save();
+        
+        // Applique la transformation de caméra
+        _canvas.Translate(canvasSize.Width / 2, canvasSize.Height / 2);
+        _canvas.Scale(zoomLevel, zoomLevel);
+    }
+
+    public void Dispose()
+    {
+        if (_disposed)
+            return;
+
+        _canvas.Restore();
+        _disposed = true;
+    }
+}
+
+/// <summary>
 /// Classe mère pour tous les renderers basés sur une grille hexagonale.
-/// Centralise la gestion de la taille des hexagones et les conversions de coordonnées.
+/// Centralise la gestion de la taille des hexagones, les conversions de coordonnées et les transformations de caméra.
 /// </summary>
 public abstract class HexBasedRenderer : IGameRenderer
 {
@@ -26,6 +55,15 @@ public abstract class HexBasedRenderer : IGameRenderer
     /// Rend un frame.
     /// </summary>
     public abstract void Render(SKCanvas canvas, GameRenderContext context);
+
+    /// <summary>
+    /// Applique la transformation de caméra au canvas.
+    /// Retourne un scope qui gère automatiquement le Save/Restore du canvas.
+    /// </summary>
+    protected CameraTransformScope ApplyCameraTransform(SKCanvas canvas, GameRenderContext context)
+    {
+        return new CameraTransformScope(canvas, CanvasSize, context.ZoomLevel);
+    }
 
     /// <summary>
     /// Convertit des coordonnées axiales (q, r) en coordonnées pixel (x, y).

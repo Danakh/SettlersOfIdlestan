@@ -39,15 +39,8 @@ public class RoadRenderer : HexBasedRenderer
         if (context.GameState == null || _roadPaint == null)
             return;
 
-        // Sauvegarde le state du canvas
-        canvas.Save();
-
-        try
+        using (ApplyCameraTransform(canvas, context))
         {
-            // Applique les mêmes transformations de caméra que les autres renderers
-            canvas.Translate(CanvasSize.Width / 2, CanvasSize.Height / 2);
-            canvas.Scale(context.ZoomLevel, context.ZoomLevel);
-
             if (context.GameState is MainGameState mainGameState)
             {
                 var islandState = mainGameState.CurrentIslandState;
@@ -60,11 +53,6 @@ public class RoadRenderer : HexBasedRenderer
                     }
                 }
             }
-        }
-        finally
-        {
-            // Restaure le state du canvas
-            canvas.Restore();
         }
     }
 

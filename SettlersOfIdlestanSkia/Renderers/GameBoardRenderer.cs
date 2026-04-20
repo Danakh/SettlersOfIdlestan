@@ -62,15 +62,8 @@ public class GameBoardRenderer : HexBasedRenderer
         // Clear the canvas with a light background
         canvas.DrawColor(new SKColor(238, 242, 245));
 
-        // Sauvegarde le state du canvas
-        canvas.Save();
-
-        try
+        using (ApplyCameraTransform(canvas, context))
         {
-            // Applique la transformation de caméra correctement :
-            canvas.Translate(CanvasSize.Width / 2, CanvasSize.Height / 2);
-            canvas.Scale(context.ZoomLevel, context.ZoomLevel);
-
             // Récupère le MainGameState et l'IslandState
             if (context.GameState is MainGameState mainGameState)
             {
@@ -80,11 +73,6 @@ public class GameBoardRenderer : HexBasedRenderer
                     DrawIslandMap(canvas, islandState.Map);
                 }
             }
-        }
-        finally
-        {
-            // Restaure le state du canvas
-            canvas.Restore();
         }
     }
 
