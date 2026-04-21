@@ -126,6 +126,17 @@ public abstract class HexBasedRenderer : IGameRenderer
     }
 
     /// <summary>
+    /// Calcule le point milieu entre deux hexagones adjacents pour positionner une route sur l'edge.
+    /// </summary>
+    protected SKPoint EdgeToPixel(int q1, int r1, int q2, int r2)
+    {
+        var (x1, y1) = AxialToPixel(q1, r1);
+        var (x2, y2) = AxialToPixel(q2, r2);
+
+        return new SKPoint((x1 + x2) / 2, (y1 + y2) / 2);
+    }
+
+    /// <summary>
     /// Libère les ressources du renderer.
     /// </summary>
     public abstract void Dispose();

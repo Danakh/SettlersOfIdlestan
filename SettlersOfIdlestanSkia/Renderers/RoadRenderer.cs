@@ -73,11 +73,37 @@ public class RoadRenderer : HexBasedRenderer
         {
             // Récupère les deux hexagones de l'arête
             var (hex1, hex2) = road.Position.GetHexes();
+            
+            // Récupère les positions des centres des deux hexagones
             var (x1, y1) = AxialToPixel(hex1.Q, hex1.R);
             var (x2, y2) = AxialToPixel(hex2.Q, hex2.R);
-
-            // Dessine une ligne entre les centres des deux hexagones
-            canvas.DrawLine(x1, y1, x2, y2, _roadPaint);
+            
+            // Calcule le point milieu (centre de l'edge)
+            float midX = (x1 + x2) / 2;
+            float midY = (y1 + y2) / 2;
+            
+            // Calcule la direction perpendiculaire à l'edge pour un meilleur rendu
+            float dx = x2 - x1;
+            float dy = y2 - y1;
+            float length = (float)System.Math.Sqrt(dx * dx + dy * dy);
+            
+            if (length > 0)
+            {
+                // Vecteur perpendiculaire normalisé
+                float perpX = -dy / length;
+                float perpY = dx / length;
+                
+                // Longueur de la route perpendiculaire
+                float roadLength = 8f;
+                
+                // Dessine une ligne perpendiculaire au centre de l'edge
+                float x1Perp = midX - perpX * roadLength / 2;
+                float y1Perp = midY - perpY * roadLength / 2;
+                float x2Perp = midX + perpX * roadLength / 2;
+                float y2Perp = midY + perpY * roadLength / 2;
+                
+                canvas.DrawLine(x1Perp, y1Perp, x2Perp, y2Perp, _roadPaint);
+            }
         }
     }
 
