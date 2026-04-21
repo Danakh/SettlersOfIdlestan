@@ -56,6 +56,8 @@ public partial class MainPage : ContentPage
 			_renderService.RegisterRenderer(new RoadRenderer());
 			// 3. Villes
 			_renderService.RegisterRenderer(new CityRenderer());
+			// 4. Overlay des ressources du joueur (au-dessus de tout)
+			_renderService.RegisterRenderer(new PlayerResourcesOverlayRenderer());
 			// TODO: Ajouter d'autres renderers (UI, animations, etc.)
 
 			// Crée le service de détection des clics sur hexagones
