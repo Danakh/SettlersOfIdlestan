@@ -14,6 +14,11 @@ public class GameControllerService
 
     public MainGameState? CurrentGameState => _controller.CurrentMainState;
 
+    /// <summary>
+    /// Gets the player's civilization.
+    /// </summary>
+    public SettlersOfIdlestan.Model.Civilization.Civilization? PlayerCivilization => _controller.PlayerCivilization;
+
     public GameControllerService()
     {
         _controller = new MainGameController();

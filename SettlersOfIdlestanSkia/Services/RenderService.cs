@@ -20,6 +20,11 @@ public class RenderService : IDisposable
     }
 
     /// <summary>
+    /// Récupère la liste des renderers enregistrés.
+    /// </summary>
+    public IReadOnlyList<IGameRenderer> Renderers => _renderers.AsReadOnly();
+
+    /// <summary>
     /// Enregistre un renderer pour qu'il soit appelé à chaque frame.
     /// L'ordre d'enregistrement détermine l'ordre de rendu (back to front).
     /// </summary>

@@ -36,7 +36,7 @@ public class CameraTransformScope : IDisposable
 /// Classe mère pour tous les renderers basés sur une grille hexagonale.
 /// Centralise la gestion de la taille des hexagones, les conversions de coordonnées et les transformations de caméra.
 /// </summary>
-public abstract class HexBasedRenderer : IGameRenderer
+public abstract class HexBasedRenderer : IGameRenderer, IHexConverter
 {
     /// <summary>
     /// Taille des hexagones en pixels.
@@ -66,15 +66,86 @@ public abstract class HexBasedRenderer : IGameRenderer
     }
 
     /// <summary>
-    /// Convertit des coordonnées axiales (q, r) en coordonnées pixel (x, y).
+    /// Convertit des coordonnées hexagonales (Q, R) en coordonnées pixel (x, y).
     /// Utilisé pour tous les calculs de position dans la grille hexagonale.
     /// </summary>
-    protected (float x, float y) AxialToPixel(int q, int r)
+    public (float x, float y) AxialToPixel(int q, int r)
     {
         float x = HexSize * (3f / 2 * q);
         float y = HexSize * (float)System.Math.Sqrt(3) / 2 * q + HexSize * (float)System.Math.Sqrt(3) * r;
 
         return (x, y);
+    }
+
+    /// <summary>
+    /// Convertit des coordonnées pixel (x, y) en coordonnées hexagonales axiales (q, r).
+    /// Utilise l'inverse de la transformation AxialToPixel.
+    /// </summary>
+    public (int q, int r) PixelToAxial(float x, float y)
+    {
+        float q = (2f / 3 * x) / HexSize;
+        float r = (-1f / 3 * x + (float)System.Math.Sqrt(3) / 3 * y) / HexSize;
+
+        // Arrondit aux coordonnées hexagonales les plus proches
+        return RoundAxialCoordinates(q, r);
+    }
+
+    /// <summary>
+    /// Arrondit des coordonnées axiales floatantes aux coordonnées entières les plus proches.
+    /// </summary>
+    private (int q, int r) RoundAxialCoordinates(float q, float r)
+    {
+        float s = -q - r;
+        
+        float rq = (float)System.Math.Round(q);
+        float rr = (float)System.Math.Round(r);
+        float rs = (float)System.Math.Round(s);
+        
+        float qDiff = System.Math.Abs(rq - q);
+        float rDiff = System.Math.Abs(rr - r);
+        float sDiff = System.Math.Abs(rs - s);
+        
+        if (qDiff > rDiff && qDiff > sDiff)
+        {
+            rq = -rr - rs;
+        }
+        else if (rDiff > sDiff)
+        {
+            rr = -rq - rs;
+        }
+        
+        return ((int)rq, (int)rr);
+    }
+
+    /// <summary>
+    /// Vérifie si un point (x, y) en coordonnées pixel se trouve à l'intérieur d'un hexagone.
+    /// Utilise l'algorithme "point in polygon" pour les hexagones réguliers.
+    /// </summary>
+    public bool IsPointInHexagon(float px, float py, float hexCenterX, float hexCenterY, float size = HexSize)
+    {
+        var points = GetHexagonPoints(hexCenterX, hexCenterY, size);
+        return IsPointInPolygon(px, py, points);
+    }
+
+    /// <summary>
+    /// Vérifie si un point se trouve à l'intérieur d'un polygone en utilisant l'algorithme ray casting.
+    /// </summary>
+    private bool IsPointInPolygon(float x, float y, SKPoint[] polygon)
+    {
+        int n = polygon.Length;
+        bool inside = false;
+
+        for (int i = 0, j = n - 1; i < n; j = i++)
+        {
+            float xi = polygon[i].X, yi = polygon[i].Y;
+            float xj = polygon[j].X, yj = polygon[j].Y;
+
+            bool intersect = ((yi > y) != (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+            if (intersect)
+                inside = !inside;
+        }
+
+        return inside;
     }
 
     /// <summary>

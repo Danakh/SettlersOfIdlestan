@@ -13,6 +13,8 @@ public partial class MainPage : ContentPage
 	private ResourceManager? _resourceManager;
 	private GameControllerService? _gameControllerService;
 	private CameraService? _cameraService;
+	private HarvestService? _harvestService;
+	private HexClickService? _hexClickService;
 	private int _frameCount;
 	private DateTime _lastFpsUpdate = DateTime.UtcNow;
 	private bool _isInitialized = false;
@@ -40,6 +42,7 @@ public partial class MainPage : ContentPage
 			_renderService = new RenderService();
 			_gameControllerService = new GameControllerService();
 			_cameraService = new CameraService();
+			_harvestService = new HarvestService(_gameControllerService);
 
 			// Initialise un nouveau jeu via le controller
 			var gameState = _gameControllerService.InitializeNewGame();
@@ -54,6 +57,9 @@ public partial class MainPage : ContentPage
 			// 3. Villes
 			_renderService.RegisterRenderer(new CityRenderer());
 			// TODO: Ajouter d'autres renderers (UI, animations, etc.)
+
+			// Crée le service de détection des clics sur hexagones
+			_hexClickService = new HexClickService(_gameControllerService, _harvestService, _inputService, _cameraService);
 
 			StateLabel.Text = "Prêt";
 			
@@ -85,6 +91,19 @@ public partial class MainPage : ContentPage
 				_cameraService.FitMapToView(hexCoords);
 				
 				_renderService.Initialize(canvasSize);
+				
+				// Initialise le service de détection des clics sur hexagones
+				// On utilise le GameBoardRenderer du RenderService
+				if (_hexClickService != null && _renderService != null)
+				{
+					// Récupère le premier renderer (GameBoardRenderer) de la liste des renderers
+					var gameboardRenderer = _renderService.Renderers.FirstOrDefault(r => r is GameBoardRenderer) as GameBoardRenderer;
+					if (gameboardRenderer != null)
+					{
+						_hexClickService.Initialize(gameboardRenderer);
+					}
+				}
+				
 				_isInitialized = true;
 			}
 
@@ -167,6 +186,7 @@ public partial class MainPage : ContentPage
 	{
 		base.OnDisappearing();
 		
+		_hexClickService?.Cleanup();
 		_renderService?.Dispose();
 		_resourceManager?.Dispose();
 	}

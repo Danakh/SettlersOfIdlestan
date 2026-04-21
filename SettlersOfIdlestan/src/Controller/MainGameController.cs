@@ -22,6 +22,12 @@ namespace SettlersOfIdlestan.Controller
         // Holds the currently loaded main game state when created or imported
         public SettlersOfIdlestan.Model.Game.MainGameState? CurrentMainState { get; private set; }
 
+        /// <summary>
+        /// Gets the player's civilization (always at index 0).
+        /// </summary>
+        public SettlersOfIdlestan.Model.Civilization.Civilization? PlayerCivilization 
+            => CurrentMainState?.CurrentIslandState?.PlayerCivilization;
+
         public MainGameController()
         {
             // create a default empty state for controllers; callers should replace with real state when available

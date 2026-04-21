@@ -16,4 +16,8 @@
     <ProjectReference Include="..\SettlersOfIdlestan\SettlersOfIdlestan.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="src\SkiaTests\" />
+  </ItemGroup>
+
 </Project>
