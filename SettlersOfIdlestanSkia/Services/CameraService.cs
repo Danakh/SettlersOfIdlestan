@@ -15,6 +15,7 @@ public class CameraService
 
     public SKPoint Position => _position;
     public float ZoomLevel => _zoomLevel;
+    public SKSize CanvasSize => _canvasSize;
 
     /// <summary>
     /// Initialise la caméra avec les dimensions du canvas.

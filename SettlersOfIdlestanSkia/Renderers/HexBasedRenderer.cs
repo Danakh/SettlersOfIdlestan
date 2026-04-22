@@ -83,6 +83,7 @@ public abstract class HexBasedRenderer : IGameRenderer, IHexConverter
     /// </summary>
     public (int q, int r) PixelToAxial(float x, float y)
     {
+        // Applique l'offset d'origine inverse
         float q = (2f / 3 * x) / HexSize;
         float r = (-1f / 3 * x + (float)System.Math.Sqrt(3) / 3 * y) / HexSize;
 
@@ -205,6 +206,19 @@ public abstract class HexBasedRenderer : IGameRenderer, IHexConverter
         var (x2, y2) = AxialToPixel(q2, r2);
 
         return new SKPoint((x1 + x2) / 2, (y1 + y2) / 2);
+    }
+
+    /// <summary>
+    /// Convertit un point écran en coordonnées hexagonales, en appliquant la même transformation que le rendu (origine, zoom, pan).
+    /// </summary>
+    public (int q, int r) ScreenToHex(SKPoint screenPoint, SKSize canvasSize, float zoomLevel, SKPoint cameraPos)
+    {
+        // Applique la transformation inverse du rendu
+        // 1. Translate l'origine écran au centre du canvas
+        float x = (screenPoint.X - canvasSize.Width / 2f) / zoomLevel + cameraPos.X;
+        float y = (screenPoint.Y - canvasSize.Height / 2f) / zoomLevel + cameraPos.Y;
+        // 2. Convertit en coordonnées hexagonales
+        return PixelToAxial(x, y);
     }
 
     /// <summary>

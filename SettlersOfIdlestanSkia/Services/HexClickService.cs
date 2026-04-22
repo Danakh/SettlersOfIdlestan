@@ -1,6 +1,7 @@
 using SkiaSharp;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestanSkia.Core;
+using SettlersOfIdlestanSkia.Renderers;
 
 namespace SettlersOfIdlestanSkia.Services;
 
@@ -14,7 +15,7 @@ public class HexClickService
     private readonly HarvestService _harvestService;
     private readonly InputHandlingService _inputService;
     private readonly CameraService _cameraService;
-    private IHexConverter? _hexConverter;
+    private readonly HexBasedRenderer _renderer;
 
     /// <summary>
     /// Événement déclenché quand un hexagone est cliqué.
@@ -25,23 +26,17 @@ public class HexClickService
         GameControllerService gameControllerService,
         HarvestService harvestService,
         InputHandlingService inputService,
-        CameraService cameraService)
+        CameraService cameraService,
+        HexBasedRenderer renderer)
     {
         _gameControllerService = gameControllerService ?? throw new ArgumentNullException(nameof(gameControllerService));
         _harvestService = harvestService ?? throw new ArgumentNullException(nameof(harvestService));
         _inputService = inputService ?? throw new ArgumentNullException(nameof(inputService));
         _cameraService = cameraService ?? throw new ArgumentNullException(nameof(cameraService));
+        _renderer = renderer ?? throw new ArgumentNullException(nameof(renderer));
 
         // S'abonne aux événements de pointeur
         _inputService.PointerPressed += OnPointerPressed;
-    }
-
-    /// <summary>
-    /// Initialise le service avec un convertisseur hexagonal.
-    /// </summary>
-    public void Initialize(IHexConverter hexConverter)
-    {
-        _hexConverter = hexConverter ?? throw new ArgumentNullException(nameof(hexConverter));
     }
 
     /// <summary>
@@ -49,16 +44,15 @@ public class HexClickService
     /// </summary>
     private void OnPointerPressed(object? sender, PointerEventArgs e)
     {
-        if (_hexConverter == null || _gameControllerService.CurrentGameState == null)
+        if (_gameControllerService.CurrentGameState == null)
             return;
 
         try
         {
-            // Convertit les coordonnées écran en coordonnées monde en appliquant l'inverse de la transformation de caméra
-            var worldCoords = ScreenToWorldCoordinates(e.Position);
-
-            // Convertit les coordonnées monde en coordonnées hexagonales
-            var (q, r) = _hexConverter.PixelToAxial(worldCoords.X, worldCoords.Y);
+            var canvasSize = _cameraService.CanvasSize; // Ajoute une propriété publique CanvasSize dans CameraService si besoin
+            var cameraPos = _cameraService.Position;
+            var zoomLevel = _cameraService.ZoomLevel;
+            (int q, int r) = _renderer.ScreenToHex(e.Position, canvasSize, zoomLevel, cameraPos);
             var hexCoord = new HexCoord(q, r);
 
             // Déclenche l'événement
@@ -68,23 +62,6 @@ public class HexClickService
         {
             System.Diagnostics.Debug.WriteLine($"Erreur lors du traitement du clic: {ex.Message}");
         }
-    }
-
-    /// <summary>
-    /// Convertit les coordonnées écran en coordonnées monde en appliquant l'inverse de la transformation de caméra.
-    /// </summary>
-    private SKPoint ScreenToWorldCoordinates(SKPoint screenPoint)
-    {
-        var cameraPos = _cameraService.Position;
-        var zoomLevel = _cameraService.ZoomLevel;
-        
-        // Inverse la transformation de caméra
-        // La caméra translate puis scale
-        // Donc pour inverser: unscale puis untranslate
-        float worldX = (screenPoint.X / zoomLevel) - (cameraPos.X / zoomLevel);
-        float worldY = (screenPoint.Y / zoomLevel) - (cameraPos.Y / zoomLevel);
-
-        return new SKPoint(worldX, worldY);
     }
 
     /// <summary>
