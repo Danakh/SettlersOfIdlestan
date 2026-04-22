@@ -51,18 +51,20 @@ public partial class MainPage : ContentPage
 
 			// Enregistre les renderers dans l'ordre (de bas en haut):
 			// 1. Plateau de jeu (hexagones et terrain)
-			_renderService.RegisterRenderer(new GameBoardRenderer());
+			var gameboardRenderer = new GameBoardRenderer();
+			_renderService.RegisterRenderer(gameboardRenderer);
 			// 2. Routes
 			_renderService.RegisterRenderer(new RoadRenderer());
 			// 3. Villes
 			_renderService.RegisterRenderer(new CityRenderer());
 			// 4. Overlay des ressources du joueur (au-dessus de tout)
 			_renderService.RegisterRenderer(new PlayerResourcesOverlayRenderer());
+			// 5. Overlay debug (tout en haut)
+			_renderService.RegisterRenderer(new DebugOverlayRenderer(_inputService, _cameraService, gameboardRenderer));
 			// TODO: Ajouter d'autres renderers (UI, animations, etc.)
 
 			// Crée le service de détection des clics sur hexagones
 			// On utilise le GameBoardRenderer du RenderService
-			var gameboardRenderer = _renderService.Renderers.FirstOrDefault(r => r is GameBoardRenderer) as GameBoardRenderer;
 			if (gameboardRenderer == null)
 				throw new InvalidOperationException("GameBoardRenderer non trouvé");
 			_hexClickService = new HexClickService(_gameControllerService, _harvestService, _inputService, _cameraService, gameboardRenderer);

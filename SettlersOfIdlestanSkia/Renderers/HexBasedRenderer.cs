@@ -215,8 +215,8 @@ public abstract class HexBasedRenderer : IGameRenderer, IHexConverter
     {
         // Applique la transformation inverse du rendu
         // 1. Translate l'origine écran au centre du canvas
-        float x = (screenPoint.X - canvasSize.Width / 2f) / zoomLevel + cameraPos.X;
-        float y = (screenPoint.Y - canvasSize.Height / 2f) / zoomLevel + cameraPos.Y;
+        float x = screenPoint.X / zoomLevel + cameraPos.X;
+        float y = screenPoint.Y / zoomLevel + cameraPos.Y;
         // 2. Convertit en coordonnées hexagonales
         return PixelToAxial(x, y);
     }

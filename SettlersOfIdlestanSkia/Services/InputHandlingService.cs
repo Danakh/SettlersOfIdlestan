@@ -28,6 +28,8 @@ public class InputHandlingService
     /// </summary>
     public event EventHandler<ZoomEventArgs>? ZoomChanged;
 
+    public SKPoint LastPointerPosition { get; private set; } = SKPoint.Empty;
+
     /// <summary>
     /// Traite un événement de pointeur pressé.
     /// </summary>
@@ -46,9 +48,10 @@ public class InputHandlingService
     /// </summary>
     public void HandlePointerMoved(float x, float y, int pointerId = 0)
     {
-        PointerMoved?.Invoke(this, new PointerEventArgs 
-        { 
-            Position = new SKPoint(x, y), 
+        LastPointerPosition = new SKPoint(x, y);
+        PointerMoved?.Invoke(this, new PointerEventArgs
+        {
+            Position = LastPointerPosition,
             PointerId = pointerId,
             Timestamp = DateTime.UtcNow
         });

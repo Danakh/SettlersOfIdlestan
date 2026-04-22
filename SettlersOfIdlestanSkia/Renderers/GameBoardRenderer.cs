@@ -114,6 +114,14 @@ public class GameBoardRenderer : HexBasedRenderer
             _textPaint.Color = SKColors.White;
             canvas.DrawText(tile.ProductionNumber.ToString(), centerX, centerY, _textPaint);
         }
+
+        // Affiche les coordonnées (q, r) en mode debug
+        if (DebugOverlayRenderer.DebugMode && _textPaint != null && tile.Coord != null)
+        {
+            _textPaint.Color = SKColors.Black;
+            _textPaint.TextSize = 12;
+            canvas.DrawText($"{tile.Coord.Q},{tile.Coord.R}", centerX, centerY + size / 2.5f, _textPaint);
+        }
     }
 
     /// <summary>
