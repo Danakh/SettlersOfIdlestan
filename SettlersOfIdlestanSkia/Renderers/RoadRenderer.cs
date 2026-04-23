@@ -7,9 +7,10 @@ namespace SettlersOfIdlestanSkia.Renderers;
 /// <summary>
 /// Renderer pour afficher les routes entre les villes.
 /// </summary>
-public class RoadRenderer : HexBasedRenderer
+public class RoadRenderer : HexBasedRenderer, IGameRenderer
 {
     private SKPaint? _roadPaint;
+    private bool _disposed;
 
     // Couleurs pour les civilisations (à étendre selon le nombre de civs)
     private static readonly SKColor[] CivilizationColors = new[]
@@ -20,10 +21,8 @@ public class RoadRenderer : HexBasedRenderer
         new SKColor(255, 200, 0),   // Orange - Civ 3
     };
 
-    public override void Initialize(SKSize canvasSize)
+    public void Initialize(SKSize canvasSize)
     {
-        CanvasSize = canvasSize;
-
         _roadPaint = new SKPaint
         {
             Style = SKPaintStyle.Stroke,
@@ -34,23 +33,20 @@ public class RoadRenderer : HexBasedRenderer
         };
     }
 
-    public override void Render(SKCanvas canvas, GameRenderContext context)
+    public void Render(SKCanvas canvas, GameRenderContext context)
     {
         if (context.GameState == null || _roadPaint == null)
             return;
 
-        using (ApplyCameraTransform(canvas, context))
+        if (context.GameState is MainGameState mainGameState)
         {
-            if (context.GameState is MainGameState mainGameState)
+            var islandState = mainGameState.CurrentIslandState;
+            if (islandState != null)
             {
-                var islandState = mainGameState.CurrentIslandState;
-                if (islandState != null)
+                // Dessine les routes de chaque civilisation
+                foreach (var civilization in islandState.Civilizations)
                 {
-                    // Dessine les routes de chaque civilisation
-                    foreach (var civilization in islandState.Civilizations)
-                    {
-                        DrawRoads(canvas, islandState.Map, civilization.Roads, civilization.Index);
-                    }
+                    DrawRoads(canvas, islandState.Map, civilization.Roads, civilization.Index);
                 }
             }
         }
@@ -75,8 +71,8 @@ public class RoadRenderer : HexBasedRenderer
             var (hex1, hex2) = road.Position.GetHexes();
             
             // Récupère les positions des centres des deux hexagones
-            var (x1, y1) = AxialToPixel(hex1.Q, hex1.R);
-            var (x2, y2) = AxialToPixel(hex2.Q, hex2.R);
+            var (x1, y1) = AxialToIsland(hex1.Q, hex1.R);
+            var (x2, y2) = AxialToIsland(hex2.Q, hex2.R);
             
             // Calcule le point milieu (centre de l'edge)
             float midX = (x1 + x2) / 2;
@@ -107,12 +103,12 @@ public class RoadRenderer : HexBasedRenderer
         }
     }
 
-    public override void Dispose()
+    public void Dispose()
     {
-        if (Disposed)
+        if (_disposed)
             return;
 
         _roadPaint?.Dispose();
-        Disposed = true;
+        _disposed = true;
     }
 }

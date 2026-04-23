@@ -9,12 +9,13 @@ namespace SettlersOfIdlestanSkia.Renderers;
 /// Renderer de base pour le plateau de jeu hexagonal.
 /// Responsable du rendu des hexagones, du terrain et des ressources.
 /// </summary>
-public class GameBoardRenderer : HexBasedRenderer
+public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
 {
     private SKPaint? _hexBorderPaint;
     private SKPaint? _hexFillPaint;
     private SKPaint? _textPaint;
     private SKFont? _textFont;
+    private bool _disposed;
 
     // Dictionnaire de couleurs pour les types de terrain
     private static readonly Dictionary<TerrainType, SKColor> TerrainColors = new()
@@ -28,10 +29,8 @@ public class GameBoardRenderer : HexBasedRenderer
         { TerrainType.Water, new SKColor(30, 144, 255) },        // Bleu
     };
 
-    public override void Initialize(SKSize canvasSize)
+    public void Initialize(SKSize canvasSize)
     {
-        CanvasSize = canvasSize;
-
         _hexBorderPaint = new SKPaint
         {
             Color = SKColors.Black,
@@ -55,7 +54,7 @@ public class GameBoardRenderer : HexBasedRenderer
         _textFont = new SKFont(SKTypeface.Default, 12);
     }
 
-    public override void Render(SKCanvas canvas, GameRenderContext context)
+    public void Render(SKCanvas canvas, GameRenderContext context)
     {
         if (context.GameState == null)
             return;
@@ -63,16 +62,13 @@ public class GameBoardRenderer : HexBasedRenderer
         // Clear the canvas with a light background
         canvas.DrawColor(new SKColor(238, 242, 245));
 
-        using (ApplyCameraTransform(canvas, context))
+        // Récupère le MainGameState et l'IslandState
+        if (context.GameState is MainGameState mainGameState)
         {
-            // Récupère le MainGameState et l'IslandState
-            if (context.GameState is MainGameState mainGameState)
+            var islandState = mainGameState.CurrentIslandState;
+            if (islandState != null)
             {
-                var islandState = mainGameState.CurrentIslandState;
-                if (islandState != null)
-                {
-                    DrawIslandMap(canvas, islandState.Map);
-                }
+                DrawIslandMap(canvas, islandState.Map);
             }
         }
     }
@@ -84,7 +80,7 @@ public class GameBoardRenderer : HexBasedRenderer
     {
         foreach (var (coord, tile) in map.Tiles)
         {
-            var (x, y) = AxialToPixel(coord.Q, coord.R);
+            var (x, y) = AxialToIsland(coord.Q, coord.R);
             DrawHexagonTile(canvas, x, y, HexSize, tile);
         }
     }
@@ -148,15 +144,15 @@ public class GameBoardRenderer : HexBasedRenderer
         }
     }
 
-    public override void Dispose()
+    public void Dispose()
     {
-        if (Disposed)
+        if (_disposed)
             return;
 
         _hexBorderPaint?.Dispose();
         _hexFillPaint?.Dispose();
         _textPaint?.Dispose();
         _textFont?.Dispose();
-        Disposed = true;
+        _disposed = true;
     }
 }

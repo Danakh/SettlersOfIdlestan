@@ -50,24 +50,23 @@ public partial class MainPage : ContentPage
 				throw new InvalidOperationException("Impossible de créer le jeu.");
 
 			// Enregistre les renderers dans l'ordre (de bas en haut):
-			// 1. Plateau de jeu (hexagones et terrain)
+			// 1. Renderer principal de l'île (plateau, routes, villes)
 			var gameboardRenderer = new GameBoardRenderer();
-			_renderService.RegisterRenderer(gameboardRenderer);
-			// 2. Routes
-			_renderService.RegisterRenderer(new RoadRenderer());
-			// 3. Villes
-			_renderService.RegisterRenderer(new CityRenderer());
-			// 4. Overlay des ressources du joueur (au-dessus de tout)
+			var roadRenderer = new RoadRenderer();
+			var cityRenderer = new CityRenderer();
+			var islandMainRenderer = new IslandMainRenderer(gameboardRenderer, roadRenderer, cityRenderer);
+			_renderService.RegisterRenderer(islandMainRenderer);
+			// 2. Overlay des ressources du joueur (au-dessus de tout)
 			_renderService.RegisterRenderer(new PlayerResourcesOverlayRenderer());
-			// 5. Overlay debug (tout en haut)
-			_renderService.RegisterRenderer(new DebugOverlayRenderer(_inputService, _cameraService, gameboardRenderer));
+			// 3. Overlay debug (tout en haut)
+			_renderService.RegisterRenderer(new DebugOverlayRenderer(_inputService, _cameraService, islandMainRenderer));
 			// TODO: Ajouter d'autres renderers (UI, animations, etc.)
 
 			// Crée le service de détection des clics sur hexagones
-			// On utilise le GameBoardRenderer du RenderService
-			if (gameboardRenderer == null)
-				throw new InvalidOperationException("GameBoardRenderer non trouvé");
-			_hexClickService = new HexClickService(_gameControllerService, _harvestService, _inputService, _cameraService, gameboardRenderer);
+			// On utilise le renderer principal de l'île pour les conversions écran -> Island -> Hex
+			if (islandMainRenderer == null)
+				throw new InvalidOperationException("IslandMainRenderer non trouvé");
+			_hexClickService = new HexClickService(_gameControllerService, _harvestService, _inputService, _cameraService, islandMainRenderer);
 
 			StateLabel.Text = "Prêt";
 			
@@ -86,15 +85,16 @@ public partial class MainPage : ContentPage
 			return;
 
 		try
-		{
-			// PREMIER APPEL: Initialise la caméra avec les vraies dimensions du canvas
-			if (!_isInitialized)
+        {
+            var gameState = _gameControllerService.CurrentGameState;
+
+            // PREMIER APPEL: Initialise la caméra avec les vraies dimensions du canvas
+            if (!_isInitialized)
 			{
 				var canvasSize = new SKSize(e.Surface.Canvas.DeviceClipBounds.Width, e.Surface.Canvas.DeviceClipBounds.Height);
 				_cameraService.Initialize(canvasSize);
 				
 				// Fit la caméra sur toute la carte
-				var gameState = _gameControllerService.CurrentGameState;
 				var hexCoords = gameState?.CurrentIslandState?.Map.Tiles.Keys ?? new List<SettlersOfIdlestan.Model.HexGrid.HexCoord>();
 				_cameraService.FitMapToView(hexCoords);
 				
@@ -104,15 +104,17 @@ public partial class MainPage : ContentPage
 			}
 
 			// Affiche des infos de débogage
-			var gameState2 = _gameControllerService.CurrentGameState;
-			var cityCount = gameState2?.CurrentIslandState?.Civilizations.FirstOrDefault()?.Cities.Count ?? 0;
-			var roadCount = gameState2?.CurrentIslandState?.Civilizations.FirstOrDefault()?.Roads.Count ?? 0;
+			var cityCount = gameState?.CurrentIslandState?.Civilizations.FirstOrDefault()?.Cities.Count ?? 0;
+			var roadCount = gameState?.CurrentIslandState?.Civilizations.FirstOrDefault()?.Roads.Count ?? 0;
 			MainThread.BeginInvokeOnMainThread(() => 
 			{
 				CameraLabel.Text = $"Villes: {cityCount}, Routes: {roadCount}";
 			});
 
-			_renderService.RenderFrame(e.Surface.Canvas, gameState2, _cameraService);
+			if (gameState != null)
+			{
+				_renderService.RenderFrame(e.Surface.Canvas, gameState, _cameraService);
+			}
 		}
 		catch (Exception ex)
 		{

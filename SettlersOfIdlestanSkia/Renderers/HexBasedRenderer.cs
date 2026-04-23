@@ -1,75 +1,24 @@
 using SkiaSharp;
+using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestanSkia.Core;
 
 namespace SettlersOfIdlestanSkia.Renderers;
 
 /// <summary>
-/// Classe utilitaire pour gérer les transformations de caméra sur le canvas.
-/// Automatise le Save/Restore du canvas.
+/// Classe mère utilitaire pour les renderers basés sur la grille hexagonale.
+/// Elle travaille en coordonnées Island (espace monde), sans connaissance de l'écran.
 /// </summary>
-public class CameraTransformScope : IDisposable
-{
-    private readonly SKCanvas _canvas;
-    private bool _disposed;
-
-    public CameraTransformScope(SKCanvas canvas, SKSize canvasSize, float zoomLevel)
-    {
-        _canvas = canvas;
-        _canvas.Save();
-        
-        // Applique la transformation de caméra
-        _canvas.Translate(canvasSize.Width / 2, canvasSize.Height / 2);
-        _canvas.Scale(zoomLevel, zoomLevel);
-    }
-
-    public void Dispose()
-    {
-        if (_disposed)
-            return;
-
-        _canvas.Restore();
-        _disposed = true;
-    }
-}
-
-/// <summary>
-/// Classe mère pour tous les renderers basés sur une grille hexagonale.
-/// Centralise la gestion de la taille des hexagones, les conversions de coordonnées et les transformations de caméra.
-/// </summary>
-public abstract class HexBasedRenderer : IGameRenderer, IHexConverter
+public abstract class HexBasedRenderer : IHexConverter
 {
     /// <summary>
     /// Taille des hexagones en pixels.
     /// </summary>
     protected const float HexSize = 40f;
 
-    protected SKSize CanvasSize { get; set; }
-    protected bool Disposed { get; set; }
-
     /// <summary>
-    /// Initialise le renderer avec les dimensions du canvas.
+    /// Convertit des coordonnées hexagonales (Q, R) en coordonnées Island (x, y).
     /// </summary>
-    public abstract void Initialize(SKSize canvasSize);
-
-    /// <summary>
-    /// Rend un frame.
-    /// </summary>
-    public abstract void Render(SKCanvas canvas, GameRenderContext context);
-
-    /// <summary>
-    /// Applique la transformation de caméra au canvas.
-    /// Retourne un scope qui gère automatiquement le Save/Restore du canvas.
-    /// </summary>
-    protected CameraTransformScope ApplyCameraTransform(SKCanvas canvas, GameRenderContext context)
-    {
-        return new CameraTransformScope(canvas, CanvasSize, context.ZoomLevel);
-    }
-
-    /// <summary>
-    /// Convertit des coordonnées hexagonales (Q, R) en coordonnées pixel (x, y).
-    /// Utilisé pour tous les calculs de position dans la grille hexagonale.
-    /// </summary>
-    public (float x, float y) AxialToPixel(int q, int r)
+    public (float x, float y) AxialToIsland(int q, int r)
     {
         float x = HexSize * (3f / 2 * q);
         float y = HexSize * (float)System.Math.Sqrt(3) / 2 * q + HexSize * (float)System.Math.Sqrt(3) * r;
@@ -78,10 +27,10 @@ public abstract class HexBasedRenderer : IGameRenderer, IHexConverter
     }
 
     /// <summary>
-    /// Convertit des coordonnées pixel (x, y) en coordonnées hexagonales axiales (q, r).
-    /// Utilise l'inverse de la transformation AxialToPixel.
+    /// Convertit des coordonnées Island (x, y) en coordonnées hexagonales axiales (q, r).
+    /// Utilise l'inverse de la transformation AxialToIsland.
     /// </summary>
-    public (int q, int r) PixelToAxial(float x, float y)
+    public (int q, int r) IslandToAxial(float x, float y)
     {
         // Applique l'offset d'origine inverse
         float q = (2f / 3 * x) / HexSize;
@@ -119,7 +68,7 @@ public abstract class HexBasedRenderer : IGameRenderer, IHexConverter
     }
 
     /// <summary>
-    /// Vérifie si un point (x, y) en coordonnées pixel se trouve à l'intérieur d'un hexagone.
+    /// Vérifie si un point (x, y) en coordonnées Island se trouve à l'intérieur d'un hexagone.
     /// Utilise l'algorithme "point in polygon" pour les hexagones réguliers.
     /// </summary>
     public bool IsPointInHexagon(float px, float py, float hexCenterX, float hexCenterY, float size = HexSize)
@@ -150,14 +99,14 @@ public abstract class HexBasedRenderer : IGameRenderer, IHexConverter
     }
 
     /// <summary>
-    /// Convertit un Vertex (défini par 3 hexagones) en coordonnées pixel.
+    /// Convertit un Vertex (défini par 3 hexagones) en coordonnées Island.
     /// Position du vertex = moyenne des centres des 3 hexagones.
     /// </summary>
-    protected SKPoint VertexToPixel(SettlersOfIdlestan.Model.HexGrid.Vertex vertex)
+    protected SKPoint VertexToIsland(Vertex vertex)
     {
-        var (x1, y1) = AxialToPixel(vertex.Hex1.Q, vertex.Hex1.R);
-        var (x2, y2) = AxialToPixel(vertex.Hex2.Q, vertex.Hex2.R);
-        var (x3, y3) = AxialToPixel(vertex.Hex3.Q, vertex.Hex3.R);
+        var (x1, y1) = AxialToIsland(vertex.Hex1.Q, vertex.Hex1.R);
+        var (x2, y2) = AxialToIsland(vertex.Hex2.Q, vertex.Hex2.R);
+        var (x3, y3) = AxialToIsland(vertex.Hex3.Q, vertex.Hex3.R);
 
         return new SKPoint((x1 + x2 + x3) / 3, (y1 + y2 + y3) / 3);
     }
@@ -198,31 +147,119 @@ public abstract class HexBasedRenderer : IGameRenderer, IHexConverter
     }
 
     /// <summary>
-    /// Calcule le point milieu entre deux hexagones adjacents pour positionner une route sur l'edge.
+    /// Calcule le point milieu entre deux hexagones adjacents en coordonnées Island.
     /// </summary>
-    protected SKPoint EdgeToPixel(int q1, int r1, int q2, int r2)
+    protected SKPoint EdgeToIsland(int q1, int r1, int q2, int r2)
     {
-        var (x1, y1) = AxialToPixel(q1, r1);
-        var (x2, y2) = AxialToPixel(q2, r2);
+        var (x1, y1) = AxialToIsland(q1, r1);
+        var (x2, y2) = AxialToIsland(q2, r2);
 
         return new SKPoint((x1 + x2) / 2, (y1 + y2) / 2);
     }
 
     /// <summary>
-    /// Convertit un point écran en coordonnées hexagonales, en appliquant la même transformation que le rendu (origine, zoom, pan).
+    /// Convertit un point Island en coordonnée d'hexagone.
     /// </summary>
-    public (int q, int r) ScreenToHex(SKPoint screenPoint, SKSize canvasSize, float zoomLevel, SKPoint cameraPos)
+    public HexCoord IslandToHexCoord(SKPoint islandPoint)
     {
-        // Applique la transformation inverse du rendu
-        // 1. Translate l'origine écran au centre du canvas
-        float x = screenPoint.X / zoomLevel + cameraPos.X;
-        float y = screenPoint.Y / zoomLevel + cameraPos.Y;
-        // 2. Convertit en coordonnées hexagonales
-        return PixelToAxial(x, y);
+        var (q, r) = IslandToAxial(islandPoint.X, islandPoint.Y);
+        return new HexCoord(q, r);
     }
 
     /// <summary>
-    /// Libère les ressources du renderer.
+    /// Trouve le vertex le plus proche d'un point Island.
     /// </summary>
-    public abstract void Dispose();
+    public Vertex IslandToNearestVertex(SKPoint islandPoint)
+    {
+        var centerHex = IslandToHexCoord(islandPoint);
+        var candidates = new HashSet<Vertex>();
+        var neighborDirections = new[]
+        {
+            HexDirection.W, HexDirection.E, HexDirection.NE,
+            HexDirection.SE, HexDirection.NW, HexDirection.SW
+        };
+        var vertexDirections = new[]
+        {
+            SecondaryHexDirection.N, SecondaryHexDirection.EN, SecondaryHexDirection.ES,
+            SecondaryHexDirection.S, SecondaryHexDirection.WS, SecondaryHexDirection.WN
+        };
+
+        void AddVertexCandidates(HexCoord origin)
+        {
+            foreach (var vertexDirection in vertexDirections)
+            {
+                candidates.Add(origin.Vertex(vertexDirection));
+            }
+        }
+
+        AddVertexCandidates(centerHex);
+        foreach (var direction in neighborDirections)
+        {
+            AddVertexCandidates(centerHex.Neighbor(direction));
+        }
+
+        Vertex? closest = null;
+        float minDistanceSquared = float.MaxValue;
+        foreach (var vertex in candidates)
+        {
+            var vertexPoint = VertexToIsland(vertex);
+            float dx = vertexPoint.X - islandPoint.X;
+            float dy = vertexPoint.Y - islandPoint.Y;
+            float distanceSquared = dx * dx + dy * dy;
+            if (distanceSquared < minDistanceSquared)
+            {
+                minDistanceSquared = distanceSquared;
+                closest = vertex;
+            }
+        }
+
+        return closest ?? centerHex.Vertex(SecondaryHexDirection.N);
+    }
+
+    /// <summary>
+    /// Trouve l'edge la plus proche d'un point Island.
+    /// </summary>
+    public Edge IslandToNearestEdge(SKPoint islandPoint)
+    {
+        var centerHex = IslandToHexCoord(islandPoint);
+        var candidates = new HashSet<Edge>();
+        var neighborDirections = new[]
+        {
+            HexDirection.W, HexDirection.E, HexDirection.NE,
+            HexDirection.SE, HexDirection.NW, HexDirection.SW
+        };
+        var edgeDirections = neighborDirections;
+
+        void AddEdgeCandidates(HexCoord origin)
+        {
+            foreach (var edgeDirection in edgeDirections)
+            {
+                candidates.Add(origin.Edge(edgeDirection));
+            }
+        }
+
+        AddEdgeCandidates(centerHex);
+        foreach (var direction in neighborDirections)
+        {
+            AddEdgeCandidates(centerHex.Neighbor(direction));
+        }
+
+        Edge? closest = null;
+        float minDistanceSquared = float.MaxValue;
+        foreach (var edge in candidates)
+        {
+            var (hex1, hex2) = edge.GetHexes();
+            var edgeCenter = EdgeToIsland(hex1.Q, hex1.R, hex2.Q, hex2.R);
+            float dx = edgeCenter.X - islandPoint.X;
+            float dy = edgeCenter.Y - islandPoint.Y;
+            float distanceSquared = dx * dx + dy * dy;
+            if (distanceSquared < minDistanceSquared)
+            {
+                minDistanceSquared = distanceSquared;
+                closest = edge;
+            }
+        }
+
+        return closest ?? centerHex.Edge(HexDirection.E);
+    }
 }

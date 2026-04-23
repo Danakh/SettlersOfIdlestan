@@ -13,8 +13,8 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
 {
     private SKPaint? _backgroundPaint;
     private SKPaint? _textPaint;
+    private SKFont? _textFont;
     private SKPaint? _borderPaint;
-    private SKTypeface? _typeface;
 
     private SKSize _canvasSize;
     private bool _disposed;
@@ -53,12 +53,10 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
         _textPaint = new SKPaint
         {
             Color = SKColors.White,
-            TextSize = 14,
             IsAntialias = true,
-            TextAlign = SKTextAlign.Left
         };
 
-        _typeface = SKTypeface.FromFamilyName("Arial", SKFontStyle.Bold);
+        _textFont = new SKFont { Size = 14, Typeface = SKTypeface.FromFamilyName("Arial", SKFontStyle.Bold) };
     }
 
     public void Render(SKCanvas canvas, GameRenderContext context)
@@ -135,10 +133,9 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
         var resourceName = resource.ToString();
         var text = $"{resourceName}: {quantity}";
 
-        if (_textPaint != null && _typeface != null)
+        if (_textPaint != null)
         {
-            _textPaint.Typeface = _typeface;
-            canvas.DrawText(text, x + 20, y + 16, _textPaint);
+            canvas.DrawText(text, x + 20, y + 16, SKTextAlign.Left, _textFont, _textPaint);
         }
     }
 
@@ -146,13 +143,13 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
     {
         float maxWidth = 0;
 
-        if (_textPaint == null)
+        if (_textFont == null)
             return 120;
 
         foreach (var resource in Enum.GetValues(typeof(Resource)).Cast<Resource>())
         {
             var text = $"{resource}: 999";
-            var width = _textPaint.MeasureText(text);
+            var width = _textFont.MeasureText(text);
             maxWidth = Math.Max(maxWidth, width);
         }
 
@@ -167,7 +164,6 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
         _backgroundPaint?.Dispose();
         _textPaint?.Dispose();
         _borderPaint?.Dispose();
-        _typeface?.Dispose();
         _disposed = true;
     }
 }

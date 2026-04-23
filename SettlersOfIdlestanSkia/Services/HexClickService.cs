@@ -1,6 +1,5 @@
 using SkiaSharp;
 using SettlersOfIdlestan.Model.HexGrid;
-using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Renderers;
 
 namespace SettlersOfIdlestanSkia.Services;
@@ -15,7 +14,7 @@ public class HexClickService
     private readonly HarvestService _harvestService;
     private readonly InputHandlingService _inputService;
     private readonly CameraService _cameraService;
-    private readonly HexBasedRenderer _renderer;
+    private readonly IslandMainRenderer _renderer;
 
     /// <summary>
     /// Événement déclenché quand un hexagone est cliqué.
@@ -27,7 +26,7 @@ public class HexClickService
         HarvestService harvestService,
         InputHandlingService inputService,
         CameraService cameraService,
-        HexBasedRenderer renderer)
+        IslandMainRenderer renderer)
     {
         _gameControllerService = gameControllerService ?? throw new ArgumentNullException(nameof(gameControllerService));
         _harvestService = harvestService ?? throw new ArgumentNullException(nameof(harvestService));
@@ -49,7 +48,7 @@ public class HexClickService
 
         try
         {
-            var canvasSize = _cameraService.CanvasSize; // Ajoute une propriété publique CanvasSize dans CameraService si besoin
+            var canvasSize = _cameraService.CanvasSize;
             var cameraPos = _cameraService.Position;
             var zoomLevel = _cameraService.ZoomLevel;
             (int q, int r) = _renderer.ScreenToHex(e.Position, canvasSize, zoomLevel, cameraPos);

@@ -7,8 +7,10 @@ namespace SettlersOfIdlestanSkia.Renderers;
 /// <summary>
 /// Renderer pour afficher les villes (settlements et cities).
 /// </summary>
-public class CityRenderer : HexBasedRenderer
+public class CityRenderer : HexBasedRenderer, IGameRenderer
 {
+    private bool _disposed;
+
     private const float CityRadius = 8f;
     private const float SettlementRadius = 6f;
 
@@ -25,10 +27,8 @@ public class CityRenderer : HexBasedRenderer
         new SKColor(255, 200, 0),   // Orange - Civ 3
     };
 
-    public override void Initialize(SKSize canvasSize)
+    public void Initialize(SKSize canvasSize)
     {
-        CanvasSize = canvasSize;
-
         _settlementPaint = new SKPaint
         {
             Style = SKPaintStyle.Fill,
@@ -50,23 +50,20 @@ public class CityRenderer : HexBasedRenderer
         };
     }
 
-    public override void Render(SKCanvas canvas, GameRenderContext context)
+    public void Render(SKCanvas canvas, GameRenderContext context)
     {
         if (context.GameState == null || _settlementPaint == null || _cityPaint == null || _borderPaint == null)
             return;
 
-        using (ApplyCameraTransform(canvas, context))
+        if (context.GameState is MainGameState mainGameState)
         {
-            if (context.GameState is MainGameState mainGameState)
+            var islandState = mainGameState.CurrentIslandState;
+            if (islandState != null)
             {
-                var islandState = mainGameState.CurrentIslandState;
-                if (islandState != null)
+                // Dessine les villes de chaque civilisation
+                foreach (var civilization in islandState.Civilizations)
                 {
-                    // Dessine les villes de chaque civilisation
-                    foreach (var civilization in islandState.Civilizations)
-                    {
-                        DrawCities(canvas, civilization.Cities, civilization.Index);
-                    }
+                    DrawCities(canvas, civilization.Cities, civilization.Index);
                 }
             }
         }
@@ -86,7 +83,7 @@ public class CityRenderer : HexBasedRenderer
         foreach (var city in cities)
         {
             // Calcule la position du sommet (vertex)
-            var pixelPos = VertexToPixel(city.Position);
+            var pixelPos = VertexToIsland(city.Position);
 
             // Sélectionne la couleur en fonction du niveau de la ville
             var fillColor = city.Level >= 2 ? color : new SKColor(color.Red, color.Green, color.Blue, 150);
@@ -110,14 +107,14 @@ public class CityRenderer : HexBasedRenderer
         }
     }
 
-    public override void Dispose()
+    public void Dispose()
     {
-        if (Disposed)
+        if (_disposed)
             return;
 
         _settlementPaint?.Dispose();
         _cityPaint?.Dispose();
         _borderPaint?.Dispose();
-        Disposed = true;
+        _disposed = true;
     }
 }

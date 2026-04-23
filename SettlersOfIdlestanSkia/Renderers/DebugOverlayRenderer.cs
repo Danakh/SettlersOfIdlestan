@@ -13,16 +13,16 @@ public class DebugOverlayRenderer : IGameRenderer
 
     private readonly InputHandlingService _inputService;
     private readonly CameraService _cameraService;
-    private readonly HexBasedRenderer _hexRenderer;
+    private readonly IslandMainRenderer _islandRenderer;
 
     private readonly SKPaint _textPaint = new() { Color = SKColors.Red, IsAntialias = true };
     private readonly SKFont _textFont = new SKFont(SKTypeface.Default, 14);
 
-    public DebugOverlayRenderer(InputHandlingService inputService, CameraService cameraService, HexBasedRenderer hexRenderer)
+    public DebugOverlayRenderer(InputHandlingService inputService, CameraService cameraService, IslandMainRenderer islandRenderer)
     {
         _inputService = inputService;
         _cameraService = cameraService;
-        _hexRenderer = hexRenderer;
+        _islandRenderer = islandRenderer;
     }
 
     public void Initialize(SKSize canvasSize) { }
@@ -39,7 +39,7 @@ public class DebugOverlayRenderer : IGameRenderer
         var zoom = _cameraService.ZoomLevel;
 
         // Coordonnées dans le canvas (après transformation)
-        var (q, r) = _hexRenderer.ScreenToHex(screenPos, canvasSize, zoom, cameraPos);
+        var (q, r) = _islandRenderer.ScreenToHex(screenPos, canvasSize, zoom, cameraPos);
 
         string text = $"Souris écran: ({screenPos.X:0},{screenPos.Y:0})\n" +
                       $"Hex: ({q},{r})";
