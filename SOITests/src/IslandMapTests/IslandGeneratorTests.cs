@@ -1,11 +1,11 @@
 using System.Collections.Generic;
 using System.Linq;
 using Xunit;
-using SettlersOfIdlestan.Controller;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.Civilization;
 using System.Text.Json;
+using SettlersOfIdlestan.src.Controller.Generator;
 
 namespace SOITests.IslandMapTests;
 

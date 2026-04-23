@@ -14,14 +14,11 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
     private readonly RoadRenderer _roadRenderer;
     private readonly CityRenderer _cityRenderer;
 
-    public IslandMainRenderer(
-        GameBoardRenderer gameBoardRenderer,
-        RoadRenderer roadRenderer,
-        CityRenderer cityRenderer)
+    public IslandMainRenderer()
     {
-        _gameBoardRenderer = gameBoardRenderer ?? throw new ArgumentNullException(nameof(gameBoardRenderer));
-        _roadRenderer = roadRenderer ?? throw new ArgumentNullException(nameof(roadRenderer));
-        _cityRenderer = cityRenderer ?? throw new ArgumentNullException(nameof(cityRenderer));
+        _gameBoardRenderer = new GameBoardRenderer();
+        _roadRenderer = new RoadRenderer();
+        _cityRenderer = new CityRenderer();
     }
 
     public void Initialize(SKSize canvasSize)

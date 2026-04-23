@@ -6,7 +6,7 @@ using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.City;
 
-namespace SettlersOfIdlestan.Controller;
+namespace SettlersOfIdlestan.Controller.Generator;
 
 /// <summary>
 /// Generates a random island map based on a list of land tiles.

@@ -51,10 +51,7 @@ public partial class MainPage : ContentPage
 
 			// Enregistre les renderers dans l'ordre (de bas en haut):
 			// 1. Renderer principal de l'île (plateau, routes, villes)
-			var gameboardRenderer = new GameBoardRenderer();
-			var roadRenderer = new RoadRenderer();
-			var cityRenderer = new CityRenderer();
-			var islandMainRenderer = new IslandMainRenderer(gameboardRenderer, roadRenderer, cityRenderer);
+			var islandMainRenderer = new IslandMainRenderer();
 			_renderService.RegisterRenderer(islandMainRenderer);
 			// 2. Overlay des ressources du joueur (au-dessus de tout)
 			_renderService.RegisterRenderer(new PlayerResourcesOverlayRenderer());

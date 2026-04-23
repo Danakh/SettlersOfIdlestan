@@ -124,7 +124,7 @@ namespace SettlersOfIdlestan.Controller
             var mainState = new MainGameState();
 
             // Use a generator wired with the main state's PRNG to ensure reproducible maps
-            var generator = new IslandMapGenerator(mainState.PRNG);
+            var generator = new Generator.IslandMapGenerator(mainState.PRNG);
             var map = generator.GenerateIsland(tileData, civs);
             if (map is null) return null;
 

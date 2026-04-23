@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.PrestigeMap;
 
-namespace SettlersOfIdlestan.Controller;
+namespace SettlersOfIdlestan.Controller.Generator;
 
 /// <summary>
 /// Generates a fixed prestige map with 3 prestige tiles.
