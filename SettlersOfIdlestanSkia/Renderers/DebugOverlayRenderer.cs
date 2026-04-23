@@ -15,13 +15,8 @@ public class DebugOverlayRenderer : IGameRenderer
     private readonly CameraService _cameraService;
     private readonly HexBasedRenderer _hexRenderer;
 
-    private readonly SKPaint _textPaint = new()
-    {
-        Color = SKColors.Red,
-        TextSize = 14,
-        IsAntialias = true,
-        TextAlign = SKTextAlign.Right
-    };
+    private readonly SKPaint _textPaint = new() { Color = SKColors.Red, IsAntialias = true };
+    private readonly SKFont _textFont = new SKFont(SKTypeface.Default, 14);
 
     public DebugOverlayRenderer(InputHandlingService inputService, CameraService cameraService, HexBasedRenderer hexRenderer)
     {
@@ -52,11 +47,11 @@ public class DebugOverlayRenderer : IGameRenderer
         // Affiche en bas à droite
         float margin = 10f;
         var lines = text.Split('\n');
-        float lineHeight = _textPaint.TextSize + 2;
+        float lineHeight = _textFont.Size + 2;
         float yStart = canvasSize.Height - margin - lines.Length * lineHeight;
         for (int i = 0; i < lines.Length; i++)
         {
-            canvas.DrawText(lines[i], canvasSize.Width - margin, yStart + i * lineHeight, _textPaint);
+            canvas.DrawText(lines[i], canvasSize.Width - margin, yStart + i * lineHeight, SKTextAlign.Right, _textFont, _textPaint);
         }
     }
 }

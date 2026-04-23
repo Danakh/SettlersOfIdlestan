@@ -14,6 +14,7 @@ public class GameBoardRenderer : HexBasedRenderer
     private SKPaint? _hexBorderPaint;
     private SKPaint? _hexFillPaint;
     private SKPaint? _textPaint;
+    private SKFont? _textFont;
 
     // Dictionnaire de couleurs pour les types de terrain
     private static readonly Dictionary<TerrainType, SKColor> TerrainColors = new()
@@ -48,10 +49,10 @@ public class GameBoardRenderer : HexBasedRenderer
         _textPaint = new SKPaint
         {
             Color = SKColors.Black,
-            TextSize = 12,
             IsAntialias = true,
-            TextAlign = SKTextAlign.Center
         };
+
+        _textFont = new SKFont(SKTypeface.Default, 12);
     }
 
     public override void Render(SKCanvas canvas, GameRenderContext context)
@@ -112,15 +113,14 @@ public class GameBoardRenderer : HexBasedRenderer
         if (_textPaint != null && tile.ProductionNumber.HasValue)
         {
             _textPaint.Color = SKColors.White;
-            canvas.DrawText(tile.ProductionNumber.ToString(), centerX, centerY, _textPaint);
+            canvas.DrawText(tile.ProductionNumber.ToString(), centerX, centerY, SKTextAlign.Center, _textFont, _textPaint);
         }
 
         // Affiche les coordonnées (q, r) en mode debug
         if (DebugOverlayRenderer.DebugMode && _textPaint != null && tile.Coord != null)
         {
             _textPaint.Color = SKColors.Black;
-            _textPaint.TextSize = 12;
-            canvas.DrawText($"{tile.Coord.Q},{tile.Coord.R}", centerX, centerY + size / 2.5f, _textPaint);
+            canvas.DrawText($"{tile.Coord.Q},{tile.Coord.R}", centerX, centerY + size / 2.5f, SKTextAlign.Center, _textFont, _textPaint);
         }
     }
 
@@ -144,7 +144,7 @@ public class GameBoardRenderer : HexBasedRenderer
         if (_textPaint != null)
         {
             _textPaint.Color = SKColors.Black;
-            canvas.DrawText($"({centerX:F0},{centerY:F0})", centerX, centerY, _textPaint);
+            canvas.DrawText($"({centerX:F0},{centerY:F0})", centerX, centerY, SKTextAlign.Center, _textFont, _textPaint);
         }
     }
 
@@ -156,6 +156,7 @@ public class GameBoardRenderer : HexBasedRenderer
         _hexBorderPaint?.Dispose();
         _hexFillPaint?.Dispose();
         _textPaint?.Dispose();
+        _textFont?.Dispose();
         Disposed = true;
     }
 }

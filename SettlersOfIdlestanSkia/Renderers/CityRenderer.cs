@@ -102,14 +102,9 @@ public class CityRenderer : HexBasedRenderer
             // Affiche le niveau de la ville si c'est une vraie ville
             if (city.Level >= 2)
             {
-                var textPaint = new SKPaint
-                {
-                    Color = SKColors.White,
-                    TextSize = 10,
-                    IsAntialias = true,
-                    TextAlign = SKTextAlign.Center,
-                };
-                canvas.DrawText(city.Level.ToString(), pixelPos.X, pixelPos.Y + 4, textPaint);
+                var textPaint = new SKPaint { Color = SKColors.White, IsAntialias = true };
+                var font = new SKFont { Size = 10 };
+                canvas.DrawText(city.Level.ToString(), pixelPos.X, pixelPos.Y + 4, SKTextAlign.Center, font, textPaint);
                 textPaint.Dispose();
             }
         }
