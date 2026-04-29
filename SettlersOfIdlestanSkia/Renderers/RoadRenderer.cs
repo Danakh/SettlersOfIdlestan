@@ -67,40 +67,29 @@ public class RoadRenderer : HexBasedRenderer, IGameRenderer
 
         foreach (var road in roads)
         {
-            // Récupère les deux hexagones de l'arête
-            var (hex1, hex2) = road.Position.GetHexes();
-            
-            // Récupère les positions des centres des deux hexagones
-            var (x1, y1) = AxialToIsland(hex1.Q, hex1.R);
-            var (x2, y2) = AxialToIsland(hex2.Q, hex2.R);
-            
-            // Calcule le point milieu (centre de l'edge)
-            float midX = (x1 + x2) / 2;
-            float midY = (y1 + y2) / 2;
-            
-            // Calcule la direction perpendiculaire à l'edge pour un meilleur rendu
-            float dx = x2 - x1;
-            float dy = y2 - y1;
-            float length = (float)System.Math.Sqrt(dx * dx + dy * dy);
-            
-            if (length > 0)
-            {
-                // Vecteur perpendiculaire normalisé
-                float perpX = -dy / length;
-                float perpY = dx / length;
-                
-                // Longueur de la route perpendiculaire
-                float roadLength = 8f;
-                
-                // Dessine une ligne perpendiculaire au centre de l'edge
-                float x1Perp = midX - perpX * roadLength / 2;
-                float y1Perp = midY - perpY * roadLength / 2;
-                float x2Perp = midX + perpX * roadLength / 2;
-                float y2Perp = midY + perpY * roadLength / 2;
-                
-                canvas.DrawLine(x1Perp, y1Perp, x2Perp, y2Perp, _roadPaint);
-            }
+            DrawRoadSegmentOnEdge(canvas, road.Position, _roadPaint);
         }
+    }
+
+    private void DrawRoadSegmentOnEdge(SKCanvas canvas, SettlersOfIdlestan.Model.HexGrid.Edge edge, SKPaint paint)
+    {
+        var vertices = edge.GetVertices();
+        if (vertices.Length < 2)
+            return;
+
+        var v1 = VertexToIsland(vertices[0]);
+        var v2 = VertexToIsland(vertices[1]);
+
+        // Segment aligné sur l'edge, légèrement raccourci pour laisser voir les villes.
+        const float trimFactor = 0.18f;
+        var start = new SKPoint(
+            v1.X + (v2.X - v1.X) * trimFactor,
+            v1.Y + (v2.Y - v1.Y) * trimFactor);
+        var end = new SKPoint(
+            v2.X - (v2.X - v1.X) * trimFactor,
+            v2.Y - (v2.Y - v1.Y) * trimFactor);
+
+        canvas.DrawLine(start, end, paint);
     }
 
     public void Dispose()

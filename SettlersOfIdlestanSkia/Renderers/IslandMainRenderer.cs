@@ -87,25 +87,7 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
 
         foreach (var edge in state.BuildableEdges)
         {
-            var center = EdgeToIslandPoint(edge);
-            var vertices = edge.GetVertices();
-            var v1 = VertexToIsland(vertices[0]);
-            var v2 = VertexToIsland(vertices[1]);
-            var dx = v2.X - v1.X;
-            var dy = v2.Y - v1.Y;
-            var length = MathF.Sqrt(dx * dx + dy * dy);
-            if (length <= 0.001f)
-                continue;
-
-            var perpX = -dy / length;
-            var perpY = dx / length;
-            const float segment = 10f;
-            canvas.DrawLine(
-                center.X - perpX * segment / 2,
-                center.Y - perpY * segment / 2,
-                center.X + perpX * segment / 2,
-                center.Y + perpY * segment / 2,
-                _buildableEdgePaint);
+            DrawEdgeHighlight(canvas, edge, _buildableEdgePaint, 0.18f);
         }
 
         if (state.HoveredVertex != null)
@@ -116,26 +98,27 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
 
         if (state.HoveredEdge != null)
         {
-            var center = EdgeToIslandPoint(state.HoveredEdge);
-            var vertices = state.HoveredEdge.GetVertices();
-            var v1 = VertexToIsland(vertices[0]);
-            var v2 = VertexToIsland(vertices[1]);
-            var dx = v2.X - v1.X;
-            var dy = v2.Y - v1.Y;
-            var length = MathF.Sqrt(dx * dx + dy * dy);
-            if (length > 0.001f)
-            {
-                var perpX = -dy / length;
-                var perpY = dx / length;
-                const float segment = 12f;
-                canvas.DrawLine(
-                    center.X - perpX * segment / 2,
-                    center.Y - perpY * segment / 2,
-                    center.X + perpX * segment / 2,
-                    center.Y + perpY * segment / 2,
-                    _hoverEdgePaint);
-            }
+            DrawEdgeHighlight(canvas, state.HoveredEdge, _hoverEdgePaint, 0.14f);
         }
+    }
+
+    private void DrawEdgeHighlight(SKCanvas canvas, Edge edge, SKPaint paint, float trimFactor)
+    {
+        var vertices = edge.GetVertices();
+        if (vertices.Length < 2)
+            return;
+
+        var v1 = VertexToIsland(vertices[0]);
+        var v2 = VertexToIsland(vertices[1]);
+
+        var start = new SKPoint(
+            v1.X + (v2.X - v1.X) * trimFactor,
+            v1.Y + (v2.Y - v1.Y) * trimFactor);
+        var end = new SKPoint(
+            v2.X - (v2.X - v1.X) * trimFactor,
+            v2.Y - (v2.Y - v1.Y) * trimFactor);
+
+        canvas.DrawLine(start, end, paint);
     }
 
     public SKPoint ScreenToIsland(SKPoint screenPoint, SKSize canvasSize, float zoomLevel, SKPoint cameraPos)
