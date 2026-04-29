@@ -1,4 +1,5 @@
 using SettlersOfIdlestan.Model.Game;
+using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Controller;
 
@@ -18,6 +19,8 @@ public class GameControllerService
     /// Gets the player's civilization.
     /// </summary>
     public SettlersOfIdlestan.Model.Civilization.Civilization? PlayerCivilization => _controller.PlayerCivilization;
+
+    public int? PlayerCivilizationIndex => _controller.PlayerCivilization?.Index;
 
     public GameControllerService()
     {
@@ -87,5 +90,65 @@ public class GameControllerService
         }
 
         return _controller.CurrentMainState;
+    }
+
+    public List<Vertex> GetBuildableCityVerticesForPlayer()
+    {
+        var playerIndex = PlayerCivilizationIndex
+            ?? throw new InvalidOperationException("La civilisation du joueur n'est pas disponible.");
+
+        return _controller.CityBuilderController.GetBuildableVertices(playerIndex);
+    }
+
+    public List<Edge> GetBuildableRoadEdgesForPlayer()
+    {
+        var playerIndex = PlayerCivilizationIndex
+            ?? throw new InvalidOperationException("La civilisation du joueur n'est pas disponible.");
+
+        return _controller.RoadController
+            .GetBuildableRoads(playerIndex)
+            .Select(r => r.Position)
+            .ToList();
+    }
+
+    public bool TryBuildCityForPlayer(Vertex vertex)
+    {
+        var playerIndex = PlayerCivilizationIndex
+            ?? throw new InvalidOperationException("La civilisation du joueur n'est pas disponible.");
+
+        try
+        {
+            _controller.CityBuilderController.BuildCity(playerIndex, vertex);
+            // Réinstancie les controllers pour forcer la cohérence des caches.
+            if (_controller.CurrentMainState != null)
+            {
+                _controller.SetGame(_controller.CurrentMainState);
+            }
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    public bool TryBuildRoadForPlayer(Edge edge)
+    {
+        var playerIndex = PlayerCivilizationIndex
+            ?? throw new InvalidOperationException("La civilisation du joueur n'est pas disponible.");
+
+        try
+        {
+            _controller.RoadController.BuildRoad(playerIndex, edge);
+            if (_controller.CurrentMainState != null)
+            {
+                _controller.SetGame(_controller.CurrentMainState);
+            }
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
     }
 }

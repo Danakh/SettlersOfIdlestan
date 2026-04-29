@@ -23,7 +23,7 @@ public sealed class SkiaGameRuntime : IDisposable
     private GameControllerService? _gameControllerService;
     private CameraService? _cameraService;
     private HarvestService? _harvestService;
-    private HexClickService? _hexClickService;
+    private ConstructionInteractionService? _constructionInteractionService;
 
     private bool _isDisposed;
     private bool _isGameInitialized;
@@ -59,12 +59,17 @@ public sealed class SkiaGameRuntime : IDisposable
                 throw new InvalidOperationException("Impossible de créer le jeu.");
 
             // Enregistrement des renderers (back to front)
-            var islandMainRenderer = new IslandMainRenderer();
+            IslandMainRenderer islandMainRenderer;
+            _constructionInteractionService = new ConstructionInteractionService(
+                _gameControllerService,
+                _harvestService,
+                _inputService,
+                _cameraService);
+            islandMainRenderer = new IslandMainRenderer(_constructionInteractionService);
+            _constructionInteractionService.AttachRenderer(islandMainRenderer);
             _renderService.RegisterRenderer(islandMainRenderer);
             _renderService.RegisterRenderer(new PlayerResourcesOverlayRenderer());
             _renderService.RegisterRenderer(new DebugOverlayRenderer(_inputService, _cameraService, islandMainRenderer));
-
-            _hexClickService = new HexClickService(_harvestService, _inputService, _cameraService, islandMainRenderer);
 
             _isGameInitialized = true;
 
@@ -220,11 +225,11 @@ public sealed class SkiaGameRuntime : IDisposable
             if (_isDisposed)
                 return;
 
-            _hexClickService?.Cleanup();
+            _constructionInteractionService?.Cleanup();
             _renderService?.Dispose();
             _resourceManager?.Dispose();
 
-            _hexClickService = null;
+            _constructionInteractionService = null;
             _renderService = null;
             _resourceManager = null;
             _inputService = null;
