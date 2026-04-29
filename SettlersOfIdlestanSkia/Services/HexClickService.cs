@@ -22,13 +22,11 @@ public class HexClickService
     public event EventHandler<HexClickedEventArgs>? HexClicked;
 
     public HexClickService(
-        GameControllerService gameControllerService,
         HarvestService harvestService,
         InputHandlingService inputService,
         CameraService cameraService,
         IslandMainRenderer renderer)
     {
-        _gameControllerService = gameControllerService ?? throw new ArgumentNullException(nameof(gameControllerService));
         _harvestService = harvestService ?? throw new ArgumentNullException(nameof(harvestService));
         _inputService = inputService ?? throw new ArgumentNullException(nameof(inputService));
         _cameraService = cameraService ?? throw new ArgumentNullException(nameof(cameraService));
@@ -43,9 +41,6 @@ public class HexClickService
     /// </summary>
     private void OnPointerPressed(object? sender, PointerEventArgs e)
     {
-        if (_gameControllerService.CurrentGameState == null)
-            return;
-
         try
         {
             var canvasSize = _cameraService.CanvasSize;

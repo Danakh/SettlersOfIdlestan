@@ -8,7 +8,7 @@ namespace SettlersOfIdlestanSkia.Renderers;
 /// Classe mère utilitaire pour les renderers basés sur la grille hexagonale.
 /// Elle travaille en coordonnées Island (espace monde), sans connaissance de l'écran.
 /// </summary>
-public abstract class HexBasedRenderer : IHexConverter
+public abstract class HexBasedRenderer
 {
     /// <summary>
     /// Taille des hexagones en pixels.

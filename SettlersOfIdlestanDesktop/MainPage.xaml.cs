@@ -63,7 +63,7 @@ public partial class MainPage : ContentPage
 			// On utilise le renderer principal de l'île pour les conversions écran -> Island -> Hex
 			if (islandMainRenderer == null)
 				throw new InvalidOperationException("IslandMainRenderer non trouvé");
-			_hexClickService = new HexClickService(_gameControllerService, _harvestService, _inputService, _cameraService, islandMainRenderer);
+			_hexClickService = new HexClickService(_harvestService, _inputService, _cameraService, islandMainRenderer);
 
 			StateLabel.Text = "Prêt";
 			
