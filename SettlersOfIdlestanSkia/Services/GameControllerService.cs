@@ -33,11 +33,11 @@ public class GameControllerService
         // Configuration de l'île
         var tileData = new List<(TerrainType terrainType, int tileCount)>
         {
-            (TerrainType.Forest, 5),
-            (TerrainType.Hill, 5),
-            (TerrainType.Pasture, 5),
-            (TerrainType.Field, 5),
-            (TerrainType.Mountain, 5),
+            (TerrainType.Forest, 4),
+            (TerrainType.Hill, 4),
+            (TerrainType.Pasture, 4),
+            (TerrainType.Field, 4),
+            (TerrainType.Mountain, 3),
         };
 
         // Crée un nouveau jeu via le controller
