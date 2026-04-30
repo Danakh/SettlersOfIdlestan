@@ -6,18 +6,20 @@
              Title="Settlers of Idlestan">
 
     <Grid RowDefinitions="*, Auto"
-          ColumnDefinitions="*">
-        
+          ColumnDefinitions="*, 320">
+
         <!-- Canvas SkiaSharp pour le rendu du jeu -->
         <skia:SKCanvasView x:Name="GameCanvas"
                            Grid.Row="0"
+                           Grid.Column="0"
                            PaintSurface="OnCanvasPaintSurface"
                            EnableTouchEvents="True"
                            Touch="OnCanvasTouch"
                            Background="White" />
-        
-        <!-- Barre d'état minimale (optionnel) -->
+
+        <!-- Barre d'état minimale -->
         <StackLayout Grid.Row="1"
+                     Grid.Column="0"
                      Orientation="Horizontal"
                      Padding="10"
                      Spacing="10"
@@ -36,7 +38,38 @@
                    VerticalOptions="Center"
                    HorizontalOptions="FillAndExpand" />
         </StackLayout>
-        
+
+        <!-- Panneau fixe de sélection -->
+        <ScrollView Grid.Row="0"
+                    Grid.Column="1"
+                    Grid.RowSpan="2"
+                    BackgroundColor="#202020">
+            <VerticalStackLayout Padding="14"
+                                 Spacing="10">
+                <Label Text="Selection"
+                       FontSize="18"
+                       FontAttributes="Bold"
+                       TextColor="White" />
+
+                <Label Text="Type de ville"
+                       FontSize="12"
+                       TextColor="#BFBFBF" />
+                <Label x:Name="SelectedCityTypeLabel"
+                       Text="Aucune"
+                       FontSize="14"
+                       TextColor="White" />
+
+                <BoxView HeightRequest="1"
+                         BackgroundColor="#404040" />
+
+                <Label Text="Batiments"
+                       FontSize="12"
+                       TextColor="#BFBFBF" />
+                <VerticalStackLayout x:Name="SelectedCityBuildingsList"
+                                     Spacing="6" />
+            </VerticalStackLayout>
+        </ScrollView>
+
     </Grid>
 
 </ContentPage>

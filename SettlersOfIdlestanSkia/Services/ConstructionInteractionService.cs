@@ -1,4 +1,5 @@
 using SkiaSharp;
+using SettlersOfIdlestan.Model.City;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestanSkia.Renderers;
 
@@ -21,6 +22,7 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
     private IslandMainRenderer? _renderer;
 
     public ConstructionHoverState HoverState { get; private set; } = ConstructionHoverState.Empty;
+    public CitySelectionInfo SelectionInfo { get; private set; } = CitySelectionInfo.Empty;
 
     public ConstructionInteractionService(
         GameControllerService gameControllerService,
@@ -50,6 +52,12 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
     private void OnPointerPressed(object? sender, PointerEventArgs e)
     {
         RefreshHover(e.Position);
+
+        if (HoverState.HoveredCityVertex != null)
+        {
+            SetSelectedCity(HoverState.HoveredCityVertex);
+            return;
+        }
 
         if (HoverState.HoveredVertex != null && _gameControllerService.TryBuildCityForPlayer(HoverState.HoveredVertex))
         {
@@ -82,6 +90,8 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
 
         var islandPoint = _renderer.ScreenToIsland(screenPoint, _cameraService.CanvasSize, _cameraService.ZoomLevel, _cameraService.Position);
 
+        var hoveredCityVertex = GetHoveredCityVertex(islandPoint);
+
         Vertex? hoveredVertex = null;
         var nearestVertex = _renderer.IslandToNearestVertex(islandPoint);
         if (buildableVertices.Any(v => v.Equals(nearestVertex)))
@@ -108,8 +118,106 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
             buildableVertices,
             buildableEdges,
             hoveredVertex,
-            hoveredEdge
+            hoveredEdge,
+            hoveredCityVertex,
+            SelectionInfo.SelectedCityVertex
         );
+
+        var selected = SelectionInfo.SelectedCityVertex;
+        if (selected != null && _gameControllerService.FindCityAt(selected) == null)
+        {
+            SelectionInfo = CitySelectionInfo.Empty;
+            HoverState = HoverState with { SelectedCityVertex = null };
+        }
+    }
+
+    private Vertex? GetHoveredCityVertex(SKPoint islandPoint)
+    {
+        if (_renderer == null)
+            return null;
+
+        var cities = _gameControllerService.GetAllCities();
+        if (cities.Count == 0)
+            return null;
+
+        Vertex? best = null;
+        var bestDistance = float.MaxValue;
+
+        foreach (var city in cities)
+        {
+            var pt = _renderer.VertexToIslandPoint(city.Position);
+            var dist = Distance(islandPoint, pt);
+            if (dist < bestDistance)
+            {
+                bestDistance = dist;
+                best = city.Position;
+            }
+        }
+
+        return bestDistance <= 12f ? best : null;
+    }
+
+    private void SetSelectedCity(Vertex selectedCityVertex)
+    {
+        var city = _gameControllerService.FindCityAt(selectedCityVertex);
+        if (city == null)
+        {
+            SelectionInfo = CitySelectionInfo.Empty;
+            HoverState = HoverState with { SelectedCityVertex = null };
+            return;
+        }
+
+        var buildable = _gameControllerService.GetBuildableBuildingsAtCity(selectedCityVertex)
+            .Select(b => b.Type)
+            .ToHashSet();
+        var builtByType = city.Buildings.ToDictionary(b => b.Type, b => b);
+        var allTypes = Enum.GetValues<SettlersOfIdlestan.Model.Buildings.BuildingType>()
+            .OrderBy(t => t.ToString());
+        var buildings = allTypes.Select(type =>
+            {
+                var isBuilt = builtByType.TryGetValue(type, out var built);
+                return new CityBuildingListItem(
+                    BuildingType: type.ToString(),
+                    IsBuilt: isBuilt,
+                    CanBuild: !isBuilt && buildable.Contains(type),
+                    Level: isBuilt && built != null ? built.Level : 0
+                );
+            })
+            .ToList();
+
+        SelectionInfo = new CitySelectionInfo(
+            selectedCityVertex,
+            city.LevelName,
+            buildings
+        );
+
+        HoverState = HoverState with { SelectedCityVertex = selectedCityVertex };
+    }
+
+    public bool TryExecuteSelectedCityBuildingAction(string buildingTypeName)
+    {
+        var selectedCityVertex = SelectionInfo.SelectedCityVertex;
+        if (selectedCityVertex == null)
+            return false;
+
+        if (!Enum.TryParse<SettlersOfIdlestan.Model.Buildings.BuildingType>(buildingTypeName, out var type))
+            return false;
+
+        var city = _gameControllerService.FindCityAt(selectedCityVertex);
+        if (city == null)
+            return false;
+
+        var existing = city.Buildings.FirstOrDefault(b => b.Type == type);
+        var success = existing == null
+            ? _gameControllerService.TryBuildBuildingAtCity(selectedCityVertex, type)
+            : _gameControllerService.TryActivateBuildingAtCity(selectedCityVertex, type);
+
+        if (success)
+        {
+            SetSelectedCity(selectedCityVertex);
+        }
+
+        return success;
     }
 
     private static float Distance(SKPoint a, SKPoint b)
@@ -130,9 +238,26 @@ public readonly record struct ConstructionHoverState(
     IReadOnlyList<Vertex> BuildableVertices,
     IReadOnlyList<Edge> BuildableEdges,
     Vertex? HoveredVertex,
-    Edge? HoveredEdge)
+    Edge? HoveredEdge,
+    Vertex? HoveredCityVertex,
+    Vertex? SelectedCityVertex)
 {
     public static ConstructionHoverState Empty =>
-        new(Array.Empty<Vertex>(), Array.Empty<Edge>(), null, null);
+        new(Array.Empty<Vertex>(), Array.Empty<Edge>(), null, null, null, null);
 }
+
+public readonly record struct CitySelectionInfo(
+    Vertex? SelectedCityVertex,
+    string CityType,
+    IReadOnlyList<CityBuildingListItem> Buildings)
+{
+    public static CitySelectionInfo Empty =>
+        new(null, "Aucune", Array.Empty<CityBuildingListItem>());
+}
+
+public readonly record struct CityBuildingListItem(
+    string BuildingType,
+    bool IsBuilt,
+    bool CanBuild,
+    int Level);
 

@@ -218,6 +218,22 @@ public sealed class SkiaGameRuntime : IDisposable
         }
     }
 
+    public CitySelectionInfo GetCitySelectionInfo()
+    {
+        lock (_sync)
+        {
+            return _constructionInteractionService?.SelectionInfo ?? CitySelectionInfo.Empty;
+        }
+    }
+
+    public bool TryExecuteSelectedCityBuildingAction(string buildingTypeName)
+    {
+        lock (_sync)
+        {
+            return _constructionInteractionService?.TryExecuteSelectedCityBuildingAction(buildingTypeName) ?? false;
+        }
+    }
+
     public void Dispose()
     {
         lock (_sync)

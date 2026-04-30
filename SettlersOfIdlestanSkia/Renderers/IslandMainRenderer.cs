@@ -45,6 +45,20 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
         StrokeCap = SKStrokeCap.Round,
         IsAntialias = true
     };
+    private readonly SKPaint _hoverCityPaint = new()
+    {
+        Color = new SKColor(255, 255, 255, 220),
+        Style = SKPaintStyle.Stroke,
+        StrokeWidth = 2,
+        IsAntialias = true
+    };
+    private readonly SKPaint _selectedCityPaint = new()
+    {
+        Color = new SKColor(255, 215, 0, 230),
+        Style = SKPaintStyle.Stroke,
+        StrokeWidth = 3,
+        IsAntialias = true
+    };
 
     public IslandMainRenderer(IConstructionHoverProvider? constructionHoverProvider = null)
     {
@@ -100,6 +114,18 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
         {
             DrawEdgeHighlight(canvas, state.HoveredEdge, _hoverEdgePaint, 0.14f);
         }
+
+        if (state.HoveredCityVertex != null)
+        {
+            var pt = VertexToIsland(state.HoveredCityVertex);
+            canvas.DrawCircle(pt, 9f, _hoverCityPaint);
+        }
+
+        if (state.SelectedCityVertex != null)
+        {
+            var pt = VertexToIsland(state.SelectedCityVertex);
+            canvas.DrawCircle(pt, 12f, _selectedCityPaint);
+        }
     }
 
     private void DrawEdgeHighlight(SKCanvas canvas, Edge edge, SKPaint paint, float trimFactor)
@@ -152,6 +178,8 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
         _buildableEdgePaint.Dispose();
         _hoverVertexPaint.Dispose();
         _hoverEdgePaint.Dispose();
+        _hoverCityPaint.Dispose();
+        _selectedCityPaint.Dispose();
     }
 
     private CameraTransformScope ApplyCameraTransform(SKCanvas canvas, GameRenderContext context)

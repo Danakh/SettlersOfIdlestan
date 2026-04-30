@@ -1,4 +1,6 @@
 using SettlersOfIdlestan.Model.Game;
+using SettlersOfIdlestan.Model.City;
+using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Controller;
@@ -150,5 +152,62 @@ public class GameControllerService
         {
             return false;
         }
+    }
+
+    public IReadOnlyList<City> GetAllCities()
+    {
+        return _controller.CurrentMainState?.CurrentIslandState?.Civilizations
+            .SelectMany(c => c.Cities)
+            .ToList() ?? [];
+    }
+
+    public City? FindCityAt(Vertex vertex)
+    {
+        return GetAllCities().FirstOrDefault(c => c.Position.Equals(vertex));
+    }
+
+    public List<Building> GetBuildableBuildingsAtCity(Vertex cityVertex)
+    {
+        var city = FindCityAt(cityVertex);
+        if (city == null)
+            return [];
+
+        return _controller.BuildingController.GetBuildableBuildings(city.CivilizationIndex, cityVertex);
+    }
+
+    public bool TryBuildBuildingAtCity(Vertex cityVertex, BuildingType buildingType)
+    {
+        var city = FindCityAt(cityVertex);
+        if (city == null)
+            return false;
+
+        try
+        {
+            _controller.BuildingController.BuildBuilding(city.CivilizationIndex, cityVertex, buildingType);
+            if (_controller.CurrentMainState != null)
+            {
+                _controller.SetGame(_controller.CurrentMainState);
+            }
+
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    public bool TryActivateBuildingAtCity(Vertex cityVertex, BuildingType buildingType)
+    {
+        var city = FindCityAt(cityVertex);
+        if (city == null)
+            return false;
+
+        var existing = city.Buildings.FirstOrDefault(b => b.Type == buildingType);
+        if (existing == null)
+            return false;
+
+        // Placeholder: les actions actives par bâtiment (Prestige, etc.) ne sont pas encore branchées.
+        return true;
     }
 }

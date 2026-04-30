@@ -2,12 +2,14 @@
 using SkiaSharp.Views.Maui;
 using SettlersOfIdlestanSkia.Services;
 using SkiaSharp;
+using Microsoft.Maui.Controls;
 
 namespace SettlersOfIdlestanDesktop;
 
 public partial class MainPage : ContentPage
 {
 	private SkiaGameRuntime? _runtime;
+	private string _lastBuildingsSignature = string.Empty;
 
 	public MainPage()
 	{
@@ -97,6 +99,13 @@ public partial class MainPage : ContentPage
 			});
 		}
 
+		var selection = _runtime.GetCitySelectionInfo();
+		MainThread.BeginInvokeOnMainThread(() =>
+		{
+			SelectedCityTypeLabel.Text = selection.CityType;
+			RefreshBuildingsList(selection);
+		});
+
 		return true; // Continue la boucle
 	}
 
@@ -106,5 +115,82 @@ public partial class MainPage : ContentPage
 
 		_runtime?.Dispose();
 		_runtime = null;
+	}
+
+	private void RefreshBuildingsList(CitySelectionInfo selection)
+	{
+		if (SelectedCityBuildingsList == null)
+			return;
+
+		var signature = selection.SelectedCityVertex == null
+			? "none"
+			: string.Join("|", selection.Buildings.Select(b => $"{b.BuildingType}:{b.IsBuilt}:{b.CanBuild}:{b.Level}"));
+		if (signature == _lastBuildingsSignature)
+			return;
+
+		_lastBuildingsSignature = signature;
+		SelectedCityBuildingsList.Children.Clear();
+
+		if (selection.SelectedCityVertex == null || selection.Buildings.Count == 0)
+		{
+			SelectedCityBuildingsList.Children.Add(new Label
+			{
+				Text = "-",
+				FontSize = 13,
+				TextColor = Colors.White
+			});
+			return;
+		}
+
+		foreach (var building in selection.Buildings)
+		{
+			var row = new Grid
+			{
+				ColumnDefinitions =
+				{
+					new ColumnDefinition { Width = GridLength.Star },
+					new ColumnDefinition { Width = GridLength.Auto }
+				},
+				ColumnSpacing = 8
+			};
+
+			var suffix = building.IsBuilt ? $" (Niv {building.Level})" : string.Empty;
+			var label = new Label
+			{
+				Text = $"{building.BuildingType}{suffix}",
+				FontSize = 13,
+				TextColor = Colors.White,
+				VerticalOptions = LayoutOptions.Center
+			};
+
+			var actionButton = new Button
+			{
+				Text = building.IsBuilt ? "Activer" : "Construire",
+				Padding = new Thickness(10, 4),
+				FontSize = 12,
+				BackgroundColor = building.IsBuilt ? Color.FromArgb("#2E7D32") : Color.FromArgb("#1565C0"),
+				TextColor = Colors.White,
+				CornerRadius = 6,
+				IsEnabled = building.IsBuilt || building.CanBuild,
+				CommandParameter = building.BuildingType
+			};
+			actionButton.Clicked += OnBuildingActionClicked;
+
+			row.Add(label, 0, 0);
+			row.Add(actionButton, 1, 0);
+			SelectedCityBuildingsList.Children.Add(row);
+		}
+	}
+
+	private void OnBuildingActionClicked(object? sender, EventArgs e)
+	{
+		if (_runtime == null || sender is not Button button || button.CommandParameter is not string buildingType)
+			return;
+
+		var ok = _runtime.TryExecuteSelectedCityBuildingAction(buildingType);
+		if (!ok)
+		{
+			StateLabel.Text = $"Action impossible: {buildingType}";
+		}
 	}
 }
