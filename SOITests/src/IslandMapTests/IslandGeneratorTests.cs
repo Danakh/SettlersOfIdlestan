@@ -5,7 +5,7 @@ using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.Civilization;
 using System.Text.Json;
-using SettlersOfIdlestan.src.Controller.Generator;
+using SettlersOfIdlestan.Controller.Generator;
 
 namespace SOITests.IslandMapTests;
 

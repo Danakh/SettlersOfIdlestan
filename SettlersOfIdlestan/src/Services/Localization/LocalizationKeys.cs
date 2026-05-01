@@ -5,6 +5,12 @@ namespace SettlersOfIdlestan.Services.Localization;
 /// </summary>
 public enum LocalizationKey
 {
+    // Language Settings
+    MenuLanguage,
+    MenuLanguageFrench,
+    MenuLanguageEnglish,
+    MenuSeparatorDebug,
+
     // Settings Menu
     MenuToggleDebugMode,
     MenuAddResources,

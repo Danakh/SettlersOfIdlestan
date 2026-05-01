@@ -14,6 +14,7 @@ public class SettingsMenu
     public const float MenuItemWidth = 250;
     private const float IconSize = 20;
     private const float Padding = 12;
+    private const float SeparatorHeight = 20;
 
     private bool _isOpen = false;
     private int _hoveredItemIndex = -1;
@@ -23,6 +24,7 @@ public class SettingsMenu
     private SKPaint? _menuItemHoverPaint;
     private SKPaint? _textPaint;
     private SKPaint? _borderPaint;
+    private SKPaint? _separatorPaint;
     private SKFont? _textFont;
 
     private readonly MainGameController _gameController;
@@ -37,6 +39,8 @@ public class SettingsMenu
     {
         public string Label { get; set; } = "";
         public Action? Action { get; set; }
+        public bool IsSeparator { get; set; } = false;
+        public bool IsClickable => !IsSeparator && Action != null;
     }
 
     public bool IsOpen => _isOpen;
@@ -51,6 +55,31 @@ public class SettingsMenu
         Initialize();
 
         // Initialise les items du menu
+        // Section Langue (avant le séparateur)
+        _menuItems.Add(new MenuItem
+        {
+            Label = _localization.Get(LocalizationKey.MenuLanguage),
+            Action = null  // Sera géré comme sous-menu
+        });
+        _menuItems.Add(new MenuItem
+        {
+            Label = _localization.Get(LocalizationKey.MenuLanguageFrench),
+            Action = () => SetLanguage(Language.French)
+        });
+        _menuItems.Add(new MenuItem
+        {
+            Label = _localization.Get(LocalizationKey.MenuLanguageEnglish),
+            Action = () => SetLanguage(Language.English)
+        });
+
+        // Séparateur visuel
+        _menuItems.Add(new MenuItem
+        {
+            Label = _localization.Get(LocalizationKey.MenuSeparatorDebug),
+            IsSeparator = true
+        });
+
+        // Section Debug
         _menuItems.Add(new MenuItem
         {
             Label = _localization.Get(LocalizationKey.MenuToggleDebugMode),
@@ -100,6 +129,13 @@ public class SettingsMenu
             IsAntialias = true
         };
 
+        _separatorPaint = new SKPaint
+        {
+            Color = new SKColor(100, 100, 100, 150),
+            Style = SKPaintStyle.Fill,
+            IsAntialias = true
+        };
+
         _textFont = new SKFont { Size = 12, Typeface = SKTypeface.FromFamilyName("Arial", SKFontStyle.Bold) };
     }
 
@@ -133,35 +169,68 @@ public class SettingsMenu
         float menuX = gearX - MenuItemWidth + 20;
         float menuY = barHeight + 5;
 
+        // Calcule la hauteur totale du menu
+        float totalHeight = 0;
+        foreach (var item in _menuItems)
+        {
+            totalHeight += item.IsSeparator ? SeparatorHeight : MenuItemHeight;
+        }
+
         // Dessine le fond du menu
-        var menuRect = new SKRect(menuX, menuY, menuX + MenuItemWidth, menuY + _menuItems.Count * MenuItemHeight);
+        var menuRect = new SKRect(menuX, menuY, menuX + MenuItemWidth, menuY + totalHeight);
         canvas.DrawRoundRect(menuRect, cornerRadius, cornerRadius, _backgroundPaint);
         canvas.DrawRoundRect(menuRect, cornerRadius, cornerRadius, _borderPaint);
 
         // Dessine les items du menu
+        float currentY = menuY;
         for (int i = 0; i < _menuItems.Count; i++)
         {
-            float itemY = menuY + i * MenuItemHeight;
-            var itemRect = new SKRect(menuX, itemY, menuX + MenuItemWidth, itemY + MenuItemHeight);
+            var item = _menuItems[i];
+            float itemHeight = item.IsSeparator ? SeparatorHeight : MenuItemHeight;
+            var itemRect = new SKRect(menuX, currentY, menuX + MenuItemWidth, currentY + itemHeight);
 
-            // Fond de l'item (hover ou normal)
-            var bgPaint = i == _hoveredItemIndex ? _menuItemHoverPaint : _menuItemPaint;
-            canvas.DrawRect(itemRect, bgPaint);
-
-            // Bordure
-            using (var itemBorder = new SKPaint { Color = SKColors.Gold, Style = SKPaintStyle.Stroke, StrokeWidth = 1, IsAntialias = true })
+            if (item.IsSeparator)
             {
-                canvas.DrawRect(itemRect, itemBorder);
+                // Dessine le séparateur
+                DrawSeparator(canvas, itemRect);
+            }
+            else
+            {
+                // Fond de l'item (hover ou normal)
+                var bgPaint = i == _hoveredItemIndex ? _menuItemHoverPaint : _menuItemPaint;
+                canvas.DrawRect(itemRect, bgPaint);
+
+                // Bordure
+                using (var itemBorder = new SKPaint { Color = SKColors.Gold, Style = SKPaintStyle.Stroke, StrokeWidth = 1, IsAntialias = true })
+                {
+                    canvas.DrawRect(itemRect, itemBorder);
+                }
+
+                // Texte
+                if (_textFont != null && _textPaint != null)
+                {
+                    const float padding = 8;
+                    float textX = menuX + padding;
+                    float textY = currentY + itemHeight / 2 + _textFont.Size / 2;
+                    canvas.DrawText(item.Label, textX, textY, _textFont, _textPaint);
+                }
             }
 
-            // Texte
-            var label = _menuItems[i].Label;
-            if (_textFont != null && _textPaint != null)
+            currentY += itemHeight;
+        }
+    }
+
+    private void DrawSeparator(SKCanvas canvas, SKRect rect)
+    {
+        // Dessine une ligne pointillée ou un texte centré
+        if (_textFont != null && _textPaint != null)
+        {
+            float textY = rect.MidY + _textFont.Size / 2;
+            float textX = rect.Left + (rect.Width - _textFont.MeasureText("──────── Debug ────────")) / 2;
+
+            using (var separatorTextPaint = new SKPaint { Color = new SKColor(150, 150, 150, 180), IsAntialias = true })
             {
-                const float padding = 8;
-                float textX = menuX + padding;
-                float textY = itemY + MenuItemHeight / 2 + _textFont.Size / 2;
-                canvas.DrawText(label, textX, textY, _textFont, _textPaint);
+                canvas.DrawText("──────── Debug ────────", textX, textY, _textFont, separatorTextPaint);
             }
         }
     }
@@ -185,19 +254,38 @@ public class SettingsMenu
             return;
         }
 
-        // Vérifie si le clic est sur un item du menu
+        // Calcule la hauteur totale et les Y positions
         float menuX = _gearX - MenuItemWidth + 20;
         float menuY = _barHeight + 5;
-        var menuRect = new SKRect(menuX, menuY, menuX + MenuItemWidth, menuY + _menuItems.Count * MenuItemHeight);
+        float totalHeight = 0;
+        foreach (var item in _menuItems)
+        {
+            totalHeight += item.IsSeparator ? SeparatorHeight : MenuItemHeight;
+        }
+
+        var menuRect = new SKRect(menuX, menuY, menuX + MenuItemWidth, menuY + totalHeight);
 
         if (menuRect.Contains(e.Position.X, e.Position.Y))
         {
-            int itemIndex = (int)((e.Position.Y - menuY) / MenuItemHeight);
-            if ((itemIndex >= 0) && (itemIndex < _menuItems.Count))
+            // Trouve l'item cliqué
+            float currentY = menuY;
+            for (int i = 0; i < _menuItems.Count; i++)
             {
-                _menuItems[itemIndex].Action?.Invoke();
-                _isOpen = false;
-                _hoveredItemIndex = -1;
+                var item = _menuItems[i];
+                float itemHeight = item.IsSeparator ? SeparatorHeight : MenuItemHeight;
+
+                if (e.Position.Y >= currentY && e.Position.Y < currentY + itemHeight)
+                {
+                    if (item.IsClickable)
+                    {
+                        item.Action?.Invoke();
+                        _isOpen = false;
+                        _hoveredItemIndex = -1;
+                    }
+                    break;
+                }
+
+                currentY += itemHeight;
             }
         }
         else
@@ -205,6 +293,27 @@ public class SettingsMenu
             // Ferme le menu si on clique ailleurs
             _isOpen = false;
             _hoveredItemIndex = -1;
+        }
+    }
+
+    private void SetLanguage(Language language)
+    {
+        _localization.SetLanguage(language);
+        // Actualise le texte des items du menu
+        RefreshMenuItems();
+    }
+
+    private void RefreshMenuItems()
+    {
+        // Rafraîchit les labels des items du menu avec la nouvelle langue
+        if (_menuItems.Count >= 6)
+        {
+            _menuItems[0].Label = _localization.Get(LocalizationKey.MenuLanguage);
+            _menuItems[1].Label = _localization.Get(LocalizationKey.MenuLanguageFrench);
+            _menuItems[2].Label = _localization.Get(LocalizationKey.MenuLanguageEnglish);
+            _menuItems[3].Label = _localization.Get(LocalizationKey.MenuSeparatorDebug);
+            _menuItems[4].Label = _localization.Get(LocalizationKey.MenuToggleDebugMode);
+            _menuItems[5].Label = _localization.Get(LocalizationKey.MenuAddResources);
         }
     }
 
@@ -235,6 +344,7 @@ public class SettingsMenu
         _menuItemHoverPaint?.Dispose();
         _textPaint?.Dispose();
         _borderPaint?.Dispose();
+        _separatorPaint?.Dispose();
         _textFont?.Dispose();
     }
 }
