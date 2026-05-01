@@ -24,6 +24,8 @@ public class GameControllerService
 
     public int? PlayerCivilizationIndex => _controller.PlayerCivilization?.Index;
 
+    public MainGameController MainGameController => _controller;
+
     public GameControllerService()
     {
         _controller = new MainGameController();

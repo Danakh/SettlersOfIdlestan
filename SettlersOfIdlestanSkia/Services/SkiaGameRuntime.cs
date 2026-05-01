@@ -68,7 +68,10 @@ public sealed class SkiaGameRuntime : IDisposable
             islandMainRenderer = new IslandMainRenderer(_constructionInteractionService);
             _constructionInteractionService.AttachRenderer(islandMainRenderer);
             _renderService.RegisterRenderer(islandMainRenderer);
-            _renderService.RegisterRenderer(new PlayerResourcesOverlayRenderer());
+            
+            // Crée le menu avant le renderer et le passe en paramètre
+            var settingsMenu = new SettingsMenu(_gameControllerService.MainGameController, _inputService);
+            _renderService.RegisterRenderer(new PlayerResourcesOverlayRenderer(_inputService, settingsMenu));
             _renderService.RegisterRenderer(new DebugOverlayRenderer(_inputService, _cameraService, islandMainRenderer));
 
             _isGameInitialized = true;

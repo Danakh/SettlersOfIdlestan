@@ -1,7 +1,9 @@
 using SkiaSharp;
 using SettlersOfIdlestanSkia.Core;
+using SettlersOfIdlestanSkia.Services;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.IslandMap;
+using SettlersOfIdlestan.Controller;
 
 namespace SettlersOfIdlestanSkia.Renderers;
 
@@ -21,6 +23,12 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
     private SKSize _canvasSize;
     private bool _disposed;
 
+    private readonly SettingsMenu _settingsMenu;
+    private readonly InputHandlingService _inputService;
+    private const float BarHeight = 50;
+    private const float IconSize = 20;
+    private const float Padding = 12;
+
     // Couleurs par type de ressource
     private static readonly Dictionary<Resource, SKColor> ResourceColors = new()
     {
@@ -32,6 +40,13 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
     };
 
     public bool Disposed => _disposed;
+
+    public PlayerResourcesOverlayRenderer(InputHandlingService inputService, SettingsMenu settingsMenu)
+    {
+        _inputService = inputService;
+        _inputService.PointerPressed += HandleGearClick;
+        _settingsMenu = settingsMenu;
+    }
 
     public void Initialize(SKSize canvasSize)
     {
@@ -89,13 +104,14 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
         var currentCivilization = islandState.Civilizations[0];
 
         DrawResourcesBar(canvas, currentCivilization);
+
+        // Dessine le menu déroulant
+        float gearX = _canvasSize.Width - Padding - IconSize;
+        _settingsMenu.Draw(canvas, gearX, BarHeight);
     }
 
     private void DrawResourcesBar(SKCanvas canvas, SettlersOfIdlestan.Model.Civilization.Civilization civilization)
     {
-        const float barHeight = 50;
-        const float padding = 12;
-        const float iconSize = 20;
         const float itemSpacing = 16;
         const float cornerRadius = 8;
 
@@ -106,7 +122,7 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
         var xStart = 0;
         var yStart = 0;
         var barWidth = _canvasSize.Width;
-        var rect = new SKRect(xStart, yStart, barWidth, barHeight);
+        var rect = new SKRect(xStart, yStart, barWidth, BarHeight);
 
         // Fond arrondi
         canvas.DrawRoundRect(rect, cornerRadius, cornerRadius, _backgroundPaint);
@@ -115,19 +131,19 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
         canvas.DrawRoundRect(rect, cornerRadius, cornerRadius, _borderPaint);
 
         // Dessine les ressources horizontalement à gauche
-        float currentX = padding;
-        float itemY = (barHeight - iconSize) / 2;
+        float currentX = Padding;
+        float itemY = (BarHeight - IconSize) / 2;
 
         foreach (var resource in resourceTypes)
         {
             var quantity = civilization.GetResourceQuantity(resource);
-            DrawResourceItem(canvas, resource, quantity, currentX, itemY, iconSize);
-            currentX += iconSize + itemSpacing;
+            DrawResourceItem(canvas, resource, quantity, currentX, itemY, IconSize);
+            currentX += IconSize + itemSpacing;
         }
 
         // Dessine la roue crantée pour le menu à droite
-        float gearX = barWidth - padding - iconSize;
-        DrawGearIcon(canvas, gearX, itemY, iconSize);
+        float gearX = barWidth - Padding - IconSize;
+        DrawGearIcon(canvas, gearX, itemY, IconSize);
     }
 
     private void DrawResourceItem(SKCanvas canvas, Resource resource, int quantity, float x, float y, float size)
@@ -200,11 +216,25 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
         }
     }
 
+    private void HandleGearClick(object? sender, SettlersOfIdlestanSkia.Services.PointerEventArgs e)
+    {
+        float gearX = _canvasSize.Width - Padding - IconSize;
+        float gearY = (BarHeight - IconSize) / 2;
+
+        // Vérifie si le clic est sur la roue crantée
+        var gearRect = new SKRect(gearX, gearY, gearX + IconSize, gearY + IconSize);
+        if (gearRect.Contains(e.Position.X, e.Position.Y))
+        {
+            _settingsMenu.HandleGearClick();
+        }
+    }
+
     public void Dispose()
     {
         if (_disposed)
             return;
 
+        _inputService.PointerPressed -= HandleGearClick;
         _backgroundPaint?.Dispose();
         _textPaint?.Dispose();
         _borderPaint?.Dispose();
