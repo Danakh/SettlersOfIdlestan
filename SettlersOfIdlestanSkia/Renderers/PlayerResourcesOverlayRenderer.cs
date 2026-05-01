@@ -6,15 +6,17 @@ using SettlersOfIdlestan.Model.IslandMap;
 namespace SettlersOfIdlestanSkia.Renderers;
 
 /// <summary>
-/// Renderer affichant un overlay avec les ressources du joueur actuel en haut à droite.
-/// L'overlay s'affiche par-dessus tous les autres éléments du jeu.
+/// Renderer affichant un bandeau avec les ressources du joueur actuel sur toute la hauteur de la fenêtre.
+/// Les ressources s'affichent horizontalement à gauche, avec une icône de menu à droite.
 /// </summary>
 public class PlayerResourcesOverlayRenderer : IGameRenderer
 {
     private SKPaint? _backgroundPaint;
     private SKPaint? _textPaint;
     private SKFont? _textFont;
+    private SKFont? _smallFont;
     private SKPaint? _borderPaint;
+    private SKPaint? _gearPaint;
 
     private SKSize _canvasSize;
     private bool _disposed;
@@ -37,7 +39,7 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
 
         _backgroundPaint = new SKPaint
         {
-            Color = new SKColor(0, 0, 0, 200),  // Noir semi-transparent
+            Color = new SKColor(0, 0, 0, 220),  // Noir semi-transparent
             Style = SKPaintStyle.Fill,
             IsAntialias = true
         };
@@ -56,7 +58,16 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
             IsAntialias = true,
         };
 
-        _textFont = new SKFont { Size = 14, Typeface = SKTypeface.FromFamilyName("Arial", SKFontStyle.Bold) };
+        _gearPaint = new SKPaint
+        {
+            Color = SKColors.Gold,
+            Style = SKPaintStyle.Stroke,
+            StrokeWidth = 1.5f,
+            IsAntialias = true
+        };
+
+        _textFont = new SKFont { Size = 12, Typeface = SKTypeface.FromFamilyName("Arial", SKFontStyle.Bold) };
+        _smallFont = new SKFont { Size = 10, Typeface = SKTypeface.FromFamilyName("Arial") };
     }
 
     public void Render(SKCanvas canvas, GameRenderContext context)
@@ -77,32 +88,25 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
 
         var currentCivilization = islandState.Civilizations[0];
 
-        DrawResourcesOverlay(canvas, currentCivilization);
+        DrawResourcesBar(canvas, currentCivilization);
     }
 
-    private void DrawResourcesOverlay(SKCanvas canvas, SettlersOfIdlestan.Model.Civilization.Civilization civilization)
+    private void DrawResourcesBar(SKCanvas canvas, SettlersOfIdlestan.Model.Civilization.Civilization civilization)
     {
-        // Paramètres de position et taille
+        const float barHeight = 50;
         const float padding = 12;
-        const float itemHeight = 24;
-        const float itemSpacing = 4;
+        const float iconSize = 20;
+        const float itemSpacing = 16;
         const float cornerRadius = 8;
 
         // Énumère tous les types de ressources
         var resourceTypes = Enum.GetValues(typeof(Resource)).Cast<Resource>().ToList();
 
-        // Calcule la taille de la capsule
-        var numResources = resourceTypes.Count;
-        var containerHeight = padding * 2 + numResources * itemHeight + (numResources - 1) * itemSpacing;
-        var maxTextWidth = CalculateMaxTextWidth();
-        var containerWidth = padding * 2 + 20 + 8 + maxTextWidth;  // 20 pour la couleur, 8 d'espacement
-
-        // Position en haut à droite
-        var xStart = _canvasSize.Width - containerWidth - padding;
-        var yStart = padding;
-
-        // Dessine le fond avec bordure
-        var rect = new SKRect(xStart, yStart, xStart + containerWidth, yStart + containerHeight);
+        // Position du bandeau : haut, gauche à droite, hauteur fixe, largeur pleine
+        var xStart = 0;
+        var yStart = 0;
+        var barWidth = _canvasSize.Width;
+        var rect = new SKRect(xStart, yStart, barWidth, barHeight);
 
         // Fond arrondi
         canvas.DrawRoundRect(rect, cornerRadius, cornerRadius, _backgroundPaint);
@@ -110,50 +114,90 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
         // Bordure arrondie
         canvas.DrawRoundRect(rect, cornerRadius, cornerRadius, _borderPaint);
 
-        // Dessine chaque ressource
-        float currentY = yStart + padding;
+        // Dessine les ressources horizontalement à gauche
+        float currentX = padding;
+        float itemY = (barHeight - iconSize) / 2;
+
         foreach (var resource in resourceTypes)
         {
             var quantity = civilization.GetResourceQuantity(resource);
-            DrawResourceItem(canvas, resource, quantity, xStart + padding, currentY);
-            currentY += itemHeight + itemSpacing;
+            DrawResourceItem(canvas, resource, quantity, currentX, itemY, iconSize);
+            currentX += iconSize + itemSpacing;
         }
+
+        // Dessine la roue crantée pour le menu à droite
+        float gearX = barWidth - padding - iconSize;
+        DrawGearIcon(canvas, gearX, itemY, iconSize);
     }
 
-    private void DrawResourceItem(SKCanvas canvas, Resource resource, int quantity, float x, float y)
+    private void DrawResourceItem(SKCanvas canvas, Resource resource, int quantity, float x, float y, float size)
     {
         // Carré de couleur de la ressource
-        var colorRect = new SKRect(x, y + 2, x + 16, y + 18);
+        var colorRect = new SKRect(x, y, x + size, y + size);
         using (var colorPaint = new SKPaint { Color = ResourceColors[resource], Style = SKPaintStyle.Fill, IsAntialias = true })
         {
             canvas.DrawRect(colorRect, colorPaint);
         }
 
-        // Texte du nom et de la quantité
-        var resourceName = resource.ToString();
-        var text = $"{resourceName}: {quantity}";
-
-        if (_textPaint != null)
+        // Bordure du carré
+        using (var borderPaint = new SKPaint { Color = SKColors.White, Style = SKPaintStyle.Stroke, StrokeWidth = 1, IsAntialias = true })
         {
-            canvas.DrawText(text, x + 20, y + 16, SKTextAlign.Left, _textFont, _textPaint);
+            canvas.DrawRect(colorRect, borderPaint);
+        }
+
+        // Affiche la quantité au centre du carré
+        var text = quantity.ToString();
+        if (_smallFont != null && _textPaint != null)
+        {
+            var textWidth = _smallFont.MeasureText(text);
+            var textHeight = _smallFont.Size;
+            var textX = x + (size - textWidth) / 2;
+            var textY = y + (size + textHeight) / 2 - 2;
+            canvas.DrawText(text, textX, textY, _smallFont, _textPaint);
         }
     }
 
-    private float CalculateMaxTextWidth()
+    private void DrawGearIcon(SKCanvas canvas, float x, float y, float size)
     {
-        float maxWidth = 0;
+        // Centre de la roue
+        float cx = x + size / 2;
+        float cy = y + size / 2;
+        float radius = size / 2.5f;
+        float teethRadius = radius * 1.3f;
+        int teethCount = 8;
 
-        if (_textFont == null)
-            return 120;
-
-        foreach (var resource in Enum.GetValues(typeof(Resource)).Cast<Resource>())
+        // Dessine les dents de la roue
+        for (int i = 0; i < teethCount; i++)
         {
-            var text = $"{resource}: 999";
-            var width = _textFont.MeasureText(text);
-            maxWidth = Math.Max(maxWidth, width);
+            float angle1 = (360f / teethCount) * i * (float)Math.PI / 180;
+            float angle2 = (360f / teethCount) * (i + 0.4f) * (float)Math.PI / 180;
+            float angle3 = (360f / teethCount) * (i + 0.6f) * (float)Math.PI / 180;
+            float angle4 = (360f / teethCount) * (i + 1) * (float)Math.PI / 180;
+
+            float x1 = cx + (float)Math.Cos(angle1) * radius;
+            float y1 = cy + (float)Math.Sin(angle1) * radius;
+            float x2 = cx + (float)Math.Cos(angle2) * teethRadius;
+            float y2 = cy + (float)Math.Sin(angle2) * teethRadius;
+            float x3 = cx + (float)Math.Cos(angle3) * teethRadius;
+            float y3 = cy + (float)Math.Sin(angle3) * teethRadius;
+            float x4 = cx + (float)Math.Cos(angle4) * radius;
+            float y4 = cy + (float)Math.Sin(angle4) * radius;
+
+            using (var path = new SKPath())
+            {
+                path.MoveTo(x1, y1);
+                path.LineTo(x2, y2);
+                path.LineTo(x3, y3);
+                path.LineTo(x4, y4);
+                canvas.DrawPath(path, _gearPaint);
+            }
         }
 
-        return maxWidth;
+        // Cercle central
+        using (var centerPaint = new SKPaint { Color = SKColors.Gold, Style = SKPaintStyle.Stroke, StrokeWidth = 1.5f, IsAntialias = true })
+        {
+            canvas.DrawCircle(cx, cy, radius * 0.3f, centerPaint);
+        }
     }
 
     public void Dispose()
@@ -164,6 +208,9 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
         _backgroundPaint?.Dispose();
         _textPaint?.Dispose();
         _borderPaint?.Dispose();
+        _gearPaint?.Dispose();
+        _textFont?.Dispose();
+        _smallFont?.Dispose();
         _disposed = true;
     }
 }
