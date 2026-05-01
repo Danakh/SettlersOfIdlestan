@@ -1,6 +1,7 @@
 using SkiaSharp;
 using SettlersOfIdlestanSkia.Services;
 using SettlersOfIdlestan.Controller;
+using SettlersOfIdlestan.Services.Localization;
 
 namespace SettlersOfIdlestanSkia.Renderers;
 
@@ -26,6 +27,7 @@ public class SettingsMenu
 
     private readonly MainGameController _gameController;
     private readonly InputHandlingService _inputService;
+    private readonly ILocalizationService _localization;
     private List<MenuItem> _menuItems = new();
 
     private float _gearX;
@@ -39,10 +41,11 @@ public class SettingsMenu
 
     public bool IsOpen => _isOpen;
 
-    public SettingsMenu(MainGameController gameController, InputHandlingService inputService)
+    public SettingsMenu(MainGameController gameController, InputHandlingService inputService, ILocalizationService localization)
     {
         _gameController = gameController;
         _inputService = inputService;
+        _localization = localization;
         _inputService.PointerPressed += HandlePointerPressed;
 
         Initialize();
@@ -50,12 +53,12 @@ public class SettingsMenu
         // Initialise les items du menu
         _menuItems.Add(new MenuItem
         {
-            Label = "Toggle Debug Mode",
+            Label = _localization.Get(LocalizationKey.MenuToggleDebugMode),
             Action = ToggleDebugMode
         });
         _menuItems.Add(new MenuItem
         {
-            Label = "Add 100 Resources",
+            Label = _localization.Get(LocalizationKey.MenuAddResources),
             Action = AddResources
         });
     }

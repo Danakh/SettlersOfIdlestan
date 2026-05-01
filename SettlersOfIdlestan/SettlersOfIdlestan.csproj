@@ -16,4 +16,8 @@
     <Compile Include="SettlersOfIdlestan\src\Model\HexGrid\VertexJsonConverter.cs" />
   </ItemGroup>
 
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\Localization\*.json" />
+  </ItemGroup>
+
 </Project>

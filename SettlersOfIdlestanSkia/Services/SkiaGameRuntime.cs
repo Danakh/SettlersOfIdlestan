@@ -4,6 +4,7 @@ using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Renderers;
+using SettlersOfIdlestan.Services.Localization;
 
 namespace SettlersOfIdlestanSkia.Services;
 
@@ -24,6 +25,7 @@ public sealed class SkiaGameRuntime : IDisposable
     private CameraService? _cameraService;
     private HarvestService? _harvestService;
     private ConstructionInteractionService? _constructionInteractionService;
+    private ILocalizationService? _localizationService;
 
     private bool _isDisposed;
     private bool _isGameInitialized;
@@ -53,6 +55,7 @@ public sealed class SkiaGameRuntime : IDisposable
             _gameControllerService = new GameControllerService();
             _cameraService = new CameraService();
             _harvestService = new HarvestService(_gameControllerService);
+            _localizationService = new LocalizationService();
 
             var gameState = _gameControllerService.InitializeNewGame();
             if (gameState == null)
@@ -70,9 +73,9 @@ public sealed class SkiaGameRuntime : IDisposable
             _renderService.RegisterRenderer(islandMainRenderer);
             
             // Crée le menu avant le renderer et le passe en paramètre
-            var settingsMenu = new SettingsMenu(_gameControllerService.MainGameController, _inputService);
+            var settingsMenu = new SettingsMenu(_gameControllerService.MainGameController, _inputService, _localizationService);
             _renderService.RegisterRenderer(new PlayerResourcesOverlayRenderer(_inputService, settingsMenu));
-            _renderService.RegisterRenderer(new DebugOverlayRenderer(_inputService, _cameraService, islandMainRenderer));
+            _renderService.RegisterRenderer(new DebugOverlayRenderer(_inputService, _cameraService, islandMainRenderer, _localizationService));
 
             _isGameInitialized = true;
 

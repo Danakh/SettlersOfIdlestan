@@ -1,6 +1,7 @@
 using SkiaSharp;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Services;
+using SettlersOfIdlestan.Services.Localization;
 
 namespace SettlersOfIdlestanSkia.Renderers;
 
@@ -14,15 +15,17 @@ public class DebugOverlayRenderer : IGameRenderer
     private readonly InputHandlingService _inputService;
     private readonly CameraService _cameraService;
     private readonly IslandMainRenderer _islandRenderer;
+    private readonly ILocalizationService _localization;
 
     private readonly SKPaint _textPaint = new() { Color = SKColors.Red, IsAntialias = true };
     private readonly SKFont _textFont = new SKFont(SKTypeface.Default, 14);
 
-    public DebugOverlayRenderer(InputHandlingService inputService, CameraService cameraService, IslandMainRenderer islandRenderer)
+    public DebugOverlayRenderer(InputHandlingService inputService, CameraService cameraService, IslandMainRenderer islandRenderer, ILocalizationService localization)
     {
         _inputService = inputService;
         _cameraService = cameraService;
         _islandRenderer = islandRenderer;
+        _localization = localization;
     }
 
     public void Initialize(SKSize canvasSize) { }
@@ -41,8 +44,11 @@ public class DebugOverlayRenderer : IGameRenderer
         // Coordonnées dans le canvas (après transformation)
         var (q, r) = _islandRenderer.ScreenToHex(screenPos, canvasSize, zoom, cameraPos);
 
-        string text = $"Souris écran: ({screenPos.X:0},{screenPos.Y:0})\n" +
-                      $"Hex: ({q},{r})";
+        string mouseLabel = _localization.Get(LocalizationKey.DebugMouseScreen);
+        string hexLabel = _localization.Get(LocalizationKey.DebugHex);
+
+        string text = $"{mouseLabel}: ({screenPos.X:0},{screenPos.Y:0})\n" +
+                      $"{hexLabel}: ({q},{r})";
 
         // Affiche en bas à droite
         float margin = 10f;
