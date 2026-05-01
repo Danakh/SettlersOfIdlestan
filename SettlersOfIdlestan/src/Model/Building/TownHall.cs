@@ -13,7 +13,7 @@ public class TownHall : Building
     public TownHall() : base(BuildingType.TownHall)
     {
         MaxLevel = 4;
-        Description = "Hôtel de ville - Permet l'amélioration de la ville";
+        DescriptionKey = "Hôtel de ville - Permet l'amélioration de la ville";
         RequiresWater = false;
         AvailableAtLevel = 1;
     }

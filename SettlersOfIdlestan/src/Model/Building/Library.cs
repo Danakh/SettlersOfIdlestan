@@ -13,7 +13,6 @@ public class Library : Building
     public Library() : base(BuildingType.Library)
     {
         MaxLevel = 4;
-        Description = "Bibliothèque - Augmente la production de connaissances et permet des améliorations";
         RequiresWater = false;
         AvailableAtLevel = 1;
     }

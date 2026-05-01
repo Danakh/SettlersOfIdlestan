@@ -14,7 +14,6 @@ public class Mine : Building
     {
         Production.Add(Resource.Ore, 1);
         MaxLevel = 4;
-        Description = "Mine - Produit du minerai";
         RequiresWater = false;
         AvailableAtLevel = 1;
     }

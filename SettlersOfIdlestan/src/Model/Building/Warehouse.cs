@@ -13,7 +13,7 @@ public class Warehouse : Building
     public Warehouse() : base(BuildingType.Warehouse)
     {
         MaxLevel = 4;
-        Description = "Entrepôt - Augmente la capacité de stockage des ressources";
+        DescriptionKey = "Entrepôt - Augmente la capacité de stockage des ressources";
         RequiresWater = false;
         AvailableAtLevel = 1;
     }

@@ -14,7 +14,6 @@ public class Brickworks : Building
     {
         Production.Add(Resource.Brick, 1);
         MaxLevel = 4;
-        Description = "Briqueterie - Produit de la brique";
         RequiresWater = false;
         AvailableAtLevel = 1;
     }

@@ -14,7 +14,6 @@ public class Mill : Building
     {
         Production.Add(Resource.Wheat, 1);
         MaxLevel = 4;
-        Description = "Moulin - Produit du blé";
         RequiresWater = false;
         AvailableAtLevel = 1;
     }

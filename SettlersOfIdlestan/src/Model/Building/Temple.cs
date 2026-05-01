@@ -13,7 +13,6 @@ public class Temple : Building
     public Temple() : base(BuildingType.Temple)
     {
         MaxLevel = 4;
-        Description = "Temple - Ajoute des points de civilisation";
         RequiresWater = false;
         AvailableAtLevel = 1;
     }

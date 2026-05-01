@@ -13,7 +13,6 @@ public class BuildersGuild : Building
     public BuildersGuild() : base(BuildingType.BuildersGuild)
     {
         MaxLevel = 1;
-        Description = "Guilde des batisseurs - Permet l'automatisation de constructions. Disponible au niveau Capitale (4).";
         RequiresWater = false;
         AvailableAtLevel = 4;
     }

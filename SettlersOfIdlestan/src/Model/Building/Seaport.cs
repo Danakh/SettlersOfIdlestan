@@ -18,7 +18,6 @@ public class Seaport : Building
         Production.Add(Resource.Wheat, 1);
         Production.Add(Resource.Ore, 1);
         MaxLevel = 4;
-        Description = "Port maritime - Permet le commerce maritime (3:1), nécessite de l'eau. Disponible au niveau Ville (2). Niveau 4 débloque l'action Prestige.";
         RequiresWater = true;
         AvailableAtLevel = 2;
         Actions.Add("Prestige");

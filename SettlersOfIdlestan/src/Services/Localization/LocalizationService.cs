@@ -70,13 +70,13 @@ public class LocalizationService : ILocalizationService
 
     public string Get(LocalizationKey key)
     {
-        string keyString = ConvertKeyToString(key);
+        string keyString = key.ToString();
         return GetTranslation(keyString) ?? keyString;
     }
 
     public string Get(LocalizationKey key, params object[] args)
     {
-        string text = Get(key);
+        string text = key.ToString();
         try
         {
             return string.Format(text, args);
@@ -99,29 +99,6 @@ public class LocalizationService : ILocalizationService
         return null;
     }
 
-    private static string ConvertKeyToString(LocalizationKey key)
-    {
-        // Convertit MenuToggleDebugMode en menu.toggle_debug_mode
-        string keyName = key.ToString();
-        var result = new System.Text.StringBuilder();
-
-        for (int i = 0; i < keyName.Length; i++)
-        {
-            char c = keyName[i];
-            if (char.IsUpper(c) && i > 0)
-            {
-                result.Append('_');
-                result.Append(char.ToLower(c));
-            }
-            else
-            {
-                result.Append(char.ToLower(c));
-            }
-        }
-
-        // Remplace les underscores initiaux par des points (menu_toggle -> menu.toggle)
-        return result.ToString();
-    }
 
     private static string GetLanguageCode(Language language)
     {

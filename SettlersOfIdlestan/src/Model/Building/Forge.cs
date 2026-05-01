@@ -14,7 +14,6 @@ public class Forge : Building
     {
         Production.Add(Resource.Ore, 1);
         MaxLevel = 4;
-        Description = "Forge - Améliore la production de minerai et permet la création d'outils";
         RequiresWater = false;
         AvailableAtLevel = 1;
     }
