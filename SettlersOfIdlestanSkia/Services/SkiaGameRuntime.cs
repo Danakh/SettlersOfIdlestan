@@ -26,6 +26,7 @@ public sealed class SkiaGameRuntime : IDisposable
     private HarvestService? _harvestService;
     private ConstructionInteractionService? _constructionInteractionService;
     private ILocalizationService? _localizationService;
+    private CityBuildingService? _cityBuildingService;
 
     private bool _isDisposed;
     private bool _isGameInitialized;
@@ -49,12 +50,10 @@ public sealed class SkiaGameRuntime : IDisposable
             if (_isGameInitialized)
                 return;
 
-            var selectedCityPanelRenderer = new SelectedCityPanelRenderer(_localizationService);
-
             _resourceManager = new ResourceManager();
             _inputService = new InputHandlingService();
             _renderService = new RenderService();
-            _gameControllerService = new GameControllerService(selectedCityPanelRenderer);
+            _gameControllerService = new GameControllerService();
             _cameraService = new CameraService();
             _harvestService = new HarvestService(_gameControllerService);
             _localizationService = new LocalizationService();
@@ -69,12 +68,15 @@ public sealed class SkiaGameRuntime : IDisposable
                 _gameControllerService,
                 _harvestService,
                 _inputService,
-                _cameraService);
+                _cameraService,
+                _gameControllerService.CityBuildingService);
             islandMainRenderer = new IslandMainRenderer(_constructionInteractionService);
             _constructionInteractionService.AttachRenderer(islandMainRenderer);
             _renderService.RegisterRenderer(islandMainRenderer);
 
             // Ajout du panneau latéral des bâtiments sélectionnés
+            var selectedCityPanelRenderer = new SelectedCityPanelRenderer(_localizationService, _gameControllerService.CityBuildingService);
+
             _renderService.RegisterRenderer(selectedCityPanelRenderer);
 
             // Crée le menu avant le renderer et le passe en paramètre

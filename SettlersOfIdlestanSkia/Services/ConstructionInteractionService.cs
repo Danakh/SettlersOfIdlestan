@@ -19,6 +19,7 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
     private readonly HarvestService _harvestService;
     private readonly InputHandlingService _inputService;
     private readonly CameraService _cameraService;
+    private readonly CityBuildingService _cityBuildingService;
     private IslandMainRenderer? _renderer;
 
     public ConstructionHoverState HoverState { get; private set; } = ConstructionHoverState.Empty;
@@ -28,12 +29,14 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
         GameControllerService gameControllerService,
         HarvestService harvestService,
         InputHandlingService inputService,
-        CameraService cameraService)
+        CameraService cameraService,
+        CityBuildingService cityBuildingService)
     {
         _gameControllerService = gameControllerService ?? throw new ArgumentNullException(nameof(gameControllerService));
         _harvestService = harvestService ?? throw new ArgumentNullException(nameof(harvestService));
         _inputService = inputService ?? throw new ArgumentNullException(nameof(inputService));
         _cameraService = cameraService ?? throw new ArgumentNullException(nameof(cameraService));
+        _cityBuildingService = cityBuildingService ?? throw new ArgumentNullException(nameof(cityBuildingService));
 
         _inputService.PointerMoved += OnPointerMoved;
         _inputService.PointerPressed += OnPointerPressed;
@@ -159,65 +162,16 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
 
     private void SetSelectedCity(Vertex selectedCityVertex)
     {
-        var city = _gameControllerService.FindCityAt(selectedCityVertex);
-        if (city == null)
-        {
-            SelectionInfo = CitySelectionInfo.Empty;
-            HoverState = HoverState with { SelectedCityVertex = null };
-            return;
-        }
-
-        var buildable = _gameControllerService.GetBuildableBuildingsAtCity(selectedCityVertex)
-            .Select(b => b.Type)
-            .ToHashSet();
-        var builtByType = city.Buildings.ToDictionary(b => b.Type, b => b);
-        var allTypes = Enum.GetValues<SettlersOfIdlestan.Model.Buildings.BuildingType>()
-            .OrderBy(t => t.ToString());
-        var buildings = allTypes.Select(type =>
-            {
-                var isBuilt = builtByType.TryGetValue(type, out var built);
-                return new CityBuildingListItem(
-                    BuildingType: type.ToString(),
-                    IsBuilt: isBuilt,
-                    CanBuild: !isBuilt && buildable.Contains(type),
-                    Level: isBuilt && built != null ? built.Level : 0
-                );
-            })
-            .ToList();
-
-        SelectionInfo = new CitySelectionInfo(
-            selectedCityVertex,
-            city.LevelName,
-            buildings
-        );
-
-        HoverState = HoverState with { SelectedCityVertex = selectedCityVertex };
+        _cityBuildingService.SetSelectedCity(selectedCityVertex);
+        SelectionInfo = _cityBuildingService.SelectionInfo;
+        HoverState = HoverState with { SelectedCityVertex = SelectionInfo.SelectedCityVertex };
     }
 
     public bool TryExecuteSelectedCityBuildingAction(string buildingTypeName)
     {
-        var selectedCityVertex = SelectionInfo.SelectedCityVertex;
-        if (selectedCityVertex == null)
-            return false;
-
-        if (!Enum.TryParse<SettlersOfIdlestan.Model.Buildings.BuildingType>(buildingTypeName, out var type))
-            return false;
-
-        var city = _gameControllerService.FindCityAt(selectedCityVertex);
-        if (city == null)
-            return false;
-
-        var existing = city.Buildings.FirstOrDefault(b => b.Type == type);
-        var success = existing == null
-            ? _gameControllerService.TryBuildBuildingAtCity(selectedCityVertex, type)
-            : _gameControllerService.TryActivateBuildingAtCity(selectedCityVertex, type);
-
-        if (success)
-        {
-            SetSelectedCity(selectedCityVertex);
-        }
-
-        return success;
+        var result = _cityBuildingService.TryExecuteSelectedCityBuildingAction(buildingTypeName);
+        SelectionInfo = _cityBuildingService.SelectionInfo;
+        return result;
     }
 
     private static float Distance(SKPoint a, SKPoint b)

@@ -15,9 +15,10 @@ namespace SettlersOfIdlestanSkia.Services;
 public class GameControllerService
 {
     private readonly MainGameController _controller;
-    private readonly SelectedCityPanelRenderer _selectedCityPanel;
+    private readonly CityBuildingService _cityBuildingService;
 
     public MainGameState? CurrentGameState => _controller.CurrentMainState;
+    public CityBuildingService CityBuildingService => _cityBuildingService;
 
     /// <summary>
     /// Gets the player's civilization.
@@ -28,10 +29,10 @@ public class GameControllerService
 
     public MainGameController MainGameController => _controller;
 
-    public GameControllerService(SelectedCityPanelRenderer i_selectedCityRenderer)
+    public GameControllerService()
     {
         _controller = new MainGameController();
-        _selectedCityPanel = i_selectedCityRenderer;
+        _cityBuildingService = new CityBuildingService(_controller);
     }
 
     /// <summary>
@@ -173,11 +174,7 @@ public class GameControllerService
 
     public void SetSelectedCity(Vertex cityVertex)
     {
-        var city = FindCityAt(cityVertex);
-        if (city != null)
-        {
-            _selectedCityPanel.SelectedCity = city;
-        }
+        _cityBuildingService.SetSelectedCity(cityVertex);
     }
 
     public List<Building> GetBuildableBuildingsAtCity(Vertex cityVertex)
