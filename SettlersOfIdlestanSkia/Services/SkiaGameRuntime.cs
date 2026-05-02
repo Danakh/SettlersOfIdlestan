@@ -26,7 +26,6 @@ public sealed class SkiaGameRuntime : IDisposable
     private HarvestService? _harvestService;
     private ConstructionInteractionService? _constructionInteractionService;
     private ILocalizationService? _localizationService;
-    private CityBuildingService? _cityBuildingService;
 
     private bool _isDisposed;
     private bool _isGameInitialized;

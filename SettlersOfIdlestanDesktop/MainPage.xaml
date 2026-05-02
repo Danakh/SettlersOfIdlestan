@@ -35,8 +35,7 @@
             <Label x:Name="StateLabel"
                    Text="Chargement..."
                    FontSize="12"
-                   VerticalOptions="Center"
-                   HorizontalOptions="FillAndExpand" />
+                   VerticalOptions="Center" />
         </StackLayout>
 
 
