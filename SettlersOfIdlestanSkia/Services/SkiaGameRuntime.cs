@@ -80,7 +80,7 @@ public sealed class SkiaGameRuntime : IDisposable
 
             // Crée le menu avant le renderer et le passe en paramètre
             var settingsMenu = new SettingsMenu(_gameControllerService.MainGameController, _inputService, _localizationService);
-            _renderService.RegisterRenderer(new PlayerResourcesOverlayRenderer(_inputService, settingsMenu));
+            _renderService.RegisterRenderer(new PlayerResourcesOverlayRenderer(_inputService, settingsMenu, _resourceManager));
             _renderService.RegisterRenderer(new DebugOverlayRenderer(_inputService, _cameraService, islandMainRenderer, _localizationService));
 
             _isGameInitialized = true;
