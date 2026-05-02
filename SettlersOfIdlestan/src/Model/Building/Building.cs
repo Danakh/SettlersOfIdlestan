@@ -132,7 +132,7 @@ public class Building
     /// </summary>
     /// <param name="type">The type of the building.</param>
     /// <param name="level">The level of the building.</param>
-    protected Building(BuildingType type, int level = 1)
+    protected Building(BuildingType type, int level = 0)
     {
         Type = type;
         Level = level;

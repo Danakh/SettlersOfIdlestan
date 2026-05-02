@@ -322,39 +322,27 @@ namespace SettlersOfIdlestan.Controller
             var isConstructible = buildable.Any(b => b.Type == buildingType);
             if (!isConstructible) return false;
 
-                try
-                {
-                    _buildingController.BuildBuilding(_civ.Index, cityVertex, buildingType);
-                    return true;
-                }
-                catch (InvalidOperationException)
-            {
-                try
-                {
-                    // Attempt to get the buildable entry for this building to compute cost
-                    var buildables = _buildingController.GetBuildableBuildings(_civ.Index, cityVertex);
-                    var target = buildables.FirstOrDefault(b => b.Type == buildingType);
-                    if (target != null)
-                    {
-                        Dictionary<Resource, int> required;
-                        if (target.Level <= 1)
-                        {
-                            required = target.GetBuildCost();
-                        }
-                        else
-                        {
-                            required = target.GetUpgradeCost(target.Level);
-                        }
-                        TryGrindOnce(required);
-                    }
-                }
-                catch
-                {
-                    // ignore trade errors
-                }
+            if (_buildingController.BuildBuilding(_civ.Index, cityVertex, buildingType))
+                return true;
 
-                return false;
+            // Attempt to get the buildable entry for this building to compute cost
+            var buildables = _buildingController.GetBuildableBuildings(_civ.Index, cityVertex);
+            var target = buildables.FirstOrDefault(b => b.Type == buildingType);
+            if (target != null)
+            {
+                Dictionary<Resource, int> required;
+                if (target.Level <= 1)
+                {
+                    required = target.GetBuildCost();
+                }
+                else
+                {
+                    required = target.GetUpgradeCost(target.Level);
+                }
+                TryGrindOnce(required);
             }
+
+            return false;
         }
 
         /// <summary>

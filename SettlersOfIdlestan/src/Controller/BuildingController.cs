@@ -68,7 +68,7 @@ namespace SettlersOfIdlestan.Controller
         /// Construit (ou améliore) un bâtiment dans la ville spécifiée.
         /// Lance InvalidOperationException si pas assez de ressources ou si l'action n'est pas permise.
         /// </summary>
-        public Building BuildBuilding(int civilizationIndex, Vertex cityVertex, BuildingType type)
+        public bool BuildBuilding(int civilizationIndex, Vertex cityVertex, BuildingType type)
         {
             var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex)
                       ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
@@ -81,10 +81,10 @@ namespace SettlersOfIdlestan.Controller
             int cityLevel = GetCityLevel(city);
 
             if (prototype.AvailableAtLevel > cityLevel)
-                throw new InvalidOperationException("Building not available at this city level");
+                return false;
 
             if (prototype.RequiresWater && !CityHasWater(city, _state.Map))
-                throw new InvalidOperationException("Building requires water which is not present at this city");
+                return false;
 
             var existing = city.Buildings.FirstOrDefault(b => b.Type == type);
 
@@ -98,7 +98,7 @@ namespace SettlersOfIdlestan.Controller
             else
             {
                 if (existing.Level >= existing.MaxLevel)
-                    throw new InvalidOperationException("Building already at maximum level");
+                    return false;
 
                 cost = existing.GetUpgradeCost(existing.Level + 1);
                 resultBuilding = existing;
@@ -108,7 +108,9 @@ namespace SettlersOfIdlestan.Controller
             foreach (var kv in cost)
             {
                 if (civ.GetResourceQuantity(kv.Key) < kv.Value)
-                    throw new InvalidOperationException("Not enough resources to build or upgrade the building");
+                {
+                    return false;
+                }
             }
 
             // consume resources
@@ -126,7 +128,7 @@ namespace SettlersOfIdlestan.Controller
                 existing.Level += 1;
             }
 
-            return resultBuilding;
+            return true;
         }
 
         private static bool CityHasWater(City city, IslandMap map)
