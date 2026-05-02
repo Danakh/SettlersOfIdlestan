@@ -68,26 +68,7 @@ public class LocalizationService : ILocalizationService
         _currentLanguage = language;
     }
 
-    public string Get(LocalizationKey key)
-    {
-        string keyString = key.ToString();
-        return GetTranslation(keyString) ?? keyString;
-    }
-
-    public string Get(LocalizationKey key, params object[] args)
-    {
-        string text = key.ToString();
-        try
-        {
-            return string.Format(text, args);
-        }
-        catch
-        {
-            return text;
-        }
-    }
-
-    public string? GetTranslation(string key)
+    public string Get(string key)
     {
         if (_translations.TryGetValue(_currentLanguage, out var languageDict))
         {
@@ -96,9 +77,27 @@ public class LocalizationService : ILocalizationService
                 return value;
             }
         }
-        return null;
+        return key;
     }
 
+    public string Get(string key, params object[] args)
+    {
+        if (_translations.TryGetValue(_currentLanguage, out var languageDict))
+        {
+            if (languageDict.TryGetValue(key, out var value))
+            {
+                try
+                {
+                    return string.Format(value, args);
+                }
+                catch
+                {
+                    return value;
+                }
+            }
+        }
+        return key;
+    }
 
     private static string GetLanguageCode(Language language)
     {

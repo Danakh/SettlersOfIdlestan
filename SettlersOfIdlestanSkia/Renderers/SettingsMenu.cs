@@ -58,36 +58,36 @@ public class SettingsMenu
         // Section Langue (avant le séparateur)
         _menuItems.Add(new MenuItem
         {
-            Label = _localization.Get(LocalizationKey.MenuLanguage),
+            Label = _localization.Get("MenuLanguage"),
             Action = null  // Sera géré comme sous-menu
         });
         _menuItems.Add(new MenuItem
         {
-            Label = _localization.Get(LocalizationKey.MenuLanguageFrench),
+            Label = _localization.Get("MenuLanguageFrench"),
             Action = () => SetLanguage(Language.French)
         });
         _menuItems.Add(new MenuItem
         {
-            Label = _localization.Get(LocalizationKey.MenuLanguageEnglish),
+            Label = _localization.Get("MenuLanguageEnglish"),
             Action = () => SetLanguage(Language.English)
         });
 
         // Séparateur visuel
         _menuItems.Add(new MenuItem
         {
-            Label = _localization.Get(LocalizationKey.MenuSeparatorDebug),
+            Label = _localization.Get("MenuSeparatorDebug"),
             IsSeparator = true
         });
 
         // Section Debug
         _menuItems.Add(new MenuItem
         {
-            Label = _localization.Get(LocalizationKey.MenuToggleDebugMode),
+            Label = _localization.Get("MenuToggleDebugMode"),
             Action = ToggleDebugMode
         });
         _menuItems.Add(new MenuItem
         {
-            Label = _localization.Get(LocalizationKey.MenuAddResources),
+            Label = _localization.Get("MenuAddResources"),
             Action = AddResources
         });
     }
@@ -308,12 +308,12 @@ public class SettingsMenu
         // Rafraîchit les labels des items du menu avec la nouvelle langue
         if (_menuItems.Count >= 6)
         {
-            _menuItems[0].Label = _localization.Get(LocalizationKey.MenuLanguage);
-            _menuItems[1].Label = _localization.Get(LocalizationKey.MenuLanguageFrench);
-            _menuItems[2].Label = _localization.Get(LocalizationKey.MenuLanguageEnglish);
-            _menuItems[3].Label = _localization.Get(LocalizationKey.MenuSeparatorDebug);
-            _menuItems[4].Label = _localization.Get(LocalizationKey.MenuToggleDebugMode);
-            _menuItems[5].Label = _localization.Get(LocalizationKey.MenuAddResources);
+            _menuItems[0].Label = _localization.Get("MenuLanguage");
+            _menuItems[1].Label = _localization.Get("MenuLanguageFrench");
+            _menuItems[2].Label = _localization.Get("MenuLanguageEnglish");
+            _menuItems[3].Label = _localization.Get("MenuSeparatorDebug");
+            _menuItems[4].Label = _localization.Get("MenuToggleDebugMode");
+            _menuItems[5].Label = _localization.Get("MenuAddResources");
         }
     }
 

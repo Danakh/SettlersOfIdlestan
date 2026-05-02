@@ -58,13 +58,13 @@ public class SelectedCityPanelRenderer : IGameRenderer
             var isBuilt = building.Level > 0;
             var canBuild = building.Level == 0;
             var yRow = y + index * rowHeight;
-            var label = _localization.GetTranslation(building.NameKey) + (isBuilt ? $" (Niv {building.Level})" : "");
+            var label = _localization.Get(building.NameKey) + (isBuilt ? $" (Niv {building.Level})" : "");
             canvas.DrawText(label, panelX + padding, yRow + 22, font15, textPaint);
 
             // Bouton action
             if (canBuild || isBuilt)
             {
-                var btnText = isBuilt ? _localization.Get(LocalizationKey.ActionActivate) : _localization.Get(LocalizationKey.ActionBuild);
+                var btnText = isBuilt ? _localization.Get("ActionUpgrade") : _localization.Get("ActionBuild");
                 var btnWidth = 90;
                 var btnHeight = 26;
                 var btnX = panelX + panelWidth - btnWidth - padding;

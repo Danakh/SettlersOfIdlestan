@@ -44,8 +44,8 @@ public class DebugOverlayRenderer : IGameRenderer
         // Coordonnées dans le canvas (après transformation)
         var (q, r) = _islandRenderer.ScreenToHex(screenPos, canvasSize, zoom, cameraPos);
 
-        string mouseLabel = _localization.Get(LocalizationKey.DebugMouseScreen);
-        string hexLabel = _localization.Get(LocalizationKey.DebugHex);
+        string mouseLabel = _localization.Get("DebugMouseScreen");
+        string hexLabel = _localization.Get("DebugHex");
 
         string text = $"{mouseLabel}: ({screenPos.X:0},{screenPos.Y:0})\n" +
                       $"{hexLabel}: ({q},{r})";
