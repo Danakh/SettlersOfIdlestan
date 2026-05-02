@@ -74,7 +74,7 @@ public sealed class SkiaGameRuntime : IDisposable
             _renderService.RegisterRenderer(islandMainRenderer);
 
             // Ajout du panneau latéral des bâtiments sélectionnés
-            var selectedCityPanelRenderer = new SelectedCityPanelRenderer(_localizationService, _gameControllerService.CityBuildingService);
+            var selectedCityPanelRenderer = new SelectedCityPanelRenderer(_localizationService, _gameControllerService.CityBuildingService, _inputService);
 
             _renderService.RegisterRenderer(selectedCityPanelRenderer);
 
