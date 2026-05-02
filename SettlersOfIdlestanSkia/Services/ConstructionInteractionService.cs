@@ -131,8 +131,8 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
         if (_renderer == null)
             return null;
 
-        var cities = _gameControllerService.GetAllCities();
-        if (cities.Count == 0)
+        var cities = _gameControllerService?.CurrentIslandState?.GetAllCities();
+        if (cities == null || !cities.Any())
             return null;
 
         Vertex? best = null;

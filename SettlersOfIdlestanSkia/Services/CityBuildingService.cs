@@ -21,7 +21,7 @@ public class CityBuildingService
 
     public void SetSelectedCity(Vertex selectedCityVertex)
     {
-        SelectedCity = FindCityAt(selectedCityVertex);
+        SelectedCity = _mainGameController.CurrentMainState?.CurrentIslandState?.FindCityAt(selectedCityVertex);
     }
 
     public IEnumerable<Building> SelectedCityBuildings()
@@ -42,62 +42,38 @@ public class CityBuildingService
 
         var existing = SelectedCity.Buildings.FirstOrDefault(b => b.Type == type);
         var success = existing == null
-            ? TryBuildBuildingAtCity(SelectedCity.Position, type)
-            : TryActivateBuildingAtCity(SelectedCity.Position, type);
-
-        if (success)
-        {
-            SetSelectedCity(SelectedCity.Position);
-        }
+            ? TryBuildBuilding(type)
+            : TryActivateBuilding(type);
 
         return success;
     }
 
-    public City? FindCityAt(Vertex vertex)
+    public bool TryBuildBuilding(BuildingType buildingType)
     {
-        return GetAllCities().FirstOrDefault(c => c.Position.Equals(vertex));
-    }
-
-    public IReadOnlyList<City> GetAllCities()
-    {
-        return _mainGameController.CurrentMainState?.CurrentIslandState?.Civilizations
-            .SelectMany(c => c.Cities)
-            .ToList() ?? [];
-    }
-
-
-    public bool TryBuildBuildingAtCity(Vertex cityVertex, BuildingType buildingType)
-    {
-        var city = FindCityAt(cityVertex);
-        if (city == null)
-            return false;
-
-        try
+        if (SelectedCity != null)
         {
-            _mainGameController.BuildingController.BuildBuilding(city.CivilizationIndex, cityVertex, buildingType);
+            _mainGameController.BuildingController.BuildBuilding(SelectedCity.CivilizationIndex, SelectedCity.Position, buildingType);
             if (_mainGameController.CurrentMainState != null)
             {
                 _mainGameController.SetGame(_mainGameController.CurrentMainState);
             }
             return true;
         }
-        catch
-        {
-            return false;
-        }
+        return false;
     }
 
-    public bool TryActivateBuildingAtCity(Vertex cityVertex, BuildingType buildingType)
+    public bool TryActivateBuilding(BuildingType buildingType)
     {
-        var city = FindCityAt(cityVertex);
-        if (city == null)
-            return false;
+        if (SelectedCity != null)
+        {
 
-        var existing = city.Buildings.FirstOrDefault(b => b.Type == buildingType);
-        if (existing == null)
-            return false;
+            var existing = SelectedCity.Buildings.FirstOrDefault(b => b.Type == buildingType);
+            if (existing == null)
+                return false;
 
-        // Placeholder: les actions actives par bâtiment (Prestige, etc.) ne sont pas encore branchées.
-        return true;
+            // Placeholder: les actions actives par bâtiment (Prestige, etc.) ne sont pas encore branchées.
+            return true;
+        }
+        return false;
     }
 }

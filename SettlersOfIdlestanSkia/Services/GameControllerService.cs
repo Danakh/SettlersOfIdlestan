@@ -18,6 +18,7 @@ public class GameControllerService
     private readonly CityBuildingService _cityBuildingService;
 
     public MainGameState? CurrentGameState => _controller.CurrentMainState;
+    public IslandState? CurrentIslandState => _controller.CurrentMainState?.CurrentIslandState;
     public CityBuildingService CityBuildingService => _cityBuildingService;
 
     /// <summary>
@@ -63,17 +64,6 @@ public class GameControllerService
     }
 
     /// <summary>
-    /// Charge un jeu existant.
-    /// </summary>
-    public void LoadGame(MainGameState gameState)
-    {
-        if (gameState == null)
-            throw new ArgumentNullException(nameof(gameState));
-
-        _controller.SetGame(gameState);
-    }
-
-    /// <summary>
     /// Met à jour l'état du jeu pour le frame actuel.
     /// </summary>
     public void Update(float deltaTime)
@@ -82,22 +72,6 @@ public class GameControllerService
             return;
 
         _controller.CurrentMainState.Clock.Advance(TimeSpan.FromSeconds(deltaTime));
-    }
-
-    /// <summary>
-    /// Obtient le GameState actuel ou initialise un nouveau jeu.
-    /// </summary>
-    public MainGameState GetOrCreateGameState()
-    {
-        if (_controller.CurrentMainState == null)
-        {
-            var gameState = InitializeNewGame();
-            if (gameState == null)
-                throw new InvalidOperationException("Impossible de créer un nouveau jeu.");
-            return gameState;
-        }
-
-        return _controller.CurrentMainState;
     }
 
     public List<Vertex> GetBuildableCityVerticesForPlayer()
@@ -158,67 +132,5 @@ public class GameControllerService
         {
             return false;
         }
-    }
-
-    public IReadOnlyList<City> GetAllCities()
-    {
-        return _controller.CurrentMainState?.CurrentIslandState?.Civilizations
-            .SelectMany(c => c.Cities)
-            .ToList() ?? [];
-    }
-
-    public City? FindCityAt(Vertex vertex)
-    {
-        return GetAllCities().FirstOrDefault(c => c.Position.Equals(vertex));
-    }
-
-    public void SetSelectedCity(Vertex cityVertex)
-    {
-        _cityBuildingService.SetSelectedCity(cityVertex);
-    }
-
-    public List<Building> GetBuildableBuildingsAtCity(Vertex cityVertex)
-    {
-        var city = FindCityAt(cityVertex);
-        if (city == null)
-            return [];
-
-        return _controller.BuildingController.GetBuildableBuildings(city.CivilizationIndex, cityVertex);
-    }
-
-    public bool TryBuildBuildingAtCity(Vertex cityVertex, BuildingType buildingType)
-    {
-        var city = FindCityAt(cityVertex);
-        if (city == null)
-            return false;
-
-        try
-        {
-            _controller.BuildingController.BuildBuilding(city.CivilizationIndex, cityVertex, buildingType);
-            if (_controller.CurrentMainState != null)
-            {
-                _controller.SetGame(_controller.CurrentMainState);
-            }
-
-            return true;
-        }
-        catch
-        {
-            return false;
-        }
-    }
-
-    public bool TryActivateBuildingAtCity(Vertex cityVertex, BuildingType buildingType)
-    {
-        var city = FindCityAt(cityVertex);
-        if (city == null)
-            return false;
-
-        var existing = city.Buildings.FirstOrDefault(b => b.Type == buildingType);
-        if (existing == null)
-            return false;
-
-        // Placeholder: les actions actives par bâtiment (Prestige, etc.) ne sont pas encore branchées.
-        return true;
     }
 }

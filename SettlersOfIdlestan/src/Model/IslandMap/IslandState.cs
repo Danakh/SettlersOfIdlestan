@@ -1,3 +1,5 @@
+using SettlersOfIdlestan.Model.HexGrid;
+using SettlersOfIdlestan.Model;
 using System;
 using System.Collections.Generic;
 
@@ -64,4 +66,14 @@ public class IslandState
     /// performed by producer buildings. This is separate from Manual harvest cooldowns.
     /// </summary>
     public Dictionary<int, Dictionary<SettlersOfIdlestan.Model.HexGrid.HexCoord, DateTimeOffset>> AutomaticHarvestLastTimesByCivilization { get; set; }
+
+    public IEnumerable<City.City> GetAllCities()
+    {
+        return Civilizations.SelectMany(c => c.Cities);
+    }
+
+    public City.City? FindCityAt(Vertex vertex)
+    {
+        return GetAllCities().FirstOrDefault(c => c.Position.Equals(vertex));
+    }
 }
