@@ -2,6 +2,7 @@ using SkiaSharp;
 using SettlersOfIdlestanSkia.Services;
 using SettlersOfIdlestan.Controller;
 using SettlersOfIdlestan.Services.Localization;
+using SettlersOfIdlestanSkia.Renderers; // Ajout pour AboutRenderer
 
 namespace SettlersOfIdlestanSkia.Renderers;
 
@@ -30,6 +31,7 @@ public class SettingsMenu
     private readonly MainGameController _gameController;
     private readonly InputHandlingService _inputService;
     private readonly ILocalizationService _localization;
+    private readonly AboutRenderer _aboutRenderer; // Ajout de AboutRenderer
     private List<MenuItem> _menuItems = new();
 
     private float _gearX;
@@ -37,7 +39,7 @@ public class SettingsMenu
 
     private class MenuItem
     {
-        public string Label { get; set; } = "";
+        public string LabelKey { get; set; } = "";
         public Action? Action { get; set; }
         public bool IsSeparator { get; set; } = false;
         public bool IsClickable => !IsSeparator && Action != null;
@@ -45,11 +47,12 @@ public class SettingsMenu
 
     public bool IsOpen => _isOpen;
 
-    public SettingsMenu(MainGameController gameController, InputHandlingService inputService, ILocalizationService localization)
+    public SettingsMenu(MainGameController gameController, InputHandlingService inputService, ILocalizationService localization, AboutRenderer aboutRenderer)
     {
         _gameController = gameController;
         _inputService = inputService;
         _localization = localization;
+        _aboutRenderer = aboutRenderer; // Initialisation de AboutRenderer
         _inputService.PointerPressed += HandlePointerPressed;
 
         Initialize();
@@ -58,36 +61,39 @@ public class SettingsMenu
         // Section Langue (avant le séparateur)
         _menuItems.Add(new MenuItem
         {
-            Label = _localization.Get("MenuLanguage"),
+            LabelKey = "menu_language",
             Action = null  // Sera géré comme sous-menu
         });
         _menuItems.Add(new MenuItem
         {
-            Label = _localization.Get("MenuLanguageFrench"),
+            LabelKey = "menu_language_french",
             Action = () => SetLanguage(Language.French)
         });
         _menuItems.Add(new MenuItem
         {
-            Label = _localization.Get("MenuLanguageEnglish"),
+            LabelKey = "menu_language_english",
             Action = () => SetLanguage(Language.English)
         });
 
-        // Séparateur visuel
+        _menuItems.Add(new MenuItem { IsSeparator = true });
+
         _menuItems.Add(new MenuItem
         {
-            Label = _localization.Get("MenuSeparatorDebug"),
-            IsSeparator = true
+            LabelKey = "menu_about",
+            Action = ToggleAboutPopUp
         });
+
+        _menuItems.Add(new MenuItem { IsSeparator = true });
 
         // Section Debug
         _menuItems.Add(new MenuItem
         {
-            Label = _localization.Get("MenuToggleDebugMode"),
+            LabelKey = "menu_toggle_debug_mode",
             Action = ToggleDebugMode
         });
         _menuItems.Add(new MenuItem
         {
-            Label = _localization.Get("MenuAddResources"),
+            LabelKey = "menu_add_resources",
             Action = AddResources
         });
     }
@@ -212,7 +218,7 @@ public class SettingsMenu
                     const float padding = 8;
                     float textX = menuX + padding;
                     float textY = currentY + itemHeight / 2 + _textFont.Size / 2;
-                    canvas.DrawText(item.Label, textX, textY, _textFont, _textPaint);
+                    canvas.DrawText(_localization.Get(item.LabelKey), textX, textY, _textFont, _textPaint);
                 }
             }
 
@@ -299,27 +305,16 @@ public class SettingsMenu
     private void SetLanguage(Language language)
     {
         _localization.SetLanguage(language);
-        // Actualise le texte des items du menu
-        RefreshMenuItems();
-    }
-
-    private void RefreshMenuItems()
-    {
-        // Rafraîchit les labels des items du menu avec la nouvelle langue
-        if (_menuItems.Count >= 6)
-        {
-            _menuItems[0].Label = _localization.Get("MenuLanguage");
-            _menuItems[1].Label = _localization.Get("MenuLanguageFrench");
-            _menuItems[2].Label = _localization.Get("MenuLanguageEnglish");
-            _menuItems[3].Label = _localization.Get("MenuSeparatorDebug");
-            _menuItems[4].Label = _localization.Get("MenuToggleDebugMode");
-            _menuItems[5].Label = _localization.Get("MenuAddResources");
-        }
     }
 
     private void ToggleDebugMode()
     {
         DebugOverlayRenderer.DebugMode = !DebugOverlayRenderer.DebugMode;
+    }
+
+    private void ToggleAboutPopUp()
+    {
+        _aboutRenderer.Show();
     }
 
     private void AddResources()

@@ -50,5 +50,10 @@
   "building_townhall_name": "Hôtel de ville",
   "building_townhall_desc": "Hôtel de ville - Permet l'amélioration de la ville",
   "building_buildersguild_name": "Guilde des bâtisseurs",
-  "building_buildersguild_desc": "Guilde des batisseurs - Permet l'automatisation de constructions. Disponible au niveau Capitale (4)."
+  "building_buildersguild_desc": "Guilde des batisseurs - Permet l'automatisation de constructions. Disponible au niveau Capitale (4).",
+  "menu_about": "À propos",
+  "about_title": "À propos",
+  "about_by": "Jeu par Danakh",
+  "about_inspired": "Inspiré par le célèbre jeu de société Les Colons de Catane",
+  "about_icons": "Icônes créés par Delapouite et Lorc. Disponible sur https://game-icons.net"
 }

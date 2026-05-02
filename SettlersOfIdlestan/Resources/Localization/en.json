@@ -50,5 +50,10 @@
   "building_townhall_name": "Town Hall",
   "building_townhall_desc": "Town Hall - Allows city upgrades",
   "building_buildersguild_name": "Builders Guild",
-  "building_buildersguild_desc": "Builders Guild - Allows construction automation. Available at Capital level (4)."
+  "building_buildersguild_desc": "Builders Guild - Allows construction automation. Available at Capital level (4).",
+  "menu_about": "About",
+  "about_title": "About",
+  "about_by": "Game By Danakh",
+  "about_inspired": "Inspired by the famous Catan boardgame",
+  "about_icons": "Icons made by Delapouite and Lorc. Available on https://game-icons.net"
 }
