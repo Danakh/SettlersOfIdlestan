@@ -1,8 +1,10 @@
-using SkiaSharp;
+using SettlersOfIdlestan.Model.Buildings;
+using SettlersOfIdlestan.Services.Localization;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Services;
-using SettlersOfIdlestan.Services.Localization;
+using SkiaSharp;
 using System;
+using System.Collections;
 using System.Linq;
 
 namespace SettlersOfIdlestanSkia.Renderers;
@@ -26,8 +28,6 @@ public class SelectedCityPanelRenderer : IGameRenderer
 
     public void Render(SKCanvas canvas, GameRenderContext context)
     {
-        var selectionInfo = _cityBuildingService.SelectionInfo;
-        var buildings = selectionInfo.Buildings;
         float panelWidth = 260;
         float panelX = _canvasSize.Width - panelWidth - 10;
         float panelY = 60;
@@ -44,7 +44,8 @@ public class SelectedCityPanelRenderer : IGameRenderer
         using var buttonPaint = new SKPaint { Color = new SKColor(21, 101, 192, 255), Style = SKPaintStyle.Fill, IsAntialias = true };
         using var buttonTextPaint = new SKPaint { Color = SKColors.White, IsAntialias = true };
 
-        int buildingCount = buildings.Count;
+        var buildings = _cityBuildingService.SelectedCityBuildings();
+        int buildingCount = buildings.Count();
         if (buildingCount == 0)
             return;
 
@@ -52,13 +53,12 @@ public class SelectedCityPanelRenderer : IGameRenderer
         canvas.DrawRoundRect(panelX, panelY, panelWidth, buildingCount * rowHeight + 2 * padding, 12, 12, bgPaint);
         canvas.DrawRoundRect(panelX, panelY, panelWidth, buildingCount * rowHeight + 2 * padding, 12, 12, borderPaint);
 
-        for (int i = 0; i < buildingCount; i++)
+        foreach (var (building, index) in buildings.Select((item, i) => (item, i)))
         {
-            var building = buildings[i];
-            var isBuilt = building.IsBuilt;
-            var canBuild = building.CanBuild;
-            var yRow = y + i * rowHeight;
-            var label = building.BuildingType + (isBuilt ? $" (Niv {building.Level})" : "");
+            var isBuilt = building.Level > 0;
+            var canBuild = building.Level == 0;
+            var yRow = y + index * rowHeight;
+            var label = _localization.GetTranslation(building.NameKey) + (isBuilt ? $" (Niv {building.Level})" : "");
             canvas.DrawText(label, panelX + padding, yRow + 22, font15, textPaint);
 
             // Bouton action

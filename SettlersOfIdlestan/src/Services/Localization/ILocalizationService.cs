@@ -29,4 +29,6 @@ public interface ILocalizationService
     /// <param name="args">Les arguments de formatage.</param>
     /// <returns>Le texte traduit et formaté.</returns>
     string Get(LocalizationKey key, params object[] args);
+
+    string? GetTranslation(string key);
 }

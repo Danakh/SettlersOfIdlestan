@@ -23,7 +23,6 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
     private IslandMainRenderer? _renderer;
 
     public ConstructionHoverState HoverState { get; private set; } = ConstructionHoverState.Empty;
-    public CitySelectionInfo SelectionInfo { get; private set; } = CitySelectionInfo.Empty;
 
     public ConstructionInteractionService(
         GameControllerService gameControllerService,
@@ -123,15 +122,8 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
             hoveredVertex,
             hoveredEdge,
             hoveredCityVertex,
-            SelectionInfo.SelectedCityVertex
+            _cityBuildingService.SelectedCity?.Position
         );
-
-        var selected = SelectionInfo.SelectedCityVertex;
-        if (selected != null && _gameControllerService.FindCityAt(selected) == null)
-        {
-            SelectionInfo = CitySelectionInfo.Empty;
-            HoverState = HoverState with { SelectedCityVertex = null };
-        }
     }
 
     private Vertex? GetHoveredCityVertex(SKPoint islandPoint)
@@ -163,15 +155,7 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
     private void SetSelectedCity(Vertex selectedCityVertex)
     {
         _cityBuildingService.SetSelectedCity(selectedCityVertex);
-        SelectionInfo = _cityBuildingService.SelectionInfo;
-        HoverState = HoverState with { SelectedCityVertex = SelectionInfo.SelectedCityVertex };
-    }
-
-    public bool TryExecuteSelectedCityBuildingAction(string buildingTypeName)
-    {
-        var result = _cityBuildingService.TryExecuteSelectedCityBuildingAction(buildingTypeName);
-        SelectionInfo = _cityBuildingService.SelectionInfo;
-        return result;
+        HoverState = HoverState with { SelectedCityVertex = selectedCityVertex };
     }
 
     private static float Distance(SKPoint a, SKPoint b)
@@ -199,19 +183,4 @@ public readonly record struct ConstructionHoverState(
     public static ConstructionHoverState Empty =>
         new(Array.Empty<Vertex>(), Array.Empty<Edge>(), null, null, null, null);
 }
-
-public readonly record struct CitySelectionInfo(
-    Vertex? SelectedCityVertex,
-    string CityType,
-    IReadOnlyList<CityBuildingListItem> Buildings)
-{
-    public static CitySelectionInfo Empty =>
-        new(null, "Aucune", Array.Empty<CityBuildingListItem>());
-}
-
-public readonly record struct CityBuildingListItem(
-    string BuildingType,
-    bool IsBuilt,
-    bool CanBuild,
-    int Level);
 

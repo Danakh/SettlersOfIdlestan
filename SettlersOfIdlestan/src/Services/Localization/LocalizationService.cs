@@ -87,7 +87,7 @@ public class LocalizationService : ILocalizationService
         }
     }
 
-    private string? GetTranslation(string key)
+    public string? GetTranslation(string key)
     {
         if (_translations.TryGetValue(_currentLanguage, out var languageDict))
         {

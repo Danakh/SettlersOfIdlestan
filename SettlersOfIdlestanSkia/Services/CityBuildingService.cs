@@ -12,7 +12,7 @@ namespace SettlersOfIdlestanSkia.Services;
 public class CityBuildingService
 {
     private readonly MainGameController _mainGameController;
-    public CitySelectionInfo SelectionInfo { get; private set; } = CitySelectionInfo.Empty;
+    public City? SelectedCity { get; private set; } = null;
 
     public CityBuildingService(MainGameController mainGameController)
     {
@@ -21,59 +21,33 @@ public class CityBuildingService
 
     public void SetSelectedCity(Vertex selectedCityVertex)
     {
-        var city = FindCityAt(selectedCityVertex);
-        if (city == null)
-        {
-            SelectionInfo = CitySelectionInfo.Empty;
-            return;
-        }
+        SelectedCity = FindCityAt(selectedCityVertex);
+    }
 
-        var buildable = GetBuildableBuildingsAtCity(selectedCityVertex)
-            .Select(b => b.Type)
-            .ToHashSet();
-        var builtByType = city.Buildings.ToDictionary(b => b.Type, b => b);
-        var allTypes = Enum.GetValues<BuildingType>()
-            .OrderBy(t => t.ToString());
-        var buildings = allTypes.Select(type =>
-            {
-                var isBuilt = builtByType.TryGetValue(type, out var built);
-                return new CityBuildingListItem(
-                    BuildingType: type.ToString(),
-                    IsBuilt: isBuilt,
-                    CanBuild: !isBuilt && buildable.Contains(type),
-                    Level: isBuilt && built != null ? built.Level : 0
-                );
-            })
-            .ToList();
+    public IEnumerable<Building> SelectedCityBuildings()
+    {
+        if (SelectedCity == null)
+            return [];
 
-        SelectionInfo = new CitySelectionInfo(
-            selectedCityVertex,
-            city.LevelName,
-            buildings
-        );
+        return _mainGameController.BuildingController.GetBuildableBuildings(SelectedCity.CivilizationIndex, SelectedCity.Position);
     }
 
     public bool TryExecuteSelectedCityBuildingAction(string buildingTypeName)
     {
-        var selectedCityVertex = SelectionInfo.SelectedCityVertex;
-        if (selectedCityVertex == null)
+        if (SelectedCity == null)
             return false;
 
         if (!Enum.TryParse<BuildingType>(buildingTypeName, out var type))
             return false;
 
-        var city = FindCityAt(selectedCityVertex);
-        if (city == null)
-            return false;
-
-        var existing = city.Buildings.FirstOrDefault(b => b.Type == type);
+        var existing = SelectedCity.Buildings.FirstOrDefault(b => b.Type == type);
         var success = existing == null
-            ? TryBuildBuildingAtCity(selectedCityVertex, type)
-            : TryActivateBuildingAtCity(selectedCityVertex, type);
+            ? TryBuildBuildingAtCity(SelectedCity.Position, type)
+            : TryActivateBuildingAtCity(SelectedCity.Position, type);
 
         if (success)
         {
-            SetSelectedCity(selectedCityVertex);
+            SetSelectedCity(SelectedCity.Position);
         }
 
         return success;
@@ -91,14 +65,6 @@ public class CityBuildingService
             .ToList() ?? [];
     }
 
-    public List<Building> GetBuildableBuildingsAtCity(Vertex cityVertex)
-    {
-        var city = FindCityAt(cityVertex);
-        if (city == null)
-            return [];
-
-        return _mainGameController.BuildingController.GetBuildableBuildings(city.CivilizationIndex, cityVertex);
-    }
 
     public bool TryBuildBuildingAtCity(Vertex cityVertex, BuildingType buildingType)
     {
