@@ -1,12 +1,25 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <EmbeddedResource Include="Resources\icons\brick-pile.svg" />
+    <EmbeddedResource Include="Resources\icons\cash.svg" />
+    <EmbeddedResource Include="Resources\icons\folded-paper.svg" />
+    <EmbeddedResource Include="Resources\icons\honeycomb.svg" />
+    <EmbeddedResource Include="Resources\icons\rolled-cloth.svg" />
+    <EmbeddedResource Include="Resources\icons\sheep.svg" />
+    <EmbeddedResource Include="Resources\icons\stone-pile.svg" />
+    <EmbeddedResource Include="Resources\icons\wheat.svg" />
+    <EmbeddedResource Include="Resources\icons\wood-pile.svg" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\SettlersOfIdlestan\SettlersOfIdlestan.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="SkiaSharp" Version="3.119.2" />
     <PackageReference Include="SkiaSharp.Views.Maui.Controls" Version="3.119.2" />
+    <PackageReference Include="Svg.Skia" Version="4.6.0" />
   </ItemGroup>
 
   <PropertyGroup>

@@ -25,8 +25,9 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
 
     private readonly SettingsMenu _settingsMenu;
     private readonly InputHandlingService _inputService;
+    private readonly ResourceManager _resourceManager;
     private const float BarHeight = 50;
-    private const float IconSize = 20;
+    private const float IconSize = 32;
     private const float Padding = 12;
 
     // Couleurs par type de ressource
@@ -39,13 +40,24 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
         { Resource.Ore, new SKColor(128, 128, 128) }    // Gris
     };
 
+    // Mapping entre les ressources et les noms des fichiers d'icônes
+    private static readonly Dictionary<Resource, string> ResourceIconFiles = new()
+    {
+        { Resource.Wood, "Resources.icons.wood-pile.svg" },
+        { Resource.Brick, "Resources.icons.brick-pile.svg" },
+        { Resource.Sheep, "Resources.icons.sheep.svg" },
+        { Resource.Wheat, "Resources.icons.wheat.svg" },
+        { Resource.Ore, "Resources.icons.stone-pile.svg" }
+    };
+
     public bool Disposed => _disposed;
 
-    public PlayerResourcesOverlayRenderer(InputHandlingService inputService, SettingsMenu settingsMenu)
+    public PlayerResourcesOverlayRenderer(InputHandlingService inputService, SettingsMenu settingsMenu, ResourceManager resourceManager)
     {
         _inputService = inputService;
         _inputService.PointerPressed += HandleGearClick;
         _settingsMenu = settingsMenu;
+        _resourceManager = resourceManager;
     }
 
     public void Initialize(SKSize canvasSize)
@@ -138,7 +150,7 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
         {
             var quantity = civilization.GetResourceQuantity(resource);
             DrawResourceItem(canvas, resource, quantity, currentX, itemY, IconSize);
-            currentX += IconSize + itemSpacing;
+            currentX +=  2 * IconSize + 4 + itemSpacing;
         }
 
         // Dessine la roue crantée pour le menu à droite
@@ -149,7 +161,7 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
     private void DrawResourceItem(SKCanvas canvas, Resource resource, int quantity, float x, float y, float size)
     {
         // Carré de couleur de la ressource
-        var colorRect = new SKRect(x, y, x + size, y + size);
+        var colorRect = new SKRect(x, y, x + 2 * size + 4, y + size);
         using (var colorPaint = new SKPaint { Color = ResourceColors[resource], Style = SKPaintStyle.Fill, IsAntialias = true })
         {
             canvas.DrawRect(colorRect, colorPaint);
@@ -170,6 +182,30 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
             var textX = x + (size - textWidth) / 2;
             var textY = y + (size + textHeight) / 2 - 2;
             canvas.DrawText(text, textX, textY, _smallFont, _textPaint);
+        }
+
+        // Charge et affiche l'icône à côté du carré
+        if (ResourceIconFiles.TryGetValue(resource, out var iconFileName))
+        {
+            using var paint = new SKPaint
+            {
+                IsAntialias = true,
+                Color = SKColors.White.WithAlpha((byte)(255))
+            };
+            var icon = _resourceManager.LoadImage(iconFileName);
+            SKPicture? pic = icon?.Picture;
+            
+            if (pic != null)
+            {
+                SKRect src = pic.CullRect;
+                float scaleX = size / src.Width;
+                float scaleY = size / src.Height;
+                SKMatrix matrix = SKMatrix.CreateScaleTranslation(scaleX, scaleY, x + size + 4, y);
+                canvas.Save();
+                canvas.SetMatrix(canvas.TotalMatrix.PreConcat(matrix));
+                canvas.DrawPicture(pic, paint);
+                canvas.Restore();
+            }
         }
     }
 
