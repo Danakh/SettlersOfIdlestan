@@ -6,7 +6,7 @@
              Title="Settlers of Idlestan">
 
     <Grid RowDefinitions="*, Auto"
-          ColumnDefinitions="*, 320">
+          ColumnDefinitions="*">
 
         <!-- Canvas SkiaSharp pour le rendu du jeu -->
         <skia:SKCanvasView x:Name="GameCanvas"
@@ -39,36 +39,6 @@
                    HorizontalOptions="FillAndExpand" />
         </StackLayout>
 
-        <!-- Panneau fixe de sélection -->
-        <ScrollView Grid.Row="0"
-                    Grid.Column="1"
-                    Grid.RowSpan="2"
-                    BackgroundColor="#202020">
-            <VerticalStackLayout Padding="14"
-                                 Spacing="10">
-                <Label Text="Selection"
-                       FontSize="18"
-                       FontAttributes="Bold"
-                       TextColor="White" />
-
-                <Label Text="Type de ville"
-                       FontSize="12"
-                       TextColor="#BFBFBF" />
-                <Label x:Name="SelectedCityTypeLabel"
-                       Text="Aucune"
-                       FontSize="14"
-                       TextColor="White" />
-
-                <BoxView HeightRequest="1"
-                         BackgroundColor="#404040" />
-
-                <Label Text="Batiments"
-                       FontSize="12"
-                       TextColor="#BFBFBF" />
-                <VerticalStackLayout x:Name="SelectedCityBuildingsList"
-                                     Spacing="6" />
-            </VerticalStackLayout>
-        </ScrollView>
 
     </Grid>
 

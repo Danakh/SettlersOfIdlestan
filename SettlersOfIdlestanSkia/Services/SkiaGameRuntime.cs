@@ -49,10 +49,12 @@ public sealed class SkiaGameRuntime : IDisposable
             if (_isGameInitialized)
                 return;
 
+            var selectedCityPanelRenderer = new SelectedCityPanelRenderer(_localizationService);
+
             _resourceManager = new ResourceManager();
             _inputService = new InputHandlingService();
             _renderService = new RenderService();
-            _gameControllerService = new GameControllerService();
+            _gameControllerService = new GameControllerService(selectedCityPanelRenderer);
             _cameraService = new CameraService();
             _harvestService = new HarvestService(_gameControllerService);
             _localizationService = new LocalizationService();
@@ -71,7 +73,10 @@ public sealed class SkiaGameRuntime : IDisposable
             islandMainRenderer = new IslandMainRenderer(_constructionInteractionService);
             _constructionInteractionService.AttachRenderer(islandMainRenderer);
             _renderService.RegisterRenderer(islandMainRenderer);
-            
+
+            // Ajout du panneau latéral des bâtiments sélectionnés
+            _renderService.RegisterRenderer(selectedCityPanelRenderer);
+
             // Crée le menu avant le renderer et le passe en paramètre
             var settingsMenu = new SettingsMenu(_gameControllerService.MainGameController, _inputService, _localizationService);
             _renderService.RegisterRenderer(new PlayerResourcesOverlayRenderer(_inputService, settingsMenu));

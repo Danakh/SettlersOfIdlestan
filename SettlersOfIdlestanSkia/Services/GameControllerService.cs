@@ -4,6 +4,7 @@ using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Controller;
+using SettlersOfIdlestanSkia.Renderers;
 
 namespace SettlersOfIdlestanSkia.Services;
 
@@ -14,6 +15,7 @@ namespace SettlersOfIdlestanSkia.Services;
 public class GameControllerService
 {
     private readonly MainGameController _controller;
+    private readonly SelectedCityPanelRenderer _selectedCityPanel;
 
     public MainGameState? CurrentGameState => _controller.CurrentMainState;
 
@@ -26,9 +28,10 @@ public class GameControllerService
 
     public MainGameController MainGameController => _controller;
 
-    public GameControllerService()
+    public GameControllerService(SelectedCityPanelRenderer i_selectedCityRenderer)
     {
         _controller = new MainGameController();
+        _selectedCityPanel = i_selectedCityRenderer;
     }
 
     /// <summary>
@@ -166,6 +169,15 @@ public class GameControllerService
     public City? FindCityAt(Vertex vertex)
     {
         return GetAllCities().FirstOrDefault(c => c.Position.Equals(vertex));
+    }
+
+    public void SetSelectedCity(Vertex cityVertex)
+    {
+        var city = FindCityAt(cityVertex);
+        if (city != null)
+        {
+            _selectedCityPanel.SelectedCity = city;
+        }
     }
 
     public List<Building> GetBuildableBuildingsAtCity(Vertex cityVertex)

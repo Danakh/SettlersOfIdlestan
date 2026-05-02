@@ -29,6 +29,10 @@ public enum LocalizationKey
     CityPanelMax,
     CityPanelUnavailable,
 
+    ActionBuild,
+    ActionUpgrade,
+    ActionActivate,
+
     // General UI
     UINotAvailable,
     UIYes,
