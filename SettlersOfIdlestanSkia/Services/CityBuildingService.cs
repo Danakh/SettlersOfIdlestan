@@ -39,4 +39,38 @@ public class CityBuildingService
             _mainGameController.BuildingController.BuildBuilding(SelectedCity.CivilizationIndex, SelectedCity.Position, buildingType);
         }
     }
+
+    public bool CanBuildOrUpgrade(Building building)
+    {
+        if (SelectedCity == null)
+            return false;
+
+        var islandState = _mainGameController.CurrentMainState?.CurrentIslandState;
+        if (islandState == null || SelectedCity.CivilizationIndex >= islandState.Civilizations.Count)
+            return false;
+
+        var civilization = islandState.Civilizations[SelectedCity.CivilizationIndex];
+
+        // Check if at max level
+        var isAtMaxLevel = building.Level >= building.MaxLevel;
+        if (isAtMaxLevel)
+            return false;
+
+        // Get the cost for this action
+        var cost = building.Level == 0 ? building.GetBuildCost() : building.GetUpgradeCost(building.Level + 1);
+
+        // Check if we have enough resources
+        foreach (var (resource, amount) in cost)
+        {
+            if (civilization.GetResourceQuantity(resource) < amount)
+                return false;
+        }
+
+        return true;
+    }
+
+    public bool IsAtMaxLevel(Building building)
+    {
+        return building.Level >= building.MaxLevel;
+    }
 }

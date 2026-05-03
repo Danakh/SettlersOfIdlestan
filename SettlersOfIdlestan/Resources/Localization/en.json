@@ -53,6 +53,7 @@
   "building_buildersguild_desc": "Builders Guild - Allows construction automation. Available at Capital level (4).",
   "action_build": "Build",
   "action_upgrade": "Upgrade",
+  "action_maxlevel": "Max Level",
   "menu_about": "About",
   "about_title": "About",
   "about_by": "Game By Danakh",

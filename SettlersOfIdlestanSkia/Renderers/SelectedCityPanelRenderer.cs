@@ -69,6 +69,8 @@ public class SelectedCityPanelRenderer : IGameRenderer
         {
             var isBuilt = building.Level > 0;
             var canBuild = building.Level == 0;
+            var canBuildOrUpgrade = _cityBuildingService.CanBuildOrUpgrade(building);
+            var isAtMaxLevel = _cityBuildingService.IsAtMaxLevel(building);
             var yRow = y + index * RowHeight;
             var label = _localization.Get(building.NameKey) + (isBuilt ? $" (Niv {building.Level})" : "");
             canvas.DrawText(label, panelX + Padding, yRow + 18, font15, textPaint);
@@ -90,18 +92,44 @@ public class SelectedCityPanelRenderer : IGameRenderer
                 var btnX = panelX + PanelWidth - btnWidth - Padding;
                 var btnY = yRow + 6;
                 
+                SKColor btnColor;
+                SKColor btnTextColor;
+                bool isButtonEnabled = canBuildOrUpgrade;
+
+                if (isAtMaxLevel)
+                {
+                    btnColor = new SKColor(100, 100, 100, 200);
+                    btnTextColor = new SKColor(150, 150, 150, 255);
+                    btnText = _localization.Get("action_maxlevel");
+                }
+                else if (!isButtonEnabled)
+                {
+                    btnColor = new SKColor(100, 100, 100, 200);
+                    btnTextColor = new SKColor(150, 150, 150, 255);
+                }
+                else
+                {
+                    btnColor = isBuilt ? new SKColor(46, 125, 50, 255) : new SKColor(21, 101, 192, 255);
+                    btnTextColor = SKColors.White;
+                }
+
                 using var btnPaint = new SKPaint 
                 { 
-                    Color = isBuilt ? new SKColor(46, 125, 50, 255) : new SKColor(21, 101, 192, 255), 
+                    Color = btnColor, 
                     Style = SKPaintStyle.Fill, 
                     IsAntialias = true 
                 };
                 canvas.DrawRoundRect(btnX, btnY, btnWidth, btnHeight, 7, 7, btnPaint);
-                canvas.DrawText(btnText, btnX + 12, btnY + 18, font12, buttonTextPaint);
+                
+                using var btnTextPaint = new SKPaint { Color = btnTextColor, IsAntialias = true };
+                canvas.DrawText(btnText, btnX + 12, btnY + 18, font12, btnTextPaint);
 
-                // Stocker les informations du bouton pour la détection de clic
-                var btnRect = new SKRect(btnX, btnY, btnX + btnWidth, btnY + btnHeight);
-                _hoverRects[btnRect] = building.Type;
+                // Stocker les informations du bouton pour la détection de clic (seulement si le bouton est actif)
+                if (isButtonEnabled)
+                {
+                    var btnRect = new SKRect(btnX, btnY, btnX + btnWidth, btnY + btnHeight);
+                    _hoverRects[btnRect] = building.Type;
+                }
             }
         }
 
