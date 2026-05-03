@@ -72,17 +72,17 @@ namespace SettlersOfIdlestan.Controller
             var city = civ.Cities.FirstOrDefault(ct => ct.Position.Equals(cityVertex))
                        ?? throw new ArgumentException("City not found at the specified vertex", nameof(cityVertex));
 
-            var prototype = CreateBuilding(type) ?? throw new ArgumentException("Unknown building type", nameof(type));
-
-            if (!prototype.IsBuildingAvailableForCity(_state.Map, city))
-                return false;
-
             var existing = city.Buildings.FirstOrDefault(b => b.Type == type);
 
             Dictionary<Resource, int> cost;
             Building resultBuilding;
             if (existing == null)
             {
+                var prototype = CreateBuilding(type) ?? throw new ArgumentException("Unknown building type", nameof(type));
+
+                if (!prototype.IsBuildingAvailableForCity(_state.Map, city))
+                    return false;
+
                 cost = prototype.GetBuildCost();
                 resultBuilding = prototype;
             }
@@ -112,6 +112,7 @@ namespace SettlersOfIdlestan.Controller
 
             if (existing == null)
             {
+                resultBuilding.Level = 1;
                 city.Buildings.Add(resultBuilding);
             }
             else
