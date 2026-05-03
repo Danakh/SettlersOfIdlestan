@@ -2,6 +2,7 @@ using SkiaSharp;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
+using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Renderers;
 using SettlersOfIdlestan.Services.Localization;
@@ -72,6 +73,9 @@ public sealed class SkiaGameRuntime : IDisposable
             islandMainRenderer = new IslandMainRenderer(_constructionInteractionService);
             _constructionInteractionService.AttachRenderer(islandMainRenderer);
             _renderService.RegisterRenderer(islandMainRenderer);
+
+            // Connecte les événements de récolte au système de particules
+            ConnectHarvestEventsToParticles(islandMainRenderer);
 
             // Ajout du panneau latéral des bâtiments sélectionnés
             var selectedCityPanelRenderer = new SelectedCityPanelRenderer(_localizationService, _gameControllerService.CityBuildingService, _inputService);
@@ -230,6 +234,65 @@ public sealed class SkiaGameRuntime : IDisposable
             stats = default;
             return false;
         }
+    }
+
+    private void ConnectHarvestEventsToParticles(IslandMainRenderer islandMainRenderer)
+    {
+        var particleSystem = islandMainRenderer.GetHarvestParticleSystem();
+        
+        _harvestService!.OnHarvestCompleted += (sender, args) =>
+        {
+            var gameState = _gameControllerService?.CurrentGameState;
+            if (gameState?.CurrentIslandState == null)
+                return;
+
+            // Obtient le centre de l'hex source
+            var (hexX, hexY) = islandMainRenderer.AxialToIsland(args.HexCoord.Q, args.HexCoord.R);
+            var hexCenter = new SKPoint(hexX, hexY);
+
+            // Trouve la ville la plus proche du joueur pour déterminer la destination
+            var playerCities = gameState.CurrentIslandState.GetAllCities()
+                .Where(c => c.CivilizationIndex == _gameControllerService.PlayerCivilization?.Index)
+                .ToList();
+
+            if (playerCities.Count == 0)
+                return;
+
+            // Utilise la ville la plus proche
+            var nearestCity = playerCities.OrderBy(c =>
+            {
+                var cityPos = islandMainRenderer.VertexToIslandPoint(c.Position);
+                var dx = cityPos.X - hexCenter.X;
+                var dy = cityPos.Y - hexCenter.Y;
+                return dx * dx + dy * dy;
+            }).First();
+
+            var cityCenter = islandMainRenderer.VertexToIslandPoint(nearestCity.Position);
+
+            // Détermine la couleur basée sur le type de ressource de l'hex
+            var tile = gameState.CurrentIslandState.Map.Tiles.TryGetValue(args.HexCoord, out var hexTile) ? hexTile : null;
+            var particleColor = SKColors.Gold; // couleur par défaut
+
+            if (tile?.Resource != null)
+            {
+                var resourceColors = new Dictionary<Resource, SKColor>
+                {
+                    { Resource.Wood, new SKColor(139, 69, 19) },
+                    { Resource.Ore, new SKColor(128, 128, 128) },
+                    { Resource.Wheat, new SKColor(255, 215, 0) },
+                    { Resource.Sheep, new SKColor(255, 192, 203) },
+                    { Resource.Brick, new SKColor(210, 105, 30) },
+                };
+
+                if (resourceColors.TryGetValue(tile.Resource.Value, out var color))
+                {
+                    particleColor = color;
+                }
+            }
+
+            // Émet une particule
+            particleSystem.EmitParticle(hexCenter, cityCenter, particleColor);
+        };
     }
 
     public void Dispose()

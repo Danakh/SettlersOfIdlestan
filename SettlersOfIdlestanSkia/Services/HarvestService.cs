@@ -5,12 +5,33 @@ using SettlersOfIdlestan.Controller;
 namespace SettlersOfIdlestanSkia.Services;
 
 /// <summary>
+/// Arguments d'événement pour une récolte manuelle complétée.
+/// </summary>
+public class HarvestEventArgs
+{
+    /// <summary>
+    /// Coordonnées de l'hexagone récolté.
+    /// </summary>
+    public HexCoord HexCoord { get; set; }
+
+    public HarvestEventArgs(HexCoord hexCoord)
+    {
+        HexCoord = hexCoord;
+    }
+}
+
+/// <summary>
 /// Service gérant les récoltes manuelles sur les hexagones adjacents aux villes.
 /// Encapsule la logique de récolte et communique avec le HarvestController.
 /// </summary>
 public class HarvestService
 {
     private readonly GameControllerService _gameControllerService;
+
+    /// <summary>
+    /// Événement déclenché quand une récolte manuelle est complétée avec succès.
+    /// </summary>
+    public event EventHandler<HarvestEventArgs>? OnHarvestCompleted;
 
     public HarvestService(GameControllerService gameControllerService)
     {
@@ -34,7 +55,14 @@ public class HarvestService
 
         try
         {
-            return harvestController.ManualHarvest(playerCiv.Index, hexCoord);
+            bool success = harvestController.ManualHarvest(playerCiv.Index, hexCoord);
+            
+            if (success)
+            {
+                OnHarvestCompleted?.Invoke(this, new HarvestEventArgs(hexCoord));
+            }
+            
+            return success;
         }
         catch (ArgumentException)
         {

@@ -1,5 +1,6 @@
 using SkiaSharp;
 using SettlersOfIdlestan.Model.HexGrid;
+using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Services;
 
@@ -15,6 +16,8 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
     private readonly GameBoardRenderer _gameBoardRenderer;
     private readonly RoadRenderer _roadRenderer;
     private readonly CityRenderer _cityRenderer;
+    private readonly HarvestRenderer _harvestRenderer;
+    private readonly HarvestParticleSystem _harvestParticleSystem;
     private readonly IConstructionHoverProvider? _constructionHoverProvider;
 
     private readonly SKPaint _buildableVertexPaint = new()
@@ -60,19 +63,39 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
         IsAntialias = true
     };
 
+    /// <summary>
+    /// Dictionnaire de couleurs pour les ressources (pour les particules de récolte).
+    /// </summary>
+    private static readonly Dictionary<Resource, SKColor> ResourceColors = new()
+    {
+        { Resource.Wood, new SKColor(139, 69, 19) },          // Marron
+        { Resource.Ore, new SKColor(128, 128, 128) },         // Gris
+        { Resource.Wheat, new SKColor(255, 215, 0) },         // Or
+        { Resource.Sheep, new SKColor(255, 192, 203) },       // Rose
+        { Resource.Brick, new SKColor(210, 105, 30) },        // Brique orange-marron
+    };
+
     public IslandMainRenderer(IConstructionHoverProvider? constructionHoverProvider = null)
     {
         _gameBoardRenderer = new GameBoardRenderer();
         _roadRenderer = new RoadRenderer();
         _cityRenderer = new CityRenderer();
+        _harvestParticleSystem = new HarvestParticleSystem();
+        _harvestRenderer = new HarvestRenderer(_harvestParticleSystem);
         _constructionHoverProvider = constructionHoverProvider;
     }
+
+    /// <summary>
+    /// Retourne le système de particules de récolte pour abonnement aux événements.
+    /// </summary>
+    public HarvestParticleSystem GetHarvestParticleSystem() => _harvestParticleSystem;
 
     public void Initialize(SKSize canvasSize)
     {
         _gameBoardRenderer.Initialize(canvasSize);
         _roadRenderer.Initialize(canvasSize);
         _cityRenderer.Initialize(canvasSize);
+        _harvestRenderer.Initialize(canvasSize);
     }
 
     public void Render(SKCanvas canvas, GameRenderContext context)
@@ -82,6 +105,7 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
             _gameBoardRenderer.Render(canvas, context);
             _roadRenderer.Render(canvas, context);
             _cityRenderer.Render(canvas, context);
+            _harvestRenderer.Render(canvas, context);
             RenderConstructionHighlights(canvas);
         }
     }
@@ -174,6 +198,7 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
         _gameBoardRenderer.Dispose();
         _roadRenderer.Dispose();
         _cityRenderer.Dispose();
+        _harvestRenderer.Dispose();
         _buildableVertexPaint.Dispose();
         _buildableEdgePaint.Dispose();
         _hoverVertexPaint.Dispose();
