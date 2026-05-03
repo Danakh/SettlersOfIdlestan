@@ -122,7 +122,9 @@ public class SelectedCityPanelRenderer : IGameRenderer
                 canvas.DrawRoundRect(btnX, btnY, btnWidth, btnHeight, 7, 7, btnPaint);
                 
                 using var btnTextPaint = new SKPaint { Color = btnTextColor, IsAntialias = true };
-                canvas.DrawText(btnText, btnX + 12, btnY + 18, font12, btnTextPaint);
+                float btnCenterX = btnX + btnWidth / 2;
+                float btnCenterY = btnY + btnHeight / 2 + 6;
+                canvas.DrawText(btnText, btnCenterX, btnCenterY, SKTextAlign.Center, font12, btnTextPaint);
 
                 // Stocker les informations du bouton pour la détection de clic (seulement si le bouton est actif)
                 if (isButtonEnabled)
