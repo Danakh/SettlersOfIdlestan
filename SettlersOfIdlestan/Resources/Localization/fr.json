@@ -51,6 +51,8 @@
   "building_townhall_desc": "Hôtel de ville - Permet l'amélioration de la ville",
   "building_buildersguild_name": "Guilde des bâtisseurs",
   "building_buildersguild_desc": "Guilde des batisseurs - Permet l'automatisation de constructions. Disponible au niveau Capitale (4).",
+  "action_build": "Construire",
+  "action_upgrade": "Améliorer",
   "menu_about": "À propos",
   "about_title": "À propos",
   "about_by": "Jeu par Danakh",

@@ -318,15 +318,14 @@ namespace SettlersOfIdlestan.Controller
         {
             if (cityVertex == null) throw new ArgumentNullException(nameof(cityVertex));
 
-            var buildable = _buildingController.GetBuildableBuildings(_civ.Index, cityVertex);
-            var isConstructible = buildable.Any(b => b.Type == buildingType);
+            var buildables = _buildingController.GetBuildingsAndBuildables(_civ.Index, cityVertex);
+            var isConstructible = buildables.Any(b => b.Type == buildingType);
             if (!isConstructible) return false;
 
             if (_buildingController.BuildBuilding(_civ.Index, cityVertex, buildingType))
                 return true;
 
             // Attempt to get the buildable entry for this building to compute cost
-            var buildables = _buildingController.GetBuildableBuildings(_civ.Index, cityVertex);
             var target = buildables.FirstOrDefault(b => b.Type == buildingType);
             if (target != null)
             {

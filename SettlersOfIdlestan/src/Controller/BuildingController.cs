@@ -24,10 +24,9 @@ namespace SettlersOfIdlestan.Controller
 
         /// <summary>
         /// Retourne la liste des bâtiments constructibles ou améliorables pour la ville spécifiée.
-        /// La méthode renvoie des instances prototypes dont la propriété Level indique le niveau visé
-        /// (1 pour construction, >1 pour amélioration).
+        /// La méthode renvoie des instances prototypes de niveau 0 pour les bâtiments non construits.
         /// </summary>
-        public List<Building> GetBuildableBuildings(int civilizationIndex, Vertex cityVertex)
+        public List<Building> GetBuildingsAndBuildables(int civilizationIndex, Vertex cityVertex)
         {
             var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex)
                       ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
@@ -39,17 +38,19 @@ namespace SettlersOfIdlestan.Controller
 
             foreach (BuildingType bt in Enum.GetValues(typeof(BuildingType)))
             {
-                var prototype = CreateBuilding(bt);
-                if (prototype == null) continue;
-
-                // Check if building is available for this city
-                if (!prototype.IsBuildingAvailableForCity(_state.Map, city)) continue;
-
-                // Check if city already has this building
                 var existing = city.Buildings.FirstOrDefault(b => b.Type == bt);
-                if (existing == null)
+                if (existing != null)
                 {
-                    result.Add(prototype);
+                    result.Add(existing);
+                }
+                else
+                {
+                    var prototype = CreateBuilding(bt);
+                    if ((prototype != null) &&
+                        prototype.IsBuildingAvailableForCity(_state.Map, city))
+                    {
+                        result.Add(prototype);
+                    }
                 }
             }
 

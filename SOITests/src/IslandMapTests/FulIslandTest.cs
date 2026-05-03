@@ -117,7 +117,7 @@ namespace SOITests.src.IslandMapTests
             // Repeat until no more production buildings are buildable
             for (int i = 0; i < 20; i++)
             {
-                var candidates = controller.BuildingController.GetBuildableBuildings(civ.Index, newVertex)
+                var candidates = controller.BuildingController.GetBuildingsAndBuildables(civ.Index, newVertex)
                                  .Where(b => b.Production != null && b.Production.Any())
                                  .ToList();
                 if (!candidates.Any()) break;

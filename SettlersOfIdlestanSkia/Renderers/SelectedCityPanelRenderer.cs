@@ -17,11 +17,11 @@ public class SelectedCityPanelRenderer : IGameRenderer
     private readonly InputHandlingService _inputService;
     private SKSize _canvasSize;
     private SKPoint _lastPointerPosition = SKPoint.Empty;
-    private string? _hoveredBuildingType = null;
+    private BuildingType? _hoveredBuildingType = null;
     private const float PanelWidth = 260;
     private const float RowHeight = 36;
     private const float Padding = 10;
-    private Dictionary<SKRect, string> _hoverRects = new Dictionary<SKRect, string>();
+    private Dictionary<SKRect, BuildingType> _hoverRects = new Dictionary<SKRect, BuildingType>();
 
     public SelectedCityPanelRenderer(ILocalizationService localization, CityBuildingService cityBuildingService, InputHandlingService inputService)
     {
@@ -55,7 +55,7 @@ public class SelectedCityPanelRenderer : IGameRenderer
 
         _hoverRects.Clear();
 
-        var buildings = _cityBuildingService.SelectedCityBuildings().ToList();
+        var buildings = _cityBuildingService.SelectedCityBuildingsAndBuildables().ToList();
         int buildingCount = buildings.Count;
         if (buildingCount == 0)
             return;
@@ -84,7 +84,7 @@ public class SelectedCityPanelRenderer : IGameRenderer
             // Bouton action
             if (canBuild || isBuilt)
             {
-                var btnText = isBuilt ? _localization.Get("ActionUpgrade") : _localization.Get("ActionBuild");
+                var btnText = isBuilt ? _localization.Get("action_upgrade") : _localization.Get("action_build");
                 var btnWidth = 90;
                 var btnHeight = 26;
                 var btnX = panelX + PanelWidth - btnWidth - Padding;
@@ -101,14 +101,14 @@ public class SelectedCityPanelRenderer : IGameRenderer
 
                 // Stocker les informations du bouton pour la détection de clic
                 var btnRect = new SKRect(btnX, btnY, btnX + btnWidth, btnY + btnHeight);
-                _hoverRects[btnRect] = building.Type.ToString();
+                _hoverRects[btnRect] = building.Type;
             }
         }
 
         // Afficher le tooltip (description) si on survole un bâtiment
-        if (!string.IsNullOrEmpty(_hoveredBuildingType))
+        if (_hoveredBuildingType.HasValue)
         {
-            var hoveredBuilding = buildings.FirstOrDefault(b => b.Type.ToString() == _hoveredBuildingType);
+            var hoveredBuilding = buildings.FirstOrDefault(b => b.Type == _hoveredBuildingType.Value);
             if (hoveredBuilding != null)
             {
                 DrawTooltip(canvas, hoveredBuilding, font10);

@@ -51,6 +51,8 @@
   "building_townhall_desc": "Town Hall - Allows city upgrades",
   "building_buildersguild_name": "Builders Guild",
   "building_buildersguild_desc": "Builders Guild - Allows construction automation. Available at Capital level (4).",
+  "action_build": "Build",
+  "action_upgrade": "Upgrade",
   "menu_about": "About",
   "about_title": "About",
   "about_by": "Game By Danakh",

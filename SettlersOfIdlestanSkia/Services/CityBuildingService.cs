@@ -24,56 +24,19 @@ public class CityBuildingService
         SelectedCity = _mainGameController.CurrentMainState?.CurrentIslandState?.FindCityAt(selectedCityVertex);
     }
 
-    public IEnumerable<Building> SelectedCityBuildings()
+    public IEnumerable<Building> SelectedCityBuildingsAndBuildables()
     {
         if (SelectedCity == null)
             return [];
 
-        return _mainGameController.BuildingController.GetBuildableBuildings(SelectedCity.CivilizationIndex, SelectedCity.Position);
+        return _mainGameController.BuildingController.GetBuildingsAndBuildables(SelectedCity.CivilizationIndex, SelectedCity.Position);
     }
 
-    public bool TryExecuteSelectedCityBuildingAction(string buildingTypeName)
-    {
-        if (SelectedCity == null)
-            return false;
-
-        if (!Enum.TryParse<BuildingType>(buildingTypeName, out var type))
-            return false;
-
-        var existing = SelectedCity.Buildings.FirstOrDefault(b => b.Type == type);
-        var success = existing == null
-            ? TryBuildBuilding(type)
-            : TryActivateBuilding(type);
-
-        return success;
-    }
-
-    public bool TryBuildBuilding(BuildingType buildingType)
+    public void TryExecuteSelectedCityBuildingAction(BuildingType buildingType)
     {
         if (SelectedCity != null)
         {
             _mainGameController.BuildingController.BuildBuilding(SelectedCity.CivilizationIndex, SelectedCity.Position, buildingType);
-            if (_mainGameController.CurrentMainState != null)
-            {
-                _mainGameController.SetGame(_mainGameController.CurrentMainState);
-            }
-            return true;
         }
-        return false;
-    }
-
-    public bool TryActivateBuilding(BuildingType buildingType)
-    {
-        if (SelectedCity != null)
-        {
-
-            var existing = SelectedCity.Buildings.FirstOrDefault(b => b.Type == buildingType);
-            if (existing == null)
-                return false;
-
-            // Placeholder: les actions actives par bâtiment (Prestige, etc.) ne sont pas encore branchées.
-            return true;
-        }
-        return false;
     }
 }
