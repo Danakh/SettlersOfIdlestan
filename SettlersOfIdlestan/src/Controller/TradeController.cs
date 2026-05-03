@@ -13,10 +13,18 @@ namespace SettlersOfIdlestan.Controller
     /// </summary>
     public class TradeController
     {
-        private readonly IslandState _state;
+        private IslandState? _state;
         private const int TradeRate = 4; // 4:1
 
-        internal TradeController(IslandState state)
+        internal TradeController(IslandState? state = null)
+        {
+            _state = state;
+        }
+
+        /// <summary>
+        /// Initialize or update the IslandState for this controller.
+        /// </summary>
+        internal void Initialize(IslandState state)
         {
             _state = state ?? throw new ArgumentNullException(nameof(state));
         }
@@ -26,6 +34,8 @@ namespace SettlersOfIdlestan.Controller
         /// </summary>
         public bool IsTradeAvailable(int civilizationIndex)
         {
+            if (_state == null) throw new InvalidOperationException("IslandState has not been initialized.");
+
             var civ = _state.Civilizations.Find(c => c.Index == civilizationIndex);
             if (civ == null) throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
 
@@ -47,6 +57,7 @@ namespace SettlersOfIdlestan.Controller
         /// </summary>
         public void Trade(int civilizationIndex, Resource from, Resource to)
         {
+            if (_state == null) throw new InvalidOperationException("IslandState has not been initialized.");
             if (from == to) throw new ArgumentException("Source and destination resources must differ");
 
             var civ = _state.Civilizations.Find(c => c.Index == civilizationIndex)
@@ -74,6 +85,7 @@ namespace SettlersOfIdlestan.Controller
         /// </summary>
         public bool TryAutoTradeForPurchase(int civilizationIndex, IDictionary<Resource, int> requiredCosts)
         {
+            if (_state == null) throw new InvalidOperationException("IslandState has not been initialized.");
             if (requiredCosts == null) throw new ArgumentNullException(nameof(requiredCosts));
 
             var civ = _state.Civilizations.Find(c => c.Index == civilizationIndex)

@@ -15,9 +15,17 @@ namespace SettlersOfIdlestan.Controller
     /// </summary>
     public class BuildingController
     {
-        private readonly IslandState _state;
+        private IslandState? _state;
 
-        internal BuildingController(IslandState state)
+        internal BuildingController(IslandState? state = null)
+        {
+            _state = state;
+        }
+
+        /// <summary>
+        /// Initialize or update the IslandState for this controller.
+        /// </summary>
+        internal void Initialize(IslandState state)
         {
             _state = state ?? throw new ArgumentNullException(nameof(state));
         }
@@ -28,6 +36,8 @@ namespace SettlersOfIdlestan.Controller
         /// </summary>
         public List<Building> GetBuildingsAndBuildables(int civilizationIndex, Vertex cityVertex)
         {
+            if (_state == null) throw new InvalidOperationException("IslandState has not been initialized.");
+
             var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex)
                       ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
 
@@ -66,6 +76,8 @@ namespace SettlersOfIdlestan.Controller
         /// </summary>
         public bool BuildBuilding(int civilizationIndex, Vertex cityVertex, BuildingType type)
         {
+            if (_state == null) throw new InvalidOperationException("IslandState has not been initialized.");
+
             var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex)
                       ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
 

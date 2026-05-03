@@ -30,16 +30,12 @@ namespace SettlersOfIdlestan.Controller
 
         public MainGameController()
         {
-            // create a default empty state for controllers; callers should replace with real state when available
-            var emptyMap = new IslandMap(new List<SettlersOfIdlestan.Model.IslandMap.HexTile>());
-            var emptyCivs = new List<Civilization>();
-            var emptyState = new IslandState(emptyMap, emptyCivs);
-
-            RoadController = new RoadController(emptyState);
-            HarvestController = new HarvestController(emptyState, new GameClock());
-            TradeController = new TradeController(emptyState);
-            BuildingController = new BuildingController(emptyState);
-            CityBuilderController = new CityBuilderController(emptyState);
+            // Create controllers with null state; Initialize will be called with the real state when available
+            RoadController = new RoadController();
+            HarvestController = new HarvestController();
+            TradeController = new TradeController();
+            BuildingController = new BuildingController();
+            CityBuilderController = new CityBuilderController();
         }
 
         /// <summary>
@@ -88,18 +84,7 @@ namespace SettlersOfIdlestan.Controller
             var mainState = System.Text.Json.JsonSerializer.Deserialize<SettlersOfIdlestan.Model.Game.MainGameState>(json, options)
                             ?? throw new InvalidOperationException("Failed to deserialize MainGameState.");
 
-            var islandState = mainState.CurrentIslandState ?? throw new InvalidOperationException("Imported state does not contain an island state.");
-
-            // Recreate controllers to operate on the imported island state and clock
-            RoadController = new RoadController(islandState);
-            HarvestController = new HarvestController(islandState, mainState.Clock);
-            TradeController = new TradeController(islandState);
-            BuildingController = new BuildingController(islandState);
-            CityBuilderController = new CityBuilderController(islandState);
-
-            // expose clock and keep reference to main state
-            Clock = mainState.Clock;
-            CurrentMainState = mainState;
+            SetGame(mainState);
 
             return mainState;
         }
@@ -151,17 +136,14 @@ namespace SettlersOfIdlestan.Controller
             CurrentMainState = mainGame;
             Clock = mainGame.Clock;
 
-            var islandState = mainGame.CurrentIslandState;
+            var islandState = CurrentMainState.CurrentIslandState;
 
-            if (islandState is not null)
-            {
-                // Recreate controllers to operate on the real island state and clock
-                RoadController = new RoadController(islandState);
-                HarvestController = new HarvestController(islandState, mainGame.Clock);
-                TradeController = new TradeController(islandState);
-                BuildingController = new BuildingController(islandState);
-                CityBuilderController = new CityBuilderController(islandState);
-            }
+            // Initialize controllers to operate on the real island state and clock
+            RoadController.Initialize(islandState);
+            HarvestController.Initialize(islandState, Clock);
+            TradeController.Initialize(islandState);
+            BuildingController.Initialize(islandState);
+            CityBuilderController.Initialize(islandState);
         }
     }
 }

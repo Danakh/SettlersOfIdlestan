@@ -8,24 +8,81 @@ using SettlersOfIdlestan.Model.HexGrid;
 namespace SettlersOfIdlestan.Controller
 {
     /// <summary>
+    /// Arguments d'événement pour une récolte complétée (manuelle ou automatique).
+    /// </summary>
+    public class HarvestCompletedEventArgs : EventArgs
+    {
+        /// <summary>
+        /// Index de la civilisation qui a récolté.
+        /// </summary>
+        public int CivilizationIndex { get; set; }
+
+        /// <summary>
+        /// Coordonnées de l'hexagone récolté.
+        /// </summary>
+        public HexCoord HexCoord { get; set; }
+
+        /// <summary>
+        /// Type de ressource récolté.
+        /// </summary>
+        public Resource Resource { get; set; }
+
+        /// <summary>
+        /// Indique si c'est une récolte automatique ou manuelle.
+        /// </summary>
+        public bool IsAutomatic { get; set; }
+
+        public HarvestCompletedEventArgs(int civIndex, HexCoord hex, Resource resource, bool isAutomatic = false)
+        {
+            CivilizationIndex = civIndex;
+            HexCoord = hex;
+            Resource = resource;
+            IsAutomatic = isAutomatic;
+        }
+    }
+
+    /// <summary>
     /// Controller to handle manual harvesting by civilizations.
     /// A civilization can manually harvest resources from hexes adjacent to one of its cities,
     /// subject to a cooldown of 2 seconds (in-game time) enforced via the GameClock.
     /// </summary>
     public class HarvestController
     {
-        private readonly IslandState _state;
-        private readonly GameClock _clock;
+        private IslandState? _state;
+        private GameClock? _clock;
         private static readonly TimeSpan HarvestCooldown = TimeSpan.FromSeconds(2);
         // Cooldown for automatic production harvests triggered by producer buildings
         private static readonly TimeSpan AutomaticHarvestCooldown = TimeSpan.FromSeconds(5);
 
-        internal HarvestController(IslandState state, GameClock clock)
+        /// <summary>
+        /// Événement déclenché quand une récolte (manuelle ou automatique) est complétée avec succès.
+        /// </summary>
+        public event EventHandler<HarvestCompletedEventArgs>? OnHarvestCompleted;
+
+        internal HarvestController(IslandState? state = null, GameClock? clock = null)
         {
-            _state = state ?? throw new ArgumentNullException(nameof(state));
-            _clock = clock ?? throw new ArgumentNullException(nameof(clock));
-            // subscribe to clock advanced events to perform periodic automatic production harvesting
-            _clock.Advanced += OnClockAdvanced;
+            Initialize(state, clock);
+        }
+
+        /// <summary>
+        /// Initialize or update the IslandState and GameClock for this controller.
+        /// </summary>
+        internal void Initialize(IslandState? state, GameClock? clock)
+        {
+            // Unsubscribe from old clock if it exists
+            if (_clock != null)
+            {
+                _clock.Advanced -= OnClockAdvanced;
+            }
+
+            _state = state;
+            _clock = clock;
+
+            // Subscribe to new clock if provided
+            if (_clock != null)
+            {
+                _clock.Advanced += OnClockAdvanced;
+            }
         }
 
         private void OnClockAdvanced(object? sender, GameClockAdvancedEventArgs e)
@@ -42,6 +99,8 @@ namespace SettlersOfIdlestan.Controller
 
         private void PerformAutomaticProductionHarvests()
         {
+            if (_state == null || _clock == null) return;
+            
             // For each civilization and each of its cities, for each building that produces,
             // harvest adjacent hexes corresponding to the building's produced resource, subject to per-hex automatic cooldown.
             foreach (var civ in _state.Civilizations)
@@ -83,6 +142,8 @@ namespace SettlersOfIdlestan.Controller
                                 // perform harvest: add one unit
                                 civ.AddResource(resource, 1);
                                 autoMap[hex] = now;
+                                // Déclenche l'événement de récolte
+                                OnHarvestCompleted?.Invoke(this, new HarvestCompletedEventArgs(civ.Index, hex, resource, isAutomatic: true));
                                 // only harvest one hex per production entry per invocation
                                 break;
                             }
@@ -100,6 +161,8 @@ namespace SettlersOfIdlestan.Controller
         /// </summary>
         public bool ManualHarvest(int civilizationIndex, HexCoord hex)
         {
+            if (_state == null || _clock == null) throw new InvalidOperationException("IslandState and GameClock have not been initialized.");
+
             var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex)
                       ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
 
@@ -132,6 +195,9 @@ namespace SettlersOfIdlestan.Controller
 
             // Update last harvest time for this hex so cooldown persists in the model
             perHex[hex] = now;
+
+            // Déclenche l'événement de récolte
+            OnHarvestCompleted?.Invoke(this, new HarvestCompletedEventArgs(civilizationIndex, hex, resource.Value, isAutomatic: false));
 
             return true;
         }

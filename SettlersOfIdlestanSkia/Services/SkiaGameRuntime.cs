@@ -269,26 +269,19 @@ public sealed class SkiaGameRuntime : IDisposable
 
             var cityCenter = islandMainRenderer.VertexToIslandPoint(nearestCity.Position);
 
-            // Détermine la couleur basée sur le type de ressource de l'hex
-            var tile = gameState.CurrentIslandState.Map.Tiles.TryGetValue(args.HexCoord, out var hexTile) ? hexTile : null;
-            var particleColor = SKColors.Gold; // couleur par défaut
-
-            if (tile?.Resource != null)
+            // Détermine la couleur basée sur le type de ressource récolté
+            var resourceColors = new Dictionary<Resource, SKColor>
             {
-                var resourceColors = new Dictionary<Resource, SKColor>
-                {
-                    { Resource.Wood, new SKColor(139, 69, 19) },
-                    { Resource.Ore, new SKColor(128, 128, 128) },
-                    { Resource.Wheat, new SKColor(255, 215, 0) },
-                    { Resource.Sheep, new SKColor(255, 192, 203) },
-                    { Resource.Brick, new SKColor(210, 105, 30) },
-                };
+                { Resource.Wood, new SKColor(139, 69, 19) },
+                { Resource.Ore, new SKColor(128, 128, 128) },
+                { Resource.Wheat, new SKColor(255, 215, 0) },
+                { Resource.Sheep, new SKColor(255, 192, 203) },
+                { Resource.Brick, new SKColor(210, 105, 30) },
+            };
 
-                if (resourceColors.TryGetValue(tile.Resource.Value, out var color))
-                {
-                    particleColor = color;
-                }
-            }
+            var particleColor = resourceColors.TryGetValue(args.Resource, out var color) 
+                ? color 
+                : SKColors.Gold;
 
             // Émet une particule
             particleSystem.EmitParticle(hexCenter, cityCenter, particleColor);

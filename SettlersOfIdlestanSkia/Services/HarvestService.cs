@@ -5,37 +5,24 @@ using SettlersOfIdlestan.Controller;
 namespace SettlersOfIdlestanSkia.Services;
 
 /// <summary>
-/// Arguments d'événement pour une récolte manuelle complétée.
-/// </summary>
-public class HarvestEventArgs
-{
-    /// <summary>
-    /// Coordonnées de l'hexagone récolté.
-    /// </summary>
-    public HexCoord HexCoord { get; set; }
-
-    public HarvestEventArgs(HexCoord hexCoord)
-    {
-        HexCoord = hexCoord;
-    }
-}
-
-/// <summary>
 /// Service gérant les récoltes manuelles sur les hexagones adjacents aux villes.
 /// Encapsule la logique de récolte et communique avec le HarvestController.
 /// </summary>
 public class HarvestService
 {
     private readonly GameControllerService _gameControllerService;
+    private HarvestController _harvestController;
 
     /// <summary>
-    /// Événement déclenché quand une récolte manuelle est complétée avec succès.
+    /// Événement déclenché quand une récolte (manuelle ou automatique) est complétée avec succès.
     /// </summary>
-    public event EventHandler<HarvestEventArgs>? OnHarvestCompleted;
+    public event EventHandler<HarvestCompletedEventArgs>? OnHarvestCompleted;
 
     public HarvestService(GameControllerService gameControllerService)
     {
         _gameControllerService = gameControllerService ?? throw new ArgumentNullException(nameof(gameControllerService));
+        _harvestController = _gameControllerService.MainGameController.HarvestController;
+        _harvestController.OnHarvestCompleted += OnHarvestControllerCompleted;
     }
 
     /// <summary>
@@ -49,20 +36,9 @@ public class HarvestService
         if (playerCiv == null)
             throw new InvalidOperationException("La civilisation du joueur n'est pas disponible.");
 
-        var harvestController = GetHarvestController();
-        if (harvestController == null)
-            throw new InvalidOperationException("HarvestController n'est pas disponible.");
-
         try
         {
-            bool success = harvestController.ManualHarvest(playerCiv.Index, hexCoord);
-            
-            if (success)
-            {
-                OnHarvestCompleted?.Invoke(this, new HarvestEventArgs(hexCoord));
-            }
-            
-            return success;
+            return _harvestController.ManualHarvest(playerCiv.Index, hexCoord);
         }
         catch (ArgumentException)
         {
@@ -77,19 +53,10 @@ public class HarvestService
     }
 
     /// <summary>
-    /// Obtient le HarvestController du jeu via réflexion si nécessaire.
+    /// Relaye les événements du HarvestController vers les abonnés du HarvestService.
     /// </summary>
-    private HarvestController? GetHarvestController()
+    private void OnHarvestControllerCompleted(object? sender, HarvestCompletedEventArgs e)
     {
-        // Essaie d'accéder au MainGameController qui expose le HarvestController
-        var mainControllerField = _gameControllerService.GetType()
-            .GetField("_controller", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-
-        if (mainControllerField?.GetValue(_gameControllerService) is MainGameController mainController)
-        {
-            return mainController.HarvestController;
-        }
-
-        return null;
+        OnHarvestCompleted?.Invoke(this, e);
     }
 }

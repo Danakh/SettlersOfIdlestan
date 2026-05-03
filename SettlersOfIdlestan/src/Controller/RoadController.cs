@@ -13,22 +13,33 @@ namespace SettlersOfIdlestan.Controller
     /// </summary>
     public class RoadController
     {
-        private readonly IslandState _state;
+        private IslandState? _state;
         private readonly Dictionary<int, List<Road>> _buildableRoadsCache = new();
 
-        internal RoadController(IslandState state)
+        internal RoadController(IslandState? state = null)
         {
-            _state = state ?? throw new ArgumentNullException(nameof(state));
+            _state = state;
         }
 
         /// <summary>
-        /// Retourne la liste des routes constructibles pour la civilisation d'indice sp?cifi?.
-        /// R?gle: une ar?te est constructible si elle n'est pas d?j? occup?e par une route,
+        /// Initialize or update the IslandState for this controller.
+        /// </summary>
+        internal void Initialize(IslandState state)
+        {
+            _state = state ?? throw new ArgumentNullException(nameof(state));
+            _buildableRoadsCache.Clear();
+        }
+
+        /// <summary>
+        /// Retourne la liste des routes constructibles pour la civilisation d'indice spécifié.
+        /// Règle: une arête est constructible si elle n'est pas déjà occupée par une route,
         /// et si un de ses deux vertex contient une ville de la civilisation, ou si une route
         /// existante de la civilisation touche ce vertex.
         /// </summary>
         public List<Road> GetBuildableRoads(int civilizationIndex)
         {
+            if (_state == null) throw new InvalidOperationException("IslandState has not been initialized.");
+
             if (_buildableRoadsCache.TryGetValue(civilizationIndex, out var cached))
                 return cached;
 
@@ -89,6 +100,8 @@ namespace SettlersOfIdlestan.Controller
         /// </summary>
         public Road BuildRoad(int civilizationIndex, Edge edge)
         {
+            if (_state == null) throw new InvalidOperationException("IslandState has not been initialized.");
+
             var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex)
                       ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
 
