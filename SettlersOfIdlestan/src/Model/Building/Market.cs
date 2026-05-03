@@ -13,7 +13,6 @@ public class Market : Building
     public Market() : base(BuildingType.Market)
     {
         MaxLevel = 1;
-        RequiresWater = false;
         AvailableAtLevel = 1;
     }
 

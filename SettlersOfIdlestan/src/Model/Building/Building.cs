@@ -2,6 +2,7 @@ using SettlersOfIdlestan.Model.Buildings;
 using System;
 using System.Collections.Generic;
 using SettlersOfIdlestan.Model.IslandMap;
+using SettlersOfIdlestan.Model.City;
 
 namespace SettlersOfIdlestan.Model.Buildings;
 
@@ -113,11 +114,6 @@ public class Building
     public string DescriptionKey { get; protected set; }
 
     /// <summary>
-    /// Gets or sets whether the building requires water.
-    /// </summary>
-    public bool RequiresWater { get; set; }
-
-    /// <summary>
     /// Gets or sets the city level at which the building becomes available.
     /// </summary>
     public int AvailableAtLevel { get; set; }
@@ -138,5 +134,18 @@ public class Building
         Level = level;
         NameKey = $"building_{type.ToString().ToLower()}_name";
         DescriptionKey = $"building_{type.ToString().ToLower()}_desc";
+    }
+
+    /// <summary>
+    /// Determines if the building is available for the specified city.
+    /// Default implementation checks AvailableAtLevel only.
+    /// Derived classes can override to add additional requirements.
+    /// </summary>
+    /// <param name="map">The island map.</param>
+    /// <param name="city">The city.</param>
+    /// <returns>True if the building is available for the city, false otherwise.</returns>
+    public virtual bool IsBuildingAvailableForCity(IslandMap.IslandMap map, City.City city)
+    {
+        return city.Level >= AvailableAtLevel;
     }
 }

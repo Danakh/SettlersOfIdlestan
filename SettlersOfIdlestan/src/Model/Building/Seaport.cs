@@ -1,4 +1,5 @@
 using SettlersOfIdlestan.Model.IslandMap;
+using SettlersOfIdlestan.Model.City;
 
 namespace SettlersOfIdlestan.Model.Buildings;
 
@@ -12,13 +13,7 @@ public class Seaport : Building
     /// </summary>
     public Seaport() : base(BuildingType.Seaport)
     {
-        Production.Add(Resource.Wood, 1);
-        Production.Add(Resource.Brick, 1);
-        Production.Add(Resource.Sheep, 1);
-        Production.Add(Resource.Wheat, 1);
-        Production.Add(Resource.Ore, 1);
         MaxLevel = 4;
-        RequiresWater = true;
         AvailableAtLevel = 2;
         Actions.Add("Prestige");
     }
@@ -38,4 +33,34 @@ public class Seaport : Building
         { Resource.Sheep, 1 },
         { Resource.Wheat, 1 }
     };
+
+    public override bool IsBuildingAvailableForCity(IslandMap.IslandMap map, City.City city)
+    {
+        if (!base.IsBuildingAvailableForCity(map, city))
+            return false;
+
+        return CityHasWater(city, map);
+    }
+
+    private static bool CityHasWater(City.City city, IslandMap.IslandMap map)
+    {
+        try
+        {
+            var hexes = city.Position.GetHexes();
+            foreach (var h in hexes)
+            {
+                if (h == null) continue;
+                if (map.Tiles.TryGetValue(h, out var tile))
+                {
+                    if (tile.TerrainType == TerrainType.Water)
+                        return true;
+                }
+            }
+        }
+        catch
+        {
+        }
+
+        return false;
+    }
 }

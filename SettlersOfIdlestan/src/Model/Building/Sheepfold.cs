@@ -14,7 +14,6 @@ public class Sheepfold : Building
     {
         Production.Add(Resource.Sheep, 1);
         MaxLevel = 4;
-        RequiresWater = false;
         AvailableAtLevel = 1;
     }
 

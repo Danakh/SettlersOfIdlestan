@@ -14,8 +14,7 @@ public class Forge : Building
     {
         Production.Add(Resource.Ore, 1);
         MaxLevel = 4;
-        RequiresWater = false;
-        AvailableAtLevel = 1;
+        AvailableAtLevel = 2;
     }
 
     public override Dictionary<Resource, int> GetBuildCost() => new Dictionary<Resource, int>

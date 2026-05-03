@@ -14,7 +14,6 @@ public class Sawmill : Building
     {
         Production.Add(Resource.Wood, 1);
         MaxLevel = 4;
-        RequiresWater = false;
         AvailableAtLevel = 1;
     }
 

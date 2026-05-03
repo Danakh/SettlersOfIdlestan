@@ -35,8 +35,6 @@ namespace SettlersOfIdlestan.Controller
             var city = civ.Cities.FirstOrDefault(ct => ct.Position.Equals(cityVertex))
                        ?? throw new ArgumentException("City not found at the specified vertex", nameof(cityVertex));
 
-            int cityLevel = GetCityLevel(city);
-
             var result = new List<Building>();
 
             foreach (BuildingType bt in Enum.GetValues(typeof(BuildingType)))
@@ -44,22 +42,19 @@ namespace SettlersOfIdlestan.Controller
                 var prototype = CreateBuilding(bt);
                 if (prototype == null) continue;
 
-                // Check water requirement
-                if (prototype.RequiresWater && !CityHasWater(city, _state.Map)) continue;
-
-                // Check availability by level
-                if (prototype.AvailableAtLevel > cityLevel) continue;
+                // Check if building is available for this city
+                if (!prototype.IsBuildingAvailableForCity(_state.Map, city)) continue;
 
                 // Check if city already has this building
                 var existing = city.Buildings.FirstOrDefault(b => b.Type == bt);
                 if (existing == null)
                 {
-                    // can build new
-                    var toAdd = CreateBuilding(bt);
-                    if (toAdd == null) continue;
-                    result.Add(toAdd);
+                    result.Add(prototype);
                 }
             }
+
+            // sort the result by available level
+            result.Sort((a, b) => a.AvailableAtLevel.CompareTo(b.AvailableAtLevel));
 
             return result;
         }
@@ -78,12 +73,7 @@ namespace SettlersOfIdlestan.Controller
 
             var prototype = CreateBuilding(type) ?? throw new ArgumentException("Unknown building type", nameof(type));
 
-            int cityLevel = GetCityLevel(city);
-
-            if (prototype.AvailableAtLevel > cityLevel)
-                return false;
-
-            if (prototype.RequiresWater && !CityHasWater(city, _state.Map))
+            if (!prototype.IsBuildingAvailableForCity(_state.Map, city))
                 return false;
 
             var existing = city.Buildings.FirstOrDefault(b => b.Type == type);
@@ -129,34 +119,6 @@ namespace SettlersOfIdlestan.Controller
             }
 
             return true;
-        }
-
-        private static bool CityHasWater(City city, IslandMap map)
-        {
-            try
-            {
-                var hexes = city.Position.GetHexes();
-                foreach (var h in hexes)
-                {
-                    if (h == null) continue;
-                    if (map.Tiles.TryGetValue(h, out var tile))
-                    {
-                        if (tile.TerrainType == TerrainType.Water)
-                            return true;
-                    }
-                }
-            }
-            catch
-            {
-            }
-
-            return false;
-        }
-
-        private static int GetCityLevel(City city)
-        {
-            // Simple heuristic: base level 1 + number of buildings present
-            return 1 + city.Buildings.Count;
         }
 
         private static Building? CreateBuilding(BuildingType type)

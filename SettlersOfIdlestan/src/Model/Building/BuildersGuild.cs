@@ -13,7 +13,6 @@ public class BuildersGuild : Building
     public BuildersGuild() : base(BuildingType.BuildersGuild)
     {
         MaxLevel = 1;
-        RequiresWater = false;
         AvailableAtLevel = 4;
     }
 

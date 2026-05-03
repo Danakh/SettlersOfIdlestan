@@ -13,8 +13,7 @@ public class Temple : Building
     public Temple() : base(BuildingType.Temple)
     {
         MaxLevel = 4;
-        RequiresWater = false;
-        AvailableAtLevel = 1;
+        AvailableAtLevel = 3;
     }
 
     public override Dictionary<Resource, int> GetBuildCost() => new Dictionary<Resource, int>
