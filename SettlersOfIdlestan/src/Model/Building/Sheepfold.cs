@@ -28,4 +28,11 @@ public class Sheepfold : Building
         { Resource.Wood, 1 },
         { Resource.Brick, 1 }
     };
+
+    public override bool IsBuildingAvailableForCity(IslandMap.IslandMap map, City.City city)
+    {
+        if (!base.IsBuildingAvailableForCity(map, city))
+            return false;
+        return map.VertexHasTerrainType(city.Position, TerrainType.Pasture);
+    }
 }

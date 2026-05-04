@@ -45,4 +45,17 @@ public class IslandMap
             }
         }
     }
+
+    public bool VertexHasTerrainType(Vertex vertex, TerrainType terrainType)
+    {
+        var hexes = vertex.GetHexes();
+        foreach (var hex in hexes)
+        {
+            if (GetTile(hex) is HexTile tile && tile.TerrainType == terrainType)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
 }

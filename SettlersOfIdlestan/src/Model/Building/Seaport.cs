@@ -39,28 +39,6 @@ public class Seaport : Building
         if (!base.IsBuildingAvailableForCity(map, city))
             return false;
 
-        return CityHasWater(city, map);
-    }
-
-    private static bool CityHasWater(City.City city, IslandMap.IslandMap map)
-    {
-        try
-        {
-            var hexes = city.Position.GetHexes();
-            foreach (var h in hexes)
-            {
-                if (h == null) continue;
-                if (map.Tiles.TryGetValue(h, out var tile))
-                {
-                    if (tile.TerrainType == TerrainType.Water)
-                        return true;
-                }
-            }
-        }
-        catch
-        {
-        }
-
-        return false;
+        return map.VertexHasTerrainType(city.Position, TerrainType.Water);
     }
 }
