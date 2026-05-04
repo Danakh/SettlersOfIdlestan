@@ -1,4 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
+using SettlersOfIdlestanDesktop.Services;
+using SettlersOfIdlestanSkia.Services;
 using SkiaSharp.Views.Maui.Controls.Hosting;
 
 namespace SettlersOfIdlestanDesktop;
@@ -20,7 +22,6 @@ public static class MauiProgram
 #if DEBUG
 		builder.Logging.AddDebug();
 #endif
-
 		return builder.Build();
 	}
 }

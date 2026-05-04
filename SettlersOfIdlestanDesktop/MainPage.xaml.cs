@@ -1,8 +1,9 @@
-﻿using SkiaSharp.Views.Maui.Controls;
-using SkiaSharp.Views.Maui;
+﻿using Microsoft.Maui.Controls;
+using SettlersOfIdlestanDesktop.Services;
 using SettlersOfIdlestanSkia.Services;
 using SkiaSharp;
-using Microsoft.Maui.Controls;
+using SkiaSharp.Views.Maui;
+using SkiaSharp.Views.Maui.Controls;
 
 namespace SettlersOfIdlestanDesktop;
 
@@ -22,7 +23,7 @@ public partial class MainPage : ContentPage
 		try
 		{
 			_runtime = new SkiaGameRuntime();
-			_runtime.Initialize();
+			_runtime.Initialize(new DesktopFileSystemService());
 
 			StateLabel.Text = "Prêt";
 

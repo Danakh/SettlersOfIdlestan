@@ -32,6 +32,7 @@ public class SettingsMenu
     private readonly InputHandlingService _inputService;
     private readonly ILocalizationService _localization;
     private readonly AboutRenderer _aboutRenderer; // Ajout de AboutRenderer
+    private readonly IFileSystemService _fileSystemService; // Ajout de IFileSystemService
     private List<MenuItem> _menuItems = new();
 
     private float _gearX;
@@ -47,12 +48,13 @@ public class SettingsMenu
 
     public bool IsOpen => _isOpen;
 
-    public SettingsMenu(MainGameController gameController, InputHandlingService inputService, ILocalizationService localization, AboutRenderer aboutRenderer)
+    public SettingsMenu(MainGameController gameController, InputHandlingService inputService, ILocalizationService localization, AboutRenderer aboutRenderer, IFileSystemService fileSystemService)
     {
         _gameController = gameController;
         _inputService = inputService;
         _localization = localization;
-        _aboutRenderer = aboutRenderer; // Initialisation de AboutRenderer
+        _aboutRenderer = aboutRenderer;
+        _fileSystemService = fileSystemService;
         _inputService.PointerPressed += HandlePointerPressed;
 
         Initialize();
@@ -95,6 +97,18 @@ public class SettingsMenu
         {
             LabelKey = "menu_add_resources",
             Action = AddResources
+        });
+
+        _menuItems.Add(new MenuItem { IsSeparator = true });
+        _menuItems.Add(new MenuItem
+        {
+            LabelKey = "menu_save_game",
+            Action = SaveGame
+        });
+        _menuItems.Add(new MenuItem
+        {
+            LabelKey = "menu_load_game",
+            Action = LoadGame
         });
     }
 
@@ -328,6 +342,21 @@ public class SettingsMenu
             {
                 civilization.AddResource(resource, 100);
             }
+        }
+    }
+
+    private void SaveGame()
+    {
+        var json = _gameController.ExportMainState();
+        _fileSystemService.SaveText("savegame.json", json);
+    }
+
+    private void LoadGame()
+    {
+        var json = _fileSystemService.LoadText("savegame.json");
+        if (!string.IsNullOrEmpty(json))
+        {
+            _gameController.ImportMainState(json);
         }
     }
 

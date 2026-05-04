@@ -6,6 +6,8 @@ using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Renderers;
 using SettlersOfIdlestan.Services.Localization;
+using SettlersOfIdlestanSkia.Services;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace SettlersOfIdlestanSkia.Services;
 
@@ -40,7 +42,7 @@ public sealed class SkiaGameRuntime : IDisposable
 
     private RuntimeDebugStats? _pendingDebugStats;
 
-    public void Initialize()
+    public void Initialize(IFileSystemService fileSystemService)
     {
         lock (_sync)
         {
@@ -84,7 +86,7 @@ public sealed class SkiaGameRuntime : IDisposable
 
             // Crée le menu avant le renderer et le passe en paramètre
             var aboutRenderer = new AboutRenderer(_inputService, _localizationService);
-            var settingsMenu = new SettingsMenu(_gameControllerService.MainGameController, _inputService, _localizationService, aboutRenderer);
+            var settingsMenu = new SettingsMenu(_gameControllerService.MainGameController, _inputService, _localizationService, aboutRenderer, fileSystemService);
             _renderService.RegisterRenderer(new PlayerResourcesOverlayRenderer(_inputService, settingsMenu, _resourceManager));
             _renderService.RegisterRenderer(new DebugOverlayRenderer(_inputService, _cameraService, islandMainRenderer, _localizationService));
             _renderService.RegisterRenderer(aboutRenderer);
