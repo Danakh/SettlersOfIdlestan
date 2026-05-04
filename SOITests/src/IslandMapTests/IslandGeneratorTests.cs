@@ -1,11 +1,12 @@
+using SettlersOfIdlestan.Controller;
+using SettlersOfIdlestan.Controller.Generator;
+using SettlersOfIdlestan.Model.Civilization;
+using SettlersOfIdlestan.Model.HexGrid;
+using SettlersOfIdlestan.Model.IslandMap;
 using System.Collections.Generic;
 using System.Linq;
-using Xunit;
-using SettlersOfIdlestan.Model.IslandMap;
-using SettlersOfIdlestan.Model.HexGrid;
-using SettlersOfIdlestan.Model.Civilization;
 using System.Text.Json;
-using SettlersOfIdlestan.Controller.Generator;
+using Xunit;
 
 namespace SOITests.IslandMapTests;
 
@@ -288,7 +289,7 @@ public class IslandGeneratorTests
         var civilizations = new List<Civilization> { new() { Index = 0 } };
         var originalMap = generator.GenerateIsland(tileData, civilizations);
         Assert.NotNull(originalMap);
-        var original = new IslandState(originalMap, civilizations);
+        var original = new IslandState(originalMap, civilizations, AtlasController.InvalidIslandId);
 
         // Act
         var json = JsonSerializer.Serialize(original);

@@ -29,7 +29,7 @@ public class RoadControllerTests
         var map = new IslandMap(tiles);
         var civ = new Civilization { Index = 0 };
         var civs = new List<Civilization> { civ };
-        var state = new IslandState(map, civs);
+        var state = new IslandState(map, civs, AtlasController.InvalidIslandId);
 
         var vertex = Vertex.Create(a, b, c);
         civ.Cities.Add(new City(vertex) { CivilizationIndex = 0 });
@@ -59,7 +59,7 @@ public class RoadControllerTests
         var map = new IslandMap(tiles);
         var civ = new Civilization { Index = 0 };
         var civs = new List<Civilization> { civ };
-        var state = new IslandState(map, civs);
+        var state = new IslandState(map, civs, AtlasController.InvalidIslandId);
 
         var vertex = Vertex.Create(a, b, c);
         civ.Cities.Add(new City(vertex) { CivilizationIndex = 0 });
@@ -96,7 +96,7 @@ public class RoadControllerTests
         civ.AddResource(Resource.Brick, 2);
 
         var civs = new List<Civilization> { civ };
-        var state = new IslandState(map, civs);
+        var state = new IslandState(map, civs, AtlasController.InvalidIslandId);
 
         var vertex = Vertex.Create(a, b, c);
         civ.Cities.Add(new City(vertex) { CivilizationIndex = 0 });
@@ -134,7 +134,7 @@ public class RoadControllerTests
         civ.AddResource(Resource.Brick, 10);
 
         var civs = new List<Civilization> { civ };
-        var state = new IslandState(map, civs);
+        var state = new IslandState(map, civs, AtlasController.InvalidIslandId);
 
         var vertex = Vertex.Create(a, b, c);
         civ.Cities.Add(new City(vertex) { CivilizationIndex = 0 });

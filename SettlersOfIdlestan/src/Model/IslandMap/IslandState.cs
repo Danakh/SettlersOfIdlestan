@@ -11,10 +11,9 @@ namespace SettlersOfIdlestan.Model.IslandMap;
 [Serializable]
 public class IslandState
 {
-    /// <summary>
-    /// Gets or sets the island map.
-    /// </summary>
     public IslandMap Map { get; set; }
+
+    public int IslandID { get; set; }
 
     /// <summary>
     /// Gets the list of civilizations on the island.
@@ -31,10 +30,12 @@ public class IslandState
     /// </summary>
     /// <param name="map">The island map.</param>
     /// <param name="civilizations">The list of civilizations.</param>
-    public IslandState(IslandMap map, List<SettlersOfIdlestan.Model.Civilization.Civilization> civilizations)
+    /// <param name="islandID">The ID of the island.</param>
+    public IslandState(IslandMap map, List<SettlersOfIdlestan.Model.Civilization.Civilization> civilizations, int islandID)
     {
         Map = map;
         Civilizations = civilizations;
+        IslandID = islandID;
         // Initialize per-civilization per-hex last-harvest timestamps so cooldowns
         // are part of the persisted model.
         HarvestLastTimesByCivilization = new Dictionary<int, Dictionary<SettlersOfIdlestan.Model.HexGrid.HexCoord, DateTimeOffset>>();

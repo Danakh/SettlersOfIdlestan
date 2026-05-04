@@ -1,8 +1,9 @@
-using System.Collections.Generic;
-using SettlersOfIdlestan.Model.Civilization;
+using SettlersOfIdlestan.Controller;
 using SettlersOfIdlestan.Model.City;
+using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
+using System.Collections.Generic;
 
 namespace SOITests.TestUtilities;
 
@@ -45,7 +46,7 @@ public static class IslandTestFactory
         var city = new City(cityVertex) { CivilizationIndex = civ.Index };
         civ.Cities.Add(city);
 
-        var state = new IslandState(map, new List<Civilization> { civ });
+        var state = new IslandState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
         return state;
     }
 }

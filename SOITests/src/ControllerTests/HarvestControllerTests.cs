@@ -31,7 +31,7 @@ namespace SOITests.ControllerTests
             var map = new IslandMap(tiles);
             var civ = new Civilization { Index = 0 };
             var civs = new List<Civilization> { civ };
-            var state = new IslandState(map, civs);
+            var state = new IslandState(map, civs, AtlasController.InvalidIslandId);
 
             // Place a city adjacent to the wood tile and add a Sawmill (produces wood)
             var vertex = Vertex.Create(a, b, c);

@@ -33,5 +33,11 @@ namespace SettlersOfIdlestan.Controller
         {
             return 1;
         }
+
+        public int GetNextIslandID(MainGameState gameState)
+        {
+            IslandState? state = gameState.CurrentIslandState;
+            return state?.IslandID + 1 ?? GetFirstIslandID();
+        }
     }
 }

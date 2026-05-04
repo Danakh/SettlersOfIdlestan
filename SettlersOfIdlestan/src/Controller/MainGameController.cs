@@ -114,7 +114,7 @@ namespace SettlersOfIdlestan.Controller
             var map = generator.GenerateIsland(parameters.TileData, civs);
             if (map is null) return null;
 
-            var islandState = new IslandState(map, civs);
+            var islandState = new IslandState(map, civs, parameters.IslandID);
             var prestigeState = new PrestigeState(islandState);
             var godState = new GodState(prestigeState);
 
