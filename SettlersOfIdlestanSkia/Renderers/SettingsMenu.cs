@@ -345,15 +345,15 @@ public class SettingsMenu
         }
     }
 
-    private void SaveGame()
+    private async void SaveGame()
     {
         var json = _gameController.ExportMainState();
-        _fileSystemService.SaveText("savegame.json", json);
+        await _fileSystemService.SaveText(json);
     }
 
-    private void LoadGame()
+    private async void LoadGame()
     {
-        var json = _fileSystemService.LoadText("savegame.json");
+        var json = await _fileSystemService.LoadText();
         if (!string.IsNullOrEmpty(json))
         {
             _gameController.ImportMainState(json);

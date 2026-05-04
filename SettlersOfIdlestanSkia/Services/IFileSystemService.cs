@@ -5,14 +5,16 @@ namespace SettlersOfIdlestanSkia.Services
     /// </summary>
     public interface IFileSystemService
     {
+        static protected string DefaultSaveName = "idlestan.save";
+
         /// <summary>
         /// Save text content to a file.
         /// </summary>
-        void SaveText(string fileName, string content);
+        Task SaveText(string content);
 
         /// <summary>
         /// Load text content from a file. Returns null if file does not exist or error.
         /// </summary>
-        string? LoadText(string fileName);
+        Task<string?> LoadText();
     }
 }
