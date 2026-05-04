@@ -19,16 +19,11 @@ public partial class MainPage : ContentPage
 	protected override void OnAppearing()
 	{
 		base.OnAppearing();
-
 		try
 		{
 			_runtime = new SkiaGameRuntime();
 			_runtime.Initialize(new DesktopFileSystemService());
-
 			StateLabel.Text = "Prêt";
-
-			// Démarre la boucle de "tick" + invalide le canvas.
-			// Le rendu exact est fait dans OnCanvasPaintSurface.
 			MainThread.BeginInvokeOnMainThread(() => Dispatcher.StartTimer(TimeSpan.FromMilliseconds(16), RenderFrame));
 		}
 		catch (Exception ex)

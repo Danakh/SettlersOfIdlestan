@@ -29,6 +29,7 @@ public sealed class SkiaGameRuntime : IDisposable
     private HarvestService? _harvestService;
     private ConstructionInteractionService? _constructionInteractionService;
     private ILocalizationService? _localizationService;
+    private IFileSystemService? _fileSystemService;
 
     private bool _isDisposed;
     private bool _isGameInitialized;
@@ -42,6 +43,9 @@ public sealed class SkiaGameRuntime : IDisposable
 
     private RuntimeDebugStats? _pendingDebugStats;
 
+    private double _autoSaveTimer = 0;
+    private const double AutoSaveInterval = 5.0; // 5 seconds
+
     public void Initialize(IFileSystemService fileSystemService)
     {
         lock (_sync)
@@ -52,51 +56,61 @@ public sealed class SkiaGameRuntime : IDisposable
             if (_isGameInitialized)
                 return;
 
-            _resourceManager = new ResourceManager();
-            _inputService = new InputHandlingService();
-            _renderService = new RenderService();
-            _gameControllerService = new GameControllerService();
-            _cameraService = new CameraService();
-            _harvestService = new HarvestService(_gameControllerService);
-            _localizationService = new LocalizationService();
-
-            var gameState = _gameControllerService.InitializeNewGame();
-            if (gameState == null)
-                throw new InvalidOperationException("Impossible de créer le jeu.");
-
-            // Enregistrement des renderers (back to front)
-            IslandMainRenderer islandMainRenderer;
-            _constructionInteractionService = new ConstructionInteractionService(
-                _gameControllerService,
-                _harvestService,
-                _inputService,
-                _cameraService,
-                _gameControllerService.CityBuildingService);
-            islandMainRenderer = new IslandMainRenderer(_constructionInteractionService);
-            _constructionInteractionService.AttachRenderer(islandMainRenderer);
-            _renderService.RegisterRenderer(islandMainRenderer);
-
-            // Connecte les événements de récolte au système de particules
-            ConnectHarvestEventsToParticles(islandMainRenderer);
-
-            // Ajout du panneau latéral des bâtiments sélectionnés
-            var selectedCityPanelRenderer = new SelectedCityPanelRenderer(_localizationService, _gameControllerService.CityBuildingService, _inputService);
-
-            _renderService.RegisterRenderer(selectedCityPanelRenderer);
-
-            // Crée le menu avant le renderer et le passe en paramètre
-            var aboutRenderer = new AboutRenderer(_inputService, _localizationService);
-            var settingsMenu = new SettingsMenu(_gameControllerService.MainGameController, _inputService, _localizationService, aboutRenderer, fileSystemService);
-            _renderService.RegisterRenderer(new PlayerResourcesOverlayRenderer(_inputService, settingsMenu, _resourceManager));
-            _renderService.RegisterRenderer(new DebugOverlayRenderer(_inputService, _cameraService, islandMainRenderer, _localizationService));
-            _renderService.RegisterRenderer(aboutRenderer);
-
-            _isGameInitialized = true;
-
-            _tickStopwatch.Restart();
-            _fpsStopwatch.Restart();
-            _frameCount = 0;
+            _fileSystemService = fileSystemService;
         }
+
+        _resourceManager = new ResourceManager();
+        _inputService = new InputHandlingService();
+        _renderService = new RenderService();
+        _cameraService = new CameraService();
+        _localizationService = new LocalizationService();
+
+        // Tentative de chargement auto-save
+        var autoJson = fileSystemService.LoadAuto().Result;
+        if (!string.IsNullOrEmpty(autoJson))
+        {
+            _gameControllerService = new GameControllerService();
+            _gameControllerService.MainGameController.ImportMainState(autoJson);
+        }
+        else
+        {
+            _gameControllerService = new GameControllerService();
+            _gameControllerService.InitializeNewGame();
+        }
+        _harvestService = new HarvestService(_gameControllerService);
+
+        // Enregistrement des renderers (back to front)
+        IslandMainRenderer islandMainRenderer;
+        _constructionInteractionService = new ConstructionInteractionService(
+            _gameControllerService,
+            _harvestService,
+            _inputService,
+            _cameraService,
+            _gameControllerService.CityBuildingService);
+        islandMainRenderer = new IslandMainRenderer(_constructionInteractionService);
+        _constructionInteractionService.AttachRenderer(islandMainRenderer);
+        _renderService.RegisterRenderer(islandMainRenderer);
+
+        // Connecte les événements de récolte au système de particules
+        ConnectHarvestEventsToParticles(islandMainRenderer);
+
+        // Ajout du panneau latéral des bâtiments sélectionnés
+        var selectedCityPanelRenderer = new SelectedCityPanelRenderer(_localizationService, _gameControllerService.CityBuildingService, _inputService);
+
+        _renderService.RegisterRenderer(selectedCityPanelRenderer);
+
+        // Crée le menu avant le renderer et le passe en paramètre
+        var aboutRenderer = new AboutRenderer(_inputService, _localizationService);
+        var settingsMenu = new SettingsMenu(_gameControllerService.MainGameController, _inputService, _localizationService, aboutRenderer, fileSystemService);
+        _renderService.RegisterRenderer(new PlayerResourcesOverlayRenderer(_inputService, settingsMenu, _resourceManager));
+        _renderService.RegisterRenderer(new DebugOverlayRenderer(_inputService, _cameraService, islandMainRenderer, _localizationService));
+        _renderService.RegisterRenderer(aboutRenderer);
+
+        _isGameInitialized = true;
+
+        _tickStopwatch.Restart();
+        _fpsStopwatch.Restart();
+        _frameCount = 0;
     }
 
     public void EnsureCanvasInitialized(SKSize canvasSize)
@@ -148,6 +162,17 @@ public sealed class SkiaGameRuntime : IDisposable
             _gameControllerService.Update(deltaTime);
 
             _frameCount++;
+
+            _autoSaveTimer += deltaTime;
+            if (_autoSaveTimer >= AutoSaveInterval)
+            {
+                _autoSaveTimer = 0;
+                if (_fileSystemService != null && _gameControllerService.MainGameController.CurrentMainState != null)
+                {
+                    var json = _gameControllerService.MainGameController.ExportMainState();
+                    _fileSystemService.SaveAuto(json);
+                }
+            }
 
             var fpsElapsed = _fpsStopwatch.Elapsed.TotalSeconds;
             if (fpsElapsed >= 0.5)

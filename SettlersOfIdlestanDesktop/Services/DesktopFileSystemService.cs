@@ -11,29 +11,46 @@ namespace SettlersOfIdlestanDesktop.Services;
 
 public class DesktopFileSystemService : IFileSystemService
 {
-    public async Task SaveText(string content)
+    private static string GetSavesDirectory()
+    {
+        var exeDir = AppContext.BaseDirectory;
+        var savesDir = Path.Combine(exeDir, "saves");
+        if (!Directory.Exists(savesDir))
+            Directory.CreateDirectory(savesDir);
+        return savesDir;
+    }
+
+    private static string GetAutoSavePath() => Path.Combine(GetSavesDirectory(), "autosave.json");
+
+    public async Task SaveText(string fileName, string content)
     {
 #if WINDOWS
-        var picker = new FileSavePicker();
         var hwnd = ((MauiWinUIWindow)App.Current.Windows[0].Handler.PlatformView).WindowHandle;
+        var picker = new FileSavePicker();
         InitializeWithWindow.Initialize(picker, hwnd);
-        picker.SuggestedStartLocation = PickerLocationId.DocumentsLibrary;
         picker.FileTypeChoices.Add("Fichier JSON", new List<string> { ".json" });
-        picker.SuggestedFileName = IFileSystemService.DefaultSaveName;
+        picker.SuggestedFileName = fileName;
+        picker.DefaultFileExtension = ".json";
+        picker.SettingsIdentifier = "SettlersOfIdlestanSave";
+        try
+        {
+            picker.SuggestedSaveFile = await StorageFile.GetFileFromPathAsync(Path.Combine(GetSavesDirectory(), fileName));
+        }
+        catch {}
         StorageFile file = await picker.PickSaveFileAsync();
         if (file != null)
         {
             await FileIO.WriteTextAsync(file, content);
         }
 #else
-        // Fallback: save in app data directory
-        var path = Path.Combine(FileSystem.Current.AppDataDirectory, IFileSystemService.DefaultSaveName);
+        var path = Path.Combine(GetSavesDirectory(), fileName);
         File.WriteAllText(path, content);
 #endif
     }
 
-    public async Task<string?> LoadText()
+    public async Task<string?> LoadText(string fileName)
     {
+        var savesDir = GetSavesDirectory();
         var options = new PickOptions
         {
             PickerTitle = "Charger une sauvegarde",
@@ -41,7 +58,6 @@ public class DesktopFileSystemService : IFileSystemService
             {
                 { DevicePlatform.WinUI, new[] { ".json" } },
                 { DevicePlatform.MacCatalyst, new[] { ".json" } },
-                // Linux n'est pas supporté par DevicePlatform
                 { DevicePlatform.Android, new[] { "application/json" } },
                 { DevicePlatform.iOS, new[] { "public.json" } },
             })
@@ -51,6 +67,20 @@ public class DesktopFileSystemService : IFileSystemService
         {
             return File.ReadAllText(result.FullPath);
         }
+        return null;
+    }
+
+    public async Task SaveAuto(string content)
+    {
+        var path = GetAutoSavePath();
+        File.WriteAllText(path, content);
+    }
+
+    public async Task<string?> LoadAuto()
+    {
+        var path = GetAutoSavePath();
+        if (File.Exists(path))
+            return File.ReadAllText(path);
         return null;
     }
 }

@@ -10,11 +10,21 @@ namespace SettlersOfIdlestanSkia.Services
         /// <summary>
         /// Save text content to a file.
         /// </summary>
-        Task SaveText(string content);
+        Task SaveText(string fileName, string content);
 
         /// <summary>
         /// Load text content from a file. Returns null if file does not exist or error.
         /// </summary>
-        Task<string?> LoadText();
+        Task<string?> LoadText(string fileName);
+
+        /// <summary>
+        /// Save the game to the auto-save file.
+        /// </summary>
+        Task SaveAuto(string content);
+
+        /// <summary>
+        /// Load the game from the auto-save file. Returns null if not found.
+        /// </summary>
+        Task<string?> LoadAuto();
     }
 }
