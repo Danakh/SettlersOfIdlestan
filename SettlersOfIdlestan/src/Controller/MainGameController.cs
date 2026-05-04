@@ -138,12 +138,15 @@ namespace SettlersOfIdlestan.Controller
 
             var islandState = CurrentMainState.CurrentIslandState;
 
-            // Initialize controllers to operate on the real island state and clock
-            RoadController.Initialize(islandState);
-            HarvestController.Initialize(islandState, Clock);
-            TradeController.Initialize(islandState);
-            BuildingController.Initialize(islandState);
-            CityBuilderController.Initialize(islandState);
+            if (islandState != null)
+            {
+                // Initialize controllers to operate on the real island state and clock
+                RoadController.Initialize(islandState);
+                HarvestController.Initialize(islandState, Clock);
+                TradeController.Initialize(islandState);
+                BuildingController.Initialize(islandState);
+                CityBuilderController.Initialize(islandState);
+            }
         }
     }
 }

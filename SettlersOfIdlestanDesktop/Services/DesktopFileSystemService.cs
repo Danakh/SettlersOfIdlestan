@@ -25,22 +25,26 @@ public class DesktopFileSystemService : IFileSystemService
     public async Task SaveText(string fileName, string content)
     {
 #if WINDOWS
-        var hwnd = ((MauiWinUIWindow)App.Current.Windows[0].Handler.PlatformView).WindowHandle;
-        var picker = new FileSavePicker();
-        InitializeWithWindow.Initialize(picker, hwnd);
-        picker.FileTypeChoices.Add("Fichier JSON", new List<string> { ".json" });
-        picker.SuggestedFileName = fileName;
-        picker.DefaultFileExtension = ".json";
-        picker.SettingsIdentifier = "SettlersOfIdlestanSave";
-        try
+        var window = (MauiWinUIWindow?)App.Current?.Windows[0].Handler.PlatformView;
+        if (window != null)
         {
-            picker.SuggestedSaveFile = await StorageFile.GetFileFromPathAsync(Path.Combine(GetSavesDirectory(), fileName));
-        }
-        catch {}
-        StorageFile file = await picker.PickSaveFileAsync();
-        if (file != null)
-        {
-            await FileIO.WriteTextAsync(file, content);
+            nint hwnd = window.WindowHandle;
+            var picker = new FileSavePicker();
+            InitializeWithWindow.Initialize(picker, hwnd);
+            picker.FileTypeChoices.Add("Fichier JSON", new List<string> { ".json" });
+            picker.SuggestedFileName = fileName;
+            picker.DefaultFileExtension = ".json";
+            picker.SettingsIdentifier = "SettlersOfIdlestanSave";
+            try
+            {
+                picker.SuggestedSaveFile = await StorageFile.GetFileFromPathAsync(Path.Combine(GetSavesDirectory(), fileName));
+            }
+            catch {}
+            StorageFile file = await picker.PickSaveFileAsync();
+            if (file != null)
+            {
+                await FileIO.WriteTextAsync(file, content);
+            }
         }
 #else
         var path = Path.Combine(GetSavesDirectory(), fileName);

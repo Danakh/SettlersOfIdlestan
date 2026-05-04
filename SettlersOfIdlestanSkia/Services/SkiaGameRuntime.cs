@@ -279,7 +279,7 @@ public sealed class SkiaGameRuntime : IDisposable
 
             // Trouve la ville la plus proche du joueur pour déterminer la destination
             var playerCities = gameState.CurrentIslandState.GetAllCities()
-                .Where(c => c.CivilizationIndex == _gameControllerService.PlayerCivilization?.Index)
+                .Where(c => c.CivilizationIndex == _gameControllerService!.PlayerCivilization?.Index)
                 .ToList();
 
             if (playerCities.Count == 0)

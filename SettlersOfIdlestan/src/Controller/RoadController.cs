@@ -236,6 +236,8 @@ namespace SettlersOfIdlestan.Controller
 
         private bool IsEdgeOnLand(Edge edge)
         {
+            if (_state == null) throw new InvalidOperationException("IslandState has not been initialized.");
+
             var mapTiles = _state.Map.Tiles;
             bool hex1IsWaterOrAbsent = !mapTiles.TryGetValue(edge.Hex1, out var tile1) || tile1.TerrainType == TerrainType.Water;
             bool hex2IsWaterOrAbsent = !mapTiles.TryGetValue(edge.Hex2, out var tile2) || tile2.TerrainType == TerrainType.Water;

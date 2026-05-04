@@ -11,10 +11,10 @@ namespace SettlersOfIdlestanSkia.Renderers;
 public class AboutRenderer : IGameRenderer
 {
     private bool _isVisible = false;
-    private SKPaint _backgroundPaint;
-    private SKPaint _borderPaint;
-    private SKPaint _textPaint;
-    private SKFont _textFont;
+    private readonly SKPaint _backgroundPaint;
+    private readonly SKPaint _borderPaint;
+    private readonly SKPaint _textPaint;
+    private readonly SKFont _textFont;
     private SKSize _canvasSize;
     private readonly InputHandlingService _inputService;
     private readonly ILocalizationService _localization;
@@ -105,9 +105,9 @@ public class AboutRenderer : IGameRenderer
     public void Dispose()
     {
         _inputService.PointerPressed -= OnPointerPressed;
-        _backgroundPaint?.Dispose();
-        _borderPaint?.Dispose();
-        _textPaint?.Dispose();
-        _textFont?.Dispose();
+        _backgroundPaint.Dispose();
+        _borderPaint.Dispose();
+        _textPaint.Dispose();
+        _textFont.Dispose();
     }
 }
