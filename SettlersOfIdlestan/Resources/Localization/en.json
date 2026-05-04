@@ -5,6 +5,7 @@
   "menu_separator_debug": "──────── Debug ────────",
   "menu_toggle_debug_mode": "Toggle Debug Mode",
   "menu_add_resources": "Add 100 Resources",
+  "new_game": "New Game",
   "menu_save_game": "Save Game",
   "menu_load_game": "Load Game",
   "debug_mouse_screen": "Screen Mouse",

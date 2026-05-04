@@ -1,8 +1,9 @@
-using SkiaSharp;
-using SettlersOfIdlestanSkia.Services;
 using SettlersOfIdlestan.Controller;
+using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Services.Localization;
 using SettlersOfIdlestanSkia.Renderers; // Ajout pour AboutRenderer
+using SettlersOfIdlestanSkia.Services;
+using SkiaSharp;
 
 namespace SettlersOfIdlestanSkia.Renderers;
 
@@ -100,6 +101,11 @@ public class SettingsMenu
         });
 
         _menuItems.Add(new MenuItem { IsSeparator = true });
+        _menuItems.Add(new MenuItem
+        {
+            LabelKey = "new_game",
+            Action = StartNewGame
+        });
         _menuItems.Add(new MenuItem
         {
             LabelKey = "menu_save_game",
@@ -344,6 +350,23 @@ public class SettingsMenu
             }
         }
     }
+
+    private void StartNewGame()
+    {
+        // Configuration de l'île
+        var tileData = new List<(TerrainType terrainType, int tileCount)>
+        {
+            (TerrainType.Forest, 4),
+            (TerrainType.Hill, 4),
+            (TerrainType.Pasture, 4),
+            (TerrainType.Field, 4),
+            (TerrainType.Mountain, 3),
+        };
+
+        // Crée un nouveau jeu via le controller
+        _gameController.CreateNewGame(tileData, civilizationCount: 1);
+    }
+
 
     private async void SaveGame()
     {

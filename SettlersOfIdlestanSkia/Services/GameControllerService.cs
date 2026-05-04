@@ -40,7 +40,7 @@ public class GameControllerService
     /// Initialise un nouveau jeu avec une île générée.
     /// Délègue à MainGameController pour respecter l'architecture.
     /// </summary>
-    public MainGameState? InitializeNewGame()
+    public void InitializeNewGame()
     {
         // Configuration de l'île
         var tileData = new List<(TerrainType terrainType, int tileCount)>
@@ -53,14 +53,7 @@ public class GameControllerService
         };
 
         // Crée un nouveau jeu via le controller
-        var gameState = _controller.CreateNewGame(tileData, civilizationCount: 1);
-
-        if (gameState != null)
-        {
-            gameState.Clock.Start();
-        }
-
-        return gameState;
+        _controller.CreateNewGame(tileData, civilizationCount: 1);
     }
 
     /// <summary>

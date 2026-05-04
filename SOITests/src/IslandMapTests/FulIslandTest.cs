@@ -34,9 +34,6 @@ namespace SOITests.src.IslandMapTests
             var civ = controller.CurrentMainState?.CurrentIslandState?.Civilizations[0];
             Assert.NotNull(civ);
 
-            // Start the game clock so harvest cooldowns progress
-            controller.Clock?.Start();
-
             var autoplayer = new CivilizationAutoplayer(civ, controller.CurrentMainState!.CurrentIslandState!.Map, controller);
 
             Dictionary<Resource, int> requiredResources = new Dictionary<Resource, int>(); // No specific resource requirements for grinding

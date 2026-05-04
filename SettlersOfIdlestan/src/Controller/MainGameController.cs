@@ -116,11 +116,10 @@ namespace SettlersOfIdlestan.Controller
             var islandState = new IslandState(map, civs);
             var prestigeState = new PrestigeState(islandState);
             var godState = new GodState(prestigeState);
-            var clock = mainState.Clock;
 
             // populate the main state with the created sub-states
             mainState.GodState = godState;
-            mainState.Clock = clock;
+            mainState.Clock.Start();
 
             SetGame(mainState);
             return mainState;
