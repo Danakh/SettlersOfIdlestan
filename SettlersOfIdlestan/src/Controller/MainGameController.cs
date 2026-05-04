@@ -21,6 +21,7 @@ namespace SettlersOfIdlestan.Controller
         public GameClock? Clock { get; private set; }
         // Holds the currently loaded main game state when created or imported
         public SettlersOfIdlestan.Model.Game.MainGameState? CurrentMainState { get; private set; }
+        public AtlasController AtlasController { get; private set; }
 
         /// <summary>
         /// Gets the player's civilization (always at index 0).
@@ -36,6 +37,7 @@ namespace SettlersOfIdlestan.Controller
             TradeController = new TradeController();
             BuildingController = new BuildingController();
             CityBuilderController = new CityBuilderController();
+            AtlasController = new AtlasController();
         }
 
         /// <summary>
@@ -93,14 +95,13 @@ namespace SettlersOfIdlestan.Controller
         /// Creates a new MainGameState by generating a new island using the island generator.
         /// Returns null if island generation fails.
         /// </summary>
-        /// <param name="tileData">Tile data used by the island generator (terrain type and counts).</param>
-        /// <param name="civilizationCount">Number of civilizations to create (player is index 0).</param>
-        public MainGameState? CreateNewGame(IEnumerable<(TerrainType terrainType, int tileCount)> tileData, int civilizationCount)
+        public MainGameState? CreateNewGame(IslandParameters parameters)
         {
-            if (civilizationCount <= 0) throw new ArgumentException("civilizationCount must be >= 1", nameof(civilizationCount));
+            if (parameters == null) throw new ArgumentNullException(nameof(parameters));
+            if (parameters.CivilizationCount <= 0) throw new ArgumentException("civilizationCount must be >= 1", nameof(parameters.CivilizationCount));
 
             var civs = new List<Civilization>();
-            for (int i = 0; i < civilizationCount; i++)
+            for (int i = 0; i < parameters.CivilizationCount; i++)
             {
                 var civ = new Civilization { Index = i };
                 civs.Add(civ);
@@ -110,7 +111,7 @@ namespace SettlersOfIdlestan.Controller
 
             // Use a generator wired with the main state's PRNG to ensure reproducible maps
             var generator = new Generator.IslandMapGenerator(mainState.PRNG);
-            var map = generator.GenerateIsland(tileData, civs);
+            var map = generator.GenerateIsland(parameters.TileData, civs);
             if (map is null) return null;
 
             var islandState = new IslandState(map, civs);
@@ -125,6 +126,12 @@ namespace SettlersOfIdlestan.Controller
             return mainState;
         }
 
+        public MainGameState? CreateNewGame()
+        {
+            int islandId = AtlasController.GetFirstIslandID();
+            var parameters = AtlasController.GetIslandParameters(islandId);
+            return CreateNewGame(parameters);
+        }
 
         /// <summary>
         /// Uses a already created game.

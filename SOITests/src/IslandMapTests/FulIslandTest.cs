@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using SettlersOfIdlestan.Model.Buildings;
+using SettlersOfIdlestan.Model.Game;
 
 namespace SOITests.src.IslandMapTests
 {
@@ -27,7 +28,8 @@ namespace SOITests.src.IslandMapTests
                 (TerrainType.Mountain, 3),
             };
 
-            var mainState = controller.CreateNewGame(tileData, civilizationCount: 1);
+            var parameters = new IslandParameters(AtlasController.InvalidIslandId, tileData, 1);
+            var mainState = controller.CreateNewGame(parameters);
             Assert.NotNull(mainState);
 
             // Ensure we can grind resources: repeatedly AutoGrind until civ has at least 5 wood and 5 brick

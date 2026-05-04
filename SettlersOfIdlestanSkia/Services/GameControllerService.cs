@@ -42,18 +42,7 @@ public class GameControllerService
     /// </summary>
     public void InitializeNewGame()
     {
-        // Configuration de l'île
-        var tileData = new List<(TerrainType terrainType, int tileCount)>
-        {
-            (TerrainType.Forest, 4),
-            (TerrainType.Hill, 4),
-            (TerrainType.Pasture, 4),
-            (TerrainType.Field, 4),
-            (TerrainType.Mountain, 3),
-        };
-
-        // Crée un nouveau jeu via le controller
-        _controller.CreateNewGame(tileData, civilizationCount: 1);
+        _controller.CreateNewGame();
     }
 
     /// <summary>
