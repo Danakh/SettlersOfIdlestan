@@ -277,24 +277,8 @@ public sealed class SkiaGameRuntime : IDisposable
             var (hexX, hexY) = islandMainRenderer.AxialToIsland(args.HexCoord.Q, args.HexCoord.R);
             var hexCenter = new SKPoint(hexX, hexY);
 
-            // Trouve la ville la plus proche du joueur pour déterminer la destination
-            var playerCities = gameState.CurrentIslandState.GetAllCities()
-                .Where(c => c.CivilizationIndex == _gameControllerService!.PlayerCivilization?.Index)
-                .ToList();
-
-            if (playerCities.Count == 0)
-                return;
-
-            // Utilise la ville la plus proche
-            var nearestCity = playerCities.OrderBy(c =>
-            {
-                var cityPos = islandMainRenderer.VertexToIslandPoint(c.Position);
-                var dx = cityPos.X - hexCenter.X;
-                var dy = cityPos.Y - hexCenter.Y;
-                return dx * dx + dy * dy;
-            }).First();
-
-            var cityCenter = islandMainRenderer.VertexToIslandPoint(nearestCity.Position);
+            // Utilise la position de la ville fournie par l'événement
+            SKPoint cityCenter = islandMainRenderer.VertexToIslandPoint(args.CityPosition);
 
             // Détermine la couleur basée sur le type de ressource récolté
             var resourceColors = new Dictionary<Resource, SKColor>

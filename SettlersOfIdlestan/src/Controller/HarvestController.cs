@@ -32,12 +32,18 @@ namespace SettlersOfIdlestan.Controller
         /// </summary>
         public bool IsAutomatic { get; set; }
 
-        public HarvestCompletedEventArgs(int civIndex, HexCoord hex, Resource resource, bool isAutomatic = false)
+        /// <summary>
+        /// Position du vertex de la ville qui a récolté.
+        /// </summary>
+        public Vertex CityPosition { get; set; }
+
+        public HarvestCompletedEventArgs(int civIndex, HexCoord hex, Resource resource, Vertex cityPosition, bool isAutomatic = false)
         {
             CivilizationIndex = civIndex;
             HexCoord = hex;
             Resource = resource;
             IsAutomatic = isAutomatic;
+            CityPosition = cityPosition;
         }
     }
 
@@ -143,7 +149,7 @@ namespace SettlersOfIdlestan.Controller
                                 civ.AddResource(resource, 1);
                                 autoMap[hex] = now;
                                 // Déclenche l'événement de récolte
-                                OnHarvestCompleted?.Invoke(this, new HarvestCompletedEventArgs(civ.Index, hex, resource, isAutomatic: true));
+                                OnHarvestCompleted?.Invoke(this, new HarvestCompletedEventArgs(civ.Index, hex, resource, city.Position, isAutomatic: true));
                                 // only harvest one hex per production entry per invocation
                                 break;
                             }
@@ -197,7 +203,7 @@ namespace SettlersOfIdlestan.Controller
             perHex[hex] = now;
 
             // Déclenche l'événement de récolte
-            OnHarvestCompleted?.Invoke(this, new HarvestCompletedEventArgs(civilizationIndex, hex, resource.Value, isAutomatic: false));
+            OnHarvestCompleted?.Invoke(this, new HarvestCompletedEventArgs(civilizationIndex, hex, resource.Value, city.Position, isAutomatic: false));
 
             return true;
         }
