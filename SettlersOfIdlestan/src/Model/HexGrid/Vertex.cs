@@ -15,7 +15,7 @@ namespace SettlersOfIdlestan.Model.HexGrid;
 /// garantir l'unicité.
 /// </summary>
 [Serializable]
-[System.Text.Json.Serialization.JsonConverter(typeof(SettlersOfIdlestan.Model.HexGrid.VertexJsonConverter))]
+[System.Text.Json.Serialization.JsonConverter(typeof(VertexJsonConverter))]
 public class Vertex
 {
     private Vertex(HexCoord hex1, HexCoord hex2, HexCoord hex3)

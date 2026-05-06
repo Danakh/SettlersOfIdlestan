@@ -7,16 +7,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="SettlersOfIdlestan\**" />
-    <EmbeddedResource Remove="SettlersOfIdlestan\**" />
-    <None Remove="SettlersOfIdlestan\**" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Compile Include="SettlersOfIdlestan\src\Model\HexGrid\VertexJsonConverter.cs" />
-  </ItemGroup>
-
-  <ItemGroup>
     <EmbeddedResource Include="Resources\Localization\*.json" />
   </ItemGroup>
 

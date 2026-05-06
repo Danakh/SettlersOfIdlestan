@@ -65,4 +65,17 @@ public static class SecondaryHexDirectionUtils
             _ => throw new ArgumentOutOfRangeException(nameof(direction)),
         };
     }
+
+    /// <summary>
+    /// Dictionnaire des paires de directions principales pour chaque direction secondaire.
+    /// </summary>
+    public static readonly Dictionary<SecondaryHexDirection, (HexDirection, HexDirection)> SecondaryToMainDirectionPairs = new()
+    {
+        { SecondaryHexDirection.N, (HexDirection.NW, HexDirection.NE) },
+        { SecondaryHexDirection.EN, (HexDirection.NE, HexDirection.E) },
+        { SecondaryHexDirection.ES, (HexDirection.E, HexDirection.SE) },
+        { SecondaryHexDirection.S, (HexDirection.SE, HexDirection.SW) },
+        { SecondaryHexDirection.WS, (HexDirection.SW, HexDirection.W) },
+        { SecondaryHexDirection.WN, (HexDirection.W, HexDirection.NW) },
+    };
 }

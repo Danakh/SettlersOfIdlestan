@@ -67,7 +67,7 @@ public class HexCoord
     /// </summary>
     public Vertex Vertex(SecondaryHexDirection direction)
     {
-        var (dir1, dir2) = SecondaryHexDirectionMappings.SecondaryToMainDirectionPairs[direction];
+        var (dir1, dir2) = SecondaryHexDirectionUtils.SecondaryToMainDirectionPairs[direction];
         var neighbor1 = Neighbor(dir1);
         var neighbor2 = Neighbor(dir2);
         return HexGrid.Vertex.Create(this, neighbor1, neighbor2);
@@ -90,7 +90,7 @@ public class HexCoord
     /// </summary>
     public Edge OutgoingEdge(SecondaryHexDirection direction)
     {
-        var mainDirs = SecondaryHexDirectionMappings.SecondaryToMainDirectionPairs[direction];
+        var mainDirs = SecondaryHexDirectionUtils.SecondaryToMainDirectionPairs[direction];
         var neighbor0 = Neighbor(mainDirs.Item1);
         var neighbor1 = Neighbor(mainDirs.Item2);
         return HexGrid.Edge.Create(neighbor0, neighbor1);
