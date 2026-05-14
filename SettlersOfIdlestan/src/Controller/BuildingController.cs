@@ -2,10 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using SettlersOfIdlestan.Model.Buildings;
-using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.IslandMap;
-using SettlersOfIdlestan.Model.City;
 using SettlersOfIdlestan.Model.HexGrid;
+using SettlersOfIdlestan.Model;
 
 namespace SettlersOfIdlestan.Controller
 {
@@ -86,7 +85,7 @@ namespace SettlersOfIdlestan.Controller
 
             var existing = city.Buildings.FirstOrDefault(b => b.Type == type);
 
-            Dictionary<Resource, int> cost;
+            ResourceCost cost;
             Building resultBuilding;
             if (existing == null)
             {

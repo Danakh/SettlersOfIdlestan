@@ -20,7 +20,7 @@ public class Warehouse : Building
     /// Gets the build cost of the warehouse.
     /// </summary>
     /// <returns>A dictionary containing the resources and their quantities required for building.</returns>
-    public override Dictionary<Resource, int> GetBuildCost() => new Dictionary<Resource, int>
+    public override ResourceCost GetBuildCost() => new ResourceCost
     {
         { Resource.Wood, 2 },
         { Resource.Brick, 2 },
@@ -33,7 +33,7 @@ public class Warehouse : Building
     /// </summary>
     /// <param name="level">The current level of the warehouse.</param>
     /// <returns>A dictionary containing the resources and their quantities required for upgrading.</returns>
-    public override Dictionary<Resource, int> GetUpgradeCost(int level) => new Dictionary<Resource, int>
+    public override ResourceCost GetUpgradeCost(int level) => new ResourceCost
     {
         { Resource.Wood, 1 },
         { Resource.Brick, 1 },

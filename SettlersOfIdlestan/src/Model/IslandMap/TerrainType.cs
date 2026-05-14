@@ -32,16 +32,4 @@ public static class TerrainTypeMappings
         { TerrainType.Desert, null },
         { TerrainType.Water, null }
     };
-
-    /// <summary>
-    /// Maps each resource to its corresponding terrain type.
-    /// </summary>
-    public static readonly Dictionary<Resource, TerrainType> ResourceTerrainMap = new()
-    {
-        { Resource.Wood, TerrainType.Forest },
-        { Resource.Brick, TerrainType.Hill },
-        { Resource.Sheep, TerrainType.Pasture },
-        { Resource.Wheat, TerrainType.Field },
-        { Resource.Ore, TerrainType.Mountain }
-    };
 }

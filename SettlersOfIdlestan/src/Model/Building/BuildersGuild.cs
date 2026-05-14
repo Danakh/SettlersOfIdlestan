@@ -16,12 +16,12 @@ public class BuildersGuild : Building
         AvailableAtLevel = 4;
     }
 
-    public override Dictionary<Resource, int> GetBuildCost() => new Dictionary<Resource, int>
+    public override ResourceCost GetBuildCost() => new ResourceCost
     {
         { Resource.Wood, 3 },
         { Resource.Brick, 2 },
         { Resource.Ore, 2 }
     };
 
-    public override Dictionary<Resource, int> GetUpgradeCost(int level) => new();
+    public override ResourceCost GetUpgradeCost(int level) => new ResourceCost();
 }

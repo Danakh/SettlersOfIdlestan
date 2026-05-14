@@ -18,7 +18,7 @@ public class Seaport : Building
         Actions.Add("Prestige");
     }
 
-    public override Dictionary<Resource, int> GetBuildCost() => new Dictionary<Resource, int>
+    public override ResourceCost GetBuildCost() => new ResourceCost
     {
         { Resource.Wood, 1 },
         { Resource.Brick, 1 },
@@ -26,7 +26,7 @@ public class Seaport : Building
         { Resource.Wheat, 1 }
     };
 
-    public override Dictionary<Resource, int> GetUpgradeCost(int level) => new Dictionary<Resource, int>
+    public override ResourceCost GetUpgradeCost(int level) => new ResourceCost
     {
         { Resource.Wood, 1 },
         { Resource.Brick, 1 },

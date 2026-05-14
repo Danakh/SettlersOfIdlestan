@@ -6,6 +6,7 @@ using SettlersOfIdlestan.Model.City;
 using SettlersOfIdlestan.Model.Buildings;
 using System.Collections.Generic;
 using SOITests.TestUtilities;
+using SettlersOfIdlestan.Model;
 
 namespace SOITests.ControllerTests
 {
@@ -57,7 +58,7 @@ namespace SOITests.ControllerTests
 
             var controller = new TradeController(state);
 
-            var required = new Dictionary<Resource, int> {
+            var required = new ResourceCost {
                 { Resource.Brick, 2 },
                 { Resource.Sheep, 1 }
             };
@@ -82,7 +83,7 @@ namespace SOITests.ControllerTests
 
             var controller = new TradeController(state);
 
-            var required = new Dictionary<Resource, int> {
+            var required = new ResourceCost {
                 { Resource.Brick, 1 }
             };
 

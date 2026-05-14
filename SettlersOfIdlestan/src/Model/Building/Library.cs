@@ -16,7 +16,7 @@ public class Library : Building
         AvailableAtLevel = 2;
     }
 
-    public override Dictionary<Resource, int> GetBuildCost() => new Dictionary<Resource, int>
+    public override ResourceCost GetBuildCost() => new ResourceCost
     {
         { Resource.Wood, 3 },
         { Resource.Brick, 2 },
@@ -24,7 +24,7 @@ public class Library : Building
         { Resource.Wheat, 1 }
     };
 
-    public override Dictionary<Resource, int> GetUpgradeCost(int level) => new Dictionary<Resource, int>
+    public override ResourceCost GetUpgradeCost(int level) => new ResourceCost
     {
         { Resource.Wood, 1 },
         { Resource.Brick, 1 },

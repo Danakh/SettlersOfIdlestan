@@ -89,19 +89,19 @@ public class Building
     /// <summary>
     /// Gets the cost of the building.
     /// </summary>
-    public virtual Dictionary<Resource, int> GetBuildCost() => new();
+    public virtual ResourceCost GetBuildCost() => new ResourceCost();
 
     /// <summary>
     /// Gets the upgrade cost of the building for the specified level.
     /// </summary>
     /// <param name="level">The level to upgrade to.</param>
     /// <returns>The upgrade cost.</returns>
-    public virtual Dictionary<Resource, int> GetUpgradeCost(int level) => new();
+    public virtual ResourceCost GetUpgradeCost(int level) => new ResourceCost();
 
     /// <summary>
     /// Gets the production of the building.
     /// </summary>
-    public Dictionary<Resource, int> Production { get; } = new();
+    public ResourceCost Production { get; } = new ResourceCost();
 
     /// <summary>
     /// Gets or sets the maximum level of the building.

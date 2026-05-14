@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using SettlersOfIdlestan.Model;
 using SettlersOfIdlestan.Model.City;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.HexGrid;
@@ -93,19 +94,24 @@ namespace SettlersOfIdlestan.Controller
             if (!buildable.Any(v => v.Equals(vertex)))
                 throw new InvalidOperationException("Vertex not buildable by this civilization");
 
-            const int cost = 10;
-            if (civ.GetResourceQuantity(Model.IslandMap.Resource.Brick) < cost ||
-                civ.GetResourceQuantity(Model.IslandMap.Resource.Wood) < cost ||
-                civ.GetResourceQuantity(Model.IslandMap.Resource.Wheat) < cost ||
-                civ.GetResourceQuantity(Model.IslandMap.Resource.Sheep) < cost)
+            var cost = new ResourceCost
             {
-                throw new InvalidOperationException("Not enough resources to build the city");
+                { Resource.Brick, 10 },
+                { Resource.Wood, 10 },
+                { Resource.Wheat, 10 },
+                { Resource.Sheep, 10 }
+            };
+
+            foreach (var kvp in cost)
+            {
+                if (civ.GetResourceQuantity(kvp.Key) < kvp.Value)
+                    throw new InvalidOperationException("Not enough resources to build the city");
             }
 
-            civ.RemoveResource(Model.IslandMap.Resource.Brick, cost);
-            civ.RemoveResource(Model.IslandMap.Resource.Wood, cost);
-            civ.RemoveResource(Model.IslandMap.Resource.Wheat, cost);
-            civ.RemoveResource(Model.IslandMap.Resource.Sheep, cost);
+            foreach (var kvp in cost)
+            {
+                civ.RemoveResource(kvp.Key, kvp.Value);
+            }
 
             var city = new City(vertex) { CivilizationIndex = civilizationIndex };
             civ.Cities.Add(city);

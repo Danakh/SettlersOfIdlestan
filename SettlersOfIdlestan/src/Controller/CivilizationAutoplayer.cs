@@ -5,6 +5,7 @@ using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.Buildings;
+using SettlersOfIdlestan.Model;
 
 namespace SettlersOfIdlestan.Controller
 {
@@ -119,7 +120,7 @@ namespace SettlersOfIdlestan.Controller
             return false;
         }
 
-        public void TryGrindOnce(Dictionary<Resource, int>? requiredResources)
+        public void TryGrindOnce(ResourceCost? requiredResources)
         {
             // Récolter manuellement tous les hexagones autour des villes de la civilisation.
             var toHarvest = new HashSet<HexCoord>();
@@ -162,7 +163,7 @@ namespace SettlersOfIdlestan.Controller
         /// <summary>
         /// Attempt to perform the grind operation up to 500 times. Between failed attempts advance the main controller's clock when available.
         /// </summary>
-        public void AutoGrind(Dictionary<Resource, int>? requiredResources)
+        public void AutoGrind(ResourceCost? requiredResources)
         {
             const int maxIterations = 500;
             var clock = _mainController?.Clock;
@@ -226,7 +227,7 @@ namespace SettlersOfIdlestan.Controller
                         if (distance != int.MaxValue)
                         {
                             var cost = 2 * (distance * distance);
-                            var required = new Dictionary<Resource, int>
+                            var required = new ResourceCost
                             {
                                 { Resource.Wood, cost },
                                 { Resource.Brick, cost }
@@ -269,7 +270,7 @@ namespace SettlersOfIdlestan.Controller
                 catch (InvalidOperationException)
             {
                 // Not enough resources: attempt grind (harvest + one trade attempt)
-                var required = new Dictionary<Resource, int>
+                var required = new ResourceCost
                 {
                     { Resource.Brick, 10 },
                     { Resource.Wood, 10 },
@@ -329,7 +330,7 @@ namespace SettlersOfIdlestan.Controller
             var target = buildables.FirstOrDefault(b => b.Type == buildingType);
             if (target != null)
             {
-                Dictionary<Resource, int> required;
+                ResourceCost required;
                 if (target.Level <= 1)
                 {
                     required = target.GetBuildCost();

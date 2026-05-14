@@ -4,6 +4,7 @@ using System.Linq;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Buildings;
+using SettlersOfIdlestan.Model;
 
 namespace SettlersOfIdlestan.Controller
 {
@@ -83,7 +84,7 @@ namespace SettlersOfIdlestan.Controller
         /// The target resource is chosen among the required resources as the one with the lowest owned quantity.
         /// If a trade is executed the method returns true, otherwise false.
         /// </summary>
-        public bool TryAutoTradeForPurchase(int civilizationIndex, IDictionary<Resource, int> requiredCosts)
+        public bool TryAutoTradeForPurchase(int civilizationIndex, ResourceCost requiredCosts)
         {
             if (_state == null) throw new InvalidOperationException("IslandState has not been initialized.");
             if (requiredCosts == null) throw new ArgumentNullException(nameof(requiredCosts));
@@ -104,11 +105,8 @@ namespace SettlersOfIdlestan.Controller
             var candidateSources = owned
                 .Where(kv => kv.Value >= TradeRate)
                 .Where(kv => {
-                    if (!requiredCosts.ContainsKey(kv.Key)) return true;
-                    int req;
-                    if (requiredCosts.TryGetValue(kv.Key, out req))
-                        return kv.Value >= (req + TradeRate);
-                    return true;
+                    if (!requiredCosts.Keys.Contains(kv.Key)) return true;
+                    return kv.Value >= (requiredCosts[kv.Key] + TradeRate);
                 })
                 .OrderByDescending(kv => kv.Value)
                 .Select(kv => kv.Key)

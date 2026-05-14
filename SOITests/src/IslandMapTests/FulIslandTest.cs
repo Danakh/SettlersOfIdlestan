@@ -8,6 +8,7 @@ using System.IO;
 using System.Linq;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Game;
+using SettlersOfIdlestan.Model;
 
 namespace SOITests.src.IslandMapTests
 {
@@ -38,7 +39,7 @@ namespace SOITests.src.IslandMapTests
 
             var autoplayer = new CivilizationAutoplayer(civ, controller.CurrentMainState!.CurrentIslandState!.Map, controller);
 
-            Dictionary<Resource, int> requiredResources = new Dictionary<Resource, int>(); // No specific resource requirements for grinding
+            ResourceCost requiredResources = new ResourceCost(); // No specific resource requirements for grinding
             requiredResources.Add(Resource.Wood, 5);
             requiredResources.Add(Resource.Brick, 5);
             autoplayer.AutoGrind(requiredResources);
