@@ -93,4 +93,21 @@ public class Civilization
     {
         return _resources.TryGetValue(resource, out var q) ? q : 0;
     }
+
+    public bool CanPayResourceCost(ResourceCost cost)
+    {
+        foreach (var kvp in cost)
+        {
+            if (GetResourceQuantity(kvp.Key) < kvp.Value)
+                return false;
+        }
+        return true;
+    }
+    public void PayResourceCost(ResourceCost cost)
+    {
+        foreach (var kvp in cost)
+        {
+            RemoveResource(kvp.Key, kvp.Value);
+        }
+    }
 }

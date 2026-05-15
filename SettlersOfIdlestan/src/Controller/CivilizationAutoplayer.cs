@@ -221,19 +221,11 @@ namespace SettlersOfIdlestan.Controller
                     // Determine cost for this road using the Road entry returned by controller
                     var buildableRoads = _roadController.GetBuildableRoads(_civ.Index);
                     var road = buildableRoads.FirstOrDefault(r => r.Position.Equals(edge));
-                            if (road != null)
+                    if (road != null)
                     {
                         var distance = road.DistanceToNearestCity;
-                        if (distance != int.MaxValue)
-                        {
-                            var cost = 2 * (distance * distance);
-                            var required = new ResourceCost
-                            {
-                                { Resource.Wood, cost },
-                                { Resource.Brick, cost }
-                            };
-                            TryGrindOnce(required);
-                        }
+                        var required = _roadController.GetRoadCost(distance);
+                        TryGrindOnce(required);
                     }
                 }
                 catch
@@ -270,13 +262,7 @@ namespace SettlersOfIdlestan.Controller
                 catch (InvalidOperationException)
             {
                 // Not enough resources: attempt grind (harvest + one trade attempt)
-                var required = new ResourceCost
-                {
-                    { Resource.Brick, 10 },
-                    { Resource.Wood, 10 },
-                    { Resource.Wheat, 10 },
-                    { Resource.Sheep, 10 }
-                };
+                var required = _cityBuilderController.NewCityBuildingCost();
                 TryGrindOnce(required);
 
                 return false;
