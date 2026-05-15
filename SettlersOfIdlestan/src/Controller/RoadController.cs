@@ -5,6 +5,7 @@ using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Road;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.HexGrid;
+using SettlersOfIdlestan.Model;
 
 namespace SettlersOfIdlestan.Controller
 {
@@ -131,17 +132,13 @@ namespace SettlersOfIdlestan.Controller
                 throw new InvalidOperationException("Cannot determine distance to a city for this edge");
 
             // cost = 2 * distance^2 for both wood and brick
-            var cost = 2 * (distance * distance);
+            var cost = GetRoadCost(distance);
 
-            var woodCount = civ.GetResourceQuantity(Resource.Wood);
-            var brickCount = civ.GetResourceQuantity(Resource.Brick);
-
-            if (woodCount < cost || brickCount < cost)
-                throw new InvalidOperationException("Not enough resources to build the road");
+            if (!civ.CanPayResourceCost(cost))
+                throw new InvalidOperationException("Civilization cannot afford to build this road");
 
             // consume resources
-            civ.RemoveResource(Resource.Wood, cost);
-            civ.RemoveResource(Resource.Brick, cost);
+            civ.PayResourceCost(cost);
 
             var road = new Road(edge) { CivilizationIndex = civilizationIndex, DistanceToNearestCity = distance };
             civ.Roads.Add(road);
@@ -252,6 +249,17 @@ namespace SettlersOfIdlestan.Controller
                 Edge.Create(hexes[0], hexes[1]),
                 Edge.Create(hexes[0], hexes[2]),
                 Edge.Create(hexes[1], hexes[2])
+            };
+        }
+
+        public ResourceCost GetRoadCost(int distance)
+        {
+            if (distance <= 0) throw new ArgumentException("Distance must be >= 1", nameof(distance));
+            var cost = 2 * (distance * distance);
+            return new ResourceCost
+            {
+                { Resource.Wood, cost },
+                { Resource.Brick, cost }
             };
         }
     }

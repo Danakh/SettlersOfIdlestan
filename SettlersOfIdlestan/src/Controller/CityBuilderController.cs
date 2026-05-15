@@ -94,24 +94,12 @@ namespace SettlersOfIdlestan.Controller
             if (!buildable.Any(v => v.Equals(vertex)))
                 throw new InvalidOperationException("Vertex not buildable by this civilization");
 
-            var cost = new ResourceCost
-            {
-                { Resource.Brick, 10 },
-                { Resource.Wood, 10 },
-                { Resource.Wheat, 10 },
-                { Resource.Sheep, 10 }
-            };
+            var cost = NewCityBuildingCost();
 
-            foreach (var kvp in cost)
-            {
-                if (civ.GetResourceQuantity(kvp.Key) < kvp.Value)
-                    throw new InvalidOperationException("Not enough resources to build the city");
-            }
+            if (!civ.CanPayResourceCost(cost))
+                throw new InvalidOperationException("Not enough resources to build the city");
 
-            foreach (var kvp in cost)
-            {
-                civ.RemoveResource(kvp.Key, kvp.Value);
-            }
+            civ.PayResourceCost(cost);
 
             var city = new City(vertex) { CivilizationIndex = civilizationIndex };
             civ.Cities.Add(city);
@@ -127,6 +115,17 @@ namespace SettlersOfIdlestan.Controller
                 foreach (var y in bh)
                     if (x.Equals(y)) count++;
             return count;
+        }
+
+        public static ResourceCost NewCityBuildingCost()
+        {
+            return new ResourceCost
+            {
+                { Resource.Brick, 10 },
+                { Resource.Wood, 10 },
+                { Resource.Wheat, 10 },
+                { Resource.Sheep, 10 }
+            };
         }
     }
 }
