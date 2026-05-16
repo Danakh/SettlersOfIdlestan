@@ -142,7 +142,6 @@ namespace SettlersOfIdlestan.Controller
                 BuildingType.Sawmill => new Sawmill(),
                 BuildingType.Brickworks => new Brickworks(),
                 BuildingType.Mill => new Mill(),
-                BuildingType.Sheepfold => new Sheepfold(),
                 BuildingType.Mine => new Mine(),
                 BuildingType.Seaport => new Seaport(),
                 BuildingType.Warehouse => new Warehouse(),

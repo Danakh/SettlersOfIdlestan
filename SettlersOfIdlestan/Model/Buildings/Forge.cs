@@ -19,15 +19,15 @@ public class Forge : Building
 
     public override ResourceCost GetBuildCost() => new ResourceCost
     {
-        { Resource.Wood, 2 },
-        { Resource.Brick, 2 },
-        { Resource.Ore, 2 }
+        { Resource.Brick, 5 },
+        { Resource.Stone, 20 },
+        { Resource.Ore, 5 }
     };
 
     public override ResourceCost GetUpgradeCost(int level) => new ResourceCost
     {
-        { Resource.Wood, 1 },
-        { Resource.Brick, 1 },
-        { Resource.Ore, 1 }
+        { Resource.Brick, 5 * (level + 1) },
+        { Resource.Stone, 20 * (level + 1) },
+        { Resource.Ore, 5 * (level + 1) }
     };
 }

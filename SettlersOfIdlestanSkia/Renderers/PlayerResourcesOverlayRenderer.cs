@@ -31,24 +31,7 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
     private const float Padding = 12;
 
     // Couleurs par type de ressource
-    private static readonly Dictionary<Resource, SKColor> ResourceColors = new()
-    {
-        { Resource.Wood, new SKColor(139, 69, 19) },    // Marron
-        { Resource.Brick, new SKColor(210, 105, 30) },  // Orange-marron
-        { Resource.Sheep, new SKColor(255, 192, 203) }, // Rose
-        { Resource.Wheat, new SKColor(255, 215, 0) },   // Or
-        { Resource.Ore, new SKColor(128, 128, 128) }    // Gris
-    };
-
-    // Mapping entre les ressources et les noms des fichiers d'icônes
-    private static readonly Dictionary<Resource, string> ResourceIconFiles = new()
-    {
-        { Resource.Wood, "Resources.icons.wood-pile.svg" },
-        { Resource.Brick, "Resources.icons.brick-pile.svg" },
-        { Resource.Sheep, "Resources.icons.sheep.svg" },
-        { Resource.Wheat, "Resources.icons.wheat.svg" },
-        { Resource.Ore, "Resources.icons.stone-pile.svg" }
-    };
+    private static Dictionary<Resource, SKColor> ResourceColors => IslandMainRenderer.ResourceColors;
 
     public bool Disposed => _disposed;
 
@@ -182,30 +165,6 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
             var textX = x + (size - textWidth) / 2;
             var textY = y + (size + textHeight) / 2 - 2;
             canvas.DrawText(text, textX, textY, _smallFont, _textPaint);
-        }
-
-        // Charge et affiche l'icône à côté du carré
-        if (ResourceIconFiles.TryGetValue(resource, out var iconFileName))
-        {
-            using var paint = new SKPaint
-            {
-                IsAntialias = true,
-                Color = SKColors.White.WithAlpha((byte)(255))
-            };
-            var icon = _resourceManager.LoadImage(iconFileName);
-            SKPicture? pic = icon?.Picture;
-            
-            if (pic != null)
-            {
-                SKRect src = pic.CullRect;
-                float scaleX = size / src.Width;
-                float scaleY = size / src.Height;
-                SKMatrix matrix = SKMatrix.CreateScaleTranslation(scaleX, scaleY, x + size + 4, y);
-                canvas.Save();
-                canvas.SetMatrix(canvas.TotalMatrix.PreConcat(matrix));
-                canvas.DrawPicture(pic, paint);
-                canvas.Restore();
-            }
         }
     }
 

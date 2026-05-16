@@ -18,10 +18,10 @@ public class BuildersGuild : Building
 
     public override ResourceCost GetBuildCost() => new ResourceCost
     {
-        { Resource.Wood, 3 },
-        { Resource.Brick, 2 },
-        { Resource.Ore, 2 }
+        { Resource.Wood, 100 },
+        { Resource.Brick, 50 },
+        { Resource.Stone, 50 }
     };
 
-    public override ResourceCost GetUpgradeCost(int level) => new ResourceCost();
+    public override ResourceCost GetUpgradeCost(int level) => new();
 }

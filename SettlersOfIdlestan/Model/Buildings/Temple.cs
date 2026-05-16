@@ -18,15 +18,15 @@ public class Temple : Building
 
     public override ResourceCost GetBuildCost() => new ResourceCost
     {
-        { Resource.Wood, 2 },
-        { Resource.Brick, 2 },
-        { Resource.Ore, 1 }
+        { Resource.Wood, 40 },
+        { Resource.Brick, 20 },
+        { Resource.Stone, 100 }
     };
 
     public override ResourceCost GetUpgradeCost(int level) => new ResourceCost
     {
-        { Resource.Wood, 1 },
-        { Resource.Brick, 1 },
-        { Resource.Ore, 1 }
+        { Resource.Wood, 40 * (level + 1) },
+        { Resource.Brick, 20 * (level + 1) },
+        { Resource.Stone, 100 * (level + 1) }
     };
 }

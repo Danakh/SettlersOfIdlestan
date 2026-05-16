@@ -20,14 +20,14 @@ public class Sawmill : Building
 
     public override ResourceCost GetBuildCost() => new ResourceCost
     {
-        { Resource.Wood, 1 },
-        { Resource.Brick, 1 }
+        { Resource.Wood, 5 },
+        { Resource.Brick, 10 }
     };
 
     public override ResourceCost GetUpgradeCost(int level) => new ResourceCost
     {
-        { Resource.Wood, 1 },
-        { Resource.Brick, 1 }
+        { Resource.Wood, 5 * (level + 1) },
+        { Resource.Brick, 10 * (level + 1) }
     };
 
     public override bool IsBuildingAvailableForCity(IslandMap.IslandMap map, City city)

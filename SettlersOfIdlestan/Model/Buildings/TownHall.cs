@@ -18,16 +18,28 @@ public class TownHall : Building
 
     public override ResourceCost GetBuildCost() => new ResourceCost
     {
+        { Resource.Food, 2 },
         { Resource.Wood, 2 },
         { Resource.Brick, 2 }
     };
 
-    public override ResourceCost GetUpgradeCost(int level) => new ResourceCost
+    public override ResourceCost GetUpgradeCost(int level)
     {
-        { Resource.Wood, 1 },
-        { Resource.Brick, 1 },
-        { Resource.Sheep, 1 },
-        { Resource.Wheat, 1 },
-        { Resource.Ore, 1 }
-    };
+        var result = new ResourceCost
+        {
+            { Resource.Food, 2 * (level^2 + 1) },
+            { Resource.Wood, 2 * (level^2 + 1) },
+            { Resource.Brick, 2 * (level^2 + 1) },
+            { Resource.Stone, 2 * (level^2 + 1) }
+        };
+        if (level > 2)
+        {
+            result.Add(Resource.Gold, 10 * (level + 1));
+        }
+        if (level > 3)
+        {
+            result.Add(Resource.Glass, 10 * (level + 1));
+        }
+        return result;
+    }
 }

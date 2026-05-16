@@ -96,8 +96,7 @@ namespace SettlersOfIdlestan.Controller
             {
                 { Resource.Brick, 10 },
                 { Resource.Wood, 10 },
-                { Resource.Wheat, 10 },
-                { Resource.Sheep, 10 }
+                { Resource.Food, 20 },
             };
         }
 

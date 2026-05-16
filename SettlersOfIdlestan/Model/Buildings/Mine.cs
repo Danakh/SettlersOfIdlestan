@@ -13,21 +13,19 @@ public class Mine : Building
     /// </summary>
     public Mine() : base(BuildingType.Mine)
     {
-        Production.Add(Resource.Ore, 1);
+        Production.Add(Resource.Stone, 1);
         MaxLevel = 4;
         AvailableAtLevel = 1;
     }
 
     public override ResourceCost GetBuildCost() => new ResourceCost
     {
-        { Resource.Wood, 1 },
-        { Resource.Brick, 1 }
+        { Resource.Wood, 20 },
     };
 
     public override ResourceCost GetUpgradeCost(int level) => new ResourceCost
     {
-        { Resource.Wood, 1 },
-        { Resource.Brick, 1 }
+        { Resource.Wood, 20 * (level + 1) },
     };
 
     public override bool IsBuildingAvailableForCity(IslandMap.IslandMap map, City city)

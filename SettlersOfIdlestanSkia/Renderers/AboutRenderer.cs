@@ -82,8 +82,7 @@ public class AboutRenderer : IGameRenderer
         string[] lines =
         {
             _localization.Get("about_by"),
-            _localization.Get("about_inspired"),
-            _localization.Get("about_icons")
+            _localization.Get("about_inspired")
         };
         float lineHeight = _textFont.Size * 1.7f;
         float startY = y + 40;

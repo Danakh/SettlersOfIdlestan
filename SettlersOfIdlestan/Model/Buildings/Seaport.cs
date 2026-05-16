@@ -20,18 +20,14 @@ public class Seaport : Building
 
     public override ResourceCost GetBuildCost() => new ResourceCost
     {
-        { Resource.Wood, 1 },
-        { Resource.Brick, 1 },
-        { Resource.Sheep, 1 },
-        { Resource.Wheat, 1 }
+        { Resource.Wood, 10 },
     };
 
     public override ResourceCost GetUpgradeCost(int level) => new ResourceCost
     {
-        { Resource.Wood, 1 },
-        { Resource.Brick, 1 },
-        { Resource.Sheep, 1 },
-        { Resource.Wheat, 1 }
+        { Resource.Food, 50 * (level + 1) },
+        { Resource.Wood, 100 * (level + 1) },
+        { Resource.Stone, 50 * (level + 1) },
     };
 
     public override bool IsBuildingAvailableForCity(IslandMap.IslandMap map, City city)

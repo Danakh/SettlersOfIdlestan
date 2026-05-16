@@ -26,8 +26,8 @@ public static class TerrainTypeMappings
     {
         { TerrainType.Forest, Resource.Wood },
         { TerrainType.Hill, Resource.Brick },
-        { TerrainType.Pasture, Resource.Sheep },
-        { TerrainType.Field, Resource.Wheat },
+        { TerrainType.Pasture, Resource.Food },
+        { TerrainType.Field, Resource.Food },
         { TerrainType.Mountain, Resource.Ore },
         { TerrainType.Desert, null },
         { TerrainType.Water, null }

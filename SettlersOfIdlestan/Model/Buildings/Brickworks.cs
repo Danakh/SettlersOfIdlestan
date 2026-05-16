@@ -24,8 +24,8 @@ public class Brickworks : Building
     /// <returns>A dictionary containing the resources and their quantities needed to build the Brickworks.</returns>
     public override ResourceCost GetBuildCost() => new ResourceCost
     {
-        { Resource.Wood, 1 },
-        { Resource.Brick, 1 }
+        { Resource.Wood, 5 },
+        { Resource.Brick, 10 }
     };
 
     /// <summary>
@@ -35,8 +35,8 @@ public class Brickworks : Building
     /// <returns>A dictionary containing the resources and their quantities needed to upgrade the Brickworks.</returns>
     public override ResourceCost GetUpgradeCost(int level) => new ResourceCost
     {
-        { Resource.Wood, 1 },
-        { Resource.Brick, 1 }
+        { Resource.Wood, 5 * (level + 1) },
+        { Resource.Brick, 10 * (level + 1) }
     };
 
     public override bool IsBuildingAvailableForCity(IslandMap.IslandMap map, City city)

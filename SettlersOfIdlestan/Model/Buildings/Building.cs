@@ -96,7 +96,7 @@ public class Building
     public virtual ResourceCost GetUpgradeCost(int level) => new ResourceCost();
 
     /// <summary>
-    /// Gets the production of the building.
+    /// Gets the harvest capability of the building.
     /// </summary>
     public ResourceCost Production { get; } = new ResourceCost();
 

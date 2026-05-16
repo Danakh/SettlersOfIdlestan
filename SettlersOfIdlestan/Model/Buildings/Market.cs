@@ -18,6 +18,7 @@ public class Market : Building
 
     public override ResourceCost GetBuildCost() => new ResourceCost
     {
+        { Resource.Food, 5 },
         { Resource.Wood, 5 },
         { Resource.Brick, 5 }
     };

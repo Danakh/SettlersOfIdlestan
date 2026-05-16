@@ -51,13 +51,13 @@ namespace SOITests.ControllerTests
 
             // Owned: wood 8, brick 0, sheep 1
             civ.AddResource(Resource.Wood, 8);
-            civ.AddResource(Resource.Sheep, 1);
+            civ.AddResource(Resource.Food, 1);
 
             var controller = new TradeController(state);
 
             var required = new ResourceCost {
                 { Resource.Brick, 2 },
-                { Resource.Sheep, 1 }
+                { Resource.Food, 1 }
             };
 
             var result = controller.TryAutoTradeForPurchase(0, required);

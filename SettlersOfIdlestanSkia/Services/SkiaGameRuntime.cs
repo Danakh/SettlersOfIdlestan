@@ -65,18 +65,26 @@ public sealed class SkiaGameRuntime : IDisposable
         _cameraService = new CameraService();
         _localizationService = new LocalizationService();
 
+
+        _gameControllerService = new GameControllerService();
         // Tentative de chargement auto-save
         var autoJson = fileSystemService.LoadAuto().Result;
         if (!string.IsNullOrEmpty(autoJson))
         {
-            _gameControllerService = new GameControllerService();
-            _gameControllerService.MainGameController.ImportMainState(autoJson);
+            try
+            {
+                _gameControllerService.MainGameController.ImportMainState(autoJson);
+            }
+            catch
+            {
+                _gameControllerService.InitializeNewGame();
+            }
         }
         else
         {
-            _gameControllerService = new GameControllerService();
             _gameControllerService.InitializeNewGame();
         }
+
         _harvestService = new HarvestService(_gameControllerService);
 
         // Enregistrement des renderers (back to front)
@@ -281,14 +289,7 @@ public sealed class SkiaGameRuntime : IDisposable
             SKPoint cityCenter = islandMainRenderer.VertexToIslandPoint(args.CityPosition);
 
             // Détermine la couleur basée sur le type de ressource récolté
-            var resourceColors = new Dictionary<Resource, SKColor>
-            {
-                { Resource.Wood, new SKColor(139, 69, 19) },
-                { Resource.Ore, new SKColor(128, 128, 128) },
-                { Resource.Wheat, new SKColor(255, 215, 0) },
-                { Resource.Sheep, new SKColor(255, 192, 203) },
-                { Resource.Brick, new SKColor(210, 105, 30) },
-            };
+            var resourceColors = IslandMainRenderer.ResourceColors;
 
             var particleColor = resourceColors.TryGetValue(args.Resource, out var color) 
                 ? color 
