@@ -20,8 +20,9 @@ public abstract class HexBasedRenderer
     /// </summary>
     public (float x, float y) AxialToIsland(int q, int r)
     {
-        float x = HexSize * (3f / 2 * q);
-        float y = HexSize * (float)System.Math.Sqrt(3) / 2 * q + HexSize * (float)System.Math.Sqrt(3) * r;
+        float sqrt3 = (float)System.Math.Sqrt(3);
+        float x = HexSize * sqrt3 * (q + r / 2f);
+        float y = HexSize * -3f / 2f * r;
 
         return (x, y);
     }
@@ -32,9 +33,8 @@ public abstract class HexBasedRenderer
     /// </summary>
     public (int q, int r) IslandToAxial(float x, float y)
     {
-        // Applique l'offset d'origine inverse
-        float q = (2f / 3 * x) / HexSize;
-        float r = (-1f / 3 * x + (float)System.Math.Sqrt(3) / 3 * y) / HexSize;
+        float q = ((float)System.Math.Sqrt(3) / 3f * x + 1f / 3f * y) / HexSize;
+        float r = (-2f / 3f * y) / HexSize;
 
         // Arrondit aux coordonnées hexagonales les plus proches
         return RoundAxialCoordinates(q, r);
@@ -120,7 +120,7 @@ public abstract class HexBasedRenderer
 
         for (int i = 0; i < 6; i++)
         {
-            float angle = (float)System.Math.PI / 3 * i;
+            float angle = -(float)System.Math.PI / 2 + (float)System.Math.PI / 3 * i;
             points[i] = new SKPoint(
                 centerX + size * (float)System.Math.Cos(angle),
                 centerY + size * (float)System.Math.Sin(angle)

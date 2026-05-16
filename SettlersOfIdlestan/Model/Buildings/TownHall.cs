@@ -40,10 +40,10 @@ public class TownHall : Building
     {
         var result = new ResourceCost
         {
-            { Resource.Food, 2 * (level^2 + 1) },
-            { Resource.Wood, 2 * (level^2 + 1) },
-            { Resource.Brick, 2 * (level^2 + 1) },
-            { Resource.Stone, 2 * (level^2 + 1) }
+            { Resource.Food, 2 * (level * level + 1) },
+            { Resource.Wood, 2 * (level * level + 1) },
+            { Resource.Brick, 2 * (level * level + 1) },
+            { Resource.Stone, 2 * (level * level + 1) }
         };
         if (level > 2)
         {

@@ -129,7 +129,6 @@ namespace SettlersOfIdlestan.Controller
             if (distance == int.MaxValue)
                 throw new InvalidOperationException("Cannot determine distance to a city for this edge");
 
-            // cost = 2 * distance^2 for both wood and brick
             var cost = GetRoadCost(distance);
 
             if (!civ.CanPayResourceCost(cost))

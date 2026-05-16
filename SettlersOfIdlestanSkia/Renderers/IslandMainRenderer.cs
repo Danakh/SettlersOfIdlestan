@@ -177,8 +177,8 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
     public SKPoint ScreenToIsland(SKPoint screenPoint, SKSize canvasSize, float zoomLevel, SKPoint cameraPos)
     {
         return new SKPoint(
-            screenPoint.X / zoomLevel + cameraPos.X,
-            screenPoint.Y / zoomLevel + cameraPos.Y);
+            (screenPoint.X - canvasSize.Width / 2f) / zoomLevel,
+            (screenPoint.Y - canvasSize.Height / 2f) / zoomLevel);
     }
 
     public (int q, int r) ScreenToHex(SKPoint screenPoint, SKSize canvasSize, float zoomLevel, SKPoint cameraPos)
