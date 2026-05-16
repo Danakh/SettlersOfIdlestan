@@ -21,6 +21,7 @@ public class SelectedCityPanelRenderer : IGameRenderer
     private const float PanelWidth = 260;
     private const float RowHeight = 36;
     private const float Padding = 10;
+    private Dictionary<SKRect, BuildingType> _btnRects = new Dictionary<SKRect, BuildingType>();
     private Dictionary<SKRect, BuildingType> _hoverRects = new Dictionary<SKRect, BuildingType>();
 
     public SelectedCityPanelRenderer( CityBuildingService cityBuildingService, ILocalizationService localization, InputHandlingService inputService)
@@ -53,6 +54,7 @@ public class SelectedCityPanelRenderer : IGameRenderer
         using var costTextPaint = new SKPaint { Color = new SKColor(200, 200, 200, 200), IsAntialias = true };
         using var buttonTextPaint = new SKPaint { Color = SKColors.White, IsAntialias = true };
 
+        _btnRects.Clear();
         _hoverRects.Clear();
 
         var buildings = _cityBuildingService.SelectedCityBuildingsAndBuildables().ToList();
@@ -126,12 +128,11 @@ public class SelectedCityPanelRenderer : IGameRenderer
                 float btnCenterY = btnY + btnHeight / 2 + 6;
                 canvas.DrawText(btnText, btnCenterX, btnCenterY, SKTextAlign.Center, font12, btnTextPaint);
 
-                // Stocker les informations du bouton pour la détection de clic (seulement si le bouton est actif)
-                if (isButtonEnabled)
-                {
-                    var btnRect = new SKRect(btnX, btnY, btnX + btnWidth, btnY + btnHeight);
-                    _hoverRects[btnRect] = building.Type;
-                }
+                // Stocker les informations du bouton pour la détection de clic
+                var btnRect = new SKRect(btnX, btnY, btnX + btnWidth, btnY + btnHeight);
+                _btnRects[btnRect] = building.Type;
+                var hoverRect = new SKRect(panelX, btnY, panelX + PanelWidth, btnY + btnHeight);
+                _hoverRects[hoverRect] = building.Type;
             }
         }
 
@@ -149,27 +150,7 @@ public class SelectedCityPanelRenderer : IGameRenderer
     private void DrawTooltip(SKCanvas canvas, Building building, SKFont font)
     {
         var description = _localization.Get(building.DescriptionKey);
-        
-        using var tooltipBgPaint = new SKPaint { Color = new SKColor(60, 60, 70, 240), Style = SKPaintStyle.Fill, IsAntialias = true };
-        using var tooltipBorderPaint = new SKPaint { Color = new SKColor(220, 220, 240, 200), Style = SKPaintStyle.Stroke, StrokeWidth = 1.5f, IsAntialias = true };
-        using var tooltipTextPaint = new SKPaint { Color = SKColors.White, IsAntialias = true };
-
-        float tooltipWidth = 200;
-        float tooltipHeight = 60;
-        float tooltipX = _lastPointerPosition.X + 15;
-        float tooltipY = _lastPointerPosition.Y + 15;
-
-        // Ajuster la position si le tooltip sort du cadre
-        if (tooltipX + tooltipWidth > _canvasSize.Width)
-            tooltipX = _lastPointerPosition.X - tooltipWidth - 10;
-        if (tooltipY + tooltipHeight > _canvasSize.Height)
-            tooltipY = _lastPointerPosition.Y - tooltipHeight - 10;
-
-        canvas.DrawRoundRect(tooltipX, tooltipY, tooltipWidth, tooltipHeight, 8, 8, tooltipBgPaint);
-        canvas.DrawRoundRect(tooltipX, tooltipY, tooltipWidth, tooltipHeight, 8, 8, tooltipBorderPaint);
-        
-        // Afficher le texte en wrappé
-        SkiaTextUtils.DrawWrappedText(canvas, description, tooltipX + 8, tooltipY + 15, tooltipWidth - 16, font, tooltipTextPaint);
+        TooltipRenderUtils.DrawTooltip(canvas, _canvasSize, _lastPointerPosition, description, font);
     }
 
     private void HandlePointerMoved(object? sender, SettlersOfIdlestanSkia.Services.PointerEventArgs e)
