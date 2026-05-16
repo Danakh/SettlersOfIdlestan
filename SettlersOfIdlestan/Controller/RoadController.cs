@@ -253,7 +253,7 @@ namespace SettlersOfIdlestan.Controller
         public ResourceCost GetRoadCost(int distance)
         {
             if (distance <= 0) throw new ArgumentException("Distance must be >= 1", nameof(distance));
-            var cost = 2 * (distance * distance);
+            var cost = 1 + (distance * distance);
             return new ResourceCost
             {
                 { Resource.Wood, cost },

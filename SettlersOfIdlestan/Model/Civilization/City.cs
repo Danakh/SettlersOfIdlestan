@@ -35,7 +35,7 @@ public class City
         get
         {
             var th = Buildings.FirstOrDefault(b => b.Type == BuildingType.TownHall);
-            return th != null ? Math.Min(5, th.Level + 1) : 1;
+            return th != null ? th.Level : 0;
         }
     }
 

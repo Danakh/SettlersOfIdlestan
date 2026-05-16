@@ -4,6 +4,7 @@ using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Civilization;
+using SettlersOfIdlestan.Model.Buildings;
 
 namespace SettlersOfIdlestan.Controller.Generator;
 
@@ -158,6 +159,9 @@ namespace SettlersOfIdlestan.Controller.Generator;
             var civ = civilizations[0];
             var city = new City(vertex);
             city.CivilizationIndex = civ.Index;
+            var townHall = new TownHall();
+            townHall.Level = 1;
+            city.Buildings.Add(townHall);
             civ.Cities.Add(city);
         }
 
