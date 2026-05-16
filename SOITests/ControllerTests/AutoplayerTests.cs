@@ -5,9 +5,9 @@ using SettlersOfIdlestan.Controller;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Civilization;
-using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Game;
 using SOITests.TestUtilities;
+using SettlersOfIdlestan.Model.Buildings;
 
 namespace SOITests.ControllerTests
 {

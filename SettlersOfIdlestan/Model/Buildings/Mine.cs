@@ -1,18 +1,19 @@
+using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.IslandMap;
 
 namespace SettlersOfIdlestan.Model.Buildings;
 
 /// <summary>
-/// Represents a Sawmill building.
+/// Represents a Mine building.
 /// </summary>
-public class Sawmill : Building
+public class Mine : Building
 {
     /// <summary>
-    /// Initializes a new instance of the <see cref="Sawmill"/> class.
+    /// Initializes a new instance of the <see cref="Mine"/> class.
     /// </summary>
-    public Sawmill() : base(BuildingType.Sawmill)
+    public Mine() : base(BuildingType.Mine)
     {
-        Production.Add(Resource.Wood, 1);
+        Production.Add(Resource.Ore, 1);
         MaxLevel = 4;
         AvailableAtLevel = 1;
     }
@@ -33,6 +34,6 @@ public class Sawmill : Building
     {
         if (!base.IsBuildingAvailableForCity(map, city))
             return false;
-        return map.VertexHasTerrainType(city.Position, TerrainType.Forest);
+        return map.VertexHasTerrainType(city.Position, TerrainType.Mountain);
     }
 }

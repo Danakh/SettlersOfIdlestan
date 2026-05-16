@@ -4,7 +4,6 @@ using System.Linq;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.HexGrid;
-using SettlersOfIdlestan.Model;
 
 namespace SettlersOfIdlestan.Controller
 {

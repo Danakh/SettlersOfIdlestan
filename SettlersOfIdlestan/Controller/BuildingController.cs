@@ -1,10 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.HexGrid;
-using SettlersOfIdlestan.Model;
+using SettlersOfIdlestan.Model.Buildings;
 
 namespace SettlersOfIdlestan.Controller
 {

@@ -1,18 +1,19 @@
+using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.IslandMap;
 
 namespace SettlersOfIdlestan.Model.Buildings;
 
 /// <summary>
-/// Represents a Mine building.
+/// Represents a Sheepfold building.
 /// </summary>
-public class Mine : Building
+public class Sheepfold : Building
 {
     /// <summary>
-    /// Initializes a new instance of the <see cref="Mine"/> class.
+    /// Initializes a new instance of the <see cref="Sheepfold"/> class.
     /// </summary>
-    public Mine() : base(BuildingType.Mine)
+    public Sheepfold() : base(BuildingType.Sheepfold)
     {
-        Production.Add(Resource.Ore, 1);
+        Production.Add(Resource.Sheep, 1);
         MaxLevel = 4;
         AvailableAtLevel = 1;
     }
@@ -33,6 +34,6 @@ public class Mine : Building
     {
         if (!base.IsBuildingAvailableForCity(map, city))
             return false;
-        return map.VertexHasTerrainType(city.Position, TerrainType.Mountain);
+        return map.VertexHasTerrainType(city.Position, TerrainType.Pasture);
     }
 }

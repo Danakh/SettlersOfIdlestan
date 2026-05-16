@@ -2,6 +2,7 @@ using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model;
 using System;
 using System.Collections.Generic;
+using SettlersOfIdlestan.Model.Civilization;
 
 namespace SettlersOfIdlestan.Model.IslandMap;
 

@@ -1,10 +1,7 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.HexGrid;
 
-namespace SettlersOfIdlestan.Model.IslandMap;
+namespace SettlersOfIdlestan.Model.Civilization;
 
 /// <summary>
 /// Represents a city in the game.

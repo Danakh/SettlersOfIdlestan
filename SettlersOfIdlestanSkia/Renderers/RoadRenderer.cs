@@ -1,7 +1,7 @@
 using SkiaSharp;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestan.Model.Game;
-using SettlersOfIdlestan.Model.IslandMap;
+using SettlersOfIdlestan.Model.Civilization;
 
 namespace SettlersOfIdlestanSkia.Renderers;
 

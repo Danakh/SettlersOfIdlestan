@@ -17,7 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="src\SkiaTests\" />
+    <Folder Include="SkiaTests\" />
   </ItemGroup>
 
 </Project>

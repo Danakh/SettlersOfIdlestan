@@ -1,7 +1,6 @@
 using System.Collections.Generic;
-using SettlersOfIdlestan.Model.IslandMap;
 
-namespace SettlersOfIdlestan.Model
+namespace SettlersOfIdlestan.Model.IslandMap
 {
     public class ResourceCost : IEnumerable<KeyValuePair<Resource, int>>
     {

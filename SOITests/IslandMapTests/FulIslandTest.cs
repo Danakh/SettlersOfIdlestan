@@ -6,9 +6,8 @@ using SOITests.TestUtilities;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Game;
-using SettlersOfIdlestan.Model;
+using SettlersOfIdlestan.Model.Buildings;
 
 namespace SOITests.src.IslandMapTests
 {

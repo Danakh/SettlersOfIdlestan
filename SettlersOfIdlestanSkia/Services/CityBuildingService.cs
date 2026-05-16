@@ -1,7 +1,7 @@
-using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Controller;
-using SettlersOfIdlestan.Model.IslandMap;
+using SettlersOfIdlestan.Model.Buildings;
+using SettlersOfIdlestan.Model.Civilization;
 
 namespace SettlersOfIdlestanSkia.Services;
 
