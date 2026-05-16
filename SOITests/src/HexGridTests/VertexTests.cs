@@ -95,4 +95,47 @@ public class VertexTests
         Assert.Equal(new HexCoord(0, 1), vertex.Hex2);
         Assert.Equal(new HexCoord(1, 0), vertex.Hex3);
     }
+
+    [Fact]
+    public void EdgeDistanceTests()
+    {
+        var hex0 = new HexCoord(0, 0);
+        var hexNE = hex0.Neighbor(HexDirection.NE);
+        var hexNW = hex0.Neighbor(HexDirection.NW);
+        var hexE = hex0.Neighbor(HexDirection.E);
+        var hexW = hex0.Neighbor(HexDirection.W);
+        var hexSE = hex0.Neighbor(HexDirection.SE);
+        var hexSW = hex0.Neighbor(HexDirection.SW);
+
+        var vertexN = hex0.Vertex(SecondaryHexDirection.N);
+        var vertexEN = hex0.Vertex(SecondaryHexDirection.EN);
+        var vertexES = hex0.Vertex(SecondaryHexDirection.ES);
+        var vertexS = hex0.Vertex(SecondaryHexDirection.S);
+        var vertexWS = hex0.Vertex(SecondaryHexDirection.WS);
+        var vertexWN = hex0.Vertex(SecondaryHexDirection.WN);
+        Assert.Equal(0, vertexN.EdgeDistanceTo(vertexN));
+        Assert.Equal(1, vertexN.EdgeDistanceTo(vertexEN));
+        Assert.Equal(2, vertexN.EdgeDistanceTo(vertexES));
+        Assert.Equal(3, vertexN.EdgeDistanceTo(vertexS));
+        Assert.Equal(2, vertexN.EdgeDistanceTo(vertexWS));
+        Assert.Equal(1, vertexN.EdgeDistanceTo(vertexWN));
+
+        Assert.Equal(4, vertexN.EdgeDistanceTo(hexSW.Vertex(SecondaryHexDirection.ES)));
+        Assert.Equal(5, vertexN.EdgeDistanceTo(hexSW.Vertex(SecondaryHexDirection.S)));
+        Assert.Equal(4, vertexN.EdgeDistanceTo(hexSW.Vertex(SecondaryHexDirection.WS)));
+        Assert.Equal(3, vertexN.EdgeDistanceTo(hexSW.Vertex(SecondaryHexDirection.WN)));
+
+        Assert.Equal(5, vertexEN.EdgeDistanceTo(hexW.Vertex(SecondaryHexDirection.WS)));
+        Assert.Equal(5, vertexWN.EdgeDistanceTo(hexE.Vertex(SecondaryHexDirection.ES)));
+        Assert.Equal(5, vertexES.EdgeDistanceTo(hexW.Vertex(SecondaryHexDirection.WN)));
+        Assert.Equal(5, vertexWS.EdgeDistanceTo(hexE.Vertex(SecondaryHexDirection.EN)));
+        Assert.Equal(5, vertexS.EdgeDistanceTo(hexNE.Vertex(SecondaryHexDirection.N)));
+
+        Assert.Equal(7, hexW.Vertex(SecondaryHexDirection.WS).EdgeDistanceTo(hexE.Vertex(SecondaryHexDirection.EN)));
+        Assert.Equal(7, hexNW.Vertex(SecondaryHexDirection.WN).EdgeDistanceTo(hexSE.Vertex(SecondaryHexDirection.ES)));
+        Assert.Equal(7, hexNE.Vertex(SecondaryHexDirection.N).EdgeDistanceTo(hexSW.Vertex(SecondaryHexDirection.S)));
+        Assert.Equal(7, hexE.Vertex(SecondaryHexDirection.EN).EdgeDistanceTo(hexW.Vertex(SecondaryHexDirection.WS)));
+        Assert.Equal(7, hexSE.Vertex(SecondaryHexDirection.ES).EdgeDistanceTo(hexNW.Vertex(SecondaryHexDirection.WN)));
+        Assert.Equal(7, hexSW.Vertex(SecondaryHexDirection.S).EdgeDistanceTo(hexNE.Vertex(SecondaryHexDirection.N)));
+    }
 }

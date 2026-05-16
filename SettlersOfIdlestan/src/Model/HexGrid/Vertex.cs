@@ -160,6 +160,67 @@ public class Vertex
     }
 
     /// <summary>
+    /// Distance entre ce vertex et un autre vertex, définie comme le nombre d'edges à parcourir pour aller de l'un à l'autre.
+    /// </summary>
+    public int EdgeDistanceTo(Vertex other)
+    {
+        var thisCubeSum = CubeSum();
+        var otherCubeSum = other.CubeSum();
+        var delta = (
+            X: otherCubeSum.X - thisCubeSum.X,
+            Y: otherCubeSum.Y - thisCubeSum.Y,
+            Z: otherCubeSum.Z - thisCubeSum.Z
+        );
+
+        var thisResidue = PositiveModulo(thisCubeSum.X, 3);
+        var otherResidue = PositiveModulo(otherCubeSum.X, 3);
+
+        if (thisResidue == otherResidue)
+        {
+            return 2 * CubeDistance(DivideByThree(delta));
+        }
+
+        var stepSign = thisResidue == 2 ? 1 : -1;
+        var possibleFirstSteps = new[]
+        {
+            (X: 2, Y: -1, Z: -1),
+            (X: -1, Y: 2, Z: -1),
+            (X: -1, Y: -1, Z: 2),
+        };
+
+        return 1 + 2 * possibleFirstSteps
+            .Select(step => CubeDistance(DivideByThree((
+                X: delta.X - stepSign * step.X,
+                Y: delta.Y - stepSign * step.Y,
+                Z: delta.Z - stepSign * step.Z
+            ))))
+            .Min();
+    }
+
+    private (int X, int Y, int Z) CubeSum()
+    {
+        var x = Hex1.Q + Hex2.Q + Hex3.Q;
+        var z = Hex1.R + Hex2.R + Hex3.R;
+        var y = -x - z;
+        return (x, y, z);
+    }
+
+    private static (int X, int Y, int Z) DivideByThree((int X, int Y, int Z) cube)
+    {
+        return (cube.X / 3, cube.Y / 3, cube.Z / 3);
+    }
+
+    private static int CubeDistance((int X, int Y, int Z) cube)
+    {
+        return (Math.Abs(cube.X) + Math.Abs(cube.Y) + Math.Abs(cube.Z)) / 2;
+    }
+
+    private static int PositiveModulo(int value, int modulo)
+    {
+        return ((value % modulo) + modulo) % modulo;
+    }
+
+    /// <summary>
     /// Sérialise le sommet en [h1, h2, h3] (chaque hi = [q, r]).
     /// </summary>
     public int[][] Serialize()
