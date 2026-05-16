@@ -60,5 +60,21 @@
   "menu_about": "À propos",
   "about_title": "À propos",
   "about_by": "Jeu par Danakh",
-  "about_inspired": "Inspiré par le célèbre jeu de société Les Colons de Catane"
+  "about_inspired": "Inspiré par le célèbre jeu de société Les Colons de Catane",
+  "resource_food": "Nourriture",
+  "resource_wood": "Bois",
+  "resource_brick": "Brique",
+  "resource_stone": "Pierre",
+  "resource_ore": "Minerai",
+  "resource_gold": "Or",
+  "resource_glass": "Verre",
+  "resource_crystal": "Cristal",
+  "resource_food_short": "N",
+  "resource_wood_short": "Bo",
+  "resource_brick_short": "Br",
+  "resource_stone_short": "P",
+  "resource_ore_short": "M",
+  "resource_gold_short": "O",
+  "resource_glass_short": "V",
+  "resource_crystal_short": "C"
 }

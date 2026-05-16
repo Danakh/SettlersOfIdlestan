@@ -94,6 +94,11 @@ public class Civilization
         return _resources.TryGetValue(resource, out var q) ? q : 0;
     }
 
+    public int GetResourceMaxQuantity(Resource resource)
+    {
+        return 100;
+    }
+
     public bool CanPayResourceCost(ResourceCost cost)
     {
         foreach (var kvp in cost)

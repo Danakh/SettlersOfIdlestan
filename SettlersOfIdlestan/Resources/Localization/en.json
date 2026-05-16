@@ -60,5 +60,22 @@
   "menu_about": "About",
   "about_title": "About",
   "about_by": "Game By Danakh",
-  "about_inspired": "Inspired by the famous Catan boardgame"
+  "about_inspired": "Inspired by the famous Catan boardgame",
+  "resource_food": "Food",
+  "resource_wood": "Wood",
+  "resource_brick": "Brick",
+  "resource_stone": "Stone",
+  "resource_ore": "Ore",
+  "resource_gold": "Gold",
+  "resource_glass": "Glass",
+  "resource_crystal": "Crystal",
+  "resource_food_short": "F",
+  "resource_wood_short": "W",
+  "resource_brick_short": "B",
+  "resource_stone_short": "S",
+  "resource_ore_short": "O",
+  "resource_gold_short": "Go",
+  "resource_glass_short": "Gl",
+  "resource_crystal_short": "C"
+
 }

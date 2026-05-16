@@ -110,7 +110,7 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
         var nearestVertex = _renderer.IslandToNearestVertex(islandPoint);
         if (buildableVertices.Any(v => v.Equals(nearestVertex)))
         {
-            var dist = Distance(islandPoint, _renderer.VertexToIslandPoint(nearestVertex));
+            var dist = SKPoint.Distance(islandPoint, _renderer.VertexToIslandPoint(nearestVertex));
             if (dist <= VertexHoverRadius)
             {
                 hoveredVertex = nearestVertex;
@@ -121,7 +121,7 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
         var nearestEdge = _renderer.IslandToNearestEdge(islandPoint);
         if (buildableEdges.Any(e => e.Equals(nearestEdge)))
         {
-            var dist = Distance(islandPoint, _renderer.EdgeToIslandPoint(nearestEdge));
+            var dist = SKPoint.Distance(islandPoint, _renderer.EdgeToIslandPoint(nearestEdge));
             if (dist <= EdgeHoverRadius)
             {
                 hoveredEdge = nearestEdge;
@@ -164,7 +164,7 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
             }
 
             var pt = _renderer.VertexToIslandPoint(city.Position);
-            var dist = Distance(islandPoint, pt);
+            var dist = SKPoint.Distance(islandPoint, pt);
             if (dist < bestDistance)
             {
                 bestDistance = dist;
@@ -179,13 +179,6 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
     {
         _cityBuildingService.SetSelectedCity(selectedCityVertex);
         HoverState = HoverState with { SelectedCityVertex = selectedCityVertex };
-    }
-
-    private static float Distance(SKPoint a, SKPoint b)
-    {
-        var dx = a.X - b.X;
-        var dy = a.Y - b.Y;
-        return MathF.Sqrt(dx * dx + dy * dy);
     }
 
     public void Cleanup()

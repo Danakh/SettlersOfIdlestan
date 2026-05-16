@@ -1,9 +1,10 @@
-using SkiaSharp;
-using SettlersOfIdlestanSkia.Core;
-using SettlersOfIdlestanSkia.Services;
+using SettlersOfIdlestan.Controller;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.IslandMap;
-using SettlersOfIdlestan.Controller;
+using SettlersOfIdlestan.Services.Localization;
+using SettlersOfIdlestanSkia.Core;
+using SettlersOfIdlestanSkia.Services;
+using SkiaSharp;
 
 namespace SettlersOfIdlestanSkia.Renderers;
 
@@ -25,9 +26,12 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
 
     private readonly SettingsMenu _settingsMenu;
     private readonly InputHandlingService _inputService;
+    private readonly ILocalizationService _localization;
     private readonly ResourceManager _resourceManager;
     private const float BarHeight = 50;
     private const float IconSize = 32;
+    private const float RectangleWidth = 66;
+    private const float RectangleHeight = 32;
     private const float Padding = 12;
 
     // Couleurs par type de ressource
@@ -35,9 +39,10 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
 
     public bool Disposed => _disposed;
 
-    public PlayerResourcesOverlayRenderer(InputHandlingService inputService, SettingsMenu settingsMenu, ResourceManager resourceManager)
+    public PlayerResourcesOverlayRenderer(InputHandlingService inputService, ILocalizationService localization, SettingsMenu settingsMenu, ResourceManager resourceManager)
     {
         _inputService = inputService;
+        _localization = localization;
         _inputService.PointerPressed += HandleGearClick;
         _settingsMenu = settingsMenu;
         _resourceManager = resourceManager;
@@ -127,13 +132,14 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
 
         // Dessine les ressources horizontalement à gauche
         float currentX = Padding;
-        float itemY = (BarHeight - IconSize) / 2;
+        float itemY = (BarHeight - RectangleHeight) / 2;
 
         foreach (var resource in resourceTypes)
         {
             var quantity = civilization.GetResourceQuantity(resource);
-            DrawResourceItem(canvas, resource, quantity, currentX, itemY, IconSize);
-            currentX +=  2 * IconSize + 4 + itemSpacing;
+            var maxQuantity = civilization.GetResourceMaxQuantity(resource);
+            DrawResourceItem(canvas, resource, quantity, maxQuantity, currentX, itemY);
+            currentX += RectangleWidth + itemSpacing;
         }
 
         // Dessine la roue crantée pour le menu à droite
@@ -141,10 +147,10 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
         DrawGearIcon(canvas, gearX, itemY, IconSize);
     }
 
-    private void DrawResourceItem(SKCanvas canvas, Resource resource, int quantity, float x, float y, float size)
+    private void DrawResourceItem(SKCanvas canvas, Resource resource, int quantity, int maxQuantity, float x, float y)
     {
         // Carré de couleur de la ressource
-        var colorRect = new SKRect(x, y, x + 2 * size + 4, y + size);
+        var colorRect = new SKRect(x, y, x + RectangleWidth, y + RectangleHeight);
         using (var colorPaint = new SKPaint { Color = ResourceColors[resource], Style = SKPaintStyle.Fill, IsAntialias = true })
         {
             canvas.DrawRect(colorRect, colorPaint);
@@ -157,14 +163,18 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
         }
 
         // Affiche la quantité au centre du carré
-        var text = quantity.ToString();
+        var resourceNameText = $"{_localization.Get($"resource_{resource.ToString().ToLower()}_short")}:";
+        var resourceValueText = $"{quantity}/{maxQuantity}";
         if (_smallFont != null && _textPaint != null)
         {
-            var textWidth = _smallFont.MeasureText(text);
             var textHeight = _smallFont.Size;
-            var textX = x + (size - textWidth) / 2;
-            var textY = y + (size + textHeight) / 2 - 2;
-            canvas.DrawText(text, textX, textY, _smallFont, _textPaint);
+            var textX = x + 4;
+            var textY = y + (RectangleHeight + textHeight) / 2 - 2;
+            canvas.DrawText(resourceNameText, textX, textY, _smallFont, _textPaint);
+
+            var textWidth = _smallFont.MeasureText(resourceValueText);
+            textX = x + RectangleWidth - textWidth - 4;
+            canvas.DrawText(resourceValueText, textX, textY, _smallFont, _textPaint);
         }
     }
 

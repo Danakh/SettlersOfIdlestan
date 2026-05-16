@@ -23,11 +23,11 @@ public class SelectedCityPanelRenderer : IGameRenderer
     private const float Padding = 10;
     private Dictionary<SKRect, BuildingType> _hoverRects = new Dictionary<SKRect, BuildingType>();
 
-    public SelectedCityPanelRenderer(ILocalizationService localization, CityBuildingService cityBuildingService, InputHandlingService inputService)
+    public SelectedCityPanelRenderer( CityBuildingService cityBuildingService, ILocalizationService localization, InputHandlingService inputService)
     {
-        _localization = localization;
         _cityBuildingService = cityBuildingService;
         _inputService = inputService;
+        _localization = localization;
         _inputService.PointerMoved += HandlePointerMoved;
         _inputService.PointerPressed += HandlePointerPressed;
     }
@@ -79,7 +79,7 @@ public class SelectedCityPanelRenderer : IGameRenderer
             var cost = isBuilt ? building.GetUpgradeCost(building.Level + 1) : building.GetBuildCost();
             if (cost.Count > 0)
             {
-                var costText = string.Join(" | ", cost.Select(kvp => $"{_localization.Get($"resource_{kvp.Key.ToString().ToLower()}")}: {kvp.Value}"));
+                var costText = string.Join(" | ", cost.Select(kvp => $"{_localization.Get($"resource_{kvp.Key.ToString().ToLower()}_short")}: {kvp.Value}"));
                 canvas.DrawText(costText, panelX + Padding, yRow + 30, font10, costTextPaint);
             }
 

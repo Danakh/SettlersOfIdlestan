@@ -110,14 +110,14 @@ public sealed class SkiaGameRuntime : IDisposable
         ConnectHarvestEventsToParticles(islandMainRenderer);
 
         // Ajout du panneau latéral des bâtiments sélectionnés
-        var selectedCityPanelRenderer = new SelectedCityPanelRenderer(_localizationService, _gameControllerService.CityBuildingService, _inputService);
+        var selectedCityPanelRenderer = new SelectedCityPanelRenderer(_gameControllerService.CityBuildingService, _localizationService, _inputService);
 
         _renderService.RegisterRenderer(selectedCityPanelRenderer);
 
         // Crée le menu avant le renderer et le passe en paramètre
         var aboutRenderer = new AboutRenderer(_inputService, _localizationService);
         var settingsMenu = new SettingsMenu(_gameControllerService.MainGameController, _inputService, _localizationService, aboutRenderer, fileSystemService);
-        _renderService.RegisterRenderer(new PlayerResourcesOverlayRenderer(_inputService, settingsMenu, _resourceManager));
+        _renderService.RegisterRenderer(new PlayerResourcesOverlayRenderer(_inputService, _localizationService, settingsMenu, _resourceManager));
         _renderService.RegisterRenderer(new DebugOverlayRenderer(_inputService, _cameraService, islandMainRenderer, _localizationService));
         _renderService.RegisterRenderer(aboutRenderer);
 
