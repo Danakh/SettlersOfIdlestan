@@ -1,5 +1,4 @@
 using SettlersOfIdlestan.Model.IslandMap;
-using SettlersOfIdlestan.Model.City;
 
 namespace SettlersOfIdlestan.Model.Buildings;
 
@@ -34,7 +33,7 @@ public class Seaport : Building
         { Resource.Wheat, 1 }
     };
 
-    public override bool IsBuildingAvailableForCity(IslandMap.IslandMap map, City.City city)
+    public override bool IsBuildingAvailableForCity(IslandMap.IslandMap map, City city)
     {
         if (!base.IsBuildingAvailableForCity(map, city))
             return false;

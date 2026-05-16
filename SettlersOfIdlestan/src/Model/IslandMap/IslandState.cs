@@ -68,12 +68,12 @@ public class IslandState
     /// </summary>
     public Dictionary<int, Dictionary<SettlersOfIdlestan.Model.HexGrid.HexCoord, DateTimeOffset>> AutomaticHarvestLastTimesByCivilization { get; set; }
 
-    public IEnumerable<City.City> GetAllCities()
+    public IEnumerable<City> GetAllCities()
     {
         return Civilizations.SelectMany(c => c.Cities);
     }
 
-    public City.City? FindCityAt(Vertex vertex)
+    public City? FindCityAt(Vertex vertex)
     {
         return GetAllCities().FirstOrDefault(c => c.Position.Equals(vertex));
     }

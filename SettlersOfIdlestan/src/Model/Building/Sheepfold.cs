@@ -29,7 +29,7 @@ public class Sheepfold : Building
         { Resource.Brick, 1 }
     };
 
-    public override bool IsBuildingAvailableForCity(IslandMap.IslandMap map, City.City city)
+    public override bool IsBuildingAvailableForCity(IslandMap.IslandMap map, City city)
     {
         if (!base.IsBuildingAvailableForCity(map, city))
             return false;

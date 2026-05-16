@@ -1,11 +1,7 @@
-using SettlersOfIdlestan.Model.City;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.HexGrid;
-using SettlersOfIdlestanSkia.Services;
 using SettlersOfIdlestan.Controller;
-using System;
-using System.Collections.Generic;
-using System.Linq;
+using SettlersOfIdlestan.Model.IslandMap;
 
 namespace SettlersOfIdlestanSkia.Services;
 

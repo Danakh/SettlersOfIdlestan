@@ -5,7 +5,6 @@ using SettlersOfIdlestan.Controller;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Civilization;
-using SettlersOfIdlestan.Model.City;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Game;
 

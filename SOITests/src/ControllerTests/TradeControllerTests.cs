@@ -1,10 +1,7 @@
 using Xunit;
 using SettlersOfIdlestan.Controller;
 using SettlersOfIdlestan.Model.IslandMap;
-using SettlersOfIdlestan.Model.Civilization;
-using SettlersOfIdlestan.Model.City;
 using SettlersOfIdlestan.Model.Buildings;
-using System.Collections.Generic;
 using SOITests.TestUtilities;
 using SettlersOfIdlestan.Model;
 

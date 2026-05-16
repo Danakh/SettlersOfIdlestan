@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using SettlersOfIdlestan.Model.HexGrid;
 
-namespace SettlersOfIdlestan.Model.Road;
+namespace SettlersOfIdlestan.Model.IslandMap;
 
 /// <summary>
 /// Represents a road connecting two cities.

@@ -1,8 +1,4 @@
-using SettlersOfIdlestan.Model.Buildings;
-using System;
-using System.Collections.Generic;
 using SettlersOfIdlestan.Model.IslandMap;
-using SettlersOfIdlestan.Model.City;
 
 namespace SettlersOfIdlestan.Model.Buildings;
 
@@ -144,7 +140,7 @@ public class Building
     /// <param name="map">The island map.</param>
     /// <param name="city">The city.</param>
     /// <returns>True if the building is available for the city, false otherwise.</returns>
-    public virtual bool IsBuildingAvailableForCity(IslandMap.IslandMap map, City.City city)
+    public virtual bool IsBuildingAvailableForCity(IslandMap.IslandMap map, City city)
     {
         return city.Level >= AvailableAtLevel;
     }

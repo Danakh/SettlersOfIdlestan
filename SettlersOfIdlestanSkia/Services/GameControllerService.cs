@@ -1,10 +1,7 @@
 using SettlersOfIdlestan.Model.Game;
-using SettlersOfIdlestan.Model.City;
-using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Controller;
-using SettlersOfIdlestanSkia.Renderers;
 
 namespace SettlersOfIdlestanSkia.Services;
 

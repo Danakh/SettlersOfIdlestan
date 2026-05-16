@@ -1,6 +1,7 @@
 using SkiaSharp;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestan.Model.Game;
+using SettlersOfIdlestan.Model.IslandMap;
 
 namespace SettlersOfIdlestanSkia.Renderers;
 
@@ -56,7 +57,7 @@ public class RoadRenderer : HexBasedRenderer, IGameRenderer
     /// Dessine les routes d'une civilisation.
     /// </summary>
     private void DrawRoads(SKCanvas canvas, SettlersOfIdlestan.Model.IslandMap.IslandMap map, 
-        List<SettlersOfIdlestan.Model.Road.Road> roads, int civilizationIndex)
+        List<Road> roads, int civilizationIndex)
     {
         if (_roadPaint == null || roads.Count == 0)
             return;

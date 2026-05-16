@@ -2,8 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using SettlersOfIdlestan.Model;
-using SettlersOfIdlestan.Model.City;
-using SettlersOfIdlestan.Model.Civilization;
+
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
 
@@ -45,37 +44,23 @@ namespace SettlersOfIdlestan.Controller
                       ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
 
             // Build vertex → touching roads map directly from the civilization's roads
-            var vertexRoads = new Dictionary<Vertex, List<Model.Road.Road>>();
+            var vertices = new List<Vertex>();
             foreach (var road in civ.Roads)
             {
                 foreach (var v in road.Position.GetVertices())
                 {
-                    if (!vertexRoads.TryGetValue(v, out var list))
-                    {
-                        list = new List<Model.Road.Road>();
-                        vertexRoads[v] = list;
-                    }
-                    list.Add(road);
+                    if (!vertices.Any(vr => vr.Equals(v)))
+                        vertices.Add(v);
                 }
             }
 
-            var occupied = new HashSet<Vertex>(_state.Civilizations.SelectMany(c => c.Cities).Select(ct => ct.Position));
+            // now we filter vertices that aren't far enough from any city using MinDistanceBetweenCities and MinDistanceBetweenCivilizationCities
+            vertices = vertices.Where(v =>
+                !_state.Civilizations.Any(c => c.Cities.Any(city => city.Position.EdgeDistanceTo(v) < MinDistanceBetweenCities)) &&
+                !civ.Cities.Any(city => city.Position.EdgeDistanceTo(v) < MinDistanceBetweenCivilizationCities))
+                .ToList();
 
-            var result = new List<Vertex>();
-            foreach (var (v, touchingRoads) in vertexRoads)
-            {
-                if (occupied.Any(o => o.Equals(v))) continue;
-
-                // ensure no existing city is at distance 1 (shares 2 hexes)
-                if (civ.Cities.Any(city => SharedHexCount(city.Position, v) >= 2)) continue;
-
-                // ensure touching roads are not adjacent to a city (distance 1)
-                if (touchingRoads.Any(tr => tr.DistanceToNearestCity == 1)) continue;
-
-                result.Add(v);
-            }
-
-            return result;
+            return vertices;
         }
 
         /// <summary>
@@ -106,17 +91,6 @@ namespace SettlersOfIdlestan.Controller
             return city;
         }
 
-        private static int SharedHexCount(Vertex a, Vertex b)
-        {
-            var ah = a.GetHexes();
-            var bh = b.GetHexes();
-            int count = 0;
-            foreach (var x in ah)
-                foreach (var y in bh)
-                    if (x.Equals(y)) count++;
-            return count;
-        }
-
         public ResourceCost NewCityBuildingCost()
         {
             return new ResourceCost
@@ -127,5 +101,8 @@ namespace SettlersOfIdlestan.Controller
                 { Resource.Sheep, 10 }
             };
         }
+
+        public int MinDistanceBetweenCities => 2;
+        public int MinDistanceBetweenCivilizationCities => 2;
     }
 }

@@ -4,7 +4,6 @@ using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Civilization;
-using SettlersOfIdlestan.Model.City;
 
 namespace SettlersOfIdlestan.Controller.Generator;
 

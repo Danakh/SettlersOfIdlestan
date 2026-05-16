@@ -3,8 +3,6 @@ using SettlersOfIdlestan.Controller;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Civilization;
-using SettlersOfIdlestan.Model.City;
-using SettlersOfIdlestan.Model.Road;
 using System.Linq;
 using System.Collections.Generic;
 

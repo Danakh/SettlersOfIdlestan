@@ -1,6 +1,7 @@
 using SkiaSharp;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestan.Model.Game;
+using SettlersOfIdlestan.Model.IslandMap;
 
 namespace SettlersOfIdlestanSkia.Renderers;
 
@@ -72,7 +73,7 @@ public class CityRenderer : HexBasedRenderer, IGameRenderer
     /// <summary>
     /// Dessine les villes d'une civilisation.
     /// </summary>
-    private void DrawCities(SKCanvas canvas, List<SettlersOfIdlestan.Model.City.City> cities, int civilizationIndex)
+    private void DrawCities(SKCanvas canvas, List<City> cities, int civilizationIndex)
     {
         if (cities.Count == 0 || _settlementPaint == null || _cityPaint == null || _borderPaint == null)
             return;

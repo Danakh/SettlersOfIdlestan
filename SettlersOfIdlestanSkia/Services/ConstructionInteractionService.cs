@@ -1,5 +1,4 @@
 using SkiaSharp;
-using SettlersOfIdlestan.Model.City;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestanSkia.Renderers;
 

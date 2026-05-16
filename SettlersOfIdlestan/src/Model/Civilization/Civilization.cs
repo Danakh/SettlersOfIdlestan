@@ -19,12 +19,12 @@ public class Civilization
     /// <summary>
     /// Gets or sets the list of cities in the civilization.
     /// </summary>
-    public List<SettlersOfIdlestan.Model.City.City> Cities { get; set; } = new();
+    public List<City> Cities { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the list of roads in the civilization.
     /// </summary>
-    public List<SettlersOfIdlestan.Model.Road.Road> Roads { get; set; } = new();
+    public List<Road> Roads { get; set; } = new();
 
     /// <summary>
     /// Liste des ressources détenues par la civilisation.
