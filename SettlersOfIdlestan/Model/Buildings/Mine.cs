@@ -13,9 +13,21 @@ public class Mine : Building
     /// </summary>
     public Mine() : base(BuildingType.Mine)
     {
-        Production.Add(Resource.Stone, 1);
         MaxLevel = 4;
         AvailableAtLevel = 1;
+    }
+
+    public override Resource? ManualHarvestCapability(TerrainType terrain)
+    {
+        if (terrain == TerrainType.Mountain)
+            return Resource.Ore;
+        return null;
+    }
+    public override Resource? AutomaticHarvestCapability(TerrainType terrain)
+    {
+        if (terrain == TerrainType.Mountain)
+            return Resource.Stone;
+        return null;
     }
 
     public override ResourceCost GetBuildCost() => new ResourceCost

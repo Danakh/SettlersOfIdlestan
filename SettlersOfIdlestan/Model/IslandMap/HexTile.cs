@@ -16,26 +16,17 @@ public class HexTile
         // Parameterless constructor for deserialization
     }
 
-    public HexTile(HexCoord coord, TerrainType terrainType, int? productionNumber = null)
+    public HexTile(HexCoord coord, TerrainType terrainType)
     {
         Coord = coord;
         TerrainType = terrainType;
-        ProductionNumber = productionNumber;
-
-        // Validation: only producing terrains can have production numbers
-        if (productionNumber.HasValue && !Resource.HasValue)
-        {
-            throw new ArgumentException("Only terrain types that produce resources can have production numbers.");
-        }
     }
 
     public HexCoord Coord { get; set; }
     public TerrainType TerrainType { get; set; }
-    public Resource? Resource => TerrainTypeMappings.TerrainResourceMap[TerrainType];
-    public int? ProductionNumber { get; set; }
 
     public override string ToString()
     {
-        return $"HexTile({Coord}, {TerrainType}, {Resource}, {ProductionNumber})";
+        return $"HexTile({Coord}, {TerrainType})";
     }
 }

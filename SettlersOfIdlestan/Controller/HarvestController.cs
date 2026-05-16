@@ -123,33 +123,27 @@ namespace SettlersOfIdlestan.Controller
                 {
                     foreach (var building in city.Buildings)
                     {
-                        // Buildings without production skip
-                        if (building.Production == null || building.Production.Count == 0) continue;
-
-                        // For each produced resource, attempt to harvest one adjacent hex that contains this resource.
-                        foreach (var prod in building.Production)
+                        var hexes = city.Position.GetHexes();
+                        foreach (var hex in hexes)
                         {
-                            var resource = prod.Key;
-                            // find an adjacent tile of the city that provides this resource
-                            var hexes = city.Position.GetHexes();
-                            foreach (var hex in hexes)
-                            {
-                                if (hex == null) continue;
-                                var tile = _state.Map.GetTile(hex);
-                                if (tile == null || tile.Resource == null) continue;
-                                if (tile.Resource.Value != resource) continue;
+                            if (hex == null) continue;
+                            var tile = _state.Map.GetTile(hex);
+                            if (tile == null) continue;
 
+                            Resource? resource = building.AutomaticHarvestCapability(tile.TerrainType);
+                            if (resource != null)
+                            {
                                 // check automatic cooldown
                                 if (autoMap.TryGetValue(hex, out var lastAuto) && now - lastAuto < AutomaticHarvestCooldown)
                                 {
                                     continue;
                                 }
-
+                                var res = resource.Value;
                                 // perform harvest: add one unit
-                                civ.AddResource(resource, 1);
+                                civ.AddResource(res, 1);
                                 autoMap[hex] = now;
                                 // Déclenche l'événement de récolte
-                                OnHarvestCompleted?.Invoke(this, new HarvestCompletedEventArgs(civ.Index, hex, resource, city.Position, isAutomatic: true));
+                                OnHarvestCompleted?.Invoke(this, new HarvestCompletedEventArgs(civ.Index, hex, res, city.Position, isAutomatic: true));
                                 // only harvest one hex per production entry per invocation
                                 break;
                             }
@@ -185,25 +179,42 @@ namespace SettlersOfIdlestan.Controller
                 return false; // still on cooldown for this hex
             }
 
-            // Find a city that is adjacent to the hex (i.e., city vertex contains the hex)
-            var city = civ.Cities.FirstOrDefault(c => c.Position.IsAdjacentTo(hex));
-            if (city == null)
+            // Find all adjacent cities
+            var cities = civ.Cities.Where(c => c.Position.IsAdjacentTo(hex)).ToList();
+            if (cities.Count == 0)
                 throw new ArgumentException("Specified hex is not adjacent to any city of the civilization", nameof(hex));
 
             // Verify the hex exists and has a resource
             var tile = _state.Map.GetTile(hex);
             if (tile == null) return false;
-            var resource = tile.Resource;
-            if (resource == null) return false;
 
-            // Add one unit of the resource to the civilization
-            civ.AddResource(resource.Value, 1);
+            List<Resource> manualHarvestResources = new List<Resource>();
+            foreach (var city in cities)
+            {
+                foreach (var building in city.Buildings)
+                {
+                    Resource? resource = building.ManualHarvestCapability(tile.TerrainType);
+                    if (resource != null)
+                    {
+                        var res = resource.Value;
+                        if (!manualHarvestResources.Contains(res))
+                        {
+                            manualHarvestResources.Add(res); 
+
+                            // Add one unit of the resource to the civilization
+                            civ.AddResource(res, 1);
+
+                            // Déclenche l'événement de récolte
+                            OnHarvestCompleted?.Invoke(this, new HarvestCompletedEventArgs(civilizationIndex, hex, res, city.Position, isAutomatic: false));
+                        }
+                    }
+                }
+            }
+
+            if (manualHarvestResources.Count == 0) return false;
 
             // Update last harvest time for this hex so cooldown persists in the model
             perHex[hex] = now;
-
-            // Déclenche l'événement de récolte
-            OnHarvestCompleted?.Invoke(this, new HarvestCompletedEventArgs(civilizationIndex, hex, resource.Value, city.Position, isAutomatic: false));
 
             return true;
         }

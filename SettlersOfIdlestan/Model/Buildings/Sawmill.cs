@@ -13,9 +13,15 @@ public class Sawmill : Building
     /// </summary>
     public Sawmill() : base(BuildingType.Sawmill)
     {
-        Production.Add(Resource.Wood, 1);
         MaxLevel = 4;
         AvailableAtLevel = 1;
+    }
+
+    public override Resource? AutomaticHarvestCapability(TerrainType terrain)
+    {
+        if (terrain == TerrainType.Forest)
+            return Resource.Wood;
+        return null;
     }
 
     public override ResourceCost GetBuildCost() => new ResourceCost

@@ -118,7 +118,7 @@ namespace SettlersOfIdlestan.Controller.Generator;
             {
                 var terrainType = shuffledTiles[i];
 
-                var newTile = new HexTile(coords[i], terrainType, null);
+                var newTile = new HexTile(coords[i], terrainType);
                 tiles.Add(newTile);
             }
 

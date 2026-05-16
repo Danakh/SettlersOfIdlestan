@@ -26,11 +26,11 @@ namespace SOITests.ControllerTests
             // Assign terrains so harvesting will provide wood and brick over multiple waves
             var tiles = new[]
             {
-                new HexTile(a, TerrainType.Forest), // wood
-                new HexTile(b, TerrainType.Hill),   // brick
-                new HexTile(c, TerrainType.Pasture), // sheep
-                new HexTile(d, TerrainType.Field),   // wheat
-                new HexTile(e, TerrainType.Forest),  // wood
+                new HexTile(a, TerrainType.Forest),
+                new HexTile(b, TerrainType.Hill),
+                new HexTile(c, TerrainType.Plain),
+                new HexTile(d, TerrainType.Forest),
+                new HexTile(e, TerrainType.Desert),
             };
 
             var map = new IslandMap(tiles);

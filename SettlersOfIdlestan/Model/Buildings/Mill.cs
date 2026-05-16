@@ -12,10 +12,16 @@ public class Mill : Building
     /// Initializes a new instance of the <see cref="Mill"/> class.
     /// </summary>
     public Mill() : base(BuildingType.Mill)
-    {
-        Production.Add(Resource.Food, 1);
+    {     
         MaxLevel = 4;
         AvailableAtLevel = 1;
+    }
+
+    public override Resource? AutomaticHarvestCapability(TerrainType terrain)
+    {
+        if (terrain == TerrainType.Plain)
+            return Resource.Food;
+        return null;
     }
 
     public override ResourceCost GetBuildCost() => new ResourceCost
@@ -34,6 +40,6 @@ public class Mill : Building
     {
         if (!base.IsBuildingAvailableForCity(map, city))
             return false;
-        return map.VertexHasTerrainType(city.Position, TerrainType.Field);
+        return map.VertexHasTerrainType(city.Position, TerrainType.Plain);
     }
 }

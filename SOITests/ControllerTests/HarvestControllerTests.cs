@@ -22,9 +22,9 @@ namespace SOITests.ControllerTests
 
             var tiles = new[]
             {
-                new HexTile(a, TerrainType.Forest), // wood
-                new HexTile(b, TerrainType.Field),  // wheat
-                new HexTile(c, TerrainType.Field),  // wheat
+                new HexTile(a, TerrainType.Forest),
+                new HexTile(b, TerrainType.Plain),
+                new HexTile(c, TerrainType.Plain),
             };
 
             var map = new IslandMap(tiles);

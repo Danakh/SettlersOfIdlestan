@@ -12,9 +12,15 @@ public class Forge : Building
     /// </summary>
     public Forge() : base(BuildingType.Forge)
     {
-        Production.Add(Resource.Ore, 1);
         MaxLevel = 4;
         AvailableAtLevel = 2;
+    }
+
+    public override Resource? AutomaticHarvestCapability(TerrainType terrain)
+    {
+        if (terrain == TerrainType.Mountain)
+            return Resource.Ore;
+        return null;
     }
 
     public override ResourceCost GetBuildCost() => new ResourceCost

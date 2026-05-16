@@ -16,6 +16,19 @@ public class TownHall : Building
         AvailableAtLevel = 1;
     }
 
+    public override Resource? ManualHarvestCapability(TerrainType terrain)
+    {
+        if (terrain == TerrainType.Forest)
+            return Resource.Wood;
+        if (terrain == TerrainType.Hill)
+            return Resource.Brick;
+        if (terrain == TerrainType.Plain)
+            return Resource.Food;
+        if (terrain == TerrainType.Mountain)
+            return Resource.Stone;
+        return null;
+    }
+
     public override ResourceCost GetBuildCost() => new ResourceCost
     {
         { Resource.Food, 2 },

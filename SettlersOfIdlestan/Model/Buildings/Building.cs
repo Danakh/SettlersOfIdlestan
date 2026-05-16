@@ -98,7 +98,12 @@ public class Building
     /// <summary>
     /// Gets the harvest capability of the building.
     /// </summary>
-    public ResourceCost Production { get; } = new ResourceCost();
+    public virtual Resource? ManualHarvestCapability(TerrainType terrain) => null;
+
+    /// <summary>
+    /// Gets the harvest capability of the building.
+    /// </summary>
+    public virtual Resource? AutomaticHarvestCapability(TerrainType terrain) => null;
 
     /// <summary>
     /// Gets or sets the maximum level of the building.

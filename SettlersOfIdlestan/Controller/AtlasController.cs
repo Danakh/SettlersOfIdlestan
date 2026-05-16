@@ -16,11 +16,11 @@ namespace SettlersOfIdlestan.Controller
                 // Exemple de configuration standard (à adapter selon la logique du jeu)
                 var tileData = new List<(TerrainType terrainType, int tileCount)>
                 {
-                    (TerrainType.Forest, 4),
-                    (TerrainType.Hill, 4),
-                    (TerrainType.Pasture, 4),
-                    (TerrainType.Field, 4),
-                    (TerrainType.Mountain, 3),
+                    (TerrainType.Forest, 5),
+                    (TerrainType.Hill, 5),
+                    (TerrainType.Plain, 5),
+                    (TerrainType.Mountain, 5),
+                    (TerrainType.Desert, 1),
                 };
                 int civilizationCount = 1;
                 return new IslandParameters(islandId, tileData, civilizationCount);

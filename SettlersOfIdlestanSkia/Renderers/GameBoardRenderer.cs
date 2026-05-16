@@ -20,11 +20,10 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
     // Dictionnaire de couleurs pour les types de terrain
     private static readonly Dictionary<TerrainType, SKColor> TerrainColors = new()
     {
-        { TerrainType.Mountain, new SKColor(139, 69, 19) },      // Marron
         { TerrainType.Forest, new SKColor(34, 139, 34) },        // Vert foncé
-        { TerrainType.Pasture, new SKColor(144, 238, 144) },     // Vert clair
         { TerrainType.Hill, new SKColor(210, 180, 140) },        // Tan
-        { TerrainType.Field, new SKColor(255, 215, 0) },         // Or
+        { TerrainType.Plain, new SKColor(144, 238, 144) },       // Vert clair
+        { TerrainType.Mountain, new SKColor(139, 69, 19) },      // Marron
         { TerrainType.Desert, new SKColor(238, 214, 175) },      // Sable
         { TerrainType.Water, new SKColor(30, 144, 255) },        // Bleu
     };
@@ -104,13 +103,6 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
 
         if (_hexBorderPaint != null)
             canvas.DrawPath(PointsToPath(points), _hexBorderPaint);
-
-        // Affiche le numéro de production si applicable
-        if (_textPaint != null && tile.ProductionNumber.HasValue)
-        {
-            _textPaint.Color = SKColors.White;
-            canvas.DrawText(tile.ProductionNumber.ToString(), centerX, centerY, SKTextAlign.Center, _textFont, _textPaint);
-        }
 
         // Affiche les coordonnées (q, r) en mode debug
         if (DebugOverlayRenderer.DebugMode && _textPaint != null && tile.Coord != null)

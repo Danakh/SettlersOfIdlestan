@@ -13,9 +13,15 @@ public class Brickworks : Building
     /// </summary>
     public Brickworks() : base(BuildingType.Brickworks)
     {
-        Production.Add(Resource.Brick, 1);
         MaxLevel = 4;
         AvailableAtLevel = 1;
+    }
+
+    public override Resource? AutomaticHarvestCapability(TerrainType terrain)
+    {
+        if (terrain == TerrainType.Hill)
+            return Resource.Brick;
+        return null;
     }
 
     /// <summary>

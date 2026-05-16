@@ -18,6 +18,20 @@ public class Seaport : Building
         Actions.Add("Prestige");
     }
 
+    public override Resource? ManualHarvestCapability(TerrainType terrain)
+    {
+        if (terrain == TerrainType.Water)
+            return Resource.Food;
+        return null;
+    }
+
+    public override Resource? AutomaticHarvestCapability(TerrainType terrain)
+    {
+        if ((Level > 1) && (terrain == TerrainType.Water))
+            return Resource.Food;
+        return null;
+    }
+
     public override ResourceCost GetBuildCost() => new ResourceCost
     {
         { Resource.Wood, 10 },

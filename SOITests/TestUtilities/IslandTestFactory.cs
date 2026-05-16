@@ -27,13 +27,13 @@ public static class IslandTestFactory
 
         var tiles = new List<HexTile>
         {
-            new HexTile(center, TerrainType.Field),
+            new HexTile(center, TerrainType.Plain),
             new HexTile(e, TerrainType.Forest),
             new HexTile(w, TerrainType.Hill),
-            new HexTile(ne, TerrainType.Pasture),
+            new HexTile(ne, TerrainType.Plain),
             new HexTile(sw, TerrainType.Mountain),
             new HexTile(nw, TerrainType.Forest),
-            new HexTile(se, TerrainType.Pasture),
+            new HexTile(se, TerrainType.Plain),
         };
 
         var map = new IslandMap(tiles);

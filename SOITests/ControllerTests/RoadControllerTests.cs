@@ -19,9 +19,9 @@ public class RoadControllerTests
 
         var tiles = new[]
         {
-            new HexTile(a, TerrainType.Field),
-            new HexTile(b, TerrainType.Field),
-            new HexTile(c, TerrainType.Field),
+            new HexTile(a, TerrainType.Plain),
+            new HexTile(b, TerrainType.Plain),
+            new HexTile(c, TerrainType.Plain),
         };
 
         var map = new IslandMap(tiles);
@@ -49,9 +49,9 @@ public class RoadControllerTests
 
         var tiles = new[]
         {
-            new HexTile(a, TerrainType.Field),
-            new HexTile(b, TerrainType.Field),
-            new HexTile(c, TerrainType.Field),
+            new HexTile(a, TerrainType.Plain),
+            new HexTile(b, TerrainType.Plain),
+            new HexTile(c, TerrainType.Plain),
         };
 
         var map = new IslandMap(tiles);
@@ -82,9 +82,9 @@ public class RoadControllerTests
 
         var tiles = new[]
         {
-            new HexTile(a, TerrainType.Field),
-            new HexTile(b, TerrainType.Field),
-            new HexTile(c, TerrainType.Field),
+            new HexTile(a, TerrainType.Plain),
+            new HexTile(b, TerrainType.Plain),
+            new HexTile(c, TerrainType.Plain),
         };
 
         var map = new IslandMap(tiles);
@@ -119,10 +119,10 @@ public class RoadControllerTests
 
         var tiles = new[]
         {
-            new HexTile(a, TerrainType.Field),
-            new HexTile(b, TerrainType.Field),
-            new HexTile(c, TerrainType.Field),
-            new HexTile(d, TerrainType.Field),
+            new HexTile(a, TerrainType.Plain),
+            new HexTile(b, TerrainType.Plain),
+            new HexTile(c, TerrainType.Plain),
+            new HexTile(d, TerrainType.Plain),
         };
 
         var map = new IslandMap(tiles);

@@ -23,8 +23,7 @@ namespace SOITests.src.IslandMapTests
             {
                 (TerrainType.Forest, 3),
                 (TerrainType.Hill, 3),
-                (TerrainType.Pasture, 3),
-                (TerrainType.Field, 3),
+                (TerrainType.Plain, 3),
                 (TerrainType.Mountain, 3),
             };
 
@@ -116,9 +115,7 @@ namespace SOITests.src.IslandMapTests
             // Repeat until no more production buildings are buildable
             for (int i = 0; i < 20; i++)
             {
-                var candidates = controller.BuildingController.GetBuildingsAndBuildables(civ.Index, newVertex)
-                                 .Where(b => b.Production != null && b.Production.Any())
-                                 .ToList();
+                var candidates = controller.BuildingController.GetBuildingsAndBuildables(civ.Index, newVertex);
                 if (!candidates.Any()) break;
 
                 foreach (var cand in candidates)
@@ -133,9 +130,8 @@ namespace SOITests.src.IslandMapTests
 
             Assert.True(createdCity.Buildings.Any(b => b.Type == BuildingType.TownHall), "TownHall not found in created city");
 
-            var productionBuilt = createdCity.Buildings.Where(b => b.Production != null && b.Production.Any()).Select(b => b.Type).ToHashSet();
-            // Ensure we built at least one production building
-            Assert.True(productionBuilt.Count >= 1, "Expected at least one production building in the new city");
+            Assert.True(createdCity.Buildings.Any(b => b.Type == BuildingType.Brickworks), "Expected brickworks building in the new city");
+            Assert.True(createdCity.Buildings.Any(b => b.Type == BuildingType.Sawmill), "Expected sawmill building in the new city");
 
             // Save final state for inspection if needed
             SaveUtils.SaveAndReloadAndAssertEqual(controller, "FulIslandTestSecondColony");
