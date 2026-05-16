@@ -177,8 +177,8 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
     public SKPoint ScreenToIsland(SKPoint screenPoint, SKSize canvasSize, float zoomLevel, SKPoint cameraPos)
     {
         return new SKPoint(
-            (screenPoint.X - canvasSize.Width / 2f) / zoomLevel,
-            (screenPoint.Y - canvasSize.Height / 2f) / zoomLevel);
+            screenPoint.X / zoomLevel + cameraPos.X,
+            screenPoint.Y / zoomLevel + cameraPos.Y);
     }
 
     public (int q, int r) ScreenToHex(SKPoint screenPoint, SKSize canvasSize, float zoomLevel, SKPoint cameraPos)
@@ -212,7 +212,7 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
 
     private CameraTransformScope ApplyCameraTransform(SKCanvas canvas, GameRenderContext context)
     {
-        return new CameraTransformScope(canvas, context.CanvasSize, context.ZoomLevel);
+        return new CameraTransformScope(canvas, context.ZoomLevel, context.CameraPosition);
     }
 
     private sealed class CameraTransformScope : IDisposable
@@ -220,11 +220,11 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
         private readonly SKCanvas _canvas;
         private bool _disposed;
 
-        public CameraTransformScope(SKCanvas canvas, SKSize canvasSize, float zoomLevel)
+        public CameraTransformScope(SKCanvas canvas, float zoomLevel, SKPoint cameraPos)
         {
             _canvas = canvas;
             _canvas.Save();
-            _canvas.Translate(canvasSize.Width / 2, canvasSize.Height / 2);
+            _canvas.Translate(-cameraPos.X * zoomLevel, -cameraPos.Y * zoomLevel);
             _canvas.Scale(zoomLevel, zoomLevel);
         }
 

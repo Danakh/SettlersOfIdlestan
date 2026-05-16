@@ -36,6 +36,13 @@ public sealed class SkiaGameRuntime : IDisposable
     private bool _isCanvasInitialized;
 
     private SKSize _lastCanvasSize;
+    private bool _isPointerDown;
+    private bool _isPanning;
+    private long _activePanPointerId;
+    private SKPoint _lastPanPoint;
+    private SKPoint _panStartPoint;
+    private const float PanStartThresholdSquared = 16f;
+    private const float ZoomStep = 1.12f;
 
     private readonly System.Diagnostics.Stopwatch _tickStopwatch = new();
     private readonly System.Diagnostics.Stopwatch _fpsStopwatch = new();
@@ -235,6 +242,11 @@ public sealed class SkiaGameRuntime : IDisposable
     {
         lock (_sync)
         {
+            _isPointerDown = true;
+            _isPanning = false;
+            _activePanPointerId = pointerId;
+            _panStartPoint = new SKPoint(x, y);
+            _lastPanPoint = _panStartPoint;
             _inputService?.HandlePointerPressed(x, y, pointerId);
         }
     }
@@ -243,6 +255,24 @@ public sealed class SkiaGameRuntime : IDisposable
     {
         lock (_sync)
         {
+            if (_isPointerDown && pointerId == _activePanPointerId && _cameraService != null)
+            {
+                var point = new SKPoint(x, y);
+                var startDx = point.X - _panStartPoint.X;
+                var startDy = point.Y - _panStartPoint.Y;
+                if (!_isPanning && startDx * startDx + startDy * startDy >= PanStartThresholdSquared)
+                {
+                    _isPanning = true;
+                }
+
+                if (_isPanning)
+                {
+                    _cameraService.Pan(point.X - _lastPanPoint.X, point.Y - _lastPanPoint.Y);
+                }
+
+                _lastPanPoint = point;
+            }
+
             _inputService?.HandlePointerMoved(x, y, pointerId);
         }
     }
@@ -251,7 +281,27 @@ public sealed class SkiaGameRuntime : IDisposable
     {
         lock (_sync)
         {
-            _inputService?.HandlePointerReleased(x, y, pointerId);
+            var wasPanning = _isPanning && pointerId == _activePanPointerId;
+            _isPointerDown = false;
+            _isPanning = false;
+
+            if (!wasPanning)
+            {
+                _inputService?.HandlePointerReleased(x, y, pointerId);
+            }
+        }
+    }
+
+    public void HandleZoom(float wheelDelta, float x, float y)
+    {
+        lock (_sync)
+        {
+            if (_cameraService == null || wheelDelta == 0)
+                return;
+
+            var zoomFactor = wheelDelta > 0 ? ZoomStep : 1f / ZoomStep;
+            _cameraService.ZoomAt(_cameraService.ZoomLevel * zoomFactor, new SKPoint(x, y));
+            _inputService?.HandleZoom(wheelDelta, x, y);
         }
     }
 

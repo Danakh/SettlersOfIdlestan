@@ -38,6 +38,7 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
 
         _inputService.PointerMoved += OnPointerMoved;
         _inputService.PointerPressed += OnPointerPressed;
+        _inputService.PointerReleased += OnPointerReleased;
     }
 
     public void AttachRenderer(IslandMainRenderer renderer)
@@ -51,6 +52,11 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
     }
 
     private void OnPointerPressed(object? sender, PointerEventArgs e)
+    {
+        RefreshHover(e.Position);
+    }
+
+    private void OnPointerReleased(object? sender, PointerEventArgs e)
     {
         RefreshHover(e.Position);
 
@@ -168,6 +174,7 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
     {
         _inputService.PointerMoved -= OnPointerMoved;
         _inputService.PointerPressed -= OnPointerPressed;
+        _inputService.PointerReleased -= OnPointerReleased;
     }
 }
 

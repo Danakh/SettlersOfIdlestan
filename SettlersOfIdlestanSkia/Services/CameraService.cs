@@ -44,6 +44,7 @@ public class CameraService
     public void FitMapToView(IEnumerable<SettlersOfIdlestan.Model.HexGrid.HexCoord> hexCoords, float hexSize = 40f)
     {
         const float HexSize = 40f;
+        float sqrt3 = (float)System.Math.Sqrt(3);
         
         var coords = hexCoords.ToList();
         if (coords.Count == 0)
@@ -58,8 +59,8 @@ public class CameraService
 
         foreach (var hex in coords)
         {
-            float x = HexSize * (3f / 2 * hex.Q);
-            float y = HexSize * (float)System.Math.Sqrt(3) / 2 * hex.Q + HexSize * (float)System.Math.Sqrt(3) * hex.R;
+            float x = HexSize * sqrt3 * (hex.Q + hex.R / 2f);
+            float y = HexSize * -3f / 2f * hex.R;
 
             minX = Math.Min(minX, x);
             maxX = Math.Max(maxX, x);
@@ -104,6 +105,23 @@ public class CameraService
             _zoomLevel = zoom;
             _isDirty = true;
         }
+    }
+
+    /// <summary>
+    /// Définit le zoom en gardant le point sous le curseur au même endroit du monde.
+    /// </summary>
+    public void ZoomAt(float zoom, SKPoint screenCenter)
+    {
+        if (zoom < 0.1f || zoom > 10f)
+            return;
+
+        var worldUnderCursor = ScreenToWorld(screenCenter);
+        _zoomLevel = zoom;
+        _position = new SKPoint(
+            worldUnderCursor.X - screenCenter.X / _zoomLevel,
+            worldUnderCursor.Y - screenCenter.Y / _zoomLevel
+        );
+        _isDirty = true;
     }
 
     /// <summary>

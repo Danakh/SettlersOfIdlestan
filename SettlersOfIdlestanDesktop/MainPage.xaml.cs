@@ -69,6 +69,10 @@ public partial class MainPage : ContentPage
 			case SKTouchAction.Cancelled:
 				_runtime.HandlePointerReleased(e.Location.X, e.Location.Y, (int)e.Id);
 				break;
+
+			case SKTouchAction.WheelChanged:
+				_runtime.HandleZoom(e.WheelDelta, e.Location.X, e.Location.Y);
+				break;
 		}
 
 		e.Handled = true;
