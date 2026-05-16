@@ -101,7 +101,7 @@ namespace SettlersOfIdlestan.Controller
             };
         }
 
-        public int MinDistanceBetweenCities => 2;
-        public int MinDistanceBetweenCivilizationCities => 2;
+        public int MinDistanceBetweenCities => 1;
+        public int MinDistanceBetweenCivilizationCities => 3;
     }
 }

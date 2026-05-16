@@ -97,8 +97,8 @@ namespace SOITests.src.IslandMapTests
 
             var autoplayer = new CivilizationAutoplayer(civ, controller.CurrentMainState!.CurrentIslandState!.Map, controller);
 
-            // Build roads until we have a buildable road at distance 2
-            autoplayer.AutoBuildRoadToDistance(2);
+            // Build roads until we have a buildable road at distance 3
+            autoplayer.AutoBuildRoadToDistance(3);
 
             // Find a buildable vertex for a new outpost (different from original city)
             var buildableVerts = controller.CityBuilderController.GetBuildableVertices(civ.Index);

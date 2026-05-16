@@ -16,11 +16,12 @@ namespace SOITests.ControllerTests
         [Fact]
         public void Autoplayer_BuildingASecondCity()
         {
-            // Create a small map with 4 tiles around the initial area
+            // Create a small map with 5 tiles around the initial area
             var a = new HexCoord(0, 0);
             var b = new HexCoord(1, 0);
             var c = new HexCoord(0, 1);
             var d = new HexCoord(1, 1);
+            var e = new HexCoord(2, 0);
 
             // Assign terrains so harvesting will provide wood and brick over multiple waves
             var tiles = new[]
@@ -29,6 +30,7 @@ namespace SOITests.ControllerTests
                 new HexTile(b, TerrainType.Hill),   // brick
                 new HexTile(c, TerrainType.Pasture), // sheep
                 new HexTile(d, TerrainType.Field),   // wheat
+                new HexTile(e, TerrainType.Forest),  // wood
             };
 
             var map = new IslandMap(tiles);
@@ -59,12 +61,17 @@ namespace SOITests.ControllerTests
             Assert.True(firstBuilt, "First road should eventually be built by the autoplayer");
             Assert.Contains(civ.Roads, r => r.Position.Equals(firstBuildable));
 
-            // Pick a second buildable road not linked with the initial city (distance 2):
-            // after b-c is built, b-d and c-d become reachable via vertex(b,c,d).
-            var secondBuildable = roadController.GetBuildableRoadsAtDistance(0, 2).First().Position;
+            // Pick a second road through vertex(b,c,d), then a third road ending far
+            // enough for the new city distance rule.
+            var secondBuildable = Edge.Create(b, d);
             var secondBuilt = auto.AutoBuildRoad(secondBuildable);
             Assert.True(secondBuilt, "Second road should eventually be built by the autoplayer");
             Assert.Contains(civ.Roads, r => r.Position.Equals(secondBuildable));
+
+            var thirdBuildable = Edge.Create(b, e);
+            var thirdBuilt = auto.AutoBuildRoad(thirdBuildable);
+            Assert.True(thirdBuilt, "Third road should eventually be built by the autoplayer");
+            Assert.Contains(civ.Roads, r => r.Position.Equals(thirdBuildable));
 
             // Verify that at least 20 seconds of in-game time have passed
             Assert.True(clock.Elapsed >= TimeSpan.FromSeconds(18), $"Expected at least 18s elapsed in the GameClock, was {clock.Elapsed}");
@@ -77,7 +84,9 @@ namespace SOITests.ControllerTests
             // Now attempt to build a city (outpost) with the autoplayer. This may require
             // trading sheep and wheat tiles over time; repeatedly try while advancing clock.
             var cityBuilder = new CityBuilderController(state);
-            var buildableVertex = cityBuilder.GetBuildableVertices(0).FirstOrDefault();
+            var buildableVertex = thirdBuildable.GetVertices()
+                .Single(v => vertex.EdgeDistanceTo(v) == cityBuilder.MinDistanceBetweenCivilizationCities);
+            Assert.Contains(cityBuilder.GetBuildableVertices(0), v => v.Equals(buildableVertex));
             Assert.NotNull(buildableVertex);
 
             var outpostBuilt = auto.AutoBuildOutpost(buildableVertex);
@@ -85,7 +94,7 @@ namespace SOITests.ControllerTests
             Assert.Contains(civ.Cities, c => c.Position.Equals(buildableVertex));
 
             // Save the resulting game state and verify round-trip using test utility
-            SaveUtils.SaveAndReloadAndAssertEqual(mainController, "4HexsMapWithTwoCities");
+            SaveUtils.SaveAndReloadAndAssertEqual(mainController, "5HexsMapWithTwoCities");
         }
     }
 }
