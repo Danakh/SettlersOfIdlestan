@@ -87,6 +87,7 @@ namespace SettlersOfIdlestan.Controller
 
             var city = new City(vertex) { CivilizationIndex = civilizationIndex };
             civ.Cities.Add(city);
+            _state.RecalculateVisibleIslandMap(civilizationIndex);
             return city;
         }
 

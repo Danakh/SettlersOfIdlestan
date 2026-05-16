@@ -134,6 +134,8 @@ namespace SettlersOfIdlestan.Controller
 
             if (islandState != null)
             {
+                islandState.RecalculateVisibleIslandMaps();
+
                 // Initialize controllers to operate on the real island state and clock
                 RoadController.Initialize(islandState);
                 HarvestController.Initialize(islandState, Clock);

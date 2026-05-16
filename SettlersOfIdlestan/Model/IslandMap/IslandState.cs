@@ -3,6 +3,7 @@ using SettlersOfIdlestan.Model;
 using System;
 using System.Collections.Generic;
 using SettlersOfIdlestan.Model.Civilization;
+using System.Text.Json.Serialization;
 
 namespace SettlersOfIdlestan.Model.IslandMap;
 
@@ -10,7 +11,7 @@ namespace SettlersOfIdlestan.Model.IslandMap;
 /// Represents the state of an island, containing the map and all civilizations.
 /// </summary>
 [Serializable]
-public class IslandState
+public class IslandState : IJsonOnDeserialized
 {
     public IslandMap Map { get; set; }
 
@@ -25,6 +26,13 @@ public class IslandState
     /// Gets the player's civilization (always at index 0).
     /// </summary>
     public SettlersOfIdlestan.Model.Civilization.Civilization PlayerCivilization => Civilizations[0];
+
+    /// <summary>
+    /// Runtime-only visible maps, keyed by civilization index.
+    /// Rebuilt from Map and Civilizations after deserialization and after construction changes.
+    /// </summary>
+    [JsonIgnore]
+    public Dictionary<int, VisibleIslandMap> VisibleIslandMaps { get; private set; } = new();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="IslandState"/> class.
@@ -42,6 +50,7 @@ public class IslandState
         HarvestLastTimesByCivilization = new Dictionary<int, Dictionary<SettlersOfIdlestan.Model.HexGrid.HexCoord, DateTimeOffset>>();
         // Separate timestamps for automatic production harvests performed by buildings
         AutomaticHarvestLastTimesByCivilization = new Dictionary<int, Dictionary<SettlersOfIdlestan.Model.HexGrid.HexCoord, DateTimeOffset>>();
+        RecalculateVisibleIslandMaps();
     }
 
     /// <summary>
@@ -54,6 +63,32 @@ public class IslandState
         Civilizations = new List<SettlersOfIdlestan.Model.Civilization.Civilization>();
         HarvestLastTimesByCivilization = new Dictionary<int, Dictionary<SettlersOfIdlestan.Model.HexGrid.HexCoord, DateTimeOffset>>();
         AutomaticHarvestLastTimesByCivilization = new Dictionary<int, Dictionary<SettlersOfIdlestan.Model.HexGrid.HexCoord, DateTimeOffset>>();
+    }
+
+    public void OnDeserialized()
+    {
+        RecalculateVisibleIslandMaps();
+    }
+
+    /// <summary>
+    /// Rebuilds visible maps for every civilization.
+    /// </summary>
+    public void RecalculateVisibleIslandMaps()
+    {
+        VisibleIslandMaps = Civilizations.ToDictionary(
+            civilization => civilization.Index,
+            civilization => new VisibleIslandMap(Map, civilization));
+    }
+
+    /// <summary>
+    /// Rebuilds the visible map for one civilization after a road or city changed.
+    /// </summary>
+    public void RecalculateVisibleIslandMap(int civilizationIndex)
+    {
+        var civilization = Civilizations.FirstOrDefault(c => c.Index == civilizationIndex)
+            ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
+
+        VisibleIslandMaps[civilizationIndex] = new VisibleIslandMap(Map, civilization);
     }
 
     /// <summary>

@@ -83,7 +83,14 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
 
         // Fallback: garde le comportement de récolte manuelle sur clic hex.
         var hex = _renderer.ScreenToHex(e.Position, _cameraService.CanvasSize, _cameraService.ZoomLevel, _cameraService.Position);
-        _harvestService.TryManualHarvest(new HexCoord(hex.q, hex.r));
+        var hexCoord = new HexCoord(hex.q, hex.r);
+        var islandState = _gameControllerService.CurrentIslandState;
+        var playerIndex = islandState?.PlayerCivilization.Index ?? 0;
+        if (islandState?.VisibleIslandMaps.TryGetValue(playerIndex, out var visibleMap) == true &&
+            visibleMap.HasTile(hexCoord))
+        {
+            _harvestService.TryManualHarvest(hexCoord);
+        }
         RefreshHover(e.Position);
     }
 
@@ -136,7 +143,11 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
         if (_renderer == null)
             return null;
 
-        var cities = _gameControllerService?.CurrentIslandState?.GetAllCities();
+        var islandState = _gameControllerService.CurrentIslandState;
+        if (islandState == null)
+            return null;
+
+        var cities = islandState.GetAllCities();
         if (cities == null || !cities.Any())
             return null;
 
@@ -145,6 +156,13 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
 
         foreach (var city in cities)
         {
+            var playerIndex = islandState.PlayerCivilization.Index;
+            if (islandState.VisibleIslandMaps.TryGetValue(playerIndex, out var visibleMap) &&
+                !city.Position.GetHexes().Any(visibleMap.HasTile))
+            {
+                continue;
+            }
+
             var pt = _renderer.VertexToIslandPoint(city.Position);
             var dist = Distance(islandPoint, pt);
             if (dist < bestDistance)

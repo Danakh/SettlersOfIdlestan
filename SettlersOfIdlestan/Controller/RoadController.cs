@@ -142,6 +142,7 @@ namespace SettlersOfIdlestan.Controller
 
             ComputeRoadDistancesForCivilization(civ);
             _buildableRoadsCache.Remove(civilizationIndex);
+            _state.RecalculateVisibleIslandMap(civilizationIndex);
             return road;
         }
 

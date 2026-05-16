@@ -2,6 +2,7 @@ using SkiaSharp;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.Civilization;
+using SettlersOfIdlestan.Model.IslandMap;
 
 namespace SettlersOfIdlestanSkia.Renderers;
 
@@ -61,10 +62,13 @@ public class CityRenderer : HexBasedRenderer, IGameRenderer
             var islandState = mainGameState.CurrentIslandState;
             if (islandState != null)
             {
+                if (!islandState.VisibleIslandMaps.TryGetValue(islandState.PlayerCivilization.Index, out var visibleMap))
+                    return;
+
                 // Dessine les villes de chaque civilisation
                 foreach (var civilization in islandState.Civilizations)
                 {
-                    DrawCities(canvas, civilization.Cities, civilization.Index);
+                    DrawCities(canvas, civilization.Cities, civilization.Index, visibleMap);
                 }
             }
         }
@@ -73,7 +77,7 @@ public class CityRenderer : HexBasedRenderer, IGameRenderer
     /// <summary>
     /// Dessine les villes d'une civilisation.
     /// </summary>
-    private void DrawCities(SKCanvas canvas, List<City> cities, int civilizationIndex)
+    private void DrawCities(SKCanvas canvas, List<City> cities, int civilizationIndex, IslandMap visibleMap)
     {
         if (cities.Count == 0 || _settlementPaint == null || _cityPaint == null || _borderPaint == null)
             return;
@@ -83,6 +87,9 @@ public class CityRenderer : HexBasedRenderer, IGameRenderer
 
         foreach (var city in cities)
         {
+            if (!IsCityVisible(city, visibleMap))
+                continue;
+
             // Calcule la position du sommet (vertex)
             var pixelPos = VertexToIsland(city.Position);
 
@@ -106,6 +113,11 @@ public class CityRenderer : HexBasedRenderer, IGameRenderer
                 textPaint.Dispose();
             }
         }
+    }
+
+    private static bool IsCityVisible(City city, IslandMap visibleMap)
+    {
+        return city.Position.GetHexes().Any(visibleMap.HasTile);
     }
 
     public void Dispose()

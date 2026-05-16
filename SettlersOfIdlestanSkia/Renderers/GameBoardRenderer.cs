@@ -67,7 +67,10 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
             var islandState = mainGameState.CurrentIslandState;
             if (islandState != null)
             {
-                DrawIslandMap(canvas, islandState.Map);
+                if (islandState.VisibleIslandMaps.TryGetValue(islandState.PlayerCivilization.Index, out var visibleMap))
+                {
+                    DrawIslandMap(canvas, visibleMap);
+                }
             }
         }
     }

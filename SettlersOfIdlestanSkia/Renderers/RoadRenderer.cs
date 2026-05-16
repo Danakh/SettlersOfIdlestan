@@ -2,6 +2,7 @@ using SkiaSharp;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.Civilization;
+using SettlersOfIdlestan.Model.IslandMap;
 
 namespace SettlersOfIdlestanSkia.Renderers;
 
@@ -44,10 +45,13 @@ public class RoadRenderer : HexBasedRenderer, IGameRenderer
             var islandState = mainGameState.CurrentIslandState;
             if (islandState != null)
             {
+                if (!islandState.VisibleIslandMaps.TryGetValue(islandState.PlayerCivilization.Index, out var visibleMap))
+                    return;
+
                 // Dessine les routes de chaque civilisation
                 foreach (var civilization in islandState.Civilizations)
                 {
-                    DrawRoads(canvas, islandState.Map, civilization.Roads, civilization.Index);
+                    DrawRoads(canvas, visibleMap, civilization.Roads, civilization.Index);
                 }
             }
         }
@@ -56,7 +60,7 @@ public class RoadRenderer : HexBasedRenderer, IGameRenderer
     /// <summary>
     /// Dessine les routes d'une civilisation.
     /// </summary>
-    private void DrawRoads(SKCanvas canvas, SettlersOfIdlestan.Model.IslandMap.IslandMap map, 
+    private void DrawRoads(SKCanvas canvas, IslandMap visibleMap,
         List<Road> roads, int civilizationIndex)
     {
         if (_roadPaint == null || roads.Count == 0)
@@ -68,8 +72,18 @@ public class RoadRenderer : HexBasedRenderer, IGameRenderer
 
         foreach (var road in roads)
         {
+            if (!IsRoadVisible(road, visibleMap))
+                continue;
+
             DrawRoadSegmentOnEdge(canvas, road.Position, _roadPaint);
         }
+    }
+
+    private static bool IsRoadVisible(Road road, IslandMap visibleMap)
+    {
+        return road.Position.GetVertices()
+            .SelectMany(vertex => vertex.GetHexes())
+            .Any(visibleMap.HasTile);
     }
 
     private void DrawRoadSegmentOnEdge(SKCanvas canvas, SettlersOfIdlestan.Model.HexGrid.Edge edge, SKPaint paint)
