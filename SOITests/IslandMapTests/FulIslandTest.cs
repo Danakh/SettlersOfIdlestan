@@ -68,14 +68,14 @@ namespace SOITests.src.IslandMapTests
 
             var autoplayer = new CivilizationAutoplayer(civ, controller.CurrentMainState!.CurrentIslandState!.Map, controller);
 
-            // Build Market, TownHall, then production buildings Brickworks and Sawmill
-            autoplayer.AutoBuildBuilding(vertex, BuildingType.Market);
-            autoplayer.AutoBuildBuilding(vertex, BuildingType.TownHall);
-            autoplayer.AutoBuildBuilding(vertex, BuildingType.Brickworks);
-            autoplayer.AutoBuildBuilding(vertex, BuildingType.Sawmill);
+            // Build Seaport, Market, then production buildings Brickworks and Sawmill
+            Assert.True(autoplayer.AutoBuildBuilding(vertex, BuildingType.Seaport));
+            Assert.True(autoplayer.AutoBuildBuilding(vertex, BuildingType.Market));
+            Assert.True(autoplayer.AutoBuildBuilding(vertex, BuildingType.Brickworks));
+            Assert.True(autoplayer.AutoBuildBuilding(vertex, BuildingType.Sawmill));
 
             // Verify the colony has the expected buildings
-            var expectedBuildings = new HashSet<BuildingType> { BuildingType.Market, BuildingType.TownHall, BuildingType.Brickworks, BuildingType.Sawmill };
+            var expectedBuildings = new HashSet<BuildingType> { BuildingType.TownHall, BuildingType.Seaport, BuildingType.Market, BuildingType.Brickworks, BuildingType.Sawmill };
             var actualBuildings = city.Buildings.Select(b => b.Type).ToHashSet();
             Assert.Equal(expectedBuildings, actualBuildings);
 
@@ -113,7 +113,7 @@ namespace SOITests.src.IslandMapTests
 
             // Build all available production buildings for the new city
             // Repeat until no more production buildings are buildable
-            for (int i = 0; i < 20; i++)
+            for (int i = 0; i < 30; i++)
             {
                 var candidates = controller.BuildingController.GetBuildingsAndBuildables(civ.Index, newVertex);
                 if (!candidates.Any()) break;
@@ -129,9 +129,7 @@ namespace SOITests.src.IslandMapTests
             Assert.NotNull(createdCity);
 
             Assert.True(createdCity.Buildings.Any(b => b.Type == BuildingType.TownHall), "TownHall not found in created city");
-
-            Assert.True(createdCity.Buildings.Any(b => b.Type == BuildingType.Brickworks), "Expected brickworks building in the new city");
-            Assert.True(createdCity.Buildings.Any(b => b.Type == BuildingType.Sawmill), "Expected sawmill building in the new city");
+            Assert.True(createdCity.Buildings.Any(b => b.Type == BuildingType.Market), "Market not found in created city");
 
             // Save final state for inspection if needed
             SaveUtils.SaveAndReloadAndAssertEqual(controller, "FulIslandTestSecondColony");

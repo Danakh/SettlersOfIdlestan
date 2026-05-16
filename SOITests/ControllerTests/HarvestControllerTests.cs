@@ -1,12 +1,13 @@
+using SettlersOfIdlestan.Controller;
+using SettlersOfIdlestan.Controller.Generator;
+using SettlersOfIdlestan.Model.Buildings;
+using SettlersOfIdlestan.Model.Civilization;
+using SettlersOfIdlestan.Model.Game;
+using SettlersOfIdlestan.Model.HexGrid;
+using SettlersOfIdlestan.Model.IslandMap;
 using System;
 using System.Collections.Generic;
 using Xunit;
-using SettlersOfIdlestan.Controller;
-using SettlersOfIdlestan.Model.HexGrid;
-using SettlersOfIdlestan.Model.IslandMap;
-using SettlersOfIdlestan.Model.Civilization;
-using SettlersOfIdlestan.Model.Buildings;
-using SettlersOfIdlestan.Model.Game;
 
 namespace SOITests.ControllerTests
 {
@@ -34,9 +35,10 @@ namespace SOITests.ControllerTests
 
             // Place a city adjacent to the wood tile and add a Sawmill (produces wood)
             var vertex = Vertex.Create(a, b, c);
-            var city = new City(vertex) { CivilizationIndex = 0 };
+            IslandMapGenerator generator = new IslandMapGenerator();
+            generator.PopulatePlayerCivilization(map, civ, vertex);
+            var city = civ.Cities[0];
             city.Buildings.Add(new Sawmill());
-            civ.Cities.Add(city);
 
             var clock = new GameClock();
             clock.Start();

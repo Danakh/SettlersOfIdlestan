@@ -1,10 +1,11 @@
-using Xunit;
 using SettlersOfIdlestan.Controller;
+using SettlersOfIdlestan.Controller.Generator;
+using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
-using SettlersOfIdlestan.Model.Civilization;
-using System.Linq;
 using System.Collections.Generic;
+using System.Linq;
+using Xunit;
 
 namespace SOITests.ControllerTests;
 
@@ -30,7 +31,8 @@ public class RoadControllerTests
         var state = new IslandState(map, civs, AtlasController.InvalidIslandId);
 
         var vertex = Vertex.Create(a, b, c);
-        civ.Cities.Add(new City(vertex) { CivilizationIndex = 0 });
+        IslandMapGenerator generator = new IslandMapGenerator();
+        generator.PopulatePlayerCivilization(map, civ, vertex);
 
         var controller = new RoadController(state);
         var buildable = controller.GetBuildableRoads(0);
@@ -60,7 +62,8 @@ public class RoadControllerTests
         var state = new IslandState(map, civs, AtlasController.InvalidIslandId);
 
         var vertex = Vertex.Create(a, b, c);
-        civ.Cities.Add(new City(vertex) { CivilizationIndex = 0 });
+        IslandMapGenerator generator = new IslandMapGenerator();
+        generator.PopulatePlayerCivilization(map, civ, vertex);
 
         // Occupy edge a-b
         civ.Roads.Add(new Road(Edge.Create(a, b)) { CivilizationIndex = 0 });
@@ -97,7 +100,8 @@ public class RoadControllerTests
         var state = new IslandState(map, civs, AtlasController.InvalidIslandId);
 
         var vertex = Vertex.Create(a, b, c);
-        civ.Cities.Add(new City(vertex) { CivilizationIndex = 0 });
+        IslandMapGenerator generator = new IslandMapGenerator();
+        generator.PopulatePlayerCivilization(map, civ, vertex);
 
         var controller = new RoadController(state);
         var edge = Edge.Create(a, b);
@@ -127,15 +131,16 @@ public class RoadControllerTests
 
         var map = new IslandMap(tiles);
         var civ = new Civilization { Index = 0 };
-        // give enough resources for two roads: first costs 2 each, second costs 8 each => total 10 each
-        civ.AddResource(Resource.Wood, 10);
-        civ.AddResource(Resource.Brick, 10);
+        // give enough resources for two roads: first costs 2 each, second costs 5 each => total 7 each
+        civ.AddResource(Resource.Wood, 7);
+        civ.AddResource(Resource.Brick, 7);
 
         var civs = new List<Civilization> { civ };
         var state = new IslandState(map, civs, AtlasController.InvalidIslandId);
 
         var vertex = Vertex.Create(a, b, c);
-        civ.Cities.Add(new City(vertex) { CivilizationIndex = 0 });
+        IslandMapGenerator generator = new IslandMapGenerator();
+        generator.PopulatePlayerCivilization(map, civ, vertex);
 
         var controller = new RoadController(state);
         var e1 = Edge.Create(b, c);

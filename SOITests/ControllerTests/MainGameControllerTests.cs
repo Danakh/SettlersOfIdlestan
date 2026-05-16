@@ -1,11 +1,12 @@
-using System.Text.Json;
-using Xunit;
 using SettlersOfIdlestan.Controller;
 using SettlersOfIdlestan.Model.Game;
+using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.PrestigeMap;
-using SettlersOfIdlestan.Model.HexGrid;
+using SettlersOfIdlestan.Services;
 using SOITests.TestUtilities;
+using System.Text.Json;
+using Xunit;
 
 namespace SOITests.ControllerTests
 {
@@ -29,8 +30,7 @@ namespace SOITests.ControllerTests
             var clock = new GameClock();
             var mainState = new MainGameState(god, clock);
 
-            var options = CreateOptions(writeIndented: true);
-            var json = JsonSerializer.Serialize(mainState, options);
+            var json = JsonSerializer.Serialize(mainState, SerializationService.SerializationOptions());
 
             var controller = new MainGameController();
             var imported = controller.ImportMainState(json);
@@ -54,8 +54,7 @@ namespace SOITests.ControllerTests
             var clock = new GameClock();
             var mainState = new MainGameState(god, clock);
 
-            var serializeOptions = CreateOptions(writeIndented: true);
-            var json = JsonSerializer.Serialize(mainState, serializeOptions);
+            var json = JsonSerializer.Serialize(mainState, SerializationService.SerializationOptions());
 
             var controller = new MainGameController();
             controller.ImportMainState(json);

@@ -1,13 +1,14 @@
+using SettlersOfIdlestan.Controller;
+using SettlersOfIdlestan.Controller.Generator;
+using SettlersOfIdlestan.Model.Buildings;
+using SettlersOfIdlestan.Model.Civilization;
+using SettlersOfIdlestan.Model.Game;
+using SettlersOfIdlestan.Model.HexGrid;
+using SettlersOfIdlestan.Model.IslandMap;
+using SOITests.TestUtilities;
 using System;
 using System.Linq;
 using Xunit;
-using SettlersOfIdlestan.Controller;
-using SettlersOfIdlestan.Model.HexGrid;
-using SettlersOfIdlestan.Model.IslandMap;
-using SettlersOfIdlestan.Model.Civilization;
-using SettlersOfIdlestan.Model.Game;
-using SOITests.TestUtilities;
-using SettlersOfIdlestan.Model.Buildings;
 
 namespace SOITests.ControllerTests
 {
@@ -40,7 +41,8 @@ namespace SOITests.ControllerTests
 
             // Place the initial city at the vertex formed by a,b,c
             var vertex = Vertex.Create(a, b, c);
-            civ.Cities.Add(new City(vertex) { CivilizationIndex = 0 });
+            IslandMapGenerator generator = new IslandMapGenerator();
+            generator.PopulatePlayerCivilization(map, civ, vertex);
 
             var clock = new SettlersOfIdlestan.Model.Game.GameClock();
             clock.Start();

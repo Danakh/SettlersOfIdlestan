@@ -14,7 +14,7 @@ public class Seaport : Building
     public Seaport() : base(BuildingType.Seaport)
     {
         MaxLevel = 4;
-        AvailableAtLevel = 2;
+        AvailableAtLevel = 0;
         Actions.Add("Prestige");
     }
 

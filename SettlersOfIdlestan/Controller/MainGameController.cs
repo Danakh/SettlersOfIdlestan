@@ -2,6 +2,7 @@ using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.PrestigeMap;
+using SettlersOfIdlestan.Services;
 using System;
 using System.Collections.Generic;
 
@@ -47,20 +48,7 @@ namespace SettlersOfIdlestan.Controller
         {
             if (CurrentMainState == null) throw new InvalidOperationException("No main state available to export.");
 
-            var options = new System.Text.Json.JsonSerializerOptions
-            {
-                WriteIndented = true
-            };
-            // register converters for hex coord and island map types
-            options.Converters.Add(new SettlersOfIdlestan.Model.HexGrid.HexCoordJsonConverter());
-            options.Converters.Add(new SettlersOfIdlestan.Model.HexGrid.EdgeJsonConverter());
-            // ensure Building polymorphic types are serialized
-            options.Converters.Add(new SettlersOfIdlestan.Model.Buildings.BuildingJsonConverter());
-            options.Converters.Add(new SettlersOfIdlestan.Model.IslandMap.IslandMapJsonConverter());
-            // ensure Vertex (city positions) are properly serialized when exporting
-            options.Converters.Add(new SettlersOfIdlestan.Model.HexGrid.VertexJsonConverter());
-
-            return System.Text.Json.JsonSerializer.Serialize(CurrentMainState, options);
+            return System.Text.Json.JsonSerializer.Serialize(CurrentMainState, SerializationService.SerializationOptions());
         }
 
         /// <summary>

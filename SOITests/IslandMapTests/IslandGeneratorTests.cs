@@ -3,6 +3,7 @@ using SettlersOfIdlestan.Controller.Generator;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
+using SettlersOfIdlestan.Services;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
@@ -21,7 +22,7 @@ public class IslandGeneratorTests
         {
             (TerrainType.Forest, 5),
             (TerrainType.Hill, 6),
-            (TerrainType.Pasture, 8),
+            (TerrainType.Plain, 8),
         };
         var civilizations = new List<Civilization> { new() { Index = 0 } };
 
@@ -42,7 +43,7 @@ public class IslandGeneratorTests
         {
             (TerrainType.Forest, 1),
             (TerrainType.Hill, 1),
-            (TerrainType.Pasture, 1),
+            (TerrainType.Plain, 1),
         };
         var civilizations = new List<Civilization> { new() { Index = 0 } };
 
@@ -51,10 +52,10 @@ public class IslandGeneratorTests
         Assert.NotNull(map);
 
         // Assert
-        var landTilesInMap = map.Tiles.Values.Where(t => t.Resource.HasValue).ToList();
+        var landTilesInMap = map.Tiles.Values.Where(t => t.TerrainType != TerrainType.Water).ToList();
         foreach (var tile in landTilesInMap)
         {
-            var landNeighbors = map.GetNeighbors(tile.Coord).Count(n => n.Resource.HasValue);
+            var landNeighbors = map.GetNeighbors(tile.Coord).Count(n => n.TerrainType != TerrainType.Water);
             Assert.True(landNeighbors >= 2, $"Tile at {tile.Coord} has only {landNeighbors} land neighbors");
         }
     }
@@ -68,8 +69,7 @@ public class IslandGeneratorTests
         {
             (TerrainType.Forest, 5),
             (TerrainType.Hill, 6),
-            (TerrainType.Pasture, 8),
-            (TerrainType.Field, 9),
+            (TerrainType.Plain, 8),
             (TerrainType.Mountain, 10),
             (TerrainType.Forest, 11),
             (TerrainType.Hill, 12),
@@ -81,10 +81,10 @@ public class IslandGeneratorTests
         Assert.NotNull(map);
 
         // Assert
-        var landTilesInMap = map.Tiles.Values.Where(t => t.Resource.HasValue).ToList();
+        var landTilesInMap = map.Tiles.Values.Where(t => t.TerrainType != TerrainType.Water).ToList();
         foreach (var tile in landTilesInMap)
         {
-            var landNeighbors = map.GetNeighbors(tile.Coord).Count(n => n.Resource.HasValue);
+            var landNeighbors = map.GetNeighbors(tile.Coord).Count(n => n.TerrainType != TerrainType.Water);
             Assert.True(landNeighbors >= 2, $"Tile at {tile.Coord} has only {landNeighbors} land neighbors");
         }
     }
@@ -98,7 +98,7 @@ public class IslandGeneratorTests
         {
             (TerrainType.Forest, 1),
             (TerrainType.Hill, 1),
-            (TerrainType.Pasture, 1),
+            (TerrainType.Plain, 1),
         };
         var civilizations = new List<Civilization> { new() { Index = 0 } };
 
@@ -107,7 +107,7 @@ public class IslandGeneratorTests
         Assert.NotNull(map);
 
         // Assert
-        var landTilesInMap = map.Tiles.Values.Where(t => t.Resource.HasValue).ToList();
+        var landTilesInMap = map.Tiles.Values.Where(t => t.TerrainType != TerrainType.Water).ToList();
         foreach (var tile in landTilesInMap)
         {
             var waterNeighbors = map.GetNeighbors(tile.Coord).Count(n => n.TerrainType == TerrainType.Water);
@@ -124,8 +124,7 @@ public class IslandGeneratorTests
         {
             (TerrainType.Forest, 5),
             (TerrainType.Hill, 6),
-            (TerrainType.Pasture, 8),
-            (TerrainType.Field, 9),
+            (TerrainType.Plain, 8),
             (TerrainType.Mountain, 10),
         };
         var civilizations = new List<Civilization> { new() { Index = 0 } };
@@ -135,10 +134,12 @@ public class IslandGeneratorTests
         Assert.NotNull(map);
 
         // Assert
-        var resources = map.Tiles.Values.Where(t => t.Resource.HasValue).Select(t => t.Resource!.Value).ToList();
-        Assert.Contains(Resource.Wood, resources);
-        Assert.Contains(Resource.Brick, resources);
-        Assert.Contains(map.Tiles.Values, t => t.TerrainType == TerrainType.Water);
+        var terrainTypes = map.Tiles.Values.Select(t => t.TerrainType).ToList();
+        Assert.Contains(TerrainType.Forest, terrainTypes);
+        Assert.Contains(TerrainType.Hill, terrainTypes);
+        Assert.Contains(TerrainType.Plain, terrainTypes);
+        Assert.Contains(TerrainType.Mountain, terrainTypes);
+        Assert.Contains(TerrainType.Water, terrainTypes);
     }
 
     [Fact]
@@ -166,7 +167,7 @@ public class IslandGeneratorTests
         {
             (TerrainType.Hill, 1),
             (TerrainType.Forest, 1),
-            (TerrainType.Pasture, 1),
+            (TerrainType.Plain, 1),
         };
         var civilizations = new List<Civilization> { new() { Index = 0 } };
 
@@ -198,8 +199,8 @@ public class IslandGeneratorTests
         // Arrange
         var tiles = new List<HexTile>
         {
-            new HexTile(new HexCoord(0, 0), TerrainType.Hill, null),
-            new HexTile(new HexCoord(0, 1), TerrainType.Forest, null),
+            new HexTile(new HexCoord(0, 0), TerrainType.Hill),
+            new HexTile(new HexCoord(0, 1), TerrainType.Forest),
             new HexTile(new HexCoord(1, 0), TerrainType.Water),
         };
         var map = new IslandMap(tiles);
@@ -220,9 +221,9 @@ public class IslandGeneratorTests
         // Arrange
         var tiles = new List<HexTile>
         {
-            new HexTile(new HexCoord(0, 0), TerrainType.Hill, null),
-            new HexTile(new HexCoord(0, 1), TerrainType.Forest, null),
-            new HexTile(new HexCoord(2, 0), TerrainType.Water), // Not adjacent
+            new HexTile(new HexCoord(0, 0), TerrainType.Hill),
+            new HexTile(new HexCoord(0, 1), TerrainType.Forest),
+            new HexTile(new HexCoord(2, 0), TerrainType.Water),
         };
         var map = new IslandMap(tiles);
 
@@ -239,8 +240,8 @@ public class IslandGeneratorTests
         // Arrange
         var tiles = new List<HexTile>
         {
-            new HexTile(new HexCoord(0, 0), TerrainType.Forest, null),
-            new HexTile(new HexCoord(0, 1), TerrainType.Pasture, null),
+            new HexTile(new HexCoord(0, 0), TerrainType.Forest),
+            new HexTile(new HexCoord(0, 1), TerrainType.Plain),
             new HexTile(new HexCoord(1, 0), TerrainType.Water),
         };
         var map = new IslandMap(tiles);
@@ -284,7 +285,7 @@ public class IslandGeneratorTests
         {
             (TerrainType.Forest, 5),
             (TerrainType.Hill, 6),
-            (TerrainType.Pasture, 8),
+            (TerrainType.Plain, 8),
         };
         var civilizations = new List<Civilization> { new() { Index = 0 } };
         var originalMap = generator.GenerateIsland(tileData, civilizations);
@@ -292,8 +293,8 @@ public class IslandGeneratorTests
         var original = new IslandState(originalMap, civilizations, AtlasController.InvalidIslandId);
 
         // Act
-        var json = JsonSerializer.Serialize(original);
-        var deserialized = JsonSerializer.Deserialize<IslandState>(json);
+        var json = JsonSerializer.Serialize(original, SerializationService.SerializationOptions());
+        var deserialized = JsonSerializer.Deserialize<IslandState>(json, SerializationService.SerializationOptions());
 
         // Assert
         Assert.NotNull(deserialized);

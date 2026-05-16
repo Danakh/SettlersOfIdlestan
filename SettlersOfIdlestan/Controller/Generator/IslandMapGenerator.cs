@@ -13,7 +13,7 @@ namespace SettlersOfIdlestan.Controller.Generator;
 /// The land tiles are placed in a connected hexagonal layout with each having at least two neighbors,
 /// then surrounded by water tiles.
 /// </summary>
-    public class IslandMapGenerator
+public class IslandMapGenerator
 {
     private readonly GamePRNG _prng;
 
@@ -149,23 +149,24 @@ namespace SettlersOfIdlestan.Controller.Generator;
             attempts++;
         } while (hasHill && hasForest && vertex == null && attempts < 10);
 
-        if (hasHill && hasForest && vertex == null)
-        {
-            return null;
-        }
-
         if (vertex != null)
         {
-            var civ = civilizations[0];
-            var city = new City(vertex);
-            city.CivilizationIndex = civ.Index;
-            var townHall = new TownHall();
-            townHall.Level = 1;
-            city.Buildings.Add(townHall);
-            civ.Cities.Add(city);
+            PopulatePlayerCivilization(map, civilizations[0], vertex);
         }
 
         return map;
+    }
+
+    public void PopulatePlayerCivilization(IslandMap map, Civilization civilization, Vertex vertex)
+    {
+        var city = new City(vertex);
+        city.CivilizationIndex = civilization.Index;
+
+        var townHall = new TownHall();
+        townHall.Level = 1;
+        city.Buildings.Add(townHall);
+
+        civilization.Cities.Add(city);
     }
 
     /// <summary>
