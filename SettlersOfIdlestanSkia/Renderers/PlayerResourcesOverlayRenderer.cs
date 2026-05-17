@@ -138,8 +138,11 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
         {
             var quantity = civilization.GetResourceQuantity(resource);
             var maxQuantity = civilization.GetResourceMaxQuantity(resource);
-            DrawResourceItem(canvas, resource, quantity, maxQuantity, currentX, itemY);
-            currentX += RectangleWidth + itemSpacing;
+            if (maxQuantity > 0)
+            {
+                DrawResourceItem(canvas, resource, quantity, maxQuantity, currentX, itemY);
+                currentX += RectangleWidth + itemSpacing;
+            }
         }
 
         // Dessine la roue crantée pour le menu à droite

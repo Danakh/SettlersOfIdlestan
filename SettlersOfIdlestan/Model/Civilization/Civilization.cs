@@ -1,6 +1,7 @@
+using SettlersOfIdlestan.Model.Buildings;
+using SettlersOfIdlestan.Model.IslandMap;
 using System;
 using System.Collections.Generic;
-using SettlersOfIdlestan.Model.IslandMap;
 using System.Text.Json.Serialization;
 
 namespace SettlersOfIdlestan.Model.Civilization;
@@ -57,14 +58,15 @@ public class Civilization
     public void AddResource(Resource resource, int quantity)
     {
         if (quantity <= 0) throw new ArgumentOutOfRangeException(nameof(quantity), "Quantity must be positive.");
+        var max = GetResourceMaxQuantity(resource);
 
         if (_resources.TryGetValue(resource, out var current))
         {
-            _resources[resource] = current + quantity;
+            _resources[resource] = Math.Min(current + quantity, max);
         }
         else
         {
-            _resources[resource] = quantity;
+            _resources[resource] = Math.Min(quantity, max);
         }
     }
 
@@ -96,7 +98,20 @@ public class Civilization
 
     public int GetResourceMaxQuantity(Resource resource)
     {
-        return 100;
+        // TODO if needed: Dependency Injection
+        // retrieve for each city the storage value for that ressource, sum them up and return the total.
+        int baseCityResourceMax = 2 * Cities.Count + Cities.Sum(city => city.Level); // storage per city is 2 + Level
+        int advancedCityResourceMax = Cities.Sum(city => Math.Max(0, city.Level - 1)); // storage per city is (Level - 1)
+        int cityWithWarehouseCount = Cities.Count(city => city.Buildings.Any(building => building.Type == BuildingType.Warehouse));
+        int result = resource switch
+        {
+            Resource.Food => 5 * baseCityResourceMax + 30 * cityWithWarehouseCount,
+            Resource.Wood => 5 * baseCityResourceMax + 30 * cityWithWarehouseCount,
+            Resource.Brick => 5 * baseCityResourceMax + 30 * cityWithWarehouseCount,
+            Resource.Stone => 5 * baseCityResourceMax + 30 * cityWithWarehouseCount,
+            _ => 5 * advancedCityResourceMax + 10 * cityWithWarehouseCount
+        };
+        return result;
     }
 
     public bool CanPayResourceCost(ResourceCost cost)
