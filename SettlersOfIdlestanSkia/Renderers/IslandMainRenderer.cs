@@ -19,49 +19,8 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
     private readonly HarvestRenderer _harvestRenderer;
     private readonly HarvestParticleSystem _harvestParticleSystem;
     private readonly IConstructionHoverProvider? _constructionHoverProvider;
+    private SKSize _canvasSize;
 
-    private readonly SKPaint _buildableVertexPaint = new()
-    {
-        Color = new SKColor(60, 160, 255, 120),
-        Style = SKPaintStyle.Fill,
-        IsAntialias = true
-    };
-    private readonly SKPaint _buildableEdgePaint = new()
-    {
-        Color = new SKColor(60, 160, 255, 120),
-        Style = SKPaintStyle.Stroke,
-        StrokeWidth = 4,
-        StrokeCap = SKStrokeCap.Round,
-        IsAntialias = true
-    };
-    private readonly SKPaint _hoverVertexPaint = new()
-    {
-        Color = new SKColor(255, 235, 59, 220),
-        Style = SKPaintStyle.Fill,
-        IsAntialias = true
-    };
-    private readonly SKPaint _hoverEdgePaint = new()
-    {
-        Color = new SKColor(255, 235, 59, 240),
-        Style = SKPaintStyle.Stroke,
-        StrokeWidth = 6,
-        StrokeCap = SKStrokeCap.Round,
-        IsAntialias = true
-    };
-    private readonly SKPaint _hoverCityPaint = new()
-    {
-        Color = new SKColor(255, 255, 255, 220),
-        Style = SKPaintStyle.Stroke,
-        StrokeWidth = 2,
-        IsAntialias = true
-    };
-    private readonly SKPaint _selectedCityPaint = new()
-    {
-        Color = new SKColor(255, 215, 0, 230),
-        Style = SKPaintStyle.Stroke,
-        StrokeWidth = 3,
-        IsAntialias = true
-    };
 
     /// <summary>
     /// Dictionnaire de couleurs pour les ressources (pour les particules de récolte).
@@ -95,6 +54,7 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
 
     public void Initialize(SKSize canvasSize)
     {
+        _canvasSize = canvasSize;
         _gameBoardRenderer.Initialize(canvasSize);
         _roadRenderer.Initialize(canvasSize);
         _cityRenderer.Initialize(canvasSize);
@@ -103,75 +63,34 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
 
     public void Render(SKCanvas canvas, GameRenderContext context)
     {
+        string? potentialTooltip = null;
+        SKPoint tooltipPosition = SKPoint.Empty;
+        var state = _constructionHoverProvider!.HoverState;
+
         using (ApplyCameraTransform(canvas, context))
         {
             _gameBoardRenderer.Render(canvas, context);
             _roadRenderer.Render(canvas, context);
             _cityRenderer.Render(canvas, context);
             _harvestRenderer.Render(canvas, context);
-            RenderConstructionHighlights(canvas);
+
+
+            Edge? edgeTooltipPosition = null;
+            _roadRenderer.RenderConstructionHighlights(canvas, state, ref potentialTooltip, ref edgeTooltipPosition);
+            if (edgeTooltipPosition != null)
+                tooltipPosition = IslandToScreen(EdgeToIslandPoint(edgeTooltipPosition!), context.ZoomLevel, context.CameraPosition);
+            
+            Vertex? vertexTooltipPosition = null;
+            _cityRenderer.RenderConstructionHighlights(canvas, state, ref potentialTooltip, ref vertexTooltipPosition);
+            if (vertexTooltipPosition != null)
+                tooltipPosition = IslandToScreen(VertexToIslandPoint(vertexTooltipPosition!), context.ZoomLevel, context.CameraPosition);
         }
-    }
 
-    private void RenderConstructionHighlights(SKCanvas canvas)
-    {
-        if (_constructionHoverProvider == null)
-            return;
-
-        var state = _constructionHoverProvider.HoverState;
-
-        foreach (var vertex in state.BuildableVertices)
+        if (potentialTooltip != null)
         {
-            var pt = VertexToIsland(vertex);
-            canvas.DrawCircle(pt, 5f, _buildableVertexPaint);
+            var font10 = new SKFont { Size = 10 };
+            TooltipRenderUtils.DrawTooltip(canvas, _canvasSize, tooltipPosition, potentialTooltip, font10);
         }
-
-        foreach (var edge in state.BuildableEdges)
-        {
-            DrawEdgeHighlight(canvas, edge, _buildableEdgePaint, 0.18f);
-        }
-
-        if (state.HoveredVertex != null)
-        {
-            var pt = VertexToIsland(state.HoveredVertex);
-            canvas.DrawCircle(pt, 7f, _hoverVertexPaint);
-        }
-
-        if (state.HoveredEdge != null)
-        {
-            DrawEdgeHighlight(canvas, state.HoveredEdge, _hoverEdgePaint, 0.14f);
-        }
-
-        if (state.HoveredCityVertex != null)
-        {
-            var pt = VertexToIsland(state.HoveredCityVertex);
-            canvas.DrawCircle(pt, 9f, _hoverCityPaint);
-        }
-
-        if (state.SelectedCityVertex != null)
-        {
-            var pt = VertexToIsland(state.SelectedCityVertex);
-            canvas.DrawCircle(pt, 12f, _selectedCityPaint);
-        }
-    }
-
-    private void DrawEdgeHighlight(SKCanvas canvas, Edge edge, SKPaint paint, float trimFactor)
-    {
-        var vertices = edge.GetVertices();
-        if (vertices.Length < 2)
-            return;
-
-        var v1 = VertexToIsland(vertices[0]);
-        var v2 = VertexToIsland(vertices[1]);
-
-        var start = new SKPoint(
-            v1.X + (v2.X - v1.X) * trimFactor,
-            v1.Y + (v2.Y - v1.Y) * trimFactor);
-        var end = new SKPoint(
-            v2.X - (v2.X - v1.X) * trimFactor,
-            v2.Y - (v2.Y - v1.Y) * trimFactor);
-
-        canvas.DrawLine(start, end, paint);
     }
 
     public SKPoint ScreenToIsland(SKPoint screenPoint, SKSize canvasSize, float zoomLevel, SKPoint cameraPos)
@@ -179,6 +98,13 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
         return new SKPoint(
             screenPoint.X / zoomLevel + cameraPos.X,
             screenPoint.Y / zoomLevel + cameraPos.Y);
+    }
+
+    public SKPoint IslandToScreen(SKPoint islandPoint, float zoomLevel, SKPoint cameraPos)
+    {
+        return new SKPoint(
+            (islandPoint.X - cameraPos.X) * zoomLevel,
+            (islandPoint.Y - cameraPos.Y) * zoomLevel);
     }
 
     public (int q, int r) ScreenToHex(SKPoint screenPoint, SKSize canvasSize, float zoomLevel, SKPoint cameraPos)
@@ -202,12 +128,6 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
         _roadRenderer.Dispose();
         _cityRenderer.Dispose();
         _harvestRenderer.Dispose();
-        _buildableVertexPaint.Dispose();
-        _buildableEdgePaint.Dispose();
-        _hoverVertexPaint.Dispose();
-        _hoverEdgePaint.Dispose();
-        _hoverCityPaint.Dispose();
-        _selectedCityPaint.Dispose();
     }
 
     private CameraTransformScope ApplyCameraTransform(SKCanvas canvas, GameRenderContext context)

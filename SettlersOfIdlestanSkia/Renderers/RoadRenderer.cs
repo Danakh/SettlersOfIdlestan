@@ -1,8 +1,10 @@
-using SkiaSharp;
-using SettlersOfIdlestanSkia.Core;
-using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.Civilization;
+using SettlersOfIdlestan.Model.Game;
+using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
+using SettlersOfIdlestanSkia.Core;
+using SettlersOfIdlestanSkia.Services;
+using SkiaSharp;
 
 namespace SettlersOfIdlestanSkia.Renderers;
 
@@ -13,6 +15,23 @@ public class RoadRenderer : HexBasedRenderer, IGameRenderer
 {
     private SKPaint? _roadPaint;
     private bool _disposed;
+
+    private readonly SKPaint _buildableEdgePaint = new()
+    {
+        Color = new SKColor(60, 160, 255, 120),
+        Style = SKPaintStyle.Stroke,
+        StrokeWidth = 4,
+        StrokeCap = SKStrokeCap.Round,
+        IsAntialias = true
+    };
+    private readonly SKPaint _hoverEdgePaint = new()
+    {
+        Color = new SKColor(255, 235, 59, 240),
+        Style = SKPaintStyle.Stroke,
+        StrokeWidth = 6,
+        StrokeCap = SKStrokeCap.Round,
+        IsAntialias = true
+    };
 
     // Couleurs pour les civilisations (à étendre selon le nombre de civs)
     private static readonly SKColor[] CivilizationColors = new[]
@@ -55,6 +74,44 @@ public class RoadRenderer : HexBasedRenderer, IGameRenderer
                 }
             }
         }
+    }
+
+    internal void RenderConstructionHighlights(SKCanvas canvas, ConstructionHoverState state, ref string? potentialTooltip, ref Edge? tooltipPosition)
+    {
+        foreach (var edge in state.BuildableEdges)
+        {
+            DrawEdgeHighlight(canvas, edge, _buildableEdgePaint, 0.18f);
+        }
+
+        if (state.HoveredEdge != null)
+        {
+            DrawEdgeHighlight(canvas, state.HoveredEdge, _hoverEdgePaint, 0.14f);
+
+            if (potentialTooltip == null)
+            {
+                tooltipPosition = state.HoveredEdge;
+                potentialTooltip = "TODO Road cost";
+            }
+        }
+    }
+
+    private void DrawEdgeHighlight(SKCanvas canvas, Edge edge, SKPaint paint, float trimFactor)
+    {
+        var vertices = edge.GetVertices();
+        if (vertices.Length < 2)
+            return;
+
+        var v1 = VertexToIsland(vertices[0]);
+        var v2 = VertexToIsland(vertices[1]);
+
+        var start = new SKPoint(
+            v1.X + (v2.X - v1.X) * trimFactor,
+            v1.Y + (v2.Y - v1.Y) * trimFactor);
+        var end = new SKPoint(
+            v2.X - (v2.X - v1.X) * trimFactor,
+            v2.Y - (v2.Y - v1.Y) * trimFactor);
+
+        canvas.DrawLine(start, end, paint);
     }
 
     /// <summary>
@@ -113,6 +170,9 @@ public class RoadRenderer : HexBasedRenderer, IGameRenderer
             return;
 
         _roadPaint?.Dispose();
+        _buildableEdgePaint.Dispose();
+        _hoverEdgePaint.Dispose();
+
         _disposed = true;
     }
 }

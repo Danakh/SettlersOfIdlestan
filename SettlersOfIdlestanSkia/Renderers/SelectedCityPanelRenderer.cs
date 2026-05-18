@@ -142,15 +142,10 @@ public class SelectedCityPanelRenderer : IGameRenderer
             var hoveredBuilding = buildings.FirstOrDefault(b => b.Type == _hoveredBuildingType.Value);
             if (hoveredBuilding != null)
             {
-                DrawTooltip(canvas, hoveredBuilding, font10);
+                var description = _localization.Get(hoveredBuilding.DescriptionKey);
+                TooltipRenderUtils.DrawTooltip(canvas, _canvasSize, _lastPointerPosition, description, font10);
             }
         }
-    }
-
-    private void DrawTooltip(SKCanvas canvas, Building building, SKFont font)
-    {
-        var description = _localization.Get(building.DescriptionKey);
-        TooltipRenderUtils.DrawTooltip(canvas, _canvasSize, _lastPointerPosition, description, font);
     }
 
     private void HandlePointerMoved(object? sender, SettlersOfIdlestanSkia.Services.PointerEventArgs e)

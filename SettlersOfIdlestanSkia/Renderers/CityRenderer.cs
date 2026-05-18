@@ -3,6 +3,8 @@ using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.IslandMap;
+using SettlersOfIdlestanSkia.Services;
+using SettlersOfIdlestan.Model.HexGrid;
 
 namespace SettlersOfIdlestanSkia.Renderers;
 
@@ -19,6 +21,33 @@ public class CityRenderer : HexBasedRenderer, IGameRenderer
     private SKPaint? _settlementPaint;
     private SKPaint? _cityPaint;
     private SKPaint? _borderPaint;
+
+    private readonly SKPaint _buildableVertexPaint = new()
+    {
+        Color = new SKColor(60, 160, 255, 120),
+        Style = SKPaintStyle.Fill,
+        IsAntialias = true
+    };
+    private readonly SKPaint _hoverVertexPaint = new()
+    {
+        Color = new SKColor(255, 235, 59, 220),
+        Style = SKPaintStyle.Fill,
+        IsAntialias = true
+    };
+    private readonly SKPaint _hoverCityPaint = new()
+    {
+        Color = new SKColor(255, 255, 255, 220),
+        Style = SKPaintStyle.Stroke,
+        StrokeWidth = 2,
+        IsAntialias = true
+    };
+    private readonly SKPaint _selectedCityPaint = new()
+    {
+        Color = new SKColor(255, 215, 0, 230),
+        Style = SKPaintStyle.Stroke,
+        StrokeWidth = 3,
+        IsAntialias = true
+    };
 
     // Couleurs pour les civilisations
     private static readonly SKColor[] CivilizationColors = new[]
@@ -71,6 +100,39 @@ public class CityRenderer : HexBasedRenderer, IGameRenderer
                     DrawCities(canvas, civilization.Cities, civilization.Index, visibleMap);
                 }
             }
+        }
+    }
+
+    internal void RenderConstructionHighlights(SKCanvas canvas, ConstructionHoverState state, ref string? potentialTooltip, ref Vertex? tooltipPosition)
+    {
+        foreach (var vertex in state.BuildableVertices)
+        {
+            var pt = VertexToIsland(vertex);
+            canvas.DrawCircle(pt, 5f, _buildableVertexPaint);
+        }
+
+        if (state.HoveredVertex != null)
+        {
+            var pt = VertexToIsland(state.HoveredVertex);
+            canvas.DrawCircle(pt, 7f, _hoverVertexPaint);
+
+            if (potentialTooltip == null)
+            {
+                tooltipPosition = state.HoveredVertex;
+                potentialTooltip = "TODO City cost";
+            }
+        }
+
+        if (state.HoveredCityVertex != null)
+        {
+            var pt = VertexToIsland(state.HoveredCityVertex);
+            canvas.DrawCircle(pt, 9f, _hoverCityPaint);
+        }
+
+        if (state.SelectedCityVertex != null)
+        {
+            var pt = VertexToIsland(state.SelectedCityVertex);
+            canvas.DrawCircle(pt, 12f, _selectedCityPaint);
         }
     }
 
@@ -128,6 +190,11 @@ public class CityRenderer : HexBasedRenderer, IGameRenderer
         _settlementPaint?.Dispose();
         _cityPaint?.Dispose();
         _borderPaint?.Dispose();
+        _buildableVertexPaint.Dispose();
+        _hoverVertexPaint.Dispose();
+        _hoverCityPaint.Dispose();
+        _selectedCityPaint.Dispose();
+
         _disposed = true;
     }
 }
