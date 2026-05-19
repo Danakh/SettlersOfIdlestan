@@ -92,9 +92,6 @@ public class RoadControllerTests
 
         var map = new IslandMap(tiles);
         var civ = new Civilization { Index = 0 };
-        // give enough resources: 2 wood and 2 brick
-        civ.AddResource(Resource.Wood, 2);
-        civ.AddResource(Resource.Brick, 2);
 
         var civs = new List<Civilization> { civ };
         var state = new IslandState(map, civs, AtlasController.InvalidIslandId);
@@ -102,6 +99,10 @@ public class RoadControllerTests
         var vertex = Vertex.Create(a, b, c);
         IslandMapGenerator generator = new IslandMapGenerator();
         generator.PopulatePlayerCivilization(map, civ, vertex);
+
+        // give enough resources: 2 wood and 2 brick
+        civ.AddResource(Resource.Wood, 2);
+        civ.AddResource(Resource.Brick, 2);
 
         var controller = new RoadController(state);
         var edge = Edge.Create(a, b);
@@ -131,9 +132,6 @@ public class RoadControllerTests
 
         var map = new IslandMap(tiles);
         var civ = new Civilization { Index = 0 };
-        // give enough resources for two roads: first costs 2 each, second costs 5 each => total 7 each
-        civ.AddResource(Resource.Wood, 7);
-        civ.AddResource(Resource.Brick, 7);
 
         var civs = new List<Civilization> { civ };
         var state = new IslandState(map, civs, AtlasController.InvalidIslandId);
@@ -145,6 +143,10 @@ public class RoadControllerTests
         var controller = new RoadController(state);
         var e1 = Edge.Create(b, c);
         var e2 = Edge.Create(b, d);
+
+        // give enough resources for two roads: first costs 2 each, second costs 5 each => total 7 each
+        civ.AddResource(Resource.Wood, 7);
+        civ.AddResource(Resource.Brick, 7);
 
         var r1 = controller.BuildRoad(0, e1);
         Assert.Contains(civ.Roads, r => r.Position.Equals(e1));

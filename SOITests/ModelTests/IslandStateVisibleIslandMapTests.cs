@@ -63,14 +63,15 @@ public class IslandStateVisibleIslandMapTests
         var roadEndpointOnly = new HexCoord(1, -1);
         var map = CreateMap(a, b, c, roadEndpointOnly);
         var civilization = new Civilization { Index = 0 };
-        civilization.AddResource(Resource.Wood, 2);
-        civilization.AddResource(Resource.Brick, 2);
         var state = new IslandState(map, new List<Civilization> { civilization }, AtlasController.InvalidIslandId);
 
         var cityVertex = Vertex.Create(a, b, c);
         new IslandMapGenerator().PopulatePlayerCivilization(map, civilization, cityVertex);
         state.RecalculateVisibleIslandMap(0);
         Assert.False(state.VisibleIslandMaps[0].HasTile(roadEndpointOnly));
+
+        civilization.AddResource(Resource.Wood, 2);
+        civilization.AddResource(Resource.Brick, 2);
 
         var controller = new RoadController(state);
         controller.BuildRoad(0, Edge.Create(a, b));
