@@ -76,5 +76,7 @@
   "resource_ore_short": "M",
   "resource_gold_short": "O",
   "resource_glass_short": "V",
-  "resource_crystal_short": "C"
+  "resource_crystal_short": "C",
+  "outpost_construction": "Construction d'un avant-poste",
+  "road_construction": "Construction d'une route"
 }

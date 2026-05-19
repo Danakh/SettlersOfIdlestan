@@ -260,5 +260,11 @@ namespace SettlersOfIdlestan.Controller
                 { Resource.Brick, cost }
             };
         }
+
+        public ResourceCost GetPlayerRoadCost(Edge edge)
+        {            
+            var distance = GetDistanceForEdge(edge, _state!.PlayerCivilization);
+            return GetRoadCost(distance);
+        }
     }
 }

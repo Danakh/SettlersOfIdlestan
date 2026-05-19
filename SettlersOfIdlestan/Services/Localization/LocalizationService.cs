@@ -80,7 +80,7 @@ public class LocalizationService : ILocalizationService
         return key;
     }
 
-    public string Get(string key, params object[] args)
+    public string GetFormated(string key, params object[] args)
     {
         if (_translations.TryGetValue(_currentLanguage, out var languageDict))
         {

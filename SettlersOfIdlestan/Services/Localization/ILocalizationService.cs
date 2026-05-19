@@ -16,5 +16,5 @@ public interface ILocalizationService
     void SetLanguage(Language language);
 
     string Get(string key);
-    string Get(string key, params object[] args);
+    string GetFormated(string key, params object[] args);
 }

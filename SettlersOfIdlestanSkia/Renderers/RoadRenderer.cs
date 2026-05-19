@@ -13,8 +13,11 @@ namespace SettlersOfIdlestanSkia.Renderers;
 /// </summary>
 public class RoadRenderer : HexBasedRenderer, IGameRenderer
 {
-    private SKPaint? _roadPaint;
     private bool _disposed;
+
+    private readonly TooltipRenderer _tooltipRenderer;
+
+    private SKPaint? _roadPaint;
 
     private readonly SKPaint _buildableEdgePaint = new()
     {
@@ -41,6 +44,11 @@ public class RoadRenderer : HexBasedRenderer, IGameRenderer
         new SKColor(0, 200, 0),     // Vert - Civ 2
         new SKColor(255, 200, 0),   // Orange - Civ 3
     };
+
+    public RoadRenderer(TooltipRenderer tooltipRenderer)
+    {
+        _tooltipRenderer = tooltipRenderer;
+    }
 
     public void Initialize(SKSize canvasSize)
     {
@@ -76,7 +84,7 @@ public class RoadRenderer : HexBasedRenderer, IGameRenderer
         }
     }
 
-    internal void RenderConstructionHighlights(SKCanvas canvas, ConstructionHoverState state, ref string? potentialTooltip, ref Edge? tooltipPosition)
+    internal void RenderConstructionHighlights(SKCanvas canvas, ConstructionHoverState state)
     {
         foreach (var edge in state.BuildableEdges)
         {
@@ -87,11 +95,7 @@ public class RoadRenderer : HexBasedRenderer, IGameRenderer
         {
             DrawEdgeHighlight(canvas, state.HoveredEdge, _hoverEdgePaint, 0.14f);
 
-            if (potentialTooltip == null)
-            {
-                tooltipPosition = state.HoveredEdge;
-                potentialTooltip = "TODO Road cost";
-            }
+            _tooltipRenderer.SetRoadConstructionTooltip(state.HoveredEdge);
         }
     }
 

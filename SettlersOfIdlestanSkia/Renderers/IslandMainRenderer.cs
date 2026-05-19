@@ -18,8 +18,8 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
     private readonly CityRenderer _cityRenderer;
     private readonly HarvestRenderer _harvestRenderer;
     private readonly HarvestParticleSystem _harvestParticleSystem;
-    private readonly IConstructionHoverProvider? _constructionHoverProvider;
-    private SKSize _canvasSize;
+    private readonly IConstructionHoverProvider _constructionHoverProvider;
+    private readonly TooltipRenderer _tooltipRenderer;
 
 
     /// <summary>
@@ -37,14 +37,15 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
         { Resource.Crystal, new SKColor(147, 112, 219) } // Violet
     };
 
-    public IslandMainRenderer(IConstructionHoverProvider? constructionHoverProvider = null)
+    public IslandMainRenderer(IConstructionHoverProvider constructionHoverProvider, TooltipRenderer tooltipRenderer)
     {
         _gameBoardRenderer = new GameBoardRenderer();
-        _roadRenderer = new RoadRenderer();
-        _cityRenderer = new CityRenderer();
+        _roadRenderer = new RoadRenderer(tooltipRenderer);
+        _cityRenderer = new CityRenderer(tooltipRenderer);
         _harvestParticleSystem = new HarvestParticleSystem();
         _harvestRenderer = new HarvestRenderer(_harvestParticleSystem);
         _constructionHoverProvider = constructionHoverProvider;
+        _tooltipRenderer = tooltipRenderer;
     }
 
     /// <summary>
@@ -54,7 +55,6 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
 
     public void Initialize(SKSize canvasSize)
     {
-        _canvasSize = canvasSize;
         _gameBoardRenderer.Initialize(canvasSize);
         _roadRenderer.Initialize(canvasSize);
         _cityRenderer.Initialize(canvasSize);
@@ -67,6 +67,9 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
         SKPoint tooltipPosition = SKPoint.Empty;
         var state = _constructionHoverProvider!.HoverState;
 
+        // TODO mettre dans le using
+        _tooltipRenderer.SetIslandRenderContext(this, context);
+
         using (ApplyCameraTransform(canvas, context))
         {
             _gameBoardRenderer.Render(canvas, context);
@@ -74,22 +77,8 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
             _cityRenderer.Render(canvas, context);
             _harvestRenderer.Render(canvas, context);
 
-
-            Edge? edgeTooltipPosition = null;
-            _roadRenderer.RenderConstructionHighlights(canvas, state, ref potentialTooltip, ref edgeTooltipPosition);
-            if (edgeTooltipPosition != null)
-                tooltipPosition = IslandToScreen(EdgeToIslandPoint(edgeTooltipPosition!), context.ZoomLevel, context.CameraPosition);
-            
-            Vertex? vertexTooltipPosition = null;
-            _cityRenderer.RenderConstructionHighlights(canvas, state, ref potentialTooltip, ref vertexTooltipPosition);
-            if (vertexTooltipPosition != null)
-                tooltipPosition = IslandToScreen(VertexToIslandPoint(vertexTooltipPosition!), context.ZoomLevel, context.CameraPosition);
-        }
-
-        if (potentialTooltip != null)
-        {
-            var font10 = new SKFont { Size = 10 };
-            TooltipRenderUtils.DrawTooltip(canvas, _canvasSize, tooltipPosition, potentialTooltip, font10);
+            _roadRenderer.RenderConstructionHighlights(canvas, state);
+            _cityRenderer.RenderConstructionHighlights(canvas, state);
         }
     }
 
@@ -128,6 +117,7 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
         _roadRenderer.Dispose();
         _cityRenderer.Dispose();
         _harvestRenderer.Dispose();
+        _tooltipRenderer.Dispose();
     }
 
     private CameraTransformScope ApplyCameraTransform(SKCanvas canvas, GameRenderContext context)

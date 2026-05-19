@@ -95,6 +95,8 @@ public sealed class SkiaGameRuntime : IDisposable
         _harvestService = new HarvestService(_gameControllerService);
 
         // Enregistrement des renderers (back to front)
+        TooltipRenderer tooltipRenderer = new TooltipRenderer(_localizationService, _gameControllerService);
+
         IslandMainRenderer islandMainRenderer;
         _constructionInteractionService = new ConstructionInteractionService(
             _gameControllerService,
@@ -102,7 +104,7 @@ public sealed class SkiaGameRuntime : IDisposable
             _inputService,
             _cameraService,
             _gameControllerService.CityBuildingService);
-        islandMainRenderer = new IslandMainRenderer(_constructionInteractionService);
+        islandMainRenderer = new IslandMainRenderer(_constructionInteractionService, tooltipRenderer);
         _constructionInteractionService.AttachRenderer(islandMainRenderer);
         _renderService.RegisterRenderer(islandMainRenderer);
 
@@ -120,6 +122,8 @@ public sealed class SkiaGameRuntime : IDisposable
         _renderService.RegisterRenderer(new PlayerResourcesOverlayRenderer(_inputService, _localizationService, settingsMenu, _resourceManager));
         _renderService.RegisterRenderer(new DebugOverlayRenderer(_inputService, _cameraService, islandMainRenderer, _localizationService));
         _renderService.RegisterRenderer(aboutRenderer);
+
+        _renderService.RegisterRenderer(tooltipRenderer);
 
         _isGameInitialized = true;
 

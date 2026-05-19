@@ -11,14 +11,14 @@ namespace SettlersOfIdlestanSkia.Core
         static SKPaint _tooltipBorderPaint = new SKPaint { Color = new SKColor(220, 220, 240, 200), Style = SKPaintStyle.Stroke, StrokeWidth = 1.5f, IsAntialias = true };
         static SKPaint _tooltipTextPaint = new SKPaint { Color = SKColors.White, IsAntialias = true };
 
-        public static void DrawTooltip(SKCanvas canvas, SKSize canvasSize, SKPoint pointerPosition, string text, SKFont font)
+        public static void DrawTooltip(SKCanvas canvas, SKSize canvasSize, SKPoint pointerPosition, string[] texts, SKFont font)
         {
             const float tooltipWidth = 200;
             const float textPadding = 8;
             const float verticalPadding = 6;
 
             // Étape 1 : Mesurer le texte pour obtenir les lignes et la taille
-            var textLayout = SkiaTextUtils.MeasureWrappedText(text, tooltipWidth - 2 * textPadding, font);
+            var textLayout = SkiaTextUtils.MeasureWrappedText(texts, tooltipWidth - 2 * textPadding, font);
 
             // Calculer la hauteur exacte du tooltip
             float tooltipHeight = textLayout.Size.Height + 2 * verticalPadding + font.Spacing / 2;

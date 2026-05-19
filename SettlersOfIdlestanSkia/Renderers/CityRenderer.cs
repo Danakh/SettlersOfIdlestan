@@ -18,6 +18,8 @@ public class CityRenderer : HexBasedRenderer, IGameRenderer
     private const float CityRadius = 8f;
     private const float SettlementRadius = 6f;
 
+    private readonly TooltipRenderer _tooltipRenderer;
+
     private SKPaint? _settlementPaint;
     private SKPaint? _cityPaint;
     private SKPaint? _borderPaint;
@@ -57,6 +59,11 @@ public class CityRenderer : HexBasedRenderer, IGameRenderer
         new SKColor(0, 200, 0),     // Vert - Civ 2
         new SKColor(255, 200, 0),   // Orange - Civ 3
     };
+
+    public CityRenderer(TooltipRenderer tooltipRenderer)
+    {
+        _tooltipRenderer = tooltipRenderer;
+    }
 
     public void Initialize(SKSize canvasSize)
     {
@@ -103,7 +110,7 @@ public class CityRenderer : HexBasedRenderer, IGameRenderer
         }
     }
 
-    internal void RenderConstructionHighlights(SKCanvas canvas, ConstructionHoverState state, ref string? potentialTooltip, ref Vertex? tooltipPosition)
+    internal void RenderConstructionHighlights(SKCanvas canvas, ConstructionHoverState state)
     {
         foreach (var vertex in state.BuildableVertices)
         {
@@ -116,11 +123,7 @@ public class CityRenderer : HexBasedRenderer, IGameRenderer
             var pt = VertexToIsland(state.HoveredVertex);
             canvas.DrawCircle(pt, 7f, _hoverVertexPaint);
 
-            if (potentialTooltip == null)
-            {
-                tooltipPosition = state.HoveredVertex;
-                potentialTooltip = "TODO City cost";
-            }
+            _tooltipRenderer.SetOutpostConstructionTooltip(state.HoveredVertex);
         }
 
         if (state.HoveredCityVertex != null)

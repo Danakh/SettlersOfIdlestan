@@ -81,7 +81,7 @@ public class SelectedCityPanelRenderer : IGameRenderer
             var cost = isBuilt ? building.GetUpgradeCost(building.Level + 1) : building.GetBuildCost();
             if (cost.Count > 0)
             {
-                var costText = string.Join(" | ", cost.Select(kvp => $"{_localization.Get($"resource_{kvp.Key.ToString().ToLower()}_short")}: {kvp.Value}"));
+                var costText = SkiaTextUtils.computeCostString(_localization, cost);
                 canvas.DrawText(costText, panelX + Padding, yRow + 30, font10, costTextPaint);
             }
 
@@ -143,7 +143,7 @@ public class SelectedCityPanelRenderer : IGameRenderer
             if (hoveredBuilding != null)
             {
                 var description = _localization.Get(hoveredBuilding.DescriptionKey);
-                TooltipRenderUtils.DrawTooltip(canvas, _canvasSize, _lastPointerPosition, description, font10);
+                TooltipRenderUtils.DrawTooltip(canvas, _canvasSize, _lastPointerPosition, new string[] { description }, font10);
             }
         }
     }
