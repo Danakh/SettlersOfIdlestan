@@ -98,7 +98,7 @@ namespace SettlersOfIdlestan.Controller
             }
             else
             {
-                if (existing.Level >= existing.MaxLevel)
+                if (existing.Level >= GetMaxLevel(existing))
                     return false;
 
                 cost = existing.GetUpgradeCost(existing.Level + 1);
@@ -131,6 +131,11 @@ namespace SettlersOfIdlestan.Controller
             }
 
             return true;
+        }
+
+        public int GetMaxLevel(Building building)
+        {
+            return building.GetDefaultMaxLevel();
         }
 
         private static Building? CreateBuilding(BuildingType type)

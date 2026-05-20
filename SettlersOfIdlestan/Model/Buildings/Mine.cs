@@ -13,8 +13,12 @@ public class Mine : Building
     /// </summary>
     public Mine() : base(BuildingType.Mine)
     {
-        MaxLevel = 4;
         AvailableAtLevel = 1;
+    }
+
+    public override int GetDefaultMaxLevel()
+    {
+        return 4;
     }
 
     public override Resource? ManualHarvestCapability(TerrainType terrain)

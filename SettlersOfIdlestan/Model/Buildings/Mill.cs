@@ -12,9 +12,13 @@ public class Mill : Building
     /// Initializes a new instance of the <see cref="Mill"/> class.
     /// </summary>
     public Mill() : base(BuildingType.Mill)
-    {     
-        MaxLevel = 4;
+    {
         AvailableAtLevel = 1;
+    }
+
+    public override int GetDefaultMaxLevel()
+    {
+        return 4;
     }
 
     public override Resource? AutomaticHarvestCapability(TerrainType terrain)

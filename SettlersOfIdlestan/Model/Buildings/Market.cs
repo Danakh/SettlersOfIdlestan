@@ -12,7 +12,6 @@ public class Market : Building
     /// </summary>
     public Market() : base(BuildingType.Market)
     {
-        MaxLevel = 1;
         AvailableAtLevel = 1;
     }
 

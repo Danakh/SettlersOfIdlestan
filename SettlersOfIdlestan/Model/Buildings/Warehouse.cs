@@ -12,8 +12,12 @@ public class Warehouse : Building
     /// </summary>
     public Warehouse() : base(BuildingType.Warehouse)
     {
-        MaxLevel = 4;
         AvailableAtLevel = 1;
+    }
+
+    public override int GetDefaultMaxLevel()
+    {
+        return 4;
     }
 
     /// <summary>

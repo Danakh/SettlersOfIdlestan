@@ -13,9 +13,13 @@ public class Seaport : Building
     /// </summary>
     public Seaport() : base(BuildingType.Seaport)
     {
-        MaxLevel = 4;
         AvailableAtLevel = 0;
         Actions.Add("Prestige");
+    }
+
+    public override int GetDefaultMaxLevel()
+    {
+        return 4;
     }
 
     public override Resource? ManualHarvestCapability(TerrainType terrain)

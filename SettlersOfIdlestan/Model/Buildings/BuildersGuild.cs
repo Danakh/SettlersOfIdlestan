@@ -12,7 +12,6 @@ public class BuildersGuild : Building
     /// </summary>
     public BuildersGuild() : base(BuildingType.BuildersGuild)
     {
-        MaxLevel = 1;
         AvailableAtLevel = 4;
     }
 

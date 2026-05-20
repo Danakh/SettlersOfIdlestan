@@ -12,8 +12,12 @@ public class TownHall : Building
     /// </summary>
     public TownHall() : base(BuildingType.TownHall)
     {
-        MaxLevel = 4;
         AvailableAtLevel = 0;
+    }
+
+    public override int GetDefaultMaxLevel()
+    {
+        return 4;
     }
 
     public override Resource? ManualHarvestCapability(TerrainType terrain)

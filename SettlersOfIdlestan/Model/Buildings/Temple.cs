@@ -12,8 +12,12 @@ public class Temple : Building
     /// </summary>
     public Temple() : base(BuildingType.Temple)
     {
-        MaxLevel = 4;
         AvailableAtLevel = 3;
+    }
+
+    public override int GetDefaultMaxLevel()
+    {
+        return 4;
     }
 
     public override ResourceCost GetBuildCost() => new ResourceCost

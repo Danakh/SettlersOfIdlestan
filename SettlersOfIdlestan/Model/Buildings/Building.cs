@@ -108,7 +108,7 @@ public class Building
     /// <summary>
     /// Gets or sets the maximum level of the building.
     /// </summary>
-    public int MaxLevel { get; set; }
+    public virtual int GetDefaultMaxLevel() => 1;
 
     /// <summary>
     /// Gets or sets the description of the building.

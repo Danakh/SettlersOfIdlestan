@@ -13,8 +13,12 @@ public class Sawmill : Building
     /// </summary>
     public Sawmill() : base(BuildingType.Sawmill)
     {
-        MaxLevel = 4;
         AvailableAtLevel = 1;
+    }
+
+    public override int GetDefaultMaxLevel()
+    {
+        return 4;
     }
 
     public override Resource? AutomaticHarvestCapability(TerrainType terrain)

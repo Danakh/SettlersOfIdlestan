@@ -13,8 +13,12 @@ public class Brickworks : Building
     /// </summary>
     public Brickworks() : base(BuildingType.Brickworks)
     {
-        MaxLevel = 4;
         AvailableAtLevel = 1;
+    }
+
+    public override int GetDefaultMaxLevel()
+    {
+        return 4;
     }
 
     public override Resource? AutomaticHarvestCapability(TerrainType terrain)

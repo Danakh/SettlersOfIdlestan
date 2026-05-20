@@ -63,7 +63,6 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
 
     public void Render(SKCanvas canvas, GameRenderContext context)
     {
-        string? potentialTooltip = null;
         SKPoint tooltipPosition = SKPoint.Empty;
         var state = _constructionHoverProvider!.HoverState;
 

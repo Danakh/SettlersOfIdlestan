@@ -12,8 +12,12 @@ public class Forge : Building
     /// </summary>
     public Forge() : base(BuildingType.Forge)
     {
-        MaxLevel = 4;
         AvailableAtLevel = 2;
+    }
+
+    public override int GetDefaultMaxLevel()
+    {
+        return 4;
     }
 
     public override Resource? AutomaticHarvestCapability(TerrainType terrain)
