@@ -14,7 +14,7 @@ namespace SettlersOfIdlestan.Controller
     public class TradeController
     {
         private IslandState? _state;
-        private const int TradeRate = 4; // 4:1
+        private const int TradeRate = 5;
 
         internal TradeController(IslandState? state = null)
         {

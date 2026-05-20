@@ -13,7 +13,7 @@ public enum BuildingType
     /// </summary>
     TownHall,
     /// <summary>
-    /// Marché - Permet le commerce (4:1)
+    /// Marché - Permet le commerce
     /// </summary>
     Market,
     /// <summary>
@@ -37,7 +37,7 @@ public enum BuildingType
     /// </summary>
     Mine,
     /// <summary>
-    /// Port maritime - Permet le commerce maritime (3:1), nécessite de l'eau. Disponible au niveau Ville (2). Niveau 4 débloque l'action Prestige.
+    /// Port maritime - Permet la récolte de nourriture et le commerce maritime
     /// </summary>
     Seaport,
     /// <summary>

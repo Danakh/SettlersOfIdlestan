@@ -30,7 +30,7 @@ namespace SOITests.ControllerTests
             IslandState state = IslandTestFactory.CreateSevenHexIslandState();
             var civ = state.Civilizations[0];
             civ.Cities[0].Buildings.Add(new Market());
-            civ.AddResource(Resource.Wood, 4);
+            civ.AddResource(Resource.Wood, 5);
 
             var controller = new TradeController(state);
 
@@ -50,7 +50,7 @@ namespace SOITests.ControllerTests
             civ.Cities[0].Buildings.Add(new Market());
 
             // Owned: wood 8, brick 0, sheep 1
-            civ.AddResource(Resource.Wood, 8);
+            civ.AddResource(Resource.Wood, 10);
             civ.AddResource(Resource.Food, 1);
 
             var controller = new TradeController(state);
@@ -64,8 +64,9 @@ namespace SOITests.ControllerTests
             Assert.True(result);
 
             // After trade, one brick should be present and wood decreased by 4
-            Assert.Equal(4, civ.GetResourceQuantity(Resource.Wood));
+            Assert.Equal(5, civ.GetResourceQuantity(Resource.Wood));
             Assert.Equal(1, civ.GetResourceQuantity(Resource.Brick));
+            Assert.Equal(1, civ.GetResourceQuantity(Resource.Food));
         }
 
         [Fact]

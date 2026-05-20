@@ -44,42 +44,48 @@ namespace SettlersOfIdlestanSkia.Core
             var layout = new WrappedTextLayout();
 
             float maxLineWidth = 0;
-            foreach (string text in texts)
+
+            foreach (string paragraph in texts)
             {
-                if (string.IsNullOrEmpty(text))
+                string[] sentences = paragraph.Split("\n", StringSplitOptions.None);
+
+                foreach (string sentence in sentences)
                 {
-                    layout.Lines.Add("");
-                    continue;
-                }
+                    if (string.IsNullOrEmpty(sentence))
+                    {
+                        layout.Lines.Add("");
+                        continue;
+                    }
 
-                string[] words = text.Split(' ');
-                string line = string.Empty;
+                    string[] words = sentence.Split(' ');
+                    string line = string.Empty;
 
-                foreach (string word in words)
-                {
-                    string testLine = string.IsNullOrEmpty(line) ? word : line + " " + word;
-                    float width = font.MeasureText(testLine);
+                    foreach (string word in words)
+                    {
+                        string testLine = string.IsNullOrEmpty(line) ? word : line + " " + word;
+                        float width = font.MeasureText(testLine);
 
-                    if (width > maxWidth && !string.IsNullOrEmpty(line))
+                        if (width > maxWidth && !string.IsNullOrEmpty(line))
+                        {
+                            layout.Lines.Add(line);
+                            float lineWidth = font.MeasureText(line);
+                            maxLineWidth = Math.Max(maxLineWidth, lineWidth);
+                            line = word;
+                        }
+                        else
+                        {
+                            line = testLine;
+                        }
+                    }
+
+                    // Dernière ligne
+                    if (!string.IsNullOrEmpty(line))
                     {
                         layout.Lines.Add(line);
                         float lineWidth = font.MeasureText(line);
-                        maxLineWidth = Math.Max(maxLineWidth, lineWidth);
-                        line = word;
+                        if (lineWidth > maxLineWidth)
+                            maxLineWidth = lineWidth;
                     }
-                    else
-                    {
-                        line = testLine;
-                    }
-                }
-
-                // Dernière ligne
-                if (!string.IsNullOrEmpty(line))
-                {
-                    layout.Lines.Add(line);
-                    float lineWidth = font.MeasureText(line);
-                    if (lineWidth > maxLineWidth)
-                        maxLineWidth = lineWidth;
                 }
             }
 

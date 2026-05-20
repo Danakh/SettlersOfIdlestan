@@ -142,8 +142,14 @@ public class SelectedCityPanelRenderer : IGameRenderer
             var hoveredBuilding = buildings.FirstOrDefault(b => b.Type == _hoveredBuildingType.Value);
             if (hoveredBuilding != null)
             {
-                var description = _localization.Get(hoveredBuilding.DescriptionKey);
-                TooltipRenderUtils.DrawTooltip(canvas, _canvasSize, _lastPointerPosition, new string[] { description }, font10);
+                var buildingName = _localization.Get(hoveredBuilding.NameKey);
+                var levelDescriptionKey = hoveredBuilding.DescriptionKey + "_" + hoveredBuilding.Level;
+                var description = _localization.Get(levelDescriptionKey);
+                if (levelDescriptionKey == description)
+                    description = _localization.Get(hoveredBuilding.DescriptionKey);
+                var cost = hoveredBuilding.Level == 0 ? hoveredBuilding.GetBuildCost() : hoveredBuilding.GetUpgradeCost(hoveredBuilding.Level + 1);
+                var costDescription = SkiaTextUtils.computeCostString(_localization, cost);
+                TooltipRenderUtils.DrawTooltip(canvas, _canvasSize, _lastPointerPosition, new string[] { buildingName, "", description, "", costDescription }, font10);
             }
         }
     }
