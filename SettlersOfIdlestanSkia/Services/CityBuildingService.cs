@@ -51,8 +51,7 @@ public class CityBuildingService
         var civilization = islandState.Civilizations[SelectedCity.CivilizationIndex];
 
         // Check if at max level
-        var isAtMaxLevel = building.Level >= _buildingController.GetMaxLevel(building);
-        if (isAtMaxLevel)
+        if (IsAtMaxLevel(building))
             return false;
 
         // Get the cost for this action

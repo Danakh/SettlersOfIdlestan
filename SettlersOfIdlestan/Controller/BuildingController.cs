@@ -1,9 +1,11 @@
+using SettlersOfIdlestan.Model.Buildings;
+using SettlersOfIdlestan.Model.GameplayModifier;
+using SettlersOfIdlestan.Model.HexGrid;
+using SettlersOfIdlestan.Model.IslandMap;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using SettlersOfIdlestan.Model.IslandMap;
-using SettlersOfIdlestan.Model.HexGrid;
-using SettlersOfIdlestan.Model.Buildings;
+using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
 
 namespace SettlersOfIdlestan.Controller
 {
@@ -14,6 +16,8 @@ namespace SettlersOfIdlestan.Controller
     public class BuildingController
     {
         private IslandState? _state;
+
+        private List<Modifier> _maxBuildingLevelModifier = new List<Modifier>();
 
         internal BuildingController(IslandState? state = null)
         {
@@ -135,7 +139,16 @@ namespace SettlersOfIdlestan.Controller
 
         public int GetMaxLevel(Building building)
         {
-            return building.GetDefaultMaxLevel();
+            int maxLevel = building.GetDefaultMaxLevel();
+            // apply modifiers
+            foreach (var modifier in _maxBuildingLevelModifier)
+            {
+                if (modifier.AppliesTo(ECategory.BUILDING_MAX_LEVEL, building.Type.ToString()))
+                {
+                    maxLevel = modifier.Apply(maxLevel);
+                }
+            }
+            return maxLevel;
         }
 
         private static Building? CreateBuilding(BuildingType type)
