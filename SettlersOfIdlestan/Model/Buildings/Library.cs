@@ -17,7 +17,7 @@ public class Library : Building
 
     public override int GetDefaultMaxLevel()
     {
-        return 4;
+        return 1;
     }
 
     public override ResourceCost GetBuildCost() => new ResourceCost

@@ -34,9 +34,19 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             Value = value;
         }
 
+        public Modifier(ECategory category, string subCategory, EType type, double value)
+        {
+            Category = category;
+            SubCategory = subCategory;
+            Type = type;
+            Value = value;
+        }
+
         public bool AppliesTo(ECategory category, string subCategory)
         {
-            return IsActive && Category == category && SubCategory == subCategory;
+            return IsActive 
+                && (Category == category)
+                && ((SubCategory == "") || (SubCategory == subCategory));
         }
 
         public int Apply(int baseValue)
