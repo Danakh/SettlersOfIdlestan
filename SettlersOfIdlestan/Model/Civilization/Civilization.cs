@@ -28,6 +28,11 @@ public class Civilization
     public List<Road> Roads { get; set; } = new();
 
     /// <summary>
+    /// Gets or sets the technology tree of the civilization.
+    /// </summary>
+    public TechnologyTree TechnologyTree { get; set; } = new();
+
+    /// <summary>
     /// Liste des ressources détenues par la civilisation.
     /// </summary>
     // Resources are stored as a map from Resource -> quantity.

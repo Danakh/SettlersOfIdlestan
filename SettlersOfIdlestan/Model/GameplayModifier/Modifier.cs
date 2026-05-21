@@ -4,7 +4,7 @@ using System.Text;
 
 namespace SettlersOfIdlestan.Model.GameplayModifier
 {
-    internal class Modifier
+    public class Modifier
     {
         public enum ECategory
         {

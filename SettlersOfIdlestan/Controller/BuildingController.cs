@@ -1,5 +1,4 @@
 using SettlersOfIdlestan.Model.Buildings;
-using SettlersOfIdlestan.Model.GameplayModifier;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
 using System;
@@ -16,8 +15,6 @@ namespace SettlersOfIdlestan.Controller
     public class BuildingController
     {
         private IslandState? _state;
-
-        private List<Modifier> _maxBuildingLevelModifier = new List<Modifier>();
 
         internal BuildingController(IslandState? state = null)
         {
@@ -102,7 +99,7 @@ namespace SettlersOfIdlestan.Controller
             }
             else
             {
-                if (existing.Level >= GetMaxLevel(existing))
+                if (existing.Level >= GetMaxLevel(existing, civilizationIndex))
                     return false;
 
                 cost = existing.GetUpgradeCost(existing.Level + 1);
@@ -137,17 +134,15 @@ namespace SettlersOfIdlestan.Controller
             return true;
         }
 
-        public int GetMaxLevel(Building building)
+        public int GetMaxLevel(Building building, int civilizationIndex)
         {
+            if (_state == null) throw new InvalidOperationException("IslandState has not been initialized.");
+
+            var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex)
+                      ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
+
             int maxLevel = building.GetDefaultMaxLevel();
-            // apply modifiers
-            foreach (var modifier in _maxBuildingLevelModifier)
-            {
-                if (modifier.AppliesTo(ECategory.BUILDING_MAX_LEVEL, building.Type.ToString()))
-                {
-                    maxLevel = modifier.Apply(maxLevel);
-                }
-            }
+            maxLevel = civ.TechnologyTree.ApplyModifiers(ECategory.BUILDING_MAX_LEVEL, building.Type.ToString(), maxLevel);
             return maxLevel;
         }
 

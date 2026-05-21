@@ -69,6 +69,8 @@ public class CityBuildingService
 
     public bool IsAtMaxLevel(Building building)
     {
-        return building.Level >= _buildingController.GetMaxLevel(building);
+        if (SelectedCity == null)
+            return false;
+        return building.Level >= _buildingController.GetMaxLevel(building, SelectedCity.CivilizationIndex);
     }
 }
