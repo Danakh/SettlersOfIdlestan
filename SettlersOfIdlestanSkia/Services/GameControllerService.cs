@@ -12,7 +12,7 @@ namespace SettlersOfIdlestanSkia.Services;
 public class GameControllerService
 {
     private readonly MainGameController _controller;
-    private readonly CityBuildingService _cityBuildingService;
+    private CityBuildingService? _cityBuildingService;
 
     public MainGameState? CurrentGameState => _controller.CurrentMainState;
     public IslandState? CurrentIslandState => _controller.CurrentMainState?.CurrentIslandState;
@@ -30,7 +30,6 @@ public class GameControllerService
     public GameControllerService()
     {
         _controller = new MainGameController();
-        _cityBuildingService = new CityBuildingService(_controller);
     }
 
     /// <summary>
@@ -40,6 +39,13 @@ public class GameControllerService
     public void InitializeNewGame()
     {
         _controller.CreateNewGame();
+        _cityBuildingService = new CityBuildingService(_controller);
+    }
+
+    internal void ImportMainState(string autoJson)
+    {
+        MainGameController.ImportMainState(autoJson);
+        _cityBuildingService = new CityBuildingService(_controller);
     }
 
     /// <summary>

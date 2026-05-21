@@ -80,7 +80,7 @@ public sealed class SkiaGameRuntime : IDisposable
         {
             try
             {
-                _gameControllerService.MainGameController.ImportMainState(autoJson);
+                _gameControllerService.ImportMainState(autoJson);
             }
             catch
             {

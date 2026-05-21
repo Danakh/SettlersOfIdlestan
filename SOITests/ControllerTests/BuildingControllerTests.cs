@@ -190,7 +190,7 @@ public class BuildingControllerTests
 
         // Create a Library building
         var library = new Library { Level = 0 };
-        city.Buildings.Add(Library);
+        city.Buildings.Add(library);
 
         // Check initial max level (Library.GetDefaultMaxLevel() returns 4)
         int maxLevelBefore = controller.GetMaxLevel(library, 0);
