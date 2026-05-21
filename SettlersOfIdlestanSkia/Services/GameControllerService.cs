@@ -86,11 +86,6 @@ public class GameControllerService
         try
         {
             _controller.CityBuilderController.BuildCity(playerIndex, vertex);
-            // Réinstancie les controllers pour forcer la cohérence des caches.
-            if (_controller.CurrentMainState != null)
-            {
-                _controller.SetGame(_controller.CurrentMainState);
-            }
             return true;
         }
         catch
@@ -107,10 +102,6 @@ public class GameControllerService
         try
         {
             _controller.RoadController.BuildRoad(playerIndex, edge);
-            if (_controller.CurrentMainState != null)
-            {
-                _controller.SetGame(_controller.CurrentMainState);
-            }
             return true;
         }
         catch
