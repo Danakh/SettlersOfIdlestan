@@ -19,6 +19,7 @@ namespace SettlersOfIdlestan.Controller
         public TradeController TradeController { get; private set; }
         public BuildingController BuildingController { get; private set; }
         public CityBuilderController CityBuilderController { get; private set; }
+        public PrestigeController PrestigeController { get; private set; }
         public GameClock? Clock { get; private set; }
         // Holds the currently loaded main game state when created or imported
         public SettlersOfIdlestan.Model.Game.MainGameState? CurrentMainState { get; private set; }
@@ -39,6 +40,7 @@ namespace SettlersOfIdlestan.Controller
             BuildingController = new BuildingController();
             CityBuilderController = new CityBuilderController();
             AtlasController = new AtlasController();
+            PrestigeController = new PrestigeController();
         }
 
         /// <summary>
@@ -142,6 +144,7 @@ namespace SettlersOfIdlestan.Controller
                 TradeController.Initialize(islandState);
                 BuildingController.Initialize(islandState);
                 CityBuilderController.Initialize(islandState);
+                PrestigeController.Initialize(islandState.PlayerCivilization);
             }
         }
     }
