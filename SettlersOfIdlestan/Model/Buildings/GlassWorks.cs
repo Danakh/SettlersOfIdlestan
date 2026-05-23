@@ -13,6 +13,8 @@ public class GlassWorks : Building
     // Locked by default; unlocked by the Laboratory prestige vertex (+1 max level)
     public override int GetDefaultMaxLevel() => 0;
 
+    public override int AutomaticHarvestUnlockLevel => 2;
+
     public override Resource? AutomaticHarvestCapability(TerrainType terrain)
     {
         if (terrain == TerrainType.Desert)

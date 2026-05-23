@@ -1,4 +1,5 @@
 using SkiaSharp;
+using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Controller;
@@ -21,6 +22,7 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
     private readonly HarvestParticleSystem _harvestParticleSystem;
     private readonly IConstructionHoverProvider _constructionHoverProvider;
     private readonly TooltipRenderer _tooltipRenderer;
+    private readonly HarvestController _harvestController;
     private float _blackFadeDuration;
     private float _blackFadeElapsed;
     private bool _isBlackFadeActive;
@@ -50,6 +52,7 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
         _harvestRenderer = new HarvestRenderer(_harvestParticleSystem);
         _constructionHoverProvider = constructionHoverProvider;
         _tooltipRenderer = tooltipRenderer;
+        _harvestController = harvestController;
     }
 
     /// <summary>
@@ -80,11 +83,21 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
             return;
         }
 
-        SKPoint tooltipPosition = SKPoint.Empty;
         var state = _constructionHoverProvider!.HoverState;
 
         // TODO mettre dans le using
         _tooltipRenderer.SetIslandRenderContext(this, context);
+
+        if (state.HoveredHex != null &&
+            context.GameState is MainGameState mgs &&
+            mgs.CurrentIslandState != null)
+        {
+            _tooltipRenderer.SetHexHarvestTooltip(
+                state.HoveredHex,
+                _harvestController,
+                mgs.CurrentIslandState,
+                mgs.Clock.CurrentTime);
+        }
 
         using (ApplyCameraTransform(canvas, context))
         {
@@ -117,6 +130,12 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
         var islandPoint = ScreenToIsland(screenPoint, canvasSize, zoomLevel, cameraPos);
         var hex = IslandToHexCoord(islandPoint);
         return (hex.Q, hex.R);
+    }
+
+    public SKPoint HexCoordToIslandPoint(HexCoord coord)
+    {
+        var (x, y) = AxialToIsland(coord.Q, coord.R);
+        return new SKPoint(x, y);
     }
 
     public SKPoint VertexToIslandPoint(Vertex vertex) => VertexToIsland(vertex);

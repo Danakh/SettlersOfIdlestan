@@ -140,8 +140,9 @@ namespace SettlersOfIdlestan.Controller
                             Resource? resource = building.AutomaticHarvestCapability(tile.TerrainType);
                             if (resource != null)
                             {
-                                // check automatic cooldown (adjusted by civilization harvest speed and building terrain multiplier)
-                                var effectiveCooldown = GetAutoHarvestCooldown(civ) * building.GetAutomaticHarvestCooldownMultiplier(tile.TerrainType);
+                                // check automatic cooldown (adjusted by civilization harvest speed, building terrain multiplier, and level-based reduction)
+                                var effectiveCooldown = GetAutoHarvestCooldown(civ) * building.GetAutomaticHarvestCooldownMultiplier(tile.TerrainType)
+                                    - building.GetAutomaticHarvestCooldownReduction(tile.TerrainType);
                                 if (autoMap.TryGetValue(hex, out var lastAuto) && now - lastAuto < effectiveCooldown)
                                 {
                                     continue;
@@ -215,6 +216,36 @@ namespace SettlersOfIdlestan.Controller
                 }
 
             return resources.ToList();
+        }
+
+        public TimeSpan GetManualHarvestCooldown(int civilizationIndex)
+        {
+            return HarvestCooldown;
+        }
+
+        public TimeSpan GetEffectiveAutoHarvestCooldown(int civilizationIndex, HexCoord hex)
+        {
+            if (_state == null) return AutomaticHarvestCooldown;
+
+            var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex);
+            if (civ == null) return AutomaticHarvestCooldown;
+
+            var baseCooldown = GetAutoHarvestCooldown(civ);
+
+            var tile = _state.Map.GetTile(hex);
+            if (tile == null) return baseCooldown;
+
+            TimeSpan? min = null;
+            foreach (var city in civ.Cities.Where(c => c.Position.IsAdjacentTo(hex)))
+                foreach (var building in city.Buildings)
+                    if (building.AutomaticHarvestCapability(tile.TerrainType).HasValue)
+                    {
+                        var effective = baseCooldown * building.GetAutomaticHarvestCooldownMultiplier(tile.TerrainType)
+                            - building.GetAutomaticHarvestCooldownReduction(tile.TerrainType);
+                        if (min == null || effective < min) min = effective;
+                    }
+
+            return min ?? baseCooldown;
         }
 
         public bool ManualHarvest(int civilizationIndex, HexCoord hex)

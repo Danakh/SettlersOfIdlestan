@@ -29,6 +29,8 @@ public class Seaport : Building
         return null;
     }
 
+    public override int AutomaticHarvestUnlockLevel => 2;
+
     public override Resource? AutomaticHarvestCapability(TerrainType terrain)
     {
         if ((Level > 1) && (terrain == TerrainType.Water))

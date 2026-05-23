@@ -124,6 +124,22 @@ public class Building
     public virtual double GetAutomaticHarvestCooldownMultiplier(TerrainType terrain) => 1.0;
 
     /// <summary>
+    /// Building level at which automatic harvest is unlocked. Override in subclasses.
+    /// </summary>
+    public virtual int AutomaticHarvestUnlockLevel => int.MaxValue;
+
+    /// <summary>
+    /// Flat cooldown reduction (in seconds) earned per level above AutomaticHarvestUnlockLevel.
+    /// Returns TimeSpan.Zero if this building cannot auto-harvest this terrain.
+    /// </summary>
+    public TimeSpan GetAutomaticHarvestCooldownReduction(TerrainType terrain)
+    {
+        if (AutomaticHarvestCapability(terrain) == null) return TimeSpan.Zero;
+        var levelsAbove = Math.Max(0, Level - AutomaticHarvestUnlockLevel);
+        return TimeSpan.FromSeconds(levelsAbove * 0.5);
+    }
+
+    /// <summary>
     /// Gets or sets the maximum level of the building.
     /// </summary>
     public virtual int GetDefaultMaxLevel() => 1;

@@ -134,13 +134,31 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
             }
         }
 
+        HexCoord? hoveredHex = null;
+        if (hoveredVertex == null && hoveredEdge == null && hoveredCityVertex == null)
+        {
+            var hexCoord = _renderer.IslandToHexCoord(islandPoint);
+            var (hx, hy) = _renderer.AxialToIsland(hexCoord.Q, hexCoord.R);
+            if (_renderer.IsPointInHexagon(islandPoint.X, islandPoint.Y, hx, hy))
+            {
+                var islandState = _gameControllerService.CurrentIslandState;
+                var playerIndex = islandState?.PlayerCivilization.Index ?? 0;
+                if (islandState?.VisibleIslandMaps.TryGetValue(playerIndex, out var visibleMap) == true &&
+                    visibleMap.HasTile(hexCoord))
+                {
+                    hoveredHex = hexCoord;
+                }
+            }
+        }
+
         HoverState = new ConstructionHoverState(
             buildableVertices,
             buildableEdges,
             hoveredVertex,
             hoveredEdge,
             hoveredCityVertex,
-            _cityBuildingService.SelectedCity?.Position
+            _cityBuildingService.SelectedCity?.Position,
+            hoveredHex
         );
     }
 
@@ -206,9 +224,10 @@ public readonly record struct ConstructionHoverState(
     Vertex? HoveredVertex,
     Edge? HoveredEdge,
     Vertex? HoveredCityVertex,
-    Vertex? SelectedCityVertex)
+    Vertex? SelectedCityVertex,
+    HexCoord? HoveredHex)
 {
     public static ConstructionHoverState Empty =>
-        new(Array.Empty<Vertex>(), Array.Empty<Edge>(), null, null, null, null);
+        new(Array.Empty<Vertex>(), Array.Empty<Edge>(), null, null, null, null, null);
 }
 

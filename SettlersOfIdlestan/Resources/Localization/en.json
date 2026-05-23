@@ -124,5 +124,8 @@
   "prestige_tooltip_storage_advanced": "advanced resource storage",
   "prestige_hex_unit_production_speed": "Unit Production",
   "prestige_hex_research_cost_reduction": "Research Cost",
-  "prestige_hex_storage_capacity": "Storage Capacity"
+  "prestige_hex_storage_capacity": "Storage Capacity",
+  "hex_tooltip_manual": "Manual",
+  "hex_tooltip_auto": "Auto",
+  "hex_tooltip_ready": "Ready!"
 }

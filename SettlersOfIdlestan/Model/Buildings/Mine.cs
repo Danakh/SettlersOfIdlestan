@@ -27,6 +27,8 @@ public class Mine : Building
             return Resource.Ore;
         return null;
     }
+    public override int AutomaticHarvestUnlockLevel => 1;
+
     public override Resource? AutomaticHarvestCapability(TerrainType terrain)
     {
         if (terrain == TerrainType.Mountain)

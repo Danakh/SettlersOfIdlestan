@@ -20,6 +20,8 @@ public class Forge : Building
         return 4;
     }
 
+    public override int AutomaticHarvestUnlockLevel => 2;
+
     public override Resource? AutomaticHarvestCapability(TerrainType terrain)
     {
         if (terrain == TerrainType.Mountain)
