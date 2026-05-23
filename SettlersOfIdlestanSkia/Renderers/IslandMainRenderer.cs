@@ -1,6 +1,7 @@
 using SkiaSharp;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
+using SettlersOfIdlestan.Controller;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Services;
 
@@ -40,9 +41,9 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
         { Resource.Crystal, new SKColor(147, 112, 219) } // Violet
     };
 
-    public IslandMainRenderer(IConstructionHoverProvider constructionHoverProvider, TooltipRenderer tooltipRenderer)
+    public IslandMainRenderer(IConstructionHoverProvider constructionHoverProvider, TooltipRenderer tooltipRenderer, HarvestController harvestController)
     {
-        _gameBoardRenderer = new GameBoardRenderer();
+        _gameBoardRenderer = new GameBoardRenderer(harvestController);
         _roadRenderer = new RoadRenderer(tooltipRenderer);
         _cityRenderer = new CityRenderer(tooltipRenderer);
         _harvestParticleSystem = new HarvestParticleSystem();

@@ -107,7 +107,7 @@ public sealed class SkiaGameRuntime : IDisposable
             _inputService,
             _cameraService,
             _gameControllerService.CityBuildingService);
-        islandMainRenderer = new IslandMainRenderer(_constructionInteractionService, tooltipRenderer);
+        islandMainRenderer = new IslandMainRenderer(_constructionInteractionService, tooltipRenderer, _gameControllerService.MainGameController.HarvestController);
         _islandMainRenderer = islandMainRenderer;
         _constructionInteractionService.AttachRenderer(islandMainRenderer);
         _renderService.RegisterRenderer(islandMainRenderer);

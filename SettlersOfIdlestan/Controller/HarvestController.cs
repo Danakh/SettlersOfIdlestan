@@ -159,6 +159,56 @@ namespace SettlersOfIdlestan.Controller
         /// Returns true if harvest succeeded and resources were added, false otherwise.
         /// Throws ArgumentException if civilization not found or coord not adjacent to any city of the civ.
         /// </summary>
+        /// <summary>
+        /// Retourne la liste des ressources que la civilisation peut récolter manuellement
+        /// sur l'hexagone donné, en fonction de ses bâtiments adjacents.
+        /// </summary>
+        public IReadOnlyList<Resource> GetManualHarvestableResources(int civilizationIndex, HexCoord hex)
+        {
+            if (_state == null) return Array.Empty<Resource>();
+
+            var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex);
+            if (civ == null) return Array.Empty<Resource>();
+
+            var tile = _state.Map.GetTile(hex);
+            if (tile == null) return Array.Empty<Resource>();
+
+            var resources = new HashSet<Resource>();
+            foreach (var city in civ.Cities.Where(c => c.Position.IsAdjacentTo(hex)))
+                foreach (var building in city.Buildings)
+                {
+                    var res = building.ManualHarvestCapability(tile.TerrainType);
+                    if (res.HasValue) resources.Add(res.Value);
+                }
+
+            return resources.ToList();
+        }
+
+        /// <summary>
+        /// Retourne la liste des ressources que la civilisation peut récolter automatiquement
+        /// sur l'hexagone donné, en fonction de ses bâtiments adjacents.
+        /// </summary>
+        public IReadOnlyList<Resource> GetAutomaticHarvestableResources(int civilizationIndex, HexCoord hex)
+        {
+            if (_state == null) return Array.Empty<Resource>();
+
+            var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex);
+            if (civ == null) return Array.Empty<Resource>();
+
+            var tile = _state.Map.GetTile(hex);
+            if (tile == null) return Array.Empty<Resource>();
+
+            var resources = new HashSet<Resource>();
+            foreach (var city in civ.Cities.Where(c => c.Position.IsAdjacentTo(hex)))
+                foreach (var building in city.Buildings)
+                {
+                    var res = building.AutomaticHarvestCapability(tile.TerrainType);
+                    if (res.HasValue) resources.Add(res.Value);
+                }
+
+            return resources.ToList();
+        }
+
         public bool ManualHarvest(int civilizationIndex, HexCoord hex)
         {
             if (_state == null || _clock == null) throw new InvalidOperationException("IslandState and GameClock have not been initialized.");

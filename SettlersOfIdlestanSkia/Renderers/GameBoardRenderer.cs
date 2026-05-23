@@ -3,6 +3,7 @@ using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.HexGrid;
+using SettlersOfIdlestan.Controller;
 using System;
 using System.Collections.Generic;
 
@@ -14,6 +15,8 @@ namespace SettlersOfIdlestanSkia.Renderers;
 /// </summary>
 public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
 {
+    private readonly HarvestController _harvestController;
+
     private SKPaint? _hexBorderPaint;
     private SKPaint? _hexFillPaint;
     private SKPaint? _textPaint;
@@ -31,7 +34,7 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
     private const float ManualRingRadius = 5f;
     private const float ManualRingStroke = 3f;
     private const float AutoRingRadius = 8f;
-    private const float AutoRingStroke = 3f;   // outer edge = 17 + 3 = 20 px
+    private const float AutoRingStroke = 3f;
 
     private static readonly Dictionary<TerrainType, SKColor> TerrainColors = new()
     {
@@ -43,16 +46,10 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
         { TerrainType.Water,    new SKColor(30, 144, 255) },
     };
 
-    // Couleur du point central selon le terrain (ressource naturelle produite)
-    private static readonly Dictionary<TerrainType, SKColor> TerrainResourceDotColors = new()
+    public GameBoardRenderer(HarvestController harvestController)
     {
-        { TerrainType.Forest,   IslandMainRenderer.ResourceColors[Resource.Wood] },
-        { TerrainType.Hill,     IslandMainRenderer.ResourceColors[Resource.Brick] },
-        { TerrainType.Plain,    IslandMainRenderer.ResourceColors[Resource.Food] },
-        { TerrainType.Mountain, IslandMainRenderer.ResourceColors[Resource.Stone] },
-        { TerrainType.Water,    IslandMainRenderer.ResourceColors[Resource.Food] },
-        // Desert : pas de ressource, pas de point
-    };
+        _harvestController = harvestController;
+    }
 
     public void Initialize(SKSize canvasSize)
     {
@@ -116,13 +113,13 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
                     islandState.HarvestLastTimesByCivilization.TryGetValue(playerIdx, out var manualTimes);
                     islandState.AutomaticHarvestLastTimesByCivilization.TryGetValue(playerIdx, out var autoTimes);
 
-                    DrawIslandMap(canvas, visibleMap, mainGameState.Clock.CurrentTime, manualTimes, autoTimes);
+                    DrawIslandMap(canvas, visibleMap, playerIdx, mainGameState.Clock.CurrentTime, manualTimes, autoTimes);
                 }
             }
         }
     }
 
-    private void DrawIslandMap(SKCanvas canvas, IslandMap map,
+    private void DrawIslandMap(SKCanvas canvas, IslandMap map, int playerIdx,
         DateTimeOffset currentTime,
         Dictionary<HexCoord, DateTimeOffset>? manualTimes,
         Dictionary<HexCoord, DateTimeOffset>? autoTimes)
@@ -130,12 +127,12 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
         foreach (var (coord, tile) in map.Tiles)
         {
             var (x, y) = AxialToIsland(coord.Q, coord.R);
-            DrawHexagonTile(canvas, x, y, HexSize, tile, currentTime, manualTimes, autoTimes);
+            DrawHexagonTile(canvas, x, y, HexSize, tile, playerIdx, currentTime, manualTimes, autoTimes);
         }
     }
 
     private void DrawHexagonTile(SKCanvas canvas, float centerX, float centerY, float size, HexTile tile,
-        DateTimeOffset currentTime,
+        int playerIdx, DateTimeOffset currentTime,
         Dictionary<HexCoord, DateTimeOffset>? manualTimes,
         Dictionary<HexCoord, DateTimeOffset>? autoTimes)
     {
@@ -153,7 +150,7 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
         if (_hexBorderPaint != null)
             canvas.DrawPath(PointsToPath(points), _hexBorderPaint);
 
-        DrawHarvestIndicator(canvas, centerX, centerY, tile, currentTime, manualTimes, autoTimes);
+        DrawHarvestIndicator(canvas, centerX, centerY, tile, playerIdx, currentTime, manualTimes, autoTimes);
 
         if (DebugOverlayRenderer.DebugMode && _textPaint != null && tile.Coord != null)
         {
@@ -164,38 +161,69 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
 
     /// <summary>
     /// Dessine l'indicateur de récolte au centre de l'hex :
-    /// point coloré (ressource) + anneau de cooldown manuel + anneau de cooldown automatique.
+    /// camembert des ressources récoltables + anneau de cooldown manuel + anneau de cooldown automatique.
     /// </summary>
     private void DrawHarvestIndicator(SKCanvas canvas, float cx, float cy, HexTile tile,
-        DateTimeOffset currentTime,
+        int playerIdx, DateTimeOffset currentTime,
         Dictionary<HexCoord, DateTimeOffset>? manualTimes,
         Dictionary<HexCoord, DateTimeOffset>? autoTimes)
     {
         if (_dotPaint == null || _ringBgPaint == null || _ringProgressPaint == null)
             return;
 
-        // Anneau extérieur : cooldown automatique (or/jaune)
-        DrawCooldownRing(canvas, cx, cy, AutoRingRadius, AutoRingStroke,
-            tile.Coord, currentTime, autoTimes, AutoCooldown,
-            new SKColor(60, 60, 60, 150),
-            new SKColor(255, 200, 60, 230));
+        var manualResources = _harvestController.GetManualHarvestableResources(playerIdx, tile.Coord);
+        var autoResources = _harvestController.GetAutomaticHarvestableResources(playerIdx, tile.Coord);
 
-        // Anneau intérieur : cooldown manuel (vert clair)
-        DrawCooldownRing(canvas, cx, cy, ManualRingRadius, ManualRingStroke,
-            tile.Coord, currentTime, manualTimes, ManualCooldown,
-            new SKColor(60, 60, 60, 150),
-            new SKColor(160, 230, 160, 230));
+        // Anneau extérieur : cooldown automatique (or/jaune) — seulement si des ressources auto existent
+        if (autoResources.Count > 0)
+            DrawCooldownRing(canvas, cx, cy, AutoRingRadius, AutoRingStroke,
+                tile.Coord, currentTime, autoTimes, AutoCooldown,
+                new SKColor(60, 60, 60, 150),
+                new SKColor(255, 200, 60, 230));
 
-        // Point central : couleur de la ressource du terrain
-        if (TerrainResourceDotColors.TryGetValue(tile.TerrainType, out var dotColor))
+        // Anneau intérieur : cooldown manuel (vert clair) — seulement si des ressources manuelles existent
+        if (manualResources.Count > 0)
+            DrawCooldownRing(canvas, cx, cy, ManualRingRadius, ManualRingStroke,
+                tile.Coord, currentTime, manualTimes, ManualCooldown,
+                new SKColor(60, 60, 60, 150),
+                new SKColor(160, 230, 160, 230));
+
+        // Point central : camembert des ressources manuelles récoltables
+        if (manualResources.Count > 0)
+            DrawResourcePie(canvas, cx, cy, DotRadius, manualResources);
+    }
+
+    /// <summary>
+    /// Dessine un cercle plein (1 ressource) ou un camembert à parts égales (N ressources).
+    /// </summary>
+    private void DrawResourcePie(SKCanvas canvas, float cx, float cy, float radius, IReadOnlyList<Resource> resources)
+    {
+        if (resources.Count == 1)
         {
-            _dotPaint.Color = dotColor;
-            canvas.DrawCircle(cx, cy, DotRadius, _dotPaint);
-
-            _ringBgPaint.Color = new SKColor(0, 0, 0, 90);
-            _ringBgPaint.StrokeWidth = 1f;
-            canvas.DrawCircle(cx, cy, DotRadius, _ringBgPaint);
+            _dotPaint!.Color = IslandMainRenderer.ResourceColors.GetValueOrDefault(resources[0], SKColors.White);
+            canvas.DrawCircle(cx, cy, radius, _dotPaint);
         }
+        else
+        {
+            float sliceDeg = 360f / resources.Count;
+            var rect = new SKRect(cx - radius, cy - radius, cx + radius, cy + radius);
+
+            for (int i = 0; i < resources.Count; i++)
+            {
+                using var path = new SKPath();
+                path.MoveTo(cx, cy);
+                path.ArcTo(rect, -90f + i * sliceDeg, sliceDeg, false);
+                path.Close();
+
+                _dotPaint!.Color = IslandMainRenderer.ResourceColors.GetValueOrDefault(resources[i], SKColors.White);
+                canvas.DrawPath(path, _dotPaint);
+            }
+        }
+
+        // Contour du cercle
+        _ringBgPaint!.Color = new SKColor(0, 0, 0, 90);
+        _ringBgPaint.StrokeWidth = 1f;
+        canvas.DrawCircle(cx, cy, radius, _ringBgPaint);
     }
 
     /// <summary>
@@ -219,8 +247,6 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
         if (lastTimes != null && lastTimes.TryGetValue(coord, out var lastTime))
             ratio = Math.Clamp((float)((currentTime - lastTime).TotalSeconds / cooldownDuration.TotalSeconds), 0f, 1f);
 
-        // Arc de progression : s'allonge de 0° à 360° au fur et à mesure que le cooldown expire.
-        // Quand ratio = 1 (prêt), l'arc est complet (anneau plein).
         if (ratio > 0f)
         {
             _ringProgressPaint!.Color = progressColor;
