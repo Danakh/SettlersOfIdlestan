@@ -14,7 +14,7 @@ public class SettingsMenu
 {
     private const float MenuItemHeight = 35;
     public const float MenuItemWidth = 250;
-    private const float IconSize = 20;
+    private const float IconSize = PlayerResourcesOverlayRenderer.IconSize;
     private const float Padding = 12;
     private const float SeparatorHeight = 20;
 

@@ -23,6 +23,8 @@ public class SelectedCityPanelRenderer : IGameRenderer
     private const float Padding = 10;
     private Dictionary<SKRect, BuildingType> _btnRects = new Dictionary<SKRect, BuildingType>();
     private Dictionary<SKRect, BuildingType> _hoverRects = new Dictionary<SKRect, BuildingType>();
+    public float ReservedBottomHeight { get; set; }
+    public bool IsInputEnabled { get; set; } = true;
 
     public SelectedCityPanelRenderer( CityBuildingService cityBuildingService, ILocalizationService localization, InputHandlingService inputService)
     {
@@ -63,11 +65,17 @@ public class SelectedCityPanelRenderer : IGameRenderer
             return;
 
         // Fond du panneau
-        float panelHeight = buildingCount * RowHeight + 2 * Padding;
+        float maxPanelHeight = Math.Max(0, _canvasSize.Height - panelY - ReservedBottomHeight - 10);
+        int visibleBuildingCount = Math.Min(buildingCount, Math.Max(0, (int)((maxPanelHeight - 2 * Padding) / RowHeight)));
+        if (visibleBuildingCount == 0)
+            return;
+
+        var visibleBuildings = buildings.Take(visibleBuildingCount).ToList();
+        float panelHeight = visibleBuildingCount * RowHeight + 2 * Padding;
         canvas.DrawRoundRect(panelX, panelY, PanelWidth, panelHeight, 12, 12, bgPaint);
         canvas.DrawRoundRect(panelX, panelY, PanelWidth, panelHeight, 12, 12, borderPaint);
 
-        foreach (var (building, index) in buildings.Select((item, i) => (item, i)))
+        foreach (var (building, index) in visibleBuildings.Select((item, i) => (item, i)))
         {
             var isBuilt = building.Level > 0;
             var canBuild = building.Level == 0;
@@ -139,7 +147,7 @@ public class SelectedCityPanelRenderer : IGameRenderer
         // Afficher le tooltip (description) si on survole un bâtiment
         if (_hoveredBuildingType.HasValue)
         {
-            var hoveredBuilding = buildings.FirstOrDefault(b => b.Type == _hoveredBuildingType.Value);
+            var hoveredBuilding = visibleBuildings.FirstOrDefault(b => b.Type == _hoveredBuildingType.Value);
             if (hoveredBuilding != null)
             {
                 var buildingName = _localization.Get(hoveredBuilding.NameKey);
@@ -156,6 +164,12 @@ public class SelectedCityPanelRenderer : IGameRenderer
 
     private void HandlePointerMoved(object? sender, SettlersOfIdlestanSkia.Services.PointerEventArgs e)
     {
+        if (!IsInputEnabled)
+        {
+            _hoveredBuildingType = null;
+            return;
+        }
+
         _lastPointerPosition = e.Position;
         
         // Détecter si on survole un bâtiment
@@ -172,6 +186,9 @@ public class SelectedCityPanelRenderer : IGameRenderer
 
     private void HandlePointerPressed(object? sender, SettlersOfIdlestanSkia.Services.PointerEventArgs e)
     {
+        if (!IsInputEnabled)
+            return;
+
         // Vérifier les clics sur les boutons
         foreach (var (rect, buildingType) in _hoverRects)
         {

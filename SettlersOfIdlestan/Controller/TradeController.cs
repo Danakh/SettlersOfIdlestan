@@ -14,7 +14,7 @@ namespace SettlersOfIdlestan.Controller
     public class TradeController
     {
         private IslandState? _state;
-        private const int TradeRate = 5;
+        private const int BasicResourceTradeRate = 5;
 
         internal TradeController(IslandState? state = null)
         {
@@ -64,15 +64,21 @@ namespace SettlersOfIdlestan.Controller
                       ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
 
             if (!IsTradeAvailable(civilizationIndex))
-                throw new InvalidOperationException("Trading not available: civilization must own a Market or a Seaport");
+                throw new InvalidOperationException("Trading not available:  civilization must own a Market or a Seaport");
 
+            var offer = TradeRate(civilizationIndex, from);
             var available = civ.GetResourceQuantity(from);
-            if (available < TradeRate)
-                throw new InvalidOperationException($"Not enough resources to trade: need {TradeRate} {from}");
+            if (available < offer)
+                throw new InvalidOperationException($"Not enough resources to trade: need {offer} {from}");
 
             // perform trade: consume and grant
-            civ.RemoveResource(from, TradeRate);
+            civ.RemoveResource(from, offer);
             civ.AddResource(to, 1);
+        }
+
+        public int TradeRate(int civilizationIndex, Resource res)
+        {
+            return BasicResourceTradeRate;
         }
 
         /// <summary>
@@ -102,10 +108,10 @@ namespace SettlersOfIdlestan.Controller
 
             // Candidate sources: resources with at least TradeRate and either not required or owned > required
             var candidateSources = owned
-                .Where(kv => kv.Value >= TradeRate)
+                .Where(kv => kv.Value >= TradeRate(civilizationIndex, kv.Key))
                 .Where(kv => {
                     if (!requiredCosts.Keys.Contains(kv.Key)) return true;
-                    return kv.Value >= (requiredCosts[kv.Key] + TradeRate);
+                    return kv.Value >= (requiredCosts[kv.Key] + TradeRate(civilizationIndex, kv.Key));
                 })
                 .OrderByDescending(kv => kv.Value)
                 .Select(kv => kv.Key)

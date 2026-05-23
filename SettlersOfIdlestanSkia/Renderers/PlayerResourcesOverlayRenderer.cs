@@ -24,27 +24,31 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
     private SKSize _canvasSize;
     private bool _disposed;
 
-    private readonly SettingsMenu _settingsMenu;
-    private readonly InputHandlingService _inputService;
     private readonly ILocalizationService _localization;
     private readonly ResourceManager _resourceManager;
-    private const float BarHeight = 50;
-    private const float IconSize = 32;
+    public const float BarHeight = 50;
+    public const float IconSize = 32;
     private const float RectangleWidth = 66;
     private const float RectangleHeight = 32;
-    private const float Padding = 12;
+    public const float Padding = 12;
 
     // Couleurs par type de ressource
     private static Dictionary<Resource, SKColor> ResourceColors => IslandMainRenderer.ResourceColors;
 
     public bool Disposed => _disposed;
-
-    public PlayerResourcesOverlayRenderer(InputHandlingService inputService, ILocalizationService localization, SettingsMenu settingsMenu, ResourceManager resourceManager)
+    public SKRect GearRect
     {
-        _inputService = inputService;
+        get
+        {
+            float gearX = _canvasSize.Width - Padding - IconSize;
+            float gearY = (BarHeight - IconSize) / 2;
+            return new SKRect(gearX, gearY, gearX + IconSize, gearY + IconSize);
+        }
+    }
+
+    public PlayerResourcesOverlayRenderer(ILocalizationService localization, ResourceManager resourceManager)
+    {
         _localization = localization;
-        _inputService.PointerPressed += HandleGearClick;
-        _settingsMenu = settingsMenu;
         _resourceManager = resourceManager;
     }
 
@@ -105,9 +109,6 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
 
         DrawResourcesBar(canvas, currentCivilization);
 
-        // Dessine le menu déroulant
-        float gearX = _canvasSize.Width - Padding - IconSize;
-        _settingsMenu.Draw(canvas, gearX, BarHeight);
     }
 
     private void DrawResourcesBar(SKCanvas canvas, SettlersOfIdlestan.Model.Civilization.Civilization civilization)
@@ -224,25 +225,11 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
         }
     }
 
-    private void HandleGearClick(object? sender, SettlersOfIdlestanSkia.Services.PointerEventArgs e)
-    {
-        float gearX = _canvasSize.Width - Padding - IconSize;
-        float gearY = (BarHeight - IconSize) / 2;
-
-        // Vérifie si le clic est sur la roue crantée
-        var gearRect = new SKRect(gearX, gearY, gearX + IconSize, gearY + IconSize);
-        if (gearRect.Contains(e.Position.X, e.Position.Y))
-        {
-            _settingsMenu.HandleGearClick();
-        }
-    }
-
     public void Dispose()
     {
         if (_disposed)
             return;
 
-        _inputService.PointerPressed -= HandleGearClick;
         _backgroundPaint?.Dispose();
         _textPaint?.Dispose();
         _borderPaint?.Dispose();
