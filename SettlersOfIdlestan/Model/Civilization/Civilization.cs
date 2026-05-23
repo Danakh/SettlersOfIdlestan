@@ -106,7 +106,7 @@ public class Civilization
         // TODO if needed: Dependency Injection
         // retrieve for each city the storage value for that ressource, sum them up and return the total.
         int baseCityResourceMax = 2 * Cities.Count + Cities.Sum(city => city.Level); // storage per city is 2 + Level
-        int advancedCityResourceMax = Cities.Sum(city => Math.Max(0, city.Level - 1)); // storage per city is (Level - 1)
+        int advancedCityResourceMax = Cities.Sum(city => Math.Max(0, city.Level - 2)); // storage per city is (Level - 2)
         int cityWithWarehouseCount = Cities.Count(city => city.Buildings.Any(building => building.Type == BuildingType.Warehouse));
         int result = resource switch
         {

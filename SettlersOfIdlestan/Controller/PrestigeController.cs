@@ -22,6 +22,16 @@ namespace SettlersOfIdlestan.Controller
             _playerCivilization = playerCivilization;
         }
 
+        public bool PrestigeIsVisible()
+        {
+            return CalculatePrestigePoints() >= 10;
+        }
+
+        public bool PrestigeIsAvailable()
+        {
+            return CalculatePrestigePoints() >= 20;
+        }
+
         public int CalculatePrestigePoints()
         {
             // Simple prestige calculation based on the number of cities and buildings
