@@ -20,6 +20,7 @@ namespace SettlersOfIdlestan.Controller
         public BuildingController BuildingController { get; private set; }
         public CityBuilderController CityBuilderController { get; private set; }
         public PrestigeController PrestigeController { get; private set; }
+        public PrestigeMapController PrestigeMapController { get; private set; }
         public GameClock? Clock { get; private set; }
         // Holds the currently loaded main game state when created or imported
         public SettlersOfIdlestan.Model.Game.MainGameState? CurrentMainState { get; private set; }
@@ -41,6 +42,7 @@ namespace SettlersOfIdlestan.Controller
             CityBuilderController = new CityBuilderController();
             AtlasController = new AtlasController();
             PrestigeController = new PrestigeController();
+            PrestigeMapController = new PrestigeMapController();
         }
 
         /// <summary>
@@ -113,6 +115,7 @@ namespace SettlersOfIdlestan.Controller
             mainState.Clock.Start();
 
             SetGame(mainState);
+            PrestigeMapController.ApplyPrestigeToNewGame(islandState, mainState.PrestigeState);
             return mainState;
         }
 
@@ -125,6 +128,7 @@ namespace SettlersOfIdlestan.Controller
             var parameters = AtlasController.GetIslandParameters(nextIslandId);
             PrestigeController.PerformPrestige(CurrentMainState, parameters);
             InitializeControllersForCurrentIsland();
+            PrestigeMapController.ApplyPrestigeToNewGame(CurrentMainState.CurrentIslandState!, CurrentMainState.PrestigeState);
         }
 
         public MainGameState? CreateNewGame()

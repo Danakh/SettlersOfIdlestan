@@ -17,6 +17,8 @@ namespace SettlersOfIdlestan.Model.PrestigeMap
 
         public int PrestigePoints { get; set; }
 
+        public List<PrestigeVertexId> PurchasedVertices { get; set; } = new();
+
         /// <summary>
         /// Constructeur parameterless requis par certains sérialiseurs.
         /// </summary>

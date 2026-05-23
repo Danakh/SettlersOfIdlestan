@@ -3,6 +3,7 @@ using SettlersOfIdlestan.Model.IslandMap;
 using System;
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
+using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
 
 namespace SettlersOfIdlestan.Model.Civilization;
 
@@ -33,7 +34,13 @@ public class Civilization
     public TechnologyTree TechnologyTree { get; set; } = new();
 
     /// <summary>
-    /// Liste des ressources détenues par la civilisation.
+    /// Research speed multiplier, computed from TechnologyTree modifiers. 1.0 = normal speed.
+    /// </summary>
+    [JsonIgnore]
+    public double ResearchSpeed => TechnologyTree.ApplyModifiers(ECategory.RESEARCH_SPEED, "", 1.0);
+
+    /// <summary>
+    /// Liste des ressources dï¿½tenues par la civilisation.
     /// </summary>
     // Resources are stored as a map from Resource -> quantity.
     // Made private: access should be done through AddResource/RemoveResource and GetResourceQuantity.

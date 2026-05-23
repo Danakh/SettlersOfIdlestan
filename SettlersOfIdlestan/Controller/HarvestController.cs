@@ -4,6 +4,7 @@ using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.HexGrid;
+using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
 
 namespace SettlersOfIdlestan.Controller
 {
@@ -103,6 +104,12 @@ namespace SettlersOfIdlestan.Controller
             }
         }
 
+        private TimeSpan GetAutoHarvestCooldown(Civilization civ)
+        {
+            double speedMultiplier = civ.TechnologyTree.ApplyModifiers(ECategory.HARVEST_SPEED, "", 1.0);
+            return TimeSpan.FromSeconds(AutomaticHarvestCooldown.TotalSeconds / speedMultiplier);
+        }
+
         private void PerformAutomaticProductionHarvests()
         {
             if (_state == null || _clock == null) return;
@@ -133,8 +140,8 @@ namespace SettlersOfIdlestan.Controller
                             Resource? resource = building.AutomaticHarvestCapability(tile.TerrainType);
                             if (resource != null)
                             {
-                                // check automatic cooldown
-                                if (autoMap.TryGetValue(hex, out var lastAuto) && now - lastAuto < AutomaticHarvestCooldown)
+                                // check automatic cooldown (adjusted by civilization harvest speed)
+                                if (autoMap.TryGetValue(hex, out var lastAuto) && now - lastAuto < GetAutoHarvestCooldown(civ))
                                 {
                                     continue;
                                 }

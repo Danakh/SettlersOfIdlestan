@@ -9,8 +9,8 @@ using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
 namespace SettlersOfIdlestan.Controller
 {
     /// <summary>
-    /// Contrôle la logique de construction et d'amélioration des bâtiments pour une ville donnée.
-    /// API similaire à RoadController / CityBuilderController.
+    /// Contrï¿½le la logique de construction et d'amï¿½lioration des bï¿½timents pour une ville donnï¿½e.
+    /// API similaire ï¿½ RoadController / CityBuilderController.
     /// </summary>
     public class BuildingController
     {
@@ -30,8 +30,8 @@ namespace SettlersOfIdlestan.Controller
         }
 
         /// <summary>
-        /// Retourne la liste des bâtiments constructibles ou améliorables pour la ville spécifiée.
-        /// La méthode renvoie des instances prototypes de niveau 0 pour les bâtiments non construits.
+        /// Retourne la liste des bï¿½timents constructibles ou amï¿½liorables pour la ville spï¿½cifiï¿½e.
+        /// La mï¿½thode renvoie des instances prototypes de niveau 0 pour les bï¿½timents non construits.
         /// </summary>
         public List<Building> GetBuildingsAndBuildables(int civilizationIndex, Vertex cityVertex)
         {
@@ -70,7 +70,7 @@ namespace SettlersOfIdlestan.Controller
         }
 
         /// <summary>
-        /// Construit (ou améliore) un bâtiment dans la ville spécifiée.
+        /// Construit (ou amï¿½liore) un bï¿½timent dans la ville spï¿½cifiï¿½e.
         /// Lance InvalidOperationException si pas assez de ressources ou si l'action n'est pas permise.
         /// </summary>
         public bool BuildBuilding(int civilizationIndex, Vertex cityVertex, BuildingType type)
@@ -162,6 +162,8 @@ namespace SettlersOfIdlestan.Controller
                 BuildingType.Library => new Library(),
                 BuildingType.Temple => new Temple(),
                 BuildingType.BuildersGuild => new BuildersGuild(),
+                BuildingType.Laboratory => new Laboratory(),
+                BuildingType.Barracks => new Barracks(),
                 _ => null,
             };
         }

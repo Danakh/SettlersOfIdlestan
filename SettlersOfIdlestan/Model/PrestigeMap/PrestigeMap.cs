@@ -1,44 +1,87 @@
-using System.Collections.Generic;
-using SettlersOfIdlestan.Model.HexGrid;
+using SettlersOfIdlestan.Model.Buildings;
+using SettlersOfIdlestan.Model.GameplayModifier;
+using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
 
 namespace SettlersOfIdlestan.Model.PrestigeMap;
 
-/// <summary>
-/// Represents the prestige map, containing a collection of prestige tiles.
-/// </summary>
 public class PrestigeMap
 {
-    private readonly Dictionary<HexCoord, PrestigeTile> _tiles = new();
+    public IReadOnlyList<PrestigeVertex> Vertices { get; }
+    public IReadOnlyList<PrestigeHex> Hexes { get; }
 
-    public PrestigeMap(IEnumerable<PrestigeTile> tiles)
+    public PrestigeMap(IEnumerable<PrestigeVertex> vertices, IEnumerable<PrestigeHex> hexes)
     {
-        foreach (var tile in tiles)
+        Vertices = vertices.ToList();
+        Hexes = hexes.ToList();
+    }
+
+    public PrestigeVertex? GetVertex(PrestigeVertexId id) => Vertices.FirstOrDefault(v => v.Id == id);
+    public PrestigeHex? GetHex(PrestigeHexId id) => Hexes.FirstOrDefault(h => h.Id == id);
+
+    // Adjacency layout:
+    //   Hex StartingResources: adjacent to Central, SeaportMarket, Barracks
+    //   Hex HarvestSpeed:      adjacent to Central, SeaportMarket, Laboratory
+    //   Hex ResearchSpeed:     adjacent to Central, Laboratory, Barracks
+    public static PrestigeMap CreateDefault()
+    {
+        var vertices = new PrestigeVertex[]
         {
-            _tiles[tile.Coord] = tile;
-        }
-    }
+            new(
+                PrestigeVertexId.Central,
+                cost: 3,
+                prerequisites: Array.Empty<PrestigeVertexId>(),
+                modifiers: new Modifier[] { new(ECategory.BUILDING_MAX_LEVEL, "Library", EType.ADDITIVE, 3) },
+                startingBuildings: Array.Empty<BuildingType>(),
+                adjacentHexes: new[] { PrestigeHexId.StartingResources, PrestigeHexId.HarvestSpeed, PrestigeHexId.ResearchSpeed }
+            ),
+            new(
+                PrestigeVertexId.SeaportMarket,
+                cost: 5,
+                prerequisites: new[] { PrestigeVertexId.Central },
+                modifiers: Array.Empty<Modifier>(),
+                startingBuildings: new[] { BuildingType.Seaport, BuildingType.Market },
+                adjacentHexes: new[] { PrestigeHexId.StartingResources, PrestigeHexId.HarvestSpeed }
+            ),
+            new(
+                PrestigeVertexId.Laboratory,
+                cost: 5,
+                prerequisites: new[] { PrestigeVertexId.Central },
+                modifiers: new Modifier[] { new(ECategory.BUILDING_MAX_LEVEL, "Laboratory", EType.ADDITIVE, 2) },
+                startingBuildings: Array.Empty<BuildingType>(),
+                adjacentHexes: new[] { PrestigeHexId.HarvestSpeed, PrestigeHexId.ResearchSpeed }
+            ),
+            new(
+                PrestigeVertexId.Barracks,
+                cost: 5,
+                prerequisites: new[] { PrestigeVertexId.Central },
+                modifiers: new Modifier[] { new(ECategory.BUILDING_MAX_LEVEL, "Barracks", EType.ADDITIVE, 2) },
+                startingBuildings: Array.Empty<BuildingType>(),
+                adjacentHexes: new[] { PrestigeHexId.StartingResources, PrestigeHexId.ResearchSpeed }
+            ),
+        };
 
-    public IReadOnlyDictionary<HexCoord, PrestigeTile> Tiles => _tiles;
-
-    public PrestigeTile? GetTile(HexCoord coord)
-    {
-        return _tiles.GetValueOrDefault(coord);
-    }
-
-    public bool HasTile(HexCoord coord)
-    {
-        return _tiles.ContainsKey(coord);
-    }
-
-    public IEnumerable<PrestigeTile> GetNeighbors(HexCoord coord)
-    {
-        foreach (var direction in HexDirectionUtils.AllHexDirections)
+        var hexes = new PrestigeHex[]
         {
-            var neighborCoord = coord.Neighbor(direction);
-            if (GetTile(neighborCoord) is PrestigeTile tile)
-            {
-                yield return tile;
-            }
-        }
+            new(
+                PrestigeHexId.StartingResources,
+                adjacentVertices: new[] { PrestigeVertexId.Central, PrestigeVertexId.SeaportMarket, PrestigeVertexId.Barracks },
+                perVertexModifier: null,
+                startingResourceBonusPerVertex: 2
+            ),
+            new(
+                PrestigeHexId.HarvestSpeed,
+                adjacentVertices: new[] { PrestigeVertexId.Central, PrestigeVertexId.SeaportMarket, PrestigeVertexId.Laboratory },
+                perVertexModifier: new Modifier(ECategory.HARVEST_SPEED, EType.ADDITIVE, 0.1),
+                startingResourceBonusPerVertex: 0
+            ),
+            new(
+                PrestigeHexId.ResearchSpeed,
+                adjacentVertices: new[] { PrestigeVertexId.Central, PrestigeVertexId.Laboratory, PrestigeVertexId.Barracks },
+                perVertexModifier: new Modifier(ECategory.RESEARCH_SPEED, EType.ADDITIVE, 0.1),
+                startingResourceBonusPerVertex: 0
+            ),
+        };
+
+        return new PrestigeMap(vertices, hexes);
     }
 }

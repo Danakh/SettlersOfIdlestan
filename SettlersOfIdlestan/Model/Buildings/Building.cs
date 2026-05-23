@@ -9,11 +9,11 @@ namespace SettlersOfIdlestan.Model.Buildings;
 public enum BuildingType
 {
     /// <summary>
-    /// Hôtel de ville - Permet l'amélioration de la ville
+    /// Hï¿½tel de ville - Permet l'amï¿½lioration de la ville
     /// </summary>
     TownHall,
     /// <summary>
-    /// Marché - Permet le commerce
+    /// Marchï¿½ - Permet le commerce
     /// </summary>
     Market,
     /// <summary>
@@ -25,7 +25,7 @@ public enum BuildingType
     /// </summary>
     Brickworks,
     /// <summary>
-    /// Moulin - Produit du blé
+    /// Moulin - Produit du blï¿½
     /// </summary>
     Mill,
     /// <summary>
@@ -37,19 +37,19 @@ public enum BuildingType
     /// </summary>
     Mine,
     /// <summary>
-    /// Port maritime - Permet la récolte de nourriture et le commerce maritime
+    /// Port maritime - Permet la rï¿½colte de nourriture et le commerce maritime
     /// </summary>
     Seaport,
     /// <summary>
-    /// Entrepôt - Augmente la capacité de stockage des ressources
+    /// Entrepï¿½t - Augmente la capacitï¿½ de stockage des ressources
     /// </summary>
     Warehouse,
     /// <summary>
-    /// Forge - Améliore la production de minerai et permet la création d'outils
+    /// Forge - Amï¿½liore la production de minerai et permet la crï¿½ation d'outils
     /// </summary>
     Forge,
     /// <summary>
-    /// Bibliothèque - Augmente la production de connaissances et permet des améliorations
+    /// Bibliothï¿½que - Augmente la production de connaissances et permet des amï¿½liorations
     /// </summary>
     Library,
     /// <summary>
@@ -59,7 +59,15 @@ public enum BuildingType
     /// <summary>
     /// Guilde des batisseurs - Permet l'automatisation de constructions. Disponible au niveau Capitale (4).
     /// </summary>
-    BuildersGuild
+    BuildersGuild,
+    /// <summary>
+    /// Laboratoire - Permet la recherche avancÃ©e. DÃ©bloquÃ© par le prestige.
+    /// </summary>
+    Laboratory,
+    /// <summary>
+    /// Caserne - Permet l'entraÃ®nement de troupes. DÃ©bloquÃ© par le prestige.
+    /// </summary>
+    Barracks
 }
 
 /// <summary>

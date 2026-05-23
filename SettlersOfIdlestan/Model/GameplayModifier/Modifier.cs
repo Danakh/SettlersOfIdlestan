@@ -9,8 +9,9 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
         public enum ECategory
         {
             BUILDING_MAX_LEVEL,
-            BUILDING_PRODUCTION
-
+            BUILDING_PRODUCTION,
+            HARVEST_SPEED,
+            RESEARCH_SPEED
         }
 
         public enum EType
@@ -26,6 +27,8 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
         public EType Type { get; set; }
         public double Value { get; set; }
         public bool IsActive { get; set; } = true;
+
+        public Modifier() { }
 
         public Modifier(ECategory category, EType type, double value)
         {
