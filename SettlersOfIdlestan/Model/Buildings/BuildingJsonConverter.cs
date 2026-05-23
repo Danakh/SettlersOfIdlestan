@@ -52,6 +52,7 @@ namespace SettlersOfIdlestan.Model.Buildings
                 BuildingType.BuildersGuild => typeof(BuildersGuild),
                 BuildingType.Laboratory => typeof(Laboratory),
                 BuildingType.Barracks => typeof(Barracks),
+                BuildingType.GlassWorks => typeof(GlassWorks),
                 _ => typeof(Building)
             };
 

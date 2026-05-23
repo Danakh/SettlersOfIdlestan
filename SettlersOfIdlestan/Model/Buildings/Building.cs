@@ -67,7 +67,11 @@ public enum BuildingType
     /// <summary>
     /// Caserne - Permet l'entraînement de troupes. Débloqué par le prestige.
     /// </summary>
-    Barracks
+    Barracks,
+    /// <summary>
+    /// Verrerie - Produit du verre dans les déserts. Débloqué par le prestige (Laboratoire).
+    /// </summary>
+    GlassWorks
 }
 
 /// <summary>
@@ -112,6 +116,12 @@ public class Building
     /// Gets the harvest capability of the building.
     /// </summary>
     public virtual Resource? AutomaticHarvestCapability(TerrainType terrain) => null;
+
+    /// <summary>
+    /// Returns a cooldown multiplier for automatic harvests on the given terrain type.
+    /// Values > 1.0 slow down production; default is 1.0.
+    /// </summary>
+    public virtual double GetAutomaticHarvestCooldownMultiplier(TerrainType terrain) => 1.0;
 
     /// <summary>
     /// Gets or sets the maximum level of the building.

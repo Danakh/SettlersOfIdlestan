@@ -53,7 +53,11 @@ public class PrestigeMap
                 PrestigeVertexId.Laboratory,
                 cost: 5,
                 prerequisites: new[] { PrestigeVertexId.Central },
-                modifiers: new Modifier[] { new(ECategory.BUILDING_MAX_LEVEL, "Laboratory", EType.ADDITIVE, 2) },
+                modifiers: new Modifier[]
+                {
+                    new(ECategory.BUILDING_MAX_LEVEL, "Laboratory", EType.ADDITIVE, 2),
+                    new(ECategory.BUILDING_MAX_LEVEL, "GlassWorks", EType.ADDITIVE, 1),
+                },
                 startingBuildings: Array.Empty<BuildingType>(),
                 adjacentHexes: new[] { PrestigeHexId.HarvestSpeed, PrestigeHexId.ResearchSpeed, PrestigeHexId.ResearchCostReduction }
             ),

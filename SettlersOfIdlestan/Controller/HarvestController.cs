@@ -140,8 +140,9 @@ namespace SettlersOfIdlestan.Controller
                             Resource? resource = building.AutomaticHarvestCapability(tile.TerrainType);
                             if (resource != null)
                             {
-                                // check automatic cooldown (adjusted by civilization harvest speed)
-                                if (autoMap.TryGetValue(hex, out var lastAuto) && now - lastAuto < GetAutoHarvestCooldown(civ))
+                                // check automatic cooldown (adjusted by civilization harvest speed and building terrain multiplier)
+                                var effectiveCooldown = GetAutoHarvestCooldown(civ) * building.GetAutomaticHarvestCooldownMultiplier(tile.TerrainType);
+                                if (autoMap.TryGetValue(hex, out var lastAuto) && now - lastAuto < effectiveCooldown)
                                 {
                                     continue;
                                 }

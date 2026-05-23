@@ -164,6 +164,7 @@ namespace SettlersOfIdlestan.Controller
                 BuildingType.BuildersGuild => new BuildersGuild(),
                 BuildingType.Laboratory => new Laboratory(),
                 BuildingType.Barracks => new Barracks(),
+                BuildingType.GlassWorks => new GlassWorks(),
                 _ => null,
             };
         }
