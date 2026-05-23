@@ -1,5 +1,4 @@
 using SettlersOfIdlestan.Controller;
-using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.GameplayModifier;
 using SettlersOfIdlestan.Model.PrestigeMap;
@@ -15,36 +14,48 @@ namespace SettlersOfIdlestanSkia.Renderers;
 
 public sealed class PrestigeMapRenderer : IGameRenderer
 {
-    private const float VertexRadius = 26f;
-    private const float HexRadius = 30f;
+    // Hex circumradius — same visual scale as the island hexes
+    private const float R = 60f;
+    private const float VertexCircleRadius = 10f;
+    private static readonly float Sqrt3Half = MathF.Sqrt(3f) / 2f;
 
+    // Vertex positions relative to map center (derived from hex-grid vertex math)
     private static readonly Dictionary<PrestigeVertexId, SKPoint> VertexOffsets = new()
     {
-        [PrestigeVertexId.Central]       = new(0, 0),
-        [PrestigeVertexId.SeaportMarket] = new(-160, -110),
-        [PrestigeVertexId.Laboratory]    = new(160, -110),
-        [PrestigeVertexId.Barracks]      = new(0, 220),
+        [PrestigeVertexId.Central]       = new(0f, 0f),
+        [PrestigeVertexId.Barracks]      = new(0f, -R),
+        [PrestigeVertexId.SeaportMarket] = new(-R * Sqrt3Half, R / 2f),
+        [PrestigeVertexId.Laboratory]    = new(R * Sqrt3Half, R / 2f),
     };
 
+    // Hex centers relative to map center
+    // Inner 3: centroid of their 3 adjacent prestige vertices (= R from each vertex)
+    // Outer 3: on the far side of their single outer vertex (2R from center)
     private static readonly Dictionary<PrestigeHexId, SKPoint> HexOffsets = new()
     {
-        [PrestigeHexId.HarvestSpeed]      = new(0, -73),
-        [PrestigeHexId.StartingResources] = new(-53, 37),
-        [PrestigeHexId.ResearchSpeed]     = new(53, 37),
+        [PrestigeHexId.HarvestSpeed]         = new( 0f,               R),
+        [PrestigeHexId.StartingResources]    = new(-R * Sqrt3Half, -R / 2f),
+        [PrestigeHexId.ResearchSpeed]        = new( R * Sqrt3Half, -R / 2f),
+        [PrestigeHexId.UnitProductionSpeed]  = new( 0f,              -2 * R),
+        [PrestigeHexId.ResearchCostReduction]= new( 2 * R * Sqrt3Half, R),
+        [PrestigeHexId.StorageCapacity]      = new(-2 * R * Sqrt3Half, R),
     };
 
-    private static readonly Dictionary<PrestigeHexId, SKColor> HexBaseColors = new()
+    // Only the 3 true hex-edge connections: each pair is consecutive on one of the inner hexes
+    private static readonly (PrestigeVertexId A, PrestigeVertexId B)[] AllEdges =
     {
-        [PrestigeHexId.StartingResources] = new SKColor(200, 140, 50, 150),
-        [PrestigeHexId.HarvestSpeed]      = new SKColor(50, 160, 80, 150),
-        [PrestigeHexId.ResearchSpeed]     = new SKColor(120, 60, 200, 150),
-    };
-
-    private static readonly (PrestigeVertexId A, PrestigeVertexId B)[] Edges =
-    {
+        (PrestigeVertexId.Central, PrestigeVertexId.Barracks),
         (PrestigeVertexId.Central, PrestigeVertexId.SeaportMarket),
         (PrestigeVertexId.Central, PrestigeVertexId.Laboratory),
-        (PrestigeVertexId.Central, PrestigeVertexId.Barracks),
+    };
+
+    // Gray shades for hex fill: index = number of adjacent purchased vertices (0..3)
+    private static readonly SKColor[] HexGrayByActivity =
+    {
+        new(210, 213, 218), // 0 purchased: light gray
+        new(175, 178, 185), // 1 purchased
+        new(135, 138, 148), // 2 purchased
+        new( 95,  98, 110), // 3 purchased: dark gray
     };
 
     private readonly GameControllerService _gameControllerService;
@@ -57,16 +68,37 @@ public sealed class PrestigeMapRenderer : IGameRenderer
     private PrestigeVertexId? _hoveredVertex;
     private PrestigeHexId? _hoveredHex;
 
-    private readonly SKPaint _bgPaint = new() { Color = new SKColor(0, 0, 0, 170), Style = SKPaintStyle.Fill };
-    private readonly SKPaint _edgeActivePaint = new() { Color = SKColors.Gold, StrokeWidth = 3, Style = SKPaintStyle.Stroke, IsAntialias = true };
-    private readonly SKPaint _edgeInactivePaint = new() { Color = new SKColor(75, 75, 90), StrokeWidth = 2, Style = SKPaintStyle.Stroke, IsAntialias = true };
-    private readonly SKPaint _hexFillPaint = new() { Style = SKPaintStyle.Fill, IsAntialias = true };
-    private readonly SKPaint _hexBorderPaint = new() { Style = SKPaintStyle.Stroke, IsAntialias = true };
-    private readonly SKPaint _vertexFillPaint = new() { Style = SKPaintStyle.Fill, IsAntialias = true };
-    private readonly SKPaint _vertexBorderPaint = new() { Style = SKPaintStyle.Stroke, StrokeWidth = 2f, IsAntialias = true };
-    private readonly SKPaint _labelPaint = new() { Color = SKColors.White, IsAntialias = true };
-    private readonly SKFont _labelFont = new() { Size = 10 };
-    private readonly SKFont _labelFontBold = new() { Size = 11, Typeface = SKTypeface.FromFamilyName("Arial", SKFontStyle.Bold) };
+    // Island background color — same as GameBoardRenderer background
+    private readonly SKPaint _bgPaint = new() { Color = new SKColor(238, 242, 245), Style = SKPaintStyle.Fill };
+
+    // Road paint: only drawn when both vertices are purchased
+    private readonly SKPaint _roadPaint = new()
+    {
+        Color = new SKColor(220, 50, 50),
+        Style = SKPaintStyle.Stroke,
+        StrokeWidth = 4f,
+        StrokeCap = SKStrokeCap.Round,
+        IsAntialias = true,
+    };
+
+    private readonly SKPaint _hexFillPaint    = new() { Style = SKPaintStyle.Fill,   IsAntialias = true };
+    private readonly SKPaint _hexBorderPaint  = new()
+    {
+        Color = SKColors.Black, StrokeWidth = 2f,
+        Style = SKPaintStyle.Stroke, IsAntialias = true,
+    };
+
+    private readonly SKPaint _vertexFillPaint   = new() { Style = SKPaintStyle.Fill,   IsAntialias = true };
+    private readonly SKPaint _vertexBorderPaint = new()
+    {
+        Color = SKColors.Black, StrokeWidth = 1.5f,
+        Style = SKPaintStyle.Stroke, IsAntialias = true,
+    };
+
+    private readonly SKPaint _textBlackPaint = new() { Color = SKColors.Black, IsAntialias = true };
+    private readonly SKPaint _textWhitePaint = new() { Color = SKColors.White, IsAntialias = true };
+    private readonly SKFont  _labelFont     = new() { Size = 10 };
+    private readonly SKFont  _labelFontBold = new() { Size = 10, Typeface = SKTypeface.FromFamilyName("Arial", SKFontStyle.Bold) };
 
     public PrestigeMapRenderer(
         GameControllerService gameControllerService,
@@ -82,10 +114,10 @@ public sealed class PrestigeMapRenderer : IGameRenderer
     {
         _canvasSize = canvasSize;
         float barH = PlayerResourcesOverlayRenderer.BarHeight;
-        _mapCenter = new SKPoint(canvasSize.Width / 2f, barH + (canvasSize.Height - barH) * 0.48f);
+        _mapCenter = new SKPoint(canvasSize.Width / 2f, barH + (canvasSize.Height - barH) * 0.45f);
     }
 
-    // IGameRenderer.Render — not called directly; OverlayRenderer calls RenderPrestigeMap
+    // Called by IGameRenderer pipeline — no-op; rendering is driven by OverlayRenderer
     public void Render(SKCanvas canvas, GameRenderContext context) { }
 
     public void RenderPrestigeMap(SKCanvas canvas, GameRenderContext context)
@@ -96,28 +128,18 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         var prestigeState = mainState?.PrestigeState;
         if (prestigeState == null) return;
 
+        // Cover the island map with the same background color (hides it without changing render order)
         float barH = PlayerResourcesOverlayRenderer.BarHeight;
-        canvas.DrawRect(0, barH, _canvasSize.Width, _canvasSize.Height - barH, _bgPaint);
+        canvas.DrawRect(0f, barH, _canvasSize.Width, _canvasSize.Height - barH, _bgPaint);
 
-        DrawEdges(canvas, prestigeState);
         DrawHexes(canvas, prestigeState);
+        DrawRoads(canvas, prestigeState);
         DrawVertices(canvas, prestigeState);
 
         if (_hoveredVertex.HasValue)
             BuildVertexTooltip(_hoveredVertex.Value, prestigeState);
         else if (_hoveredHex.HasValue)
             BuildHexTooltip(_hoveredHex.Value, prestigeState);
-    }
-
-    private void DrawEdges(SKCanvas canvas, PrestigeState state)
-    {
-        foreach (var (a, b) in Edges)
-        {
-            var p1 = ScreenPos(a);
-            var p2 = ScreenPos(b);
-            bool active = state.PurchasedVertices.Contains(a) && state.PurchasedVertices.Contains(b);
-            canvas.DrawLine(p1, p2, active ? _edgeActivePaint : _edgeInactivePaint);
-        }
     }
 
     private void DrawHexes(SKCanvas canvas, PrestigeState state)
@@ -127,27 +149,30 @@ public sealed class PrestigeMapRenderer : IGameRenderer
             var pos = ScreenPos(hex.Id);
             int adjCount = hex.AdjacentVertices.Count(v => state.PurchasedVertices.Contains(v));
             bool isHovered = _hoveredHex == hex.Id;
-            bool isActive = adjCount > 0;
 
-            using var path = BuildHexPath(pos, HexRadius);
+            var points = GetHexPoints(pos.X, pos.Y, R);
+            using var path = PointsToPath(points);
 
-            var baseColor = HexBaseColors[hex.Id];
+            var color = HexGrayByActivity[Math.Clamp(adjCount, 0, HexGrayByActivity.Length - 1)];
             if (isHovered)
-                baseColor = new SKColor(
-                    (byte)Math.Min(255, baseColor.Red + 50),
-                    (byte)Math.Min(255, baseColor.Green + 50),
-                    (byte)Math.Min(255, baseColor.Blue + 50),
-                    210);
+                color = Brighten(color, 20);
 
-            _hexFillPaint.Color = baseColor;
+            _hexFillPaint.Color = color;
             canvas.DrawPath(path, _hexFillPaint);
-
-            _hexBorderPaint.Color = isActive ? SKColors.Gold : new SKColor(140, 140, 160, 180);
-            _hexBorderPaint.StrokeWidth = isActive ? 2.5f : 1.5f;
             canvas.DrawPath(path, _hexBorderPaint);
 
-            var name = _localization.Get(HexLocKey(hex.Id));
-            canvas.DrawText(name, pos.X, pos.Y + 4, SKTextAlign.Center, _labelFont, _labelPaint);
+            // Hex name inside
+            string name = _localization.Get(HexLocKey(hex.Id));
+            canvas.DrawText(name, pos.X, pos.Y + 4f, SKTextAlign.Center, _labelFont, _textBlackPaint);
+        }
+    }
+
+    private void DrawRoads(SKCanvas canvas, PrestigeState state)
+    {
+        foreach (var (a, b) in AllEdges)
+        {
+            if (state.PurchasedVertices.Contains(a) && state.PurchasedVertices.Contains(b))
+                canvas.DrawLine(ScreenPos(a), ScreenPos(b), _roadPaint);
         }
     }
 
@@ -159,50 +184,44 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         {
             var pos = ScreenPos(vertex.Id);
             bool purchased = state.PurchasedVertices.Contains(vertex.Id);
-            bool canBuy = controller.CanPurchaseVertex(state, vertex.Id);
+            bool canBuy    = controller.CanPurchaseVertex(state, vertex.Id);
             bool isHovered = _hoveredVertex == vertex.Id;
 
-            SKColor fillColor = purchased
-                ? new SKColor(220, 170, 0)
-                : canBuy ? new SKColor(55, 115, 195)
-                : new SKColor(50, 50, 62);
+            SKColor fill = purchased  ? new SKColor(220, 50, 50)         // red — like island city
+                : canBuy              ? new SKColor(60, 160, 255, 200)   // blue hint — like buildable vertex
+                                      : new SKColor(110, 110, 120, 200); // locked — dim gray
 
             if (isHovered && !purchased)
-                fillColor = new SKColor(
-                    (byte)Math.Min(255, fillColor.Red + 40),
-                    (byte)Math.Min(255, fillColor.Green + 40),
-                    (byte)Math.Min(255, fillColor.Blue + 40));
+                fill = new SKColor(255, 235, 59, 220); // yellow hover — same as island hover
 
-            _vertexFillPaint.Color = fillColor;
-            canvas.DrawCircle(pos, VertexRadius, _vertexFillPaint);
+            _vertexFillPaint.Color = fill;
+            canvas.DrawCircle(pos, VertexCircleRadius, _vertexFillPaint);
 
-            _vertexBorderPaint.Color = purchased ? SKColors.Gold : new SKColor(180, 180, 200);
             _vertexBorderPaint.StrokeWidth = isHovered ? 2.5f : 1.5f;
-            canvas.DrawCircle(pos, VertexRadius, _vertexBorderPaint);
+            canvas.DrawCircle(pos, VertexCircleRadius, _vertexBorderPaint);
 
-            // Checkmark for purchased
             if (purchased)
-            {
-                _labelPaint.Color = SKColors.Black;
-                canvas.DrawText("✓", pos.X, pos.Y + 5, SKTextAlign.Center, _labelFontBold, _labelPaint);
-                _labelPaint.Color = SKColors.White;
-            }
+                canvas.DrawText("✓", pos.X, pos.Y + 4f, SKTextAlign.Center, _labelFontBold, _textWhitePaint);
 
-            var name = _localization.Get(VertexLocKey(vertex.Id));
-            canvas.DrawText(name, pos.X, pos.Y + VertexRadius + 14, SKTextAlign.Center, _labelFont, _labelPaint);
+            // Label placed radially outward from map center
+            var labelPos = RadialLabelPos(VertexOffsets[vertex.Id], pos, VertexCircleRadius + 13f);
+            string name = _localization.Get(VertexLocKey(vertex.Id));
+            canvas.DrawText(name, labelPos.X, labelPos.Y, SKTextAlign.Center, _labelFont, _textBlackPaint);
         }
     }
+
+    // ─── Pointer handling ────────────────────────────────────────────────────
 
     public void HandlePointerMoved(SKPoint position)
     {
         _hoveredVertex = null;
-        _hoveredHex = null;
+        _hoveredHex    = null;
 
         foreach (var (id, offset) in VertexOffsets)
         {
             var pos = new SKPoint(_mapCenter.X + offset.X, _mapCenter.Y + offset.Y);
             float dx = position.X - pos.X, dy = position.Y - pos.Y;
-            if (dx * dx + dy * dy <= VertexRadius * VertexRadius)
+            if (dx * dx + dy * dy <= VertexCircleRadius * VertexCircleRadius)
             {
                 _hoveredVertex = id;
                 return;
@@ -212,8 +231,8 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         foreach (var (id, offset) in HexOffsets)
         {
             var pos = new SKPoint(_mapCenter.X + offset.X, _mapCenter.Y + offset.Y);
-            using var path = BuildHexPath(pos, HexRadius);
-            if (path.Contains(position.X, position.Y))
+            var pts = GetHexPoints(pos.X, pos.Y, R);
+            if (IsPointInPolygon(position.X, position.Y, pts))
             {
                 _hoveredHex = id;
                 return;
@@ -227,16 +246,19 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         {
             var pos = new SKPoint(_mapCenter.X + offset.X, _mapCenter.Y + offset.Y);
             float dx = position.X - pos.X, dy = position.Y - pos.Y;
-            if (dx * dx + dy * dy <= VertexRadius * VertexRadius)
+            if (dx * dx + dy * dy <= VertexCircleRadius * VertexCircleRadius)
             {
                 var mainState = _gameControllerService.MainGameController.CurrentMainState;
                 if (mainState?.PrestigeState != null)
-                    _gameControllerService.MainGameController.PrestigeMapController.PurchaseVertex(mainState.PrestigeState, id);
+                    _gameControllerService.MainGameController.PrestigeMapController
+                        .PurchaseVertex(mainState.PrestigeState, id);
                 return true;
             }
         }
         return false;
     }
+
+    // ─── Tooltip builders ────────────────────────────────────────────────────
 
     private void BuildVertexTooltip(PrestigeVertexId id, PrestigeState state)
     {
@@ -246,11 +268,12 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         var lines = new List<string> { _localization.Get(VertexLocKey(id)), "" };
 
         foreach (var mod in vertex.Modifiers)
-            lines.Add(FormatModifierEffect(mod));
+            lines.Add(FormatModifier(mod));
 
         if (vertex.StartingBuildings.Count > 0)
         {
-            var names = string.Join(", ", vertex.StartingBuildings.Select(b => _localization.Get($"building_{b.ToString().ToLower()}_name")));
+            var names = string.Join(", ", vertex.StartingBuildings
+                .Select(b => _localization.Get($"building_{b.ToString().ToLower()}_name")));
             lines.Add($"{_localization.Get("prestige_tooltip_starts_with")}: {names}");
         }
 
@@ -263,10 +286,10 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         }
         else
         {
-            var missingPrereqs = vertex.Prerequisites.Where(p => !state.PurchasedVertices.Contains(p)).ToList();
-            if (missingPrereqs.Count > 0)
+            var missing = vertex.Prerequisites.Where(p => !state.PurchasedVertices.Contains(p)).ToList();
+            if (missing.Count > 0)
             {
-                var prereqNames = string.Join(", ", missingPrereqs.Select(p => _localization.Get(VertexLocKey(p))));
+                var prereqNames = string.Join(", ", missing.Select(p => _localization.Get(VertexLocKey(p))));
                 lines.Add($"{_localization.Get("prestige_tooltip_requires")}: {prereqNames}");
             }
             else
@@ -285,8 +308,8 @@ public sealed class PrestigeMapRenderer : IGameRenderer
 
         var lines = new List<string> { _localization.Get(HexLocKey(id)), "" };
 
-        if (hex.PerVertexModifier != null)
-            lines.Add($"{FormatModifierEffect(hex.PerVertexModifier)} {_localization.Get("prestige_tooltip_per_vertex")}");
+        foreach (var mod in hex.PerVertexModifiers)
+            lines.Add($"{FormatModifier(mod)} {_localization.Get("prestige_tooltip_per_vertex")}");
 
         if (hex.StartingResourceBonusPerVertex > 0)
             lines.Add($"+{hex.StartingResourceBonusPerVertex} {_localization.Get("prestige_tooltip_resources_per_vertex")}");
@@ -297,14 +320,18 @@ public sealed class PrestigeMapRenderer : IGameRenderer
 
         if (adjCount > 0)
         {
-            if (hex.PerVertexModifier != null)
+            if (hex.PerVertexModifiers.Count > 0)
             {
-                double total = hex.PerVertexModifier.Value * adjCount;
-                string formatted = (hex.PerVertexModifier.Category == Modifier.ECategory.HARVEST_SPEED
-                    || hex.PerVertexModifier.Category == Modifier.ECategory.RESEARCH_SPEED)
-                    ? $"+{(int)(total * 100)}%"
-                    : $"+{total}";
-                lines.Add($"{_localization.Get("prestige_tooltip_current_bonus")}: {formatted}");
+                foreach (var mod in hex.PerVertexModifiers)
+                {
+                    double total = mod.Value * adjCount;
+                    bool isPct = mod.Category is Modifier.ECategory.HARVEST_SPEED
+                        or Modifier.ECategory.RESEARCH_SPEED
+                        or Modifier.ECategory.UNIT_PRODUCTION_SPEED
+                        or Modifier.ECategory.RESEARCH_COST_REDUCTION;
+                    string val = isPct ? $"+{(int)(total * 100)}%" : $"+{(int)total}";
+                    lines.Add($"{_localization.Get("prestige_tooltip_current_bonus")}: {FormatModifier(mod)} × {adjCount} = {val}");
+                }
             }
             else if (hex.StartingResourceBonusPerVertex > 0)
             {
@@ -315,19 +342,19 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         _tooltipRenderer.SetTooltipLines(lines.ToArray(), ScreenPos(id));
     }
 
-    private string FormatModifierEffect(Modifier mod)
+    private string FormatModifier(Modifier mod) => mod.Category switch
     {
-        if (mod.Category == Modifier.ECategory.BUILDING_MAX_LEVEL)
-        {
-            string sub = string.IsNullOrEmpty(mod.SubCategory) ? "" : _localization.Get($"building_{mod.SubCategory.ToLower()}_name");
-            return $"+{(int)mod.Value} {sub} max";
-        }
-        if (mod.Category == Modifier.ECategory.HARVEST_SPEED)
-            return $"+{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_harvest_speed")}";
-        if (mod.Category == Modifier.ECategory.RESEARCH_SPEED)
-            return $"+{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_research_speed")}";
-        return $"+{mod.Value}";
-    }
+        Modifier.ECategory.BUILDING_MAX_LEVEL => $"+{(int)mod.Value} {(string.IsNullOrEmpty(mod.SubCategory) ? "" : _localization.Get($"building_{mod.SubCategory.ToLower()}_name"))} max",
+        Modifier.ECategory.HARVEST_SPEED         => $"+{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_harvest_speed")}",
+        Modifier.ECategory.RESEARCH_SPEED        => $"+{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_research_speed")}",
+        Modifier.ECategory.UNIT_PRODUCTION_SPEED => $"+{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_unit_speed")}",
+        Modifier.ECategory.RESEARCH_COST_REDUCTION => $"-{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_research_cost")}",
+        Modifier.ECategory.STORAGE_CAPACITY_BASIC    => $"+{(int)mod.Value} {_localization.Get("prestige_tooltip_storage_basic")}",
+        Modifier.ECategory.STORAGE_CAPACITY_ADVANCED => $"+{(int)mod.Value} {_localization.Get("prestige_tooltip_storage_advanced")}",
+        _ => $"+{mod.Value}"
+    };
+
+    // ─── Helpers ─────────────────────────────────────────────────────────────
 
     private SKPoint ScreenPos(PrestigeVertexId id)
     {
@@ -341,20 +368,57 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         return new SKPoint(_mapCenter.X + o.X, _mapCenter.Y + o.Y);
     }
 
-    private static SKPath BuildHexPath(SKPoint center, float radius)
+    // Place the label at 'dist' pixels outward from map center along the offset vector.
+    // Falls back to directly below for Central (offset zero).
+    private SKPoint RadialLabelPos(SKPoint offset, SKPoint screenPos, float dist)
     {
-        var path = new SKPath();
+        float len = MathF.Sqrt(offset.X * offset.X + offset.Y * offset.Y);
+        if (len < 0.01f)
+            return new SKPoint(screenPos.X, screenPos.Y + dist);
+        return new SKPoint(
+            screenPos.X + offset.X / len * dist,
+            screenPos.Y + offset.Y / len * dist + 4f);
+    }
+
+    // Pointy-top hex points — matches HexBasedRenderer.GetHexagonPoints exactly
+    private static SKPoint[] GetHexPoints(float cx, float cy, float size)
+    {
+        var pts = new SKPoint[6];
         for (int i = 0; i < 6; i++)
         {
-            float angle = (float)(Math.PI / 3 * i - Math.PI / 6);
-            float x = center.X + radius * MathF.Cos(angle);
-            float y = center.Y + radius * MathF.Sin(angle);
-            if (i == 0) path.MoveTo(x, y);
-            else path.LineTo(x, y);
+            float angle = -MathF.PI / 2f + MathF.PI / 3f * i;
+            pts[i] = new SKPoint(cx + size * MathF.Cos(angle), cy + size * MathF.Sin(angle));
         }
+        return pts;
+    }
+
+    private static SKPath PointsToPath(SKPoint[] pts)
+    {
+        var path = new SKPath();
+        if (pts.Length == 0) return path;
+        path.MoveTo(pts[0]);
+        for (int i = 1; i < pts.Length; i++) path.LineTo(pts[i]);
         path.Close();
         return path;
     }
+
+    private static bool IsPointInPolygon(float x, float y, SKPoint[] poly)
+    {
+        bool inside = false;
+        for (int i = 0, j = poly.Length - 1; i < poly.Length; j = i++)
+        {
+            float xi = poly[i].X, yi = poly[i].Y, xj = poly[j].X, yj = poly[j].Y;
+            if ((yi > y) != (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi)
+                inside = !inside;
+        }
+        return inside;
+    }
+
+    private static SKColor Brighten(SKColor c, int amount) => new(
+        (byte)Math.Min(255, c.Red   + amount),
+        (byte)Math.Min(255, c.Green + amount),
+        (byte)Math.Min(255, c.Blue  + amount),
+        c.Alpha);
 
     private static string VertexLocKey(PrestigeVertexId id) => id switch
     {
@@ -367,22 +431,25 @@ public sealed class PrestigeMapRenderer : IGameRenderer
 
     private static string HexLocKey(PrestigeHexId id) => id switch
     {
-        PrestigeHexId.StartingResources => "prestige_hex_starting_resources",
-        PrestigeHexId.HarvestSpeed      => "prestige_hex_harvest_speed",
-        PrestigeHexId.ResearchSpeed     => "prestige_hex_research_speed",
+        PrestigeHexId.StartingResources     => "prestige_hex_starting_resources",
+        PrestigeHexId.HarvestSpeed          => "prestige_hex_harvest_speed",
+        PrestigeHexId.ResearchSpeed         => "prestige_hex_research_speed",
+        PrestigeHexId.UnitProductionSpeed   => "prestige_hex_unit_production_speed",
+        PrestigeHexId.ResearchCostReduction => "prestige_hex_research_cost_reduction",
+        PrestigeHexId.StorageCapacity       => "prestige_hex_storage_capacity",
         _ => id.ToString()
     };
 
     public void Dispose()
     {
         _bgPaint.Dispose();
-        _edgeActivePaint.Dispose();
-        _edgeInactivePaint.Dispose();
+        _roadPaint.Dispose();
         _hexFillPaint.Dispose();
         _hexBorderPaint.Dispose();
         _vertexFillPaint.Dispose();
         _vertexBorderPaint.Dispose();
-        _labelPaint.Dispose();
+        _textBlackPaint.Dispose();
+        _textWhitePaint.Dispose();
         _labelFont.Dispose();
         _labelFontBold.Dispose();
     }

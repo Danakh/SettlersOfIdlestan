@@ -11,7 +11,11 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             BUILDING_MAX_LEVEL,
             BUILDING_PRODUCTION,
             HARVEST_SPEED,
-            RESEARCH_SPEED
+            RESEARCH_SPEED,
+            UNIT_PRODUCTION_SPEED,
+            RESEARCH_COST_REDUCTION,
+            STORAGE_CAPACITY_BASIC,
+            STORAGE_CAPACITY_ADVANCED,
         }
 
         public enum EType

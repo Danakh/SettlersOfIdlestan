@@ -60,7 +60,7 @@ public class PrestigeMapController
             int adjacentPurchased = hex.AdjacentVertices.Count(v => purchased.Contains(v));
             if (adjacentPurchased == 0) continue;
 
-            if (hex.PerVertexModifier is { } template)
+            foreach (var template in hex.PerVertexModifiers)
             {
                 double totalValue = template.Value * adjacentPurchased;
                 civ.TechnologyTree.Modifiers.Add(new Modifier(template.Category, template.SubCategory, template.Type, totalValue));

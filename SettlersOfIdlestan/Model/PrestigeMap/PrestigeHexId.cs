@@ -4,5 +4,8 @@ public enum PrestigeHexId
 {
     StartingResources,
     HarvestSpeed,
-    ResearchSpeed
+    ResearchSpeed,
+    UnitProductionSpeed,
+    ResearchCostReduction,
+    StorageCapacity,
 }

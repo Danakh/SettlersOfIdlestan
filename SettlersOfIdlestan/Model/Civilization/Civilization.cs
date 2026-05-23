@@ -40,6 +40,18 @@ public class Civilization
     public double ResearchSpeed => TechnologyTree.ApplyModifiers(ECategory.RESEARCH_SPEED, "", 1.0);
 
     /// <summary>
+    /// Unit production speed multiplier. 1.0 = normal speed.
+    /// </summary>
+    [JsonIgnore]
+    public double UnitProductionSpeed => TechnologyTree.ApplyModifiers(ECategory.UNIT_PRODUCTION_SPEED, "", 1.0);
+
+    /// <summary>
+    /// Research cost reduction fraction (0.0 = no reduction, 0.1 = 10% cheaper).
+    /// </summary>
+    [JsonIgnore]
+    public double ResearchCostReduction => TechnologyTree.ApplyModifiers(ECategory.RESEARCH_COST_REDUCTION, "", 0.0);
+
+    /// <summary>
     /// Liste des ressources d�tenues par la civilisation.
     /// </summary>
     // Resources are stored as a map from Resource -> quantity.
@@ -110,20 +122,20 @@ public class Civilization
 
     public int GetResourceMaxQuantity(Resource resource)
     {
-        // TODO if needed: Dependency Injection
-        // retrieve for each city the storage value for that ressource, sum them up and return the total.
-        int baseCityResourceMax = 2 * Cities.Count + Cities.Sum(city => city.Level); // storage per city is 2 + Level
-        int advancedCityResourceMax = Cities.Sum(city => Math.Max(0, city.Level - 2)); // storage per city is (Level - 2)
+        int baseCityResourceMax = 2 * Cities.Count + Cities.Sum(city => city.Level);
+        int advancedCityResourceMax = Cities.Sum(city => Math.Max(0, city.Level - 2));
         int cityWithWarehouseCount = Cities.Count(city => city.Buildings.Any(building => building.Type == BuildingType.Warehouse));
-        int result = resource switch
-        {
-            Resource.Food => 5 * baseCityResourceMax + 30 * cityWithWarehouseCount,
-            Resource.Wood => 5 * baseCityResourceMax + 30 * cityWithWarehouseCount,
-            Resource.Brick => 5 * baseCityResourceMax + 30 * cityWithWarehouseCount,
-            Resource.Stone => 5 * baseCityResourceMax + 30 * cityWithWarehouseCount,
-            _ => 5 * advancedCityResourceMax + 10 * cityWithWarehouseCount
-        };
-        return result;
+
+        bool isBasic = resource is Resource.Food or Resource.Wood or Resource.Brick or Resource.Stone;
+        int storageBonus = isBasic
+            ? TechnologyTree.ApplyModifiers(ECategory.STORAGE_CAPACITY_BASIC, "", 0)
+            : TechnologyTree.ApplyModifiers(ECategory.STORAGE_CAPACITY_ADVANCED, "", 0);
+
+        int result = isBasic
+            ? 5 * baseCityResourceMax + 30 * cityWithWarehouseCount
+            : 5 * advancedCityResourceMax + 10 * cityWithWarehouseCount;
+
+        return result + storageBonus;
     }
 
     public bool CanPayResourceCost(ResourceCost cost)

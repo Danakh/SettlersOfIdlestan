@@ -111,5 +111,12 @@
   "prestige_tooltip_active_vertices": "Vertices adjacents achetés",
   "prestige_tooltip_current_bonus": "Bonus actuel",
   "prestige_tooltip_harvest_speed": "vitesse récolte",
-  "prestige_tooltip_research_speed": "vitesse recherche"
+  "prestige_tooltip_research_speed": "vitesse recherche",
+  "prestige_tooltip_unit_speed": "vitesse production unités",
+  "prestige_tooltip_research_cost": "coût de recherche",
+  "prestige_tooltip_storage_basic": "stockage ressources de base",
+  "prestige_tooltip_storage_advanced": "stockage ressources avancées",
+  "prestige_hex_unit_production_speed": "Production d'unités",
+  "prestige_hex_research_cost_reduction": "Coût de recherche",
+  "prestige_hex_storage_capacity": "Capacité de stockage"
 }
