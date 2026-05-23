@@ -29,6 +29,7 @@ public sealed class OverlayRenderer : IGameRenderer
     private readonly SelectedCityPanelRenderer _selectedCityPanelRenderer;
     private readonly TradeRenderer _tradeRenderer;
     private readonly PrestigeRenderer _prestigeRenderer;
+    private readonly PrestigeMapRenderer _prestigeMapRenderer;
 
     private readonly SKPaint _buttonPaint = new() { Color = new SKColor(46, 125, 50), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _disabledButtonPaint = new() { Color = new SKColor(90, 90, 96), Style = SKPaintStyle.Fill, IsAntialias = true };
@@ -58,7 +59,8 @@ public sealed class OverlayRenderer : IGameRenderer
         SettingsMenu settingsMenu,
         SelectedCityPanelRenderer selectedCityPanelRenderer,
         TradeRenderer tradeRenderer,
-        PrestigeRenderer prestigeRenderer)
+        PrestigeRenderer prestigeRenderer,
+        PrestigeMapRenderer prestigeMapRenderer)
     {
         _inputService = inputService;
         _gameControllerService = gameControllerService;
@@ -68,7 +70,9 @@ public sealed class OverlayRenderer : IGameRenderer
         _selectedCityPanelRenderer = selectedCityPanelRenderer;
         _tradeRenderer = tradeRenderer;
         _prestigeRenderer = prestigeRenderer;
+        _prestigeMapRenderer = prestigeMapRenderer;
         _inputService.PointerPressed += HandlePointerPressed;
+        _inputService.PointerMoved += HandlePointerMoved;
     }
 
     public void Initialize(SKSize canvasSize)
@@ -79,6 +83,7 @@ public sealed class OverlayRenderer : IGameRenderer
         _selectedCityPanelRenderer.ReservedBottomHeight = CityPanelReservedBottomHeight;
         _tradeRenderer.Initialize(canvasSize);
         _prestigeRenderer.Initialize(canvasSize);
+        _prestigeMapRenderer.Initialize(canvasSize);
     }
 
     public void Render(SKCanvas canvas, GameRenderContext context)
@@ -108,14 +113,22 @@ public sealed class OverlayRenderer : IGameRenderer
 
         _playerResourcesOverlayRenderer.Mode = _activeTab == 1 ? BarDisplayMode.Prestige : BarDisplayMode.Island;
 
-        _selectedCityPanelRenderer.IsInputEnabled = !_tradeRenderer.IsOpen && !_prestigeRenderer.IsOpen;
+        bool onPrestigeTab = _activeTab == 1;
+        _selectedCityPanelRenderer.IsInputEnabled = !onPrestigeTab && !_tradeRenderer.IsOpen && !_prestigeRenderer.IsOpen;
         _playerResourcesOverlayRenderer.Render(canvas, context);
 
         if (showTabs)
             DrawTabButtons(canvas);
 
-        _selectedCityPanelRenderer.Render(canvas, context);
-        DrawActionButtons(canvas, context);
+        if (onPrestigeTab)
+        {
+            _prestigeMapRenderer.RenderPrestigeMap(canvas, context);
+        }
+        else
+        {
+            _selectedCityPanelRenderer.Render(canvas, context);
+            DrawActionButtons(canvas, context);
+        }
 
         float gearX = _canvasSize.Width - PlayerResourcesOverlayRenderer.Padding - PlayerResourcesOverlayRenderer.IconSize;
         _settingsMenu.Draw(canvas, gearX, PlayerResourcesOverlayRenderer.BarHeight);
@@ -202,6 +215,13 @@ public sealed class OverlayRenderer : IGameRenderer
         }
     }
 
+    private void HandlePointerMoved(object? sender, SettlersOfIdlestanSkia.Services.PointerEventArgs e)
+    {
+        if (!_isVisible) return;
+        if (_activeTab == 1)
+            _prestigeMapRenderer.HandlePointerMoved(e.Position);
+    }
+
     private void HandlePointerPressed(object? sender, SettlersOfIdlestanSkia.Services.PointerEventArgs e)
     {
         if (!_isVisible)
@@ -225,6 +245,12 @@ public sealed class OverlayRenderer : IGameRenderer
         if (!_tab2Rect.IsEmpty && _tab2Rect.Contains(e.Position.X, e.Position.Y))
         {
             _activeTab = 1;
+            return;
+        }
+
+        if (_activeTab == 1)
+        {
+            _prestigeMapRenderer.HandlePointerPressed(e.Position);
             return;
         }
 
@@ -276,6 +302,7 @@ public sealed class OverlayRenderer : IGameRenderer
             return;
 
         _inputService.PointerPressed -= HandlePointerPressed;
+        _inputService.PointerMoved -= HandlePointerMoved;
         _playerResourcesOverlayRenderer.Dispose();
         _selectedCityPanelRenderer.Dispose();
         _settingsMenu.Dispose();
@@ -290,6 +317,7 @@ public sealed class OverlayRenderer : IGameRenderer
         _inactiveTabPaint.Dispose();
         _activeTabBorderPaint.Dispose();
         _tabFont.Dispose();
+        _prestigeMapRenderer.Dispose();
         _disposed = true;
     }
 }

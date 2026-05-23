@@ -94,5 +94,22 @@
   "resource_glass_short": "V",
   "resource_crystal_short": "C",
   "outpost_construction": "Construction d'un avant-poste",
-  "road_construction": "Construction d'une route"
+  "road_construction": "Construction d'une route",
+  "prestige_vertex_central": "Central",
+  "prestige_vertex_seaport_market": "Port & Marché",
+  "prestige_vertex_laboratory": "Laboratoire",
+  "prestige_vertex_barracks": "Caserne",
+  "prestige_hex_starting_resources": "Ressources initiales",
+  "prestige_hex_harvest_speed": "Vitesse de récolte",
+  "prestige_hex_research_speed": "Vitesse de recherche",
+  "prestige_tooltip_purchased": "✓ Acheté",
+  "prestige_tooltip_requires": "Requis",
+  "prestige_tooltip_cost": "Coût",
+  "prestige_tooltip_starts_with": "Débute avec",
+  "prestige_tooltip_per_vertex": "par vertex adjacent",
+  "prestige_tooltip_resources_per_vertex": "res. de départ par vertex",
+  "prestige_tooltip_active_vertices": "Vertices adjacents achetés",
+  "prestige_tooltip_current_bonus": "Bonus actuel",
+  "prestige_tooltip_harvest_speed": "vitesse récolte",
+  "prestige_tooltip_research_speed": "vitesse recherche"
 }

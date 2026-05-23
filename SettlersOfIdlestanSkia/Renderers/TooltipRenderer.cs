@@ -51,6 +51,12 @@ namespace SettlersOfIdlestanSkia.Renderers
             _tooltipScreenPosition = screenPosition;
         }
 
+        public void SetTooltipLines(string[] lines, SKPoint screenPosition)
+        {
+            _tooltipTexts = lines;
+            _tooltipScreenPosition = screenPosition;
+        }
+
         public bool HasTooltip()
         {
             return _tooltipTexts.Length > 0;

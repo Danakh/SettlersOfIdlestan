@@ -125,6 +125,7 @@ public sealed class SkiaGameRuntime : IDisposable
         var playerResourcesOverlayRenderer = new PlayerResourcesOverlayRenderer(_localizationService, _resourceManager);
         var tradeRenderer = new TradeRenderer(_gameControllerService, _localizationService);
         var prestigeRenderer = new PrestigeRenderer(_gameControllerService, _localizationService, RequestPrestige);
+        var prestigeMapRenderer = new PrestigeMapRenderer(_gameControllerService, _localizationService, tooltipRenderer);
         _overlayRenderer = new OverlayRenderer(
             _inputService,
             _gameControllerService,
@@ -133,7 +134,8 @@ public sealed class SkiaGameRuntime : IDisposable
             settingsMenu,
             selectedCityPanelRenderer,
             tradeRenderer,
-            prestigeRenderer);
+            prestigeRenderer,
+            prestigeMapRenderer);
         _renderService.RegisterRenderer(_overlayRenderer);
         _renderService.RegisterRenderer(new DebugOverlayRenderer(_inputService, _cameraService, islandMainRenderer, _localizationService));
         _renderService.RegisterRenderer(aboutRenderer);

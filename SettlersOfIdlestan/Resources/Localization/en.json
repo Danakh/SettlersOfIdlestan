@@ -94,5 +94,22 @@
   "resource_glass_short": "Gl",
   "resource_crystal_short": "C",
   "outpost_construction": "Outpost Construction",
-  "road_construction": "Road Construction"
+  "road_construction": "Road Construction",
+  "prestige_vertex_central": "Central",
+  "prestige_vertex_seaport_market": "Port & Market",
+  "prestige_vertex_laboratory": "Laboratory",
+  "prestige_vertex_barracks": "Barracks",
+  "prestige_hex_starting_resources": "Starting Resources",
+  "prestige_hex_harvest_speed": "Harvest Speed",
+  "prestige_hex_research_speed": "Research Speed",
+  "prestige_tooltip_purchased": "✓ Purchased",
+  "prestige_tooltip_requires": "Requires",
+  "prestige_tooltip_cost": "Cost",
+  "prestige_tooltip_starts_with": "Starts with",
+  "prestige_tooltip_per_vertex": "per adjacent vertex",
+  "prestige_tooltip_resources_per_vertex": "starting res. per vertex",
+  "prestige_tooltip_active_vertices": "Adjacent purchased vertices",
+  "prestige_tooltip_current_bonus": "Current bonus",
+  "prestige_tooltip_harvest_speed": "harvest speed",
+  "prestige_tooltip_research_speed": "research speed"
 }
