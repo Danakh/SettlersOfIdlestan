@@ -33,12 +33,13 @@ public class InputHandlingService
     /// <summary>
     /// Traite un événement de pointeur pressé.
     /// </summary>
-    public void HandlePointerPressed(float x, float y, int pointerId = 0)
+    public void HandlePointerPressed(float x, float y, int pointerId = 0, PointerButton button = PointerButton.Left)
     {
         PointerPressed?.Invoke(this, new PointerEventArgs 
         { 
             Position = new SKPoint(x, y), 
             PointerId = pointerId,
+            Button = button,
             Timestamp = DateTime.UtcNow
         });
     }
@@ -60,12 +61,13 @@ public class InputHandlingService
     /// <summary>
     /// Traite un événement de pointeur relâché.
     /// </summary>
-    public void HandlePointerReleased(float x, float y, int pointerId = 0)
+    public void HandlePointerReleased(float x, float y, int pointerId = 0, PointerButton button = PointerButton.Left)
     {
         PointerReleased?.Invoke(this, new PointerEventArgs 
         { 
             Position = new SKPoint(x, y), 
             PointerId = pointerId,
+            Button = button,
             Timestamp = DateTime.UtcNow
         });
     }
@@ -91,7 +93,16 @@ public class PointerEventArgs : EventArgs
 {
     public required SKPoint Position { get; init; }
     public int PointerId { get; init; }
+    public PointerButton Button { get; init; } = PointerButton.Left;
     public required DateTime Timestamp { get; init; }
+}
+
+public enum PointerButton
+{
+    Left,
+    Middle,
+    Right,
+    Unknown
 }
 
 /// <summary>

@@ -66,6 +66,12 @@ namespace SettlersOfIdlestan.Controller
             if (!IsTradeAvailable(civilizationIndex))
                 throw new InvalidOperationException("Trading not available:  civilization must own a Market or a Seaport");
 
+            if (!CanTradeResource(civ, from) || !CanTradeResource(civ, to))
+                throw new InvalidOperationException("Trading unavailable for this resource capacity.");
+
+            if (!CanRecieveTrade(civ, to))
+                throw new InvalidOperationException($"Cannot receive {to}: storage is full.");
+
             var offer = TradeRate(civilizationIndex, from);
             var available = civ.GetResourceQuantity(from);
             if (available < offer)
@@ -79,6 +85,21 @@ namespace SettlersOfIdlestan.Controller
         public int TradeRate(int civilizationIndex, Resource res)
         {
             return BasicResourceTradeRate;
+        }
+
+        public bool CanRecieveTrade(Civilization civ, Resource resource, int quantity = 1)
+        {
+            if (civ == null) throw new ArgumentNullException(nameof(civ));
+            if (quantity <= 0) throw new ArgumentOutOfRangeException(nameof(quantity), "Quantity must be positive.");
+
+            return civ.GetResourceQuantity(resource) + quantity <= civ.GetResourceMaxQuantity(resource);
+        }
+
+        public bool CanTradeResource(Civilization civ, Resource resource)
+        {
+            if (civ == null) throw new ArgumentNullException(nameof(civ));
+
+            return civ.GetResourceMaxQuantity(resource) > 0;
         }
 
         /// <summary>

@@ -105,7 +105,10 @@ public sealed class OverlayRenderer : IGameRenderer
 
     private void HandlePointerPressed(object? sender, SettlersOfIdlestanSkia.Services.PointerEventArgs e)
     {
-        if (_tradeRenderer.HandlePointerPressed(e.Position))
+        if (_tradeRenderer.HandlePointerPressed(e.Position, e.Button))
+            return;
+
+        if (e.Button != PointerButton.Left)
             return;
 
         if (_playerResourcesOverlayRenderer.GearRect.Contains(e.Position.X, e.Position.Y))

@@ -268,6 +268,9 @@ public class SettingsMenu
 
     private void HandlePointerPressed(object? sender, SettlersOfIdlestanSkia.Services.PointerEventArgs e)
     {
+        if (e.Button != PointerButton.Left)
+            return;
+
         if (!_isOpen)
             return;
 

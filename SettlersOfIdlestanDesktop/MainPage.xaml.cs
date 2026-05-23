@@ -58,7 +58,7 @@ public partial class MainPage : ContentPage
 		switch (e.ActionType)
 		{
 			case SKTouchAction.Pressed:
-				_runtime.HandlePointerPressed(e.Location.X, e.Location.Y, (int)e.Id);
+				_runtime.HandlePointerPressed(e.Location.X, e.Location.Y, (int)e.Id, ToPointerButton(e.MouseButton));
 				break;
 
 			case SKTouchAction.Moved:
@@ -67,7 +67,7 @@ public partial class MainPage : ContentPage
 
 			case SKTouchAction.Released:
 			case SKTouchAction.Cancelled:
-				_runtime.HandlePointerReleased(e.Location.X, e.Location.Y, (int)e.Id);
+				_runtime.HandlePointerReleased(e.Location.X, e.Location.Y, (int)e.Id, ToPointerButton(e.MouseButton));
 				break;
 
 			case SKTouchAction.WheelChanged:
@@ -76,6 +76,17 @@ public partial class MainPage : ContentPage
 		}
 
 		e.Handled = true;
+	}
+
+	private static PointerButton ToPointerButton(SKMouseButton mouseButton)
+	{
+		return mouseButton switch
+		{
+			SKMouseButton.Left => PointerButton.Left,
+			SKMouseButton.Middle => PointerButton.Middle,
+			SKMouseButton.Right => PointerButton.Right,
+			_ => PointerButton.Unknown
+		};
 	}
 
 	private bool RenderFrame()

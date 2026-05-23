@@ -53,11 +53,17 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
 
     private void OnPointerPressed(object? sender, PointerEventArgs e)
     {
+        if (e.Button != PointerButton.Left)
+            return;
+
         RefreshHover(e.Position);
     }
 
     private void OnPointerReleased(object? sender, PointerEventArgs e)
     {
+        if (e.Button != PointerButton.Left)
+            return;
+
         RefreshHover(e.Position);
 
         if (HoverState.HoveredCityVertex != null)

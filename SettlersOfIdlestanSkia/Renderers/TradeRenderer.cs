@@ -9,7 +9,7 @@ namespace SettlersOfIdlestanSkia.Renderers;
 public sealed class TradeRenderer : IDisposable
 {
     private const float PopupWidth = 560;
-    private const float PopupHeight = 430;
+    private const float PopupHeight = 500;
     private const float Padding = 18;
     private const float HeaderHeight = 42;
     private const float RowHeight = 34;
@@ -105,7 +105,7 @@ public sealed class TradeRenderer : IDisposable
         canvas.DrawText(_localization.Get("trade_action"), _tradeButtonRect.MidX, _tradeButtonRect.MidY + 5, SKTextAlign.Center, _boldFont, buttonTextPaint);
     }
 
-    public bool HandlePointerPressed(SKPoint position)
+    public bool HandlePointerPressed(SKPoint position, PointerButton button)
     {
         if (!IsOpen)
             return false;
@@ -120,7 +120,10 @@ public sealed class TradeRenderer : IDisposable
         {
             if (rect.Contains(position.X, position.Y))
             {
-                AddOffer(resource);
+                if (button == PointerButton.Right)
+                    RemoveOffer(resource);
+                else
+                    AddOffer(resource);
                 return true;
             }
         }
@@ -129,7 +132,10 @@ public sealed class TradeRenderer : IDisposable
         {
             if (rect.Contains(position.X, position.Y))
             {
-                AddRequest(resource);
+                if (button == PointerButton.Right)
+                    RemoveRequest(resource);
+                else
+                    AddRequest(resource);
                 return true;
             }
         }
@@ -154,16 +160,27 @@ public sealed class TradeRenderer : IDisposable
         Dictionary<SKRect, Resource> hitRects,
         bool isOfferColumn)
     {
-        float height = PopupHeight - HeaderHeight - Padding * 3 - ButtonHeight;
+        var civ = _gameControllerService.PlayerCivilization;
+        if (civ == null)
+            return;
+
+        var tradeController = _gameControllerService.MainGameController.TradeController;
+        var resources = Enum.GetValues(typeof(Resource))
+            .Cast<Resource>()
+            .Where(resource => tradeController.CanTradeResource(civ, resource))
+            .ToList();
+
+        float height = resources.Count * RowHeight + 78;
         var columnRect = new SKRect(x, y, x + ColumnWidth, y + height);
         canvas.DrawRoundRect(columnRect, 6, 6, _panelPaint);
 
         canvas.DrawText(title, columnRect.MidX, y + 22, SKTextAlign.Center, _boldFont, _textPaint);
 
         float currentY = y + 38;
-        foreach (Resource resource in Enum.GetValues(typeof(Resource)))
+        foreach (Resource resource in resources)
         {
-            bool isDisabled = oppositeValues.ContainsKey(resource);
+            bool isReceiveBlocked = !isOfferColumn && !CanAddRequest(civ, resource);
+            bool isDisabled = oppositeValues.ContainsKey(resource) || isReceiveBlocked;
             var rowRect = new SKRect(x + 10, currentY, x + ColumnWidth - 10, currentY + RowHeight - 4);
             hitRects[rowRect] = resource;
 
@@ -220,7 +237,43 @@ public sealed class TradeRenderer : IDisposable
         if (_offered.ContainsKey(resource))
             return;
 
+        var civ = _gameControllerService.PlayerCivilization;
+        if (civ == null || !CanAddRequest(civ, resource))
+            return;
+
         _requested[resource] = _requested.GetValueOrDefault(resource) + 1;
+    }
+
+    private void RemoveOffer(Resource resource)
+    {
+        var civ = _gameControllerService.PlayerCivilization;
+        if (civ == null || !_offered.ContainsKey(resource))
+            return;
+
+        int rate = _gameControllerService.MainGameController.TradeController.TradeRate(civ.Index, resource);
+        int remaining = _offered[resource] - rate;
+        if (remaining > 0)
+            _offered[resource] = remaining;
+        else
+            _offered.Remove(resource);
+    }
+
+    private void RemoveRequest(Resource resource)
+    {
+        if (!_requested.ContainsKey(resource))
+            return;
+
+        int remaining = _requested[resource] - 1;
+        if (remaining > 0)
+            _requested[resource] = remaining;
+        else
+            _requested.Remove(resource);
+    }
+
+    private bool CanAddRequest(Civilization civ, Resource resource)
+    {
+        int requestedQuantity = _requested.GetValueOrDefault(resource);
+        return _gameControllerService.MainGameController.TradeController.CanRecieveTrade(civ, resource, requestedQuantity + 1);
     }
 
     private int GetOfferPackCount()
@@ -241,7 +294,10 @@ public sealed class TradeRenderer : IDisposable
             return false;
 
         int offerPacks = GetOfferPackCount();
-        return offerPacks > 0 && offerPacks == GetRequestPackCount() && _offered.All(kv => civ.GetResourceQuantity(kv.Key) >= kv.Value);
+        return offerPacks > 0
+            && offerPacks == GetRequestPackCount()
+            && _offered.All(kv => civ.GetResourceQuantity(kv.Key) >= kv.Value)
+            && _requested.All(kv => _gameControllerService.MainGameController.TradeController.CanRecieveTrade(civ, kv.Key, kv.Value));
     }
 
     private void ExecuteTrade()

@@ -90,5 +90,30 @@ namespace SOITests.ControllerTests
             Assert.Equal(3, civ.GetResourceQuantity(Resource.Wood));
             Assert.Equal(0, civ.GetResourceQuantity(Resource.Brick));
         }
+
+        [Fact]
+        public void CanTradeResource_ReturnsFalseWhenCapacityIsZero()
+        {
+            IslandState state = IslandTestFactory.CreateSevenHexIslandState();
+            var civ = state.Civilizations[0];
+            var controller = new TradeController(state);
+
+            Assert.True(controller.CanTradeResource(civ, Resource.Wood));
+            Assert.False(controller.CanTradeResource(civ, Resource.Crystal));
+        }
+
+        [Fact]
+        public void CanRecieveTrade_ReturnsFalseWhenStorageWouldOverflow()
+        {
+            IslandState state = IslandTestFactory.CreateSevenHexIslandState();
+            var civ = state.Civilizations[0];
+            var controller = new TradeController(state);
+
+            var maxWood = civ.GetResourceMaxQuantity(Resource.Wood);
+            civ.AddResource(Resource.Wood, maxWood);
+
+            Assert.False(controller.CanRecieveTrade(civ, Resource.Wood));
+            Assert.True(controller.CanRecieveTrade(civ, Resource.Brick));
+        }
     }
 }

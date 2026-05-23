@@ -250,7 +250,7 @@ public sealed class SkiaGameRuntime : IDisposable
         }
     }
 
-    public void HandlePointerPressed(float x, float y, int pointerId = 0)
+    public void HandlePointerPressed(float x, float y, int pointerId = 0, PointerButton button = PointerButton.Left)
     {
         lock (_sync)
         {
@@ -259,7 +259,7 @@ public sealed class SkiaGameRuntime : IDisposable
             _activePanPointerId = pointerId;
             _panStartPoint = new SKPoint(x, y);
             _lastPanPoint = _panStartPoint;
-            _inputService?.HandlePointerPressed(x, y, pointerId);
+            _inputService?.HandlePointerPressed(x, y, pointerId, button);
         }
     }
 
@@ -289,7 +289,7 @@ public sealed class SkiaGameRuntime : IDisposable
         }
     }
 
-    public void HandlePointerReleased(float x, float y, int pointerId = 0)
+    public void HandlePointerReleased(float x, float y, int pointerId = 0, PointerButton button = PointerButton.Left)
     {
         lock (_sync)
         {
@@ -299,7 +299,7 @@ public sealed class SkiaGameRuntime : IDisposable
 
             if (!wasPanning)
             {
-                _inputService?.HandlePointerReleased(x, y, pointerId);
+                _inputService?.HandlePointerReleased(x, y, pointerId, button);
             }
         }
     }

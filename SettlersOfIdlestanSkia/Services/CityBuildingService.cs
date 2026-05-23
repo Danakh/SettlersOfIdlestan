@@ -8,19 +8,19 @@ namespace SettlersOfIdlestanSkia.Services;
 
 public class CityBuildingService
 {
-    private readonly IslandState _islandState;
-    private readonly BuildingController _buildingController;
+    private readonly MainGameController _mainGameController;
     public City? SelectedCity { get; private set; } = null;
+    private IslandState IslandState => _mainGameController.CurrentMainState?.CurrentIslandState ?? throw new InvalidOperationException("Island state is not available.");
+    private BuildingController BuildingController => _mainGameController.BuildingController ?? throw new InvalidOperationException("BuildingController is not available.");
 
     public CityBuildingService(MainGameController mainGameController)
     {
-        _islandState = mainGameController.CurrentMainState?.CurrentIslandState ?? throw new InvalidOperationException("Island state is not available.");
-        _buildingController = mainGameController.BuildingController ?? throw new InvalidOperationException("BuildingController is not available.");
+        _mainGameController = mainGameController ?? throw new ArgumentNullException(nameof(mainGameController));
     }
 
     public void SetSelectedCity(Vertex selectedCityVertex)
     {
-        SelectedCity = _islandState.FindCityAt(selectedCityVertex);
+        SelectedCity = IslandState.FindCityAt(selectedCityVertex);
     }
 
     public IEnumerable<Building> SelectedCityBuildingsAndBuildables()
@@ -28,14 +28,14 @@ public class CityBuildingService
         if (SelectedCity == null)
             return [];
 
-        return _buildingController.GetBuildingsAndBuildables(SelectedCity.CivilizationIndex, SelectedCity.Position);
+        return BuildingController.GetBuildingsAndBuildables(SelectedCity.CivilizationIndex, SelectedCity.Position);
     }
 
     public void TryExecuteSelectedCityBuildingAction(BuildingType buildingType)
     {
         if (SelectedCity != null)
         {
-            _buildingController.BuildBuilding(SelectedCity.CivilizationIndex, SelectedCity.Position, buildingType);
+            BuildingController.BuildBuilding(SelectedCity.CivilizationIndex, SelectedCity.Position, buildingType);
         }
     }
 
@@ -44,7 +44,7 @@ public class CityBuildingService
         if (SelectedCity == null)
             return false;
 
-        var islandState = _islandState;
+        var islandState = IslandState;
         if (islandState == null || SelectedCity.CivilizationIndex >= islandState.Civilizations.Count)
             return false;
 
@@ -71,6 +71,6 @@ public class CityBuildingService
     {
         if (SelectedCity == null)
             return false;
-        return building.Level >= _buildingController.GetMaxLevel(building, SelectedCity.CivilizationIndex);
+        return building.Level >= BuildingController.GetMaxLevel(building, SelectedCity.CivilizationIndex);
     }
 }

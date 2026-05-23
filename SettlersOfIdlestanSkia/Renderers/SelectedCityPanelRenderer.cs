@@ -186,7 +186,7 @@ public class SelectedCityPanelRenderer : IGameRenderer
 
     private void HandlePointerPressed(object? sender, SettlersOfIdlestanSkia.Services.PointerEventArgs e)
     {
-        if (!IsInputEnabled)
+        if (!IsInputEnabled || e.Button != PointerButton.Left)
             return;
 
         // Vérifier les clics sur les boutons
