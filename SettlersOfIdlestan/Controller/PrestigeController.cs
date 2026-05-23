@@ -33,17 +33,23 @@ namespace SettlersOfIdlestan.Controller
             if (_playerCivilization == null)
                 return Array.Empty<PrestigePointSource>();
 
-            var sources = new List<PrestigePointSource>();
+            var sources = new Dictionary<string, int>();
             foreach (var city in _playerCivilization.Cities)
             {
                 foreach (var building in city.Buildings)
                 {
                     var points = GetBuildingPrestigePoints(building);
                     if (points > 0)
-                        sources.Add(new PrestigePointSource(building.NameKey, points));
+                    {
+                        if (!sources.TryAdd(building.NameKey, points))
+                            sources[building.NameKey] += points;
+                    }
                 }
             }
-            return sources;
+            return sources
+                .Select(source => new PrestigePointSource(source.Key, source.Value))
+                .OrderBy(source => source.LabelKey)
+                .ToList();
         }
 
         public int GetBuildingPrestigePoints(Building building)

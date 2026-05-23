@@ -12,6 +12,7 @@ public sealed class PrestigeRenderer : IDisposable
     private const float Padding = 18;
     private const float ButtonHeight = 36;
     private const float CloseSize = 28;
+    private const float SourceRowHeight = 24;
 
     private readonly GameControllerService _gameControllerService;
     private readonly ILocalizationService _localization;
@@ -68,11 +69,19 @@ public sealed class PrestigeRenderer : IDisposable
         var controller = _gameControllerService.MainGameController.PrestigeController;
         var sources = controller.GetPrestigePointSources();
         float y = popup.Top + 68;
-        foreach (var source in sources)
+        float listBottom = popup.Bottom - 92;
+        int maxVisibleSources = Math.Max(0, (int)((listBottom - y) / SourceRowHeight));
+        foreach (var source in sources.Take(maxVisibleSources))
         {
             canvas.DrawText(_localization.Get(source.LabelKey), popup.Left + Padding, y, _font, _textPaint);
             canvas.DrawText(source.Points.ToString(), popup.Right - Padding, y, SKTextAlign.Right, _boldFont, _textPaint);
-            y += 24;
+            y += SourceRowHeight;
+        }
+
+        int hiddenSourceCount = sources.Count - maxVisibleSources;
+        if (hiddenSourceCount > 0)
+        {
+            canvas.DrawText(string.Format(_localization.Get("prestige_more_sources"), hiddenSourceCount), popup.Left + Padding, y, _font, _mutedTextPaint);
         }
 
         var total = controller.CalculatePrestigePoints();

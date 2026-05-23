@@ -78,8 +78,7 @@ public sealed class OverlayRenderer : IGameRenderer
         _selectedCityPanelRenderer.IsInputEnabled = !_tradeRenderer.IsOpen && !_prestigeRenderer.IsOpen;
         _playerResourcesOverlayRenderer.Render(canvas, context);
         _selectedCityPanelRenderer.Render(canvas, context);
-        DrawPrestigeButton(canvas);
-        DrawTradeButton(canvas, context);
+        DrawActionButtons(canvas);
 
         float gearX = _canvasSize.Width - PlayerResourcesOverlayRenderer.Padding - PlayerResourcesOverlayRenderer.IconSize;
         _settingsMenu.Draw(canvas, gearX, PlayerResourcesOverlayRenderer.BarHeight);
@@ -88,35 +87,41 @@ public sealed class OverlayRenderer : IGameRenderer
         _prestigeRenderer.Render(canvas);
     }
 
-    private void DrawTradeButton(SKCanvas canvas, GameRenderContext context)
+    private void DrawActionButtons(SKCanvas canvas)
     {
-        _tradeButtonRect = new SKRect(
-            _canvasSize.Width - TradeButtonMargin - TradeButtonWidth,
-            _canvasSize.Height - TradeButtonMargin - TradeButtonHeight,
-            _canvasSize.Width - TradeButtonMargin,
-            _canvasSize.Height - TradeButtonMargin);
-
-        bool isAvailable = IsTradeAvailable(context);
-        canvas.DrawRoundRect(_tradeButtonRect, 7, 7, isAvailable ? _buttonPaint : _disabledButtonPaint);
-        canvas.DrawText(_localization.Get("trade_action"), _tradeButtonRect.MidX, _tradeButtonRect.MidY + 6, SKTextAlign.Center, _buttonFont, isAvailable ? _buttonTextPaint : _disabledTextPaint);
-    }
-
-    private void DrawPrestigeButton(SKCanvas canvas)
-    {
+        _tradeButtonRect = SKRect.Empty;
         _prestigeButtonRect = SKRect.Empty;
+
+        bool isTradeVisible = IsTradeAvailable();
         var prestigeController = _gameControllerService.MainGameController.PrestigeController;
-        if (!prestigeController.PrestigeIsVisible())
-            return;
+        bool isPrestigeVisible = prestigeController.PrestigeIsVisible();
 
-        _prestigeButtonRect = new SKRect(
-            _canvasSize.Width - TradeButtonMargin - TradeButtonWidth - ButtonSpacing - PrestigeButtonWidth,
-            _canvasSize.Height - TradeButtonMargin - TradeButtonHeight,
-            _canvasSize.Width - TradeButtonMargin - TradeButtonWidth - ButtonSpacing,
-            _canvasSize.Height - TradeButtonMargin);
+        float right = _canvasSize.Width - TradeButtonMargin;
 
-        bool isAvailable = prestigeController.PrestigeIsAvailable();
-        canvas.DrawRoundRect(_prestigeButtonRect, 7, 7, isAvailable ? _buttonPaint : _disabledButtonPaint);
-        canvas.DrawText(_localization.Get("prestige_action"), _prestigeButtonRect.MidX, _prestigeButtonRect.MidY + 6, SKTextAlign.Center, _buttonFont, isAvailable ? _buttonTextPaint : _disabledTextPaint);
+        if (isTradeVisible)
+        {
+            _tradeButtonRect = new SKRect(
+                right - TradeButtonWidth,
+                _canvasSize.Height - TradeButtonMargin - TradeButtonHeight,
+                right,
+                _canvasSize.Height - TradeButtonMargin);
+            canvas.DrawRoundRect(_tradeButtonRect, 7, 7, _buttonPaint);
+            canvas.DrawText(_localization.Get("trade_action"), _tradeButtonRect.MidX, _tradeButtonRect.MidY + 6, SKTextAlign.Center, _buttonFont, _buttonTextPaint);
+            right = _tradeButtonRect.Left - ButtonSpacing;
+        }
+
+        if (isPrestigeVisible)
+        {
+            _prestigeButtonRect = new SKRect(
+                right - PrestigeButtonWidth,
+                _canvasSize.Height - TradeButtonMargin - TradeButtonHeight,
+                right,
+                _canvasSize.Height - TradeButtonMargin);
+
+            bool isAvailable = prestigeController.PrestigeIsAvailable();
+            canvas.DrawRoundRect(_prestigeButtonRect, 7, 7, isAvailable ? _buttonPaint : _disabledButtonPaint);
+            canvas.DrawText(_localization.Get("prestige_action"), _prestigeButtonRect.MidX, _prestigeButtonRect.MidY + 6, SKTextAlign.Center, _buttonFont, isAvailable ? _buttonTextPaint : _disabledTextPaint);
+        }
     }
 
     private bool IsTradeAvailable(GameRenderContext? context = null)

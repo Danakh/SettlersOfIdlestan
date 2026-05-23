@@ -128,6 +128,7 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
 
     public void BeginBlackFade(float durationSeconds)
     {
+        _harvestParticleSystem.Clear();
         _blackFadeDuration = Math.Max(0.01f, durationSeconds);
         _blackFadeElapsed = 0;
         _isBlackFadeActive = true;

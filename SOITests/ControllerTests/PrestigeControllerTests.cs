@@ -50,6 +50,25 @@ namespace SOITests.ControllerTests
         }
 
         [Fact]
+        public void Prestige_SourcesAreGroupedBySource()
+        {
+            IslandState state = IslandTestFactory.CreateSevenHexIslandState();
+            var civ = state.Civilizations[0];
+
+            var controller = new PrestigeController();
+            controller.Initialize(civ);
+
+            civ.Cities[0].Buildings.Add(new Temple());
+            civ.Cities[0].Buildings.Add(new Temple());
+            civ.Cities[0].Buildings.Add(new Library());
+
+            var sources = controller.GetPrestigePointSources();
+            Assert.Equal(2, sources.Count);
+            Assert.Equal(2, sources.Single(source => source.LabelKey == "building_temple_name").Points);
+            Assert.Equal(1, sources.Single(source => source.LabelKey == "building_library_name").Points);
+        }
+
+        [Fact]
         public void MainGameController_PerformPrestige_AddsPointsAndCreatesNextIsland()
         {
             var controller = new MainGameController();

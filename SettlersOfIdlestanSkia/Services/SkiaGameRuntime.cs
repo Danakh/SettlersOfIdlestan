@@ -377,6 +377,9 @@ public sealed class SkiaGameRuntime : IDisposable
         
         _harvestService!.OnHarvestCompleted += (sender, args) =>
         {
+            if (_prestigeTransitionPending)
+                return;
+
             var gameState = _gameControllerService?.CurrentGameState;
             if (gameState?.CurrentIslandState == null)
                 return;
