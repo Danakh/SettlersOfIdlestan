@@ -23,6 +23,11 @@ public class CityBuildingService
         SelectedCity = IslandState.FindCityAt(selectedCityVertex);
     }
 
+    public void ClearSelectedCity()
+    {
+        SelectedCity = null;
+    }
+
     public IEnumerable<Building> SelectedCityBuildingsAndBuildables()
     {
         if (SelectedCity == null)

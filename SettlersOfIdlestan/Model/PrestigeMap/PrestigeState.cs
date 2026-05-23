@@ -1,22 +1,24 @@
-using System;
+ï»¿using System;
 using SettlersOfIdlestan.Model.IslandMap;
 
 namespace SettlersOfIdlestan.Model.PrestigeMap
 {
     /// <summary>
-    /// Représente l'état lié au prestige et contient l'état de l'île.
-    /// Sérialisable pour la persistance ou le transport.
+    /// ReprÃ©sente l'Ã©tat liÃ© au prestige et contient l'Ã©tat de l'Ã®le.
+    /// SÃ©rialisable pour la persistance ou le transport.
     /// </summary>
     [Serializable]
     public class PrestigeState
     {
         /// <summary>
-        /// L'état de l'île associé au prestige.
+        /// L'Ã©tat de l'Ã®le associÃ© au prestige.
         /// </summary>
         public IslandState? IslandState { get; set; }
 
+        public int PrestigePoints { get; set; }
+
         /// <summary>
-        /// Constructeur parameterless requis par certains sérialiseurs.
+        /// Constructeur parameterless requis par certains sÃ©rialiseurs.
         /// </summary>
         public PrestigeState() { }
 
@@ -26,3 +28,4 @@ namespace SettlersOfIdlestan.Model.PrestigeMap
         }
     }
 }
+

@@ -30,6 +30,9 @@ public sealed class SkiaGameRuntime : IDisposable
     private ConstructionInteractionService? _constructionInteractionService;
     private ILocalizationService? _localizationService;
     private IFileSystemService? _fileSystemService;
+    private IslandMainRenderer? _islandMainRenderer;
+    private OverlayRenderer? _overlayRenderer;
+    private bool _prestigeTransitionPending;
 
     private bool _isDisposed;
     private bool _isGameInitialized;
@@ -105,6 +108,7 @@ public sealed class SkiaGameRuntime : IDisposable
             _cameraService,
             _gameControllerService.CityBuildingService);
         islandMainRenderer = new IslandMainRenderer(_constructionInteractionService, tooltipRenderer);
+        _islandMainRenderer = islandMainRenderer;
         _constructionInteractionService.AttachRenderer(islandMainRenderer);
         _renderService.RegisterRenderer(islandMainRenderer);
 
@@ -120,14 +124,17 @@ public sealed class SkiaGameRuntime : IDisposable
         var settingsMenu = new SettingsMenu(_gameControllerService.MainGameController, _inputService, _localizationService, aboutRenderer, fileSystemService);
         var playerResourcesOverlayRenderer = new PlayerResourcesOverlayRenderer(_localizationService, _resourceManager);
         var tradeRenderer = new TradeRenderer(_gameControllerService, _localizationService);
-        _renderService.RegisterRenderer(new OverlayRenderer(
+        var prestigeRenderer = new PrestigeRenderer(_gameControllerService, _localizationService, RequestPrestige);
+        _overlayRenderer = new OverlayRenderer(
             _inputService,
             _gameControllerService,
             _localizationService,
             playerResourcesOverlayRenderer,
             settingsMenu,
             selectedCityPanelRenderer,
-            tradeRenderer));
+            tradeRenderer,
+            prestigeRenderer);
+        _renderService.RegisterRenderer(_overlayRenderer);
         _renderService.RegisterRenderer(new DebugOverlayRenderer(_inputService, _cameraService, islandMainRenderer, _localizationService));
         _renderService.RegisterRenderer(aboutRenderer);
 
@@ -187,6 +194,11 @@ public sealed class SkiaGameRuntime : IDisposable
             // Clamp: évite des "sauts" si le host freeze.
             var deltaTime = (float)Math.Clamp(elapsed, 0f, 0.1f);
             _gameControllerService.Update(deltaTime);
+
+            if (_prestigeTransitionPending && _islandMainRenderer?.IsBlackFadeComplete == true)
+            {
+                CompletePrestigeTransition();
+            }
 
             _frameCount++;
 
@@ -331,6 +343,32 @@ public sealed class SkiaGameRuntime : IDisposable
             stats = default;
             return false;
         }
+    }
+
+    private void RequestPrestige()
+    {
+        if (_prestigeTransitionPending || _islandMainRenderer == null || _overlayRenderer == null)
+            return;
+
+        _overlayRenderer.Hide();
+        _islandMainRenderer.BeginBlackFade(0.5f);
+        _prestigeTransitionPending = true;
+    }
+
+    private void CompletePrestigeTransition()
+    {
+        if (_gameControllerService == null || _cameraService == null)
+            return;
+
+        _gameControllerService.PerformPrestige();
+        _constructionInteractionService?.ClearHover();
+
+        var hexCoords = _gameControllerService.CurrentIslandState?.Map?.Tiles?.Keys ?? Enumerable.Empty<HexCoord>();
+        _cameraService.FitMapToView(hexCoords);
+
+        _islandMainRenderer?.EndBlackFade();
+        _overlayRenderer?.Show();
+        _prestigeTransitionPending = false;
     }
 
     private void ConnectHarvestEventsToParticles(IslandMainRenderer islandMainRenderer)

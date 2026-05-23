@@ -26,6 +26,14 @@ public class SelectedCityPanelRenderer : IGameRenderer
     public float ReservedBottomHeight { get; set; }
     public bool IsInputEnabled { get; set; } = true;
 
+    public void Close()
+    {
+        _cityBuildingService.ClearSelectedCity();
+        _hoveredBuildingType = null;
+        _btnRects.Clear();
+        _hoverRects.Clear();
+    }
+
     public SelectedCityPanelRenderer( CityBuildingService cityBuildingService, ILocalizationService localization, InputHandlingService inputService)
     {
         _cityBuildingService = cityBuildingService;

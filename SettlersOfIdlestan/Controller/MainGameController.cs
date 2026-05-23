@@ -116,6 +116,17 @@ namespace SettlersOfIdlestan.Controller
             return mainState;
         }
 
+        public void PerformPrestige()
+        {
+            if (CurrentMainState == null)
+                throw new InvalidOperationException("No main state available.");
+
+            var nextIslandId = AtlasController.GetNextIslandID(CurrentMainState);
+            var parameters = AtlasController.GetIslandParameters(nextIslandId);
+            PrestigeController.PerformPrestige(CurrentMainState, parameters);
+            InitializeControllersForCurrentIsland();
+        }
+
         public MainGameState? CreateNewGame()
         {
             int islandId = AtlasController.GetFirstIslandID();
@@ -132,7 +143,12 @@ namespace SettlersOfIdlestan.Controller
             CurrentMainState = mainGame;
             Clock = mainGame.Clock;
 
-            var islandState = CurrentMainState.CurrentIslandState;
+            InitializeControllersForCurrentIsland();
+        }
+
+        private void InitializeControllersForCurrentIsland()
+        {
+            var islandState = CurrentMainState?.CurrentIslandState;
 
             if (islandState != null)
             {

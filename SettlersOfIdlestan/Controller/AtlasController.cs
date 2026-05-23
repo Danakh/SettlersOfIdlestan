@@ -26,6 +26,19 @@ namespace SettlersOfIdlestan.Controller
                 return new IslandParameters(islandId, tileData, civilizationCount);
             }
             // Pour d'autres îles, retourner une configuration différente si besoin
+            if (islandId > 1)
+            {
+                var tileData = new List<(TerrainType terrainType, int tileCount)>
+                {
+                    (TerrainType.Forest, 6),
+                    (TerrainType.Hill, 6),
+                    (TerrainType.Plain, 6),
+                    (TerrainType.Mountain, 6),
+                    (TerrainType.Desert, 1),
+                };
+                return new IslandParameters(islandId, tileData, 1);
+            }
+
             return new IslandParameters(InvalidIslandId, new List<(TerrainType terrainType, int tileCount)>(), 0);
         }
 

@@ -20,6 +20,9 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
     private readonly HarvestParticleSystem _harvestParticleSystem;
     private readonly IConstructionHoverProvider _constructionHoverProvider;
     private readonly TooltipRenderer _tooltipRenderer;
+    private float _blackFadeDuration;
+    private float _blackFadeElapsed;
+    private bool _isBlackFadeActive;
 
 
     /// <summary>
@@ -63,6 +66,19 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
 
     public void Render(SKCanvas canvas, GameRenderContext context)
     {
+        if (_isBlackFadeActive)
+        {
+            _blackFadeElapsed = Math.Min(_blackFadeElapsed + context.DeltaTime, _blackFadeDuration);
+            var progress = _blackFadeDuration <= 0 ? 1f : _blackFadeElapsed / _blackFadeDuration;
+            using var fadePaint = new SKPaint
+            {
+                Color = new SKColor(0, 0, 0, (byte)(255 * progress)),
+                Style = SKPaintStyle.Fill
+            };
+            canvas.DrawRect(new SKRect(0, 0, context.CanvasSize.Width, context.CanvasSize.Height), fadePaint);
+            return;
+        }
+
         SKPoint tooltipPosition = SKPoint.Empty;
         var state = _constructionHoverProvider!.HoverState;
 
@@ -108,6 +124,21 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
     {
         var (h1, h2) = edge.GetHexes();
         return EdgeToIsland(h1.Q, h1.R, h2.Q, h2.R);
+    }
+
+    public void BeginBlackFade(float durationSeconds)
+    {
+        _blackFadeDuration = Math.Max(0.01f, durationSeconds);
+        _blackFadeElapsed = 0;
+        _isBlackFadeActive = true;
+    }
+
+    public bool IsBlackFadeComplete => _isBlackFadeActive && _blackFadeElapsed >= _blackFadeDuration;
+
+    public void EndBlackFade()
+    {
+        _isBlackFadeActive = false;
+        _blackFadeElapsed = 0;
     }
 
     public void Dispose()

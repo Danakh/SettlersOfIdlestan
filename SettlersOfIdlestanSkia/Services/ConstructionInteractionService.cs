@@ -193,6 +193,11 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
         _inputService.PointerPressed -= OnPointerPressed;
         _inputService.PointerReleased -= OnPointerReleased;
     }
+
+    public void ClearHover()
+    {
+        HoverState = ConstructionHoverState.Empty;
+    }
 }
 
 public readonly record struct ConstructionHoverState(

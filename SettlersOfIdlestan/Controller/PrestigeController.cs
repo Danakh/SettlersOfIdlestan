@@ -3,14 +3,14 @@ using System.Linq;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Civilization;
-using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.Buildings;
+using SettlersOfIdlestan.Controller.Generator;
 
 namespace SettlersOfIdlestan.Controller
 {
     public class PrestigeController
     {
-        private Civilization _playerCivilization;
+        private Civilization? _playerCivilization;
 
         internal PrestigeController()
         {
@@ -22,30 +22,28 @@ namespace SettlersOfIdlestan.Controller
             _playerCivilization = playerCivilization;
         }
 
-        public bool PrestigeIsVisible()
-        {
-            return CalculatePrestigePoints() >= 10;
-        }
+        public bool PrestigeIsVisible() => CalculatePrestigePoints() >= 10;
 
-        public bool PrestigeIsAvailable()
-        {
-            return CalculatePrestigePoints() >= 20;
-        }
+        public bool PrestigeIsAvailable() => CalculatePrestigePoints() >= 20;
 
-        public int CalculatePrestigePoints()
-        {
-            // Simple prestige calculation based on the number of cities and buildings
-            int points = 0;
+        public int CalculatePrestigePoints() => GetPrestigePointSources().Sum(source => source.Points);
 
-            // Each building contributes points based on its type and level
+        public IReadOnlyList<PrestigePointSource> GetPrestigePointSources()
+        {
+            if (_playerCivilization == null)
+                return Array.Empty<PrestigePointSource>();
+
+            var sources = new List<PrestigePointSource>();
             foreach (var city in _playerCivilization.Cities)
             {
                 foreach (var building in city.Buildings)
                 {
-                    points += GetBuildingPrestigePoints(building);
+                    var points = GetBuildingPrestigePoints(building);
+                    if (points > 0)
+                        sources.Add(new PrestigePointSource(building.NameKey, points));
                 }
             }
-            return points;
+            return sources;
         }
 
         public int GetBuildingPrestigePoints(Building building)
@@ -58,5 +56,31 @@ namespace SettlersOfIdlestan.Controller
                 _ => 0
             };
         }
+
+        public void PerformPrestige(MainGameState mainGameState, IslandParameters nextIslandParameters)
+        {
+            if (!PrestigeIsAvailable())
+                throw new InvalidOperationException("Prestige is not available.");
+            if (mainGameState.PrestigeState == null)
+                throw new InvalidOperationException("PrestigeState is not available.");
+
+            var points = CalculatePrestigePoints();
+            mainGameState.PrestigeState.PrestigePoints += points;
+            mainGameState.PrestigeState.IslandState = null;
+
+            var civilizations = new List<Civilization>();
+            for (int i = 0; i < nextIslandParameters.CivilizationCount; i++)
+            {
+                civilizations.Add(new Civilization { Index = i });
+            }
+
+            var generator = new IslandMapGenerator(mainGameState.PRNG);
+            var map = generator.GenerateIsland(nextIslandParameters.TileData, civilizations)
+                ?? throw new InvalidOperationException("Failed to generate next island.");
+
+            mainGameState.PrestigeState.IslandState = new IslandState(map, civilizations, nextIslandParameters.IslandID);
+        }
     }
+
+    public readonly record struct PrestigePointSource(string LabelKey, int Points);
 }

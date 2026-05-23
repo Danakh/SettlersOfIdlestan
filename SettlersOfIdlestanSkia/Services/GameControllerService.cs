@@ -59,6 +59,11 @@ public class GameControllerService
         _controller.CurrentMainState.Clock.Advance(TimeSpan.FromSeconds(deltaTime));
     }
 
+    public void PerformPrestige()
+    {
+        _controller.PerformPrestige();
+    }
+
     public List<Vertex> GetBuildableCityVerticesForPlayer()
     {
         var playerIndex = PlayerCivilizationIndex
