@@ -2,6 +2,9 @@ using SkiaSharp;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.IslandMap;
+using SettlersOfIdlestan.Model.HexGrid;
+using System;
+using System.Collections.Generic;
 
 namespace SettlersOfIdlestanSkia.Renderers;
 
@@ -15,17 +18,40 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
     private SKPaint? _hexFillPaint;
     private SKPaint? _textPaint;
     private SKFont? _textFont;
+    private SKPaint? _dotPaint;
+    private SKPaint? _ringBgPaint;
+    private SKPaint? _ringProgressPaint;
     private bool _disposed;
 
-    // Dictionnaire de couleurs pour les types de terrain
+    private static readonly TimeSpan ManualCooldown = TimeSpan.FromSeconds(2);
+    private static readonly TimeSpan AutoCooldown = TimeSpan.FromSeconds(5);
+
+    // Dimensions de l'indicateur (outer edge ≈ 50 % du rayon de l'hex = 20 px)
+    private const float DotRadius = 5f;
+    private const float ManualRingRadius = 5f;
+    private const float ManualRingStroke = 3f;
+    private const float AutoRingRadius = 8f;
+    private const float AutoRingStroke = 3f;   // outer edge = 17 + 3 = 20 px
+
     private static readonly Dictionary<TerrainType, SKColor> TerrainColors = new()
     {
-        { TerrainType.Forest, new SKColor(34, 139, 34) },        // Vert foncé
-        { TerrainType.Hill, new SKColor(210, 180, 140) },        // Tan
-        { TerrainType.Plain, new SKColor(144, 238, 144) },       // Vert clair
-        { TerrainType.Mountain, new SKColor(139, 69, 19) },      // Marron
-        { TerrainType.Desert, new SKColor(238, 214, 175) },      // Sable
-        { TerrainType.Water, new SKColor(30, 144, 255) },        // Bleu
+        { TerrainType.Forest,   new SKColor(34, 139, 34) },
+        { TerrainType.Hill,     new SKColor(210, 180, 140) },
+        { TerrainType.Plain,    new SKColor(144, 238, 144) },
+        { TerrainType.Mountain, new SKColor(139, 69, 19) },
+        { TerrainType.Desert,   new SKColor(238, 214, 175) },
+        { TerrainType.Water,    new SKColor(30, 144, 255) },
+    };
+
+    // Couleur du point central selon le terrain (ressource naturelle produite)
+    private static readonly Dictionary<TerrainType, SKColor> TerrainResourceDotColors = new()
+    {
+        { TerrainType.Forest,   IslandMainRenderer.ResourceColors[Resource.Wood] },
+        { TerrainType.Hill,     IslandMainRenderer.ResourceColors[Resource.Brick] },
+        { TerrainType.Plain,    IslandMainRenderer.ResourceColors[Resource.Food] },
+        { TerrainType.Mountain, IslandMainRenderer.ResourceColors[Resource.Stone] },
+        { TerrainType.Water,    IslandMainRenderer.ResourceColors[Resource.Food] },
+        // Desert : pas de ressource, pas de point
     };
 
     public void Initialize(SKSize canvasSize)
@@ -51,6 +77,25 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
         };
 
         _textFont = new SKFont(SKTypeface.Default, 12);
+
+        _dotPaint = new SKPaint
+        {
+            Style = SKPaintStyle.Fill,
+            IsAntialias = true
+        };
+
+        _ringBgPaint = new SKPaint
+        {
+            Style = SKPaintStyle.Stroke,
+            IsAntialias = true
+        };
+
+        _ringProgressPaint = new SKPaint
+        {
+            Style = SKPaintStyle.Stroke,
+            StrokeCap = SKStrokeCap.Butt,
+            IsAntialias = true
+        };
     }
 
     public void Render(SKCanvas canvas, GameRenderContext context)
@@ -58,10 +103,8 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
         if (context.GameState == null)
             return;
 
-        // Clear the canvas with a light background
         canvas.DrawColor(new SKColor(238, 242, 245));
 
-        // Récupère le MainGameState et l'IslandState
         if (context.GameState is MainGameState mainGameState)
         {
             var islandState = mainGameState.CurrentIslandState;
@@ -69,45 +112,49 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
             {
                 if (islandState.VisibleIslandMaps.TryGetValue(islandState.PlayerCivilization.Index, out var visibleMap))
                 {
-                    DrawIslandMap(canvas, visibleMap);
+                    var playerIdx = islandState.PlayerCivilization.Index;
+                    islandState.HarvestLastTimesByCivilization.TryGetValue(playerIdx, out var manualTimes);
+                    islandState.AutomaticHarvestLastTimesByCivilization.TryGetValue(playerIdx, out var autoTimes);
+
+                    DrawIslandMap(canvas, visibleMap, mainGameState.Clock.CurrentTime, manualTimes, autoTimes);
                 }
             }
         }
     }
 
-    /// <summary>
-    /// Dessine la carte d'une île basée sur son IslandMap.
-    /// </summary>
-    private void DrawIslandMap(SKCanvas canvas, IslandMap map)
+    private void DrawIslandMap(SKCanvas canvas, IslandMap map,
+        DateTimeOffset currentTime,
+        Dictionary<HexCoord, DateTimeOffset>? manualTimes,
+        Dictionary<HexCoord, DateTimeOffset>? autoTimes)
     {
         foreach (var (coord, tile) in map.Tiles)
         {
             var (x, y) = AxialToIsland(coord.Q, coord.R);
-            DrawHexagonTile(canvas, x, y, HexSize, tile);
+            DrawHexagonTile(canvas, x, y, HexSize, tile, currentTime, manualTimes, autoTimes);
         }
     }
 
-    /// <summary>
-    /// Dessine un hexagone représentant une tuile avec sa couleur de terrain.
-    /// </summary>
-    private void DrawHexagonTile(SKCanvas canvas, float centerX, float centerY, float size, HexTile tile)
+    private void DrawHexagonTile(SKCanvas canvas, float centerX, float centerY, float size, HexTile tile,
+        DateTimeOffset currentTime,
+        Dictionary<HexCoord, DateTimeOffset>? manualTimes,
+        Dictionary<HexCoord, DateTimeOffset>? autoTimes)
     {
         var points = GetHexagonPoints(centerX, centerY, size);
 
         if (_hexFillPaint != null)
         {
-            // Utilise la couleur du type de terrain
-            _hexFillPaint.Color = TerrainColors.TryGetValue(tile.TerrainType, out var color) 
-                ? color 
+            _hexFillPaint.Color = TerrainColors.TryGetValue(tile.TerrainType, out var color)
+                ? color
                 : new SKColor(200, 200, 200);
-            
+
             canvas.DrawPath(PointsToPath(points), _hexFillPaint);
         }
 
         if (_hexBorderPaint != null)
             canvas.DrawPath(PointsToPath(points), _hexBorderPaint);
 
-        // Affiche les coordonnées (q, r) en mode debug
+        DrawHarvestIndicator(canvas, centerX, centerY, tile, currentTime, manualTimes, autoTimes);
+
         if (DebugOverlayRenderer.DebugMode && _textPaint != null && tile.Coord != null)
         {
             _textPaint.Color = SKColors.Black;
@@ -116,8 +163,72 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
     }
 
     /// <summary>
-    /// Dessine un hexagone centré à (centerX, centerY).
+    /// Dessine l'indicateur de récolte au centre de l'hex :
+    /// point coloré (ressource) + anneau de cooldown manuel + anneau de cooldown automatique.
     /// </summary>
+    private void DrawHarvestIndicator(SKCanvas canvas, float cx, float cy, HexTile tile,
+        DateTimeOffset currentTime,
+        Dictionary<HexCoord, DateTimeOffset>? manualTimes,
+        Dictionary<HexCoord, DateTimeOffset>? autoTimes)
+    {
+        if (_dotPaint == null || _ringBgPaint == null || _ringProgressPaint == null)
+            return;
+
+        // Anneau extérieur : cooldown automatique (or/jaune)
+        DrawCooldownRing(canvas, cx, cy, AutoRingRadius, AutoRingStroke,
+            tile.Coord, currentTime, autoTimes, AutoCooldown,
+            new SKColor(60, 60, 60, 150),
+            new SKColor(255, 200, 60, 230));
+
+        // Anneau intérieur : cooldown manuel (vert clair)
+        DrawCooldownRing(canvas, cx, cy, ManualRingRadius, ManualRingStroke,
+            tile.Coord, currentTime, manualTimes, ManualCooldown,
+            new SKColor(60, 60, 60, 150),
+            new SKColor(160, 230, 160, 230));
+
+        // Point central : couleur de la ressource du terrain
+        if (TerrainResourceDotColors.TryGetValue(tile.TerrainType, out var dotColor))
+        {
+            _dotPaint.Color = dotColor;
+            canvas.DrawCircle(cx, cy, DotRadius, _dotPaint);
+
+            _ringBgPaint.Color = new SKColor(0, 0, 0, 90);
+            _ringBgPaint.StrokeWidth = 1f;
+            canvas.DrawCircle(cx, cy, DotRadius, _ringBgPaint);
+        }
+    }
+
+    /// <summary>
+    /// Dessine un anneau de fond semi-transparent et, par-dessus, un arc coloré
+    /// représentant la fraction écoulée du cooldown (0 = vient de récolter, 1 = prêt).
+    /// </summary>
+    private void DrawCooldownRing(SKCanvas canvas, float cx, float cy,
+        float radius, float strokeWidth,
+        HexCoord coord, DateTimeOffset currentTime,
+        Dictionary<HexCoord, DateTimeOffset>? lastTimes,
+        TimeSpan cooldownDuration,
+        SKColor bgColor, SKColor progressColor)
+    {
+        var rect = new SKRect(cx - radius, cy - radius, cx + radius, cy + radius);
+
+        _ringBgPaint!.Color = bgColor;
+        _ringBgPaint.StrokeWidth = strokeWidth;
+        canvas.DrawOval(rect, _ringBgPaint);
+
+        float ratio = 1f;
+        if (lastTimes != null && lastTimes.TryGetValue(coord, out var lastTime))
+            ratio = Math.Clamp((float)((currentTime - lastTime).TotalSeconds / cooldownDuration.TotalSeconds), 0f, 1f);
+
+        // Arc de progression : s'allonge de 0° à 360° au fur et à mesure que le cooldown expire.
+        // Quand ratio = 1 (prêt), l'arc est complet (anneau plein).
+        if (ratio > 0f)
+        {
+            _ringProgressPaint!.Color = progressColor;
+            _ringProgressPaint.StrokeWidth = strokeWidth;
+            canvas.DrawArc(rect, -90f, ratio * 360f, false, _ringProgressPaint);
+        }
+    }
+
     private void DrawHexagon(SKCanvas canvas, float centerX, float centerY, float size)
     {
         var points = GetHexagonPoints(centerX, centerY, size);
@@ -131,7 +242,6 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
         if (_hexBorderPaint != null)
             canvas.DrawPath(PointsToPath(points), _hexBorderPaint);
 
-        // Affiche les coordonnées
         if (_textPaint != null)
         {
             _textPaint.Color = SKColors.Black;
@@ -148,6 +258,9 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
         _hexFillPaint?.Dispose();
         _textPaint?.Dispose();
         _textFont?.Dispose();
+        _dotPaint?.Dispose();
+        _ringBgPaint?.Dispose();
+        _ringProgressPaint?.Dispose();
         _disposed = true;
     }
 }
