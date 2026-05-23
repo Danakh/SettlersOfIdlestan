@@ -9,11 +9,17 @@ namespace SettlersOfIdlestanSkia.Renderers;
 public sealed class OverlayRenderer : IGameRenderer
 {
     private const float TradeButtonWidth = 120;
-    private const float PrestigeButtonWidth = 120;
+    private const float PrestigeButtonWidth = 160;
     private const float TradeButtonHeight = 38;
     private const float TradeButtonMargin = 14;
     private const float ButtonSpacing = 10;
     private const float CityPanelReservedBottomHeight = TradeButtonHeight + TradeButtonMargin * 2;
+
+    private const float TabWidth = 62;
+    private const float TabHeight = 28;
+    private const float TabMarginLeft = 8;
+    private const float TabSpacing = 5;
+    private const float TabsContentWidth = TabMarginLeft + TabWidth * 2 + TabSpacing + TabMarginLeft;
 
     private readonly InputHandlingService _inputService;
     private readonly GameControllerService _gameControllerService;
@@ -30,9 +36,17 @@ public sealed class OverlayRenderer : IGameRenderer
     private readonly SKPaint _disabledTextPaint = new() { Color = new SKColor(180, 180, 185), IsAntialias = true };
     private readonly SKFont _buttonFont = new() { Size = 14, Typeface = SKTypeface.FromFamilyName("Arial", SKFontStyle.Bold) };
 
+    private readonly SKPaint _activeTabPaint = new() { Color = new SKColor(60, 100, 160), Style = SKPaintStyle.Fill, IsAntialias = true };
+    private readonly SKPaint _inactiveTabPaint = new() { Color = new SKColor(35, 35, 45), Style = SKPaintStyle.Fill, IsAntialias = true };
+    private readonly SKPaint _activeTabBorderPaint = new() { Color = SKColors.Gold, StrokeWidth = 1.5f, Style = SKPaintStyle.Stroke, IsAntialias = true };
+    private readonly SKFont _tabFont = new() { Size = 12, Typeface = SKTypeface.FromFamilyName("Arial", SKFontStyle.Bold) };
+
     private SKSize _canvasSize;
     private SKRect _tradeButtonRect = SKRect.Empty;
     private SKRect _prestigeButtonRect = SKRect.Empty;
+    private SKRect _tab1Rect = SKRect.Empty;
+    private SKRect _tab2Rect = SKRect.Empty;
+    private int _activeTab = 0;
     private bool _disposed;
     private bool _isVisible = true;
 
@@ -75,10 +89,33 @@ public sealed class OverlayRenderer : IGameRenderer
         if (!_isVisible)
             return;
 
+        bool showTabs = HasPrestigePoints(context);
+        _tab1Rect = SKRect.Empty;
+        _tab2Rect = SKRect.Empty;
+
+        if (showTabs)
+        {
+            float tabY = (PlayerResourcesOverlayRenderer.BarHeight - TabHeight) / 2;
+            _tab1Rect = new SKRect(TabMarginLeft, tabY, TabMarginLeft + TabWidth, tabY + TabHeight);
+            _tab2Rect = new SKRect(_tab1Rect.Right + TabSpacing, tabY, _tab1Rect.Right + TabSpacing + TabWidth, tabY + TabHeight);
+            _playerResourcesOverlayRenderer.ResourceStartX = TabsContentWidth;
+        }
+        else
+        {
+            _activeTab = 0;
+            _playerResourcesOverlayRenderer.ResourceStartX = PlayerResourcesOverlayRenderer.Padding;
+        }
+
+        _playerResourcesOverlayRenderer.Mode = _activeTab == 1 ? BarDisplayMode.Prestige : BarDisplayMode.Island;
+
         _selectedCityPanelRenderer.IsInputEnabled = !_tradeRenderer.IsOpen && !_prestigeRenderer.IsOpen;
         _playerResourcesOverlayRenderer.Render(canvas, context);
+
+        if (showTabs)
+            DrawTabButtons(canvas);
+
         _selectedCityPanelRenderer.Render(canvas, context);
-        DrawActionButtons(canvas);
+        DrawActionButtons(canvas, context);
 
         float gearX = _canvasSize.Width - PlayerResourcesOverlayRenderer.Padding - PlayerResourcesOverlayRenderer.IconSize;
         _settingsMenu.Draw(canvas, gearX, PlayerResourcesOverlayRenderer.BarHeight);
@@ -87,7 +124,29 @@ public sealed class OverlayRenderer : IGameRenderer
         _prestigeRenderer.Render(canvas);
     }
 
-    private void DrawActionButtons(SKCanvas canvas)
+    private bool HasPrestigePoints(GameRenderContext context)
+    {
+        if (context.GameState is not SettlersOfIdlestan.Model.Game.MainGameState mainGameState)
+            return false;
+        return (mainGameState.PrestigeState?.PrestigePoints ?? 0) > 0;
+    }
+
+    private void DrawTabButtons(SKCanvas canvas)
+    {
+        DrawTab(canvas, _tab1Rect, _localization.Get("tab_island"), _activeTab == 0);
+        DrawTab(canvas, _tab2Rect, _localization.Get("tab_prestige_map"), _activeTab == 1);
+    }
+
+    private void DrawTab(SKCanvas canvas, SKRect rect, string label, bool isActive)
+    {
+        canvas.DrawRoundRect(rect, 5, 5, isActive ? _activeTabPaint : _inactiveTabPaint);
+        if (isActive)
+            canvas.DrawRoundRect(rect, 5, 5, _activeTabBorderPaint);
+        var textPaint = isActive ? _buttonTextPaint : _disabledTextPaint;
+        canvas.DrawText(label, rect.MidX, rect.MidY + 5, SKTextAlign.Center, _tabFont, textPaint);
+    }
+
+    private void DrawActionButtons(SKCanvas canvas, GameRenderContext context)
     {
         _tradeButtonRect = SKRect.Empty;
         _prestigeButtonRect = SKRect.Empty;
@@ -119,8 +178,12 @@ public sealed class OverlayRenderer : IGameRenderer
                 _canvasSize.Height - TradeButtonMargin);
 
             bool isAvailable = prestigeController.PrestigeIsAvailable();
+            int currentPoints = prestigeController.CalculatePrestigePoints();
+            string label = isAvailable
+                ? $"{_localization.Get("prestige_action")} ({currentPoints})"
+                : $"{_localization.Get("prestige_action")} ({currentPoints}/{SettlersOfIdlestan.Controller.PrestigeController.PrestigeRequiredPoints})";
             canvas.DrawRoundRect(_prestigeButtonRect, 7, 7, isAvailable ? _buttonPaint : _disabledButtonPaint);
-            canvas.DrawText(_localization.Get("prestige_action"), _prestigeButtonRect.MidX, _prestigeButtonRect.MidY + 6, SKTextAlign.Center, _buttonFont, isAvailable ? _buttonTextPaint : _disabledTextPaint);
+            canvas.DrawText(label, _prestigeButtonRect.MidX, _prestigeButtonRect.MidY + 6, SKTextAlign.Center, _buttonFont, isAvailable ? _buttonTextPaint : _disabledTextPaint);
         }
     }
 
@@ -152,6 +215,18 @@ public sealed class OverlayRenderer : IGameRenderer
 
         if (e.Button != PointerButton.Left)
             return;
+
+        if (!_tab1Rect.IsEmpty && _tab1Rect.Contains(e.Position.X, e.Position.Y))
+        {
+            _activeTab = 0;
+            return;
+        }
+
+        if (!_tab2Rect.IsEmpty && _tab2Rect.Contains(e.Position.X, e.Position.Y))
+        {
+            _activeTab = 1;
+            return;
+        }
 
         if (_playerResourcesOverlayRenderer.GearRect.Contains(e.Position.X, e.Position.Y))
         {
@@ -211,6 +286,10 @@ public sealed class OverlayRenderer : IGameRenderer
         _buttonTextPaint.Dispose();
         _disabledTextPaint.Dispose();
         _buttonFont.Dispose();
+        _activeTabPaint.Dispose();
+        _inactiveTabPaint.Dispose();
+        _activeTabBorderPaint.Dispose();
+        _tabFont.Dispose();
         _disposed = true;
     }
 }

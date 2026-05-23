@@ -22,9 +22,12 @@ namespace SettlersOfIdlestan.Controller
             _playerCivilization = playerCivilization;
         }
 
-        public bool PrestigeIsVisible() => CalculatePrestigePoints() >= 10;
+        public const int PrestigeVisiblePoints = 10;
+        public const int PrestigeRequiredPoints = 20;
 
-        public bool PrestigeIsAvailable() => CalculatePrestigePoints() >= 20;
+        public bool PrestigeIsVisible() => CalculatePrestigePoints() >= PrestigeVisiblePoints;
+
+        public bool PrestigeIsAvailable() => CalculatePrestigePoints() >= PrestigeRequiredPoints;
 
         public int CalculatePrestigePoints() => GetPrestigePointSources().Sum(source => source.Points);
 

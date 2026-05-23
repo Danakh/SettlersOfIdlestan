@@ -8,6 +8,8 @@ using SkiaSharp;
 
 namespace SettlersOfIdlestanSkia.Renderers;
 
+public enum BarDisplayMode { Island, Prestige }
+
 /// <summary>
 /// Renderer affichant un bandeau avec les ressources du joueur actuel sur toute la hauteur de la fenêtre.
 /// Les ressources s'affichent horizontalement à gauche, avec une icône de menu à droite.
@@ -34,6 +36,9 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
 
     // Couleurs par type de ressource
     private static Dictionary<Resource, SKColor> ResourceColors => IslandMainRenderer.ResourceColors;
+
+    public BarDisplayMode Mode { get; set; } = BarDisplayMode.Island;
+    public float ResourceStartX { get; set; } = Padding;
 
     public bool Disposed => _disposed;
     public SKRect GearRect
@@ -97,42 +102,42 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
         if (context.GameState is not MainGameState mainGameState)
             return;
 
+        if (Mode == BarDisplayMode.Prestige)
+        {
+            int prestigePoints = mainGameState.PrestigeState?.PrestigePoints ?? 0;
+            DrawPrestigePointsBar(canvas, prestigePoints);
+            return;
+        }
+
         var islandState = mainGameState.CurrentIslandState;
         if (islandState == null)
             return;
 
-        // Récupère les ressources du joueur actuel (première civilisation pour l'instant)
         if (islandState.Civilizations.Count == 0)
             return;
 
         var currentCivilization = islandState.Civilizations[0];
-
         DrawResourcesBar(canvas, currentCivilization);
+    }
 
+    private void DrawBarBackground(SKCanvas canvas)
+    {
+        const float cornerRadius = 8;
+        var rect = new SKRect(0, 0, _canvasSize.Width, BarHeight);
+        canvas.DrawRoundRect(rect, cornerRadius, cornerRadius, _backgroundPaint);
+        canvas.DrawRoundRect(rect, cornerRadius, cornerRadius, _borderPaint);
     }
 
     private void DrawResourcesBar(SKCanvas canvas, SettlersOfIdlestan.Model.Civilization.Civilization civilization)
     {
         const float itemSpacing = 16;
-        const float cornerRadius = 8;
 
-        // Énumère tous les types de ressources
         var resourceTypes = Enum.GetValues(typeof(Resource)).Cast<Resource>().ToList();
+        float barWidth = _canvasSize.Width;
 
-        // Position du bandeau : haut, gauche à droite, hauteur fixe, largeur pleine
-        var xStart = 0;
-        var yStart = 0;
-        var barWidth = _canvasSize.Width;
-        var rect = new SKRect(xStart, yStart, barWidth, BarHeight);
+        DrawBarBackground(canvas);
 
-        // Fond arrondi
-        canvas.DrawRoundRect(rect, cornerRadius, cornerRadius, _backgroundPaint);
-
-        // Bordure arrondie
-        canvas.DrawRoundRect(rect, cornerRadius, cornerRadius, _borderPaint);
-
-        // Dessine les ressources horizontalement à gauche
-        float currentX = Padding;
+        float currentX = ResourceStartX;
         float itemY = (BarHeight - RectangleHeight) / 2;
 
         foreach (var resource in resourceTypes)
@@ -146,9 +151,24 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
             }
         }
 
-        // Dessine la roue crantée pour le menu à droite
         float gearX = barWidth - Padding - IconSize;
         DrawGearIcon(canvas, gearX, itemY, IconSize);
+    }
+
+    private void DrawPrestigePointsBar(SKCanvas canvas, int prestigePoints)
+    {
+        DrawBarBackground(canvas);
+
+        float gearX = _canvasSize.Width - Padding - IconSize;
+        float itemY = (BarHeight - RectangleHeight) / 2;
+        DrawGearIcon(canvas, gearX, itemY, IconSize);
+
+        if (_textFont == null || _textPaint == null)
+            return;
+
+        string label = $"{_localization.Get("prestige_points_label")}: {prestigePoints}";
+        float textY = BarHeight / 2 + _textFont.Size / 2 - 2;
+        canvas.DrawText(label, ResourceStartX, textY, _textFont, _textPaint);
     }
 
     private void DrawResourceItem(SKCanvas canvas, Resource resource, int quantity, int maxQuantity, float x, float y)
