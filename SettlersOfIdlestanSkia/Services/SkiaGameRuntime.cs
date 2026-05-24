@@ -367,10 +367,7 @@ public sealed class SkiaGameRuntime : IDisposable
             var hexCenter = new SKPoint(hexX, hexY);
             SKPoint cityCenter = islandMainRenderer.VertexToIslandPoint(args.CityPosition);
 
-            var resourceColors = IslandMainRenderer.ResourceColors;
-            var particleColor = resourceColors.TryGetValue(args.Resource, out var color) ? color : SKColors.Gold;
-
-            particleSystem.EmitParticle(hexCenter, cityCenter, args.Resource, particleColor);
+            particleSystem.EmitParticle(hexCenter, cityCenter, args.Resource);
         };
 
         _harvestService!.OnMarketResourceGenerated += (sender, args) =>
@@ -384,10 +381,7 @@ public sealed class SkiaGameRuntime : IDisposable
             SKPoint cityCenter = islandMainRenderer.VertexToIslandPoint(args.CityPosition);
             SKPoint above = new SKPoint(cityCenter.X, cityCenter.Y - 20f);
 
-            var resourceColors = IslandMainRenderer.ResourceColors;
-            var particleColor = resourceColors.TryGetValue(args.Resource, out var color) ? color : SKColors.Gold;
-
-            particleSystem.EmitParticle(cityCenter, above, args.Resource, particleColor, 0.5f);
+            particleSystem.EmitParticle(cityCenter, above, args.Resource, 0.5f);
         };
     }
 

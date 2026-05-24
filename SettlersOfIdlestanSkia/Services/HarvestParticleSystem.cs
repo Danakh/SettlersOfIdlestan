@@ -30,11 +30,6 @@ public class HarvestParticle
     public float Duration { get; set; }
 
     /// <summary>
-    /// Couleur de la particule (représentant le type de ressource).
-    /// </summary>
-    public SKColor Color { get; set; }
-
-    /// <summary>
     /// Type de ressource associé à la particule.
     /// </summary>
     public Resource Resource { get; set; }
@@ -49,12 +44,11 @@ public class HarvestParticle
     /// </summary>
     public bool IsAlive => TimeRemaining > 0;
 
-    public HarvestParticle(SKPoint startPos, SKPoint endPos, Resource resource, SKColor color, float duration = 0.8f)
+    public HarvestParticle(SKPoint startPos, SKPoint endPos, Resource resource, float duration = 0.8f)
     {
         StartPosition = startPos;
         EndPosition = endPos;
         Resource = resource;
-        Color = color;
         Duration = duration;
         TimeRemaining = duration;
     }
@@ -109,9 +103,9 @@ public class HarvestParticleSystem
     /// <summary>
     /// Ajoute une nouvelle particule de récolte.
     /// </summary>
-    public void EmitParticle(SKPoint startPos, SKPoint endPos, Resource resource, SKColor color, float duration = 0.8f)
+    public void EmitParticle(SKPoint startPos, SKPoint endPos, Resource resource, float duration = 0.8f)
     {
-        _particles.Add(new HarvestParticle(startPos, endPos, resource, color, duration));
+        _particles.Add(new HarvestParticle(startPos, endPos, resource, duration));
     }
 
     /// <summary>

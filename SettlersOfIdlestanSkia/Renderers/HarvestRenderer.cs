@@ -60,13 +60,10 @@ public class HarvestRenderer : IGameRenderer
 
             if (picture != null)
             {
-                _layerPaint.Color = new SKColor(255, 255, 255, alpha);
                 canvas.Save();
                 canvas.Translate(position.X - IconSize / 2f, position.Y - IconSize / 2f);
                 canvas.Scale(scale);
-                canvas.SaveLayer(_layerPaint);
                 canvas.DrawPicture(picture);
-                canvas.Restore();
                 canvas.Restore();
             }
         }
