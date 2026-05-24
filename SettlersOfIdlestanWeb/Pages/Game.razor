@@ -4,6 +4,7 @@
 @using SkiaSharp.Views.Blazor
 @using SettlersOfIdlestanSkia.Services
 @inject IFileSystemService FileSystemService
+@inject IJSRuntime JS
 @implements IAsyncDisposable
 
 <div style="position: relative; width: 100vw; height: 100vh; overflow: hidden; background: #000; margin: 0; padding: 0;">
@@ -36,6 +37,9 @@
     private CancellationTokenSource? _cts;
     private string _debugText = "Chargement…";
     private bool _initialized;
+    private DotNetObjectReference<Game>? _dotNetRef;
+    private int _keyboardHandlerId = -1;
+    private float _dpr = 1f;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -55,6 +59,11 @@
             _debugText = $"Erreur init: {ex.Message}";
             return;
         }
+
+        _dpr = (float)await JS.InvokeAsync<double>("gameInterop.getDevicePixelRatio");
+
+        _dotNetRef = DotNetObjectReference.Create(this);
+        _keyboardHandlerId = await JS.InvokeAsync<int>("gameInterop.registerKeyboardHandler", _dotNetRef);
 
         _cts = new CancellationTokenSource();
         _ = RunGameLoop(_cts.Token);
@@ -100,21 +109,24 @@
     }
 
     private void OnMouseDown(MouseEventArgs e)
-        => _runtime?.HandlePointerPressed((float)e.OffsetX, (float)e.OffsetY, 0, ToPointerButton(e.Button));
+        => _runtime?.HandlePointerPressed((float)e.OffsetX * _dpr, (float)e.OffsetY * _dpr, 0, ToPointerButton(e.Button));
 
     private void OnMouseMove(MouseEventArgs e)
-        => _runtime?.HandlePointerMoved((float)e.OffsetX, (float)e.OffsetY, 0);
+        => _runtime?.HandlePointerMoved((float)e.OffsetX * _dpr, (float)e.OffsetY * _dpr, 0);
 
     private void OnMouseUp(MouseEventArgs e)
-        => _runtime?.HandlePointerReleased((float)e.OffsetX, (float)e.OffsetY, 0, ToPointerButton(e.Button));
+        => _runtime?.HandlePointerReleased((float)e.OffsetX * _dpr, (float)e.OffsetY * _dpr, 0, ToPointerButton(e.Button));
 
     private void OnWheel(WheelEventArgs e)
     {
         // DeltaY positive = scroll down = zoom out → negative wheelDelta for HandleZoom
-        _runtime?.HandleZoom((float)-e.DeltaY, (float)e.OffsetX, (float)e.OffsetY);
+        _runtime?.HandleZoom((float)-e.DeltaY, (float)e.OffsetX * _dpr, (float)e.OffsetY * _dpr);
     }
 
     private void OnContextMenu(MouseEventArgs e) { }
+
+    [JSInvokable]
+    public void OnKeyDown(string key) => _runtime?.HandleKeyPressed(key);
 
     private static PointerButton ToPointerButton(long button) => button switch
     {
@@ -132,6 +144,16 @@
             _cts.Dispose();
             _cts = null;
         }
+
+        if (_keyboardHandlerId >= 0)
+        {
+            await JS.InvokeVoidAsync("gameInterop.unregisterKeyboardHandler", _keyboardHandlerId);
+            _keyboardHandlerId = -1;
+        }
+
+        _dotNetRef?.Dispose();
+        _dotNetRef = null;
+
         _runtime?.Dispose();
         _runtime = null;
     }

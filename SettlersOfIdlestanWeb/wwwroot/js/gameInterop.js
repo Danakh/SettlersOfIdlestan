@@ -1,4 +1,33 @@
 window.gameInterop = {
+    _keyboardHandlers: {},
+    _nextHandlerId: 0,
+
+    registerKeyboardHandler: function (dotNetRef) {
+        const id = ++this._nextHandlerId;
+        const allowed = new Set(['i', 'r', 'p', 's', 'c']);
+        const handler = (e) => {
+            if (allowed.has(e.key.toLowerCase())) {
+                dotNetRef.invokeMethodAsync('OnKeyDown', e.key.toUpperCase());
+            }
+        };
+        window.addEventListener('keydown', handler);
+        this._keyboardHandlers[id] = handler;
+        return id;
+    },
+
+    unregisterKeyboardHandler: function (id) {
+        const h = this._keyboardHandlers[id];
+        if (h) {
+            window.removeEventListener('keydown', h);
+            delete this._keyboardHandlers[id];
+        }
+    },
+
+    getDevicePixelRatio: function () {
+        return window.devicePixelRatio || 1;
+    },
+
+
     downloadFile: function (fileName, content) {
         const blob = new Blob([content], { type: 'application/json' });
         const url = URL.createObjectURL(blob);

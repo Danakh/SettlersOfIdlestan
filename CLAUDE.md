@@ -29,7 +29,7 @@ dotnet test SOITests --filter "FullyQualifiedName~HarvestControllerTests"
 | `SettlersOfIdlestan` | Core model + controller library — no UI dependencies |
 | `SettlersOfIdlestanSkia` | SkiaSharp rendering engine + game loop |
 | `SettlersOfIdlestanDesktop` | MAUI desktop shell (Windows / macCatalyst / iOS) |
-| `SettlersOfIdlestanWeb` | Blazor WebAssembly — **paused, do not modify** |
+| `SettlersOfIdlestanWeb` | Blazor WebAssembly |
 | `SOITests` | xUnit test suite for model and controller layers |
 
 ## Architecture
