@@ -2,6 +2,7 @@ using SettlersOfIdlestan.Model.GameplayModifier;
 using System;
 using System.Collections.Generic;
 using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
+using System.Text.Json.Serialization;
 
 namespace SettlersOfIdlestan.Model.Civilization;
 
@@ -9,12 +10,14 @@ namespace SettlersOfIdlestan.Model.Civilization;
 /// Represents the technology tree of a civilization, holding modifiers unlocked through research.
 /// </summary>
 [Serializable]
-public class TechnologyTree
+public class TechnologyTree : IModifierProvider
 {
     /// <summary>
     /// Gets the list of modifiers unlocked in this technology tree.
     /// </summary>
     public List<Modifier> Modifiers { get; set; } = new();
+
+    public IEnumerable<Modifier> GetModifiers() => Modifiers;
 
     /// <summary>
     /// Applies all matching modifiers for the given category and sub-category to a base value.

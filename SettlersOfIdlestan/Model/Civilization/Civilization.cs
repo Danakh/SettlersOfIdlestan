@@ -1,5 +1,6 @@
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.IslandMap;
+using SettlersOfIdlestan.Model.GameplayModifier;
 using System;
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
@@ -34,22 +35,40 @@ public class Civilization
     public TechnologyTree TechnologyTree { get; set; } = new();
 
     /// <summary>
-    /// Research speed multiplier, computed from TechnologyTree modifiers. 1.0 = normal speed.
+    /// Aggregates modifiers from all providers (TechnologyTree, Prestige, …).
+    /// Must be initialized via <see cref="SetupModifierAggregator"/> before use.
     /// </summary>
     [JsonIgnore]
-    public double ResearchSpeed => TechnologyTree.ApplyModifiers(ECategory.RESEARCH_SPEED, "", 1.0);
+    public ModifierAggregator ModifierAggregator { get; } = new();
+
+    /// <summary>
+    /// Registers the given providers on the aggregator, replacing any previous registration.
+    /// Call this after deserialization or when the set of providers changes.
+    /// </summary>
+    public void SetupModifierAggregator(params IModifierProvider[] providers)
+    {
+        ModifierAggregator.Clear();
+        foreach (var p in providers)
+            ModifierAggregator.Register(p);
+    }
+
+    /// <summary>
+    /// Research speed multiplier. 1.0 = normal speed.
+    /// </summary>
+    [JsonIgnore]
+    public double ResearchSpeed => ModifierAggregator.ApplyModifiers(ECategory.RESEARCH_SPEED, "", 1.0);
 
     /// <summary>
     /// Unit production speed multiplier. 1.0 = normal speed.
     /// </summary>
     [JsonIgnore]
-    public double UnitProductionSpeed => TechnologyTree.ApplyModifiers(ECategory.UNIT_PRODUCTION_SPEED, "", 1.0);
+    public double UnitProductionSpeed => ModifierAggregator.ApplyModifiers(ECategory.UNIT_PRODUCTION_SPEED, "", 1.0);
 
     /// <summary>
     /// Research cost reduction fraction (0.0 = no reduction, 0.1 = 10% cheaper).
     /// </summary>
     [JsonIgnore]
-    public double ResearchCostReduction => TechnologyTree.ApplyModifiers(ECategory.RESEARCH_COST_REDUCTION, "", 0.0);
+    public double ResearchCostReduction => ModifierAggregator.ApplyModifiers(ECategory.RESEARCH_COST_REDUCTION, "", 0.0);
 
     /// <summary>
     /// Liste des ressources d�tenues par la civilisation.
@@ -128,8 +147,8 @@ public class Civilization
 
         bool isBasic = resource is Resource.Food or Resource.Wood or Resource.Brick or Resource.Stone;
         int storageBonus = isBasic
-            ? TechnologyTree.ApplyModifiers(ECategory.STORAGE_CAPACITY_BASIC, "", 0)
-            : TechnologyTree.ApplyModifiers(ECategory.STORAGE_CAPACITY_ADVANCED, "", 0);
+            ? ModifierAggregator.ApplyModifiers(ECategory.STORAGE_CAPACITY_BASIC, "", 0)
+            : ModifierAggregator.ApplyModifiers(ECategory.STORAGE_CAPACITY_ADVANCED, "", 0);
 
         int result = isBasic
             ? 5 * baseCityResourceMax + 30 * cityWithWarehouseCount

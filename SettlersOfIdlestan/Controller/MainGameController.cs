@@ -1,5 +1,6 @@
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
+using SettlersOfIdlestan.Model.GameplayModifier;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Prestige;
 using SettlersOfIdlestan.Services;
@@ -171,6 +172,8 @@ namespace SettlersOfIdlestan.Controller
             {
                 islandState.RecalculateVisibleIslandMaps();
 
+                SetupModifierAggregators(islandState);
+
                 // Initialize controllers to operate on the real island state and clock
                 RoadController.Initialize(islandState);
                 HarvestController.Initialize(islandState, Clock);
@@ -178,6 +181,22 @@ namespace SettlersOfIdlestan.Controller
                 BuildingController.Initialize(islandState);
                 CityBuilderController.Initialize(islandState);
                 PrestigeController.Initialize(islandState.PlayerCivilization);
+            }
+        }
+
+        private void SetupModifierAggregators(IslandState islandState)
+        {
+            var prestigeState = CurrentMainState?.PrestigeState;
+
+            foreach (var civ in islandState.Civilizations)
+                civ.SetupModifierAggregator(civ.TechnologyTree);
+
+            if (prestigeState != null)
+            {
+                var prestigeProvider = new PrestigeModifierProvider(prestigeState, PrestigeMapController.DefaultMap);
+                islandState.PlayerCivilization.SetupModifierAggregator(
+                    islandState.PlayerCivilization.TechnologyTree,
+                    prestigeProvider);
             }
         }
     }

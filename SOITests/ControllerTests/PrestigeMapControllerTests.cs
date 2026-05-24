@@ -15,6 +15,16 @@ public class PrestigeMapControllerTests
     private static PrestigeMapController Controller() => new();
     private static PrestigeState EmptyPrestige() => new();
 
+    /// Sets up the player civ's aggregator with TechnologyTree + PrestigeModifierProvider,
+    /// mirroring what MainGameController.SetupModifierAggregators does at runtime.
+    private static void WireAggregator(IslandState island, PrestigeState prestige)
+    {
+        var civ = island.PlayerCivilization;
+        civ.SetupModifierAggregator(
+            civ.TechnologyTree,
+            new PrestigeModifierProvider(prestige, PrestigeMapController.DefaultMap));
+    }
+
     // ─── CanPurchaseVertex ───────────────────────────────────────────────────
 
     [Fact]
@@ -119,9 +129,10 @@ public class PrestigeMapControllerTests
         var prestige = new PrestigeState(island);
         prestige.PurchasedVertices.Add(PrestigeVertexId.Central);
         Controller().ApplyPrestigeToNewGame(island, prestige);
+        WireAggregator(island, prestige);
 
         var civ = island.PlayerCivilization;
-        int maxLevel = civ.TechnologyTree.ApplyModifiers(ECategory.BUILDING_MAX_LEVEL, "Library", new Library().GetDefaultMaxLevel());
+        int maxLevel = civ.ModifierAggregator.ApplyModifiers(ECategory.BUILDING_MAX_LEVEL, "Library", new Library().GetDefaultMaxLevel());
         Assert.Equal(4, maxLevel); // 1 (default) + 3 (prestige) = 4
     }
 
@@ -133,9 +144,10 @@ public class PrestigeMapControllerTests
         prestige.PurchasedVertices.Add(PrestigeVertexId.Central);
         prestige.PurchasedVertices.Add(PrestigeVertexId.Laboratory);
         Controller().ApplyPrestigeToNewGame(island, prestige);
+        WireAggregator(island, prestige);
 
         var civ = island.PlayerCivilization;
-        int maxLevel = civ.TechnologyTree.ApplyModifiers(ECategory.BUILDING_MAX_LEVEL, "Laboratory", new Laboratory().GetDefaultMaxLevel());
+        int maxLevel = civ.ModifierAggregator.ApplyModifiers(ECategory.BUILDING_MAX_LEVEL, "Laboratory", new Laboratory().GetDefaultMaxLevel());
         Assert.Equal(2, maxLevel); // 0 (locked) + 2 (prestige) = 2
     }
 
@@ -147,9 +159,10 @@ public class PrestigeMapControllerTests
         prestige.PurchasedVertices.Add(PrestigeVertexId.Central);
         prestige.PurchasedVertices.Add(PrestigeVertexId.Barracks);
         Controller().ApplyPrestigeToNewGame(island, prestige);
+        WireAggregator(island, prestige);
 
         var civ = island.PlayerCivilization;
-        int maxLevel = civ.TechnologyTree.ApplyModifiers(ECategory.BUILDING_MAX_LEVEL, "Barracks", new Barracks().GetDefaultMaxLevel());
+        int maxLevel = civ.ModifierAggregator.ApplyModifiers(ECategory.BUILDING_MAX_LEVEL, "Barracks", new Barracks().GetDefaultMaxLevel());
         Assert.Equal(2, maxLevel); // 0 + 2 = 2
     }
 
@@ -218,15 +231,16 @@ public class PrestigeMapControllerTests
     }
 
     [Fact]
-    public void Apply_CentralPurchased_HarvestSpeedHex_AddsTechTreeModifier()
+    public void Apply_CentralPurchased_HarvestSpeedHex_AddsHarvestSpeedModifier()
     {
         var island = IslandTestFactory.CreateSevenHexIslandState();
         var prestige = new PrestigeState(island);
         prestige.PurchasedVertices.Add(PrestigeVertexId.Central); // adjacent to HarvestSpeed
         Controller().ApplyPrestigeToNewGame(island, prestige);
+        WireAggregator(island, prestige);
 
         var civ = island.PlayerCivilization;
-        double speed = civ.TechnologyTree.ApplyModifiers(ECategory.HARVEST_SPEED, "", 1.0);
+        double speed = civ.ModifierAggregator.ApplyModifiers(ECategory.HARVEST_SPEED, "", 1.0);
         Assert.Equal(1.1, speed, 5); // 1.0 + 0.1 for 1 adjacent vertex
     }
 
@@ -239,9 +253,10 @@ public class PrestigeMapControllerTests
         prestige.PurchasedVertices.Add(PrestigeVertexId.Central);
         prestige.PurchasedVertices.Add(PrestigeVertexId.SeaportMarket);
         Controller().ApplyPrestigeToNewGame(island, prestige);
+        WireAggregator(island, prestige);
 
         var civ = island.PlayerCivilization;
-        double speed = civ.TechnologyTree.ApplyModifiers(ECategory.HARVEST_SPEED, "", 1.0);
+        double speed = civ.ModifierAggregator.ApplyModifiers(ECategory.HARVEST_SPEED, "", 1.0);
         Assert.Equal(1.2, speed, 5); // 1.0 + 0.1 + 0.1
     }
 
@@ -252,6 +267,7 @@ public class PrestigeMapControllerTests
         var prestige = new PrestigeState(island);
         prestige.PurchasedVertices.Add(PrestigeVertexId.Central); // adjacent to ResearchSpeed
         Controller().ApplyPrestigeToNewGame(island, prestige);
+        WireAggregator(island, prestige);
 
         var civ = island.PlayerCivilization;
         Assert.Equal(1.1, civ.ResearchSpeed, 5);

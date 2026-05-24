@@ -1,5 +1,4 @@
 using SettlersOfIdlestan.Model.Buildings;
-using SettlersOfIdlestan.Model.GameplayModifier;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Prestige.PrestigeMap;
 using SettlersOfIdlestan.Model.Prestige;
@@ -34,7 +33,8 @@ public class PrestigeMapController
     }
 
     /// <summary>
-    /// Applies all prestige bonuses to the given island state at the start of a new run.
+    /// Applies one-time prestige bonuses (starting resources and buildings) at the start of a new run.
+    /// Modifier bonuses are handled dynamically by <see cref="PrestigeModifierProvider"/>.
     /// Must be called after the island is fully generated and civilizations are initialized.
     /// </summary>
     public void ApplyPrestigeToNewGame(IslandState islandState, PrestigeState? prestigeState)
@@ -46,36 +46,18 @@ public class PrestigeMapController
 
         var civ = islandState.PlayerCivilization;
 
-        // Apply TechnologyTree modifiers from purchased vertices
-        foreach (var vertexId in purchased)
-        {
-            var vertex = DefaultMap.GetVertex(vertexId);
-            if (vertex == null) continue;
-            foreach (var mod in vertex.Modifiers)
-                civ.TechnologyTree.Modifiers.Add(new Modifier(mod.Category, mod.SubCategory, mod.Type, mod.Value));
-        }
-
-        // Apply hex bonuses scaled by number of adjacent purchased vertices
+        // Starting resource bonuses scaled by adjacent purchased vertices
         foreach (var hex in DefaultMap.Hexes)
         {
+            if (hex.StartingResourceBonusPerVertex <= 0) continue;
             int adjacentPurchased = hex.AdjacentVertices.Count(v => purchased.Contains(v));
             if (adjacentPurchased == 0) continue;
-
-            foreach (var template in hex.PerVertexModifiers)
-            {
-                double totalValue = template.Value * adjacentPurchased;
-                civ.TechnologyTree.Modifiers.Add(new Modifier(template.Category, template.SubCategory, template.Type, totalValue));
-            }
-
-            if (hex.StartingResourceBonusPerVertex > 0)
-            {
-                int bonus = hex.StartingResourceBonusPerVertex * adjacentPurchased;
-                foreach (var resource in new[] { Resource.Food, Resource.Wood, Resource.Brick, Resource.Stone })
-                    civ.AddResource(resource, bonus);
-            }
+            int bonus = hex.StartingResourceBonusPerVertex * adjacentPurchased;
+            foreach (var resource in new[] { Resource.Food, Resource.Wood, Resource.Brick, Resource.Stone })
+                civ.AddResource(resource, bonus);
         }
 
-        // Add starting buildings granted by purchased vertices
+        // Starting buildings granted by purchased vertices
         var startingCity = civ.Cities.FirstOrDefault();
         if (startingCity == null) return;
 

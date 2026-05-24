@@ -92,7 +92,7 @@ namespace SettlersOfIdlestan.Controller
 
         private long GetAutoHarvestCooldownTicks(Civilization civ)
         {
-            double speedMultiplier = civ.TechnologyTree.ApplyModifiers(ECategory.HARVEST_SPEED, "", 1.0);
+            double speedMultiplier = civ.ModifierAggregator.ApplyModifiers(ECategory.HARVEST_SPEED, "", 1.0);
             return Math.Max(1L, (long)(AutomaticHarvestCooldownTicks / speedMultiplier));
         }
 
