@@ -1,6 +1,7 @@
 using SettlersOfIdlestan.Controller;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
+using SettlersOfIdlestan.Model.GameplayModifier;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
 using SOITests.TestUtilities;
@@ -182,6 +183,8 @@ public class BuildingControllerTests
     {
         var (state, controller, cityVertex) = CreateTestSetup();
         var civ = state.Civilizations[0];
+        civ.SetupModifierAggregator(civ.TechnologyTree);
+
         var city = civ.Cities[0];
 
         // Add a TownHall at level 2 to unlock Library (AvailableAtLevel = 2)

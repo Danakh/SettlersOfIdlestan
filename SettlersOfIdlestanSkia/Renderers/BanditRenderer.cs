@@ -47,6 +47,8 @@ public class BanditRenderer : HexBasedRenderer, IGameRenderer
         var bandits = islandState.Bandits;
         SyncVisuals(bandits);
 
+        islandState.VisibleIslandMaps.TryGetValue(islandState.PlayerCivilization.Index, out var visibleMap);
+
         float dt = context.DeltaTime;
 
         for (int i = 0; i < bandits.Count; i++)
@@ -66,6 +68,9 @@ public class BanditRenderer : HexBasedRenderer, IGameRenderer
 
             if (v.Progress < 1f)
                 v.Progress = Math.Min(1f, v.Progress + dt / AnimationDuration);
+
+            if (visibleMap == null || !visibleMap.HasTile(bandit.Position))
+                continue;
 
             var pos = Lerp(v.From, v.To, Smoothstep(v.Progress));
             DrawIcon(canvas, pos);

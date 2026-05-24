@@ -16,7 +16,7 @@ public class GameControllerService
 
     public MainGameState? CurrentGameState => _controller.CurrentMainState;
     public IslandState? CurrentIslandState => _controller.CurrentMainState?.CurrentIslandState;
-    public CityBuildingService CityBuildingService => _cityBuildingService;
+    public CityBuildingService? CityBuildingService => _cityBuildingService;
 
     /// <summary>
     /// Gets the player's civilization.

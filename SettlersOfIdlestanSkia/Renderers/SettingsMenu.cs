@@ -32,8 +32,9 @@ public class SettingsMenu
     private readonly MainGameController _gameController;
     private readonly InputHandlingService _inputService;
     private readonly ILocalizationService _localization;
-    private readonly AboutRenderer _aboutRenderer; // Ajout de AboutRenderer
-    private readonly IFileSystemService _fileSystemService; // Ajout de IFileSystemService
+    private readonly AboutRenderer _aboutRenderer;
+    private readonly IFileSystemService _fileSystemService;
+    private readonly CityBuildingService _cityBuildingService;
     private List<MenuItem> _menuItems = new();
 
     private float _gearX;
@@ -49,13 +50,14 @@ public class SettingsMenu
 
     public bool IsOpen => _isOpen;
 
-    public SettingsMenu(MainGameController gameController, InputHandlingService inputService, ILocalizationService localization, AboutRenderer aboutRenderer, IFileSystemService fileSystemService, bool allowDebugMode = false)
+    public SettingsMenu(MainGameController gameController, InputHandlingService inputService, ILocalizationService localization, AboutRenderer aboutRenderer, IFileSystemService fileSystemService, CityBuildingService cityBuildingService, bool allowDebugMode = false)
     {
         _gameController = gameController;
         _inputService = inputService;
         _localization = localization;
         _aboutRenderer = aboutRenderer;
         _fileSystemService = fileSystemService;
+        _cityBuildingService = cityBuildingService;
         _inputService.PointerPressed += HandlePointerPressed;
 
         Initialize();
@@ -353,6 +355,7 @@ public class SettingsMenu
 
     private void StartNewGame()
     {
+        _cityBuildingService.ClearSelectedCity();
         _gameController.CreateNewGame();
     }
 

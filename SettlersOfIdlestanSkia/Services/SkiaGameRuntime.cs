@@ -98,7 +98,7 @@ public sealed class SkiaGameRuntime : IDisposable
             _harvestService,
             _inputService,
             _cameraService,
-            _gameControllerService.CityBuildingService);
+            _gameControllerService.CityBuildingService!);
         var islandMainRenderer = new IslandMainRenderer(_constructionInteractionService, tooltipRenderer, _gameControllerService.MainGameController.HarvestController, _resourceManager!);
         _islandMainRenderer = islandMainRenderer;
         _constructionInteractionService.AttachRenderer(islandMainRenderer);
@@ -109,7 +109,7 @@ public sealed class SkiaGameRuntime : IDisposable
         var selectedCityPanelRenderer = new SelectedCityPanelRenderer(_gameControllerService.CityBuildingService, _localizationService, _inputService, _resourceManager!);
 
         var aboutRenderer = new AboutRenderer(_inputService, _localizationService);
-        var settingsMenu = new SettingsMenu(_gameControllerService.MainGameController, _inputService, _localizationService, aboutRenderer, fileSystemService, allowDebugMode);
+        var settingsMenu = new SettingsMenu(_gameControllerService.MainGameController, _inputService, _localizationService, aboutRenderer, fileSystemService, _gameControllerService.CityBuildingService, allowDebugMode);
         var playerResourcesOverlayRenderer = new PlayerResourcesOverlayRenderer(_localizationService, _resourceManager);
         var tradeRenderer = new TradeRenderer(_gameControllerService, _localizationService, tooltipRenderer);
         var prestigeRenderer = new PrestigeRenderer(_gameControllerService, _localizationService, RequestPrestige);
