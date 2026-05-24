@@ -14,7 +14,8 @@
       "Bash(Out-Null)",
       "PowerShell(New-Item *)",
       "PowerShell(dotnet build *)",
-      "Bash(Sort-Object)"
+      "Bash(Sort-Object)",
+      "Bash(powershell *)"
     ]
   }
 }

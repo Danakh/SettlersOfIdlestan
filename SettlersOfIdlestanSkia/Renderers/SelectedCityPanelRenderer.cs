@@ -1,9 +1,11 @@
 using SettlersOfIdlestan.Model.Buildings;
+using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Controller;
 using SettlersOfIdlestan.Services.Localization;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Services;
 using SkiaSharp;
+using Svg.Skia;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -16,6 +18,8 @@ public class SelectedCityPanelRenderer : IGameRenderer
     private readonly ILocalizationService _localization;
     private readonly CityBuildingService _cityBuildingService;
     private readonly InputHandlingService _inputService;
+    private readonly ResourceManager _resourceManager;
+    private readonly Dictionary<Resource, SKSvg?> _resourceIcons = new();
     private SKSize _canvasSize;
     private SKPoint _lastPointerPosition = SKPoint.Empty;
     private BuildingType? _hoveredBuildingType = null;
@@ -35,11 +39,12 @@ public class SelectedCityPanelRenderer : IGameRenderer
         _hoverRects.Clear();
     }
 
-    public SelectedCityPanelRenderer( CityBuildingService cityBuildingService, ILocalizationService localization, InputHandlingService inputService)
+    public SelectedCityPanelRenderer(CityBuildingService cityBuildingService, ILocalizationService localization, InputHandlingService inputService, ResourceManager resourceManager)
     {
         _cityBuildingService = cityBuildingService;
         _inputService = inputService;
         _localization = localization;
+        _resourceManager = resourceManager;
         _inputService.PointerMoved += HandlePointerMoved;
         _inputService.PointerPressed += HandlePointerPressed;
     }
@@ -47,6 +52,19 @@ public class SelectedCityPanelRenderer : IGameRenderer
     public void Initialize(SKSize canvasSize)
     {
         _canvasSize = canvasSize;
+
+        foreach (Resource resource in Enum.GetValues(typeof(Resource)))
+        {
+            string name = resource.ToString().ToLower();
+            try
+            {
+                _resourceIcons[resource] = _resourceManager.LoadImage($"Resources.icons.resources.{name}.svg");
+            }
+            catch
+            {
+                _resourceIcons[resource] = null;
+            }
+        }
     }
 
     public void Render(SKCanvas canvas, GameRenderContext context)
@@ -165,7 +183,6 @@ public class SelectedCityPanelRenderer : IGameRenderer
                 if (levelDescriptionKey == description)
                     description = _localization.Get(hoveredBuilding.DescriptionKey);
                 var cost = hoveredBuilding.Level == 0 ? hoveredBuilding.GetBuildCost() : hoveredBuilding.GetUpgradeCost(hoveredBuilding.Level + 1);
-                var costDescription = SkiaTextUtils.computeCostString(_localization, cost);
 
                 var tooltipLines = new List<string> { buildingName, "", description, "" };
 
@@ -205,8 +222,7 @@ public class SelectedCityPanelRenderer : IGameRenderer
                     }
                 }
 
-                tooltipLines.Add(costDescription);
-                TooltipRenderUtils.DrawTooltip(canvas, _canvasSize, _lastPointerPosition, tooltipLines.ToArray(), font10);
+                TooltipRenderUtils.DrawTooltip(canvas, _canvasSize, _lastPointerPosition, tooltipLines.ToArray(), font10, cost, _resourceIcons);
             }
         }
     }

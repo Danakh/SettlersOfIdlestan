@@ -91,7 +91,7 @@ public sealed class SkiaGameRuntime : IDisposable
 
         _harvestService = new HarvestService(_gameControllerService);
 
-        TooltipRenderer tooltipRenderer = new TooltipRenderer(_localizationService, _gameControllerService);
+        TooltipRenderer tooltipRenderer = new TooltipRenderer(_localizationService, _gameControllerService, _resourceManager!);
 
         _constructionInteractionService = new ConstructionInteractionService(
             _gameControllerService,
@@ -106,7 +106,7 @@ public sealed class SkiaGameRuntime : IDisposable
 
         ConnectHarvestEventsToParticles(islandMainRenderer);
 
-        var selectedCityPanelRenderer = new SelectedCityPanelRenderer(_gameControllerService.CityBuildingService, _localizationService, _inputService);
+        var selectedCityPanelRenderer = new SelectedCityPanelRenderer(_gameControllerService.CityBuildingService, _localizationService, _inputService, _resourceManager!);
 
         var aboutRenderer = new AboutRenderer(_inputService, _localizationService);
         var settingsMenu = new SettingsMenu(_gameControllerService.MainGameController, _inputService, _localizationService, aboutRenderer, fileSystemService, allowDebugMode);

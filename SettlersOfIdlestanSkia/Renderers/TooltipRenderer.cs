@@ -1,4 +1,3 @@
-﻿using Jint.Runtime;
 using SettlersOfIdlestan.Controller;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
@@ -6,6 +5,7 @@ using SettlersOfIdlestan.Services.Localization;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Services;
 using SkiaSharp;
+using Svg.Skia;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,32 +15,49 @@ namespace SettlersOfIdlestanSkia.Renderers
     public class TooltipRenderer : IGameRenderer
     {
         private string[] _tooltipTexts = new string[0];
+        private ResourceCost? _tooltipCost;
         private SKPoint _tooltipScreenPosition = SKPoint.Empty;
         private SKSize _canvasSize;
         private SKFont _font10 = new SKFont { Size = 10 };
 
         private IslandMainRenderer? _islandRendererContext;
         private GameRenderContext? _gameRenderContext;
-        private ILocalizationService _localizationService;
-        private CityBuilderController _cityController;
-        private RoadController _roadController;
+        private readonly ILocalizationService _localizationService;
+        private readonly CityBuilderController _cityController;
+        private readonly RoadController _roadController;
+        private readonly ResourceManager _resourceManager;
+        private readonly Dictionary<Resource, SKSvg?> _resourceIcons = new();
 
-
-        public TooltipRenderer(ILocalizationService localizationService, GameControllerService gameControllerService)
+        public TooltipRenderer(ILocalizationService localizationService, GameControllerService gameControllerService, ResourceManager resourceManager)
         {
             _localizationService = localizationService;
             _cityController = gameControllerService.MainGameController.CityBuilderController;
             _roadController = gameControllerService.MainGameController.RoadController;
+            _resourceManager = resourceManager;
         }
 
         public void Initialize(SKSize canvasSize)
         {
             _canvasSize = canvasSize;
+
+            foreach (Resource resource in Enum.GetValues(typeof(Resource)))
+            {
+                string name = resource.ToString().ToLower();
+                try
+                {
+                    _resourceIcons[resource] = _resourceManager.LoadImage($"Resources.icons.resources.{name}.svg");
+                }
+                catch
+                {
+                    _resourceIcons[resource] = null;
+                }
+            }
         }
 
         public void ClearTooltip()
         {
             _tooltipTexts = new string[0];
+            _tooltipCost = null;
         }
 
         public void SetIslandRenderContext(IslandMainRenderer? islandRenderer, GameRenderContext? context)
@@ -49,16 +66,18 @@ namespace SettlersOfIdlestanSkia.Renderers
             _gameRenderContext = context;
         }
 
-        public void SetTooltip(string text, SkiaSharp.SKPoint screenPosition)
+        public void SetTooltip(string text, SKPoint screenPosition)
         {
             _tooltipTexts = new string[] { text };
             _tooltipScreenPosition = screenPosition;
+            _tooltipCost = null;
         }
 
         public void SetTooltipLines(string[] lines, SKPoint screenPosition)
         {
             _tooltipTexts = lines;
             _tooltipScreenPosition = screenPosition;
+            _tooltipCost = null;
         }
 
         public bool HasTooltip()
@@ -68,28 +87,28 @@ namespace SettlersOfIdlestanSkia.Renderers
 
         public void SetRoadConstructionTooltip(Edge roadPosition)
         {
-            if ((_islandRendererContext != null) && (_gameRenderContext != null))
-            {
-                var cost = _roadController.GetPlayerRoadCost(roadPosition);
-                var costText = SkiaTextUtils.computeCostString(_localizationService, cost);
-                _tooltipTexts = new string[] { _localizationService.Get("road_construction"), costText };
+            if (_islandRendererContext == null || _gameRenderContext == null)
+                return;
 
-                var islandPosition = _islandRendererContext.EdgeToIslandPoint(roadPosition);
-                _tooltipScreenPosition = _islandRendererContext.IslandToScreen(islandPosition, _gameRenderContext.ZoomLevel, _gameRenderContext.CameraPosition);
-            }
+            var cost = _roadController.GetPlayerRoadCost(roadPosition);
+            _tooltipTexts = new string[] { _localizationService.Get("road_construction") };
+            _tooltipCost = cost;
+
+            var islandPosition = _islandRendererContext.EdgeToIslandPoint(roadPosition);
+            _tooltipScreenPosition = _islandRendererContext.IslandToScreen(islandPosition, _gameRenderContext.ZoomLevel, _gameRenderContext.CameraPosition);
         }
 
         public void SetOutpostConstructionTooltip(Vertex cityPosition)
         {
-            if ((_islandRendererContext != null) && (_gameRenderContext != null))
-            {
-                var cost = _cityController.NewCityBuildingCost();
-                var costText = SkiaTextUtils.computeCostString(_localizationService, cost);
-                _tooltipTexts = new string[] { _localizationService.Get("outpost_construction"), costText };
+            if (_islandRendererContext == null || _gameRenderContext == null)
+                return;
 
-                var islandPosition = _islandRendererContext.VertexToIslandPoint(cityPosition);
-                _tooltipScreenPosition = _islandRendererContext.IslandToScreen(islandPosition, _gameRenderContext.ZoomLevel, _gameRenderContext.CameraPosition);
-            }
+            var cost = _cityController.NewCityBuildingCost();
+            _tooltipTexts = new string[] { _localizationService.Get("outpost_construction") };
+            _tooltipCost = cost;
+
+            var islandPosition = _islandRendererContext.VertexToIslandPoint(cityPosition);
+            _tooltipScreenPosition = _islandRendererContext.IslandToScreen(islandPosition, _gameRenderContext.ZoomLevel, _gameRenderContext.CameraPosition);
         }
 
         public void SetHexHarvestTooltip(HexCoord coord, HarvestController harvestController, IslandState islandState, long currentTick)
@@ -139,6 +158,7 @@ namespace SettlersOfIdlestanSkia.Renderers
             }
 
             _tooltipTexts = lines.ToArray();
+            _tooltipCost = null;
             var islandPos = _islandRendererContext.HexCoordToIslandPoint(coord);
             _tooltipScreenPosition = _islandRendererContext.IslandToScreen(islandPos, _gameRenderContext.ZoomLevel, _gameRenderContext.CameraPosition);
         }
@@ -161,8 +181,9 @@ namespace SettlersOfIdlestanSkia.Renderers
         {
             if (_tooltipTexts.Length > 0)
             {
-                TooltipRenderUtils.DrawTooltip(canvas, _canvasSize, _tooltipScreenPosition, _tooltipTexts, _font10);
+                TooltipRenderUtils.DrawTooltip(canvas, _canvasSize, _tooltipScreenPosition, _tooltipTexts, _font10, _tooltipCost, _resourceIcons);
                 _tooltipTexts = new string[0];
+                _tooltipCost = null;
             }
         }
 
