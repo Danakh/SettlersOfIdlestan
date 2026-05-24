@@ -1,26 +1,14 @@
 using SkiaSharp;
-using SettlersOfIdlestan.Model.Civilization;
-using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
-using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Renderers;
 using SettlersOfIdlestan.Services.Localization;
 using SettlersOfIdlestanSkia.Services;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace SettlersOfIdlestanSkia.Services;
 
-/// <summary>
-/// Orchestrateur centralisé côté "moteur" Skia:
-/// - instancie services + renderers,
-/// - gère l'initialisation caméra/fit sur le premier canvas,
-/// - fournit Tick/Render pour un host (MAUI Desktop pour l'instant).
-/// </summary>
 public sealed class SkiaGameRuntime : IDisposable
 {
-    private readonly object _sync = new();
-
     private ResourceManager? _resourceManager;
     private InputHandlingService? _inputService;
     private RenderService? _renderService;
@@ -54,20 +42,17 @@ public sealed class SkiaGameRuntime : IDisposable
     private RuntimeDebugStats? _pendingDebugStats;
 
     private double _autoSaveTimer = 0;
-    private const double AutoSaveInterval = 5.0; // 5 seconds
+    private const double AutoSaveInterval = 5.0;
 
     public void Initialize(IFileSystemService fileSystemService)
     {
-        lock (_sync)
-        {
-            if (_isDisposed)
-                throw new ObjectDisposedException(nameof(SkiaGameRuntime));
+        if (_isDisposed)
+            throw new ObjectDisposedException(nameof(SkiaGameRuntime));
 
-            if (_isGameInitialized)
-                return;
+        if (_isGameInitialized)
+            return;
 
-            _fileSystemService = fileSystemService;
-        }
+        _fileSystemService = fileSystemService;
 
         _resourceManager = new ResourceManager();
         _inputService = new InputHandlingService();
@@ -75,9 +60,7 @@ public sealed class SkiaGameRuntime : IDisposable
         _cameraService = new CameraService();
         _localizationService = new LocalizationService();
 
-
         _gameControllerService = new GameControllerService();
-        // Tentative de chargement auto-save
         var autoJson = fileSystemService.LoadAuto().Result;
         if (!string.IsNullOrEmpty(autoJson))
         {
@@ -97,29 +80,23 @@ public sealed class SkiaGameRuntime : IDisposable
 
         _harvestService = new HarvestService(_gameControllerService);
 
-        // Enregistrement des renderers (back to front)
         TooltipRenderer tooltipRenderer = new TooltipRenderer(_localizationService, _gameControllerService);
 
-        IslandMainRenderer islandMainRenderer;
         _constructionInteractionService = new ConstructionInteractionService(
             _gameControllerService,
             _harvestService,
             _inputService,
             _cameraService,
             _gameControllerService.CityBuildingService);
-        islandMainRenderer = new IslandMainRenderer(_constructionInteractionService, tooltipRenderer, _gameControllerService.MainGameController.HarvestController);
+        var islandMainRenderer = new IslandMainRenderer(_constructionInteractionService, tooltipRenderer, _gameControllerService.MainGameController.HarvestController);
         _islandMainRenderer = islandMainRenderer;
         _constructionInteractionService.AttachRenderer(islandMainRenderer);
         _renderService.RegisterRenderer(islandMainRenderer);
 
-        // Connecte les événements de récolte au système de particules
         ConnectHarvestEventsToParticles(islandMainRenderer);
 
-        // Ajout du panneau latéral des bâtiments sélectionnés
         var selectedCityPanelRenderer = new SelectedCityPanelRenderer(_gameControllerService.CityBuildingService, _localizationService, _inputService);
 
-
-        // Crée le menu avant le renderer et le passe en paramètre
         var aboutRenderer = new AboutRenderer(_inputService, _localizationService);
         var settingsMenu = new SettingsMenu(_gameControllerService.MainGameController, _inputService, _localizationService, aboutRenderer, fileSystemService);
         var playerResourcesOverlayRenderer = new PlayerResourcesOverlayRenderer(_localizationService, _resourceManager);
@@ -139,7 +116,6 @@ public sealed class SkiaGameRuntime : IDisposable
         _renderService.RegisterRenderer(_overlayRenderer);
         _renderService.RegisterRenderer(new DebugOverlayRenderer(_inputService, _cameraService, islandMainRenderer, _localizationService));
         _renderService.RegisterRenderer(aboutRenderer);
-
         _renderService.RegisterRenderer(tooltipRenderer);
 
         _isGameInitialized = true;
@@ -151,200 +127,154 @@ public sealed class SkiaGameRuntime : IDisposable
 
     public void EnsureCanvasInitialized(SKSize canvasSize)
     {
-        lock (_sync)
-        {
-            if (_isDisposed)
-                throw new ObjectDisposedException(nameof(SkiaGameRuntime));
+        if (_isDisposed)
+            throw new ObjectDisposedException(nameof(SkiaGameRuntime));
 
-            if (!_isGameInitialized)
-                throw new InvalidOperationException($"{nameof(SkiaGameRuntime)} n'est pas initialisé.");
+        if (!_isGameInitialized)
+            throw new InvalidOperationException($"{nameof(SkiaGameRuntime)} n'est pas initialisé.");
 
-            if (_isCanvasInitialized && canvasSize == _lastCanvasSize)
-                return;
+        if (_isCanvasInitialized && canvasSize == _lastCanvasSize)
+            return;
 
-            if (_cameraService == null || _renderService == null)
-                throw new InvalidOperationException("Camera/RenderService non initialisé.");
+        if (_cameraService == null || _renderService == null)
+            throw new InvalidOperationException("Camera/RenderService non initialisé.");
 
-            _cameraService.Initialize(canvasSize);
+        _cameraService.Initialize(canvasSize);
 
-            var gameState = _gameControllerService?.CurrentGameState;
-            var hexCoords = gameState?.CurrentIslandState?.Map?.Tiles?.Keys ??
-                             Enumerable.Empty<HexCoord>();
-            _cameraService.FitMapToView(hexCoords);
+        var hexCoords = _gameControllerService?.CurrentGameState?.CurrentIslandState?.Map?.Tiles?.Keys
+                        ?? Enumerable.Empty<HexCoord>();
+        _cameraService.FitMapToView(hexCoords);
 
-            _renderService.Initialize(canvasSize);
+        _renderService.Initialize(canvasSize);
 
-            _lastCanvasSize = canvasSize;
-            _isCanvasInitialized = true;
-        }
+        _lastCanvasSize = canvasSize;
+        _isCanvasInitialized = true;
     }
 
     public void Tick()
     {
-        lock (_sync)
+        if (_isDisposed || !_isGameInitialized || _gameControllerService == null)
+            return;
+
+        var elapsed = _tickStopwatch.Elapsed.TotalSeconds;
+        _tickStopwatch.Restart();
+
+        var deltaTime = (float)Math.Clamp(elapsed, 0f, 0.1f);
+        _gameControllerService.Update(deltaTime);
+
+        if (_prestigeTransitionPending && _islandMainRenderer?.IsBlackFadeComplete == true)
+            CompletePrestigeTransition();
+
+        _frameCount++;
+
+        _autoSaveTimer += deltaTime;
+        if (_autoSaveTimer >= AutoSaveInterval)
         {
-            if (_isDisposed || !_isGameInitialized)
-                return;
-
-            if (_gameControllerService == null)
-                return;
-
-            // DeltaTime pour l'avancement du "clock" du jeu.
-            var elapsed = _tickStopwatch.Elapsed.TotalSeconds;
-            _tickStopwatch.Restart();
-
-            // Clamp: évite des "sauts" si le host freeze.
-            var deltaTime = (float)Math.Clamp(elapsed, 0f, 0.1f);
-            _gameControllerService.Update(deltaTime);
-
-            if (_prestigeTransitionPending && _islandMainRenderer?.IsBlackFadeComplete == true)
+            _autoSaveTimer = 0;
+            if (_fileSystemService != null && _gameControllerService.MainGameController.CurrentMainState != null)
             {
-                CompletePrestigeTransition();
+                var json = _gameControllerService.MainGameController.ExportMainState();
+                _fileSystemService.SaveAuto(json);
             }
+        }
 
-            _frameCount++;
+        var fpsElapsed = _fpsStopwatch.Elapsed.TotalSeconds;
+        if (fpsElapsed >= 0.5)
+        {
+            var fps = (float)(_frameCount / fpsElapsed);
+            _fpsStopwatch.Restart();
+            _frameCount = 0;
 
-            _autoSaveTimer += deltaTime;
-            if (_autoSaveTimer >= AutoSaveInterval)
-            {
-                _autoSaveTimer = 0;
-                if (_fileSystemService != null && _gameControllerService.MainGameController.CurrentMainState != null)
-                {
-                    var json = _gameControllerService.MainGameController.ExportMainState();
-                    _fileSystemService.SaveAuto(json);
-                }
-            }
+            var cameraPos = _cameraService?.Position ?? SKPoint.Empty;
+            var (cityCount, roadCount) = GetCityRoadCounts();
 
-            var fpsElapsed = _fpsStopwatch.Elapsed.TotalSeconds;
-            if (fpsElapsed >= 0.5)
-            {
-                var fps = (float)(_frameCount / fpsElapsed);
-                _fpsStopwatch.Restart();
-                _frameCount = 0;
-
-                var cameraPos = _cameraService?.Position ?? SKPoint.Empty;
-                var (cityCount, roadCount) = GetCityRoadCounts();
-
-                _pendingDebugStats = new RuntimeDebugStats(
-                    fps: fps,
-                    cameraX: cameraPos.X,
-                    cameraY: cameraPos.Y,
-                    cityCount: cityCount,
-                    roadCount: roadCount
-                );
-            }
+            _pendingDebugStats = new RuntimeDebugStats(
+                fps: fps,
+                cameraX: cameraPos.X,
+                cameraY: cameraPos.Y,
+                cityCount: cityCount,
+                roadCount: roadCount);
         }
     }
 
     private (int cityCount, int roadCount) GetCityRoadCounts()
     {
-        var gameState = _gameControllerService?.CurrentGameState;
-        if (gameState?.CurrentIslandState == null)
-            return (0, 0);
-
-        var civ = gameState.CurrentIslandState.Civilizations.FirstOrDefault();
-        if (civ == null)
-            return (0, 0);
-
-        return (civ.Cities.Count, civ.Roads.Count);
+        var civ = _gameControllerService?.CurrentGameState?.CurrentIslandState?.Civilizations.FirstOrDefault();
+        return civ == null ? (0, 0) : (civ.Cities.Count, civ.Roads.Count);
     }
 
     public void Render(SKCanvas canvas)
     {
-        lock (_sync)
-        {
-            if (_isDisposed || !_isGameInitialized || _renderService == null || _cameraService == null)
-                return;
+        if (_isDisposed || !_isGameInitialized || _renderService == null || _cameraService == null)
+            return;
 
-            var gameState = _gameControllerService?.CurrentGameState;
-            if (gameState == null)
-                return;
+        var gameState = _gameControllerService?.CurrentGameState;
+        if (gameState == null)
+            return;
 
-            _renderService.RenderFrame(canvas, gameState, _cameraService);
-        }
+        _renderService.RenderFrame(canvas, gameState, _cameraService);
     }
 
     public void HandlePointerPressed(float x, float y, int pointerId = 0, PointerButton button = PointerButton.Left)
     {
-        lock (_sync)
-        {
-            _isPointerDown = true;
-            _isPanning = false;
-            _activePanPointerId = pointerId;
-            _panStartPoint = new SKPoint(x, y);
-            _lastPanPoint = _panStartPoint;
-            _inputService?.HandlePointerPressed(x, y, pointerId, button);
-        }
+        _isPointerDown = true;
+        _isPanning = false;
+        _activePanPointerId = pointerId;
+        _panStartPoint = new SKPoint(x, y);
+        _lastPanPoint = _panStartPoint;
+        _inputService?.HandlePointerPressed(x, y, pointerId, button);
     }
 
     public void HandlePointerMoved(float x, float y, int pointerId = 0)
     {
-        lock (_sync)
+        if (_isPointerDown && pointerId == _activePanPointerId && _cameraService != null)
         {
-            if (_isPointerDown && pointerId == _activePanPointerId && _cameraService != null)
-            {
-                var point = new SKPoint(x, y);
-                var startDx = point.X - _panStartPoint.X;
-                var startDy = point.Y - _panStartPoint.Y;
-                if (!_isPanning && startDx * startDx + startDy * startDy >= PanStartThresholdSquared)
-                {
-                    _isPanning = true;
-                }
+            var point = new SKPoint(x, y);
+            var startDx = point.X - _panStartPoint.X;
+            var startDy = point.Y - _panStartPoint.Y;
+            if (!_isPanning && startDx * startDx + startDy * startDy >= PanStartThresholdSquared)
+                _isPanning = true;
 
-                if (_isPanning)
-                {
-                    _cameraService.Pan(point.X - _lastPanPoint.X, point.Y - _lastPanPoint.Y);
-                }
+            if (_isPanning)
+                _cameraService.Pan(point.X - _lastPanPoint.X, point.Y - _lastPanPoint.Y);
 
-                _lastPanPoint = point;
-            }
-
-            _inputService?.HandlePointerMoved(x, y, pointerId);
+            _lastPanPoint = point;
         }
+
+        _inputService?.HandlePointerMoved(x, y, pointerId);
     }
 
     public void HandlePointerReleased(float x, float y, int pointerId = 0, PointerButton button = PointerButton.Left)
     {
-        lock (_sync)
-        {
-            var wasPanning = _isPanning && pointerId == _activePanPointerId;
-            _isPointerDown = false;
-            _isPanning = false;
+        var wasPanning = _isPanning && pointerId == _activePanPointerId;
+        _isPointerDown = false;
+        _isPanning = false;
 
-            if (!wasPanning)
-            {
-                _inputService?.HandlePointerReleased(x, y, pointerId, button);
-            }
-        }
+        if (!wasPanning)
+            _inputService?.HandlePointerReleased(x, y, pointerId, button);
     }
 
     public void HandleZoom(float wheelDelta, float x, float y)
     {
-        lock (_sync)
-        {
-            if (_cameraService == null || wheelDelta == 0)
-                return;
+        if (_cameraService == null || wheelDelta == 0)
+            return;
 
-            var zoomFactor = wheelDelta > 0 ? ZoomStep : 1f / ZoomStep;
-            _cameraService.ZoomAt(_cameraService.ZoomLevel * zoomFactor, new SKPoint(x, y));
-            _inputService?.HandleZoom(wheelDelta, x, y);
-        }
+        var zoomFactor = wheelDelta > 0 ? ZoomStep : 1f / ZoomStep;
+        _cameraService.ZoomAt(_cameraService.ZoomLevel * zoomFactor, new SKPoint(x, y));
+        _inputService?.HandleZoom(wheelDelta, x, y);
     }
 
     public bool TryGetDebugStats(out RuntimeDebugStats stats)
     {
-        lock (_sync)
+        if (_pendingDebugStats is { } pending)
         {
-            if (_pendingDebugStats is { } pending)
-            {
-                stats = pending;
-                _pendingDebugStats = null;
-                return true;
-            }
-
-            stats = default;
-            return false;
+            stats = pending;
+            _pendingDebugStats = null;
+            return true;
         }
+
+        stats = default;
+        return false;
     }
 
     private void RequestPrestige()
@@ -376,56 +306,44 @@ public sealed class SkiaGameRuntime : IDisposable
     private void ConnectHarvestEventsToParticles(IslandMainRenderer islandMainRenderer)
     {
         var particleSystem = islandMainRenderer.GetHarvestParticleSystem();
-        
+
         _harvestService!.OnHarvestCompleted += (sender, args) =>
         {
             if (_prestigeTransitionPending)
                 return;
 
-            var gameState = _gameControllerService?.CurrentGameState;
-            if (gameState?.CurrentIslandState == null)
+            if (_gameControllerService?.CurrentGameState?.CurrentIslandState == null)
                 return;
 
-            // Obtient le centre de l'hex source
             var (hexX, hexY) = islandMainRenderer.AxialToIsland(args.HexCoord.Q, args.HexCoord.R);
             var hexCenter = new SKPoint(hexX, hexY);
-
-            // Utilise la position de la ville fournie par l'événement
             SKPoint cityCenter = islandMainRenderer.VertexToIslandPoint(args.CityPosition);
 
-            // Détermine la couleur basée sur le type de ressource récolté
             var resourceColors = IslandMainRenderer.ResourceColors;
+            var particleColor = resourceColors.TryGetValue(args.Resource, out var color) ? color : SKColors.Gold;
 
-            var particleColor = resourceColors.TryGetValue(args.Resource, out var color) 
-                ? color 
-                : SKColors.Gold;
-
-            // Émet une particule
             particleSystem.EmitParticle(hexCenter, cityCenter, particleColor);
         };
     }
 
     public void Dispose()
     {
-        lock (_sync)
-        {
-            if (_isDisposed)
-                return;
+        if (_isDisposed)
+            return;
 
-            _constructionInteractionService?.Cleanup();
-            _renderService?.Dispose();
-            _resourceManager?.Dispose();
+        _constructionInteractionService?.Cleanup();
+        _renderService?.Dispose();
+        _resourceManager?.Dispose();
 
-            _constructionInteractionService = null;
-            _renderService = null;
-            _resourceManager = null;
-            _inputService = null;
-            _cameraService = null;
-            _gameControllerService = null;
-            _harvestService = null;
+        _constructionInteractionService = null;
+        _renderService = null;
+        _resourceManager = null;
+        _inputService = null;
+        _cameraService = null;
+        _gameControllerService = null;
+        _harvestService = null;
 
-            _isDisposed = true;
-        }
+        _isDisposed = true;
     }
 }
 
@@ -435,4 +353,3 @@ public readonly record struct RuntimeDebugStats(
     float cameraY,
     int cityCount,
     int roadCount);
-

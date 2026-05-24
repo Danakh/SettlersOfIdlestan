@@ -4,7 +4,10 @@
       "Bash(dotnet build *)",
       "Bash(xargs grep *)",
       "Bash(grep *)",
-      "Bash(dotnet test *)"
+      "Bash(dotnet test *)",
+      "Bash(cat)",
+      "Read(//tmp/**)",
+      "Bash(dotnet workload *)"
     ]
   }
 }

@@ -1,0 +1,24 @@
+using Microsoft.JSInterop;
+using SettlersOfIdlestanSkia.Services;
+
+namespace SettlersOfIdlestanWeb.Services;
+
+public class WebFileSystemService : IFileSystemService
+{
+    private readonly IJSRuntime _js;
+    private const string AutoSaveKey = "settlers_autosave";
+
+    public WebFileSystemService(IJSRuntime js) => _js = js;
+
+    public async Task SaveText(string fileName, string content)
+        => await _js.InvokeVoidAsync("gameInterop.downloadFile", fileName, content);
+
+    public async Task<string?> LoadText(string fileName)
+        => await _js.InvokeAsync<string?>("gameInterop.openFilePicker");
+
+    public async Task SaveAuto(string content)
+        => await _js.InvokeVoidAsync("localStorage.setItem", AutoSaveKey, content);
+
+    public async Task<string?> LoadAuto()
+        => await _js.InvokeAsync<string?>("localStorage.getItem", AutoSaveKey);
+}

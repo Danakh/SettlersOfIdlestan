@@ -1,0 +1,138 @@
+@page "/"
+@layout SettlersOfIdlestanWeb.Layout.GameLayout
+@using SkiaSharp
+@using SkiaSharp.Views.Blazor
+@using SettlersOfIdlestanSkia.Services
+@inject IFileSystemService FileSystemService
+@implements IAsyncDisposable
+
+<div style="position: relative; width: 100vw; height: 100vh; overflow: hidden; background: #000; margin: 0; padding: 0;">
+
+    <SKCanvasView @ref="_canvasView"
+                  OnPaintSurface="OnPaintSurface"
+                  style="position: absolute; inset: 0; width: 100%; height: 100%;" />
+
+    @* Transparent overlay captures all pointer/wheel events so OffsetX/Y are always canvas-relative *@
+    <div style="position: absolute; inset: 0;"
+         @onmousedown="OnMouseDown"
+         @onmousemove="OnMouseMove"
+         @onmouseup="OnMouseUp"
+         @onwheel="OnWheel"
+         @oncontextmenu="OnContextMenu"
+         @oncontextmenu:preventDefault="true"
+         @onmousedown:preventDefault="false" />
+
+    <div style="position: absolute; bottom: 6px; left: 6px; color: #ddd; font-size: 11px;
+                background: rgba(0,0,0,0.55); padding: 3px 8px; border-radius: 4px;
+                pointer-events: none; font-family: monospace; white-space: nowrap;">
+        @_debugText
+    </div>
+
+</div>
+
+@code {
+    private SKCanvasView? _canvasView;
+    private SkiaGameRuntime? _runtime;
+    private CancellationTokenSource? _cts;
+    private string _debugText = "Chargement…";
+    private bool _initialized;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || _initialized)
+            return;
+
+        _initialized = true;
+
+        try
+        {
+            _runtime = new SkiaGameRuntime();
+            _runtime.Initialize(FileSystemService);
+            _debugText = string.Empty;
+        }
+        catch (Exception ex)
+        {
+            _debugText = $"Erreur init: {ex.Message}";
+            return;
+        }
+
+        _cts = new CancellationTokenSource();
+        _ = RunGameLoop(_cts.Token);
+    }
+
+    private async Task RunGameLoop(CancellationToken ct)
+    {
+        while (!ct.IsCancellationRequested)
+        {
+            try
+            {
+                _runtime?.Tick();
+                _canvasView?.Invalidate();
+
+                if (_runtime?.TryGetDebugStats(out var stats) == true)
+                {
+                    _debugText = $"FPS: {stats.fps:F1} | Cam: {stats.cameraX:F1},{stats.cameraY:F1} | Villes: {stats.cityCount} Routes: {stats.roadCount}";
+                }
+
+                await Task.Delay(16, ct);
+            }
+            catch (TaskCanceledException)
+            {
+                break;
+            }
+            catch (Exception ex)
+            {
+                _debugText = $"Erreur: {ex.Message}";
+                break;
+            }
+        }
+    }
+
+    private void OnPaintSurface(SKPaintSurfaceEventArgs e)
+    {
+        if (_runtime == null)
+            return;
+
+        var bounds = e.Surface.Canvas.DeviceClipBounds;
+        var canvasSize = new SKSize(bounds.Width, bounds.Height);
+        _runtime.EnsureCanvasInitialized(canvasSize);
+        _runtime.Render(e.Surface.Canvas);
+    }
+
+    private void OnMouseDown(MouseEventArgs e)
+        => _runtime?.HandlePointerPressed((float)e.OffsetX, (float)e.OffsetY, 0, ToPointerButton(e.Button));
+
+    private void OnMouseMove(MouseEventArgs e)
+        => _runtime?.HandlePointerMoved((float)e.OffsetX, (float)e.OffsetY, 0);
+
+    private void OnMouseUp(MouseEventArgs e)
+        => _runtime?.HandlePointerReleased((float)e.OffsetX, (float)e.OffsetY, 0, ToPointerButton(e.Button));
+
+    private void OnWheel(WheelEventArgs e)
+    {
+        // DeltaY positive = scroll down = zoom out → negative wheelDelta for HandleZoom
+        _runtime?.HandleZoom((float)-e.DeltaY, (float)e.OffsetX, (float)e.OffsetY);
+    }
+
+    private void OnContextMenu(MouseEventArgs e) { }
+
+    private static PointerButton ToPointerButton(long button) => button switch
+    {
+        0 => PointerButton.Left,
+        1 => PointerButton.Middle,
+        2 => PointerButton.Right,
+        _ => PointerButton.Unknown,
+    };
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_cts != null)
+        {
+            await _cts.CancelAsync();
+            _cts.Dispose();
+            _cts = null;
+        }
+        _runtime?.Dispose();
+        _runtime = null;
+    }
+}
