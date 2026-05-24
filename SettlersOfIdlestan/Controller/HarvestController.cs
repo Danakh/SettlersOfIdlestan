@@ -110,38 +110,50 @@ namespace SettlersOfIdlestan.Controller
                 }
 
                 long now = _clock.CurrentTick;
+                long baseCooldown = GetAutoHarvestCooldownTicks(civ);
 
+                var allHexes = new HashSet<HexCoord>();
                 foreach (var city in civ.Cities)
+                    foreach (var hex in city.Position.GetHexes())
+                        if (hex != null) allHexes.Add(hex);
+
+                foreach (var hex in allHexes)
                 {
-                    foreach (var building in city.Buildings)
+                    var tile = _state.Map.GetTile(hex);
+                    if (tile == null) continue;
+
+                    // Collect all (city, building) pairs that can auto-harvest this hex
+                    var capable = new System.Collections.Generic.List<(City city, Building building, Resource resource, long cooldown)>();
+                    foreach (var city in civ.Cities)
                     {
-                        var hexes = city.Position.GetHexes();
-                        foreach (var hex in hexes)
+                        if (!city.Position.IsAdjacentTo(hex)) continue;
+                        foreach (var building in city.Buildings)
                         {
-                            if (hex == null) continue;
-                            var tile = _state.Map.GetTile(hex);
-                            if (tile == null) continue;
-
-                            Resource? resource = building.AutomaticHarvestCapability(tile.TerrainType);
-                            if (resource != null)
-                            {
-                                long baseCooldown = GetAutoHarvestCooldownTicks(civ);
-                                long effectiveCooldown = (long)(baseCooldown * building.GetAutomaticHarvestCooldownMultiplier(tile.TerrainType))
-                                    - (long)(building.GetAutomaticHarvestCooldownReduction(tile.TerrainType).TotalSeconds * 100);
-                                effectiveCooldown = Math.Max(1L, effectiveCooldown);
-
-                                if (autoMap.TryGetValue(hex, out var lastAuto) && now - lastAuto < effectiveCooldown)
-                                    continue;
-
-                                var res = resource.Value;
-                                TryAutoTradeOnOverflow(civ, res);
-                                civ.AddResource(res, 1);
-                                autoMap[hex] = now;
-                                OnHarvestCompleted?.Invoke(this, new HarvestCompletedEventArgs(civ.Index, hex, res, city.Position, isAutomatic: true));
-                                break;
-                            }
+                            var res = building.AutomaticHarvestCapability(tile.TerrainType);
+                            if (res == null) continue;
+                            long effective = (long)(baseCooldown * building.GetAutomaticHarvestCooldownMultiplier(tile.TerrainType))
+                                - (long)(building.GetAutomaticHarvestCooldownReduction(tile.TerrainType).TotalSeconds * 100);
+                            capable.Add((city, building, res.Value, Math.Max(1L, effective)));
                         }
                     }
+
+                    if (capable.Count == 0) continue;
+
+                    // Cooldown governed by the weakest building (highest cooldown value)
+                    long effectiveCooldown = capable.Max(e => e.cooldown);
+
+                    if (autoMap.TryGetValue(hex, out var lastAuto) && now - lastAuto < effectiveCooldown)
+                        continue;
+
+                    // One harvest per capable building
+                    foreach (var (city, _, resource, _) in capable)
+                    {
+                        TryAutoTradeOnOverflow(civ, resource);
+                        civ.AddResource(resource, 1);
+                        OnHarvestCompleted?.Invoke(this, new HarvestCompletedEventArgs(civ.Index, hex, resource, city.Position, isAutomatic: true));
+                    }
+
+                    autoMap[hex] = now;
                 }
             }
         }
@@ -225,7 +237,7 @@ namespace SettlersOfIdlestan.Controller
             var tile = _state.Map.GetTile(hex);
             if (tile == null) return baseCooldown;
 
-            long? min = null;
+            long? max = null;
             foreach (var city in civ.Cities.Where(c => c.Position.IsAdjacentTo(hex)))
                 foreach (var building in city.Buildings)
                     if (building.AutomaticHarvestCapability(tile.TerrainType).HasValue)
@@ -233,10 +245,10 @@ namespace SettlersOfIdlestan.Controller
                         long effective = (long)(baseCooldown * building.GetAutomaticHarvestCooldownMultiplier(tile.TerrainType))
                             - (long)(building.GetAutomaticHarvestCooldownReduction(tile.TerrainType).TotalSeconds * 100);
                         effective = Math.Max(1L, effective);
-                        if (min == null || effective < min) min = effective;
+                        if (max == null || effective > max) max = effective;
                     }
 
-            return min ?? baseCooldown;
+            return max ?? baseCooldown;
         }
 
         private void TryAutoTradeOnOverflow(Civilization civ, Resource res)
