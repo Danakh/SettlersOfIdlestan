@@ -127,5 +127,15 @@
   "prestige_hex_storage_capacity": "Capacité de stockage",
   "hex_tooltip_manual": "Manuel",
   "hex_tooltip_auto": "Auto",
-  "hex_tooltip_ready": "Prêt!"
+  "hex_tooltip_ready": "Prêt!",
+  "tab_stats": "Stats",
+  "stats_current_run": "Run en cours",
+  "stats_past_runs": "Derniers prestiges",
+  "stats_no_history": "Aucun prestige effectué pour l'instant.",
+  "stats_island": "Île",
+  "stats_playtime": "Temps de jeu",
+  "stats_cities": "Villes",
+  "stats_buildings": "Bâtiments",
+  "stats_total_levels": "Niveaux totaux",
+  "stats_prestige_points": "Points prestige"
 }

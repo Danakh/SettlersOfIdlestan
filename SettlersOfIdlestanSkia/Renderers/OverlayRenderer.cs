@@ -19,7 +19,8 @@ public sealed class OverlayRenderer : IGameRenderer
     private const float TabHeight = 28;
     private const float TabMarginLeft = 8;
     private const float TabSpacing = 5;
-    private const float TabsContentWidth = TabMarginLeft + TabWidth * 2 + TabSpacing + TabMarginLeft;
+    private const float TabsContentWidth2 = TabMarginLeft + TabWidth * 2 + TabSpacing + TabMarginLeft;
+    private const float TabsContentWidth3 = TabMarginLeft + TabWidth * 3 + TabSpacing * 2 + TabMarginLeft;
 
     private readonly InputHandlingService _inputService;
     private readonly GameControllerService _gameControllerService;
@@ -30,6 +31,7 @@ public sealed class OverlayRenderer : IGameRenderer
     private readonly TradeRenderer _tradeRenderer;
     private readonly PrestigeRenderer _prestigeRenderer;
     private readonly PrestigeMapRenderer _prestigeMapRenderer;
+    private readonly PrestigeHistoryRenderer _prestigeHistoryRenderer;
     private readonly TimeControlRenderer _timeControlRenderer;
 
     private readonly SKPaint _buttonPaint = new() { Color = new SKColor(46, 125, 50), Style = SKPaintStyle.Fill, IsAntialias = true };
@@ -48,6 +50,7 @@ public sealed class OverlayRenderer : IGameRenderer
     private SKRect _prestigeButtonRect = SKRect.Empty;
     private SKRect _tab1Rect = SKRect.Empty;
     private SKRect _tab2Rect = SKRect.Empty;
+    private SKRect _tab3Rect = SKRect.Empty;
     private int _activeTab = 0;
     private bool _disposed;
     private bool _isVisible = true;
@@ -62,6 +65,7 @@ public sealed class OverlayRenderer : IGameRenderer
         TradeRenderer tradeRenderer,
         PrestigeRenderer prestigeRenderer,
         PrestigeMapRenderer prestigeMapRenderer,
+        PrestigeHistoryRenderer prestigeHistoryRenderer,
         TimeControlRenderer timeControlRenderer)
     {
         _inputService = inputService;
@@ -73,6 +77,7 @@ public sealed class OverlayRenderer : IGameRenderer
         _tradeRenderer = tradeRenderer;
         _prestigeRenderer = prestigeRenderer;
         _prestigeMapRenderer = prestigeMapRenderer;
+        _prestigeHistoryRenderer = prestigeHistoryRenderer;
         _timeControlRenderer = timeControlRenderer;
         _inputService.PointerPressed += HandlePointerPressed;
         _inputService.PointerMoved += HandlePointerMoved;
@@ -87,6 +92,7 @@ public sealed class OverlayRenderer : IGameRenderer
         _tradeRenderer.Initialize(canvasSize);
         _prestigeRenderer.Initialize(canvasSize);
         _prestigeMapRenderer.Initialize(canvasSize);
+        _prestigeHistoryRenderer.Initialize(canvasSize);
 
         // Positionné juste à gauche de l'engrenage (gear)
         float gearX = canvasSize.Width - PlayerResourcesOverlayRenderer.Padding - PlayerResourcesOverlayRenderer.IconSize;
@@ -105,13 +111,15 @@ public sealed class OverlayRenderer : IGameRenderer
         bool showTabs = HasPrestigePoints(context);
         _tab1Rect = SKRect.Empty;
         _tab2Rect = SKRect.Empty;
+        _tab3Rect = SKRect.Empty;
 
         if (showTabs)
         {
             float tabY = (PlayerResourcesOverlayRenderer.BarHeight - TabHeight) / 2;
             _tab1Rect = new SKRect(TabMarginLeft, tabY, TabMarginLeft + TabWidth, tabY + TabHeight);
             _tab2Rect = new SKRect(_tab1Rect.Right + TabSpacing, tabY, _tab1Rect.Right + TabSpacing + TabWidth, tabY + TabHeight);
-            _playerResourcesOverlayRenderer.ResourceStartX = TabsContentWidth;
+            _tab3Rect = new SKRect(_tab2Rect.Right + TabSpacing, tabY, _tab2Rect.Right + TabSpacing + TabWidth, tabY + TabHeight);
+            _playerResourcesOverlayRenderer.ResourceStartX = TabsContentWidth3;
         }
         else
         {
@@ -122,7 +130,8 @@ public sealed class OverlayRenderer : IGameRenderer
         _playerResourcesOverlayRenderer.Mode = _activeTab == 1 ? BarDisplayMode.Prestige : BarDisplayMode.Island;
 
         bool onPrestigeTab = _activeTab == 1;
-        _selectedCityPanelRenderer.IsInputEnabled = !onPrestigeTab && !_tradeRenderer.IsOpen && !_prestigeRenderer.IsOpen;
+        bool onHistoryTab = _activeTab == 2;
+        _selectedCityPanelRenderer.IsInputEnabled = !onPrestigeTab && !onHistoryTab && !_tradeRenderer.IsOpen && !_prestigeRenderer.IsOpen;
         _playerResourcesOverlayRenderer.Render(canvas, context);
 
         if (showTabs)
@@ -131,6 +140,10 @@ public sealed class OverlayRenderer : IGameRenderer
         if (onPrestigeTab)
         {
             _prestigeMapRenderer.RenderPrestigeMap(canvas, context);
+        }
+        else if (onHistoryTab)
+        {
+            _prestigeHistoryRenderer.RenderHistory(canvas, context);
         }
         else
         {
@@ -157,6 +170,7 @@ public sealed class OverlayRenderer : IGameRenderer
     {
         DrawTab(canvas, _tab1Rect, _localization.Get("tab_island"), _activeTab == 0);
         DrawTab(canvas, _tab2Rect, _localization.Get("tab_prestige_map"), _activeTab == 1);
+        DrawTab(canvas, _tab3Rect, _localization.Get("tab_stats"), _activeTab == 2);
     }
 
     private void DrawTab(SKCanvas canvas, SKRect rect, string label, bool isActive)
@@ -257,11 +271,20 @@ public sealed class OverlayRenderer : IGameRenderer
             return;
         }
 
+        if (!_tab3Rect.IsEmpty && _tab3Rect.Contains(e.Position.X, e.Position.Y))
+        {
+            _activeTab = 2;
+            return;
+        }
+
         if (_activeTab == 1)
         {
             _prestigeMapRenderer.HandlePointerPressed(e.Position);
             return;
         }
+
+        if (_activeTab == 2)
+            return;
 
         if (_playerResourcesOverlayRenderer.GearRect.Contains(e.Position.X, e.Position.Y))
         {
@@ -327,6 +350,7 @@ public sealed class OverlayRenderer : IGameRenderer
         _activeTabBorderPaint.Dispose();
         _tabFont.Dispose();
         _prestigeMapRenderer.Dispose();
+        _prestigeHistoryRenderer.Dispose();
         _timeControlRenderer.Dispose();
         _disposed = true;
     }

@@ -4,6 +4,7 @@ using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Buildings;
+using SettlersOfIdlestan.Model.PrestigeMap;
 using SettlersOfIdlestan.Controller.Generator;
 
 namespace SettlersOfIdlestan.Controller
@@ -74,6 +75,26 @@ namespace SettlersOfIdlestan.Controller
                 throw new InvalidOperationException("PrestigeState is not available.");
 
             var points = CalculatePrestigePoints();
+
+            var currentIsland = mainGameState.CurrentIslandState;
+            if (currentIsland != null)
+            {
+                var civ = currentIsland.PlayerCivilization;
+                var allBuildings = civ.Cities.SelectMany(c => c.Buildings).ToList();
+                var stats = new PrestigeRunStats
+                {
+                    IslandId = currentIsland.IslandID,
+                    TickDuration = mainGameState.Clock.CurrentTick - currentIsland.StartTick,
+                    CityCount = civ.Cities.Count,
+                    BuildingCount = allBuildings.Count,
+                    TotalBuildingLevels = allBuildings.Sum(b => b.Level),
+                    PrestigePoints = points,
+                };
+                mainGameState.PrestigeState.RunHistory.Add(stats);
+                while (mainGameState.PrestigeState.RunHistory.Count > 5)
+                    mainGameState.PrestigeState.RunHistory.RemoveAt(0);
+            }
+
             mainGameState.PrestigeState.PrestigePoints += points;
             mainGameState.PrestigeState.IslandState = null;
 
@@ -87,7 +108,10 @@ namespace SettlersOfIdlestan.Controller
             var map = generator.GenerateIsland(nextIslandParameters.TileData, civilizations)
                 ?? throw new InvalidOperationException("Failed to generate next island.");
 
-            mainGameState.PrestigeState.IslandState = new IslandState(map, civilizations, nextIslandParameters.IslandID);
+            mainGameState.PrestigeState.IslandState = new IslandState(map, civilizations, nextIslandParameters.IslandID)
+            {
+                StartTick = mainGameState.Clock.CurrentTick
+            };
         }
     }
 

@@ -20,6 +20,11 @@ namespace SettlersOfIdlestan.Model.PrestigeMap
         public List<PrestigeVertexId> PurchasedVertices { get; set; } = new();
 
         /// <summary>
+        /// Historique des 5 derniers prestiges effectués.
+        /// </summary>
+        public List<PrestigeRunStats> RunHistory { get; set; } = new();
+
+        /// <summary>
         /// Constructeur parameterless requis par certains sérialiseurs.
         /// </summary>
         public PrestigeState() { }

@@ -18,6 +18,11 @@ public class IslandState : IJsonOnDeserialized
     public int IslandID { get; set; }
 
     /// <summary>
+    /// Tick de simulation au moment où cette île a démarré (pour calculer la durée de jeu).
+    /// </summary>
+    public long StartTick { get; set; } = 0;
+
+    /// <summary>
     /// Gets the list of civilizations on the island.
     /// </summary>
     public List<SettlersOfIdlestan.Model.Civilization.Civilization> Civilizations { get; set; }
