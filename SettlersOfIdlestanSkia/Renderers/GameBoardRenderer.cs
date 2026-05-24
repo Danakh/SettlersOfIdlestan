@@ -26,9 +26,6 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
     private SKPaint? _ringProgressPaint;
     private bool _disposed;
 
-    private const long ManualCooldownTicks = 200L;   // 2 s × 100 ticks/s
-    private const long AutoCooldownTicks = 500L;      // 5 s × 100 ticks/s
-
     // Dimensions de l'indicateur (outer edge ≈ 50 % du rayon de l'hex = 20 px)
     private const float DotRadius = 5f;
     private const float ManualRingRadius = 5f;
@@ -176,13 +173,15 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
 
         if (autoResources.Count > 0)
             DrawCooldownRing(canvas, cx, cy, AutoRingRadius, AutoRingStroke,
-                tile.Coord, currentTick, autoTimes, AutoCooldownTicks,
+                tile.Coord, currentTick, autoTimes,
+                _harvestController.GetEffectiveAutoHarvestCooldownTicks(playerIdx, tile.Coord),
                 new SKColor(60, 60, 60, 150),
                 new SKColor(255, 200, 60, 230));
 
         if (manualResources.Count > 0)
             DrawCooldownRing(canvas, cx, cy, ManualRingRadius, ManualRingStroke,
-                tile.Coord, currentTick, manualTimes, ManualCooldownTicks,
+                tile.Coord, currentTick, manualTimes,
+                _harvestController.GetManualHarvestCooldownTicks(playerIdx),
                 new SKColor(60, 60, 60, 150),
                 new SKColor(160, 230, 160, 230));
 
