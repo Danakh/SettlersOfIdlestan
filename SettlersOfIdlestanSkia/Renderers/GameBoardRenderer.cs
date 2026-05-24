@@ -26,6 +26,8 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
     private SKPaint? _ringProgressPaint;
     private bool _disposed;
 
+    private readonly Dictionary<HexCoord, SKPath> _hexPathCache = new();
+
     // Dimensions de l'indicateur (outer edge ≈ 50 % du rayon de l'hex = 20 px)
     private const float DotRadius = 5f;
     private const float ManualRingRadius = 5f;
@@ -129,18 +131,34 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
         foreach (var (coord, tile) in map.Tiles)
         {
             var (x, y) = AxialToIsland(coord.Q, coord.R);
-            DrawHexagonTile(canvas, x, y, HexSize, tile, playerIdx, currentTick, manualTimes, autoTimes, banditCooldownUntil, banditPositions);
+            DrawHexagonTile(canvas, coord, x, y, tile, playerIdx, currentTick, manualTimes, autoTimes, banditCooldownUntil, banditPositions);
         }
     }
 
-    private void DrawHexagonTile(SKCanvas canvas, float centerX, float centerY, float size, HexTile tile,
+    private SKPath GetOrCreateHexPath(HexCoord coord, float cx, float cy)
+    {
+        if (_hexPathCache.TryGetValue(coord, out var cached))
+            return cached;
+
+        var points = GetHexagonPoints(cx, cy, HexSize);
+        var path = new SKPath();
+        path.MoveTo(points[0]);
+        for (int i = 1; i < 6; i++)
+            path.LineTo(points[i]);
+        path.Close();
+
+        _hexPathCache[coord] = path;
+        return path;
+    }
+
+    private void DrawHexagonTile(SKCanvas canvas, HexCoord coord, float centerX, float centerY, HexTile tile,
         int playerIdx, long currentTick,
         Dictionary<HexCoord, long>? manualTimes,
         Dictionary<HexCoord, long>? autoTimes,
         Dictionary<HexCoord, long>? banditCooldownUntil,
         HashSet<HexCoord>? banditPositions)
     {
-        var points = GetHexagonPoints(centerX, centerY, size);
+        var path = GetOrCreateHexPath(coord, centerX, centerY);
 
         if (_hexFillPaint != null)
         {
@@ -148,18 +166,18 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
                 ? color
                 : new SKColor(200, 200, 200);
 
-            canvas.DrawPath(PointsToPath(points), _hexFillPaint);
+            canvas.DrawPath(path, _hexFillPaint);
         }
 
         if (_hexBorderPaint != null)
-            canvas.DrawPath(PointsToPath(points), _hexBorderPaint);
+            canvas.DrawPath(path, _hexBorderPaint);
 
         DrawHarvestIndicator(canvas, centerX, centerY, tile, playerIdx, currentTick, manualTimes, autoTimes, banditCooldownUntil, banditPositions);
 
         if (DebugOverlayRenderer.DebugMode && _textPaint != null && tile.Coord != null)
         {
             _textPaint.Color = SKColors.Black;
-            canvas.DrawText($"{tile.Coord.Q},{tile.Coord.R}", centerX, centerY + size / 2.5f, SKTextAlign.Center, _textFont, _textPaint);
+            canvas.DrawText($"{tile.Coord.Q},{tile.Coord.R}", centerX, centerY + HexSize / 2.5f, SKTextAlign.Center, _textFont, _textPaint);
         }
     }
 
@@ -307,6 +325,11 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
         _dotPaint?.Dispose();
         _ringBgPaint?.Dispose();
         _ringProgressPaint?.Dispose();
+
+        foreach (var path in _hexPathCache.Values)
+            path.Dispose();
+        _hexPathCache.Clear();
+
         _disposed = true;
     }
 }

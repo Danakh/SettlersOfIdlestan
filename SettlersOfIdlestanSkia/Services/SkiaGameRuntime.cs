@@ -382,12 +382,12 @@ public sealed class SkiaGameRuntime : IDisposable
                 return;
 
             SKPoint cityCenter = islandMainRenderer.VertexToIslandPoint(args.CityPosition);
-            SKPoint above = new SKPoint(cityCenter.X, cityCenter.Y - 30f);
+            SKPoint above = new SKPoint(cityCenter.X, cityCenter.Y - 20f);
 
             var resourceColors = IslandMainRenderer.ResourceColors;
             var particleColor = resourceColors.TryGetValue(args.Resource, out var color) ? color : SKColors.Gold;
 
-            particleSystem.EmitParticle(cityCenter, above, args.Resource, particleColor, 0.8f);
+            particleSystem.EmitParticle(cityCenter, above, args.Resource, particleColor, 0.5f);
         };
     }
 

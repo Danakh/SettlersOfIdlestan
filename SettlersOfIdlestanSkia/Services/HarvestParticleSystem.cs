@@ -49,7 +49,7 @@ public class HarvestParticle
     /// </summary>
     public bool IsAlive => TimeRemaining > 0;
 
-    public HarvestParticle(SKPoint startPos, SKPoint endPos, Resource resource, SKColor color, float duration = 1.2f)
+    public HarvestParticle(SKPoint startPos, SKPoint endPos, Resource resource, SKColor color, float duration = 0.8f)
     {
         StartPosition = startPos;
         EndPosition = endPos;
@@ -109,7 +109,7 @@ public class HarvestParticleSystem
     /// <summary>
     /// Ajoute une nouvelle particule de récolte.
     /// </summary>
-    public void EmitParticle(SKPoint startPos, SKPoint endPos, Resource resource, SKColor color, float duration = 1.2f)
+    public void EmitParticle(SKPoint startPos, SKPoint endPos, Resource resource, SKColor color, float duration = 0.8f)
     {
         _particles.Add(new HarvestParticle(startPos, endPos, resource, color, duration));
     }
