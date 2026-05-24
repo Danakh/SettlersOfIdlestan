@@ -1,38 +1,41 @@
 using SkiaSharp;
+using Svg.Skia;
 using SettlersOfIdlestan.Model.Bandits;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestanSkia.Core;
 using System.Collections.Generic;
+using System.Reflection;
 
 namespace SettlersOfIdlestanSkia.Renderers;
 
 public class BanditRenderer : HexBasedRenderer, IGameRenderer
 {
-    private const float AnimationDuration = 1f; // secondes
+    private const float AnimationDuration = 1f;
+    private const float IconSize = 24f;
 
     private sealed class BanditVisual
     {
         public HexCoord ModelPosition = new(0, 0);
         public SKPoint From;
         public SKPoint To;
-        public float Progress = 1f; // 1 = positionné, pas d'animation en cours
-        public bool Initialized;
+        public float Progress = 1f;
     }
 
     private readonly List<BanditVisual> _visuals = new();
+    private SKSvg? _svg;
     private bool _disposed;
-    private SKPaint? _iconPaint;
-    private SKFont? _iconFont;
 
     public void Initialize(SKSize canvasSize)
     {
-        _iconPaint = new SKPaint
+        var assembly = Assembly.GetExecutingAssembly();
+        string resourceName = $"{assembly.GetName().Name}.Resources.icons.military.bandit.svg";
+        using var stream = assembly.GetManifestResourceStream(resourceName);
+        if (stream != null)
         {
-            Color = new SKColor(60, 0, 0, 220),
-            IsAntialias = true
-        };
-        _iconFont = new SKFont(SKTypeface.Default, 16);
+            _svg = new SKSvg();
+            _svg.Load(stream);
+        }
     }
 
     public void Render(SKCanvas canvas, GameRenderContext context)
@@ -53,7 +56,6 @@ public class BanditRenderer : HexBasedRenderer, IGameRenderer
 
             var targetPoint = HexToPoint(bandit.Position);
 
-            // Détection de mouvement : le modèle a changé de position
             if (!v.ModelPosition.Equals(bandit.Position))
             {
                 v.From = CurrentVisualPoint(v);
@@ -62,28 +64,40 @@ public class BanditRenderer : HexBasedRenderer, IGameRenderer
                 v.ModelPosition = bandit.Position;
             }
 
-            // Avance l'animation
             if (v.Progress < 1f)
                 v.Progress = Math.Min(1f, v.Progress + dt / AnimationDuration);
 
             var pos = Lerp(v.From, v.To, Smoothstep(v.Progress));
-            canvas.DrawText("☠", pos.X, pos.Y + 6f, SKTextAlign.Center, _iconFont!, _iconPaint!);
+            DrawIcon(canvas, pos);
         }
+    }
+
+    private void DrawIcon(SKCanvas canvas, SKPoint center)
+    {
+        var picture = _svg?.Picture;
+        if (picture == null) return;
+
+        // La viewBox du SVG est 64×64 → on scale à IconSize
+        float scale = IconSize / 64f;
+        canvas.Save();
+        canvas.Translate(center.X - IconSize / 2f, center.Y - IconSize / 2f);
+        canvas.Scale(scale);
+        canvas.DrawPicture(picture);
+        canvas.Restore();
     }
 
     private void SyncVisuals(IList<Bandit> bandits)
     {
-        // Ajuste la taille de _visuals pour correspondre à la liste de bandits
         while (_visuals.Count < bandits.Count)
         {
-            var v = new BanditVisual();
             var pos = HexToPoint(bandits[_visuals.Count].Position);
-            v.ModelPosition = bandits[_visuals.Count].Position;
-            v.From = pos;
-            v.To = pos;
-            v.Progress = 1f;
-            v.Initialized = true;
-            _visuals.Add(v);
+            _visuals.Add(new BanditVisual
+            {
+                ModelPosition = bandits[_visuals.Count].Position,
+                From = pos,
+                To = pos,
+                Progress = 1f
+            });
         }
         while (_visuals.Count > bandits.Count)
             _visuals.RemoveAt(_visuals.Count - 1);
@@ -107,8 +121,7 @@ public class BanditRenderer : HexBasedRenderer, IGameRenderer
     public void Dispose()
     {
         if (_disposed) return;
-        _iconPaint?.Dispose();
-        _iconFont?.Dispose();
+        _svg = null;
         _disposed = true;
     }
 }
