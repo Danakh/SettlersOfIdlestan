@@ -86,6 +86,7 @@
   "trade_tooltip_l3_unavailable": "Aucun emplacement port niv.3 disponible",
   "trade_tooltip_l4_active": "Commerce automatique actif",
   "trade_tooltip_l4_available": "Activer le commerce automatique",
+  "trade_tooltip_l4_unavailable": "Aucun emplacement port niv.4 disponible",
   "prestige_action": "Prestige",
   "prestige_title": "Prestige",
   "prestige_total": "Total",

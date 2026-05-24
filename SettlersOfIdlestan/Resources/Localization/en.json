@@ -86,6 +86,7 @@
   "trade_tooltip_l3_unavailable": "No level-3 port slot available",
   "trade_tooltip_l4_active": "Auto-trade active",
   "trade_tooltip_l4_available": "Activate automatic trading",
+  "trade_tooltip_l4_unavailable": "No level-4 port slot available",
   "prestige_action": "Prestige",
   "prestige_title": "Prestige",
   "prestige_total": "Total",

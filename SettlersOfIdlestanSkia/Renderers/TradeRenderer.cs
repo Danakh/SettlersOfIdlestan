@@ -24,6 +24,7 @@ public sealed class TradeRenderer : IDisposable
 
     private readonly GameControllerService _gameControllerService;
     private readonly ILocalizationService _localization;
+    private readonly TooltipRenderer _tooltipRenderer;
     private readonly Dictionary<Resource, int> _offered = [];
     private readonly Dictionary<Resource, int> _requested = [];
     private readonly Dictionary<SKRect, Resource> _offerRects = [];
@@ -64,10 +65,11 @@ public sealed class TradeRenderer : IDisposable
 
     public bool IsOpen { get; private set; }
 
-    public TradeRenderer(GameControllerService gameControllerService, ILocalizationService localization)
+    public TradeRenderer(GameControllerService gameControllerService, ILocalizationService localization, TooltipRenderer tooltipRenderer)
     {
         _gameControllerService = gameControllerService;
         _localization = localization;
+        _tooltipRenderer = tooltipRenderer;
     }
 
     public void Initialize(SKSize canvasSize) => _canvasSize = canvasSize;
@@ -149,7 +151,7 @@ public sealed class TradeRenderer : IDisposable
         else if (_pendingAutoTradeResource != null)
             DrawConfirmationPopup(canvas, popup, _pendingAutoTradeResource.Value, isAutoTrade: true);
         else
-            DrawSeaportTooltip(canvas);
+            SetSeaportTooltip();
     }
 
     public void HandlePointerMoved(SKPoint position)
@@ -403,70 +405,34 @@ public sealed class TradeRenderer : IDisposable
 
     // ── Seaport tooltip ──────────────────────────────────────────────────────────
 
-    private void DrawSeaportTooltip(SKCanvas canvas)
+    private void SetSeaportTooltip()
     {
         var civ = _gameControllerService.PlayerCivilization;
         if (civ == null) return;
 
-        SKRect cbRect;
-        string line1, line2;
-
-        if (_hoveredL3Checkbox != null && _seaportL3AllRects.TryGetValue(_hoveredL3Checkbox.Value, out cbRect))
+        if (_hoveredL3Checkbox != null && _seaportL3AllRects.TryGetValue(_hoveredL3Checkbox.Value, out var l3Rect))
         {
             bool isEnhanced = civ.SeaportEnhancedResources.Contains(_hoveredL3Checkbox.Value);
             bool canEnhance = _gameControllerService.MainGameController.TradeController.CanEnhanceSeaportResource(civ.Index, _hoveredL3Checkbox.Value);
-            if (isEnhanced)
-            {
-                line1 = _localization.Get("trade_tooltip_l3_active");
-                line2 = "";
-            }
-            else if (canEnhance)
-            {
-                line1 = _localization.Get("trade_tooltip_l3_available");
-                line2 = _localization.Get("trade_seaport_confirm_permanent");
-            }
-            else
-            {
-                line1 = _localization.Get("trade_tooltip_l3_unavailable");
-                line2 = "";
-            }
-            DrawTooltipBox(canvas, cbRect, line1, line2);
+            string line1 = isEnhanced ? _localization.Get("trade_tooltip_l3_active")
+                         : canEnhance ? _localization.Get("trade_tooltip_l3_available")
+                         : _localization.Get("trade_tooltip_l3_unavailable");
+            string[] lines = canEnhance && !isEnhanced
+                ? [line1, _localization.Get("trade_seaport_confirm_permanent")]
+                : [line1];
+            _tooltipRenderer.SetTooltipLines(lines, new SKPoint(l3Rect.Right, l3Rect.Top));
         }
-        else if (_hoveredL4Checkbox != null && _seaportL4AllRects.TryGetValue(_hoveredL4Checkbox.Value, out cbRect))
+        else if (_hoveredL4Checkbox != null && _seaportL4AllRects.TryGetValue(_hoveredL4Checkbox.Value, out var l4Rect))
         {
             bool isActive = civ.SeaportAutoTradeResources.Contains(_hoveredL4Checkbox.Value);
-            line1 = isActive ? _localization.Get("trade_tooltip_l4_active") : _localization.Get("trade_tooltip_l4_available");
-            line2 = isActive ? "" : _localization.Get("trade_seaport_autotrade_confirm_permanent");
-            DrawTooltipBox(canvas, cbRect, line1, line2);
-        }
-    }
-
-    private void DrawTooltipBox(SKCanvas canvas, SKRect anchor, string line1, string line2)
-    {
-        float tipW = 240;
-        bool twoLines = !string.IsNullOrEmpty(line2);
-        float tipH = twoLines ? 48 : 30;
-
-        float tipX = anchor.Right + 6;
-        float tipY = anchor.MidY - tipH / 2;
-        if (tipX + tipW > _canvasSize.Width - 10) tipX = anchor.Left - tipW - 6;
-        tipY = Math.Max(10, Math.Min(tipY, _canvasSize.Height - tipH - 10));
-
-        var tipRect = new SKRect(tipX, tipY, tipX + tipW, tipY + tipH);
-
-        using var bgPaint = new SKPaint { Color = new SKColor(20, 20, 28, 235), Style = SKPaintStyle.Fill, IsAntialias = true };
-        using var borderPaint = new SKPaint { Color = new SKColor(120, 120, 140), Style = SKPaintStyle.Stroke, StrokeWidth = 1, IsAntialias = true };
-        canvas.DrawRoundRect(tipRect, 4, 4, bgPaint);
-        canvas.DrawRoundRect(tipRect, 4, 4, borderPaint);
-
-        if (twoLines)
-        {
-            canvas.DrawText(line1, tipRect.MidX, tipY + 16, SKTextAlign.Center, _smallFont, _textPaint);
-            canvas.DrawText(line2, tipRect.MidX, tipY + 34, SKTextAlign.Center, _smallFont, _mutedTextPaint);
-        }
-        else
-        {
-            canvas.DrawText(line1, tipRect.MidX, tipRect.MidY + 5, SKTextAlign.Center, _smallFont, _textPaint);
+            bool canActivate = _gameControllerService.MainGameController.TradeController.CanActivateSeaportAutoTrade(civ.Index, _hoveredL4Checkbox.Value);
+            string line1 = isActive   ? _localization.Get("trade_tooltip_l4_active")
+                         : canActivate ? _localization.Get("trade_tooltip_l4_available")
+                         : _localization.Get("trade_tooltip_l4_unavailable");
+            string[] lines = canActivate && !isActive
+                ? [line1, _localization.Get("trade_seaport_autotrade_confirm_permanent")]
+                : [line1];
+            _tooltipRenderer.SetTooltipLines(lines, new SKPoint(l4Rect.Right, l4Rect.Top));
         }
     }
 
