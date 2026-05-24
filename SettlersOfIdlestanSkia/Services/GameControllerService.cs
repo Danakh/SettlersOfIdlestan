@@ -56,7 +56,7 @@ public class GameControllerService
         if (_controller.CurrentMainState == null)
             return;
 
-        _controller.CurrentMainState.Clock.Advance(TimeSpan.FromSeconds(deltaTime));
+        _controller.CurrentMainState.Clock.Advance(DateTimeOffset.UtcNow);
     }
 
     public void PerformPrestige()

@@ -1,102 +1,158 @@
 using System;
+using System.Text.Json.Serialization;
 
 namespace SettlersOfIdlestan.Model.Game
 {
     /// <summary>
-    /// Simple in-game clock. Serializable for persistence.
-    /// The clock stores elapsed in-game time and a speed multiplier.
+    /// Horloge de simulation interne. 1 tick = 0.01 seconde réelle.
+    /// Le jeu avance uniquement en ticks, indépendamment du temps réel.
+    /// La banque accumule des ticks en pause/hors ligne pour les dépenser en vitesse accélérée.
     /// </summary>
     [Serializable]
     public class GameClock
     {
-        /// <summary>
-        /// Reference start time (UTC) used to compute CurrentTime together with Elapsed.
-        /// </summary>
-        public DateTimeOffset StartTime { get; set; }
+        /// <summary>Date de création de cette partie.</summary>
+        public DateTimeOffset StartDate { get; set; }
 
-        /// <summary>
-        /// Elapsed in-game time since StartTime.
-        /// </summary>
-        public TimeSpan Elapsed { get; set; }
+        /// <summary>Tick de simulation courant (1 tick = 0.01 s).</summary>
+        public long CurrentTick { get; set; }
 
-        /// <summary>
-        /// If true the clock advances when Advance is called.
-        /// </summary>
-        public bool IsRunning { get; set; }
+        /// <summary>Ticks accumulés hors-ligne ou en pause, disponibles pour la vitesse accélérée.</summary>
+        public long OfflineBankTicks { get; set; }
 
-        /// <summary>
-        /// Speed multiplier to scale real time into in-game time (1.0 = real time).
-        /// </summary>
-        public double Speed { get; set; }
+        /// <summary>Heure réelle de la dernière sauvegarde, pour calculer les ticks hors-ligne au chargement.</summary>
+        public DateTimeOffset LastSaveTime { get; set; }
+
+        // ── runtime (non sérialisé) ──────────────────────────────────────────
+
+        /// <summary>0 = pause, 1 = normal, 3 = accéléré.</summary>
+        [JsonIgnore]
+        public int SpeedMultiplier { get; private set; } = 1;
+
+        [JsonIgnore]
+        private DateTimeOffset? _lastAdvanceTime;
+
+        // ── événement ────────────────────────────────────────────────────────
+
+        public event EventHandler<GameClockAdvancedEventArgs>? Advanced;
+
+        // ── constructeurs ────────────────────────────────────────────────────
 
         public GameClock()
         {
-            StartTime = DateTimeOffset.UtcNow;
-            Elapsed = TimeSpan.Zero;
-            IsRunning = false;
-            Speed = 1.0;
+            StartDate = DateTimeOffset.UtcNow;
+            LastSaveTime = DateTimeOffset.UtcNow;
+            SpeedMultiplier = 1;
         }
 
-        public GameClock(DateTimeOffset startTime, TimeSpan elapsed, bool isRunning, double speed)
+        // ── contrôle de la vitesse ───────────────────────────────────────────
+
+        /// <summary>Démarre l'horloge (vitesse 1x) après création d'une nouvelle partie.</summary>
+        public void Start()
         {
-            StartTime = startTime;
-            Elapsed = elapsed;
-            IsRunning = isRunning;
-            Speed = speed;
+            SpeedMultiplier = 1;
+            _lastAdvanceTime = null;
         }
 
-        /// <summary>
-        /// Start the clock.
-        /// </summary>
-        public void Start() => IsRunning = true;
-
-        /// <summary>
-        /// Stop the clock.
-        /// </summary>
-        public void Stop() => IsRunning = false;
-
-        /// <summary>
-        /// Advance the clock by a real-world duration. The Elapsed in-game time increases by realTime * Speed when running.
-        /// </summary>
-        public void Advance(TimeSpan realTime)
+        public void Pause()
         {
-            if (!IsRunning) return;
-            var scaledTicks = (long)(realTime.Ticks * Speed);
-            var previous = Elapsed;
-            Elapsed = Elapsed.Add(TimeSpan.FromTicks(scaledTicks));
+            SpeedMultiplier = 0;
+            _lastAdvanceTime = null;
+        }
 
-            // Raise Advanced event to notify listeners that time progressed
-            try
+        public void Resume()
+        {
+            SpeedMultiplier = 1;
+            _lastAdvanceTime = null;
+        }
+
+        public void SetFast()
+        {
+            SpeedMultiplier = 3;
+            _lastAdvanceTime = null;
+        }
+
+        // ── hors-ligne ───────────────────────────────────────────────────────
+
+        /// <summary>
+        /// Calcule les ticks accumulés pendant l'absence du joueur et les ajoute à la banque.
+        /// Doit être appelé juste après le chargement d'une sauvegarde.
+        /// </summary>
+        public void ResumeAfterOffline(DateTimeOffset now)
+        {
+            if (LastSaveTime != default)
             {
-                Advanced?.Invoke(this, new GameClockAdvancedEventArgs(previous, Elapsed));
+                var offline = now - LastSaveTime;
+                long ticks = Math.Max(0L, (long)(offline.TotalSeconds * 100));
+                OfflineBankTicks += ticks;
             }
-            catch
-            {
-                // swallow listener exceptions to avoid breaking time progression
-            }
+            _lastAdvanceTime = null;
+        }
+
+        // ── avancement ───────────────────────────────────────────────────────
+
+        /// <summary>
+        /// Avance directement le tick de simulation d'un nombre fixe de ticks.
+        /// Utilisé pour les tests et l'autoplayer IA (simulation hors temps réel).
+        /// </summary>
+        public void SimulateAdvance(long ticks)
+        {
+            if (ticks <= 0) return;
+            long previous = CurrentTick;
+            CurrentTick += ticks;
+            try { Advanced?.Invoke(this, new GameClockAdvancedEventArgs(previous, CurrentTick)); }
+            catch { }
         }
 
         /// <summary>
-        /// Gets the current in-game time (StartTime + Elapsed).
+        /// Fait avancer l'horloge. À appeler à chaque frame avec l'heure courante.
         /// </summary>
-        public DateTimeOffset CurrentTime => StartTime + Elapsed;
+        public void Advance(DateTimeOffset now)
+        {
+            if (_lastAdvanceTime == null)
+            {
+                _lastAdvanceTime = now;
+                return;
+            }
 
-        /// <summary>
-        /// Raised after the clock has been advanced. Listeners can react to time progression.
-        /// </summary>
-        public event EventHandler<GameClockAdvancedEventArgs>? Advanced;
+            var elapsed = now - _lastAdvanceTime.Value;
+            _lastAdvanceTime = now;
+
+            // Plafond à 100 ms par frame pour éviter les sauts indésirables
+            long realTicks = Math.Min((long)(elapsed.TotalSeconds * 100), 10L);
+            if (realTicks <= 0) return;
+
+            if (SpeedMultiplier == 0)
+            {
+                // Pause : la banque accumule, le jeu ne bouge pas
+                OfflineBankTicks += realTicks;
+                return;
+            }
+
+            // Ticks supplémentaires au-delà du temps réel → prélevés sur la banque
+            long extraNeeded = realTicks * (SpeedMultiplier - 1);
+            long consumed = Math.Min(extraNeeded, OfflineBankTicks);
+            OfflineBankTicks -= consumed;
+            long gameTicks = realTicks + consumed;
+
+            long previousTick = CurrentTick;
+            CurrentTick += gameTicks;
+
+            try { Advanced?.Invoke(this, new GameClockAdvancedEventArgs(previousTick, CurrentTick)); }
+            catch { }
+        }
     }
 
     [Serializable]
     public class GameClockAdvancedEventArgs : EventArgs
     {
-        public TimeSpan PreviousElapsed { get; }
-        public TimeSpan NewElapsed { get; }
+        public long PreviousTick { get; }
+        public long CurrentTick { get; }
 
-        public GameClockAdvancedEventArgs(TimeSpan previous, TimeSpan current)
+        public GameClockAdvancedEventArgs(long previousTick, long currentTick)
         {
-            PreviousElapsed = previous;
-            NewElapsed = current;
+            PreviousTick = previousTick;
+            CurrentTick = currentTick;
         }
     }
 }

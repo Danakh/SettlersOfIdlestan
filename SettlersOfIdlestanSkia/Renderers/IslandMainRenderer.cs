@@ -96,7 +96,7 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
                 state.HoveredHex,
                 _harvestController,
                 mgs.CurrentIslandState,
-                mgs.Clock.CurrentTime);
+                mgs.Clock.CurrentTick);
         }
 
         using (ApplyCameraTransform(canvas, context))

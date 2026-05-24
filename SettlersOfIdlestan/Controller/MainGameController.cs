@@ -52,6 +52,7 @@ namespace SettlersOfIdlestan.Controller
         {
             if (CurrentMainState == null) throw new InvalidOperationException("No main state available to export.");
 
+            CurrentMainState.Clock.LastSaveTime = DateTimeOffset.UtcNow;
             return System.Text.Json.JsonSerializer.Serialize(CurrentMainState, SerializationService.SerializationOptions());
         }
 
@@ -78,7 +79,7 @@ namespace SettlersOfIdlestan.Controller
             var mainState = System.Text.Json.JsonSerializer.Deserialize<SettlersOfIdlestan.Model.Game.MainGameState>(json, options)
                             ?? throw new InvalidOperationException("Failed to deserialize MainGameState.");
 
-            SetGame(mainState);
+            SetGameFromSave(mainState);
 
             return mainState;
         }
@@ -112,7 +113,6 @@ namespace SettlersOfIdlestan.Controller
 
             // populate the main state with the created sub-states
             mainState.GodState = godState;
-            mainState.Clock.Start();
 
             SetGame(mainState);
             PrestigeMapController.ApplyPrestigeToNewGame(islandState, mainState.PrestigeState);
@@ -143,9 +143,22 @@ namespace SettlersOfIdlestan.Controller
         /// </summary>
         public void SetGame(MainGameState mainGame)
         {
-            // keep reference to the created main state for export/import
             CurrentMainState = mainGame;
             Clock = mainGame.Clock;
+            Clock.Start();
+
+            InitializeControllersForCurrentIsland();
+        }
+
+        /// <summary>
+        /// Uses a saved game and credits offline time into the bank.
+        /// </summary>
+        public void SetGameFromSave(MainGameState mainGame)
+        {
+            CurrentMainState = mainGame;
+            Clock = mainGame.Clock;
+            Clock.ResumeAfterOffline(DateTimeOffset.UtcNow);
+            Clock.Start();
 
             InitializeControllersForCurrentIsland();
         }

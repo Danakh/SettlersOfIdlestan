@@ -50,15 +50,15 @@ namespace SOITests.ControllerTests
             Assert.Equal(0, civ.GetResourceQuantity(Resource.Wood));
 
             // First small advance should trigger an automatic harvest (first time)
-            clock.Advance(TimeSpan.FromSeconds(0.1));
+            clock.SimulateAdvance(10); // 0.1 s
             Assert.Equal(1, civ.GetResourceQuantity(Resource.Wood));
 
             // Advance a bit but stay within automatic cooldown -> no new harvest
-            clock.Advance(TimeSpan.FromSeconds(1));
+            clock.SimulateAdvance(100); // 1 s
             Assert.Equal(1, civ.GetResourceQuantity(Resource.Wood));
 
-            // Advance beyond the automatic cooldown (5s) -> another harvest should occur
-            clock.Advance(TimeSpan.FromSeconds(5));
+            // Advance beyond the automatic cooldown (5s = 500 ticks) -> another harvest should occur
+            clock.SimulateAdvance(500); // 5 s
             Assert.Equal(2, civ.GetResourceQuantity(Resource.Wood));
         }
     }

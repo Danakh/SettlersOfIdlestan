@@ -26,8 +26,8 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
     private SKPaint? _ringProgressPaint;
     private bool _disposed;
 
-    private static readonly TimeSpan ManualCooldown = TimeSpan.FromSeconds(2);
-    private static readonly TimeSpan AutoCooldown = TimeSpan.FromSeconds(5);
+    private const long ManualCooldownTicks = 200L;   // 2 s × 100 ticks/s
+    private const long AutoCooldownTicks = 500L;      // 5 s × 100 ticks/s
 
     // Dimensions de l'indicateur (outer edge ≈ 50 % du rayon de l'hex = 20 px)
     private const float DotRadius = 5f;
@@ -113,28 +113,28 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
                     islandState.HarvestLastTimesByCivilization.TryGetValue(playerIdx, out var manualTimes);
                     islandState.AutomaticHarvestLastTimesByCivilization.TryGetValue(playerIdx, out var autoTimes);
 
-                    DrawIslandMap(canvas, visibleMap, playerIdx, mainGameState.Clock.CurrentTime, manualTimes, autoTimes);
+                    DrawIslandMap(canvas, visibleMap, playerIdx, mainGameState.Clock.CurrentTick, manualTimes, autoTimes);
                 }
             }
         }
     }
 
     private void DrawIslandMap(SKCanvas canvas, IslandMap map, int playerIdx,
-        DateTimeOffset currentTime,
-        Dictionary<HexCoord, DateTimeOffset>? manualTimes,
-        Dictionary<HexCoord, DateTimeOffset>? autoTimes)
+        long currentTick,
+        Dictionary<HexCoord, long>? manualTimes,
+        Dictionary<HexCoord, long>? autoTimes)
     {
         foreach (var (coord, tile) in map.Tiles)
         {
             var (x, y) = AxialToIsland(coord.Q, coord.R);
-            DrawHexagonTile(canvas, x, y, HexSize, tile, playerIdx, currentTime, manualTimes, autoTimes);
+            DrawHexagonTile(canvas, x, y, HexSize, tile, playerIdx, currentTick, manualTimes, autoTimes);
         }
     }
 
     private void DrawHexagonTile(SKCanvas canvas, float centerX, float centerY, float size, HexTile tile,
-        int playerIdx, DateTimeOffset currentTime,
-        Dictionary<HexCoord, DateTimeOffset>? manualTimes,
-        Dictionary<HexCoord, DateTimeOffset>? autoTimes)
+        int playerIdx, long currentTick,
+        Dictionary<HexCoord, long>? manualTimes,
+        Dictionary<HexCoord, long>? autoTimes)
     {
         var points = GetHexagonPoints(centerX, centerY, size);
 
@@ -150,7 +150,7 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
         if (_hexBorderPaint != null)
             canvas.DrawPath(PointsToPath(points), _hexBorderPaint);
 
-        DrawHarvestIndicator(canvas, centerX, centerY, tile, playerIdx, currentTime, manualTimes, autoTimes);
+        DrawHarvestIndicator(canvas, centerX, centerY, tile, playerIdx, currentTick, manualTimes, autoTimes);
 
         if (DebugOverlayRenderer.DebugMode && _textPaint != null && tile.Coord != null)
         {
@@ -164,9 +164,9 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
     /// camembert des ressources récoltables + anneau de cooldown manuel + anneau de cooldown automatique.
     /// </summary>
     private void DrawHarvestIndicator(SKCanvas canvas, float cx, float cy, HexTile tile,
-        int playerIdx, DateTimeOffset currentTime,
-        Dictionary<HexCoord, DateTimeOffset>? manualTimes,
-        Dictionary<HexCoord, DateTimeOffset>? autoTimes)
+        int playerIdx, long currentTick,
+        Dictionary<HexCoord, long>? manualTimes,
+        Dictionary<HexCoord, long>? autoTimes)
     {
         if (_dotPaint == null || _ringBgPaint == null || _ringProgressPaint == null)
             return;
@@ -174,17 +174,15 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
         var manualResources = _harvestController.GetManualHarvestableResources(playerIdx, tile.Coord);
         var autoResources = _harvestController.GetAutomaticHarvestableResources(playerIdx, tile.Coord);
 
-        // Anneau extérieur : cooldown automatique (or/jaune) — seulement si des ressources auto existent
         if (autoResources.Count > 0)
             DrawCooldownRing(canvas, cx, cy, AutoRingRadius, AutoRingStroke,
-                tile.Coord, currentTime, autoTimes, AutoCooldown,
+                tile.Coord, currentTick, autoTimes, AutoCooldownTicks,
                 new SKColor(60, 60, 60, 150),
                 new SKColor(255, 200, 60, 230));
 
-        // Anneau intérieur : cooldown manuel (vert clair) — seulement si des ressources manuelles existent
         if (manualResources.Count > 0)
             DrawCooldownRing(canvas, cx, cy, ManualRingRadius, ManualRingStroke,
-                tile.Coord, currentTime, manualTimes, ManualCooldown,
+                tile.Coord, currentTick, manualTimes, ManualCooldownTicks,
                 new SKColor(60, 60, 60, 150),
                 new SKColor(160, 230, 160, 230));
 
@@ -232,9 +230,9 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
     /// </summary>
     private void DrawCooldownRing(SKCanvas canvas, float cx, float cy,
         float radius, float strokeWidth,
-        HexCoord coord, DateTimeOffset currentTime,
-        Dictionary<HexCoord, DateTimeOffset>? lastTimes,
-        TimeSpan cooldownDuration,
+        HexCoord coord, long currentTick,
+        Dictionary<HexCoord, long>? lastTimes,
+        long cooldownTicks,
         SKColor bgColor, SKColor progressColor)
     {
         var rect = new SKRect(cx - radius, cy - radius, cx + radius, cy + radius);
@@ -244,8 +242,8 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
         canvas.DrawOval(rect, _ringBgPaint);
 
         float ratio = 1f;
-        if (lastTimes != null && lastTimes.TryGetValue(coord, out var lastTime))
-            ratio = Math.Clamp((float)((currentTime - lastTime).TotalSeconds / cooldownDuration.TotalSeconds), 0f, 1f);
+        if (lastTimes != null && lastTimes.TryGetValue(coord, out var lastTick))
+            ratio = Math.Clamp((float)(currentTick - lastTick) / cooldownTicks, 0f, 1f);
 
         if (ratio > 0f)
         {

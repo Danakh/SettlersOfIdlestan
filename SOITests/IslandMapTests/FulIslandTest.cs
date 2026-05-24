@@ -46,7 +46,7 @@ namespace SOITests.src.IslandMapTests
             Assert.True(civ.GetResourceQuantity(SettlersOfIdlestan.Model.IslandMap.Resource.Brick) >= 5, "Expected at least 5 brick after grinding");
 
             // Verify that at least 8 seconds of in-game time have passed
-            Assert.True(controller.Clock != null && controller.Clock.Elapsed >= System.TimeSpan.FromSeconds(8), $"Expected at least 8s elapsed in the GameClock, was {controller.Clock?.Elapsed}");
+            Assert.True(controller.Clock != null && controller.Clock.CurrentTick >= 800, $"Expected at least 800 ticks (8s) elapsed in the GameClock, was {controller.Clock?.CurrentTick}");
 
             // Save the generated game and verify a round-trip load produces identical state
             SaveUtils.SaveAndReloadAndAssertEqual(controller, "FulIslandTestStart");

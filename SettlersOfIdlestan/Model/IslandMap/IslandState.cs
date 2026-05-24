@@ -45,11 +45,8 @@ public class IslandState : IJsonOnDeserialized
         Map = map;
         Civilizations = civilizations;
         IslandID = islandID;
-        // Initialize per-civilization per-hex last-harvest timestamps so cooldowns
-        // are part of the persisted model.
-        HarvestLastTimesByCivilization = new Dictionary<int, Dictionary<SettlersOfIdlestan.Model.HexGrid.HexCoord, DateTimeOffset>>();
-        // Separate timestamps for automatic production harvests performed by buildings
-        AutomaticHarvestLastTimesByCivilization = new Dictionary<int, Dictionary<SettlersOfIdlestan.Model.HexGrid.HexCoord, DateTimeOffset>>();
+        HarvestLastTimesByCivilization = new Dictionary<int, Dictionary<SettlersOfIdlestan.Model.HexGrid.HexCoord, long>>();
+        AutomaticHarvestLastTimesByCivilization = new Dictionary<int, Dictionary<SettlersOfIdlestan.Model.HexGrid.HexCoord, long>>();
         RecalculateVisibleIslandMaps();
     }
 
@@ -61,8 +58,8 @@ public class IslandState : IJsonOnDeserialized
     {
         Map = new IslandMap(Array.Empty<HexTile>());
         Civilizations = new List<SettlersOfIdlestan.Model.Civilization.Civilization>();
-        HarvestLastTimesByCivilization = new Dictionary<int, Dictionary<SettlersOfIdlestan.Model.HexGrid.HexCoord, DateTimeOffset>>();
-        AutomaticHarvestLastTimesByCivilization = new Dictionary<int, Dictionary<SettlersOfIdlestan.Model.HexGrid.HexCoord, DateTimeOffset>>();
+        HarvestLastTimesByCivilization = new Dictionary<int, Dictionary<SettlersOfIdlestan.Model.HexGrid.HexCoord, long>>();
+        AutomaticHarvestLastTimesByCivilization = new Dictionary<int, Dictionary<SettlersOfIdlestan.Model.HexGrid.HexCoord, long>>();
     }
 
     public void OnDeserialized()
@@ -92,17 +89,14 @@ public class IslandState : IJsonOnDeserialized
     }
 
     /// <summary>
-    /// Tracks the last in-game time each civilization harvested each hex.
-    /// Key: civilization index. Value: map HexCoord -> last harvest time.
-    /// Stored here so harvest cooldowns are persisted with the island state.
+    /// Tick de simulation de la dernière récolte manuelle par civilisation et par hex (1 tick = 0.01 s).
     /// </summary>
-    public Dictionary<int, Dictionary<SettlersOfIdlestan.Model.HexGrid.HexCoord, DateTimeOffset>> HarvestLastTimesByCivilization { get; set; }
+    public Dictionary<int, Dictionary<SettlersOfIdlestan.Model.HexGrid.HexCoord, long>> HarvestLastTimesByCivilization { get; set; }
 
     /// <summary>
-    /// Tracks the last in-game time each civilization had an automatic harvest on each hex
-    /// performed by producer buildings. This is separate from Manual harvest cooldowns.
+    /// Tick de simulation de la dernière récolte automatique par civilisation et par hex (1 tick = 0.01 s).
     /// </summary>
-    public Dictionary<int, Dictionary<SettlersOfIdlestan.Model.HexGrid.HexCoord, DateTimeOffset>> AutomaticHarvestLastTimesByCivilization { get; set; }
+    public Dictionary<int, Dictionary<SettlersOfIdlestan.Model.HexGrid.HexCoord, long>> AutomaticHarvestLastTimesByCivilization { get; set; }
 
     public IEnumerable<City> GetAllCities()
     {

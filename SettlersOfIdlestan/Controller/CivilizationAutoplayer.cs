@@ -67,7 +67,7 @@ namespace SettlersOfIdlestan.Controller
 
                 if (clock != null)
                 {
-                    clock.Advance(TimeSpan.FromSeconds(_timeStep));
+                    clock.SimulateAdvance((long)(_timeStep * 100));
                 }
             }
             return false;
@@ -112,7 +112,7 @@ namespace SettlersOfIdlestan.Controller
 
                 if (clock != null)
                 {
-                    clock.Advance(TimeSpan.FromSeconds(_timeStep));
+                    clock.SimulateAdvance((long)(_timeStep * 100));
                 }
             }
 
@@ -180,7 +180,7 @@ namespace SettlersOfIdlestan.Controller
                 if (clock != null)
                 {
                     // advance by _timeStep seconds of real time -> scaled by GameClock.Speed
-                    clock.Advance(TimeSpan.FromSeconds(_timeStep));
+                    clock.SimulateAdvance((long)(_timeStep * 100));
                 }
             }
         }
@@ -288,7 +288,7 @@ namespace SettlersOfIdlestan.Controller
 
                 if (clock != null)
                 {
-                    clock.Advance(TimeSpan.FromSeconds(_timeStep));
+                    clock.SimulateAdvance((long)(_timeStep * 100));
                 }
             }
 
@@ -350,7 +350,7 @@ namespace SettlersOfIdlestan.Controller
 
                 if (clock != null)
                 {
-                    clock.Advance(TimeSpan.FromSeconds(_timeStep));
+                    clock.SimulateAdvance((long)(_timeStep * 100));
                 }
             }
 

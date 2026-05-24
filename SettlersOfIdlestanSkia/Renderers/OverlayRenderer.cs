@@ -30,6 +30,7 @@ public sealed class OverlayRenderer : IGameRenderer
     private readonly TradeRenderer _tradeRenderer;
     private readonly PrestigeRenderer _prestigeRenderer;
     private readonly PrestigeMapRenderer _prestigeMapRenderer;
+    private readonly TimeControlRenderer _timeControlRenderer;
 
     private readonly SKPaint _buttonPaint = new() { Color = new SKColor(46, 125, 50), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _disabledButtonPaint = new() { Color = new SKColor(90, 90, 96), Style = SKPaintStyle.Fill, IsAntialias = true };
@@ -60,7 +61,8 @@ public sealed class OverlayRenderer : IGameRenderer
         SelectedCityPanelRenderer selectedCityPanelRenderer,
         TradeRenderer tradeRenderer,
         PrestigeRenderer prestigeRenderer,
-        PrestigeMapRenderer prestigeMapRenderer)
+        PrestigeMapRenderer prestigeMapRenderer,
+        TimeControlRenderer timeControlRenderer)
     {
         _inputService = inputService;
         _gameControllerService = gameControllerService;
@@ -71,6 +73,7 @@ public sealed class OverlayRenderer : IGameRenderer
         _tradeRenderer = tradeRenderer;
         _prestigeRenderer = prestigeRenderer;
         _prestigeMapRenderer = prestigeMapRenderer;
+        _timeControlRenderer = timeControlRenderer;
         _inputService.PointerPressed += HandlePointerPressed;
         _inputService.PointerMoved += HandlePointerMoved;
     }
@@ -84,6 +87,11 @@ public sealed class OverlayRenderer : IGameRenderer
         _tradeRenderer.Initialize(canvasSize);
         _prestigeRenderer.Initialize(canvasSize);
         _prestigeMapRenderer.Initialize(canvasSize);
+
+        // Positionné juste à gauche de l'engrenage (gear)
+        float gearX = canvasSize.Width - PlayerResourcesOverlayRenderer.Padding - PlayerResourcesOverlayRenderer.IconSize;
+        float timeControlRight = gearX - 8f;
+        _timeControlRenderer.Initialize(canvasSize, timeControlRight);
     }
 
     public void Render(SKCanvas canvas, GameRenderContext context)
@@ -131,6 +139,7 @@ public sealed class OverlayRenderer : IGameRenderer
         }
 
         float gearX = _canvasSize.Width - PlayerResourcesOverlayRenderer.Padding - PlayerResourcesOverlayRenderer.IconSize;
+        _timeControlRenderer.Render(canvas, context);
         _settingsMenu.Draw(canvas, gearX, PlayerResourcesOverlayRenderer.BarHeight);
 
         _tradeRenderer.Render(canvas);
@@ -318,6 +327,7 @@ public sealed class OverlayRenderer : IGameRenderer
         _activeTabBorderPaint.Dispose();
         _tabFont.Dispose();
         _prestigeMapRenderer.Dispose();
+        _timeControlRenderer.Dispose();
         _disposed = true;
     }
 }

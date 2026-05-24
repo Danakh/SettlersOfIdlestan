@@ -92,7 +92,7 @@ namespace SettlersOfIdlestanSkia.Renderers
             }
         }
 
-        public void SetHexHarvestTooltip(HexCoord coord, HarvestController harvestController, IslandState islandState, DateTimeOffset currentTime)
+        public void SetHexHarvestTooltip(HexCoord coord, HarvestController harvestController, IslandState islandState, long currentTick)
         {
             if (_islandRendererContext == null || _gameRenderContext == null)
                 return;
@@ -112,15 +112,15 @@ namespace SettlersOfIdlestanSkia.Renderers
             if (manualResources.Count > 0)
             {
                 islandState.HarvestLastTimesByCivilization.TryGetValue(playerIdx, out var manualTimes);
-                var manualCooldown = harvestController.GetManualHarvestCooldown(playerIdx);
-                lines.Add(FormatCooldownLine(_localizationService.Get("hex_tooltip_manual"), coord, manualTimes, currentTime, manualCooldown));
+                long manualCooldown = harvestController.GetManualHarvestCooldownTicks(playerIdx);
+                lines.Add(FormatCooldownLine(_localizationService.Get("hex_tooltip_manual"), coord, manualTimes, currentTick, manualCooldown));
             }
 
             if (autoResources.Count > 0)
             {
                 islandState.AutomaticHarvestLastTimesByCivilization.TryGetValue(playerIdx, out var autoTimes);
-                var autoCooldown = harvestController.GetEffectiveAutoHarvestCooldown(playerIdx, coord);
-                lines.Add(FormatCooldownLine(_localizationService.Get("hex_tooltip_auto"), coord, autoTimes, currentTime, autoCooldown));
+                long autoCooldown = harvestController.GetEffectiveAutoHarvestCooldownTicks(playerIdx, coord);
+                lines.Add(FormatCooldownLine(_localizationService.Get("hex_tooltip_auto"), coord, autoTimes, currentTick, autoCooldown));
             }
 
             _tooltipTexts = lines.ToArray();
@@ -128,14 +128,14 @@ namespace SettlersOfIdlestanSkia.Renderers
             _tooltipScreenPosition = _islandRendererContext.IslandToScreen(islandPos, _gameRenderContext.ZoomLevel, _gameRenderContext.CameraPosition);
         }
 
-        private string FormatCooldownLine(string label, HexCoord coord, Dictionary<HexCoord, DateTimeOffset>? times, DateTimeOffset currentTime, TimeSpan cooldown)
+        private string FormatCooldownLine(string label, HexCoord coord, Dictionary<HexCoord, long>? times, long currentTick, long cooldownTicks)
         {
-            var max = $"{cooldown.TotalSeconds:0.#}s";
+            var max = $"{cooldownTicks / 100.0:0.#}s";
 
-            if (times == null || !times.TryGetValue(coord, out var lastTime))
+            if (times == null || !times.TryGetValue(coord, out var lastTick))
                 return $"{label}: {_localizationService.Get("hex_tooltip_ready")} / {max}";
 
-            var remaining = cooldown.TotalSeconds - (currentTime - lastTime).TotalSeconds;
+            double remaining = (cooldownTicks - (currentTick - lastTick)) / 100.0;
             if (remaining <= 0)
                 return $"{label}: {_localizationService.Get("hex_tooltip_ready")} / {max}";
 

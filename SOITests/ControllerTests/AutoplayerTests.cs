@@ -76,7 +76,7 @@ namespace SOITests.ControllerTests
             Assert.Contains(civ.Roads, r => r.Position.Equals(thirdBuildable));
 
             // Verify that at least 20 seconds of in-game time have passed
-            Assert.True(clock.Elapsed >= TimeSpan.FromSeconds(18), $"Expected at least 18s elapsed in the GameClock, was {clock.Elapsed}");
+            Assert.True(clock.CurrentTick >= 1800, $"Expected at least 1800 ticks (18s) elapsed in the GameClock, was {clock.CurrentTick}");
 
             // Attempt to build a Market in the initial city using the autoplayer.
             var marketBuilt = auto.AutoBuildBuilding(vertex, BuildingType.Market);
