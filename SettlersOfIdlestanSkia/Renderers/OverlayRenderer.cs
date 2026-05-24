@@ -92,6 +92,7 @@ public sealed class OverlayRenderer : IGameRenderer
         _researchRenderer = researchRenderer;
         _inputService.PointerPressed += HandlePointerPressed;
         _inputService.PointerMoved += HandlePointerMoved;
+        _inputService.KeyPressed += HandleKeyInput;
     }
 
     public void Initialize(SKSize canvasSize)
@@ -400,12 +401,25 @@ public sealed class OverlayRenderer : IGameRenderer
         _activeTab = TabPrestige;
     }
 
+    private void HandleKeyInput(object? sender, KeyEventArgs e)
+    {
+        if (!_isVisible) return;
+        switch (e.Key)
+        {
+            case "I": _activeTab = TabIsland;   break;
+            case "R": _activeTab = TabResearch;  break;
+            case "P": _activeTab = TabPrestige;  break;
+            case "S": _activeTab = TabStats;     break;
+        }
+    }
+
     public void Dispose()
     {
         if (_disposed) return;
 
         _inputService.PointerPressed -= HandlePointerPressed;
         _inputService.PointerMoved -= HandlePointerMoved;
+        _inputService.KeyPressed -= HandleKeyInput;
         _playerResourcesOverlayRenderer.Dispose();
         _selectedCityPanelRenderer.Dispose();
         _settingsMenu.Dispose();

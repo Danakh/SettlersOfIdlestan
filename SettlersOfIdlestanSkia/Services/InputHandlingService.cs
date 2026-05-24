@@ -77,12 +77,25 @@ public class InputHandlingService
     /// </summary>
     public void HandleZoom(float zoomDelta, float centerX, float centerY)
     {
-        ZoomChanged?.Invoke(this, new ZoomEventArgs 
-        { 
+        ZoomChanged?.Invoke(this, new ZoomEventArgs
+        {
             ZoomDelta = zoomDelta,
             Center = new SKPoint(centerX, centerY),
             Timestamp = DateTime.UtcNow
         });
+    }
+
+    /// <summary>
+    /// Événement déclenché lors de l'appui sur une touche clavier.
+    /// </summary>
+    public event EventHandler<KeyEventArgs>? KeyPressed;
+
+    /// <summary>
+    /// Traite un événement clavier.
+    /// </summary>
+    public void HandleKeyPressed(string key)
+    {
+        KeyPressed?.Invoke(this, new KeyEventArgs { Key = key, Timestamp = DateTime.UtcNow });
     }
 }
 
@@ -112,5 +125,14 @@ public class ZoomEventArgs : EventArgs
 {
     public required float ZoomDelta { get; init; }
     public required SKPoint Center { get; init; }
+    public required DateTime Timestamp { get; init; }
+}
+
+/// <summary>
+/// Arguments d'événement pour les événements clavier.
+/// </summary>
+public class KeyEventArgs : EventArgs
+{
+    public required string Key { get; init; }
     public required DateTime Timestamp { get; init; }
 }

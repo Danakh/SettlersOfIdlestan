@@ -21,6 +21,7 @@ public sealed class SkiaGameRuntime : IDisposable
     private IslandMainRenderer? _islandMainRenderer;
     private OverlayRenderer? _overlayRenderer;
     private bool _prestigeTransitionPending;
+    private bool _allowDebugMode;
 
     private bool _isDisposed;
     private bool _isGameInitialized;
@@ -65,6 +66,7 @@ public sealed class SkiaGameRuntime : IDisposable
             return;
 
         _fileSystemService = fileSystemService;
+        _allowDebugMode = allowDebugMode;
 
         _resourceManager = new ResourceManager();
         _inputService = new InputHandlingService();
@@ -287,6 +289,25 @@ public sealed class SkiaGameRuntime : IDisposable
         var zoomFactor = wheelDelta > 0 ? ZoomStep : 1f / ZoomStep;
         _cameraService.ZoomAt(_cameraService.ZoomLevel * zoomFactor, new SKPoint(x, y));
         _inputService?.HandleZoom(wheelDelta, x, y);
+    }
+
+    public void HandleKeyPressed(string key)
+    {
+        _inputService?.HandleKeyPressed(key);
+
+        if (key == "C" && _allowDebugMode && DebugOverlayRenderer.DebugMode)
+            DebugAddResources();
+    }
+
+    private void DebugAddResources()
+    {
+        var mainState = _gameControllerService?.MainGameController?.CurrentMainState;
+        if (mainState?.CurrentIslandState?.Civilizations.Count > 0)
+        {
+            var civ = mainState.CurrentIslandState.Civilizations[0];
+            foreach (var resource in Enum.GetValues<SettlersOfIdlestan.Model.IslandMap.Resource>())
+                civ.AddResource(resource, 100);
+        }
     }
 
     public bool TryGetDebugStats(out RuntimeDebugStats stats)

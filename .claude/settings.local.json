@@ -15,7 +15,11 @@
       "PowerShell(New-Item *)",
       "PowerShell(dotnet build *)",
       "Bash(Sort-Object)",
-      "Bash(powershell *)"
+      "Bash(powershell *)",
+      "PowerShell(Get-ChildItem -Path \"C:\\\\DEV\\\\SettlersOfIdlestan\" -Directory | Select-Object -First 20 | ForEach-Object { $_.FullName })",
+      "Bash(Get-ChildItem -Path \"C:\\\\DEV\\\\SettlersOfIdlestan\\\\SettlersOfIdlestanWeb\" -Recurse -File)",
+      "Bash(Select-Object FullName)",
+      "Bash(Sort-Object FullName)"
     ]
   }
 }

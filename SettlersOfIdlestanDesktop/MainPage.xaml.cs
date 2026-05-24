@@ -32,6 +32,65 @@ public partial class MainPage : ContentPage
 		}
 	}
 
+#if WINDOWS
+	private bool _keyboardSubscribed;
+	private Microsoft.UI.Xaml.UIElement? _keyboardSource;
+
+	protected override void OnHandlerChanged()
+	{
+		base.OnHandlerChanged();
+		// Defer to next pump to ensure the native window is fully wired up
+		if (!_keyboardSubscribed)
+			MainThread.BeginInvokeOnMainThread(SubscribeToKeyboard);
+	}
+
+	private void SubscribeToKeyboard()
+	{
+		if (_keyboardSubscribed) return;
+
+		// Iterate MAUI windows and look for the MauiWinUIWindow (WinUI3 native window)
+		foreach (var mauiWindow in Microsoft.Maui.Controls.Application.Current?.Windows
+		         ?? Enumerable.Empty<Microsoft.Maui.Controls.Window>())
+		{
+			if (mauiWindow.Handler?.PlatformView is Microsoft.Maui.MauiWinUIWindow nativeWindow &&
+			    nativeWindow.Content is Microsoft.UI.Xaml.UIElement root)
+			{
+				root.PreviewKeyDown += OnPlatformKeyDown;
+				_keyboardSource = root;
+				_keyboardSubscribed = true;
+				return;
+			}
+		}
+
+		// Fallback: hook on the page's own content panel (fires when focus is within it)
+		if (Handler?.PlatformView is Microsoft.UI.Xaml.UIElement pageRoot)
+		{
+			pageRoot.PreviewKeyDown += OnPlatformKeyDown;
+			_keyboardSource = pageRoot;
+			_keyboardSubscribed = true;
+		}
+	}
+
+	private void OnPlatformKeyDown(object sender, Microsoft.UI.Xaml.Input.KeyRoutedEventArgs e)
+	{
+		if (_runtime == null) return;
+		var key = e.Key switch
+		{
+			Windows.System.VirtualKey.I => "I",
+			Windows.System.VirtualKey.R => "R",
+			Windows.System.VirtualKey.P => "P",
+			Windows.System.VirtualKey.S => "S",
+			Windows.System.VirtualKey.C => "C",
+			_ => null
+		};
+		if (key != null)
+		{
+			_runtime.HandleKeyPressed(key);
+			e.Handled = true;
+		}
+	}
+#endif
+
 	private void OnCanvasPaintSurface(object? sender, SKPaintSurfaceEventArgs e)
 	{
 		if (_runtime == null)
@@ -115,6 +174,15 @@ public partial class MainPage : ContentPage
 	protected override void OnDisappearing()
 	{
 		base.OnDisappearing();
+
+#if WINDOWS
+		if (_keyboardSubscribed && _keyboardSource != null)
+		{
+			_keyboardSource.PreviewKeyDown -= OnPlatformKeyDown;
+			_keyboardSource = null;
+			_keyboardSubscribed = false;
+		}
+#endif
 
 		_runtime?.Dispose();
 		_runtime = null;
