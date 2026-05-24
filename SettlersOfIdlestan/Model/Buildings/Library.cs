@@ -2,23 +2,26 @@ using SettlersOfIdlestan.Model.IslandMap;
 
 namespace SettlersOfIdlestan.Model.Buildings;
 
-/// <summary>
-/// Represents a Library building.
-/// </summary>
 public class Library : Building
 {
-    /// <summary>
-    /// Initializes a new instance of the <see cref="Library"/> class.
-    /// </summary>
+    public long LastResearchTick { get; set; } = 0;
+
     public Library() : base(BuildingType.Library)
     {
         AvailableAtLevel = 2;
     }
 
-    public override int GetDefaultMaxLevel()
+    public override int GetDefaultMaxLevel() => 1;
+
+    public bool CanProduceResearch => Level >= 2;
+
+    public long GetResearchCooldownTicks() => Level switch
     {
-        return 1;
-    }
+        2 => 1000L,
+        3 => 800L,
+        >= 4 => 600L,
+        _ => long.MaxValue,
+    };
 
     public override ResourceCost GetBuildCost() => new ResourceCost
     {

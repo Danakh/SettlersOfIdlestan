@@ -6,48 +6,64 @@ using System.Text.Json.Serialization;
 
 namespace SettlersOfIdlestan.Model.Civilization;
 
-/// <summary>
-/// Represents the technology tree of a civilization, holding modifiers unlocked through research.
-/// </summary>
 [Serializable]
 public class TechnologyTree : IModifierProvider
 {
-    /// <summary>
-    /// Gets the list of modifiers unlocked in this technology tree.
-    /// </summary>
-    public List<Modifier> Modifiers { get; set; } = new();
+    public List<TechnologyId> CompletedTechnologies { get; set; } = new();
+    public TechnologyId? ActiveResearch { get; set; }
+    public int ActiveResearchConsumed { get; set; }
+    public int ResearchPoints { get; set; }
+    public long ActiveResearchLastConsumptionTick { get; set; }
+
+    // Derived from CompletedTechnologies; rebuilt via RebuildModifiers().
+    [JsonIgnore]
+    public List<Modifier> Modifiers { get; private set; } = new();
 
     public IEnumerable<Modifier> GetModifiers() => Modifiers;
 
-    /// <summary>
-    /// Applies all matching modifiers for the given category and sub-category to a base value.
-    /// </summary>
+    public void RebuildModifiers()
+    {
+        Modifiers.Clear();
+        foreach (var techId in CompletedTechnologies)
+        {
+            var tech = TechnologyDefinitions.Get(techId);
+            if (tech != null)
+                Modifiers.AddRange(tech.Modifiers);
+        }
+    }
+
+    public void CompleteResearch(TechnologyId id)
+    {
+        if (!CompletedTechnologies.Contains(id))
+        {
+            CompletedTechnologies.Add(id);
+            var tech = TechnologyDefinitions.Get(id);
+            if (tech != null)
+                Modifiers.AddRange(tech.Modifiers);
+        }
+        if (ActiveResearch == id)
+        {
+            ActiveResearch = null;
+            ActiveResearchConsumed = 0;
+            ActiveResearchLastConsumptionTick = 0;
+        }
+    }
+
     public int ApplyModifiers(ECategory category, string subCategory, int baseValue)
     {
         int result = baseValue;
         foreach (var modifier in Modifiers)
-        {
             if (modifier.AppliesTo(category, subCategory))
-            {
                 result = modifier.Apply(result);
-            }
-        }
         return result;
     }
 
-    /// <summary>
-    /// Applies all matching modifiers for the given category and sub-category to a base value.
-    /// </summary>
     public double ApplyModifiers(ECategory category, string subCategory, double baseValue)
     {
         double result = baseValue;
         foreach (var modifier in Modifiers)
-        {
             if (modifier.AppliesTo(category, subCategory))
-            {
                 result = modifier.Apply(result);
-            }
-        }
         return result;
     }
 }

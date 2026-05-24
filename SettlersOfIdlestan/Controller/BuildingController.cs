@@ -143,7 +143,7 @@ namespace SettlersOfIdlestan.Controller
                       ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
 
             int maxLevel = building.GetDefaultMaxLevel();
-            maxLevel = civ.TechnologyTree.ApplyModifiers(ECategory.BUILDING_MAX_LEVEL, building.Type.ToString(), maxLevel);
+            maxLevel = civ.ModifierAggregator.ApplyModifiers(ECategory.BUILDING_MAX_LEVEL, building.Type.ToString(), maxLevel);
             return maxLevel;
         }
 

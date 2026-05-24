@@ -8,7 +8,7 @@ using SkiaSharp;
 
 namespace SettlersOfIdlestanSkia.Renderers;
 
-public enum BarDisplayMode { Island, Prestige }
+public enum BarDisplayMode { Island, Prestige, Research }
 
 /// <summary>
 /// Renderer affichant un bandeau avec les ressources du joueur actuel sur toute la hauteur de la fenêtre.
@@ -109,6 +109,13 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
             return;
         }
 
+        if (Mode == BarDisplayMode.Research)
+        {
+            int rp = mainGameState.CurrentIslandState?.PlayerCivilization.TechnologyTree.ResearchPoints ?? 0;
+            DrawResearchPointsBar(canvas, rp);
+            return;
+        }
+
         var islandState = mainGameState.CurrentIslandState;
         if (islandState == null)
             return;
@@ -153,6 +160,21 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
 
         float gearX = barWidth - Padding - IconSize;
         DrawGearIcon(canvas, gearX, itemY, IconSize);
+    }
+
+    private void DrawResearchPointsBar(SKCanvas canvas, int researchPoints)
+    {
+        DrawBarBackground(canvas);
+
+        float gearX = _canvasSize.Width - Padding - IconSize;
+        float itemY = (BarHeight - RectangleHeight) / 2;
+        DrawGearIcon(canvas, gearX, itemY, IconSize);
+
+        if (_textFont == null || _textPaint == null) return;
+
+        string label = $"{_localization.Get("research_points_label")}: {researchPoints}";
+        float textY = BarHeight / 2 + _textFont.Size / 2 - 2;
+        canvas.DrawText(label, ResourceStartX, textY, _textFont, _textPaint);
     }
 
     private void DrawPrestigePointsBar(SKCanvas canvas, int prestigePoints)
