@@ -18,11 +18,17 @@ public class HarvestService
     /// </summary>
     public event EventHandler<HarvestCompletedEventArgs>? OnHarvestCompleted;
 
+    /// <summary>
+    /// Événement déclenché quand le Marché génère une ressource aléatoire.
+    /// </summary>
+    public event EventHandler<MarketGenerationEventArgs>? OnMarketResourceGenerated;
+
     public HarvestService(GameControllerService gameControllerService)
     {
         _gameControllerService = gameControllerService ?? throw new ArgumentNullException(nameof(gameControllerService));
         _harvestController = _gameControllerService.MainGameController.HarvestController;
         _harvestController.OnHarvestCompleted += OnHarvestControllerCompleted;
+        _harvestController.OnMarketResourceGenerated += (s, e) => OnMarketResourceGenerated?.Invoke(s, e);
     }
 
     /// <summary>

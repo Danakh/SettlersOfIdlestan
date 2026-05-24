@@ -6,6 +6,7 @@ using SettlersOfIdlestan.Model.PrestigeMap;
 using SettlersOfIdlestan.Model.GameplayModifier;
 using SOITests.TestUtilities;
 using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
+using SettlersOfIdlestan.Model.Prestige.PrestigeMap;
 
 namespace SOITests.ControllerTests;
 

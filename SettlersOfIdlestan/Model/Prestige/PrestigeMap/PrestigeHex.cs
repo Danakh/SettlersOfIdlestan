@@ -1,6 +1,6 @@
 using SettlersOfIdlestan.Model.GameplayModifier;
 
-namespace SettlersOfIdlestan.Model.PrestigeMap;
+namespace SettlersOfIdlestan.Model.Prestige.PrestigeMap;
 
 public class PrestigeHex
 {

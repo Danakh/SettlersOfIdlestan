@@ -1,4 +1,4 @@
-using SettlersOfIdlestan.Model.PrestigeMap;
+using SettlersOfIdlestan.Model.Prestige.PrestigeMap;
 
 namespace SettlersOfIdlestan.Controller.Generator;
 

@@ -4,10 +4,25 @@ using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.HexGrid;
+using SettlersOfIdlestan.Model.Buildings;
 using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
 
 namespace SettlersOfIdlestan.Controller
 {
+    public class MarketGenerationEventArgs : EventArgs
+    {
+        public int CivilizationIndex { get; set; }
+        public Resource Resource { get; set; }
+        public Vertex CityPosition { get; set; }
+
+        public MarketGenerationEventArgs(int civIndex, Resource resource, Vertex cityPosition)
+        {
+            CivilizationIndex = civIndex;
+            Resource = resource;
+            CityPosition = cityPosition;
+        }
+    }
+
     /// <summary>
     /// Arguments d'événement pour une récolte complétée (manuelle ou automatique).
     /// </summary>
@@ -41,8 +56,14 @@ namespace SettlersOfIdlestan.Controller
         public const long HarvestCooldownTicks = 200L;
         // 5 s × 100 ticks/s
         public const long AutomaticHarvestCooldownTicks = 500L;
+        // 10 s × 100 ticks/s
+        public const long MarketGenerationCooldownTicks = 1000L;
+
+        private static readonly Resource[] BasicResources = [Resource.Food, Resource.Wood, Resource.Brick, Resource.Stone];
+        private readonly Random _random = new();
 
         public event EventHandler<HarvestCompletedEventArgs>? OnHarvestCompleted;
+        public event EventHandler<MarketGenerationEventArgs>? OnMarketResourceGenerated;
 
         internal HarvestController(IslandState? state = null, GameClock? clock = null)
         {
@@ -64,6 +85,8 @@ namespace SettlersOfIdlestan.Controller
         private void OnClockAdvanced(object? sender, GameClockAdvancedEventArgs e)
         {
             try { PerformAutomaticProductionHarvests(); }
+            catch { }
+            try { PerformMarketGenerations(); }
             catch { }
         }
 
@@ -117,6 +140,34 @@ namespace SettlersOfIdlestan.Controller
                             }
                         }
                     }
+                }
+            }
+        }
+
+        private void PerformMarketGenerations()
+        {
+            if (_state == null || _clock == null) return;
+            long now = _clock.CurrentTick;
+
+            foreach (var civ in _state.Civilizations)
+            {
+                foreach (var city in civ.Cities)
+                {
+                    var market = city.Buildings.OfType<Market>().FirstOrDefault();
+                    if (market == null || market.Level == 0) continue;
+
+                    if (market.LastGenerationTick == 0)
+                    {
+                        market.LastGenerationTick = now;
+                        continue;
+                    }
+
+                    if (now - market.LastGenerationTick < MarketGenerationCooldownTicks) continue;
+
+                    var resource = BasicResources[_random.Next(BasicResources.Length)];
+                    civ.AddResource(resource, 1);
+                    market.LastGenerationTick = now;
+                    OnMarketResourceGenerated?.Invoke(this, new MarketGenerationEventArgs(civ.Index, resource, city.Position));
                 }
             }
         }

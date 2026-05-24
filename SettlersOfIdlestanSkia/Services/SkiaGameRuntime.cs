@@ -339,6 +339,23 @@ public sealed class SkiaGameRuntime : IDisposable
 
             particleSystem.EmitParticle(hexCenter, cityCenter, particleColor);
         };
+
+        _harvestService!.OnMarketResourceGenerated += (sender, args) =>
+        {
+            if (_prestigeTransitionPending)
+                return;
+
+            if (_gameControllerService?.CurrentGameState?.CurrentIslandState == null)
+                return;
+
+            SKPoint cityCenter = islandMainRenderer.VertexToIslandPoint(args.CityPosition);
+            SKPoint above = new SKPoint(cityCenter.X, cityCenter.Y - 30f);
+
+            var resourceColors = IslandMainRenderer.ResourceColors;
+            var particleColor = resourceColors.TryGetValue(args.Resource, out var color) ? color : SKColors.Gold;
+
+            particleSystem.EmitParticle(cityCenter, above, particleColor, 0.8f);
+        };
     }
 
     public void Dispose()

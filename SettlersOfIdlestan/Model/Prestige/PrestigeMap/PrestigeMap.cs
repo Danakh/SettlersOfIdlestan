@@ -2,7 +2,7 @@ using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.GameplayModifier;
 using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
 
-namespace SettlersOfIdlestan.Model.PrestigeMap;
+namespace SettlersOfIdlestan.Model.Prestige.PrestigeMap;
 
 public class PrestigeMap
 {

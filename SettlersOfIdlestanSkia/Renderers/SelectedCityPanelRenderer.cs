@@ -1,4 +1,5 @@
 using SettlersOfIdlestan.Model.Buildings;
+using SettlersOfIdlestan.Controller;
 using SettlersOfIdlestan.Services.Localization;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Services;
@@ -167,6 +168,15 @@ public class SelectedCityPanelRenderer : IGameRenderer
                 var costDescription = SkiaTextUtils.computeCostString(_localization, cost);
 
                 var tooltipLines = new List<string> { buildingName, "", description, "" };
+
+                if (hoveredBuilding is Market market && market.Level > 0)
+                {
+                    long currentTick = _cityBuildingService.GetCurrentTick();
+                    long elapsed = market.LastGenerationTick == 0 ? 0 : currentTick - market.LastGenerationTick;
+                    long remaining = Math.Max(0, HarvestController.MarketGenerationCooldownTicks - elapsed);
+                    tooltipLines.Add(_localization.Get("market_generation_cooldown") + $" {remaining/100}s/{HarvestController.MarketGenerationCooldownTicks/100}s");
+                    tooltipLines.Add("");
+                }
 
                 var prestigeController = _cityBuildingService.PrestigeController;
                 if (hoveredBuilding.Level > 0)

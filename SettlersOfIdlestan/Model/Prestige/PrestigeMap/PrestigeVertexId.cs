@@ -1,4 +1,4 @@
-namespace SettlersOfIdlestan.Model.PrestigeMap;
+namespace SettlersOfIdlestan.Model.Prestige.PrestigeMap;
 
 public enum PrestigeVertexId
 {

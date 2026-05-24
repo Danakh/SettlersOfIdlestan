@@ -8,6 +8,11 @@ namespace SettlersOfIdlestan.Model.Buildings;
 public class Market : Building
 {
     /// <summary>
+    /// Tick de la dernière génération de ressource. 0 = jamais généré.
+    /// </summary>
+    public long LastGenerationTick { get; set; } = 0;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="Market"/> class.
     /// </summary>
     public Market() : base(BuildingType.Market)

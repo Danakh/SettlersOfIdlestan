@@ -1,7 +1,7 @@
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.GameplayModifier;
 
-namespace SettlersOfIdlestan.Model.PrestigeMap;
+namespace SettlersOfIdlestan.Model.Prestige.PrestigeMap;
 
 public class PrestigeVertex
 {

@@ -73,6 +73,8 @@ public class CityBuildingService
         return true;
     }
 
+    public long GetCurrentTick() => _mainGameController.CurrentMainState?.Clock?.CurrentTick ?? 0;
+
     public bool IsAtMaxLevel(Building building)
     {
         if (SelectedCity == null)
