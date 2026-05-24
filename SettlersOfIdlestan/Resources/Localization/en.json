@@ -79,6 +79,8 @@
   "tab_island": "Island",
   "tab_prestige_map": "Prestige",
   "prestige_points_label": "Prestige points",
+  "tooltip_building_prestige": "Prestige points:",
+  "tooltip_building_prestige_next": "Next level:",
   "menu_about": "About",
   "about_title": "About",
   "about_by": "Game By Danakh",

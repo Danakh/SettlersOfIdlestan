@@ -67,6 +67,17 @@ namespace SettlersOfIdlestan.Controller
             };
         }
 
+        public int GetBuildingPrestigePointsAtNextLevel(Building building)
+        {
+            return building.Type switch
+            {
+                BuildingType.Temple => 1,
+                BuildingType.Library => 1,
+                BuildingType.TownHall => (building.Level + 1 > 2 ? 2 : 1),
+                _ => 0
+            };
+        }
+
         public void PerformPrestige(MainGameState mainGameState, IslandParameters nextIslandParameters)
         {
             if (!PrestigeIsAvailable())

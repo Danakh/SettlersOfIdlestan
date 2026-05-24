@@ -165,7 +165,38 @@ public class SelectedCityPanelRenderer : IGameRenderer
                     description = _localization.Get(hoveredBuilding.DescriptionKey);
                 var cost = hoveredBuilding.Level == 0 ? hoveredBuilding.GetBuildCost() : hoveredBuilding.GetUpgradeCost(hoveredBuilding.Level + 1);
                 var costDescription = SkiaTextUtils.computeCostString(_localization, cost);
-                TooltipRenderUtils.DrawTooltip(canvas, _canvasSize, _lastPointerPosition, new string[] { buildingName, "", description, "", costDescription }, font10);
+
+                var tooltipLines = new List<string> { buildingName, "", description, "" };
+
+                var prestigeController = _cityBuildingService.PrestigeController;
+                if (hoveredBuilding.Level > 0)
+                {
+                    var currentPrestige = prestigeController.GetBuildingPrestigePoints(hoveredBuilding);
+                    if (currentPrestige > 0)
+                    {
+                        tooltipLines.Add(_localization.Get("tooltip_building_prestige") + " " + currentPrestige);
+                        var isAtMax = _cityBuildingService.IsAtMaxLevel(hoveredBuilding);
+                        if (!isAtMax)
+                        {
+                            var nextPrestige = prestigeController.GetBuildingPrestigePointsAtNextLevel(hoveredBuilding);
+                            if (nextPrestige != currentPrestige)
+                                tooltipLines.Add(_localization.Get("tooltip_building_prestige_next") + " " + nextPrestige);
+                        }
+                        tooltipLines.Add("");
+                    }
+                }
+                else
+                {
+                    var buildPrestige = prestigeController.GetBuildingPrestigePointsAtNextLevel(hoveredBuilding);
+                    if (buildPrestige > 0)
+                    {
+                        tooltipLines.Add(_localization.Get("tooltip_building_prestige") + " " + buildPrestige);
+                        tooltipLines.Add("");
+                    }
+                }
+
+                tooltipLines.Add(costDescription);
+                TooltipRenderUtils.DrawTooltip(canvas, _canvasSize, _lastPointerPosition, tooltipLines.ToArray(), font10);
             }
         }
     }

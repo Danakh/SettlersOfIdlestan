@@ -12,6 +12,7 @@ public class CityBuildingService
     public City? SelectedCity { get; private set; } = null;
     private IslandState IslandState => _mainGameController.CurrentMainState?.CurrentIslandState ?? throw new InvalidOperationException("Island state is not available.");
     private BuildingController BuildingController => _mainGameController.BuildingController ?? throw new InvalidOperationException("BuildingController is not available.");
+    public PrestigeController PrestigeController => _mainGameController.PrestigeController;
 
     public CityBuildingService(MainGameController mainGameController)
     {
