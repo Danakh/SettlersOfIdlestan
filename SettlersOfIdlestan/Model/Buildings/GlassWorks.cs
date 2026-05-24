@@ -23,8 +23,11 @@ public class GlassWorks : Building
     }
 
     // Desert production is 2x slower than other terrains
-    public override double GetAutomaticHarvestCooldownMultiplier(TerrainType terrain)
-        => terrain == TerrainType.Desert ? 2.0 : 1.0;
+    public override long GetAutomaticHarvestCooldown(long baseCooldownTicks)
+    {
+        long levelsAbove = Math.Max(0, Level - AutomaticHarvestUnlockLevel);
+        return Math.Max(1L, baseCooldownTicks * 2 - levelsAbove * 50);
+    }
 
     public override ResourceCost GetBuildCost() => new ResourceCost
     {

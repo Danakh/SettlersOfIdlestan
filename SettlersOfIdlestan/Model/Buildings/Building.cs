@@ -118,25 +118,19 @@ public class Building
     public virtual Resource? AutomaticHarvestCapability(TerrainType terrain) => null;
 
     /// <summary>
-    /// Returns a cooldown multiplier for automatic harvests on the given terrain type.
-    /// Values > 1.0 slow down production; default is 1.0.
-    /// </summary>
-    public virtual double GetAutomaticHarvestCooldownMultiplier(TerrainType terrain) => 1.0;
-
-    /// <summary>
     /// Building level at which automatic harvest is unlocked. Override in subclasses.
     /// </summary>
     public virtual int AutomaticHarvestUnlockLevel => int.MaxValue;
 
     /// <summary>
-    /// Flat cooldown reduction (in seconds) earned per level above AutomaticHarvestUnlockLevel.
-    /// Returns TimeSpan.Zero if this building cannot auto-harvest this terrain.
+    /// Returns the raw auto-harvest cooldown in ticks for this building, before civilization
+    /// speed modifiers are applied. Default: baseCooldownTicks minus 0.5 s (50 ticks) per level
+    /// above AutomaticHarvestUnlockLevel.
     /// </summary>
-    public TimeSpan GetAutomaticHarvestCooldownReduction(TerrainType terrain)
+    public virtual long GetAutomaticHarvestCooldown(long baseCooldownTicks)
     {
-        if (AutomaticHarvestCapability(terrain) == null) return TimeSpan.Zero;
-        var levelsAbove = Math.Max(0, Level - AutomaticHarvestUnlockLevel);
-        return TimeSpan.FromSeconds(levelsAbove * 0.5);
+        long levelsAbove = Math.Max(0, Level - AutomaticHarvestUnlockLevel);
+        return Math.Max(1L, baseCooldownTicks - levelsAbove * 50);
     }
 
     /// <summary>

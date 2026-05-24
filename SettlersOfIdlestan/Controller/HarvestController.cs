@@ -91,12 +91,6 @@ namespace SettlersOfIdlestan.Controller
             catch { }
         }
 
-        private long GetAutoHarvestCooldownTicks(Civilization civ)
-        {
-            double speedMultiplier = civ.ModifierAggregator.ApplyModifiers(ECategory.HARVEST_SPEED, "", 1.0);
-            return Math.Max(1L, (long)(AutomaticHarvestCooldownTicks / speedMultiplier));
-        }
-
         private void PerformAutomaticProductionHarvests()
         {
             if (_state == null || _clock == null) return;
@@ -110,7 +104,7 @@ namespace SettlersOfIdlestan.Controller
                 }
 
                 long now = _clock.CurrentTick;
-                long baseCooldown = GetAutoHarvestCooldownTicks(civ);
+                double speedMultiplier = civ.ModifierAggregator.ApplyModifiers(ECategory.HARVEST_SPEED, "", 1.0);
 
                 var allHexes = new HashSet<HexCoord>();
                 foreach (var city in civ.Cities)
@@ -131,9 +125,9 @@ namespace SettlersOfIdlestan.Controller
                         {
                             var res = building.AutomaticHarvestCapability(tile.TerrainType);
                             if (res == null) continue;
-                            long effective = (long)(baseCooldown * building.GetAutomaticHarvestCooldownMultiplier(tile.TerrainType))
-                                - (long)(building.GetAutomaticHarvestCooldownReduction(tile.TerrainType).TotalSeconds * 100);
-                            capable.Add((city, building, res.Value, Math.Max(1L, effective)));
+                            long raw = building.GetAutomaticHarvestCooldown(AutomaticHarvestCooldownTicks);
+                            long effective = Math.Max(1L, (long)(raw / speedMultiplier));
+                            capable.Add((city, building, res.Value, effective));
                         }
                     }
 
@@ -233,22 +227,22 @@ namespace SettlersOfIdlestan.Controller
             var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex);
             if (civ == null) return AutomaticHarvestCooldownTicks;
 
-            long baseCooldown = GetAutoHarvestCooldownTicks(civ);
             var tile = _state.Map.GetTile(hex);
-            if (tile == null) return baseCooldown;
+            if (tile == null) return AutomaticHarvestCooldownTicks;
+
+            double speedMultiplier = civ.ModifierAggregator.ApplyModifiers(ECategory.HARVEST_SPEED, "", 1.0);
 
             long? max = null;
             foreach (var city in civ.Cities.Where(c => c.Position.IsAdjacentTo(hex)))
                 foreach (var building in city.Buildings)
                     if (building.AutomaticHarvestCapability(tile.TerrainType).HasValue)
                     {
-                        long effective = (long)(baseCooldown * building.GetAutomaticHarvestCooldownMultiplier(tile.TerrainType))
-                            - (long)(building.GetAutomaticHarvestCooldownReduction(tile.TerrainType).TotalSeconds * 100);
-                        effective = Math.Max(1L, effective);
+                        long raw = building.GetAutomaticHarvestCooldown(AutomaticHarvestCooldownTicks);
+                        long effective = Math.Max(1L, (long)(raw / speedMultiplier));
                         if (max == null || effective > max) max = effective;
                     }
 
-            return max ?? baseCooldown;
+            return max ?? AutomaticHarvestCooldownTicks;
         }
 
         private void TryAutoTradeOnOverflow(Civilization civ, Resource res)
