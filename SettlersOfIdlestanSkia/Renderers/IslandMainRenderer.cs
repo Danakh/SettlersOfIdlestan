@@ -19,6 +19,7 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
     private readonly RoadRenderer _roadRenderer;
     private readonly CityRenderer _cityRenderer;
     private readonly HarvestRenderer _harvestRenderer;
+    private readonly BanditRenderer _banditRenderer;
     private readonly HarvestParticleSystem _harvestParticleSystem;
     private readonly IConstructionHoverProvider _constructionHoverProvider;
     private readonly TooltipRenderer _tooltipRenderer;
@@ -51,6 +52,7 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
         _cityRenderer = new CityRenderer(tooltipRenderer);
         _harvestParticleSystem = new HarvestParticleSystem();
         _harvestRenderer = new HarvestRenderer(_harvestParticleSystem);
+        _banditRenderer = new BanditRenderer();
         _constructionHoverProvider = constructionHoverProvider;
         _tooltipRenderer = tooltipRenderer;
         _harvestController = harvestController;
@@ -67,6 +69,7 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
         _roadRenderer.Initialize(canvasSize);
         _cityRenderer.Initialize(canvasSize);
         _harvestRenderer.Initialize(canvasSize);
+        _banditRenderer.Initialize(canvasSize);
     }
 
     public void Render(SKCanvas canvas, GameRenderContext context)
@@ -105,6 +108,7 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
         using (ApplyCameraTransform(canvas, context))
         {
             _gameBoardRenderer.Render(canvas, context);
+            _banditRenderer.Render(canvas, context);
             _roadRenderer.Render(canvas, context);
             _cityRenderer.Render(canvas, context);
             _harvestRenderer.Render(canvas, context);
@@ -171,6 +175,7 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
         _roadRenderer.Dispose();
         _cityRenderer.Dispose();
         _harvestRenderer.Dispose();
+        _banditRenderer.Dispose();
         _tooltipRenderer.Dispose();
     }
 

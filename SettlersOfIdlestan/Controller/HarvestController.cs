@@ -52,6 +52,7 @@ namespace SettlersOfIdlestan.Controller
         private IslandState? _state;
         private GameClock? _clock;
         private TradeController? _tradeController;
+        private BanditController? _banditController;
 
         // 2 s × 100 ticks/s
         public const long HarvestCooldownTicks = 200L;
@@ -70,7 +71,7 @@ namespace SettlersOfIdlestan.Controller
             Initialize(state, clock);
         }
 
-        internal void Initialize(IslandState? state, GameClock? clock, TradeController? tradeController = null)
+        internal void Initialize(IslandState? state, GameClock? clock, TradeController? tradeController = null, BanditController? banditController = null)
         {
             if (_clock != null)
                 _clock.Advanced -= OnClockAdvanced;
@@ -78,6 +79,7 @@ namespace SettlersOfIdlestan.Controller
             _state = state;
             _clock = clock;
             _tradeController = tradeController;
+            _banditController = banditController;
 
             if (_clock != null)
                 _clock.Advanced += OnClockAdvanced;
@@ -115,6 +117,9 @@ namespace SettlersOfIdlestan.Controller
                 {
                     var tile = _state.Map.GetTile(hex);
                     if (tile == null) continue;
+
+                    // Bandit blocking: no auto-harvest if a bandit is on the hex or cooldown active
+                    if (_banditController?.IsHarvestBlocked(hex, now) == true) continue;
 
                     // Collect all (city, building) pairs that can auto-harvest this hex
                     var capable = new System.Collections.Generic.List<(City city, Building building, Resource resource, long cooldown)>();
@@ -268,6 +273,11 @@ namespace SettlersOfIdlestan.Controller
                       ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
 
             long now = _clock.CurrentTick;
+
+            // Bandit blocking: no manual harvest if a bandit is on the hex or cooldown active
+            if (_banditController?.IsHarvestBlocked(hex, now) == true)
+                return false;
+
             var civMap = _state.HarvestLastTimesByCivilization;
             if (!civMap.TryGetValue(civilizationIndex, out var perHex))
             {

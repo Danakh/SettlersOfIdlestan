@@ -145,6 +145,8 @@
   "hex_tooltip_manual": "Manual",
   "hex_tooltip_auto": "Auto",
   "hex_tooltip_ready": "Ready!",
+  "hex_tooltip_bandit_present": "⚔ Bandit — harvest blocked",
+  "hex_tooltip_bandit_cooldown": "⚔ Bandit cooldown",
   "tab_research": "Research",
   "tab_stats": "Stats",
   "stats_current_run": "Current Run",

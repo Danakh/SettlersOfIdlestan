@@ -32,6 +32,8 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
     private const float ManualRingStroke = 3f;
     private const float AutoRingRadius = 8f;
     private const float AutoRingStroke = 3f;
+    private const float BanditRingRadius = 12f;
+    private const float BanditRingStroke = 3f;
 
     private static readonly Dictionary<TerrainType, SKColor> TerrainColors = new()
     {
@@ -110,7 +112,8 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
                     islandState.HarvestLastTimesByCivilization.TryGetValue(playerIdx, out var manualTimes);
                     islandState.AutomaticHarvestLastTimesByCivilization.TryGetValue(playerIdx, out var autoTimes);
 
-                    DrawIslandMap(canvas, visibleMap, playerIdx, mainGameState.Clock.CurrentTick, manualTimes, autoTimes);
+                    var banditPositions = new HashSet<HexCoord>(islandState.Bandits.Select(b => b.Position));
+                    DrawIslandMap(canvas, visibleMap, playerIdx, mainGameState.Clock.CurrentTick, manualTimes, autoTimes, islandState.BanditCooldownUntil, banditPositions);
                 }
             }
         }
@@ -119,19 +122,23 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
     private void DrawIslandMap(SKCanvas canvas, IslandMap map, int playerIdx,
         long currentTick,
         Dictionary<HexCoord, long>? manualTimes,
-        Dictionary<HexCoord, long>? autoTimes)
+        Dictionary<HexCoord, long>? autoTimes,
+        Dictionary<HexCoord, long>? banditCooldownUntil,
+        HashSet<HexCoord>? banditPositions)
     {
         foreach (var (coord, tile) in map.Tiles)
         {
             var (x, y) = AxialToIsland(coord.Q, coord.R);
-            DrawHexagonTile(canvas, x, y, HexSize, tile, playerIdx, currentTick, manualTimes, autoTimes);
+            DrawHexagonTile(canvas, x, y, HexSize, tile, playerIdx, currentTick, manualTimes, autoTimes, banditCooldownUntil, banditPositions);
         }
     }
 
     private void DrawHexagonTile(SKCanvas canvas, float centerX, float centerY, float size, HexTile tile,
         int playerIdx, long currentTick,
         Dictionary<HexCoord, long>? manualTimes,
-        Dictionary<HexCoord, long>? autoTimes)
+        Dictionary<HexCoord, long>? autoTimes,
+        Dictionary<HexCoord, long>? banditCooldownUntil,
+        HashSet<HexCoord>? banditPositions)
     {
         var points = GetHexagonPoints(centerX, centerY, size);
 
@@ -147,7 +154,7 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
         if (_hexBorderPaint != null)
             canvas.DrawPath(PointsToPath(points), _hexBorderPaint);
 
-        DrawHarvestIndicator(canvas, centerX, centerY, tile, playerIdx, currentTick, manualTimes, autoTimes);
+        DrawHarvestIndicator(canvas, centerX, centerY, tile, playerIdx, currentTick, manualTimes, autoTimes, banditCooldownUntil, banditPositions);
 
         if (DebugOverlayRenderer.DebugMode && _textPaint != null && tile.Coord != null)
         {
@@ -163,13 +170,33 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
     private void DrawHarvestIndicator(SKCanvas canvas, float cx, float cy, HexTile tile,
         int playerIdx, long currentTick,
         Dictionary<HexCoord, long>? manualTimes,
-        Dictionary<HexCoord, long>? autoTimes)
+        Dictionary<HexCoord, long>? autoTimes,
+        Dictionary<HexCoord, long>? banditCooldownUntil,
+        HashSet<HexCoord>? banditPositions)
     {
         if (_dotPaint == null || _ringBgPaint == null || _ringProgressPaint == null)
             return;
 
         var manualResources = _harvestController.GetManualHarvestableResources(playerIdx, tile.Coord);
         var autoResources = _harvestController.GetAutomaticHarvestableResources(playerIdx, tile.Coord);
+
+        // Anneau bandit (le plus externe)
+        bool banditHere = banditPositions?.Contains(tile.Coord) == true;
+        if (banditHere)
+        {
+            // Bandit présent : anneau plein fixe
+            DrawBanditCooldownRing(canvas, cx, cy, ratio: 1f);
+        }
+        else if (banditCooldownUntil != null
+            && banditCooldownUntil.TryGetValue(tile.Coord, out var banditUntil)
+            && currentTick < banditUntil)
+        {
+            // Cooldown de départ : anneau qui se vide
+            float ratio = Math.Clamp(
+                (float)(currentTick - (banditUntil - BanditController.DepartureCooldownTicks)) / BanditController.DepartureCooldownTicks,
+                0f, 1f);
+            DrawBanditCooldownRing(canvas, cx, cy, ratio);
+        }
 
         if (autoResources.Count > 0)
             DrawCooldownRing(canvas, cx, cy, AutoRingRadius, AutoRingStroke,
@@ -188,6 +215,22 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
         // Point central : camembert des ressources manuelles récoltables
         if (manualResources.Count > 0)
             DrawResourcePie(canvas, cx, cy, DotRadius, manualResources);
+    }
+
+    private void DrawBanditCooldownRing(SKCanvas canvas, float cx, float cy, float ratio)
+    {
+        var rect = new SKRect(cx - BanditRingRadius, cy - BanditRingRadius, cx + BanditRingRadius, cy + BanditRingRadius);
+
+        _ringBgPaint!.Color = new SKColor(80, 0, 0, 150);
+        _ringBgPaint.StrokeWidth = BanditRingStroke;
+        canvas.DrawOval(rect, _ringBgPaint);
+
+        if (ratio > 0f)
+        {
+            _ringProgressPaint!.Color = new SKColor(220, 40, 40, 230);
+            _ringProgressPaint.StrokeWidth = BanditRingStroke;
+            canvas.DrawArc(rect, -90f, ratio * 360f, false, _ringProgressPaint);
+        }
     }
 
     /// <summary>

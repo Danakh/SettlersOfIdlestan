@@ -3,6 +3,7 @@ using SettlersOfIdlestan.Model;
 using System;
 using System.Collections.Generic;
 using SettlersOfIdlestan.Model.Civilization;
+using SettlersOfIdlestan.Model.Bandits;
 using System.Text.Json.Serialization;
 
 namespace SettlersOfIdlestan.Model.IslandMap;
@@ -52,6 +53,8 @@ public class IslandState : IJsonOnDeserialized
         IslandID = islandID;
         HarvestLastTimesByCivilization = new Dictionary<int, Dictionary<SettlersOfIdlestan.Model.HexGrid.HexCoord, long>>();
         AutomaticHarvestLastTimesByCivilization = new Dictionary<int, Dictionary<SettlersOfIdlestan.Model.HexGrid.HexCoord, long>>();
+        Bandits = new List<Bandit>();
+        BanditCooldownUntil = new Dictionary<HexCoord, long>();
         RecalculateVisibleIslandMaps();
     }
 
@@ -65,6 +68,8 @@ public class IslandState : IJsonOnDeserialized
         Civilizations = new List<SettlersOfIdlestan.Model.Civilization.Civilization>();
         HarvestLastTimesByCivilization = new Dictionary<int, Dictionary<SettlersOfIdlestan.Model.HexGrid.HexCoord, long>>();
         AutomaticHarvestLastTimesByCivilization = new Dictionary<int, Dictionary<SettlersOfIdlestan.Model.HexGrid.HexCoord, long>>();
+        Bandits = new List<Bandit>();
+        BanditCooldownUntil = new Dictionary<HexCoord, long>();
     }
 
     public void OnDeserialized()
@@ -102,6 +107,16 @@ public class IslandState : IJsonOnDeserialized
     /// Tick de simulation de la dernière récolte automatique par civilisation et par hex (1 tick = 0.01 s).
     /// </summary>
     public Dictionary<int, Dictionary<SettlersOfIdlestan.Model.HexGrid.HexCoord, long>> AutomaticHarvestLastTimesByCivilization { get; set; }
+
+    /// <summary>
+    /// Liste des bandits présents sur l'île.
+    /// </summary>
+    public List<Bandit> Bandits { get; set; }
+
+    /// <summary>
+    /// Tick jusqu'auquel la récolte est bloquée sur un hex après le départ d'un bandit (1000 ticks).
+    /// </summary>
+    public Dictionary<HexCoord, long> BanditCooldownUntil { get; set; }
 
     public IEnumerable<City> GetAllCities()
     {

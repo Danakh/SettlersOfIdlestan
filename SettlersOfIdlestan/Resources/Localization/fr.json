@@ -145,6 +145,8 @@
   "hex_tooltip_manual": "Manuel",
   "hex_tooltip_auto": "Auto",
   "hex_tooltip_ready": "Prêt!",
+  "hex_tooltip_bandit_present": "⚔ Bandit — récolte bloquée",
+  "hex_tooltip_bandit_cooldown": "⚔ Cooldown bandit",
   "tab_research": "Recherche",
   "tab_stats": "Stats",
   "stats_current_run": "Run en cours",

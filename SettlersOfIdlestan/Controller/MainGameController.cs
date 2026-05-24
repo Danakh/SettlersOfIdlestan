@@ -23,6 +23,7 @@ namespace SettlersOfIdlestan.Controller
         public PrestigeController PrestigeController { get; private set; }
         public PrestigeMapController PrestigeMapController { get; private set; }
         public ResearchController ResearchController { get; private set; }
+        public BanditController BanditController { get; private set; }
         public GameClock? Clock { get; private set; }
         // Holds the currently loaded main game state when created or imported
         public SettlersOfIdlestan.Model.Game.MainGameState? CurrentMainState { get; private set; }
@@ -46,6 +47,7 @@ namespace SettlersOfIdlestan.Controller
             PrestigeController = new PrestigeController();
             PrestigeMapController = new PrestigeMapController();
             ResearchController = new ResearchController();
+            BanditController = new BanditController();
         }
 
         /// <summary>
@@ -178,13 +180,18 @@ namespace SettlersOfIdlestan.Controller
 
                 // Initialize controllers to operate on the real island state and clock
                 RoadController.Initialize(islandState);
-                HarvestController.Initialize(islandState, Clock, TradeController);
+                BanditController.Initialize(islandState, Clock);
+                HarvestController.Initialize(islandState, Clock, TradeController, BanditController);
                 TradeController.Initialize(islandState);
                 BuildingController.Initialize(islandState);
                 CityBuilderController.Initialize(islandState);
                 PrestigeController.Initialize(islandState.PlayerCivilization);
                 ResearchController.Initialize(islandState, Clock, CurrentMainState?.PrestigeState);
                 islandState.PlayerCivilization.TechnologyTree.RebuildModifiers();
+
+                // Place bandits on new islands (not when loading a save that already has them)
+                if (islandState.Bandits.Count == 0)
+                    BanditController.InitializeBandits();
             }
         }
 

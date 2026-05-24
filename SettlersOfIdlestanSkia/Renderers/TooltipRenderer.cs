@@ -101,13 +101,28 @@ namespace SettlersOfIdlestanSkia.Renderers
             var manualResources = harvestController.GetManualHarvestableResources(playerIdx, coord);
             var autoResources = harvestController.GetAutomaticHarvestableResources(playerIdx, coord);
 
-            if (manualResources.Count == 0 && autoResources.Count == 0)
+            bool banditPresent = islandState.Bandits.Any(b => b.Position.Equals(coord));
+            bool banditCooldownActive = islandState.BanditCooldownUntil.TryGetValue(coord, out var banditUntil)
+                && currentTick < banditUntil;
+
+            if (manualResources.Count == 0 && autoResources.Count == 0 && !banditPresent && !banditCooldownActive)
                 return;
 
             var lines = new List<string>();
 
-            var allResources = manualResources.Union(autoResources).Distinct();
-            lines.Add(string.Join(", ", allResources.Select(r => _localizationService.Get($"resource_{r.ToString().ToLower()}"))));
+            if (banditPresent)
+                lines.Add(_localizationService.Get("hex_tooltip_bandit_present"));
+
+            if (banditCooldownActive)
+            {
+                double remaining = (banditUntil - currentTick) / 100.0;
+                double max = BanditController.DepartureCooldownTicks / 100.0;
+                lines.Add($"{_localizationService.Get("hex_tooltip_bandit_cooldown")}: {remaining:F1}s / {max:0.#}s");
+            }
+
+            var allResources = manualResources.Union(autoResources).Distinct().ToList();
+            if (allResources.Count > 0)
+                lines.Add(string.Join(", ", allResources.Select(r => _localizationService.Get($"resource_{r.ToString().ToLower()}"))));
 
             if (manualResources.Count > 0)
             {
