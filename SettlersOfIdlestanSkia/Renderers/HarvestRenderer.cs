@@ -1,57 +1,74 @@
 using SkiaSharp;
+using Svg.Skia;
+using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Services;
 
 namespace SettlersOfIdlestanSkia.Renderers;
 
-/// <summary>
-/// Renderer responsable de l'affichage des particules de récolte.
-/// Les particules se déplacent du centre de l'hex source vers le centre de la ville.
-/// </summary>
 public class HarvestRenderer : IGameRenderer
 {
     private readonly HarvestParticleSystem _particleSystem;
-    private SKPaint? _particlePaint;
+    private readonly ResourceManager _resourceManager;
+    private readonly Dictionary<Resource, SKSvg?> _icons = new();
+    private SKPaint? _layerPaint;
     private bool _disposed;
 
-    public HarvestRenderer(HarvestParticleSystem particleSystem)
+    private const float IconSize = 16f;
+    private const float SvgViewBox = 32f;
+
+    public HarvestRenderer(HarvestParticleSystem particleSystem, ResourceManager resourceManager)
     {
         _particleSystem = particleSystem ?? throw new ArgumentNullException(nameof(particleSystem));
+        _resourceManager = resourceManager ?? throw new ArgumentNullException(nameof(resourceManager));
     }
 
     public void Initialize(SKSize canvasSize)
     {
-        _particlePaint = new SKPaint
+        _layerPaint = new SKPaint { IsAntialias = true };
+
+        foreach (Resource resource in Enum.GetValues(typeof(Resource)))
         {
-            Style = SKPaintStyle.Fill,
-            IsAntialias = true
-        };
+            string name = resource.ToString().ToLower();
+            try
+            {
+                _icons[resource] = _resourceManager.LoadImage($"Resources.icons.resources.{name}.svg");
+            }
+            catch
+            {
+                _icons[resource] = null;
+            }
+        }
     }
 
     public void Render(SKCanvas canvas, GameRenderContext context)
     {
-        if (_particlePaint == null)
+        if (_layerPaint == null)
             return;
 
-        // Met à jour les particules
         _particleSystem.Update(context.DeltaTime);
 
-        // Affiche chaque particule
+        float scale = IconSize / SvgViewBox;
+
         foreach (var particle in _particleSystem.Particles)
         {
             var position = particle.GetCurrentPosition();
             var alpha = particle.GetCurrentAlpha();
 
-            // Crée une couleur avec l'alpha dynamique
-            var color = particle.Color;
-            var colorWithAlpha = new SKColor(color.Red, color.Green, color.Blue, alpha);
+            _icons.TryGetValue(particle.Resource, out var svg);
+            var picture = svg?.Picture;
 
-            _particlePaint.Color = colorWithAlpha;
-
-            // Taille de la particule (réduit vers la fin pour un effet de disparition)
-            float size = 5f * (1f - particle.Progress * 0.5f);
-
-            canvas.DrawCircle(position, size, _particlePaint);
+            if (picture != null)
+            {
+                _layerPaint.Color = new SKColor(255, 255, 255, alpha);
+                canvas.Save();
+                canvas.Translate(position.X - IconSize / 2f, position.Y - IconSize / 2f);
+                canvas.Scale(scale);
+                canvas.SaveLayer(_layerPaint);
+                canvas.DrawPicture(picture);
+                canvas.Restore();
+                canvas.Restore();
+            }
         }
     }
 
@@ -60,7 +77,7 @@ public class HarvestRenderer : IGameRenderer
         if (_disposed)
             return;
 
-        _particlePaint?.Dispose();
+        _layerPaint?.Dispose();
         _disposed = true;
     }
 }

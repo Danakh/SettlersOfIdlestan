@@ -1,4 +1,5 @@
 using SkiaSharp;
+using SettlersOfIdlestan.Model.IslandMap;
 using System.Collections.Generic;
 
 namespace SettlersOfIdlestanSkia.Services;
@@ -34,6 +35,11 @@ public class HarvestParticle
     public SKColor Color { get; set; }
 
     /// <summary>
+    /// Type de ressource associé à la particule.
+    /// </summary>
+    public Resource Resource { get; set; }
+
+    /// <summary>
     /// Progression de l'animation (0 à 1).
     /// </summary>
     public float Progress => 1f - (TimeRemaining / Duration);
@@ -43,10 +49,11 @@ public class HarvestParticle
     /// </summary>
     public bool IsAlive => TimeRemaining > 0;
 
-    public HarvestParticle(SKPoint startPos, SKPoint endPos, SKColor color, float duration = 1.2f)
+    public HarvestParticle(SKPoint startPos, SKPoint endPos, Resource resource, SKColor color, float duration = 1.2f)
     {
         StartPosition = startPos;
         EndPosition = endPos;
+        Resource = resource;
         Color = color;
         Duration = duration;
         TimeRemaining = duration;
@@ -102,9 +109,9 @@ public class HarvestParticleSystem
     /// <summary>
     /// Ajoute une nouvelle particule de récolte.
     /// </summary>
-    public void EmitParticle(SKPoint startPos, SKPoint endPos, SKColor color, float duration = 1.2f)
+    public void EmitParticle(SKPoint startPos, SKPoint endPos, Resource resource, SKColor color, float duration = 1.2f)
     {
-        _particles.Add(new HarvestParticle(startPos, endPos, color, duration));
+        _particles.Add(new HarvestParticle(startPos, endPos, resource, color, duration));
     }
 
     /// <summary>

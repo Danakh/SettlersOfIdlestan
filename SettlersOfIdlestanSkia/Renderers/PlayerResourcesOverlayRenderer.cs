@@ -5,6 +5,7 @@ using SettlersOfIdlestan.Services.Localization;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Services;
 using SkiaSharp;
+using Svg.Skia;
 
 namespace SettlersOfIdlestanSkia.Renderers;
 
@@ -28,14 +29,15 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
 
     private readonly ILocalizationService _localization;
     private readonly ResourceManager _resourceManager;
+    private readonly Dictionary<Resource, SKSvg?> _resourceIcons = new();
     public const float BarHeight = 50;
     public const float IconSize = 32;
     private const float RectangleWidth = 66;
     private const float RectangleHeight = 32;
+    private const float ResourceIconSize = 22f;
     public const float Padding = 12;
 
-    // Couleurs par type de ressource
-    private static Dictionary<Resource, SKColor> ResourceColors => IslandMainRenderer.ResourceColors;
+    private static readonly SKColor ItemBackground = new SKColor(40, 40, 40, 210);
 
     public BarDisplayMode Mode { get; set; } = BarDisplayMode.Island;
     public float ResourceStartX { get; set; } = Padding;
@@ -92,6 +94,19 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
 
         _textFont = new SKFont { Size = 12, Typeface = SKTypeface.FromFamilyName("Arial", SKFontStyle.Bold) };
         _smallFont = new SKFont { Size = 10, Typeface = SKTypeface.FromFamilyName("Arial") };
+
+        foreach (Resource resource in Enum.GetValues(typeof(Resource)))
+        {
+            string name = resource.ToString().ToLower();
+            try
+            {
+                _resourceIcons[resource] = _resourceManager.LoadImage($"Resources.icons.resources.{name}.svg");
+            }
+            catch
+            {
+                _resourceIcons[resource] = null;
+            }
+        }
     }
 
     public void Render(SKCanvas canvas, GameRenderContext context)
@@ -195,31 +210,38 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
 
     private void DrawResourceItem(SKCanvas canvas, Resource resource, int quantity, int maxQuantity, float x, float y)
     {
-        // Carré de couleur de la ressource
-        var colorRect = new SKRect(x, y, x + RectangleWidth, y + RectangleHeight);
-        using (var colorPaint = new SKPaint { Color = ResourceColors[resource], Style = SKPaintStyle.Fill, IsAntialias = true })
+        var itemRect = new SKRect(x, y, x + RectangleWidth, y + RectangleHeight);
+
+        // Fond uniforme sombre
+        using (var bgPaint = new SKPaint { Color = ItemBackground, Style = SKPaintStyle.Fill, IsAntialias = true })
+            canvas.DrawRoundRect(itemRect, 4, 4, bgPaint);
+
+        using (var borderPaint = new SKPaint { Color = new SKColor(255, 255, 255, 60), Style = SKPaintStyle.Stroke, StrokeWidth = 1, IsAntialias = true })
+            canvas.DrawRoundRect(itemRect, 4, 4, borderPaint);
+
+        // Icône de ressource (côté gauche, centrée verticalement)
+        _resourceIcons.TryGetValue(resource, out var svg);
+        var picture = svg?.Picture;
+        if (picture != null)
         {
-            canvas.DrawRect(colorRect, colorPaint);
+            float iconScale = ResourceIconSize / 32f;
+            float iconY = y + (RectangleHeight - ResourceIconSize) / 2f;
+            float iconX = x + 3f;
+            canvas.Save();
+            canvas.Translate(iconX, iconY);
+            canvas.Scale(iconScale);
+            canvas.DrawPicture(picture);
+            canvas.Restore();
         }
 
-        // Bordure du carré
-        using (var borderPaint = new SKPaint { Color = SKColors.White, Style = SKPaintStyle.Stroke, StrokeWidth = 1, IsAntialias = true })
-        {
-            canvas.DrawRect(colorRect, borderPaint);
-        }
-
-        // Affiche la quantité au centre du carré
-        var resourceNameText = $"{_localization.Get($"resource_{resource.ToString().ToLower()}_short")}:";
+        // Texte quantité (droite-aligné)
         var resourceValueText = $"{quantity}/{maxQuantity}";
         if (_smallFont != null && _textPaint != null)
         {
-            var textHeight = _smallFont.Size;
-            var textX = x + 4;
-            var textY = y + (RectangleHeight + textHeight) / 2 - 2;
-            canvas.DrawText(resourceNameText, textX, textY, _smallFont, _textPaint);
-
-            var textWidth = _smallFont.MeasureText(resourceValueText);
-            textX = x + RectangleWidth - textWidth - 4;
+            float textHeight = _smallFont.Size;
+            float textY = y + (RectangleHeight + textHeight) / 2f - 2f;
+            float textWidth = _smallFont.MeasureText(resourceValueText);
+            float textX = x + RectangleWidth - textWidth - 4f;
             canvas.DrawText(resourceValueText, textX, textY, _smallFont, _textPaint);
         }
     }

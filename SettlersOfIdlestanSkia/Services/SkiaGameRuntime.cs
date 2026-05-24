@@ -99,7 +99,7 @@ public sealed class SkiaGameRuntime : IDisposable
             _inputService,
             _cameraService,
             _gameControllerService.CityBuildingService);
-        var islandMainRenderer = new IslandMainRenderer(_constructionInteractionService, tooltipRenderer, _gameControllerService.MainGameController.HarvestController);
+        var islandMainRenderer = new IslandMainRenderer(_constructionInteractionService, tooltipRenderer, _gameControllerService.MainGameController.HarvestController, _resourceManager!);
         _islandMainRenderer = islandMainRenderer;
         _constructionInteractionService.AttachRenderer(islandMainRenderer);
         _renderService.RegisterRenderer(islandMainRenderer);
@@ -349,7 +349,7 @@ public sealed class SkiaGameRuntime : IDisposable
             var resourceColors = IslandMainRenderer.ResourceColors;
             var particleColor = resourceColors.TryGetValue(args.Resource, out var color) ? color : SKColors.Gold;
 
-            particleSystem.EmitParticle(hexCenter, cityCenter, particleColor);
+            particleSystem.EmitParticle(hexCenter, cityCenter, args.Resource, particleColor);
         };
 
         _harvestService!.OnMarketResourceGenerated += (sender, args) =>
@@ -366,7 +366,7 @@ public sealed class SkiaGameRuntime : IDisposable
             var resourceColors = IslandMainRenderer.ResourceColors;
             var particleColor = resourceColors.TryGetValue(args.Resource, out var color) ? color : SKColors.Gold;
 
-            particleSystem.EmitParticle(cityCenter, above, particleColor, 0.8f);
+            particleSystem.EmitParticle(cityCenter, above, args.Resource, particleColor, 0.8f);
         };
     }
 

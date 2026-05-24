@@ -45,13 +45,13 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
         { Resource.Crystal, new SKColor(147, 112, 219) } // Violet
     };
 
-    public IslandMainRenderer(IConstructionHoverProvider constructionHoverProvider, TooltipRenderer tooltipRenderer, HarvestController harvestController)
+    public IslandMainRenderer(IConstructionHoverProvider constructionHoverProvider, TooltipRenderer tooltipRenderer, HarvestController harvestController, ResourceManager resourceManager)
     {
         _gameBoardRenderer = new GameBoardRenderer(harvestController);
         _roadRenderer = new RoadRenderer(tooltipRenderer);
         _cityRenderer = new CityRenderer(tooltipRenderer);
         _harvestParticleSystem = new HarvestParticleSystem();
-        _harvestRenderer = new HarvestRenderer(_harvestParticleSystem);
+        _harvestRenderer = new HarvestRenderer(_harvestParticleSystem, resourceManager);
         _banditRenderer = new BanditRenderer();
         _constructionHoverProvider = constructionHoverProvider;
         _tooltipRenderer = tooltipRenderer;

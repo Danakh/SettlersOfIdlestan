@@ -13,7 +13,8 @@
       "Bash(New-Item -ItemType Directory -Force \"C:\\\\DEV\\\\SettlersOfIdlestan\\\\SettlersOfIdlestan\\\\Model\\\\Bandits\")",
       "Bash(Out-Null)",
       "PowerShell(New-Item *)",
-      "PowerShell(dotnet build *)"
+      "PowerShell(dotnet build *)",
+      "Bash(Sort-Object)"
     ]
   }
 }
