@@ -2,7 +2,7 @@ using Xunit;
 using SettlersOfIdlestan.Controller;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.IslandMap;
-using SettlersOfIdlestan.Model.PrestigeMap;
+using SettlersOfIdlestan.Model.Prestige;
 using SettlersOfIdlestan.Model.GameplayModifier;
 using SOITests.TestUtilities;
 using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;

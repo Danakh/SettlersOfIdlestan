@@ -1,7 +1,7 @@
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.IslandMap;
-using SettlersOfIdlestan.Model.PrestigeMap;
+using SettlersOfIdlestan.Model.Prestige;
 using SettlersOfIdlestan.Services;
 using System;
 using System.Collections.Generic;

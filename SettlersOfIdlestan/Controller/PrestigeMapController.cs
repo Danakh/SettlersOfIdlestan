@@ -2,7 +2,7 @@ using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.GameplayModifier;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Prestige.PrestigeMap;
-using SettlersOfIdlestan.Model.PrestigeMap;
+using SettlersOfIdlestan.Model.Prestige;
 
 namespace SettlersOfIdlestan.Controller;
 

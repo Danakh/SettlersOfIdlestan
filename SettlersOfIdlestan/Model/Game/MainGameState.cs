@@ -1,6 +1,6 @@
 using System;
 using SettlersOfIdlestan.Model.IslandMap;
-using SettlersOfIdlestan.Model.PrestigeMap;
+using SettlersOfIdlestan.Model.Prestige;
 
 namespace SettlersOfIdlestan.Model.Game
 {

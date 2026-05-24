@@ -2,7 +2,7 @@
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Prestige.PrestigeMap;
 
-namespace SettlersOfIdlestan.Model.PrestigeMap
+namespace SettlersOfIdlestan.Model.Prestige
 {
     /// <summary>
     /// Représente l'état lié au prestige et contient l'état de l'île.

@@ -1,6 +1,6 @@
 using System;
 
-namespace SettlersOfIdlestan.Model.PrestigeMap;
+namespace SettlersOfIdlestan.Model.Prestige;
 
 [Serializable]
 public class PrestigeRunStats

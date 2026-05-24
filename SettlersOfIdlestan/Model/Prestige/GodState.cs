@@ -1,6 +1,6 @@
 using System;
 
-namespace SettlersOfIdlestan.Model.PrestigeMap
+namespace SettlersOfIdlestan.Model.Prestige
 {
     /// <summary>
     /// Représente l'état du 'Dieu' qui contient l'état de prestige.

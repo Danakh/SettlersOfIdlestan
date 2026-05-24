@@ -2,7 +2,7 @@ using SettlersOfIdlestan.Controller;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
-using SettlersOfIdlestan.Model.PrestigeMap;
+using SettlersOfIdlestan.Model.Prestige;
 using SettlersOfIdlestan.Services;
 using SOITests.TestUtilities;
 using System.Text.Json;
