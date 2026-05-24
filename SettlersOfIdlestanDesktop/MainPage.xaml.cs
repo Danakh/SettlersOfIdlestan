@@ -22,7 +22,7 @@ public partial class MainPage : ContentPage
 		try
 		{
 			_runtime = new SkiaGameRuntime();
-			_runtime.Initialize(new DesktopFileSystemService());
+			_runtime.Initialize(new DesktopFileSystemService(), allowDebugMode: true);
 			StateLabel.Text = "Prêt";
 			MainThread.BeginInvokeOnMainThread(() => Dispatcher.StartTimer(TimeSpan.FromMilliseconds(16), RenderFrame));
 		}

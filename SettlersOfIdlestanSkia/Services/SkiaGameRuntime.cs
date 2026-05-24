@@ -44,19 +44,19 @@ public sealed class SkiaGameRuntime : IDisposable
     private double _autoSaveTimer = 0;
     private const double AutoSaveInterval = 5.0;
 
-    public void Initialize(IFileSystemService fileSystemService)
+    public void Initialize(IFileSystemService fileSystemService, bool allowDebugMode = false)
     {
         var autoJson = fileSystemService.LoadAuto().GetAwaiter().GetResult();
-        InitializeCore(fileSystemService, autoJson);
+        InitializeCore(fileSystemService, autoJson, allowDebugMode);
     }
 
-    public async Task InitializeAsync(IFileSystemService fileSystemService)
+    public async Task InitializeAsync(IFileSystemService fileSystemService, bool allowDebugMode = false)
     {
         var autoJson = await fileSystemService.LoadAuto();
-        InitializeCore(fileSystemService, autoJson);
+        InitializeCore(fileSystemService, autoJson, allowDebugMode);
     }
 
-    private void InitializeCore(IFileSystemService fileSystemService, string? autoJson)
+    private void InitializeCore(IFileSystemService fileSystemService, string? autoJson, bool allowDebugMode)
     {
         if (_isDisposed)
             throw new ObjectDisposedException(nameof(SkiaGameRuntime));
@@ -109,7 +109,7 @@ public sealed class SkiaGameRuntime : IDisposable
         var selectedCityPanelRenderer = new SelectedCityPanelRenderer(_gameControllerService.CityBuildingService, _localizationService, _inputService);
 
         var aboutRenderer = new AboutRenderer(_inputService, _localizationService);
-        var settingsMenu = new SettingsMenu(_gameControllerService.MainGameController, _inputService, _localizationService, aboutRenderer, fileSystemService);
+        var settingsMenu = new SettingsMenu(_gameControllerService.MainGameController, _inputService, _localizationService, aboutRenderer, fileSystemService, allowDebugMode);
         var playerResourcesOverlayRenderer = new PlayerResourcesOverlayRenderer(_localizationService, _resourceManager);
         var tradeRenderer = new TradeRenderer(_gameControllerService, _localizationService, tooltipRenderer);
         var prestigeRenderer = new PrestigeRenderer(_gameControllerService, _localizationService, RequestPrestige);
@@ -132,7 +132,11 @@ public sealed class SkiaGameRuntime : IDisposable
             researchRenderer);
         _renderService.RegisterRenderer(_overlayRenderer);
         _constructionInteractionService.ShouldSuppressHover = () => _overlayRenderer.IsAnyOverlayOpen;
-        _renderService.RegisterRenderer(new DebugOverlayRenderer(_inputService, _cameraService, islandMainRenderer, _localizationService));
+        if (allowDebugMode)
+        {
+            _renderService.RegisterRenderer(new DebugOverlayRenderer(_inputService, _cameraService, islandMainRenderer, _localizationService));
+            _renderService.RegisterRenderer(new AutoplayerDebugRenderer(_gameControllerService, _inputService));
+        }
         _renderService.RegisterRenderer(aboutRenderer);
         _renderService.RegisterRenderer(tooltipRenderer);
 

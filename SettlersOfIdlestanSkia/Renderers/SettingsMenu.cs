@@ -16,7 +16,7 @@ public class SettingsMenu
     public const float MenuItemWidth = 250;
     private const float IconSize = PlayerResourcesOverlayRenderer.IconSize;
     private const float Padding = 12;
-    private const float SeparatorHeight = 20;
+    private const float SeparatorHeight = 10;
 
     private bool _isOpen = false;
     private int _hoveredItemIndex = -1;
@@ -49,7 +49,7 @@ public class SettingsMenu
 
     public bool IsOpen => _isOpen;
 
-    public SettingsMenu(MainGameController gameController, InputHandlingService inputService, ILocalizationService localization, AboutRenderer aboutRenderer, IFileSystemService fileSystemService)
+    public SettingsMenu(MainGameController gameController, InputHandlingService inputService, ILocalizationService localization, AboutRenderer aboutRenderer, IFileSystemService fileSystemService, bool allowDebugMode = false)
     {
         _gameController = gameController;
         _inputService = inputService;
@@ -64,11 +64,6 @@ public class SettingsMenu
         // Section Langue (avant le séparateur)
         _menuItems.Add(new MenuItem
         {
-            LabelKey = "menu_language",
-            Action = null  // Sera géré comme sous-menu
-        });
-        _menuItems.Add(new MenuItem
-        {
             LabelKey = "menu_language_french",
             Action = () => SetLanguage(Language.French)
         });
@@ -76,28 +71,6 @@ public class SettingsMenu
         {
             LabelKey = "menu_language_english",
             Action = () => SetLanguage(Language.English)
-        });
-
-        _menuItems.Add(new MenuItem { IsSeparator = true });
-
-        _menuItems.Add(new MenuItem
-        {
-            LabelKey = "menu_about",
-            Action = ToggleAboutPopUp
-        });
-
-        _menuItems.Add(new MenuItem { IsSeparator = true });
-
-        // Section Debug
-        _menuItems.Add(new MenuItem
-        {
-            LabelKey = "menu_toggle_debug_mode",
-            Action = ToggleDebugMode
-        });
-        _menuItems.Add(new MenuItem
-        {
-            LabelKey = "menu_add_resources",
-            Action = AddResources
         });
 
         _menuItems.Add(new MenuItem { IsSeparator = true });
@@ -116,6 +89,30 @@ public class SettingsMenu
             LabelKey = "menu_load_game",
             Action = LoadGame
         });
+
+        _menuItems.Add(new MenuItem { IsSeparator = true });
+
+        _menuItems.Add(new MenuItem
+        {
+            LabelKey = "menu_about",
+            Action = ToggleAboutPopUp
+        });
+
+        if (allowDebugMode)
+        {
+            _menuItems.Add(new MenuItem { IsSeparator = true });
+
+            _menuItems.Add(new MenuItem
+            {
+                LabelKey = "menu_toggle_debug_mode",
+                Action = ToggleDebugMode
+            });
+            _menuItems.Add(new MenuItem
+            {
+                LabelKey = "menu_add_resources",
+                Action = AddResources
+            });
+        }
     }
 
     public void Initialize()
@@ -218,7 +215,7 @@ public class SettingsMenu
             if (item.IsSeparator)
             {
                 // Dessine le séparateur
-                DrawSeparator(canvas, itemRect);
+                DrawSeparator(canvas, itemRect, item.LabelKey);
             }
             else
             {
@@ -246,17 +243,17 @@ public class SettingsMenu
         }
     }
 
-    private void DrawSeparator(SKCanvas canvas, SKRect rect)
+    private void DrawSeparator(SKCanvas canvas, SKRect rect, string text)
     {
         // Dessine une ligne pointillée ou un texte centré
         if (_textFont != null && _textPaint != null)
         {
             float textY = rect.MidY + _textFont.Size / 2;
-            float textX = rect.Left + (rect.Width - _textFont.MeasureText("──────── Debug ────────")) / 2;
+            float textX = rect.Left + (rect.Width - _textFont.MeasureText(text)) / 2;
 
             using (var separatorTextPaint = new SKPaint { Color = new SKColor(150, 150, 150, 180), IsAntialias = true })
             {
-                canvas.DrawText("──────── Debug ────────", textX, textY, _textFont, separatorTextPaint);
+                canvas.DrawText(text, textX, textY, _textFont, separatorTextPaint);
             }
         }
     }

@@ -252,26 +252,6 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
         }
     }
 
-    private void DrawHexagon(SKCanvas canvas, float centerX, float centerY, float size)
-    {
-        var points = GetHexagonPoints(centerX, centerY, size);
-
-        if (_hexFillPaint != null)
-        {
-            _hexFillPaint.Color = new SKColor(200, 220, 240);
-            canvas.DrawPath(PointsToPath(points), _hexFillPaint);
-        }
-
-        if (_hexBorderPaint != null)
-            canvas.DrawPath(PointsToPath(points), _hexBorderPaint);
-
-        if (_textPaint != null)
-        {
-            _textPaint.Color = SKColors.Black;
-            canvas.DrawText($"({centerX:F0},{centerY:F0})", centerX, centerY, SKTextAlign.Center, _textFont, _textPaint);
-        }
-    }
-
     public void Dispose()
     {
         if (_disposed)
