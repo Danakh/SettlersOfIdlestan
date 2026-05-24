@@ -21,6 +21,17 @@ public class SelectedCityPanelRenderer : IGameRenderer
     private readonly ResourceManager _resourceManager;
     private readonly Dictionary<Resource, SKSvg?> _resourceIcons = new();
     private SKSize _canvasSize;
+    private SKFont? _font15;
+    private SKFont? _font12;
+    private SKFont? _font10;
+    private SKPaint? _bgPaint;
+    private SKPaint? _borderPaint;
+    private SKPaint? _textPaint;
+    private SKPaint? _costTextPaint;
+    private SKPaint? _btnBuildPaint;
+    private SKPaint? _btnUpgradePaint;
+    private SKPaint? _btnDisabledPaint;
+    private SKPaint? _btnDisabledTextPaint;
     private SKPoint _lastPointerPosition = SKPoint.Empty;
     private BuildingType? _hoveredBuildingType = null;
     private const float PanelWidth = 260;
@@ -53,6 +64,18 @@ public class SelectedCityPanelRenderer : IGameRenderer
     {
         _canvasSize = canvasSize;
 
+        _font15 = new SKFont { Size = 15 };
+        _font12 = new SKFont { Size = 12 };
+        _font10 = new SKFont { Size = 10 };
+        _bgPaint = new SKPaint { Color = new SKColor(30, 30, 40, 220), Style = SKPaintStyle.Fill, IsAntialias = true };
+        _borderPaint = new SKPaint { Color = new SKColor(200, 200, 220, 180), Style = SKPaintStyle.Stroke, StrokeWidth = 2, IsAntialias = true };
+        _textPaint = new SKPaint { Color = SKColors.White, IsAntialias = true };
+        _costTextPaint = new SKPaint { Color = new SKColor(200, 200, 200, 200), IsAntialias = true };
+        _btnBuildPaint = new SKPaint { Color = new SKColor(21, 101, 192, 255), Style = SKPaintStyle.Fill, IsAntialias = true };
+        _btnUpgradePaint = new SKPaint { Color = new SKColor(46, 125, 50, 255), Style = SKPaintStyle.Fill, IsAntialias = true };
+        _btnDisabledPaint = new SKPaint { Color = new SKColor(100, 100, 100, 200), Style = SKPaintStyle.Fill, IsAntialias = true };
+        _btnDisabledTextPaint = new SKPaint { Color = new SKColor(150, 150, 150, 255), IsAntialias = true };
+
         foreach (Resource resource in Enum.GetValues(typeof(Resource)))
         {
             string name = resource.ToString().ToLower();
@@ -73,16 +96,6 @@ public class SelectedCityPanelRenderer : IGameRenderer
         float panelY = 60;
         float y = panelY + Padding;
 
-        var font15 = new SKFont { Size = 15 };
-        var font12 = new SKFont { Size = 12 };
-        var font10 = new SKFont { Size = 10 };
-
-        using var bgPaint = new SKPaint { Color = new SKColor(30, 30, 40, 220), Style = SKPaintStyle.Fill, IsAntialias = true };
-        using var borderPaint = new SKPaint { Color = new SKColor(200, 200, 220, 180), Style = SKPaintStyle.Stroke, StrokeWidth = 2, IsAntialias = true };
-        using var textPaint = new SKPaint { Color = SKColors.White, IsAntialias = true };
-        using var costTextPaint = new SKPaint { Color = new SKColor(200, 200, 200, 200), IsAntialias = true };
-        using var buttonTextPaint = new SKPaint { Color = SKColors.White, IsAntialias = true };
-
         _btnRects.Clear();
         _hoverRects.Clear();
 
@@ -99,8 +112,8 @@ public class SelectedCityPanelRenderer : IGameRenderer
 
         var visibleBuildings = buildings.Take(visibleBuildingCount).ToList();
         float panelHeight = visibleBuildingCount * RowHeight + 2 * Padding;
-        canvas.DrawRoundRect(panelX, panelY, PanelWidth, panelHeight, 12, 12, bgPaint);
-        canvas.DrawRoundRect(panelX, panelY, PanelWidth, panelHeight, 12, 12, borderPaint);
+        canvas.DrawRoundRect(panelX, panelY, PanelWidth, panelHeight, 12, 12, _bgPaint);
+        canvas.DrawRoundRect(panelX, panelY, PanelWidth, panelHeight, 12, 12, _borderPaint);
 
         foreach (var (building, index) in visibleBuildings.Select((item, i) => (item, i)))
         {
@@ -110,14 +123,13 @@ public class SelectedCityPanelRenderer : IGameRenderer
             var isAtMaxLevel = _cityBuildingService.IsAtMaxLevel(building);
             var yRow = y + index * RowHeight;
             var label = _localization.Get(building.NameKey) + (isBuilt ? $" (Niv {building.Level})" : "");
-            canvas.DrawText(label, panelX + Padding, yRow + 18, font15, textPaint);
+            canvas.DrawText(label, panelX + Padding, yRow + 18, _font15, _textPaint);
 
-            // Afficher le coût des ressources sous le nom
             var cost = isBuilt ? building.GetUpgradeCost(building.Level + 1) : building.GetBuildCost();
             if (cost.Count > 0)
             {
                 var costText = SkiaTextUtils.computeCostString(_localization, cost);
-                canvas.DrawText(costText, panelX + Padding, yRow + 30, font10, costTextPaint);
+                canvas.DrawText(costText, panelX + Padding, yRow + 30, _font10, _costTextPaint);
             }
 
             // Bouton action
@@ -129,39 +141,18 @@ public class SelectedCityPanelRenderer : IGameRenderer
                 var btnX = panelX + PanelWidth - btnWidth - Padding;
                 var btnY = yRow + 6;
                 
-                SKColor btnColor;
-                SKColor btnTextColor;
                 bool isButtonEnabled = canBuildOrUpgrade;
+                bool isDisabledBtn = isAtMaxLevel || !isButtonEnabled;
 
                 if (isAtMaxLevel)
-                {
-                    btnColor = new SKColor(100, 100, 100, 200);
-                    btnTextColor = new SKColor(150, 150, 150, 255);
                     btnText = _localization.Get("action_maxlevel");
-                }
-                else if (!isButtonEnabled)
-                {
-                    btnColor = new SKColor(100, 100, 100, 200);
-                    btnTextColor = new SKColor(150, 150, 150, 255);
-                }
-                else
-                {
-                    btnColor = isBuilt ? new SKColor(46, 125, 50, 255) : new SKColor(21, 101, 192, 255);
-                    btnTextColor = SKColors.White;
-                }
 
-                using var btnPaint = new SKPaint 
-                { 
-                    Color = btnColor, 
-                    Style = SKPaintStyle.Fill, 
-                    IsAntialias = true 
-                };
-                canvas.DrawRoundRect(btnX, btnY, btnWidth, btnHeight, 7, 7, btnPaint);
-                
-                using var btnTextPaint = new SKPaint { Color = btnTextColor, IsAntialias = true };
+                var btnFillPaint = isDisabledBtn ? _btnDisabledPaint : (isBuilt ? _btnUpgradePaint : _btnBuildPaint);
+                var btnTextUsePaint = isDisabledBtn ? _btnDisabledTextPaint : _textPaint;
                 float btnCenterX = btnX + btnWidth / 2;
                 float btnCenterY = btnY + btnHeight / 2 + 6;
-                canvas.DrawText(btnText, btnCenterX, btnCenterY, SKTextAlign.Center, font12, btnTextPaint);
+                canvas.DrawRoundRect(btnX, btnY, btnWidth, btnHeight, 7, 7, btnFillPaint);
+                canvas.DrawText(btnText, btnCenterX, btnCenterY, SKTextAlign.Center, _font12, btnTextUsePaint);
 
                 // Stocker les informations du bouton pour la détection de clic
                 var btnRect = new SKRect(btnX, btnY, btnX + btnWidth, btnY + btnHeight);
@@ -222,7 +213,7 @@ public class SelectedCityPanelRenderer : IGameRenderer
                     }
                 }
 
-                TooltipRenderUtils.DrawTooltip(canvas, _canvasSize, _lastPointerPosition, tooltipLines.ToArray(), font10, cost, _resourceIcons);
+                TooltipRenderUtils.DrawTooltip(canvas, _canvasSize, _lastPointerPosition, tooltipLines.ToArray(), _font10, cost, _resourceIcons);
             }
         }
     }
@@ -269,5 +260,16 @@ public class SelectedCityPanelRenderer : IGameRenderer
     {
         _inputService.PointerMoved -= HandlePointerMoved;
         _inputService.PointerPressed -= HandlePointerPressed;
+        _font15?.Dispose();
+        _font12?.Dispose();
+        _font10?.Dispose();
+        _bgPaint?.Dispose();
+        _borderPaint?.Dispose();
+        _textPaint?.Dispose();
+        _costTextPaint?.Dispose();
+        _btnBuildPaint?.Dispose();
+        _btnUpgradePaint?.Dispose();
+        _btnDisabledPaint?.Dispose();
+        _btnDisabledTextPaint?.Dispose();
     }
 }

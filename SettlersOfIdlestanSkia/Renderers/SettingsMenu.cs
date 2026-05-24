@@ -28,6 +28,8 @@ public class SettingsMenu
     private SKPaint? _borderPaint;
     private SKPaint? _separatorPaint;
     private SKFont? _textFont;
+    private SKPaint? _itemBorderPaint;
+    private SKPaint? _separatorTextPaint;
 
     private readonly MainGameController _gameController;
     private readonly InputHandlingService _inputService;
@@ -162,6 +164,8 @@ public class SettingsMenu
         };
 
         _textFont = new SKFont { Size = 12, Typeface = SKTypeface.FromFamilyName("Arial", SKFontStyle.Bold) };
+        _itemBorderPaint = new SKPaint { Color = SKColors.Gold, Style = SKPaintStyle.Stroke, StrokeWidth = 1, IsAntialias = true };
+        _separatorTextPaint = new SKPaint { Color = new SKColor(150, 150, 150, 180), IsAntialias = true };
     }
 
     public void ToggleMenu()
@@ -225,11 +229,7 @@ public class SettingsMenu
                 var bgPaint = i == _hoveredItemIndex ? _menuItemHoverPaint : _menuItemPaint;
                 canvas.DrawRect(itemRect, bgPaint);
 
-                // Bordure
-                using (var itemBorder = new SKPaint { Color = SKColors.Gold, Style = SKPaintStyle.Stroke, StrokeWidth = 1, IsAntialias = true })
-                {
-                    canvas.DrawRect(itemRect, itemBorder);
-                }
+                canvas.DrawRect(itemRect, _itemBorderPaint);
 
                 // Texte
                 if (_textFont != null && _textPaint != null)
@@ -253,10 +253,7 @@ public class SettingsMenu
             float textY = rect.MidY + _textFont.Size / 2;
             float textX = rect.Left + (rect.Width - _textFont.MeasureText(text)) / 2;
 
-            using (var separatorTextPaint = new SKPaint { Color = new SKColor(150, 150, 150, 180), IsAntialias = true })
-            {
-                canvas.DrawText(text, textX, textY, _textFont, separatorTextPaint);
-            }
+            canvas.DrawText(text, textX, textY, _textFont, _separatorTextPaint);
         }
     }
 
@@ -385,5 +382,7 @@ public class SettingsMenu
         _borderPaint?.Dispose();
         _separatorPaint?.Dispose();
         _textFont?.Dispose();
+        _itemBorderPaint?.Dispose();
+        _separatorTextPaint?.Dispose();
     }
 }

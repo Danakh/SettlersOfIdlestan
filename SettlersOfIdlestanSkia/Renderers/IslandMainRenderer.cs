@@ -27,6 +27,7 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
     private float _blackFadeDuration;
     private float _blackFadeElapsed;
     private bool _isBlackFadeActive;
+    private SKPaint? _fadePaint;
     public bool IsVisible { get; set; } = true;
 
 
@@ -70,6 +71,7 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
         _cityRenderer.Initialize(canvasSize);
         _harvestRenderer.Initialize(canvasSize);
         _banditRenderer.Initialize(canvasSize);
+        _fadePaint = new SKPaint { Style = SKPaintStyle.Fill };
     }
 
     public void Render(SKCanvas canvas, GameRenderContext context)
@@ -80,12 +82,8 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
         {
             _blackFadeElapsed = Math.Min(_blackFadeElapsed + context.DeltaTime, _blackFadeDuration);
             var progress = _blackFadeDuration <= 0 ? 1f : _blackFadeElapsed / _blackFadeDuration;
-            using var fadePaint = new SKPaint
-            {
-                Color = new SKColor(0, 0, 0, (byte)(255 * progress)),
-                Style = SKPaintStyle.Fill
-            };
-            canvas.DrawRect(new SKRect(0, 0, context.CanvasSize.Width, context.CanvasSize.Height), fadePaint);
+            _fadePaint!.Color = new SKColor(0, 0, 0, (byte)(255 * progress));
+            canvas.DrawRect(new SKRect(0, 0, context.CanvasSize.Width, context.CanvasSize.Height), _fadePaint);
             return;
         }
 
@@ -177,6 +175,7 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
         _harvestRenderer.Dispose();
         _banditRenderer.Dispose();
         _tooltipRenderer.Dispose();
+        _fadePaint?.Dispose();
     }
 
     private CameraTransformScope ApplyCameraTransform(SKCanvas canvas, GameRenderContext context)

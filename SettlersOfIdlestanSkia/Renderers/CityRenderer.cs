@@ -23,6 +23,8 @@ public class CityRenderer : HexBasedRenderer, IGameRenderer
     private SKPaint? _settlementPaint;
     private SKPaint? _cityPaint;
     private SKPaint? _borderPaint;
+    private SKPaint? _cityLevelTextPaint;
+    private SKFont? _cityLevelFont;
 
     private readonly SKPaint _buildableVertexPaint = new()
     {
@@ -86,6 +88,9 @@ public class CityRenderer : HexBasedRenderer, IGameRenderer
             StrokeWidth = 2,
             IsAntialias = true,
         };
+
+        _cityLevelTextPaint = new SKPaint { Color = SKColors.White, IsAntialias = true };
+        _cityLevelFont = new SKFont { Size = 10 };
     }
 
     public void Render(SKCanvas canvas, GameRenderContext context)
@@ -169,14 +174,8 @@ public class CityRenderer : HexBasedRenderer, IGameRenderer
             // Dessine la bordure
             canvas.DrawCircle(pixelPos.X, pixelPos.Y, radius, _borderPaint);
 
-            // Affiche le niveau de la ville si c'est une vraie ville
             if (city.Level >= 2)
-            {
-                var textPaint = new SKPaint { Color = SKColors.White, IsAntialias = true };
-                var font = new SKFont { Size = 10 };
-                canvas.DrawText(city.Level.ToString(), pixelPos.X, pixelPos.Y + 4, SKTextAlign.Center, font, textPaint);
-                textPaint.Dispose();
-            }
+                canvas.DrawText(city.Level.ToString(), pixelPos.X, pixelPos.Y + 4, SKTextAlign.Center, _cityLevelFont, _cityLevelTextPaint);
         }
     }
 
@@ -193,6 +192,8 @@ public class CityRenderer : HexBasedRenderer, IGameRenderer
         _settlementPaint?.Dispose();
         _cityPaint?.Dispose();
         _borderPaint?.Dispose();
+        _cityLevelTextPaint?.Dispose();
+        _cityLevelFont?.Dispose();
         _buildableVertexPaint.Dispose();
         _hoverVertexPaint.Dispose();
         _hoverCityPaint.Dispose();

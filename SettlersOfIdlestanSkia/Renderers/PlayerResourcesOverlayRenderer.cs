@@ -23,6 +23,9 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
     private SKFont? _smallFont;
     private SKPaint? _borderPaint;
     private SKPaint? _gearPaint;
+    private SKPaint? _itemBgPaint;
+    private SKPaint? _itemBorderPaint;
+    private SKPaint? _gearCenterPaint;
 
     private SKSize _canvasSize;
     private bool _disposed;
@@ -94,6 +97,10 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
 
         _textFont = new SKFont { Size = 12, Typeface = SKTypeface.FromFamilyName("Arial", SKFontStyle.Bold) };
         _smallFont = new SKFont { Size = 10, Typeface = SKTypeface.FromFamilyName("Arial") };
+
+        _itemBgPaint = new SKPaint { Color = ItemBackground, Style = SKPaintStyle.Fill, IsAntialias = true };
+        _itemBorderPaint = new SKPaint { Color = new SKColor(255, 255, 255, 60), Style = SKPaintStyle.Stroke, StrokeWidth = 1, IsAntialias = true };
+        _gearCenterPaint = new SKPaint { Color = SKColors.Gold, Style = SKPaintStyle.Stroke, StrokeWidth = 1.5f, IsAntialias = true };
 
         foreach (Resource resource in Enum.GetValues(typeof(Resource)))
         {
@@ -212,12 +219,8 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
     {
         var itemRect = new SKRect(x, y, x + RectangleWidth, y + RectangleHeight);
 
-        // Fond uniforme sombre
-        using (var bgPaint = new SKPaint { Color = ItemBackground, Style = SKPaintStyle.Fill, IsAntialias = true })
-            canvas.DrawRoundRect(itemRect, 4, 4, bgPaint);
-
-        using (var borderPaint = new SKPaint { Color = new SKColor(255, 255, 255, 60), Style = SKPaintStyle.Stroke, StrokeWidth = 1, IsAntialias = true })
-            canvas.DrawRoundRect(itemRect, 4, 4, borderPaint);
+        canvas.DrawRoundRect(itemRect, 4, 4, _itemBgPaint);
+        canvas.DrawRoundRect(itemRect, 4, 4, _itemBorderPaint);
 
         // Icône de ressource (côté gauche, centrée verticalement)
         _resourceIcons.TryGetValue(resource, out var svg);
@@ -282,11 +285,7 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
             }
         }
 
-        // Cercle central
-        using (var centerPaint = new SKPaint { Color = SKColors.Gold, Style = SKPaintStyle.Stroke, StrokeWidth = 1.5f, IsAntialias = true })
-        {
-            canvas.DrawCircle(cx, cy, radius * 0.3f, centerPaint);
-        }
+        canvas.DrawCircle(cx, cy, radius * 0.3f, _gearCenterPaint);
     }
 
     public void Dispose()
@@ -300,6 +299,9 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
         _gearPaint?.Dispose();
         _textFont?.Dispose();
         _smallFont?.Dispose();
+        _itemBgPaint?.Dispose();
+        _itemBorderPaint?.Dispose();
+        _gearCenterPaint?.Dispose();
         _disposed = true;
     }
 }

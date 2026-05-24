@@ -63,6 +63,24 @@ public sealed class TradeRenderer : IDisposable
     private readonly SKFont _boldFont = new() { Size = 13, Typeface = SKTypeface.FromFamilyName("Arial", SKFontStyle.Bold) };
     private readonly SKFont _smallFont = new() { Size = 11, Typeface = SKTypeface.FromFamilyName("Arial") };
 
+    // Paints réutilisables pour éviter les allocations par frame
+    private readonly SKPaint _tradeActiveButtonPaint = new() { Color = new SKColor(46, 125, 50), Style = SKPaintStyle.Fill, IsAntialias = true };
+    private readonly SKPaint _tradeDisabledButtonPaint = new() { Color = new SKColor(90, 90, 96), Style = SKPaintStyle.Fill, IsAntialias = true };
+    private readonly SKPaint _closeButtonPaint = new() { Color = new SKColor(90, 50, 50, 230), Style = SKPaintStyle.Fill, IsAntialias = true };
+    private readonly SKPaint _multActiveFillPaint = new() { Color = new SKColor(60, 100, 160), Style = SKPaintStyle.Fill, IsAntialias = true };
+    private readonly SKPaint _multInactiveFillPaint = new() { Color = new SKColor(38, 38, 50), Style = SKPaintStyle.Fill, IsAntialias = true };
+    private readonly SKPaint _multActiveBorderPaint = new() { Color = new SKColor(100, 150, 220), Style = SKPaintStyle.Stroke, StrokeWidth = 1, IsAntialias = true };
+    private readonly SKPaint _multInactiveBorderPaint = new() { Color = new SKColor(80, 80, 95), Style = SKPaintStyle.Stroke, StrokeWidth = 1, IsAntialias = true };
+    private readonly SKPaint _rowBorderPaint = new() { Color = new SKColor(255, 255, 255, 100), Style = SKPaintStyle.Stroke, StrokeWidth = 1, IsAntialias = true };
+    private readonly SKPaint _resourceRowPaint = new() { Style = SKPaintStyle.Fill, IsAntialias = true };
+    private readonly SKPaint _checkboxFillPaint = new() { Style = SKPaintStyle.Fill, IsAntialias = true };
+    private readonly SKPaint _checkboxBorderPaint = new() { Style = SKPaintStyle.Stroke, IsAntialias = true };
+    private readonly SKPaint _confirmDimPaint = new() { Color = new SKColor(0, 0, 0, 160), Style = SKPaintStyle.Fill };
+    private readonly SKPaint _confirmBgPaint = new() { Color = new SKColor(30, 30, 38, 250), Style = SKPaintStyle.Fill, IsAntialias = true };
+    private readonly SKPaint _confirmBorderPaint = new() { Style = SKPaintStyle.Stroke, StrokeWidth = 2, IsAntialias = true };
+    private readonly SKPaint _confirmYesPaint = new() { Color = new SKColor(46, 125, 50), Style = SKPaintStyle.Fill, IsAntialias = true };
+    private readonly SKPaint _confirmNoPaint = new() { Color = new SKColor(140, 50, 50), Style = SKPaintStyle.Fill, IsAntialias = true };
+
     public bool IsOpen { get; private set; }
 
     public TradeRenderer(GameControllerService gameControllerService, ILocalizationService localization, TooltipRenderer tooltipRenderer)
@@ -136,13 +154,7 @@ public sealed class TradeRenderer : IDisposable
 
         bool canTrade = CanTrade();
         _tradeButtonRect = new SKRect(popup.MidX - 70, popup.Bottom - Padding - ButtonHeight, popup.MidX + 70, popup.Bottom - Padding);
-        using var buttonPaint = new SKPaint
-        {
-            Color = canTrade ? new SKColor(46, 125, 50) : new SKColor(90, 90, 96),
-            Style = SKPaintStyle.Fill,
-            IsAntialias = true
-        };
-        canvas.DrawRoundRect(_tradeButtonRect, 7, 7, buttonPaint);
+        canvas.DrawRoundRect(_tradeButtonRect, 7, 7, canTrade ? _tradeActiveButtonPaint : _tradeDisabledButtonPaint);
         canvas.DrawText(_localization.Get("trade_action"), _tradeButtonRect.MidX, _tradeButtonRect.MidY + 5, SKTextAlign.Center, _boldFont,
             canTrade ? _textPaint : _mutedTextPaint);
 
@@ -310,15 +322,9 @@ public sealed class TradeRenderer : IDisposable
             var rowRect = new SKRect(x + 10, currentY, x + ColumnWidth - 10, currentY + RowHeight - 4);
             hitRects[rowRect] = resource;
 
-            using var resourcePaint = new SKPaint
-            {
-                Color = isDisabled ? new SKColor(70, 70, 76) : IslandMainRenderer.ResourceColors[resource],
-                Style = SKPaintStyle.Fill,
-                IsAntialias = true
-            };
-            canvas.DrawRoundRect(rowRect, 5, 5, isDisabled ? _disabledPaint : resourcePaint);
-            using var rowBorderPaint = new SKPaint { Color = new SKColor(255, 255, 255, 100), Style = SKPaintStyle.Stroke, StrokeWidth = 1, IsAntialias = true };
-            canvas.DrawRoundRect(rowRect, 5, 5, rowBorderPaint);
+            _resourceRowPaint.Color = IslandMainRenderer.ResourceColors[resource];
+            canvas.DrawRoundRect(rowRect, 5, 5, isDisabled ? _disabledPaint : _resourceRowPaint);
+            canvas.DrawRoundRect(rowRect, 5, 5, _rowBorderPaint);
 
             if (showL3)
                 DrawSeaportL3Checkbox(canvas, rowRect, resource, enhancedResources, civ);
@@ -361,10 +367,11 @@ public sealed class TradeRenderer : IDisposable
             : (canEnhance && isHovered) ? new SKColor(80, 70, 0, 180)
             : new SKColor(50, 50, 50, 150);
 
-        using var cbFill = new SKPaint { Color = fillColor, Style = SKPaintStyle.Fill, IsAntialias = true };
-        using var cbBorder = new SKPaint { Color = borderColor, Style = SKPaintStyle.Stroke, StrokeWidth = isHovered && canEnhance ? 2f : 1.5f, IsAntialias = true };
-        canvas.DrawRoundRect(cbRect, 3, 3, cbFill);
-        canvas.DrawRoundRect(cbRect, 3, 3, cbBorder);
+        _checkboxFillPaint.Color = fillColor;
+        _checkboxBorderPaint.Color = borderColor;
+        _checkboxBorderPaint.StrokeWidth = isHovered && canEnhance ? 2f : 1.5f;
+        canvas.DrawRoundRect(cbRect, 3, 3, _checkboxFillPaint);
+        canvas.DrawRoundRect(cbRect, 3, 3, _checkboxBorderPaint);
 
         if (isEnhanced)
             canvas.DrawText("4", cbRect.MidX, cbRect.MidY + 5, SKTextAlign.Center, _font, _textPaint);
@@ -391,10 +398,11 @@ public sealed class TradeRenderer : IDisposable
             : (canActivate && isHovered) ? new SKColor(0, 80, 80, 180)
             : new SKColor(50, 50, 50, 150);
 
-        using var cbFill = new SKPaint { Color = fillColor, Style = SKPaintStyle.Fill, IsAntialias = true };
-        using var cbBorder = new SKPaint { Color = borderColor, Style = SKPaintStyle.Stroke, StrokeWidth = isHovered && canActivate ? 2f : 1.5f, IsAntialias = true };
-        canvas.DrawRoundRect(cbRect, 3, 3, cbFill);
-        canvas.DrawRoundRect(cbRect, 3, 3, cbBorder);
+        _checkboxFillPaint.Color = fillColor;
+        _checkboxBorderPaint.Color = borderColor;
+        _checkboxBorderPaint.StrokeWidth = isHovered && canActivate ? 2f : 1.5f;
+        canvas.DrawRoundRect(cbRect, 3, 3, _checkboxFillPaint);
+        canvas.DrawRoundRect(cbRect, 3, 3, _checkboxBorderPaint);
 
         if (isActive)
             canvas.DrawText("A", cbRect.MidX, cbRect.MidY + 5, SKTextAlign.Center, _font, _textPaint);
@@ -455,10 +463,8 @@ public sealed class TradeRenderer : IDisposable
 
     private void DrawMultButton(SKCanvas canvas, SKRect rect, string label, bool isActive)
     {
-        using var fill = new SKPaint { Color = isActive ? new SKColor(60, 100, 160) : new SKColor(38, 38, 50), Style = SKPaintStyle.Fill, IsAntialias = true };
-        using var border = new SKPaint { Color = isActive ? new SKColor(100, 150, 220) : new SKColor(80, 80, 95), Style = SKPaintStyle.Stroke, StrokeWidth = 1, IsAntialias = true };
-        canvas.DrawRoundRect(rect, 4, 4, fill);
-        canvas.DrawRoundRect(rect, 4, 4, border);
+        canvas.DrawRoundRect(rect, 4, 4, isActive ? _multActiveFillPaint : _multInactiveFillPaint);
+        canvas.DrawRoundRect(rect, 4, 4, isActive ? _multActiveBorderPaint : _multInactiveBorderPaint);
         canvas.DrawText(label, rect.MidX, rect.MidY + 5, SKTextAlign.Center, _font, isActive ? _textPaint : _mutedTextPaint);
     }
 
@@ -471,13 +477,11 @@ public sealed class TradeRenderer : IDisposable
         float py = parent.MidY - h / 2;
         _confirmPopupRect = new SKRect(px, py, px + w, py + h);
 
-        using var dimPaint = new SKPaint { Color = new SKColor(0, 0, 0, 160), Style = SKPaintStyle.Fill };
-        canvas.DrawRect(parent, dimPaint);
+        canvas.DrawRect(parent, _confirmDimPaint);
 
-        using var bgPaint = new SKPaint { Color = new SKColor(30, 30, 38, 250), Style = SKPaintStyle.Fill, IsAntialias = true };
-        using var borderPaint = new SKPaint { Color = isAutoTrade ? new SKColor(0, 200, 200) : SKColors.Gold, Style = SKPaintStyle.Stroke, StrokeWidth = 2, IsAntialias = true };
-        canvas.DrawRoundRect(_confirmPopupRect, 8, 8, bgPaint);
-        canvas.DrawRoundRect(_confirmPopupRect, 8, 8, borderPaint);
+        _confirmBorderPaint.Color = isAutoTrade ? new SKColor(0, 200, 200) : SKColors.Gold;
+        canvas.DrawRoundRect(_confirmPopupRect, 8, 8, _confirmBgPaint);
+        canvas.DrawRoundRect(_confirmPopupRect, 8, 8, _confirmBorderPaint);
 
         string resourceName = _localization.Get($"resource_{resource.ToString().ToLower()}");
         string msgKey = isAutoTrade ? "trade_seaport_autotrade_confirm" : "trade_seaport_confirm";
@@ -490,10 +494,8 @@ public sealed class TradeRenderer : IDisposable
         _confirmYesRect = new SKRect(_confirmPopupRect.MidX - btnW - 8, btnY, _confirmPopupRect.MidX - 8, btnY + btnH);
         _confirmNoRect  = new SKRect(_confirmPopupRect.MidX + 8, btnY, _confirmPopupRect.MidX + 8 + btnW, btnY + btnH);
 
-        using var yesPaint = new SKPaint { Color = new SKColor(46, 125, 50),  Style = SKPaintStyle.Fill, IsAntialias = true };
-        using var noPaint  = new SKPaint { Color = new SKColor(140, 50, 50), Style = SKPaintStyle.Fill, IsAntialias = true };
-        canvas.DrawRoundRect(_confirmYesRect, 6, 6, yesPaint);
-        canvas.DrawRoundRect(_confirmNoRect,  6, 6, noPaint);
+        canvas.DrawRoundRect(_confirmYesRect, 6, 6, _confirmYesPaint);
+        canvas.DrawRoundRect(_confirmNoRect,  6, 6, _confirmNoPaint);
         canvas.DrawText(_localization.Get("trade_seaport_confirm_yes"), _confirmYesRect.MidX, _confirmYesRect.MidY + 5, SKTextAlign.Center, _boldFont, _textPaint);
         canvas.DrawText(_localization.Get("trade_seaport_confirm_no"),  _confirmNoRect.MidX,  _confirmNoRect.MidY  + 5, SKTextAlign.Center, _boldFont, _textPaint);
     }
@@ -502,8 +504,7 @@ public sealed class TradeRenderer : IDisposable
 
     private void DrawCloseButton(SKCanvas canvas, SKRect rect)
     {
-        using var closePaint = new SKPaint { Color = new SKColor(90, 50, 50, 230), Style = SKPaintStyle.Fill, IsAntialias = true };
-        canvas.DrawRoundRect(rect, 5, 5, closePaint);
+        canvas.DrawRoundRect(rect, 5, 5, _closeButtonPaint);
         canvas.DrawText("X", rect.MidX, rect.MidY + 6, SKTextAlign.Center, _boldFont, _textPaint);
     }
 
@@ -638,6 +639,22 @@ public sealed class TradeRenderer : IDisposable
         _font.Dispose();
         _boldFont.Dispose();
         _smallFont.Dispose();
+        _tradeActiveButtonPaint.Dispose();
+        _tradeDisabledButtonPaint.Dispose();
+        _closeButtonPaint.Dispose();
+        _multActiveFillPaint.Dispose();
+        _multInactiveFillPaint.Dispose();
+        _multActiveBorderPaint.Dispose();
+        _multInactiveBorderPaint.Dispose();
+        _rowBorderPaint.Dispose();
+        _resourceRowPaint.Dispose();
+        _checkboxFillPaint.Dispose();
+        _checkboxBorderPaint.Dispose();
+        _confirmDimPaint.Dispose();
+        _confirmBgPaint.Dispose();
+        _confirmBorderPaint.Dispose();
+        _confirmYesPaint.Dispose();
+        _confirmNoPaint.Dispose();
         _disposed = true;
     }
 }
