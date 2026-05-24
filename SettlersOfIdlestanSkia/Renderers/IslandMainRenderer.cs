@@ -26,6 +26,7 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
     private float _blackFadeDuration;
     private float _blackFadeElapsed;
     private bool _isBlackFadeActive;
+    public bool IsVisible { get; set; } = true;
 
 
     /// <summary>
@@ -70,6 +71,8 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
 
     public void Render(SKCanvas canvas, GameRenderContext context)
     {
+        if (!IsVisible) return;
+
         if (_isBlackFadeActive)
         {
             _blackFadeElapsed = Math.Min(_blackFadeElapsed + context.DeltaTime, _blackFadeDuration);

@@ -230,6 +230,9 @@ public sealed class SkiaGameRuntime : IDisposable
         if (gameState == null)
             return;
 
+        if (_islandMainRenderer != null && _overlayRenderer != null)
+            _islandMainRenderer.IsVisible = _overlayRenderer.IsIslandTabActive;
+
         _renderService.RenderFrame(canvas, gameState, _cameraService);
     }
 
