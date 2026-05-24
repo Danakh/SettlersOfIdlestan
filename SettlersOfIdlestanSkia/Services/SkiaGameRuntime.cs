@@ -46,6 +46,18 @@ public sealed class SkiaGameRuntime : IDisposable
 
     public void Initialize(IFileSystemService fileSystemService)
     {
+        var autoJson = fileSystemService.LoadAuto().GetAwaiter().GetResult();
+        InitializeCore(fileSystemService, autoJson);
+    }
+
+    public async Task InitializeAsync(IFileSystemService fileSystemService)
+    {
+        var autoJson = await fileSystemService.LoadAuto();
+        InitializeCore(fileSystemService, autoJson);
+    }
+
+    private void InitializeCore(IFileSystemService fileSystemService, string? autoJson)
+    {
         if (_isDisposed)
             throw new ObjectDisposedException(nameof(SkiaGameRuntime));
 
@@ -61,7 +73,6 @@ public sealed class SkiaGameRuntime : IDisposable
         _localizationService = new LocalizationService();
 
         _gameControllerService = new GameControllerService();
-        var autoJson = fileSystemService.LoadAuto().Result;
         if (!string.IsNullOrEmpty(autoJson))
         {
             try

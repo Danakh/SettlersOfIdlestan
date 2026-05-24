@@ -47,7 +47,7 @@
         try
         {
             _runtime = new SkiaGameRuntime();
-            _runtime.Initialize(FileSystemService);
+            await _runtime.InitializeAsync(FileSystemService);
             _debugText = string.Empty;
         }
         catch (Exception ex)
