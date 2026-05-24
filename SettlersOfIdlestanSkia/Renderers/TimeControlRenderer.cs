@@ -33,6 +33,7 @@ public class TimeControlRenderer : IDisposable
 
     private readonly SKPaint _activePaint = new() { Color = new SKColor(60, 140, 220), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _inactivePaint = new() { Color = new SKColor(35, 35, 50), Style = SKPaintStyle.Fill, IsAntialias = true };
+    private readonly SKPaint _pauseFlickerPaint = new() { Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _borderPaint = new() { Color = new SKColor(100, 100, 130), StrokeWidth = 1f, Style = SKPaintStyle.Stroke, IsAntialias = true };
     private readonly SKPaint _textPaint = new() { Color = SKColors.White, IsAntialias = true };
     private readonly SKPaint _bankTextPaint = new() { Color = new SKColor(200, 240, 255), IsAntialias = true };
@@ -91,9 +92,19 @@ public class TimeControlRenderer : IDisposable
         DrawBankLabel(canvas, bankTicks);
 
         // Buttons
-        DrawButton(canvas, _pauseRect, "||", speed == 0);
-        DrawButton(canvas, _playRect, ">", speed == 1);
-        DrawButton(canvas, _fastRect, ">>", speed == 3);
+        SKPaint pauseBg = _inactivePaint;
+        if (speed == 0)
+        {
+            float t = (MathF.Sin(context.TotalTime * MathF.PI * 2f) + 1f) * 0.5f;
+            _pauseFlickerPaint.Color = new SKColor(
+                (byte)(60 + (120 - 60) * t),
+                (byte)(140 + (180 - 140) * t),
+                (byte)(220 + (255 - 220) * t));
+            pauseBg = _pauseFlickerPaint;
+        }
+        DrawButton(canvas, _pauseRect, "||", speed == 0, pauseBg);
+        DrawButton(canvas, _playRect, ">", speed == 1, speed == 1 ? _activePaint : _inactivePaint);
+        DrawButton(canvas, _fastRect, ">>", speed == 3, speed == 3 ? _activePaint : _inactivePaint);
     }
 
     private void DrawBankLabel(SKCanvas canvas, long bankTicks)
@@ -115,9 +126,9 @@ public class TimeControlRenderer : IDisposable
         return $"{seconds:0.#}s";
     }
 
-    private void DrawButton(SKCanvas canvas, SKRect rect, string label, bool isActive)
+    private void DrawButton(SKCanvas canvas, SKRect rect, string label, bool isActive, SKPaint bgPaint)
     {
-        canvas.DrawRoundRect(rect, 4, 4, isActive ? _activePaint : _inactivePaint);
+        canvas.DrawRoundRect(rect, 4, 4, bgPaint);
         canvas.DrawRoundRect(rect, 4, 4, _borderPaint);
 
         float textY = rect.MidY + _font.Size / 2f - 2f;
@@ -155,6 +166,7 @@ public class TimeControlRenderer : IDisposable
         _inputService.PointerPressed -= HandlePointerPressed;
         _activePaint.Dispose();
         _inactivePaint.Dispose();
+        _pauseFlickerPaint.Dispose();
         _borderPaint.Dispose();
         _textPaint.Dispose();
         _bankTextPaint.Dispose();

@@ -332,6 +332,11 @@ public sealed class OverlayRenderer : IGameRenderer
         _selectedCityPanelRenderer.IsInputEnabled = true;
     }
 
+    public void SwitchToPrestigeTab()
+    {
+        _activeTab = 1;
+    }
+
     public void Dispose()
     {
         if (_disposed)

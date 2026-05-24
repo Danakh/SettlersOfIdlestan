@@ -316,6 +316,8 @@ public sealed class SkiaGameRuntime : IDisposable
 
         _islandMainRenderer?.EndBlackFade();
         _overlayRenderer?.Show();
+        _gameControllerService.CurrentGameState?.Clock?.Pause();
+        _overlayRenderer?.SwitchToPrestigeTab();
         _prestigeTransitionPending = false;
     }
 
