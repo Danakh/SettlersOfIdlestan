@@ -8,7 +8,7 @@ public class PrestigeHex
     public IReadOnlyList<PrestigeVertexId> AdjacentVertices { get; }
     // TechnologyTree modifiers applied once per adjacent purchased vertex (empty list if no TechTree effect)
     public IReadOnlyList<Modifier> PerVertexModifiers { get; }
-    // Bonus to starting resources (Food/Wood/Brick/Stone) per adjacent purchased vertex
+    // Bonus to starting resources BasicResources per adjacent purchased vertex
     public int StartingResourceBonusPerVertex { get; }
 
     public PrestigeHex(

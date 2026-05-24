@@ -14,3 +14,14 @@ public enum Resource
     Glass,
     Crystal
 }
+
+public class ResourceUtils
+{
+    public static List<Resource> BasicResources = new List<Resource>
+    {
+        Resource.Food,
+        Resource.Wood,
+        Resource.Brick,
+        Resource.Stone
+    };
+}   

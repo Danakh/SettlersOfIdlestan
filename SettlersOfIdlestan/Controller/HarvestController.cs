@@ -59,7 +59,6 @@ namespace SettlersOfIdlestan.Controller
         // 10 s × 100 ticks/s
         public const long MarketGenerationCooldownTicks = 1000L;
 
-        private static readonly Resource[] BasicResources = [Resource.Food, Resource.Wood, Resource.Brick, Resource.Stone];
         private readonly Random _random = new();
 
         public event EventHandler<HarvestCompletedEventArgs>? OnHarvestCompleted;
@@ -164,7 +163,7 @@ namespace SettlersOfIdlestan.Controller
 
                     if (now - market.LastGenerationTick < MarketGenerationCooldownTicks) continue;
 
-                    var resource = BasicResources[_random.Next(BasicResources.Length)];
+                    var resource = ResourceUtils.BasicResources[_random.Next(ResourceUtils.BasicResources.Count)];
                     civ.AddResource(resource, 1);
                     market.LastGenerationTick = now;
                     OnMarketResourceGenerated?.Invoke(this, new MarketGenerationEventArgs(civ.Index, resource, city.Position));

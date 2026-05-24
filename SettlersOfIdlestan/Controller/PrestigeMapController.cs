@@ -53,7 +53,7 @@ public class PrestigeMapController
             int adjacentPurchased = hex.AdjacentVertices.Count(v => purchased.Contains(v));
             if (adjacentPurchased == 0) continue;
             int bonus = hex.StartingResourceBonusPerVertex * adjacentPurchased;
-            foreach (var resource in new[] { Resource.Food, Resource.Wood, Resource.Brick, Resource.Stone })
+            foreach (var resource in ResourceUtils.BasicResources)
                 civ.AddResource(resource, bonus);
         }
 
