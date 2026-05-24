@@ -56,6 +56,7 @@ namespace SettlersOfIdlestan.Controller
                 {
                     var prototype = CreateBuilding(bt);
                     if ((prototype != null) &&
+                        (GetMaxLevel(prototype, civilizationIndex) > 0) &&
                         prototype.IsBuildingAvailableForCity(_state.Map, city))
                     {
                         result.Add(prototype);
