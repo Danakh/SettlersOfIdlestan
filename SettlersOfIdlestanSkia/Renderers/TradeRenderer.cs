@@ -16,6 +16,8 @@ public sealed class TradeRenderer : IDisposable
     private const float ColumnWidth = 230;
     private const float ButtonHeight = 36;
     private const float CloseSize = 28;
+    private const float CheckboxSize = 16;
+    private const float CheckboxGap = 4;
 
     private readonly GameControllerService _gameControllerService;
     private readonly ILocalizationService _localization;
@@ -23,10 +25,21 @@ public sealed class TradeRenderer : IDisposable
     private readonly Dictionary<Resource, int> _requested = [];
     private readonly Dictionary<SKRect, Resource> _offerRects = [];
     private readonly Dictionary<SKRect, Resource> _requestRects = [];
+    private readonly Dictionary<SKRect, Resource> _seaportL3Rects = [];
+    private readonly Dictionary<SKRect, Resource> _seaportL4Rects = [];
     private SKRect _tradeButtonRect = SKRect.Empty;
     private SKRect _closeButtonRect = SKRect.Empty;
     private SKSize _canvasSize;
     private bool _disposed;
+
+    private Resource? _pendingEnhanceResource;
+    private Resource? _pendingAutoTradeResource;
+    private SKRect _confirmPopupRect = SKRect.Empty;
+    private SKRect _confirmYesRect = SKRect.Empty;
+    private SKRect _confirmNoRect = SKRect.Empty;
+
+    private Resource? _hoveredL3Checkbox;
+    private Resource? _hoveredL4Checkbox;
 
     private readonly SKPaint _overlayPaint = new() { Color = new SKColor(0, 0, 0, 120), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _backgroundPaint = new() { Color = new SKColor(24, 24, 30, 245), Style = SKPaintStyle.Fill, IsAntialias = true };
@@ -38,6 +51,7 @@ public sealed class TradeRenderer : IDisposable
     private readonly SKFont _titleFont = new() { Size = 20, Typeface = SKTypeface.FromFamilyName("Arial", SKFontStyle.Bold) };
     private readonly SKFont _font = new() { Size = 13, Typeface = SKTypeface.FromFamilyName("Arial") };
     private readonly SKFont _boldFont = new() { Size = 13, Typeface = SKTypeface.FromFamilyName("Arial", SKFontStyle.Bold) };
+    private readonly SKFont _smallFont = new() { Size = 11, Typeface = SKTypeface.FromFamilyName("Arial") };
 
     public bool IsOpen { get; private set; }
 
@@ -56,6 +70,8 @@ public sealed class TradeRenderer : IDisposable
     {
         _offered.Clear();
         _requested.Clear();
+        _pendingEnhanceResource = null;
+        _pendingAutoTradeResource = null;
         IsOpen = true;
     }
 
@@ -64,6 +80,10 @@ public sealed class TradeRenderer : IDisposable
         IsOpen = false;
         _offered.Clear();
         _requested.Clear();
+        _pendingEnhanceResource = null;
+        _pendingAutoTradeResource = null;
+        _hoveredL3Checkbox = null;
+        _hoveredL4Checkbox = null;
     }
 
     public void Render(SKCanvas canvas)
@@ -73,6 +93,8 @@ public sealed class TradeRenderer : IDisposable
 
         _offerRects.Clear();
         _requestRects.Clear();
+        _seaportL3Rects.Clear();
+        _seaportL4Rects.Clear();
 
         canvas.DrawRect(new SKRect(0, 0, _canvasSize.Width, _canvasSize.Height), _overlayPaint);
 
@@ -89,8 +111,16 @@ public sealed class TradeRenderer : IDisposable
         float leftX = popup.Left + Padding;
         float rightX = popup.Right - Padding - ColumnWidth;
 
-        DrawColumn(canvas, leftX, columnsTop, _localization.Get("trade_give"), _offered, _requested, _offerRects, true);
-        DrawColumn(canvas, rightX, columnsTop, _localization.Get("trade_receive"), _requested, _offered, _requestRects, false);
+        var civ = _gameControllerService.PlayerCivilization;
+        var tradeController = _gameControllerService.MainGameController.TradeController;
+        int seaportLevel = civ != null ? tradeController.GetMaxSeaportLevel(civ.Index) : 0;
+        var enhancedResources = civ?.SeaportEnhancedResources ?? [];
+        var autoTradeResources = civ?.SeaportAutoTradeResources ?? [];
+
+        DrawColumn(canvas, leftX, columnsTop, _localization.Get("trade_give"), _offered, _requested, _offerRects, true,
+            seaportLevel, enhancedResources, autoTradeResources);
+        DrawColumn(canvas, rightX, columnsTop, _localization.Get("trade_receive"), _requested, _offered, _requestRects, false,
+            0, [], []);
 
         bool canTrade = CanTrade();
         _tradeButtonRect = new SKRect(popup.MidX - 70, popup.Bottom - Padding - ButtonHeight, popup.MidX + 70, popup.Bottom - Padding);
@@ -103,6 +133,27 @@ public sealed class TradeRenderer : IDisposable
         canvas.DrawRoundRect(_tradeButtonRect, 7, 7, buttonPaint);
         var buttonTextPaint = canTrade ? _textPaint : _mutedTextPaint;
         canvas.DrawText(_localization.Get("trade_action"), _tradeButtonRect.MidX, _tradeButtonRect.MidY + 5, SKTextAlign.Center, _boldFont, buttonTextPaint);
+
+        if (_pendingEnhanceResource != null)
+            DrawConfirmationPopup(canvas, popup, _pendingEnhanceResource.Value, isAutoTrade: false);
+        else if (_pendingAutoTradeResource != null)
+            DrawConfirmationPopup(canvas, popup, _pendingAutoTradeResource.Value, isAutoTrade: true);
+    }
+
+    public void HandlePointerMoved(SKPoint position)
+    {
+        if (!IsOpen) return;
+
+        _hoveredL3Checkbox = null;
+        _hoveredL4Checkbox = null;
+
+        foreach (var (rect, resource) in _seaportL3Rects)
+            if (rect.Contains(position.X, position.Y))
+                _hoveredL3Checkbox = resource;
+
+        foreach (var (rect, resource) in _seaportL4Rects)
+            if (rect.Contains(position.X, position.Y))
+                _hoveredL4Checkbox = resource;
     }
 
     public bool HandlePointerPressed(SKPoint position, PointerButton button)
@@ -110,10 +161,62 @@ public sealed class TradeRenderer : IDisposable
         if (!IsOpen)
             return false;
 
+        if (_pendingEnhanceResource != null)
+        {
+            if (_confirmYesRect.Contains(position.X, position.Y))
+            {
+                var civ = _gameControllerService.PlayerCivilization;
+                if (civ != null)
+                    _gameControllerService.MainGameController.TradeController.SetSeaportEnhancedResource(civ.Index, _pendingEnhanceResource.Value);
+                _pendingEnhanceResource = null;
+            }
+            else if (_confirmNoRect.Contains(position.X, position.Y) || !_confirmPopupRect.Contains(position.X, position.Y))
+            {
+                _pendingEnhanceResource = null;
+            }
+            return true;
+        }
+
+        if (_pendingAutoTradeResource != null)
+        {
+            if (_confirmYesRect.Contains(position.X, position.Y))
+            {
+                var civ = _gameControllerService.PlayerCivilization;
+                if (civ != null)
+                    _gameControllerService.MainGameController.TradeController.AddSeaportAutoTradeResource(civ.Index, _pendingAutoTradeResource.Value);
+                _pendingAutoTradeResource = null;
+            }
+            else if (_confirmNoRect.Contains(position.X, position.Y) || !_confirmPopupRect.Contains(position.X, position.Y))
+            {
+                _pendingAutoTradeResource = null;
+            }
+            return true;
+        }
+
         if (_closeButtonRect.Contains(position.X, position.Y))
         {
             Close();
             return true;
+        }
+
+        foreach (var (rect, resource) in _seaportL3Rects)
+        {
+            if (rect.Contains(position.X, position.Y))
+            {
+                var civ = _gameControllerService.PlayerCivilization;
+                if (civ != null && !civ.SeaportEnhancedResources.Contains(resource))
+                    _pendingEnhanceResource = resource;
+                return true;
+            }
+        }
+
+        foreach (var (rect, resource) in _seaportL4Rects)
+        {
+            if (rect.Contains(position.X, position.Y))
+            {
+                _pendingAutoTradeResource = resource;
+                return true;
+            }
         }
 
         foreach (var (rect, resource) in _offerRects)
@@ -158,7 +261,10 @@ public sealed class TradeRenderer : IDisposable
         Dictionary<Resource, int> values,
         Dictionary<Resource, int> oppositeValues,
         Dictionary<SKRect, Resource> hitRects,
-        bool isOfferColumn)
+        bool isOfferColumn,
+        int seaportLevel,
+        List<Resource> enhancedResources,
+        List<Resource> autoTradeResources)
     {
         var civ = _gameControllerService.PlayerCivilization;
         if (civ == null)
@@ -175,6 +281,12 @@ public sealed class TradeRenderer : IDisposable
         canvas.DrawRoundRect(columnRect, 6, 6, _panelPaint);
 
         canvas.DrawText(title, columnRect.MidX, y + 22, SKTextAlign.Center, _boldFont, _textPaint);
+
+        bool showL3 = isOfferColumn && seaportLevel >= 3;
+        bool showL4 = isOfferColumn && seaportLevel >= 4;
+        float checkboxOffset = showL4 ? (CheckboxSize * 2 + CheckboxGap * 3)
+                             : showL3 ? (CheckboxSize + CheckboxGap * 2)
+                             : 0;
 
         float currentY = y + 38;
         foreach (Resource resource in resources)
@@ -194,11 +306,18 @@ public sealed class TradeRenderer : IDisposable
             using var rowBorderPaint = new SKPaint { Color = new SKColor(255, 255, 255, 100), Style = SKPaintStyle.Stroke, StrokeWidth = 1, IsAntialias = true };
             canvas.DrawRoundRect(rowRect, 5, 5, rowBorderPaint);
 
+            if (showL3)
+                DrawSeaportL3Checkbox(canvas, rowRect, resource, enhancedResources, civ);
+
+            if (showL4 && enhancedResources.Contains(resource))
+                DrawSeaportL4Checkbox(canvas, rowRect, resource, autoTradeResources, civ);
+
             string resourceText = _localization.Get($"resource_{resource.ToString().ToLower()}");
             int amount = values.GetValueOrDefault(resource);
             string amountText = amount > 0 ? amount.ToString() : "+";
             var rowTextPaint = isDisabled ? _mutedTextPaint : _textPaint;
-            canvas.DrawText(resourceText, rowRect.Left + 8, rowRect.MidY + 5, _font, rowTextPaint);
+            float textX = rowRect.Left + 8 + checkboxOffset;
+            canvas.DrawText(resourceText, textX, rowRect.MidY + 5, _font, rowTextPaint);
             canvas.DrawText(amountText, rowRect.Right - 8, rowRect.MidY + 5, SKTextAlign.Right, _boldFont, rowTextPaint);
 
             currentY += RowHeight;
@@ -208,6 +327,100 @@ public sealed class TradeRenderer : IDisposable
             ? string.Format(_localization.Get("trade_offer_packs"), GetOfferPackCount())
             : string.Format(_localization.Get("trade_request_packs"), GetRequestPackCount());
         canvas.DrawText(packLabel, columnRect.MidX, columnRect.Bottom - 14, SKTextAlign.Center, _boldFont, _textPaint);
+    }
+
+    private void DrawSeaportL3Checkbox(SKCanvas canvas, SKRect rowRect, Resource resource, List<Resource> enhancedResources, Civilization civ)
+    {
+        float cx = rowRect.Left + CheckboxGap;
+        float cy = rowRect.MidY - CheckboxSize / 2;
+        var cbRect = new SKRect(cx, cy, cx + CheckboxSize, cy + CheckboxSize);
+
+        bool isEnhanced = enhancedResources.Contains(resource);
+        bool canEnhance = _gameControllerService.MainGameController.TradeController.CanEnhanceSeaportResource(civ.Index, resource);
+        bool isHovered = _hoveredL3Checkbox == resource;
+
+        SKColor borderColor = isEnhanced ? SKColors.Gold
+            : canEnhance ? (isHovered ? new SKColor(255, 230, 100) : new SKColor(200, 180, 80))
+            : new SKColor(100, 100, 100);
+        SKColor fillColor = isEnhanced ? new SKColor(180, 140, 0, 200)
+            : (canEnhance && isHovered) ? new SKColor(80, 70, 0, 180)
+            : new SKColor(50, 50, 50, 150);
+
+        using var cbBorder = new SKPaint { Color = borderColor, Style = SKPaintStyle.Stroke, StrokeWidth = isHovered ? 2f : 1.5f, IsAntialias = true };
+        using var cbFill = new SKPaint { Color = fillColor, Style = SKPaintStyle.Fill, IsAntialias = true };
+
+        canvas.DrawRoundRect(cbRect, 3, 3, cbFill);
+        canvas.DrawRoundRect(cbRect, 3, 3, cbBorder);
+
+        if (isEnhanced)
+            canvas.DrawText("4", cbRect.MidX, cbRect.MidY + 5, SKTextAlign.Center, _font, _textPaint);
+
+        if (!isEnhanced && canEnhance)
+            _seaportL3Rects[cbRect] = resource;
+    }
+
+    private void DrawSeaportL4Checkbox(SKCanvas canvas, SKRect rowRect, Resource resource, List<Resource> autoTradeResources, Civilization civ)
+    {
+        float cx = rowRect.Left + CheckboxSize + CheckboxGap * 2;
+        float cy = rowRect.MidY - CheckboxSize / 2;
+        var cbRect = new SKRect(cx, cy, cx + CheckboxSize, cy + CheckboxSize);
+
+        bool isActive = autoTradeResources.Contains(resource);
+        bool canActivate = _gameControllerService.MainGameController.TradeController.CanActivateSeaportAutoTrade(civ.Index, resource);
+        bool isHovered = _hoveredL4Checkbox == resource;
+
+        SKColor borderColor = isActive ? new SKColor(0, 220, 220)
+            : canActivate ? (isHovered ? new SKColor(0, 220, 220) : new SKColor(0, 160, 160))
+            : new SKColor(80, 80, 80);
+        SKColor fillColor = isActive ? new SKColor(0, 130, 130, 200)
+            : (canActivate && isHovered) ? new SKColor(0, 80, 80, 180)
+            : new SKColor(50, 50, 50, 150);
+
+        using var cbBorder = new SKPaint { Color = borderColor, Style = SKPaintStyle.Stroke, StrokeWidth = isHovered ? 2f : 1.5f, IsAntialias = true };
+        using var cbFill = new SKPaint { Color = fillColor, Style = SKPaintStyle.Fill, IsAntialias = true };
+
+        canvas.DrawRoundRect(cbRect, 3, 3, cbFill);
+        canvas.DrawRoundRect(cbRect, 3, 3, cbBorder);
+
+        if (isActive)
+            canvas.DrawText("A", cbRect.MidX, cbRect.MidY + 5, SKTextAlign.Center, _font, _textPaint);
+
+        if (!isActive && canActivate)
+            _seaportL4Rects[cbRect] = resource;
+    }
+
+    private void DrawConfirmationPopup(SKCanvas canvas, SKRect parent, Resource resource, bool isAutoTrade)
+    {
+        float w = 440, h = 140;
+        float px = parent.MidX - w / 2;
+        float py = parent.MidY - h / 2;
+        _confirmPopupRect = new SKRect(px, py, px + w, py + h);
+
+        using var dimPaint = new SKPaint { Color = new SKColor(0, 0, 0, 160), Style = SKPaintStyle.Fill };
+        canvas.DrawRect(parent, dimPaint);
+
+        using var bgPaint = new SKPaint { Color = new SKColor(30, 30, 38, 250), Style = SKPaintStyle.Fill, IsAntialias = true };
+        using var borderPaint = new SKPaint { Color = isAutoTrade ? new SKColor(0, 200, 200) : SKColors.Gold, Style = SKPaintStyle.Stroke, StrokeWidth = 2, IsAntialias = true };
+        canvas.DrawRoundRect(_confirmPopupRect, 8, 8, bgPaint);
+        canvas.DrawRoundRect(_confirmPopupRect, 8, 8, borderPaint);
+
+        string resourceName = _localization.Get($"resource_{resource.ToString().ToLower()}");
+        string msgKey = isAutoTrade ? "trade_seaport_autotrade_confirm" : "trade_seaport_confirm";
+        string permanentKey = isAutoTrade ? "trade_seaport_autotrade_confirm_permanent" : "trade_seaport_confirm_permanent";
+        canvas.DrawText(string.Format(_localization.Get(msgKey), resourceName), _confirmPopupRect.MidX, py + 42, SKTextAlign.Center, _font, _textPaint);
+        canvas.DrawText(_localization.Get(permanentKey), _confirmPopupRect.MidX, py + 64, SKTextAlign.Center, _smallFont, _mutedTextPaint);
+
+        float btnW = 100, btnH = 32;
+        float btnY = py + h - 16 - btnH;
+        _confirmYesRect = new SKRect(_confirmPopupRect.MidX - btnW - 8, btnY, _confirmPopupRect.MidX - 8, btnY + btnH);
+        _confirmNoRect = new SKRect(_confirmPopupRect.MidX + 8, btnY, _confirmPopupRect.MidX + 8 + btnW, btnY + btnH);
+
+        using var yesPaint = new SKPaint { Color = new SKColor(46, 125, 50), Style = SKPaintStyle.Fill, IsAntialias = true };
+        using var noPaint = new SKPaint { Color = new SKColor(140, 50, 50), Style = SKPaintStyle.Fill, IsAntialias = true };
+        canvas.DrawRoundRect(_confirmYesRect, 6, 6, yesPaint);
+        canvas.DrawRoundRect(_confirmNoRect, 6, 6, noPaint);
+        canvas.DrawText(_localization.Get("trade_seaport_confirm_yes"), _confirmYesRect.MidX, _confirmYesRect.MidY + 5, SKTextAlign.Center, _boldFont, _textPaint);
+        canvas.DrawText(_localization.Get("trade_seaport_confirm_no"), _confirmNoRect.MidX, _confirmNoRect.MidY + 5, SKTextAlign.Center, _boldFont, _textPaint);
     }
 
     private void DrawCloseButton(SKCanvas canvas, SKRect rect)
@@ -341,6 +554,7 @@ public sealed class TradeRenderer : IDisposable
         _titleFont.Dispose();
         _font.Dispose();
         _boldFont.Dispose();
+        _smallFont.Dispose();
         _disposed = true;
     }
 }

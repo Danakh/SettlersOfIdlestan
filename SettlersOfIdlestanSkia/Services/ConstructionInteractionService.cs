@@ -23,6 +23,8 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
 
     public ConstructionHoverState HoverState { get; private set; } = ConstructionHoverState.Empty;
 
+    public Func<bool>? ShouldSuppressHover { get; set; }
+
     public ConstructionInteractionService(
         GameControllerService gameControllerService,
         HarvestService harvestService,
@@ -48,6 +50,11 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
 
     private void OnPointerMoved(object? sender, PointerEventArgs e)
     {
+        if (ShouldSuppressHover?.Invoke() == true)
+        {
+            ClearHover();
+            return;
+        }
         RefreshHover(e.Position);
     }
 
@@ -56,12 +63,18 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
         if (e.Button != PointerButton.Left)
             return;
 
+        if (ShouldSuppressHover?.Invoke() == true)
+            return;
+
         RefreshHover(e.Position);
     }
 
     private void OnPointerReleased(object? sender, PointerEventArgs e)
     {
         if (e.Button != PointerButton.Left)
+            return;
+
+        if (ShouldSuppressHover?.Invoke() == true)
             return;
 
         RefreshHover(e.Position);

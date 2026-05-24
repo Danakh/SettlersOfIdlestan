@@ -58,9 +58,9 @@ public class Seaport : Building
         {
             return new ResourceCost
             {
-                { Resource.Food, 50 * (level + 1) },
-                { Resource.Wood, 100 * (level + 1) },
-                { Resource.Stone, 50 * (level + 1) }
+                { Resource.Food, 20 * (level + 1) },
+                { Resource.Wood, 30 + 20 * (level + 1) },
+                { Resource.Stone, 20 + 40 * (level + 1) }
             };
         }
     }

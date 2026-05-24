@@ -84,7 +84,71 @@ namespace SettlersOfIdlestan.Controller
 
         public int TradeRate(int civilizationIndex, Resource res)
         {
+            var civ = _state?.Civilizations.Find(c => c.Index == civilizationIndex);
+            if (civ != null && civ.SeaportEnhancedResources.Contains(res))
+                return BasicResourceTradeRate - 1;
             return BasicResourceTradeRate;
+        }
+
+        public int GetMaxSeaportLevel(int civilizationIndex)
+        {
+            var civ = _state?.Civilizations.Find(c => c.Index == civilizationIndex);
+            if (civ == null) return 0;
+            int max = 0;
+            foreach (var city in civ.Cities)
+                foreach (var b in city.Buildings)
+                    if (b.Type == BuildingType.Seaport && b.Level > max)
+                        max = b.Level;
+            return max;
+        }
+
+        private int GetSeaportCountAtMinLevel(int civilizationIndex, int minLevel)
+        {
+            var civ = _state?.Civilizations.Find(c => c.Index == civilizationIndex);
+            if (civ == null) return 0;
+            int count = 0;
+            foreach (var city in civ.Cities)
+                foreach (var b in city.Buildings)
+                    if (b.Type == BuildingType.Seaport && b.Level >= minLevel)
+                        count++;
+            return count;
+        }
+
+        public bool CanEnhanceSeaportResource(int civilizationIndex, Resource resource)
+        {
+            var civ = _state?.Civilizations.Find(c => c.Index == civilizationIndex);
+            if (civ == null) return false;
+            if (civ.SeaportEnhancedResources.Contains(resource)) return false;
+            return civ.SeaportEnhancedResources.Count < GetSeaportCountAtMinLevel(civilizationIndex, 3);
+        }
+
+        public void SetSeaportEnhancedResource(int civilizationIndex, Resource resource)
+        {
+            if (_state == null) throw new InvalidOperationException("IslandState has not been initialized.");
+            var civ = _state.Civilizations.Find(c => c.Index == civilizationIndex)
+                      ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
+            if (!CanEnhanceSeaportResource(civilizationIndex, resource))
+                throw new InvalidOperationException("Cannot enhance this resource: no available level-3 Seaport slot.");
+            civ.SeaportEnhancedResources.Add(resource);
+        }
+
+        public bool CanActivateSeaportAutoTrade(int civilizationIndex, Resource resource)
+        {
+            var civ = _state?.Civilizations.Find(c => c.Index == civilizationIndex);
+            if (civ == null) return false;
+            if (!civ.SeaportEnhancedResources.Contains(resource)) return false;
+            if (civ.SeaportAutoTradeResources.Contains(resource)) return false;
+            return civ.SeaportAutoTradeResources.Count < GetSeaportCountAtMinLevel(civilizationIndex, 4);
+        }
+
+        public void AddSeaportAutoTradeResource(int civilizationIndex, Resource resource)
+        {
+            if (_state == null) throw new InvalidOperationException("IslandState has not been initialized.");
+            var civ = _state.Civilizations.Find(c => c.Index == civilizationIndex)
+                      ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
+            if (!CanActivateSeaportAutoTrade(civilizationIndex, resource))
+                throw new InvalidOperationException("Cannot activate auto-trade for this resource: no available level-4 Seaport slot or resource not enhanced.");
+            civ.SeaportAutoTradeResources.Add(resource);
         }
 
         public bool CanRecieveTrade(Civilization civ, Resource resource, int quantity = 1)

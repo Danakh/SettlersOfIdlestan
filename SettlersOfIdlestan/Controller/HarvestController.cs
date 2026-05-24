@@ -51,6 +51,7 @@ namespace SettlersOfIdlestan.Controller
     {
         private IslandState? _state;
         private GameClock? _clock;
+        private TradeController? _tradeController;
 
         // 2 s × 100 ticks/s
         public const long HarvestCooldownTicks = 200L;
@@ -69,13 +70,14 @@ namespace SettlersOfIdlestan.Controller
             Initialize(state, clock);
         }
 
-        internal void Initialize(IslandState? state, GameClock? clock)
+        internal void Initialize(IslandState? state, GameClock? clock, TradeController? tradeController = null)
         {
             if (_clock != null)
                 _clock.Advanced -= OnClockAdvanced;
 
             _state = state;
             _clock = clock;
+            _tradeController = tradeController;
 
             if (_clock != null)
                 _clock.Advanced += OnClockAdvanced;
@@ -132,6 +134,7 @@ namespace SettlersOfIdlestan.Controller
                                     continue;
 
                                 var res = resource.Value;
+                                TryAutoTradeOnOverflow(civ, res);
                                 civ.AddResource(res, 1);
                                 autoMap[hex] = now;
                                 OnHarvestCompleted?.Invoke(this, new HarvestCompletedEventArgs(civ.Index, hex, res, city.Position, isAutomatic: true));
@@ -164,6 +167,7 @@ namespace SettlersOfIdlestan.Controller
                     if (now - market.LastGenerationTick < MarketGenerationCooldownTicks) continue;
 
                     var resource = ResourceUtils.BasicResources[_random.Next(ResourceUtils.BasicResources.Count)];
+                    TryAutoTradeOnOverflow(civ, resource);
                     civ.AddResource(resource, 1);
                     market.LastGenerationTick = now;
                     OnMarketResourceGenerated?.Invoke(this, new MarketGenerationEventArgs(civ.Index, resource, city.Position));
@@ -233,6 +237,20 @@ namespace SettlersOfIdlestan.Controller
                     }
 
             return min ?? baseCooldown;
+        }
+
+        private void TryAutoTradeOnOverflow(Civilization civ, Resource res)
+        {
+            if (_tradeController == null) return;
+            if (!civ.SeaportAutoTradeResources.Contains(res)) return;
+            if (civ.GetResourceQuantity(res) + 1 <= civ.GetResourceMaxQuantity(res)) return;
+
+            var weakest = ResourceUtils.BasicResources
+                .Where(r => r != res)
+                .OrderBy(r => civ.GetResourceQuantity(r))
+                .FirstOrDefault();
+
+            try { _tradeController.Trade(civ.Index, res, weakest); } catch { }
         }
 
         public bool ManualHarvest(int civilizationIndex, HexCoord hex)

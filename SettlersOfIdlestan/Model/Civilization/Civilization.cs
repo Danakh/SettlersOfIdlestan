@@ -157,6 +157,12 @@ public class Civilization
         return result + storageBonus;
     }
 
+    /// <summary>Resources for which a level-3 Seaport has unlocked a 4:1 trade rate (permanent).</summary>
+    public List<Resource> SeaportEnhancedResources { get; set; } = new();
+
+    /// <summary>Resources for which a level-4 Seaport has activated permanent auto-trade (one slot per level-4 Seaport).</summary>
+    public List<Resource> SeaportAutoTradeResources { get; set; } = new();
+
     public bool CanPayResourceCost(ResourceCost cost)
     {
         foreach (var kvp in cost)

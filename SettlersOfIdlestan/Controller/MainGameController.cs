@@ -176,7 +176,7 @@ namespace SettlersOfIdlestan.Controller
 
                 // Initialize controllers to operate on the real island state and clock
                 RoadController.Initialize(islandState);
-                HarvestController.Initialize(islandState, Clock);
+                HarvestController.Initialize(islandState, Clock, TradeController);
                 TradeController.Initialize(islandState);
                 BuildingController.Initialize(islandState);
                 CityBuilderController.Initialize(islandState);

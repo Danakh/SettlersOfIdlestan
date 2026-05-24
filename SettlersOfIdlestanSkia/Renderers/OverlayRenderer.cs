@@ -238,9 +238,13 @@ public sealed class OverlayRenderer : IGameRenderer
         }
     }
 
+    public bool IsAnyOverlayOpen => _tradeRenderer.IsOpen || _prestigeRenderer.IsOpen || _settingsMenu.IsOpen;
+
     private void HandlePointerMoved(object? sender, SettlersOfIdlestanSkia.Services.PointerEventArgs e)
     {
         if (!_isVisible) return;
+        if (_tradeRenderer.IsOpen)
+            _tradeRenderer.HandlePointerMoved(e.Position);
         if (_activeTab == 1)
             _prestigeMapRenderer.HandlePointerMoved(e.Position);
     }

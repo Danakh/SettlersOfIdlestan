@@ -129,6 +129,7 @@ public sealed class SkiaGameRuntime : IDisposable
             prestigeHistoryRenderer,
             timeControlRenderer);
         _renderService.RegisterRenderer(_overlayRenderer);
+        _constructionInteractionService.ShouldSuppressHover = () => _overlayRenderer.IsAnyOverlayOpen;
         _renderService.RegisterRenderer(new DebugOverlayRenderer(_inputService, _cameraService, islandMainRenderer, _localizationService));
         _renderService.RegisterRenderer(aboutRenderer);
         _renderService.RegisterRenderer(tooltipRenderer);
