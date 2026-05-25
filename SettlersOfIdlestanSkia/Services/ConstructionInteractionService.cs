@@ -13,6 +13,8 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
 {
     private const float VertexHoverRadius = 14f;
     private const float EdgeHoverRadius = 12f;
+    private const double DoubleClickMaxMs = 400.0;
+    private const float DoubleClickMaxDist = 20f;
 
     private readonly GameControllerService _gameControllerService;
     private readonly HarvestService _harvestService;
@@ -20,6 +22,9 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
     private readonly CameraService _cameraService;
     private readonly CityBuildingService _cityBuildingService;
     private IslandMainRenderer? _renderer;
+
+    private DateTime _lastClickTime = DateTime.MinValue;
+    private SKPoint _lastClickPosition = SKPoint.Empty;
 
     public ConstructionHoverState HoverState { get; private set; } = ConstructionHoverState.Empty;
 
@@ -79,21 +84,36 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
 
         RefreshHover(e.Position);
 
+        var now = e.Timestamp;
+        var elapsed = (now - _lastClickTime).TotalMilliseconds;
+        var dist = SKPoint.Distance(e.Position, _lastClickPosition);
+        var isDoubleClick = elapsed <= DoubleClickMaxMs && dist <= DoubleClickMaxDist;
+
+        if (isDoubleClick)
+        {
+            _lastClickTime = DateTime.MinValue;
+
+            if (HoverState.HoveredVertex != null && _gameControllerService.TryBuildCityForPlayer(HoverState.HoveredVertex))
+            {
+                RefreshHover(e.Position);
+                return;
+            }
+
+            if (HoverState.HoveredEdge != null && _gameControllerService.TryBuildRoadForPlayer(HoverState.HoveredEdge))
+            {
+                RefreshHover(e.Position);
+                return;
+            }
+        }
+        else
+        {
+            _lastClickTime = now;
+            _lastClickPosition = e.Position;
+        }
+
         if (HoverState.HoveredCityVertex != null)
         {
             SetSelectedCity(HoverState.HoveredCityVertex);
-            return;
-        }
-
-        if (HoverState.HoveredVertex != null && _gameControllerService.TryBuildCityForPlayer(HoverState.HoveredVertex))
-        {
-            RefreshHover(e.Position);
-            return;
-        }
-
-        if (HoverState.HoveredEdge != null && _gameControllerService.TryBuildRoadForPlayer(HoverState.HoveredEdge))
-        {
-            RefreshHover(e.Position);
             return;
         }
 

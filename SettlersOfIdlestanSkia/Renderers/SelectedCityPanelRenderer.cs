@@ -35,7 +35,7 @@ public class SelectedCityPanelRenderer : IGameRenderer
     private SKPaint? _btnDisabledTextPaint;
     private SKPoint _lastPointerPosition = SKPoint.Empty;
     private BuildingType? _hoveredBuildingType = null;
-    private const float PanelWidth = 260;
+    private const float PanelWidth = 300;
     private const float RowHeight = 36;
     private const float Padding = 10;
     private Dictionary<SKRect, BuildingType> _btnRects = new Dictionary<SKRect, BuildingType>();
