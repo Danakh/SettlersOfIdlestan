@@ -5,7 +5,7 @@ using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.HexGrid;
 
-namespace SettlersOfIdlestan.Controller
+namespace SettlersOfIdlestan.Controller.Island
 {
     /// <summary>
     /// Contr?le la logique de construction de routes pour un IslandState.

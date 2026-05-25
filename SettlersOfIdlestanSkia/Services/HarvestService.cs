@@ -1,6 +1,6 @@
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
-using SettlersOfIdlestan.Controller;
+using SettlersOfIdlestan.Controller.Island;
 
 namespace SettlersOfIdlestanSkia.Services;
 

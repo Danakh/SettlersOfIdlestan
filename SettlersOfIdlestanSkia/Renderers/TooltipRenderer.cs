@@ -1,4 +1,5 @@
-using SettlersOfIdlestan.Controller;
+using SettlersOfIdlestan.Controller.Island;
+using SettlersOfIdlestan.Controller.Military;
 using SettlersOfIdlestan.Model.Bandits;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;

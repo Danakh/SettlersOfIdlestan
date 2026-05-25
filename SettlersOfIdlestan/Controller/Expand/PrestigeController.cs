@@ -7,7 +7,7 @@ using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Prestige;
 using SettlersOfIdlestan.Controller.Generator;
 
-namespace SettlersOfIdlestan.Controller
+namespace SettlersOfIdlestan.Controller.Expand
 {
     public class PrestigeController
     {

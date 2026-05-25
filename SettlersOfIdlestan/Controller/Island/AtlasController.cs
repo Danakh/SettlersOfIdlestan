@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.IslandMap;
 
-namespace SettlersOfIdlestan.Controller
+namespace SettlersOfIdlestan.Controller.Island
 {
     public class AtlasController
     {

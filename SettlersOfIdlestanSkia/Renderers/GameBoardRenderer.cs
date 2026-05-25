@@ -1,11 +1,14 @@
 using SkiaSharp;
+using Svg.Skia;
 using SettlersOfIdlestanSkia.Core;
+using SettlersOfIdlestanSkia.Services;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.HexGrid;
-using SettlersOfIdlestan.Controller;
 using System;
 using System.Collections.Generic;
+using SettlersOfIdlestan.Controller.Military;
+using SettlersOfIdlestan.Controller.Island;
 
 namespace SettlersOfIdlestanSkia.Renderers;
 
@@ -16,6 +19,11 @@ namespace SettlersOfIdlestanSkia.Renderers;
 public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
 {
     private readonly HarvestController _harvestController;
+    private readonly ResourceManager _resourceManager;
+
+    private SKSvg? _chestSvg;
+    private const float ChestIconSize = 18f;
+    private const float ChestSvgViewBox = 32f;
 
     private SKPaint? _hexBorderPaint;
     private SKPaint? _hexFillPaint;
@@ -47,9 +55,10 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
         { TerrainType.Water,    new SKColor(30, 144, 255) },
     };
 
-    public GameBoardRenderer(HarvestController harvestController)
+    public GameBoardRenderer(HarvestController harvestController, ResourceManager resourceManager)
     {
         _harvestController = harvestController;
+        _resourceManager = resourceManager;
     }
 
     public void Initialize(SKSize canvasSize)
@@ -94,6 +103,9 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
             StrokeCap = SKStrokeCap.Butt,
             IsAntialias = true
         };
+
+        try { _chestSvg = _resourceManager.LoadImage("Resources.icons.features.chest.svg"); }
+        catch { _chestSvg = null; }
     }
 
     public void Render(SKCanvas canvas, GameRenderContext context)
@@ -190,18 +202,15 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
 
     private void DrawTreasureTroveMarker(SKCanvas canvas, float cx, float cy)
     {
-        const float Size = 7f;
-        using var path = new SKPath();
-        path.MoveTo(cx,          cy - Size);
-        path.LineTo(cx + Size,   cy);
-        path.LineTo(cx,          cy + Size);
-        path.LineTo(cx - Size,   cy);
-        path.Close();
+        var picture = _chestSvg?.Picture;
+        if (picture == null) return;
 
-        using var fill = new SKPaint { Style = SKPaintStyle.Fill, Color = new SKColor(255, 200, 0, 230), IsAntialias = true };
-        using var border = new SKPaint { Style = SKPaintStyle.Stroke, StrokeWidth = 1.5f, Color = new SKColor(160, 110, 0, 200), IsAntialias = true };
-        canvas.DrawPath(path, fill);
-        canvas.DrawPath(path, border);
+        float scale = ChestIconSize / ChestSvgViewBox;
+        canvas.Save();
+        canvas.Translate(cx - ChestIconSize / 2f, cy - ChestIconSize / 2f);
+        canvas.Scale(scale);
+        canvas.DrawPicture(picture);
+        canvas.Restore();
     }
 
     /// <summary>

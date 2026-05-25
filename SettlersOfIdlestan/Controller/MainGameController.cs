@@ -1,3 +1,6 @@
+using SettlersOfIdlestan.Controller.Expand;
+using SettlersOfIdlestan.Controller.Island;
+using SettlersOfIdlestan.Controller.Military;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.GameplayModifier;

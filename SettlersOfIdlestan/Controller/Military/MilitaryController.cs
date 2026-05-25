@@ -5,7 +5,7 @@ using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.IslandMap;
 
-namespace SettlersOfIdlestan.Controller;
+namespace SettlersOfIdlestan.Controller.Military;
 
 /// <summary>
 /// Gère la production de soldats par les Casernes et le combat contre toutes les cibles

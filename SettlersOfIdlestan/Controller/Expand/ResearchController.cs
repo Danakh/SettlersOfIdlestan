@@ -7,7 +7,7 @@ using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Prestige;
 using SettlersOfIdlestan.Model.Prestige.PrestigeMap;
 
-namespace SettlersOfIdlestan.Controller
+namespace SettlersOfIdlestan.Controller.Expand
 {
     public class ResearchController
     {

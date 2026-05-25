@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
 
-namespace SettlersOfIdlestan.Controller
+namespace SettlersOfIdlestan.Controller.Island
 {
     /// <summary>
     /// Contr�le la logique de construction et d'am�lioration des b�timents pour une ville donn�e.

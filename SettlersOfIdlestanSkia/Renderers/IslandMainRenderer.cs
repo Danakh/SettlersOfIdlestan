@@ -2,9 +2,9 @@ using SkiaSharp;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
-using SettlersOfIdlestan.Controller;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Services;
+using SettlersOfIdlestan.Controller.Island;
 
 namespace SettlersOfIdlestanSkia.Renderers;
 
@@ -48,7 +48,7 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
 
     public IslandMainRenderer(IConstructionHoverProvider constructionHoverProvider, TooltipRenderer tooltipRenderer, HarvestController harvestController, ResourceManager resourceManager)
     {
-        _gameBoardRenderer = new GameBoardRenderer(harvestController);
+        _gameBoardRenderer = new GameBoardRenderer(harvestController, resourceManager);
         _roadRenderer = new RoadRenderer(tooltipRenderer);
         _cityRenderer = new CityRenderer(tooltipRenderer);
         _harvestParticleSystem = new HarvestParticleSystem();
@@ -89,7 +89,6 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
 
         var state = _constructionHoverProvider!.HoverState;
 
-        // TODO mettre dans le using
         _tooltipRenderer.SetIslandRenderContext(this, context);
 
         if (state.HoveredHex != null &&

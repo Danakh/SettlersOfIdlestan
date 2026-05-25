@@ -3,7 +3,7 @@ using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Prestige.PrestigeMap;
 using SettlersOfIdlestan.Model.Prestige;
 
-namespace SettlersOfIdlestan.Controller;
+namespace SettlersOfIdlestan.Controller.Expand;
 
 public class PrestigeMapController
 {

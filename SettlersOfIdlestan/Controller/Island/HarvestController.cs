@@ -6,8 +6,9 @@ using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.Buildings;
 using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
+using SettlersOfIdlestan.Controller.Military;
 
-namespace SettlersOfIdlestan.Controller
+namespace SettlersOfIdlestan.Controller.Island
 {
     public class MarketGenerationEventArgs : EventArgs
     {

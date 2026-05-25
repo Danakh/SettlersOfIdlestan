@@ -9,7 +9,7 @@ using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.TreasureTroves;
 
-namespace SettlersOfIdlestan.Controller;
+namespace SettlersOfIdlestan.Controller.Military;
 
 public class BanditController
 {

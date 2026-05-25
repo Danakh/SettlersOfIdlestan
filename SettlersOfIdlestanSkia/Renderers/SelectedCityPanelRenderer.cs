@@ -1,6 +1,5 @@
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.IslandMap;
-using SettlersOfIdlestan.Controller;
 using SettlersOfIdlestan.Services.Localization;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Services;
@@ -10,6 +9,8 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using SettlersOfIdlestan.Controller.Military;
+using SettlersOfIdlestan.Controller.Island;
 
 namespace SettlersOfIdlestanSkia.Renderers;
 

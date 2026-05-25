@@ -5,7 +5,7 @@ using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
 
-namespace SettlersOfIdlestan.Controller
+namespace SettlersOfIdlestan.Controller.Island
 {
     /// <summary>
     /// Controller handling city construction.

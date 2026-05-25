@@ -1,4 +1,4 @@
-using SettlersOfIdlestan.Controller;
+using SettlersOfIdlestan.Controller.Expand;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Services.Localization;

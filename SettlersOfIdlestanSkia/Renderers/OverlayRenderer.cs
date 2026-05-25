@@ -1,3 +1,4 @@
+using SettlersOfIdlestan.Controller.Expand;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Services.Localization;
 using SettlersOfIdlestanSkia.Core;
@@ -307,7 +308,7 @@ public sealed class OverlayRenderer : IGameRenderer
             int currentPoints = prestigeController.CalculatePrestigePoints();
             string label = isAvailable
                 ? $"{_localization.Get("prestige_action")} ({currentPoints})"
-                : $"{_localization.Get("prestige_action")} ({currentPoints}/{SettlersOfIdlestan.Controller.PrestigeController.PrestigeRequiredPoints})";
+                : $"{_localization.Get("prestige_action")} ({currentPoints}/{PrestigeController.PrestigeRequiredPoints})";
             canvas.DrawRoundRect(_prestigeButtonRect, 7, 7, isAvailable ? _buttonPaint : _disabledButtonPaint);
             canvas.DrawText(label, _prestigeButtonRect.MidX, _prestigeButtonRect.MidY + 6, SKTextAlign.Center, _buttonFont, isAvailable ? _buttonTextPaint : _disabledTextPaint);
         }

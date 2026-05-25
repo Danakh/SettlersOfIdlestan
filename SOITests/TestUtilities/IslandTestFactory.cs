@@ -1,4 +1,4 @@
-using SettlersOfIdlestan.Controller;
+using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;

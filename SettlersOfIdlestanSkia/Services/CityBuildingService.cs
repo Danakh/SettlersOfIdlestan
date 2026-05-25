@@ -3,6 +3,8 @@ using SettlersOfIdlestan.Controller;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.IslandMap;
+using SettlersOfIdlestan.Controller.Island;
+using SettlersOfIdlestan.Controller.Expand;
 
 namespace SettlersOfIdlestanSkia.Services;
 

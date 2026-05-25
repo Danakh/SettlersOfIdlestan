@@ -5,6 +5,8 @@ using SOITests.TestUtilities;
 using System.Collections.Generic;
 using System.Linq;
 using SettlersOfIdlestan.Model.Game;
+using SettlersOfIdlestan.Controller.Island;
+using SettlersOfIdlestan.Controller.Expand;
 
 namespace SOITests.IslandMapTests
 {
