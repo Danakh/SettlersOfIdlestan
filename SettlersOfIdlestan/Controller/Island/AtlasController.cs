@@ -25,7 +25,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 {
                     new IslandFeatureParameters(IslandFeatureType.Bandit,       IslandFeaturePlacement.FarFromPlayer),
                 };
-                return new IslandParameters(islandId, tileData, 1, features);
+                return new IslandParameters(islandId, tileData, 1, features, IslandShapeType.Compact);
             }
             // Pour d'autres îles, retourner une configuration différente si besoin
             if (islandId > 1)
@@ -44,7 +44,7 @@ namespace SettlersOfIdlestan.Controller.Island
                     new IslandFeatureParameters(IslandFeatureType.Bandit,       IslandFeaturePlacement.FarFromPlayer),
                     new IslandFeatureParameters(IslandFeatureType.TreasureTrove, IslandFeaturePlacement.Random),
                 };
-                return new IslandParameters(islandId, tileData, 1, features);
+                return new IslandParameters(islandId, tileData, 1, features, IslandShapeType.Crescent);
             }
 
             return new IslandParameters(InvalidIslandId, new List<(TerrainType terrainType, int tileCount)>(), 0);

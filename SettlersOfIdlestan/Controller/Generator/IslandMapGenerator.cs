@@ -11,9 +11,9 @@ using SettlersOfIdlestan.Model.TreasureTroves;
 namespace SettlersOfIdlestan.Controller.Generator;
 
 /// <summary>
-/// Generates a random island map based on a list of land tiles.
-/// The land tiles are placed in a connected hexagonal layout with each having at least two neighbors,
-/// then surrounded by water tiles.
+/// Generates a random island map. The shape of the land is provided by an IslandShapeGenerator;
+/// terrain is shuffled onto the shape coordinates, then swapped as needed to guarantee a
+/// Hill/Forest/Water vertex for the player's starting city.
 /// </summary>
 public class IslandMapGenerator
 {
@@ -23,153 +23,95 @@ public class IslandMapGenerator
     {
         _prng = prng ?? new GamePRNG();
     }
+
     /// <summary>
-    /// Generates an island map from the provided land tile data.
-    /// The tiles are shuffled and assigned to coordinates in a spiral order to ensure connectivity.
-    /// Water tiles are added around the land tiles.
+    /// Generates an island map for the given terrain data and civilization list.
+    /// An optional shape generator controls the land footprint; defaults to compact spiral.
+    /// An optional preferred start hex biases the Hill/Forest/Water vertex placement.
     /// </summary>
-    /// <param name="tileData">The list of land tile data (resource and tile count).</param>
-    /// <param name="civilizations">The list of civilizations.</param>
-    /// <returns>The generated island map, or null if generation fails.</returns>
-    public IslandMap? GenerateIsland(IEnumerable<(TerrainType terrainType, int tileCount)> tileData, List<Civilization> civilizations)
+    public IslandMap? GenerateIsland(
+        IEnumerable<(TerrainType terrainType, int tileCount)> tileData,
+        List<Civilization> civilizations,
+        IslandShapeGenerator? shapeGenerator = null,
+        HexCoord? preferredStartHex = null)
     {
         if (civilizations == null || civilizations.Count == 0)
-        {
             return null;
-        }
 
         var tileList = new List<TerrainType>();
         foreach (var (terrainType, tileCount) in tileData)
-        {
             for (int i = 0; i < tileCount; i++)
-            {
                 tileList.Add(terrainType);
-            }
-        }
+
         if (tileList.Count == 0)
-        {
             return new IslandMap([]);
-        }
 
         bool hasHill = tileList.Contains(TerrainType.Hill);
         bool hasForest = tileList.Contains(TerrainType.Forest);
-        IslandMap map;
-        Vertex? vertex = null;
-        int attempts = 0;
-        do
-        {
-            // Shuffle the land tiles for randomness
-            var shuffledTiles = Shuffle(tileList);
 
-            // Generate coordinates in spiral order
-            var coords = GenerateSpiralCoords(shuffledTiles.Count).ToList();
+        shapeGenerator ??= new IslandShapeGeneratorCompact();
 
-            if (hasHill && hasForest)
+        // Generate land coordinates from shape
+        var coords = shapeGenerator.GenerateCoords(tileList.Count);
+        var coordSet = new HashSet<HexCoord>(coords);
+
+        // Shuffle and assign terrain to coordinates
+        var shuffledTiles = Shuffle(tileList);
+        var terrainDict = new Dictionary<HexCoord, TerrainType>(coords.Count);
+        for (int i = 0; i < coords.Count; i++)
+            terrainDict[coords[i]] = shuffledTiles[i];
+
+        // Swap terrain to guarantee a Hill/Forest/Water vertex near the preferred start
+        HexCoord? startHex = preferredStartHex ?? (hasHill && hasForest
+            ? shapeGenerator.GetPreferredStartHex(coords)
+            : null);
+
+        if (hasHill && hasForest)
+            EnsureHillForestNearEdge(terrainDict, coordSet, startHex);
+
+        // Build land tiles
+        var tiles = new List<HexTile>(terrainDict.Count);
+        foreach (var (coord, terrain) in terrainDict)
+            tiles.Add(new HexTile(coord, terrain));
+
+        // Add water ring around all land
+        var waterCoords = new HashSet<HexCoord>();
+        foreach (var coord in coordSet)
+            foreach (var dir in HexDirectionUtils.AllHexDirections)
             {
-                // Find the index of the last Forest
-                int lastForestIndex = -1;
-                for (int i = shuffledTiles.Count - 1; i >= 0; i--)
-                {
-                    if (shuffledTiles[i] == TerrainType.Forest)
-                    {
-                        lastForestIndex = i;
-                        break;
-                    }
-                }
-                if (lastForestIndex >= 0 && lastForestIndex < shuffledTiles.Count - 10)
-                {
-                    // Move it to the last position
-                    int targetIndex = shuffledTiles.Count - 1;
-                    (shuffledTiles[lastForestIndex], shuffledTiles[targetIndex]) = (shuffledTiles[targetIndex], shuffledTiles[lastForestIndex]);
-                    lastForestIndex = targetIndex;
-                }
-
-                // Find the index of the last Hill
-                int lastHillIndex = -1;
-                for (int i = shuffledTiles.Count - 1; i >= 0; i--)
-                {
-                    if (shuffledTiles[i] == TerrainType.Hill)
-                    {
-                        lastHillIndex = i;
-                        break;
-                    }
-                }
-                if (lastHillIndex >= 0)
-                {
-                    // Find a position adjacent to the Forest's coord
-                    var forestCoord = coords[lastForestIndex];
-                    int adjacentIndex = -1;
-                    for (int i = 0; i < coords.Count; i++)
-                    {
-                        if (i != lastForestIndex && forestCoord.DistanceTo(coords[i]) == 1)
-                        {
-                            adjacentIndex = i;
-                            break;
-                        }
-                    }
-                    if (adjacentIndex >= 0 && adjacentIndex != lastHillIndex)
-                    {
-                        // Move the Hill to the adjacent position
-                        (shuffledTiles[lastHillIndex], shuffledTiles[adjacentIndex]) = (shuffledTiles[adjacentIndex], shuffledTiles[lastHillIndex]);
-                    }
-                }
+                var nb = coord.Neighbor(dir);
+                if (!coordSet.Contains(nb))
+                    waterCoords.Add(nb);
             }
+        foreach (var wc in waterCoords)
+            tiles.Add(new HexTile(wc, TerrainType.Water));
 
-            // Create new land tiles with assigned coordinates
-            var tiles = new List<HexTile>();
-            for (int i = 0; i < shuffledTiles.Count; i++)
-            {
-                var terrainType = shuffledTiles[i];
-
-                var newTile = new HexTile(coords[i], terrainType);
-                tiles.Add(newTile);
-            }
-
-            // Find water coordinates: neighbors of land that are not land
-            var coordset = new HashSet<HexCoord>(coords);
-            var waterCoords = new HashSet<HexCoord>();
-            foreach (var landCoord in coords)
-            {
-                foreach (var direction in HexDirectionUtils.AllHexDirections)
-                {
-                    var neighbor = landCoord.Neighbor(direction);
-                    if (!coordset.Contains(neighbor))
-                    {
-                        waterCoords.Add(neighbor);
-                    }
-                }
-            }
-
-            // Add water tiles
-            foreach (var waterCoord in waterCoords)
-            {
-                tiles.Add(new HexTile(waterCoord, TerrainType.Water));
-            }
-
-            map = new IslandMap(tiles);
-            vertex = FindVertexAdjacentToHillForestWater(map);
-            attempts++;
-        } while (hasHill && hasForest && vertex == null && attempts < 10);
+        var map = new IslandMap(tiles);
+        var vertex = hasHill && hasForest ? FindVertexAdjacentToHillForestWater(map) : null;
 
         if (vertex != null)
-        {
             PopulatePlayerCivilization(map, civilizations[0], vertex);
-        }
 
         return map;
     }
 
     /// <summary>
-    /// Crée un IslandState complet : civilizations, génération de la carte et placement des features.
-    /// Retourne null si la génération de la carte échoue.
+    /// Creates a complete IslandState: civilizations, map generation, and feature placement.
+    /// The shape generator is chosen from parameters.ShapeType.
     /// </summary>
     public IslandState? GenerateIslandState(IslandParameters parameters, long currentTick, long startTick = 0)
     {
+        IslandShapeGenerator shapeGenerator = parameters.ShapeType switch
+        {
+            IslandShapeType.Crescent => new IslandShapeGeneratorCrescent(),
+            _ => new IslandShapeGeneratorCompact()
+        };
+
         var civs = new List<Civilization>();
         for (int i = 0; i < parameters.CivilizationCount; i++)
             civs.Add(new Civilization { Index = i });
 
-        var map = GenerateIsland(parameters.TileData, civs);
+        var map = GenerateIsland(parameters.TileData, civs, shapeGenerator);
         if (map is null) return null;
 
         var islandState = new IslandState(map, civs, parameters.IslandID) { StartTick = startTick };
@@ -184,70 +126,111 @@ public class IslandMapGenerator
     {
         var city = new City(vertex);
         city.CivilizationIndex = civilization.Index;
-
-        var townHall = new TownHall();
-        townHall.Level = 1;
+        var townHall = new TownHall { Level = 1 };
         city.Buildings.Add(townHall);
-
         civilization.Cities.Add(city);
     }
 
     /// <summary>
-    /// Generates coordinates in spiral order starting from the center.
+    /// Swaps terrain tiles in terrainDict so that an edge vertex adjacent to the preferred hex
+    /// (or any edge vertex if preferredHex is null) has exactly one Hill and one Forest land tile.
     /// </summary>
-    private static IEnumerable<HexCoord> GenerateSpiralCoords(int count)
+    private static void EnsureHillForestNearEdge(
+        Dictionary<HexCoord, TerrainType> terrainDict,
+        HashSet<HexCoord> coordSet,
+        HexCoord? preferredHex)
     {
-        if (count <= 0) yield break;
-        yield return new HexCoord(0, 0);
-        if (count == 1) yield break;
+        // Find a suitable edge vertex: 2 land hexes + 1 future-water hex
+        (HexCoord hexA, HexCoord hexB)? target = null;
 
-        int radius = 1;
-        int yielded = 1;
-        while (yielded < count)
+        foreach (var (a, b) in EnumerateEdgeLandPairs(coordSet))
         {
-            foreach (var coord in GenerateRingCoords(radius))
+            if (preferredHex != null && (a.Equals(preferredHex) || b.Equals(preferredHex)))
             {
-                yield return coord;
-                yielded++;
-                if (yielded >= count) yield break;
+                target = (a, b);
+                break;
             }
-            radius++;
+            target ??= (a, b);
+        }
+
+        if (target is null) return;
+
+        var hexA = target.Value.hexA;
+        var hexB = target.Value.hexB;
+
+        var tA = terrainDict[hexA];
+        var tB = terrainDict[hexB];
+
+        // Already satisfied
+        if ((tA == TerrainType.Hill || tB == TerrainType.Hill) &&
+            (tA == TerrainType.Forest || tB == TerrainType.Forest))
+            return;
+
+        // Ensure hexA holds Hill
+        if (tA != TerrainType.Hill && tB != TerrainType.Hill)
+        {
+            // Bring a Hill tile to hexA
+            var hillCoord = terrainDict.Keys
+                .FirstOrDefault(c => !c.Equals(hexA) && !c.Equals(hexB) && terrainDict[c] == TerrainType.Hill);
+            if (hillCoord is not null)
+            {
+                terrainDict[hillCoord] = tA;
+                terrainDict[hexA] = TerrainType.Hill;
+                tA = TerrainType.Hill;
+            }
+        }
+        else if (tB == TerrainType.Hill)
+        {
+            // Put Hill in the hexA slot
+            (hexA, hexB) = (hexB, hexA);
+            (tA, tB) = (tB, tA);
+        }
+
+        // Ensure hexB holds Forest
+        if (tB != TerrainType.Forest)
+        {
+            var forestCoord = terrainDict.Keys
+                .FirstOrDefault(c => !c.Equals(hexA) && !c.Equals(hexB) && terrainDict[c] == TerrainType.Forest);
+            if (forestCoord is not null)
+            {
+                terrainDict[forestCoord] = tB;
+                terrainDict[hexB] = TerrainType.Forest;
+            }
         }
     }
 
     /// <summary>
-    /// Generates coordinates for a given radius ring.
+    /// Yields all pairs (a, b) of adjacent land hexes where both are in coordSet and
+    /// at least one of their shared non-a/b neighbors is NOT in coordSet (water slot exists).
     /// </summary>
-    private static IEnumerable<HexCoord> GenerateRingCoords(int radius)
+    private static IEnumerable<(HexCoord a, HexCoord b)> EnumerateEdgeLandPairs(HashSet<HexCoord> coordSet)
     {
-        for (int q = -radius; q <= radius; q++)
+        foreach (var a in coordSet)
         {
-            int r1 = Math.Max(-radius, -q - radius);
-            int r2 = Math.Min(radius, -q + radius);
-            for (int r = r1; r <= r2; r++)
+            foreach (var d in HexDirectionUtils.AllHexDirections)
             {
-                int s = -q - r;
-                if (Math.Abs(q) + Math.Abs(r) + Math.Abs(s) == 2 * radius)
+                var b = a.Neighbor(d);
+                if (!coordSet.Contains(b)) continue;
+
+                var c1 = a.Neighbor(d.Next());
+                if (!coordSet.Contains(c1))
                 {
-                    yield return new HexCoord(q, r);
+                    yield return (a, b);
+                    break; // one water slot found for this (a,b) pair is enough
+                }
+
+                var c2 = a.Neighbor(d.Previous());
+                if (!coordSet.Contains(c2))
+                {
+                    yield return (a, b);
+                    break;
                 }
             }
         }
     }
 
     /// <summary>
-    /// Shuffles a list randomly using the configured PRNG if available.
-    /// </summary>
-    private List<T> Shuffle<T>(List<T> list)
-    {
-        var shuffled = new List<T>(list);
-        _prng.Shuffle(shuffled);
-        return shuffled;
-    }
-
-    /// <summary>
-    /// Places island features (bandits, treasure troves…) into the island state
-    /// according to each feature's type and placement strategy.
+    /// Places island features (bandits, treasure troves) into the island state.
     /// </summary>
     public void PlaceFeatures(IslandState islandState, IEnumerable<IslandFeatureParameters> features, long currentTick)
     {
@@ -302,33 +285,32 @@ public class IslandMapGenerator
         foreach (var kvp in map.Tiles)
         {
             var a = kvp.Key;
-            var terrainA = kvp.Value.TerrainType;
-            if (terrainA != TerrainType.Hill)
-            {
-                continue;
-            }
+            if (kvp.Value.TerrainType != TerrainType.Hill) continue;
+
             foreach (var d in HexDirectionUtils.AllHexDirections)
             {
                 var b = a.Neighbor(d);
                 var terrainB = coordToTerrain.TryGetValue(b, out var tb) ? tb : TerrainType.Desert;
-                if (terrainB != TerrainType.Forest)
-                {
-                    continue;
-                }
+                if (terrainB != TerrainType.Forest) continue;
+
                 var c = a.Neighbor(d.Next());
                 var terrainC = coordToTerrain.TryGetValue(c, out var tc) ? tc : TerrainType.Desert;
                 if (terrainC == TerrainType.Water)
-                {
                     return Vertex.Create(a, b, c);
-                }
+
                 c = a.Neighbor(d.Previous());
                 terrainC = coordToTerrain.TryGetValue(c, out tc) ? tc : TerrainType.Desert;
                 if (terrainC == TerrainType.Water)
-                {
                     return Vertex.Create(a, b, c);
-                }
             }
         }
         return null;
+    }
+
+    private List<T> Shuffle<T>(List<T> list)
+    {
+        var shuffled = new List<T>(list);
+        _prng.Shuffle(shuffled);
+        return shuffled;
     }
 }
