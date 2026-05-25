@@ -162,20 +162,31 @@ public class BanditController
             return;
         }
 
-        // Hexs des villes (les 3 hexs du vertex de chaque ville)
         var cityHexes = new HashSet<HexCoord>();
         foreach (var city in _state.GetAllCities())
             foreach (var hex in city.Position.GetHexes())
                 cityHexes.Add(hex);
 
-        // Destinations voisines d'une ville
-        var cityAdjacentDestinations = validDestinations.Where(n => cityHexes.Contains(n)).ToList();
+        // Tier 1 : pas de bandit + pas de cooldown
+        var noBanditNoCooldown = validDestinations
+            .Where(n => !_state.Bandits.Any(b => b.Position.Equals(n)) &&
+                        (!_state.BanditCooldownUntil.TryGetValue(n, out var until) || currentTick >= until))
+            .ToList();
 
-        HexCoord destination;
-        if (cityAdjacentDestinations.Count > 0)
-            destination = cityAdjacentDestinations[_prng.Next(cityAdjacentDestinations.Count)];
-        else
-            destination = validDestinations[_prng.Next(validDestinations.Count)];
+        // Tier 2 : pas de bandit (cooldown acceptable)
+        var noBandit = validDestinations
+            .Where(n => !_state.Bandits.Any(b => b.Position.Equals(n)))
+            .ToList();
+
+        // Sélection du meilleur tier disponible, avec préférence pour les hexs de ville
+        var candidates = noBanditNoCooldown.Count > 0 ? noBanditNoCooldown
+                       : noBandit.Count > 0 ? noBandit
+                       : validDestinations;
+
+        var cityAdjacent = candidates.Where(n => cityHexes.Contains(n)).ToList();
+        HexCoord destination = cityAdjacent.Count > 0
+            ? cityAdjacent[_prng.Next(cityAdjacent.Count)]
+            : candidates[_prng.Next(candidates.Count)];
 
         var oldPosition = bandit.Position;
         bandit.Position = destination;
