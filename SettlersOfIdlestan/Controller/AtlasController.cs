@@ -21,9 +21,9 @@ namespace SettlersOfIdlestan.Controller
                     (TerrainType.Mountain, 5),
                     (TerrainType.Desert, 1),
                 };
-                var features = new List<IslandFeature>
+                var features = new List<IslandFeatureParameters>
                 {
-                    new IslandFeature(IslandFeatureType.Bandit,       IslandFeaturePlacement.FarFromPlayer),
+                    new IslandFeatureParameters(IslandFeatureType.Bandit,       IslandFeaturePlacement.FarFromPlayer),
                 };
                 return new IslandParameters(islandId, tileData, 1, features);
             }
@@ -38,11 +38,11 @@ namespace SettlersOfIdlestan.Controller
                     (TerrainType.Mountain, 6),
                     (TerrainType.Desert, 1),
                 };
-                var features = new List<IslandFeature>
+                var features = new List<IslandFeatureParameters>
                 {
-                    new IslandFeature(IslandFeatureType.Bandit,       IslandFeaturePlacement.FarFromPlayer),
-                    new IslandFeature(IslandFeatureType.Bandit,       IslandFeaturePlacement.FarFromPlayer),
-                    new IslandFeature(IslandFeatureType.TreasureTrove, IslandFeaturePlacement.Random),
+                    new IslandFeatureParameters(IslandFeatureType.Bandit,       IslandFeaturePlacement.FarFromPlayer),
+                    new IslandFeatureParameters(IslandFeatureType.Bandit,       IslandFeaturePlacement.FarFromPlayer),
+                    new IslandFeatureParameters(IslandFeatureType.TreasureTrove, IslandFeaturePlacement.Random),
                 };
                 return new IslandParameters(islandId, tileData, 1, features);
             }

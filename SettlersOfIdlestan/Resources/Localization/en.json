@@ -179,5 +179,15 @@
   "tech_storage_optimization_name": "Storage Optimization",
   "tech_storage_optimization_desc": "+20 basic resource storage",
   "tech_scholarship_name": "Scholarship",
-  "tech_scholarship_desc": "+20% research speed"
+  "tech_scholarship_desc": "+20% research speed",
+  "tab_events": "Events",
+  "events_empty": "No events yet.",
+  "event_bandit_title": "⚔ Bandit spotted!",
+  "event_bandit_body": "This bandit blocks harvest on its hex and may steal your resources.",
+  "event_bandit_defeated_title": "⚔ Bandit defeated!",
+  "event_bandit_defeated_body": "Your soldiers drove off the bandit. Harvesting resumes normally.",
+  "event_treasure_found_title": "💰 Treasure discovered!",
+  "event_treasure_found_body": "Build an outpost on this hex to claim it and gain +10 Gold.",
+  "event_treasure_claimed_title": "💰 Treasure claimed!",
+  "event_treasure_claimed_body": "+10 Gold added to your treasury."
 }

@@ -96,6 +96,7 @@ namespace SettlersOfIdlestan.Controller
                 {
                     trove.Claimed = true;
                     civ.AddResource(Resource.Gold, 10);
+                    _state.EventLog.Add(trove.RemovedEventType);
                 }
             }
 

@@ -249,7 +249,7 @@ public class IslandMapGenerator
     /// Places island features (bandits, treasure troves…) into the island state
     /// according to each feature's type and placement strategy.
     /// </summary>
-    public void PlaceFeatures(IslandState islandState, IEnumerable<IslandFeature> features, long currentTick)
+    public void PlaceFeatures(IslandState islandState, IEnumerable<IslandFeatureParameters> features, long currentTick)
     {
         var landHexes = islandState.Map.Tiles.Values
             .Where(t => t.TerrainType != TerrainType.Water)

@@ -1,22 +1,22 @@
+using System.Text.Json.Serialization;
+using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
+using SettlersOfIdlestan.Model.IslandFeatures;
 
 namespace SettlersOfIdlestan.Model.TreasureTroves
 {
-    public class TreasureTrove
+    public class TreasureTrove : IslandFeature
     {
-        public HexCoord Position { get; set; }
         public bool Claimed { get; set; }
 
-        public TreasureTrove(HexCoord position)
-        {
-            Position = position;
-            Claimed = false;
-        }
+        public override GameEventType DiscoveredEventType => GameEventType.TreasureTroveDiscovered;
+        public override GameEventType RemovedEventType    => GameEventType.TreasureTroveClaimed;
 
-        [System.Text.Json.Serialization.JsonConstructor]
-        public TreasureTrove()
-        {
-            Position = new HexCoord(0, 0);
-        }
+        public override bool IsDiscoverable => !Found && !Claimed;
+
+        public TreasureTrove(HexCoord position) : base(position) { }
+
+        [JsonConstructor]
+        public TreasureTrove() : base() { }
     }
 }

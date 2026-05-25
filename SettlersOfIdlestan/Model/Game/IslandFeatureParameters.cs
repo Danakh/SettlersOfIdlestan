@@ -13,12 +13,12 @@ namespace SettlersOfIdlestan.Model.Game
         Random
     }
 
-    public class IslandFeature
+    public class IslandFeatureParameters
     {
         public IslandFeatureType Type { get; set; }
         public IslandFeaturePlacement Placement { get; set; }
 
-        public IslandFeature(IslandFeatureType type, IslandFeaturePlacement placement)
+        public IslandFeatureParameters(IslandFeatureType type, IslandFeaturePlacement placement)
         {
             Type = type;
             Placement = placement;

@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Bandits;
 using SettlersOfIdlestan.Model.TreasureTroves;
+using SettlersOfIdlestan.Model.Game;
 using System.Text.Json.Serialization;
 
 namespace SettlersOfIdlestan.Model.IslandMap;
@@ -40,6 +41,12 @@ public class IslandState : IJsonOnDeserialized
     /// </summary>
     [JsonIgnore]
     public Dictionary<int, VisibleIslandMap> VisibleIslandMaps { get; private set; } = new();
+
+    /// <summary>
+    /// Transient event log for the current session. Not persisted.
+    /// </summary>
+    [JsonIgnore]
+    public GameEventLog EventLog { get; } = new();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="IslandState"/> class.

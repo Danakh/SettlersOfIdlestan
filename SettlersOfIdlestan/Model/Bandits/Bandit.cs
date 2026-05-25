@@ -1,33 +1,34 @@
 using System.Text.Json.Serialization;
+using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
+using SettlersOfIdlestan.Model.IslandFeatures;
 
 namespace SettlersOfIdlestan.Model.Bandits;
 
 [Serializable]
-public class Bandit
+public class Bandit : IslandFeature
 {
     public const int MaxHp = 20;
     public const long RaidIntervalTicks = 100L;
 
-    public HexCoord Position { get; set; }
     public long LastMovedTick { get; set; }
     public int Hp { get; set; } = MaxHp;
     public long LastRaidTick { get; set; } = 0;
     public Vertex? LastRaidTargetVertex { get; set; } = null;
     public string? LastStolenResource { get; set; } = null;
-    public bool Found { get; set; } = false;
 
-    public Bandit(HexCoord position, long lastMovedTick = 0)
+    public override GameEventType DiscoveredEventType => GameEventType.BanditDiscovered;
+    public override GameEventType RemovedEventType    => GameEventType.BanditDefeated;
+
+    public Bandit(HexCoord position, long lastMovedTick = 0) : base(position)
     {
-        Position = position;
         LastMovedTick = lastMovedTick;
         Hp = MaxHp;
     }
 
     [JsonConstructor]
-    public Bandit()
+    public Bandit() : base()
     {
-        Position = new HexCoord(0, 0);
         Hp = MaxHp;
     }
 }

@@ -87,7 +87,10 @@ public class MilitaryController
         }
 
         foreach (var b in deadBandits)
+        {
             _state.Bandits.Remove(b);
+            _state.EventLog.Add(b.RemovedEventType);
+        }
     }
 
     /// <summary>

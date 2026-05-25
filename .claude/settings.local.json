@@ -22,7 +22,8 @@
       "Bash(Sort-Object FullName)",
       "Bash(git stash *)",
       "Bash(Get-ChildItem -Path \"C:\\\\DEV\\\\SettlersOfIdlestan\\\\SettlersOfIdlestanSkia\\\\Renderers\" -File)",
-      "Bash(Select-Object Name)"
+      "Bash(Select-Object Name)",
+      "Bash(findstr -v \"^C:\\\\\\\\DEV.*\\\\\\\\\\\\\\\\obj\\\\\\\\\\\\\\\\\")"
     ]
   }
 }

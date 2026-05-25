@@ -179,5 +179,15 @@
   "tech_storage_optimization_name": "Stockage optimisé",
   "tech_storage_optimization_desc": "+20 stockage ressources de base",
   "tech_scholarship_name": "Érudition",
-  "tech_scholarship_desc": "+20% vitesse de recherche"
+  "tech_scholarship_desc": "+20% vitesse de recherche",
+  "tab_events": "Événements",
+  "events_empty": "Aucun événement pour l'instant.",
+  "event_bandit_title": "⚔ Bandit repéré !",
+  "event_bandit_body": "Ce bandit bloque la récolte sur son hex et peut voler des ressources.",
+  "event_bandit_defeated_title": "⚔ Bandit éliminé !",
+  "event_bandit_defeated_body": "Vos soldats ont repoussé le bandit. La récolte reprend normalement.",
+  "event_treasure_found_title": "💰 Trésor découvert !",
+  "event_treasure_found_body": "Construisez un avant-poste sur ce hex pour le réclamer et gagner +10 Or.",
+  "event_treasure_claimed_title": "💰 Trésor réclamé !",
+  "event_treasure_claimed_body": "+10 Or ajoutés à votre trésorerie."
 }

@@ -5,7 +5,9 @@ using SettlersOfIdlestan.Model.Bandits;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
+using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.IslandMap;
+using SettlersOfIdlestan.Model.TreasureTroves;
 
 namespace SettlersOfIdlestan.Controller;
 
@@ -36,29 +38,52 @@ public class BanditController
 
     private void OnClockAdvanced(object? sender, GameClockAdvancedEventArgs e)
     {
-        try { UpdateBandits(e.CurrentTick); }
+        try { Update(e.CurrentTick); }
         catch { }
     }
 
-    private void UpdateBandits(long currentTick)
+    private void Update(long currentTick)
     {
         if (_state == null) return;
 
         var playerIdx = _state.PlayerCivilization.Index;
         _state.VisibleIslandMaps.TryGetValue(playerIdx, out var visibleMap);
 
+        DiscoverFeatures(_state.Bandits, visibleMap);
+        DiscoverFeatures(_state.TreasureTroves, visibleMap);
+        UpdateBandits(currentTick);
+    }
+
+    // ── Découverte générique ─────────────────────────────────────────────────
+
+    private void DiscoverFeatures<T>(IEnumerable<T> features, VisibleIslandMap? visibleMap)
+        where T : IslandFeature
+    {
+        if (_state == null || visibleMap == null) return;
+
+        foreach (var feature in features)
+        {
+            if (feature.IsDiscoverable && visibleMap.HasTile(feature.Position))
+            {
+                feature.Found = true;
+                _state.EventLog.Add(feature.DiscoveredEventType);
+            }
+        }
+    }
+
+    // ── Mise à jour des bandits ──────────────────────────────────────────────
+
+    private void UpdateBandits(long currentTick)
+    {
+        if (_state == null) return;
+
         foreach (var bandit in _state.Bandits)
         {
             if (!bandit.Found)
             {
-                if (visibleMap != null && visibleMap.HasTile(bandit.Position))
-                    bandit.Found = true;
-                else
-                {
-                    bandit.LastMovedTick = currentTick;
-                    bandit.LastRaidTick = currentTick;
-                    continue;
-                }
+                bandit.LastMovedTick = currentTick;
+                bandit.LastRaidTick = currentTick;
+                continue;
             }
 
             if (currentTick - bandit.LastMovedTick >= MovementIntervalTicks)
