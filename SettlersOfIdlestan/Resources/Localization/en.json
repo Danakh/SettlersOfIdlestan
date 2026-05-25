@@ -64,6 +64,8 @@
   "building_glassworks_desc": "Automatically produces glass in deserts. Requires Town Hall lvl. 2. Unlocked via the Laboratory prestige.",
   "building_laboratory_name": "Laboratory",
   "building_laboratory_desc": "Allows advanced research. Unlocked via the Laboratory prestige.",
+  "building_palisade_name": "Palisade",
+  "building_palisade_desc": "Protects the city against bandit resource theft.",
   "building_barracks_name": "Barracks",
   "building_barracks_desc": "Allows troop training. Unlocked via the Barracks prestige.",
   "building_barracks_desc_1": "Protects adjacent hexes: bandits cannot settle there.",

@@ -64,6 +64,8 @@
   "building_glassworks_desc": "Produit automatiquement du verre dans les déserts. Requiert Hôtel de Ville niv. 2. Débloqué via la Verrerie du prestige.",
   "building_laboratory_name": "Laboratoire",
   "building_laboratory_desc": "Permet la recherche avancée. Débloqué par le prestige (Laboratoire).",
+  "building_palisade_name": "Palissade",
+  "building_palisade_desc": "Protège la ville contre le vol des ressources par les bandits.",
   "building_barracks_name": "Caserne",
   "building_barracks_desc": "Permet l'entraînement de troupes. Débloqué par le prestige (Caserne).",
   "building_barracks_desc_1": "Protège les hexs voisins : les bandits ne peuvent pas s'y installer.",

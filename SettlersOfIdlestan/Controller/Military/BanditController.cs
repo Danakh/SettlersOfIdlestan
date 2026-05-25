@@ -106,6 +106,14 @@ public class BanditController
 
                 bandit.LastRaidTick = currentTick;
 
+                // La palissade bloque le vol des ressources
+                if (city.Buildings.OfType<Palisade>().Any(b => b.Level > 0))
+                {
+                    bandit.LastRaidTargetVertex = null;
+                    bandit.LastStolenResource = null;
+                    return;
+                }
+
                 var stealable = Enum.GetValues<Resource>()
                     .Where(r => civ.GetResourceQuantity(r) > 0)
                     .ToList();

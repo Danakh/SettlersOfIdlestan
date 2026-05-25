@@ -166,6 +166,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 BuildingType.Laboratory => new Laboratory(),
                 BuildingType.Barracks => new Barracks(),
                 BuildingType.GlassWorks => new GlassWorks(),
+                BuildingType.Palisade => new Palisade(),
                 _ => null,
             };
         }

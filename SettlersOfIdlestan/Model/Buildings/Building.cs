@@ -13,6 +13,10 @@ public enum BuildingType
     /// </summary>
     TownHall,
     /// <summary>
+    /// Palissade - Protège la ville contre le vol des ressources par les bandits.
+    /// </summary>
+    Palisade,
+    /// <summary>
     /// March� - Permet le commerce
     /// </summary>
     Market,
@@ -71,7 +75,7 @@ public enum BuildingType
     /// <summary>
     /// Verrerie - Produit du verre dans les déserts. Débloqué par le prestige (Laboratoire).
     /// </summary>
-    GlassWorks
+    GlassWorks,
 }
 
 /// <summary>
