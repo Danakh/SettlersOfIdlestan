@@ -129,8 +129,27 @@ public class SelectedCityPanelRenderer : IGameRenderer
             var cost = isBuilt ? building.GetUpgradeCost(building.Level + 1) : building.GetBuildCost();
             if (cost.Count > 0)
             {
-                var costText = SkiaTextUtils.computeCostString(_localization, cost);
-                canvas.DrawText(costText, panelX + Padding, yRow + 30, _font10, _costTextPaint);
+                const float costIconSize = 11f;
+                float iconX = panelX + Padding;
+                float centerY = yRow + 28f;
+                foreach (var kvp in cost)
+                {
+                    _resourceIcons.TryGetValue(kvp.Key, out var svg);
+                    var picture = svg?.Picture;
+                    if (picture != null)
+                    {
+                        float scale = costIconSize / 32f;
+                        canvas.Save();
+                        canvas.Translate(iconX, centerY - costIconSize / 2f);
+                        canvas.Scale(scale);
+                        canvas.DrawPicture(picture);
+                        canvas.Restore();
+                    }
+                    iconX += costIconSize + 2f;
+                    string numText = kvp.Value.ToString();
+                    canvas.DrawText(numText, iconX, centerY + _font10!.Size / 2f, _font10, _costTextPaint);
+                    iconX += _font10.MeasureText(numText) + 6f;
+                }
             }
 
             // Bouton action
