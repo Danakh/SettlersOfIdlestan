@@ -118,26 +118,12 @@ namespace SettlersOfIdlestan.Controller
             mainGameState.PrestigeState.PrestigePoints += points;
             mainGameState.PrestigeState.IslandState = null;
 
-            var civilizations = new List<Civilization>();
-            for (int i = 0; i < nextIslandParameters.CivilizationCount; i++)
-            {
-                civilizations.Add(new Civilization { Index = i });
-            }
-
             var generator = new IslandMapGenerator(mainGameState.PRNG);
-            var map = generator.GenerateIsland(nextIslandParameters.TileData, civilizations)
+            var nextIslandState = generator.GenerateIslandState(
+                nextIslandParameters,
+                mainGameState.Clock.CurrentTick,
+                startTick: mainGameState.Clock.CurrentTick)
                 ?? throw new InvalidOperationException("Failed to generate next island.");
-
-            var nextIslandState = new IslandState(map, civilizations, nextIslandParameters.IslandID)
-            {
-                StartTick = mainGameState.Clock.CurrentTick
-            };
-
-            if (nextIslandParameters.Features.Count > 0)
-            {
-                var bandits = generator.GenerateFeatureBandits(map, civilizations[0], nextIslandParameters.Features, mainGameState.Clock.CurrentTick);
-                nextIslandState.Bandits.AddRange(bandits);
-            }
 
             mainGameState.PrestigeState.IslandState = nextIslandState;
         }

@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Bandits;
+using SettlersOfIdlestan.Model.TreasureTroves;
 using System.Text.Json.Serialization;
 
 namespace SettlersOfIdlestan.Model.IslandMap;
@@ -55,6 +56,7 @@ public class IslandState : IJsonOnDeserialized
         AutomaticHarvestLastTimesByCivilization = new Dictionary<int, Dictionary<SettlersOfIdlestan.Model.HexGrid.HexCoord, long>>();
         Bandits = new List<Bandit>();
         BanditCooldownUntil = new Dictionary<HexCoord, long>();
+        TreasureTroves = new List<TreasureTrove>();
         RecalculateVisibleIslandMaps();
     }
 
@@ -70,6 +72,7 @@ public class IslandState : IJsonOnDeserialized
         AutomaticHarvestLastTimesByCivilization = new Dictionary<int, Dictionary<SettlersOfIdlestan.Model.HexGrid.HexCoord, long>>();
         Bandits = new List<Bandit>();
         BanditCooldownUntil = new Dictionary<HexCoord, long>();
+        TreasureTroves = new List<TreasureTrove>();
     }
 
     public void OnDeserialized()
@@ -117,6 +120,11 @@ public class IslandState : IJsonOnDeserialized
     /// Tick jusqu'auquel la récolte est bloquée sur un hex après le départ d'un bandit (1000 ticks).
     /// </summary>
     public Dictionary<HexCoord, long> BanditCooldownUntil { get; set; }
+
+    /// <summary>
+    /// Trésors présents sur l'île. Réclamés lorsqu'un avant-poste est construit sur l'un de leurs hexs.
+    /// </summary>
+    public List<TreasureTrove> TreasureTroves { get; set; }
 
     public IEnumerable<City> GetAllCities()
     {

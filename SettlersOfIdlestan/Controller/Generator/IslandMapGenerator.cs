@@ -6,6 +6,7 @@ using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Bandits;
+using SettlersOfIdlestan.Model.TreasureTroves;
 
 namespace SettlersOfIdlestan.Controller.Generator;
 
@@ -158,6 +159,27 @@ public class IslandMapGenerator
         return map;
     }
 
+    /// <summary>
+    /// Crée un IslandState complet : civilizations, génération de la carte et placement des features.
+    /// Retourne null si la génération de la carte échoue.
+    /// </summary>
+    public IslandState? GenerateIslandState(IslandParameters parameters, long currentTick, long startTick = 0)
+    {
+        var civs = new List<Civilization>();
+        for (int i = 0; i < parameters.CivilizationCount; i++)
+            civs.Add(new Civilization { Index = i });
+
+        var map = GenerateIsland(parameters.TileData, civs);
+        if (map is null) return null;
+
+        var islandState = new IslandState(map, civs, parameters.IslandID) { StartTick = startTick };
+
+        if (parameters.Features.Count > 0)
+            PlaceFeatures(islandState, parameters.Features, currentTick);
+
+        return islandState;
+    }
+
     public void PopulatePlayerCivilization(IslandMap map, Civilization civilization, Vertex vertex)
     {
         var city = new City(vertex);
@@ -224,37 +246,38 @@ public class IslandMapGenerator
     }
 
     /// <summary>
-    /// Places bandits on the island according to the island features.
-    /// Each feature specifies a bandit count and a placement strategy relative to the player city.
+    /// Places island features (bandits, treasure troves…) into the island state
+    /// according to each feature's type and placement strategy.
     /// </summary>
-    public List<Bandit> GenerateFeatureBandits(IslandMap map, Civilization playerCiv, IEnumerable<IslandFeature> features, long currentTick)
+    public void PlaceFeatures(IslandState islandState, IEnumerable<IslandFeature> features, long currentTick)
     {
-        var result = new List<Bandit>();
-
-        var landHexes = map.Tiles.Values
+        var landHexes = islandState.Map.Tiles.Values
             .Where(t => t.TerrainType != TerrainType.Water)
             .Select(t => t.Coord)
             .ToList();
 
-        if (landHexes.Count == 0) return result;
+        if (landHexes.Count == 0) return;
 
-        HexCoord[]? cityHexes = playerCiv.Cities.Count > 0
-            ? playerCiv.Cities[0].Position.GetHexes()
+        HexCoord[]? cityHexes = islandState.PlayerCivilization.Cities.Count > 0
+            ? islandState.PlayerCivilization.Cities[0].Position.GetHexes()
             : null;
 
         foreach (var feature in features)
         {
-            for (int i = 0; i < feature.BanditCount; i++)
+            var hex = PickHex(landHexes, cityHexes, feature.Placement);
+            switch (feature.Type)
             {
-                var hex = PickBanditHex(landHexes, cityHexes, feature.Placement);
-                result.Add(new Bandit(hex, currentTick));
+                case IslandFeatureType.Bandit:
+                    islandState.Bandits.Add(new Bandit(hex, currentTick));
+                    break;
+                case IslandFeatureType.TreasureTrove:
+                    islandState.TreasureTroves.Add(new TreasureTrove(hex));
+                    break;
             }
         }
-
-        return result;
     }
 
-    private HexCoord PickBanditHex(List<HexCoord> landHexes, HexCoord[]? cityHexes, IslandFeaturePlacement placement)
+    private HexCoord PickHex(List<HexCoord> landHexes, HexCoord[]? cityHexes, IslandFeaturePlacement placement)
     {
         if (placement == IslandFeaturePlacement.Random || cityHexes == null)
             return landHexes[_prng.Next(landHexes.Count)];

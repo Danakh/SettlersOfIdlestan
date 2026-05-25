@@ -124,8 +124,9 @@ namespace SettlersOfIdlestanSkia.Renderers
             bool banditPresent = islandState.Bandits.Any(b => b.Position.Equals(coord));
             bool banditCooldownActive = islandState.BanditCooldownUntil.TryGetValue(coord, out var banditUntil)
                 && currentTick < banditUntil;
+            bool hasTreasureTrove = islandState.TreasureTroves.Any(t => !t.Claimed && t.Position.Equals(coord));
 
-            if (manualResources.Count == 0 && autoResources.Count == 0 && !banditPresent && !banditCooldownActive)
+            if (manualResources.Count == 0 && autoResources.Count == 0 && !banditPresent && !banditCooldownActive && !hasTreasureTrove)
                 return;
 
             var lines = new List<string>();
@@ -143,6 +144,9 @@ namespace SettlersOfIdlestanSkia.Renderers
                 double max = BanditController.DepartureCooldownTicks / 100.0;
                 lines.Add($"{_localizationService.Get("hex_tooltip_bandit_cooldown")}: {remaining:F1}s / {max:0.#}s");
             }
+
+            if (hasTreasureTrove)
+                lines.Add(_localizationService.Get("hex_tooltip_treasure_trove"));
 
             var allResources = manualResources.Union(autoResources).Distinct().ToList();
             if (allResources.Count > 0)

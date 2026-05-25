@@ -1,5 +1,11 @@
 namespace SettlersOfIdlestan.Model.Game
 {
+    public enum IslandFeatureType
+    {
+        Bandit,
+        TreasureTrove
+    }
+
     public enum IslandFeaturePlacement
     {
         CloseToPlayer,
@@ -9,12 +15,12 @@ namespace SettlersOfIdlestan.Model.Game
 
     public class IslandFeature
     {
-        public int BanditCount { get; set; }
+        public IslandFeatureType Type { get; set; }
         public IslandFeaturePlacement Placement { get; set; }
 
-        public IslandFeature(int banditCount, IslandFeaturePlacement placement)
+        public IslandFeature(IslandFeatureType type, IslandFeaturePlacement placement)
         {
-            BanditCount = banditCount;
+            Type = type;
             Placement = placement;
         }
     }

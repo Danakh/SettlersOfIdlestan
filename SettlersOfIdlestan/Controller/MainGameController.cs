@@ -100,27 +100,12 @@ namespace SettlersOfIdlestan.Controller
             if (parameters == null) throw new ArgumentNullException(nameof(parameters));
             if (parameters.CivilizationCount <= 0) throw new ArgumentException("civilizationCount must be >= 1", nameof(parameters.CivilizationCount));
 
-            var civs = new List<Civilization>();
-            for (int i = 0; i < parameters.CivilizationCount; i++)
-            {
-                var civ = new Civilization { Index = i };
-                civs.Add(civ);
-            }
             // Create a main state early so we can use its PRNG for deterministic generation
             var mainState = new MainGameState();
 
-            // Use a generator wired with the main state's PRNG to ensure reproducible maps
             var generator = new Generator.IslandMapGenerator(mainState.PRNG);
-            var map = generator.GenerateIsland(parameters.TileData, civs);
-            if (map is null) return null;
-
-            var islandState = new IslandState(map, civs, parameters.IslandID);
-
-            if (parameters.Features.Count > 0)
-            {
-                var bandits = generator.GenerateFeatureBandits(map, civs[0], parameters.Features, mainState.Clock.CurrentTick);
-                islandState.Bandits.AddRange(bandits);
-            }
+            var islandState = generator.GenerateIslandState(parameters, mainState.Clock.CurrentTick);
+            if (islandState is null) return null;
 
             var prestigeState = new PrestigeState(islandState);
             var godState = new GodState(prestigeState);

@@ -88,6 +88,17 @@ namespace SettlersOfIdlestan.Controller
             var city = new City(vertex) { CivilizationIndex = civilizationIndex };
             civ.Cities.Add(city);
             _state.RecalculateVisibleIslandMap(civilizationIndex);
+
+            var cityHexSet = new HashSet<HexCoord>(city.Position.GetHexes());
+            foreach (var trove in _state.TreasureTroves)
+            {
+                if (!trove.Claimed && cityHexSet.Contains(trove.Position))
+                {
+                    trove.Claimed = true;
+                    civ.AddResource(Resource.Gold, 10);
+                }
+            }
+
             return city;
         }
 

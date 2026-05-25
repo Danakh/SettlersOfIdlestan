@@ -115,7 +115,9 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
                     islandState.AutomaticHarvestLastTimesByCivilization.TryGetValue(playerIdx, out var autoTimes);
 
                     var banditPositions = new HashSet<HexCoord>(islandState.Bandits.Select(b => b.Position));
-                    DrawIslandMap(canvas, visibleMap, playerIdx, mainGameState.Clock.CurrentTick, manualTimes, autoTimes, islandState.BanditCooldownUntil, banditPositions);
+                    var treasureTrovePositions = new HashSet<HexCoord>(islandState.TreasureTroves
+                        .Where(t => !t.Claimed).Select(t => t.Position));
+                    DrawIslandMap(canvas, visibleMap, playerIdx, mainGameState.Clock.CurrentTick, manualTimes, autoTimes, islandState.BanditCooldownUntil, banditPositions, treasureTrovePositions);
                 }
             }
         }
@@ -126,12 +128,13 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
         Dictionary<HexCoord, long>? manualTimes,
         Dictionary<HexCoord, long>? autoTimes,
         Dictionary<HexCoord, long>? banditCooldownUntil,
-        HashSet<HexCoord>? banditPositions)
+        HashSet<HexCoord>? banditPositions,
+        HashSet<HexCoord>? treasureTrovePositions = null)
     {
         foreach (var (coord, tile) in map.Tiles)
         {
             var (x, y) = AxialToIsland(coord.Q, coord.R);
-            DrawHexagonTile(canvas, coord, x, y, tile, playerIdx, currentTick, manualTimes, autoTimes, banditCooldownUntil, banditPositions);
+            DrawHexagonTile(canvas, coord, x, y, tile, playerIdx, currentTick, manualTimes, autoTimes, banditCooldownUntil, banditPositions, treasureTrovePositions);
         }
     }
 
@@ -156,7 +159,8 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
         Dictionary<HexCoord, long>? manualTimes,
         Dictionary<HexCoord, long>? autoTimes,
         Dictionary<HexCoord, long>? banditCooldownUntil,
-        HashSet<HexCoord>? banditPositions)
+        HashSet<HexCoord>? banditPositions,
+        HashSet<HexCoord>? treasureTrovePositions = null)
     {
         var path = GetOrCreateHexPath(coord, centerX, centerY);
 
@@ -172,6 +176,9 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
         if (_hexBorderPaint != null)
             canvas.DrawPath(path, _hexBorderPaint);
 
+        if (treasureTrovePositions?.Contains(coord) == true)
+            DrawTreasureTroveMarker(canvas, centerX, centerY);
+
         DrawHarvestIndicator(canvas, centerX, centerY, tile, playerIdx, currentTick, manualTimes, autoTimes, banditCooldownUntil, banditPositions);
 
         if (DebugOverlayRenderer.DebugMode && _textPaint != null && tile.Coord != null)
@@ -179,6 +186,22 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
             _textPaint.Color = SKColors.Black;
             canvas.DrawText($"{tile.Coord.Q},{tile.Coord.R}", centerX, centerY + HexSize / 2.5f, SKTextAlign.Center, _textFont, _textPaint);
         }
+    }
+
+    private void DrawTreasureTroveMarker(SKCanvas canvas, float cx, float cy)
+    {
+        const float Size = 7f;
+        using var path = new SKPath();
+        path.MoveTo(cx,          cy - Size);
+        path.LineTo(cx + Size,   cy);
+        path.LineTo(cx,          cy + Size);
+        path.LineTo(cx - Size,   cy);
+        path.Close();
+
+        using var fill = new SKPaint { Style = SKPaintStyle.Fill, Color = new SKColor(255, 200, 0, 230), IsAntialias = true };
+        using var border = new SKPaint { Style = SKPaintStyle.Stroke, StrokeWidth = 1.5f, Color = new SKColor(160, 110, 0, 200), IsAntialias = true };
+        canvas.DrawPath(path, fill);
+        canvas.DrawPath(path, border);
     }
 
     /// <summary>

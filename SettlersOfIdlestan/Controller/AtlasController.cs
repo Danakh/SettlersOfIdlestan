@@ -23,7 +23,7 @@ namespace SettlersOfIdlestan.Controller
                 };
                 var features = new List<IslandFeature>
                 {
-                    new IslandFeature(1, IslandFeaturePlacement.FarFromPlayer),
+                    new IslandFeature(IslandFeatureType.Bandit,       IslandFeaturePlacement.FarFromPlayer),
                 };
                 return new IslandParameters(islandId, tileData, 1, features);
             }
@@ -40,7 +40,9 @@ namespace SettlersOfIdlestan.Controller
                 };
                 var features = new List<IslandFeature>
                 {
-                    new IslandFeature(2, IslandFeaturePlacement.FarFromPlayer),
+                    new IslandFeature(IslandFeatureType.Bandit,       IslandFeaturePlacement.FarFromPlayer),
+                    new IslandFeature(IslandFeatureType.Bandit,       IslandFeaturePlacement.FarFromPlayer),
+                    new IslandFeature(IslandFeatureType.TreasureTrove, IslandFeaturePlacement.Random),
                 };
                 return new IslandParameters(islandId, tileData, 1, features);
             }
