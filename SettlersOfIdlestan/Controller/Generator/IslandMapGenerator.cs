@@ -5,6 +5,7 @@ using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Buildings;
+using SettlersOfIdlestan.Model.Bandits;
 
 namespace SettlersOfIdlestan.Controller.Generator;
 
@@ -220,6 +221,53 @@ public class IslandMapGenerator
         var shuffled = new List<T>(list);
         _prng.Shuffle(shuffled);
         return shuffled;
+    }
+
+    /// <summary>
+    /// Places bandits on the island according to the island features.
+    /// Each feature specifies a bandit count and a placement strategy relative to the player city.
+    /// </summary>
+    public List<Bandit> GenerateFeatureBandits(IslandMap map, Civilization playerCiv, IEnumerable<IslandFeature> features, long currentTick)
+    {
+        var result = new List<Bandit>();
+
+        var landHexes = map.Tiles.Values
+            .Where(t => t.TerrainType != TerrainType.Water)
+            .Select(t => t.Coord)
+            .ToList();
+
+        if (landHexes.Count == 0) return result;
+
+        HexCoord[]? cityHexes = playerCiv.Cities.Count > 0
+            ? playerCiv.Cities[0].Position.GetHexes()
+            : null;
+
+        foreach (var feature in features)
+        {
+            for (int i = 0; i < feature.BanditCount; i++)
+            {
+                var hex = PickBanditHex(landHexes, cityHexes, feature.Placement);
+                result.Add(new Bandit(hex, currentTick));
+            }
+        }
+
+        return result;
+    }
+
+    private HexCoord PickBanditHex(List<HexCoord> landHexes, HexCoord[]? cityHexes, IslandFeaturePlacement placement)
+    {
+        if (placement == IslandFeaturePlacement.Random || cityHexes == null)
+            return landHexes[_prng.Next(landHexes.Count)];
+
+        var candidates = new List<HexCoord>(3);
+        for (int i = 0; i < 3; i++)
+            candidates.Add(landHexes[_prng.Next(landHexes.Count)]);
+
+        int DistanceToCity(HexCoord hex) => cityHexes.Min(ch => hex.DistanceTo(ch));
+
+        return placement == IslandFeaturePlacement.FarFromPlayer
+            ? candidates.OrderByDescending(DistanceToCity).First()
+            : candidates.OrderBy(DistanceToCity).First();
     }
 
     /// <summary>

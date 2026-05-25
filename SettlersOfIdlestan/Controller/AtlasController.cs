@@ -13,7 +13,6 @@ namespace SettlersOfIdlestan.Controller
             // Pour la première île, on retourne les paramètres standards d'une partie normale
             if (islandId == 1)
             {
-                // Exemple de configuration standard (à adapter selon la logique du jeu)
                 var tileData = new List<(TerrainType terrainType, int tileCount)>
                 {
                     (TerrainType.Forest, 5),
@@ -22,8 +21,11 @@ namespace SettlersOfIdlestan.Controller
                     (TerrainType.Mountain, 5),
                     (TerrainType.Desert, 1),
                 };
-                int civilizationCount = 1;
-                return new IslandParameters(islandId, tileData, civilizationCount);
+                var features = new List<IslandFeature>
+                {
+                    new IslandFeature(1, IslandFeaturePlacement.FarFromPlayer),
+                };
+                return new IslandParameters(islandId, tileData, 1, features);
             }
             // Pour d'autres îles, retourner une configuration différente si besoin
             if (islandId > 1)
@@ -36,7 +38,11 @@ namespace SettlersOfIdlestan.Controller
                     (TerrainType.Mountain, 6),
                     (TerrainType.Desert, 1),
                 };
-                return new IslandParameters(islandId, tileData, 1);
+                var features = new List<IslandFeature>
+                {
+                    new IslandFeature(2, IslandFeaturePlacement.FarFromPlayer),
+                };
+                return new IslandParameters(islandId, tileData, 1, features);
             }
 
             return new IslandParameters(InvalidIslandId, new List<(TerrainType terrainType, int tileCount)>(), 0);

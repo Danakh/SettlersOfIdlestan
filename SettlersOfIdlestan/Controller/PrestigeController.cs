@@ -128,10 +128,18 @@ namespace SettlersOfIdlestan.Controller
             var map = generator.GenerateIsland(nextIslandParameters.TileData, civilizations)
                 ?? throw new InvalidOperationException("Failed to generate next island.");
 
-            mainGameState.PrestigeState.IslandState = new IslandState(map, civilizations, nextIslandParameters.IslandID)
+            var nextIslandState = new IslandState(map, civilizations, nextIslandParameters.IslandID)
             {
                 StartTick = mainGameState.Clock.CurrentTick
             };
+
+            if (nextIslandParameters.Features.Count > 0)
+            {
+                var bandits = generator.GenerateFeatureBandits(map, civilizations[0], nextIslandParameters.Features, mainGameState.Clock.CurrentTick);
+                nextIslandState.Bandits.AddRange(bandits);
+            }
+
+            mainGameState.PrestigeState.IslandState = nextIslandState;
         }
     }
 

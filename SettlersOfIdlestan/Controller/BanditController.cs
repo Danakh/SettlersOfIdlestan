@@ -34,29 +34,6 @@ public class BanditController
             _clock.Advanced += OnClockAdvanced;
     }
 
-    /// <summary>
-    /// Place les bandits initiaux sur les hexs de Désert.
-    /// 1 bandit par tranche de 4 hexs Désert (minimum 1 si du désert existe).
-    /// </summary>
-    public void InitializeBandits()
-    {
-        if (_state == null || _clock == null) return;
-
-        _state.Bandits.Clear();
-        _state.BanditCooldownUntil.Clear();
-
-        var desertHexes = _state.Map.Tiles.Values
-            .Where(t => t.TerrainType == TerrainType.Desert)
-            .Select(t => t.Coord)
-            .ToList();
-
-        if (desertHexes.Count == 0) return;
-
-        int count = Math.Max(1, desertHexes.Count / 4);
-        for (int i = 0; i < count && i < desertHexes.Count; i++)
-            _state.Bandits.Add(new Bandit(desertHexes[i], _clock.CurrentTick));
-    }
-
     private void OnClockAdvanced(object? sender, GameClockAdvancedEventArgs e)
     {
         try { UpdateBandits(e.CurrentTick); }

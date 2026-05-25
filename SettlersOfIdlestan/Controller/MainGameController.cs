@@ -115,6 +115,13 @@ namespace SettlersOfIdlestan.Controller
             if (map is null) return null;
 
             var islandState = new IslandState(map, civs, parameters.IslandID);
+
+            if (parameters.Features.Count > 0)
+            {
+                var bandits = generator.GenerateFeatureBandits(map, civs[0], parameters.Features, mainState.Clock.CurrentTick);
+                islandState.Bandits.AddRange(bandits);
+            }
+
             var prestigeState = new PrestigeState(islandState);
             var godState = new GodState(prestigeState);
 
@@ -194,9 +201,6 @@ namespace SettlersOfIdlestan.Controller
                 ResearchController.Initialize(islandState, Clock, CurrentMainState?.PrestigeState);
                 islandState.PlayerCivilization.TechnologyTree.RebuildModifiers();
 
-                // Place bandits on new islands (not when loading a save that already has them)
-                if (islandState.Bandits.Count == 0)
-                    BanditController.InitializeBandits();
             }
         }
 
