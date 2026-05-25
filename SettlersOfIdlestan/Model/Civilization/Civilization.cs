@@ -144,6 +144,7 @@ public class Civilization
         int baseCityResourceMax = 2 * Cities.Count + Cities.Sum(city => city.Level);
         int advancedCityResourceMax = Cities.Sum(city => Math.Max(0, city.Level - 2));
         int cityWithWarehouseCount = Cities.Count(city => city.Buildings.Any(building => building.Type == BuildingType.Warehouse));
+        int warehouseLevelCount = Cities.Sum(city => Math.Max(0, city.Buildings.Sum(building => (building.Type == BuildingType.Warehouse) ? building.Level : 0)));
 
         bool isBasic = ResourceUtils.BasicResources.Contains(resource);
         int storageBonus = isBasic
@@ -151,8 +152,8 @@ public class Civilization
             : ModifierAggregator.ApplyModifiers(ECategory.STORAGE_CAPACITY_ADVANCED, "", 0);
 
         int result = isBasic
-            ? 5 * baseCityResourceMax + 30 * cityWithWarehouseCount
-            : 5 * advancedCityResourceMax + 10 * cityWithWarehouseCount;
+            ? 5 * baseCityResourceMax + 20 * cityWithWarehouseCount + 10 * warehouseLevelCount
+            : 5 * advancedCityResourceMax + 5 * cityWithWarehouseCount + 5 * warehouseLevelCount;
 
         return result + storageBonus;
     }
