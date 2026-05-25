@@ -23,7 +23,7 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
 
     private SKSvg? _chestSvg;
     private const float ChestIconSize = 18f;
-    private const float ChestSvgViewBox = 32f;
+    private const float ChestSvgViewBox = 64f;
 
     private SKPaint? _hexBorderPaint;
     private SKPaint? _hexFillPaint;
