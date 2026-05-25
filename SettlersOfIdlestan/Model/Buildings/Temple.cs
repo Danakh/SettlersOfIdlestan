@@ -15,11 +15,6 @@ public class Temple : Building
         AvailableAtLevel = 3;
     }
 
-    public override int GetDefaultMaxLevel()
-    {
-        return 4;
-    }
-
     public override ResourceCost GetBuildCost() => new ResourceCost
     {
         { Resource.Wood, 40 },
