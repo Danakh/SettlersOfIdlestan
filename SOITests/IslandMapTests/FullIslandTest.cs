@@ -19,7 +19,7 @@ namespace SOITests.IslandMapTests
                 (TerrainType.Hill, 4),
                 (TerrainType.Plain, 4),
                 (TerrainType.Mountain, 4),
-                (TerrainType.Desert, 1),
+                (TerrainType.Mountain, 1),
             };
             var parameters = new IslandParameters(AtlasController.InvalidIslandId, tileData, 1);
             controller.CreateNewGame(parameters);

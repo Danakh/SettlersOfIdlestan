@@ -29,7 +29,7 @@ namespace SOITests.ControllerTests
                 new HexTile(b, TerrainType.Hill),
                 new HexTile(c, TerrainType.Plain),
                 new HexTile(d, TerrainType.Forest),
-                new HexTile(e, TerrainType.Desert),
+                new HexTile(e, TerrainType.Hill),
             };
 
             var map = new IslandMap(tiles);

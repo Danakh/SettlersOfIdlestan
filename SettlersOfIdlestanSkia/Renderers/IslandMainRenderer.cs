@@ -53,7 +53,7 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
         _cityRenderer = new CityRenderer(tooltipRenderer);
         _harvestParticleSystem = new HarvestParticleSystem();
         _harvestRenderer = new HarvestRenderer(_harvestParticleSystem, resourceManager);
-        _banditRenderer = new BanditRenderer();
+        _banditRenderer = new BanditRenderer(resourceManager);
         _constructionHoverProvider = constructionHoverProvider;
         _tooltipRenderer = tooltipRenderer;
         _harvestController = harvestController;

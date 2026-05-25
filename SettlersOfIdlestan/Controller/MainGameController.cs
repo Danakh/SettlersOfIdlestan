@@ -190,7 +190,7 @@ namespace SettlersOfIdlestan.Controller
                 TradeController.Initialize(islandState);
                 BuildingController.Initialize(islandState);
                 CityBuilderController.Initialize(islandState);
-                PrestigeController.Initialize(islandState.PlayerCivilization);
+                PrestigeController.Initialize(islandState.PlayerCivilization, islandState);
                 ResearchController.Initialize(islandState, Clock, CurrentMainState?.PrestigeState);
                 islandState.PlayerCivilization.TechnologyTree.RebuildModifiers();
 

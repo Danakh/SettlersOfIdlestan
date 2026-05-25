@@ -12,15 +12,17 @@ namespace SettlersOfIdlestan.Controller
     public class PrestigeController
     {
         private Civilization? _playerCivilization;
+        private IslandState? _islandState;
 
         internal PrestigeController()
         {
             // no op
         }
 
-        internal void Initialize(Civilization playerCivilization)
+        internal void Initialize(Civilization playerCivilization, IslandState? islandState = null)
         {
             _playerCivilization = playerCivilization;
+            _islandState = islandState;
         }
 
         public const int PrestigeVisiblePoints = 10;
@@ -50,6 +52,13 @@ namespace SettlersOfIdlestan.Controller
                     }
                 }
             }
+            if (_islandState != null
+                && _islandState.Bandits.Count == 0
+                && _islandState.Map.Tiles.Values.Any(t => t.TerrainType == TerrainType.Desert))
+            {
+                sources["prestige_no_bandits"] = 2;
+            }
+
             return sources
                 .Select(source => new PrestigePointSource(source.Key, source.Value))
                 .OrderBy(source => source.LabelKey)

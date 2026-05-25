@@ -152,6 +152,7 @@
   "hex_tooltip_bandit_present": "⚔ Bandit — harvest blocked",
   "hex_tooltip_bandit_hp": "HP",
   "hex_tooltip_bandit_cooldown": "⚔ Bandit cooldown",
+  "prestige_no_bandits": "No Bandits",
   "tab_research": "Research",
   "tab_stats": "Stats",
   "stats_current_run": "Current Run",

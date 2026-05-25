@@ -3,7 +3,9 @@ using Svg.Skia;
 using SettlersOfIdlestan.Model.Bandits;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
+using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestanSkia.Core;
+using SettlersOfIdlestanSkia.Services;
 using System.Collections.Generic;
 using System.Reflection;
 
@@ -12,7 +14,10 @@ namespace SettlersOfIdlestanSkia.Renderers;
 public class BanditRenderer : HexBasedRenderer, IGameRenderer
 {
     private const float AnimationDuration = 1f;
+    private const float RaidAnimDuration = 0.8f;
+    private const float ResourceFlyDuration = 0.6f;
     private const float IconSize = 24f;
+    private const float ResourceIconSize = 18f;
 
     private sealed class BanditVisual
     {
@@ -20,11 +25,29 @@ public class BanditRenderer : HexBasedRenderer, IGameRenderer
         public SKPoint From;
         public SKPoint To;
         public float Progress = 1f;
+
+        // Raid bounce animation
+        public long KnownLastRaidTick = -1;
+        public float RaidAnimProgress = 1f;  // 0..1, 1 = idle
+        public SKPoint RaidHomePos;
+        public SKPoint RaidTargetPos;
+
+        // Flying resource animation
+        public Resource? FlyingResource = null;
+        public float ResourceFlyProgress = 1f; // 0..1, 1 = done
     }
 
     private readonly List<BanditVisual> _visuals = new();
+    private readonly ResourceManager _resourceManager;
+    private readonly Dictionary<Resource, SKSvg?> _resourceIcons = new();
     private SKSvg? _svg;
+    private SKPaint? _resourceFlyPaint;
     private bool _disposed;
+
+    public BanditRenderer(ResourceManager resourceManager)
+    {
+        _resourceManager = resourceManager;
+    }
 
     public void Initialize(SKSize canvasSize)
     {
@@ -36,6 +59,15 @@ public class BanditRenderer : HexBasedRenderer, IGameRenderer
             _svg = new SKSvg();
             _svg.Load(stream);
         }
+
+        foreach (Resource resource in Enum.GetValues<Resource>())
+        {
+            string name = resource.ToString().ToLower();
+            try { _resourceIcons[resource] = _resourceManager.LoadImage($"Resources.icons.resources.{name}.svg"); }
+            catch { _resourceIcons[resource] = null; }
+        }
+
+        _resourceFlyPaint = new SKPaint { Color = SKColors.White };
     }
 
     public void Render(SKCanvas canvas, GameRenderContext context)
@@ -56,6 +88,7 @@ public class BanditRenderer : HexBasedRenderer, IGameRenderer
             var bandit = bandits[i];
             var v = _visuals[i];
 
+            // Movement animation
             var targetPoint = HexToPoint(bandit.Position);
 
             if (!v.ModelPosition.Equals(bandit.Position))
@@ -69,11 +102,62 @@ public class BanditRenderer : HexBasedRenderer, IGameRenderer
             if (v.Progress < 1f)
                 v.Progress = Math.Min(1f, v.Progress + dt / AnimationDuration);
 
-            if (visibleMap == null || !visibleMap.HasTile(bandit.Position))
+            var normalPos = Lerp(v.From, v.To, Smoothstep(v.Progress));
+
+            // Detect new raid
+            if (bandit.LastRaidTick > 0
+                && bandit.LastRaidTick != v.KnownLastRaidTick
+                && bandit.LastRaidTick != bandit.LastMovedTick // special case where raid was reset because of move. Skip Raid animation
+                && bandit.LastRaidTargetVertex != null)
+            {
+                v.KnownLastRaidTick = bandit.LastRaidTick;
+                v.RaidAnimProgress = 0f;
+                v.RaidHomePos = normalPos;
+                v.RaidTargetPos = VertexToPoint(bandit.LastRaidTargetVertex);
+                v.FlyingResource = null;
+                if (bandit.LastStolenResource != null
+                    && Enum.TryParse<Resource>(bandit.LastStolenResource, out var res))
+                    v.FlyingResource = res;
+                v.ResourceFlyProgress = 1f;
+            }
+
+            // Advance raid animation
+            if (v.RaidAnimProgress < 1f)
+            {
+                v.RaidAnimProgress = Math.Min(1f, v.RaidAnimProgress + dt / RaidAnimDuration);
+                if (v.RaidAnimProgress >= 0.45f && v.ResourceFlyProgress >= 1f && v.FlyingResource != null)
+                    v.ResourceFlyProgress = 0f;
+            }
+
+            // Advance resource fly animation
+            if (v.ResourceFlyProgress < 1f)
+                v.ResourceFlyProgress = Math.Min(1f, v.ResourceFlyProgress + dt / ResourceFlyDuration);
+
+            if (visibleMap != null && !visibleMap.HasTile(bandit.Position))
                 continue;
 
-            var pos = Lerp(v.From, v.To, Smoothstep(v.Progress));
+            // Calculate bandit position (with or without raid offset)
+            SKPoint pos;
+            if (v.RaidAnimProgress < 1f)
+            {
+                float t = v.RaidAnimProgress;
+                pos = t < 0.5f
+                    ? Lerp(v.RaidHomePos, v.RaidTargetPos, Smoothstep(t * 2f))
+                    : Lerp(v.RaidTargetPos, v.RaidHomePos, Smoothstep((t - 0.5f) * 2f));
+            }
+            else
+            {
+                pos = normalPos;
+            }
+
             DrawIcon(canvas, pos);
+
+            // Draw flying stolen resource
+            if (v.ResourceFlyProgress < 1f && v.FlyingResource != null)
+            {
+                var flyPos = Lerp(v.RaidTargetPos, v.RaidHomePos, Smoothstep(v.ResourceFlyProgress));
+                DrawResourceIcon(canvas, flyPos, v.FlyingResource.Value, 1f - v.ResourceFlyProgress);
+            }
         }
     }
 
@@ -82,13 +166,31 @@ public class BanditRenderer : HexBasedRenderer, IGameRenderer
         var picture = _svg?.Picture;
         if (picture == null) return;
 
-        // La viewBox du SVG est 64×64 → on scale à IconSize
         float scale = IconSize / 64f;
         canvas.Save();
         canvas.Translate(center.X - IconSize / 2f, center.Y - IconSize / 2f);
         canvas.Scale(scale);
         canvas.DrawPicture(picture);
         canvas.Restore();
+    }
+
+    private void DrawResourceIcon(SKCanvas canvas, SKPoint center, Resource resource, float alpha)
+    {
+        if (!_resourceIcons.TryGetValue(resource, out var svg) || svg?.Picture == null) return;
+        if (_resourceFlyPaint == null) return;
+
+        byte alphaB = (byte)(Math.Clamp(alpha, 0f, 1f) * 255);
+        _resourceFlyPaint.Color = SKColors.White.WithAlpha(alphaB);
+
+        const float size = ResourceIconSize;
+        float scale = size / 64f;
+        canvas.Save();
+        canvas.Translate(center.X - size / 2f, center.Y - size / 2f);
+        canvas.Scale(scale);
+        canvas.SaveLayer(new SKRect(0, 0, 64, 64), _resourceFlyPaint);
+        canvas.DrawPicture(svg.Picture);
+        canvas.Restore(); // restore SaveLayer
+        canvas.Restore(); // restore transform
     }
 
     private void SyncVisuals(IList<Bandit> bandits)
@@ -116,6 +218,10 @@ public class BanditRenderer : HexBasedRenderer, IGameRenderer
         var (x, y) = AxialToIsland(hex.Q, hex.R);
         return new SKPoint(x, y);
     }
+    private SKPoint VertexToPoint(Vertex vertex)
+    {
+        return VertexToIsland(vertex);
+    }
 
     private static SKPoint Lerp(SKPoint a, SKPoint b, float t)
         => new(a.X + (b.X - a.X) * t, a.Y + (b.Y - a.Y) * t);
@@ -127,6 +233,8 @@ public class BanditRenderer : HexBasedRenderer, IGameRenderer
     {
         if (_disposed) return;
         _svg = null;
+        _resourceFlyPaint?.Dispose();
+        _resourceFlyPaint = null;
         _disposed = true;
     }
 }

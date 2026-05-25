@@ -233,5 +233,84 @@ namespace SOITests.ControllerTests
             Assert.False(controller.IsHarvestBlocked(Center, clock.CurrentTick),
                 "Cooldown should have expired");
         }
+
+        // ── Raid mechanic ────────────────────────────────────────────────────
+
+        private static (IslandState state, GameClock clock, BanditController controller, Civilization civ)
+            CreateRaidSetup()
+        {
+            // City at Vertex(NE, East, NE11) — bandit at Center is adjacent to NE and East.
+            var ne   = new HexCoord(0, 1);
+            var east = new HexCoord(1, 0);
+            var ne11 = new HexCoord(1, 1);
+
+            var tiles = new List<HexTile>
+            {
+                new(Center, TerrainType.Desert),
+                new(ne,     TerrainType.Plain),
+                new(east,   TerrainType.Plain),
+                new(ne11,   TerrainType.Plain),
+            };
+
+            var map = new IslandMap(tiles);
+            var civ = new Civilization { Index = 0 };
+            var city = new City(Vertex.Create(ne, east, ne11)) { CivilizationIndex = 0 };
+            civ.Cities.Add(city);
+
+            var state = new IslandState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
+            state.Bandits.Add(new Bandit(Center, 0));
+
+            var clock = new GameClock();
+            clock.Start();
+            var controller = new BanditController();
+            controller.Initialize(state, clock);
+
+            return (state, clock, controller, civ);
+        }
+
+        [Fact]
+        public void Bandit_AdjacentToCity_RaidsAndStealsResource()
+        {
+            var (state, clock, _, civ) = CreateRaidSetup();
+            civ.AddResource(Resource.Wood, 5);
+
+            clock.SimulateAdvance(Bandit.RaidIntervalTicks);
+
+            Assert.Equal(4, civ.GetResourceQuantity(Resource.Wood));
+            Assert.NotNull(state.Bandits[0].LastRaidTargetVertex);
+            Assert.Equal(nameof(Resource.Wood), state.Bandits[0].LastStolenResource);
+        }
+
+        [Fact]
+        public void Bandit_AdjacentToCity_NoResources_DoesNotCrash()
+        {
+            var (state, clock, _, civ) = CreateRaidSetup();
+            // No resources given to civ
+
+            clock.SimulateAdvance(Bandit.RaidIntervalTicks);
+
+            Assert.Equal(0, civ.GetResourceQuantity(Resource.Wood));
+            Assert.Null(state.Bandits[0].LastRaidTargetHex);
+            Assert.Null(state.Bandits[0].LastStolenResource);
+        }
+
+        [Fact]
+        public void Bandit_RaidsOncePerInterval()
+        {
+            var (state, clock, _, civ) = CreateRaidSetup();
+            civ.AddResource(Resource.Wood, 10);
+
+            // First raid at tick 100
+            clock.SimulateAdvance(Bandit.RaidIntervalTicks);
+            Assert.Equal(9, civ.GetResourceQuantity(Resource.Wood));
+
+            // No second raid until another interval passes (bandit also hasn't moved)
+            clock.SimulateAdvance(Bandit.RaidIntervalTicks - 1);
+            Assert.Equal(9, civ.GetResourceQuantity(Resource.Wood));
+
+            // Second raid fires at tick 200
+            clock.SimulateAdvance(1);
+            Assert.Equal(8, civ.GetResourceQuantity(Resource.Wood));
+        }
     }
 }

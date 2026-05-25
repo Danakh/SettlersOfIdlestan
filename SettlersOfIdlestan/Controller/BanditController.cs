@@ -70,7 +70,39 @@ public class BanditController
         {
             if (currentTick - bandit.LastMovedTick >= MovementIntervalTicks)
                 MoveBandit(bandit, currentTick);
+            else
+                RaidNearbyCity(bandit, currentTick);
         }
+    }
+
+    private void RaidNearbyCity(Bandit bandit, long currentTick)
+    {
+        if (_state == null) return;
+        if (currentTick - bandit.LastRaidTick < Bandit.RaidIntervalTicks) return;
+
+        foreach (var civ in _state.Civilizations)
+        {
+            foreach (var city in civ.Cities)
+            {
+                if (!city.Position.GetHexes().Contains(bandit.Position)) continue;
+
+                bandit.LastRaidTick = currentTick;
+
+                var stealable = Enum.GetValues<Resource>()
+                    .Where(r => civ.GetResourceQuantity(r) > 0)
+                    .ToList();
+
+                if (stealable.Count == 0) return;
+
+                var resource = stealable[_random.Next(stealable.Count)];
+                civ.RemoveResource(resource, 1);
+                bandit.LastRaidTargetVertex = city.Position;
+                bandit.LastStolenResource = resource.ToString();
+                return;
+            }
+        }
+
+        bandit.LastRaidTick = currentTick;
     }
 
     private void MoveBandit(Bandit bandit, long currentTick)
@@ -118,6 +150,7 @@ public class BanditController
         var oldPosition = bandit.Position;
         bandit.Position = destination;
         bandit.LastMovedTick = currentTick;
+        bandit.LastRaidTick = currentTick; // no raid when moving
 
         // Cooldown sur l'ancienne position si le bandit a bougé
         if (!oldPosition.Equals(destination))

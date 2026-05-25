@@ -152,6 +152,7 @@
   "hex_tooltip_bandit_present": "⚔ Bandit — récolte bloquée",
   "hex_tooltip_bandit_hp": "PV",
   "hex_tooltip_bandit_cooldown": "⚔ Cooldown bandit",
+  "prestige_no_bandits": "Aucun bandit",
   "tab_research": "Recherche",
   "tab_stats": "Stats",
   "stats_current_run": "Run en cours",
