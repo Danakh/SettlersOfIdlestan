@@ -128,7 +128,7 @@ public sealed class SkiaGameRuntime : IDisposable
         var prestigeRenderer = new PrestigeRenderer(_gameControllerService, _localizationService, RequestPrestige);
         var prestigeMapRenderer = new PrestigeMapRenderer(_gameControllerService, _localizationService, tooltipRenderer);
         var prestigeHistoryRenderer = new PrestigeHistoryRenderer(_gameControllerService, _localizationService);
-        var timeControlRenderer = new TimeControlRenderer(_gameControllerService, _inputService);
+        var timeControlRenderer = new TimeControlRenderer(_gameControllerService, _inputService, _localizationService);
         var researchRenderer = new ResearchRenderer(_gameControllerService, _localizationService, _inputService);
         var eventLogRenderer = new EventLogRenderer(_gameControllerService, _localizationService);
         _overlayRenderer = new OverlayRenderer(

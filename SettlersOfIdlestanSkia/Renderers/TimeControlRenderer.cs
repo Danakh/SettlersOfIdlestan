@@ -1,4 +1,5 @@
 using SettlersOfIdlestan.Model.Game;
+using SettlersOfIdlestan.Services.Localization;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Services;
 using SkiaSharp;
@@ -20,8 +21,14 @@ public class TimeControlRenderer : IDisposable
     // Retrait depuis le bord droit de la zone réservée (juste à gauche du gear)
     public const float RequiredWidth = TotalWidth + 8f;
 
+    private enum HoveredControl { None, Bank, Pause, Play, Fast }
+
     private readonly GameControllerService _gameControllerService;
     private readonly InputHandlingService _inputService;
+    private readonly ILocalizationService _localization;
+
+    private HoveredControl _hoveredControl = HoveredControl.None;
+    private SKPoint _lastPointerPosition;
 
     private SKSize _canvasSize;
     private float _rightEdge;
@@ -39,14 +46,17 @@ public class TimeControlRenderer : IDisposable
     private readonly SKPaint _bankTextPaint = new() { Color = new SKColor(200, 240, 255), IsAntialias = true };
     private readonly SKFont _font = new() { Size = 13, Typeface = SKTypeface.FromFamilyName("Arial", SKFontStyle.Bold) };
     private readonly SKFont _bankFont = new() { Size = 11, Typeface = SKTypeface.FromFamilyName("Arial") };
+    private readonly SKFont _tooltipFont = new() { Size = 10 };
 
     private bool _disposed;
 
-    public TimeControlRenderer(GameControllerService gameControllerService, InputHandlingService inputService)
+    public TimeControlRenderer(GameControllerService gameControllerService, InputHandlingService inputService, ILocalizationService localization)
     {
         _gameControllerService = gameControllerService;
         _inputService = inputService;
+        _localization = localization;
         _inputService.PointerPressed += HandlePointerPressed;
+        _inputService.PointerMoved += HandlePointerMoved;
     }
 
     public void Initialize(SKSize canvasSize, float rightEdge)
@@ -105,6 +115,22 @@ public class TimeControlRenderer : IDisposable
         DrawButton(canvas, _pauseRect, "||", speed == 0, pauseBg);
         DrawButton(canvas, _playRect, ">", speed == 1, speed == 1 ? _activePaint : _inactivePaint);
         DrawButton(canvas, _fastRect, ">>", speed == 3, speed == 3 ? _activePaint : _inactivePaint);
+
+        DrawHoverTooltip(canvas);
+    }
+
+    private void DrawHoverTooltip(SKCanvas canvas)
+    {
+        string[]? lines = _hoveredControl switch
+        {
+            HoveredControl.Bank  => _localization.Get("timecontrol_bank_tooltip").Split('\n'),
+            HoveredControl.Pause => new[] { _localization.Get("timecontrol_pause_tooltip") },
+            HoveredControl.Play  => new[] { _localization.Get("timecontrol_play_tooltip") },
+            HoveredControl.Fast  => new[] { _localization.Get("timecontrol_fast_tooltip") },
+            _                    => null
+        };
+        if (lines == null) return;
+        TooltipRenderUtils.DrawTooltip(canvas, _canvasSize, _lastPointerPosition, lines, _tooltipFont, null, new());
     }
 
     private void DrawBankLabel(SKCanvas canvas, long bankTicks)
@@ -133,6 +159,18 @@ public class TimeControlRenderer : IDisposable
 
         float textY = rect.MidY + _font.Size / 2f - 2f;
         canvas.DrawText(label, rect.MidX, textY, SKTextAlign.Center, _font, _textPaint);
+    }
+
+    private void HandlePointerMoved(object? sender, PointerEventArgs e)
+    {
+        if (_disposed) return;
+        _lastPointerPosition = e.Position;
+        var pt = e.Position;
+        if (_bankRect.Contains(pt.X, pt.Y))       _hoveredControl = HoveredControl.Bank;
+        else if (_pauseRect.Contains(pt.X, pt.Y)) _hoveredControl = HoveredControl.Pause;
+        else if (_playRect.Contains(pt.X, pt.Y))  _hoveredControl = HoveredControl.Play;
+        else if (_fastRect.Contains(pt.X, pt.Y))  _hoveredControl = HoveredControl.Fast;
+        else                                       _hoveredControl = HoveredControl.None;
     }
 
     private void HandlePointerPressed(object? sender, PointerEventArgs e)
@@ -164,6 +202,7 @@ public class TimeControlRenderer : IDisposable
     {
         if (_disposed) return;
         _inputService.PointerPressed -= HandlePointerPressed;
+        _inputService.PointerMoved -= HandlePointerMoved;
         _activePaint.Dispose();
         _inactivePaint.Dispose();
         _pauseFlickerPaint.Dispose();
@@ -172,6 +211,7 @@ public class TimeControlRenderer : IDisposable
         _bankTextPaint.Dispose();
         _font.Dispose();
         _bankFont.Dispose();
+        _tooltipFont.Dispose();
         _disposed = true;
     }
 }
