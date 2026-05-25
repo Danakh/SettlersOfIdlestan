@@ -185,8 +185,8 @@ namespace SettlersOfIdlestan.Controller
                 // MilitaryController must subscribe to the clock BEFORE BanditController so that
                 // combat resolves before bandit movement in each tick.
                 MilitaryController.Initialize(islandState, Clock);
-                BanditController.Initialize(islandState, Clock);
-                HarvestController.Initialize(islandState, Clock, TradeController, BanditController);
+                BanditController.Initialize(islandState, Clock, CurrentMainState!.PRNG);
+                HarvestController.Initialize(islandState, Clock, TradeController, BanditController, CurrentMainState!.PRNG);
                 TradeController.Initialize(islandState);
                 BuildingController.Initialize(islandState);
                 CityBuilderController.Initialize(islandState);

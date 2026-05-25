@@ -290,7 +290,7 @@ namespace SOITests.ControllerTests
             clock.SimulateAdvance(Bandit.RaidIntervalTicks);
 
             Assert.Equal(0, civ.GetResourceQuantity(Resource.Wood));
-            Assert.Null(state.Bandits[0].LastRaidTargetHex);
+            Assert.Null(state.Bandits[0].LastRaidTargetVertex);
             Assert.Null(state.Bandits[0].LastStolenResource);
         }
 

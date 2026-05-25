@@ -61,7 +61,7 @@ namespace SettlersOfIdlestan.Controller
         // 10 s × 100 ticks/s
         public const long MarketGenerationCooldownTicks = 1000L;
 
-        private readonly Random _random = new();
+        private GamePRNG _prng = new();
 
         public event EventHandler<HarvestCompletedEventArgs>? OnHarvestCompleted;
         public event EventHandler<MarketGenerationEventArgs>? OnMarketResourceGenerated;
@@ -71,7 +71,7 @@ namespace SettlersOfIdlestan.Controller
             Initialize(state, clock);
         }
 
-        internal void Initialize(IslandState? state, GameClock? clock, TradeController? tradeController = null, BanditController? banditController = null)
+        internal void Initialize(IslandState? state, GameClock? clock, TradeController? tradeController = null, BanditController? banditController = null, GamePRNG? prng = null)
         {
             if (_clock != null)
                 _clock.Advanced -= OnClockAdvanced;
@@ -80,6 +80,7 @@ namespace SettlersOfIdlestan.Controller
             _clock = clock;
             _tradeController = tradeController;
             _banditController = banditController;
+            if (prng != null) _prng = prng;
 
             if (_clock != null)
                 _clock.Advanced += OnClockAdvanced;
@@ -177,7 +178,7 @@ namespace SettlersOfIdlestan.Controller
 
                     if (now - market.LastGenerationTick < MarketGenerationCooldownTicks) continue;
 
-                    var resource = ResourceUtils.BasicResources[_random.Next(ResourceUtils.BasicResources.Count)];
+                    var resource = ResourceUtils.BasicResources[_prng.Next(ResourceUtils.BasicResources.Count)];
                     TryAutoTradeOnOverflow(civ, resource);
                     civ.AddResource(resource, 1);
                     market.LastGenerationTick = now;
