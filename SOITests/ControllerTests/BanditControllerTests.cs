@@ -254,7 +254,7 @@ namespace SOITests.ControllerTests
 
             var map = new IslandMap(tiles);
             var civ = new Civilization { Index = 0 };
-            var city = new City(Vertex.Create(ne, east, ne11)) { CivilizationIndex = 0 };
+            var city = new City(Vertex.Create(ne, east, Center)) { CivilizationIndex = 0 };
             civ.Cities.Add(city);
 
             var state = new IslandState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
