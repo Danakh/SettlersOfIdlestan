@@ -114,7 +114,7 @@ public sealed class SkiaGameRuntime : IDisposable
         var aboutRenderer = new AboutRenderer(_inputService, _localizationService);
         var settingsMenu = new SettingsMenu(_gameControllerService.MainGameController, _inputService, _localizationService, aboutRenderer, fileSystemService, _gameControllerService.CityBuildingService!, allowDebugMode);
         var playerResourcesOverlayRenderer = new PlayerResourcesOverlayRenderer(_localizationService, _resourceManager);
-        var tradeRenderer = new TradeRenderer(_gameControllerService, _localizationService, tooltipRenderer);
+        var tradeRenderer = new TradeRenderer(_gameControllerService, _localizationService, tooltipRenderer, _resourceManager);
         var prestigeRenderer = new PrestigeRenderer(_gameControllerService, _localizationService, RequestPrestige);
         var prestigeMapRenderer = new PrestigeMapRenderer(_gameControllerService, _localizationService, tooltipRenderer);
         var prestigeHistoryRenderer = new PrestigeHistoryRenderer(_gameControllerService, _localizationService);

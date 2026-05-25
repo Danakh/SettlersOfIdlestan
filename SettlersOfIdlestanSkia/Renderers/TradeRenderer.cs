@@ -3,6 +3,7 @@ using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Services.Localization;
 using SettlersOfIdlestanSkia.Services;
 using SkiaSharp;
+using Svg.Skia;
 
 namespace SettlersOfIdlestanSkia.Renderers;
 
@@ -25,6 +26,7 @@ public sealed class TradeRenderer : IDisposable
     private readonly GameControllerService _gameControllerService;
     private readonly ILocalizationService _localization;
     private readonly TooltipRenderer _tooltipRenderer;
+    private readonly Dictionary<Resource, SKSvg?> _resourceIcons = new();
     private readonly Dictionary<Resource, int> _offered = [];
     private readonly Dictionary<Resource, int> _requested = [];
     private readonly Dictionary<SKRect, Resource> _offerRects = [];
@@ -72,7 +74,7 @@ public sealed class TradeRenderer : IDisposable
     private readonly SKPaint _multActiveBorderPaint = new() { Color = new SKColor(100, 150, 220), Style = SKPaintStyle.Stroke, StrokeWidth = 1, IsAntialias = true };
     private readonly SKPaint _multInactiveBorderPaint = new() { Color = new SKColor(80, 80, 95), Style = SKPaintStyle.Stroke, StrokeWidth = 1, IsAntialias = true };
     private readonly SKPaint _rowBorderPaint = new() { Color = new SKColor(255, 255, 255, 100), Style = SKPaintStyle.Stroke, StrokeWidth = 1, IsAntialias = true };
-    private readonly SKPaint _resourceRowPaint = new() { Style = SKPaintStyle.Fill, IsAntialias = true };
+    private readonly SKPaint _resourceRowPaint = new() { Color = new SKColor(55, 55, 65, 245), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _checkboxFillPaint = new() { Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _checkboxBorderPaint = new() { Style = SKPaintStyle.Stroke, IsAntialias = true };
     private readonly SKPaint _confirmDimPaint = new() { Color = new SKColor(0, 0, 0, 160), Style = SKPaintStyle.Fill };
@@ -83,11 +85,17 @@ public sealed class TradeRenderer : IDisposable
 
     public bool IsOpen { get; private set; }
 
-    public TradeRenderer(GameControllerService gameControllerService, ILocalizationService localization, TooltipRenderer tooltipRenderer)
+    public TradeRenderer(GameControllerService gameControllerService, ILocalizationService localization, TooltipRenderer tooltipRenderer, ResourceManager resourceManager)
     {
         _gameControllerService = gameControllerService;
         _localization = localization;
         _tooltipRenderer = tooltipRenderer;
+        foreach (Resource resource in Enum.GetValues(typeof(Resource)))
+        {
+            string name = resource.ToString().ToLower();
+            try { _resourceIcons[resource] = resourceManager.LoadImage($"Resources.icons.resources.{name}.svg"); }
+            catch { _resourceIcons[resource] = null; }
+        }
     }
 
     public void Initialize(SKSize canvasSize) => _canvasSize = canvasSize;
@@ -322,7 +330,6 @@ public sealed class TradeRenderer : IDisposable
             var rowRect = new SKRect(x + 10, currentY, x + ColumnWidth - 10, currentY + RowHeight - 4);
             hitRects[rowRect] = resource;
 
-            _resourceRowPaint.Color = IslandMainRenderer.ResourceColors[resource];
             canvas.DrawRoundRect(rowRect, 5, 5, isDisabled ? _disabledPaint : _resourceRowPaint);
             canvas.DrawRoundRect(rowRect, 5, 5, _rowBorderPaint);
 
@@ -331,11 +338,25 @@ public sealed class TradeRenderer : IDisposable
             if (showL4 && enhancedResources.Contains(resource))
                 DrawSeaportL4Checkbox(canvas, rowRect, resource, autoTradeResources, civ);
 
+            const float iconSize = 18f;
+            float iconX = rowRect.Left + 8 + checkboxOffset;
+            _resourceIcons.TryGetValue(resource, out var svg);
+            var picture = svg?.Picture;
+            if (picture != null)
+            {
+                float scale = iconSize / 32f;
+                canvas.Save();
+                canvas.Translate(iconX, rowRect.MidY - iconSize / 2f);
+                canvas.Scale(scale);
+                canvas.DrawPicture(picture);
+                canvas.Restore();
+            }
+
             string resourceText = _localization.Get($"resource_{resource.ToString().ToLower()}");
             int amount = values.GetValueOrDefault(resource);
             string amountText = amount > 0 ? amount.ToString() : "+";
             var rowTextPaint = isDisabled ? _mutedTextPaint : _textPaint;
-            canvas.DrawText(resourceText, rowRect.Left + 8 + checkboxOffset, rowRect.MidY + 5, _font, rowTextPaint);
+            canvas.DrawText(resourceText, iconX + iconSize + 4, rowRect.MidY + 5, _font, rowTextPaint);
             canvas.DrawText(amountText, rowRect.Right - 8, rowRect.MidY + 5, SKTextAlign.Right, _boldFont, rowTextPaint);
 
             currentY += RowHeight;
