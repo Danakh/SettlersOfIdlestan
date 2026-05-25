@@ -2,10 +2,18 @@ using System.Collections.Generic;
 using System.Linq;
 using SettlersOfIdlestan.Model.Bandits;
 using SettlersOfIdlestan.Model.Buildings;
+using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
+using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
 
 namespace SettlersOfIdlestan.Controller.Military;
+
+public class SoldierAttackEventArgs(Vertex cityVertex, HexCoord banditPosition) : EventArgs
+{
+    public Vertex CityVertex { get; } = cityVertex;
+    public HexCoord BanditPosition { get; } = banditPosition;
+}
 
 /// <summary>
 /// Gère la production de soldats par les Casernes et le combat contre toutes les cibles
@@ -16,17 +24,32 @@ public class MilitaryController
     private IslandState? _state;
     private GameClock? _clock;
 
-    /// <summary>Intervalle de production d'un soldat (3 000 ticks = 30 s à vitesse normale).</summary>
-    public const long SoldierProductionIntervalTicks = 3_000L;
+    /// <summary>Intervalle de production d'un soldat (1 000 ticks = 10 s à vitesse normale).</summary>
+    public const long SoldierProductionIntervalTicks = 1_000L;
 
     /// <summary>Intervalle entre deux attaques d'une même cible (synchronisé avec MovementIntervalTicks).</summary>
-    public const long CombatIntervalTicks = 3_000L;
+    public const long CombatIntervalTicks = 100L;
 
     /// <summary>Niveau de Caserne à partir duquel la production de soldats est active.</summary>
     public const int SoldierProductionMinLevel = 2;
 
     /// <summary>Capacité maximale de soldats dans une Caserne.</summary>
     public const int MaxSoldiers = 10;
+
+    public event EventHandler<SoldierAttackEventArgs>? SoldierAttackedBandit;
+
+    /// <summary>Nombre total de soldats disponibles dans la ville (toutes casernes).</summary>
+    public int GetAttackScore(City city)
+        => city.Buildings.OfType<Barracks>().Sum(b => b.Soldiers);
+
+    /// <summary>Score de défense de la ville : Palissade=10, Caserne=5.</summary>
+    public int GetDefenseScore(City city)
+    {
+        int score = 0;
+        foreach (var b in city.Buildings)
+            score += b switch { Palisade => 10, Barracks => 5, _ => 0 };
+        return score;
+    }
 
     internal void Initialize(IslandState? state, GameClock? clock)
     {
@@ -101,8 +124,6 @@ public class MilitaryController
     {
         if (_state == null) return;
 
-        var banditNeighbors = bandit.Position.Neighbors();
-
         foreach (var civ in _state.Civilizations)
         {
             foreach (var city in civ.Cities)
@@ -111,11 +132,12 @@ public class MilitaryController
                 if (barracks == null) continue;
 
                 var cityHexes = city.Position.GetHexes();
-                bool isAdjacent = banditNeighbors.Any(n => cityHexes.Any(h => h.Equals(n)));
-                if (!isAdjacent) continue;
+                bool isOnCityHex = cityHexes.Any(h => h.Equals(bandit.Position));
+                if (!isOnCityHex) continue;
 
                 barracks.Soldiers--;
                 bandit.Hp--;
+                SoldierAttackedBandit?.Invoke(this, new SoldierAttackEventArgs(city.Position, bandit.Position));
                 return;
             }
         }

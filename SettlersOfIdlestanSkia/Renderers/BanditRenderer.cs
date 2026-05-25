@@ -37,11 +37,24 @@ public class BanditRenderer : HexBasedRenderer, IGameRenderer
         public float ResourceFlyProgress = 1f; // 0..1, 1 = done
     }
 
+    private const float AttackParticleDuration = 0.5f;
+    private const float AttackParticleIconSize = 16f;
+
+    private sealed class AttackParticle
+    {
+        public SKPoint From;
+        public SKPoint To;
+        public float Progress; // 0..1
+    }
+
     private readonly List<BanditVisual> _visuals = new();
+    private readonly List<AttackParticle> _attackParticles = new();
     private readonly ResourceManager _resourceManager;
     private readonly Dictionary<Resource, SKSvg?> _resourceIcons = new();
     private SKSvg? _svg;
+    private SKSvg? _attackSvg;
     private SKPaint? _resourceFlyPaint;
+    private SKPaint? _attackParticlePaint;
     private bool _disposed;
 
     public BanditRenderer(ResourceManager resourceManager)
@@ -68,6 +81,20 @@ public class BanditRenderer : HexBasedRenderer, IGameRenderer
         }
 
         _resourceFlyPaint = new SKPaint { Color = SKColors.White };
+        _attackParticlePaint = new SKPaint { IsAntialias = true };
+        try { _attackSvg = _resourceManager.LoadImage("Resources.icons.military.attack.svg"); } catch { }
+    }
+
+    public void EmitAttackParticle(Vertex cityVertex, HexCoord banditPosition)
+    {
+        var from = VertexToIsland(cityVertex);
+        var (bx, by) = AxialToIsland(banditPosition.Q, banditPosition.R);
+        EmitAttackParticle(from, new SKPoint(bx, by));
+    }
+
+    public void EmitAttackParticle(SKPoint from, SKPoint to)
+    {
+        _attackParticles.Add(new AttackParticle { From = from, To = to, Progress = 0f });
     }
 
     public void Render(SKCanvas canvas, GameRenderContext context)
@@ -159,6 +186,19 @@ public class BanditRenderer : HexBasedRenderer, IGameRenderer
                 DrawResourceIcon(canvas, flyPos, v.FlyingResource.Value, 1f - v.ResourceFlyProgress);
             }
         }
+
+        // Draw attack particles
+        for (int i = _attackParticles.Count - 1; i >= 0; i--)
+        {
+            var p = _attackParticles[i];
+            p.Progress = Math.Min(1f, p.Progress + dt / AttackParticleDuration);
+            float t = Smoothstep(p.Progress);
+            var pos2 = Lerp(p.From, p.To, t);
+            float alpha = p.Progress < 0.7f ? 1f : (1f - p.Progress) / 0.3f;
+            DrawAttackParticle(canvas, pos2, alpha);
+            if (p.Progress >= 1f)
+                _attackParticles.RemoveAt(i);
+        }
     }
 
     private void DrawIcon(SKCanvas canvas, SKPoint center)
@@ -171,6 +211,26 @@ public class BanditRenderer : HexBasedRenderer, IGameRenderer
         canvas.Translate(center.X - IconSize / 2f, center.Y - IconSize / 2f);
         canvas.Scale(scale);
         canvas.DrawPicture(picture);
+        canvas.Restore();
+    }
+
+    private void DrawAttackParticle(SKCanvas canvas, SKPoint center, float alpha)
+    {
+        var picture = _attackSvg?.Picture;
+        if (picture == null || _attackParticlePaint == null) return;
+
+        byte alphaB = (byte)(Math.Clamp(alpha, 0f, 1f) * 255);
+        _attackParticlePaint.Color = new SKColor(255, 120, 80, alphaB);
+        _attackParticlePaint.ColorFilter = SKColorFilter.CreateBlendMode(new SKColor(255, 120, 80, alphaB), SKBlendMode.SrcIn);
+
+        const float size = AttackParticleIconSize;
+        float scale = size / 64f;
+        canvas.Save();
+        canvas.Translate(center.X - size / 2f, center.Y - size / 2f);
+        canvas.Scale(scale);
+        canvas.SaveLayer(new SKRect(0, 0, 64, 64), _attackParticlePaint);
+        canvas.DrawPicture(picture);
+        canvas.Restore();
         canvas.Restore();
     }
 
@@ -233,8 +293,11 @@ public class BanditRenderer : HexBasedRenderer, IGameRenderer
     {
         if (_disposed) return;
         _svg = null;
+        _attackSvg = null;
         _resourceFlyPaint?.Dispose();
         _resourceFlyPaint = null;
+        _attackParticlePaint?.Dispose();
+        _attackParticlePaint = null;
         _disposed = true;
     }
 }

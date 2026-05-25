@@ -23,7 +23,8 @@
       "Bash(git stash *)",
       "Bash(Get-ChildItem -Path \"C:\\\\DEV\\\\SettlersOfIdlestan\\\\SettlersOfIdlestanSkia\\\\Renderers\" -File)",
       "Bash(Select-Object Name)",
-      "Bash(findstr -v \"^C:\\\\\\\\DEV.*\\\\\\\\\\\\\\\\obj\\\\\\\\\\\\\\\\\")"
+      "Bash(findstr -v \"^C:\\\\\\\\DEV.*\\\\\\\\\\\\\\\\obj\\\\\\\\\\\\\\\\\")",
+      "Bash(Get-ChildItem -Path \"C:\\\\DEV\\\\SettlersOfIdlestan\" -Recurse -Directory)"
     ]
   }
 }

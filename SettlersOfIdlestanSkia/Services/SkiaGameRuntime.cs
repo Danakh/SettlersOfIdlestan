@@ -101,12 +101,13 @@ public sealed class SkiaGameRuntime : IDisposable
             _inputService,
             _cameraService,
             _gameControllerService.CityBuildingService!);
-        var islandMainRenderer = new IslandMainRenderer(_constructionInteractionService, tooltipRenderer, _gameControllerService.MainGameController.HarvestController, _resourceManager!);
+        var islandMainRenderer = new IslandMainRenderer(_constructionInteractionService, tooltipRenderer, _gameControllerService.MainGameController.HarvestController, _resourceManager!, _gameControllerService.MainGameController.MilitaryController);
         _islandMainRenderer = islandMainRenderer;
         _constructionInteractionService.AttachRenderer(islandMainRenderer);
         _renderService.RegisterRenderer(islandMainRenderer);
 
         ConnectHarvestEventsToParticles(islandMainRenderer);
+        ConnectMilitaryEventsToParticles(islandMainRenderer, _gameControllerService.MainGameController.MilitaryController);
 
         var selectedCityPanelRenderer = new SelectedCityPanelRenderer(_gameControllerService.CityBuildingService!, _localizationService, _inputService, _resourceManager!);
 
@@ -351,6 +352,15 @@ public sealed class SkiaGameRuntime : IDisposable
         _gameControllerService.CurrentGameState?.Clock?.Pause();
         _overlayRenderer?.SwitchToPrestigeTab();
         _prestigeTransitionPending = false;
+    }
+
+    private void ConnectMilitaryEventsToParticles(IslandMainRenderer islandMainRenderer, SettlersOfIdlestan.Controller.Military.MilitaryController militaryController)
+    {
+        militaryController.SoldierAttackedBandit += (_, args) =>
+        {
+            if (_prestigeTransitionPending) return;
+            islandMainRenderer.BanditRenderer.EmitAttackParticle(args.CityVertex, args.BanditPosition);
+        };
     }
 
     private void ConnectHarvestEventsToParticles(IslandMainRenderer islandMainRenderer)

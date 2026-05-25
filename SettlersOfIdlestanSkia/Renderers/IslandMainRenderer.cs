@@ -1,10 +1,11 @@
 using SkiaSharp;
+using SettlersOfIdlestan.Controller.Island;
+using SettlersOfIdlestan.Controller.Military;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Services;
-using SettlersOfIdlestan.Controller.Island;
 
 namespace SettlersOfIdlestanSkia.Renderers;
 
@@ -30,6 +31,7 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
     private SKPaint? _fadePaint;
     public bool IsVisible { get; set; } = true;
 
+    public BanditRenderer BanditRenderer => _banditRenderer;
 
     /// <summary>
     /// Dictionnaire de couleurs pour les ressources (pour les particules de récolte).
@@ -46,11 +48,11 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
         { Resource.Crystal, new SKColor(147, 112, 219) } // Violet
     };
 
-    public IslandMainRenderer(IConstructionHoverProvider constructionHoverProvider, TooltipRenderer tooltipRenderer, HarvestController harvestController, ResourceManager resourceManager)
+    public IslandMainRenderer(IConstructionHoverProvider constructionHoverProvider, TooltipRenderer tooltipRenderer, HarvestController harvestController, ResourceManager resourceManager, MilitaryController militaryController)
     {
         _gameBoardRenderer = new GameBoardRenderer(harvestController, resourceManager);
         _roadRenderer = new RoadRenderer(tooltipRenderer);
-        _cityRenderer = new CityRenderer(tooltipRenderer);
+        _cityRenderer = new CityRenderer(tooltipRenderer, resourceManager, militaryController);
         _harvestParticleSystem = new HarvestParticleSystem();
         _harvestRenderer = new HarvestRenderer(_harvestParticleSystem, resourceManager);
         _banditRenderer = new BanditRenderer(resourceManager);
