@@ -139,7 +139,7 @@ namespace SOITests.ControllerTests
             var map = new IslandMap(tiles);
             var civ = new Civilization { Index = 0 };
             var state = new IslandState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
-            state.Bandits.Add(new Bandit(Center, 0));
+            state.Bandits.Add(new Bandit(Center, 0) { Found = true });
 
             var clock = new GameClock();
             clock.Start();
@@ -187,7 +187,7 @@ namespace SOITests.ControllerTests
             var map = new IslandMap(tiles);
             var civ = new Civilization { Index = 0 };
             var state = new IslandState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
-            state.Bandits.Add(new Bandit(Center, 0));
+            state.Bandits.Add(new Bandit(Center, 0) { Found = true });
 
             var clock = new GameClock();
             clock.Start();
@@ -216,7 +216,7 @@ namespace SOITests.ControllerTests
             var map = new IslandMap(tiles);
             var civ = new Civilization { Index = 0 };
             var state = new IslandState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
-            state.Bandits.Add(new Bandit(Center, 0));
+            state.Bandits.Add(new Bandit(Center, 0) { Found = true });
 
             var clock = new GameClock();
             clock.Start();

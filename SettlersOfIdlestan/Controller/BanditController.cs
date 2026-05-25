@@ -44,8 +44,23 @@ public class BanditController
     {
         if (_state == null) return;
 
+        var playerIdx = _state.PlayerCivilization.Index;
+        _state.VisibleIslandMaps.TryGetValue(playerIdx, out var visibleMap);
+
         foreach (var bandit in _state.Bandits)
         {
+            if (!bandit.Found)
+            {
+                if (visibleMap != null && visibleMap.HasTile(bandit.Position))
+                    bandit.Found = true;
+                else
+                {
+                    bandit.LastMovedTick = currentTick;
+                    bandit.LastRaidTick = currentTick;
+                    continue;
+                }
+            }
+
             if (currentTick - bandit.LastMovedTick >= MovementIntervalTicks)
                 MoveBandit(bandit, currentTick);
             else
@@ -70,7 +85,11 @@ public class BanditController
                     .Where(r => civ.GetResourceQuantity(r) > 0)
                     .ToList();
 
-                if (stealable.Count == 0) return;
+                if (stealable.Count == 0)
+                {
+                    bandit.LastStolenResource = null;
+                    return;
+                }
 
                 var resource = stealable[_prng.Next(stealable.Count)];
                 civ.RemoveResource(resource, 1);

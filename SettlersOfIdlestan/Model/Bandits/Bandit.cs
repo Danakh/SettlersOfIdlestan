@@ -15,6 +15,7 @@ public class Bandit
     public long LastRaidTick { get; set; } = 0;
     public Vertex? LastRaidTargetVertex { get; set; } = null;
     public string? LastStolenResource { get; set; } = null;
+    public bool Found { get; set; } = false;
 
     public Bandit(HexCoord position, long lastMovedTick = 0)
     {
