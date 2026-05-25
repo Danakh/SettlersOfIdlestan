@@ -82,7 +82,11 @@ public class BanditController
             .Where(n => _state.Map.HasTile(n) && _state.Map.GetTile(n)!.TerrainType != TerrainType.Water)
             .ToList();
 
-        if (neighbors.Count == 0) return;
+        if (neighbors.Count == 0)
+        {
+            bandit.LastMovedTick = currentTick;
+            return;
+        }
 
         // Hexs protégés par les Barracks (3 hexs de chaque ville avec Barracks actives)
         var protectedHexes = GetBarracksProtectedHexes();
@@ -90,7 +94,11 @@ public class BanditController
         // Destinations valides : non protégées
         var validDestinations = neighbors.Where(n => !protectedHexes.Contains(n)).ToList();
 
-        if (validDestinations.Count == 0) return;
+        if (validDestinations.Count == 0)
+        {
+            bandit.LastMovedTick = currentTick;
+            return;
+        }
 
         // Hexs des villes (les 3 hexs du vertex de chaque ville)
         var cityHexes = new HashSet<HexCoord>();

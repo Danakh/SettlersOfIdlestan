@@ -186,6 +186,19 @@ public class SelectedCityPanelRenderer : IGameRenderer
                     tooltipLines.Add("");
                 }
 
+                if (hoveredBuilding is Barracks barracks && barracks.Level > 0)
+                {
+                    long currentTick = _cityBuildingService.GetCurrentTick();
+                    tooltipLines.Add(_localization.Get("barracks_soldiers") + $": {barracks.Soldiers}/{MilitaryController.MaxSoldiers}");
+                    if (barracks.Level >= MilitaryController.SoldierProductionMinLevel && barracks.Soldiers < MilitaryController.MaxSoldiers)
+                    {
+                        long elapsed = barracks.LastSoldierProductionTick == 0 ? 0 : currentTick - barracks.LastSoldierProductionTick;
+                        long remaining = Math.Max(0, MilitaryController.SoldierProductionIntervalTicks - elapsed);
+                        tooltipLines.Add(_localization.Get("barracks_soldier_production") + $" {remaining/100}s/{MilitaryController.SoldierProductionIntervalTicks/100}s");
+                    }
+                    tooltipLines.Add("");
+                }
+
                 var prestigeController = _cityBuildingService.PrestigeController;
                 if (hoveredBuilding.Level > 0)
                 {

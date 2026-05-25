@@ -24,6 +24,7 @@ namespace SettlersOfIdlestan.Controller
         public PrestigeMapController PrestigeMapController { get; private set; }
         public ResearchController ResearchController { get; private set; }
         public BanditController BanditController { get; private set; }
+        public MilitaryController MilitaryController { get; private set; }
         public GameClock? Clock { get; private set; }
         // Holds the currently loaded main game state when created or imported
         public SettlersOfIdlestan.Model.Game.MainGameState? CurrentMainState { get; private set; }
@@ -48,6 +49,7 @@ namespace SettlersOfIdlestan.Controller
             PrestigeMapController = new PrestigeMapController();
             ResearchController = new ResearchController();
             BanditController = new BanditController();
+            MilitaryController = new MilitaryController();
         }
 
         /// <summary>
@@ -180,6 +182,9 @@ namespace SettlersOfIdlestan.Controller
 
                 // Initialize controllers to operate on the real island state and clock
                 RoadController.Initialize(islandState);
+                // MilitaryController must subscribe to the clock BEFORE BanditController so that
+                // combat resolves before bandit movement in each tick.
+                MilitaryController.Initialize(islandState, Clock);
                 BanditController.Initialize(islandState, Clock);
                 HarvestController.Initialize(islandState, Clock, TradeController, BanditController);
                 TradeController.Initialize(islandState);

@@ -1,4 +1,5 @@
 using SettlersOfIdlestan.Controller;
+using SettlersOfIdlestan.Model.Bandits;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Services.Localization;
@@ -130,7 +131,11 @@ namespace SettlersOfIdlestanSkia.Renderers
             var lines = new List<string>();
 
             if (banditPresent)
+            {
+                var bandit = islandState.Bandits.First(b => b.Position.Equals(coord));
                 lines.Add(_localizationService.Get("hex_tooltip_bandit_present"));
+                lines.Add($"{_localizationService.Get("hex_tooltip_bandit_hp")}: {bandit.Hp}/{Bandit.MaxHp}");
+            }
 
             if (banditCooldownActive)
             {

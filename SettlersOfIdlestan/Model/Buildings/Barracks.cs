@@ -4,6 +4,12 @@ namespace SettlersOfIdlestan.Model.Buildings;
 
 public class Barracks : Building
 {
+    /// <summary>Nombre de soldats actuellement en garnison.</summary>
+    public int Soldiers { get; set; } = 0;
+
+    /// <summary>Tick de la dernière production de soldat. 0 = jamais produit.</summary>
+    public long LastSoldierProductionTick { get; set; } = 0;
+
     public Barracks() : base(BuildingType.Barracks)
     {
         AvailableAtLevel = 1;
