@@ -103,8 +103,9 @@ public class IslandMapGenerator
     {
         IslandShapeGenerator shapeGenerator = parameters.ShapeType switch
         {
-            IslandShapeType.Crescent => new IslandShapeGeneratorCrescent(),
-            _ => new IslandShapeGeneratorCompact()
+            IslandShapeType.Crescent    => new IslandShapeGeneratorCrescent(),
+            IslandShapeType.Archipelago => new IslandShapeGeneratorArchipelago(),
+            _                           => new IslandShapeGeneratorCompact()
         };
 
         var civs = new List<Civilization>();

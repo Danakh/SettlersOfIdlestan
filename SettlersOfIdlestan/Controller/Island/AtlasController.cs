@@ -44,7 +44,7 @@ namespace SettlersOfIdlestan.Controller.Island
                     new IslandFeatureParameters(IslandFeatureType.Bandit,       IslandFeaturePlacement.FarFromPlayer),
                     new IslandFeatureParameters(IslandFeatureType.TreasureTrove, IslandFeaturePlacement.Random),
                 };
-                return new IslandParameters(islandId, tileData, 1, features, IslandShapeType.Crescent);
+                return new IslandParameters(islandId, tileData, 1, features, IslandShapeType.Archipelago);
             }
 
             return new IslandParameters(InvalidIslandId, new List<(TerrainType terrainType, int tileCount)>(), 0);
