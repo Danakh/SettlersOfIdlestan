@@ -15,6 +15,10 @@ public class Forge : Building
         AvailableAtLevel = 2;
     }
 
+    public override int GetDefaultMaxLevel() => 4;
+
+    public override Resource? AutomaticHarvestResource => Resource.Ore;
+
     public override int AutomaticHarvestUnlockLevel => 2;
 
     public override Resource? AutomaticHarvestCapability(TerrainType terrain)

@@ -22,6 +22,9 @@ public class Seaport : Building
         return 4;
     }
 
+    public override Resource? ManualHarvestResource => Resource.Food;
+    public override Resource? AutomaticHarvestResource => Resource.Food;
+
     public override Resource? ManualHarvestCapability(TerrainType terrain)
     {
         if (terrain == TerrainType.Water)

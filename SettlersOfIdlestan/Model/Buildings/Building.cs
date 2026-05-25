@@ -125,6 +125,19 @@ public class Building
     public virtual int AutomaticHarvestUnlockLevel => int.MaxValue;
 
     /// <summary>
+    /// Resource that this building can manually harvest, independent of terrain. Null if none.
+    /// Used for tooltip display only.
+    /// </summary>
+    public virtual Resource? ManualHarvestResource => null;
+
+    /// <summary>
+    /// Resource that this building can automatically harvest, independent of terrain. Null if none.
+    /// Auto harvest is active when Level >= AutomaticHarvestUnlockLevel.
+    /// Used for tooltip display only.
+    /// </summary>
+    public virtual Resource? AutomaticHarvestResource => null;
+
+    /// <summary>
     /// Returns the raw auto-harvest cooldown in ticks for this building, before civilization
     /// speed modifiers are applied. Default: baseCooldownTicks minus 0.5 s (50 ticks) per level
     /// above AutomaticHarvestUnlockLevel.

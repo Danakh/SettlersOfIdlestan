@@ -21,6 +21,9 @@ public class Sawmill : Building
         return 4;
     }
 
+    public override Resource? ManualHarvestResource => null;
+    public override Resource? AutomaticHarvestResource => Resource.Wood;
+
     public override int AutomaticHarvestUnlockLevel => 1;
 
     public override Resource? AutomaticHarvestCapability(TerrainType terrain)

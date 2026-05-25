@@ -27,7 +27,9 @@
       "Bash(Get-ChildItem -Path \"C:\\\\DEV\\\\SettlersOfIdlestan\" -Recurse -Directory)",
       "Bash(Get-ChildItem -Path \"C:\\\\DEV\\\\SettlersOfIdlestan\" -Recurse -Name)",
       "Bash(Select-String -Pattern \"\\(IslandMapGenerator|IslandParameters|AtlasController|IslandState|GamePRNG\\)\")",
-      "Bash(Get-ChildItem -Path \"C:\\\\DEV\\\\SettlersOfIdlestan\" -Directory)"
+      "Bash(Get-ChildItem -Path \"C:\\\\DEV\\\\SettlersOfIdlestan\" -Directory)",
+      "Bash(Get-ChildItem -Path C:\\\\DEV\\\\SettlersOfIdlestan -Recurse -File -Name)",
+      "Bash(Select-Object -First 50)"
     ]
   }
 }

@@ -21,6 +21,8 @@ public class Brickworks : Building
         return 4;
     }
 
+    public override Resource? AutomaticHarvestResource => Resource.Brick;
+
     public override int AutomaticHarvestUnlockLevel => 1;
 
     public override Resource? AutomaticHarvestCapability(TerrainType terrain)

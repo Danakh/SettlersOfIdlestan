@@ -197,6 +197,35 @@ public class SelectedCityPanelRenderer : IGameRenderer
 
                 var tooltipLines = new List<string> { buildingName, "", description, "" };
 
+                // Bloc récolte pour les bâtiments de production
+                var manualHarvestRes = hoveredBuilding.ManualHarvestResource;
+                var autoHarvestRes = hoveredBuilding.AutomaticHarvestResource;
+                if (manualHarvestRes.HasValue || autoHarvestRes.HasValue)
+                {
+                    bool isAtMaxForHarvest = _cityBuildingService.IsAtMaxLevel(hoveredBuilding);
+                    // Au niveau 0 (non construit), on affiche ce que le joueur obtient à la construction (niv. 1)
+                    int displayLvl = Math.Max(1, hoveredBuilding.Level);
+
+                    tooltipLines.Add(_localization.Get("tooltip_harvest_header"));
+
+                    if (manualHarvestRes.HasValue)
+                    {
+                        var manualName = _localization.Get("resource_" + manualHarvestRes.Value.ToString().ToLower());
+                        tooltipLines.Add(_localization.Get("tooltip_harvest_manual") + " " + manualName);
+                    }
+
+                    if (autoHarvestRes.HasValue)
+                    {
+                        bool autoActive = displayLvl >= hoveredBuilding.AutomaticHarvestUnlockLevel;
+                        var autoName = _localization.Get("resource_" + autoHarvestRes.Value.ToString().ToLower());
+                        tooltipLines.Add(_localization.Get("tooltip_harvest_auto") + " " + (autoActive ? autoName : "—"));
+                        if (!autoActive && !isAtMaxForHarvest && displayLvl + 1 >= hoveredBuilding.AutomaticHarvestUnlockLevel)
+                            tooltipLines.Add(_localization.Get("tooltip_harvest_auto_next") + " " + autoName);
+                    }
+
+                    tooltipLines.Add("");
+                }
+
                 if (hoveredBuilding is Market market && market.Level > 0)
                 {
                     long currentTick = _cityBuildingService.GetCurrentTick();
