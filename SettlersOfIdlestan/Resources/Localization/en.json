@@ -151,7 +151,7 @@
   "hex_tooltip_ready": "Ready!",
   "hex_tooltip_bandit_present": "⚔ Bandit — harvest blocked",
   "hex_tooltip_bandit_hp": "HP",
-  "hex_tooltip_bandit_cooldown": "⚔ Bandit cooldown",
+  "hex_tooltip_bandit_cooldown": "⚔ Recovery after looting",
   "hex_tooltip_treasure_trove": "💰 Treasure — building an outpost here gives 10 Gold",
   "prestige_no_bandits": "No Bandits",
   "tab_research": "Research",
