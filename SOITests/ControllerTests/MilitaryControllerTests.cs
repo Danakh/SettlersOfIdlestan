@@ -105,16 +105,16 @@ namespace SOITests.ControllerTests
 
             clock.SimulateAdvance(MilitaryController.CombatIntervalTicks);
 
-            // La production s'exécute avant le combat : 3→4 soldats, puis attaque : 4→3, bandit MaxHp→MaxHp-1.
+            // 1 attaque (production trop lente : 1000 ticks vs combat 100 ticks) : soldats 3→2, bandit MaxHp→MaxHp-1.
             Assert.Equal(Bandit.MaxHp - 1, bandit.Hp);
-            Assert.Equal(3, barracks.Soldiers);
+            Assert.Equal(2, barracks.Soldiers);
         }
 
         [Fact]
         public void Bandit_KilledByBarracksSoldiers_IsRemovedFromState()
         {
             // Bandit sur East avec 5 PV ; caserne démarre avec 5 soldats.
-            // Chaque cycle : production +1, attaque -1 → soldats stables, bandit perd 1 PV.
+            // 5 cycles de combat (5×CombatIntervalTicks) : 5 attaques → bandit mort, 5 soldats consommés.
             var (state, clock, _, barracks) = CreateSetup(initialSoldiers: 5);
             state.Bandits.Add(new Bandit(East, 0) { Hp = 5 });
 
@@ -124,7 +124,7 @@ namespace SOITests.ControllerTests
                 clock.SimulateAdvance(MilitaryController.CombatIntervalTicks);
 
             Assert.Empty(state.Bandits);
-            Assert.Equal(5, barracks.Soldiers);
+            Assert.Equal(0, barracks.Soldiers);
         }
 
         [Fact]

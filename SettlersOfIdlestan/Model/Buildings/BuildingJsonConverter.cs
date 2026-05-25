@@ -54,7 +54,7 @@ namespace SettlersOfIdlestan.Model.Buildings
                 BuildingType.Barracks => typeof(Barracks),
                 BuildingType.GlassWorks => typeof(GlassWorks),
                 BuildingType.Palisade => typeof(Palisade),
-                _ => typeof(Building)
+                _ => throw new JsonException($"Unknown building type: {bType}")
             };
 
             var result = (Building?)JsonSerializer.Deserialize(raw, concrete, options);

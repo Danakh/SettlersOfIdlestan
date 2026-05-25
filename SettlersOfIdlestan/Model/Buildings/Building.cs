@@ -1,11 +1,13 @@
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.IslandMap;
+using System.Text.Json.Serialization;
 
 namespace SettlersOfIdlestan.Model.Buildings;
 
 /// <summary>
 /// Represents the type of a building.
 /// </summary>
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum BuildingType
 {
     /// <summary>
@@ -32,10 +34,6 @@ public enum BuildingType
     /// Moulin - Produit du bl�
     /// </summary>
     Mill,
-    /// <summary>
-    /// Bergerie - Produit du mouton
-    /// </summary>
-    Sheepfold,
     /// <summary>
     /// Mine - Produit du minerai
     /// </summary>

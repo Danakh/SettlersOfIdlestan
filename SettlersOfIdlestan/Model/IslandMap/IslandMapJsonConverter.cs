@@ -19,13 +19,11 @@ namespace SettlersOfIdlestan.Model.IslandMap
             if (!root.TryGetProperty("Tiles", out var tilesElem))
                 throw new JsonException("Missing 'Tiles' property for IslandMap.");
 
-            // Use case-insensitive matching when deserializing tile objects so constructor
-            // parameter names (which may be lowercase) match JSON property names.
+            // HexTile uses a [JsonConstructor] with camelCase parameters — needs case-insensitive matching.
+            // JsonStringEnumConverter handles both legacy numeric TerrainType values and new string values.
             var localOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-            foreach (var conv in options.Converters)
-            {
-                localOptions.Converters.Add(conv);
-            }
+            localOptions.Converters.Add(new SettlersOfIdlestan.Model.HexGrid.HexCoordJsonConverter());
+            localOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
 
             Dictionary<HexCoord, HexTile> dict;
             try
