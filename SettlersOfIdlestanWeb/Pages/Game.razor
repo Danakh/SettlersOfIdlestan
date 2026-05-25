@@ -9,9 +9,9 @@
 
 <div style="position: relative; width: 100vw; height: 100vh; overflow: hidden; background: #000; margin: 0; padding: 0;">
 
-    <SKCanvasView @ref="_canvasView"
-                  OnPaintSurface="OnPaintSurface"
-                  style="position: absolute; inset: 0; width: 100%; height: 100%;" />
+    <SKGLView @ref="_canvasView"
+              OnPaintSurface="OnPaintSurface"
+              style="position: absolute; inset: 0; width: 100%; height: 100%;" />
 
     @* Transparent overlay captures all pointer/wheel events so OffsetX/Y are always canvas-relative *@
     <div style="position: absolute; inset: 0;"
@@ -32,7 +32,7 @@
 </div>
 
 @code {
-    private SKCanvasView? _canvasView;
+    private SKGLView? _canvasView;
     private SkiaGameRuntime? _runtime;
     private CancellationTokenSource? _cts;
     private string _debugText = "Chargement…";
@@ -97,13 +97,12 @@
         }
     }
 
-    private void OnPaintSurface(SKPaintSurfaceEventArgs e)
+    private void OnPaintSurface(SKPaintGLSurfaceEventArgs e)
     {
         if (_runtime == null)
             return;
 
-        var bounds = e.Surface.Canvas.DeviceClipBounds;
-        var canvasSize = new SKSize(bounds.Width, bounds.Height);
+        var canvasSize = new SKSize(e.BackendRenderTarget.Width, e.BackendRenderTarget.Height);
         _runtime.EnsureCanvasInitialized(canvasSize);
         _runtime.Render(e.Surface.Canvas);
     }

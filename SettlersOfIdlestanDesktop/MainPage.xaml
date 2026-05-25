@@ -9,13 +9,13 @@
           ColumnDefinitions="*">
 
         <!-- Canvas SkiaSharp pour le rendu du jeu -->
-        <skia:SKCanvasView x:Name="GameCanvas"
-                           Grid.Row="0"
-                           Grid.Column="0"
-                           PaintSurface="OnCanvasPaintSurface"
-                           EnableTouchEvents="True"
-                           Touch="OnCanvasTouch"
-                           Background="White" />
+        <skia:SKGLView x:Name="GameCanvas"
+                       Grid.Row="0"
+                       Grid.Column="0"
+                       PaintSurface="OnCanvasPaintSurface"
+                       EnableTouchEvents="True"
+                       Touch="OnCanvasTouch"
+                       Background="White" />
 
         <!-- Barre d'état minimale -->
         <StackLayout Grid.Row="1"

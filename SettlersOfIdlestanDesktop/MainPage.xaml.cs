@@ -91,14 +91,14 @@ public partial class MainPage : ContentPage
 	}
 #endif
 
-	private void OnCanvasPaintSurface(object? sender, SKPaintSurfaceEventArgs e)
+	private void OnCanvasPaintSurface(object? sender, SKPaintGLSurfaceEventArgs e)
 	{
 		if (_runtime == null)
 			return;
 
 		try
 		{
-			var canvasSize = new SKSize(e.Surface.Canvas.DeviceClipBounds.Width, e.Surface.Canvas.DeviceClipBounds.Height);
+			var canvasSize = new SKSize(e.BackendRenderTarget.Width, e.BackendRenderTarget.Height);
 			_runtime.EnsureCanvasInitialized(canvasSize);
 			_runtime.Render(e.Surface.Canvas);
 		}
