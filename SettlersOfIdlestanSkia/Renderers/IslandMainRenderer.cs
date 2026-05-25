@@ -30,6 +30,7 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
     private bool _isBlackFadeActive;
     private SKPaint? _fadePaint;
     public bool IsVisible { get; set; } = true;
+    public Func<bool>? SuppressCities { get; set; }
 
     public BanditRenderer BanditRenderer => _banditRenderer;
 
@@ -109,11 +110,14 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
             _gameBoardRenderer.Render(canvas, context);
             _banditRenderer.Render(canvas, context);
             _roadRenderer.Render(canvas, context);
-            _cityRenderer.Render(canvas, context);
+            bool skipCities = SuppressCities?.Invoke() == true;
+            if (!skipCities)
+                _cityRenderer.Render(canvas, context);
             _harvestRenderer.Render(canvas, context);
 
             _roadRenderer.RenderConstructionHighlights(canvas, state);
-            _cityRenderer.RenderConstructionHighlights(canvas, state);
+            if (!skipCities)
+                _cityRenderer.RenderConstructionHighlights(canvas, state);
         }
     }
 

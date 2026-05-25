@@ -22,6 +22,8 @@ public sealed class SkiaGameRuntime : IDisposable
     private OverlayRenderer? _overlayRenderer;
     private bool _prestigeTransitionPending;
     private bool _allowDebugMode;
+    private IntroAnimationRenderer? _introRenderer;
+    private bool _wasIntroActive;
 
     private bool _isDisposed;
     private bool _isGameInitialized;
@@ -75,20 +77,24 @@ public sealed class SkiaGameRuntime : IDisposable
         _localizationService = new LocalizationService();
 
         _gameControllerService = new GameControllerService();
+        bool isNewGame;
         if (!string.IsNullOrEmpty(autoJson))
         {
             try
             {
                 _gameControllerService.ImportMainState(autoJson);
+                isNewGame = false;
             }
             catch
             {
                 _gameControllerService.InitializeNewGame();
+                isNewGame = true;
             }
         }
         else
         {
             _gameControllerService.InitializeNewGame();
+            isNewGame = true;
         }
 
         _harvestService = new HarvestService(_gameControllerService);
@@ -105,6 +111,10 @@ public sealed class SkiaGameRuntime : IDisposable
         _islandMainRenderer = islandMainRenderer;
         _constructionInteractionService.AttachRenderer(islandMainRenderer);
         _renderService.RegisterRenderer(islandMainRenderer);
+        islandMainRenderer.SuppressCities = () => _introRenderer?.IsActive == true;
+
+        _introRenderer = new IntroAnimationRenderer(_resourceManager!);
+        _renderService.RegisterRenderer(_introRenderer);
 
         ConnectHarvestEventsToParticles(islandMainRenderer);
         ConnectMilitaryEventsToParticles(islandMainRenderer, _gameControllerService.MainGameController.MilitaryController);
@@ -112,7 +122,7 @@ public sealed class SkiaGameRuntime : IDisposable
         var selectedCityPanelRenderer = new SelectedCityPanelRenderer(_gameControllerService.CityBuildingService!, _localizationService, _inputService, _resourceManager!);
 
         var aboutRenderer = new AboutRenderer(_inputService, _localizationService);
-        var settingsMenu = new SettingsMenu(_gameControllerService.MainGameController, _inputService, _localizationService, aboutRenderer, fileSystemService, _gameControllerService.CityBuildingService!, allowDebugMode);
+        var settingsMenu = new SettingsMenu(_gameControllerService.MainGameController, _inputService, _localizationService, aboutRenderer, fileSystemService, _gameControllerService.CityBuildingService!, allowDebugMode, StartNewGameIntro);
         var playerResourcesOverlayRenderer = new PlayerResourcesOverlayRenderer(_localizationService, _resourceManager);
         var tradeRenderer = new TradeRenderer(_gameControllerService, _localizationService, tooltipRenderer, _resourceManager);
         var prestigeRenderer = new PrestigeRenderer(_gameControllerService, _localizationService, RequestPrestige);
@@ -144,6 +154,9 @@ public sealed class SkiaGameRuntime : IDisposable
         }
         _renderService.RegisterRenderer(aboutRenderer);
         _renderService.RegisterRenderer(tooltipRenderer);
+
+        if (isNewGame && _gameControllerService.CurrentGameState is SettlersOfIdlestan.Model.Game.MainGameState introState)
+            StartNewGameIntro(introState);
 
         _isGameInitialized = true;
 
@@ -188,6 +201,13 @@ public sealed class SkiaGameRuntime : IDisposable
 
         var deltaTime = (float)Math.Clamp(elapsed, 0f, 0.1f);
         _gameControllerService.Update(deltaTime);
+
+        bool introActive = _introRenderer?.IsActive == true;
+        if (introActive)
+            _gameControllerService.CurrentGameState?.Clock?.Pause();
+        else if (_wasIntroActive)
+            _gameControllerService.CurrentGameState?.Clock?.Resume();
+        _wasIntroActive = introActive;
 
         if (_prestigeTransitionPending && _islandMainRenderer?.IsBlackFadeComplete == true)
             CompletePrestigeTransition();
@@ -247,6 +267,7 @@ public sealed class SkiaGameRuntime : IDisposable
 
     public void HandlePointerPressed(float x, float y, int pointerId = 0, PointerButton button = PointerButton.Left)
     {
+        if (_introRenderer?.IsActive == true) return;
         _isPointerDown = true;
         _isPanning = false;
         _activePanPointerId = pointerId;
@@ -257,6 +278,7 @@ public sealed class SkiaGameRuntime : IDisposable
 
     public void HandlePointerMoved(float x, float y, int pointerId = 0)
     {
+        if (_introRenderer?.IsActive == true) return;
         if (_isPointerDown && pointerId == _activePanPointerId && _cameraService != null)
         {
             var point = new SKPoint(x, y);
@@ -276,6 +298,7 @@ public sealed class SkiaGameRuntime : IDisposable
 
     public void HandlePointerReleased(float x, float y, int pointerId = 0, PointerButton button = PointerButton.Left)
     {
+        if (_introRenderer?.IsActive == true) return;
         var wasPanning = _isPanning && pointerId == _activePanPointerId;
         _isPointerDown = false;
         _isPanning = false;
@@ -286,6 +309,7 @@ public sealed class SkiaGameRuntime : IDisposable
 
     public void HandleZoom(float wheelDelta, float x, float y)
     {
+        if (_introRenderer?.IsActive == true) return;
         if (_cameraService == null || wheelDelta == 0)
             return;
 
@@ -324,6 +348,29 @@ public sealed class SkiaGameRuntime : IDisposable
 
         stats = default;
         return false;
+    }
+
+    private void ResetPointerState()
+    {
+        _isPointerDown = false;
+        _isPanning = false;
+    }
+
+    private void StartNewGameIntro()
+    {
+        if (_introRenderer == null || _gameControllerService?.CurrentGameState is not SettlersOfIdlestan.Model.Game.MainGameState state)
+            return;
+        ResetPointerState();
+        _introRenderer.StartIntro(state);
+        state.Clock?.Pause();
+    }
+
+    private void StartNewGameIntro(SettlersOfIdlestan.Model.Game.MainGameState state)
+    {
+        if (_introRenderer == null) return;
+        ResetPointerState();
+        _introRenderer.StartIntro(state);
+        state.Clock?.Pause();
     }
 
     private void RequestPrestige()
