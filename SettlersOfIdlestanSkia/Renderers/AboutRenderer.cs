@@ -27,24 +27,9 @@ public class AboutRenderer : IGameRenderer
         _localization = localization;
         _inputService.PointerPressed += OnPointerPressed;
 
-        _backgroundPaint = new SKPaint
-        {
-            Color = new SKColor(0, 0, 0, 220),
-            Style = SKPaintStyle.Fill,
-            IsAntialias = true
-        };
-        _borderPaint = new SKPaint
-        {
-            Color = SKColors.Gold,
-            StrokeWidth = 2,
-            Style = SKPaintStyle.Stroke,
-            IsAntialias = true
-        };
-        _textPaint = new SKPaint
-        {
-            Color = SKColors.White,
-            IsAntialias = true
-        };
+        _backgroundPaint = new SKPaint { Color = new SKColor(0, 0, 0, 220), Style = SKPaintStyle.Fill, IsAntialias = true };
+        _borderPaint = new SKPaint { Color = SKColors.Gold, StrokeWidth = 2, Style = SKPaintStyle.Stroke, IsAntialias = true };
+        _textPaint = new SKPaint { Color = SKColors.White, IsAntialias = true };
         _textFont = new SKFont { Size = 16, Typeface = SKTypeface.FromFamilyName("Arial", SKFontStyle.Bold) };
     }
 
@@ -66,8 +51,6 @@ public class AboutRenderer : IGameRenderer
     public void Render(SKCanvas canvas, GameRenderContext context)
     {
         if (!_isVisible) return;
-        if (_backgroundPaint == null || _borderPaint == null || _textPaint == null || _textFont == null)
-            Initialize(_canvasSize);
 
         float width = _canvasSize.Width * 0.7f;
         float height = 180;

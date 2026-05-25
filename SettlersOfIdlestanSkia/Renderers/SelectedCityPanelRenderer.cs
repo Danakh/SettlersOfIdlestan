@@ -227,7 +227,7 @@ public class SelectedCityPanelRenderer : IGameRenderer
                     }
                 }
 
-                TooltipRenderUtils.DrawTooltip(canvas, _canvasSize, _lastPointerPosition, tooltipLines.ToArray(), _font10, cost, _resourceIcons);
+                TooltipRenderUtils.DrawTooltip(canvas, _canvasSize, _lastPointerPosition, tooltipLines.ToArray(), _font10!, cost, _resourceIcons);
             }
         }
     }

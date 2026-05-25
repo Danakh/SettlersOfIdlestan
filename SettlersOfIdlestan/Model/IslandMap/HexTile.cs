@@ -11,11 +11,6 @@ namespace SettlersOfIdlestan.Model.IslandMap;
 public class HexTile
 {
     [JsonConstructor]
-    public HexTile()
-    {
-        // Parameterless constructor for deserialization
-    }
-
     public HexTile(HexCoord coord, TerrainType terrainType)
     {
         Coord = coord;
