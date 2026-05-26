@@ -57,6 +57,7 @@ namespace SettlersOfIdlestan.Model.Buildings
                 BuildingType.Palisade => typeof(Palisade),
                 BuildingType.ImperialPort => typeof(ImperialPort),
                 BuildingType.HarvestersGuild => typeof(HarvestersGuild),
+                BuildingType.ArtisansGuild => typeof(ArtisansGuild),
                 _ => throw new JsonException($"Unknown building type: {bType}")
             };
 

@@ -20,14 +20,7 @@ public class PrestigeMap
 
     // ── Prestige vertices (HexGrid Vertex objects) ────────────────────────────
     // Layout: pointy-top, R=60, Central vertex at screen center.
-    //
-    //   Barracks(0,-60)  SeaportMkt(-52,30)      Lab(52,30)
-    //    [StartRes](-52,-30) [ResearchS](52,-30)
-    //     [UnitProd](0,-120)       Central(0,0)
-    //               [HarvestSpeed](0,60)   [ResearchCost](104,60)  [Storage](-104,60)
-    //                          HarvestGuild(-52,90)
-    //                             [GoldTrade](-52,150)
-    //
+
     public static readonly Vertex CentralVertex        = Vertex.Create(new(0, 0), new(1, 0), new(0, 1));
     public static readonly Vertex BarracksVertex       = Vertex.Create(new(0, 0), new(1, 0), new(1, -1));
     public static readonly Vertex SeaportMarketVertex  = Vertex.Create(new(0, 0), new(0, 1), new(-1, 1));

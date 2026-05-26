@@ -87,6 +87,11 @@ public enum BuildingType
     /// et automatise leur construction/amélioration. Disponible au niveau Capitale (4).
     /// </summary>
     HarvestersGuild,
+    /// <summary>
+    /// Guilde des artisans - Bâtiment unique. Débloque le niveau 5 de la Forge et automatise
+    /// la construction des Forges et Entrepôts. Disponible au niveau Capitale (4).
+    /// </summary>
+    ArtisansGuild,
 }
 
 /// <summary>

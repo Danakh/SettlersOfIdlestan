@@ -42,59 +42,73 @@ namespace SettlersOfIdlestan.Controller.Island
         {
             try { PerformHarvestersGuildProductionAutomation(); }
             catch { }
+            try { PerformArtisansGuildAutomation(); }
+            catch { }
         }
 
         private void PerformHarvestersGuildProductionAutomation()
         {
             if (_state == null || _clock == null) return;
-
             long now = _clock.CurrentTick;
+            BuildingType[] targets = [BuildingType.Sawmill, BuildingType.Brickworks, BuildingType.Quarry, BuildingType.Mill];
 
             foreach (var civ in _state.Civilizations)
             {
-                HarvestersGuild? guild = null;
-                foreach (var city in civ.Cities)
-                {
-                    guild = city.Buildings.OfType<HarvestersGuild>().FirstOrDefault();
-                    if (guild != null) break;
-                }
-
+                var guild = civ.Cities.SelectMany(c => c.Buildings).OfType<HarvestersGuild>().FirstOrDefault();
                 if (guild == null || guild.Level == 0) continue;
 
-                bool isPlayerCiv = civ.Index == _state.PlayerCivilization.Index;
-                if (isPlayerCiv && !_state.AutomationSettings.ProductionBuildingAutomationEnabled)
-                {
-                    guild.LastProductionBuildTick = now;
-                    continue;
-                }
-
-                if (guild.LastProductionBuildTick == 0)
-                {
-                    guild.LastProductionBuildTick = now;
-                    continue;
-                }
-
-                if (now - guild.LastProductionBuildTick < guild.GetAutoProductionCooldownTicks()) continue;
-
-                guild.LastProductionBuildTick = now;
-
-                BuildingType[] productionTypes = [BuildingType.Sawmill, BuildingType.Brickworks, BuildingType.Quarry, BuildingType.Mill];
-
-                // Prioritise creating new buildings, then upgrade lowest first
-                foreach (var city in civ.Cities)
-                    foreach (var type in productionTypes)
-                        if (!city.Buildings.Any(b => b.Type == type) && BuildBuilding(civ.Index, city.Position, type))
-                            goto NextCiv;
-
-
-                foreach (int level in new[] { 1, 2, 3, 4, 5 })
-                    foreach (var city in civ.Cities)
-                        foreach (var type in productionTypes)
-                            if (city.Buildings.Any(b => b.Type == type && b.Level == level) && BuildBuilding(civ.Index, city.Position, type))
-                                goto NextCiv;
-
-                NextCiv:;
+                bool isPlayer = civ.Index == _state.PlayerCivilization.Index;
+                bool enabled = !isPlayer || _state.AutomationSettings.ProductionBuildingAutomationEnabled;
+                long tick = guild.LastProductionBuildTick;
+                TickGuildAutomation(civ, ref tick, guild.GetAutoProductionCooldownTicks(), enabled, targets, now);
+                guild.LastProductionBuildTick = tick;
             }
+        }
+
+        private void PerformArtisansGuildAutomation()
+        {
+            if (_state == null || _clock == null) return;
+            long now = _clock.CurrentTick;
+            BuildingType[] targets = [BuildingType.Forge, BuildingType.Warehouse];
+
+            foreach (var civ in _state.Civilizations)
+            {
+                var guild = civ.Cities.SelectMany(c => c.Buildings).OfType<ArtisansGuild>().FirstOrDefault();
+                if (guild == null || guild.Level == 0) continue;
+
+                bool isPlayer = civ.Index == _state.PlayerCivilization.Index;
+                bool enabled = !isPlayer || _state.AutomationSettings.ArtisanBuildingAutomationEnabled;
+                long tick = guild.LastArtisanBuildTick;
+                TickGuildAutomation(civ, ref tick, guild.GetAutoArtisanCooldownTicks(), enabled, targets, now);
+                guild.LastArtisanBuildTick = tick;
+            }
+        }
+
+        private void TickGuildAutomation(
+            Model.Civilization.Civilization civ,
+            ref long lastTick,
+            long cooldown,
+            bool enabled,
+            BuildingType[] targets,
+            long now)
+        {
+            if (!enabled) { lastTick = now; return; }
+            if (lastTick == 0) { lastTick = now; return; }
+            if (now - lastTick < cooldown) return;
+
+            lastTick = now;
+
+            // New builds first, then upgrade lowest-level existing buildings
+            foreach (var city in civ.Cities)
+                foreach (var type in targets)
+                    if (!city.Buildings.Any(b => b.Type == type) && BuildBuilding(civ.Index, city.Position, type))
+                        return;
+
+            foreach (int level in new[] { 1, 2, 3, 4, 5 })
+                foreach (var city in civ.Cities)
+                    foreach (var type in targets)
+                        if (city.Buildings.Any(b => b.Type == type && b.Level == level) && BuildBuilding(civ.Index, city.Position, type))
+                            return;
         }
 
         /// <summary>
@@ -234,7 +248,8 @@ namespace SettlersOfIdlestan.Controller.Island
             foreach (BuildingType bt in Enum.GetValues(typeof(BuildingType)))
             {
                 var prototype = CreateBuilding(bt);
-                if (prototype == null || !prototype.IsUnique) continue;
+                if (prototype == null || !prototype.IsUnique || GetMaxLevel(prototype, civilizationIndex) <= 0)
+                    continue;
 
                 bool isBuilt = civ.UniqueBuildings.Contains(bt)
                                || civ.Cities.Any(c => c.Buildings.Any(b => b.Type == bt));
@@ -289,6 +304,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 BuildingType.Palisade => new Palisade(),
                 BuildingType.ImperialPort => new ImperialPort(),
                 BuildingType.HarvestersGuild => new HarvestersGuild(),
+                BuildingType.ArtisansGuild => new ArtisansGuild(),
                 _ => null,
             };
         }
