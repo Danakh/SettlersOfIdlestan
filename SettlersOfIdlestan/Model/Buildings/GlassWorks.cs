@@ -31,13 +31,13 @@ public class GlassWorks : Building
         return Math.Max(1L, baseCooldownTicks * 2 - levelsAbove * 50);
     }
 
-    public override ResourceCost GetBuildCost() => new ResourceCost
+    public override ResourceSet GetBuildCost() => new ResourceSet
     {
         { Resource.Stone, 20 },
         { Resource.Brick, 20 }
     };
 
-    public override ResourceCost GetUpgradeCost(int level) => new ResourceCost();
+    public override ResourceSet GetUpgradeCost(int level) => new ResourceSet();
 
     public override bool IsBuildingAvailableForCity(IslandMap.IslandMap map, City city)
     {

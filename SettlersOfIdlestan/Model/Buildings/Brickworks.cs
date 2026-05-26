@@ -36,7 +36,7 @@ public class Brickworks : Building
     /// Gets the building cost for the Brickworks.
     /// </summary>
     /// <returns>A dictionary containing the resources and their quantities needed to build the Brickworks.</returns>
-    public override ResourceCost GetBuildCost() => new ResourceCost
+    public override ResourceSet GetBuildCost() => new ResourceSet
     {
         { Resource.Wood, 5 },
         { Resource.Brick, 10 }
@@ -47,7 +47,7 @@ public class Brickworks : Building
     /// </summary>
     /// <param name="level">The level to which the building is to be upgraded.</param>
     /// <returns>A dictionary containing the resources and their quantities needed to upgrade the Brickworks.</returns>
-    public override ResourceCost GetUpgradeCost(int level) => new ResourceCost
+    public override ResourceSet GetUpgradeCost(int level) => new ResourceSet
     {
         { Resource.Wood, 5 * (level + 1) },
         { Resource.Brick, 10 * (level + 1) }

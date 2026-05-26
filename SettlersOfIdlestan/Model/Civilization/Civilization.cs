@@ -170,7 +170,7 @@ public class Civilization
     /// <summary>Resources for which a level-4 Seaport has activated permanent auto-trade (one slot per level-4 Seaport).</summary>
     public List<Resource> SeaportAutoTradeResources { get; set; } = new();
 
-    public bool CanPayResourceCost(ResourceCost cost)
+    public bool CanPayResourceCost(ResourceSet cost)
     {
         foreach (var kvp in cost)
         {
@@ -179,7 +179,7 @@ public class Civilization
         }
         return true;
     }
-    public void PayResourceCost(ResourceCost cost)
+    public void PayResourceCost(ResourceSet cost)
     {
         foreach (var kvp in cost)
         {

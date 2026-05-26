@@ -55,7 +55,7 @@ namespace SOITests.ControllerTests
 
             var controller = new TradeController(state);
 
-            var required = new ResourceCost {
+            var required = new ResourceSet {
                 { Resource.Brick, 2 },
                 { Resource.Food, 1 }
             };
@@ -81,7 +81,7 @@ namespace SOITests.ControllerTests
 
             var controller = new TradeController(state);
 
-            var required = new ResourceCost {
+            var required = new ResourceSet {
                 { Resource.Brick, 1 }
             };
 

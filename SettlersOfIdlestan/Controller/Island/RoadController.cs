@@ -250,18 +250,18 @@ namespace SettlersOfIdlestan.Controller.Island
             };
         }
 
-        public ResourceCost GetRoadCost(int distance)
+        public ResourceSet GetRoadCost(int distance)
         {
             if (distance <= 0) throw new ArgumentException("Distance must be >= 1", nameof(distance));
             var cost = 1 + (distance * distance);
-            return new ResourceCost
+            return new ResourceSet
             {
                 { Resource.Wood, cost },
                 { Resource.Brick, cost }
             };
         }
 
-        public ResourceCost GetPlayerRoadCost(Edge edge)
+        public ResourceSet GetPlayerRoadCost(Edge edge)
         {            
             var distance = GetDistanceForEdge(edge, _state!.PlayerCivilization);
             return GetRoadCost(distance);

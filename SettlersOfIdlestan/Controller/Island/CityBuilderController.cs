@@ -103,9 +103,9 @@ namespace SettlersOfIdlestan.Controller.Island
             return city;
         }
 
-        public ResourceCost NewCityBuildingCost()
+        public ResourceSet NewCityBuildingCost()
         {
-            return new ResourceCost
+            return new ResourceSet
             {
                 { Resource.Brick, 10 },
                 { Resource.Wood, 10 },

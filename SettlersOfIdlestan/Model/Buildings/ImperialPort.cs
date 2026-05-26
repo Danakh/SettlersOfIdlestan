@@ -12,7 +12,7 @@ public class ImperialPort : Building
 
     public override bool IsUnique => true;
 
-    public override ResourceCost GetBuildCost() => new ResourceCost
+    public override ResourceSet GetBuildCost() => new ResourceSet
     {
         { Resource.Wood, 200 },
         { Resource.Brick, 100 },
@@ -20,7 +20,7 @@ public class ImperialPort : Building
         { Resource.Gold, 30 },
     };
 
-    public override ResourceCost GetUpgradeCost(int level) => new();
+    public override ResourceSet GetUpgradeCost(int level) => new();
 
     public override bool IsBuildingAvailableForCity(IslandMap.IslandMap map, City city)
     {

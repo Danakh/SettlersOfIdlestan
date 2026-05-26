@@ -88,7 +88,7 @@ namespace SettlersOfIdlestan.Controller.Island
 
             var existing = city.Buildings.FirstOrDefault(b => b.Type == type);
 
-            ResourceCost cost;
+            ResourceSet cost;
             Building resultBuilding;
             if (existing == null)
             {

@@ -157,7 +157,7 @@ namespace SettlersOfIdlestanSkia.Core
             DrawTextLayout(canvas, layout, x, y, font, paint);
         }
 
-        public static string computeCostString(ILocalizationService localizationService, ResourceCost cost)
+        public static string computeCostString(ILocalizationService localizationService, ResourceSet cost)
         {
             return string.Join(" | ", cost.Select(kvp => $"{localizationService.Get($"resource_{kvp.Key.ToString().ToLower()}_short")}: {kvp.Value}"));
         }

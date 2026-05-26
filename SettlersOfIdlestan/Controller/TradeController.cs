@@ -242,7 +242,7 @@ namespace SettlersOfIdlestan.Controller
         /// The target resource is chosen among the required resources as the one with the lowest owned quantity.
         /// If a trade is executed the method returns true, otherwise false.
         /// </summary>
-        public bool TryAutoTradeForPurchase(int civilizationIndex, ResourceCost requiredCosts)
+        public bool TryAutoTradeForPurchase(int civilizationIndex, ResourceSet requiredCosts)
         {
             if (_state == null) throw new InvalidOperationException("IslandState has not been initialized.");
             if (requiredCosts == null) throw new ArgumentNullException(nameof(requiredCosts));

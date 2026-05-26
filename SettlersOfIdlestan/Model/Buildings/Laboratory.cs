@@ -12,14 +12,14 @@ public class Laboratory : Building
     // Locked by default; unlocked by the Laboratory prestige vertex (+2 max level)
     public override int GetDefaultMaxLevel() => 0;
 
-    public override ResourceCost GetBuildCost() => new ResourceCost
+    public override ResourceSet GetBuildCost() => new ResourceSet
     {
         { Resource.Brick, 50 },
         { Resource.Stone, 20 },
         { Resource.Glass, 10 },
     };
 
-    public override ResourceCost GetUpgradeCost(int level) => new ResourceCost
+    public override ResourceSet GetUpgradeCost(int level) => new ResourceSet
     {
         { Resource.Brick, 50 * (level + 1) },
         { Resource.Stone, 20 * (level + 1) },

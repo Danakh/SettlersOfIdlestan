@@ -55,7 +55,7 @@ namespace SettlersOfIdlestan.Controller
 
         // ── Primitive utilities ──────────────────────────────────────────────────
 
-        public void TryGrindOnce(ResourceCost? requiredResources)
+        public void TryGrindOnce(ResourceSet? requiredResources)
         {
             var toHarvest = new HashSet<HexCoord>();
             foreach (var city in _civ.Cities)

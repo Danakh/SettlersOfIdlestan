@@ -41,16 +41,16 @@ public class Seaport : Building
         return null;
     }
 
-    public override ResourceCost GetBuildCost() => new ResourceCost
+    public override ResourceSet GetBuildCost() => new ResourceSet
     {
         { Resource.Wood, 10 },
     };
 
-    public override ResourceCost GetUpgradeCost(int level)
+    public override ResourceSet GetUpgradeCost(int level)
     {
         if (level == 2)
         {
-            return new ResourceCost
+            return new ResourceSet
             {
                 { Resource.Food, 10 },
                 { Resource.Wood, 30 },
@@ -59,7 +59,7 @@ public class Seaport : Building
         }
         else
         {
-            return new ResourceCost
+            return new ResourceSet
             {
                 { Resource.Food, 20 * (level + 1) },
                 { Resource.Wood, 30 + 20 * (level + 1) },

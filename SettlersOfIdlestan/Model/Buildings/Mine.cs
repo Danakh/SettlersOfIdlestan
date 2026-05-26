@@ -39,12 +39,12 @@ public class Mine : Building
         return null;
     }
 
-    public override ResourceCost GetBuildCost() => new ResourceCost
+    public override ResourceSet GetBuildCost() => new ResourceSet
     {
         { Resource.Wood, 20 },
     };
 
-    public override ResourceCost GetUpgradeCost(int level) => new ResourceCost
+    public override ResourceSet GetUpgradeCost(int level) => new ResourceSet
     {
         { Resource.Wood, 20 * (level + 1) },
     };

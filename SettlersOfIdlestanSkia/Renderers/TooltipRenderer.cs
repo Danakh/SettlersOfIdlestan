@@ -17,7 +17,7 @@ namespace SettlersOfIdlestanSkia.Renderers
     public class TooltipRenderer : IGameRenderer
     {
         private string[] _tooltipTexts = new string[0];
-        private ResourceCost? _tooltipCost;
+        private ResourceSet? _tooltipCost;
         private SKPoint _tooltipScreenPosition = SKPoint.Empty;
         private SKSize _canvasSize;
         private SKFont _font10 = new SKFont { Size = 10 };

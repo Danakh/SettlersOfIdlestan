@@ -20,12 +20,12 @@ public class Market : Building
         AvailableAtLevel = 1;
     }
 
-    public override ResourceCost GetBuildCost() => new ResourceCost
+    public override ResourceSet GetBuildCost() => new ResourceSet
     {
         { Resource.Food, 5 },
         { Resource.Wood, 5 },
         { Resource.Brick, 5 }
     };
 
-    public override ResourceCost GetUpgradeCost(int level) => new();
+    public override ResourceSet GetUpgradeCost(int level) => new();
 }

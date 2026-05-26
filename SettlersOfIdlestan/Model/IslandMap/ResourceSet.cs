@@ -2,16 +2,16 @@ using System.Collections.Generic;
 
 namespace SettlersOfIdlestan.Model.IslandMap
 {
-    public class ResourceCost : IEnumerable<KeyValuePair<Resource, int>>
+    public class ResourceSet : IEnumerable<KeyValuePair<Resource, int>>
     {
         private readonly Dictionary<Resource, int> _costs;
 
-        public ResourceCost()
+        public ResourceSet()
         {
             _costs = new Dictionary<Resource, int>();
         }
 
-        public ResourceCost(Dictionary<Resource, int> initialCosts)
+        public ResourceSet(Dictionary<Resource, int> initialCosts)
         {
             _costs = new Dictionary<Resource, int>(initialCosts);
         }

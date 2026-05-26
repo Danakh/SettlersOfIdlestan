@@ -15,14 +15,14 @@ public class Temple : Building
         AvailableAtLevel = 3;
     }
 
-    public override ResourceCost GetBuildCost() => new ResourceCost
+    public override ResourceSet GetBuildCost() => new ResourceSet
     {
         { Resource.Wood, 40 },
         { Resource.Brick, 20 },
         { Resource.Stone, 100 }
     };
 
-    public override ResourceCost GetUpgradeCost(int level) => new ResourceCost
+    public override ResourceSet GetUpgradeCost(int level) => new ResourceSet
     {
         { Resource.Wood, 40 * (level + 1) },
         { Resource.Brick, 20 * (level + 1) },

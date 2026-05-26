@@ -104,14 +104,14 @@ public class Building
     /// <summary>
     /// Gets the cost of the building.
     /// </summary>
-    public virtual ResourceCost GetBuildCost() => new ResourceCost();
+    public virtual ResourceSet GetBuildCost() => new ResourceSet();
 
     /// <summary>
     /// Gets the upgrade cost of the building for the specified level.
     /// </summary>
     /// <param name="level">The level to upgrade to.</param>
     /// <returns>The upgrade cost.</returns>
-    public virtual ResourceCost GetUpgradeCost(int level) => new ResourceCost();
+    public virtual ResourceSet GetUpgradeCost(int level) => new ResourceSet();
 
     /// <summary>
     /// Gets the harvest capability of the building.

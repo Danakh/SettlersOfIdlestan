@@ -33,16 +33,16 @@ public class TownHall : Building
         return null;
     }
 
-    public override ResourceCost GetBuildCost() => new ResourceCost
+    public override ResourceSet GetBuildCost() => new ResourceSet
     {
         { Resource.Food, 2 },
         { Resource.Wood, 2 },
         { Resource.Brick, 2 }
     };
 
-    public override ResourceCost GetUpgradeCost(int level)
+    public override ResourceSet GetUpgradeCost(int level)
     {
-        var result = new ResourceCost
+        var result = new ResourceSet
         {
             { Resource.Food, 2 * (level * level + 1) },
             { Resource.Wood, 2 * (level * level + 1) },

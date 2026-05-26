@@ -30,7 +30,7 @@ public class CivilizationAutoplayerRunner
 
     // ── Primitive time-advancing wrappers ────────────────────────────────────
 
-    public void AutoGrind(ResourceCost? requiredResources, int maxIterations = 500)
+    public void AutoGrind(ResourceSet? requiredResources, int maxIterations = 500)
     {
         for (int i = 0; i < maxIterations; i++)
         {

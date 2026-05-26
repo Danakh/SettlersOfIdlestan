@@ -18,7 +18,7 @@ namespace SettlersOfIdlestanSkia.Core
             SKPoint pointerPosition,
             string[] texts,
             SKFont font,
-            ResourceCost? cost = null,
+            ResourceSet? cost = null,
             Dictionary<Resource, SKSvg?>? resourceIcons = null)
         {
             const float textPadding = 8f;

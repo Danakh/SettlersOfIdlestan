@@ -24,7 +24,7 @@ public class Warehouse : Building
     /// Gets the build cost of the warehouse.
     /// </summary>
     /// <returns>A dictionary containing the resources and their quantities required for building.</returns>
-    public override ResourceCost GetBuildCost() => new ResourceCost
+    public override ResourceSet GetBuildCost() => new ResourceSet
     {
         { Resource.Wood, 10 },
         { Resource.Brick, 20 },
@@ -35,9 +35,9 @@ public class Warehouse : Building
     /// </summary>
     /// <param name="level">The current level of the warehouse.</param>
     /// <returns>A dictionary containing the resources and their quantities required for upgrading.</returns>
-    public override ResourceCost GetUpgradeCost(int level)
+    public override ResourceSet GetUpgradeCost(int level)
     {
-        var result = new ResourceCost
+        var result = new ResourceSet
         {
             { Resource.Wood, 10 * (level + 1) },
             { Resource.Brick, 20 * (level + 1) }

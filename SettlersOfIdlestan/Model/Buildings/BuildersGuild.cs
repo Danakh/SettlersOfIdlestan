@@ -17,12 +17,12 @@ public class BuildersGuild : Building
 
     public override bool IsUnique => true;
 
-    public override ResourceCost GetBuildCost() => new ResourceCost
+    public override ResourceSet GetBuildCost() => new ResourceSet
     {
         { Resource.Wood, 100 },
         { Resource.Brick, 50 },
         { Resource.Stone, 50 }
     };
 
-    public override ResourceCost GetUpgradeCost(int level) => new();
+    public override ResourceSet GetUpgradeCost(int level) => new();
 }
