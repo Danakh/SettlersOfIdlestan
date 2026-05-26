@@ -426,21 +426,7 @@ public sealed class SkiaGameRuntime : IDisposable
             var hexCenter = new SKPoint(hexX, hexY);
             SKPoint cityCenter = islandMainRenderer.VertexToIslandPoint(args.CityPosition);
 
-            if (args.IsDoubleHarvest)
-            {
-                // Décale la particule bonus perpendiculairement à la trajectoire hex→ville
-                float dx = cityCenter.X - hexCenter.X;
-                float dy = cityCenter.Y - hexCenter.Y;
-                float len = MathF.Sqrt(dx * dx + dy * dy);
-                if (len > 0f)
-                {
-                    float px = -dy / len * 10f;
-                    float py =  dx / len * 10f;
-                    hexCenter = new SKPoint(hexCenter.X + px, hexCenter.Y + py);
-                }
-            }
-
-            particleSystem.EmitParticle(hexCenter, cityCenter, args.Resource);
+            particleSystem.EmitParticles(hexCenter, cityCenter, args.Resources);
         };
 
         _harvestService!.OnMarketResourceGenerated += (sender, args) =>

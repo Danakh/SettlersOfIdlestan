@@ -31,20 +31,17 @@ namespace SettlersOfIdlestan.Controller.Island
     {
         public int CivilizationIndex { get; set; }
         public HexCoord HexCoord { get; set; }
-        public Resource Resource { get; set; }
+        public ResourceSet Resources { get; set; }
         public bool IsAutomatic { get; set; }
         public Vertex CityPosition { get; set; }
-        /// <summary>True pour la seconde ressource produite par le bonus de la Forge.</summary>
-        public bool IsDoubleHarvest { get; set; }
 
-        public HarvestCompletedEventArgs(int civIndex, HexCoord hex, Resource resource, Vertex cityPosition, bool isAutomatic = false, bool isDoubleHarvest = false)
+        public HarvestCompletedEventArgs(int civIndex, HexCoord hex, ResourceSet resources, Vertex cityPosition, bool isAutomatic = false)
         {
             CivilizationIndex = civIndex;
             HexCoord = hex;
-            Resource = resource;
+            Resources = resources;
             IsAutomatic = isAutomatic;
             CityPosition = cityPosition;
-            IsDoubleHarvest = isDoubleHarvest;
         }
     }
 
@@ -150,21 +147,32 @@ namespace SettlersOfIdlestan.Controller.Island
                         continue;
 
                     // One harvest per capable building
+                    // Regroupe par ville pour n'émettre qu'une seule notification par couple (hex, ville)
+                    var byCity = new System.Collections.Generic.Dictionary<City, ResourceSet>();
                     foreach (var (city, _, resource, _) in capable)
                     {
+                        if (!byCity.TryGetValue(city, out var harvested))
+                        {
+                            harvested = new ResourceSet();
+                            byCity[city] = harvested;
+                        }
+
                         TryAutoTradeOnOverflow(civ, resource);
                         civ.AddResource(resource, 1);
-                        OnHarvestCompleted?.Invoke(this, new HarvestCompletedEventArgs(civ.Index, hex, resource, city.Position, isAutomatic: true));
+                        harvested[resource] += 1;
 
-                        // Forge bonus: 10% per level chance to produce a second resource
+                        // Forge bonus: 10% par niveau de probabilité de produire une seconde ressource
                         var forge = city.Buildings.OfType<Forge>().FirstOrDefault();
                         if (forge != null && forge.Level > 0 && _prng.Next(100) < forge.DoubleProdChancePercent)
                         {
                             TryAutoTradeOnOverflow(civ, resource);
                             civ.AddResource(resource, 1);
-                            OnHarvestCompleted?.Invoke(this, new HarvestCompletedEventArgs(civ.Index, hex, resource, city.Position, isAutomatic: true, isDoubleHarvest: true));
+                            harvested[resource] += 1;
                         }
                     }
+
+                    foreach (var (city, harvested) in byCity)
+                        OnHarvestCompleted?.Invoke(this, new HarvestCompletedEventArgs(civ.Index, hex, harvested, city.Position, isAutomatic: true));
 
                     autoMap[hex] = now;
                 }
@@ -308,7 +316,8 @@ namespace SettlersOfIdlestan.Controller.Island
             var tile = _state.Map.GetTile(hex);
             if (tile == null) return false;
 
-            var manualHarvestResources = new List<Resource>();
+            var harvested = new ResourceSet();
+            Vertex? harvestCity = null;
             foreach (var city in cities)
             {
                 foreach (var building in city.Buildings)
@@ -317,17 +326,19 @@ namespace SettlersOfIdlestan.Controller.Island
                     if (resource != null)
                     {
                         var res = resource.Value;
-                        if (!manualHarvestResources.Contains(res))
+                        if (!harvested.Contains(res))
                         {
-                            manualHarvestResources.Add(res);
                             civ.AddResource(res, 1);
-                            OnHarvestCompleted?.Invoke(this, new HarvestCompletedEventArgs(civilizationIndex, hex, res, city.Position, isAutomatic: false));
+                            harvested[res] = 1;
+                            harvestCity ??= city.Position;
                         }
                     }
                 }
             }
 
-            if (manualHarvestResources.Count == 0) return false;
+            if (harvested.Count == 0) return false;
+
+            OnHarvestCompleted?.Invoke(this, new HarvestCompletedEventArgs(civilizationIndex, hex, harvested, harvestCity!, isAutomatic: false));
 
             perHex[hex] = now;
             return true;
