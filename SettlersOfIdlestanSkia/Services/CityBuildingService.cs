@@ -49,9 +49,7 @@ public class CityBuildingService
 
     public bool HasUniqueBuildingsUnlocked()
     {
-        if (SelectedCity == null) return false;
-        var civ = IslandState.Civilizations.FirstOrDefault(c => c.Index == SelectedCity.CivilizationIndex);
-        return civ?.Cities.Any(city => city.Level >= 4) == true;
+        return SelectedCity?.Level >= 4;
     }
 
     public void TryExecuteSelectedCityBuildingAction(BuildingType buildingType)
@@ -75,6 +73,10 @@ public class CityBuildingService
 
         // Check if at max level
         if (IsAtMaxLevel(building))
+            return false;
+
+        // Check build prerequisites (e.g. required other buildings)
+        if (building.Level == 0 && !building.HasBuildPrerequisites(SelectedCity))
             return false;
 
         // Get the cost for this action

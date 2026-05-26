@@ -108,6 +108,7 @@
   "prestige_points_label": "Points de prestige",
   "tooltip_building_prestige": "Points de prestige :",
   "tooltip_building_prestige_next": "Prochain niveau :",
+  "tooltip_requires_seaport_4": "⚠ Nécessite un Port maritime niveau 4 dans cette ville",
   "timecontrol_bank_tooltip": "Banque de temps\nTemps accumulé pendant votre absence ou en pause\nUtilisé pour accélérer le jeu.",
   "timecontrol_pause_tooltip": "Pause (×0)",
   "timecontrol_play_tooltip": "Vitesse normale (×1)",

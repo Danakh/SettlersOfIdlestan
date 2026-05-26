@@ -1,5 +1,6 @@
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.IslandMap;
+using System.Linq;
 
 namespace SettlersOfIdlestan.Model.Buildings;
 
@@ -24,6 +25,18 @@ public class ImperialPort : Building
 
     public override bool IsBuildingAvailableForCity(IslandMap.IslandMap map, City city)
     {
-        return city.Level >= 4;
+        return city.Level >= 4 && map.VertexHasTerrainType(city.Position, TerrainType.Water);
+    }
+
+    public override bool HasBuildPrerequisites(City city)
+    {
+        return city.Buildings.Any(b => b.Type == BuildingType.Seaport && b.Level >= 4);
+    }
+
+    public override string? GetMissingPrerequisiteKey(City city)
+    {
+        if (!HasBuildPrerequisites(city))
+            return "tooltip_requires_seaport_4";
+        return null;
     }
 }

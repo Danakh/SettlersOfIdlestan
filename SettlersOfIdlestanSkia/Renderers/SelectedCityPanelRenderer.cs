@@ -244,6 +244,16 @@ public class SelectedCityPanelRenderer : IGameRenderer
 
                 var tooltipLines = new List<string> { buildingName, "", description, "" };
 
+                if (hoveredBuilding.Level == 0 && _cityBuildingService.SelectedCity != null)
+                {
+                    var missingKey = hoveredBuilding.GetMissingPrerequisiteKey(_cityBuildingService.SelectedCity);
+                    if (missingKey != null)
+                    {
+                        tooltipLines.Add(_localization.Get(missingKey));
+                        tooltipLines.Add("");
+                    }
+                }
+
                 var manualHarvestRes = hoveredBuilding.ManualHarvestResource;
                 var autoHarvestRes = hoveredBuilding.AutomaticHarvestResource;
                 if (manualHarvestRes.HasValue || autoHarvestRes.HasValue)

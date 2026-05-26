@@ -206,4 +206,16 @@ public class Building
     {
         return city.Level >= AvailableAtLevel;
     }
+
+    /// <summary>
+    /// Returns true if all build prerequisites (beyond resources) are satisfied.
+    /// Override in derived classes to add extra conditions.
+    /// </summary>
+    public virtual bool HasBuildPrerequisites(City city) => true;
+
+    /// <summary>
+    /// Returns the localization key describing the missing prerequisite, or null if none.
+    /// Used by the UI to show a tooltip warning when HasBuildPrerequisites is false.
+    /// </summary>
+    public virtual string? GetMissingPrerequisiteKey(City city) => null;
 }

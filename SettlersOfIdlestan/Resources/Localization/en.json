@@ -108,6 +108,7 @@
   "prestige_points_label": "Prestige points",
   "tooltip_building_prestige": "Prestige points:",
   "tooltip_building_prestige_next": "Next level:",
+  "tooltip_requires_seaport_4": "⚠ Requires a level 4 Seaport in this city",
   "timecontrol_bank_tooltip": "Offline time bank\nTime accumulated while offline or paused\nUsed for speeding up game.",
   "timecontrol_pause_tooltip": "Pause (×0)",
   "timecontrol_play_tooltip": "Normal speed (×1)",
