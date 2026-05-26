@@ -151,26 +151,7 @@ public class SelectedCityPanelRenderer : IGameRenderer
         canvas.DrawRoundRect(panelX, panelY, PanelWidth, panelHeight, 12, 12, _bgPaint);
         canvas.DrawRoundRect(panelX, panelY, PanelWidth, panelHeight, 12, 12, _borderPaint);
 
-        // Onglets bâtiments classiques / uniques
-        if (hasUnique)
-        {
-            float tabY = panelY + Padding / 2f;
-            float gap = 4f;
-            float tabW = (PanelWidth - 2 * Padding - gap) / 2f;
-
-            _tabRegularRect = new SKRect(panelX + Padding, tabY, panelX + Padding + tabW, tabY + TabHeight);
-            _tabUniqueRect = new SKRect(panelX + Padding + tabW + gap, tabY, panelX + PanelWidth - Padding, tabY + TabHeight);
-
-            canvas.DrawRoundRect(_tabRegularRect, 5, 5, _showUniqueBuildings ? _tabInactivePaint : _tabActivePaint);
-            canvas.DrawRoundRect(_tabUniqueRect, 5, 5, _showUniqueBuildings ? _tabActivePaint : _tabInactivePaint);
-            canvas.DrawRoundRect(_tabRegularRect, 5, 5, _borderPaint);
-            canvas.DrawRoundRect(_tabUniqueRect, 5, 5, _borderPaint);
-
-            canvas.DrawText(_localization.Get("tab_buildings_classic"), _tabRegularRect.MidX, _tabRegularRect.MidY + 5f, SKTextAlign.Center, _font12, _textPaint);
-            canvas.DrawText(_localization.Get("tab_buildings_unique"), _tabUniqueRect.MidX, _tabUniqueRect.MidY + 5f, SKTextAlign.Center, _font12, _textPaint);
-        }
-
-        float y = panelY + Padding + tabArea;
+        float y = panelY + Padding;
 
         var visibleBuildings = buildings.Take(visibleBuildingCount).ToList();
         foreach (var (building, index) in visibleBuildings.Select((item, i) => (item, i)))
@@ -248,6 +229,25 @@ public class SelectedCityPanelRenderer : IGameRenderer
                 var hoverRect = new SKRect(panelX, btnY, panelX + PanelWidth, btnY + btnHeight);
                 _hoverRects[hoverRect] = building.Type;
             }
+        }
+
+        // Onglets bâtiments classiques / uniques (en bas de la liste)
+        if (hasUnique)
+        {
+            float tabY = panelY + Padding + visibleBuildingCount * RowHeight + Padding / 2f;
+            float gap = 4f;
+            float tabW = (PanelWidth - 2 * Padding - gap) / 2f;
+
+            _tabRegularRect = new SKRect(panelX + Padding, tabY, panelX + Padding + tabW, tabY + TabHeight);
+            _tabUniqueRect = new SKRect(panelX + Padding + tabW + gap, tabY, panelX + PanelWidth - Padding, tabY + TabHeight);
+
+            canvas.DrawRoundRect(_tabRegularRect, 5, 5, _showUniqueBuildings ? _tabInactivePaint : _tabActivePaint);
+            canvas.DrawRoundRect(_tabUniqueRect, 5, 5, _showUniqueBuildings ? _tabActivePaint : _tabInactivePaint);
+            canvas.DrawRoundRect(_tabRegularRect, 5, 5, _borderPaint);
+            canvas.DrawRoundRect(_tabUniqueRect, 5, 5, _borderPaint);
+
+            canvas.DrawText(_localization.Get("tab_buildings_classic"), _tabRegularRect.MidX, _tabRegularRect.MidY + 5f, SKTextAlign.Center, _font12, _textPaint);
+            canvas.DrawText(_localization.Get("tab_buildings_unique"), _tabUniqueRect.MidX, _tabUniqueRect.MidY + 5f, SKTextAlign.Center, _font12, _textPaint);
         }
 
         // Tooltip au survol
