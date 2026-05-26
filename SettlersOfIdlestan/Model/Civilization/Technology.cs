@@ -11,6 +11,7 @@ public enum TechnologyId
     AdvancedArchitecture,
     StorageOptimization,
     Scholarship,
+    Artisanat,
 }
 
 public enum TechnologyStatus

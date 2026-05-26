@@ -106,6 +106,7 @@ namespace SettlersOfIdlestan.Controller.Expand
             var tech = TechnologyDefinitions.Get(id);
             if (tech == null) return false;
             if (!ArePrerequisitesMet(tree, tech)) return false;
+            if (!IsPrestigeRequirementMet(id)) return false;
 
             tree.ActiveResearch = id;
             tree.ActiveResearchConsumed = 0;
@@ -122,7 +123,7 @@ namespace SettlersOfIdlestan.Controller.Expand
             if (tree.ActiveResearch == id) return TechnologyStatus.InProgress;
 
             var tech = TechnologyDefinitions.Get(id);
-            if (tech == null || !ArePrerequisitesMet(tree, tech)) return TechnologyStatus.Inactive;
+            if (tech == null || !ArePrerequisitesMet(tree, tech) || !IsPrestigeRequirementMet(id)) return TechnologyStatus.Inactive;
 
             return TechnologyStatus.Available;
         }
@@ -144,6 +145,12 @@ namespace SettlersOfIdlestan.Controller.Expand
 
         public bool IsResearchUnlocked()
             => _prestigeState?.PurchasedVertices.Contains(PrestigeMap.CentralVertex) == true;
+
+        private bool IsPrestigeRequirementMet(TechnologyId id) => id switch
+        {
+            TechnologyId.Artisanat => _prestigeState?.PurchasedVertices.Contains(PrestigeMap.AppliedResearchVertex) == true,
+            _ => true,
+        };
 
         private int GetEffectiveCost(Technology tech)
         {

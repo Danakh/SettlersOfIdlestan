@@ -22,12 +22,13 @@ public class PrestigeMap
     // ── Prestige vertices (HexGrid Vertex objects) ────────────────────────────
     // Layout: pointy-top, R=60, Central vertex at screen center.
 
-    public static readonly Vertex CentralVertex        = Vertex.Create(new(0, 0), new(1, 0), new(0, 1));
-    public static readonly Vertex BarracksVertex       = Vertex.Create(new(0, 0), new(1, 0), new(1, -1));
-    public static readonly Vertex SeaportMarketVertex  = Vertex.Create(new(0, 0), new(0, 1), new(-1, 1));
-    public static readonly Vertex LaboratoryVertex     = Vertex.Create(new(1, 0), new(0, 1), new(1, 1));
-    public static readonly Vertex HarvestGuildVertex   = Vertex.Create(new(-1, 1), new(-1, 2), new(0, 1));
-    public static readonly Vertex ArtisansGuildVertex  = Vertex.Create(new(-1, 2), new(0, 1), new(0, 2));
+    public static readonly Vertex CentralVertex          = Vertex.Create(new(0, 0), new(1, 0), new(0, 1));
+    public static readonly Vertex BarracksVertex         = Vertex.Create(new(0, 0), new(1, 0), new(1, -1));
+    public static readonly Vertex SeaportMarketVertex    = Vertex.Create(new(0, 0), new(0, 1), new(-1, 1));
+    public static readonly Vertex LaboratoryVertex       = Vertex.Create(new(1, 0), new(0, 1), new(1, 1));
+    public static readonly Vertex AppliedResearchVertex  = Vertex.Create(new(0, 1), new(1, 1), new(0, 2));
+    public static readonly Vertex HarvestGuildVertex     = Vertex.Create(new(-1, 1), new(-1, 2), new(0, 1));
+    public static readonly Vertex ArtisansGuildVertex    = Vertex.Create(new(-1, 2), new(0, 1), new(0, 2));
 
     public IReadOnlyList<PrestigeVertex> Vertices { get; }
     public IReadOnlyList<PrestigeHex> Hexes { get; }
@@ -97,6 +98,14 @@ public class PrestigeMap
                 modifiers: new Modifier[] { new(ECategory.BUILDING_MAX_LEVEL, "ArtisansGuild", EType.ADDITIVE, 1) },
                 startingBuildings: Array.Empty<BuildingType>()
             ),
+            new(
+                AppliedResearchVertex,
+                "prestige_vertex_applied_research",
+                cost: 5,
+                prerequisites: new[] { LaboratoryVertex },
+                modifiers: Array.Empty<Modifier>(),
+                startingBuildings: Array.Empty<BuildingType>()
+            ),
         };
 
         var hexes = new PrestigeHex[]
@@ -118,7 +127,7 @@ public class PrestigeMap
             new(
                 ResearchSpeedCoord,
                 "prestige_hex_research_speed",
-                adjacentVertices: new[] { CentralVertex, LaboratoryVertex, BarracksVertex },
+                adjacentVertices: new[] { CentralVertex, LaboratoryVertex, BarracksVertex, AppliedResearchVertex },
                 perVertexModifiers: new Modifier[] { new(ECategory.RESEARCH_SPEED, EType.ADDITIVE, 0.1) }
             ),
             // ── Outer hexes (each adjacent to one outer vertex only) ─────────
@@ -131,7 +140,7 @@ public class PrestigeMap
             new(
                 ResearchCostReductionCoord,
                 "prestige_hex_research_cost_reduction",
-                adjacentVertices: new[] { LaboratoryVertex },
+                adjacentVertices: new[] { LaboratoryVertex, AppliedResearchVertex },
                 perVertexModifiers: new Modifier[] { new(ECategory.RESEARCH_COST_REDUCTION, EType.ADDITIVE, 0.1) }
             ),
             new(

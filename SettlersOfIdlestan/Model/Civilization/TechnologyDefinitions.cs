@@ -48,6 +48,12 @@ public static class TechnologyDefinitions
             cost: 150,
             prerequisites: new[] { TechnologyId.StorageOptimization },
             modifiers: new Modifier[] { new(ECategory.RESEARCH_SPEED, EType.ADDITIVE, 0.2) }),
+
+        new(TechnologyId.Artisanat,
+            "tech_artisanat_name", "tech_artisanat_desc",
+            cost: 100,
+            prerequisites: Array.Empty<TechnologyId>(),
+            modifiers: new Modifier[] { new(ECategory.FORGE_DOUBLE_PROD_BONUS, EType.ADDITIVE, 5) }),
     };
 
     public static Technology? Get(TechnologyId id) => All.FirstOrDefault(t => t.Id == id);

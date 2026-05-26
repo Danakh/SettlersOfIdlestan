@@ -71,6 +71,12 @@ public class Civilization
     public double ResearchCostReduction => ModifierAggregator.ApplyModifiers(ECategory.RESEARCH_COST_REDUCTION, "", 0.0);
 
     /// <summary>
+    /// Bonus de chance (en points %) de double récolte sur la Forge, cumulé depuis les technologies.
+    /// </summary>
+    [JsonIgnore]
+    public int ForgeDoubleProdBonus => ModifierAggregator.ApplyModifiers(ECategory.FORGE_DOUBLE_PROD_BONUS, "", 0);
+
+    /// <summary>
     /// Liste des ressources d�tenues par la civilisation.
     /// </summary>
     // Resources are stored as a map from Resource -> quantity.

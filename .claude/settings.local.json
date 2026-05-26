@@ -38,7 +38,9 @@
       "Bash(Select-String -Pattern \"\\(Outpost|CityBuilder|IslandState\\)\")",
       "Bash(Get-ChildItem -Path \"C:\\\\DEV\\\\SettlersOfIdlestan\\\\SettlersOfIdlestan\\\\Model\\\\Prestige\" -Recurse -File)",
       "Bash(python -c ' *)",
-      "Bash(Select-String \"error CS\")"
+      "Bash(Select-String \"error CS\")",
+      "Bash(Get-ChildItem -Path \"C:\\\\DEV\\\\SettlersOfIdlestan\" -Recurse -File)",
+      "Bash(Select-Object -First 5)"
     ]
   }
 }

@@ -161,9 +161,10 @@ namespace SettlersOfIdlestan.Controller.Island
                         civ.AddResource(resource, 1);
                         harvested[resource] += 1;
 
-                        // Forge bonus: 10% par niveau de probabilité de produire une seconde ressource
+                        // Forge bonus: 10% par niveau + bonus technologie Artisanat
                         var forge = city.Buildings.OfType<Forge>().FirstOrDefault();
-                        if (forge != null && forge.Level > 0 && _prng.Next(100) < forge.DoubleProdChancePercent)
+                        int forgeChance = forge != null ? forge.DoubleProdChancePercent + civ.ForgeDoubleProdBonus : 0;
+                        if (forge != null && forge.Level > 0 && _prng.Next(100) < forgeChance)
                         {
                             TryAutoTradeOnOverflow(civ, resource);
                             civ.AddResource(resource, 1);
