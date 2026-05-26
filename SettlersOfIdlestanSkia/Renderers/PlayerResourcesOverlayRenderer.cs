@@ -95,8 +95,8 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
             IsAntialias = true
         };
 
-        _textFont = new SKFont { Size = 12, Typeface = SKTypeface.FromFamilyName("Arial", SKFontStyle.Bold) };
-        _smallFont = new SKFont { Size = 10, Typeface = SKTypeface.FromFamilyName("Arial") };
+        _textFont = new SKFont { Size = 12, Typeface = SkiaFonts.Bold };
+        _smallFont = new SKFont { Size = 10, Typeface = SkiaFonts.Regular };
 
         _itemBgPaint = new SKPaint { Color = ItemBackground, Style = SKPaintStyle.Fill, IsAntialias = true };
         _itemBorderPaint = new SKPaint { Color = new SKColor(255, 255, 255, 60), Style = SKPaintStyle.Stroke, StrokeWidth = 1, IsAntialias = true };

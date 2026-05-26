@@ -32,7 +32,7 @@ public class AutoplayerDebugRenderer : IGameRenderer
     private readonly SKPaint _inactivePaint = new() { Color = new SKColor(35, 35, 50),   Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _borderPaint   = new() { Color = new SKColor(100, 100, 130), StrokeWidth = 1f, Style = SKPaintStyle.Stroke, IsAntialias = true };
     private readonly SKPaint _textPaint     = new() { Color = SKColors.White, IsAntialias = true };
-    private readonly SKFont  _font          = new() { Size = 11, Typeface = SKTypeface.FromFamilyName("Arial", SKFontStyle.Bold) };
+    private readonly SKFont  _font          = new() { Size = 11, Typeface = SkiaFonts.Bold };
 
     private bool _disposed;
 

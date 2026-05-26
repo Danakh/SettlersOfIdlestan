@@ -78,9 +78,9 @@ public class SelectedCityPanelRenderer : IGameRenderer
     {
         _canvasSize = canvasSize;
 
-        _font15 = new SKFont { Size = 15 };
-        _font12 = new SKFont { Size = 12 };
-        _font10 = new SKFont { Size = 10 };
+        _font15 = new SKFont { Size = 15, Typeface = SkiaFonts.Regular };
+        _font12 = new SKFont { Size = 12, Typeface = SkiaFonts.Regular };
+        _font10 = new SKFont { Size = 10, Typeface = SkiaFonts.Regular };
         _bgPaint = new SKPaint { Color = new SKColor(30, 30, 40, 220), Style = SKPaintStyle.Fill, IsAntialias = true };
         _borderPaint = new SKPaint { Color = new SKColor(200, 200, 220, 180), Style = SKPaintStyle.Stroke, StrokeWidth = 2, IsAntialias = true };
         _textPaint = new SKPaint { Color = SKColors.White, IsAntialias = true };

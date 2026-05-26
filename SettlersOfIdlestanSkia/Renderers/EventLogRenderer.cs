@@ -38,9 +38,9 @@ public sealed class EventLogRenderer : IDisposable
     private readonly SKPaint _treasureClaimedTextPaint = new() { Color = new SKColor(80, 220, 100), IsAntialias = true };
     private readonly SKPaint _bodyTextPaint = new() { Color = new SKColor(200, 200, 210), IsAntialias = true };
     private readonly SKPaint _mutedPaint = new() { Color = new SKColor(120, 120, 130), IsAntialias = true };
-    private readonly SKFont _titleFont = new() { Size = 13, Typeface = SKTypeface.FromFamilyName("Arial", SKFontStyle.Bold) };
-    private readonly SKFont _bodyFont = new() { Size = 12, Typeface = SKTypeface.FromFamilyName("Arial") };
-    private readonly SKFont _headerFont = new() { Size = 17, Typeface = SKTypeface.FromFamilyName("Arial", SKFontStyle.Bold) };
+    private readonly SKFont _titleFont = new() { Size = 13, Typeface = SkiaFonts.Bold };
+    private readonly SKFont _bodyFont = new() { Size = 12, Typeface = SkiaFonts.Regular };
+    private readonly SKFont _headerFont = new() { Size = 17, Typeface = SkiaFonts.Bold };
 
     public EventLogRenderer(GameControllerService gameControllerService, ILocalizationService localization)
     {

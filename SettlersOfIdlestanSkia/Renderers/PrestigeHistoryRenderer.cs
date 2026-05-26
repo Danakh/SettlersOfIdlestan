@@ -32,10 +32,10 @@ public sealed class PrestigeHistoryRenderer : IDisposable
     private readonly SKPaint _mutedPaint = new() { Color = new SKColor(180, 180, 190), IsAntialias = true };
     private readonly SKPaint _accentPaint = new() { Color = new SKColor(255, 215, 0), IsAntialias = true };
     private readonly SKPaint _labelPaint = new() { Color = new SKColor(140, 180, 220), IsAntialias = true };
-    private readonly SKFont _titleFont = new() { Size = 17, Typeface = SKTypeface.FromFamilyName("Arial", SKFontStyle.Bold) };
-    private readonly SKFont _boldFont = new() { Size = 13, Typeface = SKTypeface.FromFamilyName("Arial", SKFontStyle.Bold) };
-    private readonly SKFont _font = new() { Size = 13, Typeface = SKTypeface.FromFamilyName("Arial") };
-    private readonly SKFont _smallFont = new() { Size = 11, Typeface = SKTypeface.FromFamilyName("Arial") };
+    private readonly SKFont _titleFont = new() { Size = 17, Typeface = SkiaFonts.Bold };
+    private readonly SKFont _boldFont = new() { Size = 13, Typeface = SkiaFonts.Bold };
+    private readonly SKFont _font = new() { Size = 13, Typeface = SkiaFonts.Regular };
+    private readonly SKFont _smallFont = new() { Size = 11, Typeface = SkiaFonts.Regular };
 
     public PrestigeHistoryRenderer(GameControllerService gameControllerService, ILocalizationService localization)
     {

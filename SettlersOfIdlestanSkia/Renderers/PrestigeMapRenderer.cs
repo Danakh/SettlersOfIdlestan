@@ -81,8 +81,8 @@ public sealed class PrestigeMapRenderer : IGameRenderer
 
     private readonly SKPaint _textBlackPaint = new() { Color = SKColors.Black, IsAntialias = true };
     private readonly SKPaint _textWhitePaint = new() { Color = SKColors.White, IsAntialias = true };
-    private readonly SKFont  _labelFont     = new() { Size = 10 };
-    private readonly SKFont  _labelFontBold = new() { Size = 10, Typeface = SKTypeface.FromFamilyName("Arial", SKFontStyle.Bold) };
+    private readonly SKFont  _labelFont     = new() { Size = 10, Typeface = SkiaFonts.Regular };
+    private readonly SKFont  _labelFontBold = new() { Size = 10, Typeface = SkiaFonts.Bold };
 
     public PrestigeMapRenderer(
         GameControllerService gameControllerService,

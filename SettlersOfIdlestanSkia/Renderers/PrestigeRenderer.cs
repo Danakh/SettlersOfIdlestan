@@ -1,6 +1,7 @@
 using SettlersOfIdlestan.Controller;
 using SettlersOfIdlestan.Controller.Expand;
 using SettlersOfIdlestan.Services.Localization;
+using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Services;
 using SkiaSharp;
 
@@ -30,9 +31,9 @@ public sealed class PrestigeRenderer : IDisposable
     private readonly SKPaint _buttonDisabledPaint = new() { Color = new SKColor(70, 70, 70, 220), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _textPaint = new() { Color = SKColors.White, IsAntialias = true };
     private readonly SKPaint _mutedTextPaint = new() { Color = new SKColor(190, 190, 195), IsAntialias = true };
-    private readonly SKFont _titleFont = new() { Size = 20, Typeface = SKTypeface.FromFamilyName("Arial", SKFontStyle.Bold) };
-    private readonly SKFont _font = new() { Size = 14, Typeface = SKTypeface.FromFamilyName("Arial") };
-    private readonly SKFont _boldFont = new() { Size = 14, Typeface = SKTypeface.FromFamilyName("Arial", SKFontStyle.Bold) };
+    private readonly SKFont _titleFont = new() { Size = 20, Typeface = SkiaFonts.Bold };
+    private readonly SKFont _font = new() { Size = 14, Typeface = SkiaFonts.Regular };
+    private readonly SKFont _boldFont = new() { Size = 14, Typeface = SkiaFonts.Bold };
 
     public bool IsOpen { get; private set; }
 

@@ -30,7 +30,7 @@ public class AboutRenderer : IGameRenderer
         _backgroundPaint = new SKPaint { Color = new SKColor(0, 0, 0, 220), Style = SKPaintStyle.Fill, IsAntialias = true };
         _borderPaint = new SKPaint { Color = SKColors.Gold, StrokeWidth = 2, Style = SKPaintStyle.Stroke, IsAntialias = true };
         _textPaint = new SKPaint { Color = SKColors.White, IsAntialias = true };
-        _textFont = new SKFont { Size = 16, Typeface = SKTypeface.FromFamilyName("Arial", SKFontStyle.Bold) };
+        _textFont = new SKFont { Size = 16, Typeface = SkiaFonts.Bold };
     }
 
     public void Show()

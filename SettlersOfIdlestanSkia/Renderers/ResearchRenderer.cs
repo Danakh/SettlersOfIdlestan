@@ -41,8 +41,8 @@ public sealed class ResearchRenderer : IGameRenderer
     private readonly SKPaint _activeLinePaint = new() { Color = new SKColor(80, 160, 80), StrokeWidth = 2f, Style = SKPaintStyle.Stroke, IsAntialias = true };
     private readonly SKPaint _textPaint = new() { Color = SKColors.White, IsAntialias = true };
     private readonly SKPaint _dimTextPaint = new() { Color = new SKColor(150, 150, 160), IsAntialias = true };
-    private readonly SKFont _nameFont = new() { Size = 12, Typeface = SKTypeface.FromFamilyName("Arial", SKFontStyle.Bold) };
-    private readonly SKFont _smallFont = new() { Size = 10, Typeface = SKTypeface.FromFamilyName("Arial") };
+    private readonly SKFont _nameFont = new() { Size = 12, Typeface = SkiaFonts.Bold };
+    private readonly SKFont _smallFont = new() { Size = 10, Typeface = SkiaFonts.Regular };
 
     // Layout: column index → row index → TechnologyId
     private static readonly Dictionary<TechnologyId, (int col, int row)> Layout = ComputeLayout();

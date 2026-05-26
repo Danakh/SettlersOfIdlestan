@@ -20,7 +20,7 @@ namespace SettlersOfIdlestanSkia.Renderers
         private ResourceSet? _tooltipCost;
         private SKPoint _tooltipScreenPosition = SKPoint.Empty;
         private SKSize _canvasSize;
-        private SKFont _font10 = new SKFont { Size = 10 };
+        private SKFont _font10 = new SKFont { Size = 10, Typeface = SkiaFonts.Regular };
 
         private IslandMainRenderer? _islandRendererContext;
         private GameRenderContext? _gameRenderContext;

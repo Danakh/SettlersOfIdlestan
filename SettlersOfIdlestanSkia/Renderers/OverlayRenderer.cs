@@ -50,12 +50,12 @@ public sealed class OverlayRenderer : IGameRenderer
     private readonly SKPaint _disabledButtonPaint = new() { Color = new SKColor(90, 90, 96), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _buttonTextPaint = new() { Color = SKColors.White, IsAntialias = true };
     private readonly SKPaint _disabledTextPaint = new() { Color = new SKColor(180, 180, 185), IsAntialias = true };
-    private readonly SKFont _buttonFont = new() { Size = 14, Typeface = SKTypeface.FromFamilyName("Arial", SKFontStyle.Bold) };
+    private readonly SKFont _buttonFont = new() { Size = 14, Typeface = SkiaFonts.Bold };
 
     private readonly SKPaint _activeTabPaint = new() { Color = new SKColor(60, 100, 160), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _inactiveTabPaint = new() { Color = new SKColor(35, 35, 45), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _activeTabBorderPaint = new() { Color = SKColors.Gold, StrokeWidth = 1.5f, Style = SKPaintStyle.Stroke, IsAntialias = true };
-    private readonly SKFont _tabFont = new() { Size = 12, Typeface = SKTypeface.FromFamilyName("Arial", SKFontStyle.Bold) };
+    private readonly SKFont _tabFont = new() { Size = 12, Typeface = SkiaFonts.Bold };
 
     private SKSize _canvasSize;
     private SKRect _tradeButtonRect = SKRect.Empty;

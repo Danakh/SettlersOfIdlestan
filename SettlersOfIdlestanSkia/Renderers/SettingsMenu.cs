@@ -1,6 +1,7 @@
 using SettlersOfIdlestan.Controller;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Services.Localization;
+using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Renderers; // Ajout pour AboutRenderer
 using SettlersOfIdlestanSkia.Services;
 using SkiaSharp;
@@ -165,7 +166,7 @@ public class SettingsMenu
             IsAntialias = true
         };
 
-        _textFont = new SKFont { Size = 12, Typeface = SKTypeface.FromFamilyName("Arial", SKFontStyle.Bold) };
+        _textFont = new SKFont { Size = 12, Typeface = SkiaFonts.Bold };
         _itemBorderPaint = new SKPaint { Color = SKColors.Gold, Style = SKPaintStyle.Stroke, StrokeWidth = 1, IsAntialias = true };
         _separatorTextPaint = new SKPaint { Color = new SKColor(150, 150, 150, 180), IsAntialias = true };
     }

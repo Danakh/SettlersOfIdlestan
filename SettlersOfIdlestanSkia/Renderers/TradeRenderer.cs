@@ -1,6 +1,7 @@
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Services.Localization;
+using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Services;
 using SkiaSharp;
 using Svg.Skia;
@@ -68,10 +69,10 @@ public sealed class TradeRenderer : IDisposable
     private readonly SKPaint _disabledPaint = new() { Color = new SKColor(70, 70, 76, 220), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _textPaint = new() { Color = SKColors.White, IsAntialias = true };
     private readonly SKPaint _mutedTextPaint = new() { Color = new SKColor(190, 190, 195), IsAntialias = true };
-    private readonly SKFont _titleFont = new() { Size = 20, Typeface = SKTypeface.FromFamilyName("Arial", SKFontStyle.Bold) };
-    private readonly SKFont _font = new() { Size = 13, Typeface = SKTypeface.FromFamilyName("Arial") };
-    private readonly SKFont _boldFont = new() { Size = 13, Typeface = SKTypeface.FromFamilyName("Arial", SKFontStyle.Bold) };
-    private readonly SKFont _smallFont = new() { Size = 11, Typeface = SKTypeface.FromFamilyName("Arial") };
+    private readonly SKFont _titleFont = new() { Size = 20, Typeface = SkiaFonts.Bold };
+    private readonly SKFont _font = new() { Size = 13, Typeface = SkiaFonts.Regular };
+    private readonly SKFont _boldFont = new() { Size = 13, Typeface = SkiaFonts.Bold };
+    private readonly SKFont _smallFont = new() { Size = 11, Typeface = SkiaFonts.Regular };
 
     private readonly SKPaint _tradeActiveButtonPaint = new() { Color = new SKColor(46, 125, 50), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _tradeDisabledButtonPaint = new() { Color = new SKColor(90, 90, 96), Style = SKPaintStyle.Fill, IsAntialias = true };

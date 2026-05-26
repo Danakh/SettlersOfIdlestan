@@ -44,9 +44,9 @@ public class TimeControlRenderer : IDisposable
     private readonly SKPaint _borderPaint = new() { Color = new SKColor(100, 100, 130), StrokeWidth = 1f, Style = SKPaintStyle.Stroke, IsAntialias = true };
     private readonly SKPaint _textPaint = new() { Color = SKColors.White, IsAntialias = true };
     private readonly SKPaint _bankTextPaint = new() { Color = new SKColor(200, 240, 255), IsAntialias = true };
-    private readonly SKFont _font = new() { Size = 13, Typeface = SKTypeface.FromFamilyName("Arial", SKFontStyle.Bold) };
-    private readonly SKFont _bankFont = new() { Size = 11, Typeface = SKTypeface.FromFamilyName("Arial") };
-    private readonly SKFont _tooltipFont = new() { Size = 10 };
+    private readonly SKFont _font = new() { Size = 13, Typeface = SkiaFonts.Bold };
+    private readonly SKFont _bankFont = new() { Size = 11, Typeface = SkiaFonts.Regular };
+    private readonly SKFont _tooltipFont = new() { Size = 10, Typeface = SkiaFonts.Regular };
 
     private bool _disposed;
 
