@@ -39,6 +39,21 @@ public class CityBuildingService
         return BuildingController.GetBuildingsAndBuildables(SelectedCity.CivilizationIndex, SelectedCity.Position);
     }
 
+    public IEnumerable<Building> SelectedCityUniqueBuildingsAndBuildables()
+    {
+        if (SelectedCity == null)
+            return [];
+
+        return BuildingController.GetUniqueBuildingsAndBuildables(SelectedCity.CivilizationIndex, SelectedCity.Position);
+    }
+
+    public bool HasUniqueBuildingsUnlocked()
+    {
+        if (SelectedCity == null) return false;
+        var civ = IslandState.Civilizations.FirstOrDefault(c => c.Index == SelectedCity.CivilizationIndex);
+        return civ?.Cities.Any(city => city.Level >= 4) == true;
+    }
+
     public void TryExecuteSelectedCityBuildingAction(BuildingType buildingType)
     {
         if (SelectedCity != null)

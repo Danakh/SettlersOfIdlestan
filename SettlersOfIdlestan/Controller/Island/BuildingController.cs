@@ -47,6 +47,10 @@ namespace SettlersOfIdlestan.Controller.Island
 
             foreach (BuildingType bt in Enum.GetValues(typeof(BuildingType)))
             {
+                var prototype = CreateBuilding(bt);
+                if (prototype == null || prototype.IsUnique)
+                    continue;
+
                 var existing = city.Buildings.FirstOrDefault(b => b.Type == bt);
                 if (existing != null)
                 {
@@ -54,9 +58,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 }
                 else
                 {
-                    var prototype = CreateBuilding(bt);
-                    if ((prototype != null) &&
-                        (GetMaxLevel(prototype, civilizationIndex) > 0) &&
+                    if ((GetMaxLevel(prototype, civilizationIndex) > 0) &&
                         prototype.IsBuildingAvailableForCity(_state.Map, city))
                     {
                         result.Add(prototype);
@@ -95,6 +97,10 @@ namespace SettlersOfIdlestan.Controller.Island
                 if (!prototype.IsBuildingAvailableForCity(_state.Map, city))
                     return false;
 
+                if (prototype.IsUnique &&
+                    (civ.UniqueBuildings.Contains(type) || civ.Cities.Any(c => c.Buildings.Any(b => b.Type == type))))
+                    return false;
+
                 cost = prototype.GetBuildCost();
                 resultBuilding = prototype;
             }
@@ -126,6 +132,8 @@ namespace SettlersOfIdlestan.Controller.Island
             {
                 resultBuilding.Level = 1;
                 city.Buildings.Add(resultBuilding);
+                if (resultBuilding.IsUnique && !civ.UniqueBuildings.Contains(resultBuilding.Type))
+                    civ.UniqueBuildings.Add(resultBuilding.Type);
             }
             else
             {
@@ -133,6 +141,46 @@ namespace SettlersOfIdlestan.Controller.Island
             }
 
             return true;
+        }
+
+        /// <summary>
+        /// Retourne la liste des bâtiments uniques disponibles ou déjà construits pour la ville spécifiée.
+        /// Les bâtiments déjà construits (dans n'importe quelle ville de la civ) sont toujours inclus.
+        /// Les bâtiments non construits sont inclus uniquement si la ville sélectionnée est niveau 4.
+        /// </summary>
+        public List<Building> GetUniqueBuildingsAndBuildables(int civilizationIndex, Vertex cityVertex)
+        {
+            if (_state == null) throw new InvalidOperationException("IslandState has not been initialized.");
+
+            var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex)
+                      ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
+
+            var city = civ.Cities.FirstOrDefault(ct => ct.Position.Equals(cityVertex))
+                       ?? throw new ArgumentException("City not found at the specified vertex", nameof(cityVertex));
+
+            var result = new List<Building>();
+
+            foreach (BuildingType bt in Enum.GetValues(typeof(BuildingType)))
+            {
+                var prototype = CreateBuilding(bt);
+                if (prototype == null || !prototype.IsUnique) continue;
+
+                bool isBuilt = civ.UniqueBuildings.Contains(bt)
+                               || civ.Cities.Any(c => c.Buildings.Any(b => b.Type == bt));
+
+                if (isBuilt)
+                {
+                    var instance = civ.Cities.SelectMany(c => c.Buildings).FirstOrDefault(b => b.Type == bt)
+                                   ?? prototype;
+                    result.Add(instance);
+                }
+                else if (prototype.IsBuildingAvailableForCity(_state.Map, city))
+                {
+                    result.Add(prototype);
+                }
+            }
+
+            return result;
         }
 
         public int GetMaxLevel(Building building, int civilizationIndex)
@@ -167,6 +215,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 BuildingType.Barracks => new Barracks(),
                 BuildingType.GlassWorks => new GlassWorks(),
                 BuildingType.Palisade => new Palisade(),
+                BuildingType.ImperialPort => new ImperialPort(),
                 _ => null,
             };
         }

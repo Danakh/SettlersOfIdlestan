@@ -161,8 +161,44 @@ namespace SettlersOfIdlestan.Controller
         /// <summary>Step 2: step 1 + upgraded production, Warehouse and Forge.</summary>
         public bool TryStep2Once(bool shouldExpand = true) => TryStepOnce(Step2Buildings, shouldExpand);
 
-        /// <summary>Step 3: step 2 + victory-point buildings (Library, Temple, TownHall upgrades).</summary>
-        public bool TryStep3Once(bool shouldExpand = true) => TryStepOnce(Step3Buildings, shouldExpand);
+        /// <summary>Step 3: step 2 + victory-point buildings (Library, Temple, TownHall upgrades) + unique buildings.</summary>
+        public bool TryStep3Once(bool shouldExpand = true)
+        {
+            bool didSomething = TryStepOnce(Step3Buildings, shouldExpand);
+
+            foreach (var city in _civ.Cities.ToList().Where(c => c.Level >= 4))
+            {
+                try
+                {
+                    if (TryBuildUniqueBuildingOnce(city.Position, BuildingType.ImperialPort, withGrind: true))
+                        didSomething = true;
+                }
+                catch { }
+            }
+
+            return didSomething;
+        }
+
+        /// <summary>
+        /// Attempts to build a unique building in the specified city.
+        /// Uses GetUniqueBuildingsAndBuildables to check availability.
+        /// </summary>
+        public bool TryBuildUniqueBuildingOnce(Vertex cityVertex, BuildingType buildingType, bool withGrind = true)
+        {
+            if (cityVertex == null) throw new ArgumentNullException(nameof(cityVertex));
+
+            var buildables = _buildingController.GetUniqueBuildingsAndBuildables(_civ.Index, cityVertex);
+            var target = buildables.FirstOrDefault(b => b.Type == buildingType && b.Level == 0);
+            if (target == null) return false;
+
+            if (_buildingController.BuildBuilding(_civ.Index, cityVertex, buildingType))
+                return true;
+
+            if (withGrind)
+                TryGrindOnce(target.GetBuildCost());
+
+            return false;
+        }
 
         private bool TryStepOnce(BuildingType[] targetBuildings, bool shouldExpand)
         {

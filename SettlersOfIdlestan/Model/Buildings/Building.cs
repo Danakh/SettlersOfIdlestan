@@ -74,6 +74,10 @@ public enum BuildingType
     /// Verrerie - Produit du verre dans les déserts. Débloqué par le prestige (Laboratoire).
     /// </summary>
     GlassWorks,
+    /// <summary>
+    /// Port impérial - Bâtiment unique. Prérequis au prestige. Disponible au niveau Capitale (4).
+    /// </summary>
+    ImperialPort,
 }
 
 /// <summary>
@@ -157,6 +161,11 @@ public class Building
     /// Gets or sets the description of the building.
     /// </summary>
     public string DescriptionKey { get; protected set; }
+
+    /// <summary>
+    /// Whether this building is unique: only one can be built per civilization per island.
+    /// </summary>
+    public virtual bool IsUnique => false;
 
     /// <summary>
     /// Gets or sets the city level at which the building becomes available.

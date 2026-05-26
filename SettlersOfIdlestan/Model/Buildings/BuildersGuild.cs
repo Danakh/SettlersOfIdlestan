@@ -15,6 +15,8 @@ public class BuildersGuild : Building
         AvailableAtLevel = 4;
     }
 
+    public override bool IsUnique => true;
+
     public override ResourceCost GetBuildCost() => new ResourceCost
     {
         { Resource.Wood, 100 },

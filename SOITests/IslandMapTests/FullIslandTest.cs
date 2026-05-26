@@ -90,12 +90,29 @@ namespace SOITests.IslandMapTests
             var autoplayer = new CivilizationAutoplayer(civ, controller.CurrentMainState.CurrentIslandState.Map, controller);
             var runner = new CivilizationAutoplayerRunner(autoplayer, civ, controller);
 
+            runner.RunStep3Until(() => controller.PrestigeController.CalculatePrestigePoints() >= PrestigeController.PrestigeRequiredPoints, false);
+
+            Assert.True(controller.PrestigeController.CalculatePrestigePoints() >= PrestigeController.PrestigeRequiredPoints,
+                $"Expected enough prestige points after Step 3 (has {controller.PrestigeController.CalculatePrestigePoints()} / {PrestigeController.PrestigeRequiredPoints} points)");
+
+            SaveUtils.SaveAndReloadAndAssertEqual(controller, "FullIslandTestStep3");
+        }
+
+        [Fact]
+        public void Step3bis_CanPrestige()
+        {
+            var controller = SaveUtils.LoadSave("FullIslandTestStep3");
+            var civ = controller.CurrentMainState!.CurrentIslandState!.Civilizations.First();
+
+            var autoplayer = new CivilizationAutoplayer(civ, controller.CurrentMainState.CurrentIslandState.Map, controller);
+            var runner = new CivilizationAutoplayerRunner(autoplayer, civ, controller);
+
             runner.RunStep3Until(() => controller.PrestigeController.PrestigeIsAvailable(), false);
 
             Assert.True(controller.PrestigeController.PrestigeIsAvailable(),
                 $"Expected prestige to be available after Step 3 (has {controller.PrestigeController.CalculatePrestigePoints()} / {PrestigeController.PrestigeRequiredPoints} points)");
 
-            SaveUtils.SaveAndReloadAndAssertEqual(controller, "FullIslandTestStep3");
+            SaveUtils.SaveAndReloadAndAssertEqual(controller, "FullIslandTestStep3bis");
         }
     }
 }

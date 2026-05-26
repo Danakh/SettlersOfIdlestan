@@ -158,6 +158,12 @@ public class Civilization
         return result + storageBonus;
     }
 
+    /// <summary>
+    /// Bâtiments uniques construits par cette civilisation sur l'île courante.
+    /// Empêche de construire deux fois le même bâtiment unique.
+    /// </summary>
+    public List<BuildingType> UniqueBuildings { get; set; } = new();
+
     /// <summary>Resources for which a level-3 Seaport has unlocked a 4:1 trade rate (permanent).</summary>
     public List<Resource> SeaportEnhancedResources { get; set; } = new();
 

@@ -1,4 +1,5 @@
 using SettlersOfIdlestan.Controller;
+using SettlersOfIdlestan.Controller.Expand;
 using SettlersOfIdlestan.Services.Localization;
 using SettlersOfIdlestanSkia.Services;
 using SkiaSharp;
@@ -26,6 +27,7 @@ public sealed class PrestigeRenderer : IDisposable
     private readonly SKPaint _backgroundPaint = new() { Color = new SKColor(24, 24, 30, 245), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _borderPaint = new() { Color = SKColors.Gold, StrokeWidth = 2, Style = SKPaintStyle.Stroke, IsAntialias = true };
     private readonly SKPaint _buttonPaint = new() { Color = new SKColor(46, 125, 50), Style = SKPaintStyle.Fill, IsAntialias = true };
+    private readonly SKPaint _buttonDisabledPaint = new() { Color = new SKColor(70, 70, 70, 220), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _textPaint = new() { Color = SKColors.White, IsAntialias = true };
     private readonly SKPaint _mutedTextPaint = new() { Color = new SKColor(190, 190, 195), IsAntialias = true };
     private readonly SKFont _titleFont = new() { Size = 20, Typeface = SKTypeface.FromFamilyName("Arial", SKFontStyle.Bold) };
@@ -88,9 +90,24 @@ public sealed class PrestigeRenderer : IDisposable
         canvas.DrawText(_localization.Get("prestige_total"), popup.Left + Padding, popup.Bottom - 72, _boldFont, _textPaint);
         canvas.DrawText(total.ToString(), popup.Right - Padding, popup.Bottom - 72, SKTextAlign.Right, _boldFont, _textPaint);
 
+        bool canPrestige = controller.PrestigeIsAvailable();
+        bool hasEnoughPoints = controller.CalculatePrestigePoints() >= PrestigeController.PrestigeRequiredPoints;
+        bool hasImperialPort = controller.HasImperialPort();
+
         _prestigeButtonRect = new SKRect(popup.MidX - 75, popup.Bottom - Padding - ButtonHeight, popup.MidX + 75, popup.Bottom - Padding);
-        canvas.DrawRoundRect(_prestigeButtonRect, 7, 7, _buttonPaint);
+        canvas.DrawRoundRect(_prestigeButtonRect, 7, 7, canPrestige ? _buttonPaint : _buttonDisabledPaint);
         canvas.DrawText(_localization.Get("prestige_action"), _prestigeButtonRect.MidX, _prestigeButtonRect.MidY + 5, SKTextAlign.Center, _boldFont, _textPaint);
+
+        if (hasEnoughPoints && !hasImperialPort)
+        {
+            canvas.DrawText(
+                _localization.Get("prestige_requires_imperial_port"),
+                _prestigeButtonRect.MidX,
+                _prestigeButtonRect.Bottom + 18,
+                SKTextAlign.Center,
+                _font,
+                _mutedTextPaint);
+        }
     }
 
     public bool HandlePointerPressed(SKPoint position, PointerButton button)
@@ -141,6 +158,7 @@ public sealed class PrestigeRenderer : IDisposable
         _backgroundPaint.Dispose();
         _borderPaint.Dispose();
         _buttonPaint.Dispose();
+        _buttonDisabledPaint.Dispose();
         _textPaint.Dispose();
         _mutedTextPaint.Dispose();
         _titleFont.Dispose();

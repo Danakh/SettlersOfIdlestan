@@ -53,10 +53,6 @@ public class TownHall : Building
         {
             result.Add(Resource.Gold, 10 * (level + 1));
         }
-        if (level > 3)
-        {
-            result.Add(Resource.Glass, 10 * (level + 1));
-        }
         return result;
     }
 }

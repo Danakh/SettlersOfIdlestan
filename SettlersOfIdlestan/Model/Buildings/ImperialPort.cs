@@ -1,0 +1,29 @@
+using SettlersOfIdlestan.Model.Civilization;
+using SettlersOfIdlestan.Model.IslandMap;
+
+namespace SettlersOfIdlestan.Model.Buildings;
+
+public class ImperialPort : Building
+{
+    public ImperialPort() : base(BuildingType.ImperialPort)
+    {
+        AvailableAtLevel = 4;
+    }
+
+    public override bool IsUnique => true;
+
+    public override ResourceCost GetBuildCost() => new ResourceCost
+    {
+        { Resource.Wood, 200 },
+        { Resource.Brick, 100 },
+        { Resource.Stone, 100 },
+        { Resource.Gold, 30 },
+    };
+
+    public override ResourceCost GetUpgradeCost(int level) => new();
+
+    public override bool IsBuildingAvailableForCity(IslandMap.IslandMap map, City city)
+    {
+        return city.Level >= 4;
+    }
+}
