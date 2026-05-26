@@ -40,7 +40,8 @@
       "Bash(python -c ' *)",
       "Bash(Select-String \"error CS\")",
       "Bash(Get-ChildItem -Path \"C:\\\\DEV\\\\SettlersOfIdlestan\" -Recurse -File)",
-      "Bash(Select-Object -First 5)"
+      "Bash(Select-Object -First 5)",
+      "PowerShell(Get-ChildItem -Path \"C:\\\\DEV\\\\SettlersOfIdlestan\\\\SettlersOfIdlestanSkia\\\\\" -Recurse -Directory | Where-Object { $_.Name -match \"\\(Services|Renderers\\)\" } | Select-Object -ExpandProperty FullName)"
     ]
   }
 }

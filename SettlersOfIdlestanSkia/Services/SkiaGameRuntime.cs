@@ -32,6 +32,7 @@ public sealed class SkiaGameRuntime : IDisposable
     private SKSize _lastCanvasSize;
     private bool _isPointerDown;
     private bool _isPanning;
+    private bool _isPanSuppressedAtStart;
     private long _activePanPointerId;
     private SKPoint _lastPanPoint;
     private SKPoint _panStartPoint;
@@ -148,7 +149,7 @@ public sealed class SkiaGameRuntime : IDisposable
             eventLogRenderer,
             automationRenderer);
         _renderService.RegisterRenderer(_overlayRenderer);
-        _constructionInteractionService.ShouldSuppressHover = () => _overlayRenderer.IsAnyOverlayOpen;
+        _constructionInteractionService.ShouldSuppressHover = pos => _overlayRenderer.IsPointBlockedByUI(pos);
         if (allowDebugMode)
         {
             _renderService.RegisterRenderer(new DebugOverlayRenderer(_inputService, _cameraService, islandMainRenderer, _localizationService));
@@ -272,6 +273,7 @@ public sealed class SkiaGameRuntime : IDisposable
         if (_introRenderer?.IsActive == true) return;
         _isPointerDown = true;
         _isPanning = false;
+        _isPanSuppressedAtStart = _overlayRenderer?.IsPointBlockedByUI(new SKPoint(x, y)) ?? false;
         _activePanPointerId = pointerId;
         _panStartPoint = new SKPoint(x, y);
         _lastPanPoint = _panStartPoint;
@@ -281,7 +283,7 @@ public sealed class SkiaGameRuntime : IDisposable
     public void HandlePointerMoved(float x, float y, int pointerId = 0)
     {
         if (_introRenderer?.IsActive == true) return;
-        if (_isPointerDown && pointerId == _activePanPointerId && _cameraService != null)
+        if (_isPointerDown && !_isPanSuppressedAtStart && pointerId == _activePanPointerId && _cameraService != null)
         {
             var point = new SKPoint(x, y);
             var startDx = point.X - _panStartPoint.X;

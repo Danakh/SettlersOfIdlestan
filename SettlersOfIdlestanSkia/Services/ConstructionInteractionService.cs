@@ -28,7 +28,7 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
 
     public ConstructionHoverState HoverState { get; private set; } = ConstructionHoverState.Empty;
 
-    public Func<bool>? ShouldSuppressHover { get; set; }
+    public Func<SKPoint, bool>? ShouldSuppressHover { get; set; }
 
     public ConstructionInteractionService(
         GameControllerService gameControllerService,
@@ -55,7 +55,7 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
 
     private void OnPointerMoved(object? sender, PointerEventArgs e)
     {
-        if (ShouldSuppressHover?.Invoke() == true)
+        if (ShouldSuppressHover?.Invoke(e.Position) == true)
         {
             ClearHover();
             return;
@@ -68,7 +68,7 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
         if (e.Button != PointerButton.Left)
             return;
 
-        if (ShouldSuppressHover?.Invoke() == true)
+        if (ShouldSuppressHover?.Invoke(e.Position) == true)
             return;
 
         RefreshHover(e.Position);
@@ -79,7 +79,7 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
         if (e.Button != PointerButton.Left)
             return;
 
-        if (ShouldSuppressHover?.Invoke() == true)
+        if (ShouldSuppressHover?.Invoke(e.Position) == true)
             return;
 
         RefreshHover(e.Position);

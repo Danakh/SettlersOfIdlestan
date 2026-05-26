@@ -319,6 +319,8 @@ public sealed class OverlayRenderer : IGameRenderer
     }
 
     public bool IsAnyOverlayOpen => _tradeRenderer.IsOpen || _prestigeRenderer.IsOpen || _settingsMenu.IsOpen;
+    public bool IsPointBlockedByUI(SKPoint point) =>
+        IsAnyOverlayOpen || _selectedCityPanelRenderer.ContainsPoint(point);
     public bool IsIslandTabActive => _activeTab == TabIsland;
 
     private void HandlePointerMoved(object? sender, PointerEventArgs e)

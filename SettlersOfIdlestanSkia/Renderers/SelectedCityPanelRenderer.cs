@@ -53,6 +53,8 @@ public class SelectedCityPanelRenderer : IGameRenderer
     private SKPaint? _btnOtherCityPaint;
     public float ReservedBottomHeight { get; set; }
     public bool IsInputEnabled { get; set; } = true;
+    private SKRect _panelBounds = SKRect.Empty;
+    public bool ContainsPoint(SKPoint point) => !_panelBounds.IsEmpty && _panelBounds.Contains(point.X, point.Y);
 
     public void Close()
     {
@@ -62,6 +64,7 @@ public class SelectedCityPanelRenderer : IGameRenderer
         _hoverRects.Clear();
         _showUniqueBuildings = false;
         _lastSelectedCity = null;
+        _panelBounds = SKRect.Empty;
     }
 
     public SelectedCityPanelRenderer(CityBuildingService cityBuildingService, ILocalizationService localization, InputHandlingService inputService, ResourceManager resourceManager)
@@ -112,7 +115,10 @@ public class SelectedCityPanelRenderer : IGameRenderer
     public void Render(SKCanvas canvas, GameRenderContext context)
     {
         if (_cityBuildingService.SelectedCity == null)
+        {
+            _panelBounds = SKRect.Empty;
             return;
+        }
 
         float panelX = _canvasSize.Width - PanelWidth - 10;
         float panelY = 60;
@@ -142,11 +148,16 @@ public class SelectedCityPanelRenderer : IGameRenderer
         int visibleBuildingCount = Math.Min(buildingCount, Math.Max(0, (int)((maxPanelHeight - 2 * Padding - tabArea) / RowHeight)));
 
         if (!hasUnique && visibleBuildingCount == 0)
+        {
+            _panelBounds = SKRect.Empty;
             return;
+        }
 
         float panelHeight = visibleBuildingCount * RowHeight + 2 * Padding + tabArea;
         if (panelHeight < tabArea + 2 * Padding)
             panelHeight = tabArea + 2 * Padding;
+
+        _panelBounds = new SKRect(panelX, panelY, panelX + PanelWidth, panelY + panelHeight);
 
         canvas.DrawRoundRect(panelX, panelY, PanelWidth, panelHeight, 12, 12, _bgPaint);
         canvas.DrawRoundRect(panelX, panelY, PanelWidth, panelHeight, 12, 12, _borderPaint);
