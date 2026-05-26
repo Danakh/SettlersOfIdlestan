@@ -17,6 +17,7 @@ public class PrestigeMap
     public static readonly HexCoord StorageCapacityCoord       = new(-1,  1);
     public static readonly HexCoord ResearchCostReductionCoord = new(1,  1);
     public static readonly HexCoord GoldTradeCoord             = new(-1,  2);
+    public static readonly HexCoord ArtisansProductionCoord   = new(0,   2);
 
     // ── Prestige vertices (HexGrid Vertex objects) ────────────────────────────
     // Layout: pointy-top, R=60, Central vertex at screen center.
@@ -26,6 +27,7 @@ public class PrestigeMap
     public static readonly Vertex SeaportMarketVertex  = Vertex.Create(new(0, 0), new(0, 1), new(-1, 1));
     public static readonly Vertex LaboratoryVertex     = Vertex.Create(new(1, 0), new(0, 1), new(1, 1));
     public static readonly Vertex HarvestGuildVertex   = Vertex.Create(new(-1, 1), new(-1, 2), new(0, 1));
+    public static readonly Vertex ArtisansGuildVertex  = Vertex.Create(new(-1, 2), new(0, 1), new(0, 2));
 
     public IReadOnlyList<PrestigeVertex> Vertices { get; }
     public IReadOnlyList<PrestigeHex> Hexes { get; }
@@ -87,6 +89,14 @@ public class PrestigeMap
                 modifiers: new Modifier[] { new(ECategory.BUILDING_MAX_LEVEL, "HarvestersGuild", EType.ADDITIVE, 1) },
                 startingBuildings: Array.Empty<BuildingType>()
             ),
+            new(
+                ArtisansGuildVertex,
+                "prestige_vertex_artisans_guild",
+                cost: 5,
+                prerequisites: new[] { HarvestGuildVertex },
+                modifiers: new Modifier[] { new(ECategory.BUILDING_MAX_LEVEL, "ArtisansGuild", EType.ADDITIVE, 1) },
+                startingBuildings: Array.Empty<BuildingType>()
+            ),
         };
 
         var hexes = new PrestigeHex[]
@@ -102,7 +112,7 @@ public class PrestigeMap
             new(
                 HarvestSpeedCoord,
                 "prestige_hex_harvest_speed",
-                adjacentVertices: new[] { CentralVertex, SeaportMarketVertex, LaboratoryVertex, HarvestGuildVertex },
+                adjacentVertices: new[] { CentralVertex, SeaportMarketVertex, LaboratoryVertex, HarvestGuildVertex, ArtisansGuildVertex },
                 perVertexModifiers: new Modifier[] { new(ECategory.HARVEST_SPEED, EType.ADDITIVE, 0.1) }
             ),
             new(
@@ -137,8 +147,14 @@ public class PrestigeMap
             new(
                 GoldTradeCoord,
                 "prestige_hex_gold_trade",
-                adjacentVertices: new[] { HarvestGuildVertex },
+                adjacentVertices: new[] { HarvestGuildVertex, ArtisansGuildVertex },
                 perVertexModifiers: new Modifier[] { new(ECategory.TRADE_GOLD_PACKAGES, EType.ADDITIVE, -0.5) }
+            ),
+            new(
+                ArtisansProductionCoord,
+                "prestige_hex_artisans_production",
+                adjacentVertices: new[] { ArtisansGuildVertex },
+                perVertexModifiers: Array.Empty<Modifier>()
             ),
         };
 

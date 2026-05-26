@@ -29,6 +29,7 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         (PrestigeMap.CentralVertex,       PrestigeMap.SeaportMarketVertex),
         (PrestigeMap.CentralVertex,       PrestigeMap.LaboratoryVertex),
         (PrestigeMap.SeaportMarketVertex, PrestigeMap.HarvestGuildVertex),
+        (PrestigeMap.HarvestGuildVertex,  PrestigeMap.ArtisansGuildVertex),
     };
 
     // Local-space position of the Central vertex (used to offset all other positions)

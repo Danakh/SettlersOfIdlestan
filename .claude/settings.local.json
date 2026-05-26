@@ -36,7 +36,8 @@
       "Bash(Format-Table Name)",
       "Bash(Find \"C:\\\\DEV\\\\SettlersOfIdlestan\" -name \"*Port*.cs\" -o -name \"*Mine*.cs\" -o -name \"*Forge*.cs\")",
       "Bash(Select-String -Pattern \"\\(Outpost|CityBuilder|IslandState\\)\")",
-      "Bash(Get-ChildItem -Path \"C:\\\\DEV\\\\SettlersOfIdlestan\\\\SettlersOfIdlestan\\\\Model\\\\Prestige\" -Recurse -File)"
+      "Bash(Get-ChildItem -Path \"C:\\\\DEV\\\\SettlersOfIdlestan\\\\SettlersOfIdlestan\\\\Model\\\\Prestige\" -Recurse -File)",
+      "Bash(python -c ' *)"
     ]
   }
 }

@@ -199,6 +199,8 @@
   "prestige_hex_research_cost_reduction": "Coût de recherche",
   "prestige_hex_storage_capacity": "Capacité de stockage",
   "prestige_vertex_harvesters_guild": "Guilde des récolteurs",
+  "prestige_vertex_artisans_guild": "Guilde des artisans",
+  "prestige_hex_artisans_production": "Production artisanale",
   "prestige_hex_gold_trade": "Commerce d'or",
   "prestige_tooltip_gold_packages": "Packs offerts par or",
   "hex_tooltip_manual": "Manuel",
