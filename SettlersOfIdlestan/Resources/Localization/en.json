@@ -48,6 +48,7 @@
   "building_forge_name": "Forge",
   "building_forge_desc": "Creates tools to improve other production buildings",
   "forge_double_prod": "Double harvest:",
+  "forge_double_prod_research_bonus": "craftsmanship bonus",
   "building_library_name": "Library",
   "building_library_desc": "Increases knowledge production and allows upgrades",
   "building_temple_name": "Temple",

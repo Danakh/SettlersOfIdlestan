@@ -48,6 +48,7 @@
   "building_forge_name": "Forge",
   "building_forge_desc": "Crée des outils pour améliorer les autres bâtiments de production",
   "forge_double_prod": "Récolte double :",
+  "forge_double_prod_research_bonus": "bonus artisanat",
   "building_library_name": "Bibliothèque",
   "building_library_desc": "Augmente la production de connaissances et permet des améliorations",
   "building_temple_name": "Temple",

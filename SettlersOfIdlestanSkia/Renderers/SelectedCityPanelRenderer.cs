@@ -318,7 +318,12 @@ public class SelectedCityPanelRenderer : IGameRenderer
 
                 if (hoveredBuilding is Forge forge && forge.Level > 0)
                 {
-                    tooltipLines.Add(_localization.Get("forge_double_prod") + $" {forge.DoubleProdChancePercent}%");
+                    int forgeBonus = _cityBuildingService.GetSelectedCivilizationForgeBonus(forge);
+                    int totalChance = forge.DoubleProdChancePercent + forgeBonus;
+                    string forgeText = _localization.Get("forge_double_prod") + $" {totalChance}%";
+                    if (forgeBonus > 0)
+                        forgeText += $" ({forge.DoubleProdChancePercent}% + {forgeBonus}% {_localization.Get("forge_double_prod_research_bonus")})";
+                    tooltipLines.Add(forgeText);
                     tooltipLines.Add("");
                 }
 

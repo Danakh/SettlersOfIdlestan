@@ -106,6 +106,16 @@ public class CityBuildingService
         return true;
     }
 
+    public int GetSelectedCivilizationForgeBonus(Forge building)
+    {
+        if (SelectedCity == null)
+            return 0;
+        var islandState = IslandState;
+        if (islandState == null || SelectedCity.CivilizationIndex >= islandState.Civilizations.Count)
+            return 0;
+        return islandState.Civilizations[SelectedCity.CivilizationIndex].ForgeDoubleProdBonus * building.Level;
+    }
+
     public long GetCurrentTick() => _mainGameController.CurrentMainState?.Clock?.CurrentTick ?? 0;
 
     public bool IsAtMaxLevel(Building building)
