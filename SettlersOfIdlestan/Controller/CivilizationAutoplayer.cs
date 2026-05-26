@@ -29,11 +29,11 @@ namespace SettlersOfIdlestan.Controller
         private static readonly BuildingType[] Step1Buildings =
         {
             BuildingType.TownHall, BuildingType.Seaport, BuildingType.Market,
-            BuildingType.Sawmill, BuildingType.Brickworks, BuildingType.Mine, BuildingType.Mill,
+            BuildingType.Sawmill, BuildingType.Brickworks, BuildingType.Quarry, BuildingType.Mill,
         };
 
         private static readonly BuildingType[] Step2Buildings =
-            Step1Buildings.Concat(new[] { BuildingType.Warehouse, BuildingType.Forge }).ToArray();
+            Step1Buildings.Concat(new[] { BuildingType.Warehouse, BuildingType.Mine, BuildingType.Forge }).ToArray();
 
         private static readonly BuildingType[] Step3Buildings =
             Step2Buildings.Concat(new[] { BuildingType.Library, BuildingType.Temple }).ToArray();

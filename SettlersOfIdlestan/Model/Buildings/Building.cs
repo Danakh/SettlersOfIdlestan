@@ -35,7 +35,11 @@ public enum BuildingType
     /// </summary>
     Mill,
     /// <summary>
-    /// Mine - Produit du minerai
+    /// Carrière - Produit de la pierre
+    /// </summary>
+    Quarry,
+    /// <summary>
+    /// Mine - Automatise la récolte de minerai
     /// </summary>
     Mine,
     /// <summary>
@@ -47,7 +51,7 @@ public enum BuildingType
     /// </summary>
     Warehouse,
     /// <summary>
-    /// Forge - Am�liore la production de minerai et permet la cr�ation d'outils
+    /// Forge - Crée des outils pour améliorer les autres bâtiments de production
     /// </summary>
     Forge,
     /// <summary>

@@ -3,34 +3,41 @@ using SettlersOfIdlestan.Model.IslandMap;
 
 namespace SettlersOfIdlestan.Model.Buildings;
 
-public class Mine : Building
+public class Quarry : Building
 {
-    public Mine() : base(BuildingType.Mine)
+    public Quarry() : base(BuildingType.Quarry)
     {
-        AvailableAtLevel = 2;
+        AvailableAtLevel = 1;
     }
 
     public override int GetDefaultMaxLevel() => 4;
 
-    public override Resource? AutomaticHarvestResource => Resource.Ore;
-    public override int AutomaticHarvestUnlockLevel => 1;
+    public override Resource? ManualHarvestResource => Resource.Ore;
+    public override Resource? AutomaticHarvestResource => Resource.Stone;
 
-    public override Resource? AutomaticHarvestCapability(TerrainType terrain)
+    public override Resource? ManualHarvestCapability(TerrainType terrain)
     {
         if (terrain == TerrainType.Mountain)
             return Resource.Ore;
         return null;
     }
 
+    public override int AutomaticHarvestUnlockLevel => 1;
+
+    public override Resource? AutomaticHarvestCapability(TerrainType terrain)
+    {
+        if (terrain == TerrainType.Mountain)
+            return Resource.Stone;
+        return null;
+    }
+
     public override ResourceSet GetBuildCost() => new ResourceSet
     {
-        { Resource.Stone, 40 },
         { Resource.Wood, 20 },
     };
 
     public override ResourceSet GetUpgradeCost(int level) => new ResourceSet
     {
-        { Resource.Stone, 40 * (level + 1) },
         { Resource.Wood, 20 * (level + 1) },
     };
 

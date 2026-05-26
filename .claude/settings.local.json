@@ -31,7 +31,9 @@
       "Bash(Get-ChildItem -Path C:\\\\DEV\\\\SettlersOfIdlestan -Recurse -File -Name)",
       "Bash(Select-Object -First 50)",
       "Bash(Get-ChildItem -Path \"C:\\\\DEV\\\\SettlersOfIdlestan\\\\Model\\\\Buildings\" -File)",
-      "PowerShell(Get-ChildItem -Path \"C:\\\\DEV\\\\SettlersOfIdlestan\" -Recurse -File -ErrorAction SilentlyContinue | Where-Object { $_.Name -match \"Trade\" } | Select-Object -ExpandProperty FullName)"
+      "PowerShell(Get-ChildItem -Path \"C:\\\\DEV\\\\SettlersOfIdlestan\" -Recurse -File -ErrorAction SilentlyContinue | Where-Object { $_.Name -match \"Trade\" } | Select-Object -ExpandProperty FullName)",
+      "Bash(Select-Object -First 20)",
+      "Bash(Format-Table Name)"
     ]
   }
 }

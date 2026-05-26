@@ -205,6 +205,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 BuildingType.Brickworks => new Brickworks(),
                 BuildingType.Mill => new Mill(),
                 BuildingType.Mine => new Mine(),
+                BuildingType.Quarry => new Quarry(),
                 BuildingType.Seaport => new Seaport(),
                 BuildingType.Warehouse => new Warehouse(),
                 BuildingType.Forge => new Forge(),

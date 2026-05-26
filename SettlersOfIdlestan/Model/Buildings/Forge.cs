@@ -17,33 +17,22 @@ public class Forge : Building
 
     public override int GetDefaultMaxLevel() => 4;
 
-    public override Resource? AutomaticHarvestResource => Resource.Ore;
-
-    public override int AutomaticHarvestUnlockLevel => 2;
-
     /// <summary>
     /// Chance (en %) de produire une seconde ressource lors d'une récolte automatique adjacente à cette ville.
     /// </summary>
     public int DoubleProdChancePercent => Level * 10;
 
-    public override Resource? AutomaticHarvestCapability(TerrainType terrain)
-    {
-        if (terrain == TerrainType.Mountain)
-            return Resource.Ore;
-        return null;
-    }
-
     public override ResourceSet GetBuildCost() => new ResourceSet
     {
-        { Resource.Brick, 5 },
+        { Resource.Brick, 40 },
         { Resource.Stone, 20 },
-        { Resource.Ore, 5 }
+        { Resource.Ore, 20 }
     };
 
     public override ResourceSet GetUpgradeCost(int level) => new ResourceSet
     {
-        { Resource.Brick, 5 * (level + 1) },
+        { Resource.Brick, 40 * (level + 1) },
         { Resource.Stone, 20 * (level + 1) },
-        { Resource.Ore, 5 * (level + 1) }
+        { Resource.Ore, 10 * (level * (level + 1)) }
     };
 }

@@ -43,6 +43,7 @@ namespace SettlersOfIdlestan.Model.Buildings
                 BuildingType.Brickworks => typeof(Brickworks),
                 BuildingType.Mill => typeof(Mill),
                 BuildingType.Mine => typeof(Mine),
+                BuildingType.Quarry => typeof(Quarry),
                 BuildingType.Seaport => typeof(Seaport),
                 BuildingType.Warehouse => typeof(Warehouse),
                 BuildingType.Forge => typeof(Forge),
