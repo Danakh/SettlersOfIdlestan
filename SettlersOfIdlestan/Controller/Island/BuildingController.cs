@@ -80,16 +80,18 @@ namespace SettlersOfIdlestan.Controller.Island
 
                 BuildingType[] productionTypes = [BuildingType.Sawmill, BuildingType.Brickworks, BuildingType.Quarry, BuildingType.Mill];
 
-                // Prioritise upgrades of existing buildings, then new builds
-                foreach (var city in civ.Cities)
-                    foreach (var type in productionTypes)
-                        if (city.Buildings.Any(b => b.Type == type) && BuildBuilding(civ.Index, city.Position, type))
-                            goto NextCiv;
-
+                // Prioritise creating new buildings, then upgrade lowest first
                 foreach (var city in civ.Cities)
                     foreach (var type in productionTypes)
                         if (!city.Buildings.Any(b => b.Type == type) && BuildBuilding(civ.Index, city.Position, type))
                             goto NextCiv;
+
+
+                foreach (int level in new[] { 1, 2, 3, 4, 5 })
+                    foreach (var city in civ.Cities)
+                        foreach (var type in productionTypes)
+                            if (city.Buildings.Any(b => b.Type == type && b.Level == level) && BuildBuilding(civ.Index, city.Position, type))
+                                goto NextCiv;
 
                 NextCiv:;
             }
