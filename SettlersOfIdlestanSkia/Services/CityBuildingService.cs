@@ -52,6 +52,16 @@ public class CityBuildingService
         return SelectedCity?.Level >= 4;
     }
 
+    public bool IsBuiltInSelectedCity(Building building)
+    {
+        return SelectedCity != null && SelectedCity.Buildings.Any(b => b.Type == building.Type);
+    }
+
+    public bool SelectedCityHasAnyUniqueBuilding()
+    {
+        return SelectedCity != null && SelectedCity.Buildings.Any(b => b.IsUnique);
+    }
+
     public void TryExecuteSelectedCityBuildingAction(BuildingType buildingType)
     {
         if (SelectedCity != null)
@@ -77,6 +87,10 @@ public class CityBuildingService
 
         // Check build prerequisites (e.g. required other buildings)
         if (building.Level == 0 && !building.HasBuildPrerequisites(SelectedCity))
+            return false;
+
+        // Only one unique building per city
+        if (building.Level == 0 && building.IsUnique && SelectedCityHasAnyUniqueBuilding())
             return false;
 
         // Get the cost for this action

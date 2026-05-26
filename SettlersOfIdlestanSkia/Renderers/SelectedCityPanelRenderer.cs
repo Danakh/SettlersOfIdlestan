@@ -48,6 +48,9 @@ public class SelectedCityPanelRenderer : IGameRenderer
     private City? _lastSelectedCity = null;
     private SKPaint? _tabActivePaint;
     private SKPaint? _tabInactivePaint;
+    private SKPaint? _dimTextPaint;
+    private SKPaint? _dimCostTextPaint;
+    private SKPaint? _btnOtherCityPaint;
     public float ReservedBottomHeight { get; set; }
     public bool IsInputEnabled { get; set; } = true;
 
@@ -88,6 +91,9 @@ public class SelectedCityPanelRenderer : IGameRenderer
         _btnDisabledTextPaint = new SKPaint { Color = new SKColor(150, 150, 150, 255), IsAntialias = true };
         _tabActivePaint = new SKPaint { Color = new SKColor(60, 60, 85, 240), Style = SKPaintStyle.Fill, IsAntialias = true };
         _tabInactivePaint = new SKPaint { Color = new SKColor(20, 20, 30, 180), Style = SKPaintStyle.Fill, IsAntialias = true };
+        _dimTextPaint = new SKPaint { Color = new SKColor(130, 130, 140, 200), IsAntialias = true };
+        _dimCostTextPaint = new SKPaint { Color = new SKColor(100, 100, 110, 160), IsAntialias = true };
+        _btnOtherCityPaint = new SKPaint { Color = new SKColor(60, 55, 80, 200), Style = SKPaintStyle.Fill, IsAntialias = true };
 
         foreach (Resource resource in Enum.GetValues(typeof(Resource)))
         {
@@ -169,61 +175,76 @@ public class SelectedCityPanelRenderer : IGameRenderer
         var visibleBuildings = buildings.Take(visibleBuildingCount).ToList();
         foreach (var (building, index) in visibleBuildings.Select((item, i) => (item, i)))
         {
-            var isBuilt = building.Level > 0;
-            var canBuildOrUpgrade = _cityBuildingService.CanBuildOrUpgrade(building);
-            var isAtMaxLevel = _cityBuildingService.IsAtMaxLevel(building);
+            bool isBuiltInThisCity = building.Level > 0 && _cityBuildingService.IsBuiltInSelectedCity(building);
+            bool isBuiltInOtherCity = building.Level > 0 && !_cityBuildingService.IsBuiltInSelectedCity(building);
+            bool isBuilt = building.Level > 0;
+            var canBuildOrUpgrade = !isBuiltInOtherCity && _cityBuildingService.CanBuildOrUpgrade(building);
+            var isAtMaxLevel = isBuiltInThisCity && _cityBuildingService.IsAtMaxLevel(building);
             var yRow = y + index * RowHeight;
-            var label = _localization.Get(building.NameKey) + (isBuilt ? $" (Niv {building.Level})" : "");
-            canvas.DrawText(label, panelX + Padding, yRow + 18, _font15, _textPaint);
 
-            var cost = isBuilt ? building.GetUpgradeCost(building.Level + 1) : building.GetBuildCost();
-            if (cost.Count > 0)
+            var namePaint = isBuiltInOtherCity ? _dimTextPaint : _textPaint;
+            var label = _localization.Get(building.NameKey) + (isBuilt ? $" (Niv {building.Level})" : "");
+            canvas.DrawText(label, panelX + Padding, yRow + 18, _font15, namePaint);
+
+            if (!isBuiltInOtherCity)
             {
-                const float costIconSize = 11f;
-                float iconX = panelX + Padding;
-                float centerY = yRow + 28f;
-                foreach (var kvp in cost)
+                var cost = isBuiltInThisCity ? building.GetUpgradeCost(building.Level + 1) : building.GetBuildCost();
+                if (cost.Count > 0)
                 {
-                    _resourceIcons.TryGetValue(kvp.Key, out var svg);
-                    var picture = svg?.Picture;
-                    if (picture != null)
+                    const float costIconSize = 11f;
+                    float iconX = panelX + Padding;
+                    float centerY = yRow + 28f;
+                    foreach (var kvp in cost)
                     {
-                        float scale = costIconSize / 32f;
-                        canvas.Save();
-                        canvas.Translate(iconX, centerY - costIconSize / 2f);
-                        canvas.Scale(scale);
-                        canvas.DrawPicture(picture);
-                        canvas.Restore();
+                        _resourceIcons.TryGetValue(kvp.Key, out var svg);
+                        var picture = svg?.Picture;
+                        if (picture != null)
+                        {
+                            float scale = costIconSize / 32f;
+                            canvas.Save();
+                            canvas.Translate(iconX, centerY - costIconSize / 2f);
+                            canvas.Scale(scale);
+                            canvas.DrawPicture(picture);
+                            canvas.Restore();
+                        }
+                        iconX += costIconSize + 2f;
+                        string numText = kvp.Value.ToString();
+                        canvas.DrawText(numText, iconX, centerY + _font10!.Size / 2f, _font10, _costTextPaint);
+                        iconX += _font10.MeasureText(numText) + 6f;
                     }
-                    iconX += costIconSize + 2f;
-                    string numText = kvp.Value.ToString();
-                    canvas.DrawText(numText, iconX, centerY + _font10!.Size / 2f, _font10, _costTextPaint);
-                    iconX += _font10.MeasureText(numText) + 6f;
                 }
             }
 
             // Bouton action
             {
-                var btnText = isBuilt ? _localization.Get("action_upgrade") : _localization.Get("action_build");
-                var btnWidth = 90;
-                var btnHeight = 26;
-                var btnX = panelX + PanelWidth - btnWidth - Padding;
-                var btnY = yRow + 6;
-
-                bool isDisabledBtn = isAtMaxLevel || !canBuildOrUpgrade;
-
-                if (isAtMaxLevel)
-                    btnText = _localization.Get("action_maxlevel");
-
-                var btnFillPaint = isDisabledBtn ? _btnDisabledPaint : (isBuilt ? _btnUpgradePaint : _btnBuildPaint);
-                var btnTextUsePaint = isDisabledBtn ? _btnDisabledTextPaint : _textPaint;
+                const int btnWidth = 90;
+                const int btnHeight = 26;
+                float btnX = panelX + PanelWidth - btnWidth - Padding;
+                float btnY = yRow + 6;
                 float btnCenterX = btnX + btnWidth / 2;
                 float btnCenterY = btnY + btnHeight / 2 + 6;
-                canvas.DrawRoundRect(btnX, btnY, btnWidth, btnHeight, 7, 7, btnFillPaint);
-                canvas.DrawText(btnText, btnCenterX, btnCenterY, SKTextAlign.Center, _font12, btnTextUsePaint);
 
-                var btnRect = new SKRect(btnX, btnY, btnX + btnWidth, btnY + btnHeight);
-                _btnRects[btnRect] = building.Type;
+                if (isBuiltInOtherCity)
+                {
+                    canvas.DrawRoundRect(btnX, btnY, btnWidth, btnHeight, 7, 7, _btnOtherCityPaint);
+                    canvas.DrawText(_localization.Get("unique_other_city"), btnCenterX, btnCenterY, SKTextAlign.Center, _font12, _dimTextPaint);
+                }
+                else if (isBuiltInThisCity || !building.IsUnique || canBuildOrUpgrade)
+                {
+                    var btnText = isBuiltInThisCity ? _localization.Get("action_upgrade") : _localization.Get("action_build");
+                    bool isDisabledBtn = isAtMaxLevel || !canBuildOrUpgrade;
+                    if (isAtMaxLevel)
+                        btnText = _localization.Get("action_maxlevel");
+
+                    var btnFillPaint = isDisabledBtn ? _btnDisabledPaint : (isBuiltInThisCity ? _btnUpgradePaint : _btnBuildPaint);
+                    var btnTextUsePaint = isDisabledBtn ? _btnDisabledTextPaint : _textPaint;
+                    canvas.DrawRoundRect(btnX, btnY, btnWidth, btnHeight, 7, 7, btnFillPaint);
+                    canvas.DrawText(btnText, btnCenterX, btnCenterY, SKTextAlign.Center, _font12, btnTextUsePaint);
+
+                    var btnRect = new SKRect(btnX, btnY, btnX + btnWidth, btnY + btnHeight);
+                    _btnRects[btnRect] = building.Type;
+                }
+
                 var hoverRect = new SKRect(panelX, btnY, panelX + PanelWidth, btnY + btnHeight);
                 _hoverRects[hoverRect] = building.Type;
             }
@@ -244,13 +265,27 @@ public class SelectedCityPanelRenderer : IGameRenderer
 
                 var tooltipLines = new List<string> { buildingName, "", description, "" };
 
-                if (hoveredBuilding.Level == 0 && _cityBuildingService.SelectedCity != null)
+                bool tooltipIsOtherCity = hoveredBuilding.Level > 0 && !_cityBuildingService.IsBuiltInSelectedCity(hoveredBuilding);
+                if (tooltipIsOtherCity)
                 {
-                    var missingKey = hoveredBuilding.GetMissingPrerequisiteKey(_cityBuildingService.SelectedCity);
-                    if (missingKey != null)
+                    tooltipLines.Add(_localization.Get("tooltip_unique_other_city"));
+                    tooltipLines.Add("");
+                }
+                else if (hoveredBuilding.Level == 0 && _cityBuildingService.SelectedCity != null)
+                {
+                    if (hoveredBuilding.IsUnique && _cityBuildingService.SelectedCityHasAnyUniqueBuilding())
                     {
-                        tooltipLines.Add(_localization.Get(missingKey));
+                        tooltipLines.Add(_localization.Get("tooltip_unique_city_limit"));
                         tooltipLines.Add("");
+                    }
+                    else
+                    {
+                        var missingKey = hoveredBuilding.GetMissingPrerequisiteKey(_cityBuildingService.SelectedCity);
+                        if (missingKey != null)
+                        {
+                            tooltipLines.Add(_localization.Get(missingKey));
+                            tooltipLines.Add("");
+                        }
                     }
                 }
 

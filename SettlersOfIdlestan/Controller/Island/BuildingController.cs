@@ -101,6 +101,9 @@ namespace SettlersOfIdlestan.Controller.Island
                     (civ.UniqueBuildings.Contains(type) || civ.Cities.Any(c => c.Buildings.Any(b => b.Type == type))))
                     return false;
 
+                if (prototype.IsUnique && city.Buildings.Any(b => b.IsUnique))
+                    return false;
+
                 cost = prototype.GetBuildCost();
                 resultBuilding = prototype;
             }
