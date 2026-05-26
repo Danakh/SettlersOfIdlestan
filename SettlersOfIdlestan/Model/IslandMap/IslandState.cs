@@ -133,6 +133,11 @@ public class IslandState : IJsonOnDeserialized
     /// </summary>
     public List<TreasureTrove> TreasureTroves { get; set; }
 
+    /// <summary>
+    /// Player-controlled automation toggles. Persisted with the island state.
+    /// </summary>
+    public AutomationSettings AutomationSettings { get; set; } = new();
+
     public IEnumerable<City> GetAllCities()
     {
         return Civilizations.SelectMany(c => c.Cities);

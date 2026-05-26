@@ -131,6 +131,7 @@ public sealed class SkiaGameRuntime : IDisposable
         var timeControlRenderer = new TimeControlRenderer(_gameControllerService, _inputService, _localizationService);
         var researchRenderer = new ResearchRenderer(_gameControllerService, _localizationService, _inputService);
         var eventLogRenderer = new EventLogRenderer(_gameControllerService, _localizationService);
+        var automationRenderer = new AutomationRenderer(_gameControllerService, _localizationService);
         _overlayRenderer = new OverlayRenderer(
             _inputService,
             _gameControllerService,
@@ -144,7 +145,8 @@ public sealed class SkiaGameRuntime : IDisposable
             prestigeHistoryRenderer,
             timeControlRenderer,
             researchRenderer,
-            eventLogRenderer);
+            eventLogRenderer,
+            automationRenderer);
         _renderService.RegisterRenderer(_overlayRenderer);
         _constructionInteractionService.ShouldSuppressHover = () => _overlayRenderer.IsAnyOverlayOpen;
         if (allowDebugMode)

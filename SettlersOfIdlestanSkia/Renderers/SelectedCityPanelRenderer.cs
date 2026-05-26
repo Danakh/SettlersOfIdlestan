@@ -344,6 +344,24 @@ public class SelectedCityPanelRenderer : IGameRenderer
                     tooltipLines.Add("");
                 }
 
+                if (hoveredBuilding is BuildersGuild buildersGuild && buildersGuild.Level > 0)
+                {
+                    long currentTick = _cityBuildingService.GetCurrentTick();
+
+                    long roadElapsed = buildersGuild.LastRoadBuildTick == 0 ? 0 : currentTick - buildersGuild.LastRoadBuildTick;
+                    long roadRemaining = Math.Max(0, RoadController.AutoRoadBuildCooldownTicks - roadElapsed);
+                    tooltipLines.Add(_localization.Get("buildersguild_next_road") + $" {roadRemaining / 100}s/{RoadController.AutoRoadBuildCooldownTicks / 100}s");
+
+                    if (buildersGuild.Level >= 4)
+                    {
+                        long outpostElapsed = buildersGuild.LastOutpostBuildTick == 0 ? 0 : currentTick - buildersGuild.LastOutpostBuildTick;
+                        long outpostRemaining = Math.Max(0, CityBuilderController.AutoOutpostBuildCooldownTicks - outpostElapsed);
+                        tooltipLines.Add(_localization.Get("buildersguild_next_outpost") + $" {outpostRemaining / 100}s/{CityBuilderController.AutoOutpostBuildCooldownTicks / 100}s");
+                    }
+
+                    tooltipLines.Add("");
+                }
+
                 var prestigeController = _cityBuildingService.PrestigeController;
                 if (hoveredBuilding.Level > 0)
                 {

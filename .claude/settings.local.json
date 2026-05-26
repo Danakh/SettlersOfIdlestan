@@ -33,7 +33,9 @@
       "Bash(Get-ChildItem -Path \"C:\\\\DEV\\\\SettlersOfIdlestan\\\\Model\\\\Buildings\" -File)",
       "PowerShell(Get-ChildItem -Path \"C:\\\\DEV\\\\SettlersOfIdlestan\" -Recurse -File -ErrorAction SilentlyContinue | Where-Object { $_.Name -match \"Trade\" } | Select-Object -ExpandProperty FullName)",
       "Bash(Select-Object -First 20)",
-      "Bash(Format-Table Name)"
+      "Bash(Format-Table Name)",
+      "Bash(Find \"C:\\\\DEV\\\\SettlersOfIdlestan\" -name \"*Port*.cs\" -o -name \"*Mine*.cs\" -o -name \"*Forge*.cs\")",
+      "Bash(Select-String -Pattern \"\\(Outpost|CityBuilder|IslandState\\)\")"
     ]
   }
 }

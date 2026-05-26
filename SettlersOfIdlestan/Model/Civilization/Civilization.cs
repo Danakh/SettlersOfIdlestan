@@ -183,7 +183,8 @@ public class Civilization
     {
         foreach (var kvp in cost)
         {
-            RemoveResource(kvp.Key, kvp.Value);
+            if (kvp.Value > 0)
+                RemoveResource(kvp.Key, kvp.Value);
         }
     }
 }

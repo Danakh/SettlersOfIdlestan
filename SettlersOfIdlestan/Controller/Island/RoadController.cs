@@ -4,16 +4,37 @@ using System.Linq;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.HexGrid;
+using SettlersOfIdlestan.Model.Game;
+using SettlersOfIdlestan.Model.Buildings;
 
 namespace SettlersOfIdlestan.Controller.Island
 {
+    public class RoadAutoBuiltEventArgs : EventArgs
+    {
+        public int CivilizationIndex { get; }
+        public Edge RoadPosition { get; }
+
+        public RoadAutoBuiltEventArgs(int civIndex, Edge position)
+        {
+            CivilizationIndex = civIndex;
+            RoadPosition = position;
+        }
+    }
+
     /// <summary>
     /// Contr?le la logique de construction de routes pour un IslandState.
     /// </summary>
     public class RoadController
     {
         private IslandState? _state;
-        private readonly Dictionary<int, List<Road>> _buildableRoadsCache = new();
+        private GameClock? _clock;
+        private GamePRNG _prng = new();
+        private readonly Dictionary<int, (int CityCount, List<Road> Roads)> _buildableRoadsCache = new();
+
+        // 5 s Ã— 100 ticks/s â€” same cadence as automatic harvests
+        public const long AutoRoadBuildCooldownTicks = 500L;
+
+        public event EventHandler<RoadAutoBuiltEventArgs>? OnAutoRoadBuilt;
 
         internal RoadController(IslandState? state = null)
         {
@@ -23,15 +44,81 @@ namespace SettlersOfIdlestan.Controller.Island
         /// <summary>
         /// Initialize or update the IslandState for this controller.
         /// </summary>
-        internal void Initialize(IslandState state)
+        internal void Initialize(IslandState state, GameClock? clock = null, GamePRNG? prng = null)
         {
+            if (_clock != null)
+                _clock.Advanced -= OnClockAdvanced;
+
             _state = state ?? throw new ArgumentNullException(nameof(state));
             _buildableRoadsCache.Clear();
+
+            _clock = clock;
+            if (prng != null) _prng = prng;
+
+            if (_clock != null)
+                _clock.Advanced += OnClockAdvanced;
+        }
+
+        private void OnClockAdvanced(object? sender, GameClockAdvancedEventArgs e)
+        {
+            try { PerformBuildersGuildConstruction(); }
+            catch { }
+        }
+
+        private void PerformBuildersGuildConstruction()
+        {
+            if (_state == null || _clock == null) return;
+            long now = _clock.CurrentTick;
+
+            foreach (var civ in _state.Civilizations)
+            {
+                BuildersGuild? guild = null;
+                foreach (var city in civ.Cities)
+                {
+                    guild = city.Buildings.OfType<BuildersGuild>().FirstOrDefault();
+                    if (guild != null) break;
+                }
+
+                if (guild == null || guild.Level == 0) continue;
+
+                // Keep timer running when disabled to avoid burst on re-enable (player only)
+                bool isPlayerCiv = civ.Index == _state.PlayerCivilization.Index;
+                if (isPlayerCiv && !_state.AutomationSettings.RoadAutomationEnabled)
+                {
+                    guild.LastRoadBuildTick = now;
+                    continue;
+                }
+
+                if (guild.LastRoadBuildTick == 0)
+                {
+                    guild.LastRoadBuildTick = now;
+                    continue;
+                }
+
+                if (now - guild.LastRoadBuildTick < AutoRoadBuildCooldownTicks) continue;
+
+                var candidates = new List<Road>();
+                for (int d = 1; d <= guild.MaxAutoRoadDistance; d++)
+                    candidates.AddRange(GetBuildableRoadsAtDistance(civ.Index, d));
+
+                guild.LastRoadBuildTick = now;
+
+                if (candidates.Count == 0) continue;
+
+                var chosen = candidates[_prng.Next(candidates.Count)];
+                var road = new Road(chosen.Position) { CivilizationIndex = civ.Index, DistanceToNearestCity = chosen.DistanceToNearestCity };
+                civ.Roads.Add(road);
+                ComputeRoadDistancesForCivilization(civ);
+                _buildableRoadsCache.Remove(civ.Index);
+                _state.RecalculateVisibleIslandMap(civ.Index);
+
+                OnAutoRoadBuilt?.Invoke(this, new RoadAutoBuiltEventArgs(civ.Index, chosen.Position));
+            }
         }
 
         /// <summary>
-        /// Retourne la liste des routes constructibles pour la civilisation d'indice spécifié.
-        /// Règle: une arête est constructible si elle n'est pas déjà occupée par une route,
+        /// Retourne la liste des routes constructibles pour la civilisation d'indice spï¿½cifiï¿½.
+        /// Rï¿½gle: une arï¿½te est constructible si elle n'est pas dï¿½jï¿½ occupï¿½e par une route,
         /// et si un de ses deux vertex contient une ville de la civilisation, ou si une route
         /// existante de la civilisation touche ce vertex.
         /// </summary>
@@ -39,19 +126,19 @@ namespace SettlersOfIdlestan.Controller.Island
         {
             if (_state == null) throw new InvalidOperationException("IslandState has not been initialized.");
 
-            if (_buildableRoadsCache.TryGetValue(civilizationIndex, out var cached))
-                return cached;
-
             var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex)
                           ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
+
+            if (_buildableRoadsCache.TryGetValue(civilizationIndex, out var cached) && cached.CityCount == civ.Cities.Count)
+                return cached.Roads;
 
             var mapTiles = _state.Map.Tiles;
 
             // Routes d?j? pr?sentes (toutes civilisations confondues)
             var occupied = new HashSet<Edge>(_state.Civilizations.SelectMany(c => c.Roads).Select(r => r.Position));
 
-            // Collecte les arêtes candidates depuis les vertices des villes
-            // et les arêtes voisines des routes existantes
+            // Collecte les arï¿½tes candidates depuis les vertices des villes
+            // et les arï¿½tes voisines des routes existantes
             var candidates = new HashSet<Edge>();
             foreach (var city in civ.Cities)
             {
@@ -76,12 +163,12 @@ namespace SettlersOfIdlestan.Controller.Island
                 result.Add(road);
             }
 
-            _buildableRoadsCache[civilizationIndex] = result;
+            _buildableRoadsCache[civilizationIndex] = (civ.Cities.Count, result);
             return result;
         }
 
         /// <summary>
-        /// Retourne les routes constructibles pour la civilisation d'indice spécifi? dont la distance
+        /// Retourne les routes constructibles pour la civilisation d'indice spï¿½cifi? dont la distance
         /// ? la ville la plus proche est ?gale ? la valeur fournie (ex: 2).
         /// </summary>
         public List<Road> GetBuildableRoadsAtDistance(int civilizationIndex, int distance)
@@ -94,8 +181,8 @@ namespace SettlersOfIdlestan.Controller.Island
         }
 
         /// <summary>
-        /// Construit une route pour la civilisation si l'arête est constructible.
-        /// Lance une exception si la civilisation ou l'arête n'est pas trouvée ou si l'arête n'est pas constructible.
+        /// Construit une route pour la civilisation si l'arï¿½te est constructible.
+        /// Lance une exception si la civilisation ou l'arï¿½te n'est pas trouvï¿½e ou si l'arï¿½te n'est pas constructible.
         /// </summary>
         public Road BuildRoad(int civilizationIndex, Edge edge)
         {
@@ -104,21 +191,21 @@ namespace SettlersOfIdlestan.Controller.Island
             var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex)
                       ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
 
-            // Vérifier que l'arête fait partie de la carte
+            // Vï¿½rifier que l'arï¿½te fait partie de la carte
             var mapTiles = _state.Map.Tiles;
             if (!mapTiles.ContainsKey(edge.Hex1) || !mapTiles.ContainsKey(edge.Hex2))
                 throw new ArgumentException("Edge not part of the map", nameof(edge));
 
-            // Vérifier que l'arête n'est pas entre deux hexagones de type eau
+            // Vï¿½rifier que l'arï¿½te n'est pas entre deux hexagones de type eau
             if (mapTiles[edge.Hex1].TerrainType == TerrainType.Water && mapTiles[edge.Hex2].TerrainType == TerrainType.Water)
                 throw new InvalidOperationException("Cannot build a road on an edge between two water hexes");
 
-            // Vérifier occupée
+            // Vï¿½rifier occupï¿½e
             var occupied = new HashSet<Edge>(_state.Civilizations.SelectMany(c => c.Roads).Select(r => r.Position));
             if (occupied.Any(e => e.Equals(edge)))
                 throw new InvalidOperationException("Edge already occupied");
 
-            // Vérifier constructible
+            // Vï¿½rifier constructible
             if (!IsEdgeBuildableByCivilization(edge, civ))
                 throw new InvalidOperationException("Edge not buildable by this civilization");
 
@@ -129,7 +216,7 @@ namespace SettlersOfIdlestan.Controller.Island
             if (distance == int.MaxValue)
                 throw new InvalidOperationException("Cannot determine distance to a city for this edge");
 
-            var cost = GetRoadCost(distance);
+            var cost = GetRoadCost(distance, civ);
 
             if (!civ.CanPayResourceCost(cost))
                 throw new InvalidOperationException("Civilization cannot afford to build this road");
@@ -250,10 +337,23 @@ namespace SettlersOfIdlestan.Controller.Island
             };
         }
 
-        public ResourceSet GetRoadCost(int distance)
+        private static int GetGuildRoadCostReduction(Civilization civ)
+        {
+            foreach (var city in civ.Cities)
+            {
+                var guild = city.Buildings.OfType<BuildersGuild>().FirstOrDefault();
+                if (guild != null && guild.Level > 0)
+                    return guild.RoadCostReduction;
+            }
+            return 0;
+        }
+
+        public ResourceSet GetRoadCost(int distance, Civilization? civ = null)
         {
             if (distance <= 0) throw new ArgumentException("Distance must be >= 1", nameof(distance));
             var cost = 1 + (distance * distance);
+            if (civ != null)
+                cost = Math.Max(0, cost - GetGuildRoadCostReduction(civ));
             return new ResourceSet
             {
                 { Resource.Wood, cost },
@@ -262,9 +362,10 @@ namespace SettlersOfIdlestan.Controller.Island
         }
 
         public ResourceSet GetPlayerRoadCost(Edge edge)
-        {            
-            var distance = GetDistanceForEdge(edge, _state!.PlayerCivilization);
-            return GetRoadCost(distance);
+        {
+            var civ = _state!.PlayerCivilization;
+            var distance = GetDistanceForEdge(edge, civ);
+            return GetRoadCost(distance, civ);
         }
     }
 }

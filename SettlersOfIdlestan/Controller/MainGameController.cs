@@ -176,7 +176,7 @@ namespace SettlersOfIdlestan.Controller
                 SetupModifierAggregators(islandState);
 
                 // Initialize controllers to operate on the real island state and clock
-                RoadController.Initialize(islandState);
+                RoadController.Initialize(islandState, Clock, CurrentMainState!.PRNG);
                 // MilitaryController must subscribe to the clock BEFORE BanditController so that
                 // combat resolves before bandit movement in each tick.
                 MilitaryController.Initialize(islandState, Clock);
@@ -184,7 +184,7 @@ namespace SettlersOfIdlestan.Controller
                 HarvestController.Initialize(islandState, Clock, TradeController, BanditController, CurrentMainState!.PRNG);
                 TradeController.Initialize(islandState);
                 BuildingController.Initialize(islandState);
-                CityBuilderController.Initialize(islandState);
+                CityBuilderController.Initialize(islandState, Clock, CurrentMainState!.PRNG);
                 PrestigeController.Initialize(islandState.PlayerCivilization, islandState);
                 ResearchController.Initialize(islandState, Clock, CurrentMainState?.PrestigeState);
                 islandState.PlayerCivilization.TechnologyTree.RebuildModifiers();

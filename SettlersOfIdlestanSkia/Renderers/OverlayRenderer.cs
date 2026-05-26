@@ -1,9 +1,11 @@
 using SettlersOfIdlestan.Controller.Expand;
+using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Services.Localization;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Services;
 using SkiaSharp;
+using System.Collections.Generic;
 
 namespace SettlersOfIdlestanSkia.Renderers;
 
@@ -20,16 +22,14 @@ public sealed class OverlayRenderer : IGameRenderer
     private const float TabHeight = 28;
     private const float TabMarginLeft = 8;
     private const float TabSpacing = 5;
-    private const float TabsContentWidth3 = TabMarginLeft + TabWidth * 3 + TabSpacing * 2 + TabMarginLeft;
-    private const float TabsContentWidth4 = TabMarginLeft + TabWidth * 4 + TabSpacing * 3 + TabMarginLeft;
-    private const float TabsContentWidth5 = TabMarginLeft + TabWidth * 5 + TabSpacing * 4 + TabMarginLeft;
 
     // Logical tab IDs (stable, independent of visual position)
-    private const int TabIsland   = 0;
-    private const int TabResearch = 1;
-    private const int TabPrestige = 2;
-    private const int TabStats    = 3;
-    private const int TabEvents   = 4;
+    private const int TabIsland     = 0;
+    private const int TabResearch   = 1;
+    private const int TabPrestige   = 2;
+    private const int TabStats      = 3;
+    private const int TabEvents     = 4;
+    private const int TabAutomation = 5;
 
     private readonly InputHandlingService _inputService;
     private readonly GameControllerService _gameControllerService;
@@ -44,6 +44,7 @@ public sealed class OverlayRenderer : IGameRenderer
     private readonly TimeControlRenderer _timeControlRenderer;
     private readonly ResearchRenderer _researchRenderer;
     private readonly EventLogRenderer _eventLogRenderer;
+    private readonly AutomationRenderer _automationRenderer;
 
     private readonly SKPaint _buttonPaint = new() { Color = new SKColor(46, 125, 50), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _disabledButtonPaint = new() { Color = new SKColor(90, 90, 96), Style = SKPaintStyle.Fill, IsAntialias = true };
@@ -59,13 +60,13 @@ public sealed class OverlayRenderer : IGameRenderer
     private SKSize _canvasSize;
     private SKRect _tradeButtonRect = SKRect.Empty;
     private SKRect _prestigeButtonRect = SKRect.Empty;
-    private SKRect _tab1Rect = SKRect.Empty;
-    private SKRect _tab2Rect = SKRect.Empty;
-    private SKRect _tab3Rect = SKRect.Empty;
-    private SKRect _tab4Rect = SKRect.Empty;
-    private SKRect _tab5Rect = SKRect.Empty;
+
+    // Dynamic tab list: (tabId, screenRect) computed each frame
+    private readonly List<(int tabId, SKRect rect)> _activeTabs = new();
+
     private int _activeTab = TabIsland;
     private bool _hasResearchTab;
+    private bool _hasAutomationTab;
     private bool _disposed;
     private bool _isVisible = true;
 
@@ -82,7 +83,8 @@ public sealed class OverlayRenderer : IGameRenderer
         PrestigeHistoryRenderer prestigeHistoryRenderer,
         TimeControlRenderer timeControlRenderer,
         ResearchRenderer researchRenderer,
-        EventLogRenderer eventLogRenderer)
+        EventLogRenderer eventLogRenderer,
+        AutomationRenderer automationRenderer)
     {
         _inputService = inputService;
         _gameControllerService = gameControllerService;
@@ -97,6 +99,7 @@ public sealed class OverlayRenderer : IGameRenderer
         _timeControlRenderer = timeControlRenderer;
         _researchRenderer = researchRenderer;
         _eventLogRenderer = eventLogRenderer;
+        _automationRenderer = automationRenderer;
         _inputService.PointerPressed += HandlePointerPressed;
         _inputService.PointerMoved += HandlePointerMoved;
         _inputService.KeyPressed += HandleKeyInput;
@@ -114,6 +117,7 @@ public sealed class OverlayRenderer : IGameRenderer
         _prestigeHistoryRenderer.Initialize(canvasSize);
         _researchRenderer.Initialize(canvasSize);
         _eventLogRenderer.Initialize(canvasSize);
+        _automationRenderer.Initialize(canvasSize);
 
         float gearX = canvasSize.Width - PlayerResourcesOverlayRenderer.Padding - PlayerResourcesOverlayRenderer.IconSize;
         float timeControlRight = gearX - 8f;
@@ -127,49 +131,34 @@ public sealed class OverlayRenderer : IGameRenderer
 
         bool showTabs = HasPrestigePoints(context);
         _hasResearchTab = IsResearchUnlocked();
+        _hasAutomationTab = HasBuildersGuild();
 
+        // Sanitize active tab if it's no longer available
         if (!_hasResearchTab && _activeTab == TabResearch) _activeTab = TabIsland;
         if (!showTabs && (_activeTab == TabPrestige || _activeTab == TabStats || _activeTab == TabEvents)) _activeTab = TabIsland;
+        if (!_hasAutomationTab && _activeTab == TabAutomation) _activeTab = TabIsland;
 
-        _tab1Rect = SKRect.Empty;
-        _tab2Rect = SKRect.Empty;
-        _tab3Rect = SKRect.Empty;
-        _tab4Rect = SKRect.Empty;
-        _tab5Rect = SKRect.Empty;
+        // Build the ordered list of visible tabs for this frame
+        _activeTabs.Clear();
+        _activeTabs.Add((TabIsland, default));
+        if (_hasResearchTab) _activeTabs.Add((TabResearch, default));
+        if (showTabs) { _activeTabs.Add((TabPrestige, default)); _activeTabs.Add((TabStats, default)); _activeTabs.Add((TabEvents, default)); }
+        if (_hasAutomationTab) _activeTabs.Add((TabAutomation, default));
 
-        if (_hasResearchTab && showTabs)
+        if (_activeTabs.Count > 1)
         {
-            // 5 tabs: Island | Research | Prestige | Stats | Events
             float tabY = (PlayerResourcesOverlayRenderer.BarHeight - TabHeight) / 2;
-            _tab1Rect = new SKRect(TabMarginLeft, tabY, TabMarginLeft + TabWidth, tabY + TabHeight);
-            _tab2Rect = new SKRect(_tab1Rect.Right + TabSpacing, tabY, _tab1Rect.Right + TabSpacing + TabWidth, tabY + TabHeight);
-            _tab3Rect = new SKRect(_tab2Rect.Right + TabSpacing, tabY, _tab2Rect.Right + TabSpacing + TabWidth, tabY + TabHeight);
-            _tab4Rect = new SKRect(_tab3Rect.Right + TabSpacing, tabY, _tab3Rect.Right + TabSpacing + TabWidth, tabY + TabHeight);
-            _tab5Rect = new SKRect(_tab4Rect.Right + TabSpacing, tabY, _tab4Rect.Right + TabSpacing + TabWidth, tabY + TabHeight);
-            _playerResourcesOverlayRenderer.ResourceStartX = TabsContentWidth5;
-        }
-        else if (_hasResearchTab)
-        {
-            // 2 tabs: Island | Research (no prestige)
-            float tabY = (PlayerResourcesOverlayRenderer.BarHeight - TabHeight) / 2;
-            _tab1Rect = new SKRect(TabMarginLeft, tabY, TabMarginLeft + TabWidth, tabY + TabHeight);
-            _tab2Rect = new SKRect(_tab1Rect.Right + TabSpacing, tabY, _tab1Rect.Right + TabSpacing + TabWidth, tabY + TabHeight);
-            _playerResourcesOverlayRenderer.ResourceStartX = TabMarginLeft + TabWidth * 2 + TabSpacing + TabMarginLeft;
-            if (_activeTab == TabPrestige || _activeTab == TabStats || _activeTab == TabEvents) _activeTab = TabIsland;
-        }
-        else if (showTabs)
-        {
-            // 4 tabs: Island | Prestige | Stats | Events (no research)
-            float tabY = (PlayerResourcesOverlayRenderer.BarHeight - TabHeight) / 2;
-            _tab1Rect = new SKRect(TabMarginLeft, tabY, TabMarginLeft + TabWidth, tabY + TabHeight);
-            _tab2Rect = new SKRect(_tab1Rect.Right + TabSpacing, tabY, _tab1Rect.Right + TabSpacing + TabWidth, tabY + TabHeight);
-            _tab3Rect = new SKRect(_tab2Rect.Right + TabSpacing, tabY, _tab2Rect.Right + TabSpacing + TabWidth, tabY + TabHeight);
-            _tab4Rect = new SKRect(_tab3Rect.Right + TabSpacing, tabY, _tab3Rect.Right + TabSpacing + TabWidth, tabY + TabHeight);
-            _playerResourcesOverlayRenderer.ResourceStartX = TabsContentWidth4;
+            float tabX = TabMarginLeft;
+            for (int i = 0; i < _activeTabs.Count; i++)
+            {
+                var rect = new SKRect(tabX, tabY, tabX + TabWidth, tabY + TabHeight);
+                _activeTabs[i] = (_activeTabs[i].tabId, rect);
+                tabX += TabWidth + TabSpacing;
+            }
+            _playerResourcesOverlayRenderer.ResourceStartX = tabX + TabMarginLeft;
         }
         else
         {
-            _activeTab = TabIsland;
             _playerResourcesOverlayRenderer.ResourceStartX = PlayerResourcesOverlayRenderer.Padding;
         }
 
@@ -180,19 +169,19 @@ public sealed class OverlayRenderer : IGameRenderer
             _ => BarDisplayMode.Island,
         };
 
-        bool onResearchTab = _activeTab == TabResearch && _hasResearchTab;
-        bool onPrestigeTab = _activeTab == TabPrestige;
-        bool onHistoryTab  = _activeTab == TabStats;
-        bool onEventsTab   = _activeTab == TabEvents;
+        bool onResearchTab    = _activeTab == TabResearch    && _hasResearchTab;
+        bool onPrestigeTab    = _activeTab == TabPrestige;
+        bool onHistoryTab     = _activeTab == TabStats;
+        bool onEventsTab      = _activeTab == TabEvents;
+        bool onAutomationTab  = _activeTab == TabAutomation  && _hasAutomationTab;
 
-        _selectedCityPanelRenderer.IsInputEnabled = !onResearchTab && !onPrestigeTab && !onHistoryTab && !onEventsTab
+        _selectedCityPanelRenderer.IsInputEnabled = !onResearchTab && !onPrestigeTab && !onHistoryTab && !onEventsTab && !onAutomationTab
             && !_tradeRenderer.IsOpen && !_prestigeRenderer.IsOpen;
         _researchRenderer.IsActive = onResearchTab;
 
         _playerResourcesOverlayRenderer.Render(canvas, context);
 
-        bool anyTabs = !_tab1Rect.IsEmpty;
-        if (anyTabs)
+        if (_activeTabs.Count > 1)
             DrawTabButtons(canvas);
 
         if (onResearchTab)
@@ -210,6 +199,10 @@ public sealed class OverlayRenderer : IGameRenderer
         else if (onEventsTab)
         {
             _eventLogRenderer.RenderEvents(canvas, context);
+        }
+        else if (onAutomationTab)
+        {
+            _automationRenderer.RenderAutomationPage(canvas, context);
         }
         else
         {
@@ -237,32 +230,36 @@ public sealed class OverlayRenderer : IGameRenderer
         catch { return false; }
     }
 
+    private bool HasBuildersGuild()
+    {
+        try
+        {
+            var civ = _gameControllerService.PlayerCivilization;
+            if (civ == null) return false;
+            foreach (var city in civ.Cities)
+                if (city.Buildings.OfType<BuildersGuild>().Any(g => g.Level > 0))
+                    return true;
+            return false;
+        }
+        catch { return false; }
+    }
+
     private void DrawTabButtons(SKCanvas canvas)
     {
-        if (_hasResearchTab && !_tab5Rect.IsEmpty)
-        {
-            // 5-tab mode: Island | Research | Prestige | Stats | Events
-            DrawTab(canvas, _tab1Rect, _localization.Get("tab_island"),       _activeTab == TabIsland);
-            DrawTab(canvas, _tab2Rect, _localization.Get("tab_research"),      _activeTab == TabResearch);
-            DrawTab(canvas, _tab3Rect, _localization.Get("tab_prestige_map"),  _activeTab == TabPrestige);
-            DrawTab(canvas, _tab4Rect, _localization.Get("tab_stats"),         _activeTab == TabStats);
-            DrawTab(canvas, _tab5Rect, _localization.Get("tab_events"),        _activeTab == TabEvents);
-        }
-        else if (_hasResearchTab && !_tab2Rect.IsEmpty)
-        {
-            // 2-tab mode: Island | Research
-            DrawTab(canvas, _tab1Rect, _localization.Get("tab_island"),   _activeTab == TabIsland);
-            DrawTab(canvas, _tab2Rect, _localization.Get("tab_research"), _activeTab == TabResearch);
-        }
-        else if (!_tab4Rect.IsEmpty)
-        {
-            // 4-tab mode: Island | Prestige | Stats | Events
-            DrawTab(canvas, _tab1Rect, _localization.Get("tab_island"),       _activeTab == TabIsland);
-            DrawTab(canvas, _tab2Rect, _localization.Get("tab_prestige_map"),  _activeTab == TabPrestige);
-            DrawTab(canvas, _tab3Rect, _localization.Get("tab_stats"),         _activeTab == TabStats);
-            DrawTab(canvas, _tab4Rect, _localization.Get("tab_events"),        _activeTab == TabEvents);
-        }
+        foreach (var (tabId, rect) in _activeTabs)
+            DrawTab(canvas, rect, GetTabLabel(tabId), _activeTab == tabId);
     }
+
+    private string GetTabLabel(int tabId) => tabId switch
+    {
+        TabIsland     => _localization.Get("tab_island"),
+        TabResearch   => _localization.Get("tab_research"),
+        TabPrestige   => _localization.Get("tab_prestige_map"),
+        TabStats      => _localization.Get("tab_stats"),
+        TabEvents     => _localization.Get("tab_events"),
+        TabAutomation => _localization.Get("tab_automation"),
+        _             => "?"
+    };
 
     private void DrawTab(SKCanvas canvas, SKRect rect, string label, bool isActive)
     {
@@ -331,6 +328,8 @@ public sealed class OverlayRenderer : IGameRenderer
             _tradeRenderer.HandlePointerMoved(e.Position);
         if (_activeTab == TabPrestige)
             _prestigeMapRenderer.HandlePointerMoved(e.Position);
+        if (_activeTab == TabAutomation)
+            _automationRenderer.HandlePointerMoved(e.Position);
     }
 
     private void HandlePointerPressed(object? sender, PointerEventArgs e)
@@ -342,35 +341,24 @@ public sealed class OverlayRenderer : IGameRenderer
         if (e.Button != PointerButton.Left) return;
 
         // Tab clicks
-        if (!_tab1Rect.IsEmpty && _tab1Rect.Contains(e.Position.X, e.Position.Y))
+        foreach (var (tabId, rect) in _activeTabs)
         {
-            _activeTab = TabIsland;
-            return;
-        }
-        if (!_tab2Rect.IsEmpty && _tab2Rect.Contains(e.Position.X, e.Position.Y))
-        {
-            _activeTab = _hasResearchTab ? TabResearch : TabPrestige;
-            return;
-        }
-        if (!_tab3Rect.IsEmpty && _tab3Rect.Contains(e.Position.X, e.Position.Y))
-        {
-            _activeTab = _hasResearchTab ? TabPrestige : TabStats;
-            return;
-        }
-        if (!_tab4Rect.IsEmpty && _tab4Rect.Contains(e.Position.X, e.Position.Y))
-        {
-            _activeTab = _hasResearchTab ? TabStats : TabEvents;
-            return;
-        }
-        if (!_tab5Rect.IsEmpty && _tab5Rect.Contains(e.Position.X, e.Position.Y))
-        {
-            _activeTab = TabEvents;
-            return;
+            if (rect.Contains(e.Position.X, e.Position.Y))
+            {
+                _activeTab = tabId;
+                return;
+            }
         }
 
         if (_activeTab == TabPrestige)
         {
             _prestigeMapRenderer.HandlePointerPressed(e.Position);
+            return;
+        }
+
+        if (_activeTab == TabAutomation)
+        {
+            _automationRenderer.HandlePointerPressed(e.Position);
             return;
         }
 
@@ -428,11 +416,12 @@ public sealed class OverlayRenderer : IGameRenderer
         if (!_isVisible) return;
         switch (e.Key)
         {
-            case "I": _activeTab = TabIsland;   break;
-            case "R": _activeTab = TabResearch;  break;
-            case "P": _activeTab = TabPrestige;  break;
-            case "S": _activeTab = TabStats;     break;
-            case "E": _activeTab = TabEvents;    break;
+            case "I": _activeTab = TabIsland;     break;
+            case "R": _activeTab = TabResearch;   break;
+            case "P": _activeTab = TabPrestige;   break;
+            case "S": _activeTab = TabStats;      break;
+            case "E": _activeTab = TabEvents;     break;
+            case "A": if (_hasAutomationTab) _activeTab = TabAutomation; break;
         }
     }
 
@@ -462,6 +451,7 @@ public sealed class OverlayRenderer : IGameRenderer
         _timeControlRenderer.Dispose();
         _researchRenderer.Dispose();
         _eventLogRenderer.Dispose();
+        _automationRenderer.Dispose();
         _disposed = true;
     }
 }

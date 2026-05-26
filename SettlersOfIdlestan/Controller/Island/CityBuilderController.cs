@@ -4,15 +4,36 @@ using System.Linq;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
+using SettlersOfIdlestan.Model.Game;
+using SettlersOfIdlestan.Model.Buildings;
 
 namespace SettlersOfIdlestan.Controller.Island
 {
+    public class OutpostAutoBuiltEventArgs : EventArgs
+    {
+        public int CivilizationIndex { get; }
+        public Vertex Position { get; }
+
+        public OutpostAutoBuiltEventArgs(int civIndex, Vertex position)
+        {
+            CivilizationIndex = civIndex;
+            Position = position;
+        }
+    }
+
     /// <summary>
     /// Controller handling city construction.
     /// </summary>
     public class CityBuilderController
     {
         private IslandState? _state;
+        private GameClock? _clock;
+        private GamePRNG _prng = new();
+
+        // 10 s × 100 ticks/s
+        public const long AutoOutpostBuildCooldownTicks = 1000L;
+
+        public event EventHandler<OutpostAutoBuiltEventArgs>? OnAutoOutpostBuilt;
 
         internal CityBuilderController(IslandState? state = null)
         {
@@ -22,9 +43,70 @@ namespace SettlersOfIdlestan.Controller.Island
         /// <summary>
         /// Initialize or update the IslandState for this controller.
         /// </summary>
-        internal void Initialize(IslandState state)
+        internal void Initialize(IslandState state, GameClock? clock = null, GamePRNG? prng = null)
         {
+            if (_clock != null)
+                _clock.Advanced -= OnClockAdvanced;
+
             _state = state ?? throw new ArgumentNullException(nameof(state));
+            _clock = clock;
+            if (prng != null) _prng = prng;
+
+            if (_clock != null)
+                _clock.Advanced += OnClockAdvanced;
+        }
+
+        private void OnClockAdvanced(object? sender, GameClockAdvancedEventArgs e)
+        {
+            try { PerformBuildersGuildOutpostConstruction(); }
+            catch { }
+        }
+
+        private void PerformBuildersGuildOutpostConstruction()
+        {
+            if (_state == null || _clock == null) return;
+
+            long now = _clock.CurrentTick;
+            var civ = _state.PlayerCivilization;
+
+            BuildersGuild? guild = null;
+            foreach (var city in civ.Cities)
+            {
+                guild = city.Buildings.OfType<BuildersGuild>().FirstOrDefault();
+                if (guild != null) break;
+            }
+
+            if (guild == null || guild.Level < 4) return;
+
+            // Keep timer running even when disabled to avoid burst on re-enable
+            if (!_state.AutomationSettings.OutpostAutomationEnabled)
+            {
+                guild.LastOutpostBuildTick = now;
+                return;
+            }
+
+            if (guild.LastOutpostBuildTick == 0)
+            {
+                guild.LastOutpostBuildTick = now;
+                return;
+            }
+
+            if (now - guild.LastOutpostBuildTick < AutoOutpostBuildCooldownTicks) return;
+
+            guild.LastOutpostBuildTick = now;
+
+            var buildable = GetBuildableVertices(civ.Index);
+            if (buildable.Count == 0) return;
+
+            var chosen = buildable[_prng.Next(buildable.Count)];
+            if (!civ.CanPayResourceCost(NewCityBuildingCost())) return;
+
+            try
+            {
+                BuildCity(civ.Index, chosen);
+                OnAutoOutpostBuilt?.Invoke(this, new OutpostAutoBuiltEventArgs(civ.Index, chosen));
+            }
+            catch { }
         }
 
         /// <summary>
