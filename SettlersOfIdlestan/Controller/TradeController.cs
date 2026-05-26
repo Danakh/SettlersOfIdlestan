@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using SettlersOfIdlestan.Model.GameplayModifier;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Buildings;
+using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
 
 namespace SettlersOfIdlestan.Controller
 {
@@ -19,6 +21,17 @@ namespace SettlersOfIdlestan.Controller
         public const int GoldPackValue = 10;
 
         public int ReceiveRate(Resource resource) => resource == Resource.Gold ? GoldPackValue : 1;
+
+        /// <summary>
+        /// Number of offer packs required to receive one unit of Gold, after applying prestige modifiers.
+        /// </summary>
+        public int GoldPackCost(int civIndex)
+        {
+            var civ = _state?.Civilizations.Find(c => c.Index == civIndex);
+            if (civ == null) return GoldPackValue;
+            double cost = civ.ModifierAggregator.ApplyModifiers(ECategory.TRADE_GOLD_PACKAGES, "", (double)GoldPackValue);
+            return Math.Max(1, (int)cost);
+        }
 
         internal TradeController(IslandState? state = null)
         {

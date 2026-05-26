@@ -21,7 +21,7 @@ public class HarvestersGuild : Building, IModifierProvider
 
     public override bool IsUnique => true;
     public override bool ProvidesAutomation => true;
-    public override int GetDefaultMaxLevel() => 1;
+    public override int GetDefaultMaxLevel() => 0;
 
     public long GetAutoProductionCooldownTicks() => 1000L;
 

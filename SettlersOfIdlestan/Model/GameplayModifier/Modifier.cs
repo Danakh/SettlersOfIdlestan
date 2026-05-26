@@ -16,6 +16,7 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             RESEARCH_COST_REDUCTION,
             STORAGE_CAPACITY_BASIC,
             STORAGE_CAPACITY_ADVANCED,
+            TRADE_GOLD_PACKAGES,
         }
 
         public enum EType

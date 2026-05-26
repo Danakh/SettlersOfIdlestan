@@ -783,8 +783,11 @@ public sealed class TradeRenderer : IDisposable
 
     private int GetRequestPackCount()
     {
+        var civ = _gameControllerService.PlayerCivilization;
         var tc = _gameControllerService.MainGameController.TradeController;
-        return _requested.Sum(kv => kv.Value * tc.ReceiveRate(kv.Key));
+        if (civ == null) return 0;
+        return _requested.Sum(kv =>
+            kv.Value * (kv.Key == Resource.Gold ? tc.GoldPackCost(civ.Index) : tc.ReceiveRate(kv.Key)));
     }
 
     private bool CanTrade()
@@ -811,7 +814,7 @@ public sealed class TradeRenderer : IDisposable
 
         foreach (var (toRes, toCount) in _requested.ToList())
         {
-            int packCostPerUnit = tc.ReceiveRate(toRes); // 1 for basic, 10 for Gold
+            int packCostPerUnit = toRes == Resource.Gold ? tc.GoldPackCost(civ.Index) : tc.ReceiveRate(toRes);
             for (int unit = 0; unit < toCount; unit++)
             {
                 var packsConsumed = new Dictionary<Resource, int>();

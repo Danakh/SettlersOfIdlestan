@@ -25,9 +25,10 @@ public sealed class PrestigeMapRenderer : IGameRenderer
     // Roads: Central vertex connected to each outer vertex
     private static readonly (Vertex A, Vertex B)[] AllEdges =
     {
-        (PrestigeMap.CentralVertex, PrestigeMap.BarracksVertex),
-        (PrestigeMap.CentralVertex, PrestigeMap.SeaportMarketVertex),
-        (PrestigeMap.CentralVertex, PrestigeMap.LaboratoryVertex),
+        (PrestigeMap.CentralVertex,       PrestigeMap.BarracksVertex),
+        (PrestigeMap.CentralVertex,       PrestigeMap.SeaportMarketVertex),
+        (PrestigeMap.CentralVertex,       PrestigeMap.LaboratoryVertex),
+        (PrestigeMap.SeaportMarketVertex, PrestigeMap.HarvestGuildVertex),
     };
 
     // Local-space position of the Central vertex (used to offset all other positions)
@@ -334,6 +335,7 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         Modifier.ECategory.RESEARCH_COST_REDUCTION  => $"-{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_research_cost")}",
         Modifier.ECategory.STORAGE_CAPACITY_BASIC    => $"+{(int)mod.Value} {_localization.Get("prestige_tooltip_storage_basic")}",
         Modifier.ECategory.STORAGE_CAPACITY_ADVANCED => $"+{(int)mod.Value} {_localization.Get("prestige_tooltip_storage_advanced")}",
+        Modifier.ECategory.TRADE_GOLD_PACKAGES       => $"{mod.Value:0.##} {_localization.Get("prestige_tooltip_gold_packages")}",
         _ => $"+{mod.Value}"
     };
 

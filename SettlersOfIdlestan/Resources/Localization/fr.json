@@ -1,4 +1,4 @@
-{
+﻿{
   "menu_language": "Langue",
   "menu_language_french": "Français",
   "menu_language_english": "English",
@@ -191,6 +191,9 @@
   "prestige_hex_unit_production_speed": "Production d'unités",
   "prestige_hex_research_cost_reduction": "Coût de recherche",
   "prestige_hex_storage_capacity": "Capacité de stockage",
+  "prestige_vertex_harvesters_guild": "Guilde des récolteurs",
+  "prestige_hex_gold_trade": "Commerce d'or",
+  "prestige_tooltip_gold_packages": "Packs offerts par or",
   "hex_tooltip_manual": "Manuel",
   "hex_tooltip_auto": "Auto",
   "hex_tooltip_ready": "Prêt!",
@@ -236,3 +239,4 @@
   "event_treasure_claimed_title": "💰 Trésor réclamé !",
   "event_treasure_claimed_body": "+10 Or ajoutés à votre trésorerie."
 }
+
