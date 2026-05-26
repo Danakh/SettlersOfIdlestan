@@ -77,6 +77,12 @@ public class Civilization
     public int ForgeDoubleProdBonus => ModifierAggregator.ApplyModifiers(ECategory.FORGE_DOUBLE_PROD_BONUS, "", 0);
 
     /// <summary>
+    /// Chance (en %) qu'une mine produise de l'or à la place d'un minerai lors d'une récolte automatique.
+    /// </summary>
+    [JsonIgnore]
+    public int MineGoldChancePercent => ModifierAggregator.ApplyModifiers(ECategory.MINE_GOLD_CHANCE_PERCENT, "", 0);
+
+    /// <summary>
     /// Liste des ressources d�tenues par la civilisation.
     /// </summary>
     // Resources are stored as a map from Resource -> quantity.

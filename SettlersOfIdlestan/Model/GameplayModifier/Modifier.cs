@@ -18,6 +18,7 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             STORAGE_CAPACITY_ADVANCED,
             TRADE_GOLD_PACKAGES,
             FORGE_DOUBLE_PROD_BONUS,
+            MINE_GOLD_CHANCE_PERCENT,
         }
 
         public enum EType

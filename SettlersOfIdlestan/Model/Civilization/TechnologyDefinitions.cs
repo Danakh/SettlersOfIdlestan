@@ -54,6 +54,12 @@ public static class TechnologyDefinitions
             cost: 100,
             prerequisites: Array.Empty<TechnologyId>(),
             modifiers: new Modifier[] { new(ECategory.FORGE_DOUBLE_PROD_BONUS, EType.ADDITIVE, 5) }),
+
+        new(TechnologyId.Orpaillage,
+            "tech_orpaillage_name", "tech_orpaillage_desc",
+            cost: 100,
+            prerequisites: new[] { TechnologyId.Artisanat },
+            modifiers: new Modifier[] { new(ECategory.MINE_GOLD_CHANCE_PERCENT, EType.ADDITIVE, 10) }),
     };
 
     public static Technology? Get(TechnologyId id) => All.FirstOrDefault(t => t.Id == id);

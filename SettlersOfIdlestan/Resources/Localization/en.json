@@ -241,6 +241,8 @@
   "tech_scholarship_desc": "+20% research speed",
   "tech_artisanat_name": "Craftsmanship",
   "tech_artisanat_desc": "+5% Forge double harvest chance",
+  "tech_orpaillage_name": "Gold Panning",
+  "tech_orpaillage_desc": "10% chance for mines to produce gold instead of ore",
   "tab_events": "Events",
   "events_empty": "No events yet.",
   "event_bandit_title": "⚔ Bandit spotted!",

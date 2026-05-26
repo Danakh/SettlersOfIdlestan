@@ -149,7 +149,7 @@ namespace SettlersOfIdlestan.Controller.Island
                     // One harvest per capable building
                     // Regroupe par ville pour n'émettre qu'une seule notification par couple (hex, ville)
                     var byCity = new System.Collections.Generic.Dictionary<City, ResourceSet>();
-                    foreach (var (city, _, resource, _) in capable)
+                    foreach (var (city, building, resource, _) in capable)
                     {
                         if (!byCity.TryGetValue(city, out var harvested))
                         {
@@ -157,18 +157,24 @@ namespace SettlersOfIdlestan.Controller.Island
                             byCity[city] = harvested;
                         }
 
-                        TryAutoTradeOnOverflow(civ, resource);
-                        civ.AddResource(resource, 1);
-                        harvested[resource] += 1;
+                        // Orpaillage: chance de produire de l'or à la place du minerai
+                        var actualResource = resource;
+                        if (building is Mine && resource == Resource.Ore && civ.MineGoldChancePercent > 0
+                            && _prng.Next(100) < civ.MineGoldChancePercent)
+                            actualResource = Resource.Gold;
+
+                        TryAutoTradeOnOverflow(civ, actualResource);
+                        civ.AddResource(actualResource, 1);
+                        harvested[actualResource] += 1;
 
                         // Forge bonus: 10% par niveau + bonus technologie Artisanat
                         var forge = city.Buildings.OfType<Forge>().FirstOrDefault();
                         int forgeChance = forge != null ? forge.DoubleProdChancePercent + civ.ForgeDoubleProdBonus : 0;
                         if (forge != null && forge.Level > 0 && _prng.Next(100) < forgeChance)
                         {
-                            TryAutoTradeOnOverflow(civ, resource);
-                            civ.AddResource(resource, 1);
-                            harvested[resource] += 1;
+                            TryAutoTradeOnOverflow(civ, actualResource);
+                            civ.AddResource(actualResource, 1);
+                            harvested[actualResource] += 1;
                         }
                     }
 

@@ -241,6 +241,8 @@
   "tech_scholarship_desc": "+20% vitesse de recherche",
   "tech_artisanat_name": "Artisanat",
   "tech_artisanat_desc": "+5% de chance de double récolte sur la Forge",
+  "tech_orpaillage_name": "Orpaillage",
+  "tech_orpaillage_desc": "10% de chance que les mines produisent de l'or à la place d'un minerai",
   "tab_events": "Événements",
   "events_empty": "Aucun événement pour l'instant.",
   "event_bandit_title": "⚔ Bandit repéré !",

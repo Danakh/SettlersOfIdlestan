@@ -12,6 +12,7 @@ public enum TechnologyId
     StorageOptimization,
     Scholarship,
     Artisanat,
+    Orpaillage,
 }
 
 public enum TechnologyStatus
