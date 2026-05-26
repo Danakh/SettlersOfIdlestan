@@ -15,6 +15,9 @@ namespace SettlersOfIdlestan.Controller
     {
         private IslandState? _state;
         private const int BasicResourceTradeRate = 5;
+        public const int GoldPackValue = 10;
+
+        public int ReceiveRate(Resource resource) => resource == Resource.Gold ? GoldPackValue : 1;
 
         internal TradeController(IslandState? state = null)
         {
@@ -65,6 +68,11 @@ namespace SettlersOfIdlestan.Controller
 
             if (!IsTradeAvailable(civilizationIndex))
                 throw new InvalidOperationException("Trading not available:  civilization must own a Market or a Seaport");
+
+            if (!ResourceUtils.BasicResources.Contains(from))
+                throw new ArgumentException($"Only basic resources can be offered in trade.", nameof(from));
+            if (!ResourceUtils.BasicResources.Contains(to))
+                throw new ArgumentException($"Only basic resources can be received via Trade().", nameof(to));
 
             if (!CanTradeResource(civ, from) || !CanTradeResource(civ, to))
                 throw new InvalidOperationException("Trading unavailable for this resource capacity.");
@@ -151,6 +159,66 @@ namespace SettlersOfIdlestan.Controller
             civ.SeaportAutoTradeResources.Add(resource);
         }
 
+        /// <summary>
+        /// Execute a trade consuming specific amounts of multiple basic offer resources to receive toQuantity of a target resource.
+        /// Used for multi-resource or Gold exchange trades where the simple Trade() method is insufficient.
+        /// </summary>
+        public void TradeMultiForSingle(int civIndex, IReadOnlyDictionary<Resource, int> offerAmounts, Resource to, int toQuantity = 1)
+        {
+            if (_state == null) throw new InvalidOperationException("IslandState has not been initialized.");
+
+            var civ = _state.Civilizations.Find(c => c.Index == civIndex)
+                      ?? throw new ArgumentException("Civilization not found", nameof(civIndex));
+
+            if (!IsTradeAvailable(civIndex))
+                throw new InvalidOperationException("Trading not available.");
+
+            foreach (var (from, amount) in offerAmounts)
+            {
+                if (!ResourceUtils.BasicResources.Contains(from))
+                    throw new ArgumentException($"Only basic resources can be offered: {from}");
+                if (civ.GetResourceQuantity(from) < amount)
+                    throw new InvalidOperationException($"Not enough {from}: need {amount}");
+            }
+
+            if (!CanRecieveTrade(civ, to, toQuantity))
+                throw new InvalidOperationException($"Cannot receive {toQuantity} {to}: storage would overflow.");
+
+            foreach (var (from, amount) in offerAmounts)
+                civ.RemoveResource(from, amount);
+            civ.AddResource(to, toQuantity);
+        }
+
+        /// <summary>
+        /// Returns true if the civilization can buy the given quantity of an advanced (non-basic, non-gold) resource at 5 Gold each.
+        /// </summary>
+        public bool CanBuyAdvancedResource(int civIndex, Resource resource, int quantity = 1)
+        {
+            if (_state == null) return false;
+            if (ResourceUtils.BasicResources.Contains(resource) || resource == Resource.Gold) return false;
+            if (!IsTradeAvailable(civIndex)) return false;
+
+            var civ = _state.Civilizations.Find(c => c.Index == civIndex);
+            if (civ == null) return false;
+
+            return civ.GetResourceQuantity(Resource.Gold) >= 5 * quantity
+                && CanRecieveTrade(civ, resource, quantity);
+        }
+
+        /// <summary>
+        /// Buys the given quantity of an advanced resource at 5 Gold each.
+        /// </summary>
+        public void BuyAdvancedResource(int civIndex, Resource resource, int quantity = 1)
+        {
+            if (_state == null) throw new InvalidOperationException("IslandState has not been initialized.");
+            if (!CanBuyAdvancedResource(civIndex, resource, quantity))
+                throw new InvalidOperationException($"Cannot buy {quantity} {resource}: insufficient gold or storage.");
+
+            var civ = _state.Civilizations.Find(c => c.Index == civIndex)!;
+            civ.RemoveResource(Resource.Gold, 5 * quantity);
+            civ.AddResource(resource, quantity);
+        }
+
         public bool CanRecieveTrade(Civilization civ, Resource resource, int quantity = 1)
         {
             if (civ == null) throw new ArgumentNullException(nameof(civ));
@@ -191,8 +259,9 @@ namespace SettlersOfIdlestan.Controller
                 owned[r] = civ.GetResourceQuantity(r);
             }
 
-            // Candidate sources: resources with at least TradeRate and either not required or owned > required
+            // Candidate sources: basic resources with at least TradeRate and either not required or owned > required
             var candidateSources = owned
+                .Where(kv => ResourceUtils.BasicResources.Contains(kv.Key))
                 .Where(kv => kv.Value >= TradeRate(civilizationIndex, kv.Key))
                 .Where(kv => {
                     if (!requiredCosts.Keys.Contains(kv.Key)) return true;

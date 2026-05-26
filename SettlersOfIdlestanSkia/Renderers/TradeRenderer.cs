@@ -13,7 +13,9 @@ public sealed class TradeRenderer : IDisposable
     private const float PopupHeight = 500;
     private const float Padding = 18;
     private const float HeaderHeight = 42;
+    private const float TabBarHeight = 32;
     private const float RowHeight = 34;
+    private const float PurchaseRowHeight = 44;
     private const float ColumnWidth = 230;
     private const float ButtonHeight = 36;
     private const float CloseSize = 28;
@@ -22,6 +24,8 @@ public sealed class TradeRenderer : IDisposable
     private const float MultBtnW = 42;
     private const float MultBtnH = 24;
     private const float MultBtnGap = 5;
+
+    private enum TradeTab { Commerce, Purchase }
 
     private readonly GameControllerService _gameControllerService;
     private readonly ILocalizationService _localization;
@@ -35,11 +39,14 @@ public sealed class TradeRenderer : IDisposable
     private readonly Dictionary<SKRect, Resource> _seaportL4Rects = [];
     private readonly Dictionary<Resource, SKRect> _seaportL3AllRects = [];
     private readonly Dictionary<Resource, SKRect> _seaportL4AllRects = [];
+    private readonly Dictionary<SKRect, Resource> _purchaseBuyRects = [];
     private SKRect _tradeButtonRect = SKRect.Empty;
     private SKRect _closeButtonRect = SKRect.Empty;
     private SKRect _multButton1Rect = SKRect.Empty;
     private SKRect _multButton10Rect = SKRect.Empty;
     private SKRect _multButton100Rect = SKRect.Empty;
+    private SKRect _tabCommerceRect = SKRect.Empty;
+    private SKRect _tabPurchaseRect = SKRect.Empty;
     private SKSize _canvasSize;
     private bool _disposed;
 
@@ -52,6 +59,7 @@ public sealed class TradeRenderer : IDisposable
     private Resource? _hoveredL3Checkbox;
     private Resource? _hoveredL4Checkbox;
     private int _packMultiplier = 1;
+    private TradeTab _activeTab = TradeTab.Commerce;
 
     private readonly SKPaint _overlayPaint = new() { Color = new SKColor(0, 0, 0, 120), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _backgroundPaint = new() { Color = new SKColor(24, 24, 30, 245), Style = SKPaintStyle.Fill, IsAntialias = true };
@@ -65,7 +73,6 @@ public sealed class TradeRenderer : IDisposable
     private readonly SKFont _boldFont = new() { Size = 13, Typeface = SKTypeface.FromFamilyName("Arial", SKFontStyle.Bold) };
     private readonly SKFont _smallFont = new() { Size = 11, Typeface = SKTypeface.FromFamilyName("Arial") };
 
-    // Paints réutilisables pour éviter les allocations par frame
     private readonly SKPaint _tradeActiveButtonPaint = new() { Color = new SKColor(46, 125, 50), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _tradeDisabledButtonPaint = new() { Color = new SKColor(90, 90, 96), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _closeButtonPaint = new() { Color = new SKColor(90, 50, 50, 230), Style = SKPaintStyle.Fill, IsAntialias = true };
@@ -82,6 +89,9 @@ public sealed class TradeRenderer : IDisposable
     private readonly SKPaint _confirmBorderPaint = new() { Style = SKPaintStyle.Stroke, StrokeWidth = 2, IsAntialias = true };
     private readonly SKPaint _confirmYesPaint = new() { Color = new SKColor(46, 125, 50), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _confirmNoPaint = new() { Color = new SKColor(140, 50, 50), Style = SKPaintStyle.Fill, IsAntialias = true };
+    private readonly SKPaint _tabActivePaint = new() { Color = new SKColor(55, 55, 70, 245), Style = SKPaintStyle.Fill, IsAntialias = true };
+    private readonly SKPaint _tabInactivePaint = new() { Color = new SKColor(30, 30, 38, 200), Style = SKPaintStyle.Fill, IsAntialias = true };
+    private readonly SKPaint _tabBorderPaint = new() { Color = new SKColor(130, 130, 150), Style = SKPaintStyle.Stroke, StrokeWidth = 1, IsAntialias = true };
 
     public bool IsOpen { get; private set; }
 
@@ -106,6 +116,7 @@ public sealed class TradeRenderer : IDisposable
         _requested.Clear();
         _pendingEnhanceResource = null;
         _pendingAutoTradeResource = null;
+        _activeTab = TradeTab.Commerce;
         IsOpen = true;
     }
 
@@ -131,6 +142,7 @@ public sealed class TradeRenderer : IDisposable
         _seaportL4Rects.Clear();
         _seaportL3AllRects.Clear();
         _seaportL4AllRects.Clear();
+        _purchaseBuyRects.Clear();
 
         canvas.DrawRect(new SKRect(0, 0, _canvasSize.Width, _canvasSize.Height), _overlayPaint);
 
@@ -143,35 +155,23 @@ public sealed class TradeRenderer : IDisposable
         _closeButtonRect = new SKRect(popup.Right - Padding - CloseSize, popup.Top + 10, popup.Right - Padding, popup.Top + 10 + CloseSize);
         DrawCloseButton(canvas, _closeButtonRect);
 
-        float columnsTop = popup.Top + HeaderHeight + Padding;
-        float leftX = popup.Left + Padding;
-        float rightX = popup.Right - Padding - ColumnWidth;
+        DrawTabs(canvas, popup);
 
-        var civ = _gameControllerService.PlayerCivilization;
-        var tradeController = _gameControllerService.MainGameController.TradeController;
-        int seaportLevel = civ != null ? tradeController.GetMaxSeaportLevel(civ.Index) : 0;
-        var enhancedResources = civ?.SeaportEnhancedResources ?? [];
-        var autoTradeResources = civ?.SeaportAutoTradeResources ?? [];
+        if (_activeTab == TradeTab.Commerce)
+        {
+            DrawCommerceTab(canvas, popup);
 
-        DrawColumn(canvas, leftX, columnsTop, _localization.Get("trade_give"), _offered, _requested, _offerRects, true,
-            seaportLevel, enhancedResources, autoTradeResources);
-        DrawColumn(canvas, rightX, columnsTop, _localization.Get("trade_receive"), _requested, _offered, _requestRects, false,
-            0, [], []);
-
-        DrawMultiplierButtons(canvas, popup);
-
-        bool canTrade = CanTrade();
-        _tradeButtonRect = new SKRect(popup.MidX - 70, popup.Bottom - Padding - ButtonHeight, popup.MidX + 70, popup.Bottom - Padding);
-        canvas.DrawRoundRect(_tradeButtonRect, 7, 7, canTrade ? _tradeActiveButtonPaint : _tradeDisabledButtonPaint);
-        canvas.DrawText(_localization.Get("trade_action"), _tradeButtonRect.MidX, _tradeButtonRect.MidY + 5, SKTextAlign.Center, _boldFont,
-            canTrade ? _textPaint : _mutedTextPaint);
-
-        if (_pendingEnhanceResource != null)
-            DrawConfirmationPopup(canvas, popup, _pendingEnhanceResource.Value, isAutoTrade: false);
-        else if (_pendingAutoTradeResource != null)
-            DrawConfirmationPopup(canvas, popup, _pendingAutoTradeResource.Value, isAutoTrade: true);
+            if (_pendingEnhanceResource != null)
+                DrawConfirmationPopup(canvas, popup, _pendingEnhanceResource.Value, isAutoTrade: false);
+            else if (_pendingAutoTradeResource != null)
+                DrawConfirmationPopup(canvas, popup, _pendingAutoTradeResource.Value, isAutoTrade: true);
+            else
+                SetSeaportTooltip();
+        }
         else
-            SetSeaportTooltip();
+        {
+            DrawPurchaseTab(canvas, popup);
+        }
     }
 
     public void HandlePointerMoved(SKPoint position)
@@ -229,10 +229,48 @@ public sealed class TradeRenderer : IDisposable
             return true;
         }
 
+        if (_tabCommerceRect.Contains(position.X, position.Y))
+        {
+            _activeTab = TradeTab.Commerce;
+            return true;
+        }
+        if (_tabPurchaseRect.Contains(position.X, position.Y))
+        {
+            _activeTab = TradeTab.Purchase;
+            _offered.Clear();
+            _requested.Clear();
+            return true;
+        }
+
         if (_multButton1Rect.Contains(position.X, position.Y)) { _packMultiplier = 1; return true; }
         if (_multButton10Rect.Contains(position.X, position.Y)) { _packMultiplier = 10; return true; }
         if (_multButton100Rect.Contains(position.X, position.Y)) { _packMultiplier = 100; return true; }
 
+        if (_activeTab == TradeTab.Purchase)
+        {
+            foreach (var (rect, resource) in _purchaseBuyRects)
+            {
+                if (rect.Contains(position.X, position.Y))
+                {
+                    var civ = _gameControllerService.PlayerCivilization;
+                    if (civ != null)
+                    {
+                        var tc = _gameControllerService.MainGameController.TradeController;
+                        if (tc.CanBuyAdvancedResource(civ.Index, resource, _packMultiplier))
+                            tc.BuyAdvancedResource(civ.Index, resource, _packMultiplier);
+                    }
+                    return true;
+                }
+            }
+            if (!GetPopupRect().Contains(position.X, position.Y))
+            {
+                Close();
+                return false;
+            }
+            return true;
+        }
+
+        // Commerce tab interactions
         foreach (var (rect, resource) in _seaportL3Rects)
         {
             if (rect.Contains(position.X, position.Y))
@@ -280,11 +318,142 @@ public sealed class TradeRenderer : IDisposable
         if (_tradeButtonRect.Contains(position.X, position.Y) && CanTrade())
         {
             ExecuteTrade();
-            Close();
+            _offered.Clear();
+            _requested.Clear();
             return true;
         }
 
-        return GetPopupRect().Contains(position.X, position.Y);
+        if (!GetPopupRect().Contains(position.X, position.Y))
+        {
+            Close();
+            return false;
+        }
+        return true;
+    }
+
+    // ── Tabs ─────────────────────────────────────────────────────────────────────
+
+    private void DrawTabs(SKCanvas canvas, SKRect popup)
+    {
+        float tabY = popup.Top + HeaderHeight;
+        float tabW = (popup.Width - 2 * Padding) / 2;
+        float leftTabX = popup.Left + Padding;
+        float rightTabX = leftTabX + tabW;
+
+        _tabCommerceRect = new SKRect(leftTabX, tabY, leftTabX + tabW, tabY + TabBarHeight);
+        _tabPurchaseRect = new SKRect(rightTabX, tabY, rightTabX + tabW, tabY + TabBarHeight);
+
+        DrawTab(canvas, _tabCommerceRect, _localization.Get("trade_tab_trade"), _activeTab == TradeTab.Commerce);
+        DrawTab(canvas, _tabPurchaseRect, _localization.Get("trade_tab_purchase"), _activeTab == TradeTab.Purchase);
+    }
+
+    private void DrawTab(SKCanvas canvas, SKRect rect, string label, bool isActive)
+    {
+        canvas.DrawRect(rect, isActive ? _tabActivePaint : _tabInactivePaint);
+        canvas.DrawRect(rect, _tabBorderPaint);
+        canvas.DrawText(label, rect.MidX, rect.MidY + 5, SKTextAlign.Center, _boldFont, isActive ? _textPaint : _mutedTextPaint);
+    }
+
+    // ── Commerce tab ─────────────────────────────────────────────────────────────
+
+    private void DrawCommerceTab(SKCanvas canvas, SKRect popup)
+    {
+        float columnsTop = popup.Top + HeaderHeight + TabBarHeight + Padding;
+        float leftX = popup.Left + Padding;
+        float rightX = popup.Right - Padding - ColumnWidth;
+
+        var civ = _gameControllerService.PlayerCivilization;
+        var tradeController = _gameControllerService.MainGameController.TradeController;
+        int seaportLevel = civ != null ? tradeController.GetMaxSeaportLevel(civ.Index) : 0;
+        var enhancedResources = civ?.SeaportEnhancedResources ?? [];
+        var autoTradeResources = civ?.SeaportAutoTradeResources ?? [];
+
+        DrawColumn(canvas, leftX, columnsTop, _localization.Get("trade_give"), _offered, _requested, _offerRects, true,
+            seaportLevel, enhancedResources, autoTradeResources);
+        DrawColumn(canvas, rightX, columnsTop, _localization.Get("trade_receive"), _requested, _offered, _requestRects, false,
+            0, [], []);
+
+        DrawMultiplierButtons(canvas, popup);
+
+        bool canTrade = CanTrade();
+        _tradeButtonRect = new SKRect(popup.MidX - 70, popup.Bottom - Padding - ButtonHeight, popup.MidX + 70, popup.Bottom - Padding);
+        canvas.DrawRoundRect(_tradeButtonRect, 7, 7, canTrade ? _tradeActiveButtonPaint : _tradeDisabledButtonPaint);
+        canvas.DrawText(_localization.Get("trade_action"), _tradeButtonRect.MidX, _tradeButtonRect.MidY + 5, SKTextAlign.Center, _boldFont,
+            canTrade ? _textPaint : _mutedTextPaint);
+    }
+
+    // ── Purchase tab ─────────────────────────────────────────────────────────────
+
+    private void DrawPurchaseTab(SKCanvas canvas, SKRect popup)
+    {
+        _tradeButtonRect = SKRect.Empty;
+
+        var civ = _gameControllerService.PlayerCivilization;
+        if (civ == null) return;
+        var tc = _gameControllerService.MainGameController.TradeController;
+
+        var advancedResources = Enum.GetValues<Resource>()
+            .Where(r => !ResourceUtils.BasicResources.Contains(r) && r != Resource.Gold)
+            .ToList();
+
+        float currentY = popup.Top + HeaderHeight + TabBarHeight + Padding;
+        float contentX = popup.Left + Padding;
+        float contentWidth = popup.Width - 2 * Padding;
+
+        canvas.DrawText(_localization.Get("trade_advanced_title"), popup.MidX, currentY + 16, SKTextAlign.Center, _boldFont, _textPaint);
+        currentY += 32;
+
+        int goldAmount = civ.GetResourceQuantity(Resource.Gold);
+        string goldText = string.Format(_localization.Get("trade_gold_available"), goldAmount);
+        canvas.DrawText(goldText, contentX, currentY + 14, _smallFont, _mutedTextPaint);
+        currentY += 28;
+
+        int cost = 5 * _packMultiplier;
+
+        foreach (var resource in advancedResources)
+        {
+            bool canBuy = tc.CanBuyAdvancedResource(civ.Index, resource, _packMultiplier);
+
+            var rowRect = new SKRect(contentX, currentY, contentX + contentWidth, currentY + PurchaseRowHeight);
+            canvas.DrawRoundRect(rowRect, 5, 5, canBuy ? _resourceRowPaint : _disabledPaint);
+            canvas.DrawRoundRect(rowRect, 5, 5, _rowBorderPaint);
+
+            const float iconSize = 18f;
+            float iconX = rowRect.Left + 10;
+            _resourceIcons.TryGetValue(resource, out var svg);
+            var picture = svg?.Picture;
+            if (picture != null)
+            {
+                float scale = iconSize / 32f;
+                canvas.Save();
+                canvas.Translate(iconX, rowRect.MidY - iconSize / 2f);
+                canvas.Scale(scale);
+                canvas.DrawPicture(picture);
+                canvas.Restore();
+            }
+
+            var rowTextPaint = canBuy ? _textPaint : _mutedTextPaint;
+            string resourceName = _localization.Get($"resource_{resource.ToString().ToLower()}");
+            canvas.DrawText(resourceName, iconX + iconSize + 6, rowRect.MidY + 5, _font, rowTextPaint);
+
+            string qtyText = $"{civ.GetResourceQuantity(resource)}/{civ.GetResourceMaxQuantity(resource)}";
+            canvas.DrawText(qtyText, rowRect.MidX + 20, rowRect.MidY + 5, SKTextAlign.Center, _smallFont, _mutedTextPaint);
+
+            float btnW = 138;
+            float btnH = 28;
+            float btnX = rowRect.Right - 10 - btnW;
+            float btnY = rowRect.MidY - btnH / 2f;
+            var btnRect = new SKRect(btnX, btnY, btnX + btnW, btnY + btnH);
+
+            canvas.DrawRoundRect(btnRect, 5, 5, canBuy ? _tradeActiveButtonPaint : _tradeDisabledButtonPaint);
+            string costText = string.Format(_localization.Get("trade_buy_cost"), cost);
+            canvas.DrawText(costText, btnRect.MidX, btnRect.MidY + 5, SKTextAlign.Center, _font, canBuy ? _textPaint : _mutedTextPaint);
+
+            _purchaseBuyRects[btnRect] = resource;
+            currentY += PurchaseRowHeight + 8;
+        }
+
+        DrawMultiplierButtons(canvas, popup);
     }
 
     // ── Columns ─────────────────────────────────────────────────────────────────
@@ -306,8 +475,13 @@ public sealed class TradeRenderer : IDisposable
         if (civ == null) return;
 
         var tradeController = _gameControllerService.MainGameController.TradeController;
-        var resources = Enum.GetValues(typeof(Resource))
-            .Cast<Resource>()
+
+        // Offer column: basic resources only. Receive column: basic resources + Gold.
+        IEnumerable<Resource> resourceFilter = isOfferColumn
+            ? ResourceUtils.BasicResources
+            : ResourceUtils.BasicResources.Append(Resource.Gold);
+
+        var resources = resourceFilter
             .Where(r => tradeController.CanTradeResource(civ, r))
             .ToList();
 
@@ -608,7 +782,11 @@ public sealed class TradeRenderer : IDisposable
         return _offered.Sum(kv => kv.Value / _gameControllerService.MainGameController.TradeController.TradeRate(civ.Index, kv.Key));
     }
 
-    private int GetRequestPackCount() => _requested.Sum(kv => kv.Value);
+    private int GetRequestPackCount()
+    {
+        var tc = _gameControllerService.MainGameController.TradeController;
+        return _requested.Sum(kv => kv.Value * tc.ReceiveRate(kv.Key));
+    }
 
     private bool CanTrade()
     {
@@ -625,12 +803,31 @@ public sealed class TradeRenderer : IDisposable
     {
         var civ = _gameControllerService.PlayerCivilization;
         if (civ == null) return;
-        var offers = _offered
-            .SelectMany(kv => Enumerable.Repeat(kv.Key, kv.Value / _gameControllerService.MainGameController.TradeController.TradeRate(civ.Index, kv.Key)))
-            .ToList();
-        var requests = _requested.SelectMany(kv => Enumerable.Repeat(kv.Key, kv.Value)).ToList();
-        for (int i = 0; i < offers.Count && i < requests.Count; i++)
-            _gameControllerService.MainGameController.TradeController.Trade(civ.Index, offers[i], requests[i]);
+        var tc = _gameControllerService.MainGameController.TradeController;
+
+        // Build queue of offer packs (one entry per pack = TradeRate units of that resource)
+        var offerQueue = new Queue<Resource>(
+            _offered.SelectMany(kv => Enumerable.Repeat(kv.Key, kv.Value / tc.TradeRate(civ.Index, kv.Key)))
+        );
+
+        foreach (var (toRes, toCount) in _requested.ToList())
+        {
+            int packCostPerUnit = tc.ReceiveRate(toRes); // 1 for basic, 10 for Gold
+            for (int unit = 0; unit < toCount; unit++)
+            {
+                var packsConsumed = new Dictionary<Resource, int>();
+                for (int p = 0; p < packCostPerUnit; p++)
+                {
+                    if (offerQueue.TryDequeue(out var fromRes))
+                        packsConsumed[fromRes] = packsConsumed.GetValueOrDefault(fromRes) + 1;
+                }
+                var offerAmounts = packsConsumed.ToDictionary(
+                    kv => kv.Key,
+                    kv => kv.Value * tc.TradeRate(civ.Index, kv.Key)
+                );
+                tc.TradeMultiForSingle(civ.Index, offerAmounts, toRes, 1);
+            }
+        }
     }
 
     // ── Layout ───────────────────────────────────────────────────────────────────
@@ -676,6 +873,9 @@ public sealed class TradeRenderer : IDisposable
         _confirmBorderPaint.Dispose();
         _confirmYesPaint.Dispose();
         _confirmNoPaint.Dispose();
+        _tabActivePaint.Dispose();
+        _tabInactivePaint.Dispose();
+        _tabBorderPaint.Dispose();
         _disposed = true;
     }
 }
