@@ -45,6 +45,7 @@
   "building_warehouse_desc": "Increases resource storage capacity",
   "building_forge_name": "Forge",
   "building_forge_desc": "Improves ore production and allows tool creation",
+  "forge_double_prod": "Double harvest:",
   "building_library_name": "Library",
   "building_library_desc": "Increases knowledge production and allows upgrades",
   "building_temple_name": "Temple",

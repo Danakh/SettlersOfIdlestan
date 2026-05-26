@@ -21,6 +21,11 @@ public class Forge : Building
 
     public override int AutomaticHarvestUnlockLevel => 2;
 
+    /// <summary>
+    /// Chance (en %) de produire une seconde ressource lors d'une récolte automatique adjacente à cette ville.
+    /// </summary>
+    public int DoubleProdChancePercent => Level * 10;
+
     public override Resource? AutomaticHarvestCapability(TerrainType terrain)
     {
         if (terrain == TerrainType.Mountain)

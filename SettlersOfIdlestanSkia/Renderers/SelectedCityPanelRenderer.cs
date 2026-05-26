@@ -226,6 +226,12 @@ public class SelectedCityPanelRenderer : IGameRenderer
                     tooltipLines.Add("");
                 }
 
+                if (hoveredBuilding is Forge forge && forge.Level > 0)
+                {
+                    tooltipLines.Add(_localization.Get("forge_double_prod") + $" {forge.DoubleProdChancePercent}%");
+                    tooltipLines.Add("");
+                }
+
                 if (hoveredBuilding is Market market && market.Level > 0)
                 {
                     long currentTick = _cityBuildingService.GetCurrentTick();

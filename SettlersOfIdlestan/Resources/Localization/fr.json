@@ -45,6 +45,7 @@
   "building_warehouse_desc": "Augmente la capacité de stockage des ressources",
   "building_forge_name": "Forge",
   "building_forge_desc": "Améliore la production de minerai et permet la création d'outils",
+  "forge_double_prod": "Récolte double :",
   "building_library_name": "Bibliothèque",
   "building_library_desc": "Augmente la production de connaissances et permet des améliorations",
   "building_temple_name": "Temple",

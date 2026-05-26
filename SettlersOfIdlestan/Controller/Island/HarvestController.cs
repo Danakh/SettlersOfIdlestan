@@ -34,14 +34,17 @@ namespace SettlersOfIdlestan.Controller.Island
         public Resource Resource { get; set; }
         public bool IsAutomatic { get; set; }
         public Vertex CityPosition { get; set; }
+        /// <summary>True pour la seconde ressource produite par le bonus de la Forge.</summary>
+        public bool IsDoubleHarvest { get; set; }
 
-        public HarvestCompletedEventArgs(int civIndex, HexCoord hex, Resource resource, Vertex cityPosition, bool isAutomatic = false)
+        public HarvestCompletedEventArgs(int civIndex, HexCoord hex, Resource resource, Vertex cityPosition, bool isAutomatic = false, bool isDoubleHarvest = false)
         {
             CivilizationIndex = civIndex;
             HexCoord = hex;
             Resource = resource;
             IsAutomatic = isAutomatic;
             CityPosition = cityPosition;
+            IsDoubleHarvest = isDoubleHarvest;
         }
     }
 
@@ -152,6 +155,15 @@ namespace SettlersOfIdlestan.Controller.Island
                         TryAutoTradeOnOverflow(civ, resource);
                         civ.AddResource(resource, 1);
                         OnHarvestCompleted?.Invoke(this, new HarvestCompletedEventArgs(civ.Index, hex, resource, city.Position, isAutomatic: true));
+
+                        // Forge bonus: 10% per level chance to produce a second resource
+                        var forge = city.Buildings.OfType<Forge>().FirstOrDefault();
+                        if (forge != null && forge.Level > 0 && _prng.Next(100) < forge.DoubleProdChancePercent)
+                        {
+                            TryAutoTradeOnOverflow(civ, resource);
+                            civ.AddResource(resource, 1);
+                            OnHarvestCompleted?.Invoke(this, new HarvestCompletedEventArgs(civ.Index, hex, resource, city.Position, isAutomatic: true, isDoubleHarvest: true));
+                        }
                     }
 
                     autoMap[hex] = now;
