@@ -131,7 +131,7 @@ public sealed class OverlayRenderer : IGameRenderer
 
         bool showTabs = HasPrestigePoints(context);
         _hasResearchTab = IsResearchUnlocked();
-        _hasAutomationTab = HasBuildersGuild();
+        _hasAutomationTab = HasAnyAutomation();
 
         // Sanitize active tab if it's no longer available
         if (!_hasResearchTab && _activeTab == TabResearch) _activeTab = TabIsland;
@@ -230,15 +230,15 @@ public sealed class OverlayRenderer : IGameRenderer
         catch { return false; }
     }
 
-    private bool HasBuildersGuild()
+    private bool HasAnyAutomation()
     {
         try
         {
             var civ = _gameControllerService.PlayerCivilization;
             if (civ == null) return false;
             foreach (var city in civ.Cities)
-                if (city.Buildings.OfType<BuildersGuild>().Any(g => g.Level > 0))
-                    return true;
+                foreach (var b in city.Buildings)
+                    if (b.ProvidesAutomation && b.Level > 0) return true;
             return false;
         }
         catch { return false; }

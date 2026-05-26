@@ -183,7 +183,7 @@ namespace SettlersOfIdlestan.Controller
                 BanditController.Initialize(islandState, Clock, CurrentMainState!.PRNG);
                 HarvestController.Initialize(islandState, Clock, TradeController, BanditController, CurrentMainState!.PRNG);
                 TradeController.Initialize(islandState);
-                BuildingController.Initialize(islandState);
+                BuildingController.Initialize(islandState, Clock);
                 CityBuilderController.Initialize(islandState, Clock, CurrentMainState!.PRNG);
                 PrestigeController.Initialize(islandState.PlayerCivilization, islandState);
                 ResearchController.Initialize(islandState, Clock, CurrentMainState?.PrestigeState);
@@ -197,14 +197,16 @@ namespace SettlersOfIdlestan.Controller
             var prestigeState = CurrentMainState?.PrestigeState;
 
             foreach (var civ in islandState.Civilizations)
-                civ.SetupModifierAggregator(civ.TechnologyTree);
+                civ.SetupModifierAggregator(civ.TechnologyTree, new UniqueBuildingsModifierProvider(civ));
 
             if (prestigeState != null)
             {
                 var prestigeProvider = new PrestigeModifierProvider(prestigeState, PrestigeMapController.DefaultMap);
-                islandState.PlayerCivilization.SetupModifierAggregator(
-                    islandState.PlayerCivilization.TechnologyTree,
-                    prestigeProvider);
+                var playerCiv = islandState.PlayerCivilization;
+                playerCiv.SetupModifierAggregator(
+                    playerCiv.TechnologyTree,
+                    prestigeProvider,
+                    new UniqueBuildingsModifierProvider(playerCiv));
             }
         }
     }

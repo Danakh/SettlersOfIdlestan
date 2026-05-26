@@ -27,8 +27,10 @@ public sealed class AutomationRenderer : IDisposable
 
     private SKRect _roadToggleRect = SKRect.Empty;
     private SKRect _outpostToggleRect = SKRect.Empty;
+    private SKRect _productionToggleRect = SKRect.Empty;
     private bool _hoveredRoadToggle;
     private bool _hoveredOutpostToggle;
+    private bool _hoveredProductionToggle;
 
     private readonly SKPaint _bgPaint              = new() { Color = new SKColor(18, 18, 24, 240), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _cardPaint            = new() { Color = new SKColor(30, 30, 40, 220), Style = SKPaintStyle.Fill, IsAntialias = true };
@@ -76,14 +78,16 @@ public sealed class AutomationRenderer : IDisposable
         var islandState = _gameControllerService.CurrentIslandState;
         if (civ == null || islandState == null) return;
 
-        BuildersGuild? guild = null;
+        BuildersGuild? buildersGuild = null;
+        HarvestersGuild? harvestersGuild = null;
         foreach (var city in civ.Cities)
         {
-            guild = city.Buildings.OfType<BuildersGuild>().FirstOrDefault();
-            if (guild != null) break;
+            buildersGuild ??= city.Buildings.OfType<BuildersGuild>().FirstOrDefault();
+            harvestersGuild ??= city.Buildings.OfType<HarvestersGuild>().FirstOrDefault();
+            if (buildersGuild != null && harvestersGuild != null) break;
         }
 
-        // --- Road automation row (always shown when guild exists) ---
+        // --- Road automation row (always shown when builders guild exists) ---
         _roadToggleRect = DrawAutomationRow(
             canvas, x, y, contentWidth,
             islandState.AutomationSettings.RoadAutomationEnabled,
@@ -92,8 +96,8 @@ public sealed class AutomationRenderer : IDisposable
             _localization.Get("automation_road_desc"));
         y += RowHeight + RowSpacing;
 
-        // --- Outpost automation row (level 4 only) ---
-        if (guild != null && guild.Level >= 4)
+        // --- Outpost automation row (builders guild level 4 only) ---
+        if (buildersGuild != null && buildersGuild.Level >= 4)
         {
             _outpostToggleRect = DrawAutomationRow(
                 canvas, x, y, contentWidth,
@@ -108,6 +112,25 @@ public sealed class AutomationRenderer : IDisposable
             DrawLockedRow(canvas, x, y, contentWidth,
                 _localization.Get("automation_outpost_name"),
                 _localization.Get("automation_outpost_locked"));
+        }
+        y += RowHeight + RowSpacing;
+
+        // --- Production automation row (harvesters guild) ---
+        if (harvestersGuild != null && harvestersGuild.Level >= 1)
+        {
+            _productionToggleRect = DrawAutomationRow(
+                canvas, x, y, contentWidth,
+                islandState.AutomationSettings.ProductionBuildingAutomationEnabled,
+                _hoveredProductionToggle,
+                _localization.Get("automation_production_name"),
+                _localization.Get("automation_production_desc"));
+        }
+        else
+        {
+            _productionToggleRect = SKRect.Empty;
+            DrawLockedRow(canvas, x, y, contentWidth,
+                _localization.Get("automation_production_name"),
+                _localization.Get("automation_production_locked"));
         }
     }
 
@@ -146,8 +169,9 @@ public sealed class AutomationRenderer : IDisposable
 
     public void HandlePointerMoved(SKPoint position)
     {
-        _hoveredRoadToggle    = !_roadToggleRect.IsEmpty    && _roadToggleRect.Contains(position.X, position.Y);
-        _hoveredOutpostToggle = !_outpostToggleRect.IsEmpty && _outpostToggleRect.Contains(position.X, position.Y);
+        _hoveredRoadToggle       = !_roadToggleRect.IsEmpty       && _roadToggleRect.Contains(position.X, position.Y);
+        _hoveredOutpostToggle    = !_outpostToggleRect.IsEmpty    && _outpostToggleRect.Contains(position.X, position.Y);
+        _hoveredProductionToggle = !_productionToggleRect.IsEmpty && _productionToggleRect.Contains(position.X, position.Y);
     }
 
     public bool HandlePointerPressed(SKPoint position)
@@ -164,6 +188,12 @@ public sealed class AutomationRenderer : IDisposable
         if (!_outpostToggleRect.IsEmpty && _outpostToggleRect.Contains(position.X, position.Y))
         {
             state.AutomationSettings.OutpostAutomationEnabled = !state.AutomationSettings.OutpostAutomationEnabled;
+            return true;
+        }
+
+        if (!_productionToggleRect.IsEmpty && _productionToggleRect.Contains(position.X, position.Y))
+        {
+            state.AutomationSettings.ProductionBuildingAutomationEnabled = !state.AutomationSettings.ProductionBuildingAutomationEnabled;
             return true;
         }
 

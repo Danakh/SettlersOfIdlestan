@@ -82,6 +82,11 @@ public enum BuildingType
     /// Port impérial - Bâtiment unique. Prérequis au prestige. Disponible au niveau Capitale (4).
     /// </summary>
     ImperialPort,
+    /// <summary>
+    /// Guilde des récolteurs - Bâtiment unique. Débloque le niveau 5 des bâtiments de production
+    /// et automatise leur construction/amélioration. Disponible au niveau Capitale (4).
+    /// </summary>
+    HarvestersGuild,
 }
 
 /// <summary>
@@ -170,6 +175,12 @@ public class Building
     /// Whether this building is unique: only one can be built per civilization per island.
     /// </summary>
     public virtual bool IsUnique => false;
+
+    /// <summary>
+    /// Whether this building unlocks entries in the Automation tab.
+    /// Override to true in any building that contributes automation rows.
+    /// </summary>
+    public virtual bool ProvidesAutomation => false;
 
     /// <summary>
     /// Gets or sets the city level at which the building becomes available.

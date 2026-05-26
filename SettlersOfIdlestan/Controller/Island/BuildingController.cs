@@ -1,4 +1,5 @@
 using SettlersOfIdlestan.Model.Buildings;
+using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
 using System;
@@ -15,6 +16,7 @@ namespace SettlersOfIdlestan.Controller.Island
     public class BuildingController
     {
         private IslandState? _state;
+        private GameClock? _clock;
 
         internal BuildingController(IslandState? state = null)
         {
@@ -24,9 +26,73 @@ namespace SettlersOfIdlestan.Controller.Island
         /// <summary>
         /// Initialize or update the IslandState for this controller.
         /// </summary>
-        internal void Initialize(IslandState state)
+        internal void Initialize(IslandState state, GameClock? clock = null)
         {
+            if (_clock != null)
+                _clock.Advanced -= OnClockAdvanced;
+
             _state = state ?? throw new ArgumentNullException(nameof(state));
+            _clock = clock;
+
+            if (_clock != null)
+                _clock.Advanced += OnClockAdvanced;
+        }
+
+        private void OnClockAdvanced(object? sender, GameClockAdvancedEventArgs e)
+        {
+            try { PerformHarvestersGuildProductionAutomation(); }
+            catch { }
+        }
+
+        private void PerformHarvestersGuildProductionAutomation()
+        {
+            if (_state == null || _clock == null) return;
+
+            long now = _clock.CurrentTick;
+
+            foreach (var civ in _state.Civilizations)
+            {
+                HarvestersGuild? guild = null;
+                foreach (var city in civ.Cities)
+                {
+                    guild = city.Buildings.OfType<HarvestersGuild>().FirstOrDefault();
+                    if (guild != null) break;
+                }
+
+                if (guild == null || guild.Level == 0) continue;
+
+                bool isPlayerCiv = civ.Index == _state.PlayerCivilization.Index;
+                if (isPlayerCiv && !_state.AutomationSettings.ProductionBuildingAutomationEnabled)
+                {
+                    guild.LastProductionBuildTick = now;
+                    continue;
+                }
+
+                if (guild.LastProductionBuildTick == 0)
+                {
+                    guild.LastProductionBuildTick = now;
+                    continue;
+                }
+
+                if (now - guild.LastProductionBuildTick < guild.GetAutoProductionCooldownTicks()) continue;
+
+                guild.LastProductionBuildTick = now;
+
+                BuildingType[] productionTypes = [BuildingType.Sawmill, BuildingType.Brickworks, BuildingType.Quarry, BuildingType.Mill];
+
+                // Prioritise upgrades of existing buildings, then new builds
+                foreach (var city in civ.Cities)
+                    foreach (var type in productionTypes)
+                        if (city.Buildings.Any(b => b.Type == type) && BuildBuilding(civ.Index, city.Position, type))
+                            goto NextCiv;
+
+                foreach (var city in civ.Cities)
+                    foreach (var type in productionTypes)
+                        if (!city.Buildings.Any(b => b.Type == type) && BuildBuilding(civ.Index, city.Position, type))
+                            goto NextCiv;
+
+                NextCiv:;
+            }
         }
 
         /// <summary>
@@ -220,6 +286,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 BuildingType.GlassWorks => new GlassWorks(),
                 BuildingType.Palisade => new Palisade(),
                 BuildingType.ImperialPort => new ImperialPort(),
+                BuildingType.HarvestersGuild => new HarvestersGuild(),
                 _ => null,
             };
         }

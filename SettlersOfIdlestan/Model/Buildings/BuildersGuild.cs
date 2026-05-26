@@ -25,6 +25,7 @@ public class BuildersGuild : Building
     }
 
     public override bool IsUnique => true;
+    public override bool ProvidesAutomation => true;
 
     public override int GetDefaultMaxLevel() => 4;
 
