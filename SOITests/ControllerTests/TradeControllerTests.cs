@@ -115,5 +115,33 @@ namespace SOITests.ControllerTests
             Assert.False(controller.CanRecieveTrade(civ, Resource.Wood));
             Assert.True(controller.CanRecieveTrade(civ, Resource.Brick));
         }
+
+        [Fact]
+        public void BuyRate_OreIsOne_OthersAreDefault()
+        {
+            var controller = new TradeController();
+
+            Assert.Equal(1, controller.BuyRate(Resource.Ore));
+            Assert.Equal(5, controller.BuyRate(Resource.Glass));
+            Assert.Equal(5, controller.BuyRate(Resource.Crystal));
+        }
+
+        [Fact]
+        public void BuyAdvancedResource_Ore_CostsOneGold()
+        {
+            IslandState state = IslandTestFactory.CreateSevenHexIslandState();
+            var civ = state.Civilizations[0];
+            civ.Cities[0].Buildings.Add(new Market());
+            civ.Cities[0].Buildings.Add(new TownHall { Level = 3 }); // city.Level=3 → advancedCityResourceMax=1 → Ore has capacity
+            civ.AddResource(Resource.Gold, 3);
+
+            var controller = new TradeController(state);
+
+            Assert.True(controller.CanBuyAdvancedResource(0, Resource.Ore, 3));
+            controller.BuyAdvancedResource(0, Resource.Ore, 3);
+
+            Assert.Equal(0, civ.GetResourceQuantity(Resource.Gold));
+            Assert.Equal(3, civ.GetResourceQuantity(Resource.Ore));
+        }
     }
 }

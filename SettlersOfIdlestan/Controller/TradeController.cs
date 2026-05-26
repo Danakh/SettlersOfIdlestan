@@ -15,6 +15,7 @@ namespace SettlersOfIdlestan.Controller
     {
         private IslandState? _state;
         private const int BasicResourceTradeRate = 5;
+        private const int DefaultBuyRate = 5;
         public const int GoldPackValue = 10;
 
         public int ReceiveRate(Resource resource) => resource == Resource.Gold ? GoldPackValue : 1;
@@ -89,6 +90,8 @@ namespace SettlersOfIdlestan.Controller
             civ.RemoveResource(from, offer);
             civ.AddResource(to, 1);
         }
+
+        public int BuyRate(Resource resource) => resource == Resource.Ore ? 1 : DefaultBuyRate;
 
         public int TradeRate(int civilizationIndex, Resource res)
         {
@@ -201,7 +204,7 @@ namespace SettlersOfIdlestan.Controller
             var civ = _state.Civilizations.Find(c => c.Index == civIndex);
             if (civ == null) return false;
 
-            return civ.GetResourceQuantity(Resource.Gold) >= 5 * quantity
+            return civ.GetResourceQuantity(Resource.Gold) >= BuyRate(resource) * quantity
                 && CanRecieveTrade(civ, resource, quantity);
         }
 
@@ -215,7 +218,7 @@ namespace SettlersOfIdlestan.Controller
                 throw new InvalidOperationException($"Cannot buy {quantity} {resource}: insufficient gold or storage.");
 
             var civ = _state.Civilizations.Find(c => c.Index == civIndex)!;
-            civ.RemoveResource(Resource.Gold, 5 * quantity);
+            civ.RemoveResource(Resource.Gold, BuyRate(resource) * quantity);
             civ.AddResource(resource, quantity);
         }
 

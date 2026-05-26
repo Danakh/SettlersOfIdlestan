@@ -408,10 +408,9 @@ public sealed class TradeRenderer : IDisposable
         canvas.DrawText(goldText, contentX, currentY + 14, _smallFont, _mutedTextPaint);
         currentY += 28;
 
-        int cost = 5 * _packMultiplier;
-
         foreach (var resource in advancedResources)
         {
+            int cost = tc.BuyRate(resource) * _packMultiplier;
             bool canBuy = tc.CanBuyAdvancedResource(civ.Index, resource, _packMultiplier);
 
             var rowRect = new SKRect(contentX, currentY, contentX + contentWidth, currentY + PurchaseRowHeight);
