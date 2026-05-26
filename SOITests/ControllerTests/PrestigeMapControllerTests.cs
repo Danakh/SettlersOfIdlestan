@@ -15,8 +15,6 @@ public class PrestigeMapControllerTests
     private static PrestigeMapController Controller() => new();
     private static PrestigeState EmptyPrestige() => new();
 
-    /// Sets up the player civ's aggregator with TechnologyTree + PrestigeModifierProvider,
-    /// mirroring what MainGameController.SetupModifierAggregators does at runtime.
     private static void WireAggregator(IslandState island, PrestigeState prestige)
     {
         var civ = island.PlayerCivilization;
@@ -32,7 +30,7 @@ public class PrestigeMapControllerTests
     {
         var state = EmptyPrestige();
         state.PrestigePoints = 3;
-        Assert.True(Controller().CanPurchaseVertex(state, PrestigeVertexId.Central));
+        Assert.True(Controller().CanPurchaseVertex(state, PrestigeMap.CentralVertex));
     }
 
     [Fact]
@@ -40,7 +38,7 @@ public class PrestigeMapControllerTests
     {
         var state = EmptyPrestige();
         state.PrestigePoints = 2;
-        Assert.False(Controller().CanPurchaseVertex(state, PrestigeVertexId.Central));
+        Assert.False(Controller().CanPurchaseVertex(state, PrestigeMap.CentralVertex));
     }
 
     [Fact]
@@ -48,9 +46,9 @@ public class PrestigeMapControllerTests
     {
         var state = EmptyPrestige();
         state.PrestigePoints = 100;
-        Assert.False(Controller().CanPurchaseVertex(state, PrestigeVertexId.Laboratory));
-        Assert.False(Controller().CanPurchaseVertex(state, PrestigeVertexId.Barracks));
-        Assert.False(Controller().CanPurchaseVertex(state, PrestigeVertexId.SeaportMarket));
+        Assert.False(Controller().CanPurchaseVertex(state, PrestigeMap.LaboratoryVertex));
+        Assert.False(Controller().CanPurchaseVertex(state, PrestigeMap.BarracksVertex));
+        Assert.False(Controller().CanPurchaseVertex(state, PrestigeMap.SeaportMarketVertex));
     }
 
     [Fact]
@@ -58,10 +56,10 @@ public class PrestigeMapControllerTests
     {
         var state = EmptyPrestige();
         state.PrestigePoints = 100;
-        state.PurchasedVertices.Add(PrestigeVertexId.Central);
-        Assert.True(Controller().CanPurchaseVertex(state, PrestigeVertexId.Laboratory));
-        Assert.True(Controller().CanPurchaseVertex(state, PrestigeVertexId.Barracks));
-        Assert.True(Controller().CanPurchaseVertex(state, PrestigeVertexId.SeaportMarket));
+        state.PurchasedVertices.Add(PrestigeMap.CentralVertex);
+        Assert.True(Controller().CanPurchaseVertex(state, PrestigeMap.LaboratoryVertex));
+        Assert.True(Controller().CanPurchaseVertex(state, PrestigeMap.BarracksVertex));
+        Assert.True(Controller().CanPurchaseVertex(state, PrestigeMap.SeaportMarketVertex));
     }
 
     [Fact]
@@ -69,8 +67,8 @@ public class PrestigeMapControllerTests
     {
         var state = EmptyPrestige();
         state.PrestigePoints = 100;
-        state.PurchasedVertices.Add(PrestigeVertexId.Central);
-        Assert.False(Controller().CanPurchaseVertex(state, PrestigeVertexId.Central));
+        state.PurchasedVertices.Add(PrestigeMap.CentralVertex);
+        Assert.False(Controller().CanPurchaseVertex(state, PrestigeMap.CentralVertex));
     }
 
     // ─── PurchaseVertex ──────────────────────────────────────────────────────
@@ -80,9 +78,9 @@ public class PrestigeMapControllerTests
     {
         var state = EmptyPrestige();
         state.PrestigePoints = 10;
-        bool result = Controller().PurchaseVertex(state, PrestigeVertexId.Central);
+        bool result = Controller().PurchaseVertex(state, PrestigeMap.CentralVertex);
         Assert.True(result);
-        Assert.Contains(PrestigeVertexId.Central, state.PurchasedVertices);
+        Assert.Contains(PrestigeMap.CentralVertex, state.PurchasedVertices);
         Assert.Equal(7, state.PrestigePoints); // 10 - 3 = 7
     }
 
@@ -91,7 +89,7 @@ public class PrestigeMapControllerTests
     {
         var state = EmptyPrestige();
         state.PrestigePoints = 0;
-        bool result = Controller().PurchaseVertex(state, PrestigeVertexId.Central);
+        bool result = Controller().PurchaseVertex(state, PrestigeMap.CentralVertex);
         Assert.False(result);
         Assert.Empty(state.PurchasedVertices);
     }
@@ -102,11 +100,11 @@ public class PrestigeMapControllerTests
         var state = EmptyPrestige();
         state.PrestigePoints = 8;
         var c = Controller();
-        Assert.True(c.PurchaseVertex(state, PrestigeVertexId.Central));   // costs 3
-        Assert.True(c.PurchaseVertex(state, PrestigeVertexId.Laboratory)); // costs 5
+        Assert.True(c.PurchaseVertex(state, PrestigeMap.CentralVertex));    // costs 3
+        Assert.True(c.PurchaseVertex(state, PrestigeMap.LaboratoryVertex)); // costs 5
         Assert.Equal(0, state.PrestigePoints);
-        Assert.Contains(PrestigeVertexId.Central, state.PurchasedVertices);
-        Assert.Contains(PrestigeVertexId.Laboratory, state.PurchasedVertices);
+        Assert.Contains(PrestigeMap.CentralVertex, state.PurchasedVertices);
+        Assert.Contains(PrestigeMap.LaboratoryVertex, state.PurchasedVertices);
     }
 
     // ─── ApplyPrestigeToNewGame – vertex modifiers ───────────────────────────
@@ -127,7 +125,7 @@ public class PrestigeMapControllerTests
     {
         var island = IslandTestFactory.CreateSevenHexIslandState();
         var prestige = new PrestigeState(island);
-        prestige.PurchasedVertices.Add(PrestigeVertexId.Central);
+        prestige.PurchasedVertices.Add(PrestigeMap.CentralVertex);
         Controller().ApplyPrestigeToNewGame(island, prestige);
         WireAggregator(island, prestige);
 
@@ -141,8 +139,8 @@ public class PrestigeMapControllerTests
     {
         var island = IslandTestFactory.CreateSevenHexIslandState();
         var prestige = new PrestigeState(island);
-        prestige.PurchasedVertices.Add(PrestigeVertexId.Central);
-        prestige.PurchasedVertices.Add(PrestigeVertexId.Laboratory);
+        prestige.PurchasedVertices.Add(PrestigeMap.CentralVertex);
+        prestige.PurchasedVertices.Add(PrestigeMap.LaboratoryVertex);
         Controller().ApplyPrestigeToNewGame(island, prestige);
         WireAggregator(island, prestige);
 
@@ -156,8 +154,8 @@ public class PrestigeMapControllerTests
     {
         var island = IslandTestFactory.CreateSevenHexIslandState();
         var prestige = new PrestigeState(island);
-        prestige.PurchasedVertices.Add(PrestigeVertexId.Central);
-        prestige.PurchasedVertices.Add(PrestigeVertexId.Barracks);
+        prestige.PurchasedVertices.Add(PrestigeMap.CentralVertex);
+        prestige.PurchasedVertices.Add(PrestigeMap.BarracksVertex);
         Controller().ApplyPrestigeToNewGame(island, prestige);
         WireAggregator(island, prestige);
 
@@ -173,8 +171,8 @@ public class PrestigeMapControllerTests
     {
         var island = IslandTestFactory.CreateSevenHexIslandState();
         var prestige = new PrestigeState(island);
-        prestige.PurchasedVertices.Add(PrestigeVertexId.Central);
-        prestige.PurchasedVertices.Add(PrestigeVertexId.SeaportMarket);
+        prestige.PurchasedVertices.Add(PrestigeMap.CentralVertex);
+        prestige.PurchasedVertices.Add(PrestigeMap.SeaportMarketVertex);
         Controller().ApplyPrestigeToNewGame(island, prestige);
 
         var city = island.PlayerCivilization.Cities[0];
@@ -187,7 +185,7 @@ public class PrestigeMapControllerTests
     {
         var island = IslandTestFactory.CreateSevenHexIslandState();
         var prestige = new PrestigeState(island);
-        prestige.PurchasedVertices.Add(PrestigeVertexId.Central);
+        prestige.PurchasedVertices.Add(PrestigeMap.CentralVertex);
         Controller().ApplyPrestigeToNewGame(island, prestige);
 
         var city = island.PlayerCivilization.Cities[0];
@@ -202,11 +200,10 @@ public class PrestigeMapControllerTests
     {
         var island = IslandTestFactory.CreateSevenHexIslandState();
         var prestige = new PrestigeState(island);
-        prestige.PurchasedVertices.Add(PrestigeVertexId.Central); // adjacent to StartingResources
+        prestige.PurchasedVertices.Add(PrestigeMap.CentralVertex); // adjacent to StartingResources
         Controller().ApplyPrestigeToNewGame(island, prestige);
 
         var civ = island.PlayerCivilization;
-        // 1 adjacent purchased vertex × +2 per vertex = +2 of each basic resource
         Assert.Equal(2, civ.GetResourceQuantity(Resource.Food));
         Assert.Equal(2, civ.GetResourceQuantity(Resource.Wood));
         Assert.Equal(2, civ.GetResourceQuantity(Resource.Brick));
@@ -219,13 +216,12 @@ public class PrestigeMapControllerTests
         var island = IslandTestFactory.CreateSevenHexIslandState();
         var prestige = new PrestigeState(island);
         // All 3 vertices adjacent to StartingResources: Central, SeaportMarket, Barracks
-        prestige.PurchasedVertices.Add(PrestigeVertexId.Central);
-        prestige.PurchasedVertices.Add(PrestigeVertexId.SeaportMarket);
-        prestige.PurchasedVertices.Add(PrestigeVertexId.Barracks);
+        prestige.PurchasedVertices.Add(PrestigeMap.CentralVertex);
+        prestige.PurchasedVertices.Add(PrestigeMap.SeaportMarketVertex);
+        prestige.PurchasedVertices.Add(PrestigeMap.BarracksVertex);
         Controller().ApplyPrestigeToNewGame(island, prestige);
 
         var civ = island.PlayerCivilization;
-        // 3 adjacent vertices × +2 = +6 of each basic resource
         Assert.Equal(6, civ.GetResourceQuantity(Resource.Food));
         Assert.Equal(6, civ.GetResourceQuantity(Resource.Wood));
     }
@@ -235,13 +231,13 @@ public class PrestigeMapControllerTests
     {
         var island = IslandTestFactory.CreateSevenHexIslandState();
         var prestige = new PrestigeState(island);
-        prestige.PurchasedVertices.Add(PrestigeVertexId.Central); // adjacent to HarvestSpeed
+        prestige.PurchasedVertices.Add(PrestigeMap.CentralVertex); // adjacent to HarvestSpeed
         Controller().ApplyPrestigeToNewGame(island, prestige);
         WireAggregator(island, prestige);
 
         var civ = island.PlayerCivilization;
         double speed = civ.ModifierAggregator.ApplyModifiers(ECategory.HARVEST_SPEED, "", 1.0);
-        Assert.Equal(1.1, speed, 5); // 1.0 + 0.1 for 1 adjacent vertex
+        Assert.Equal(1.1, speed, 5);
     }
 
     [Fact]
@@ -250,14 +246,14 @@ public class PrestigeMapControllerTests
         var island = IslandTestFactory.CreateSevenHexIslandState();
         var prestige = new PrestigeState(island);
         // Central + SeaportMarket are both adjacent to HarvestSpeed
-        prestige.PurchasedVertices.Add(PrestigeVertexId.Central);
-        prestige.PurchasedVertices.Add(PrestigeVertexId.SeaportMarket);
+        prestige.PurchasedVertices.Add(PrestigeMap.CentralVertex);
+        prestige.PurchasedVertices.Add(PrestigeMap.SeaportMarketVertex);
         Controller().ApplyPrestigeToNewGame(island, prestige);
         WireAggregator(island, prestige);
 
         var civ = island.PlayerCivilization;
         double speed = civ.ModifierAggregator.ApplyModifiers(ECategory.HARVEST_SPEED, "", 1.0);
-        Assert.Equal(1.2, speed, 5); // 1.0 + 0.1 + 0.1
+        Assert.Equal(1.2, speed, 5);
     }
 
     [Fact]
@@ -265,7 +261,7 @@ public class PrestigeMapControllerTests
     {
         var island = IslandTestFactory.CreateSevenHexIslandState();
         var prestige = new PrestigeState(island);
-        prestige.PurchasedVertices.Add(PrestigeVertexId.Central); // adjacent to ResearchSpeed
+        prestige.PurchasedVertices.Add(PrestigeMap.CentralVertex); // adjacent to ResearchSpeed
         Controller().ApplyPrestigeToNewGame(island, prestige);
         WireAggregator(island, prestige);
 

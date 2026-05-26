@@ -1,23 +1,25 @@
 using SettlersOfIdlestan.Model.GameplayModifier;
+using SettlersOfIdlestan.Model.HexGrid;
 
 namespace SettlersOfIdlestan.Model.Prestige.PrestigeMap;
 
 public class PrestigeHex
 {
-    public PrestigeHexId Id { get; }
-    public IReadOnlyList<PrestigeVertexId> AdjacentVertices { get; }
-    // TechnologyTree modifiers applied once per adjacent purchased vertex (empty list if no TechTree effect)
+    public HexCoord Coord { get; }
+    public string LocalizationKey { get; }
+    public IReadOnlyList<Vertex> AdjacentVertices { get; }
     public IReadOnlyList<Modifier> PerVertexModifiers { get; }
-    // Bonus to starting resources BasicResources per adjacent purchased vertex
     public int StartingResourceBonusPerVertex { get; }
 
     public PrestigeHex(
-        PrestigeHexId id,
-        IReadOnlyList<PrestigeVertexId> adjacentVertices,
+        HexCoord coord,
+        string localizationKey,
+        IReadOnlyList<Vertex> adjacentVertices,
         IReadOnlyList<Modifier> perVertexModifiers,
         int startingResourceBonusPerVertex = 0)
     {
-        Id = id;
+        Coord = coord;
+        LocalizationKey = localizationKey;
         AdjacentVertices = adjacentVertices;
         PerVertexModifiers = perVertexModifiers;
         StartingResourceBonusPerVertex = startingResourceBonusPerVertex;

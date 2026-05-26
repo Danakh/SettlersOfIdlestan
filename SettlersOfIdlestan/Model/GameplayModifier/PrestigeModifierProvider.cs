@@ -18,9 +18,9 @@ public class PrestigeModifierProvider : IModifierProvider
     {
         var purchased = _state.PurchasedVertices;
 
-        foreach (var vertexId in purchased)
+        foreach (var vertexCoord in purchased)
         {
-            var vertex = _map.GetVertex(vertexId);
+            var vertex = _map.GetVertex(vertexCoord);
             if (vertex == null) continue;
             foreach (var mod in vertex.Modifiers)
                 yield return mod;

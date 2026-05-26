@@ -1,11 +1,36 @@
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.GameplayModifier;
+using SettlersOfIdlestan.Model.HexGrid;
 using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
 
 namespace SettlersOfIdlestan.Model.Prestige.PrestigeMap;
 
 public class PrestigeMap
 {
+    // ── Hex coordinates ──────────────────────────────────────────────────────
+    // Inner hexes (each adjacent to Central vertex)
+    public static readonly HexCoord StartingResourcesCoord     = new(0,  0);
+    public static readonly HexCoord ResearchSpeedCoord         = new(1,  0);
+    public static readonly HexCoord HarvestSpeedCoord          = new(0,  1);
+    // Outer hexes (each adjacent to exactly one outer vertex)
+    public static readonly HexCoord UnitProductionSpeedCoord   = new(1, -1);
+    public static readonly HexCoord StorageCapacityCoord       = new(-1,  1);
+    public static readonly HexCoord ResearchCostReductionCoord = new(1,  1);
+
+    // ── Prestige vertices (HexGrid Vertex objects) ────────────────────────────
+    // Layout: pointy-top, R=60, Central vertex at screen center.
+    //
+    //   Barracks(0,-60)    SeaportMarket(-52,30)    Laboratory(52,30)
+    //        |   [StartRes](-52,-30) [ResearchS](52,-30)   |
+    //         \         |                 |              /
+    //          [UnitProd](0,-120)      Central(0,0)
+    //                              [HarvestSpeed](0,60)   [ResearchCost](104,60)   [Storage](-104,60)
+    //
+    public static readonly Vertex CentralVertex       = Vertex.Create(new(0, 0), new(1, 0), new(0, 1));
+    public static readonly Vertex BarracksVertex      = Vertex.Create(new(0, 0), new(1, 0), new(1, -1));
+    public static readonly Vertex SeaportMarketVertex = Vertex.Create(new(0, 0), new(0, 1), new(-1, 1));
+    public static readonly Vertex LaboratoryVertex    = Vertex.Create(new(1, 0), new(0, 1), new(1, 1));
+
     public IReadOnlyList<PrestigeVertex> Vertices { get; }
     public IReadOnlyList<PrestigeHex> Hexes { get; }
 
@@ -15,59 +40,48 @@ public class PrestigeMap
         Hexes = hexes.ToList();
     }
 
-    public PrestigeVertex? GetVertex(PrestigeVertexId id) => Vertices.FirstOrDefault(v => v.Id == id);
-    public PrestigeHex?    GetHex(PrestigeHexId id)       => Hexes.FirstOrDefault(h => h.Id == id);
+    public PrestigeVertex? GetVertex(Vertex coord) => Vertices.FirstOrDefault(v => v.Coord.Equals(coord));
+    public PrestigeHex?    GetHex(HexCoord coord)  => Hexes.FirstOrDefault(h => h.Coord.Equals(coord));
 
-    // Hex grid layout (R = 60, pointy-top, vertex Central at origin):
-    //
-    //   UnitProd(0,-120)   ResearchCost(104,60)   Storage(-104,60)
-    //       |                     |                     |
-    //   Barracks(0,-60)   Laboratory(52,30)   SeaportMarket(-52,30)
-    //         \   [StartRes](-52,-30) [ResearchS](52,-30)   /
-    //          \            |               |              /
-    //                     Central(0,0)
-    //                        |
-    //                  [HarvestSpeed](0,60)
-    //
     public static PrestigeMap CreateDefault()
     {
         var vertices = new PrestigeVertex[]
         {
             new(
-                PrestigeVertexId.Central,
+                CentralVertex,
+                "prestige_vertex_central",
                 cost: 3,
-                prerequisites: Array.Empty<PrestigeVertexId>(),
+                prerequisites: Array.Empty<Vertex>(),
                 modifiers: new Modifier[] { new(ECategory.BUILDING_MAX_LEVEL, "Library", EType.ADDITIVE, 3) },
-                startingBuildings: Array.Empty<BuildingType>(),
-                adjacentHexes: new[] { PrestigeHexId.StartingResources, PrestigeHexId.HarvestSpeed, PrestigeHexId.ResearchSpeed }
+                startingBuildings: Array.Empty<BuildingType>()
             ),
             new(
-                PrestigeVertexId.SeaportMarket,
+                SeaportMarketVertex,
+                "prestige_vertex_seaport_market",
                 cost: 5,
-                prerequisites: new[] { PrestigeVertexId.Central },
+                prerequisites: new[] { CentralVertex },
                 modifiers: Array.Empty<Modifier>(),
-                startingBuildings: new[] { BuildingType.Seaport, BuildingType.Market },
-                adjacentHexes: new[] { PrestigeHexId.StartingResources, PrestigeHexId.HarvestSpeed, PrestigeHexId.StorageCapacity }
+                startingBuildings: new[] { BuildingType.Seaport, BuildingType.Market }
             ),
             new(
-                PrestigeVertexId.Laboratory,
+                LaboratoryVertex,
+                "prestige_vertex_laboratory",
                 cost: 5,
-                prerequisites: new[] { PrestigeVertexId.Central },
+                prerequisites: new[] { CentralVertex },
                 modifiers: new Modifier[]
                 {
                     new(ECategory.BUILDING_MAX_LEVEL, "Laboratory", EType.ADDITIVE, 2),
                     new(ECategory.BUILDING_MAX_LEVEL, "GlassWorks", EType.ADDITIVE, 1),
                 },
-                startingBuildings: Array.Empty<BuildingType>(),
-                adjacentHexes: new[] { PrestigeHexId.HarvestSpeed, PrestigeHexId.ResearchSpeed, PrestigeHexId.ResearchCostReduction }
+                startingBuildings: Array.Empty<BuildingType>()
             ),
             new(
-                PrestigeVertexId.Barracks,
+                BarracksVertex,
+                "prestige_vertex_barracks",
                 cost: 5,
-                prerequisites: new[] { PrestigeVertexId.Central },
+                prerequisites: new[] { CentralVertex },
                 modifiers: new Modifier[] { new(ECategory.BUILDING_MAX_LEVEL, "Barracks", EType.ADDITIVE, 2) },
-                startingBuildings: Array.Empty<BuildingType>(),
-                adjacentHexes: new[] { PrestigeHexId.StartingResources, PrestigeHexId.ResearchSpeed, PrestigeHexId.UnitProductionSpeed }
+                startingBuildings: Array.Empty<BuildingType>()
             ),
         };
 
@@ -75,35 +89,41 @@ public class PrestigeMap
         {
             // ── Inner hexes (adjacent to Central) ────────────────────────────
             new(
-                PrestigeHexId.StartingResources,
-                adjacentVertices: new[] { PrestigeVertexId.Central, PrestigeVertexId.SeaportMarket, PrestigeVertexId.Barracks },
+                StartingResourcesCoord,
+                "prestige_hex_starting_resources",
+                adjacentVertices: new[] { CentralVertex, SeaportMarketVertex, BarracksVertex },
                 perVertexModifiers: Array.Empty<Modifier>(),
                 startingResourceBonusPerVertex: 2
             ),
             new(
-                PrestigeHexId.HarvestSpeed,
-                adjacentVertices: new[] { PrestigeVertexId.Central, PrestigeVertexId.SeaportMarket, PrestigeVertexId.Laboratory },
+                HarvestSpeedCoord,
+                "prestige_hex_harvest_speed",
+                adjacentVertices: new[] { CentralVertex, SeaportMarketVertex, LaboratoryVertex },
                 perVertexModifiers: new Modifier[] { new(ECategory.HARVEST_SPEED, EType.ADDITIVE, 0.1) }
             ),
             new(
-                PrestigeHexId.ResearchSpeed,
-                adjacentVertices: new[] { PrestigeVertexId.Central, PrestigeVertexId.Laboratory, PrestigeVertexId.Barracks },
+                ResearchSpeedCoord,
+                "prestige_hex_research_speed",
+                adjacentVertices: new[] { CentralVertex, LaboratoryVertex, BarracksVertex },
                 perVertexModifiers: new Modifier[] { new(ECategory.RESEARCH_SPEED, EType.ADDITIVE, 0.1) }
             ),
             // ── Outer hexes (each adjacent to one outer vertex only) ─────────
             new(
-                PrestigeHexId.UnitProductionSpeed,
-                adjacentVertices: new[] { PrestigeVertexId.Barracks },
+                UnitProductionSpeedCoord,
+                "prestige_hex_unit_production_speed",
+                adjacentVertices: new[] { BarracksVertex },
                 perVertexModifiers: new Modifier[] { new(ECategory.UNIT_PRODUCTION_SPEED, EType.ADDITIVE, 0.1) }
             ),
             new(
-                PrestigeHexId.ResearchCostReduction,
-                adjacentVertices: new[] { PrestigeVertexId.Laboratory },
+                ResearchCostReductionCoord,
+                "prestige_hex_research_cost_reduction",
+                adjacentVertices: new[] { LaboratoryVertex },
                 perVertexModifiers: new Modifier[] { new(ECategory.RESEARCH_COST_REDUCTION, EType.ADDITIVE, 0.1) }
             ),
             new(
-                PrestigeHexId.StorageCapacity,
-                adjacentVertices: new[] { PrestigeVertexId.SeaportMarket },
+                StorageCapacityCoord,
+                "prestige_hex_storage_capacity",
+                adjacentVertices: new[] { SeaportMarketVertex },
                 perVertexModifiers: new Modifier[]
                 {
                     new(ECategory.STORAGE_CAPACITY_BASIC,    EType.ADDITIVE, 10),

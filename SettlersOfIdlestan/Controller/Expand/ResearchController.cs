@@ -143,7 +143,7 @@ namespace SettlersOfIdlestan.Controller.Expand
         }
 
         public bool IsResearchUnlocked()
-            => _prestigeState?.PurchasedVertices.Contains(PrestigeVertexId.Central) == true;
+            => _prestigeState?.PurchasedVertices.Contains(PrestigeMap.CentralVertex) == true;
 
         private int GetEffectiveCost(Technology tech)
         {

@@ -1,7 +1,8 @@
 using SettlersOfIdlestan.Model.Buildings;
+using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
-using SettlersOfIdlestan.Model.Prestige.PrestigeMap;
 using SettlersOfIdlestan.Model.Prestige;
+using SettlersOfIdlestan.Model.Prestige.PrestigeMap;
 
 namespace SettlersOfIdlestan.Controller.Expand;
 
@@ -9,12 +10,12 @@ public class PrestigeMapController
 {
     public static readonly PrestigeMap DefaultMap = PrestigeMap.CreateDefault();
 
-    public bool CanPurchaseVertex(PrestigeState prestigeState, PrestigeVertexId vertexId)
+    public bool CanPurchaseVertex(PrestigeState prestigeState, Vertex vertexCoord)
     {
-        var vertex = DefaultMap.GetVertex(vertexId);
+        var vertex = DefaultMap.GetVertex(vertexCoord);
         if (vertex == null) return false;
 
-        if (prestigeState.PurchasedVertices.Contains(vertexId)) return false;
+        if (prestigeState.PurchasedVertices.Contains(vertexCoord)) return false;
 
         foreach (var prereq in vertex.Prerequisites)
             if (!prestigeState.PurchasedVertices.Contains(prereq)) return false;
@@ -22,13 +23,13 @@ public class PrestigeMapController
         return prestigeState.PrestigePoints >= vertex.Cost;
     }
 
-    public bool PurchaseVertex(PrestigeState prestigeState, PrestigeVertexId vertexId)
+    public bool PurchaseVertex(PrestigeState prestigeState, Vertex vertexCoord)
     {
-        if (!CanPurchaseVertex(prestigeState, vertexId)) return false;
+        if (!CanPurchaseVertex(prestigeState, vertexCoord)) return false;
 
-        var vertex = DefaultMap.GetVertex(vertexId)!;
+        var vertex = DefaultMap.GetVertex(vertexCoord)!;
         prestigeState.PrestigePoints -= vertex.Cost;
-        prestigeState.PurchasedVertices.Add(vertexId);
+        prestigeState.PurchasedVertices.Add(vertexCoord);
         return true;
     }
 
@@ -61,9 +62,9 @@ public class PrestigeMapController
         var startingCity = civ.Cities.FirstOrDefault();
         if (startingCity == null) return;
 
-        foreach (var vertexId in purchased)
+        foreach (var vertexCoord in purchased)
         {
-            var vertex = DefaultMap.GetVertex(vertexId);
+            var vertex = DefaultMap.GetVertex(vertexCoord);
             if (vertex == null) continue;
             foreach (var buildingType in vertex.StartingBuildings)
             {
