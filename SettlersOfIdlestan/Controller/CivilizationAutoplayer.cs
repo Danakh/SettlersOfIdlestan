@@ -38,6 +38,8 @@ namespace SettlersOfIdlestan.Controller
         private static readonly BuildingType[] Step3Buildings =
             Step2Buildings.Concat(new[] { BuildingType.Library, BuildingType.Temple }).ToArray();
 
+        private static readonly Resource[] Step3TradeTargets = { Resource.Gold };
+
         public CivilizationAutoplayer(Civilization civ, IslandMap map, MainGameController mainController)
         {
             _civ = civ ?? throw new ArgumentNullException(nameof(civ));
@@ -164,7 +166,7 @@ namespace SettlersOfIdlestan.Controller
         /// <summary>Step 3: step 2 + victory-point buildings (Library, Temple, TownHall upgrades) + unique buildings.</summary>
         public bool TryStep3Once(bool shouldExpand = true)
         {
-            bool didSomething = TryStepOnce(Step3Buildings, shouldExpand);
+            bool didSomething = TryStepOnce(Step3Buildings, shouldExpand, Step3TradeTargets);
 
             foreach (var city in _civ.Cities.ToList().Where(c => c.Level >= 4))
             {
@@ -200,11 +202,59 @@ namespace SettlersOfIdlestan.Controller
             return false;
         }
 
-        private bool TryStepOnce(BuildingType[] targetBuildings, bool shouldExpand)
+        /// <summary>
+        /// Attempts to trade the most abundant surplus basic resource for one unit (or pack) of <paramref name="target"/>.
+        /// Uses TradeMultiForSingle so that non-basic targets such as Gold are supported.
+        /// </summary>
+        public bool TryTradeForResourceOnce(Resource target)
+        {
+            if (!_tradeController.IsTradeAvailable(_civ.Index)) return false;
+
+            var receiveQty = _tradeController.ReceiveRate(target);
+            if (!_tradeController.CanRecieveTrade(_civ, target, receiveQty)) return false;
+
+            Resource? bestSource = null;
+            int bestQty = 0;
+            foreach (var r in ResourceUtils.BasicResources)
+            {
+                if (r == target) continue;
+                var rate = _tradeController.TradeRate(_civ.Index, r);
+                var qty = _civ.GetResourceQuantity(r);
+                if (qty >= rate && qty > bestQty)
+                {
+                    bestSource = r;
+                    bestQty = qty;
+                }
+            }
+
+            if (bestSource == null) return false;
+
+            try
+            {
+                _tradeController.TradeMultiForSingle(
+                    _civ.Index,
+                    new Dictionary<Resource, int> { [bestSource.Value] = _tradeController.TradeRate(_civ.Index, bestSource.Value) },
+                    target,
+                    receiveQty);
+                return true;
+            }
+            catch { return false; }
+        }
+
+        private bool TryStepOnce(BuildingType[] targetBuildings, bool shouldExpand, Resource[]? tradeTargets = null)
         {
             bool didSomething = false;
 
             TryGrindOnce(null);
+
+            if (tradeTargets != null)
+            {
+                foreach (var target in tradeTargets)
+                {
+                    try { if (TryTradeForResourceOnce(target)) didSomething = true; }
+                    catch { }
+                }
+            }
 
             if (shouldExpand)
             {
