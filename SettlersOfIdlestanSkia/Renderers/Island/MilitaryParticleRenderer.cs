@@ -1,7 +1,6 @@
 using SkiaSharp;
 using Svg.Skia;
 using SettlersOfIdlestan.Controller.Military;
-using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Services;
@@ -53,14 +52,10 @@ public class MilitaryParticleRenderer : HexBasedRenderer, IGameRenderer
         };
     }
 
-    private void EmitParticle(List<HexCoord> hexPath)
+    private void EmitParticle(List<Vertex> vertexPath)
     {
-        if (hexPath.Count == 0) return;
-        var pathPoints = hexPath.Select(h =>
-        {
-            var (x, y) = AxialToIsland(h.Q, h.R);
-            return new SKPoint(x, y);
-        }).ToList();
+        if (vertexPath.Count == 0) return;
+        var pathPoints = vertexPath.Select(v => VertexToIsland(v)).ToList();
         _particles.Add(new MilitaryParticle { Path = pathPoints, Progress = 0f });
     }
 

@@ -17,11 +17,11 @@ public class SoldierAttackEventArgs(Vertex cityVertex, HexCoord banditPosition) 
     public HexCoord BanditPosition { get; } = banditPosition;
 }
 
-public class CityAttackEventArgs(Vertex sourceCity, Vertex targetCity, List<HexCoord> path) : EventArgs
+public class CityAttackEventArgs(Vertex sourceCity, Vertex targetCity, List<Vertex> path) : EventArgs
 {
     public Vertex SourceCity { get; } = sourceCity;
     public Vertex TargetCity { get; } = targetCity;
-    public List<HexCoord> Path { get; } = path;
+    public List<Vertex> Path { get; } = path;
 }
 
 public class CityBuildingDestroyedEventArgs(Vertex cityVertex) : EventArgs
@@ -238,9 +238,7 @@ public class MilitaryController
                 barracks.Soldiers--;
                 attackerCity.LastCityAttackTick = currentTick;
 
-                var fromHex = GetValidHex(attackerCity) ?? attackerCity.Position.Hex1;
-                var toHex = GetValidHex(targetCity) ?? targetCity.Position.Hex1;
-                var path = FindPath(fromHex, toHex);
+                var path = HexGridPathfinder.FindVertexPath(attackerCity.Position, targetCity.Position);
 
                 SoldierAttackedCity?.Invoke(this, new CityAttackEventArgs(attackerCity.Position, targetCity.Position, path));
 
@@ -262,28 +260,27 @@ public class MilitaryController
         }
     }
 
-    private HexCoord? GetValidHex(City city)
-        => city.Position.GetHexes()
-            .FirstOrDefault(h => _state!.Map.HasTile(h) && _state.Map.GetTile(h)!.TerrainType != TerrainType.Water);
-
     private City? FindNearbyEnemyCity(City attackerCity, Civilization attackerCiv)
     {
-        var attackerHexes = attackerCity.Position.GetHexes();
+        City? closest = null;
+        int closestDist = int.MaxValue;
+
         foreach (var defenderCiv in _state!.Civilizations)
         {
             if (defenderCiv.Index == attackerCiv.Index) continue;
             foreach (var defenderCity in defenderCiv.Cities)
             {
                 if (!IsCityVisibleTo(defenderCity, attackerCiv)) continue;
-                var defenderHexes = defenderCity.Position.GetHexes();
-                int minDist = attackerHexes
-                    .SelectMany(ah => defenderHexes.Select(dh => ah.DistanceTo(dh)))
-                    .Min();
-                if (minDist <= CityAttackRange)
-                    return defenderCity;
+                int dist = attackerCity.Position.EdgeDistanceTo(defenderCity.Position);
+                if (dist <= CityAttackRange && dist < closestDist)
+                {
+                    closest = defenderCity;
+                    closestDist = dist;
+                }
             }
         }
-        return null;
+
+        return closest;
     }
 
     private bool IsCityVisibleTo(City city, Civilization civ)
@@ -312,62 +309,6 @@ public class MilitaryController
         }
 
         return true;
-    }
-
-    // ── Pathfinding A* ──────────────────────────────────────────────────────
-
-    private List<HexCoord> FindPath(HexCoord from, HexCoord to)
-    {
-        if (from.Equals(to)) return new List<HexCoord> { from };
-
-        var open = new PriorityQueue<HexCoord, int>();
-        var cameFrom = new Dictionary<HexCoord, HexCoord?>();
-        var gScore = new Dictionary<HexCoord, int>();
-        var closed = new HashSet<HexCoord>();
-
-        open.Enqueue(from, 0);
-        gScore[from] = 0;
-        cameFrom[from] = null;
-
-        const int maxIterations = 500;
-        int iterations = 0;
-
-        while (open.Count > 0 && iterations++ < maxIterations)
-        {
-            var current = open.Dequeue();
-            if (closed.Contains(current)) continue;
-            closed.Add(current);
-
-            if (current.Equals(to))
-            {
-                var path = new List<HexCoord>();
-                HexCoord? node = to;
-                while (node != null)
-                {
-                    path.Add(node);
-                    cameFrom.TryGetValue(node, out node);
-                }
-                path.Reverse();
-                return path;
-            }
-
-            foreach (var neighbor in current.Neighbors())
-            {
-                if (closed.Contains(neighbor)) continue;
-                if (!_state!.Map.HasTile(neighbor)) continue;
-                if (_state.Map.GetTile(neighbor)!.TerrainType == TerrainType.Water) continue;
-
-                int tentativeG = gScore[current] + 1;
-                if (!gScore.TryGetValue(neighbor, out int existingG) || tentativeG < existingG)
-                {
-                    gScore[neighbor] = tentativeG;
-                    cameFrom[neighbor] = current;
-                    open.Enqueue(neighbor, tentativeG + neighbor.DistanceTo(to));
-                }
-            }
-        }
-
-        return new List<HexCoord> { from, to };
     }
 
     /// <summary>
