@@ -12,7 +12,7 @@ using System.Collections.Generic;
 using System.Linq;
 using SettlersOfIdlestan.Controller.Expand;
 
-namespace SettlersOfIdlestanSkia.Renderers;
+namespace SettlersOfIdlestanSkia.Renderers.Overlay.Tabs;
 
 public sealed class PrestigeMapRenderer : IGameRenderer
 {

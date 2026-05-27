@@ -3,7 +3,7 @@ using SettlersOfIdlestan.Controller;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Services;
 
-namespace SettlersOfIdlestanSkia.Renderers;
+namespace SettlersOfIdlestanSkia.Renderers.Debug;
 
 public class AutoplayerDebugRenderer : IGameRenderer
 {

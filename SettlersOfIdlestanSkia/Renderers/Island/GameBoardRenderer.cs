@@ -12,8 +12,9 @@ using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Model.Bandits;
 using SettlersOfIdlestan.Model.TreasureTroves;
 using System.Linq;
+using SettlersOfIdlestanSkia.Renderers.Debug;
 
-namespace SettlersOfIdlestanSkia.Renderers;
+namespace SettlersOfIdlestanSkia.Renderers.Island;
 
 /// <summary>
 /// Renderer de base pour le plateau de jeu hexagonal.

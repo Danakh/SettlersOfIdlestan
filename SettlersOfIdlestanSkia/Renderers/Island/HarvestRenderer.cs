@@ -6,7 +6,7 @@ using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Services;
 
-namespace SettlersOfIdlestanSkia.Renderers;
+namespace SettlersOfIdlestanSkia.Renderers.Island;
 
 public class HarvestRenderer : IGameRenderer
 {

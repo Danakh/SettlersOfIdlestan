@@ -2,8 +2,9 @@ using SkiaSharp;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Services;
 using SettlersOfIdlestan.Services.Localization;
+using SettlersOfIdlestanSkia.Renderers.Island;
 
-namespace SettlersOfIdlestanSkia.Renderers;
+namespace SettlersOfIdlestanSkia.Renderers.Debug;
 
 /// <summary>
 /// Renderer d'overlay debug affichant les coordonnées de la souris (écran, canvas, hex).

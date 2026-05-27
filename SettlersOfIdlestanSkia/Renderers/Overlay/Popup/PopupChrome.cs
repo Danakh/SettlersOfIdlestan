@@ -1,7 +1,7 @@
 using SettlersOfIdlestanSkia.Core;
 using SkiaSharp;
 
-namespace SettlersOfIdlestanSkia.Renderers;
+namespace SettlersOfIdlestanSkia.Renderers.Overlay.Popup;
 
 /// <summary>
 /// Couleurs et dessin partagés entre tous les popups du jeu.

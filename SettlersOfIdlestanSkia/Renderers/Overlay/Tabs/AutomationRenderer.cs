@@ -8,7 +8,7 @@ using SkiaSharp;
 using System;
 using System.Linq;
 
-namespace SettlersOfIdlestanSkia.Renderers;
+namespace SettlersOfIdlestanSkia.Renderers.Overlay.Tabs;
 
 public sealed class AutomationRenderer : IDisposable
 {

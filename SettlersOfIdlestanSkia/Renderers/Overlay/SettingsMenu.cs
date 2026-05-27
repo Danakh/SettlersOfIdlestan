@@ -2,11 +2,12 @@ using SettlersOfIdlestan.Controller;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Services.Localization;
 using SettlersOfIdlestanSkia.Core;
-using SettlersOfIdlestanSkia.Renderers; // Ajout pour AboutRenderer
+using SettlersOfIdlestanSkia.Renderers.Debug;
+using SettlersOfIdlestanSkia.Renderers.Overlay.Popup;
 using SettlersOfIdlestanSkia.Services;
 using SkiaSharp;
 
-namespace SettlersOfIdlestanSkia.Renderers;
+namespace SettlersOfIdlestanSkia.Renderers.Overlay;
 
 /// <summary>
 /// Menu déroulant affichant les options de jeu (toggle debug, ajouter des ressources, etc.)
@@ -260,7 +261,7 @@ public class SettingsMenu
         ToggleMenu();
     }
 
-    private void HandlePointerPressed(object? sender, SettlersOfIdlestanSkia.Services.PointerEventArgs e)
+    private void HandlePointerPressed(object? sender, PointerEventArgs e)
     {
         if (e.Button != PointerButton.Left)
             return;

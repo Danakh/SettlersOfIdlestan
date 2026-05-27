@@ -5,7 +5,7 @@ using SettlersOfIdlestanSkia.Services;
 using SkiaSharp;
 using System;
 
-namespace SettlersOfIdlestanSkia.Renderers;
+namespace SettlersOfIdlestanSkia.Renderers.Overlay.Tabs;
 
 public sealed class EventLogRenderer : IDisposable
 {

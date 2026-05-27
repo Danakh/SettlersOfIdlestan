@@ -6,8 +6,9 @@ using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Services;
+using SettlersOfIdlestanSkia.Renderers.Overlay;
 
-namespace SettlersOfIdlestanSkia.Renderers;
+namespace SettlersOfIdlestanSkia.Renderers.Island;
 
 /// <summary>
 /// Renderer principal de l'île.

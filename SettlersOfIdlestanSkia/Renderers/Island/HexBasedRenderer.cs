@@ -2,7 +2,7 @@ using SkiaSharp;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestanSkia.Core;
 
-namespace SettlersOfIdlestanSkia.Renderers;
+namespace SettlersOfIdlestanSkia.Renderers.Island;
 
 /// <summary>
 /// Classe mère utilitaire pour les renderers basés sur la grille hexagonale.

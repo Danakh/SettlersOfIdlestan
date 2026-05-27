@@ -4,7 +4,7 @@ using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Services;
 using SkiaSharp;
 
-namespace SettlersOfIdlestanSkia.Renderers;
+namespace SettlersOfIdlestanSkia.Renderers.Overlay;
 
 /// <summary>
 /// Affiche la banque de temps et les boutons Pause / Play / Fast-forward dans la barre du haut.

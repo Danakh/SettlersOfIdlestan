@@ -13,7 +13,7 @@ using System.Linq;
 using SettlersOfIdlestan.Controller.Military;
 using SettlersOfIdlestan.Controller.Island;
 
-namespace SettlersOfIdlestanSkia.Renderers;
+namespace SettlersOfIdlestanSkia.Renderers.Overlay;
 
 public class SelectedCityPanelRenderer : IGameRenderer
 {
@@ -410,7 +410,7 @@ public class SelectedCityPanelRenderer : IGameRenderer
         }
     }
 
-    private void HandlePointerMoved(object? sender, SettlersOfIdlestanSkia.Services.PointerEventArgs e)
+    private void HandlePointerMoved(object? sender, PointerEventArgs e)
     {
         if (!IsInputEnabled)
         {
@@ -432,7 +432,7 @@ public class SelectedCityPanelRenderer : IGameRenderer
         }
     }
 
-    private void HandlePointerPressed(object? sender, SettlersOfIdlestanSkia.Services.PointerEventArgs e)
+    private void HandlePointerPressed(object? sender, PointerEventArgs e)
     {
         if (!IsInputEnabled || e.Button != PointerButton.Left)
             return;

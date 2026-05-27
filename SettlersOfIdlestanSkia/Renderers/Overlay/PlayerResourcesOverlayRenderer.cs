@@ -7,7 +7,7 @@ using SettlersOfIdlestanSkia.Services;
 using SkiaSharp;
 using Svg.Skia;
 
-namespace SettlersOfIdlestanSkia.Renderers;
+namespace SettlersOfIdlestanSkia.Renderers.Overlay;
 
 public enum BarDisplayMode { Island, Prestige, Research }
 

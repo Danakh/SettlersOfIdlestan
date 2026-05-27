@@ -12,8 +12,9 @@ using Svg.Skia;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using SettlersOfIdlestanSkia.Renderers.Island;
 
-namespace SettlersOfIdlestanSkia.Renderers
+namespace SettlersOfIdlestanSkia.Renderers.Overlay
 {
     public class TooltipRenderer : IGameRenderer
     {

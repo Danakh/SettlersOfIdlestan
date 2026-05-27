@@ -1,6 +1,6 @@
 using SkiaSharp;
 using SettlersOfIdlestan.Model.HexGrid;
-using SettlersOfIdlestanSkia.Renderers;
+using SettlersOfIdlestanSkia.Renderers.Island;
 
 namespace SettlersOfIdlestanSkia.Services;
 

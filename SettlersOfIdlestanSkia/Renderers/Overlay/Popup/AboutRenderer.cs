@@ -3,7 +3,7 @@ using SettlersOfIdlestanSkia.Services;
 using SettlersOfIdlestan.Services.Localization;
 using SettlersOfIdlestanSkia.Core;
 
-namespace SettlersOfIdlestanSkia.Renderers;
+namespace SettlersOfIdlestanSkia.Renderers.Overlay.Popup;
 
 /// <summary>
 /// Affiche un pop-up "À propos" avec trois phrases localisées.
@@ -78,7 +78,7 @@ public class AboutRenderer : IGameRenderer
         }
     }
 
-    private void OnPointerPressed(object? sender, SettlersOfIdlestanSkia.Services.PointerEventArgs e)
+    private void OnPointerPressed(object? sender, PointerEventArgs e)
     {
         if (_isVisible)
             Hide();

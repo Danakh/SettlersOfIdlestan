@@ -5,7 +5,7 @@ using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Services;
 using SkiaSharp;
 
-namespace SettlersOfIdlestanSkia.Renderers;
+namespace SettlersOfIdlestanSkia.Renderers.Overlay.Popup;
 
 public sealed class PrestigeRenderer : IDisposable
 {

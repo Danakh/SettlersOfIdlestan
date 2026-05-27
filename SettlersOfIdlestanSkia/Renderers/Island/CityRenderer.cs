@@ -7,8 +7,9 @@ using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestanSkia.Services;
 using SettlersOfIdlestan.Model.HexGrid;
+using SettlersOfIdlestanSkia.Renderers.Overlay;
 
-namespace SettlersOfIdlestanSkia.Renderers;
+namespace SettlersOfIdlestanSkia.Renderers.Island;
 
 /// <summary>
 /// Renderer pour afficher les villes (settlements et cities).

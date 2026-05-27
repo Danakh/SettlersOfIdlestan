@@ -4,6 +4,11 @@ using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Renderers;
 using SettlersOfIdlestan.Services.Localization;
 using SettlersOfIdlestanSkia.Services;
+using SettlersOfIdlestanSkia.Renderers.Debug;
+using SettlersOfIdlestanSkia.Renderers.Island;
+using SettlersOfIdlestanSkia.Renderers.Overlay;
+using SettlersOfIdlestanSkia.Renderers.Overlay.Popup;
+using SettlersOfIdlestanSkia.Renderers.Overlay.Tabs;
 
 namespace SettlersOfIdlestanSkia.Services;
 
