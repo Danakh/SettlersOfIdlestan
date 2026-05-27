@@ -106,6 +106,21 @@ public class Vertex
     }
 
     /// <summary>
+    /// Retourne les trois sommets voisins (à distance d'un edge).
+    /// Chaque voisin est l'autre sommet de l'une des trois arêtes formées par les paires de hex de ce sommet.
+    /// </summary>
+    public Vertex[] GetAdjacentVertices()
+    {
+        var hexes = GetHexes();
+        return new[]
+        {
+            Edge.Create(hexes[0], hexes[1]).OtherVertex(this),
+            Edge.Create(hexes[1], hexes[2]).OtherVertex(this),
+            Edge.Create(hexes[0], hexes[2]).OtherVertex(this),
+        };
+    }
+
+    /// <summary>
     /// Vérifie si ce sommet est adjacent à un autre sommet (distance d'un edge).
     /// </summary>
     public bool IsAdjacentTo(Vertex other) => EdgeDistanceTo(other) == 1;
