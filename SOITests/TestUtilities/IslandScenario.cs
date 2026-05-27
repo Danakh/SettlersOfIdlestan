@@ -7,6 +7,22 @@ namespace SOITests.TestUtilities;
 public class IslandScenario
 {
     public required string Name { get; init; }
-    public required Func<MainGameController> CreateFreshController { get; init; }
+
+    /// <summary>
+    /// Factory for the controller that seeds step 0 of this scenario.
+    /// The folder parameter is the same load folder used by the rest of the scenario
+    /// (e.g. "current" or "release-1.0"), so cross-scenario dependencies can load
+    /// the correct save variant.
+    /// </summary>
+    public required Func<string, MainGameController> CreateFreshController { get; init; }
+
+    /// <summary>
+    /// Optional guard checked before step 0: returns true when the input for
+    /// CreateFreshController is available in the given folder.
+    /// When null, the input is assumed to be always available (e.g. pure fresh start).
+    /// When it returns false, step 0 is skipped silently (same behavior as missing intermediate saves).
+    /// </summary>
+    public Func<string, bool>? IsInputAvailable { get; init; }
+
     public required IReadOnlyList<IslandStepDefinition> Steps { get; init; }
 }

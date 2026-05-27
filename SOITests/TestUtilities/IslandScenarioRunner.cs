@@ -24,7 +24,12 @@ public static class IslandScenarioRunner
         MainGameController controller;
         if (stepIndex == 0)
         {
-            controller = scenario.CreateFreshController();
+            if (scenario.IsInputAvailable != null && !scenario.IsInputAvailable(loadFolder))
+            {
+                Console.WriteLine($"[SKIP] Input not available in '{loadFolder}' for scenario '{scenario.Name}' step 0.");
+                return;
+            }
+            controller = scenario.CreateFreshController(loadFolder);
         }
         else
         {

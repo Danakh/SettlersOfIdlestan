@@ -94,6 +94,20 @@ public class CivilizationAutoplayerRunner
 
     // ── Step runners ─────────────────────────────────────────────────────────
 
+    /// <summary>
+    /// Performs prestige and greedily distributes all prestige points.
+    /// Exits as soon as the condition is true (normally after one iteration).
+    /// </summary>
+    public void RunStepPrestige(Func<bool> condition, int maxIterations = 100)
+    {
+        for (int i = 0; i < maxIterations && !condition(); i++)
+        {
+            try { _autoplayer.TryPrestigeOnce(); } catch { }
+            Advance();
+        }
+    }
+
+
     public void RunStep1Until(Func<bool> condition, bool shouldExpand = true, int maxIterations = 10000)
     {
         for (int i = 0; i < maxIterations && !condition(); i++)

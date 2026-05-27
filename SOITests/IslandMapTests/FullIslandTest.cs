@@ -13,12 +13,67 @@ namespace SOITests.IslandMapTests
 {
     public class FullIslandTest
     {
+        // ── Shared step conditions ────────────────────────────────────────────
+
+        private static IslandStepDefinition TwoCitiesStep(string saveName) => new()
+        {
+            SaveName = saveName,
+            RunAction = (runner, cond) => runner.RunStep1Until(cond),
+            Condition = ctrl =>
+            {
+                var civ = ctrl.CurrentMainState!.CurrentIslandState!.Civilizations[0];
+                return civ.Cities.Count >= 2
+                    && civ.Cities.All(c => c.Buildings.Any(b => b.Type == BuildingType.TownHall));
+            },
+            AssertFailMessage = ctrl =>
+            {
+                var civ = ctrl.CurrentMainState!.CurrentIslandState!.Civilizations[0];
+                return $"Expected at least 2 cities with TownHall, got {civ.Cities.Count}";
+            },
+        };
+
+        private static IslandStepDefinition SixCitiesStep(string saveName) => new()
+        {
+            SaveName = saveName,
+            RunAction = (runner, cond) => runner.RunStep2Until(cond),
+            Condition = ctrl => ctrl.CurrentMainState!.CurrentIslandState!.Civilizations.First().Cities.Count >= 6,
+            AssertFailMessage = ctrl =>
+                $"Expected at least 6 cities, got {ctrl.CurrentMainState!.CurrentIslandState!.Civilizations.First().Cities.Count}",
+        };
+
+        private static IslandStepDefinition TenCitiesStep(string saveName) => new()
+        {
+            SaveName = saveName,
+            RunAction = (runner, cond) => runner.RunStep2Until(cond),
+            Condition = ctrl => ctrl.CurrentMainState!.CurrentIslandState!.Civilizations.First().Cities.Count >= 10,
+            AssertFailMessage = ctrl =>
+                $"Expected at least 10 cities, got {ctrl.CurrentMainState!.CurrentIslandState!.Civilizations.First().Cities.Count}",
+        };
+
+        private static IslandStepDefinition PrestigePointsStep(string saveName) => new()
+        {
+            SaveName = saveName,
+            RunAction = (runner, cond) => runner.RunStep3Until(cond, shouldExpand: false),
+            Condition = ctrl => ctrl.PrestigeController.CalculatePrestigePoints() >= PrestigeController.PrestigeRequiredPoints,
+            AssertFailMessage = ctrl =>
+                $"Expected enough prestige points (has {ctrl.PrestigeController.CalculatePrestigePoints()} / {PrestigeController.PrestigeRequiredPoints})",
+        };
+
+        private static IslandStepDefinition PrestigeAvailableStep(string saveName) => new()
+        {
+            SaveName = saveName,
+            RunAction = (runner, cond) => runner.RunStep3Until(cond, shouldExpand: false),
+            Condition = ctrl => ctrl.PrestigeController.PrestigeIsAvailable(),
+            AssertFailMessage = ctrl =>
+                $"Expected prestige to be available (has {ctrl.PrestigeController.CalculatePrestigePoints()} / {PrestigeController.PrestigeRequiredPoints})",
+        };
+
         // ── Island 1 scenario ────────────────────────────────────────────────
 
         private static readonly IslandScenario Island1 = new()
         {
             Name = "Island1",
-            CreateFreshController = () =>
+            CreateFreshController = _ =>
             {
                 var controller = new MainGameController();
                 var tileData = new List<(TerrainType terrainType, int tileCount)>
@@ -29,63 +84,47 @@ namespace SOITests.IslandMapTests
                     (TerrainType.Mountain, 4),
                     (TerrainType.Mountain, 1),
                 };
-                controller.CreateNewGame(new IslandParameters(AtlasController.InvalidIslandId, tileData, 1));
+                AtlasController atlas = new AtlasController();
+                controller.CreateNewGame(atlas.GetIslandParameters(atlas.GetFirstIslandID()));
                 return controller;
             },
             Steps = new List<IslandStepDefinition>
             {
-                new()
-                {
-                    SaveName = "Island1_Step1",
-                    RunAction = (runner, cond) => runner.RunStep1Until(cond),
-                    Condition = ctrl =>
-                    {
-                        var civ = ctrl.CurrentMainState!.CurrentIslandState!.Civilizations[0];
-                        return civ.Cities.Count >= 2
-                            && civ.Cities.All(c => c.Buildings.Any(b => b.Type == BuildingType.TownHall));
-                    },
-                    AssertFailMessage = ctrl =>
-                    {
-                        var civ = ctrl.CurrentMainState!.CurrentIslandState!.Civilizations[0];
-                        return $"Expected at least 2 cities with TownHall after Step 1, got {civ.Cities.Count}";
-                    },
-                },
-                new()
-                {
-                    SaveName = "Island1_Step2",
-                    RunAction = (runner, cond) => runner.RunStep2Until(cond),
-                    Condition = ctrl => ctrl.CurrentMainState!.CurrentIslandState!.Civilizations.First().Cities.Count >= 6,
-                    AssertFailMessage = ctrl =>
-                        $"Expected at least 6 cities after Step 2, got {ctrl.CurrentMainState!.CurrentIslandState!.Civilizations.First().Cities.Count}",
-                },
-                new()
-                {
-                    SaveName = "Island1_Step2bis",
-                    RunAction = (runner, cond) => runner.RunStep2Until(cond),
-                    Condition = ctrl => ctrl.CurrentMainState!.CurrentIslandState!.Civilizations.First().Cities.Count >= 10,
-                    AssertFailMessage = ctrl =>
-                        $"Expected at least 10 cities after Step 2bis, got {ctrl.CurrentMainState!.CurrentIslandState!.Civilizations.First().Cities.Count}",
-                },
-                new()
-                {
-                    SaveName = "Island1_Step3",
-                    RunAction = (runner, cond) => runner.RunStep3Until(cond, shouldExpand: false),
-                    Condition = ctrl => ctrl.PrestigeController.CalculatePrestigePoints() >= PrestigeController.PrestigeRequiredPoints,
-                    AssertFailMessage = ctrl =>
-                        $"Expected enough prestige points after Step 3 (has {ctrl.PrestigeController.CalculatePrestigePoints()} / {PrestigeController.PrestigeRequiredPoints})",
-                },
-                new()
-                {
-                    SaveName = "Island1_Step3bis",
-                    RunAction = (runner, cond) => runner.RunStep3Until(cond, shouldExpand: false),
-                    Condition = ctrl => ctrl.PrestigeController.PrestigeIsAvailable(),
-                    AssertFailMessage = ctrl =>
-                        $"Expected prestige to be available after Step 3bis (has {ctrl.PrestigeController.CalculatePrestigePoints()} / {PrestigeController.PrestigeRequiredPoints})",
-                },
+                TwoCitiesStep("Island1_Step1"),
+                SixCitiesStep("Island1_Step2"),
+                TenCitiesStep("Island1_Step2bis"),
+                PrestigePointsStep("Island1_Step3"),
+                PrestigeAvailableStep("Island1_Step3bis"),
             },
         };
 
-        // ── Current-mode tests (create/overwrite saves/current) ──────────────
+        // ── Island 2 scenario ────────────────────────────────────────────────
+
+        private static readonly IslandScenario Island2 = new()
+        {
+            Name = "Island2",
+            // Start from Island 1's final save in the same folder (current or release-X.Y).
+            CreateFreshController = folder => SaveUtils.LoadSave(folder, "Island1_Step3bis"),
+            IsInputAvailable = folder => SaveUtils.SaveExists(folder, "Island1_Step3bis"),
+            Steps = new List<IslandStepDefinition>
+            {
+                // Step 0: prestige transition + greedy point distribution.
+                new()
+                {
+                    SaveName = "Island2_Step0",
+                    RunAction = (runner, cond) => runner.RunStepPrestige(cond),
+                    Condition = ctrl => ctrl.CurrentMainState?.PrestigeState?.RunHistory.Count >= 1,
+                    AssertFailMessage = _ => "Expected prestige to have been performed (RunHistory is empty)",
+                },
+                TwoCitiesStep("Island2_Step1"),
+                SixCitiesStep("Island2_Step2"),
+                TenCitiesStep("Island2_Step2bis"),
+                PrestigePointsStep("Island2_Step3"),
+                PrestigeAvailableStep("Island2_Step3bis"),
+            },
+        };
+
+        // ── Island 1 — current mode (creates/overwrites saves/current) ────────
 
         [Fact]
         public void Current_Island1_Step1() =>
@@ -107,8 +146,33 @@ namespace SOITests.IslandMapTests
         public void Current_Island1_Step3bis() =>
             IslandScenarioRunner.RunStep(Island1, 4, "current", saveFinal: true);
 
-        // ── Release-regression tests (load saves/release-1.0, no save) ───────
-        // These pass silently when release-1.0 saves are not yet present.
+        // ── Island 2 — current mode ───────────────────────────────────────────
+
+        [Fact]
+        public void Current_Island2_Step0_Prestige() =>
+            IslandScenarioRunner.RunStep(Island2, 0, "current", saveFinal: true);
+
+        [Fact]
+        public void Current_Island2_Step1() =>
+            IslandScenarioRunner.RunStep(Island2, 1, "current", saveFinal: true);
+
+        [Fact]
+        public void Current_Island2_Step2() =>
+            IslandScenarioRunner.RunStep(Island2, 2, "current", saveFinal: true);
+
+        [Fact]
+        public void Current_Island2_Step2bis() =>
+            IslandScenarioRunner.RunStep(Island2, 3, "current", saveFinal: true);
+
+        [Fact]
+        public void Current_Island2_Step3() =>
+            IslandScenarioRunner.RunStep(Island2, 4, "current", saveFinal: true);
+
+        [Fact]
+        public void Current_Island2_Step3bis() =>
+            IslandScenarioRunner.RunStep(Island2, 5, "current", saveFinal: true);
+
+        // ── Island 1 — from release-1.0 (no save, silent skip if missing) ────
 
         [Fact]
         public void Release1_0_Island1_Step2() =>
@@ -125,5 +189,31 @@ namespace SOITests.IslandMapTests
         [Fact]
         public void Release1_0_Island1_Step3bis() =>
             IslandScenarioRunner.RunStep(Island1, 4, "release-1.0", saveFinal: false);
+
+        // ── Island 2 — from release-1.0 ──────────────────────────────────────
+
+        [Fact]
+        public void Release1_0_Island2_Step0_Prestige() =>
+            IslandScenarioRunner.RunStep(Island2, 0, "release-1.0", saveFinal: false);
+
+        [Fact]
+        public void Release1_0_Island2_Step1() =>
+            IslandScenarioRunner.RunStep(Island2, 1, "release-1.0", saveFinal: false);
+
+        [Fact]
+        public void Release1_0_Island2_Step2() =>
+            IslandScenarioRunner.RunStep(Island2, 2, "release-1.0", saveFinal: false);
+
+        [Fact]
+        public void Release1_0_Island2_Step2bis() =>
+            IslandScenarioRunner.RunStep(Island2, 3, "release-1.0", saveFinal: false);
+
+        [Fact]
+        public void Release1_0_Island2_Step3() =>
+            IslandScenarioRunner.RunStep(Island2, 4, "release-1.0", saveFinal: false);
+
+        [Fact]
+        public void Release1_0_Island2_Step3bis() =>
+            IslandScenarioRunner.RunStep(Island2, 5, "release-1.0", saveFinal: false);
     }
 }
