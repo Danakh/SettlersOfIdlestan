@@ -31,6 +31,15 @@ public class ModifierAggregator
     }
 
     /// <summary>
+    /// Returns true if any registered provider has an active modifier of the given category
+    /// (and optionally matching subCategory).
+    /// </summary>
+    public bool HasModifier(ECategory category, string subCategory = "")
+        => _providers.Any(p => p.GetModifiers().Any(m =>
+            m.IsActive && m.Category == category &&
+            (subCategory == "" || m.SubCategory == subCategory)));
+
+    /// <summary>
     /// Collects all distinct BuildingType values from modifiers of the given category
     /// (SubCategory holds the BuildingType enum name). Aggregates across all registered providers.
     /// </summary>

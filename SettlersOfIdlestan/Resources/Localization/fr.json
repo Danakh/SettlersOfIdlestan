@@ -203,7 +203,7 @@
   "prestige_tooltip_starts_with": "Débute avec",
   "prestige_tooltip_new_city_building": "Chaque avant-poste reçoit",
   "prestige_tooltip_per_vertex": "par vertex adjacent",
-  "prestige_tooltip_resources_per_vertex": "res. de départ par vertex",
+  "prestige_tooltip_resources_per_vertex": "res. de départ par vertex adjacent",
   "prestige_tooltip_active_vertices": "Vertices adjacents achetés",
   "prestige_tooltip_current_bonus": "Bonus actuel",
   "prestige_tooltip_harvest_speed": "vitesse récolte",
