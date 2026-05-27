@@ -16,6 +16,9 @@ public enum TechnologyId
     MilitaryDiscipline,
     MilitaryTactics,
     MilitaryMastery,
+    ResearchEfficiency,
+    ImprovedResearch,
+    MasterResearch,
 }
 
 public enum TechnologyStatus

@@ -84,6 +84,24 @@ public static class TechnologyDefinitions
             cost: 350,
             prerequisites: new[] { TechnologyId.MilitaryTactics },
             modifiers: new Modifier[] { new(ECategory.UNIT_PRODUCTION_SPEED, EType.ADDITIVE, 0.3) }),
+
+        new(TechnologyId.ResearchEfficiency,
+            "tech_research_efficiency_name", "tech_research_efficiency_desc",
+            cost: 80,
+            prerequisites: Array.Empty<TechnologyId>(),
+            modifiers: new Modifier[] { new(ECategory.RESEARCH_SPEED, EType.ADDITIVE, 0.1) }),
+
+        new(TechnologyId.ImprovedResearch,
+            "tech_improved_research_name", "tech_improved_research_desc",
+            cost: 180,
+            prerequisites: new[] { TechnologyId.ResearchEfficiency },
+            modifiers: new Modifier[] { new(ECategory.RESEARCH_SPEED, EType.ADDITIVE, 0.2) }),
+
+        new(TechnologyId.MasterResearch,
+            "tech_master_research_name", "tech_master_research_desc",
+            cost: 350,
+            prerequisites: new[] { TechnologyId.ImprovedResearch },
+            modifiers: new Modifier[] { new(ECategory.RESEARCH_SPEED, EType.ADDITIVE, 0.3) }),
     };
 
     public static Technology? Get(TechnologyId id) => All.FirstOrDefault(t => t.Id == id);

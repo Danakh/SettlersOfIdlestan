@@ -278,6 +278,13 @@
   "hex_tooltip_bandit_hideout_hp": "HP",
   "hex_tooltip_contested": "⚔ Contested territory — no production",
   "event_civilization_discovered_title": "🏛 Civilization encountered!",
-  "event_civilization_discovered_body": "A new civilization has been spotted in your vicinity."
+  "event_civilization_discovered_body": "A new civilization has been spotted in your vicinity.",
+  "tech_research_efficiency_name": "Research Methods",
+  "tech_research_efficiency_desc": "+10% research speed",
+  "tech_improved_research_name": "Advanced Research",
+  "tech_improved_research_desc": "+20% research speed",
+  "tech_master_research_name": "Research Mastery",
+  "tech_master_research_desc": "+30% research speed",
+  "prestige_vertex_knowledge_mastery": "Knowledge Mastery"
 }
 

@@ -270,6 +270,13 @@
   "hex_tooltip_bandit_hideout_hp": "PV",
   "hex_tooltip_contested": "⚔ Territoire disputé — aucune production",
   "event_civilization_discovered_title": "🏛 Civilisation rencontrée !",
-  "event_civilization_discovered_body": "Une nouvelle civilisation a été aperçue dans votre voisinage."
+  "event_civilization_discovered_body": "Une nouvelle civilisation a été aperçue dans votre voisinage.",
+  "tech_research_efficiency_name": "Méthodes de recherche",
+  "tech_research_efficiency_desc": "+10% vitesse de recherche",
+  "tech_improved_research_name": "Recherche avancée",
+  "tech_improved_research_desc": "+20% vitesse de recherche",
+  "tech_master_research_name": "Maîtrise de la recherche",
+  "tech_master_research_desc": "+30% vitesse de recherche",
+  "prestige_vertex_knowledge_mastery": "Maîtrise du savoir"
 }
 
