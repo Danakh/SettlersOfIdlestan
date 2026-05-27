@@ -351,6 +351,12 @@ public sealed class OverlayRenderer : IGameRenderer
         if (_tradeRenderer.HandlePointerPressed(e.Position, e.Button)) return;
         if (e.Button != PointerButton.Left) return;
 
+        if (_playerResourcesOverlayRenderer.GearRect.Contains(e.Position.X, e.Position.Y))
+        {
+            _settingsMenu.HandleGearClick();
+            return;
+        }
+
         // Tab clicks
         foreach (var (tabId, rect) in _activeTabs)
         {
@@ -374,12 +380,6 @@ public sealed class OverlayRenderer : IGameRenderer
         }
 
         if (_activeTab == TabStats || _activeTab == TabResearch || _activeTab == TabEvents) return;
-
-        if (_playerResourcesOverlayRenderer.GearRect.Contains(e.Position.X, e.Position.Y))
-        {
-            _settingsMenu.HandleGearClick();
-            return;
-        }
 
         if (_tradeButtonRect.Contains(e.Position.X, e.Position.Y) && IsTradeAvailable())
         {

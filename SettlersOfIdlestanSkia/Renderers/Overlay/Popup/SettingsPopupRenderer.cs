@@ -39,6 +39,7 @@ public sealed class SettingsPopupRenderer : IDisposable
     private SKRect _btnPauseOff     = SKRect.Empty;
 
     private bool _disposed;
+    private bool _justOpened;
 
     public bool IsOpen { get; private set; }
 
@@ -50,7 +51,12 @@ public sealed class SettingsPopupRenderer : IDisposable
 
     public void Initialize(SKSize canvasSize) => _canvasSize = canvasSize;
 
-    public void Open()  => IsOpen = true;
+    public void Open()
+    {
+        IsOpen = true;
+        _justOpened = true;
+    }
+
     public void Close() => IsOpen = false;
 
     public void Render(SKCanvas canvas)
@@ -120,6 +126,8 @@ public sealed class SettingsPopupRenderer : IDisposable
     public bool HandlePointerPressed(SKPoint pos, PointerButton button)
     {
         if (!IsOpen) return false;
+
+        if (_justOpened) { _justOpened = false; return true; }
 
         if (_closeButtonRect.Contains(pos.X, pos.Y))
         {
