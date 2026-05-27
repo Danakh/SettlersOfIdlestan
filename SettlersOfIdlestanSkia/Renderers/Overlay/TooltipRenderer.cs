@@ -129,11 +129,16 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay
                 && currentTick < banditUntil;
             bool hasTreasureTrove = islandState.Features.OfType<TreasureTrove>().Any(t => !t.Claimed && t.Position.Equals(coord));
             bool hideoutPresent = islandState.Features.OfType<BanditHideout>().Any(h => h.Found && h.Position.Equals(coord));
+            bool isContested = islandState.PlayerCivilization.Cities.Any(city => city.Position.IsAdjacentTo(coord))
+                && islandState.Civilizations.Where(c => c.Index != playerIdx).Any(c => c.Cities.Any(city => city.Position.IsAdjacentTo(coord)));
 
-            if (manualResources.Count == 0 && autoResources.Count == 0 && !banditPresent && !banditCooldownActive && !hasTreasureTrove && !hideoutPresent)
+            if (manualResources.Count == 0 && autoResources.Count == 0 && !banditPresent && !banditCooldownActive && !hasTreasureTrove && !hideoutPresent && !isContested)
                 return;
 
             var lines = new List<string>();
+
+            if (isContested)
+                lines.Add(_localizationService.Get("hex_tooltip_contested"));
 
             if (hideoutPresent)
             {

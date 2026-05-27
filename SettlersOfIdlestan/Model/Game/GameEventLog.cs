@@ -8,6 +8,7 @@ public enum GameEventType
     TreasureTroveClaimed,
     BanditHideoutDiscovered,
     BanditHideoutDestroyed,
+    CivilizationDiscovered,
 }
 
 public record GameLogEntry(GameEventType Type);

@@ -36,12 +36,15 @@ public sealed class EventLogRenderer : IDisposable
     private readonly SKPaint _hideoutBorderPaint = new() { Color = new SKColor(160, 60, 200), StrokeWidth = 1f, Style = SKPaintStyle.Stroke, IsAntialias = true };
     private readonly SKPaint _hideoutDestroyedCardPaint = new() { Color = new SKColor(20, 30, 40, 220), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _hideoutDestroyedBorderPaint = new() { Color = new SKColor(80, 160, 200), StrokeWidth = 1f, Style = SKPaintStyle.Stroke, IsAntialias = true };
+    private readonly SKPaint _civDiscoveredCardPaint = new() { Color = new SKColor(10, 40, 25, 220), Style = SKPaintStyle.Fill, IsAntialias = true };
+    private readonly SKPaint _civDiscoveredBorderPaint = new() { Color = new SKColor(40, 180, 100), StrokeWidth = 1f, Style = SKPaintStyle.Stroke, IsAntialias = true };
     private readonly SKPaint _banditTextPaint = new() { Color = new SKColor(255, 120, 120), IsAntialias = true };
     private readonly SKPaint _banditDefeatedTextPaint = new() { Color = new SKColor(100, 220, 100), IsAntialias = true };
     private readonly SKPaint _treasureFoundTextPaint = new() { Color = new SKColor(255, 210, 60), IsAntialias = true };
     private readonly SKPaint _treasureClaimedTextPaint = new() { Color = new SKColor(80, 220, 100), IsAntialias = true };
     private readonly SKPaint _hideoutTextPaint = new() { Color = new SKColor(200, 100, 255), IsAntialias = true };
     private readonly SKPaint _hideoutDestroyedTextPaint = new() { Color = new SKColor(80, 180, 220), IsAntialias = true };
+    private readonly SKPaint _civDiscoveredTextPaint = new() { Color = new SKColor(80, 220, 140), IsAntialias = true };
     private readonly SKPaint _bodyTextPaint = new() { Color = new SKColor(200, 200, 210), IsAntialias = true };
     private readonly SKPaint _mutedPaint = new() { Color = new SKColor(120, 120, 130), IsAntialias = true };
     private readonly SKFont _titleFont = new() { Size = 13, Typeface = SkiaFonts.Bold };
@@ -120,6 +123,10 @@ public sealed class EventLogRenderer : IDisposable
             _hideoutDestroyedCardPaint, _hideoutDestroyedBorderPaint, _hideoutDestroyedTextPaint,
             _localization.Get("event_bandit_hideout_destroyed_title"),
             _localization.Get("event_bandit_hideout_destroyed_body")),
+        GameEventType.CivilizationDiscovered => (
+            _civDiscoveredCardPaint, _civDiscoveredBorderPaint, _civDiscoveredTextPaint,
+            _localization.Get("event_civilization_discovered_title"),
+            _localization.Get("event_civilization_discovered_body")),
         _ => (_banditCardPaint, _banditBorderPaint, _bodyTextPaint, "?", "")
     };
 
@@ -145,6 +152,9 @@ public sealed class EventLogRenderer : IDisposable
         _treasureClaimedTextPaint.Dispose();
         _hideoutTextPaint.Dispose();
         _hideoutDestroyedTextPaint.Dispose();
+        _civDiscoveredCardPaint.Dispose();
+        _civDiscoveredBorderPaint.Dispose();
+        _civDiscoveredTextPaint.Dispose();
         _bodyTextPaint.Dispose();
         _mutedPaint.Dispose();
         _titleFont.Dispose();

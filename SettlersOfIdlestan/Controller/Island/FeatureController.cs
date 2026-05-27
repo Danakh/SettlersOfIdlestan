@@ -1,3 +1,4 @@
+using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.IslandMap;
@@ -46,7 +47,11 @@ public class FeatureController
 
     private void OnClockAdvanced(object? sender, GameClockAdvancedEventArgs e)
     {
-        try { DiscoverFeatures(); }
+        try
+        {
+            DiscoverFeatures();
+            DiscoverCivilizations();
+        }
         catch { }
     }
 
@@ -63,6 +68,33 @@ public class FeatureController
             {
                 feature.Found = true;
                 _state.EventLog.Add(feature.DiscoveredEventType);
+            }
+        }
+    }
+
+    private void DiscoverCivilizations()
+    {
+        if (_state == null) return;
+
+        var playerIdx = _state.PlayerCivilization.Index;
+        if (!_state.VisibleIslandMaps.TryGetValue(playerIdx, out var visibleMap)) return;
+
+        foreach (var civ in _state.Civilizations)
+        {
+            if (civ.Index == playerIdx || civ.DiscoveredByPlayer) continue;
+
+            var isCivVisible =
+                civ.Cities.Any(city => city.Position.GetHexes().Any(visibleMap.HasTile)) ||
+                civ.Roads.Any(road =>
+                {
+                    var (h1, h2) = road.Position.GetHexes();
+                    return visibleMap.HasTile(h1) || visibleMap.HasTile(h2);
+                });
+
+            if (isCivVisible)
+            {
+                civ.DiscoveredByPlayer = true;
+                _state.EventLog.Add(GameEventType.CivilizationDiscovered);
             }
         }
     }
