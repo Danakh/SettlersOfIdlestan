@@ -22,7 +22,8 @@ public class NpcCivilizationPlacementTests
 
     private const int MinEdgeDistance = 7;
 
-    private static IslandState CreateIsland(IslandShapeType shape, int npcCount)
+    private static IslandState CreateIsland(IslandShapeType shape, int npcCount,
+        NpcEvolutionLevel level = NpcEvolutionLevel.Minimum)
     {
         var parameters = new IslandParameters(
             islandID: 0,
@@ -31,7 +32,7 @@ public class NpcCivilizationPlacementTests
             shapeType: shape)
         {
             NpcCivilizations = Enumerable.Range(0, npcCount)
-                .Select(_ => new NpcParameters { EvolutionLevel = NpcEvolutionLevel.Minimum })
+                .Select(_ => new NpcParameters { EvolutionLevel = level })
                 .ToList()
         };
 
@@ -39,6 +40,12 @@ public class NpcCivilizationPlacementTests
         Assert.NotNull(state);
         return state;
     }
+
+    private static bool IsProductionBuilding(BuildingType type) => type
+        is BuildingType.Sawmill or BuildingType.Mill or BuildingType.Brickworks
+        or BuildingType.Quarry or BuildingType.Mine or BuildingType.Seaport;
+
+    // ── Placement initial (toutes les shapes, 1–3 NPC) ───────────────────
 
     public static IEnumerable<object[]> ShapeAndNpcCounts()
     {
@@ -146,5 +153,115 @@ public class NpcCivilizationPlacementTests
                 }
             }
         }
+    }
+
+    // ── Tests par niveau d'évolution (1 NPC, toutes les shapes) ─────────
+
+    public static IEnumerable<object[]> ShapesAndEvolutionLevels()
+    {
+        foreach (var shape in Enum.GetValues<IslandShapeType>())
+            foreach (var level in Enum.GetValues<NpcEvolutionLevel>())
+                yield return [shape, level];
+    }
+
+    private static int ExpectedCityCount(NpcEvolutionLevel level) => level switch
+    {
+        NpcEvolutionLevel.Minimum => 1,
+        NpcEvolutionLevel.Low     => 3,
+        NpcEvolutionLevel.Medium  => 5,
+        NpcEvolutionLevel.Strong  => 7,
+        _                         => 1,
+    };
+
+    [Theory]
+    [MemberData(nameof(ShapesAndEvolutionLevels))]
+    public void NpcEvolution_HasExpectedCityCount(IslandShapeType shape, NpcEvolutionLevel level)
+    {
+        var state = CreateIsland(shape, npcCount: 1, level);
+        var npcCiv = state.Civilizations.First(c => c.IsNpc);
+
+        Assert.Equal(ExpectedCityCount(level), npcCiv.Cities.Count);
+    }
+
+    [Theory]
+    [MemberData(nameof(ShapesAndEvolutionLevels))]
+    public void NpcEvolution_AllCitiesHaveTownHallAndMarket(IslandShapeType shape, NpcEvolutionLevel level)
+    {
+        var state = CreateIsland(shape, npcCount: 1, level);
+        var npcCiv = state.Civilizations.First(c => c.IsNpc);
+
+        foreach (var city in npcCiv.Cities)
+        {
+            Assert.Contains(city.Buildings, b => b.Type == BuildingType.TownHall);
+            Assert.Contains(city.Buildings, b => b.Type == BuildingType.Market);
+        }
+    }
+
+    [Theory]
+    [MemberData(nameof(ShapesAndEvolutionLevels))]
+    public void NpcEvolution_ResourcesAtMaximum(IslandShapeType shape, NpcEvolutionLevel level)
+    {
+        var state = CreateIsland(shape, npcCount: 1, level);
+        var npcCiv = state.Civilizations.First(c => c.IsNpc);
+
+        foreach (Resource resource in Enum.GetValues<Resource>())
+        {
+            int max = npcCiv.GetResourceMaxQuantity(resource);
+            if (max > 0)
+                Assert.Equal(max, npcCiv.GetResourceQuantity(resource));
+        }
+    }
+
+    [Theory]
+    [InlineData(IslandShapeType.Compact)]
+    [InlineData(IslandShapeType.Crescent)]
+    [InlineData(IslandShapeType.Archipelago)]
+    [InlineData(IslandShapeType.Elongated)]
+    public void NpcMedium_HalfProductionBuildingsAreLevelThreeOrAbove(IslandShapeType shape)
+    {
+        var state = CreateIsland(shape, npcCount: 1, NpcEvolutionLevel.Medium);
+        var npcCiv = state.Civilizations.First(c => c.IsNpc);
+
+        var prodBuildings = npcCiv.Cities
+            .SelectMany(c => c.Buildings)
+            .Where(b => IsProductionBuilding(b.Type))
+            .ToList();
+
+        Assert.NotEmpty(prodBuildings);
+
+        int level3Plus = prodBuildings.Count(b => b.Level >= 3);
+        int halfCount = (prodBuildings.Count + 1) / 2;
+        Assert.True(level3Plus >= halfCount,
+            $"[{shape}] attendu ≥ {halfCount} bâtiments de production niveau 3+, reçu {level3Plus}/{prodBuildings.Count}");
+    }
+
+    [Theory]
+    [InlineData(IslandShapeType.Compact)]
+    [InlineData(IslandShapeType.Crescent)]
+    [InlineData(IslandShapeType.Archipelago)]
+    [InlineData(IslandShapeType.Elongated)]
+    public void NpcMedium_AllCitiesHaveWarehouse(IslandShapeType shape)
+    {
+        var state = CreateIsland(shape, npcCount: 1, NpcEvolutionLevel.Medium);
+        var npcCiv = state.Civilizations.First(c => c.IsNpc);
+
+        foreach (var city in npcCiv.Cities)
+            Assert.Contains(city.Buildings, b => b.Type == BuildingType.Warehouse);
+    }
+
+    [Theory]
+    [InlineData(IslandShapeType.Compact)]
+    [InlineData(IslandShapeType.Crescent)]
+    [InlineData(IslandShapeType.Archipelago)]
+    [InlineData(IslandShapeType.Elongated)]
+    public void NpcStrong_FirstFiveCitiesHaveWarehouse(IslandShapeType shape)
+    {
+        // Les villes 1-5 héritent du step-2 de Medium (Warehouse inclus).
+        // Les villes 6-7 sont des expansions step-1 sans Warehouse.
+        var state = CreateIsland(shape, npcCount: 1, NpcEvolutionLevel.Strong);
+        var npcCiv = state.Civilizations.First(c => c.IsNpc);
+
+        foreach (var city in npcCiv.Cities.Take(5))
+            Assert.Contains(city.Buildings, b => b.Type == BuildingType.Warehouse);
     }
 }
