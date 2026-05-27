@@ -120,6 +120,9 @@ namespace SettlersOfIdlestan.Controller.Island
                     var tile = _state.Map.GetTile(hex);
                     if (tile == null) continue;
 
+                    // Hex contesté: aucune production si une ville adverse est adjacente
+                    if (IsHexContested(civ, hex)) continue;
+
                     // Bandit blocking: no auto-harvest if a bandit is on the hex or cooldown active
                     if (_banditController?.IsHarvestBlocked(hex, now) == true) continue;
 
@@ -293,6 +296,13 @@ namespace SettlersOfIdlestan.Controller.Island
             try { _tradeController.Trade(civ.Index, res, weakest); } catch { }
         }
 
+        private bool IsHexContested(SettlersOfIdlestan.Model.Civilization.Civilization civ, HexCoord hex)
+        {
+            return _state!.Civilizations
+                .Where(other => other.Index != civ.Index)
+                .Any(other => other.Cities.Any(city => city.Position.IsAdjacentTo(hex)));
+        }
+
         public bool ManualHarvest(int civilizationIndex, HexCoord hex)
         {
             if (_state == null || _clock == null)
@@ -319,6 +329,9 @@ namespace SettlersOfIdlestan.Controller.Island
             var cities = civ.Cities.Where(c => c.Position.IsAdjacentTo(hex)).ToList();
             if (cities.Count == 0)
                 throw new ArgumentException("Specified hex is not adjacent to any city of the civilization", nameof(hex));
+
+            // Hex contesté: aucune production si une ville adverse est adjacente
+            if (IsHexContested(civ, hex)) return false;
 
             var tile = _state.Map.GetTile(hex);
             if (tile == null) return false;

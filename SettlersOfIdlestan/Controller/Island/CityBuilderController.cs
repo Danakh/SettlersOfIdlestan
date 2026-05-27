@@ -114,8 +114,8 @@ namespace SettlersOfIdlestan.Controller.Island
         /// Rules (simple):
         /// - vertex not already occupied by any city
         /// - vertex touches at least one road of the civilization
-        /// - no existing city of the civilization is at distance 1 (shares 2 hexes)
-        /// - touching roads must have DistanceToNearestCity >= 2
+        /// - no city of another civilization is at distance < 2 (at least 2 edges required between civs)
+        /// - no existing city of the same civilization is at distance < 3
         /// </summary>
         public List<Vertex> GetBuildableVertices(int civilizationIndex)
         {
@@ -137,7 +137,7 @@ namespace SettlersOfIdlestan.Controller.Island
 
             // now we filter vertices that aren't far enough from any city using MinDistanceBetweenCities and MinDistanceBetweenCivilizationCities
             vertices = vertices.Where(v =>
-                !_state.Civilizations.Any(c => c.Cities.Any(city => city.Position.EdgeDistanceTo(v) < MinDistanceBetweenCities)) &&
+                !_state.Civilizations.Where(c => c.Index != civilizationIndex).Any(c => c.Cities.Any(city => city.Position.EdgeDistanceTo(v) < MinDistanceBetweenCities)) &&
                 !civ.Cities.Any(city => city.Position.EdgeDistanceTo(v) < MinDistanceBetweenCivilizationCities))
                 .ToList();
 
@@ -195,7 +195,7 @@ namespace SettlersOfIdlestan.Controller.Island
             };
         }
 
-        public int MinDistanceBetweenCities => 1;
+        public int MinDistanceBetweenCities => 2;
         public int MinDistanceBetweenCivilizationCities => 3;
     }
 }
