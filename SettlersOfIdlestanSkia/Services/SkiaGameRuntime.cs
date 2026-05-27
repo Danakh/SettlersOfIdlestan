@@ -20,7 +20,6 @@ public sealed class SkiaGameRuntime : IDisposable
     private IFileSystemService? _fileSystemService;
     private IslandMainRenderer? _islandMainRenderer;
     private OverlayRenderer? _overlayRenderer;
-    private SettingsPopupRenderer? _settingsPopupRenderer;
     private bool _prestigeTransitionPending;
     private bool _allowDebugMode;
     private IntroAnimationRenderer? _introRenderer;
@@ -129,8 +128,8 @@ public sealed class SkiaGameRuntime : IDisposable
         var selectedCityPanelRenderer = new SelectedCityPanelRenderer(_gameControllerService.CityBuildingService!, _localizationService, _inputService, _resourceManager!);
 
         var aboutRenderer = new AboutRenderer(_inputService, _localizationService);
-        _settingsPopupRenderer = new SettingsPopupRenderer(_gameControllerService.MainGameController, _localizationService, _inputService);
-        var settingsMenu = new SettingsMenu(_gameControllerService.MainGameController, _inputService, _localizationService, aboutRenderer, _settingsPopupRenderer, fileSystemService, _gameControllerService.CityBuildingService!, allowDebugMode, StartNewGameIntro);
+        var settingsPopupRenderer = new SettingsPopupRenderer(_gameControllerService.MainGameController, _localizationService);
+        var settingsMenu = new SettingsMenu(_gameControllerService.MainGameController, _inputService, _localizationService, aboutRenderer, settingsPopupRenderer, fileSystemService, _gameControllerService.CityBuildingService!, allowDebugMode, StartNewGameIntro);
         var playerResourcesOverlayRenderer = new PlayerResourcesOverlayRenderer(_localizationService, _resourceManager);
         var tradeRenderer = new TradeRenderer(_gameControllerService, _localizationService, tooltipRenderer, _resourceManager);
         var prestigeRenderer = new PrestigeRenderer(_gameControllerService, _localizationService, RequestPrestige);
@@ -146,6 +145,7 @@ public sealed class SkiaGameRuntime : IDisposable
             _localizationService,
             playerResourcesOverlayRenderer,
             settingsMenu,
+            settingsPopupRenderer,
             selectedCityPanelRenderer,
             tradeRenderer,
             prestigeRenderer,
@@ -156,15 +156,13 @@ public sealed class SkiaGameRuntime : IDisposable
             eventLogRenderer,
             automationRenderer);
         _renderService.RegisterRenderer(_overlayRenderer);
-        _constructionInteractionService.ShouldSuppressHover = pos =>
-            (_overlayRenderer?.IsPointBlockedByUI(pos) ?? false) || (_settingsPopupRenderer?.IsVisible ?? false);
+        _constructionInteractionService.ShouldSuppressHover = pos => _overlayRenderer?.IsPointBlockedByUI(pos) ?? false;
         if (allowDebugMode)
         {
             _renderService.RegisterRenderer(new DebugOverlayRenderer(_inputService, _cameraService, islandMainRenderer, _localizationService));
             _renderService.RegisterRenderer(new AutoplayerDebugRenderer(_gameControllerService, _inputService));
         }
         _renderService.RegisterRenderer(aboutRenderer);
-        _renderService.RegisterRenderer(_settingsPopupRenderer);
         _renderService.RegisterRenderer(tooltipRenderer);
 
         if (isNewGame && _gameControllerService.CurrentGameState is SettlersOfIdlestan.Model.Game.MainGameState introState)
@@ -282,8 +280,7 @@ public sealed class SkiaGameRuntime : IDisposable
         if (_introRenderer?.IsActive == true) return;
         _isPointerDown = true;
         _isPanning = false;
-        _isPanSuppressedAtStart = (_overlayRenderer?.IsPointBlockedByUI(new SKPoint(x, y)) ?? false)
-                                   || (_settingsPopupRenderer?.IsVisible ?? false);
+        _isPanSuppressedAtStart = _overlayRenderer?.IsPointBlockedByUI(new SKPoint(x, y)) ?? false;
         _activePanPointerId = pointerId;
         _panStartPoint = new SKPoint(x, y);
         _lastPanPoint = _panStartPoint;

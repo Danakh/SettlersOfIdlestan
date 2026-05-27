@@ -24,9 +24,7 @@ public sealed class PrestigeRenderer : IDisposable
     private SKRect _closeButtonRect = SKRect.Empty;
     private bool _disposed;
 
-    private readonly SKPaint _overlayPaint = new() { Color = new SKColor(0, 0, 0, 120), Style = SKPaintStyle.Fill, IsAntialias = true };
-    private readonly SKPaint _backgroundPaint = new() { Color = new SKColor(24, 24, 30, 245), Style = SKPaintStyle.Fill, IsAntialias = true };
-    private readonly SKPaint _borderPaint = new() { Color = SKColors.Gold, StrokeWidth = 2, Style = SKPaintStyle.Stroke, IsAntialias = true };
+    private readonly PopupChrome _chrome = new();
     private readonly SKPaint _buttonPaint = new() { Color = new SKColor(46, 125, 50), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _buttonDisabledPaint = new() { Color = new SKColor(70, 70, 70, 220), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _textPaint = new() { Color = SKColors.White, IsAntialias = true };
@@ -58,16 +56,13 @@ public sealed class PrestigeRenderer : IDisposable
         if (!IsOpen || _disposed)
             return;
 
-        canvas.DrawRect(new SKRect(0, 0, _canvasSize.Width, _canvasSize.Height), _overlayPaint);
-
         var popup = GetPopupRect();
-        canvas.DrawRoundRect(popup, 10, 10, _backgroundPaint);
-        canvas.DrawRoundRect(popup, 10, 10, _borderPaint);
+        _chrome.DrawBackground(canvas, popup, _canvasSize);
 
         canvas.DrawText(_localization.Get("prestige_title"), popup.MidX, popup.Top + 30, SKTextAlign.Center, _titleFont, _textPaint);
 
-        _closeButtonRect = new SKRect(popup.Right - Padding - CloseSize, popup.Top + 10, popup.Right - Padding, popup.Top + 10 + CloseSize);
-        DrawCloseButton(canvas, _closeButtonRect);
+        _closeButtonRect = PopupChrome.GetCloseRect(popup);
+        _chrome.DrawCloseButton(canvas, _closeButtonRect);
 
         var controller = _gameControllerService.MainGameController.PrestigeController;
         var sources = controller.GetPrestigePointSources();
@@ -131,14 +126,13 @@ public sealed class PrestigeRenderer : IDisposable
             return true;
         }
 
-        return GetPopupRect().Contains(position.X, position.Y);
-    }
+        if (!GetPopupRect().Contains(position.X, position.Y))
+        {
+            Close();
+            return false;
+        }
 
-    private void DrawCloseButton(SKCanvas canvas, SKRect rect)
-    {
-        using var closePaint = new SKPaint { Color = new SKColor(90, 50, 50, 230), Style = SKPaintStyle.Fill, IsAntialias = true };
-        canvas.DrawRoundRect(rect, 5, 5, closePaint);
-        canvas.DrawText("X", rect.MidX, rect.MidY + 6, SKTextAlign.Center, _boldFont, _textPaint);
+        return true;
     }
 
     private SKRect GetPopupRect()
@@ -155,9 +149,7 @@ public sealed class PrestigeRenderer : IDisposable
         if (_disposed)
             return;
 
-        _overlayPaint.Dispose();
-        _backgroundPaint.Dispose();
-        _borderPaint.Dispose();
+        _chrome.Dispose();
         _buttonPaint.Dispose();
         _buttonDisabledPaint.Dispose();
         _textPaint.Dispose();

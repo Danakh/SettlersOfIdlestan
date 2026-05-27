@@ -321,7 +321,7 @@ public class SettingsMenu
 
     private void OpenSettingsPopup()
     {
-        _settingsPopupRenderer.Show();
+        _settingsPopupRenderer.Open();
     }
 
     private void ToggleDebugMode()

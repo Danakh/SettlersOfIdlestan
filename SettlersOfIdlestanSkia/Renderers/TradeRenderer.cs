@@ -62,9 +62,7 @@ public sealed class TradeRenderer : IDisposable
     private int _packMultiplier = 1;
     private TradeTab _activeTab = TradeTab.Commerce;
 
-    private readonly SKPaint _overlayPaint = new() { Color = new SKColor(0, 0, 0, 120), Style = SKPaintStyle.Fill, IsAntialias = true };
-    private readonly SKPaint _backgroundPaint = new() { Color = new SKColor(24, 24, 30, 245), Style = SKPaintStyle.Fill, IsAntialias = true };
-    private readonly SKPaint _borderPaint = new() { Color = SKColors.Gold, StrokeWidth = 2, Style = SKPaintStyle.Stroke, IsAntialias = true };
+    private readonly PopupChrome _chrome = new();
     private readonly SKPaint _panelPaint = new() { Color = new SKColor(38, 38, 46, 245), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _disabledPaint = new() { Color = new SKColor(70, 70, 76, 220), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _textPaint = new() { Color = SKColors.White, IsAntialias = true };
@@ -76,7 +74,6 @@ public sealed class TradeRenderer : IDisposable
 
     private readonly SKPaint _tradeActiveButtonPaint = new() { Color = new SKColor(46, 125, 50), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _tradeDisabledButtonPaint = new() { Color = new SKColor(90, 90, 96), Style = SKPaintStyle.Fill, IsAntialias = true };
-    private readonly SKPaint _closeButtonPaint = new() { Color = new SKColor(90, 50, 50, 230), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _multActiveFillPaint = new() { Color = new SKColor(60, 100, 160), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _multInactiveFillPaint = new() { Color = new SKColor(38, 38, 50), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _multActiveBorderPaint = new() { Color = new SKColor(100, 150, 220), Style = SKPaintStyle.Stroke, StrokeWidth = 1, IsAntialias = true };
@@ -145,16 +142,13 @@ public sealed class TradeRenderer : IDisposable
         _seaportL4AllRects.Clear();
         _purchaseBuyRects.Clear();
 
-        canvas.DrawRect(new SKRect(0, 0, _canvasSize.Width, _canvasSize.Height), _overlayPaint);
-
         var popup = GetPopupRect();
-        canvas.DrawRoundRect(popup, 10, 10, _backgroundPaint);
-        canvas.DrawRoundRect(popup, 10, 10, _borderPaint);
+        _chrome.DrawBackground(canvas, popup, _canvasSize);
 
         canvas.DrawText(_localization.Get("trade_title"), popup.MidX, popup.Top + 28, SKTextAlign.Center, _titleFont, _textPaint);
 
-        _closeButtonRect = new SKRect(popup.Right - Padding - CloseSize, popup.Top + 10, popup.Right - Padding, popup.Top + 10 + CloseSize);
-        DrawCloseButton(canvas, _closeButtonRect);
+        _closeButtonRect = PopupChrome.GetCloseRect(popup);
+        _chrome.DrawCloseButton(canvas, _closeButtonRect);
 
         DrawTabs(canvas, popup);
 
@@ -697,12 +691,6 @@ public sealed class TradeRenderer : IDisposable
 
     // ── Misc drawing ─────────────────────────────────────────────────────────────
 
-    private void DrawCloseButton(SKCanvas canvas, SKRect rect)
-    {
-        canvas.DrawRoundRect(rect, 5, 5, _closeButtonPaint);
-        canvas.DrawText("X", rect.MidX, rect.MidY + 6, SKTextAlign.Center, _boldFont, _textPaint);
-    }
-
     // ── Offer / request management ───────────────────────────────────────────────
 
     private void AddOffer(Resource resource)
@@ -849,9 +837,7 @@ public sealed class TradeRenderer : IDisposable
     public void Dispose()
     {
         if (_disposed) return;
-        _overlayPaint.Dispose();
-        _backgroundPaint.Dispose();
-        _borderPaint.Dispose();
+        _chrome.Dispose();
         _panelPaint.Dispose();
         _disabledPaint.Dispose();
         _textPaint.Dispose();
@@ -862,7 +848,6 @@ public sealed class TradeRenderer : IDisposable
         _smallFont.Dispose();
         _tradeActiveButtonPaint.Dispose();
         _tradeDisabledButtonPaint.Dispose();
-        _closeButtonPaint.Dispose();
         _multActiveFillPaint.Dispose();
         _multInactiveFillPaint.Dispose();
         _multActiveBorderPaint.Dispose();

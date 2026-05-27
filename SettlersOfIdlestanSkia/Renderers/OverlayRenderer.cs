@@ -36,6 +36,7 @@ public sealed class OverlayRenderer : IGameRenderer
     private readonly ILocalizationService _localization;
     private readonly PlayerResourcesOverlayRenderer _playerResourcesOverlayRenderer;
     private readonly SettingsMenu _settingsMenu;
+    private readonly SettingsPopupRenderer _settingsPopupRenderer;
     private readonly SelectedCityPanelRenderer _selectedCityPanelRenderer;
     private readonly TradeRenderer _tradeRenderer;
     private readonly PrestigeRenderer _prestigeRenderer;
@@ -76,6 +77,7 @@ public sealed class OverlayRenderer : IGameRenderer
         ILocalizationService localization,
         PlayerResourcesOverlayRenderer playerResourcesOverlayRenderer,
         SettingsMenu settingsMenu,
+        SettingsPopupRenderer settingsPopupRenderer,
         SelectedCityPanelRenderer selectedCityPanelRenderer,
         TradeRenderer tradeRenderer,
         PrestigeRenderer prestigeRenderer,
@@ -91,6 +93,7 @@ public sealed class OverlayRenderer : IGameRenderer
         _localization = localization;
         _playerResourcesOverlayRenderer = playerResourcesOverlayRenderer;
         _settingsMenu = settingsMenu;
+        _settingsPopupRenderer = settingsPopupRenderer;
         _selectedCityPanelRenderer = selectedCityPanelRenderer;
         _tradeRenderer = tradeRenderer;
         _prestigeRenderer = prestigeRenderer;
@@ -113,6 +116,7 @@ public sealed class OverlayRenderer : IGameRenderer
         _selectedCityPanelRenderer.ReservedBottomHeight = CityPanelReservedBottomHeight;
         _tradeRenderer.Initialize(canvasSize);
         _prestigeRenderer.Initialize(canvasSize);
+        _settingsPopupRenderer.Initialize(canvasSize);
         _prestigeMapRenderer.Initialize(canvasSize);
         _prestigeHistoryRenderer.Initialize(canvasSize);
         _researchRenderer.Initialize(canvasSize);
@@ -216,6 +220,7 @@ public sealed class OverlayRenderer : IGameRenderer
 
         _tradeRenderer.Render(canvas);
         _prestigeRenderer.Render(canvas);
+        _settingsPopupRenderer.Render(canvas);
     }
 
     private bool HasPrestigePoints(GameRenderContext context)
@@ -318,7 +323,8 @@ public sealed class OverlayRenderer : IGameRenderer
         catch { return false; }
     }
 
-    public bool IsAnyOverlayOpen => _tradeRenderer.IsOpen || _prestigeRenderer.IsOpen || _settingsMenu.IsOpen;
+    public bool IsAnyOverlayOpen => _tradeRenderer.IsOpen || _prestigeRenderer.IsOpen
+                                    || _settingsMenu.IsOpen || _settingsPopupRenderer.IsOpen;
     public bool IsPointBlockedByUI(SKPoint point) =>
         IsAnyOverlayOpen || _selectedCityPanelRenderer.ContainsPoint(point);
     public bool IsIslandTabActive => _activeTab == TabIsland;
@@ -338,6 +344,7 @@ public sealed class OverlayRenderer : IGameRenderer
     {
         if (!_isVisible) return;
 
+        if (_settingsPopupRenderer.HandlePointerPressed(e.Position, e.Button)) return;
         if (_prestigeRenderer.HandlePointerPressed(e.Position, e.Button)) return;
         if (_tradeRenderer.HandlePointerPressed(e.Position, e.Button)) return;
         if (e.Button != PointerButton.Left) return;
@@ -375,6 +382,7 @@ public sealed class OverlayRenderer : IGameRenderer
         if (_tradeButtonRect.Contains(e.Position.X, e.Position.Y) && IsTradeAvailable())
         {
             _settingsMenu.Close();
+            _settingsPopupRenderer.Close();
             _prestigeRenderer.Close();
             _tradeRenderer.Open();
         }
@@ -382,6 +390,7 @@ public sealed class OverlayRenderer : IGameRenderer
         if (!_prestigeButtonRect.IsEmpty && _prestigeButtonRect.Contains(e.Position.X, e.Position.Y) && _gameControllerService.MainGameController.PrestigeController.PrestigeIsAvailable())
         {
             _settingsMenu.Close();
+            _settingsPopupRenderer.Close();
             _tradeRenderer.Close();
             _prestigeRenderer.Open();
         }
@@ -390,6 +399,7 @@ public sealed class OverlayRenderer : IGameRenderer
     public void CloseAll()
     {
         _settingsMenu.Close();
+        _settingsPopupRenderer.Close();
         _tradeRenderer.Close();
         _prestigeRenderer.Close();
         _selectedCityPanelRenderer.Close();
