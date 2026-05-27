@@ -143,9 +143,8 @@ public class RoadRenderer : HexBasedRenderer, IGameRenderer
 
     private static bool IsRoadVisible(Road road, IslandMap visibleMap)
     {
-        return road.Position.GetVertices()
-            .SelectMany(vertex => vertex.GetHexes())
-            .Any(visibleMap.HasTile);
+        var (h1, h2) = road.Position.GetHexes();
+        return visibleMap.HasTile(h1) && visibleMap.HasTile(h2);
     }
 
     private void DrawRoadSegmentOnEdge(SKCanvas canvas, SettlersOfIdlestan.Model.HexGrid.Edge edge, SKPaint paint)
