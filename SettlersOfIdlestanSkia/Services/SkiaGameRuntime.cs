@@ -117,7 +117,7 @@ public sealed class SkiaGameRuntime : IDisposable
         _introRenderer = new IntroAnimationRenderer(_resourceManager!);
         _renderService.RegisterRenderer(_introRenderer);
 
-        ConnectHarvestEventsToParticles(islandMainRenderer);
+        islandMainRenderer.ConnectHarvestEvents(_harvestService!, _gameControllerService!, () => _prestigeTransitionPending);
         ConnectMilitaryEventsToParticles(islandMainRenderer, _gameControllerService.MainGameController.MilitaryController);
 
         var selectedCityPanelRenderer = new SelectedCityPanelRenderer(_gameControllerService.CityBuildingService!, _localizationService, _inputService, _resourceManager!);
@@ -417,40 +417,6 @@ public sealed class SkiaGameRuntime : IDisposable
         {
             if (_prestigeTransitionPending) return;
             islandMainRenderer.BanditHideoutRenderer.EmitAttackParticle(args.CityVertex, args.BanditPosition);
-        };
-    }
-
-    private void ConnectHarvestEventsToParticles(IslandMainRenderer islandMainRenderer)
-    {
-        var particleSystem = islandMainRenderer.GetHarvestParticleSystem();
-
-        _harvestService!.OnHarvestCompleted += (sender, args) =>
-        {
-            if (_prestigeTransitionPending)
-                return;
-
-            if (_gameControllerService?.CurrentGameState?.CurrentIslandState == null)
-                return;
-
-            var (hexX, hexY) = islandMainRenderer.AxialToIsland(args.HexCoord.Q, args.HexCoord.R);
-            var hexCenter = new SKPoint(hexX, hexY);
-            SKPoint cityCenter = islandMainRenderer.VertexToIslandPoint(args.CityPosition);
-
-            particleSystem.EmitParticles(hexCenter, cityCenter, args.Resources);
-        };
-
-        _harvestService!.OnMarketResourceGenerated += (sender, args) =>
-        {
-            if (_prestigeTransitionPending)
-                return;
-
-            if (_gameControllerService?.CurrentGameState?.CurrentIslandState == null)
-                return;
-
-            SKPoint cityCenter = islandMainRenderer.VertexToIslandPoint(args.CityPosition);
-            SKPoint above = new SKPoint(cityCenter.X, cityCenter.Y - 20f);
-
-            particleSystem.EmitParticle(cityCenter, above, args.Resource, 0.5f);
         };
     }
 

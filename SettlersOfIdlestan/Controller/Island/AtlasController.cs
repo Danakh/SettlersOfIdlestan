@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.IslandMap;
 
@@ -47,8 +48,8 @@ namespace SettlersOfIdlestan.Controller.Island
                 };
                 return new IslandParameters(islandId, tileData, 1, features, IslandShapeType.Elongated);
             }
-            // Île 3+ : archipel
-            if (islandId > 2)
+            // Île 3 : archipel + 1 civilisation NPC Low/Pacifiste
+            if (islandId == 3)
             {
                 var tileData = new List<(TerrainType terrainType, int tileCount)>
                 {
@@ -65,7 +66,40 @@ namespace SettlersOfIdlestan.Controller.Island
                     new IslandFeatureParameters(IslandFeatureType.TreasureTrove, IslandFeaturePlacement.Random),
                     new IslandFeatureParameters(IslandFeatureType.BanditHideout, IslandFeaturePlacement.FarFromPlayer),
                 };
-                return new IslandParameters(islandId, tileData, 1, features, IslandShapeType.Archipelago);
+                return new IslandParameters(islandId, tileData, 1, features, IslandShapeType.Archipelago)
+                {
+                    NpcCivilizations =
+                    [
+                        new NpcParameters { EvolutionLevel = NpcEvolutionLevel.Low, AggressivityLevel = NpcAggressivityLevel.Pacifist },
+                    ]
+                };
+            }
+            // Île 4+ : archipel + 2 civilisations NPC Medium/Pacifiste
+            if (islandId > 3)
+            {
+                var tileData = new List<(TerrainType terrainType, int tileCount)>
+                {
+                    (TerrainType.Forest, 9),
+                    (TerrainType.Hill, 9),
+                    (TerrainType.Plain, 9),
+                    (TerrainType.Mountain, 9),
+                    (TerrainType.Desert, 3),
+                };
+                var features = new List<IslandFeatureParameters>
+                {
+                    new IslandFeatureParameters(IslandFeatureType.Bandit,        IslandFeaturePlacement.FarFromPlayer),
+                    new IslandFeatureParameters(IslandFeatureType.Bandit,        IslandFeaturePlacement.FarFromPlayer),
+                    new IslandFeatureParameters(IslandFeatureType.TreasureTrove, IslandFeaturePlacement.Random),
+                    new IslandFeatureParameters(IslandFeatureType.BanditHideout, IslandFeaturePlacement.FarFromPlayer),
+                };
+                return new IslandParameters(islandId, tileData, 1, features, IslandShapeType.Crescent)
+                {
+                    NpcCivilizations =
+                    [
+                        new NpcParameters { EvolutionLevel = NpcEvolutionLevel.Medium, AggressivityLevel = NpcAggressivityLevel.Pacifist },
+                        new NpcParameters { EvolutionLevel = NpcEvolutionLevel.Medium, AggressivityLevel = NpcAggressivityLevel.Pacifist },
+                    ]
+                };
             }
 
             return new IslandParameters(InvalidIslandId, new List<(TerrainType terrainType, int tileCount)>(), 0);

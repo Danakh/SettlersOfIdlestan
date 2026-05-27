@@ -65,10 +65,18 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
         _harvestController = harvestController;
     }
 
-    /// <summary>
-    /// Retourne le système de particules de récolte pour abonnement aux événements.
-    /// </summary>
-    public HarvestParticleSystem GetHarvestParticleSystem() => _harvestParticleSystem;
+    public void ConnectHarvestEvents(
+        HarvestService harvestService,
+        GameControllerService gameControllerService,
+        Func<bool> isPrestigeTransitionPending)
+    {
+        _harvestRenderer.Connect(
+            harvestService,
+            gameControllerService,
+            hex => HexCoordToIslandPoint(hex),
+            vertex => VertexToIslandPoint(vertex),
+            isPrestigeTransitionPending);
+    }
 
     public void Initialize(SKSize canvasSize)
     {

@@ -1,5 +1,7 @@
 using SkiaSharp;
 using Svg.Skia;
+using SettlersOfIdlestan.Controller.Island;
+using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Services;
@@ -21,6 +23,34 @@ public class HarvestRenderer : IGameRenderer
     {
         _particleSystem = particleSystem ?? throw new ArgumentNullException(nameof(particleSystem));
         _resourceManager = resourceManager ?? throw new ArgumentNullException(nameof(resourceManager));
+    }
+
+    public void Connect(
+        HarvestService harvestService,
+        GameControllerService gameControllerService,
+        Func<HexCoord, SKPoint> hexToIsland,
+        Func<Vertex, SKPoint> vertexToIsland,
+        Func<bool> isPrestigeTransitionPending)
+    {
+        harvestService.OnHarvestCompleted += (_, args) =>
+        {
+            if (isPrestigeTransitionPending()) return;
+            if (gameControllerService.PlayerCivilizationIndex != args.CivilizationIndex) return;
+
+            var hexCenter = hexToIsland(args.HexCoord);
+            var cityCenter = vertexToIsland(args.CityPosition);
+            _particleSystem.EmitParticles(hexCenter, cityCenter, args.Resources);
+        };
+
+        harvestService.OnMarketResourceGenerated += (_, args) =>
+        {
+            if (isPrestigeTransitionPending()) return;
+            if (gameControllerService.PlayerCivilizationIndex != args.CivilizationIndex) return;
+
+            var cityCenter = vertexToIsland(args.CityPosition);
+            var above = new SKPoint(cityCenter.X, cityCenter.Y - 20f);
+            _particleSystem.EmitParticle(cityCenter, above, args.Resource, 0.5f);
+        };
     }
 
     public void Initialize(SKSize canvasSize)
