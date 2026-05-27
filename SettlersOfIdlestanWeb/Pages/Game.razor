@@ -64,6 +64,7 @@
 
         _dotNetRef = DotNetObjectReference.Create(this);
         _keyboardHandlerId = await JS.InvokeAsync<int>("gameInterop.registerKeyboardHandler", _dotNetRef);
+        await JS.InvokeVoidAsync("gameInterop.registerVisibilityHandler", _dotNetRef);
 
         _cts = new CancellationTokenSource();
         _ = RunGameLoop(_cts.Token);
@@ -127,6 +128,9 @@
     [JSInvokable]
     public void OnKeyDown(string key) => _runtime?.HandleKeyPressed(key);
 
+    [JSInvokable]
+    public void OnPageVisible(double hiddenSeconds) => _runtime?.NotifyPageVisible(hiddenSeconds);
+
     private static PointerButton ToPointerButton(long button) => button switch
     {
         0 => PointerButton.Left,
@@ -149,6 +153,8 @@
             await JS.InvokeVoidAsync("gameInterop.unregisterKeyboardHandler", _keyboardHandlerId);
             _keyboardHandlerId = -1;
         }
+
+        await JS.InvokeVoidAsync("gameInterop.unregisterVisibilityHandler");
 
         _dotNetRef?.Dispose();
         _dotNetRef = null;

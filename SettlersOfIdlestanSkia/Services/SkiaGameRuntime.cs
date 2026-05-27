@@ -353,6 +353,11 @@ public sealed class SkiaGameRuntime : IDisposable
         }
     }
 
+    public void NotifyPageVisible(double hiddenSeconds)
+    {
+        _gameControllerService?.AddOfflineSeconds(hiddenSeconds);
+    }
+
     public bool TryGetDebugStats(out RuntimeDebugStats stats)
     {
         if (_pendingDebugStats is { } pending)
