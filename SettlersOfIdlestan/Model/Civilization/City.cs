@@ -25,6 +25,21 @@ public class City
     public List<Building> Buildings { get; set; } = new();
 
     /// <summary>
+    /// Défense actuelle (dynamique). Se régénère jusqu'à la valeur issue des bâtiments.
+    /// </summary>
+    public int CurrentDefense { get; set; }
+
+    /// <summary>
+    /// Tick du dernier point de régénération de défense.
+    /// </summary>
+    public long LastDefenseRegenTick { get; set; }
+
+    /// <summary>
+    /// Tick de la dernière attaque lancée par cette ville contre une ville adverse.
+    /// </summary>
+    public long LastCityAttackTick { get; set; }
+
+    /// <summary>
     /// Gets the effective level of the city.
     /// Level 1 is the base level (outpost) when no TownHall is built.
     /// When a TownHall is present the city level is TownHall.Level + 1.
