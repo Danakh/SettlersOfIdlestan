@@ -109,14 +109,22 @@ public class IslandMapGenerator
             _                           => new IslandShapeGeneratorCompact()
         };
 
-        var civs = new List<Civilization>();
-        for (int i = 0; i < parameters.CivilizationCount; i++)
-            civs.Add(new Civilization { Index = i });
+        var civs = new List<Civilization> { new Civilization { Index = 0 } };
+        for (int i = 0; i < parameters.NpcCivilizations.Count; i++)
+            civs.Add(new Civilization
+            {
+                Index = i + 1,
+                IsNpc = true,
+                NpcParameters = parameters.NpcCivilizations[i]
+            });
 
         var map = GenerateIsland(parameters.TileData, civs, shapeGenerator);
         if (map is null) return null;
 
         var islandState = new IslandState(map, civs, parameters.IslandID) { StartTick = startTick };
+
+        if (parameters.NpcCivilizations.Count > 0)
+            new NpcCivilizationPlacer().PlaceNpcCivilizations(islandState);
 
         if (parameters.Features.Count > 0)
             PlaceFeatures(islandState, parameters.Features, currentTick);

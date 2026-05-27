@@ -20,6 +20,16 @@ public class Civilization
     public int Index { get; set; }
 
     /// <summary>
+    /// Indique si cette civilisation est contrôlée par l'IA.
+    /// </summary>
+    public bool IsNpc { get; set; } = false;
+
+    /// <summary>
+    /// Paramètres NPC (niveau d'évolution, agressivité). Null pour le joueur.
+    /// </summary>
+    public NpcParameters? NpcParameters { get; set; }
+
+    /// <summary>
     /// Gets or sets the list of cities in the civilization.
     /// </summary>
     public List<City> Cities { get; set; } = new();

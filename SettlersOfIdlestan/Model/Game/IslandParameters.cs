@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.IslandMap;
 
 namespace SettlersOfIdlestan.Model.Game
@@ -11,6 +12,7 @@ namespace SettlersOfIdlestan.Model.Game
         public int CivilizationCount { get; set; }
         public List<IslandFeatureParameters> Features { get; set; }
         public IslandShapeType ShapeType { get; set; }
+        public List<NpcParameters> NpcCivilizations { get; set; } = new();
 
         public IslandParameters(int islandID, IEnumerable<(TerrainType terrainType, int tileCount)> tileData, int civilizationCount, IEnumerable<IslandFeatureParameters>? features = null, IslandShapeType shapeType = IslandShapeType.Compact)
         {
