@@ -23,6 +23,8 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             STARTING_CITY_BUILDING,
             /// <summary>SubCategory = BuildingType name. Granted to every new outpost, including the initial city.</summary>
             NEW_CITY_BUILDING,
+            /// <summary>Flat bonus added to the city defense score. SubCategory unused.</summary>
+            CITY_DEFENSE,
         }
 
         public enum EType

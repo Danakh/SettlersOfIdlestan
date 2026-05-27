@@ -108,7 +108,6 @@ namespace SettlersOfIdlestan.Controller.Island
                 }
 
                 long now = _clock.CurrentTick;
-                double speedMultiplier = civ.ModifierAggregator.ApplyModifiers(ECategory.HARVEST_SPEED, "", 1.0);
 
                 var allHexes = new HashSet<HexCoord>();
                 foreach (var city in civ.Cities)
@@ -136,6 +135,7 @@ namespace SettlersOfIdlestan.Controller.Island
                             var res = building.AutomaticHarvestCapability(tile.TerrainType);
                             if (res == null) continue;
                             long raw = building.GetAutomaticHarvestCooldown(AutomaticHarvestCooldownTicks);
+                            double speedMultiplier = civ.ModifierAggregator.ApplyModifiers(ECategory.HARVEST_SPEED, building.Type.ToString(), 1.0);
                             long effective = Math.Max(1L, (long)(raw / speedMultiplier));
                             capable.Add((city, building, res.Value, effective));
                         }
@@ -267,14 +267,13 @@ namespace SettlersOfIdlestan.Controller.Island
             var tile = _state.Map.GetTile(hex);
             if (tile == null) return AutomaticHarvestCooldownTicks;
 
-            double speedMultiplier = civ.ModifierAggregator.ApplyModifiers(ECategory.HARVEST_SPEED, "", 1.0);
-
             long? max = null;
             foreach (var city in civ.Cities.Where(c => c.Position.IsAdjacentTo(hex)))
                 foreach (var building in city.Buildings)
                     if (building.AutomaticHarvestCapability(tile.TerrainType).HasValue)
                     {
                         long raw = building.GetAutomaticHarvestCooldown(AutomaticHarvestCooldownTicks);
+                        double speedMultiplier = civ.ModifierAggregator.ApplyModifiers(ECategory.HARVEST_SPEED, building.Type.ToString(), 1.0);
                         long effective = Math.Max(1L, (long)(raw / speedMultiplier));
                         if (max == null || effective > max) max = effective;
                     }
