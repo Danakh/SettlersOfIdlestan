@@ -4,5 +4,6 @@ public enum IslandShapeType
 {
     Compact,
     Crescent,
-    Archipelago
+    Archipelago,
+    Elongated
 }

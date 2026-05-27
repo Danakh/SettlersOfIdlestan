@@ -17,8 +17,8 @@ namespace SettlersOfIdlestan.Controller.Island
                 {
                     (TerrainType.Forest, 5),
                     (TerrainType.Hill, 5),
-                    (TerrainType.Plain, 5),
-                    (TerrainType.Mountain, 5),
+                    (TerrainType.Plain, 4),
+                    (TerrainType.Mountain, 4),
                     (TerrainType.Desert, 1),
                 };
                 var features = new List<IslandFeatureParameters>
@@ -27,8 +27,28 @@ namespace SettlersOfIdlestan.Controller.Island
                 };
                 return new IslandParameters(islandId, tileData, 1, features, IslandShapeType.Compact);
             }
-            // Pour d'autres îles, retourner une configuration différente si besoin
-            if (islandId > 1)
+            // Île 2 : forme allongée avec repaire de bandits
+            if (islandId == 2)
+            {
+                var tileData = new List<(TerrainType terrainType, int tileCount)>
+                {
+                    (TerrainType.Forest, 7),
+                    (TerrainType.Hill, 7),
+                    (TerrainType.Plain, 7),
+                    (TerrainType.Mountain, 7),
+                    (TerrainType.Desert, 3),
+                };
+                var features = new List<IslandFeatureParameters>
+                {
+                    new IslandFeatureParameters(IslandFeatureType.Bandit,        IslandFeaturePlacement.FarFromPlayer),
+                    new IslandFeatureParameters(IslandFeatureType.Bandit,        IslandFeaturePlacement.FarFromPlayer),
+                    new IslandFeatureParameters(IslandFeatureType.TreasureTrove, IslandFeaturePlacement.Random),
+                    new IslandFeatureParameters(IslandFeatureType.BanditHideout, IslandFeaturePlacement.FarFromPlayer),
+                };
+                return new IslandParameters(islandId, tileData, 1, features, IslandShapeType.Elongated);
+            }
+            // Île 3+ : archipel
+            if (islandId > 2)
             {
                 var tileData = new List<(TerrainType terrainType, int tileCount)>
                 {
