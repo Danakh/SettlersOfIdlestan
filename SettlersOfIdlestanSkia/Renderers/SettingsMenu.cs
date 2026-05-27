@@ -36,6 +36,7 @@ public class SettingsMenu
     private readonly InputHandlingService _inputService;
     private readonly ILocalizationService _localization;
     private readonly AboutRenderer _aboutRenderer;
+    private readonly SettingsPopupRenderer _settingsPopupRenderer;
     private readonly IFileSystemService _fileSystemService;
     private readonly CityBuildingService _cityBuildingService;
     private readonly Action? _onAfterNewGame;
@@ -54,12 +55,13 @@ public class SettingsMenu
 
     public bool IsOpen => _isOpen;
 
-    public SettingsMenu(MainGameController gameController, InputHandlingService inputService, ILocalizationService localization, AboutRenderer aboutRenderer, IFileSystemService fileSystemService, CityBuildingService cityBuildingService, bool allowDebugMode = false, Action? onAfterNewGame = null)
+    public SettingsMenu(MainGameController gameController, InputHandlingService inputService, ILocalizationService localization, AboutRenderer aboutRenderer, SettingsPopupRenderer settingsPopupRenderer, IFileSystemService fileSystemService, CityBuildingService cityBuildingService, bool allowDebugMode = false, Action? onAfterNewGame = null)
     {
         _gameController = gameController;
         _inputService = inputService;
         _localization = localization;
         _aboutRenderer = aboutRenderer;
+        _settingsPopupRenderer = settingsPopupRenderer;
         _fileSystemService = fileSystemService;
         _cityBuildingService = cityBuildingService;
         _onAfterNewGame = onAfterNewGame;
@@ -67,17 +69,10 @@ public class SettingsMenu
 
         Initialize();
 
-        // Initialise les items du menu
-        // Section Langue (avant le séparateur)
         _menuItems.Add(new MenuItem
         {
-            LabelKey = "menu_language_french",
-            Action = () => SetLanguage(Language.French)
-        });
-        _menuItems.Add(new MenuItem
-        {
-            LabelKey = "menu_language_english",
-            Action = () => SetLanguage(Language.English)
+            LabelKey = "menu_settings",
+            Action = OpenSettingsPopup
         });
 
         _menuItems.Add(new MenuItem { IsSeparator = true });
@@ -324,9 +319,9 @@ public class SettingsMenu
         }
     }
 
-    private void SetLanguage(Language language)
+    private void OpenSettingsPopup()
     {
-        _localization.SetLanguage(language);
+        _settingsPopupRenderer.Show();
     }
 
     private void ToggleDebugMode()

@@ -17,6 +17,8 @@ namespace SettlersOfIdlestan.Model.Game
         public GameClock Clock { get; set; }
         public GamePRNG PRNG { get; set; }
 
+        public GameSettings Settings { get; set; } = new();
+
         public MainGameState()
         {
             GodState = new GodState();
