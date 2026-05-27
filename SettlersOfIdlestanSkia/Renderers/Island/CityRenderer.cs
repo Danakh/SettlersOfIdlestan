@@ -208,29 +208,35 @@ public class CityRenderer : HexBasedRenderer, IGameRenderer
             return;
 
         int attack = _militaryController.GetAttackScore(city);
-        int defense = _militaryController.GetDefenseScore(city);
+        int maxDefense = _militaryController.GetDefenseScore(city);
+        int currentDefense = city.CurrentDefense;
 
-        if (attack == 0 && defense == 0)
+        bool showAttack = attack > 0;
+        bool showDefense = maxDefense > 0;
+
+        if (!showAttack && !showDefense)
             return;
 
         float yBase = cityPos.Y + cityRadius + 3f + MilitaryIconSize;
         float spacing = MilitaryIconSize + 16f;
         float totalWidth = 0f;
-        if (attack > 0) totalWidth += spacing;
-        if (defense > 0) totalWidth += spacing;
+        if (showAttack) totalWidth += spacing;
+        if (showDefense) totalWidth += spacing;
         float xStart = cityPos.X - totalWidth / 2f + spacing / 2f;
 
         float x = xStart;
-        if (attack > 0)
+        if (showAttack)
         {
             DrawMilitaryIcon(canvas, _attackSvg, new SKPoint(x, yBase), new SKColor(220, 80, 60));
             canvas.DrawText(attack.ToString(), x + MilitaryIconSize / 2f + 2f, yBase + 3f, SKTextAlign.Left, _militaryTextFont, _militaryTextPaint);
             x += spacing;
         }
-        if (defense > 0)
+        if (showDefense)
         {
-            DrawMilitaryIcon(canvas, _defenseSvg, new SKPoint(x, yBase), new SKColor(80, 160, 220));
-            canvas.DrawText(defense.ToString(), x + MilitaryIconSize / 2f + 2f, yBase + 3f, SKTextAlign.Left, _militaryTextFont, _militaryTextPaint);
+            var defColor = currentDefense == 0 ? new SKColor(200, 60, 60) : new SKColor(80, 160, 220);
+            DrawMilitaryIcon(canvas, _defenseSvg, new SKPoint(x, yBase), defColor);
+            string defText = $"{currentDefense}/{maxDefense}";
+            canvas.DrawText(defText, x + MilitaryIconSize / 2f + 2f, yBase + 3f, SKTextAlign.Left, _militaryTextFont, _militaryTextPaint);
         }
     }
 
