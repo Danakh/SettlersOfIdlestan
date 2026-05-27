@@ -59,12 +59,10 @@ public class MilitaryController
     public const long DefenseRegenIntervalTicks = 1_000L;
 
     /// <summary>Intervalle minimum entre deux attaques de ville lancées par la même ville.</summary>
-    public const long CityAttackIntervalTicks = 3_000L;
+    public const long CityAttackIntervalTicks = 100L;
 
     /// <summary>Distance en hexagones en deçà de laquelle une ville adverse déclenche une attaque automatique.</summary>
     public const int CityAttackRange = 3;
-
-    private readonly Random _random = new();
 
     public event EventHandler<SoldierAttackEventArgs>? SoldierAttackedBandit;
     public event EventHandler<SoldierAttackEventArgs>? SoldierAttackedHideout;
@@ -300,11 +298,15 @@ public class MilitaryController
             return false;
         }
 
-        if (targetCity.Buildings.Count > 0)
+        var townHall = targetCity.Buildings.OfType<TownHall>().FirstOrDefault();
+        if (townHall != null)
         {
-            int idx = _random.Next(targetCity.Buildings.Count);
-            targetCity.Buildings.RemoveAt(idx);
-            CityBuildingDestroyed?.Invoke(this, new CityBuildingDestroyedEventArgs(targetCity.Position));
+            townHall.Level--;
+            if (townHall.Level <= 0)
+            {
+                targetCity.Buildings.Remove(townHall);
+                CityBuildingDestroyed?.Invoke(this, new CityBuildingDestroyedEventArgs(targetCity.Position));
+            }
             return false;
         }
 
