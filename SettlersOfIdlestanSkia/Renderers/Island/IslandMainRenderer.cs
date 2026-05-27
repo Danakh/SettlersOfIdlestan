@@ -37,10 +37,11 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
     public void ConnectMilitaryEvents(
         MilitaryController militaryController,
         GameControllerService gameControllerService,
-        Func<bool> isPrestigeTransitionPending)
+        Func<bool> isPrestigeTransitionPending,
+        Func<bool> isIslandTabActive)
     {
-        _banditRenderer.Connect(militaryController, gameControllerService, isPrestigeTransitionPending);
-        _militaryParticleRenderer.Connect(militaryController, gameControllerService, isPrestigeTransitionPending);
+        _banditRenderer.Connect(militaryController, gameControllerService, isPrestigeTransitionPending, isIslandTabActive);
+        _militaryParticleRenderer.Connect(militaryController, gameControllerService, isPrestigeTransitionPending, isIslandTabActive);
     }
 
     /// <summary>
@@ -75,14 +76,16 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
     public void ConnectHarvestEvents(
         HarvestService harvestService,
         GameControllerService gameControllerService,
-        Func<bool> isPrestigeTransitionPending)
+        Func<bool> isPrestigeTransitionPending,
+        Func<bool> isIslandTabActive)
     {
         _harvestRenderer.Connect(
             harvestService,
             gameControllerService,
             hex => HexCoordToIslandPoint(hex),
             vertex => VertexToIslandPoint(vertex),
-            isPrestigeTransitionPending);
+            isPrestigeTransitionPending,
+            isIslandTabActive);
     }
 
     public void Initialize(SKSize canvasSize)

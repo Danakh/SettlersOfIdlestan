@@ -43,11 +43,13 @@ public class MilitaryParticleRenderer : HexBasedRenderer, IGameRenderer
     public void Connect(
         MilitaryController militaryController,
         GameControllerService gameControllerService,
-        Func<bool> isPrestigeTransitionPending)
+        Func<bool> isPrestigeTransitionPending,
+        Func<bool> isIslandTabActive)
     {
         militaryController.SoldierAttackedCity += (_, args) =>
         {
             if (isPrestigeTransitionPending()) return;
+            if (!isIslandTabActive()) return;
             EmitParticle(args.Path);
         };
     }

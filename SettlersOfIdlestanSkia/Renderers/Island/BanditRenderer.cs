@@ -96,11 +96,13 @@ public class BanditRenderer : HexBasedRenderer, IGameRenderer
     public void Connect(
         MilitaryController militaryController,
         GameControllerService gameControllerService,
-        Func<bool> isPrestigeTransitionPending)
+        Func<bool> isPrestigeTransitionPending,
+        Func<bool> isIslandTabActive)
     {
         militaryController.SoldierAttackedBandit += (_, args) =>
         {
             if (isPrestigeTransitionPending()) return;
+            if (!isIslandTabActive()) return;
             var islandState = gameControllerService.CurrentIslandState;
             if (islandState == null) return;
             if (!IsSourceOrDestinationVisible(islandState, args.CityVertex, args.BanditPosition)) return;
@@ -110,6 +112,7 @@ public class BanditRenderer : HexBasedRenderer, IGameRenderer
         militaryController.SoldierAttackedHideout += (_, args) =>
         {
             if (isPrestigeTransitionPending()) return;
+            if (!isIslandTabActive()) return;
             var islandState = gameControllerService.CurrentIslandState;
             if (islandState == null) return;
             if (!IsSourceOrDestinationVisible(islandState, args.CityVertex, args.BanditPosition)) return;
