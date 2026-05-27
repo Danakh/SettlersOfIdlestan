@@ -106,10 +106,11 @@ namespace SettlersOfIdlestan.Controller.Island
                 if (candidates.Count == 0) continue;
 
                 var chosen = candidates[_prng.Next(candidates.Count)];
+                TryRemoveEnemyRoadAt(chosen.Position, civ.Index);
                 var road = new Road(chosen.Position) { CivilizationIndex = civ.Index, DistanceToNearestCity = chosen.DistanceToNearestCity };
                 civ.Roads.Add(road);
                 ComputeRoadDistancesForCivilization(civ);
-                _buildableRoadsCache.Remove(civ.Index);
+                _buildableRoadsCache.Clear();
                 _state.RecalculateVisibleIslandMap(civ.Index);
 
                 OnAutoRoadBuilt?.Invoke(this, new RoadAutoBuiltEventArgs(civ.Index, chosen.Position));
@@ -134,8 +135,9 @@ namespace SettlersOfIdlestan.Controller.Island
 
             var mapTiles = _state.Map.Tiles;
 
-            // Routes d?j? pr?sentes (toutes civilisations confondues)
-            var occupied = new HashSet<Edge>(_state.Civilizations.SelectMany(c => c.Roads).Select(r => r.Position));
+            // Seules les routes de NOTRE civilisation bloquent la construction.
+            // Les routes ennemies sont conquérables (elles seront détruites à la construction).
+            var ownOccupied = new HashSet<Edge>(civ.Roads.Select(r => r.Position));
 
             // Collecte les ar�tes candidates depuis les vertices des villes
             // et les ar�tes voisines des routes existantes
@@ -154,7 +156,7 @@ namespace SettlersOfIdlestan.Controller.Island
             var result = new List<Road>();
             foreach (var edge in candidates)
             {
-                if (occupied.Any(e => e.Equals(edge))) continue;
+                if (ownOccupied.Any(e => e.Equals(edge))) continue;
                 if (!IsEdgeOnLand(edge)) continue;
 
                 var road = new Road(edge) { CivilizationIndex = civilizationIndex };
@@ -200,9 +202,8 @@ namespace SettlersOfIdlestan.Controller.Island
             if (mapTiles[edge.Hex1].TerrainType == TerrainType.Water && mapTiles[edge.Hex2].TerrainType == TerrainType.Water)
                 throw new InvalidOperationException("Cannot build a road on an edge between two water hexes");
 
-            // V�rifier occup�e
-            var occupied = new HashSet<Edge>(_state.Civilizations.SelectMany(c => c.Roads).Select(r => r.Position));
-            if (occupied.Any(e => e.Equals(edge)))
+            // Seule notre propre civilisation peut bloquer la construction
+            if (civ.Roads.Any(r => r.Position.Equals(edge)))
                 throw new InvalidOperationException("Edge already occupied");
 
             // V�rifier constructible
@@ -221,6 +222,9 @@ namespace SettlersOfIdlestan.Controller.Island
             if (!civ.CanPayResourceCost(cost))
                 throw new InvalidOperationException("Civilization cannot afford to build this road");
 
+            // Détruire la route ennemie éventuelle sur cette arête
+            TryRemoveEnemyRoadAt(edge, civilizationIndex);
+
             // consume resources
             civ.PayResourceCost(cost);
 
@@ -228,9 +232,24 @@ namespace SettlersOfIdlestan.Controller.Island
             civ.Roads.Add(road);
 
             ComputeRoadDistancesForCivilization(civ);
-            _buildableRoadsCache.Remove(civilizationIndex);
+            _buildableRoadsCache.Clear();
             _state.RecalculateVisibleIslandMap(civilizationIndex);
             return road;
+        }
+
+        private void TryRemoveEnemyRoadAt(Edge edge, int buildingCivIndex)
+        {
+            if (_state == null) return;
+            foreach (var otherCiv in _state.Civilizations.Where(c => c.Index != buildingCivIndex))
+            {
+                var enemyRoad = otherCiv.Roads.FirstOrDefault(r => r.Position.Equals(edge));
+                if (enemyRoad != null)
+                {
+                    otherCiv.Roads.Remove(enemyRoad);
+                    ComputeRoadDistancesForCivilization(otherCiv);
+                    return;
+                }
+            }
         }
 
         private bool IsEdgeBuildableByCivilization(Edge edge, Civilization civ)
