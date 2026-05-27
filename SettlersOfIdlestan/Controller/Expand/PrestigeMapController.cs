@@ -14,11 +14,15 @@ public class PrestigeMapController
     {
         var vertex = DefaultMap.GetVertex(vertexCoord);
         if (vertex == null) return false;
-
         if (prestigeState.PurchasedVertices.Contains(vertexCoord)) return false;
 
-        foreach (var prereq in vertex.Prerequisites)
-            if (!prestigeState.PurchasedVertices.Contains(prereq)) return false;
+        // Central vertex is always reachable; all others require a purchased neighbor.
+        if (!vertexCoord.Equals(PrestigeMap.CentralVertex))
+        {
+            var neighbors = DefaultMap.GetNeighbors(vertexCoord);
+            if (!neighbors.Any(n => prestigeState.PurchasedVertices.Contains(n.Coord)))
+                return false;
+        }
 
         return prestigeState.PrestigePoints >= vertex.Cost;
     }

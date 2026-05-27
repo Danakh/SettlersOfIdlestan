@@ -29,7 +29,7 @@ public class PrestigeMapControllerTests
     public void CanPurchase_Central_WhenEnoughPoints()
     {
         var state = EmptyPrestige();
-        state.PrestigePoints = 3;
+        state.PrestigePoints = 10;
         Assert.True(Controller().CanPurchaseVertex(state, PrestigeMap.CentralVertex));
     }
 
@@ -37,12 +37,12 @@ public class PrestigeMapControllerTests
     public void CanPurchase_Central_FailsWhenNotEnoughPoints()
     {
         var state = EmptyPrestige();
-        state.PrestigePoints = 2;
+        state.PrestigePoints = 9;
         Assert.False(Controller().CanPurchaseVertex(state, PrestigeMap.CentralVertex));
     }
 
     [Fact]
-    public void CanPurchase_OuterVertex_FailsWithoutPrerequisite()
+    public void CanPurchase_OuterVertex_FailsWithoutPurchasedNeighbor()
     {
         var state = EmptyPrestige();
         state.PrestigePoints = 100;
@@ -52,7 +52,7 @@ public class PrestigeMapControllerTests
     }
 
     [Fact]
-    public void CanPurchase_OuterVertex_SucceedsAfterCentralPurchased()
+    public void CanPurchase_OuterVertex_SucceedsAfterNeighborPurchased()
     {
         var state = EmptyPrestige();
         state.PrestigePoints = 100;
@@ -71,6 +71,15 @@ public class PrestigeMapControllerTests
         Assert.False(Controller().CanPurchaseVertex(state, PrestigeMap.CentralVertex));
     }
 
+    [Fact]
+    public void CanPurchase_SecondRingVertex_SucceedsAfterFirstRingNeighborPurchased()
+    {
+        var state = EmptyPrestige();
+        state.PrestigePoints = 100;
+        state.PurchasedVertices.Add(PrestigeMap.SeaportMarketVertex);
+        Assert.True(Controller().CanPurchaseVertex(state, PrestigeMap.HarvestGuildVertex));
+    }
+
     // ─── PurchaseVertex ──────────────────────────────────────────────────────
 
     [Fact]
@@ -81,7 +90,7 @@ public class PrestigeMapControllerTests
         bool result = Controller().PurchaseVertex(state, PrestigeMap.CentralVertex);
         Assert.True(result);
         Assert.Contains(PrestigeMap.CentralVertex, state.PurchasedVertices);
-        Assert.Equal(7, state.PrestigePoints); // 10 - 3 = 7
+        Assert.Equal(0, state.PrestigePoints); // 10 - 10 = 0
     }
 
     [Fact]
@@ -98,10 +107,10 @@ public class PrestigeMapControllerTests
     public void Purchase_ChainCentralThenOuter()
     {
         var state = EmptyPrestige();
-        state.PrestigePoints = 8;
+        state.PrestigePoints = 25; // Central=10, Laboratory=15
         var c = Controller();
-        Assert.True(c.PurchaseVertex(state, PrestigeMap.CentralVertex));    // costs 3
-        Assert.True(c.PurchaseVertex(state, PrestigeMap.LaboratoryVertex)); // costs 5
+        Assert.True(c.PurchaseVertex(state, PrestigeMap.CentralVertex));    // costs 10
+        Assert.True(c.PurchaseVertex(state, PrestigeMap.LaboratoryVertex)); // costs 15
         Assert.Equal(0, state.PrestigePoints);
         Assert.Contains(PrestigeMap.CentralVertex, state.PurchasedVertices);
         Assert.Contains(PrestigeMap.LaboratoryVertex, state.PurchasedVertices);
