@@ -19,6 +19,10 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             TRADE_GOLD_PACKAGES,
             FORGE_DOUBLE_PROD_BONUS,
             MINE_GOLD_CHANCE_PERCENT,
+            /// <summary>SubCategory = BuildingType name. Granted to the initial city at run start.</summary>
+            STARTING_CITY_BUILDING,
+            /// <summary>SubCategory = BuildingType name. Granted to every new outpost, including the initial city.</summary>
+            NEW_CITY_BUILDING,
         }
 
         public enum EType

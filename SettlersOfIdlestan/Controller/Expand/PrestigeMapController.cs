@@ -1,8 +1,12 @@
+using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Model.Buildings;
+using SettlersOfIdlestan.Model.Civilization;
+using SettlersOfIdlestan.Model.GameplayModifier;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Prestige;
 using SettlersOfIdlestan.Model.Prestige.PrestigeMap;
+using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
 
 namespace SettlersOfIdlestan.Controller.Expand;
 
@@ -40,7 +44,8 @@ public class PrestigeMapController
     /// <summary>
     /// Applies one-time prestige bonuses (starting resources and buildings) at the start of a new run.
     /// Modifier bonuses are handled dynamically by <see cref="PrestigeModifierProvider"/>.
-    /// Must be called after the island is fully generated and civilizations are initialized.
+    /// Must be called after the island is fully generated, civilizations initialized, and
+    /// ModifierAggregators set up (so the aggregator already contains the PrestigeModifierProvider).
     /// </summary>
     public void ApplyPrestigeToNewGame(IslandState islandState, PrestigeState? prestigeState)
     {
@@ -62,35 +67,25 @@ public class PrestigeMapController
                 civ.AddResource(resource, bonus);
         }
 
-        // Starting buildings granted by purchased vertices
         var startingCity = civ.Cities.FirstOrDefault();
         if (startingCity == null) return;
 
-        foreach (var vertexCoord in purchased)
-        {
-            var vertex = DefaultMap.GetVertex(vertexCoord);
-            if (vertex == null) continue;
-            foreach (var buildingType in vertex.StartingBuildings)
-            {
-                if (!startingCity.Buildings.Any(b => b.Type == buildingType))
-                {
-                    var building = CreateBuildingInstance(buildingType);
-                    if (building != null)
-                    {
-                        building.Level = 1;
-                        startingCity.Buildings.Add(building);
-                    }
-                }
-            }
-        }
+        // STARTING_CITY_BUILDING: initial city only
+        foreach (var bt in civ.ModifierAggregator.GetGrantedBuildingTypes(ECategory.STARTING_CITY_BUILDING))
+            GrantBuildingToCity(startingCity, bt);
+
+        // NEW_CITY_BUILDING: every outpost — apply to initial city here, BuildCity handles the rest
+        foreach (var city in civ.Cities)
+            foreach (var bt in civ.ModifierAggregator.GetGrantedBuildingTypes(ECategory.NEW_CITY_BUILDING))
+                GrantBuildingToCity(city, bt);
     }
 
-    private static Building? CreateBuildingInstance(BuildingType type) => type switch
+    private static void GrantBuildingToCity(City city, BuildingType bt)
     {
-        BuildingType.Seaport => new Seaport(),
-        BuildingType.Market => new Market(),
-        BuildingType.Laboratory => new Laboratory(),
-        BuildingType.Barracks => new Barracks(),
-        _ => null
-    };
+        if (!city.Buildings.Any(b => b.Type == bt))
+        {
+            var building = BuildingController.CreateBuilding(bt);
+            if (building != null) { building.Level = 1; city.Buildings.Add(building); }
+        }
+    }
 }

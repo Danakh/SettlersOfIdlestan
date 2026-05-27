@@ -284,7 +284,7 @@ namespace SettlersOfIdlestan.Controller.Island
             return maxLevel;
         }
 
-        private static Building? CreateBuilding(BuildingType type)
+        public static Building? CreateBuilding(BuildingType type)
         {
             return type switch
             {

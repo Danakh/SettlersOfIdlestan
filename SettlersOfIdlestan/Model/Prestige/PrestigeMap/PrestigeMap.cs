@@ -1,4 +1,3 @@
-using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.GameplayModifier;
 using SettlersOfIdlestan.Model.HexGrid;
 using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
@@ -14,6 +13,7 @@ public class PrestigeMap
     public static readonly HexCoord HarvestSpeedCoord          = new(0,  1);
     // Outer hexes (each adjacent to exactly one outer vertex)
     public static readonly HexCoord UnitProductionSpeedCoord   = new(1, -1);
+    public static readonly HexCoord FortifiedOutpostCoord      = new(0, -1);
     public static readonly HexCoord StorageCapacityCoord       = new(-1,  1);
     public static readonly HexCoord ResearchCostReductionCoord = new(1,  1);
     public static readonly HexCoord GoldTradeCoord             = new(-1,  2);
@@ -23,7 +23,8 @@ public class PrestigeMap
     // Layout: pointy-top, R=60, Central vertex at screen center.
 
     public static readonly Vertex CentralVertex          = Vertex.Create(new(0, 0), new(1, 0), new(0, 1));
-    public static readonly Vertex BarracksVertex         = Vertex.Create(new(0, 0), new(1, 0), new(1, -1));
+    public static readonly Vertex BarracksVertex              = Vertex.Create(new(0, 0), new(1, 0), new(1, -1));
+    public static readonly Vertex FortifiedOutpostVertex      = Vertex.Create(new(0, 0), new(0, -1), new(1, -1));
     public static readonly Vertex SeaportMarketVertex    = Vertex.Create(new(0, 0), new(0, 1), new(-1, 1));
     public static readonly Vertex LaboratoryVertex       = Vertex.Create(new(1, 0), new(0, 1), new(1, 1));
     public static readonly Vertex AppliedResearchVertex  = Vertex.Create(new(0, 1), new(1, 1), new(0, 2));
@@ -59,15 +60,17 @@ public class PrestigeMap
                 CentralVertex,
                 "prestige_vertex_central",
                 cost: Cost(CentralVertex),
-                modifiers: new Modifier[] { new(ECategory.BUILDING_MAX_LEVEL, "Library", EType.ADDITIVE, 3) },
-                startingBuildings: Array.Empty<BuildingType>()
+                modifiers: new Modifier[] { new(ECategory.BUILDING_MAX_LEVEL, "Library", EType.ADDITIVE, 3) }
             ),
             new(
                 SeaportMarketVertex,
                 "prestige_vertex_seaport_market",
                 cost: Cost(SeaportMarketVertex),
-                modifiers: Array.Empty<Modifier>(),
-                startingBuildings: new[] { BuildingType.Seaport, BuildingType.Market }
+                modifiers: new Modifier[]
+                {
+                    new(ECategory.STARTING_CITY_BUILDING, "Seaport", EType.ADDITIVE, 1),
+                    new(ECategory.STARTING_CITY_BUILDING, "Market",  EType.ADDITIVE, 1),
+                }
             ),
             new(
                 LaboratoryVertex,
@@ -77,36 +80,37 @@ public class PrestigeMap
                 {
                     new(ECategory.BUILDING_MAX_LEVEL, "Laboratory", EType.ADDITIVE, 2),
                     new(ECategory.BUILDING_MAX_LEVEL, "GlassWorks", EType.ADDITIVE, 1),
-                },
-                startingBuildings: Array.Empty<BuildingType>()
+                }
             ),
             new(
                 BarracksVertex,
                 "prestige_vertex_barracks",
                 cost: Cost(BarracksVertex),
-                modifiers: new Modifier[] { new(ECategory.BUILDING_MAX_LEVEL, "Barracks", EType.ADDITIVE, 2) },
-                startingBuildings: Array.Empty<BuildingType>()
+                modifiers: new Modifier[] { new(ECategory.BUILDING_MAX_LEVEL, "Barracks", EType.ADDITIVE, 2) }
+            ),
+            new(
+                FortifiedOutpostVertex,
+                "prestige_vertex_fortified_outpost",
+                cost: Cost(FortifiedOutpostVertex),
+                modifiers: new Modifier[] { new(ECategory.NEW_CITY_BUILDING, "Palisade", EType.ADDITIVE, 1) }
             ),
             new(
                 HarvestGuildVertex,
                 "prestige_vertex_harvesters_guild",
                 cost: Cost(HarvestGuildVertex),
-                modifiers: new Modifier[] { new(ECategory.BUILDING_MAX_LEVEL, "HarvestersGuild", EType.ADDITIVE, 1) },
-                startingBuildings: Array.Empty<BuildingType>()
+                modifiers: new Modifier[] { new(ECategory.BUILDING_MAX_LEVEL, "HarvestersGuild", EType.ADDITIVE, 1) }
             ),
             new(
                 ArtisansGuildVertex,
                 "prestige_vertex_artisans_guild",
                 cost: Cost(ArtisansGuildVertex),
-                modifiers: new Modifier[] { new(ECategory.BUILDING_MAX_LEVEL, "ArtisansGuild", EType.ADDITIVE, 1) },
-                startingBuildings: Array.Empty<BuildingType>()
+                modifiers: new Modifier[] { new(ECategory.BUILDING_MAX_LEVEL, "ArtisansGuild", EType.ADDITIVE, 1) }
             ),
             new(
                 AppliedResearchVertex,
                 "prestige_vertex_applied_research",
                 cost: Cost(AppliedResearchVertex),
-                modifiers: Array.Empty<Modifier>(),
-                startingBuildings: Array.Empty<BuildingType>()
+                modifiers: Array.Empty<Modifier>()
             ),
         };
 
@@ -116,7 +120,7 @@ public class PrestigeMap
             new(
                 StartingResourcesCoord,
                 "prestige_hex_starting_resources",
-                adjacentVertices: new[] { CentralVertex, SeaportMarketVertex, BarracksVertex },
+                adjacentVertices: new[] { CentralVertex, SeaportMarketVertex, BarracksVertex, FortifiedOutpostVertex },
                 perVertexModifiers: Array.Empty<Modifier>(),
                 startingResourceBonusPerVertex: 2
             ),
@@ -136,7 +140,7 @@ public class PrestigeMap
             new(
                 UnitProductionSpeedCoord,
                 "prestige_hex_unit_production_speed",
-                adjacentVertices: new[] { BarracksVertex },
+                adjacentVertices: new[] { BarracksVertex, FortifiedOutpostVertex },
                 perVertexModifiers: new Modifier[] { new(ECategory.UNIT_PRODUCTION_SPEED, EType.ADDITIVE, 0.1) }
             ),
             new(
@@ -165,6 +169,12 @@ public class PrestigeMap
                 ArtisansProductionCoord,
                 "prestige_hex_artisans_production",
                 adjacentVertices: new[] { ArtisansGuildVertex },
+                perVertexModifiers: Array.Empty<Modifier>()
+            ),
+            new(
+                FortifiedOutpostCoord,
+                "prestige_hex_fortified_outpost",
+                adjacentVertices: new[] { FortifiedOutpostVertex },
                 perVertexModifiers: Array.Empty<Modifier>()
             ),
         };

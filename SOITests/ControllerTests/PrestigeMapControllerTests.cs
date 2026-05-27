@@ -182,6 +182,7 @@ public class PrestigeMapControllerTests
         var prestige = new PrestigeState(island);
         prestige.PurchasedVertices.Add(PrestigeMap.CentralVertex);
         prestige.PurchasedVertices.Add(PrestigeMap.SeaportMarketVertex);
+        WireAggregator(island, prestige);
         Controller().ApplyPrestigeToNewGame(island, prestige);
 
         var city = island.PlayerCivilization.Cities[0];

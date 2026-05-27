@@ -1,3 +1,4 @@
+using SettlersOfIdlestan.Model.Buildings;
 using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
 
 namespace SettlersOfIdlestan.Model.GameplayModifier;
@@ -27,5 +28,20 @@ public class ModifierAggregator
                 if (modifier.AppliesTo(category, subCategory))
                     result = modifier.Apply(result);
         return result;
+    }
+
+    /// <summary>
+    /// Collects all distinct BuildingType values from modifiers of the given category
+    /// (SubCategory holds the BuildingType enum name). Aggregates across all registered providers.
+    /// </summary>
+    public IReadOnlyList<BuildingType> GetGrantedBuildingTypes(ECategory category)
+    {
+        var result = new HashSet<BuildingType>();
+        foreach (var provider in _providers)
+            foreach (var modifier in provider.GetModifiers())
+                if (modifier.IsActive && modifier.Category == category
+                    && Enum.TryParse<BuildingType>(modifier.SubCategory, out var bt))
+                    result.Add(bt);
+        return result.ToList();
     }
 }

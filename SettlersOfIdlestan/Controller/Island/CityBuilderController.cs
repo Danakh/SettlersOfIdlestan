@@ -6,6 +6,8 @@ using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.Buildings;
+using SettlersOfIdlestan.Model.GameplayModifier;
+using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
 
 namespace SettlersOfIdlestan.Controller.Island
 {
@@ -169,6 +171,15 @@ namespace SettlersOfIdlestan.Controller.Island
 
             var city = new City(vertex) { CivilizationIndex = civilizationIndex };
             civ.Cities.Add(city);
+
+            if (civilizationIndex == _state.PlayerCivilization.Index)
+                foreach (var bt in civ.ModifierAggregator.GetGrantedBuildingTypes(ECategory.NEW_CITY_BUILDING))
+                    if (!city.Buildings.Any(b => b.Type == bt))
+                    {
+                        var b = BuildingController.CreateBuilding(bt);
+                        if (b != null) { b.Level = 1; city.Buildings.Add(b); }
+                    }
+
             _state.RecalculateVisibleIslandMap(civilizationIndex);
 
             var cityHexSet = new HashSet<HexCoord>(city.Position.GetHexes());

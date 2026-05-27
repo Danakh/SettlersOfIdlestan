@@ -251,11 +251,20 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         foreach (var mod in vertex.Modifiers)
             lines.Add(FormatModifier(mod));
 
-        if (vertex.StartingBuildings.Count > 0)
+        var startingCityBuildings = vertex.StartingCityBuildings;
+        if (startingCityBuildings.Count > 0)
         {
-            var names = string.Join(", ", vertex.StartingBuildings
+            var names = string.Join(", ", startingCityBuildings
                 .Select(b => _localization.Get($"building_{b.ToString().ToLower()}_name")));
             lines.Add($"{_localization.Get("prestige_tooltip_starts_with")}: {names}");
+        }
+
+        var newCityBuildings = vertex.NewCityBuildings;
+        if (newCityBuildings.Count > 0)
+        {
+            var names = string.Join(", ", newCityBuildings
+                .Select(b => _localization.Get($"building_{b.ToString().ToLower()}_name")));
+            lines.Add($"{_localization.Get("prestige_tooltip_new_city_building")}: {names}");
         }
 
         lines.Add("");
