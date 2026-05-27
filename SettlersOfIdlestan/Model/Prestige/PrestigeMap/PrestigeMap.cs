@@ -42,31 +42,37 @@ public class PrestigeMap
     public PrestigeVertex? GetVertex(Vertex coord) => Vertices.FirstOrDefault(v => v.Coord.Equals(coord));
     public PrestigeHex?    GetHex(HexCoord coord)  => Hexes.FirstOrDefault(h => h.Coord.Equals(coord));
 
+    public IReadOnlyList<PrestigeVertex> GetNeighbors(Vertex coord)
+        => Vertices.Where(v => !v.Coord.Equals(coord) && coord.IsAdjacentTo(v.Coord)).ToList();
+
+    // Default cost formula: central = 10, others = 10 + distance² × 5.
+    public static int DefaultCost(int distanceFromCenter)
+        => distanceFromCenter == 0 ? 10 : 10 + distanceFromCenter * distanceFromCenter * 5;
+
     public static PrestigeMap CreateDefault()
     {
+        int Cost(Vertex v) => DefaultCost(v.EdgeDistanceTo(CentralVertex));
+
         var vertices = new PrestigeVertex[]
         {
             new(
                 CentralVertex,
                 "prestige_vertex_central",
-                cost: 3,
-                prerequisites: Array.Empty<Vertex>(),
+                cost: Cost(CentralVertex),
                 modifiers: new Modifier[] { new(ECategory.BUILDING_MAX_LEVEL, "Library", EType.ADDITIVE, 3) },
                 startingBuildings: Array.Empty<BuildingType>()
             ),
             new(
                 SeaportMarketVertex,
                 "prestige_vertex_seaport_market",
-                cost: 5,
-                prerequisites: new[] { CentralVertex },
+                cost: Cost(SeaportMarketVertex),
                 modifiers: Array.Empty<Modifier>(),
                 startingBuildings: new[] { BuildingType.Seaport, BuildingType.Market }
             ),
             new(
                 LaboratoryVertex,
                 "prestige_vertex_laboratory",
-                cost: 5,
-                prerequisites: new[] { CentralVertex },
+                cost: Cost(LaboratoryVertex),
                 modifiers: new Modifier[]
                 {
                     new(ECategory.BUILDING_MAX_LEVEL, "Laboratory", EType.ADDITIVE, 2),
@@ -77,32 +83,28 @@ public class PrestigeMap
             new(
                 BarracksVertex,
                 "prestige_vertex_barracks",
-                cost: 5,
-                prerequisites: new[] { CentralVertex },
+                cost: Cost(BarracksVertex),
                 modifiers: new Modifier[] { new(ECategory.BUILDING_MAX_LEVEL, "Barracks", EType.ADDITIVE, 2) },
                 startingBuildings: Array.Empty<BuildingType>()
             ),
             new(
                 HarvestGuildVertex,
                 "prestige_vertex_harvesters_guild",
-                cost: 5,
-                prerequisites: new[] { SeaportMarketVertex },
+                cost: Cost(HarvestGuildVertex),
                 modifiers: new Modifier[] { new(ECategory.BUILDING_MAX_LEVEL, "HarvestersGuild", EType.ADDITIVE, 1) },
                 startingBuildings: Array.Empty<BuildingType>()
             ),
             new(
                 ArtisansGuildVertex,
                 "prestige_vertex_artisans_guild",
-                cost: 5,
-                prerequisites: new[] { HarvestGuildVertex },
+                cost: Cost(ArtisansGuildVertex),
                 modifiers: new Modifier[] { new(ECategory.BUILDING_MAX_LEVEL, "ArtisansGuild", EType.ADDITIVE, 1) },
                 startingBuildings: Array.Empty<BuildingType>()
             ),
             new(
                 AppliedResearchVertex,
                 "prestige_vertex_applied_research",
-                cost: 5,
-                prerequisites: new[] { LaboratoryVertex },
+                cost: Cost(AppliedResearchVertex),
                 modifiers: Array.Empty<Modifier>(),
                 startingBuildings: Array.Empty<BuildingType>()
             ),

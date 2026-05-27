@@ -22,16 +22,6 @@ public sealed class PrestigeMapRenderer : IGameRenderer
     private static readonly float Sqrt3     = MathF.Sqrt(3f);
     private static readonly float Sqrt3Half = MathF.Sqrt(3f) / 2f;
 
-    // Roads: Central vertex connected to each outer vertex
-    private static readonly (Vertex A, Vertex B)[] AllEdges =
-    {
-        (PrestigeMap.CentralVertex,       PrestigeMap.BarracksVertex),
-        (PrestigeMap.CentralVertex,       PrestigeMap.SeaportMarketVertex),
-        (PrestigeMap.CentralVertex,       PrestigeMap.LaboratoryVertex),
-        (PrestigeMap.SeaportMarketVertex, PrestigeMap.HarvestGuildVertex),
-        (PrestigeMap.HarvestGuildVertex,  PrestigeMap.ArtisansGuildVertex),
-    };
-
     // Local-space position of the Central vertex (used to offset all other positions)
     private static readonly SKPoint CentralLocal = LocalVertexPos(PrestigeMap.CentralVertex);
 
@@ -149,10 +139,19 @@ public sealed class PrestigeMapRenderer : IGameRenderer
 
     private void DrawRoads(SKCanvas canvas, PrestigeState state)
     {
-        foreach (var (a, b) in AllEdges)
+        var map = PrestigeMapController.DefaultMap;
+        var purchased = state.PurchasedVertices;
+        var vertices = map.Vertices;
+
+        for (int i = 0; i < vertices.Count; i++)
         {
-            if (state.PurchasedVertices.Contains(a) && state.PurchasedVertices.Contains(b))
-                canvas.DrawLine(ScreenPosVertex(a), ScreenPosVertex(b), _roadPaint);
+            if (!purchased.Contains(vertices[i].Coord)) continue;
+            for (int j = i + 1; j < vertices.Count; j++)
+            {
+                if (!purchased.Contains(vertices[j].Coord)) continue;
+                if (vertices[i].Coord.IsAdjacentTo(vertices[j].Coord))
+                    canvas.DrawLine(ScreenPosVertex(vertices[i].Coord), ScreenPosVertex(vertices[j].Coord), _roadPaint);
+            }
         }
     }
 
@@ -268,14 +267,13 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         }
         else
         {
-            var missing = vertex.Prerequisites.Where(p => !state.PurchasedVertices.Contains(p)).ToList();
-            if (missing.Count > 0)
+            bool canBuy = _gameControllerService.MainGameController.PrestigeMapController
+                .CanPurchaseVertex(state, coord);
+            if (!canBuy && state.PrestigePoints >= vertex.Cost)
             {
-                var prereqNames = string.Join(", ", missing.Select(p => {
-                    var pv = PrestigeMapController.DefaultMap.GetVertex(p);
-                    return pv != null ? _localization.Get(pv.LocalizationKey) : "?";
-                }));
-                lines.Add($"{_localization.Get("prestige_tooltip_requires")}: {prereqNames}");
+                var neighbors = PrestigeMapController.DefaultMap.GetNeighbors(coord);
+                var neighborNames = string.Join(", ", neighbors.Select(n => _localization.Get(n.LocalizationKey)));
+                lines.Add($"{_localization.Get("prestige_tooltip_requires")}: {neighborNames}");
             }
             else
             {
