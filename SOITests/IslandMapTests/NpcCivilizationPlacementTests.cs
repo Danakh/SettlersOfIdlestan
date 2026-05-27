@@ -264,4 +264,26 @@ public class NpcCivilizationPlacementTests
         foreach (var city in npcCiv.Cities.Take(5))
             Assert.Contains(city.Buildings, b => b.Type == BuildingType.Warehouse);
     }
+
+    [Theory]
+    [MemberData(nameof(ShapesAndEvolutionLevels))]
+    public void NpcEvolution_CitiesWithinSameCivilizationAreSpacedAtLeast3Edges(IslandShapeType shape, NpcEvolutionLevel level)
+    {
+        const int minIntraCivDistance = 3;
+
+        var state = CreateIsland(shape, npcCount: 1, level);
+        var npcCiv = state.Civilizations.First(c => c.IsNpc);
+
+        var positions = npcCiv.Cities.Select(c => c.Position).ToList();
+
+        for (int i = 0; i < positions.Count; i++)
+        {
+            for (int j = i + 1; j < positions.Count; j++)
+            {
+                int dist = positions[i].EdgeDistanceTo(positions[j]);
+                Assert.True(dist >= minIntraCivDistance,
+                    $"[{shape}/{level}] villes {i} et {j} de la même civ : distance {dist} < {minIntraCivDistance}");
+            }
+        }
+    }
 }
