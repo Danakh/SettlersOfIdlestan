@@ -185,7 +185,7 @@
   "prestige_vertex_laboratory": "Laboratory",
   "prestige_vertex_barracks": "Barracks",
   "prestige_vertex_fortified_outpost": "Fortified Outpost",
-  "prestige_hex_fortified_outpost": "Outpost",
+  "prestige_hex_fortifications": "Fortifications",
   "prestige_hex_starting_resources": "Starting Resources",
   "prestige_hex_harvest_speed": "Harvest Speed",
   "prestige_hex_research_speed": "Research Speed",

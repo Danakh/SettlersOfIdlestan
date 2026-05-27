@@ -188,7 +188,7 @@ public class PrestigeMap
             ),
             new(
                 FortifiedOutpostCoord,
-                "prestige_hex_fortified_outpost",
+                "prestige_hex_fortifications",
                 adjacentVertices: Adjacent(FortifiedOutpostCoord),
                 perVertexModifiers: new Modifier[] { new(ECategory.CITY_DEFENSE, EType.ADDITIVE, 2) }
             ),
