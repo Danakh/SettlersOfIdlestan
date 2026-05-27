@@ -1,0 +1,53 @@
+using System;
+using System.Linq;
+using SettlersOfIdlestan.Controller;
+using Xunit;
+
+namespace SOITests.TestUtilities;
+
+public static class IslandScenarioRunner
+{
+    /// <summary>
+    /// Runs a single step of an island scenario.
+    /// </summary>
+    /// <param name="scenario">Scenario definition.</param>
+    /// <param name="stepIndex">0-based index into scenario.Steps.</param>
+    /// <param name="loadFolder">Subfolder under saves/ from which to load the previous step's save (e.g. "current", "release-1.0").</param>
+    /// <param name="saveFinal">When true, saves the result to saves/{loadFolder}/{step.SaveName}.json after asserting.</param>
+    public static void RunStep(IslandScenario scenario, int stepIndex, string loadFolder, bool saveFinal)
+    {
+        if (stepIndex < 0 || stepIndex >= scenario.Steps.Count)
+            throw new ArgumentOutOfRangeException(nameof(stepIndex));
+
+        var step = scenario.Steps[stepIndex];
+
+        MainGameController controller;
+        if (stepIndex == 0)
+        {
+            controller = scenario.CreateFreshController();
+        }
+        else
+        {
+            var prevSaveName = scenario.Steps[stepIndex - 1].SaveName;
+            if (!SaveUtils.SaveExists(loadFolder, prevSaveName))
+            {
+                // Release saves not yet created — silently skip rather than fail.
+                Console.WriteLine($"[SKIP] saves/{loadFolder}/{prevSaveName}.json not found — skipping release regression step.");
+                return;
+            }
+            controller = SaveUtils.LoadSave(loadFolder, prevSaveName);
+        }
+
+        var islandState = controller.CurrentMainState!.CurrentIslandState!;
+        var civ = islandState.Civilizations.First();
+        var autoplayer = new CivilizationAutoplayer(civ, islandState.Map, controller);
+        var runner = new CivilizationAutoplayerRunner(autoplayer, civ, controller);
+
+        step.RunAction(runner, () => step.Condition(controller));
+
+        Assert.True(step.Condition(controller), step.AssertFailMessage(controller));
+
+        if (saveFinal)
+            SaveUtils.SaveAndReloadAndAssertEqual(controller, loadFolder, step.SaveName);
+    }
+}

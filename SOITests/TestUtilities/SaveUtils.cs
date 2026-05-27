@@ -14,87 +14,113 @@ namespace SOITests.TestUtilities;
 /// </summary>
 public static class SaveUtils
 {
+    // ── Folder-aware API ─────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Saves controller state to saves/{folder}/{name}.json, then reloads and
+    /// asserts round-trip equality. Writing to release-* folders is forbidden.
+    /// </summary>
+    public static void SaveAndReloadAndAssertEqual(MainGameController controller, string folder, string name)
+    {
+        if (controller == null) throw new ArgumentNullException(nameof(controller));
+        if (string.IsNullOrWhiteSpace(folder)) throw new ArgumentException("folder cannot be empty", nameof(folder));
+        if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("name cannot be empty", nameof(name));
+        if (folder.StartsWith("release-", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException($"Cannot write to release folder '{folder}' — release saves are immutable.");
+
+        var filePath = ResolvePath(folder, name);
+        WriteAndAssertEqual(controller, filePath);
+    }
+
+    /// <summary>Returns true when saves/{folder}/{name}.json exists.</summary>
+    public static bool SaveExists(string folder, string name)
+        => File.Exists(ResolvePath(folder, name));
+
+    /// <summary>Loads saves/{folder}/{name}.json into a fresh controller.</summary>
+    public static MainGameController LoadSave(string folder, string name)
+    {
+        var filePath = ResolvePath(folder, name);
+        Assert.True(File.Exists(filePath), $"Expected save file at {filePath}");
+
+        var controller = new MainGameController();
+        controller.ImportMainState(File.ReadAllText(filePath));
+        return controller;
+    }
+
+    // ── Legacy flat-saves API (used by AutoplayerTests) ──────────────────────
+
+    /// <summary>Saves controller state to saves/{name}.json and asserts round-trip equality.</summary>
     public static void SaveAndReloadAndAssertEqual(MainGameController controller, string name)
     {
-        if (controller == null) throw new System.ArgumentNullException(nameof(controller));
-        if (string.IsNullOrWhiteSpace(name)) throw new System.ArgumentException("name cannot be empty", nameof(name));
+        if (controller == null) throw new ArgumentNullException(nameof(controller));
+        if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("name cannot be empty", nameof(name));
 
         var solutionRoot = GetSolutionRootDirectory(Directory.GetCurrentDirectory());
         var savesDir = Path.Combine(solutionRoot, "saves");
         if (!Directory.Exists(savesDir)) Directory.CreateDirectory(savesDir);
 
-        var filePath = Path.Combine(savesDir, name + ".json");
+        WriteAndAssertEqual(controller, Path.Combine(savesDir, name + ".json"));
+    }
 
-        // Export current main state to JSON and save to file
+    /// <summary>Loads saves/{name}.json into a fresh controller.</summary>
+    public static MainGameController LoadSave(string name)
+    {
+        var solutionRoot = GetSolutionRootDirectory(Directory.GetCurrentDirectory());
+        var filePath = Path.Combine(solutionRoot, "saves", name + ".json");
+        Assert.True(File.Exists(filePath), $"Expected save file at {filePath}");
+
+        var controller = new MainGameController();
+        controller.ImportMainState(File.ReadAllText(filePath));
+        return controller;
+    }
+
+    // ── Internals ─────────────────────────────────────────────────────────────
+
+    private static string ResolvePath(string folder, string name)
+    {
+        var solutionRoot = GetSolutionRootDirectory(Directory.GetCurrentDirectory());
+        var dir = Path.Combine(solutionRoot, "saves", folder);
+        if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
+        return Path.Combine(dir, name + ".json");
+    }
+
+    private static void WriteAndAssertEqual(MainGameController controller, string filePath)
+    {
         var exported = controller.ExportMainState();
         File.WriteAllText(filePath, exported);
 
-        // Load the saved file into a fresh controller
         var reloadedController = new MainGameController();
-        var fileJson = File.ReadAllText(filePath);
-        reloadedController.ImportMainState(fileJson);
+        reloadedController.ImportMainState(File.ReadAllText(filePath));
 
-        // Additionally compare some important IslandState metrics to give clearer test failures
         var originalIsland = controller.CurrentMainState?.CurrentIslandState
-                             ?? throw new System.InvalidOperationException("Controller does not have a current island state");
+                             ?? throw new InvalidOperationException("Controller does not have a current island state");
         var reloadedIsland = reloadedController.CurrentMainState?.CurrentIslandState
-                             ?? throw new System.InvalidOperationException("Reloaded controller does not have a current island state");
+                             ?? throw new InvalidOperationException("Reloaded controller does not have a current island state");
 
-        // number of hex tiles
-        var originalHexCount = originalIsland.Map.Tiles.Count;
-        var reloadedHexCount = reloadedIsland.Map.Tiles.Count;
-        Assert.Equal(originalHexCount, reloadedHexCount);
+        Assert.Equal(originalIsland.Map.Tiles.Count, reloadedIsland.Map.Tiles.Count);
+        Assert.Equal(originalIsland.Civilizations.Count, reloadedIsland.Civilizations.Count);
+        Assert.Equal(
+            originalIsland.Civilizations.Sum(c => c.Roads.Count),
+            reloadedIsland.Civilizations.Sum(c => c.Roads.Count));
+        Assert.Equal(
+            originalIsland.Civilizations.Sum(c => c.Cities.Count),
+            reloadedIsland.Civilizations.Sum(c => c.Cities.Count));
+        Assert.Equal(
+            originalIsland.Civilizations.Sum(c => c.Cities.Sum(city => city.Buildings.Count)),
+            reloadedIsland.Civilizations.Sum(c => c.Cities.Sum(city => city.Buildings.Count)));
 
-        // number of civilizations
-        var originalCivCount = originalIsland.Civilizations.Count;
-        var reloadedCivCount = reloadedIsland.Civilizations.Count;
-        Assert.Equal(originalCivCount, reloadedCivCount);
-
-        // total numbers across all civilizations: roads and cities
-        var originalRoads = originalIsland.Civilizations.Sum(c => c.Roads.Count);
-        var reloadedRoads = reloadedIsland.Civilizations.Sum(c => c.Roads.Count);
-        Assert.Equal(originalRoads, reloadedRoads);
-
-        var originalCities = originalIsland.Civilizations.Sum(c => c.Cities.Count);
-        var reloadedCities = reloadedIsland.Civilizations.Sum(c => c.Cities.Count);
-        Assert.Equal(originalCities, reloadedCities);
-
-        // total buildings across all cities
-        var originalBuildings = originalIsland.Civilizations.Sum(c => c.Cities.Sum(city => city.Buildings.Count));
-        var reloadedBuildings = reloadedIsland.Civilizations.Sum(c => c.Cities.Sum(city => city.Buildings.Count));
-        Assert.Equal(originalBuildings, reloadedBuildings);
-
-        // Compare resources for each civilization for every Resource type
-        foreach (var civPair in originalIsland.Civilizations.Select((c, idx) => (c, idx)))
+        foreach (var originalCiv in originalIsland.Civilizations)
         {
-            var idx = civPair.idx;
-            var originalCiv = civPair.c;
             var reloadedCiv = reloadedIsland.Civilizations.FirstOrDefault(c => c.Index == originalCiv.Index)
                               ?? throw new InvalidOperationException($"Missing civilization with index {originalCiv.Index} in reloaded state");
 
             foreach (Resource res in Enum.GetValues(typeof(Resource)))
             {
-                var origQty = originalCiv.GetResourceQuantity((SettlersOfIdlestan.Model.IslandMap.Resource)res);
-                var relQty = reloadedCiv.GetResourceQuantity((SettlersOfIdlestan.Model.IslandMap.Resource)res);
-                Assert.Equal(origQty, relQty);
+                Assert.Equal(
+                    originalCiv.GetResourceQuantity((Resource)res),
+                    reloadedCiv.GetResourceQuantity((Resource)res));
             }
         }
-    }
-
-    public static MainGameController LoadSave(string name)
-    {
-        // Locate the saved start file produced by the previous test
-        var solutionRoot = GetSolutionRootDirectory(Directory.GetCurrentDirectory());
-        var savesDir = Path.Combine(solutionRoot, "saves");
-        var startPath = Path.Combine(savesDir, name);
-        var filePath = Path.Combine(savesDir, name + ".json");
-        Assert.True(File.Exists(filePath), $"Expected save file at {filePath}");
-
-        var controller = new MainGameController();
-        var json = File.ReadAllText(filePath);
-        controller.ImportMainState(json);
-
-        return controller;
     }
 
     private static string GetSolutionRootDirectory(string startDirectory)
@@ -102,16 +128,10 @@ public static class SaveUtils
         var dir = new DirectoryInfo(startDirectory);
         while (dir != null)
         {
-            // Consider this the solution root if we find a solution file or a .git folder
-            if (dir.GetFiles("*.sln").Any() || Directory.Exists(Path.Combine(dir.FullName, ".git")))
-            {
+            if (dir.GetFiles("*.csproj").Any())
                 return dir.FullName;
-            }
-
             dir = dir.Parent;
         }
-
-        // Fallback to the starting directory if nothing found
         return startDirectory;
     }
 }
