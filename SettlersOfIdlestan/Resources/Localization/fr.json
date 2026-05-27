@@ -239,7 +239,7 @@
   "tech_architecture_name": "Architecture",
   "tech_architecture_desc": "+1 niveau max Hôtel de Ville",
   "tech_advanced_architecture_name": "Architecture avancée",
-  "tech_advanced_architecture_desc": "+1 niveau max tous bâtiments",
+  "tech_advanced_architecture_desc": "+1 niveau max bâtiments de production",
   "tech_storage_optimization_name": "Stockage optimisé",
   "tech_storage_optimization_desc": "+20 stockage ressources de base",
   "tech_scholarship_name": "Érudition",
