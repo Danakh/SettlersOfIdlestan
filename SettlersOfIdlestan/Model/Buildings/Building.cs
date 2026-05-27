@@ -92,6 +92,10 @@ public enum BuildingType
     /// la construction des Forges et Entrepôts. Disponible au niveau Capitale (4).
     /// </summary>
     ArtisansGuild,
+    /// <summary>
+    /// Tour de guet - Révèle les hexagones dans un rayon de 2 autour de la ville.
+    /// </summary>
+    Watchtower,
 }
 
 /// <summary>
