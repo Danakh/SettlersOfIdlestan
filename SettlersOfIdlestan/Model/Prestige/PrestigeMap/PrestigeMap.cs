@@ -113,19 +113,25 @@ public class PrestigeMap
                 AppliedResearchVertex,
                 "prestige_vertex_applied_research",
                 cost: Cost(AppliedResearchVertex),
-                modifiers: Array.Empty<Modifier>()
+                modifiers: new Modifier[] { new(ECategory.UNLOCK_RESEARCH, "Artisanat", EType.ADDITIVE, 1) }
             ),
             new(
                 MilitaryStrategyVertex,
                 "prestige_vertex_military_strategy",
                 cost: Cost(MilitaryStrategyVertex),
-                modifiers: Array.Empty<Modifier>()
+                modifiers: new Modifier[]
+                {
+                    new(ECategory.UNLOCK_RESEARCH, "MilitaryDiscipline", EType.ADDITIVE, 1),
+                }
             ),
             new(
                 KnowledgeMasteryVertex,
                 "prestige_vertex_knowledge_mastery",
                 cost: Cost(KnowledgeMasteryVertex),
-                modifiers: Array.Empty<Modifier>()
+                modifiers: new Modifier[]
+                {
+                    new(ECategory.UNLOCK_RESEARCH, "ResearchEfficiency", EType.ADDITIVE, 1),
+                }
             ),
             new(
                 AcademyVertex,

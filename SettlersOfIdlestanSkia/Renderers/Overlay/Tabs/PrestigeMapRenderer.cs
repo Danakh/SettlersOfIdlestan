@@ -1,3 +1,5 @@
+using SettlersOfIdlestan.Controller.Expand;
+using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.GameplayModifier;
 using SettlersOfIdlestan.Model.HexGrid;
@@ -10,7 +12,6 @@ using SkiaSharp;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using SettlersOfIdlestan.Controller.Expand;
 
 namespace SettlersOfIdlestanSkia.Renderers.Overlay.Tabs;
 
@@ -248,8 +249,14 @@ public sealed class PrestigeMapRenderer : IGameRenderer
 
         var lines = new List<string> { _localization.Get(vertex.LocalizationKey), "" };
 
-        foreach (var mod in vertex.Modifiers)
+        foreach (var mod in vertex.Modifiers.Where(m =>
+            m.Category != Modifier.ECategory.STARTING_CITY_BUILDING &&
+            m.Category != Modifier.ECategory.NEW_CITY_BUILDING &&
+            m.Category != Modifier.ECategory.UNLOCK_RESEARCH))
             lines.Add(FormatModifier(mod));
+
+        foreach (var mod in vertex.Modifiers.Where(m => m.Category == Modifier.ECategory.UNLOCK_RESEARCH))
+            lines.Add($"{_localization.Get("prestige_tooltip_unlocks_research")}: {UnlockResearchName(mod.SubCategory)}");
 
         var startingCityBuildings = vertex.StartingCityBuildings;
         if (startingCityBuildings.Count > 0)
@@ -321,7 +328,8 @@ public sealed class PrestigeMapRenderer : IGameRenderer
                         or Modifier.ECategory.RESEARCH_SPEED
                         or Modifier.ECategory.UNIT_PRODUCTION_SPEED
                         or Modifier.ECategory.RESEARCH_COST_REDUCTION;
-                    string val = isPct ? $"+{(int)(total * 100)}%" : $"+{(int)total}";
+                    bool isFloat = mod.Category is Modifier.ECategory.TRADE_GOLD_PACKAGES;
+                    string val = isPct ? $"+{(int)(total * 100)}%" : isFloat ? $"{total:0.##}" : $"+{(int)total}";
                     lines.Add($"{_localization.Get("prestige_tooltip_current_bonus")}: {FormatModifier(mod)} × {adjCount} = {val}");
                 }
             }
@@ -332,6 +340,16 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         }
 
         _tooltipRenderer.SetTooltipLines(lines.ToArray(), ScreenPosHex(coord));
+    }
+
+    private string UnlockResearchName(string subCategory)
+    {
+        if (Enum.TryParse<TechnologyId>(subCategory, out var techId))
+        {
+            var tech = TechnologyDefinitions.Get(techId);
+            if (tech != null) return _localization.Get(tech.NameKey);
+        }
+        return subCategory;
     }
 
     private string FormatModifier(Modifier mod) => mod.Category switch
@@ -347,6 +365,7 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         Modifier.ECategory.STORAGE_CAPACITY_ADVANCED => $"+{(int)mod.Value} {_localization.Get("prestige_tooltip_storage_advanced")}",
         Modifier.ECategory.TRADE_GOLD_PACKAGES       => $"{mod.Value:0.##} {_localization.Get("prestige_tooltip_gold_packages")}",
         Modifier.ECategory.CITY_DEFENSE              => $"+{(int)mod.Value} {_localization.Get("prestige_tooltip_city_defense")}",
+        Modifier.ECategory.UNLOCK_RESEARCH           => _localization.Get("prestige_tooltip_unlocks_research"),
         _ => $"+{mod.Value}"
     };
 

@@ -3,6 +3,7 @@ using System.Linq;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
+using SettlersOfIdlestan.Model.GameplayModifier;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Prestige;
 using SettlersOfIdlestan.Model.Prestige.PrestigeMap;
@@ -200,17 +201,16 @@ namespace SettlersOfIdlestan.Controller.Expand
         public bool IsResearchQueueUnlocked()
             => _prestigeState?.PurchasedVertices.Contains(PrestigeMap.KnowledgeMasteryVertex) == true;
 
-        private bool IsPrestigeRequirementMet(TechnologyId id) => id switch
+        private bool IsPrestigeRequirementMet(TechnologyId id)
         {
-            TechnologyId.Artisanat          => _prestigeState?.PurchasedVertices.Contains(PrestigeMap.AppliedResearchVertex)    == true,
-            TechnologyId.MilitaryDiscipline => _prestigeState?.PurchasedVertices.Contains(PrestigeMap.MilitaryStrategyVertex)   == true,
-            TechnologyId.MilitaryTactics    => _prestigeState?.PurchasedVertices.Contains(PrestigeMap.MilitaryStrategyVertex)   == true,
-            TechnologyId.MilitaryMastery    => _prestigeState?.PurchasedVertices.Contains(PrestigeMap.MilitaryStrategyVertex)   == true,
-            TechnologyId.ResearchEfficiency => _prestigeState?.PurchasedVertices.Contains(PrestigeMap.KnowledgeMasteryVertex)  == true,
-            TechnologyId.ImprovedResearch   => _prestigeState?.PurchasedVertices.Contains(PrestigeMap.KnowledgeMasteryVertex)  == true,
-            TechnologyId.MasterResearch     => _prestigeState?.PurchasedVertices.Contains(PrestigeMap.KnowledgeMasteryVertex)  == true,
-            _ => true,
-        };
+            string techKey = id.ToString();
+            bool hasRequirement = PrestigeMapController.DefaultMap.Vertices
+                .Any(v => v.Modifiers.Any(m =>
+                    m.Category == Modifier.ECategory.UNLOCK_RESEARCH && m.SubCategory == techKey));
+            if (!hasRequirement) return true;
+            return _state?.PlayerCivilization.ModifierAggregator.HasModifier(
+                Modifier.ECategory.UNLOCK_RESEARCH, techKey) == true;
+        }
 
         private int GetEffectiveCost(Technology tech)
         {
