@@ -93,6 +93,14 @@ namespace SettlersOfIdlestan.Controller.Expand
             {
                 tree.CompleteResearch(techId);
                 OnResearchCompleted?.Invoke(this, techId);
+
+                // Auto-démarrer la recherche suivante si elle est en file d'attente
+                if (tree.QueuedResearch.HasValue)
+                {
+                    var queued = tree.QueuedResearch.Value;
+                    tree.QueuedResearch = null;
+                    StartResearch(queued);
+                }
             }
         }
 
@@ -111,6 +119,48 @@ namespace SettlersOfIdlestan.Controller.Expand
             tree.ActiveResearch = id;
             tree.ActiveResearchConsumed = 0;
             tree.ActiveResearchLastConsumptionTick = _clock?.CurrentTick ?? 0;
+            return true;
+        }
+
+        public TechnologyId? GetQueuedResearch()
+            => _state?.PlayerCivilization.TechnologyTree.QueuedResearch;
+
+        public bool SetQueuedResearch(TechnologyId? id)
+        {
+            if (_state == null) return false;
+            var tree = _state.PlayerCivilization.TechnologyTree;
+            if (id == null)
+            {
+                tree.QueuedResearch = null;
+                return true;
+            }
+            if (!CanBeQueued(id.Value)) return false;
+            tree.QueuedResearch = id.Value;
+            return true;
+        }
+
+        public bool CanBeQueued(TechnologyId id)
+        {
+            if (_state == null) return false;
+            var tree = _state.PlayerCivilization.TechnologyTree;
+            if (tree.CompletedTechnologies.Contains(id)) return false;
+            if (tree.ActiveResearch == id) return false;
+            var tech = TechnologyDefinitions.Get(id);
+            if (tech == null) return false;
+            if (!IsPrestigeRequirementMet(id)) return false;
+            return ArePrerequisitesMet(tree, tech) || WillBeAvailableAfterActiveResearch(tree, tech);
+        }
+
+        private static bool WillBeAvailableAfterActiveResearch(TechnologyTree tree, Technology tech)
+        {
+            if (tree.ActiveResearch == null) return false;
+            var activeId = tree.ActiveResearch.Value;
+            if (!tech.Prerequisites.Contains(activeId)) return false;
+            foreach (var prereq in tech.Prerequisites)
+            {
+                if (!tree.CompletedTechnologies.Contains(prereq) && prereq != activeId)
+                    return false;
+            }
             return true;
         }
 

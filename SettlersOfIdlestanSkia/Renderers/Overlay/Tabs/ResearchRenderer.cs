@@ -40,6 +40,8 @@ public sealed class ResearchRenderer : IGameRenderer
     private readonly SKPaint _nodeBorderPaint = new() { Color = SKColors.SlateGray, StrokeWidth = 1.5f, Style = SKPaintStyle.Stroke, IsAntialias = true };
     private readonly SKPaint _availableBorderPaint = new() { Color = SKColors.CornflowerBlue, StrokeWidth = 2f, Style = SKPaintStyle.Stroke, IsAntialias = true };
     private readonly SKPaint _completedBorderPaint = new() { Color = new SKColor(80, 200, 80), StrokeWidth = 1.5f, Style = SKPaintStyle.Stroke, IsAntialias = true };
+    private readonly SKPaint _queuedBorderPaint = new() { Color = new SKColor(255, 200, 50), StrokeWidth = 2.5f, Style = SKPaintStyle.Stroke, IsAntialias = true };
+    private readonly SKPaint _queuedTextPaint = new() { Color = new SKColor(255, 220, 80), IsAntialias = true };
     private readonly SKPaint _linePaint = new() { Color = new SKColor(100, 100, 120), StrokeWidth = 1.5f, Style = SKPaintStyle.Stroke, IsAntialias = true };
     private readonly SKPaint _activeLinePaint = new() { Color = new SKColor(80, 160, 80), StrokeWidth = 2f, Style = SKPaintStyle.Stroke, IsAntialias = true };
     private readonly SKPaint _textPaint = new() { Color = SKColors.White, IsAntialias = true };
@@ -198,14 +200,16 @@ public sealed class ResearchRenderer : IGameRenderer
 
     private void DrawNode(SKCanvas canvas, Technology tech, SKRect rect, TechnologyStatus status, ResearchController ctrl)
     {
+        bool isQueued = ctrl.GetQueuedResearch() == tech.Id;
+
         var bgPaint = status switch
         {
             TechnologyStatus.Completed => _completedNodePaint,
             TechnologyStatus.InProgress => _inProgressNodePaint,
             TechnologyStatus.Available => _availableNodePaint,
-            _ => _inactiveNodePaint,
+            _ => isQueued ? _availableNodePaint : _inactiveNodePaint,
         };
-        var borderPaint = status switch
+        var borderPaint = isQueued ? _queuedBorderPaint : status switch
         {
             TechnologyStatus.Completed => _completedBorderPaint,
             TechnologyStatus.Available => _availableBorderPaint,
@@ -226,7 +230,7 @@ public sealed class ResearchRenderer : IGameRenderer
         canvas.DrawRoundRect(rect, 5, 5, borderPaint);
 
         // Name
-        var textPaint = status == TechnologyStatus.Inactive ? _dimTextPaint : _textPaint;
+        var textPaint = (status == TechnologyStatus.Inactive && !isQueued) ? _dimTextPaint : _textPaint;
         string name = _localization.Get(tech.NameKey);
         canvas.DrawText(name, rect.MidX, rect.Top + 18f, SKTextAlign.Center, _nameFont, textPaint);
 
@@ -241,12 +245,16 @@ public sealed class ResearchRenderer : IGameRenderer
             var (consumed, total) = ctrl.GetResearchProgress(tech.Id);
             subText = $"{consumed}/{total} PR";
         }
+        else if (isQueued)
+        {
+            subText = _localization.Get("research_next_label");
+        }
         else
         {
             var (_, total) = ctrl.GetResearchProgress(tech.Id);
             subText = $"{total} PR";
         }
-        canvas.DrawText(subText, rect.MidX, rect.Top + 36f, SKTextAlign.Center, _smallFont, textPaint);
+        canvas.DrawText(subText, rect.MidX, rect.Top + 36f, SKTextAlign.Center, _smallFont, isQueued ? _queuedTextPaint : textPaint);
     }
 
     private void HandlePointerMoved(object? sender, PointerEventArgs e)
@@ -272,8 +280,24 @@ public sealed class ResearchRenderer : IGameRenderer
         foreach (var (techId, rect) in _nodeRects)
         {
             if (!rect.Contains(e.Position.X, e.Position.Y)) continue;
-            if (ctrl.GetStatus(techId) == TechnologyStatus.Available)
-                ctrl.StartResearch(techId);
+
+            var status = ctrl.GetStatus(techId);
+            if (status == TechnologyStatus.InProgress) return; // Annulation impossible
+
+            bool hasActiveResearch = _gameControllerService.PlayerCivilization?.TechnologyTree.ActiveResearch != null;
+            if (!hasActiveResearch)
+            {
+                if (status == TechnologyStatus.Available)
+                    ctrl.StartResearch(techId);
+            }
+            else
+            {
+                // Mise en file d'attente : clic sur la recherche déjà sélectionnée = désélection
+                if (ctrl.GetQueuedResearch() == techId)
+                    ctrl.SetQueuedResearch(null);
+                else if (ctrl.CanBeQueued(techId))
+                    ctrl.SetQueuedResearch(techId);
+            }
             return;
         }
     }
@@ -292,6 +316,8 @@ public sealed class ResearchRenderer : IGameRenderer
         _nodeBorderPaint.Dispose();
         _availableBorderPaint.Dispose();
         _completedBorderPaint.Dispose();
+        _queuedBorderPaint.Dispose();
+        _queuedTextPaint.Dispose();
         _linePaint.Dispose();
         _activeLinePaint.Dispose();
         _textPaint.Dispose();
