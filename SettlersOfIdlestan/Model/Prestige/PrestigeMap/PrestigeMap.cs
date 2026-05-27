@@ -30,6 +30,7 @@ public class PrestigeMap
     public static readonly Vertex AppliedResearchVertex  = Vertex.Create(new(0, 1), new(1, 1), new(0, 2));
     public static readonly Vertex HarvestGuildVertex     = Vertex.Create(new(-1, 1), new(-1, 2), new(0, 1));
     public static readonly Vertex ArtisansGuildVertex    = Vertex.Create(new(-1, 2), new(0, 1), new(0, 2));
+    public static readonly Vertex MilitaryStrategyVertex = Vertex.Create(new(1, 0), new(1, -1), new(2, -1));
 
     public IReadOnlyList<PrestigeVertex> Vertices { get; }
     public IReadOnlyList<PrestigeHex> Hexes { get; }
@@ -112,6 +113,12 @@ public class PrestigeMap
                 cost: Cost(AppliedResearchVertex),
                 modifiers: Array.Empty<Modifier>()
             ),
+            new(
+                MilitaryStrategyVertex,
+                "prestige_vertex_military_strategy",
+                cost: Cost(MilitaryStrategyVertex),
+                modifiers: Array.Empty<Modifier>()
+            ),
         };
 
         var hexes = new PrestigeHex[]
@@ -133,14 +140,14 @@ public class PrestigeMap
             new(
                 ResearchSpeedCoord,
                 "prestige_hex_research_speed",
-                adjacentVertices: new[] { CentralVertex, LaboratoryVertex, BarracksVertex, AppliedResearchVertex },
+                adjacentVertices: new[] { CentralVertex, LaboratoryVertex, BarracksVertex, AppliedResearchVertex, MilitaryStrategyVertex },
                 perVertexModifiers: new Modifier[] { new(ECategory.RESEARCH_SPEED, EType.ADDITIVE, 0.1) }
             ),
             // ── Outer hexes (each adjacent to one outer vertex only) ─────────
             new(
                 UnitProductionSpeedCoord,
                 "prestige_hex_unit_production_speed",
-                adjacentVertices: new[] { BarracksVertex, FortifiedOutpostVertex },
+                adjacentVertices: new[] { BarracksVertex, FortifiedOutpostVertex, MilitaryStrategyVertex },
                 perVertexModifiers: new Modifier[] { new(ECategory.UNIT_PRODUCTION_SPEED, EType.ADDITIVE, 0.1) }
             ),
             new(

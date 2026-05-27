@@ -148,7 +148,10 @@ namespace SettlersOfIdlestan.Controller.Expand
 
         private bool IsPrestigeRequirementMet(TechnologyId id) => id switch
         {
-            TechnologyId.Artisanat => _prestigeState?.PurchasedVertices.Contains(PrestigeMap.AppliedResearchVertex) == true,
+            TechnologyId.Artisanat          => _prestigeState?.PurchasedVertices.Contains(PrestigeMap.AppliedResearchVertex)  == true,
+            TechnologyId.MilitaryDiscipline => _prestigeState?.PurchasedVertices.Contains(PrestigeMap.MilitaryStrategyVertex) == true,
+            TechnologyId.MilitaryTactics    => _prestigeState?.PurchasedVertices.Contains(PrestigeMap.MilitaryStrategyVertex) == true,
+            TechnologyId.MilitaryMastery    => _prestigeState?.PurchasedVertices.Contains(PrestigeMap.MilitaryStrategyVertex) == true,
             _ => true,
         };
 
