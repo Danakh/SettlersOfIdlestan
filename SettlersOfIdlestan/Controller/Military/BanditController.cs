@@ -7,7 +7,6 @@ using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.IslandMap;
-using SettlersOfIdlestan.Model.TreasureTroves;
 
 namespace SettlersOfIdlestan.Controller.Military;
 
@@ -20,7 +19,6 @@ public class BanditController
     // Caches locaux invalidés par FeatureAdded / FeatureRemoved
     private List<Bandit> _bandits = new();
     private List<BanditHideout> _hideouts = new();
-    private List<TreasureTrove> _treasureTroves = new();
 
     /// <summary>Intervalle de déplacement des bandits (3 000 ticks = 30 s à vitesse normale).</summary>
     public const long MovementIntervalTicks = 3_000L;
@@ -59,21 +57,18 @@ public class BanditController
     {
         _bandits = _state?.Features.OfType<Bandit>().ToList() ?? new();
         _hideouts = _state?.Features.OfType<BanditHideout>().ToList() ?? new();
-        _treasureTroves = _state?.Features.OfType<TreasureTrove>().ToList() ?? new();
     }
 
     private void OnFeatureAdded(object? sender, IslandFeature feature)
     {
         if (feature is Bandit b) _bandits.Add(b);
         else if (feature is BanditHideout h) _hideouts.Add(h);
-        else if (feature is TreasureTrove t) _treasureTroves.Add(t);
     }
 
     private void OnFeatureRemoved(object? sender, IslandFeature feature)
     {
         if (feature is Bandit b) _bandits.Remove(b);
         else if (feature is BanditHideout h) _hideouts.Remove(h);
-        else if (feature is TreasureTrove t) _treasureTroves.Remove(t);
     }
 
     private void OnClockAdvanced(object? sender, GameClockAdvancedEventArgs e)
@@ -84,33 +79,8 @@ public class BanditController
 
     private void Update(long currentTick)
     {
-        if (_state == null) return;
-
-        var playerIdx = _state.PlayerCivilization.Index;
-        _state.VisibleIslandMaps.TryGetValue(playerIdx, out var visibleMap);
-
-        DiscoverFeatures(_bandits, visibleMap);
-        DiscoverFeatures(_treasureTroves, visibleMap);
-        DiscoverFeatures(_hideouts, visibleMap);
         UpdateBandits(currentTick);
         UpdateBanditHideouts(currentTick);
-    }
-
-    // ── Découverte générique ─────────────────────────────────────────────────
-
-    private void DiscoverFeatures<T>(IEnumerable<T> features, VisibleIslandMap? visibleMap)
-        where T : IslandFeature
-    {
-        if (_state == null || visibleMap == null) return;
-
-        foreach (var feature in features)
-        {
-            if (feature.IsDiscoverable && visibleMap.HasTile(feature.Position))
-            {
-                feature.Found = true;
-                _state.EventLog.Add(feature.DiscoveredEventType);
-            }
-        }
     }
 
     // ── Repaires de bandits ──────────────────────────────────────────────────

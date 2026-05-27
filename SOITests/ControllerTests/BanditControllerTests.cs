@@ -66,7 +66,7 @@ namespace SOITests.ControllerTests
             civ.Cities.Add(cityB);
 
             var state = new IslandState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
-            state.AddFeature(new Bandit(Center, 0));
+            state.AddFeature(new Bandit(Center, 0) { Found = true });
 
             var clock = new GameClock();
             clock.Start();
@@ -260,7 +260,7 @@ namespace SOITests.ControllerTests
             civ.Cities.Add(city);
 
             var state = new IslandState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
-            state.AddFeature(new Bandit(Center, 0));
+            state.AddFeature(new Bandit(Center, 0) { Found = true });
 
             var clock = new GameClock();
             clock.Start();
