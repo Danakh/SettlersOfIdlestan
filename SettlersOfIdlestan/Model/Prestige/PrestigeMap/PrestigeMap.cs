@@ -28,6 +28,7 @@ public class PrestigeMap
     public static readonly Vertex SeaportMarketVertex    = Vertex.Create(new(0, 0), new(0, 1), new(-1, 1));
     public static readonly Vertex LaboratoryVertex       = Vertex.Create(new(1, 0), new(0, 1), new(1, 1));
     public static readonly Vertex AppliedResearchVertex  = Vertex.Create(new(0, 1), new(1, 1), new(0, 2));
+    public static readonly Vertex AcademyVertex          = Vertex.Create(new(1, 0), new(2, 0), new(1, 1));
     public static readonly Vertex HarvestGuildVertex     = Vertex.Create(new(-1, 1), new(-1, 2), new(0, 1));
     public static readonly Vertex ArtisansGuildVertex    = Vertex.Create(new(-1, 2), new(0, 1), new(0, 2));
 
@@ -112,6 +113,12 @@ public class PrestigeMap
                 cost: Cost(AppliedResearchVertex),
                 modifiers: Array.Empty<Modifier>()
             ),
+            new(
+                AcademyVertex,
+                "prestige_vertex_academy",
+                cost: Cost(AcademyVertex),
+                modifiers: new Modifier[] { new(ECategory.BUILDING_MAX_LEVEL, "Academy", EType.ADDITIVE, 1) }
+            ),
         };
 
         var hexes = new PrestigeHex[]
@@ -133,7 +140,7 @@ public class PrestigeMap
             new(
                 ResearchSpeedCoord,
                 "prestige_hex_research_speed",
-                adjacentVertices: new[] { CentralVertex, LaboratoryVertex, BarracksVertex, AppliedResearchVertex },
+                adjacentVertices: new[] { CentralVertex, LaboratoryVertex, BarracksVertex, AppliedResearchVertex, AcademyVertex },
                 perVertexModifiers: new Modifier[] { new(ECategory.RESEARCH_SPEED, EType.ADDITIVE, 0.1) }
             ),
             // ── Outer hexes (each adjacent to one outer vertex only) ─────────
@@ -146,7 +153,7 @@ public class PrestigeMap
             new(
                 ResearchCostReductionCoord,
                 "prestige_hex_research_cost_reduction",
-                adjacentVertices: new[] { LaboratoryVertex, AppliedResearchVertex },
+                adjacentVertices: new[] { LaboratoryVertex, AppliedResearchVertex, AcademyVertex },
                 perVertexModifiers: new Modifier[] { new(ECategory.RESEARCH_COST_REDUCTION, EType.ADDITIVE, 0.1) }
             ),
             new(

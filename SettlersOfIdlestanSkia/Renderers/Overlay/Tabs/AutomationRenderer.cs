@@ -29,10 +29,12 @@ public sealed class AutomationRenderer : IDisposable
     private SKRect _outpostToggleRect = SKRect.Empty;
     private SKRect _productionToggleRect = SKRect.Empty;
     private SKRect _artisanToggleRect = SKRect.Empty;
+    private SKRect _libraryToggleRect = SKRect.Empty;
     private bool _hoveredRoadToggle;
     private bool _hoveredOutpostToggle;
     private bool _hoveredProductionToggle;
     private bool _hoveredArtisanToggle;
+    private bool _hoveredLibraryToggle;
 
     private readonly SKPaint _bgPaint              = new() { Color = new SKColor(18, 18, 24, 240), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _cardPaint            = new() { Color = new SKColor(30, 30, 40, 220), Style = SKPaintStyle.Fill, IsAntialias = true };
@@ -83,21 +85,33 @@ public sealed class AutomationRenderer : IDisposable
         BuildersGuild? buildersGuild = null;
         HarvestersGuild? harvestersGuild = null;
         ArtisansGuild? artisansGuild = null;
+        Academy? academy = null;
         foreach (var city in civ.Cities)
         {
             buildersGuild ??= city.Buildings.OfType<BuildersGuild>().FirstOrDefault();
             harvestersGuild ??= city.Buildings.OfType<HarvestersGuild>().FirstOrDefault();
             artisansGuild ??= city.Buildings.OfType<ArtisansGuild>().FirstOrDefault();
-            if (buildersGuild != null && harvestersGuild != null && artisansGuild != null) break;
+            academy ??= city.Buildings.OfType<Academy>().FirstOrDefault();
+            if (buildersGuild != null && harvestersGuild != null && artisansGuild != null && academy != null) break;
         }
 
-        // --- Road automation row (always shown when builders guild exists) ---
-        _roadToggleRect = DrawAutomationRow(
-            canvas, x, y, contentWidth,
-            islandState.AutomationSettings.RoadAutomationEnabled,
-            _hoveredRoadToggle,
-            _localization.Get("automation_road_name"),
-            _localization.Get("automation_road_desc"));
+        // --- Road automation row (builders guild level 1+) ---
+        if (buildersGuild != null && buildersGuild.Level >= 1)
+        {
+            _roadToggleRect = DrawAutomationRow(
+                canvas, x, y, contentWidth,
+                islandState.AutomationSettings.RoadAutomationEnabled,
+                _hoveredRoadToggle,
+                _localization.Get("automation_road_name"),
+                _localization.Get("automation_road_desc"));
+        }
+        else
+        {
+            _roadToggleRect = SKRect.Empty;
+            DrawLockedRow(canvas, x, y, contentWidth,
+                _localization.Get("automation_road_name"),
+                _localization.Get("automation_road_locked"));
+        }
         y += RowHeight + RowSpacing;
 
         // --- Outpost automation row (builders guild level 4 only) ---
@@ -155,6 +169,25 @@ public sealed class AutomationRenderer : IDisposable
                 _localization.Get("automation_artisan_name"),
                 _localization.Get("automation_artisan_locked"));
         }
+        y += RowHeight + RowSpacing;
+
+        // --- Library automation row (academy) ---
+        if (academy != null && academy.Level >= 1)
+        {
+            _libraryToggleRect = DrawAutomationRow(
+                canvas, x, y, contentWidth,
+                islandState.AutomationSettings.LibraryBuildingAutomationEnabled,
+                _hoveredLibraryToggle,
+                _localization.Get("automation_library_name"),
+                _localization.Get("automation_library_desc"));
+        }
+        else
+        {
+            _libraryToggleRect = SKRect.Empty;
+            DrawLockedRow(canvas, x, y, contentWidth,
+                _localization.Get("automation_library_name"),
+                _localization.Get("automation_library_locked"));
+        }
     }
 
     private SKRect DrawAutomationRow(SKCanvas canvas, float x, float y, float width,
@@ -196,6 +229,7 @@ public sealed class AutomationRenderer : IDisposable
         _hoveredOutpostToggle    = !_outpostToggleRect.IsEmpty    && _outpostToggleRect.Contains(position.X, position.Y);
         _hoveredProductionToggle = !_productionToggleRect.IsEmpty && _productionToggleRect.Contains(position.X, position.Y);
         _hoveredArtisanToggle    = !_artisanToggleRect.IsEmpty    && _artisanToggleRect.Contains(position.X, position.Y);
+        _hoveredLibraryToggle    = !_libraryToggleRect.IsEmpty    && _libraryToggleRect.Contains(position.X, position.Y);
     }
 
     public bool HandlePointerPressed(SKPoint position)
@@ -224,6 +258,12 @@ public sealed class AutomationRenderer : IDisposable
         if (!_artisanToggleRect.IsEmpty && _artisanToggleRect.Contains(position.X, position.Y))
         {
             state.AutomationSettings.ArtisanBuildingAutomationEnabled = !state.AutomationSettings.ArtisanBuildingAutomationEnabled;
+            return true;
+        }
+
+        if (!_libraryToggleRect.IsEmpty && _libraryToggleRect.Contains(position.X, position.Y))
+        {
+            state.AutomationSettings.LibraryBuildingAutomationEnabled = !state.AutomationSettings.LibraryBuildingAutomationEnabled;
             return true;
         }
 

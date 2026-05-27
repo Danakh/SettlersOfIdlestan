@@ -6,4 +6,5 @@ public class AutomationSettings
     public bool OutpostAutomationEnabled { get; set; } = false;
     public bool ProductionBuildingAutomationEnabled { get; set; } = false;
     public bool ArtisanBuildingAutomationEnabled { get; set; } = false;
+    public bool LibraryBuildingAutomationEnabled { get; set; } = false;
 }

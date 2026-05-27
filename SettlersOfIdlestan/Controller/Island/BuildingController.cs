@@ -44,6 +44,8 @@ namespace SettlersOfIdlestan.Controller.Island
             catch { }
             try { PerformArtisansGuildAutomation(); }
             catch { }
+            try { PerformAcademyAutomation(); }
+            catch { }
         }
 
         private void PerformHarvestersGuildProductionAutomation()
@@ -81,6 +83,25 @@ namespace SettlersOfIdlestan.Controller.Island
                 long tick = guild.LastArtisanBuildTick;
                 TickGuildAutomation(civ, ref tick, guild.GetAutoArtisanCooldownTicks(), enabled, targets, now);
                 guild.LastArtisanBuildTick = tick;
+            }
+        }
+
+        private void PerformAcademyAutomation()
+        {
+            if (_state == null || _clock == null) return;
+            long now = _clock.CurrentTick;
+            BuildingType[] targets = [BuildingType.Library];
+
+            foreach (var civ in _state.Civilizations)
+            {
+                var academy = civ.Cities.SelectMany(c => c.Buildings).OfType<Academy>().FirstOrDefault();
+                if (academy == null || academy.Level == 0) continue;
+
+                bool isPlayer = civ.Index == _state.PlayerCivilization.Index;
+                bool enabled = !isPlayer || _state.AutomationSettings.LibraryBuildingAutomationEnabled;
+                long tick = academy.LastLibraryBuildTick;
+                TickGuildAutomation(civ, ref tick, academy.GetAutoLibraryCooldownTicks(), enabled, targets, now);
+                academy.LastLibraryBuildTick = tick;
             }
         }
 
@@ -309,6 +330,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 BuildingType.HarvestersGuild => new HarvestersGuild(),
                 BuildingType.ArtisansGuild => new ArtisansGuild(),
                 BuildingType.Watchtower => new Watchtower(),
+                BuildingType.Academy => new Academy(),
                 _ => null,
             };
         }

@@ -96,6 +96,10 @@ public enum BuildingType
     /// Tour de guet - Révèle les hexagones dans un rayon de 2 autour de la ville.
     /// </summary>
     Watchtower,
+    /// <summary>
+    /// Académie - Automatise la construction des Bibliothèques et augmente la vitesse de recherche. Débloqué par le prestige (Académie).
+    /// </summary>
+    Academy,
 }
 
 /// <summary>
