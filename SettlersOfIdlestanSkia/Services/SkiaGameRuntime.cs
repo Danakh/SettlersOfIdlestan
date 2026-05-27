@@ -118,7 +118,7 @@ public sealed class SkiaGameRuntime : IDisposable
         _renderService.RegisterRenderer(_introRenderer);
 
         islandMainRenderer.ConnectHarvestEvents(_harvestService!, _gameControllerService!, () => _prestigeTransitionPending);
-        ConnectMilitaryEventsToParticles(islandMainRenderer, _gameControllerService.MainGameController.MilitaryController);
+        islandMainRenderer.ConnectMilitaryEvents(_gameControllerService.MainGameController.MilitaryController, _gameControllerService!, () => _prestigeTransitionPending);
 
         var selectedCityPanelRenderer = new SelectedCityPanelRenderer(_gameControllerService.CityBuildingService!, _localizationService, _inputService, _resourceManager!);
 
@@ -403,21 +403,6 @@ public sealed class SkiaGameRuntime : IDisposable
         _gameControllerService.CurrentGameState?.Clock?.Pause();
         _overlayRenderer?.SwitchToPrestigeTab();
         _prestigeTransitionPending = false;
-    }
-
-    private void ConnectMilitaryEventsToParticles(IslandMainRenderer islandMainRenderer, SettlersOfIdlestan.Controller.Military.MilitaryController militaryController)
-    {
-        militaryController.SoldierAttackedBandit += (_, args) =>
-        {
-            if (_prestigeTransitionPending) return;
-            islandMainRenderer.BanditRenderer.EmitAttackParticle(args.CityVertex, args.BanditPosition);
-        };
-
-        militaryController.SoldierAttackedHideout += (_, args) =>
-        {
-            if (_prestigeTransitionPending) return;
-            islandMainRenderer.BanditHideoutRenderer.EmitAttackParticle(args.CityVertex, args.BanditPosition);
-        };
     }
 
     public void Dispose()

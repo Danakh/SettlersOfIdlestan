@@ -1,5 +1,6 @@
 using SkiaSharp;
 using Svg.Skia;
+using SettlersOfIdlestan.Controller.Military;
 using SettlersOfIdlestan.Model.Bandits;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
@@ -17,8 +18,11 @@ public class BanditRenderer : HexBasedRenderer, IGameRenderer
     private const float AnimationDuration = 1f;
     private const float RaidAnimDuration = 0.8f;
     private const float ResourceFlyDuration = 0.6f;
-    private const float IconSize = 24f;
+    private const float BanditIconSize = 24f;
+    private const float HideoutIconSize = 32f;
     private const float ResourceIconSize = 18f;
+    private const float AttackParticleDuration = 0.5f;
+    private const float AttackParticleIconSize = 16f;
 
     private sealed class BanditVisual
     {
@@ -27,32 +31,28 @@ public class BanditRenderer : HexBasedRenderer, IGameRenderer
         public SKPoint To;
         public float Progress = 1f;
 
-        // Raid bounce animation
         public long KnownLastRaidTick = -1;
-        public float RaidAnimProgress = 1f;  // 0..1, 1 = idle
+        public float RaidAnimProgress = 1f;
         public SKPoint RaidHomePos;
         public SKPoint RaidTargetPos;
 
-        // Flying resource animation
         public Resource? FlyingResource = null;
-        public float ResourceFlyProgress = 1f; // 0..1, 1 = done
+        public float ResourceFlyProgress = 1f;
     }
-
-    private const float AttackParticleDuration = 0.5f;
-    private const float AttackParticleIconSize = 16f;
 
     private sealed class AttackParticle
     {
         public SKPoint From;
         public SKPoint To;
-        public float Progress; // 0..1
+        public float Progress;
     }
 
     private readonly List<BanditVisual> _visuals = new();
     private readonly List<AttackParticle> _attackParticles = new();
     private readonly ResourceManager _resourceManager;
     private readonly Dictionary<Resource, SKSvg?> _resourceIcons = new();
-    private SKSvg? _svg;
+    private SKSvg? _banditSvg;
+    private SKSvg? _hideoutSvg;
     private SKSvg? _attackSvg;
     private SKPaint? _resourceFlyPaint;
     private SKPaint? _attackParticlePaint;
@@ -66,12 +66,19 @@ public class BanditRenderer : HexBasedRenderer, IGameRenderer
     public void Initialize(SKSize canvasSize)
     {
         var assembly = Assembly.GetExecutingAssembly();
-        string resourceName = $"{assembly.GetName().Name}.Resources.icons.military.bandit.svg";
-        using var stream = assembly.GetManifestResourceStream(resourceName);
-        if (stream != null)
+
+        using var banditStream = assembly.GetManifestResourceStream($"{assembly.GetName().Name}.Resources.icons.military.bandit.svg");
+        if (banditStream != null)
         {
-            _svg = new SKSvg();
-            _svg.Load(stream);
+            _banditSvg = new SKSvg();
+            _banditSvg.Load(banditStream);
+        }
+
+        using var hideoutStream = assembly.GetManifestResourceStream($"{assembly.GetName().Name}.Resources.icons.features.skullcave.svg");
+        if (hideoutStream != null)
+        {
+            _hideoutSvg = new SKSvg();
+            _hideoutSvg.Load(hideoutStream);
         }
 
         foreach (Resource resource in Enum.GetValues<Resource>())
@@ -86,16 +93,45 @@ public class BanditRenderer : HexBasedRenderer, IGameRenderer
         try { _attackSvg = _resourceManager.LoadImage("Resources.icons.military.attack.svg"); } catch { }
     }
 
-    public void EmitAttackParticle(Vertex cityVertex, HexCoord banditPosition)
+    public void Connect(
+        MilitaryController militaryController,
+        GameControllerService gameControllerService,
+        Func<bool> isPrestigeTransitionPending)
     {
-        var from = VertexToIsland(cityVertex);
-        var (bx, by) = AxialToIsland(banditPosition.Q, banditPosition.R);
-        EmitAttackParticle(from, new SKPoint(bx, by));
+        militaryController.SoldierAttackedBandit += (_, args) =>
+        {
+            if (isPrestigeTransitionPending()) return;
+            var islandState = gameControllerService.CurrentIslandState;
+            if (islandState == null) return;
+            if (!IsSourceOrDestinationVisible(islandState, args.CityVertex, args.BanditPosition)) return;
+            EmitAttackParticle(args.CityVertex, args.BanditPosition);
+        };
+
+        militaryController.SoldierAttackedHideout += (_, args) =>
+        {
+            if (isPrestigeTransitionPending()) return;
+            var islandState = gameControllerService.CurrentIslandState;
+            if (islandState == null) return;
+            if (!IsSourceOrDestinationVisible(islandState, args.CityVertex, args.BanditPosition)) return;
+            EmitAttackParticle(args.CityVertex, args.BanditPosition);
+        };
     }
 
-    public void EmitAttackParticle(SKPoint from, SKPoint to)
+    private static bool IsSourceOrDestinationVisible(IslandState islandState, Vertex source, HexCoord target)
     {
-        _attackParticles.Add(new AttackParticle { From = from, To = to, Progress = 0f });
+        if (!islandState.VisibleIslandMaps.TryGetValue(islandState.PlayerCivilization.Index, out var visibleMap))
+            return true;
+        if (visibleMap.HasTile(target)) return true;
+        foreach (var hex in source.GetHexes())
+            if (visibleMap.HasTile(hex)) return true;
+        return false;
+    }
+
+    private void EmitAttackParticle(Vertex cityVertex, HexCoord targetPosition)
+    {
+        var from = VertexToIsland(cityVertex);
+        var (bx, by) = AxialToIsland(targetPosition.Q, targetPosition.R);
+        _attackParticles.Add(new AttackParticle { From = from, To = new SKPoint(bx, by), Progress = 0f });
     }
 
     public void Render(SKCanvas canvas, GameRenderContext context)
@@ -104,19 +140,29 @@ public class BanditRenderer : HexBasedRenderer, IGameRenderer
         var islandState = mgs.CurrentIslandState;
         if (islandState == null) return;
 
-        var bandits = islandState.Features.OfType<Bandit>().ToList();
-        SyncVisuals(bandits);
-
         islandState.VisibleIslandMaps.TryGetValue(islandState.PlayerCivilization.Index, out var visibleMap);
 
         float dt = context.DeltaTime;
+
+        // Draw hideouts
+        foreach (var hideout in islandState.Features.OfType<BanditHideout>())
+        {
+            if (!hideout.Found) continue;
+            if (visibleMap != null && !visibleMap.HasTile(hideout.Position)) continue;
+
+            var (hx, hy) = AxialToIsland(hideout.Position.Q, hideout.Position.R);
+            DrawHideoutIcon(canvas, new SKPoint(hx, hy));
+        }
+
+        // Draw bandits
+        var bandits = islandState.Features.OfType<Bandit>().ToList();
+        SyncVisuals(bandits);
 
         for (int i = 0; i < bandits.Count; i++)
         {
             var bandit = bandits[i];
             var v = _visuals[i];
 
-            // Movement animation
             var targetPoint = HexToPoint(bandit.Position);
 
             if (!v.ModelPosition.Equals(bandit.Position))
@@ -132,16 +178,15 @@ public class BanditRenderer : HexBasedRenderer, IGameRenderer
 
             var normalPos = Lerp(v.From, v.To, Smoothstep(v.Progress));
 
-            // Detect new raid
             if (bandit.LastRaidTick > 0
                 && bandit.LastRaidTick != v.KnownLastRaidTick
-                && bandit.LastRaidTick != bandit.LastMovedTick // special case where raid was reset because of move. Skip Raid animation
+                && bandit.LastRaidTick != bandit.LastMovedTick // raid reset on move — skip animation
                 && bandit.LastRaidTargetVertex != null)
             {
                 v.KnownLastRaidTick = bandit.LastRaidTick;
                 v.RaidAnimProgress = 0f;
                 v.RaidHomePos = normalPos;
-                v.RaidTargetPos = VertexToPoint(bandit.LastRaidTargetVertex);
+                v.RaidTargetPos = VertexToIsland(bandit.LastRaidTargetVertex);
                 v.FlyingResource = null;
                 if (bandit.LastStolenResource != null
                     && Enum.TryParse<Resource>(bandit.LastStolenResource, out var res))
@@ -149,7 +194,6 @@ public class BanditRenderer : HexBasedRenderer, IGameRenderer
                 v.ResourceFlyProgress = 1f;
             }
 
-            // Advance raid animation
             if (v.RaidAnimProgress < 1f)
             {
                 v.RaidAnimProgress = Math.Min(1f, v.RaidAnimProgress + dt / RaidAnimDuration);
@@ -157,14 +201,12 @@ public class BanditRenderer : HexBasedRenderer, IGameRenderer
                     v.ResourceFlyProgress = 0f;
             }
 
-            // Advance resource fly animation
             if (v.ResourceFlyProgress < 1f)
                 v.ResourceFlyProgress = Math.Min(1f, v.ResourceFlyProgress + dt / ResourceFlyDuration);
 
             if (visibleMap != null && !visibleMap.HasTile(bandit.Position))
                 continue;
 
-            // Calculate bandit position (with or without raid offset)
             SKPoint pos;
             if (v.RaidAnimProgress < 1f)
             {
@@ -178,9 +220,8 @@ public class BanditRenderer : HexBasedRenderer, IGameRenderer
                 pos = normalPos;
             }
 
-            DrawIcon(canvas, pos);
+            DrawBanditIcon(canvas, pos);
 
-            // Draw flying stolen resource
             if (v.ResourceFlyProgress < 1f && v.FlyingResource != null)
             {
                 var flyPos = Lerp(v.RaidTargetPos, v.RaidHomePos, Smoothstep(v.ResourceFlyProgress));
@@ -202,14 +243,27 @@ public class BanditRenderer : HexBasedRenderer, IGameRenderer
         }
     }
 
-    private void DrawIcon(SKCanvas canvas, SKPoint center)
+    private void DrawBanditIcon(SKCanvas canvas, SKPoint center)
     {
-        var picture = _svg?.Picture;
+        var picture = _banditSvg?.Picture;
         if (picture == null) return;
 
-        float scale = IconSize / 64f;
+        float scale = BanditIconSize / 64f;
         canvas.Save();
-        canvas.Translate(center.X - IconSize / 2f, center.Y - IconSize / 2f);
+        canvas.Translate(center.X - BanditIconSize / 2f, center.Y - BanditIconSize / 2f);
+        canvas.Scale(scale);
+        canvas.DrawPicture(picture);
+        canvas.Restore();
+    }
+
+    private void DrawHideoutIcon(SKCanvas canvas, SKPoint center)
+    {
+        var picture = _hideoutSvg?.Picture;
+        if (picture == null) return;
+
+        float scale = HideoutIconSize / 64f;
+        canvas.Save();
+        canvas.Translate(center.X - HideoutIconSize / 2f, center.Y - HideoutIconSize / 2f);
         canvas.Scale(scale);
         canvas.DrawPicture(picture);
         canvas.Restore();
@@ -250,8 +304,8 @@ public class BanditRenderer : HexBasedRenderer, IGameRenderer
         canvas.Scale(scale);
         canvas.SaveLayer(new SKRect(0, 0, 64, 64), _resourceFlyPaint);
         canvas.DrawPicture(svg.Picture);
-        canvas.Restore(); // restore SaveLayer
-        canvas.Restore(); // restore transform
+        canvas.Restore();
+        canvas.Restore();
     }
 
     private void SyncVisuals(IList<Bandit> bandits)
@@ -279,10 +333,6 @@ public class BanditRenderer : HexBasedRenderer, IGameRenderer
         var (x, y) = AxialToIsland(hex.Q, hex.R);
         return new SKPoint(x, y);
     }
-    private SKPoint VertexToPoint(Vertex vertex)
-    {
-        return VertexToIsland(vertex);
-    }
 
     private static SKPoint Lerp(SKPoint a, SKPoint b, float t)
         => new(a.X + (b.X - a.X) * t, a.Y + (b.Y - a.Y) * t);
@@ -293,7 +343,8 @@ public class BanditRenderer : HexBasedRenderer, IGameRenderer
     public void Dispose()
     {
         if (_disposed) return;
-        _svg = null;
+        _banditSvg = null;
+        _hideoutSvg = null;
         _attackSvg = null;
         _resourceFlyPaint?.Dispose();
         _resourceFlyPaint = null;
