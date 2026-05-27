@@ -242,7 +242,7 @@
   "tech_architecture_name": "Architecture",
   "tech_architecture_desc": "+1 Town Hall max level",
   "tech_advanced_architecture_name": "Advanced Architecture",
-  "tech_advanced_architecture_desc": "+1 max level all buildings",
+  "tech_advanced_architecture_desc": "+1 max level production buildings",
   "tech_storage_optimization_name": "Storage Optimization",
   "tech_storage_optimization_desc": "+20 basic resource storage",
   "tech_scholarship_name": "Scholarship",

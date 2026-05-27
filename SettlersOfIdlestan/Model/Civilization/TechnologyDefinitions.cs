@@ -35,7 +35,13 @@ public static class TechnologyDefinitions
             "tech_advanced_architecture_name", "tech_advanced_architecture_desc",
             cost: 120,
             prerequisites: new[] { TechnologyId.Architecture },
-            modifiers: new Modifier[] { new(ECategory.BUILDING_MAX_LEVEL, EType.ADDITIVE, 1) }),
+            modifiers: new Modifier[]
+            {
+                new(ECategory.BUILDING_MAX_LEVEL, "Sawmill",    EType.ADDITIVE, 1),
+                new(ECategory.BUILDING_MAX_LEVEL, "Brickworks", EType.ADDITIVE, 1),
+                new(ECategory.BUILDING_MAX_LEVEL, "Quarry",     EType.ADDITIVE, 1),
+                new(ECategory.BUILDING_MAX_LEVEL, "Mill",       EType.ADDITIVE, 1),
+            }),
 
         new(TechnologyId.StorageOptimization,
             "tech_storage_optimization_name", "tech_storage_optimization_desc",

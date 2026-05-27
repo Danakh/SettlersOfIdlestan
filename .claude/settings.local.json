@@ -46,7 +46,8 @@
       "Bash(Select-Object -First 10)",
       "Bash(dir \"C:\\\\DEV\\\\SettlersOfIdlestan2\\\\SOITests\\\\saves\" /s /b)",
       "Bash(dir \"C:\\\\DEV\\\\SettlersOfIdlestan2\\\\SOITests\\\\saves\\\\current\" /b)",
-      "Bash(dir \"C:\\\\DEV\\\\SettlersOfIdlestan2\\\\SOITests\\\\saves\\\\release-1.0\" /b)"
+      "Bash(dir \"C:\\\\DEV\\\\SettlersOfIdlestan2\\\\SOITests\\\\saves\\\\release-1.0\" /b)",
+      "Bash(Get-ChildItem -Path \"C:\\\\DEV\\\\SettlersOfIdlestan2\" -Directory)"
     ]
   }
 }

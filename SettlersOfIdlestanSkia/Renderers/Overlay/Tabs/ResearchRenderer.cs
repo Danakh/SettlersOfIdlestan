@@ -26,6 +26,8 @@ public sealed class ResearchRenderer : IGameRenderer
 
     private SKSize _canvasSize;
     private readonly Dictionary<TechnologyId, SKRect> _nodeRects = new();
+    private TechnologyId? _hoveredTechId;
+    private SKPoint _lastPointerPosition;
     private bool _disposed;
     public bool IsActive { get; set; }
 
@@ -44,6 +46,7 @@ public sealed class ResearchRenderer : IGameRenderer
     private readonly SKPaint _dimTextPaint = new() { Color = new SKColor(150, 150, 160), IsAntialias = true };
     private readonly SKFont _nameFont = new() { Size = 12, Typeface = SkiaFonts.Bold };
     private readonly SKFont _smallFont = new() { Size = 10, Typeface = SkiaFonts.Regular };
+    private readonly SKFont _tooltipFont = new() { Size = 10, Typeface = SkiaFonts.Regular };
 
     // Layout: column index → row index → TechnologyId
     private static readonly Dictionary<TechnologyId, (int col, int row)> Layout = ComputeLayout();
@@ -54,6 +57,7 @@ public sealed class ResearchRenderer : IGameRenderer
         _localization = localization;
         _inputService = inputService;
         _inputService.PointerPressed += HandlePointerPressed;
+        _inputService.PointerMoved += HandlePointerMoved;
     }
 
     public void Initialize(SKSize canvasSize)
@@ -179,6 +183,17 @@ public sealed class ResearchRenderer : IGameRenderer
             var status = ctrl.GetStatus(tech.Id);
             DrawNode(canvas, tech, rect, status, ctrl);
         }
+
+        // Tooltip
+        if (_hoveredTechId.HasValue)
+        {
+            var hoveredTech = TechnologyDefinitions.All.FirstOrDefault(t => t.Id == _hoveredTechId.Value);
+            if (hoveredTech != null)
+            {
+                string desc = _localization.Get(hoveredTech.DescKey);
+                TooltipRenderUtils.DrawTooltip(canvas, _canvasSize, _lastPointerPosition, new[] { desc }, _tooltipFont);
+            }
+        }
     }
 
     private void DrawNode(SKCanvas canvas, Technology tech, SKRect rect, TechnologyStatus status, ResearchController ctrl)
@@ -234,6 +249,21 @@ public sealed class ResearchRenderer : IGameRenderer
         canvas.DrawText(subText, rect.MidX, rect.Top + 36f, SKTextAlign.Center, _smallFont, textPaint);
     }
 
+    private void HandlePointerMoved(object? sender, PointerEventArgs e)
+    {
+        if (!IsActive) { _hoveredTechId = null; return; }
+        _lastPointerPosition = e.Position;
+        _hoveredTechId = null;
+        foreach (var (techId, rect) in _nodeRects)
+        {
+            if (rect.Contains(e.Position.X, e.Position.Y))
+            {
+                _hoveredTechId = techId;
+                return;
+            }
+        }
+    }
+
     private void HandlePointerPressed(object? sender, PointerEventArgs e)
     {
         if (!IsActive || e.Button != PointerButton.Left) return;
@@ -251,6 +281,7 @@ public sealed class ResearchRenderer : IGameRenderer
     public void Dispose()
     {
         if (_disposed) return;
+        _inputService.PointerMoved -= HandlePointerMoved;
         _inputService.PointerPressed -= HandlePointerPressed;
         _bgPaint.Dispose();
         _inactiveNodePaint.Dispose();
@@ -267,6 +298,7 @@ public sealed class ResearchRenderer : IGameRenderer
         _dimTextPaint.Dispose();
         _nameFont.Dispose();
         _smallFont.Dispose();
+        _tooltipFont.Dispose();
         _disposed = true;
     }
 }
