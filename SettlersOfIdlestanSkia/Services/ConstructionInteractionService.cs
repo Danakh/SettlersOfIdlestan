@@ -211,9 +211,12 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
         Vertex? best = null;
         var bestDistance = float.MaxValue;
 
+        var playerIndex = islandState.PlayerCivilization.Index;
         foreach (var city in cities)
         {
-            var playerIndex = islandState.PlayerCivilization.Index;
+            if (city.CivilizationIndex != playerIndex)
+                continue;
+
             if (islandState.VisibleIslandMaps.TryGetValue(playerIndex, out var visibleMap) &&
                 !city.Position.GetHexes().Any(visibleMap.HasTile))
             {
