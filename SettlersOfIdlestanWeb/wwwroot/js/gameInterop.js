@@ -40,6 +40,32 @@ window.gameInterop = {
         URL.revokeObjectURL(url);
     },
 
+    _visibilityHandler: null,
+    _hiddenAt: null,
+
+    registerVisibilityHandler: function (dotNetRef) {
+        this._visibilityHandler = () => {
+            if (document.visibilityState === 'hidden') {
+                this._hiddenAt = Date.now();
+            } else if (document.visibilityState === 'visible' && this._hiddenAt !== null) {
+                const elapsed = (Date.now() - this._hiddenAt) / 1000;
+                this._hiddenAt = null;
+                if (elapsed > 0.5) {
+                    dotNetRef.invokeMethodAsync('OnPageVisible', elapsed);
+                }
+            }
+        };
+        document.addEventListener('visibilitychange', this._visibilityHandler);
+    },
+
+    unregisterVisibilityHandler: function () {
+        if (this._visibilityHandler) {
+            document.removeEventListener('visibilitychange', this._visibilityHandler);
+            this._visibilityHandler = null;
+            this._hiddenAt = null;
+        }
+    },
+
     openFilePicker: function () {
         return new Promise((resolve) => {
             const input = document.createElement('input');

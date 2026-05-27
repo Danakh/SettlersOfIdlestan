@@ -30,11 +30,13 @@ public class HarvestRenderer : IGameRenderer
         GameControllerService gameControllerService,
         Func<HexCoord, SKPoint> hexToIsland,
         Func<Vertex, SKPoint> vertexToIsland,
-        Func<bool> isPrestigeTransitionPending)
+        Func<bool> isPrestigeTransitionPending,
+        Func<bool> isIslandTabActive)
     {
         harvestService.OnHarvestCompleted += (_, args) =>
         {
             if (isPrestigeTransitionPending()) return;
+            if (!isIslandTabActive()) return;
             if (gameControllerService.PlayerCivilizationIndex != args.CivilizationIndex) return;
 
             var hexCenter = hexToIsland(args.HexCoord);
@@ -45,6 +47,7 @@ public class HarvestRenderer : IGameRenderer
         harvestService.OnMarketResourceGenerated += (_, args) =>
         {
             if (isPrestigeTransitionPending()) return;
+            if (!isIslandTabActive()) return;
             if (gameControllerService.PlayerCivilizationIndex != args.CivilizationIndex) return;
 
             var cityCenter = vertexToIsland(args.CityPosition);

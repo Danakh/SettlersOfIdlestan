@@ -47,7 +47,10 @@
       "Bash(dir \"C:\\\\DEV\\\\SettlersOfIdlestan2\\\\SOITests\\\\saves\" /s /b)",
       "Bash(dir \"C:\\\\DEV\\\\SettlersOfIdlestan2\\\\SOITests\\\\saves\\\\current\" /b)",
       "Bash(dir \"C:\\\\DEV\\\\SettlersOfIdlestan2\\\\SOITests\\\\saves\\\\release-1.0\" /b)",
-      "Bash(Get-ChildItem -Path \"C:\\\\DEV\\\\SettlersOfIdlestan2\" -Directory)"
+      "Bash(Get-ChildItem -Path \"C:\\\\DEV\\\\SettlersOfIdlestan2\" -Directory)",
+      "Bash(Get-ChildItem -Recurse -Path \"C:\\\\DEV\\\\SettlersOfIdlestan\\\\SettlersOfIdlestanWeb\" -Include \"*.js\", \"*.ts\", \"*.html\", \"*.json\")",
+      "Bash(Select-Object -First 30)",
+      "Bash(Format-Table -AutoSize)"
     ]
   }
 }

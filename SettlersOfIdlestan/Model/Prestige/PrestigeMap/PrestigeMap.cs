@@ -31,6 +31,8 @@ public class PrestigeMap
     public static readonly Vertex AcademyVertex          = Vertex.Create(new(1, 0), new(2, 0), new(1, 1));
     public static readonly Vertex HarvestGuildVertex     = Vertex.Create(new(-1, 1), new(-1, 2), new(0, 1));
     public static readonly Vertex ArtisansGuildVertex    = Vertex.Create(new(-1, 2), new(0, 1), new(0, 2));
+    public static readonly Vertex MilitaryStrategyVertex  = Vertex.Create(new(1, 0), new(1, -1), new(2, -1));
+    public static readonly Vertex KnowledgeMasteryVertex  = Vertex.Create(new(1, 0), new(1,  1), new(2,  0));
 
     public IReadOnlyList<PrestigeVertex> Vertices { get; }
     public IReadOnlyList<PrestigeHex> Hexes { get; }
@@ -114,6 +116,18 @@ public class PrestigeMap
                 modifiers: Array.Empty<Modifier>()
             ),
             new(
+                MilitaryStrategyVertex,
+                "prestige_vertex_military_strategy",
+                cost: Cost(MilitaryStrategyVertex),
+                modifiers: Array.Empty<Modifier>()
+            ),
+            new(
+                KnowledgeMasteryVertex,
+                "prestige_vertex_knowledge_mastery",
+                cost: Cost(KnowledgeMasteryVertex),
+                modifiers: Array.Empty<Modifier>()
+            ),
+            new(
                 AcademyVertex,
                 "prestige_vertex_academy",
                 cost: Cost(AcademyVertex),
@@ -121,45 +135,49 @@ public class PrestigeMap
             ),
         };
 
+        // Adjacency computed from vertex definitions — no manual list needed.
+        IReadOnlyList<Vertex> Adjacent(HexCoord hex)
+            => vertices.Select(v => v.Coord).Where(v => v.IsAdjacentTo(hex)).ToList();
+
         var hexes = new PrestigeHex[]
         {
             // ── Inner hexes (adjacent to Central) ────────────────────────────
             new(
                 StartingResourcesCoord,
                 "prestige_hex_starting_resources",
-                adjacentVertices: new[] { CentralVertex, SeaportMarketVertex, BarracksVertex, FortifiedOutpostVertex },
+                adjacentVertices: Adjacent(StartingResourcesCoord),
                 perVertexModifiers: Array.Empty<Modifier>(),
                 startingResourceBonusPerVertex: 2
             ),
             new(
                 HarvestSpeedCoord,
                 "prestige_hex_harvest_speed",
-                adjacentVertices: new[] { CentralVertex, SeaportMarketVertex, LaboratoryVertex, HarvestGuildVertex, ArtisansGuildVertex },
+                adjacentVertices: Adjacent(HarvestSpeedCoord),
                 perVertexModifiers: new Modifier[] { new(ECategory.HARVEST_SPEED, EType.ADDITIVE, 0.1) }
             ),
             new(
                 ResearchSpeedCoord,
                 "prestige_hex_research_speed",
-                adjacentVertices: new[] { CentralVertex, LaboratoryVertex, BarracksVertex, AppliedResearchVertex, AcademyVertex },
+                adjacentVertices: Adjacent(ResearchSpeedCoord),
                 perVertexModifiers: new Modifier[] { new(ECategory.RESEARCH_SPEED, EType.ADDITIVE, 0.1) }
             ),
             // ── Outer hexes (each adjacent to one outer vertex only) ─────────
             new(
                 UnitProductionSpeedCoord,
                 "prestige_hex_unit_production_speed",
-                adjacentVertices: new[] { BarracksVertex, FortifiedOutpostVertex },
+                adjacentVertices: Adjacent(UnitProductionSpeedCoord),
                 perVertexModifiers: new Modifier[] { new(ECategory.UNIT_PRODUCTION_SPEED, EType.ADDITIVE, 0.1) }
             ),
             new(
                 ResearchCostReductionCoord,
                 "prestige_hex_research_cost_reduction",
-                adjacentVertices: new[] { LaboratoryVertex, AppliedResearchVertex, AcademyVertex },
+                adjacentVertices: Adjacent(ResearchCostReductionCoord),
                 perVertexModifiers: new Modifier[] { new(ECategory.RESEARCH_COST_REDUCTION, EType.ADDITIVE, 0.1) }
             ),
             new(
                 StorageCapacityCoord,
                 "prestige_hex_storage_capacity",
-                adjacentVertices: new[] { SeaportMarketVertex, HarvestGuildVertex },
+                adjacentVertices: Adjacent(StorageCapacityCoord),
                 perVertexModifiers: new Modifier[]
                 {
                     new(ECategory.STORAGE_CAPACITY_BASIC,    EType.ADDITIVE, 10),
@@ -169,13 +187,13 @@ public class PrestigeMap
             new(
                 GoldTradeCoord,
                 "prestige_hex_gold_trade",
-                adjacentVertices: new[] { HarvestGuildVertex, ArtisansGuildVertex },
+                adjacentVertices: Adjacent(GoldTradeCoord),
                 perVertexModifiers: new Modifier[] { new(ECategory.TRADE_GOLD_PACKAGES, EType.ADDITIVE, -0.5) }
             ),
             new(
                 ArtisansProductionCoord,
                 "prestige_hex_artisans_production",
-                adjacentVertices: new[] { ArtisansGuildVertex },
+                adjacentVertices: Adjacent(ArtisansProductionCoord),
                 perVertexModifiers: new Modifier[]
                 {
                     new(ECategory.HARVEST_SPEED, "Mine",       EType.ADDITIVE, 0.1),
@@ -184,8 +202,8 @@ public class PrestigeMap
             ),
             new(
                 FortifiedOutpostCoord,
-                "prestige_hex_fortified_outpost",
-                adjacentVertices: new[] { FortifiedOutpostVertex },
+                "prestige_hex_fortifications",
+                adjacentVertices: Adjacent(FortifiedOutpostCoord),
                 perVertexModifiers: new Modifier[] { new(ECategory.CITY_DEFENSE, EType.ADDITIVE, 2) }
             ),
         };

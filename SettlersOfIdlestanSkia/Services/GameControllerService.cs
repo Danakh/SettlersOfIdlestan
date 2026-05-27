@@ -59,6 +59,12 @@ public class GameControllerService
         _controller.CurrentMainState.Clock.Advance(DateTimeOffset.UtcNow);
     }
 
+    public void AddOfflineSeconds(double seconds)
+    {
+        if (_controller.CurrentMainState == null || seconds <= 0) return;
+        _controller.CurrentMainState.Clock.OfflineBankTicks += (long)(seconds * 100);
+    }
+
     public void PerformPrestige()
     {
         _controller.PerformPrestige();

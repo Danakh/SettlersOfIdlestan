@@ -13,6 +13,12 @@ public enum TechnologyId
     Scholarship,
     Artisanat,
     Orpaillage,
+    MilitaryDiscipline,
+    MilitaryTactics,
+    MilitaryMastery,
+    ResearchEfficiency,
+    ImprovedResearch,
+    MasterResearch,
 }
 
 public enum TechnologyStatus

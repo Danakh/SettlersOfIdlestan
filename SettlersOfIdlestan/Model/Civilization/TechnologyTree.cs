@@ -11,6 +11,7 @@ public class TechnologyTree : IModifierProvider
 {
     public List<TechnologyId> CompletedTechnologies { get; set; } = new();
     public TechnologyId? ActiveResearch { get; set; }
+    public TechnologyId? QueuedResearch { get; set; }
     public int ActiveResearchConsumed { get; set; }
     public int ResearchPoints { get; set; }
     public long ActiveResearchLastConsumptionTick { get; set; }
