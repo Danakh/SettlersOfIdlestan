@@ -172,7 +172,7 @@ namespace SettlersOfIdlestan.Controller.Island
             _state.RecalculateVisibleIslandMap(civilizationIndex);
 
             var cityHexSet = new HashSet<HexCoord>(city.Position.GetHexes());
-            foreach (var trove in _state.TreasureTroves)
+            foreach (var trove in _state.Features.OfType<SettlersOfIdlestan.Model.TreasureTroves.TreasureTrove>())
             {
                 if (!trove.Claimed && cityHexSet.Contains(trove.Position))
                 {

@@ -3,8 +3,7 @@ using SettlersOfIdlestan.Model;
 using System;
 using System.Collections.Generic;
 using SettlersOfIdlestan.Model.Civilization;
-using SettlersOfIdlestan.Model.Bandits;
-using SettlersOfIdlestan.Model.TreasureTroves;
+using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.Game;
 using System.Text.Json.Serialization;
 using System.Linq;
@@ -62,10 +61,8 @@ public class IslandState : IJsonOnDeserialized
         IslandID = islandID;
         HarvestLastTimesByCivilization = new Dictionary<int, Dictionary<SettlersOfIdlestan.Model.HexGrid.HexCoord, long>>();
         AutomaticHarvestLastTimesByCivilization = new Dictionary<int, Dictionary<SettlersOfIdlestan.Model.HexGrid.HexCoord, long>>();
-        Bandits = new List<Bandit>();
+        Features = new List<IslandFeature>();
         BanditCooldownUntil = new Dictionary<HexCoord, long>();
-        TreasureTroves = new List<TreasureTrove>();
-        BanditHideouts = new List<BanditHideout>();
         RecalculateVisibleIslandMaps();
     }
 
@@ -79,10 +76,8 @@ public class IslandState : IJsonOnDeserialized
         Civilizations = new List<SettlersOfIdlestan.Model.Civilization.Civilization>();
         HarvestLastTimesByCivilization = new Dictionary<int, Dictionary<SettlersOfIdlestan.Model.HexGrid.HexCoord, long>>();
         AutomaticHarvestLastTimesByCivilization = new Dictionary<int, Dictionary<SettlersOfIdlestan.Model.HexGrid.HexCoord, long>>();
-        Bandits = new List<Bandit>();
+        Features = new List<IslandFeature>();
         BanditCooldownUntil = new Dictionary<HexCoord, long>();
-        TreasureTroves = new List<TreasureTrove>();
-        BanditHideouts = new List<BanditHideout>();
     }
 
     public void OnDeserialized()
@@ -122,24 +117,34 @@ public class IslandState : IJsonOnDeserialized
     public Dictionary<int, Dictionary<SettlersOfIdlestan.Model.HexGrid.HexCoord, long>> AutomaticHarvestLastTimesByCivilization { get; set; }
 
     /// <summary>
-    /// Liste des bandits présents sur l'île.
+    /// Toutes les features de l'île (Bandit, BanditHideout, TreasureTrove).
+    /// Utiliser AddFeature / RemoveFeature pour modifier afin de déclencher les events.
     /// </summary>
-    public List<Bandit> Bandits { get; set; }
+    public List<IslandFeature> Features { get; set; }
+
+    /// <summary>Déclenché quand une feature est ajoutée via AddFeature.</summary>
+    public event EventHandler<IslandFeature>? FeatureAdded;
+
+    /// <summary>Déclenché quand une feature est supprimée via RemoveFeature.</summary>
+    public event EventHandler<IslandFeature>? FeatureRemoved;
+
+    public void AddFeature(IslandFeature feature)
+    {
+        Features.Add(feature);
+        FeatureAdded?.Invoke(this, feature);
+    }
+
+    public bool RemoveFeature(IslandFeature feature)
+    {
+        if (!Features.Remove(feature)) return false;
+        FeatureRemoved?.Invoke(this, feature);
+        return true;
+    }
 
     /// <summary>
     /// Tick jusqu'auquel la récolte est bloquée sur un hex après le départ d'un bandit (1000 ticks).
     /// </summary>
     public Dictionary<HexCoord, long> BanditCooldownUntil { get; set; }
-
-    /// <summary>
-    /// Trésors présents sur l'île. Réclamés lorsqu'un avant-poste est construit sur l'un de leurs hexs.
-    /// </summary>
-    public List<TreasureTrove> TreasureTroves { get; set; }
-
-    /// <summary>
-    /// Repaires de bandits présents sur l'île. Ils bloquent la récolte et spawn des bandits périodiquement.
-    /// </summary>
-    public List<BanditHideout> BanditHideouts { get; set; }
 
     /// <summary>
     /// Player-controlled automation toggles. Persisted with the island state.

@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using SettlersOfIdlestan.Model.Bandits;
 using SettlersOfIdlestan.Model.Buildings;
+using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
@@ -103,7 +104,7 @@ public class MilitaryController
         if (_state == null) return;
 
         var deadBandits = new List<Bandit>();
-        foreach (var bandit in _state.Bandits)
+        foreach (var bandit in _state.Features.OfType<Bandit>())
         {
             if (currentTick - bandit.LastMovedTick < CombatIntervalTicks) continue;
 
@@ -114,7 +115,7 @@ public class MilitaryController
 
         foreach (var b in deadBandits)
         {
-            _state.Bandits.Remove(b);
+            _state.RemoveFeature(b);
             _state.EventLog.Add(b.RemovedEventType);
         }
     }
@@ -126,7 +127,7 @@ public class MilitaryController
         if (_state == null) return;
 
         var deadHideouts = new List<BanditHideout>();
-        foreach (var hideout in _state.BanditHideouts)
+        foreach (var hideout in _state.Features.OfType<BanditHideout>())
         {
             if (!hideout.Found) continue;
             if (currentTick - hideout.LastAttackedTick < CombatIntervalTicks) continue;
@@ -138,7 +139,7 @@ public class MilitaryController
 
         foreach (var h in deadHideouts)
         {
-            _state.BanditHideouts.Remove(h);
+            _state.RemoveFeature(h);
             _state.EventLog.Add(h.RemovedEventType);
         }
     }

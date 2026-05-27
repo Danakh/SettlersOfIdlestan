@@ -3,6 +3,7 @@ using SettlersOfIdlestan.Controller.Military;
 using SettlersOfIdlestan.Model.Bandits;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
+using System.Linq;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
@@ -65,7 +66,7 @@ namespace SOITests.ControllerTests
             civ.Cities.Add(cityB);
 
             var state = new IslandState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
-            state.Bandits.Add(new Bandit(Center, 0));
+            state.AddFeature(new Bandit(Center, 0));
 
             var clock = new GameClock();
             clock.Start();
@@ -82,7 +83,7 @@ namespace SOITests.ControllerTests
         public void Bandit_TrappedBetweenWaterAndActiveBarracks_DoesNotMove()
         {
             var (state, clock, _) = CreateTrappedSetup(activeBarracks: true);
-            var bandit = state.Bandits[0];
+            var bandit = state.Features.OfType<Bandit>().First();
 
             for (int i = 0; i < 5; i++)
                 clock.SimulateAdvance(BanditController.MovementIntervalTicks);
@@ -94,7 +95,7 @@ namespace SOITests.ControllerTests
         public void Bandit_TrappedWithInactiveBarracks_CanMoveToPLainTile()
         {
             var (state, clock, _) = CreateTrappedSetup(activeBarracks: false);
-            var bandit = state.Bandits[0];
+            var bandit = state.Features.OfType<Bandit>().First();
 
             // With barracks at level 0 the plain tiles are not protected.
             clock.SimulateAdvance(BanditController.MovementIntervalTicks);
@@ -140,7 +141,7 @@ namespace SOITests.ControllerTests
             var map = new IslandMap(tiles);
             var civ = new Civilization { Index = 0 };
             var state = new IslandState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
-            state.Bandits.Add(new Bandit(Center, 0) { Found = true });
+            state.AddFeature(new Bandit(Center, 0) { Found = true });
 
             var clock = new GameClock();
             clock.Start();
@@ -150,7 +151,7 @@ namespace SOITests.ControllerTests
             for (int i = 0; i < 10; i++)
                 clock.SimulateAdvance(BanditController.MovementIntervalTicks);
 
-            Assert.NotEqual(water, state.Bandits[0].Position);
+            Assert.NotEqual(water, state.Features.OfType<Bandit>().First().Position);
         }
 
         // ── Harvest blocking and cooldown ────────────────────────────────────
@@ -163,7 +164,7 @@ namespace SOITests.ControllerTests
                 new List<Civilization> { new() { Index = 0 } },
                 AtlasController.InvalidIslandId);
 
-            state.Bandits.Add(new Bandit(Center, 0));
+            state.AddFeature(new Bandit(Center, 0));
 
             var clock = new GameClock();
             clock.Start();
@@ -188,7 +189,7 @@ namespace SOITests.ControllerTests
             var map = new IslandMap(tiles);
             var civ = new Civilization { Index = 0 };
             var state = new IslandState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
-            state.Bandits.Add(new Bandit(Center, 0) { Found = true });
+            state.AddFeature(new Bandit(Center, 0) { Found = true });
 
             var clock = new GameClock();
             clock.Start();
@@ -198,7 +199,7 @@ namespace SOITests.ControllerTests
             // Trigger one move: bandit must go to plain (only valid destination).
             clock.SimulateAdvance(BanditController.MovementIntervalTicks);
 
-            Assert.Equal(plain, state.Bandits[0].Position);
+            Assert.Equal(plain, state.Features.OfType<Bandit>().First().Position);
             Assert.True(controller.IsHarvestBlocked(Center, clock.CurrentTick),
                 "Cooldown should be active on the tile the bandit just left");
         }
@@ -217,7 +218,7 @@ namespace SOITests.ControllerTests
             var map = new IslandMap(tiles);
             var civ = new Civilization { Index = 0 };
             var state = new IslandState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
-            state.Bandits.Add(new Bandit(Center, 0) { Found = true });
+            state.AddFeature(new Bandit(Center, 0) { Found = true });
 
             var clock = new GameClock();
             clock.Start();
@@ -225,7 +226,7 @@ namespace SOITests.ControllerTests
             controller.Initialize(state, clock);
 
             clock.SimulateAdvance(BanditController.MovementIntervalTicks);
-            Assert.Equal(plain, state.Bandits[0].Position);
+            Assert.Equal(plain, state.Features.OfType<Bandit>().First().Position);
 
             // Advance past the departure cooldown (bandit won't move again because its
             // LastMovedTick was just updated — next move requires another MovementIntervalTicks).
@@ -259,7 +260,7 @@ namespace SOITests.ControllerTests
             civ.Cities.Add(city);
 
             var state = new IslandState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
-            state.Bandits.Add(new Bandit(Center, 0));
+            state.AddFeature(new Bandit(Center, 0));
 
             var clock = new GameClock();
             clock.Start();
@@ -278,8 +279,9 @@ namespace SOITests.ControllerTests
             clock.SimulateAdvance(Bandit.RaidIntervalTicks);
 
             Assert.Equal(4, civ.GetResourceQuantity(Resource.Wood));
-            Assert.NotNull(state.Bandits[0].LastRaidTargetVertex);
-            Assert.Equal(nameof(Resource.Wood), state.Bandits[0].LastStolenResource);
+            var bandit = state.Features.OfType<Bandit>().First();
+            Assert.NotNull(bandit.LastRaidTargetVertex);
+            Assert.Equal(nameof(Resource.Wood), bandit.LastStolenResource);
         }
 
         [Fact]
@@ -291,8 +293,9 @@ namespace SOITests.ControllerTests
             clock.SimulateAdvance(Bandit.RaidIntervalTicks);
 
             Assert.Equal(0, civ.GetResourceQuantity(Resource.Wood));
-            Assert.Null(state.Bandits[0].LastRaidTargetVertex);
-            Assert.Null(state.Bandits[0].LastStolenResource);
+            var bandit = state.Features.OfType<Bandit>().First();
+            Assert.Null(bandit.LastRaidTargetVertex);
+            Assert.Null(bandit.LastStolenResource);
         }
 
         [Fact]

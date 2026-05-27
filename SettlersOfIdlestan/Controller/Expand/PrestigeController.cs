@@ -57,7 +57,7 @@ namespace SettlersOfIdlestan.Controller.Expand
                 }
             }
             if (_islandState != null
-                && _islandState.Bandits.Count == 0
+                && !_islandState.Features.OfType<SettlersOfIdlestan.Model.Bandits.Bandit>().Any()
                 && _islandState.Map.Tiles.Values.Any(t => t.TerrainType == TerrainType.Desert))
             {
                 sources["prestige_no_bandits"] = 2;

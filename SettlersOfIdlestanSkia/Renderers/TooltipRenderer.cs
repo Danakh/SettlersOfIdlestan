@@ -2,6 +2,7 @@ using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Controller.Military;
 using SettlersOfIdlestan.Model.Bandits;
 using SettlersOfIdlestan.Model.HexGrid;
+using SettlersOfIdlestan.Model.TreasureTroves;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Services.Localization;
 using SettlersOfIdlestanSkia.Core;
@@ -122,11 +123,11 @@ namespace SettlersOfIdlestanSkia.Renderers
             var manualResources = harvestController.GetManualHarvestableResources(playerIdx, coord);
             var autoResources = harvestController.GetAutomaticHarvestableResources(playerIdx, coord);
 
-            bool banditPresent = islandState.Bandits.Any(b => b.Position.Equals(coord));
+            bool banditPresent = islandState.Features.OfType<Bandit>().Any(b => b.Position.Equals(coord));
             bool banditCooldownActive = islandState.BanditCooldownUntil.TryGetValue(coord, out var banditUntil)
                 && currentTick < banditUntil;
-            bool hasTreasureTrove = islandState.TreasureTroves.Any(t => !t.Claimed && t.Position.Equals(coord));
-            bool hideoutPresent = islandState.BanditHideouts.Any(h => h.Found && h.Position.Equals(coord));
+            bool hasTreasureTrove = islandState.Features.OfType<TreasureTrove>().Any(t => !t.Claimed && t.Position.Equals(coord));
+            bool hideoutPresent = islandState.Features.OfType<BanditHideout>().Any(h => h.Found && h.Position.Equals(coord));
 
             if (manualResources.Count == 0 && autoResources.Count == 0 && !banditPresent && !banditCooldownActive && !hasTreasureTrove && !hideoutPresent)
                 return;
@@ -135,14 +136,14 @@ namespace SettlersOfIdlestanSkia.Renderers
 
             if (hideoutPresent)
             {
-                var hideout = islandState.BanditHideouts.First(h => h.Found && h.Position.Equals(coord));
+                var hideout = islandState.Features.OfType<BanditHideout>().First(h => h.Found && h.Position.Equals(coord));
                 lines.Add(_localizationService.Get("hex_tooltip_bandit_hideout"));
                 lines.Add($"{_localizationService.Get("hex_tooltip_bandit_hideout_hp")}: {hideout.Hp}/{BanditHideout.MaxHp}");
             }
 
             if (banditPresent)
             {
-                var bandit = islandState.Bandits.First(b => b.Position.Equals(coord));
+                var bandit = islandState.Features.OfType<Bandit>().First(b => b.Position.Equals(coord));
                 lines.Add(_localizationService.Get("hex_tooltip_bandit_present"));
                 lines.Add($"{_localizationService.Get("hex_tooltip_bandit_hp")}: {bandit.Hp}/{Bandit.MaxHp}");
             }

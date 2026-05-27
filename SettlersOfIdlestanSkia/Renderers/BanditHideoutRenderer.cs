@@ -7,6 +7,7 @@ using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Services;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 
 namespace SettlersOfIdlestanSkia.Renderers;
@@ -68,7 +69,7 @@ public class BanditHideoutRenderer : HexBasedRenderer, IGameRenderer
 
         float dt = context.DeltaTime;
 
-        foreach (var hideout in islandState.BanditHideouts)
+        foreach (var hideout in islandState.Features.OfType<BanditHideout>())
         {
             if (!hideout.Found) continue;
             if (visibleMap != null && !visibleMap.HasTile(hideout.Position)) continue;

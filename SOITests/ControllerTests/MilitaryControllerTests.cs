@@ -7,6 +7,7 @@ using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
 using System.Collections.Generic;
+using System.Linq;
 using Xunit;
 
 namespace SOITests.ControllerTests
@@ -100,8 +101,8 @@ namespace SOITests.ControllerTests
         {
             // NE est l'un des 3 hexs de la ville — le bandit doit être attaqué.
             var (state, clock, _, barracks) = CreateSetup(initialSoldiers: 3);
-            state.Bandits.Add(new Bandit(NE, 0));
-            var bandit = state.Bandits[0];
+            state.AddFeature(new Bandit(NE, 0));
+            var bandit = state.Features.OfType<Bandit>().First();
 
             clock.SimulateAdvance(MilitaryController.CombatIntervalTicks);
 
@@ -116,14 +117,14 @@ namespace SOITests.ControllerTests
             // Bandit sur East avec 5 PV ; caserne démarre avec 5 soldats.
             // 5 cycles de combat (5×CombatIntervalTicks) : 5 attaques → bandit mort, 5 soldats consommés.
             var (state, clock, _, barracks) = CreateSetup(initialSoldiers: 5);
-            state.Bandits.Add(new Bandit(East, 0) { Hp = 5 });
+            state.AddFeature(new Bandit(East, 0) { Hp = 5 });
 
-            Assert.Single(state.Bandits);
+            Assert.Single(state.Features.OfType<Bandit>());
 
             for (int i = 0; i < 5; i++)
                 clock.SimulateAdvance(MilitaryController.CombatIntervalTicks);
 
-            Assert.Empty(state.Bandits);
+            Assert.Empty(state.Features.OfType<Bandit>());
             Assert.Equal(0, barracks.Soldiers);
         }
 
@@ -132,8 +133,8 @@ namespace SOITests.ControllerTests
         {
             // Bandit sur un hex de la ville, mais caserne vide → aucune attaque.
             var (state, clock, _, _) = CreateSetup(initialSoldiers: 0, barracksLevel: 1);
-            state.Bandits.Add(new Bandit(NE11, 0));
-            var bandit = state.Bandits[0];
+            state.AddFeature(new Bandit(NE11, 0));
+            var bandit = state.Features.OfType<Bandit>().First();
 
             clock.SimulateAdvance(MilitaryController.CombatIntervalTicks);
 
@@ -159,8 +160,8 @@ namespace SOITests.ControllerTests
         public void Bandit_OnAnyCityHex_IsAttacked(int q, int r, string description)
         {
             var (state, clock, _, _) = CreateSetup(initialSoldiers: 3, barracksLevel: 2);
-            state.Bandits.Add(new Bandit(new HexCoord(q, r), 0));
-            var bandit = state.Bandits[0];
+            state.AddFeature(new Bandit(new HexCoord(q, r), 0));
+            var bandit = state.Features.OfType<Bandit>().First();
 
             clock.SimulateAdvance(MilitaryController.CombatIntervalTicks);
 
@@ -193,8 +194,8 @@ namespace SOITests.ControllerTests
         public void Bandit_OffCityHexes_IsNotAttacked(int q, int r, string description)
         {
             var (state, clock, _, _) = CreateSetup(initialSoldiers: 5, barracksLevel: 2);
-            state.Bandits.Add(new Bandit(new HexCoord(q, r), 0));
-            var bandit = state.Bandits[0];
+            state.AddFeature(new Bandit(new HexCoord(q, r), 0));
+            var bandit = state.Features.OfType<Bandit>().First();
 
             clock.SimulateAdvance(MilitaryController.CombatIntervalTicks);
 
@@ -214,8 +215,8 @@ namespace SOITests.ControllerTests
                 for (int r = -3; r <= 4; r++)
                 {
                     var (state, clock, _, _) = CreateSetup(initialSoldiers: 5, barracksLevel: 2);
-                    state.Bandits.Add(new Bandit(new HexCoord(q, r), 0));
-                    var bandit = state.Bandits[0];
+                    state.AddFeature(new Bandit(new HexCoord(q, r), 0));
+                    var bandit = state.Features.OfType<Bandit>().First();
 
                     clock.SimulateAdvance(MilitaryController.CombatIntervalTicks);
 
@@ -234,7 +235,7 @@ namespace SOITests.ControllerTests
         public void SoldierAttackedBandit_EventFired_WhenBanditOnCityHex()
         {
             var (state, clock, controller, _) = CreateSetup(initialSoldiers: 3, barracksLevel: 2);
-            state.Bandits.Add(new Bandit(NE, 0));
+            state.AddFeature(new Bandit(NE, 0));
 
             SoldierAttackEventArgs? firedArgs = null;
             controller.SoldierAttackedBandit += (_, args) => firedArgs = args;
@@ -251,7 +252,7 @@ namespace SOITests.ControllerTests
         {
             // Center est voisin de la ville mais pas sur l'un de ses 3 hexs.
             var (state, clock, controller, _) = CreateSetup(initialSoldiers: 5, barracksLevel: 2);
-            state.Bandits.Add(new Bandit(Center, 0));
+            state.AddFeature(new Bandit(Center, 0));
 
             bool eventFired = false;
             controller.SoldierAttackedBandit += (_, _) => eventFired = true;

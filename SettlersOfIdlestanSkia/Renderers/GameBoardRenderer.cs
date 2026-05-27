@@ -9,6 +9,9 @@ using System;
 using System.Collections.Generic;
 using SettlersOfIdlestan.Controller.Military;
 using SettlersOfIdlestan.Controller.Island;
+using SettlersOfIdlestan.Model.Bandits;
+using SettlersOfIdlestan.Model.TreasureTroves;
+using System.Linq;
 
 namespace SettlersOfIdlestanSkia.Renderers;
 
@@ -126,8 +129,8 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
                     islandState.HarvestLastTimesByCivilization.TryGetValue(playerIdx, out var manualTimes);
                     islandState.AutomaticHarvestLastTimesByCivilization.TryGetValue(playerIdx, out var autoTimes);
 
-                    var banditPositions = new HashSet<HexCoord>(islandState.Bandits.Select(b => b.Position));
-                    var treasureTrovePositions = new HashSet<HexCoord>(islandState.TreasureTroves
+                    var banditPositions = new HashSet<HexCoord>(islandState.Features.OfType<Bandit>().Select(b => b.Position));
+                    var treasureTrovePositions = new HashSet<HexCoord>(islandState.Features.OfType<TreasureTrove>()
                         .Where(t => !t.Claimed).Select(t => t.Position));
                     DrawIslandMap(canvas, visibleMap, playerIdx, mainGameState.Clock.CurrentTick, manualTimes, autoTimes, islandState.BanditCooldownUntil, banditPositions, treasureTrovePositions);
                 }

@@ -94,7 +94,7 @@ namespace SOITests.ControllerTests
         public void Prestige_WithBanditsOnDesertIsland_NoNoBanditBonus()
         {
             var state = CreateDesertIslandState();
-            state.Bandits.Add(new SettlersOfIdlestan.Model.Bandits.Bandit(new HexCoord(0, 0)));
+            state.AddFeature(new SettlersOfIdlestan.Model.Bandits.Bandit(new HexCoord(0, 0)));
 
             var controller = new PrestigeController();
             controller.Initialize(state.Civilizations[0], state);

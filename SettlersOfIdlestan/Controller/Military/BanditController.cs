@@ -17,6 +17,11 @@ public class BanditController
     private GameClock? _clock;
     private GamePRNG _prng = new();
 
+    // Caches locaux invalidés par FeatureAdded / FeatureRemoved
+    private List<Bandit> _bandits = new();
+    private List<BanditHideout> _hideouts = new();
+    private List<TreasureTrove> _treasureTroves = new();
+
     /// <summary>Intervalle de déplacement des bandits (3 000 ticks = 30 s à vitesse normale).</summary>
     public const long MovementIntervalTicks = 3_000L;
 
@@ -28,12 +33,47 @@ public class BanditController
         if (_clock != null)
             _clock.Advanced -= OnClockAdvanced;
 
+        if (_state != null)
+        {
+            _state.FeatureAdded -= OnFeatureAdded;
+            _state.FeatureRemoved -= OnFeatureRemoved;
+        }
+
         _state = state;
         _clock = clock;
         if (prng != null) _prng = prng;
 
+        RebuildCaches();
+
+        if (_state != null)
+        {
+            _state.FeatureAdded += OnFeatureAdded;
+            _state.FeatureRemoved += OnFeatureRemoved;
+        }
+
         if (_clock != null)
             _clock.Advanced += OnClockAdvanced;
+    }
+
+    private void RebuildCaches()
+    {
+        _bandits = _state?.Features.OfType<Bandit>().ToList() ?? new();
+        _hideouts = _state?.Features.OfType<BanditHideout>().ToList() ?? new();
+        _treasureTroves = _state?.Features.OfType<TreasureTrove>().ToList() ?? new();
+    }
+
+    private void OnFeatureAdded(object? sender, IslandFeature feature)
+    {
+        if (feature is Bandit b) _bandits.Add(b);
+        else if (feature is BanditHideout h) _hideouts.Add(h);
+        else if (feature is TreasureTrove t) _treasureTroves.Add(t);
+    }
+
+    private void OnFeatureRemoved(object? sender, IslandFeature feature)
+    {
+        if (feature is Bandit b) _bandits.Remove(b);
+        else if (feature is BanditHideout h) _hideouts.Remove(h);
+        else if (feature is TreasureTrove t) _treasureTroves.Remove(t);
     }
 
     private void OnClockAdvanced(object? sender, GameClockAdvancedEventArgs e)
@@ -49,9 +89,9 @@ public class BanditController
         var playerIdx = _state.PlayerCivilization.Index;
         _state.VisibleIslandMaps.TryGetValue(playerIdx, out var visibleMap);
 
-        DiscoverFeatures(_state.Bandits, visibleMap);
-        DiscoverFeatures(_state.TreasureTroves, visibleMap);
-        DiscoverFeatures(_state.BanditHideouts, visibleMap);
+        DiscoverFeatures(_bandits, visibleMap);
+        DiscoverFeatures(_treasureTroves, visibleMap);
+        DiscoverFeatures(_hideouts, visibleMap);
         UpdateBandits(currentTick);
         UpdateBanditHideouts(currentTick);
     }
@@ -79,15 +119,15 @@ public class BanditController
     {
         if (_state == null) return;
 
-        foreach (var hideout in _state.BanditHideouts)
+        foreach (var hideout in _hideouts)
         {
             if (!hideout.Found) continue;
             if (currentTick - hideout.LastSpawnTick < BanditHideout.SpawnIntervalTicks) continue;
 
             hideout.LastSpawnTick = currentTick;
 
-            if (_state.Bandits.Count < BanditHideout.MaxBanditsOnIsland)
-                _state.Bandits.Add(new Bandit(hideout.Position, currentTick));
+            if (_bandits.Count < BanditHideout.MaxBanditsOnIsland)
+                _state.AddFeature(new Bandit(hideout.Position, currentTick));
         }
     }
 
@@ -97,7 +137,7 @@ public class BanditController
     {
         if (_state == null) return;
 
-        foreach (var bandit in _state.Bandits)
+        foreach (var bandit in _bandits)
         {
             if (!bandit.Found)
             {
@@ -189,13 +229,13 @@ public class BanditController
 
         // Tier 1 : pas de bandit + pas de cooldown
         var noBanditNoCooldown = validDestinations
-            .Where(n => !_state.Bandits.Any(b => b.Position.Equals(n)) &&
+            .Where(n => !_bandits.Any(b => b.Position.Equals(n)) &&
                         (!_state.BanditCooldownUntil.TryGetValue(n, out var until) || currentTick >= until))
             .ToList();
 
         // Tier 2 : pas de bandit (cooldown acceptable)
         var noBandit = validDestinations
-            .Where(n => !_state.Bandits.Any(b => b.Position.Equals(n)))
+            .Where(n => !_bandits.Any(b => b.Position.Equals(n)))
             .ToList();
 
         // Sélection du meilleur tier disponible, avec préférence pour les hexs de ville
@@ -239,10 +279,10 @@ public class BanditController
     {
         if (_state == null) return false;
 
-        if (_state.Bandits.Any(b => b.Position.Equals(hex)))
+        if (_bandits.Any(b => b.Position.Equals(hex)))
             return true;
 
-        if (_state.BanditHideouts.Any(h => h.Position.Equals(hex)))
+        if (_hideouts.Any(h => h.Position.Equals(hex)))
             return true;
 
         if (_state.BanditCooldownUntil.TryGetValue(hex, out var until))

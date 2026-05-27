@@ -1,8 +1,15 @@
+using SettlersOfIdlestan.Model.Bandits;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
+using SettlersOfIdlestan.Model.TreasureTroves;
+using System.Text.Json.Serialization;
 
 namespace SettlersOfIdlestan.Model.IslandFeatures;
 
+[JsonPolymorphic(TypeDiscriminatorPropertyName = "FeatureType")]
+[JsonDerivedType(typeof(Bandit), "Bandit")]
+[JsonDerivedType(typeof(BanditHideout), "BanditHideout")]
+[JsonDerivedType(typeof(TreasureTrove), "TreasureTrove")]
 [Serializable]
 public abstract class IslandFeature
 {

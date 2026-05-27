@@ -7,6 +7,7 @@ using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Services;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 
 namespace SettlersOfIdlestanSkia.Renderers;
@@ -103,7 +104,7 @@ public class BanditRenderer : HexBasedRenderer, IGameRenderer
         var islandState = mgs.CurrentIslandState;
         if (islandState == null) return;
 
-        var bandits = islandState.Bandits;
+        var bandits = islandState.Features.OfType<Bandit>().ToList();
         SyncVisuals(bandits);
 
         islandState.VisibleIslandMaps.TryGetValue(islandState.PlayerCivilization.Index, out var visibleMap);

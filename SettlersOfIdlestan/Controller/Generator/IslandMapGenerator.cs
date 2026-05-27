@@ -252,13 +252,13 @@ public class IslandMapGenerator
             switch (feature.Type)
             {
                 case IslandFeatureType.Bandit:
-                    islandState.Bandits.Add(new Bandit(hex, currentTick));
+                    islandState.AddFeature(new Bandit(hex, currentTick));
                     break;
                 case IslandFeatureType.TreasureTrove:
-                    islandState.TreasureTroves.Add(new TreasureTrove(hex));
+                    islandState.AddFeature(new TreasureTrove(hex));
                     break;
                 case IslandFeatureType.BanditHideout:
-                    islandState.BanditHideouts.Add(new BanditHideout(hex));
+                    islandState.AddFeature(new BanditHideout(hex));
                     break;
             }
         }
