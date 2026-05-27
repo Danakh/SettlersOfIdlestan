@@ -39,6 +39,13 @@ namespace SettlersOfIdlestan.Controller
         private static readonly BuildingType[] Step3Buildings =
             Step2Buildings.Concat(new[] { BuildingType.Library, BuildingType.Temple }).ToArray();
 
+        // When prestige points are sufficient but ImperialPort is not yet built, focus on
+        // the buildings that push city level toward 4 (required for ImperialPort).
+        private static readonly BuildingType[] Step3PortFocusBuildings =
+        {
+            BuildingType.TownHall, BuildingType.Seaport, BuildingType.Warehouse,
+        };
+
         private static readonly Resource[] Step3TradeTargets = { Resource.Gold };
 
         public CivilizationAutoplayer(Civilization civ, IslandMap map, MainGameController mainController)
@@ -164,10 +171,17 @@ namespace SettlersOfIdlestan.Controller
         /// <summary>Step 2: step 1 + upgraded production, Warehouse and Forge.</summary>
         public bool TryStep2Once(bool shouldExpand = true) => TryStepOnce(Step2Buildings, shouldExpand);
 
-        /// <summary>Step 3: step 2 + victory-point buildings (Library, Temple, TownHall upgrades) + unique buildings.</summary>
+        /// <summary>Step 3: step 2 + victory-point buildings (Library, Temple, TownHall upgrades) + unique buildings.
+        /// When prestige points are already sufficient but ImperialPort is missing, switches to a focused
+        /// building list (TownHall, Seaport, Warehouse) to reach city level 4 faster.</summary>
         public bool TryStep3Once(bool shouldExpand = true)
         {
-            bool didSomething = TryStepOnce(Step3Buildings, shouldExpand, Step3TradeTargets);
+            var prestigeCtrl = _mainController.PrestigeController;
+            bool readyForPort = prestigeCtrl.CalculatePrestigePoints() >= PrestigeController.PrestigeRequiredPoints
+                                && !prestigeCtrl.HasImperialPort();
+
+            var buildings = readyForPort ? Step3PortFocusBuildings : Step3Buildings;
+            bool didSomething = TryStepOnce(buildings, shouldExpand, Step3TradeTargets);
 
             foreach (var city in _civ.Cities.ToList().Where(c => c.Level >= 4))
             {
