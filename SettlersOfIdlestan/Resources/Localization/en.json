@@ -213,6 +213,7 @@
   "prestige_hex_artisans_production": "Artisan Production",
   "prestige_hex_gold_trade": "Gold Trade",
   "prestige_tooltip_gold_packages": "packs offered per gold",
+  "prestige_tooltip_city_defense": "city defense",
   "hex_tooltip_manual": "Manual",
   "hex_tooltip_auto": "Auto",
   "hex_tooltip_ready": "Ready!",

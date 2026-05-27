@@ -5,9 +5,11 @@ using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
+using SettlersOfIdlestan.Model.GameplayModifier;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
 using System;
+using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
 
 namespace SettlersOfIdlestan.Controller.Military;
 
@@ -74,12 +76,14 @@ public class MilitaryController
     public int GetAttackScore(City city)
         => city.Buildings.OfType<Barracks>().Sum(b => b.Soldiers);
 
-    /// <summary>Score de défense de la ville : Palissade=10, Caserne=5.</summary>
-    public int GetDefenseScore(City city)
+    /// <summary>Score de défense de la ville : Palissade=10, Caserne=5, plus modificateurs de civilisation.</summary>
+    public int GetDefenseScore(City city, Civilization? civ = null)
     {
         int score = 0;
         foreach (var b in city.Buildings)
             score += b switch { Palisade => 10, Barracks => 5, _ => 0 };
+        if (civ != null)
+            score += civ.ModifierAggregator.ApplyModifiers(ECategory.CITY_DEFENSE, "", 0);
         return score;
     }
 
@@ -206,7 +210,7 @@ public class MilitaryController
         foreach (var civ in _state!.Civilizations)
             foreach (var city in civ.Cities)
             {
-                int maxDef = GetDefenseScore(city);
+                int maxDef = GetDefenseScore(city, civ);
                 if (city.CurrentDefense >= maxDef) continue;
                 if (currentTick - city.LastDefenseRegenTick < DefenseRegenIntervalTicks) continue;
                 city.CurrentDefense++;

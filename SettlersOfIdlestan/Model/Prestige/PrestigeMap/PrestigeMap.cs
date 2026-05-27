@@ -169,13 +169,17 @@ public class PrestigeMap
                 ArtisansProductionCoord,
                 "prestige_hex_artisans_production",
                 adjacentVertices: new[] { ArtisansGuildVertex },
-                perVertexModifiers: Array.Empty<Modifier>()
+                perVertexModifiers: new Modifier[]
+                {
+                    new(ECategory.HARVEST_SPEED, "Mine",       EType.ADDITIVE, 0.1),
+                    new(ECategory.HARVEST_SPEED, "GlassWorks", EType.ADDITIVE, 0.1),
+                }
             ),
             new(
                 FortifiedOutpostCoord,
                 "prestige_hex_fortified_outpost",
                 adjacentVertices: new[] { FortifiedOutpostVertex },
-                perVertexModifiers: Array.Empty<Modifier>()
+                perVertexModifiers: new Modifier[] { new(ECategory.CITY_DEFENSE, EType.ADDITIVE, 2) }
             ),
         };
 
