@@ -263,6 +263,8 @@
   "event_bandit_hideout_destroyed_title": "💀 Hideout destroyed!",
   "event_bandit_hideout_destroyed_body": "Your soldiers razed the bandit hideout.",
   "hex_tooltip_bandit_hideout": "💀 Hideout — harvest blocked",
-  "hex_tooltip_bandit_hideout_hp": "HP"
+  "hex_tooltip_bandit_hideout_hp": "HP",
+  "event_civilization_discovered_title": "🏛 Civilization encountered!",
+  "event_civilization_discovered_body": "A new civilization has been spotted in your vicinity."
 }
 

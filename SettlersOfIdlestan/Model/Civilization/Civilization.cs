@@ -25,6 +25,11 @@ public class Civilization
     public bool IsNpc { get; set; } = false;
 
     /// <summary>
+    /// Vrai une fois que le joueur a aperçu cette civilisation (évite les doublons dans le log).
+    /// </summary>
+    public bool DiscoveredByPlayer { get; set; } = false;
+
+    /// <summary>
     /// Paramètres NPC (niveau d'évolution, agressivité). Null pour le joueur.
     /// </summary>
     public NpcParameters? NpcParameters { get; set; }

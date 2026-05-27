@@ -263,6 +263,8 @@
   "event_bandit_hideout_destroyed_title": "💀 Repaire détruit !",
   "event_bandit_hideout_destroyed_body": "Vos soldats ont rasé le repaire de bandits.",
   "hex_tooltip_bandit_hideout": "💀 Repaire — récolte bloquée",
-  "hex_tooltip_bandit_hideout_hp": "PV"
+  "hex_tooltip_bandit_hideout_hp": "PV",
+  "event_civilization_discovered_title": "🏛 Civilisation rencontrée !",
+  "event_civilization_discovered_body": "Une nouvelle civilisation a été aperçue dans votre voisinage."
 }
 
