@@ -5,6 +5,7 @@ using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.Buildings;
+using SettlersOfIdlestan.Controller.Expand;
 using SettlersOfIdlestan.Controller.Island;
 
 namespace SettlersOfIdlestan.Controller
@@ -239,6 +240,40 @@ namespace SettlersOfIdlestan.Controller
                 return true;
             }
             catch { return false; }
+        }
+
+        /// <summary>
+        /// Performs the prestige transition and greedily distributes all available prestige points.
+        /// Returns false if prestige is not yet available.
+        /// The autoplayer's civ/map references become stale after this call — do not reuse them.
+        /// </summary>
+        public bool TryPrestigeOnce()
+        {
+            if (!_mainController.PrestigeController.PrestigeIsAvailable()) return false;
+
+            _mainController.PerformPrestige();
+
+            var prestigeState = _mainController.CurrentMainState?.PrestigeState;
+            if (prestigeState != null)
+            {
+                var ctrl = _mainController.PrestigeMapController;
+                bool purchased;
+                do
+                {
+                    purchased = false;
+                    foreach (var vertex in PrestigeMapController.DefaultMap.Vertices.OrderBy(v => v.Cost))
+                    {
+                        if (ctrl.PurchaseVertex(prestigeState, vertex.Coord))
+                        {
+                            purchased = true;
+                            break;
+                        }
+                    }
+                }
+                while (purchased);
+            }
+
+            return true;
         }
 
         private bool TryStepOnce(BuildingType[] targetBuildings, bool shouldExpand, Resource[]? tradeTargets = null)

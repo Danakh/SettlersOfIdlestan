@@ -43,7 +43,10 @@
       "Bash(Select-Object -First 5)",
       "PowerShell(Get-ChildItem -Path \"C:\\\\DEV\\\\SettlersOfIdlestan\\\\SettlersOfIdlestanSkia\\\\\" -Recurse -Directory | Where-Object { $_.Name -match \"\\(Services|Renderers\\)\" } | Select-Object -ExpandProperty FullName)",
       "Bash(Get-ChildItem -Path \"C:\\\\DEV\\\\SettlersOfIdlestan\\\\SOITests\" -Recurse -Filter \"*.cs\")",
-      "Bash(Select-Object -First 10)"
+      "Bash(Select-Object -First 10)",
+      "Bash(dir \"C:\\\\DEV\\\\SettlersOfIdlestan2\\\\SOITests\\\\saves\" /s /b)",
+      "Bash(dir \"C:\\\\DEV\\\\SettlersOfIdlestan2\\\\SOITests\\\\saves\\\\current\" /b)",
+      "Bash(dir \"C:\\\\DEV\\\\SettlersOfIdlestan2\\\\SOITests\\\\saves\\\\release-1.0\" /b)"
     ]
   }
 }
