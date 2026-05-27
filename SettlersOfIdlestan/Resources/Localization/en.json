@@ -88,6 +88,8 @@
   "building_artisansguild_name": "Artisans Guild",
   "building_artisansguild_desc": "Unique building. Unlocks level 5 for the Forge and automates construction of Forges and Warehouses. Available at Capital level (4).",
   "building_artisansguild_desc_1": "Unlocks level 5 for the Forge. Auto-builds/upgrades Forges and Warehouses every 10s.",
+  "building_watchtower_name": "Watchtower",
+  "building_watchtower_desc": "Reveals hexes within a radius of 2 around the city.",
   "building_imperialport_name": "Imperial Port",
   "building_imperialport_desc": "Unique imperial building. Required to trigger Prestige. Unlocks a new run for your civilization.",
   "tab_buildings_classic": "Buildings",

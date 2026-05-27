@@ -225,6 +225,9 @@ namespace SettlersOfIdlestan.Controller.Island
                 existing.Level += 1;
             }
 
+            if (type == BuildingType.Watchtower)
+                _state.RecalculateVisibleIslandMap(civilizationIndex);
+
             return true;
         }
 
@@ -305,6 +308,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 BuildingType.ImperialPort => new ImperialPort(),
                 BuildingType.HarvestersGuild => new HarvestersGuild(),
                 BuildingType.ArtisansGuild => new ArtisansGuild(),
+                BuildingType.Watchtower => new Watchtower(),
                 _ => null,
             };
         }

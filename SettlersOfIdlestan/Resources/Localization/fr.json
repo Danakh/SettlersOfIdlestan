@@ -88,6 +88,8 @@
   "building_artisansguild_name": "Guilde des artisans",
   "building_artisansguild_desc": "Bâtiment unique. Débloque le niveau 5 de la Forge et automatise la construction des Forges et Entrepôts. Disponible au niveau Capitale (4).",
   "building_artisansguild_desc_1": "Débloque le niveau 5 pour la Forge. Construit/améliore Forges et Entrepôts automatiquement toutes les 10s.",
+  "building_watchtower_name": "Tour de guet",
+  "building_watchtower_desc": "Révèle les hexagones dans un rayon de 2 autour de la ville.",
   "building_imperialport_name": "Port Impérial",
   "building_imperialport_desc": "Bâtiment impérial unique. Requis pour déclencher le Prestige. Ouvre une nouvelle ère pour votre civilisation.",
   "tab_buildings_classic": "Bâtiments",
