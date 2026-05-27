@@ -262,22 +262,25 @@ public class MilitaryController
 
     private City? FindNearbyEnemyCity(City attackerCity, Civilization attackerCiv)
     {
-        var attackerHexes = attackerCity.Position.GetHexes();
+        City? closest = null;
+        int closestDist = int.MaxValue;
+
         foreach (var defenderCiv in _state!.Civilizations)
         {
             if (defenderCiv.Index == attackerCiv.Index) continue;
             foreach (var defenderCity in defenderCiv.Cities)
             {
                 if (!IsCityVisibleTo(defenderCity, attackerCiv)) continue;
-                var defenderHexes = defenderCity.Position.GetHexes();
-                int minDist = attackerHexes
-                    .SelectMany(ah => defenderHexes.Select(dh => ah.DistanceTo(dh)))
-                    .Min();
-                if (minDist <= CityAttackRange)
-                    return defenderCity;
+                int dist = attackerCity.Position.EdgeDistanceTo(defenderCity.Position);
+                if (dist <= CityAttackRange && dist < closestDist)
+                {
+                    closest = defenderCity;
+                    closestDist = dist;
+                }
             }
         }
-        return null;
+
+        return closest;
     }
 
     private bool IsCityVisibleTo(City city, Civilization civ)
