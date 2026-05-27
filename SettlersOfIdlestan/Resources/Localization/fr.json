@@ -251,6 +251,12 @@
   "event_treasure_found_title": "💰 Trésor découvert !",
   "event_treasure_found_body": "Construisez un avant-poste sur ce hex pour le réclamer et gagner +10 Or.",
   "event_treasure_claimed_title": "💰 Trésor réclamé !",
-  "event_treasure_claimed_body": "+10 Or ajoutés à votre trésorerie."
+  "event_treasure_claimed_body": "+10 Or ajoutés à votre trésorerie.",
+  "event_bandit_hideout_title": "💀 Repaire de bandits découvert !",
+  "event_bandit_hideout_body": "Ce repaire bloque la récolte et génère des bandits périodiquement. Éliminez-le !",
+  "event_bandit_hideout_destroyed_title": "💀 Repaire détruit !",
+  "event_bandit_hideout_destroyed_body": "Vos soldats ont rasé le repaire de bandits.",
+  "hex_tooltip_bandit_hideout": "💀 Repaire — récolte bloquée",
+  "hex_tooltip_bandit_hideout_hp": "PV"
 }
 

@@ -3,7 +3,8 @@ namespace SettlersOfIdlestan.Model.Game
     public enum IslandFeatureType
     {
         Bandit,
-        TreasureTrove
+        TreasureTrove,
+        BanditHideout
     }
 
     public enum IslandFeaturePlacement

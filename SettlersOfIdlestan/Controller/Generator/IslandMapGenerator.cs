@@ -257,6 +257,9 @@ public class IslandMapGenerator
                 case IslandFeatureType.TreasureTrove:
                     islandState.TreasureTroves.Add(new TreasureTrove(hex));
                     break;
+                case IslandFeatureType.BanditHideout:
+                    islandState.BanditHideouts.Add(new BanditHideout(hex));
+                    break;
             }
         }
     }

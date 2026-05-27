@@ -412,6 +412,12 @@ public sealed class SkiaGameRuntime : IDisposable
             if (_prestigeTransitionPending) return;
             islandMainRenderer.BanditRenderer.EmitAttackParticle(args.CityVertex, args.BanditPosition);
         };
+
+        militaryController.SoldierAttackedHideout += (_, args) =>
+        {
+            if (_prestigeTransitionPending) return;
+            islandMainRenderer.BanditHideoutRenderer.EmitAttackParticle(args.CityVertex, args.BanditPosition);
+        };
     }
 
     private void ConnectHarvestEventsToParticles(IslandMainRenderer islandMainRenderer)

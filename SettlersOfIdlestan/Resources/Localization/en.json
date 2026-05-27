@@ -251,6 +251,12 @@
   "event_treasure_found_title": "💰 Treasure discovered!",
   "event_treasure_found_body": "Build an outpost on this hex to claim it and gain +10 Gold.",
   "event_treasure_claimed_title": "💰 Treasure claimed!",
-  "event_treasure_claimed_body": "+10 Gold added to your treasury."
+  "event_treasure_claimed_body": "+10 Gold added to your treasury.",
+  "event_bandit_hideout_title": "💀 Bandit Hideout discovered!",
+  "event_bandit_hideout_body": "This hideout blocks harvest and periodically spawns bandits. Destroy it!",
+  "event_bandit_hideout_destroyed_title": "💀 Hideout destroyed!",
+  "event_bandit_hideout_destroyed_body": "Your soldiers razed the bandit hideout.",
+  "hex_tooltip_bandit_hideout": "💀 Hideout — harvest blocked",
+  "hex_tooltip_bandit_hideout_hp": "HP"
 }
 

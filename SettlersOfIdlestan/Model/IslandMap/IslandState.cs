@@ -7,6 +7,7 @@ using SettlersOfIdlestan.Model.Bandits;
 using SettlersOfIdlestan.Model.TreasureTroves;
 using SettlersOfIdlestan.Model.Game;
 using System.Text.Json.Serialization;
+using System.Linq;
 
 namespace SettlersOfIdlestan.Model.IslandMap;
 
@@ -64,6 +65,7 @@ public class IslandState : IJsonOnDeserialized
         Bandits = new List<Bandit>();
         BanditCooldownUntil = new Dictionary<HexCoord, long>();
         TreasureTroves = new List<TreasureTrove>();
+        BanditHideouts = new List<BanditHideout>();
         RecalculateVisibleIslandMaps();
     }
 
@@ -80,6 +82,7 @@ public class IslandState : IJsonOnDeserialized
         Bandits = new List<Bandit>();
         BanditCooldownUntil = new Dictionary<HexCoord, long>();
         TreasureTroves = new List<TreasureTrove>();
+        BanditHideouts = new List<BanditHideout>();
     }
 
     public void OnDeserialized()
@@ -132,6 +135,11 @@ public class IslandState : IJsonOnDeserialized
     /// Trésors présents sur l'île. Réclamés lorsqu'un avant-poste est construit sur l'un de leurs hexs.
     /// </summary>
     public List<TreasureTrove> TreasureTroves { get; set; }
+
+    /// <summary>
+    /// Repaires de bandits présents sur l'île. Ils bloquent la récolte et spawn des bandits périodiquement.
+    /// </summary>
+    public List<BanditHideout> BanditHideouts { get; set; }
 
     /// <summary>
     /// Player-controlled automation toggles. Persisted with the island state.

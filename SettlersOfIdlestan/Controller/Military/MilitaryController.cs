@@ -6,6 +6,7 @@ using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
+using System;
 
 namespace SettlersOfIdlestan.Controller.Military;
 
@@ -37,6 +38,7 @@ public class MilitaryController
     public const int MaxSoldiers = 10;
 
     public event EventHandler<SoldierAttackEventArgs>? SoldierAttackedBandit;
+    public event EventHandler<SoldierAttackEventArgs>? SoldierAttackedHideout;
 
     /// <summary>Nombre total de soldats disponibles dans la ville (toutes casernes).</summary>
     public int GetAttackScore(City city)
@@ -74,6 +76,7 @@ public class MilitaryController
         if (_state == null) return;
         ProduceSoldiers(currentTick);
         ResolveBanditCombat(currentTick);
+        ResolveHideoutCombat(currentTick);
     }
 
     // ── Production ───────────────────────────────────────────────────────────
@@ -113,6 +116,54 @@ public class MilitaryController
         {
             _state.Bandits.Remove(b);
             _state.EventLog.Add(b.RemovedEventType);
+        }
+    }
+
+    // ── Combat — repaires de bandits ─────────────────────────────────────────
+
+    private void ResolveHideoutCombat(long currentTick)
+    {
+        if (_state == null) return;
+
+        var deadHideouts = new List<BanditHideout>();
+        foreach (var hideout in _state.BanditHideouts)
+        {
+            if (!hideout.Found) continue;
+            if (currentTick - hideout.LastAttackedTick < CombatIntervalTicks) continue;
+
+            AttackHideout(hideout, currentTick);
+            if (hideout.Hp <= 0)
+                deadHideouts.Add(hideout);
+        }
+
+        foreach (var h in deadHideouts)
+        {
+            _state.BanditHideouts.Remove(h);
+            _state.EventLog.Add(h.RemovedEventType);
+        }
+    }
+
+    private void AttackHideout(BanditHideout hideout, long currentTick)
+    {
+        if (_state == null) return;
+
+        foreach (var civ in _state.Civilizations)
+        {
+            foreach (var city in civ.Cities)
+            {
+                var barracks = city.Buildings.OfType<Barracks>().FirstOrDefault(b => b.Soldiers > 0);
+                if (barracks == null) continue;
+
+                var cityHexes = city.Position.GetHexes();
+                bool isOnCityHex = cityHexes.Any(h => h.Equals(hideout.Position));
+                if (!isOnCityHex) continue;
+
+                barracks.Soldiers--;
+                hideout.Hp--;
+                hideout.LastAttackedTick = currentTick;
+                SoldierAttackedHideout?.Invoke(this, new SoldierAttackEventArgs(city.Position, hideout.Position));
+                return;
+            }
         }
     }
 

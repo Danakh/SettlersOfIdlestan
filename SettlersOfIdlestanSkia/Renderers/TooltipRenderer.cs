@@ -126,11 +126,19 @@ namespace SettlersOfIdlestanSkia.Renderers
             bool banditCooldownActive = islandState.BanditCooldownUntil.TryGetValue(coord, out var banditUntil)
                 && currentTick < banditUntil;
             bool hasTreasureTrove = islandState.TreasureTroves.Any(t => !t.Claimed && t.Position.Equals(coord));
+            bool hideoutPresent = islandState.BanditHideouts.Any(h => h.Found && h.Position.Equals(coord));
 
-            if (manualResources.Count == 0 && autoResources.Count == 0 && !banditPresent && !banditCooldownActive && !hasTreasureTrove)
+            if (manualResources.Count == 0 && autoResources.Count == 0 && !banditPresent && !banditCooldownActive && !hasTreasureTrove && !hideoutPresent)
                 return;
 
             var lines = new List<string>();
+
+            if (hideoutPresent)
+            {
+                var hideout = islandState.BanditHideouts.First(h => h.Found && h.Position.Equals(coord));
+                lines.Add(_localizationService.Get("hex_tooltip_bandit_hideout"));
+                lines.Add($"{_localizationService.Get("hex_tooltip_bandit_hideout_hp")}: {hideout.Hp}/{BanditHideout.MaxHp}");
+            }
 
             if (banditPresent)
             {

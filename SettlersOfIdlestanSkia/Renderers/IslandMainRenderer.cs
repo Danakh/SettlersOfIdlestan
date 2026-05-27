@@ -21,6 +21,7 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
     private readonly CityRenderer _cityRenderer;
     private readonly HarvestRenderer _harvestRenderer;
     private readonly BanditRenderer _banditRenderer;
+    private readonly BanditHideoutRenderer _banditHideoutRenderer;
     private readonly HarvestParticleSystem _harvestParticleSystem;
     private readonly IConstructionHoverProvider _constructionHoverProvider;
     private readonly TooltipRenderer _tooltipRenderer;
@@ -33,6 +34,7 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
     public Func<bool>? SuppressCities { get; set; }
 
     public BanditRenderer BanditRenderer => _banditRenderer;
+    public BanditHideoutRenderer BanditHideoutRenderer => _banditHideoutRenderer;
 
     /// <summary>
     /// Dictionnaire de couleurs pour les ressources (pour les particules de récolte).
@@ -57,6 +59,7 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
         _harvestParticleSystem = new HarvestParticleSystem();
         _harvestRenderer = new HarvestRenderer(_harvestParticleSystem, resourceManager);
         _banditRenderer = new BanditRenderer(resourceManager);
+        _banditHideoutRenderer = new BanditHideoutRenderer(resourceManager);
         _constructionHoverProvider = constructionHoverProvider;
         _tooltipRenderer = tooltipRenderer;
         _harvestController = harvestController;
@@ -74,6 +77,7 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
         _cityRenderer.Initialize(canvasSize);
         _harvestRenderer.Initialize(canvasSize);
         _banditRenderer.Initialize(canvasSize);
+        _banditHideoutRenderer.Initialize(canvasSize);
         _fadePaint = new SKPaint { Style = SKPaintStyle.Fill };
     }
 
@@ -108,6 +112,7 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
         using (ApplyCameraTransform(canvas, context))
         {
             _gameBoardRenderer.Render(canvas, context);
+            _banditHideoutRenderer.Render(canvas, context);
             _banditRenderer.Render(canvas, context);
             _roadRenderer.Render(canvas, context);
             bool skipCities = SuppressCities?.Invoke() == true;
@@ -179,6 +184,7 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
         _cityRenderer.Dispose();
         _harvestRenderer.Dispose();
         _banditRenderer.Dispose();
+        _banditHideoutRenderer.Dispose();
         _tooltipRenderer.Dispose();
         _fadePaint?.Dispose();
     }

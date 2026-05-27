@@ -51,7 +51,9 @@ public class BanditController
 
         DiscoverFeatures(_state.Bandits, visibleMap);
         DiscoverFeatures(_state.TreasureTroves, visibleMap);
+        DiscoverFeatures(_state.BanditHideouts, visibleMap);
         UpdateBandits(currentTick);
+        UpdateBanditHideouts(currentTick);
     }
 
     // ── Découverte générique ─────────────────────────────────────────────────
@@ -68,6 +70,24 @@ public class BanditController
                 feature.Found = true;
                 _state.EventLog.Add(feature.DiscoveredEventType);
             }
+        }
+    }
+
+    // ── Repaires de bandits ──────────────────────────────────────────────────
+
+    private void UpdateBanditHideouts(long currentTick)
+    {
+        if (_state == null) return;
+
+        foreach (var hideout in _state.BanditHideouts)
+        {
+            if (!hideout.Found) continue;
+            if (currentTick - hideout.LastSpawnTick < BanditHideout.SpawnIntervalTicks) continue;
+
+            hideout.LastSpawnTick = currentTick;
+
+            if (_state.Bandits.Count < BanditHideout.MaxBanditsOnIsland)
+                _state.Bandits.Add(new Bandit(hideout.Position, currentTick));
         }
     }
 
@@ -213,13 +233,16 @@ public class BanditController
     }
 
     /// <summary>
-    /// Retourne true si un bandit est présent sur ce hex, ou si le cooldown de départ est actif.
+    /// Retourne true si un bandit ou un repaire est présent sur ce hex, ou si le cooldown de départ est actif.
     /// </summary>
     public bool IsHarvestBlocked(HexCoord hex, long currentTick)
     {
         if (_state == null) return false;
 
         if (_state.Bandits.Any(b => b.Position.Equals(hex)))
+            return true;
+
+        if (_state.BanditHideouts.Any(h => h.Position.Equals(hex)))
             return true;
 
         if (_state.BanditCooldownUntil.TryGetValue(hex, out var until))
