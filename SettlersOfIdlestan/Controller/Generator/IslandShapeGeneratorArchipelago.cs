@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using SettlersOfIdlestan.Model.HexGrid;
@@ -5,23 +6,10 @@ using SettlersOfIdlestan.Model.Game;
 
 namespace SettlersOfIdlestan.Controller.Generator;
 
-/// <summary>
-/// Generates two islands separated by water with a guaranteed maritime route connection.
-///
-/// Island 1 (left): complete spiral disc, ensuring its rightmost hex (R1, 0) exists.
-/// Island 2 (right): organic BFS blob within a bounding disc, seeded for shape variation.
-/// R1 is chosen to minimise the tile-count difference between the two islands.
-///
-/// After positioning:
-///   IS1 shifted by -(R1+1, 0) → IS1's rightmost hex lands at (-1,  0)
-///   IS2 shifted by  (R2+1,-1) → IS2's leftmost  hex lands at ( 1, -1)
-///   No bridge — the islands are separated by water.
-///   Guaranteed maritime edge: Edge((0,-1),(0,0)) because IS1's (-1,0) and IS2's (1,-1)
-///   both share the water neighbors (0,0) and (0,-1).
-/// </summary>
 public class IslandShapeGeneratorArchipelago : IslandShapeGenerator
 {
     private readonly GamePRNG _prng;
+    private const int TargetIslandSize = 15;
 
     public IslandShapeGeneratorArchipelago(GamePRNG prng)
     {
@@ -30,114 +18,191 @@ public class IslandShapeGeneratorArchipelago : IslandShapeGenerator
 
     public override IReadOnlyList<HexCoord> GenerateCoords(int count)
     {
-        if (count < 8)
+        if (count < 4)
             return new IslandShapeGeneratorCompact().GenerateCoords(count);
 
-        // Choose R1 (full disc for IS1) that minimises |N1 - N2|.
-        // On ties prefer the larger R1 so IS1's tip stays far from the maritime strait.
-        int R1 = 0, bestDiff = int.MaxValue;
-        for (int r = 0; DiscSize(r) < count; r++)
-        {
-            int n1 = DiscSize(r);
-            int n2 = count - n1;
-            if (n2 <= 0) break;
-            int diff = System.Math.Abs(n1 - n2);
-            if (diff <= bestDiff) { bestDiff = diff; R1 = r; }
-        }
+        int numIslands = Math.Max(2, count / TargetIslandSize);
+        int[] islandSizes = DistributeSizes(count, numIslands);
 
-        int N1 = DiscSize(R1);
-
-        if (N1 >= count)
-        {
-            if (R1 > 0) { R1--; N1 = DiscSize(R1); }
-            else return new IslandShapeGeneratorCompact().GenerateCoords(count);
-        }
-
-        int N2 = count - N1;
-
-        // R2: smallest radius whose disc contains at least N2 tiles (bounding disc for blob)
-        int R2 = 0;
-        while (DiscSize(R2) < N2) R2++;
-
-        var compact = new IslandShapeGeneratorCompact();
-        var is1 = compact.GenerateCoords(N1);                        // full disc → local (R1, 0) present
-        // Two seeds guarantee two maritime edges after positioning:
-        //   (-R2, 0)  → global (1,-1)  → shared vertex with IS1 via Edge((0,-1),(0,0))
-        //   (-R2,-1)  → global (1,-2)  → shared vertex with IS1 via Edge((0,-2),(0,-1))
-        var is2Seeds = new[] { new HexCoord(-R2, 0), new HexCoord(-R2, -1) };
-        var is2 = GenerateOrganicBlob(N2, is2Seeds, R2);
-
-        int dq1 = -(R1 + 1); // IS1: local (R1, 0) → global (-1,  0)
-        int dq2 =   R2 + 1;  // IS2: local (-R2, 0) → global ( 1, -1)
-
+        var allLand = new HashSet<HexCoord>();
+        var usedWater = new HashSet<HexCoord>();
         var result = new List<HexCoord>(count);
 
-        foreach (var c in is1)
-            result.Add(new HexCoord(c.Q + dq1, c.R));
-
-        foreach (var c in is2)
-            result.Add(new HexCoord(c.Q + dq2, c.R - 1));
-
-        return result;
-    }
-
-    /// <summary>
-    /// Grows a connected blob of <paramref name="count"/> hexes via BFS from
-    /// <paramref name="start"/>, constrained to the disc of <paramref name="maxRadius"/>
-    /// centred at origin. With a seeded PRNG the frontier is sampled randomly for organic
-    /// shapes; without PRNG it falls back to deterministic breadth-first order.
-    /// </summary>
-    private IReadOnlyList<HexCoord> GenerateOrganicBlob(int count, HexCoord[] seeds, int maxRadius)
-    {
         var origin = new HexCoord(0, 0);
-        var result = new List<HexCoord>(count);
-        var inSet = new HashSet<HexCoord>();
-        var frontier = new List<HexCoord>();
+        var currentIsland = new List<HexCoord> { origin };
+        allLand.Add(origin);
+        GrowIsland(currentIsland, islandSizes[0], allLand, usedWater, null);
+        result.AddRange(currentIsland);
 
-        // Seeds are added to result first before any BFS expansion, so they are always present.
-        // Phase 1: claim all seeds (register them before expanding neighbors, because seeds can be adjacent).
-        foreach (var seed in seeds)
+        for (int i = 1; i < numIslands; i++)
         {
-            if (result.Count >= count) break;
-            if (seed.DistanceTo(origin) <= maxRadius && inSet.Add(seed))
-                result.Add(seed);
-        }
+            var prevLand = new HashSet<HexCoord>(allLand);
 
-        // Phase 2: expand neighbors of every seed that was accepted.
-        foreach (var seed in seeds)
-        {
-            if (!inSet.Contains(seed)) continue;
-            foreach (var dir in HexDirectionUtils.AllHexDirections)
-            {
-                var nb = seed.Neighbor(dir);
-                if (nb.DistanceTo(origin) <= maxRadius && inSet.Add(nb))
-                    frontier.Add(nb);
-            }
-        }
+            if (!TryFindPassage(currentIsland, allLand, usedWater,
+                    out var w1, out var w2, out var w3, out var m1, out var m2))
+                break;
 
-        while (result.Count < count && frontier.Count > 0)
-        {
-            int idx = _prng != null ? _prng.Next(frontier.Count) : 0;
-            var current = frontier[idx];
-            frontier.RemoveAt(idx);
-            result.Add(current);
+            usedWater.Add(w1);
+            usedWater.Add(w2);
+            usedWater.Add(w3);
 
-            foreach (var dir in HexDirectionUtils.AllHexDirections)
-            {
-                var nb = current.Neighbor(dir);
-                if (nb.DistanceTo(origin) <= maxRadius && inSet.Add(nb))
-                    frontier.Add(nb);
-            }
+            var newIsland = new List<HexCoord> { m1, m2 };
+            allLand.Add(m1);
+            allLand.Add(m2);
+
+            GrowIsland(newIsland, islandSizes[i], allLand, usedWater, prevLand);
+            result.AddRange(newIsland);
+            currentIsland = newIsland;
         }
 
         return result;
     }
 
-    // Preferred start: westernmost hex of IS1, far from the maritime strait near Q=0
+    private static int[] DistributeSizes(int total, int n)
+    {
+        var sizes = new int[n];
+        int baseSize = total / n;
+        int remainder = total % n;
+        for (int i = 0; i < n; i++)
+            sizes[i] = baseSize + (i < remainder ? 1 : 0);
+        return sizes;
+    }
+
+    // Croissance itérative : hex aléatoire → tous ses voisins null, jusqu'au quota.
+    private void GrowIsland(List<HexCoord> island, int targetSize,
+        HashSet<HexCoord> allLand, HashSet<HexCoord> usedWater, HashSet<HexCoord>? prevLand)
+    {
+        int stuckLimit = (targetSize + 1) * 6;
+        int stuckCount = 0;
+
+        while (island.Count < targetSize && stuckCount < stuckLimit)
+        {
+            int idx = _prng.Next(island.Count);
+            var hex = island[idx];
+            bool addedAny = false;
+
+            foreach (var dir in HexDirectionUtils.AllHexDirections)
+            {
+                if (island.Count >= targetSize) break;
+                var nb = hex.Neighbor(dir);
+                if (allLand.Contains(nb)) continue;
+                if (usedWater.Contains(nb)) continue;
+                if (prevLand != null && IsAdjacentTo(nb, prevLand)) continue;
+
+                island.Add(nb);
+                allLand.Add(nb);
+                addedAny = true;
+            }
+
+            stuckCount = addedAny ? 0 : stuckCount + 1;
+        }
+    }
+
+    // Cherche une configuration : L-L' (terre) / W1-W2-W3 (eau) / M1-M2 (départ île suivante).
+    // Garantit 2 routes maritimes : Edge(W1,W2) et Edge(W2,W3).
+    private bool TryFindPassage(
+        List<HexCoord> island, HashSet<HexCoord> allLand, HashSet<HexCoord> usedWater,
+        out HexCoord w1, out HexCoord w2, out HexCoord w3, out HexCoord m1, out HexCoord m2)
+    {
+        w1 = w2 = w3 = m1 = m2 = new HexCoord(0, 0);
+        var islandSet = new HashSet<HexCoord>(island);
+
+        var pairs = new List<(HexCoord L, HexCoord Lp)>();
+        foreach (var L in island)
+        {
+            foreach (var dir in HexDirectionUtils.AllHexDirections)
+            {
+                var Lp = L.Neighbor(dir);
+                if (islandSet.Contains(Lp) && (L.Q < Lp.Q || (L.Q == Lp.Q && L.R < Lp.R)))
+                    pairs.Add((L, Lp));
+            }
+        }
+        _prng.Shuffle(pairs);
+
+        foreach (var (L, Lp) in pairs)
+        {
+            var (cn1, cn2) = GetCommonNeighbors(L, Lp);
+
+            foreach (var W2cand in new[] { cn1, cn2 })
+            {
+                if (allLand.Contains(W2cand) || usedWater.Contains(W2cand)) continue;
+
+                // W1 : voisin commun de L et W2, != Lp, libre
+                var (a1, a2) = GetCommonNeighbors(L, W2cand);
+                HexCoord? W1 = null;
+                foreach (var c in new[] { a1, a2 })
+                    if (!c.Equals(Lp) && !allLand.Contains(c) && !usedWater.Contains(c))
+                    { W1 = c; break; }
+                if (W1 == null) continue;
+
+                // W3 : voisin commun de Lp et W2, != L, libre
+                var (b1, b2) = GetCommonNeighbors(Lp, W2cand);
+                HexCoord? W3 = null;
+                foreach (var c in new[] { b1, b2 })
+                    if (!c.Equals(L) && !allLand.Contains(c) && !usedWater.Contains(c))
+                    { W3 = c; break; }
+                if (W3 == null) continue;
+
+                // M1 : voisin commun de W1 et W2, != L, libre, non adjacent à allLand
+                var (d1, d2) = GetCommonNeighbors(W1, W2cand);
+                HexCoord? M1 = null;
+                foreach (var c in new[] { d1, d2 })
+                    if (!c.Equals(L) && !allLand.Contains(c) && !usedWater.Contains(c)
+                        && !IsAdjacentTo(c, allLand))
+                    { M1 = c; break; }
+                if (M1 == null) continue;
+
+                // M2 : voisin commun de W3 et W2, != Lp, libre, non adjacent à allLand
+                var (e1, e2) = GetCommonNeighbors(W3, W2cand);
+                HexCoord? M2 = null;
+                foreach (var c in new[] { e1, e2 })
+                    if (!c.Equals(Lp) && !allLand.Contains(c) && !usedWater.Contains(c)
+                        && !IsAdjacentTo(c, allLand))
+                    { M2 = c; break; }
+                if (M2 == null) continue;
+
+                // M1 et M2 ne doivent pas être adjacents l'un à l'autre via la terre
+                // (ils seront dans la même île, pas de problème de connectivité)
+                w1 = W1; w2 = W2cand; w3 = W3; m1 = M1; m2 = M2;
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    // Retourne les 2 hexs voisins communs de A et B (A et B sont adjacents).
+    private static (HexCoord, HexCoord) GetCommonNeighbors(HexCoord A, HexCoord B)
+    {
+        HexCoord first = new HexCoord(0, 0), second = new HexCoord(0, 0);
+        bool foundFirst = false;
+
+        foreach (var dir in HexDirectionUtils.AllHexDirections)
+        {
+            var nb = A.Neighbor(dir);
+            if (nb.Equals(B)) continue;
+            foreach (var dir2 in HexDirectionUtils.AllHexDirections)
+            {
+                if (B.Neighbor(dir2).Equals(nb))
+                {
+                    if (!foundFirst) { first = nb; foundFirst = true; }
+                    else { second = nb; return (first, second); }
+                    break;
+                }
+            }
+        }
+        return (first, second);
+    }
+
+    private static bool IsAdjacentTo(HexCoord hex, HashSet<HexCoord> set)
+    {
+        foreach (var dir in HexDirectionUtils.AllHexDirections)
+            if (set.Contains(hex.Neighbor(dir))) return true;
+        return false;
+    }
+
     public override HexCoord? GetPreferredStartHex(IReadOnlyList<HexCoord> coords)
         => coords.Count > 0
-            ? coords.OrderBy(c => c.Q).ThenBy(c => System.Math.Abs(c.R)).First()
+            ? coords.OrderBy(c => c.Q).ThenBy(c => Math.Abs(c.R)).First()
             : null;
-
-    private static int DiscSize(int R) => 3 * R * R + 3 * R + 1;
 }
