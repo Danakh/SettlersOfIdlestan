@@ -32,7 +32,7 @@ public class PrestigeMap
     public static readonly Vertex HarvestGuildVertex     = Vertex.Create(new(-1, 1), new(-1, 2), new(0, 1));
     public static readonly Vertex ArtisansGuildVertex    = Vertex.Create(new(-1, 2), new(0, 1), new(0, 2));
     public static readonly Vertex MilitaryStrategyVertex  = Vertex.Create(new(1, 0), new(1, -1), new(2, -1));
-    public static readonly Vertex KnowledgeMasteryVertex  = Vertex.Create(new(1, 0), new(1,  1), new(2,  0));
+    public static readonly Vertex KnowledgeMasteryVertex  = Vertex.Create(new(1, 1), new(0,  2), new(1,  2));
     public static readonly Vertex MaritimeRoutesVertex       = Vertex.Create(new(0, 0), new(-1, 0), new(0, -1));
     public static readonly Vertex TraderGuildVertex          = Vertex.Create(new(0, 0), new(-1, 0), new(-1, 1));   
 
