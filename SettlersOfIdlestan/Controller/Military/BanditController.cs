@@ -222,6 +222,7 @@ public class BanditController
         bandit.Position = destination;
         bandit.LastMovedTick = currentTick;
         bandit.LastRaidTick = currentTick; // no raid when moving
+        bandit.LastRaidTargetVertex = null; // need to recompute target
 
         // Cooldown sur l'ancienne position si le bandit a bougé
         if (!oldPosition.Equals(destination))
