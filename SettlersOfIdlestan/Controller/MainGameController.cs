@@ -173,6 +173,12 @@ namespace SettlersOfIdlestan.Controller
 
             if (islandState != null)
             {
+                // Bind the player's TechnologyTree to the persistent prestige tree so research
+                // progress survives across islands. NPC civs keep their own ephemeral empty tree.
+                var prestigeState = CurrentMainState?.PrestigeState;
+                if (prestigeState != null)
+                    islandState.PlayerCivilization.TechnologyTree = prestigeState.TechnologyTree;
+
                 islandState.RecalculateVisibleIslandMaps();
 
                 SetupModifierAggregators(islandState);
@@ -190,7 +196,7 @@ namespace SettlersOfIdlestan.Controller
                 CityBuilderController.Initialize(islandState, Clock, CurrentMainState!.PRNG);
                 PrestigeController.Initialize(islandState.PlayerCivilization, islandState);
                 ResearchController.Initialize(islandState, Clock, CurrentMainState?.PrestigeState);
-                islandState.PlayerCivilization.TechnologyTree.RebuildModifiers();
+                prestigeState?.TechnologyTree.RebuildModifiers();
 
             }
         }

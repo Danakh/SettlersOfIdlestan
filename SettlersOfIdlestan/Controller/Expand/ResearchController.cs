@@ -21,6 +21,12 @@ namespace SettlersOfIdlestan.Controller.Expand
 
         public event EventHandler<TechnologyId>? OnResearchCompleted;
 
+        // Convenience accessors for renderers — go through PrestigeState so the source is explicit.
+        public int ResearchPoints => _prestigeState?.TechnologyTree.ResearchPoints ?? 0;
+        public TechnologyId? ActiveResearch => _prestigeState?.TechnologyTree.ActiveResearch;
+
+        private TechnologyTree? Tree => _prestigeState?.TechnologyTree;
+
         internal ResearchController() { }
 
         internal void Initialize(IslandState? state, GameClock? clock, PrestigeState? prestigeState)
@@ -44,8 +50,8 @@ namespace SettlersOfIdlestan.Controller.Expand
 
         private void ProduceResearchPoints()
         {
-            if (_state == null || _clock == null) return;
-            var tree = _state.PlayerCivilization.TechnologyTree;
+            if (_state == null || _clock == null || Tree == null) return;
+            var tree = Tree;
             if (tree.ResearchPoints >= MaxResearchPoints) return;
 
             long now = _clock.CurrentTick;
@@ -69,8 +75,8 @@ namespace SettlersOfIdlestan.Controller.Expand
 
         private void AdvanceActiveResearch()
         {
-            if (_state == null || _clock == null) return;
-            var tree = _state.PlayerCivilization.TechnologyTree;
+            if (_state == null || _clock == null || Tree == null) return;
+            var tree = Tree;
             if (tree.ActiveResearch == null || tree.ResearchPoints <= 0) return;
 
             long now = _clock.CurrentTick;
@@ -107,8 +113,8 @@ namespace SettlersOfIdlestan.Controller.Expand
 
         public bool StartResearch(TechnologyId id)
         {
-            if (_state == null) return false;
-            var tree = _state.PlayerCivilization.TechnologyTree;
+            if (_state == null || Tree == null) return false;
+            var tree = Tree;
             if (tree.CompletedTechnologies.Contains(id)) return false;
             if (tree.ActiveResearch == id) return false;
 
@@ -124,12 +130,12 @@ namespace SettlersOfIdlestan.Controller.Expand
         }
 
         public TechnologyId? GetQueuedResearch()
-            => _state?.PlayerCivilization.TechnologyTree.QueuedResearch;
+            => Tree?.QueuedResearch;
 
         public bool SetQueuedResearch(TechnologyId? id)
         {
-            if (_state == null) return false;
-            var tree = _state.PlayerCivilization.TechnologyTree;
+            if (Tree == null) return false;
+            var tree = Tree;
             if (id == null)
             {
                 tree.QueuedResearch = null;
@@ -142,9 +148,9 @@ namespace SettlersOfIdlestan.Controller.Expand
 
         public bool CanBeQueued(TechnologyId id)
         {
-            if (_state == null) return false;
+            if (Tree == null) return false;
             if (!IsResearchQueueUnlocked()) return false;
-            var tree = _state.PlayerCivilization.TechnologyTree;
+            var tree = Tree;
             if (tree.CompletedTechnologies.Contains(id)) return false;
             if (tree.ActiveResearch == id) return false;
             var tech = TechnologyDefinitions.Get(id);
@@ -168,8 +174,8 @@ namespace SettlersOfIdlestan.Controller.Expand
 
         public TechnologyStatus GetStatus(TechnologyId id)
         {
-            if (_state == null) return TechnologyStatus.Inactive;
-            var tree = _state.PlayerCivilization.TechnologyTree;
+            if (Tree == null) return TechnologyStatus.Inactive;
+            var tree = Tree;
 
             if (tree.CompletedTechnologies.Contains(id)) return TechnologyStatus.Completed;
             if (tree.ActiveResearch == id) return TechnologyStatus.InProgress;
@@ -182,8 +188,8 @@ namespace SettlersOfIdlestan.Controller.Expand
 
         public (int consumed, int total) GetResearchProgress(TechnologyId id)
         {
-            if (_state == null) return (0, 1);
-            var tree = _state.PlayerCivilization.TechnologyTree;
+            if (Tree == null) return (0, 1);
+            var tree = Tree;
             var tech = TechnologyDefinitions.Get(id);
             if (tech == null) return (0, 1);
 

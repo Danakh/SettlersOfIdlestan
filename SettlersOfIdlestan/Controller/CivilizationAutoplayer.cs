@@ -36,6 +36,9 @@ namespace SettlersOfIdlestan.Controller
         private static readonly BuildingType[] Step2Buildings =
             Step1Buildings.Concat(new[] { BuildingType.Warehouse, BuildingType.Mine, BuildingType.Forge }).ToArray();
 
+        private static readonly BuildingType[] Step2WithLibraryBuildings =
+            Step2Buildings.Concat(new[] { BuildingType.Library }).ToArray();
+
         private static readonly BuildingType[] Step3Buildings =
             Step2Buildings.Concat(new[] { BuildingType.Library, BuildingType.Temple }).ToArray();
 
@@ -151,8 +154,15 @@ namespace SettlersOfIdlestan.Controller
         /// <summary>Step 1: level-1 production buildings, roads and new cities.</summary>
         public bool TryStep1Once(bool shouldExpand = true) => TryStepOnce(Step1Buildings, shouldExpand);
 
-        /// <summary>Step 2: step 1 + upgraded production, Warehouse and Forge.</summary>
-        public bool TryStep2Once(bool shouldExpand = true) => TryStepOnce(Step2Buildings, shouldExpand);
+        /// <summary>Step 2: step 1 + upgraded production, Warehouse and Forge.
+        /// Also builds Libraries once research is unlocked via prestige.</summary>
+        public bool TryStep2Once(bool shouldExpand = true)
+        {
+            var buildings = _mainController.ResearchController.IsResearchUnlocked()
+                ? Step2WithLibraryBuildings
+                : Step2Buildings;
+            return TryStepOnce(buildings, shouldExpand);
+        }
 
         /// <summary>Step 3: step 2 + victory-point buildings (Library, Temple, TownHall upgrades) + unique buildings.
         /// When prestige points are already sufficient but ImperialPort is missing, switches to a focused

@@ -18,8 +18,9 @@ public class PrestigeMapControllerTests
     private static void WireAggregator(IslandState island, PrestigeState prestige)
     {
         var civ = island.PlayerCivilization;
+        civ.TechnologyTree = prestige.TechnologyTree;
         civ.SetupModifierAggregator(
-            civ.TechnologyTree,
+            prestige.TechnologyTree,
             new PrestigeModifierProvider(prestige, PrestigeMapController.DefaultMap));
     }
 

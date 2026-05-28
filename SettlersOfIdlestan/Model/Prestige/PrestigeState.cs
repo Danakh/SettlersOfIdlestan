@@ -1,4 +1,5 @@
 using System;
+using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
 
@@ -14,6 +15,8 @@ public class PrestigeState
     public List<Vertex> PurchasedVertices { get; set; } = new();
 
     public List<PrestigeRunStats> RunHistory { get; set; } = new();
+
+    public TechnologyTree TechnologyTree { get; set; } = new();
 
     public PrestigeState() { }
 

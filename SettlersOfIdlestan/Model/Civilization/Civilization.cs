@@ -46,7 +46,11 @@ public class Civilization
 
     /// <summary>
     /// Gets or sets the technology tree of the civilization.
+    /// For the player, this is assigned from PrestigeState.TechnologyTree during initialization.
+    /// For NPC civs, this is always a fresh empty tree (NPCs do not accumulate research).
+    /// Not serialized here — the player's tree is persisted in PrestigeState.
     /// </summary>
+    [JsonIgnore]
     public TechnologyTree TechnologyTree { get; set; } = new();
 
     /// <summary>
