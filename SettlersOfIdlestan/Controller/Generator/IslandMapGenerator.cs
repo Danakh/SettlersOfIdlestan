@@ -104,8 +104,8 @@ public class IslandMapGenerator
         IslandShapeGenerator shapeGenerator = parameters.ShapeType switch
         {
             IslandShapeType.Crescent    => new IslandShapeGeneratorCrescent(),
-            IslandShapeType.Archipelago => new IslandShapeGeneratorArchipelago(_prng.Next(int.MaxValue)),
-            IslandShapeType.Elongated   => new IslandShapeGeneratorElongated(_prng.Next(int.MaxValue)),
+            IslandShapeType.Archipelago => new IslandShapeGeneratorArchipelago(_prng),
+            IslandShapeType.Elongated   => new IslandShapeGeneratorElongated(_prng),
             _                           => new IslandShapeGeneratorCompact()
         };
 
