@@ -27,6 +27,8 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             CITY_DEFENSE,
             /// <summary>SubCategory = TechnologyId name. Signals that this vertex unlocks the given technology.</summary>
             UNLOCK_RESEARCH,
+            /// <summary>Flags that maritime routes (water-water edges) are unlocked for the civilization.</summary>
+            UNLOCK_MARITIME_ROUTES,
         }
 
         public enum EType

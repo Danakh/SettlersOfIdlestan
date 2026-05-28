@@ -1,12 +1,18 @@
 using SettlersOfIdlestan.Controller;
+using SettlersOfIdlestan.Controller.Expand;
 using SettlersOfIdlestan.Controller.Generator;
 using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Model.Civilization;
+using SettlersOfIdlestan.Model.GameplayModifier;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
+using SettlersOfIdlestan.Model.Prestige;
+using SettlersOfIdlestan.Model.Prestige.PrestigeMap;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Xunit;
+using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
 
 namespace SOITests.ControllerTests;
 
@@ -160,6 +166,162 @@ public class RoadControllerTests
         Assert.Equal(0, civ.GetResourceQuantity(Resource.Wood));
         Assert.Equal(0, civ.GetResourceQuantity(Resource.Brick));
     }
+
+    // ─── Maritime Routes ─────────────────────────────────────────────────────
+    //
+    // Island layout used by maritime tests:
+    //   (0,0)=Plain  (1,0)=Water  (0,1)=Water  [(1,1)=Plain if coastal]
+    //   City at Vertex((0,0),(1,0),(0,1))
+    //   Maritime edge = Edge.Create((1,0),(0,1))
+    //     Vertex 1: (0,0),(1,0),(0,1) → (0,0)=Plain → touches land ✓
+    //     Vertex 2: (1,0),(0,1),(1,1) → needs (1,1)=Plain to touch land
+    //   DeepWaterIsland omits (1,1) → vertex 2 touches only water/absent → invalid maritime
+
+    private static (IslandState state, Civilization civ) CoastalIsland()
+    {
+        var land  = new HexCoord(0, 0);
+        var w1    = new HexCoord(1, 0);
+        var w2    = new HexCoord(0, 1);
+        var land2 = new HexCoord(1, 1);
+        var map   = new IslandMap(new HexTile[]
+        {
+            new(land,  TerrainType.Plain),
+            new(w1,    TerrainType.Water),
+            new(w2,    TerrainType.Water),
+            new(land2, TerrainType.Plain),
+        });
+        var civ  = new Civilization { Index = 0 };
+        civ.Cities.Add(new City(Vertex.Create(land, w1, w2)) { CivilizationIndex = 0 });
+        var state = new IslandState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
+        return (state, civ);
+    }
+
+    private static (IslandState state, Civilization civ) DeepWaterIsland()
+    {
+        var land = new HexCoord(0, 0);
+        var w1   = new HexCoord(1, 0);
+        var w2   = new HexCoord(0, 1);
+        var map  = new IslandMap(new HexTile[]
+        {
+            new(land, TerrainType.Plain),
+            new(w1,   TerrainType.Water),
+            new(w2,   TerrainType.Water),
+        });
+        var civ  = new Civilization { Index = 0 };
+        civ.Cities.Add(new City(Vertex.Create(land, w1, w2)) { CivilizationIndex = 0 });
+        var state = new IslandState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
+        return (state, civ);
+    }
+
+    private static Edge MaritimeEdge() => Edge.Create(new HexCoord(1, 0), new HexCoord(0, 1));
+
+    private static void EnableMaritimeRoutes(Civilization civ)
+    {
+        var prestige = new PrestigeState();
+        prestige.PurchasedVertices.Add(PrestigeMap.MaritimeRoutesVertex);
+        civ.SetupModifierAggregator(
+            civ.TechnologyTree,
+            new PrestigeModifierProvider(prestige, PrestigeMapController.DefaultMap));
+    }
+
+    [Fact]
+    public void MaritimeRoutes_CoastalWaterEdge_ExcludedWithoutModifier()
+    {
+        var (state, _) = CoastalIsland();
+        var roads = new RoadController(state).GetBuildableRoads(0);
+        Assert.DoesNotContain(roads, r => r.Position.Equals(MaritimeEdge()));
+    }
+
+    [Fact]
+    public void MaritimeRoutes_CoastalWaterEdge_IncludedWithModifier()
+    {
+        var (state, civ) = CoastalIsland();
+        EnableMaritimeRoutes(civ);
+        var roads = new RoadController(state).GetBuildableRoads(0);
+        Assert.Contains(roads, r => r.Position.Equals(MaritimeEdge()));
+    }
+
+    [Fact]
+    public void MaritimeRoutes_DeepWaterEdge_ExcludedEvenWithModifier()
+    {
+        var (state, civ) = DeepWaterIsland();
+        EnableMaritimeRoutes(civ);
+        var roads = new RoadController(state).GetBuildableRoads(0);
+        Assert.DoesNotContain(roads, r => r.Position.Equals(MaritimeEdge()));
+    }
+
+    [Fact]
+    public void MaritimeRoutes_BuildRoad_ConsumesFixedCostAndCreatesRoad()
+    {
+        var (state, civ) = CoastalIsland();
+        EnableMaritimeRoutes(civ);
+        civ.AddResource(Resource.Wood,  10);
+        civ.AddResource(Resource.Brick, 10);
+        civ.AddResource(Resource.Gold,   5);
+
+        var road = new RoadController(state).BuildRoad(0, MaritimeEdge())!;
+
+        Assert.NotNull(road);
+        Assert.Contains(civ.Roads, r => r.Position.Equals(MaritimeEdge()));
+        Assert.Equal(0, civ.GetResourceQuantity(Resource.Wood));
+        Assert.Equal(0, civ.GetResourceQuantity(Resource.Brick));
+        Assert.Equal(0, civ.GetResourceQuantity(Resource.Gold));
+    }
+
+    [Fact]
+    public void MaritimeRoutes_BuildRoad_InsufficientResources_ReturnsNull()
+    {
+        var (state, civ) = CoastalIsland();
+        EnableMaritimeRoutes(civ);
+        civ.AddResource(Resource.Wood,  9); // 1 wood short
+        civ.AddResource(Resource.Brick, 10);
+        civ.AddResource(Resource.Gold,   5);
+
+        var road = new RoadController(state).BuildRoad(0, MaritimeEdge());
+        Assert.Null(road);
+        Assert.Empty(civ.Roads);
+    }
+
+    [Fact]
+    public void MaritimeRoutes_BuildRoad_WaterEdgeWithoutModifier_Throws()
+    {
+        var (state, _) = CoastalIsland();
+        Assert.Throws<InvalidOperationException>(() =>
+            new RoadController(state).BuildRoad(0, MaritimeEdge()));
+    }
+
+    [Fact]
+    public void MaritimeRoutes_BuildRoad_DeepWaterEdge_Throws()
+    {
+        var (state, civ) = DeepWaterIsland();
+        EnableMaritimeRoutes(civ);
+        civ.AddResource(Resource.Wood,  10);
+        civ.AddResource(Resource.Brick, 10);
+        civ.AddResource(Resource.Gold,   5);
+        Assert.Throws<InvalidOperationException>(() =>
+            new RoadController(state).BuildRoad(0, MaritimeEdge()));
+    }
+
+    [Fact]
+    public void MaritimeRoutes_GetMaritimeRoadCost_ReturnsFixedValues()
+    {
+        var cost = RoadController.GetMaritimeRoadCost();
+        Assert.Equal(10, cost[Resource.Wood]);
+        Assert.Equal(10, cost[Resource.Brick]);
+        Assert.Equal(5,  cost[Resource.Gold]);
+    }
+
+    [Fact]
+    public void MaritimeRoutes_GetPlayerRoadCost_ForWaterEdge_ReturnsMaritimeCost()
+    {
+        var (state, _) = CoastalIsland();
+        var cost = new RoadController(state).GetPlayerRoadCost(MaritimeEdge());
+        Assert.Equal(10, cost[Resource.Wood]);
+        Assert.Equal(10, cost[Resource.Brick]);
+        Assert.Equal(5,  cost[Resource.Gold]);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
 
     [Fact]
     public void BuildRoad_OverEnemyRoad_DestroysEnemyRoad()

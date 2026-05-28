@@ -279,4 +279,46 @@ public class PrestigeMapControllerTests
         var civ = island.PlayerCivilization;
         Assert.Equal(1.1, civ.ResearchSpeed, 5);
     }
+
+    // ─── MaritimeRoutesVertex ────────────────────────────────────────────────
+
+    [Fact]
+    public void MaritimeRoutesVertex_IsAdjacentToSeaportMarket()
+    {
+        Assert.True(PrestigeMap.MaritimeRoutesVertex.IsAdjacentTo(PrestigeMap.SeaportMarketVertex));
+    }
+
+    [Fact]
+    public void MaritimeRoutesVertex_ExistsInDefaultMap()
+    {
+        Assert.NotNull(PrestigeMapController.DefaultMap.GetVertex(PrestigeMap.MaritimeRoutesVertex));
+    }
+
+    [Fact]
+    public void MaritimeRoutesVertex_HasUnlockMaritimeRoutesModifier()
+    {
+        var vertex = PrestigeMapController.DefaultMap.GetVertex(PrestigeMap.MaritimeRoutesVertex)!;
+        Assert.Contains(vertex.Modifiers, m => m.Category == ECategory.UNLOCK_MARITIME_ROUTES);
+    }
+
+    [Fact]
+    public void MaritimeRoutesVertex_GrantsModifierWhenPurchased()
+    {
+        var island   = IslandTestFactory.CreateSevenHexIslandState();
+        var prestige = EmptyPrestige();
+        prestige.PurchasedVertices.Add(PrestigeMap.MaritimeRoutesVertex);
+        WireAggregator(island, prestige);
+
+        Assert.True(island.PlayerCivilization.ModifierAggregator.HasModifier(ECategory.UNLOCK_MARITIME_ROUTES));
+    }
+
+    [Fact]
+    public void MaritimeRoutesVertex_NotGrantedWhenNotPurchased()
+    {
+        var island   = IslandTestFactory.CreateSevenHexIslandState();
+        var prestige = EmptyPrestige();
+        WireAggregator(island, prestige);
+
+        Assert.False(island.PlayerCivilization.ModifierAggregator.HasModifier(ECategory.UNLOCK_MARITIME_ROUTES));
+    }
 }

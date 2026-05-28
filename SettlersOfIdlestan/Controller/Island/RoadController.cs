@@ -6,6 +6,7 @@ using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.Buildings;
+using SettlersOfIdlestan.Model.GameplayModifier;
 
 namespace SettlersOfIdlestan.Controller.Island
 {
@@ -157,7 +158,12 @@ namespace SettlersOfIdlestan.Controller.Island
             foreach (var edge in candidates)
             {
                 if (ownOccupied.Any(e => e.Equals(edge))) continue;
-                if (!IsEdgeOnLand(edge)) continue;
+                if (!IsEdgeOnLand(edge))
+                {
+                    if (!civ.ModifierAggregator.HasModifier(Modifier.ECategory.UNLOCK_MARITIME_ROUTES)
+                        || !IsValidMaritimeEdge(edge))
+                        continue;
+                }
 
                 var road = new Road(edge) { CivilizationIndex = civilizationIndex };
                 // assign a distance so callers can know the build cost
@@ -199,9 +205,16 @@ namespace SettlersOfIdlestan.Controller.Island
             if (!mapTiles.ContainsKey(edge.Hex1) || !mapTiles.ContainsKey(edge.Hex2))
                 throw new ArgumentException("Edge not part of the map", nameof(edge));
 
-            // V�rifier que l'ar�te n'est pas entre deux hexagones de type eau
-            if (mapTiles[edge.Hex1].TerrainType == TerrainType.Water && mapTiles[edge.Hex2].TerrainType == TerrainType.Water)
-                throw new InvalidOperationException("Cannot build a road on an edge between two water hexes");
+            // V�rifier que l'ar�te n'est pas entre deux hexagones de type eau (sauf routes maritimes débloquées)
+            bool isMaritimePath = mapTiles[edge.Hex1].TerrainType == TerrainType.Water
+                && mapTiles[edge.Hex2].TerrainType == TerrainType.Water;
+            if (isMaritimePath)
+            {
+                if (!civ.ModifierAggregator.HasModifier(Modifier.ECategory.UNLOCK_MARITIME_ROUTES))
+                    throw new InvalidOperationException("Cannot build a road on an edge between two water hexes");
+                if (!IsValidMaritimeEdge(edge))
+                    throw new InvalidOperationException("Maritime route must connect two coastal vertices");
+            }
 
             // Seule notre propre civilisation peut bloquer la construction
             if (civ.Roads.Any(r => r.Position.Equals(edge)))
@@ -218,7 +231,7 @@ namespace SettlersOfIdlestan.Controller.Island
             if (distance == int.MaxValue)
                 throw new InvalidOperationException("Cannot determine distance to a city for this edge");
 
-            var cost = GetRoadCost(distance, civ);
+            var cost = isMaritimePath ? GetMaritimeRoadCost() : GetRoadCost(distance, civ);
 
             if (!civ.CanPayResourceCost(cost))
                 return null;
@@ -336,6 +349,19 @@ namespace SettlersOfIdlestan.Controller.Island
             return verts.Any(v => v.Equals(vertex));
         }
 
+        private bool IsValidMaritimeEdge(Edge edge)
+        {
+            if (_state == null) return false;
+            var mapTiles = _state.Map.Tiles;
+            foreach (var v in edge.GetVertices())
+            {
+                bool touchesLand = v.GetHexes().Any(h =>
+                    mapTiles.TryGetValue(h, out var tile) && tile.TerrainType != TerrainType.Water);
+                if (!touchesLand) return false;
+            }
+            return true;
+        }
+
         private bool IsEdgeOnLand(Edge edge)
         {
             if (_state == null) throw new InvalidOperationException("IslandState has not been initialized.");
@@ -368,6 +394,13 @@ namespace SettlersOfIdlestan.Controller.Island
             return 0;
         }
 
+        public static ResourceSet GetMaritimeRoadCost() => new ResourceSet
+        {
+            { Resource.Wood, 10 },
+            { Resource.Brick, 10 },
+            { Resource.Gold, 5 },
+        };
+
         public ResourceSet GetRoadCost(int distance, Civilization? civ = null)
         {
             if (distance <= 0) throw new ArgumentException("Distance must be >= 1", nameof(distance));
@@ -383,6 +416,8 @@ namespace SettlersOfIdlestan.Controller.Island
 
         public ResourceSet GetPlayerRoadCost(Edge edge)
         {
+            if (!IsEdgeOnLand(edge))
+                return GetMaritimeRoadCost();
             var civ = _state!.PlayerCivilization;
             var distance = GetDistanceForEdge(edge, civ);
             return GetRoadCost(distance, civ);
