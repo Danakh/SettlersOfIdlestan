@@ -159,7 +159,8 @@ public sealed class SkiaGameRuntime : IDisposable
             timeControlRenderer,
             researchRenderer,
             eventLogRenderer,
-            automationRenderer);
+            automationRenderer,
+            tooltipRenderer);
         _renderService.RegisterRenderer(_overlayRenderer);
         _constructionInteractionService.ShouldSuppressHover = pos => _overlayRenderer?.IsPointBlockedByUI(pos) ?? false;
         if (allowDebugMode)

@@ -48,6 +48,7 @@ public sealed class OverlayRenderer : IGameRenderer
     private readonly ResearchRenderer _researchRenderer;
     private readonly EventLogRenderer _eventLogRenderer;
     private readonly AutomationRenderer _automationRenderer;
+    private readonly TooltipRenderer _tooltipRenderer;
 
     private readonly SKPaint _buttonPaint = new() { Color = new SKColor(46, 125, 50), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _disabledButtonPaint = new() { Color = new SKColor(90, 90, 96), Style = SKPaintStyle.Fill, IsAntialias = true };
@@ -63,6 +64,7 @@ public sealed class OverlayRenderer : IGameRenderer
     private SKSize _canvasSize;
     private SKRect _tradeButtonRect = SKRect.Empty;
     private SKRect _prestigeButtonRect = SKRect.Empty;
+    private SKPoint _lastPointerPosition;
 
     // Dynamic tab list: (tabId, screenRect) computed each frame
     private readonly List<(int tabId, SKRect rect)> _activeTabs = new();
@@ -88,7 +90,8 @@ public sealed class OverlayRenderer : IGameRenderer
         TimeControlRenderer timeControlRenderer,
         ResearchRenderer researchRenderer,
         EventLogRenderer eventLogRenderer,
-        AutomationRenderer automationRenderer)
+        AutomationRenderer automationRenderer,
+        TooltipRenderer tooltipRenderer)
     {
         _inputService = inputService;
         _gameControllerService = gameControllerService;
@@ -105,6 +108,7 @@ public sealed class OverlayRenderer : IGameRenderer
         _researchRenderer = researchRenderer;
         _eventLogRenderer = eventLogRenderer;
         _automationRenderer = automationRenderer;
+        _tooltipRenderer = tooltipRenderer;
         _inputService.PointerPressed += HandlePointerPressed;
         _inputService.PointerMoved += HandlePointerMoved;
         _inputService.KeyPressed += HandleKeyInput;
@@ -315,6 +319,15 @@ public sealed class OverlayRenderer : IGameRenderer
                 : $"{_localization.Get("prestige_action")} ({currentPoints}/{PrestigeController.PrestigeRequiredPoints})";
             canvas.DrawRoundRect(_prestigeButtonRect, 7, 7, isAvailable ? _buttonPaint : _disabledButtonPaint);
             canvas.DrawText(label, _prestigeButtonRect.MidX, _prestigeButtonRect.MidY + 6, SKTextAlign.Center, _buttonFont, isAvailable ? _buttonTextPaint : _disabledTextPaint);
+
+            if (!prestigeController.HasImperialPort() && _prestigeButtonRect.Contains(_lastPointerPosition.X, _lastPointerPosition.Y))
+            {
+                _tooltipRenderer.SetTooltipLines(new[]
+                {
+                    _localization.Get("prestige_requires_imperial_port"),
+                    _localization.Get("tooltip_imperial_port_prerequisites"),
+                }, _lastPointerPosition);
+            }
         }
     }
 
@@ -340,6 +353,8 @@ public sealed class OverlayRenderer : IGameRenderer
             _prestigeMapRenderer.HandlePointerMoved(e.Position);
         if (_activeTab == TabAutomation)
             _automationRenderer.HandlePointerMoved(e.Position);
+
+        _lastPointerPosition = e.Position;
     }
 
     private void HandlePointerPressed(object? sender, PointerEventArgs e)

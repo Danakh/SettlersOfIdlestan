@@ -114,6 +114,7 @@
   "tab_buildings_classic": "Bâtiments",
   "tab_buildings_unique": "Uniques",
   "prestige_requires_imperial_port": "⚠ Construisez d'abord le Port Impérial",
+  "tooltip_imperial_port_prerequisites": "Nécessite un Hôtel de ville niv. 4 + Port maritime niv. 4",
   "building_glassworks_name": "Verrerie",
   "building_glassworks_desc": "Produit automatiquement du verre dans les déserts. Requiert Hôtel de Ville niv. 2. Débloqué via la Verrerie du prestige.",
   "building_laboratory_name": "Laboratoire",

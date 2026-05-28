@@ -57,7 +57,8 @@
       "Bash(dotnet clean *)",
       "Bash(Get-ChildItem -Path \"C:\\\\DEV\\\\SettlersOfIdlestan\\\\SettlersOfIdlestan\\\\Model\\\\Buildings\" -Filter \"*.cs\")",
       "Bash(Select-Object -ExpandProperty Name)",
-      "Bash(Get-ChildItem -Path . -Recurse -Filter \"*FileSystem*\" -Name)"
+      "Bash(Get-ChildItem -Path . -Recurse -Filter \"*FileSystem*\" -Name)",
+      "Bash(Select-String -Pattern \"error|Build succeeded|FAILED\")"
     ]
   }
 }

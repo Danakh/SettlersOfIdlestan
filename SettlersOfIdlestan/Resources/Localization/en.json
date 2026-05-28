@@ -114,6 +114,7 @@
   "tab_buildings_classic": "Buildings",
   "tab_buildings_unique": "Unique",
   "prestige_requires_imperial_port": "⚠ Build the Imperial Port first",
+  "tooltip_imperial_port_prerequisites": "Requires a Town Hall lv.4 + Seaport lv.4",
   "building_glassworks_name": "Glassworks",
   "building_glassworks_desc": "Automatically produces glass in deserts. Requires Town Hall lvl. 2. Unlocked via the Laboratory prestige.",
   "building_laboratory_name": "Laboratory",
