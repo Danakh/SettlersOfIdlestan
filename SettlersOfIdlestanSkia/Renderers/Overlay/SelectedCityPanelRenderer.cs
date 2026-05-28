@@ -34,6 +34,7 @@ public class SelectedCityPanelRenderer : IGameRenderer
     private SKPaint? _btnUpgradePaint;
     private SKPaint? _btnDisabledPaint;
     private SKPaint? _btnDisabledTextPaint;
+    private SKPaint? _btnMaxLevelPaint;
     private SKPoint _lastPointerPosition = SKPoint.Empty;
     private BuildingType? _hoveredBuildingType = null;
     private const float PanelWidth = 300;
@@ -92,6 +93,7 @@ public class SelectedCityPanelRenderer : IGameRenderer
         _btnUpgradePaint = new SKPaint { Color = new SKColor(46, 125, 50, 255), Style = SKPaintStyle.Fill, IsAntialias = true };
         _btnDisabledPaint = new SKPaint { Color = new SKColor(100, 100, 100, 200), Style = SKPaintStyle.Fill, IsAntialias = true };
         _btnDisabledTextPaint = new SKPaint { Color = new SKColor(150, 150, 150, 255), IsAntialias = true };
+        _btnMaxLevelPaint = new SKPaint { Color = new SKColor(120, 90, 20, 200), Style = SKPaintStyle.Fill, IsAntialias = true };
         _tabActivePaint = new SKPaint { Color = new SKColor(60, 60, 85, 240), Style = SKPaintStyle.Fill, IsAntialias = true };
         _tabInactivePaint = new SKPaint { Color = new SKColor(20, 20, 30, 180), Style = SKPaintStyle.Fill, IsAntialias = true };
         _dimTextPaint = new SKPaint { Color = new SKColor(130, 130, 140, 200), IsAntialias = true };
@@ -228,7 +230,7 @@ public class SelectedCityPanelRenderer : IGameRenderer
                     if (isAtMaxLevel)
                         btnText = _localization.Get("action_maxlevel");
 
-                    var btnFillPaint = isDisabledBtn ? _btnDisabledPaint : (isBuiltInThisCity ? _btnUpgradePaint : _btnBuildPaint);
+                    var btnFillPaint = isAtMaxLevel ? _btnMaxLevelPaint : (isDisabledBtn ? _btnDisabledPaint : (isBuiltInThisCity ? _btnUpgradePaint : _btnBuildPaint));
                     var btnTextUsePaint = isDisabledBtn ? _btnDisabledTextPaint : _textPaint;
                     canvas.DrawRoundRect(btnX, btnY, btnWidth, btnHeight, 7, 7, btnFillPaint);
                     canvas.DrawText(btnText, btnCenterX, btnCenterY, SKTextAlign.Center, _font12, btnTextUsePaint);
@@ -478,6 +480,7 @@ public class SelectedCityPanelRenderer : IGameRenderer
         _btnUpgradePaint?.Dispose();
         _btnDisabledPaint?.Dispose();
         _btnDisabledTextPaint?.Dispose();
+        _btnMaxLevelPaint?.Dispose();
         _tabActivePaint?.Dispose();
         _tabInactivePaint?.Dispose();
     }
