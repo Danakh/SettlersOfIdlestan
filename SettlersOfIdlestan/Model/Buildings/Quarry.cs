@@ -12,13 +12,10 @@ public class Quarry : Building
 
     public override int GetDefaultMaxLevel() => 4;
 
-    public override Resource? ManualHarvestResource => Resource.Ore;
     public override Resource? AutomaticHarvestResource => Resource.Stone;
 
     public override Resource? ManualHarvestCapability(TerrainType terrain)
     {
-        if (terrain == TerrainType.Mountain)
-            return Resource.Ore;
         return null;
     }
 

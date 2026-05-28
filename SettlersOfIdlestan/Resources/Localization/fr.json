@@ -57,7 +57,7 @@
   "building_temple_name": "Temple",
   "building_temple_desc": "Ajoute des points de civilisation",
   "building_townhall_name": "Hôtel de ville",
-  "building_townhall_desc": "Permet la récolte des ressources de base. Débloque plus de bâtiments.",
+  "building_townhall_desc": "Permet la récolte manuelle des ressources de base. Fournit de l'espace de stockage. Débloque plus de bâtiments.",
   "building_buildersguild_name": "Guilde des bâtisseurs",
   "building_buildersguild_desc": "Permet l'automatisation de constructions. Disponible au niveau Capitale (4).",
   "building_buildersguild_desc_1": "Construit une route auto (distance ≤ 1) toutes les 5s. Réduit le coût des routes de 1 Bois/Brique.",
