@@ -237,6 +237,16 @@ namespace SettlersOfIdlestan.Controller
         {
             if (!_tradeController.IsTradeAvailable(_civ.Index)) return false;
 
+            if (!ResourceUtils.BasicResources.Contains(target) && target != Resource.Gold)
+            {
+                if (_tradeController.CanBuyAdvancedResource(_civ.Index, target))
+                {
+                    _tradeController.BuyAdvancedResource(_civ.Index, target);
+                    return true;
+                }
+                return TryTradeForResourceOnce(Resource.Gold);
+            }
+
             var receiveQty = _tradeController.ReceiveRate(target);
             if (!_tradeController.CanRecieveTrade(_civ, target, receiveQty)) return false;
 
