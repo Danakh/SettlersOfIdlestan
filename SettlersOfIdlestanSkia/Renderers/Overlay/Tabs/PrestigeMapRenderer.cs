@@ -284,6 +284,9 @@ public sealed class PrestigeMapRenderer : IGameRenderer
             m.Category != Modifier.ECategory.UNLOCK_RESEARCH))
             lines.Add(FormatModifier(mod));
 
+        if (coord.Equals(PrestigeMap.CentralVertex))
+            lines.Add(_localization.Get("prestige_tooltip_unlocks_research_system"));
+
         foreach (var mod in vertex.Modifiers.Where(m => m.Category == Modifier.ECategory.UNLOCK_RESEARCH))
             lines.Add($"{_localization.Get("prestige_tooltip_unlocks_research")}: {UnlockResearchName(mod.SubCategory)}");
 
