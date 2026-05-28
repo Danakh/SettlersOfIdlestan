@@ -2,6 +2,7 @@ using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Controller;
+using SettlersOfIdlestan.Model.Civilization;
 
 namespace SettlersOfIdlestanSkia.Services;
 
@@ -89,19 +90,19 @@ public class GameControllerService
             .ToList();
     }
 
-    public bool TryBuildCityForPlayer(Vertex vertex)
+    public City? TryBuildCityForPlayer(Vertex vertex)
     {
         var playerIndex = PlayerCivilizationIndex
             ?? throw new InvalidOperationException("La civilisation du joueur n'est pas disponible.");
 
-        return _controller.CityBuilderController.BuildCity(playerIndex, vertex) != null;
+        return _controller.CityBuilderController.BuildCity(playerIndex, vertex);
     }
 
-    public bool TryBuildRoadForPlayer(Edge edge)
+    public Road? TryBuildRoadForPlayer(Edge edge)
     {
         var playerIndex = PlayerCivilizationIndex
             ?? throw new InvalidOperationException("La civilisation du joueur n'est pas disponible.");
 
-        return _controller.RoadController.BuildRoad(playerIndex, edge) != null;
+        return _controller.RoadController.BuildRoad(playerIndex, edge);
     }
 }

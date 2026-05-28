@@ -194,11 +194,19 @@ public sealed class SkiaGameRuntime : IDisposable
         if (_cameraService == null || _renderService == null)
             throw new InvalidOperationException("Camera/RenderService non initialisé.");
 
+        float prevCenterX = _isCanvasInitialized
+            ? _cameraService.Position.X + _lastCanvasSize.Width / 2 / _cameraService.ZoomLevel
+            : 0f;
+        float prevCenterY = _isCanvasInitialized
+            ? _cameraService.Position.Y + _lastCanvasSize.Height / 2 / _cameraService.ZoomLevel
+            : 0f;
+
         _cameraService.Initialize(canvasSize);
 
-        var hexCoords = _gameControllerService?.CurrentGameState?.CurrentIslandState?.Map?.Tiles?.Keys
-                        ?? Enumerable.Empty<HexCoord>();
-        _cameraService.FitMapToView(hexCoords);
+        if (!_isCanvasInitialized)
+            CenterCameraOnStartingCity();
+        else
+            _cameraService.CenterOn(prevCenterX, prevCenterY);
 
         _renderService.Initialize(canvasSize);
 
@@ -384,6 +392,7 @@ public sealed class SkiaGameRuntime : IDisposable
         ResetPointerState();
         _introRenderer.StartIntro(state);
         state.Clock?.Pause();
+        CenterCameraOnStartingCity();
     }
 
     private void StartNewGameIntro(SettlersOfIdlestan.Model.Game.MainGameState state)
@@ -413,8 +422,7 @@ public sealed class SkiaGameRuntime : IDisposable
         _gameControllerService.CityBuildingService?.ClearSelectedCity();
         _constructionInteractionService?.ClearHover();
 
-        var hexCoords = _gameControllerService.CurrentIslandState?.Map?.Tiles?.Keys ?? Enumerable.Empty<HexCoord>();
-        _cameraService.FitMapToView(hexCoords);
+        CenterCameraOnStartingCity();
 
         _islandMainRenderer?.EndBlackFade();
         _overlayRenderer?.Show();
@@ -422,6 +430,33 @@ public sealed class SkiaGameRuntime : IDisposable
             _gameControllerService.CurrentGameState?.Clock?.Pause();
         _overlayRenderer?.SwitchToPrestigeTab();
         _prestigeTransitionPending = false;
+    }
+
+    private void CenterCameraOnStartingCity()
+    {
+        if (_cameraService == null) return;
+
+        const float DefaultZoom = 1.0f;
+        const float HexSize = 40f;
+        float sqrt3 = (float)Math.Sqrt(3);
+
+        var islandState = _gameControllerService?.CurrentGameState?.CurrentIslandState;
+        var playerCity = islandState?.PlayerCivilization?.Cities?.FirstOrDefault();
+
+        if (playerCity != null)
+        {
+            var v = playerCity.Position;
+            float x1 = HexSize * sqrt3 * (v.Hex1.Q + v.Hex1.R / 2f), y1 = HexSize * -3f / 2f * v.Hex1.R;
+            float x2 = HexSize * sqrt3 * (v.Hex2.Q + v.Hex2.R / 2f), y2 = HexSize * -3f / 2f * v.Hex2.R;
+            float x3 = HexSize * sqrt3 * (v.Hex3.Q + v.Hex3.R / 2f), y3 = HexSize * -3f / 2f * v.Hex3.R;
+            _cameraService.SetZoom(DefaultZoom, keepCenteredOnScreen: false);
+            _cameraService.CenterOn((x1 + x2 + x3) / 3f, (y1 + y2 + y3) / 3f);
+        }
+        else
+        {
+            var hexCoords = islandState?.Map?.Tiles?.Keys ?? Enumerable.Empty<HexCoord>();
+            _cameraService.FitMapToView(hexCoords);
+        }
     }
 
     public void Dispose()
