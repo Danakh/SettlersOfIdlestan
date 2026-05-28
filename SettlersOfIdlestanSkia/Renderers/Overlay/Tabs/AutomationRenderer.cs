@@ -30,11 +30,13 @@ public sealed class AutomationRenderer : IDisposable
     private SKRect _productionToggleRect = SKRect.Empty;
     private SKRect _artisanToggleRect = SKRect.Empty;
     private SKRect _libraryToggleRect = SKRect.Empty;
+    private SKRect _marketToggleRect = SKRect.Empty;
     private bool _hoveredRoadToggle;
     private bool _hoveredOutpostToggle;
     private bool _hoveredProductionToggle;
     private bool _hoveredArtisanToggle;
     private bool _hoveredLibraryToggle;
+    private bool _hoveredMarketToggle;
 
     private readonly SKPaint _bgPaint              = new() { Color = new SKColor(18, 18, 24, 240), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _cardPaint            = new() { Color = new SKColor(30, 30, 40, 220), Style = SKPaintStyle.Fill, IsAntialias = true };
@@ -86,13 +88,15 @@ public sealed class AutomationRenderer : IDisposable
         HarvestersGuild? harvestersGuild = null;
         ArtisansGuild? artisansGuild = null;
         Academy? academy = null;
+        TraderGuild? traderGuild = null;
         foreach (var city in civ.Cities)
         {
             buildersGuild ??= city.Buildings.OfType<BuildersGuild>().FirstOrDefault();
             harvestersGuild ??= city.Buildings.OfType<HarvestersGuild>().FirstOrDefault();
             artisansGuild ??= city.Buildings.OfType<ArtisansGuild>().FirstOrDefault();
             academy ??= city.Buildings.OfType<Academy>().FirstOrDefault();
-            if (buildersGuild != null && harvestersGuild != null && artisansGuild != null && academy != null) break;
+            traderGuild ??= city.Buildings.OfType<TraderGuild>().FirstOrDefault();
+            if (buildersGuild != null && harvestersGuild != null && artisansGuild != null && academy != null && traderGuild != null) break;
         }
 
         // --- Road automation row (builders guild level 1+) ---
@@ -188,6 +192,25 @@ public sealed class AutomationRenderer : IDisposable
                 _localization.Get("automation_library_name"),
                 _localization.Get("automation_library_locked"));
         }
+        y += RowHeight + RowSpacing;
+
+        // --- Market automation row (trader guild) ---
+        if (traderGuild != null && traderGuild.Level >= 1)
+        {
+            _marketToggleRect = DrawAutomationRow(
+                canvas, x, y, contentWidth,
+                islandState.AutomationSettings.MarketBuildingAutomationEnabled,
+                _hoveredMarketToggle,
+                _localization.Get("automation_market_name"),
+                _localization.Get("automation_market_desc"));
+        }
+        else
+        {
+            _marketToggleRect = SKRect.Empty;
+            DrawLockedRow(canvas, x, y, contentWidth,
+                _localization.Get("automation_market_name"),
+                _localization.Get("automation_market_locked"));
+        }
     }
 
     private SKRect DrawAutomationRow(SKCanvas canvas, float x, float y, float width,
@@ -230,6 +253,7 @@ public sealed class AutomationRenderer : IDisposable
         _hoveredProductionToggle = !_productionToggleRect.IsEmpty && _productionToggleRect.Contains(position.X, position.Y);
         _hoveredArtisanToggle    = !_artisanToggleRect.IsEmpty    && _artisanToggleRect.Contains(position.X, position.Y);
         _hoveredLibraryToggle    = !_libraryToggleRect.IsEmpty    && _libraryToggleRect.Contains(position.X, position.Y);
+        _hoveredMarketToggle     = !_marketToggleRect.IsEmpty     && _marketToggleRect.Contains(position.X, position.Y);
     }
 
     public bool HandlePointerPressed(SKPoint position)
@@ -264,6 +288,12 @@ public sealed class AutomationRenderer : IDisposable
         if (!_libraryToggleRect.IsEmpty && _libraryToggleRect.Contains(position.X, position.Y))
         {
             state.AutomationSettings.LibraryBuildingAutomationEnabled = !state.AutomationSettings.LibraryBuildingAutomationEnabled;
+            return true;
+        }
+
+        if (!_marketToggleRect.IsEmpty && _marketToggleRect.Contains(position.X, position.Y))
+        {
+            state.AutomationSettings.MarketBuildingAutomationEnabled = !state.AutomationSettings.MarketBuildingAutomationEnabled;
             return true;
         }
 

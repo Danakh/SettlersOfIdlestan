@@ -100,6 +100,10 @@ public enum BuildingType
     /// Académie - Automatise la construction des Bibliothèques et augmente la vitesse de recherche. Débloqué par le prestige (Académie).
     /// </summary>
     Academy,
+    /// <summary>
+    /// Guilde des marchands - Bâtiment unique. Automatise la construction/amélioration des Marchés et débloque leurs niveaux supérieurs. Débloqué par le prestige.
+    /// </summary>
+    TraderGuild,
 }
 
 /// <summary>

@@ -60,6 +60,7 @@ namespace SettlersOfIdlestan.Model.Buildings
                 BuildingType.ArtisansGuild => typeof(ArtisansGuild),
                 BuildingType.Watchtower => typeof(Watchtower),
                 BuildingType.Academy => typeof(Academy),
+                BuildingType.TraderGuild => typeof(TraderGuild),
                 _ => throw new JsonException($"Unknown building type: {bType}")
             };
 

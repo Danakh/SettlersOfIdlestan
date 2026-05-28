@@ -118,6 +118,16 @@ public class CityBuildingService
 
     public long GetCurrentTick() => _mainGameController.CurrentMainState?.Clock?.CurrentTick ?? 0;
 
+    public long GetEffectiveMarketCooldown(Market market)
+    {
+        if (SelectedCity == null) return HarvestController.MarketGenerationCooldownTicks;
+        var islandState = IslandState;
+        if (SelectedCity.CivilizationIndex >= islandState.Civilizations.Count)
+            return HarvestController.MarketGenerationCooldownTicks;
+        var civ = islandState.Civilizations[SelectedCity.CivilizationIndex];
+        return HarvestController.GetEffectiveMarketCooldown(market, civ);
+    }
+
     public bool IsAtMaxLevel(Building building)
     {
         if (SelectedCity == null)

@@ -46,6 +46,8 @@ namespace SettlersOfIdlestan.Controller.Island
             catch { }
             try { PerformAcademyAutomation(); }
             catch { }
+            try { PerformTraderGuildAutomation(); }
+            catch { }
         }
 
         private void PerformHarvestersGuildProductionAutomation()
@@ -102,6 +104,25 @@ namespace SettlersOfIdlestan.Controller.Island
                 long tick = academy.LastLibraryBuildTick;
                 TickGuildAutomation(civ, ref tick, academy.GetAutoLibraryCooldownTicks(), enabled, targets, now);
                 academy.LastLibraryBuildTick = tick;
+            }
+        }
+
+        private void PerformTraderGuildAutomation()
+        {
+            if (_state == null || _clock == null) return;
+            long now = _clock.CurrentTick;
+            BuildingType[] targets = [BuildingType.Market];
+
+            foreach (var civ in _state.Civilizations)
+            {
+                var guild = civ.Cities.SelectMany(c => c.Buildings).OfType<TraderGuild>().FirstOrDefault();
+                if (guild == null || guild.Level == 0) continue;
+
+                bool isPlayer = civ.Index == _state.PlayerCivilization.Index;
+                bool enabled = !isPlayer || _state.AutomationSettings.MarketBuildingAutomationEnabled;
+                long tick = guild.LastMarketBuildTick;
+                TickGuildAutomation(civ, ref tick, guild.GetAutoMarketCooldownTicks(), enabled, targets, now);
+                guild.LastMarketBuildTick = tick;
             }
         }
 
@@ -331,6 +352,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 BuildingType.ArtisansGuild => new ArtisansGuild(),
                 BuildingType.Watchtower => new Watchtower(),
                 BuildingType.Academy => new Academy(),
+                BuildingType.TraderGuild => new TraderGuild(),
                 _ => null,
             };
         }

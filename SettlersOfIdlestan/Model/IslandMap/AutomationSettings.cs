@@ -7,4 +7,5 @@ public class AutomationSettings
     public bool ProductionBuildingAutomationEnabled { get; set; } = false;
     public bool ArtisanBuildingAutomationEnabled { get; set; } = false;
     public bool LibraryBuildingAutomationEnabled { get; set; } = false;
+    public bool MarketBuildingAutomationEnabled { get; set; } = false;
 }

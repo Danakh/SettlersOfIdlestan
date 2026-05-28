@@ -54,7 +54,9 @@
       "PowerShell(cd \"C:\\\\DEV\\\\SettlersOfIdlestan\"; Select-String -Path \"SettlersOfIdlestanSkia\\\\Renderers\\\\Overlay\\\\Tabs\\\\PrestigeMapRenderer.cs\" -Pattern \"prestige_tooltip_\" | ForEach-Object { $_.LineNumber; $_.Line })",
       "Bash(Remove-Item -Force \"C:\\\\DEV\\\\SettlersOfIdlestan\\\\SettlersOfIdlestan\\\\obj\\\\Debug\\\\net10.0\\\\SettlersOfIdlestan.AssemblyInfoInputs.cache\" -ErrorAction SilentlyContinue)",
       "Bash(Select-String \"error CS|succeeded|Error\")",
-      "Bash(dotnet clean *)"
+      "Bash(dotnet clean *)",
+      "Bash(Get-ChildItem -Path \"C:\\\\DEV\\\\SettlersOfIdlestan\\\\SettlersOfIdlestan\\\\Model\\\\Buildings\" -Filter \"*.cs\")",
+      "Bash(Select-Object -ExpandProperty Name)"
     ]
   }
 }

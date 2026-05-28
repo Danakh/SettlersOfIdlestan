@@ -342,8 +342,9 @@ public class SelectedCityPanelRenderer : IGameRenderer
                 {
                     long currentTick = _cityBuildingService.GetCurrentTick();
                     long elapsed = market.LastGenerationTick == 0 ? 0 : currentTick - market.LastGenerationTick;
-                    long remaining = Math.Max(0, HarvestController.MarketGenerationCooldownTicks - elapsed);
-                    tooltipLines.Add(_localization.Get("market_generation_cooldown") + $" {remaining/100}s/{HarvestController.MarketGenerationCooldownTicks/100}s");
+                    long effectiveCooldown = _cityBuildingService.GetEffectiveMarketCooldown(market);
+                    long remaining = Math.Max(0, effectiveCooldown - elapsed);
+                    tooltipLines.Add(_localization.Get("market_generation_cooldown") + $" {remaining/100}s/{effectiveCooldown/100}s");
                     tooltipLines.Add("");
                 }
 

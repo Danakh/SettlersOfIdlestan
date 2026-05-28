@@ -206,8 +206,9 @@ namespace SettlersOfIdlestan.Controller.Island
                         market.LastGenerationTick = now;
                         continue;
                     }
+                    long effectiveCooldown = GetEffectiveMarketCooldown(market, civ);
 
-                    if (now - market.LastGenerationTick < MarketGenerationCooldownTicks) continue;
+                    if (now - market.LastGenerationTick < effectiveCooldown) continue;
 
                     var resource = ResourceUtils.BasicResources[_prng.Next(ResourceUtils.BasicResources.Count)];
                     TryAutoTradeOnOverflow(civ, resource);
@@ -216,6 +217,13 @@ namespace SettlersOfIdlestan.Controller.Island
                     OnMarketResourceGenerated?.Invoke(this, new MarketGenerationEventArgs(civ.Index, resource, city.Position));
                 }
             }
+        }
+
+        public static long GetEffectiveMarketCooldown(Market market, Civilization civ)
+        {
+            double multiplier = market.BaseProductionCooldownMutiplier();
+            multiplier = civ.ModifierAggregator.ApplyModifiers(ECategory.BUILDING_PRODUCTION, "Market", multiplier);
+            return Math.Max(1L, (long)(MarketGenerationCooldownTicks * multiplier));
         }
 
         public IReadOnlyList<Resource> GetManualHarvestableResources(int civilizationIndex, HexCoord hex)

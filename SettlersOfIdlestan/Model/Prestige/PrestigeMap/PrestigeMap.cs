@@ -34,6 +34,7 @@ public class PrestigeMap
     public static readonly Vertex MilitaryStrategyVertex  = Vertex.Create(new(1, 0), new(1, -1), new(2, -1));
     public static readonly Vertex KnowledgeMasteryVertex  = Vertex.Create(new(1, 0), new(1,  1), new(2,  0));
     public static readonly Vertex MaritimeRoutesVertex    = Vertex.Create(new(0, 0), new(-1, 0), new(-1, 1));
+    public static readonly Vertex TraderGuildVertex       = Vertex.Create(new(0, 0), new(-1, 0), new(0, -1));
 
     public IReadOnlyList<PrestigeVertex> Vertices { get; }
     public IReadOnlyList<PrestigeHex> Hexes { get; }
@@ -81,6 +82,12 @@ public class PrestigeMap
                 "prestige_vertex_maritime_routes",
                 cost: Cost(MaritimeRoutesVertex),
                 modifiers: new Modifier[] { new(ECategory.UNLOCK_MARITIME_ROUTES, EType.ADDITIVE, 1) }
+            ),
+            new(
+                TraderGuildVertex,
+                "prestige_vertex_traders_guild",
+                cost: Cost(TraderGuildVertex),
+                modifiers: new Modifier[] { new(ECategory.BUILDING_MAX_LEVEL, "TraderGuild", EType.ADDITIVE, 1) }
             ),
             new(
                 LaboratoryVertex,
