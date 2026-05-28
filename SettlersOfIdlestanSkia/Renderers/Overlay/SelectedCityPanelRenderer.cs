@@ -180,7 +180,7 @@ public class SelectedCityPanelRenderer : IGameRenderer
             var label = _localization.Get(building.NameKey) + (isBuilt ? $" (Niv {building.Level})" : "");
             canvas.DrawText(label, panelX + Padding, yRow + 18, _font15, namePaint);
 
-            if (!isBuiltInOtherCity)
+            if (!isBuiltInOtherCity && !isAtMaxLevel)
             {
                 var cost = isBuiltInThisCity ? building.GetUpgradeCost(building.Level + 1) : building.GetBuildCost();
                 if (cost.Count > 0)
