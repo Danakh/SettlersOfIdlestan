@@ -2,6 +2,7 @@ using SettlersOfIdlestan.Controller;
 using SettlersOfIdlestan.Controller.Expand;
 using SettlersOfIdlestan.Controller.Generator;
 using SettlersOfIdlestan.Controller.Island;
+using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.GameplayModifier;
 using SettlersOfIdlestan.Model.HexGrid;
@@ -254,6 +255,7 @@ public class RoadControllerTests
     public void MaritimeRoutes_BuildRoad_ConsumesFixedCostAndCreatesRoad()
     {
         var (state, civ) = CoastalIsland();
+        civ.Cities[0].Buildings.Add(new Warehouse());
         EnableMaritimeRoutes(civ);
         civ.AddResource(Resource.Wood,  10);
         civ.AddResource(Resource.Brick, 10);
