@@ -344,7 +344,7 @@ public class SelectedCityPanelRenderer : IGameRenderer
                     long elapsed = market.LastGenerationTick == 0 ? 0 : currentTick - market.LastGenerationTick;
                     long effectiveCooldown = _cityBuildingService.GetEffectiveMarketCooldown(market);
                     long remaining = Math.Max(0, effectiveCooldown - elapsed);
-                    tooltipLines.Add(_localization.Get("market_generation_cooldown") + $" {remaining/100}s/{effectiveCooldown/100}s");
+                    tooltipLines.Add(_localization.Get("market_generation_cooldown") + $" {remaining/100.0:0.0}s/{effectiveCooldown/100.0:0.0}s");
                     tooltipLines.Add("");
                 }
 
@@ -356,7 +356,7 @@ public class SelectedCityPanelRenderer : IGameRenderer
                     {
                         long elapsed = barracks.LastSoldierProductionTick == 0 ? 0 : currentTick - barracks.LastSoldierProductionTick;
                         long remaining = Math.Max(0, MilitaryController.SoldierProductionIntervalTicks - elapsed);
-                        tooltipLines.Add(_localization.Get("barracks_soldier_production") + $" {remaining/100}s/{MilitaryController.SoldierProductionIntervalTicks/100}s");
+                        tooltipLines.Add(_localization.Get("barracks_soldier_production") + $" {remaining/100.0:0.0}s/{MilitaryController.SoldierProductionIntervalTicks/100.0:0.0}s");
                     }
                     tooltipLines.Add("");
                 }
@@ -367,13 +367,13 @@ public class SelectedCityPanelRenderer : IGameRenderer
 
                     long roadElapsed = buildersGuild.LastRoadBuildTick == 0 ? 0 : currentTick - buildersGuild.LastRoadBuildTick;
                     long roadRemaining = Math.Max(0, RoadController.AutoRoadBuildCooldownTicks - roadElapsed);
-                    tooltipLines.Add(_localization.Get("buildersguild_next_road") + $" {roadRemaining / 100}s/{RoadController.AutoRoadBuildCooldownTicks / 100}s");
+                    tooltipLines.Add(_localization.Get("buildersguild_next_road") + $" {roadRemaining / 100.0:0.0}s/{RoadController.AutoRoadBuildCooldownTicks / 100.0:0.0}s");
 
                     if (buildersGuild.Level >= 4)
                     {
                         long outpostElapsed = buildersGuild.LastOutpostBuildTick == 0 ? 0 : currentTick - buildersGuild.LastOutpostBuildTick;
                         long outpostRemaining = Math.Max(0, CityBuilderController.AutoOutpostBuildCooldownTicks - outpostElapsed);
-                        tooltipLines.Add(_localization.Get("buildersguild_next_outpost") + $" {outpostRemaining / 100}s/{CityBuilderController.AutoOutpostBuildCooldownTicks / 100}s");
+                        tooltipLines.Add(_localization.Get("buildersguild_next_outpost") + $" {outpostRemaining / 100.0:0.0}s/{CityBuilderController.AutoOutpostBuildCooldownTicks / 100.0:0.0}s");
                     }
 
                     tooltipLines.Add("");

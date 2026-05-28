@@ -190,7 +190,7 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay
 
         private string FormatCooldownLine(string label, HexCoord coord, Dictionary<HexCoord, long>? times, long currentTick, long cooldownTicks)
         {
-            var max = $"{cooldownTicks / 100.0:0.#}s";
+            var max = $"{cooldownTicks / 100.0:0.0}s";
 
             if (times == null || !times.TryGetValue(coord, out var lastTick))
                 return $"{label}: {_localizationService.Get("hex_tooltip_ready")} / {max}";
