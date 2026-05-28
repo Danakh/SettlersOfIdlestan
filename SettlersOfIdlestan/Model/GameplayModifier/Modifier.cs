@@ -31,6 +31,8 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             UNLOCK_MARITIME_ROUTES,
             /// <summary>Flat bonus added to the city attack range (in edges). SubCategory unused.</summary>
             CITY_ATTACK_RANGE,
+            /// <summary>Flat bonus added to the reinforcement range (in edges). SubCategory unused.</summary>
+            REINFORCEMENT_RANGE,
         }
 
         public enum EType

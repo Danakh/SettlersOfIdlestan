@@ -36,6 +36,13 @@ public class CityDestroyedEventArgs(Vertex cityVertex) : EventArgs
     public Vertex CityVertex { get; } = cityVertex;
 }
 
+public class ReinforcementEventArgs(Vertex sourceCity, Vertex targetCity, List<Vertex> path) : EventArgs
+{
+    public Vertex SourceCity { get; } = sourceCity;
+    public Vertex TargetCity { get; } = targetCity;
+    public List<Vertex> Path { get; } = path;
+}
+
 /// <summary>
 /// Gère la production de soldats par les Casernes et le combat contre toutes les cibles
 /// militaires (bandits, civilisations adverses à venir…).
@@ -66,15 +73,26 @@ public class MilitaryController
     /// <summary>Distance de base en edges en deçà de laquelle une ville adverse déclenche une attaque automatique.</summary>
     private const int DefaultCityAttackRange = 3;
 
+    /// <summary>Distance de base en edges dans laquelle une ville peut envoyer des renforts à une ville alliée.</summary>
+    private const int DefaultReinforcementRange = 5;
+
+    /// <summary>Intervalle minimum entre deux envois de renforts depuis la même ville.</summary>
+    public const long ReinforcementIntervalTicks = 500L;
+
     /// <summary>Distance effective en edges, après application des modificateurs de civilisation.</summary>
     public int CityAttackRange(Civilization civ)
         => civ.ModifierAggregator.ApplyModifiers(ECategory.CITY_ATTACK_RANGE, "", DefaultCityAttackRange);
+
+    /// <summary>Portée de renfort effective en edges, après application des modificateurs de civilisation.</summary>
+    public int ReinforcementRange(Civilization civ)
+        => civ.ModifierAggregator.ApplyModifiers(ECategory.REINFORCEMENT_RANGE, "", DefaultReinforcementRange);
 
     public event EventHandler<SoldierAttackEventArgs>? SoldierAttackedBandit;
     public event EventHandler<SoldierAttackEventArgs>? SoldierAttackedHideout;
     public event EventHandler<CityAttackEventArgs>? SoldierAttackedCity;
     public event EventHandler<CityBuildingDestroyedEventArgs>? CityBuildingDestroyed;
     public event EventHandler<CityDestroyedEventArgs>? CityDestroyed;
+    public event EventHandler<ReinforcementEventArgs>? ReinforcementSent;
 
     /// <summary>Nombre total de soldats disponibles dans la ville (toutes casernes).</summary>
     public int GetAttackScore(City city)
@@ -131,7 +149,7 @@ public class MilitaryController
     private void OnClockAdvanced(object? sender, GameClockAdvancedEventArgs e)
     {
         try { Update(e.CurrentTick); }
-        catch { }
+        catch (Exception) { }
     }
 
     private void Update(long currentTick)
@@ -142,6 +160,7 @@ public class MilitaryController
         ResolveHideoutCombat(currentTick);
         ResolveDefenseRegen(currentTick);
         ResolveCityAttacks(currentTick);
+        ResolveReinforcements(currentTick);
     }
 
     // ── Production ───────────────────────────────────────────────────────────
@@ -312,6 +331,68 @@ public class MilitaryController
         }
 
         return closest;
+    }
+
+    // ── Renforts entre villes alliées ────────────────────────────────────────
+
+    private void ResolveReinforcements(long currentTick)
+    {
+        if (_state == null) return;
+
+        foreach (var civ in _state.Civilizations)
+        {
+            foreach (var sourceCity in civ.Cities.ToList())
+            {
+                if (currentTick - sourceCity.LastReinforcementTick < ReinforcementIntervalTicks) continue;
+
+                var sourceBarracks = sourceCity.Buildings.OfType<Barracks>().ToList();
+                if (sourceBarracks.Count == 0) continue;
+
+                int totalSoldiers = sourceBarracks.Sum(b => b.Soldiers);
+                int capacity = sourceBarracks.Count * MaxSoldiers;
+                if (capacity == 0 || totalSoldiers * 2 < capacity) continue;
+
+                if (FindNearbyEnemyCity(sourceCity, civ) != null) continue;
+
+                int range = ReinforcementRange(civ);
+                City? targetCity = null;
+                int closestDist = int.MaxValue;
+
+                foreach (var friendlyCity in civ.Cities)
+                {
+                    if (friendlyCity == sourceCity) continue;
+                    int dist = sourceCity.Position.EdgeDistanceTo(friendlyCity.Position);
+                    if (dist > range || dist >= closestDist) continue;
+
+                    var targetBarracks = friendlyCity.Buildings.OfType<Barracks>().ToList();
+                    if (targetBarracks.Count == 0) continue;
+
+                    int targetSoldiers = targetBarracks.Sum(b => b.Soldiers);
+                    int targetCapacity = targetBarracks.Count * MaxSoldiers;
+                    if (targetSoldiers >= targetCapacity) continue;
+                    if (totalSoldiers < targetSoldiers * 2) continue;
+
+                    targetCity = friendlyCity;
+                    closestDist = dist;
+                }
+
+                if (targetCity == null) continue;
+
+                var receiver = targetCity.Buildings.OfType<Barracks>()
+                    .FirstOrDefault(b => b.Soldiers < MaxSoldiers);
+                if (receiver == null) continue;
+
+                var donor = sourceBarracks.OrderByDescending(b => b.Soldiers).First();
+                if (donor.Soldiers == 0) continue;
+
+                donor.Soldiers--;
+                receiver.Soldiers++;
+                sourceCity.LastReinforcementTick = currentTick;
+
+                var path = HexGridPathfinder.FindVertexPath(sourceCity.Position, targetCity.Position);
+                ReinforcementSent?.Invoke(this, new ReinforcementEventArgs(sourceCity.Position, targetCity.Position, path));
+            }
+        }
     }
 
     private bool IsCityVisibleTo(City city, Civilization civ)

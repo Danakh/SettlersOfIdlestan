@@ -40,6 +40,11 @@ public class City
     public long LastCityAttackTick { get; set; }
 
     /// <summary>
+    /// Tick du dernier renfort envoyé par cette ville vers une ville alliée.
+    /// </summary>
+    public long LastReinforcementTick { get; set; }
+
+    /// <summary>
     /// Gets the effective level of the city.
     /// Level 1 is the base level (outpost) when no TownHall is built.
     /// When a TownHall is present the city level is TownHall.Level + 1.
