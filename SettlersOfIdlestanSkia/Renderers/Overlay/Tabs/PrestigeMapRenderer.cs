@@ -354,7 +354,9 @@ public sealed class PrestigeMapRenderer : IGameRenderer
 
     private string FormatModifier(Modifier mod) => mod.Category switch
     {
-        Modifier.ECategory.BUILDING_MAX_LEVEL => $"+{(int)mod.Value} {(string.IsNullOrEmpty(mod.SubCategory) ? "" : _localization.Get($"building_{mod.SubCategory.ToLower()}_name"))} max",
+        Modifier.ECategory.BUILDING_MAX_LEVEL => string.IsNullOrEmpty(mod.SubCategory)
+            ? $"+{(int)mod.Value} {_localization.Get("prestige_tooltip_max_level")}"
+            : $"+{(int)mod.Value} {_localization.Get("prestige_tooltip_max_level")} — {_localization.Get($"building_{mod.SubCategory.ToLower()}_name")}",
         Modifier.ECategory.HARVEST_SPEED            => string.IsNullOrEmpty(mod.SubCategory)
             ? $"+{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_harvest_speed")}"
             : $"+{(int)(mod.Value * 100)}% {_localization.Get($"building_{mod.SubCategory.ToLower()}_name")} {_localization.Get("prestige_tooltip_harvest_speed")}",
@@ -366,6 +368,7 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         Modifier.ECategory.TRADE_GOLD_PACKAGES       => $"{mod.Value:0.##} {_localization.Get("prestige_tooltip_gold_packages")}",
         Modifier.ECategory.CITY_DEFENSE              => $"+{(int)mod.Value} {_localization.Get("prestige_tooltip_city_defense")}",
         Modifier.ECategory.UNLOCK_RESEARCH           => _localization.Get("prestige_tooltip_unlocks_research"),
+        Modifier.ECategory.UNLOCK_MARITIME_ROUTES    => _localization.Get("prestige_tooltip_unlocks_maritime_routes"),
         _ => $"+{mod.Value}"
     };
 
