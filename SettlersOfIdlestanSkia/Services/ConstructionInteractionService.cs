@@ -93,13 +93,16 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
         {
             _lastClickTime = DateTime.MinValue;
 
-            if (HoverState.HoveredVertex != null && _gameControllerService.TryBuildCityForPlayer(HoverState.HoveredVertex))
+            if (HoverState.HoveredVertex != null)
             {
+                var city = _gameControllerService.TryBuildCityForPlayer(HoverState.HoveredVertex);
+                if (city != null)
+                    _cityBuildingService.SetSelectedCity(city.Position);
                 RefreshHover(e.Position);
                 return;
             }
 
-            if (HoverState.HoveredEdge != null && _gameControllerService.TryBuildRoadForPlayer(HoverState.HoveredEdge))
+            if (HoverState.HoveredEdge != null && _gameControllerService.TryBuildRoadForPlayer(HoverState.HoveredEdge) != null)
             {
                 RefreshHover(e.Position);
                 return;
