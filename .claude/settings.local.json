@@ -56,7 +56,8 @@
       "Bash(Select-String \"error CS|succeeded|Error\")",
       "Bash(dotnet clean *)",
       "Bash(Get-ChildItem -Path \"C:\\\\DEV\\\\SettlersOfIdlestan\\\\SettlersOfIdlestan\\\\Model\\\\Buildings\" -Filter \"*.cs\")",
-      "Bash(Select-Object -ExpandProperty Name)"
+      "Bash(Select-Object -ExpandProperty Name)",
+      "Bash(Get-ChildItem -Path . -Recurse -Filter \"*FileSystem*\" -Name)"
     ]
   }
 }

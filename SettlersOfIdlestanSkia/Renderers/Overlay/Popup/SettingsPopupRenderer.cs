@@ -9,7 +9,7 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay.Popup;
 public sealed class SettingsPopupRenderer : IDisposable
 {
     private const float PopupWidth     = 580;
-    private const float PopupHeight    = 210;
+    private const float PopupHeight    = 274;
     private const float BtnWidth       = 120;
     private const float BtnHeight      = 34;
     private const float BtnGap         = 10;
@@ -35,8 +35,10 @@ public sealed class SettingsPopupRenderer : IDisposable
     private SKRect _popupRect       = SKRect.Empty;
     private SKRect _btnFrench       = SKRect.Empty;
     private SKRect _btnEnglish      = SKRect.Empty;
-    private SKRect _btnPauseOn      = SKRect.Empty;
-    private SKRect _btnPauseOff     = SKRect.Empty;
+    private SKRect _btnPauseOn          = SKRect.Empty;
+    private SKRect _btnPauseOff         = SKRect.Empty;
+    private SKRect _btnParticlesOn      = SKRect.Empty;
+    private SKRect _btnParticlesOff     = SKRect.Empty;
 
     private bool _disposed;
     private bool _justOpened;
@@ -100,6 +102,15 @@ public sealed class SettingsPopupRenderer : IDisposable
             (_btnPauseOn,  "ui_yes",  settings.PauseAfterPrestige),
             (_btnPauseOff, "ui_no",  !settings.PauseAfterPrestige),
         });
+
+        float row3Y = y + FirstRowY + RowSpacingY * 2;
+        _btnParticlesOn  = MakeRect(btn1Left, row3Y, BtnWidth, BtnHeight);
+        _btnParticlesOff = MakeRect(btn2Left, row3Y, BtnWidth, BtnHeight);
+        DrawRow(canvas, x, row3Y, "settings_harvest_particles", new[]
+        {
+            (_btnParticlesOn,  "ui_yes",  settings.ShowHarvestParticles),
+            (_btnParticlesOff, "ui_no",  !settings.ShowHarvestParticles),
+        });
     }
 
     private void DrawRow(SKCanvas canvas, float popX, float rowY, string labelKey,
@@ -141,8 +152,10 @@ public sealed class SettingsPopupRenderer : IDisposable
         var settings = _gameController.CurrentMainState?.Settings;
         if (settings != null)
         {
-            if (_btnPauseOn.Contains(pos.X, pos.Y))  { settings.PauseAfterPrestige = true;  return true; }
-            if (_btnPauseOff.Contains(pos.X, pos.Y)) { settings.PauseAfterPrestige = false; return true; }
+            if (_btnPauseOn.Contains(pos.X, pos.Y))       { settings.PauseAfterPrestige    = true;  return true; }
+            if (_btnPauseOff.Contains(pos.X, pos.Y))      { settings.PauseAfterPrestige    = false; return true; }
+            if (_btnParticlesOn.Contains(pos.X, pos.Y))   { settings.ShowHarvestParticles  = true;  return true; }
+            if (_btnParticlesOff.Contains(pos.X, pos.Y))  { settings.ShowHarvestParticles  = false; return true; }
         }
 
         if (!_popupRect.Contains(pos.X, pos.Y))

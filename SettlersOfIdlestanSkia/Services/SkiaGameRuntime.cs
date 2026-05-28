@@ -127,7 +127,7 @@ public sealed class SkiaGameRuntime : IDisposable
         _introRenderer = new IntroAnimationRenderer(_resourceManager!);
         _renderService.RegisterRenderer(_introRenderer);
 
-        islandMainRenderer.ConnectHarvestEvents(_harvestService!, _gameControllerService!, () => _prestigeTransitionPending, () => _overlayRenderer?.IsIslandTabActive ?? true);
+        islandMainRenderer.ConnectHarvestEvents(_harvestService!, _gameControllerService!, () => _prestigeTransitionPending, () => _overlayRenderer?.IsIslandTabActive ?? true, () => _gameControllerService.MainGameController.CurrentMainState?.Settings.ShowHarvestParticles ?? true);
         islandMainRenderer.ConnectMilitaryEvents(_gameControllerService.MainGameController.MilitaryController, _gameControllerService!, () => _prestigeTransitionPending, () => _overlayRenderer?.IsIslandTabActive ?? true);
 
         var selectedCityPanelRenderer = new SelectedCityPanelRenderer(_gameControllerService.CityBuildingService!, _localizationService, _inputService, _resourceManager!);
