@@ -23,8 +23,10 @@ public class MilitaryRenderer : HexBasedRenderer, IGameRenderer
     }
 
     private readonly List<MilitaryParticle> _particles = new();
+    private readonly List<MilitaryParticle> _reinforceParticles = new();
     private SKSvg? _attackSvg;
     private SKPaint? _paint;
+    private SKPaint? _reinforcePaint;
     private SKPaint? _threatLinePaint;
     private MilitaryController? _militaryController;
     private GameControllerService? _gameControllerService;
@@ -33,6 +35,7 @@ public class MilitaryRenderer : HexBasedRenderer, IGameRenderer
     public void Initialize(SKSize canvasSize)
     {
         _paint = new SKPaint { IsAntialias = true };
+        _reinforcePaint = new SKPaint { IsAntialias = true };
         _threatLinePaint = new SKPaint
         {
             Color = new SKColor(220, 50, 50, 180),
@@ -65,6 +68,12 @@ public class MilitaryRenderer : HexBasedRenderer, IGameRenderer
             if (!isIslandTabActive()) return;
             EmitParticle(args.Path);
         };
+        militaryController.ReinforcementSent += (_, args) =>
+        {
+            if (isPrestigeTransitionPending()) return;
+            if (!isIslandTabActive()) return;
+            EmitReinforceParticle(args.Path);
+        };
     }
 
     private void EmitParticle(List<Vertex> vertexPath)
@@ -74,15 +83,28 @@ public class MilitaryRenderer : HexBasedRenderer, IGameRenderer
         _particles.Add(new MilitaryParticle { Path = pathPoints, Progress = 0f });
     }
 
+    private void EmitReinforceParticle(List<Vertex> vertexPath)
+    {
+        if (vertexPath.Count == 0) return;
+        var pathPoints = vertexPath.Select(v => VertexToIsland(v)).ToList();
+        _reinforceParticles.Add(new MilitaryParticle { Path = pathPoints, Progress = 0f });
+    }
+
     public void Render(SKCanvas canvas, GameRenderContext context)
     {
         DrawThreatLines(canvas);
 
         float dt = context.DeltaTime;
 
-        for (int i = _particles.Count - 1; i >= 0; i--)
+        AdvanceParticles(canvas, _particles, dt, reinforce: false);
+        AdvanceParticles(canvas, _reinforceParticles, dt, reinforce: true);
+    }
+
+    private void AdvanceParticles(SKCanvas canvas, List<MilitaryParticle> particles, float dt, bool reinforce)
+    {
+        for (int i = particles.Count - 1; i >= 0; i--)
         {
-            var p = _particles[i];
+            var p = particles[i];
             int segments = Math.Max(1, p.Path.Count - 1);
             float duration = segments * SegmentDuration;
             p.Progress = Math.Min(1f, p.Progress + dt / duration);
@@ -98,27 +120,37 @@ public class MilitaryRenderer : HexBasedRenderer, IGameRenderer
                 from.Y + (to.Y - from.Y) * segT);
 
             float alpha = p.Progress > 0.8f ? (1f - p.Progress) / 0.2f : 1f;
-            DrawIcon(canvas, pos, alpha);
+            if (reinforce)
+                DrawReinforceIcon(canvas, pos, alpha);
+            else
+                DrawIcon(canvas, pos, alpha);
 
             if (p.Progress >= 1f)
-                _particles.RemoveAt(i);
+                particles.RemoveAt(i);
         }
     }
 
     private void DrawIcon(SKCanvas canvas, SKPoint center, float alpha)
+        => DrawSvgIcon(canvas, center, alpha, new SKColor(220, 60, 60), _paint);
+
+    private void DrawReinforceIcon(SKCanvas canvas, SKPoint center, float alpha)
+        => DrawSvgIcon(canvas, center, alpha, new SKColor(50, 180, 80), _reinforcePaint);
+
+    private void DrawSvgIcon(SKCanvas canvas, SKPoint center, float alpha, SKColor color, SKPaint? paint)
     {
         var picture = _attackSvg?.Picture;
-        if (picture == null || _paint == null) return;
+        if (picture == null || paint == null) return;
 
         byte a = (byte)(Math.Clamp(alpha, 0f, 1f) * 255);
-        _paint.Color = new SKColor(220, 60, 60, a);
-        _paint.ColorFilter = SKColorFilter.CreateBlendMode(new SKColor(220, 60, 60, a), SKBlendMode.SrcIn);
+        var tinted = new SKColor(color.Red, color.Green, color.Blue, a);
+        paint.Color = tinted;
+        paint.ColorFilter = SKColorFilter.CreateBlendMode(tinted, SKBlendMode.SrcIn);
 
         float scale = ParticleIconSize / SvgNativeSize;
         canvas.Save();
         canvas.Translate(center.X - ParticleIconSize / 2f, center.Y - ParticleIconSize / 2f);
         canvas.Scale(scale);
-        canvas.SaveLayer(new SKRect(0, 0, SvgNativeSize, SvgNativeSize), _paint);
+        canvas.SaveLayer(new SKRect(0, 0, SvgNativeSize, SvgNativeSize), paint);
         canvas.DrawPicture(picture);
         canvas.Restore();
         canvas.Restore();
@@ -147,6 +179,8 @@ public class MilitaryRenderer : HexBasedRenderer, IGameRenderer
         _attackSvg = null;
         _paint?.Dispose();
         _paint = null;
+        _reinforcePaint?.Dispose();
+        _reinforcePaint = null;
         _threatLinePaint?.Dispose();
         _threatLinePaint = null;
         _disposed = true;
