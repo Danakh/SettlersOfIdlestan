@@ -45,6 +45,9 @@ public sealed class PrestigeMapRenderer : IGameRenderer
     private Vertex? _hoveredVertex;
     private HexCoord? _hoveredHex;
 
+    private readonly HashSet<Vertex> _visibleVertices = new();
+    private readonly HashSet<HexCoord> _visibleHexes = new();
+
     private readonly SKPaint _bgPaint = new() { Color = new SKColor(238, 242, 245), Style = SKPaintStyle.Fill };
 
     private readonly SKPaint _roadPaint = new()
@@ -105,6 +108,7 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         float barH = PlayerResourcesOverlayRenderer.BarHeight;
         canvas.DrawRect(0f, barH, _canvasSize.Width, _canvasSize.Height - barH, _bgPaint);
 
+        UpdateVisibility(prestigeState);
         DrawHexes(canvas, prestigeState);
         DrawRoads(canvas, prestigeState);
         DrawVertices(canvas, prestigeState);
@@ -115,10 +119,31 @@ public sealed class PrestigeMapRenderer : IGameRenderer
             BuildHexTooltip(_hoveredHex, prestigeState);
     }
 
+    private void UpdateVisibility(PrestigeState state)
+    {
+        var map = PrestigeMapController.DefaultMap;
+
+        _visibleVertices.Clear();
+        foreach (var v in map.Vertices)
+        {
+            if (v.Coord.Equals(PrestigeMap.CentralVertex)
+                || map.GetNeighbors(v.Coord).Any(n => state.PurchasedVertices.Contains(n.Coord)))
+                _visibleVertices.Add(v.Coord);
+        }
+
+        _visibleHexes.Clear();
+        foreach (var hex in map.Hexes)
+        {
+            if (hex.AdjacentVertices.Any(v => _visibleVertices.Contains(v)))
+                _visibleHexes.Add(hex.Coord);
+        }
+    }
+
     private void DrawHexes(SKCanvas canvas, PrestigeState state)
     {
         foreach (var hex in PrestigeMapController.DefaultMap.Hexes)
         {
+            if (!_visibleHexes.Contains(hex.Coord)) continue;
             var pos = ScreenPosHex(hex.Coord);
             int adjCount = hex.AdjacentVertices.Count(v => state.PurchasedVertices.Contains(v));
             bool isHovered = hex.Coord.Equals(_hoveredHex);
@@ -162,6 +187,7 @@ public sealed class PrestigeMapRenderer : IGameRenderer
 
         foreach (var vertex in PrestigeMapController.DefaultMap.Vertices)
         {
+            if (!_visibleVertices.Contains(vertex.Coord)) continue;
             var pos = ScreenPosVertex(vertex.Coord);
             bool purchased = state.PurchasedVertices.Contains(vertex.Coord);
             bool canBuy    = controller.CanPurchaseVertex(state, vertex.Coord);
@@ -201,6 +227,7 @@ public sealed class PrestigeMapRenderer : IGameRenderer
 
         foreach (var vertex in PrestigeMapController.DefaultMap.Vertices)
         {
+            if (!_visibleVertices.Contains(vertex.Coord)) continue;
             var pos = ScreenPosVertex(vertex.Coord);
             float dx = position.X - pos.X, dy = position.Y - pos.Y;
             if (dx * dx + dy * dy <= VertexCircleRadius * VertexCircleRadius)
@@ -212,6 +239,7 @@ public sealed class PrestigeMapRenderer : IGameRenderer
 
         foreach (var hex in PrestigeMapController.DefaultMap.Hexes)
         {
+            if (!_visibleHexes.Contains(hex.Coord)) continue;
             var pos = ScreenPosHex(hex.Coord);
             var pts = GetHexPoints(pos.X, pos.Y, R);
             if (IsPointInPolygon(position.X, position.Y, pts))
@@ -226,6 +254,7 @@ public sealed class PrestigeMapRenderer : IGameRenderer
     {
         foreach (var vertex in PrestigeMapController.DefaultMap.Vertices)
         {
+            if (!_visibleVertices.Contains(vertex.Coord)) continue;
             var pos = ScreenPosVertex(vertex.Coord);
             float dx = position.X - pos.X, dy = position.Y - pos.Y;
             if (dx * dx + dy * dy <= VertexCircleRadius * VertexCircleRadius)
