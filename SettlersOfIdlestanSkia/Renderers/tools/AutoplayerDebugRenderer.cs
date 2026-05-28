@@ -27,6 +27,7 @@ public class AutoplayerDebugRenderer : IGameRenderer
 
     private CivilizationAutoplayer? _autoplayer;
     private object? _lastCivRef;
+    private int _tickCount;
 
     private readonly SKPaint _activePaint   = new() { Color = new SKColor(60, 180, 80),  Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _inactivePaint = new() { Color = new SKColor(35, 35, 50),   Style = SKPaintStyle.Fill, IsAntialias = true };
@@ -64,8 +65,9 @@ public class AutoplayerDebugRenderer : IGameRenderer
         if (_disposed || !DebugOverlayRenderer.DebugMode)
             return;
 
-        if (_mode != AutoplayerMode.Inactive)
+        if (_mode != AutoplayerMode.Inactive && _tickCount % 20 == 0)
             RunAutoplayerStep();
+        _tickCount++;
 
         for (int i = 0; i < 5; i++)
             DrawButton(canvas, _buttonRects[i], Labels[i], (int)_mode == i);

@@ -82,8 +82,8 @@ namespace SettlersOfIdlestan.Controller
 
             if (requiredResources != null && requiredResources.Any())
             {
-                try { _tradeController.TryAutoTradeForPurchase(_civ.Index, requiredResources); }
-                catch { }
+                if (_tradeController.TryAutoTradeForPurchase(_civ.Index, requiredResources))
+                    return;
             }
         }
 
@@ -180,12 +180,8 @@ namespace SettlersOfIdlestan.Controller
 
             foreach (var city in _civ.Cities.ToList().Where(c => c.Level >= 4))
             {
-                try
-                {
-                    if (TryBuildUniqueBuildingOnce(city.Position, BuildingType.ImperialPort, withGrind: true))
-                        didSomething = true;
-                }
-                catch { }
+                if (TryBuildUniqueBuildingOnce(city.Position, BuildingType.ImperialPort, withGrind: true))
+                    didSomething = true;
             }
 
             return didSomething;
@@ -203,13 +199,13 @@ namespace SettlersOfIdlestan.Controller
             foreach (var city in _civ.Cities.ToList())
             {
                 var nearestEnemy = _mainController.MilitaryController
-                    .FindNearestEnemyCityForDefense(city, _civ, islandState);
+                    .FindNearbyEnemyCity(city, _civ);
                 if (nearestEnemy == null) continue;
 
                 foreach (var bt in MilitaryBuildings)
                 {
-                    try { if (TryBuildBuildingOnce(city.Position, bt, withGrind: false)) didSomething = true; }
-                    catch { }
+                    if (TryBuildBuildingOnce(city.Position, bt, withGrind: false))
+                        didSomething = true;
                 }
             }
 
@@ -348,26 +344,24 @@ namespace SettlersOfIdlestan.Controller
 
             TryGrindOnce(null);
 
-            try { if (TryResearchOnce()) didSomething = true; } catch { }
+            if (TryResearchOnce())
+                didSomething = true;
 
             if (tradeTargets != null)
             {
                 foreach (var target in tradeTargets)
                 {
-                    try { if (TryTradeForResourceOnce(target)) didSomething = true; }
-                    catch { }
+                    if (TryTradeForResourceOnce(target)) 
+                        didSomething = true;
                 }
             }
 
             if (shouldExpand)
             {
                 // Try outpost if a buildable vertex is accessible
-                try
-                {
-                    var newVert = _cityBuilderController.GetBuildableVertices(_civ.Index).FirstOrDefault();
-                    if (newVert != null && TryBuildOutpostOnce(newVert, withGrind: false)) didSomething = true;
-                }
-                catch { }
+                var newVert = _cityBuilderController.GetBuildableVertices(_civ.Index).FirstOrDefault();
+                if (newVert != null && TryBuildOutpostOnce(newVert, withGrind: false))
+                    didSomething = true;
             }
 
             // Build production/support buildings (no per-building grind to avoid trade interference)
@@ -375,23 +369,20 @@ namespace SettlersOfIdlestan.Controller
             {
                 foreach (var bt in targetBuildings)
                 {
-                    try { if (TryBuildBuildingOnce(city.Position, bt, withGrind: false)) didSomething = true; }
-                    catch { }
+                    if (TryBuildBuildingOnce(city.Position, bt, withGrind: false)) 
+                        didSomething = true;
                 }
             }
 
             if (shouldExpand)
             {
                 // Expand road network: target distance 3 first (unlocks new city slots), fall back to nearest
-                try
-                {
-                    var d3 = _roadController.GetBuildableRoadsAtDistance(_civ.Index, 3);
-                    var nextRoad = (d3 != null && d3.Any())
-                        ? d3[0]
-                        : _roadController.GetBuildableRoads(_civ.Index).OrderBy(r => r.DistanceToNearestCity).FirstOrDefault();
-                    if (nextRoad != null && TryBuildRoadOnce(nextRoad.Position, withGrind: false)) didSomething = true;
-                }
-                catch { }
+                var d3 = _roadController.GetBuildableRoadsAtDistance(_civ.Index, 3);
+                var nextRoad = (d3 != null && d3.Any())
+                    ? d3[0]
+                    : _roadController.GetBuildableRoads(_civ.Index).OrderBy(r => r.DistanceToNearestCity).FirstOrDefault();
+                if (nextRoad != null && TryBuildRoadOnce(nextRoad.Position, withGrind: false))
+                    didSomething = true;
             }
 
             return didSomething;
