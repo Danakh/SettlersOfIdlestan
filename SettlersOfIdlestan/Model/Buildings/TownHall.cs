@@ -51,7 +51,7 @@ public class TownHall : Building
         };
         if (level > 2)
         {
-            result.Add(Resource.Gold, 10 * (level + 1));
+            result.Add(Resource.Gold, 10 * (level - 1));
         }
         return result;
     }
