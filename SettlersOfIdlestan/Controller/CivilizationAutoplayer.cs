@@ -290,11 +290,50 @@ namespace SettlersOfIdlestan.Controller
             return true;
         }
 
+        /// <summary>
+        /// Starts the cheapest available research if none is active, and queues the next cheapest
+        /// if the research queue prestige perk is unlocked. No-ops when research is not unlocked.
+        /// </summary>
+        public bool TryResearchOnce()
+        {
+            var researchCtrl = _mainController.ResearchController;
+            if (!researchCtrl.IsResearchUnlocked()) return false;
+
+            bool didSomething = false;
+
+            bool isAnyInProgress = TechnologyDefinitions.All
+                .Any(t => researchCtrl.GetStatus(t.Id) == TechnologyStatus.InProgress);
+
+            if (!isAnyInProgress)
+            {
+                var next = TechnologyDefinitions.All
+                    .Where(t => researchCtrl.GetStatus(t.Id) == TechnologyStatus.Available)
+                    .OrderBy(t => t.Cost)
+                    .FirstOrDefault();
+                if (next != null && researchCtrl.StartResearch(next.Id))
+                    didSomething = true;
+            }
+
+            if (researchCtrl.IsResearchQueueUnlocked() && researchCtrl.GetQueuedResearch() == null)
+            {
+                var queued = TechnologyDefinitions.All
+                    .Where(t => researchCtrl.CanBeQueued(t.Id))
+                    .OrderBy(t => t.Cost)
+                    .FirstOrDefault();
+                if (queued != null && researchCtrl.SetQueuedResearch(queued.Id))
+                    didSomething = true;
+            }
+
+            return didSomething;
+        }
+
         private bool TryStepOnce(BuildingType[] targetBuildings, bool shouldExpand, Resource[]? tradeTargets = null)
         {
             bool didSomething = false;
 
             TryGrindOnce(null);
+
+            try { if (TryResearchOnce()) didSomething = true; } catch { }
 
             if (tradeTargets != null)
             {
