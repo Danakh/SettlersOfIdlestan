@@ -116,31 +116,6 @@ public class MilitaryController
         return score;
     }
 
-    /// <summary>
-    /// Retourne la ville ennemie la plus proche dans un rayon de <paramref name="maxEdges"/> edges,
-    /// ou null si aucune ville ennemie n'est à portée.
-    /// </summary>
-    public City? FindNearestEnemyCityForDefense(City city, Civilization civ, IslandState state)
-    {
-        int range = CityAttackRange(civ);
-        City? closest = null;
-        int closestDist = int.MaxValue;
-        foreach (var otherCiv in state.Civilizations)
-        {
-            if (otherCiv.Index == civ.Index) continue;
-            foreach (var enemyCity in otherCiv.Cities)
-            {
-                int dist = city.Position.EdgeDistanceTo(enemyCity.Position);
-                if (dist <= range && dist < closestDist)
-                {
-                    closest = enemyCity;
-                    closestDist = dist;
-                }
-            }
-        }
-        return closest;
-    }
-
     internal void Initialize(IslandState? state, GameClock? clock)
     {
         if (_clock != null)
@@ -317,8 +292,9 @@ public class MilitaryController
         }
     }
 
-    private City? FindNearbyEnemyCity(City attackerCity, Civilization attackerCiv)
+    public City? FindNearbyEnemyCity(City attackerCity, Civilization attackerCiv)
     {
+        int range = CityAttackRange(attackerCiv);
         City? closest = null;
         int closestDist = int.MaxValue;
 
@@ -329,7 +305,7 @@ public class MilitaryController
             {
                 if (!IsCityVisibleTo(defenderCity, attackerCiv)) continue;
                 int dist = attackerCity.Position.EdgeDistanceTo(defenderCity.Position);
-                if (dist <= CityAttackRange(attackerCiv) && dist < closestDist)
+                if (dist <= range && dist < closestDist)
                 {
                     closest = defenderCity;
                     closestDist = dist;

@@ -203,7 +203,7 @@ namespace SettlersOfIdlestan.Controller
             foreach (var city in _civ.Cities.ToList())
             {
                 var nearestEnemy = _mainController.MilitaryController
-                    .FindNearestEnemyCityForDefense(city, _civ, islandState);
+                    .FindNearbyEnemyCity(city, _civ);
                 if (nearestEnemy == null) continue;
 
                 foreach (var bt in MilitaryBuildings)
