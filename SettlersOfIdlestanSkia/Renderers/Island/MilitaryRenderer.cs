@@ -133,7 +133,7 @@ public class MilitaryRenderer : HexBasedRenderer, IGameRenderer
 
         foreach (var city in playerCiv.Cities)
         {
-            var enemy = _militaryController.FindNearestEnemyCityForDefense(city, playerCiv, islandState);
+            var enemy = _militaryController.FindNearestEnemyCityForDefense(city, playerCiv, islandState!);
             if (enemy == null) continue;
             canvas.DrawLine(VertexToIsland(city.Position), VertexToIsland(enemy.Position), _threatLinePaint);
         }

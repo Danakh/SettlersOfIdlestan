@@ -268,7 +268,7 @@
   "tech_military_discipline_name": "Military Discipline",
   "tech_military_discipline_desc": "+10% unit production speed",
   "tech_military_tactics_name": "Military Tactics",
-  "tech_military_tactics_desc": "+15% unit production speed",
+  "tech_military_tactics_desc": "+15% unit production speed, +1 city attack range",
   "tech_military_mastery_name": "Military Mastery",
   "tech_military_mastery_desc": "+25% unit production speed, +1 city defense",
   "tab_events": "Events",

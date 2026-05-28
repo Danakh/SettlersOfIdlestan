@@ -52,7 +52,6 @@ namespace SettlersOfIdlestan.Controller
         private static readonly Resource[] Step3TradeTargets = { Resource.Gold };
 
         private static readonly BuildingType[] MilitaryBuildings = { BuildingType.Palisade, BuildingType.Barracks };
-        public const int MilitaryThreatEdges = 5;
 
         public CivilizationAutoplayer(Civilization civ, IslandMap map, MainGameController mainController)
         {
@@ -204,7 +203,7 @@ namespace SettlersOfIdlestan.Controller
             foreach (var city in _civ.Cities.ToList())
             {
                 var nearestEnemy = _mainController.MilitaryController
-                    .FindNearestEnemyCityForDefense(city, _civ, islandState, MilitaryThreatEdges);
+                    .FindNearestEnemyCityForDefense(city, _civ, islandState);
                 if (nearestEnemy == null) continue;
 
                 foreach (var bt in MilitaryBuildings)

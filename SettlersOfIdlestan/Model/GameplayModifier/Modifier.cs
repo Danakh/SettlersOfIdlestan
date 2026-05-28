@@ -29,6 +29,8 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             UNLOCK_RESEARCH,
             /// <summary>Flags that maritime routes (water-water edges) are unlocked for the civilization.</summary>
             UNLOCK_MARITIME_ROUTES,
+            /// <summary>Flat bonus added to the city attack range (in edges). SubCategory unused.</summary>
+            CITY_ATTACK_RANGE,
         }
 
         public enum EType
