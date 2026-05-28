@@ -4,21 +4,47 @@ namespace SettlersOfIdlestan.Model.Civilization;
 
 public enum TechnologyId
 {
+    // Tier 0
     HarvestEfficiency,
-    ImprovedHarvest,
-    MasterHarvest,
     Architecture,
-    AdvancedArchitecture,
-    StorageOptimization,
-    Scholarship,
     Artisanat,
-    Orpaillage,
     MilitaryDiscipline,
+    // Tier 1
+    ImprovedHarvest,
+    StorageOptimization,
+    Erudition,
+    Orpaillage,
     MilitaryTactics,
+    // Tier 2
+    HarvestTools,
+    AdvancedArchitecture,
+    ResearchMethods,
+    Metallurgy,
     MilitaryMastery,
-    ResearchEfficiency,
+    // Tier 3
+    MasterHarvest,
+    GrandArchitecture,
+    Scholarship,
+    Masterwork,
+    WarAcademy,
+    // Tier 4
+    EpicHarvest,
+    TradeRoutes,
     ImprovedResearch,
+    MilitarySupremacy,
+    // Tier 5
+    MerchantGuild,
     MasterResearch,
+    GloriousEmpire,
+    // Tier 6
+    IndustrialAge,
+    Enlightenment,
+    // Tier 7
+    RenaissanceAge,
+    // Tier 8
+    GoldenEra,
+    // Tier 9
+    Utopia,
 }
 
 public enum TechnologyStatus
