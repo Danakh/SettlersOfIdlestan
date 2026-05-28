@@ -66,7 +66,7 @@ namespace SettlersOfIdlestan.Controller.Island
                     new IslandFeatureParameters(IslandFeatureType.TreasureTrove, IslandFeaturePlacement.Random),
                     new IslandFeatureParameters(IslandFeatureType.BanditHideout, IslandFeaturePlacement.FarFromPlayer),
                 };
-                return new IslandParameters(islandId, tileData, 1, features, IslandShapeType.Archipelago)
+                return new IslandParameters(islandId, tileData, 1, features, IslandShapeType.Crescent)
                 {
                     NpcCivilizations =
                     [
@@ -92,7 +92,7 @@ namespace SettlersOfIdlestan.Controller.Island
                     new IslandFeatureParameters(IslandFeatureType.TreasureTrove, IslandFeaturePlacement.Random),
                     new IslandFeatureParameters(IslandFeatureType.BanditHideout, IslandFeaturePlacement.FarFromPlayer),
                 };
-                return new IslandParameters(islandId, tileData, 1, features, IslandShapeType.Crescent)
+                return new IslandParameters(islandId, tileData, 1, features, IslandShapeType.Archipelago)
                 {
                     NpcCivilizations =
                     [
