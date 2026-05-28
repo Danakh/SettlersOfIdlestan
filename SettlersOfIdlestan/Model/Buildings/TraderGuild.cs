@@ -7,7 +7,7 @@ using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
 
 namespace SettlersOfIdlestan.Model.Buildings;
 
-public class TraderGuild : Building
+public class TraderGuild : Building, IModifierProvider
 {
     public long LastMarketBuildTick { get; set; }
 
