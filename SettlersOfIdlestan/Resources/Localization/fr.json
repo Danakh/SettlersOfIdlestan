@@ -86,6 +86,7 @@
   "automation_market_name": "Marchés automatiques",
   "automation_market_desc": "Construit/améliore les Marchés automatiquement",
   "automation_market_locked": "Nécessite la Guilde des marchands",
+  "level_abbrev": "nv",
   "automation_on": "ACT.",
   "automation_off": "DÉS.",
   "building_harvestersguild_name": "Guilde des récolteurs",

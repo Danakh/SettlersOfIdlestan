@@ -1,11 +1,13 @@
 using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Model.Buildings;
+using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Services.Localization;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Services;
 using SkiaSharp;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace SettlersOfIdlestanSkia.Renderers.Overlay.Tabs;
@@ -16,6 +18,7 @@ public sealed class AutomationRenderer : IDisposable
     private const float ToggleWidth = 60f;
     private const float ToggleHeight = 28f;
     private const float RowHeight = 54f;
+    private const float SummaryHeight = 20f;
     private const float RowSpacing = 8f;
     private const float TextOffsetX = ToggleWidth + 14f;
 
@@ -51,11 +54,20 @@ public sealed class AutomationRenderer : IDisposable
     private readonly SKPaint _descPaint            = new() { Color = new SKColor(150, 150, 165), IsAntialias = true };
     private readonly SKPaint _mutedPaint           = new() { Color = new SKColor(110, 110, 125), IsAntialias = true };
     private readonly SKPaint _accentPaint          = new() { Color = new SKColor(255, 215, 0), IsAntialias = true };
+    private readonly SKPaint _summaryBuiltPaint    = new() { Color = new SKColor(120, 175, 120), IsAntialias = true };
+    private readonly SKPaint _summaryEmptyPaint    = new() { Color = new SKColor(95, 95, 108), IsAntialias = true };
+    private readonly SKPaint _summaryDividerPaint  = new() { Color = new SKColor(50, 50, 65), StrokeWidth = 0.5f, Style = SKPaintStyle.Stroke };
 
-    private readonly SKFont _headerFont = new() { Size = 17, Typeface = SkiaFonts.Bold };
-    private readonly SKFont _nameFont   = new() { Size = 13, Typeface = SkiaFonts.Bold };
-    private readonly SKFont _descFont   = new() { Size = 11, Typeface = SkiaFonts.Regular };
-    private readonly SKFont _toggleFont = new() { Size = 11, Typeface = SkiaFonts.Bold };
+    private readonly SKFont _headerFont  = new() { Size = 17, Typeface = SkiaFonts.Bold };
+    private readonly SKFont _nameFont    = new() { Size = 13, Typeface = SkiaFonts.Bold };
+    private readonly SKFont _descFont    = new() { Size = 11, Typeface = SkiaFonts.Regular };
+    private readonly SKFont _toggleFont  = new() { Size = 11, Typeface = SkiaFonts.Bold };
+    private readonly SKFont _summaryFont = new() { Size = 10, Typeface = SkiaFonts.Regular };
+
+    private static readonly BuildingType[] ProductionTypes = [BuildingType.Sawmill, BuildingType.Brickworks, BuildingType.Quarry, BuildingType.Mill];
+    private static readonly BuildingType[] ArtisanTypes    = [BuildingType.Forge, BuildingType.Warehouse];
+    private static readonly BuildingType[] LibraryTypes    = [BuildingType.Library];
+    private static readonly BuildingType[] MarketTypes     = [BuildingType.Market];
 
     public AutomationRenderer(GameControllerService gameControllerService, ILocalizationService localization)
     {
@@ -99,10 +111,12 @@ public sealed class AutomationRenderer : IDisposable
             if (buildersGuild != null && harvestersGuild != null && artisansGuild != null && academy != null && traderGuild != null) break;
         }
 
+        float rowH;
+
         // --- Road automation row (builders guild level 1+) ---
         if (buildersGuild != null && buildersGuild.Level >= 1)
         {
-            _roadToggleRect = DrawAutomationRow(
+            (_roadToggleRect, rowH) = DrawAutomationRow(
                 canvas, x, y, contentWidth,
                 islandState.AutomationSettings.RoadAutomationEnabled,
                 _hoveredRoadToggle,
@@ -112,16 +126,16 @@ public sealed class AutomationRenderer : IDisposable
         else
         {
             _roadToggleRect = SKRect.Empty;
-            DrawLockedRow(canvas, x, y, contentWidth,
+            rowH = DrawLockedRow(canvas, x, y, contentWidth,
                 _localization.Get("automation_road_name"),
                 _localization.Get("automation_road_locked"));
         }
-        y += RowHeight + RowSpacing;
+        y += rowH + RowSpacing;
 
         // --- Outpost automation row (builders guild level 4 only) ---
         if (buildersGuild != null && buildersGuild.Level >= 4)
         {
-            _outpostToggleRect = DrawAutomationRow(
+            (_outpostToggleRect, rowH) = DrawAutomationRow(
                 canvas, x, y, contentWidth,
                 islandState.AutomationSettings.OutpostAutomationEnabled,
                 _hoveredOutpostToggle,
@@ -131,92 +145,101 @@ public sealed class AutomationRenderer : IDisposable
         else
         {
             _outpostToggleRect = SKRect.Empty;
-            DrawLockedRow(canvas, x, y, contentWidth,
+            rowH = DrawLockedRow(canvas, x, y, contentWidth,
                 _localization.Get("automation_outpost_name"),
                 _localization.Get("automation_outpost_locked"));
         }
-        y += RowHeight + RowSpacing;
+        y += rowH + RowSpacing;
 
         // --- Production automation row (harvesters guild) ---
         if (harvestersGuild != null && harvestersGuild.Level >= 1)
         {
-            _productionToggleRect = DrawAutomationRow(
+            (_productionToggleRect, rowH) = DrawAutomationRow(
                 canvas, x, y, contentWidth,
                 islandState.AutomationSettings.ProductionBuildingAutomationEnabled,
                 _hoveredProductionToggle,
                 _localization.Get("automation_production_name"),
-                _localization.Get("automation_production_desc"));
+                _localization.Get("automation_production_desc"),
+                civ.Cities, ProductionTypes);
         }
         else
         {
             _productionToggleRect = SKRect.Empty;
-            DrawLockedRow(canvas, x, y, contentWidth,
+            rowH = DrawLockedRow(canvas, x, y, contentWidth,
                 _localization.Get("automation_production_name"),
                 _localization.Get("automation_production_locked"));
         }
-        y += RowHeight + RowSpacing;
+        y += rowH + RowSpacing;
 
         // --- Artisan automation row (artisans guild) ---
         if (artisansGuild != null && artisansGuild.Level >= 1)
         {
-            _artisanToggleRect = DrawAutomationRow(
+            (_artisanToggleRect, rowH) = DrawAutomationRow(
                 canvas, x, y, contentWidth,
                 islandState.AutomationSettings.ArtisanBuildingAutomationEnabled,
                 _hoveredArtisanToggle,
                 _localization.Get("automation_artisan_name"),
-                _localization.Get("automation_artisan_desc"));
+                _localization.Get("automation_artisan_desc"),
+                civ.Cities, ArtisanTypes);
         }
         else
         {
             _artisanToggleRect = SKRect.Empty;
-            DrawLockedRow(canvas, x, y, contentWidth,
+            rowH = DrawLockedRow(canvas, x, y, contentWidth,
                 _localization.Get("automation_artisan_name"),
                 _localization.Get("automation_artisan_locked"));
         }
-        y += RowHeight + RowSpacing;
+        y += rowH + RowSpacing;
 
         // --- Library automation row (academy) ---
         if (academy != null && academy.Level >= 1)
         {
-            _libraryToggleRect = DrawAutomationRow(
+            (_libraryToggleRect, rowH) = DrawAutomationRow(
                 canvas, x, y, contentWidth,
                 islandState.AutomationSettings.LibraryBuildingAutomationEnabled,
                 _hoveredLibraryToggle,
                 _localization.Get("automation_library_name"),
-                _localization.Get("automation_library_desc"));
+                _localization.Get("automation_library_desc"),
+                civ.Cities, LibraryTypes);
         }
         else
         {
             _libraryToggleRect = SKRect.Empty;
-            DrawLockedRow(canvas, x, y, contentWidth,
+            rowH = DrawLockedRow(canvas, x, y, contentWidth,
                 _localization.Get("automation_library_name"),
                 _localization.Get("automation_library_locked"));
         }
-        y += RowHeight + RowSpacing;
+        y += rowH + RowSpacing;
 
         // --- Market automation row (trader guild) ---
         if (traderGuild != null && traderGuild.Level >= 1)
         {
-            _marketToggleRect = DrawAutomationRow(
+            (_marketToggleRect, rowH) = DrawAutomationRow(
                 canvas, x, y, contentWidth,
                 islandState.AutomationSettings.MarketBuildingAutomationEnabled,
                 _hoveredMarketToggle,
                 _localization.Get("automation_market_name"),
-                _localization.Get("automation_market_desc"));
+                _localization.Get("automation_market_desc"),
+                civ.Cities, MarketTypes);
         }
         else
         {
             _marketToggleRect = SKRect.Empty;
-            DrawLockedRow(canvas, x, y, contentWidth,
+            rowH = DrawLockedRow(canvas, x, y, contentWidth,
                 _localization.Get("automation_market_name"),
                 _localization.Get("automation_market_locked"));
         }
     }
 
-    private SKRect DrawAutomationRow(SKCanvas canvas, float x, float y, float width,
-        bool isOn, bool isHovered, string name, string desc)
+    private (SKRect toggleRect, float height) DrawAutomationRow(
+        SKCanvas canvas, float x, float y, float width,
+        bool isOn, bool isHovered, string name, string desc,
+        IEnumerable<City>? cities = null, BuildingType[]? summaryTypes = null)
     {
-        var cardRect = new SKRect(x, y, x + width, y + RowHeight);
+        bool hasSummary = cities != null && summaryTypes != null;
+        float cardHeight = hasSummary ? RowHeight + SummaryHeight : RowHeight;
+
+        var cardRect = new SKRect(x, y, x + width, y + cardHeight);
         canvas.DrawRoundRect(cardRect, 6, 6, _cardPaint);
         canvas.DrawRoundRect(cardRect, 6, 6, _cardBorderPaint);
 
@@ -232,10 +255,16 @@ public sealed class AutomationRenderer : IDisposable
         canvas.DrawText(name, textX, y + 18, _nameFont, _namePaint);
         canvas.DrawText(desc, textX, y + 36, _descFont, _descPaint);
 
-        return toggleRect;
+        if (hasSummary)
+        {
+            canvas.DrawLine(x + 12f, y + RowHeight, x + width - 12f, y + RowHeight, _summaryDividerPaint);
+            DrawBuildingSummary(canvas, x + 12f, y + RowHeight + 14f, cities!, summaryTypes!);
+        }
+
+        return (toggleRect, cardHeight);
     }
 
-    private void DrawLockedRow(SKCanvas canvas, float x, float y, float width, string name, string lockDesc)
+    private float DrawLockedRow(SKCanvas canvas, float x, float y, float width, string name, string lockDesc)
     {
         var cardRect = new SKRect(x, y, x + width, y + RowHeight);
         canvas.DrawRoundRect(cardRect, 6, 6, _cardPaint);
@@ -244,6 +273,44 @@ public sealed class AutomationRenderer : IDisposable
         float textX = x + 12f;
         canvas.DrawText(name, textX, y + 18, _nameFont, _mutedPaint);
         canvas.DrawText(lockDesc, textX, y + 36, _descFont, _mutedPaint);
+
+        return RowHeight;
+    }
+
+    private void DrawBuildingSummary(SKCanvas canvas, float x, float y, IEnumerable<City> cities, BuildingType[] types)
+    {
+        float curX = x;
+        bool first = true;
+        foreach (var type in types)
+        {
+            if (!first) curX += 14f;
+            first = false;
+
+            var buildings = cities.SelectMany(c => c.Buildings)
+                .Where(b => b.Type == type && b.Level >= 1)
+                .ToList();
+
+            string bldName = _localization.Get($"building_{type.ToString().ToLower()}_name");
+
+            string text;
+            SKPaint paint;
+            if (buildings.Count == 0)
+            {
+                text = $"{bldName}: -";
+                paint = _summaryEmptyPaint;
+            }
+            else
+            {
+                var groups = buildings.GroupBy(b => b.Level).OrderBy(g => g.Key);
+                string lv = _localization.Get("level_abbrev");
+                string levels = string.Join(" ", groups.Select(g => $"{g.Count()}×{lv}{g.Key}"));
+                text = $"{bldName}: {levels}";
+                paint = _summaryBuiltPaint;
+            }
+
+            canvas.DrawText(text, curX, y, _summaryFont, paint);
+            curX += _summaryFont.MeasureText(text);
+        }
     }
 
     public void HandlePointerMoved(SKPoint position)
@@ -316,10 +383,14 @@ public sealed class AutomationRenderer : IDisposable
         _descPaint.Dispose();
         _mutedPaint.Dispose();
         _accentPaint.Dispose();
+        _summaryBuiltPaint.Dispose();
+        _summaryEmptyPaint.Dispose();
+        _summaryDividerPaint.Dispose();
         _headerFont.Dispose();
         _nameFont.Dispose();
         _descFont.Dispose();
         _toggleFont.Dispose();
+        _summaryFont.Dispose();
         _disposed = true;
     }
 }
