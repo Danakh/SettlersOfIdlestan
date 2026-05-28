@@ -77,7 +77,8 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
         HarvestService harvestService,
         GameControllerService gameControllerService,
         Func<bool> isPrestigeTransitionPending,
-        Func<bool> isIslandTabActive)
+        Func<bool> isIslandTabActive,
+        Func<bool>? showParticles = null)
     {
         _harvestRenderer.Connect(
             harvestService,
@@ -85,7 +86,8 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
             hex => HexCoordToIslandPoint(hex),
             vertex => VertexToIslandPoint(vertex),
             isPrestigeTransitionPending,
-            isIslandTabActive);
+            isIslandTabActive,
+            showParticles);
     }
 
     public void Initialize(SKSize canvasSize)

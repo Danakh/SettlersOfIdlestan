@@ -15,6 +15,7 @@ public class HarvestRenderer : IGameRenderer
     private readonly Dictionary<Resource, SKSvg?> _icons = new();
     private SKPaint? _layerPaint;
     private bool _disposed;
+    private Func<bool>? _showParticles;
 
     private const float IconSize = 16f;
     private const float SvgViewBox = 32f;
@@ -31,12 +32,16 @@ public class HarvestRenderer : IGameRenderer
         Func<HexCoord, SKPoint> hexToIsland,
         Func<Vertex, SKPoint> vertexToIsland,
         Func<bool> isPrestigeTransitionPending,
-        Func<bool> isIslandTabActive)
+        Func<bool> isIslandTabActive,
+        Func<bool>? showParticles = null)
     {
+        _showParticles = showParticles;
+
         harvestService.OnHarvestCompleted += (_, args) =>
         {
             if (isPrestigeTransitionPending()) return;
             if (!isIslandTabActive()) return;
+            if (_showParticles?.Invoke() == false) return;
             if (gameControllerService.PlayerCivilizationIndex != args.CivilizationIndex) return;
 
             var hexCenter = hexToIsland(args.HexCoord);
@@ -48,6 +53,7 @@ public class HarvestRenderer : IGameRenderer
         {
             if (isPrestigeTransitionPending()) return;
             if (!isIslandTabActive()) return;
+            if (_showParticles?.Invoke() == false) return;
             if (gameControllerService.PlayerCivilizationIndex != args.CivilizationIndex) return;
 
             var cityCenter = vertexToIsland(args.CityPosition);
