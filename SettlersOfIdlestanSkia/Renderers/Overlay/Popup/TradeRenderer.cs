@@ -700,14 +700,10 @@ public sealed class TradeRenderer : IDisposable
         var civ = _gameControllerService.PlayerCivilization;
         if (civ == null) return;
         int rate = _gameControllerService.MainGameController.TradeController.TradeRate(civ.Index, resource);
-        for (int i = 0; i < _packMultiplier; i++)
-        {
-            int current = _offered.GetValueOrDefault(resource);
-            if (civ.GetResourceQuantity(resource) >= current + rate)
-                _offered[resource] = current + rate;
-            else
-                break;
-        }
+        int current = _offered.GetValueOrDefault(resource);
+        int needed = rate * _packMultiplier;
+        if (civ.GetResourceQuantity(resource) >= current + needed)
+            _offered[resource] = current + needed;
     }
 
     private void AddRequest(Resource resource)
@@ -715,11 +711,9 @@ public sealed class TradeRenderer : IDisposable
         if (_offered.ContainsKey(resource)) return;
         var civ = _gameControllerService.PlayerCivilization;
         if (civ == null) return;
-        for (int i = 0; i < _packMultiplier; i++)
-        {
-            if (!CanAddRequest(civ, resource)) break;
-            _requested[resource] = _requested.GetValueOrDefault(resource) + 1;
-        }
+        int current = _requested.GetValueOrDefault(resource);
+        if (_gameControllerService.MainGameController.TradeController.CanRecieveTrade(civ, resource, current + _packMultiplier))
+            _requested[resource] = current + _packMultiplier;
     }
 
     private void RemoveOffer(Resource resource)
