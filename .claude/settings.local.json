@@ -52,7 +52,8 @@
       "Bash(Select-Object -First 30)",
       "Bash(Format-Table -AutoSize)",
       "PowerShell(cd \"C:\\\\DEV\\\\SettlersOfIdlestan\"; Select-String -Path \"SettlersOfIdlestanSkia\\\\Renderers\\\\Overlay\\\\Tabs\\\\PrestigeMapRenderer.cs\" -Pattern \"prestige_tooltip_\" | ForEach-Object { $_.LineNumber; $_.Line })",
-      "Bash(Remove-Item -Force \"C:\\\\DEV\\\\SettlersOfIdlestan\\\\SettlersOfIdlestan\\\\obj\\\\Debug\\\\net10.0\\\\SettlersOfIdlestan.AssemblyInfoInputs.cache\" -ErrorAction SilentlyContinue)"
+      "Bash(Remove-Item -Force \"C:\\\\DEV\\\\SettlersOfIdlestan\\\\SettlersOfIdlestan\\\\obj\\\\Debug\\\\net10.0\\\\SettlersOfIdlestan.AssemblyInfoInputs.cache\" -ErrorAction SilentlyContinue)",
+      "Bash(Select-String \"error CS|succeeded|Error\")"
     ]
   }
 }

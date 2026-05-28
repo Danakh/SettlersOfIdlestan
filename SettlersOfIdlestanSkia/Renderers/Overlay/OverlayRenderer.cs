@@ -228,7 +228,7 @@ public sealed class OverlayRenderer : IGameRenderer
     private bool HasPrestigePoints(GameRenderContext context)
     {
         if (context.GameState is not MainGameState mainGameState) return false;
-        return (mainGameState.PrestigeState?.PrestigePoints ?? 0) > 0;
+        return (mainGameState.PrestigeState?.TotalPrestigePointsEarned ?? 0) > 0;
     }
 
     private bool IsResearchUnlocked()

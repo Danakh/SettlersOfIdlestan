@@ -12,6 +12,8 @@ public class PrestigeState
 
     public int PrestigePoints { get; set; }
 
+    public int TotalPrestigePointsEarned { get; set; }
+
     public List<Vertex> PurchasedVertices { get; set; } = new();
 
     public List<PrestigeRunStats> RunHistory { get; set; } = new();
