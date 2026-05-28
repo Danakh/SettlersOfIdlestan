@@ -65,7 +65,7 @@ public class MilitaryController
     public const int MaxSoldiers = 10;
 
     /// <summary>Intervalle de régénération d'un point de défense (1 000 ticks).</summary>
-    public const long DefenseRegenIntervalTicks = 1_000L;
+    public const long DefenseRegenIntervalTicks = 500L;
 
     /// <summary>Intervalle minimum entre deux attaques de ville lancées par la même ville.</summary>
     public const long CityAttackIntervalTicks = 100L;
@@ -77,7 +77,7 @@ public class MilitaryController
     private const int DefaultReinforcementRange = 5;
 
     /// <summary>Intervalle minimum entre deux envois de renforts depuis la même ville.</summary>
-    public const long ReinforcementIntervalTicks = 500L;
+    public const long ReinforcementIntervalTicks = 100L;
 
     /// <summary>Distance effective en edges, après application des modificateurs de civilisation.</summary>
     public int CityAttackRange(Civilization civ)
@@ -97,6 +97,13 @@ public class MilitaryController
     /// <summary>Nombre total de soldats disponibles dans la ville (toutes casernes).</summary>
     public int GetAttackScore(City city)
         => city.Buildings.OfType<Barracks>().Sum(b => b.Soldiers);
+
+    /// <summary>Capacité maximale de soldats de la ville, tous bâtiments garnison confondus.</summary>
+    public int GetMaximumSoldierCapacity(City city, Civilization? civ = null)
+    {
+        int capacity = city.Buildings.OfType<Barracks>().Count() * MaxSoldiers;
+        return capacity;
+    }
 
     /// <summary>Score de défense de la ville : Palissade=10, Caserne=5, plus modificateurs de civilisation.</summary>
     public int GetDefenseScore(City city, Civilization? civ = null)
@@ -345,12 +352,11 @@ public class MilitaryController
             {
                 if (currentTick - sourceCity.LastReinforcementTick < ReinforcementIntervalTicks) continue;
 
-                var sourceBarracks = sourceCity.Buildings.OfType<Barracks>().ToList();
-                if (sourceBarracks.Count == 0) continue;
+                int capacity = GetMaximumSoldierCapacity(sourceCity, civ);
+                if (capacity == 0) continue;
 
-                int totalSoldiers = sourceBarracks.Sum(b => b.Soldiers);
-                int capacity = sourceBarracks.Count * MaxSoldiers;
-                if (capacity == 0 || totalSoldiers * 2 < capacity) continue;
+                int totalSoldiers = GetAttackScore(sourceCity);
+                if (totalSoldiers * 2 < capacity) continue;
 
                 if (FindNearbyEnemyCity(sourceCity, civ) != null) continue;
 
@@ -364,13 +370,12 @@ public class MilitaryController
                     int dist = sourceCity.Position.EdgeDistanceTo(friendlyCity.Position);
                     if (dist > range || dist >= closestDist) continue;
 
-                    var targetBarracks = friendlyCity.Buildings.OfType<Barracks>().ToList();
-                    if (targetBarracks.Count == 0) continue;
+                    int targetCapacity = GetMaximumSoldierCapacity(friendlyCity, civ);
+                    if (targetCapacity == 0) continue;
 
-                    int targetSoldiers = targetBarracks.Sum(b => b.Soldiers);
-                    int targetCapacity = targetBarracks.Count * MaxSoldiers;
-                    if (targetSoldiers >= targetCapacity) continue;
-                    if (totalSoldiers < targetSoldiers * 2) continue;
+                    int targetSoldiers = GetAttackScore(friendlyCity);
+                    if (targetSoldiers * 2 > targetCapacity) continue;
+                    if (targetSoldiers + 2 >= totalSoldiers) continue;
 
                     targetCity = friendlyCity;
                     closestDist = dist;
@@ -382,8 +387,9 @@ public class MilitaryController
                     .FirstOrDefault(b => b.Soldiers < MaxSoldiers);
                 if (receiver == null) continue;
 
-                var donor = sourceBarracks.OrderByDescending(b => b.Soldiers).First();
-                if (donor.Soldiers == 0) continue;
+                var donor = sourceCity.Buildings.OfType<Barracks>()
+                    .OrderByDescending(b => b.Soldiers).FirstOrDefault();
+                if (donor == null || donor.Soldiers == 0) continue;
 
                 donor.Soldiers--;
                 receiver.Soldiers++;
