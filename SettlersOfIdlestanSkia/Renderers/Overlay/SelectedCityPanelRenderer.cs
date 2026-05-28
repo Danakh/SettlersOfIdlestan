@@ -218,12 +218,13 @@ public class SelectedCityPanelRenderer : IGameRenderer
                 float btnCenterX = btnX + btnWidth / 2;
                 float btnCenterY = btnY + btnHeight / 2 + 6;
 
+                var canBuildIgnoringResources = _cityBuildingService.CanBuildOrUpgradeIgnoringResources(building);
+
                 if (isBuiltInOtherCity)
                 {
-                    canvas.DrawRoundRect(btnX, btnY, btnWidth, btnHeight, 7, 7, _btnOtherCityPaint);
-                    canvas.DrawText(_localization.Get("unique_other_city"), btnCenterX, btnCenterY, SKTextAlign.Center, _font12, _dimTextPaint);
+                    // Bouton caché : bâtiment unique déjà construit dans une autre ville
                 }
-                else if (isBuiltInThisCity || !building.IsUnique || canBuildOrUpgrade)
+                else if (isBuiltInThisCity || !building.IsUnique || canBuildOrUpgrade || canBuildIgnoringResources)
                 {
                     var btnText = isBuiltInThisCity ? _localization.Get("action_upgrade") : _localization.Get("action_build");
                     bool isDisabledBtn = isAtMaxLevel || !canBuildOrUpgrade;

@@ -134,4 +134,19 @@ public class CityBuildingService
             return false;
         return building.Level >= BuildingController.GetMaxLevel(building, SelectedCity.CivilizationIndex);
     }
+
+    /// <summary>
+    /// Returns true if the building could be built/upgraded if resources were available,
+    /// ignoring the resource check (but still checking unique constraints and prerequisites).
+    /// </summary>
+    public bool CanBuildOrUpgradeIgnoringResources(Building building)
+    {
+        if (SelectedCity == null) return false;
+        var islandState = IslandState;
+        if (SelectedCity.CivilizationIndex >= islandState.Civilizations.Count) return false;
+        if (IsAtMaxLevel(building)) return false;
+        if (building.Level == 0 && !building.HasBuildPrerequisites(SelectedCity)) return false;
+        if (building.Level == 0 && building.IsUnique && SelectedCityHasAnyUniqueBuilding()) return false;
+        return true;
+    }
 }
