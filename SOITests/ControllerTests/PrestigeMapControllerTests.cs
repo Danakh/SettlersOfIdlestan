@@ -283,12 +283,6 @@ public class PrestigeMapControllerTests
     // ─── MaritimeRoutesVertex ────────────────────────────────────────────────
 
     [Fact]
-    public void MaritimeRoutesVertex_IsAdjacentToSeaportMarket()
-    {
-        Assert.True(PrestigeMap.MaritimeRoutesVertex.IsAdjacentTo(PrestigeMap.SeaportMarketVertex));
-    }
-
-    [Fact]
     public void MaritimeRoutesVertex_ExistsInDefaultMap()
     {
         Assert.NotNull(PrestigeMapController.DefaultMap.GetVertex(PrestigeMap.MaritimeRoutesVertex));

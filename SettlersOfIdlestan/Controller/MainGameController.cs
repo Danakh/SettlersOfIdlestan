@@ -181,7 +181,7 @@ namespace SettlersOfIdlestan.Controller
 
                 islandState.RecalculateVisibleIslandMaps();
 
-                SetupModifierAggregators(islandState);
+                SetupModifierAggregators();
 
                 // Initialize controllers to operate on the real island state and clock
                 RoadController.Initialize(islandState, Clock, CurrentMainState!.PRNG);
@@ -201,22 +201,20 @@ namespace SettlersOfIdlestan.Controller
             }
         }
 
-        private void SetupModifierAggregators(IslandState islandState)
+        private void SetupModifierAggregators()
         {
-            var prestigeState = CurrentMainState?.PrestigeState;
+            var prestigeState = CurrentMainState!.PrestigeState;
+            var islandState = prestigeState.IslandState;
 
             foreach (var civ in islandState.Civilizations)
                 civ.SetupModifierAggregator(civ.TechnologyTree, new UniqueBuildingsModifierProvider(civ));
 
-            if (prestigeState != null)
-            {
-                var prestigeProvider = new PrestigeModifierProvider(prestigeState, PrestigeMapController.DefaultMap);
-                var playerCiv = islandState.PlayerCivilization;
-                playerCiv.SetupModifierAggregator(
-                    playerCiv.TechnologyTree,
-                    prestigeProvider,
-                    new UniqueBuildingsModifierProvider(playerCiv));
-            }
+            var prestigeProvider = new PrestigeModifierProvider(prestigeState, PrestigeMapController.DefaultMap);
+            var playerCiv = islandState.PlayerCivilization;
+            playerCiv.SetupModifierAggregator(
+                playerCiv.TechnologyTree,
+                prestigeProvider,
+                new UniqueBuildingsModifierProvider(playerCiv));
         }
     }
 }
