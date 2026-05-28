@@ -292,7 +292,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 .OrderBy(r => civ.GetResourceQuantity(r))
                 .FirstOrDefault();
 
-            try { _tradeController.Trade(civ.Index, res, weakest); } catch { }
+            _tradeController.Trade(civ.Index, res, weakest);
         }
 
         private bool IsHexContested(SettlersOfIdlestan.Model.Civilization.Civilization civ, HexCoord hex)
@@ -327,7 +327,7 @@ namespace SettlersOfIdlestan.Controller.Island
 
             var cities = civ.Cities.Where(c => c.Position.IsAdjacentTo(hex)).ToList();
             if (cities.Count == 0)
-                throw new ArgumentException("Specified hex is not adjacent to any city of the civilization", nameof(hex));
+                return false;
 
             // Hex contesté: aucune production si une ville adverse est adjacente
             if (IsHexContested(civ, hex)) return false;

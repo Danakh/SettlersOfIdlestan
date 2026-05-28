@@ -42,20 +42,7 @@ public class HarvestService
         if (playerCiv == null)
             throw new InvalidOperationException("La civilisation du joueur n'est pas disponible.");
 
-        try
-        {
-            return _harvestController.ManualHarvest(playerCiv.Index, hexCoord);
-        }
-        catch (ArgumentException)
-        {
-            // L'hexagone n'est pas adjacent à une ville ou n'a pas de ressource
-            return false;
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"Erreur lors de la récolte: {ex.Message}");
-            return false;
-        }
+        return _harvestController.ManualHarvest(playerCiv.Index, hexCoord);
     }
 
     /// <summary>

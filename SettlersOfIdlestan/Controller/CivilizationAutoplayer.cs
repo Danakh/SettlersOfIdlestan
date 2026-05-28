@@ -73,10 +73,7 @@ namespace SettlersOfIdlestan.Controller
             }
 
             foreach (var hex in toHarvest)
-            {
-                try { _harvestController.ManualHarvest(_civ.Index, hex); }
-                catch { }
-            }
+                _harvestController.ManualHarvest(_civ.Index, hex);
 
             if (requiredResources != null && requiredResources.Any())
             {
@@ -92,24 +89,15 @@ namespace SettlersOfIdlestan.Controller
             var buildableEdges = _roadController.GetBuildableRoads(_civ.Index).Select(r => r.Position);
             if (!buildableEdges.Any(e => e.Equals(edge))) return false;
 
-            try
-            {
-                _roadController.BuildRoad(_civ.Index, edge);
+            if (_roadController.BuildRoad(_civ.Index, edge) != null)
                 return true;
-            }
-            catch (InvalidOperationException)
+
+            if (withGrind)
             {
-                if (withGrind)
-                {
-                    try
-                    {
-                        var road = _roadController.GetBuildableRoads(_civ.Index).FirstOrDefault(r => r.Position.Equals(edge));
-                        if (road != null) TryGrindOnce(_roadController.GetRoadCost(road.DistanceToNearestCity));
-                    }
-                    catch { }
-                }
-                return false;
+                var road = _roadController.GetBuildableRoads(_civ.Index).FirstOrDefault(r => r.Position.Equals(edge));
+                if (road != null) TryGrindOnce(_roadController.GetRoadCost(road.DistanceToNearestCity));
             }
+            return false;
         }
 
         public bool TryBuildOutpostOnce(Vertex vertex, bool withGrind = true)
@@ -119,16 +107,11 @@ namespace SettlersOfIdlestan.Controller
             if (!_cityBuilderController.GetBuildableVertices(_civ.Index).Any(v => v.Equals(vertex)))
                 return false;
 
-            try
-            {
-                _cityBuilderController.BuildCity(_civ.Index, vertex);
+            if (_cityBuilderController.BuildCity(_civ.Index, vertex) != null)
                 return true;
-            }
-            catch (InvalidOperationException)
-            {
-                if (withGrind) TryGrindOnce(_cityBuilderController.NewCityBuildingCost());
-                return false;
-            }
+
+            if (withGrind) TryGrindOnce(_cityBuilderController.NewCityBuildingCost());
+            return false;
         }
 
         /// <summary>
@@ -244,16 +227,11 @@ namespace SettlersOfIdlestan.Controller
 
             if (bestSource == null) return false;
 
-            try
-            {
-                _tradeController.TradeMultiForSingle(
-                    _civ.Index,
-                    new Dictionary<Resource, int> { [bestSource.Value] = _tradeController.TradeRate(_civ.Index, bestSource.Value) },
-                    target,
-                    receiveQty);
-                return true;
-            }
-            catch { return false; }
+            return _tradeController.TradeMultiForSingle(
+                _civ.Index,
+                new Dictionary<Resource, int> { [bestSource.Value] = _tradeController.TradeRate(_civ.Index, bestSource.Value) },
+                target,
+                receiveQty);
         }
 
         /// <summary>

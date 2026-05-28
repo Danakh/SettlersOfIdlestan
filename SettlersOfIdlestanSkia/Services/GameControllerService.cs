@@ -94,15 +94,7 @@ public class GameControllerService
         var playerIndex = PlayerCivilizationIndex
             ?? throw new InvalidOperationException("La civilisation du joueur n'est pas disponible.");
 
-        try
-        {
-            _controller.CityBuilderController.BuildCity(playerIndex, vertex);
-            return true;
-        }
-        catch
-        {
-            return false;
-        }
+        return _controller.CityBuilderController.BuildCity(playerIndex, vertex) != null;
     }
 
     public bool TryBuildRoadForPlayer(Edge edge)
@@ -110,14 +102,6 @@ public class GameControllerService
         var playerIndex = PlayerCivilizationIndex
             ?? throw new InvalidOperationException("La civilisation du joueur n'est pas disponible.");
 
-        try
-        {
-            _controller.RoadController.BuildRoad(playerIndex, edge);
-            return true;
-        }
-        catch
-        {
-            return false;
-        }
+        return _controller.RoadController.BuildRoad(playerIndex, edge) != null;
     }
 }

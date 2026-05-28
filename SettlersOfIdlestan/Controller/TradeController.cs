@@ -70,9 +70,9 @@ namespace SettlersOfIdlestan.Controller
 
         /// <summary>
         /// Attempts to perform a trade for the civilization: remove 4 of `from` and add 1 of `to`.
-        /// Throws InvalidOperationException if trading is not available or resources are insufficient.
+        /// Returns false if trading is unavailable or resources are insufficient.
         /// </summary>
-        public void Trade(int civilizationIndex, Resource from, Resource to)
+        public bool Trade(int civilizationIndex, Resource from, Resource to)
         {
             if (_state == null) throw new InvalidOperationException("IslandState has not been initialized.");
             if (from == to) throw new ArgumentException("Source and destination resources must differ");
@@ -81,7 +81,7 @@ namespace SettlersOfIdlestan.Controller
                       ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
 
             if (!IsTradeAvailable(civilizationIndex))
-                throw new InvalidOperationException("Trading not available:  civilization must own a Market or a Seaport");
+                return false;
 
             if (!ResourceUtils.BasicResources.Contains(from))
                 throw new ArgumentException($"Only basic resources can be offered in trade.", nameof(from));
@@ -89,19 +89,20 @@ namespace SettlersOfIdlestan.Controller
                 throw new ArgumentException($"Only basic resources can be received via Trade().", nameof(to));
 
             if (!CanTradeResource(civ, from) || !CanTradeResource(civ, to))
-                throw new InvalidOperationException("Trading unavailable for this resource capacity.");
+                return false;
 
             if (!CanRecieveTrade(civ, to))
-                throw new InvalidOperationException($"Cannot receive {to}: storage is full.");
+                return false;
 
             var offer = TradeRate(civilizationIndex, from);
             var available = civ.GetResourceQuantity(from);
             if (available < offer)
-                throw new InvalidOperationException($"Not enough resources to trade: need {offer} {from}");
+                return false;
 
             // perform trade: consume and grant
             civ.RemoveResource(from, offer);
             civ.AddResource(to, 1);
+            return true;
         }
 
         public int BuyRate(Resource resource) => resource == Resource.Ore ? 1 : DefaultBuyRate;
@@ -178,8 +179,9 @@ namespace SettlersOfIdlestan.Controller
         /// <summary>
         /// Execute a trade consuming specific amounts of multiple basic offer resources to receive toQuantity of a target resource.
         /// Used for multi-resource or Gold exchange trades where the simple Trade() method is insufficient.
+        /// Returns false if trading is unavailable or resources are insufficient.
         /// </summary>
-        public void TradeMultiForSingle(int civIndex, IReadOnlyDictionary<Resource, int> offerAmounts, Resource to, int toQuantity = 1)
+        public bool TradeMultiForSingle(int civIndex, IReadOnlyDictionary<Resource, int> offerAmounts, Resource to, int toQuantity = 1)
         {
             if (_state == null) throw new InvalidOperationException("IslandState has not been initialized.");
 
@@ -187,22 +189,23 @@ namespace SettlersOfIdlestan.Controller
                       ?? throw new ArgumentException("Civilization not found", nameof(civIndex));
 
             if (!IsTradeAvailable(civIndex))
-                throw new InvalidOperationException("Trading not available.");
+                return false;
 
             foreach (var (from, amount) in offerAmounts)
             {
                 if (!ResourceUtils.BasicResources.Contains(from))
                     throw new ArgumentException($"Only basic resources can be offered: {from}");
                 if (civ.GetResourceQuantity(from) < amount)
-                    throw new InvalidOperationException($"Not enough {from}: need {amount}");
+                    return false;
             }
 
             if (!CanRecieveTrade(civ, to, toQuantity))
-                throw new InvalidOperationException($"Cannot receive {toQuantity} {to}: storage would overflow.");
+                return false;
 
             foreach (var (from, amount) in offerAmounts)
                 civ.RemoveResource(from, amount);
             civ.AddResource(to, toQuantity);
+            return true;
         }
 
         /// <summary>
@@ -228,7 +231,7 @@ namespace SettlersOfIdlestan.Controller
         {
             if (_state == null) throw new InvalidOperationException("IslandState has not been initialized.");
             if (!CanBuyAdvancedResource(civIndex, resource, quantity))
-                throw new InvalidOperationException($"Cannot buy {quantity} {resource}: insufficient gold or storage.");
+                return;
 
             var civ = _state.Civilizations.Find(c => c.Index == civIndex)!;
             civ.RemoveResource(Resource.Gold, BuyRate(resource) * quantity);
@@ -317,15 +320,7 @@ namespace SettlersOfIdlestan.Controller
                 return false;
             }
 
-            try
-            {
-                Trade(civilizationIndex, chosenSource.Value, weakestRequired);
-                return true;
-            }
-            catch
-            {
-                return false;
-            }
+            return Trade(civilizationIndex, chosenSource.Value, weakestRequired);
         }
     }
 }

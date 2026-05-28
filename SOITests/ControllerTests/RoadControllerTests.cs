@@ -107,7 +107,7 @@ public class RoadControllerTests
 
         var controller = new RoadController(state);
         var edge = Edge.Create(a, b);
-        var road = controller.BuildRoad(0, edge);
+        var road = controller.BuildRoad(0, edge)!;
 
         Assert.Contains(civ.Roads, r => r.Position.Equals(edge));
         Assert.Equal(1, road.DistanceToNearestCity);
@@ -149,11 +149,11 @@ public class RoadControllerTests
         civ.AddResource(Resource.Wood, 7);
         civ.AddResource(Resource.Brick, 7);
 
-        var r1 = controller.BuildRoad(0, e1);
+        var r1 = controller.BuildRoad(0, e1)!;
         Assert.Contains(civ.Roads, r => r.Position.Equals(e1));
         Assert.Equal(1, r1.DistanceToNearestCity);
 
-        var r2 = controller.BuildRoad(0, e2);
+        var r2 = controller.BuildRoad(0, e2)!;
         Assert.Contains(civ.Roads, r => r.Position.Equals(e2));
         Assert.Equal(2, r2.DistanceToNearestCity);
 
@@ -203,7 +203,7 @@ public class RoadControllerTests
         Assert.Contains(buildable, r => r.Position.Equals(contestedEdge));
 
         // Construction sur la route ennemie
-        var road = controller.BuildRoad(0, contestedEdge);
+        var road = controller.BuildRoad(0, contestedEdge)!;
 
         // La route ennemie est détruite
         Assert.DoesNotContain(enemyCiv.Roads, r => r.Position.Equals(contestedEdge));

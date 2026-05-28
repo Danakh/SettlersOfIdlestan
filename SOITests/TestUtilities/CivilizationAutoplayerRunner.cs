@@ -43,7 +43,7 @@ public class CivilizationAutoplayerRunner
     {
         for (int i = 0; i < maxIterations; i++)
         {
-            try { if (_autoplayer.TryBuildRoadOnce(edge)) return true; } catch { }
+            if (_autoplayer.TryBuildRoadOnce(edge)) return true;
             Advance();
         }
         return false;

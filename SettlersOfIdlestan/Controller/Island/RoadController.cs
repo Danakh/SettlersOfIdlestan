@@ -184,9 +184,10 @@ namespace SettlersOfIdlestan.Controller.Island
 
         /// <summary>
         /// Construit une route pour la civilisation si l'ar�te est constructible.
-        /// Lance une exception si la civilisation ou l'ar�te n'est pas trouv�e ou si l'ar�te n'est pas constructible.
+        /// Retourne null si la civilisation n'a pas les ressources suffisantes.
+        /// Lance une exception si l'ar�te n'est pas constructible (bug appelant).
         /// </summary>
-        public Road BuildRoad(int civilizationIndex, Edge edge)
+        public Road? BuildRoad(int civilizationIndex, Edge edge)
         {
             if (_state == null) throw new InvalidOperationException("IslandState has not been initialized.");
 
@@ -220,7 +221,7 @@ namespace SettlersOfIdlestan.Controller.Island
             var cost = GetRoadCost(distance, civ);
 
             if (!civ.CanPayResourceCost(cost))
-                throw new InvalidOperationException("Civilization cannot afford to build this road");
+                return null;
 
             // Détruire la route ennemie éventuelle sur cette arête
             TryRemoveEnemyRoadAt(edge, civilizationIndex);

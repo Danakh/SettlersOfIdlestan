@@ -21,7 +21,7 @@ namespace SOITests.ControllerTests
 
             // can't trade when not available
             civ.AddResource(Resource.Wood, 4);
-            Assert.Throws<System.InvalidOperationException>(() => controller.Trade(0, Resource.Wood, Resource.Brick));
+            Assert.False(controller.Trade(0, Resource.Wood, Resource.Brick));
         }
 
         [Fact]

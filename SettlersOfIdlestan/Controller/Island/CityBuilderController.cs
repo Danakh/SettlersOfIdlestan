@@ -148,9 +148,9 @@ namespace SettlersOfIdlestan.Controller.Island
 
         /// <summary>
         /// Build a city at the given vertex. Cost: 10 Brick, 10 Wood, 10 Wheat, 10 Sheep.
-        /// Throws InvalidOperationException if not enough resources or vertex not buildable.
+        /// Returns null if resources are insufficient. Throws if the vertex is not buildable (bug appelant).
         /// </summary>
-        public City BuildCity(int civilizationIndex, Vertex vertex)
+        public City? BuildCity(int civilizationIndex, Vertex vertex)
         {
             if (_state == null) throw new InvalidOperationException("IslandState has not been initialized.");
             if (vertex == null) throw new ArgumentNullException(nameof(vertex));
@@ -165,7 +165,7 @@ namespace SettlersOfIdlestan.Controller.Island
             var cost = NewCityBuildingCost();
 
             if (!civ.CanPayResourceCost(cost))
-                throw new InvalidOperationException("Not enough resources to build the city");
+                return null;
 
             civ.PayResourceCost(cost);
 
