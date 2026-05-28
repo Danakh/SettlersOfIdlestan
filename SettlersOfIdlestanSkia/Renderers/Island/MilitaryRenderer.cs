@@ -10,7 +10,7 @@ using System.Reflection;
 
 namespace SettlersOfIdlestanSkia.Renderers.Island;
 
-public class MilitaryParticleRenderer : HexBasedRenderer, IGameRenderer
+public class MilitaryRenderer : HexBasedRenderer, IGameRenderer
 {
     private const float SegmentDuration = 0.35f;
     private const float ParticleIconSize = 16f;
@@ -25,11 +25,22 @@ public class MilitaryParticleRenderer : HexBasedRenderer, IGameRenderer
     private readonly List<MilitaryParticle> _particles = new();
     private SKSvg? _attackSvg;
     private SKPaint? _paint;
+    private SKPaint? _threatLinePaint;
+    private MilitaryController? _militaryController;
+    private GameControllerService? _gameControllerService;
     private bool _disposed;
 
     public void Initialize(SKSize canvasSize)
     {
         _paint = new SKPaint { IsAntialias = true };
+        _threatLinePaint = new SKPaint
+        {
+            Color = new SKColor(220, 50, 50, 180),
+            StrokeWidth = 2f,
+            Style = SKPaintStyle.Stroke,
+            IsAntialias = true,
+            PathEffect = SKPathEffect.CreateDash(new float[] { 8f, 6f }, 0f),
+        };
         var assembly = Assembly.GetExecutingAssembly();
         using var stream = assembly.GetManifestResourceStream(
             $"{assembly.GetName().Name}.Resources.icons.military.attack.svg");
@@ -46,6 +57,8 @@ public class MilitaryParticleRenderer : HexBasedRenderer, IGameRenderer
         Func<bool> isPrestigeTransitionPending,
         Func<bool> isIslandTabActive)
     {
+        _militaryController = militaryController;
+        _gameControllerService = gameControllerService;
         militaryController.SoldierAttackedCity += (_, args) =>
         {
             if (isPrestigeTransitionPending()) return;
@@ -63,6 +76,8 @@ public class MilitaryParticleRenderer : HexBasedRenderer, IGameRenderer
 
     public void Render(SKCanvas canvas, GameRenderContext context)
     {
+        DrawThreatLines(canvas);
+
         float dt = context.DeltaTime;
 
         for (int i = _particles.Count - 1; i >= 0; i--)
@@ -109,6 +124,21 @@ public class MilitaryParticleRenderer : HexBasedRenderer, IGameRenderer
         canvas.Restore();
     }
 
+    private void DrawThreatLines(SKCanvas canvas)
+    {
+        if (_militaryController == null || _gameControllerService == null || _threatLinePaint == null) return;
+        var islandState = _gameControllerService.CurrentIslandState;
+        var playerCiv = _gameControllerService.PlayerCivilization;
+        if (islandState == null || playerCiv == null) return;
+
+        foreach (var city in playerCiv.Cities)
+        {
+            var enemy = _militaryController.FindNearestEnemyCityForDefense(city, playerCiv, islandState);
+            if (enemy == null) continue;
+            canvas.DrawLine(VertexToIsland(city.Position), VertexToIsland(enemy.Position), _threatLinePaint);
+        }
+    }
+
     private static float Smoothstep(float t) => t * t * (3f - 2f * t);
 
     public void Dispose()
@@ -117,6 +147,8 @@ public class MilitaryParticleRenderer : HexBasedRenderer, IGameRenderer
         _attackSvg = null;
         _paint?.Dispose();
         _paint = null;
+        _threatLinePaint?.Dispose();
+        _threatLinePaint = null;
         _disposed = true;
     }
 }

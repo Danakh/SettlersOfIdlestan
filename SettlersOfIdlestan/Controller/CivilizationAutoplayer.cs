@@ -51,6 +51,9 @@ namespace SettlersOfIdlestan.Controller
 
         private static readonly Resource[] Step3TradeTargets = { Resource.Gold };
 
+        private static readonly BuildingType[] MilitaryBuildings = { BuildingType.Palisade, BuildingType.Barracks };
+        public const int MilitaryThreatEdges = 5;
+
         public CivilizationAutoplayer(Civilization civ, IslandMap map, MainGameController mainController)
         {
             _civ = civ ?? throw new ArgumentNullException(nameof(civ));
@@ -184,6 +187,31 @@ namespace SettlersOfIdlestan.Controller
                         didSomething = true;
                 }
                 catch { }
+            }
+
+            return didSomething;
+        }
+
+        /// <summary>Step militaire : construit Palissade et Caserne dans les villes proches d'une civilisation ennemie (&lt; 5 edges).</summary>
+        public bool TryMilitaryStepOnce()
+        {
+            var islandState = _mainController.CurrentMainState?.CurrentIslandState;
+            if (islandState == null) return false;
+
+            bool didSomething = false;
+            TryGrindOnce(null);
+
+            foreach (var city in _civ.Cities.ToList())
+            {
+                var nearestEnemy = _mainController.MilitaryController
+                    .FindNearestEnemyCityForDefense(city, _civ, islandState, MilitaryThreatEdges);
+                if (nearestEnemy == null) continue;
+
+                foreach (var bt in MilitaryBuildings)
+                {
+                    try { if (TryBuildBuildingOnce(city.Position, bt, withGrind: false)) didSomething = true; }
+                    catch { }
+                }
             }
 
             return didSomething;

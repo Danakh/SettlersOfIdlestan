@@ -87,6 +87,30 @@ public class MilitaryController
         return score;
     }
 
+    /// <summary>
+    /// Retourne la ville ennemie la plus proche dans un rayon de <paramref name="maxEdges"/> edges,
+    /// ou null si aucune ville ennemie n'est à portée.
+    /// </summary>
+    public City? FindNearestEnemyCityForDefense(City city, Civilization civ, IslandState state, int maxEdges = 5)
+    {
+        City? closest = null;
+        int closestDist = int.MaxValue;
+        foreach (var otherCiv in state.Civilizations)
+        {
+            if (otherCiv.Index == civ.Index) continue;
+            foreach (var enemyCity in otherCiv.Cities)
+            {
+                int dist = city.Position.EdgeDistanceTo(enemyCity.Position);
+                if (dist <= maxEdges && dist < closestDist)
+                {
+                    closest = enemyCity;
+                    closestDist = dist;
+                }
+            }
+        }
+        return closest;
+    }
+
     internal void Initialize(IslandState? state, GameClock? clock)
     {
         if (_clock != null)

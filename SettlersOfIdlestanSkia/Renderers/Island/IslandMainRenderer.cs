@@ -22,7 +22,7 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
     private readonly CityRenderer _cityRenderer;
     private readonly HarvestRenderer _harvestRenderer;
     private readonly BanditRenderer _banditRenderer;
-    private readonly MilitaryParticleRenderer _militaryParticleRenderer;
+    private readonly MilitaryRenderer _militaryParticleRenderer;
     private readonly HarvestParticleSystem _harvestParticleSystem;
     private readonly IConstructionHoverProvider _constructionHoverProvider;
     private readonly TooltipRenderer _tooltipRenderer;
@@ -67,7 +67,7 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
         _harvestParticleSystem = new HarvestParticleSystem();
         _harvestRenderer = new HarvestRenderer(_harvestParticleSystem, resourceManager);
         _banditRenderer = new BanditRenderer(resourceManager);
-        _militaryParticleRenderer = new MilitaryParticleRenderer();
+        _militaryParticleRenderer = new MilitaryRenderer();
         _constructionHoverProvider = constructionHoverProvider;
         _tooltipRenderer = tooltipRenderer;
         _harvestController = harvestController;
