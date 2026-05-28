@@ -410,6 +410,7 @@ public sealed class SkiaGameRuntime : IDisposable
             return;
 
         _gameControllerService.PerformPrestige();
+        _gameControllerService.CityBuildingService?.ClearSelectedCity();
         _constructionInteractionService?.ClearHover();
 
         var hexCoords = _gameControllerService.CurrentIslandState?.Map?.Tiles?.Keys ?? Enumerable.Empty<HexCoord>();
