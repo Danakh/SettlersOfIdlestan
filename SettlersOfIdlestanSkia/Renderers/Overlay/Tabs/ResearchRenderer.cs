@@ -157,10 +157,9 @@ public sealed class ResearchRenderer : IGameRenderer
         canvas.DrawRect(new SKRect(0, TopOffset, _canvasSize.Width, _canvasSize.Height), _bgPaint);
 
         // Research points
-        var tree = _gameControllerService.PlayerCivilization?.TechnologyTree;
-        if (tree != null)
+        if (_gameControllerService.PlayerCivilization != null)
         {
-            string rpLabel = $"{_localization.Get("research_points_label")}: {tree.ResearchPoints}";
+            string rpLabel = $"{_localization.Get("research_points_label")}: {ctrl.ResearchPoints}";
             canvas.DrawText(rpLabel, PanelPadding, TopOffset + 24f, _nameFont, _textPaint);
         }
 
@@ -284,7 +283,7 @@ public sealed class ResearchRenderer : IGameRenderer
             var status = ctrl.GetStatus(techId);
             if (status == TechnologyStatus.InProgress) return; // Annulation impossible
 
-            bool hasActiveResearch = _gameControllerService.PlayerCivilization?.TechnologyTree.ActiveResearch != null;
+            bool hasActiveResearch = ctrl.ActiveResearch != null;
             if (!hasActiveResearch)
             {
                 if (status == TechnologyStatus.Available)

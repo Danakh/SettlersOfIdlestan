@@ -133,7 +133,7 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
 
         if (Mode == BarDisplayMode.Research)
         {
-            int rp = mainGameState.CurrentIslandState?.PlayerCivilization.TechnologyTree.ResearchPoints ?? 0;
+            int rp = mainGameState.PrestigeState?.TechnologyTree.ResearchPoints ?? 0;
             DrawResearchPointsBar(canvas, rp);
             return;
         }
