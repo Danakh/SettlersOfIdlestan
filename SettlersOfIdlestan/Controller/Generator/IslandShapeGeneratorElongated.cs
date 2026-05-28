@@ -1,8 +1,9 @@
+using SettlersOfIdlestan.Model.Game;
+using SettlersOfIdlestan.Model.HexGrid;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using SettlersOfIdlestan.Model.HexGrid;
-using SettlersOfIdlestan.Model.Game;
+using System.Net.NetworkInformation;
 
 namespace SettlersOfIdlestan.Controller.Generator;
 
@@ -15,9 +16,8 @@ public class IslandShapeGeneratorElongated : IslandShapeGenerator
 {
     private readonly int _axisChoice;
 
-    public IslandShapeGeneratorElongated(int? seed = null)
+    public IslandShapeGeneratorElongated(GamePRNG prng)
     {
-        var prng = seed.HasValue ? new GamePRNG(seed.Value) : new GamePRNG();
         _axisChoice = prng.Next(3);
     }
 

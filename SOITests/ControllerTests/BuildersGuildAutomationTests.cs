@@ -121,12 +121,12 @@ public class BuildersGuildAutomationTests
         roadController.Initialize(state, clock, new GamePRNG());
 
         // Pre-condition: no roads yet, 3 buildable at distance 1 from the city
-        Assert.Equal(0, civ.Roads.Count);
+        Assert.Empty(civ.Roads);
         Assert.Equal(3, roadController.GetBuildableRoadsAtDistance(0, 1).Count);
 
         // First SimulateAdvance just initialises the timer (first-fire guard)
         clock.SimulateAdvance(10);
-        Assert.Equal(0, civ.Roads.Count);
+        Assert.Empty(civ.Roads);
 
         // Each subsequent 500-tick window triggers exactly one auto-build
         clock.SimulateAdvance(500); // builds road 1 of 3
@@ -134,7 +134,7 @@ public class BuildersGuildAutomationTests
         clock.SimulateAdvance(500); // builds road 3 of 3
 
         Assert.Equal(3, civ.Roads.Count);
-        Assert.Equal(0, roadController.GetBuildableRoadsAtDistance(0, 1).Count);
+        Assert.Empty(roadController.GetBuildableRoadsAtDistance(0, 1));
 
         // Saturation: more time must not produce additional roads
         int countAtSaturation = civ.Roads.Count;
@@ -209,7 +209,7 @@ public class BuildersGuildAutomationTests
         int roadsAtSaturation = civ.Roads.Count;          // = 5
 
         // No dist-1 roads remain from the original city.
-        Assert.Equal(0, roadController.GetBuildableRoadsAtDistance(0, 1).Count);
+        Assert.Empty(roadController.GetBuildableRoadsAtDistance(0, 1));
 
         // ----------------------------------------------------------------
         // Phase 2 — Upgrade guild to level 4, disable road automation,
@@ -250,7 +250,7 @@ public class BuildersGuildAutomationTests
         clock.SimulateAdvance(500); // builds 1st new dist-1 road
         clock.SimulateAdvance(500); // builds 2nd new dist-1 road
 
-        Assert.Equal(0, roadController.GetBuildableRoadsAtDistance(0, 1).Count);
+        Assert.Empty(roadController.GetBuildableRoadsAtDistance(0, 1));
         Assert.Equal(roadsAtSaturation + 2, civ.Roads.Count);
     }
 }
