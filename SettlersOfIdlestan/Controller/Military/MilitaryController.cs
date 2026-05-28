@@ -63,8 +63,12 @@ public class MilitaryController
     /// <summary>Intervalle minimum entre deux attaques de ville lancées par la même ville.</summary>
     public const long CityAttackIntervalTicks = 100L;
 
-    /// <summary>Distance en hexagones en deçà de laquelle une ville adverse déclenche une attaque automatique.</summary>
-    public const int CityAttackRange = 3;
+    /// <summary>Distance de base en edges en deçà de laquelle une ville adverse déclenche une attaque automatique.</summary>
+    private const int DefaultCityAttackRange = 3;
+
+    /// <summary>Distance effective en edges, après application des modificateurs de civilisation.</summary>
+    public int CityAttackRange(Civilization civ)
+        => civ.ModifierAggregator.ApplyModifiers(ECategory.CITY_ATTACK_RANGE, "", DefaultCityAttackRange);
 
     public event EventHandler<SoldierAttackEventArgs>? SoldierAttackedBandit;
     public event EventHandler<SoldierAttackEventArgs>? SoldierAttackedHideout;
@@ -85,6 +89,31 @@ public class MilitaryController
         if (civ != null)
             score += civ.ModifierAggregator.ApplyModifiers(ECategory.CITY_DEFENSE, "", 0);
         return score;
+    }
+
+    /// <summary>
+    /// Retourne la ville ennemie la plus proche dans un rayon de <paramref name="maxEdges"/> edges,
+    /// ou null si aucune ville ennemie n'est à portée.
+    /// </summary>
+    public City? FindNearestEnemyCityForDefense(City city, Civilization civ, IslandState state)
+    {
+        int range = CityAttackRange(civ);
+        City? closest = null;
+        int closestDist = int.MaxValue;
+        foreach (var otherCiv in state.Civilizations)
+        {
+            if (otherCiv.Index == civ.Index) continue;
+            foreach (var enemyCity in otherCiv.Cities)
+            {
+                int dist = city.Position.EdgeDistanceTo(enemyCity.Position);
+                if (dist <= range && dist < closestDist)
+                {
+                    closest = enemyCity;
+                    closestDist = dist;
+                }
+            }
+        }
+        return closest;
     }
 
     internal void Initialize(IslandState? state, GameClock? clock)
@@ -274,7 +303,7 @@ public class MilitaryController
             {
                 if (!IsCityVisibleTo(defenderCity, attackerCiv)) continue;
                 int dist = attackerCity.Position.EdgeDistanceTo(defenderCity.Position);
-                if (dist <= CityAttackRange && dist < closestDist)
+                if (dist <= CityAttackRange(attackerCiv) && dist < closestDist)
                 {
                     closest = defenderCity;
                     closestDist = dist;

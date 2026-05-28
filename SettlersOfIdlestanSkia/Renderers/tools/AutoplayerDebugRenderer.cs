@@ -7,7 +7,7 @@ namespace SettlersOfIdlestanSkia.Renderers.Debug;
 
 public class AutoplayerDebugRenderer : IGameRenderer
 {
-    public enum AutoplayerMode { Inactive, Step1, Step2, Step3 }
+    public enum AutoplayerMode { Inactive, Step1, Step2, Step3, Military }
 
     private AutoplayerMode _mode = AutoplayerMode.Inactive;
 
@@ -17,13 +17,13 @@ public class AutoplayerDebugRenderer : IGameRenderer
     private const float MarginLeft = 10f;
     private const float MarginBottom = 10f;
 
-    private static readonly string[] Labels = { "Inactif", "Step 1", "Step 2", "Step 3" };
+    private static readonly string[] Labels = { "Inactif", "Step 1", "Step 2", "Step 3", "Armée" };
 
     private readonly GameControllerService _gameControllerService;
     private readonly InputHandlingService _inputService;
 
     private SKSize _canvasSize;
-    private readonly SKRect[] _buttonRects = new SKRect[4];
+    private readonly SKRect[] _buttonRects = new SKRect[5];
 
     private CivilizationAutoplayer? _autoplayer;
     private object? _lastCivRef;
@@ -52,7 +52,7 @@ public class AutoplayerDebugRenderer : IGameRenderer
     private void RecalcRects()
     {
         float y = _canvasSize.Height - MarginBottom - ButtonHeight;
-        for (int i = 0; i < 4; i++)
+        for (int i = 0; i < 5; i++)
         {
             float x = MarginLeft + i * (ButtonWidth + ButtonSpacing);
             _buttonRects[i] = new SKRect(x, y, x + ButtonWidth, y + ButtonHeight);
@@ -67,7 +67,7 @@ public class AutoplayerDebugRenderer : IGameRenderer
         if (_mode != AutoplayerMode.Inactive)
             RunAutoplayerStep();
 
-        for (int i = 0; i < 4; i++)
+        for (int i = 0; i < 5; i++)
             DrawButton(canvas, _buttonRects[i], Labels[i], (int)_mode == i);
     }
 
@@ -88,9 +88,10 @@ public class AutoplayerDebugRenderer : IGameRenderer
 
         switch (_mode)
         {
-            case AutoplayerMode.Step1: _autoplayer!.TryStep1Once(); break;
-            case AutoplayerMode.Step2: _autoplayer!.TryStep2Once(); break;
-            case AutoplayerMode.Step3: _autoplayer!.TryStep3Once(); break;
+            case AutoplayerMode.Step1:    _autoplayer!.TryStep1Once(); break;
+            case AutoplayerMode.Step2:    _autoplayer!.TryStep2Once(); break;
+            case AutoplayerMode.Step3:    _autoplayer!.TryStep3Once(); break;
+            case AutoplayerMode.Military: _autoplayer!.TryMilitaryStepOnce(); break;
         }
     }
 
@@ -107,7 +108,7 @@ public class AutoplayerDebugRenderer : IGameRenderer
         if (_disposed || !DebugOverlayRenderer.DebugMode || e.Button != PointerButton.Left)
             return;
 
-        for (int i = 0; i < 4; i++)
+        for (int i = 0; i < 5; i++)
         {
             if (_buttonRects[i].Contains(e.Position.X, e.Position.Y))
             {

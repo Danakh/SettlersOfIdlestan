@@ -63,7 +63,11 @@ public static class TechnologyDefinitions
             "tech_military_tactics_name", "tech_military_tactics_desc",
             cost: 150,
             prerequisites: new[] { TechnologyId.MilitaryDiscipline },
-            modifiers: new Modifier[] { new(ECategory.UNIT_PRODUCTION_SPEED, EType.ADDITIVE, 0.15) }),
+            modifiers: new Modifier[]
+            {
+                new(ECategory.UNIT_PRODUCTION_SPEED, EType.ADDITIVE, 0.15),
+                new(ECategory.CITY_ATTACK_RANGE, EType.ADDITIVE, 1),
+            }),
 
         // === TIER 2 ===
 
