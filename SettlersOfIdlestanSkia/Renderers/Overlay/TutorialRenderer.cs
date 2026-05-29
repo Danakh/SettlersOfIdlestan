@@ -22,12 +22,14 @@ public class TutorialRenderer : IGameRenderer
     private const float PanelPadding = 12f;
     private const float TaskMarkerW  = 18f;
 
-    private static readonly SKColor ColorBg         = new(0,   0,   0,   150);
-    private static readonly SKColor ColorTitle       = new(255, 215, 0,   230);
-    private static readonly SKColor ColorDesc        = new(200, 200, 200, 200);
-    private static readonly SKColor ColorTaskPending = new(255, 255, 255, 210);
-    private static readonly SKColor ColorTaskDone    = new(120, 220, 120, 180);
-    private static readonly SKColor ColorSeparator   = new(255, 255, 255, 50);
+    private static readonly SKColor ColorBg                    = new(0,   0,   0,   150);
+    private static readonly SKColor ColorTitle                  = new(255, 215, 0,   230);
+    private static readonly SKColor ColorDesc                   = new(200, 200, 200, 200);
+    private static readonly SKColor ColorTaskPending            = new(255, 255, 255, 210);
+    private static readonly SKColor ColorTaskDone               = new(120, 220, 120, 180);
+    private static readonly SKColor ColorTaskSecondaryPending   = new(180, 180, 180, 140);
+    private static readonly SKColor ColorTaskSecondaryDone      = new(100, 180, 100, 130);
+    private static readonly SKColor ColorSeparator              = new(255, 255, 255, 50);
 
     public TutorialRenderer(ILocalizationService localization)
     {
@@ -53,11 +55,15 @@ public class TutorialRenderer : IGameRenderer
 
         var descLayout = SkiaTextUtils.MeasureWrappedText(desc, contentWidth, _descFont);
 
-        float titleH     = _titleFont.Size + 6f;
-        float descH      = descLayout.Lines.Count * _descFont.Spacing;
-        float separatorH = 10f;
-        float tasksH     = _step.PrimaryTasks.Count() * (_taskFont.Spacing + 2f);
-        float panelH     = PanelPadding + titleH + descH + separatorH + tasksH + PanelPadding;
+        bool hasSecondary = _step.SecondaryTasks.Count > 0;
+
+        float titleH          = _titleFont.Size + 6f;
+        float descH           = descLayout.Lines.Count * _descFont.Spacing;
+        float separatorH      = 10f;
+        float primaryTasksH   = _step.PrimaryTasks.Count * (_taskFont.Spacing + 2f);
+        float secondaryGapH   = hasSecondary ? 8f : 0f;
+        float secondaryTasksH = _step.SecondaryTasks.Count * (_taskFont.Spacing + 2f);
+        float panelH          = PanelPadding + titleH + descH + separatorH + primaryTasksH + secondaryGapH + secondaryTasksH + PanelPadding;
         float panelTop   = _canvasSize.Height / 5f;
 
         var panelRect = new SKRect(PanelLeft, panelTop, PanelLeft + PanelWidth, panelTop + panelH);
@@ -85,22 +91,29 @@ public class TutorialRenderer : IGameRenderer
         y += 4f;
 
         // Tasks
-        using var pendingPaint = new SKPaint { Color = ColorTaskPending, IsAntialias = true };
-        using var donePaint    = new SKPaint { Color = ColorTaskDone,    IsAntialias = true };
+        using var pendingPaint          = new SKPaint { Color = ColorTaskPending,          IsAntialias = true };
+        using var donePaint             = new SKPaint { Color = ColorTaskDone,             IsAntialias = true };
+        using var secondaryPendingPaint = new SKPaint { Color = ColorTaskSecondaryPending, IsAntialias = true };
+        using var secondaryDonePaint    = new SKPaint { Color = ColorTaskSecondaryDone,    IsAntialias = true };
 
         foreach (var task in _step.PrimaryTasks)
         {
-            if (task != null)
+            y += _taskFont.Size;
+            bool done = task.IsCompleted(gameRecord, runRecord);
+            canvas.DrawText(done ? "✓" : "☐", x, y, _taskFont, done ? donePaint : pendingPaint);
+            canvas.DrawText(_localization.Get(task.NameKey), x + TaskMarkerW, y, _taskFont, done ? donePaint : pendingPaint);
+            y += 2f;
+        }
+
+        if (hasSecondary)
+        {
+            y += secondaryGapH;
+            foreach (var task in _step.SecondaryTasks)
             {
                 y += _taskFont.Size;
-                string marker = task.IsCompleted(gameRecord, runRecord) ? "✓" : "☐";
-                string taskText = _localization.Get(task.NameKey);
-                string taskDescription = _localization.Get(task.DescKey);
-                var paint = task.IsCompleted(gameRecord, runRecord) ? donePaint : pendingPaint;
-
-                canvas.DrawText(marker, x, y, _taskFont, paint);
-                canvas.DrawText(taskText, x + TaskMarkerW, y, _taskFont, paint);
-                // TODO - tooltip with taskDescription
+                bool done = task.IsCompleted(gameRecord, runRecord);
+                canvas.DrawText(done ? "✓" : "◦", x, y, _taskFont, done ? secondaryDonePaint : secondaryPendingPaint);
+                canvas.DrawText(_localization.Get(task.NameKey), x + TaskMarkerW, y, _taskFont, done ? secondaryDonePaint : secondaryPendingPaint);
                 y += 2f;
             }
         }
