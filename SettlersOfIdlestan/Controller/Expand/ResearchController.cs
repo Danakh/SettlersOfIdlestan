@@ -201,6 +201,20 @@ namespace SettlersOfIdlestan.Controller.Expand
             return (0, cost);
         }
 
+        public double GetResearchPointsPerSecond()
+        {
+            if (_state == null) return 0.0;
+            double total = 0.0;
+            foreach (var city in _state.PlayerCivilization.Cities)
+            {
+                var library = city.Buildings.OfType<Library>().FirstOrDefault();
+                if (library == null || !library.CanProduceResearch) continue;
+                long cooldown = library.GetResearchCooldownTicks();
+                total += 100.0 / cooldown;
+            }
+            return total;
+        }
+
         public bool IsResearchUnlocked()
             => _prestigeState?.PurchasedVertices.Contains(PrestigeMap.CentralVertex) == true;
 

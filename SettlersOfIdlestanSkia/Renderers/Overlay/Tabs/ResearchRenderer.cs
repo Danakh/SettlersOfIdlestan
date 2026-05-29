@@ -159,7 +159,10 @@ public sealed class ResearchRenderer : IGameRenderer
         // Research points
         if (_gameControllerService.PlayerCivilization != null)
         {
-            string rpLabel = $"{_localization.Get("research_points_label")}: {ctrl.ResearchPoints}";
+            double rps = ctrl.GetResearchPointsPerSecond();
+            string rpLabel = rps > 0
+                ? $"{_localization.Get("research_points_label")}: {ctrl.ResearchPoints} (+{rps.ToString("0.##")}/s)"
+                : $"{_localization.Get("research_points_label")}: {ctrl.ResearchPoints}";
             canvas.DrawText(rpLabel, PanelPadding, TopOffset + 24f, _nameFont, _textPaint);
         }
 
