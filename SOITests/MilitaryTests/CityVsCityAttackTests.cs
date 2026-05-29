@@ -137,12 +137,12 @@ public class CityVsCityAttackTests
     [Fact]
     public void Attack_ConsumesOneSoldier()
     {
-        // MaxSoldiers empêche la production de s'activer au tick 3000.
-        var (_, clock, _, _, _, barracksA) = Setup(soldiersA: MilitaryController.MaxSoldiers);
+        // Capacité pleine (niveau 2 = 10) pour empêcher la production de s'activer.
+        var (_, clock, _, _, _, barracksA) = Setup(soldiersA: MilitaryController.MaxSoldiersPerLevel * 2);
 
         clock.SimulateAdvance(MilitaryController.CityAttackIntervalTicks);
 
-        Assert.Equal(MilitaryController.MaxSoldiers - 1, barracksA.Soldiers);
+        Assert.Equal(MilitaryController.MaxSoldiersPerLevel * 2 - 1, barracksA.Soldiers);
     }
 
     [Fact]

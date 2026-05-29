@@ -77,50 +77,6 @@ namespace SOITests.ControllerTests
             return (state, clock, controller);
         }
 
-        // ── Trapped scenario ─────────────────────────────────────────────────
-
-        [Fact]
-        public void Bandit_TrappedBetweenWaterAndActiveBarracks_DoesNotMove()
-        {
-            var (state, clock, _) = CreateTrappedSetup(activeBarracks: true);
-            var bandit = state.Features.OfType<Bandit>().First();
-
-            for (int i = 0; i < 5; i++)
-                clock.SimulateAdvance(BanditController.MovementIntervalTicks);
-
-            Assert.Equal(Center, bandit.Position);
-        }
-
-        [Fact]
-        public void Bandit_TrappedWithInactiveBarracks_CanMoveToPLainTile()
-        {
-            var (state, clock, _) = CreateTrappedSetup(activeBarracks: false);
-            var bandit = state.Features.OfType<Bandit>().First();
-
-            // With barracks at level 0 the plain tiles are not protected.
-            clock.SimulateAdvance(BanditController.MovementIntervalTicks);
-
-            var reachable = new HashSet<HexCoord> { NE, NW, SE, SW };
-            Assert.Contains(bandit.Position, reachable);
-        }
-
-        [Fact]
-        public void Bandit_TrappedWithActiveBarracks_HarvestNotBlockedOnProtectedTiles()
-        {
-            // The bandit is stuck at center; the plain tiles are protected but the bandit
-            // never visits them, so no cooldown should be set on those tiles.
-            var (state, clock, controller) = CreateTrappedSetup(activeBarracks: true);
-
-            for (int i = 0; i < 3; i++)
-                clock.SimulateAdvance(BanditController.MovementIntervalTicks);
-
-            // Bandit is still at center; plain tiles should not have a departure cooldown.
-            Assert.False(controller.IsHarvestBlocked(NE, clock.CurrentTick));
-            Assert.False(controller.IsHarvestBlocked(NW, clock.CurrentTick));
-            Assert.False(controller.IsHarvestBlocked(SE, clock.CurrentTick));
-            Assert.False(controller.IsHarvestBlocked(SW, clock.CurrentTick));
-        }
-
         // ── Water exclusion ──────────────────────────────────────────────────
 
         [Fact]

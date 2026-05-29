@@ -180,24 +180,13 @@ public class BanditController
             return;
         }
 
-        // Hexs protégés par les Barracks (3 hexs de chaque ville avec Barracks actives)
-        var protectedHexes = GetBarracksProtectedHexes();
-
-        // Destinations valides : non protégées
-        var validDestinations = neighbors.Where(n => !protectedHexes.Contains(n)).ToList();
-
-        if (validDestinations.Count == 0)
-        {
-            bandit.LastMovedTick = currentTick;
-            return;
-        }
-
         var cityHexes = new HashSet<HexCoord>();
         foreach (var city in _state.GetAllCities())
             foreach (var hex in city.Position.GetHexes())
                 cityHexes.Add(hex);
 
         // Tier 1 : pas de bandit + pas de cooldown
+        var validDestinations = neighbors;
         var noBanditNoCooldown = validDestinations
             .Where(n => !_bandits.Any(b => b.Position.Equals(n)) &&
                         (!_state.BanditCooldownUntil.TryGetValue(n, out var until) || currentTick >= until))
@@ -227,20 +216,6 @@ public class BanditController
         // Cooldown sur l'ancienne position si le bandit a bougé
         if (!oldPosition.Equals(destination))
             _state.BanditCooldownUntil[oldPosition] = currentTick + DepartureCooldownTicks;
-    }
-
-    private HashSet<HexCoord> GetBarracksProtectedHexes()
-    {
-        if (_state == null) return new HashSet<HexCoord>();
-
-        var protectedHexes = new HashSet<HexCoord>();
-        foreach (var civ in _state.Civilizations)
-            foreach (var city in civ.Cities)
-                if (city.Buildings.OfType<Barracks>().Any(b => b.Level > 0))
-                    foreach (var hex in city.Position.GetHexes())
-                        protectedHexes.Add(hex);
-
-        return protectedHexes;
     }
 
     /// <summary>

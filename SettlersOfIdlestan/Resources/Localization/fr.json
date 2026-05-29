@@ -124,7 +124,7 @@
   "building_palisade_desc": "Protège la ville contre le vol des ressources par les bandits.",
   "building_barracks_name": "Caserne",
   "building_barracks_desc": "Permet l'entraînement de troupes. Débloqué par le prestige (Caserne).",
-  "building_barracks_desc_1": "Protège les hexs voisins : les bandits ne peuvent pas s'y installer.",
+  "building_barracks_desc_1": "Produit 1 soldat toutes les 30s (max 5). Les soldats attaquent les bandits adjacents.",
   "building_barracks_desc_2": "Produit 1 soldat toutes les 30s (max 10). Les soldats attaquent les bandits adjacents.",
   "barracks_soldiers": "Soldats",
   "barracks_soldier_production": "Prochain soldat :",

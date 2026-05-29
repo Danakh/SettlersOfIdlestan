@@ -42,6 +42,7 @@ namespace SOITests.ControllerTests
 
             var map = new IslandMap(tiles);
             var civ = new Civilization { Index = 0 };
+            civ.Resources[Resource.Ore] = 999;
             var vertex = Vertex.Create(NE, East, NE11);
             var city = new City(vertex) { CivilizationIndex = 0 };
             var barracks = new Barracks { Level = barracksLevel, Soldiers = initialSoldiers };
@@ -73,25 +74,25 @@ namespace SOITests.ControllerTests
         }
 
         [Fact]
-        public void Barracks_Level1_DoesNotProduceSoldiers()
+        public void Barracks_Level1_SoldierCapIsFive()
         {
             var (_, clock, _, barracks) = CreateSetup(initialSoldiers: 0, barracksLevel: 1);
 
-            for (int i = 0; i < 5; i++)
+            for (int i = 0; i < MilitaryController.MaxSoldiersPerLevel + 5; i++)
                 clock.SimulateAdvance(MilitaryController.SoldierProductionIntervalTicks);
 
-            Assert.Equal(0, barracks.Soldiers);
+            Assert.Equal(MilitaryController.MaxSoldiersPerLevel * 1, barracks.Soldiers);
         }
 
         [Fact]
-        public void Barracks_SoldierCapIsTen()
+        public void Barracks_Level2_SoldierCapIsTen()
         {
             var (_, clock, _, barracks) = CreateSetup(initialSoldiers: 0);
 
-            for (int i = 0; i < MilitaryController.MaxSoldiers + 5; i++)
+            for (int i = 0; i < MilitaryController.MaxSoldiersPerLevel * 2 + 5; i++)
                 clock.SimulateAdvance(MilitaryController.SoldierProductionIntervalTicks);
 
-            Assert.Equal(MilitaryController.MaxSoldiers, barracks.Soldiers);
+            Assert.Equal(MilitaryController.MaxSoldiersPerLevel * 2, barracks.Soldiers);
         }
 
         // ── Combat — bandits ──────────────────────────────────────────────────
