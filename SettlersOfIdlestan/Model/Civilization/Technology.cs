@@ -65,6 +65,8 @@ public class Technology
     public int Cost { get; }
     public IReadOnlyList<TechnologyId> Prerequisites { get; }
     public IReadOnlyList<Modifier> Modifiers { get; }
+    public int Tier { get; }
+    public int Line { get; }
 
     public Technology(
         TechnologyId id,
@@ -72,7 +74,9 @@ public class Technology
         string descKey,
         int cost,
         IReadOnlyList<TechnologyId> prerequisites,
-        IReadOnlyList<Modifier> modifiers)
+        IReadOnlyList<Modifier> modifiers,
+        int tier,
+        int line)
     {
         Id = id;
         NameKey = nameKey;
@@ -80,5 +84,7 @@ public class Technology
         Cost = cost;
         Prerequisites = prerequisites;
         Modifiers = modifiers;
+        Tier = tier;
+        Line = line;
     }
 }
