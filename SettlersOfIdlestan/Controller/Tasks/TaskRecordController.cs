@@ -141,6 +141,14 @@ public class TaskRecordController
             if (e.Level == 2 && _productionBuildings.Contains(e.BuildingType))
                 _gameRecord.ProductionBuildingsReachedLevel2++;
 
+            if (e.Level == 4)
+            {
+                if (e.BuildingType == BuildingType.Seaport && !_gameRecord.HasSeaportLevel4)
+                    _gameRecord.HasSeaportLevel4 = true;
+                if (e.BuildingType == BuildingType.TownHall && !_gameRecord.HasTownHallLevel4)
+                    _gameRecord.HasTownHallLevel4 = true;
+            }
+
             if (!_gameRecord.HasSeaportAndTownHallLevel4SameCity
                 && e.Level == 4
                 && (e.BuildingType == BuildingType.Seaport || e.BuildingType == BuildingType.TownHall)

@@ -30,6 +30,12 @@ public class GameRecord
     /// <summary>True si une ville a eu simultanément un Port niveau 4 et un Hôtel de ville niveau 4.</summary>
     public bool HasSeaportAndTownHallLevel4SameCity { get; set; }
 
+    /// <summary>True si un Port de pêche a atteint le niveau 4.</summary>
+    public bool HasSeaportLevel4 { get; set; }
+
+    /// <summary>True si un Hôtel de ville a atteint le niveau 4.</summary>
+    public bool HasTownHallLevel4 { get; set; }
+
     /// <summary>IDs des tâches tutoriel complétées (clé = TutorialTaskId.ToString()).</summary>
     public HashSet<string> CompletedTasks { get; set; } = new();
 }

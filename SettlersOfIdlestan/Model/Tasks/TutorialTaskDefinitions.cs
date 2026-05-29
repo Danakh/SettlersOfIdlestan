@@ -28,7 +28,11 @@ public static class TutorialTaskDefinitions
 
         new TutorialTask(TutorialTaskId.BuildFirstRoad,
             "task_build_first_road_name", "task_build_first_road_desc",
-            (g, _) => g.TotalRoadsBuilt >= 1),
+            (g, _) => g.TotalRoadsBuilt >= 3),
+
+        new TutorialTask(TutorialTaskId.Harvest15Food,
+            "task_harvest_food_name", "task_harvest_food_desc",
+            (g, _) => g.HarvestedResources.GetValueOrDefault("Food") >= 15),
 
         new TutorialTask(TutorialTaskId.BuildSecondCity,
             "task_build_second_city_name", "task_build_second_city_desc",
@@ -46,9 +50,21 @@ public static class TutorialTaskDefinitions
             "task_build_5_libraries_name", "task_build_5_libraries_desc",
             (g, _) => g.BuildingCounts.GetValueOrDefault("Library") >= 5),
 
+        new TutorialTask(TutorialTaskId.Build5Palisades,
+            "task_build_5_palisades_name", "task_build_5_palisades_desc",
+            (g, _) => g.BuildingCounts.GetValueOrDefault("Palisade") >= 5),
+
         new TutorialTask(TutorialTaskId.SeaportAndTownHallLevel4SameCity,
             "task_seaport_townhall_level4_name", "task_seaport_townhall_level4_desc",
             (g, _) => g.HasSeaportAndTownHallLevel4SameCity),
+
+        new TutorialTask(TutorialTaskId.SeaportLevel4,
+            "task_seaport_level4_name", "task_seaport_level4_desc",
+            (g, _) => g.HasSeaportLevel4),
+
+        new TutorialTask(TutorialTaskId.TownHallLevel4,
+            "task_townhall_level4_name", "task_townhall_level4_desc",
+            (g, _) => g.HasTownHallLevel4),
 
         new TutorialTask(TutorialTaskId.BuildImperialPort,
             "task_build_imperial_port_name", "task_build_imperial_port_desc",

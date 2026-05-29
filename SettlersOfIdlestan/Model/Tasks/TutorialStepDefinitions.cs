@@ -42,7 +42,10 @@ public static class TutorialStepDefinitions
             {
                 Task(TutorialTaskId.BuildFirstRoad),
             },
-            secondaryTasks: System.Array.Empty<TutorialTask>()
+            secondaryTasks: new[]
+            {
+                Task(TutorialTaskId.Harvest15Food),
+            }
         ),
 
         new TutorialStep(
@@ -68,6 +71,7 @@ public static class TutorialStepDefinitions
             secondaryTasks: new[]
             {
                 Task(TutorialTaskId.Build5Libraries),
+                Task(TutorialTaskId.Build5Palisades),
             }
         ),
 
@@ -76,7 +80,19 @@ public static class TutorialStepDefinitions
             "tutorial_step_capital_desc",
             primaryTasks: new[]
             {
-                Task(TutorialTaskId.SeaportAndTownHallLevel4SameCity),
+                Task(TutorialTaskId.SeaportLevel4),
+            },
+            secondaryTasks: new[]
+            {
+                Task(TutorialTaskId.TownHallLevel4),
+            }
+        ),
+
+        new TutorialStep(
+            "tutorial_step_imperial_port_title",
+            "tutorial_step_imperial_port_desc",
+            primaryTasks: new[]
+            {
                 Task(TutorialTaskId.BuildImperialPort),
             },
             secondaryTasks: System.Array.Empty<TutorialTask>()
