@@ -426,6 +426,7 @@ public sealed class SkiaGameRuntime : IDisposable
         _introRenderer.StartIntro(state);
         state.Clock?.Pause();
         CenterCameraOnStartingCity();
+        _tutorialService?.InitializeForNewGame(state);
     }
 
     private void StartNewGameIntro(SettlersOfIdlestan.Model.Game.MainGameState state)

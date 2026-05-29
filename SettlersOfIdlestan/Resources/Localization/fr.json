@@ -384,6 +384,7 @@
   "tutorial_step_build_title": "Construction",
   "tutorial_step_build_desc": "Appuyez sur votre ville pour ouvrir le menu de construction. Sélectionnez un bâtiment disponible et construisez-le.",
   "tutorial_step_road_title": "Routes",
-  "tutorial_step_road_desc": "Appuyez sur une arête adjacente à votre ville pour construire une route et étendre votre territoire."
+  "tutorial_step_road_desc": "Appuyez sur une arête adjacente à votre ville pour construire une route et étendre votre territoire.",
+  "tutorial_optional": "Optionnel"
 }
 

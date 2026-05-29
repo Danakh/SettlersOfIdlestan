@@ -11,9 +11,10 @@ public class TutorialRenderer : IGameRenderer
     private readonly ILocalizationService _localization;
 
     private SKSize _canvasSize;
-    private readonly SKFont _titleFont = new() { Size = 14, Typeface = SkiaFonts.Bold };
-    private readonly SKFont _descFont  = new() { Size = 11, Typeface = SkiaFonts.Regular };
-    private readonly SKFont _taskFont  = new() { Size = 12, Typeface = SkiaFonts.Regular };
+    private readonly SKFont _titleFont    = new() { Size = 14, Typeface = SkiaFonts.Bold };
+    private readonly SKFont _descFont     = new() { Size = 11, Typeface = SkiaFonts.Regular };
+    private readonly SKFont _taskFont     = new() { Size = 12, Typeface = SkiaFonts.Regular };
+    private readonly SKFont _optionalFont = new() { Size = 10, Typeface = SkiaFonts.Regular };
 
     private TutorialStep? _step;
 
@@ -62,8 +63,9 @@ public class TutorialRenderer : IGameRenderer
         float separatorH      = 10f;
         float primaryTasksH   = _step.PrimaryTasks.Count * (_taskFont.Spacing + 2f);
         float secondaryGapH   = hasSecondary ? 8f : 0f;
+        float secondaryLabelH = hasSecondary ? _optionalFont.Spacing + 2f : 0f;
         float secondaryTasksH = _step.SecondaryTasks.Count * (_taskFont.Spacing + 2f);
-        float panelH          = PanelPadding + titleH + descH + separatorH + primaryTasksH + secondaryGapH + secondaryTasksH + PanelPadding;
+        float panelH          = PanelPadding + titleH + descH + separatorH + primaryTasksH + secondaryGapH + secondaryLabelH + secondaryTasksH + PanelPadding;
         float panelTop   = _canvasSize.Height / 5f;
 
         var panelRect = new SKRect(PanelLeft, panelTop, PanelLeft + PanelWidth, panelTop + panelH);
@@ -108,11 +110,15 @@ public class TutorialRenderer : IGameRenderer
         if (hasSecondary)
         {
             y += secondaryGapH;
+            using var optionalPaint = new SKPaint { Color = ColorTaskSecondaryPending, IsAntialias = true };
+            canvas.DrawText(_localization.Get("tutorial_optional"), x, y + _optionalFont.Size, _optionalFont, optionalPaint);
+            y += secondaryLabelH;
+
             foreach (var task in _step.SecondaryTasks)
             {
                 y += _taskFont.Size;
                 bool done = task.IsCompleted(gameRecord, runRecord);
-                canvas.DrawText(done ? "✓" : "◦", x, y, _taskFont, done ? secondaryDonePaint : secondaryPendingPaint);
+                canvas.DrawText(done ? "✓" : "☐", x, y, _taskFont, done ? secondaryDonePaint : secondaryPendingPaint);
                 canvas.DrawText(_localization.Get(task.NameKey), x + TaskMarkerW, y, _taskFont, done ? secondaryDonePaint : secondaryPendingPaint);
                 y += 2f;
             }

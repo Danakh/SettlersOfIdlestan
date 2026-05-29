@@ -384,6 +384,7 @@
   "tutorial_step_build_title": "Construction",
   "tutorial_step_build_desc": "Tap your city to open the build menu. Select an available building and construct it.",
   "tutorial_step_road_title": "Roads",
-  "tutorial_step_road_desc": "Tap an edge adjacent to your city to build a road and expand your territory."
+  "tutorial_step_road_desc": "Tap an edge adjacent to your city to build a road and expand your territory.",
+  "tutorial_optional": "Optional"
 }
 
