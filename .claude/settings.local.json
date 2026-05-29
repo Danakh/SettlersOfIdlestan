@@ -19,7 +19,9 @@
       "Bash(Select-String *)",
       "Bash(Format-Table *)",
       "Bash(Get-ChildItem *)",
-      "Bash(dir *)"
+      "Bash(dir *)",
+      "Bash(Stop-Process -Name \"testhost\" -Force -ErrorAction SilentlyContinue)",
+      "Bash(Start-Sleep -Seconds 2)"
     ]
   }
 }

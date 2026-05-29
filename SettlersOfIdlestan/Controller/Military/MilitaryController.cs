@@ -61,8 +61,11 @@ public class MilitaryController
     /// <summary>Niveau de Caserne à partir duquel la production de soldats est active.</summary>
     public const int SoldierProductionMinLevel = 1;
 
-    /// <summary>Capacité maximale de soldats dans une Caserne.</summary>
-    public const int MaxSoldiers = 10;
+    /// <summary>Capacité de soldats par niveau de Caserne.</summary>
+    public const int MaxSoldiersPerLevel = 5;
+
+    /// <summary>Capacité maximale d'une Caserne en fonction de son niveau.</summary>
+    public static int MaxSoldiersFor(Barracks b) => MaxSoldiersPerLevel * b.Level;
 
     /// <summary>Intervalle de régénération d'un point de défense (1 000 ticks).</summary>
     public const long DefenseRegenIntervalTicks = 500L;
@@ -100,10 +103,7 @@ public class MilitaryController
 
     /// <summary>Capacité maximale de soldats de la ville, tous bâtiments garnison confondus.</summary>
     public int GetMaximumSoldierCapacity(City city, Civilization? civ = null)
-    {
-        int capacity = city.Buildings.OfType<Barracks>().Count() * MaxSoldiers;
-        return capacity;
-    }
+        => city.Buildings.OfType<Barracks>().Sum(b => MaxSoldiersFor(b));
 
     /// <summary>Score de défense de la ville : Palissade=10, Caserne=5, plus modificateurs de civilisation.</summary>
     public int GetDefenseScore(City city, Civilization? civ = null)
@@ -157,7 +157,7 @@ public class MilitaryController
                 {
                     if (barracks.ActivationStatus != ActivationStatus.ACTIVE) continue;
                     if (barracks.Level < SoldierProductionMinLevel) continue;
-                    if (barracks.Soldiers >= MaxSoldiers) continue;
+                    if (barracks.Soldiers >= MaxSoldiersFor(barracks)) continue;
                     if (currentTick - barracks.LastSoldierProductionTick < SoldierProductionIntervalTicks) continue;
                     if (civ.GetResourceQuantity(Resource.Ore) < 1) continue;
 
@@ -365,7 +365,7 @@ public class MilitaryController
                 if (targetCity == null) continue;
 
                 var receiver = targetCity.Buildings.OfType<Barracks>()
-                    .FirstOrDefault(b => b.Soldiers < MaxSoldiers);
+                    .FirstOrDefault(b => b.Soldiers < MaxSoldiersFor(b));
                 if (receiver == null) continue;
 
                 var donor = sourceCity.Buildings.OfType<Barracks>()
