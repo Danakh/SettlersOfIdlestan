@@ -133,7 +133,16 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay
                 && islandState.Civilizations.Where(c => c.Index != playerIdx).Any(c => c.Cities.Any(city => city.Position.IsAdjacentTo(coord)));
 
             if (manualResources.Count == 0 && autoResources.Count == 0 && !banditPresent && !banditCooldownActive && !hasTreasureTrove && !hideoutPresent && !isContested)
+            {
+                var tile = islandState.Map.GetTile(coord);
+                if (tile == null) return;
+                var terrainKey = $"hex_tooltip_terrain_{tile.TerrainType.ToString().ToLower()}";
+                _tooltipTexts = new string[] { _localizationService.Get(terrainKey) };
+                _tooltipCost = null;
+                var terrainIslandPos = _islandRendererContext.HexCoordToIslandPoint(coord);
+                _tooltipScreenPosition = _islandRendererContext.IslandToScreen(terrainIslandPos, _gameRenderContext.ZoomLevel, _gameRenderContext.CameraPosition);
                 return;
+            }
 
             var lines = new List<string>();
 

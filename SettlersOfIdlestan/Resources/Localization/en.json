@@ -344,6 +344,12 @@
   "tech_golden_era_desc": "+50% harvest speed, +50% research speed, +5 gold packages",
   "tech_utopia_name": "Utopia",
   "tech_utopia_desc": "+50% harvest speed, -20% research cost, +2 city defense",
-  "prestige_vertex_knowledge_mastery": "Knowledge Mastery"
+  "prestige_vertex_knowledge_mastery": "Knowledge Mastery",
+  "hex_tooltip_terrain_forest": "Forest\nManual harvest: Wood (Town Hall)",
+  "hex_tooltip_terrain_hill": "Hills\nManual harvest: Brick (Town Hall)",
+  "hex_tooltip_terrain_plain": "Plains\nManual harvest: Food (Town Hall)",
+  "hex_tooltip_terrain_mountain": "Mountain\nManual harvest: Stone (Town Hall)",
+  "hex_tooltip_terrain_water": "Water\nManual harvest: Food (Seaport)",
+  "hex_tooltip_terrain_desert": "Desert\nNo manual harvest"
 }
 
