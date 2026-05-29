@@ -44,5 +44,52 @@ public static class TutorialStepDefinitions
             },
             secondaryTasks: System.Array.Empty<TutorialTask>()
         ),
+
+        new TutorialStep(
+            "tutorial_step_expansion_title",
+            "tutorial_step_expansion_desc",
+            primaryTasks: new[]
+            {
+                Task(TutorialTaskId.BuildSecondCity),
+            },
+            secondaryTasks: new[]
+            {
+                Task(TutorialTaskId.UpgradeProductionBuildingsLevel2),
+            }
+        ),
+
+        new TutorialStep(
+            "tutorial_step_empire_title",
+            "tutorial_step_empire_desc",
+            primaryTasks: new[]
+            {
+                Task(TutorialTaskId.Build10Cities),
+            },
+            secondaryTasks: new[]
+            {
+                Task(TutorialTaskId.Build5Libraries),
+            }
+        ),
+
+        new TutorialStep(
+            "tutorial_step_capital_title",
+            "tutorial_step_capital_desc",
+            primaryTasks: new[]
+            {
+                Task(TutorialTaskId.SeaportAndTownHallLevel4SameCity),
+                Task(TutorialTaskId.BuildImperialPort),
+            },
+            secondaryTasks: System.Array.Empty<TutorialTask>()
+        ),
+
+        new TutorialStep(
+            "tutorial_step_prestige_title",
+            "tutorial_step_prestige_desc",
+            primaryTasks: new[]
+            {
+                Task(TutorialTaskId.PerformPrestige),
+            },
+            secondaryTasks: System.Array.Empty<TutorialTask>()
+        ),
     };
 }

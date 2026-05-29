@@ -24,6 +24,12 @@ public class GameRecord
     /// <summary>Quantité totale récoltée par ressource (clé = Resource.ToString()).</summary>
     public Dictionary<string, int> HarvestedResources { get; set; } = new();
 
+    /// <summary>Nombre de bâtiments de production ayant atteint le niveau 2 (cross-prestige).</summary>
+    public int ProductionBuildingsReachedLevel2 { get; set; }
+
+    /// <summary>True si une ville a eu simultanément un Port niveau 4 et un Hôtel de ville niveau 4.</summary>
+    public bool HasSeaportAndTownHallLevel4SameCity { get; set; }
+
     /// <summary>IDs des tâches tutoriel complétées (clé = TutorialTaskId.ToString()).</summary>
     public HashSet<string> CompletedTasks { get; set; } = new();
 }
