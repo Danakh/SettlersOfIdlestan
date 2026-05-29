@@ -13,6 +13,7 @@ public class Barracks : Building
     public Barracks() : base(BuildingType.Barracks)
     {
         AvailableAtLevel = 1;
+        ActivationStatus = ActivationStatus.ACTIVE;
     }
 
     // Locked by default; unlocked by the Barracks prestige vertex (+2 max level)

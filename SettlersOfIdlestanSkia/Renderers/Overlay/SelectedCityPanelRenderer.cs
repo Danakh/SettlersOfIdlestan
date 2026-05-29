@@ -43,6 +43,7 @@ public class SelectedCityPanelRenderer : IGameRenderer
     private const float TabHeight = 28f;
     private Dictionary<SKRect, BuildingType> _btnRects = new Dictionary<SKRect, BuildingType>();
     private Dictionary<SKRect, BuildingType> _hoverRects = new Dictionary<SKRect, BuildingType>();
+    private Dictionary<SKRect, BuildingType> _checkboxRects = new Dictionary<SKRect, BuildingType>();
     private bool _showUniqueBuildings = false;
     private SKRect _tabRegularRect = SKRect.Empty;
     private SKRect _tabUniqueRect = SKRect.Empty;
@@ -52,6 +53,9 @@ public class SelectedCityPanelRenderer : IGameRenderer
     private SKPaint? _dimTextPaint;
     private SKPaint? _dimCostTextPaint;
     private SKPaint? _btnOtherCityPaint;
+    private SKPaint? _checkboxActivePaint;
+    private SKPaint? _checkboxInactivePaint;
+    private SKPaint? _checkboxBorderPaint;
     public float ReservedBottomHeight { get; set; }
     public bool IsInputEnabled { get; set; } = true;
     private SKRect _panelBounds = SKRect.Empty;
@@ -63,6 +67,7 @@ public class SelectedCityPanelRenderer : IGameRenderer
         _hoveredBuildingType = null;
         _btnRects.Clear();
         _hoverRects.Clear();
+        _checkboxRects.Clear();
         _showUniqueBuildings = false;
         _lastSelectedCity = null;
         _panelBounds = SKRect.Empty;
@@ -99,6 +104,9 @@ public class SelectedCityPanelRenderer : IGameRenderer
         _dimTextPaint = new SKPaint { Color = new SKColor(130, 130, 140, 200), IsAntialias = true };
         _dimCostTextPaint = new SKPaint { Color = new SKColor(100, 100, 110, 160), IsAntialias = true };
         _btnOtherCityPaint = new SKPaint { Color = new SKColor(60, 55, 80, 200), Style = SKPaintStyle.Fill, IsAntialias = true };
+        _checkboxActivePaint = new SKPaint { Color = new SKColor(46, 160, 67, 230), Style = SKPaintStyle.Fill, IsAntialias = true };
+        _checkboxInactivePaint = new SKPaint { Color = new SKColor(40, 40, 50, 200), Style = SKPaintStyle.Fill, IsAntialias = true };
+        _checkboxBorderPaint = new SKPaint { Color = new SKColor(160, 160, 180, 200), Style = SKPaintStyle.Stroke, StrokeWidth = 1.5f, IsAntialias = true };
 
         foreach (Resource resource in Enum.GetValues(typeof(Resource)))
         {
@@ -127,6 +135,7 @@ public class SelectedCityPanelRenderer : IGameRenderer
 
         _btnRects.Clear();
         _hoverRects.Clear();
+        _checkboxRects.Clear();
         _tabRegularRect = SKRect.Empty;
         _tabUniqueRect = SKRect.Empty;
 
@@ -176,9 +185,31 @@ public class SelectedCityPanelRenderer : IGameRenderer
             var isAtMaxLevel = isBuiltInThisCity && _cityBuildingService.IsAtMaxLevel(building);
             var yRow = y + index * RowHeight;
 
+            // Case à cocher pour les bâtiments activables construits dans cette ville
+            bool hasCheckbox = isBuiltInThisCity && building.ActivationStatus != ActivationStatus.NON_ACTIVABLE;
+            float nameOffsetX = hasCheckbox ? 20f : 0f;
+
+            if (hasCheckbox)
+            {
+                const float cbSize = 13f;
+                float cbX = panelX + Padding;
+                float cbY = yRow + (RowHeight - cbSize) / 2f;
+                var cbRect = new SKRect(cbX, cbY, cbX + cbSize, cbY + cbSize);
+                var fillPaint = building.ActivationStatus == ActivationStatus.ACTIVE ? _checkboxActivePaint : _checkboxInactivePaint;
+                canvas.DrawRoundRect(cbRect, 3, 3, fillPaint);
+                canvas.DrawRoundRect(cbRect, 3, 3, _checkboxBorderPaint);
+                if (building.ActivationStatus == ActivationStatus.ACTIVE)
+                {
+                    using var checkPaint = new SKPaint { Color = SKColors.White, StrokeWidth = 2f, Style = SKPaintStyle.Stroke, IsAntialias = true, StrokeCap = SKStrokeCap.Round };
+                    canvas.DrawLine(cbX + 2.5f, cbY + cbSize / 2f, cbX + cbSize / 2f - 1f, cbY + cbSize - 3f, checkPaint);
+                    canvas.DrawLine(cbX + cbSize / 2f - 1f, cbY + cbSize - 3f, cbX + cbSize - 2f, cbY + 3f, checkPaint);
+                }
+                _checkboxRects[new SKRect(cbX - 2, cbY - 2, cbX + cbSize + 2, cbY + cbSize + 2)] = building.Type;
+            }
+
             var namePaint = isBuiltInOtherCity ? _dimTextPaint : _textPaint;
             var label = _localization.Get(building.NameKey) + (isBuilt ? $" (Niv {building.Level})" : "");
-            canvas.DrawText(label, panelX + Padding, yRow + 18, _font15, namePaint);
+            canvas.DrawText(label, panelX + Padding + nameOffsetX, yRow + 18, _font15, namePaint);
 
             if (!isBuiltInOtherCity && !isAtMaxLevel)
             {
@@ -186,7 +217,7 @@ public class SelectedCityPanelRenderer : IGameRenderer
                 if (cost.Count > 0)
                 {
                     const float costIconSize = 11f;
-                    float iconX = panelX + Padding;
+                    float iconX = panelX + Padding + nameOffsetX;
                     float centerY = yRow + 28f;
                     foreach (var kvp in cost)
                     {
@@ -455,6 +486,16 @@ public class SelectedCityPanelRenderer : IGameRenderer
             return;
         }
 
+        // Clic sur une case à cocher d'activation
+        foreach (var (rect, buildingType) in _checkboxRects)
+        {
+            if (rect.Contains(e.Position.X, e.Position.Y))
+            {
+                _cityBuildingService.ToggleBuildingActivation(buildingType);
+                return;
+            }
+        }
+
         // Clic sur un bouton de construction
         foreach (var (rect, buildingType) in _hoverRects)
         {
@@ -484,5 +525,8 @@ public class SelectedCityPanelRenderer : IGameRenderer
         _btnMaxLevelPaint?.Dispose();
         _tabActivePaint?.Dispose();
         _tabInactivePaint?.Dispose();
+        _checkboxActivePaint?.Dispose();
+        _checkboxInactivePaint?.Dispose();
+        _checkboxBorderPaint?.Dispose();
     }
 }
