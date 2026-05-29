@@ -5,6 +5,7 @@ using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Prestige;
+using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Controller.Generator;
 
 namespace SettlersOfIdlestan.Controller.Expand
@@ -13,17 +14,21 @@ namespace SettlersOfIdlestan.Controller.Expand
     {
         private Civilization? _playerCivilization;
         private IslandState? _islandState;
+        private GameClock? _clock;
 
         internal PrestigeController()
         {
             // no op
         }
 
-        internal void Initialize(Civilization playerCivilization, IslandState? islandState = null)
+        internal void Initialize(Civilization playerCivilization, IslandState? islandState = null, GameClock? clock = null)
         {
             _playerCivilization = playerCivilization;
             _islandState = islandState;
+            _clock = clock;
         }
+
+        private long GetCurrentTick() => _clock?.CurrentTick ?? 0;
 
         public const int PrestigeVisiblePoints = 10;
         public const int PrestigeRequiredPoints = 20;
@@ -61,6 +66,23 @@ namespace SettlersOfIdlestan.Controller.Expand
                 && _islandState.Map.Tiles.Values.Any(t => t.TerrainType == TerrainType.Desert))
             {
                 sources["prestige_no_bandits"] = 2;
+            }
+
+            if (_islandState != null)
+            {
+                var wonder = _islandState.Features.OfType<Wonder>().FirstOrDefault();
+                if (wonder != null)
+                {
+                    int buildingPoints = sources.Values.Sum();
+                    long runTicks = (_islandState.StartTick > 0 && _playerCivilization != null)
+                        ? Math.Max(0, GetCurrentTick() - _islandState.StartTick)
+                        : 0;
+                    int hoursPlayed = (int)(runTicks / 360000);
+                    int fromBuildings = buildingPoints / 10;
+                    int wonderPoints = wonder.Level + hoursPlayed + fromBuildings;
+                    if (wonderPoints > 0)
+                        sources["prestige_wonder"] = wonderPoints;
+                }
             }
 
             return sources

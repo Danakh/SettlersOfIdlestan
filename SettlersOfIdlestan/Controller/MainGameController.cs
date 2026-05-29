@@ -29,6 +29,7 @@ namespace SettlersOfIdlestan.Controller
         public FeatureController FeatureController { get; private set; }
         public BanditController BanditController { get; private set; }
         public MilitaryController MilitaryController { get; private set; }
+        public WonderController WonderController { get; private set; }
         public GameClock? Clock { get; private set; }
         // Holds the currently loaded main game state when created or imported
         public SettlersOfIdlestan.Model.Game.MainGameState? CurrentMainState { get; private set; }
@@ -56,6 +57,7 @@ namespace SettlersOfIdlestan.Controller
             FeatureController = new FeatureController();
             BanditController = new BanditController();
             MilitaryController = new MilitaryController();
+            WonderController = new WonderController();
         }
 
         /// <summary>
@@ -195,7 +197,8 @@ namespace SettlersOfIdlestan.Controller
                 TradeController.Initialize(islandState);
                 BuildingController.Initialize(islandState, Clock);
                 CityBuilderController.Initialize(islandState, Clock, CurrentMainState!.PRNG);
-                PrestigeController.Initialize(islandState.PlayerCivilization, islandState);
+                PrestigeController.Initialize(islandState.PlayerCivilization, islandState, Clock);
+                WonderController.Initialize(islandState);
                 ResearchController.Initialize(islandState, Clock, CurrentMainState?.PrestigeState);
                 prestigeState?.TechnologyTree.RebuildModifiers();
 

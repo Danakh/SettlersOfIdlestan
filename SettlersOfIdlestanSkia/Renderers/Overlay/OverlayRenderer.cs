@@ -9,6 +9,7 @@ using SettlersOfIdlestanSkia.Renderers.Overlay.Tabs;
 using SettlersOfIdlestanSkia.Services;
 using SkiaSharp;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace SettlersOfIdlestanSkia.Renderers.Overlay;
 
@@ -16,6 +17,7 @@ public sealed class OverlayRenderer : IGameRenderer
 {
     private const float TradeButtonWidth = 120;
     private const float PrestigeButtonWidth = 160;
+    private const float WonderButtonWidth = 140;
     private const float TradeButtonHeight = 38;
     private const float TradeButtonMargin = 14;
     private const float ButtonSpacing = 10;
@@ -66,7 +68,9 @@ public sealed class OverlayRenderer : IGameRenderer
     private SKSize _canvasSize;
     private SKRect _tradeButtonRect = SKRect.Empty;
     private SKRect _prestigeButtonRect = SKRect.Empty;
+    private SKRect _wonderButtonRect = SKRect.Empty;
     private SKPoint _lastPointerPosition;
+    private WonderSelectionService? _wonderSelectionService;
 
     // Dynamic tab list: (tabId, screenRect) computed each frame
     private readonly List<(int tabId, SKRect rect)> _activeTabs = new();
@@ -340,6 +344,7 @@ public sealed class OverlayRenderer : IGameRenderer
     {
         _tradeButtonRect = SKRect.Empty;
         _prestigeButtonRect = SKRect.Empty;
+        _wonderButtonRect = SKRect.Empty;
 
         bool isTradeVisible = IsTradeAvailable();
         var prestigeController = _gameControllerService.MainGameController.PrestigeController;
@@ -383,7 +388,53 @@ public sealed class OverlayRenderer : IGameRenderer
                     _localization.Get("tooltip_imperial_port_prerequisites"),
                 }, _lastPointerPosition);
             }
+
+            right = _prestigeButtonRect.Left - ButtonSpacing;
         }
+
+        if (IsWonderButtonVisible())
+        {
+            bool canPlace = CanPlaceWonder();
+            _wonderButtonRect = new SKRect(
+                right - WonderButtonWidth,
+                _canvasSize.Height - TradeButtonMargin - TradeButtonHeight,
+                right,
+                _canvasSize.Height - TradeButtonMargin);
+
+            canvas.DrawRoundRect(_wonderButtonRect, 7, 7, canPlace ? _buttonPaint : _disabledButtonPaint);
+            canvas.DrawText(_localization.Get("wonder_action"), _wonderButtonRect.MidX, _wonderButtonRect.MidY + 6, SKTextAlign.Center, _buttonFont, canPlace ? _buttonTextPaint : _disabledTextPaint);
+
+            if (!canPlace && _wonderButtonRect.Contains(_lastPointerPosition.X, _lastPointerPosition.Y))
+            {
+                string reason = WonderAlreadyExists()
+                    ? _localization.Get("wonder_already_placed")
+                    : _localization.Get("wonder_requires_architecture");
+                _tooltipRenderer.SetTooltipLines(new[] { reason }, _lastPointerPosition);
+            }
+        }
+    }
+
+    private bool IsWonderButtonVisible()
+    {
+        var civ = _gameControllerService.PlayerCivilization;
+        if (civ == null) return false;
+        try { return _gameControllerService.MainGameController.WonderController.HasWondersUnlocked(civ); }
+        catch { return false; }
+    }
+
+    private bool CanPlaceWonder()
+    {
+        var civ = _gameControllerService.PlayerCivilization;
+        if (civ == null) return false;
+        try { return _gameControllerService.MainGameController.WonderController.CanPlaceWonder(civ); }
+        catch { return false; }
+    }
+
+    private bool WonderAlreadyExists()
+    {
+        var islandState = _gameControllerService.CurrentIslandState;
+        if (islandState == null) return false;
+        return islandState.Features.OfType<SettlersOfIdlestan.Model.IslandFeatures.Wonder>().Any();
     }
 
     private bool IsTradeAvailable(GameRenderContext? context = null)
@@ -391,6 +442,11 @@ public sealed class OverlayRenderer : IGameRenderer
         if (_gameControllerService.PlayerCivilization == null) return false;
         try { return _gameControllerService.MainGameController.TradeController.IsTradeAvailable(_gameControllerService.PlayerCivilization.Index); }
         catch { return false; }
+    }
+
+    public void ConnectWonderService(WonderSelectionService wonderSelectionService)
+    {
+        _wonderSelectionService = wonderSelectionService;
     }
 
     public bool IsAnyOverlayOpen => _tradeRenderer.IsOpen || _prestigeRenderer.IsOpen
@@ -465,6 +521,13 @@ public sealed class OverlayRenderer : IGameRenderer
             _settingsPopupRenderer.Close();
             _tradeRenderer.Close();
             _prestigeRenderer.Open();
+        }
+
+        if (!_wonderButtonRect.IsEmpty && _wonderButtonRect.Contains(e.Position.X, e.Position.Y) && CanPlaceWonder() && _wonderSelectionService != null)
+        {
+            CloseAll();
+            var hexes = _gameControllerService.MainGameController.WonderController.GetPlaceableHexes();
+            _wonderSelectionService.Enter(hexes);
         }
     }
 

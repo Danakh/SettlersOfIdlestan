@@ -361,6 +361,13 @@
   "hex_tooltip_terrain_plain": "Plaines\nRécolte manuelle : Nourriture (Hôtel de ville)",
   "hex_tooltip_terrain_mountain": "Montagne\nRécolte manuelle : Pierre (Hôtel de ville)",
   "hex_tooltip_terrain_water": "Eau\nRécolte manuelle : Nourriture (Port de pêche)",
-  "hex_tooltip_terrain_desert": "Désert\nPas de récolte manuelle"
+  "hex_tooltip_terrain_desert": "Désert\nPas de récolte manuelle",
+  "wonder_action": "Construire Merveille",
+  "wonder_requires_architecture": "⚠ Nécessite la technologie Architecture",
+  "wonder_already_placed": "⚠ Une Merveille est déjà placée",
+  "wonder_select_hex": "Choisissez un hex adjacent à une de vos villes",
+  "prestige_wonder": "Merveille",
+  "event_wonder_placed_title": "🏛 Merveille fondée !",
+  "event_wonder_placed_body": "Votre civilisation a posé la première pierre d'une Merveille."
 }
 

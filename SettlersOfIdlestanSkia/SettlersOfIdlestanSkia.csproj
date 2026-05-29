@@ -11,6 +11,7 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Resources\icons\**\*.svg" />
+    <EmbeddedResource Include="Resources\icons\**\*.png" />
   </ItemGroup>
 
   <PropertyGroup>

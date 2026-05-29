@@ -5,6 +5,7 @@ using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.Buildings;
+using SettlersOfIdlestan.Model.IslandFeatures;
 using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
 using SettlersOfIdlestan.Controller.Military;
 
@@ -126,6 +127,9 @@ namespace SettlersOfIdlestan.Controller.Island
                     if (_state.Features.Any(f => f.Position.Equals(hex) && f.BlocksHarvest)) continue;
                     // Cooldown de départ des bandits
                     if (_banditController?.HasDepartureCooldown(hex, now) == true) continue;
+
+                    // Wonder on this hex: no production
+                    if (IsHexBlockedByWonder(hex)) continue;
 
                     // Collect all (city, building) pairs that can auto-harvest this hex
                     var capable = new System.Collections.Generic.List<(City city, Building building, Resource resource, long cooldown)>();
@@ -320,6 +324,9 @@ namespace SettlersOfIdlestan.Controller.Island
                 .Any(other => other.Cities.Any(city => city.Position.IsAdjacentTo(hex)));
         }
 
+        private bool IsHexBlockedByWonder(HexCoord hex)
+            => _state?.Features.OfType<Wonder>().Any(w => w.Position.Equals(hex)) == true;
+
         public bool ManualHarvest(int civilizationIndex, HexCoord hex)
         {
             if (_state == null || _clock == null)
@@ -335,6 +342,10 @@ namespace SettlersOfIdlestan.Controller.Island
                 return false;
             // Cooldown de départ des bandits
             if (_banditController?.HasDepartureCooldown(hex, now) == true)
+                return false;
+
+            // Wonder on this hex: no harvest
+            if (IsHexBlockedByWonder(hex))
                 return false;
 
             var civMap = _state.HarvestLastTimesByCivilization;

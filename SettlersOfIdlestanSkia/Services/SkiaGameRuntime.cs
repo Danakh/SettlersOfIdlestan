@@ -9,6 +9,7 @@ using SettlersOfIdlestanSkia.Renderers.Island;
 using SettlersOfIdlestanSkia.Renderers.Overlay;
 using SettlersOfIdlestanSkia.Renderers.Overlay.Popup;
 using SettlersOfIdlestanSkia.Renderers.Overlay.Tabs;
+using SettlersOfIdlestan.Model.IslandFeatures;
 
 namespace SettlersOfIdlestanSkia.Services;
 
@@ -29,6 +30,7 @@ public sealed class SkiaGameRuntime : IDisposable
     private bool _allowDebugMode;
     private IntroAnimationRenderer? _introRenderer;
     private bool _wasIntroActive;
+    private WonderSelectionService? _wonderSelectionService;
 
     private bool _isDisposed;
     private bool _isGameInitialized;
@@ -124,6 +126,15 @@ public sealed class SkiaGameRuntime : IDisposable
         _renderService.RegisterRenderer(islandMainRenderer);
         islandMainRenderer.SuppressCities = () => _introRenderer?.IsActive == true;
 
+        _wonderSelectionService = new WonderSelectionService();
+        _wonderSelectionService.Entered += OnWonderSelectionEntered;
+        _wonderSelectionService.WonderPlacementConfirmed += OnWonderPlacementConfirmed;
+        _wonderSelectionService.Cancelled += OnWonderSelectionCancelled;
+
+        var wonderSelectionRenderer = new WonderSelectionRenderer(
+            _wonderSelectionService, _inputService, _cameraService, _localizationService);
+        _renderService.RegisterRenderer(wonderSelectionRenderer);
+
         _introRenderer = new IntroAnimationRenderer(_resourceManager!);
         _renderService.RegisterRenderer(_introRenderer);
 
@@ -161,8 +172,10 @@ public sealed class SkiaGameRuntime : IDisposable
             eventLogRenderer,
             automationRenderer,
             tooltipRenderer);
+        _overlayRenderer.ConnectWonderService(_wonderSelectionService);
         _renderService.RegisterRenderer(_overlayRenderer);
-        _constructionInteractionService.ShouldSuppressHover = pos => _overlayRenderer?.IsPointBlockedByUI(pos) ?? false;
+        _constructionInteractionService.ShouldSuppressHover = pos =>
+            (_overlayRenderer?.IsPointBlockedByUI(pos) ?? false) || (_wonderSelectionService?.IsActive == true);
         if (allowDebugMode)
         {
             _renderService.RegisterRenderer(new DebugOverlayRenderer(_inputService, _cameraService, islandMainRenderer, _localizationService));
@@ -405,6 +418,25 @@ public sealed class SkiaGameRuntime : IDisposable
         ResetPointerState();
         _introRenderer.StartIntro(state);
         state.Clock?.Pause();
+    }
+
+    private void OnWonderSelectionEntered(object? sender, EventArgs e)
+    {
+        _gameControllerService?.CurrentGameState?.Clock?.Pause();
+        _overlayRenderer?.Hide();
+    }
+
+    private void OnWonderPlacementConfirmed(object? sender, HexCoord hex)
+    {
+        _gameControllerService?.MainGameController.WonderController.PlaceWonder(hex);
+        _gameControllerService?.CurrentGameState?.Clock?.Resume();
+        _overlayRenderer?.Show();
+    }
+
+    private void OnWonderSelectionCancelled(object? sender, EventArgs e)
+    {
+        _gameControllerService?.CurrentGameState?.Clock?.Resume();
+        _overlayRenderer?.Show();
     }
 
     private void RequestPrestige()
