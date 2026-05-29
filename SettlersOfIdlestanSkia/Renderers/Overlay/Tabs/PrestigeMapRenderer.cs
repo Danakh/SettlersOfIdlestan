@@ -18,16 +18,13 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay.Tabs;
 
 public sealed class PrestigeMapRenderer : IGameRenderer
 {
-    // Hex circumradius — same visual scale as the island hexes
     private const float R = 60f;
     private const float VertexCircleRadius = 10f;
     private static readonly float Sqrt3     = MathF.Sqrt(3f);
     private static readonly float Sqrt3Half = MathF.Sqrt(3f) / 2f;
 
-    // Local-space position of the Central vertex (used to offset all other positions)
     private static readonly SKPoint CentralLocal = LocalVertexPos(PrestigeMap.CentralVertex);
 
-    // Gray shades for hex fill: index = number of adjacent purchased vertices (0..3)
     private static readonly SKColor[] HexGrayByActivity =
     {
         new(210, 213, 218),
@@ -36,12 +33,26 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         new( 95,  98, 110),
     };
 
+    private const float MinZoom = 0.4f;
+    private const float MaxZoom = 2.5f;
+    private const float ZoomStep = 1.12f;
+    private const float PanThresholdSq = 16f;
+    private const float PanClampMargin = 80f;
+
     private readonly GameControllerService _gameControllerService;
     private readonly ILocalizationService _localization;
     private readonly TooltipRenderer _tooltipRenderer;
 
     private SKSize _canvasSize;
     private SKPoint _mapCenter;
+    private float _zoom = 1f;
+    private float _maxLocalExtentX;
+    private float _maxLocalExtentY;
+
+    private bool _pointerDown;
+    private bool _isPanning;
+    private SKPoint _pressPosition;
+    private SKPoint _lastPanMovePosition;
 
     private Vertex? _hoveredVertex;
     private HexCoord? _hoveredHex;
@@ -94,6 +105,35 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         _canvasSize = canvasSize;
         float barH = PlayerResourcesOverlayRenderer.BarHeight;
         _mapCenter = new SKPoint(canvasSize.Width / 2f, barH + (canvasSize.Height - barH) * 0.45f);
+        _zoom = 1f;
+        _pointerDown = false;
+        _isPanning = false;
+        ComputeLocalExtents();
+    }
+
+    private void ComputeLocalExtents()
+    {
+        float maxX = 0f, maxY = 0f;
+        var map = PrestigeMapController.DefaultMap;
+        foreach (var v in map.Vertices)
+        {
+            var local = LocalVertexPos(v.Coord);
+            float dx = MathF.Abs(local.X - CentralLocal.X);
+            float dy = MathF.Abs(local.Y - CentralLocal.Y);
+            if (dx > maxX) maxX = dx;
+            if (dy > maxY) maxY = dy;
+        }
+        foreach (var h in map.Hexes)
+        {
+            var local = LocalHexPos(h.Coord);
+            float dx = MathF.Abs(local.X - CentralLocal.X);
+            float dy = MathF.Abs(local.Y - CentralLocal.Y);
+            if (dx > maxX) maxX = dx;
+            if (dy > maxY) maxY = dy;
+        }
+        // Add hex radius as padding
+        _maxLocalExtentX = maxX + R;
+        _maxLocalExtentY = maxY + R;
     }
 
     public void Render(SKCanvas canvas, GameRenderContext context) { }
@@ -110,9 +150,13 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         canvas.DrawRect(0f, barH, _canvasSize.Width, _canvasSize.Height - barH, _bgPaint);
 
         UpdateVisibility(prestigeState);
+
+        canvas.Save();
+        canvas.ClipRect(new SKRect(0, barH, _canvasSize.Width, _canvasSize.Height));
         DrawHexes(canvas, prestigeState);
         DrawRoads(canvas, prestigeState);
         DrawVertices(canvas, prestigeState);
+        canvas.Restore();
 
         if (_hoveredVertex != null)
             BuildVertexTooltip(_hoveredVertex, prestigeState);
@@ -144,6 +188,7 @@ public sealed class PrestigeMapRenderer : IGameRenderer
 
     private void DrawHexes(SKCanvas canvas, PrestigeState state)
     {
+        float hexR = R * _zoom;
         foreach (var hex in PrestigeMapController.DefaultMap.Hexes)
         {
             if (!_visibleHexes.Contains(hex.Coord)) continue;
@@ -151,7 +196,7 @@ public sealed class PrestigeMapRenderer : IGameRenderer
             int adjCount = hex.AdjacentVertices.Count(v => state.PurchasedVertices.Contains(v));
             bool isHovered = hex.Coord.Equals(_hoveredHex);
 
-            var points = GetHexPoints(pos.X, pos.Y, R);
+            var points = GetHexPoints(pos.X, pos.Y, hexR);
             using var path = PointsToPath(points);
 
             var color = HexGrayByActivity[Math.Clamp(adjCount, 0, HexGrayByActivity.Length - 1)];
@@ -187,6 +232,7 @@ public sealed class PrestigeMapRenderer : IGameRenderer
     private void DrawVertices(SKCanvas canvas, PrestigeState state)
     {
         var controller = _gameControllerService.MainGameController.PrestigeMapController;
+        float vr = VertexCircleRadius * _zoom;
 
         foreach (var vertex in PrestigeMapController.DefaultMap.Vertices)
         {
@@ -204,18 +250,17 @@ public sealed class PrestigeMapRenderer : IGameRenderer
                 fill = new SKColor(255, 235, 59, 220);
 
             _vertexFillPaint.Color = fill;
-            canvas.DrawCircle(pos, VertexCircleRadius, _vertexFillPaint);
+            canvas.DrawCircle(pos, vr, _vertexFillPaint);
 
             _vertexBorderPaint.StrokeWidth = isHovered ? 2.5f : 1.5f;
-            canvas.DrawCircle(pos, VertexCircleRadius, _vertexBorderPaint);
+            canvas.DrawCircle(pos, vr, _vertexBorderPaint);
 
             if (purchased)
                 canvas.DrawText("✓", pos.X, pos.Y + 4f, SKTextAlign.Center, _labelFontBold, _textWhitePaint);
 
-            // Label placed radially outward from map center
             var local = LocalVertexPos(vertex.Coord);
             var offset = new SKPoint(local.X - CentralLocal.X, local.Y - CentralLocal.Y);
-            var labelPos = RadialLabelPos(offset, pos, VertexCircleRadius + 13f);
+            var labelPos = RadialLabelPos(offset, pos, vr + 13f);
             string name = _localization.Get(vertex.LocalizationKey);
             canvas.DrawText(name, labelPos.X, labelPos.Y, SKTextAlign.Center, _labelFont, _textBlackPaint);
         }
@@ -225,26 +270,48 @@ public sealed class PrestigeMapRenderer : IGameRenderer
 
     public void HandlePointerMoved(SKPoint position)
     {
+        if (_pointerDown)
+        {
+            float dx = position.X - _pressPosition.X;
+            float dy = position.Y - _pressPosition.Y;
+            if (!_isPanning && dx * dx + dy * dy > PanThresholdSq)
+                _isPanning = true;
+
+            if (_isPanning)
+            {
+                _mapCenter = new SKPoint(
+                    _mapCenter.X + position.X - _lastPanMovePosition.X,
+                    _mapCenter.Y + position.Y - _lastPanMovePosition.Y);
+                ClampMapCenter();
+                _lastPanMovePosition = position;
+                _hoveredVertex = null;
+                _hoveredHex = null;
+                return;
+            }
+        }
+
         _hoveredVertex = null;
         _hoveredHex    = null;
 
+        float vr = VertexCircleRadius * _zoom;
         foreach (var vertex in PrestigeMapController.DefaultMap.Vertices)
         {
             if (!_visibleVertices.Contains(vertex.Coord)) continue;
             var pos = ScreenPosVertex(vertex.Coord);
             float dx = position.X - pos.X, dy = position.Y - pos.Y;
-            if (dx * dx + dy * dy <= VertexCircleRadius * VertexCircleRadius)
+            if (dx * dx + dy * dy <= vr * vr)
             {
                 _hoveredVertex = vertex.Coord;
                 return;
             }
         }
 
+        float hexR = R * _zoom;
         foreach (var hex in PrestigeMapController.DefaultMap.Hexes)
         {
             if (!_visibleHexes.Contains(hex.Coord)) continue;
             var pos = ScreenPosHex(hex.Coord);
-            var pts = GetHexPoints(pos.X, pos.Y, R);
+            var pts = GetHexPoints(pos.X, pos.Y, hexR);
             if (IsPointInPolygon(position.X, position.Y, pts))
             {
                 _hoveredHex = hex.Coord;
@@ -255,21 +322,67 @@ public sealed class PrestigeMapRenderer : IGameRenderer
 
     public bool HandlePointerPressed(SKPoint position)
     {
+        _pointerDown = true;
+        _isPanning = false;
+        _pressPosition = position;
+        _lastPanMovePosition = position;
+        return false;
+    }
+
+    public void HandlePointerReleased(SKPoint position)
+    {
+        bool wasPanning = _isPanning;
+        _pointerDown = false;
+        _isPanning = false;
+
+        if (wasPanning) return;
+
+        float vr = VertexCircleRadius * _zoom;
         foreach (var vertex in PrestigeMapController.DefaultMap.Vertices)
         {
             if (!_visibleVertices.Contains(vertex.Coord)) continue;
             var pos = ScreenPosVertex(vertex.Coord);
             float dx = position.X - pos.X, dy = position.Y - pos.Y;
-            if (dx * dx + dy * dy <= VertexCircleRadius * VertexCircleRadius)
+            if (dx * dx + dy * dy <= vr * vr)
             {
                 var mainState = _gameControllerService.MainGameController.CurrentMainState;
                 if (mainState?.PrestigeState != null)
                     _gameControllerService.MainGameController.PrestigeMapController
                         .PurchaseVertex(mainState.PrestigeState, vertex.Coord);
-                return true;
+                return;
             }
         }
-        return false;
+    }
+
+    public void HandleZoom(ZoomEventArgs e)
+    {
+        if (_canvasSize == default) return;
+        float newZoom = Math.Clamp(_zoom * (e.ZoomDelta > 0 ? ZoomStep : 1f / ZoomStep), MinZoom, MaxZoom);
+        float ratio = newZoom / _zoom;
+        _mapCenter = new SKPoint(
+            e.Center.X - (e.Center.X - _mapCenter.X) * ratio,
+            e.Center.Y - (e.Center.Y - _mapCenter.Y) * ratio);
+        _zoom = newZoom;
+        ClampMapCenter();
+    }
+
+    private void ClampMapCenter()
+    {
+        float barH = PlayerResourcesOverlayRenderer.BarHeight;
+        float extW = _maxLocalExtentX * _zoom;
+        float extH = _maxLocalExtentY * _zoom;
+
+        float cx = _mapCenter.X;
+        float cy = _mapCenter.Y;
+
+        // Content bounding box must overlap visible area by at least PanClampMargin
+        if (cx + extW < PanClampMargin) cx = PanClampMargin - extW;
+        else if (cx - extW > _canvasSize.Width - PanClampMargin) cx = _canvasSize.Width - PanClampMargin + extW;
+
+        if (cy + extH < barH + PanClampMargin) cy = barH + PanClampMargin - extH;
+        else if (cy - extH > _canvasSize.Height - PanClampMargin) cy = _canvasSize.Height - PanClampMargin + extH;
+
+        _mapCenter = new SKPoint(cx, cy);
     }
 
     // ─── Tooltip builders ────────────────────────────────────────────────────
@@ -410,11 +523,9 @@ public sealed class PrestigeMapRenderer : IGameRenderer
 
     // ─── Position helpers ─────────────────────────────────────────────────────
 
-    // Local-space hex center (pointy-top, circumradius R, origin at hex-grid (0,0))
     private static SKPoint LocalHexPos(HexCoord c)
         => new(R * (Sqrt3 * c.Q + Sqrt3Half * c.R), R * 1.5f * c.R);
 
-    // Local-space vertex position = centroid of its 3 adjacent hex centers
     private static SKPoint LocalVertexPos(Vertex v)
     {
         var p1 = LocalHexPos(v.Hex1);
@@ -423,20 +534,21 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         return new((p1.X + p2.X + p3.X) / 3f, (p1.Y + p2.Y + p3.Y) / 3f);
     }
 
-    // Screen positions — Central vertex is anchored to _mapCenter
+    // Central vertex anchored to _mapCenter; zoom applied around that anchor
     private SKPoint ScreenPosVertex(Vertex v)
     {
         var local = LocalVertexPos(v);
-        return new(_mapCenter.X + local.X - CentralLocal.X, _mapCenter.Y + local.Y - CentralLocal.Y);
+        return new(_mapCenter.X + (local.X - CentralLocal.X) * _zoom,
+                   _mapCenter.Y + (local.Y - CentralLocal.Y) * _zoom);
     }
 
     private SKPoint ScreenPosHex(HexCoord c)
     {
         var local = LocalHexPos(c);
-        return new(_mapCenter.X + local.X - CentralLocal.X, _mapCenter.Y + local.Y - CentralLocal.Y);
+        return new(_mapCenter.X + (local.X - CentralLocal.X) * _zoom,
+                   _mapCenter.Y + (local.Y - CentralLocal.Y) * _zoom);
     }
 
-    // Place label at 'dist' pixels radially outward from map center; Central falls back to below.
     private static SKPoint RadialLabelPos(SKPoint offset, SKPoint screenPos, float dist)
     {
         float len = MathF.Sqrt(offset.X * offset.X + offset.Y * offset.Y);
@@ -447,7 +559,6 @@ public sealed class PrestigeMapRenderer : IGameRenderer
             screenPos.Y + offset.Y / len * dist + 4f);
     }
 
-    // Pointy-top hex points — matches HexBasedRenderer.GetHexagonPoints exactly
     private static SKPoint[] GetHexPoints(float cx, float cy, float size)
     {
         var pts = new SKPoint[6];

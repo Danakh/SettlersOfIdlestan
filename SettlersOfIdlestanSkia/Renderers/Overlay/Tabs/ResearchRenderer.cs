@@ -20,6 +20,13 @@ public sealed class ResearchRenderer : IGameRenderer
     private const float RowSpacing = 76f;
     private const float PanelPadding = 16f;
     private const float TopOffset = PlayerResourcesOverlayRenderer.BarHeight + 8f;
+    private const float HeaderHeight = 32f;
+
+    private const float MinZoom = 0.4f;
+    private const float MaxZoom = 2.5f;
+    private const float ZoomStep = 1.12f;
+    private const float PanThresholdSq = 16f;
+    private const float PanClampMargin = 100f;
 
     private readonly GameControllerService _gameControllerService;
     private readonly ILocalizationService _localization;
@@ -27,10 +34,18 @@ public sealed class ResearchRenderer : IGameRenderer
 
     private SKSize _canvasSize;
     private readonly Dictionary<TechnologyId, SKRect> _nodeRects = new();
+    private SKRect _contentBounds;
     private TechnologyId? _hoveredTechId;
     private SKPoint _lastPointerPosition;
     private bool _disposed;
     public bool IsActive { get; set; }
+
+    private float _zoom = 1f;
+    private SKPoint _panOffset;
+    private bool _pointerDown;
+    private bool _isPanning;
+    private SKPoint _pressPosition;
+    private SKPoint _lastPanMovePosition;
 
     private readonly SKPaint _bgPaint = new() { Color = new SKColor(15, 17, 25, 230), Style = SKPaintStyle.Fill };
     private readonly SKPaint _inactiveNodePaint = new() { Color = new SKColor(55, 55, 65), Style = SKPaintStyle.Fill, IsAntialias = true };
@@ -61,11 +76,17 @@ public sealed class ResearchRenderer : IGameRenderer
         _inputService = inputService;
         _inputService.PointerPressed += HandlePointerPressed;
         _inputService.PointerMoved += HandlePointerMoved;
+        _inputService.PointerReleased += HandlePointerReleased;
+        _inputService.ZoomChanged += HandleZoom;
     }
 
     public void Initialize(SKSize canvasSize)
     {
         _canvasSize = canvasSize;
+        _zoom = 1f;
+        _panOffset = SKPoint.Empty;
+        _pointerDown = false;
+        _isPanning = false;
         ComputeNodeRects(canvasSize);
     }
 
@@ -73,7 +94,6 @@ public sealed class ResearchRenderer : IGameRenderer
     {
         _nodeRects.Clear();
 
-        // Group techs by column
         var byCol = Layout.GroupBy(kv => kv.Value.col).OrderBy(g => g.Key).ToList();
         int maxRowsInAnyCol = byCol.Max(g => g.Max(kv => kv.Value.row) + 1);
 
@@ -92,19 +112,31 @@ public sealed class ResearchRenderer : IGameRenderer
             float y = startY + row * RowSpacing;
             _nodeRects[techId] = new SKRect(x, y, x + NodeWidth, y + NodeHeight);
         }
+
+        if (_nodeRects.Count > 0)
+        {
+            float minX = float.MaxValue, minY = float.MaxValue;
+            float maxX = float.MinValue, maxY = float.MinValue;
+            foreach (var r in _nodeRects.Values)
+            {
+                if (r.Left < minX) minX = r.Left;
+                if (r.Top < minY) minY = r.Top;
+                if (r.Right > maxX) maxX = r.Right;
+                if (r.Bottom > maxY) maxY = r.Bottom;
+            }
+            _contentBounds = new SKRect(minX, minY, maxX, maxY);
+        }
     }
 
     private static Dictionary<TechnologyId, (int col, int row)> ComputeLayout()
     {
         var layout = new Dictionary<TechnologyId, (int col, int row)>();
 
-        // Group by depth (column)
         var byDepth = TechnologyDefinitions.All
             .GroupBy(t => TechnologyDefinitions.GetDepth(t.Id))
             .OrderBy(g => g.Key)
             .ToList();
 
-        // For each tech, align rows so a tech is in the same row as its first prerequisite if possible
         var rowAssigned = new Dictionary<TechnologyId, int>();
 
         foreach (var group in byDepth)
@@ -112,7 +144,6 @@ public sealed class ResearchRenderer : IGameRenderer
             int col = group.Key;
             var techs = group.ToList();
 
-            // Try to align each tech to the row of its first prereq
             var usedRows = new HashSet<int>();
             int nextFreeRow = 0;
 
@@ -154,10 +185,19 @@ public sealed class ResearchRenderer : IGameRenderer
 
         var ctrl = _gameControllerService.MainGameController.ResearchController;
 
-        // Background
         canvas.DrawRect(new SKRect(0, TopOffset, _canvasSize.Width, _canvasSize.Height), _bgPaint);
 
-        // Research points
+        // Zoomed content
+        canvas.Save();
+        canvas.ClipRect(new SKRect(0, TopOffset + HeaderHeight, _canvasSize.Width, _canvasSize.Height));
+        canvas.Translate(_panOffset.X, _panOffset.Y);
+        canvas.Scale(_zoom);
+        DrawLines(canvas, ctrl);
+        DrawNodes(canvas, ctrl);
+        canvas.Restore();
+
+        // Fixed header (drawn on top so nodes can't overlap it)
+        canvas.DrawRect(new SKRect(0, TopOffset, _canvasSize.Width, TopOffset + HeaderHeight), _bgPaint);
         if (_gameControllerService.PlayerCivilization != null)
         {
             double rps = ctrl.GetResearchPointsPerSecond();
@@ -167,7 +207,20 @@ public sealed class ResearchRenderer : IGameRenderer
             canvas.DrawText(rpLabel, PanelPadding, TopOffset + 24f, _nameFont, _textPaint);
         }
 
-        // Lines between nodes
+        // Tooltip
+        if (_hoveredTechId.HasValue)
+        {
+            var hoveredTech = TechnologyDefinitions.All.FirstOrDefault(t => t.Id == _hoveredTechId.Value);
+            if (hoveredTech != null)
+            {
+                string desc = _localization.Get(hoveredTech.DescKey);
+                TooltipRenderUtils.DrawTooltip(canvas, _canvasSize, _lastPointerPosition, new[] { desc }, _tooltipFont);
+            }
+        }
+    }
+
+    private void DrawLines(SKCanvas canvas, ResearchController ctrl)
+    {
         foreach (var tech in TechnologyDefinitions.All)
         {
             if (!DebugOverlayRenderer.DebugMode && !ctrl.ShouldDisplay(tech.Id)) continue;
@@ -182,25 +235,16 @@ public sealed class ResearchRenderer : IGameRenderer
                 canvas.DrawLine(prereqRect.Right, prereqRect.MidY, childRect.Left, childRect.MidY, linePaint);
             }
         }
+    }
 
-        // Nodes
+    private void DrawNodes(SKCanvas canvas, ResearchController ctrl)
+    {
         foreach (var tech in TechnologyDefinitions.All)
         {
             if (!DebugOverlayRenderer.DebugMode && !ctrl.ShouldDisplay(tech.Id)) continue;
             if (!_nodeRects.TryGetValue(tech.Id, out var rect)) continue;
             var status = ctrl.GetStatus(tech.Id);
             DrawNode(canvas, tech, rect, status, ctrl);
-        }
-
-        // Tooltip
-        if (_hoveredTechId.HasValue)
-        {
-            var hoveredTech = TechnologyDefinitions.All.FirstOrDefault(t => t.Id == _hoveredTechId.Value);
-            if (hoveredTech != null)
-            {
-                string desc = _localization.Get(hoveredTech.DescKey);
-                TooltipRenderUtils.DrawTooltip(canvas, _canvasSize, _lastPointerPosition, new[] { desc }, _tooltipFont);
-            }
         }
     }
 
@@ -224,7 +268,6 @@ public sealed class ResearchRenderer : IGameRenderer
 
         canvas.DrawRoundRect(rect, 5, 5, bgPaint);
 
-        // Progress bar for InProgress
         if (status == TechnologyStatus.InProgress)
         {
             var (consumed, total) = ctrl.GetResearchProgress(tech.Id);
@@ -235,12 +278,10 @@ public sealed class ResearchRenderer : IGameRenderer
 
         canvas.DrawRoundRect(rect, 5, 5, borderPaint);
 
-        // Name
         var textPaint = (status == TechnologyStatus.Inactive && !isQueued) ? _dimTextPaint : _textPaint;
         string name = _localization.Get(tech.NameKey);
         canvas.DrawText(name, rect.MidX, rect.Top + 18f, SKTextAlign.Center, _nameFont, textPaint);
 
-        // Cost / status
         string subText;
         if (status == TechnologyStatus.Completed)
         {
@@ -263,16 +304,51 @@ public sealed class ResearchRenderer : IGameRenderer
         canvas.DrawText(subText, rect.MidX, rect.Top + 36f, SKTextAlign.Center, _smallFont, isQueued ? _queuedTextPaint : textPaint);
     }
 
+    // ─── Input handling ──────────────────────────────────────────────────────
+
+    private SKPoint ToContentSpace(SKPoint screen)
+        => new((screen.X - _panOffset.X) / _zoom, (screen.Y - _panOffset.Y) / _zoom);
+
+    private void HandlePointerPressed(object? sender, PointerEventArgs e)
+    {
+        if (!IsActive || e.Button != PointerButton.Left) return;
+        _pointerDown = true;
+        _isPanning = false;
+        _pressPosition = e.Position;
+        _lastPanMovePosition = e.Position;
+    }
+
     private void HandlePointerMoved(object? sender, PointerEventArgs e)
     {
         if (!IsActive) { _hoveredTechId = null; return; }
         _lastPointerPosition = e.Position;
+
+        if (_pointerDown)
+        {
+            float dx = e.Position.X - _pressPosition.X;
+            float dy = e.Position.Y - _pressPosition.Y;
+            if (!_isPanning && dx * dx + dy * dy > PanThresholdSq)
+                _isPanning = true;
+
+            if (_isPanning)
+            {
+                _panOffset = new SKPoint(
+                    _panOffset.X + e.Position.X - _lastPanMovePosition.X,
+                    _panOffset.Y + e.Position.Y - _lastPanMovePosition.Y);
+                ClampPan();
+                _lastPanMovePosition = e.Position;
+                _hoveredTechId = null;
+                return;
+            }
+        }
+
         _hoveredTechId = null;
-        var hoverCtrl = _gameControllerService.MainGameController.ResearchController;
+        var contentPos = ToContentSpace(e.Position);
+        var ctrl = _gameControllerService.MainGameController.ResearchController;
         foreach (var (techId, rect) in _nodeRects)
         {
-            if (!DebugOverlayRenderer.DebugMode && !hoverCtrl.ShouldDisplay(techId)) continue;
-            if (rect.Contains(e.Position.X, e.Position.Y))
+            if (!DebugOverlayRenderer.DebugMode && !ctrl.ShouldDisplay(techId)) continue;
+            if (rect.Contains(contentPos.X, contentPos.Y))
             {
                 _hoveredTechId = techId;
                 return;
@@ -280,28 +356,32 @@ public sealed class ResearchRenderer : IGameRenderer
         }
     }
 
-    private void HandlePointerPressed(object? sender, PointerEventArgs e)
+    private void HandlePointerReleased(object? sender, PointerEventArgs e)
     {
-        if (!IsActive || e.Button != PointerButton.Left) return;
+        if (!IsActive) { _pointerDown = false; _isPanning = false; return; }
+        bool wasPanning = _isPanning;
+        _pointerDown = false;
+        _isPanning = false;
+
+        if (wasPanning || e.Button != PointerButton.Left) return;
 
         var ctrl = _gameControllerService.MainGameController.ResearchController;
+        var contentPos = ToContentSpace(e.Position);
         foreach (var (techId, rect) in _nodeRects)
         {
             if (!DebugOverlayRenderer.DebugMode && !ctrl.ShouldDisplay(techId)) continue;
-            if (!rect.Contains(e.Position.X, e.Position.Y)) continue;
+            if (!rect.Contains(contentPos.X, contentPos.Y)) continue;
 
             var status = ctrl.GetStatus(techId);
-            if (status == TechnologyStatus.InProgress) return; // Annulation impossible
+            if (status == TechnologyStatus.InProgress) return;
 
-            bool hasActiveResearch = ctrl.ActiveResearch != null;
-            if (!hasActiveResearch)
+            if (ctrl.ActiveResearch == null)
             {
                 if (status == TechnologyStatus.Available)
                     ctrl.StartResearch(techId);
             }
             else
             {
-                // Mise en file d'attente : clic sur la recherche déjà sélectionnée = désélection
                 if (ctrl.GetQueuedResearch() == techId)
                     ctrl.SetQueuedResearch(null);
                 else if (ctrl.CanBeQueued(techId))
@@ -311,11 +391,46 @@ public sealed class ResearchRenderer : IGameRenderer
         }
     }
 
+    private void HandleZoom(object? sender, ZoomEventArgs e)
+    {
+        if (!IsActive) return;
+        float newZoom = Math.Clamp(_zoom * (e.ZoomDelta > 0 ? ZoomStep : 1f / ZoomStep), MinZoom, MaxZoom);
+        float ratio = newZoom / _zoom;
+        _panOffset = new SKPoint(
+            e.Center.X - (e.Center.X - _panOffset.X) * ratio,
+            e.Center.Y - (e.Center.Y - _panOffset.Y) * ratio);
+        _zoom = newZoom;
+        ClampPan();
+    }
+
+    private void ClampPan()
+    {
+        if (_nodeRects.Count == 0) return;
+
+        // Content bounding box in screen space: screenX = contentX * _zoom + _panOffset.X
+        float cL = _contentBounds.Left * _zoom + _panOffset.X;
+        float cR = _contentBounds.Right * _zoom + _panOffset.X;
+        float cT = _contentBounds.Top * _zoom + _panOffset.Y;
+        float cB = _contentBounds.Bottom * _zoom + _panOffset.Y;
+
+        float px = _panOffset.X, py = _panOffset.Y;
+
+        if (cR < PanClampMargin) px += PanClampMargin - cR;
+        else if (cL > _canvasSize.Width - PanClampMargin) px -= cL - (_canvasSize.Width - PanClampMargin);
+
+        if (cB < TopOffset + PanClampMargin) py += TopOffset + PanClampMargin - cB;
+        else if (cT > _canvasSize.Height - PanClampMargin) py -= cT - (_canvasSize.Height - PanClampMargin);
+
+        _panOffset = new SKPoint(px, py);
+    }
+
     public void Dispose()
     {
         if (_disposed) return;
         _inputService.PointerMoved -= HandlePointerMoved;
         _inputService.PointerPressed -= HandlePointerPressed;
+        _inputService.PointerReleased -= HandlePointerReleased;
+        _inputService.ZoomChanged -= HandleZoom;
         _bgPaint.Dispose();
         _inactiveNodePaint.Dispose();
         _availableNodePaint.Dispose();

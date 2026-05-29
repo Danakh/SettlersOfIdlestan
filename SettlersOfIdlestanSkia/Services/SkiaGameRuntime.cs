@@ -304,7 +304,7 @@ public sealed class SkiaGameRuntime : IDisposable
     public void HandlePointerMoved(float x, float y, int pointerId = 0)
     {
         if (_introRenderer?.IsActive == true) return;
-        if (_isPointerDown && !_isPanSuppressedAtStart && pointerId == _activePanPointerId && _cameraService != null)
+        if (_isPointerDown && !_isPanSuppressedAtStart && (_overlayRenderer?.IsIslandTabActive ?? true) && pointerId == _activePanPointerId && _cameraService != null)
         {
             var point = new SKPoint(x, y);
             var startDx = point.X - _panStartPoint.X;
@@ -338,8 +338,11 @@ public sealed class SkiaGameRuntime : IDisposable
         if (_cameraService == null || wheelDelta == 0)
             return;
 
-        var zoomFactor = wheelDelta > 0 ? ZoomStep : 1f / ZoomStep;
-        _cameraService.ZoomAt(_cameraService.ZoomLevel * zoomFactor, new SKPoint(x, y));
+        if (_overlayRenderer?.IsIslandTabActive ?? true)
+        {
+            var zoomFactor = wheelDelta > 0 ? ZoomStep : 1f / ZoomStep;
+            _cameraService.ZoomAt(_cameraService.ZoomLevel * zoomFactor, new SKPoint(x, y));
+        }
         _inputService?.HandleZoom(wheelDelta, x, y);
     }
 

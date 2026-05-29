@@ -115,6 +115,8 @@ public sealed class OverlayRenderer : IGameRenderer
         _tooltipRenderer = tooltipRenderer;
         _inputService.PointerPressed += HandlePointerPressed;
         _inputService.PointerMoved += HandlePointerMoved;
+        _inputService.PointerReleased += HandlePointerReleased;
+        _inputService.ZoomChanged += HandleZoomChanged;
         _inputService.KeyPressed += HandleKeyInput;
     }
 
@@ -493,6 +495,20 @@ public sealed class OverlayRenderer : IGameRenderer
         _activeTab = TabPrestige;
     }
 
+    private void HandlePointerReleased(object? sender, PointerEventArgs e)
+    {
+        if (!_isVisible) return;
+        if (_activeTab == TabPrestige)
+            _prestigeMapRenderer.HandlePointerReleased(e.Position);
+    }
+
+    private void HandleZoomChanged(object? sender, ZoomEventArgs e)
+    {
+        if (!_isVisible) return;
+        if (_activeTab == TabPrestige)
+            _prestigeMapRenderer.HandleZoom(e);
+    }
+
     private void HandleKeyInput(object? sender, KeyEventArgs e)
     {
         if (!_isVisible) return;
@@ -513,6 +529,8 @@ public sealed class OverlayRenderer : IGameRenderer
 
         _inputService.PointerPressed -= HandlePointerPressed;
         _inputService.PointerMoved -= HandlePointerMoved;
+        _inputService.PointerReleased -= HandlePointerReleased;
+        _inputService.ZoomChanged -= HandleZoomChanged;
         _inputService.KeyPressed -= HandleKeyInput;
         _playerResourcesOverlayRenderer.Dispose();
         _selectedCityPanelRenderer.Dispose();
