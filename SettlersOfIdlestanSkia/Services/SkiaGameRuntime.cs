@@ -182,6 +182,7 @@ public sealed class SkiaGameRuntime : IDisposable
             _renderService.RegisterRenderer(new AutoplayerDebugRenderer(_gameControllerService, _inputService));
         }
         _renderService.RegisterRenderer(aboutRenderer);
+        _renderService.RegisterRenderer(new TutorialRenderer(_localizationService));
         _renderService.RegisterRenderer(tooltipRenderer);
 
         if (isNewGame && _gameControllerService.CurrentGameState is SettlersOfIdlestan.Model.Game.MainGameState introState)
