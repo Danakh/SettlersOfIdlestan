@@ -36,7 +36,7 @@ public static class TutorialTaskDefinitions
 
         new TutorialTask(TutorialTaskId.UpgradeProductionBuildingsLevel2,
             "task_upgrade_production_level2_name", "task_upgrade_production_level2_desc",
-            (g, _) => g.ProductionBuildingsReachedLevel2 >= 4),
+            (g, _) => g.ProductionBuildingsReachedLevel2 >= 2),
 
         new TutorialTask(TutorialTaskId.Build10Cities,
             "task_build_10_cities_name", "task_build_10_cities_desc",

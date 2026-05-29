@@ -384,11 +384,11 @@
   "tutorial_step_build_title": "Construction",
   "tutorial_step_build_desc": "Appuyez sur votre ville pour ouvrir le menu de construction. Sélectionnez un bâtiment disponible et construisez-le.",
   "tutorial_step_road_title": "Routes",
-  "tutorial_step_road_desc": "Appuyez sur une arête adjacente à votre ville pour construire une route et étendre votre territoire.",
+  "tutorial_step_road_desc": "Construisez des routes pour étendre votre territoire. Pour fonder une nouvelle ville, vous devez atteindre un sommet à au moins 3 routes de distance de votre première ville.",
   "task_build_second_city_name": "Fonder une deuxième ville",
   "task_build_second_city_desc": "Construisez une deuxième ville sur l'île.",
-  "task_upgrade_production_level2_name": "Améliorer 4 bâtiments de production",
-  "task_upgrade_production_level2_desc": "Montez 4 bâtiments de production (Scierie, Briqueterie, Moulin, Carrière, Mine, Port ou Verrerie) au niveau 2.",
+  "task_upgrade_production_level2_name": "Améliorer 2 bâtiments de production",
+  "task_upgrade_production_level2_desc": "Montez 2 bâtiments de production (Scierie, Briqueterie, Moulin, Carrière, Mine, Port ou Verrerie) au niveau 2.",
   "task_build_10_cities_name": "Construire 10 villes",
   "task_build_10_cities_desc": "Fondez 10 villes sur l'île.",
   "task_build_5_libraries_name": "Construire 5 Bibliothèques",
@@ -406,8 +406,7 @@
   "tutorial_step_capital_title": "Capitale",
   "tutorial_step_capital_desc": "Développez votre capitale au maximum pour accéder au Port Impérial et préparer le Prestige.",
   "tutorial_step_prestige_title": "Prestige",
-  "tutorial_step_prestige_desc": "Effectuez un Prestige pour recommencer avec des bonus permanents et débloquer de nouvelles possibilités."
-  "tutorial_step_road_desc": "Appuyez sur une arête adjacente à votre ville pour construire une route et étendre votre territoire.",
+  "tutorial_step_prestige_desc": "Effectuez un Prestige pour recommencer avec des bonus permanents et débloquer de nouvelles possibilités.",
   "tutorial_optional": "Optionnel"
 }
 

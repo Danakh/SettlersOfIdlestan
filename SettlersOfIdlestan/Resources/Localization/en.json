@@ -384,11 +384,11 @@
   "tutorial_step_build_title": "Construction",
   "tutorial_step_build_desc": "Tap your city to open the build menu. Select an available building and construct it.",
   "tutorial_step_road_title": "Roads",
-  "tutorial_step_road_desc": "Tap an edge adjacent to your city to build a road and expand your territory.",
+  "tutorial_step_road_desc": "Build roads to expand your territory. To found a new city, you need to reach a vertex at least 3 roads away from your first city.",
   "task_build_second_city_name": "Found a Second City",
   "task_build_second_city_desc": "Build a second city on the island.",
-  "task_upgrade_production_level2_name": "Upgrade 4 Production Buildings",
-  "task_upgrade_production_level2_desc": "Upgrade 4 production buildings (Sawmill, Brickworks, Mill, Quarry, Mine, Seaport, or GlassWorks) to level 2.",
+  "task_upgrade_production_level2_name": "Upgrade 2 Production Buildings",
+  "task_upgrade_production_level2_desc": "Upgrade 2 production buildings (Sawmill, Brickworks, Mill, Quarry, Mine, Seaport, or GlassWorks) to level 2.",
   "task_build_10_cities_name": "Build 10 Cities",
   "task_build_10_cities_desc": "Found 10 cities on the island.",
   "task_build_5_libraries_name": "Build 5 Libraries",
@@ -406,8 +406,7 @@
   "tutorial_step_capital_title": "Capital",
   "tutorial_step_capital_desc": "Develop your capital to its fullest to unlock the Imperial Port and prepare for Prestige.",
   "tutorial_step_prestige_title": "Prestige",
-  "tutorial_step_prestige_desc": "Perform a Prestige to restart with permanent bonuses and unlock new possibilities."
-  "tutorial_step_road_desc": "Tap an edge adjacent to your city to build a road and expand your territory.",
+  "tutorial_step_prestige_desc": "Perform a Prestige to restart with permanent bonuses and unlock new possibilities.",
   "tutorial_optional": "Optional"
 }
 
