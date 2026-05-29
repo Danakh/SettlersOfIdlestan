@@ -9,6 +9,7 @@ namespace SettlersOfIdlestan.Model.IslandFeatures;
 [JsonDerivedType(typeof(Bandit), "Bandit")]
 [JsonDerivedType(typeof(BanditHideout), "BanditHideout")]
 [JsonDerivedType(typeof(TreasureTrove), "TreasureTrove")]
+[JsonDerivedType(typeof(Wonder), "Wonder")]
 [Serializable]
 public abstract class IslandFeature
 {
@@ -17,6 +18,11 @@ public abstract class IslandFeature
 
     public abstract GameEventType DiscoveredEventType { get; }
     public abstract GameEventType RemovedEventType { get; }
+
+    /// <summary>
+    /// True si cette feature bloque la récolte sur son hex.
+    /// </summary>
+    public virtual bool BlocksHarvest => false;
 
     /// <summary>
     /// True tant que la feature peut encore être découverte.

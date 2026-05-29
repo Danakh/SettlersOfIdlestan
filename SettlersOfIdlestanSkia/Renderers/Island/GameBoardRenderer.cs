@@ -29,6 +29,10 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
     private const float ChestIconSize = 18f;
     private const float ChestSvgViewBox = 64f;
 
+    private SKSvg? _wonderSvg;
+    private const float WonderIconSize = 50f;
+    private const float WonderSvgViewBox = 512f;
+
     private SKPaint? _hexBorderPaint;
     private SKPaint? _hexFillPaint;
     private SKPaint? _textPaint;
@@ -110,6 +114,9 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
 
         try { _chestSvg = _resourceManager.LoadImage("Resources.icons.features.chest.svg"); }
         catch { _chestSvg = null; }
+
+        try { _wonderSvg = _resourceManager.LoadImage("Resources.icons.features.wonder_0.svg"); }
+        catch { _wonderSvg = null; }
     }
 
     public void Render(SKCanvas canvas, GameRenderContext context)
@@ -133,7 +140,9 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
                     var banditPositions = new HashSet<HexCoord>(islandState.Features.OfType<Bandit>().Select(b => b.Position));
                     var treasureTrovePositions = new HashSet<HexCoord>(islandState.Features.OfType<TreasureTrove>()
                         .Where(t => !t.Claimed).Select(t => t.Position));
-                    DrawIslandMap(canvas, visibleMap, playerIdx, mainGameState.Clock.CurrentTick, manualTimes, autoTimes, islandState.BanditCooldownUntil, banditPositions, treasureTrovePositions);
+                    var wonderPositions = new HashSet<HexCoord>(islandState.Features.OfType<Wonder>()
+                        .Where(w => w.Found).Select(w => w.Position));
+                    DrawIslandMap(canvas, visibleMap, playerIdx, mainGameState.Clock.CurrentTick, manualTimes, autoTimes, islandState.BanditCooldownUntil, banditPositions, treasureTrovePositions, wonderPositions);
                 }
             }
         }
@@ -145,12 +154,13 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
         Dictionary<HexCoord, long>? autoTimes,
         Dictionary<HexCoord, long>? banditCooldownUntil,
         HashSet<HexCoord>? banditPositions,
-        HashSet<HexCoord>? treasureTrovePositions = null)
+        HashSet<HexCoord>? treasureTrovePositions = null,
+        HashSet<HexCoord>? wonderPositions = null)
     {
         foreach (var (coord, tile) in map.Tiles)
         {
             var (x, y) = AxialToIsland(coord.Q, coord.R);
-            DrawHexagonTile(canvas, coord, x, y, tile, playerIdx, currentTick, manualTimes, autoTimes, banditCooldownUntil, banditPositions, treasureTrovePositions);
+            DrawHexagonTile(canvas, coord, x, y, tile, playerIdx, currentTick, manualTimes, autoTimes, banditCooldownUntil, banditPositions, treasureTrovePositions, wonderPositions);
         }
     }
 
@@ -176,7 +186,8 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
         Dictionary<HexCoord, long>? autoTimes,
         Dictionary<HexCoord, long>? banditCooldownUntil,
         HashSet<HexCoord>? banditPositions,
-        HashSet<HexCoord>? treasureTrovePositions = null)
+        HashSet<HexCoord>? treasureTrovePositions = null,
+        HashSet<HexCoord>? wonderPositions = null)
     {
         var path = GetOrCreateHexPath(coord, centerX, centerY);
 
@@ -195,6 +206,9 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
         if (treasureTrovePositions?.Contains(coord) == true)
             DrawTreasureTroveMarker(canvas, centerX, centerY);
 
+        if (wonderPositions?.Contains(coord) == true)
+            DrawWonderMarker(canvas, centerX, centerY);
+
         DrawHarvestIndicator(canvas, centerX, centerY, tile, playerIdx, currentTick, manualTimes, autoTimes, banditCooldownUntil, banditPositions);
 
         if (DebugOverlayRenderer.DebugMode && _textPaint != null && tile.Coord != null)
@@ -212,6 +226,19 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
         float scale = ChestIconSize / ChestSvgViewBox;
         canvas.Save();
         canvas.Translate(cx - ChestIconSize / 2f, cy - ChestIconSize / 2f);
+        canvas.Scale(scale);
+        canvas.DrawPicture(picture);
+        canvas.Restore();
+    }
+
+    private void DrawWonderMarker(SKCanvas canvas, float cx, float cy)
+    {
+        var picture = _wonderSvg?.Picture;
+        if (picture == null) return;
+
+        float scale = WonderIconSize / WonderSvgViewBox;
+        canvas.Save();
+        canvas.Translate(cx - WonderIconSize / 2f, cy - WonderIconSize / 2f);
         canvas.Scale(scale);
         canvas.DrawPicture(picture);
         canvas.Restore();
@@ -251,6 +278,8 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
                 0f, 1f);
             DrawBanditCooldownRing(canvas, cx, cy, ratio);
         }
+
+        if wonder
 
         if (autoResources.Count > 0)
             DrawCooldownRing(canvas, cx, cy, AutoRingRadius, AutoRingStroke,

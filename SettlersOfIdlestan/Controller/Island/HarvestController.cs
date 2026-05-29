@@ -122,8 +122,10 @@ namespace SettlersOfIdlestan.Controller.Island
                     // Hex contesté: aucune production si une ville adverse est adjacente
                     if (IsHexContested(civ, hex)) continue;
 
-                    // Bandit blocking: no auto-harvest if a bandit is on the hex or cooldown active
-                    if (_banditController?.IsHarvestBlocked(hex, now) == true) continue;
+                    // Blocking générique: toute feature avec BlocksHarvest (bandits, repaires, merveilles…)
+                    if (_state.Features.Any(f => f.Position.Equals(hex) && f.BlocksHarvest)) continue;
+                    // Cooldown de départ des bandits
+                    if (_banditController?.HasDepartureCooldown(hex, now) == true) continue;
 
                     // Collect all (city, building) pairs that can auto-harvest this hex
                     var capable = new System.Collections.Generic.List<(City city, Building building, Resource resource, long cooldown)>();
@@ -328,8 +330,11 @@ namespace SettlersOfIdlestan.Controller.Island
 
             long now = _clock.CurrentTick;
 
-            // Bandit blocking: no manual harvest if a bandit is on the hex or cooldown active
-            if (_banditController?.IsHarvestBlocked(hex, now) == true)
+            // Blocking générique: toute feature avec BlocksHarvest (bandits, repaires, merveilles…)
+            if (_state.Features.Any(f => f.Position.Equals(hex) && f.BlocksHarvest))
+                return false;
+            // Cooldown de départ des bandits
+            if (_banditController?.HasDepartureCooldown(hex, now) == true)
                 return false;
 
             var civMap = _state.HarvestLastTimesByCivilization;

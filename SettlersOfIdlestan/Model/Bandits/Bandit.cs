@@ -17,6 +17,7 @@ public class Bandit : IslandFeature
     public Vertex? LastRaidTargetVertex { get; set; } = null;
     public string? LastStolenResource { get; set; } = null;
 
+    public override bool BlocksHarvest => true;
     public override GameEventType DiscoveredEventType => GameEventType.BanditDiscovered;
     public override GameEventType RemovedEventType    => GameEventType.BanditDefeated;
 
