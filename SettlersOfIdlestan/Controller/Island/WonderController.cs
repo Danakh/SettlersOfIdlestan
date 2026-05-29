@@ -60,9 +60,10 @@ namespace SettlersOfIdlestan.Controller.Island
             var result = new List<HexCoord>();
             foreach (var hex in playerCityHexes)
             {
-                if (_state.Map.GetTile(hex) == null) continue;
+                var tile = _state.Map.GetTile(hex);
+                if (tile == null) continue;
+                if (tile.TerrainType == TerrainType.Water) continue;
                 if (enemyZone.Contains(hex)) continue;
-                // Don't place on a hex that already has a wonder
                 if (_state.Features.OfType<Wonder>().Any(w => w.Position.Equals(hex))) continue;
                 result.Add(hex);
             }
