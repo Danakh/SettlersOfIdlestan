@@ -7,6 +7,7 @@ using SettlersOfIdlestan.Model.Prestige;
 using SettlersOfIdlestan.Model.Prestige.PrestigeMap;
 using SettlersOfIdlestan.Services.Localization;
 using SettlersOfIdlestanSkia.Core;
+using SettlersOfIdlestanSkia.Renderers.Debug;
 using SettlersOfIdlestanSkia.Services;
 using SkiaSharp;
 using System;
@@ -126,7 +127,8 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         _visibleVertices.Clear();
         foreach (var v in map.Vertices)
         {
-            if (v.Coord.Equals(PrestigeMap.CentralVertex)
+            if (DebugOverlayRenderer.DebugMode
+                || v.Coord.Equals(PrestigeMap.CentralVertex)
                 || map.GetNeighbors(v.Coord).Any(n => state.PurchasedVertices.Contains(n.Coord)))
                 _visibleVertices.Add(v.Coord);
         }
@@ -134,7 +136,8 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         _visibleHexes.Clear();
         foreach (var hex in map.Hexes)
         {
-            if (hex.AdjacentVertices.Any(v => state.PurchasedVertices.Contains(v)))
+            if (DebugOverlayRenderer.DebugMode
+                || hex.AdjacentVertices.Any(v => state.PurchasedVertices.Contains(v)))
                 _visibleHexes.Add(hex.Coord);
         }
     }
