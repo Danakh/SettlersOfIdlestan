@@ -38,6 +38,8 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             REINFORCEMENT_RANGE,
             /// <summary>Flags that wonder construction is unlocked for the civilization.</summary>
             UNLOCK_WONDERS,
+            /// <summary>Flags that an advanced resource is discovered and visible. SubCategory = Resource enum name.</summary>
+            UNLOCK_RESOURCE,
         }
 
         public enum EType

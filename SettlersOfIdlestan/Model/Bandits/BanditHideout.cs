@@ -16,6 +16,7 @@ public class BanditHideout : IslandFeature
     public long LastSpawnTick { get; set; } = 0;
     public long LastAttackedTick { get; set; } = 0;
 
+    public override bool BlocksHarvest => true;
     public override GameEventType DiscoveredEventType => GameEventType.BanditHideoutDiscovered;
     public override GameEventType RemovedEventType    => GameEventType.BanditHideoutDestroyed;
 

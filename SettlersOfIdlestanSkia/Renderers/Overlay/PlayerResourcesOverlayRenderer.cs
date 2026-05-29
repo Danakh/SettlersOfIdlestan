@@ -1,4 +1,4 @@
-using SettlersOfIdlestan.Controller;
+using SettlersOfIdlestan.Controller.Expand;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Services.Localization;
@@ -146,7 +146,7 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
             return;
 
         var currentCivilization = islandState.Civilizations[0];
-        DrawResourcesBar(canvas, currentCivilization);
+        DrawResourcesBar(canvas, currentCivilization, mainGameState.PrestigeState);
     }
 
     private void DrawBarBackground(SKCanvas canvas)
@@ -157,11 +157,15 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
         canvas.DrawRoundRect(rect, cornerRadius, cornerRadius, _borderPaint);
     }
 
-    private void DrawResourcesBar(SKCanvas canvas, SettlersOfIdlestan.Model.Civilization.Civilization civilization)
+    private void DrawResourcesBar(SKCanvas canvas, SettlersOfIdlestan.Model.Civilization.Civilization civilization, SettlersOfIdlestan.Model.Prestige.PrestigeState? prestigeState)
     {
         const float itemSpacing = 16;
 
-        var resourceTypes = Enum.GetValues(typeof(Resource)).Cast<Resource>().ToList();
+        var map = PrestigeMapController.DefaultMap;
+        var resourceTypes = Enum.GetValues(typeof(Resource)).Cast<Resource>()
+            .Where(r => !ResourceUtils.AdvancedResources.Contains(r)
+                        || (prestigeState?.IsResourceDiscovered(r, map) ?? false))
+            .ToList();
         float barWidth = _canvasSize.Width;
 
         DrawBarBackground(canvas);

@@ -6,7 +6,7 @@ using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Bandits;
-using SettlersOfIdlestan.Model.TreasureTroves;
+using SettlersOfIdlestan.Model.IslandFeatures;
 
 namespace SettlersOfIdlestan.Controller.Generator;
 

@@ -2,7 +2,6 @@ using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Controller.Military;
 using SettlersOfIdlestan.Model.Bandits;
 using SettlersOfIdlestan.Model.HexGrid;
-using SettlersOfIdlestan.Model.TreasureTroves;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Services.Localization;
 using SettlersOfIdlestanSkia.Core;
@@ -13,6 +12,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using SettlersOfIdlestanSkia.Renderers.Island;
+using SettlersOfIdlestan.Model.IslandFeatures;
 
 namespace SettlersOfIdlestanSkia.Renderers.Overlay
 {
@@ -129,10 +129,11 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay
                 && currentTick < banditUntil;
             bool hasTreasureTrove = islandState.Features.OfType<TreasureTrove>().Any(t => !t.Claimed && t.Position.Equals(coord));
             bool hideoutPresent = islandState.Features.OfType<BanditHideout>().Any(h => h.Found && h.Position.Equals(coord));
+            bool wonderPresent = islandState.Features.OfType<Wonder>().Any(w => w.Found && w.Position.Equals(coord));
             bool isContested = islandState.PlayerCivilization.Cities.Any(city => city.Position.IsAdjacentTo(coord))
                 && islandState.Civilizations.Where(c => c.Index != playerIdx).Any(c => c.Cities.Any(city => city.Position.IsAdjacentTo(coord)));
 
-            if (manualResources.Count == 0 && autoResources.Count == 0 && !banditPresent && !banditCooldownActive && !hasTreasureTrove && !hideoutPresent && !isContested)
+            if (manualResources.Count == 0 && autoResources.Count == 0 && !banditPresent && !banditCooldownActive && !hasTreasureTrove && !hideoutPresent && !wonderPresent && !isContested)
             {
                 var tile = islandState.Map.GetTile(coord);
                 if (tile == null) return;
@@ -172,6 +173,9 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay
 
             if (hasTreasureTrove)
                 lines.Add(_localizationService.Get("hex_tooltip_treasure_trove"));
+
+            if (wonderPresent)
+                lines.Add(_localizationService.Get("hex_tooltip_wonder"));
 
             var allResources = manualResources.Union(autoResources).Distinct().ToList();
             if (allResources.Count > 0)

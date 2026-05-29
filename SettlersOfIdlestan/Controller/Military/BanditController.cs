@@ -219,21 +219,26 @@ public class BanditController
     }
 
     /// <summary>
-    /// Retourne true si un bandit ou un repaire est présent sur ce hex, ou si le cooldown de départ est actif.
+    /// Retourne true si le cooldown de départ d'un bandit est actif sur ce hex.
+    /// </summary>
+    public bool HasDepartureCooldown(HexCoord hex, long currentTick)
+    {
+        if (_state == null) return false;
+        if (_state.BanditCooldownUntil.TryGetValue(hex, out var until))
+            return currentTick < until;
+        return false;
+    }
+
+    /// <summary>
+    /// Retourne true si une feature bloquante (via BlocksHarvest) est présente sur ce hex, ou si le cooldown de départ est actif.
     /// </summary>
     public bool IsHarvestBlocked(HexCoord hex, long currentTick)
     {
         if (_state == null) return false;
 
-        if (_bandits.Any(b => b.Position.Equals(hex)))
+        if (_state.Features.Any(f => f.Position.Equals(hex) && f.BlocksHarvest))
             return true;
 
-        if (_hideouts.Any(h => h.Position.Equals(hex)))
-            return true;
-
-        if (_state.BanditCooldownUntil.TryGetValue(hex, out var until))
-            return currentTick < until;
-
-        return false;
+        return HasDepartureCooldown(hex, currentTick);
     }
 }
