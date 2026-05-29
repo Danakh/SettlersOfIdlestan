@@ -1,0 +1,191 @@
+using System;
+using System.Collections.Generic;
+using SettlersOfIdlestan.Controller.Expand;
+using SettlersOfIdlestan.Controller.Island;
+using SettlersOfIdlestan.Controller.Military;
+using SettlersOfIdlestan.Model.Bandits;
+using SettlersOfIdlestan.Model.Civilization;
+using SettlersOfIdlestan.Model.IslandFeatures;
+using SettlersOfIdlestan.Model.IslandMap;
+using SettlersOfIdlestan.Model.Tasks;
+
+namespace SettlersOfIdlestan.Controller.Tasks;
+
+/// <summary>
+/// S'abonne aux événements de tous les controllers et maintient GameRecord + RunRecord à jour.
+/// Évalue les tâches tutoriel et émet OnTaskCompleted quand une tâche est complétée.
+/// </summary>
+public class TaskRecordController
+{
+    private GameRecord? _gameRecord;
+    private RunRecord? _runRecord;
+    private IslandState? _islandState;
+    private int _playerCivIndex;
+
+    private BuildingController? _buildingController;
+    private RoadController? _roadController;
+    private CityBuilderController? _cityBuilderController;
+    private PrestigeMapController? _prestigeMapController;
+    private ResearchController? _researchController;
+    private MilitaryController? _militaryController;
+
+    public event EventHandler<TutorialTaskId>? OnTaskCompleted;
+
+    internal TaskRecordController() { }
+
+    internal void Initialize(
+        GameRecord gameRecord,
+        RunRecord runRecord,
+        IslandState islandState,
+        BuildingController buildingController,
+        RoadController roadController,
+        CityBuilderController cityBuilderController,
+        PrestigeMapController prestigeMapController,
+        ResearchController researchController,
+        MilitaryController militaryController)
+    {
+        Unsubscribe();
+
+        _gameRecord = gameRecord;
+        _runRecord = runRecord;
+        _islandState = islandState;
+        _playerCivIndex = islandState.PlayerCivilization.Index;
+        _buildingController = buildingController;
+        _roadController = roadController;
+        _cityBuilderController = cityBuilderController;
+        _prestigeMapController = prestigeMapController;
+        _researchController = researchController;
+        _militaryController = militaryController;
+
+        _buildingController.OnBuildingBuilt += HandleBuildingBuilt;
+        _roadController.OnRoadBuilt += HandleRoadBuilt;
+        _cityBuilderController.OnCityBuilt += HandleCityBuilt;
+        _prestigeMapController.OnVertexPurchased += HandleVertexPurchased;
+        _researchController.OnResearchCompleted += HandleResearchCompleted;
+        _militaryController.SoldierAttackedBandit += HandleBanditDefeated;
+        _islandState.FeatureRemoved += HandleFeatureRemoved;
+    }
+
+    private void Unsubscribe()
+    {
+        if (_buildingController != null) _buildingController.OnBuildingBuilt -= HandleBuildingBuilt;
+        if (_roadController != null) _roadController.OnRoadBuilt -= HandleRoadBuilt;
+        if (_cityBuilderController != null) _cityBuilderController.OnCityBuilt -= HandleCityBuilt;
+        if (_prestigeMapController != null) _prestigeMapController.OnVertexPurchased -= HandleVertexPurchased;
+        if (_researchController != null) _researchController.OnResearchCompleted -= HandleResearchCompleted;
+        if (_militaryController != null) _militaryController.SoldierAttackedBandit -= HandleBanditDefeated;
+        if (_islandState != null) _islandState.FeatureRemoved -= HandleFeatureRemoved;
+    }
+
+    /// <summary>
+    /// Appelé par MainGameController.PerformPrestige() avant la réinitialisation des controllers.
+    /// </summary>
+    internal void RecordPrestige()
+    {
+        if (_gameRecord == null) return;
+        _gameRecord.TotalPrestigesPerformed++;
+        CheckTaskCompletions();
+    }
+
+    private void HandleBuildingBuilt(object? sender, BuildingBuiltEventArgs e)
+    {
+        if (_gameRecord == null || _runRecord == null) return;
+        if (e.CivilizationIndex != _playerCivIndex) return;
+
+        if (e.IsNewBuilding)
+        {
+            _gameRecord.TotalBuildingsConstructed++;
+            _runRecord.BuildingsConstructed++;
+            string key = e.BuildingType.ToString();
+            _gameRecord.BuildingCounts[key] = _gameRecord.BuildingCounts.GetValueOrDefault(key) + 1;
+            _runRecord.BuildingCounts[key] = _runRecord.BuildingCounts.GetValueOrDefault(key) + 1;
+        }
+        else
+        {
+            _gameRecord.TotalBuildingsUpgraded++;
+            _runRecord.BuildingsUpgraded++;
+        }
+
+        CheckTaskCompletions();
+    }
+
+    private void HandleRoadBuilt(object? sender, RoadAutoBuiltEventArgs e)
+    {
+        if (_gameRecord == null || _runRecord == null) return;
+        if (e.CivilizationIndex != _playerCivIndex) return;
+
+        _gameRecord.TotalRoadsBuilt++;
+        _runRecord.RoadsBuilt++;
+        CheckTaskCompletions();
+    }
+
+    private void HandleCityBuilt(object? sender, OutpostAutoBuiltEventArgs e)
+    {
+        if (_gameRecord == null || _runRecord == null) return;
+        if (e.CivilizationIndex != _playerCivIndex) return;
+
+        _gameRecord.TotalCitiesBuilt++;
+        _runRecord.CitiesBuilt++;
+        CheckTaskCompletions();
+    }
+
+    private void HandleVertexPurchased(object? sender, VertexPurchasedEventArgs e)
+    {
+        if (_gameRecord == null) return;
+        _gameRecord.TotalPrestigeVerticesPurchased++;
+        CheckTaskCompletions();
+    }
+
+    private void HandleResearchCompleted(object? sender, TechnologyId e)
+    {
+        if (_gameRecord == null || _runRecord == null) return;
+        _gameRecord.TotalResearchCompleted++;
+        _runRecord.ResearchCompleted++;
+        CheckTaskCompletions();
+    }
+
+    private void HandleBanditDefeated(object? sender, SoldierAttackEventArgs e)
+    {
+        if (_gameRecord == null || _runRecord == null) return;
+        _gameRecord.TotalBanditsDefeated++;
+        _runRecord.BanditsDefeated++;
+        CheckTaskCompletions();
+    }
+
+    private void HandleFeatureRemoved(object? sender, IslandFeature e)
+    {
+        if (_gameRecord == null || _runRecord == null) return;
+        if (e is not BanditHideout) return;
+        _gameRecord.TotalHideoutsDestroyed++;
+        _runRecord.HideoutsDestroyed++;
+        CheckTaskCompletions();
+    }
+
+    private void CheckTaskCompletions()
+    {
+        if (_gameRecord == null) return;
+        foreach (var task in TutorialTaskDefinitions.All)
+        {
+            string key = task.Id.ToString();
+            if (_gameRecord.CompletedTasks.Contains(key)) continue;
+            if (task.IsCompleted(_gameRecord, _runRecord))
+            {
+                _gameRecord.CompletedTasks.Add(key);
+                OnTaskCompleted?.Invoke(this, task.Id);
+            }
+        }
+    }
+
+    public bool IsTaskCompleted(TutorialTaskId id)
+        => _gameRecord?.CompletedTasks.Contains(id.ToString()) ?? false;
+
+    public IReadOnlyList<TutorialTask> GetAllTasks() => TutorialTaskDefinitions.All;
+
+    public IEnumerable<TutorialTask> GetIncompleteTasks()
+    {
+        if (_gameRecord == null) yield break;
+        foreach (var task in TutorialTaskDefinitions.All)
+            if (!_gameRecord.CompletedTasks.Contains(task.Id.ToString()))
+                yield return task;
+    }
+}

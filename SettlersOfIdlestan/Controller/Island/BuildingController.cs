@@ -9,6 +9,24 @@ using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
 
 namespace SettlersOfIdlestan.Controller.Island
 {
+    public class BuildingBuiltEventArgs : EventArgs
+    {
+        public int CivilizationIndex { get; }
+        public Vertex CityPosition { get; }
+        public BuildingType BuildingType { get; }
+        public int Level { get; }
+        public bool IsNewBuilding { get; }
+
+        public BuildingBuiltEventArgs(int civIndex, Vertex cityPosition, BuildingType type, int level, bool isNewBuilding)
+        {
+            CivilizationIndex = civIndex;
+            CityPosition = cityPosition;
+            BuildingType = type;
+            Level = level;
+            IsNewBuilding = isNewBuilding;
+        }
+    }
+
     /// <summary>
     /// Contr�le la logique de construction et d'am�lioration des b�timents pour une ville donn�e.
     /// API similaire � RoadController / CityBuilderController.
@@ -17,6 +35,8 @@ namespace SettlersOfIdlestan.Controller.Island
     {
         private IslandState? _state;
         private GameClock? _clock;
+
+        public event EventHandler<BuildingBuiltEventArgs>? OnBuildingBuilt;
 
         internal BuildingController(IslandState? state = null)
         {
@@ -269,6 +289,9 @@ namespace SettlersOfIdlestan.Controller.Island
 
             if (type == BuildingType.Watchtower)
                 _state.RecalculateVisibleIslandMap(civilizationIndex);
+
+            OnBuildingBuilt?.Invoke(this, new BuildingBuiltEventArgs(
+                civilizationIndex, cityVertex, type, resultBuilding.Level, existing == null));
 
             return true;
         }

@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.Game;
+using SettlersOfIdlestan.Model.Tasks;
 using System.Text.Json.Serialization;
 using System.Linq;
 
@@ -150,6 +151,11 @@ public class IslandState : IJsonOnDeserialized
     /// Player-controlled automation toggles. Persisted with the island state.
     /// </summary>
     public AutomationSettings AutomationSettings { get; set; } = new();
+
+    /// <summary>
+    /// Statistiques du run en cours (réinitialisées à chaque prestige).
+    /// </summary>
+    public RunRecord RunRecord { get; set; } = new();
 
     /// <summary>
     /// Tick du dernier cycle de nourrissage des soldats (toutes civilisations, global).

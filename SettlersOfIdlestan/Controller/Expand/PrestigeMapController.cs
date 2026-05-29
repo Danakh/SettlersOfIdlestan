@@ -7,12 +7,27 @@ using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Prestige;
 using SettlersOfIdlestan.Model.Prestige.PrestigeMap;
 using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
+using System;
 
 namespace SettlersOfIdlestan.Controller.Expand;
+
+public class VertexPurchasedEventArgs : EventArgs
+{
+    public Vertex Vertex { get; }
+    public int Cost { get; }
+
+    public VertexPurchasedEventArgs(Vertex vertex, int cost)
+    {
+        Vertex = vertex;
+        Cost = cost;
+    }
+}
 
 public class PrestigeMapController
 {
     public static readonly PrestigeMap DefaultMap = PrestigeMap.CreateDefault();
+
+    public event EventHandler<VertexPurchasedEventArgs>? OnVertexPurchased;
 
     public bool CanPurchaseVertex(PrestigeState prestigeState, Vertex vertexCoord)
     {
@@ -39,6 +54,7 @@ public class PrestigeMapController
         prestigeState.PrestigePoints -= vertex.Cost;
         prestigeState.PurchasedVertices.Add(vertexCoord);
         DefaultMap.RaiseVertexPurchased(vertexCoord);
+        OnVertexPurchased?.Invoke(this, new VertexPurchasedEventArgs(vertexCoord, vertex.Cost));
         return true;
     }
 
