@@ -1,6 +1,7 @@
 using System;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Prestige;
+using SettlersOfIdlestan.Model.Tasks;
 
 namespace SettlersOfIdlestan.Model.Game
 {
@@ -18,6 +19,11 @@ namespace SettlersOfIdlestan.Model.Game
         public GamePRNG PRNG { get; set; }
 
         public GameSettings Settings { get; set; } = new();
+
+        /// <summary>
+        /// Statistiques cumulatives all-time (achievements, tâches tutoriel).
+        /// </summary>
+        public GameRecord GameRecord { get; set; } = new();
 
         public MainGameState()
         {

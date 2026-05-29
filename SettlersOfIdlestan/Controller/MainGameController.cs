@@ -206,7 +206,7 @@ namespace SettlersOfIdlestan.Controller
                 ResearchController.Initialize(islandState, Clock, CurrentMainState?.PrestigeState);
                 prestigeState?.TechnologyTree.RebuildModifiers();
 
-                var gameRecord = CurrentMainState!.GodState.GameRecord;
+                var gameRecord = CurrentMainState!.GameRecord;
                 TaskRecordController.Initialize(gameRecord, islandState.RunRecord, islandState,
                     BuildingController, RoadController, CityBuilderController,
                     PrestigeMapController, ResearchController, MilitaryController);

@@ -406,6 +406,16 @@
   "task_first_prestige_name": "Nouveau départ",
   "task_first_prestige_desc": "Effectuez votre premier prestige.",
   "task_third_prestige_name": "Vétéran",
-  "task_third_prestige_desc": "Effectuez 3 prestiges."
+  "task_third_prestige_desc": "Effectuez 3 prestiges.",
+  "tutorial_step_expansion_title": "Expansion",
+  "tutorial_step_expansion_desc": "Étendez votre territoire en construisant des routes et en fondant de nouveaux avant-postes.",
+  "tutorial_step_economy_title": "Économie",
+  "tutorial_step_economy_desc": "Développez votre production de ressources avec des bâtiments spécialisés.",
+  "tutorial_step_research_title": "Recherche",
+  "tutorial_step_research_desc": "Investissez dans le savoir pour débloquer de nouvelles technologies.",
+  "tutorial_step_military_title": "Défense",
+  "tutorial_step_military_desc": "Protégez votre civilisation contre les bandits et étendez votre influence.",
+  "tutorial_step_prestige_title": "Prestige",
+  "tutorial_step_prestige_desc": "Terminez votre première ère et recommencez plus fort grâce au prestige."
 }
 
