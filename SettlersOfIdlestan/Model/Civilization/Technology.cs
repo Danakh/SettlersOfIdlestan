@@ -6,8 +6,9 @@ public enum TechnologyId
 {
     // Tier 0
     HarvestEfficiency,
-    Architecture,
     Artisanat,
+    Agriculture,
+    Architecture,
     MilitaryDiscipline,
     // Tier 1
     ImprovedHarvest,
@@ -15,6 +16,7 @@ public enum TechnologyId
     Erudition,
     Orpaillage,
     MilitaryTactics,
+    MilitaryBuildings,
     // Tier 2
     HarvestTools,
     AdvancedArchitecture,

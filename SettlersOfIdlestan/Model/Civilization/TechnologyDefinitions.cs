@@ -15,17 +15,23 @@ public static class TechnologyDefinitions
             prerequisites: Array.Empty<TechnologyId>(),
             modifiers: new Modifier[] { new(ECategory.HARVEST_SPEED, EType.ADDITIVE, 0.1) }),
 
-        new(TechnologyId.Architecture,
-            "tech_architecture_name", "tech_architecture_desc",
-            cost: 50,
-            prerequisites: Array.Empty<TechnologyId>(),
-            modifiers: new Modifier[] { new(ECategory.BUILDING_MAX_LEVEL, "TownHall", EType.ADDITIVE, 1) }),
-
         new(TechnologyId.Artisanat,
             "tech_artisanat_name", "tech_artisanat_desc",
             cost: 60,
             prerequisites: Array.Empty<TechnologyId>(),
             modifiers: new Modifier[] { new(ECategory.FORGE_DOUBLE_PROD_BONUS, EType.ADDITIVE, 5) }),
+
+        new(TechnologyId.Agriculture,
+            "tech_agriculture_name", "tech_agriculture_desc",
+            cost: 50,
+            prerequisites: Array.Empty<TechnologyId>(),
+            modifiers: new Modifier[] { new(ECategory.MILL_DOUBLE_HARVEST_CHANCE, EType.ADDITIVE, 50) }),
+
+        new(TechnologyId.Architecture,
+            "tech_architecture_name", "tech_architecture_desc",
+            cost: 50,
+            prerequisites: Array.Empty<TechnologyId>(),
+            modifiers: new Modifier[] { new(ECategory.UNLOCK_WONDERS, EType.ADDITIVE, 1) }),
 
         new(TechnologyId.MilitaryDiscipline,
             "tech_military_discipline_name", "tech_military_discipline_desc",
@@ -68,6 +74,12 @@ public static class TechnologyDefinitions
                 new(ECategory.UNIT_PRODUCTION_SPEED, EType.ADDITIVE, 0.15),
                 new(ECategory.CITY_ATTACK_RANGE, EType.ADDITIVE, 1),
             }),
+
+        new(TechnologyId.MilitaryBuildings,
+            "tech_military_buildings_name", "tech_military_buildings_desc",
+            cost: 200,
+            prerequisites: new[] { TechnologyId.Architecture, TechnologyId.MilitaryDiscipline },
+            modifiers: new Modifier[] { new(ECategory.BUILDING_MAX_LEVEL, "Barracks", EType.ADDITIVE, 2) }),
 
         // === TIER 2 ===
 
@@ -149,7 +161,7 @@ public static class TechnologyDefinitions
         new(TechnologyId.WarAcademy,
             "tech_war_academy_name", "tech_war_academy_desc",
             cost: 1625,
-            prerequisites: new[] { TechnologyId.MilitaryMastery },
+            prerequisites: new[] { TechnologyId.MilitaryMastery, TechnologyId.MilitaryBuildings },
             modifiers: new Modifier[] { new(ECategory.UNIT_PRODUCTION_SPEED, EType.ADDITIVE, 0.3) }),
 
         // === TIER 4 — Premiers croisements ===

@@ -33,6 +33,10 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             CITY_ATTACK_RANGE,
             /// <summary>Flat bonus added to the reinforcement range (in edges). SubCategory unused.</summary>
             REINFORCEMENT_RANGE,
+            /// <summary>Chance (in %) for mills to double their harvest yield. SubCategory unused.</summary>
+            MILL_DOUBLE_HARVEST_CHANCE,
+            /// <summary>Flags that wonder construction is unlocked for the civilization.</summary>
+            UNLOCK_WONDERS,
         }
 
         public enum EType
