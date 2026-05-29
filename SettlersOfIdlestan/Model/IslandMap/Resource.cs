@@ -24,4 +24,14 @@ public class ResourceUtils
         Resource.Brick,
         Resource.Stone
     };
-}   
+    public static List<Resource> IntermediateResources = new List<Resource>
+    {
+        Resource.Ore,
+        Resource.Gold
+    };
+    public static List<Resource> AdvancedResources = new List<Resource>
+    {
+        Resource.Glass,
+        Resource.Crystal
+    };
+}

@@ -8,6 +8,7 @@ using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.GameplayModifier;
 using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
+using SettlersOfIdlestan.Model.IslandFeatures;
 
 namespace SettlersOfIdlestan.Controller.Island
 {
@@ -183,7 +184,7 @@ namespace SettlersOfIdlestan.Controller.Island
             _state.RecalculateVisibleIslandMap(civilizationIndex);
 
             var cityHexSet = new HashSet<HexCoord>(city.Position.GetHexes());
-            foreach (var trove in _state.Features.OfType<SettlersOfIdlestan.Model.TreasureTroves.TreasureTrove>())
+            foreach (var trove in _state.Features.OfType<TreasureTrove>())
             {
                 if (!trove.Claimed && cityHexSet.Contains(trove.Position))
                 {

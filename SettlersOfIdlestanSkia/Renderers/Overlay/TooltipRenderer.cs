@@ -2,7 +2,6 @@ using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Controller.Military;
 using SettlersOfIdlestan.Model.Bandits;
 using SettlersOfIdlestan.Model.HexGrid;
-using SettlersOfIdlestan.Model.TreasureTroves;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Services.Localization;
 using SettlersOfIdlestanSkia.Core;
@@ -13,6 +12,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using SettlersOfIdlestanSkia.Renderers.Island;
+using SettlersOfIdlestan.Model.IslandFeatures;
 
 namespace SettlersOfIdlestanSkia.Renderers.Overlay
 {

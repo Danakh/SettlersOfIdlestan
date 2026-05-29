@@ -1,9 +1,8 @@
 using System.Text.Json.Serialization;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
-using SettlersOfIdlestan.Model.IslandFeatures;
 
-namespace SettlersOfIdlestan.Model.TreasureTroves
+namespace SettlersOfIdlestan.Model.IslandFeatures
 {
     public class TreasureTrove : IslandFeature
     {

@@ -1,7 +1,9 @@
 using System;
 using SettlersOfIdlestan.Model.Civilization;
+using SettlersOfIdlestan.Model.GameplayModifier;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
+using SettlersOfIdlestan.Model.Prestige.PrestigeMap;
 
 namespace SettlersOfIdlestan.Model.Prestige;
 
@@ -25,5 +27,13 @@ public class PrestigeState
     public PrestigeState(IslandState islandState)
     {
         IslandState = islandState;
+    }
+
+    public bool IsResourceDiscovered(Resource resource, PrestigeMap.PrestigeMap map)
+    {
+        var resourceName = resource.ToString();
+        return PurchasedVertices.Any(v =>
+            map.GetVertex(v)?.Modifiers.Any(m =>
+                m.Category == Modifier.ECategory.UNLOCK_RESOURCE && m.SubCategory == resourceName) == true);
     }
 }

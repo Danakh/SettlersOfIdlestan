@@ -1,7 +1,6 @@
 using SettlersOfIdlestan.Model.Bandits;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
-using SettlersOfIdlestan.Model.TreasureTroves;
 using System.Text.Json.Serialization;
 
 namespace SettlersOfIdlestan.Model.IslandFeatures;

@@ -115,6 +115,7 @@ public class PrestigeMap
                 {
                     new(ECategory.BUILDING_MAX_LEVEL, "Laboratory", EType.ADDITIVE, 2),
                     new(ECategory.BUILDING_MAX_LEVEL, "GlassWorks", EType.ADDITIVE, 1),
+                    new(ECategory.UNLOCK_RESOURCE, "Glass", EType.ADDITIVE, 1),
                 }
             ),
             new(

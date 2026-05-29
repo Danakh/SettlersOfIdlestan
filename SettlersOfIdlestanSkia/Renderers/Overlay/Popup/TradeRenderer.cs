@@ -1,3 +1,4 @@
+using SettlersOfIdlestan.Controller.Expand;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Services.Localization;
@@ -388,8 +389,12 @@ public sealed class TradeRenderer : IDisposable
         if (civ == null) return;
         var tc = _gameControllerService.MainGameController.TradeController;
 
+        var prestigeState = _gameControllerService.CurrentGameState?.PrestigeState;
+        var map = PrestigeMapController.DefaultMap;
         var advancedResources = Enum.GetValues<Resource>()
             .Where(r => !ResourceUtils.BasicResources.Contains(r) && r != Resource.Gold)
+            .Where(r => !ResourceUtils.AdvancedResources.Contains(r)
+                        || (prestigeState?.IsResourceDiscovered(r, map) ?? false))
             .ToList();
 
         float currentY = popup.Top + HeaderHeight + TabBarHeight + Padding;
