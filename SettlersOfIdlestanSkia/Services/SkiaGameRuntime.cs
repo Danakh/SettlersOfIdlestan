@@ -31,6 +31,8 @@ public sealed class SkiaGameRuntime : IDisposable
     private IntroAnimationRenderer? _introRenderer;
     private bool _wasIntroActive;
     private WonderSelectionService? _wonderSelectionService;
+    private TutorialRenderer? _tutorialRenderer;
+    private TutorialService? _tutorialService;
 
     private bool _isDisposed;
     private bool _isGameInitialized;
@@ -182,8 +184,18 @@ public sealed class SkiaGameRuntime : IDisposable
             _renderService.RegisterRenderer(new AutoplayerDebugRenderer(_gameControllerService, _inputService));
         }
         _renderService.RegisterRenderer(aboutRenderer);
-        _renderService.RegisterRenderer(new TutorialRenderer(_localizationService));
+        _tutorialRenderer = new TutorialRenderer(_localizationService);
+        _renderService.RegisterRenderer(_tutorialRenderer);
         _renderService.RegisterRenderer(tooltipRenderer);
+
+        _tutorialService = new TutorialService(_tutorialRenderer);
+        if (_gameControllerService.CurrentGameState is SettlersOfIdlestan.Model.Game.MainGameState tutorialState)
+        {
+            if (isNewGame)
+                _tutorialService.InitializeForNewGame(tutorialState);
+            else
+                _tutorialService.InitializeForLoadedGame(tutorialState);
+        }
 
         if (isNewGame && _gameControllerService.CurrentGameState is SettlersOfIdlestan.Model.Game.MainGameState introState)
             StartNewGameIntro(introState);
@@ -249,6 +261,9 @@ public sealed class SkiaGameRuntime : IDisposable
 
         if (_prestigeTransitionPending && _islandMainRenderer?.IsBlackFadeComplete == true)
             CompletePrestigeTransition();
+
+        if (_gameControllerService.CurrentGameState is { } tutorialState)
+            _tutorialService?.Update(tutorialState);
 
         _frameCount++;
 

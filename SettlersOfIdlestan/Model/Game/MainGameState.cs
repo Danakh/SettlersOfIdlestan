@@ -21,6 +21,11 @@ namespace SettlersOfIdlestan.Model.Game
         public GameSettings Settings { get; set; } = new();
 
         /// <summary>
+        /// Index du step tutoriel courant. null = tutoriel terminé (ou ancienne sauvegarde).
+        /// </summary>
+        public int TutorialStepIndex { get; set; } = 0;
+
+        /// <summary>
         /// Statistiques cumulatives all-time (achievements, tâches tutoriel).
         /// </summary>
         public GameRecord GameRecord { get; set; } = new();
