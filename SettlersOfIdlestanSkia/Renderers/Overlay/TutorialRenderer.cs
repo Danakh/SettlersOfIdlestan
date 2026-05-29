@@ -30,6 +30,7 @@ public class TutorialRenderer : IGameRenderer
     private static readonly SKColor ColorTaskDone               = new(120, 220, 120, 180);
     private static readonly SKColor ColorTaskSecondaryPending   = new(180, 180, 180, 140);
     private static readonly SKColor ColorTaskSecondaryDone      = new(100, 180, 100, 130);
+    private static readonly SKColor ColorProgress               = new(180, 180, 180, 160);
     private static readonly SKColor ColorSeparator              = new(255, 255, 255, 50);
 
     public TutorialRenderer(ILocalizationService localization)
@@ -98,13 +99,17 @@ public class TutorialRenderer : IGameRenderer
         using var donePaint             = new SKPaint { Color = ColorTaskDone,             IsAntialias = true };
         using var secondaryPendingPaint = new SKPaint { Color = ColorTaskSecondaryPending, IsAntialias = true };
         using var secondaryDonePaint    = new SKPaint { Color = ColorTaskSecondaryDone,    IsAntialias = true };
+        using var progressPaint         = new SKPaint { Color = ColorProgress,             IsAntialias = true };
 
         foreach (var task in _step.PrimaryTasks)
         {
             y += _taskFont.Size;
             bool done = task.IsCompleted(gameRecord, runRecord, islandState);
-            canvas.DrawText(done ? "✓" : "☐", x, y, _taskFont, done ? donePaint : pendingPaint);
-            canvas.DrawText(_localization.Get(task.NameKey), x + TaskMarkerW, y, _taskFont, done ? donePaint : pendingPaint);
+            var taskPaint = done ? donePaint : pendingPaint;
+            canvas.DrawText(done ? "✓" : "☐", x, y, _taskFont, taskPaint);
+            string name = _localization.Get(task.NameKey);
+            canvas.DrawText(name, x + TaskMarkerW, y, _taskFont, taskPaint);
+            DrawProgress(canvas, task, gameRecord, runRecord, islandState, x + TaskMarkerW + _taskFont.MeasureText(name) + 4f, y, progressPaint);
             y += 2f;
         }
 
@@ -119,11 +124,22 @@ public class TutorialRenderer : IGameRenderer
             {
                 y += _taskFont.Size;
                 bool done = task.IsCompleted(gameRecord, runRecord, islandState);
-                canvas.DrawText(done ? "✓" : "☐", x, y, _taskFont, done ? secondaryDonePaint : secondaryPendingPaint);
-                canvas.DrawText(_localization.Get(task.NameKey), x + TaskMarkerW, y, _taskFont, done ? secondaryDonePaint : secondaryPendingPaint);
+                var taskPaint = done ? secondaryDonePaint : secondaryPendingPaint;
+                canvas.DrawText(done ? "✓" : "☐", x, y, _taskFont, taskPaint);
+                string name = _localization.Get(task.NameKey);
+                canvas.DrawText(name, x + TaskMarkerW, y, _taskFont, taskPaint);
+                DrawProgress(canvas, task, gameRecord, runRecord, islandState, x + TaskMarkerW + _taskFont.MeasureText(name) + 4f, y, progressPaint);
                 y += 2f;
             }
         }
+    }
+
+    private void DrawProgress(SKCanvas canvas, TutorialTask task, GameRecord gameRecord, RunRecord? runRecord, SettlersOfIdlestan.Model.IslandMap.IslandState? islandState, float x, float y, SKPaint paint)
+    {
+        if (task.GetProgress == null) return;
+        var (current, max) = task.GetProgress(gameRecord, runRecord, islandState);
+        if (max <= 1) return;
+        canvas.DrawText($"({Math.Min(current, max)}/{max})", x, y, _optionalFont, paint);
     }
 
     public void Dispose() { }
