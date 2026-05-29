@@ -86,6 +86,7 @@
   "automation_market_name": "Market automation",
   "automation_market_desc": "Automatically builds/upgrades Markets",
   "automation_market_locked": "Requires the Traders Guild",
+  "level_abbrev": "lv",
   "automation_on": "ON",
   "automation_off": "OFF",
   "building_harvestersguild_name": "Harvesters Guild",
