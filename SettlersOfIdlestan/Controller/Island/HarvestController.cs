@@ -170,14 +170,26 @@ namespace SettlersOfIdlestan.Controller.Island
                         civ.AddResource(actualResource, 1);
                         harvested[actualResource] += 1;
 
-                        // Forge bonus: 10% par niveau + bonus technologie Artisanat
+                        // Forge bonus: 10% par niveau + bonus technologie — s'applique à tous les bâtiments de la ville
                         var forge = city.Buildings.OfType<Forge>().FirstOrDefault();
-                        int forgeChance = forge != null ? forge.DoubleProdChancePercent + civ.ForgeDoubleProdBonus : 0;
+                        int forgeChance = forge != null ? forge.DoubleProdChancePercent + civ.ForgeDoubleHarvestBonus : 0;
                         if (forge != null && forge.Level > 0 && _prng.Next(100) < forgeChance)
                         {
                             TryAutoTradeOnOverflow(civ, actualResource);
                             civ.AddResource(actualResource, 1);
                             harvested[actualResource] += 1;
+                        }
+
+                        // Mill bonus: chance de doubler uniquement la récolte du Moulin
+                        if (building is Mill)
+                        {
+                            int millChance = civ.GetHarvestProductionBonus("Mill");
+                            if (millChance > 0 && _prng.Next(100) < millChance)
+                            {
+                                TryAutoTradeOnOverflow(civ, actualResource);
+                                civ.AddResource(actualResource, 1);
+                                harvested[actualResource] += 1;
+                            }
                         }
                     }
 

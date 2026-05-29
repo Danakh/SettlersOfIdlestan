@@ -17,7 +17,10 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             STORAGE_CAPACITY_BASIC,
             STORAGE_CAPACITY_ADVANCED,
             TRADE_GOLD_PACKAGES,
-            FORGE_DOUBLE_PROD_BONUS,
+            /// <summary>Chance (in %) to double automatic harvest yield. SubCategory = BuildingType name (empty = applies to all).</summary>
+            HARVEST_PRODUCTION_BONUS,
+            /// <summary>Flat bonus (in %) added to the Forge's double-harvest chance.</summary>
+            FORGE_DOUBLE_HARVEST_BONUS,
             MINE_GOLD_CHANCE_PERCENT,
             /// <summary>SubCategory = BuildingType name. Granted to the initial city at run start.</summary>
             STARTING_CITY_BUILDING,
@@ -33,8 +36,6 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             CITY_ATTACK_RANGE,
             /// <summary>Flat bonus added to the reinforcement range (in edges). SubCategory unused.</summary>
             REINFORCEMENT_RANGE,
-            /// <summary>Chance (in %) for mills to double their harvest yield. SubCategory unused.</summary>
-            MILL_DOUBLE_HARVEST_CHANCE,
             /// <summary>Flags that wonder construction is unlocked for the civilization.</summary>
             UNLOCK_WONDERS,
         }

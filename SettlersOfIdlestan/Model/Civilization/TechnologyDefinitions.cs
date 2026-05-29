@@ -19,13 +19,13 @@ public static class TechnologyDefinitions
             "tech_artisanat_name", "tech_artisanat_desc",
             cost: 60,
             prerequisites: Array.Empty<TechnologyId>(),
-            modifiers: new Modifier[] { new(ECategory.FORGE_DOUBLE_PROD_BONUS, EType.ADDITIVE, 5) }),
+            modifiers: new Modifier[] { new(ECategory.FORGE_DOUBLE_HARVEST_BONUS, EType.ADDITIVE, 5) }),
 
         new(TechnologyId.Agriculture,
             "tech_agriculture_name", "tech_agriculture_desc",
             cost: 50,
             prerequisites: Array.Empty<TechnologyId>(),
-            modifiers: new Modifier[] { new(ECategory.MILL_DOUBLE_HARVEST_CHANCE, EType.ADDITIVE, 50) }),
+            modifiers: new Modifier[] { new(ECategory.HARVEST_PRODUCTION_BONUS, "Mill", EType.ADDITIVE, 50) }),
 
         new(TechnologyId.Architecture,
             "tech_architecture_name", "tech_architecture_desc",
@@ -115,7 +115,7 @@ public static class TechnologyDefinitions
             "tech_metallurgy_name", "tech_metallurgy_desc",
             cost: 555,
             prerequisites: new[] { TechnologyId.Orpaillage },
-            modifiers: new Modifier[] { new(ECategory.FORGE_DOUBLE_PROD_BONUS, EType.ADDITIVE, 10) }),
+            modifiers: new Modifier[] { new(ECategory.FORGE_DOUBLE_HARVEST_BONUS, EType.ADDITIVE, 10) }),
 
         new(TechnologyId.MilitaryMastery,
             "tech_military_mastery_name", "tech_military_mastery_desc",
@@ -156,7 +156,7 @@ public static class TechnologyDefinitions
             "tech_masterwork_name", "tech_masterwork_desc",
             cost: 1390,
             prerequisites: new[] { TechnologyId.Metallurgy },
-            modifiers: new Modifier[] { new(ECategory.FORGE_DOUBLE_PROD_BONUS, EType.ADDITIVE, 15) }),
+            modifiers: new Modifier[] { new(ECategory.FORGE_DOUBLE_HARVEST_BONUS, EType.ADDITIVE, 15) }),
 
         new(TechnologyId.WarAcademy,
             "tech_war_academy_name", "tech_war_academy_desc",

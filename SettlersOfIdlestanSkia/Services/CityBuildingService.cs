@@ -122,7 +122,7 @@ public class CityBuildingService
         var islandState = IslandState;
         if (islandState == null || SelectedCity.CivilizationIndex >= islandState.Civilizations.Count)
             return 0;
-        return islandState.Civilizations[SelectedCity.CivilizationIndex].ForgeDoubleProdBonus * building.Level;
+        return islandState.Civilizations[SelectedCity.CivilizationIndex].ForgeDoubleHarvestBonus * building.Level;
     }
 
     public long GetCurrentTick() => _mainGameController.CurrentMainState?.Clock?.CurrentTick ?? 0;
