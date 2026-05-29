@@ -19,7 +19,8 @@
       "Bash(Select-String *)",
       "Bash(Format-Table *)",
       "Bash(Get-ChildItem *)",
-      "Bash(dir *)"
+      "Bash(dir *)",
+      "PowerShell(head *)"
     ]
   }
 }

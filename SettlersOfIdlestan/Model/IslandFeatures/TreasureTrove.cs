@@ -13,6 +13,10 @@ namespace SettlersOfIdlestan.Model.IslandFeatures
 
         public override bool IsDiscoverable => !Found && !Claimed;
 
+        public override string? SvgIconResourceName => "Resources.icons.features.chest.svg";
+        public override float SvgIconSize => 18f;
+        public override bool ShouldRenderIcon => !Claimed;
+
         public TreasureTrove(HexCoord position) : base(position) { }
 
         [JsonConstructor]

@@ -30,6 +30,18 @@ public abstract class IslandFeature
     /// </summary>
     public virtual bool IsDiscoverable => !Found;
 
+    /// <summary>
+    /// Nom de la ressource SVG à afficher sur la carte (ex. "Resources.icons.features.chest.svg").
+    /// Null = pas d'icône.
+    /// </summary>
+    public virtual string? SvgIconResourceName => null;
+
+    /// <summary>Taille d'affichage souhaitée en pixels.</summary>
+    public virtual float SvgIconSize => 20f;
+
+    /// <summary>True si l'icône doit être dessinée dans l'état actuel de la feature.</summary>
+    public virtual bool ShouldRenderIcon => Found;
+
     protected IslandFeature(HexCoord position) => Position = position;
 
     protected IslandFeature() => Position = new HexCoord(0, 0);

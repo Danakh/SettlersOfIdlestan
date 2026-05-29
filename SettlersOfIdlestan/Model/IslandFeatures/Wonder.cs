@@ -7,8 +7,9 @@ namespace SettlersOfIdlestan.Model.IslandFeatures;
 public class Wonder : IslandFeature
 {
     public override bool BlocksHarvest => true;
-    public override GameEventType DiscoveredEventType => GameEventType.WonderDiscovered;
-    public override GameEventType RemovedEventType => GameEventType.WonderDiscovered;
+
+    public override string? SvgIconResourceName => "Resources.icons.features.wonder_0.svg";
+    public override float SvgIconSize => 50f;
 
     public Wonder(HexCoord position) : base(position) { }
 
