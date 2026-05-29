@@ -205,9 +205,9 @@ namespace SettlersOfIdlestan.Controller
         private void SetupModifierAggregators()
         {
             var prestigeState = CurrentMainState!.PrestigeState;
-            var islandState = prestigeState.IslandState;
+            var islandState = prestigeState!.IslandState;
 
-            foreach (var civ in islandState.Civilizations)
+            foreach (var civ in islandState!.Civilizations)
                 civ.SetupModifierAggregator(civ.TechnologyTree, new UniqueBuildingsModifierProvider(civ));
 
             _prestigeModifierProvider?.Dispose();

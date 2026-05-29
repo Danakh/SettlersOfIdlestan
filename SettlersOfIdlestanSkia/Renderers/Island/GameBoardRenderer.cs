@@ -125,11 +125,12 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
                     islandState.AutomaticHarvestLastTimesByCivilization.TryGetValue(playerIdx, out var autoTimes);
 
                     var banditPositions = new HashSet<HexCoord>(islandState.Features.OfType<Bandit>().Select(b => b.Position));
+                    var harvestBlockedPositions = new HashSet<HexCoord>(islandState.Features.Where(f => f.BlocksHarvest).Select(f => f.Position));
                     var featuresByPosition = islandState.Features
                         .Where(f => f.ShouldRenderIcon && f.SvgIconResourceName != null)
                         .GroupBy(f => f.Position)
                         .ToDictionary(g => g.Key, g => (IEnumerable<IslandFeature>)g);
-                    DrawIslandMap(canvas, visibleMap, playerIdx, mainGameState.Clock.CurrentTick, manualTimes, autoTimes, islandState.BanditCooldownUntil, banditPositions, featuresByPosition);
+                    DrawIslandMap(canvas, visibleMap, playerIdx, mainGameState.Clock.CurrentTick, manualTimes, autoTimes, islandState.BanditCooldownUntil, banditPositions, harvestBlockedPositions, featuresByPosition);
                 }
             }
         }
@@ -141,12 +142,13 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
         Dictionary<HexCoord, long>? autoTimes,
         Dictionary<HexCoord, long>? banditCooldownUntil,
         HashSet<HexCoord>? banditPositions,
+        HashSet<HexCoord>? harvestBlockedPositions,
         Dictionary<HexCoord, IEnumerable<IslandFeature>>? featuresByPosition = null)
     {
         foreach (var (coord, tile) in map.Tiles)
         {
             var (x, y) = AxialToIsland(coord.Q, coord.R);
-            DrawHexagonTile(canvas, coord, x, y, tile, playerIdx, currentTick, manualTimes, autoTimes, banditCooldownUntil, banditPositions, featuresByPosition);
+            DrawHexagonTile(canvas, coord, x, y, tile, playerIdx, currentTick, manualTimes, autoTimes, banditCooldownUntil, banditPositions, harvestBlockedPositions, featuresByPosition);
         }
     }
 
@@ -172,6 +174,7 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
         Dictionary<HexCoord, long>? autoTimes,
         Dictionary<HexCoord, long>? banditCooldownUntil,
         HashSet<HexCoord>? banditPositions,
+        HashSet<HexCoord>? harvestBlockedPositions,
         Dictionary<HexCoord, IEnumerable<IslandFeature>>? featuresByPosition = null)
     {
         var path = GetOrCreateHexPath(coord, centerX, centerY);
@@ -192,7 +195,7 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
             foreach (var feature in features)
                 DrawFeatureMarker(canvas, centerX, centerY, feature);
 
-        DrawHarvestIndicator(canvas, centerX, centerY, tile, playerIdx, currentTick, manualTimes, autoTimes, banditCooldownUntil, banditPositions);
+        DrawHarvestIndicator(canvas, centerX, centerY, tile, playerIdx, currentTick, manualTimes, autoTimes, banditCooldownUntil, banditPositions, harvestBlockedPositions);
 
         if (DebugOverlayRenderer.DebugMode && _textPaint != null && tile.Coord != null)
         {
@@ -231,31 +234,33 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
         Dictionary<HexCoord, long>? manualTimes,
         Dictionary<HexCoord, long>? autoTimes,
         Dictionary<HexCoord, long>? banditCooldownUntil,
-        HashSet<HexCoord>? banditPositions)
+        HashSet<HexCoord>? banditPositions,
+        HashSet<HexCoord>? harvestBlockedPositions)
     {
         if (_dotPaint == null || _ringBgPaint == null || _ringProgressPaint == null)
             return;
-
-        var manualResources = _harvestController.GetManualHarvestableResources(playerIdx, tile.Coord);
-        var autoResources = _harvestController.GetAutomaticHarvestableResources(playerIdx, tile.Coord);
 
         // Anneau bandit (le plus externe)
         bool banditHere = banditPositions?.Contains(tile.Coord) == true;
         if (banditHere)
         {
-            // Bandit présent : anneau plein fixe
             DrawBanditCooldownRing(canvas, cx, cy, ratio: 1f);
         }
         else if (banditCooldownUntil != null
             && banditCooldownUntil.TryGetValue(tile.Coord, out var banditUntil)
             && currentTick < banditUntil)
         {
-            // Cooldown de départ : anneau qui se vide
             float ratio = Math.Clamp(
                 (float)(currentTick - (banditUntil - BanditController.DepartureCooldownTicks)) / BanditController.DepartureCooldownTicks,
                 0f, 1f);
             DrawBanditCooldownRing(canvas, cx, cy, ratio);
         }
+
+        if (harvestBlockedPositions?.Contains(tile.Coord) == true)
+            return;
+
+        var manualResources = _harvestController.GetManualHarvestableResources(playerIdx, tile.Coord);
+        var autoResources = _harvestController.GetAutomaticHarvestableResources(playerIdx, tile.Coord);
 
         if (autoResources.Count > 0)
             DrawCooldownRing(canvas, cx, cy, AutoRingRadius, AutoRingStroke,
@@ -271,7 +276,6 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
                 new SKColor(60, 60, 60, 150),
                 new SKColor(160, 230, 160, 230));
 
-        // Point central : camembert des ressources manuelles récoltables
         if (manualResources.Count > 0)
             DrawResourcePie(canvas, cx, cy, DotRadius, manualResources);
     }
