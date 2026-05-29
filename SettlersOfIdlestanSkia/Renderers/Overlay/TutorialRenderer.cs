@@ -47,7 +47,8 @@ public class TutorialRenderer : IGameRenderer
 
         var mainState = context.GameState as MainGameState;
         var gameRecord = mainState?.GameRecord ?? new GameRecord();
-        var runRecord = mainState?.CurrentIslandState?.RunRecord;
+        var islandState = mainState?.CurrentIslandState;
+        var runRecord = islandState?.RunRecord;
 
         float contentWidth = PanelWidth - PanelPadding * 2;
 
@@ -101,7 +102,7 @@ public class TutorialRenderer : IGameRenderer
         foreach (var task in _step.PrimaryTasks)
         {
             y += _taskFont.Size;
-            bool done = task.IsCompleted(gameRecord, runRecord);
+            bool done = task.IsCompleted(gameRecord, runRecord, islandState);
             canvas.DrawText(done ? "✓" : "☐", x, y, _taskFont, done ? donePaint : pendingPaint);
             canvas.DrawText(_localization.Get(task.NameKey), x + TaskMarkerW, y, _taskFont, done ? donePaint : pendingPaint);
             y += 2f;
@@ -117,7 +118,7 @@ public class TutorialRenderer : IGameRenderer
             foreach (var task in _step.SecondaryTasks)
             {
                 y += _taskFont.Size;
-                bool done = task.IsCompleted(gameRecord, runRecord);
+                bool done = task.IsCompleted(gameRecord, runRecord, islandState);
                 canvas.DrawText(done ? "✓" : "☐", x, y, _taskFont, done ? secondaryDonePaint : secondaryPendingPaint);
                 canvas.DrawText(_localization.Get(task.NameKey), x + TaskMarkerW, y, _taskFont, done ? secondaryDonePaint : secondaryPendingPaint);
                 y += 2f;

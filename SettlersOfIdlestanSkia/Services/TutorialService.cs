@@ -38,9 +38,10 @@ public class TutorialService
 
         var step = steps[index];
         var gameRecord = state.GameRecord;
-        var runRecord = state.CurrentIslandState?.RunRecord;
+        var islandState = state.CurrentIslandState;
+        var runRecord = islandState?.RunRecord;
 
-        if (step.PrimaryTasks.All(t => t.IsCompleted(gameRecord, runRecord)))
+        if (step.PrimaryTasks.All(t => t.IsCompleted(gameRecord, runRecord, islandState)))
         {
             state.TutorialStepIndex = index + 1;
             RefreshStep(state);

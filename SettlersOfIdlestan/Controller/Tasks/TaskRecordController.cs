@@ -228,7 +228,7 @@ public class TaskRecordController
         {
             string key = task.Id.ToString();
             if (_gameRecord.CompletedTasks.Contains(key)) continue;
-            if (task.IsCompleted(_gameRecord, _runRecord))
+            if (task.IsCompleted(_gameRecord, _runRecord, _islandState))
             {
                 _gameRecord.CompletedTasks.Add(key);
                 OnTaskCompleted?.Invoke(this, task.Id);
