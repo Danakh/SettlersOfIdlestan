@@ -70,7 +70,6 @@ public static class TutorialStepDefinitions
             },
             secondaryTasks: new[]
             {
-                Task(TutorialTaskId.Build5Libraries),
                 Task(TutorialTaskId.Build5Palisades),
             }
         ),
@@ -109,7 +108,10 @@ public static class TutorialStepDefinitions
             {
                 Task(TutorialTaskId.BuildImperialPort),
             },
-            secondaryTasks: System.Array.Empty<TutorialTask>()
+            secondaryTasks: new[]
+            {
+                Task(TutorialTaskId.Build5Libraries),
+            }
         ),
 
         new TutorialStep(
@@ -119,7 +121,10 @@ public static class TutorialStepDefinitions
             {
                 Task(TutorialTaskId.PerformPrestige),
             },
-            secondaryTasks: System.Array.Empty<TutorialTask>()
+            secondaryTasks: new[]
+            {
+                Task(TutorialTaskId.Reach30VictoryPoints),
+            }
         ),
     };
 }

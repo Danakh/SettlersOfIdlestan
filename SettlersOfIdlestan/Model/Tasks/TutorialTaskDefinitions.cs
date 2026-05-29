@@ -24,6 +24,15 @@ public static class TutorialTaskDefinitions
 
     private static int LiveMax(int recorded, int? live) => Math.Max(recorded, live ?? 0);
 
+    private static int ComputeVictoryPoints(IslandState? island)
+        => island?.PlayerCivilization.Cities.SelectMany(c => c.Buildings).Sum(b => b.Type switch
+        {
+            BuildingType.Temple   => 1,
+            BuildingType.Library  => 1,
+            BuildingType.TownHall => b.Level > 2 ? 2 : 1,
+            _                     => 0,
+        }) ?? 0;
+
     public static readonly IReadOnlyList<TutorialTask> All = new[]
     {
         new TutorialTask(TutorialTaskId.Harvest5Wood,
@@ -143,5 +152,10 @@ public static class TutorialTaskDefinitions
         new TutorialTask(TutorialTaskId.PerformPrestige,
             "task_perform_prestige_name", "task_perform_prestige_desc",
             (g, _, _) => g.TotalPrestigesPerformed >= 1),
+
+        new TutorialTask(TutorialTaskId.Reach30VictoryPoints,
+            "task_reach_30_victory_points_name", "task_reach_30_victory_points_desc",
+            (g, _, island) => g.TotalPrestigesPerformed >= 1 || ComputeVictoryPoints(island) >= 30,
+            (g, _, island) => (g.TotalPrestigesPerformed >= 1 ? 30 : ComputeVictoryPoints(island), 30)),
     };
 }
