@@ -9,7 +9,7 @@ public class Watchtower : Building
         AvailableAtLevel = 1;
     }
 
-    public override int GetDefaultMaxLevel() => 1;
+    public override int GetDefaultMaxLevel() => 0;
 
     public override ResourceSet GetBuildCost() => new ResourceSet
     {
