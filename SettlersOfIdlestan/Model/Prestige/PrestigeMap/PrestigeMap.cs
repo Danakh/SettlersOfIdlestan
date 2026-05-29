@@ -33,8 +33,10 @@ public class PrestigeMap
     public static readonly Vertex ArtisansGuildVertex    = Vertex.Create(new(-1, 2), new(0, 1), new(0, 2));
     public static readonly Vertex MilitaryStrategyVertex  = Vertex.Create(new(1, 0), new(1, -1), new(2, -1));
     public static readonly Vertex KnowledgeMasteryVertex  = Vertex.Create(new(1, 1), new(0,  2), new(1,  2));
-    public static readonly Vertex MaritimeRoutesVertex       = Vertex.Create(new(0, 0), new(-1, 0), new(0, -1));
-    public static readonly Vertex TraderGuildVertex          = Vertex.Create(new(0, 0), new(-1, 0), new(-1, 1));   
+    public static readonly Vertex WatchtowerVertex           = Vertex.Create(new(0, 0), new(-1, 0), new(-1, 1));
+    public static readonly Vertex MaritimeRoutesVertex       = Vertex.Create(new(-1, 0), new(-1, 1), new(-2, 1));
+    public static readonly Vertex TraderGuildVertex          = Vertex.Create(new(-1, 1), new(-1, 2), new(-2, 2));
+    public static readonly Vertex WarehouseNewCitiesVertex   = Vertex.Create(new(0, 0), new(-1, 0), new(0, -1));
 
     public IReadOnlyList<PrestigeVertex> Vertices { get; }
     public IReadOnlyList<PrestigeHex> Hexes { get; }
@@ -78,6 +80,12 @@ public class PrestigeMap
                 }
             ),
             new(
+                WatchtowerVertex,
+                "prestige_vertex_watchtower",
+                cost: Cost(WatchtowerVertex),
+                modifiers: new Modifier[] { new(ECategory.BUILDING_MAX_LEVEL, "Watchtower", EType.ADDITIVE, 1) }
+            ),
+            new(
                 MaritimeRoutesVertex,
                 "prestige_vertex_maritime_routes",
                 cost: Cost(MaritimeRoutesVertex),
@@ -88,6 +96,12 @@ public class PrestigeMap
                 "prestige_vertex_traders_guild",
                 cost: Cost(TraderGuildVertex),
                 modifiers: new Modifier[] { new(ECategory.BUILDING_MAX_LEVEL, "TraderGuild", EType.ADDITIVE, 1) }
+            ),
+            new(
+                WarehouseNewCitiesVertex,
+                "prestige_vertex_warehouse_new_cities",
+                cost: Cost(WarehouseNewCitiesVertex),
+                modifiers: new Modifier[] { new(ECategory.NEW_CITY_BUILDING, "Warehouse", EType.ADDITIVE, 1) }
             ),
             new(
                 LaboratoryVertex,

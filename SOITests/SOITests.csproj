@@ -17,6 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
     <Folder Include="SkiaTests\" />
   </ItemGroup>
 

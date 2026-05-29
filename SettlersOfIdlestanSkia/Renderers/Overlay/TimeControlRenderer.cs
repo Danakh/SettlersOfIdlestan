@@ -105,11 +105,11 @@ public class TimeControlRenderer : IDisposable
         SKPaint pauseBg = _inactivePaint;
         if (speed == 0)
         {
-            float t = (MathF.Sin(context.TotalTime * MathF.PI * 2f) + 1f) * 0.5f;
+            float t = (float)(Math.Sin(Environment.TickCount64 / 500.0) * 0.5 + 0.5);
             _pauseFlickerPaint.Color = new SKColor(
-                (byte)(60 + (120 - 60) * t),
-                (byte)(140 + (180 - 140) * t),
-                (byte)(220 + (255 - 220) * t));
+                (byte)(35 + (160 - 35) * t),
+                (byte)(35 + (100 - 35) * t),
+                (byte)MathF.Round(50 - 40 * t));
             pauseBg = _pauseFlickerPaint;
         }
         DrawButton(canvas, _pauseRect, "||", speed == 0, pauseBg);

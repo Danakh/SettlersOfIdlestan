@@ -201,6 +201,20 @@ namespace SettlersOfIdlestan.Controller.Expand
             return (0, cost);
         }
 
+        public double GetResearchPointsPerSecond()
+        {
+            if (_state == null) return 0.0;
+            double total = 0.0;
+            foreach (var city in _state.PlayerCivilization.Cities)
+            {
+                var library = city.Buildings.OfType<Library>().FirstOrDefault();
+                if (library == null || !library.CanProduceResearch) continue;
+                long cooldown = library.GetResearchCooldownTicks();
+                total += 100.0 / cooldown;
+            }
+            return total;
+        }
+
         public bool IsResearchUnlocked()
             => _prestigeState?.PurchasedVertices.Contains(PrestigeMap.CentralVertex) == true;
 
@@ -216,6 +230,31 @@ namespace SettlersOfIdlestan.Controller.Expand
             if (!hasRequirement) return true;
             return _state?.PlayerCivilization.ModifierAggregator.HasModifier(
                 Modifier.ECategory.UNLOCK_RESEARCH, techKey) == true;
+        }
+
+        public bool ShouldDisplay(TechnologyId id)
+        {
+            if (Tree == null) return false;
+            var tree = Tree;
+
+            if (tree.CompletedTechnologies.Contains(id)) return true;
+            if (tree.ActiveResearch == id) return true;
+            if (!IsPrestigeRequirementMet(id)) return false;
+
+            var tech = TechnologyDefinitions.Get(id);
+            if (tech == null) return false;
+
+            if (ArePrerequisitesMet(tree, tech)) return true;
+
+            // Visible si tous les prérequis manquants sont eux-mêmes faisables (Available ou InProgress)
+            foreach (var prereqId in tech.Prerequisites)
+            {
+                if (tree.CompletedTechnologies.Contains(prereqId)) continue;
+                var prereqStatus = GetStatus(prereqId);
+                if (prereqStatus != TechnologyStatus.Available && prereqStatus != TechnologyStatus.InProgress)
+                    return false;
+            }
+            return true;
         }
 
         private int GetEffectiveCost(Technology tech)

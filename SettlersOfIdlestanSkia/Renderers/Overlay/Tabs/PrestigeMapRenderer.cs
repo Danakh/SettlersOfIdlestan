@@ -7,6 +7,7 @@ using SettlersOfIdlestan.Model.Prestige;
 using SettlersOfIdlestan.Model.Prestige.PrestigeMap;
 using SettlersOfIdlestan.Services.Localization;
 using SettlersOfIdlestanSkia.Core;
+using SettlersOfIdlestanSkia.Renderers.Debug;
 using SettlersOfIdlestanSkia.Services;
 using SkiaSharp;
 using System;
@@ -126,7 +127,8 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         _visibleVertices.Clear();
         foreach (var v in map.Vertices)
         {
-            if (v.Coord.Equals(PrestigeMap.CentralVertex)
+            if (DebugOverlayRenderer.DebugMode
+                || v.Coord.Equals(PrestigeMap.CentralVertex)
                 || map.GetNeighbors(v.Coord).Any(n => state.PurchasedVertices.Contains(n.Coord)))
                 _visibleVertices.Add(v.Coord);
         }
@@ -134,7 +136,8 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         _visibleHexes.Clear();
         foreach (var hex in map.Hexes)
         {
-            if (hex.AdjacentVertices.Any(v => _visibleVertices.Contains(v)))
+            if (DebugOverlayRenderer.DebugMode
+                || hex.AdjacentVertices.Any(v => state.PurchasedVertices.Contains(v)))
                 _visibleHexes.Add(hex.Coord);
         }
     }
@@ -347,7 +350,6 @@ public sealed class PrestigeMapRenderer : IGameRenderer
 
         int adjCount = hex.AdjacentVertices.Count(v => state.PurchasedVertices.Contains(v));
         lines.Add("");
-        lines.Add($"{_localization.Get("prestige_tooltip_active_vertices")}: {adjCount}/{hex.AdjacentVertices.Count}");
 
         if (adjCount > 0)
         {
@@ -361,13 +363,15 @@ public sealed class PrestigeMapRenderer : IGameRenderer
                         or Modifier.ECategory.UNIT_PRODUCTION_SPEED
                         or Modifier.ECategory.RESEARCH_COST_REDUCTION;
                     bool isFloat = mod.Category is Modifier.ECategory.TRADE_GOLD_PACKAGES;
-                    string val = isPct ? $"+{(int)(total * 100)}%" : isFloat ? $"{total:0.##}" : $"+{(int)total}";
-                    lines.Add($"{_localization.Get("prestige_tooltip_current_bonus")}: {FormatModifier(mod)} × {adjCount} = {val}");
+                    string totalStr = isPct ? $"+{(int)(total * 100)}%" : isFloat ? $"{total:0.##}" : $"+{(int)total}";
+                    lines.Add($"{_localization.Get("prestige_tooltip_current_bonus")}: {totalStr}");
+                    lines.Add($"({FormatModifier(mod)} × {adjCount})");
                 }
             }
             else if (hex.StartingResourceBonusPerVertex > 0)
             {
                 lines.Add($"{_localization.Get("prestige_tooltip_current_bonus")}: +{hex.StartingResourceBonusPerVertex * adjCount}");
+                lines.Add($"(+{hex.StartingResourceBonusPerVertex} × {adjCount})");
             }
         }
 

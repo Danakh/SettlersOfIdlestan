@@ -3,6 +3,7 @@ using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Services.Localization;
 using SettlersOfIdlestanSkia.Core;
+using SettlersOfIdlestanSkia.Renderers.Debug;
 using SettlersOfIdlestanSkia.Renderers.Overlay;
 using SettlersOfIdlestanSkia.Services;
 using SkiaSharp;
@@ -159,16 +160,21 @@ public sealed class ResearchRenderer : IGameRenderer
         // Research points
         if (_gameControllerService.PlayerCivilization != null)
         {
-            string rpLabel = $"{_localization.Get("research_points_label")}: {ctrl.ResearchPoints}";
+            double rps = ctrl.GetResearchPointsPerSecond();
+            string rpLabel = rps > 0
+                ? $"{_localization.Get("research_points_label")}: {ctrl.ResearchPoints} (+{rps.ToString("0.##")}/s)"
+                : $"{_localization.Get("research_points_label")}: {ctrl.ResearchPoints}";
             canvas.DrawText(rpLabel, PanelPadding, TopOffset + 24f, _nameFont, _textPaint);
         }
 
         // Lines between nodes
         foreach (var tech in TechnologyDefinitions.All)
         {
+            if (!DebugOverlayRenderer.DebugMode && !ctrl.ShouldDisplay(tech.Id)) continue;
             if (!_nodeRects.TryGetValue(tech.Id, out var childRect)) continue;
             foreach (var prereqId in tech.Prerequisites)
             {
+                if (!DebugOverlayRenderer.DebugMode && !ctrl.ShouldDisplay(prereqId)) continue;
                 if (!_nodeRects.TryGetValue(prereqId, out var prereqRect)) continue;
                 bool prereqDone = ctrl.GetStatus(prereqId) == TechnologyStatus.Completed;
                 bool childDone = ctrl.GetStatus(tech.Id) != TechnologyStatus.Inactive;
@@ -180,6 +186,7 @@ public sealed class ResearchRenderer : IGameRenderer
         // Nodes
         foreach (var tech in TechnologyDefinitions.All)
         {
+            if (!DebugOverlayRenderer.DebugMode && !ctrl.ShouldDisplay(tech.Id)) continue;
             if (!_nodeRects.TryGetValue(tech.Id, out var rect)) continue;
             var status = ctrl.GetStatus(tech.Id);
             DrawNode(canvas, tech, rect, status, ctrl);
@@ -261,8 +268,10 @@ public sealed class ResearchRenderer : IGameRenderer
         if (!IsActive) { _hoveredTechId = null; return; }
         _lastPointerPosition = e.Position;
         _hoveredTechId = null;
+        var hoverCtrl = _gameControllerService.MainGameController.ResearchController;
         foreach (var (techId, rect) in _nodeRects)
         {
+            if (!DebugOverlayRenderer.DebugMode && !hoverCtrl.ShouldDisplay(techId)) continue;
             if (rect.Contains(e.Position.X, e.Position.Y))
             {
                 _hoveredTechId = techId;
@@ -278,6 +287,7 @@ public sealed class ResearchRenderer : IGameRenderer
         var ctrl = _gameControllerService.MainGameController.ResearchController;
         foreach (var (techId, rect) in _nodeRects)
         {
+            if (!DebugOverlayRenderer.DebugMode && !ctrl.ShouldDisplay(techId)) continue;
             if (!rect.Contains(e.Position.X, e.Position.Y)) continue;
 
             var status = ctrl.GetStatus(techId);
