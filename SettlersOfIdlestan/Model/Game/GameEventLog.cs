@@ -9,6 +9,7 @@ public enum GameEventType
     BanditHideoutDiscovered,
     BanditHideoutDestroyed,
     CivilizationDiscovered,
+    SoldierStarved,
 }
 
 public record GameLogEntry(GameEventType Type);

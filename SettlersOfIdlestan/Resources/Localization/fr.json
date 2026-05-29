@@ -306,6 +306,8 @@
   "hex_tooltip_contested": "⚔ Territoire disputé — aucune production",
   "event_civilization_discovered_title": "🏛 Civilisation rencontrée !",
   "event_civilization_discovered_body": "Une nouvelle civilisation a été aperçue dans votre voisinage.",
+  "event_soldier_starved_title": "☠ Soldats morts de faim !",
+  "event_soldier_starved_body": "Des soldats sont morts faute de nourriture. Augmentez vos stocks de nourriture.",
   "tech_research_efficiency_name": "Méthodes de recherche",
   "tech_research_efficiency_desc": "+10% vitesse de recherche",
   "tech_improved_research_name": "Recherche avancée",
