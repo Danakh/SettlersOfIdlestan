@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using SettlersOfIdlestan.Controller.Expand;
 using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Controller.Military;
 using SettlersOfIdlestan.Model.Bandits;
+using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.IslandMap;
@@ -107,6 +109,17 @@ public class TaskRecordController
         CheckTaskCompletions();
     }
 
+    private static readonly HashSet<BuildingType> _productionBuildings = new()
+    {
+        BuildingType.Sawmill,
+        BuildingType.Brickworks,
+        BuildingType.Mill,
+        BuildingType.Quarry,
+        BuildingType.Mine,
+        BuildingType.Seaport,
+        BuildingType.GlassWorks,
+    };
+
     private void HandleBuildingBuilt(object? sender, BuildingBuiltEventArgs e)
     {
         if (_gameRecord == null || _runRecord == null) return;
@@ -124,6 +137,25 @@ public class TaskRecordController
         {
             _gameRecord.TotalBuildingsUpgraded++;
             _runRecord.BuildingsUpgraded++;
+
+            if (e.Level == 2 && _productionBuildings.Contains(e.BuildingType))
+                _gameRecord.ProductionBuildingsReachedLevel2++;
+
+            if (!_gameRecord.HasSeaportAndTownHallLevel4SameCity
+                && e.Level == 4
+                && (e.BuildingType == BuildingType.Seaport || e.BuildingType == BuildingType.TownHall)
+                && _islandState != null)
+            {
+                var city = _islandState.PlayerCivilization.Cities
+                    .FirstOrDefault(c => c.Position.Equals(e.CityPosition));
+                if (city != null)
+                {
+                    bool hasSeaport4 = city.Buildings.Any(b => b.Type == BuildingType.Seaport && b.Level >= 4);
+                    bool hasTownHall4 = city.Buildings.Any(b => b.Type == BuildingType.TownHall && b.Level >= 4);
+                    if (hasSeaport4 && hasTownHall4)
+                        _gameRecord.HasSeaportAndTownHallLevel4SameCity = true;
+                }
+            }
         }
 
         CheckTaskCompletions();

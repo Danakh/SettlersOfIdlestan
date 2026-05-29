@@ -8,4 +8,11 @@ public enum TutorialTaskId
     BuildSawmill,
     BuildBrickworks,
     BuildFirstRoad,
+    BuildSecondCity,
+    UpgradeProductionBuildingsLevel2,
+    Build10Cities,
+    Build5Libraries,
+    SeaportAndTownHallLevel4SameCity,
+    BuildImperialPort,
+    PerformPrestige,
 }
