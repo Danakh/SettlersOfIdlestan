@@ -70,6 +70,15 @@ public class CityBuildingService
         }
     }
 
+    public void ToggleBuildingActivation(BuildingType buildingType)
+    {
+        var building = SelectedCity?.Buildings.FirstOrDefault(b => b.Type == buildingType);
+        if (building == null || building.ActivationStatus == ActivationStatus.NON_ACTIVABLE) return;
+        building.ActivationStatus = building.ActivationStatus == ActivationStatus.ACTIVE
+            ? ActivationStatus.INACTIVE
+            : ActivationStatus.ACTIVE;
+    }
+
     public bool CanBuildOrUpgrade(Building building)
     {
         if (SelectedCity == null)

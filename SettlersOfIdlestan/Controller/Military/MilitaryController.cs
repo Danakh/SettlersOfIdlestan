@@ -59,7 +59,7 @@ public class MilitaryController
     public const long CombatIntervalTicks = 100L;
 
     /// <summary>Niveau de Caserne à partir duquel la production de soldats est active.</summary>
-    public const int SoldierProductionMinLevel = 2;
+    public const int SoldierProductionMinLevel = 1;
 
     /// <summary>Capacité maximale de soldats dans une Caserne.</summary>
     public const int MaxSoldiers = 10;
@@ -158,12 +158,17 @@ public class MilitaryController
         foreach (var civ in _state.Civilizations)
             foreach (var city in civ.Cities)
                 foreach (var barracks in city.Buildings.OfType<Barracks>())
-                    if (barracks.Level >= SoldierProductionMinLevel && barracks.Soldiers < MaxSoldiers)
-                        if (currentTick - barracks.LastSoldierProductionTick >= SoldierProductionIntervalTicks)
-                        {
-                            barracks.Soldiers++;
-                            barracks.LastSoldierProductionTick = currentTick;
-                        }
+                {
+                    if (barracks.ActivationStatus != ActivationStatus.ACTIVE) continue;
+                    if (barracks.Level < SoldierProductionMinLevel) continue;
+                    if (barracks.Soldiers >= MaxSoldiers) continue;
+                    if (currentTick - barracks.LastSoldierProductionTick < SoldierProductionIntervalTicks) continue;
+                    if (civ.GetResourceQuantity(Resource.Ore) < 1) continue;
+
+                    civ.RemoveResource(Resource.Ore, 1);
+                    barracks.Soldiers++;
+                    barracks.LastSoldierProductionTick = currentTick;
+                }
     }
 
     // ── Consommation de nourriture ───────────────────────────────────────────

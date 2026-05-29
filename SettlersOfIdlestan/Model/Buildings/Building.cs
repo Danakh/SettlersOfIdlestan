@@ -5,6 +5,20 @@ using System.Text.Json.Serialization;
 namespace SettlersOfIdlestan.Model.Buildings;
 
 /// <summary>
+/// Activation state of a building. Serialized as a string enum.
+/// </summary>
+[JsonConverter(typeof(JsonStringEnumConverter))]
+public enum ActivationStatus
+{
+    /// <summary>Ce bâtiment ne peut pas être activé/désactivé.</summary>
+    NON_ACTIVABLE,
+    /// <summary>Le bâtiment est désactivé (production suspendue).</summary>
+    INACTIVE,
+    /// <summary>Le bâtiment est actif.</summary>
+    ACTIVE,
+}
+
+/// <summary>
 /// Represents the type of a building.
 /// </summary>
 [JsonConverter(typeof(JsonStringEnumConverter))]
@@ -198,6 +212,12 @@ public class Building
     /// Override to true in any building that contributes automation rows.
     /// </summary>
     public virtual bool ProvidesAutomation => false;
+
+    /// <summary>
+    /// Gets or sets the activation state of the building.
+    /// NON_ACTIVABLE buildings cannot be toggled; INACTIVE/ACTIVE buildings can.
+    /// </summary>
+    public ActivationStatus ActivationStatus { get; set; } = ActivationStatus.NON_ACTIVABLE;
 
     /// <summary>
     /// Gets or sets the city level at which the building becomes available.
