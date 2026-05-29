@@ -82,6 +82,9 @@ public class MilitaryController
     /// <summary>Intervalle minimum entre deux envois de renforts depuis la même ville.</summary>
     public const long ReinforcementIntervalTicks = 100L;
 
+    /// <summary>Intervalle entre deux cycles de consommation de nourriture par les soldats (1 000 ticks = 10 s).</summary>
+    public const long SoldierFeedIntervalTicks = 1_000L;
+
     /// <summary>Distance effective en edges, après application des modificateurs de civilisation.</summary>
     public int CityAttackRange(Civilization civ)
         => civ.ModifierAggregator.ApplyModifiers(ECategory.CITY_ATTACK_RANGE, "", DefaultCityAttackRange);
@@ -138,6 +141,7 @@ public class MilitaryController
     {
         if (_state == null) return;
         ProduceSoldiers(currentTick);
+        ResolveSoldierFeeding(currentTick);
         ResolveBanditCombat(currentTick);
         ResolveHideoutCombat(currentTick);
         ResolveDefenseRegen(currentTick);
@@ -165,6 +169,47 @@ public class MilitaryController
                     barracks.Soldiers++;
                     barracks.LastSoldierProductionTick = currentTick;
                 }
+    }
+
+    // ── Consommation de nourriture ───────────────────────────────────────────
+
+    private void ResolveSoldierFeeding(long currentTick)
+    {
+        if (_state == null) return;
+        if (currentTick - _state.LastSoldierFeedTick < SoldierFeedIntervalTicks) return;
+        _state.LastSoldierFeedTick = currentTick;
+
+        foreach (var civ in _state.Civilizations)
+        {
+            int totalSoldiers = civ.Cities.Sum(city => GetAttackScore(city));
+            if (totalSoldiers == 0) continue;
+
+            int availableFood = civ.GetResourceQuantity(Resource.Food);
+            int fedSoldiers = Math.Min(totalSoldiers, availableFood);
+            int starvedSoldiers = totalSoldiers - fedSoldiers;
+
+            if (fedSoldiers > 0)
+                civ.RemoveResource(Resource.Food, fedSoldiers);
+
+            if (starvedSoldiers > 0)
+            {
+                int toKill = starvedSoldiers;
+                foreach (var city in civ.Cities)
+                {
+                    foreach (var barracks in city.Buildings.OfType<Barracks>().OrderByDescending(b => b.Soldiers))
+                    {
+                        if (toKill <= 0) break;
+                        int kill = Math.Min(toKill, barracks.Soldiers);
+                        barracks.Soldiers -= kill;
+                        toKill -= kill;
+                    }
+                    if (toKill <= 0) break;
+                }
+
+                if (civ.Index == _state.PlayerCivilization.Index)
+                    _state.EventLog.Add(GameEventType.SoldierStarved);
+            }
+        }
     }
 
     // ── Combat — bandits ─────────────────────────────────────────────────────

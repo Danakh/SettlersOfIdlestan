@@ -151,6 +151,11 @@ public class IslandState : IJsonOnDeserialized
     /// </summary>
     public AutomationSettings AutomationSettings { get; set; } = new();
 
+    /// <summary>
+    /// Tick du dernier cycle de nourrissage des soldats (toutes civilisations, global).
+    /// </summary>
+    public long LastSoldierFeedTick { get; set; } = 0;
+
     public IEnumerable<City> GetAllCities()
     {
         return Civilizations.SelectMany(c => c.Cities);
