@@ -36,6 +36,7 @@ namespace SettlersOfIdlestan.Controller.Island
         public const long AutoRoadBuildCooldownTicks = 500L;
 
         public event EventHandler<RoadAutoBuiltEventArgs>? OnAutoRoadBuilt;
+        public event EventHandler<RoadAutoBuiltEventArgs>? OnRoadBuilt;
 
         internal RoadController(IslandState? state = null)
         {
@@ -248,6 +249,8 @@ namespace SettlersOfIdlestan.Controller.Island
             ComputeRoadDistancesForCivilization(civ);
             _buildableRoadsCache.Clear();
             _state.RecalculateVisibleIslandMap(civilizationIndex);
+
+            OnRoadBuilt?.Invoke(this, new RoadAutoBuiltEventArgs(civilizationIndex, edge));
             return road;
         }
 

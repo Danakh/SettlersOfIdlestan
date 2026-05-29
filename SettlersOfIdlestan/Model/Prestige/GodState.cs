@@ -1,21 +1,27 @@
 using System;
+using SettlersOfIdlestan.Model.Tasks;
 
 namespace SettlersOfIdlestan.Model.Prestige
 {
     /// <summary>
-    /// Représente l'état du 'Dieu' qui contient l'état de prestige.
-    /// Sérialisable pour la persistance ou le transport.
+    /// Reprï¿½sente l'ï¿½tat du 'Dieu' qui contient l'ï¿½tat de prestige.
+    /// Sï¿½rialisable pour la persistance ou le transport.
     /// </summary>
     [Serializable]
     public class GodState
     {
         /// <summary>
-        /// L'état de prestige associé au dieu.
+        /// L'ï¿½tat de prestige associï¿½ au dieu.
         /// </summary>
         public PrestigeState? PrestigeState { get; set; }
 
         /// <summary>
-        /// Constructeur parameterless requis par certains sérialiseurs.
+        /// Statistiques cumulatives all-time (achievements, tÃ¢ches tutoriel).
+        /// </summary>
+        public GameRecord GameRecord { get; set; } = new();
+
+        /// <summary>
+        /// Constructeur parameterless requis par certains sï¿½rialiseurs.
         /// </summary>
         public GodState() { }
 

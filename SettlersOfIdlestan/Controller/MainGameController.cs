@@ -1,6 +1,7 @@
 using SettlersOfIdlestan.Controller.Expand;
 using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Controller.Military;
+using SettlersOfIdlestan.Controller.Tasks;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.GameplayModifier;
@@ -35,6 +36,7 @@ namespace SettlersOfIdlestan.Controller
         public SettlersOfIdlestan.Model.Game.MainGameState? CurrentMainState { get; private set; }
         private PrestigeModifierProvider? _prestigeModifierProvider;
         public AtlasController AtlasController { get; private set; }
+        public TaskRecordController TaskRecordController { get; private set; }
 
         /// <summary>
         /// Gets the player's civilization (always at index 0).
@@ -58,6 +60,7 @@ namespace SettlersOfIdlestan.Controller
             BanditController = new BanditController();
             MilitaryController = new MilitaryController();
             WonderController = new WonderController();
+            TaskRecordController = new TaskRecordController();
         }
 
         /// <summary>
@@ -133,6 +136,7 @@ namespace SettlersOfIdlestan.Controller
 
             var nextIslandId = AtlasController.GetNextIslandID(CurrentMainState);
             var parameters = AtlasController.GetIslandParameters(nextIslandId);
+            TaskRecordController.RecordPrestige();
             PrestigeController.PerformPrestige(CurrentMainState, parameters);
             InitializeControllersForCurrentIsland();
             PrestigeMapController.ApplyPrestigeToNewGame(CurrentMainState.CurrentIslandState!, CurrentMainState.PrestigeState);
@@ -202,6 +206,10 @@ namespace SettlersOfIdlestan.Controller
                 ResearchController.Initialize(islandState, Clock, CurrentMainState?.PrestigeState);
                 prestigeState?.TechnologyTree.RebuildModifiers();
 
+                var gameRecord = CurrentMainState!.GodState.GameRecord;
+                TaskRecordController.Initialize(gameRecord, islandState.RunRecord, islandState,
+                    BuildingController, RoadController, CityBuilderController,
+                    PrestigeMapController, ResearchController, MilitaryController);
             }
         }
 

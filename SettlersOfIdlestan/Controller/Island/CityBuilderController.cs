@@ -37,6 +37,7 @@ namespace SettlersOfIdlestan.Controller.Island
         public const long AutoOutpostBuildCooldownTicks = 1000L;
 
         public event EventHandler<OutpostAutoBuiltEventArgs>? OnAutoOutpostBuilt;
+        public event EventHandler<OutpostAutoBuiltEventArgs>? OnCityBuilt;
 
         internal CityBuilderController(IslandState? state = null)
         {
@@ -194,6 +195,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 }
             }
 
+            OnCityBuilt?.Invoke(this, new OutpostAutoBuiltEventArgs(civilizationIndex, vertex));
             return city;
         }
 
