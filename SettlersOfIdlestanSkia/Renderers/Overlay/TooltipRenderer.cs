@@ -172,9 +172,17 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay
 
             if (!harvestBlockedByFeature && autoResources.Count > 0)
             {
-                islandState.AutomaticHarvestLastTimesByCivilization.TryGetValue(playerIdx, out var autoTimes);
-                long autoCooldown = harvestController.GetEffectiveAutoHarvestCooldownTicks(playerIdx, coord);
-                lines.Add(FormatCooldownLine(_localizationService.Get("hex_tooltip_auto"), coord, autoTimes, currentTick, autoCooldown));
+                var autoInfo = harvestController.GetAutoHarvestInfoForHex(playerIdx, coord);
+                foreach (var (_, buildingType, lastTick, cooldown) in autoInfo)
+                {
+                    string buildingName = _localizationService.Get($"building_{buildingType.ToString().ToLower()}_name");
+                    string max = $"{cooldown / 100.0:0.0}s";
+                    long remaining = lastTick == 0 ? 0 : Math.Max(0L, cooldown - (currentTick - lastTick));
+                    string line = remaining <= 0
+                        ? $"{buildingName}: {_localizationService.Get("hex_tooltip_ready")} / {max}"
+                        : $"{buildingName}: {remaining / 100.0:F1}s / {max}";
+                    lines.Add(line);
+                }
             }
 
             _tooltipTexts = lines.ToArray();

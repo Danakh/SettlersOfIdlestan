@@ -36,12 +36,13 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
 
     private readonly Dictionary<HexCoord, SKPath> _hexPathCache = new();
 
-    // Dimensions de l'indicateur (outer edge ≈ 50 % du rayon de l'hex = 20 px)
     private const float DotRadius = 5f;
     private const float ManualRingRadius = 5f;
     private const float ManualRingStroke = 3f;
-    private const float AutoRingRadius = 8f;
-    private const float AutoRingStroke = 3f;
+    // Arc auto : centré au vertex de la ville, rayon juste supérieur à CityRadius (8 px)
+    private const float AutoArcBaseRadius = 10f;
+    private const float AutoArcGap = 5f;   // décalage entre deux arcs concentriques (mine + carrière)
+    private const float AutoArcStroke = 3f;
     private const float BanditRingRadius = 12f;
     private const float BanditRingStroke = 3f;
 
@@ -122,7 +123,6 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
                 {
                     var playerIdx = islandState.PlayerCivilization.Index;
                     islandState.HarvestLastTimesByCivilization.TryGetValue(playerIdx, out var manualTimes);
-                    islandState.AutomaticHarvestLastTimesByCivilization.TryGetValue(playerIdx, out var autoTimes);
 
                     var banditPositions = new HashSet<HexCoord>(islandState.Features.OfType<Bandit>().Select(b => b.Position));
                     var harvestBlockedPositions = new HashSet<HexCoord>(islandState.Features.Where(f => f.BlocksHarvest).Select(f => f.Position));
@@ -130,7 +130,7 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
                         .Where(f => f.ShouldRenderIcon && f.SvgIconResourceName != null)
                         .GroupBy(f => f.Position)
                         .ToDictionary(g => g.Key, g => (IEnumerable<IslandFeature>)g);
-                    DrawIslandMap(canvas, visibleMap, playerIdx, mainGameState.Clock.CurrentTick, manualTimes, autoTimes, islandState.BanditCooldownUntil, banditPositions, harvestBlockedPositions, featuresByPosition);
+                    DrawIslandMap(canvas, visibleMap, playerIdx, mainGameState.Clock.CurrentTick, manualTimes, islandState.BanditCooldownUntil, banditPositions, harvestBlockedPositions, featuresByPosition);
                 }
             }
         }
@@ -139,7 +139,6 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
     private void DrawIslandMap(SKCanvas canvas, IslandMap map, int playerIdx,
         long currentTick,
         Dictionary<HexCoord, long>? manualTimes,
-        Dictionary<HexCoord, long>? autoTimes,
         Dictionary<HexCoord, long>? banditCooldownUntil,
         HashSet<HexCoord>? banditPositions,
         HashSet<HexCoord>? harvestBlockedPositions,
@@ -148,7 +147,7 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
         foreach (var (coord, tile) in map.Tiles)
         {
             var (x, y) = AxialToIsland(coord.Q, coord.R);
-            DrawHexagonTile(canvas, coord, x, y, tile, playerIdx, currentTick, manualTimes, autoTimes, banditCooldownUntil, banditPositions, harvestBlockedPositions, featuresByPosition);
+            DrawHexagonTile(canvas, coord, x, y, tile, playerIdx, currentTick, manualTimes, banditCooldownUntil, banditPositions, harvestBlockedPositions, featuresByPosition);
         }
     }
 
@@ -171,7 +170,6 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
     private void DrawHexagonTile(SKCanvas canvas, HexCoord coord, float centerX, float centerY, HexTile tile,
         int playerIdx, long currentTick,
         Dictionary<HexCoord, long>? manualTimes,
-        Dictionary<HexCoord, long>? autoTimes,
         Dictionary<HexCoord, long>? banditCooldownUntil,
         HashSet<HexCoord>? banditPositions,
         HashSet<HexCoord>? harvestBlockedPositions,
@@ -195,7 +193,7 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
             foreach (var feature in features)
                 DrawFeatureMarker(canvas, centerX, centerY, feature);
 
-        DrawHarvestIndicator(canvas, centerX, centerY, tile, playerIdx, currentTick, manualTimes, autoTimes, banditCooldownUntil, banditPositions, harvestBlockedPositions);
+        DrawHarvestIndicator(canvas, centerX, centerY, tile, playerIdx, currentTick, manualTimes, banditCooldownUntil, banditPositions, harvestBlockedPositions);
 
         if (DebugOverlayRenderer.DebugMode && _textPaint != null && tile.Coord != null)
         {
@@ -226,13 +224,13 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
     }
 
     /// <summary>
-    /// Dessine l'indicateur de récolte au centre de l'hex :
-    /// camembert des ressources récoltables + anneau de cooldown manuel + anneau de cooldown automatique.
+    /// Dessine l'indicateur de récolte :
+    /// - Arcs de cooldown automatique dans le coin de l'hex pointant vers la ville (120°, un arc par bâtiment)
+    /// - Anneau de cooldown manuel + camembert des ressources au centre
     /// </summary>
     private void DrawHarvestIndicator(SKCanvas canvas, float cx, float cy, HexTile tile,
         int playerIdx, long currentTick,
         Dictionary<HexCoord, long>? manualTimes,
-        Dictionary<HexCoord, long>? autoTimes,
         Dictionary<HexCoord, long>? banditCooldownUntil,
         HashSet<HexCoord>? banditPositions,
         HashSet<HexCoord>? harvestBlockedPositions)
@@ -259,15 +257,20 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
         if (harvestBlockedPositions?.Contains(tile.Coord) == true)
             return;
 
-        var manualResources = _harvestController.GetManualHarvestableResources(playerIdx, tile.Coord);
-        var autoResources = _harvestController.GetAutomaticHarvestableResources(playerIdx, tile.Coord);
+        // Arcs de cooldown automatique au vertex de la ville (un arc par bâtiment).
+        // Le rayon s'incrémente uniquement pour plusieurs bâtiments de la MÊME ville sur le même hex.
+        var autoInfo = _harvestController.GetAutoHarvestInfoForHex(playerIdx, tile.Coord);
+        var arcIndexByVertex = new Dictionary<Vertex, int>();
+        foreach (var (cityVertex, _, lastTick, cooldown) in autoInfo)
+        {
+            arcIndexByVertex.TryGetValue(cityVertex, out int arcIdx);
+            arcIndexByVertex[cityVertex] = arcIdx + 1;
+            var vp = VertexToIsland(cityVertex);
+            float radius = AutoArcBaseRadius + arcIdx * AutoArcGap;
+            DrawAutoHarvestCornerArc(canvas, vp.X, vp.Y, cx, cy, radius, AutoArcStroke, lastTick, cooldown, currentTick);
+        }
 
-        if (autoResources.Count > 0)
-            DrawCooldownRing(canvas, cx, cy, AutoRingRadius, AutoRingStroke,
-                tile.Coord, currentTick, autoTimes,
-                _harvestController.GetEffectiveAutoHarvestCooldownTicks(playerIdx, tile.Coord),
-                new SKColor(60, 60, 60, 150),
-                new SKColor(255, 200, 60, 230));
+        var manualResources = _harvestController.GetManualHarvestableResources(playerIdx, tile.Coord);
 
         if (manualResources.Count > 0)
             DrawCooldownRing(canvas, cx, cy, ManualRingRadius, ManualRingStroke,
@@ -278,6 +281,34 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
 
         if (manualResources.Count > 0)
             DrawResourcePie(canvas, cx, cy, DotRadius, manualResources);
+    }
+
+    /// <summary>
+    /// Dessine un arc de 120° centré sur le vertex de la ville, représentant le cooldown de
+    /// récolte automatique d'un bâtiment. L'arc entoure la ville et pointe vers le centre du hex.
+    /// Plusieurs bâtiments sur le même hex (mine + carrière) donnent des arcs concentriques.
+    /// </summary>
+    private void DrawAutoHarvestCornerArc(SKCanvas canvas, float vx, float vy, float cx, float cy,
+        float radius, float strokeWidth, long lastTick, long cooldownTicks, long currentTick)
+    {
+        // L'arc balaie 120° centré sur la direction vertex → centre du hex (angle intérieur du coin)
+        double angleRad = Math.Atan2(cy - vy, cx - vx);
+        float angleDeg = (float)(angleRad * 180.0 / Math.PI);
+        float startAngle = angleDeg - 60f;
+
+        var rect = new SKRect(vx - radius, vy - radius, vx + radius, vy + radius);
+
+        _ringBgPaint!.Color = new SKColor(60, 60, 60, 150);
+        _ringBgPaint.StrokeWidth = strokeWidth;
+        canvas.DrawArc(rect, startAngle, 120f, false, _ringBgPaint);
+
+        float ratio = lastTick == 0 ? 1f : Math.Clamp((float)(currentTick - lastTick) / cooldownTicks, 0f, 1f);
+        if (ratio > 0f)
+        {
+            _ringProgressPaint!.Color = new SKColor(255, 200, 60, 230);
+            _ringProgressPaint.StrokeWidth = strokeWidth;
+            canvas.DrawArc(rect, startAngle, ratio * 120f, false, _ringProgressPaint);
+        }
     }
 
     private void DrawBanditCooldownRing(SKCanvas canvas, float cx, float cy, float ratio)
