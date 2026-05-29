@@ -67,7 +67,8 @@ public sealed class ResearchRenderer : IGameRenderer
     private readonly SKFont _tooltipFont = new() { Size = 10, Typeface = SkiaFonts.Regular };
 
     // Layout: column index → row index → TechnologyId
-    private static readonly Dictionary<TechnologyId, (int col, int row)> Layout = ComputeLayout();
+    private static readonly Dictionary<TechnologyId, (int col, int row)> Layout =
+        TechnologyDefinitions.All.ToDictionary(t => t.Id, t => (t.Tier, t.Line));
 
     public ResearchRenderer(GameControllerService gameControllerService, ILocalizationService localization, InputHandlingService inputService)
     {
@@ -126,56 +127,6 @@ public sealed class ResearchRenderer : IGameRenderer
             }
             _contentBounds = new SKRect(minX, minY, maxX, maxY);
         }
-    }
-
-    private static Dictionary<TechnologyId, (int col, int row)> ComputeLayout()
-    {
-        var layout = new Dictionary<TechnologyId, (int col, int row)>();
-
-        var byDepth = TechnologyDefinitions.All
-            .GroupBy(t => TechnologyDefinitions.GetDepth(t.Id))
-            .OrderBy(g => g.Key)
-            .ToList();
-
-        var rowAssigned = new Dictionary<TechnologyId, int>();
-
-        foreach (var group in byDepth)
-        {
-            int col = group.Key;
-            var techs = group.ToList();
-
-            var usedRows = new HashSet<int>();
-            int nextFreeRow = 0;
-
-            foreach (var tech in techs)
-            {
-                int preferredRow = -1;
-                if (tech.Prerequisites.Count > 0)
-                {
-                    var firstPrereq = tech.Prerequisites[0];
-                    if (rowAssigned.TryGetValue(firstPrereq, out var prereqRow))
-                        preferredRow = prereqRow;
-                }
-
-                int assignedRow;
-                if (preferredRow >= 0 && !usedRows.Contains(preferredRow))
-                {
-                    assignedRow = preferredRow;
-                }
-                else
-                {
-                    while (usedRows.Contains(nextFreeRow)) nextFreeRow++;
-                    assignedRow = nextFreeRow;
-                }
-
-                usedRows.Add(assignedRow);
-                rowAssigned[tech.Id] = assignedRow;
-                layout[tech.Id] = (col, assignedRow);
-                if (assignedRow == nextFreeRow) nextFreeRow++;
-            }
-        }
-
-        return layout;
     }
 
     public void Render(SKCanvas canvas, GameRenderContext context)

@@ -6,8 +6,9 @@ public enum TechnologyId
 {
     // Tier 0
     HarvestEfficiency,
-    Architecture,
     Artisanat,
+    Agriculture,
+    Architecture,
     MilitaryDiscipline,
     // Tier 1
     ImprovedHarvest,
@@ -15,6 +16,7 @@ public enum TechnologyId
     Erudition,
     Orpaillage,
     MilitaryTactics,
+    MilitaryBuildings,
     // Tier 2
     HarvestTools,
     AdvancedArchitecture,
@@ -63,6 +65,8 @@ public class Technology
     public int Cost { get; }
     public IReadOnlyList<TechnologyId> Prerequisites { get; }
     public IReadOnlyList<Modifier> Modifiers { get; }
+    public int Tier { get; }
+    public int Line { get; }
 
     public Technology(
         TechnologyId id,
@@ -70,7 +74,9 @@ public class Technology
         string descKey,
         int cost,
         IReadOnlyList<TechnologyId> prerequisites,
-        IReadOnlyList<Modifier> modifiers)
+        IReadOnlyList<Modifier> modifiers,
+        int tier,
+        int line)
     {
         Id = id;
         NameKey = nameKey;
@@ -78,5 +84,7 @@ public class Technology
         Cost = cost;
         Prerequisites = prerequisites;
         Modifiers = modifiers;
+        Tier = tier;
+        Line = line;
     }
 }

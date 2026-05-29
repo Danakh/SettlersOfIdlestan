@@ -89,11 +89,11 @@ public class Civilization
     [JsonIgnore]
     public double ResearchCostReduction => ModifierAggregator.ApplyModifiers(ECategory.RESEARCH_COST_REDUCTION, "", 0.0);
 
-    /// <summary>
-    /// Bonus de chance (en points %) de double récolte sur la Forge, cumulé depuis les technologies.
-    /// </summary>
-    [JsonIgnore]
-    public int ForgeDoubleProdBonus => ModifierAggregator.ApplyModifiers(ECategory.FORGE_DOUBLE_PROD_BONUS, "", 0);
+    public int GetHarvestProductionBonus(string buildingType) =>
+        ModifierAggregator.ApplyModifiers(ECategory.HARVEST_PRODUCTION_BONUS, buildingType, 0);
+
+    public int ForgeDoubleHarvestBonus =>
+        ModifierAggregator.ApplyModifiers(ECategory.FORGE_DOUBLE_HARVEST_BONUS, "", 0);
 
     /// <summary>
     /// Chance (en %) qu'une mine produise de l'or à la place d'un minerai lors d'une récolte automatique.
