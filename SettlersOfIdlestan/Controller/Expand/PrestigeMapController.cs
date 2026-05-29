@@ -38,6 +38,7 @@ public class PrestigeMapController
         var vertex = DefaultMap.GetVertex(vertexCoord)!;
         prestigeState.PrestigePoints -= vertex.Cost;
         prestigeState.PurchasedVertices.Add(vertexCoord);
+        DefaultMap.RaiseVertexPurchased(vertexCoord);
         return true;
     }
 

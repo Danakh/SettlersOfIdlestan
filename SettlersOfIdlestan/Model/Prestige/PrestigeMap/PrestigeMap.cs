@@ -41,6 +41,10 @@ public class PrestigeMap
     public IReadOnlyList<PrestigeVertex> Vertices { get; }
     public IReadOnlyList<PrestigeHex> Hexes { get; }
 
+    public event Action<Vertex>? VertexPurchased;
+
+    internal void RaiseVertexPurchased(Vertex vertex) => VertexPurchased?.Invoke(vertex);
+
     public PrestigeMap(IEnumerable<PrestigeVertex> vertices, IEnumerable<PrestigeHex> hexes)
     {
         Vertices = vertices.ToList();

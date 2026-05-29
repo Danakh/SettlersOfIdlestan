@@ -32,6 +32,7 @@ namespace SettlersOfIdlestan.Controller
         public GameClock? Clock { get; private set; }
         // Holds the currently loaded main game state when created or imported
         public SettlersOfIdlestan.Model.Game.MainGameState? CurrentMainState { get; private set; }
+        private PrestigeModifierProvider? _prestigeModifierProvider;
         public AtlasController AtlasController { get; private set; }
 
         /// <summary>
@@ -209,11 +210,12 @@ namespace SettlersOfIdlestan.Controller
             foreach (var civ in islandState.Civilizations)
                 civ.SetupModifierAggregator(civ.TechnologyTree, new UniqueBuildingsModifierProvider(civ));
 
-            var prestigeProvider = new PrestigeModifierProvider(prestigeState, PrestigeMapController.DefaultMap);
+            _prestigeModifierProvider?.Dispose();
+            _prestigeModifierProvider = new PrestigeModifierProvider(prestigeState, PrestigeMapController.DefaultMap);
             var playerCiv = islandState.PlayerCivilization;
             playerCiv.SetupModifierAggregator(
                 playerCiv.TechnologyTree,
-                prestigeProvider,
+                _prestigeModifierProvider,
                 new UniqueBuildingsModifierProvider(playerCiv));
         }
     }
