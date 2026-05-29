@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
+using SettlersOfIdlestan.Services.Localization;
 
 namespace SettlersOfIdlestan.Model.IslandFeatures;
 
@@ -8,6 +9,8 @@ public class Wonder : IslandFeature
 {
     public override bool BlocksHarvest => true;
     public override bool IsDiscoverable => false;
+
+    public override LocalizedEntry GetTooltipEntry() => new("hex_tooltip_wonder");
 
     public override GameEventType DiscoveredEventType => GameEventType.NoEvent;
     public override GameEventType RemovedEventType => GameEventType.NoEvent;

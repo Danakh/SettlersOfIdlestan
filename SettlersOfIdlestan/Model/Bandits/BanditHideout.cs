@@ -2,6 +2,7 @@ using System.Text.Json.Serialization;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandFeatures;
+using SettlersOfIdlestan.Services.Localization;
 
 namespace SettlersOfIdlestan.Model.Bandits;
 
@@ -19,6 +20,9 @@ public class BanditHideout : IslandFeature
     public override bool BlocksHarvest => true;
     public override GameEventType DiscoveredEventType => GameEventType.BanditHideoutDiscovered;
     public override GameEventType RemovedEventType    => GameEventType.BanditHideoutDestroyed;
+
+    public override LocalizedEntry? GetTooltipEntry() =>
+        Found ? new("hex_tooltip_bandit_hideout_info", [Hp, MaxHp]) : null;
 
     public BanditHideout(HexCoord position) : base(position) { }
 

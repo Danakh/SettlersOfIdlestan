@@ -1,6 +1,7 @@
 using SettlersOfIdlestan.Model.Bandits;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
+using SettlersOfIdlestan.Services.Localization;
 using System.Text.Json.Serialization;
 
 namespace SettlersOfIdlestan.Model.IslandFeatures;
@@ -41,6 +42,12 @@ public abstract class IslandFeature
 
     /// <summary>True si l'icône doit être dessinée dans l'état actuel de la feature.</summary>
     public virtual bool ShouldRenderIcon => Found;
+
+    /// <summary>
+    /// Entrée de tooltip que cette feature contribue quand elle est présente sur un hex,
+    /// ou null si elle n'a rien à afficher dans l'état actuel.
+    /// </summary>
+    public virtual LocalizedEntry? GetTooltipEntry() => null;
 
     protected IslandFeature(HexCoord position) => Position = position;
 

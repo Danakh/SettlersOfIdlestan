@@ -124,16 +124,15 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay
             var manualResources = harvestController.GetManualHarvestableResources(playerIdx, coord);
             var autoResources = harvestController.GetAutomaticHarvestableResources(playerIdx, coord);
 
-            bool banditPresent = islandState.Features.OfType<Bandit>().Any(b => b.Position.Equals(coord));
+            var featuresAtCoord = islandState.Features.Where(f => f.Position.Equals(coord)).ToList();
+            var featureTooltipEntries = featuresAtCoord.Select(f => f.GetTooltipEntry()).Where(e => e != null).ToList();
+            bool harvestBlockedByFeature = featuresAtCoord.Any(f => f.BlocksHarvest);
             bool banditCooldownActive = islandState.BanditCooldownUntil.TryGetValue(coord, out var banditUntil)
                 && currentTick < banditUntil;
-            bool hasTreasureTrove = islandState.Features.OfType<TreasureTrove>().Any(t => !t.Claimed && t.Position.Equals(coord));
-            bool hideoutPresent = islandState.Features.OfType<BanditHideout>().Any(h => h.Found && h.Position.Equals(coord));
-            bool wonderPresent = islandState.Features.OfType<Wonder>().Any(w => w.Found && w.Position.Equals(coord));
             bool isContested = islandState.PlayerCivilization.Cities.Any(city => city.Position.IsAdjacentTo(coord))
                 && islandState.Civilizations.Where(c => c.Index != playerIdx).Any(c => c.Cities.Any(city => city.Position.IsAdjacentTo(coord)));
 
-            if (manualResources.Count == 0 && autoResources.Count == 0 && !banditPresent && !banditCooldownActive && !hasTreasureTrove && !hideoutPresent && !wonderPresent && !isContested)
+            if (manualResources.Count == 0 && autoResources.Count == 0 && featureTooltipEntries.Count == 0 && !banditCooldownActive && !isContested)
             {
                 var tile = islandState.Map.GetTile(coord);
                 if (tile == null) return;
@@ -150,19 +149,8 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay
             if (isContested)
                 lines.Add(_localizationService.Get("hex_tooltip_contested"));
 
-            if (hideoutPresent)
-            {
-                var hideout = islandState.Features.OfType<BanditHideout>().First(h => h.Found && h.Position.Equals(coord));
-                lines.Add(_localizationService.Get("hex_tooltip_bandit_hideout"));
-                lines.Add($"{_localizationService.Get("hex_tooltip_bandit_hideout_hp")}: {hideout.Hp}/{BanditHideout.MaxHp}");
-            }
-
-            if (banditPresent)
-            {
-                var bandit = islandState.Features.OfType<Bandit>().First(b => b.Position.Equals(coord));
-                lines.Add(_localizationService.Get("hex_tooltip_bandit_present"));
-                lines.Add($"{_localizationService.Get("hex_tooltip_bandit_hp")}: {bandit.Hp}/{Bandit.MaxHp}");
-            }
+            foreach (var entry in featureTooltipEntries)
+                lines.Add(_localizationService.Resolve(entry));
 
             if (banditCooldownActive)
             {
@@ -171,24 +159,18 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay
                 lines.Add($"{_localizationService.Get("hex_tooltip_bandit_cooldown")}: {remaining:F1}s / {max:0.#}s");
             }
 
-            if (hasTreasureTrove)
-                lines.Add(_localizationService.Get("hex_tooltip_treasure_trove"));
-
-            if (wonderPresent)
-                lines.Add(_localizationService.Get("hex_tooltip_wonder"));
-
             var allResources = manualResources.Union(autoResources).Distinct().ToList();
             if (allResources.Count > 0)
                 lines.Add(string.Join(", ", allResources.Select(r => _localizationService.Get($"resource_{r.ToString().ToLower()}"))));
 
-            if (manualResources.Count > 0)
+            if (!harvestBlockedByFeature && manualResources.Count > 0)
             {
                 islandState.HarvestLastTimesByCivilization.TryGetValue(playerIdx, out var manualTimes);
                 long manualCooldown = harvestController.GetManualHarvestCooldownTicks(playerIdx);
                 lines.Add(FormatCooldownLine(_localizationService.Get("hex_tooltip_manual"), coord, manualTimes, currentTick, manualCooldown));
             }
 
-            if (autoResources.Count > 0)
+            if (!harvestBlockedByFeature && autoResources.Count > 0)
             {
                 islandState.AutomaticHarvestLastTimesByCivilization.TryGetValue(playerIdx, out var autoTimes);
                 long autoCooldown = harvestController.GetEffectiveAutoHarvestCooldownTicks(playerIdx, coord);
