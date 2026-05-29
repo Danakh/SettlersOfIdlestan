@@ -21,6 +21,9 @@ public class GameRecord
     /// <summary>Nombre de fois que chaque type de bâtiment a été construit (clé = BuildingType.ToString()).</summary>
     public Dictionary<string, int> BuildingCounts { get; set; } = new();
 
+    /// <summary>Quantité totale récoltée par ressource (clé = Resource.ToString()).</summary>
+    public Dictionary<string, int> HarvestedResources { get; set; } = new();
+
     /// <summary>IDs des tâches tutoriel complétées (clé = TutorialTaskId.ToString()).</summary>
     public HashSet<string> CompletedTasks { get; set; } = new();
 }

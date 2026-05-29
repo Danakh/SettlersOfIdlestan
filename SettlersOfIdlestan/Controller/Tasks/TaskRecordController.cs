@@ -28,6 +28,7 @@ public class TaskRecordController
     private PrestigeMapController? _prestigeMapController;
     private ResearchController? _researchController;
     private MilitaryController? _militaryController;
+    private HarvestController? _harvestController;
 
     public event EventHandler<TutorialTaskId>? OnTaskCompleted;
 
@@ -42,7 +43,8 @@ public class TaskRecordController
         CityBuilderController cityBuilderController,
         PrestigeMapController prestigeMapController,
         ResearchController researchController,
-        MilitaryController militaryController)
+        MilitaryController militaryController,
+        HarvestController harvestController)
     {
         Unsubscribe();
 
@@ -56,6 +58,7 @@ public class TaskRecordController
         _prestigeMapController = prestigeMapController;
         _researchController = researchController;
         _militaryController = militaryController;
+        _harvestController = harvestController;
 
         _buildingController.OnBuildingBuilt += HandleBuildingBuilt;
         _roadController.OnRoadBuilt += HandleRoadBuilt;
@@ -64,6 +67,7 @@ public class TaskRecordController
         _researchController.OnResearchCompleted += HandleResearchCompleted;
         _militaryController.SoldierAttackedBandit += HandleBanditDefeated;
         _islandState.FeatureRemoved += HandleFeatureRemoved;
+        _harvestController.OnHarvestCompleted += HandleHarvestCompleted;
     }
 
     private void Unsubscribe()
@@ -75,6 +79,7 @@ public class TaskRecordController
         if (_researchController != null) _researchController.OnResearchCompleted -= HandleResearchCompleted;
         if (_militaryController != null) _militaryController.SoldierAttackedBandit -= HandleBanditDefeated;
         if (_islandState != null) _islandState.FeatureRemoved -= HandleFeatureRemoved;
+        if (_harvestController != null) _harvestController.OnHarvestCompleted -= HandleHarvestCompleted;
     }
 
     /// <summary>
@@ -84,6 +89,21 @@ public class TaskRecordController
     {
         if (_gameRecord == null) return;
         _gameRecord.TotalPrestigesPerformed++;
+        CheckTaskCompletions();
+    }
+
+    private void HandleHarvestCompleted(object? sender, HarvestCompletedEventArgs e)
+    {
+        if (_gameRecord == null || _runRecord == null) return;
+        if (e.CivilizationIndex != _playerCivIndex) return;
+
+        foreach (var kv in e.Resources)
+        {
+            string key = kv.Key.ToString();
+            _gameRecord.HarvestedResources[key] = _gameRecord.HarvestedResources.GetValueOrDefault(key) + kv.Value;
+            _runRecord.HarvestedResources[key] = _runRecord.HarvestedResources.GetValueOrDefault(key) + kv.Value;
+        }
+
         CheckTaskCompletions();
     }
 

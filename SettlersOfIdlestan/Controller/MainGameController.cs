@@ -209,7 +209,7 @@ namespace SettlersOfIdlestan.Controller
                 var gameRecord = CurrentMainState!.GameRecord;
                 TaskRecordController.Initialize(gameRecord, islandState.RunRecord, islandState,
                     BuildingController, RoadController, CityBuilderController,
-                    PrestigeMapController, ResearchController, MilitaryController);
+                    PrestigeMapController, ResearchController, MilitaryController, HarvestController);
             }
         }
 

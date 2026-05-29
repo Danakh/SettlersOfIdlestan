@@ -11,38 +11,38 @@ public static class TutorialStepDefinitions
     public static readonly IReadOnlyList<TutorialStep> All = new[]
     {
         new TutorialStep(
-            "tutorial_step_expansion_title",
-            "tutorial_step_expansion_desc",
-            primaryTasks: new[] { Task(TutorialTaskId.BuildFirstRoad), Task(TutorialTaskId.BuildFirstCity) },
-            secondaryTasks: new[] { Task(TutorialTaskId.BuildFirst5Roads), Task(TutorialTaskId.BuildSecondCity) }
+            "tutorial_step_harvest_title",
+            "tutorial_step_harvest_desc",
+            primaryTasks: new[]
+            {
+                Task(TutorialTaskId.Harvest5Wood),
+                Task(TutorialTaskId.Harvest5Brick),
+            },
+            secondaryTasks: System.Array.Empty<TutorialTask>()
         ),
 
         new TutorialStep(
-            "tutorial_step_economy_title",
-            "tutorial_step_economy_desc",
-            primaryTasks: new[] { Task(TutorialTaskId.BuildFirstSawmill), Task(TutorialTaskId.BuildFirstMarket) },
-            secondaryTasks: new[] { Task(TutorialTaskId.BuildFirstWarehouse), Task(TutorialTaskId.Upgrade3Buildings) }
+            "tutorial_step_build_title",
+            "tutorial_step_build_desc",
+            primaryTasks: new[]
+            {
+                Task(TutorialTaskId.BuildSeaport),
+            },
+            secondaryTasks: new[]
+            {
+                Task(TutorialTaskId.BuildSawmill),
+                Task(TutorialTaskId.BuildBrickworks),
+            }
         ),
 
         new TutorialStep(
-            "tutorial_step_research_title",
-            "tutorial_step_research_desc",
-            primaryTasks: new[] { Task(TutorialTaskId.CompleteFirstResearch) },
-            secondaryTasks: new[] { Task(TutorialTaskId.Complete3Research), Task(TutorialTaskId.Complete5Research) }
-        ),
-
-        new TutorialStep(
-            "tutorial_step_military_title",
-            "tutorial_step_military_desc",
-            primaryTasks: new[] { Task(TutorialTaskId.BuildFirstBarracks), Task(TutorialTaskId.DefeatFirstBandit) },
-            secondaryTasks: new[] { Task(TutorialTaskId.DestroyFirstHideout), Task(TutorialTaskId.BuildThirdCity), Task(TutorialTaskId.BuildFirst10Roads) }
-        ),
-
-        new TutorialStep(
-            "tutorial_step_prestige_title",
-            "tutorial_step_prestige_desc",
-            primaryTasks: new[] { Task(TutorialTaskId.BuyFirstPrestigeVertex), Task(TutorialTaskId.PerformFirstPrestige) },
-            secondaryTasks: new[] { Task(TutorialTaskId.Buy3PrestigeVertices), Task(TutorialTaskId.PerformThirdPrestige) }
+            "tutorial_step_road_title",
+            "tutorial_step_road_desc",
+            primaryTasks: new[]
+            {
+                Task(TutorialTaskId.BuildFirstRoad),
+            },
+            secondaryTasks: System.Array.Empty<TutorialTask>()
         ),
     };
 }

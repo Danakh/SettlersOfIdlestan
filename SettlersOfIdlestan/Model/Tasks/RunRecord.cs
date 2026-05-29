@@ -17,4 +17,7 @@ public class RunRecord
 
     /// <summary>Nombre de fois que chaque type de bâtiment a été construit ce run (clé = BuildingType.ToString()).</summary>
     public Dictionary<string, int> BuildingCounts { get; set; } = new();
+
+    /// <summary>Quantité récoltée par ressource ce run (clé = Resource.ToString()).</summary>
+    public Dictionary<string, int> HarvestedResources { get; set; } = new();
 }
