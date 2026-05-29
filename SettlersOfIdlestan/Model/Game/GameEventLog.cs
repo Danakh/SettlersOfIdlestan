@@ -2,6 +2,7 @@ namespace SettlersOfIdlestan.Model.Game;
 
 public enum GameEventType
 {
+    NoEvent,
     BanditDiscovered,
     BanditDefeated,
     TreasureTroveDiscovered,

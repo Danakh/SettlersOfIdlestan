@@ -8,6 +8,9 @@ public class Wonder : IslandFeature
 {
     public override bool BlocksHarvest => true;
 
+    public override GameEventType DiscoveredEventType => GameEventType.NoEvent;
+    public override GameEventType RemovedEventType => GameEventType.NoEvent;
+
     public override string? SvgIconResourceName => "Resources.icons.features.wonder_0.svg";
     public override float SvgIconSize => 50f;
 
