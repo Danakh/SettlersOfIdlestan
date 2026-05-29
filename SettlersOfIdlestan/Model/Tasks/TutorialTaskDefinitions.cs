@@ -124,6 +124,22 @@ public static class TutorialTaskDefinitions
                 || CountBuilding(island, BuildingType.Warehouse) >= 2,
             (g, _, island) => (LiveMax(g.BuildingCounts.GetValueOrDefault("Warehouse"), CountBuilding(island, BuildingType.Warehouse)), 2)),
 
+        new TutorialTask(TutorialTaskId.Build1Warehouse,
+            "task_build_1_warehouse_name", "task_build_1_warehouse_desc",
+            (g, _, island) => g.BuildingCounts.GetValueOrDefault("Warehouse") >= 1
+                || CountBuilding(island, BuildingType.Warehouse) >= 1),
+
+        new TutorialTask(TutorialTaskId.Trade10Gold,
+            "task_trade_10_gold_name", "task_trade_10_gold_desc",
+            (g, _, _) => g.TotalGoldObtainedFromTrade >= 10,
+            (g, _, _) => (g.TotalGoldObtainedFromTrade, 10)),
+
+        new TutorialTask(TutorialTaskId.Build3Warehouses,
+            "task_build_3_warehouses_name", "task_build_3_warehouses_desc",
+            (g, _, island) => g.BuildingCounts.GetValueOrDefault("Warehouse") >= 3
+                || CountBuilding(island, BuildingType.Warehouse) >= 3,
+            (g, _, island) => (LiveMax(g.BuildingCounts.GetValueOrDefault("Warehouse"), CountBuilding(island, BuildingType.Warehouse)), 3)),
+
         new TutorialTask(TutorialTaskId.PerformPrestige,
             "task_perform_prestige_name", "task_perform_prestige_desc",
             (g, _, _) => g.TotalPrestigesPerformed >= 1),

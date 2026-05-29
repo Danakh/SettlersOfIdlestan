@@ -31,6 +31,7 @@ public class TaskRecordController
     private ResearchController? _researchController;
     private MilitaryController? _militaryController;
     private HarvestController? _harvestController;
+    private TradeController? _tradeController;
 
     public event EventHandler<TutorialTaskId>? OnTaskCompleted;
 
@@ -46,7 +47,8 @@ public class TaskRecordController
         PrestigeMapController prestigeMapController,
         ResearchController researchController,
         MilitaryController militaryController,
-        HarvestController harvestController)
+        HarvestController harvestController,
+        TradeController tradeController)
     {
         Unsubscribe();
 
@@ -61,6 +63,7 @@ public class TaskRecordController
         _researchController = researchController;
         _militaryController = militaryController;
         _harvestController = harvestController;
+        _tradeController = tradeController;
 
         _buildingController.OnBuildingBuilt += HandleBuildingBuilt;
         _roadController.OnRoadBuilt += HandleRoadBuilt;
@@ -70,6 +73,7 @@ public class TaskRecordController
         _militaryController.SoldierAttackedBandit += HandleBanditDefeated;
         _islandState.FeatureRemoved += HandleFeatureRemoved;
         _harvestController.OnHarvestCompleted += HandleHarvestCompleted;
+        _tradeController.GoldObtainedFromTrade += HandleGoldObtainedFromTrade;
     }
 
     private void Unsubscribe()
@@ -82,6 +86,7 @@ public class TaskRecordController
         if (_militaryController != null) _militaryController.SoldierAttackedBandit -= HandleBanditDefeated;
         if (_islandState != null) _islandState.FeatureRemoved -= HandleFeatureRemoved;
         if (_harvestController != null) _harvestController.OnHarvestCompleted -= HandleHarvestCompleted;
+        if (_tradeController != null) _tradeController.GoldObtainedFromTrade -= HandleGoldObtainedFromTrade;
     }
 
     /// <summary>
@@ -218,6 +223,13 @@ public class TaskRecordController
         if (e is not BanditHideout) return;
         _gameRecord.TotalHideoutsDestroyed++;
         _runRecord.HideoutsDestroyed++;
+        CheckTaskCompletions();
+    }
+
+    private void HandleGoldObtainedFromTrade(int amount)
+    {
+        if (_gameRecord == null) return;
+        _gameRecord.TotalGoldObtainedFromTrade += amount;
         CheckTaskCompletions();
     }
 

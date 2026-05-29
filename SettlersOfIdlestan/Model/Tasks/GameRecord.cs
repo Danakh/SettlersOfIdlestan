@@ -36,6 +36,9 @@ public class GameRecord
     /// <summary>True si un Hôtel de ville a atteint le niveau 4.</summary>
     public bool HasTownHallLevel4 { get; set; }
 
+    /// <summary>Or total reçu via échanges commerciaux.</summary>
+    public int TotalGoldObtainedFromTrade { get; set; }
+
     /// <summary>IDs des tâches tutoriel complétées (clé = TutorialTaskId.ToString()).</summary>
     public HashSet<string> CompletedTasks { get; set; } = new();
 }

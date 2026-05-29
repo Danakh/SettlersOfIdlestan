@@ -76,6 +76,20 @@ public static class TutorialStepDefinitions
         ),
 
         new TutorialStep(
+            "tutorial_step_trade_title",
+            "tutorial_step_trade_desc",
+            primaryTasks: new[]
+            {
+                Task(TutorialTaskId.Build1Warehouse),
+                Task(TutorialTaskId.Trade10Gold),
+            },
+            secondaryTasks: new[]
+            {
+                Task(TutorialTaskId.Build3Warehouses),
+            }
+        ),
+
+        new TutorialStep(
             "tutorial_step_capital_title",
             "tutorial_step_capital_desc",
             primaryTasks: new[]
@@ -84,7 +98,6 @@ public static class TutorialStepDefinitions
             },
             secondaryTasks: new[]
             {
-                Task(TutorialTaskId.Build2Warehouses),
                 Task(TutorialTaskId.TownHallLevel4),
             }
         ),

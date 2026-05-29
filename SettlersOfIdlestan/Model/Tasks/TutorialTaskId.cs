@@ -19,5 +19,8 @@ public enum TutorialTaskId
     TownHallLevel4,
     BuildImperialPort,
     Build2Warehouses,
+    Build1Warehouse,
+    Trade10Gold,
+    Build3Warehouses,
     PerformPrestige,
 }

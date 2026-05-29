@@ -33,6 +33,8 @@ namespace SettlersOfIdlestan.Controller
             return Math.Max(1, (int)cost);
         }
 
+        public event Action<int>? GoldObtainedFromTrade;
+
         internal TradeController(IslandState? state = null)
         {
             _state = state;
@@ -102,6 +104,7 @@ namespace SettlersOfIdlestan.Controller
             // perform trade: consume and grant
             civ.RemoveResource(from, offer);
             civ.AddResource(to, 1);
+            if (to == Resource.Gold) GoldObtainedFromTrade?.Invoke(1);
             return true;
         }
 
@@ -205,6 +208,7 @@ namespace SettlersOfIdlestan.Controller
             foreach (var (from, amount) in offerAmounts)
                 civ.RemoveResource(from, amount);
             civ.AddResource(to, toQuantity);
+            if (to == Resource.Gold) GoldObtainedFromTrade?.Invoke(toQuantity);
             return true;
         }
 

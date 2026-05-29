@@ -19,7 +19,7 @@ public class TutorialRenderer : IGameRenderer
     private TutorialStep? _step;
 
     private const float PanelLeft    = 10f;
-    private const float PanelWidth   = 230f;
+    private const float PanelWidth   = 320f;
     private const float PanelPadding = 12f;
     private const float TaskMarkerW  = 18f;
 
