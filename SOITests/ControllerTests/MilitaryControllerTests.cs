@@ -43,6 +43,7 @@ namespace SOITests.ControllerTests
             var map = new IslandMap(tiles);
             var civ = new Civilization { Index = 0 };
             civ.Resources[Resource.Ore] = 999;
+            civ.Resources[Resource.Food] = 999;
             var vertex = Vertex.Create(NE, East, NE11);
             var city = new City(vertex) { CivilizationIndex = 0 };
             var barracks = new Barracks { Level = barracksLevel, Soldiers = initialSoldiers };
