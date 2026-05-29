@@ -91,8 +91,10 @@ namespace SettlersOfIdlestan.Controller.Expand
             var tech = TechnologyDefinitions.Get(techId);
             if (tech == null) { tree.ActiveResearch = null; return; }
 
-            tree.ResearchPoints -= 1;
-            tree.ActiveResearchConsumed += 1;
+            int consumed = Math.Max(1, tree.ResearchPoints / 100);
+            consumed = Math.Min(consumed, tree.ResearchPoints);
+            tree.ResearchPoints -= consumed;
+            tree.ActiveResearchConsumed += consumed;
             tree.ActiveResearchLastConsumptionTick = now;
 
             int effectiveCost = GetEffectiveCost(tech);
