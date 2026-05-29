@@ -218,6 +218,31 @@ namespace SettlersOfIdlestan.Controller.Expand
                 Modifier.ECategory.UNLOCK_RESEARCH, techKey) == true;
         }
 
+        public bool ShouldDisplay(TechnologyId id)
+        {
+            if (Tree == null) return false;
+            var tree = Tree;
+
+            if (tree.CompletedTechnologies.Contains(id)) return true;
+            if (tree.ActiveResearch == id) return true;
+            if (!IsPrestigeRequirementMet(id)) return false;
+
+            var tech = TechnologyDefinitions.Get(id);
+            if (tech == null) return false;
+
+            if (ArePrerequisitesMet(tree, tech)) return true;
+
+            // Visible si tous les prérequis manquants sont eux-mêmes faisables (Available ou InProgress)
+            foreach (var prereqId in tech.Prerequisites)
+            {
+                if (tree.CompletedTechnologies.Contains(prereqId)) continue;
+                var prereqStatus = GetStatus(prereqId);
+                if (prereqStatus != TechnologyStatus.Available && prereqStatus != TechnologyStatus.InProgress)
+                    return false;
+            }
+            return true;
+        }
+
         private int GetEffectiveCost(Technology tech)
         {
             double reduction = _state?.PlayerCivilization.ResearchCostReduction ?? 0.0;

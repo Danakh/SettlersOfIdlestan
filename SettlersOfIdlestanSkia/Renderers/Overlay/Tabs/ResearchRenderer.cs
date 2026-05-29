@@ -166,9 +166,11 @@ public sealed class ResearchRenderer : IGameRenderer
         // Lines between nodes
         foreach (var tech in TechnologyDefinitions.All)
         {
+            if (!ctrl.ShouldDisplay(tech.Id)) continue;
             if (!_nodeRects.TryGetValue(tech.Id, out var childRect)) continue;
             foreach (var prereqId in tech.Prerequisites)
             {
+                if (!ctrl.ShouldDisplay(prereqId)) continue;
                 if (!_nodeRects.TryGetValue(prereqId, out var prereqRect)) continue;
                 bool prereqDone = ctrl.GetStatus(prereqId) == TechnologyStatus.Completed;
                 bool childDone = ctrl.GetStatus(tech.Id) != TechnologyStatus.Inactive;
@@ -180,6 +182,7 @@ public sealed class ResearchRenderer : IGameRenderer
         // Nodes
         foreach (var tech in TechnologyDefinitions.All)
         {
+            if (!ctrl.ShouldDisplay(tech.Id)) continue;
             if (!_nodeRects.TryGetValue(tech.Id, out var rect)) continue;
             var status = ctrl.GetStatus(tech.Id);
             DrawNode(canvas, tech, rect, status, ctrl);
@@ -261,8 +264,10 @@ public sealed class ResearchRenderer : IGameRenderer
         if (!IsActive) { _hoveredTechId = null; return; }
         _lastPointerPosition = e.Position;
         _hoveredTechId = null;
+        var hoverCtrl = _gameControllerService.MainGameController.ResearchController;
         foreach (var (techId, rect) in _nodeRects)
         {
+            if (!hoverCtrl.ShouldDisplay(techId)) continue;
             if (rect.Contains(e.Position.X, e.Position.Y))
             {
                 _hoveredTechId = techId;
@@ -278,6 +283,7 @@ public sealed class ResearchRenderer : IGameRenderer
         var ctrl = _gameControllerService.MainGameController.ResearchController;
         foreach (var (techId, rect) in _nodeRects)
         {
+            if (!ctrl.ShouldDisplay(techId)) continue;
             if (!rect.Contains(e.Position.X, e.Position.Y)) continue;
 
             var status = ctrl.GetStatus(techId);
