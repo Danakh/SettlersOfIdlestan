@@ -105,6 +105,11 @@ public static class TutorialTaskDefinitions
             (g, _, island) => g.BuildingCounts.GetValueOrDefault("ImperialPort") >= 1
                 || CountBuilding(island, BuildingType.ImperialPort) >= 1),
 
+        new TutorialTask(TutorialTaskId.Build2Warehouses,
+            "task_build_2_warehouses_name", "task_build_2_warehouses_desc",
+            (g, _, island) => g.BuildingCounts.GetValueOrDefault("Warehouse") >= 2
+                || CountBuilding(island, BuildingType.Warehouse) >= 2),
+
         new TutorialTask(TutorialTaskId.PerformPrestige,
             "task_perform_prestige_name", "task_perform_prestige_desc",
             (g, _, _) => g.TotalPrestigesPerformed >= 1),

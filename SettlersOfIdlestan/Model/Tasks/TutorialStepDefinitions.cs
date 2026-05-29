@@ -84,6 +84,7 @@ public static class TutorialStepDefinitions
             },
             secondaryTasks: new[]
             {
+                Task(TutorialTaskId.Build2Warehouses),
                 Task(TutorialTaskId.TownHallLevel4),
             }
         ),

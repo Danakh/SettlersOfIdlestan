@@ -18,5 +18,6 @@ public enum TutorialTaskId
     SeaportLevel4,
     TownHallLevel4,
     BuildImperialPort,
+    Build2Warehouses,
     PerformPrestige,
 }
