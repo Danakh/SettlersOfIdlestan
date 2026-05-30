@@ -230,8 +230,9 @@ namespace SettlersOfIdlestan.Controller
         }
 
         /// <summary>
-        /// Attempts to trade the most abundant surplus basic resource for one unit (or pack) of <paramref name="target"/>.
-        /// Uses TradeMultiForSingle so that non-basic targets such as Gold are supported.
+        /// Attempts one trade step to accumulate <paramref name="target"/>.
+        /// For Gold: sells the most abundant basic resource.
+        /// For basic/advanced resources: buys with gold if available, otherwise sells first.
         /// </summary>
         public bool TryTradeForResourceOnce(Resource target)
         {
@@ -239,38 +240,40 @@ namespace SettlersOfIdlestan.Controller
 
             if (!ResourceUtils.BasicResources.Contains(target) && target != Resource.Gold)
             {
-                if (_tradeController.CanBuyAdvancedResource(_civ.Index, target))
+                if (_tradeController.CanBuyResource(_civ.Index, target))
                 {
-                    _tradeController.BuyAdvancedResource(_civ.Index, target);
+                    _tradeController.BuyResource(_civ.Index, target);
                     return true;
                 }
                 return TryTradeForResourceOnce(Resource.Gold);
             }
 
-            var receiveQty = _tradeController.ReceiveRate(target);
-            if (!_tradeController.CanRecieveTrade(_civ, target, receiveQty)) return false;
-
-            Resource? bestSource = null;
-            int bestQty = 0;
-            foreach (var r in ResourceUtils.BasicResources)
+            if (target == Resource.Gold)
             {
-                if (r == target) continue;
-                var rate = _tradeController.TradeRate(_civ.Index, r);
-                var qty = _civ.GetResourceQuantity(r);
-                if (qty >= rate && qty > bestQty)
+                if (!_tradeController.CanRecieveTrade(_civ, Resource.Gold)) return false;
+                Resource? bestSource = null;
+                int bestQty = 0;
+                foreach (var r in ResourceUtils.BasicResources)
                 {
-                    bestSource = r;
-                    bestQty = qty;
+                    var rate = _tradeController.GetSellRate(_civ.Index, r);
+                    var qty = _civ.GetResourceQuantity(r);
+                    if (qty >= rate && qty > bestQty)
+                    {
+                        bestSource = r;
+                        bestQty = qty;
+                    }
                 }
+                if (bestSource == null) return false;
+                return _tradeController.SellResource(_civ.Index, bestSource.Value);
             }
 
-            if (bestSource == null) return false;
-
-            return _tradeController.TradeMultiForSingle(
-                _civ.Index,
-                new Dictionary<Resource, int> { [bestSource.Value] = _tradeController.TradeRate(_civ.Index, bestSource.Value) },
-                target,
-                receiveQty);
+            // Basic resource target: buy with gold or accumulate gold first
+            if (_tradeController.CanBuyResource(_civ.Index, target))
+            {
+                _tradeController.BuyResource(_civ.Index, target);
+                return true;
+            }
+            return TryTradeForResourceOnce(Resource.Gold);
         }
 
         /// <summary>
