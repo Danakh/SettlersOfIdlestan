@@ -48,7 +48,7 @@ public class FeatureController
 
     /// <summary>
     /// Recalcule les features ContestedTerritory à partir des positions de villes actuelles.
-    /// À appeler après toute création de ville.
+    /// À appeler après toute création ou destruction de ville.
     /// </summary>
     public void RefreshContestedTerritories()
     {
