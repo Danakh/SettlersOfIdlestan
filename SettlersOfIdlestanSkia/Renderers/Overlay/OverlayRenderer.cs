@@ -181,12 +181,7 @@ public sealed class OverlayRenderer : IGameRenderer
             _playerResourcesOverlayRenderer.ResourceStartX = PlayerResourcesOverlayRenderer.Padding;
         }
 
-        _playerResourcesOverlayRenderer.Mode = _activeTab switch
-        {
-            TabPrestige  => BarDisplayMode.Prestige,
-            TabResearch  => BarDisplayMode.Research,
-            _ => BarDisplayMode.Island,
-        };
+        _playerResourcesOverlayRenderer.Mode = BarDisplayMode.Island;
 
         bool onResearchTab    = _activeTab == TabResearch    && _hasResearchTab;
         bool onPrestigeTab    = _activeTab == TabPrestige;

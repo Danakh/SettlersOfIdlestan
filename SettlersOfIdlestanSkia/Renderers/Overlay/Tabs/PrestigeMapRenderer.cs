@@ -33,6 +33,8 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         new( 95,  98, 110),
     };
 
+    private const float HeaderHeight = 32f;
+
     private const float MinZoom = 0.4f;
     private const float MaxZoom = 2.5f;
     private const float ZoomStep = 1.12f;
@@ -61,6 +63,8 @@ public sealed class PrestigeMapRenderer : IGameRenderer
     private readonly HashSet<HexCoord> _visibleHexes = new();
 
     private readonly SKPaint _bgPaint = new() { Color = new SKColor(238, 242, 245), Style = SKPaintStyle.Fill };
+    private readonly SKPaint _headerBgPaint = new() { Color = new SKColor(15, 17, 25, 210), Style = SKPaintStyle.Fill };
+    private readonly SKFont  _headerFont = new() { Size = 12, Typeface = SkiaFonts.Bold };
 
     private readonly SKPaint _roadPaint = new()
     {
@@ -152,11 +156,15 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         UpdateVisibility(prestigeState);
 
         canvas.Save();
-        canvas.ClipRect(new SKRect(0, barH, _canvasSize.Width, _canvasSize.Height));
+        canvas.ClipRect(new SKRect(0, barH + HeaderHeight, _canvasSize.Width, _canvasSize.Height));
         DrawHexes(canvas, prestigeState);
         DrawRoads(canvas, prestigeState);
         DrawVertices(canvas, prestigeState);
         canvas.Restore();
+
+        canvas.DrawRect(new SKRect(0, barH, _canvasSize.Width, barH + HeaderHeight), _headerBgPaint);
+        string ppLabel = $"{_localization.Get("prestige_points_label")}: {prestigeState.PrestigePoints}";
+        canvas.DrawText(ppLabel, 16f, barH + 24f, _headerFont, _textWhitePaint);
 
         if (_hoveredVertex != null)
             BuildVertexTooltip(_hoveredVertex, prestigeState);
@@ -601,6 +609,8 @@ public sealed class PrestigeMapRenderer : IGameRenderer
     public void Dispose()
     {
         _bgPaint.Dispose();
+        _headerBgPaint.Dispose();
+        _headerFont.Dispose();
         _roadPaint.Dispose();
         _hexFillPaint.Dispose();
         _hexBorderPaint.Dispose();
