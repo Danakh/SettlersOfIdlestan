@@ -423,6 +423,8 @@
   "task_build_3_warehouses_desc": "Récoltez assez de ressources et construisez un Entrepôt dans 3 villes différentes.",
   "tutorial_step_trade_title": "Commerce",
   "tutorial_step_trade_desc": "Construisez un Entrepôt pour stocker vos ressources, puis pratiquez le commerce pour obtenir de l'or. Il faudra échanger 500 ressources pour obtenir 10 or.",
+  "task_reach_20_victory_points_name": "Atteindre 20 points de victoire",
+  "task_reach_20_victory_points_desc": "Montez vos Hôtels de ville au niveau 3 (2 pts), construisez des Temples et des Bibliothèques (1 pt chacun).",
   "task_perform_prestige_name": "Effectuer un Prestige",
   "task_perform_prestige_desc": "Une fois le Port Impérial construit, cliquez sur le bouton Prestige dans l'interface principale.",
   "task_reach_enough_victory_points_name": "Atteindre 35 points de victoire",

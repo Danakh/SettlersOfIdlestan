@@ -22,6 +22,7 @@ public enum TutorialTaskId
     Build1Warehouse,
     Trade10Gold,
     Build3Warehouses,
+    Reach20VictoryPoints,
     PerformPrestige,
     Reach30VictoryPoints,
 }

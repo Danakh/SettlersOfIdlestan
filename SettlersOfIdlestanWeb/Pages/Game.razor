@@ -129,6 +129,9 @@
     public void OnKeyDown(string key) => _runtime?.HandleKeyPressed(key);
 
     [JSInvokable]
+    public void OnKeyUp(string key) => _runtime?.HandleKeyReleased(key);
+
+    [JSInvokable]
     public void OnPageVisible(double hiddenSeconds) => _runtime?.NotifyPageVisible(hiddenSeconds);
 
     private static PointerButton ToPointerButton(long button) => button switch

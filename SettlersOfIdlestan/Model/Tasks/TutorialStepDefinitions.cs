@@ -119,6 +119,7 @@ public static class TutorialStepDefinitions
             "tutorial_step_prestige_desc",
             primaryTasks: new[]
             {
+                Task(TutorialTaskId.Reach20VictoryPoints),
                 Task(TutorialTaskId.PerformPrestige),
             },
             secondaryTasks: new[]
