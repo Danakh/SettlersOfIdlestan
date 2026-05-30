@@ -126,6 +126,7 @@ public sealed class OverlayRenderer : IGameRenderer
         _inputService.PointerReleased += HandlePointerReleased;
         _inputService.ZoomChanged += HandleZoomChanged;
         _inputService.KeyPressed += HandleKeyInput;
+        _inputService.KeyReleased += HandleKeyRelease;
     }
 
     public void Initialize(SKSize canvasSize)
@@ -590,6 +591,11 @@ public sealed class OverlayRenderer : IGameRenderer
     private void HandleKeyInput(object? sender, KeyEventArgs e)
     {
         if (!_isVisible) return;
+        if (_tradeRenderer.IsOpen)
+        {
+            _tradeRenderer.HandleKeyDown(e.Key);
+            return;
+        }
         switch (e.Key)
         {
             case "I": _activeTab = TabIsland;     break;
@@ -601,6 +607,13 @@ public sealed class OverlayRenderer : IGameRenderer
         }
     }
 
+    private void HandleKeyRelease(object? sender, KeyEventArgs e)
+    {
+        if (!_isVisible) return;
+        if (_tradeRenderer.IsOpen)
+            _tradeRenderer.HandleKeyUp(e.Key);
+    }
+
     public void Dispose()
     {
         if (_disposed) return;
@@ -610,6 +623,7 @@ public sealed class OverlayRenderer : IGameRenderer
         _inputService.PointerReleased -= HandlePointerReleased;
         _inputService.ZoomChanged -= HandleZoomChanged;
         _inputService.KeyPressed -= HandleKeyInput;
+        _inputService.KeyReleased -= HandleKeyRelease;
         _playerResourcesOverlayRenderer.Dispose();
         _selectedCityPanelRenderer.Dispose();
         _selectedWonderPanelRenderer.Dispose();

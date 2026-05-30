@@ -4,21 +4,35 @@ window.gameInterop = {
 
     registerKeyboardHandler: function (dotNetRef) {
         const id = ++this._nextHandlerId;
-        const allowed = new Set(['i', 'r', 'p', 's', 'c']);
-        const handler = (e) => {
-            if (allowed.has(e.key.toLowerCase())) {
+        const allowedLetters = new Set(['i', 'r', 'p', 's', 'c']);
+        const allowedModifiers = new Set(['control', 'shift']);
+
+        const keyDownHandler = (e) => {
+            if (e.repeat) return;
+            const lower = e.key.toLowerCase();
+            if (allowedLetters.has(lower)) {
                 dotNetRef.invokeMethodAsync('OnKeyDown', e.key.toUpperCase());
+            } else if (allowedModifiers.has(lower)) {
+                dotNetRef.invokeMethodAsync('OnKeyDown', e.key); // "Control" / "Shift" as-is
             }
         };
-        window.addEventListener('keydown', handler);
-        this._keyboardHandlers[id] = handler;
+        const keyUpHandler = (e) => {
+            if (allowedModifiers.has(e.key.toLowerCase())) {
+                dotNetRef.invokeMethodAsync('OnKeyUp', e.key);
+            }
+        };
+
+        window.addEventListener('keydown', keyDownHandler);
+        window.addEventListener('keyup', keyUpHandler);
+        this._keyboardHandlers[id] = { down: keyDownHandler, up: keyUpHandler };
         return id;
     },
 
     unregisterKeyboardHandler: function (id) {
         const h = this._keyboardHandlers[id];
         if (h) {
-            window.removeEventListener('keydown', h);
+            window.removeEventListener('keydown', h.down);
+            window.removeEventListener('keyup', h.up);
             delete this._keyboardHandlers[id];
         }
     },

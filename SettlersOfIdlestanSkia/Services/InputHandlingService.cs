@@ -91,11 +91,24 @@ public class InputHandlingService
     public event EventHandler<KeyEventArgs>? KeyPressed;
 
     /// <summary>
-    /// Traite un événement clavier.
+    /// Événement déclenché lors du relâchement d'une touche clavier.
+    /// </summary>
+    public event EventHandler<KeyEventArgs>? KeyReleased;
+
+    /// <summary>
+    /// Traite un événement clavier (appui).
     /// </summary>
     public void HandleKeyPressed(string key)
     {
         KeyPressed?.Invoke(this, new KeyEventArgs { Key = key, Timestamp = DateTime.UtcNow });
+    }
+
+    /// <summary>
+    /// Traite un événement clavier (relâchement).
+    /// </summary>
+    public void HandleKeyReleased(string key)
+    {
+        KeyReleased?.Invoke(this, new KeyEventArgs { Key = key, Timestamp = DateTime.UtcNow });
     }
 }
 

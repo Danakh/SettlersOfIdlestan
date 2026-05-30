@@ -380,6 +380,8 @@ public sealed class SkiaGameRuntime : IDisposable
         _inputService?.HandleZoom(wheelDelta, x, y);
     }
 
+    public void HandleKeyReleased(string key) => _inputService?.HandleKeyReleased(key);
+
     public void HandleKeyPressed(string key)
     {
         _inputService?.HandleKeyPressed(key);

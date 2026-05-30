@@ -63,6 +63,8 @@ public sealed class TradeRenderer : IDisposable
     private Resource? _hoveredL3Checkbox;
     private Resource? _hoveredL4Checkbox;
     private int _packMultiplier = 1;
+    private int? _temporaryMultiplier;
+    private int ActiveMultiplier => _temporaryMultiplier ?? _packMultiplier;
     private SKPoint _lastPointerPosition;
     private readonly Dictionary<SKRect, string> _disabledRowRects = [];
     private readonly Dictionary<SKRect, string> _disabledBuyRects = [];
@@ -82,8 +84,10 @@ public sealed class TradeRenderer : IDisposable
     private readonly SKPaint _tradeDisabledButtonPaint = new() { Color = new SKColor(90, 90, 96), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _multActiveFillPaint = new() { Color = new SKColor(60, 100, 160), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _multInactiveFillPaint = new() { Color = new SKColor(38, 38, 50), Style = SKPaintStyle.Fill, IsAntialias = true };
+    private readonly SKPaint _multTempFillPaint = new() { Color = new SKColor(140, 80, 0), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _multActiveBorderPaint = new() { Color = new SKColor(100, 150, 220), Style = SKPaintStyle.Stroke, StrokeWidth = 1, IsAntialias = true };
     private readonly SKPaint _multInactiveBorderPaint = new() { Color = new SKColor(80, 80, 95), Style = SKPaintStyle.Stroke, StrokeWidth = 1, IsAntialias = true };
+    private readonly SKPaint _multTempBorderPaint = new() { Color = new SKColor(220, 140, 30), Style = SKPaintStyle.Stroke, StrokeWidth = 1.5f, IsAntialias = true };
     private readonly SKPaint _rowBorderPaint = new() { Color = new SKColor(255, 255, 255, 100), Style = SKPaintStyle.Stroke, StrokeWidth = 1, IsAntialias = true };
     private readonly SKPaint _resourceRowPaint = new() { Color = new SKColor(55, 55, 65, 245), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _checkboxFillPaint = new() { Style = SKPaintStyle.Fill, IsAntialias = true };
@@ -133,6 +137,19 @@ public sealed class TradeRenderer : IDisposable
         _pendingAutoTradeResource = null;
         _hoveredL3Checkbox = null;
         _hoveredL4Checkbox = null;
+        _temporaryMultiplier = null;
+    }
+
+    public void HandleKeyDown(string key)
+    {
+        if (key == "Control") _temporaryMultiplier = 10;
+        else if (key == "Shift") _temporaryMultiplier = 100;
+    }
+
+    public void HandleKeyUp(string key)
+    {
+        if (key is "Control" or "Shift")
+            _temporaryMultiplier = null;
     }
 
     public void Render(SKCanvas canvas)
@@ -261,8 +278,8 @@ public sealed class TradeRenderer : IDisposable
                     if (civ != null)
                     {
                         var tc = _gameControllerService.MainGameController.TradeController;
-                        if (tc.CanBuyAdvancedResource(civ.Index, resource, _packMultiplier))
-                            tc.BuyAdvancedResource(civ.Index, resource, _packMultiplier);
+                        if (tc.CanBuyAdvancedResource(civ.Index, resource, ActiveMultiplier))
+                            tc.BuyAdvancedResource(civ.Index, resource, ActiveMultiplier);
                     }
                     return true;
                 }
@@ -419,8 +436,8 @@ public sealed class TradeRenderer : IDisposable
 
         foreach (var resource in advancedResources)
         {
-            int cost = tc.BuyRate(resource) * _packMultiplier;
-            bool canBuy = tc.CanBuyAdvancedResource(civ.Index, resource, _packMultiplier);
+            int cost = tc.BuyRate(resource) * ActiveMultiplier;
+            bool canBuy = tc.CanBuyAdvancedResource(civ.Index, resource, ActiveMultiplier);
 
             var rowRect = new SKRect(contentX, currentY, contentX + contentWidth, currentY + PurchaseRowHeight);
             canvas.DrawRoundRect(rowRect, 5, 5, canBuy ? _resourceRowPaint : _disabledPaint);
@@ -741,16 +758,21 @@ public sealed class TradeRenderer : IDisposable
         _multButton10Rect  = new SKRect(startX + MultBtnW + MultBtnGap, btnY, startX + MultBtnW * 2 + MultBtnGap,     btnY + MultBtnH);
         _multButton100Rect = new SKRect(startX + MultBtnW * 2 + MultBtnGap * 2, btnY, startX + totalW, btnY + MultBtnH);
 
-        DrawMultButton(canvas, _multButton1Rect,   "×1",   _packMultiplier == 1);
-        DrawMultButton(canvas, _multButton10Rect,  "×10",  _packMultiplier == 10);
-        DrawMultButton(canvas, _multButton100Rect, "×100", _packMultiplier == 100);
+        int active = ActiveMultiplier;
+        bool isTemp = _temporaryMultiplier.HasValue;
+        DrawMultButton(canvas, _multButton1Rect,   "×1",   _packMultiplier == 1,   isTemp && active == 1);
+        DrawMultButton(canvas, _multButton10Rect,  "×10",  _packMultiplier == 10,  isTemp && active == 10);
+        DrawMultButton(canvas, _multButton100Rect, "×100", _packMultiplier == 100, isTemp && active == 100);
     }
 
-    private void DrawMultButton(SKCanvas canvas, SKRect rect, string label, bool isActive)
+    private void DrawMultButton(SKCanvas canvas, SKRect rect, string label, bool isActive, bool isTemporary = false)
     {
-        canvas.DrawRoundRect(rect, 4, 4, isActive ? _multActiveFillPaint : _multInactiveFillPaint);
-        canvas.DrawRoundRect(rect, 4, 4, isActive ? _multActiveBorderPaint : _multInactiveBorderPaint);
-        canvas.DrawText(label, rect.MidX, rect.MidY + 5, SKTextAlign.Center, _font, isActive ? _textPaint : _mutedTextPaint);
+        var fill   = isTemporary ? _multTempFillPaint   : isActive ? _multActiveFillPaint   : _multInactiveFillPaint;
+        var border = isTemporary ? _multTempBorderPaint : isActive ? _multActiveBorderPaint : _multInactiveBorderPaint;
+        canvas.DrawRoundRect(rect, 4, 4, fill);
+        canvas.DrawRoundRect(rect, 4, 4, border);
+        canvas.DrawText(label, rect.MidX, rect.MidY + 5, SKTextAlign.Center, _font,
+            (isActive || isTemporary) ? _textPaint : _mutedTextPaint);
     }
 
     // ── Confirmation popup ───────────────────────────────────────────────────────
@@ -796,7 +818,7 @@ public sealed class TradeRenderer : IDisposable
         if (civ == null) return;
         int rate = _gameControllerService.MainGameController.TradeController.TradeRate(civ.Index, resource);
         int current = _offered.GetValueOrDefault(resource);
-        int needed = rate * _packMultiplier;
+        int needed = rate * ActiveMultiplier;
         if (civ.GetResourceQuantity(resource) >= current + needed)
             _offered[resource] = current + needed;
     }
@@ -807,8 +829,8 @@ public sealed class TradeRenderer : IDisposable
         var civ = _gameControllerService.PlayerCivilization;
         if (civ == null) return;
         int current = _requested.GetValueOrDefault(resource);
-        if (_gameControllerService.MainGameController.TradeController.CanRecieveTrade(civ, resource, current + _packMultiplier))
-            _requested[resource] = current + _packMultiplier;
+        if (_gameControllerService.MainGameController.TradeController.CanRecieveTrade(civ, resource, current + ActiveMultiplier))
+            _requested[resource] = current + ActiveMultiplier;
     }
 
     private void RemoveOffer(Resource resource)
@@ -816,7 +838,7 @@ public sealed class TradeRenderer : IDisposable
         var civ = _gameControllerService.PlayerCivilization;
         if (civ == null || !_offered.ContainsKey(resource)) return;
         int rate = _gameControllerService.MainGameController.TradeController.TradeRate(civ.Index, resource);
-        for (int i = 0; i < _packMultiplier; i++)
+        for (int i = 0; i < ActiveMultiplier; i++)
         {
             int remaining = _offered.GetValueOrDefault(resource) - rate;
             if (remaining > 0)
@@ -832,7 +854,7 @@ public sealed class TradeRenderer : IDisposable
     private void RemoveRequest(Resource resource)
     {
         if (!_requested.ContainsKey(resource)) return;
-        for (int i = 0; i < _packMultiplier; i++)
+        for (int i = 0; i < ActiveMultiplier; i++)
         {
             int remaining = _requested.GetValueOrDefault(resource) - 1;
             if (remaining > 0)
@@ -940,8 +962,10 @@ public sealed class TradeRenderer : IDisposable
         _tradeDisabledButtonPaint.Dispose();
         _multActiveFillPaint.Dispose();
         _multInactiveFillPaint.Dispose();
+        _multTempFillPaint.Dispose();
         _multActiveBorderPaint.Dispose();
         _multInactiveBorderPaint.Dispose();
+        _multTempBorderPaint.Dispose();
         _rowBorderPaint.Dispose();
         _resourceRowPaint.Dispose();
         _checkboxFillPaint.Dispose();
