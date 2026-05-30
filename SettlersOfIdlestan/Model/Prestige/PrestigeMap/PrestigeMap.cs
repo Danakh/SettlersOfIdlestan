@@ -59,7 +59,13 @@ public class PrestigeMap
 
     // Default cost formula: central = 10, others = 10 + distance² × 5.
     public static int DefaultCost(int distanceFromCenter)
-        => distanceFromCenter == 0 ? 10 : 10 + distanceFromCenter * distanceFromCenter * 5;
+    {
+        int[] costPerDistance = new int[] { 10, 25, 100, 400, 2000, 10000 };
+        int len = costPerDistance.Length;
+        return distanceFromCenter < len
+            ? costPerDistance[distanceFromCenter]
+            : costPerDistance[len - 1] * (int)Math.Pow(10, distanceFromCenter + 1 - len);
+    }
 
     public static PrestigeMap CreateDefault()
     {
