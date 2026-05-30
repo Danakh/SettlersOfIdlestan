@@ -10,7 +10,7 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay.Popup;
 public sealed class PrestigeRenderer : IDisposable
 {
     private const float PopupWidth = 460;
-    private const float PopupHeight = 360;
+    private const float PopupHeight = 420;
     private const float Padding = 18;
     private const float ButtonHeight = 36;
     private const float CloseSize = 28;
@@ -67,8 +67,10 @@ public sealed class PrestigeRenderer : IDisposable
 
         var controller = _gameControllerService.MainGameController.PrestigeController;
         var sources = controller.GetPrestigePointSources();
+        bool wondersUnlocked = controller.WondersUnlocked();
         float y = popup.Top + 68;
-        float listBottom = popup.Bottom - 152;
+        // listBottom adjusts to leave room for bonus rows
+        float listBottom = wondersUnlocked ? popup.Bottom - 156 : popup.Bottom - 126;
         int maxVisibleSources = Math.Max(0, (int)((listBottom - y) / SourceRowHeight));
         foreach (var source in sources.Take(maxVisibleSources))
         {
@@ -83,19 +85,27 @@ public sealed class PrestigeRenderer : IDisposable
             canvas.DrawText(string.Format(_localization.Get("prestige_more_sources"), hiddenSourceCount), popup.Left + Padding, y, _font, _mutedTextPaint);
         }
 
-        float sep1Y = popup.Bottom - 134;
-        canvas.DrawLine(popup.Left + Padding, sep1Y, popup.Right - Padding, sep1Y, _separatorPaint);
+        // Bandits (always shown)
+        canvas.DrawLine(popup.Left + Padding, popup.Bottom - 142, popup.Right - Padding, popup.Bottom - 142, _separatorPaint);
+        canvas.DrawText(_localization.Get("prestige_bandit_bonus"), popup.Left + Padding, popup.Bottom - 128, _font, _mutedTextPaint);
+        canvas.DrawText("×1.2", popup.Right - Padding, popup.Bottom - 128, SKTextAlign.Right, _boldFont, _mutedTextPaint);
 
-        int banditBonus = controller.GetBanditBonus();
-        canvas.DrawText(_localization.Get("prestige_bandit_bonus"), popup.Left + Padding, popup.Bottom - 118, _font, _mutedTextPaint);
-        canvas.DrawText($"+{banditBonus}", popup.Right - Padding, popup.Bottom - 118, SKTextAlign.Right, _boldFont, _mutedTextPaint);
+        // Wonder (shown when unlocked)
+        if (wondersUnlocked)
+        {
+            canvas.DrawLine(popup.Left + Padding, popup.Bottom - 114, popup.Right - Padding, popup.Bottom - 114, _separatorPaint);
+            var (wonderLevel, timeFactor, runTicks) = controller.GetWonderBonusDetails();
+            string duration = FormatRunDuration(runTicks);
+            string wonderLabel = _localization.GetFormated("prestige_wonder_bonus", wonderLevel, timeFactor, duration);
+            canvas.DrawText(wonderLabel, popup.Left + Padding, popup.Bottom - 100, _font, _mutedTextPaint);
+            canvas.DrawText($"×{wonderLevel * timeFactor}", popup.Right - Padding, popup.Bottom - 100, SKTextAlign.Right, _boldFont, _mutedTextPaint);
+        }
 
-        float sep2Y = popup.Bottom - 104;
-        canvas.DrawLine(popup.Left + Padding, sep2Y, popup.Right - Padding, sep2Y, _separatorPaint);
-
+        // Total (fixed position, always well above the button)
+        canvas.DrawLine(popup.Left + Padding, popup.Bottom - 86, popup.Right - Padding, popup.Bottom - 86, _separatorPaint);
         var total = controller.CalculatePrestigePoints();
-        canvas.DrawText(_localization.Get("prestige_total"), popup.Left + Padding, popup.Bottom - 88, _boldFont, _textPaint);
-        canvas.DrawText(total.ToString(), popup.Right - Padding, popup.Bottom - 88, SKTextAlign.Right, _boldFont, _textPaint);
+        canvas.DrawText(_localization.Get("prestige_total"), popup.Left + Padding, popup.Bottom - 72, _boldFont, _textPaint);
+        canvas.DrawText(total.ToString(), popup.Right - Padding, popup.Bottom - 72, SKTextAlign.Right, _boldFont, _textPaint);
 
         bool canPrestige = controller.PrestigeIsAvailable();
         bool hasEnoughPoints = controller.CalculatePrestigePoints() >= PrestigeController.PrestigeRequiredPoints;
@@ -144,6 +154,16 @@ public sealed class PrestigeRenderer : IDisposable
         }
 
         return true;
+    }
+
+    private static string FormatRunDuration(long ticks)
+    {
+        int totalMinutes = (int)(ticks / 6000);
+        int hours = totalMinutes / 60;
+        int minutes = totalMinutes % 60;
+        if (hours > 0 && minutes > 0) return $"{hours}h{minutes:D2}m";
+        if (hours > 0) return $"{hours}h";
+        return $"{Math.Max(1, minutes)}m";
     }
 
     private SKRect GetPopupRect()

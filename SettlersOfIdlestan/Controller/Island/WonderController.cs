@@ -45,8 +45,8 @@ namespace SettlersOfIdlestan.Controller.Island
                 { Resource.Wood,  5000 * level * level },
                 { Resource.Brick, 5000 * level * level },
                 { Resource.Stone, 5000 * level * level },
-                { Resource.Ore,   200  * level * level },
-                { Resource.Gold,  100  * level * level },
+                { Resource.Ore,   1000 * level * level },
+                { Resource.Gold,  500  * level * level },
             };
         }
 
