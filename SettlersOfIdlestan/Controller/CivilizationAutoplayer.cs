@@ -382,11 +382,11 @@ namespace SettlersOfIdlestan.Controller
 
             if (shouldExpand)
             {
-                // Expand road network: target distance 3 first (unlocks new city slots), fall back to nearest
-                var d3 = _roadController.GetBuildableRoadsAtDistance(_civ.Index, 3);
-                var nextRoad = (d3 != null && d3.Any())
-                    ? d3[0]
-                    : _roadController.GetBuildableRoads(_civ.Index).OrderBy(r => r.DistanceToNearestCity).FirstOrDefault();
+                // Push frontier outward: highest distance first opens new city slots fastest.
+                // "Nearest first" would keep filling gaps near existing cities instead of exploring.
+                var nextRoad = _roadController.GetBuildableRoads(_civ.Index)
+                    .OrderByDescending(r => r.DistanceToNearestCity)
+                    .FirstOrDefault();
                 if (nextRoad != null && TryBuildRoadOnce(nextRoad.Position, withGrind: false))
                     didSomething = true;
             }
