@@ -127,5 +127,19 @@ public static class TutorialStepDefinitions
                 Task(TutorialTaskId.Reach30VictoryPoints),
             }
         ),
+
+        new TutorialStep(
+            "tutorial_step_research_title",
+            "tutorial_step_research_desc",
+            primaryTasks: new[]
+            {
+                Task(TutorialTaskId.BuyResearchVertex),
+                Task(TutorialTaskId.CompleteFirstResearch),
+            },
+            secondaryTasks: new[]
+            {
+                Task(TutorialTaskId.BuildLibraryLevel2),
+            }
+        ),
     };
 }

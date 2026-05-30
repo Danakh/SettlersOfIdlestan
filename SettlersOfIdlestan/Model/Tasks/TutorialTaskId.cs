@@ -25,4 +25,7 @@ public enum TutorialTaskId
     Reach20VictoryPoints,
     PerformPrestige,
     Reach30VictoryPoints,
+    BuyResearchVertex,
+    CompleteFirstResearch,
+    BuildLibraryLevel2,
 }
