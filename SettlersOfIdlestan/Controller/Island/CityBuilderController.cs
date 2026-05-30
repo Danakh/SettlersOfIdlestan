@@ -185,14 +185,14 @@ namespace SettlersOfIdlestan.Controller.Island
             _state.RecalculateVisibleIslandMap(civilizationIndex);
 
             var cityHexSet = new HashSet<HexCoord>(city.Position.GetHexes());
-            foreach (var trove in _state.Features.OfType<TreasureTrove>())
+            var claimedTroves = _state.Features.OfType<TreasureTrove>()
+                .Where(t => cityHexSet.Contains(t.Position))
+                .ToList();
+            foreach (var trove in claimedTroves)
             {
-                if (!trove.Claimed && cityHexSet.Contains(trove.Position))
-                {
-                    trove.Claimed = true;
-                    civ.AddResource(Resource.Gold, 10);
-                    _state.EventLog.Add(trove.RemovedEventType);
-                }
+                _state.EventLog.Add(trove.RemovedEventType);
+                _state.RemoveFeature(trove);
+                civ.AddResource(Resource.Gold, 10);
             }
 
             OnCityBuilt?.Invoke(this, new OutpostAutoBuiltEventArgs(civilizationIndex, vertex));
