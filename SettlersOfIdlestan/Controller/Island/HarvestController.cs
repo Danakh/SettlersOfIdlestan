@@ -343,12 +343,7 @@ namespace SettlersOfIdlestan.Controller.Island
             if (!civ.SeaportAutoTradeResources.Contains(res)) return;
             if (civ.GetResourceQuantity(res) + 1 <= civ.GetResourceMaxQuantity(res)) return;
 
-            var weakest = ResourceUtils.BasicResources
-                .Where(r => r != res)
-                .OrderBy(r => civ.GetResourceQuantity(r))
-                .FirstOrDefault();
-
-            _tradeController.Trade(civ.Index, res, weakest);
+            _tradeController.SellResource(civ.Index, res);
         }
 
         /// <summary>

@@ -10,7 +10,7 @@ namespace SOITests.ControllerTests
     public class TradeControllerTests
     {
         [Fact]
-        public void Trade_NotAvailableWithoutMarketOrSeaport()
+        public void Trade_NotAvailableWithoutMarket()
         {
             IslandState state = IslandTestFactory.CreateSevenHexIslandState();
             var civ = state.Civilizations[0];
@@ -19,13 +19,12 @@ namespace SOITests.ControllerTests
 
             Assert.False(controller.IsTradeAvailable(0));
 
-            // can't trade when not available
-            civ.AddResource(Resource.Wood, 4);
-            Assert.False(controller.Trade(0, Resource.Wood, Resource.Brick));
+            civ.AddResource(Resource.Wood, 5);
+            Assert.False(controller.SellResource(0, Resource.Wood));
         }
 
         [Fact]
-        public void Trade_WithMarket_PerformsTrade()
+        public void SellResource_WithMarket_ConvertsToGold()
         {
             IslandState state = IslandTestFactory.CreateSevenHexIslandState();
             var civ = state.Civilizations[0];
@@ -36,22 +35,38 @@ namespace SOITests.ControllerTests
 
             Assert.True(controller.IsTradeAvailable(0));
 
-            controller.Trade(0, Resource.Wood, Resource.Brick);
+            bool result = controller.SellResource(0, Resource.Wood);
 
+            Assert.True(result);
             Assert.Equal(0, civ.GetResourceQuantity(Resource.Wood));
-            Assert.Equal(1, civ.GetResourceQuantity(Resource.Brick));
+            Assert.Equal(1, civ.GetResourceQuantity(Resource.Gold));
         }
 
         [Fact]
-        public void TryAutoTradeForPurchase_PerformsTradeWhenPossible()
+        public void BuyResource_BasicResource_CostsOneGold()
+        {
+            IslandState state = IslandTestFactory.CreateSevenHexIslandState();
+            var civ = state.Civilizations[0];
+            civ.Cities[0].Buildings.Add(new Market());
+            civ.AddResource(Resource.Gold, 3);
+
+            var controller = new TradeController(state);
+
+            Assert.True(controller.CanBuyResource(0, Resource.Brick, 3));
+            controller.BuyResource(0, Resource.Brick, 3);
+
+            Assert.Equal(0, civ.GetResourceQuantity(Resource.Gold));
+            Assert.Equal(3, civ.GetResourceQuantity(Resource.Brick));
+        }
+
+        [Fact]
+        public void TryAutoTradeForPurchase_SellsSurplusAndBuysInOneStep()
         {
             IslandState state = IslandTestFactory.CreateSevenHexIslandState();
             var civ = state.Civilizations[0];
             civ.Cities[0].Buildings.Add(new Market());
 
-            // Owned: wood 8, brick 0, sheep 1
             civ.AddResource(Resource.Wood, 10);
-            civ.AddResource(Resource.Food, 1);
 
             var controller = new TradeController(state);
 
@@ -60,13 +75,12 @@ namespace SOITests.ControllerTests
                 { Resource.Food, 1 }
             };
 
+            // One call: sells 5 Wood → 1 gold, then immediately buys 1 Brick (1 gold → 1 Brick)
             var result = controller.TryAutoTradeForPurchase(0, required);
             Assert.True(result);
-
-            // After trade, one brick should be present and wood decreased by 4
             Assert.Equal(5, civ.GetResourceQuantity(Resource.Wood));
+            Assert.Equal(0, civ.GetResourceQuantity(Resource.Gold));
             Assert.Equal(1, civ.GetResourceQuantity(Resource.Brick));
-            Assert.Equal(1, civ.GetResourceQuantity(Resource.Food));
         }
 
         [Fact]
@@ -76,7 +90,7 @@ namespace SOITests.ControllerTests
             var civ = state.Civilizations[0];
             civ.Cities[0].Buildings.Add(new Market());
 
-            // Owned: wood 3 only (not enough to trade)
+            // Not enough wood to sell (need 5, have 3)
             civ.AddResource(Resource.Wood, 3);
 
             var controller = new TradeController(state);
@@ -117,28 +131,30 @@ namespace SOITests.ControllerTests
         }
 
         [Fact]
-        public void BuyRate_OreIsOne_OthersAreDefault()
+        public void BuyRate_BasicIsOne_OreIsFive_AdvancedIsTwenty()
         {
             var controller = new TradeController();
 
-            Assert.Equal(1, controller.BuyRate(Resource.Ore));
-            Assert.Equal(5, controller.BuyRate(Resource.Glass));
-            Assert.Equal(5, controller.BuyRate(Resource.Crystal));
+            Assert.Equal(1, controller.BuyRate(Resource.Wood));
+            Assert.Equal(1, controller.BuyRate(Resource.Brick));
+            Assert.Equal(5, controller.BuyRate(Resource.Ore));
+            Assert.Equal(20, controller.BuyRate(Resource.Glass));
+            Assert.Equal(20, controller.BuyRate(Resource.Crystal));
         }
 
         [Fact]
-        public void BuyAdvancedResource_Ore_CostsOneGold()
+        public void BuyResource_Ore_CostsFiveGold()
         {
             IslandState state = IslandTestFactory.CreateSevenHexIslandState();
             var civ = state.Civilizations[0];
             civ.Cities[0].Buildings.Add(new Market());
-            civ.Cities[0].Buildings.Add(new TownHall { Level = 3 }); // city.Level=3 → advancedCityResourceMax=1 → Ore has capacity
-            civ.AddResource(Resource.Gold, 3);
+            civ.Cities[0].Buildings.Add(new TownHall { Level = 3 }); // city.Level=3 → Ore has capacity
+            civ.AddResource(Resource.Gold, 15);
 
             var controller = new TradeController(state);
 
-            Assert.True(controller.CanBuyAdvancedResource(0, Resource.Ore, 3));
-            controller.BuyAdvancedResource(0, Resource.Ore, 3);
+            Assert.True(controller.CanBuyResource(0, Resource.Ore, 3));
+            controller.BuyResource(0, Resource.Ore, 3);
 
             Assert.Equal(0, civ.GetResourceQuantity(Resource.Gold));
             Assert.Equal(3, civ.GetResourceQuantity(Resource.Ore));
