@@ -12,12 +12,12 @@ namespace SOITests.IslandMapTests;
 
 public class NpcCivilizationPlacementTests
 {
-    private static readonly IEnumerable<(TerrainType, int)> TileData32 =
+    private static readonly IEnumerable<(TerrainType, int)> TileData40 =
     [
-        (TerrainType.Forest,   8),
-        (TerrainType.Hill,     8),
-        (TerrainType.Plain,    8),
-        (TerrainType.Mountain, 8),
+        (TerrainType.Forest,   10),
+        (TerrainType.Hill,     10),
+        (TerrainType.Plain,    10),
+        (TerrainType.Mountain, 10),
     ];
 
     private const int MinEdgeDistance = 7;
@@ -27,7 +27,7 @@ public class NpcCivilizationPlacementTests
     {
         var parameters = new IslandParameters(
             islandID: 0,
-            tileData: TileData32,
+            tileData: TileData40,
             civilizationCount: 1,
             shapeType: shape)
         {

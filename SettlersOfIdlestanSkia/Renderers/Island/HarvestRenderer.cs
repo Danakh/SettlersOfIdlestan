@@ -49,7 +49,7 @@ public class HarvestRenderer : IGameRenderer
             _particleSystem.EmitParticles(hexCenter, cityCenter, args.Resources);
         };
 
-        harvestService.OnMarketResourceGenerated += (_, args) =>
+        harvestService.OnRandomResourceGenerated += (_, args) =>
         {
             if (isPrestigeTransitionPending()) return;
             if (!isIslandTabActive()) return;

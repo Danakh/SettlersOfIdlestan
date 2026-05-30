@@ -19,7 +19,7 @@ public class IslandShapeGeneratorArchipelago : IslandShapeGenerator
     public override IReadOnlyList<HexCoord> GenerateCoords(int count)
     {
         if (count < 4)
-            return new IslandShapeGeneratorCompact().GenerateCoords(count);
+            return new IslandShapeGeneratorCompact(_prng).GenerateCoords(count);
 
         int numIslands = Math.Max(2, count / TargetIslandSize);
         int[] islandSizes = DistributeSizes(count, numIslands);

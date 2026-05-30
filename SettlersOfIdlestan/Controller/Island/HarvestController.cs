@@ -60,7 +60,9 @@ namespace SettlersOfIdlestan.Controller.Island
         // 5 s × 100 ticks/s
         public const long AutomaticHarvestCooldownTicks = 500L;
         // 10 s × 100 ticks/s
-        public const long MarketGenerationCooldownTicks = 1000L;
+        public const long SeaportGenerationCooldownTicks = 1000L;
+        // 60 s × 100 ticks/s
+        public const long MarketGoldGenerationCooldownTicks = 6000L;
 
         private GamePRNG _prng = new();
 
@@ -68,7 +70,7 @@ namespace SettlersOfIdlestan.Controller.Island
         private readonly System.Collections.Generic.Dictionary<int, System.Collections.Generic.List<ProductionEntry>> _productionCache = new();
 
         public event EventHandler<HarvestCompletedEventArgs>? OnHarvestCompleted;
-        public event EventHandler<MarketGenerationEventArgs>? OnMarketResourceGenerated;
+        public event EventHandler<MarketGenerationEventArgs>? OnRandomResourceGenerated;
 
         internal HarvestController(IslandState? state = null, GameClock? clock = null)
         {
@@ -95,7 +97,9 @@ namespace SettlersOfIdlestan.Controller.Island
         {
             try { PerformAutomaticProductionHarvests(); }
             catch { }
-            try { PerformMarketGenerations(); }
+            try { PerformSeaportGenerations(); }
+            catch { }
+            try { PerformMarketGoldGenerations(); }
             catch { }
         }
 
@@ -205,7 +209,37 @@ namespace SettlersOfIdlestan.Controller.Island
             return entries;
         }
 
-        private void PerformMarketGenerations()
+        private void PerformSeaportGenerations()
+        {
+            if (_state == null || _clock == null) return;
+            long now = _clock.CurrentTick;
+
+            foreach (var civ in _state.Civilizations)
+            {
+                foreach (var city in civ.Cities)
+                {
+                    var seaport = city.Buildings.OfType<Seaport>().FirstOrDefault();
+                    if (seaport == null || seaport.Level < 3) continue;
+
+                    if (seaport.LastGenerationTick == 0)
+                    {
+                        seaport.LastGenerationTick = now;
+                        continue;
+                    }
+                    long effectiveCooldown = GetEffectiveSeaportGenerationCooldown(seaport);
+
+                    if (now - seaport.LastGenerationTick < effectiveCooldown) continue;
+
+                    var resource = ResourceUtils.BasicResources[_prng.Next(ResourceUtils.BasicResources.Count)];
+                    TryAutoTradeOnOverflow(civ, resource);
+                    civ.AddResource(resource, 1);
+                    seaport.LastGenerationTick = now;
+                    OnRandomResourceGenerated?.Invoke(this, new MarketGenerationEventArgs(civ.Index, resource, city.Position));
+                }
+            }
+        }
+
+        private void PerformMarketGoldGenerations()
         {
             if (_state == null || _clock == null) return;
             long now = _clock.CurrentTick;
@@ -217,29 +251,25 @@ namespace SettlersOfIdlestan.Controller.Island
                     var market = city.Buildings.OfType<Market>().FirstOrDefault();
                     if (market == null || market.Level == 0) continue;
 
-                    if (market.LastGenerationTick == 0)
+                    if (market.LastGoldGenerationTick == 0)
                     {
-                        market.LastGenerationTick = now;
+                        market.LastGoldGenerationTick = now;
                         continue;
                     }
-                    long effectiveCooldown = GetEffectiveMarketCooldown(market, civ);
 
-                    if (now - market.LastGenerationTick < effectiveCooldown) continue;
+                    if (now - market.LastGoldGenerationTick < MarketGoldGenerationCooldownTicks) continue;
 
-                    var resource = ResourceUtils.BasicResources[_prng.Next(ResourceUtils.BasicResources.Count)];
-                    TryAutoTradeOnOverflow(civ, resource);
-                    civ.AddResource(resource, 1);
-                    market.LastGenerationTick = now;
-                    OnMarketResourceGenerated?.Invoke(this, new MarketGenerationEventArgs(civ.Index, resource, city.Position));
+                    civ.AddResource(Resource.Gold, 1);
+                    market.LastGoldGenerationTick = now;
+                    OnRandomResourceGenerated?.Invoke(this, new MarketGenerationEventArgs(civ.Index, Resource.Gold, city.Position));
                 }
             }
         }
 
-        public static long GetEffectiveMarketCooldown(Market market, Civilization civ)
+        public static long GetEffectiveSeaportGenerationCooldown(Seaport seaport)
         {
-            double multiplier = market.BaseProductionCooldownMutiplier();
-            multiplier = civ.ModifierAggregator.ApplyModifiers(ECategory.BUILDING_PRODUCTION, "Market", multiplier);
-            return Math.Max(1L, (long)(MarketGenerationCooldownTicks * multiplier));
+            double multiplier = seaport.GetGenerationCooldownMultiplier();
+            return Math.Max(1L, (long)(SeaportGenerationCooldownTicks * multiplier));
         }
 
         public IReadOnlyList<Resource> GetManualHarvestableResources(int civilizationIndex, HexCoord hex)
@@ -368,12 +398,18 @@ namespace SettlersOfIdlestan.Controller.Island
 
             foreach (var city in civ.Cities)
             {
+                var seaport = city.Buildings.OfType<Seaport>().FirstOrDefault();
+                if (seaport != null && seaport.Level >= 3)
+                {
+                    long effectiveCooldown = GetEffectiveSeaportGenerationCooldown(seaport);
+                    double seaportRate = 100.0 / effectiveCooldown;
+                    foreach (var basicResource in ResourceUtils.BasicResources)
+                        AddProductionRate(result, basicResource, seaportRate / ResourceUtils.BasicResources.Count);
+                }
+
                 var market = city.Buildings.OfType<Market>().FirstOrDefault();
-                if (market == null || market.Level == 0) continue;
-                long effectiveCooldown = GetEffectiveMarketCooldown(market, civ);
-                double marketRate = 100.0 / effectiveCooldown;
-                foreach (var basicResource in ResourceUtils.BasicResources)
-                    AddProductionRate(result, basicResource, marketRate / ResourceUtils.BasicResources.Count);
+                if (market != null && market.Level > 0)
+                    AddProductionRate(result, Resource.Gold, 100.0 / MarketGoldGenerationCooldownTicks);
             }
 
             return result;

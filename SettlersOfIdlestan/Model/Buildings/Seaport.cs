@@ -48,25 +48,18 @@ public class Seaport : Building
 
     public override ResourceSet GetUpgradeCost(int level)
     {
-        if (level == 2)
+        return new ResourceSet
         {
-            return new ResourceSet
-            {
-                { Resource.Food, 10 },
-                { Resource.Wood, 30 },
-                { Resource.Stone, 20 }
-            };
-        }
-        else
-        {
-            return new ResourceSet
-            {
-                { Resource.Food, 20 * (level + 1) },
-                { Resource.Wood, 30 + 20 * (level + 1) },
-                { Resource.Stone, 20 + 40 * (level + 1) }
-            };
-        }
+            { Resource.Food, 5 * (level + 1) },
+            { Resource.Wood, 10 * (level + 1) },
+        };
     }
+
+    public long LastGenerationTick { get; set; } = 0;
+
+    // Chaque niveau au-delà de 3 multiplie le temps de génération par 0.8.
+    public double GetGenerationCooldownMultiplier() =>
+        Level >= 3 ? Math.Pow(0.8, Level - 3) : 1.0;
 
     public override bool IsBuildingAvailableForCity(IslandMap.IslandMap map, City city)
     {

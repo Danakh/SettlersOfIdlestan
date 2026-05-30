@@ -49,7 +49,7 @@ public class IslandMapGenerator
         bool hasHill = tileList.Contains(TerrainType.Hill);
         bool hasForest = tileList.Contains(TerrainType.Forest);
 
-        shapeGenerator ??= new IslandShapeGeneratorCompact();
+        shapeGenerator ??= new IslandShapeGeneratorCompact(_prng);
 
         // Generate land coordinates from shape
         var coords = shapeGenerator.GenerateCoords(tileList.Count);
@@ -106,7 +106,7 @@ public class IslandMapGenerator
             IslandShapeType.Crescent    => new IslandShapeGeneratorCrescent(),
             IslandShapeType.Archipelago => new IslandShapeGeneratorArchipelago(_prng),
             IslandShapeType.Elongated   => new IslandShapeGeneratorElongated(_prng),
-            _                           => new IslandShapeGeneratorCompact()
+            _                           => new IslandShapeGeneratorCompact(_prng)
         };
 
         var civs = new List<Civilization> { new Civilization { Index = 0 } };

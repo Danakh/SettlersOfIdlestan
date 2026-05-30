@@ -1,54 +1,53 @@
-using System;
 using System.Collections.Generic;
 using SettlersOfIdlestan.Model.HexGrid;
+using SettlersOfIdlestan.Model.Game;
 
 namespace SettlersOfIdlestan.Controller.Generator;
 
-/// <summary>
-/// Generates a compact (roughly circular) island shape using a spiral coordinate layout.
-/// </summary>
 public class IslandShapeGeneratorCompact : IslandShapeGenerator
 {
+    private readonly GamePRNG _prng;
+
+    public IslandShapeGeneratorCompact(GamePRNG prng)
+    {
+        _prng = prng;
+    }
+
     public override IReadOnlyList<HexCoord> GenerateCoords(int count)
     {
-        var result = new List<HexCoord>(count);
-        foreach (var coord in GenerateSpiralCoords(count))
-            result.Add(coord);
-        return result;
+        if (count <= 0) return [];
+
+        var origin = new HexCoord(0, 0);
+        var island = new List<HexCoord>(count) { origin };
+        var allLand = new HashSet<HexCoord> { origin };
+
+        GrowIsland(island, count, allLand);
+        return island;
     }
 
-    private static IEnumerable<HexCoord> GenerateSpiralCoords(int count)
+    private void GrowIsland(List<HexCoord> island, int targetSize, HashSet<HexCoord> allLand)
     {
-        if (count <= 0) yield break;
-        yield return new HexCoord(0, 0);
-        if (count == 1) yield break;
+        int stuckLimit = (targetSize + 1) * 6;
+        int stuckCount = 0;
 
-        int radius = 1;
-        int yielded = 1;
-        while (yielded < count)
+        while (island.Count < targetSize && stuckCount < stuckLimit)
         {
-            foreach (var coord in GenerateRingCoords(radius))
-            {
-                yield return coord;
-                yielded++;
-                if (yielded >= count) yield break;
-            }
-            radius++;
-        }
-    }
+            int idx = _prng.Next(island.Count);
+            var hex = island[idx];
+            bool addedAny = false;
 
-    private static IEnumerable<HexCoord> GenerateRingCoords(int radius)
-    {
-        for (int q = -radius; q <= radius; q++)
-        {
-            int r1 = Math.Max(-radius, -q - radius);
-            int r2 = Math.Min(radius, -q + radius);
-            for (int r = r1; r <= r2; r++)
+            foreach (var dir in HexDirectionUtils.AllHexDirections)
             {
-                int s = -q - r;
-                if (Math.Abs(q) + Math.Abs(r) + Math.Abs(s) == 2 * radius)
-                    yield return new HexCoord(q, r);
+                if (island.Count >= targetSize) break;
+                var nb = hex.Neighbor(dir);
+                if (allLand.Contains(nb)) continue;
+
+                island.Add(nb);
+                allLand.Add(nb);
+                addedAny = true;
             }
+
+            stuckCount = addedAny ? 0 : stuckCount + 1;
         }
     }
 }
