@@ -4,6 +4,7 @@ using System.Linq;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
+using SettlersOfIdlestan.Model.GameplayModifier;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
 
@@ -34,6 +35,8 @@ public class NpcCivilizationPlacer
         var allOccupied = new List<Vertex> { state.PlayerCivilization.Cities[0].Position };
         var validVertices = FindValidCityVertices(state.Map);
 
+        var npcModifiers = NpcModifierSetMaker.Create(maxTechTier: 3, maxPrestigeDistance: 2);
+
         foreach (var civ in npcCivs)
         {
             var initialVertex = FindBestVertex(validVertices, allOccupied);
@@ -41,6 +44,7 @@ public class NpcCivilizationPlacer
 
             allOccupied.Add(initialVertex);
             PopulateMinimumNpc(state.Map, civ, initialVertex);
+            civ.SetupModifierAggregator(npcModifiers);
         }
 
         bool needsExpansion = npcCivs.Any(c =>
@@ -58,7 +62,8 @@ public class NpcCivilizationPlacer
             var level = civ.NpcParameters?.EvolutionLevel ?? NpcEvolutionLevel.Minimum;
             if (level == NpcEvolutionLevel.Minimum) continue;
 
-            var autoplayer = new CivilizationAutoplayer(civ, state.Map, mainController);
+            var aggressivity = civ.NpcParameters?.AggressivityLevel ?? NpcAggressivityLevel.Cautious;
+            var autoplayer = new NpcCivilizationAutoplayer(civ, state.Map, mainController, aggressivity);
             ExpandNpcWithAutoplayer(autoplayer, civ, level);
         }
 
@@ -159,14 +164,14 @@ public class NpcCivilizationPlacer
     };
 
     private static void ExpandNpcWithAutoplayer(
-        CivilizationAutoplayer autoplayer, Civilization civ, NpcEvolutionLevel level)
+        NpcCivilizationAutoplayer autoplayer, Civilization civ, NpcEvolutionLevel level)
     {
         int target = TargetCityCount(level);
 
         for (int i = 0; i < MaxExpandIterations; i++)
         {
             FillMaxResources(civ);
-            autoplayer.TryStep1Once(shouldExpand: civ.Cities.Count < target);
+            autoplayer.TryStepOnce(shouldExpand: civ.Cities.Count < target);
         }
 
         if (level >= NpcEvolutionLevel.Medium)
@@ -174,7 +179,7 @@ public class NpcCivilizationPlacer
             for (int i = 0; i < MaxExpandIterations; i++)
             {
                 FillMaxResources(civ);
-                autoplayer.TryStep2Once(shouldExpand: false);
+                autoplayer.Inner.TryStep2Once(shouldExpand: false);
             }
         }
 

@@ -77,8 +77,8 @@ public class TutorialRenderer : IGameRenderer
         float secondaryGapH   = hasSecondary ? 8f : 0f;
         float secondaryLabelH = hasSecondary ? _optionalFont.Spacing + 2f : 0f;
         float secondaryTasksH = _step.SecondaryTasks.Count * (_taskFont.Spacing + 2f);
-        float panelH          = PanelPadding + titleH + descH + separatorH + primaryTasksH + secondaryGapH + secondaryLabelH + secondaryTasksH + PanelPadding;
-        float panelTop   = _canvasSize.Height / 5f;
+        float panelH   = PanelPadding + titleH + descH + separatorH + primaryTasksH + secondaryGapH + secondaryLabelH + secondaryTasksH + PanelPadding;
+        float panelTop = _canvasSize.Height - panelH - 10f;
 
         var panelRect = new SKRect(PanelLeft, panelTop, PanelLeft + PanelWidth, panelTop + panelH);
 
