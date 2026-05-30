@@ -20,6 +20,7 @@ public enum TutorialTaskId
     BuildImperialPort,
     Build2Warehouses,
     Build1Warehouse,
+    BuildMarket,
     Trade10Gold,
     Build3Warehouses,
     Reach20VictoryPoints,
