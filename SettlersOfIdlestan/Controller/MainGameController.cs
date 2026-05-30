@@ -208,8 +208,10 @@ namespace SettlersOfIdlestan.Controller
                 // Invalide le cache de production dès qu'un bâtiment est construit/amélioré ou une ville créée
                 BuildingController.OnBuildingBuilt -= OnBuildingChangedInvalidateHarvestCache;
                 CityBuilderController.OnCityBuilt -= OnCityBuiltInvalidateHarvestCache;
+                MilitaryController.CityDestroyed -= OnCityDestroyedRefreshContested;
                 BuildingController.OnBuildingBuilt += OnBuildingChangedInvalidateHarvestCache;
                 CityBuilderController.OnCityBuilt += OnCityBuiltInvalidateHarvestCache;
+                MilitaryController.CityDestroyed += OnCityDestroyedRefreshContested;
                 prestigeState?.TechnologyTree.RebuildModifiers();
 
                 var gameRecord = CurrentMainState!.GameRecord;
@@ -228,6 +230,9 @@ namespace SettlersOfIdlestan.Controller
             FeatureController.RefreshContestedTerritories();
             HarvestController.InvalidateProductionCache();
         }
+
+        private void OnCityDestroyedRefreshContested(object? sender, CityDestroyedEventArgs e)
+            => FeatureController.RefreshContestedTerritories();
 
         private void SetupModifierAggregators()
         {
