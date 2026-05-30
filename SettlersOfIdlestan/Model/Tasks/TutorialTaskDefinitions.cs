@@ -149,6 +149,11 @@ public static class TutorialTaskDefinitions
                 || CountBuilding(island, BuildingType.Warehouse) >= 3,
             (g, _, island) => (LiveMax(g.BuildingCounts.GetValueOrDefault("Warehouse"), CountBuilding(island, BuildingType.Warehouse)), 3)),
 
+        new TutorialTask(TutorialTaskId.Reach20VictoryPoints,
+            "task_reach_20_victory_points_name", "task_reach_20_victory_points_desc",
+            (g, _, island) => g.TotalPrestigesPerformed >= 1 || ComputeVictoryPoints(island) >= 20,
+            (g, _, island) => (g.TotalPrestigesPerformed >= 1 ? 20 : ComputeVictoryPoints(island), 20)),
+
         new TutorialTask(TutorialTaskId.PerformPrestige,
             "task_perform_prestige_name", "task_perform_prestige_desc",
             (g, _, _) => g.TotalPrestigesPerformed >= 1),
