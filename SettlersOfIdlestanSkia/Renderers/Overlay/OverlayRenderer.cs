@@ -477,7 +477,17 @@ public sealed class OverlayRenderer : IGameRenderer
     {
         if (!_isVisible) return;
         if (_activeTab == TabPrestige)
+        {
             _prestigeMapRenderer.HandleZoom(e);
+            return;
+        }
+        if (_activeTab == TabIsland)
+        {
+            if (_selectedCityPanelRenderer.ContainsPoint(e.Center))
+                _selectedCityPanelRenderer.HandleScroll(e.ZoomDelta);
+            else if (_selectedWonderPanelRenderer.ContainsPoint(e.Center))
+                _selectedWonderPanelRenderer.HandleScroll(e.ZoomDelta);
+        }
     }
 
     private void HandleKeyInput(object? sender, KeyEventArgs e)
