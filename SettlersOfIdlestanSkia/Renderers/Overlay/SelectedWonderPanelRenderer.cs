@@ -41,10 +41,22 @@ public class SelectedWonderPanelRenderer : IGameRenderer
 
     private SKRect _panelBounds = SKRect.Empty;
     private SKRect _closeRect = SKRect.Empty;
+    private SKRect _collapseTabRect = SKRect.Empty;
     private readonly Dictionary<SKRect, Resource> _checkboxRects = new();
+    private SKPaint? _collapseTabPaint;
+    private SKPaint? _scrollTrackPaint;
+    private SKPaint? _scrollThumbPaint;
+    private bool _collapsed = false;
+    private int _scrollOffset = 0;
+    private int _lastResourceCount = 0;
+    private int _lastVisibleCount = 0;
+    private const float CollapseTabW = 14f;
+    private const float CollapseTabH = 24f;
 
     public bool IsInputEnabled { get; set; } = true;
-    public bool ContainsPoint(SKPoint point) => !_panelBounds.IsEmpty && _panelBounds.Contains(point.X, point.Y);
+    public bool ContainsPoint(SKPoint point) =>
+        (!_panelBounds.IsEmpty && _panelBounds.Contains(point.X, point.Y)) ||
+        (!_collapseTabRect.IsEmpty && _collapseTabRect.Contains(point.X, point.Y));
 
     public SelectedWonderPanelRenderer(
         WonderService wonderService,
@@ -76,6 +88,9 @@ public class SelectedWonderPanelRenderer : IGameRenderer
         _barBgPaint = new SKPaint { Color = new SKColor(50, 50, 65, 200), Style = SKPaintStyle.Fill, IsAntialias = true };
         _barFillPaint = new SKPaint { Color = new SKColor(180, 140, 30, 230), Style = SKPaintStyle.Fill, IsAntialias = true };
         _closePaint = new SKPaint { Color = new SKColor(200, 80, 80, 220), Style = SKPaintStyle.Fill, IsAntialias = true };
+        _collapseTabPaint = new SKPaint { Color = new SKColor(30, 30, 40, 220), Style = SKPaintStyle.Fill, IsAntialias = true };
+        _scrollTrackPaint = new SKPaint { Color = new SKColor(50, 50, 65, 200), Style = SKPaintStyle.Fill, IsAntialias = true };
+        _scrollThumbPaint = new SKPaint { Color = new SKColor(130, 130, 165, 210), Style = SKPaintStyle.Fill, IsAntialias = true };
 
         foreach (Resource resource in Enum.GetValues(typeof(Resource)))
         {
@@ -85,12 +100,20 @@ public class SelectedWonderPanelRenderer : IGameRenderer
         }
     }
 
+    public void HandleScroll(float delta)
+    {
+        if (_collapsed) return;
+        int dir = delta > 0 ? -1 : 1;
+        _scrollOffset = Math.Clamp(_scrollOffset + dir, 0, Math.Max(0, _lastResourceCount - _lastVisibleCount));
+    }
+
     public void Render(SKCanvas canvas, GameRenderContext context)
     {
         var wonder = _wonderService.SelectedWonder;
         if (wonder == null)
         {
             _panelBounds = SKRect.Empty;
+            _collapseTabRect = SKRect.Empty;
             _checkboxRects.Clear();
             return;
         }
@@ -99,11 +122,30 @@ public class SelectedWonderPanelRenderer : IGameRenderer
 
         var cost = WonderController.GetLevelCost(wonder.Level + 1);
         int resourceCount = cost.Count;
+        var costList = cost.ToList();
 
         float panelX = _canvasSize.Width - PanelWidth - 10;
         float panelY = 60;
-        float panelHeight = TitleHeight + resourceCount * RowHeight + Padding;
+        float tabTop = panelY + 8f;
 
+        if (_collapsed)
+        {
+            _collapseTabRect = new SKRect(_canvasSize.Width - CollapseTabW, tabTop, _canvasSize.Width, tabTop + CollapseTabH);
+            _panelBounds = _collapseTabRect;
+            canvas.DrawRoundRect(_collapseTabRect, 4, 4, _collapseTabPaint);
+            canvas.DrawRoundRect(_collapseTabRect, 4, 4, _borderPaint);
+            canvas.DrawText("◄", _collapseTabRect.MidX, _collapseTabRect.MidY + 5f, SKTextAlign.Center, _font12, _textPaint);
+            return;
+        }
+
+        float maxPanelHeight = Math.Max(0, _canvasSize.Height - panelY - 20);
+        int visibleResourceCount = Math.Min(resourceCount, Math.Max(0, (int)((maxPanelHeight - TitleHeight - Padding) / RowHeight)));
+        _lastResourceCount = resourceCount;
+        _lastVisibleCount = visibleResourceCount;
+        _scrollOffset = Math.Clamp(_scrollOffset, 0, Math.Max(0, resourceCount - visibleResourceCount));
+        bool needsScrollbar = resourceCount > visibleResourceCount;
+
+        float panelHeight = TitleHeight + visibleResourceCount * RowHeight + Padding;
         _panelBounds = new SKRect(panelX, panelY, panelX + PanelWidth, panelY + panelHeight);
         canvas.DrawRoundRect(panelX, panelY, PanelWidth, panelHeight, 12, 12, _bgPaint);
         canvas.DrawRoundRect(panelX, panelY, PanelWidth, panelHeight, 12, 12, _borderPaint);
@@ -121,7 +163,7 @@ public class SelectedWonderPanelRenderer : IGameRenderer
 
         float y = panelY + TitleHeight;
 
-        foreach (var kvp in cost)
+        foreach (var kvp in costList.Skip(_scrollOffset).Take(visibleResourceCount))
         {
             Resource resource = kvp.Key;
             long required = kvp.Value;
@@ -182,11 +224,39 @@ public class SelectedWonderPanelRenderer : IGameRenderer
 
             y += RowHeight;
         }
+
+        // Scrollbar
+        if (needsScrollbar)
+        {
+            const float scrollW = 5f;
+            float trackX = panelX + PanelWidth - scrollW - 2f;
+            float trackTop = panelY + TitleHeight;
+            float trackH = visibleResourceCount * RowHeight;
+            canvas.DrawRoundRect(trackX, trackTop, scrollW, trackH, 3, 3, _scrollTrackPaint);
+            float thumbH = Math.Max(16f, (float)visibleResourceCount / resourceCount * trackH);
+            float maxScroll = Math.Max(1, resourceCount - visibleResourceCount);
+            float thumbTop = trackTop + (float)_scrollOffset / maxScroll * (trackH - thumbH);
+            canvas.DrawRoundRect(trackX, thumbTop, scrollW, thumbH, 3, 3, _scrollThumbPaint);
+        }
+
+        // Onglet collapse
+        _collapseTabRect = new SKRect(panelX - CollapseTabW, tabTop, panelX, tabTop + CollapseTabH);
+        canvas.DrawRoundRect(_collapseTabRect, 4, 4, _collapseTabPaint);
+        canvas.DrawRoundRect(_collapseTabRect, 4, 4, _borderPaint);
+        canvas.DrawText("►", _collapseTabRect.MidX, _collapseTabRect.MidY + 5f, SKTextAlign.Center, _font12, _textPaint);
     }
 
     private void HandlePointerPressed(object? sender, PointerEventArgs e)
     {
-        if (!IsInputEnabled || e.Button != PointerButton.Left) return;
+        if (e.Button != PointerButton.Left) return;
+
+        if (!_collapseTabRect.IsEmpty && _collapseTabRect.Contains(e.Position.X, e.Position.Y))
+        {
+            _collapsed = !_collapsed;
+            return;
+        }
+
+        if (!IsInputEnabled) return;
 
         if (!_closeRect.IsEmpty && _closeRect.Contains(e.Position.X, e.Position.Y))
         {
@@ -220,5 +290,8 @@ public class SelectedWonderPanelRenderer : IGameRenderer
         _barBgPaint?.Dispose();
         _barFillPaint?.Dispose();
         _closePaint?.Dispose();
+        _collapseTabPaint?.Dispose();
+        _scrollTrackPaint?.Dispose();
+        _scrollThumbPaint?.Dispose();
     }
 }

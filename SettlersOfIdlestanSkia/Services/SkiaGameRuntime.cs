@@ -130,6 +130,7 @@ public sealed class SkiaGameRuntime : IDisposable
         islandMainRenderer.SuppressCities = () => _introRenderer?.IsActive == true;
 
         _wonderSelectionService = new WonderSelectionService();
+        _wonderSelectionService.ConnectWonderController(_gameControllerService.MainGameController.WonderController);
         _wonderSelectionService.Entered += OnWonderSelectionEntered;
         _wonderSelectionService.WonderPlacementConfirmed += OnWonderPlacementConfirmed;
         _wonderSelectionService.Cancelled += OnWonderSelectionCancelled;
@@ -372,7 +373,8 @@ public sealed class SkiaGameRuntime : IDisposable
         if (_cameraService == null || wheelDelta == 0)
             return;
 
-        if (_overlayRenderer?.IsIslandTabActive ?? true)
+        bool overUI = _overlayRenderer?.IsPointBlockedByUI(new SKPoint(x, y)) ?? false;
+        if (!overUI && (_overlayRenderer?.IsIslandTabActive ?? true))
         {
             var zoomFactor = wheelDelta > 0 ? ZoomStep : 1f / ZoomStep;
             _cameraService.ZoomAt(_cameraService.ZoomLevel * zoomFactor, new SKPoint(x, y));

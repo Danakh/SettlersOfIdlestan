@@ -4,6 +4,7 @@ using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Services.Localization;
 using SettlersOfIdlestanSkia.Core;
+using SettlersOfIdlestanSkia.Renderers.Overlay.Popup;
 using SettlersOfIdlestanSkia.Services;
 using SkiaSharp;
 using System;
@@ -27,9 +28,15 @@ public sealed class PlayerCivilizationPanelRenderer : IDisposable
 
     private readonly GameControllerService _gameControllerService;
     private readonly ILocalizationService _localization;
-    private readonly Action _openTrade;
-    private readonly Action _openPrestige;
-    private readonly Action _enterWonder;
+    private readonly Action _closeAll;
+    private readonly TradeRenderer _tradeRenderer;
+    private readonly PrestigeRenderer _prestigeRenderer;
+    private WonderSelectionService? _wonderSelectionService;
+
+    private const float CollapseTabW = 14f;
+    private const float CollapseTabH = 24f;
+    private bool _collapsed = false;
+    private SKRect _collapseTabRect = SKRect.Empty;
 
     private SKSize _canvasSize;
     private SKRect _panelBounds        = SKRect.Empty;
@@ -59,6 +66,7 @@ public sealed class PlayerCivilizationPanelRenderer : IDisposable
     private readonly SKPaint _toggleBorderPaint   = new() { Color = new SKColor(120, 120, 140), StrokeWidth = 1.2f, Style = SKPaintStyle.Stroke, IsAntialias = true };
     private readonly SKPaint _toggleTextPaint     = new() { Color = SKColors.White, IsAntialias = true };
     private readonly SKPaint _rowLabelPaint       = new() { Color = new SKColor(215, 215, 225), IsAntialias = true };
+    private readonly SKPaint _collapseTabBgPaint  = new() { Color = new SKColor(24, 24, 30, 230), Style = SKPaintStyle.Fill, IsAntialias = true };
 
     private readonly SKFont _sectionFont = new() { Size = TitleSize, Typeface = SkiaFonts.Regular };
     private readonly SKFont _btnFont     = new() { Size = 13f,       Typeface = SkiaFonts.Bold };
@@ -68,20 +76,27 @@ public sealed class PlayerCivilizationPanelRenderer : IDisposable
     public PlayerCivilizationPanelRenderer(
         GameControllerService gameControllerService,
         ILocalizationService localization,
-        Action openTrade,
-        Action openPrestige,
-        Action enterWonder)
+        Action closeAll,
+        TradeRenderer tradeRenderer,
+        PrestigeRenderer prestigeRenderer,
+        WonderSelectionService? wonderSelectionService)
     {
         _gameControllerService = gameControllerService;
         _localization = localization;
-        _openTrade = openTrade;
-        _openPrestige = openPrestige;
-        _enterWonder = enterWonder;
+        _closeAll = closeAll;
+        _tradeRenderer = tradeRenderer;
+        _prestigeRenderer = prestigeRenderer;
+        _wonderSelectionService = wonderSelectionService;
     }
 
     public void Initialize(SKSize canvasSize) => _canvasSize = canvasSize;
 
-    public bool ContainsPoint(SKPoint point) => !_panelBounds.IsEmpty && _panelBounds.Contains(point.X, point.Y);
+    public void ConnectWonderSelectionService(WonderSelectionService service)
+        => _wonderSelectionService = service;
+
+    public bool ContainsPoint(SKPoint point) =>
+        (!_panelBounds.IsEmpty && _panelBounds.Contains(point.X, point.Y)) ||
+        (!_collapseTabRect.IsEmpty && _collapseTabRect.Contains(point.X, point.Y));
 
     public void Render(SKCanvas canvas, GameRenderContext context)
     {
@@ -108,11 +123,23 @@ public sealed class PlayerCivilizationPanelRenderer : IDisposable
         if (!showActions && !showControls)
         {
             _panelBounds = SKRect.Empty;
+            _collapseTabRect = SKRect.Empty;
             return;
         }
 
         float contentW = PanelWidth - PanelPadding * 2;
         float panelTop = PlayerResourcesOverlayRenderer.BarHeight + 10f;
+        float tabTop = panelTop + 8f;
+
+        if (_collapsed)
+        {
+            _collapseTabRect = new SKRect(0, tabTop, CollapseTabW, tabTop + CollapseTabH);
+            _panelBounds = _collapseTabRect;
+            canvas.DrawRoundRect(_collapseTabRect, 4, 4, _collapseTabBgPaint);
+            canvas.DrawRoundRect(_collapseTabRect, 4, 4, _panelBorderPaint);
+            canvas.DrawText("►", _collapseTabRect.MidX, _collapseTabRect.MidY + 5f, SKTextAlign.Center, _btnFont, _btnTextPaint);
+            return;
+        }
 
         // Measure total height
         float h = PanelPadding;
@@ -135,6 +162,12 @@ public sealed class PlayerCivilizationPanelRenderer : IDisposable
         _panelBounds = new SKRect(PanelLeft, panelTop, PanelLeft + PanelWidth, panelTop + h);
         canvas.DrawRoundRect(_panelBounds, 8, 8, _panelBgPaint);
         canvas.DrawRoundRect(_panelBounds, 8, 8, _panelBorderPaint);
+
+        // Onglet collapse (bord droit du panneau)
+        _collapseTabRect = new SKRect(PanelLeft + PanelWidth, tabTop, PanelLeft + PanelWidth + CollapseTabW, tabTop + CollapseTabH);
+        canvas.DrawRoundRect(_collapseTabRect, 4, 4, _collapseTabBgPaint);
+        canvas.DrawRoundRect(_collapseTabRect, 4, 4, _panelBorderPaint);
+        canvas.DrawText("◄", _collapseTabRect.MidX, _collapseTabRect.MidY + 5f, SKTextAlign.Center, _btnFont, _btnTextPaint);
 
         float x = PanelLeft + PanelPadding;
         float y = panelTop + PanelPadding;
@@ -229,23 +262,34 @@ public sealed class PlayerCivilizationPanelRenderer : IDisposable
 
     public bool HandlePointerPressed(SKPoint pos)
     {
-        if (_disposed || !_panelBounds.Contains(pos.X, pos.Y)) return false;
+        if (_disposed) return false;
+
+        if (!_collapseTabRect.IsEmpty && _collapseTabRect.Contains(pos.X, pos.Y))
+        {
+            _collapsed = !_collapsed;
+            return true;
+        }
+
+        if (!_panelBounds.Contains(pos.X, pos.Y)) return false;
 
         if (!_tradeButtonRect.IsEmpty && _tradeButtonRect.Contains(pos.X, pos.Y))
         {
-            _openTrade();
+            _closeAll();
+            _tradeRenderer.Open();
             return true;
         }
 
         if (!_prestigeButtonRect.IsEmpty && _prestigeButtonRect.Contains(pos.X, pos.Y) && IsPrestigeAvailable())
         {
-            _openPrestige();
+            _closeAll();
+            _prestigeRenderer.Open();
             return true;
         }
 
-        if (!_wonderButtonRect.IsEmpty && _wonderButtonRect.Contains(pos.X, pos.Y) && CanPlaceWonder())
+        if (!_wonderButtonRect.IsEmpty && _wonderButtonRect.Contains(pos.X, pos.Y) && CanPlaceWonder() && _wonderSelectionService != null)
         {
-            _enterWonder();
+            _closeAll();
+            _wonderSelectionService.Enter();
             return true;
         }
 
@@ -340,6 +384,7 @@ public sealed class PlayerCivilizationPanelRenderer : IDisposable
         _toggleBorderPaint.Dispose();
         _toggleTextPaint.Dispose();
         _rowLabelPaint.Dispose();
+        _collapseTabBgPaint.Dispose();
         _sectionFont.Dispose();
         _btnFont.Dispose();
         _toggleFont.Dispose();
