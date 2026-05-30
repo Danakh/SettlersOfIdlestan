@@ -204,6 +204,12 @@ namespace SettlersOfIdlestan.Controller
                 PrestigeController.Initialize(islandState.PlayerCivilization, islandState, Clock);
                 WonderController.Initialize(islandState, Clock);
                 ResearchController.Initialize(islandState, Clock, CurrentMainState?.PrestigeState);
+
+                // Invalide le cache de production dès qu'un bâtiment est construit/amélioré ou une ville créée
+                BuildingController.OnBuildingBuilt -= OnBuildingChangedInvalidateHarvestCache;
+                CityBuilderController.OnCityBuilt -= OnCityBuiltInvalidateHarvestCache;
+                BuildingController.OnBuildingBuilt += OnBuildingChangedInvalidateHarvestCache;
+                CityBuilderController.OnCityBuilt += OnCityBuiltInvalidateHarvestCache;
                 prestigeState?.TechnologyTree.RebuildModifiers();
 
                 var gameRecord = CurrentMainState!.GameRecord;
@@ -213,6 +219,12 @@ namespace SettlersOfIdlestan.Controller
                     TradeController);
             }
         }
+
+        private void OnBuildingChangedInvalidateHarvestCache(object? sender, BuildingBuiltEventArgs e)
+            => HarvestController.InvalidateProductionCache();
+
+        private void OnCityBuiltInvalidateHarvestCache(object? sender, OutpostAutoBuiltEventArgs e)
+            => HarvestController.InvalidateProductionCache();
 
         private void SetupModifierAggregators()
         {
