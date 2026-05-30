@@ -21,8 +21,8 @@ public sealed class PlayerCivilizationPanelRenderer : IDisposable
     private const float BtnSpacing   = 6f;
     private const float TitleSize    = 11f;
     private const float TitleHeight  = 20f;
-    private const float ToggleWidth  = 52f;
-    private const float ToggleHeight = 26f;
+    private const float ToggleWidth  = 46f;
+    private const float ToggleHeight = 24f;
     private const float RowHeight    = 36f;
     private const float SepSpacing   = 8f;
 
@@ -61,16 +61,15 @@ public sealed class PlayerCivilizationPanelRenderer : IDisposable
     private readonly SKPaint _btnDisabledTxtPaint = new() { Color = new SKColor(160, 160, 165), IsAntialias = true };
     private readonly SKPaint _onPaint             = new() { Color = new SKColor(46, 125, 50), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _onHoverPaint        = new() { Color = new SKColor(60, 150, 64), Style = SKPaintStyle.Fill, IsAntialias = true };
-    private readonly SKPaint _offPaint            = new() { Color = new SKColor(70, 70, 78), Style = SKPaintStyle.Fill, IsAntialias = true };
-    private readonly SKPaint _offHoverPaint       = new() { Color = new SKColor(90, 90, 100), Style = SKPaintStyle.Fill, IsAntialias = true };
-    private readonly SKPaint _toggleBorderPaint   = new() { Color = new SKColor(120, 120, 140), StrokeWidth = 1.2f, Style = SKPaintStyle.Stroke, IsAntialias = true };
-    private readonly SKPaint _toggleTextPaint     = new() { Color = SKColors.White, IsAntialias = true };
+    private readonly SKPaint _offPaint            = new() { Color = new SKColor(160, 50, 50), Style = SKPaintStyle.Fill, IsAntialias = true };
+    private readonly SKPaint _offHoverPaint       = new() { Color = new SKColor(185, 65, 65), Style = SKPaintStyle.Fill, IsAntialias = true };
+    private readonly SKPaint _toggleBorderPaint   = new() { Color = new SKColor(180, 180, 200), StrokeWidth = 1.2f, Style = SKPaintStyle.Stroke, IsAntialias = true };
+    private readonly SKPaint _toggleKnobPaint     = new() { Color = SKColors.White, Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _rowLabelPaint       = new() { Color = new SKColor(215, 215, 225), IsAntialias = true };
     private readonly SKPaint _collapseTabBgPaint  = new() { Color = new SKColor(24, 24, 30, 230), Style = SKPaintStyle.Fill, IsAntialias = true };
 
     private readonly SKFont _sectionFont = new() { Size = TitleSize, Typeface = SkiaFonts.Regular };
     private readonly SKFont _btnFont     = new() { Size = 13f,       Typeface = SkiaFonts.Bold };
-    private readonly SKFont _toggleFont  = new() { Size = 11f,       Typeface = SkiaFonts.Bold };
     private readonly SKFont _labelFont   = new() { Size = 13f,       Typeface = SkiaFonts.Regular };
 
     public PlayerCivilizationPanelRenderer(
@@ -236,18 +235,26 @@ public sealed class PlayerCivilizationPanelRenderer : IDisposable
 
     private SKRect DrawToggleRow(SKCanvas canvas, float x, float y, bool isOn, bool isHovered, string label)
     {
-        float toggleY = y + (RowHeight - ToggleHeight) / 2f;
-        var toggleRect = new SKRect(x, toggleY, x + ToggleWidth, toggleY + ToggleHeight);
+        float toggleY  = y + (RowHeight - ToggleHeight) / 2f;
+        float radius   = ToggleHeight / 2f;
+        var   trackRect = new SKRect(x, toggleY, x + ToggleWidth, toggleY + ToggleHeight);
 
+        // Piste (fond vert ou rouge)
         var fill = isOn ? (isHovered ? _onHoverPaint : _onPaint) : (isHovered ? _offHoverPaint : _offPaint);
-        canvas.DrawRoundRect(toggleRect, 5, 5, fill);
-        canvas.DrawRoundRect(toggleRect, 5, 5, _toggleBorderPaint);
-        canvas.DrawText(isOn ? _localization.Get("automation_on") : _localization.Get("automation_off"),
-            toggleRect.MidX, toggleRect.MidY + 4f, SKTextAlign.Center, _toggleFont, _toggleTextPaint);
+        canvas.DrawRoundRect(trackRect, radius, radius, fill);
+        canvas.DrawRoundRect(trackRect, radius, radius, _toggleBorderPaint);
+
+        // Bouton circulaire blanc
+        float knobR    = radius - 3f;
+        float knobCy   = toggleY + radius;
+        float knobCx   = isOn
+            ? x + ToggleWidth - radius - 1f  // droite quand ON
+            : x + radius + 1f;               // gauche quand OFF
+        canvas.DrawCircle(knobCx, knobCy, knobR, _toggleKnobPaint);
 
         canvas.DrawText(label, x + ToggleWidth + 10f, y + RowHeight / 2f + 5f, _labelFont, _rowLabelPaint);
 
-        return toggleRect;
+        return trackRect;
     }
 
     public void HandlePointerMoved(SKPoint pos)
@@ -382,12 +389,11 @@ public sealed class PlayerCivilizationPanelRenderer : IDisposable
         _offPaint.Dispose();
         _offHoverPaint.Dispose();
         _toggleBorderPaint.Dispose();
-        _toggleTextPaint.Dispose();
+        _toggleKnobPaint.Dispose();
         _rowLabelPaint.Dispose();
         _collapseTabBgPaint.Dispose();
         _sectionFont.Dispose();
         _btnFont.Dispose();
-        _toggleFont.Dispose();
         _labelFont.Dispose();
         _disposed = true;
     }
