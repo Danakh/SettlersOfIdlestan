@@ -7,6 +7,7 @@ using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Prestige;
 using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Controller.Generator;
+using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
 
 namespace SettlersOfIdlestan.Controller.Expand
 {
@@ -43,6 +44,26 @@ namespace SettlersOfIdlestan.Controller.Expand
 
         public int GetBuildingSubtotal() => GetPrestigePointSources().Sum(source => source.Points);
 
+        public bool WondersUnlocked()
+            => _playerCivilization?.ModifierAggregator.ApplyModifiers(ECategory.UNLOCK_WONDERS, "", 0) > 0;
+
+        public (int Level, int TimeFactor, long RunTicks) GetWonderBonusDetails()
+        {
+            if (_islandState == null) return (0, 1, 0);
+            var wonder = _islandState.Features.OfType<Wonder>().FirstOrDefault();
+            long runTicks = _islandState.StartTick > 0
+                ? Math.Max(0, GetCurrentTick() - _islandState.StartTick)
+                : 0;
+            int hoursPlayed = (int)Math.Ceiling(runTicks / 360000.0);
+            return (wonder?.Level ?? 0, 1 + hoursPlayed, runTicks);
+        }
+
+        public int GetWonderBonus()
+        {
+            var (level, timeFactor, _) = GetWonderBonusDetails();
+            return level * timeFactor;
+        }
+
         public int GetBanditBonus()
         {
             if (_islandState == null || _islandState.RunRecord.BanditsDefeated == 0)
@@ -50,7 +71,7 @@ namespace SettlersOfIdlestan.Controller.Expand
             return GetBuildingSubtotal() / 5;
         }
 
-        public int CalculatePrestigePoints() => GetBuildingSubtotal() + GetBanditBonus();
+        public int CalculatePrestigePoints() => GetBuildingSubtotal() + GetWonderBonus() + GetBanditBonus();
 
         public IReadOnlyList<PrestigePointSource> GetPrestigePointSources()
         {
@@ -68,23 +89,6 @@ namespace SettlersOfIdlestan.Controller.Expand
                         if (!sources.TryAdd(building.NameKey, points))
                             sources[building.NameKey] += points;
                     }
-                }
-            }
-
-            if (_islandState != null)
-            {
-                var wonder = _islandState.Features.OfType<Wonder>().FirstOrDefault();
-                if (wonder != null)
-                {
-                    int buildingPoints = sources.Values.Sum();
-                    long runTicks = (_islandState.StartTick > 0 && _playerCivilization != null)
-                        ? Math.Max(0, GetCurrentTick() - _islandState.StartTick)
-                        : 0;
-                    int hoursPlayed = (int)(runTicks / 360000);
-                    int fromBuildings = buildingPoints / 10;
-                    int wonderPoints = wonder.Level + hoursPlayed + fromBuildings;
-                    if (wonderPoints > 0)
-                        sources["prestige_wonder"] = wonderPoints;
                 }
             }
 

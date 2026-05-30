@@ -165,6 +165,7 @@
   "prestige_action": "Prestige",
   "prestige_title": "Prestige",
   "prestige_total": "Total",
+  "prestige_wonder_bonus": "Wonder lv.{0} × {1} ({2})",
   "prestige_bandit_bonus": "Bandit bonus ×1.2",
   "prestige_more_sources": "+ {0} more sources",
   "tab_island": "Island",
