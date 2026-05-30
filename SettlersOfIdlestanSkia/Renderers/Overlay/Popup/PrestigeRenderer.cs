@@ -10,7 +10,7 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay.Popup;
 public sealed class PrestigeRenderer : IDisposable
 {
     private const float PopupWidth = 460;
-    private const float PopupHeight = 390;
+    private const float PopupHeight = 420;
     private const float Padding = 18;
     private const float ButtonHeight = 36;
     private const float CloseSize = 28;
@@ -69,7 +69,8 @@ public sealed class PrestigeRenderer : IDisposable
         var sources = controller.GetPrestigePointSources();
         bool wondersUnlocked = controller.WondersUnlocked();
         float y = popup.Top + 68;
-        float listBottom = wondersUnlocked ? popup.Bottom - 182 : popup.Bottom - 152;
+        // listBottom adjusts to leave room for bonus rows
+        float listBottom = wondersUnlocked ? popup.Bottom - 156 : popup.Bottom - 126;
         int maxVisibleSources = Math.Max(0, (int)((listBottom - y) / SourceRowHeight));
         foreach (var source in sources.Take(maxVisibleSources))
         {
@@ -84,26 +85,27 @@ public sealed class PrestigeRenderer : IDisposable
             canvas.DrawText(string.Format(_localization.Get("prestige_more_sources"), hiddenSourceCount), popup.Left + Padding, y, _font, _mutedTextPaint);
         }
 
+        // Bandits (always shown)
+        canvas.DrawLine(popup.Left + Padding, popup.Bottom - 142, popup.Right - Padding, popup.Bottom - 142, _separatorPaint);
+        canvas.DrawText(_localization.Get("prestige_bandit_bonus"), popup.Left + Padding, popup.Bottom - 128, _font, _mutedTextPaint);
+        canvas.DrawText("×1.2", popup.Right - Padding, popup.Bottom - 128, SKTextAlign.Right, _boldFont, _mutedTextPaint);
+
+        // Wonder (shown when unlocked)
         if (wondersUnlocked)
         {
-            canvas.DrawLine(popup.Left + Padding, popup.Bottom - 164, popup.Right - Padding, popup.Bottom - 164, _separatorPaint);
+            canvas.DrawLine(popup.Left + Padding, popup.Bottom - 114, popup.Right - Padding, popup.Bottom - 114, _separatorPaint);
             var (wonderLevel, timeFactor, runTicks) = controller.GetWonderBonusDetails();
             string duration = FormatRunDuration(runTicks);
             string wonderLabel = _localization.GetFormated("prestige_wonder_bonus", wonderLevel, timeFactor, duration);
-            canvas.DrawText(wonderLabel, popup.Left + Padding, popup.Bottom - 148, _font, _mutedTextPaint);
-            canvas.DrawText($"×{wonderLevel * timeFactor}", popup.Right - Padding, popup.Bottom - 148, SKTextAlign.Right, _boldFont, _mutedTextPaint);
+            canvas.DrawText(wonderLabel, popup.Left + Padding, popup.Bottom - 100, _font, _mutedTextPaint);
+            canvas.DrawText($"×{wonderLevel * timeFactor}", popup.Right - Padding, popup.Bottom - 100, SKTextAlign.Right, _boldFont, _mutedTextPaint);
         }
 
-        canvas.DrawLine(popup.Left + Padding, popup.Bottom - 134, popup.Right - Padding, popup.Bottom - 134, _separatorPaint);
-
-        canvas.DrawText(_localization.Get("prestige_bandit_bonus"), popup.Left + Padding, popup.Bottom - 118, _font, _mutedTextPaint);
-        canvas.DrawText("×1.2", popup.Right - Padding, popup.Bottom - 118, SKTextAlign.Right, _boldFont, _mutedTextPaint);
-
-        canvas.DrawLine(popup.Left + Padding, popup.Bottom - 104, popup.Right - Padding, popup.Bottom - 104, _separatorPaint);
-
+        // Total (fixed position, always well above the button)
+        canvas.DrawLine(popup.Left + Padding, popup.Bottom - 86, popup.Right - Padding, popup.Bottom - 86, _separatorPaint);
         var total = controller.CalculatePrestigePoints();
-        canvas.DrawText(_localization.Get("prestige_total"), popup.Left + Padding, popup.Bottom - 88, _boldFont, _textPaint);
-        canvas.DrawText(total.ToString(), popup.Right - Padding, popup.Bottom - 88, SKTextAlign.Right, _boldFont, _textPaint);
+        canvas.DrawText(_localization.Get("prestige_total"), popup.Left + Padding, popup.Bottom - 72, _boldFont, _textPaint);
+        canvas.DrawText(total.ToString(), popup.Right - Padding, popup.Bottom - 72, SKTextAlign.Right, _boldFont, _textPaint);
 
         bool canPrestige = controller.PrestigeIsAvailable();
         bool hasEnoughPoints = controller.CalculatePrestigePoints() >= PrestigeController.PrestigeRequiredPoints;
