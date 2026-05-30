@@ -262,6 +262,29 @@ public sealed class OverlayRenderer : IGameRenderer
         _tradeRenderer.Render(canvas);
         _prestigeRenderer.Render(canvas);
         _settingsPopupRenderer.Render(canvas);
+
+        CheckResourceBarTooltip();
+    }
+
+    private void CheckResourceBarTooltip()
+    {
+        if (_playerResourcesOverlayRenderer.Mode != BarDisplayMode.Island) return;
+
+        var hoveredResource = _playerResourcesOverlayRenderer.GetResourceAtPoint(_lastPointerPosition);
+        if (!hoveredResource.HasValue) return;
+
+        var islandState = _gameControllerService.CurrentIslandState;
+        if (islandState == null) return;
+
+        string resourceName = _localization.Get($"resource_{hoveredResource.Value.ToString().ToLower()}");
+
+        var rates = _gameControllerService.MainGameController.HarvestController
+            .GetAverageProductionRatesPerSecond(islandState.PlayerCivilization.Index);
+
+        if (rates.TryGetValue(hoveredResource.Value, out double rate) && rate > 0.0001)
+            _tooltipRenderer.SetTooltipLines(new[] { resourceName, $"+{rate:F2}/s" }, _lastPointerPosition);
+        else
+            _tooltipRenderer.SetTooltip(resourceName, _lastPointerPosition);
     }
 
     private bool HasPrestigePoints(GameRenderContext context)

@@ -33,6 +33,7 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
     private readonly ILocalizationService _localization;
     private readonly ResourceManager _resourceManager;
     private readonly Dictionary<Resource, SKSvg?> _resourceIcons = new();
+    private readonly Dictionary<Resource, SKRect> _resourceRects = new();
     public const float BarHeight = 50;
     public const float IconSize = 32;
     private const float RectangleWidth = 66;
@@ -173,12 +174,14 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
         float currentX = ResourceStartX;
         float itemY = (BarHeight - RectangleHeight) / 2;
 
+        _resourceRects.Clear();
         foreach (var resource in resourceTypes)
         {
             var quantity = civilization.GetResourceQuantity(resource);
             var maxQuantity = civilization.GetResourceMaxQuantity(resource);
             if (maxQuantity > 0)
             {
+                _resourceRects[resource] = new SKRect(currentX, itemY, currentX + RectangleWidth, itemY + RectangleHeight);
                 DrawResourceItem(canvas, resource, quantity, maxQuantity, currentX, itemY);
                 currentX += RectangleWidth + itemSpacing;
             }
@@ -241,16 +244,49 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
             canvas.Restore();
         }
 
-        // Texte quantité (droite-aligné)
-        var resourceValueText = $"{quantity}/{maxQuantity}";
-        if (_smallFont != null && _textPaint != null)
+        if (_smallFont == null || _textPaint == null) return;
+
+        if (maxQuantity > 1000)
         {
+            // Deux lignes : stock en haut, max en bas
+            string quantityText = FormatCompact(quantity);
+            string maxText = $"/{FormatCompact(maxQuantity)}";
+
+            float textH = _smallFont.Size;
+            float totalH = textH * 2 + 2f;
+            float line1Y = y + (RectangleHeight - totalH) / 2f + textH;
+            float line2Y = line1Y + textH + 2f;
+
+            float line1Width = _smallFont.MeasureText(quantityText);
+            canvas.DrawText(quantityText, x + RectangleWidth - line1Width - 4f, line1Y, _smallFont, _textPaint);
+
+            float line2Width = _smallFont.MeasureText(maxText);
+            canvas.DrawText(maxText, x + RectangleWidth - line2Width - 4f, line2Y, _smallFont, _textPaint);
+        }
+        else
+        {
+            // Ligne unique : quantité/max
+            var resourceValueText = $"{quantity}/{maxQuantity}";
             float textHeight = _smallFont.Size;
             float textY = y + (RectangleHeight + textHeight) / 2f - 2f;
             float textWidth = _smallFont.MeasureText(resourceValueText);
-            float textX = x + RectangleWidth - textWidth - 4f;
-            canvas.DrawText(resourceValueText, textX, textY, _smallFont, _textPaint);
+            canvas.DrawText(resourceValueText, x + RectangleWidth - textWidth - 4f, textY, _smallFont, _textPaint);
         }
+    }
+
+    private static string FormatCompact(int n)
+    {
+        if (n >= 10000) return $"{n / 1000}k";
+        if (n >= 1000) return $"{n / 1000.0:0.#}k";
+        return n.ToString();
+    }
+
+    public Resource? GetResourceAtPoint(SKPoint point)
+    {
+        foreach (var (resource, rect) in _resourceRects)
+            if (rect.Contains(point.X, point.Y))
+                return resource;
+        return null;
     }
 
     private void DrawGearIcon(SKCanvas canvas, float x, float y, float size)
