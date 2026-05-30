@@ -80,6 +80,7 @@ public static class TutorialStepDefinitions
             primaryTasks: new[]
             {
                 Task(TutorialTaskId.Build1Warehouse),
+                Task(TutorialTaskId.BuildMarket),
                 Task(TutorialTaskId.Trade10Gold),
             },
             secondaryTasks: new[]

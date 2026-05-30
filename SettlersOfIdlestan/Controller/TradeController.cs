@@ -11,7 +11,7 @@ namespace SettlersOfIdlestan.Controller
 {
     /// <summary>
     /// Controller handling simple trading: exchange 4 of one resource for 1 of another.
-    /// Trading becomes available for a civilization once it owns a Market or a Seaport.
+    /// Trading becomes available for a civilization once it owns a Market.
     /// </summary>
     public class TradeController
     {
@@ -62,7 +62,7 @@ namespace SettlersOfIdlestan.Controller
             {
                 foreach (var b in city.Buildings)
                 {
-                    if (b.Type == BuildingType.Market || b.Type == BuildingType.Seaport)
+                    if (b.Type == BuildingType.Market)
                         return true;
                 }
             }

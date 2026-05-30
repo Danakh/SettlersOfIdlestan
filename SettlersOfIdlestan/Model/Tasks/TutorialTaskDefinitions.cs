@@ -137,6 +137,11 @@ public static class TutorialTaskDefinitions
             (g, _, island) => g.BuildingCounts.GetValueOrDefault("Warehouse") >= 1
                 || CountBuilding(island, BuildingType.Warehouse) >= 1),
 
+        new TutorialTask(TutorialTaskId.BuildMarket,
+            "task_build_market_name", "task_build_market_desc",
+            (g, _, island) => g.BuildingCounts.GetValueOrDefault("Market") >= 1
+                || CountBuilding(island, BuildingType.Market) >= 1),
+
         new TutorialTask(TutorialTaskId.Trade10Gold,
             "task_trade_10_gold_name", "task_trade_10_gold_desc",
             (g, _, _) => g.TotalGoldObtainedFromTrade >= 10,
