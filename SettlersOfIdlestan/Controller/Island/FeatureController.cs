@@ -2,7 +2,9 @@ using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.IslandMap;
+using SettlersOfIdlestan.Model.HexGrid;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace SettlersOfIdlestan.Controller.Island;
 
@@ -40,6 +42,38 @@ public class FeatureController
 
         if (_clock != null)
             _clock.Advanced += OnClockAdvanced;
+
+        RefreshContestedTerritories();
+    }
+
+    /// <summary>
+    /// Recalcule les features ContestedTerritory à partir des positions de villes actuelles.
+    /// À appeler après toute création de ville.
+    /// </summary>
+    public void RefreshContestedTerritories()
+    {
+        if (_state == null) return;
+
+        // Supprime les anciennes features contestées
+        var old = _features.OfType<ContestedTerritory>().ToList();
+        foreach (var f in old)
+            _state.RemoveFeature(f);
+
+        // Calcule quels hexes sont adjacents à des villes de 2 civilisations distinctes ou plus
+        var hexCivs = new Dictionary<HexCoord, HashSet<int>>();
+        foreach (var civ in _state.Civilizations)
+            foreach (var city in civ.Cities)
+                foreach (var hex in city.Position.GetHexes())
+                {
+                    if (hex == null) continue;
+                    if (!hexCivs.TryGetValue(hex, out var civSet))
+                        hexCivs[hex] = civSet = new HashSet<int>();
+                    civSet.Add(civ.Index);
+                }
+
+        foreach (var (hex, civs) in hexCivs)
+            if (civs.Count >= 2)
+                _state.AddFeature(new ContestedTerritory(hex));
     }
 
     private void OnFeatureAdded(object? sender, IslandFeature feature) => _features.Add(feature);

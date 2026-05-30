@@ -5,7 +5,6 @@ using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.Buildings;
-using SettlersOfIdlestan.Model.IslandFeatures;
 using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
 using SettlersOfIdlestan.Controller.Military;
 
@@ -65,6 +64,9 @@ namespace SettlersOfIdlestan.Controller.Island
 
         private GamePRNG _prng = new();
 
+        private readonly record struct ProductionEntry(HexCoord Hex, City City, Building Building, Resource Resource);
+        private readonly System.Collections.Generic.Dictionary<int, System.Collections.Generic.List<ProductionEntry>> _productionCache = new();
+
         public event EventHandler<HarvestCompletedEventArgs>? OnHarvestCompleted;
         public event EventHandler<MarketGenerationEventArgs>? OnMarketResourceGenerated;
 
@@ -83,6 +85,7 @@ namespace SettlersOfIdlestan.Controller.Island
             _tradeController = tradeController;
             _banditController = banditController;
             if (prng != null) _prng = prng;
+            _productionCache.Clear();
 
             if (_clock != null)
                 _clock.Advanced += OnClockAdvanced;
@@ -104,86 +107,102 @@ namespace SettlersOfIdlestan.Controller.Island
 
             foreach (var civ in _state.Civilizations)
             {
-                var allHexes = new HashSet<HexCoord>();
-                foreach (var city in civ.Cities)
-                    foreach (var hex in city.Position.GetHexes())
-                        if (hex != null) allHexes.Add(hex);
+                var entries = GetOrBuildProductionCache(civ.Index);
+                if (entries.Count == 0) continue;
 
-                foreach (var hex in allHexes)
+                // Mémoïse les vérifications dynamiques par hex pour éviter de les répéter par bâtiment
+                var hexBlocked = new System.Collections.Generic.Dictionary<HexCoord, bool>();
+                System.Collections.Generic.Dictionary<(HexCoord, City), ResourceSet>? harvested = null;
+
+                foreach (var (hex, city, building, resource) in entries)
                 {
-                    var tile = _state.Map.GetTile(hex);
-                    if (tile == null) continue;
+                    if (!hexBlocked.TryGetValue(hex, out bool blocked))
+                    {
+                        blocked = _state.Features.Any(f => f.Position.Equals(hex) && f.BlocksHarvest)
+                            || _banditController?.HasDepartureCooldown(hex, now) == true;
+                        hexBlocked[hex] = blocked;
+                    }
+                    if (blocked) continue;
 
-                    // Hex contesté: aucune production si une ville adverse est adjacente
-                    if (IsHexContested(civ, hex)) continue;
+                    long raw = building.GetAutomaticHarvestCooldown(AutomaticHarvestCooldownTicks);
+                    double speedMultiplier = civ.ModifierAggregator.ApplyModifiers(ECategory.HARVEST_SPEED, building.Type.ToString(), 1.0);
+                    long effective = Math.Max(1L, (long)(raw / speedMultiplier));
 
-                    // Blocking générique: toute feature avec BlocksHarvest (bandits, repaires, merveilles…)
-                    if (_state.Features.Any(f => f.Position.Equals(hex) && f.BlocksHarvest)) continue;
-                    // Cooldown de départ des bandits
-                    if (_banditController?.HasDepartureCooldown(hex, now) == true) continue;
+                    if (building.AutoHarvestLastTicks.TryGetValue(hex, out var lastBuildingTick) && now - lastBuildingTick < effective)
+                        continue;
 
-                    // Wonder on this hex: no production
-                    if (IsHexBlockedByWonder(hex)) continue;
+                    building.AutoHarvestLastTicks[hex] = now;
 
-                    // Chaque bâtiment vérifie et met à jour son propre cooldown indépendamment
-                    var byCity = new System.Collections.Generic.Dictionary<City, ResourceSet>();
+                    var actualResource = resource;
+                    if (building is Mine && resource == Resource.Ore && civ.MineGoldChancePercent > 0
+                        && _prng.Next(100) < civ.MineGoldChancePercent)
+                        actualResource = Resource.Gold;
+
+                    TryAutoTradeOnOverflow(civ, actualResource);
+                    civ.AddResource(actualResource, 1);
+
+                    harvested ??= new System.Collections.Generic.Dictionary<(HexCoord, City), ResourceSet>();
+                    var key = (hex, city);
+                    if (!harvested.TryGetValue(key, out var rs))
+                        harvested[key] = rs = new ResourceSet();
+                    rs[actualResource] += 1;
+
+                    var forge = city.Buildings.OfType<Forge>().FirstOrDefault();
+                    int forgeChance = forge != null ? forge.DoubleProdChancePercent + civ.ForgeDoubleHarvestBonus : 0;
+                    bool forgeDoubled = forge != null && forge.Level > 0 && _prng.Next(100) < forgeChance;
+                    int harvestProductionChance = civ.GetHarvestProductionBonus(building.Type.ToString());
+                    bool harvestDoubled = harvestProductionChance > 0 && _prng.Next(100) < harvestProductionChance;
+                    int multiplier = (forgeDoubled ? 2 : 1) * (harvestDoubled ? 2 : 1);
+                    for (int i = 1; i < multiplier; i++)
+                    {
+                        TryAutoTradeOnOverflow(civ, actualResource);
+                        civ.AddResource(actualResource, 1);
+                        rs[actualResource] += 1;
+                    }
+                }
+
+                if (harvested != null)
+                    foreach (var ((hex, city), rs) in harvested)
+                        OnHarvestCompleted?.Invoke(this, new HarvestCompletedEventArgs(civ.Index, hex, rs, city.Position, isAutomatic: true));
+            }
+        }
+
+        /// <summary>Invalide le cache de production (à appeler après construction/amélioration de bâtiment ou nouvelle ville).</summary>
+        public void InvalidateProductionCache() => _productionCache.Clear();
+
+        private System.Collections.Generic.List<ProductionEntry> GetOrBuildProductionCache(int civIndex)
+        {
+            if (_productionCache.TryGetValue(civIndex, out var cached))
+                return cached;
+
+            var entries = new System.Collections.Generic.List<ProductionEntry>();
+            if (_state != null)
+            {
+                var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civIndex);
+                if (civ != null)
+                {
+                    var visitedHexes = new HashSet<HexCoord>();
                     foreach (var city in civ.Cities)
                     {
-                        if (!city.Position.IsAdjacentTo(hex)) continue;
-                        foreach (var building in city.Buildings)
+                        foreach (var hex in city.Position.GetHexes())
                         {
-                            var res = building.AutomaticHarvestCapability(tile.TerrainType);
-                            if (res == null) continue;
-
-                            long raw = building.GetAutomaticHarvestCooldown(AutomaticHarvestCooldownTicks);
-                            double speedMultiplier = civ.ModifierAggregator.ApplyModifiers(ECategory.HARVEST_SPEED, building.Type.ToString(), 1.0);
-                            long effective = Math.Max(1L, (long)(raw / speedMultiplier));
-
-                            if (building.AutoHarvestLastTicks.TryGetValue(hex, out var lastBuildingTick) && now - lastBuildingTick < effective)
-                                continue;
-
-                            building.AutoHarvestLastTicks[hex] = now;
-
-                            if (!byCity.TryGetValue(city, out var harvested))
-                            {
-                                harvested = new ResourceSet();
-                                byCity[city] = harvested;
-                            }
-
-                            // Orpaillage: chance de produire de l'or à la place du minerai
-                            var actualResource = res.Value;
-                            if (building is Mine && res.Value == Resource.Ore && civ.MineGoldChancePercent > 0
-                                && _prng.Next(100) < civ.MineGoldChancePercent)
-                                actualResource = Resource.Gold;
-
-                            TryAutoTradeOnOverflow(civ, actualResource);
-                            civ.AddResource(actualResource, 1);
-                            harvested[actualResource] += 1;
-
-                            // Forge bonus: s'applique à tous les bâtiments de la ville
-                            var forge = city.Buildings.OfType<Forge>().FirstOrDefault();
-                            int forgeChance = forge != null ? forge.DoubleProdChancePercent + civ.ForgeDoubleHarvestBonus : 0;
-                            bool forgeDoubled = forge != null && forge.Level > 0 && _prng.Next(100) < forgeChance;
-
-                            // HARVEST_PRODUCTION_BONUS: global (subCategory vide) ou spécifique au type de bâtiment
-                            int harvestProductionChance = civ.GetHarvestProductionBonus(building.Type.ToString());
-                            bool harvestDoubled = harvestProductionChance > 0 && _prng.Next(100) < harvestProductionChance;
-
-                            // Multiplicatif : forge x2 et harvest production x2 → max x4
-                            int multiplier = (forgeDoubled ? 2 : 1) * (harvestDoubled ? 2 : 1);
-                            for (int i = 1; i < multiplier; i++)
-                            {
-                                TryAutoTradeOnOverflow(civ, actualResource);
-                                civ.AddResource(actualResource, 1);
-                                harvested[actualResource] += 1;
-                            }
+                            if (hex == null || !visitedHexes.Add(hex)) continue;
+                            var tile = _state.Map.GetTile(hex);
+                            if (tile == null) continue;
+                            foreach (var adjacentCity in civ.Cities.Where(c => c.Position.IsAdjacentTo(hex)))
+                                foreach (var building in adjacentCity.Buildings)
+                                {
+                                    var res = building.AutomaticHarvestCapability(tile.TerrainType);
+                                    if (res.HasValue)
+                                        entries.Add(new ProductionEntry(hex, adjacentCity, building, res.Value));
+                                }
                         }
                     }
-
-                    foreach (var (city, harvested) in byCity)
-                        OnHarvestCompleted?.Invoke(this, new HarvestCompletedEventArgs(civ.Index, hex, harvested, city.Position, isAutomatic: true));
                 }
             }
+
+            _productionCache[civIndex] = entries;
+            return entries;
         }
 
         private void PerformMarketGenerations()
@@ -302,16 +321,6 @@ namespace SettlersOfIdlestan.Controller.Island
             _tradeController.Trade(civ.Index, res, weakest);
         }
 
-        private bool IsHexContested(SettlersOfIdlestan.Model.Civilization.Civilization civ, HexCoord hex)
-        {
-            return _state!.Civilizations
-                .Where(other => other.Index != civ.Index)
-                .Any(other => other.Cities.Any(city => city.Position.IsAdjacentTo(hex)));
-        }
-
-        private bool IsHexBlockedByWonder(HexCoord hex)
-            => _state?.Features.OfType<Wonder>().Any(w => w.Position.Equals(hex)) == true;
-
         /// <summary>
         /// Calcule le gain moyen théorique en ressources par seconde, incluant les bonus probabilistes attendus.
         /// </summary>
@@ -323,48 +332,37 @@ namespace SettlersOfIdlestan.Controller.Island
             var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex);
             if (civ == null) return result;
 
-            var allHexes = new HashSet<HexCoord>();
-            foreach (var city in civ.Cities)
-                foreach (var hex in city.Position.GetHexes())
-                    if (hex != null) allHexes.Add(hex);
+            var entries = GetOrBuildProductionCache(civilizationIndex);
+            var hexAllowed = new System.Collections.Generic.Dictionary<HexCoord, bool>();
 
-            foreach (var hex in allHexes)
+            foreach (var (hex, city, building, resource) in entries)
             {
-                var tile = _state.Map.GetTile(hex);
-                if (tile == null) continue;
-
-                if (IsHexContested(civ, hex)) continue;
-                if (_state.Features.Any(f => f.Position.Equals(hex) && f.BlocksHarvest)) continue;
-                if (IsHexBlockedByWonder(hex)) continue;
-
-                foreach (var city in civ.Cities.Where(c => c.Position.IsAdjacentTo(hex)))
+                if (!hexAllowed.TryGetValue(hex, out bool allowed))
                 {
-                    foreach (var building in city.Buildings)
-                    {
-                        var harvestRes = building.AutomaticHarvestCapability(tile.TerrainType);
-                        if (!harvestRes.HasValue) continue;
+                    allowed = !_state.Features.Any(f => f.Position.Equals(hex) && f.BlocksHarvest);
+                    hexAllowed[hex] = allowed;
+                }
+                if (!allowed) continue;
 
-                        long raw = building.GetAutomaticHarvestCooldown(AutomaticHarvestCooldownTicks);
-                        double speedMultiplier = civ.ModifierAggregator.ApplyModifiers(ECategory.HARVEST_SPEED, building.Type.ToString(), 1.0);
-                        long effective = Math.Max(1L, (long)(raw / speedMultiplier));
+                long raw = building.GetAutomaticHarvestCooldown(AutomaticHarvestCooldownTicks);
+                double speedMultiplier = civ.ModifierAggregator.ApplyModifiers(ECategory.HARVEST_SPEED, building.Type.ToString(), 1.0);
+                long effective = Math.Max(1L, (long)(raw / speedMultiplier));
 
-                        var forge = city.Buildings.OfType<Forge>().FirstOrDefault();
-                        int forgeChance = forge != null && forge.Level > 0 ? forge.DoubleProdChancePercent + civ.ForgeDoubleHarvestBonus : 0;
-                        int harvestProductionChance = civ.GetHarvestProductionBonus(building.Type.ToString());
-                        double expectedMultiplier = (1 + forgeChance / 100.0) * (1 + harvestProductionChance / 100.0);
-                        double ratePerSecond = 100.0 / effective * expectedMultiplier;
+                var forge = city.Buildings.OfType<Forge>().FirstOrDefault();
+                int forgeChance = forge != null && forge.Level > 0 ? forge.DoubleProdChancePercent + civ.ForgeDoubleHarvestBonus : 0;
+                int harvestProductionChance = civ.GetHarvestProductionBonus(building.Type.ToString());
+                double expectedMultiplier = (1 + forgeChance / 100.0) * (1 + harvestProductionChance / 100.0);
+                double ratePerSecond = 100.0 / effective * expectedMultiplier;
 
-                        if (building is Mine && harvestRes.Value == Resource.Ore && civ.MineGoldChancePercent > 0)
-                        {
-                            double goldChance = civ.MineGoldChancePercent / 100.0;
-                            AddProductionRate(result, Resource.Gold, ratePerSecond * goldChance);
-                            AddProductionRate(result, Resource.Ore, ratePerSecond * (1 - goldChance));
-                        }
-                        else
-                        {
-                            AddProductionRate(result, harvestRes.Value, ratePerSecond);
-                        }
-                    }
+                if (building is Mine && resource == Resource.Ore && civ.MineGoldChancePercent > 0)
+                {
+                    double goldChance = civ.MineGoldChancePercent / 100.0;
+                    AddProductionRate(result, Resource.Gold, ratePerSecond * goldChance);
+                    AddProductionRate(result, Resource.Ore, ratePerSecond * (1 - goldChance));
+                }
+                else
+                {
+                    AddProductionRate(result, resource, ratePerSecond);
                 }
             }
 
@@ -372,7 +370,6 @@ namespace SettlersOfIdlestan.Controller.Island
             {
                 var market = city.Buildings.OfType<Market>().FirstOrDefault();
                 if (market == null || market.Level == 0) continue;
-
                 long effectiveCooldown = GetEffectiveMarketCooldown(market, civ);
                 double marketRate = 100.0 / effectiveCooldown;
                 foreach (var basicResource in ResourceUtils.BasicResources)
@@ -397,15 +394,9 @@ namespace SettlersOfIdlestan.Controller.Island
 
             long now = _clock.CurrentTick;
 
-            // Blocking générique: toute feature avec BlocksHarvest (bandits, repaires, merveilles…)
             if (_state.Features.Any(f => f.Position.Equals(hex) && f.BlocksHarvest))
                 return false;
-            // Cooldown de départ des bandits
             if (_banditController?.HasDepartureCooldown(hex, now) == true)
-                return false;
-
-            // Wonder on this hex: no harvest
-            if (IsHexBlockedByWonder(hex))
                 return false;
 
             var civMap = _state.HarvestLastTimesByCivilization;
@@ -420,9 +411,6 @@ namespace SettlersOfIdlestan.Controller.Island
             var cities = civ.Cities.Where(c => c.Position.IsAdjacentTo(hex)).ToList();
             if (cities.Count == 0)
                 return false;
-
-            // Hex contesté: aucune production si une ville adverse est adjacente
-            if (IsHexContested(civ, hex)) return false;
 
             var tile = _state.Map.GetTile(hex);
             if (tile == null) return false;
