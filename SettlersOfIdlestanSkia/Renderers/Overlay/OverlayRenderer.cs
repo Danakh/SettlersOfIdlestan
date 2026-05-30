@@ -460,7 +460,10 @@ public sealed class OverlayRenderer : IGameRenderer
     public bool IsAnyOverlayOpen => _tradeRenderer.IsOpen || _prestigeRenderer.IsOpen
                                     || _settingsMenu.IsOpen || _settingsPopupRenderer.IsOpen;
     public bool IsPointBlockedByUI(SKPoint point) =>
-        IsAnyOverlayOpen || _selectedCityPanelRenderer.ContainsPoint(point) || _selectedWonderPanelRenderer.ContainsPoint(point);
+        IsAnyOverlayOpen || _selectedCityPanelRenderer.ContainsPoint(point) || _selectedWonderPanelRenderer.ContainsPoint(point)
+        || (!_tradeButtonRect.IsEmpty && _tradeButtonRect.Contains(point.X, point.Y))
+        || (!_prestigeButtonRect.IsEmpty && _prestigeButtonRect.Contains(point.X, point.Y))
+        || (!_wonderButtonRect.IsEmpty && _wonderButtonRect.Contains(point.X, point.Y));
     public bool IsIslandTabActive => _activeTab == TabIsland;
 
     private void HandlePointerMoved(object? sender, PointerEventArgs e)
