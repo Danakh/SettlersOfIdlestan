@@ -423,6 +423,8 @@
   "task_build_3_warehouses_desc": "Gather enough resources and build a Warehouse in 3 different cities.",
   "tutorial_step_trade_title": "Trade",
   "tutorial_step_trade_desc": "Build a Warehouse to store your resources, then use trading to obtain gold. You will need to exchange 500 resources to obtain 10 gold.",
+  "task_reach_20_victory_points_name": "Reach 20 Victory Points",
+  "task_reach_20_victory_points_desc": "Upgrade Town Halls to level 3 (2 pts each), build Temples and Libraries (1 pt each).",
   "task_perform_prestige_name": "Perform a Prestige",
   "task_perform_prestige_desc": "Once the Imperial Port is built, click the Prestige button in the main interface.",
   "task_reach_enough_victory_points_name": "Reach 35 Victory Points",
