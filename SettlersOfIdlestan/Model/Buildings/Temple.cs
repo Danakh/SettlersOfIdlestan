@@ -12,20 +12,18 @@ public class Temple : Building
     /// </summary>
     public Temple() : base(BuildingType.Temple)
     {
-        AvailableAtLevel = 3;
+        AvailableAtLevel = 2;
     }
 
     public override ResourceSet GetBuildCost() => new ResourceSet
     {
-        { Resource.Wood, 40 },
         { Resource.Brick, 20 },
-        { Resource.Stone, 100 }
+        { Resource.Stone, 20 }
     };
 
     public override ResourceSet GetUpgradeCost(int level) => new ResourceSet
     {
-        { Resource.Wood, 40 * (level + 1) },
         { Resource.Brick, 20 * (level + 1) },
-        { Resource.Stone, 100 * (level + 1) }
+        { Resource.Stone, 20 * (level + 1) }
     };
 }

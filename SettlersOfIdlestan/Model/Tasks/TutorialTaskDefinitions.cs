@@ -24,11 +24,10 @@ public static class TutorialTaskDefinitions
 
     private static int LiveMax(int recorded, int? live) => Math.Max(recorded, live ?? 0);
 
-    private static int ComputeVictoryPoints(IslandState? island)
+    private static int ComputePrestigePoints(IslandState? island)
         => island?.PlayerCivilization.Cities.SelectMany(c => c.Buildings).Sum(b => b.Type switch
         {
             BuildingType.Temple   => 1,
-            BuildingType.Library  => 1,
             BuildingType.TownHall => b.Level > 2 ? 2 : 1,
             _                     => 0,
         }) ?? 0;
@@ -93,9 +92,9 @@ public static class TutorialTaskDefinitions
 
         new TutorialTask(TutorialTaskId.Build5Libraries,
             "task_build_5_libraries_name", "task_build_5_libraries_desc",
-            (g, _, island) => g.BuildingCounts.GetValueOrDefault("Library") >= 5
-                || CountBuilding(island, BuildingType.Library) >= 5,
-            (g, _, island) => (LiveMax(g.BuildingCounts.GetValueOrDefault("Library"), CountBuilding(island, BuildingType.Library)), 5)),
+            (g, _, island) => g.BuildingCounts.GetValueOrDefault("Temple") >= 5
+                || CountBuilding(island, BuildingType.Temple) >= 5,
+            (g, _, island) => (LiveMax(g.BuildingCounts.GetValueOrDefault("Temple"), CountBuilding(island, BuildingType.Temple)), 5)),
 
         new TutorialTask(TutorialTaskId.SeaportAndTownHallLevel4SameCity,
             "task_seaport_townhall_level4_name", "task_seaport_townhall_level4_desc",
@@ -151,8 +150,8 @@ public static class TutorialTaskDefinitions
 
         new TutorialTask(TutorialTaskId.Reach20VictoryPoints,
             "task_reach_20_victory_points_name", "task_reach_20_victory_points_desc",
-            (g, _, island) => g.TotalPrestigesPerformed >= 1 || ComputeVictoryPoints(island) >= 20,
-            (g, _, island) => (g.TotalPrestigesPerformed >= 1 ? 20 : ComputeVictoryPoints(island), 20)),
+            (g, _, island) => g.TotalPrestigesPerformed >= 1 || ComputePrestigePoints(island) >= 20,
+            (g, _, island) => (g.TotalPrestigesPerformed >= 1 ? 20 : ComputePrestigePoints(island), 20)),
 
         new TutorialTask(TutorialTaskId.BuyResearchVertex,
             "task_buy_research_vertex_name", "task_buy_research_vertex_desc",
@@ -167,12 +166,9 @@ public static class TutorialTaskDefinitions
                 || (island?.PlayerCivilization.TechnologyTree.CompletedTechnologies.Count ?? 0) >= 1),
 
         new TutorialTask(TutorialTaskId.BuildLibraryLevel2,
-            "task_build_library_level2_name", "task_build_library_level2_desc",
-            (g, _, island) => island?.PlayerCivilization.Cities.SelectMany(c => c.Buildings)
-                .Any(b => b.Type == BuildingType.Library && b.Level >= 2) == true,
-            (g, _, island) => (island?.PlayerCivilization.Cities.SelectMany(c => c.Buildings)
-                .Where(b => b.Type == BuildingType.Library)
-                .Select(b => b.Level).DefaultIfEmpty(0).Max() ?? 0, 2)),
+            "task_build_library_level_name", "task_build_library_level_desc",
+            (g, _, island) => g.BuildingCounts.GetValueOrDefault("Library") >= 1
+                || CountBuilding(island, BuildingType.Library) >= 1),
 
         new TutorialTask(TutorialTaskId.PerformPrestige,
             "task_perform_prestige_name", "task_perform_prestige_desc",
@@ -180,7 +176,7 @@ public static class TutorialTaskDefinitions
 
         new TutorialTask(TutorialTaskId.Reach30VictoryPoints,
             "task_reach_enough_victory_points_name", "task_reach_enough_victory_points_desc",
-            (g, _, island) => g.TotalPrestigesPerformed >= 1 || ComputeVictoryPoints(island) >= 35,
-            (g, _, island) => (g.TotalPrestigesPerformed >= 1 ? 35 : ComputeVictoryPoints(island), 35)),
+            (g, _, island) => g.TotalPrestigesPerformed >= 1 || ComputePrestigePoints(island) >= 35,
+            (g, _, island) => (g.TotalPrestigesPerformed >= 1 ? 35 : ComputePrestigePoints(island), 35)),
     };
 }
