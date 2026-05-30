@@ -491,7 +491,6 @@ public sealed class SkiaGameRuntime : IDisposable
         _overlayRenderer?.Show();
         if (_gameControllerService.CurrentGameState?.Settings?.PauseAfterPrestige != false)
             _gameControllerService.CurrentGameState?.Clock?.Pause();
-        _overlayRenderer?.SwitchToPrestigeTab();
         _prestigeTransitionPending = false;
     }
 
