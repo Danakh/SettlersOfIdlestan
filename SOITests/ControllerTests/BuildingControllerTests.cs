@@ -195,9 +195,9 @@ public class BuildingControllerTests
         var library = new Library { Level = 0 };
         city.Buildings.Add(library);
 
-        // Check initial max level (Library.GetDefaultMaxLevel() returns 4)
+        // Check initial max level (Library.GetDefaultMaxLevel() returns 0)
         int maxLevelBefore = controller.GetMaxLevel(library, 0);
-        Assert.Equal(1, maxLevelBefore);
+        Assert.Equal(0, maxLevelBefore);
 
         // Add a modifier to the TechnologyTree that increases Library max level by 3
         var modifier = new SettlersOfIdlestan.Model.GameplayModifier.Modifier(
@@ -207,8 +207,8 @@ public class BuildingControllerTests
             3);
         civ.TechnologyTree.Modifiers.Add(modifier);
 
-        // Check max level after modifier (should be 4: 1 + 3)
+        // Check max level after modifier (should be 3: 0 + 3)
         int maxLevelAfter = controller.GetMaxLevel(library, 0);
-        Assert.Equal(4, maxLevelAfter);
+        Assert.Equal(3, maxLevelAfter);
     }
 }

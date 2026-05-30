@@ -28,7 +28,7 @@ namespace SOITests.ControllerTests
             civ.Cities[0].Buildings.Add(new TownHall());
             Assert.Equal(1, controller.CalculatePrestigePoints());
 
-            civ.Cities[0].Buildings.Add(new Library());
+            civ.Cities[0].Buildings.Add(new Temple());
             Assert.Equal(2, controller.CalculatePrestigePoints());
 
             civ.Cities[0].Buildings[0].Level = 2; // raise townhall to level 2 (no change)
@@ -64,12 +64,12 @@ namespace SOITests.ControllerTests
 
             civ.Cities[0].Buildings.Add(new Temple());
             civ.Cities[0].Buildings.Add(new Temple());
-            civ.Cities[0].Buildings.Add(new Library());
+            civ.Cities[0].Buildings.Add(new TownHall());
 
             var sources = controller.GetPrestigePointSources();
             Assert.Equal(2, sources.Count);
             Assert.Equal(2, sources.Single(source => source.LabelKey == "building_temple_name").Points);
-            Assert.Equal(1, sources.Single(source => source.LabelKey == "building_library_name").Points);
+            Assert.Equal(1, sources.Single(source => source.LabelKey == "building_townhall_name").Points);
         }
 
         // ── Bandit prestige bonus ────────────────────────────────────────────

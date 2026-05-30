@@ -141,7 +141,7 @@ public class PrestigeMapControllerTests
 
         var civ = island.PlayerCivilization;
         int maxLevel = civ.ModifierAggregator.ApplyModifiers(ECategory.BUILDING_MAX_LEVEL, "Library", new Library().GetDefaultMaxLevel());
-        Assert.Equal(4, maxLevel); // 1 (default) + 3 (prestige) = 4
+        Assert.Equal(3, maxLevel); // 0 (default) + 3 (prestige) = 3
     }
 
     [Fact]

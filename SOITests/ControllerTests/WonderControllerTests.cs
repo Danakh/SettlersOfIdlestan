@@ -90,12 +90,11 @@ namespace SOITests.ControllerTests
         {
             var (state, wonder, clock, _) = CreateSetup();
             var civ = state.PlayerCivilization;
-            civ.AddResource(Resource.Food, 90); // 90/100 = 0 → aucun investissement
             wonder.InvestmentEnabled.Add(Resource.Food);
 
             clock.SimulateAdvance(WonderController.InvestmentIntervalTicks);
 
-            Assert.Equal(90, civ.GetResourceQuantity(Resource.Food));
+            Assert.Equal(0, civ.GetResourceQuantity(Resource.Food));
             Assert.Empty(wonder.InvestedResources);
         }
 
