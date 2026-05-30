@@ -1,4 +1,5 @@
 using SettlersOfIdlestan.Model.Civilization;
+using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
 using System.Text.Json.Serialization;
 
@@ -223,6 +224,12 @@ public class Building
     /// Gets or sets the city level at which the building becomes available.
     /// </summary>
     public int AvailableAtLevel { get; set; }
+
+    /// <summary>
+    /// Tick de la dernière récolte automatique par hex, pour ce bâtiment spécifique.
+    /// Clé = coordonnée hex ; valeur = tick de la dernière récolte.
+    /// </summary>
+    public Dictionary<HexCoord, long> AutoHarvestLastTicks { get; set; } = new();
 
     /// <summary>
     /// Gets the list of actions associated with the building.

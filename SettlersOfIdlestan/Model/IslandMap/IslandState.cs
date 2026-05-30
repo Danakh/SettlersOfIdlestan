@@ -61,7 +61,6 @@ public class IslandState : IJsonOnDeserialized
         Civilizations = civilizations;
         IslandID = islandID;
         HarvestLastTimesByCivilization = new Dictionary<int, Dictionary<SettlersOfIdlestan.Model.HexGrid.HexCoord, long>>();
-        AutomaticHarvestLastTimesByCivilization = new Dictionary<int, Dictionary<SettlersOfIdlestan.Model.HexGrid.HexCoord, long>>();
         Features = new List<IslandFeature>();
         BanditCooldownUntil = new Dictionary<HexCoord, long>();
         RecalculateVisibleIslandMaps();
@@ -76,7 +75,6 @@ public class IslandState : IJsonOnDeserialized
         Map = new IslandMap(Array.Empty<HexTile>());
         Civilizations = new List<SettlersOfIdlestan.Model.Civilization.Civilization>();
         HarvestLastTimesByCivilization = new Dictionary<int, Dictionary<SettlersOfIdlestan.Model.HexGrid.HexCoord, long>>();
-        AutomaticHarvestLastTimesByCivilization = new Dictionary<int, Dictionary<SettlersOfIdlestan.Model.HexGrid.HexCoord, long>>();
         Features = new List<IslandFeature>();
         BanditCooldownUntil = new Dictionary<HexCoord, long>();
     }
@@ -111,11 +109,6 @@ public class IslandState : IJsonOnDeserialized
     /// Tick de simulation de la dernière récolte manuelle par civilisation et par hex (1 tick = 0.01 s).
     /// </summary>
     public Dictionary<int, Dictionary<SettlersOfIdlestan.Model.HexGrid.HexCoord, long>> HarvestLastTimesByCivilization { get; set; }
-
-    /// <summary>
-    /// Tick de simulation de la dernière récolte automatique par civilisation et par hex (1 tick = 0.01 s).
-    /// </summary>
-    public Dictionary<int, Dictionary<SettlersOfIdlestan.Model.HexGrid.HexCoord, long>> AutomaticHarvestLastTimesByCivilization { get; set; }
 
     /// <summary>
     /// Toutes les features de l'île (Bandit, BanditHideout, TreasureTrove).
