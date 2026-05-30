@@ -129,10 +129,8 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay
             bool harvestBlockedByFeature = featuresAtCoord.Any(f => f.BlocksHarvest);
             bool banditCooldownActive = islandState.BanditCooldownUntil.TryGetValue(coord, out var banditUntil)
                 && currentTick < banditUntil;
-            bool isContested = islandState.PlayerCivilization.Cities.Any(city => city.Position.IsAdjacentTo(coord))
-                && islandState.Civilizations.Where(c => c.Index != playerIdx).Any(c => c.Cities.Any(city => city.Position.IsAdjacentTo(coord)));
 
-            if (manualResources.Count == 0 && autoResources.Count == 0 && featureTooltipEntries.Count == 0 && !banditCooldownActive && !isContested)
+            if (manualResources.Count == 0 && autoResources.Count == 0 && featureTooltipEntries.Count == 0 && !banditCooldownActive)
             {
                 var tile = islandState.Map.GetTile(coord);
                 if (tile == null) return;
@@ -145,9 +143,6 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay
             }
 
             var lines = new List<string>();
-
-            if (isContested)
-                lines.Add(_localizationService.Get("hex_tooltip_contested"));
 
             foreach (var entry in featureTooltipEntries)
                 lines.Add(_localizationService.Resolve(entry));

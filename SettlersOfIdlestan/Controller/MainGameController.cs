@@ -224,7 +224,10 @@ namespace SettlersOfIdlestan.Controller
             => HarvestController.InvalidateProductionCache();
 
         private void OnCityBuiltInvalidateHarvestCache(object? sender, OutpostAutoBuiltEventArgs e)
-            => HarvestController.InvalidateProductionCache();
+        {
+            FeatureController.RefreshContestedTerritories();
+            HarvestController.InvalidateProductionCache();
+        }
 
         private void SetupModifierAggregators()
         {

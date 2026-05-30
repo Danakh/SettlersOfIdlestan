@@ -118,8 +118,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 {
                     if (!hexBlocked.TryGetValue(hex, out bool blocked))
                     {
-                        blocked = IsHexContested(civ, hex)
-                            || _state.Features.Any(f => f.Position.Equals(hex) && f.BlocksHarvest)
+                        blocked = _state.Features.Any(f => f.Position.Equals(hex) && f.BlocksHarvest)
                             || _banditController?.HasDepartureCooldown(hex, now) == true;
                         hexBlocked[hex] = blocked;
                     }
@@ -322,13 +321,6 @@ namespace SettlersOfIdlestan.Controller.Island
             _tradeController.Trade(civ.Index, res, weakest);
         }
 
-        private bool IsHexContested(SettlersOfIdlestan.Model.Civilization.Civilization civ, HexCoord hex)
-        {
-            return _state!.Civilizations
-                .Where(other => other.Index != civ.Index)
-                .Any(other => other.Cities.Any(city => city.Position.IsAdjacentTo(hex)));
-        }
-
         /// <summary>
         /// Calcule le gain moyen théorique en ressources par seconde, incluant les bonus probabilistes attendus.
         /// </summary>
@@ -347,8 +339,7 @@ namespace SettlersOfIdlestan.Controller.Island
             {
                 if (!hexAllowed.TryGetValue(hex, out bool allowed))
                 {
-                    allowed = !IsHexContested(civ, hex)
-                        && !_state.Features.Any(f => f.Position.Equals(hex) && f.BlocksHarvest);
+                    allowed = !_state.Features.Any(f => f.Position.Equals(hex) && f.BlocksHarvest);
                     hexAllowed[hex] = allowed;
                 }
                 if (!allowed) continue;
@@ -420,9 +411,6 @@ namespace SettlersOfIdlestan.Controller.Island
             var cities = civ.Cities.Where(c => c.Position.IsAdjacentTo(hex)).ToList();
             if (cities.Count == 0)
                 return false;
-
-            // Hex contesté: aucune production si une ville adverse est adjacente
-            if (IsHexContested(civ, hex)) return false;
 
             var tile = _state.Map.GetTile(hex);
             if (tile == null) return false;
