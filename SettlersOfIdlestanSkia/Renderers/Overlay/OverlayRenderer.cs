@@ -381,6 +381,8 @@ public sealed class OverlayRenderer : IGameRenderer
     private void HandlePointerMoved(object? sender, PointerEventArgs e)
     {
         if (!_isVisible) return;
+        if (_settingsPopupRenderer.IsOpen)
+            _settingsPopupRenderer.HandlePointerMoved(e.Position);
         if (_tradeRenderer.IsOpen)
             _tradeRenderer.HandlePointerMoved(e.Position);
         if (_activeTab == TabPrestige)

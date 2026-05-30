@@ -377,6 +377,7 @@
   "hex_tooltip_terrain_water": "Eau\nRécolte manuelle : Nourriture (Port de pêche)",
   "hex_tooltip_terrain_desert": "Désert\nPas de récolte manuelle",
   "wonder_action": "Construire Merveille",
+  "wonder_action_short": "Merveille",
   "wonder_requires_architecture": "⚠ Nécessite la technologie Architecture",
   "wonder_already_placed": "⚠ Une Merveille est déjà placée",
   "wonder_select_hex": "Choisissez un hex adjacent à une de vos villes",

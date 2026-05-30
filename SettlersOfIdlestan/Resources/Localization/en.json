@@ -377,6 +377,7 @@
   "hex_tooltip_terrain_water": "Water\nManual harvest: Food (Seaport)",
   "hex_tooltip_terrain_desert": "Desert\nNo manual harvest",
   "wonder_action": "Build Wonder",
+  "wonder_action_short": "Wonder",
   "wonder_requires_architecture": "⚠ Requires Architecture technology",
   "wonder_already_placed": "⚠ A Wonder is already placed",
   "wonder_select_hex": "Choose a hex adjacent to one of your cities",

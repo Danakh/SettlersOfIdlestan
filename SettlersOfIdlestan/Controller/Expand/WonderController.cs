@@ -72,7 +72,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 if (invested >= required) { toDeselect.Add(resource); continue; }
 
                 int stock = playerCiv.GetResourceQuantity(resource);
-                int amount = stock / 100;
+                int amount = Math.Max(1, stock / 100);
                 if (amount <= 0) continue;
 
                 long remaining = required - invested;
