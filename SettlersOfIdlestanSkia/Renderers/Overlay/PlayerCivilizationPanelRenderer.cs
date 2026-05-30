@@ -17,7 +17,7 @@ public sealed class PlayerCivilizationPanelRenderer : IDisposable
     private const float PanelLeft    = 10f;
     private const float PanelWidth   = 200f;
     private const float PanelPadding = 12f;
-    private const float BtnHeight    = 34f;
+    private const float BtnHeight    = 30f;
     private const float BtnSpacing   = 6f;
     private const float TitleSize    = 11f;
     private const float TitleHeight  = 20f;
@@ -70,6 +70,7 @@ public sealed class PlayerCivilizationPanelRenderer : IDisposable
 
     private readonly SKFont _sectionFont = new() { Size = TitleSize, Typeface = SkiaFonts.Regular };
     private readonly SKFont _btnFont     = new() { Size = 13f,       Typeface = SkiaFonts.Bold };
+    private readonly SKFont _btnSmFont   = new() { Size = 11f,       Typeface = SkiaFonts.Bold };
     private readonly SKFont _labelFont   = new() { Size = 13f,       Typeface = SkiaFonts.Regular };
 
     public PlayerCivilizationPanelRenderer(
@@ -108,8 +109,7 @@ public sealed class PlayerCivilizationPanelRenderer : IDisposable
         bool tradeVisible    = IsTradeVisible();
         bool prestigeVisible = IsPrestigeVisible();
         bool prestigeAvail   = prestigeVisible && IsPrestigeAvailable();
-        bool wonderVisible   = IsWonderVisible();
-        bool canWonder       = wonderVisible && CanPlaceWonder();
+        bool wonderVisible   = IsWonderVisible() && CanPlaceWonder();
         bool hasBarracks     = HasBuilt<Barracks>(civ);
         bool hasLabs         = HasBuilt<Laboratory>(civ);
 
@@ -144,10 +144,9 @@ public sealed class PlayerCivilizationPanelRenderer : IDisposable
         float h = PanelPadding;
         if (showActions)
         {
-            h += TitleHeight;
-            if (tradeVisible)    h += BtnHeight + BtnSpacing;
-            if (prestigeVisible) h += BtnHeight + BtnSpacing;
-            if (wonderVisible)   h += BtnHeight + BtnSpacing;
+            int actionCount = (tradeVisible ? 1 : 0) + (prestigeVisible ? 1 : 0) + (wonderVisible ? 1 : 0);
+            int actionRows  = (actionCount + 1) / 2;
+            h += TitleHeight + actionRows * (BtnHeight + BtnSpacing);
         }
         if (showActions && showControls) h += SepSpacing * 2 + 1f;
         if (showControls)
@@ -176,34 +175,45 @@ public sealed class PlayerCivilizationPanelRenderer : IDisposable
             canvas.DrawText(_localization.Get("panel_civ_actions"), x, y + TitleSize, _sectionFont, _sectionTitlePaint);
             y += TitleHeight;
 
+            const float colGap   = 6f;
+            float       colW     = (contentW - colGap) / 2f;
+            int  actionCount = (tradeVisible ? 1 : 0) + (prestigeVisible ? 1 : 0) + (wonderVisible ? 1 : 0);
+            float actionsY   = y;
+            int   btnIdx     = 0;
+
+            SKRect BtnRect(int idx)
+            {
+                float col       = idx % 2;
+                float row       = idx / 2;
+                bool  lastOdd   = idx == actionCount - 1 && actionCount % 2 == 1;
+                float bw        = lastOdd ? contentW : colW;
+                float bx        = x + col * (colW + colGap);
+                float by        = actionsY + row * (BtnHeight + BtnSpacing);
+                return new SKRect(bx, by, bx + bw, by + BtnHeight);
+            }
+
             if (tradeVisible)
             {
-                _tradeButtonRect = new SKRect(x, y, x + contentW, y + BtnHeight);
+                _tradeButtonRect = BtnRect(btnIdx++);
                 canvas.DrawRoundRect(_tradeButtonRect, 6, 6, _hoveredTrade ? _btnHoverPaint : _btnPaint);
-                canvas.DrawText(_localization.Get("trade_action"), _tradeButtonRect.MidX, _tradeButtonRect.MidY + 5f, SKTextAlign.Center, _btnFont, _btnTextPaint);
-                y += BtnHeight + BtnSpacing;
+                canvas.DrawText(_localization.Get("trade_action"), _tradeButtonRect.MidX, _tradeButtonRect.MidY + 4f, SKTextAlign.Center, _btnSmFont, _btnTextPaint);
             }
 
             if (prestigeVisible)
             {
-                _prestigeButtonRect = new SKRect(x, y, x + contentW, y + BtnHeight);
-                var ctrl = _gameControllerService.MainGameController.PrestigeController;
-                int pts  = ctrl.CalculatePrestigePoints();
-                string label = prestigeAvail
-                    ? $"{_localization.Get("prestige_action")} ({pts})"
-                    : $"{_localization.Get("prestige_action")} ({pts}/{PrestigeController.PrestigeRequiredPoints})";
+                _prestigeButtonRect = BtnRect(btnIdx++);
                 canvas.DrawRoundRect(_prestigeButtonRect, 6, 6, prestigeAvail ? (_hoveredPrestige ? _btnHoverPaint : _btnPaint) : _btnDisabledPaint);
-                canvas.DrawText(label, _prestigeButtonRect.MidX, _prestigeButtonRect.MidY + 5f, SKTextAlign.Center, _btnFont, prestigeAvail ? _btnTextPaint : _btnDisabledTxtPaint);
-                y += BtnHeight + BtnSpacing;
+                canvas.DrawText(_localization.Get("prestige_action"), _prestigeButtonRect.MidX, _prestigeButtonRect.MidY + 4f, SKTextAlign.Center, _btnSmFont, prestigeAvail ? _btnTextPaint : _btnDisabledTxtPaint);
             }
 
             if (wonderVisible)
             {
-                _wonderButtonRect = new SKRect(x, y, x + contentW, y + BtnHeight);
-                canvas.DrawRoundRect(_wonderButtonRect, 6, 6, canWonder ? (_hoveredWonder ? _btnHoverPaint : _btnPaint) : _btnDisabledPaint);
-                canvas.DrawText(_localization.Get("wonder_action"), _wonderButtonRect.MidX, _wonderButtonRect.MidY + 5f, SKTextAlign.Center, _btnFont, canWonder ? _btnTextPaint : _btnDisabledTxtPaint);
-                y += BtnHeight + BtnSpacing;
+                _wonderButtonRect = BtnRect(btnIdx++);
+                canvas.DrawRoundRect(_wonderButtonRect, 6, 6, _hoveredWonder ? _btnHoverPaint : _btnPaint);
+                canvas.DrawText(_localization.Get("wonder_action_short"), _wonderButtonRect.MidX, _wonderButtonRect.MidY + 4f, SKTextAlign.Center, _btnSmFont, _btnTextPaint);
             }
+
+            y = actionsY + ((btnIdx + 1) / 2) * (BtnHeight + BtnSpacing);
         }
 
         if (showActions && showControls)
@@ -394,6 +404,7 @@ public sealed class PlayerCivilizationPanelRenderer : IDisposable
         _collapseTabBgPaint.Dispose();
         _sectionFont.Dispose();
         _btnFont.Dispose();
+        _btnSmFont.Dispose();
         _labelFont.Dispose();
         _disposed = true;
     }
