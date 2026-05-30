@@ -12,7 +12,8 @@ public class ContestedTerritory : IslandFeature
 {
     public override bool BlocksHarvest => true;
     public override bool IsDiscoverable => false;
-    public override bool ShouldRenderIcon => false;
+    public override bool ShouldRenderIcon => true;
+    public override string TextIcon => "⚔";
 
     public override LocalizedEntry? GetTooltipEntry() => new("hex_tooltip_contested");
 

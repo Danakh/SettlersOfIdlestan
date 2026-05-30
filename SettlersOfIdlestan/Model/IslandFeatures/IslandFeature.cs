@@ -34,14 +34,20 @@ public abstract class IslandFeature
 
     /// <summary>
     /// Nom de la ressource SVG à afficher sur la carte (ex. "Resources.icons.features.chest.svg").
-    /// Null = pas d'icône.
+    /// Null = pas d'icône SVG.
     /// </summary>
     public virtual string? SvgIconResourceName => null;
 
-    /// <summary>Taille d'affichage souhaitée en pixels.</summary>
+    /// <summary>Taille d'affichage souhaitée en pixels (SVG).</summary>
     public virtual float SvgIconSize => 20f;
 
-    /// <summary>True si l'icône doit être dessinée dans l'état actuel de la feature.</summary>
+    /// <summary>
+    /// Texte ou emoji à afficher sur la carte à la place d'une icône SVG.
+    /// Utilisé uniquement si SvgIconResourceName est null.
+    /// </summary>
+    public virtual string? TextIcon => null;
+
+    /// <summary>True si l'icône (SVG ou texte) doit être dessinée dans l'état actuel de la feature.</summary>
     public virtual bool ShouldRenderIcon => Found;
 
     /// <summary>
