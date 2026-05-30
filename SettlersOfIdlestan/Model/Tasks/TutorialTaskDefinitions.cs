@@ -154,6 +154,26 @@ public static class TutorialTaskDefinitions
             (g, _, island) => g.TotalPrestigesPerformed >= 1 || ComputeVictoryPoints(island) >= 20,
             (g, _, island) => (g.TotalPrestigesPerformed >= 1 ? 20 : ComputeVictoryPoints(island), 20)),
 
+        new TutorialTask(TutorialTaskId.BuyResearchVertex,
+            "task_buy_research_vertex_name", "task_buy_research_vertex_desc",
+            (g, _, island) => g.TotalPrestigeVerticesPurchased >= 1
+                || g.TotalResearchCompleted >= 1
+                || island?.PlayerCivilization.TechnologyTree.ActiveResearch != null
+                || (island?.PlayerCivilization.TechnologyTree.CompletedTechnologies.Count ?? 0) > 0),
+
+        new TutorialTask(TutorialTaskId.CompleteFirstResearch,
+            "task_complete_first_research_name", "task_complete_first_research_desc",
+            (g, _, island) => g.TotalResearchCompleted >= 1
+                || (island?.PlayerCivilization.TechnologyTree.CompletedTechnologies.Count ?? 0) >= 1),
+
+        new TutorialTask(TutorialTaskId.BuildLibraryLevel2,
+            "task_build_library_level2_name", "task_build_library_level2_desc",
+            (g, _, island) => island?.PlayerCivilization.Cities.SelectMany(c => c.Buildings)
+                .Any(b => b.Type == BuildingType.Library && b.Level >= 2) == true,
+            (g, _, island) => (island?.PlayerCivilization.Cities.SelectMany(c => c.Buildings)
+                .Where(b => b.Type == BuildingType.Library)
+                .Select(b => b.Level).DefaultIfEmpty(0).Max() ?? 0, 2)),
+
         new TutorialTask(TutorialTaskId.PerformPrestige,
             "task_perform_prestige_name", "task_perform_prestige_desc",
             (g, _, _) => g.TotalPrestigesPerformed >= 1),

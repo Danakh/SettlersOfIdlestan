@@ -41,7 +41,16 @@ namespace SettlersOfIdlestan.Controller.Expand
         public bool PrestigeIsAvailable() =>
             CalculatePrestigePoints() >= PrestigeRequiredPoints && HasImperialPort();
 
-        public int CalculatePrestigePoints() => GetPrestigePointSources().Sum(source => source.Points);
+        public int GetBuildingSubtotal() => GetPrestigePointSources().Sum(source => source.Points);
+
+        public int GetBanditBonus()
+        {
+            if (_islandState == null || _islandState.RunRecord.BanditsDefeated == 0)
+                return 0;
+            return GetBuildingSubtotal() / 5;
+        }
+
+        public int CalculatePrestigePoints() => GetBuildingSubtotal() + GetBanditBonus();
 
         public IReadOnlyList<PrestigePointSource> GetPrestigePointSources()
         {
@@ -60,12 +69,6 @@ namespace SettlersOfIdlestan.Controller.Expand
                             sources[building.NameKey] += points;
                     }
                 }
-            }
-            if (_islandState != null
-                && !_islandState.Features.OfType<SettlersOfIdlestan.Model.Bandits.Bandit>().Any()
-                && _islandState.Map.Tiles.Values.Any(t => t.TerrainType == TerrainType.Desert))
-            {
-                sources["prestige_no_bandits"] = 2;
             }
 
             if (_islandState != null)
