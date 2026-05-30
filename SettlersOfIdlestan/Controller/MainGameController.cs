@@ -10,6 +10,7 @@ using SettlersOfIdlestan.Model.Prestige;
 using SettlersOfIdlestan.Services;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace SettlersOfIdlestan.Controller
 {
@@ -31,6 +32,7 @@ namespace SettlersOfIdlestan.Controller
         public BanditController BanditController { get; private set; }
         public MilitaryController MilitaryController { get; private set; }
         public WonderController WonderController { get; private set; }
+        public NpcGameController NpcGameController { get; private set; }
         public GameClock? Clock { get; private set; }
         // Holds the currently loaded main game state when created or imported
         public SettlersOfIdlestan.Model.Game.MainGameState? CurrentMainState { get; private set; }
@@ -61,6 +63,7 @@ namespace SettlersOfIdlestan.Controller
             MilitaryController = new MilitaryController();
             WonderController = new WonderController();
             TaskRecordController = new TaskRecordController();
+            NpcGameController = new NpcGameController();
         }
 
         /// <summary>
@@ -204,6 +207,7 @@ namespace SettlersOfIdlestan.Controller
                 PrestigeController.Initialize(islandState.PlayerCivilization, islandState, Clock);
                 WonderController.Initialize(islandState, Clock);
                 ResearchController.Initialize(islandState, Clock, CurrentMainState?.PrestigeState);
+                NpcGameController.Initialize(islandState, Clock, MilitaryController, this);
 
                 // Invalide le cache de production dès qu'un bâtiment est construit/amélioré ou une ville créée
                 BuildingController.OnBuildingBuilt -= OnBuildingChangedInvalidateHarvestCache;
@@ -239,8 +243,10 @@ namespace SettlersOfIdlestan.Controller
             var prestigeState = CurrentMainState!.PrestigeState;
             var islandState = prestigeState!.IslandState;
 
-            foreach (var civ in islandState!.Civilizations)
-                civ.SetupModifierAggregator(civ.TechnologyTree, new UniqueBuildingsModifierProvider(civ));
+            var npcModifiers = NpcModifierSetMaker.Create(maxTechTier: 3, maxPrestigeDistance: 2);
+
+            foreach (var civ in islandState!.Civilizations.Where(c => c.IsNpc))
+                civ.SetupModifierAggregator(civ.TechnologyTree, npcModifiers, new UniqueBuildingsModifierProvider(civ));
 
             _prestigeModifierProvider?.Dispose();
             _prestigeModifierProvider = new PrestigeModifierProvider(prestigeState, PrestigeMapController.DefaultMap);

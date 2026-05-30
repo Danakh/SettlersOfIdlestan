@@ -43,8 +43,10 @@ public class NpcCivilizationAutoplayer
 
     private bool TryExpansionStep(bool shouldExpand)
     {
-        // Prioritise buildings and expansion; skip military entirely.
-        return _inner.TryStep2Once(shouldExpand);
+        // Expansionist civs build economically, expand aggressively, and build armies.
+        bool did = _inner.TryStep2Once(shouldExpand);
+        did |= _inner.TryMilitaryStepOnce();
+        return did;
     }
 
     private bool TryWarlikeStep(bool shouldExpand)
