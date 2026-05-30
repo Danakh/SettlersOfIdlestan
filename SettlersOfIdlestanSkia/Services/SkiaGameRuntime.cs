@@ -452,13 +452,13 @@ public sealed class SkiaGameRuntime : IDisposable
     {
         _gameControllerService?.MainGameController.WonderController.PlaceWonder(hex);
         _gameControllerService?.CurrentGameState?.Clock?.Resume();
-        _overlayRenderer?.Show();
+        _overlayRenderer?.Show(suppressNextPress: true);
     }
 
     private void OnWonderSelectionCancelled(object? sender, EventArgs e)
     {
         _gameControllerService?.CurrentGameState?.Clock?.Resume();
-        _overlayRenderer?.Show();
+        _overlayRenderer?.Show(suppressNextPress: true);
     }
 
     private void RequestPrestige()

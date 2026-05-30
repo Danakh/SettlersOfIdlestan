@@ -62,13 +62,14 @@ namespace SettlersOfIdlestan.Controller.Island
 
             var playerCiv = _state.PlayerCivilization;
             var cost = GetLevelCost(wonder.Level + 1);
+            var toDeselect = new List<Resource>();
 
             foreach (var resource in wonder.InvestmentEnabled)
             {
                 if (!cost.Contains(resource)) continue;
                 long invested = wonder.InvestedResources.TryGetValue(resource, out var inv) ? inv : 0;
                 long required = cost[resource];
-                if (invested >= required) continue;
+                if (invested >= required) { toDeselect.Add(resource); continue; }
 
                 int stock = playerCiv.GetResourceQuantity(resource);
                 int amount = stock / 100;
@@ -78,13 +79,20 @@ namespace SettlersOfIdlestan.Controller.Island
                 if (amount > remaining) amount = (int)remaining;
 
                 playerCiv.RemoveResource(resource, amount);
-                wonder.InvestedResources[resource] = invested + amount;
+                long newInvested = invested + amount;
+                wonder.InvestedResources[resource] = newInvested;
+                if (newInvested >= required)
+                    toDeselect.Add(resource);
             }
+
+            foreach (var r in toDeselect)
+                wonder.InvestmentEnabled.Remove(r);
 
             if (cost.Keys.All(r => (wonder.InvestedResources.TryGetValue(r, out var inv) ? inv : 0) >= cost[r]))
             {
                 wonder.Level++;
                 wonder.InvestedResources.Clear();
+                wonder.InvestmentEnabled.Clear();
             }
         }
 
@@ -131,7 +139,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 if (tile == null) continue;
                 if (tile.TerrainType == TerrainType.Water) continue;
                 if (enemyZone.Contains(hex)) continue;
-                if (_state.Features.OfType<Wonder>().Any(w => w.Position.Equals(hex))) continue;
+                if (_state.Features.Any(f => f.Position.Equals(hex))) continue;
                 result.Add(hex);
             }
 

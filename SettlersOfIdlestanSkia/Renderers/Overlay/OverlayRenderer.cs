@@ -83,6 +83,7 @@ public sealed class OverlayRenderer : IGameRenderer
     private int? _seenEventCount;
     private bool _disposed;
     private bool _isVisible = true;
+    private bool _suppressNextPress;
 
     public OverlayRenderer(
         InputHandlingService inputService,
@@ -478,6 +479,7 @@ public sealed class OverlayRenderer : IGameRenderer
     private void HandlePointerPressed(object? sender, PointerEventArgs e)
     {
         if (!_isVisible) return;
+        if (_suppressNextPress) { _suppressNextPress = false; return; }
 
         if (_settingsPopupRenderer.HandlePointerPressed(e.Position, e.Button)) return;
         if (_prestigeRenderer.HandlePointerPressed(e.Position, e.Button)) return;
@@ -555,11 +557,12 @@ public sealed class OverlayRenderer : IGameRenderer
         _isVisible = false;
     }
 
-    public void Show()
+    public void Show(bool suppressNextPress = false)
     {
         _isVisible = true;
         _selectedCityPanelRenderer.IsInputEnabled = true;
         _selectedWonderPanelRenderer.IsInputEnabled = true;
+        if (suppressNextPress) _suppressNextPress = true;
     }
 
     public void SwitchToPrestigeTab()
