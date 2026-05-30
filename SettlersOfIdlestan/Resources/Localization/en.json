@@ -158,6 +158,8 @@
   "trade_advanced_title": "Buy with Gold",
   "trade_buy_cost": "Buy — {0} gold",
   "trade_gold_available": "Available gold: {0}",
+  "trade_sell_button": "{0} → {1} Gold",
+  "trade_buy_button": "{0} Gold → {1}",
   "trade_tooltip_storage_full": "Storage full",
   "trade_tooltip_no_offers": "Nothing to sell",
   "trade_tooltip_no_gold": "Not enough gold",

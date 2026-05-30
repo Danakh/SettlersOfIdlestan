@@ -158,6 +158,8 @@
   "trade_advanced_title": "Acheter avec de l'Or",
   "trade_buy_cost": "Acheter — {0} or",
   "trade_gold_available": "Or disponible : {0}",
+  "trade_sell_button": "{0} → {1} Or",
+  "trade_buy_button": "{0} Or → {1}",
   "trade_tooltip_storage_full": "Stockage plein",
   "trade_tooltip_no_offers": "Rien à vendre",
   "trade_tooltip_no_gold": "Or insuffisant",
