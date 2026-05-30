@@ -386,12 +386,12 @@ public sealed class TradeRenderer : IDisposable
 
         var civ = _gameControllerService.PlayerCivilization;
         var tradeController = _gameControllerService.MainGameController.TradeController;
-        int seaportLevel = civ != null ? tradeController.GetMaxSeaportLevel(civ.Index) : 0;
+        int marketLevel = civ != null ? tradeController.GetMaxMarketLevel(civ.Index) : 0;
         var enhancedResources = civ?.SeaportEnhancedResources ?? [];
         var autoTradeResources = civ?.SeaportAutoTradeResources ?? [];
 
         DrawColumn(canvas, leftX, columnsTop, _localization.Get("trade_give"), _offered, _requested, _offerRects, true,
-            seaportLevel, enhancedResources, autoTradeResources);
+            marketLevel, enhancedResources, autoTradeResources);
         DrawColumn(canvas, rightX, columnsTop, _localization.Get("trade_receive"), _requested, _offered, _requestRects, false,
             0, [], []);
 
@@ -520,8 +520,8 @@ public sealed class TradeRenderer : IDisposable
         canvas.DrawRoundRect(columnRect, 6, 6, _panelPaint);
         canvas.DrawText(title, columnRect.MidX, y + 22, SKTextAlign.Center, _boldFont, _textPaint);
 
-        bool showL3 = isOfferColumn && seaportLevel >= 3;
-        bool showL4 = isOfferColumn && seaportLevel >= 4;
+        bool showL3 = isOfferColumn && seaportLevel >= 2;
+        bool showL4 = isOfferColumn && seaportLevel >= 3;
         float checkboxOffset = showL4 ? (CheckboxSize * 2 + CheckboxGap * 3)
                              : showL3 ? (CheckboxSize + CheckboxGap * 2)
                              : 0f;

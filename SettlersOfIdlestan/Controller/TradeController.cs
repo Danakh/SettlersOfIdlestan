@@ -130,14 +130,26 @@ namespace SettlersOfIdlestan.Controller
             return max;
         }
 
-        private int GetSeaportCountAtMinLevel(int civilizationIndex, int minLevel)
+        public int GetMaxMarketLevel(int civilizationIndex)
+        {
+            var civ = _state?.Civilizations.Find(c => c.Index == civilizationIndex);
+            if (civ == null) return 0;
+            int max = 0;
+            foreach (var city in civ.Cities)
+                foreach (var b in city.Buildings)
+                    if (b.Type == BuildingType.Market && b.Level > max)
+                        max = b.Level;
+            return max;
+        }
+
+        private int GetMarketCountAtMinLevel(int civilizationIndex, int minLevel)
         {
             var civ = _state?.Civilizations.Find(c => c.Index == civilizationIndex);
             if (civ == null) return 0;
             int count = 0;
             foreach (var city in civ.Cities)
                 foreach (var b in city.Buildings)
-                    if (b.Type == BuildingType.Seaport && b.Level >= minLevel)
+                    if (b.Type == BuildingType.Market && b.Level >= minLevel)
                         count++;
             return count;
         }
@@ -147,7 +159,7 @@ namespace SettlersOfIdlestan.Controller
             var civ = _state?.Civilizations.Find(c => c.Index == civilizationIndex);
             if (civ == null) return false;
             if (civ.SeaportEnhancedResources.Contains(resource)) return false;
-            return civ.SeaportEnhancedResources.Count < GetSeaportCountAtMinLevel(civilizationIndex, 3);
+            return civ.SeaportEnhancedResources.Count < GetMarketCountAtMinLevel(civilizationIndex, 2);
         }
 
         public void SetSeaportEnhancedResource(int civilizationIndex, Resource resource)
@@ -156,7 +168,7 @@ namespace SettlersOfIdlestan.Controller
             var civ = _state.Civilizations.Find(c => c.Index == civilizationIndex)
                       ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
             if (!CanEnhanceSeaportResource(civilizationIndex, resource))
-                throw new InvalidOperationException("Cannot enhance this resource: no available level-3 Seaport slot.");
+                throw new InvalidOperationException("Cannot enhance this resource: no available level-2 Market slot.");
             civ.SeaportEnhancedResources.Add(resource);
         }
 
@@ -166,7 +178,7 @@ namespace SettlersOfIdlestan.Controller
             if (civ == null) return false;
             if (!civ.SeaportEnhancedResources.Contains(resource)) return false;
             if (civ.SeaportAutoTradeResources.Contains(resource)) return false;
-            return civ.SeaportAutoTradeResources.Count < GetSeaportCountAtMinLevel(civilizationIndex, 4);
+            return civ.SeaportAutoTradeResources.Count < GetMarketCountAtMinLevel(civilizationIndex, 3);
         }
 
         public void AddSeaportAutoTradeResource(int civilizationIndex, Resource resource)
@@ -175,7 +187,7 @@ namespace SettlersOfIdlestan.Controller
             var civ = _state.Civilizations.Find(c => c.Index == civilizationIndex)
                       ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
             if (!CanActivateSeaportAutoTrade(civilizationIndex, resource))
-                throw new InvalidOperationException("Cannot activate auto-trade for this resource: no available level-4 Seaport slot or resource not enhanced.");
+                throw new InvalidOperationException("Cannot activate auto-trade for this resource: no available level-3 Market slot or resource not enhanced.");
             civ.SeaportAutoTradeResources.Add(resource);
         }
 

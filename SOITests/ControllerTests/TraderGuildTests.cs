@@ -167,43 +167,26 @@ public class TraderGuildTests
         Assert.Equal(4, market.Level);
     }
 
-    // ── Market cooldown reduction ─────────────────────────────────────────────
+    // ── Seaport random resource generation ───────────────────────────────────
 
     [Fact]
-    public void Market_Level1_HasNoCooldownReduction()
+    public void Seaport_Level3_HasBaseCooldown()
     {
-        var market = new Market { Level = 1 };
-        var civ = new Civilization { Index = 0 };
-        civ.SetupModifierAggregator(civ.TechnologyTree, new UniqueBuildingsModifierProvider(civ));
+        var seaport = new Seaport { Level = 3 };
 
-        long cooldown = HarvestController.GetEffectiveMarketCooldown(market, civ);
+        long cooldown = HarvestController.GetEffectiveSeaportGenerationCooldown(seaport);
 
-        Assert.Equal(HarvestController.MarketGenerationCooldownTicks, cooldown);
+        Assert.Equal(HarvestController.SeaportGenerationCooldownTicks, cooldown);
     }
 
     [Fact]
-    public void Market_Level2_ReducesCooldownBy20Percent()
+    public void Seaport_Level4_ReducesCooldownBy20Percent()
     {
-        var market = new Market { Level = 2 };
-        var civ = new Civilization { Index = 0 };
-        civ.SetupModifierAggregator(civ.TechnologyTree, new UniqueBuildingsModifierProvider(civ));
+        var seaport = new Seaport { Level = 4 };
 
-        long cooldown = HarvestController.GetEffectiveMarketCooldown(market, civ);
+        long cooldown = HarvestController.GetEffectiveSeaportGenerationCooldown(seaport);
 
-        // Level 2: multiplier = 0.8^(2-1) = 0.8 → 1000 * 0.8 = 800
+        // Level 4: multiplier = 0.8^(4-3) = 0.8 → 1000 * 0.8 = 800
         Assert.Equal(800L, cooldown);
-    }
-
-    [Fact]
-    public void Market_Level4_HasCooldownOfAbout410Ticks()
-    {
-        var market = new Market { Level = 4 };
-        var civ = new Civilization { Index = 0 };
-        civ.SetupModifierAggregator(civ.TechnologyTree, new UniqueBuildingsModifierProvider(civ));
-
-        long cooldown = HarvestController.GetEffectiveMarketCooldown(market, civ);
-
-        // Level 4: multiplier = 0.8^3 = 0.512 → 1000 * 0.512 = 512 ticks
-        Assert.Equal(512L, cooldown);
     }
 }

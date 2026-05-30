@@ -435,13 +435,13 @@ public class SelectedCityPanelRenderer : IGameRenderer
                     tooltipLines.Add("");
                 }
 
-                if (hoveredBuilding is Market market && market.Level > 0)
+                if (hoveredBuilding is Seaport seaportBuilding && seaportBuilding.Level >= 3)
                 {
                     long currentTick = _cityBuildingService.GetCurrentTick();
-                    long elapsed = market.LastGenerationTick == 0 ? 0 : currentTick - market.LastGenerationTick;
-                    long effectiveCooldown = _cityBuildingService.GetEffectiveMarketCooldown(market);
+                    long elapsed = seaportBuilding.LastGenerationTick == 0 ? 0 : currentTick - seaportBuilding.LastGenerationTick;
+                    long effectiveCooldown = _cityBuildingService.GetEffectiveSeaportGenerationCooldown(seaportBuilding);
                     long remaining = Math.Max(0, effectiveCooldown - elapsed);
-                    tooltipLines.Add(_localization.Get("market_generation_cooldown") + $" {remaining/100.0:0.0}s/{effectiveCooldown/100.0:0.0}s");
+                    tooltipLines.Add(_localization.Get("seaport_generation_cooldown") + $" {remaining/100.0:0.0}s/{effectiveCooldown/100.0:0.0}s");
                     tooltipLines.Add("");
                 }
 
