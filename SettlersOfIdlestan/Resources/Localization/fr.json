@@ -91,6 +91,8 @@
   "level_abbrev": "nv",
   "automation_on": "ACT.",
   "automation_off": "DÉS.",
+  "panel_civ_actions": "Actions",
+  "panel_civ_controls": "Contrôles",
   "building_harvestersguild_name": "Guilde des récolteurs",
   "building_harvestersguild_desc": "Bâtiment unique. Débloque le niveau 5 des bâtiments de production et automatise leur construction. Disponible au niveau Capitale (4).",
   "building_harvestersguild_desc_1": "Débloque le niveau 5 (Scierie, Briqueterie, Carrière, Moulin). Améliore automatiquement les bâtiments de prod. toutes les 10s.",

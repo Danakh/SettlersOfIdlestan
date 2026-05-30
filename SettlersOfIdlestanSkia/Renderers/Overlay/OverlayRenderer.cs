@@ -1,5 +1,4 @@
 using System;
-using SettlersOfIdlestan.Controller.Expand;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Services.Localization;
@@ -15,14 +14,6 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay;
 
 public sealed class OverlayRenderer : IGameRenderer
 {
-    private const float TradeButtonWidth = 120;
-    private const float PrestigeButtonWidth = 160;
-    private const float WonderButtonWidth = 140;
-    private const float TradeButtonHeight = 38;
-    private const float TradeButtonMargin = 14;
-    private const float ButtonSpacing = 10;
-    private const float CityPanelReservedBottomHeight = TradeButtonHeight + TradeButtonMargin * 2;
-
     private const float TabWidth = 62;
     private const float TabHeight = 28;
     private const float TabMarginLeft = 8;
@@ -53,12 +44,10 @@ public sealed class OverlayRenderer : IGameRenderer
     private readonly EventLogRenderer _eventLogRenderer;
     private readonly AutomationRenderer _automationRenderer;
     private readonly TooltipRenderer _tooltipRenderer;
+    private readonly PlayerCivilizationPanelRenderer _playerCivPanel;
 
-    private readonly SKPaint _buttonPaint = new() { Color = new SKColor(46, 125, 50), Style = SKPaintStyle.Fill, IsAntialias = true };
-    private readonly SKPaint _disabledButtonPaint = new() { Color = new SKColor(90, 90, 96), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _buttonTextPaint = new() { Color = SKColors.White, IsAntialias = true };
     private readonly SKPaint _disabledTextPaint = new() { Color = new SKColor(180, 180, 185), IsAntialias = true };
-    private readonly SKFont _buttonFont = new() { Size = 14, Typeface = SkiaFonts.Bold };
 
     private readonly SKPaint _activeTabPaint = new() { Color = new SKColor(60, 100, 160), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _inactiveTabPaint = new() { Color = new SKColor(35, 35, 45), Style = SKPaintStyle.Fill, IsAntialias = true };
@@ -67,9 +56,6 @@ public sealed class OverlayRenderer : IGameRenderer
     private readonly SKFont _tabFont = new() { Size = 12, Typeface = SkiaFonts.Bold };
 
     private SKSize _canvasSize;
-    private SKRect _tradeButtonRect = SKRect.Empty;
-    private SKRect _prestigeButtonRect = SKRect.Empty;
-    private SKRect _wonderButtonRect = SKRect.Empty;
     private SKPoint _lastPointerPosition;
     private WonderSelectionService? _wonderSelectionService;
 
@@ -121,6 +107,26 @@ public sealed class OverlayRenderer : IGameRenderer
         _eventLogRenderer = eventLogRenderer;
         _automationRenderer = automationRenderer;
         _tooltipRenderer = tooltipRenderer;
+        _playerCivPanel = new PlayerCivilizationPanelRenderer(
+            gameControllerService,
+            localization,
+            openTrade: () => {
+                _settingsMenu.Close();
+                _settingsPopupRenderer.Close();
+                _prestigeRenderer.Close();
+                _tradeRenderer.Open();
+            },
+            openPrestige: () => {
+                _settingsMenu.Close();
+                _settingsPopupRenderer.Close();
+                _tradeRenderer.Close();
+                _prestigeRenderer.Open();
+            },
+            enterWonder: () => {
+                CloseAll();
+                var hexes = _gameControllerService.MainGameController.WonderController.GetPlaceableHexes();
+                _wonderSelectionService?.Enter(hexes);
+            });
         _inputService.PointerPressed += HandlePointerPressed;
         _inputService.PointerMoved += HandlePointerMoved;
         _inputService.PointerReleased += HandlePointerReleased;
@@ -134,7 +140,6 @@ public sealed class OverlayRenderer : IGameRenderer
         _canvasSize = canvasSize;
         _playerResourcesOverlayRenderer.Initialize(canvasSize);
         _selectedCityPanelRenderer.Initialize(canvasSize);
-        _selectedCityPanelRenderer.ReservedBottomHeight = CityPanelReservedBottomHeight;
         _selectedWonderPanelRenderer.Initialize(canvasSize);
         _tradeRenderer.Initialize(canvasSize);
         _prestigeRenderer.Initialize(canvasSize);
@@ -144,6 +149,7 @@ public sealed class OverlayRenderer : IGameRenderer
         _researchRenderer.Initialize(canvasSize);
         _eventLogRenderer.Initialize(canvasSize);
         _automationRenderer.Initialize(canvasSize);
+        _playerCivPanel.Initialize(canvasSize);
 
         float gearX = canvasSize.Width - PlayerResourcesOverlayRenderer.Padding - PlayerResourcesOverlayRenderer.IconSize;
         float timeControlRight = gearX - 8f;
@@ -250,9 +256,9 @@ public sealed class OverlayRenderer : IGameRenderer
         }
         else
         {
+            _playerCivPanel.Render(canvas, context);
             _selectedCityPanelRenderer.Render(canvas, context);
             _selectedWonderPanelRenderer.Render(canvas, context);
-            DrawActionButtons(canvas, context);
         }
 
         float gearX = _canvasSize.Width - PlayerResourcesOverlayRenderer.Padding - PlayerResourcesOverlayRenderer.IconSize;
@@ -372,110 +378,6 @@ public sealed class OverlayRenderer : IGameRenderer
         canvas.DrawText(label, rect.MidX, rect.MidY + 5, SKTextAlign.Center, _tabFont, textPaint);
     }
 
-    private void DrawActionButtons(SKCanvas canvas, GameRenderContext context)
-    {
-        _tradeButtonRect = SKRect.Empty;
-        _prestigeButtonRect = SKRect.Empty;
-        _wonderButtonRect = SKRect.Empty;
-
-        bool isTradeVisible = IsTradeAvailable();
-        var prestigeController = _gameControllerService.MainGameController.PrestigeController;
-        bool isPrestigeVisible = prestigeController.PrestigeIsVisible();
-
-        float right = _canvasSize.Width - TradeButtonMargin;
-
-        if (isTradeVisible)
-        {
-            _tradeButtonRect = new SKRect(
-                right - TradeButtonWidth,
-                _canvasSize.Height - TradeButtonMargin - TradeButtonHeight,
-                right,
-                _canvasSize.Height - TradeButtonMargin);
-            canvas.DrawRoundRect(_tradeButtonRect, 7, 7, _buttonPaint);
-            canvas.DrawText(_localization.Get("trade_action"), _tradeButtonRect.MidX, _tradeButtonRect.MidY + 6, SKTextAlign.Center, _buttonFont, _buttonTextPaint);
-            right = _tradeButtonRect.Left - ButtonSpacing;
-        }
-
-        if (isPrestigeVisible)
-        {
-            _prestigeButtonRect = new SKRect(
-                right - PrestigeButtonWidth,
-                _canvasSize.Height - TradeButtonMargin - TradeButtonHeight,
-                right,
-                _canvasSize.Height - TradeButtonMargin);
-
-            bool isAvailable = prestigeController.PrestigeIsAvailable();
-            int currentPoints = prestigeController.CalculatePrestigePoints();
-            string label = isAvailable
-                ? $"{_localization.Get("prestige_action")} ({currentPoints})"
-                : $"{_localization.Get("prestige_action")} ({currentPoints}/{PrestigeController.PrestigeRequiredPoints})";
-            canvas.DrawRoundRect(_prestigeButtonRect, 7, 7, isAvailable ? _buttonPaint : _disabledButtonPaint);
-            canvas.DrawText(label, _prestigeButtonRect.MidX, _prestigeButtonRect.MidY + 6, SKTextAlign.Center, _buttonFont, isAvailable ? _buttonTextPaint : _disabledTextPaint);
-
-            if (!prestigeController.HasImperialPort() && _prestigeButtonRect.Contains(_lastPointerPosition.X, _lastPointerPosition.Y))
-            {
-                _tooltipRenderer.SetTooltipLines(new[]
-                {
-                    _localization.Get("prestige_requires_imperial_port"),
-                    _localization.Get("tooltip_imperial_port_prerequisites"),
-                }, _lastPointerPosition);
-            }
-
-            right = _prestigeButtonRect.Left - ButtonSpacing;
-        }
-
-        if (IsWonderButtonVisible())
-        {
-            bool canPlace = CanPlaceWonder();
-            _wonderButtonRect = new SKRect(
-                right - WonderButtonWidth,
-                _canvasSize.Height - TradeButtonMargin - TradeButtonHeight,
-                right,
-                _canvasSize.Height - TradeButtonMargin);
-
-            canvas.DrawRoundRect(_wonderButtonRect, 7, 7, canPlace ? _buttonPaint : _disabledButtonPaint);
-            canvas.DrawText(_localization.Get("wonder_action"), _wonderButtonRect.MidX, _wonderButtonRect.MidY + 6, SKTextAlign.Center, _buttonFont, canPlace ? _buttonTextPaint : _disabledTextPaint);
-
-            if (!canPlace && _wonderButtonRect.Contains(_lastPointerPosition.X, _lastPointerPosition.Y))
-            {
-                string reason = WonderAlreadyExists()
-                    ? _localization.Get("wonder_already_placed")
-                    : _localization.Get("wonder_requires_architecture");
-                _tooltipRenderer.SetTooltipLines(new[] { reason }, _lastPointerPosition);
-            }
-        }
-    }
-
-    private bool IsWonderButtonVisible()
-    {
-        var civ = _gameControllerService.PlayerCivilization;
-        if (civ == null) return false;
-        try { return _gameControllerService.MainGameController.WonderController.HasWondersUnlocked(civ); }
-        catch { return false; }
-    }
-
-    private bool CanPlaceWonder()
-    {
-        var civ = _gameControllerService.PlayerCivilization;
-        if (civ == null) return false;
-        try { return _gameControllerService.MainGameController.WonderController.CanPlaceWonder(civ); }
-        catch { return false; }
-    }
-
-    private bool WonderAlreadyExists()
-    {
-        var islandState = _gameControllerService.CurrentIslandState;
-        if (islandState == null) return false;
-        return islandState.Features.OfType<SettlersOfIdlestan.Model.IslandFeatures.Wonder>().Any();
-    }
-
-    private bool IsTradeAvailable(GameRenderContext? context = null)
-    {
-        if (_gameControllerService.PlayerCivilization == null) return false;
-        try { return _gameControllerService.MainGameController.TradeController.IsTradeAvailable(_gameControllerService.PlayerCivilization.Index); }
-        catch { return false; }
-    }
-
     public void ConnectWonderService(WonderSelectionService wonderSelectionService)
     {
         _wonderSelectionService = wonderSelectionService;
@@ -485,9 +387,7 @@ public sealed class OverlayRenderer : IGameRenderer
                                     || _settingsMenu.IsOpen || _settingsPopupRenderer.IsOpen;
     public bool IsPointBlockedByUI(SKPoint point) =>
         IsAnyOverlayOpen || _selectedCityPanelRenderer.ContainsPoint(point) || _selectedWonderPanelRenderer.ContainsPoint(point)
-        || (!_tradeButtonRect.IsEmpty && _tradeButtonRect.Contains(point.X, point.Y))
-        || (!_prestigeButtonRect.IsEmpty && _prestigeButtonRect.Contains(point.X, point.Y))
-        || (!_wonderButtonRect.IsEmpty && _wonderButtonRect.Contains(point.X, point.Y));
+        || _playerCivPanel.ContainsPoint(point);
     public bool IsIslandTabActive => _activeTab == TabIsland;
 
     private void HandlePointerMoved(object? sender, PointerEventArgs e)
@@ -499,6 +399,8 @@ public sealed class OverlayRenderer : IGameRenderer
             _prestigeMapRenderer.HandlePointerMoved(e.Position);
         if (_activeTab == TabAutomation)
             _automationRenderer.HandlePointerMoved(e.Position);
+        if (_activeTab == TabIsland)
+            _playerCivPanel.HandlePointerMoved(e.Position);
 
         _lastPointerPosition = e.Position;
     }
@@ -543,28 +445,7 @@ public sealed class OverlayRenderer : IGameRenderer
 
         if (_activeTab == TabStats || _activeTab == TabResearch || _activeTab == TabEvents) return;
 
-        if (_tradeButtonRect.Contains(e.Position.X, e.Position.Y) && IsTradeAvailable())
-        {
-            _settingsMenu.Close();
-            _settingsPopupRenderer.Close();
-            _prestigeRenderer.Close();
-            _tradeRenderer.Open();
-        }
-
-        if (!_prestigeButtonRect.IsEmpty && _prestigeButtonRect.Contains(e.Position.X, e.Position.Y) && _gameControllerService.MainGameController.PrestigeController.PrestigeIsAvailable())
-        {
-            _settingsMenu.Close();
-            _settingsPopupRenderer.Close();
-            _tradeRenderer.Close();
-            _prestigeRenderer.Open();
-        }
-
-        if (!_wonderButtonRect.IsEmpty && _wonderButtonRect.Contains(e.Position.X, e.Position.Y) && CanPlaceWonder() && _wonderSelectionService != null)
-        {
-            CloseAll();
-            var hexes = _gameControllerService.MainGameController.WonderController.GetPlaceableHexes();
-            _wonderSelectionService.Enter(hexes);
-        }
+        _playerCivPanel.HandlePointerPressed(e.Position);
     }
 
     public void CloseAll()
@@ -653,11 +534,8 @@ public sealed class OverlayRenderer : IGameRenderer
         _settingsMenu.Dispose();
         _tradeRenderer.Dispose();
         _prestigeRenderer.Dispose();
-        _buttonPaint.Dispose();
-        _disabledButtonPaint.Dispose();
         _buttonTextPaint.Dispose();
         _disabledTextPaint.Dispose();
-        _buttonFont.Dispose();
         _activeTabPaint.Dispose();
         _inactiveTabPaint.Dispose();
         _blinkTabPaint.Dispose();
@@ -669,6 +547,7 @@ public sealed class OverlayRenderer : IGameRenderer
         _researchRenderer.Dispose();
         _eventLogRenderer.Dispose();
         _automationRenderer.Dispose();
+        _playerCivPanel.Dispose();
         _disposed = true;
     }
 }
