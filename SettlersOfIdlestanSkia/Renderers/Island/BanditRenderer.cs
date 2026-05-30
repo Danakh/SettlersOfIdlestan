@@ -6,6 +6,7 @@ using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestanSkia.Core;
+using SettlersOfIdlestanSkia.Renderers.Debug;
 using SettlersOfIdlestanSkia.Services;
 using System.Collections.Generic;
 using System.Linq;
@@ -143,7 +144,9 @@ public class BanditRenderer : HexBasedRenderer, IGameRenderer
         var islandState = mgs.CurrentIslandState;
         if (islandState == null) return;
 
-        islandState.VisibleIslandMaps.TryGetValue(islandState.PlayerCivilization.Index, out var visibleMap);
+        VisibleIslandMap? visibleMap = null;
+        if (!DebugSettings.ShowFullMap)
+            islandState.VisibleIslandMaps.TryGetValue(islandState.PlayerCivilization.Index, out visibleMap);
 
         float dt = context.DeltaTime;
 
