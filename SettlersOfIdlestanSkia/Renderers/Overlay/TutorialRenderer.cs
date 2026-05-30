@@ -2,6 +2,7 @@ using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.Tasks;
 using SettlersOfIdlestan.Services.Localization;
 using SettlersOfIdlestanSkia.Core;
+using SettlersOfIdlestanSkia.Services;
 using SkiaSharp;
 
 namespace SettlersOfIdlestanSkia.Renderers.Overlay;
@@ -9,14 +10,20 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay;
 public class TutorialRenderer : IGameRenderer
 {
     private readonly ILocalizationService _localization;
+    private readonly InputHandlingService _inputService;
 
     private SKSize _canvasSize;
     private readonly SKFont _titleFont    = new() { Size = 14, Typeface = SkiaFonts.Bold };
     private readonly SKFont _descFont     = new() { Size = 11, Typeface = SkiaFonts.Regular };
     private readonly SKFont _taskFont     = new() { Size = 12, Typeface = SkiaFonts.Regular };
     private readonly SKFont _optionalFont = new() { Size = 10, Typeface = SkiaFonts.Regular };
+    private readonly SKFont _tooltipFont  = new() { Size = 11, Typeface = SkiaFonts.Regular };
 
     private TutorialStep? _step;
+
+    private SKPoint _lastPointerPosition;
+    private TutorialTask? _hoveredTask;
+    private readonly List<(SKRect Rect, TutorialTask Task)> _taskRects = [];
 
     private const float PanelLeft    = 10f;
     private const float PanelWidth   = 320f;
@@ -33,9 +40,11 @@ public class TutorialRenderer : IGameRenderer
     private static readonly SKColor ColorProgress               = new(180, 180, 180, 160);
     private static readonly SKColor ColorSeparator              = new(255, 255, 255, 50);
 
-    public TutorialRenderer(ILocalizationService localization)
+    public TutorialRenderer(ILocalizationService localization, InputHandlingService inputService)
     {
         _localization = localization;
+        _inputService = inputService;
+        _inputService.PointerMoved += HandlePointerMoved;
     }
 
     public void SetStep(TutorialStep? step) => _step = step;
@@ -45,6 +54,7 @@ public class TutorialRenderer : IGameRenderer
     public void Render(SKCanvas canvas, GameRenderContext context)
     {
         if (_step == null) return;
+        _taskRects.Clear();
 
         var mainState = context.GameState as MainGameState;
         var gameRecord = mainState?.GameRecord ?? new GameRecord();
@@ -103,6 +113,7 @@ public class TutorialRenderer : IGameRenderer
 
         foreach (var task in _step.PrimaryTasks)
         {
+            float taskTop = y;
             y += _taskFont.Size;
             bool done = task.IsCompleted(gameRecord, runRecord, islandState);
             var taskPaint = done ? donePaint : pendingPaint;
@@ -111,6 +122,7 @@ public class TutorialRenderer : IGameRenderer
             canvas.DrawText(name, x + TaskMarkerW, y, _taskFont, taskPaint);
             DrawProgress(canvas, task, gameRecord, runRecord, islandState, x + TaskMarkerW + _taskFont.MeasureText(name) + 4f, y, progressPaint);
             y += 2f;
+            _taskRects.Add((new SKRect(PanelLeft, taskTop, PanelLeft + PanelWidth, y), task));
         }
 
         if (hasSecondary)
@@ -122,6 +134,7 @@ public class TutorialRenderer : IGameRenderer
 
             foreach (var task in _step.SecondaryTasks)
             {
+                float taskTop = y;
                 y += _taskFont.Size;
                 bool done = task.IsCompleted(gameRecord, runRecord, islandState);
                 var taskPaint = done ? secondaryDonePaint : secondaryPendingPaint;
@@ -130,7 +143,15 @@ public class TutorialRenderer : IGameRenderer
                 canvas.DrawText(name, x + TaskMarkerW, y, _taskFont, taskPaint);
                 DrawProgress(canvas, task, gameRecord, runRecord, islandState, x + TaskMarkerW + _taskFont.MeasureText(name) + 4f, y, progressPaint);
                 y += 2f;
+                _taskRects.Add((new SKRect(PanelLeft, taskTop, PanelLeft + PanelWidth, y), task));
             }
+        }
+
+        if (_hoveredTask != null)
+        {
+            string taskDesc = _localization.Get(_hoveredTask.DescKey);
+            if (!string.IsNullOrEmpty(taskDesc))
+                TooltipRenderUtils.DrawTooltip(canvas, _canvasSize, _lastPointerPosition, [taskDesc], _tooltipFont);
         }
     }
 
@@ -142,5 +163,22 @@ public class TutorialRenderer : IGameRenderer
         canvas.DrawText($"({Math.Min(current, max)}/{max})", x, y, _optionalFont, paint);
     }
 
-    public void Dispose() { }
+    private void HandlePointerMoved(object? sender, PointerEventArgs e)
+    {
+        _lastPointerPosition = e.Position;
+        _hoveredTask = null;
+        foreach (var (rect, task) in _taskRects)
+        {
+            if (rect.Contains(e.Position.X, e.Position.Y))
+            {
+                _hoveredTask = task;
+                break;
+            }
+        }
+    }
+
+    public void Dispose()
+    {
+        _inputService.PointerMoved -= HandlePointerMoved;
+    }
 }

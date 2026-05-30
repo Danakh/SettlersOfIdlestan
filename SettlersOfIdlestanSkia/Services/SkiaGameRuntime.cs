@@ -189,7 +189,7 @@ public sealed class SkiaGameRuntime : IDisposable
             _renderService.RegisterRenderer(new AutoplayerDebugRenderer(_gameControllerService, _inputService));
         }
         _renderService.RegisterRenderer(aboutRenderer);
-        _tutorialRenderer = new TutorialRenderer(_localizationService);
+        _tutorialRenderer = new TutorialRenderer(_localizationService, _inputService);
         _renderService.RegisterRenderer(_tutorialRenderer);
         _renderService.RegisterRenderer(tooltipRenderer);
 
