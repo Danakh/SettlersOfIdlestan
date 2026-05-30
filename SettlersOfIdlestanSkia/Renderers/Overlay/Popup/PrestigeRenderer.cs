@@ -10,7 +10,7 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay.Popup;
 public sealed class PrestigeRenderer : IDisposable
 {
     private const float PopupWidth = 460;
-    private const float PopupHeight = 300;
+    private const float PopupHeight = 360;
     private const float Padding = 18;
     private const float ButtonHeight = 36;
     private const float CloseSize = 28;
@@ -29,6 +29,7 @@ public sealed class PrestigeRenderer : IDisposable
     private readonly SKPaint _buttonDisabledPaint = new() { Color = new SKColor(70, 70, 70, 220), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _textPaint = new() { Color = SKColors.White, IsAntialias = true };
     private readonly SKPaint _mutedTextPaint = new() { Color = new SKColor(190, 190, 195), IsAntialias = true };
+    private readonly SKPaint _separatorPaint = new() { Color = new SKColor(100, 100, 110, 180), StrokeWidth = 1, Style = SKPaintStyle.Stroke };
     private readonly SKFont _titleFont = new() { Size = 20, Typeface = SkiaFonts.Bold };
     private readonly SKFont _font = new() { Size = 14, Typeface = SkiaFonts.Regular };
     private readonly SKFont _boldFont = new() { Size = 14, Typeface = SkiaFonts.Bold };
@@ -67,7 +68,7 @@ public sealed class PrestigeRenderer : IDisposable
         var controller = _gameControllerService.MainGameController.PrestigeController;
         var sources = controller.GetPrestigePointSources();
         float y = popup.Top + 68;
-        float listBottom = popup.Bottom - 92;
+        float listBottom = popup.Bottom - 152;
         int maxVisibleSources = Math.Max(0, (int)((listBottom - y) / SourceRowHeight));
         foreach (var source in sources.Take(maxVisibleSources))
         {
@@ -82,9 +83,19 @@ public sealed class PrestigeRenderer : IDisposable
             canvas.DrawText(string.Format(_localization.Get("prestige_more_sources"), hiddenSourceCount), popup.Left + Padding, y, _font, _mutedTextPaint);
         }
 
+        float sep1Y = popup.Bottom - 134;
+        canvas.DrawLine(popup.Left + Padding, sep1Y, popup.Right - Padding, sep1Y, _separatorPaint);
+
+        int banditBonus = controller.GetBanditBonus();
+        canvas.DrawText(_localization.Get("prestige_bandit_bonus"), popup.Left + Padding, popup.Bottom - 118, _font, _mutedTextPaint);
+        canvas.DrawText($"+{banditBonus}", popup.Right - Padding, popup.Bottom - 118, SKTextAlign.Right, _boldFont, _mutedTextPaint);
+
+        float sep2Y = popup.Bottom - 104;
+        canvas.DrawLine(popup.Left + Padding, sep2Y, popup.Right - Padding, sep2Y, _separatorPaint);
+
         var total = controller.CalculatePrestigePoints();
-        canvas.DrawText(_localization.Get("prestige_total"), popup.Left + Padding, popup.Bottom - 72, _boldFont, _textPaint);
-        canvas.DrawText(total.ToString(), popup.Right - Padding, popup.Bottom - 72, SKTextAlign.Right, _boldFont, _textPaint);
+        canvas.DrawText(_localization.Get("prestige_total"), popup.Left + Padding, popup.Bottom - 88, _boldFont, _textPaint);
+        canvas.DrawText(total.ToString(), popup.Right - Padding, popup.Bottom - 88, SKTextAlign.Right, _boldFont, _textPaint);
 
         bool canPrestige = controller.PrestigeIsAvailable();
         bool hasEnoughPoints = controller.CalculatePrestigePoints() >= PrestigeController.PrestigeRequiredPoints;
@@ -154,6 +165,7 @@ public sealed class PrestigeRenderer : IDisposable
         _buttonDisabledPaint.Dispose();
         _textPaint.Dispose();
         _mutedTextPaint.Dispose();
+        _separatorPaint.Dispose();
         _titleFont.Dispose();
         _font.Dispose();
         _boldFont.Dispose();
