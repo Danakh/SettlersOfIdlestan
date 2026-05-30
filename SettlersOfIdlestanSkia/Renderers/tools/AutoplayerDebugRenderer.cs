@@ -61,7 +61,7 @@ public class AutoplayerDebugRenderer : IGameRenderer
 
     public void Render(SKCanvas canvas, GameRenderContext context)
     {
-        if (_disposed || !DebugOverlayRenderer.DebugMode)
+        if (_disposed || !DebugSettings.ShowAutoplayerCommands)
             return;
 
         RunAutoplayerStep();
@@ -104,7 +104,7 @@ public class AutoplayerDebugRenderer : IGameRenderer
 
     private void HandlePointerPressed(object? sender, PointerEventArgs e)
     {
-        if (_disposed || !DebugOverlayRenderer.DebugMode || e.Button != PointerButton.Left)
+        if (_disposed || !DebugSettings.ShowAutoplayerCommands || e.Button != PointerButton.Left)
             return;
 
         for (int i = 0; i < 5; i++)

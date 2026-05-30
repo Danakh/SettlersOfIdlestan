@@ -124,7 +124,13 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
             var islandState = mainGameState.CurrentIslandState;
             if (islandState != null)
             {
-                if (islandState.VisibleIslandMaps.TryGetValue(islandState.PlayerCivilization.Index, out var visibleMap))
+                IslandMap? mapToRender = null;
+                if (DebugSettings.ShowFullMap)
+                    mapToRender = islandState.Map;
+                else if (islandState.VisibleIslandMaps.TryGetValue(islandState.PlayerCivilization.Index, out var visibleMap))
+                    mapToRender = visibleMap;
+
+                if (mapToRender != null)
                 {
                     var playerIdx = islandState.PlayerCivilization.Index;
                     islandState.HarvestLastTimesByCivilization.TryGetValue(playerIdx, out var manualTimes);
@@ -135,7 +141,7 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
                         .Where(f => f.ShouldRenderIcon && (f.SvgIconResourceName != null || f.TextIcon != null))
                         .GroupBy(f => f.Position)
                         .ToDictionary(g => g.Key, g => (IEnumerable<IslandFeature>)g);
-                    DrawIslandMap(canvas, visibleMap, playerIdx, mainGameState.Clock.CurrentTick, manualTimes, islandState.BanditCooldownUntil, banditPositions, harvestBlockedPositions, featuresByPosition);
+                    DrawIslandMap(canvas, mapToRender, playerIdx, mainGameState.Clock.CurrentTick, manualTimes, islandState.BanditCooldownUntil, banditPositions, harvestBlockedPositions, featuresByPosition);
                 }
             }
         }
@@ -200,7 +206,7 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
 
         DrawHarvestIndicator(canvas, centerX, centerY, tile, playerIdx, currentTick, manualTimes, banditCooldownUntil, banditPositions, harvestBlockedPositions);
 
-        if (DebugOverlayRenderer.DebugMode && _textPaint != null && tile.Coord != null)
+        if (DebugSettings.ShowHexCoords && _textPaint != null && tile.Coord != null)
         {
             _textPaint.Color = SKColors.Black;
             canvas.DrawText($"{tile.Coord.Q},{tile.Coord.R}", centerX, centerY + HexSize / 2.5f, SKTextAlign.Center, _textFont, _textPaint);

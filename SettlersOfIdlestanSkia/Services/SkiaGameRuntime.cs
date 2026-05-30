@@ -152,7 +152,10 @@ public sealed class SkiaGameRuntime : IDisposable
 
         var aboutRenderer = new AboutRenderer(_inputService, _localizationService);
         var settingsPopupRenderer = new SettingsPopupRenderer(_gameControllerService.MainGameController, _localizationService);
-        var settingsMenu = new SettingsMenu(_gameControllerService.MainGameController, _inputService, _localizationService, aboutRenderer, settingsPopupRenderer, fileSystemService, _gameControllerService.CityBuildingService!, allowDebugMode, StartNewGameIntro);
+        DebugPanelRenderer? debugPanelRenderer = null;
+        if (allowDebugMode)
+            debugPanelRenderer = new DebugPanelRenderer(_inputService, _localizationService);
+        var settingsMenu = new SettingsMenu(_gameControllerService.MainGameController, _inputService, _localizationService, aboutRenderer, settingsPopupRenderer, fileSystemService, _gameControllerService.CityBuildingService!, allowDebugMode, debugPanelRenderer, StartNewGameIntro);
         var playerResourcesOverlayRenderer = new PlayerResourcesOverlayRenderer(_localizationService, _resourceManager);
         var tradeRenderer = new TradeRenderer(_gameControllerService, _localizationService, tooltipRenderer, _resourceManager);
         var prestigeRenderer = new PrestigeRenderer(_gameControllerService, _localizationService, RequestPrestige);
@@ -188,6 +191,7 @@ public sealed class SkiaGameRuntime : IDisposable
         {
             _renderService.RegisterRenderer(new DebugOverlayRenderer(_inputService, _cameraService, islandMainRenderer, _localizationService));
             _renderService.RegisterRenderer(new AutoplayerDebugRenderer(_gameControllerService, _inputService));
+            _renderService.RegisterRenderer(debugPanelRenderer!);
         }
         _renderService.RegisterRenderer(aboutRenderer);
         _tutorialRenderer = new TutorialRenderer(_localizationService, _inputService);
@@ -388,7 +392,7 @@ public sealed class SkiaGameRuntime : IDisposable
     {
         _inputService?.HandleKeyPressed(key);
 
-        if (key == "C" && _allowDebugMode && DebugOverlayRenderer.DebugMode)
+        if (key == "C" && _allowDebugMode)
             DebugAddResources();
     }
 

@@ -11,8 +11,6 @@ namespace SettlersOfIdlestanSkia.Renderers.Debug;
 /// </summary>
 public class DebugOverlayRenderer : IGameRenderer
 {
-    public static bool DebugMode { get; set; } = true;
-
     private readonly InputHandlingService _inputService;
     private readonly CameraService _cameraService;
     private readonly IslandMainRenderer _islandRenderer;
@@ -34,7 +32,7 @@ public class DebugOverlayRenderer : IGameRenderer
 
     public void Render(SKCanvas canvas, GameRenderContext context)
     {
-        if (!DebugMode)
+        if (!DebugSettings.ShowHexCoords)
             return;
 
         var screenPos = _inputService.LastPointerPosition;

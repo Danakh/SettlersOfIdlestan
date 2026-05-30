@@ -179,7 +179,7 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         _visibleVertices.Clear();
         foreach (var v in map.Vertices)
         {
-            if (DebugOverlayRenderer.DebugMode
+            if (DebugSettings.ShowFullMap
                 || v.Coord.Equals(PrestigeMap.CentralVertex)
                 || map.GetNeighbors(v.Coord).Any(n => state.PurchasedVertices.Contains(n.Coord)))
                 _visibleVertices.Add(v.Coord);
@@ -188,7 +188,7 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         _visibleHexes.Clear();
         foreach (var hex in map.Hexes)
         {
-            if (DebugOverlayRenderer.DebugMode
+            if (DebugSettings.ShowFullMap
                 || hex.AdjacentVertices.Any(v => state.PurchasedVertices.Contains(v)))
                 _visibleHexes.Add(hex.Coord);
         }
