@@ -43,6 +43,7 @@ public sealed class OverlayRenderer : IGameRenderer
     private readonly SettingsMenu _settingsMenu;
     private readonly SettingsPopupRenderer _settingsPopupRenderer;
     private readonly SelectedCityPanelRenderer _selectedCityPanelRenderer;
+    private readonly SelectedWonderPanelRenderer _selectedWonderPanelRenderer;
     private readonly TradeRenderer _tradeRenderer;
     private readonly PrestigeRenderer _prestigeRenderer;
     private readonly PrestigeMapRenderer _prestigeMapRenderer;
@@ -82,6 +83,7 @@ public sealed class OverlayRenderer : IGameRenderer
     private int? _seenEventCount;
     private bool _disposed;
     private bool _isVisible = true;
+    private bool _suppressNextPress;
 
     public OverlayRenderer(
         InputHandlingService inputService,
@@ -91,6 +93,7 @@ public sealed class OverlayRenderer : IGameRenderer
         SettingsMenu settingsMenu,
         SettingsPopupRenderer settingsPopupRenderer,
         SelectedCityPanelRenderer selectedCityPanelRenderer,
+        SelectedWonderPanelRenderer selectedWonderPanelRenderer,
         TradeRenderer tradeRenderer,
         PrestigeRenderer prestigeRenderer,
         PrestigeMapRenderer prestigeMapRenderer,
@@ -108,6 +111,7 @@ public sealed class OverlayRenderer : IGameRenderer
         _settingsMenu = settingsMenu;
         _settingsPopupRenderer = settingsPopupRenderer;
         _selectedCityPanelRenderer = selectedCityPanelRenderer;
+        _selectedWonderPanelRenderer = selectedWonderPanelRenderer;
         _tradeRenderer = tradeRenderer;
         _prestigeRenderer = prestigeRenderer;
         _prestigeMapRenderer = prestigeMapRenderer;
@@ -130,6 +134,7 @@ public sealed class OverlayRenderer : IGameRenderer
         _playerResourcesOverlayRenderer.Initialize(canvasSize);
         _selectedCityPanelRenderer.Initialize(canvasSize);
         _selectedCityPanelRenderer.ReservedBottomHeight = CityPanelReservedBottomHeight;
+        _selectedWonderPanelRenderer.Initialize(canvasSize);
         _tradeRenderer.Initialize(canvasSize);
         _prestigeRenderer.Initialize(canvasSize);
         _settingsPopupRenderer.Initialize(canvasSize);
@@ -211,8 +216,10 @@ public sealed class OverlayRenderer : IGameRenderer
             _hasNewEvent = true;
         }
 
-        _selectedCityPanelRenderer.IsInputEnabled = !onResearchTab && !onPrestigeTab && !onHistoryTab && !onEventsTab && !onAutomationTab
+        bool panelsEnabled = !onResearchTab && !onPrestigeTab && !onHistoryTab && !onEventsTab && !onAutomationTab
             && !_tradeRenderer.IsOpen && !_prestigeRenderer.IsOpen;
+        _selectedCityPanelRenderer.IsInputEnabled = panelsEnabled;
+        _selectedWonderPanelRenderer.IsInputEnabled = panelsEnabled;
         _researchRenderer.IsActive = onResearchTab;
 
         _playerResourcesOverlayRenderer.Render(canvas, context);
@@ -243,6 +250,7 @@ public sealed class OverlayRenderer : IGameRenderer
         else
         {
             _selectedCityPanelRenderer.Render(canvas, context);
+            _selectedWonderPanelRenderer.Render(canvas, context);
             DrawActionButtons(canvas, context);
         }
 
@@ -452,7 +460,10 @@ public sealed class OverlayRenderer : IGameRenderer
     public bool IsAnyOverlayOpen => _tradeRenderer.IsOpen || _prestigeRenderer.IsOpen
                                     || _settingsMenu.IsOpen || _settingsPopupRenderer.IsOpen;
     public bool IsPointBlockedByUI(SKPoint point) =>
-        IsAnyOverlayOpen || _selectedCityPanelRenderer.ContainsPoint(point);
+        IsAnyOverlayOpen || _selectedCityPanelRenderer.ContainsPoint(point) || _selectedWonderPanelRenderer.ContainsPoint(point)
+        || (!_tradeButtonRect.IsEmpty && _tradeButtonRect.Contains(point.X, point.Y))
+        || (!_prestigeButtonRect.IsEmpty && _prestigeButtonRect.Contains(point.X, point.Y))
+        || (!_wonderButtonRect.IsEmpty && _wonderButtonRect.Contains(point.X, point.Y));
     public bool IsIslandTabActive => _activeTab == TabIsland;
 
     private void HandlePointerMoved(object? sender, PointerEventArgs e)
@@ -471,6 +482,7 @@ public sealed class OverlayRenderer : IGameRenderer
     private void HandlePointerPressed(object? sender, PointerEventArgs e)
     {
         if (!_isVisible) return;
+        if (_suppressNextPress) { _suppressNextPress = false; return; }
 
         if (_settingsPopupRenderer.HandlePointerPressed(e.Position, e.Button)) return;
         if (_prestigeRenderer.HandlePointerPressed(e.Position, e.Button)) return;
@@ -539,6 +551,7 @@ public sealed class OverlayRenderer : IGameRenderer
         _prestigeRenderer.Close();
         _selectedCityPanelRenderer.Close();
         _selectedCityPanelRenderer.IsInputEnabled = false;
+        _selectedWonderPanelRenderer.IsInputEnabled = false;
     }
 
     public void Hide()
@@ -547,10 +560,12 @@ public sealed class OverlayRenderer : IGameRenderer
         _isVisible = false;
     }
 
-    public void Show()
+    public void Show(bool suppressNextPress = false)
     {
         _isVisible = true;
         _selectedCityPanelRenderer.IsInputEnabled = true;
+        _selectedWonderPanelRenderer.IsInputEnabled = true;
+        if (suppressNextPress) _suppressNextPress = true;
     }
 
     public void SwitchToPrestigeTab()
@@ -597,6 +612,7 @@ public sealed class OverlayRenderer : IGameRenderer
         _inputService.KeyPressed -= HandleKeyInput;
         _playerResourcesOverlayRenderer.Dispose();
         _selectedCityPanelRenderer.Dispose();
+        _selectedWonderPanelRenderer.Dispose();
         _settingsMenu.Dispose();
         _tradeRenderer.Dispose();
         _prestigeRenderer.Dispose();

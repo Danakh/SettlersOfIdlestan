@@ -1,6 +1,8 @@
+using System.Collections.Generic;
 using System.Text.Json.Serialization;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
+using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Services.Localization;
 
 namespace SettlersOfIdlestan.Model.IslandFeatures;
@@ -20,6 +22,10 @@ public class Wonder : IslandFeature
 
     public Wonder(HexCoord position) : base(position) { Found = true; }
     public int Level { get; set; } = 0;
+
+    public Dictionary<Resource, long> InvestedResources { get; set; } = new();
+    public List<Resource> InvestmentEnabled { get; set; } = new();
+    public long LastInvestmentTick { get; set; } = 0;
 
     [JsonConstructor]
     public Wonder() : base() { }

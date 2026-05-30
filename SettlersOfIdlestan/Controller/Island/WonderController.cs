@@ -13,12 +13,87 @@ namespace SettlersOfIdlestan.Controller.Island
     public class WonderController
     {
         private IslandState? _state;
+        private GameClock? _clock;
+
+        public const long InvestmentIntervalTicks = 100L;
 
         internal WonderController() { }
 
-        internal void Initialize(IslandState? state)
+        internal void Initialize(IslandState? state, GameClock? clock = null)
         {
+            if (_clock != null)
+                _clock.Advanced -= OnClockAdvanced;
+
             _state = state;
+            _clock = clock;
+
+            if (_clock != null)
+                _clock.Advanced += OnClockAdvanced;
+        }
+
+        private void OnClockAdvanced(object? sender, GameClockAdvancedEventArgs e)
+        {
+            try { ProcessInvestment(); }
+            catch { }
+        }
+
+        public static ResourceSet GetLevelCost(int level)
+        {
+            return new ResourceSet
+            {
+                { Resource.Food,  5000 * level * level },
+                { Resource.Wood,  5000 * level * level },
+                { Resource.Brick, 5000 * level * level },
+                { Resource.Stone, 5000 * level * level },
+                { Resource.Ore,   200  * level * level },
+                { Resource.Gold,  100  * level * level },
+            };
+        }
+
+        private void ProcessInvestment()
+        {
+            if (_state == null || _clock == null) return;
+            var wonder = _state.Features.OfType<Wonder>().FirstOrDefault();
+            if (wonder == null || wonder.InvestmentEnabled.Count == 0) return;
+
+            long now = _clock.CurrentTick;
+            if (now - wonder.LastInvestmentTick < InvestmentIntervalTicks) return;
+            wonder.LastInvestmentTick = now;
+
+            var playerCiv = _state.PlayerCivilization;
+            var cost = GetLevelCost(wonder.Level + 1);
+            var toDeselect = new List<Resource>();
+
+            foreach (var resource in wonder.InvestmentEnabled)
+            {
+                if (!cost.Contains(resource)) continue;
+                long invested = wonder.InvestedResources.TryGetValue(resource, out var inv) ? inv : 0;
+                long required = cost[resource];
+                if (invested >= required) { toDeselect.Add(resource); continue; }
+
+                int stock = playerCiv.GetResourceQuantity(resource);
+                int amount = stock / 100;
+                if (amount <= 0) continue;
+
+                long remaining = required - invested;
+                if (amount > remaining) amount = (int)remaining;
+
+                playerCiv.RemoveResource(resource, amount);
+                long newInvested = invested + amount;
+                wonder.InvestedResources[resource] = newInvested;
+                if (newInvested >= required)
+                    toDeselect.Add(resource);
+            }
+
+            foreach (var r in toDeselect)
+                wonder.InvestmentEnabled.Remove(r);
+
+            if (cost.Keys.All(r => (wonder.InvestedResources.TryGetValue(r, out var inv) ? inv : 0) >= cost[r]))
+            {
+                wonder.Level++;
+                wonder.InvestedResources.Clear();
+                wonder.InvestmentEnabled.Clear();
+            }
         }
 
         public bool HasWondersUnlocked(Civilization playerCiv)
@@ -64,7 +139,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 if (tile == null) continue;
                 if (tile.TerrainType == TerrainType.Water) continue;
                 if (enemyZone.Contains(hex)) continue;
-                if (_state.Features.OfType<Wonder>().Any(w => w.Position.Equals(hex))) continue;
+                if (_state.Features.Any(f => f.Position.Equals(hex))) continue;
                 result.Add(hex);
             }
 

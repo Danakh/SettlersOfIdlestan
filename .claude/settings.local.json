@@ -20,7 +20,10 @@
       "Bash(Format-Table *)",
       "Bash(Get-ChildItem *)",
       "Bash(dir *)",
-      "PowerShell(head *)"
+      "PowerShell(head *)",
+      "Bash(Remove-Item \"C:\\\\DEV\\\\SettlersOfIdlestan\\\\SettlersOfIdlestan\\\\obj\\\\Debug\\\\net10.0\\\\SettlersOfIdlestan.AssemblyInfoInputs.cache\" -Force -ErrorAction SilentlyContinue)",
+      "PowerShell(Remove-Item *)",
+      "PowerShell(dotnet clean C:\\\\DEV\\\\SettlersOfIdlestan\\\\SettlersOfIdlestan.slnx -q 2>&1 | Select-Object -Last 5; dotnet build C:\\\\DEV\\\\SettlersOfIdlestan\\\\SettlersOfIdlestan.slnx -q 2>&1 | Select-Object -Last 10)"
     ]
   }
 }

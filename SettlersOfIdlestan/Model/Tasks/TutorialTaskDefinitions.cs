@@ -154,8 +154,8 @@ public static class TutorialTaskDefinitions
             (g, _, _) => g.TotalPrestigesPerformed >= 1),
 
         new TutorialTask(TutorialTaskId.Reach30VictoryPoints,
-            "task_reach_30_victory_points_name", "task_reach_30_victory_points_desc",
-            (g, _, island) => g.TotalPrestigesPerformed >= 1 || ComputeVictoryPoints(island) >= 30,
-            (g, _, island) => (g.TotalPrestigesPerformed >= 1 ? 30 : ComputeVictoryPoints(island), 30)),
+            "task_reach_enough_victory_points_name", "task_reach_enough_victory_points_desc",
+            (g, _, island) => g.TotalPrestigesPerformed >= 1 || ComputeVictoryPoints(island) >= 35,
+            (g, _, island) => (g.TotalPrestigesPerformed >= 1 ? 35 : ComputeVictoryPoints(island), 35)),
     };
 }

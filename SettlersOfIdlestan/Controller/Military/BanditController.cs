@@ -185,21 +185,21 @@ public class BanditController
             foreach (var hex in city.Position.GetHexes())
                 cityHexes.Add(hex);
 
-        // Tier 1 : pas de bandit + pas de cooldown
+        // Tier 1 : aucune feature bloquante + pas de cooldown
         var validDestinations = neighbors;
-        var noBanditNoCooldown = validDestinations
-            .Where(n => !_bandits.Any(b => b.Position.Equals(n)) &&
+        var noBlockingNoCooldown = validDestinations
+            .Where(n => !_state.Features.Any(f => f.Position.Equals(n) && f.BlocksHarvest) &&
                         (!_state.BanditCooldownUntil.TryGetValue(n, out var until) || currentTick >= until))
             .ToList();
 
-        // Tier 2 : pas de bandit (cooldown acceptable)
-        var noBandit = validDestinations
-            .Where(n => !_bandits.Any(b => b.Position.Equals(n)))
+        // Tier 2 : aucune feature bloquante (cooldown acceptable)
+        var noBlocking = validDestinations
+            .Where(n => !_state.Features.Any(f => f.Position.Equals(n) && f.BlocksHarvest))
             .ToList();
 
         // Sélection du meilleur tier disponible, avec préférence pour les hexs de ville
-        var candidates = noBanditNoCooldown.Count > 0 ? noBanditNoCooldown
-                       : noBandit.Count > 0 ? noBandit
+        var candidates = noBlockingNoCooldown.Count > 0 ? noBlockingNoCooldown
+                       : noBlocking.Count > 0 ? noBlocking
                        : validDestinations;
 
         var cityAdjacent = candidates.Where(n => cityHexes.Contains(n)).ToList();

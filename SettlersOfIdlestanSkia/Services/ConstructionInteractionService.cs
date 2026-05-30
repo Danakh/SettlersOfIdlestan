@@ -1,5 +1,6 @@
 using SkiaSharp;
 using SettlersOfIdlestan.Model.HexGrid;
+using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestanSkia.Renderers.Island;
 
 namespace SettlersOfIdlestanSkia.Services;
@@ -21,6 +22,7 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
     private readonly InputHandlingService _inputService;
     private readonly CameraService _cameraService;
     private readonly CityBuildingService _cityBuildingService;
+    private WonderService? _wonderService;
     private IslandMainRenderer? _renderer;
 
     private DateTime _lastClickTime = DateTime.MinValue;
@@ -51,6 +53,11 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
     public void AttachRenderer(IslandMainRenderer renderer)
     {
         _renderer = renderer ?? throw new ArgumentNullException(nameof(renderer));
+    }
+
+    public void AttachWonderService(WonderService wonderService)
+    {
+        _wonderService = wonderService;
     }
 
     private void OnPointerMoved(object? sender, PointerEventArgs e)
@@ -123,11 +130,21 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
         if (_renderer == null)
             return;
 
-        // Fallback: garde le comportement de récolte manuelle sur clic hex.
+        // Fallback: clic sur un hex — vérifie d'abord si c'est une wonder.
         var hex = _renderer.ScreenToHex(e.Position, _cameraService.CanvasSize, _cameraService.ZoomLevel, _cameraService.Position);
         var hexCoord = new HexCoord(hex.q, hex.r);
         var islandState = _gameControllerService.CurrentIslandState;
         var playerIndex = islandState?.PlayerCivilization.Index ?? 0;
+
+        var clickedWonder = islandState?.Features.OfType<Wonder>().FirstOrDefault(w => w.Position.Equals(hexCoord));
+        if (clickedWonder != null)
+        {
+            _cityBuildingService.ClearSelectedCity();
+            _wonderService?.SetSelectedWonder(clickedWonder);
+            RefreshHover(e.Position);
+            return;
+        }
+
         if (islandState?.VisibleIslandMaps.TryGetValue(playerIndex, out var visibleMap) == true &&
             visibleMap.HasTile(hexCoord))
         {
@@ -240,6 +257,7 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
 
     private void SetSelectedCity(Vertex selectedCityVertex)
     {
+        _wonderService?.ClearSelectedWonder();
         _cityBuildingService.SetSelectedCity(selectedCityVertex);
         HoverState = HoverState with { SelectedCityVertex = selectedCityVertex };
     }

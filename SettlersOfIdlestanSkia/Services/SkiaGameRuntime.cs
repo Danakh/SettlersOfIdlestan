@@ -31,6 +31,7 @@ public sealed class SkiaGameRuntime : IDisposable
     private IntroAnimationRenderer? _introRenderer;
     private bool _wasIntroActive;
     private WonderSelectionService? _wonderSelectionService;
+    private WonderService? _wonderService;
     private TutorialRenderer? _tutorialRenderer;
     private TutorialService? _tutorialService;
 
@@ -144,6 +145,9 @@ public sealed class SkiaGameRuntime : IDisposable
         islandMainRenderer.ConnectMilitaryEvents(_gameControllerService.MainGameController.MilitaryController, _gameControllerService!, () => _prestigeTransitionPending, () => _overlayRenderer?.IsIslandTabActive ?? true);
 
         var selectedCityPanelRenderer = new SelectedCityPanelRenderer(_gameControllerService.CityBuildingService!, _localizationService, _inputService, _resourceManager!);
+        _wonderService = new WonderService();
+        _constructionInteractionService.AttachWonderService(_wonderService);
+        var selectedWonderPanelRenderer = new SelectedWonderPanelRenderer(_wonderService, _inputService, _localizationService, _resourceManager!);
 
         var aboutRenderer = new AboutRenderer(_inputService, _localizationService);
         var settingsPopupRenderer = new SettingsPopupRenderer(_gameControllerService.MainGameController, _localizationService);
@@ -165,6 +169,7 @@ public sealed class SkiaGameRuntime : IDisposable
             settingsMenu,
             settingsPopupRenderer,
             selectedCityPanelRenderer,
+            selectedWonderPanelRenderer,
             tradeRenderer,
             prestigeRenderer,
             prestigeMapRenderer,
@@ -184,7 +189,7 @@ public sealed class SkiaGameRuntime : IDisposable
             _renderService.RegisterRenderer(new AutoplayerDebugRenderer(_gameControllerService, _inputService));
         }
         _renderService.RegisterRenderer(aboutRenderer);
-        _tutorialRenderer = new TutorialRenderer(_localizationService);
+        _tutorialRenderer = new TutorialRenderer(_localizationService, _inputService);
         _renderService.RegisterRenderer(_tutorialRenderer);
         _renderService.RegisterRenderer(tooltipRenderer);
 
@@ -447,13 +452,13 @@ public sealed class SkiaGameRuntime : IDisposable
     {
         _gameControllerService?.MainGameController.WonderController.PlaceWonder(hex);
         _gameControllerService?.CurrentGameState?.Clock?.Resume();
-        _overlayRenderer?.Show();
+        _overlayRenderer?.Show(suppressNextPress: true);
     }
 
     private void OnWonderSelectionCancelled(object? sender, EventArgs e)
     {
         _gameControllerService?.CurrentGameState?.Clock?.Resume();
-        _overlayRenderer?.Show();
+        _overlayRenderer?.Show(suppressNextPress: true);
     }
 
     private void RequestPrestige()
@@ -473,6 +478,7 @@ public sealed class SkiaGameRuntime : IDisposable
 
         _gameControllerService.PerformPrestige();
         _gameControllerService.CityBuildingService?.ClearSelectedCity();
+        _wonderService?.ClearSelectedWonder();
         _constructionInteractionService?.ClearHover();
 
         CenterCameraOnStartingCity();
