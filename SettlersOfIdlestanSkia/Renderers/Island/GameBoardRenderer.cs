@@ -32,6 +32,8 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
     private SKPaint? _dotPaint;
     private SKPaint? _ringBgPaint;
     private SKPaint? _ringProgressPaint;
+    private SKPaint? _textIconPaint;
+    private SKFont? _textIconFont;
     private bool _disposed;
 
     private readonly Dictionary<HexCoord, SKPath> _hexPathCache = new();
@@ -86,6 +88,9 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
 
         _textFont = new SKFont(SKTypeface.Default, 12);
 
+        _textIconFont = new SKFont(SkiaFonts.Regular, 16f) { Edging = SKFontEdging.Antialias };
+        _textIconPaint = new SKPaint { IsAntialias = true, Color = SKColors.White };
+
         _dotPaint = new SKPaint
         {
             Style = SKPaintStyle.Fill,
@@ -127,7 +132,7 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
                     var banditPositions = new HashSet<HexCoord>(islandState.Features.OfType<Bandit>().Select(b => b.Position));
                     var harvestBlockedPositions = new HashSet<HexCoord>(islandState.Features.Where(f => f.BlocksHarvest).Select(f => f.Position));
                     var featuresByPosition = islandState.Features
-                        .Where(f => f.ShouldRenderIcon && f.SvgIconResourceName != null)
+                        .Where(f => f.ShouldRenderIcon && (f.SvgIconResourceName != null || f.TextIcon != null))
                         .GroupBy(f => f.Position)
                         .ToDictionary(g => g.Key, g => (IEnumerable<IslandFeature>)g);
                     DrawIslandMap(canvas, visibleMap, playerIdx, mainGameState.Clock.CurrentTick, manualTimes, islandState.BanditCooldownUntil, banditPositions, harvestBlockedPositions, featuresByPosition);
@@ -205,22 +210,28 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
     private void DrawFeatureMarker(SKCanvas canvas, float cx, float cy, IslandFeature feature)
     {
         var resourceName = feature.SvgIconResourceName;
-        if (resourceName == null) return;
+        if (resourceName != null)
+        {
+            SKSvg? svg = null;
+            try { svg = _resourceManager.LoadImage(resourceName); } catch { }
+            var picture = svg?.Picture;
+            if (picture == null) return;
 
-        SKSvg? svg = null;
-        try { svg = _resourceManager.LoadImage(resourceName); } catch { }
-        var picture = svg?.Picture;
-        if (picture == null) return;
+            float size = feature.SvgIconSize;
+            float naturalSize = Math.Max(picture.CullRect.Width, picture.CullRect.Height);
+            float scale = naturalSize > 0f ? size / naturalSize : 1f;
 
-        float size = feature.SvgIconSize;
-        float naturalSize = Math.Max(picture.CullRect.Width, picture.CullRect.Height);
-        float scale = naturalSize > 0f ? size / naturalSize : 1f;
+            canvas.Save();
+            canvas.Translate(cx - size / 2f, cy - size / 2f);
+            canvas.Scale(scale);
+            canvas.DrawPicture(picture);
+            canvas.Restore();
+            return;
+        }
 
-        canvas.Save();
-        canvas.Translate(cx - size / 2f, cy - size / 2f);
-        canvas.Scale(scale);
-        canvas.DrawPicture(picture);
-        canvas.Restore();
+        var textIcon = feature.TextIcon;
+        if (textIcon != null && _textIconFont != null && _textIconPaint != null)
+            canvas.DrawText(textIcon, cx, cy + _textIconFont.Size / 2f - 1f, SKTextAlign.Center, _textIconFont, _textIconPaint);
     }
 
     /// <summary>
@@ -401,6 +412,8 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
         _dotPaint?.Dispose();
         _ringBgPaint?.Dispose();
         _ringProgressPaint?.Dispose();
+        _textIconPaint?.Dispose();
+        _textIconFont?.Dispose();
 
         foreach (var path in _hexPathCache.Values)
             path.Dispose();
