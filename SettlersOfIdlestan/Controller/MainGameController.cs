@@ -202,7 +202,7 @@ namespace SettlersOfIdlestan.Controller
                 BuildingController.Initialize(islandState, Clock);
                 CityBuilderController.Initialize(islandState, Clock, CurrentMainState!.PRNG);
                 PrestigeController.Initialize(islandState.PlayerCivilization, islandState, Clock);
-                WonderController.Initialize(islandState);
+                WonderController.Initialize(islandState, Clock);
                 ResearchController.Initialize(islandState, Clock, CurrentMainState?.PrestigeState);
                 prestigeState?.TechnologyTree.RebuildModifiers();
 

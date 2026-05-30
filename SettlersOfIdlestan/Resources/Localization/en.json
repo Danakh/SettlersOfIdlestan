@@ -429,6 +429,9 @@
   "tutorial_step_imperial_port_desc": "Build the Imperial Port to trigger Prestige and open a new era.",
   "tutorial_step_prestige_title": "Prestige",
   "tutorial_step_prestige_desc": "Perform a Prestige to restart with permanent bonuses and unlock new possibilities.",
-  "tutorial_optional": "Optional"
+  "tutorial_optional": "Optional",
+  "wonder_panel_title": "Wonder — Level",
+  "wonder_panel_invest": "Invest",
+  "wonder_panel_progress": "Progress"
 }
 

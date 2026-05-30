@@ -429,6 +429,9 @@
   "tutorial_step_imperial_port_desc": "Construisez le Port Impérial pour déclencher le Prestige et ouvrir une nouvelle ère.",
   "tutorial_step_prestige_title": "Prestige",
   "tutorial_step_prestige_desc": "Effectuez un Prestige pour recommencer avec des bonus permanents et débloquer de nouvelles possibilités.",
-  "tutorial_optional": "Optionnel"
+  "tutorial_optional": "Optionnel",
+  "wonder_panel_title": "Merveille — Niveau",
+  "wonder_panel_invest": "Investir",
+  "wonder_panel_progress": "Progression"
 }
 
