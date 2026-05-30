@@ -25,7 +25,9 @@
       "PowerShell(Remove-Item *)",
       "PowerShell(dotnet clean C:\\\\DEV\\\\SettlersOfIdlestan\\\\SettlersOfIdlestan.slnx -q 2>&1 | Select-Object -Last 5; dotnet build C:\\\\DEV\\\\SettlersOfIdlestan\\\\SettlersOfIdlestan.slnx -q 2>&1 | Select-Object -Last 10)",
       "Bash(Find-Item -Path \"C:\\\\DEV\\\\SettlersOfIdlestan\\\\SettlersOfIdlestanSkia\\\\Renderers\\\\Overlay\\\\Tabs\" -Filter \"*.cs\")",
-      "Bash(echo \"EXIT:$?\")"
+      "Bash(echo \"EXIT:$?\")",
+      "Bash(Remove-Item -Force \"SettlersOfIdlestan\\\\obj\\\\Debug\\\\net10.0\\\\SettlersOfIdlestan.AssemblyInfoInputs.cache\" -ErrorAction SilentlyContinue)",
+      "PowerShell(dotnet build *)"
     ]
   }
 }
