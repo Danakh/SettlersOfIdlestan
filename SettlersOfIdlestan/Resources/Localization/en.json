@@ -137,7 +137,7 @@
   "action_build": "Build",
   "action_upgrade": "Upgrade",
   "action_maxlevel": "Max Level",
-  "trade_action": "Sell",
+  "trade_action": "Trade",
   "trade_title": "Trade",
   "trade_give": "Sell for Gold",
   "trade_sell_gold_preview": "→ {0} Gold",

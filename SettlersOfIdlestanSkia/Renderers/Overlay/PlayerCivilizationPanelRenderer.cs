@@ -15,9 +15,9 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay;
 public sealed class PlayerCivilizationPanelRenderer : IDisposable
 {
     private const float PanelLeft    = 10f;
-    private const float PanelWidth   = 200f;
+    private const float PanelWidth   = 240f;
     private const float PanelPadding = 12f;
-    private const float BtnHeight    = 30f;
+    private const float BtnHeight    = 38f;
     private const float BtnSpacing   = 6f;
     private const float TitleSize    = 11f;
     private const float TitleHeight  = 20f;
@@ -109,6 +109,7 @@ public sealed class PlayerCivilizationPanelRenderer : IDisposable
         bool tradeVisible    = IsTradeVisible();
         bool prestigeVisible = IsPrestigeVisible();
         bool prestigeAvail   = prestigeVisible && IsPrestigeAvailable();
+        int  prestigePoints  = prestigeVisible ? GetPrestigePoints() : 0;
         bool wonderVisible   = IsWonderVisible() && CanPlaceWonder();
         bool hasBarracks     = HasBuilt<Barracks>(civ);
         bool hasLabs         = HasBuilt<Laboratory>(civ);
@@ -203,7 +204,8 @@ public sealed class PlayerCivilizationPanelRenderer : IDisposable
             {
                 _prestigeButtonRect = BtnRect(btnIdx++);
                 canvas.DrawRoundRect(_prestigeButtonRect, 6, 6, prestigeAvail ? (_hoveredPrestige ? _btnHoverPaint : _btnPaint) : _btnDisabledPaint);
-                canvas.DrawText(_localization.Get("prestige_action"), _prestigeButtonRect.MidX, _prestigeButtonRect.MidY + 4f, SKTextAlign.Center, _btnSmFont, prestigeAvail ? _btnTextPaint : _btnDisabledTxtPaint);
+                string prestigeLabel = $"{_localization.Get("prestige_action")} ({prestigePoints})";
+                canvas.DrawText(prestigeLabel, _prestigeButtonRect.MidX, _prestigeButtonRect.MidY + 4f, SKTextAlign.Center, _btnSmFont, prestigeAvail ? _btnTextPaint : _btnDisabledTxtPaint);
             }
 
             if (wonderVisible)
@@ -347,6 +349,12 @@ public sealed class PlayerCivilizationPanelRenderer : IDisposable
     {
         try { return _gameControllerService.MainGameController.PrestigeController.PrestigeIsAvailable(); }
         catch { return false; }
+    }
+
+    private int GetPrestigePoints()
+    {
+        try { return _gameControllerService.MainGameController.PrestigeController.CalculatePrestigePoints(); }
+        catch { return 0; }
     }
 
     private bool IsWonderVisible()

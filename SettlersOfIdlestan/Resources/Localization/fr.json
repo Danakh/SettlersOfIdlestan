@@ -137,7 +137,7 @@
   "action_build": "Construire",
   "action_upgrade": "Améliorer",
   "action_maxlevel": "Niveau Max",
-  "trade_action": "Vendre",
+  "trade_action": "Commerce",
   "trade_title": "Commerce",
   "trade_give": "Vendre contre de l'Or",
   "trade_sell_gold_preview": "→ {0} Or",
