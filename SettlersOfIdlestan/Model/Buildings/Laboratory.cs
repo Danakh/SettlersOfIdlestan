@@ -10,7 +10,7 @@ public class Laboratory : Building
 
     public Laboratory() : base(BuildingType.Laboratory)
     {
-        AvailableAtLevel = 2;
+        AvailableAtLevel = 3;
         ActivationStatus = ActivationStatus.ACTIVE;
     }
 
@@ -26,14 +26,14 @@ public class Laboratory : Building
 
     public override ResourceSet GetBuildCost() => new ResourceSet
     {
-        { Resource.Brick, 50 },
+        { Resource.Brick, 80 },
         { Resource.Stone, 20 },
         { Resource.Glass, 10 },
     };
 
     public override ResourceSet GetUpgradeCost(int level) => new ResourceSet
     {
-        { Resource.Brick, 50 * (level + 1) },
+        { Resource.Brick, 80 * (level + 1) },
         { Resource.Stone, 20 * (level + 1) },
         { Resource.Glass, 10 * (level + 1) },
     };

@@ -40,7 +40,7 @@ namespace SettlersOfIdlestan.Controller
             Step2Buildings.Concat(new[] { BuildingType.Library }).ToArray();
 
         private static readonly BuildingType[] Step3Buildings =
-            Step2Buildings.Concat(new[] { BuildingType.Library, BuildingType.Temple }).ToArray();
+            Step2Buildings.Concat(new[] { BuildingType.Temple }).ToArray();
 
         // When prestige points are sufficient but ImperialPort is not yet built, focus on
         // the buildings that push city level toward 4 (required for ImperialPort).
@@ -166,7 +166,7 @@ namespace SettlersOfIdlestan.Controller
             return TryStepOnce(buildings, shouldExpand);
         }
 
-        /// <summary>Step 3: step 2 + victory-point buildings (Library, Temple, TownHall upgrades) + unique buildings.
+        /// <summary>Step 3: step 2 + prestige-point buildings (Temple, TownHall upgrades) + unique buildings.
         /// When prestige points are already sufficient but ImperialPort is missing, switches to a focused
         /// building list (TownHall, Seaport, Warehouse) to reach city level 4 faster.</summary>
         public bool TryStep3Once(bool shouldExpand = true)

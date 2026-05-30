@@ -11,27 +11,29 @@ public class Library : Building
         AvailableAtLevel = 2;
     }
 
-    public override int GetDefaultMaxLevel() => 1;
+    public override int GetDefaultMaxLevel() => 0;
 
-    public bool CanProduceResearch => Level >= 2;
+    public bool CanProduceResearch => true;
 
     public long GetResearchCooldownTicks(int? atLevel = null) => (atLevel ?? Level) switch
     {
-        2 => 1000L,
-        3 => 800L,
-        >= 4 => 600L,
+        1 => 1000L,
+        2 => 800L,
+        >= 3 => 600L,
         _ => long.MaxValue,
     };
 
     public override ResourceSet GetBuildCost() => new ResourceSet
     {
-        { Resource.Wood, 10 },
-        { Resource.Brick, 5 },
+        { Resource.Wood, 40 },
+        { Resource.Brick, 20 },
+        { Resource.Stone, 20 }
     };
 
     public override ResourceSet GetUpgradeCost(int level) => new ResourceSet
     {
-        { Resource.Wood, 10 * (level + 1) },
-        { Resource.Brick, 5 * (level + 1) },
+        { Resource.Wood, 40 * (level + 1) },
+        { Resource.Brick, 20 * (level + 1) },
+        { Resource.Stone, 20 * (level + 1) }
     };
 }

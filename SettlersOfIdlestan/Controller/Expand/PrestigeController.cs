@@ -111,7 +111,6 @@ namespace SettlersOfIdlestan.Controller.Expand
             return building.Type switch
             {
                 BuildingType.Temple => 1,
-                BuildingType.Library => 1,
                 BuildingType.TownHall => (building.Level > 2 ? 2 : 1),
                 _ => 0
             };
@@ -122,7 +121,6 @@ namespace SettlersOfIdlestan.Controller.Expand
             return building.Type switch
             {
                 BuildingType.Temple => 1,
-                BuildingType.Library => 1,
                 BuildingType.TownHall => (building.Level + 1 > 2 ? 2 : 1),
                 _ => 0
             };
