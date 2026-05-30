@@ -1,3 +1,4 @@
+using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Model.HexGrid;
 using System;
 using System.Collections.Generic;
@@ -9,6 +10,8 @@ namespace SettlersOfIdlestanSkia.Services;
 /// </summary>
 public sealed class WonderSelectionService
 {
+    private WonderController? _wonderController;
+
     public bool IsActive { get; private set; }
     public IReadOnlyList<HexCoord> PlaceableHexes { get; private set; } = Array.Empty<HexCoord>();
     public HexCoord? HoveredHex { get; set; }
@@ -17,7 +20,18 @@ public sealed class WonderSelectionService
     public event EventHandler<HexCoord>? WonderPlacementConfirmed;
     public event EventHandler? Cancelled;
 
-    public void Enter(IReadOnlyList<HexCoord> placeableHexes)
+    public void ConnectWonderController(WonderController wonderController)
+        => _wonderController = wonderController;
+
+    public void Enter()
+    {
+        IReadOnlyList<HexCoord> hexes = _wonderController != null
+            ? _wonderController.GetPlaceableHexes()
+            : Array.Empty<HexCoord>();
+        Enter(hexes);
+    }
+
+    private void Enter(IReadOnlyList<HexCoord> placeableHexes)
     {
         IsActive = true;
         PlaceableHexes = placeableHexes;

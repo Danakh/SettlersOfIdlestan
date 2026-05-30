@@ -4,6 +4,7 @@ using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Services.Localization;
 using SettlersOfIdlestanSkia.Core;
+using SettlersOfIdlestanSkia.Renderers.Overlay.Popup;
 using SettlersOfIdlestanSkia.Services;
 using SkiaSharp;
 using System;
@@ -27,9 +28,10 @@ public sealed class PlayerCivilizationPanelRenderer : IDisposable
 
     private readonly GameControllerService _gameControllerService;
     private readonly ILocalizationService _localization;
-    private readonly Action _openTrade;
-    private readonly Action _openPrestige;
-    private readonly Action _enterWonder;
+    private readonly Action _closeAll;
+    private readonly TradeRenderer _tradeRenderer;
+    private readonly PrestigeRenderer _prestigeRenderer;
+    private WonderSelectionService? _wonderSelectionService;
 
     private SKSize _canvasSize;
     private SKRect _panelBounds        = SKRect.Empty;
@@ -68,18 +70,23 @@ public sealed class PlayerCivilizationPanelRenderer : IDisposable
     public PlayerCivilizationPanelRenderer(
         GameControllerService gameControllerService,
         ILocalizationService localization,
-        Action openTrade,
-        Action openPrestige,
-        Action enterWonder)
+        Action closeAll,
+        TradeRenderer tradeRenderer,
+        PrestigeRenderer prestigeRenderer,
+        WonderSelectionService? wonderSelectionService)
     {
         _gameControllerService = gameControllerService;
         _localization = localization;
-        _openTrade = openTrade;
-        _openPrestige = openPrestige;
-        _enterWonder = enterWonder;
+        _closeAll = closeAll;
+        _tradeRenderer = tradeRenderer;
+        _prestigeRenderer = prestigeRenderer;
+        _wonderSelectionService = wonderSelectionService;
     }
 
     public void Initialize(SKSize canvasSize) => _canvasSize = canvasSize;
+
+    public void ConnectWonderSelectionService(WonderSelectionService service)
+        => _wonderSelectionService = service;
 
     public bool ContainsPoint(SKPoint point) => !_panelBounds.IsEmpty && _panelBounds.Contains(point.X, point.Y);
 
@@ -233,19 +240,22 @@ public sealed class PlayerCivilizationPanelRenderer : IDisposable
 
         if (!_tradeButtonRect.IsEmpty && _tradeButtonRect.Contains(pos.X, pos.Y))
         {
-            _openTrade();
+            _closeAll();
+            _tradeRenderer.Open();
             return true;
         }
 
         if (!_prestigeButtonRect.IsEmpty && _prestigeButtonRect.Contains(pos.X, pos.Y) && IsPrestigeAvailable())
         {
-            _openPrestige();
+            _closeAll();
+            _prestigeRenderer.Open();
             return true;
         }
 
-        if (!_wonderButtonRect.IsEmpty && _wonderButtonRect.Contains(pos.X, pos.Y) && CanPlaceWonder())
+        if (!_wonderButtonRect.IsEmpty && _wonderButtonRect.Contains(pos.X, pos.Y) && CanPlaceWonder() && _wonderSelectionService != null)
         {
-            _enterWonder();
+            _closeAll();
+            _wonderSelectionService.Enter();
             return true;
         }
 

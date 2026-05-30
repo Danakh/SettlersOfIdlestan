@@ -130,6 +130,7 @@ public sealed class SkiaGameRuntime : IDisposable
         islandMainRenderer.SuppressCities = () => _introRenderer?.IsActive == true;
 
         _wonderSelectionService = new WonderSelectionService();
+        _wonderSelectionService.ConnectWonderController(_gameControllerService.MainGameController.WonderController);
         _wonderSelectionService.Entered += OnWonderSelectionEntered;
         _wonderSelectionService.WonderPlacementConfirmed += OnWonderPlacementConfirmed;
         _wonderSelectionService.Cancelled += OnWonderSelectionCancelled;

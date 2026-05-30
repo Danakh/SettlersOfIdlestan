@@ -110,23 +110,10 @@ public sealed class OverlayRenderer : IGameRenderer
         _playerCivPanel = new PlayerCivilizationPanelRenderer(
             gameControllerService,
             localization,
-            openTrade: () => {
-                _settingsMenu.Close();
-                _settingsPopupRenderer.Close();
-                _prestigeRenderer.Close();
-                _tradeRenderer.Open();
-            },
-            openPrestige: () => {
-                _settingsMenu.Close();
-                _settingsPopupRenderer.Close();
-                _tradeRenderer.Close();
-                _prestigeRenderer.Open();
-            },
-            enterWonder: () => {
-                CloseAll();
-                var hexes = _gameControllerService.MainGameController.WonderController.GetPlaceableHexes();
-                _wonderSelectionService?.Enter(hexes);
-            });
+            closeAll: CloseAll,
+            tradeRenderer,
+            prestigeRenderer,
+            wonderSelectionService: null);
         _inputService.PointerPressed += HandlePointerPressed;
         _inputService.PointerMoved += HandlePointerMoved;
         _inputService.PointerReleased += HandlePointerReleased;
@@ -381,6 +368,7 @@ public sealed class OverlayRenderer : IGameRenderer
     public void ConnectWonderService(WonderSelectionService wonderSelectionService)
     {
         _wonderSelectionService = wonderSelectionService;
+        _playerCivPanel.ConnectWonderSelectionService(wonderSelectionService);
     }
 
     public bool IsAnyOverlayOpen => _tradeRenderer.IsOpen || _prestigeRenderer.IsOpen
