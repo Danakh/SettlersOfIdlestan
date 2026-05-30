@@ -61,6 +61,8 @@ namespace SettlersOfIdlestan.Controller.Island
         public const long AutomaticHarvestCooldownTicks = 500L;
         // 10 s × 100 ticks/s
         public const long SeaportGenerationCooldownTicks = 1000L;
+        // 60 s × 100 ticks/s
+        public const long MarketGoldGenerationCooldownTicks = 6000L;
 
         private GamePRNG _prng = new();
 
@@ -96,6 +98,8 @@ namespace SettlersOfIdlestan.Controller.Island
             try { PerformAutomaticProductionHarvests(); }
             catch { }
             try { PerformSeaportGenerations(); }
+            catch { }
+            try { PerformMarketGoldGenerations(); }
             catch { }
         }
 
@@ -235,6 +239,33 @@ namespace SettlersOfIdlestan.Controller.Island
             }
         }
 
+        private void PerformMarketGoldGenerations()
+        {
+            if (_state == null || _clock == null) return;
+            long now = _clock.CurrentTick;
+
+            foreach (var civ in _state.Civilizations)
+            {
+                foreach (var city in civ.Cities)
+                {
+                    var market = city.Buildings.OfType<Market>().FirstOrDefault();
+                    if (market == null || market.Level == 0) continue;
+
+                    if (market.LastGoldGenerationTick == 0)
+                    {
+                        market.LastGoldGenerationTick = now;
+                        continue;
+                    }
+
+                    if (now - market.LastGoldGenerationTick < MarketGoldGenerationCooldownTicks) continue;
+
+                    civ.AddResource(Resource.Gold, 1);
+                    market.LastGoldGenerationTick = now;
+                    OnRandomResourceGenerated?.Invoke(this, new MarketGenerationEventArgs(civ.Index, Resource.Gold, city.Position));
+                }
+            }
+        }
+
         public static long GetEffectiveSeaportGenerationCooldown(Seaport seaport)
         {
             double multiplier = seaport.GetGenerationCooldownMultiplier();
@@ -368,11 +399,17 @@ namespace SettlersOfIdlestan.Controller.Island
             foreach (var city in civ.Cities)
             {
                 var seaport = city.Buildings.OfType<Seaport>().FirstOrDefault();
-                if (seaport == null || seaport.Level < 3) continue;
-                long effectiveCooldown = GetEffectiveSeaportGenerationCooldown(seaport);
-                double seaportRate = 100.0 / effectiveCooldown;
-                foreach (var basicResource in ResourceUtils.BasicResources)
-                    AddProductionRate(result, basicResource, seaportRate / ResourceUtils.BasicResources.Count);
+                if (seaport != null && seaport.Level >= 3)
+                {
+                    long effectiveCooldown = GetEffectiveSeaportGenerationCooldown(seaport);
+                    double seaportRate = 100.0 / effectiveCooldown;
+                    foreach (var basicResource in ResourceUtils.BasicResources)
+                        AddProductionRate(result, basicResource, seaportRate / ResourceUtils.BasicResources.Count);
+                }
+
+                var market = city.Buildings.OfType<Market>().FirstOrDefault();
+                if (market != null && market.Level > 0)
+                    AddProductionRate(result, Resource.Gold, 100.0 / MarketGoldGenerationCooldownTicks);
             }
 
             return result;

@@ -33,7 +33,7 @@
   "ui_warning": "Warning",
   "ui_info": "Information",
   "building_market_name": "Market",
-  "building_market_desc": "Allows trading.\nLvl.2: reduces trade rate for one resource to 4:1.\nLvl.3: enables automatic overflow trading.",
+  "building_market_desc": "Allows trading and generates 1 gold every 60s.\nLvl.2: reduces trade rate for one resource to 4:1.\nLvl.3: enables automatic overflow trading.",
   "building_sawmill_name": "Sawmill",
   "building_sawmill_desc": "Produces wood",
   "building_brickworks_name": "Brickworks",

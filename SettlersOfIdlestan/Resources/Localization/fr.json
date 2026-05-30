@@ -33,7 +33,7 @@
   "ui_warning": "Attention",
   "ui_info": "Information",
   "building_market_name": "Marché",
-  "building_market_desc": "Permet le commerce.\nNiv.2 : réduit le taux d'échange d'une ressource à 4:1.\nNiv.3 : active le commerce automatique en surplus.",
+  "building_market_desc": "Permet le commerce et génère 1 or toutes les 60s.\nNiv.2 : réduit le taux d'échange d'une ressource à 4:1.\nNiv.3 : active le commerce automatique en surplus.",
   "building_sawmill_name": "Scierie",
   "building_sawmill_desc": "Produit du bois",
   "building_brickworks_name": "Briqueterie",

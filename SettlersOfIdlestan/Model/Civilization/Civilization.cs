@@ -178,11 +178,12 @@ public class Civilization
         int warehouseLevelCount = Cities.Sum(city => Math.Max(0, city.Buildings.Sum(building => (building.Type == BuildingType.Warehouse) ? building.Level : 0)));
 
         bool isBasic = ResourceUtils.BasicResources.Contains(resource);
-        int storageBonus = isBasic
+        bool isBasicStorage = isBasic || resource == Resource.Gold;
+        int storageBonus = isBasicStorage
             ? ModifierAggregator.ApplyModifiers(ECategory.STORAGE_CAPACITY_BASIC, "", 0)
             : ModifierAggregator.ApplyModifiers(ECategory.STORAGE_CAPACITY_ADVANCED, "", 0);
 
-        int result = isBasic
+        int result = isBasicStorage
             ? 5 * baseCityResourceMax + 20 * cityWithWarehouseCount + 10 * warehouseLevelCount
             : 5 * advancedCityResourceMax + 5 * cityWithWarehouseCount + 5 * warehouseLevelCount;
 

@@ -7,6 +7,8 @@ namespace SettlersOfIdlestan.Model.Buildings;
 
 public class Market : Building
 {
+    public long LastGoldGenerationTick { get; set; } = 0;
+
     public Market() : base(BuildingType.Market)
     {
         AvailableAtLevel = 1;
