@@ -55,6 +55,8 @@
   "forge_double_prod_research_bonus": "bonus artisanat",
   "building_library_name": "Bibliothèque",
   "building_library_desc": "Augmente la production de connaissances et permet des améliorations",
+  "library_research_cooldown": "Prochain point de recherche :",
+  "library_research_unlocks_next": "Prochain niveau : production de recherche (toutes les {0}s)",
   "building_temple_name": "Temple",
   "building_temple_desc": "Ajoute des points de civilisation",
   "building_townhall_name": "Hôtel de ville",

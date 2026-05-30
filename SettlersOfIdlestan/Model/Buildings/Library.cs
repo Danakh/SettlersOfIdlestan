@@ -15,7 +15,7 @@ public class Library : Building
 
     public bool CanProduceResearch => Level >= 2;
 
-    public long GetResearchCooldownTicks() => Level switch
+    public long GetResearchCooldownTicks(int? atLevel = null) => (atLevel ?? Level) switch
     {
         2 => 1000L,
         3 => 800L,

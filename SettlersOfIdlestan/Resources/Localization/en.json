@@ -55,6 +55,8 @@
   "forge_double_prod_research_bonus": "craftsmanship bonus",
   "building_library_name": "Library",
   "building_library_desc": "Increases knowledge production and allows upgrades",
+  "library_research_cooldown": "Next research point:",
+  "library_research_unlocks_next": "Next level: research production every {0}s",
   "building_temple_name": "Temple",
   "building_temple_desc": "Adds civilization points",
   "building_townhall_name": "Town Hall",
