@@ -169,8 +169,8 @@ namespace SOITests.ControllerTests
             var controller = new PrestigeController();
             controller.Initialize(civ, state, clock);
 
-            // total = buildingSubtotal(1) + wonderBonus(1×2=2) + banditBonus(0) = 3
-            Assert.Equal(3, controller.CalculatePrestigePoints());
+            // total = buildingSubtotal(1) × wonderMultiplier(2) + banditBonus(0) = 2
+            Assert.Equal(2, controller.CalculatePrestigePoints());
         }
 
         [Fact]

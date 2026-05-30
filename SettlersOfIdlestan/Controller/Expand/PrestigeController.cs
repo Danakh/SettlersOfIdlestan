@@ -71,7 +71,15 @@ namespace SettlersOfIdlestan.Controller.Expand
             return GetBuildingSubtotal() / 5;
         }
 
-        public int CalculatePrestigePoints() => GetBuildingSubtotal() + GetWonderBonus() + GetBanditBonus();
+        public int CalculatePrestigePoints()
+        {
+            int subtotal = GetBuildingSubtotal();
+            int wonderMult = GetWonderBonus(); // = level × timeFactor, 0 si pas de wonder
+            double result = wonderMult > 0 ? (double)subtotal * wonderMult : subtotal;
+            if (_islandState != null && _islandState.RunRecord.BanditsDefeated > 0)
+                result *= 1.2;
+            return (int)result;
+        }
 
         public IReadOnlyList<PrestigePointSource> GetPrestigePointSources()
         {
