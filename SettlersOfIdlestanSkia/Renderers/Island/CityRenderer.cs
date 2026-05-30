@@ -7,6 +7,7 @@ using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestanSkia.Services;
 using SettlersOfIdlestan.Model.HexGrid;
+using SettlersOfIdlestanSkia.Renderers.Debug;
 using SettlersOfIdlestanSkia.Renderers.Overlay;
 
 namespace SettlersOfIdlestanSkia.Renderers.Island;
@@ -124,13 +125,18 @@ public class CityRenderer : HexBasedRenderer, IGameRenderer
             var islandState = mainGameState.CurrentIslandState;
             if (islandState != null)
             {
-                if (!islandState.VisibleIslandMaps.TryGetValue(islandState.PlayerCivilization.Index, out var visibleMap))
+                IslandMap? mapForVisibility;
+                if (DebugSettings.ShowFullMap)
+                    mapForVisibility = islandState.Map;
+                else if (!islandState.VisibleIslandMaps.TryGetValue(islandState.PlayerCivilization.Index, out var vm))
                     return;
+                else
+                    mapForVisibility = vm;
 
                 // Dessine les villes de chaque civilisation
                 foreach (var civilization in islandState.Civilizations)
                 {
-                    DrawCities(canvas, civilization.Cities, civilization.Index, visibleMap);
+                    DrawCities(canvas, civilization.Cities, civilization.Index, mapForVisibility);
                 }
             }
         }

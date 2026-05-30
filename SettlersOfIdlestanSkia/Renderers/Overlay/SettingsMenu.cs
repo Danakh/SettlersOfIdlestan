@@ -40,6 +40,7 @@ public class SettingsMenu
     private readonly SettingsPopupRenderer _settingsPopupRenderer;
     private readonly IFileSystemService _fileSystemService;
     private readonly CityBuildingService _cityBuildingService;
+    private readonly DebugPanelRenderer? _debugPanelRenderer;
     private readonly Action? _onAfterNewGame;
     private List<MenuItem> _menuItems = new();
 
@@ -56,7 +57,7 @@ public class SettingsMenu
 
     public bool IsOpen => _isOpen;
 
-    public SettingsMenu(MainGameController gameController, InputHandlingService inputService, ILocalizationService localization, AboutRenderer aboutRenderer, SettingsPopupRenderer settingsPopupRenderer, IFileSystemService fileSystemService, CityBuildingService cityBuildingService, bool allowDebugMode = false, Action? onAfterNewGame = null)
+    public SettingsMenu(MainGameController gameController, InputHandlingService inputService, ILocalizationService localization, AboutRenderer aboutRenderer, SettingsPopupRenderer settingsPopupRenderer, IFileSystemService fileSystemService, CityBuildingService cityBuildingService, bool allowDebugMode = false, DebugPanelRenderer? debugPanelRenderer = null, Action? onAfterNewGame = null)
     {
         _gameController = gameController;
         _inputService = inputService;
@@ -65,6 +66,7 @@ public class SettingsMenu
         _settingsPopupRenderer = settingsPopupRenderer;
         _fileSystemService = fileSystemService;
         _cityBuildingService = cityBuildingService;
+        _debugPanelRenderer = debugPanelRenderer;
         _onAfterNewGame = onAfterNewGame;
         _inputService.PointerPressed += HandlePointerPressed;
 
@@ -107,8 +109,8 @@ public class SettingsMenu
 
             _menuItems.Add(new MenuItem
             {
-                LabelKey = "menu_toggle_debug_mode",
-                Action = ToggleDebugMode
+                LabelKey = "menu_debug_panel",
+                Action = OpenDebugPanel
             });
             _menuItems.Add(new MenuItem
             {
@@ -325,9 +327,9 @@ public class SettingsMenu
         _settingsPopupRenderer.Open();
     }
 
-    private void ToggleDebugMode()
+    private void OpenDebugPanel()
     {
-        DebugOverlayRenderer.DebugMode = !DebugOverlayRenderer.DebugMode;
+        _debugPanelRenderer?.Open();
     }
 
     private void ToggleAboutPopUp()
