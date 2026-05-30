@@ -312,6 +312,81 @@ namespace SettlersOfIdlestan.Controller.Island
         private bool IsHexBlockedByWonder(HexCoord hex)
             => _state?.Features.OfType<Wonder>().Any(w => w.Position.Equals(hex)) == true;
 
+        /// <summary>
+        /// Calcule le gain moyen théorique en ressources par seconde, incluant les bonus probabilistes attendus.
+        /// </summary>
+        public System.Collections.Generic.Dictionary<Resource, double> GetAverageProductionRatesPerSecond(int civilizationIndex)
+        {
+            var result = new System.Collections.Generic.Dictionary<Resource, double>();
+            if (_state == null) return result;
+
+            var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex);
+            if (civ == null) return result;
+
+            var allHexes = new HashSet<HexCoord>();
+            foreach (var city in civ.Cities)
+                foreach (var hex in city.Position.GetHexes())
+                    if (hex != null) allHexes.Add(hex);
+
+            foreach (var hex in allHexes)
+            {
+                var tile = _state.Map.GetTile(hex);
+                if (tile == null) continue;
+
+                if (IsHexContested(civ, hex)) continue;
+                if (_state.Features.Any(f => f.Position.Equals(hex) && f.BlocksHarvest)) continue;
+                if (IsHexBlockedByWonder(hex)) continue;
+
+                foreach (var city in civ.Cities.Where(c => c.Position.IsAdjacentTo(hex)))
+                {
+                    foreach (var building in city.Buildings)
+                    {
+                        var harvestRes = building.AutomaticHarvestCapability(tile.TerrainType);
+                        if (!harvestRes.HasValue) continue;
+
+                        long raw = building.GetAutomaticHarvestCooldown(AutomaticHarvestCooldownTicks);
+                        double speedMultiplier = civ.ModifierAggregator.ApplyModifiers(ECategory.HARVEST_SPEED, building.Type.ToString(), 1.0);
+                        long effective = Math.Max(1L, (long)(raw / speedMultiplier));
+
+                        var forge = city.Buildings.OfType<Forge>().FirstOrDefault();
+                        int forgeChance = forge != null && forge.Level > 0 ? forge.DoubleProdChancePercent + civ.ForgeDoubleHarvestBonus : 0;
+                        int harvestProductionChance = civ.GetHarvestProductionBonus(building.Type.ToString());
+                        double expectedMultiplier = (1 + forgeChance / 100.0) * (1 + harvestProductionChance / 100.0);
+                        double ratePerSecond = 100.0 / effective * expectedMultiplier;
+
+                        if (building is Mine && harvestRes.Value == Resource.Ore && civ.MineGoldChancePercent > 0)
+                        {
+                            double goldChance = civ.MineGoldChancePercent / 100.0;
+                            AddProductionRate(result, Resource.Gold, ratePerSecond * goldChance);
+                            AddProductionRate(result, Resource.Ore, ratePerSecond * (1 - goldChance));
+                        }
+                        else
+                        {
+                            AddProductionRate(result, harvestRes.Value, ratePerSecond);
+                        }
+                    }
+                }
+            }
+
+            foreach (var city in civ.Cities)
+            {
+                var market = city.Buildings.OfType<Market>().FirstOrDefault();
+                if (market == null || market.Level == 0) continue;
+
+                long effectiveCooldown = GetEffectiveMarketCooldown(market, civ);
+                double marketRate = 100.0 / effectiveCooldown;
+                foreach (var basicResource in ResourceUtils.BasicResources)
+                    AddProductionRate(result, basicResource, marketRate / ResourceUtils.BasicResources.Count);
+            }
+
+            return result;
+        }
+
+        private static void AddProductionRate(System.Collections.Generic.Dictionary<Resource, double> dict, Resource resource, double rate)
+        {
+            dict[resource] = (dict.TryGetValue(resource, out var v) ? v : 0.0) + rate;
+        }
+
         public bool ManualHarvest(int civilizationIndex, HexCoord hex)
         {
             if (_state == null || _clock == null)
