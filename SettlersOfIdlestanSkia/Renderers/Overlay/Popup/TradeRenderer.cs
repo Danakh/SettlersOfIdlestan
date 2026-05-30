@@ -1,3 +1,4 @@
+using SettlersOfIdlestan.Controller;
 using SettlersOfIdlestan.Controller.Expand;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.IslandMap;
@@ -62,6 +63,9 @@ public sealed class TradeRenderer : IDisposable
     private Resource? _hoveredL3Checkbox;
     private Resource? _hoveredL4Checkbox;
     private int _packMultiplier = 1;
+    private SKPoint _lastPointerPosition;
+    private readonly Dictionary<SKRect, string> _disabledRowRects = [];
+    private readonly Dictionary<SKRect, string> _disabledBuyRects = [];
     private TradeTab _activeTab = TradeTab.Commerce;
 
     private readonly PopupChrome _chrome = new();
@@ -143,6 +147,8 @@ public sealed class TradeRenderer : IDisposable
         _seaportL3AllRects.Clear();
         _seaportL4AllRects.Clear();
         _purchaseBuyRects.Clear();
+        _disabledRowRects.Clear();
+        _disabledBuyRects.Clear();
 
         var popup = GetPopupRect();
         _chrome.DrawBackground(canvas, popup, _canvasSize);
@@ -163,11 +169,12 @@ public sealed class TradeRenderer : IDisposable
             else if (_pendingAutoTradeResource != null)
                 DrawConfirmationPopup(canvas, popup, _pendingAutoTradeResource.Value, isAutoTrade: true);
             else
-                SetSeaportTooltip();
+                SetTradeTooltip();
         }
         else
         {
             DrawPurchaseTab(canvas, popup);
+            SetTradeTooltip();
         }
     }
 
@@ -175,6 +182,7 @@ public sealed class TradeRenderer : IDisposable
     {
         if (!IsOpen) return;
 
+        _lastPointerPosition = position;
         _hoveredL3Checkbox = null;
         _hoveredL4Checkbox = null;
 
@@ -450,6 +458,11 @@ public sealed class TradeRenderer : IDisposable
             canvas.DrawText(costText, btnRect.MidX, btnRect.MidY + 5, SKTextAlign.Center, _font, canBuy ? _textPaint : _mutedTextPaint);
 
             _purchaseBuyRects[btnRect] = resource;
+            if (!canBuy)
+            {
+                bool notEnoughGold = civ.GetResourceQuantity(Resource.Gold) < cost;
+                _disabledBuyRects[btnRect] = notEnoughGold ? "trade_tooltip_no_gold" : "trade_tooltip_storage_full";
+            }
             currentY += PurchaseRowHeight + 8;
         }
 
@@ -504,6 +517,14 @@ public sealed class TradeRenderer : IDisposable
             var rowRect = new SKRect(x + 10, currentY, x + ColumnWidth - 10, currentY + RowHeight - 4);
             hitRects[rowRect] = resource;
 
+            if (isDisabled)
+            {
+                string tooltipKey = isOfferColumn ? "trade_tooltip_already_requested"
+                    : oppositeValues.ContainsKey(resource) ? "trade_tooltip_already_offered"
+                    : "trade_tooltip_storage_full";
+                _disabledRowRects[rowRect] = tooltipKey;
+            }
+
             canvas.DrawRoundRect(rowRect, 5, 5, isDisabled ? _disabledPaint : _resourceRowPaint);
             canvas.DrawRoundRect(rowRect, 5, 5, _rowBorderPaint);
 
@@ -530,7 +551,22 @@ public sealed class TradeRenderer : IDisposable
             int amount = values.GetValueOrDefault(resource);
             string amountText = amount > 0 ? amount.ToString() : "+";
             var rowTextPaint = isDisabled ? _mutedTextPaint : _textPaint;
-            canvas.DrawText(resourceText, iconX + iconSize + 4, rowRect.MidY + 5, _font, rowTextPaint);
+
+            string? ratioText = null;
+            if (isOfferColumn)
+            {
+                int rate = tradeController.TradeRate(civ.Index, resource);
+                ratioText = $"({rate}:1)";
+            }
+            else if (resource == Resource.Gold)
+            {
+                ratioText = $"(x1:x{TradeController.GoldPackValue})";
+            }
+
+            float nameY = ratioText != null ? rowRect.MidY - 1 : rowRect.MidY + 5;
+            canvas.DrawText(resourceText, iconX + iconSize + 4, nameY, _font, rowTextPaint);
+            if (ratioText != null)
+                canvas.DrawText(ratioText, iconX + iconSize + 4, rowRect.MidY + 11, _smallFont, _mutedTextPaint);
             canvas.DrawText(amountText, rowRect.Right - 8, rowRect.MidY + 5, SKTextAlign.Right, _boldFont, rowTextPaint);
 
             currentY += RowHeight;
@@ -606,13 +642,16 @@ public sealed class TradeRenderer : IDisposable
             _seaportL4Rects[cbRect] = resource;
     }
 
-    // ── Seaport tooltip ──────────────────────────────────────────────────────────
+    // ── Tooltip ──────────────────────────────────────────────────────────────────
 
-    private void SetSeaportTooltip()
+    private void SetTradeTooltip()
     {
         var civ = _gameControllerService.PlayerCivilization;
         if (civ == null) return;
 
+        var pos = _lastPointerPosition;
+
+        // Seaport checkboxes
         if (_hoveredL3Checkbox != null && _seaportL3AllRects.TryGetValue(_hoveredL3Checkbox.Value, out var l3Rect))
         {
             bool isEnhanced = civ.SeaportEnhancedResources.Contains(_hoveredL3Checkbox.Value);
@@ -624,8 +663,10 @@ public sealed class TradeRenderer : IDisposable
                 ? [line1, _localization.Get("trade_seaport_confirm_permanent")]
                 : [line1];
             _tooltipRenderer.SetTooltipLines(lines, new SKPoint(l3Rect.Right, l3Rect.Top));
+            return;
         }
-        else if (_hoveredL4Checkbox != null && _seaportL4AllRects.TryGetValue(_hoveredL4Checkbox.Value, out var l4Rect))
+
+        if (_hoveredL4Checkbox != null && _seaportL4AllRects.TryGetValue(_hoveredL4Checkbox.Value, out var l4Rect))
         {
             bool isActive = civ.SeaportAutoTradeResources.Contains(_hoveredL4Checkbox.Value);
             bool canActivate = _gameControllerService.MainGameController.TradeController.CanActivateSeaportAutoTrade(civ.Index, _hoveredL4Checkbox.Value);
@@ -636,7 +677,56 @@ public sealed class TradeRenderer : IDisposable
                 ? [line1, _localization.Get("trade_seaport_autotrade_confirm_permanent")]
                 : [line1];
             _tooltipRenderer.SetTooltipLines(lines, new SKPoint(l4Rect.Right, l4Rect.Top));
+            return;
         }
+
+        // Disabled resource rows (offer / receive columns)
+        foreach (var (rect, tooltipKey) in _disabledRowRects)
+        {
+            if (rect.Contains(pos.X, pos.Y))
+            {
+                _tooltipRenderer.SetTooltip(_localization.Get(tooltipKey), new SKPoint(rect.Right, rect.Top));
+                return;
+            }
+        }
+
+        // Trade button (commerce tab)
+        if (_tradeButtonRect != SKRect.Empty && !CanTrade() && _tradeButtonRect.Contains(pos.X, pos.Y))
+        {
+            _tooltipRenderer.SetTooltip(GetTradeDisabledReason(), new SKPoint(_tradeButtonRect.MidX, _tradeButtonRect.Top));
+            return;
+        }
+
+        // Disabled buy buttons (purchase tab)
+        foreach (var (rect, tooltipKey) in _disabledBuyRects)
+        {
+            if (rect.Contains(pos.X, pos.Y))
+            {
+                _tooltipRenderer.SetTooltip(_localization.Get(tooltipKey), new SKPoint(rect.Right, rect.Top));
+                return;
+            }
+        }
+    }
+
+    private string GetTradeDisabledReason()
+    {
+        if (_offered.Count == 0 && _requested.Count == 0)
+            return _localization.Get("trade_tooltip_nothing_selected");
+        if (_offered.Count == 0)
+            return _localization.Get("trade_tooltip_no_offers");
+        if (_requested.Count == 0)
+            return _localization.Get("trade_tooltip_no_requests");
+
+        int offerPacks = GetOfferPackCount();
+        int requestPacks = GetRequestPackCount();
+        if (offerPacks != requestPacks)
+            return string.Format(_localization.Get("trade_tooltip_packs_mismatch"), offerPacks, requestPacks);
+
+        var civ = _gameControllerService.PlayerCivilization;
+        if (civ != null && _offered.Any(kv => civ.GetResourceQuantity(kv.Key) < kv.Value))
+            return _localization.Get("trade_tooltip_no_offers");
+
+        return _localization.Get("trade_tooltip_storage_full");
     }
 
     // ── Multiplier buttons ───────────────────────────────────────────────────────
