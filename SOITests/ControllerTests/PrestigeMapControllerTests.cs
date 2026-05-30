@@ -108,10 +108,10 @@ public class PrestigeMapControllerTests
     public void Purchase_ChainCentralThenOuter()
     {
         var state = EmptyPrestige();
-        state.PrestigePoints = 25; // Central=10, Laboratory=15
+        state.PrestigePoints = 35; // Central=10, Laboratory=25
         var c = Controller();
         Assert.True(c.PurchaseVertex(state, PrestigeMap.CentralVertex));    // costs 10
-        Assert.True(c.PurchaseVertex(state, PrestigeMap.LaboratoryVertex)); // costs 15
+        Assert.True(c.PurchaseVertex(state, PrestigeMap.LaboratoryVertex)); // costs 25
         Assert.Equal(0, state.PrestigePoints);
         Assert.Contains(PrestigeMap.CentralVertex, state.PurchasedVertices);
         Assert.Contains(PrestigeMap.LaboratoryVertex, state.PurchasedVertices);

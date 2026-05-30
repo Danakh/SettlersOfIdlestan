@@ -72,48 +72,122 @@ namespace SOITests.ControllerTests
             Assert.Equal(1, sources.Single(source => source.LabelKey == "building_library_name").Points);
         }
 
-        // ── No-bandit prestige bonus ─────────────────────────────────────────
+        // ── Bandit prestige bonus ────────────────────────────────────────────
 
         [Fact]
-        public void Prestige_NoBanditsOnDesertIsland_AddsNoBanditBonus()
+        public void Prestige_BanditBonus_ZeroWhenNoBanditsDefeated()
         {
-            IslandState state = IslandTestFactory.CreateSevenHexIslandState();
-            var civ = state.Civilizations[0];
-
-            // Replace the center tile with a desert tile to enable the bandit-free bonus condition.
-            // (The state has no bandits and we just need a desert tile to be present.)
-            var desertState = CreateDesertIslandState();
-
-            var controller = new PrestigeController();
-            controller.Initialize(desertState.Civilizations[0], desertState);
-
-            Assert.Contains(controller.GetPrestigePointSources(), s => s.LabelKey == "prestige_no_bandits" && s.Points == 2);
-        }
-
-        [Fact]
-        public void Prestige_WithBanditsOnDesertIsland_NoNoBanditBonus()
-        {
-            var state = CreateDesertIslandState();
-            state.AddFeature(new SettlersOfIdlestan.Model.Bandits.Bandit(new HexCoord(0, 0)));
-
+            var state = IslandTestFactory.CreateSevenHexIslandState();
+            state.RunRecord.BanditsDefeated = 0;
             var controller = new PrestigeController();
             controller.Initialize(state.Civilizations[0], state);
 
-            Assert.DoesNotContain(controller.GetPrestigePointSources(), s => s.LabelKey == "prestige_no_bandits");
+            Assert.Equal(0, controller.GetBanditBonus());
         }
 
         [Fact]
-        public void Prestige_NoBandits_BonusCountedInTotal()
+        public void Prestige_BanditBonus_TwentyPercentOfBuildingSubtotal()
         {
-            var state = CreateDesertIslandState();
+            var state = IslandTestFactory.CreateSevenHexIslandState();
+            state.RunRecord.BanditsDefeated = 3;
             var civ = state.Civilizations[0];
-            civ.Cities[0].Buildings.Add(new Temple()); // +1 from temple
-
+            civ.Cities[0].Buildings.Add(new Temple());
+            civ.Cities[0].Buildings.Add(new Temple());
+            civ.Cities[0].Buildings.Add(new Temple());
+            civ.Cities[0].Buildings.Add(new Temple());
+            civ.Cities[0].Buildings.Add(new Temple()); // 5 temples = subtotal 5
             var controller = new PrestigeController();
             controller.Initialize(civ, state);
 
-            // +1 from temple + 2 from no-bandit bonus = 3
+            Assert.Equal(5, controller.GetBuildingSubtotal());
+            Assert.Equal(1, controller.GetBanditBonus()); // 5 / 5 = 1
+        }
+
+        // ── Wonder prestige bonus ────────────────────────────────────────────
+
+        [Fact]
+        public void Prestige_WonderBonus_ZeroWhenNoWonder()
+        {
+            var state = IslandTestFactory.CreateSevenHexIslandState();
+            var clock = new SettlersOfIdlestan.Model.Game.GameClock();
+            var controller = new PrestigeController();
+            controller.Initialize(state.Civilizations[0], state, clock);
+
+            Assert.Equal(0, controller.GetWonderBonus());
+        }
+
+        [Fact]
+        public void Prestige_WonderBonus_ZeroWhenWonderAtLevel0()
+        {
+            var state = IslandTestFactory.CreateSevenHexIslandState();
+            state.AddFeature(new SettlersOfIdlestan.Model.IslandFeatures.Wonder(new HexCoord(0, 0)) { Level = 0 });
+            var clock = new SettlersOfIdlestan.Model.Game.GameClock();
+            var controller = new PrestigeController();
+            controller.Initialize(state.Civilizations[0], state, clock);
+
+            Assert.Equal(0, controller.GetWonderBonus());
+        }
+
+        [Fact]
+        public void Prestige_WonderBonus_LevelTimesTimeFactor()
+        {
+            var state = IslandTestFactory.CreateSevenHexIslandState();
+            state.StartTick = 1;
+            state.AddFeature(new SettlersOfIdlestan.Model.IslandFeatures.Wonder(new HexCoord(0, 0)) { Level = 2 });
+            // runTicks = 720001 - 1 = 720000 = 2h exactement → ceil(2) = 2 → timeFactor = 3
+            var clock = new SettlersOfIdlestan.Model.Game.GameClock { CurrentTick = 720001 };
+            var controller = new PrestigeController();
+            controller.Initialize(state.Civilizations[0], state, clock);
+
+            Assert.Equal(6, controller.GetWonderBonus()); // 2 × (1+2) = 6
+        }
+
+        [Fact]
+        public void Prestige_WonderBonus_HoursRoundedUp()
+        {
+            var state = IslandTestFactory.CreateSevenHexIslandState();
+            state.StartTick = 1;
+            state.AddFeature(new SettlersOfIdlestan.Model.IslandFeatures.Wonder(new HexCoord(0, 0)) { Level = 1 });
+            // runTicks = 180001 - 1 = 180000 = 30 min → ceil(0.5) = 1h → timeFactor = 2
+            var clock = new SettlersOfIdlestan.Model.Game.GameClock { CurrentTick = 180001 };
+            var controller = new PrestigeController();
+            controller.Initialize(state.Civilizations[0], state, clock);
+
+            Assert.Equal(2, controller.GetWonderBonus()); // 1 × (1+1) = 2
+        }
+
+        [Fact]
+        public void Prestige_WonderBonus_CountedInTotal()
+        {
+            var state = IslandTestFactory.CreateSevenHexIslandState();
+            state.StartTick = 1;
+            state.AddFeature(new SettlersOfIdlestan.Model.IslandFeatures.Wonder(new HexCoord(0, 0)) { Level = 1 });
+            var civ = state.Civilizations[0];
+            civ.Cities[0].Buildings.Add(new Temple()); // subtotal = 1
+            // runTicks = 360001 - 1 = 360000 = 1h → ceil(1) = 1 → timeFactor = 2
+            var clock = new SettlersOfIdlestan.Model.Game.GameClock { CurrentTick = 360001 };
+            var controller = new PrestigeController();
+            controller.Initialize(civ, state, clock);
+
+            // total = buildingSubtotal(1) + wonderBonus(1×2=2) + banditBonus(0) = 3
             Assert.Equal(3, controller.CalculatePrestigePoints());
+        }
+
+        [Fact]
+        public void Prestige_WonderBonusDetails_ReturnsCorrectValues()
+        {
+            var state = IslandTestFactory.CreateSevenHexIslandState();
+            state.StartTick = 1;
+            state.AddFeature(new SettlersOfIdlestan.Model.IslandFeatures.Wonder(new HexCoord(0, 0)) { Level = 3 });
+            // runTicks = 360001 - 1 = 360000 = 1h
+            var clock = new SettlersOfIdlestan.Model.Game.GameClock { CurrentTick = 360001 };
+            var controller = new PrestigeController();
+            controller.Initialize(state.Civilizations[0], state, clock);
+
+            var (level, timeFactor, runTicks) = controller.GetWonderBonusDetails();
+            Assert.Equal(3, level);
+            Assert.Equal(2, timeFactor); // 1 + ceil(1h) = 2
+            Assert.Equal(360000, runTicks);
         }
 
         private static IslandState CreateDesertIslandState()
