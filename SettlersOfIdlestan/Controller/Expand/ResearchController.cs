@@ -71,6 +71,25 @@ namespace SettlersOfIdlestan.Controller.Expand
                 tree.ResearchPoints = Math.Min(tree.ResearchPoints + 1, MaxResearchPoints);
                 library.LastResearchTick = now;
             }
+
+            foreach (var city in _state.PlayerCivilization.Cities)
+            {
+                var lab = city.Buildings.OfType<Laboratory>().FirstOrDefault();
+                if (lab == null || lab.Level < 1 || lab.ActivationStatus != ActivationStatus.ACTIVE) continue;
+
+                long cooldown = lab.GetResearchCooldownTicks();
+                if (lab.LastResearchTick == 0)
+                {
+                    lab.LastResearchTick = now;
+                    continue;
+                }
+                if (now - lab.LastResearchTick < cooldown) continue;
+                if (_state.PlayerCivilization.GetResourceQuantity(Resource.Gold) < 1) continue;
+
+                _state.PlayerCivilization.RemoveResource(Resource.Gold, 1);
+                tree.ResearchPoints = Math.Min(tree.ResearchPoints + Laboratory.ResearchPointsPerBatch, MaxResearchPoints);
+                lab.LastResearchTick = now;
+            }
         }
 
         private void AdvanceActiveResearch()
@@ -213,6 +232,11 @@ namespace SettlersOfIdlestan.Controller.Expand
                 if (library == null || !library.CanProduceResearch) continue;
                 long cooldown = library.GetResearchCooldownTicks();
                 total += 100.0 / cooldown;
+
+                var lab = city.Buildings.OfType<Laboratory>().FirstOrDefault();
+                if (lab == null || lab.Level < 1 || lab.ActivationStatus != ActivationStatus.ACTIVE) continue;
+                long labCooldown = lab.GetResearchCooldownTicks();
+                total += Laboratory.ResearchPointsPerBatch * 100.0 / labCooldown;
             }
             return total;
         }

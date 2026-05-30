@@ -414,6 +414,49 @@ public class SelectedCityPanelRenderer : IGameRenderer
                     tooltipLines.Add("");
                 }
 
+                if (hoveredBuilding is Library library && library.Level > 0)
+                {
+                    bool isLibraryAtMax = _cityBuildingService.IsAtMaxLevel(library);
+                    if (library.CanProduceResearch)
+                    {
+                        long currentTick = _cityBuildingService.GetCurrentTick();
+                        long elapsed = library.LastResearchTick == 0 ? 0 : currentTick - library.LastResearchTick;
+                        long cooldown = library.GetResearchCooldownTicks();
+                        long remaining = Math.Max(0, cooldown - elapsed);
+                        tooltipLines.Add(_localization.Get("library_research_cooldown") + $" {remaining / 100.0:0.0}s/{cooldown / 100.0:0.0}s");
+                        if (!isLibraryAtMax)
+                        {
+                            long nextCooldown = library.GetResearchCooldownTicks(library.Level + 1);
+                            if (nextCooldown != cooldown)
+                                tooltipLines.Add(_localization.Get("tooltip_building_prestige_next") + $" {nextCooldown / 100.0:0.0}s");
+                        }
+                    }
+                    else if (!isLibraryAtMax)
+                    {
+                        long nextCooldown = library.GetResearchCooldownTicks(library.Level + 1);
+                        if (nextCooldown < long.MaxValue)
+                            tooltipLines.Add(_localization.GetFormated("library_research_unlocks_next", $"{nextCooldown / 100.0:0.0}"));
+                    }
+                    tooltipLines.Add("");
+                }
+
+                if (hoveredBuilding is Laboratory laboratory && laboratory.Level > 0)
+                {
+                    bool isLabAtMax = _cityBuildingService.IsAtMaxLevel(laboratory);
+                    long currentTick = _cityBuildingService.GetCurrentTick();
+                    long cooldown = laboratory.GetResearchCooldownTicks();
+                    long elapsed = laboratory.LastResearchTick == 0 ? 0 : currentTick - laboratory.LastResearchTick;
+                    long remaining = Math.Max(0, cooldown - elapsed);
+                    tooltipLines.Add(_localization.Get("laboratory_research_cooldown") + $" {remaining / 100.0:0.0}s/{cooldown / 100.0:0.0}s");
+                    tooltipLines.Add(_localization.Get("laboratory_research_gold_cost"));
+                    if (!isLabAtMax)
+                    {
+                        long nextCooldown = laboratory.GetResearchCooldownTicks(laboratory.Level + 1);
+                        tooltipLines.Add(_localization.Get("tooltip_building_prestige_next") + $" {nextCooldown / 100.0:0.0}s");
+                    }
+                    tooltipLines.Add("");
+                }
+
                 var prestigeController = _cityBuildingService.PrestigeController;
                 if (hoveredBuilding.Level > 0)
                 {
