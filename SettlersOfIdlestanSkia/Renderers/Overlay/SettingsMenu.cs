@@ -117,6 +117,11 @@ public class SettingsMenu
                 LabelKey = "menu_add_resources",
                 Action = AddResources
             });
+            _menuItems.Add(new MenuItem
+            {
+                LabelKey = "menu_add_prestige",
+                Action = AddPrestigePoints
+            });
         }
     }
 
@@ -348,6 +353,16 @@ public class SettingsMenu
             {
                 civilization.AddResource(resource, 100);
             }
+        }
+    }
+
+    private void AddPrestigePoints()
+    {
+        var mainState = _gameController.CurrentMainState;
+        if (mainState?.PrestigeState != null)
+        {
+            mainState.PrestigeState.PrestigePoints += 1000;
+            mainState.PrestigeState.TotalPrestigePointsEarned += 1000;
         }
     }
 
