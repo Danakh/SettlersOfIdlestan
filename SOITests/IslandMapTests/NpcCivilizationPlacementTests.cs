@@ -28,7 +28,6 @@ public class NpcCivilizationPlacementTests
         var parameters = new IslandParameters(
             islandID: 0,
             tileData: TileData40,
-            civilizationCount: 1,
             shapeType: shape)
         {
             NpcCivilizations = Enumerable.Range(0, npcCount)

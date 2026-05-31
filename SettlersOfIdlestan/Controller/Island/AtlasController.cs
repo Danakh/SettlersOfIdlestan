@@ -27,7 +27,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 {
                     new IslandFeatureParameters(IslandFeatureType.Bandit,       IslandFeaturePlacement.FarFromPlayer),
                 };
-                return new IslandParameters(islandId, tileData, 1, features, IslandShapeType.Compact);
+                return new IslandParameters(islandId, tileData, features, IslandShapeType.Compact);
             }
             // Île 2 : forme allongée avec repaire de bandits
             if (islandId == 2)
@@ -47,7 +47,7 @@ namespace SettlersOfIdlestan.Controller.Island
                     new IslandFeatureParameters(IslandFeatureType.TreasureTrove, IslandFeaturePlacement.Random),
                     new IslandFeatureParameters(IslandFeatureType.BanditHideout, IslandFeaturePlacement.FarFromPlayer),
                 };
-                return new IslandParameters(islandId, tileData, 1, features, IslandShapeType.Elongated);
+                return new IslandParameters(islandId, tileData, features, IslandShapeType.Elongated);
             }
             // Île 3 : cresent + 2 civilisation NPC Low/Pacifiste
             if (islandId == 3)
@@ -67,7 +67,7 @@ namespace SettlersOfIdlestan.Controller.Island
                     new IslandFeatureParameters(IslandFeatureType.TreasureTrove, IslandFeaturePlacement.Random),
                     new IslandFeatureParameters(IslandFeatureType.BanditHideout, IslandFeaturePlacement.FarFromPlayer),
                 };
-                return new IslandParameters(islandId, tileData, 2, features, IslandShapeType.Crescent)
+                return new IslandParameters(islandId, tileData, features, IslandShapeType.Crescent)
                 {
                     NpcCivilizations =
                     [
@@ -94,7 +94,7 @@ namespace SettlersOfIdlestan.Controller.Island
                     new IslandFeatureParameters(IslandFeatureType.TreasureTrove, IslandFeaturePlacement.Random),
                     new IslandFeatureParameters(IslandFeatureType.BanditHideout, IslandFeaturePlacement.FarFromPlayer),
                 };
-                return new IslandParameters(islandId, tileData, 1, features, IslandShapeType.Archipelago)
+                return new IslandParameters(islandId, tileData, features, IslandShapeType.Archipelago)
                 {
                     NpcCivilizations =
                     [
@@ -109,7 +109,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 return BuildHighEndIsland(islandId);
             }
 
-            return new IslandParameters(InvalidIslandId, new List<(TerrainType terrainType, int tileCount)>(), 0);
+            return new IslandParameters(InvalidIslandId, new List<(TerrainType terrainType, int tileCount)>());
         }
 
         private static IslandParameters BuildHighEndIsland(int islandId)
@@ -152,7 +152,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 });
             }
 
-            return new IslandParameters(islandId, tileData, 1, features, shape)
+            return new IslandParameters(islandId, tileData, features, shape)
             {
                 NpcCivilizations = npcCivs,
             };
