@@ -184,13 +184,19 @@ namespace SettlersOfIdlestan.Controller
             if (TryResearchOnce())
                 didSomething = true;
 
+            bool shouldGrind = true;
             foreach (var bt in new[] { BuildingType.Seaport, BuildingType.Warehouse, BuildingType.TownHall })
             {
-                if (TryBuildBuildingOnce(coastalCity.Position, bt, withGrind: true))
-                    didSomething = true;
+                Building? existing = coastalCity.Buildings.FirstOrDefault(b => b.Type == bt);
+                if ((existing == null) || existing.Level < _buildingController.GetMaxLevel(existing, _civ.Index))
+                {
+                    if (TryBuildBuildingOnce(coastalCity.Position, bt, withGrind: shouldGrind))
+                        didSomething = true;
+                    shouldGrind = false;
+                }
             }
 
-            if (TryBuildUniqueBuildingOnce(coastalCity.Position, BuildingType.ImperialPort, withGrind: true))
+            if (TryBuildUniqueBuildingOnce(coastalCity.Position, BuildingType.ImperialPort, withGrind: shouldGrind))
                 didSomething = true;
 
             return didSomething;
