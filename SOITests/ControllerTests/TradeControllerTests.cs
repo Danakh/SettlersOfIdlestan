@@ -1,14 +1,25 @@
+using System.Collections.Generic;
 using Xunit;
 using SettlersOfIdlestan.Controller;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Buildings;
 using SOITests.TestUtilities;
 using SettlersOfIdlestan.Model;
+using SettlersOfIdlestan.Model.Civilization;
+using SettlersOfIdlestan.Model.GameplayModifier;
+using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
 
 namespace SOITests.ControllerTests
 {
     public class TradeControllerTests
     {
+        private sealed class FlatModifierProvider : IModifierProvider
+        {
+            private readonly List<Modifier> _mods;
+            public FlatModifierProvider(params Modifier[] mods) => _mods = new(mods);
+            public IEnumerable<Modifier> GetModifiers() => _mods;
+        }
+
         [Fact]
         public void Trade_NotAvailableWithoutMarket()
         {
@@ -131,6 +142,64 @@ namespace SOITests.ControllerTests
         }
 
         [Fact]
+        public void SellResource_BulkGoldBonus_AddsOncePerTenPacks()
+        {
+            IslandState state = IslandTestFactory.CreateSevenHexIslandState();
+            var civ = state.Civilizations[0];
+            civ.Cities[0].Buildings.Add(new Market());
+            civ.Cities[0].Buildings.Add(new TownHall { Level = 8 }); // capacity = 5*(2+8)=50
+
+            var tree = new TechnologyTree();
+            tree.CompleteResearch(TechnologyId.EfficientTrading); // TRADE_BULK_GOLD_BONUS +1
+            civ.SetupModifierAggregator(tree);
+
+            civ.AddResource(Resource.Wood, 50); // 10 packs at sell-rate 5
+
+            var controller = new TradeController(state);
+            bool result = controller.SellResource(0, Resource.Wood, 10);
+
+            Assert.True(result);
+            Assert.Equal(0, civ.GetResourceQuantity(Resource.Wood));
+            Assert.Equal(11, civ.GetResourceQuantity(Resource.Gold)); // 10 + floor(10/10)*1
+        }
+
+        [Fact]
+        public void SellResource_BulkGoldBonus_ScalesWithBonusValue()
+        {
+            // Verify floor(quantity/10)*bonus: 10 packs with bonus=3 → 10 + 3 = 13
+            IslandState state = IslandTestFactory.CreateSevenHexIslandState();
+            var civ = state.Civilizations[0];
+            civ.Cities[0].Buildings.Add(new Market());
+            civ.Cities[0].Buildings.Add(new TownHall { Level = 8 }); // capacity=50
+
+            civ.SetupModifierAggregator(new FlatModifierProvider(
+                new Modifier(ECategory.TRADE_BULK_GOLD_BONUS, EType.ADDITIVE, 3)));
+
+            civ.AddResource(Resource.Wood, 50);
+
+            var controller = new TradeController(state);
+            bool result = controller.SellResource(0, Resource.Wood, 10);
+
+            Assert.True(result);
+            Assert.Equal(13, civ.GetResourceQuantity(Resource.Gold)); // 10 + floor(10/10)*3
+        }
+
+        [Fact]
+        public void SellResource_BulkGoldBonus_NoBonusWithoutModifier()
+        {
+            IslandState state = IslandTestFactory.CreateSevenHexIslandState();
+            var civ = state.Civilizations[0];
+            civ.Cities[0].Buildings.Add(new Market());
+            civ.Cities[0].Buildings.Add(new TownHall { Level = 8 }); // capacity=50
+            civ.AddResource(Resource.Wood, 50);
+
+            var controller = new TradeController(state);
+            controller.SellResource(0, Resource.Wood, 10);
+
+            Assert.Equal(10, civ.GetResourceQuantity(Resource.Gold));
+        }
+
+        [Fact]
         public void BuyRate_BasicIsOne_OreIsFive_AdvancedIsTwenty()
         {
             var controller = new TradeController();
@@ -160,4 +229,5 @@ namespace SOITests.ControllerTests
             Assert.Equal(3, civ.GetResourceQuantity(Resource.Ore));
         }
     }
+
 }
