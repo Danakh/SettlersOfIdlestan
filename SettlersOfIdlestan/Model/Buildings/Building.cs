@@ -123,6 +123,10 @@ public enum BuildingType
     /// Académie militaire - Augmente la capacité de soldats et la vitesse de production. Débloqué par le prestige.
     /// </summary>
     MilitaryAcademy,
+    /// <summary>
+    /// Mine Profonde - Bâtiment unique. Creuse jusqu'à l'Inframonde et y ouvre un avant-poste.
+    /// </summary>
+    DeepestMine,
 }
 
 /// <summary>

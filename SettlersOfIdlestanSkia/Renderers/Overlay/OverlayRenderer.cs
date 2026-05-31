@@ -59,6 +59,12 @@ public sealed class OverlayRenderer : IGameRenderer
     private SKPoint _lastPointerPosition;
     private WonderSelectionService? _wonderSelectionService;
 
+    // Map switch button (surface ↔ underworld)
+    private SKRect _mapSwitchRect;
+    private readonly SKPaint _mapSwitchActivePaint = new() { Color = new SKColor(40, 25, 70), Style = SKPaintStyle.Fill, IsAntialias = true };
+    private readonly SKPaint _mapSwitchBorderPaint = new() { Color = new SKColor(160, 100, 220), StrokeWidth = 1.5f, Style = SKPaintStyle.Stroke, IsAntialias = true };
+    private readonly SKFont _mapSwitchFont = new() { Size = 11, Typeface = SkiaFonts.Bold };
+
     // Dynamic tab list: (tabId, screenRect) computed each frame
     private readonly List<(int tabId, SKRect rect)> _activeTabs = new();
 
@@ -205,8 +211,9 @@ public sealed class OverlayRenderer : IGameRenderer
             _hasNewEvent = true;
         }
 
+        bool isUnderworld = _gameControllerService.CurrentIslandState?.IsViewingUnderworld == true;
         bool panelsEnabled = !onResearchTab && !onPrestigeTab && !onHistoryTab && !onEventsTab && !onAutomationTab
-            && !_tradeRenderer.IsOpen && !_prestigeRenderer.IsOpen;
+            && !_tradeRenderer.IsOpen && !_prestigeRenderer.IsOpen && !isUnderworld;
         _selectedCityPanelRenderer.IsInputEnabled = panelsEnabled;
         _selectedWonderPanelRenderer.IsInputEnabled = panelsEnabled;
         _researchRenderer.IsActive = onResearchTab;
@@ -251,7 +258,29 @@ public sealed class OverlayRenderer : IGameRenderer
         _prestigeRenderer.Render(canvas);
         _settingsPopupRenderer.Render(canvas);
 
+        DrawMapSwitchButton(canvas, context);
         CheckResourceBarTooltip();
+    }
+
+    private void DrawMapSwitchButton(SKCanvas canvas, GameRenderContext context)
+    {
+        if (context.GameState is not MainGameState mgs) return;
+        var islandState = mgs.CurrentIslandState;
+        if (islandState?.Underworld == null) return;
+
+        const float btnW = 130f;
+        const float btnH = 22f;
+        float btnX = (_canvasSize.Width - btnW) / 2f;
+        float btnY = PlayerResourcesOverlayRenderer.BarHeight + 3f;
+        _mapSwitchRect = new SKRect(btnX, btnY, btnX + btnW, btnY + btnH);
+
+        canvas.DrawRoundRect(_mapSwitchRect, 5, 5, _mapSwitchActivePaint);
+        canvas.DrawRoundRect(_mapSwitchRect, 5, 5, _mapSwitchBorderPaint);
+
+        string label = islandState.IsViewingUnderworld
+            ? _localization.Get("btn_map_surface")
+            : _localization.Get("btn_map_underworld");
+        canvas.DrawText(label, _mapSwitchRect.MidX, _mapSwitchRect.MidY + 4f, SKTextAlign.Center, _mapSwitchFont, _buttonTextPaint);
     }
 
     private void CheckResourceBarTooltip()
@@ -406,6 +435,19 @@ public sealed class OverlayRenderer : IGameRenderer
             return;
         }
 
+        // Map switch button
+        if (_mapSwitchRect != default && _mapSwitchRect.Contains(e.Position.X, e.Position.Y))
+        {
+            var islandState = _gameControllerService.CurrentIslandState;
+            if (islandState?.Underworld != null)
+            {
+                islandState.IsViewingUnderworld = !islandState.IsViewingUnderworld;
+                if (islandState.IsViewingUnderworld)
+                    _activeTab = TabIsland;
+            }
+            return;
+        }
+
         // Tab clicks
         foreach (var (tabId, rect) in _activeTabs)
         {
@@ -543,6 +585,9 @@ public sealed class OverlayRenderer : IGameRenderer
         _eventLogRenderer.Dispose();
         _automationRenderer.Dispose();
         _playerCivPanel.Dispose();
+        _mapSwitchActivePaint.Dispose();
+        _mapSwitchBorderPaint.Dispose();
+        _mapSwitchFont.Dispose();
         _disposed = true;
     }
 }

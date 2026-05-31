@@ -19,6 +19,17 @@ public class IslandState : IJsonOnDeserialized
 {
     public IslandMap Map { get; set; }
 
+    /// <summary>
+    /// The Underworld — created when the DeepestMine building is constructed. Null until then.
+    /// </summary>
+    public UnderworldState? Underworld { get; set; }
+
+    /// <summary>
+    /// Runtime toggle: true while the player is viewing the Underworld map. Not persisted.
+    /// </summary>
+    [JsonIgnore]
+    public bool IsViewingUnderworld { get; set; }
+
     public int IslandID { get; set; }
 
     /// <summary>

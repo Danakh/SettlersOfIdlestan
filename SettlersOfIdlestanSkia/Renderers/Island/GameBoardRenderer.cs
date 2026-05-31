@@ -129,11 +129,24 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
         if (context.GameState == null)
             return;
 
-        canvas.DrawColor(new SKColor(238, 242, 245));
-
         if (context.GameState is MainGameState mainGameState)
         {
             var islandState = mainGameState.CurrentIslandState;
+            if (islandState != null && islandState.IsViewingUnderworld && islandState.Underworld != null)
+            {
+                // Underworld view: dark cave background
+                canvas.DrawColor(new SKColor(15, 8, 30));
+                DrawIslandMap(canvas, islandState.Underworld.Map, islandState.PlayerCivilization.Index,
+                    mainGameState.Clock.CurrentTick, null, null, null, null);
+                return;
+            }
+        }
+
+        canvas.DrawColor(new SKColor(238, 242, 245));
+
+        if (context.GameState is MainGameState mgs)
+        {
+            var islandState = mgs.CurrentIslandState;
             if (islandState != null)
             {
                 IslandMap? mapToRender = null;
@@ -153,7 +166,7 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
                         .Where(f => f.ShouldRenderIcon && (f.SvgIconResourceName != null || f.TextIcon != null))
                         .GroupBy(f => f.Position)
                         .ToDictionary(g => g.Key, g => (IEnumerable<IslandFeature>)g);
-                    DrawIslandMap(canvas, mapToRender, playerIdx, mainGameState.Clock.CurrentTick, manualTimes, islandState.BanditCooldownUntil, banditPositions, harvestBlockedPositions, featuresByPosition);
+                    DrawIslandMap(canvas, mapToRender, playerIdx, mgs.Clock.CurrentTick, manualTimes, islandState.BanditCooldownUntil, banditPositions, harvestBlockedPositions, featuresByPosition);
 
                     var selectedWonder = _wonderService?.SelectedWonder;
                     if (selectedWonder != null && _selectedWonderPaint != null)

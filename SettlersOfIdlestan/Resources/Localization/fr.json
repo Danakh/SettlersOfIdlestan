@@ -482,6 +482,11 @@
   "tutorial_optional": "Optionnel",
   "wonder_panel_title": "Merveille — Niveau",
   "wonder_panel_invest": "Investir",
-  "wonder_panel_progress": "Progression"
+  "wonder_panel_progress": "Progression",
+  "building_deepestmine_name": "Mine Profonde",
+  "building_deepestmine_desc": "Creuse jusqu'à l'Inframonde et y ouvre un avant-poste souterrain.",
+  "tooltip_requires_mine_3": "⚠ Nécessite une Mine niveau 3",
+  "btn_map_surface": "▲ Remonter en Surface",
+  "btn_map_underworld": "▼ Descendre dans l'Inframonde"
 }
 

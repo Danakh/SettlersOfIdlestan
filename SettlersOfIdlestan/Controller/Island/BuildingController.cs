@@ -68,6 +68,24 @@ namespace SettlersOfIdlestan.Controller.Island
             catch { }
             try { PerformTraderGuildAutomation(); }
             catch { }
+            try { TryInitializeUnderworld(); }
+            catch { }
+        }
+
+        private void TryInitializeUnderworld()
+        {
+            if (_state == null || _state.Underworld != null) return;
+
+            var playerCiv = _state.PlayerCivilization;
+            bool hasDeepestMine = false;
+            foreach (var city in playerCiv.Cities)
+                foreach (var building in city.Buildings)
+                    if (building.Type == BuildingType.DeepestMine && building.Level > 0)
+                    { hasDeepestMine = true; break; }
+
+            if (!hasDeepestMine) return;
+
+            _state.Underworld = UnderworldState.CreateDefault(playerCiv.Index);
         }
 
         private void PerformHarvestersGuildProductionAutomation()
@@ -380,6 +398,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 BuildingType.Academy => new Academy(),
                 BuildingType.TraderGuild => new TraderGuild(),
                 BuildingType.MilitaryAcademy => new MilitaryAcademy(),
+                BuildingType.DeepestMine => new DeepestMine(),
                 _ => null,
             };
         }

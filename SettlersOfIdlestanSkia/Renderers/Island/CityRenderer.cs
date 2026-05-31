@@ -123,21 +123,27 @@ public class CityRenderer : HexBasedRenderer, IGameRenderer
         if (context.GameState is MainGameState mainGameState)
         {
             var islandState = mainGameState.CurrentIslandState;
-            if (islandState != null)
-            {
-                IslandMap? mapForVisibility;
-                if (DebugSettings.ShowFullMap)
-                    mapForVisibility = islandState.Map;
-                else if (!islandState.VisibleIslandMaps.TryGetValue(islandState.PlayerCivilization.Index, out var vm))
-                    return;
-                else
-                    mapForVisibility = vm;
+            if (islandState == null) return;
 
-                // Dessine les villes de chaque civilisation
-                foreach (var civilization in islandState.Civilizations)
-                {
-                    DrawCities(canvas, civilization.Cities, civilization.Index, mapForVisibility);
-                }
+            if (islandState.IsViewingUnderworld && islandState.Underworld != null)
+            {
+                // Render underworld cities (all visible, no fog of war)
+                DrawCities(canvas, islandState.Underworld.Cities, islandState.PlayerCivilization.Index, islandState.Underworld.Map);
+                return;
+            }
+
+            IslandMap? mapForVisibility;
+            if (DebugSettings.ShowFullMap)
+                mapForVisibility = islandState.Map;
+            else if (!islandState.VisibleIslandMaps.TryGetValue(islandState.PlayerCivilization.Index, out var vm))
+                return;
+            else
+                mapForVisibility = vm;
+
+            // Dessine les villes de chaque civilisation
+            foreach (var civilization in islandState.Civilizations)
+            {
+                DrawCities(canvas, civilization.Cities, civilization.Index, mapForVisibility);
             }
         }
     }

@@ -482,6 +482,11 @@
   "tutorial_optional": "Optional",
   "wonder_panel_title": "Wonder — Level",
   "wonder_panel_invest": "Invest",
-  "wonder_panel_progress": "Progress"
+  "wonder_panel_progress": "Progress",
+  "building_deepestmine_name": "Deepest Mine",
+  "building_deepestmine_desc": "Digs down to the Underworld and opens an underground outpost.",
+  "tooltip_requires_mine_3": "⚠ Requires a level 3 Mine",
+  "btn_map_surface": "▲ Return to Surface",
+  "btn_map_underworld": "▼ Descend to Underworld"
 }
 
