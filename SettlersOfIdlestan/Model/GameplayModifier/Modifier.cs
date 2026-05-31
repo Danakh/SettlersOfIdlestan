@@ -40,6 +40,10 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             UNLOCK_WONDERS,
             /// <summary>Flags that an advanced resource is discovered and visible. SubCategory = Resource enum name.</summary>
             UNLOCK_RESOURCE,
+            /// <summary>Multiplicateur de vitesse de régénération de défense des villes. Base = 1.0.</summary>
+            CITY_DEFENSE_REGEN_SPEED,
+            /// <summary>Bonus plat ajouté à la capacité maximale de soldats de chaque ville. SubCategory unused.</summary>
+            CITY_MAX_SOLDIERS_BONUS,
         }
 
         public enum EType

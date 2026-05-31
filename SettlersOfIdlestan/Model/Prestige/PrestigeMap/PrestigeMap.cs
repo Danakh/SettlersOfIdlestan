@@ -18,6 +18,8 @@ public class PrestigeMap
     public static readonly HexCoord ResearchCostReductionCoord = new(1,  1);
     public static readonly HexCoord GoldTradeCoord             = new(-1,  2);
     public static readonly HexCoord ArtisansProductionCoord   = new(0,   2);
+    public static readonly HexCoord ExperimentalScienceCoord  = new(2,   0);
+    public static readonly HexCoord DefenseRegenCoord         = new(2,  -1);
 
     // ── Prestige vertices (HexGrid Vertex objects) ────────────────────────────
     // Layout: pointy-top, R=60, Central vertex at screen center.
@@ -31,7 +33,8 @@ public class PrestigeMap
     public static readonly Vertex AcademyVertex          = Vertex.Create(new(1, 0), new(2, 0), new(1, 1));
     public static readonly Vertex HarvestGuildVertex     = Vertex.Create(new(-1, 1), new(-1, 2), new(0, 1));
     public static readonly Vertex ArtisansGuildVertex    = Vertex.Create(new(-1, 2), new(0, 1), new(0, 2));
-    public static readonly Vertex MilitaryStrategyVertex  = Vertex.Create(new(1, 0), new(1, -1), new(2, -1));
+    public static readonly Vertex MilitaryStrategyVertex  = Vertex.Create(new(1, 0), new(2,  0), new(2, -1));
+    public static readonly Vertex ConscriptionVertex      = Vertex.Create(new(1, 0), new(1, -1), new(2, -1));
     public static readonly Vertex KnowledgeMasteryVertex  = Vertex.Create(new(1, 1), new(0,  2), new(1,  2));
     public static readonly Vertex WatchtowerVertex           = Vertex.Create(new(0, 0), new(-1, 0), new(-1, 1));
     public static readonly Vertex MaritimeRoutesVertex       = Vertex.Create(new(-1, 0), new(-1, 1), new(-2, 1));
@@ -159,6 +162,12 @@ public class PrestigeMap
                 modifiers: new Modifier[] { new(ECategory.UNLOCK_RESEARCH, "Artisanat", EType.ADDITIVE, 1) }
             ),
             new(
+                ConscriptionVertex,
+                "prestige_vertex_conscription",
+                cost: Cost(ConscriptionVertex),
+                modifiers: new Modifier[] { new(ECategory.CITY_MAX_SOLDIERS_BONUS, EType.ADDITIVE, 5) }
+            ),
+            new(
                 MilitaryStrategyVertex,
                 "prestige_vertex_military_strategy",
                 cost: Cost(MilitaryStrategyVertex),
@@ -254,6 +263,18 @@ public class PrestigeMap
                 "prestige_hex_fortifications",
                 adjacentVertices: Adjacent(FortifiedOutpostCoord),
                 perVertexModifiers: new Modifier[] { new(ECategory.CITY_DEFENSE, EType.ADDITIVE, 2) }
+            ),
+            new(
+                ExperimentalScienceCoord,
+                "prestige_hex_experimental_science",
+                adjacentVertices: Adjacent(ExperimentalScienceCoord),
+                perVertexModifiers: new Modifier[] { new(ECategory.BUILDING_PRODUCTION, "Laboratory", EType.ADDITIVE, 1) }
+            ),
+            new(
+                DefenseRegenCoord,
+                "prestige_hex_defense_regen",
+                adjacentVertices: Adjacent(DefenseRegenCoord),
+                perVertexModifiers: new Modifier[] { new(ECategory.CITY_DEFENSE_REGEN_SPEED, EType.ADDITIVE, 0.1) }
             ),
         };
 

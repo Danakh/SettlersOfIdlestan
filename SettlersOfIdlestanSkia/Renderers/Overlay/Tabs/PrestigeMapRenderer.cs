@@ -524,6 +524,11 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         Modifier.ECategory.STORAGE_CAPACITY_ADVANCED => $"+{(int)mod.Value} {_localization.Get("prestige_tooltip_storage_advanced")}",
         Modifier.ECategory.TRADE_GOLD_PACKAGES       => $"{mod.Value:0.##} {_localization.Get("prestige_tooltip_gold_packages")}",
         Modifier.ECategory.CITY_DEFENSE              => $"+{(int)mod.Value} {_localization.Get("prestige_tooltip_city_defense")}",
+        Modifier.ECategory.CITY_MAX_SOLDIERS_BONUS   => $"+{(int)mod.Value} {_localization.Get("prestige_tooltip_city_max_soldiers")}",
+        Modifier.ECategory.CITY_DEFENSE_REGEN_SPEED  => $"+{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_city_defense_regen")}",
+        Modifier.ECategory.BUILDING_PRODUCTION       => string.IsNullOrEmpty(mod.SubCategory)
+            ? $"+{(int)mod.Value} {_localization.Get("prestige_tooltip_production")}"
+            : $"+{(int)mod.Value} {_localization.Get($"building_{mod.SubCategory.ToLower()}_name")} {_localization.Get("prestige_tooltip_production")}",
         Modifier.ECategory.UNLOCK_RESEARCH           => _localization.Get("prestige_tooltip_unlocks_research"),
         Modifier.ECategory.UNLOCK_MARITIME_ROUTES    => _localization.Get("prestige_tooltip_unlocks_maritime_routes"),
         _ => $"+{mod.Value}"

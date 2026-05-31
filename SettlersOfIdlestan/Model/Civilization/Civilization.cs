@@ -101,6 +101,15 @@ public class Civilization
     [JsonIgnore]
     public int MineGoldChancePercent => ModifierAggregator.ApplyModifiers(ECategory.MINE_GOLD_CHANCE_PERCENT, "", 0);
 
+    [JsonIgnore]
+    public int LaboratoryResearchBonus => ModifierAggregator.ApplyModifiers(ECategory.BUILDING_PRODUCTION, "Laboratory", 0);
+
+    [JsonIgnore]
+    public double CityDefenseRegenSpeed => ModifierAggregator.ApplyModifiers(ECategory.CITY_DEFENSE_REGEN_SPEED, "", 1.0);
+
+    [JsonIgnore]
+    public int CityMaxSoldiersBonus => ModifierAggregator.ApplyModifiers(ECategory.CITY_MAX_SOLDIERS_BONUS, "", 0);
+
     /// <summary>
     /// Liste des ressources d�tenues par la civilisation.
     /// </summary>

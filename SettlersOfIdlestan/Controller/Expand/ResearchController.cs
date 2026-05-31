@@ -91,7 +91,8 @@ namespace SettlersOfIdlestan.Controller.Expand
                 }
 
                 _state.PlayerCivilization.RemoveResource(Resource.Gold, 1);
-                tree.ResearchPoints = Math.Min(tree.ResearchPoints + Laboratory.ResearchPointsPerBatch, MaxResearchPoints);
+                int batch = Laboratory.ResearchPointsPerBatch + _state.PlayerCivilization.LaboratoryResearchBonus;
+                tree.ResearchPoints = Math.Min(tree.ResearchPoints + batch, MaxResearchPoints);
                 lab.LastResearchTick = now;
 
                 int goldQty = _state.PlayerCivilization.GetResourceQuantity(Resource.Gold);
