@@ -7,6 +7,7 @@ using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Controller.Expand;
 using SettlersOfIdlestan.Controller.Island;
+using System.Diagnostics;
 
 namespace SettlersOfIdlestan.Controller
 {
@@ -41,15 +42,6 @@ namespace SettlersOfIdlestan.Controller
 
         private static readonly BuildingType[] Step3Buildings =
             Step2Buildings.Concat(new[] { BuildingType.Temple }).ToArray();
-
-        // When prestige points are sufficient but ImperialPort is not yet built, focus on
-        // the buildings that push city level toward 4 (required for ImperialPort).
-        private static readonly BuildingType[] Step3PortFocusBuildings =
-        {
-            BuildingType.TownHall, BuildingType.Seaport, BuildingType.Warehouse,
-        };
-
-        private static readonly Resource[] Step3TradeTargets = { Resource.Gold };
 
         private static readonly BuildingType[] MilitaryBuildings = { BuildingType.Palisade, BuildingType.Barracks };
 
@@ -167,22 +159,39 @@ namespace SettlersOfIdlestan.Controller
         }
 
         /// <summary>Step 3: step 2 + prestige-point buildings (Temple, TownHall upgrades) + unique buildings.
-        /// When prestige points are already sufficient but ImperialPort is missing, switches to a focused
-        /// building list (TownHall, Seaport, Warehouse) to reach city level 4 faster.</summary>
+        /// When prestige points are sufficient but ImperialPort is missing, focuses exclusively on the
+        /// first coastal city: Seaport 4, Warehouse 4, TownHall 4, then ImperialPort.</summary>
         public bool TryStep3Once(bool shouldExpand = true)
         {
             var prestigeCtrl = _mainController.PrestigeController;
             bool readyForPort = prestigeCtrl.CalculatePrestigePoints() >= PrestigeController.PrestigeRequiredPoints
                                 && !prestigeCtrl.HasImperialPort();
 
-            var buildings = readyForPort ? Step3PortFocusBuildings : Step3Buildings;
-            bool didSomething = TryStepOnce(buildings, shouldExpand, Step3TradeTargets);
+            if (readyForPort)
+                return TryStep3PortFocusOnce();
+            else
+                return TryStepOnce(Step3Buildings, shouldExpand);
+        }
 
-            foreach (var city in _civ.Cities.ToList().Where(c => c.Level >= 4))
+        private bool TryStep3PortFocusOnce()
+        {
+            var coastalCity = _civ.Cities.FirstOrDefault(c => _map.VertexHasTerrainType(c.Position, TerrainType.Water));
+            if (coastalCity == null) return false;
+
+            bool didSomething = false;
+            TryGrindOnce(null);
+
+            if (TryResearchOnce())
+                didSomething = true;
+
+            foreach (var bt in new[] { BuildingType.Seaport, BuildingType.Warehouse, BuildingType.TownHall })
             {
-                if (TryBuildUniqueBuildingOnce(city.Position, BuildingType.ImperialPort, withGrind: true))
+                if (TryBuildBuildingOnce(coastalCity.Position, bt, withGrind: false))
                     didSomething = true;
             }
+
+            if (TryBuildUniqueBuildingOnce(coastalCity.Position, BuildingType.ImperialPort, withGrind: true))
+                didSomething = true;
 
             return didSomething;
         }
@@ -347,30 +356,27 @@ namespace SettlersOfIdlestan.Controller
             return didSomething;
         }
 
-        private bool TryStepOnce(BuildingType[] targetBuildings, bool shouldExpand, Resource[]? tradeTargets = null)
+        private bool TryStepOnce(BuildingType[] targetBuildings, bool shouldExpand)
         {
             bool didSomething = false;
-
-            TryGrindOnce(null);
+            bool hasGrindedThisStep = false;
 
             if (TryResearchOnce())
                 didSomething = true;
 
-            if (tradeTargets != null)
-            {
-                foreach (var target in tradeTargets)
-                {
-                    if (TryTradeForResourceOnce(target)) 
-                        didSomething = true;
-                }
-            }
+            Vertex? possibleConstructionVertex = null;
 
             if (shouldExpand)
             {
                 // Try outpost if a buildable vertex is accessible
-                var newVert = _cityBuilderController.GetBuildableVertices(_civ.Index).FirstOrDefault();
-                if (newVert != null && TryBuildOutpostOnce(newVert, withGrind: false))
-                    didSomething = true;
+                possibleConstructionVertex = _cityBuilderController.GetBuildableVertices(_civ.Index).FirstOrDefault();
+                if (possibleConstructionVertex != null)
+                {
+                    if (TryBuildOutpostOnce(possibleConstructionVertex, withGrind: !hasGrindedThisStep))
+                        didSomething = true;
+                    hasGrindedThisStep = true;
+                }
+
             }
 
             // Build production/support buildings (no per-building grind to avoid trade interference)
@@ -378,23 +384,118 @@ namespace SettlersOfIdlestan.Controller
             {
                 foreach (var bt in targetBuildings)
                 {
-                    if (TryBuildBuildingOnce(city.Position, bt, withGrind: false)) 
+                    var shouldGrind = !hasGrindedThisStep && !shouldExpand;
+                    if (TryBuildBuildingOnce(city.Position, bt, withGrind: shouldGrind)) 
+                        didSomething = true;
+                    if (shouldGrind)
+                        hasGrindedThisStep = true;
+                }
+            }
+
+            if (shouldExpand && (possibleConstructionVertex == null)) // in case we don't have possible outpost vertex, build more roads !
+            {
+                bool builtRoad = false;
+                var candidates = GetProspectiveVertices();
+                if (candidates.Count > 0)
+                {
+                    var networkVertices = new HashSet<Vertex>(_civ.Cities.Select(c => c.Position));
+                    foreach (var road in _civ.Roads)
+                        foreach (var v in road.Position.GetVertices())
+                            networkVertices.Add(v);
+
+                    Vertex? bestTarget = null;
+                    Vertex? bestFrom = null;
+                    int bestDist = int.MaxValue;
+                    foreach (var candidate in candidates)
+                    {
+                        foreach (var nv in networkVertices)
+                        {
+                            int dist = nv.EdgeDistanceTo(candidate);
+                            if (dist < bestDist)
+                            {
+                                bestDist = dist;
+                                bestTarget = candidate;
+                                bestFrom = nv;
+                            }
+                        }
+                    }
+
+                    if (bestTarget != null && bestFrom != null)
+                    {
+                        var buildableRoads = _roadController.GetBuildableRoads(_civ.Index);
+                        var path = HexGridPathfinder.FindVertexPath(bestFrom, bestTarget);
+                        for (int i = 0; i + 1 < path.Count && !builtRoad; i++)
+                        {
+                            var shared = path[i].GetHexes().Intersect(path[i + 1].GetHexes()).ToArray();
+                            if (shared.Length >= 2)
+                            {
+                                var edge = Edge.Create(shared[0], shared[1]);
+                                if (buildableRoads.Any(r => r.Position.Equals(edge)))
+                                {
+                                    if (TryBuildRoadOnce(edge, withGrind: !hasGrindedThisStep))
+                                    {
+                                        builtRoad = true;
+                                        didSomething = true;
+                                    }
+                                    hasGrindedThisStep = true;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (!builtRoad)
+                {
+                    // Fallback: push frontier outward when no prospective vertex is reachable
+                    var nextRoad = _roadController.GetBuildableRoads(_civ.Index)
+                        .OrderByDescending(r => r.DistanceToNearestCity)
+                        .FirstOrDefault();
+                    if (nextRoad != null && TryBuildRoadOnce(nextRoad.Position, withGrind: hasGrindedThisStep))
                         didSomething = true;
                 }
             }
 
-            if (shouldExpand)
-            {
-                // Push frontier outward: highest distance first opens new city slots fastest.
-                // "Nearest first" would keep filling gaps near existing cities instead of exploring.
-                var nextRoad = _roadController.GetBuildableRoads(_civ.Index)
-                    .OrderByDescending(r => r.DistanceToNearestCity)
-                    .FirstOrDefault();
-                if (nextRoad != null && TryBuildRoadOnce(nextRoad.Position, withGrind: false))
-                    didSomething = true;
-            }
+            Debug.Assert(hasGrindedThisStep);
 
             return didSomething;
+        }
+
+        /// <summary>
+        /// Returns visible vertices that are not yet in our road network and respect city-distance
+        /// constraints — good candidates for a future outpost.
+        /// </summary>
+        private List<Vertex> GetProspectiveVertices()
+        {
+            var islandState = _mainController.CurrentMainState?.CurrentIslandState;
+            if (islandState == null || !islandState.VisibleIslandMaps.TryGetValue(_civ.Index, out var visibleMap))
+                return new List<Vertex>();
+
+            var visibleVertices = new HashSet<Vertex>();
+            foreach (var hex in visibleMap.Tiles.Keys)
+                foreach (var dir in SecondaryHexDirectionUtils.AllSecondaryDirections)
+                    visibleVertices.Add(hex.Vertex(dir));
+
+            var networkVertices = new HashSet<Vertex>(_civ.Cities.Select(c => c.Position));
+            foreach (var road in _civ.Roads)
+                foreach (var v in road.Position.GetVertices())
+                    networkVertices.Add(v);
+
+            var visibleEnemyCities = islandState.Civilizations
+                .Where(c => c.Index != _civ.Index)
+                .SelectMany(c => c.Cities)
+                .Where(city => city.Position.GetHexes().Any(h => visibleMap.GetTile(h) != null))
+                .Select(city => city.Position)
+                .ToList();
+
+            int minOwn = _cityBuilderController.MinDistanceBetweenCivilizationCities;
+            int minEnemy = _cityBuilderController.MinDistanceBetweenCities;
+
+            return visibleVertices
+                .Where(v => !networkVertices.Contains(v))
+                .Where(v => v.GetHexes().Any(h => visibleMap.GetTile(h) is { TerrainType: not TerrainType.Water }))
+                .Where(v => _civ.Cities.All(c => c.Position.EdgeDistanceTo(v) >= minOwn))
+                .Where(v => visibleEnemyCities.All(ec => ec.EdgeDistanceTo(v) >= minEnemy))
+                .ToList();
         }
     }
 }
