@@ -135,6 +135,23 @@ public class CityBuildingService
 
     public long GetCurrentTick() => _mainGameController.CurrentMainState?.Clock?.CurrentTick ?? 0;
 
+    public (int available, int max) GetSelectedCitySoldiers()
+    {
+        if (SelectedCity == null) return (0, 0);
+        var mc = _mainGameController.MilitaryController;
+        return (mc.GetAttackScore(SelectedCity), mc.GetMaximumSoldierCapacity(SelectedCity));
+    }
+
+    public (int current, int max) GetSelectedCityDefense()
+    {
+        if (SelectedCity == null) return (0, 0);
+        var mc = _mainGameController.MilitaryController;
+        var islandState = IslandState;
+        if (SelectedCity.CivilizationIndex >= islandState.Civilizations.Count) return (0, 0);
+        var civ = islandState.Civilizations[SelectedCity.CivilizationIndex];
+        return (SelectedCity.CurrentDefense, mc.GetDefenseScore(SelectedCity, civ));
+    }
+
     public long GetEffectiveSeaportGenerationCooldown(Seaport seaport)
     {
         return HarvestController.GetEffectiveSeaportGenerationCooldown(seaport);

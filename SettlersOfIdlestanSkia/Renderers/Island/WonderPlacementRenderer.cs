@@ -10,7 +10,7 @@ namespace SettlersOfIdlestanSkia.Renderers.Island;
 /// Rendered on top of the normal game board when the player is choosing a hex for the Wonder.
 /// Shows a dim overlay, highlights selectable hexes, and provides a Cancel button.
 /// </summary>
-public sealed class WonderSelectionRenderer : HexBasedRenderer, IGameRenderer
+public sealed class WonderPlacementRenderer : HexBasedRenderer, IGameRenderer
 {
     private readonly WonderSelectionService _selectionService;
     private readonly InputHandlingService _inputService;
@@ -34,7 +34,7 @@ public sealed class WonderSelectionRenderer : HexBasedRenderer, IGameRenderer
     private SKRect _cancelButtonRect = SKRect.Empty;
     private bool _disposed;
 
-    public WonderSelectionRenderer(
+    public WonderPlacementRenderer(
         WonderSelectionService selectionService,
         InputHandlingService inputService,
         CameraService cameraService,

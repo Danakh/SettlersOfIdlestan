@@ -73,6 +73,8 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
         _harvestController = harvestController;
     }
 
+    public void ConnectWonderService(WonderService wonderService) => _gameBoardRenderer.ConnectWonderService(wonderService);
+
     public void ConnectHarvestEvents(
         HarvestService harvestService,
         GameControllerService gameControllerService,

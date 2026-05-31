@@ -135,7 +135,7 @@ public sealed class SkiaGameRuntime : IDisposable
         _wonderSelectionService.WonderPlacementConfirmed += OnWonderPlacementConfirmed;
         _wonderSelectionService.Cancelled += OnWonderSelectionCancelled;
 
-        var wonderSelectionRenderer = new WonderSelectionRenderer(
+        var wonderSelectionRenderer = new WonderPlacementRenderer(
             _wonderSelectionService, _inputService, _cameraService, _localizationService);
         _renderService.RegisterRenderer(wonderSelectionRenderer);
 
@@ -148,6 +148,7 @@ public sealed class SkiaGameRuntime : IDisposable
         var selectedCityPanelRenderer = new SelectedCityPanelRenderer(_gameControllerService.CityBuildingService!, _localizationService, _inputService, _resourceManager!);
         _wonderService = new WonderService();
         _constructionInteractionService.AttachWonderService(_wonderService);
+        islandMainRenderer.ConnectWonderService(_wonderService);
         var selectedWonderPanelRenderer = new SelectedWonderPanelRenderer(_wonderService, _inputService, _localizationService, _resourceManager!);
 
         var aboutRenderer = new AboutRenderer(_inputService, _localizationService);
