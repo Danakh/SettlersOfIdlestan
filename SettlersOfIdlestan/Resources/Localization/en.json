@@ -382,6 +382,8 @@
   "tech_utopia_name": "Utopia",
   "tech_utopia_desc": "+50% harvest speed, -20% research cost, +2 city defense",
   "prestige_vertex_knowledge_mastery": "Knowledge Mastery",
+  "prestige_vertex_placeholder": "Placeholder",
+  "prestige_hex_placeholder": "Placeholder",
   "hex_tooltip_terrain_forest": "Forest\nManual harvest: Wood (Town Hall)",
   "hex_tooltip_terrain_hill": "Hills\nManual harvest: Brick (Town Hall)",
   "hex_tooltip_terrain_plain": "Plains\nManual harvest: Food (Town Hall)",

@@ -382,6 +382,8 @@
   "tech_utopia_name": "Utopie",
   "tech_utopia_desc": "+50% vitesse de récolte, -20% coût des recherches, +2 défense de ville",
   "prestige_vertex_knowledge_mastery": "Maîtrise du savoir",
+  "prestige_vertex_placeholder": "Placeholder",
+  "prestige_hex_placeholder": "Placeholder",
   "hex_tooltip_terrain_forest": "Forêt\nRécolte manuelle : Bois (Hôtel de ville)",
   "hex_tooltip_terrain_hill": "Collines\nRécolte manuelle : Briques (Hôtel de ville)",
   "hex_tooltip_terrain_plain": "Plaines\nRécolte manuelle : Nourriture (Hôtel de ville)",
