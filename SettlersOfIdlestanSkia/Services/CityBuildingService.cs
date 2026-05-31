@@ -5,6 +5,7 @@ using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Controller.Expand;
+using SettlersOfIdlestan.Controller.Military;
 
 namespace SettlersOfIdlestanSkia.Services;
 
@@ -19,6 +20,13 @@ public class CityBuildingService
     public CityBuildingService(MainGameController mainGameController)
     {
         _mainGameController = mainGameController ?? throw new ArgumentNullException(nameof(mainGameController));
+        _mainGameController.MilitaryController.CityDestroyed += OnCityDestroyed;
+    }
+
+    private void OnCityDestroyed(object? sender, CityDestroyedEventArgs e)
+    {
+        if (SelectedCity?.Position.Equals(e.CityVertex) == true)
+            ClearSelectedCity();
     }
 
     public void SetSelectedCity(Vertex selectedCityVertex)
