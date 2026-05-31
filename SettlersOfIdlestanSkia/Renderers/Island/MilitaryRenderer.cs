@@ -147,24 +147,33 @@ public class MilitaryRenderer : HexBasedRenderer, IGameRenderer
         var playerCiv = _gameControllerService?.PlayerCivilization;
         if (islandState == null || playerCiv == null || _flowRedPaint == null || _flowGreenPaint == null || _arrowPaint == null) return;
 
-        foreach (var sourceCity in playerCiv.Cities)
+        var allCities = islandState.Civilizations.SelectMany(c => c.Cities).ToList();
+
+        foreach (var civ in islandState.Civilizations)
         {
-            if (sourceCity.FlowTarget == null) continue;
+            foreach (var sourceCity in civ.Cities)
+            {
+                if (sourceCity.FlowTarget == null) continue;
 
-            var targetCity = islandState.Civilizations
-                .SelectMany(c => c.Cities)
-                .FirstOrDefault(c => c.Position.Equals(sourceCity.FlowTarget));
-            if (targetCity == null) continue;
+                var targetCity = allCities.FirstOrDefault(c => c.Position.Equals(sourceCity.FlowTarget));
+                if (targetCity == null) continue;
 
-            bool isReinforcement = targetCity.CivilizationIndex == playerCiv.Index;
-            var linePaint = isReinforcement ? _flowGreenPaint : _flowRedPaint;
-            var arrowColor = isReinforcement ? new SKColor(50, 200, 80, 220) : new SKColor(220, 60, 60, 220);
+                bool sourceIsPlayer = sourceCity.CivilizationIndex == playerCiv.Index;
+                bool targetIsPlayer = targetCity.CivilizationIndex == playerCiv.Index;
 
-            var sourcePt = VertexToIsland(sourceCity.Position);
-            var targetPt = VertexToIsland(targetCity.Position);
+                // Affiche uniquement les flux impliquant au moins une cité du joueur
+                if (!sourceIsPlayer && !targetIsPlayer) continue;
 
-            canvas.DrawLine(sourcePt, targetPt, linePaint);
-            DrawArrowhead(canvas, sourcePt, targetPt, arrowColor);
+                bool isReinforcement = targetCity.CivilizationIndex == sourceCity.CivilizationIndex;
+                var linePaint = isReinforcement ? _flowGreenPaint : _flowRedPaint;
+                var arrowColor = isReinforcement ? new SKColor(50, 200, 80, 220) : new SKColor(220, 60, 60, 220);
+
+                var sourcePt = VertexToIsland(sourceCity.Position);
+                var targetPt = VertexToIsland(targetCity.Position);
+
+                canvas.DrawLine(sourcePt, targetPt, linePaint);
+                DrawArrowhead(canvas, sourcePt, targetPt, arrowColor);
+            }
         }
     }
 

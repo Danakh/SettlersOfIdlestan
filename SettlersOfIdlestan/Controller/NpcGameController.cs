@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
+using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Controller.Military;
 
@@ -72,6 +73,7 @@ public class NpcGameController
         if (aggressivity == NpcAggressivityLevel.Pacifist) return;
 
         FillNpcResources(civ);
+        UpdateNpcMilitaryFlows(civ, aggressivity);
 
         // Aggressive civs stop expanding once they can see an enemy.
         bool hasEncounteredEnemy = aggressivity >= NpcAggressivityLevel.Expansionist
@@ -79,6 +81,64 @@ public class NpcGameController
 
         var autoplayer = new NpcCivilizationAutoplayer(civ, _state.Map, _mainController, aggressivity);
         autoplayer.TryStepOnce(shouldExpand: !hasEncounteredEnemy);
+    }
+
+    /// <summary>
+    /// Réévalue et assigne les flux militaires (attaque / renfort) de chaque cité NPC.
+    /// Les cités Warlike attaquent la ville ennemie la plus proche ; les autres renforcent
+    /// si elles ont l'excédent de soldats et aucun ennemi à portée.
+    /// </summary>
+    private void UpdateNpcMilitaryFlows(Civilization civ, NpcAggressivityLevel aggressivity)
+    {
+        if (_militaryController == null) return;
+
+        bool shouldAttack = aggressivity == NpcAggressivityLevel.Warlike;
+
+        foreach (var city in civ.Cities)
+        {
+            Vertex? newFlow = null;
+
+            // Flux d'attaque : cités agressives avec soldats ciblent l'ennemi le plus proche.
+            if (shouldAttack && city.Soldiers > 0)
+            {
+                var enemy = _militaryController.FindNearbyEnemyCity(city, civ);
+                if (enemy != null)
+                    newFlow = enemy.Position;
+            }
+
+            // Flux de renfort : si pas d'attaque, excédent de soldats et pas d'ennemi proche.
+            if (newFlow == null)
+            {
+                int capacity = city.MaxSoldiers;
+                if (capacity > 0
+                    && city.Soldiers * 2 >= capacity
+                    && _militaryController.FindNearbyEnemyCity(city, civ) == null)
+                {
+                    int range = _militaryController.ReinforcementRange(civ);
+                    City? target = null;
+                    int closestDist = int.MaxValue;
+
+                    foreach (var friendly in civ.Cities)
+                    {
+                        if (friendly == city) continue;
+                        int dist = city.Position.EdgeDistanceTo(friendly.Position);
+                        if (dist > range || dist >= closestDist) continue;
+
+                        int tCap = friendly.MaxSoldiers;
+                        if (tCap == 0 || friendly.Soldiers * 2 > tCap) continue;
+                        if (friendly.Soldiers + 2 >= city.Soldiers) continue;
+
+                        target = friendly;
+                        closestDist = dist;
+                    }
+
+                    if (target != null)
+                        newFlow = target.Position;
+                }
+            }
+
+            _militaryController.SetCityFlow(city, newFlow);
+        }
     }
 
     /// <summary>
