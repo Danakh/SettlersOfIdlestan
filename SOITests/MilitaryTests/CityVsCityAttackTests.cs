@@ -54,6 +54,8 @@ public class CityVsCityAttackTests
         var ctrl = new MilitaryController();
         ctrl.Initialize(state, clock);
 
+        cityA.FlowTarget = VertexB; // cible d'attaque pour déclencher la logique
+
         return (state, clock, ctrl, cityA, cityB, barracksA);
     }
 

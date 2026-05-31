@@ -63,6 +63,8 @@ public class MilitaryControllerWarTests
         // Branchement identique à MainGameController après le fix du bug
         ctrl.CityDestroyed += (_, _) => featureCtrl.RefreshContestedTerritories();
 
+        cityA.FlowTarget = VertexB; // cible de renfort pour déclencher la logique
+
         return (state, clock, ctrl, featureCtrl, barracksA);
     }
 
@@ -166,6 +168,8 @@ public class MilitaryControllerWarTests
         var cityB = new City(VertexB) { CivilizationIndex = 1 };
         cityB.Buildings.Add(new TownHall { Level = 1 });
         civB.Cities.Add(cityB);
+
+        cityA.FlowTarget = VertexB; // cible de renfort pour déclencher la logique
 
         var state = new IslandState(BuildMap(), [civA, civB], AtlasController.InvalidIslandId);
         var clock = new GameClock();

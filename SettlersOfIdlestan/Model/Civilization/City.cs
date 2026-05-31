@@ -65,6 +65,11 @@ public class City
     public long LastReinforcementTick { get; set; }
 
     /// <summary>
+    /// Flux défini par le joueur : cité cible à attaquer ou à renforcer. Null si aucun flux.
+    /// </summary>
+    public Vertex? FlowTarget { get; set; }
+
+    /// <summary>
     /// Gets the effective level of the city.
     /// Level 1 is the base level (outpost) when no TownHall is built.
     /// When a TownHall is present the city level is TownHall.Level + 1.

@@ -44,6 +44,11 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
         _militaryRenderer.Connect(militaryController, gameControllerService, isPrestigeTransitionPending, isIslandTabActive);
     }
 
+    public void ConnectMilitaryInteractionService(MilitaryInteractionService service)
+    {
+        _militaryRenderer.ConnectInteractionService(service);
+    }
+
     /// <summary>
     /// Dictionnaire de couleurs pour les ressources (pour les particules de récolte).
     /// </summary>
