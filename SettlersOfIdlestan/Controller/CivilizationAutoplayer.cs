@@ -394,7 +394,7 @@ namespace SettlersOfIdlestan.Controller
 
             if (shouldExpand && (possibleConstructionVertex == null)) // in case we don't have possible outpost vertex, build more roads !
             {
-                bool builtRoad = false;
+                bool buildableRoadFound = false;
                 var candidates = GetProspectiveVertices();
                 if (candidates.Count > 0)
                 {
@@ -424,27 +424,22 @@ namespace SettlersOfIdlestan.Controller
                     {
                         var buildableRoads = _roadController.GetBuildableRoads(_civ.Index);
                         var path = HexGridPathfinder.FindVertexPath(bestFrom, bestTarget);
-                        for (int i = 0; i + 1 < path.Count && !builtRoad; i++)
+                        var shared = path[0].GetHexes().Intersect(path[1].GetHexes()).ToArray();
+                        Debug.Assert(shared.Length == 2);
+                        var edge = Edge.Create(shared[0], shared[1]);
+                        if (buildableRoads.Any(r => r.Position.Equals(edge))) // can fail if the path needs martime road
                         {
-                            var shared = path[i].GetHexes().Intersect(path[i + 1].GetHexes()).ToArray();
-                            if (shared.Length >= 2)
+                            if (TryBuildRoadOnce(edge, withGrind: !hasGrindedThisStep))
                             {
-                                var edge = Edge.Create(shared[0], shared[1]);
-                                if (buildableRoads.Any(r => r.Position.Equals(edge)))
-                                {
-                                    if (TryBuildRoadOnce(edge, withGrind: !hasGrindedThisStep))
-                                    {
-                                        builtRoad = true;
-                                        didSomething = true;
-                                    }
-                                    hasGrindedThisStep = true;
-                                }
+                                didSomething = true;
                             }
+                            buildableRoadFound = true;
+                            hasGrindedThisStep = true;
                         }
                     }
                 }
 
-                if (!builtRoad)
+                if (!buildableRoadFound)
                 {
                     // Fallback: push frontier outward when no prospective vertex is reachable
                     var nextRoad = _roadController.GetBuildableRoads(_civ.Index)
