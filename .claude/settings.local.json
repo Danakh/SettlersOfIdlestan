@@ -23,7 +23,9 @@
       "PowerShell(head *)",
       "PowerShell(Remove-Item *)",
       "PowerShell(dotnet build *)",
-      "PowerShell(Get-ChildItem -Path \"C:\\\\DEV\\\\SettlersOfIdlestan\" -Recurse -Directory | Select-Object -First 30 | ForEach-Object { $_.FullName })"
+      "PowerShell(Get-ChildItem -Path \"C:\\\\DEV\\\\SettlersOfIdlestan\" -Recurse -Directory | Select-Object -First 30 | ForEach-Object { $_.FullName })",
+      "Skill(update-config)",
+      "PowerShell([console]::beep\\(800, 300\\))"
     ]
   }
 }
