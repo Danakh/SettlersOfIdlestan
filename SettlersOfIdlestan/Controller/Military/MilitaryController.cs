@@ -155,11 +155,23 @@ public class MilitaryController
                 var barracks = city.Buildings.OfType<Barracks>()
                     .FirstOrDefault(b => b.ActivationStatus == ActivationStatus.ACTIVE && b.Level >= SoldierProductionMinLevel);
                 if (barracks == null) continue;
-                if (civ.GetResourceQuantity(Resource.Ore) < 1) continue;
+                if (civ.GetResourceQuantity(Resource.Ore) < 1)
+                {
+                    civ.RaiseLowStock(Resource.Ore);
+                    continue;
+                }
 
                 civ.RemoveResource(Resource.Ore, 1);
                 city.Soldiers++;
                 city.LastSoldierProductionTick = currentTick;
+
+                if (civ.Index == _state.PlayerCivilization.Index)
+                {
+                    int oreQty = civ.GetResourceQuantity(Resource.Ore);
+                    int oreMax = civ.GetResourceMaxQuantity(Resource.Ore);
+                    if (oreMax > 0 && oreQty * 10 <= oreMax)
+                        civ.RaiseLowStock(Resource.Ore);
+                }
             }
     }
 
@@ -181,7 +193,21 @@ public class MilitaryController
             int starvedSoldiers = totalSoldiers - fedSoldiers;
 
             if (fedSoldiers > 0)
+            {
                 civ.RemoveResource(Resource.Food, fedSoldiers);
+
+                if (civ.Index == _state.PlayerCivilization.Index)
+                {
+                    int foodQty = civ.GetResourceQuantity(Resource.Food);
+                    int foodMax = civ.GetResourceMaxQuantity(Resource.Food);
+                    if (foodMax > 0 && foodQty * 10 <= foodMax)
+                        civ.RaiseLowStock(Resource.Food);
+                }
+                else
+                {
+                    civ.RaiseLowStock(Resource.Food);
+                }
+            }
 
             if (starvedSoldiers > 0)
             {
@@ -303,26 +329,15 @@ public class MilitaryController
 
         foreach (var attackerCiv in _state!.Civilizations)
         {
-            bool isPlayer = attackerCiv.Index == _state.PlayerCivilization.Index;
-
             foreach (var attackerCity in attackerCiv.Cities.ToList())
             {
                 if (currentTick - attackerCity.LastCityAttackTick < CityAttackIntervalTicks) continue;
                 if (attackerCity.Soldiers == 0) continue;
+                if (attackerCity.FlowTarget == null) continue;
 
-                City? targetCity;
-                if (isPlayer)
-                {
-                    if (attackerCity.FlowTarget == null) continue;
-                    targetCity = FindEnemyCityAt(attackerCity.FlowTarget, attackerCiv);
-                    if (targetCity == null) continue;
-                    if (attackerCity.Position.EdgeDistanceTo(targetCity.Position) > CityAttackRange(attackerCiv)) continue;
-                }
-                else
-                {
-                    targetCity = FindNearbyEnemyCity(attackerCity, attackerCiv);
-                    if (targetCity == null) continue;
-                }
+                var targetCity = FindEnemyCityAt(attackerCity.FlowTarget, attackerCiv);
+                if (targetCity == null) continue;
+                if (attackerCity.Position.EdgeDistanceTo(targetCity.Position) > CityAttackRange(attackerCiv)) continue;
 
                 attackerCity.Soldiers--;
                 attackerCity.LastCityAttackTick = currentTick;
@@ -400,55 +415,15 @@ public class MilitaryController
 
         foreach (var civ in _state.Civilizations)
         {
-            bool isPlayer = civ.Index == _state.PlayerCivilization.Index;
-
             foreach (var sourceCity in civ.Cities.ToList())
             {
                 if (currentTick - sourceCity.LastReinforcementTick < ReinforcementIntervalTicks) continue;
-                if (GetAttackScore(sourceCity) == 0) continue;
+                if (sourceCity.Soldiers == 0) continue;
+                if (sourceCity.FlowTarget == null) continue;
 
-                City? targetCity;
-                if (isPlayer)
-                {
-                    if (sourceCity.FlowTarget == null) continue;
-                    targetCity = civ.Cities.FirstOrDefault(c => c != sourceCity && c.Position.Equals(sourceCity.FlowTarget));
-                    if (targetCity == null) continue;
-                    if (sourceCity.Position.EdgeDistanceTo(targetCity.Position) > ReinforcementRange(civ)) continue;
-                }
-                else
-                {
-                    int capacity = GetMaximumSoldierCapacity(sourceCity, civ);
-                    if (capacity == 0) continue;
-
-                    int totalSoldiers = GetAttackScore(sourceCity);
-                    if (totalSoldiers * 2 < capacity) continue;
-
-                    if (FindNearbyEnemyCity(sourceCity, civ) != null) continue;
-
-                    int range = ReinforcementRange(civ);
-                    targetCity = null;
-                    int closestDist = int.MaxValue;
-
-                    foreach (var friendlyCity in civ.Cities)
-                    {
-                        if (friendlyCity == sourceCity) continue;
-                        int dist = sourceCity.Position.EdgeDistanceTo(friendlyCity.Position);
-                        if (dist > range || dist >= closestDist) continue;
-
-                        int targetCapacity = GetMaximumSoldierCapacity(friendlyCity, civ);
-                        if (targetCapacity == 0) continue;
-
-                        int targetSoldiers = GetAttackScore(friendlyCity);
-                        if (targetSoldiers * 2 > targetCapacity) continue;
-                        if (targetSoldiers + 2 >= totalSoldiers) continue;
-
-                        targetCity = friendlyCity;
-                        closestDist = dist;
-                    }
-
-                    if (targetCity == null) continue;
-                }
-
+                var targetCity = civ.Cities.FirstOrDefault(c => c != sourceCity && c.Position.Equals(sourceCity.FlowTarget));
+                if (targetCity == null) continue;
+                if (sourceCity.Position.EdgeDistanceTo(targetCity.Position) > ReinforcementRange(civ)) continue;
                 if (targetCity.Soldiers >= GetMaximumSoldierCapacity(targetCity, civ)) continue;
 
                 sourceCity.Soldiers--;

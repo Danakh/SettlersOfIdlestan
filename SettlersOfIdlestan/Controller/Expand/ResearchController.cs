@@ -84,12 +84,21 @@ namespace SettlersOfIdlestan.Controller.Expand
                     continue;
                 }
                 if (now - lab.LastResearchTick < cooldown) continue;
-                if (_state.PlayerCivilization.GetResourceQuantity(Resource.Gold) < 1) continue;
+                if (_state.PlayerCivilization.GetResourceQuantity(Resource.Gold) < 1)
+                {
+                    _state.PlayerCivilization.RaiseLowStock(Resource.Gold);
+                    continue;
+                }
 
                 _state.PlayerCivilization.RemoveResource(Resource.Gold, 1);
                 int batch = Laboratory.ResearchPointsPerBatch + _state.PlayerCivilization.LaboratoryResearchBonus;
                 tree.ResearchPoints = Math.Min(tree.ResearchPoints + batch, MaxResearchPoints);
                 lab.LastResearchTick = now;
+
+                int goldQty = _state.PlayerCivilization.GetResourceQuantity(Resource.Gold);
+                int goldMax = _state.PlayerCivilization.GetResourceMaxQuantity(Resource.Gold);
+                if (goldMax > 0 && goldQty * 10 <= goldMax)
+                    _state.PlayerCivilization.RaiseLowStock(Resource.Gold);
             }
         }
 
