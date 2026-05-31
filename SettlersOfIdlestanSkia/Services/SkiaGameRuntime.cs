@@ -35,6 +35,7 @@ public sealed class SkiaGameRuntime : IDisposable
     private TutorialRenderer? _tutorialRenderer;
     private TutorialService? _tutorialService;
     private MilitaryInteractionService? _militaryInteractionService;
+    private PlayerResourcesOverlayRenderer? _playerResourcesOverlayRenderer;
 
     private bool _isDisposed;
     private bool _isGameInitialized;
@@ -166,7 +167,9 @@ public sealed class SkiaGameRuntime : IDisposable
         if (allowDebugMode)
             debugPanelRenderer = new DebugPanelRenderer(_inputService, _localizationService);
         var settingsMenu = new SettingsMenu(_gameControllerService.MainGameController, _inputService, _localizationService, aboutRenderer, settingsPopupRenderer, fileSystemService, _gameControllerService.CityBuildingService!, allowDebugMode, debugPanelRenderer, StartNewGameIntro);
-        var playerResourcesOverlayRenderer = new PlayerResourcesOverlayRenderer(_localizationService, _resourceManager);
+        _playerResourcesOverlayRenderer = new PlayerResourcesOverlayRenderer(_localizationService, _resourceManager);
+        var playerResourcesOverlayRenderer = _playerResourcesOverlayRenderer;
+        playerResourcesOverlayRenderer.ConnectLowStock(null, _gameControllerService.PlayerCivilization!);
         var tradeRenderer = new TradeRenderer(_gameControllerService, _localizationService, tooltipRenderer, _resourceManager);
         var prestigeRenderer = new PrestigeRenderer(_gameControllerService, _localizationService, RequestPrestige);
         var prestigeMapRenderer = new PrestigeMapRenderer(_gameControllerService, _localizationService, tooltipRenderer);
@@ -505,7 +508,10 @@ public sealed class SkiaGameRuntime : IDisposable
         if (_gameControllerService == null || _cameraService == null)
             return;
 
+        var prevCiv = _gameControllerService.PlayerCivilization;
         _gameControllerService.PerformPrestige();
+        if (_playerResourcesOverlayRenderer != null && _gameControllerService.PlayerCivilization != null)
+            _playerResourcesOverlayRenderer.ConnectLowStock(prevCiv, _gameControllerService.PlayerCivilization);
         _gameControllerService.CityBuildingService?.ClearSelectedCity();
         _wonderService?.ClearSelectedWonder();
         _constructionInteractionService?.ClearHover();

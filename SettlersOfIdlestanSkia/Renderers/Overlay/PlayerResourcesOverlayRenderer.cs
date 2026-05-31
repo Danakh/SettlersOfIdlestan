@@ -1,4 +1,6 @@
+using System.Collections.Concurrent;
 using SettlersOfIdlestan.Controller.Expand;
+using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Services.Localization;
@@ -26,6 +28,11 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
     private SKPaint? _itemBgPaint;
     private SKPaint? _itemBorderPaint;
     private SKPaint? _gearCenterPaint;
+    private SKPaint? _lowStockPaint;
+
+    private readonly ConcurrentDictionary<Resource, long> _lowStockTimestamps = new();
+    private const long LowStockFlickerDurationMs = 5000;
+    private float _currentTotalTime;
 
     private SKSize _canvasSize;
     private bool _disposed;
@@ -102,6 +109,7 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
         _itemBgPaint = new SKPaint { Color = ItemBackground, Style = SKPaintStyle.Fill, IsAntialias = true };
         _itemBorderPaint = new SKPaint { Color = new SKColor(255, 255, 255, 60), Style = SKPaintStyle.Stroke, StrokeWidth = 1, IsAntialias = true };
         _gearCenterPaint = new SKPaint { Color = SKColors.Gold, Style = SKPaintStyle.Stroke, StrokeWidth = 1.5f, IsAntialias = true };
+        _lowStockPaint = new SKPaint { Style = SKPaintStyle.Stroke, StrokeWidth = 2, IsAntialias = true };
 
         foreach (Resource resource in Enum.GetValues(typeof(Resource)))
         {
@@ -124,6 +132,8 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
 
         if (context.GameState is not MainGameState mainGameState)
             return;
+
+        _currentTotalTime = context.TotalTime;
 
         if (Mode == BarDisplayMode.Prestige)
         {
@@ -182,7 +192,7 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
             if (maxQuantity > 0)
             {
                 _resourceRects[resource] = new SKRect(currentX, itemY, currentX + RectangleWidth, itemY + RectangleHeight);
-                DrawResourceItem(canvas, resource, quantity, maxQuantity, currentX, itemY);
+                DrawResourceItem(canvas, resource, quantity, maxQuantity, currentX, itemY, IsFlickering(resource));
                 currentX += RectangleWidth + itemSpacing;
             }
         }
@@ -222,12 +232,38 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
         canvas.DrawText(label, ResourceStartX, textY, _textFont, _textPaint);
     }
 
-    private void DrawResourceItem(SKCanvas canvas, Resource resource, int quantity, int maxQuantity, float x, float y)
+    public void ConnectLowStock(Civilization? previous, Civilization next)
+    {
+        if (previous != null)
+            previous.LowStock -= OnLowStock;
+        next.LowStock += OnLowStock;
+    }
+
+    private void OnLowStock(object? sender, Resource resource)
+    {
+        _lowStockTimestamps[resource] = Environment.TickCount64;
+    }
+
+    private bool IsFlickering(Resource resource)
+    {
+        if (!_lowStockTimestamps.TryGetValue(resource, out long ts)) return false;
+        return Environment.TickCount64 - ts < LowStockFlickerDurationMs;
+    }
+
+    private void DrawResourceItem(SKCanvas canvas, Resource resource, int quantity, int maxQuantity, float x, float y, bool isFlickering)
     {
         var itemRect = new SKRect(x, y, x + RectangleWidth, y + RectangleHeight);
 
         canvas.DrawRoundRect(itemRect, 4, 4, _itemBgPaint);
         canvas.DrawRoundRect(itemRect, 4, 4, _itemBorderPaint);
+
+        if (isFlickering && _lowStockPaint != null)
+        {
+            float phase = (float)(Math.Sin(_currentTotalTime * Math.PI * 4) * 0.5 + 0.5);
+            byte alpha = (byte)(55 + 200 * phase);
+            _lowStockPaint.Color = new SKColor(255, 80, 0, alpha);
+            canvas.DrawRoundRect(itemRect, 4, 4, _lowStockPaint);
+        }
 
         // Icône de ressource (côté gauche, centrée verticalement)
         _resourceIcons.TryGetValue(resource, out var svg);
@@ -342,6 +378,7 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
         _itemBgPaint?.Dispose();
         _itemBorderPaint?.Dispose();
         _gearCenterPaint?.Dispose();
+        _lowStockPaint?.Dispose();
         _disposed = true;
     }
 }

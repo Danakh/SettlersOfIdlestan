@@ -154,11 +154,23 @@ public class MilitaryController
                 var barracks = city.Buildings.OfType<Barracks>()
                     .FirstOrDefault(b => b.ActivationStatus == ActivationStatus.ACTIVE && b.Level >= SoldierProductionMinLevel);
                 if (barracks == null) continue;
-                if (civ.GetResourceQuantity(Resource.Ore) < 1) continue;
+                if (civ.GetResourceQuantity(Resource.Ore) < 1)
+                {
+                    civ.RaiseLowStock(Resource.Ore);
+                    continue;
+                }
 
                 civ.RemoveResource(Resource.Ore, 1);
                 city.Soldiers++;
                 city.LastSoldierProductionTick = currentTick;
+
+                if (civ.Index == _state.PlayerCivilization.Index)
+                {
+                    int oreQty = civ.GetResourceQuantity(Resource.Ore);
+                    int oreMax = civ.GetResourceMaxQuantity(Resource.Ore);
+                    if (oreMax > 0 && oreQty * 10 <= oreMax)
+                        civ.RaiseLowStock(Resource.Ore);
+                }
             }
     }
 
@@ -180,7 +192,21 @@ public class MilitaryController
             int starvedSoldiers = totalSoldiers - fedSoldiers;
 
             if (fedSoldiers > 0)
+            {
                 civ.RemoveResource(Resource.Food, fedSoldiers);
+
+                if (civ.Index == _state.PlayerCivilization.Index)
+                {
+                    int foodQty = civ.GetResourceQuantity(Resource.Food);
+                    int foodMax = civ.GetResourceMaxQuantity(Resource.Food);
+                    if (foodMax > 0 && foodQty * 10 <= foodMax)
+                        civ.RaiseLowStock(Resource.Food);
+                }
+                else
+                {
+                    civ.RaiseLowStock(Resource.Food);
+                }
+            }
 
             if (starvedSoldiers > 0)
             {

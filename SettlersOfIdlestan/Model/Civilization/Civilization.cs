@@ -202,6 +202,10 @@ public class Civilization
     /// <summary>Resources for which a level-4 Seaport has activated permanent auto-trade (one slot per level-4 Seaport).</summary>
     public List<Resource> SeaportAutoTradeResources { get; set; } = new();
 
+    public event EventHandler<Resource>? LowStock;
+
+    internal void RaiseLowStock(Resource resource) => LowStock?.Invoke(this, resource);
+
     public bool CanPayResourceCost(ResourceSet cost)
     {
         foreach (var kvp in cost)
