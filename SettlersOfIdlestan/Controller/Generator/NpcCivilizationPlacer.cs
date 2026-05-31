@@ -43,8 +43,8 @@ public class NpcCivilizationPlacer
             if (initialVertex == null) return false;
 
             allOccupied.Add(initialVertex);
-            PopulateMinimumNpc(state.Map, civ, initialVertex);
             civ.SetupModifierAggregator(npcModifiers);
+            PopulateMinimumNpc(state.Map, civ, initialVertex);
         }
 
         bool needsExpansion = npcCivs.Any(c =>
