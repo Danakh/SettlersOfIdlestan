@@ -24,6 +24,7 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
 {
     private readonly HarvestController _harvestController;
     private readonly ResourceManager _resourceManager;
+    private WonderService? _wonderService;
 
     private SKPaint? _hexBorderPaint;
     private SKPaint? _hexFillPaint;
@@ -34,10 +35,12 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
     private SKPaint? _ringProgressPaint;
     private SKPaint? _textIconPaint;
     private SKFont? _textIconFont;
+    private SKPaint? _selectedWonderPaint;
     private bool _disposed;
 
     private readonly Dictionary<HexCoord, SKPath> _hexPathCache = new();
 
+    private const float WonderSelectionRadius = 28f;
     private const float DotRadius = 5f;
     private const float ManualRingRadius = 5f;
     private const float ManualRingStroke = 3f;
@@ -63,6 +66,8 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
         _harvestController = harvestController;
         _resourceManager = resourceManager;
     }
+
+    public void ConnectWonderService(WonderService wonderService) => _wonderService = wonderService;
 
     public void Initialize(SKSize canvasSize)
     {
@@ -110,6 +115,13 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
             IsAntialias = true
         };
 
+        _selectedWonderPaint = new SKPaint
+        {
+            Color = new SKColor(255, 215, 0, 230),
+            Style = SKPaintStyle.Stroke,
+            StrokeWidth = 3,
+            IsAntialias = true
+        };
     }
 
     public void Render(SKCanvas canvas, GameRenderContext context)
@@ -142,6 +154,13 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
                         .GroupBy(f => f.Position)
                         .ToDictionary(g => g.Key, g => (IEnumerable<IslandFeature>)g);
                     DrawIslandMap(canvas, mapToRender, playerIdx, mainGameState.Clock.CurrentTick, manualTimes, islandState.BanditCooldownUntil, banditPositions, harvestBlockedPositions, featuresByPosition);
+
+                    var selectedWonder = _wonderService?.SelectedWonder;
+                    if (selectedWonder != null && _selectedWonderPaint != null)
+                    {
+                        var (wx, wy) = AxialToIsland(selectedWonder.Position.Q, selectedWonder.Position.R);
+                        canvas.DrawCircle(wx, wy, WonderSelectionRadius, _selectedWonderPaint);
+                    }
                 }
             }
         }
@@ -420,6 +439,7 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
         _ringProgressPaint?.Dispose();
         _textIconPaint?.Dispose();
         _textIconFont?.Dispose();
+        _selectedWonderPaint?.Dispose();
 
         foreach (var path in _hexPathCache.Values)
             path.Dispose();
