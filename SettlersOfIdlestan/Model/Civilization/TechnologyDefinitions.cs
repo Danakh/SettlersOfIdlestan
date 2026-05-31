@@ -196,7 +196,7 @@ public static class TechnologyDefinitions
             "tech_efficient_trading_name", "tech_efficient_trading_desc",
             cost: 5000,
             prerequisites: new[] { TechnologyId.SpecializedMarket },
-            modifiers: new Modifier[] { new(ECategory.TRADE_BULK_GOLD_BONUS, EType.ADDITIVE, 1) },
+            modifiers: new Modifier[] { new(ECategory.TRADE_BULK_GOLD_BONUS, EType.ADDITIVE, 2) },
             tier: 3, line: 3),
 
         // === TIER 4 — Premiers croisements ===

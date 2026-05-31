@@ -85,11 +85,15 @@ namespace SettlersOfIdlestan.Controller
             int totalOffer = offerPerPack * quantity;
 
             if (civ.GetResourceQuantity(resource) < totalOffer) return false;
-            if (!CanRecieveTrade(civ, Resource.Gold, quantity)) return false;
+
+            int bulkBonus = civ.ModifierAggregator.ApplyModifiers(ECategory.TRADE_BULK_GOLD_BONUS, "", 0);
+            int totalGold = quantity + (quantity / 10) * bulkBonus;
+
+            if (!CanRecieveTrade(civ, Resource.Gold, totalGold)) return false;
 
             civ.RemoveResource(resource, totalOffer);
-            civ.AddResource(Resource.Gold, quantity);
-            GoldObtainedFromTrade?.Invoke(quantity);
+            civ.AddResource(Resource.Gold, totalGold);
+            GoldObtainedFromTrade?.Invoke(totalGold);
             return true;
         }
 
