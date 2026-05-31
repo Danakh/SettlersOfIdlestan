@@ -108,7 +108,7 @@
   "tooltip_requires_3_production_level4": "⚠ Nécessite 3 bâtiments de production (Scierie, Briqueterie, Carrière ou Moulin) niveau 4 dans cette ville",
   "tooltip_requires_forge_level4": "⚠ Nécessite une Forge niveau 4 dans cette ville",
   "building_militaryacademy_name": "Académie militaire",
-  "building_militaryacademy_desc": "Augmente la capacité de soldats de +5 par niveau et la vitesse de production de +25%. Débloqué par le prestige.",
+  "building_militaryacademy_desc": "Augmente la capacité de soldats de +5 par niveau et la vitesse de production de soldats de +25% par niveau. Débloqué par le prestige.",
   "building_traderguild_name": "Guilde des marchands",
   "building_traderguild_desc": "Bâtiment unique. Débloque le niveau 4 des Marchés et automatise leur construction/amélioration. Nécessite un Marché et un Port de pêche niveau 4. Débloqué par le prestige.",
   "building_traderguild_desc_1": "Débloque le niveau 4 pour les Marchés. Construit/améliore les Marchés automatiquement toutes les 10s.",

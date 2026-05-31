@@ -108,7 +108,7 @@
   "tooltip_requires_3_production_level4": "⚠ Requires 3 production buildings (Sawmill, Brickworks, Quarry or Mill) at level 4 in this city",
   "tooltip_requires_forge_level4": "⚠ Requires a level 4 Forge in this city",
   "building_militaryacademy_name": "Military Academy",
-  "building_militaryacademy_desc": "Increases soldier capacity by +5 per level and production speed by +25%. Unlocked via prestige.",
+  "building_militaryacademy_desc": "Increases soldier capacity by +5 per level and soldier production speed by +25% per level. Unlocked via prestige.",
   "building_traderguild_name": "Traders Guild",
   "building_traderguild_desc": "Unique building. Unlocks level 4 for Markets and automates their construction/upgrade. Requires a Market and a level 4 Seaport. Unlocked via prestige.",
   "building_traderguild_desc_1": "Unlocks level 4 for Markets. Auto-builds/upgrades Markets every 10s.",

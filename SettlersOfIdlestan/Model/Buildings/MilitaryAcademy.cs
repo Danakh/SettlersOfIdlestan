@@ -34,6 +34,6 @@ public class MilitaryAcademy : Building, IModifierProvider
     public IEnumerable<Modifier> GetModifiers()
     {
         if (Level <= 0) yield break;
-        yield return new Modifier(ECategory.HARVEST_SPEED, EType.ADDITIVE, 0.25);
+        yield return new Modifier(ECategory.UNIT_PRODUCTION_SPEED, EType.ADDITIVE, 0.25 * Level);
     }
 }

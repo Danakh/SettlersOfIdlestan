@@ -98,8 +98,21 @@ public class MilitaryController
     public int GetAttackScore(City city) => city.Soldiers;
 
     /// <summary>Capacité maximale de soldats de la ville, tous bâtiments garnison confondus.</summary>
-    public int GetMaximumSoldierCapacity(City city, Civilization? civ = null)
-        => city.MaxSoldiers + (civ?.CityMaxSoldiersBonus ?? 0);
+    public int GetMaximumSoldierCapacity(City city, Civilization civ)
+        => city.MaxSoldiers + civ.CityMaxSoldiersBonus;
+
+    /// <summary>
+    /// Soldats produits par seconde dans la ville (0 si pas de Caserne active au niveau minimum).
+    /// Tient compte du modificateur UnitProductionSpeed de la civilisation.
+    /// </summary>
+    public double GetSoldierProductionRate(City city, Civilization civ)
+    {
+        var barracks = city.Buildings.OfType<Barracks>()
+            .FirstOrDefault(b => b.ActivationStatus == ActivationStatus.ACTIVE && b.Level >= SoldierProductionMinLevel);
+        if (barracks == null) return 0;
+        const double ticksPerSecond = 100.0;
+        return civ.UnitProductionSpeed * ticksPerSecond / SoldierProductionIntervalTicks;
+    }
 
     /// <summary>Score de défense maximal de la ville (bâtiments + modificateurs de civilisation).</summary>
     public int GetDefenseScore(City city, Civilization? civ = null)
@@ -150,7 +163,8 @@ public class MilitaryController
             foreach (var city in civ.Cities)
             {
                 if (city.Soldiers >= GetMaximumSoldierCapacity(city, civ)) continue;
-                if (currentTick - city.LastSoldierProductionTick < SoldierProductionIntervalTicks) continue;
+                long effectiveProductionInterval = (long)(SoldierProductionIntervalTicks / civ.UnitProductionSpeed);
+                if (currentTick - city.LastSoldierProductionTick < effectiveProductionInterval) continue;
 
                 var barracks = city.Buildings.OfType<Barracks>()
                     .FirstOrDefault(b => b.ActivationStatus == ActivationStatus.ACTIVE && b.Level >= SoldierProductionMinLevel);
