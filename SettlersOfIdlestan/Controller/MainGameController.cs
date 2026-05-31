@@ -112,7 +112,6 @@ namespace SettlersOfIdlestan.Controller
         public MainGameState? CreateNewGame(IslandParameters parameters)
         {
             if (parameters == null) throw new ArgumentNullException(nameof(parameters));
-            if (parameters.CivilizationCount <= 0) throw new ArgumentException("civilizationCount must be >= 1", nameof(parameters.CivilizationCount));
 
             // Create a main state early so we can use its PRNG for deterministic generation
             var mainState = new MainGameState();

@@ -134,4 +134,13 @@ public class CivilizationAutoplayerRunner
             Advance();
         }
     }
+
+    public void RunStepMilitaryUntil(Func<bool> condition, bool shouldExpand = true, int maxIterations = 10000)
+    {
+        for (int i = 0; i < maxIterations && !condition(); i++)
+        {
+            try { _autoplayer.TryMilitaryStepOnce(); } catch { }
+            Advance();
+        }
+    }
 }
