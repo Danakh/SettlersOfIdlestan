@@ -5,6 +5,5 @@ Projects description:
 - SettlersOfIdlestan: Model/Controller layers
 - SettlersOfIdlestanSkia: View layer, using SkiaSharp
 - SettlersOfIdlestanDesktop: MAUI Implementation
-- SettlersOfIdlestanWeb: Balzor Implementation. In pause, do not modify
-- SettlersOfIdlestanGame: Old Blazor prototype. Do not modify, read only when told
+- SettlersOfIdlestanWeb: Balzor Implementation.
 - SOITests: tests for Model/Controller layers
