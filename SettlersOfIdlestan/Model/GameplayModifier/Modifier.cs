@@ -44,6 +44,8 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             CITY_DEFENSE_REGEN_SPEED,
             /// <summary>Bonus plat ajouté à la capacité maximale de soldats de chaque ville. SubCategory unused.</summary>
             CITY_MAX_SOLDIERS_BONUS,
+            /// <summary>Or supplémentaire par tranche de 10 unités vendues en une seule vente groupée. SubCategory unused.</summary>
+            TRADE_BULK_GOLD_BONUS,
         }
 
         public enum EType

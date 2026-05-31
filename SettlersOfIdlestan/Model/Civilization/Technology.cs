@@ -23,17 +23,20 @@ public enum TechnologyId
     ResearchMethods,
     Metallurgy,
     MilitaryMastery,
+    SpecializedMarket,
     // Tier 3
     MasterHarvest,
     GrandArchitecture,
     Scholarship,
     Masterwork,
     WarAcademy,
+    EfficientTrading,
     // Tier 4
     EpicHarvest,
     TradeRoutes,
     ImprovedResearch,
     MilitarySupremacy,
+    AutomaticMarket,
     // Tier 5
     MerchantGuild,
     MasterResearch,
