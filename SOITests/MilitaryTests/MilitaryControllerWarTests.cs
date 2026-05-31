@@ -41,8 +41,8 @@ public class MilitaryControllerWarTests
         Setup(int soldiersA = 5)
     {
         var civA = new Civilization { Index = 0 };
-        var cityA = new City(VertexA) { CivilizationIndex = 0 };
-        var barracksA = new Barracks { Level = 2, Soldiers = soldiersA };
+        var cityA = new City(VertexA) { CivilizationIndex = 0, Soldiers = soldiersA };
+        var barracksA = new Barracks { Level = 2 };
         cityA.Buildings.Add(barracksA);
         civA.Cities.Add(cityA);
 
@@ -62,6 +62,8 @@ public class MilitaryControllerWarTests
 
         // Branchement identique à MainGameController après le fix du bug
         ctrl.CityDestroyed += (_, _) => featureCtrl.RefreshContestedTerritories();
+
+        cityA.FlowTarget = VertexB; // cible de renfort pour déclencher la logique
 
         return (state, clock, ctrl, featureCtrl, barracksA);
     }
@@ -157,8 +159,8 @@ public class MilitaryControllerWarTests
     {
         // TownHall niveau 1 : il faut deux coups pour détruire la ville
         var civA = new Civilization { Index = 0 };
-        var cityA = new City(VertexA) { CivilizationIndex = 0 };
-        var barracksA = new Barracks { Level = 2, Soldiers = 10 };
+        var cityA = new City(VertexA) { CivilizationIndex = 0, Soldiers = 10 };
+        var barracksA = new Barracks { Level = 2 };
         cityA.Buildings.Add(barracksA);
         civA.Cities.Add(cityA);
 
@@ -166,6 +168,8 @@ public class MilitaryControllerWarTests
         var cityB = new City(VertexB) { CivilizationIndex = 1 };
         cityB.Buildings.Add(new TownHall { Level = 1 });
         civB.Cities.Add(cityB);
+
+        cityA.FlowTarget = VertexB; // cible de renfort pour déclencher la logique
 
         var state = new IslandState(BuildMap(), [civA, civB], AtlasController.InvalidIslandId);
         var clock = new GameClock();

@@ -25,9 +25,29 @@ public class City
     public List<Building> Buildings { get; set; } = new();
 
     /// <summary>
-    /// Défense actuelle (dynamique). Se régénère jusqu'à la valeur issue des bâtiments.
+    /// Défense actuelle (dynamique). Se régénère jusqu'à MaxDefense.
     /// </summary>
     public int CurrentDefense { get; set; }
+
+    /// <summary>
+    /// Défense maximale calculée depuis les bâtiments (Palissade=10, Caserne=5, …).
+    /// </summary>
+    public int MaxDefense => Buildings.Sum(b => b.GetDefenseBonus());
+
+    /// <summary>
+    /// Nombre de soldats en garnison dans cette ville.
+    /// </summary>
+    public int Soldiers { get; set; }
+
+    /// <summary>
+    /// Capacité maximale de soldats calculée depuis les bâtiments.
+    /// </summary>
+    public int MaxSoldiers => Buildings.Sum(b => b.GetMaxSoldiersBonus());
+
+    /// <summary>
+    /// Tick de la dernière production de soldat pour cette ville.
+    /// </summary>
+    public long LastSoldierProductionTick { get; set; }
 
     /// <summary>
     /// Tick du dernier point de régénération de défense.

@@ -29,7 +29,7 @@ namespace SOITests.ControllerTests
         /// donc bandit.LastMovedTick reste à 0 et le combat se déclenche à chaque
         /// SimulateAdvance(CombatIntervalTicks).
         /// </summary>
-        private static (IslandState state, GameClock clock, MilitaryController controller, Barracks barracks)
+        private static (IslandState state, GameClock clock, MilitaryController controller, City city)
             CreateSetup(int initialSoldiers, int barracksLevel = 2)
         {
             var tiles = new List<HexTile>
@@ -45,9 +45,8 @@ namespace SOITests.ControllerTests
             civ.Resources[Resource.Ore] = 999;
             civ.Resources[Resource.Food] = 999;
             var vertex = Vertex.Create(NE, East, NE11);
-            var city = new City(vertex) { CivilizationIndex = 0 };
-            var barracks = new Barracks { Level = barracksLevel, Soldiers = initialSoldiers };
-            city.Buildings.Add(barracks);
+            var city = new City(vertex) { CivilizationIndex = 0, Soldiers = initialSoldiers };
+            city.Buildings.Add(new Barracks { Level = barracksLevel });
             civ.Cities.Add(city);
 
             var state = new IslandState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
@@ -57,7 +56,7 @@ namespace SOITests.ControllerTests
             var controller = new MilitaryController();
             controller.Initialize(state, clock);
 
-            return (state, clock, controller, barracks);
+            return (state, clock, controller, city);
         }
 
         // ── Production de soldats ─────────────────────────────────────────────
@@ -65,35 +64,35 @@ namespace SOITests.ControllerTests
         [Fact]
         public void Barracks_Level2_ProducesSoldiers()
         {
-            var (_, clock, _, barracks) = CreateSetup(initialSoldiers: 0);
+            var (_, clock, _, city) = CreateSetup(initialSoldiers: 0);
 
-            Assert.Equal(0, barracks.Soldiers);
+            Assert.Equal(0, city.Soldiers);
             clock.SimulateAdvance(MilitaryController.SoldierProductionIntervalTicks);
-            Assert.Equal(1, barracks.Soldiers);
+            Assert.Equal(1, city.Soldiers);
             clock.SimulateAdvance(MilitaryController.SoldierProductionIntervalTicks);
-            Assert.Equal(2, barracks.Soldiers);
+            Assert.Equal(2, city.Soldiers);
         }
 
         [Fact]
         public void Barracks_Level1_SoldierCapIsFive()
         {
-            var (_, clock, _, barracks) = CreateSetup(initialSoldiers: 0, barracksLevel: 1);
+            var (_, clock, _, city) = CreateSetup(initialSoldiers: 0, barracksLevel: 1);
 
-            for (int i = 0; i < MilitaryController.MaxSoldiersPerLevel + 5; i++)
+            for (int i = 0; i < Barracks.MaxSoldiersPerLevel + 5; i++)
                 clock.SimulateAdvance(MilitaryController.SoldierProductionIntervalTicks);
 
-            Assert.Equal(MilitaryController.MaxSoldiersPerLevel * 1, barracks.Soldiers);
+            Assert.Equal(Barracks.MaxSoldiersPerLevel * 1, city.Soldiers);
         }
 
         [Fact]
         public void Barracks_Level2_SoldierCapIsTen()
         {
-            var (_, clock, _, barracks) = CreateSetup(initialSoldiers: 0);
+            var (_, clock, _, city) = CreateSetup(initialSoldiers: 0);
 
-            for (int i = 0; i < MilitaryController.MaxSoldiersPerLevel * 2 + 5; i++)
+            for (int i = 0; i < Barracks.MaxSoldiersPerLevel * 2 + 5; i++)
                 clock.SimulateAdvance(MilitaryController.SoldierProductionIntervalTicks);
 
-            Assert.Equal(MilitaryController.MaxSoldiersPerLevel * 2, barracks.Soldiers);
+            Assert.Equal(Barracks.MaxSoldiersPerLevel * 2, city.Soldiers);
         }
 
         // ── Combat — bandits ──────────────────────────────────────────────────
@@ -102,7 +101,7 @@ namespace SOITests.ControllerTests
         public void Bandit_OnCityHex_TakesDamage()
         {
             // NE est l'un des 3 hexs de la ville — le bandit doit être attaqué.
-            var (state, clock, _, barracks) = CreateSetup(initialSoldiers: 3);
+            var (state, clock, _, city) = CreateSetup(initialSoldiers: 3);
             state.AddFeature(new Bandit(NE, 0));
             var bandit = state.Features.OfType<Bandit>().First();
 
@@ -110,15 +109,15 @@ namespace SOITests.ControllerTests
 
             // 1 attaque (production trop lente : 1000 ticks vs combat 100 ticks) : soldats 3→2, bandit MaxHp→MaxHp-1.
             Assert.Equal(Bandit.MaxHp - 1, bandit.Hp);
-            Assert.Equal(2, barracks.Soldiers);
+            Assert.Equal(2, city.Soldiers);
         }
 
         [Fact]
         public void Bandit_KilledByBarracksSoldiers_IsRemovedFromState()
         {
-            // Bandit sur East avec 5 PV ; caserne démarre avec 5 soldats.
+            // Bandit sur East avec 5 PV ; ville démarre avec 5 soldats.
             // 5 cycles de combat (5×CombatIntervalTicks) : 5 attaques → bandit mort, 5 soldats consommés.
-            var (state, clock, _, barracks) = CreateSetup(initialSoldiers: 5);
+            var (state, clock, _, city) = CreateSetup(initialSoldiers: 5);
             state.AddFeature(new Bandit(East, 0) { Hp = 5 });
 
             Assert.Single(state.Features.OfType<Bandit>());
@@ -127,13 +126,13 @@ namespace SOITests.ControllerTests
                 clock.SimulateAdvance(MilitaryController.CombatIntervalTicks);
 
             Assert.Empty(state.Features.OfType<Bandit>());
-            Assert.Equal(0, barracks.Soldiers);
+            Assert.Equal(0, city.Soldiers);
         }
 
         [Fact]
         public void Barracks_WithNoSoldiers_DoesNotAttackBandit()
         {
-            // Bandit sur un hex de la ville, mais caserne vide → aucune attaque.
+            // Bandit sur un hex de la ville, mais ville vide de soldats → aucune attaque.
             var (state, clock, _, _) = CreateSetup(initialSoldiers: 0, barracksLevel: 1);
             state.AddFeature(new Bandit(NE11, 0));
             var bandit = state.Features.OfType<Bandit>().First();
@@ -145,7 +144,7 @@ namespace SOITests.ControllerTests
 
         // ── Portée d'attaque — règle des 3 hexs ──────────────────────────────
         //
-        // La caserne n'attaque QUE les bandits présents sur l'un des 3 hexs
+        // La ville n'attaque QUE les bandits présents sur l'un des 3 hexs
         // qui composent le vertex de la ville : NE=(0,1), East=(1,0), NE11=(1,1).
         // Tout hex en dehors de cette zone — y compris les hexs immédiatement
         // adjacents à la ville — est hors portée.

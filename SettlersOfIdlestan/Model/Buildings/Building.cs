@@ -263,6 +263,17 @@ public class Building
     }
 
     /// <summary>
+    /// Returns the max-defense bonus this building contributes to its city.
+    /// CurrentDefense is immediately increased by this amount when the building is constructed.
+    /// </summary>
+    public virtual int GetDefenseBonus() => 0;
+
+    /// <summary>
+    /// Returns the soldier-capacity bonus this building contributes to its city.
+    /// </summary>
+    public virtual int GetMaxSoldiersBonus() => 0;
+
+    /// <summary>
     /// Returns true if all build prerequisites (beyond resources) are satisfied.
     /// Override in derived classes to add extra conditions.
     /// </summary>
