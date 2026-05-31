@@ -379,6 +379,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 BuildingType.Watchtower => new Watchtower(),
                 BuildingType.Academy => new Academy(),
                 BuildingType.TraderGuild => new TraderGuild(),
+                BuildingType.MilitaryAcademy => new MilitaryAcademy(),
                 _ => null,
             };
         }

@@ -119,6 +119,10 @@ public enum BuildingType
     /// Guilde des marchands - Bâtiment unique. Automatise la construction/amélioration des Marchés et débloque leurs niveaux supérieurs. Débloqué par le prestige.
     /// </summary>
     TraderGuild,
+    /// <summary>
+    /// Académie militaire - Augmente la capacité de soldats et la vitesse de production. Débloqué par le prestige.
+    /// </summary>
+    MilitaryAcademy,
 }
 
 /// <summary>
