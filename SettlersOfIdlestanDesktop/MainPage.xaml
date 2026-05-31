@@ -5,7 +5,7 @@
              x:Class="SettlersOfIdlestanDesktop.MainPage"
              Title="Settlers of Idlestan">
 
-    <Grid RowDefinitions="*, Auto"
+    <Grid RowDefinitions="*"
           ColumnDefinitions="*">
 
         <!-- Canvas SkiaSharp pour le rendu du jeu -->
@@ -16,28 +16,6 @@
                        EnableTouchEvents="True"
                        Touch="OnCanvasTouch"
                        Background="White" />
-
-        <!-- Barre d'état minimale -->
-        <StackLayout Grid.Row="1"
-                     Grid.Column="0"
-                     Orientation="Horizontal"
-                     Padding="10"
-                     Spacing="10"
-                     BackgroundColor="#f0f0f0">
-            <Label x:Name="FpsLabel"
-                   Text="FPS: 0"
-                   FontSize="12"
-                   VerticalOptions="Center" />
-            <Label x:Name="CameraLabel"
-                   Text="Camera: 0,0"
-                   FontSize="12"
-                   VerticalOptions="Center" />
-            <Label x:Name="StateLabel"
-                   Text="Chargement..."
-                   FontSize="12"
-                   VerticalOptions="Center" />
-        </StackLayout>
-
 
     </Grid>
 

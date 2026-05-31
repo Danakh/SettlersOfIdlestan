@@ -19,17 +19,9 @@ public partial class MainPage : ContentPage
 	protected override void OnAppearing()
 	{
 		base.OnAppearing();
-		try
-		{
-			_runtime = new SkiaGameRuntime();
-			_runtime.Initialize(new DesktopFileSystemService(), allowDebugMode: true);
-			StateLabel.Text = "Prêt";
-			MainThread.BeginInvokeOnMainThread(() => Dispatcher.StartTimer(TimeSpan.FromMilliseconds(16), RenderFrame));
-		}
-		catch (Exception ex)
-		{
-			StateLabel.Text = $"Erreur: {ex.Message}";
-		}
+		_runtime = new SkiaGameRuntime();
+		_runtime.Initialize(new DesktopFileSystemService(), allowDebugMode: true);
+		MainThread.BeginInvokeOnMainThread(() => Dispatcher.StartTimer(TimeSpan.FromMilliseconds(16), RenderFrame));
 	}
 
 #if WINDOWS
@@ -122,7 +114,7 @@ public partial class MainPage : ContentPage
 		}
 		catch (Exception ex)
 		{
-			StateLabel.Text = $"Erreur rendu: {ex.Message}";
+			_runtime?.NotifyError(ex);
 		}
 	}
 
@@ -172,21 +164,8 @@ public partial class MainPage : ContentPage
 			return false;
 
 		_runtime.Tick();
-
-		// Force le redraw du canvas
 		GameCanvas.InvalidateSurface();
-
-		if (_runtime.TryGetDebugStats(out var stats))
-		{
-			MainThread.BeginInvokeOnMainThread(() =>
-			{
-				FpsLabel.Text = $"FPS: {stats.fps:F1}";
-				CameraLabel.Text =
-					$"Camera: {stats.cameraX:F1}, {stats.cameraY:F1} | Villes: {stats.cityCount}, Routes: {stats.roadCount}";
-			});
-		}
-
-		return true; // Continue la boucle
+		return true;
 	}
 
 	protected override void OnDisappearing()
