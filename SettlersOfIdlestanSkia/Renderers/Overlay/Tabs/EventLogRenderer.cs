@@ -92,7 +92,7 @@ public sealed class EventLogRenderer : IDisposable
         {
             if (y + CardHeight > _canvasSize.Height - Padding) break;
 
-            var (cardPaint, borderPaint, titlePaint, title, body) = GetEntryStyle(entry.Type);
+            var (cardPaint, borderPaint, titlePaint, title, body) = GetEntryStyle(entry);
             var cardRect = new SKRect(x, y, x + contentWidth, y + CardHeight);
             canvas.DrawRoundRect(cardRect, CardRadius, CardRadius, cardPaint);
             canvas.DrawRoundRect(cardRect, CardRadius, CardRadius, borderPaint);
@@ -102,8 +102,12 @@ public sealed class EventLogRenderer : IDisposable
         }
     }
 
-    private (SKPaint card, SKPaint border, SKPaint title, string titleText, string bodyText) GetEntryStyle(GameEventType type) => type switch
+    private (SKPaint card, SKPaint border, SKPaint title, string titleText, string bodyText) GetEntryStyle(GameLogEntry entry) => entry.Type switch
     {
+        GameEventType.RuntimeError => (
+            _dangerCardPaint, _dangerBorderPaint, _dangerTextPaint,
+            _localization.Get("event_runtime_error_title"),
+            entry.Message ?? ""),
         GameEventType.BanditDiscovered => (
             _dangerCardPaint, _dangerBorderPaint, _dangerTextPaint,
             _localization.Get("event_bandit_title"),
@@ -140,7 +144,7 @@ public sealed class EventLogRenderer : IDisposable
             _discoveryCardPaint, _discoveryBorderPaint, _discoveryTextPaint,
             _localization.Get("event_wonder_placed_title"),
             _localization.Get("event_wonder_placed_body")),
-        _ => (_dangerCardPaint, _dangerBorderPaint, _bodyTextPaint, "?", "")
+        _ => (_dangerCardPaint, _dangerBorderPaint, _bodyTextPaint, "?", entry.Message ?? "")
     };
 
     public void Dispose()

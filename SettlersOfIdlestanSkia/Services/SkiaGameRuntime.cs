@@ -427,6 +427,12 @@ public sealed class SkiaGameRuntime : IDisposable
         _gameControllerService?.AddOfflineSeconds(hiddenSeconds);
     }
 
+    public void NotifyError(Exception ex)
+    {
+        var eventLog = _gameControllerService?.CurrentGameState?.CurrentIslandState?.EventLog;
+        eventLog?.Add(SettlersOfIdlestan.Model.Game.GameEventType.RuntimeError, ex.Message);
+    }
+
     public bool TryGetDebugStats(out RuntimeDebugStats stats)
     {
         if (_pendingDebugStats is { } pending)

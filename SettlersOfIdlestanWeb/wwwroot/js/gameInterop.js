@@ -80,6 +80,10 @@ window.gameInterop = {
         }
     },
 
+    logError: function (message) {
+        console.error('[SOI]', message);
+    },
+
     openFilePicker: function () {
         return new Promise((resolve) => {
             const input = document.createElement('input');

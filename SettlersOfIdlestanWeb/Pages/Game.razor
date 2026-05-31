@@ -23,11 +23,6 @@
          @oncontextmenu:preventDefault="true"
          @onmousedown:preventDefault="false" />
 
-    <div style="position: absolute; bottom: 6px; left: 6px; color: #ddd; font-size: 11px;
-                background: rgba(0,0,0,0.55); padding: 3px 8px; border-radius: 4px;
-                pointer-events: none; font-family: monospace; white-space: nowrap;">
-        @_debugText
-    </div>
 
 </div>
 
@@ -35,7 +30,6 @@
     private SKGLView? _canvasView;
     private SkiaGameRuntime? _runtime;
     private CancellationTokenSource? _cts;
-    private string _debugText = "Chargement…";
     private bool _initialized;
     private DotNetObjectReference<Game>? _dotNetRef;
     private int _keyboardHandlerId = -1;
@@ -52,11 +46,11 @@
         {
             _runtime = new SkiaGameRuntime();
             await _runtime.InitializeAsync(FileSystemService);
-            _debugText = string.Empty;
         }
         catch (Exception ex)
         {
-            _debugText = $"Erreur init: {ex.Message}";
+            _runtime?.NotifyError(ex);
+            await JS.InvokeVoidAsync("gameInterop.logError", ex.ToString());
             return;
         }
 
@@ -78,12 +72,6 @@
             {
                 _runtime?.Tick();
                 _canvasView?.Invalidate();
-
-                if (_runtime?.TryGetDebugStats(out var stats) == true)
-                {
-                    _debugText = $"FPS: {stats.fps:F1} | Cam: {stats.cameraX:F1},{stats.cameraY:F1} | Villes: {stats.cityCount} Routes: {stats.roadCount}";
-                }
-
                 await Task.Delay(16, ct);
             }
             catch (TaskCanceledException)
@@ -92,7 +80,8 @@
             }
             catch (Exception ex)
             {
-                _debugText = $"Erreur: {ex.Message}";
+                _runtime?.NotifyError(ex);
+                await JS.InvokeVoidAsync("gameInterop.logError", ex.ToString());
                 break;
             }
         }
@@ -103,9 +92,17 @@
         if (_runtime == null)
             return;
 
-        var canvasSize = new SKSize(e.BackendRenderTarget.Width, e.BackendRenderTarget.Height);
-        _runtime.EnsureCanvasInitialized(canvasSize);
-        _runtime.Render(e.Surface.Canvas);
+        try
+        {
+            var canvasSize = new SKSize(e.BackendRenderTarget.Width, e.BackendRenderTarget.Height);
+            _runtime.EnsureCanvasInitialized(canvasSize);
+            _runtime.Render(e.Surface.Canvas);
+        }
+        catch (Exception ex)
+        {
+            _runtime?.NotifyError(ex);
+            _ = JS.InvokeVoidAsync("gameInterop.logError", ex.ToString());
+        }
     }
 
     private void OnMouseDown(MouseEventArgs e)
