@@ -37,8 +37,8 @@ public class CityVsCityAttackTests
         Setup(int soldiersA = 5, IEnumerable<Building>? buildingsB = null)
     {
         var civA = new Civilization { Index = 0 };
-        var cityA = new City(VertexA) { CivilizationIndex = 0 };
-        var barracksA = new Barracks { Level = 2, Soldiers = soldiersA };
+        var cityA = new City(VertexA) { CivilizationIndex = 0, Soldiers = soldiersA };
+        var barracksA = new Barracks { Level = 2 };
         cityA.Buildings.Add(barracksA);
         civA.Cities.Add(cityA);
 
@@ -90,9 +90,8 @@ public class CityVsCityAttackTests
     {
         // cityB n'a pas de bâtiments — serait détruite au premier coup.
         // Si aucune attaque n'a lieu, la ville B existe toujours.
-        // Level=1 désactive la production pour que les soldats restent à 0.
-        var (state, clock, _, _, _, barracksA) = Setup(soldiersA: 0);
-        barracksA.Level = 1;
+        // Soldats à 0 : aucune attaque ne peut se déclencher.
+        var (state, clock, _, _, _, _) = Setup(soldiersA: 0);
 
         clock.SimulateAdvance(MilitaryController.CityAttackIntervalTicks);
 
@@ -138,32 +137,32 @@ public class CityVsCityAttackTests
     public void Attack_ConsumesOneSoldier()
     {
         // Capacité pleine (niveau 2 = 10) pour empêcher la production de s'activer.
-        var (_, clock, _, _, _, barracksA) = Setup(soldiersA: MilitaryController.MaxSoldiersPerLevel * 2);
+        var (_, clock, _, cityA, _, _) = Setup(soldiersA: Barracks.MaxSoldiersPerLevel * 2);
 
         clock.SimulateAdvance(MilitaryController.CityAttackIntervalTicks);
 
-        Assert.Equal(MilitaryController.MaxSoldiersPerLevel * 2 - 1, barracksA.Soldiers);
+        Assert.Equal(Barracks.MaxSoldiersPerLevel * 2 - 1, cityA.Soldiers);
     }
 
     [Fact]
     public void Attack_IsRateLimited_OneSoldierPerInterval()
     {
         var palisade = new Palisade { Level = 1 };
-        var (_, clock, _, _, cityB, barracksA) = Setup(soldiersA: 10, buildingsB: [palisade]);
-        barracksA.Level = 1; // désactive la production pour isoler la logique de rate-limit
+        var (_, clock, _, cityA, cityB, barracksA) = Setup(soldiersA: 10, buildingsB: [palisade]);
+        barracksA.Level = 1; // capacité réduite à 5 pour isoler la logique de rate-limit
         cityB.CurrentDefense = 10; // défense pleine : pas de destruction de bâtiment
 
         // Premier tick exact → 1 attaque
         clock.SimulateAdvance(MilitaryController.CityAttackIntervalTicks);
-        Assert.Equal(9, barracksA.Soldiers);
+        Assert.Equal(9, cityA.Soldiers);
 
         // Avant le prochain intervalle → pas d'attaque supplémentaire
         clock.SimulateAdvance(MilitaryController.CityAttackIntervalTicks - 1);
-        Assert.Equal(9, barracksA.Soldiers);
+        Assert.Equal(9, cityA.Soldiers);
 
         // Au prochain intervalle → 2e attaque
         clock.SimulateAdvance(1);
-        Assert.Equal(8, barracksA.Soldiers);
+        Assert.Equal(8, cityA.Soldiers);
     }
 
     // ── Dégâts sur la ville défenseure ───────────────────────────────────

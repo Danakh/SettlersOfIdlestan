@@ -10,6 +10,7 @@ public class Palisade : Building
     }
 
     public override int GetDefaultMaxLevel() => 1;
+    public override int GetDefenseBonus() => 10;
 
     public override ResourceSet GetBuildCost() => new ResourceSet
     {

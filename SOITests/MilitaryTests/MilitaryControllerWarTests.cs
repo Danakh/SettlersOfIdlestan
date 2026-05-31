@@ -41,8 +41,8 @@ public class MilitaryControllerWarTests
         Setup(int soldiersA = 5)
     {
         var civA = new Civilization { Index = 0 };
-        var cityA = new City(VertexA) { CivilizationIndex = 0 };
-        var barracksA = new Barracks { Level = 2, Soldiers = soldiersA };
+        var cityA = new City(VertexA) { CivilizationIndex = 0, Soldiers = soldiersA };
+        var barracksA = new Barracks { Level = 2 };
         cityA.Buildings.Add(barracksA);
         civA.Cities.Add(cityA);
 
@@ -157,8 +157,8 @@ public class MilitaryControllerWarTests
     {
         // TownHall niveau 1 : il faut deux coups pour détruire la ville
         var civA = new Civilization { Index = 0 };
-        var cityA = new City(VertexA) { CivilizationIndex = 0 };
-        var barracksA = new Barracks { Level = 2, Soldiers = 10 };
+        var cityA = new City(VertexA) { CivilizationIndex = 0, Soldiers = 10 };
+        var barracksA = new Barracks { Level = 2 };
         cityA.Buildings.Add(barracksA);
         civA.Cities.Add(cityA);
 

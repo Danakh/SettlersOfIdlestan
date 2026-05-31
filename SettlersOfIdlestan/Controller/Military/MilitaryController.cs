@@ -61,12 +61,6 @@ public class MilitaryController
     /// <summary>Niveau de Caserne à partir duquel la production de soldats est active.</summary>
     public const int SoldierProductionMinLevel = 1;
 
-    /// <summary>Capacité de soldats par niveau de Caserne.</summary>
-    public const int MaxSoldiersPerLevel = 5;
-
-    /// <summary>Capacité maximale d'une Caserne en fonction de son niveau.</summary>
-    public static int MaxSoldiersFor(Barracks b) => MaxSoldiersPerLevel * b.Level;
-
     /// <summary>Intervalle de régénération d'un point de défense (1 000 ticks).</summary>
     public const long DefenseRegenIntervalTicks = 500L;
 
@@ -100,20 +94,16 @@ public class MilitaryController
     public event EventHandler<CityDestroyedEventArgs>? CityDestroyed;
     public event EventHandler<ReinforcementEventArgs>? ReinforcementSent;
 
-    /// <summary>Nombre total de soldats disponibles dans la ville (toutes casernes).</summary>
-    public int GetAttackScore(City city)
-        => city.Buildings.OfType<Barracks>().Sum(b => b.Soldiers);
+    /// <summary>Nombre de soldats disponibles dans la ville.</summary>
+    public int GetAttackScore(City city) => city.Soldiers;
 
     /// <summary>Capacité maximale de soldats de la ville, tous bâtiments garnison confondus.</summary>
-    public int GetMaximumSoldierCapacity(City city, Civilization? civ = null)
-        => city.Buildings.OfType<Barracks>().Sum(b => MaxSoldiersFor(b));
+    public int GetMaximumSoldierCapacity(City city, Civilization? civ = null) => city.MaxSoldiers;
 
-    /// <summary>Score de défense de la ville : Palissade=10, Caserne=5, plus modificateurs de civilisation.</summary>
+    /// <summary>Score de défense maximal de la ville (bâtiments + modificateurs de civilisation).</summary>
     public int GetDefenseScore(City city, Civilization? civ = null)
     {
-        int score = 0;
-        foreach (var b in city.Buildings)
-            score += b switch { Palisade => 10, Barracks => 5, _ => 0 };
+        int score = city.MaxDefense;
         if (civ != null)
             score += civ.ModifierAggregator.ApplyModifiers(ECategory.CITY_DEFENSE, "", 0);
         return score;
@@ -157,18 +147,19 @@ public class MilitaryController
 
         foreach (var civ in _state.Civilizations)
             foreach (var city in civ.Cities)
-                foreach (var barracks in city.Buildings.OfType<Barracks>())
-                {
-                    if (barracks.ActivationStatus != ActivationStatus.ACTIVE) continue;
-                    if (barracks.Level < SoldierProductionMinLevel) continue;
-                    if (barracks.Soldiers >= MaxSoldiersFor(barracks)) continue;
-                    if (currentTick - barracks.LastSoldierProductionTick < SoldierProductionIntervalTicks) continue;
-                    if (civ.GetResourceQuantity(Resource.Ore) < 1) continue;
+            {
+                if (city.Soldiers >= city.MaxSoldiers) continue;
+                if (currentTick - city.LastSoldierProductionTick < SoldierProductionIntervalTicks) continue;
 
-                    civ.RemoveResource(Resource.Ore, 1);
-                    barracks.Soldiers++;
-                    barracks.LastSoldierProductionTick = currentTick;
-                }
+                var barracks = city.Buildings.OfType<Barracks>()
+                    .FirstOrDefault(b => b.ActivationStatus == ActivationStatus.ACTIVE && b.Level >= SoldierProductionMinLevel);
+                if (barracks == null) continue;
+                if (civ.GetResourceQuantity(Resource.Ore) < 1) continue;
+
+                civ.RemoveResource(Resource.Ore, 1);
+                city.Soldiers++;
+                city.LastSoldierProductionTick = currentTick;
+            }
     }
 
     // ── Consommation de nourriture ───────────────────────────────────────────
@@ -181,7 +172,7 @@ public class MilitaryController
 
         foreach (var civ in _state.Civilizations)
         {
-            int totalSoldiers = civ.Cities.Sum(city => GetAttackScore(city));
+            int totalSoldiers = civ.Cities.Sum(city => city.Soldiers);
             if (totalSoldiers == 0) continue;
 
             int availableFood = civ.GetResourceQuantity(Resource.Food);
@@ -196,14 +187,10 @@ public class MilitaryController
                 int toKill = starvedSoldiers;
                 foreach (var city in civ.Cities)
                 {
-                    foreach (var barracks in city.Buildings.OfType<Barracks>().OrderByDescending(b => b.Soldiers))
-                    {
-                        if (toKill <= 0) break;
-                        int kill = Math.Min(toKill, barracks.Soldiers);
-                        barracks.Soldiers -= kill;
-                        toKill -= kill;
-                    }
                     if (toKill <= 0) break;
+                    int kill = Math.Min(toKill, city.Soldiers);
+                    city.Soldiers -= kill;
+                    toKill -= kill;
                 }
 
                 if (civ.Index == _state.PlayerCivilization.Index)
@@ -267,14 +254,13 @@ public class MilitaryController
         {
             foreach (var city in civ.Cities)
             {
-                var barracks = city.Buildings.OfType<Barracks>().FirstOrDefault(b => b.Soldiers > 0);
-                if (barracks == null) continue;
+                if (city.Soldiers == 0) continue;
 
                 var cityHexes = city.Position.GetHexes();
                 bool isOnCityHex = cityHexes.Any(h => h.Equals(hideout.Position));
                 if (!isOnCityHex) continue;
 
-                barracks.Soldiers--;
+                city.Soldiers--;
                 hideout.Hp--;
                 hideout.LastAttackedTick = currentTick;
                 SoldierAttackedHideout?.Invoke(this, new SoldierAttackEventArgs(city.Position, hideout.Position));
@@ -284,6 +270,7 @@ public class MilitaryController
     }
 
     // ── Régénération de défense ──────────────────────────────────────────────
+    // Coûte 1 bois + 1 pierre par point régénéré. Non désactivable.
 
     private void ResolveDefenseRegen(long currentTick)
     {
@@ -293,6 +280,9 @@ public class MilitaryController
                 int maxDef = GetDefenseScore(city, civ);
                 if (city.CurrentDefense >= maxDef) continue;
                 if (currentTick - city.LastDefenseRegenTick < DefenseRegenIntervalTicks) continue;
+                if (civ.GetResourceQuantity(Resource.Wood) < 1 || civ.GetResourceQuantity(Resource.Stone) < 1) continue;
+                civ.RemoveResource(Resource.Wood, 1);
+                civ.RemoveResource(Resource.Stone, 1);
                 city.CurrentDefense++;
                 city.LastDefenseRegenTick = currentTick;
             }
@@ -309,15 +299,12 @@ public class MilitaryController
             foreach (var attackerCity in attackerCiv.Cities.ToList())
             {
                 if (currentTick - attackerCity.LastCityAttackTick < CityAttackIntervalTicks) continue;
-                if (GetAttackScore(attackerCity) == 0) continue;
+                if (attackerCity.Soldiers == 0) continue;
 
                 var targetCity = FindNearbyEnemyCity(attackerCity, attackerCiv);
                 if (targetCity == null) continue;
 
-                var barracks = attackerCity.Buildings.OfType<Barracks>().FirstOrDefault(b => b.Soldiers > 0);
-                if (barracks == null) continue;
-
-                barracks.Soldiers--;
+                attackerCity.Soldiers--;
                 attackerCity.LastCityAttackTick = currentTick;
 
                 var path = HexGridPathfinder.FindVertexPath(attackerCity.Position, targetCity.Position);
@@ -378,10 +365,10 @@ public class MilitaryController
             {
                 if (currentTick - sourceCity.LastReinforcementTick < ReinforcementIntervalTicks) continue;
 
-                int capacity = GetMaximumSoldierCapacity(sourceCity, civ);
+                int capacity = sourceCity.MaxSoldiers;
                 if (capacity == 0) continue;
 
-                int totalSoldiers = GetAttackScore(sourceCity);
+                int totalSoldiers = sourceCity.Soldiers;
                 if (totalSoldiers * 2 < capacity) continue;
 
                 if (FindNearbyEnemyCity(sourceCity, civ) != null) continue;
@@ -396,10 +383,10 @@ public class MilitaryController
                     int dist = sourceCity.Position.EdgeDistanceTo(friendlyCity.Position);
                     if (dist > range || dist >= closestDist) continue;
 
-                    int targetCapacity = GetMaximumSoldierCapacity(friendlyCity, civ);
+                    int targetCapacity = friendlyCity.MaxSoldiers;
                     if (targetCapacity == 0) continue;
 
-                    int targetSoldiers = GetAttackScore(friendlyCity);
+                    int targetSoldiers = friendlyCity.Soldiers;
                     if (targetSoldiers * 2 > targetCapacity) continue;
                     if (targetSoldiers + 2 >= totalSoldiers) continue;
 
@@ -408,17 +395,11 @@ public class MilitaryController
                 }
 
                 if (targetCity == null) continue;
+                if (targetCity.Soldiers >= targetCity.MaxSoldiers) continue;
+                if (sourceCity.Soldiers == 0) continue;
 
-                var receiver = targetCity.Buildings.OfType<Barracks>()
-                    .FirstOrDefault(b => b.Soldiers < MaxSoldiersFor(b));
-                if (receiver == null) continue;
-
-                var donor = sourceCity.Buildings.OfType<Barracks>()
-                    .OrderByDescending(b => b.Soldiers).FirstOrDefault();
-                if (donor == null || donor.Soldiers == 0) continue;
-
-                donor.Soldiers--;
-                receiver.Soldiers++;
+                sourceCity.Soldiers--;
+                targetCity.Soldiers++;
                 sourceCity.LastReinforcementTick = currentTick;
 
                 var path = HexGridPathfinder.FindVertexPath(sourceCity.Position, targetCity.Position);
@@ -439,10 +420,9 @@ public class MilitaryController
     private bool ApplyAttackToCity(City targetCity)
     {
         // Les soldats défenseurs absorbent l'attaque : les deux soldats meurent, la défense est intacte.
-        var defender = targetCity.Buildings.OfType<Barracks>().FirstOrDefault(b => b.Soldiers > 0);
-        if (defender != null)
+        if (targetCity.Soldiers > 0)
         {
-            defender.Soldiers--;
+            targetCity.Soldiers--;
             return false;
         }
 
@@ -468,7 +448,7 @@ public class MilitaryController
     }
 
     /// <summary>
-    /// Cherche une Caserne avec des soldats dont un hex de ville est voisin du bandit,
+    /// Cherche une ville avec des soldats dont un hex est voisin du bandit,
     /// et déclenche une attaque (1 soldat consommé, 1 PV de dégât).
     /// </summary>
     private void AttackBandit(Bandit bandit)
@@ -479,14 +459,13 @@ public class MilitaryController
         {
             foreach (var city in civ.Cities)
             {
-                var barracks = city.Buildings.OfType<Barracks>().FirstOrDefault(b => b.Soldiers > 0);
-                if (barracks == null) continue;
+                if (city.Soldiers == 0) continue;
 
                 var cityHexes = city.Position.GetHexes();
                 bool isOnCityHex = cityHexes.Any(h => h.Equals(bandit.Position));
                 if (!isOnCityHex) continue;
 
-                barracks.Soldiers--;
+                city.Soldiers--;
                 bandit.Hp--;
                 SoldierAttackedBandit?.Invoke(this, new SoldierAttackEventArgs(city.Position, bandit.Position));
                 return;

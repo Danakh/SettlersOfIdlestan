@@ -463,16 +463,20 @@ public class SelectedCityPanelRenderer : IGameRenderer
 
                 if (hoveredBuilding is Barracks barracks && barracks.Level > 0)
                 {
-                    long currentTick = _cityBuildingService.GetCurrentTick();
-                    int maxSoldiers = MilitaryController.MaxSoldiersFor(barracks);
-                    tooltipLines.Add(_localization.Get("barracks_soldiers") + $": {barracks.Soldiers}/{maxSoldiers}");
-                    if (barracks.Level >= MilitaryController.SoldierProductionMinLevel && barracks.Soldiers < maxSoldiers)
+                    var barracksCity = _cityBuildingService.SelectedCity;
+                    if (barracksCity != null)
                     {
-                        long elapsed = barracks.LastSoldierProductionTick == 0 ? 0 : currentTick - barracks.LastSoldierProductionTick;
-                        long remaining = Math.Max(0, MilitaryController.SoldierProductionIntervalTicks - elapsed);
-                        tooltipLines.Add(_localization.Get("barracks_soldier_production") + $" {remaining/100.0:0.0}s/{MilitaryController.SoldierProductionIntervalTicks/100.0:0.0}s");
+                        long currentTick = _cityBuildingService.GetCurrentTick();
+                        int maxSoldiers = barracksCity.MaxSoldiers;
+                        tooltipLines.Add(_localization.Get("barracks_soldiers") + $": {barracksCity.Soldiers}/{maxSoldiers}");
+                        if (barracks.Level >= MilitaryController.SoldierProductionMinLevel && barracksCity.Soldiers < maxSoldiers)
+                        {
+                            long elapsed = barracksCity.LastSoldierProductionTick == 0 ? 0 : currentTick - barracksCity.LastSoldierProductionTick;
+                            long remaining = Math.Max(0, MilitaryController.SoldierProductionIntervalTicks - elapsed);
+                            tooltipLines.Add(_localization.Get("barracks_soldier_production") + $" {remaining/100.0:0.0}s/{MilitaryController.SoldierProductionIntervalTicks/100.0:0.0}s");
+                        }
+                        tooltipLines.Add("");
                     }
-                    tooltipLines.Add("");
                 }
 
                 if (hoveredBuilding is BuildersGuild buildersGuild && buildersGuild.Level > 0)

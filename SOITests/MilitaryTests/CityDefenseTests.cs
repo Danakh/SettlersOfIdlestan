@@ -29,6 +29,8 @@ public class CityDefenseTests
         ]);
 
         var civ = new Civilization { Index = 0 };
+        civ.Resources[Resource.Wood] = 9999;
+        civ.Resources[Resource.Stone] = 9999;
         var city = new City(CityVertex) { CivilizationIndex = 0 };
         foreach (var b in buildings) city.Buildings.Add(b);
         civ.Cities.Add(city);
