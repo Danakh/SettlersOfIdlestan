@@ -124,6 +124,7 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay
             var manualResources = harvestController.GetManualHarvestableResources(playerIdx, coord);
             var autoResources = harvestController.GetAutomaticHarvestableResources(playerIdx, coord);
 
+            var tile = islandState.Map.GetTile(coord);
             var featuresAtCoord = islandState.Features.Where(f => f.Position.Equals(coord));
             var featureTooltipEntries = featuresAtCoord.Select(f => f.GetTooltipEntry()).Where(e => e != null);
             bool harvestBlockedByFeature = featuresAtCoord.Any(f => f.BlocksHarvest);
@@ -132,7 +133,6 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay
 
             if (manualResources.Count == 0 && autoResources.Count == 0 && featureTooltipEntries.Count() == 0 && !banditCooldownActive)
             {
-                var tile = islandState.Map.GetTile(coord);
                 if (tile == null) return;
                 var terrainKey = $"hex_tooltip_terrain_{tile.TerrainType.ToString().ToLower()}";
                 _tooltipTexts = new string[] { _localizationService.Get(terrainKey) };
@@ -144,6 +144,12 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay
 
             var lines = new List<string>();
 
+            if (tile != null)
+            {
+                var terrainKey = $"hex_tooltip_terrain_{tile.TerrainType.ToString().ToLower()}";
+                lines.Add(_localizationService.Get(terrainKey));
+            }
+
             foreach (var entry in featureTooltipEntries)
                 lines.Add(_localizationService.Resolve(entry!));
 
@@ -154,28 +160,31 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay
                 lines.Add($"{_localizationService.Get("hex_tooltip_bandit_cooldown")}: {remaining:F1}s / {max:0.#}s");
             }
 
-            var allResources = manualResources.Union(autoResources).Distinct().ToList();
-            if (allResources.Count > 0)
-                lines.Add(string.Join(", ", allResources.Select(r => _localizationService.Get($"resource_{r.ToString().ToLower()}"))));
-
             if (!harvestBlockedByFeature && manualResources.Count > 0)
             {
                 islandState.HarvestLastTimesByCivilization.TryGetValue(playerIdx, out var manualTimes);
                 long manualCooldown = harvestController.GetManualHarvestCooldownTicks(playerIdx);
-                lines.Add(FormatCooldownLine(_localizationService.Get("hex_tooltip_manual"), coord, manualTimes, currentTick, manualCooldown));
+                string manualLabel = _localizationService.Get("hex_tooltip_manual");
+                foreach (var resource in manualResources)
+                {
+                    string resourceName = _localizationService.Get($"resource_{resource.ToString().ToLower()}");
+                    lines.Add(FormatCooldownLine($"{manualLabel} ({resourceName})", coord, manualTimes, currentTick, manualCooldown));
+                }
             }
 
             if (!harvestBlockedByFeature && autoResources.Count > 0)
             {
                 var autoInfo = harvestController.GetAutoHarvestInfoForHex(playerIdx, coord);
-                foreach (var (_, buildingType, lastTick, cooldown) in autoInfo)
+                string autoPrefix = _localizationService.Get("hex_tooltip_auto");
+                foreach (var (_, buildingType, resource, lastTick, cooldown) in autoInfo)
                 {
                     string buildingName = _localizationService.Get($"building_{buildingType.ToString().ToLower()}_name");
+                    string resourceName = _localizationService.Get($"resource_{resource.ToString().ToLower()}");
                     string max = $"{cooldown / 100.0:0.0}s";
                     long remaining = lastTick == 0 ? 0 : Math.Max(0L, cooldown - (currentTick - lastTick));
                     string line = remaining <= 0
-                        ? $"{buildingName}: {_localizationService.Get("hex_tooltip_ready")} / {max}"
-                        : $"{buildingName}: {remaining / 100.0:F1}s / {max}";
+                        ? $"[{autoPrefix}] {buildingName} ({resourceName}): {_localizationService.Get("hex_tooltip_ready")} / {max}"
+                        : $"[{autoPrefix}] {buildingName} ({resourceName}): {remaining / 100.0:F1}s / {max}";
                     lines.Add(line);
                 }
             }

@@ -313,26 +313,27 @@ namespace SettlersOfIdlestan.Controller.Island
 
         /// <summary>
         /// Retourne les informations de récolte automatique par bâtiment pour un hex donné.
-        /// Chaque entrée = (vertex de la ville, type du bâtiment, tick de la dernière récolte, cooldown effectif).
+        /// Chaque entrée = (vertex de la ville, type du bâtiment, ressource, tick de la dernière récolte, cooldown effectif).
         /// </summary>
-        public System.Collections.Generic.IReadOnlyList<(Vertex CityVertex, BuildingType BuildingType, long LastTick, long Cooldown)> GetAutoHarvestInfoForHex(int civilizationIndex, HexCoord hex)
+        public System.Collections.Generic.IReadOnlyList<(Vertex CityVertex, BuildingType BuildingType, Resource Resource, long LastTick, long Cooldown)> GetAutoHarvestInfoForHex(int civilizationIndex, HexCoord hex)
         {
-            if (_state == null) return System.Array.Empty<(Vertex, BuildingType, long, long)>();
+            if (_state == null) return System.Array.Empty<(Vertex, BuildingType, Resource, long, long)>();
             var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex);
-            if (civ == null) return System.Array.Empty<(Vertex, BuildingType, long, long)>();
+            if (civ == null) return System.Array.Empty<(Vertex, BuildingType, Resource, long, long)>();
             var tile = _state.Map.GetTile(hex);
-            if (tile == null) return System.Array.Empty<(Vertex, BuildingType, long, long)>();
+            if (tile == null) return System.Array.Empty<(Vertex, BuildingType, Resource, long, long)>();
 
-            var result = new System.Collections.Generic.List<(Vertex, BuildingType, long, long)>();
+            var result = new System.Collections.Generic.List<(Vertex, BuildingType, Resource, long, long)>();
             foreach (var city in civ.Cities.Where(c => c.Position.IsAdjacentTo(hex)))
                 foreach (var building in city.Buildings)
                 {
-                    if (!building.AutomaticHarvestCapability(tile.TerrainType).HasValue) continue;
+                    var resource = building.AutomaticHarvestCapability(tile.TerrainType);
+                    if (!resource.HasValue) continue;
                     long raw = building.GetAutomaticHarvestCooldown(AutomaticHarvestCooldownTicks);
                     double speedMultiplier = civ.ModifierAggregator.ApplyModifiers(ECategory.HARVEST_SPEED, building.Type.ToString(), 1.0);
                     long effective = Math.Max(1L, (long)(raw / speedMultiplier));
                     building.AutoHarvestLastTicks.TryGetValue(hex, out var lastTick);
-                    result.Add((city.Position, building.Type, lastTick, effective));
+                    result.Add((city.Position, building.Type, resource.Value, lastTick, effective));
                 }
             return result;
         }

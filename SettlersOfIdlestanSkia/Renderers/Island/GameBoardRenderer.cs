@@ -310,7 +310,7 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
         // Le rayon s'incrémente uniquement pour plusieurs bâtiments de la MÊME ville sur le même hex.
         var autoInfo = _harvestController.GetAutoHarvestInfoForHex(playerIdx, tile.Coord);
         var arcIndexByVertex = new Dictionary<Vertex, int>();
-        foreach (var (cityVertex, _, lastTick, cooldown) in autoInfo)
+        foreach (var (cityVertex, _, _, lastTick, cooldown) in autoInfo)
         {
             arcIndexByVertex.TryGetValue(cityVertex, out int arcIdx);
             arcIndexByVertex[cityVertex] = arcIdx + 1;
