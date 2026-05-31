@@ -41,6 +41,7 @@ public class SelectedCityPanelRenderer : IGameRenderer
     private const float RowHeight = 36;
     private const float Padding = 10;
     private const float TabHeight = 28f;
+    private const float MilitaryFooterHeight = 22f;
     private Dictionary<SKRect, BuildingType> _btnRects = new Dictionary<SKRect, BuildingType>();
     private Dictionary<SKRect, BuildingType> _hoverRects = new Dictionary<SKRect, BuildingType>();
     private Dictionary<SKRect, BuildingType> _checkboxRects = new Dictionary<SKRect, BuildingType>();
@@ -193,7 +194,7 @@ public class SelectedCityPanelRenderer : IGameRenderer
         int buildingCount = buildings.Count;
 
         float maxPanelHeight = Math.Max(0, _canvasSize.Height - panelY - ReservedBottomHeight - 10);
-        int visibleBuildingCount = Math.Min(buildingCount, Math.Max(0, (int)((maxPanelHeight - 2 * Padding - tabArea) / RowHeight)));
+        int visibleBuildingCount = Math.Min(buildingCount, Math.Max(0, (int)((maxPanelHeight - 2 * Padding - tabArea - MilitaryFooterHeight) / RowHeight)));
 
         _lastBuildingCount = buildingCount;
         _lastVisibleCount = visibleBuildingCount;
@@ -207,9 +208,9 @@ public class SelectedCityPanelRenderer : IGameRenderer
             return;
         }
 
-        float panelHeight = visibleBuildingCount * RowHeight + 2 * Padding + tabArea;
-        if (panelHeight < tabArea + 2 * Padding)
-            panelHeight = tabArea + 2 * Padding;
+        float panelHeight = visibleBuildingCount * RowHeight + 2 * Padding + tabArea + MilitaryFooterHeight;
+        if (panelHeight < tabArea + 2 * Padding + MilitaryFooterHeight)
+            panelHeight = tabArea + 2 * Padding + MilitaryFooterHeight;
 
         _panelBounds = new SKRect(panelX, panelY, panelX + PanelWidth, panelY + panelHeight);
 
@@ -350,6 +351,21 @@ public class SelectedCityPanelRenderer : IGameRenderer
             float maxScroll = Math.Max(1, buildingCount - visibleBuildingCount);
             float thumbTop = trackTop + (float)_scrollOffset / maxScroll * (trackH - thumbH);
             canvas.DrawRoundRect(trackX, thumbTop, scrollW, thumbH, 3, 3, _scrollThumbPaint);
+        }
+
+        // Pied de panneau militaire (toujours visible)
+        {
+            float footerY = panelY + panelHeight - MilitaryFooterHeight;
+            using var dividerPaint = new SKPaint { Color = new SKColor(200, 200, 220, 60), Style = SKPaintStyle.Stroke, StrokeWidth = 1, IsAntialias = true };
+            canvas.DrawLine(panelX + Padding, footerY, panelX + PanelWidth - Padding, footerY, dividerPaint);
+
+            var (soldiers, maxSoldiers) = _cityBuildingService.GetSelectedCitySoldiers();
+            var (defense, maxDefense) = _cityBuildingService.GetSelectedCityDefense();
+            string soldiersLabel = _localization.Get("footer_soldiers");
+            string defenseLabel = _localization.Get("footer_defense");
+            string militaryText = $"{soldiersLabel}: {soldiers}/{maxSoldiers}    {defenseLabel}: {defense}/{maxDefense}";
+            float textY = footerY + MilitaryFooterHeight / 2f + _font10!.Size / 2f - 1f;
+            canvas.DrawText(militaryText, panelX + PanelWidth / 2f, textY, SKTextAlign.Center, _font10, _costTextPaint);
         }
 
         // Onglet collapse (sur bord gauche du panneau)

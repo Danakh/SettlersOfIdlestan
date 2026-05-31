@@ -138,6 +138,8 @@
   "building_barracks_desc_2": "Produit 1 soldat toutes les 30s (max 10). Les soldats attaquent les bandits adjacents.",
   "barracks_soldiers": "Soldats",
   "barracks_soldier_production": "Prochain soldat :",
+  "footer_soldiers": "Sol.",
+  "footer_defense": "Déf.",
   "action_build": "Construire",
   "action_upgrade": "Améliorer",
   "action_maxlevel": "Niveau Max",
