@@ -20,6 +20,7 @@ public class PrestigeMap
     public static readonly HexCoord ArtisansProductionCoord   = new(0,   2);
     public static readonly HexCoord ExperimentalScienceCoord  = new(2,   0);
     public static readonly HexCoord DefenseRegenCoord         = new(2,  -1);
+    public static readonly HexCoord WarehouseMaxLevelCoord    = new(-1,  0);
 
     // ── Prestige vertices (HexGrid Vertex objects) ────────────────────────────
     // Layout: pointy-top, R=60, Central vertex at screen center.
@@ -275,6 +276,12 @@ public class PrestigeMap
                 "prestige_hex_defense_regen",
                 adjacentVertices: Adjacent(DefenseRegenCoord),
                 perVertexModifiers: new Modifier[] { new(ECategory.CITY_DEFENSE_REGEN_SPEED, EType.ADDITIVE, 0.1) }
+            ),
+            new(
+                WarehouseMaxLevelCoord,
+                "prestige_hex_warehouse_max_level",
+                adjacentVertices: Adjacent(WarehouseMaxLevelCoord),
+                perVertexModifiers: new Modifier[] { new(ECategory.BUILDING_MAX_LEVEL, "Warehouse", EType.ADDITIVE, 1) }
             ),
         };
 

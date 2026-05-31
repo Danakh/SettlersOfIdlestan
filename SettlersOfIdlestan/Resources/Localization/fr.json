@@ -257,6 +257,7 @@
   "prestige_hex_gold_trade": "Commerce d'or",
   "prestige_hex_experimental_science": "Science expérimentale",
   "prestige_hex_defense_regen": "Régénération défensive",
+  "prestige_hex_warehouse_max_level": "Entrepôts agrandis",
   "prestige_tooltip_gold_packages": "Packs offerts par or",
   "prestige_tooltip_city_defense": "défense de ville",
   "prestige_tooltip_city_max_soldiers": "capacité soldats par ville",

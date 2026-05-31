@@ -257,6 +257,7 @@
   "prestige_hex_gold_trade": "Gold Trade",
   "prestige_hex_experimental_science": "Experimental Science",
   "prestige_hex_defense_regen": "Defensive Regeneration",
+  "prestige_hex_warehouse_max_level": "Expanded Warehouses",
   "prestige_tooltip_gold_packages": "packs offered per gold",
   "prestige_tooltip_city_defense": "city defense",
   "prestige_tooltip_city_max_soldiers": "soldier capacity per city",

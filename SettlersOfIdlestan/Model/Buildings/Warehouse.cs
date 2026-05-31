@@ -17,7 +17,7 @@ public class Warehouse : Building
 
     public override int GetDefaultMaxLevel()
     {
-        return 4;
+        return 2;
     }
 
     /// <summary>
