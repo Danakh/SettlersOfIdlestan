@@ -98,7 +98,8 @@ public class MilitaryController
     public int GetAttackScore(City city) => city.Soldiers;
 
     /// <summary>Capacité maximale de soldats de la ville, tous bâtiments garnison confondus.</summary>
-    public int GetMaximumSoldierCapacity(City city, Civilization? civ = null) => city.MaxSoldiers;
+    public int GetMaximumSoldierCapacity(City city, Civilization? civ = null)
+        => city.MaxSoldiers + (civ?.CityMaxSoldiersBonus ?? 0);
 
     /// <summary>Score de défense maximal de la ville (bâtiments + modificateurs de civilisation).</summary>
     public int GetDefenseScore(City city, Civilization? civ = null)
@@ -148,7 +149,7 @@ public class MilitaryController
         foreach (var civ in _state.Civilizations)
             foreach (var city in civ.Cities)
             {
-                if (city.Soldiers >= city.MaxSoldiers) continue;
+                if (city.Soldiers >= GetMaximumSoldierCapacity(city, civ)) continue;
                 if (currentTick - city.LastSoldierProductionTick < SoldierProductionIntervalTicks) continue;
 
                 var barracks = city.Buildings.OfType<Barracks>()
@@ -279,7 +280,8 @@ public class MilitaryController
             {
                 int maxDef = GetDefenseScore(city, civ);
                 if (city.CurrentDefense >= maxDef) continue;
-                if (currentTick - city.LastDefenseRegenTick < DefenseRegenIntervalTicks) continue;
+                long effectiveRegenInterval = (long)(DefenseRegenIntervalTicks / civ.CityDefenseRegenSpeed);
+                if (currentTick - city.LastDefenseRegenTick < effectiveRegenInterval) continue;
                 if (civ.GetResourceQuantity(Resource.Wood) < 1 || civ.GetResourceQuantity(Resource.Stone) < 1) continue;
                 civ.RemoveResource(Resource.Wood, 1);
                 civ.RemoveResource(Resource.Stone, 1);
@@ -447,7 +449,7 @@ public class MilitaryController
                     if (targetCity == null) continue;
                 }
 
-                if (targetCity.Soldiers >= targetCity.MaxSoldiers) continue;
+                if (targetCity.Soldiers >= GetMaximumSoldierCapacity(targetCity, civ)) continue;
 
                 sourceCity.Soldiers--;
                 targetCity.Soldiers++;

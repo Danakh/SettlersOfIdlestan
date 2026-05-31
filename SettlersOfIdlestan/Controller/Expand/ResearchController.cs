@@ -87,7 +87,8 @@ namespace SettlersOfIdlestan.Controller.Expand
                 if (_state.PlayerCivilization.GetResourceQuantity(Resource.Gold) < 1) continue;
 
                 _state.PlayerCivilization.RemoveResource(Resource.Gold, 1);
-                tree.ResearchPoints = Math.Min(tree.ResearchPoints + Laboratory.ResearchPointsPerBatch, MaxResearchPoints);
+                int batch = Laboratory.ResearchPointsPerBatch + _state.PlayerCivilization.LaboratoryResearchBonus;
+                tree.ResearchPoints = Math.Min(tree.ResearchPoints + batch, MaxResearchPoints);
                 lab.LastResearchTick = now;
             }
         }
