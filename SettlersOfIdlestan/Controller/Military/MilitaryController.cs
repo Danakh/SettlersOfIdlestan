@@ -447,6 +447,8 @@ public class MilitaryController
                     if (targetCity == null) continue;
                 }
 
+                if (targetCity.Soldiers >= targetCity.MaxSoldiers) continue;
+
                 sourceCity.Soldiers--;
                 targetCity.Soldiers++;
                 sourceCity.LastReinforcementTick = currentTick;
