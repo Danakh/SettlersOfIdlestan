@@ -34,6 +34,7 @@ public sealed class SkiaGameRuntime : IDisposable
     private WonderService? _wonderService;
     private TutorialRenderer? _tutorialRenderer;
     private TutorialService? _tutorialService;
+    private MilitaryInteractionService? _militaryInteractionService;
 
     private bool _isDisposed;
     private bool _isGameInitialized;
@@ -129,6 +130,14 @@ public sealed class SkiaGameRuntime : IDisposable
         _renderService.RegisterRenderer(islandMainRenderer);
         islandMainRenderer.SuppressCities = () => _introRenderer?.IsActive == true;
 
+        _militaryInteractionService = new MilitaryInteractionService(
+            _gameControllerService,
+            _gameControllerService.MainGameController.MilitaryController,
+            _inputService,
+            _cameraService);
+        _militaryInteractionService.AttachRenderer(islandMainRenderer);
+        islandMainRenderer.ConnectMilitaryInteractionService(_militaryInteractionService);
+
         _wonderSelectionService = new WonderSelectionService();
         _wonderSelectionService.ConnectWonderController(_gameControllerService.MainGameController.WonderController);
         _wonderSelectionService.Entered += OnWonderSelectionEntered;
@@ -187,7 +196,9 @@ public sealed class SkiaGameRuntime : IDisposable
         _overlayRenderer.ConnectWonderService(_wonderSelectionService);
         _renderService.RegisterRenderer(_overlayRenderer);
         _constructionInteractionService.ShouldSuppressHover = pos =>
-            (_overlayRenderer?.IsPointBlockedByUI(pos) ?? false) || (_wonderSelectionService?.IsActive == true);
+            (_overlayRenderer?.IsPointBlockedByUI(pos) ?? false)
+            || (_wonderSelectionService?.IsActive == true)
+            || (_militaryInteractionService?.ShouldSuppressConstruction == true);
         if (allowDebugMode)
         {
             _renderService.RegisterRenderer(new DebugOverlayRenderer(_inputService, _cameraService, islandMainRenderer, _localizationService));
@@ -339,6 +350,9 @@ public sealed class SkiaGameRuntime : IDisposable
         _panStartPoint = new SKPoint(x, y);
         _lastPanPoint = _panStartPoint;
         _inputService?.HandlePointerPressed(x, y, pointerId, button);
+        // Supprime le pan si on presse sur une cité alliée avec soldats
+        if (_militaryInteractionService?.IsPotentialDragFromCity == true)
+            _isPanSuppressedAtStart = true;
     }
 
     public void HandlePointerMoved(float x, float y, int pointerId = 0)
@@ -532,10 +546,12 @@ public sealed class SkiaGameRuntime : IDisposable
             return;
 
         _constructionInteractionService?.Cleanup();
+        _militaryInteractionService?.Cleanup();
         _renderService?.Dispose();
         _resourceManager?.Dispose();
 
         _constructionInteractionService = null;
+        _militaryInteractionService = null;
         _renderService = null;
         _resourceManager = null;
         _inputService = null;

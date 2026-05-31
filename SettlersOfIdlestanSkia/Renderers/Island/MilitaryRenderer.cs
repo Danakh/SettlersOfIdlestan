@@ -15,6 +15,8 @@ public class MilitaryRenderer : HexBasedRenderer, IGameRenderer
     private const float SegmentDuration = 0.35f;
     private const float ParticleIconSize = 16f;
     private const float SvgNativeSize = 64f;
+    private const float ArrowSize = 9f;
+    private const float ArrowTipOffset = 18f;
 
     private sealed class MilitaryParticle
     {
@@ -28,8 +30,14 @@ public class MilitaryRenderer : HexBasedRenderer, IGameRenderer
     private SKPaint? _paint;
     private SKPaint? _reinforcePaint;
     private SKPaint? _threatLinePaint;
+    private SKPaint? _flowRedPaint;
+    private SKPaint? _flowGreenPaint;
+    private SKPaint? _arrowPaint;
+    private SKPaint? _dragLinePaint;
+    private SKPaint? _dragCirclePaint;
     private MilitaryController? _militaryController;
     private GameControllerService? _gameControllerService;
+    private MilitaryInteractionService? _interactionService;
     private bool _disposed;
 
     public void Initialize(SKSize canvasSize)
@@ -38,12 +46,39 @@ public class MilitaryRenderer : HexBasedRenderer, IGameRenderer
         _reinforcePaint = new SKPaint { IsAntialias = true };
         _threatLinePaint = new SKPaint
         {
-            Color = new SKColor(220, 50, 50, 180),
+            Color = new SKColor(220, 50, 50, 100),
+            StrokeWidth = 1.5f,
+            Style = SKPaintStyle.Stroke,
+            IsAntialias = true,
+            PathEffect = SKPathEffect.CreateDash(new float[] { 6f, 8f }, 0f),
+        };
+        _flowRedPaint = new SKPaint
+        {
+            Color = new SKColor(220, 60, 60, 220),
+            StrokeWidth = 2.5f,
+            Style = SKPaintStyle.Stroke,
+            IsAntialias = true,
+            PathEffect = SKPathEffect.CreateDash(new float[] { 12f, 5f }, 0f),
+        };
+        _flowGreenPaint = new SKPaint
+        {
+            Color = new SKColor(50, 200, 80, 220),
+            StrokeWidth = 2.5f,
+            Style = SKPaintStyle.Stroke,
+            IsAntialias = true,
+            PathEffect = SKPathEffect.CreateDash(new float[] { 12f, 5f }, 0f),
+        };
+        _arrowPaint = new SKPaint { IsAntialias = true, Style = SKPaintStyle.Fill };
+        _dragLinePaint = new SKPaint
+        {
+            Color = new SKColor(255, 255, 255, 180),
             StrokeWidth = 2f,
             Style = SKPaintStyle.Stroke,
             IsAntialias = true,
-            PathEffect = SKPathEffect.CreateDash(new float[] { 8f, 6f }, 0f),
+            PathEffect = SKPathEffect.CreateDash(new float[] { 10f, 6f }, 0f),
         };
+        _dragCirclePaint = new SKPaint { IsAntialias = true, Style = SKPaintStyle.Stroke, StrokeWidth = 3f };
+
         var assembly = Assembly.GetExecutingAssembly();
         using var stream = assembly.GetManifestResourceStream(
             $"{assembly.GetName().Name}.Resources.icons.military.attack.svg");
@@ -76,6 +111,11 @@ public class MilitaryRenderer : HexBasedRenderer, IGameRenderer
         };
     }
 
+    public void ConnectInteractionService(MilitaryInteractionService service)
+    {
+        _interactionService = service;
+    }
+
     private void EmitParticle(List<Vertex> vertexPath)
     {
         if (vertexPath.Count == 0) return;
@@ -93,11 +133,98 @@ public class MilitaryRenderer : HexBasedRenderer, IGameRenderer
     public void Render(SKCanvas canvas, GameRenderContext context)
     {
         DrawThreatLines(canvas);
+        DrawFlowLines(canvas);
+        DrawDragInteraction(canvas, context);
 
         float dt = context.DeltaTime;
-
         AdvanceParticles(canvas, _particles, dt, reinforce: false);
         AdvanceParticles(canvas, _reinforceParticles, dt, reinforce: true);
+    }
+
+    private void DrawFlowLines(SKCanvas canvas)
+    {
+        var islandState = _gameControllerService?.CurrentIslandState;
+        var playerCiv = _gameControllerService?.PlayerCivilization;
+        if (islandState == null || playerCiv == null || _flowRedPaint == null || _flowGreenPaint == null || _arrowPaint == null) return;
+
+        foreach (var sourceCity in playerCiv.Cities)
+        {
+            if (sourceCity.FlowTarget == null) continue;
+
+            var targetCity = islandState.Civilizations
+                .SelectMany(c => c.Cities)
+                .FirstOrDefault(c => c.Position.Equals(sourceCity.FlowTarget));
+            if (targetCity == null) continue;
+
+            bool isReinforcement = targetCity.CivilizationIndex == playerCiv.Index;
+            var linePaint = isReinforcement ? _flowGreenPaint : _flowRedPaint;
+            var arrowColor = isReinforcement ? new SKColor(50, 200, 80, 220) : new SKColor(220, 60, 60, 220);
+
+            var sourcePt = VertexToIsland(sourceCity.Position);
+            var targetPt = VertexToIsland(targetCity.Position);
+
+            canvas.DrawLine(sourcePt, targetPt, linePaint);
+            DrawArrowhead(canvas, sourcePt, targetPt, arrowColor);
+        }
+    }
+
+    private void DrawDragInteraction(SKCanvas canvas, GameRenderContext context)
+    {
+        if (_interactionService?.DragSourceCity is not { } sourceCity) return;
+        if (_dragLinePaint == null || _dragCirclePaint == null || _arrowPaint == null) return;
+
+        var sourcePt = VertexToIsland(sourceCity.Position);
+        var screen = _interactionService.DragCurrentScreenPoint;
+        var cursorIsland = new SKPoint(
+            screen.X / context.ZoomLevel + context.CameraPosition.X,
+            screen.Y / context.ZoomLevel + context.CameraPosition.Y);
+
+        canvas.DrawLine(sourcePt, cursorIsland, _dragLinePaint);
+        DrawArrowhead(canvas, sourcePt, cursorIsland, new SKColor(255, 255, 255, 180), tipOffset: 4f);
+
+        float pulse = 0.7f + 0.3f * MathF.Sin(context.TotalTime * 5f);
+        _dragCirclePaint.Color = new SKColor(255, 215, 0, (byte)(200 * pulse));
+        canvas.DrawCircle(sourcePt, 18f, _dragCirclePaint);
+
+        if (_interactionService.DragTargetCity is { } targetCity && targetCity != sourceCity)
+        {
+            var targetPt = VertexToIsland(targetCity.Position);
+            bool inRange = _interactionService.DragTargetIsInRange;
+            var playerIndex = _gameControllerService?.PlayerCivilization?.Index ?? -1;
+            bool isAlly = targetCity.CivilizationIndex == playerIndex;
+
+            _dragCirclePaint.Color = inRange
+                ? (isAlly ? new SKColor(50, 200, 80, 220) : new SKColor(220, 60, 60, 220))
+                : new SKColor(150, 150, 150, 180);
+            canvas.DrawCircle(targetPt, 20f, _dragCirclePaint);
+        }
+    }
+
+    /// <summary>Dessine une tête de flèche remplie à l'extrémité d'un segment.</summary>
+    private void DrawArrowhead(SKCanvas canvas, SKPoint from, SKPoint to, SKColor color,
+        float tipOffset = ArrowTipOffset, float size = ArrowSize)
+    {
+        if (_arrowPaint == null) return;
+        float dx = to.X - from.X;
+        float dy = to.Y - from.Y;
+        float len = MathF.Sqrt(dx * dx + dy * dy);
+        if (len < tipOffset + size) return;
+
+        float ux = dx / len;
+        float uy = dy / len;
+
+        var tip = new SKPoint(to.X - ux * tipOffset, to.Y - uy * tipOffset);
+        var p1 = new SKPoint(tip.X - ux * size - uy * (size * 0.45f), tip.Y - uy * size + ux * (size * 0.45f));
+        var p2 = new SKPoint(tip.X - ux * size + uy * (size * 0.45f), tip.Y - uy * size - ux * (size * 0.45f));
+
+        using var path = new SKPath();
+        path.MoveTo(tip);
+        path.LineTo(p1);
+        path.LineTo(p2);
+        path.Close();
+
+        _arrowPaint.Color = color;
+        canvas.DrawPath(path, _arrowPaint);
     }
 
     private void AdvanceParticles(SKCanvas canvas, List<MilitaryParticle> particles, float dt, bool reinforce)
@@ -159,7 +286,6 @@ public class MilitaryRenderer : HexBasedRenderer, IGameRenderer
     private void DrawThreatLines(SKCanvas canvas)
     {
         if (_militaryController == null || _gameControllerService == null || _threatLinePaint == null) return;
-        var islandState = _gameControllerService.CurrentIslandState;
         var playerCiv = _gameControllerService.PlayerCivilization;
         if (playerCiv == null) return;
 
@@ -183,6 +309,16 @@ public class MilitaryRenderer : HexBasedRenderer, IGameRenderer
         _reinforcePaint = null;
         _threatLinePaint?.Dispose();
         _threatLinePaint = null;
+        _flowRedPaint?.Dispose();
+        _flowRedPaint = null;
+        _flowGreenPaint?.Dispose();
+        _flowGreenPaint = null;
+        _arrowPaint?.Dispose();
+        _arrowPaint = null;
+        _dragLinePaint?.Dispose();
+        _dragLinePaint = null;
+        _dragCirclePaint?.Dispose();
+        _dragCirclePaint = null;
         _disposed = true;
     }
 }
