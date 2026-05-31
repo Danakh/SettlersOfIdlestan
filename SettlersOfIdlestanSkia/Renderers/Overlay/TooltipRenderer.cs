@@ -124,13 +124,13 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay
             var manualResources = harvestController.GetManualHarvestableResources(playerIdx, coord);
             var autoResources = harvestController.GetAutomaticHarvestableResources(playerIdx, coord);
 
-            var featuresAtCoord = islandState.Features.Where(f => f.Position.Equals(coord)).ToList();
-            var featureTooltipEntries = featuresAtCoord.Select(f => f.GetTooltipEntry()).Where(e => e != null).ToList();
+            var featuresAtCoord = islandState.Features.Where(f => f.Position.Equals(coord));
+            var featureTooltipEntries = featuresAtCoord.Select(f => f.GetTooltipEntry()).Where(e => e != null);
             bool harvestBlockedByFeature = featuresAtCoord.Any(f => f.BlocksHarvest);
             bool banditCooldownActive = islandState.BanditCooldownUntil.TryGetValue(coord, out var banditUntil)
                 && currentTick < banditUntil;
 
-            if (manualResources.Count == 0 && autoResources.Count == 0 && featureTooltipEntries.Count == 0 && !banditCooldownActive)
+            if (manualResources.Count == 0 && autoResources.Count == 0 && featureTooltipEntries.Count() == 0 && !banditCooldownActive)
             {
                 var tile = islandState.Map.GetTile(coord);
                 if (tile == null) return;
@@ -145,7 +145,7 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay
             var lines = new List<string>();
 
             foreach (var entry in featureTooltipEntries)
-                lines.Add(_localizationService.Resolve(entry));
+                lines.Add(_localizationService.Resolve(entry!));
 
             if (banditCooldownActive)
             {
