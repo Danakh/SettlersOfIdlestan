@@ -186,7 +186,7 @@ namespace SettlersOfIdlestan.Controller
 
             foreach (var bt in new[] { BuildingType.Seaport, BuildingType.Warehouse, BuildingType.TownHall })
             {
-                if (TryBuildBuildingOnce(coastalCity.Position, bt, withGrind: false))
+                if (TryBuildBuildingOnce(coastalCity.Position, bt, withGrind: true))
                     didSomething = true;
             }
 
