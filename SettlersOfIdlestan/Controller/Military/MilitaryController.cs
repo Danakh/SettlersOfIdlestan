@@ -438,6 +438,14 @@ public class MilitaryController
     /// </summary>
     private bool ApplyAttackToCity(City targetCity)
     {
+        // Les soldats défenseurs absorbent l'attaque : les deux soldats meurent, la défense est intacte.
+        var defender = targetCity.Buildings.OfType<Barracks>().FirstOrDefault(b => b.Soldiers > 0);
+        if (defender != null)
+        {
+            defender.Soldiers--;
+            return false;
+        }
+
         if (targetCity.CurrentDefense > 0)
         {
             targetCity.CurrentDefense--;
