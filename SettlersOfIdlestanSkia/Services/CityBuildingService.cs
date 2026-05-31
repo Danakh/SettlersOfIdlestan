@@ -139,7 +139,7 @@ public class CityBuildingService
     {
         if (SelectedCity == null) return (0, 0);
         var mc = _mainGameController.MilitaryController;
-        return (mc.GetAttackScore(SelectedCity), mc.GetMaximumSoldierCapacity(SelectedCity));
+        return (mc.GetAttackScore(SelectedCity), mc.GetMaximumSoldierCapacity(SelectedCity, IslandState.Civilizations[SelectedCity.CivilizationIndex]));
     }
 
     public (int current, int max) GetSelectedCityDefense()

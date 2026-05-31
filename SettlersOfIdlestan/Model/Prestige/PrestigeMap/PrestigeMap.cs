@@ -36,6 +36,7 @@ public class PrestigeMap
     public static readonly Vertex ArtisansGuildVertex    = Vertex.Create(new(-1, 2), new(0, 1), new(0, 2));
     public static readonly Vertex MilitaryStrategyVertex  = Vertex.Create(new(1, 0), new(2,  0), new(2, -1));
     public static readonly Vertex ConscriptionVertex      = Vertex.Create(new(1, 0), new(1, -1), new(2, -1));
+    public static readonly Vertex MilitaryAcademyVertex   = Vertex.Create(new(2, 0), new(2, -1), new(3, -1));
     public static readonly Vertex KnowledgeMasteryVertex  = Vertex.Create(new(1, 1), new(0,  2), new(1,  2));
     public static readonly Vertex WatchtowerVertex           = Vertex.Create(new(0, 0), new(-1, 0), new(-1, 1));
     public static readonly Vertex MaritimeRoutesVertex       = Vertex.Create(new(-1, 0), new(-1, 1), new(-2, 1));
@@ -176,6 +177,12 @@ public class PrestigeMap
                 {
                     new(ECategory.UNLOCK_RESEARCH, "MilitaryDiscipline", EType.ADDITIVE, 1),
                 }
+            ),
+            new(
+                MilitaryAcademyVertex,
+                "prestige_vertex_military_academy",
+                cost: Cost(MilitaryAcademyVertex),
+                modifiers: new Modifier[] { new(ECategory.BUILDING_MAX_LEVEL, "MilitaryAcademy", EType.ADDITIVE, 4) }
             ),
             new(
                 KnowledgeMasteryVertex,
