@@ -128,7 +128,7 @@ public class TaskRecordController
     private void HandleBuildingBuilt(object? sender, BuildingBuiltEventArgs e)
     {
         if (_gameRecord == null || _runRecord == null) return;
-        if (e.CivilizationIndex != _playerCivIndex) return;
+        if (e.City.CivilizationIndex != _playerCivIndex) return;
 
         if (e.IsNewBuilding)
         {
@@ -159,8 +159,7 @@ public class TaskRecordController
                 && (e.BuildingType == BuildingType.Seaport || e.BuildingType == BuildingType.TownHall)
                 && _islandState != null)
             {
-                var city = _islandState.PlayerCivilization.Cities
-                    .FirstOrDefault(c => c.Position.Equals(e.CityPosition));
+                var city = e.City;
                 if (city != null)
                 {
                     bool hasSeaport4 = city.Buildings.Any(b => b.Type == BuildingType.Seaport && b.Level >= 4);

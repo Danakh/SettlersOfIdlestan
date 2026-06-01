@@ -1,4 +1,5 @@
 using SettlersOfIdlestan.Model.Buildings;
+using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
@@ -11,16 +12,14 @@ namespace SettlersOfIdlestan.Controller.Island
 {
     public class BuildingBuiltEventArgs : EventArgs
     {
-        public int CivilizationIndex { get; }
-        public Vertex CityPosition { get; }
+        public City City { get; }
         public BuildingType BuildingType { get; }
         public int Level { get; }
         public bool IsNewBuilding { get; }
 
-        public BuildingBuiltEventArgs(int civIndex, Vertex cityPosition, BuildingType type, int level, bool isNewBuilding)
+        public BuildingBuiltEventArgs(City city, BuildingType type, int level, bool isNewBuilding)
         {
-            CivilizationIndex = civIndex;
-            CityPosition = cityPosition;
+            City = city;
             BuildingType = type;
             Level = level;
             IsNewBuilding = isNewBuilding;
@@ -183,13 +182,13 @@ namespace SettlersOfIdlestan.Controller.Island
             // New builds first, then upgrade lowest-level existing buildings
             foreach (var city in civ.Cities)
                 foreach (var type in targets)
-                    if (!city.Buildings.Any(b => b.Type == type) && BuildBuilding(civ.Index, city.Position, type))
+                    if (!city.Buildings.Any(b => b.Type == type) && BuildBuilding(city, type))
                         return;
 
             foreach (int level in new[] { 1, 2, 3, 4, 5 })
                 foreach (var city in civ.Cities)
                     foreach (var type in targets)
-                        if (city.Buildings.Any(b => b.Type == type && b.Level == level) && BuildBuilding(civ.Index, city.Position, type))
+                        if (city.Buildings.Any(b => b.Type == type && b.Level == level) && BuildBuilding(city, type))
                             return;
         }
 
@@ -197,15 +196,12 @@ namespace SettlersOfIdlestan.Controller.Island
         /// Retourne la liste des b�timents constructibles ou am�liorables pour la ville sp�cifi�e.
         /// La m�thode renvoie des instances prototypes de niveau 0 pour les b�timents non construits.
         /// </summary>
-        public List<Building> GetBuildingsAndBuildables(int civilizationIndex, Vertex cityVertex)
+        public List<Building> GetBuildingsAndBuildables(City city)
         {
             if (_state == null) throw new InvalidOperationException("IslandState has not been initialized.");
 
-            var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex)
-                      ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
-
-            var city = civ.Cities.FirstOrDefault(ct => ct.Position.Equals(cityVertex))
-                       ?? throw new ArgumentException("City not found at the specified vertex", nameof(cityVertex));
+            var civ = _state.Civilizations.FirstOrDefault(c => c.Index == city.CivilizationIndex)
+                      ?? throw new ArgumentException("Civilization not found", nameof(city.CivilizationIndex));
 
             var result = new List<Building>();
 
@@ -222,7 +218,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 }
                 else
                 {
-                    if ((GetMaxLevel(prototype, civilizationIndex) > 0) &&
+                    if ((GetMaxLevel(prototype, city.CivilizationIndex) > 0) &&
                         prototype.IsBuildingAvailableForCity(_state.GetMapFor(city.Position), city))
                     {
                         result.Add(prototype);
@@ -240,15 +236,12 @@ namespace SettlersOfIdlestan.Controller.Island
         /// Construit (ou am�liore) un b�timent dans la ville sp�cifi�e.
         /// Lance InvalidOperationException si pas assez de ressources ou si l'action n'est pas permise.
         /// </summary>
-        public bool BuildBuilding(int civilizationIndex, Vertex cityVertex, BuildingType type)
+        public bool BuildBuilding(City city, BuildingType type)
         {
             if (_state == null) throw new InvalidOperationException("IslandState has not been initialized.");
 
-            var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex)
-                      ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
-
-            var city = civ.Cities.FirstOrDefault(ct => ct.Position.Equals(cityVertex))
-                       ?? throw new ArgumentException("City not found at the specified vertex", nameof(cityVertex));
+            var civ = _state.Civilizations.FirstOrDefault(c => c.Index == city.CivilizationIndex)
+                      ?? throw new ArgumentException("Civilization not found", nameof(city.CivilizationIndex));
 
             var existing = city.Buildings.FirstOrDefault(b => b.Type == type);
 
@@ -273,7 +266,7 @@ namespace SettlersOfIdlestan.Controller.Island
             }
             else
             {
-                if (existing.Level >= GetMaxLevel(existing, civilizationIndex))
+                if (existing.Level >= GetMaxLevel(existing, city.CivilizationIndex))
                     return false;
 
                 cost = existing.GetUpgradeCost(existing.Level + 1);
@@ -311,10 +304,10 @@ namespace SettlersOfIdlestan.Controller.Island
             }
 
             if (type == BuildingType.Watchtower)
-                _state.RecalculateVisibleIslandMap(civilizationIndex);
+                _state.RecalculateVisibleIslandMap(city.CivilizationIndex);
 
             OnBuildingBuilt?.Invoke(this, new BuildingBuiltEventArgs(
-                civilizationIndex, cityVertex, type, resultBuilding.Level, existing == null));
+                city, type, resultBuilding.Level, existing == null));
 
             return true;
         }
@@ -324,22 +317,19 @@ namespace SettlersOfIdlestan.Controller.Island
         /// Les bâtiments déjà construits (dans n'importe quelle ville de la civ) sont toujours inclus.
         /// Les bâtiments non construits sont inclus uniquement si la ville sélectionnée est niveau 4.
         /// </summary>
-        public List<Building> GetUniqueBuildingsAndBuildables(int civilizationIndex, Vertex cityVertex)
+        public List<Building> GetUniqueBuildingsAndBuildables(City city)
         {
             if (_state == null) throw new InvalidOperationException("IslandState has not been initialized.");
 
-            var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex)
-                      ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
-
-            var city = civ.Cities.FirstOrDefault(ct => ct.Position.Equals(cityVertex))
-                       ?? throw new ArgumentException("City not found at the specified vertex", nameof(cityVertex));
+            var civ = _state.Civilizations.FirstOrDefault(c => c.Index == city.CivilizationIndex)
+                      ?? throw new ArgumentException("Civilization not found", nameof(city.CivilizationIndex));
 
             var result = new List<Building>();
 
             foreach (BuildingType bt in Enum.GetValues(typeof(BuildingType)))
             {
                 var prototype = CreateBuilding(bt);
-                if (prototype == null || !prototype.IsUnique || GetMaxLevel(prototype, civilizationIndex) <= 0)
+                if (prototype == null || !prototype.IsUnique || GetMaxLevel(prototype, city.CivilizationIndex) <= 0)
                     continue;
 
                 bool isBuilt = civ.UniqueBuildings.Contains(bt)

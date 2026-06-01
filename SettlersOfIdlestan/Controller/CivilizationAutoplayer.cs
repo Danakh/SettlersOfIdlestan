@@ -116,11 +116,11 @@ namespace SettlersOfIdlestan.Controller
         /// true (default) and resources are insufficient, calls TryGrindOnce to harvest/trade.
         /// Pass false when calling from TryStepOnce to avoid cross-building trade interference.
         /// </summary>
-        public bool TryBuildBuildingOnce(Vertex cityVertex, BuildingType buildingType, bool withGrind = true)
+        public bool TryBuildBuildingOnce(City city, BuildingType buildingType, bool withGrind = true)
         {
-            if (cityVertex == null) throw new ArgumentNullException(nameof(cityVertex));
+            if (city == null) throw new ArgumentNullException(nameof(city));
 
-            var buildables = _buildingController.GetBuildingsAndBuildables(_civ.Index, cityVertex);
+            var buildables = _buildingController.GetBuildingsAndBuildables(city);
             var target = buildables.FirstOrDefault(b => b.Type == buildingType);
             if (target == null) return false;
 
@@ -128,7 +128,7 @@ namespace SettlersOfIdlestan.Controller
             if (target.Level > 0 && target.Level >= _buildingController.GetMaxLevel(target, _civ.Index))
                 return false;
 
-            if (_buildingController.BuildBuilding(_civ.Index, cityVertex, buildingType))
+            if (_buildingController.BuildBuilding(city, buildingType))
                 return true;
 
             if (withGrind)
@@ -192,13 +192,13 @@ namespace SettlersOfIdlestan.Controller
                 Building? existing = coastalCity.Buildings.FirstOrDefault(b => b.Type == bt);
                 if ((existing == null) || existing.Level < _buildingController.GetMaxLevel(existing, _civ.Index))
                 {
-                    if (TryBuildBuildingOnce(coastalCity.Position, bt, withGrind: shouldGrind))
+                    if (TryBuildBuildingOnce(coastalCity, bt, withGrind: shouldGrind))
                         didSomething = true;
                     shouldGrind = false;
                 }
             }
 
-            if (TryBuildUniqueBuildingOnce(coastalCity.Position, BuildingType.ImperialPort, withGrind: shouldGrind))
+            if (TryBuildUniqueBuildingOnce(coastalCity, BuildingType.ImperialPort, withGrind: shouldGrind))
                 didSomething = true;
 
             return didSomething;
@@ -217,7 +217,7 @@ namespace SettlersOfIdlestan.Controller
             {
                 foreach (var bt in MilitaryBuildings)
                 {
-                    if (TryBuildBuildingOnce(city.Position, bt, withGrind: false))
+                    if (TryBuildBuildingOnce(city, bt, withGrind: false))
                         didSomething = true;
                 }
             }
@@ -229,15 +229,15 @@ namespace SettlersOfIdlestan.Controller
         /// Attempts to build a unique building in the specified city.
         /// Uses GetUniqueBuildingsAndBuildables to check availability.
         /// </summary>
-        public bool TryBuildUniqueBuildingOnce(Vertex cityVertex, BuildingType buildingType, bool withGrind = true)
+        public bool TryBuildUniqueBuildingOnce(City city, BuildingType buildingType, bool withGrind = true)
         {
-            if (cityVertex == null) throw new ArgumentNullException(nameof(cityVertex));
+            if (city == null) throw new ArgumentNullException(nameof(city));
 
-            var buildables = _buildingController.GetUniqueBuildingsAndBuildables(_civ.Index, cityVertex);
+            var buildables = _buildingController.GetUniqueBuildingsAndBuildables(city);
             var target = buildables.FirstOrDefault(b => b.Type == buildingType && b.Level == 0);
             if (target == null) return false;
 
-            if (_buildingController.BuildBuilding(_civ.Index, cityVertex, buildingType))
+            if (_buildingController.BuildBuilding(city, buildingType))
                 return true;
 
             if (withGrind)
@@ -393,7 +393,7 @@ namespace SettlersOfIdlestan.Controller
                 foreach (var bt in targetBuildings)
                 {
                     var shouldGrind = !hasGrindedThisStep && !shouldExpand;
-                    if (TryBuildBuildingOnce(city.Position, bt, withGrind: shouldGrind)) 
+                    if (TryBuildBuildingOnce(city, bt, withGrind: shouldGrind)) 
                         didSomething = true;
                     if (shouldGrind)
                         hasGrindedThisStep = true;

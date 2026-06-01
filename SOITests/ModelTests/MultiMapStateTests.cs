@@ -67,8 +67,8 @@ public class MultiMapStateTests
 
         var underworldHex = new HexCoord(0, 0, HexCoord.UnderworldZ);
         Assert.Contains(civ.Cities, city => city.Position.Z == HexCoord.UnderworldZ);
-        Assert.True(state.VisibleIslandMaps[0].HasTile(a));
-        Assert.DoesNotContain(state.VisibleIslandMaps[0].Tiles.Keys, coord => coord.Z == HexCoord.UnderworldZ);
+        Assert.True(state.GetVisibleIslandMapsForZ(0).GetValueOrDefault(0)?.HasTile(a) ?? false);
+        Assert.DoesNotContain(state.GetVisibleIslandMapsForZ(0).GetValueOrDefault(0)?.Tiles.Keys ?? Enumerable.Empty<HexCoord>(), coord => coord.Z == HexCoord.UnderworldZ);
 
         var underworldVisibleMap = state.GetVisibleIslandMapsForZ(HexCoord.UnderworldZ)[0];
         Assert.True(underworldVisibleMap.HasTile(underworldHex));

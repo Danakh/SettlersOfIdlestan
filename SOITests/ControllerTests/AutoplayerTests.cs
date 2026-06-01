@@ -65,7 +65,8 @@ namespace SOITests.ControllerTests
 
             Assert.True(clock.CurrentTick >= 1800, $"Expected at least 1800 ticks elapsed, was {clock.CurrentTick}");
 
-            Assert.True(runner.AutoBuildBuilding(vertex, BuildingType.Market), "Autoplayer should eventually build a market");
+            City city = civ.Cities.First(c => c.Position.Equals(vertex));
+            Assert.True(runner.AutoBuildBuilding(city, BuildingType.Market), "Autoplayer should eventually build a market");
             Assert.Contains(civ.Cities.SelectMany(c => c.Buildings), b => b.Type == BuildingType.Market);
 
             var cityBuilder = new CityBuilderController(state);

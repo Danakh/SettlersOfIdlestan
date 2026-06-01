@@ -44,7 +44,7 @@ public class CityBuildingService
         if (SelectedCity == null)
             return [];
 
-        return BuildingController.GetBuildingsAndBuildables(SelectedCity.CivilizationIndex, SelectedCity.Position);
+        return BuildingController.GetBuildingsAndBuildables(SelectedCity);
     }
 
     public IEnumerable<Building> SelectedCityUniqueBuildingsAndBuildables()
@@ -52,7 +52,7 @@ public class CityBuildingService
         if (SelectedCity == null)
             return [];
 
-        return BuildingController.GetUniqueBuildingsAndBuildables(SelectedCity.CivilizationIndex, SelectedCity.Position);
+        return BuildingController.GetUniqueBuildingsAndBuildables(SelectedCity!);
     }
 
     public bool HasUniqueBuildingsUnlocked()
@@ -74,7 +74,7 @@ public class CityBuildingService
     {
         if (SelectedCity != null)
         {
-            BuildingController.BuildBuilding(SelectedCity.CivilizationIndex, SelectedCity.Position, buildingType);
+            BuildingController.BuildBuilding(SelectedCity, buildingType);
         }
     }
 
