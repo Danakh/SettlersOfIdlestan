@@ -37,7 +37,7 @@ public class HexTests
     {
         var coord = new HexCoord(1, 2);
         var hex = new Hex(coord);
-        Assert.Equal("Hex((1, 2))", hex.ToString());
+        Assert.Equal("Hex((1, 2, z=0))", hex.ToString());
     }
 
     [Fact]
@@ -46,7 +46,7 @@ public class HexTests
         var coord = new HexCoord(1, 2);
         var hex = new Hex(coord);
         var serialized = hex.Serialize();
-        Assert.Equal(new[] { 1, 2 }, serialized);
+        Assert.Equal(new[] { 1, 2, 0 }, serialized);
     }
 
     [Fact]
@@ -56,6 +56,7 @@ public class HexTests
         var hex = Hex.Deserialize(data);
         Assert.Equal(1, hex.Coord.Q);
         Assert.Equal(2, hex.Coord.R);
+        Assert.Equal(HexCoord.SurfaceZ, hex.Coord.Z);
     }
 
     [Fact]

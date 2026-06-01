@@ -170,8 +170,9 @@ public class BanditController
         if (_state == null) return;
 
         // Voisins valides : sur la carte, pas d'eau
+        var map = _state.GetMapFor(bandit.Position);
         var neighbors = bandit.Position.Neighbors()
-            .Where(n => _state.Map.HasTile(n) && _state.Map.GetTile(n)!.TerrainType != TerrainType.Water)
+            .Where(n => map.HasTile(n) && map.GetTile(n)!.TerrainType != TerrainType.Water)
             .ToList();
 
         if (neighbors.Count == 0)

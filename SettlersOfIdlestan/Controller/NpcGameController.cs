@@ -121,6 +121,7 @@ public class NpcGameController
                     foreach (var friendly in civ.Cities)
                     {
                         if (friendly == city) continue;
+                        if (friendly.Position.Z != city.Position.Z) continue;
                         int dist = city.Position.EdgeDistanceTo(friendly.Position);
                         if (dist > range || dist >= closestDist) continue;
 
@@ -148,11 +149,13 @@ public class NpcGameController
     private bool HasEncounteredEnemy(Civilization npcCiv)
     {
         if (_state == null) return false;
-        if (!_state.VisibleIslandMaps.TryGetValue(npcCiv.Index, out var visibleMap)) return false;
+        var z = npcCiv.Cities.FirstOrDefault()?.Position.Z ?? HexCoord.SurfaceZ;
+        if (!_state.GetVisibleIslandMapsForZ(z).TryGetValue(npcCiv.Index, out var visibleMap)) return false;
 
         return _state.Civilizations
             .Where(c => c.Index != npcCiv.Index)
             .SelectMany(c => c.Cities)
+            .Where(city => city.Position.Z == z)
             .Any(city => city.Position.GetHexes().Any(h => visibleMap.HasTile(h)));
     }
 

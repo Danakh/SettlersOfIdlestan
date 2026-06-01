@@ -26,12 +26,18 @@ public class VisibleIslandMap : IslandMap
 
         foreach (var city in civilization.Cities)
         {
+            if (!sourceMap.IsOnSameLayer(city.Position))
+                continue;
+
             int radius = city.Buildings.Any(b => b.Type == BuildingType.Watchtower && b.Level > 0) ? 2 : 1;
             AddVertexHexesWithRadius(visibleHexes, city.Position, radius);
         }
 
         foreach (var road in civilization.Roads)
         {
+            if (!sourceMap.IsOnSameLayer(road.Position))
+                continue;
+
             foreach (var vertex in road.Position.GetVertices())
             {
                 AddVertexHexesWithRadius(visibleHexes, vertex, 1);
@@ -39,6 +45,7 @@ public class VisibleIslandMap : IslandMap
         }
 
         return visibleHexes
+            .Where(sourceMap.IsOnSameLayer)
             .Select(sourceMap.GetTile)
             .Where(tile => tile != null)
             .Cast<HexTile>();

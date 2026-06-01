@@ -29,6 +29,15 @@ public class VertexTests
     }
 
     [Fact]
+    public void Create_WithDifferentZ_ThrowsArgumentException()
+    {
+        var hex1 = new HexCoord(0, 0, HexCoord.SurfaceZ);
+        var hex2 = new HexCoord(1, 0, HexCoord.SurfaceZ);
+        var hex3 = new HexCoord(0, 1, HexCoord.UnderworldZ);
+        Assert.Throws<ArgumentException>(() => Vertex.Create(hex1, hex2, hex3));
+    }
+
+    [Fact]
     public void Equals_ReturnsTrueForSameVertices()
     {
         var hex1 = new HexCoord(0, 0);
@@ -69,7 +78,7 @@ public class VertexTests
         var hex2 = new HexCoord(1, 0);
         var hex3 = new HexCoord(0, 1);
         var vertex = Vertex.Create(hex1, hex2, hex3);
-        Assert.Equal("Vertex((0, 0), (0, 1), (1, 0))", vertex.ToString());
+        Assert.Equal("Vertex((0, 0, z=0), (0, 1, z=0), (1, 0, z=0))", vertex.ToString());
     }
 
     [Fact]
@@ -81,9 +90,9 @@ public class VertexTests
         var vertex = Vertex.Create(hex1, hex2, hex3);
         var serialized = vertex.Serialize();
         Assert.Equal(3, serialized.Length);
-        Assert.Contains(new[] { 0, 0 }, serialized);
-        Assert.Contains(new[] { 1, 0 }, serialized);
-        Assert.Contains(new[] { 0, 1 }, serialized);
+        Assert.Contains(new[] { 0, 0, 0 }, serialized);
+        Assert.Contains(new[] { 1, 0, 0 }, serialized);
+        Assert.Contains(new[] { 0, 1, 0 }, serialized);
     }
 
     [Fact]
@@ -94,6 +103,29 @@ public class VertexTests
         Assert.Equal(new HexCoord(0, 0), vertex.Hex1);
         Assert.Equal(new HexCoord(0, 1), vertex.Hex2);
         Assert.Equal(new HexCoord(1, 0), vertex.Hex3);
+    }
+
+    [Fact]
+    public void Deserialize_WithZ_ReturnsLayeredVertex()
+    {
+        var data = new[] { new[] { 0, 0, 1 }, new[] { 1, 0, 1 }, new[] { 0, 1, 1 } };
+        var vertex = Vertex.Deserialize(data);
+        Assert.Equal(HexCoord.UnderworldZ, vertex.Z);
+        Assert.Equal(new HexCoord(0, 0, 1), vertex.Hex1);
+        Assert.Equal(new HexCoord(0, 1, 1), vertex.Hex2);
+        Assert.Equal(new HexCoord(1, 0, 1), vertex.Hex3);
+    }
+
+    [Fact]
+    public void EdgeDistanceTo_WithDifferentZ_ThrowsArgumentException()
+    {
+        var surface = Vertex.Create(new HexCoord(0, 0), new HexCoord(1, 0), new HexCoord(0, 1));
+        var underworld = Vertex.Create(
+            new HexCoord(0, 0, HexCoord.UnderworldZ),
+            new HexCoord(1, 0, HexCoord.UnderworldZ),
+            new HexCoord(0, 1, HexCoord.UnderworldZ));
+
+        Assert.Throws<ArgumentException>(() => surface.EdgeDistanceTo(underworld));
     }
 
     [Fact]

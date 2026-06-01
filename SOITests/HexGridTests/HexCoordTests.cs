@@ -1,5 +1,6 @@
 using Xunit;
 using SettlersOfIdlestan.Model.HexGrid;
+using System;
 
 namespace SOITests.HexGridTests;
 
@@ -11,6 +12,14 @@ public class HexCoordTests
         var coord = new HexCoord(1, 2);
         Assert.Equal(1, coord.Q);
         Assert.Equal(2, coord.R);
+        Assert.Equal(HexCoord.SurfaceZ, coord.Z);
+    }
+
+    [Fact]
+    public void Constructor_WithZ_SetsLayer()
+    {
+        var coord = new HexCoord(1, 2, HexCoord.UnderworldZ);
+        Assert.Equal(HexCoord.UnderworldZ, coord.Z);
     }
 
     [Fact]
@@ -33,6 +42,7 @@ public class HexCoordTests
         var neighbor = coord.Neighbor(direction);
         Assert.Equal(expectedQ, neighbor.Q);
         Assert.Equal(expectedR, neighbor.R);
+        Assert.Equal(coord.Z, neighbor.Z);
     }
 
     [Fact]
@@ -60,11 +70,28 @@ public class HexCoordTests
     }
 
     [Fact]
+    public void DistanceTo_WithDifferentZ_ThrowsArgumentException()
+    {
+        var surface = new HexCoord(0, 0, HexCoord.SurfaceZ);
+        var underworld = new HexCoord(0, 0, HexCoord.UnderworldZ);
+
+        Assert.Throws<ArgumentException>(() => surface.DistanceTo(underworld));
+    }
+
+    [Fact]
     public void Equals_ReturnsTrueForSameCoordinates()
     {
         var coord1 = new HexCoord(1, 2);
         var coord2 = new HexCoord(1, 2);
         Assert.True(coord1.Equals(coord2));
+    }
+
+    [Fact]
+    public void Equals_ReturnsFalseForDifferentZ()
+    {
+        var coord1 = new HexCoord(1, 2, HexCoord.SurfaceZ);
+        var coord2 = new HexCoord(1, 2, HexCoord.UnderworldZ);
+        Assert.False(coord1.Equals(coord2));
     }
 
     [Fact]
@@ -79,7 +106,7 @@ public class HexCoordTests
     public void ToString_ReturnsCorrectFormat()
     {
         var coord = new HexCoord(1, 2);
-        Assert.Equal("(1, 2)", coord.ToString());
+        Assert.Equal("(1, 2, z=0)", coord.ToString());
     }
 
     [Fact]
@@ -87,7 +114,15 @@ public class HexCoordTests
     {
         var coord = new HexCoord(1, 2);
         var serialized = coord.Serialize();
-        Assert.Equal(new[] { 1, 2 }, serialized);
+        Assert.Equal(new[] { 1, 2, HexCoord.SurfaceZ }, serialized);
+    }
+
+    [Fact]
+    public void Serialize_WithZ_ReturnsThreeElementArray()
+    {
+        var coord = new HexCoord(1, 2, HexCoord.UnderworldZ);
+        var serialized = coord.Serialize();
+        Assert.Equal(new[] { 1, 2, HexCoord.UnderworldZ }, serialized);
     }
 
     [Fact]
@@ -97,5 +132,16 @@ public class HexCoordTests
         var coord = HexCoord.Deserialize(data);
         Assert.Equal(1, coord.Q);
         Assert.Equal(2, coord.R);
+        Assert.Equal(HexCoord.SurfaceZ, coord.Z);
+    }
+
+    [Fact]
+    public void Deserialize_WithZ_ReturnsLayeredHexCoord()
+    {
+        var data = new[] { 1, 2, HexCoord.UnderworldZ };
+        var coord = HexCoord.Deserialize(data);
+        Assert.Equal(1, coord.Q);
+        Assert.Equal(2, coord.R);
+        Assert.Equal(HexCoord.UnderworldZ, coord.Z);
     }
 }

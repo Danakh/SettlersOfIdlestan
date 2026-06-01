@@ -36,6 +36,14 @@ public class EdgeTests
     }
 
     [Fact]
+    public void Create_WithDifferentZ_ThrowsArgumentException()
+    {
+        var hex1 = new HexCoord(0, 0, HexCoord.SurfaceZ);
+        var hex2 = new HexCoord(1, 0, HexCoord.UnderworldZ);
+        Assert.Throws<ArgumentException>(() => Edge.Create(hex1, hex2));
+    }
+
+    [Fact]
     public void Equals_ReturnsTrueForSameEdges()
     {
         var hex1 = new HexCoord(0, 0);
@@ -91,7 +99,7 @@ public class EdgeTests
         var hex1 = new HexCoord(0, 0);
         var hex2 = new HexCoord(1, 0);
         var edge = Edge.Create(hex1, hex2);
-        Assert.Equal("Edge((0, 0) - (1, 0))", edge.ToString());
+        Assert.Equal("Edge((0, 0, z=0) - (1, 0, z=0))", edge.ToString());
     }
 
     [Fact]
@@ -101,7 +109,7 @@ public class EdgeTests
         var hex2 = new HexCoord(1, 0);
         var edge = Edge.Create(hex1, hex2);
         var serialized = edge.Serialize();
-        Assert.Equal(new[] { new[] { 0, 0 }, new[] { 1, 0 } }, serialized);
+        Assert.Equal(new[] { new[] { 0, 0, 0 }, new[] { 1, 0, 0 } }, serialized);
     }
 
     [Fact]
@@ -111,6 +119,15 @@ public class EdgeTests
         var edge = Edge.Deserialize(data);
         Assert.Equal(new HexCoord(0, 0), edge.Hex1);
         Assert.Equal(new HexCoord(1, 0), edge.Hex2);
+    }
+
+    [Fact]
+    public void Deserialize_WithZ_ReturnsLayeredEdge()
+    {
+        var data = new[] { new[] { 0, 0, 1 }, new[] { 1, 0, 1 } };
+        var edge = Edge.Deserialize(data);
+        Assert.Equal(new HexCoord(0, 0, 1), edge.Hex1);
+        Assert.Equal(new HexCoord(1, 0, 1), edge.Hex2);
     }
 
     [Fact]
@@ -132,7 +149,7 @@ public class EdgeTests
         var h1 = new HexCoord(0, 0);
         var h2 = new HexCoord(1, 0);
         var h3 = new HexCoord(0, 1);   // premier tiers-hex
-        var h4 = new HexCoord(1, -1);  // deuxième tiers-hex
+        var h4 = new HexCoord(1, -1);  // deuxiÃ¨me tiers-hex
 
         var edge = Edge.Create(h1, h2);
         var neighbors = edge.GetNeighboringEdges();

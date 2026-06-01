@@ -54,6 +54,17 @@ public class IslandState : IJsonOnDeserialized
     [JsonIgnore]
     public Dictionary<int, VisibleIslandMap> VisibleIslandMaps { get; private set; } = new();
 
+    [JsonIgnore]
+    public Dictionary<int, Dictionary<int, VisibleIslandMap>> VisibleIslandMapsByZ { get; private set; } = new();
+
+    [JsonIgnore]
+    public int CurrentMapZ => IsViewingUnderworld && Underworld != null
+        ? HexCoord.UnderworldZ
+        : HexCoord.SurfaceZ;
+
+    [JsonIgnore]
+    public IslandMap CurrentMap => GetMapForZ(CurrentMapZ);
+
     /// <summary>
     /// Transient event log for the current session. Not persisted.
     /// </summary>
@@ -92,6 +103,7 @@ public class IslandState : IJsonOnDeserialized
 
     public void OnDeserialized()
     {
+        NormalizeUnderworldCitiesIntoCivilizations();
         RecalculateVisibleIslandMaps();
     }
 
@@ -100,9 +112,17 @@ public class IslandState : IJsonOnDeserialized
     /// </summary>
     public void RecalculateVisibleIslandMaps()
     {
-        VisibleIslandMaps = Civilizations.ToDictionary(
-            civilization => civilization.Index,
-            civilization => new VisibleIslandMap(Map, civilization));
+        NormalizeUnderworldCitiesIntoCivilizations();
+
+        VisibleIslandMapsByZ = GetMapsByZ().ToDictionary(
+            kvp => kvp.Key,
+            kvp => Civilizations.ToDictionary(
+                civilization => civilization.Index,
+                civilization => new VisibleIslandMap(kvp.Value, civilization)));
+
+        VisibleIslandMaps = VisibleIslandMapsByZ.TryGetValue(HexCoord.SurfaceZ, out var surfaceMaps)
+            ? surfaceMaps
+            : new Dictionary<int, VisibleIslandMap>();
     }
 
     /// <summary>
@@ -113,7 +133,98 @@ public class IslandState : IJsonOnDeserialized
         var civilization = Civilizations.FirstOrDefault(c => c.Index == civilizationIndex)
             ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
 
-        VisibleIslandMaps[civilizationIndex] = new VisibleIslandMap(Map, civilization);
+        NormalizeUnderworldCitiesIntoCivilizations();
+
+        foreach (var (z, map) in GetMapsByZ())
+        {
+            if (!VisibleIslandMapsByZ.TryGetValue(z, out var visibleMaps))
+            {
+                visibleMaps = new Dictionary<int, VisibleIslandMap>();
+                VisibleIslandMapsByZ[z] = visibleMaps;
+            }
+
+            visibleMaps[civilizationIndex] = new VisibleIslandMap(map, civilization);
+        }
+
+        VisibleIslandMaps = VisibleIslandMapsByZ.TryGetValue(HexCoord.SurfaceZ, out var surfaceMaps)
+            ? surfaceMaps
+            : new Dictionary<int, VisibleIslandMap>();
+    }
+
+    public IReadOnlyDictionary<int, VisibleIslandMap> GetVisibleIslandMapsForZ(int z)
+    {
+        if (!VisibleIslandMapsByZ.TryGetValue(z, out var visibleMaps))
+        {
+            var map = GetMapForZ(z);
+            visibleMaps = Civilizations.ToDictionary(
+                civilization => civilization.Index,
+                civilization => new VisibleIslandMap(map, civilization));
+            VisibleIslandMapsByZ[z] = visibleMaps;
+            if (z == HexCoord.SurfaceZ)
+                VisibleIslandMaps = visibleMaps;
+        }
+
+        return visibleMaps;
+    }
+
+    public IslandMap GetMapForZ(int z)
+    {
+        if (z == Map.Z)
+            return Map;
+
+        if (Underworld?.Map.Z == z)
+            return Underworld.Map;
+
+        throw new ArgumentException($"No island map exists for layer z={z}.", nameof(z));
+    }
+
+    public IslandMap GetMapFor(HexCoord coord) => GetMapForZ(coord.Z);
+    public IslandMap GetMapFor(Vertex vertex) => GetMapForZ(vertex.Z);
+    public IslandMap GetMapFor(Edge edge) => GetMapForZ(edge.Z);
+
+    public bool TryGetMapForZ(int z, out IslandMap map)
+    {
+        if (z == Map.Z)
+        {
+            map = Map;
+            return true;
+        }
+
+        if (Underworld?.Map.Z == z)
+        {
+            map = Underworld.Map;
+            return true;
+        }
+
+        map = null!;
+        return false;
+    }
+
+    public IEnumerable<KeyValuePair<int, IslandMap>> GetMapsByZ()
+    {
+        yield return new KeyValuePair<int, IslandMap>(Map.Z, Map);
+
+        if (Underworld != null)
+            yield return new KeyValuePair<int, IslandMap>(Underworld.Map.Z, Underworld.Map);
+    }
+
+    public void NormalizeUnderworldCitiesIntoCivilizations()
+    {
+        if (Underworld == null || Underworld.Cities.Count == 0)
+            return;
+
+        foreach (var city in Underworld.Cities)
+        {
+            if (city.Position.Z != Underworld.Map.Z)
+                throw new InvalidOperationException("Underworld city is not on the underworld map layer.");
+
+            var civilization = Civilizations.FirstOrDefault(c => c.Index == city.CivilizationIndex);
+            if (civilization == null)
+                continue;
+
+            if (!civilization.Cities.Any(existing => existing.Position.Equals(city.Position)))
+                civilization.Cities.Add(city);
+        }
     }
 
     /// <summary>

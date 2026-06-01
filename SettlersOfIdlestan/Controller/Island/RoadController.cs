@@ -135,8 +135,6 @@ namespace SettlersOfIdlestan.Controller.Island
             if (_buildableRoadsCache.TryGetValue(civilizationIndex, out var cached) && cached.CityCount == civ.Cities.Count)
                 return cached.Roads;
 
-            var mapTiles = _state.Map.Tiles;
-
             // Seules les routes de NOTRE civilisation bloquent la construction.
             // Les routes ennemies sont conquérables (elles seront détruites à la construction).
             var ownOccupied = new HashSet<Edge>(civ.Roads.Select(r => r.Position));
@@ -202,7 +200,8 @@ namespace SettlersOfIdlestan.Controller.Island
                       ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
 
             // V�rifier que l'ar�te fait partie de la carte
-            var mapTiles = _state.Map.Tiles;
+            var map = _state.GetMapFor(edge);
+            var mapTiles = map.Tiles;
             if (!mapTiles.ContainsKey(edge.Hex1) || !mapTiles.ContainsKey(edge.Hex2))
                 throw new ArgumentException("Edge not part of the map", nameof(edge));
 
@@ -355,7 +354,7 @@ namespace SettlersOfIdlestan.Controller.Island
         private bool IsValidMaritimeEdge(Edge edge)
         {
             if (_state == null) return false;
-            var mapTiles = _state.Map.Tiles;
+            var mapTiles = _state.GetMapFor(edge).Tiles;
             foreach (var v in edge.GetVertices())
             {
                 bool touchesLand = v.GetHexes().Any(h =>
@@ -369,7 +368,7 @@ namespace SettlersOfIdlestan.Controller.Island
         {
             if (_state == null) throw new InvalidOperationException("IslandState has not been initialized.");
 
-            var mapTiles = _state.Map.Tiles;
+            var mapTiles = _state.GetMapFor(edge).Tiles;
             bool hex1IsWaterOrAbsent = !mapTiles.TryGetValue(edge.Hex1, out var tile1) || tile1.TerrainType == TerrainType.Water;
             bool hex2IsWaterOrAbsent = !mapTiles.TryGetValue(edge.Hex2, out var tile2) || tile2.TerrainType == TerrainType.Water;
             return !(hex1IsWaterOrAbsent && hex2IsWaterOrAbsent);

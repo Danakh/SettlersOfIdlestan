@@ -86,6 +86,8 @@ namespace SettlersOfIdlestan.Controller.Island
             if (!hasDeepestMine) return;
 
             _state.Underworld = UnderworldState.CreateDefault(playerCiv.Index);
+            _state.NormalizeUnderworldCitiesIntoCivilizations();
+            _state.RecalculateVisibleIslandMap(playerCiv.Index);
         }
 
         private void PerformHarvestersGuildProductionAutomation()
@@ -221,7 +223,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 else
                 {
                     if ((GetMaxLevel(prototype, civilizationIndex) > 0) &&
-                        prototype.IsBuildingAvailableForCity(_state.Map, city))
+                        prototype.IsBuildingAvailableForCity(_state.GetMapFor(city.Position), city))
                     {
                         result.Add(prototype);
                     }
@@ -256,7 +258,7 @@ namespace SettlersOfIdlestan.Controller.Island
             {
                 var prototype = CreateBuilding(type) ?? throw new ArgumentException("Unknown building type", nameof(type));
 
-                if (!prototype.IsBuildingAvailableForCity(_state.Map, city))
+                if (!prototype.IsBuildingAvailableForCity(_state.GetMapFor(city.Position), city))
                     return false;
 
                 if (prototype.IsUnique &&
@@ -349,7 +351,7 @@ namespace SettlersOfIdlestan.Controller.Island
                                    ?? prototype;
                     result.Add(instance);
                 }
-                else if (prototype.IsBuildingAvailableForCity(_state.Map, city))
+                else if (prototype.IsBuildingAvailableForCity(_state.GetMapFor(city.Position), city))
                 {
                     result.Add(prototype);
                 }

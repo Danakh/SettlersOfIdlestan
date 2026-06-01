@@ -141,8 +141,12 @@ namespace SettlersOfIdlestan.Controller.Island
 
             // now we filter vertices that aren't far enough from any city using MinDistanceBetweenCities and MinDistanceBetweenCivilizationCities
             vertices = vertices.Where(v =>
-                !_state.Civilizations.Where(c => c.Index != civilizationIndex).Any(c => c.Cities.Any(city => city.Position.EdgeDistanceTo(v) < MinDistanceBetweenCities)) &&
-                !civ.Cities.Any(city => city.Position.EdgeDistanceTo(v) < MinDistanceBetweenCivilizationCities))
+                !_state.Civilizations.Where(c => c.Index != civilizationIndex).Any(c => c.Cities
+                    .Where(city => city.Position.Z == v.Z)
+                    .Any(city => city.Position.EdgeDistanceTo(v) < MinDistanceBetweenCities)) &&
+                !civ.Cities
+                    .Where(city => city.Position.Z == v.Z)
+                    .Any(city => city.Position.EdgeDistanceTo(v) < MinDistanceBetweenCivilizationCities))
                 .ToList();
 
             return vertices;
@@ -156,6 +160,7 @@ namespace SettlersOfIdlestan.Controller.Island
         {
             if (_state == null) throw new InvalidOperationException("IslandState has not been initialized.");
             if (vertex == null) throw new ArgumentNullException(nameof(vertex));
+            _state.GetMapFor(vertex);
 
             var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex)
                       ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));

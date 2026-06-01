@@ -1,6 +1,7 @@
 using System.Linq;
 using Xunit;
 using SettlersOfIdlestan.Model.HexGrid;
+using System;
 
 namespace SOITests.HexGridTests;
 
@@ -69,6 +70,17 @@ public class HexGridPathfinderTests
     }
 
     [Fact]
+    public void FindVertexPath_WithDifferentZ_ThrowsArgumentException()
+    {
+        var target = Vertex.Create(
+            new HexCoord(0, 0, HexCoord.UnderworldZ),
+            new HexCoord(0, 1, HexCoord.UnderworldZ),
+            new HexCoord(1, 0, HexCoord.UnderworldZ));
+
+        Assert.Throws<ArgumentException>(() => HexGridPathfinder.FindVertexPath(V0, target));
+    }
+
+    [Fact]
     public void FindVertexPath_EachStepIsAdjacentVertex()
     {
         var target = WalkToDistance(V0, 5);
@@ -82,14 +94,14 @@ public class HexGridPathfinderTests
 
     /// <summary>
     /// Marche n pas depuis start en choisissant toujours le premier voisin qui augmente
-    /// la distance au point de départ. Produit un sommet à distance exactement n.
+    /// la distance au point de dÃ©part. Produit un sommet Ã  distance exactement n.
     /// </summary>
     private static Vertex WalkToDistance(Vertex start, int steps)
     {
         var current = start;
         for (int i = 0; i < steps; i++)
         {
-            // Choisir un voisin à distance i+1 depuis start
+            // Choisir un voisin Ã  distance i+1 depuis start
             current = current.GetAdjacentVertices()
                 .First(v => start.EdgeDistanceTo(v) == i + 1);
         }

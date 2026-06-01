@@ -20,7 +20,7 @@ public class UnderworldState
     [System.Text.Json.Serialization.JsonConstructor]
     public UnderworldState()
     {
-        Map = new IslandMap(System.Array.Empty<HexTile>());
+        Map = new IslandMap(System.Array.Empty<HexTile>(), HexCoord.UnderworldZ);
         Cities = new List<City>();
     }
 
@@ -32,17 +32,17 @@ public class UnderworldState
     {
         var tiles = new[]
         {
-            new HexTile(new HexCoord(0, 0), TerrainType.Mountain),
-            new HexTile(new HexCoord(1, 0), TerrainType.Mountain),
-            new HexTile(new HexCoord(0, 1), TerrainType.Mountain),
+            new HexTile(new HexCoord(0, 0, HexCoord.UnderworldZ), TerrainType.Mountain),
+            new HexTile(new HexCoord(1, 0, HexCoord.UnderworldZ), TerrainType.Mountain),
+            new HexTile(new HexCoord(0, 1, HexCoord.UnderworldZ), TerrainType.Mountain),
         };
 
         var map = new IslandMap(tiles);
 
         var outpostVertex = Vertex.Create(
-            new HexCoord(0, 0),
-            new HexCoord(1, 0),
-            new HexCoord(0, 1));
+            new HexCoord(0, 0, HexCoord.UnderworldZ),
+            new HexCoord(1, 0, HexCoord.UnderworldZ),
+            new HexCoord(0, 1, HexCoord.UnderworldZ));
 
         var outpost = new City(outpostVertex) { CivilizationIndex = playerCivIndex };
 

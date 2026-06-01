@@ -175,7 +175,9 @@ namespace SettlersOfIdlestan.Controller
 
         private bool TryStep3PortFocusOnce()
         {
-            var coastalCity = _civ.Cities.FirstOrDefault(c => _map.VertexHasTerrainType(c.Position, TerrainType.Water));
+            var coastalCity = _civ.Cities.FirstOrDefault(c =>
+                _map.IsOnSameLayer(c.Position) &&
+                _map.VertexHasTerrainType(c.Position, TerrainType.Water));
             if (coastalCity == null) return false;
 
             bool didSomething = false;
@@ -404,10 +406,13 @@ namespace SettlersOfIdlestan.Controller
                 var candidates = GetProspectiveVertices();
                 if (candidates.Count > 0)
                 {
-                    var networkVertices = new HashSet<Vertex>(_civ.Cities.Select(c => c.Position));
+                    var networkVertices = new HashSet<Vertex>(_civ.Cities
+                        .Select(c => c.Position)
+                        .Where(v => candidates.Any(candidate => candidate.Z == v.Z)));
                     foreach (var road in _civ.Roads)
                         foreach (var v in road.Position.GetVertices())
-                            networkVertices.Add(v);
+                            if (candidates.Any(candidate => candidate.Z == v.Z))
+                                networkVertices.Add(v);
 
                     Vertex? bestTarget = null;
                     Vertex? bestFrom = null;
@@ -416,6 +421,7 @@ namespace SettlersOfIdlestan.Controller
                     {
                         foreach (var nv in networkVertices)
                         {
+                            if (nv.Z != candidate.Z) continue;
                             int dist = nv.EdgeDistanceTo(candidate);
                             if (dist < bestDist)
                             {
@@ -472,19 +478,24 @@ namespace SettlersOfIdlestan.Controller
             if (islandState == null || !islandState.VisibleIslandMaps.TryGetValue(_civ.Index, out var visibleMap))
                 return new List<Vertex>();
 
+            int z = visibleMap.Z;
             var visibleVertices = new HashSet<Vertex>();
             foreach (var hex in visibleMap.Tiles.Keys)
                 foreach (var dir in SecondaryHexDirectionUtils.AllSecondaryDirections)
                     visibleVertices.Add(hex.Vertex(dir));
 
-            var networkVertices = new HashSet<Vertex>(_civ.Cities.Select(c => c.Position));
+            var networkVertices = new HashSet<Vertex>(_civ.Cities
+                .Select(c => c.Position)
+                .Where(v => v.Z == z));
             foreach (var road in _civ.Roads)
                 foreach (var v in road.Position.GetVertices())
-                    networkVertices.Add(v);
+                    if (v.Z == z)
+                        networkVertices.Add(v);
 
             var visibleEnemyCities = islandState.Civilizations
                 .Where(c => c.Index != _civ.Index)
                 .SelectMany(c => c.Cities)
+                .Where(city => city.Position.Z == z)
                 .Where(city => city.Position.GetHexes().Any(h => visibleMap.GetTile(h) != null))
                 .Select(city => city.Position)
                 .ToList();
@@ -495,7 +506,7 @@ namespace SettlersOfIdlestan.Controller
             return visibleVertices
                 .Where(v => !networkVertices.Contains(v))
                 .Where(v => v.GetHexes().Any(h => visibleMap.GetTile(h) is { TerrainType: not TerrainType.Water }))
-                .Where(v => _civ.Cities.All(c => c.Position.EdgeDistanceTo(v) >= minOwn))
+                .Where(v => _civ.Cities.Where(c => c.Position.Z == v.Z).All(c => c.Position.EdgeDistanceTo(v) >= minOwn))
                 .Where(v => visibleEnemyCities.All(ec => ec.EdgeDistanceTo(v) >= minEnemy))
                 .ToList();
         }

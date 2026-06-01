@@ -408,6 +408,7 @@ public class MilitaryController
             if (defenderCiv.Index == attackerCiv.Index) continue;
             foreach (var defenderCity in defenderCiv.Cities)
             {
+                if (defenderCity.Position.Z != attackerCity.Position.Z) continue;
                 if (!IsCityVisibleTo(defenderCity, attackerCiv)) continue;
                 int dist = attackerCity.Position.EdgeDistanceTo(defenderCity.Position);
                 if (dist <= range && dist < closestDist)
@@ -452,7 +453,8 @@ public class MilitaryController
 
     private bool IsCityVisibleTo(City city, Civilization civ)
     {
-        if (!_state!.VisibleIslandMaps.TryGetValue(civ.Index, out var visibleMap)) return true;
+        var visibleMaps = _state!.GetVisibleIslandMapsForZ(city.Position.Z);
+        if (!visibleMaps.TryGetValue(civ.Index, out var visibleMap)) return true;
         return city.Position.GetHexes().Any(h => visibleMap.HasTile(h));
     }
 

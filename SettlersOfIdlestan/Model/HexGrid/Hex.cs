@@ -1,12 +1,12 @@
 namespace SettlersOfIdlestan.Model.HexGrid;
 
 /// <summary>
-/// Représente une cellule hexagonale dans une grille.
+/// ReprÃ©sente une cellule hexagonale dans une grille.
 /// 
-/// Cette classe est volontairement générique et ne contient que des
-/// informations géométriques (la coordonnée). Toute donnée métier
-/// (ressource, technologie, biome, etc.) doit être portée par des
-/// structures de niveau supérieur qui référencent cette cellule.
+/// Cette classe est volontairement gÃ©nÃ©rique et ne contient que des
+/// informations gÃ©omÃ©triques (la coordonnÃ©e). Toute donnÃ©e mÃ©tier
+/// (ressource, technologie, biome, etc.) doit Ãªtre portÃ©e par des
+/// structures de niveau supÃ©rieur qui rÃ©fÃ©rencent cette cellule.
 /// </summary>
 public class Hex
 {
@@ -18,7 +18,7 @@ public class Hex
     public HexCoord Coord { get; }
 
     /// <summary>
-    /// Vérifie l'égalité avec un autre Hex (égalité structurelle sur la coordonnée).
+    /// VÃ©rifie l'Ã©galitÃ© avec un autre Hex (Ã©galitÃ© structurelle sur la coordonnÃ©e).
     /// </summary>
     public override bool Equals(object? obj)
     {
@@ -26,7 +26,7 @@ public class Hex
     }
 
     /// <summary>
-    /// Retourne une représentation en chaîne pour le débogage.
+    /// Retourne une reprÃ©sentation en chaÃ®ne pour le dÃ©bogage.
     /// </summary>
     public override string ToString()
     {
@@ -34,7 +34,7 @@ public class Hex
     }
 
     /// <summary>
-    /// Sérialise l'hexagone (délègue à la coordonnée).
+    /// SÃ©rialise l'hexagone (dÃ©lÃ¨gue Ã  la coordonnÃ©e).
     /// </summary>
     public int[] Serialize()
     {
@@ -42,7 +42,7 @@ public class Hex
     }
 
     /// <summary>
-    /// Désérialise depuis [q, r].
+    /// DÃ©sÃ©rialise depuis [q, r].
     /// </summary>
     public static Hex Deserialize(int[] data)
     {
@@ -50,7 +50,7 @@ public class Hex
     }
 
     /// <summary>
-    /// Retourne les coordonnées du voisin dans la direction principale spécifiée.
+    /// Retourne les coordonnÃ©es du voisin dans la direction principale spÃ©cifiÃ©e.
     /// </summary>
     public HexCoord Neighbor(HexDirection direction)
     {
@@ -66,8 +66,8 @@ public class Hex
     }
 
     /// <summary>
-    /// Retourne l'edge correspondant à une direction principale.
-    /// L'edge est formé par cet hexagone et son voisin dans la direction principale spécifiée.
+    /// Retourne l'edge correspondant Ã  une direction principale.
+    /// L'edge est formÃ© par cet hexagone et son voisin dans la direction principale spÃ©cifiÃ©e.
     /// </summary>
     public Edge GetEdgeByMainDirection(HexDirection direction)
     {
@@ -76,8 +76,8 @@ public class Hex
     }
 
     /// <summary>
-    /// Retourne le vertex correspondant à une direction secondaire.
-    /// Un vertex est formé par cet hexagone et deux de ses voisins selon les directions principales.
+    /// Retourne le vertex correspondant Ã  une direction secondaire.
+    /// Un vertex est formÃ© par cet hexagone et deux de ses voisins selon les directions principales.
     /// 
     /// Correspondance des directions secondaires aux paires de directions principales :
     /// - N : entre NW et NE
@@ -97,7 +97,7 @@ public class Hex
     }
 
     /// <summary>
-    /// Génère un hash pour utiliser comme clé dans des Maps/Sets.
+    /// GÃ©nÃ¨re un hash pour utiliser comme clÃ© dans des Maps/Sets.
     /// </summary>
     public override int GetHashCode()
     {
