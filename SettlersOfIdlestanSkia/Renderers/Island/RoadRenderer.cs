@@ -76,8 +76,8 @@ public class RoadRenderer : HexBasedRenderer, IGameRenderer
             {
                 IslandMap? mapForVisibility;
                 if (DebugSettings.ShowFullMap)
-                    mapForVisibility = islandState.Map;
-                else if (!islandState.VisibleIslandMaps.TryGetValue(islandState.PlayerCivilization.Index, out var vm))
+                    mapForVisibility = islandState.CurrentMap;
+                else if (!islandState.GetVisibleIslandMapsForZ(islandState.CurrentMapZ).TryGetValue(islandState.PlayerCivilization.Index, out var vm))
                     return;
                 else
                     mapForVisibility = vm;
@@ -91,14 +91,15 @@ public class RoadRenderer : HexBasedRenderer, IGameRenderer
         }
     }
 
-    internal void RenderConstructionHighlights(SKCanvas canvas, ConstructionHoverState state)
+    internal void RenderConstructionHighlights(SKCanvas canvas, ConstructionHoverState state, GameRenderContext context)
     {
         foreach (var edge in state.BuildableEdges)
         {
-            DrawEdgeHighlight(canvas, edge, _buildableEdgePaint, 0.18f);
+            if (edge.Z == context.CurrentLayer)
+                DrawEdgeHighlight(canvas, edge, _buildableEdgePaint, 0.18f);
         }
 
-        if (state.HoveredEdge != null)
+        if ((state.HoveredEdge != null) && (state.HoveredEdge.Z == context.CurrentLayer))
         {
             DrawEdgeHighlight(canvas, state.HoveredEdge, _hoverEdgePaint, 0.14f);
 
@@ -150,7 +151,7 @@ public class RoadRenderer : HexBasedRenderer, IGameRenderer
     private static bool IsRoadVisible(Road road, IslandMap visibleMap)
     {
         var (h1, h2) = road.Position.GetHexes();
-        return visibleMap.HasTile(h1) && visibleMap.HasTile(h2);
+        return (h1.Z == visibleMap.Z) && visibleMap.HasTile(h1) && visibleMap.HasTile(h2);
     }
 
     private void DrawRoadSegmentOnEdge(SKCanvas canvas, SettlersOfIdlestan.Model.HexGrid.Edge edge, SKPaint paint)

@@ -64,13 +64,13 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
         { Resource.Crystal, new SKColor(147, 112, 219) } // Violet
     };
 
-    public IslandMainRenderer(IConstructionHoverProvider constructionHoverProvider, TooltipRenderer tooltipRenderer, HarvestController harvestController, ResourceManager resourceManager, MilitaryController militaryController)
+    public IslandMainRenderer(IConstructionHoverProvider constructionHoverProvider, TooltipRenderer tooltipRenderer, HarvestController harvestController, ResourceManager resourceManager, MilitaryController militaryController, Func<int> currentLayer)
     {
         _gameBoardRenderer = new GameBoardRenderer(harvestController, resourceManager);
         _roadRenderer = new RoadRenderer(tooltipRenderer);
         _cityRenderer = new CityRenderer(tooltipRenderer, resourceManager, militaryController);
         _harvestParticleSystem = new HarvestParticleSystem();
-        _harvestRenderer = new HarvestRenderer(_harvestParticleSystem, resourceManager);
+        _harvestRenderer = new HarvestRenderer(_harvestParticleSystem, resourceManager, currentLayer);
         _banditRenderer = new BanditRenderer(resourceManager);
         _militaryRenderer = new MilitaryRenderer();
         _constructionHoverProvider = constructionHoverProvider;
@@ -126,6 +126,7 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
         _tooltipRenderer.SetIslandRenderContext(this, context);
 
         if (state.HoveredHex != null &&
+            state.HoveredHex.Z == context.CurrentLayer &&
             context.GameState is MainGameState mgs &&
             mgs.CurrentIslandState != null)
         {
@@ -136,26 +137,20 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
                 mgs.Clock.CurrentTick);
         }
 
-        bool isUnderworld = context.GameState is MainGameState uwMgs
-            && uwMgs.CurrentIslandState?.IsViewingUnderworld == true;
-
         using (ApplyCameraTransform(canvas, context))
         {
             _gameBoardRenderer.Render(canvas, context);
-            if (!isUnderworld) _banditRenderer.Render(canvas, context);
-            if (!isUnderworld) _roadRenderer.Render(canvas, context);
+            _banditRenderer.Render(canvas, context);
+            _roadRenderer.Render(canvas, context);
             bool skipCities = SuppressCities?.Invoke() == true;
             if (!skipCities)
                 _cityRenderer.Render(canvas, context);
-            if (!isUnderworld) _harvestRenderer.Render(canvas, context);
+            _harvestRenderer.Render(canvas, context);
 
-            if (!isUnderworld)
-            {
-                _roadRenderer.RenderConstructionHighlights(canvas, state);
-                if (!skipCities)
-                    _cityRenderer.RenderConstructionHighlights(canvas, state);
-                _militaryRenderer.Render(canvas, context);
-            }
+            _roadRenderer.RenderConstructionHighlights(canvas, state, context);
+            if (!skipCities)
+                _cityRenderer.RenderConstructionHighlights(canvas, state, context);
+            _militaryRenderer.Render(canvas, context);
         }
     }
 

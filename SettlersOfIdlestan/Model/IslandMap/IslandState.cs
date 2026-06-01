@@ -47,15 +47,10 @@ public class IslandState : IJsonOnDeserialized
     /// </summary>
     public SettlersOfIdlestan.Model.Civilization.Civilization PlayerCivilization => Civilizations[0];
 
-    /// <summary>
-    /// Runtime-only visible maps, keyed by civilization index.
-    /// Rebuilt from Map and Civilizations after deserialization and after construction changes.
-    /// </summary>
-    [JsonIgnore]
-    public Dictionary<int, VisibleIslandMap> VisibleIslandMaps { get; private set; } = new();
 
     [JsonIgnore]
-    public Dictionary<int, Dictionary<int, VisibleIslandMap>> VisibleIslandMapsByZ { get; private set; } = new();
+    private Dictionary<int, Dictionary<int, VisibleIslandMap>> VisibleIslandMapsByZ { get; set; } = new();
+
 
     [JsonIgnore]
     public int CurrentMapZ => IsViewingUnderworld && Underworld != null
@@ -119,10 +114,6 @@ public class IslandState : IJsonOnDeserialized
             kvp => Civilizations.ToDictionary(
                 civilization => civilization.Index,
                 civilization => new VisibleIslandMap(kvp.Value, civilization)));
-
-        VisibleIslandMaps = VisibleIslandMapsByZ.TryGetValue(HexCoord.SurfaceZ, out var surfaceMaps)
-            ? surfaceMaps
-            : new Dictionary<int, VisibleIslandMap>();
     }
 
     /// <summary>
@@ -145,10 +136,6 @@ public class IslandState : IJsonOnDeserialized
 
             visibleMaps[civilizationIndex] = new VisibleIslandMap(map, civilization);
         }
-
-        VisibleIslandMaps = VisibleIslandMapsByZ.TryGetValue(HexCoord.SurfaceZ, out var surfaceMaps)
-            ? surfaceMaps
-            : new Dictionary<int, VisibleIslandMap>();
     }
 
     public IReadOnlyDictionary<int, VisibleIslandMap> GetVisibleIslandMapsForZ(int z)
@@ -160,8 +147,6 @@ public class IslandState : IJsonOnDeserialized
                 civilization => civilization.Index,
                 civilization => new VisibleIslandMap(map, civilization));
             VisibleIslandMapsByZ[z] = visibleMaps;
-            if (z == HexCoord.SurfaceZ)
-                VisibleIslandMaps = visibleMaps;
         }
 
         return visibleMaps;

@@ -16,14 +16,16 @@ public class HarvestRenderer : IGameRenderer
     private SKPaint? _layerPaint;
     private bool _disposed;
     private Func<bool>? _showParticles;
+    private readonly Func<int> _currentLayer;
 
     private const float IconSize = 16f;
     private const float SvgViewBox = 32f;
 
-    public HarvestRenderer(HarvestParticleSystem particleSystem, ResourceManager resourceManager)
+    public HarvestRenderer(HarvestParticleSystem particleSystem, ResourceManager resourceManager, Func<int> currentLayer)
     {
         _particleSystem = particleSystem ?? throw new ArgumentNullException(nameof(particleSystem));
         _resourceManager = resourceManager ?? throw new ArgumentNullException(nameof(resourceManager));
+        _currentLayer = currentLayer ?? throw new ArgumentNullException(nameof(currentLayer));
     }
 
     public void Connect(
@@ -43,6 +45,7 @@ public class HarvestRenderer : IGameRenderer
             if (!isIslandTabActive()) return;
             if (_showParticles?.Invoke() == false) return;
             if (gameControllerService.PlayerCivilizationIndex != args.CivilizationIndex) return;
+            if (args.HexCoord.Z != _currentLayer()) return;
 
             var hexCenter = hexToIsland(args.HexCoord);
             var cityCenter = vertexToIsland(args.CityPosition);
@@ -55,6 +58,7 @@ public class HarvestRenderer : IGameRenderer
             if (!isIslandTabActive()) return;
             if (_showParticles?.Invoke() == false) return;
             if (gameControllerService.PlayerCivilizationIndex != args.CivilizationIndex) return;
+            if (args.CityPosition.Z != _currentLayer()) return;
 
             var cityCenter = vertexToIsland(args.CityPosition);
             var above = new SKPoint(cityCenter.X, cityCenter.Y - 20f);

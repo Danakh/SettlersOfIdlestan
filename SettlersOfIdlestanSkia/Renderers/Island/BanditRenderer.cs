@@ -123,7 +123,7 @@ public class BanditRenderer : HexBasedRenderer, IGameRenderer
 
     private static bool IsSourceOrDestinationVisible(IslandState islandState, Vertex source, HexCoord target)
     {
-        if (!islandState.VisibleIslandMaps.TryGetValue(islandState.PlayerCivilization.Index, out var visibleMap))
+        if (!islandState.GetVisibleIslandMapsForZ(islandState.CurrentMapZ).TryGetValue(islandState.PlayerCivilization.Index, out var visibleMap))
             return true;
         if (visibleMap.HasTile(target)) return true;
         foreach (var hex in source.GetHexes())
@@ -146,7 +146,7 @@ public class BanditRenderer : HexBasedRenderer, IGameRenderer
 
         VisibleIslandMap? visibleMap = null;
         if (!DebugSettings.ShowFullMap)
-            islandState.VisibleIslandMaps.TryGetValue(islandState.PlayerCivilization.Index, out visibleMap);
+            islandState.GetVisibleIslandMapsForZ(islandState.CurrentMapZ).TryGetValue(islandState.PlayerCivilization.Index, out visibleMap);
 
         float dt = context.DeltaTime;
 
@@ -154,7 +154,8 @@ public class BanditRenderer : HexBasedRenderer, IGameRenderer
         foreach (var hideout in islandState.Features.OfType<BanditHideout>())
         {
             if (!hideout.Found) continue;
-            if (visibleMap != null && !visibleMap.HasTile(hideout.Position)) continue;
+            if (hideout.Position.Z != context.CurrentLayer) continue;
+            if ((visibleMap != null) && !visibleMap.HasTile(hideout.Position)) continue;
 
             var (hx, hy) = AxialToIsland(hideout.Position.Q, hideout.Position.R);
             DrawHideoutIcon(canvas, new SKPoint(hx, hy));
@@ -167,6 +168,8 @@ public class BanditRenderer : HexBasedRenderer, IGameRenderer
         for (int i = 0; i < bandits.Count; i++)
         {
             var bandit = bandits[i];
+            if (bandit.Position.Z != context.CurrentLayer) continue;
+
             var v = _visuals[i];
 
             var targetPoint = HexToPoint(bandit.Position);

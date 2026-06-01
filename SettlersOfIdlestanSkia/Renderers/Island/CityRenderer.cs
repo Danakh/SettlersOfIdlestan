@@ -135,7 +135,7 @@ public class CityRenderer : HexBasedRenderer, IGameRenderer
             IslandMap? mapForVisibility;
             if (DebugSettings.ShowFullMap)
                 mapForVisibility = islandState.Map;
-            else if (!islandState.VisibleIslandMaps.TryGetValue(islandState.PlayerCivilization.Index, out var vm))
+            else if (!islandState.GetVisibleIslandMapsForZ(islandState.CurrentMapZ).TryGetValue(islandState.PlayerCivilization.Index, out var vm))
                 return;
             else
                 mapForVisibility = vm;
@@ -148,7 +148,7 @@ public class CityRenderer : HexBasedRenderer, IGameRenderer
         }
     }
 
-    internal void RenderConstructionHighlights(SKCanvas canvas, ConstructionHoverState state)
+    internal void RenderConstructionHighlights(SKCanvas canvas, ConstructionHoverState state, GameRenderContext context)
     {
         foreach (var vertex in state.BuildableVertices)
         {
@@ -270,7 +270,7 @@ public class CityRenderer : HexBasedRenderer, IGameRenderer
 
     private static bool IsCityVisible(City city, IslandMap visibleMap)
     {
-        return city.Position.GetHexes().Any(visibleMap.HasTile);
+        return (city.Position.Z == visibleMap.Z) && city.Position.GetHexes().Any(visibleMap.HasTile);
     }
 
     public void Dispose()

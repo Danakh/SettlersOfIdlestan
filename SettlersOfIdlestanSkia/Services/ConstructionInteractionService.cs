@@ -145,7 +145,7 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
             return;
         }
 
-        if (islandState?.VisibleIslandMaps.TryGetValue(playerIndex, out var visibleMap) == true &&
+        if (islandState?.GetVisibleIslandMapsForZ(hexCoord.Z).TryGetValue(playerIndex, out var visibleMap) == true &&
             visibleMap.HasTile(hexCoord))
         {
             _harvestService.TryManualHarvest(hexCoord);
@@ -196,7 +196,7 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
             {
                 var islandState = _gameControllerService.CurrentIslandState;
                 var playerIndex = islandState?.PlayerCivilization.Index ?? 0;
-                if (islandState?.VisibleIslandMaps.TryGetValue(playerIndex, out var visibleMap) == true &&
+                if (islandState?.GetVisibleIslandMapsForZ(hexCoord.Z).TryGetValue(playerIndex, out var visibleMap) == true &&
                     visibleMap.HasTile(hexCoord))
                 {
                     hoveredHex = hexCoord;
@@ -237,8 +237,9 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
             if (city.CivilizationIndex != playerIndex)
                 continue;
 
-            if (islandState.VisibleIslandMaps.TryGetValue(playerIndex, out var visibleMap) &&
-                !city.Position.GetHexes().Any(visibleMap.HasTile))
+            if (islandState.GetVisibleIslandMapsForZ(islandState.CurrentMapZ).TryGetValue(playerIndex, out var visibleMap) &&
+                (city.Position.Z != visibleMap.Z ||
+                !city.Position.GetHexes().Any(visibleMap.HasTile)))
             {
                 continue;
             }

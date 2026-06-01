@@ -152,7 +152,7 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
                 IslandMap? mapToRender = null;
                 if (DebugSettings.ShowFullMap)
                     mapToRender = islandState.Map;
-                else if (islandState.VisibleIslandMaps.TryGetValue(islandState.PlayerCivilization.Index, out var visibleMap))
+                else if (islandState.GetVisibleIslandMapsForZ(islandState.CurrentMapZ).TryGetValue(islandState.PlayerCivilization.Index, out var visibleMap))
                     mapToRender = visibleMap;
 
                 if (mapToRender != null)

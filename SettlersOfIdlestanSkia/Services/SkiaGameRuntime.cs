@@ -60,6 +60,8 @@ public sealed class SkiaGameRuntime : IDisposable
     private double _autoSaveTimer = 0;
     private const double AutoSaveInterval = 5.0;
 
+    private Func<int> _currentLayer => () => _gameControllerService?.CurrentGameState?.CurrentIslandState?.CurrentMapZ ?? 0;
+
     public void Initialize(IFileSystemService fileSystemService, bool allowDebugMode = false)
     {
         var autoJson = fileSystemService.LoadAuto().GetAwaiter().GetResult();
@@ -125,7 +127,7 @@ public sealed class SkiaGameRuntime : IDisposable
             _inputService,
             _cameraService,
             _gameControllerService.CityBuildingService!);
-        var islandMainRenderer = new IslandMainRenderer(_constructionInteractionService, tooltipRenderer, _gameControllerService.MainGameController.HarvestController, _resourceManager!, _gameControllerService.MainGameController.MilitaryController);
+        var islandMainRenderer = new IslandMainRenderer(_constructionInteractionService, tooltipRenderer, _gameControllerService.MainGameController.HarvestController, _resourceManager!, _gameControllerService.MainGameController.MilitaryController, _currentLayer);
         _islandMainRenderer = islandMainRenderer;
         _constructionInteractionService.AttachRenderer(islandMainRenderer);
         _renderService.RegisterRenderer(islandMainRenderer);
@@ -340,7 +342,7 @@ public sealed class SkiaGameRuntime : IDisposable
         if (_islandMainRenderer != null && _overlayRenderer != null)
             _islandMainRenderer.IsVisible = _overlayRenderer.IsIslandTabActive;
 
-        _renderService.RenderFrame(canvas, gameState, _cameraService);
+        _renderService.RenderFrame(canvas, gameState!, _cameraService);
     }
 
     public void HandlePointerPressed(float x, float y, int pointerId = 0, PointerButton button = PointerButton.Left)
