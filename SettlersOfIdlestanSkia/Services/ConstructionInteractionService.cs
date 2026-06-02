@@ -131,9 +131,10 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
             return;
 
         // Fallback: clic sur un hex — vérifie d'abord si c'est une wonder.
-        var hex = _renderer.ScreenToHex(e.Position, _cameraService.CanvasSize, _cameraService.ZoomLevel, _cameraService.Position);
-        var hexCoord = new HexCoord(hex.q, hex.r);
         var islandState = _gameControllerService.CurrentIslandState;
+        int currentZ = islandState?.CurrentMapZ ?? HexCoord.SurfaceZ;
+        var hex = _renderer.ScreenToHex(e.Position, _cameraService.CanvasSize, _cameraService.ZoomLevel, _cameraService.Position);
+        var hexCoord = new HexCoord(hex.q, hex.r, currentZ);
         var playerIndex = islandState?.PlayerCivilization.Index ?? 0;
 
         var clickedWonder = islandState?.Features.OfType<Wonder>().FirstOrDefault(w => w.Position.Equals(hexCoord));
@@ -158,6 +159,8 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
         if (_renderer == null)
             return;
 
+        int currentZ = _gameControllerService.CurrentIslandState?.CurrentMapZ ?? HexCoord.SurfaceZ;
+
         var buildableVertices = _gameControllerService.GetBuildableCityVerticesForPlayer();
         var buildableEdges = _gameControllerService.GetBuildableRoadEdgesForPlayer();
 
@@ -166,7 +169,7 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
         var hoveredCityVertex = GetHoveredCityVertex(islandPoint);
 
         Vertex? hoveredVertex = null;
-        var nearestVertex = _renderer.IslandToNearestVertex(islandPoint);
+        var nearestVertex = _renderer.IslandToNearestVertex(islandPoint, currentZ);
         if (buildableVertices.Any(v => v.Equals(nearestVertex)))
         {
             var dist = SKPoint.Distance(islandPoint, _renderer.VertexToIslandPoint(nearestVertex));
@@ -177,7 +180,7 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
         }
 
         Edge? hoveredEdge = null;
-        var nearestEdge = _renderer.IslandToNearestEdge(islandPoint);
+        var nearestEdge = _renderer.IslandToNearestEdge(islandPoint, currentZ);
         if (buildableEdges.Any(e => e.Equals(nearestEdge)))
         {
             var dist = SKPoint.Distance(islandPoint, _renderer.EdgeToIslandPoint(nearestEdge));
@@ -190,7 +193,7 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
         HexCoord? hoveredHex = null;
         if (hoveredVertex == null && hoveredEdge == null && hoveredCityVertex == null)
         {
-            var hexCoord = _renderer.IslandToHexCoord(islandPoint);
+            var hexCoord = _renderer.IslandToHexCoord(islandPoint, currentZ);
             var (hx, hy) = _renderer.AxialToIsland(hexCoord.Q, hexCoord.R);
             if (_renderer.IsPointInHexagon(islandPoint.X, islandPoint.Y, hx, hy))
             {

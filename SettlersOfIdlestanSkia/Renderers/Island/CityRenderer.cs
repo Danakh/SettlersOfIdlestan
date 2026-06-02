@@ -150,7 +150,7 @@ public class CityRenderer : HexBasedRenderer, IGameRenderer
 
     internal void RenderConstructionHighlights(SKCanvas canvas, ConstructionHoverState state, GameRenderContext context)
     {
-        foreach (var vertex in state.BuildableVertices)
+        foreach (var vertex in state.BuildableVertices.Where(v => v.Z == context.CurrentLayer))
         {
             var pt = VertexToIsland(vertex);
             canvas.DrawCircle(pt, 5f, _buildableVertexPaint);
