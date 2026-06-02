@@ -1,6 +1,7 @@
-using System;
+﻿using System;
 using System.Linq;
 using SettlersOfIdlestan.Controller;
+using SettlersOfIdlestan.Model.IslandMap;
 using Xunit;
 
 namespace SOITests.TestUtilities;
@@ -43,9 +44,9 @@ public static class IslandScenarioRunner
             controller = SaveUtils.LoadSave(loadFolder, prevSaveName);
         }
 
-        var islandState = controller.CurrentMainState!.CurrentIslandState!;
-        var civ = islandState.Civilizations.First();
-        var autoplayer = new CivilizationAutoplayer(civ, islandState.Map, controller);
+        var worldState = controller.CurrentMainState!.CurrentWorldState!;
+        var civ = worldState.Civilizations.First();
+        var autoplayer = new CivilizationAutoplayer(civ, worldState.GetMapForZ(IslandMap.SurfaceLayer), controller);
         var runner = new CivilizationAutoplayerRunner(autoplayer, civ, controller);
 
         step.RunAction(runner, () => step.Condition(controller));

@@ -1,4 +1,4 @@
-using System.Linq;
+﻿using System.Linq;
 using Xunit;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
@@ -74,9 +74,9 @@ public class HexGridPathfinderTests
     public void FindVertexPath_WithDifferentZ_ThrowsArgumentException()
     {
         var target = Vertex.Create(
-            new HexCoord(0, 0, UnderworldState.Layer),
-            new HexCoord(0, 1, UnderworldState.Layer),
-            new HexCoord(1, 0, UnderworldState.Layer));
+            new HexCoord(0, 0, LayerState.UnderworldZ),
+            new HexCoord(0, 1, LayerState.UnderworldZ),
+            new HexCoord(1, 0, LayerState.UnderworldZ));
 
         Assert.Throws<ArgumentException>(() => HexGridPathfinder.FindVertexPath(V0, target));
     }

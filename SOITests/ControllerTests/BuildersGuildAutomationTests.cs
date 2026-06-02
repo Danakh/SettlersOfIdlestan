@@ -1,4 +1,4 @@
-using SettlersOfIdlestan.Controller.Island;
+﻿using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
@@ -46,7 +46,7 @@ public class BuildersGuildAutomationTests
     /// <summary>
     /// 19-hex island (center + 2 rings), city at Vertex(C, R1_E, R1_NE).
     /// </summary>
-    private static IslandState CreateNineteenHexIslandState()
+    private static WorldState CreateNineteenHexIslandState()
     {
         var tiles = new List<HexTile>
         {
@@ -78,7 +78,7 @@ public class BuildersGuildAutomationTests
         var cityVertex = Vertex.Create(C, R1_E, R1_NE);
         civ.Cities.Add(new City(cityVertex) { CivilizationIndex = 0 });
 
-        return new IslandState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
+        return new WorldState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
     }
 
     // -------------------------------------------------------------------------

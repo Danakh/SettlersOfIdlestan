@@ -1,4 +1,4 @@
-using Xunit;
+﻿using Xunit;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Prestige;
@@ -15,7 +15,7 @@ public class PrestigeMapControllerTests
     private static PrestigeMapController Controller() => new();
     private static PrestigeState EmptyPrestige() => new();
 
-    private static void WireAggregator(IslandState island, PrestigeState prestige)
+    private static void WireAggregator(WorldState island, PrestigeState prestige)
     {
         var civ = island.PlayerCivilization;
         civ.TechnologyTree = prestige.TechnologyTree;

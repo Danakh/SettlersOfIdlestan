@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using SettlersOfIdlestan.Controller.Generator;
@@ -22,11 +22,11 @@ public class NpcCivilizationPlacementTests
 
     private const int MinEdgeDistance = 7;
 
-    private static IslandState CreateIsland(IslandShapeType shape, int npcCount,
+    private static WorldState CreateIsland(IslandShapeType shape, int npcCount,
         NpcEvolutionLevel level = NpcEvolutionLevel.Minimum)
     {
         var parameters = new IslandParameters(
-            islandID: 0,
+            worldId: 0,
             tileData: TileData40,
             shapeType: shape)
         {
@@ -35,7 +35,7 @@ public class NpcCivilizationPlacementTests
                 .ToList()
         };
 
-        var state = new IslandMapGenerator().GenerateIslandState(parameters, currentTick: 0);
+        var state = new IslandMapGenerator().GenerateWorldState(parameters, currentTick: 0);
         Assert.NotNull(state);
         return state;
     }
@@ -129,7 +129,7 @@ public class NpcCivilizationPlacementTests
 
             foreach (var hex in hexes)
             {
-                var tile = state.Map.GetTile(hex);
+                var tile = state.GetMapForZ(IslandMap.SurfaceLayer).GetTile(hex);
                 if (tile == null) continue;
 
                 switch (tile.TerrainType)

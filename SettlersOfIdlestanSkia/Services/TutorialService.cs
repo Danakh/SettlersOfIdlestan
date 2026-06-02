@@ -1,4 +1,4 @@
-using System.Linq;
+﻿using System.Linq;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.Tasks;
 using SettlersOfIdlestanSkia.Renderers.Overlay;
@@ -38,10 +38,10 @@ public class TutorialService
 
         var step = steps[index];
         var gameRecord = state.GameRecord;
-        var islandState = state.CurrentIslandState;
-        var runRecord = islandState?.RunRecord;
+        var WorldState = state.CurrentWorldState;
+        var runRecord = WorldState?.RunRecord;
 
-        if (step.PrimaryTasks.All(t => t.IsCompleted(gameRecord, runRecord, islandState)))
+        if (step.PrimaryTasks.All(t => t.IsCompleted(gameRecord, runRecord, WorldState)))
         {
             state.TutorialStepIndex = index + 1;
             RefreshStep(state);

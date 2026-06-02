@@ -1,4 +1,4 @@
-using SettlersOfIdlestan.Controller.Island;
+﻿using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
@@ -12,10 +12,10 @@ namespace SOITests.TestUtilities;
 public static class IslandTestFactory
 {
     /// <summary>
-    /// Creates an IslandState containing seven hex tiles (center + 6 surrounding hexes)
+    /// Creates an WorldState containing seven hex tiles (center + 6 surrounding hexes)
     /// and a single civilization with one city placed on a vertex adjacent to three of the tiles.
     /// </summary>
-    public static IslandState CreateSevenHexIslandState()
+    public static WorldState CreateSevenHexIslandState()
     {
         var center = new HexCoord(0, 0, IslandMap.SurfaceLayer);
         var e = new HexCoord(1, 0, IslandMap.SurfaceLayer);
@@ -45,7 +45,7 @@ public static class IslandTestFactory
         var city = new City(cityVertex) { CivilizationIndex = civ.Index };
         civ.Cities.Add(city);
 
-        var state = new IslandState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
+        var state = new WorldState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
         return state;
     }
 }

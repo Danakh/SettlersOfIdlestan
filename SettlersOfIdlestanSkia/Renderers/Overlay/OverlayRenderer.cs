@@ -1,6 +1,7 @@
-using System;
+﻿using System;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Game;
+using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Services.Localization;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Renderers.Overlay.Popup;
@@ -195,7 +196,7 @@ public sealed class OverlayRenderer : IGameRenderer
         bool onEventsTab      = _activeTab == TabEvents;
         bool onAutomationTab  = _activeTab == TabAutomation  && _hasAutomationTab;
 
-        int currentEventCount = _gameControllerService.CurrentIslandState?.EventLog?.Entries.Count ?? 0;
+        int currentEventCount = _gameControllerService.CurrentWorldState?.EventLog?.Entries.Count ?? 0;
         if (_seenEventCount == null || _seenEventCount > currentEventCount)
         {
             _seenEventCount = currentEventCount;
@@ -211,7 +212,7 @@ public sealed class OverlayRenderer : IGameRenderer
             _hasNewEvent = true;
         }
 
-        bool isUnderworld = _gameControllerService.CurrentIslandState?.IsViewingUnderworld == true;
+        bool isUnderworld = _gameControllerService.CurrentWorldState?.IsViewingUnderworld == true;
         bool panelsEnabled = !onResearchTab && !onPrestigeTab && !onHistoryTab && !onEventsTab && !onAutomationTab
             && !_tradeRenderer.IsOpen && !_prestigeRenderer.IsOpen && !isUnderworld;
         _selectedCityPanelRenderer.IsInputEnabled = panelsEnabled;
@@ -265,8 +266,8 @@ public sealed class OverlayRenderer : IGameRenderer
     private void DrawMapSwitchButton(SKCanvas canvas, GameRenderContext context)
     {
         if (context.GameState is not MainGameState mgs) return;
-        var islandState = mgs.CurrentIslandState;
-        if (islandState?.Underworld == null) return;
+        var worldState = mgs.CurrentWorldState;
+        if (worldState == null || !worldState.Layers.ContainsKey(LayerState.UnderworldZ)) return;
 
         const float btnW = 130f;
         const float btnH = 22f;
@@ -277,7 +278,7 @@ public sealed class OverlayRenderer : IGameRenderer
         canvas.DrawRoundRect(_mapSwitchRect, 5, 5, _mapSwitchActivePaint);
         canvas.DrawRoundRect(_mapSwitchRect, 5, 5, _mapSwitchBorderPaint);
 
-        string label = islandState.IsViewingUnderworld
+        string label = worldState.IsViewingUnderworld
             ? _localization.Get("btn_map_surface")
             : _localization.Get("btn_map_underworld");
         canvas.DrawText(label, _mapSwitchRect.MidX, _mapSwitchRect.MidY + 4f, SKTextAlign.Center, _mapSwitchFont, _buttonTextPaint);
@@ -290,13 +291,13 @@ public sealed class OverlayRenderer : IGameRenderer
         var hoveredResource = _playerResourcesOverlayRenderer.GetResourceAtPoint(_lastPointerPosition);
         if (!hoveredResource.HasValue) return;
 
-        var islandState = _gameControllerService.CurrentIslandState;
-        if (islandState == null) return;
+        var WorldState = _gameControllerService.CurrentWorldState;
+        if (WorldState == null) return;
 
         string resourceName = _localization.Get($"resource_{hoveredResource.Value.ToString().ToLower()}");
 
         var rates = _gameControllerService.MainGameController.HarvestController
-            .GetAverageProductionRatesPerSecond(islandState.PlayerCivilization.Index);
+            .GetAverageProductionRatesPerSecond(WorldState.PlayerCivilization.Index);
 
         if (rates.TryGetValue(hoveredResource.Value, out double rate) && rate > 0.0001)
             _tooltipRenderer.SetTooltipLines(new[] { resourceName, $"+{rate:F2}/s" }, _lastPointerPosition);
@@ -438,11 +439,11 @@ public sealed class OverlayRenderer : IGameRenderer
         // Map switch button
         if (_mapSwitchRect != default && _mapSwitchRect.Contains(e.Position.X, e.Position.Y))
         {
-            var islandState = _gameControllerService.CurrentIslandState;
-            if (islandState?.Underworld != null)
+            var worldState = _gameControllerService.CurrentWorldState;
+            if (worldState?.Layers.ContainsKey(LayerState.UnderworldZ) == true)
             {
-                islandState.IsViewingUnderworld = !islandState.IsViewingUnderworld;
-                if (islandState.IsViewingUnderworld)
+                worldState.IsViewingUnderworld = !worldState.IsViewingUnderworld;
+                if (worldState.IsViewingUnderworld)
                     _activeTab = TabIsland;
                 DeselectCityAndWonder();
             }

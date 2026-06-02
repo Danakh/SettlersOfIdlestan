@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
 using SettlersOfIdlestan.Controller;
@@ -24,7 +24,7 @@ public class IslandStateVisibleIslandMapTests
         var civilization = new Civilization { Index = 0 };
         civilization.Cities.Add(new City(Vertex.Create(a, b, c)));
 
-        var state = new IslandState(map, new List<Civilization> { civilization }, AtlasController.InvalidIslandId);
+        var state = new WorldState(map, new List<Civilization> { civilization }, AtlasController.InvalidIslandId);
 
         Assert.True(state.GetVisibleIslandMapsForZ(0).TryGetValue(0, out var visibleMap));
         Assert.True(visibleMap.HasTile(a));
@@ -41,10 +41,10 @@ public class IslandStateVisibleIslandMapTests
         var map = CreateMap(a, b, c);
         var civilization = new Civilization { Index = 0 };
         civilization.Cities.Add(new City(Vertex.Create(a, b, c)));
-        var state = new IslandState(map, new List<Civilization> { civilization }, AtlasController.InvalidIslandId);
+        var state = new WorldState(map, new List<Civilization> { civilization }, AtlasController.InvalidIslandId);
 
         var json = JsonSerializer.Serialize(state, SerializationService.SerializationOptions());
-        var reloaded = JsonSerializer.Deserialize<IslandState>(json, SerializationService.SerializationOptions());
+        var reloaded = JsonSerializer.Deserialize<WorldState>(json, SerializationService.SerializationOptions());
 
         Assert.NotNull(reloaded);
         Assert.True(reloaded!.GetVisibleIslandMapsForZ(0).TryGetValue(0, out var visibleMap));
@@ -63,7 +63,7 @@ public class IslandStateVisibleIslandMapTests
         var roadEndpointOnly = new HexCoord(1, -1, IslandMap.SurfaceLayer);
         var map = CreateMap(a, b, c, roadEndpointOnly);
         var civilization = new Civilization { Index = 0 };
-        var state = new IslandState(map, new List<Civilization> { civilization }, AtlasController.InvalidIslandId);
+        var state = new WorldState(map, new List<Civilization> { civilization }, AtlasController.InvalidIslandId);
 
         var cityVertex = Vertex.Create(a, b, c);
         new IslandMapGenerator().PopulatePlayerCivilization(map, civilization, cityVertex);

@@ -32,20 +32,20 @@ namespace SettlersOfIdlestan.Controller.Island
     /// </summary>
     public class BuildingController
     {
-        private IslandState? _state;
+        private WorldState? _state;
         private GameClock? _clock;
 
         public event EventHandler<BuildingBuiltEventArgs>? OnBuildingBuilt;
 
-        internal BuildingController(IslandState? state = null)
+        internal BuildingController(WorldState? state = null)
         {
             _state = state;
         }
 
         /// <summary>
-        /// Initialize or update the IslandState for this controller.
+        /// Initialize or update the WorldState for this controller.
         /// </summary>
-        internal void Initialize(IslandState state, GameClock? clock = null)
+        internal void Initialize(WorldState state, GameClock? clock = null)
         {
             if (_clock != null)
                 _clock.Advanced -= OnClockAdvanced;
@@ -73,7 +73,7 @@ namespace SettlersOfIdlestan.Controller.Island
 
         private void TryInitializeUnderworld()
         {
-            if (_state == null || _state.Underworld != null) return;
+            if (_state == null || _state.Layers.ContainsKey(LayerState.UnderworldZ)) return;
 
             var playerCiv = _state.PlayerCivilization;
             bool hasDeepestMine = false;
@@ -84,7 +84,7 @@ namespace SettlersOfIdlestan.Controller.Island
 
             if (!hasDeepestMine) return;
 
-            _state.Underworld = UnderworldState.CreateDefault(playerCiv.Index);
+            _state.Layers[LayerState.UnderworldZ] = LayerState.CreateUnderworld(playerCiv.Index);
             _state.NormalizeUnderworldCitiesIntoCivilizations();
             _state.RecalculateVisibleIslandMap(playerCiv.Index);
         }
@@ -198,7 +198,7 @@ namespace SettlersOfIdlestan.Controller.Island
         /// </summary>
         public List<Building> GetBuildingsAndBuildables(City city)
         {
-            if (_state == null) throw new InvalidOperationException("IslandState has not been initialized.");
+            if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
 
             var civ = _state.Civilizations.FirstOrDefault(c => c.Index == city.CivilizationIndex)
                       ?? throw new ArgumentException("Civilization not found", nameof(city.CivilizationIndex));
@@ -238,7 +238,7 @@ namespace SettlersOfIdlestan.Controller.Island
         /// </summary>
         public bool BuildBuilding(City city, BuildingType type)
         {
-            if (_state == null) throw new InvalidOperationException("IslandState has not been initialized.");
+            if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
 
             var civ = _state.Civilizations.FirstOrDefault(c => c.Index == city.CivilizationIndex)
                       ?? throw new ArgumentException("Civilization not found", nameof(city.CivilizationIndex));
@@ -319,7 +319,7 @@ namespace SettlersOfIdlestan.Controller.Island
         /// </summary>
         public List<Building> GetUniqueBuildingsAndBuildables(City city)
         {
-            if (_state == null) throw new InvalidOperationException("IslandState has not been initialized.");
+            if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
 
             var civ = _state.Civilizations.FirstOrDefault(c => c.Index == city.CivilizationIndex)
                       ?? throw new ArgumentException("Civilization not found", nameof(city.CivilizationIndex));
@@ -352,7 +352,7 @@ namespace SettlersOfIdlestan.Controller.Island
 
         public int GetMaxLevel(Building building, int civilizationIndex)
         {
-            if (_state == null) throw new InvalidOperationException("IslandState has not been initialized.");
+            if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
 
             var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex)
                       ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));

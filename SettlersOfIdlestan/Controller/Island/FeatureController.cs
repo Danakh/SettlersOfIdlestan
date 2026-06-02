@@ -1,4 +1,4 @@
-using SettlersOfIdlestan.Model.Civilization;
+﻿using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.IslandMap;
@@ -14,11 +14,11 @@ namespace SettlersOfIdlestan.Controller.Island;
 /// </summary>
 public class FeatureController
 {
-    private IslandState? _state;
+    private WorldState? _state;
     private GameClock? _clock;
     private List<IslandFeature> _features = new();
 
-    internal void Initialize(IslandState? state, GameClock? clock)
+    internal void Initialize(WorldState? state, GameClock? clock)
     {
         if (_clock != null)
             _clock.Advanced -= OnClockAdvanced;

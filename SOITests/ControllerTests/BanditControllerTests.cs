@@ -1,4 +1,4 @@
-using SettlersOfIdlestan.Controller.Island;
+﻿using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Controller.Military;
 using SettlersOfIdlestan.Model.Bandits;
 using SettlersOfIdlestan.Model.Buildings;
@@ -36,7 +36,7 @@ namespace SOITests.ControllerTests
         private static HexCoord SE     => new(1, -1, IslandMap.SurfaceLayer);
         private static HexCoord SW     => new(0, -1, IslandMap.SurfaceLayer);
 
-        private static (IslandState state, GameClock clock, BanditController controller) CreateTrappedSetup(bool activeBarracks)
+        private static (WorldState state, GameClock clock, BanditController controller) CreateTrappedSetup(bool activeBarracks)
         {
             var tiles = new List<HexTile>
             {
@@ -65,7 +65,7 @@ namespace SOITests.ControllerTests
             civ.Cities.Add(cityA);
             civ.Cities.Add(cityB);
 
-            var state = new IslandState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
+            var state = new WorldState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
             state.AddFeature(new Bandit(Center, 0) { Found = true });
 
             var clock = new GameClock();
@@ -96,7 +96,7 @@ namespace SOITests.ControllerTests
 
             var map = new IslandMap(tiles);
             var civ = new Civilization { Index = 0 };
-            var state = new IslandState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
+            var state = new WorldState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
             state.AddFeature(new Bandit(Center, 0) { Found = true });
 
             var clock = new GameClock();
@@ -115,7 +115,7 @@ namespace SOITests.ControllerTests
         [Fact]
         public void IsHarvestBlocked_ReturnsTrueWhileBanditPresent()
         {
-            var state = new IslandState(
+            var state = new WorldState(
                 new IslandMap(new List<HexTile> { new(Center, TerrainType.Desert) }),
                 new List<Civilization> { new() { Index = 0 } },
                 AtlasController.InvalidIslandId);
@@ -144,7 +144,7 @@ namespace SOITests.ControllerTests
 
             var map = new IslandMap(tiles);
             var civ = new Civilization { Index = 0 };
-            var state = new IslandState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
+            var state = new WorldState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
             state.AddFeature(new Bandit(Center, 0) { Found = true });
 
             var clock = new GameClock();
@@ -173,7 +173,7 @@ namespace SOITests.ControllerTests
 
             var map = new IslandMap(tiles);
             var civ = new Civilization { Index = 0 };
-            var state = new IslandState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
+            var state = new WorldState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
             state.AddFeature(new Bandit(Center, 0) { Found = true });
 
             var clock = new GameClock();
@@ -194,7 +194,7 @@ namespace SOITests.ControllerTests
 
         // ── Raid mechanic ────────────────────────────────────────────────────
 
-        private static (IslandState state, GameClock clock, BanditController controller, Civilization civ)
+        private static (WorldState state, GameClock clock, BanditController controller, Civilization civ)
             CreateRaidSetup()
         {
             // City at Vertex(NE, East, NE11) — bandit at Center is adjacent to NE and East.
@@ -215,7 +215,7 @@ namespace SOITests.ControllerTests
             var city = new City(Vertex.Create(ne, east, Center)) { CivilizationIndex = 0 };
             civ.Cities.Add(city);
 
-            var state = new IslandState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
+            var state = new WorldState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
             state.AddFeature(new Bandit(Center, 0) { Found = true });
 
             var clock = new GameClock();

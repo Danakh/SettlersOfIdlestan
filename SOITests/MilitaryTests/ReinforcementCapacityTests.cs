@@ -1,4 +1,4 @@
-using SettlersOfIdlestan.Controller.Island;
+﻿using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Controller.Military;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
@@ -51,7 +51,7 @@ public class ReinforcementCapacityTests
 
         source.FlowTarget = VertexTarget;
 
-        var state = new IslandState(BuildMap(), [civ], AtlasController.InvalidIslandId);
+        var state = new WorldState(BuildMap(), [civ], AtlasController.InvalidIslandId);
         var clock = new GameClock();
         clock.Start();
 

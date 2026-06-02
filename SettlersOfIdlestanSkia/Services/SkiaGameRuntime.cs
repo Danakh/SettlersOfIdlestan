@@ -1,4 +1,4 @@
-using SkiaSharp;
+﻿using SkiaSharp;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Renderers;
@@ -10,6 +10,7 @@ using SettlersOfIdlestanSkia.Renderers.Overlay;
 using SettlersOfIdlestanSkia.Renderers.Overlay.Popup;
 using SettlersOfIdlestanSkia.Renderers.Overlay.Tabs;
 using SettlersOfIdlestan.Model.IslandFeatures;
+using SettlersOfIdlestan.Model.IslandMap;
 
 namespace SettlersOfIdlestanSkia.Services;
 
@@ -60,7 +61,7 @@ public sealed class SkiaGameRuntime : IDisposable
     private double _autoSaveTimer = 0;
     private const double AutoSaveInterval = 5.0;
 
-    private Func<int> _currentLayer => () => _gameControllerService?.CurrentGameState?.CurrentIslandState?.CurrentMapZ ?? 0;
+    private Func<int> _currentLayer => () => _gameControllerService?.CurrentGameState?.CurrentWorldState?.CurrentMapZ ?? 0;
 
     public void Initialize(IFileSystemService fileSystemService, bool allowDebugMode = false)
     {
@@ -326,7 +327,7 @@ public sealed class SkiaGameRuntime : IDisposable
 
     private (int cityCount, int roadCount) GetCityRoadCounts()
     {
-        var civ = _gameControllerService?.CurrentGameState?.CurrentIslandState?.Civilizations.FirstOrDefault();
+        var civ = _gameControllerService?.CurrentGameState?.CurrentWorldState?.Civilizations.FirstOrDefault();
         return civ == null ? (0, 0) : (civ.Cities.Count, civ.Roads.Count);
     }
 
@@ -419,9 +420,9 @@ public sealed class SkiaGameRuntime : IDisposable
     private void DebugAddResources()
     {
         var mainState = _gameControllerService?.MainGameController?.CurrentMainState;
-        if (mainState?.CurrentIslandState?.Civilizations.Count > 0)
+        if (mainState?.CurrentWorldState?.Civilizations.Count > 0)
         {
-            var civ = mainState.CurrentIslandState.Civilizations[0];
+            var civ = mainState.CurrentWorldState.Civilizations[0];
             foreach (var resource in Enum.GetValues<SettlersOfIdlestan.Model.IslandMap.Resource>())
                 civ.AddResource(resource, 100);
         }
@@ -434,7 +435,7 @@ public sealed class SkiaGameRuntime : IDisposable
 
     public void NotifyError(Exception ex)
     {
-        var eventLog = _gameControllerService?.CurrentGameState?.CurrentIslandState?.EventLog;
+        var eventLog = _gameControllerService?.CurrentGameState?.CurrentWorldState?.EventLog;
         eventLog?.Add(SettlersOfIdlestan.Model.Game.GameEventType.RuntimeError, ex.Message);
     }
 
@@ -535,8 +536,8 @@ public sealed class SkiaGameRuntime : IDisposable
         const float HexSize = 40f;
         float sqrt3 = (float)Math.Sqrt(3);
 
-        var islandState = _gameControllerService?.CurrentGameState?.CurrentIslandState;
-        var playerCity = islandState?.PlayerCivilization?.Cities?.FirstOrDefault();
+        var WorldState = _gameControllerService?.CurrentGameState?.CurrentWorldState;
+        var playerCity = WorldState?.PlayerCivilization?.Cities?.FirstOrDefault();
 
         if (playerCity != null)
         {
@@ -549,7 +550,7 @@ public sealed class SkiaGameRuntime : IDisposable
         }
         else
         {
-            var hexCoords = islandState?.Map?.Tiles?.Keys ?? Enumerable.Empty<HexCoord>();
+            var hexCoords = WorldState?.Layers.GetValueOrDefault(IslandMap.SurfaceLayer)?.Map?.Tiles?.Keys ?? Enumerable.Empty<HexCoord>();
             _cameraService.FitMapToView(hexCoords);
         }
     }

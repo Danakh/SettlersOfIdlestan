@@ -1,4 +1,4 @@
-using SettlersOfIdlestan.Controller.Island;
+﻿using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
@@ -93,8 +93,8 @@ public sealed class AutomationRenderer : IDisposable
         y += 32f;
 
         var civ = _gameControllerService.PlayerCivilization;
-        var islandState = _gameControllerService.CurrentIslandState;
-        if (civ == null || islandState == null) return;
+        var WorldState = _gameControllerService.CurrentWorldState;
+        if (civ == null || WorldState == null) return;
 
         BuildersGuild? buildersGuild = null;
         HarvestersGuild? harvestersGuild = null;
@@ -118,7 +118,7 @@ public sealed class AutomationRenderer : IDisposable
         {
             (_roadToggleRect, rowH) = DrawAutomationRow(
                 canvas, x, y, contentWidth,
-                islandState.AutomationSettings.RoadAutomationEnabled,
+                WorldState.AutomationSettings.RoadAutomationEnabled,
                 _hoveredRoadToggle,
                 _localization.Get("automation_road_name"),
                 _localization.Get("automation_road_desc"));
@@ -137,7 +137,7 @@ public sealed class AutomationRenderer : IDisposable
         {
             (_outpostToggleRect, rowH) = DrawAutomationRow(
                 canvas, x, y, contentWidth,
-                islandState.AutomationSettings.OutpostAutomationEnabled,
+                WorldState.AutomationSettings.OutpostAutomationEnabled,
                 _hoveredOutpostToggle,
                 _localization.Get("automation_outpost_name"),
                 _localization.Get("automation_outpost_desc"));
@@ -156,7 +156,7 @@ public sealed class AutomationRenderer : IDisposable
         {
             (_productionToggleRect, rowH) = DrawAutomationRow(
                 canvas, x, y, contentWidth,
-                islandState.AutomationSettings.ProductionBuildingAutomationEnabled,
+                WorldState.AutomationSettings.ProductionBuildingAutomationEnabled,
                 _hoveredProductionToggle,
                 _localization.Get("automation_production_name"),
                 _localization.Get("automation_production_desc"),
@@ -176,7 +176,7 @@ public sealed class AutomationRenderer : IDisposable
         {
             (_artisanToggleRect, rowH) = DrawAutomationRow(
                 canvas, x, y, contentWidth,
-                islandState.AutomationSettings.ArtisanBuildingAutomationEnabled,
+                WorldState.AutomationSettings.ArtisanBuildingAutomationEnabled,
                 _hoveredArtisanToggle,
                 _localization.Get("automation_artisan_name"),
                 _localization.Get("automation_artisan_desc"),
@@ -196,7 +196,7 @@ public sealed class AutomationRenderer : IDisposable
         {
             (_libraryToggleRect, rowH) = DrawAutomationRow(
                 canvas, x, y, contentWidth,
-                islandState.AutomationSettings.LibraryBuildingAutomationEnabled,
+                WorldState.AutomationSettings.LibraryBuildingAutomationEnabled,
                 _hoveredLibraryToggle,
                 _localization.Get("automation_library_name"),
                 _localization.Get("automation_library_desc"),
@@ -216,7 +216,7 @@ public sealed class AutomationRenderer : IDisposable
         {
             (_marketToggleRect, rowH) = DrawAutomationRow(
                 canvas, x, y, contentWidth,
-                islandState.AutomationSettings.MarketBuildingAutomationEnabled,
+                WorldState.AutomationSettings.MarketBuildingAutomationEnabled,
                 _hoveredMarketToggle,
                 _localization.Get("automation_market_name"),
                 _localization.Get("automation_market_desc"),
@@ -325,7 +325,7 @@ public sealed class AutomationRenderer : IDisposable
 
     public bool HandlePointerPressed(SKPoint position)
     {
-        var state = _gameControllerService.CurrentIslandState;
+        var state = _gameControllerService.CurrentWorldState;
         if (state == null) return false;
 
         if (!_roadToggleRect.IsEmpty && _roadToggleRect.Contains(position.X, position.Y))

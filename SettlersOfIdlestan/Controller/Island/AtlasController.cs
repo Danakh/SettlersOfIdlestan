@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
@@ -10,10 +10,10 @@ namespace SettlersOfIdlestan.Controller.Island
     {
         public const int InvalidIslandId = -1;
 
-        public IslandParameters GetIslandParameters(int islandId)
+        public IslandParameters GetIslandParameters(int WorldId)
         {
             // Pour la première île, on retourne les paramètres standards d'une partie normale
-            if (islandId == 1)
+            if (WorldId == 1)
             {
                 var tileData = new List<(TerrainType terrainType, int tileCount)>
                 {
@@ -27,10 +27,10 @@ namespace SettlersOfIdlestan.Controller.Island
                 {
                     new IslandFeatureParameters(IslandFeatureType.Bandit,       IslandFeaturePlacement.FarFromPlayer),
                 };
-                return new IslandParameters(islandId, tileData, features, IslandShapeType.Compact);
+                return new IslandParameters(WorldId, tileData, features, IslandShapeType.Compact);
             }
             // Île 2 : forme allongée avec repaire de bandits
-            if (islandId == 2)
+            if (WorldId == 2)
             {
                 var tileData = new List<(TerrainType terrainType, int tileCount)>
                 {
@@ -47,10 +47,10 @@ namespace SettlersOfIdlestan.Controller.Island
                     new IslandFeatureParameters(IslandFeatureType.TreasureTrove, IslandFeaturePlacement.Random),
                     new IslandFeatureParameters(IslandFeatureType.BanditHideout, IslandFeaturePlacement.FarFromPlayer),
                 };
-                return new IslandParameters(islandId, tileData, features, IslandShapeType.Elongated);
+                return new IslandParameters(WorldId, tileData, features, IslandShapeType.Elongated);
             }
             // Île 3 : cresent + 2 civilisation NPC Low/Pacifiste
-            if (islandId == 3)
+            if (WorldId == 3)
             {
                 var tileData = new List<(TerrainType terrainType, int tileCount)>
                 {
@@ -67,7 +67,7 @@ namespace SettlersOfIdlestan.Controller.Island
                     new IslandFeatureParameters(IslandFeatureType.TreasureTrove, IslandFeaturePlacement.Random),
                     new IslandFeatureParameters(IslandFeatureType.BanditHideout, IslandFeaturePlacement.FarFromPlayer),
                 };
-                return new IslandParameters(islandId, tileData, features, IslandShapeType.Crescent)
+                return new IslandParameters(WorldId, tileData, features, IslandShapeType.Crescent)
                 {
                     NpcCivilizations =
                     [
@@ -77,7 +77,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 };
             }
             // Île 4 : archipel + 2 civilisations NPC Medium/Cautious
-            if (islandId == 4)
+            if (WorldId == 4)
             {
                 var tileData = new List<(TerrainType terrainType, int tileCount)>
                 {
@@ -94,7 +94,7 @@ namespace SettlersOfIdlestan.Controller.Island
                     new IslandFeatureParameters(IslandFeatureType.TreasureTrove, IslandFeaturePlacement.Random),
                     new IslandFeatureParameters(IslandFeatureType.BanditHideout, IslandFeaturePlacement.FarFromPlayer),
                 };
-                return new IslandParameters(islandId, tileData, features, IslandShapeType.Archipelago)
+                return new IslandParameters(WorldId, tileData, features, IslandShapeType.Archipelago)
                 {
                     NpcCivilizations =
                     [
@@ -104,17 +104,17 @@ namespace SettlersOfIdlestan.Controller.Island
                 };
             }
             // Îles 5+ : forme et civilisations aléatoires, expansion et agressivité compensées
-            if (islandId >= 5)
+            if (WorldId >= 5)
             {
-                return BuildHighEndIsland(islandId);
+                return BuildHighEndIsland(WorldId);
             }
 
             return new IslandParameters(InvalidIslandId, new List<(TerrainType terrainType, int tileCount)>());
         }
 
-        private static IslandParameters BuildHighEndIsland(int islandId)
+        private static IslandParameters BuildHighEndIsland(int WorldId)
         {
-            var prng = new GamePRNG(islandId);
+            var prng = new GamePRNG(WorldId);
 
             var shapes = Enum.GetValues<IslandShapeType>();
             var shape = shapes[prng.Next(shapes.Length)];
@@ -152,21 +152,21 @@ namespace SettlersOfIdlestan.Controller.Island
                 });
             }
 
-            return new IslandParameters(islandId, tileData, features, shape)
+            return new IslandParameters(WorldId, tileData, features, shape)
             {
                 NpcCivilizations = npcCivs,
             };
         }
 
-        public int GetFirstIslandID()
+        public int GetFirstWorldId()
         {
             return 1;
         }
 
-        public int GetNextIslandID(MainGameState gameState)
+        public int GetNextWorldId(MainGameState gameState)
         {
-            IslandState? state = gameState.CurrentIslandState;
-            return state?.IslandID + 1 ?? GetFirstIslandID();
+            WorldState? state = gameState.CurrentWorldState;
+            return state?.WorldId + 1 ?? GetFirstWorldId();
         }
     }
 }

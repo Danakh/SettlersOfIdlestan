@@ -1,4 +1,4 @@
-using SkiaSharp;
+﻿using SkiaSharp;
 using Svg.Skia;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.IslandMap;
@@ -61,15 +61,15 @@ public class IntroAnimationRenderer : HexBasedRenderer, IGameRenderer
         IsActive = false;
         _elapsed = 0f;
 
-        var islandState = gameState.CurrentIslandState;
-        if (islandState == null) return;
+        var worldState = gameState.CurrentWorldState;
+        if (worldState == null) return;
 
-        var playerCiv = islandState.PlayerCivilization;
+        var playerCiv = worldState.PlayerCivilization;
         if (playerCiv.Cities.Count == 0) return;
 
         _cityVertex = VertexToIsland(playerCiv.Cities[0].Position);
 
-        var map = islandState.Map;
+        var map = worldState.GetMapForZ(IslandMap.SurfaceLayer);
         if (map?.Tiles == null) return;
 
         var waterHexes = map.Tiles

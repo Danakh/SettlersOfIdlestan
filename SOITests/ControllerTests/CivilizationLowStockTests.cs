@@ -1,4 +1,4 @@
-using SettlersOfIdlestan.Controller.Expand;
+﻿using SettlersOfIdlestan.Controller.Expand;
 using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Controller.Military;
 using SettlersOfIdlestan.Model.Buildings;
@@ -51,7 +51,7 @@ public class CivilizationLowStockTests
         city.Buildings.Add(new Barracks { Level = 2 });
         civ.Cities.Add(city);
 
-        var state = new IslandState(MinimalMap(), [civ], AtlasController.InvalidIslandId);
+        var state = new WorldState(MinimalMap(), [civ], AtlasController.InvalidIslandId);
         var clock = new GameClock();
         clock.Start();
         new MilitaryController().Initialize(state, clock);
@@ -112,7 +112,7 @@ public class CivilizationLowStockTests
         var city = new City(CityVertex) { CivilizationIndex = 0, Soldiers = soldiers };
         civ.Cities.Add(city);
 
-        var state = new IslandState(MinimalMap(), [civ], AtlasController.InvalidIslandId);
+        var state = new WorldState(MinimalMap(), [civ], AtlasController.InvalidIslandId);
         var clock = new GameClock();
         clock.Start();
         new MilitaryController().Initialize(state, clock);
@@ -178,7 +178,7 @@ public class CivilizationLowStockTests
         city.Buildings.Add(lab);
         civ.Cities.Add(city);
 
-        var state = new IslandState(MinimalMap(), [civ], AtlasController.InvalidIslandId);
+        var state = new WorldState(MinimalMap(), [civ], AtlasController.InvalidIslandId);
         var prestigeState = new PrestigeState(state);
 
         var clock = new GameClock();

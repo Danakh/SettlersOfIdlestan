@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using Xunit;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
@@ -34,7 +34,7 @@ public class VertexTests
     {
         var hex1 = new HexCoord(0, 0, IslandMap.SurfaceLayer);
         var hex2 = new HexCoord(1, 0, IslandMap.SurfaceLayer);
-        var hex3 = new HexCoord(0, 1, UnderworldState.Layer);
+        var hex3 = new HexCoord(0, 1, LayerState.UnderworldZ);
         Assert.Throws<ArgumentException>(() => Vertex.Create(hex1, hex2, hex3));
     }
 
@@ -111,10 +111,10 @@ public class VertexTests
     {
         var data = new[] { new[] { 0, 0, 1 }, new[] { 1, 0, 1 }, new[] { 0, 1, 1 } };
         var vertex = Vertex.Deserialize(data);
-        Assert.Equal(UnderworldState.Layer, vertex.Z);
-        Assert.Equal(new HexCoord(0, 0, UnderworldState.Layer), vertex.Hex1);
-        Assert.Equal(new HexCoord(0, 1, UnderworldState.Layer), vertex.Hex2);
-        Assert.Equal(new HexCoord(1, 0, UnderworldState.Layer), vertex.Hex3);
+        Assert.Equal(LayerState.UnderworldZ, vertex.Z);
+        Assert.Equal(new HexCoord(0, 0, LayerState.UnderworldZ), vertex.Hex1);
+        Assert.Equal(new HexCoord(0, 1, LayerState.UnderworldZ), vertex.Hex2);
+        Assert.Equal(new HexCoord(1, 0, LayerState.UnderworldZ), vertex.Hex3);
     }
 
     [Fact]
@@ -122,9 +122,9 @@ public class VertexTests
     {
         var surface = Vertex.Create(new HexCoord(0, 0, IslandMap.SurfaceLayer), new HexCoord(1, 0, IslandMap.SurfaceLayer), new HexCoord(0, 1, IslandMap.SurfaceLayer));
         var underworld = Vertex.Create(
-            new HexCoord(0, 0, UnderworldState.Layer),
-            new HexCoord(1, 0, UnderworldState.Layer),
-            new HexCoord(0, 1, UnderworldState.Layer));
+            new HexCoord(0, 0, LayerState.UnderworldZ),
+            new HexCoord(1, 0, LayerState.UnderworldZ),
+            new HexCoord(0, 1, LayerState.UnderworldZ));
 
         Assert.Throws<ArgumentException>(() => surface.EdgeDistanceTo(underworld));
     }

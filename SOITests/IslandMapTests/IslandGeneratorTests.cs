@@ -1,4 +1,4 @@
-using SettlersOfIdlestan.Controller.Generator;
+﻿using SettlersOfIdlestan.Controller.Generator;
 using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.HexGrid;
@@ -290,15 +290,15 @@ public class IslandGeneratorTests
         var civilizations = new List<Civilization> { new() { Index = 0 } };
         var originalMap = generator.GenerateIsland(tileData, civilizations);
         Assert.NotNull(originalMap);
-        var original = new IslandState(originalMap, civilizations, AtlasController.InvalidIslandId);
+        var original = new WorldState(originalMap, civilizations, AtlasController.InvalidIslandId);
 
         // Act
         var json = JsonSerializer.Serialize(original, SerializationService.SerializationOptions());
-        var deserialized = JsonSerializer.Deserialize<IslandState>(json, SerializationService.SerializationOptions());
+        var deserialized = JsonSerializer.Deserialize<WorldState>(json, SerializationService.SerializationOptions());
 
         // Assert
         Assert.NotNull(deserialized);
-        Assert.Equal(original.Map.Tiles.Count, deserialized.Map.Tiles.Count);
+        Assert.Equal(original.GetMapForZ(IslandMap.SurfaceLayer).Tiles.Count, deserialized.GetMapForZ(IslandMap.SurfaceLayer).Tiles.Count);
         Assert.Equal(original.Civilizations.Count, deserialized.Civilizations.Count);
         Assert.Equal(original.PlayerCivilization.Index, deserialized.PlayerCivilization.Index);
     }

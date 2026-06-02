@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using SettlersOfIdlestan.Model.Civilization;
@@ -207,8 +207,8 @@ namespace SettlersOfIdlestan.Controller
         /// <summary>Step militaire : construit Palissade et Caserne dans les villes proches d'une civilisation ennemie (&lt; 5 edges).</summary>
         public bool TryMilitaryStepOnce()
         {
-            var islandState = _mainController.CurrentMainState?.CurrentIslandState;
-            if (islandState == null) return false;
+            var WorldState = _mainController.CurrentMainState?.CurrentWorldState;
+            if (WorldState == null) return false;
 
             bool didSomething = false;
             TryGrindOnce(null);
@@ -474,8 +474,8 @@ namespace SettlersOfIdlestan.Controller
         /// </summary>
         private List<Vertex> GetProspectiveVertices()
         {
-            var islandState = _mainController.CurrentMainState?.CurrentIslandState;
-            if (islandState == null || !islandState.GetVisibleIslandMapsForZ(islandState.CurrentMapZ).TryGetValue(_civ.Index, out var visibleMap))
+            var WorldState = _mainController.CurrentMainState?.CurrentWorldState;
+            if (WorldState == null || !WorldState.GetVisibleIslandMapsForZ(WorldState.CurrentMapZ).TryGetValue(_civ.Index, out var visibleMap))
                 return new List<Vertex>();
 
             int z = visibleMap.Z;
@@ -492,7 +492,7 @@ namespace SettlersOfIdlestan.Controller
                     if (v.Z == z)
                         networkVertices.Add(v);
 
-            var visibleEnemyCities = islandState.Civilizations
+            var visibleEnemyCities = WorldState.Civilizations
                 .Where(c => c.Index != _civ.Index)
                 .SelectMany(c => c.Cities)
                 .Where(city => city.Position.Z == z)

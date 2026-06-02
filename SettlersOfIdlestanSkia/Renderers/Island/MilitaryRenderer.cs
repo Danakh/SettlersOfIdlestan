@@ -1,4 +1,4 @@
-using SkiaSharp;
+﻿using SkiaSharp;
 using Svg.Skia;
 using SettlersOfIdlestan.Controller.Military;
 using SettlersOfIdlestan.Model.HexGrid;
@@ -92,14 +92,14 @@ public class MilitaryRenderer : HexBasedRenderer, IGameRenderer
         {
             if (isPrestigeTransitionPending()) return;
             if (!isIslandTabActive()) return;
-            if (args.TargetCity.Z != gameControllerService.CurrentIslandState?.CurrentMapZ) return;
+            if (args.TargetCity.Z != gameControllerService.CurrentWorldState?.CurrentMapZ) return;
             EmitParticle(args.Path);
         };
         militaryController.ReinforcementSent += (_, args) =>
         {
             if (isPrestigeTransitionPending()) return;
             if (!isIslandTabActive()) return;
-            if (args.TargetCity.Z != gameControllerService.CurrentIslandState?.CurrentMapZ) return;
+            if (args.TargetCity.Z != gameControllerService.CurrentWorldState?.CurrentMapZ) return;
             EmitReinforceParticle(args.Path);
         };
     }
@@ -135,18 +135,18 @@ public class MilitaryRenderer : HexBasedRenderer, IGameRenderer
 
     private void DrawFlowLines(SKCanvas canvas)
     {
-        var islandState = _gameControllerService?.CurrentIslandState;
+        var WorldState = _gameControllerService?.CurrentWorldState;
         var playerCiv = _gameControllerService?.PlayerCivilization;
-        if (islandState == null || playerCiv == null || _flowRedPaint == null || _flowGreenPaint == null || _arrowPaint == null) return;
+        if (WorldState == null || playerCiv == null || _flowRedPaint == null || _flowGreenPaint == null || _arrowPaint == null) return;
 
-        var allCities = islandState.Civilizations.SelectMany(c => c.Cities).ToList();
+        var allCities = WorldState.Civilizations.SelectMany(c => c.Cities).ToList();
 
-        foreach (var civ in islandState.Civilizations)
+        foreach (var civ in WorldState.Civilizations)
         {
             foreach (var sourceCity in civ.Cities)
             {
                 if (sourceCity.FlowTarget == null) continue;
-                if (sourceCity.Position.Z != _gameControllerService?.CurrentIslandState?.CurrentMapZ) continue;
+                if (sourceCity.Position.Z != _gameControllerService?.CurrentWorldState?.CurrentMapZ) continue;
 
                 var targetCity = allCities.FirstOrDefault(c => c.Position.Equals(sourceCity.FlowTarget));
                 if (targetCity == null) continue;

@@ -1,4 +1,4 @@
-using SettlersOfIdlestan.Controller.Island;
+﻿using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.GameplayModifier;
@@ -13,7 +13,7 @@ namespace SOITests.ControllerTests;
 
 public class BuildingControllerTests
 {
-    private static (IslandState state, BuildingController controller, City city) CreateTestSetup()
+    private static (WorldState state, BuildingController controller, City city) CreateTestSetup()
     {
         var state = IslandTestFactory.CreateSevenHexIslandState();
         var controller = new BuildingController(state);

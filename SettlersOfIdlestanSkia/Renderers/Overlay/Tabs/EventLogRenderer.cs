@@ -1,4 +1,4 @@
-using SettlersOfIdlestan.Model.Game;
+﻿using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Services.Localization;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Services;
@@ -81,7 +81,7 @@ public sealed class EventLogRenderer : IDisposable
         canvas.DrawText(_localization.Get("tab_events"), x, y + 14, _headerFont, _accentPaint);
         y += 28f;
 
-        var eventLog = mainGameState.CurrentIslandState?.EventLog;
+        var eventLog = mainGameState.CurrentWorldState?.EventLog;
         if (eventLog == null || !eventLog.HasEntries)
         {
             canvas.DrawText(_localization.Get("events_empty"), x, y + 14, _bodyFont, _mutedPaint);

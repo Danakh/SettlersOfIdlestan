@@ -1,4 +1,4 @@
-using SettlersOfIdlestan.Controller.Island;
+﻿using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Controller.Military;
 using SettlersOfIdlestan.Model.Bandits;
 using SettlersOfIdlestan.Model.HexGrid;
@@ -115,20 +115,20 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay
             _tooltipScreenPosition = _islandRendererContext.IslandToScreen(islandPosition, _gameRenderContext.ZoomLevel, _gameRenderContext.CameraPosition);
         }
 
-        public void SetHexHarvestTooltip(HexCoord coord, HarvestController harvestController, IslandState islandState, long currentTick)
+        public void SetHexHarvestTooltip(HexCoord coord, HarvestController harvestController, WorldState WorldState, long currentTick)
         {
             if (_islandRendererContext == null || _gameRenderContext == null)
                 return;
 
-            var playerIdx = islandState.PlayerCivilization.Index;
+            var playerIdx = WorldState.PlayerCivilization.Index;
             var manualResources = harvestController.GetManualHarvestableResources(playerIdx, coord);
             var autoResources = harvestController.GetAutomaticHarvestableResources(playerIdx, coord);
 
-            var tile = islandState.GetMapForZ(coord.Z).GetTile(coord);
-            var featuresAtCoord = islandState.Features.Where(f => f.Position.Equals(coord));
+            var tile = WorldState.GetMapForZ(coord.Z).GetTile(coord);
+            var featuresAtCoord = WorldState.Features.Where(f => f.Position.Equals(coord));
             var featureTooltipEntries = featuresAtCoord.Select(f => f.GetTooltipEntry()).Where(e => e != null);
             bool harvestBlockedByFeature = featuresAtCoord.Any(f => f.BlocksHarvest);
-            bool banditCooldownActive = islandState.BanditCooldownUntil.TryGetValue(coord, out var banditUntil)
+            bool banditCooldownActive = WorldState.BanditCooldownUntil.TryGetValue(coord, out var banditUntil)
                 && currentTick < banditUntil;
 
             if (manualResources.Count == 0 && autoResources.Count == 0 && featureTooltipEntries.Count() == 0 && !banditCooldownActive)
@@ -162,7 +162,7 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay
 
             if (!harvestBlockedByFeature && manualResources.Count > 0)
             {
-                islandState.HarvestLastTimesByCivilization.TryGetValue(playerIdx, out var manualTimes);
+                WorldState.HarvestLastTimesByCivilization.TryGetValue(playerIdx, out var manualTimes);
                 long manualCooldown = harvestController.GetManualHarvestCooldownTicks(playerIdx);
                 string manualLabel = _localizationService.Get("hex_tooltip_manual");
                 foreach (var resource in manualResources)

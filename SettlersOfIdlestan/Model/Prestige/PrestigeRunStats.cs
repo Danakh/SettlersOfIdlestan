@@ -5,7 +5,7 @@ namespace SettlersOfIdlestan.Model.Prestige;
 [Serializable]
 public class PrestigeRunStats
 {
-    public int IslandId { get; set; }
+    public int WorldId { get; set; }
     public long TickDuration { get; set; }
     public int CityCount { get; set; }
     public int BuildingCount { get; set; }

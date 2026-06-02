@@ -1,4 +1,4 @@
-using Xunit;
+﻿using Xunit;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
 using System;
@@ -40,7 +40,7 @@ public class EdgeTests
     public void Create_WithDifferentZ_ThrowsArgumentException()
     {
         var hex1 = new HexCoord(0, 0, IslandMap.SurfaceLayer);
-        var hex2 = new HexCoord(1, 0, UnderworldState.Layer);
+        var hex2 = new HexCoord(1, 0, LayerState.UnderworldZ);
         Assert.Throws<ArgumentException>(() => Edge.Create(hex1, hex2));
     }
 
@@ -127,8 +127,8 @@ public class EdgeTests
     {
         var data = new[] { new[] { 0, 0, 1 }, new[] { 1, 0, 1 } };
         var edge = Edge.Deserialize(data);
-        Assert.Equal(new HexCoord(0, 0, UnderworldState.Layer), edge.Hex1);
-        Assert.Equal(new HexCoord(1, 0, UnderworldState.Layer), edge.Hex2);
+        Assert.Equal(new HexCoord(0, 0, LayerState.UnderworldZ), edge.Hex1);
+        Assert.Equal(new HexCoord(1, 0, LayerState.UnderworldZ), edge.Hex2);
     }
 
     [Fact]

@@ -1,4 +1,4 @@
-using SkiaSharp;
+﻿using SkiaSharp;
 using Svg.Skia;
 using SettlersOfIdlestan.Controller.Military;
 using SettlersOfIdlestan.Model.Bandits;
@@ -104,9 +104,9 @@ public class BanditRenderer : HexBasedRenderer, IGameRenderer
         {
             if (isPrestigeTransitionPending()) return;
             if (!isIslandTabActive()) return;
-            var islandState = gameControllerService.CurrentIslandState;
-            if (islandState == null) return;
-            if (!IsSourceOrDestinationVisible(islandState, args.CityVertex, args.BanditPosition)) return;
+            var WorldState = gameControllerService.CurrentWorldState;
+            if (WorldState == null) return;
+            if (!IsSourceOrDestinationVisible(WorldState, args.CityVertex, args.BanditPosition)) return;
             EmitAttackParticle(args.CityVertex, args.BanditPosition);
         };
 
@@ -114,16 +114,16 @@ public class BanditRenderer : HexBasedRenderer, IGameRenderer
         {
             if (isPrestigeTransitionPending()) return;
             if (!isIslandTabActive()) return;
-            var islandState = gameControllerService.CurrentIslandState;
-            if (islandState == null) return;
-            if (!IsSourceOrDestinationVisible(islandState, args.CityVertex, args.BanditPosition)) return;
+            var WorldState = gameControllerService.CurrentWorldState;
+            if (WorldState == null) return;
+            if (!IsSourceOrDestinationVisible(WorldState, args.CityVertex, args.BanditPosition)) return;
             EmitAttackParticle(args.CityVertex, args.BanditPosition);
         };
     }
 
-    private static bool IsSourceOrDestinationVisible(IslandState islandState, Vertex source, HexCoord target)
+    private static bool IsSourceOrDestinationVisible(WorldState WorldState, Vertex source, HexCoord target)
     {
-        if (!islandState.GetVisibleIslandMapsForZ(islandState.CurrentMapZ).TryGetValue(islandState.PlayerCivilization.Index, out var visibleMap))
+        if (!WorldState.GetVisibleIslandMapsForZ(WorldState.CurrentMapZ).TryGetValue(WorldState.PlayerCivilization.Index, out var visibleMap))
             return true;
         if (visibleMap.HasTile(target)) return true;
         foreach (var hex in source.GetHexes())
@@ -141,17 +141,17 @@ public class BanditRenderer : HexBasedRenderer, IGameRenderer
     public void Render(SKCanvas canvas, GameRenderContext context)
     {
         if (context.GameState is not MainGameState mgs) return;
-        var islandState = mgs.CurrentIslandState;
-        if (islandState == null) return;
+        var WorldState = mgs.CurrentWorldState;
+        if (WorldState == null) return;
 
         VisibleIslandMap? visibleMap = null;
         if (!DebugSettings.ShowFullMap)
-            islandState.GetVisibleIslandMapsForZ(islandState.CurrentMapZ).TryGetValue(islandState.PlayerCivilization.Index, out visibleMap);
+            WorldState.GetVisibleIslandMapsForZ(WorldState.CurrentMapZ).TryGetValue(WorldState.PlayerCivilization.Index, out visibleMap);
 
         float dt = context.DeltaTime;
 
         // Draw hideouts
-        foreach (var hideout in islandState.Features.OfType<BanditHideout>())
+        foreach (var hideout in WorldState.Features.OfType<BanditHideout>())
         {
             if (!hideout.Found) continue;
             if (hideout.Position.Z != context.CurrentLayer) continue;
@@ -162,7 +162,7 @@ public class BanditRenderer : HexBasedRenderer, IGameRenderer
         }
 
         // Draw bandits
-        var bandits = islandState.Features.OfType<Bandit>().ToList();
+        var bandits = WorldState.Features.OfType<Bandit>().ToList();
         SyncVisuals(bandits);
 
         for (int i = 0; i < bandits.Count; i++)

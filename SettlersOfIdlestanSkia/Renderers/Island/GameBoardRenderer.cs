@@ -1,4 +1,4 @@
-using SkiaSharp;
+﻿using SkiaSharp;
 using Svg.Skia;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Services;
@@ -131,12 +131,12 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
 
         if (context.GameState is MainGameState mainGameState)
         {
-            var islandState = mainGameState.CurrentIslandState;
-            if (islandState != null && islandState.IsViewingUnderworld && islandState.Underworld != null)
+            var worldState = mainGameState.CurrentWorldState;
+            if (worldState != null && worldState.IsViewingUnderworld && worldState.Layers.ContainsKey(LayerState.UnderworldZ))
             {
                 // Underworld view: dark cave background
                 canvas.DrawColor(new SKColor(15, 8, 30));
-                DrawIslandMap(canvas, islandState.Underworld.Map, islandState.PlayerCivilization.Index,
+                DrawIslandMap(canvas, worldState.GetMapForZ(LayerState.UnderworldZ), worldState.PlayerCivilization.Index,
                     mainGameState.Clock.CurrentTick, null, null, null, null);
                 return;
             }
@@ -146,27 +146,27 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
 
         if (context.GameState is MainGameState mgs)
         {
-            var islandState = mgs.CurrentIslandState;
-            if (islandState != null)
+            var worldState = mgs.CurrentWorldState;
+            if (worldState != null)
             {
                 IslandMap? mapToRender = null;
                 if (DebugSettings.ShowFullMap)
-                    mapToRender = islandState.Map;
-                else if (islandState.GetVisibleIslandMapsForZ(islandState.CurrentMapZ).TryGetValue(islandState.PlayerCivilization.Index, out var visibleMap))
+                    mapToRender = worldState.GetMapForZ(IslandMap.SurfaceLayer);
+                else if (worldState.GetVisibleIslandMapsForZ(worldState.CurrentMapZ).TryGetValue(worldState.PlayerCivilization.Index, out var visibleMap))
                     mapToRender = visibleMap;
 
                 if (mapToRender != null)
                 {
-                    var playerIdx = islandState.PlayerCivilization.Index;
-                    islandState.HarvestLastTimesByCivilization.TryGetValue(playerIdx, out var manualTimes);
+                    var playerIdx = worldState.PlayerCivilization.Index;
+                    worldState.HarvestLastTimesByCivilization.TryGetValue(playerIdx, out var manualTimes);
 
-                    var banditPositions = new HashSet<HexCoord>(islandState.Features.OfType<Bandit>().Select(b => b.Position));
-                    var harvestBlockedPositions = new HashSet<HexCoord>(islandState.Features.Where(f => f.BlocksHarvest).Select(f => f.Position));
-                    var featuresByPosition = islandState.Features
+                    var banditPositions = new HashSet<HexCoord>(worldState.Features.OfType<Bandit>().Select(b => b.Position));
+                    var harvestBlockedPositions = new HashSet<HexCoord>(worldState.Features.Where(f => f.BlocksHarvest).Select(f => f.Position));
+                    var featuresByPosition = worldState.Features
                         .Where(f => f.ShouldRenderIcon && (f.SvgIconResourceName != null || f.TextIcon != null))
                         .GroupBy(f => f.Position)
                         .ToDictionary(g => g.Key, g => (IEnumerable<IslandFeature>)g);
-                    DrawIslandMap(canvas, mapToRender, playerIdx, mgs.Clock.CurrentTick, manualTimes, islandState.BanditCooldownUntil, banditPositions, harvestBlockedPositions, featuresByPosition);
+                    DrawIslandMap(canvas, mapToRender, playerIdx, mgs.Clock.CurrentTick, manualTimes, worldState.BanditCooldownUntil, banditPositions, harvestBlockedPositions, featuresByPosition);
 
                     var selectedWonder = _wonderService?.SelectedWonder;
                     if (selectedWonder != null && _selectedWonderPaint != null)

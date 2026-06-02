@@ -1,4 +1,4 @@
-using SettlersOfIdlestan.Controller.Island;
+﻿using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Controller.Military;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
@@ -37,7 +37,7 @@ public class MilitaryControllerWarTests
     /// Le handler CityDestroyed → RefreshContestedTerritories est branché
     /// pour reproduire le comportement de MainGameController (après le fix).
     /// </summary>
-    private static (IslandState state, GameClock clock, MilitaryController ctrl, FeatureController featureCtrl, Barracks barracksA)
+    private static (WorldState state, GameClock clock, MilitaryController ctrl, FeatureController featureCtrl, Barracks barracksA)
         Setup(int soldiersA = 5)
     {
         var civA = new Civilization { Index = 0 };
@@ -50,7 +50,7 @@ public class MilitaryControllerWarTests
         var cityB = new City(VertexB) { CivilizationIndex = 1 };
         civB.Cities.Add(cityB);
 
-        var state = new IslandState(BuildMap(), [civA, civB], AtlasController.InvalidIslandId);
+        var state = new WorldState(BuildMap(), [civA, civB], AtlasController.InvalidIslandId);
         var clock = new GameClock();
         clock.Start();
 
@@ -98,7 +98,7 @@ public class MilitaryControllerWarTests
         var cityA = new City(VertexA) { CivilizationIndex = 0 };
         civA.Cities.Add(cityA);
 
-        var state = new IslandState(BuildMap(), [civA], AtlasController.InvalidIslandId);
+        var state = new WorldState(BuildMap(), [civA], AtlasController.InvalidIslandId);
         var clock = new GameClock();
 
         var featureCtrl = new FeatureController();
@@ -129,7 +129,7 @@ public class MilitaryControllerWarTests
             new HexTile(new HexCoord(6, 0, IslandMap.SurfaceLayer), TerrainType.Plain),
         ]);
 
-        var state = new IslandState(map, [civA, civB], AtlasController.InvalidIslandId);
+        var state = new WorldState(map, [civA, civB], AtlasController.InvalidIslandId);
         var clock = new GameClock();
 
         var featureCtrl = new FeatureController();
@@ -171,7 +171,7 @@ public class MilitaryControllerWarTests
 
         cityA.FlowTarget = VertexB; // cible de renfort pour déclencher la logique
 
-        var state = new IslandState(BuildMap(), [civA, civB], AtlasController.InvalidIslandId);
+        var state = new WorldState(BuildMap(), [civA, civB], AtlasController.InvalidIslandId);
         var clock = new GameClock();
         clock.Start();
 

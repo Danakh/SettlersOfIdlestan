@@ -1,4 +1,4 @@
-using SettlersOfIdlestan.Controller;
+﻿using SettlersOfIdlestan.Controller;
 using SettlersOfIdlestan.Controller.Generator;
 using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Model.Buildings;
@@ -32,7 +32,7 @@ namespace SOITests.ControllerTests
             var map = new IslandMap(tiles);
             var civ = new Civilization { Index = 0 };
             var civs = new List<Civilization> { civ };
-            var state = new IslandState(map, civs, AtlasController.InvalidIslandId);
+            var state = new WorldState(map, civs, AtlasController.InvalidIslandId);
 
             // Place a city adjacent to the wood tile and add a Sawmill (produces wood)
             var vertex = Vertex.Create(a, b, c);

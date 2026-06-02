@@ -1,4 +1,4 @@
-using SettlersOfIdlestan.Model.Civilization;
+﻿using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandFeatures;
@@ -12,14 +12,14 @@ namespace SettlersOfIdlestan.Controller.Island
 {
     public class WonderController
     {
-        private IslandState? _state;
+        private WorldState? _state;
         private GameClock? _clock;
 
         public const long InvestmentIntervalTicks = 100L;
 
         internal WonderController() { }
 
-        internal void Initialize(IslandState? state, GameClock? clock = null)
+        internal void Initialize(WorldState? state, GameClock? clock = null)
         {
             if (_clock != null)
                 _clock.Advanced -= OnClockAdvanced;

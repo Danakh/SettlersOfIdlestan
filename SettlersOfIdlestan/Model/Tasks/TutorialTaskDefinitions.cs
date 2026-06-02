@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using SettlersOfIdlestan.Model.Buildings;
@@ -19,12 +19,12 @@ public static class TutorialTaskDefinitions
         BuildingType.GlassWorks,
     };
 
-    private static int CountBuilding(IslandState? island, BuildingType type)
+    private static int CountBuilding(WorldState? island, BuildingType type)
         => island?.PlayerCivilization.Cities.Sum(c => c.Buildings.Count(b => b.Type == type)) ?? 0;
 
     private static int LiveMax(int recorded, int? live) => Math.Max(recorded, live ?? 0);
 
-    private static int ComputePrestigePoints(IslandState? island)
+    private static int ComputePrestigePoints(WorldState? island)
         => island?.PlayerCivilization.Cities.SelectMany(c => c.Buildings).Sum(b => b.Type switch
         {
             BuildingType.Temple   => 1,

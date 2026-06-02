@@ -17,7 +17,7 @@ namespace SettlersOfIdlestan.Controller;
 /// </summary>
 public class NpcGameController
 {
-    private IslandState? _state;
+    private WorldState? _state;
     private GameClock? _clock;
     private MilitaryController? _militaryController;
     private MainGameController? _mainController;
@@ -28,7 +28,7 @@ public class NpcGameController
     private long _lastStepTick = 0;
 
     public void Initialize(
-        IslandState state,
+        WorldState state,
         GameClock? clock,
         MilitaryController militaryController,
         MainGameController mainController)
@@ -79,7 +79,7 @@ public class NpcGameController
         bool hasEncounteredEnemy = aggressivity >= NpcAggressivityLevel.Expansionist
             && HasEncounteredEnemy(civ);
 
-        var autoplayer = new NpcCivilizationAutoplayer(civ, _state.Map, _mainController, aggressivity);
+        var autoplayer = new NpcCivilizationAutoplayer(civ, _state.GetMapForZ(IslandMap.SurfaceLayer), _mainController, aggressivity);
         autoplayer.TryStepOnce(shouldExpand: !hasEncounteredEnemy);
     }
 

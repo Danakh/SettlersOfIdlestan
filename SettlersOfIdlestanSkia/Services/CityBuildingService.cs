@@ -1,4 +1,4 @@
-using SettlersOfIdlestan.Model.HexGrid;
+﻿using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Controller;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
@@ -13,7 +13,7 @@ public class CityBuildingService
 {
     private readonly MainGameController _mainGameController;
     public City? SelectedCity { get; private set; } = null;
-    private IslandState IslandState => _mainGameController.CurrentMainState?.CurrentIslandState ?? throw new InvalidOperationException("Island state is not available.");
+    private WorldState State => _mainGameController.CurrentMainState?.CurrentWorldState ?? throw new InvalidOperationException("Island state is not available.");
     private BuildingController BuildingController => _mainGameController.BuildingController ?? throw new InvalidOperationException("BuildingController is not available.");
     public PrestigeController PrestigeController => _mainGameController.PrestigeController;
 
@@ -31,7 +31,7 @@ public class CityBuildingService
 
     public void SetSelectedCity(Vertex selectedCityVertex)
     {
-        SelectedCity = IslandState.FindCityAt(selectedCityVertex);
+        SelectedCity = State.FindCityAt(selectedCityVertex);
     }
 
     public void ClearSelectedCity()
@@ -92,11 +92,11 @@ public class CityBuildingService
         if (SelectedCity == null)
             return false;
 
-        var islandState = IslandState;
-        if (islandState == null || SelectedCity.CivilizationIndex >= islandState.Civilizations.Count)
+        var worldState = State;
+        if (worldState == null || SelectedCity.CivilizationIndex >= worldState.Civilizations.Count)
             return false;
 
-        var civilization = islandState.Civilizations[SelectedCity.CivilizationIndex];
+        var civilization = worldState.Civilizations[SelectedCity.CivilizationIndex];
 
         // Check if at max level
         if (IsAtMaxLevel(building))
@@ -127,10 +127,10 @@ public class CityBuildingService
     {
         if (SelectedCity == null)
             return 0;
-        var islandState = IslandState;
-        if (islandState == null || SelectedCity.CivilizationIndex >= islandState.Civilizations.Count)
+        var worldState = State;
+        if (worldState == null || SelectedCity.CivilizationIndex >= worldState.Civilizations.Count)
             return 0;
-        return islandState.Civilizations[SelectedCity.CivilizationIndex].ForgeDoubleHarvestBonus * building.Level;
+        return worldState.Civilizations[SelectedCity.CivilizationIndex].ForgeDoubleHarvestBonus * building.Level;
     }
 
     public long GetCurrentTick() => _mainGameController.CurrentMainState?.Clock?.CurrentTick ?? 0;
@@ -139,16 +139,16 @@ public class CityBuildingService
     {
         if (SelectedCity == null) return (0, 0);
         var mc = _mainGameController.MilitaryController;
-        return (mc.GetAttackScore(SelectedCity), mc.GetMaximumSoldierCapacity(SelectedCity, IslandState.Civilizations[SelectedCity.CivilizationIndex]));
+        return (mc.GetAttackScore(SelectedCity), mc.GetMaximumSoldierCapacity(SelectedCity, State.Civilizations[SelectedCity.CivilizationIndex]));
     }
 
     public (int current, int max) GetSelectedCityDefense()
     {
         if (SelectedCity == null) return (0, 0);
         var mc = _mainGameController.MilitaryController;
-        var islandState = IslandState;
-        if (SelectedCity.CivilizationIndex >= islandState.Civilizations.Count) return (0, 0);
-        var civ = islandState.Civilizations[SelectedCity.CivilizationIndex];
+        var worldState = State;
+        if (SelectedCity.CivilizationIndex >= worldState.Civilizations.Count) return (0, 0);
+        var civ = worldState.Civilizations[SelectedCity.CivilizationIndex];
         return (SelectedCity.CurrentDefense, mc.GetDefenseScore(SelectedCity, civ));
     }
 
@@ -171,8 +171,8 @@ public class CityBuildingService
     public bool CanBuildOrUpgradeIgnoringResources(Building building)
     {
         if (SelectedCity == null) return false;
-        var islandState = IslandState;
-        if (SelectedCity.CivilizationIndex >= islandState.Civilizations.Count) return false;
+        var worldState = State;
+        if (SelectedCity.CivilizationIndex >= worldState.Civilizations.Count) return false;
         if (IsAtMaxLevel(building)) return false;
         if (building.Level == 0 && !building.HasBuildPrerequisites(SelectedCity)) return false;
         if (building.Level == 0 && building.IsUnique && SelectedCityHasAnyUniqueBuilding()) return false;

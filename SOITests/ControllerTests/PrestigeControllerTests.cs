@@ -1,4 +1,4 @@
-using Xunit;
+﻿using Xunit;
 using SettlersOfIdlestan.Controller;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Buildings;
@@ -17,7 +17,7 @@ namespace SOITests.ControllerTests
         [Fact]
         public void Prestige_PrestigePointCount()
         {
-            IslandState state = IslandTestFactory.CreateSevenHexIslandState();
+            WorldState state = IslandTestFactory.CreateSevenHexIslandState();
             var civ = state.Civilizations[0];
 
             var controller = new PrestigeController();
@@ -40,7 +40,7 @@ namespace SOITests.ControllerTests
         [Fact]
         public void Prestige_SourcesMatchCalculatedTotal()
         {
-            IslandState state = IslandTestFactory.CreateSevenHexIslandState();
+            WorldState state = IslandTestFactory.CreateSevenHexIslandState();
             var civ = state.Civilizations[0];
 
             var controller = new PrestigeController();
@@ -56,7 +56,7 @@ namespace SOITests.ControllerTests
         [Fact]
         public void Prestige_SourcesAreGroupedBySource()
         {
-            IslandState state = IslandTestFactory.CreateSevenHexIslandState();
+            WorldState state = IslandTestFactory.CreateSevenHexIslandState();
             var civ = state.Civilizations[0];
 
             var controller = new PrestigeController();
@@ -190,7 +190,7 @@ namespace SOITests.ControllerTests
             Assert.Equal(360000, runTicks);
         }
 
-        private static IslandState CreateDesertIslandState()
+        private static WorldState CreateDesertIslandState()
         {
             var tiles = new List<HexTile>
             {
@@ -203,7 +203,7 @@ namespace SOITests.ControllerTests
             var vertex = Vertex.Create(new HexCoord(0, 0, IslandMap.SurfaceLayer), new HexCoord(1, 0, IslandMap.SurfaceLayer), new HexCoord(0, 1, IslandMap.SurfaceLayer));
             var city = new SettlersOfIdlestan.Model.Civilization.City(vertex) { CivilizationIndex = 0 };
             civ.Cities.Add(city);
-            return new IslandState(map, new List<SettlersOfIdlestan.Model.Civilization.Civilization> { civ }, AtlasController.InvalidIslandId);
+            return new WorldState(map, new List<SettlersOfIdlestan.Model.Civilization.Civilization> { civ }, AtlasController.InvalidIslandId);
         }
 
         [Fact]
@@ -211,7 +211,7 @@ namespace SOITests.ControllerTests
         {
             var controller = new MainGameController();
             controller.CreateNewGame();
-            var initialIsland = controller.CurrentMainState!.CurrentIslandState!;
+            var initialIsland = controller.CurrentMainState!.CurrentWorldState!;
             var civ = initialIsland.PlayerCivilization;
             for (int i = 0; i < 20; i++)
             {
@@ -222,10 +222,10 @@ namespace SOITests.ControllerTests
 
             controller.PerformPrestige();
 
-            var newIsland = controller.CurrentMainState!.CurrentIslandState!;
+            var newIsland = controller.CurrentMainState!.CurrentWorldState!;
             Assert.Equal(expectedPrestigePoints, controller.CurrentMainState.PrestigeState!.PrestigePoints);
             Assert.NotSame(initialIsland, newIsland);
-            Assert.Equal(initialIsland.IslandID + 1, newIsland.IslandID);
+            Assert.Equal(initialIsland.WorldId + 1, newIsland.WorldId);
             Assert.False(controller.PrestigeController.PrestigeIsVisible());
         }
     }

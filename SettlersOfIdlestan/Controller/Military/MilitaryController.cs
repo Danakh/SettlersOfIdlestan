@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using SettlersOfIdlestan.Model.Bandits;
 using SettlersOfIdlestan.Model.Buildings;
@@ -49,7 +49,7 @@ public class ReinforcementEventArgs(Vertex sourceCity, Vertex targetCity, List<V
 /// </summary>
 public class MilitaryController
 {
-    private IslandState? _state;
+    private WorldState? _state;
     private GameClock? _clock;
 
     /// <summary>Intervalle de production d'un soldat (1 000 ticks = 10 s à vitesse normale).</summary>
@@ -123,7 +123,7 @@ public class MilitaryController
         return score;
     }
 
-    internal void Initialize(IslandState? state, GameClock? clock)
+    internal void Initialize(WorldState? state, GameClock? clock)
     {
         if (_clock != null)
             _clock.Advanced -= OnClockAdvanced;

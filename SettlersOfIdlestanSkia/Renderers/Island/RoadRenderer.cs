@@ -1,4 +1,4 @@
-using SettlersOfIdlestan.Model.Civilization;
+﻿using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
@@ -71,19 +71,19 @@ public class RoadRenderer : HexBasedRenderer, IGameRenderer
 
         if (context.GameState is MainGameState mainGameState)
         {
-            var islandState = mainGameState.CurrentIslandState;
-            if (islandState != null)
+            var WorldState = mainGameState.CurrentWorldState;
+            if (WorldState != null)
             {
                 IslandMap? mapForVisibility;
                 if (DebugSettings.ShowFullMap)
-                    mapForVisibility = islandState.CurrentMap;
-                else if (!islandState.GetVisibleIslandMapsForZ(islandState.CurrentMapZ).TryGetValue(islandState.PlayerCivilization.Index, out var vm))
+                    mapForVisibility = WorldState.CurrentMap;
+                else if (!WorldState.GetVisibleIslandMapsForZ(WorldState.CurrentMapZ).TryGetValue(WorldState.PlayerCivilization.Index, out var vm))
                     return;
                 else
                     mapForVisibility = vm;
 
                 // Dessine les routes de chaque civilisation
-                foreach (var civilization in islandState.Civilizations)
+                foreach (var civilization in WorldState.Civilizations)
                 {
                     DrawRoads(canvas, mapForVisibility, civilization.Roads, civilization.Index);
                 }

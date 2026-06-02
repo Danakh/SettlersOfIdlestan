@@ -1,4 +1,4 @@
-using SettlersOfIdlestan.Controller.Island;
+﻿using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Controller.Military;
 using SettlersOfIdlestan.Model.Bandits;
 using SettlersOfIdlestan.Model.Buildings;
@@ -29,7 +29,7 @@ namespace SOITests.ControllerTests
         /// donc bandit.LastMovedTick reste à 0 et le combat se déclenche à chaque
         /// SimulateAdvance(CombatIntervalTicks).
         /// </summary>
-        private static (IslandState state, GameClock clock, MilitaryController controller, City city)
+        private static (WorldState state, GameClock clock, MilitaryController controller, City city)
             CreateSetup(int initialSoldiers, int barracksLevel = 2)
         {
             var tiles = new List<HexTile>
@@ -49,7 +49,7 @@ namespace SOITests.ControllerTests
             city.Buildings.Add(new Barracks { Level = barracksLevel });
             civ.Cities.Add(city);
 
-            var state = new IslandState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
+            var state = new WorldState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
 
             var clock = new GameClock();
             clock.Start();

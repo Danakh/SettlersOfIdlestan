@@ -7,15 +7,15 @@ namespace SettlersOfIdlestan.Model.Game
 {
     public class IslandParameters
     {
-        public int IslandID { get; set; }
+        public int WorldId { get; set; }
         public IEnumerable<(TerrainType terrainType, int tileCount)> TileData { get; set; }
         public List<IslandFeatureParameters> Features { get; set; }
         public IslandShapeType ShapeType { get; set; }
         public List<NpcParameters> NpcCivilizations { get; set; } = new();
 
-        public IslandParameters(int islandID, IEnumerable<(TerrainType terrainType, int tileCount)> tileData, IEnumerable<IslandFeatureParameters>? features = null, IslandShapeType shapeType = IslandShapeType.Compact)
+        public IslandParameters(int worldId, IEnumerable<(TerrainType terrainType, int tileCount)> tileData, IEnumerable<IslandFeatureParameters>? features = null, IslandShapeType shapeType = IslandShapeType.Compact)
         {
-            IslandID = islandID;
+            WorldId = worldId;
             TileData = tileData;
             Features = features?.ToList() ?? new List<IslandFeatureParameters>();
             ShapeType = shapeType;

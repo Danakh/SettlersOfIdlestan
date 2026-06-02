@@ -1,4 +1,4 @@
-using SkiaSharp;
+﻿using SkiaSharp;
 using Svg.Skia;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestan.Controller.Military;
@@ -122,26 +122,26 @@ public class CityRenderer : HexBasedRenderer, IGameRenderer
 
         if (context.GameState is MainGameState mainGameState)
         {
-            var islandState = mainGameState.CurrentIslandState;
-            if (islandState == null) return;
+            var worldState = mainGameState.CurrentWorldState;
+            if (worldState == null) return;
 
-            if (islandState.IsViewingUnderworld && islandState.Underworld != null)
+            if (worldState.IsViewingUnderworld && worldState.Layers.TryGetValue(LayerState.UnderworldZ, out var underworldLayer))
             {
                 // Render underworld cities (all visible, no fog of war)
-                DrawCities(canvas, islandState.Underworld.Cities, islandState.PlayerCivilization.Index, islandState.Underworld.Map);
+                DrawCities(canvas, underworldLayer.Cities, worldState.PlayerCivilization.Index, underworldLayer.Map);
                 return;
             }
 
             IslandMap? mapForVisibility;
             if (DebugSettings.ShowFullMap)
-                mapForVisibility = islandState.Map;
-            else if (!islandState.GetVisibleIslandMapsForZ(islandState.CurrentMapZ).TryGetValue(islandState.PlayerCivilization.Index, out var vm))
+                mapForVisibility = worldState.GetMapForZ(IslandMap.SurfaceLayer);
+            else if (!worldState.GetVisibleIslandMapsForZ(worldState.CurrentMapZ).TryGetValue(worldState.PlayerCivilization.Index, out var vm))
                 return;
             else
                 mapForVisibility = vm;
 
             // Dessine les villes de chaque civilisation
-            foreach (var civilization in islandState.Civilizations)
+            foreach (var civilization in worldState.Civilizations)
             {
                 DrawCities(canvas, civilization.Cities, civilization.Index, mapForVisibility);
             }

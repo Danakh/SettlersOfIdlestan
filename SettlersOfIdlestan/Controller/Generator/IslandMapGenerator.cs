@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.Game;
@@ -96,10 +96,10 @@ public class IslandMapGenerator
     }
 
     /// <summary>
-    /// Creates a complete IslandState: civilizations, map generation, and feature placement.
+    /// Creates a complete WorldState: civilizations, map generation, and feature placement.
     /// The shape generator is chosen from parameters.ShapeType.
     /// </summary>
-    public IslandState? GenerateIslandState(IslandParameters parameters, long currentTick, long startTick = 0)
+    public WorldState? GenerateWorldState(IslandParameters parameters, long currentTick, long startTick = 0)
     {
         IslandShapeGenerator shapeGenerator = parameters.ShapeType switch
         {
@@ -121,15 +121,15 @@ public class IslandMapGenerator
         var map = GenerateIsland(parameters.TileData, civs, shapeGenerator);
         if (map is null) return null;
 
-        var islandState = new IslandState(map, civs, parameters.IslandID) { StartTick = startTick };
+        var WorldState = new WorldState(map, civs, parameters.WorldId) { StartTick = startTick };
 
         if (parameters.NpcCivilizations.Count > 0)
-            new NpcCivilizationPlacer().PlaceNpcCivilizations(islandState);
+            new NpcCivilizationPlacer().PlaceNpcCivilizations(WorldState);
 
         if (parameters.Features.Count > 0)
-            PlaceFeatures(islandState, parameters.Features, currentTick);
+            PlaceFeatures(WorldState, parameters.Features, currentTick);
 
-        return islandState;
+        return WorldState;
     }
 
     public void PopulatePlayerCivilization(IslandMap map, Civilization civilization, Vertex vertex)
@@ -242,17 +242,17 @@ public class IslandMapGenerator
     /// <summary>
     /// Places island features (bandits, treasure troves) into the island state.
     /// </summary>
-    public void PlaceFeatures(IslandState islandState, IEnumerable<IslandFeatureParameters> features, long currentTick)
+    public void PlaceFeatures(WorldState WorldState, IEnumerable<IslandFeatureParameters> features, long currentTick)
     {
-        var landHexes = islandState.Map.Tiles.Values
+        var landHexes = WorldState.GetMapForZ(IslandMap.SurfaceLayer).Tiles.Values
             .Where(t => t.TerrainType != TerrainType.Water)
             .Select(t => t.Coord)
             .ToList();
 
         if (landHexes.Count == 0) return;
 
-        HexCoord[]? cityHexes = islandState.PlayerCivilization.Cities.Count > 0
-            ? islandState.PlayerCivilization.Cities[0].Position.GetHexes()
+        HexCoord[]? cityHexes = WorldState.PlayerCivilization.Cities.Count > 0
+            ? WorldState.PlayerCivilization.Cities[0].Position.GetHexes()
             : null;
 
         foreach (var feature in features)
@@ -261,13 +261,13 @@ public class IslandMapGenerator
             switch (feature.Type)
             {
                 case IslandFeatureType.Bandit:
-                    islandState.AddFeature(new Bandit(hex, currentTick));
+                    WorldState.AddFeature(new Bandit(hex, currentTick));
                     break;
                 case IslandFeatureType.TreasureTrove:
-                    islandState.AddFeature(new TreasureTrove(hex));
+                    WorldState.AddFeature(new TreasureTrove(hex));
                     break;
                 case IslandFeatureType.BanditHideout:
-                    islandState.AddFeature(new BanditHideout(hex));
+                    WorldState.AddFeature(new BanditHideout(hex));
                     break;
             }
         }

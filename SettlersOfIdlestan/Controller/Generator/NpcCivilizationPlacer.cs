@@ -25,7 +25,7 @@ public class NpcCivilizationPlacer
     /// La ville du joueur doit déjà être placée avant l'appel.
     /// Retourne false si un placement initial est impossible.
     /// </summary>
-    public bool PlaceNpcCivilizations(IslandState state)
+    public bool PlaceNpcCivilizations(WorldState state)
     {
         if (state.PlayerCivilization.Cities.Count == 0) return false;
 
@@ -33,7 +33,7 @@ public class NpcCivilizationPlacer
         if (npcCivs.Count == 0) return true;
 
         var allOccupied = new List<Vertex> { state.PlayerCivilization.Cities[0].Position };
-        var validVertices = FindValidCityVertices(state.Map);
+        var validVertices = FindValidCityVertices(state.GetMapForZ(IslandMap.SurfaceLayer));
 
         var npcModifiers = NpcModifierSetMaker.Create(maxTechTier: 3, maxPrestigeDistance: 2);
 
@@ -44,7 +44,7 @@ public class NpcCivilizationPlacer
 
             allOccupied.Add(initialVertex);
             civ.SetupModifierAggregator(npcModifiers);
-            PopulateMinimumNpc(state.Map, civ, initialVertex);
+            PopulateMinimumNpc(state.GetMapForZ(IslandMap.SurfaceLayer), civ, initialVertex);
         }
 
         bool needsExpansion = npcCivs.Any(c =>
@@ -63,7 +63,7 @@ public class NpcCivilizationPlacer
             if (level == NpcEvolutionLevel.Minimum) continue;
 
             var aggressivity = civ.NpcParameters?.AggressivityLevel ?? NpcAggressivityLevel.Cautious;
-            var autoplayer = new NpcCivilizationAutoplayer(civ, state.Map, mainController, aggressivity);
+            var autoplayer = new NpcCivilizationAutoplayer(civ, state.GetMapForZ(IslandMap.SurfaceLayer), mainController, aggressivity);
             ExpandNpcWithAutoplayer(autoplayer, civ, level);
         }
 

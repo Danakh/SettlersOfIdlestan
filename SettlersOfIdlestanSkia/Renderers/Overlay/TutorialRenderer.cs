@@ -1,4 +1,4 @@
-using SettlersOfIdlestan.Model.Game;
+﻿using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.Tasks;
 using SettlersOfIdlestan.Services.Localization;
 using SettlersOfIdlestanSkia.Core;
@@ -58,8 +58,8 @@ public class TutorialRenderer : IGameRenderer
 
         var mainState = context.GameState as MainGameState;
         var gameRecord = mainState?.GameRecord ?? new GameRecord();
-        var islandState = mainState?.CurrentIslandState;
-        var runRecord = islandState?.RunRecord;
+        var WorldState = mainState?.CurrentWorldState;
+        var runRecord = WorldState?.RunRecord;
 
         float contentWidth = PanelWidth - PanelPadding * 2;
 
@@ -115,12 +115,12 @@ public class TutorialRenderer : IGameRenderer
         {
             float taskTop = y;
             y += _taskFont.Size;
-            bool done = task.IsCompleted(gameRecord, runRecord, islandState);
+            bool done = task.IsCompleted(gameRecord, runRecord, WorldState);
             var taskPaint = done ? donePaint : pendingPaint;
             canvas.DrawText(done ? "✓" : "☐", x, y, _taskFont, taskPaint);
             string name = _localization.Get(task.NameKey);
             canvas.DrawText(name, x + TaskMarkerW, y, _taskFont, taskPaint);
-            DrawProgress(canvas, task, gameRecord, runRecord, islandState, x + TaskMarkerW + _taskFont.MeasureText(name) + 4f, y, progressPaint);
+            DrawProgress(canvas, task, gameRecord, runRecord, WorldState, x + TaskMarkerW + _taskFont.MeasureText(name) + 4f, y, progressPaint);
             y += 2f;
             _taskRects.Add((new SKRect(PanelLeft, taskTop, PanelLeft + PanelWidth, y), task));
         }
@@ -136,12 +136,12 @@ public class TutorialRenderer : IGameRenderer
             {
                 float taskTop = y;
                 y += _taskFont.Size;
-                bool done = task.IsCompleted(gameRecord, runRecord, islandState);
+                bool done = task.IsCompleted(gameRecord, runRecord, WorldState);
                 var taskPaint = done ? secondaryDonePaint : secondaryPendingPaint;
                 canvas.DrawText(done ? "✓" : "☐", x, y, _taskFont, taskPaint);
                 string name = _localization.Get(task.NameKey);
                 canvas.DrawText(name, x + TaskMarkerW, y, _taskFont, taskPaint);
-                DrawProgress(canvas, task, gameRecord, runRecord, islandState, x + TaskMarkerW + _taskFont.MeasureText(name) + 4f, y, progressPaint);
+                DrawProgress(canvas, task, gameRecord, runRecord, WorldState, x + TaskMarkerW + _taskFont.MeasureText(name) + 4f, y, progressPaint);
                 y += 2f;
                 _taskRects.Add((new SKRect(PanelLeft, taskTop, PanelLeft + PanelWidth, y), task));
             }
@@ -155,10 +155,10 @@ public class TutorialRenderer : IGameRenderer
         }
     }
 
-    private void DrawProgress(SKCanvas canvas, TutorialTask task, GameRecord gameRecord, RunRecord? runRecord, SettlersOfIdlestan.Model.IslandMap.IslandState? islandState, float x, float y, SKPaint paint)
+    private void DrawProgress(SKCanvas canvas, TutorialTask task, GameRecord gameRecord, RunRecord? runRecord, SettlersOfIdlestan.Model.IslandMap.WorldState? WorldState, float x, float y, SKPaint paint)
     {
         if (task.GetProgress == null) return;
-        var (current, max) = task.GetProgress(gameRecord, runRecord, islandState);
+        var (current, max) = task.GetProgress(gameRecord, runRecord, WorldState);
         if (max <= 1) return;
         canvas.DrawText($"({Math.Min(current, max)}/{max})", x, y, _optionalFont, paint);
     }

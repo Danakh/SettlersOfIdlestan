@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using SettlersOfIdlestan.Model.Bandits;
@@ -12,7 +12,7 @@ namespace SettlersOfIdlestan.Controller.Military;
 
 public class BanditController
 {
-    private IslandState? _state;
+    private WorldState? _state;
     private GameClock? _clock;
     private GamePRNG _prng = new();
 
@@ -26,7 +26,7 @@ public class BanditController
     /// <summary>Cooldown de récolte après le départ d'un bandit (1 000 ticks = 10 s).</summary>
     public const long DepartureCooldownTicks = 1_000L;
 
-    internal void Initialize(IslandState? state, GameClock? clock, GamePRNG? prng = null)
+    internal void Initialize(WorldState? state, GameClock? clock, GamePRNG? prng = null)
     {
         if (_clock != null)
             _clock.Advanced -= OnClockAdvanced;

@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using SettlersOfIdlestan.Controller;
 using SettlersOfIdlestan.Controller.Expand;
@@ -21,13 +21,13 @@ namespace SOITests.IslandMapTests
             RunAction = (runner, cond) => runner.RunStep1Until(cond),
             Condition = ctrl =>
             {
-                var civ = ctrl.CurrentMainState!.CurrentIslandState!.Civilizations[0];
+                var civ = ctrl.CurrentMainState!.CurrentWorldState!.Civilizations[0];
                 return civ.Cities.Count >= 2
                     && civ.Cities.All(c => c.Buildings.Any(b => b.Type == BuildingType.TownHall));
             },
             AssertFailMessage = ctrl =>
             {
-                var civ = ctrl.CurrentMainState!.CurrentIslandState!.Civilizations[0];
+                var civ = ctrl.CurrentMainState!.CurrentWorldState!.Civilizations[0];
                 return $"Expected at least 2 cities with TownHall, got {civ.Cities.Count}";
             },
         };
@@ -36,18 +36,18 @@ namespace SOITests.IslandMapTests
         {
             SaveName = saveName,
             RunAction = (runner, cond) => runner.RunStep2Until(cond),
-            Condition = ctrl => ctrl.CurrentMainState!.CurrentIslandState!.Civilizations.First().Cities.Count >= 6,
+            Condition = ctrl => ctrl.CurrentMainState!.CurrentWorldState!.Civilizations.First().Cities.Count >= 6,
             AssertFailMessage = ctrl =>
-                $"Expected at least 6 cities, got {ctrl.CurrentMainState!.CurrentIslandState!.Civilizations.First().Cities.Count}",
+                $"Expected at least 6 cities, got {ctrl.CurrentMainState!.CurrentWorldState!.Civilizations.First().Cities.Count}",
         };
 
         private static IslandStepDefinition TenCitiesStep(string saveName) => new()
         {
             SaveName = saveName,
             RunAction = (runner, cond) => runner.RunStep2Until(cond),
-            Condition = ctrl => ctrl.CurrentMainState!.CurrentIslandState!.Civilizations.First().Cities.Count >= 10,
+            Condition = ctrl => ctrl.CurrentMainState!.CurrentWorldState!.Civilizations.First().Cities.Count >= 10,
             AssertFailMessage = ctrl =>
-                $"Expected at least 10 cities, got {ctrl.CurrentMainState!.CurrentIslandState!.Civilizations.First().Cities.Count}",
+                $"Expected at least 10 cities, got {ctrl.CurrentMainState!.CurrentWorldState!.Civilizations.First().Cities.Count}",
         };
 
         private static IslandStepDefinition PrestigePointsStep(string saveName) => new()
@@ -85,7 +85,7 @@ namespace SOITests.IslandMapTests
                     (TerrainType.Mountain, 1),
                 };
                 AtlasController atlas = new AtlasController();
-                controller.CreateNewGame(atlas.GetIslandParameters(atlas.GetFirstIslandID()));
+                controller.CreateNewGame(atlas.GetIslandParameters(atlas.GetFirstWorldId()));
                 return controller;
             },
             Steps = new List<IslandStepDefinition>

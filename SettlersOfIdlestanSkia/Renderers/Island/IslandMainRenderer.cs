@@ -1,4 +1,4 @@
-using SkiaSharp;
+﻿using SkiaSharp;
 using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Controller.Military;
 using SettlersOfIdlestan.Model.Game;
@@ -128,12 +128,12 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
         if (state.HoveredHex != null &&
             state.HoveredHex.Z == context.CurrentLayer &&
             context.GameState is MainGameState mgs &&
-            mgs.CurrentIslandState != null)
+            mgs.CurrentWorldState != null)
         {
             _tooltipRenderer.SetHexHarvestTooltip(
                 state.HoveredHex,
                 _harvestController,
-                mgs.CurrentIslandState,
+                mgs.CurrentWorldState,
                 mgs.Clock.CurrentTick);
         }
 

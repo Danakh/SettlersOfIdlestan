@@ -1,5 +1,6 @@
-using SkiaSharp;
+﻿using SkiaSharp;
 using SettlersOfIdlestan.Controller;
+using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Services;
 
@@ -73,15 +74,15 @@ public class AutoplayerDebugRenderer : IGameRenderer
     private void RunAutoplayerStep()
     {
         var playerCiv = _gameControllerService.PlayerCivilization;
-        var islandState = _gameControllerService.CurrentIslandState;
+        var worldState = _gameControllerService.CurrentWorldState;
         var mainController = _gameControllerService.MainGameController;
 
-        if (playerCiv == null || islandState?.Map == null)
+        if (playerCiv == null || worldState == null)
             return;
 
         if (!ReferenceEquals(playerCiv, _lastCivRef))
         {
-            _autoplayer = new CivilizationAutoplayer(playerCiv, islandState.Map, mainController);
+            _autoplayer = new CivilizationAutoplayer(playerCiv, worldState.GetMapForZ(IslandMap.SurfaceLayer), mainController);
             _lastCivRef = playerCiv;
         }
 

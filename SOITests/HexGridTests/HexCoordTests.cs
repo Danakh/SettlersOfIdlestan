@@ -1,4 +1,4 @@
-using Xunit;
+﻿using Xunit;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
 using System;
@@ -19,8 +19,8 @@ public class HexCoordTests
     [Fact]
     public void Constructor_WithZ_SetsLayer()
     {
-        var coord = new HexCoord(1, 2, UnderworldState.Layer);
-        Assert.Equal(UnderworldState.Layer, coord.Z);
+        var coord = new HexCoord(1, 2, LayerState.UnderworldZ);
+        Assert.Equal(LayerState.UnderworldZ, coord.Z);
     }
 
     [Fact]
@@ -74,7 +74,7 @@ public class HexCoordTests
     public void DistanceTo_WithDifferentZ_ThrowsArgumentException()
     {
         var surface = new HexCoord(0, 0, IslandMap.SurfaceLayer);
-        var underworld = new HexCoord(0, 0, UnderworldState.Layer);
+        var underworld = new HexCoord(0, 0, LayerState.UnderworldZ);
 
         Assert.Throws<ArgumentException>(() => surface.DistanceTo(underworld));
     }
@@ -91,7 +91,7 @@ public class HexCoordTests
     public void Equals_ReturnsFalseForDifferentZ()
     {
         var coord1 = new HexCoord(1, 2, IslandMap.SurfaceLayer);
-        var coord2 = new HexCoord(1, 2, UnderworldState.Layer);
+        var coord2 = new HexCoord(1, 2, LayerState.UnderworldZ);
         Assert.False(coord1.Equals(coord2));
     }
 
@@ -121,9 +121,9 @@ public class HexCoordTests
     [Fact]
     public void Serialize_WithZ_ReturnsThreeElementArray()
     {
-        var coord = new HexCoord(1, 2, UnderworldState.Layer);
+        var coord = new HexCoord(1, 2, LayerState.UnderworldZ);
         var serialized = coord.Serialize();
-        Assert.Equal(new[] { 1, 2, UnderworldState.Layer }, serialized);
+        Assert.Equal(new[] { 1, 2, LayerState.UnderworldZ }, serialized);
     }
 
     [Fact]
@@ -139,10 +139,10 @@ public class HexCoordTests
     [Fact]
     public void Deserialize_WithZ_ReturnsLayeredHexCoord()
     {
-        var data = new[] { 1, 2, UnderworldState.Layer };
+        var data = new[] { 1, 2, LayerState.UnderworldZ };
         var coord = HexCoord.Deserialize(data);
         Assert.Equal(1, coord.Q);
         Assert.Equal(2, coord.R);
-        Assert.Equal(UnderworldState.Layer, coord.Z);
+        Assert.Equal(LayerState.UnderworldZ, coord.Z);
     }
 }

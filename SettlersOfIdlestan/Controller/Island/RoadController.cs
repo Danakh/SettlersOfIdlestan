@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using SettlersOfIdlestan.Model.IslandMap;
@@ -23,11 +23,11 @@ namespace SettlersOfIdlestan.Controller.Island
     }
 
     /// <summary>
-    /// Contr?le la logique de construction de routes pour un IslandState.
+    /// Contr?le la logique de construction de routes pour un WorldState.
     /// </summary>
     public class RoadController
     {
-        private IslandState? _state;
+        private WorldState? _state;
         private GameClock? _clock;
         private GamePRNG _prng = new();
         private readonly Dictionary<int, (int CityCount, List<Road> Roads)> _buildableRoadsCache = new();
@@ -38,15 +38,15 @@ namespace SettlersOfIdlestan.Controller.Island
         public event EventHandler<RoadAutoBuiltEventArgs>? OnAutoRoadBuilt;
         public event EventHandler<RoadAutoBuiltEventArgs>? OnRoadBuilt;
 
-        internal RoadController(IslandState? state = null)
+        internal RoadController(WorldState? state = null)
         {
             _state = state;
         }
 
         /// <summary>
-        /// Initialize or update the IslandState for this controller.
+        /// Initialize or update the WorldState for this controller.
         /// </summary>
-        internal void Initialize(IslandState state, GameClock? clock = null, GamePRNG? prng = null)
+        internal void Initialize(WorldState state, GameClock? clock = null, GamePRNG? prng = null)
         {
             if (_clock != null)
                 _clock.Advanced -= OnClockAdvanced;
@@ -127,7 +127,7 @@ namespace SettlersOfIdlestan.Controller.Island
         /// </summary>
         public List<Road> GetBuildableRoads(int civilizationIndex)
         {
-            if (_state == null) throw new InvalidOperationException("IslandState has not been initialized.");
+            if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
 
             var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex)
                           ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
@@ -194,7 +194,7 @@ namespace SettlersOfIdlestan.Controller.Island
         /// </summary>
         public Road? BuildRoad(int civilizationIndex, Edge edge)
         {
-            if (_state == null) throw new InvalidOperationException("IslandState has not been initialized.");
+            if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
 
             var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex)
                       ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
@@ -366,7 +366,7 @@ namespace SettlersOfIdlestan.Controller.Island
 
         private bool IsEdgeOnLand(Edge edge)
         {
-            if (_state == null) throw new InvalidOperationException("IslandState has not been initialized.");
+            if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
 
             var mapTiles = _state.GetMapFor(edge).Tiles;
             bool hex1IsWaterOrAbsent = !mapTiles.TryGetValue(edge.Hex1, out var tile1) || tile1.TerrainType == TerrainType.Water;

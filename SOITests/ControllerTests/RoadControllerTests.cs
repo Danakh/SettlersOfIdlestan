@@ -1,4 +1,4 @@
-using SettlersOfIdlestan.Controller;
+﻿using SettlersOfIdlestan.Controller;
 using SettlersOfIdlestan.Controller.Expand;
 using SettlersOfIdlestan.Controller.Generator;
 using SettlersOfIdlestan.Controller.Island;
@@ -36,7 +36,7 @@ public class RoadControllerTests
         var map = new IslandMap(tiles);
         var civ = new Civilization { Index = 0 };
         var civs = new List<Civilization> { civ };
-        var state = new IslandState(map, civs, AtlasController.InvalidIslandId);
+        var state = new WorldState(map, civs, AtlasController.InvalidIslandId);
 
         var vertex = Vertex.Create(a, b, c);
         IslandMapGenerator generator = new IslandMapGenerator();
@@ -67,7 +67,7 @@ public class RoadControllerTests
         var map = new IslandMap(tiles);
         var civ = new Civilization { Index = 0 };
         var civs = new List<Civilization> { civ };
-        var state = new IslandState(map, civs, AtlasController.InvalidIslandId);
+        var state = new WorldState(map, civs, AtlasController.InvalidIslandId);
 
         var vertex = Vertex.Create(a, b, c);
         IslandMapGenerator generator = new IslandMapGenerator();
@@ -102,7 +102,7 @@ public class RoadControllerTests
         var civ = new Civilization { Index = 0 };
 
         var civs = new List<Civilization> { civ };
-        var state = new IslandState(map, civs, AtlasController.InvalidIslandId);
+        var state = new WorldState(map, civs, AtlasController.InvalidIslandId);
 
         var vertex = Vertex.Create(a, b, c);
         IslandMapGenerator generator = new IslandMapGenerator();
@@ -142,7 +142,7 @@ public class RoadControllerTests
         var civ = new Civilization { Index = 0 };
 
         var civs = new List<Civilization> { civ };
-        var state = new IslandState(map, civs, AtlasController.InvalidIslandId);
+        var state = new WorldState(map, civs, AtlasController.InvalidIslandId);
 
         var vertex = Vertex.Create(a, b, c);
         IslandMapGenerator generator = new IslandMapGenerator();
@@ -178,7 +178,7 @@ public class RoadControllerTests
     //     Vertex 2: (1,0),(0,1),(1,1) → needs (1,1)=Plain to touch land
     //   DeepWaterIsland omits (1,1) → vertex 2 touches only water/absent → invalid maritime
 
-    private static (IslandState state, Civilization civ) CoastalIsland()
+    private static (WorldState state, Civilization civ) CoastalIsland()
     {
         var land  = new HexCoord(0, 0, IslandMap.SurfaceLayer);
         var w1    = new HexCoord(1, 0, IslandMap.SurfaceLayer);
@@ -193,11 +193,11 @@ public class RoadControllerTests
         });
         var civ  = new Civilization { Index = 0 };
         civ.Cities.Add(new City(Vertex.Create(land, w1, w2)) { CivilizationIndex = 0 });
-        var state = new IslandState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
+        var state = new WorldState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
         return (state, civ);
     }
 
-    private static (IslandState state, Civilization civ) DeepWaterIsland()
+    private static (WorldState state, Civilization civ) DeepWaterIsland()
     {
         var land = new HexCoord(0, 0, IslandMap.SurfaceLayer);
         var w1   = new HexCoord(1, 0, IslandMap.SurfaceLayer);
@@ -210,7 +210,7 @@ public class RoadControllerTests
         });
         var civ  = new Civilization { Index = 0 };
         civ.Cities.Add(new City(Vertex.Create(land, w1, w2)) { CivilizationIndex = 0 });
-        var state = new IslandState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
+        var state = new WorldState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
         return (state, civ);
     }
 
@@ -345,7 +345,7 @@ public class RoadControllerTests
         var playerCiv = new Civilization { Index = 0 };
         var enemyCiv = new Civilization { Index = 1 };
         var civs = new List<Civilization> { playerCiv, enemyCiv };
-        var state = new IslandState(map, civs, AtlasController.InvalidIslandId);
+        var state = new WorldState(map, civs, AtlasController.InvalidIslandId);
 
         // Joueur : ville au vertex a-b-c
         var playerVertex = Vertex.Create(a, b, c);

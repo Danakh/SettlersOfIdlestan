@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using SettlersOfIdlestan.Controller.Expand;
@@ -21,7 +21,7 @@ public class TaskRecordController
 {
     private GameRecord? _gameRecord;
     private RunRecord? _runRecord;
-    private IslandState? _islandState;
+    private WorldState? _islandState;
     private int _playerCivIndex;
 
     private BuildingController? _buildingController;
@@ -40,7 +40,7 @@ public class TaskRecordController
     internal void Initialize(
         GameRecord gameRecord,
         RunRecord runRecord,
-        IslandState islandState,
+        WorldState WorldState,
         BuildingController buildingController,
         RoadController roadController,
         CityBuilderController cityBuilderController,
@@ -54,8 +54,8 @@ public class TaskRecordController
 
         _gameRecord = gameRecord;
         _runRecord = runRecord;
-        _islandState = islandState;
-        _playerCivIndex = islandState.PlayerCivilization.Index;
+        _islandState = WorldState;
+        _playerCivIndex = WorldState.PlayerCivilization.Index;
         _buildingController = buildingController;
         _roadController = roadController;
         _cityBuilderController = cityBuilderController;

@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using Xunit;
 using SettlersOfIdlestan.Controller;
 using SettlersOfIdlestan.Model.IslandMap;
@@ -23,7 +23,7 @@ namespace SOITests.ControllerTests
         [Fact]
         public void Trade_NotAvailableWithoutMarket()
         {
-            IslandState state = IslandTestFactory.CreateSevenHexIslandState();
+            WorldState state = IslandTestFactory.CreateSevenHexIslandState();
             var civ = state.Civilizations[0];
 
             var controller = new TradeController(state);
@@ -37,7 +37,7 @@ namespace SOITests.ControllerTests
         [Fact]
         public void SellResource_WithMarket_ConvertsToGold()
         {
-            IslandState state = IslandTestFactory.CreateSevenHexIslandState();
+            WorldState state = IslandTestFactory.CreateSevenHexIslandState();
             var civ = state.Civilizations[0];
             civ.Cities[0].Buildings.Add(new Market());
             civ.AddResource(Resource.Wood, 5);
@@ -56,7 +56,7 @@ namespace SOITests.ControllerTests
         [Fact]
         public void BuyResource_BasicResource_CostsOneGold()
         {
-            IslandState state = IslandTestFactory.CreateSevenHexIslandState();
+            WorldState state = IslandTestFactory.CreateSevenHexIslandState();
             var civ = state.Civilizations[0];
             civ.Cities[0].Buildings.Add(new Market());
             civ.AddResource(Resource.Gold, 3);
@@ -73,7 +73,7 @@ namespace SOITests.ControllerTests
         [Fact]
         public void TryAutoTradeForPurchase_SellsSurplusAndBuysInOneStep()
         {
-            IslandState state = IslandTestFactory.CreateSevenHexIslandState();
+            WorldState state = IslandTestFactory.CreateSevenHexIslandState();
             var civ = state.Civilizations[0];
             civ.Cities[0].Buildings.Add(new Market());
 
@@ -97,7 +97,7 @@ namespace SOITests.ControllerTests
         [Fact]
         public void TryAutoTradeForPurchase_DoesNotTradeIfNoSuitableSource()
         {
-            IslandState state = IslandTestFactory.CreateSevenHexIslandState();
+            WorldState state = IslandTestFactory.CreateSevenHexIslandState();
             var civ = state.Civilizations[0];
             civ.Cities[0].Buildings.Add(new Market());
 
@@ -119,7 +119,7 @@ namespace SOITests.ControllerTests
         [Fact]
         public void CanTradeResource_ReturnsFalseWhenCapacityIsZero()
         {
-            IslandState state = IslandTestFactory.CreateSevenHexIslandState();
+            WorldState state = IslandTestFactory.CreateSevenHexIslandState();
             var civ = state.Civilizations[0];
             var controller = new TradeController(state);
 
@@ -130,7 +130,7 @@ namespace SOITests.ControllerTests
         [Fact]
         public void CanRecieveTrade_ReturnsFalseWhenStorageWouldOverflow()
         {
-            IslandState state = IslandTestFactory.CreateSevenHexIslandState();
+            WorldState state = IslandTestFactory.CreateSevenHexIslandState();
             var civ = state.Civilizations[0];
             var controller = new TradeController(state);
 
@@ -144,7 +144,7 @@ namespace SOITests.ControllerTests
         [Fact]
         public void SellResource_BulkGoldBonus_AddsOncePerTenPacks()
         {
-            IslandState state = IslandTestFactory.CreateSevenHexIslandState();
+            WorldState state = IslandTestFactory.CreateSevenHexIslandState();
             var civ = state.Civilizations[0];
             civ.Cities[0].Buildings.Add(new Market());
             civ.Cities[0].Buildings.Add(new TownHall { Level = 8 }); // capacity = 5*(2+8)=50
@@ -167,7 +167,7 @@ namespace SOITests.ControllerTests
         public void SellResource_BulkGoldBonus_ScalesWithBonusValue()
         {
             // Verify floor(quantity/10)*bonus: 10 packs with bonus=3 → 10 + 3 = 13
-            IslandState state = IslandTestFactory.CreateSevenHexIslandState();
+            WorldState state = IslandTestFactory.CreateSevenHexIslandState();
             var civ = state.Civilizations[0];
             civ.Cities[0].Buildings.Add(new Market());
             civ.Cities[0].Buildings.Add(new TownHall { Level = 8 }); // capacity=50
@@ -187,7 +187,7 @@ namespace SOITests.ControllerTests
         [Fact]
         public void SellResource_BulkGoldBonus_NoBonusWithoutModifier()
         {
-            IslandState state = IslandTestFactory.CreateSevenHexIslandState();
+            WorldState state = IslandTestFactory.CreateSevenHexIslandState();
             var civ = state.Civilizations[0];
             civ.Cities[0].Buildings.Add(new Market());
             civ.Cities[0].Buildings.Add(new TownHall { Level = 8 }); // capacity=50
@@ -214,7 +214,7 @@ namespace SOITests.ControllerTests
         [Fact]
         public void BuyResource_Ore_CostsFiveGold()
         {
-            IslandState state = IslandTestFactory.CreateSevenHexIslandState();
+            WorldState state = IslandTestFactory.CreateSevenHexIslandState();
             var civ = state.Civilizations[0];
             civ.Cities[0].Buildings.Add(new Market());
             civ.Cities[0].Buildings.Add(new TownHall { Level = 3 }); // city.Level=3 → Ore has capacity

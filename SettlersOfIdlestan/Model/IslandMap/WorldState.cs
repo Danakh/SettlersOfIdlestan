@@ -12,17 +12,15 @@ using System.Linq;
 namespace SettlersOfIdlestan.Model.IslandMap;
 
 /// <summary>
-/// Represents the state of an island, containing the map and all civilizations.
+/// Represents the state of a world run, containing all layers and civilizations.
 /// </summary>
 [Serializable]
-public class IslandState : IJsonOnDeserialized
+public class WorldState : IJsonOnDeserialized
 {
-    public IslandMap Map { get; set; }
-
     /// <summary>
-    /// The Underworld — created when the DeepestMine building is constructed. Null until then.
+    /// All map layers indexed by Z coordinate. Use GetMapForZ(z) to retrieve a layer's map.
     /// </summary>
-    public UnderworldState? Underworld { get; set; }
+    public Dictionary<int, LayerState> Layers { get; set; }
 
     /// <summary>
     /// Runtime toggle: true while the player is viewing the Underworld map. Not persisted.
@@ -30,15 +28,15 @@ public class IslandState : IJsonOnDeserialized
     [JsonIgnore]
     public bool IsViewingUnderworld { get; set; }
 
-    public int IslandID { get; set; }
+    public int WorldId { get; set; }
 
     /// <summary>
-    /// Tick de simulation au moment où cette île a démarré (pour calculer la durée de jeu).
+    /// Tick de simulation au moment où ce monde a démarré (pour calculer la durée de jeu).
     /// </summary>
     public long StartTick { get; set; } = 0;
 
     /// <summary>
-    /// Gets the list of civilizations on the island.
+    /// Gets the list of civilizations on the world.
     /// </summary>
     public List<SettlersOfIdlestan.Model.Civilization.Civilization> Civilizations { get; set; }
 
@@ -47,14 +45,12 @@ public class IslandState : IJsonOnDeserialized
     /// </summary>
     public SettlersOfIdlestan.Model.Civilization.Civilization PlayerCivilization => Civilizations[0];
 
-
     [JsonIgnore]
     private Dictionary<int, Dictionary<int, VisibleIslandMap>> VisibleIslandMapsByZ { get; set; } = new();
 
-
     [JsonIgnore]
-    public int CurrentMapZ => IsViewingUnderworld && Underworld != null
-        ? UnderworldState.Layer
+    public int CurrentMapZ => IsViewingUnderworld && Layers.ContainsKey(LayerState.UnderworldZ)
+        ? LayerState.UnderworldZ
         : IslandMap.SurfaceLayer;
 
     [JsonIgnore]
@@ -66,17 +62,11 @@ public class IslandState : IJsonOnDeserialized
     [JsonIgnore]
     public GameEventLog EventLog { get; } = new();
 
-    /// <summary>
-    /// Initializes a new instance of the <see cref="IslandState"/> class.
-    /// </summary>
-    /// <param name="map">The island map.</param>
-    /// <param name="civilizations">The list of civilizations.</param>
-    /// <param name="islandID">The ID of the island.</param>
-    public IslandState(IslandMap map, List<SettlersOfIdlestan.Model.Civilization.Civilization> civilizations, int islandID)
+    public WorldState(IslandMap map, List<SettlersOfIdlestan.Model.Civilization.Civilization> civilizations, int worldId)
     {
-        Map = map;
+        Layers = new Dictionary<int, LayerState> { { IslandMap.SurfaceLayer, new LayerState(map) } };
         Civilizations = civilizations;
-        IslandID = islandID;
+        WorldId = worldId;
         HarvestLastTimesByCivilization = new Dictionary<int, Dictionary<SettlersOfIdlestan.Model.HexGrid.HexCoord, long>>();
         Features = new List<IslandFeature>();
         BanditCooldownUntil = new Dictionary<HexCoord, long>();
@@ -87,9 +77,9 @@ public class IslandState : IJsonOnDeserialized
     /// Parameterless constructor for deserialization.
     /// </summary>
     [System.Text.Json.Serialization.JsonConstructor]
-    public IslandState()
+    public WorldState()
     {
-        Map = new IslandMap(Array.Empty<HexTile>());
+        Layers = new Dictionary<int, LayerState> { { IslandMap.SurfaceLayer, new LayerState() } };
         Civilizations = new List<SettlersOfIdlestan.Model.Civilization.Civilization>();
         HarvestLastTimesByCivilization = new Dictionary<int, Dictionary<SettlersOfIdlestan.Model.HexGrid.HexCoord, long>>();
         Features = new List<IslandFeature>();
@@ -154,11 +144,8 @@ public class IslandState : IJsonOnDeserialized
 
     public IslandMap GetMapForZ(int z)
     {
-        if (z == Map.Z)
-            return Map;
-
-        if (Underworld?.Map.Z == z)
-            return Underworld.Map;
+        if (Layers.TryGetValue(z, out var layer))
+            return layer.Map;
 
         throw new ArgumentException($"No island map exists for layer z={z}.", nameof(z));
     }
@@ -169,15 +156,9 @@ public class IslandState : IJsonOnDeserialized
 
     public bool TryGetMapForZ(int z, out IslandMap map)
     {
-        if (z == Map.Z)
+        if (Layers.TryGetValue(z, out var layer))
         {
-            map = Map;
-            return true;
-        }
-
-        if (Underworld?.Map.Z == z)
-        {
-            map = Underworld.Map;
+            map = layer.Map;
             return true;
         }
 
@@ -187,20 +168,18 @@ public class IslandState : IJsonOnDeserialized
 
     public IEnumerable<KeyValuePair<int, IslandMap>> GetMapsByZ()
     {
-        yield return new KeyValuePair<int, IslandMap>(Map.Z, Map);
-
-        if (Underworld != null)
-            yield return new KeyValuePair<int, IslandMap>(Underworld.Map.Z, Underworld.Map);
+        foreach (var (z, layer) in Layers)
+            yield return new KeyValuePair<int, IslandMap>(z, layer.Map);
     }
 
     public void NormalizeUnderworldCitiesIntoCivilizations()
     {
-        if (Underworld == null || Underworld.Cities.Count == 0)
+        if (!Layers.TryGetValue(LayerState.UnderworldZ, out var underworldLayer) || underworldLayer.Cities.Count == 0)
             return;
 
-        foreach (var city in Underworld.Cities)
+        foreach (var city in underworldLayer.Cities)
         {
-            if (city.Position.Z != Underworld.Map.Z)
+            if (city.Position.Z != underworldLayer.Map.Z)
                 throw new InvalidOperationException("Underworld city is not on the underworld map layer.");
 
             var civilization = Civilizations.FirstOrDefault(c => c.Index == city.CivilizationIndex);
@@ -248,7 +227,7 @@ public class IslandState : IJsonOnDeserialized
     public Dictionary<HexCoord, long> BanditCooldownUntil { get; set; }
 
     /// <summary>
-    /// Player-controlled automation toggles. Persisted with the island state.
+    /// Player-controlled automation toggles. Persisted with the world state.
     /// </summary>
     public AutomationSettings AutomationSettings { get; set; } = new();
 

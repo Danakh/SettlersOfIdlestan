@@ -1,432 +1,62 @@
 {
   "GodState": {
     "PrestigeState": {
-      "IslandState": {
-        "Map": {
-          "Tiles": {
-            "0,0": {
-              "Coord": [
-                0,
-                0
-              ],
-              "TerrainType": 3
-            },
-            "0,-1": {
-              "Coord": [
-                0,
-                -1
-              ],
-              "TerrainType": 0
-            },
-            "0,1": {
-              "Coord": [
-                0,
-                1
-              ],
-              "TerrainType": 3
-            },
-            "0,-2": {
-              "Coord": [
-                0,
-                -2
-              ],
-              "TerrainType": 3
-            },
-            "0,2": {
-              "Coord": [
-                0,
-                2
-              ],
-              "TerrainType": 2
-            },
-            "-1,0": {
-              "Coord": [
-                -1,
-                0
-              ],
-              "TerrainType": 4
-            },
-            "-1,1": {
-              "Coord": [
-                -1,
-                1
-              ],
-              "TerrainType": 1
-            },
-            "1,-1": {
-              "Coord": [
-                1,
-                -1
-              ],
-              "TerrainType": 2
-            },
-            "1,0": {
-              "Coord": [
-                1,
-                0
-              ],
-              "TerrainType": 0
-            },
-            "-1,-1": {
-              "Coord": [
-                -1,
-                -1
-              ],
-              "TerrainType": 1
-            },
-            "1,1": {
-              "Coord": [
-                1,
-                1
-              ],
-              "TerrainType": 0
-            },
-            "0,-3": {
-              "Coord": [
-                0,
-                -3
-              ],
-              "TerrainType": 3
-            },
-            "0,3": {
-              "Coord": [
-                0,
-                3
-              ],
-              "TerrainType": 3
-            },
-            "-1,2": {
-              "Coord": [
-                -1,
-                2
-              ],
-              "TerrainType": 1
-            },
-            "1,-2": {
-              "Coord": [
-                1,
-                -2
-              ],
-              "TerrainType": 2
-            },
-            "-1,-2": {
-              "Coord": [
-                -1,
-                -2
-              ],
-              "TerrainType": 0
-            },
-            "1,2": {
-              "Coord": [
-                1,
-                2
-              ],
-              "TerrainType": 4
-            },
-            "-1,3": {
-              "Coord": [
-                -1,
-                3
-              ],
-              "TerrainType": 2
-            },
-            "1,-3": {
-              "Coord": [
-                1,
-                -3
-              ],
-              "TerrainType": 4
-            },
-            "0,-4": {
-              "Coord": [
-                0,
-                -4
-              ],
-              "TerrainType": 2
-            },
-            "0,4": {
-              "Coord": [
-                0,
-                4
-              ],
-              "TerrainType": 3
-            },
-            "-1,-3": {
-              "Coord": [
-                -1,
-                -3
-              ],
-              "TerrainType": 2
-            },
-            "1,3": {
-              "Coord": [
-                1,
-                3
-              ],
-              "TerrainType": 3
-            },
-            "-1,4": {
-              "Coord": [
-                -1,
-                4
-              ],
-              "TerrainType": 1
-            },
-            "1,-4": {
-              "Coord": [
-                1,
-                -4
-              ],
-              "TerrainType": 0
-            },
-            "0,-5": {
-              "Coord": [
-                0,
-                -5
-              ],
-              "TerrainType": 1
-            },
-            "0,5": {
-              "Coord": [
-                0,
-                5
-              ],
-              "TerrainType": 1
-            },
-            "-1,-4": {
-              "Coord": [
-                -1,
-                -4
-              ],
-              "TerrainType": 0
-            },
-            "1,4": {
-              "Coord": [
-                1,
-                4
-              ],
-              "TerrainType": 2
-            },
-            "-2,1": {
-              "Coord": [
-                -2,
-                1
-              ],
-              "TerrainType": 0
-            },
-            "-1,5": {
-              "Coord": [
-                -1,
-                5
-              ],
-              "TerrainType": 1
-            },
-            "-2,0": {
-              "Coord": [
-                -2,
-                0
-              ],
-              "TerrainType": 5
-            },
-            "-2,2": {
-              "Coord": [
-                -2,
-                2
-              ],
-              "TerrainType": 5
-            },
-            "2,-1": {
-              "Coord": [
-                2,
-                -1
-              ],
-              "TerrainType": 5
-            },
-            "2,-2": {
-              "Coord": [
-                2,
-                -2
-              ],
-              "TerrainType": 5
-            },
-            "2,0": {
-              "Coord": [
-                2,
-                0
-              ],
-              "TerrainType": 5
-            },
-            "-2,-1": {
-              "Coord": [
-                -2,
-                -1
-              ],
-              "TerrainType": 5
-            },
-            "2,1": {
-              "Coord": [
-                2,
-                1
-              ],
-              "TerrainType": 5
-            },
-            "-2,3": {
-              "Coord": [
-                -2,
-                3
-              ],
-              "TerrainType": 5
-            },
-            "2,-3": {
-              "Coord": [
-                2,
-                -3
-              ],
-              "TerrainType": 5
-            },
-            "-2,-2": {
-              "Coord": [
-                -2,
-                -2
-              ],
-              "TerrainType": 5
-            },
-            "2,2": {
-              "Coord": [
-                2,
-                2
-              ],
-              "TerrainType": 5
-            },
-            "-2,4": {
-              "Coord": [
-                -2,
-                4
-              ],
-              "TerrainType": 5
-            },
-            "2,-4": {
-              "Coord": [
-                2,
-                -4
-              ],
-              "TerrainType": 5
-            },
-            "1,-5": {
-              "Coord": [
-                1,
-                -5
-              ],
-              "TerrainType": 5
-            },
-            "-2,-3": {
-              "Coord": [
-                -2,
-                -3
-              ],
-              "TerrainType": 5
-            },
-            "2,3": {
-              "Coord": [
-                2,
-                3
-              ],
-              "TerrainType": 5
-            },
-            "-2,5": {
-              "Coord": [
-                -2,
-                5
-              ],
-              "TerrainType": 5
-            },
-            "2,-5": {
-              "Coord": [
-                2,
-                -5
-              ],
-              "TerrainType": 5
-            },
-            "-1,-5": {
-              "Coord": [
-                -1,
-                -5
-              ],
-              "TerrainType": 5
-            },
-            "1,-6": {
-              "Coord": [
-                1,
-                -6
-              ],
-              "TerrainType": 5
-            },
-            "0,-6": {
-              "Coord": [
-                0,
-                -6
-              ],
-              "TerrainType": 5
-            },
-            "-1,6": {
-              "Coord": [
-                -1,
-                6
-              ],
-              "TerrainType": 5
-            },
-            "0,6": {
-              "Coord": [
-                0,
-                6
-              ],
-              "TerrainType": 5
-            },
-            "1,5": {
-              "Coord": [
-                1,
-                5
-              ],
-              "TerrainType": 5
-            },
-            "-2,-4": {
-              "Coord": [
-                -2,
-                -4
-              ],
-              "TerrainType": 5
-            },
-            "2,4": {
-              "Coord": [
-                2,
-                4
-              ],
-              "TerrainType": 5
-            },
-            "-3,1": {
-              "Coord": [
-                -3,
-                1
-              ],
-              "TerrainType": 5
-            },
-            "-3,2": {
-              "Coord": [
-                -3,
-                2
-              ],
-              "TerrainType": 5
-            },
-            "-2,6": {
-              "Coord": [
-                -2,
-                6
-              ],
-              "TerrainType": 5
-            }
-          }
-        },
-        "IslandID": 2,
+      "PrestigePoints": 0,
+      "PurchasedVertices": [
+        [
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            0
+          ]
+        ],
+        [
+          [
+            -1,
+            1
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            1
+          ]
+        ],
+        [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            0
+          ],
+          [
+            1,
+            1
+          ]
+        ]
+      ],
+      "RunHistory": [
+        {
+          "TickDuration": 205400,
+          "CityCount": 10,
+          "BuildingCount": 91,
+          "TotalBuildingLevels": 219,
+          "PrestigePoints": 40,
+          "WorldId": 1
+        }
+      ],
+      "WorldState": {
         "StartTick": 205400,
         "Civilizations": [
           {
@@ -3370,63 +3000,438 @@
           "OutpostAutomationEnabled": false,
           "ProductionBuildingAutomationEnabled": false,
           "ArtisanBuildingAutomationEnabled": false
-        }
-      },
-      "PrestigePoints": 0,
-      "PurchasedVertices": [
-        [
-          [
-            0,
-            0
-          ],
-          [
-            0,
-            1
-          ],
-          [
-            1,
-            0
-          ]
-        ],
-        [
-          [
-            -1,
-            1
-          ],
-          [
-            0,
-            0
-          ],
-          [
-            0,
-            1
-          ]
-        ],
-        [
-          [
-            0,
-            1
-          ],
-          [
-            1,
-            0
-          ],
-          [
-            1,
-            1
-          ]
-        ]
-      ],
-      "RunHistory": [
-        {
-          "IslandId": 1,
-          "TickDuration": 205400,
-          "CityCount": 10,
-          "BuildingCount": 91,
-          "TotalBuildingLevels": 219,
-          "PrestigePoints": 40
-        }
-      ]
+        },
+        "Layers": {
+          "0": {
+            "Map": {
+              "Tiles": {
+                "0,0": {
+                  "Coord": [
+                    0,
+                    0
+                  ],
+                  "TerrainType": 3
+                },
+                "0,-1": {
+                  "Coord": [
+                    0,
+                    -1
+                  ],
+                  "TerrainType": 0
+                },
+                "0,1": {
+                  "Coord": [
+                    0,
+                    1
+                  ],
+                  "TerrainType": 3
+                },
+                "0,-2": {
+                  "Coord": [
+                    0,
+                    -2
+                  ],
+                  "TerrainType": 3
+                },
+                "0,2": {
+                  "Coord": [
+                    0,
+                    2
+                  ],
+                  "TerrainType": 2
+                },
+                "-1,0": {
+                  "Coord": [
+                    -1,
+                    0
+                  ],
+                  "TerrainType": 4
+                },
+                "-1,1": {
+                  "Coord": [
+                    -1,
+                    1
+                  ],
+                  "TerrainType": 1
+                },
+                "1,-1": {
+                  "Coord": [
+                    1,
+                    -1
+                  ],
+                  "TerrainType": 2
+                },
+                "1,0": {
+                  "Coord": [
+                    1,
+                    0
+                  ],
+                  "TerrainType": 0
+                },
+                "-1,-1": {
+                  "Coord": [
+                    -1,
+                    -1
+                  ],
+                  "TerrainType": 1
+                },
+                "1,1": {
+                  "Coord": [
+                    1,
+                    1
+                  ],
+                  "TerrainType": 0
+                },
+                "0,-3": {
+                  "Coord": [
+                    0,
+                    -3
+                  ],
+                  "TerrainType": 3
+                },
+                "0,3": {
+                  "Coord": [
+                    0,
+                    3
+                  ],
+                  "TerrainType": 3
+                },
+                "-1,2": {
+                  "Coord": [
+                    -1,
+                    2
+                  ],
+                  "TerrainType": 1
+                },
+                "1,-2": {
+                  "Coord": [
+                    1,
+                    -2
+                  ],
+                  "TerrainType": 2
+                },
+                "-1,-2": {
+                  "Coord": [
+                    -1,
+                    -2
+                  ],
+                  "TerrainType": 0
+                },
+                "1,2": {
+                  "Coord": [
+                    1,
+                    2
+                  ],
+                  "TerrainType": 4
+                },
+                "-1,3": {
+                  "Coord": [
+                    -1,
+                    3
+                  ],
+                  "TerrainType": 2
+                },
+                "1,-3": {
+                  "Coord": [
+                    1,
+                    -3
+                  ],
+                  "TerrainType": 4
+                },
+                "0,-4": {
+                  "Coord": [
+                    0,
+                    -4
+                  ],
+                  "TerrainType": 2
+                },
+                "0,4": {
+                  "Coord": [
+                    0,
+                    4
+                  ],
+                  "TerrainType": 3
+                },
+                "-1,-3": {
+                  "Coord": [
+                    -1,
+                    -3
+                  ],
+                  "TerrainType": 2
+                },
+                "1,3": {
+                  "Coord": [
+                    1,
+                    3
+                  ],
+                  "TerrainType": 3
+                },
+                "-1,4": {
+                  "Coord": [
+                    -1,
+                    4
+                  ],
+                  "TerrainType": 1
+                },
+                "1,-4": {
+                  "Coord": [
+                    1,
+                    -4
+                  ],
+                  "TerrainType": 0
+                },
+                "0,-5": {
+                  "Coord": [
+                    0,
+                    -5
+                  ],
+                  "TerrainType": 1
+                },
+                "0,5": {
+                  "Coord": [
+                    0,
+                    5
+                  ],
+                  "TerrainType": 1
+                },
+                "-1,-4": {
+                  "Coord": [
+                    -1,
+                    -4
+                  ],
+                  "TerrainType": 0
+                },
+                "1,4": {
+                  "Coord": [
+                    1,
+                    4
+                  ],
+                  "TerrainType": 2
+                },
+                "-2,1": {
+                  "Coord": [
+                    -2,
+                    1
+                  ],
+                  "TerrainType": 0
+                },
+                "-1,5": {
+                  "Coord": [
+                    -1,
+                    5
+                  ],
+                  "TerrainType": 1
+                },
+                "-2,0": {
+                  "Coord": [
+                    -2,
+                    0
+                  ],
+                  "TerrainType": 5
+                },
+                "-2,2": {
+                  "Coord": [
+                    -2,
+                    2
+                  ],
+                  "TerrainType": 5
+                },
+                "2,-1": {
+                  "Coord": [
+                    2,
+                    -1
+                  ],
+                  "TerrainType": 5
+                },
+                "2,-2": {
+                  "Coord": [
+                    2,
+                    -2
+                  ],
+                  "TerrainType": 5
+                },
+                "2,0": {
+                  "Coord": [
+                    2,
+                    0
+                  ],
+                  "TerrainType": 5
+                },
+                "-2,-1": {
+                  "Coord": [
+                    -2,
+                    -1
+                  ],
+                  "TerrainType": 5
+                },
+                "2,1": {
+                  "Coord": [
+                    2,
+                    1
+                  ],
+                  "TerrainType": 5
+                },
+                "-2,3": {
+                  "Coord": [
+                    -2,
+                    3
+                  ],
+                  "TerrainType": 5
+                },
+                "2,-3": {
+                  "Coord": [
+                    2,
+                    -3
+                  ],
+                  "TerrainType": 5
+                },
+                "-2,-2": {
+                  "Coord": [
+                    -2,
+                    -2
+                  ],
+                  "TerrainType": 5
+                },
+                "2,2": {
+                  "Coord": [
+                    2,
+                    2
+                  ],
+                  "TerrainType": 5
+                },
+                "-2,4": {
+                  "Coord": [
+                    -2,
+                    4
+                  ],
+                  "TerrainType": 5
+                },
+                "2,-4": {
+                  "Coord": [
+                    2,
+                    -4
+                  ],
+                  "TerrainType": 5
+                },
+                "1,-5": {
+                  "Coord": [
+                    1,
+                    -5
+                  ],
+                  "TerrainType": 5
+                },
+                "-2,-3": {
+                  "Coord": [
+                    -2,
+                    -3
+                  ],
+                  "TerrainType": 5
+                },
+                "2,3": {
+                  "Coord": [
+                    2,
+                    3
+                  ],
+                  "TerrainType": 5
+                },
+                "-2,5": {
+                  "Coord": [
+                    -2,
+                    5
+                  ],
+                  "TerrainType": 5
+                },
+                "2,-5": {
+                  "Coord": [
+                    2,
+                    -5
+                  ],
+                  "TerrainType": 5
+                },
+                "-1,-5": {
+                  "Coord": [
+                    -1,
+                    -5
+                  ],
+                  "TerrainType": 5
+                },
+                "1,-6": {
+                  "Coord": [
+                    1,
+                    -6
+                  ],
+                  "TerrainType": 5
+                },
+                "0,-6": {
+                  "Coord": [
+                    0,
+                    -6
+                  ],
+                  "TerrainType": 5
+                },
+                "-1,6": {
+                  "Coord": [
+                    -1,
+                    6
+                  ],
+                  "TerrainType": 5
+                },
+                "0,6": {
+                  "Coord": [
+                    0,
+                    6
+                  ],
+                  "TerrainType": 5
+                },
+                "1,5": {
+                  "Coord": [
+                    1,
+                    5
+                  ],
+                  "TerrainType": 5
+                },
+                "-2,-4": {
+                  "Coord": [
+                    -2,
+                    -4
+                  ],
+                  "TerrainType": 5
+                },
+                "2,4": {
+                  "Coord": [
+                    2,
+                    4
+                  ],
+                  "TerrainType": 5
+                },
+                "-3,1": {
+                  "Coord": [
+                    -3,
+                    1
+                  ],
+                  "TerrainType": 5
+                },
+                "-3,2": {
+                  "Coord": [
+                    -3,
+                    2
+                  ],
+                  "TerrainType": 5
+                },
+                "-2,6": {
+                  "Coord": [
+                    -2,
+                    6
+                  ],
+                  "TerrainType": 5
+                }
+              }
+            },
+            "Cities": []
+          }
+        },
+        "WorldId": 2
+      }
     }
   },
   "PrestigeState": {
@@ -10229,10 +10234,10 @@
     }
   },
   "Clock": {
-    "StartDate": "2026-05-27T12:26:43.6620275+00:00",
+    "StartDate": "2026-05-27T12:26:43.6620275\u002B00:00",
     "CurrentTick": 254750,
     "OfflineBankTicks": 10945,
-    "LastSaveTime": "2026-05-27T12:29:03.4973452+00:00"
+    "LastSaveTime": "2026-05-27T12:29:03.4973452\u002B00:00"
   },
   "PRNG": {
     "Seed": 968858921

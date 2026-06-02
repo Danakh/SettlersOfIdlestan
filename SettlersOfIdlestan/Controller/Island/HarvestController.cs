@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Linq;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.IslandMap;
@@ -50,7 +50,7 @@ namespace SettlersOfIdlestan.Controller.Island
     /// </summary>
     public class HarvestController
     {
-        private IslandState? _state;
+        private WorldState? _state;
         private GameClock? _clock;
         private TradeController? _tradeController;
         private BanditController? _banditController;
@@ -72,12 +72,12 @@ namespace SettlersOfIdlestan.Controller.Island
         public event EventHandler<HarvestCompletedEventArgs>? OnHarvestCompleted;
         public event EventHandler<MarketGenerationEventArgs>? OnRandomResourceGenerated;
 
-        internal HarvestController(IslandState? state = null, GameClock? clock = null)
+        internal HarvestController(WorldState? state = null, GameClock? clock = null)
         {
             Initialize(state, clock);
         }
 
-        internal void Initialize(IslandState? state, GameClock? clock, TradeController? tradeController = null, BanditController? banditController = null, GamePRNG? prng = null)
+        internal void Initialize(WorldState? state, GameClock? clock, TradeController? tradeController = null, BanditController? banditController = null, GamePRNG? prng = null)
         {
             if (_clock != null)
                 _clock.Advanced -= OnClockAdvanced;
@@ -419,7 +419,7 @@ namespace SettlersOfIdlestan.Controller.Island
         public bool ManualHarvest(int civilizationIndex, HexCoord hex)
         {
             if (_state == null || _clock == null)
-                throw new InvalidOperationException("IslandState and GameClock have not been initialized.");
+                throw new InvalidOperationException("WorldState and GameClock have not been initialized.");
 
             var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex)
                       ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
