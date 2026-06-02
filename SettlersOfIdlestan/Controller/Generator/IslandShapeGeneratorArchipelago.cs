@@ -17,10 +17,10 @@ public class IslandShapeGeneratorArchipelago : IslandShapeGenerator
         _prng = prng;
     }
 
-    public override IReadOnlyList<HexCoord> GenerateCoords(int count)
+    public override IReadOnlyList<HexCoord> GenerateCoords(int count, int layer = IslandMap.SurfaceLayer)
     {
         if (count < 4)
-            return new IslandShapeGeneratorCompact(_prng).GenerateCoords(count);
+            return new IslandShapeGeneratorCompact(_prng).GenerateCoords(count, layer);
 
         int numIslands = Math.Max(2, count / TargetIslandSize);
         int[] islandSizes = DistributeSizes(count, numIslands);
@@ -29,7 +29,7 @@ public class IslandShapeGeneratorArchipelago : IslandShapeGenerator
         var usedWater = new HashSet<HexCoord>();
         var result = new List<HexCoord>(count);
 
-        var origin = new HexCoord(0, 0, IslandMap.SurfaceLayer);
+        var origin = new HexCoord(0, 0, layer);
         var currentIsland = new List<HexCoord> { origin };
         allLand.Add(origin);
         GrowIsland(currentIsland, islandSizes[0], allLand, usedWater, null);
