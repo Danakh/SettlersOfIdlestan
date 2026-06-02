@@ -108,13 +108,15 @@ namespace SettlersOfIdlestan.Controller
         /// <summary>
         /// Creates a new MainGameState by generating a new island using the island generator.
         /// Returns null if island generation fails.
+        /// Pass <paramref name="prngSeed"/> to get a deterministic game (e.g. in tests).
         /// </summary>
-        public MainGameState? CreateNewGame(IslandParameters parameters)
+        public MainGameState? CreateNewGame(IslandParameters parameters, int? prngSeed = null)
         {
             if (parameters == null) throw new ArgumentNullException(nameof(parameters));
 
-            // Create a main state early so we can use its PRNG for deterministic generation
             var mainState = new MainGameState();
+            if (prngSeed.HasValue)
+                mainState.PRNG = new GamePRNG(prngSeed.Value);
 
             var generator = new Generator.IslandMapGenerator(mainState.PRNG);
             var WorldState = generator.GenerateWorldState(parameters, mainState.Clock.CurrentTick);
@@ -123,7 +125,6 @@ namespace SettlersOfIdlestan.Controller
             var prestigeState = new PrestigeState(WorldState);
             var godState = new GodState(prestigeState);
 
-            // populate the main state with the created sub-states
             mainState.GodState = godState;
 
             SetGame(mainState);
