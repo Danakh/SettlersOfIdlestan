@@ -487,6 +487,12 @@
   "building_deepestmine_desc": "Creuse jusqu'à l'Inframonde et y ouvre un avant-poste souterrain.",
   "tooltip_requires_mine_3": "⚠ Nécessite une Mine niveau 3",
   "btn_map_surface": "▲ Remonter en Surface",
-  "btn_map_underworld": "▼ Descendre dans l'Inframonde"
+  "btn_map_underworld": "▼ Descendre dans l'Inframonde",
+  "corrupt_save_title": "⚠ Erreur de chargement de la sauvegarde",
+  "corrupt_save_line1": "Votre fichier de sauvegarde est illisible ou incompatible.",
+  "corrupt_save_line2": "Exportez-le pour l'envoyer au support avant de continuer.",
+  "corrupt_save_btn_export": "💾 Exporter la sauvegarde",
+  "corrupt_save_btn_new_game": "Repartir de zéro",
+  "corrupt_save_btn_quit": "Quitter"
 }
 

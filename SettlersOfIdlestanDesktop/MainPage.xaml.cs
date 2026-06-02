@@ -20,6 +20,7 @@ public partial class MainPage : ContentPage
 	{
 		base.OnAppearing();
 		_runtime = new SkiaGameRuntime();
+		_runtime.QuitRequested += () => MainThread.BeginInvokeOnMainThread(() => Application.Current?.Quit());
 		_runtime.Initialize(new DesktopFileSystemService(), allowDebugMode: true);
 		MainThread.BeginInvokeOnMainThread(() => Dispatcher.StartTimer(TimeSpan.FromMilliseconds(16), RenderFrame));
 	}
