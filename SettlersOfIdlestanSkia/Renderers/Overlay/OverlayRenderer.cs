@@ -444,6 +444,7 @@ public sealed class OverlayRenderer : IGameRenderer
                 islandState.IsViewingUnderworld = !islandState.IsViewingUnderworld;
                 if (islandState.IsViewingUnderworld)
                     _activeTab = TabIsland;
+                DeselectCityAndWonder();
             }
             return;
         }
@@ -475,13 +476,19 @@ public sealed class OverlayRenderer : IGameRenderer
         _playerCivPanel.HandlePointerPressed(e.Position);
     }
 
+    private void DeselectCityAndWonder()
+    {
+        _selectedCityPanelRenderer.Close();
+        _selectedWonderPanelRenderer.Close();
+    }
+
     public void CloseAll()
     {
         _settingsMenu.Close();
         _settingsPopupRenderer.Close();
         _tradeRenderer.Close();
         _prestigeRenderer.Close();
-        _selectedCityPanelRenderer.Close();
+        DeselectCityAndWonder();
         _selectedCityPanelRenderer.IsInputEnabled = false;
         _selectedWonderPanelRenderer.IsInputEnabled = false;
     }
