@@ -199,9 +199,9 @@ public class IslandGeneratorTests
         // Arrange
         var tiles = new List<HexTile>
         {
-            new HexTile(new HexCoord(0, 0), TerrainType.Hill),
-            new HexTile(new HexCoord(0, 1), TerrainType.Forest),
-            new HexTile(new HexCoord(1, 0), TerrainType.Water),
+            new HexTile(new HexCoord(0, 0, IslandMap.SurfaceLayer), TerrainType.Hill),
+            new HexTile(new HexCoord(0, 1, IslandMap.SurfaceLayer), TerrainType.Forest),
+            new HexTile(new HexCoord(1, 0, IslandMap.SurfaceLayer), TerrainType.Water),
         };
         var map = new IslandMap(tiles);
 
@@ -210,7 +210,7 @@ public class IslandGeneratorTests
 
         // Assert
         Assert.NotNull(vertex);
-        var expectedCoords = new HashSet<HexCoord> { new HexCoord(0, 0), new HexCoord(0, 1), new HexCoord(1, 0) };
+        var expectedCoords = new HashSet<HexCoord> { new HexCoord(0, 0, IslandMap.SurfaceLayer), new HexCoord(0, 1, IslandMap.SurfaceLayer), new HexCoord(1, 0, IslandMap.SurfaceLayer) };
         var actualCoords = new HashSet<HexCoord> { vertex.Hex1, vertex.Hex2, vertex.Hex3 };
         Assert.Equal(expectedCoords, actualCoords);
     }
@@ -221,9 +221,9 @@ public class IslandGeneratorTests
         // Arrange
         var tiles = new List<HexTile>
         {
-            new HexTile(new HexCoord(0, 0), TerrainType.Hill),
-            new HexTile(new HexCoord(0, 1), TerrainType.Forest),
-            new HexTile(new HexCoord(2, 0), TerrainType.Water),
+            new HexTile(new HexCoord(0, 0, IslandMap.SurfaceLayer), TerrainType.Hill),
+            new HexTile(new HexCoord(0, 1, IslandMap.SurfaceLayer), TerrainType.Forest),
+            new HexTile(new HexCoord(2, 0, IslandMap.SurfaceLayer), TerrainType.Water),
         };
         var map = new IslandMap(tiles);
 
@@ -240,9 +240,9 @@ public class IslandGeneratorTests
         // Arrange
         var tiles = new List<HexTile>
         {
-            new HexTile(new HexCoord(0, 0), TerrainType.Forest),
-            new HexTile(new HexCoord(0, 1), TerrainType.Plain),
-            new HexTile(new HexCoord(1, 0), TerrainType.Water),
+            new HexTile(new HexCoord(0, 0, IslandMap.SurfaceLayer), TerrainType.Forest),
+            new HexTile(new HexCoord(0, 1, IslandMap.SurfaceLayer), TerrainType.Plain),
+            new HexTile(new HexCoord(1, 0, IslandMap.SurfaceLayer), TerrainType.Water),
         };
         var map = new IslandMap(tiles);
 

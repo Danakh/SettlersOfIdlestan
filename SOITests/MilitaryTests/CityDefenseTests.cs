@@ -17,15 +17,15 @@ namespace SOITests.MilitaryTests;
 /// </summary>
 public class CityDefenseTests
 {
-    private static readonly Vertex CityVertex = Vertex.Create(new(0, 0), new(0, 1), new(1, 0));
+    private static readonly Vertex CityVertex = Vertex.Create(new(0, 0, IslandMap.SurfaceLayer), new(0, 1, IslandMap.SurfaceLayer), new(1, 0, IslandMap.SurfaceLayer));
 
     private static (GameClock clock, MilitaryController ctrl, City city)
         Setup(params Building[] buildings)
     {
         var map = new IslandMap([
-            new(new HexCoord(0, 0), TerrainType.Plain),
-            new(new HexCoord(0, 1), TerrainType.Plain),
-            new(new HexCoord(1, 0), TerrainType.Plain),
+            new(new HexCoord(0, 0, IslandMap.SurfaceLayer), TerrainType.Plain),
+            new(new HexCoord(0, 1, IslandMap.SurfaceLayer), TerrainType.Plain),
+            new(new HexCoord(1, 0, IslandMap.SurfaceLayer), TerrainType.Plain),
         ]);
 
         var civ = new Civilization { Index = 0 };

@@ -1,6 +1,7 @@
 using SkiaSharp;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandFeatures;
+using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestanSkia.Renderers.Island;
 
 namespace SettlersOfIdlestanSkia.Services;
@@ -132,7 +133,7 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
 
         // Fallback: clic sur un hex — vérifie d'abord si c'est une wonder.
         var islandState = _gameControllerService.CurrentIslandState;
-        int currentZ = islandState?.CurrentMapZ ?? HexCoord.SurfaceZ;
+        int currentZ = islandState?.CurrentMapZ ?? IslandMap.SurfaceLayer;
         var hex = _renderer.ScreenToHex(e.Position, _cameraService.CanvasSize, _cameraService.ZoomLevel, _cameraService.Position);
         var hexCoord = new HexCoord(hex.q, hex.r, currentZ);
         var playerIndex = islandState?.PlayerCivilization.Index ?? 0;
@@ -159,7 +160,7 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
         if (_renderer == null)
             return;
 
-        int currentZ = _gameControllerService.CurrentIslandState?.CurrentMapZ ?? HexCoord.SurfaceZ;
+        int currentZ = _gameControllerService.CurrentIslandState?.CurrentMapZ ?? IslandMap.SurfaceLayer;
 
         var buildableVertices = _gameControllerService.GetBuildableCityVerticesForPlayer();
         var buildableEdges = _gameControllerService.GetBuildableRoadEdgesForPlayer();

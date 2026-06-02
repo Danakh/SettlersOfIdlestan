@@ -28,13 +28,13 @@ namespace SOITests.ControllerTests
         // With active barracks: all non-water neighbors are protected → bandit stays.
         // With inactive barracks: bandit can move to any plain neighbor.
 
-        private static HexCoord Center => new(0, 0);
-        private static HexCoord East   => new(1, 0);
-        private static HexCoord West   => new(-1, 0);
-        private static HexCoord NE     => new(0, 1);
-        private static HexCoord NW     => new(-1, 1);
-        private static HexCoord SE     => new(1, -1);
-        private static HexCoord SW     => new(0, -1);
+        private static HexCoord Center => new(0, 0, IslandMap.SurfaceLayer);
+        private static HexCoord East   => new(1, 0, IslandMap.SurfaceLayer);
+        private static HexCoord West   => new(-1, 0, IslandMap.SurfaceLayer);
+        private static HexCoord NE     => new(0, 1, IslandMap.SurfaceLayer);
+        private static HexCoord NW     => new(-1, 1, IslandMap.SurfaceLayer);
+        private static HexCoord SE     => new(1, -1, IslandMap.SurfaceLayer);
+        private static HexCoord SW     => new(0, -1, IslandMap.SurfaceLayer);
 
         private static (IslandState state, GameClock clock, BanditController controller) CreateTrappedSetup(bool activeBarracks)
         {
@@ -84,8 +84,8 @@ namespace SOITests.ControllerTests
         {
             // Small map: center (desert) with one plain neighbor and one water neighbor.
             // The bandit should always end up on the plain tile, never on water.
-            var plain = new HexCoord(1, 0);
-            var water = new HexCoord(-1, 0);
+            var plain = new HexCoord(1, 0, IslandMap.SurfaceLayer);
+            var water = new HexCoord(-1, 0, IslandMap.SurfaceLayer);
 
             var tiles = new List<HexTile>
             {
@@ -134,7 +134,7 @@ namespace SOITests.ControllerTests
         public void IsHarvestBlocked_ReturnsTrueImmediatelyAfterBanditLeaves()
         {
             // Only two tiles: bandit starts at center and can only go to plain.
-            var plain = new HexCoord(1, 0);
+            var plain = new HexCoord(1, 0, IslandMap.SurfaceLayer);
 
             var tiles = new List<HexTile>
             {
@@ -163,7 +163,7 @@ namespace SOITests.ControllerTests
         [Fact]
         public void IsHarvestBlocked_ReturnsFalseAfterCooldownExpires()
         {
-            var plain = new HexCoord(1, 0);
+            var plain = new HexCoord(1, 0, IslandMap.SurfaceLayer);
 
             var tiles = new List<HexTile>
             {
@@ -198,9 +198,9 @@ namespace SOITests.ControllerTests
             CreateRaidSetup()
         {
             // City at Vertex(NE, East, NE11) — bandit at Center is adjacent to NE and East.
-            var ne   = new HexCoord(0, 1);
-            var east = new HexCoord(1, 0);
-            var ne11 = new HexCoord(1, 1);
+            var ne   = new HexCoord(0, 1, IslandMap.SurfaceLayer);
+            var east = new HexCoord(1, 0, IslandMap.SurfaceLayer);
+            var ne11 = new HexCoord(1, 1, IslandMap.SurfaceLayer);
 
             var tiles = new List<HexTile>
             {

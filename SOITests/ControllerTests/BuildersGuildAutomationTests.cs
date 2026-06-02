@@ -21,27 +21,27 @@ public class BuildersGuildAutomationTests
     // -------------------------------------------------------------------------
 
     // Ring 0
-    private static readonly HexCoord C      = new(0, 0);
+    private static readonly HexCoord C      = new(0, 0, IslandMap.SurfaceLayer);
     // Ring 1
-    private static readonly HexCoord R1_E   = new(1, 0);
-    private static readonly HexCoord R1_NE  = new(0, 1);
-    private static readonly HexCoord R1_NW  = new(-1, 1);
-    private static readonly HexCoord R1_W   = new(-1, 0);
-    private static readonly HexCoord R1_SW  = new(0, -1);
-    private static readonly HexCoord R1_SE  = new(1, -1);
+    private static readonly HexCoord R1_E   = new(1, 0, IslandMap.SurfaceLayer);
+    private static readonly HexCoord R1_NE  = new(0, 1, IslandMap.SurfaceLayer);
+    private static readonly HexCoord R1_NW  = new(-1, 1, IslandMap.SurfaceLayer);
+    private static readonly HexCoord R1_W   = new(-1, 0, IslandMap.SurfaceLayer);
+    private static readonly HexCoord R1_SW  = new(0, -1, IslandMap.SurfaceLayer);
+    private static readonly HexCoord R1_SE  = new(1, -1, IslandMap.SurfaceLayer);
     // Ring 2
-    private static readonly HexCoord R2_E   = new(2, 0);
-    private static readonly HexCoord R2_NE  = new(1, 1);
-    private static readonly HexCoord R2_N   = new(0, 2);
-    private static readonly HexCoord R2_NW  = new(-1, 2);
-    private static readonly HexCoord R2_WNW = new(-2, 2);
-    private static readonly HexCoord R2_WW  = new(-2, 1);
-    private static readonly HexCoord R2_W   = new(-2, 0);
-    private static readonly HexCoord R2_SW  = new(-1, -1);
-    private static readonly HexCoord R2_S   = new(0, -2);
-    private static readonly HexCoord R2_SE  = new(1, -2);
-    private static readonly HexCoord R2_ESE = new(2, -2);
-    private static readonly HexCoord R2_SSE = new(2, -1);
+    private static readonly HexCoord R2_E   = new(2, 0, IslandMap.SurfaceLayer);
+    private static readonly HexCoord R2_NE  = new(1, 1, IslandMap.SurfaceLayer);
+    private static readonly HexCoord R2_N   = new(0, 2, IslandMap.SurfaceLayer);
+    private static readonly HexCoord R2_NW  = new(-1, 2, IslandMap.SurfaceLayer);
+    private static readonly HexCoord R2_WNW = new(-2, 2, IslandMap.SurfaceLayer);
+    private static readonly HexCoord R2_WW  = new(-2, 1, IslandMap.SurfaceLayer);
+    private static readonly HexCoord R2_W   = new(-2, 0, IslandMap.SurfaceLayer);
+    private static readonly HexCoord R2_SW  = new(-1, -1, IslandMap.SurfaceLayer);
+    private static readonly HexCoord R2_S   = new(0, -2, IslandMap.SurfaceLayer);
+    private static readonly HexCoord R2_SE  = new(1, -2, IslandMap.SurfaceLayer);
+    private static readonly HexCoord R2_ESE = new(2, -2, IslandMap.SurfaceLayer);
+    private static readonly HexCoord R2_SSE = new(2, -1, IslandMap.SurfaceLayer);
 
     /// <summary>
     /// 19-hex island (center + 2 rings), city at Vertex(C, R1_E, R1_NE).

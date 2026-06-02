@@ -1,6 +1,7 @@
 using System.Linq;
 using Xunit;
 using SettlersOfIdlestan.Model.HexGrid;
+using SettlersOfIdlestan.Model.IslandMap;
 using System;
 
 namespace SOITests.HexGridTests;
@@ -8,7 +9,7 @@ namespace SOITests.HexGridTests;
 public class HexGridPathfinderTests
 {
     // Vertex bien connu : (0,0)-(0,1)-(1,0)
-    private static readonly Vertex V0 = Vertex.Create(new HexCoord(0, 0), new HexCoord(0, 1), new HexCoord(1, 0));
+    private static readonly Vertex V0 = Vertex.Create(new HexCoord(0, 0, IslandMap.SurfaceLayer), new HexCoord(0, 1, IslandMap.SurfaceLayer), new HexCoord(1, 0, IslandMap.SurfaceLayer));
 
     [Fact]
     public void FindVertexPath_SameVertex_ReturnsLengthOne()
@@ -73,9 +74,9 @@ public class HexGridPathfinderTests
     public void FindVertexPath_WithDifferentZ_ThrowsArgumentException()
     {
         var target = Vertex.Create(
-            new HexCoord(0, 0, HexCoord.UnderworldZ),
-            new HexCoord(0, 1, HexCoord.UnderworldZ),
-            new HexCoord(1, 0, HexCoord.UnderworldZ));
+            new HexCoord(0, 0, UnderworldState.Layer),
+            new HexCoord(0, 1, UnderworldState.Layer),
+            new HexCoord(1, 0, UnderworldState.Layer));
 
         Assert.Throws<ArgumentException>(() => HexGridPathfinder.FindVertexPath(V0, target));
     }

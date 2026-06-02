@@ -10,6 +10,8 @@ namespace SettlersOfIdlestan.Model.IslandMap;
 /// </summary>
 public class UnderworldState
 {
+    public const int Layer = 1;
+
     public IslandMap Map { get; set; }
 
     /// <summary>
@@ -20,7 +22,7 @@ public class UnderworldState
     [System.Text.Json.Serialization.JsonConstructor]
     public UnderworldState()
     {
-        Map = new IslandMap(System.Array.Empty<HexTile>(), HexCoord.UnderworldZ);
+        Map = new IslandMap(System.Array.Empty<HexTile>(), Layer);
         Cities = new List<City>();
     }
 
@@ -32,17 +34,17 @@ public class UnderworldState
     {
         var tiles = new[]
         {
-            new HexTile(new HexCoord(0, 0, HexCoord.UnderworldZ), TerrainType.Mountain),
-            new HexTile(new HexCoord(1, 0, HexCoord.UnderworldZ), TerrainType.Mountain),
-            new HexTile(new HexCoord(0, 1, HexCoord.UnderworldZ), TerrainType.Mountain),
+            new HexTile(new HexCoord(0, 0, Layer), TerrainType.Mountain),
+            new HexTile(new HexCoord(1, 0, Layer), TerrainType.Mountain),
+            new HexTile(new HexCoord(0, 1, Layer), TerrainType.Mountain),
         };
 
         var map = new IslandMap(tiles);
 
         var outpostVertex = Vertex.Create(
-            new HexCoord(0, 0, HexCoord.UnderworldZ),
-            new HexCoord(1, 0, HexCoord.UnderworldZ),
-            new HexCoord(0, 1, HexCoord.UnderworldZ));
+            new HexCoord(0, 0, Layer),
+            new HexCoord(1, 0, Layer),
+            new HexCoord(0, 1, Layer));
 
         var outpost = new City(outpostVertex) { CivilizationIndex = playerCivIndex };
 

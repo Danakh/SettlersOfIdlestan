@@ -18,11 +18,11 @@ namespace SOITests.ControllerTests
         [Fact]
         public void Autoplayer_BuildingASecondCity()
         {
-            var a = new HexCoord(0, 0);
-            var b = new HexCoord(1, 0);
-            var c = new HexCoord(0, 1);
-            var d = new HexCoord(1, 1);
-            var e = new HexCoord(2, 0);
+            var a = new HexCoord(0, 0, IslandMap.SurfaceLayer);
+            var b = new HexCoord(1, 0, IslandMap.SurfaceLayer);
+            var c = new HexCoord(0, 1, IslandMap.SurfaceLayer);
+            var d = new HexCoord(1, 1, IslandMap.SurfaceLayer);
+            var e = new HexCoord(2, 0, IslandMap.SurfaceLayer);
 
             var tiles = new[]
             {

@@ -36,8 +36,8 @@ public class IntroAnimationRenderer : HexBasedRenderer, IGameRenderer
     private SKPoint _hex1Center;
     private SKPoint _hex2Center;
     private SKPoint _cityVertex;
-    private HexCoord _hex1Coord = new(0, 0);
-    private HexCoord _hex2Coord = new(0, 0);
+    private HexCoord _hex1Coord = new(0, 0, IslandMap.SurfaceLayer);
+    private HexCoord _hex2Coord = new(0, 0, IslandMap.SurfaceLayer);
 
     public IntroAnimationRenderer(ResourceManager resourceManager)
     {
@@ -245,12 +245,12 @@ public class IntroAnimationRenderer : HexBasedRenderer, IGameRenderer
 
     private static HexCoord[] GetHexNeighborCoords(HexCoord c) =>
     [
-        new(c.Q + 1, c.R    ),
-        new(c.Q - 1, c.R    ),
-        new(c.Q,     c.R + 1),
-        new(c.Q,     c.R - 1),
-        new(c.Q + 1, c.R - 1),
-        new(c.Q - 1, c.R + 1),
+        new(c.Q + 1, c.R,     c.Z),
+        new(c.Q - 1, c.R,     c.Z),
+        new(c.Q,     c.R + 1, c.Z),
+        new(c.Q,     c.R - 1, c.Z),
+        new(c.Q + 1, c.R - 1, c.Z),
+        new(c.Q - 1, c.R + 1, c.Z),
     ];
 
     public void Dispose()

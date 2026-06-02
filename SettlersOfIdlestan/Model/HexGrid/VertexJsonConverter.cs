@@ -45,7 +45,7 @@ public class VertexJsonConverter : JsonConverter<Vertex>
         return new HexCoord(
             element[0].GetInt32(),
             element[1].GetInt32(),
-            element.GetArrayLength() == 3 ? element[2].GetInt32() : HexCoord.SurfaceZ);
+            element.GetArrayLength() == 3 ? element[2].GetInt32() : 0);
     }
 
     private static void WriteHexCoord(Utf8JsonWriter writer, HexCoord value)

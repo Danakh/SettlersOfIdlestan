@@ -1,5 +1,6 @@
 using SkiaSharp;
 using SettlersOfIdlestan.Model.HexGrid;
+using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestanSkia.Core;
 
 namespace SettlersOfIdlestanSkia.Renderers.Island;
@@ -160,7 +161,7 @@ public abstract class HexBasedRenderer
     /// <summary>
     /// Convertit un point Island en coordonnée d'hexagone.
     /// </summary>
-    public HexCoord IslandToHexCoord(SKPoint islandPoint, int z = HexCoord.SurfaceZ)
+    public HexCoord IslandToHexCoord(SKPoint islandPoint, int z = IslandMap.SurfaceLayer)
     {
         var (q, r) = IslandToAxial(islandPoint.X, islandPoint.Y);
         return new HexCoord(q, r, z);
@@ -169,7 +170,7 @@ public abstract class HexBasedRenderer
     /// <summary>
     /// Trouve le vertex le plus proche d'un point Island.
     /// </summary>
-    public Vertex IslandToNearestVertex(SKPoint islandPoint, int z = HexCoord.SurfaceZ)
+    public Vertex IslandToNearestVertex(SKPoint islandPoint, int z = IslandMap.SurfaceLayer)
     {
         var centerHex = IslandToHexCoord(islandPoint, z);
         var candidates = new HashSet<Vertex>();
@@ -219,7 +220,7 @@ public abstract class HexBasedRenderer
     /// <summary>
     /// Trouve l'edge la plus proche d'un point Island.
     /// </summary>
-    public Edge IslandToNearestEdge(SKPoint islandPoint, int z = HexCoord.SurfaceZ)
+    public Edge IslandToNearestEdge(SKPoint islandPoint, int z = IslandMap.SurfaceLayer)
     {
         var centerHex = IslandToHexCoord(islandPoint, z);
         var candidates = new HashSet<Edge>();

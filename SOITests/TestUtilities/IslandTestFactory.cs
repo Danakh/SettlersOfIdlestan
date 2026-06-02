@@ -17,13 +17,13 @@ public static class IslandTestFactory
     /// </summary>
     public static IslandState CreateSevenHexIslandState()
     {
-        var center = new HexCoord(0, 0);
-        var e = new HexCoord(1, 0);
-        var w = new HexCoord(-1, 0);
-        var ne = new HexCoord(0, 1);
-        var sw = new HexCoord(0, -1);
-        var nw = new HexCoord(-1, 1);
-        var se = new HexCoord(1, -1);
+        var center = new HexCoord(0, 0, IslandMap.SurfaceLayer);
+        var e = new HexCoord(1, 0, IslandMap.SurfaceLayer);
+        var w = new HexCoord(-1, 0, IslandMap.SurfaceLayer);
+        var ne = new HexCoord(0, 1, IslandMap.SurfaceLayer);
+        var sw = new HexCoord(0, -1, IslandMap.SurfaceLayer);
+        var nw = new HexCoord(-1, 1, IslandMap.SurfaceLayer);
+        var se = new HexCoord(1, -1, IslandMap.SurfaceLayer);
 
         var tiles = new List<HexTile>
         {

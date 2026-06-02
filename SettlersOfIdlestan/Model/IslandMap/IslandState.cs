@@ -54,8 +54,8 @@ public class IslandState : IJsonOnDeserialized
 
     [JsonIgnore]
     public int CurrentMapZ => IsViewingUnderworld && Underworld != null
-        ? HexCoord.UnderworldZ
-        : HexCoord.SurfaceZ;
+        ? UnderworldState.Layer
+        : IslandMap.SurfaceLayer;
 
     [JsonIgnore]
     public IslandMap CurrentMap => GetMapForZ(CurrentMapZ);

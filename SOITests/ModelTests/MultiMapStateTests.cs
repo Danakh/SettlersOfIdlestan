@@ -16,17 +16,17 @@ public class MultiMapStateTests
     {
         var underworld = UnderworldState.CreateDefault(playerCivIndex: 0);
 
-        Assert.Equal(HexCoord.UnderworldZ, underworld.Map.Z);
-        Assert.All(underworld.Map.Tiles.Keys, coord => Assert.Equal(HexCoord.UnderworldZ, coord.Z));
+        Assert.Equal(UnderworldState.Layer, underworld.Map.Z);
+        Assert.All(underworld.Map.Tiles.Keys, coord => Assert.Equal(UnderworldState.Layer, coord.Z));
         Assert.Single(underworld.Cities);
-        Assert.Equal(HexCoord.UnderworldZ, underworld.Cities[0].Position.Z);
+        Assert.Equal(UnderworldState.Layer, underworld.Cities[0].Position.Z);
     }
 
     [Fact]
     public void IslandMap_RejectsMixedLayers()
     {
-        var surface = new HexCoord(0, 0, HexCoord.SurfaceZ);
-        var underworld = new HexCoord(1, 0, HexCoord.UnderworldZ);
+        var surface = new HexCoord(0, 0, IslandMap.SurfaceLayer);
+        var underworld = new HexCoord(1, 0, UnderworldState.Layer);
 
         Assert.Throws<ArgumentException>(() => new IslandMap([
             new HexTile(surface, TerrainType.Plain),
@@ -38,18 +38,18 @@ public class MultiMapStateTests
     public void IslandMap_GetTile_WithDifferentLayer_ThrowsArgumentException()
     {
         var map = new IslandMap([
-            new HexTile(new HexCoord(0, 0, HexCoord.SurfaceZ), TerrainType.Plain),
+            new HexTile(new HexCoord(0, 0, IslandMap.SurfaceLayer), TerrainType.Plain),
         ]);
 
-        Assert.Throws<ArgumentException>(() => map.GetTile(new HexCoord(0, 0, HexCoord.UnderworldZ)));
+        Assert.Throws<ArgumentException>(() => map.GetTile(new HexCoord(0, 0, UnderworldState.Layer)));
     }
 
     [Fact]
     public void RecalculateVisibleIslandMaps_BuildsVisibleMapForEachLayer()
     {
-        var a = new HexCoord(0, 0);
-        var b = new HexCoord(1, 0);
-        var c = new HexCoord(0, 1);
+        var a = new HexCoord(0, 0, IslandMap.SurfaceLayer);
+        var b = new HexCoord(1, 0, IslandMap.SurfaceLayer);
+        var c = new HexCoord(0, 1, IslandMap.SurfaceLayer);
         var civ = new Civilization { Index = 0 };
         civ.Cities.Add(new City(Vertex.Create(a, b, c)) { CivilizationIndex = 0 });
 
@@ -65,13 +65,13 @@ public class MultiMapStateTests
         state.Underworld = UnderworldState.CreateDefault(civ.Index);
         state.RecalculateVisibleIslandMaps();
 
-        var underworldHex = new HexCoord(0, 0, HexCoord.UnderworldZ);
-        Assert.Contains(civ.Cities, city => city.Position.Z == HexCoord.UnderworldZ);
+        var underworldHex = new HexCoord(0, 0, UnderworldState.Layer);
+        Assert.Contains(civ.Cities, city => city.Position.Z == UnderworldState.Layer);
         Assert.True(state.GetVisibleIslandMapsForZ(0).GetValueOrDefault(0)?.HasTile(a) ?? false);
-        Assert.DoesNotContain(state.GetVisibleIslandMapsForZ(0).GetValueOrDefault(0)?.Tiles.Keys ?? Enumerable.Empty<HexCoord>(), coord => coord.Z == HexCoord.UnderworldZ);
+        Assert.DoesNotContain(state.GetVisibleIslandMapsForZ(0).GetValueOrDefault(0)?.Tiles.Keys ?? Enumerable.Empty<HexCoord>(), coord => coord.Z == UnderworldState.Layer);
 
-        var underworldVisibleMap = state.GetVisibleIslandMapsForZ(HexCoord.UnderworldZ)[0];
+        var underworldVisibleMap = state.GetVisibleIslandMapsForZ(UnderworldState.Layer)[0];
         Assert.True(underworldVisibleMap.HasTile(underworldHex));
-        Assert.DoesNotContain(underworldVisibleMap.Tiles.Keys, coord => coord.Z == HexCoord.SurfaceZ);
+        Assert.DoesNotContain(underworldVisibleMap.Tiles.Keys, coord => coord.Z == IslandMap.SurfaceLayer);
     }
 }

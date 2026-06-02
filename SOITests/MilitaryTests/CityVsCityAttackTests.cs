@@ -23,14 +23,14 @@ namespace SOITests.MilitaryTests;
 /// </summary>
 public class CityVsCityAttackTests
 {
-    private static readonly Vertex VertexA = Vertex.Create(new(0, 0), new(0, 1), new(1, 0));
-    private static readonly Vertex VertexB = Vertex.Create(new(0, 1), new(1, 0), new(1, 1));
+    private static readonly Vertex VertexA = Vertex.Create(new(0, 0, IslandMap.SurfaceLayer), new(0, 1, IslandMap.SurfaceLayer), new(1, 0, IslandMap.SurfaceLayer));
+    private static readonly Vertex VertexB = Vertex.Create(new(0, 1, IslandMap.SurfaceLayer), new(1, 0, IslandMap.SurfaceLayer), new(1, 1, IslandMap.SurfaceLayer));
 
     private static IslandMap BuildMap() => new([
-        new HexTile(new HexCoord(0, 0), TerrainType.Plain),
-        new HexTile(new HexCoord(0, 1), TerrainType.Plain),
-        new HexTile(new HexCoord(1, 0), TerrainType.Plain),
-        new HexTile(new HexCoord(1, 1), TerrainType.Plain),
+        new HexTile(new HexCoord(0, 0, IslandMap.SurfaceLayer), TerrainType.Plain),
+        new HexTile(new HexCoord(0, 1, IslandMap.SurfaceLayer), TerrainType.Plain),
+        new HexTile(new HexCoord(1, 0, IslandMap.SurfaceLayer), TerrainType.Plain),
+        new HexTile(new HexCoord(1, 1, IslandMap.SurfaceLayer), TerrainType.Plain),
     ]);
 
     private static (IslandState state, GameClock clock, MilitaryController ctrl, City cityA, City cityB, Barracks barracksA)

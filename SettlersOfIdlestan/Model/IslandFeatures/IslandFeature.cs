@@ -58,5 +58,5 @@ public abstract class IslandFeature
 
     protected IslandFeature(HexCoord position) => Position = position;
 
-    protected IslandFeature() => Position = new HexCoord(0, 0);
+    protected IslandFeature() => Position = new HexCoord(0, 0, 0);
 }

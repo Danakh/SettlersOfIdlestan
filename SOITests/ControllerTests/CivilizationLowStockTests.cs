@@ -22,9 +22,9 @@ namespace SOITests.ControllerTests;
 /// </summary>
 public class CivilizationLowStockTests
 {
-    private static HexCoord H1 => new(0, 1);
-    private static HexCoord H2 => new(1, 0);
-    private static HexCoord H3 => new(1, 1);
+    private static HexCoord H1 => new(0, 1, IslandMap.SurfaceLayer);
+    private static HexCoord H2 => new(1, 0, IslandMap.SurfaceLayer);
+    private static HexCoord H3 => new(1, 1, IslandMap.SurfaceLayer);
     private static Vertex CityVertex => Vertex.Create(H1, H2, H3);
 
     private static IslandMap MinimalMap() => new([

@@ -16,12 +16,12 @@ namespace SOITests.ControllerTests
     {
         // Hexs de la ville : le vertex est l'intersection de NE, East et NE11.
         // Un bandit n'est attaqué que s'il est sur l'un de ces 3 hexs.
-        private static HexCoord NE   => new(0, 1);
-        private static HexCoord East => new(1, 0);
-        private static HexCoord NE11 => new(1, 1);
+        private static HexCoord NE   => new(0, 1, IslandMap.SurfaceLayer);
+        private static HexCoord East => new(1, 0, IslandMap.SurfaceLayer);
+        private static HexCoord NE11 => new(1, 1, IslandMap.SurfaceLayer);
 
         // Hexs hors ville (utilisés pour les tests "hors portée")
-        private static HexCoord Center => new(0, 0);
+        private static HexCoord Center => new(0, 0, IslandMap.SurfaceLayer);
 
         /// <summary>
         /// Ville au vertex Vertex(NE, East, NE11) avec une caserne.
@@ -161,7 +161,7 @@ namespace SOITests.ControllerTests
         public void Bandit_OnAnyCityHex_IsAttacked(int q, int r, string description)
         {
             var (state, clock, _, _) = CreateSetup(initialSoldiers: 3, barracksLevel: 2);
-            state.AddFeature(new Bandit(new HexCoord(q, r), 0));
+            state.AddFeature(new Bandit(new HexCoord(q, r, IslandMap.SurfaceLayer), 0));
             var bandit = state.Features.OfType<Bandit>().First();
 
             clock.SimulateAdvance(MilitaryController.CombatIntervalTicks);
@@ -195,7 +195,7 @@ namespace SOITests.ControllerTests
         public void Bandit_OffCityHexes_IsNotAttacked(int q, int r, string description)
         {
             var (state, clock, _, _) = CreateSetup(initialSoldiers: 5, barracksLevel: 2);
-            state.AddFeature(new Bandit(new HexCoord(q, r), 0));
+            state.AddFeature(new Bandit(new HexCoord(q, r, IslandMap.SurfaceLayer), 0));
             var bandit = state.Features.OfType<Bandit>().First();
 
             clock.SimulateAdvance(MilitaryController.CombatIntervalTicks);
@@ -216,7 +216,7 @@ namespace SOITests.ControllerTests
                 for (int r = -3; r <= 4; r++)
                 {
                     var (state, clock, _, _) = CreateSetup(initialSoldiers: 5, barracksLevel: 2);
-                    state.AddFeature(new Bandit(new HexCoord(q, r), 0));
+                    state.AddFeature(new Bandit(new HexCoord(q, r, IslandMap.SurfaceLayer), 0));
                     var bandit = state.Features.OfType<Bandit>().First();
 
                     clock.SimulateAdvance(MilitaryController.CombatIntervalTicks);

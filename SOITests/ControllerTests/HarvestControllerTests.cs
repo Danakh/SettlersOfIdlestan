@@ -18,9 +18,9 @@ namespace SOITests.ControllerTests
         public void AutomaticHarvest_ByProductionBuilding_AddsResourceWithCooldown()
         {
             // Create a small map where one of the hexes produces wood
-            var a = new HexCoord(0, 0);
-            var b = new HexCoord(1, 0);
-            var c = new HexCoord(0, 1);
+            var a = new HexCoord(0, 0, IslandMap.SurfaceLayer);
+            var b = new HexCoord(1, 0, IslandMap.SurfaceLayer);
+            var c = new HexCoord(0, 1, IslandMap.SurfaceLayer);
 
             var tiles = new[]
             {

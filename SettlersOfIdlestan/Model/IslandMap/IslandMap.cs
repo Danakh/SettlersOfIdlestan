@@ -12,9 +12,11 @@ namespace SettlersOfIdlestan.Model.IslandMap;
 [JsonConverter(typeof(IslandMapJsonConverter))]
 public class IslandMap
 {
+    public const int SurfaceLayer = 0;
+
     private readonly Dictionary<HexCoord, HexTile> _tiles = new();
 
-    public IslandMap(IEnumerable<HexTile> tiles, int z = HexCoord.SurfaceZ)
+    public IslandMap(IEnumerable<HexTile> tiles, int z = SurfaceLayer)
     {
         foreach (var tile in tiles)
         {

@@ -149,7 +149,7 @@ public class NpcGameController
     private bool HasEncounteredEnemy(Civilization npcCiv)
     {
         if (_state == null) return false;
-        var z = npcCiv.Cities.FirstOrDefault()?.Position.Z ?? HexCoord.SurfaceZ;
+        var z = npcCiv.Cities.FirstOrDefault()?.Position.Z ?? IslandMap.SurfaceLayer;
         if (!_state.GetVisibleIslandMapsForZ(z).TryGetValue(npcCiv.Index, out var visibleMap)) return false;
 
         return _state.Civilizations

@@ -15,7 +15,7 @@ namespace SOITests.ControllerTests
 {
     public class WonderControllerTests
     {
-        private static HexCoord WonderHex => new(0, 0);
+        private static HexCoord WonderHex => new(0, 0, IslandMap.SurfaceLayer);
 
         /// <summary>
         /// TownHall niveau 20 → basic max = 5*(2+20) = 110, advanced max = 5*(20-2) = 90.

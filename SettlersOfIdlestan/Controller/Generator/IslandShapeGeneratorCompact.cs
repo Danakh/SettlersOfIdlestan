@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.Game;
+using SettlersOfIdlestan.Model.IslandMap;
 
 namespace SettlersOfIdlestan.Controller.Generator;
 
@@ -17,7 +18,7 @@ public class IslandShapeGeneratorCompact : IslandShapeGenerator
     {
         if (count <= 0) return [];
 
-        var origin = new HexCoord(0, 0);
+        var origin = new HexCoord(0, 0, IslandMap.SurfaceLayer);
         var island = new List<HexCoord>(count) { origin };
         var allLand = new HashSet<HexCoord> { origin };
 

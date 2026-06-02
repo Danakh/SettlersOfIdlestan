@@ -55,7 +55,7 @@ public class HexCoordJsonConverter : JsonConverter<HexCoord>
         return new HexCoord(
             int.Parse(parts[0]),
             int.Parse(parts[1]),
-            parts.Length == 3 ? int.Parse(parts[2]) : HexCoord.SurfaceZ);
+            parts.Length == 3 ? int.Parse(parts[2]) : 0);
     }
 
     private static HexCoord ReadArray(ref Utf8JsonReader reader)
@@ -66,7 +66,7 @@ public class HexCoordJsonConverter : JsonConverter<HexCoord>
         int r = reader.GetInt32();
         reader.Read();
 
-        int z = HexCoord.SurfaceZ;
+        int z = 0;
         if (reader.TokenType != JsonTokenType.EndArray)
         {
             z = reader.GetInt32();

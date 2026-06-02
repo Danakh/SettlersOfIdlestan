@@ -18,10 +18,7 @@ namespace SettlersOfIdlestan.Model.HexGrid;
 [JsonConverter(typeof(HexCoordJsonConverter))]
 public class HexCoord
 {
-    public const int SurfaceZ = 0;
-    public const int UnderworldZ = 1;
-
-    public HexCoord(int q, int r, int z = SurfaceZ)
+    public HexCoord(int q, int r, int z)
     {
         Q = q;
         R = r;
@@ -147,7 +144,7 @@ public class HexCoord
     /// </summary>
     public override int GetHashCode()
     {
-        return Z == SurfaceZ
+        return Z == 0
             ? HashCode.Combine(Q, R)
             : HashCode.Combine(Q, R, Z);
     }
@@ -170,6 +167,6 @@ public class HexCoord
             throw new ArgumentException("HexCoord data must contain [q, r] or [q, r, z]", nameof(data));
         }
 
-        return new HexCoord(data[0], data[1], data.Length == 3 ? data[2] : SurfaceZ);
+        return new HexCoord(data[0], data[1], data.Length == 3 ? data[2] : 0);
     }
 }

@@ -27,7 +27,7 @@ public class BanditRenderer : HexBasedRenderer, IGameRenderer
 
     private sealed class BanditVisual
     {
-        public HexCoord ModelPosition = new(0, 0);
+        public HexCoord ModelPosition = new(0, 0, IslandMap.SurfaceLayer);
         public SKPoint From;
         public SKPoint To;
         public float Progress = 1f;

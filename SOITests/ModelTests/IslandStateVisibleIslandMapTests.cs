@@ -17,9 +17,9 @@ public class IslandStateVisibleIslandMapTests
     [Fact]
     public void Constructor_BuildsVisibleIslandMapForEachCivilization()
     {
-        var a = new HexCoord(0, 0);
-        var b = new HexCoord(1, 0);
-        var c = new HexCoord(0, 1);
+        var a = new HexCoord(0, 0, IslandMap.SurfaceLayer);
+        var b = new HexCoord(1, 0, IslandMap.SurfaceLayer);
+        var c = new HexCoord(0, 1, IslandMap.SurfaceLayer);
         var map = CreateMap(a, b, c);
         var civilization = new Civilization { Index = 0 };
         civilization.Cities.Add(new City(Vertex.Create(a, b, c)));
@@ -35,9 +35,9 @@ public class IslandStateVisibleIslandMapTests
     [Fact]
     public void Serialization_DoesNotWriteVisibleIslandMaps_ButDeserializationRebuildsThem()
     {
-        var a = new HexCoord(0, 0);
-        var b = new HexCoord(1, 0);
-        var c = new HexCoord(0, 1);
+        var a = new HexCoord(0, 0, IslandMap.SurfaceLayer);
+        var b = new HexCoord(1, 0, IslandMap.SurfaceLayer);
+        var c = new HexCoord(0, 1, IslandMap.SurfaceLayer);
         var map = CreateMap(a, b, c);
         var civilization = new Civilization { Index = 0 };
         civilization.Cities.Add(new City(Vertex.Create(a, b, c)));
@@ -57,10 +57,10 @@ public class IslandStateVisibleIslandMapTests
     [Fact]
     public void BuildRoad_RecalculatesVisibleIslandMapForCivilization()
     {
-        var a = new HexCoord(0, 0);
-        var b = new HexCoord(1, 0);
-        var c = new HexCoord(0, 1);
-        var roadEndpointOnly = new HexCoord(1, -1);
+        var a = new HexCoord(0, 0, IslandMap.SurfaceLayer);
+        var b = new HexCoord(1, 0, IslandMap.SurfaceLayer);
+        var c = new HexCoord(0, 1, IslandMap.SurfaceLayer);
+        var roadEndpointOnly = new HexCoord(1, -1, IslandMap.SurfaceLayer);
         var map = CreateMap(a, b, c, roadEndpointOnly);
         var civilization = new Civilization { Index = 0 };
         var state = new IslandState(map, new List<Civilization> { civilization }, AtlasController.InvalidIslandId);

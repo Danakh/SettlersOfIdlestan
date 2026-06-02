@@ -11,10 +11,10 @@ public class VisibleIslandMapTests
     [Fact]
     public void Constructor_WithCity_ExposesHexesTouchingCity()
     {
-        var a = new HexCoord(0, 0);
-        var b = new HexCoord(1, 0);
-        var c = new HexCoord(0, 1);
-        var hidden = new HexCoord(2, 2);
+        var a = new HexCoord(0, 0, IslandMap.SurfaceLayer);
+        var b = new HexCoord(1, 0, IslandMap.SurfaceLayer);
+        var c = new HexCoord(0, 1, IslandMap.SurfaceLayer);
+        var hidden = new HexCoord(2, 2, IslandMap.SurfaceLayer);
         var map = CreateMap(a, b, c, hidden);
         var civilization = new Civilization();
         civilization.Cities.Add(new City(Vertex.Create(a, b, c)));
@@ -28,11 +28,11 @@ public class VisibleIslandMapTests
     [Fact]
     public void Constructor_WithRoad_ExposesHexesTouchingRoadEndpoints()
     {
-        var a = new HexCoord(0, 0);
-        var b = new HexCoord(1, 0);
-        var endOnly1 = new HexCoord(0, 1);
-        var endOnly2 = new HexCoord(1, -1);
-        var hidden = new HexCoord(3, 3);
+        var a = new HexCoord(0, 0, IslandMap.SurfaceLayer);
+        var b = new HexCoord(1, 0, IslandMap.SurfaceLayer);
+        var endOnly1 = new HexCoord(0, 1, IslandMap.SurfaceLayer);
+        var endOnly2 = new HexCoord(1, -1, IslandMap.SurfaceLayer);
+        var hidden = new HexCoord(3, 3, IslandMap.SurfaceLayer);
         var map = CreateMap(a, b, endOnly1, endOnly2, hidden);
         var civilization = new Civilization();
         civilization.Roads.Add(new Road(Edge.Create(a, b)));
@@ -46,9 +46,9 @@ public class VisibleIslandMapTests
     [Fact]
     public void Constructor_IgnoresVisibleHexesThatAreOutsideSourceMap()
     {
-        var a = new HexCoord(0, 0);
-        var b = new HexCoord(1, 0);
-        var c = new HexCoord(0, 1);
+        var a = new HexCoord(0, 0, IslandMap.SurfaceLayer);
+        var b = new HexCoord(1, 0, IslandMap.SurfaceLayer);
+        var c = new HexCoord(0, 1, IslandMap.SurfaceLayer);
         var map = CreateMap(a);
         var civilization = new Civilization();
         civilization.Cities.Add(new City(Vertex.Create(a, b, c)));
@@ -61,7 +61,7 @@ public class VisibleIslandMapTests
     [Fact]
     public void Constructor_WithNoCitiesOrRoads_ExposesNoHexes()
     {
-        var map = CreateMap(new HexCoord(0, 0), new HexCoord(1, 0));
+        var map = CreateMap(new HexCoord(0, 0, IslandMap.SurfaceLayer), new HexCoord(1, 0, IslandMap.SurfaceLayer));
         var civilization = new Civilization();
 
         var visibleMap = new VisibleIslandMap(map, civilization);

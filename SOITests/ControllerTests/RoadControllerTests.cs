@@ -22,9 +22,9 @@ public class RoadControllerTests
     [Fact]
     public void GetBuildableRoads_CityEnablesAdjacentEdges()
     {
-        var a = new HexCoord(0, 0);
-        var b = new HexCoord(1, 0);
-        var c = new HexCoord(0, 1);
+        var a = new HexCoord(0, 0, IslandMap.SurfaceLayer);
+        var b = new HexCoord(1, 0, IslandMap.SurfaceLayer);
+        var c = new HexCoord(0, 1, IslandMap.SurfaceLayer);
 
         var tiles = new[]
         {
@@ -53,9 +53,9 @@ public class RoadControllerTests
     [Fact]
     public void GetBuildableRoads_OccupiedEdgeNotReturned()
     {
-        var a = new HexCoord(0, 0);
-        var b = new HexCoord(1, 0);
-        var c = new HexCoord(0, 1);
+        var a = new HexCoord(0, 0, IslandMap.SurfaceLayer);
+        var b = new HexCoord(1, 0, IslandMap.SurfaceLayer);
+        var c = new HexCoord(0, 1, IslandMap.SurfaceLayer);
 
         var tiles = new[]
         {
@@ -87,9 +87,9 @@ public class RoadControllerTests
     [Fact]
     public void BuildRoad_AdjacentToCity_ConsumesResourcesAndSetsDistance()
     {
-        var a = new HexCoord(0, 0);
-        var b = new HexCoord(1, 0);
-        var c = new HexCoord(0, 1);
+        var a = new HexCoord(0, 0, IslandMap.SurfaceLayer);
+        var b = new HexCoord(1, 0, IslandMap.SurfaceLayer);
+        var c = new HexCoord(0, 1, IslandMap.SurfaceLayer);
 
         var tiles = new[]
         {
@@ -125,10 +125,10 @@ public class RoadControllerTests
     [Fact]
     public void BuildRoad_ExtendRoad_CalculatesDistanceAndConsumesCost()
     {
-        var a = new HexCoord(0, 0);
-        var b = new HexCoord(1, 0);
-        var c = new HexCoord(0, 1);
-        var d = new HexCoord(1, 1);
+        var a = new HexCoord(0, 0, IslandMap.SurfaceLayer);
+        var b = new HexCoord(1, 0, IslandMap.SurfaceLayer);
+        var c = new HexCoord(0, 1, IslandMap.SurfaceLayer);
+        var d = new HexCoord(1, 1, IslandMap.SurfaceLayer);
 
         var tiles = new[]
         {
@@ -180,10 +180,10 @@ public class RoadControllerTests
 
     private static (IslandState state, Civilization civ) CoastalIsland()
     {
-        var land  = new HexCoord(0, 0);
-        var w1    = new HexCoord(1, 0);
-        var w2    = new HexCoord(0, 1);
-        var land2 = new HexCoord(1, 1);
+        var land  = new HexCoord(0, 0, IslandMap.SurfaceLayer);
+        var w1    = new HexCoord(1, 0, IslandMap.SurfaceLayer);
+        var w2    = new HexCoord(0, 1, IslandMap.SurfaceLayer);
+        var land2 = new HexCoord(1, 1, IslandMap.SurfaceLayer);
         var map   = new IslandMap(new HexTile[]
         {
             new(land,  TerrainType.Plain),
@@ -199,9 +199,9 @@ public class RoadControllerTests
 
     private static (IslandState state, Civilization civ) DeepWaterIsland()
     {
-        var land = new HexCoord(0, 0);
-        var w1   = new HexCoord(1, 0);
-        var w2   = new HexCoord(0, 1);
+        var land = new HexCoord(0, 0, IslandMap.SurfaceLayer);
+        var w1   = new HexCoord(1, 0, IslandMap.SurfaceLayer);
+        var w2   = new HexCoord(0, 1, IslandMap.SurfaceLayer);
         var map  = new IslandMap(new HexTile[]
         {
             new(land, TerrainType.Plain),
@@ -214,7 +214,7 @@ public class RoadControllerTests
         return (state, civ);
     }
 
-    private static Edge MaritimeEdge() => Edge.Create(new HexCoord(1, 0), new HexCoord(0, 1));
+    private static Edge MaritimeEdge() => Edge.Create(new HexCoord(1, 0, IslandMap.SurfaceLayer), new HexCoord(0, 1, IslandMap.SurfaceLayer));
 
     private static void EnableMaritimeRoutes(Civilization civ)
     {
@@ -328,10 +328,10 @@ public class RoadControllerTests
     [Fact]
     public void BuildRoad_OverEnemyRoad_DestroysEnemyRoad()
     {
-        var a = new HexCoord(0, 0);
-        var b = new HexCoord(1, 0);
-        var c = new HexCoord(0, 1);
-        var d = new HexCoord(1, 1);
+        var a = new HexCoord(0, 0, IslandMap.SurfaceLayer);
+        var b = new HexCoord(1, 0, IslandMap.SurfaceLayer);
+        var c = new HexCoord(0, 1, IslandMap.SurfaceLayer);
+        var d = new HexCoord(1, 1, IslandMap.SurfaceLayer);
 
         var tiles = new[]
         {

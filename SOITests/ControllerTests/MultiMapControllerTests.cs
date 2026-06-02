@@ -17,8 +17,8 @@ public class MultiMapControllerTests
     public void RoadController_BuildRoad_CanBuildOnUnderworldMap()
     {
         var (state, civ) = CreateStateWithUnderworldOutpost();
-        var a = new HexCoord(0, 0, HexCoord.UnderworldZ);
-        var b = new HexCoord(1, 0, HexCoord.UnderworldZ);
+        var a = new HexCoord(0, 0, UnderworldState.Layer);
+        var b = new HexCoord(1, 0, UnderworldState.Layer);
         var edge = Edge.Create(a, b);
 
         civ.AddResource(Resource.Wood, 2);
@@ -28,7 +28,7 @@ public class MultiMapControllerTests
         var road = controller.BuildRoad(civ.Index, edge);
 
         Assert.NotNull(road);
-        Assert.Equal(HexCoord.UnderworldZ, road.Position.Z);
+        Assert.Equal(UnderworldState.Layer, road.Position.Z);
         Assert.Contains(civ.Roads, r => r.Position.Equals(edge));
         Assert.Equal(0, civ.GetResourceQuantity(Resource.Wood));
         Assert.Equal(0, civ.GetResourceQuantity(Resource.Brick));
@@ -38,7 +38,7 @@ public class MultiMapControllerTests
     public void HarvestController_AutomaticHarvest_OnUnderworldCityAddsToSharedCivilizationStock()
     {
         var (state, civ) = CreateStateWithUnderworldOutpost();
-        var underworldCity = civ.Cities.Single(city => city.Position.Z == HexCoord.UnderworldZ);
+        var underworldCity = civ.Cities.Single(city => city.Position.Z == UnderworldState.Layer);
         underworldCity.Buildings.Add(new Quarry());
 
         var clock = new GameClock();
@@ -57,14 +57,14 @@ public class MultiMapControllerTests
         var (state, playerCiv) = CreateStateWithUnderworldOutpost();
         var enemyCiv = new Civilization { Index = 1 };
         var enemyVertex = Vertex.Create(
-            new HexCoord(0, 0),
-            new HexCoord(1, 0),
-            new HexCoord(0, 1));
+            new HexCoord(0, 0, IslandMap.SurfaceLayer),
+            new HexCoord(1, 0, IslandMap.SurfaceLayer),
+            new HexCoord(0, 1, IslandMap.SurfaceLayer));
         enemyCiv.Cities.Add(new City(enemyVertex) { CivilizationIndex = enemyCiv.Index });
         state.Civilizations.Add(enemyCiv);
         state.RecalculateVisibleIslandMaps();
 
-        var underworldCity = playerCiv.Cities.Single(city => city.Position.Z == HexCoord.UnderworldZ);
+        var underworldCity = playerCiv.Cities.Single(city => city.Position.Z == UnderworldState.Layer);
         underworldCity.Soldiers = 1;
 
         var controller = new MilitaryController();
@@ -75,9 +75,9 @@ public class MultiMapControllerTests
 
     private static (IslandState State, Civilization Civilization) CreateStateWithUnderworldOutpost()
     {
-        var surfaceA = new HexCoord(0, 0);
-        var surfaceB = new HexCoord(1, 0);
-        var surfaceC = new HexCoord(0, 1);
+        var surfaceA = new HexCoord(0, 0, IslandMap.SurfaceLayer);
+        var surfaceB = new HexCoord(1, 0, IslandMap.SurfaceLayer);
+        var surfaceC = new HexCoord(0, 1, IslandMap.SurfaceLayer);
         var civ = new Civilization { Index = 0 };
         civ.Cities.Add(new City(Vertex.Create(surfaceA, surfaceB, surfaceC)) { CivilizationIndex = 0 });
 
