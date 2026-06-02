@@ -125,7 +125,7 @@ public class CityRenderer : HexBasedRenderer, IGameRenderer
             var worldState = mainGameState.CurrentWorldState;
             if (worldState == null) return;
 
-            if (worldState.IsViewingUnderworld && worldState.Layers.TryGetValue(LayerState.UnderworldZ, out var underworldLayer))
+            if (worldState.CurrentViewedLayer == LayerState.UnderworldZ && worldState.Layers.TryGetValue(LayerState.UnderworldZ, out var underworldLayer))
             {
                 // Render underworld cities (all visible, no fog of war)
                 DrawCities(canvas, underworldLayer.Cities, worldState.PlayerCivilization.Index, underworldLayer.Map);
@@ -135,7 +135,7 @@ public class CityRenderer : HexBasedRenderer, IGameRenderer
             IslandMap? mapForVisibility;
             if (DebugSettings.ShowFullMap)
                 mapForVisibility = worldState.GetMapForZ(IslandMap.SurfaceLayer);
-            else if (!worldState.GetVisibleIslandMapsForZ(worldState.CurrentMapZ).TryGetValue(worldState.PlayerCivilization.Index, out var vm))
+            else if (!worldState.GetVisibleIslandMapsForZ(worldState.CurrentViewedLayer).TryGetValue(worldState.PlayerCivilization.Index, out var vm))
                 return;
             else
                 mapForVisibility = vm;

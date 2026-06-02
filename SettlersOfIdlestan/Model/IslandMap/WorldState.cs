@@ -23,10 +23,10 @@ public class WorldState : IJsonOnDeserialized
     public Dictionary<int, LayerState> Layers { get; set; }
 
     /// <summary>
-    /// Runtime toggle: true while the player is viewing the Underworld map. Not persisted.
+    /// Z-coordinate of the layer currently displayed. Not persisted.
     /// </summary>
     [JsonIgnore]
-    public bool IsViewingUnderworld { get; set; }
+    public int CurrentViewedLayer { get; set; } = IslandMap.SurfaceLayer;
 
     public int WorldId { get; set; }
 
@@ -49,12 +49,8 @@ public class WorldState : IJsonOnDeserialized
     private Dictionary<int, Dictionary<int, VisibleIslandMap>> VisibleIslandMapsByZ { get; set; } = new();
 
     [JsonIgnore]
-    public int CurrentMapZ => IsViewingUnderworld && Layers.ContainsKey(LayerState.UnderworldZ)
-        ? LayerState.UnderworldZ
-        : IslandMap.SurfaceLayer;
-
-    [JsonIgnore]
-    public IslandMap CurrentMap => GetMapForZ(CurrentMapZ);
+    public IslandMap CurrentViewedMap => GetMapForZ(
+        Layers.ContainsKey(CurrentViewedLayer) ? CurrentViewedLayer : IslandMap.SurfaceLayer);
 
     /// <summary>
     /// Transient event log for the current session. Not persisted.

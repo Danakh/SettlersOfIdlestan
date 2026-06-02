@@ -212,7 +212,7 @@ public sealed class OverlayRenderer : IGameRenderer
             _hasNewEvent = true;
         }
 
-        bool isUnderworld = _gameControllerService.CurrentWorldState?.IsViewingUnderworld == true;
+        bool isUnderworld = _gameControllerService.CurrentWorldState?.CurrentViewedLayer == LayerState.UnderworldZ;
         bool panelsEnabled = !onResearchTab && !onPrestigeTab && !onHistoryTab && !onEventsTab && !onAutomationTab
             && !_tradeRenderer.IsOpen && !_prestigeRenderer.IsOpen && !isUnderworld;
         _selectedCityPanelRenderer.IsInputEnabled = panelsEnabled;
@@ -278,7 +278,7 @@ public sealed class OverlayRenderer : IGameRenderer
         canvas.DrawRoundRect(_mapSwitchRect, 5, 5, _mapSwitchActivePaint);
         canvas.DrawRoundRect(_mapSwitchRect, 5, 5, _mapSwitchBorderPaint);
 
-        string label = worldState.IsViewingUnderworld
+        string label = worldState.CurrentViewedLayer == LayerState.UnderworldZ
             ? _localization.Get("btn_map_surface")
             : _localization.Get("btn_map_underworld");
         canvas.DrawText(label, _mapSwitchRect.MidX, _mapSwitchRect.MidY + 4f, SKTextAlign.Center, _mapSwitchFont, _buttonTextPaint);
@@ -442,8 +442,10 @@ public sealed class OverlayRenderer : IGameRenderer
             var worldState = _gameControllerService.CurrentWorldState;
             if (worldState?.Layers.ContainsKey(LayerState.UnderworldZ) == true)
             {
-                worldState.IsViewingUnderworld = !worldState.IsViewingUnderworld;
-                if (worldState.IsViewingUnderworld)
+                worldState.CurrentViewedLayer = worldState.CurrentViewedLayer == LayerState.UnderworldZ
+                    ? IslandMap.SurfaceLayer
+                    : LayerState.UnderworldZ;
+                if (worldState.CurrentViewedLayer == LayerState.UnderworldZ)
                     _activeTab = TabIsland;
                 DeselectCityAndWonder();
             }

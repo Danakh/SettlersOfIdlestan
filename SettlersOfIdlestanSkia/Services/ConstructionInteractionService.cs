@@ -133,7 +133,7 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
 
         // Fallback: clic sur un hex — vérifie d'abord si c'est une wonder.
         var WorldState = _gameControllerService.CurrentWorldState;
-        int currentZ = WorldState?.CurrentMapZ ?? IslandMap.SurfaceLayer;
+        int currentZ = WorldState?.CurrentViewedLayer ?? IslandMap.SurfaceLayer;
         var hex = _renderer.ScreenToHex(e.Position, _cameraService.CanvasSize, _cameraService.ZoomLevel, _cameraService.Position);
         var hexCoord = new HexCoord(hex.q, hex.r, currentZ);
         var playerIndex = WorldState?.PlayerCivilization.Index ?? 0;
@@ -160,7 +160,7 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
         if (_renderer == null)
             return;
 
-        int currentZ = _gameControllerService.CurrentWorldState?.CurrentMapZ ?? IslandMap.SurfaceLayer;
+        int currentZ = _gameControllerService.CurrentWorldState?.CurrentViewedLayer ?? IslandMap.SurfaceLayer;
 
         var buildableVertices = _gameControllerService.GetBuildableCityVerticesForPlayer();
         var buildableEdges = _gameControllerService.GetBuildableRoadEdgesForPlayer();
@@ -241,7 +241,7 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
             if (city.CivilizationIndex != playerIndex)
                 continue;
 
-            if (WorldState.GetVisibleIslandMapsForZ(WorldState.CurrentMapZ).TryGetValue(playerIndex, out var visibleMap) &&
+            if (WorldState.GetVisibleIslandMapsForZ(WorldState.CurrentViewedLayer).TryGetValue(playerIndex, out var visibleMap) &&
                 (city.Position.Z != visibleMap.Z ||
                 !city.Position.GetHexes().Any(visibleMap.HasTile)))
             {

@@ -123,7 +123,7 @@ public class BanditRenderer : HexBasedRenderer, IGameRenderer
 
     private static bool IsSourceOrDestinationVisible(WorldState WorldState, Vertex source, HexCoord target)
     {
-        if (!WorldState.GetVisibleIslandMapsForZ(WorldState.CurrentMapZ).TryGetValue(WorldState.PlayerCivilization.Index, out var visibleMap))
+        if (!WorldState.GetVisibleIslandMapsForZ(WorldState.CurrentViewedLayer).TryGetValue(WorldState.PlayerCivilization.Index, out var visibleMap))
             return true;
         if (visibleMap.HasTile(target)) return true;
         foreach (var hex in source.GetHexes())
@@ -146,7 +146,7 @@ public class BanditRenderer : HexBasedRenderer, IGameRenderer
 
         VisibleIslandMap? visibleMap = null;
         if (!DebugSettings.ShowFullMap)
-            WorldState.GetVisibleIslandMapsForZ(WorldState.CurrentMapZ).TryGetValue(WorldState.PlayerCivilization.Index, out visibleMap);
+            WorldState.GetVisibleIslandMapsForZ(WorldState.CurrentViewedLayer).TryGetValue(WorldState.PlayerCivilization.Index, out visibleMap);
 
         float dt = context.DeltaTime;
 

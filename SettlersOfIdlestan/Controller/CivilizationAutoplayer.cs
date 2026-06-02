@@ -475,7 +475,7 @@ namespace SettlersOfIdlestan.Controller
         private List<Vertex> GetProspectiveVertices()
         {
             var WorldState = _mainController.CurrentMainState?.CurrentWorldState;
-            if (WorldState == null || !WorldState.GetVisibleIslandMapsForZ(WorldState.CurrentMapZ).TryGetValue(_civ.Index, out var visibleMap))
+            if (WorldState == null || !WorldState.GetVisibleIslandMapsForZ(WorldState.CurrentViewedLayer).TryGetValue(_civ.Index, out var visibleMap))
                 return new List<Vertex>();
 
             int z = visibleMap.Z;

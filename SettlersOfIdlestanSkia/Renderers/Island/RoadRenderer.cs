@@ -76,8 +76,8 @@ public class RoadRenderer : HexBasedRenderer, IGameRenderer
             {
                 IslandMap? mapForVisibility;
                 if (DebugSettings.ShowFullMap)
-                    mapForVisibility = WorldState.CurrentMap;
-                else if (!WorldState.GetVisibleIslandMapsForZ(WorldState.CurrentMapZ).TryGetValue(WorldState.PlayerCivilization.Index, out var vm))
+                    mapForVisibility = WorldState.CurrentViewedMap;
+                else if (!WorldState.GetVisibleIslandMapsForZ(WorldState.CurrentViewedLayer).TryGetValue(WorldState.PlayerCivilization.Index, out var vm))
                     return;
                 else
                     mapForVisibility = vm;

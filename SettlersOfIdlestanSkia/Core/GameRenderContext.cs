@@ -13,7 +13,7 @@ public class GameRenderContext
     /// </summary>
     public required MainGameState GameState { get; init; }
 
-    public int CurrentLayer => GameState.CurrentWorldState?.CurrentMapZ ?? 0;
+    public int CurrentLayer => GameState.CurrentWorldState?.CurrentViewedLayer ?? 0;
 
     /// <summary>
     /// Temps écoulé depuis le dernier frame en secondes.

@@ -66,7 +66,7 @@ public sealed class SkiaGameRuntime : IDisposable
     private double _autoSaveTimer = 0;
     private const double AutoSaveInterval = 5.0;
 
-    private Func<int> _currentLayer => () => _gameControllerService?.CurrentGameState?.CurrentWorldState?.CurrentMapZ ?? 0;
+    private Func<int> _currentLayer => () => _gameControllerService?.CurrentGameState?.CurrentWorldState?.CurrentViewedLayer ?? 0;
 
     public void Initialize(IFileSystemService fileSystemService, bool allowDebugMode = false)
     {

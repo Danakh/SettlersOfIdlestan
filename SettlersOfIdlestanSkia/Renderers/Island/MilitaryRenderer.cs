@@ -92,14 +92,14 @@ public class MilitaryRenderer : HexBasedRenderer, IGameRenderer
         {
             if (isPrestigeTransitionPending()) return;
             if (!isIslandTabActive()) return;
-            if (args.TargetCity.Z != gameControllerService.CurrentWorldState?.CurrentMapZ) return;
+            if (args.TargetCity.Z != gameControllerService.CurrentWorldState?.CurrentViewedLayer) return;
             EmitParticle(args.Path);
         };
         militaryController.ReinforcementSent += (_, args) =>
         {
             if (isPrestigeTransitionPending()) return;
             if (!isIslandTabActive()) return;
-            if (args.TargetCity.Z != gameControllerService.CurrentWorldState?.CurrentMapZ) return;
+            if (args.TargetCity.Z != gameControllerService.CurrentWorldState?.CurrentViewedLayer) return;
             EmitReinforceParticle(args.Path);
         };
     }
@@ -146,7 +146,7 @@ public class MilitaryRenderer : HexBasedRenderer, IGameRenderer
             foreach (var sourceCity in civ.Cities)
             {
                 if (sourceCity.FlowTarget == null) continue;
-                if (sourceCity.Position.Z != _gameControllerService?.CurrentWorldState?.CurrentMapZ) continue;
+                if (sourceCity.Position.Z != _gameControllerService?.CurrentWorldState?.CurrentViewedLayer) continue;
 
                 var targetCity = allCities.FirstOrDefault(c => c.Position.Equals(sourceCity.FlowTarget));
                 if (targetCity == null) continue;
