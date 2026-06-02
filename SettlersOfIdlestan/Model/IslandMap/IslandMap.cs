@@ -81,6 +81,16 @@ public class IslandMap
     public bool IsOnSameLayer(Vertex vertex) => vertex.Z == Z;
     public bool IsOnSameLayer(Edge edge) => edge.Z == Z;
 
+    /// <summary>
+    /// Ajoute ou remplace une tuile sur cette carte (utilisé par l'AutoExtend).
+    /// </summary>
+    public void AddTile(HexTile tile)
+    {
+        if (tile.Coord.Z != Z)
+            throw new ArgumentException($"Tile layer {tile.Coord.Z} does not match map layer {Z}.", nameof(tile));
+        _tiles[tile.Coord] = tile;
+    }
+
     private void EnsureCoordOnMap(HexCoord coord)
     {
         if (!IsOnSameLayer(coord))

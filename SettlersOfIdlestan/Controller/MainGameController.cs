@@ -41,6 +41,7 @@ namespace SettlersOfIdlestan.Controller
         private PrestigeModifierProvider? _prestigeModifierProvider;
         public AtlasController AtlasController { get; private set; }
         public TaskRecordController TaskRecordController { get; private set; }
+        public AutoExtendController AutoExtendController { get; private set; }
 
         /// <summary>
         /// Gets the player's civilization (always at index 0).
@@ -65,6 +66,7 @@ namespace SettlersOfIdlestan.Controller
             MilitaryController = new MilitaryController();
             WonderController = new WonderController();
             TaskRecordController = new TaskRecordController();
+            AutoExtendController = new AutoExtendController();
             NpcGameController = new NpcGameController();
         }
 
@@ -195,6 +197,8 @@ namespace SettlersOfIdlestan.Controller
 
                 SetupModifierAggregators();
 
+                AutoExtendController.Initialize(WorldState, CurrentMainState!.PRNG);
+
                 // Initialize controllers to operate on the real island state and clock
                 RoadController.Initialize(WorldState, Clock, CurrentMainState!.PRNG);
                 // FeatureController discovers features before any combat or movement runs.
@@ -215,9 +219,13 @@ namespace SettlersOfIdlestan.Controller
                 BuildingController.OnBuildingBuilt -= OnBuildingChangedInvalidateHarvestCache;
                 CityBuilderController.OnCityBuilt -= OnCityBuiltInvalidateHarvestCache;
                 MilitaryController.CityDestroyed -= OnCityDestroyedRefreshContested;
+                RoadController.OnRoadBuilt -= OnRoadBuiltExtendMap;
+                RoadController.OnAutoRoadBuilt -= OnRoadBuiltExtendMap;
                 BuildingController.OnBuildingBuilt += OnBuildingChangedInvalidateHarvestCache;
                 CityBuilderController.OnCityBuilt += OnCityBuiltInvalidateHarvestCache;
                 MilitaryController.CityDestroyed += OnCityDestroyedRefreshContested;
+                RoadController.OnRoadBuilt += OnRoadBuiltExtendMap;
+                RoadController.OnAutoRoadBuilt += OnRoadBuiltExtendMap;
                 prestigeState?.TechnologyTree.RebuildModifiers();
 
                 var gameRecord = CurrentMainState!.GameRecord;
@@ -227,6 +235,9 @@ namespace SettlersOfIdlestan.Controller
                     TradeController);
             }
         }
+
+        private void OnRoadBuiltExtendMap(object? sender, RoadAutoBuiltEventArgs e)
+            => AutoExtendController.TryExtendMapAfterRoad(e.CivilizationIndex, e.RoadPosition);
 
         private void OnBuildingChangedInvalidateHarvestCache(object? sender, BuildingBuiltEventArgs e)
             => HarvestController.InvalidateProductionCache();

@@ -20,6 +20,11 @@ public class LayerState
     /// </summary>
     public List<City> Cities { get; set; }
 
+    /// <summary>
+    /// Quand true, la construction d'une route génère automatiquement les hexagones manquants adjacents.
+    /// </summary>
+    public bool AutoExtend { get; set; }
+
     [System.Text.Json.Serialization.JsonConstructor]
     public LayerState()
     {
@@ -59,6 +64,7 @@ public class LayerState
         {
             Map = map,
             Cities = new List<City> { outpost },
+            AutoExtend = true,
         };
     }
 }
