@@ -54,7 +54,7 @@ public sealed class MilitaryInteractionService
         screen.X / _cameraService.ZoomLevel + _cameraService.Position.X,
         screen.Y / _cameraService.ZoomLevel + _cameraService.Position.Y);
 
-    private City? FindPlayerCityNear(SKPoint islandPoint)
+    private City? FindPlayerCityNear(SKPoint islandPoint, int layer)
     {
         var WorldState = _gameControllerService.CurrentWorldState;
         if (WorldState == null || _renderer == null) return null;
@@ -63,13 +63,14 @@ public sealed class MilitaryInteractionService
         float bestDist = CitySnapRadius;
         foreach (var city in WorldState.PlayerCivilization.Cities)
         {
+            if (city.Position.Z != layer) continue;
             float dist = SKPoint.Distance(islandPoint, _renderer.VertexToIslandPoint(city.Position));
             if (dist < bestDist) { bestDist = dist; best = city; }
         }
         return best;
     }
 
-    private City? FindAnyCityNear(SKPoint islandPoint)
+    private City? FindAnyCityNear(SKPoint islandPoint, int layer)
     {
         var WorldState = _gameControllerService.CurrentWorldState;
         if (WorldState == null || _renderer == null) return null;
@@ -79,6 +80,7 @@ public sealed class MilitaryInteractionService
         foreach (var civ in WorldState.Civilizations)
             foreach (var city in civ.Cities)
             {
+                if (city.Position.Z != layer) continue;
                 float dist = SKPoint.Distance(islandPoint, _renderer.VertexToIslandPoint(city.Position));
                 if (dist < bestDist) { bestDist = dist; best = city; }
             }
@@ -104,7 +106,7 @@ public sealed class MilitaryInteractionService
         DragTargetCity = null;
         DragTargetIsInRange = false;
 
-        var city = FindPlayerCityNear(ScreenToIsland(e.Position));
+        var city = FindPlayerCityNear(ScreenToIsland(e.Position), _gameControllerService.CurrentWorldState!.CurrentViewedLayer);
         if (city != null)
         {
             _potentialDragCity = city;
@@ -131,7 +133,7 @@ public sealed class MilitaryInteractionService
 
         if (_activeDragSourceCity != null)
         {
-            var target = FindAnyCityNear(ScreenToIsland(e.Position));
+            var target = FindAnyCityNear(ScreenToIsland(e.Position), _activeDragSourceCity.Position.Z);
             DragTargetCity = target;
             DragTargetIsInRange = target != null && target != _activeDragSourceCity && IsInRange(_activeDragSourceCity, target);
         }
@@ -145,7 +147,7 @@ public sealed class MilitaryInteractionService
 
         if (_activeDragSourceCity != null)
         {
-            var target = FindAnyCityNear(ScreenToIsland(e.Position));
+            var target = FindAnyCityNear(ScreenToIsland(e.Position), _activeDragSourceCity.Position.Z);
 
             if (target == null || target == _activeDragSourceCity)
             {
