@@ -214,7 +214,7 @@ public sealed class OverlayRenderer : IGameRenderer
 
         bool isUnderworld = _gameControllerService.CurrentWorldState?.CurrentViewedLayer == LayerState.UnderworldZ;
         bool panelsEnabled = !onResearchTab && !onPrestigeTab && !onHistoryTab && !onEventsTab && !onAutomationTab
-            && !_tradeRenderer.IsOpen && !_prestigeRenderer.IsOpen && !isUnderworld;
+            && !_tradeRenderer.IsOpen && !_prestigeRenderer.IsOpen;
         _selectedCityPanelRenderer.IsInputEnabled = panelsEnabled;
         _selectedWonderPanelRenderer.IsInputEnabled = panelsEnabled;
         _researchRenderer.IsActive = onResearchTab;
