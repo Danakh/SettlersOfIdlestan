@@ -12,7 +12,7 @@ using Xunit;
 
 namespace SOITests.ControllerTests
 {
-    public class BanditControllerTests
+    public class MonsterControllerTests
     {
         // Map layout for trapped scenario (axial coordinates):
         //

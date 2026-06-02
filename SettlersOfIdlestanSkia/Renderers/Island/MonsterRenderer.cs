@@ -15,7 +15,7 @@ using System.Reflection;
 
 namespace SettlersOfIdlestanSkia.Renderers.Island;
 
-public class BanditRenderer : HexBasedRenderer, IGameRenderer
+public class MonsterRenderer : HexBasedRenderer, IGameRenderer
 {
     private const float AnimationDuration = 1f;
     private const float RaidAnimDuration = 0.8f;
@@ -63,7 +63,7 @@ public class BanditRenderer : HexBasedRenderer, IGameRenderer
     private SKPaint? _dragonPaint;
     private bool _disposed;
 
-    public BanditRenderer(ResourceManager resourceManager)
+    public MonsterRenderer(ResourceManager resourceManager)
     {
         _resourceManager = resourceManager;
     }

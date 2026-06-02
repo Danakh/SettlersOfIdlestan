@@ -291,7 +291,3 @@ public class MonsterFeatureController
         return HasDepartureCooldown(hex, currentTick);
     }
 }
-
-/// <summary>Alias de compatibilité — utiliser MonsterFeatureController.</summary>
-[Obsolete("Utiliser MonsterFeatureController")]
-public class BanditController : MonsterFeatureController { }
