@@ -181,11 +181,6 @@ public class BanditController
             return;
         }
 
-        var cityHexes = new HashSet<HexCoord>();
-        foreach (var city in _state.GetAllCities())
-            foreach (var hex in city.Position.GetHexes())
-                cityHexes.Add(hex);
-
         // Tier 1 : aucune feature bloquante + pas de cooldown
         var validDestinations = neighbors;
         var noBlockingNoCooldown = validDestinations
@@ -203,10 +198,7 @@ public class BanditController
                        : noBlocking.Count > 0 ? noBlocking
                        : validDestinations;
 
-        var cityAdjacent = candidates.Where(n => cityHexes.Contains(n)).ToList();
-        HexCoord destination = cityAdjacent.Count > 0
-            ? cityAdjacent[_prng.Next(cityAdjacent.Count)]
-            : candidates[_prng.Next(candidates.Count)];
+        HexCoord destination = candidates[_prng.Next(candidates.Count)];
 
         var oldPosition = bandit.Position;
         bandit.Position = destination;

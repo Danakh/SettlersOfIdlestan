@@ -278,8 +278,8 @@ public class IslandMapGenerator
         if (placement == IslandFeaturePlacement.Random || cityHexes == null)
             return landHexes[_prng.Next(landHexes.Count)];
 
-        var candidates = new List<HexCoord>(3);
-        for (int i = 0; i < 3; i++)
+        var candidates = new List<HexCoord>(5);
+        for (int i = 0; i < 5; i++)
             candidates.Add(landHexes[_prng.Next(landHexes.Count)]);
 
         int DistanceToCity(HexCoord hex) => cityHexes.Min(ch => hex.DistanceTo(ch));
