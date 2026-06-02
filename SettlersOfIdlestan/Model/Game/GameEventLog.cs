@@ -13,6 +13,8 @@ public enum GameEventType
     SoldierStarved,
     WonderPlaced,
     RuntimeError,
+    DragonDiscovered,
+    DragonDefeated,
 }
 
 public record GameLogEntry(GameEventType Type, string? Message = null);

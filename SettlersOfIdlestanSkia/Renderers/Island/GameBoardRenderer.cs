@@ -298,7 +298,7 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
             && currentTick < banditUntil)
         {
             float ratio = Math.Clamp(
-                (float)(currentTick - (banditUntil - BanditController.DepartureCooldownTicks)) / BanditController.DepartureCooldownTicks,
+                (float)(currentTick - (banditUntil - MonsterFeatureController.DepartureCooldownTicks)) / MonsterFeatureController.DepartureCooldownTicks,
                 0f, 1f);
             DrawBanditCooldownRing(canvas, cx, cy, ratio);
         }

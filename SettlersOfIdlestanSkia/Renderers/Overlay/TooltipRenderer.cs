@@ -156,7 +156,7 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay
             if (banditCooldownActive)
             {
                 double remaining = (banditUntil - currentTick) / 100.0;
-                double max = BanditController.DepartureCooldownTicks / 100.0;
+                double max = MonsterFeatureController.DepartureCooldownTicks / 100.0;
                 lines.Add($"{_localizationService.Get("hex_tooltip_bandit_cooldown")}: {remaining:F1}s / {max:0.#}s");
             }
 

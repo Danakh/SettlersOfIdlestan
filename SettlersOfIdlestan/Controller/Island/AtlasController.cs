@@ -136,6 +136,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 new IslandFeatureParameters(IslandFeatureType.TreasureTrove, IslandFeaturePlacement.Random),
                 new IslandFeatureParameters(IslandFeatureType.BanditHideout, IslandFeaturePlacement.FarFromPlayer),
                 new IslandFeatureParameters(IslandFeatureType.BanditHideout, IslandFeaturePlacement.FarFromPlayer),
+                new IslandFeatureParameters(IslandFeatureType.Dragon,        IslandFeaturePlacement.FarFromPlayer),
             };
 
             int civCount = prng.Next(4, 7); // 4-6 civilisations NPC

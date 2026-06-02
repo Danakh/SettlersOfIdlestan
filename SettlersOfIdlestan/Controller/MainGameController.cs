@@ -29,7 +29,9 @@ namespace SettlersOfIdlestan.Controller
         public PrestigeMapController PrestigeMapController { get; private set; }
         public ResearchController ResearchController { get; private set; }
         public FeatureController FeatureController { get; private set; }
-        public BanditController BanditController { get; private set; }
+        public MonsterFeatureController MonsterFeatureController { get; private set; }
+        /// <summary>Alias de compatibilité — utiliser MonsterFeatureController.</summary>
+        public MonsterFeatureController BanditController => MonsterFeatureController;
         public MilitaryController MilitaryController { get; private set; }
         public WonderController WonderController { get; private set; }
         public NpcGameController NpcGameController { get; private set; }
@@ -59,7 +61,7 @@ namespace SettlersOfIdlestan.Controller
             PrestigeMapController = new PrestigeMapController();
             ResearchController = new ResearchController();
             FeatureController = new FeatureController();
-            BanditController = new BanditController();
+            MonsterFeatureController = new MonsterFeatureController();
             MilitaryController = new MilitaryController();
             WonderController = new WonderController();
             TaskRecordController = new TaskRecordController();
@@ -196,11 +198,11 @@ namespace SettlersOfIdlestan.Controller
                 // Initialize controllers to operate on the real island state and clock
                 RoadController.Initialize(WorldState, Clock, CurrentMainState!.PRNG);
                 // FeatureController discovers features before any combat or movement runs.
-                // MilitaryController must subscribe before BanditController so combat resolves before movement.
+                // MilitaryController must subscribe before MonsterFeatureController so combat resolves before movement.
                 FeatureController.Initialize(WorldState, Clock);
                 MilitaryController.Initialize(WorldState, Clock);
-                BanditController.Initialize(WorldState, Clock, CurrentMainState!.PRNG);
-                HarvestController.Initialize(WorldState, Clock, TradeController, BanditController, CurrentMainState!.PRNG);
+                MonsterFeatureController.Initialize(WorldState, Clock, CurrentMainState!.PRNG);
+                HarvestController.Initialize(WorldState, Clock, TradeController, MonsterFeatureController, CurrentMainState!.PRNG);
                 TradeController.Initialize(WorldState);
                 BuildingController.Initialize(WorldState, Clock);
                 CityBuilderController.Initialize(WorldState, Clock, CurrentMainState!.PRNG);

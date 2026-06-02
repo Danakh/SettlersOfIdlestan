@@ -70,7 +70,7 @@ public class TaskRecordController
         _cityBuilderController.OnCityBuilt += HandleCityBuilt;
         _prestigeMapController.OnVertexPurchased += HandleVertexPurchased;
         _researchController.OnResearchCompleted += HandleResearchCompleted;
-        _militaryController.SoldierAttackedBandit += HandleBanditDefeated;
+        _militaryController.SoldierAttackedMonster += HandleBanditDefeated;
         _islandState.FeatureRemoved += HandleFeatureRemoved;
         _harvestController.OnHarvestCompleted += HandleHarvestCompleted;
         _tradeController.GoldObtainedFromTrade += HandleGoldObtainedFromTrade;
@@ -83,7 +83,7 @@ public class TaskRecordController
         if (_cityBuilderController != null) _cityBuilderController.OnCityBuilt -= HandleCityBuilt;
         if (_prestigeMapController != null) _prestigeMapController.OnVertexPurchased -= HandleVertexPurchased;
         if (_researchController != null) _researchController.OnResearchCompleted -= HandleResearchCompleted;
-        if (_militaryController != null) _militaryController.SoldierAttackedBandit -= HandleBanditDefeated;
+        if (_militaryController != null) _militaryController.SoldierAttackedMonster -= HandleBanditDefeated;
         if (_islandState != null) _islandState.FeatureRemoved -= HandleFeatureRemoved;
         if (_harvestController != null) _harvestController.OnHarvestCompleted -= HandleHarvestCompleted;
         if (_tradeController != null) _tradeController.GoldObtainedFromTrade -= HandleGoldObtainedFromTrade;

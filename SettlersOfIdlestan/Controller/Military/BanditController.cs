@@ -1,29 +1,28 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using SettlersOfIdlestan.Model.Bandits;
 using SettlersOfIdlestan.Model.Buildings;
+using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.IslandMap;
+using SettlersOfIdlestan.Model.Monsters;
 
 namespace SettlersOfIdlestan.Controller.Military;
 
-public class BanditController
+public class MonsterFeatureController
 {
     private WorldState? _state;
     private GameClock? _clock;
     private GamePRNG _prng = new();
 
-    // Caches locaux invalidés par FeatureAdded / FeatureRemoved
-    private List<Bandit> _bandits = new();
-    private List<BanditHideout> _hideouts = new();
+    private List<MonsterFeature> _monsters = new();
 
-    /// <summary>Intervalle de déplacement des bandits (3 000 ticks = 30 s à vitesse normale).</summary>
+    /// <summary>Intervalle de déplacement par défaut (3 000 ticks = 30 s à vitesse normale).</summary>
     public const long MovementIntervalTicks = 3_000L;
 
-    /// <summary>Cooldown de récolte après le départ d'un bandit (1 000 ticks = 10 s).</summary>
+    /// <summary>Cooldown de récolte après le départ d'un monstre mobile (1 000 ticks = 10 s).</summary>
     public const long DepartureCooldownTicks = 1_000L;
 
     internal void Initialize(WorldState? state, GameClock? clock, GamePRNG? prng = null)
@@ -41,7 +40,7 @@ public class BanditController
         _clock = clock;
         if (prng != null) _prng = prng;
 
-        RebuildCaches();
+        RebuildCache();
 
         if (_state != null)
         {
@@ -53,22 +52,19 @@ public class BanditController
             _clock.Advanced += OnClockAdvanced;
     }
 
-    private void RebuildCaches()
+    private void RebuildCache()
     {
-        _bandits = _state?.Features.OfType<Bandit>().ToList() ?? new();
-        _hideouts = _state?.Features.OfType<BanditHideout>().ToList() ?? new();
+        _monsters = _state?.Features.OfType<MonsterFeature>().ToList() ?? new();
     }
 
     private void OnFeatureAdded(object? sender, IslandFeature feature)
     {
-        if (feature is Bandit b) _bandits.Add(b);
-        else if (feature is BanditHideout h) _hideouts.Add(h);
+        if (feature is MonsterFeature m) _monsters.Add(m);
     }
 
     private void OnFeatureRemoved(object? sender, IslandFeature feature)
     {
-        if (feature is Bandit b) _bandits.Remove(b);
-        else if (feature is BanditHideout h) _hideouts.Remove(h);
+        if (feature is MonsterFeature m) _monsters.Remove(m);
     }
 
     private void OnClockAdvanced(object? sender, GameClockAdvancedEventArgs e)
@@ -79,140 +75,200 @@ public class BanditController
 
     private void Update(long currentTick)
     {
-        UpdateBandits(currentTick);
-        UpdateBanditHideouts(currentTick);
-    }
-
-    // ── Repaires de bandits ──────────────────────────────────────────────────
-
-    private void UpdateBanditHideouts(long currentTick)
-    {
         if (_state == null) return;
 
-        foreach (var hideout in _hideouts)
+        UpdateSpawns(currentTick);
+
+        foreach (var monster in _monsters.ToList())
         {
-            if (!hideout.Found) continue;
-            if (currentTick - hideout.LastSpawnTick < BanditHideout.SpawnIntervalTicks) continue;
-
-            hideout.LastSpawnTick = currentTick;
-
-            if (_bandits.Count < BanditHideout.MaxBanditsOnIsland)
-                _state.AddFeature(new Bandit(hideout.Position, currentTick));
-        }
-    }
-
-    // ── Mise à jour des bandits ──────────────────────────────────────────────
-
-    private void UpdateBandits(long currentTick)
-    {
-        if (_state == null) return;
-
-        foreach (var bandit in _bandits)
-        {
-            if (!bandit.Found)
+            if (!monster.Found)
             {
-                bandit.LastMovedTick = currentTick;
-                bandit.LastRaidTick = currentTick;
+                if (monster.CanMove)
+                {
+                    monster.LastMovedTick = currentTick;
+                    monster.LastAttackTick = currentTick;
+                }
                 continue;
             }
 
-            if (currentTick - bandit.LastMovedTick >= MovementIntervalTicks)
-                MoveBandit(bandit, currentTick);
-            else
-                RaidNearbyCity(bandit, currentTick);
-        }
-    }
+            RegenHp(monster, currentTick);
 
-    private void RaidNearbyCity(Bandit bandit, long currentTick)
-    {
-        if (_state == null) return;
-        if (currentTick - bandit.LastRaidTick < Bandit.RaidIntervalTicks) return;
-
-        foreach (var civ in _state.Civilizations)
-        {
-            foreach (var city in civ.Cities)
+            bool moved = false;
+            if (monster.CanMove && currentTick - monster.LastMovedTick >= monster.MovementIntervalTicks)
             {
-                if (!city.Position.GetHexes().Contains(bandit.Position)) continue;
-
-                bandit.LastRaidTick = currentTick;
-
-                // La palissade bloque le vol des ressources
-                if (city.Buildings.OfType<Palisade>().Any(b => b.Level > 0))
-                {
-                    bandit.LastRaidTargetVertex = null;
-                    bandit.LastStolenResource = null;
-                    return;
-                }
-
-                var stealable = Enum.GetValues<Resource>()
-                    .Where(r => civ.GetResourceQuantity(r) > 0)
-                    .ToList();
-
-                if (stealable.Count == 0)
-                {
-                    bandit.LastStolenResource = null;
-                    return;
-                }
-
-                var resource = stealable[_prng.Next(stealable.Count)];
-                civ.RemoveResource(resource, 1);
-                bandit.LastRaidTargetVertex = city.Position;
-                bandit.LastStolenResource = resource.ToString();
-                return;
+                MoveMonster(monster, currentTick);
+                moved = true;
             }
-        }
 
-        bandit.LastRaidTick = currentTick;
+            if (!moved && monster.AttackRangeInHexes > 0)
+                AttackNearbyCity(monster, currentTick);
+        }
     }
 
-    private void MoveBandit(Bandit bandit, long currentTick)
+    // ── Invocation de nouvelles créatures ────────────────────────────────────
+
+    private void UpdateSpawns(long currentTick)
+    {
+        foreach (var monster in _monsters.ToList())
+        {
+            var spawn = monster.TrySpawn(_monsters, currentTick);
+            if (spawn != null)
+                _state!.AddFeature(spawn);
+        }
+    }
+
+    // ── Régénération de PV ───────────────────────────────────────────────────
+
+    private static void RegenHp(MonsterFeature monster, long currentTick)
+    {
+        if (monster.HpRegenAmount <= 0) return;
+        if (currentTick - monster.LastHpRegenTick < monster.HpRegenIntervalTicks) return;
+        monster.Hp = Math.Min(monster.MaxHp, monster.Hp + monster.HpRegenAmount);
+        monster.LastHpRegenTick = currentTick;
+    }
+
+    // ── Déplacement ──────────────────────────────────────────────────────────
+
+    private void MoveMonster(MonsterFeature monster, long currentTick)
     {
         if (_state == null) return;
 
-        // Voisins valides : sur la carte, pas d'eau
-        var map = _state.GetMapFor(bandit.Position);
-        var neighbors = bandit.Position.Neighbors()
+        var map = _state.GetMapFor(monster.Position);
+        var neighbors = monster.Position.Neighbors()
             .Where(n => map.HasTile(n) && map.GetTile(n)!.TerrainType != TerrainType.Water)
             .ToList();
 
         if (neighbors.Count == 0)
         {
-            bandit.LastMovedTick = currentTick;
+            monster.LastMovedTick = currentTick;
+            monster.LastAttackedByMilitaryTick = currentTick;
             return;
         }
 
-        // Tier 1 : aucune feature bloquante + pas de cooldown
-        var validDestinations = neighbors;
-        var noBlockingNoCooldown = validDestinations
+        var noBlockingNoCooldown = neighbors
             .Where(n => !_state.Features.Any(f => f.Position.Equals(n) && f.BlocksHarvest) &&
                         (!_state.BanditCooldownUntil.TryGetValue(n, out var until) || currentTick >= until))
             .ToList();
 
-        // Tier 2 : aucune feature bloquante (cooldown acceptable)
-        var noBlocking = validDestinations
+        var noBlocking = neighbors
             .Where(n => !_state.Features.Any(f => f.Position.Equals(n) && f.BlocksHarvest))
             .ToList();
 
-        // Sélection du meilleur tier disponible, avec préférence pour les hexs de ville
         var candidates = noBlockingNoCooldown.Count > 0 ? noBlockingNoCooldown
                        : noBlocking.Count > 0 ? noBlocking
-                       : validDestinations;
+                       : neighbors;
 
-        HexCoord destination = candidates[_prng.Next(candidates.Count)];
+        var oldPosition = monster.Position;
+        monster.Position = candidates[_prng.Next(candidates.Count)];
+        monster.LastMovedTick = currentTick;
+        monster.LastAttackTick = currentTick;
+        monster.LastAttackTargetVertex = null;
+        monster.LastAttackedByMilitaryTick = currentTick; // grâce après mouvement
 
-        var oldPosition = bandit.Position;
-        bandit.Position = destination;
-        bandit.LastMovedTick = currentTick;
-        bandit.LastRaidTick = currentTick; // no raid when moving
-        bandit.LastRaidTargetVertex = null; // need to recompute target
-
-        // Cooldown sur l'ancienne position si le bandit a bougé
-        if (!oldPosition.Equals(destination))
+        if (!oldPosition.Equals(monster.Position))
             _state.BanditCooldownUntil[oldPosition] = currentTick + DepartureCooldownTicks;
     }
 
+    // ── Attaque des villes ───────────────────────────────────────────────────
+
+    private void AttackNearbyCity(MonsterFeature monster, long currentTick)
+    {
+        if (_state == null) return;
+        if (currentTick - monster.LastAttackTick < monster.AttackIntervalTicks) return;
+
+        var target = FindAttackTarget(monster);
+
+        if (target == null)
+        {
+            monster.LastAttackTick = currentTick;
+            return;
+        }
+
+        ApplyMonsterAttack(monster, target.Value.city, target.Value.civ, currentTick);
+    }
+
+    private (City city, Civilization civ)? FindAttackTarget(MonsterFeature monster)
+    {
+        // Priorité : villes dont un hex coïncide avec la position du monstre
+        foreach (var civ in _state!.Civilizations)
+            foreach (var city in civ.Cities)
+                if (city.Position.GetHexes().Any(h => h.Equals(monster.Position)))
+                    return (city, civ);
+
+        if (monster.AttackRangeInHexes < 2) return null;
+
+        // Portée étendue : hexes voisins du monstre
+        var map = _state.GetMapFor(monster.Position);
+        var neighborSet = monster.Position.Neighbors()
+            .Where(n => map.HasTile(n))
+            .ToHashSet();
+
+        foreach (var civ in _state.Civilizations)
+            foreach (var city in civ.Cities)
+                if (city.Position.GetHexes().Any(h => neighborSet.Contains(h)))
+                    return (city, civ);
+
+        return null;
+    }
+
+    private void ApplyMonsterAttack(MonsterFeature monster, City city, Civilization civ, long tick)
+    {
+        monster.LastAttackTick = tick;
+
+        if (!monster.IgnoresPalisade && city.Buildings.OfType<Palisade>().Any(b => b.Level > 0))
+        {
+            monster.LastAttackTargetVertex = null;
+            monster.LastAttackResourcesString = null;
+            return;
+        }
+
+        bool didSomething = false;
+
+        if (monster.AttackSoldiers > 0 && city.Soldiers > 0)
+        {
+            city.Soldiers = Math.Max(0, city.Soldiers - monster.AttackSoldiers);
+            didSomething = true;
+        }
+
+        if (monster.AttackDefense > 0 && city.CurrentDefense > 0)
+        {
+            city.CurrentDefense = Math.Max(0, city.CurrentDefense - monster.AttackDefense);
+            didSomething = true;
+        }
+
+        if (monster.AttackResources > 0)
+        {
+            var stolen = new List<string>(monster.AttackResources);
+            for (int i = 0; i < monster.AttackResources; i++)
+            {
+                var stealable = Enum.GetValues<Resource>()
+                    .Where(r => civ.GetResourceQuantity(r) > 0)
+                    .ToList();
+                if (stealable.Count == 0) break;
+                var resource = stealable[_prng.Next(stealable.Count)];
+                civ.RemoveResource(resource, 1);
+                stolen.Add(resource.ToString());
+            }
+            if (stolen.Count > 0)
+            {
+                monster.LastAttackResourcesString = string.Join(",", stolen);
+                didSomething = true;
+            }
+        }
+
+        if (didSomething)
+            monster.LastAttackTargetVertex = city.Position;
+        else
+        {
+            monster.LastAttackTargetVertex = null;
+            monster.LastAttackResourcesString = null;
+        }
+    }
+
+    // ── API publique ─────────────────────────────────────────────────────────
+
     /// <summary>
-    /// Retourne true si le cooldown de départ d'un bandit est actif sur ce hex.
+    /// Retourne true si le cooldown de départ d'un monstre mobile est actif sur ce hex.
     /// </summary>
     public bool HasDepartureCooldown(HexCoord hex, long currentTick)
     {
@@ -223,7 +279,7 @@ public class BanditController
     }
 
     /// <summary>
-    /// Retourne true si une feature bloquante (via BlocksHarvest) est présente sur ce hex, ou si le cooldown de départ est actif.
+    /// Retourne true si une feature bloquante est présente sur ce hex ou si le cooldown est actif.
     /// </summary>
     public bool IsHarvestBlocked(HexCoord hex, long currentTick)
     {
@@ -235,3 +291,7 @@ public class BanditController
         return HasDepartureCooldown(hex, currentTick);
     }
 }
+
+/// <summary>Alias de compatibilité — utiliser MonsterFeatureController.</summary>
+[Obsolete("Utiliser MonsterFeatureController")]
+public class BanditController : MonsterFeatureController { }

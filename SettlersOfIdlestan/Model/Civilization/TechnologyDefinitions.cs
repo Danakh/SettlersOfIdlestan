@@ -115,7 +115,7 @@ public static class TechnologyDefinitions
         new(TechnologyId.SpecializedMarket,
             "tech_specialized_market_name", "tech_specialized_market_desc",
             cost: 1500,
-            prerequisites: Array.Empty<TechnologyId>(),
+            prerequisites: new[] { TechnologyId.StorageOptimization },
             modifiers: new Modifier[] { new(ECategory.BUILDING_MAX_LEVEL, "Market", EType.ADDITIVE, 1) },
             tier: 2, line: 3),
 

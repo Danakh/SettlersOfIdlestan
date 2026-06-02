@@ -7,6 +7,7 @@ using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Bandits;
 using SettlersOfIdlestan.Model.IslandFeatures;
+using SettlersOfIdlestan.Model.Monsters;
 
 namespace SettlersOfIdlestan.Controller.Generator;
 
@@ -268,6 +269,9 @@ public class IslandMapGenerator
                     break;
                 case IslandFeatureType.BanditHideout:
                     WorldState.AddFeature(new BanditHideout(hex));
+                    break;
+                case IslandFeatureType.Dragon:
+                    WorldState.AddFeature(new Dragon(hex));
                     break;
             }
         }

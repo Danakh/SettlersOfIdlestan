@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using SettlersOfIdlestan.Model.Bandits;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.Civilization;
@@ -8,6 +7,7 @@ using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.GameplayModifier;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
+using SettlersOfIdlestan.Model.Monsters;
 using System;
 using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
 
@@ -87,8 +87,9 @@ public class MilitaryController
     public int ReinforcementRange(Civilization civ)
         => civ.ModifierAggregator.ApplyModifiers(ECategory.REINFORCEMENT_RANGE, "", DefaultReinforcementRange);
 
+    public event EventHandler<SoldierAttackEventArgs>? SoldierAttackedMonster;
+    /// <summary>Alias de compatibilité — préférer SoldierAttackedMonster.</summary>
     public event EventHandler<SoldierAttackEventArgs>? SoldierAttackedBandit;
-    public event EventHandler<SoldierAttackEventArgs>? SoldierAttackedHideout;
     public event EventHandler<CityAttackEventArgs>? SoldierAttackedCity;
     public event EventHandler<CityBuildingDestroyedEventArgs>? CityBuildingDestroyed;
     public event EventHandler<CityDestroyedEventArgs>? CityDestroyed;
@@ -146,8 +147,7 @@ public class MilitaryController
         if (_state == null) return;
         ProduceSoldiers(currentTick);
         ResolveSoldierFeeding(currentTick);
-        ResolveBanditCombat(currentTick);
-        ResolveHideoutCombat(currentTick);
+        ResolveMonsterCombat(currentTick);
         ResolveDefenseRegen(currentTick);
         ResolveCityAttacks(currentTick);
         ResolveReinforcements(currentTick);
@@ -240,56 +240,31 @@ public class MilitaryController
         }
     }
 
-    // ── Combat — bandits ─────────────────────────────────────────────────────
+    // ── Combat — monstres (générique) ────────────────────────────────────────
 
-    private void ResolveBanditCombat(long currentTick)
+    private void ResolveMonsterCombat(long currentTick)
     {
         if (_state == null) return;
 
-        var deadBandits = new List<Bandit>();
-        foreach (var bandit in _state.Features.OfType<Bandit>())
+        var deadMonsters = new List<MonsterFeature>();
+        foreach (var monster in _state.Features.OfType<MonsterFeature>())
         {
-            if (currentTick - bandit.LastMovedTick < CombatIntervalTicks) continue;
+            if (currentTick - monster.LastAttackedByMilitaryTick < CombatIntervalTicks) continue;
 
-            AttackBandit(bandit);
-            if (bandit.Hp <= 0)
-                deadBandits.Add(bandit);
+            if (AttackMonsterWithSoldiers(monster, currentTick) && monster.Hp <= 0)
+                deadMonsters.Add(monster);
         }
 
-        foreach (var b in deadBandits)
+        foreach (var m in deadMonsters)
         {
-            _state.RemoveFeature(b);
-            _state.EventLog.Add(b.RemovedEventType);
+            _state.RemoveFeature(m);
+            _state.EventLog.Add(m.RemovedEventType);
         }
     }
 
-    // ── Combat — repaires de bandits ─────────────────────────────────────────
-
-    private void ResolveHideoutCombat(long currentTick)
+    private bool AttackMonsterWithSoldiers(MonsterFeature monster, long currentTick)
     {
-        if (_state == null) return;
-
-        var deadHideouts = new List<BanditHideout>();
-        foreach (var hideout in _state.Features.OfType<BanditHideout>())
-        {
-            if (!hideout.Found) continue;
-            if (currentTick - hideout.LastAttackedTick < CombatIntervalTicks) continue;
-
-            AttackHideout(hideout, currentTick);
-            if (hideout.Hp <= 0)
-                deadHideouts.Add(hideout);
-        }
-
-        foreach (var h in deadHideouts)
-        {
-            _state.RemoveFeature(h);
-            _state.EventLog.Add(h.RemovedEventType);
-        }
-    }
-
-    private void AttackHideout(BanditHideout hideout, long currentTick)
-    {
-        if (_state == null) return;
+        if (_state == null) return false;
 
         foreach (var civ in _state.Civilizations)
         {
@@ -298,16 +273,17 @@ public class MilitaryController
                 if (city.Soldiers == 0) continue;
 
                 var cityHexes = city.Position.GetHexes();
-                bool isOnCityHex = cityHexes.Any(h => h.Equals(hideout.Position));
-                if (!isOnCityHex) continue;
+                if (!cityHexes.Any(h => h.Equals(monster.Position))) continue;
 
                 city.Soldiers--;
-                hideout.Hp--;
-                hideout.LastAttackedTick = currentTick;
-                SoldierAttackedHideout?.Invoke(this, new SoldierAttackEventArgs(city.Position, hideout.Position));
-                return;
+                monster.Hp--;
+                monster.LastAttackedByMilitaryTick = currentTick;
+                SoldierAttackedMonster?.Invoke(this, new SoldierAttackEventArgs(city.Position, monster.Position));
+                SoldierAttackedBandit?.Invoke(this, new SoldierAttackEventArgs(city.Position, monster.Position));
+                return true;
             }
         }
+        return false;
     }
 
     // ── Régénération de défense ──────────────────────────────────────────────
@@ -491,29 +467,4 @@ public class MilitaryController
         return true;
     }
 
-    /// <summary>
-    /// Cherche une ville avec des soldats dont un hex est voisin du bandit,
-    /// et déclenche une attaque (1 soldat consommé, 1 PV de dégât).
-    /// </summary>
-    private void AttackBandit(Bandit bandit)
-    {
-        if (_state == null) return;
-
-        foreach (var civ in _state.Civilizations)
-        {
-            foreach (var city in civ.Cities)
-            {
-                if (city.Soldiers == 0) continue;
-
-                var cityHexes = city.Position.GetHexes();
-                bool isOnCityHex = cityHexes.Any(h => h.Equals(bandit.Position));
-                if (!isOnCityHex) continue;
-
-                city.Soldiers--;
-                bandit.Hp--;
-                SoldierAttackedBandit?.Invoke(this, new SoldierAttackEventArgs(city.Position, bandit.Position));
-                return;
-            }
-        }
-    }
 }

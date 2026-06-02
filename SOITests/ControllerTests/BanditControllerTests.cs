@@ -1,4 +1,4 @@
-﻿using SettlersOfIdlestan.Controller.Island;
+using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Controller.Military;
 using SettlersOfIdlestan.Model.Bandits;
 using SettlersOfIdlestan.Model.Buildings;
@@ -36,7 +36,7 @@ namespace SOITests.ControllerTests
         private static HexCoord SE     => new(1, -1, IslandMap.SurfaceLayer);
         private static HexCoord SW     => new(0, -1, IslandMap.SurfaceLayer);
 
-        private static (WorldState state, GameClock clock, BanditController controller) CreateTrappedSetup(bool activeBarracks)
+        private static (WorldState state, GameClock clock, MonsterFeatureController controller) CreateTrappedSetup(bool activeBarracks)
         {
             var tiles = new List<HexTile>
             {
@@ -71,7 +71,7 @@ namespace SOITests.ControllerTests
             var clock = new GameClock();
             clock.Start();
 
-            var controller = new BanditController();
+            var controller = new MonsterFeatureController();
             controller.Initialize(state, clock);
 
             return (state, clock, controller);
@@ -101,11 +101,11 @@ namespace SOITests.ControllerTests
 
             var clock = new GameClock();
             clock.Start();
-            var controller = new BanditController();
+            var controller = new MonsterFeatureController();
             controller.Initialize(state, clock);
 
             for (int i = 0; i < 10; i++)
-                clock.SimulateAdvance(BanditController.MovementIntervalTicks);
+                clock.SimulateAdvance(MonsterFeatureController.MovementIntervalTicks);
 
             Assert.NotEqual(water, state.Features.OfType<Bandit>().First().Position);
         }
@@ -124,7 +124,7 @@ namespace SOITests.ControllerTests
 
             var clock = new GameClock();
             clock.Start();
-            var controller = new BanditController();
+            var controller = new MonsterFeatureController();
             controller.Initialize(state, clock);
 
             Assert.True(controller.IsHarvestBlocked(Center, clock.CurrentTick));
@@ -149,11 +149,11 @@ namespace SOITests.ControllerTests
 
             var clock = new GameClock();
             clock.Start();
-            var controller = new BanditController();
+            var controller = new MonsterFeatureController();
             controller.Initialize(state, clock);
 
             // Trigger one move: bandit must go to plain (only valid destination).
-            clock.SimulateAdvance(BanditController.MovementIntervalTicks);
+            clock.SimulateAdvance(MonsterFeatureController.MovementIntervalTicks);
 
             Assert.Equal(plain, state.Features.OfType<Bandit>().First().Position);
             Assert.True(controller.IsHarvestBlocked(Center, clock.CurrentTick),
@@ -178,15 +178,15 @@ namespace SOITests.ControllerTests
 
             var clock = new GameClock();
             clock.Start();
-            var controller = new BanditController();
+            var controller = new MonsterFeatureController();
             controller.Initialize(state, clock);
 
-            clock.SimulateAdvance(BanditController.MovementIntervalTicks);
+            clock.SimulateAdvance(MonsterFeatureController.MovementIntervalTicks);
             Assert.Equal(plain, state.Features.OfType<Bandit>().First().Position);
 
             // Advance past the departure cooldown (bandit won't move again because its
             // LastMovedTick was just updated — next move requires another MovementIntervalTicks).
-            clock.SimulateAdvance(BanditController.DepartureCooldownTicks + 1);
+            clock.SimulateAdvance(MonsterFeatureController.DepartureCooldownTicks + 1);
 
             Assert.False(controller.IsHarvestBlocked(Center, clock.CurrentTick),
                 "Cooldown should have expired");
@@ -194,7 +194,7 @@ namespace SOITests.ControllerTests
 
         // ── Raid mechanic ────────────────────────────────────────────────────
 
-        private static (WorldState state, GameClock clock, BanditController controller, Civilization civ)
+        private static (WorldState state, GameClock clock, MonsterFeatureController controller, Civilization civ)
             CreateRaidSetup()
         {
             // City at Vertex(NE, East, NE11) — bandit at Center is adjacent to NE and East.
@@ -220,7 +220,7 @@ namespace SOITests.ControllerTests
 
             var clock = new GameClock();
             clock.Start();
-            var controller = new BanditController();
+            var controller = new MonsterFeatureController();
             controller.Initialize(state, clock);
 
             return (state, clock, controller, civ);
@@ -236,8 +236,9 @@ namespace SOITests.ControllerTests
 
             Assert.Equal(4, civ.GetResourceQuantity(Resource.Wood));
             var bandit = state.Features.OfType<Bandit>().First();
-            Assert.NotNull(bandit.LastRaidTargetVertex);
-            Assert.Equal(nameof(Resource.Wood), bandit.LastStolenResource);
+            Assert.NotNull(bandit.LastAttackTargetVertex);
+            Assert.NotNull(bandit.LastAttackResourcesString);
+            Assert.Contains(nameof(Resource.Wood), bandit.LastAttackResourcesString);
         }
 
         [Fact]
@@ -250,8 +251,8 @@ namespace SOITests.ControllerTests
 
             Assert.Equal(0, civ.GetResourceQuantity(Resource.Wood));
             var bandit = state.Features.OfType<Bandit>().First();
-            Assert.Null(bandit.LastRaidTargetVertex);
-            Assert.Null(bandit.LastStolenResource);
+            Assert.Null(bandit.LastAttackTargetVertex);
+            Assert.Null(bandit.LastAttackResourcesString);
         }
 
         [Fact]

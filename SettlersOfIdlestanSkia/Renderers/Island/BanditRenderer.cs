@@ -1,10 +1,11 @@
-﻿using SkiaSharp;
+using SkiaSharp;
 using Svg.Skia;
 using SettlersOfIdlestan.Controller.Military;
 using SettlersOfIdlestan.Model.Bandits;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
+using SettlersOfIdlestan.Model.Monsters;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Renderers.Debug;
 using SettlersOfIdlestanSkia.Services;
@@ -21,6 +22,7 @@ public class BanditRenderer : HexBasedRenderer, IGameRenderer
     private const float ResourceFlyDuration = 0.6f;
     private const float BanditIconSize = 24f;
     private const float HideoutIconSize = 32f;
+    private const float DragonIconSize = 36f;
     private const float ResourceIconSize = 18f;
     private const float AttackParticleDuration = 0.5f;
     private const float AttackParticleIconSize = 16f;
@@ -32,7 +34,7 @@ public class BanditRenderer : HexBasedRenderer, IGameRenderer
         public SKPoint To;
         public float Progress = 1f;
 
-        public long KnownLastRaidTick = -1;
+        public long KnownLastAttackTick = -1;
         public float RaidAnimProgress = 1f;
         public SKPoint RaidHomePos;
         public SKPoint RaidTargetPos;
@@ -57,6 +59,8 @@ public class BanditRenderer : HexBasedRenderer, IGameRenderer
     private SKSvg? _attackSvg;
     private SKPaint? _resourceFlyPaint;
     private SKPaint? _attackParticlePaint;
+    private SKFont? _dragonFont;
+    private SKPaint? _dragonPaint;
     private bool _disposed;
 
     public BanditRenderer(ResourceManager resourceManager)
@@ -91,6 +95,8 @@ public class BanditRenderer : HexBasedRenderer, IGameRenderer
 
         _resourceFlyPaint = new SKPaint { Color = SKColors.White };
         _attackParticlePaint = new SKPaint { IsAntialias = true };
+        _dragonFont = new SKFont { Size = DragonIconSize };
+        _dragonPaint = new SKPaint { IsAntialias = true };
         try { _attackSvg = _resourceManager.LoadImage("Resources.icons.military.attack.svg"); } catch { }
     }
 
@@ -100,17 +106,7 @@ public class BanditRenderer : HexBasedRenderer, IGameRenderer
         Func<bool> isPrestigeTransitionPending,
         Func<bool> isIslandTabActive)
     {
-        militaryController.SoldierAttackedBandit += (_, args) =>
-        {
-            if (isPrestigeTransitionPending()) return;
-            if (!isIslandTabActive()) return;
-            var WorldState = gameControllerService.CurrentWorldState;
-            if (WorldState == null) return;
-            if (!IsSourceOrDestinationVisible(WorldState, args.CityVertex, args.BanditPosition)) return;
-            EmitAttackParticle(args.CityVertex, args.BanditPosition);
-        };
-
-        militaryController.SoldierAttackedHideout += (_, args) =>
+        militaryController.SoldierAttackedMonster += (_, args) =>
         {
             if (isPrestigeTransitionPending()) return;
             if (!isIslandTabActive()) return;
@@ -161,6 +157,17 @@ public class BanditRenderer : HexBasedRenderer, IGameRenderer
             DrawHideoutIcon(canvas, new SKPoint(hx, hy));
         }
 
+        // Draw dragons
+        foreach (var dragon in WorldState.Features.OfType<Dragon>())
+        {
+            if (!dragon.Found) continue;
+            if (dragon.Position.Z != context.CurrentLayer) continue;
+            if (visibleMap != null && !visibleMap.HasTile(dragon.Position)) continue;
+
+            var (dx, dy) = AxialToIsland(dragon.Position.Q, dragon.Position.R);
+            DrawDragonIcon(canvas, new SKPoint(dx, dy));
+        }
+
         // Draw bandits
         var bandits = WorldState.Features.OfType<Bandit>().ToList();
         SyncVisuals(bandits);
@@ -187,19 +194,22 @@ public class BanditRenderer : HexBasedRenderer, IGameRenderer
 
             var normalPos = Lerp(v.From, v.To, Smoothstep(v.Progress));
 
-            if (bandit.LastRaidTick > 0
-                && bandit.LastRaidTick != v.KnownLastRaidTick
-                && bandit.LastRaidTick != bandit.LastMovedTick // raid reset on move — skip animation
-                && bandit.LastRaidTargetVertex != null)
+            if (bandit.LastAttackTick > 0
+                && bandit.LastAttackTick != v.KnownLastAttackTick
+                && bandit.LastAttackTick != bandit.LastMovedTick
+                && bandit.LastAttackTargetVertex != null)
             {
-                v.KnownLastRaidTick = bandit.LastRaidTick;
+                v.KnownLastAttackTick = bandit.LastAttackTick;
                 v.RaidAnimProgress = 0f;
                 v.RaidHomePos = normalPos;
-                v.RaidTargetPos = VertexToIsland(bandit.LastRaidTargetVertex);
+                v.RaidTargetPos = VertexToIsland(bandit.LastAttackTargetVertex);
                 v.FlyingResource = null;
-                if (bandit.LastStolenResource != null
-                    && Enum.TryParse<Resource>(bandit.LastStolenResource, out var res))
-                    v.FlyingResource = res;
+                if (bandit.LastAttackResourcesString != null)
+                {
+                    var firstResource = bandit.LastAttackResourcesString.Split(',')[0];
+                    if (Enum.TryParse<Resource>(firstResource, out var res))
+                        v.FlyingResource = res;
+                }
                 v.ResourceFlyProgress = 1f;
             }
 
@@ -276,6 +286,13 @@ public class BanditRenderer : HexBasedRenderer, IGameRenderer
         canvas.Scale(scale);
         canvas.DrawPicture(picture);
         canvas.Restore();
+    }
+
+    private void DrawDragonIcon(SKCanvas canvas, SKPoint center)
+    {
+        if (_dragonFont == null || _dragonPaint == null) return;
+        canvas.DrawText("🐉", center.X - DragonIconSize / 2f, center.Y + DragonIconSize / 3f,
+            SKTextAlign.Left, _dragonFont, _dragonPaint);
     }
 
     private void DrawAttackParticle(SKCanvas canvas, SKPoint center, float alpha)
@@ -359,6 +376,10 @@ public class BanditRenderer : HexBasedRenderer, IGameRenderer
         _resourceFlyPaint = null;
         _attackParticlePaint?.Dispose();
         _attackParticlePaint = null;
+        _dragonFont?.Dispose();
+        _dragonFont = null;
+        _dragonPaint?.Dispose();
+        _dragonPaint = null;
         _disposed = true;
     }
 }

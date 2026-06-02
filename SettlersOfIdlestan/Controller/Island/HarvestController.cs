@@ -53,7 +53,7 @@ namespace SettlersOfIdlestan.Controller.Island
         private WorldState? _state;
         private GameClock? _clock;
         private TradeController? _tradeController;
-        private BanditController? _banditController;
+        private MonsterFeatureController? _banditController;
 
         // 2 s × 100 ticks/s
         public const long HarvestCooldownTicks = 200L;
@@ -77,7 +77,7 @@ namespace SettlersOfIdlestan.Controller.Island
             Initialize(state, clock);
         }
 
-        internal void Initialize(WorldState? state, GameClock? clock, TradeController? tradeController = null, BanditController? banditController = null, GamePRNG? prng = null)
+        internal void Initialize(WorldState? state, GameClock? clock, TradeController? tradeController = null, MonsterFeatureController? banditController = null, GamePRNG? prng = null)
         {
             if (_clock != null)
                 _clock.Advanced -= OnClockAdvanced;

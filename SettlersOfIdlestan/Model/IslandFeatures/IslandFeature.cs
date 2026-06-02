@@ -1,6 +1,7 @@
 using SettlersOfIdlestan.Model.Bandits;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
+using SettlersOfIdlestan.Model.Monsters;
 using SettlersOfIdlestan.Services.Localization;
 using System.Text.Json.Serialization;
 
@@ -9,6 +10,7 @@ namespace SettlersOfIdlestan.Model.IslandFeatures;
 [JsonPolymorphic(TypeDiscriminatorPropertyName = "FeatureType")]
 [JsonDerivedType(typeof(Bandit), "Bandit")]
 [JsonDerivedType(typeof(BanditHideout), "BanditHideout")]
+[JsonDerivedType(typeof(Dragon), "Dragon")]
 [JsonDerivedType(typeof(TreasureTrove), "TreasureTrove")]
 [JsonDerivedType(typeof(Wonder), "Wonder")]
 [JsonDerivedType(typeof(ContestedTerritory), "ContestedTerritory")]

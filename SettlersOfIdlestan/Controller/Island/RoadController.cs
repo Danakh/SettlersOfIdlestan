@@ -229,7 +229,7 @@ namespace SettlersOfIdlestan.Controller.Island
 
             var distance = GetDistanceForEdge(edge, civ);
             if (distance == int.MaxValue)
-                throw new InvalidOperationException("Cannot determine distance to a city for this edge");
+                return null; // road must no longer be linked to a city
 
             var cost = isMaritimePath ? GetMaritimeRoadCost() : GetRoadCost(distance, civ);
 

@@ -108,7 +108,7 @@ namespace SOITests.ControllerTests
             clock.SimulateAdvance(MilitaryController.CombatIntervalTicks);
 
             // 1 attaque (production trop lente : 1000 ticks vs combat 100 ticks) : soldats 3→2, bandit MaxHp→MaxHp-1.
-            Assert.Equal(Bandit.MaxHp - 1, bandit.Hp);
+            Assert.Equal(bandit.MaxHp - 1, bandit.Hp);
             Assert.Equal(2, city.Soldiers);
         }
 
@@ -139,7 +139,7 @@ namespace SOITests.ControllerTests
 
             clock.SimulateAdvance(MilitaryController.CombatIntervalTicks);
 
-            Assert.Equal(Bandit.MaxHp, bandit.Hp);
+            Assert.Equal(bandit.MaxHp, bandit.Hp);
         }
 
         // ── Portée d'attaque — règle des 3 hexs ──────────────────────────────
@@ -166,7 +166,7 @@ namespace SOITests.ControllerTests
 
             clock.SimulateAdvance(MilitaryController.CombatIntervalTicks);
 
-            Assert.True(bandit.Hp < Bandit.MaxHp,
+            Assert.True(bandit.Hp < bandit.MaxHp,
                 $"Le bandit sur ({q},{r}) aurait dû être attaqué ({description}).");
         }
 
@@ -200,7 +200,7 @@ namespace SOITests.ControllerTests
 
             clock.SimulateAdvance(MilitaryController.CombatIntervalTicks);
 
-            Assert.True(bandit.Hp == Bandit.MaxHp,
+            Assert.True(bandit.Hp == bandit.MaxHp,
                 $"Le bandit en ({q},{r}) ne devrait pas être attaqué ({description}).");
         }
 
@@ -222,7 +222,7 @@ namespace SOITests.ControllerTests
                     clock.SimulateAdvance(MilitaryController.CombatIntervalTicks);
 
                     bool shouldAttack = cityHexSet.Contains((q, r));
-                    bool wasAttacked = bandit.Hp < Bandit.MaxHp;
+                    bool wasAttacked = bandit.Hp < bandit.MaxHp;
 
                     Assert.True(shouldAttack == wasAttacked,
                         $"Hex ({q},{r}): attendu {(shouldAttack ? "attaqué" : "hors portée")}, obtenu {(wasAttacked ? "attaqué" : "non attaqué")}.");
@@ -230,16 +230,16 @@ namespace SOITests.ControllerTests
             }
         }
 
-        // ── Événement SoldierAttackedBandit ───────────────────────────────────
+        // ── Événement SoldierAttackedMonster ────────────────────────────────────
 
         [Fact]
-        public void SoldierAttackedBandit_EventFired_WhenBanditOnCityHex()
+        public void SoldierAttackedMonster_EventFired_WhenBanditOnCityHex()
         {
             var (state, clock, controller, _) = CreateSetup(initialSoldiers: 3, barracksLevel: 2);
             state.AddFeature(new Bandit(NE, 0));
 
             SoldierAttackEventArgs? firedArgs = null;
-            controller.SoldierAttackedBandit += (_, args) => firedArgs = args;
+            controller.SoldierAttackedMonster += (_, args) => firedArgs = args;
 
             clock.SimulateAdvance(MilitaryController.CombatIntervalTicks);
 
@@ -249,14 +249,14 @@ namespace SOITests.ControllerTests
         }
 
         [Fact]
-        public void SoldierAttackedBandit_EventNotFired_WhenBanditOffCityHexes()
+        public void SoldierAttackedMonster_EventNotFired_WhenBanditOffCityHexes()
         {
             // Center est voisin de la ville mais pas sur l'un de ses 3 hexs.
             var (state, clock, controller, _) = CreateSetup(initialSoldiers: 5, barracksLevel: 2);
             state.AddFeature(new Bandit(Center, 0));
 
             bool eventFired = false;
-            controller.SoldierAttackedBandit += (_, _) => eventFired = true;
+            controller.SoldierAttackedMonster += (_, _) => eventFired = true;
 
             clock.SimulateAdvance(MilitaryController.CombatIntervalTicks);
 
