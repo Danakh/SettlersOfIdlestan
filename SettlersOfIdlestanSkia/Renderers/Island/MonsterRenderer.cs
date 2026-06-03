@@ -26,6 +26,17 @@ public class MonsterRenderer : HexBasedRenderer, IGameRenderer
     private const float AttackParticleDuration = 0.5f;
     private const float AttackParticleIconSize = 16f;
 
+    private sealed class DragonVisual
+    {
+        public HexCoord ModelPosition = new(0, 0, IslandMap.SurfaceLayer);
+        public long KnownLastAttackTick = -1;
+        public float AttackAnimProgress = 1f;
+        public SKPoint HomePos;
+        public SKPoint TargetPos;
+        public Resource? FlyingResource = null;
+        public float ResourceFlyProgress = 1f;
+    }
+
     private sealed class BanditVisual
     {
         public HexCoord ModelPosition = new(0, 0, IslandMap.SurfaceLayer);
@@ -49,6 +60,7 @@ public class MonsterRenderer : HexBasedRenderer, IGameRenderer
         public float Progress;
     }
 
+    private readonly List<DragonVisual> _dragonVisuals = new();
     private readonly List<BanditVisual> _visuals = new();
     private readonly List<AttackParticle> _attackParticles = new();
     private readonly ResourceManager _resourceManager;
@@ -169,14 +181,71 @@ public class MonsterRenderer : HexBasedRenderer, IGameRenderer
         }
 
         // Draw dragons
-        foreach (var dragon in WorldState.Features.OfType<Dragon>())
+        var dragons = WorldState.Features.OfType<Dragon>().ToList();
+        SyncDragonVisuals(dragons);
+
+        for (int i = 0; i < dragons.Count; i++)
         {
+            var dragon = dragons[i];
+            var dv = _dragonVisuals[i];
+
+            if (!dv.ModelPosition.Equals(dragon.Position))
+            {
+                dv.HomePos = HexToPoint(dragon.Position);
+                dv.ModelPosition = dragon.Position;
+            }
+
+            if (dragon.LastAttackTick > 0
+                && dragon.LastAttackTick != dv.KnownLastAttackTick
+                && dragon.LastAttackTargetVertex != null)
+            {
+                dv.KnownLastAttackTick = dragon.LastAttackTick;
+                dv.AttackAnimProgress = 0f;
+                dv.TargetPos = VertexToIsland(dragon.LastAttackTargetVertex);
+                dv.FlyingResource = null;
+                if (dragon.LastAttackResourcesString != null)
+                {
+                    var first = dragon.LastAttackResourcesString.Split(',')[0];
+                    if (Enum.TryParse<Resource>(first, out var res))
+                        dv.FlyingResource = res;
+                }
+                dv.ResourceFlyProgress = 1f;
+            }
+
+            if (dv.AttackAnimProgress < 1f)
+            {
+                dv.AttackAnimProgress = Math.Min(1f, dv.AttackAnimProgress + dt / RaidAnimDuration);
+                if (dv.AttackAnimProgress >= 0.45f && dv.ResourceFlyProgress >= 1f && dv.FlyingResource != null)
+                    dv.ResourceFlyProgress = 0f;
+            }
+
+            if (dv.ResourceFlyProgress < 1f)
+                dv.ResourceFlyProgress = Math.Min(1f, dv.ResourceFlyProgress + dt / ResourceFlyDuration);
+
             if (!dragon.Found) continue;
             if (dragon.Position.Z != context.CurrentLayer) continue;
             if (visibleMap != null && !visibleMap.HasTile(dragon.Position)) continue;
 
-            var (dx, dy) = AxialToIsland(dragon.Position.Q, dragon.Position.R);
-            DrawSvgMonsterIcon(canvas, new SKPoint(dx, dy), _dragonSvg, dragon.SvgIconSize * dragon.IconSizeFactor);
+            SKPoint dragonPos;
+            if (dv.AttackAnimProgress < 1f)
+            {
+                float t = dv.AttackAnimProgress;
+                dragonPos = t < 0.5f
+                    ? Lerp(dv.HomePos, dv.TargetPos, Smoothstep(t * 2f))
+                    : Lerp(dv.TargetPos, dv.HomePos, Smoothstep((t - 0.5f) * 2f));
+            }
+            else
+            {
+                dragonPos = dv.HomePos;
+            }
+
+            DrawSvgMonsterIcon(canvas, dragonPos, _dragonSvg, dragon.SvgIconSize * dragon.IconSizeFactor);
+
+            if (dv.ResourceFlyProgress < 1f && dv.FlyingResource != null)
+            {
+                var flyPos = Lerp(dv.TargetPos, dv.HomePos, Smoothstep(dv.ResourceFlyProgress));
+                DrawResourceIcon(canvas, flyPos, dv.FlyingResource.Value, 1f - dv.ResourceFlyProgress);
+            }
         }
 
         // Draw rats
@@ -363,6 +432,17 @@ public class MonsterRenderer : HexBasedRenderer, IGameRenderer
         canvas.DrawPicture(svg.Picture);
         canvas.Restore();
         canvas.Restore();
+    }
+
+    private void SyncDragonVisuals(IList<Dragon> dragons)
+    {
+        while (_dragonVisuals.Count < dragons.Count)
+        {
+            var pos = HexToPoint(dragons[_dragonVisuals.Count].Position);
+            _dragonVisuals.Add(new DragonVisual { ModelPosition = dragons[_dragonVisuals.Count].Position, HomePos = pos });
+        }
+        while (_dragonVisuals.Count > dragons.Count)
+            _dragonVisuals.RemoveAt(_dragonVisuals.Count - 1);
     }
 
     private void SyncVisuals(IList<Bandit> bandits)
