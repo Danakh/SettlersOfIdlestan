@@ -28,8 +28,7 @@ public class Dragon : MonsterFeature
     public override GameEventType DiscoveredEventType => GameEventType.DragonDiscovered;
     public override GameEventType RemovedEventType => GameEventType.DragonDefeated;
 
-    public override string? TextIcon => "🐉";
-    public override float SvgIconSize => 28f;
+    public override float IconSizeFactor => 2.5f;
 
     public override LocalizedEntry? GetTooltipEntry() => new("hex_tooltip_dragon_info", [Hp, MaxHp]);
 
