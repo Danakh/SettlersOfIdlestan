@@ -157,7 +157,7 @@ public class BanditRenderer : HexBasedRenderer, IGameRenderer
             if (visibleMap != null && !visibleMap.HasTile(hideout.Position)) continue;
 
             var (hx, hy) = AxialToIsland(hideout.Position.Q, hideout.Position.R);
-            DrawHideoutIcon(canvas, new SKPoint(hx, hy));
+            DrawHideoutIcon(canvas, new SKPoint(hx, hy), hideout.IconSizeFactor);
         }
 
         // Draw bandits
@@ -226,7 +226,7 @@ public class BanditRenderer : HexBasedRenderer, IGameRenderer
                 pos = normalPos;
             }
 
-            DrawBanditIcon(canvas, pos);
+            DrawBanditIcon(canvas, pos, bandit.IconSizeFactor);
 
             if (v.ResourceFlyProgress < 1f && v.FlyingResource != null)
             {
@@ -249,27 +249,29 @@ public class BanditRenderer : HexBasedRenderer, IGameRenderer
         }
     }
 
-    private void DrawBanditIcon(SKCanvas canvas, SKPoint center)
+    private void DrawBanditIcon(SKCanvas canvas, SKPoint center, float sizeFactor = 1f)
     {
         var picture = _banditSvg?.Picture;
         if (picture == null) return;
 
-        float scale = BanditIconSize / 64f;
+        float size = BanditIconSize * sizeFactor;
+        float scale = size / 64f;
         canvas.Save();
-        canvas.Translate(center.X - BanditIconSize / 2f, center.Y - BanditIconSize / 2f);
+        canvas.Translate(center.X - size / 2f, center.Y - size / 2f);
         canvas.Scale(scale);
         canvas.DrawPicture(picture);
         canvas.Restore();
     }
 
-    private void DrawHideoutIcon(SKCanvas canvas, SKPoint center)
+    private void DrawHideoutIcon(SKCanvas canvas, SKPoint center, float sizeFactor = 1f)
     {
         var picture = _hideoutSvg?.Picture;
         if (picture == null) return;
 
-        float scale = HideoutIconSize / 64f;
+        float size = HideoutIconSize * sizeFactor;
+        float scale = size / 64f;
         canvas.Save();
-        canvas.Translate(center.X - HideoutIconSize / 2f, center.Y - HideoutIconSize / 2f);
+        canvas.Translate(center.X - size / 2f, center.Y - size / 2f);
         canvas.Scale(scale);
         canvas.DrawPicture(picture);
         canvas.Restore();

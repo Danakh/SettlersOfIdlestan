@@ -42,6 +42,12 @@ public abstract class IslandFeature
     public virtual float SvgIconSize => 20f;
 
     /// <summary>
+    /// Facteur multiplicateur de la taille d'icône (1.0 = taille de base).
+    /// Utilisé par le renderer pour agrandir ou réduire l'icône tout en la gardant centrée sur l'hex.
+    /// </summary>
+    public virtual float IconSizeFactor => 1f;
+
+    /// <summary>
     /// Texte ou emoji à afficher sur la carte à la place d'une icône SVG.
     /// Utilisé uniquement si SvgIconResourceName est null.
     /// </summary>
