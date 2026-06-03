@@ -166,7 +166,7 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
                         .Where(f => f.ShouldRenderIcon && (f.SvgIconResourceName != null || f.TextIcon != null))
                         .GroupBy(f => f.Position)
                         .ToDictionary(g => g.Key, g => (IEnumerable<IslandFeature>)g);
-                    DrawIslandMap(canvas, mapToRender, playerIdx, mgs.Clock.CurrentTick, manualTimes, worldState.BanditCooldownUntil, worldState.BanditCooldownDuration, banditPositions, harvestBlockedPositions, featuresByPosition);
+                    DrawIslandMap(canvas, mapToRender, playerIdx, mgs.Clock.CurrentTick, manualTimes, worldState.PlunderCooldownUntil, worldState.PlunderCooldownDuration, banditPositions, harvestBlockedPositions, featuresByPosition);
 
                     var selectedWonder = _wonderService?.SelectedWonder;
                     if (selectedWonder != null && _selectedWonderPaint != null)

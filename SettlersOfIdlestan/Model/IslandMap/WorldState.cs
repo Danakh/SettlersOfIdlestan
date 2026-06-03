@@ -65,8 +65,8 @@ public class WorldState : IJsonOnDeserialized
         WorldId = worldId;
         HarvestLastTimesByCivilization = new Dictionary<int, Dictionary<SettlersOfIdlestan.Model.HexGrid.HexCoord, long>>();
         Features = new List<IslandFeature>();
-        BanditCooldownUntil = new Dictionary<HexCoord, long>();
-        BanditCooldownDuration = new Dictionary<HexCoord, long>();
+        PlunderCooldownUntil = new Dictionary<HexCoord, long>();
+        PlunderCooldownDuration = new Dictionary<HexCoord, long>();
         RecalculateVisibleIslandMaps();
     }
 
@@ -80,8 +80,8 @@ public class WorldState : IJsonOnDeserialized
         Civilizations = new List<SettlersOfIdlestan.Model.Civilization.Civilization>();
         HarvestLastTimesByCivilization = new Dictionary<int, Dictionary<SettlersOfIdlestan.Model.HexGrid.HexCoord, long>>();
         Features = new List<IslandFeature>();
-        BanditCooldownUntil = new Dictionary<HexCoord, long>();
-        BanditCooldownDuration = new Dictionary<HexCoord, long>();
+        PlunderCooldownUntil = new Dictionary<HexCoord, long>();
+        PlunderCooldownDuration = new Dictionary<HexCoord, long>();
     }
 
     public void OnDeserialized()
@@ -222,13 +222,13 @@ public class WorldState : IJsonOnDeserialized
     /// <summary>
     /// Tick jusqu'auquel la récolte est bloquée sur un hex après le départ d'un monstre mobile.
     /// </summary>
-    public Dictionary<HexCoord, long> BanditCooldownUntil { get; set; }
+    public Dictionary<HexCoord, long> PlunderCooldownUntil { get; set; }
 
     /// <summary>
     /// Durée totale du cooldown (en ticks) enregistrée au moment du départ du monstre.
     /// Utilisée pour calculer la progression de l'anneau dans les renderers.
     /// </summary>
-    public Dictionary<HexCoord, long> BanditCooldownDuration { get; set; }
+    public Dictionary<HexCoord, long> PlunderCooldownDuration { get; set; }
 
     /// <summary>
     /// Player-controlled automation toggles. Persisted with the world state.

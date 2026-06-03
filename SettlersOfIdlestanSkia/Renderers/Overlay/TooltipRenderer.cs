@@ -128,7 +128,7 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay
             var featuresAtCoord = WorldState.Features.Where(f => f.Position.Equals(coord));
             var featureTooltipEntries = featuresAtCoord.Select(f => f.GetTooltipEntry()).Where(e => e != null);
             bool harvestBlockedByFeature = featuresAtCoord.Any(f => f.BlocksHarvest);
-            bool banditCooldownActive = WorldState.BanditCooldownUntil.TryGetValue(coord, out var banditUntil)
+            bool banditCooldownActive = WorldState.PlunderCooldownUntil.TryGetValue(coord, out var banditUntil)
                 && currentTick < banditUntil;
 
             if (manualResources.Count == 0 && autoResources.Count == 0 && featureTooltipEntries.Count() == 0 && !banditCooldownActive)
@@ -156,7 +156,7 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay
             if (banditCooldownActive)
             {
                 double remaining = (banditUntil - currentTick) / 100.0;
-                long cooldownDuration = WorldState.BanditCooldownDuration.TryGetValue(coord, out var dur) ? dur : banditUntil;
+                long cooldownDuration = WorldState.PlunderCooldownDuration.TryGetValue(coord, out var dur) ? dur : banditUntil;
                 double max = cooldownDuration / 100.0;
                 lines.Add($"{_localizationService.Get("hex_tooltip_bandit_cooldown")}: {remaining:F1}s / {max:0.#}s");
             }
