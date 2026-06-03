@@ -59,11 +59,11 @@ public class MilitaryController
     private long _lastPlayerAutoReinforcementTick = 0;
     private long _lastPlayerAutoAttackTick = 0;
 
-    /// <summary>Intervalle entre deux recalculs des flux de renfort automatiques du joueur (2 000 ticks = 20 s).</summary>
-    public const long AutoReinforcementIntervalTicks = 2_000L;
+    /// <summary>Intervalle entre deux recalculs des flux de renfort automatiques du joueur (100 ticks = 1 s).</summary>
+    public const long AutoReinforcementIntervalTicks = 100L;
 
-    /// <summary>Intervalle entre deux recalculs des cibles d'attaque automatique du joueur (2 000 ticks = 20 s).</summary>
-    public const long AutoAttackIntervalTicks = 2_000L;
+    /// <summary>Intervalle entre deux recalculs des cibles d'attaque automatique du joueur (100 ticks = 1 s).</summary>
+    public const long AutoAttackIntervalTicks = 100L;
 
     /// <summary>Intervalle de production d'un soldat (1 000 ticks = 10 s à vitesse normale).</summary>
     public const long SoldierProductionIntervalTicks = 1_000L;
@@ -377,21 +377,24 @@ public class MilitaryController
             {
                 int range = ReinforcementRange(civ);
                 City? target = null;
-                int closestDist = int.MaxValue;
+                int fewestSoldiers = int.MaxValue;
 
                 foreach (var friendly in civ.Cities)
                 {
                     if (friendly == city) continue;
                     if (friendly.Position.Z != city.Position.Z) continue;
                     int dist = city.Position.EdgeDistanceTo(friendly.Position);
-                    if (dist > range || dist >= closestDist) continue;
+                    if (dist > range) continue;
 
                     int tCap = friendly.MaxSoldiers;
                     if (tCap == 0 || friendly.Soldiers * 2 > tCap) continue;
                     if (friendly.Soldiers + 2 >= city.Soldiers) continue;
 
-                    target = friendly;
-                    closestDist = dist;
+                    if (friendly.Soldiers < fewestSoldiers)
+                    {
+                        target = friendly;
+                        fewestSoldiers = friendly.Soldiers;
+                    }
                 }
 
                 if (target != null)
