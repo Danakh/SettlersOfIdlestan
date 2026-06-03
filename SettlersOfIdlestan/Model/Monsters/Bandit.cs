@@ -1,10 +1,9 @@
 using System.Text.Json.Serialization;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
-using SettlersOfIdlestan.Model.Monsters;
 using SettlersOfIdlestan.Services.Localization;
 
-namespace SettlersOfIdlestan.Model.Bandits;
+namespace SettlersOfIdlestan.Model.Monsters;
 
 [Serializable]
 public class Bandit : MonsterFeature
@@ -20,6 +19,8 @@ public class Bandit : MonsterFeature
     public override int AttackRangeInHexes => 1;
     public override long AttackIntervalTicks => RaidIntervalTicks;
     public override int AttackResources => 1;
+
+    public override string? SvgIconResourceName => "Resources.icons.military.bandit.svg";
 
     public override GameEventType DiscoveredEventType => GameEventType.BanditDiscovered;
     public override GameEventType RemovedEventType    => GameEventType.BanditDefeated;

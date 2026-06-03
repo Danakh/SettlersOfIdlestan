@@ -18,6 +18,8 @@ public class Rats : MonsterFeature
     public override long MovementIntervalTicks => RatsMovementIntervalTicks;
     public override long DepartureCooldownTicks => RatsDepartureCooldownTicks;
 
+    public override string? SvgIconResourceName => "Resources.icons.military.monster-rats.svg";
+
     public override GameEventType DiscoveredEventType => GameEventType.RatsDiscovered;
     public override GameEventType RemovedEventType => GameEventType.RatsDefeated;
 

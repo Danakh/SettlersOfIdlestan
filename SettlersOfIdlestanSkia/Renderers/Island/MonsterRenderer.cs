@@ -1,7 +1,6 @@
 using SkiaSharp;
 using Svg.Skia;
 using SettlersOfIdlestan.Controller.Military;
-using SettlersOfIdlestan.Model.Bandits;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
@@ -11,45 +10,31 @@ using SettlersOfIdlestanSkia.Renderers.Debug;
 using SettlersOfIdlestanSkia.Services;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 
 namespace SettlersOfIdlestanSkia.Renderers.Island;
 
 public class MonsterRenderer : HexBasedRenderer, IGameRenderer
 {
     private const float AnimationDuration = 1f;
-    private const float RaidAnimDuration = 0.8f;
+    private const float AttackAnimDuration = 0.8f;
     private const float ResourceFlyDuration = 0.6f;
-    private const float BanditIconSize = 24f;
-    private const float HideoutIconSize = 32f;
     private const float ResourceIconSize = 18f;
     private const float AttackParticleDuration = 0.5f;
     private const float AttackParticleIconSize = 16f;
 
-    private sealed class DragonVisual
+    private sealed class MonsterVisual
     {
         public HexCoord ModelPosition = new(0, 0, IslandMap.SurfaceLayer);
+        // Movement
+        public SKPoint From;
+        public SKPoint To;
+        public float MoveProgress = 1f;
+        // Attack
         public long KnownLastAttackTick = -1;
         public float AttackAnimProgress = 1f;
         public SKPoint HomePos;
         public SKPoint TargetPos;
-        public Resource? FlyingResource = null;
-        public float ResourceFlyProgress = 1f;
-    }
-
-    private sealed class BanditVisual
-    {
-        public HexCoord ModelPosition = new(0, 0, IslandMap.SurfaceLayer);
-        public SKPoint From;
-        public SKPoint To;
-        public float Progress = 1f;
-
-        public long KnownLastAttackTick = -1;
-        public float RaidAnimProgress = 1f;
-        public SKPoint RaidHomePos;
-        public SKPoint RaidTargetPos;
-
-        public Resource? FlyingResource = null;
+        public Resource? FlyingResource;
         public float ResourceFlyProgress = 1f;
     }
 
@@ -60,15 +45,10 @@ public class MonsterRenderer : HexBasedRenderer, IGameRenderer
         public float Progress;
     }
 
-    private readonly List<DragonVisual> _dragonVisuals = new();
-    private readonly List<BanditVisual> _visuals = new();
+    private readonly List<MonsterVisual> _monsterVisuals = new();
     private readonly List<AttackParticle> _attackParticles = new();
     private readonly ResourceManager _resourceManager;
     private readonly Dictionary<Resource, SKSvg?> _resourceIcons = new();
-    private SKSvg? _banditSvg;
-    private SKSvg? _hideoutSvg;
-    private SKSvg? _dragonSvg;
-    private SKSvg? _ratsSvg;
     private SKSvg? _attackSvg;
     private SKPaint? _resourceFlyPaint;
     private SKPaint? _attackParticlePaint;
@@ -81,36 +61,6 @@ public class MonsterRenderer : HexBasedRenderer, IGameRenderer
 
     public void Initialize(SKSize canvasSize)
     {
-        var assembly = Assembly.GetExecutingAssembly();
-
-        using var banditStream = assembly.GetManifestResourceStream($"{assembly.GetName().Name}.Resources.icons.military.bandit.svg");
-        if (banditStream != null)
-        {
-            _banditSvg = new SKSvg();
-            _banditSvg.Load(banditStream);
-        }
-
-        using var hideoutStream = assembly.GetManifestResourceStream($"{assembly.GetName().Name}.Resources.icons.features.skullcave.svg");
-        if (hideoutStream != null)
-        {
-            _hideoutSvg = new SKSvg();
-            _hideoutSvg.Load(hideoutStream);
-        }
-
-        using var dragonStream = assembly.GetManifestResourceStream($"{assembly.GetName().Name}.Resources.icons.military.monster-dragon.svg");
-        if (dragonStream != null)
-        {
-            _dragonSvg = new SKSvg();
-            _dragonSvg.Load(dragonStream);
-        }
-
-        using var ratsStream = assembly.GetManifestResourceStream($"{assembly.GetName().Name}.Resources.icons.military.monster-rats.svg");
-        if (ratsStream != null)
-        {
-            _ratsSvg = new SKSvg();
-            _ratsSvg.Load(ratsStream);
-        }
-
         foreach (Resource resource in Enum.GetValues<Resource>())
         {
             string name = resource.ToString().ToLower();
@@ -133,16 +83,16 @@ public class MonsterRenderer : HexBasedRenderer, IGameRenderer
         {
             if (isPrestigeTransitionPending()) return;
             if (!isIslandTabActive()) return;
-            var WorldState = gameControllerService.CurrentWorldState;
-            if (WorldState == null) return;
-            if (!IsSourceOrDestinationVisible(WorldState, args.CityVertex, args.BanditPosition)) return;
+            var worldState = gameControllerService.CurrentWorldState;
+            if (worldState == null) return;
+            if (!IsSourceOrDestinationVisible(worldState, args.CityVertex, args.BanditPosition)) return;
             EmitAttackParticle(args.CityVertex, args.BanditPosition);
         };
     }
 
-    private static bool IsSourceOrDestinationVisible(WorldState WorldState, Vertex source, HexCoord target)
+    private static bool IsSourceOrDestinationVisible(WorldState worldState, Vertex source, HexCoord target)
     {
-        if (!WorldState.GetVisibleIslandMapsForZ(source.Z).TryGetValue(WorldState.PlayerCivilization.Index, out var visibleMap))
+        if (!worldState.GetVisibleIslandMapsForZ(source.Z).TryGetValue(worldState.PlayerCivilization.Index, out var visibleMap))
             return true;
         if (visibleMap.HasTile(target)) return true;
         foreach (var hex in source.GetHexes())
@@ -160,186 +110,98 @@ public class MonsterRenderer : HexBasedRenderer, IGameRenderer
     public void Render(SKCanvas canvas, GameRenderContext context)
     {
         if (context.GameState is not MainGameState mgs) return;
-        var WorldState = mgs.CurrentWorldState;
-        if (WorldState == null) return;
+        var worldState = mgs.CurrentWorldState;
+        if (worldState == null) return;
 
         VisibleIslandMap? visibleMap = null;
         if (!DebugSettings.ShowFullMap)
-            WorldState.GetVisibleIslandMapsForZ(WorldState.CurrentViewedLayer).TryGetValue(WorldState.PlayerCivilization.Index, out visibleMap);
+            worldState.GetVisibleIslandMapsForZ(worldState.CurrentViewedLayer).TryGetValue(worldState.PlayerCivilization.Index, out visibleMap);
 
         float dt = context.DeltaTime;
 
-        // Draw hideouts
-        foreach (var hideout in WorldState.Features.OfType<BanditHideout>())
+        var monsters = worldState.Features.OfType<MonsterFeature>().ToList();
+        SyncMonsterVisuals(monsters);
+
+        for (int i = 0; i < monsters.Count; i++)
         {
-            if (!hideout.Found) continue;
-            if (hideout.Position.Z != context.CurrentLayer) continue;
-            if ((visibleMap != null) && !visibleMap.HasTile(hideout.Position)) continue;
+            var monster = monsters[i];
+            var v = _monsterVisuals[i];
 
-            var (hx, hy) = AxialToIsland(hideout.Position.Q, hideout.Position.R);
-            DrawHideoutIcon(canvas, new SKPoint(hx, hy), hideout.IconSizeFactor);
-        }
-
-        // Draw dragons
-        var dragons = WorldState.Features.OfType<Dragon>().ToList();
-        SyncDragonVisuals(dragons);
-
-        for (int i = 0; i < dragons.Count; i++)
-        {
-            var dragon = dragons[i];
-            var dv = _dragonVisuals[i];
-
-            if (!dv.ModelPosition.Equals(dragon.Position))
-            {
-                dv.HomePos = HexToPoint(dragon.Position);
-                dv.ModelPosition = dragon.Position;
-            }
-
-            if (dragon.LastAttackTick > 0
-                && dragon.LastAttackTick != dv.KnownLastAttackTick
-                && dragon.LastAttackTargetVertex != null)
-            {
-                dv.KnownLastAttackTick = dragon.LastAttackTick;
-                dv.AttackAnimProgress = 0f;
-                dv.TargetPos = VertexToIsland(dragon.LastAttackTargetVertex);
-                dv.FlyingResource = null;
-                if (dragon.LastAttackResourcesString != null)
-                {
-                    var first = dragon.LastAttackResourcesString.Split(',')[0];
-                    if (Enum.TryParse<Resource>(first, out var res))
-                        dv.FlyingResource = res;
-                }
-                dv.ResourceFlyProgress = 1f;
-            }
-
-            if (dv.AttackAnimProgress < 1f)
-            {
-                dv.AttackAnimProgress = Math.Min(1f, dv.AttackAnimProgress + dt / RaidAnimDuration);
-                if (dv.AttackAnimProgress >= 0.45f && dv.ResourceFlyProgress >= 1f && dv.FlyingResource != null)
-                    dv.ResourceFlyProgress = 0f;
-            }
-
-            if (dv.ResourceFlyProgress < 1f)
-                dv.ResourceFlyProgress = Math.Min(1f, dv.ResourceFlyProgress + dt / ResourceFlyDuration);
-
-            if (!dragon.Found) continue;
-            if (dragon.Position.Z != context.CurrentLayer) continue;
-            if (visibleMap != null && !visibleMap.HasTile(dragon.Position)) continue;
-
-            SKPoint dragonPos;
-            if (dv.AttackAnimProgress < 1f)
-            {
-                float t = dv.AttackAnimProgress;
-                dragonPos = t < 0.5f
-                    ? Lerp(dv.HomePos, dv.TargetPos, Smoothstep(t * 2f))
-                    : Lerp(dv.TargetPos, dv.HomePos, Smoothstep((t - 0.5f) * 2f));
-            }
-            else
-            {
-                dragonPos = dv.HomePos;
-            }
-
-            DrawSvgMonsterIcon(canvas, dragonPos, _dragonSvg, dragon.SvgIconSize * dragon.IconSizeFactor);
-
-            if (dv.ResourceFlyProgress < 1f && dv.FlyingResource != null)
-            {
-                var flyPos = Lerp(dv.TargetPos, dv.HomePos, Smoothstep(dv.ResourceFlyProgress));
-                DrawResourceIcon(canvas, flyPos, dv.FlyingResource.Value, 1f - dv.ResourceFlyProgress);
-            }
-        }
-
-        // Draw rats
-        foreach (var rats in WorldState.Features.OfType<Rats>())
-        {
-            if (!rats.Found) continue;
-            if (rats.Position.Z != context.CurrentLayer) continue;
-            if (visibleMap != null && !visibleMap.HasTile(rats.Position)) continue;
-
-            var (rx, ry) = AxialToIsland(rats.Position.Q, rats.Position.R);
-            DrawSvgMonsterIcon(canvas, new SKPoint(rx, ry), _ratsSvg, rats.SvgIconSize * rats.IconSizeFactor);
-        }
-
-        // Draw bandits
-        var bandits = WorldState.Features.OfType<Bandit>().ToList();
-        SyncVisuals(bandits);
-
-        for (int i = 0; i < bandits.Count; i++)
-        {
-            var bandit = bandits[i];
-            if (bandit.Position.Z != context.CurrentLayer) continue;
-
-            var v = _visuals[i];
-
-            var targetPoint = HexToPoint(bandit.Position);
-
-            if (!v.ModelPosition.Equals(bandit.Position))
+            // Movement animation
+            var targetPoint = HexToPoint(monster.Position);
+            if (!v.ModelPosition.Equals(monster.Position))
             {
                 v.From = CurrentVisualPoint(v);
                 v.To = targetPoint;
-                v.Progress = 0f;
-                v.ModelPosition = bandit.Position;
+                v.MoveProgress = 0f;
+                v.ModelPosition = monster.Position;
             }
+            if (v.MoveProgress < 1f)
+                v.MoveProgress = Math.Min(1f, v.MoveProgress + dt / AnimationDuration);
 
-            if (v.Progress < 1f)
-                v.Progress = Math.Min(1f, v.Progress + dt / AnimationDuration);
+            var normalPos = Lerp(v.From, v.To, Smoothstep(v.MoveProgress));
 
-            var normalPos = Lerp(v.From, v.To, Smoothstep(v.Progress));
-
-            if (bandit.LastAttackTick > 0
-                && bandit.LastAttackTick != v.KnownLastAttackTick
-                && bandit.LastAttackTick != bandit.LastMovedTick
-                && bandit.LastAttackTargetVertex != null)
+            // Attack animation
+            if (monster.LastAttackTick > 0
+                && monster.LastAttackTick != v.KnownLastAttackTick
+                && monster.LastAttackTick != monster.LastMovedTick
+                && monster.LastAttackTargetVertex != null)
             {
-                v.KnownLastAttackTick = bandit.LastAttackTick;
-                v.RaidAnimProgress = 0f;
-                v.RaidHomePos = normalPos;
-                v.RaidTargetPos = VertexToIsland(bandit.LastAttackTargetVertex);
+                v.KnownLastAttackTick = monster.LastAttackTick;
+                v.AttackAnimProgress = 0f;
+                v.HomePos = normalPos;
+                v.TargetPos = VertexToIsland(monster.LastAttackTargetVertex);
                 v.FlyingResource = null;
-                if (bandit.LastAttackResourcesString != null)
+                if (monster.LastAttackResourcesString != null)
                 {
-                    var firstResource = bandit.LastAttackResourcesString.Split(',')[0];
-                    if (Enum.TryParse<Resource>(firstResource, out var res))
+                    var first = monster.LastAttackResourcesString.Split(',')[0];
+                    if (Enum.TryParse<Resource>(first, out var res))
                         v.FlyingResource = res;
                 }
                 v.ResourceFlyProgress = 1f;
             }
-
-            if (v.RaidAnimProgress < 1f)
+            if (v.AttackAnimProgress < 1f)
             {
-                v.RaidAnimProgress = Math.Min(1f, v.RaidAnimProgress + dt / RaidAnimDuration);
-                if (v.RaidAnimProgress >= 0.45f && v.ResourceFlyProgress >= 1f && v.FlyingResource != null)
+                v.AttackAnimProgress = Math.Min(1f, v.AttackAnimProgress + dt / AttackAnimDuration);
+                if (v.AttackAnimProgress >= 0.45f && v.ResourceFlyProgress >= 1f && v.FlyingResource != null)
                     v.ResourceFlyProgress = 0f;
             }
-
             if (v.ResourceFlyProgress < 1f)
                 v.ResourceFlyProgress = Math.Min(1f, v.ResourceFlyProgress + dt / ResourceFlyDuration);
 
-            if (visibleMap != null && !visibleMap.HasTile(bandit.Position))
-                continue;
+            // Rendering — filtered by found / layer / visibility
+            if (!monster.Found) continue;
+            if (monster.Position.Z != context.CurrentLayer) continue;
+            if (visibleMap != null && !visibleMap.HasTile(monster.Position)) continue;
+
+            var svgName = monster.SvgIconResourceName;
+            if (svgName == null) continue;
 
             SKPoint pos;
-            if (v.RaidAnimProgress < 1f)
+            if (v.AttackAnimProgress < 1f)
             {
-                float t = v.RaidAnimProgress;
+                float t = v.AttackAnimProgress;
                 pos = t < 0.5f
-                    ? Lerp(v.RaidHomePos, v.RaidTargetPos, Smoothstep(t * 2f))
-                    : Lerp(v.RaidTargetPos, v.RaidHomePos, Smoothstep((t - 0.5f) * 2f));
+                    ? Lerp(v.HomePos, v.TargetPos, Smoothstep(t * 2f))
+                    : Lerp(v.TargetPos, v.HomePos, Smoothstep((t - 0.5f) * 2f));
             }
             else
             {
                 pos = normalPos;
             }
 
-            DrawBanditIcon(canvas, pos, bandit.IconSizeFactor);
+            SKSvg? svg = null;
+            try { svg = _resourceManager.LoadImage(svgName); } catch { }
+            DrawSvgMonsterIcon(canvas, pos, svg, monster.SvgIconSize * monster.IconSizeFactor);
 
             if (v.ResourceFlyProgress < 1f && v.FlyingResource != null)
             {
-                var flyPos = Lerp(v.RaidTargetPos, v.RaidHomePos, Smoothstep(v.ResourceFlyProgress));
+                var flyPos = Lerp(v.TargetPos, v.HomePos, Smoothstep(v.ResourceFlyProgress));
                 DrawResourceIcon(canvas, flyPos, v.FlyingResource.Value, 1f - v.ResourceFlyProgress);
             }
         }
 
-        // Draw attack particles
+        // Attack particles (soldiers → monster)
         for (int i = _attackParticles.Count - 1; i >= 0; i--)
         {
             var p = _attackParticles[i];
@@ -353,33 +215,25 @@ public class MonsterRenderer : HexBasedRenderer, IGameRenderer
         }
     }
 
-    private void DrawBanditIcon(SKCanvas canvas, SKPoint center, float sizeFactor = 1f)
+    private void SyncMonsterVisuals(IList<MonsterFeature> monsters)
     {
-        var picture = _banditSvg?.Picture;
-        if (picture == null) return;
-
-        float size = BanditIconSize * sizeFactor;
-        float scale = size / 64f;
-        canvas.Save();
-        canvas.Translate(center.X - size / 2f, center.Y - size / 2f);
-        canvas.Scale(scale);
-        canvas.DrawPicture(picture);
-        canvas.Restore();
+        while (_monsterVisuals.Count < monsters.Count)
+        {
+            var pos = HexToPoint(monsters[_monsterVisuals.Count].Position);
+            _monsterVisuals.Add(new MonsterVisual
+            {
+                ModelPosition = monsters[_monsterVisuals.Count].Position,
+                From = pos,
+                To = pos,
+                HomePos = pos,
+            });
+        }
+        while (_monsterVisuals.Count > monsters.Count)
+            _monsterVisuals.RemoveAt(_monsterVisuals.Count - 1);
     }
 
-    private void DrawHideoutIcon(SKCanvas canvas, SKPoint center, float sizeFactor = 1f)
-    {
-        var picture = _hideoutSvg?.Picture;
-        if (picture == null) return;
-
-        float size = HideoutIconSize * sizeFactor;
-        float scale = size / 64f;
-        canvas.Save();
-        canvas.Translate(center.X - size / 2f, center.Y - size / 2f);
-        canvas.Scale(scale);
-        canvas.DrawPicture(picture);
-        canvas.Restore();
-    }
+    private SKPoint CurrentVisualPoint(MonsterVisual v)
+        => Lerp(v.From, v.To, Smoothstep(v.MoveProgress));
 
     private static void DrawSvgMonsterIcon(SKCanvas canvas, SKPoint center, SKSvg? svg, float size)
     {
@@ -434,37 +288,6 @@ public class MonsterRenderer : HexBasedRenderer, IGameRenderer
         canvas.Restore();
     }
 
-    private void SyncDragonVisuals(IList<Dragon> dragons)
-    {
-        while (_dragonVisuals.Count < dragons.Count)
-        {
-            var pos = HexToPoint(dragons[_dragonVisuals.Count].Position);
-            _dragonVisuals.Add(new DragonVisual { ModelPosition = dragons[_dragonVisuals.Count].Position, HomePos = pos });
-        }
-        while (_dragonVisuals.Count > dragons.Count)
-            _dragonVisuals.RemoveAt(_dragonVisuals.Count - 1);
-    }
-
-    private void SyncVisuals(IList<Bandit> bandits)
-    {
-        while (_visuals.Count < bandits.Count)
-        {
-            var pos = HexToPoint(bandits[_visuals.Count].Position);
-            _visuals.Add(new BanditVisual
-            {
-                ModelPosition = bandits[_visuals.Count].Position,
-                From = pos,
-                To = pos,
-                Progress = 1f
-            });
-        }
-        while (_visuals.Count > bandits.Count)
-            _visuals.RemoveAt(_visuals.Count - 1);
-    }
-
-    private SKPoint CurrentVisualPoint(BanditVisual v)
-        => Lerp(v.From, v.To, Smoothstep(v.Progress));
-
     private SKPoint HexToPoint(HexCoord hex)
     {
         var (x, y) = AxialToIsland(hex.Q, hex.R);
@@ -480,10 +303,6 @@ public class MonsterRenderer : HexBasedRenderer, IGameRenderer
     public void Dispose()
     {
         if (_disposed) return;
-        _banditSvg = null;
-        _hideoutSvg = null;
-        _dragonSvg = null;
-        _ratsSvg = null;
         _attackSvg = null;
         _resourceFlyPaint?.Dispose();
         _resourceFlyPaint = null;

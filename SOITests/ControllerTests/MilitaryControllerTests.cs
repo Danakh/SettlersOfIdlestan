@@ -1,11 +1,11 @@
 ﻿using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Controller.Military;
-using SettlersOfIdlestan.Model.Bandits;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
+using SettlersOfIdlestan.Model.Monsters;
 using System.Collections.Generic;
 using System.Linq;
 using Xunit;

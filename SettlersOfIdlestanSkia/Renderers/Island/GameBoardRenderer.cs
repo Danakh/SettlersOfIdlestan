@@ -9,10 +9,10 @@ using System;
 using System.Collections.Generic;
 using SettlersOfIdlestan.Controller.Military;
 using SettlersOfIdlestan.Controller.Island;
-using SettlersOfIdlestan.Model.Bandits;
 using System.Linq;
 using SettlersOfIdlestanSkia.Renderers.Debug;
 using SettlersOfIdlestan.Model.IslandFeatures;
+using SettlersOfIdlestan.Model.Monsters;
 
 namespace SettlersOfIdlestanSkia.Renderers.Island;
 

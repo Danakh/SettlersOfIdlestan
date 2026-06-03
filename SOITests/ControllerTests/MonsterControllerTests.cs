@@ -1,6 +1,5 @@
 using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Controller.Military;
-using SettlersOfIdlestan.Model.Bandits;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
 using System.Linq;
@@ -9,6 +8,7 @@ using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
 using System.Collections.Generic;
 using Xunit;
+using SettlersOfIdlestan.Model.Monsters;
 
 namespace SOITests.ControllerTests
 {

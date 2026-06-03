@@ -19,6 +19,7 @@ public abstract class MonsterFeature : IslandFeature
     public long LastAttackedByMilitaryTick { get; set; } = 0;
 
     public override float SvgIconSize => 24f;
+    public override bool ShouldRenderIcon => false;
 
     // ── Mouvement (opt-in) ─────────────────────────────────────────────────
     public virtual bool CanMove => false;
