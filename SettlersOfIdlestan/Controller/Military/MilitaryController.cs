@@ -372,12 +372,12 @@ public class MilitaryController
             Vertex? newFlow = null;
             int capacity = city.MaxSoldiers;
             if (capacity > 0
-                && city.Soldiers * 2 >= capacity
+                && city.Soldiers * 4 >= capacity
                 && FindNearbyEnemyCity(city, civ) == null)
             {
                 int range = ReinforcementRange(civ);
                 City? target = null;
-                int fewestSoldiers = int.MaxValue;
+                int fewestSoldiers = city.Soldiers;
 
                 foreach (var friendly in civ.Cities)
                 {
