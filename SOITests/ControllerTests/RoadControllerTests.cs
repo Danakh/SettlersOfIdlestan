@@ -470,6 +470,96 @@ public class RoadControllerTests
         Assert.Contains(civ.Roads, r => r.Position.Equals(r3Edge));
     }
 
+    // ─── Blocage par ville ennemie ───────────────────────────────────────────
+    //
+    // Géométrie :
+    //   Joueur : ville à Vertex(a,b,c), route R1 = Edge(b,c)
+    //   Ennemi : ville à Vertex(b,c,d)  ← vertex "de sortie" de R1
+    //
+    //   Edge(b,d) et Edge(c,d) nécessitent de passer par Vertex(b,c,d) → bloquées.
+    //   Edge(a,b) et Edge(a,c) passent par Vertex(a,b,c) (ville joueur) → autorisées.
+
+    [Fact]
+    public void GetBuildableRoads_EnemyCityAtRoadEndVertex_ExcludesEdgesBeyond()
+    {
+        var map = new IslandMap(new HexTile[]
+        {
+            new(Ha, TerrainType.Plain),
+            new(Hb, TerrainType.Plain),
+            new(Hc, TerrainType.Plain),
+            new(Hd, TerrainType.Plain),
+        });
+
+        var playerCiv = new Civilization { Index = 0 };
+        playerCiv.Cities.Add(new City(Vertex.Create(Ha, Hb, Hc)) { CivilizationIndex = 0 });
+        playerCiv.Roads.Add(new Road(Edge.Create(Hb, Hc)) { CivilizationIndex = 0, DistanceToNearestCity = 1 });
+
+        var enemyCiv = new Civilization { Index = 1 };
+        enemyCiv.Cities.Add(new City(Vertex.Create(Hb, Hc, Hd)) { CivilizationIndex = 1 });
+
+        var state = new WorldState(map, new List<Civilization> { playerCiv, enemyCiv }, AtlasController.InvalidIslandId);
+        var controller = new RoadController(state);
+
+        var buildable = controller.GetBuildableRoads(0);
+
+        Assert.DoesNotContain(buildable, r => r.Position.Equals(Edge.Create(Hb, Hd)));
+        Assert.DoesNotContain(buildable, r => r.Position.Equals(Edge.Create(Hc, Hd)));
+    }
+
+    [Fact]
+    public void GetBuildableRoads_EnemyCityAtRoadEndVertex_StillAllowsEdgesFromFriendlyCity()
+    {
+        var map = new IslandMap(new HexTile[]
+        {
+            new(Ha, TerrainType.Plain),
+            new(Hb, TerrainType.Plain),
+            new(Hc, TerrainType.Plain),
+            new(Hd, TerrainType.Plain),
+        });
+
+        var playerCiv = new Civilization { Index = 0 };
+        playerCiv.Cities.Add(new City(Vertex.Create(Ha, Hb, Hc)) { CivilizationIndex = 0 });
+        playerCiv.Roads.Add(new Road(Edge.Create(Hb, Hc)) { CivilizationIndex = 0, DistanceToNearestCity = 1 });
+
+        var enemyCiv = new Civilization { Index = 1 };
+        enemyCiv.Cities.Add(new City(Vertex.Create(Hb, Hc, Hd)) { CivilizationIndex = 1 });
+
+        var state = new WorldState(map, new List<Civilization> { playerCiv, enemyCiv }, AtlasController.InvalidIslandId);
+        var controller = new RoadController(state);
+
+        var buildable = controller.GetBuildableRoads(0);
+
+        // Arêtes issues de la ville joueur → toujours accessibles
+        Assert.Contains(buildable, r => r.Position.Equals(Edge.Create(Ha, Hb)));
+        Assert.Contains(buildable, r => r.Position.Equals(Edge.Create(Ha, Hc)));
+    }
+
+    [Fact]
+    public void BuildRoad_ThroughEnemyCityVertex_ThrowsInvalidOperation()
+    {
+        var map = new IslandMap(new HexTile[]
+        {
+            new(Ha, TerrainType.Plain),
+            new(Hb, TerrainType.Plain),
+            new(Hc, TerrainType.Plain),
+            new(Hd, TerrainType.Plain),
+        });
+
+        var playerCiv = new Civilization { Index = 0 };
+        playerCiv.Cities.Add(new City(Vertex.Create(Ha, Hb, Hc)) { CivilizationIndex = 0 });
+        playerCiv.Roads.Add(new Road(Edge.Create(Hb, Hc)) { CivilizationIndex = 0, DistanceToNearestCity = 1 });
+        playerCiv.AddResource(Resource.Wood, 10);
+        playerCiv.AddResource(Resource.Brick, 10);
+
+        var enemyCiv = new Civilization { Index = 1 };
+        enemyCiv.Cities.Add(new City(Vertex.Create(Hb, Hc, Hd)) { CivilizationIndex = 1 });
+
+        var state = new WorldState(map, new List<Civilization> { playerCiv, enemyCiv }, AtlasController.InvalidIslandId);
+        var controller = new RoadController(state);
+
+        Assert.Throws<InvalidOperationException>(() => controller.BuildRoad(0, Edge.Create(Hb, Hd)));
+    }
+
     [Fact]
     public void BuildRoad_OverEnemyRoad_RemovesDisconnectedEnemyChain()
     {
