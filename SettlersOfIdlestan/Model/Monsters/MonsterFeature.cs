@@ -39,10 +39,11 @@ public abstract class MonsterFeature : IslandFeature
     public virtual int AttackRangeInHexes => 0;
     public virtual long AttackIntervalTicks => long.MaxValue;
     public virtual bool IgnoresPalisade => false;
-    /// <summary>Soldats tués lors d'une attaque réussie.</summary>
-    public virtual int AttackSoldiers => 0;
-    /// <summary>Points de défense détruits lors d'une attaque réussie.</summary>
-    public virtual int AttackDefense => 0;
+    /// <summary>
+    /// Dégâts infligés en cascade : soldats d'abord, puis défense, puis niveaux de Townhall (1 par point).
+    /// Quand le Townhall tombe à 0 il est détruit ; les dégâts restants détruisent la ville.
+    /// </summary>
+    public virtual int AttackDamage => 0;
     /// <summary>Ressources volées (une par tirage) lors d'une attaque réussie.</summary>
     public virtual int AttackResources => 0;
     public long LastAttackTick { get; set; } = 0;

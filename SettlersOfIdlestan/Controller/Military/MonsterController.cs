@@ -13,6 +13,8 @@ namespace SettlersOfIdlestan.Controller.Military;
 
 public class MonsterFeatureController
 {
+    public event EventHandler<CityDestroyedEventArgs>? CityDestroyedByMonster;
+
     private WorldState? _state;
     private GameClock? _clock;
     private GamePRNG _prng = new();
@@ -224,18 +226,50 @@ public class MonsterFeatureController
 
         bool didSomething = false;
 
-        if (monster.AttackSoldiers > 0 && city.Soldiers > 0)
+        // ── Dégâts en cascade ────────────────────────────────────────────────
+        int damage = monster.AttackDamage;
+
+        if (damage > 0)
         {
-            city.Soldiers = Math.Max(0, city.Soldiers - monster.AttackSoldiers);
-            didSomething = true;
+            // 1. Soldats
+            int soldierDmg = Math.Min(damage, city.Soldiers);
+            if (soldierDmg > 0) { city.Soldiers -= soldierDmg; damage -= soldierDmg; didSomething = true; }
+
+            // 2. Défense
+            if (damage > 0)
+            {
+                int defenseDmg = Math.Min(damage, city.CurrentDefense);
+                if (defenseDmg > 0) { city.CurrentDefense -= defenseDmg; damage -= defenseDmg; didSomething = true; }
+            }
+
+            // 3. Niveaux de Townhall (1 dégât = 1 niveau)
+            if (damage > 0)
+            {
+                var townHall = city.Buildings.OfType<TownHall>().FirstOrDefault();
+                if (townHall != null)
+                {
+                    int thDmg = Math.Min(damage, townHall.Level);
+                    townHall.Level -= thDmg;
+                    damage -= thDmg;
+                    didSomething = true;
+                    if (townHall.Level <= 0)
+                        city.Buildings.Remove(townHall);
+                }
+            }
+
+            // 4. Destruction de la ville — dégâts résiduels après townhall détruit
+            if (damage > 0 && !city.Buildings.OfType<TownHall>().Any())
+            {
+                monster.LastAttackTargetVertex = city.Position;
+                monster.LastAttackResourcesString = null;
+                civ.Cities.Remove(city);
+                CityDestroyedByMonster?.Invoke(this, new CityDestroyedEventArgs(city.Position));
+                _state!.RecalculateVisibleIslandMaps();
+                return;
+            }
         }
 
-        if (monster.AttackDefense > 0 && city.CurrentDefense > 0)
-        {
-            city.CurrentDefense = Math.Max(0, city.CurrentDefense - monster.AttackDefense);
-            didSomething = true;
-        }
-
+        // ── Ressources volées ────────────────────────────────────────────────
         if (monster.AttackResources > 0)
         {
             var stolen = new List<string>(monster.AttackResources);
