@@ -1,5 +1,6 @@
 ﻿using System;
 using SettlersOfIdlestan.Model.Buildings;
+using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Services.Localization;
@@ -326,7 +327,8 @@ public sealed class OverlayRenderer : IGameRenderer
             foreach (var city in civ.Cities)
                 foreach (var b in city.Buildings)
                     if (b.ProvidesAutomation && b.Level > 0) return true;
-            return false;
+            var completed = civ.TechnologyTree.CompletedTechnologies;
+            return completed.Contains(TechnologyId.AdvancedTactics) || completed.Contains(TechnologyId.AdvancedStrategy);
         }
         catch { return false; }
     }

@@ -96,6 +96,8 @@
   "automation_military_reinforcement_name": "Renfort automatique",
   "automation_military_reinforcement_desc": "Transfère les soldats des villes pleines vers les villes proches moins fournies",
   "automation_military_reinforcement_locked": "Nécessite Tactiques avancées",
+  "automation_header_buildings": "Constructions",
+  "automation_header_behaviors": "Comportements",
   "automation_military_attack_name": "Attaque automatique",
   "automation_military_attack_desc": "Attaque les villes ennemies proches automatiquement",
   "automation_military_attack_locked": "Nécessite Stratégie avancée",
