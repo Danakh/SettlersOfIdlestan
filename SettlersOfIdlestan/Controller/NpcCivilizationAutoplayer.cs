@@ -31,14 +31,16 @@ public class NpcCivilizationAutoplayer
     /// <summary>Runs one autoplayer step adapted to the aggressivity level.</summary>
     public bool TryStepOnce(bool shouldExpand = true)
     {
+        if (_inner.Civilization.Cities.Count == 0) return false;
         return _aggressivity switch
         {
-            NpcAggressivityLevel.Pacifist     => _inner.TryStep1Once(shouldExpand: false),
-            NpcAggressivityLevel.Cautious     => _inner.TryStep1Once(shouldExpand),
+            NpcAggressivityLevel.Pacifist => _inner.TryStep1Once(shouldExpand: false),
+            NpcAggressivityLevel.Cautious => _inner.TryStep1Once(shouldExpand),
             NpcAggressivityLevel.Expansionist => TryExpansionStep(shouldExpand),
-            NpcAggressivityLevel.Warlike      => TryWarlikeStep(shouldExpand),
-            _                                 => _inner.TryStep1Once(shouldExpand),
+            NpcAggressivityLevel.Warlike => TryWarlikeStep(shouldExpand),
+            _ => _inner.TryStep1Once(shouldExpand),
         };
+        
     }
 
     private bool TryExpansionStep(bool shouldExpand)

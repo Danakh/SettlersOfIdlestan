@@ -45,6 +45,8 @@ namespace SettlersOfIdlestan.Controller
 
         private static readonly BuildingType[] MilitaryBuildings = { BuildingType.Palisade, BuildingType.Barracks };
 
+        public Civilization Civilization => _civ;
+
         public CivilizationAutoplayer(Civilization civ, IslandMap map, MainGameController mainController)
         {
             _civ = civ ?? throw new ArgumentNullException(nameof(civ));
