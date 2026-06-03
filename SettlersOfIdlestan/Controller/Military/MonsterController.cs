@@ -262,8 +262,9 @@ public class MonsterFeatureController
             {
                 monster.LastAttackTargetVertex = city.Position;
                 monster.LastAttackResourcesString = null;
+                city.RaiseDestroyed();
                 civ.Cities.Remove(city);
-                CityDestroyedByMonster?.Invoke(this, new CityDestroyedEventArgs(city.Position));
+                CityDestroyedByMonster?.Invoke(this, new CityDestroyedEventArgs(city.Position, civ.Index));
                 _state!.RecalculateVisibleIslandMaps();
                 return;
             }

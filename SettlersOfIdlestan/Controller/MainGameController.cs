@@ -219,11 +219,13 @@ namespace SettlersOfIdlestan.Controller
                 BuildingController.OnBuildingBuilt -= OnBuildingChangedInvalidateHarvestCache;
                 CityBuilderController.OnCityBuilt -= OnCityBuiltInvalidateHarvestCache;
                 MilitaryController.CityDestroyed -= OnCityDestroyedRefreshContested;
+                MonsterFeatureController.CityDestroyedByMonster -= OnCityDestroyedByMonster;
                 RoadController.OnRoadBuilt -= OnRoadBuiltExtendMap;
                 RoadController.OnAutoRoadBuilt -= OnRoadBuiltExtendMap;
                 BuildingController.OnBuildingBuilt += OnBuildingChangedInvalidateHarvestCache;
                 CityBuilderController.OnCityBuilt += OnCityBuiltInvalidateHarvestCache;
                 MilitaryController.CityDestroyed += OnCityDestroyedRefreshContested;
+                MonsterFeatureController.CityDestroyedByMonster += OnCityDestroyedByMonster;
                 RoadController.OnRoadBuilt += OnRoadBuiltExtendMap;
                 RoadController.OnAutoRoadBuilt += OnRoadBuiltExtendMap;
                 prestigeState?.TechnologyTree.RebuildModifiers();
@@ -250,6 +252,16 @@ namespace SettlersOfIdlestan.Controller
 
         private void OnCityDestroyedRefreshContested(object? sender, CityDestroyedEventArgs e)
             => FeatureController.RefreshContestedTerritories();
+
+        private void OnCityDestroyedByMonster(object? sender, CityDestroyedEventArgs e)
+        {
+            var worldState = CurrentMainState?.CurrentWorldState;
+            if (worldState == null) return;
+            var civ = worldState.Civilizations.FirstOrDefault(c => c.Index == e.CivilizationIndex);
+            if (civ != null)
+                RoadController.OnCityDestroyed(civ, e.CityVertex);
+            MilitaryController.NotifyCityDestroyed(e.CityVertex, e.CivilizationIndex);
+        }
 
         private void SetupModifierAggregators()
         {

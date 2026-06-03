@@ -33,9 +33,10 @@ public class CityBuildingDestroyedEventArgs(Vertex cityVertex) : EventArgs
     public Vertex CityVertex { get; } = cityVertex;
 }
 
-public class CityDestroyedEventArgs(Vertex cityVertex) : EventArgs
+public class CityDestroyedEventArgs(Vertex cityVertex, int civilizationIndex = -1) : EventArgs
 {
     public Vertex CityVertex { get; } = cityVertex;
+    public int CivilizationIndex { get; } = civilizationIndex;
 }
 
 public class ReinforcementEventArgs(Vertex sourceCity, Vertex targetCity, List<Vertex> path) : EventArgs
@@ -440,10 +441,10 @@ public class MilitaryController
 
         foreach (var (civ, city) in citiesToDestroy)
         {
+            city.RaiseDestroyed();
             civ.Cities.Remove(city);
             _roadController?.OnCityDestroyed(civ, city.Position);
-            ClearFlowsTargeting(city.Position);
-            CityDestroyed?.Invoke(this, new CityDestroyedEventArgs(city.Position));
+            NotifyCityDestroyed(city.Position, civ.Index);
             _state!.RecalculateVisibleIslandMaps();
         }
     }
@@ -457,6 +458,16 @@ public class MilitaryController
             if (city != null) return city;
         }
         return null;
+    }
+
+    /// <summary>
+    /// Clears flows, fires <see cref="CityDestroyed"/>, and recalculates visibility.
+    /// Call after removing the city from its civilization and cleaning up roads.
+    /// </summary>
+    public void NotifyCityDestroyed(Vertex position, int civilizationIndex)
+    {
+        ClearFlowsTargeting(position);
+        CityDestroyed?.Invoke(this, new CityDestroyedEventArgs(position, civilizationIndex));
     }
 
     private void ClearFlowsTargeting(Vertex position)

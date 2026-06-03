@@ -98,6 +98,14 @@ public class City
     };
 
     /// <summary>
+    /// Fired just before the city is removed from its civilization. Subscribers can still read city properties.
+    /// </summary>
+    [field: NonSerialized]
+    public event EventHandler<EventArgs>? Destroyed;
+
+    internal void RaiseDestroyed() => Destroyed?.Invoke(this, EventArgs.Empty);
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="City"/> class.
     /// </summary>
     public City()
