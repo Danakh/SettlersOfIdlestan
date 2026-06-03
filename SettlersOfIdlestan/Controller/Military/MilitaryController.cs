@@ -177,7 +177,7 @@ public class MilitaryController
         _lastPlayerAutoReinforcementTick = currentTick;
 
         var playerCiv = _state.PlayerCivilization;
-        if (!playerCiv.TechnologyTree.CompletedTechnologies.Contains(TechId.AdvancedTactics)) return;
+        if (!playerCiv.ModifierAggregator.HasModifier(ECategory.UNLOCK_AUTO_REINFORCEMENT)) return;
 
         UpdateCivilizationReinforcementFlows(playerCiv);
     }
@@ -190,7 +190,7 @@ public class MilitaryController
         _lastPlayerAutoAttackTick = currentTick;
 
         var playerCiv = _state.PlayerCivilization;
-        if (!playerCiv.TechnologyTree.CompletedTechnologies.Contains(TechId.AdvancedStrategy)) return;
+        if (!playerCiv.ModifierAggregator.HasModifier(ECategory.UNLOCK_AUTO_ATTACK)) return;
 
         foreach (var city in playerCiv.Cities)
         {

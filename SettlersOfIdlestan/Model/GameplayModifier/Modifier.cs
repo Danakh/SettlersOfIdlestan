@@ -48,6 +48,14 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             TRADE_BULK_GOLD_BONUS,
             /// <summary>Quand un bâtiment contribuant à MaxDefense est construit/amélioré, ajoute aussi sa valeur à CurrentDefense. SubCategory unused.</summary>
             BUILDING_DEFENSE_ON_CONSTRUCT,
+            /// <summary>Flags que le système de recherche est déverrouillé pour la civilisation.</summary>
+            UNLOCK_RESEARCH_SYSTEM,
+            /// <summary>Flags que la file de recherche est déverrouillée pour la civilisation.</summary>
+            UNLOCK_RESEARCH_QUEUE,
+            /// <summary>Flags que le renforcement automatique est déverrouillé pour la civilisation.</summary>
+            UNLOCK_AUTO_REINFORCEMENT,
+            /// <summary>Flags que l'attaque automatique est déverrouillée pour la civilisation.</summary>
+            UNLOCK_AUTO_ATTACK,
         }
 
         public enum EType

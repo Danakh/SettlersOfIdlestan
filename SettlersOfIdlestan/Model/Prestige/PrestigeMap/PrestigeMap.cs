@@ -132,7 +132,11 @@ public class PrestigeMap
                 CentralVertex,
                 "prestige_vertex_central",
                 cost: Cost(CentralVertex),
-                modifiers: new Modifier[] { new(ECategory.BUILDING_MAX_LEVEL, "Library", EType.ADDITIVE, 3) }
+                modifiers: new Modifier[]
+                {
+                    new(ECategory.BUILDING_MAX_LEVEL, "Library", EType.ADDITIVE, 3),
+                    new(ECategory.UNLOCK_RESEARCH_SYSTEM, EType.ADDITIVE, 1),
+                }
             ),
             new(
                 SeaportMarketVertex,
@@ -241,6 +245,7 @@ public class PrestigeMap
                 modifiers: new Modifier[]
                 {
                     new(ECategory.UNLOCK_RESEARCH, "Erudition", EType.ADDITIVE, 1),
+                    new(ECategory.UNLOCK_RESEARCH_QUEUE, EType.ADDITIVE, 1),
                 }
             ),
             new(

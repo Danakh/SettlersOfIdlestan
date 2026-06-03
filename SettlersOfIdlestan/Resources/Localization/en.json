@@ -277,6 +277,7 @@
   "prestige_tooltip_production": "production",
   "prestige_tooltip_unlocks_research": "Unlocks",
   "prestige_tooltip_unlocks_research_system": "Unlocks research",
+  "prestige_tooltip_unlocks_research_queue": "Unlocks research queue",
   "prestige_tooltip_max_level": "max level",
   "prestige_tooltip_unlocks_maritime_routes": "Unlocks maritime routes (connections via coastal waters)",
   "hex_tooltip_manual": "Manual harvest",
