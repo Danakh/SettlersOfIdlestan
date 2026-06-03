@@ -22,8 +22,6 @@ public class MonsterRenderer : HexBasedRenderer, IGameRenderer
     private const float ResourceFlyDuration = 0.6f;
     private const float BanditIconSize = 24f;
     private const float HideoutIconSize = 32f;
-    private const float DragonIconSize = 36f;
-    private const float RatsIconSize = 22f;
     private const float ResourceIconSize = 18f;
     private const float AttackParticleDuration = 0.5f;
     private const float AttackParticleIconSize = 16f;
@@ -167,7 +165,7 @@ public class MonsterRenderer : HexBasedRenderer, IGameRenderer
             if ((visibleMap != null) && !visibleMap.HasTile(hideout.Position)) continue;
 
             var (hx, hy) = AxialToIsland(hideout.Position.Q, hideout.Position.R);
-            DrawHideoutIcon(canvas, new SKPoint(hx, hy));
+            DrawHideoutIcon(canvas, new SKPoint(hx, hy), hideout.IconSizeFactor);
         }
 
         // Draw dragons
@@ -178,7 +176,7 @@ public class MonsterRenderer : HexBasedRenderer, IGameRenderer
             if (visibleMap != null && !visibleMap.HasTile(dragon.Position)) continue;
 
             var (dx, dy) = AxialToIsland(dragon.Position.Q, dragon.Position.R);
-            DrawSvgMonsterIcon(canvas, new SKPoint(dx, dy), _dragonSvg, DragonIconSize);
+            DrawSvgMonsterIcon(canvas, new SKPoint(dx, dy), _dragonSvg, dragon.SvgIconSize * dragon.IconSizeFactor);
         }
 
         // Draw rats
@@ -189,7 +187,7 @@ public class MonsterRenderer : HexBasedRenderer, IGameRenderer
             if (visibleMap != null && !visibleMap.HasTile(rats.Position)) continue;
 
             var (rx, ry) = AxialToIsland(rats.Position.Q, rats.Position.R);
-            DrawSvgMonsterIcon(canvas, new SKPoint(rx, ry), _ratsSvg, RatsIconSize);
+            DrawSvgMonsterIcon(canvas, new SKPoint(rx, ry), _ratsSvg, rats.SvgIconSize * rats.IconSizeFactor);
         }
 
         // Draw bandits
@@ -263,7 +261,7 @@ public class MonsterRenderer : HexBasedRenderer, IGameRenderer
                 pos = normalPos;
             }
 
-            DrawBanditIcon(canvas, pos);
+            DrawBanditIcon(canvas, pos, bandit.IconSizeFactor);
 
             if (v.ResourceFlyProgress < 1f && v.FlyingResource != null)
             {
@@ -286,27 +284,29 @@ public class MonsterRenderer : HexBasedRenderer, IGameRenderer
         }
     }
 
-    private void DrawBanditIcon(SKCanvas canvas, SKPoint center)
+    private void DrawBanditIcon(SKCanvas canvas, SKPoint center, float sizeFactor = 1f)
     {
         var picture = _banditSvg?.Picture;
         if (picture == null) return;
 
-        float scale = BanditIconSize / 64f;
+        float size = BanditIconSize * sizeFactor;
+        float scale = size / 64f;
         canvas.Save();
-        canvas.Translate(center.X - BanditIconSize / 2f, center.Y - BanditIconSize / 2f);
+        canvas.Translate(center.X - size / 2f, center.Y - size / 2f);
         canvas.Scale(scale);
         canvas.DrawPicture(picture);
         canvas.Restore();
     }
 
-    private void DrawHideoutIcon(SKCanvas canvas, SKPoint center)
+    private void DrawHideoutIcon(SKCanvas canvas, SKPoint center, float sizeFactor = 1f)
     {
         var picture = _hideoutSvg?.Picture;
         if (picture == null) return;
 
-        float scale = HideoutIconSize / 64f;
+        float size = HideoutIconSize * sizeFactor;
+        float scale = size / 64f;
         canvas.Save();
-        canvas.Translate(center.X - HideoutIconSize / 2f, center.Y - HideoutIconSize / 2f);
+        canvas.Translate(center.X - size / 2f, center.Y - size / 2f);
         canvas.Scale(scale);
         canvas.DrawPicture(picture);
         canvas.Restore();
@@ -317,7 +317,8 @@ public class MonsterRenderer : HexBasedRenderer, IGameRenderer
         var picture = svg?.Picture;
         if (picture == null) return;
 
-        float scale = size / 64f;
+        float naturalSize = Math.Max(picture.CullRect.Width, picture.CullRect.Height);
+        float scale = naturalSize > 0f ? size / naturalSize : 1f;
         canvas.Save();
         canvas.Translate(center.X - size / 2f, center.Y - size / 2f);
         canvas.Scale(scale);

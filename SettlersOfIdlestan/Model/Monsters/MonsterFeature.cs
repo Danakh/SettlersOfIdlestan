@@ -18,6 +18,8 @@ public abstract class MonsterFeature : IslandFeature
     /// <summary>Tick du dernier combat initié par les soldats ennemis.</summary>
     public long LastAttackedByMilitaryTick { get; set; } = 0;
 
+    public override float SvgIconSize => 24f;
+
     // ── Mouvement (opt-in) ─────────────────────────────────────────────────
     public virtual bool CanMove => false;
     public virtual long MovementIntervalTicks => long.MaxValue;

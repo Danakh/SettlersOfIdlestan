@@ -257,7 +257,7 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
             var picture = svg?.Picture;
             if (picture == null) return;
 
-            float size = feature.SvgIconSize;
+            float size = feature.SvgIconSize * feature.IconSizeFactor;
             float naturalSize = Math.Max(picture.CullRect.Width, picture.CullRect.Height);
             float scale = naturalSize > 0f ? size / naturalSize : 1f;
 
