@@ -417,6 +417,7 @@
   "hex_tooltip_terrain_desert": "Désert",
   "wonder_action": "Construire Merveille",
   "wonder_action_short": "Merveille",
+  "tooltip_wonder_surface_only": "⚠ Les merveilles ne peuvent être construites qu'en surface",
   "wonder_requires_architecture": "⚠ Nécessite la technologie Architecture",
   "wonder_already_placed": "⚠ Une Merveille est déjà placée",
   "wonder_select_hex": "Choisissez un hex adjacent à une de vos villes",

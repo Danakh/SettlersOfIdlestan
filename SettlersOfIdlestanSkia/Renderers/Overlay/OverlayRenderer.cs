@@ -121,7 +121,8 @@ public sealed class OverlayRenderer : IGameRenderer
             closeAll: CloseAll,
             tradeRenderer,
             prestigeRenderer,
-            wonderSelectionService: null);
+            wonderSelectionService: null,
+            tooltipRenderer);
         _inputService.PointerPressed += HandlePointerPressed;
         _inputService.PointerMoved += HandlePointerMoved;
         _inputService.PointerReleased += HandlePointerReleased;
