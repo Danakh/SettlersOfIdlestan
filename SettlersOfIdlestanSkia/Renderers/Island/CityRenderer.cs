@@ -128,7 +128,7 @@ public class CityRenderer : HexBasedRenderer, IGameRenderer
             if (worldState.CurrentViewedLayer == LayerState.UnderworldZ && worldState.Layers.TryGetValue(LayerState.UnderworldZ, out var underworldLayer))
             {
                 // Render underworld cities (all visible, no fog of war)
-                DrawCities(canvas, underworldLayer.Cities, worldState.PlayerCivilization.Index, underworldLayer.Map);
+                DrawCities(canvas, underworldLayer.Cities, worldState.PlayerCivilization, underworldLayer.Map);
                 return;
             }
 
@@ -143,7 +143,7 @@ public class CityRenderer : HexBasedRenderer, IGameRenderer
             // Dessine les villes de chaque civilisation
             foreach (var civilization in worldState.Civilizations)
             {
-                DrawCities(canvas, civilization.Cities, civilization.Index, mapForVisibility);
+                DrawCities(canvas, civilization.Cities, civilization, mapForVisibility);
             }
         }
     }
@@ -180,13 +180,13 @@ public class CityRenderer : HexBasedRenderer, IGameRenderer
     /// <summary>
     /// Dessine les villes d'une civilisation.
     /// </summary>
-    private void DrawCities(SKCanvas canvas, List<City> cities, int civilizationIndex, IslandMap visibleMap)
+    private void DrawCities(SKCanvas canvas, List<City> cities, Civilization civilization, IslandMap visibleMap)
     {
         if (cities.Count == 0 || _settlementPaint == null || _cityPaint == null || _borderPaint == null)
             return;
 
         // Sélectionne la couleur de la civilisation
-        var color = CivilizationColors[civilizationIndex % CivilizationColors.Length];
+        var color = CivilizationColors[civilization.Index % CivilizationColors.Length];
 
         foreach (var city in cities)
         {
@@ -210,17 +210,17 @@ public class CityRenderer : HexBasedRenderer, IGameRenderer
             if (city.Level >= 2)
                 canvas.DrawText(city.Level.ToString(), pixelPos.X, pixelPos.Y + 4, SKTextAlign.Center, _cityLevelFont, _cityLevelTextPaint);
 
-            DrawMilitaryScores(canvas, city, pixelPos, radius);
+            DrawMilitaryScores(canvas, city, civilization, pixelPos, radius);
         }
     }
 
-    private void DrawMilitaryScores(SKCanvas canvas, City city, SKPoint cityPos, float cityRadius)
+    private void DrawMilitaryScores(SKCanvas canvas, City city, Civilization civilization, SKPoint cityPos, float cityRadius)
     {
         if (_militaryTextPaint == null || _militaryTextFont == null || _iconColorPaint == null)
             return;
 
         int attack = _militaryController.GetAttackScore(city);
-        int maxDefense = _militaryController.GetDefenseScore(city);
+        int maxDefense = _militaryController.GetDefenseScore(city, civilization);
         int currentDefense = city.CurrentDefense;
 
         bool showAttack = attack > 0;
