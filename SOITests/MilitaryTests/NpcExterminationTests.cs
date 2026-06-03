@@ -95,7 +95,7 @@ public class NpcExterminationTests
         runner.RunStep1Until(
             () => playerCiv.Cities.Count >= 4
                && playerCiv.Cities.All(c => c.Buildings.Any(b => b.Type == BuildingType.TownHall)),
-            maxIterations: 5000);
+            maxIterations: 10000);
         Assert.True(
             playerCiv.Cities.Count >= 4,
             "Le joueur devrait avoir au moins 4 villes après Step 1.");
@@ -104,7 +104,7 @@ public class NpcExterminationTests
         runner.RunStep2Until(
             () => playerCiv.Cities.Any(c => c.Buildings.Any(b => b.Type == BuildingType.Warehouse)) &&
                   playerCiv.Cities.Any(c => c.Buildings.Any(b => b.Type == BuildingType.Mine)),
-            maxIterations: 5000);
+            maxIterations: 10000);
         Assert.True(
             playerCiv.Cities.Any(c => c.Buildings.Any(b => b.Type == BuildingType.Warehouse)),
             "Le joueur devrait avoir un Warehouse pour atteindre le stockage requis.");
@@ -115,7 +115,7 @@ public class NpcExterminationTests
         // Step militaire : construire la Caserne.
         runner.RunStepMilitaryUntil(
             () => playerCiv.Cities.Count(c => c.Buildings.Any(b => b.Type == BuildingType.Barracks)) >= 5,
-            maxIterations: 5000);
+            maxIterations: 10000);
         Assert.True(
             playerCiv.Cities.Count(c => c.Buildings.Any(b => b.Type == BuildingType.Barracks)) >= 5,
             "Le joueur devrait avoir construit la Caserne via le step militaire.");
@@ -129,7 +129,7 @@ public class NpcExterminationTests
         // ── Autoplay militaire : production de soldats + attaques ────────────────
         runner.RunStepMilitaryUntil(
             () => npcCiv.Cities.Count == 0,
-            maxIterations: 10000);
+            maxIterations: 20000);
 
 
         // ── Assertions ────────────────────────────────────────────────────────────

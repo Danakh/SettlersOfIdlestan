@@ -149,8 +149,13 @@ namespace SettlersOfIdlestan.Controller.Island
             }
             foreach (var road in civ.Roads)
             {
-                foreach (var edge in road.Position.GetNeighboringEdges())
-                    candidates.Add(edge);
+                foreach (var vertex in road.Position.GetVertices())
+                {
+                    if (HasEnemyCityAt(vertex, civ)) continue;
+                    var thirdHex = vertex.GetHexes().First(h => !h.Equals(road.Position.Hex1) && !h.Equals(road.Position.Hex2));
+                    candidates.Add(Edge.Create(road.Position.Hex1, thirdHex));
+                    candidates.Add(Edge.Create(road.Position.Hex2, thirdHex));
+                }
             }
 
             var result = new List<Road>();
@@ -336,10 +341,16 @@ namespace SettlersOfIdlestan.Controller.Island
             foreach (var vertex in vertices)
             {
                 if (civ.Cities.Any(city => city.Position.Equals(vertex))) return true;
-                if (civ.Roads.Any(road => RoadTouchesVertex(road, vertex))) return true;
+                if (!HasEnemyCityAt(vertex, civ) && civ.Roads.Any(road => RoadTouchesVertex(road, vertex))) return true;
             }
 
             return false;
+        }
+
+        private bool HasEnemyCityAt(Vertex vertex, Civilization civ)
+        {
+            if (_state == null) return false;
+            return _state.Civilizations.Any(c => c.Index != civ.Index && c.Cities.Any(city => city.Position.Equals(vertex)));
         }
 
         private void ComputeRoadDistancesForCivilization(Civilization civ)
