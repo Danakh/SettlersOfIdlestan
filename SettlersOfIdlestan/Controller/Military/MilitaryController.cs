@@ -10,6 +10,7 @@ using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Monsters;
 using System;
 using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
+using TechId = SettlersOfIdlestan.Model.Civilization.TechnologyId;
 
 namespace SettlersOfIdlestan.Controller.Military;
 
@@ -51,6 +52,11 @@ public class MilitaryController
 {
     private WorldState? _state;
     private GameClock? _clock;
+
+    private long _lastPlayerAutoReinforcementTick = 0;
+
+    /// <summary>Intervalle entre deux recalculs des flux de renfort automatiques du joueur (2 000 ticks = 20 s).</summary>
+    public const long AutoReinforcementIntervalTicks = 2_000L;
 
     /// <summary>Intervalle de production d'un soldat (1 000 ticks = 10 s à vitesse normale).</summary>
     public const long SoldierProductionIntervalTicks = 1_000L;
@@ -151,6 +157,20 @@ public class MilitaryController
         ResolveDefenseRegen(currentTick);
         ResolveCityAttacks(currentTick);
         ResolveReinforcements(currentTick);
+        ResolvePlayerAutoReinforcement(currentTick);
+    }
+
+    private void ResolvePlayerAutoReinforcement(long currentTick)
+    {
+        if (_state == null) return;
+        if (!_state.AutomationSettings.MilitaryReinforcementAutomationEnabled) return;
+        if (currentTick - _lastPlayerAutoReinforcementTick < AutoReinforcementIntervalTicks) return;
+        _lastPlayerAutoReinforcementTick = currentTick;
+
+        var playerCiv = _state.PlayerCivilization;
+        if (!playerCiv.TechnologyTree.CompletedTechnologies.Contains(TechId.AdvancedTactics)) return;
+
+        UpdateCivilizationReinforcementFlows(playerCiv);
     }
 
     // ── Production ───────────────────────────────────────────────────────────
@@ -308,8 +328,54 @@ public class MilitaryController
 
     // ── Flux joueur ──────────────────────────────────────────────────────────
 
-    /// <summary>Définit ou efface le flux militaire d'une cité joueur.</summary>
+    /// <summary>Définit ou efface le flux militaire d'une cité.</summary>
     public void SetCityFlow(City city, Vertex? target) => city.FlowTarget = target;
+
+    /// <summary>
+    /// Réévalue et assigne les flux de renfort pour chaque cité de la civilisation.
+    /// Les flux ciblant une ville ennemie (attaque manuelle) ne sont pas modifiés.
+    /// </summary>
+    public void UpdateCivilizationReinforcementFlows(Civilization civ)
+    {
+        foreach (var city in civ.Cities)
+        {
+            if (city.FlowTarget != null && IsEnemyCityAt(city.FlowTarget, civ)) continue;
+
+            Vertex? newFlow = null;
+            int capacity = city.MaxSoldiers;
+            if (capacity > 0
+                && city.Soldiers * 2 >= capacity
+                && FindNearbyEnemyCity(city, civ) == null)
+            {
+                int range = ReinforcementRange(civ);
+                City? target = null;
+                int closestDist = int.MaxValue;
+
+                foreach (var friendly in civ.Cities)
+                {
+                    if (friendly == city) continue;
+                    if (friendly.Position.Z != city.Position.Z) continue;
+                    int dist = city.Position.EdgeDistanceTo(friendly.Position);
+                    if (dist > range || dist >= closestDist) continue;
+
+                    int tCap = friendly.MaxSoldiers;
+                    if (tCap == 0 || friendly.Soldiers * 2 > tCap) continue;
+                    if (friendly.Soldiers + 2 >= city.Soldiers) continue;
+
+                    target = friendly;
+                    closestDist = dist;
+                }
+
+                if (target != null)
+                    newFlow = target.Position;
+            }
+
+            SetCityFlow(city, newFlow);
+        }
+    }
+
+    private bool IsEnemyCityAt(Vertex target, Civilization civ)
+        => _state!.Civilizations.Any(c => c.Index != civ.Index && c.Cities.Any(cc => cc.Position.Equals(target)));
 
     // ── Combat — villes adverses ─────────────────────────────────────────────
 

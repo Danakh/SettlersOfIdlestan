@@ -192,11 +192,11 @@ public static class TechnologyDefinitions
             modifiers: new Modifier[] { new(ECategory.RESEARCH_SPEED, EType.ADDITIVE, 0.2) },
             tier: 3, line: 5),
 
-        new(TechnologyId.WarAcademy,
-            "tech_war_academy_name", "tech_war_academy_desc",
+        new(TechnologyId.AdvancedTactics,
+            "tech_advanced_tactics_name", "tech_advanced_tactics_desc",
             cost: 6500,
             prerequisites: new[] { TechnologyId.MilitaryMastery, TechnologyId.MilitaryBuildings },
-            modifiers: new Modifier[] { new(ECategory.UNIT_PRODUCTION_SPEED, EType.ADDITIVE, 0.3) },
+            modifiers: new Modifier[] { },
             tier: 3, line: 7),
 
         // === TIER 4 — Premiers croisements ===
@@ -232,7 +232,7 @@ public static class TechnologyDefinitions
         new(TechnologyId.MilitarySupremacy,
             "tech_military_supremacy_name", "tech_military_supremacy_desc",
             cost: 19350,
-            prerequisites: new[] { TechnologyId.WarAcademy, TechnologyId.GrandArchitecture },
+            prerequisites: new[] { TechnologyId.AdvancedTactics, TechnologyId.GrandArchitecture },
             modifiers: new Modifier[] { new(ECategory.CITY_DEFENSE, EType.ADDITIVE, 1) },
             tier: 4, line: 7),
 

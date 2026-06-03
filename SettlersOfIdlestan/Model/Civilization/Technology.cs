@@ -29,7 +29,7 @@ public enum TechnologyId
     GrandArchitecture,
     Scholarship,
     Masterwork,
-    WarAcademy,
+    AdvancedTactics,
     EfficientTrading,
     // Tier 4
     EpicHarvest,

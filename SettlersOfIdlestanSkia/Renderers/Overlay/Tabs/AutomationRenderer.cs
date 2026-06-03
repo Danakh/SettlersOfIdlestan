@@ -9,6 +9,7 @@ using SkiaSharp;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using TechId = SettlersOfIdlestan.Model.Civilization.TechnologyId;
 
 namespace SettlersOfIdlestanSkia.Renderers.Overlay.Tabs;
 
@@ -34,12 +35,14 @@ public sealed class AutomationRenderer : IDisposable
     private SKRect _artisanToggleRect = SKRect.Empty;
     private SKRect _libraryToggleRect = SKRect.Empty;
     private SKRect _marketToggleRect = SKRect.Empty;
+    private SKRect _militaryReinforcementToggleRect = SKRect.Empty;
     private bool _hoveredRoadToggle;
     private bool _hoveredOutpostToggle;
     private bool _hoveredProductionToggle;
     private bool _hoveredArtisanToggle;
     private bool _hoveredLibraryToggle;
     private bool _hoveredMarketToggle;
+    private bool _hoveredMilitaryReinforcementToggle;
 
     private readonly SKPaint _bgPaint              = new() { Color = new SKColor(18, 18, 24, 240), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _cardPaint            = new() { Color = new SKColor(30, 30, 40, 220), Style = SKPaintStyle.Fill, IsAntialias = true };
@@ -229,6 +232,26 @@ public sealed class AutomationRenderer : IDisposable
                 _localization.Get("automation_market_name"),
                 _localization.Get("automation_market_locked"));
         }
+        y += rowH + RowSpacing;
+
+        // --- Military reinforcement automation row (AdvancedTactics technology) ---
+        bool hasAdvancedTactics = civ.TechnologyTree.CompletedTechnologies.Contains(TechId.AdvancedTactics);
+        if (hasAdvancedTactics)
+        {
+            (_militaryReinforcementToggleRect, rowH) = DrawAutomationRow(
+                canvas, x, y, contentWidth,
+                WorldState.AutomationSettings.MilitaryReinforcementAutomationEnabled,
+                _hoveredMilitaryReinforcementToggle,
+                _localization.Get("automation_military_reinforcement_name"),
+                _localization.Get("automation_military_reinforcement_desc"));
+        }
+        else
+        {
+            _militaryReinforcementToggleRect = SKRect.Empty;
+            rowH = DrawLockedRow(canvas, x, y, contentWidth,
+                _localization.Get("automation_military_reinforcement_name"),
+                _localization.Get("automation_military_reinforcement_locked"));
+        }
     }
 
     private (SKRect toggleRect, float height) DrawAutomationRow(
@@ -315,12 +338,13 @@ public sealed class AutomationRenderer : IDisposable
 
     public void HandlePointerMoved(SKPoint position)
     {
-        _hoveredRoadToggle       = !_roadToggleRect.IsEmpty       && _roadToggleRect.Contains(position.X, position.Y);
-        _hoveredOutpostToggle    = !_outpostToggleRect.IsEmpty    && _outpostToggleRect.Contains(position.X, position.Y);
-        _hoveredProductionToggle = !_productionToggleRect.IsEmpty && _productionToggleRect.Contains(position.X, position.Y);
-        _hoveredArtisanToggle    = !_artisanToggleRect.IsEmpty    && _artisanToggleRect.Contains(position.X, position.Y);
-        _hoveredLibraryToggle    = !_libraryToggleRect.IsEmpty    && _libraryToggleRect.Contains(position.X, position.Y);
-        _hoveredMarketToggle     = !_marketToggleRect.IsEmpty     && _marketToggleRect.Contains(position.X, position.Y);
+        _hoveredRoadToggle                   = !_roadToggleRect.IsEmpty                   && _roadToggleRect.Contains(position.X, position.Y);
+        _hoveredOutpostToggle                = !_outpostToggleRect.IsEmpty                && _outpostToggleRect.Contains(position.X, position.Y);
+        _hoveredProductionToggle             = !_productionToggleRect.IsEmpty             && _productionToggleRect.Contains(position.X, position.Y);
+        _hoveredArtisanToggle                = !_artisanToggleRect.IsEmpty                && _artisanToggleRect.Contains(position.X, position.Y);
+        _hoveredLibraryToggle                = !_libraryToggleRect.IsEmpty                && _libraryToggleRect.Contains(position.X, position.Y);
+        _hoveredMarketToggle                 = !_marketToggleRect.IsEmpty                 && _marketToggleRect.Contains(position.X, position.Y);
+        _hoveredMilitaryReinforcementToggle  = !_militaryReinforcementToggleRect.IsEmpty  && _militaryReinforcementToggleRect.Contains(position.X, position.Y);
     }
 
     public bool HandlePointerPressed(SKPoint position)
@@ -361,6 +385,12 @@ public sealed class AutomationRenderer : IDisposable
         if (!_marketToggleRect.IsEmpty && _marketToggleRect.Contains(position.X, position.Y))
         {
             state.AutomationSettings.MarketBuildingAutomationEnabled = !state.AutomationSettings.MarketBuildingAutomationEnabled;
+            return true;
+        }
+
+        if (!_militaryReinforcementToggleRect.IsEmpty && _militaryReinforcementToggleRect.Contains(position.X, position.Y))
+        {
+            state.AutomationSettings.MilitaryReinforcementAutomationEnabled = !state.AutomationSettings.MilitaryReinforcementAutomationEnabled;
             return true;
         }
 

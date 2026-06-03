@@ -94,52 +94,24 @@ public class NpcGameController
 
         bool shouldAttack = aggressivity == NpcAggressivityLevel.Warlike;
 
+        // Flux d'attaque : cités agressives avec soldats ciblent l'ennemi le plus proche.
+        // Les autres cités sont d'abord vidées pour que le renfort puisse les réévaluer.
         foreach (var city in civ.Cities)
         {
-            Vertex? newFlow = null;
-
-            // Flux d'attaque : cités agressives avec soldats ciblent l'ennemi le plus proche.
             if (shouldAttack && city.Soldiers > 0)
             {
                 var enemy = _militaryController.FindNearbyEnemyCity(city, civ);
                 if (enemy != null)
-                    newFlow = enemy.Position;
-            }
-
-            // Flux de renfort : si pas d'attaque, excédent de soldats et pas d'ennemi proche.
-            if (newFlow == null)
-            {
-                int capacity = city.MaxSoldiers;
-                if (capacity > 0
-                    && city.Soldiers * 2 >= capacity
-                    && _militaryController.FindNearbyEnemyCity(city, civ) == null)
                 {
-                    int range = _militaryController.ReinforcementRange(civ);
-                    City? target = null;
-                    int closestDist = int.MaxValue;
-
-                    foreach (var friendly in civ.Cities)
-                    {
-                        if (friendly == city) continue;
-                        if (friendly.Position.Z != city.Position.Z) continue;
-                        int dist = city.Position.EdgeDistanceTo(friendly.Position);
-                        if (dist > range || dist >= closestDist) continue;
-
-                        int tCap = friendly.MaxSoldiers;
-                        if (tCap == 0 || friendly.Soldiers * 2 > tCap) continue;
-                        if (friendly.Soldiers + 2 >= city.Soldiers) continue;
-
-                        target = friendly;
-                        closestDist = dist;
-                    }
-
-                    if (target != null)
-                        newFlow = target.Position;
+                    _militaryController.SetCityFlow(city, enemy.Position);
+                    continue;
                 }
             }
-
-            _militaryController.SetCityFlow(city, newFlow);
+            _militaryController.SetCityFlow(city, null);
         }
+
+        // Flux de renfort : délégué à MilitaryController pour les cités sans flux d'attaque.
+        _militaryController.UpdateCivilizationReinforcementFlows(civ);
     }
 
     /// <summary>
