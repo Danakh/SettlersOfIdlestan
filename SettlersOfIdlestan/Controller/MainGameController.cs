@@ -204,7 +204,7 @@ namespace SettlersOfIdlestan.Controller
                 // FeatureController discovers features before any combat or movement runs.
                 // MilitaryController must subscribe before MonsterFeatureController so combat resolves before movement.
                 FeatureController.Initialize(WorldState, Clock);
-                MilitaryController.Initialize(WorldState, Clock);
+                MilitaryController.Initialize(WorldState, Clock, RoadController);
                 MonsterFeatureController.Initialize(WorldState, Clock, CurrentMainState!.PRNG);
                 HarvestController.Initialize(WorldState, Clock, TradeController, MonsterFeatureController, CurrentMainState!.PRNG);
                 TradeController.Initialize(WorldState);

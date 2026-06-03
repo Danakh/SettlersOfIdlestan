@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.Civilization;
@@ -52,6 +53,7 @@ public class MilitaryController
 {
     private WorldState? _state;
     private GameClock? _clock;
+    private RoadController? _roadController;
 
     private long _lastPlayerAutoReinforcementTick = 0;
     private long _lastPlayerAutoAttackTick = 0;
@@ -134,13 +136,14 @@ public class MilitaryController
         return score;
     }
 
-    internal void Initialize(WorldState? state, GameClock? clock)
+    internal void Initialize(WorldState? state, GameClock? clock, RoadController? roadController = null)
     {
         if (_clock != null)
             _clock.Advanced -= OnClockAdvanced;
 
         _state = state;
         _clock = clock;
+        _roadController = roadController;
 
         if (_clock != null)
             _clock.Advanced += OnClockAdvanced;
@@ -438,6 +441,7 @@ public class MilitaryController
         foreach (var (civ, city) in citiesToDestroy)
         {
             civ.Cities.Remove(city);
+            _roadController?.OnCityDestroyed(civ, city.Position);
             ClearFlowsTargeting(city.Position);
             CityDestroyed?.Invoke(this, new CityDestroyedEventArgs(city.Position));
             _state!.RecalculateVisibleIslandMaps();

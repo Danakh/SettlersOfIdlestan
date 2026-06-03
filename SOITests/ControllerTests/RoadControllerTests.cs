@@ -376,4 +376,126 @@ public class RoadControllerTests
         Assert.Equal(0, road.CivilizationIndex);
         Assert.Equal(1, road.DistanceToNearestCity);
     }
+
+    // ─── Destruction de ville ────────────────────────────────────────────────
+    //
+    // Géométrie utilisée pour les tests de destruction :
+    //   a=(0,0)  b=(1,0)  c=(0,1)  d=(1,1)  e=(2,0)  (tous Plain, même layer)
+    //   Ville A : Vertex(a, b, c)
+    //   Ville B : Vertex(b, d, e)   [utilisée dans le test avec deux villes]
+    //
+    //   R1 = Edge(b, c) → distance 1 de la ville A  [touche Vertex(a,b,c)]
+    //   R2 = Edge(b, d) → distance 2 de la ville A  [partage Vertex(b,c,d) avec R1]
+    //   R3 = Edge(d, e) → distance 3 de la ville A  [partage Vertex(b,d,e) avec R2]
+    //                                                [touche Vertex(b,d,e) = ville B]
+
+    private static readonly HexCoord Ha = new(0, 0, IslandMap.SurfaceLayer);
+    private static readonly HexCoord Hb = new(1, 0, IslandMap.SurfaceLayer);
+    private static readonly HexCoord Hc = new(0, 1, IslandMap.SurfaceLayer);
+    private static readonly HexCoord Hd = new(1, 1, IslandMap.SurfaceLayer);
+    private static readonly HexCoord He = new(2, 0, IslandMap.SurfaceLayer);
+
+    private static IslandMap BuildFiveHexMap() => new(new HexTile[]
+    {
+        new(Ha, TerrainType.Plain),
+        new(Hb, TerrainType.Plain),
+        new(Hc, TerrainType.Plain),
+        new(Hd, TerrainType.Plain),
+        new(He, TerrainType.Plain),
+    });
+
+    [Fact]
+    public void OnCityDestroyed_RemovesRoadsAtDistance1And2()
+    {
+        var map = BuildFiveHexMap();
+        var civ = new Civilization { Index = 0 };
+        var cityVertex = Vertex.Create(Ha, Hb, Hc);
+        civ.Cities.Add(new City(cityVertex) { CivilizationIndex = 0 });
+        civ.Roads.Add(new Road(Edge.Create(Hb, Hc)) { CivilizationIndex = 0, DistanceToNearestCity = 1 });
+        civ.Roads.Add(new Road(Edge.Create(Hb, Hd)) { CivilizationIndex = 0, DistanceToNearestCity = 2 });
+
+        var state = new WorldState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
+        var controller = new RoadController(state);
+
+        civ.Cities.Remove(civ.Cities[0]);
+        controller.OnCityDestroyed(civ, cityVertex);
+
+        Assert.Empty(civ.Roads);
+    }
+
+    [Fact]
+    public void OnCityDestroyed_RemovesDisconnectedRoadsBeyondDistance2()
+    {
+        var map = BuildFiveHexMap();
+        var civ = new Civilization { Index = 0 };
+        var cityVertex = Vertex.Create(Ha, Hb, Hc);
+        civ.Cities.Add(new City(cityVertex) { CivilizationIndex = 0 });
+        civ.Roads.Add(new Road(Edge.Create(Hb, Hc)) { CivilizationIndex = 0, DistanceToNearestCity = 1 });
+        civ.Roads.Add(new Road(Edge.Create(Hb, Hd)) { CivilizationIndex = 0, DistanceToNearestCity = 2 });
+        civ.Roads.Add(new Road(Edge.Create(Hd, He)) { CivilizationIndex = 0, DistanceToNearestCity = 3 });
+
+        var state = new WorldState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
+        var controller = new RoadController(state);
+
+        civ.Cities.Remove(civ.Cities[0]);
+        controller.OnCityDestroyed(civ, cityVertex);
+
+        // R3 était uniquement connectée via R1+R2 — elle doit être supprimée aussi
+        Assert.Empty(civ.Roads);
+    }
+
+    [Fact]
+    public void OnCityDestroyed_PreservesRoadsConnectedToRemainingCity()
+    {
+        var map = BuildFiveHexMap();
+        var civ = new Civilization { Index = 0 };
+        var cityVertexA = Vertex.Create(Ha, Hb, Hc);
+        var cityVertexB = Vertex.Create(Hb, Hd, He);
+        civ.Cities.Add(new City(cityVertexA) { CivilizationIndex = 0 });
+        civ.Cities.Add(new City(cityVertexB) { CivilizationIndex = 0 });
+        var r3Edge = Edge.Create(Hd, He);
+        civ.Roads.Add(new Road(Edge.Create(Hb, Hc)) { CivilizationIndex = 0, DistanceToNearestCity = 1 });
+        civ.Roads.Add(new Road(Edge.Create(Hb, Hd)) { CivilizationIndex = 0, DistanceToNearestCity = 2 });
+        civ.Roads.Add(new Road(r3Edge)               { CivilizationIndex = 0, DistanceToNearestCity = 3 });
+
+        var state = new WorldState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
+        var controller = new RoadController(state);
+
+        // Destruction de la ville A uniquement
+        civ.Cities.Remove(civ.Cities.First(c => c.Position.Equals(cityVertexA)));
+        controller.OnCityDestroyed(civ, cityVertexA);
+
+        // R3 touche la ville B (Vertex(b,d,e)) → elle doit être conservée
+        Assert.Single(civ.Roads);
+        Assert.Contains(civ.Roads, r => r.Position.Equals(r3Edge));
+    }
+
+    [Fact]
+    public void BuildRoad_OverEnemyRoad_RemovesDisconnectedEnemyChain()
+    {
+        // Joueur : ville à Vertex(b,c,d), construit sur Edge(b,c) (route ennemie)
+        // Ennemi : ville à Vertex(a,b,c), R1=Edge(b,c) (d=1), R2=Edge(b,d) (d=2)
+        // Après que le joueur prend Edge(b,c), R2 n'est plus connectée → supprimée
+        var map = BuildFiveHexMap();
+
+        var playerCiv = new Civilization { Index = 0 };
+        playerCiv.Cities.Add(new City(Vertex.Create(Hb, Hc, Hd)) { CivilizationIndex = 0 });
+
+        var enemyCiv = new Civilization { Index = 1 };
+        enemyCiv.Cities.Add(new City(Vertex.Create(Ha, Hb, Hc)) { CivilizationIndex = 1 });
+        var r2Edge = Edge.Create(Hb, Hd);
+        enemyCiv.Roads.Add(new Road(Edge.Create(Hb, Hc)) { CivilizationIndex = 1, DistanceToNearestCity = 1 });
+        enemyCiv.Roads.Add(new Road(r2Edge)               { CivilizationIndex = 1, DistanceToNearestCity = 2 });
+
+        var state = new WorldState(map, new List<Civilization> { playerCiv, enemyCiv }, AtlasController.InvalidIslandId);
+        var controller = new RoadController(state);
+
+        playerCiv.AddResource(Resource.Wood, 2);
+        playerCiv.AddResource(Resource.Brick, 2);
+
+        controller.BuildRoad(0, Edge.Create(Hb, Hc));
+
+        // R2 ennemie doit être supprimée car désormais déconnectée
+        Assert.Empty(enemyCiv.Roads);
+    }
 }

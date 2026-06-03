@@ -263,9 +263,70 @@ namespace SettlersOfIdlestan.Controller.Island
                 {
                     otherCiv.Roads.Remove(enemyRoad);
                     ComputeRoadDistancesForCivilization(otherCiv);
+                    RemoveDisconnectedRoads(otherCiv);
                     return;
                 }
             }
+        }
+
+        /// <summary>
+        /// Supprime les routes à distance ≤ 2 de la ville détruite, puis toutes les routes
+        /// désormais déconnectées de toute ville. Doit être appelé après avoir retiré la ville de civ.Cities.
+        /// </summary>
+        public void OnCityDestroyed(Civilization civ, Vertex cityVertex)
+        {
+            var toRemove = GetRoadsWithinDistanceOfVertex(civ.Roads, cityVertex, 2);
+            foreach (var road in toRemove)
+                civ.Roads.Remove(road);
+
+            ComputeRoadDistancesForCivilization(civ);
+            RemoveDisconnectedRoads(civ);
+
+            _buildableRoadsCache.Clear();
+            _state?.RecalculateVisibleIslandMap(civ.Index);
+        }
+
+        private static List<Road> GetRoadsWithinDistanceOfVertex(List<Road> roads, Vertex vertex, int maxDistance)
+        {
+            var result = new List<Road>();
+            var visited = new HashSet<Edge>();
+            var frontier = new List<Road>();
+
+            foreach (var road in roads)
+            {
+                if (road.Position.GetVertices().Any(v => v.Equals(vertex)) && visited.Add(road.Position))
+                {
+                    result.Add(road);
+                    frontier.Add(road);
+                }
+            }
+
+            for (int dist = 1; dist < maxDistance; dist++)
+            {
+                var next = new List<Road>();
+                foreach (var current in frontier)
+                {
+                    var currentVerts = current.Position.GetVertices();
+                    foreach (var neighbor in roads)
+                    {
+                        if (visited.Contains(neighbor.Position)) continue;
+                        if (neighbor.Position.GetVertices().Any(nv => currentVerts.Any(cv => cv.Equals(nv))))
+                        {
+                            visited.Add(neighbor.Position);
+                            result.Add(neighbor);
+                            next.Add(neighbor);
+                        }
+                    }
+                }
+                frontier = next;
+            }
+
+            return result;
+        }
+
+        private static void RemoveDisconnectedRoads(Civilization civ)
+        {
+            civ.Roads.RemoveAll(r => r.DistanceToNearestCity == int.MaxValue);
         }
 
         private bool IsEdgeBuildableByCivilization(Edge edge, Civilization civ)
