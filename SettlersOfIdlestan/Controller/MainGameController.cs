@@ -1,4 +1,4 @@
-using SettlersOfIdlestan.Controller.Expand;
+﻿using SettlersOfIdlestan.Controller.Expand;
 using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Controller.Military;
 using SettlersOfIdlestan.Controller.Tasks;
@@ -29,7 +29,9 @@ namespace SettlersOfIdlestan.Controller
         public PrestigeMapController PrestigeMapController { get; private set; }
         public ResearchController ResearchController { get; private set; }
         public FeatureController FeatureController { get; private set; }
-        public BanditController BanditController { get; private set; }
+        public MonsterFeatureController MonsterFeatureController { get; private set; }
+        /// <summary>Alias de compatibilité — utiliser MonsterFeatureController.</summary>
+        public MonsterFeatureController BanditController => MonsterFeatureController;
         public MilitaryController MilitaryController { get; private set; }
         public WonderController WonderController { get; private set; }
         public NpcGameController NpcGameController { get; private set; }
@@ -39,12 +41,13 @@ namespace SettlersOfIdlestan.Controller
         private PrestigeModifierProvider? _prestigeModifierProvider;
         public AtlasController AtlasController { get; private set; }
         public TaskRecordController TaskRecordController { get; private set; }
+        public AutoExtendController AutoExtendController { get; private set; }
 
         /// <summary>
         /// Gets the player's civilization (always at index 0).
         /// </summary>
         public SettlersOfIdlestan.Model.Civilization.Civilization? PlayerCivilization 
-            => CurrentMainState?.CurrentIslandState?.PlayerCivilization;
+            => CurrentMainState?.CurrentWorldState?.PlayerCivilization;
 
         public MainGameController()
         {
@@ -59,10 +62,11 @@ namespace SettlersOfIdlestan.Controller
             PrestigeMapController = new PrestigeMapController();
             ResearchController = new ResearchController();
             FeatureController = new FeatureController();
-            BanditController = new BanditController();
+            MonsterFeatureController = new MonsterFeatureController();
             MilitaryController = new MilitaryController();
             WonderController = new WonderController();
             TaskRecordController = new TaskRecordController();
+            AutoExtendController = new AutoExtendController();
             NpcGameController = new NpcGameController();
         }
 
@@ -108,26 +112,27 @@ namespace SettlersOfIdlestan.Controller
         /// <summary>
         /// Creates a new MainGameState by generating a new island using the island generator.
         /// Returns null if island generation fails.
+        /// Pass <paramref name="prngSeed"/> to get a deterministic game (e.g. in tests).
         /// </summary>
-        public MainGameState? CreateNewGame(IslandParameters parameters)
+        public MainGameState? CreateNewGame(IslandParameters parameters, int? prngSeed = null)
         {
             if (parameters == null) throw new ArgumentNullException(nameof(parameters));
 
-            // Create a main state early so we can use its PRNG for deterministic generation
             var mainState = new MainGameState();
+            if (prngSeed.HasValue)
+                mainState.PRNG = new GamePRNG(prngSeed.Value);
 
             var generator = new Generator.IslandMapGenerator(mainState.PRNG);
-            var islandState = generator.GenerateIslandState(parameters, mainState.Clock.CurrentTick);
-            if (islandState is null) return null;
+            var WorldState = generator.GenerateWorldState(parameters, mainState.Clock.CurrentTick);
+            if (WorldState is null) return null;
 
-            var prestigeState = new PrestigeState(islandState);
+            var prestigeState = new PrestigeState(WorldState);
             var godState = new GodState(prestigeState);
 
-            // populate the main state with the created sub-states
             mainState.GodState = godState;
 
             SetGame(mainState);
-            PrestigeMapController.ApplyPrestigeToNewGame(islandState, mainState.PrestigeState);
+            PrestigeMapController.ApplyPrestigeToNewGame(WorldState, mainState.PrestigeState);
             return mainState;
         }
 
@@ -136,18 +141,18 @@ namespace SettlersOfIdlestan.Controller
             if (CurrentMainState == null)
                 throw new InvalidOperationException("No main state available.");
 
-            var nextIslandId = AtlasController.GetNextIslandID(CurrentMainState);
+            var nextIslandId = AtlasController.GetNextWorldId(CurrentMainState);
             var parameters = AtlasController.GetIslandParameters(nextIslandId);
             TaskRecordController.RecordPrestige();
             PrestigeController.PerformPrestige(CurrentMainState, parameters);
             InitializeControllersForCurrentIsland();
-            PrestigeMapController.ApplyPrestigeToNewGame(CurrentMainState.CurrentIslandState!, CurrentMainState.PrestigeState);
+            PrestigeMapController.ApplyPrestigeToNewGame(CurrentMainState.CurrentWorldState!, CurrentMainState.PrestigeState);
         }
 
         public MainGameState? CreateNewGame()
         {
-            int islandId = AtlasController.GetFirstIslandID();
-            var parameters = AtlasController.GetIslandParameters(islandId);
+            int WorldId = AtlasController.GetFirstWorldId();
+            var parameters = AtlasController.GetIslandParameters(WorldId);
             return CreateNewGame(parameters);
         }
 
@@ -178,52 +183,61 @@ namespace SettlersOfIdlestan.Controller
 
         private void InitializeControllersForCurrentIsland()
         {
-            var islandState = CurrentMainState?.CurrentIslandState;
+            var WorldState = CurrentMainState?.CurrentWorldState;
 
-            if (islandState != null)
+            if (WorldState != null)
             {
                 // Bind the player's TechnologyTree to the persistent prestige tree so research
                 // progress survives across islands. NPC civs keep their own ephemeral empty tree.
                 var prestigeState = CurrentMainState?.PrestigeState;
                 if (prestigeState != null)
-                    islandState.PlayerCivilization.TechnologyTree = prestigeState.TechnologyTree;
+                    WorldState.PlayerCivilization.TechnologyTree = prestigeState.TechnologyTree;
 
-                islandState.RecalculateVisibleIslandMaps();
+                WorldState.RecalculateVisibleIslandMaps();
 
                 SetupModifierAggregators();
 
+                AutoExtendController.Initialize(WorldState, CurrentMainState!.PRNG);
+
                 // Initialize controllers to operate on the real island state and clock
-                RoadController.Initialize(islandState, Clock, CurrentMainState!.PRNG);
+                RoadController.Initialize(WorldState, Clock, CurrentMainState!.PRNG);
                 // FeatureController discovers features before any combat or movement runs.
-                // MilitaryController must subscribe before BanditController so combat resolves before movement.
-                FeatureController.Initialize(islandState, Clock);
-                MilitaryController.Initialize(islandState, Clock);
-                BanditController.Initialize(islandState, Clock, CurrentMainState!.PRNG);
-                HarvestController.Initialize(islandState, Clock, TradeController, BanditController, CurrentMainState!.PRNG);
-                TradeController.Initialize(islandState);
-                BuildingController.Initialize(islandState, Clock);
-                CityBuilderController.Initialize(islandState, Clock, CurrentMainState!.PRNG);
-                PrestigeController.Initialize(islandState.PlayerCivilization, islandState, Clock);
-                WonderController.Initialize(islandState, Clock);
-                ResearchController.Initialize(islandState, Clock, CurrentMainState?.PrestigeState);
-                NpcGameController.Initialize(islandState, Clock, MilitaryController, this);
+                // MilitaryController must subscribe before MonsterFeatureController so combat resolves before movement.
+                FeatureController.Initialize(WorldState, Clock);
+                MilitaryController.Initialize(WorldState, Clock, RoadController);
+                MonsterFeatureController.Initialize(WorldState, Clock, CurrentMainState!.PRNG);
+                HarvestController.Initialize(WorldState, Clock, TradeController, MonsterFeatureController, CurrentMainState!.PRNG);
+                TradeController.Initialize(WorldState);
+                BuildingController.Initialize(WorldState, Clock);
+                CityBuilderController.Initialize(WorldState, Clock, CurrentMainState!.PRNG);
+                PrestigeController.Initialize(WorldState.PlayerCivilization, WorldState, Clock);
+                WonderController.Initialize(WorldState, Clock);
+                ResearchController.Initialize(WorldState, Clock, CurrentMainState?.PrestigeState);
+                NpcGameController.Initialize(WorldState, Clock, MilitaryController, this);
 
                 // Invalide le cache de production dès qu'un bâtiment est construit/amélioré ou une ville créée
                 BuildingController.OnBuildingBuilt -= OnBuildingChangedInvalidateHarvestCache;
                 CityBuilderController.OnCityBuilt -= OnCityBuiltInvalidateHarvestCache;
                 MilitaryController.CityDestroyed -= OnCityDestroyedRefreshContested;
+                RoadController.OnRoadBuilt -= OnRoadBuiltExtendMap;
+                RoadController.OnAutoRoadBuilt -= OnRoadBuiltExtendMap;
                 BuildingController.OnBuildingBuilt += OnBuildingChangedInvalidateHarvestCache;
                 CityBuilderController.OnCityBuilt += OnCityBuiltInvalidateHarvestCache;
                 MilitaryController.CityDestroyed += OnCityDestroyedRefreshContested;
+                RoadController.OnRoadBuilt += OnRoadBuiltExtendMap;
+                RoadController.OnAutoRoadBuilt += OnRoadBuiltExtendMap;
                 prestigeState?.TechnologyTree.RebuildModifiers();
 
                 var gameRecord = CurrentMainState!.GameRecord;
-                TaskRecordController.Initialize(gameRecord, islandState.RunRecord, islandState,
+                TaskRecordController.Initialize(gameRecord, WorldState.RunRecord, WorldState,
                     BuildingController, RoadController, CityBuilderController,
                     PrestigeMapController, ResearchController, MilitaryController, HarvestController,
                     TradeController);
             }
         }
+
+        private void OnRoadBuiltExtendMap(object? sender, RoadAutoBuiltEventArgs e)
+            => AutoExtendController.TryExtendMapAfterRoad(e.CivilizationIndex, e.RoadPosition);
 
         private void OnBuildingChangedInvalidateHarvestCache(object? sender, BuildingBuiltEventArgs e)
             => HarvestController.InvalidateProductionCache();
@@ -240,16 +254,16 @@ namespace SettlersOfIdlestan.Controller
         private void SetupModifierAggregators()
         {
             var prestigeState = CurrentMainState!.PrestigeState;
-            var islandState = prestigeState!.IslandState;
+            var WorldState = prestigeState!.WorldState;
 
             var npcModifiers = NpcModifierSetMaker.Create(maxTechTier: 3, maxPrestigeDistance: 2);
 
-            foreach (var civ in islandState!.Civilizations.Where(c => c.IsNpc))
+            foreach (var civ in WorldState!.Civilizations.Where(c => c.IsNpc))
                 civ.SetupModifierAggregator(civ.TechnologyTree, npcModifiers, new UniqueBuildingsModifierProvider(civ));
 
             _prestigeModifierProvider?.Dispose();
             _prestigeModifierProvider = new PrestigeModifierProvider(prestigeState, PrestigeMapController.DefaultMap);
-            var playerCiv = islandState.PlayerCivilization;
+            var playerCiv = WorldState.PlayerCivilization;
             playerCiv.SetupModifierAggregator(
                 playerCiv.TechnologyTree,
                 _prestigeModifierProvider,

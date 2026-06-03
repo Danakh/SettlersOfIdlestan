@@ -1,5 +1,6 @@
 using SkiaSharp;
 using SettlersOfIdlestan.Model.HexGrid;
+using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Services;
 using SettlersOfIdlestan.Services.Localization;
@@ -113,7 +114,7 @@ public sealed class WonderPlacementRenderer : HexBasedRenderer, IGameRenderer
 
         var islandPt = ScreenToIsland(e.Position);
         var (q, r) = IslandToAxial(islandPt.X, islandPt.Y);
-        var hex = new HexCoord(q, r);
+        var hex = new HexCoord(q, r, IslandMap.SurfaceLayer);
         _selectionService.HoveredHex = _selectionService.PlaceableHexes.Any(h => h.Equals(hex)) ? hex : null;
     }
 
@@ -130,7 +131,7 @@ public sealed class WonderPlacementRenderer : HexBasedRenderer, IGameRenderer
 
         var islandPt = ScreenToIsland(e.Position);
         var (q, r) = IslandToAxial(islandPt.X, islandPt.Y);
-        var hex = new HexCoord(q, r);
+        var hex = new HexCoord(q, r, IslandMap.SurfaceLayer);
         if (_selectionService.PlaceableHexes.Any(h => h.Equals(hex)))
             _selectionService.Confirm(hex);
     }

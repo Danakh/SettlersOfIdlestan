@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Linq;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
@@ -12,7 +12,7 @@ namespace SettlersOfIdlestan.Controller.Expand
 {
     public class ResearchController
     {
-        private IslandState? _state;
+        private WorldState? _state;
         private GameClock? _clock;
         private PrestigeState? _prestigeState;
 
@@ -29,7 +29,7 @@ namespace SettlersOfIdlestan.Controller.Expand
 
         internal ResearchController() { }
 
-        internal void Initialize(IslandState? state, GameClock? clock, PrestigeState? prestigeState)
+        internal void Initialize(WorldState? state, GameClock? clock, PrestigeState? prestigeState)
         {
             if (_clock != null)
                 _clock.Advanced -= OnClockAdvanced;

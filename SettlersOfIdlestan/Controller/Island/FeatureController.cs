@@ -1,4 +1,4 @@
-using SettlersOfIdlestan.Model.Civilization;
+﻿using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.IslandMap;
@@ -14,11 +14,11 @@ namespace SettlersOfIdlestan.Controller.Island;
 /// </summary>
 public class FeatureController
 {
-    private IslandState? _state;
+    private WorldState? _state;
     private GameClock? _clock;
     private List<IslandFeature> _features = new();
 
-    internal void Initialize(IslandState? state, GameClock? clock)
+    internal void Initialize(WorldState? state, GameClock? clock)
     {
         if (_clock != null)
             _clock.Advanced -= OnClockAdvanced;
@@ -94,11 +94,16 @@ public class FeatureController
         if (_state == null) return;
 
         var playerIdx = _state.PlayerCivilization.Index;
-        if (!_state.VisibleIslandMaps.TryGetValue(playerIdx, out var visibleMap)) return;
+        var visibleMaps = _state.GetMapsByZ()
+            .Select(map => _state.GetVisibleIslandMapsForZ(map.Key))
+            .Where(maps => maps.TryGetValue(playerIdx, out _))
+            .Select(maps => maps[playerIdx])
+            .ToList();
 
         foreach (var feature in _features)
         {
-            if (feature.IsDiscoverable && visibleMap.HasTile(feature.Position))
+            if (feature.IsDiscoverable &&
+                visibleMaps.Any(visibleMap => visibleMap.IsOnSameLayer(feature.Position) && visibleMap.HasTile(feature.Position)))
             {
                 feature.Found = true;
                 _state.EventLog.Add(feature.DiscoveredEventType);
@@ -111,19 +116,29 @@ public class FeatureController
         if (_state == null) return;
 
         var playerIdx = _state.PlayerCivilization.Index;
-        if (!_state.VisibleIslandMaps.TryGetValue(playerIdx, out var visibleMap)) return;
+        var visibleMaps = _state.GetMapsByZ()
+            .Select(map => _state.GetVisibleIslandMapsForZ(map.Key))
+            .Where(maps => maps.TryGetValue(playerIdx, out _))
+            .Select(maps => maps[playerIdx])
+            .ToList();
 
         foreach (var civ in _state.Civilizations)
         {
             if (civ.Index == playerIdx || civ.DiscoveredByPlayer) continue;
 
             var isCivVisible =
-                civ.Cities.Any(city => city.Position.GetHexes().Any(visibleMap.HasTile)) ||
-                civ.Roads.Any(road =>
-                {
-                    var (h1, h2) = road.Position.GetHexes();
-                    return visibleMap.HasTile(h1) || visibleMap.HasTile(h2);
-                });
+                visibleMaps.Any(visibleMap =>
+                    civ.Cities.Any(city =>
+                        visibleMap.IsOnSameLayer(city.Position) &&
+                        city.Position.GetHexes().Any(visibleMap.HasTile)) ||
+                    civ.Roads.Any(road =>
+                    {
+                        if (!visibleMap.IsOnSameLayer(road.Position))
+                            return false;
+
+                        var (h1, h2) = road.Position.GetHexes();
+                        return visibleMap.HasTile(h1) || visibleMap.HasTile(h2);
+                    }));
 
             if (isCivVisible)
             {

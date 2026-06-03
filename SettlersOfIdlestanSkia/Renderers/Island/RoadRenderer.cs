@@ -1,4 +1,4 @@
-using SettlersOfIdlestan.Model.Civilization;
+﻿using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
@@ -38,13 +38,17 @@ public class RoadRenderer : HexBasedRenderer, IGameRenderer
         IsAntialias = true
     };
 
-    // Couleurs pour les civilisations (à étendre selon le nombre de civs)
+    // Couleurs pour les civilisations (noir réservé)
     private static readonly SKColor[] CivilizationColors = new[]
     {
-        new SKColor(255, 0, 0),     // Rouge - Civ 0
-        new SKColor(0, 0, 255),     // Bleu - Civ 1
-        new SKColor(0, 200, 0),     // Vert - Civ 2
-        new SKColor(255, 200, 0),   // Orange - Civ 3
+        new SKColor(220, 50,  50),  // Rouge    - Civ 0
+        new SKColor(60,  100, 220), // Bleu     - Civ 1
+        new SKColor(50,  180, 50),  // Vert     - Civ 2
+        new SKColor(230, 180, 0),   // Jaune    - Civ 3
+        new SKColor(180, 60,  220), // Violet   - Civ 4
+        new SKColor(220, 130, 40),  // Orange   - Civ 5
+        new SKColor(0,   190, 190), // Cyan     - Civ 6
+        new SKColor(220, 100, 160), // Rose     - Civ 7
     };
 
     public RoadRenderer(TooltipRenderer tooltipRenderer)
@@ -71,19 +75,19 @@ public class RoadRenderer : HexBasedRenderer, IGameRenderer
 
         if (context.GameState is MainGameState mainGameState)
         {
-            var islandState = mainGameState.CurrentIslandState;
-            if (islandState != null)
+            var WorldState = mainGameState.CurrentWorldState;
+            if (WorldState != null)
             {
                 IslandMap? mapForVisibility;
                 if (DebugSettings.ShowFullMap)
-                    mapForVisibility = islandState.Map;
-                else if (!islandState.VisibleIslandMaps.TryGetValue(islandState.PlayerCivilization.Index, out var vm))
+                    mapForVisibility = WorldState.CurrentViewedMap;
+                else if (!WorldState.GetVisibleIslandMapsForZ(WorldState.CurrentViewedLayer).TryGetValue(WorldState.PlayerCivilization.Index, out var vm))
                     return;
                 else
                     mapForVisibility = vm;
 
                 // Dessine les routes de chaque civilisation
-                foreach (var civilization in islandState.Civilizations)
+                foreach (var civilization in WorldState.Civilizations)
                 {
                     DrawRoads(canvas, mapForVisibility, civilization.Roads, civilization.Index);
                 }
@@ -91,14 +95,15 @@ public class RoadRenderer : HexBasedRenderer, IGameRenderer
         }
     }
 
-    internal void RenderConstructionHighlights(SKCanvas canvas, ConstructionHoverState state)
+    internal void RenderConstructionHighlights(SKCanvas canvas, ConstructionHoverState state, GameRenderContext context)
     {
         foreach (var edge in state.BuildableEdges)
         {
-            DrawEdgeHighlight(canvas, edge, _buildableEdgePaint, 0.18f);
+            if (edge.Z == context.CurrentLayer)
+                DrawEdgeHighlight(canvas, edge, _buildableEdgePaint, 0.18f);
         }
 
-        if (state.HoveredEdge != null)
+        if ((state.HoveredEdge != null) && (state.HoveredEdge.Z == context.CurrentLayer))
         {
             DrawEdgeHighlight(canvas, state.HoveredEdge, _hoverEdgePaint, 0.14f);
 
@@ -150,7 +155,7 @@ public class RoadRenderer : HexBasedRenderer, IGameRenderer
     private static bool IsRoadVisible(Road road, IslandMap visibleMap)
     {
         var (h1, h2) = road.Position.GetHexes();
-        return visibleMap.HasTile(h1) && visibleMap.HasTile(h2);
+        return (h1.Z == visibleMap.Z) && visibleMap.HasTile(h1) && visibleMap.HasTile(h2);
     }
 
     private void DrawRoadSegmentOnEdge(SKCanvas canvas, SettlersOfIdlestan.Model.HexGrid.Edge edge, SKPaint paint)

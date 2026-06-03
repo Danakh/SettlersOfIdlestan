@@ -1,4 +1,4 @@
-using SettlersOfIdlestan.Controller;
+﻿using SettlersOfIdlestan.Controller;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Services.Localization;
 using SettlersOfIdlestanSkia.Core;
@@ -345,9 +345,9 @@ public class SettingsMenu
     private void AddResources()
     {
         var mainState = _gameController.CurrentMainState;
-        if (mainState?.CurrentIslandState?.Civilizations.Count > 0)
+        if (mainState?.CurrentWorldState?.Civilizations.Count > 0)
         {
-            var civilization = mainState.CurrentIslandState.Civilizations[0];
+            var civilization = mainState.CurrentWorldState.Civilizations[0];
             // Ajoute 100 de chaque ressource
             foreach (var resource in Enum.GetValues(typeof(SettlersOfIdlestan.Model.IslandMap.Resource)).Cast<SettlersOfIdlestan.Model.IslandMap.Resource>())
             {

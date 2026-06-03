@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using SettlersOfIdlestan.Model.GameplayModifier;
@@ -11,7 +11,7 @@ namespace SettlersOfIdlestan.Controller
 {
     public class TradeController
     {
-        private IslandState? _state;
+        private WorldState? _state;
         private const int DefaultSellRate = 5;
         private const int BuyRateBasic = 1;
         private const int BuyRateOre = 5;
@@ -19,19 +19,19 @@ namespace SettlersOfIdlestan.Controller
 
         public event Action<int>? GoldObtainedFromTrade;
 
-        internal TradeController(IslandState? state = null)
+        internal TradeController(WorldState? state = null)
         {
             _state = state;
         }
 
-        internal void Initialize(IslandState state)
+        internal void Initialize(WorldState state)
         {
             _state = state ?? throw new ArgumentNullException(nameof(state));
         }
 
         public bool IsTradeAvailable(int civilizationIndex)
         {
-            if (_state == null) throw new InvalidOperationException("IslandState has not been initialized.");
+            if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
 
             var civ = _state.Civilizations.Find(c => c.Index == civilizationIndex);
             if (civ == null) throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
@@ -72,7 +72,7 @@ namespace SettlersOfIdlestan.Controller
         /// </summary>
         public bool SellResource(int civilizationIndex, Resource resource, int quantity = 1)
         {
-            if (_state == null) throw new InvalidOperationException("IslandState has not been initialized.");
+            if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
             if (!ResourceUtils.BasicResources.Contains(resource))
                 throw new ArgumentException("Only basic resources can be sold.", nameof(resource));
 
@@ -112,7 +112,7 @@ namespace SettlersOfIdlestan.Controller
 
         public void BuyResource(int civIndex, Resource resource, int quantity = 1)
         {
-            if (_state == null) throw new InvalidOperationException("IslandState has not been initialized.");
+            if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
             if (!CanBuyResource(civIndex, resource, quantity)) return;
 
             var civ = _state.Civilizations.Find(c => c.Index == civIndex)!;
@@ -166,7 +166,7 @@ namespace SettlersOfIdlestan.Controller
 
         public void SetSeaportEnhancedResource(int civilizationIndex, Resource resource)
         {
-            if (_state == null) throw new InvalidOperationException("IslandState has not been initialized.");
+            if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
             var civ = _state.Civilizations.Find(c => c.Index == civilizationIndex)
                       ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
             if (!CanEnhanceSeaportResource(civilizationIndex, resource))
@@ -185,7 +185,7 @@ namespace SettlersOfIdlestan.Controller
 
         public void AddSeaportAutoTradeResource(int civilizationIndex, Resource resource)
         {
-            if (_state == null) throw new InvalidOperationException("IslandState has not been initialized.");
+            if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
             var civ = _state.Civilizations.Find(c => c.Index == civilizationIndex)
                       ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
             if (!CanActivateSeaportAutoTrade(civilizationIndex, resource))
@@ -215,7 +215,7 @@ namespace SettlersOfIdlestan.Controller
         /// </summary>
         public bool TryAutoTradeForPurchase(int civilizationIndex, ResourceSet requiredCosts)
         {
-            if (_state == null) throw new InvalidOperationException("IslandState has not been initialized.");
+            if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
             if (requiredCosts == null) throw new ArgumentNullException(nameof(requiredCosts));
 
             var civ = _state.Civilizations.Find(c => c.Index == civilizationIndex)

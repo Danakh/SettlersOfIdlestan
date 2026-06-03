@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Linq;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.IslandMap;
@@ -14,7 +14,7 @@ namespace SettlersOfIdlestan.Controller.Expand
     public class PrestigeController
     {
         private Civilization? _playerCivilization;
-        private IslandState? _islandState;
+        private WorldState? _islandState;
         private GameClock? _clock;
 
         internal PrestigeController()
@@ -22,10 +22,10 @@ namespace SettlersOfIdlestan.Controller.Expand
             // no op
         }
 
-        internal void Initialize(Civilization playerCivilization, IslandState? islandState = null, GameClock? clock = null)
+        internal void Initialize(Civilization playerCivilization, WorldState? WorldState = null, GameClock? clock = null)
         {
             _playerCivilization = playerCivilization;
-            _islandState = islandState;
+            _islandState = WorldState;
             _clock = clock;
         }
 
@@ -135,14 +135,14 @@ namespace SettlersOfIdlestan.Controller.Expand
 
             var points = CalculatePrestigePoints();
 
-            var currentIsland = mainGameState.CurrentIslandState;
+            var currentIsland = mainGameState.CurrentWorldState;
             if (currentIsland != null)
             {
                 var civ = currentIsland.PlayerCivilization;
                 var allBuildings = civ.Cities.SelectMany(c => c.Buildings).ToList();
                 var stats = new PrestigeRunStats
                 {
-                    IslandId = currentIsland.IslandID,
+                    WorldId = currentIsland.WorldId,
                     TickDuration = mainGameState.Clock.CurrentTick - currentIsland.StartTick,
                     CityCount = civ.Cities.Count,
                     BuildingCount = allBuildings.Count,
@@ -156,16 +156,16 @@ namespace SettlersOfIdlestan.Controller.Expand
 
             mainGameState.PrestigeState.PrestigePoints += points;
             mainGameState.PrestigeState.TotalPrestigePointsEarned += points;
-            mainGameState.PrestigeState.IslandState = null;
+            mainGameState.PrestigeState.WorldState = null;
 
             var generator = new IslandMapGenerator(mainGameState.PRNG);
-            var nextIslandState = generator.GenerateIslandState(
+            var nextWorldState = generator.GenerateWorldState(
                 nextIslandParameters,
                 mainGameState.Clock.CurrentTick,
                 startTick: mainGameState.Clock.CurrentTick)
                 ?? throw new InvalidOperationException("Failed to generate next island.");
 
-            mainGameState.PrestigeState.IslandState = nextIslandState;
+            mainGameState.PrestigeState.WorldState = nextWorldState;
         }
     }
 

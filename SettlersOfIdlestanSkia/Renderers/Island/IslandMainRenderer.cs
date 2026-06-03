@@ -1,4 +1,4 @@
-using SkiaSharp;
+﻿using SkiaSharp;
 using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Controller.Military;
 using SettlersOfIdlestan.Model.Game;
@@ -21,7 +21,7 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
     private readonly RoadRenderer _roadRenderer;
     private readonly CityRenderer _cityRenderer;
     private readonly HarvestRenderer _harvestRenderer;
-    private readonly BanditRenderer _banditRenderer;
+    private readonly MonsterRenderer _banditRenderer;
     private readonly MilitaryRenderer _militaryRenderer;
     private readonly HarvestParticleSystem _harvestParticleSystem;
     private readonly IConstructionHoverProvider _constructionHoverProvider;
@@ -64,14 +64,14 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
         { Resource.Crystal, new SKColor(147, 112, 219) } // Violet
     };
 
-    public IslandMainRenderer(IConstructionHoverProvider constructionHoverProvider, TooltipRenderer tooltipRenderer, HarvestController harvestController, ResourceManager resourceManager, MilitaryController militaryController)
+    public IslandMainRenderer(IConstructionHoverProvider constructionHoverProvider, TooltipRenderer tooltipRenderer, HarvestController harvestController, ResourceManager resourceManager, MilitaryController militaryController, Func<int> currentLayer)
     {
         _gameBoardRenderer = new GameBoardRenderer(harvestController, resourceManager);
         _roadRenderer = new RoadRenderer(tooltipRenderer);
         _cityRenderer = new CityRenderer(tooltipRenderer, resourceManager, militaryController);
         _harvestParticleSystem = new HarvestParticleSystem();
-        _harvestRenderer = new HarvestRenderer(_harvestParticleSystem, resourceManager);
-        _banditRenderer = new BanditRenderer(resourceManager);
+        _harvestRenderer = new HarvestRenderer(_harvestParticleSystem, resourceManager, currentLayer);
+        _banditRenderer = new MonsterRenderer(resourceManager);
         _militaryRenderer = new MilitaryRenderer();
         _constructionHoverProvider = constructionHoverProvider;
         _tooltipRenderer = tooltipRenderer;
@@ -126,36 +126,31 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
         _tooltipRenderer.SetIslandRenderContext(this, context);
 
         if (state.HoveredHex != null &&
+            state.HoveredHex.Z == context.CurrentLayer &&
             context.GameState is MainGameState mgs &&
-            mgs.CurrentIslandState != null)
+            mgs.CurrentWorldState != null)
         {
             _tooltipRenderer.SetHexHarvestTooltip(
                 state.HoveredHex,
                 _harvestController,
-                mgs.CurrentIslandState,
+                mgs.CurrentWorldState,
                 mgs.Clock.CurrentTick);
         }
-
-        bool isUnderworld = context.GameState is MainGameState uwMgs
-            && uwMgs.CurrentIslandState?.IsViewingUnderworld == true;
 
         using (ApplyCameraTransform(canvas, context))
         {
             _gameBoardRenderer.Render(canvas, context);
-            if (!isUnderworld) _banditRenderer.Render(canvas, context);
-            if (!isUnderworld) _roadRenderer.Render(canvas, context);
+            _banditRenderer.Render(canvas, context);
+            _roadRenderer.Render(canvas, context);
             bool skipCities = SuppressCities?.Invoke() == true;
             if (!skipCities)
                 _cityRenderer.Render(canvas, context);
-            if (!isUnderworld) _harvestRenderer.Render(canvas, context);
+            _harvestRenderer.Render(canvas, context);
 
-            if (!isUnderworld)
-            {
-                _roadRenderer.RenderConstructionHighlights(canvas, state);
-                if (!skipCities)
-                    _cityRenderer.RenderConstructionHighlights(canvas, state);
-                _militaryRenderer.Render(canvas, context);
-            }
+            _roadRenderer.RenderConstructionHighlights(canvas, state, context);
+            if (!skipCities)
+                _cityRenderer.RenderConstructionHighlights(canvas, state, context);
+            _militaryRenderer.Render(canvas, context);
         }
     }
 

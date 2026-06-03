@@ -45,6 +45,7 @@
         try
         {
             _runtime = new SkiaGameRuntime();
+            _runtime.QuitRequested += () => _ = JS.InvokeVoidAsync("window.close");
             await _runtime.InitializeAsync(FileSystemService);
         }
         catch (Exception ex)

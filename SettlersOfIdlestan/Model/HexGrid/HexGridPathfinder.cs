@@ -4,17 +4,19 @@ namespace SettlersOfIdlestan.Model.HexGrid;
 
 /// <summary>
 /// Algorithme A* sur le graphe des sommets (Vertex) de la grille hexagonale.
-/// Chaque arête (Edge) relie deux Vertex adjacents avec un coût unitaire.
+/// Chaque arÃªte (Edge) relie deux Vertex adjacents avec un coÃ»t unitaire.
 /// </summary>
 public static class HexGridPathfinder
 {
     /// <summary>
     /// Calcule le chemin le plus court entre deux Vertex en parcourant les edges de la grille.
-    /// La longueur du chemin retourné est toujours égale à from.EdgeDistanceTo(to) + 1.
-    /// Retourne { from, to } si aucun chemin n'est trouvé (ne devrait pas arriver sur une grille infinie).
+    /// La longueur du chemin retournÃ© est toujours Ã©gale Ã  from.EdgeDistanceTo(to) + 1.
+    /// Retourne { from, to } si aucun chemin n'est trouvÃ© (ne devrait pas arriver sur une grille infinie).
     /// </summary>
     public static List<Vertex> FindVertexPath(Vertex from, Vertex to)
     {
+        from.EnsureSameZ(to, nameof(FindVertexPath));
+
         if (from.Equals(to)) return new List<Vertex> { from };
 
         var open = new PriorityQueue<Vertex, int>();

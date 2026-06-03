@@ -115,7 +115,7 @@ public static class TechnologyDefinitions
         new(TechnologyId.SpecializedMarket,
             "tech_specialized_market_name", "tech_specialized_market_desc",
             cost: 1500,
-            prerequisites: Array.Empty<TechnologyId>(),
+            prerequisites: new[] { TechnologyId.StorageOptimization },
             modifiers: new Modifier[] { new(ECategory.BUILDING_MAX_LEVEL, "Market", EType.ADDITIVE, 1) },
             tier: 2, line: 3),
 
@@ -192,11 +192,11 @@ public static class TechnologyDefinitions
             modifiers: new Modifier[] { new(ECategory.RESEARCH_SPEED, EType.ADDITIVE, 0.2) },
             tier: 3, line: 5),
 
-        new(TechnologyId.WarAcademy,
-            "tech_war_academy_name", "tech_war_academy_desc",
+        new(TechnologyId.AdvancedTactics,
+            "tech_advanced_tactics_name", "tech_advanced_tactics_desc",
             cost: 6500,
             prerequisites: new[] { TechnologyId.MilitaryMastery, TechnologyId.MilitaryBuildings },
-            modifiers: new Modifier[] { new(ECategory.UNIT_PRODUCTION_SPEED, EType.ADDITIVE, 0.3) },
+            modifiers: new Modifier[] { },
             tier: 3, line: 7),
 
         // === TIER 4 — Premiers croisements ===
@@ -229,11 +229,11 @@ public static class TechnologyDefinitions
             modifiers: new Modifier[] { new(ECategory.RESEARCH_SPEED, EType.ADDITIVE, 0.2) },
             tier: 4, line: 5),
 
-        new(TechnologyId.MilitarySupremacy,
-            "tech_military_supremacy_name", "tech_military_supremacy_desc",
+        new(TechnologyId.AdvancedStrategy,
+            "tech_advanced_strategy_name", "tech_advanced_strategy_desc",
             cost: 19350,
-            prerequisites: new[] { TechnologyId.WarAcademy, TechnologyId.GrandArchitecture },
-            modifiers: new Modifier[] { new(ECategory.CITY_DEFENSE, EType.ADDITIVE, 1) },
+            prerequisites: new[] { TechnologyId.AdvancedTactics, TechnologyId.GrandArchitecture },
+            modifiers: new Modifier[] { },
             tier: 4, line: 7),
 
         // === TIER 5 — Grandes convergences ===
@@ -255,7 +255,7 @@ public static class TechnologyDefinitions
         new(TechnologyId.GloriousEmpire,
             "tech_glorious_empire_name", "tech_glorious_empire_desc",
             cost: 54240,
-            prerequisites: new[] { TechnologyId.MilitarySupremacy, TechnologyId.TradeRoutes },
+            prerequisites: new[] { TechnologyId.AdvancedStrategy, TechnologyId.TradeRoutes },
             modifiers: new Modifier[]
             {
                 new(ECategory.CITY_DEFENSE, EType.ADDITIVE, 1),

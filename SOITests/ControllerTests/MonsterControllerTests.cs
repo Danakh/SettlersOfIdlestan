@@ -12,7 +12,7 @@ using Xunit;
 
 namespace SOITests.ControllerTests
 {
-    public class BanditControllerTests
+    public class MonsterControllerTests
     {
         // Map layout for trapped scenario (axial coordinates):
         //
@@ -28,15 +28,15 @@ namespace SOITests.ControllerTests
         // With active barracks: all non-water neighbors are protected → bandit stays.
         // With inactive barracks: bandit can move to any plain neighbor.
 
-        private static HexCoord Center => new(0, 0);
-        private static HexCoord East   => new(1, 0);
-        private static HexCoord West   => new(-1, 0);
-        private static HexCoord NE     => new(0, 1);
-        private static HexCoord NW     => new(-1, 1);
-        private static HexCoord SE     => new(1, -1);
-        private static HexCoord SW     => new(0, -1);
+        private static HexCoord Center => new(0, 0, IslandMap.SurfaceLayer);
+        private static HexCoord East   => new(1, 0, IslandMap.SurfaceLayer);
+        private static HexCoord West   => new(-1, 0, IslandMap.SurfaceLayer);
+        private static HexCoord NE     => new(0, 1, IslandMap.SurfaceLayer);
+        private static HexCoord NW     => new(-1, 1, IslandMap.SurfaceLayer);
+        private static HexCoord SE     => new(1, -1, IslandMap.SurfaceLayer);
+        private static HexCoord SW     => new(0, -1, IslandMap.SurfaceLayer);
 
-        private static (IslandState state, GameClock clock, BanditController controller) CreateTrappedSetup(bool activeBarracks)
+        private static (WorldState state, GameClock clock, MonsterFeatureController controller) CreateTrappedSetup(bool activeBarracks)
         {
             var tiles = new List<HexTile>
             {
@@ -65,13 +65,13 @@ namespace SOITests.ControllerTests
             civ.Cities.Add(cityA);
             civ.Cities.Add(cityB);
 
-            var state = new IslandState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
+            var state = new WorldState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
             state.AddFeature(new Bandit(Center, 0) { Found = true });
 
             var clock = new GameClock();
             clock.Start();
 
-            var controller = new BanditController();
+            var controller = new MonsterFeatureController();
             controller.Initialize(state, clock);
 
             return (state, clock, controller);
@@ -84,8 +84,8 @@ namespace SOITests.ControllerTests
         {
             // Small map: center (desert) with one plain neighbor and one water neighbor.
             // The bandit should always end up on the plain tile, never on water.
-            var plain = new HexCoord(1, 0);
-            var water = new HexCoord(-1, 0);
+            var plain = new HexCoord(1, 0, IslandMap.SurfaceLayer);
+            var water = new HexCoord(-1, 0, IslandMap.SurfaceLayer);
 
             var tiles = new List<HexTile>
             {
@@ -96,16 +96,16 @@ namespace SOITests.ControllerTests
 
             var map = new IslandMap(tiles);
             var civ = new Civilization { Index = 0 };
-            var state = new IslandState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
+            var state = new WorldState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
             state.AddFeature(new Bandit(Center, 0) { Found = true });
 
             var clock = new GameClock();
             clock.Start();
-            var controller = new BanditController();
+            var controller = new MonsterFeatureController();
             controller.Initialize(state, clock);
 
             for (int i = 0; i < 10; i++)
-                clock.SimulateAdvance(BanditController.MovementIntervalTicks);
+                clock.SimulateAdvance(MonsterFeatureController.MovementIntervalTicks);
 
             Assert.NotEqual(water, state.Features.OfType<Bandit>().First().Position);
         }
@@ -115,7 +115,7 @@ namespace SOITests.ControllerTests
         [Fact]
         public void IsHarvestBlocked_ReturnsTrueWhileBanditPresent()
         {
-            var state = new IslandState(
+            var state = new WorldState(
                 new IslandMap(new List<HexTile> { new(Center, TerrainType.Desert) }),
                 new List<Civilization> { new() { Index = 0 } },
                 AtlasController.InvalidIslandId);
@@ -124,7 +124,7 @@ namespace SOITests.ControllerTests
 
             var clock = new GameClock();
             clock.Start();
-            var controller = new BanditController();
+            var controller = new MonsterFeatureController();
             controller.Initialize(state, clock);
 
             Assert.True(controller.IsHarvestBlocked(Center, clock.CurrentTick));
@@ -134,7 +134,7 @@ namespace SOITests.ControllerTests
         public void IsHarvestBlocked_ReturnsTrueImmediatelyAfterBanditLeaves()
         {
             // Only two tiles: bandit starts at center and can only go to plain.
-            var plain = new HexCoord(1, 0);
+            var plain = new HexCoord(1, 0, IslandMap.SurfaceLayer);
 
             var tiles = new List<HexTile>
             {
@@ -144,16 +144,16 @@ namespace SOITests.ControllerTests
 
             var map = new IslandMap(tiles);
             var civ = new Civilization { Index = 0 };
-            var state = new IslandState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
+            var state = new WorldState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
             state.AddFeature(new Bandit(Center, 0) { Found = true });
 
             var clock = new GameClock();
             clock.Start();
-            var controller = new BanditController();
+            var controller = new MonsterFeatureController();
             controller.Initialize(state, clock);
 
             // Trigger one move: bandit must go to plain (only valid destination).
-            clock.SimulateAdvance(BanditController.MovementIntervalTicks);
+            clock.SimulateAdvance(MonsterFeatureController.MovementIntervalTicks);
 
             Assert.Equal(plain, state.Features.OfType<Bandit>().First().Position);
             Assert.True(controller.IsHarvestBlocked(Center, clock.CurrentTick),
@@ -163,7 +163,7 @@ namespace SOITests.ControllerTests
         [Fact]
         public void IsHarvestBlocked_ReturnsFalseAfterCooldownExpires()
         {
-            var plain = new HexCoord(1, 0);
+            var plain = new HexCoord(1, 0, IslandMap.SurfaceLayer);
 
             var tiles = new List<HexTile>
             {
@@ -173,20 +173,21 @@ namespace SOITests.ControllerTests
 
             var map = new IslandMap(tiles);
             var civ = new Civilization { Index = 0 };
-            var state = new IslandState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
+            var state = new WorldState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
             state.AddFeature(new Bandit(Center, 0) { Found = true });
 
             var clock = new GameClock();
             clock.Start();
-            var controller = new BanditController();
+            var controller = new MonsterFeatureController();
             controller.Initialize(state, clock);
 
-            clock.SimulateAdvance(BanditController.MovementIntervalTicks);
+            clock.SimulateAdvance(MonsterFeatureController.MovementIntervalTicks);
             Assert.Equal(plain, state.Features.OfType<Bandit>().First().Position);
 
             // Advance past the departure cooldown (bandit won't move again because its
             // LastMovedTick was just updated — next move requires another MovementIntervalTicks).
-            clock.SimulateAdvance(BanditController.DepartureCooldownTicks + 1);
+            var bandit = state.Features.OfType<Bandit>().First();
+            clock.SimulateAdvance(bandit.DepartureCooldownTicks + 1);
 
             Assert.False(controller.IsHarvestBlocked(Center, clock.CurrentTick),
                 "Cooldown should have expired");
@@ -194,13 +195,13 @@ namespace SOITests.ControllerTests
 
         // ── Raid mechanic ────────────────────────────────────────────────────
 
-        private static (IslandState state, GameClock clock, BanditController controller, Civilization civ)
+        private static (WorldState state, GameClock clock, MonsterFeatureController controller, Civilization civ)
             CreateRaidSetup()
         {
             // City at Vertex(NE, East, NE11) — bandit at Center is adjacent to NE and East.
-            var ne   = new HexCoord(0, 1);
-            var east = new HexCoord(1, 0);
-            var ne11 = new HexCoord(1, 1);
+            var ne   = new HexCoord(0, 1, IslandMap.SurfaceLayer);
+            var east = new HexCoord(1, 0, IslandMap.SurfaceLayer);
+            var ne11 = new HexCoord(1, 1, IslandMap.SurfaceLayer);
 
             var tiles = new List<HexTile>
             {
@@ -215,12 +216,12 @@ namespace SOITests.ControllerTests
             var city = new City(Vertex.Create(ne, east, Center)) { CivilizationIndex = 0 };
             civ.Cities.Add(city);
 
-            var state = new IslandState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
+            var state = new WorldState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
             state.AddFeature(new Bandit(Center, 0) { Found = true });
 
             var clock = new GameClock();
             clock.Start();
-            var controller = new BanditController();
+            var controller = new MonsterFeatureController();
             controller.Initialize(state, clock);
 
             return (state, clock, controller, civ);
@@ -236,8 +237,9 @@ namespace SOITests.ControllerTests
 
             Assert.Equal(4, civ.GetResourceQuantity(Resource.Wood));
             var bandit = state.Features.OfType<Bandit>().First();
-            Assert.NotNull(bandit.LastRaidTargetVertex);
-            Assert.Equal(nameof(Resource.Wood), bandit.LastStolenResource);
+            Assert.NotNull(bandit.LastAttackTargetVertex);
+            Assert.NotNull(bandit.LastAttackResourcesString);
+            Assert.Contains(nameof(Resource.Wood), bandit.LastAttackResourcesString);
         }
 
         [Fact]
@@ -250,8 +252,8 @@ namespace SOITests.ControllerTests
 
             Assert.Equal(0, civ.GetResourceQuantity(Resource.Wood));
             var bandit = state.Features.OfType<Bandit>().First();
-            Assert.Null(bandit.LastRaidTargetVertex);
-            Assert.Null(bandit.LastStolenResource);
+            Assert.Null(bandit.LastAttackTargetVertex);
+            Assert.Null(bandit.LastAttackResourcesString);
         }
 
         [Fact]

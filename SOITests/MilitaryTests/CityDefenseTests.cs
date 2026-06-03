@@ -1,4 +1,4 @@
-using SettlersOfIdlestan.Controller.Island;
+﻿using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Controller.Military;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
@@ -17,15 +17,15 @@ namespace SOITests.MilitaryTests;
 /// </summary>
 public class CityDefenseTests
 {
-    private static readonly Vertex CityVertex = Vertex.Create(new(0, 0), new(0, 1), new(1, 0));
+    private static readonly Vertex CityVertex = Vertex.Create(new(0, 0, IslandMap.SurfaceLayer), new(0, 1, IslandMap.SurfaceLayer), new(1, 0, IslandMap.SurfaceLayer));
 
     private static (GameClock clock, MilitaryController ctrl, City city)
         Setup(params Building[] buildings)
     {
         var map = new IslandMap([
-            new(new HexCoord(0, 0), TerrainType.Plain),
-            new(new HexCoord(0, 1), TerrainType.Plain),
-            new(new HexCoord(1, 0), TerrainType.Plain),
+            new(new HexCoord(0, 0, IslandMap.SurfaceLayer), TerrainType.Plain),
+            new(new HexCoord(0, 1, IslandMap.SurfaceLayer), TerrainType.Plain),
+            new(new HexCoord(1, 0, IslandMap.SurfaceLayer), TerrainType.Plain),
         ]);
 
         var civ = new Civilization { Index = 0 };
@@ -35,7 +35,7 @@ public class CityDefenseTests
         foreach (var b in buildings) city.Buildings.Add(b);
         civ.Cities.Add(city);
 
-        var state = new IslandState(map, [civ], AtlasController.InvalidIslandId);
+        var state = new WorldState(map, [civ], AtlasController.InvalidIslandId);
         var clock = new GameClock();
         clock.Start();
         var ctrl = new MilitaryController();

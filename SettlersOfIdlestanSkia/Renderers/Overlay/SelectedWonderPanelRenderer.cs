@@ -274,6 +274,17 @@ public class SelectedWonderPanelRenderer : IGameRenderer
         }
     }
 
+    public void Close()
+    {
+        _wonderService.ClearSelectedWonder();
+        _collapsed = false;
+        _scrollOffset = 0;
+        _panelBounds = SKRect.Empty;
+        _closeRect = SKRect.Empty;
+        _collapseTabRect = SKRect.Empty;
+        _checkboxRects.Clear();
+    }
+
     public void Dispose()
     {
         _inputService.PointerPressed -= HandlePointerPressed;

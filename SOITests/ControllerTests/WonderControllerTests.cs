@@ -1,4 +1,4 @@
-using SettlersOfIdlestan.Controller.Island;
+﻿using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Model;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
@@ -15,7 +15,7 @@ namespace SOITests.ControllerTests
 {
     public class WonderControllerTests
     {
-        private static HexCoord WonderHex => new(0, 0);
+        private static HexCoord WonderHex => new(0, 0, IslandMap.SurfaceLayer);
 
         /// <summary>
         /// TownHall niveau 20 → basic max = 5*(2+20) = 110, advanced max = 5*(20-2) = 90.
@@ -23,7 +23,7 @@ namespace SOITests.ControllerTests
         /// </summary>
         private const int TownHallLevel = 20;
 
-        private static (IslandState state, Wonder wonder, GameClock clock, WonderController controller) CreateSetup()
+        private static (WorldState state, Wonder wonder, GameClock clock, WonderController controller) CreateSetup()
         {
             var state = IslandTestFactory.CreateSevenHexIslandState();
             var city = state.PlayerCivilization.Cities[0];

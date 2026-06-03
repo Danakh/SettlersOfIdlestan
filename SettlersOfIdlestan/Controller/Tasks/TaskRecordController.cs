@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using SettlersOfIdlestan.Controller.Expand;
@@ -21,7 +21,7 @@ public class TaskRecordController
 {
     private GameRecord? _gameRecord;
     private RunRecord? _runRecord;
-    private IslandState? _islandState;
+    private WorldState? _islandState;
     private int _playerCivIndex;
 
     private BuildingController? _buildingController;
@@ -40,7 +40,7 @@ public class TaskRecordController
     internal void Initialize(
         GameRecord gameRecord,
         RunRecord runRecord,
-        IslandState islandState,
+        WorldState WorldState,
         BuildingController buildingController,
         RoadController roadController,
         CityBuilderController cityBuilderController,
@@ -54,8 +54,8 @@ public class TaskRecordController
 
         _gameRecord = gameRecord;
         _runRecord = runRecord;
-        _islandState = islandState;
-        _playerCivIndex = islandState.PlayerCivilization.Index;
+        _islandState = WorldState;
+        _playerCivIndex = WorldState.PlayerCivilization.Index;
         _buildingController = buildingController;
         _roadController = roadController;
         _cityBuilderController = cityBuilderController;
@@ -70,7 +70,7 @@ public class TaskRecordController
         _cityBuilderController.OnCityBuilt += HandleCityBuilt;
         _prestigeMapController.OnVertexPurchased += HandleVertexPurchased;
         _researchController.OnResearchCompleted += HandleResearchCompleted;
-        _militaryController.SoldierAttackedBandit += HandleBanditDefeated;
+        _militaryController.SoldierAttackedMonster += HandleBanditDefeated;
         _islandState.FeatureRemoved += HandleFeatureRemoved;
         _harvestController.OnHarvestCompleted += HandleHarvestCompleted;
         _tradeController.GoldObtainedFromTrade += HandleGoldObtainedFromTrade;
@@ -83,7 +83,7 @@ public class TaskRecordController
         if (_cityBuilderController != null) _cityBuilderController.OnCityBuilt -= HandleCityBuilt;
         if (_prestigeMapController != null) _prestigeMapController.OnVertexPurchased -= HandleVertexPurchased;
         if (_researchController != null) _researchController.OnResearchCompleted -= HandleResearchCompleted;
-        if (_militaryController != null) _militaryController.SoldierAttackedBandit -= HandleBanditDefeated;
+        if (_militaryController != null) _militaryController.SoldierAttackedMonster -= HandleBanditDefeated;
         if (_islandState != null) _islandState.FeatureRemoved -= HandleFeatureRemoved;
         if (_harvestController != null) _harvestController.OnHarvestCompleted -= HandleHarvestCompleted;
         if (_tradeController != null) _tradeController.GoldObtainedFromTrade -= HandleGoldObtainedFromTrade;
@@ -128,7 +128,7 @@ public class TaskRecordController
     private void HandleBuildingBuilt(object? sender, BuildingBuiltEventArgs e)
     {
         if (_gameRecord == null || _runRecord == null) return;
-        if (e.CivilizationIndex != _playerCivIndex) return;
+        if (e.City.CivilizationIndex != _playerCivIndex) return;
 
         if (e.IsNewBuilding)
         {
@@ -159,8 +159,7 @@ public class TaskRecordController
                 && (e.BuildingType == BuildingType.Seaport || e.BuildingType == BuildingType.TownHall)
                 && _islandState != null)
             {
-                var city = _islandState.PlayerCivilization.Cities
-                    .FirstOrDefault(c => c.Position.Equals(e.CityPosition));
+                var city = e.City;
                 if (city != null)
                 {
                     bool hasSeaport4 = city.Buildings.Any(b => b.Type == BuildingType.Seaport && b.Level >= 4);

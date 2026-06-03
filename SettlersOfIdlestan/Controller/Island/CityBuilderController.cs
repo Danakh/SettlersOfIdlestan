@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using SettlersOfIdlestan.Model.Civilization;
@@ -29,7 +29,7 @@ namespace SettlersOfIdlestan.Controller.Island
     /// </summary>
     public class CityBuilderController
     {
-        private IslandState? _state;
+        private WorldState? _state;
         private GameClock? _clock;
         private GamePRNG _prng = new();
 
@@ -39,15 +39,15 @@ namespace SettlersOfIdlestan.Controller.Island
         public event EventHandler<OutpostAutoBuiltEventArgs>? OnAutoOutpostBuilt;
         public event EventHandler<OutpostAutoBuiltEventArgs>? OnCityBuilt;
 
-        internal CityBuilderController(IslandState? state = null)
+        internal CityBuilderController(WorldState? state = null)
         {
             _state = state;
         }
 
         /// <summary>
-        /// Initialize or update the IslandState for this controller.
+        /// Initialize or update the WorldState for this controller.
         /// </summary>
-        internal void Initialize(IslandState state, GameClock? clock = null, GamePRNG? prng = null)
+        internal void Initialize(WorldState state, GameClock? clock = null, GamePRNG? prng = null)
         {
             if (_clock != null)
                 _clock.Advanced -= OnClockAdvanced;
@@ -123,7 +123,7 @@ namespace SettlersOfIdlestan.Controller.Island
         /// </summary>
         public List<Vertex> GetBuildableVertices(int civilizationIndex)
         {
-            if (_state == null) throw new InvalidOperationException("IslandState has not been initialized.");
+            if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
 
             var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex)
                       ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
@@ -141,8 +141,12 @@ namespace SettlersOfIdlestan.Controller.Island
 
             // now we filter vertices that aren't far enough from any city using MinDistanceBetweenCities and MinDistanceBetweenCivilizationCities
             vertices = vertices.Where(v =>
-                !_state.Civilizations.Where(c => c.Index != civilizationIndex).Any(c => c.Cities.Any(city => city.Position.EdgeDistanceTo(v) < MinDistanceBetweenCities)) &&
-                !civ.Cities.Any(city => city.Position.EdgeDistanceTo(v) < MinDistanceBetweenCivilizationCities))
+                !_state.Civilizations.Where(c => c.Index != civilizationIndex).Any(c => c.Cities
+                    .Where(city => city.Position.Z == v.Z)
+                    .Any(city => city.Position.EdgeDistanceTo(v) < MinDistanceBetweenCities)) &&
+                !civ.Cities
+                    .Where(city => city.Position.Z == v.Z)
+                    .Any(city => city.Position.EdgeDistanceTo(v) < MinDistanceBetweenCivilizationCities))
                 .ToList();
 
             return vertices;
@@ -154,8 +158,9 @@ namespace SettlersOfIdlestan.Controller.Island
         /// </summary>
         public City? BuildCity(int civilizationIndex, Vertex vertex)
         {
-            if (_state == null) throw new InvalidOperationException("IslandState has not been initialized.");
+            if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
             if (vertex == null) throw new ArgumentNullException(nameof(vertex));
+            _state.GetMapFor(vertex);
 
             var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex)
                       ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
@@ -173,6 +178,9 @@ namespace SettlersOfIdlestan.Controller.Island
 
             var city = new City(vertex) { CivilizationIndex = civilizationIndex };
             civ.Cities.Add(city);
+
+            if (vertex.Z != IslandMap.SurfaceLayer && _state.Layers.TryGetValue(vertex.Z, out var layer))
+                layer.Cities.Add(city);
 
             if (civilizationIndex == _state.PlayerCivilization.Index)
                 foreach (var bt in civ.ModifierAggregator.GetGrantedBuildingTypes(ECategory.NEW_CITY_BUILDING))

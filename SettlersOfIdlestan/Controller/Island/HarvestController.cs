@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Linq;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.IslandMap;
@@ -50,10 +50,10 @@ namespace SettlersOfIdlestan.Controller.Island
     /// </summary>
     public class HarvestController
     {
-        private IslandState? _state;
+        private WorldState? _state;
         private GameClock? _clock;
         private TradeController? _tradeController;
-        private BanditController? _banditController;
+        private MonsterFeatureController? _banditController;
 
         // 2 s × 100 ticks/s
         public const long HarvestCooldownTicks = 200L;
@@ -72,12 +72,12 @@ namespace SettlersOfIdlestan.Controller.Island
         public event EventHandler<HarvestCompletedEventArgs>? OnHarvestCompleted;
         public event EventHandler<MarketGenerationEventArgs>? OnRandomResourceGenerated;
 
-        internal HarvestController(IslandState? state = null, GameClock? clock = null)
+        internal HarvestController(WorldState? state = null, GameClock? clock = null)
         {
             Initialize(state, clock);
         }
 
-        internal void Initialize(IslandState? state, GameClock? clock, TradeController? tradeController = null, BanditController? banditController = null, GamePRNG? prng = null)
+        internal void Initialize(WorldState? state, GameClock? clock, TradeController? tradeController = null, MonsterFeatureController? banditController = null, GamePRNG? prng = null)
         {
             if (_clock != null)
                 _clock.Advanced -= OnClockAdvanced;
@@ -191,7 +191,7 @@ namespace SettlersOfIdlestan.Controller.Island
                         foreach (var hex in city.Position.GetHexes())
                         {
                             if (hex == null || !visitedHexes.Add(hex)) continue;
-                            var tile = _state.Map.GetTile(hex);
+                            var tile = _state.GetMapFor(hex).GetTile(hex);
                             if (tile == null) continue;
                             foreach (var adjacentCity in civ.Cities.Where(c => c.Position.IsAdjacentTo(hex)))
                                 foreach (var building in adjacentCity.Buildings)
@@ -277,7 +277,7 @@ namespace SettlersOfIdlestan.Controller.Island
             if (_state == null) return Array.Empty<Resource>();
             var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex);
             if (civ == null) return Array.Empty<Resource>();
-            var tile = _state.Map.GetTile(hex);
+            var tile = _state.GetMapFor(hex).GetTile(hex);
             if (tile == null) return Array.Empty<Resource>();
 
             var resources = new HashSet<Resource>();
@@ -295,7 +295,7 @@ namespace SettlersOfIdlestan.Controller.Island
             if (_state == null) return Array.Empty<Resource>();
             var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex);
             if (civ == null) return Array.Empty<Resource>();
-            var tile = _state.Map.GetTile(hex);
+            var tile = _state.GetMapFor(hex).GetTile(hex);
             if (tile == null) return Array.Empty<Resource>();
 
             var resources = new HashSet<Resource>();
@@ -320,7 +320,7 @@ namespace SettlersOfIdlestan.Controller.Island
             if (_state == null) return System.Array.Empty<(Vertex, BuildingType, Resource, long, long)>();
             var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex);
             if (civ == null) return System.Array.Empty<(Vertex, BuildingType, Resource, long, long)>();
-            var tile = _state.Map.GetTile(hex);
+            var tile = _state.GetMapFor(hex).GetTile(hex);
             if (tile == null) return System.Array.Empty<(Vertex, BuildingType, Resource, long, long)>();
 
             var result = new System.Collections.Generic.List<(Vertex, BuildingType, Resource, long, long)>();
@@ -419,7 +419,7 @@ namespace SettlersOfIdlestan.Controller.Island
         public bool ManualHarvest(int civilizationIndex, HexCoord hex)
         {
             if (_state == null || _clock == null)
-                throw new InvalidOperationException("IslandState and GameClock have not been initialized.");
+                throw new InvalidOperationException("WorldState and GameClock have not been initialized.");
 
             var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex)
                       ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
@@ -444,7 +444,7 @@ namespace SettlersOfIdlestan.Controller.Island
             if (cities.Count == 0)
                 return false;
 
-            var tile = _state.Map.GetTile(hex);
+            var tile = _state.GetMapFor(hex).GetTile(hex);
             if (tile == null) return false;
 
             var harvested = new ResourceSet();

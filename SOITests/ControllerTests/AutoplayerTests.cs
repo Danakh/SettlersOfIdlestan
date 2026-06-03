@@ -1,4 +1,4 @@
-using SettlersOfIdlestan.Controller;
+﻿using SettlersOfIdlestan.Controller;
 using SettlersOfIdlestan.Controller.Generator;
 using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Model.Buildings;
@@ -18,11 +18,11 @@ namespace SOITests.ControllerTests
         [Fact]
         public void Autoplayer_BuildingASecondCity()
         {
-            var a = new HexCoord(0, 0);
-            var b = new HexCoord(1, 0);
-            var c = new HexCoord(0, 1);
-            var d = new HexCoord(1, 1);
-            var e = new HexCoord(2, 0);
+            var a = new HexCoord(0, 0, IslandMap.SurfaceLayer);
+            var b = new HexCoord(1, 0, IslandMap.SurfaceLayer);
+            var c = new HexCoord(0, 1, IslandMap.SurfaceLayer);
+            var d = new HexCoord(1, 1, IslandMap.SurfaceLayer);
+            var e = new HexCoord(2, 0, IslandMap.SurfaceLayer);
 
             var tiles = new[]
             {
@@ -36,7 +36,7 @@ namespace SOITests.ControllerTests
             var map = new IslandMap(tiles);
             var civ = new Civilization { Index = 0 };
             var civs = new System.Collections.Generic.List<Civilization> { civ };
-            var state = new IslandState(map, civs, AtlasController.InvalidIslandId);
+            var state = new WorldState(map, civs, AtlasController.InvalidIslandId);
 
             var vertex = Vertex.Create(a, b, c);
             IslandMapGenerator generator = new IslandMapGenerator();
@@ -65,7 +65,8 @@ namespace SOITests.ControllerTests
 
             Assert.True(clock.CurrentTick >= 1800, $"Expected at least 1800 ticks elapsed, was {clock.CurrentTick}");
 
-            Assert.True(runner.AutoBuildBuilding(vertex, BuildingType.Market), "Autoplayer should eventually build a market");
+            City city = civ.Cities.First(c => c.Position.Equals(vertex));
+            Assert.True(runner.AutoBuildBuilding(city, BuildingType.Market), "Autoplayer should eventually build a market");
             Assert.Contains(civ.Cities.SelectMany(c => c.Buildings), b => b.Type == BuildingType.Market);
 
             var cityBuilder = new CityBuilderController(state);

@@ -1,4 +1,4 @@
-using SettlersOfIdlestan.Model.Game;
+﻿using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Services.Localization;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Services;
@@ -81,7 +81,7 @@ public sealed class EventLogRenderer : IDisposable
         canvas.DrawText(_localization.Get("tab_events"), x, y + 14, _headerFont, _accentPaint);
         y += 28f;
 
-        var eventLog = mainGameState.CurrentIslandState?.EventLog;
+        var eventLog = mainGameState.CurrentWorldState?.EventLog;
         if (eventLog == null || !eventLog.HasEntries)
         {
             canvas.DrawText(_localization.Get("events_empty"), x, y + 14, _bodyFont, _mutedPaint);
@@ -144,6 +144,14 @@ public sealed class EventLogRenderer : IDisposable
             _discoveryCardPaint, _discoveryBorderPaint, _discoveryTextPaint,
             _localization.Get("event_wonder_placed_title"),
             _localization.Get("event_wonder_placed_body")),
+        GameEventType.RatsDiscovered => (
+            _dangerCardPaint, _dangerBorderPaint, _dangerTextPaint,
+            _localization.Get("event_rats_title"),
+            _localization.Get("event_rats_body")),
+        GameEventType.RatsDefeated => (
+            _successCardPaint, _successBorderPaint, _successTextPaint,
+            _localization.Get("event_rats_defeated_title"),
+            _localization.Get("event_rats_defeated_body")),
         _ => (_dangerCardPaint, _dangerBorderPaint, _bodyTextPaint, "?", entry.Message ?? "")
     };
 

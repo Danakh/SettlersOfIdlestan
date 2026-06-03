@@ -1,4 +1,4 @@
-using SettlersOfIdlestan.Model.Game;
+﻿using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.Prestige;
 using SettlersOfIdlestan.Services.Localization;
 using SettlersOfIdlestanSkia.Core;
@@ -69,7 +69,7 @@ public sealed class PrestigeHistoryRenderer : IDisposable
 
     private float DrawCurrentRun(SKCanvas canvas, MainGameState mainGameState, float x, float y, float width)
     {
-        var island = mainGameState.CurrentIslandState;
+        var island = mainGameState.CurrentWorldState;
         var controller = _gameControllerService.MainGameController.PrestigeController;
 
         string title = _localization.Get("stats_current_run");
@@ -82,7 +82,7 @@ public sealed class PrestigeHistoryRenderer : IDisposable
         int buildingCount = allBuildings.Count;
         int totalLevels = allBuildings.Sum(b => b.Level);
         int prestigePoints = controller.CalculatePrestigePoints();
-        int islandId = island?.IslandID ?? 0;
+        int WorldId = island?.WorldId ?? 0;
 
         float cardHeight = CardPadding + RowHeight * 2 + CardPadding;
         var cardRect = new SKRect(x, y, x + width, y + cardHeight);
@@ -92,7 +92,7 @@ public sealed class PrestigeHistoryRenderer : IDisposable
         float row1 = y + CardPadding + 10;
         float row2 = row1 + RowHeight;
 
-        DrawStatCell(canvas, x + CardPadding, row1, _localization.Get("stats_island"), $"#{islandId}", width / 4);
+        DrawStatCell(canvas, x + CardPadding, row1, _localization.Get("stats_island"), $"#{WorldId}", width / 4);
         DrawStatCell(canvas, x + width / 4, row1, _localization.Get("stats_playtime"), FormatTicks(tickDuration), width / 4);
         DrawStatCell(canvas, x + width / 2, row1, _localization.Get("stats_cities"), cityCount.ToString(), width / 4);
         DrawStatCell(canvas, x + width * 3 / 4, row1, _localization.Get("stats_prestige_points"), prestigePoints.ToString(), width / 4);
@@ -128,7 +128,7 @@ public sealed class PrestigeHistoryRenderer : IDisposable
             float row1 = y + CardPadding + 10;
             float row2 = row1 + RowHeight;
 
-            DrawStatCell(canvas, x + CardPadding, row1, _localization.Get("stats_island"), $"#{run.IslandId}", width / 4);
+            DrawStatCell(canvas, x + CardPadding, row1, _localization.Get("stats_island"), $"#{run.WorldId}", width / 4);
             DrawStatCell(canvas, x + width / 4, row1, _localization.Get("stats_playtime"), FormatTicks(run.TickDuration), width / 4);
             DrawStatCell(canvas, x + width / 2, row1, _localization.Get("stats_cities"), run.CityCount.ToString(), width / 4);
             DrawStatCell(canvas, x + width * 3 / 4, row1, _localization.Get("stats_prestige_points"), run.PrestigePoints.ToString(), width / 4);

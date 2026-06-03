@@ -1,4 +1,4 @@
-using SkiaSharp;
+﻿using SkiaSharp;
 using Svg.Skia;
 using SettlersOfIdlestan.Controller.Military;
 using SettlersOfIdlestan.Model.HexGrid;
@@ -29,7 +29,6 @@ public class MilitaryRenderer : HexBasedRenderer, IGameRenderer
     private SKSvg? _attackSvg;
     private SKPaint? _paint;
     private SKPaint? _reinforcePaint;
-    private SKPaint? _threatLinePaint;
     private SKPaint? _flowRedPaint;
     private SKPaint? _flowGreenPaint;
     private SKPaint? _arrowPaint;
@@ -44,14 +43,6 @@ public class MilitaryRenderer : HexBasedRenderer, IGameRenderer
     {
         _paint = new SKPaint { IsAntialias = true };
         _reinforcePaint = new SKPaint { IsAntialias = true };
-        _threatLinePaint = new SKPaint
-        {
-            Color = new SKColor(220, 50, 50, 100),
-            StrokeWidth = 1.5f,
-            Style = SKPaintStyle.Stroke,
-            IsAntialias = true,
-            PathEffect = SKPathEffect.CreateDash(new float[] { 6f, 8f }, 0f),
-        };
         _flowRedPaint = new SKPaint
         {
             Color = new SKColor(220, 60, 60, 220),
@@ -101,12 +92,14 @@ public class MilitaryRenderer : HexBasedRenderer, IGameRenderer
         {
             if (isPrestigeTransitionPending()) return;
             if (!isIslandTabActive()) return;
+            if (args.TargetCity.Z != gameControllerService.CurrentWorldState?.CurrentViewedLayer) return;
             EmitParticle(args.Path);
         };
         militaryController.ReinforcementSent += (_, args) =>
         {
             if (isPrestigeTransitionPending()) return;
             if (!isIslandTabActive()) return;
+            if (args.TargetCity.Z != gameControllerService.CurrentWorldState?.CurrentViewedLayer) return;
             EmitReinforceParticle(args.Path);
         };
     }
@@ -132,7 +125,6 @@ public class MilitaryRenderer : HexBasedRenderer, IGameRenderer
 
     public void Render(SKCanvas canvas, GameRenderContext context)
     {
-        DrawThreatLines(canvas);
         DrawFlowLines(canvas);
         DrawDragInteraction(canvas, context);
 
@@ -143,17 +135,18 @@ public class MilitaryRenderer : HexBasedRenderer, IGameRenderer
 
     private void DrawFlowLines(SKCanvas canvas)
     {
-        var islandState = _gameControllerService?.CurrentIslandState;
+        var WorldState = _gameControllerService?.CurrentWorldState;
         var playerCiv = _gameControllerService?.PlayerCivilization;
-        if (islandState == null || playerCiv == null || _flowRedPaint == null || _flowGreenPaint == null || _arrowPaint == null) return;
+        if (WorldState == null || playerCiv == null || _flowRedPaint == null || _flowGreenPaint == null || _arrowPaint == null) return;
 
-        var allCities = islandState.Civilizations.SelectMany(c => c.Cities).ToList();
+        var allCities = WorldState.Civilizations.SelectMany(c => c.Cities).ToList();
 
-        foreach (var civ in islandState.Civilizations)
+        foreach (var civ in WorldState.Civilizations)
         {
             foreach (var sourceCity in civ.Cities)
             {
                 if (sourceCity.FlowTarget == null) continue;
+                if (sourceCity.Position.Z != _gameControllerService?.CurrentWorldState?.CurrentViewedLayer) continue;
 
                 var targetCity = allCities.FirstOrDefault(c => c.Position.Equals(sourceCity.FlowTarget));
                 if (targetCity == null) continue;
@@ -180,6 +173,7 @@ public class MilitaryRenderer : HexBasedRenderer, IGameRenderer
     private void DrawDragInteraction(SKCanvas canvas, GameRenderContext context)
     {
         if (_interactionService?.DragSourceCity is not { } sourceCity) return;
+        if (sourceCity.Position.Z != context.CurrentLayer) return;
         if (_dragLinePaint == null || _dragCirclePaint == null || _arrowPaint == null) return;
 
         var sourcePt = VertexToIsland(sourceCity.Position);
@@ -292,20 +286,6 @@ public class MilitaryRenderer : HexBasedRenderer, IGameRenderer
         canvas.Restore();
     }
 
-    private void DrawThreatLines(SKCanvas canvas)
-    {
-        if (_militaryController == null || _gameControllerService == null || _threatLinePaint == null) return;
-        var playerCiv = _gameControllerService.PlayerCivilization;
-        if (playerCiv == null) return;
-
-        foreach (var city in playerCiv.Cities)
-        {
-            var enemy = _militaryController.FindNearbyEnemyCity(city, playerCiv);
-            if (enemy == null) continue;
-            canvas.DrawLine(VertexToIsland(city.Position), VertexToIsland(enemy.Position), _threatLinePaint);
-        }
-    }
-
     private static float Smoothstep(float t) => t * t * (3f - 2f * t);
 
     public void Dispose()
@@ -316,8 +296,6 @@ public class MilitaryRenderer : HexBasedRenderer, IGameRenderer
         _paint = null;
         _reinforcePaint?.Dispose();
         _reinforcePaint = null;
-        _threatLinePaint?.Dispose();
-        _threatLinePaint = null;
         _flowRedPaint?.Dispose();
         _flowRedPaint = null;
         _flowGreenPaint?.Dispose();

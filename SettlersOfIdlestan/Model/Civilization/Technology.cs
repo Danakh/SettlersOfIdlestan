@@ -29,13 +29,13 @@ public enum TechnologyId
     GrandArchitecture,
     Scholarship,
     Masterwork,
-    WarAcademy,
+    AdvancedTactics,
     EfficientTrading,
     // Tier 4
     EpicHarvest,
     TradeRoutes,
     ImprovedResearch,
-    MilitarySupremacy,
+    AdvancedStrategy,
     AutomaticMarket,
     // Tier 5
     MerchantGuild,

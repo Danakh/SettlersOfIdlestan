@@ -1,4 +1,4 @@
-using SettlersOfIdlestan.Model.Civilization;
+﻿using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandFeatures;
@@ -12,14 +12,14 @@ namespace SettlersOfIdlestan.Controller.Island
 {
     public class WonderController
     {
-        private IslandState? _state;
+        private WorldState? _state;
         private GameClock? _clock;
 
         public const long InvestmentIntervalTicks = 100L;
 
         internal WonderController() { }
 
-        internal void Initialize(IslandState? state, GameClock? clock = null)
+        internal void Initialize(WorldState? state, GameClock? clock = null)
         {
             if (_clock != null)
                 _clock.Advanced -= OnClockAdvanced;
@@ -135,7 +135,7 @@ namespace SettlersOfIdlestan.Controller.Island
             var result = new List<HexCoord>();
             foreach (var hex in playerCityHexes)
             {
-                var tile = _state.Map.GetTile(hex);
+                var tile = _state.GetMapFor(hex).GetTile(hex);
                 if (tile == null) continue;
                 if (tile.TerrainType == TerrainType.Water) continue;
                 if (enemyZone.Contains(hex)) continue;
@@ -149,6 +149,7 @@ namespace SettlersOfIdlestan.Controller.Island
         public Wonder? PlaceWonder(HexCoord position)
         {
             if (_state == null) return null;
+            _state.GetMapFor(position);
             var wonder = new Wonder(position);
             _state.AddFeature(wonder);
             _state.EventLog.Add(GameEventType.WonderPlaced);

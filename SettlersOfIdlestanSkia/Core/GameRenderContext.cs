@@ -1,3 +1,4 @@
+﻿using SettlersOfIdlestan.Model.Game;
 using SkiaSharp;
 
 namespace SettlersOfIdlestanSkia.Core;
@@ -10,7 +11,9 @@ public class GameRenderContext
     /// <summary>
     /// L'état actuel du jeu.
     /// </summary>
-    public required object GameState { get; init; }
+    public required MainGameState GameState { get; init; }
+
+    public int CurrentLayer => GameState.CurrentWorldState?.CurrentViewedLayer ?? 0;
 
     /// <summary>
     /// Temps écoulé depuis le dernier frame en secondes.

@@ -19,10 +19,7 @@ public class VertexJsonConverter : JsonConverter<Vertex>
         var hexes = new HexCoord[3];
         for (int i = 0; i < 3; i++)
         {
-            var h = root[i];
-            if (h.ValueKind != JsonValueKind.Array || h.GetArrayLength() != 2)
-                throw new JsonException("Each hex coord must be an array of two integers");
-            hexes[i] = new HexCoord(h[0].GetInt32(), h[1].GetInt32());
+            hexes[i] = ReadHexCoord(root[i]);
         }
 
         return Vertex.Create(hexes[0], hexes[1], hexes[2]);
@@ -32,21 +29,31 @@ public class VertexJsonConverter : JsonConverter<Vertex>
     {
         writer.WriteStartArray();
 
-        writer.WriteStartArray();
-        writer.WriteNumberValue(value.Hex1.Q);
-        writer.WriteNumberValue(value.Hex1.R);
-        writer.WriteEndArray();
+        WriteHexCoord(writer, value.Hex1);
+        WriteHexCoord(writer, value.Hex2);
+        WriteHexCoord(writer, value.Hex3);
 
-        writer.WriteStartArray();
-        writer.WriteNumberValue(value.Hex2.Q);
-        writer.WriteNumberValue(value.Hex2.R);
         writer.WriteEndArray();
+    }
 
+    private static HexCoord ReadHexCoord(JsonElement element)
+    {
+        if (element.ValueKind != JsonValueKind.Array ||
+            (element.GetArrayLength() != 2 && element.GetArrayLength() != 3))
+            throw new JsonException("Each hex coord must be [q, r] or [q, r, z]");
+
+        return new HexCoord(
+            element[0].GetInt32(),
+            element[1].GetInt32(),
+            element.GetArrayLength() == 3 ? element[2].GetInt32() : 0);
+    }
+
+    private static void WriteHexCoord(Utf8JsonWriter writer, HexCoord value)
+    {
         writer.WriteStartArray();
-        writer.WriteNumberValue(value.Hex3.Q);
-        writer.WriteNumberValue(value.Hex3.R);
-        writer.WriteEndArray();
-
+        writer.WriteNumberValue(value.Q);
+        writer.WriteNumberValue(value.R);
+        writer.WriteNumberValue(value.Z);
         writer.WriteEndArray();
     }
 }

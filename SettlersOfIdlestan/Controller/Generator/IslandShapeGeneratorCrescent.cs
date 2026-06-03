@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using SettlersOfIdlestan.Model.HexGrid;
+using SettlersOfIdlestan.Model.IslandMap;
 
 namespace SettlersOfIdlestan.Controller.Generator;
 
@@ -12,7 +13,7 @@ namespace SettlersOfIdlestan.Controller.Generator;
 /// </summary>
 public class IslandShapeGeneratorCrescent : IslandShapeGenerator
 {
-    public override IReadOnlyList<HexCoord> GenerateCoords(int count)
+    public override IReadOnlyList<HexCoord> GenerateCoords(int count, int layer = IslandMap.SurfaceLayer)
     {
         if (count <= 0) return [];
 
@@ -23,8 +24,8 @@ public class IslandShapeGeneratorCrescent : IslandShapeGenerator
         // Bite: offset to the East, radius ≈ 55% of R
         int biteQ = (R + 1) / 2;
         int biteRadius = Math.Max(1, (int)Math.Round(R * 0.55));
-        var biteCenter = new HexCoord(biteQ, 0);
-        var origin = new HexCoord(0, 0);
+        var biteCenter = new HexCoord(biteQ, 0, layer);
+        var origin = new HexCoord(0, 0, layer);
 
         // Collect all hexes inside the outer disc that are outside the bite
         var validHexes = new HashSet<HexCoord>();
@@ -34,7 +35,7 @@ public class IslandShapeGeneratorCrescent : IslandShapeGenerator
             int rMax = Math.Min(R, -q + R);
             for (int r = rMin; r <= rMax; r++)
             {
-                var coord = new HexCoord(q, r);
+                var coord = new HexCoord(q, r, layer);
                 if (coord.DistanceTo(biteCenter) > biteRadius)
                     validHexes.Add(coord);
             }
@@ -58,7 +59,7 @@ public class IslandShapeGeneratorCrescent : IslandShapeGenerator
         {
             var item = pq.Min;
             pq.Remove(item);
-            var coord = new HexCoord(item.q, item.r);
+            var coord = new HexCoord(item.q, item.r, layer);
             result.Add(coord);
 
             foreach (var dir in HexDirectionUtils.AllHexDirections)

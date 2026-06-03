@@ -1,4 +1,4 @@
-using SettlersOfIdlestan.Controller.Island;
+﻿using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.GameplayModifier;
@@ -64,14 +64,14 @@ public class PrestigeMapController
     /// Must be called after the island is fully generated, civilizations initialized, and
     /// ModifierAggregators set up (so the aggregator already contains the PrestigeModifierProvider).
     /// </summary>
-    public void ApplyPrestigeToNewGame(IslandState islandState, PrestigeState? prestigeState)
+    public void ApplyPrestigeToNewGame(WorldState WorldState, PrestigeState? prestigeState)
     {
-        if (prestigeState == null || islandState.Civilizations.Count == 0) return;
+        if (prestigeState == null || WorldState.Civilizations.Count == 0) return;
 
         var purchased = prestigeState.PurchasedVertices;
         if (purchased.Count == 0) return;
 
-        var civ = islandState.PlayerCivilization;
+        var civ = WorldState.PlayerCivilization;
 
         // Starting resource bonuses scaled by adjacent purchased vertices
         foreach (var hex in DefaultMap.Hexes)

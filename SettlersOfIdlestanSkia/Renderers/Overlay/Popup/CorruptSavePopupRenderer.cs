@@ -1,0 +1,151 @@
+using SettlersOfIdlestan.Services.Localization;
+using SettlersOfIdlestanSkia.Core;
+using SettlersOfIdlestanSkia.Services;
+using SkiaSharp;
+
+namespace SettlersOfIdlestanSkia.Renderers.Overlay.Popup;
+
+public sealed class CorruptSavePopupRenderer : IDisposable
+{
+    private const float PopupWidth  = 520;
+    private const float PopupHeight = 320;
+    private const float BtnWidth    = 240;
+    private const float BtnHeight   = 42;
+    private const float BtnGap      = 10;
+
+    private readonly ILocalizationService _localization;
+    private readonly IFileSystemService   _fileSystemService;
+    private readonly string               _corruptJson;
+    private readonly Action               _onStartFresh;
+    private readonly Action               _onQuit;
+
+    private readonly PopupChrome _chrome = new();
+    private readonly SKPaint _titlePaint    = new() { Color = new SKColor(255, 100, 100), IsAntialias = true };
+    private readonly SKPaint _textPaint     = new() { Color = SKColors.White,             IsAntialias = true };
+    private readonly SKPaint _subtlePaint   = new() { Color = new SKColor(180, 180, 190), IsAntialias = true };
+    private readonly SKPaint _exportPaint   = new() { Color = new SKColor(40,  90,  160), Style = SKPaintStyle.Fill, IsAntialias = true };
+    private readonly SKPaint _newGamePaint  = new() { Color = new SKColor(140, 40,  40),  Style = SKPaintStyle.Fill, IsAntialias = true };
+    private readonly SKPaint _quitPaint     = new() { Color = new SKColor(55,  55,  65),  Style = SKPaintStyle.Fill, IsAntialias = true };
+    private readonly SKPaint _btnBorder     = new() { Color = new SKColor(100, 100, 120), StrokeWidth = 1, Style = SKPaintStyle.Stroke, IsAntialias = true };
+    private readonly SKFont  _titleFont     = new() { Size = 16, Typeface = SkiaFonts.Bold };
+    private readonly SKFont  _bodyFont      = new() { Size = 13, Typeface = SkiaFonts.Regular };
+    private readonly SKFont  _btnFont       = new() { Size = 13, Typeface = SkiaFonts.Bold };
+
+    private SKRect _exportRect  = SKRect.Empty;
+    private SKRect _newGameRect = SKRect.Empty;
+    private SKRect _quitRect    = SKRect.Empty;
+
+    private bool _justOpened;
+    private bool _disposed;
+
+    public bool IsOpen { get; private set; }
+
+    public CorruptSavePopupRenderer(
+        ILocalizationService localization,
+        IFileSystemService   fileSystemService,
+        string               corruptJson,
+        Action               onStartFresh,
+        Action               onQuit)
+    {
+        _localization      = localization;
+        _fileSystemService = fileSystemService;
+        _corruptJson       = corruptJson;
+        _onStartFresh      = onStartFresh;
+        _onQuit            = onQuit;
+    }
+
+    public void Open()
+    {
+        IsOpen      = true;
+        _justOpened = true;
+    }
+
+    public void Render(SKCanvas canvas, SKSize canvasSize)
+    {
+        if (!IsOpen || _disposed) return;
+
+        float x = (canvasSize.Width  - PopupWidth)  / 2;
+        float y = (canvasSize.Height - PopupHeight) / 2;
+        var popup = new SKRect(x, y, x + PopupWidth, y + PopupHeight);
+
+        _chrome.DrawBackground(canvas, popup, canvasSize);
+
+        string title = _localization.Get("corrupt_save_title");
+        float titleW = _titleFont.MeasureText(title);
+        canvas.DrawText(title, x + (PopupWidth - titleW) / 2f, y + 44, _titleFont, _titlePaint);
+
+        float lineY = y + 84;
+        foreach (var key in new[] { "corrupt_save_line1", "corrupt_save_line2" })
+        {
+            string line = _localization.Get(key);
+            float lw = _bodyFont.MeasureText(line);
+            canvas.DrawText(line, x + (PopupWidth - lw) / 2f, lineY, _bodyFont, _subtlePaint);
+            lineY += _bodyFont.Size * 1.7f;
+        }
+
+        float btnX = x + (PopupWidth - BtnWidth) / 2f;
+        float btn1Y = y + 148;
+        float btn2Y = btn1Y + BtnHeight + BtnGap;
+        float btn3Y = btn2Y + BtnHeight + BtnGap;
+
+        _exportRect  = new SKRect(btnX, btn1Y, btnX + BtnWidth, btn1Y + BtnHeight);
+        _newGameRect = new SKRect(btnX, btn2Y, btnX + BtnWidth, btn2Y + BtnHeight);
+        _quitRect    = new SKRect(btnX, btn3Y, btnX + BtnWidth, btn3Y + BtnHeight);
+
+        DrawBtn(canvas, _exportRect,  _exportPaint,  _localization.Get("corrupt_save_btn_export"));
+        DrawBtn(canvas, _newGameRect, _newGamePaint, _localization.Get("corrupt_save_btn_new_game"));
+        DrawBtn(canvas, _quitRect,    _quitPaint,    _localization.Get("corrupt_save_btn_quit"));
+    }
+
+    private void DrawBtn(SKCanvas canvas, SKRect rect, SKPaint fill, string label)
+    {
+        canvas.DrawRoundRect(rect, 6, 6, fill);
+        canvas.DrawRoundRect(rect, 6, 6, _btnBorder);
+        float tw = _btnFont.MeasureText(label);
+        canvas.DrawText(label,
+            rect.Left + (rect.Width - tw) / 2f,
+            rect.Top  + (rect.Height + _btnFont.Size) / 2f,
+            _btnFont, _textPaint);
+    }
+
+    public void HandlePointerPressed(SKPoint pos, PointerButton button)
+    {
+        if (!IsOpen || _disposed) return;
+        if (_justOpened) { _justOpened = false; return; }
+
+        if (_exportRect.Contains(pos.X, pos.Y))
+        {
+            _ = _fileSystemService.SaveText("sauvegarde_corrompue.json", _corruptJson);
+            return;
+        }
+
+        if (_newGameRect.Contains(pos.X, pos.Y))
+        {
+            IsOpen = false;
+            _onStartFresh();
+            return;
+        }
+
+        if (_quitRect.Contains(pos.X, pos.Y))
+        {
+            _onQuit();
+        }
+    }
+
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _chrome.Dispose();
+        _titlePaint.Dispose();
+        _textPaint.Dispose();
+        _subtlePaint.Dispose();
+        _exportPaint.Dispose();
+        _newGamePaint.Dispose();
+        _quitPaint.Dispose();
+        _btnBorder.Dispose();
+        _titleFont.Dispose();
+        _bodyFont.Dispose();
+        _btnFont.Dispose();
+        _disposed = true;
+    }
+}

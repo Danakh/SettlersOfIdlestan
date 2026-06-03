@@ -1,4 +1,4 @@
-using SkiaSharp;
+﻿using SkiaSharp;
 using Svg.Skia;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestan.Controller.Military;
@@ -66,13 +66,17 @@ public class CityRenderer : HexBasedRenderer, IGameRenderer
         IsAntialias = true
     };
 
-    // Couleurs pour les civilisations
+    // Couleurs pour les civilisations (noir réservé)
     private static readonly SKColor[] CivilizationColors = new[]
     {
-        new SKColor(255, 0, 0),     // Rouge - Civ 0
-        new SKColor(0, 0, 255),     // Bleu - Civ 1
-        new SKColor(0, 200, 0),     // Vert - Civ 2
-        new SKColor(255, 200, 0),   // Orange - Civ 3
+        new SKColor(220, 50,  50),  // Rouge    - Civ 0
+        new SKColor(60,  100, 220), // Bleu     - Civ 1
+        new SKColor(50,  180, 50),  // Vert     - Civ 2
+        new SKColor(230, 180, 0),   // Jaune    - Civ 3
+        new SKColor(180, 60,  220), // Violet   - Civ 4
+        new SKColor(220, 130, 40),  // Orange   - Civ 5
+        new SKColor(0,   190, 190), // Cyan     - Civ 6
+        new SKColor(220, 100, 160), // Rose     - Civ 7
     };
 
     public CityRenderer(TooltipRenderer tooltipRenderer, ResourceManager resourceManager, MilitaryController militaryController)
@@ -122,35 +126,35 @@ public class CityRenderer : HexBasedRenderer, IGameRenderer
 
         if (context.GameState is MainGameState mainGameState)
         {
-            var islandState = mainGameState.CurrentIslandState;
-            if (islandState == null) return;
+            var worldState = mainGameState.CurrentWorldState;
+            if (worldState == null) return;
 
-            if (islandState.IsViewingUnderworld && islandState.Underworld != null)
+            if (worldState.CurrentViewedLayer == LayerState.UnderworldZ && worldState.Layers.TryGetValue(LayerState.UnderworldZ, out var underworldLayer))
             {
                 // Render underworld cities (all visible, no fog of war)
-                DrawCities(canvas, islandState.Underworld.Cities, islandState.PlayerCivilization.Index, islandState.Underworld.Map);
+                DrawCities(canvas, underworldLayer.Cities, worldState.PlayerCivilization, underworldLayer.Map);
                 return;
             }
 
             IslandMap? mapForVisibility;
             if (DebugSettings.ShowFullMap)
-                mapForVisibility = islandState.Map;
-            else if (!islandState.VisibleIslandMaps.TryGetValue(islandState.PlayerCivilization.Index, out var vm))
+                mapForVisibility = worldState.GetMapForZ(IslandMap.SurfaceLayer);
+            else if (!worldState.GetVisibleIslandMapsForZ(worldState.CurrentViewedLayer).TryGetValue(worldState.PlayerCivilization.Index, out var vm))
                 return;
             else
                 mapForVisibility = vm;
 
             // Dessine les villes de chaque civilisation
-            foreach (var civilization in islandState.Civilizations)
+            foreach (var civilization in worldState.Civilizations)
             {
-                DrawCities(canvas, civilization.Cities, civilization.Index, mapForVisibility);
+                DrawCities(canvas, civilization.Cities, civilization, mapForVisibility);
             }
         }
     }
 
-    internal void RenderConstructionHighlights(SKCanvas canvas, ConstructionHoverState state)
+    internal void RenderConstructionHighlights(SKCanvas canvas, ConstructionHoverState state, GameRenderContext context)
     {
-        foreach (var vertex in state.BuildableVertices)
+        foreach (var vertex in state.BuildableVertices.Where(v => v.Z == context.CurrentLayer))
         {
             var pt = VertexToIsland(vertex);
             canvas.DrawCircle(pt, 5f, _buildableVertexPaint);
@@ -180,13 +184,13 @@ public class CityRenderer : HexBasedRenderer, IGameRenderer
     /// <summary>
     /// Dessine les villes d'une civilisation.
     /// </summary>
-    private void DrawCities(SKCanvas canvas, List<City> cities, int civilizationIndex, IslandMap visibleMap)
+    private void DrawCities(SKCanvas canvas, List<City> cities, Civilization civilization, IslandMap visibleMap)
     {
         if (cities.Count == 0 || _settlementPaint == null || _cityPaint == null || _borderPaint == null)
             return;
 
         // Sélectionne la couleur de la civilisation
-        var color = CivilizationColors[civilizationIndex % CivilizationColors.Length];
+        var color = CivilizationColors[civilization.Index % CivilizationColors.Length];
 
         foreach (var city in cities)
         {
@@ -210,17 +214,17 @@ public class CityRenderer : HexBasedRenderer, IGameRenderer
             if (city.Level >= 2)
                 canvas.DrawText(city.Level.ToString(), pixelPos.X, pixelPos.Y + 4, SKTextAlign.Center, _cityLevelFont, _cityLevelTextPaint);
 
-            DrawMilitaryScores(canvas, city, pixelPos, radius);
+            DrawMilitaryScores(canvas, city, civilization, pixelPos, radius);
         }
     }
 
-    private void DrawMilitaryScores(SKCanvas canvas, City city, SKPoint cityPos, float cityRadius)
+    private void DrawMilitaryScores(SKCanvas canvas, City city, Civilization civilization, SKPoint cityPos, float cityRadius)
     {
         if (_militaryTextPaint == null || _militaryTextFont == null || _iconColorPaint == null)
             return;
 
         int attack = _militaryController.GetAttackScore(city);
-        int maxDefense = _militaryController.GetDefenseScore(city);
+        int maxDefense = _militaryController.GetDefenseScore(city, civilization);
         int currentDefense = city.CurrentDefense;
 
         bool showAttack = attack > 0;
@@ -270,7 +274,7 @@ public class CityRenderer : HexBasedRenderer, IGameRenderer
 
     private static bool IsCityVisible(City city, IslandMap visibleMap)
     {
-        return city.Position.GetHexes().Any(visibleMap.HasTile);
+        return (city.Position.Z == visibleMap.Z) && city.Position.GetHexes().Any(visibleMap.HasTile);
     }
 
     public void Dispose()

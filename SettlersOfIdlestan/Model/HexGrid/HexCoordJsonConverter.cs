@@ -9,21 +9,15 @@ public class HexCoordJsonConverter : JsonConverter<HexCoord>
     // For dictionary keys, System.Text.Json calls ReadAsPropertyName/WriteAsPropertyName
     public override HexCoord Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
-        // Expecting either string "q,r" or start of array [q, r]
+        // Expecting either string "q,r[,z]" or start of array [q, r, z].
         if (reader.TokenType == JsonTokenType.String)
         {
             var s = reader.GetString();
-            var parts = s!.Split(',');
-            return new HexCoord(int.Parse(parts[0]), int.Parse(parts[1]));
+            return ParseString(s!);
         }
         else if (reader.TokenType == JsonTokenType.StartArray)
         {
-            reader.Read();
-            int q = reader.GetInt32();
-            reader.Read();
-            int r = reader.GetInt32();
-            reader.Read(); // EndArray
-            return new HexCoord(q, r);
+            return ReadArray(ref reader);
         }
 
         throw new JsonException("Unexpected token when deserializing HexCoord");
@@ -35,6 +29,7 @@ public class HexCoordJsonConverter : JsonConverter<HexCoord>
         writer.WriteStartArray();
         writer.WriteNumberValue(value.Q);
         writer.WriteNumberValue(value.R);
+        writer.WriteNumberValue(value.Z);
         writer.WriteEndArray();
     }
 
@@ -42,13 +37,45 @@ public class HexCoordJsonConverter : JsonConverter<HexCoord>
     public override HexCoord ReadAsPropertyName(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         var s = reader.GetString();
-        var parts = s!.Split(',');
-        return new HexCoord(int.Parse(parts[0]), int.Parse(parts[1]));
+        return ParseString(s!);
     }
 
     public override void WriteAsPropertyName(Utf8JsonWriter writer, HexCoord value, JsonSerializerOptions options)
     {
-        // Write property name as "q,r"
-        writer.WritePropertyName($"{value.Q},{value.R}");
+        // Write property name as "q,r,z".
+        writer.WritePropertyName($"{value.Q},{value.R},{value.Z}");
+    }
+
+    private static HexCoord ParseString(string value)
+    {
+        var parts = value.Split(',');
+        if (parts.Length != 2 && parts.Length != 3)
+            throw new JsonException("HexCoord string must be 'q,r' or 'q,r,z'");
+
+        return new HexCoord(
+            int.Parse(parts[0]),
+            int.Parse(parts[1]),
+            parts.Length == 3 ? int.Parse(parts[2]) : 0);
+    }
+
+    private static HexCoord ReadArray(ref Utf8JsonReader reader)
+    {
+        reader.Read();
+        int q = reader.GetInt32();
+        reader.Read();
+        int r = reader.GetInt32();
+        reader.Read();
+
+        int z = 0;
+        if (reader.TokenType != JsonTokenType.EndArray)
+        {
+            z = reader.GetInt32();
+            reader.Read();
+        }
+
+        if (reader.TokenType != JsonTokenType.EndArray)
+            throw new JsonException("HexCoord array must contain [q, r] or [q, r, z]");
+
+        return new HexCoord(q, r, z);
     }
 }

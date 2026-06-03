@@ -4,21 +4,23 @@ using System.Linq;
 namespace SettlersOfIdlestan.Model.HexGrid;
 
 /// <summary>
-/// Représente une arête (edge) entre deux hexagones adjacents.
+/// ReprÃ©sente une arÃªte (edge) entre deux hexagones adjacents.
 /// 
-/// Cette entité est purement géométrique et modélise une connexion
-/// entre deux cellules voisines, quelle que soit la couche métier
+/// Cette entitÃ© est purement gÃ©omÃ©trique et modÃ©lise une connexion
+/// entre deux cellules voisines, quelle que soit la couche mÃ©tier
 /// (carte, arbre de technologies, etc.).
 /// 
-/// Une arête est identifiée de manière unique par deux hexagones adjacents.
-/// L'ordre des hexagones est normalisé pour garantir l'unicité.
+/// Une arÃªte est identifiÃ©e de maniÃ¨re unique par deux hexagones adjacents.
+/// L'ordre des hexagones est normalisÃ© pour garantir l'unicitÃ©.
 /// </summary>
 [Serializable]
 public class Edge
 {
     private Edge(HexCoord hex1, HexCoord hex2)
     {
-        // Validation: les hexagones doivent être adjacents
+        hex1.EnsureSameZ(hex2, "create an edge");
+
+        // Validation: les hexagones doivent Ãªtre adjacents
         var distance = hex1.DistanceTo(hex2);
         if (distance != 1)
         {
@@ -31,10 +33,11 @@ public class Edge
 
     public HexCoord Hex1 { get; }
     public HexCoord Hex2 { get; }
+    public int Z => Hex1.Z;
 
     /// <summary>
-    /// Crée une arête entre deux hexagones adjacents.
-    /// Normalise l'ordre pour garantir l'unicité.
+    /// CrÃ©e une arÃªte entre deux hexagones adjacents.
+    /// Normalise l'ordre pour garantir l'unicitÃ©.
     /// </summary>
     public static Edge Create(HexCoord hex1, HexCoord hex2)
     {
@@ -43,12 +46,14 @@ public class Edge
     }
 
     /// <summary>
-    /// Normalise l'ordre de deux coordonnées pour garantir l'unicité.
-    /// Ordre: q d'abord, puis r si égalité.
+    /// Normalise l'ordre de deux coordonnÃ©es pour garantir l'unicitÃ©.
+    /// Ordre: z d'abord, puis q, puis r si Ã©galitÃ©.
     /// </summary>
     private static (HexCoord, HexCoord) Normalize(HexCoord hex1, HexCoord hex2)
     {
-        if (hex1.Q < hex2.Q || (hex1.Q == hex2.Q && hex1.R < hex2.R))
+        if (hex1.Z < hex2.Z ||
+            (hex1.Z == hex2.Z && (hex1.Q < hex2.Q ||
+            (hex1.Q == hex2.Q && hex1.R < hex2.R))))
         {
             return (hex1, hex2);
         }
@@ -56,7 +61,7 @@ public class Edge
     }
 
     /// <summary>
-    /// Vérifie si cette arête est égale à une autre.
+    /// VÃ©rifie si cette arÃªte est Ã©gale Ã  une autre.
     /// </summary>
     public override bool Equals(object? obj)
     {
@@ -66,7 +71,7 @@ public class Edge
     }
 
     /// <summary>
-    /// Retourne les deux hexagones de cette arête.
+    /// Retourne les deux hexagones de cette arÃªte.
     /// </summary>
     public (HexCoord, HexCoord) GetHexes()
     {
@@ -74,7 +79,7 @@ public class Edge
     }
 
     /// <summary>
-    /// Vérifie si cette arête est adjacente à un hexagone donné.
+    /// VÃ©rifie si cette arÃªte est adjacente Ã  un hexagone donnÃ©.
     /// </summary>
     public bool IsAdjacentTo(HexCoord hex)
     {
@@ -82,7 +87,7 @@ public class Edge
     }
 
     /// <summary>
-    /// Retourne l'autre hexagone de l'arête donné un hexagone.
+    /// Retourne l'autre hexagone de l'arÃªte donnÃ© un hexagone.
     /// </summary>
     public HexCoord OtherHex(HexCoord hex)
     {
@@ -96,12 +101,12 @@ public class Edge
         }
         else
         {
-            throw new ArgumentException("L'hexagone n'est pas connecté à cette arête");
+            throw new ArgumentException("L'hexagone n'est pas connectÃ© Ã  cette arÃªte");
         }
     }
 
     /// <summary>
-    /// Retourne l'autre vertex de l'arête donné un vertex.
+    /// Retourne l'autre vertex de l'arÃªte donnÃ© un vertex.
     /// </summary>
     public Vertex OtherVertex(Vertex vertex)
     {
@@ -129,7 +134,7 @@ public class Edge
         var commonVertices = verticesH1.Where(v1 => verticesH2.Any(v2 => v1.Equals(v2))).ToList();
         if (commonVertices.Count != 2)
         {
-            throw new InvalidOperationException("Les vertex ne sont pas partagés");
+            throw new InvalidOperationException("Les vertex ne sont pas partagÃ©s");
         }
         // Retourner l'autre vertex
         if (commonVertices[0].Equals(vertex))
@@ -142,12 +147,12 @@ public class Edge
         }
         else
         {
-            throw new ArgumentException("Le vertex n'est pas connecté à cette arête");
+            throw new ArgumentException("Le vertex n'est pas connectÃ© Ã  cette arÃªte");
         }
     }
 
     /// <summary>
-    /// Retourne une représentation en chaîne pour le débogage.
+    /// Retourne une reprÃ©sentation en chaÃ®ne pour le dÃ©bogage.
     /// </summary>
     public override string ToString()
     {
@@ -155,7 +160,7 @@ public class Edge
     }
 
     /// <summary>
-    /// Génère un hash pour utiliser comme clé dans des Maps/Sets.
+    /// GÃ©nÃ¨re un hash pour utiliser comme clÃ© dans des Maps/Sets.
     /// </summary>
     public override int GetHashCode()
     {
@@ -164,7 +169,7 @@ public class Edge
     }
 
     /// <summary>
-    /// Sérialise l'arête en [h1, h2] (chaque hi = [q, r]).
+    /// SÃ©rialise l'arÃªte en [h1, h2] (chaque hi = [q, r, z]).
     /// </summary>
     public int[][] Serialize()
     {
@@ -173,7 +178,7 @@ public class Edge
     }
 
     /// <summary>
-    /// Désérialise depuis [[q1,r1],[q2,r2]].
+    /// DÃ©sÃ©rialise depuis [[q1,r1],[q2,r2]].
     /// </summary>
     public static Edge Deserialize(int[][] data)
     {
@@ -181,7 +186,7 @@ public class Edge
     }
 
     /// <summary>
-    /// Retourne les deux vertex (sommets) partagés par les deux hexagones formant l'arête.
+    /// Retourne les deux vertex (sommets) partagÃ©s par les deux hexagones formant l'arÃªte.
     /// </summary>
     public Vertex[] GetVertices()
     {
@@ -209,11 +214,11 @@ public class Edge
     }
 
     /// <summary>
-    /// Retourne les 4 arêtes voisines, c'est-à-dire les arêtes qui partagent exactement
-    /// un vertex avec cette arête.
-    /// Chaque vertex de l'arête est commun à un troisième hexagone (en plus de Hex1 et Hex2) ;
-    /// les deux arêtes formées par ce troisième hexagone avec Hex1 et Hex2 sont les voisines
-    /// associées à ce vertex, soit 4 voisines au total.
+    /// Retourne les 4 arÃªtes voisines, c'est-Ã -dire les arÃªtes qui partagent exactement
+    /// un vertex avec cette arÃªte.
+    /// Chaque vertex de l'arÃªte est commun Ã  un troisiÃ¨me hexagone (en plus de Hex1 et Hex2) ;
+    /// les deux arÃªtes formÃ©es par ce troisiÃ¨me hexagone avec Hex1 et Hex2 sont les voisines
+    /// associÃ©es Ã  ce vertex, soit 4 voisines au total.
     /// </summary>
     public Edge[] GetNeighboringEdges()
     {

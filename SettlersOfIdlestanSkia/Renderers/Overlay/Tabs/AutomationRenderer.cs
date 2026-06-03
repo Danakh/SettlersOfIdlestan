@@ -1,4 +1,4 @@
-using SettlersOfIdlestan.Controller.Island;
+﻿using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
@@ -9,6 +9,7 @@ using SkiaSharp;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using TechId = SettlersOfIdlestan.Model.Civilization.TechnologyId;
 
 namespace SettlersOfIdlestanSkia.Renderers.Overlay.Tabs;
 
@@ -34,12 +35,16 @@ public sealed class AutomationRenderer : IDisposable
     private SKRect _artisanToggleRect = SKRect.Empty;
     private SKRect _libraryToggleRect = SKRect.Empty;
     private SKRect _marketToggleRect = SKRect.Empty;
+    private SKRect _militaryReinforcementToggleRect = SKRect.Empty;
+    private SKRect _militaryAttackToggleRect = SKRect.Empty;
     private bool _hoveredRoadToggle;
     private bool _hoveredOutpostToggle;
     private bool _hoveredProductionToggle;
     private bool _hoveredArtisanToggle;
     private bool _hoveredLibraryToggle;
     private bool _hoveredMarketToggle;
+    private bool _hoveredMilitaryReinforcementToggle;
+    private bool _hoveredMilitaryAttackToggle;
 
     private readonly SKPaint _bgPaint              = new() { Color = new SKColor(18, 18, 24, 240), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _cardPaint            = new() { Color = new SKColor(30, 30, 40, 220), Style = SKPaintStyle.Fill, IsAntialias = true };
@@ -93,8 +98,8 @@ public sealed class AutomationRenderer : IDisposable
         y += 32f;
 
         var civ = _gameControllerService.PlayerCivilization;
-        var islandState = _gameControllerService.CurrentIslandState;
-        if (civ == null || islandState == null) return;
+        var WorldState = _gameControllerService.CurrentWorldState;
+        if (civ == null || WorldState == null) return;
 
         BuildersGuild? buildersGuild = null;
         HarvestersGuild? harvestersGuild = null;
@@ -111,123 +116,94 @@ public sealed class AutomationRenderer : IDisposable
             if (buildersGuild != null && harvestersGuild != null && artisansGuild != null && academy != null && traderGuild != null) break;
         }
 
+        const float ColGap = 12f;
+        float colWidth = (contentWidth - ColGap) / 2f;
+        float leftX = x;
+        float rightX = x + colWidth + ColGap;
+        float startY = y;
+
         float rowH;
 
-        // --- Road automation row (builders guild level 1+) ---
+        // === Colonne gauche : constructions automatiques ===
+        float leftY = startY;
+        canvas.DrawText(_localization.Get("automation_header_buildings"), leftX, leftY + 12, _nameFont, _accentPaint);
+        leftY += 20f;
+
         if (buildersGuild != null && buildersGuild.Level >= 1)
-        {
-            (_roadToggleRect, rowH) = DrawAutomationRow(
-                canvas, x, y, contentWidth,
-                islandState.AutomationSettings.RoadAutomationEnabled,
-                _hoveredRoadToggle,
-                _localization.Get("automation_road_name"),
-                _localization.Get("automation_road_desc"));
-        }
+            (_roadToggleRect, rowH) = DrawAutomationRow(canvas, leftX, leftY, colWidth, WorldState.AutomationSettings.RoadAutomationEnabled, _hoveredRoadToggle, _localization.Get("automation_road_name"), _localization.Get("automation_road_desc"));
         else
         {
             _roadToggleRect = SKRect.Empty;
-            rowH = DrawLockedRow(canvas, x, y, contentWidth,
-                _localization.Get("automation_road_name"),
-                _localization.Get("automation_road_locked"));
+            rowH = DrawLockedRow(canvas, leftX, leftY, colWidth, _localization.Get("automation_road_name"), _localization.Get("automation_road_locked"));
         }
-        y += rowH + RowSpacing;
+        leftY += rowH + RowSpacing;
 
-        // --- Outpost automation row (builders guild level 4 only) ---
         if (buildersGuild != null && buildersGuild.Level >= 4)
-        {
-            (_outpostToggleRect, rowH) = DrawAutomationRow(
-                canvas, x, y, contentWidth,
-                islandState.AutomationSettings.OutpostAutomationEnabled,
-                _hoveredOutpostToggle,
-                _localization.Get("automation_outpost_name"),
-                _localization.Get("automation_outpost_desc"));
-        }
+            (_outpostToggleRect, rowH) = DrawAutomationRow(canvas, leftX, leftY, colWidth, WorldState.AutomationSettings.OutpostAutomationEnabled, _hoveredOutpostToggle, _localization.Get("automation_outpost_name"), _localization.Get("automation_outpost_desc"));
         else
         {
             _outpostToggleRect = SKRect.Empty;
-            rowH = DrawLockedRow(canvas, x, y, contentWidth,
-                _localization.Get("automation_outpost_name"),
-                _localization.Get("automation_outpost_locked"));
+            rowH = DrawLockedRow(canvas, leftX, leftY, colWidth, _localization.Get("automation_outpost_name"), _localization.Get("automation_outpost_locked"));
         }
-        y += rowH + RowSpacing;
+        leftY += rowH + RowSpacing;
 
-        // --- Production automation row (harvesters guild) ---
         if (harvestersGuild != null && harvestersGuild.Level >= 1)
-        {
-            (_productionToggleRect, rowH) = DrawAutomationRow(
-                canvas, x, y, contentWidth,
-                islandState.AutomationSettings.ProductionBuildingAutomationEnabled,
-                _hoveredProductionToggle,
-                _localization.Get("automation_production_name"),
-                _localization.Get("automation_production_desc"),
-                civ.Cities, ProductionTypes);
-        }
+            (_productionToggleRect, rowH) = DrawAutomationRow(canvas, leftX, leftY, colWidth, WorldState.AutomationSettings.ProductionBuildingAutomationEnabled, _hoveredProductionToggle, _localization.Get("automation_production_name"), _localization.Get("automation_production_desc"), civ.Cities, ProductionTypes);
         else
         {
             _productionToggleRect = SKRect.Empty;
-            rowH = DrawLockedRow(canvas, x, y, contentWidth,
-                _localization.Get("automation_production_name"),
-                _localization.Get("automation_production_locked"));
+            rowH = DrawLockedRow(canvas, leftX, leftY, colWidth, _localization.Get("automation_production_name"), _localization.Get("automation_production_locked"));
         }
-        y += rowH + RowSpacing;
+        leftY += rowH + RowSpacing;
 
-        // --- Artisan automation row (artisans guild) ---
         if (artisansGuild != null && artisansGuild.Level >= 1)
-        {
-            (_artisanToggleRect, rowH) = DrawAutomationRow(
-                canvas, x, y, contentWidth,
-                islandState.AutomationSettings.ArtisanBuildingAutomationEnabled,
-                _hoveredArtisanToggle,
-                _localization.Get("automation_artisan_name"),
-                _localization.Get("automation_artisan_desc"),
-                civ.Cities, ArtisanTypes);
-        }
+            (_artisanToggleRect, rowH) = DrawAutomationRow(canvas, leftX, leftY, colWidth, WorldState.AutomationSettings.ArtisanBuildingAutomationEnabled, _hoveredArtisanToggle, _localization.Get("automation_artisan_name"), _localization.Get("automation_artisan_desc"), civ.Cities, ArtisanTypes);
         else
         {
             _artisanToggleRect = SKRect.Empty;
-            rowH = DrawLockedRow(canvas, x, y, contentWidth,
-                _localization.Get("automation_artisan_name"),
-                _localization.Get("automation_artisan_locked"));
+            rowH = DrawLockedRow(canvas, leftX, leftY, colWidth, _localization.Get("automation_artisan_name"), _localization.Get("automation_artisan_locked"));
         }
-        y += rowH + RowSpacing;
+        leftY += rowH + RowSpacing;
 
-        // --- Library automation row (academy) ---
         if (academy != null && academy.Level >= 1)
-        {
-            (_libraryToggleRect, rowH) = DrawAutomationRow(
-                canvas, x, y, contentWidth,
-                islandState.AutomationSettings.LibraryBuildingAutomationEnabled,
-                _hoveredLibraryToggle,
-                _localization.Get("automation_library_name"),
-                _localization.Get("automation_library_desc"),
-                civ.Cities, LibraryTypes);
-        }
+            (_libraryToggleRect, rowH) = DrawAutomationRow(canvas, leftX, leftY, colWidth, WorldState.AutomationSettings.LibraryBuildingAutomationEnabled, _hoveredLibraryToggle, _localization.Get("automation_library_name"), _localization.Get("automation_library_desc"), civ.Cities, LibraryTypes);
         else
         {
             _libraryToggleRect = SKRect.Empty;
-            rowH = DrawLockedRow(canvas, x, y, contentWidth,
-                _localization.Get("automation_library_name"),
-                _localization.Get("automation_library_locked"));
+            rowH = DrawLockedRow(canvas, leftX, leftY, colWidth, _localization.Get("automation_library_name"), _localization.Get("automation_library_locked"));
         }
-        y += rowH + RowSpacing;
+        leftY += rowH + RowSpacing;
 
-        // --- Market automation row (trader guild) ---
         if (traderGuild != null && traderGuild.Level >= 1)
-        {
-            (_marketToggleRect, rowH) = DrawAutomationRow(
-                canvas, x, y, contentWidth,
-                islandState.AutomationSettings.MarketBuildingAutomationEnabled,
-                _hoveredMarketToggle,
-                _localization.Get("automation_market_name"),
-                _localization.Get("automation_market_desc"),
-                civ.Cities, MarketTypes);
-        }
+            (_marketToggleRect, rowH) = DrawAutomationRow(canvas, leftX, leftY, colWidth, WorldState.AutomationSettings.MarketBuildingAutomationEnabled, _hoveredMarketToggle, _localization.Get("automation_market_name"), _localization.Get("automation_market_desc"), civ.Cities, MarketTypes);
         else
         {
             _marketToggleRect = SKRect.Empty;
-            rowH = DrawLockedRow(canvas, x, y, contentWidth,
-                _localization.Get("automation_market_name"),
-                _localization.Get("automation_market_locked"));
+            rowH = DrawLockedRow(canvas, leftX, leftY, colWidth, _localization.Get("automation_market_name"), _localization.Get("automation_market_locked"));
+        }
+
+        // === Colonne droite : comportements militaires ===
+        float rightY = startY;
+        canvas.DrawText(_localization.Get("automation_header_behaviors"), rightX, rightY + 12, _nameFont, _accentPaint);
+        rightY += 20f;
+
+        bool hasAdvancedTactics = civ.TechnologyTree.CompletedTechnologies.Contains(TechId.AdvancedTactics);
+        if (hasAdvancedTactics)
+            (_militaryReinforcementToggleRect, rowH) = DrawAutomationRow(canvas, rightX, rightY, colWidth, WorldState.AutomationSettings.MilitaryReinforcementAutomationEnabled, _hoveredMilitaryReinforcementToggle, _localization.Get("automation_military_reinforcement_name"), _localization.Get("automation_military_reinforcement_desc"));
+        else
+        {
+            _militaryReinforcementToggleRect = SKRect.Empty;
+            rowH = DrawLockedRow(canvas, rightX, rightY, colWidth, _localization.Get("automation_military_reinforcement_name"), _localization.Get("automation_military_reinforcement_locked"));
+        }
+        rightY += rowH + RowSpacing;
+
+        bool hasAdvancedStrategy = civ.TechnologyTree.CompletedTechnologies.Contains(TechId.AdvancedStrategy);
+        if (hasAdvancedStrategy)
+            (_militaryAttackToggleRect, rowH) = DrawAutomationRow(canvas, rightX, rightY, colWidth, WorldState.AutomationSettings.MilitaryAttackAutomationEnabled, _hoveredMilitaryAttackToggle, _localization.Get("automation_military_attack_name"), _localization.Get("automation_military_attack_desc"));
+        else
+        {
+            _militaryAttackToggleRect = SKRect.Empty;
+            DrawLockedRow(canvas, rightX, rightY, colWidth, _localization.Get("automation_military_attack_name"), _localization.Get("automation_military_attack_locked"));
         }
     }
 
@@ -315,17 +291,19 @@ public sealed class AutomationRenderer : IDisposable
 
     public void HandlePointerMoved(SKPoint position)
     {
-        _hoveredRoadToggle       = !_roadToggleRect.IsEmpty       && _roadToggleRect.Contains(position.X, position.Y);
-        _hoveredOutpostToggle    = !_outpostToggleRect.IsEmpty    && _outpostToggleRect.Contains(position.X, position.Y);
-        _hoveredProductionToggle = !_productionToggleRect.IsEmpty && _productionToggleRect.Contains(position.X, position.Y);
-        _hoveredArtisanToggle    = !_artisanToggleRect.IsEmpty    && _artisanToggleRect.Contains(position.X, position.Y);
-        _hoveredLibraryToggle    = !_libraryToggleRect.IsEmpty    && _libraryToggleRect.Contains(position.X, position.Y);
-        _hoveredMarketToggle     = !_marketToggleRect.IsEmpty     && _marketToggleRect.Contains(position.X, position.Y);
+        _hoveredRoadToggle                   = !_roadToggleRect.IsEmpty                   && _roadToggleRect.Contains(position.X, position.Y);
+        _hoveredOutpostToggle                = !_outpostToggleRect.IsEmpty                && _outpostToggleRect.Contains(position.X, position.Y);
+        _hoveredProductionToggle             = !_productionToggleRect.IsEmpty             && _productionToggleRect.Contains(position.X, position.Y);
+        _hoveredArtisanToggle                = !_artisanToggleRect.IsEmpty                && _artisanToggleRect.Contains(position.X, position.Y);
+        _hoveredLibraryToggle                = !_libraryToggleRect.IsEmpty                && _libraryToggleRect.Contains(position.X, position.Y);
+        _hoveredMarketToggle                 = !_marketToggleRect.IsEmpty                 && _marketToggleRect.Contains(position.X, position.Y);
+        _hoveredMilitaryReinforcementToggle  = !_militaryReinforcementToggleRect.IsEmpty  && _militaryReinforcementToggleRect.Contains(position.X, position.Y);
+        _hoveredMilitaryAttackToggle         = !_militaryAttackToggleRect.IsEmpty         && _militaryAttackToggleRect.Contains(position.X, position.Y);
     }
 
     public bool HandlePointerPressed(SKPoint position)
     {
-        var state = _gameControllerService.CurrentIslandState;
+        var state = _gameControllerService.CurrentWorldState;
         if (state == null) return false;
 
         if (!_roadToggleRect.IsEmpty && _roadToggleRect.Contains(position.X, position.Y))
@@ -361,6 +339,18 @@ public sealed class AutomationRenderer : IDisposable
         if (!_marketToggleRect.IsEmpty && _marketToggleRect.Contains(position.X, position.Y))
         {
             state.AutomationSettings.MarketBuildingAutomationEnabled = !state.AutomationSettings.MarketBuildingAutomationEnabled;
+            return true;
+        }
+
+        if (!_militaryReinforcementToggleRect.IsEmpty && _militaryReinforcementToggleRect.Contains(position.X, position.Y))
+        {
+            state.AutomationSettings.MilitaryReinforcementAutomationEnabled = !state.AutomationSettings.MilitaryReinforcementAutomationEnabled;
+            return true;
+        }
+
+        if (!_militaryAttackToggleRect.IsEmpty && _militaryAttackToggleRect.Contains(position.X, position.Y))
+        {
+            state.AutomationSettings.MilitaryAttackAutomationEnabled = !state.AutomationSettings.MilitaryAttackAutomationEnabled;
             return true;
         }
 

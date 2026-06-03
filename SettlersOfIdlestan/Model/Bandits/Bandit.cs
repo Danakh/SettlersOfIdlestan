@@ -1,24 +1,26 @@
 using System.Text.Json.Serialization;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
-using SettlersOfIdlestan.Model.IslandFeatures;
+using SettlersOfIdlestan.Model.Monsters;
 using SettlersOfIdlestan.Services.Localization;
 
 namespace SettlersOfIdlestan.Model.Bandits;
 
 [Serializable]
-public class Bandit : IslandFeature
+public class Bandit : MonsterFeature
 {
-    public const int MaxHp = 20;
+    /// <summary>Conservé pour la compatibilité avec les tests existants.</summary>
     public const long RaidIntervalTicks = 100L;
 
-    public long LastMovedTick { get; set; }
-    public int Hp { get; set; } = MaxHp;
-    public long LastRaidTick { get; set; } = 0;
-    public Vertex? LastRaidTargetVertex { get; set; } = null;
-    public string? LastStolenResource { get; set; } = null;
-
+    public override int MaxHp => 20;
     public override bool BlocksHarvest => true;
+    public override bool CanMove => true;
+    public override long MovementIntervalTicks => 3_000L;
+    public override long DepartureCooldownTicks => 1_000L;
+    public override int AttackRangeInHexes => 1;
+    public override long AttackIntervalTicks => RaidIntervalTicks;
+    public override int AttackResources => 1;
+
     public override GameEventType DiscoveredEventType => GameEventType.BanditDiscovered;
     public override GameEventType RemovedEventType    => GameEventType.BanditDefeated;
 

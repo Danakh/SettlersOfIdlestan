@@ -1,4 +1,4 @@
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using SettlersOfIdlestan.Controller.Expand;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
@@ -149,14 +149,14 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
             return;
         }
 
-        var islandState = mainGameState.CurrentIslandState;
-        if (islandState == null)
+        var WorldState = mainGameState.CurrentWorldState;
+        if (WorldState == null)
             return;
 
-        if (islandState.Civilizations.Count == 0)
+        if (WorldState.Civilizations.Count == 0)
             return;
 
-        var currentCivilization = islandState.Civilizations[0];
+        var currentCivilization = WorldState.Civilizations[0];
         DrawResourcesBar(canvas, currentCivilization, mainGameState.PrestigeState);
     }
 

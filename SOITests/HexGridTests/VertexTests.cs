@@ -1,6 +1,7 @@
-using System;
+﻿using System;
 using Xunit;
 using SettlersOfIdlestan.Model.HexGrid;
+using SettlersOfIdlestan.Model.IslandMap;
 
 namespace SOITests.HexGridTests;
 
@@ -9,31 +10,40 @@ public class VertexTests
     [Fact]
     public void Create_ReturnsVertexWithNormalizedOrder()
     {
-        var hex1 = new HexCoord(0, 0);
-        var hex2 = new HexCoord(1, 0);
-        var hex3 = new HexCoord(0, 1);
+        var hex1 = new HexCoord(0, 0, IslandMap.SurfaceLayer);
+        var hex2 = new HexCoord(1, 0, IslandMap.SurfaceLayer);
+        var hex3 = new HexCoord(0, 1, IslandMap.SurfaceLayer);
         var vertex = Vertex.Create(hex1, hex2, hex3);
         // Assuming normalization sorts by Q then R
-        Assert.Equal(new HexCoord(0, 0), vertex.Hex1);
-        Assert.Equal(new HexCoord(0, 1), vertex.Hex2);
-        Assert.Equal(new HexCoord(1, 0), vertex.Hex3);
+        Assert.Equal(new HexCoord(0, 0, IslandMap.SurfaceLayer), vertex.Hex1);
+        Assert.Equal(new HexCoord(0, 1, IslandMap.SurfaceLayer), vertex.Hex2);
+        Assert.Equal(new HexCoord(1, 0, IslandMap.SurfaceLayer), vertex.Hex3);
     }
 
     [Fact]
     public void Create_WithInvalidTriangle_ThrowsArgumentException()
     {
-        var hex1 = new HexCoord(0, 0);
-        var hex2 = new HexCoord(1, 0);
-        var hex3 = new HexCoord(2, 0); // Not adjacent to both
+        var hex1 = new HexCoord(0, 0, IslandMap.SurfaceLayer);
+        var hex2 = new HexCoord(1, 0, IslandMap.SurfaceLayer);
+        var hex3 = new HexCoord(2, 0, IslandMap.SurfaceLayer); // Not adjacent to both
+        Assert.Throws<ArgumentException>(() => Vertex.Create(hex1, hex2, hex3));
+    }
+
+    [Fact]
+    public void Create_WithDifferentZ_ThrowsArgumentException()
+    {
+        var hex1 = new HexCoord(0, 0, IslandMap.SurfaceLayer);
+        var hex2 = new HexCoord(1, 0, IslandMap.SurfaceLayer);
+        var hex3 = new HexCoord(0, 1, LayerState.UnderworldZ);
         Assert.Throws<ArgumentException>(() => Vertex.Create(hex1, hex2, hex3));
     }
 
     [Fact]
     public void Equals_ReturnsTrueForSameVertices()
     {
-        var hex1 = new HexCoord(0, 0);
-        var hex2 = new HexCoord(1, 0);
-        var hex3 = new HexCoord(0, 1);
+        var hex1 = new HexCoord(0, 0, IslandMap.SurfaceLayer);
+        var hex2 = new HexCoord(1, 0, IslandMap.SurfaceLayer);
+        var hex3 = new HexCoord(0, 1, IslandMap.SurfaceLayer);
         var vertex1 = Vertex.Create(hex1, hex2, hex3);
         var vertex2 = Vertex.Create(hex1, hex2, hex3);
         Assert.True(vertex1.Equals(vertex2));
@@ -42,9 +52,9 @@ public class VertexTests
     [Fact]
     public void IsAdjacentTo_ReturnsTrueForConnectedHex()
     {
-        var hex1 = new HexCoord(0, 0);
-        var hex2 = new HexCoord(1, 0);
-        var hex3 = new HexCoord(0, 1);
+        var hex1 = new HexCoord(0, 0, IslandMap.SurfaceLayer);
+        var hex2 = new HexCoord(1, 0, IslandMap.SurfaceLayer);
+        var hex3 = new HexCoord(0, 1, IslandMap.SurfaceLayer);
         var vertex = Vertex.Create(hex1, hex2, hex3);
         Assert.True(vertex.IsAdjacentTo(hex1));
         Assert.True(vertex.IsAdjacentTo(hex2));
@@ -54,10 +64,10 @@ public class VertexTests
     [Fact]
     public void IsAdjacentTo_ReturnsFalseForUnconnectedHex()
     {
-        var hex1 = new HexCoord(0, 0);
-        var hex2 = new HexCoord(1, 0);
-        var hex3 = new HexCoord(0, 1);
-        var hex4 = new HexCoord(1, 1);
+        var hex1 = new HexCoord(0, 0, IslandMap.SurfaceLayer);
+        var hex2 = new HexCoord(1, 0, IslandMap.SurfaceLayer);
+        var hex3 = new HexCoord(0, 1, IslandMap.SurfaceLayer);
+        var hex4 = new HexCoord(1, 1, IslandMap.SurfaceLayer);
         var vertex = Vertex.Create(hex1, hex2, hex3);
         Assert.False(vertex.IsAdjacentTo(hex4));
     }
@@ -65,25 +75,25 @@ public class VertexTests
     [Fact]
     public void ToString_ReturnsCorrectFormat()
     {
-        var hex1 = new HexCoord(0, 0);
-        var hex2 = new HexCoord(1, 0);
-        var hex3 = new HexCoord(0, 1);
+        var hex1 = new HexCoord(0, 0, IslandMap.SurfaceLayer);
+        var hex2 = new HexCoord(1, 0, IslandMap.SurfaceLayer);
+        var hex3 = new HexCoord(0, 1, IslandMap.SurfaceLayer);
         var vertex = Vertex.Create(hex1, hex2, hex3);
-        Assert.Equal("Vertex((0, 0), (0, 1), (1, 0))", vertex.ToString());
+        Assert.Equal("Vertex((0, 0, z=0), (0, 1, z=0), (1, 0, z=0))", vertex.ToString());
     }
 
     [Fact]
     public void Serialize_ReturnsCorrectArray()
     {
-        var hex1 = new HexCoord(0, 0);
-        var hex2 = new HexCoord(1, 0);
-        var hex3 = new HexCoord(0, 1);
+        var hex1 = new HexCoord(0, 0, IslandMap.SurfaceLayer);
+        var hex2 = new HexCoord(1, 0, IslandMap.SurfaceLayer);
+        var hex3 = new HexCoord(0, 1, IslandMap.SurfaceLayer);
         var vertex = Vertex.Create(hex1, hex2, hex3);
         var serialized = vertex.Serialize();
         Assert.Equal(3, serialized.Length);
-        Assert.Contains(new[] { 0, 0 }, serialized);
-        Assert.Contains(new[] { 1, 0 }, serialized);
-        Assert.Contains(new[] { 0, 1 }, serialized);
+        Assert.Contains(new[] { 0, 0, 0 }, serialized);
+        Assert.Contains(new[] { 1, 0, 0 }, serialized);
+        Assert.Contains(new[] { 0, 1, 0 }, serialized);
     }
 
     [Fact]
@@ -91,15 +101,38 @@ public class VertexTests
     {
         var data = new[] { new[] { 0, 0 }, new[] { 1, 0 }, new[] { 0, 1 } };
         var vertex = Vertex.Deserialize(data);
-        Assert.Equal(new HexCoord(0, 0), vertex.Hex1);
-        Assert.Equal(new HexCoord(0, 1), vertex.Hex2);
-        Assert.Equal(new HexCoord(1, 0), vertex.Hex3);
+        Assert.Equal(new HexCoord(0, 0, IslandMap.SurfaceLayer), vertex.Hex1);
+        Assert.Equal(new HexCoord(0, 1, IslandMap.SurfaceLayer), vertex.Hex2);
+        Assert.Equal(new HexCoord(1, 0, IslandMap.SurfaceLayer), vertex.Hex3);
+    }
+
+    [Fact]
+    public void Deserialize_WithZ_ReturnsLayeredVertex()
+    {
+        var data = new[] { new[] { 0, 0, 1 }, new[] { 1, 0, 1 }, new[] { 0, 1, 1 } };
+        var vertex = Vertex.Deserialize(data);
+        Assert.Equal(LayerState.UnderworldZ, vertex.Z);
+        Assert.Equal(new HexCoord(0, 0, LayerState.UnderworldZ), vertex.Hex1);
+        Assert.Equal(new HexCoord(0, 1, LayerState.UnderworldZ), vertex.Hex2);
+        Assert.Equal(new HexCoord(1, 0, LayerState.UnderworldZ), vertex.Hex3);
+    }
+
+    [Fact]
+    public void EdgeDistanceTo_WithDifferentZ_ThrowsArgumentException()
+    {
+        var surface = Vertex.Create(new HexCoord(0, 0, IslandMap.SurfaceLayer), new HexCoord(1, 0, IslandMap.SurfaceLayer), new HexCoord(0, 1, IslandMap.SurfaceLayer));
+        var underworld = Vertex.Create(
+            new HexCoord(0, 0, LayerState.UnderworldZ),
+            new HexCoord(1, 0, LayerState.UnderworldZ),
+            new HexCoord(0, 1, LayerState.UnderworldZ));
+
+        Assert.Throws<ArgumentException>(() => surface.EdgeDistanceTo(underworld));
     }
 
     [Fact]
     public void EdgeDistanceTests()
     {
-        var hex0 = new HexCoord(0, 0);
+        var hex0 = new HexCoord(0, 0, IslandMap.SurfaceLayer);
         var hexNE = hex0.Neighbor(HexDirection.NE);
         var hexNW = hex0.Neighbor(HexDirection.NW);
         var hexE = hex0.Neighbor(HexDirection.E);

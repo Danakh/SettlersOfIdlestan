@@ -10,7 +10,7 @@ namespace SettlersOfIdlestan.Model.Prestige;
 [Serializable]
 public class PrestigeState
 {
-    public IslandState? IslandState { get; set; }
+    public WorldState? WorldState { get; set; }
 
     public int PrestigePoints { get; set; }
 
@@ -24,9 +24,9 @@ public class PrestigeState
 
     public PrestigeState() { }
 
-    public PrestigeState(IslandState islandState)
+    public PrestigeState(WorldState worldState)
     {
-        IslandState = islandState;
+        WorldState = worldState;
     }
 
     public bool IsResourceDiscovered(Resource resource, PrestigeMap.PrestigeMap map)

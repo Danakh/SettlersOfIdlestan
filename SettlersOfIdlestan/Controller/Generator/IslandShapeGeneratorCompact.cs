@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.Game;
+using SettlersOfIdlestan.Model.IslandMap;
 
 namespace SettlersOfIdlestan.Controller.Generator;
 
@@ -13,11 +14,11 @@ public class IslandShapeGeneratorCompact : IslandShapeGenerator
         _prng = prng;
     }
 
-    public override IReadOnlyList<HexCoord> GenerateCoords(int count)
+    public override IReadOnlyList<HexCoord> GenerateCoords(int count, int layer = IslandMap.SurfaceLayer)
     {
         if (count <= 0) return [];
 
-        var origin = new HexCoord(0, 0);
+        var origin = new HexCoord(0, 0, layer);
         var island = new List<HexCoord>(count) { origin };
         var allLand = new HashSet<HexCoord> { origin };
 

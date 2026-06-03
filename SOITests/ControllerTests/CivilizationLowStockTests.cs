@@ -1,4 +1,4 @@
-using SettlersOfIdlestan.Controller.Expand;
+﻿using SettlersOfIdlestan.Controller.Expand;
 using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Controller.Military;
 using SettlersOfIdlestan.Model.Buildings;
@@ -22,9 +22,9 @@ namespace SOITests.ControllerTests;
 /// </summary>
 public class CivilizationLowStockTests
 {
-    private static HexCoord H1 => new(0, 1);
-    private static HexCoord H2 => new(1, 0);
-    private static HexCoord H3 => new(1, 1);
+    private static HexCoord H1 => new(0, 1, IslandMap.SurfaceLayer);
+    private static HexCoord H2 => new(1, 0, IslandMap.SurfaceLayer);
+    private static HexCoord H3 => new(1, 1, IslandMap.SurfaceLayer);
     private static Vertex CityVertex => Vertex.Create(H1, H2, H3);
 
     private static IslandMap MinimalMap() => new([
@@ -51,7 +51,7 @@ public class CivilizationLowStockTests
         city.Buildings.Add(new Barracks { Level = 2 });
         civ.Cities.Add(city);
 
-        var state = new IslandState(MinimalMap(), [civ], AtlasController.InvalidIslandId);
+        var state = new WorldState(MinimalMap(), [civ], AtlasController.InvalidIslandId);
         var clock = new GameClock();
         clock.Start();
         new MilitaryController().Initialize(state, clock);
@@ -112,7 +112,7 @@ public class CivilizationLowStockTests
         var city = new City(CityVertex) { CivilizationIndex = 0, Soldiers = soldiers };
         civ.Cities.Add(city);
 
-        var state = new IslandState(MinimalMap(), [civ], AtlasController.InvalidIslandId);
+        var state = new WorldState(MinimalMap(), [civ], AtlasController.InvalidIslandId);
         var clock = new GameClock();
         clock.Start();
         new MilitaryController().Initialize(state, clock);
@@ -178,7 +178,7 @@ public class CivilizationLowStockTests
         city.Buildings.Add(lab);
         civ.Cities.Add(city);
 
-        var state = new IslandState(MinimalMap(), [civ], AtlasController.InvalidIslandId);
+        var state = new WorldState(MinimalMap(), [civ], AtlasController.InvalidIslandId);
         var prestigeState = new PrestigeState(state);
 
         var clock = new GameClock();

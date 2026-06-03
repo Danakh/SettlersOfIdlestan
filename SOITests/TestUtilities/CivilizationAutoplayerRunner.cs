@@ -82,11 +82,11 @@ public class CivilizationAutoplayerRunner
         return false;
     }
 
-    public bool AutoBuildBuilding(Vertex cityVertex, BuildingType buildingType, int maxIterations = 500)
+    public bool AutoBuildBuilding(City city, BuildingType buildingType, int maxIterations = 500)
     {
         for (int i = 0; i < maxIterations; i++)
         {
-            try { if (_autoplayer.TryBuildBuildingOnce(cityVertex, buildingType)) return true; } catch { }
+            try { if (_autoplayer.TryBuildBuildingOnce(city, buildingType)) return true; } catch { }
             Advance();
         }
         return false;

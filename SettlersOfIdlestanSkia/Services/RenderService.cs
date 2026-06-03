@@ -1,6 +1,7 @@
 using SkiaSharp;
 using System.Diagnostics;
 using SettlersOfIdlestanSkia.Core;
+using SettlersOfIdlestan.Model.Game;
 
 namespace SettlersOfIdlestanSkia.Services;
 
@@ -53,7 +54,7 @@ public class RenderService : IDisposable
     /// <summary>
     /// Rend un frame en appelant tous les renderers dans l'ordre.
     /// </summary>
-    public void RenderFrame(SKCanvas canvas, object gameState, CameraService? cameraService = null)
+    public void RenderFrame(SKCanvas canvas, MainGameState gameState, CameraService? cameraService = null)
     {
         if (_disposed)
             throw new ObjectDisposedException(nameof(RenderService));

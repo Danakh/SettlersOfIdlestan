@@ -1,6 +1,7 @@
-using SkiaSharp;
+﻿using SkiaSharp;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandFeatures;
+using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestanSkia.Renderers.Island;
 
 namespace SettlersOfIdlestanSkia.Services;
@@ -131,12 +132,13 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
             return;
 
         // Fallback: clic sur un hex — vérifie d'abord si c'est une wonder.
+        var WorldState = _gameControllerService.CurrentWorldState;
+        int currentZ = WorldState?.CurrentViewedLayer ?? IslandMap.SurfaceLayer;
         var hex = _renderer.ScreenToHex(e.Position, _cameraService.CanvasSize, _cameraService.ZoomLevel, _cameraService.Position);
-        var hexCoord = new HexCoord(hex.q, hex.r);
-        var islandState = _gameControllerService.CurrentIslandState;
-        var playerIndex = islandState?.PlayerCivilization.Index ?? 0;
+        var hexCoord = new HexCoord(hex.q, hex.r, currentZ);
+        var playerIndex = WorldState?.PlayerCivilization.Index ?? 0;
 
-        var clickedWonder = islandState?.Features.OfType<Wonder>().FirstOrDefault(w => w.Position.Equals(hexCoord));
+        var clickedWonder = WorldState?.Features.OfType<Wonder>().FirstOrDefault(w => w.Position.Equals(hexCoord));
         if (clickedWonder != null)
         {
             _cityBuildingService.ClearSelectedCity();
@@ -145,7 +147,7 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
             return;
         }
 
-        if (islandState?.VisibleIslandMaps.TryGetValue(playerIndex, out var visibleMap) == true &&
+        if (WorldState?.GetVisibleIslandMapsForZ(hexCoord.Z).TryGetValue(playerIndex, out var visibleMap) == true &&
             visibleMap.HasTile(hexCoord))
         {
             _harvestService.TryManualHarvest(hexCoord);
@@ -158,6 +160,8 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
         if (_renderer == null)
             return;
 
+        int currentZ = _gameControllerService.CurrentWorldState?.CurrentViewedLayer ?? IslandMap.SurfaceLayer;
+
         var buildableVertices = _gameControllerService.GetBuildableCityVerticesForPlayer();
         var buildableEdges = _gameControllerService.GetBuildableRoadEdgesForPlayer();
 
@@ -166,7 +170,7 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
         var hoveredCityVertex = GetHoveredCityVertex(islandPoint);
 
         Vertex? hoveredVertex = null;
-        var nearestVertex = _renderer.IslandToNearestVertex(islandPoint);
+        var nearestVertex = _renderer.IslandToNearestVertex(islandPoint, currentZ);
         if (buildableVertices.Any(v => v.Equals(nearestVertex)))
         {
             var dist = SKPoint.Distance(islandPoint, _renderer.VertexToIslandPoint(nearestVertex));
@@ -177,7 +181,7 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
         }
 
         Edge? hoveredEdge = null;
-        var nearestEdge = _renderer.IslandToNearestEdge(islandPoint);
+        var nearestEdge = _renderer.IslandToNearestEdge(islandPoint, currentZ);
         if (buildableEdges.Any(e => e.Equals(nearestEdge)))
         {
             var dist = SKPoint.Distance(islandPoint, _renderer.EdgeToIslandPoint(nearestEdge));
@@ -190,13 +194,13 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
         HexCoord? hoveredHex = null;
         if (hoveredVertex == null && hoveredEdge == null && hoveredCityVertex == null)
         {
-            var hexCoord = _renderer.IslandToHexCoord(islandPoint);
+            var hexCoord = _renderer.IslandToHexCoord(islandPoint, currentZ);
             var (hx, hy) = _renderer.AxialToIsland(hexCoord.Q, hexCoord.R);
             if (_renderer.IsPointInHexagon(islandPoint.X, islandPoint.Y, hx, hy))
             {
-                var islandState = _gameControllerService.CurrentIslandState;
-                var playerIndex = islandState?.PlayerCivilization.Index ?? 0;
-                if (islandState?.VisibleIslandMaps.TryGetValue(playerIndex, out var visibleMap) == true &&
+                var WorldState = _gameControllerService.CurrentWorldState;
+                var playerIndex = WorldState?.PlayerCivilization.Index ?? 0;
+                if (WorldState?.GetVisibleIslandMapsForZ(hexCoord.Z).TryGetValue(playerIndex, out var visibleMap) == true &&
                     visibleMap.HasTile(hexCoord))
                 {
                     hoveredHex = hexCoord;
@@ -220,25 +224,26 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
         if (_renderer == null)
             return null;
 
-        var islandState = _gameControllerService.CurrentIslandState;
-        if (islandState == null)
+        var WorldState = _gameControllerService.CurrentWorldState;
+        if (WorldState == null)
             return null;
 
-        var cities = islandState.GetAllCities();
+        var cities = WorldState.GetAllCities();
         if (cities == null || !cities.Any())
             return null;
 
         Vertex? best = null;
         var bestDistance = float.MaxValue;
 
-        var playerIndex = islandState.PlayerCivilization.Index;
+        var playerIndex = WorldState.PlayerCivilization.Index;
         foreach (var city in cities)
         {
             if (city.CivilizationIndex != playerIndex)
                 continue;
 
-            if (islandState.VisibleIslandMaps.TryGetValue(playerIndex, out var visibleMap) &&
-                !city.Position.GetHexes().Any(visibleMap.HasTile))
+            if (WorldState.GetVisibleIslandMapsForZ(WorldState.CurrentViewedLayer).TryGetValue(playerIndex, out var visibleMap) &&
+                (city.Position.Z != visibleMap.Z ||
+                !city.Position.GetHexes().Any(visibleMap.HasTile)))
             {
                 continue;
             }

@@ -1,4 +1,4 @@
-using SettlersOfIdlestan.Model.Game;
+﻿using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Controller;
@@ -16,7 +16,7 @@ public class GameControllerService
     private CityBuildingService? _cityBuildingService;
 
     public MainGameState? CurrentGameState => _controller.CurrentMainState;
-    public IslandState? CurrentIslandState => _controller.CurrentMainState?.CurrentIslandState;
+    public WorldState? CurrentWorldState => _controller.CurrentMainState?.CurrentWorldState;
     public CityBuildingService? CityBuildingService => _cityBuildingService;
 
     /// <summary>

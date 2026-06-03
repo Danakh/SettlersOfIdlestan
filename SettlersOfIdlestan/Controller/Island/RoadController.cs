@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using SettlersOfIdlestan.Model.IslandMap;
@@ -23,11 +23,11 @@ namespace SettlersOfIdlestan.Controller.Island
     }
 
     /// <summary>
-    /// Contr?le la logique de construction de routes pour un IslandState.
+    /// Contr?le la logique de construction de routes pour un WorldState.
     /// </summary>
     public class RoadController
     {
-        private IslandState? _state;
+        private WorldState? _state;
         private GameClock? _clock;
         private GamePRNG _prng = new();
         private readonly Dictionary<int, (int CityCount, List<Road> Roads)> _buildableRoadsCache = new();
@@ -38,15 +38,15 @@ namespace SettlersOfIdlestan.Controller.Island
         public event EventHandler<RoadAutoBuiltEventArgs>? OnAutoRoadBuilt;
         public event EventHandler<RoadAutoBuiltEventArgs>? OnRoadBuilt;
 
-        internal RoadController(IslandState? state = null)
+        internal RoadController(WorldState? state = null)
         {
             _state = state;
         }
 
         /// <summary>
-        /// Initialize or update the IslandState for this controller.
+        /// Initialize or update the WorldState for this controller.
         /// </summary>
-        internal void Initialize(IslandState state, GameClock? clock = null, GamePRNG? prng = null)
+        internal void Initialize(WorldState state, GameClock? clock = null, GamePRNG? prng = null)
         {
             if (_clock != null)
                 _clock.Advanced -= OnClockAdvanced;
@@ -127,15 +127,13 @@ namespace SettlersOfIdlestan.Controller.Island
         /// </summary>
         public List<Road> GetBuildableRoads(int civilizationIndex)
         {
-            if (_state == null) throw new InvalidOperationException("IslandState has not been initialized.");
+            if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
 
             var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex)
                           ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
 
             if (_buildableRoadsCache.TryGetValue(civilizationIndex, out var cached) && cached.CityCount == civ.Cities.Count)
                 return cached.Roads;
-
-            var mapTiles = _state.Map.Tiles;
 
             // Seules les routes de NOTRE civilisation bloquent la construction.
             // Les routes ennemies sont conquérables (elles seront détruites à la construction).
@@ -196,13 +194,14 @@ namespace SettlersOfIdlestan.Controller.Island
         /// </summary>
         public Road? BuildRoad(int civilizationIndex, Edge edge)
         {
-            if (_state == null) throw new InvalidOperationException("IslandState has not been initialized.");
+            if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
 
             var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex)
                       ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
 
             // V�rifier que l'ar�te fait partie de la carte
-            var mapTiles = _state.Map.Tiles;
+            var map = _state.GetMapFor(edge);
+            var mapTiles = map.Tiles;
             if (!mapTiles.ContainsKey(edge.Hex1) || !mapTiles.ContainsKey(edge.Hex2))
                 throw new ArgumentException("Edge not part of the map", nameof(edge));
 
@@ -230,7 +229,7 @@ namespace SettlersOfIdlestan.Controller.Island
 
             var distance = GetDistanceForEdge(edge, civ);
             if (distance == int.MaxValue)
-                throw new InvalidOperationException("Cannot determine distance to a city for this edge");
+                return null; // road must no longer be linked to a city
 
             var cost = isMaritimePath ? GetMaritimeRoadCost() : GetRoadCost(distance, civ);
 
@@ -264,9 +263,70 @@ namespace SettlersOfIdlestan.Controller.Island
                 {
                     otherCiv.Roads.Remove(enemyRoad);
                     ComputeRoadDistancesForCivilization(otherCiv);
+                    RemoveDisconnectedRoads(otherCiv);
                     return;
                 }
             }
+        }
+
+        /// <summary>
+        /// Supprime les routes à distance ≤ 2 de la ville détruite, puis toutes les routes
+        /// désormais déconnectées de toute ville. Doit être appelé après avoir retiré la ville de civ.Cities.
+        /// </summary>
+        public void OnCityDestroyed(Civilization civ, Vertex cityVertex)
+        {
+            var toRemove = GetRoadsWithinDistanceOfVertex(civ.Roads, cityVertex, 2);
+            foreach (var road in toRemove)
+                civ.Roads.Remove(road);
+
+            ComputeRoadDistancesForCivilization(civ);
+            RemoveDisconnectedRoads(civ);
+
+            _buildableRoadsCache.Clear();
+            _state?.RecalculateVisibleIslandMap(civ.Index);
+        }
+
+        private static List<Road> GetRoadsWithinDistanceOfVertex(List<Road> roads, Vertex vertex, int maxDistance)
+        {
+            var result = new List<Road>();
+            var visited = new HashSet<Edge>();
+            var frontier = new List<Road>();
+
+            foreach (var road in roads)
+            {
+                if (road.Position.GetVertices().Any(v => v.Equals(vertex)) && visited.Add(road.Position))
+                {
+                    result.Add(road);
+                    frontier.Add(road);
+                }
+            }
+
+            for (int dist = 1; dist < maxDistance; dist++)
+            {
+                var next = new List<Road>();
+                foreach (var current in frontier)
+                {
+                    var currentVerts = current.Position.GetVertices();
+                    foreach (var neighbor in roads)
+                    {
+                        if (visited.Contains(neighbor.Position)) continue;
+                        if (neighbor.Position.GetVertices().Any(nv => currentVerts.Any(cv => cv.Equals(nv))))
+                        {
+                            visited.Add(neighbor.Position);
+                            result.Add(neighbor);
+                            next.Add(neighbor);
+                        }
+                    }
+                }
+                frontier = next;
+            }
+
+            return result;
+        }
+
+        private static void RemoveDisconnectedRoads(Civilization civ)
+        {
+            civ.Roads.RemoveAll(r => r.DistanceToNearestCity == int.MaxValue);
         }
 
         private bool IsEdgeBuildableByCivilization(Edge edge, Civilization civ)
@@ -355,7 +415,7 @@ namespace SettlersOfIdlestan.Controller.Island
         private bool IsValidMaritimeEdge(Edge edge)
         {
             if (_state == null) return false;
-            var mapTiles = _state.Map.Tiles;
+            var mapTiles = _state.GetMapFor(edge).Tiles;
             foreach (var v in edge.GetVertices())
             {
                 bool touchesLand = v.GetHexes().Any(h =>
@@ -367,9 +427,9 @@ namespace SettlersOfIdlestan.Controller.Island
 
         private bool IsEdgeOnLand(Edge edge)
         {
-            if (_state == null) throw new InvalidOperationException("IslandState has not been initialized.");
+            if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
 
-            var mapTiles = _state.Map.Tiles;
+            var mapTiles = _state.GetMapFor(edge).Tiles;
             bool hex1IsWaterOrAbsent = !mapTiles.TryGetValue(edge.Hex1, out var tile1) || tile1.TerrainType == TerrainType.Water;
             bool hex2IsWaterOrAbsent = !mapTiles.TryGetValue(edge.Hex2, out var tile2) || tile2.TerrainType == TerrainType.Water;
             return !(hex1IsWaterOrAbsent && hex2IsWaterOrAbsent);

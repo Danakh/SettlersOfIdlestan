@@ -1,4 +1,4 @@
-using Xunit;
+﻿using Xunit;
 using SettlersOfIdlestan.Controller;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Buildings;
@@ -17,7 +17,7 @@ namespace SOITests.ControllerTests
         [Fact]
         public void Prestige_PrestigePointCount()
         {
-            IslandState state = IslandTestFactory.CreateSevenHexIslandState();
+            WorldState state = IslandTestFactory.CreateSevenHexIslandState();
             var civ = state.Civilizations[0];
 
             var controller = new PrestigeController();
@@ -40,7 +40,7 @@ namespace SOITests.ControllerTests
         [Fact]
         public void Prestige_SourcesMatchCalculatedTotal()
         {
-            IslandState state = IslandTestFactory.CreateSevenHexIslandState();
+            WorldState state = IslandTestFactory.CreateSevenHexIslandState();
             var civ = state.Civilizations[0];
 
             var controller = new PrestigeController();
@@ -56,7 +56,7 @@ namespace SOITests.ControllerTests
         [Fact]
         public void Prestige_SourcesAreGroupedBySource()
         {
-            IslandState state = IslandTestFactory.CreateSevenHexIslandState();
+            WorldState state = IslandTestFactory.CreateSevenHexIslandState();
             var civ = state.Civilizations[0];
 
             var controller = new PrestigeController();
@@ -120,7 +120,7 @@ namespace SOITests.ControllerTests
         public void Prestige_WonderBonus_ZeroWhenWonderAtLevel0()
         {
             var state = IslandTestFactory.CreateSevenHexIslandState();
-            state.AddFeature(new SettlersOfIdlestan.Model.IslandFeatures.Wonder(new HexCoord(0, 0)) { Level = 0 });
+            state.AddFeature(new SettlersOfIdlestan.Model.IslandFeatures.Wonder(new HexCoord(0, 0, IslandMap.SurfaceLayer)) { Level = 0 });
             var clock = new SettlersOfIdlestan.Model.Game.GameClock();
             var controller = new PrestigeController();
             controller.Initialize(state.Civilizations[0], state, clock);
@@ -133,7 +133,7 @@ namespace SOITests.ControllerTests
         {
             var state = IslandTestFactory.CreateSevenHexIslandState();
             state.StartTick = 1;
-            state.AddFeature(new SettlersOfIdlestan.Model.IslandFeatures.Wonder(new HexCoord(0, 0)) { Level = 2 });
+            state.AddFeature(new SettlersOfIdlestan.Model.IslandFeatures.Wonder(new HexCoord(0, 0, IslandMap.SurfaceLayer)) { Level = 2 });
             // runTicks = 720001 - 1 = 720000 = 2h exactement → ceil(2) = 2 → timeFactor = 3
             var clock = new SettlersOfIdlestan.Model.Game.GameClock { CurrentTick = 720001 };
             var controller = new PrestigeController();
@@ -147,7 +147,7 @@ namespace SOITests.ControllerTests
         {
             var state = IslandTestFactory.CreateSevenHexIslandState();
             state.StartTick = 1;
-            state.AddFeature(new SettlersOfIdlestan.Model.IslandFeatures.Wonder(new HexCoord(0, 0)) { Level = 1 });
+            state.AddFeature(new SettlersOfIdlestan.Model.IslandFeatures.Wonder(new HexCoord(0, 0, IslandMap.SurfaceLayer)) { Level = 1 });
             // runTicks = 180001 - 1 = 180000 = 30 min → ceil(0.5) = 1h → timeFactor = 2
             var clock = new SettlersOfIdlestan.Model.Game.GameClock { CurrentTick = 180001 };
             var controller = new PrestigeController();
@@ -161,7 +161,7 @@ namespace SOITests.ControllerTests
         {
             var state = IslandTestFactory.CreateSevenHexIslandState();
             state.StartTick = 1;
-            state.AddFeature(new SettlersOfIdlestan.Model.IslandFeatures.Wonder(new HexCoord(0, 0)) { Level = 1 });
+            state.AddFeature(new SettlersOfIdlestan.Model.IslandFeatures.Wonder(new HexCoord(0, 0, IslandMap.SurfaceLayer)) { Level = 1 });
             var civ = state.Civilizations[0];
             civ.Cities[0].Buildings.Add(new Temple()); // subtotal = 1
             // runTicks = 360001 - 1 = 360000 = 1h → ceil(1) = 1 → timeFactor = 2
@@ -178,7 +178,7 @@ namespace SOITests.ControllerTests
         {
             var state = IslandTestFactory.CreateSevenHexIslandState();
             state.StartTick = 1;
-            state.AddFeature(new SettlersOfIdlestan.Model.IslandFeatures.Wonder(new HexCoord(0, 0)) { Level = 3 });
+            state.AddFeature(new SettlersOfIdlestan.Model.IslandFeatures.Wonder(new HexCoord(0, 0, IslandMap.SurfaceLayer)) { Level = 3 });
             // runTicks = 360001 - 1 = 360000 = 1h
             var clock = new SettlersOfIdlestan.Model.Game.GameClock { CurrentTick = 360001 };
             var controller = new PrestigeController();
@@ -190,20 +190,20 @@ namespace SOITests.ControllerTests
             Assert.Equal(360000, runTicks);
         }
 
-        private static IslandState CreateDesertIslandState()
+        private static WorldState CreateDesertIslandState()
         {
             var tiles = new List<HexTile>
             {
-                new(new HexCoord(0, 0), TerrainType.Desert),
-                new(new HexCoord(1, 0), TerrainType.Plain),
-                new(new HexCoord(0, 1), TerrainType.Plain),
+                new(new HexCoord(0, 0, IslandMap.SurfaceLayer), TerrainType.Desert),
+                new(new HexCoord(1, 0, IslandMap.SurfaceLayer), TerrainType.Plain),
+                new(new HexCoord(0, 1, IslandMap.SurfaceLayer), TerrainType.Plain),
             };
             var map = new IslandMap(tiles);
             var civ = new SettlersOfIdlestan.Model.Civilization.Civilization { Index = 0 };
-            var vertex = Vertex.Create(new HexCoord(0, 0), new HexCoord(1, 0), new HexCoord(0, 1));
+            var vertex = Vertex.Create(new HexCoord(0, 0, IslandMap.SurfaceLayer), new HexCoord(1, 0, IslandMap.SurfaceLayer), new HexCoord(0, 1, IslandMap.SurfaceLayer));
             var city = new SettlersOfIdlestan.Model.Civilization.City(vertex) { CivilizationIndex = 0 };
             civ.Cities.Add(city);
-            return new IslandState(map, new List<SettlersOfIdlestan.Model.Civilization.Civilization> { civ }, AtlasController.InvalidIslandId);
+            return new WorldState(map, new List<SettlersOfIdlestan.Model.Civilization.Civilization> { civ }, AtlasController.InvalidIslandId);
         }
 
         [Fact]
@@ -211,7 +211,7 @@ namespace SOITests.ControllerTests
         {
             var controller = new MainGameController();
             controller.CreateNewGame();
-            var initialIsland = controller.CurrentMainState!.CurrentIslandState!;
+            var initialIsland = controller.CurrentMainState!.CurrentWorldState!;
             var civ = initialIsland.PlayerCivilization;
             for (int i = 0; i < 20; i++)
             {
@@ -222,10 +222,10 @@ namespace SOITests.ControllerTests
 
             controller.PerformPrestige();
 
-            var newIsland = controller.CurrentMainState!.CurrentIslandState!;
+            var newIsland = controller.CurrentMainState!.CurrentWorldState!;
             Assert.Equal(expectedPrestigePoints, controller.CurrentMainState.PrestigeState!.PrestigePoints);
             Assert.NotSame(initialIsland, newIsland);
-            Assert.Equal(initialIsland.IslandID + 1, newIsland.IslandID);
+            Assert.Equal(initialIsland.WorldId + 1, newIsland.WorldId);
             Assert.False(controller.PrestigeController.PrestigeIsVisible());
         }
     }

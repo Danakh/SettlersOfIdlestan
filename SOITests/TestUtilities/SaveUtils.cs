@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Linq;
 using SettlersOfIdlestan.Model.IslandMap;
@@ -92,12 +92,12 @@ public static class SaveUtils
         var reloadedController = new MainGameController();
         reloadedController.ImportMainState(File.ReadAllText(filePath));
 
-        var originalIsland = controller.CurrentMainState?.CurrentIslandState
+        var originalIsland = controller.CurrentMainState?.CurrentWorldState
                              ?? throw new InvalidOperationException("Controller does not have a current island state");
-        var reloadedIsland = reloadedController.CurrentMainState?.CurrentIslandState
+        var reloadedIsland = reloadedController.CurrentMainState?.CurrentWorldState
                              ?? throw new InvalidOperationException("Reloaded controller does not have a current island state");
 
-        Assert.Equal(originalIsland.Map.Tiles.Count, reloadedIsland.Map.Tiles.Count);
+        Assert.Equal(originalIsland.GetMapForZ(IslandMap.SurfaceLayer).Tiles.Count, reloadedIsland.GetMapForZ(IslandMap.SurfaceLayer).Tiles.Count);
         Assert.Equal(originalIsland.Civilizations.Count, reloadedIsland.Civilizations.Count);
         Assert.Equal(
             originalIsland.Civilizations.Sum(c => c.Roads.Count),

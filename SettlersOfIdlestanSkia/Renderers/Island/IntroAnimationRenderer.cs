@@ -1,4 +1,4 @@
-using SkiaSharp;
+﻿using SkiaSharp;
 using Svg.Skia;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.IslandMap;
@@ -36,8 +36,8 @@ public class IntroAnimationRenderer : HexBasedRenderer, IGameRenderer
     private SKPoint _hex1Center;
     private SKPoint _hex2Center;
     private SKPoint _cityVertex;
-    private HexCoord _hex1Coord = new(0, 0);
-    private HexCoord _hex2Coord = new(0, 0);
+    private HexCoord _hex1Coord = new(0, 0, IslandMap.SurfaceLayer);
+    private HexCoord _hex2Coord = new(0, 0, IslandMap.SurfaceLayer);
 
     public IntroAnimationRenderer(ResourceManager resourceManager)
     {
@@ -61,15 +61,15 @@ public class IntroAnimationRenderer : HexBasedRenderer, IGameRenderer
         IsActive = false;
         _elapsed = 0f;
 
-        var islandState = gameState.CurrentIslandState;
-        if (islandState == null) return;
+        var worldState = gameState.CurrentWorldState;
+        if (worldState == null) return;
 
-        var playerCiv = islandState.PlayerCivilization;
+        var playerCiv = worldState.PlayerCivilization;
         if (playerCiv.Cities.Count == 0) return;
 
         _cityVertex = VertexToIsland(playerCiv.Cities[0].Position);
 
-        var map = islandState.Map;
+        var map = worldState.GetMapForZ(IslandMap.SurfaceLayer);
         if (map?.Tiles == null) return;
 
         var waterHexes = map.Tiles
@@ -245,12 +245,12 @@ public class IntroAnimationRenderer : HexBasedRenderer, IGameRenderer
 
     private static HexCoord[] GetHexNeighborCoords(HexCoord c) =>
     [
-        new(c.Q + 1, c.R    ),
-        new(c.Q - 1, c.R    ),
-        new(c.Q,     c.R + 1),
-        new(c.Q,     c.R - 1),
-        new(c.Q + 1, c.R - 1),
-        new(c.Q - 1, c.R + 1),
+        new(c.Q + 1, c.R,     c.Z),
+        new(c.Q - 1, c.R,     c.Z),
+        new(c.Q,     c.R + 1, c.Z),
+        new(c.Q,     c.R - 1, c.Z),
+        new(c.Q + 1, c.R - 1, c.Z),
+        new(c.Q - 1, c.R + 1, c.Z),
     ];
 
     public void Dispose()

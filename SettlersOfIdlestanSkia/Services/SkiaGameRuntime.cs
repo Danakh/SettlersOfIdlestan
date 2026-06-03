@@ -1,4 +1,4 @@
-using SkiaSharp;
+﻿using SkiaSharp;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Renderers;
@@ -10,6 +10,7 @@ using SettlersOfIdlestanSkia.Renderers.Overlay;
 using SettlersOfIdlestanSkia.Renderers.Overlay.Popup;
 using SettlersOfIdlestanSkia.Renderers.Overlay.Tabs;
 using SettlersOfIdlestan.Model.IslandFeatures;
+using SettlersOfIdlestan.Model.IslandMap;
 
 namespace SettlersOfIdlestanSkia.Services;
 
@@ -36,6 +37,11 @@ public sealed class SkiaGameRuntime : IDisposable
     private TutorialService? _tutorialService;
     private MilitaryInteractionService? _militaryInteractionService;
     private PlayerResourcesOverlayRenderer? _playerResourcesOverlayRenderer;
+    private CorruptSavePopupRenderer? _corruptSavePopup;
+    private bool _corruptSavePending;
+    private string? _corruptSaveJson;
+
+    public event Action? QuitRequested;
 
     private bool _isDisposed;
     private bool _isGameInitialized;
@@ -60,6 +66,8 @@ public sealed class SkiaGameRuntime : IDisposable
     private double _autoSaveTimer = 0;
     private const double AutoSaveInterval = 5.0;
 
+    private Func<int> _currentLayer => () => _gameControllerService?.CurrentGameState?.CurrentWorldState?.CurrentViewedLayer ?? 0;
+
     public void Initialize(IFileSystemService fileSystemService, bool allowDebugMode = false)
     {
         var autoJson = fileSystemService.LoadAuto().GetAwaiter().GetResult();
@@ -83,59 +91,95 @@ public sealed class SkiaGameRuntime : IDisposable
         _fileSystemService = fileSystemService;
         _allowDebugMode = allowDebugMode;
 
-        _resourceManager = new ResourceManager();
-        _inputService = new InputHandlingService();
-        _renderService = new RenderService();
-        _cameraService = new CameraService();
-        _localizationService = new LocalizationService();
-
+        _resourceManager      = new ResourceManager();
+        _inputService         = new InputHandlingService();
+        _renderService        = new RenderService();
+        _cameraService        = new CameraService();
+        _localizationService  = new LocalizationService();
         _gameControllerService = new GameControllerService();
-        bool isNewGame;
-        if (!string.IsNullOrEmpty(autoJson))
+
+        bool isNewGame = false;
+
+        try
         {
-            try
+            if (!string.IsNullOrEmpty(autoJson))
             {
                 _gameControllerService.ImportMainState(autoJson);
                 isNewGame = false;
             }
-            catch
+            else
             {
                 _gameControllerService.InitializeNewGame();
                 isNewGame = true;
             }
+
+            SetupRenderers(isNewGame, allowDebugMode);
         }
-        else
+        catch
         {
+            _corruptSaveJson    = autoJson;
+            _corruptSavePending = true;
+
+            // Nettoyer l'état partiellement initialisé
+            _constructionInteractionService?.Cleanup();
+            _constructionInteractionService = null;
+            _militaryInteractionService?.Cleanup();
+            _militaryInteractionService = null;
+            _renderService.Dispose();
+            _renderService = new RenderService();
+            _inputService  = new InputHandlingService();
+
+            // Réinitialiser avec un jeu vierge puis reconstruire les renderers
             _gameControllerService.InitializeNewGame();
-            isNewGame = true;
+            SetupRenderers(false, allowDebugMode);
         }
 
+        if (_corruptSavePending)
+        {
+            _corruptSavePopup = new CorruptSavePopupRenderer(
+                _localizationService!,
+                _fileSystemService!,
+                _corruptSaveJson!,
+                onStartFresh: () => { _corruptSavePending = false; },
+                onQuit:       () => { QuitRequested?.Invoke(); });
+            _corruptSavePopup.Open();
+        }
+
+        _isGameInitialized = true;
+
+        _tickStopwatch.Restart();
+        _fpsStopwatch.Restart();
+        _frameCount = 0;
+    }
+
+    private void SetupRenderers(bool isNewGame, bool allowDebugMode)
+    {
         // Synchronise la langue depuis les settings sauvegardés
-        var savedLanguage = _gameControllerService.CurrentGameState?.Settings?.Language;
+        var savedLanguage = _gameControllerService!.CurrentGameState?.Settings?.Language;
         if (savedLanguage.HasValue)
-            _localizationService.SetLanguage(savedLanguage.Value);
+            _localizationService!.SetLanguage(savedLanguage.Value);
 
         _harvestService = new HarvestService(_gameControllerService);
 
-        TooltipRenderer tooltipRenderer = new TooltipRenderer(_localizationService, _gameControllerService, _resourceManager!);
+        var tooltipRenderer = new TooltipRenderer(_localizationService!, _gameControllerService, _resourceManager!);
 
         _constructionInteractionService = new ConstructionInteractionService(
             _gameControllerService,
             _harvestService,
-            _inputService,
-            _cameraService,
+            _inputService!,
+            _cameraService!,
             _gameControllerService.CityBuildingService!);
-        var islandMainRenderer = new IslandMainRenderer(_constructionInteractionService, tooltipRenderer, _gameControllerService.MainGameController.HarvestController, _resourceManager!, _gameControllerService.MainGameController.MilitaryController);
+        var islandMainRenderer = new IslandMainRenderer(_constructionInteractionService, tooltipRenderer, _gameControllerService.MainGameController.HarvestController, _resourceManager!, _gameControllerService.MainGameController.MilitaryController, _currentLayer);
         _islandMainRenderer = islandMainRenderer;
         _constructionInteractionService.AttachRenderer(islandMainRenderer);
-        _renderService.RegisterRenderer(islandMainRenderer);
+        _renderService!.RegisterRenderer(islandMainRenderer);
         islandMainRenderer.SuppressCities = () => _introRenderer?.IsActive == true;
 
         _militaryInteractionService = new MilitaryInteractionService(
             _gameControllerService,
             _gameControllerService.MainGameController.MilitaryController,
-            _inputService,
-            _cameraService);
+            _inputService!,
+            _cameraService!);
         _militaryInteractionService.AttachRenderer(islandMainRenderer);
         islandMainRenderer.ConnectMilitaryInteractionService(_militaryInteractionService);
 
@@ -146,7 +190,7 @@ public sealed class SkiaGameRuntime : IDisposable
         _wonderSelectionService.Cancelled += OnWonderSelectionCancelled;
 
         var wonderSelectionRenderer = new WonderPlacementRenderer(
-            _wonderSelectionService, _inputService, _cameraService, _localizationService);
+            _wonderSelectionService, _inputService!, _cameraService!, _localizationService!);
         _renderService.RegisterRenderer(wonderSelectionRenderer);
 
         _introRenderer = new IntroAnimationRenderer(_resourceManager!);
@@ -155,33 +199,36 @@ public sealed class SkiaGameRuntime : IDisposable
         islandMainRenderer.ConnectHarvestEvents(_harvestService!, _gameControllerService!, () => _prestigeTransitionPending, () => _overlayRenderer?.IsIslandTabActive ?? true, () => _gameControllerService.MainGameController.CurrentMainState?.Settings.ShowHarvestParticles ?? true);
         islandMainRenderer.ConnectMilitaryEvents(_gameControllerService.MainGameController.MilitaryController, _gameControllerService!, () => _prestigeTransitionPending, () => _overlayRenderer?.IsIslandTabActive ?? true);
 
-        var selectedCityPanelRenderer = new SelectedCityPanelRenderer(_gameControllerService.CityBuildingService!, _localizationService, _inputService, _resourceManager!);
+        var selectedCityPanelRenderer = new SelectedCityPanelRenderer(_gameControllerService.CityBuildingService!, _localizationService!, _inputService!, _resourceManager!);
         _wonderService = new WonderService();
         _constructionInteractionService.AttachWonderService(_wonderService);
         islandMainRenderer.ConnectWonderService(_wonderService);
-        var selectedWonderPanelRenderer = new SelectedWonderPanelRenderer(_wonderService, _inputService, _localizationService, _resourceManager!);
+        var selectedWonderPanelRenderer = new SelectedWonderPanelRenderer(_wonderService, _inputService!, _localizationService!, _resourceManager!);
 
-        var aboutRenderer = new AboutRenderer(_inputService, _localizationService);
-        var settingsPopupRenderer = new SettingsPopupRenderer(_gameControllerService.MainGameController, _localizationService);
+        var aboutRenderer        = new AboutRenderer(_inputService!, _localizationService!);
+        var settingsPopupRenderer = new SettingsPopupRenderer(_gameControllerService.MainGameController, _localizationService!);
         DebugPanelRenderer? debugPanelRenderer = null;
         if (allowDebugMode)
-            debugPanelRenderer = new DebugPanelRenderer(_inputService, _localizationService);
-        var settingsMenu = new SettingsMenu(_gameControllerService.MainGameController, _inputService, _localizationService, aboutRenderer, settingsPopupRenderer, fileSystemService, _gameControllerService.CityBuildingService!, allowDebugMode, debugPanelRenderer, StartNewGameIntro);
-        _playerResourcesOverlayRenderer = new PlayerResourcesOverlayRenderer(_localizationService, _resourceManager);
+            debugPanelRenderer = new DebugPanelRenderer(_inputService!, _localizationService!);
+        var settingsMenu = new SettingsMenu(_gameControllerService.MainGameController, _inputService!, _localizationService!, aboutRenderer, settingsPopupRenderer, _fileSystemService!, _gameControllerService.CityBuildingService!, allowDebugMode, debugPanelRenderer, StartNewGameIntro);
+
+        _playerResourcesOverlayRenderer = new PlayerResourcesOverlayRenderer(_localizationService!, _resourceManager!);
         var playerResourcesOverlayRenderer = _playerResourcesOverlayRenderer;
         playerResourcesOverlayRenderer.ConnectLowStock(null, _gameControllerService.PlayerCivilization!);
-        var tradeRenderer = new TradeRenderer(_gameControllerService, _localizationService, tooltipRenderer, _resourceManager);
-        var prestigeRenderer = new PrestigeRenderer(_gameControllerService, _localizationService, RequestPrestige);
-        var prestigeMapRenderer = new PrestigeMapRenderer(_gameControllerService, _localizationService, tooltipRenderer);
-        var prestigeHistoryRenderer = new PrestigeHistoryRenderer(_gameControllerService, _localizationService);
-        var timeControlRenderer = new TimeControlRenderer(_gameControllerService, _inputService, _localizationService);
-        var researchRenderer = new ResearchRenderer(_gameControllerService, _localizationService, _inputService);
-        var eventLogRenderer = new EventLogRenderer(_gameControllerService, _localizationService);
-        var automationRenderer = new AutomationRenderer(_gameControllerService, _localizationService);
+
+        var tradeRenderer        = new TradeRenderer(_gameControllerService, _localizationService!, tooltipRenderer, _resourceManager!);
+        var prestigeRenderer     = new PrestigeRenderer(_gameControllerService, _localizationService!, RequestPrestige);
+        var prestigeMapRenderer  = new PrestigeMapRenderer(_gameControllerService, _localizationService!, tooltipRenderer);
+        var prestigeHistoryRenderer = new PrestigeHistoryRenderer(_gameControllerService, _localizationService!);
+        var timeControlRenderer  = new TimeControlRenderer(_gameControllerService, _inputService!, _localizationService!);
+        var researchRenderer     = new ResearchRenderer(_gameControllerService, _localizationService!, _inputService!);
+        var eventLogRenderer     = new EventLogRenderer(_gameControllerService, _localizationService!);
+        var automationRenderer   = new AutomationRenderer(_gameControllerService, _localizationService!);
+
         _overlayRenderer = new OverlayRenderer(
-            _inputService,
+            _inputService!,
             _gameControllerService,
-            _localizationService,
+            _localizationService!,
             playerResourcesOverlayRenderer,
             settingsMenu,
             settingsPopupRenderer,
@@ -202,14 +249,15 @@ public sealed class SkiaGameRuntime : IDisposable
             (_overlayRenderer?.IsPointBlockedByUI(pos) ?? false)
             || (_wonderSelectionService?.IsActive == true)
             || (_militaryInteractionService?.ShouldSuppressConstruction == true);
+
         if (allowDebugMode)
         {
-            _renderService.RegisterRenderer(new DebugOverlayRenderer(_inputService, _cameraService, islandMainRenderer, _localizationService));
-            _renderService.RegisterRenderer(new AutoplayerDebugRenderer(_gameControllerService, _inputService));
+            _renderService.RegisterRenderer(new DebugOverlayRenderer(_inputService!, _cameraService!, islandMainRenderer, _localizationService!));
+            _renderService.RegisterRenderer(new AutoplayerDebugRenderer(_gameControllerService, _inputService!));
             _renderService.RegisterRenderer(debugPanelRenderer!);
         }
         _renderService.RegisterRenderer(aboutRenderer);
-        _tutorialRenderer = new TutorialRenderer(_localizationService, _inputService);
+        _tutorialRenderer = new TutorialRenderer(_localizationService!, _inputService!);
         _renderService.RegisterRenderer(_tutorialRenderer);
         _renderService.RegisterRenderer(tooltipRenderer);
 
@@ -224,12 +272,6 @@ public sealed class SkiaGameRuntime : IDisposable
 
         if (isNewGame && _gameControllerService.CurrentGameState is SettlersOfIdlestan.Model.Game.MainGameState introState)
             StartNewGameIntro(introState);
-
-        _isGameInitialized = true;
-
-        _tickStopwatch.Restart();
-        _fpsStopwatch.Restart();
-        _frameCount = 0;
     }
 
     public void EnsureCanvasInitialized(SKSize canvasSize)
@@ -296,7 +338,7 @@ public sealed class SkiaGameRuntime : IDisposable
         if (_autoSaveTimer >= AutoSaveInterval)
         {
             _autoSaveTimer = 0;
-            if (_fileSystemService != null && _gameControllerService.MainGameController.CurrentMainState != null)
+            if (!_corruptSavePending && _fileSystemService != null && _gameControllerService.MainGameController.CurrentMainState != null)
             {
                 var json = _gameControllerService.MainGameController.ExportMainState();
                 _fileSystemService.SaveAuto(json);
@@ -324,7 +366,7 @@ public sealed class SkiaGameRuntime : IDisposable
 
     private (int cityCount, int roadCount) GetCityRoadCounts()
     {
-        var civ = _gameControllerService?.CurrentGameState?.CurrentIslandState?.Civilizations.FirstOrDefault();
+        var civ = _gameControllerService?.CurrentGameState?.CurrentWorldState?.Civilizations.FirstOrDefault();
         return civ == null ? (0, 0) : (civ.Cities.Count, civ.Roads.Count);
     }
 
@@ -340,11 +382,14 @@ public sealed class SkiaGameRuntime : IDisposable
         if (_islandMainRenderer != null && _overlayRenderer != null)
             _islandMainRenderer.IsVisible = _overlayRenderer.IsIslandTabActive;
 
-        _renderService.RenderFrame(canvas, gameState, _cameraService);
+        _renderService.RenderFrame(canvas, gameState!, _cameraService);
+
+        _corruptSavePopup?.Render(canvas, _lastCanvasSize);
     }
 
     public void HandlePointerPressed(float x, float y, int pointerId = 0, PointerButton button = PointerButton.Left)
     {
+        if (_corruptSavePopup?.IsOpen == true) { _corruptSavePopup.HandlePointerPressed(new SKPoint(x, y), button); return; }
         if (_introRenderer?.IsActive == true) return;
         _isPointerDown = true;
         _isPanning = false;
@@ -360,6 +405,7 @@ public sealed class SkiaGameRuntime : IDisposable
 
     public void HandlePointerMoved(float x, float y, int pointerId = 0)
     {
+        if (_corruptSavePopup?.IsOpen == true) return;
         if (_introRenderer?.IsActive == true) return;
         if (_isPointerDown && !_isPanSuppressedAtStart && (_overlayRenderer?.IsIslandTabActive ?? true) && pointerId == _activePanPointerId && _cameraService != null)
         {
@@ -380,6 +426,7 @@ public sealed class SkiaGameRuntime : IDisposable
 
     public void HandlePointerReleased(float x, float y, int pointerId = 0, PointerButton button = PointerButton.Left)
     {
+        if (_corruptSavePopup?.IsOpen == true) return;
         if (_introRenderer?.IsActive == true) return;
         var wasPanning = _isPanning && pointerId == _activePanPointerId;
         _isPointerDown = false;
@@ -417,9 +464,9 @@ public sealed class SkiaGameRuntime : IDisposable
     private void DebugAddResources()
     {
         var mainState = _gameControllerService?.MainGameController?.CurrentMainState;
-        if (mainState?.CurrentIslandState?.Civilizations.Count > 0)
+        if (mainState?.CurrentWorldState?.Civilizations.Count > 0)
         {
-            var civ = mainState.CurrentIslandState.Civilizations[0];
+            var civ = mainState.CurrentWorldState.Civilizations[0];
             foreach (var resource in Enum.GetValues<SettlersOfIdlestan.Model.IslandMap.Resource>())
                 civ.AddResource(resource, 100);
         }
@@ -432,7 +479,7 @@ public sealed class SkiaGameRuntime : IDisposable
 
     public void NotifyError(Exception ex)
     {
-        var eventLog = _gameControllerService?.CurrentGameState?.CurrentIslandState?.EventLog;
+        var eventLog = _gameControllerService?.CurrentGameState?.CurrentWorldState?.EventLog;
         eventLog?.Add(SettlersOfIdlestan.Model.Game.GameEventType.RuntimeError, ex.Message);
     }
 
@@ -533,8 +580,8 @@ public sealed class SkiaGameRuntime : IDisposable
         const float HexSize = 40f;
         float sqrt3 = (float)Math.Sqrt(3);
 
-        var islandState = _gameControllerService?.CurrentGameState?.CurrentIslandState;
-        var playerCity = islandState?.PlayerCivilization?.Cities?.FirstOrDefault();
+        var WorldState = _gameControllerService?.CurrentGameState?.CurrentWorldState;
+        var playerCity = WorldState?.PlayerCivilization?.Cities?.FirstOrDefault();
 
         if (playerCity != null)
         {
@@ -547,7 +594,7 @@ public sealed class SkiaGameRuntime : IDisposable
         }
         else
         {
-            var hexCoords = islandState?.Map?.Tiles?.Keys ?? Enumerable.Empty<HexCoord>();
+            var hexCoords = WorldState?.Layers.GetValueOrDefault(IslandMap.SurfaceLayer)?.Map?.Tiles?.Keys ?? Enumerable.Empty<HexCoord>();
             _cameraService.FitMapToView(hexCoords);
         }
     }
@@ -557,6 +604,8 @@ public sealed class SkiaGameRuntime : IDisposable
         if (_isDisposed)
             return;
 
+        _corruptSavePopup?.Dispose();
+        _corruptSavePopup = null;
         _constructionInteractionService?.Cleanup();
         _militaryInteractionService?.Cleanup();
         _renderService?.Dispose();

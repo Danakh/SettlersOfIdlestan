@@ -128,9 +128,9 @@ public class TechnologyModifierTests
     }
 
     [Fact]
-    public void WarAcademy_UnitProductionSpeed_Plus0Point3()
+    public void AdvancedTactics_NoUnitProductionSpeedModifier()
     {
-        Assert.Equal(0.3, BuildAggregator(TechnologyId.WarAcademy).ApplyModifiers(ECategory.UNIT_PRODUCTION_SPEED, "", 0.0), 5);
+        Assert.Equal(0.0, BuildAggregator(TechnologyId.AdvancedTactics).ApplyModifiers(ECategory.UNIT_PRODUCTION_SPEED, "", 0.0), 5);
     }
 
     [Fact]
@@ -362,9 +362,9 @@ public class TechnologyModifierTests
     }
 
     [Fact]
-    public void MilitarySupremacy_CityDefense_Plus1()
+    public void AdvancedStrategy_NoCityDefenseModifier()
     {
-        Assert.Equal(1, BuildAggregator(TechnologyId.MilitarySupremacy).ApplyModifiers(ECategory.CITY_DEFENSE, "", 0));
+        Assert.Equal(0, BuildAggregator(TechnologyId.AdvancedStrategy).ApplyModifiers(ECategory.CITY_DEFENSE, "", 0));
     }
 
     [Fact]

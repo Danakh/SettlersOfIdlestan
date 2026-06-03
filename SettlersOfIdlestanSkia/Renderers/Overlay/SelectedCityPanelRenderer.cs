@@ -463,20 +463,8 @@ public class SelectedCityPanelRenderer : IGameRenderer
 
                 if (hoveredBuilding is Barracks barracks && barracks.Level > 0)
                 {
-                    var barracksCity = _cityBuildingService.SelectedCity;
-                    if (barracksCity != null)
-                    {
-                        long currentTick = _cityBuildingService.GetCurrentTick();
-                        int maxSoldiers = barracksCity.MaxSoldiers;
-                        tooltipLines.Add(_localization.Get("barracks_soldiers") + $": {barracksCity.Soldiers}/{maxSoldiers}");
-                        if (barracks.Level >= MilitaryController.SoldierProductionMinLevel && barracksCity.Soldiers < maxSoldiers)
-                        {
-                            long elapsed = barracksCity.LastSoldierProductionTick == 0 ? 0 : currentTick - barracksCity.LastSoldierProductionTick;
-                            long remaining = Math.Max(0, MilitaryController.SoldierProductionIntervalTicks - elapsed);
-                            tooltipLines.Add(_localization.Get("barracks_soldier_production") + $" {remaining/100.0:0.0}s/{MilitaryController.SoldierProductionIntervalTicks/100.0:0.0}s");
-                        }
-                        tooltipLines.Add("");
-                    }
+                    tooltipLines.Add(_localization.GetFormated("barracks_max_soldiers_bonus", barracks.GetMaxSoldiersBonus()));
+                    tooltipLines.Add("");
                 }
 
                 if (hoveredBuilding is BuildersGuild buildersGuild && buildersGuild.Level > 0)

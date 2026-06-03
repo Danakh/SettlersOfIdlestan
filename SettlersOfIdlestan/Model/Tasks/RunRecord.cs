@@ -1,9 +1,9 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace SettlersOfIdlestan.Model.Tasks;
 
 /// <summary>
-/// Statistiques de l'île courante (persistées dans IslandState, réinitialisées à chaque prestige).
+/// Statistiques de l'île courante (persistées dans WorldState, réinitialisées à chaque prestige).
 /// </summary>
 public class RunRecord
 {

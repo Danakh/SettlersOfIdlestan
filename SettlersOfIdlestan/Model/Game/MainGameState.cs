@@ -14,7 +14,7 @@ namespace SettlersOfIdlestan.Model.Game
     {
         public GodState GodState { get; set; }
         public PrestigeState? PrestigeState => GodState.PrestigeState;
-        public IslandState? CurrentIslandState => PrestigeState?.IslandState;
+        public WorldState? CurrentWorldState => PrestigeState?.WorldState;
         public GameClock Clock { get; set; }
         public GamePRNG PRNG { get; set; }
 
@@ -37,9 +37,9 @@ namespace SettlersOfIdlestan.Model.Game
             PRNG = new GamePRNG();
         }
 
-        public MainGameState(IslandState islandState, GameClock clock)
+        public MainGameState(WorldState worldState, GameClock clock)
         {
-            var prestigeState = new PrestigeState(islandState);
+            var prestigeState = new PrestigeState(worldState);
             GodState = new GodState(prestigeState);
             Clock = clock;
             PRNG = new GamePRNG();

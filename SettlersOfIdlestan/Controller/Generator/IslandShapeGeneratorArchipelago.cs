@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.Game;
+using SettlersOfIdlestan.Model.IslandMap;
 
 namespace SettlersOfIdlestan.Controller.Generator;
 
@@ -16,10 +17,10 @@ public class IslandShapeGeneratorArchipelago : IslandShapeGenerator
         _prng = prng;
     }
 
-    public override IReadOnlyList<HexCoord> GenerateCoords(int count)
+    public override IReadOnlyList<HexCoord> GenerateCoords(int count, int layer = IslandMap.SurfaceLayer)
     {
         if (count < 4)
-            return new IslandShapeGeneratorCompact(_prng).GenerateCoords(count);
+            return new IslandShapeGeneratorCompact(_prng).GenerateCoords(count, layer);
 
         int numIslands = Math.Max(2, count / TargetIslandSize);
         int[] islandSizes = DistributeSizes(count, numIslands);
@@ -28,7 +29,7 @@ public class IslandShapeGeneratorArchipelago : IslandShapeGenerator
         var usedWater = new HashSet<HexCoord>();
         var result = new List<HexCoord>(count);
 
-        var origin = new HexCoord(0, 0);
+        var origin = new HexCoord(0, 0, layer);
         var currentIsland = new List<HexCoord> { origin };
         allLand.Add(origin);
         GrowIsland(currentIsland, islandSizes[0], allLand, usedWater, null);
@@ -104,7 +105,7 @@ public class IslandShapeGeneratorArchipelago : IslandShapeGenerator
         List<HexCoord> island, HashSet<HexCoord> allLand, HashSet<HexCoord> usedWater,
         out HexCoord w1, out HexCoord w2, out HexCoord w3, out HexCoord m1, out HexCoord m2)
     {
-        w1 = w2 = w3 = m1 = m2 = new HexCoord(0, 0);
+        w1 = w2 = w3 = m1 = m2 = new HexCoord(0, 0, IslandMap.SurfaceLayer);
         var islandSet = new HashSet<HexCoord>(island);
 
         var pairs = new List<(HexCoord L, HexCoord Lp)>();
@@ -174,7 +175,7 @@ public class IslandShapeGeneratorArchipelago : IslandShapeGenerator
     // Retourne les 2 hexs voisins communs de A et B (A et B sont adjacents).
     private static (HexCoord, HexCoord) GetCommonNeighbors(HexCoord A, HexCoord B)
     {
-        HexCoord first = new HexCoord(0, 0), second = new HexCoord(0, 0);
+        HexCoord first = new HexCoord(0, 0, IslandMap.SurfaceLayer), second = new HexCoord(0, 0, IslandMap.SurfaceLayer);
         bool foundFirst = false;
 
         foreach (var dir in HexDirectionUtils.AllHexDirections)

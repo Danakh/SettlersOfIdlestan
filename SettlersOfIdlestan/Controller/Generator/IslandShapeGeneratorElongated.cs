@@ -1,5 +1,6 @@
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
+using SettlersOfIdlestan.Model.IslandMap;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -21,7 +22,7 @@ public class IslandShapeGeneratorElongated : IslandShapeGenerator
         _axisChoice = prng.Next(3);
     }
 
-    public override IReadOnlyList<HexCoord> GenerateCoords(int count)
+    public override IReadOnlyList<HexCoord> GenerateCoords(int count, int layer = IslandMap.SurfaceLayer)
     {
         if (count <= 0) return Array.Empty<HexCoord>();
 
@@ -33,7 +34,7 @@ public class IslandShapeGeneratorElongated : IslandShapeGenerator
             int rMin = Math.Max(-scanRange, -q - scanRange);
             int rMax = Math.Min(scanRange, -q + scanRange);
             for (int r = rMin; r <= rMax; r++)
-                candidates.Add((new HexCoord(q, r), EllipseScore(q, r)));
+                candidates.Add((new HexCoord(q, r, layer), EllipseScore(q, r)));
         }
 
         return candidates

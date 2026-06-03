@@ -1,4 +1,4 @@
-using SettlersOfIdlestan.Controller;
+﻿using SettlersOfIdlestan.Controller;
 using SettlersOfIdlestan.Controller.Expand;
 using SettlersOfIdlestan.Controller.Generator;
 using SettlersOfIdlestan.Controller.Island;
@@ -60,13 +60,13 @@ public class NpcExterminationTests
 
         var mainState = new MainGameState();
         var generator = new IslandMapGenerator(mainState.PRNG);
-        var islandState = generator.GenerateIslandState(islandParams, mainState.Clock.CurrentTick);
-        Assert.NotNull(islandState);
+        var WorldState = generator.GenerateWorldState(islandParams, mainState.Clock.CurrentTick);
+        Assert.NotNull(WorldState);
 
         // ── Prestige joueur injecté AVANT SetGame ────────────────────────────────
         // BarracksVertex déverrouille la Caserne (GetDefaultMaxLevel = 0 → +2).
         // Doit être présent dans PurchasedVertices quand SetupModifierAggregators() s'exécute.
-        var prestige = new PrestigeState(islandState);
+        var prestige = new PrestigeState(WorldState);
         prestige.PurchasedVertices.Add(PrestigeMap.CentralVertex);
         prestige.PurchasedVertices.Add(PrestigeMap.BarracksVertex);
         mainState.GodState = new GodState(prestige);
@@ -74,20 +74,20 @@ public class NpcExterminationTests
         var mainController = new MainGameController();
         mainController.SetGame(mainState);
         // ApplyPrestigeToNewGame APRÈS SetGame, comme dans CreateNewGame
-        mainController.PrestigeMapController.ApplyPrestigeToNewGame(islandState, prestige);
+        mainController.PrestigeMapController.ApplyPrestigeToNewGame(WorldState, prestige);
 
         // ── Palissade sur la ville NPC la plus proche du joueur ──────────────────
-        var npcCiv = islandState.Civilizations.First(c => c.IsNpc);
+        var npcCiv = WorldState.Civilizations.First(c => c.IsNpc);
         Assert.NotEmpty(npcCiv.Cities);
-        var playerStartCity = islandState.PlayerCivilization.Cities[0];
+        var playerStartCity = WorldState.PlayerCivilization.Cities[0];
         var npcTargetCity = npcCiv.Cities
             .OrderBy(c => c.Position.EdgeDistanceTo(playerStartCity.Position))
             .First();
         npcTargetCity.Buildings.Add(new Palisade { Level = 1 });
 
         // ── Autoplayer joueur ────────────────────────────────────────────────────
-        var playerCiv = islandState.PlayerCivilization;
-        var auto   = new CivilizationAutoplayer(playerCiv, islandState.Map, mainController);
+        var playerCiv = WorldState.PlayerCivilization;
+        var auto   = new CivilizationAutoplayer(playerCiv, WorldState.GetMapForZ(IslandMap.SurfaceLayer), mainController);
         var runner = new CivilizationAutoplayerRunner(auto, playerCiv, mainController);
 
         // Step 1 : atteindre 4 villes avec TownHall pour couvrir suffisamment l'île

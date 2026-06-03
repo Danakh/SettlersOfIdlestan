@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using SettlersOfIdlestan.Model.Civilization;
@@ -44,6 +44,8 @@ namespace SettlersOfIdlestan.Controller
             Step2Buildings.Concat(new[] { BuildingType.Temple }).ToArray();
 
         private static readonly BuildingType[] MilitaryBuildings = { BuildingType.Palisade, BuildingType.Barracks };
+
+        public Civilization Civilization => _civ;
 
         public CivilizationAutoplayer(Civilization civ, IslandMap map, MainGameController mainController)
         {
@@ -116,11 +118,11 @@ namespace SettlersOfIdlestan.Controller
         /// true (default) and resources are insufficient, calls TryGrindOnce to harvest/trade.
         /// Pass false when calling from TryStepOnce to avoid cross-building trade interference.
         /// </summary>
-        public bool TryBuildBuildingOnce(Vertex cityVertex, BuildingType buildingType, bool withGrind = true)
+        public bool TryBuildBuildingOnce(City city, BuildingType buildingType, bool withGrind = true)
         {
-            if (cityVertex == null) throw new ArgumentNullException(nameof(cityVertex));
+            if (city == null) throw new ArgumentNullException(nameof(city));
 
-            var buildables = _buildingController.GetBuildingsAndBuildables(_civ.Index, cityVertex);
+            var buildables = _buildingController.GetBuildingsAndBuildables(city);
             var target = buildables.FirstOrDefault(b => b.Type == buildingType);
             if (target == null) return false;
 
@@ -128,7 +130,7 @@ namespace SettlersOfIdlestan.Controller
             if (target.Level > 0 && target.Level >= _buildingController.GetMaxLevel(target, _civ.Index))
                 return false;
 
-            if (_buildingController.BuildBuilding(_civ.Index, cityVertex, buildingType))
+            if (_buildingController.BuildBuilding(city, buildingType))
                 return true;
 
             if (withGrind)
@@ -175,7 +177,9 @@ namespace SettlersOfIdlestan.Controller
 
         private bool TryStep3PortFocusOnce()
         {
-            var coastalCity = _civ.Cities.FirstOrDefault(c => _map.VertexHasTerrainType(c.Position, TerrainType.Water));
+            var coastalCity = _civ.Cities.FirstOrDefault(c =>
+                _map.IsOnSameLayer(c.Position) &&
+                _map.VertexHasTerrainType(c.Position, TerrainType.Water));
             if (coastalCity == null) return false;
 
             bool didSomething = false;
@@ -190,13 +194,13 @@ namespace SettlersOfIdlestan.Controller
                 Building? existing = coastalCity.Buildings.FirstOrDefault(b => b.Type == bt);
                 if ((existing == null) || existing.Level < _buildingController.GetMaxLevel(existing, _civ.Index))
                 {
-                    if (TryBuildBuildingOnce(coastalCity.Position, bt, withGrind: shouldGrind))
+                    if (TryBuildBuildingOnce(coastalCity, bt, withGrind: shouldGrind))
                         didSomething = true;
                     shouldGrind = false;
                 }
             }
 
-            if (TryBuildUniqueBuildingOnce(coastalCity.Position, BuildingType.ImperialPort, withGrind: shouldGrind))
+            if (TryBuildUniqueBuildingOnce(coastalCity, BuildingType.ImperialPort, withGrind: shouldGrind))
                 didSomething = true;
 
             return didSomething;
@@ -205,8 +209,8 @@ namespace SettlersOfIdlestan.Controller
         /// <summary>Step militaire : construit Palissade et Caserne dans les villes proches d'une civilisation ennemie (&lt; 5 edges).</summary>
         public bool TryMilitaryStepOnce()
         {
-            var islandState = _mainController.CurrentMainState?.CurrentIslandState;
-            if (islandState == null) return false;
+            var WorldState = _mainController.CurrentMainState?.CurrentWorldState;
+            if (WorldState == null) return false;
 
             bool didSomething = false;
             TryGrindOnce(null);
@@ -215,7 +219,7 @@ namespace SettlersOfIdlestan.Controller
             {
                 foreach (var bt in MilitaryBuildings)
                 {
-                    if (TryBuildBuildingOnce(city.Position, bt, withGrind: false))
+                    if (TryBuildBuildingOnce(city, bt, withGrind: false))
                         didSomething = true;
                 }
             }
@@ -227,15 +231,15 @@ namespace SettlersOfIdlestan.Controller
         /// Attempts to build a unique building in the specified city.
         /// Uses GetUniqueBuildingsAndBuildables to check availability.
         /// </summary>
-        public bool TryBuildUniqueBuildingOnce(Vertex cityVertex, BuildingType buildingType, bool withGrind = true)
+        public bool TryBuildUniqueBuildingOnce(City city, BuildingType buildingType, bool withGrind = true)
         {
-            if (cityVertex == null) throw new ArgumentNullException(nameof(cityVertex));
+            if (city == null) throw new ArgumentNullException(nameof(city));
 
-            var buildables = _buildingController.GetUniqueBuildingsAndBuildables(_civ.Index, cityVertex);
+            var buildables = _buildingController.GetUniqueBuildingsAndBuildables(city);
             var target = buildables.FirstOrDefault(b => b.Type == buildingType && b.Level == 0);
             if (target == null) return false;
 
-            if (_buildingController.BuildBuilding(_civ.Index, cityVertex, buildingType))
+            if (_buildingController.BuildBuilding(city, buildingType))
                 return true;
 
             if (withGrind)
@@ -391,7 +395,7 @@ namespace SettlersOfIdlestan.Controller
                 foreach (var bt in targetBuildings)
                 {
                     var shouldGrind = !hasGrindedThisStep && !shouldExpand;
-                    if (TryBuildBuildingOnce(city.Position, bt, withGrind: shouldGrind)) 
+                    if (TryBuildBuildingOnce(city, bt, withGrind: shouldGrind)) 
                         didSomething = true;
                     if (shouldGrind)
                         hasGrindedThisStep = true;
@@ -404,10 +408,13 @@ namespace SettlersOfIdlestan.Controller
                 var candidates = GetProspectiveVertices();
                 if (candidates.Count > 0)
                 {
-                    var networkVertices = new HashSet<Vertex>(_civ.Cities.Select(c => c.Position));
+                    var networkVertices = new HashSet<Vertex>(_civ.Cities
+                        .Select(c => c.Position)
+                        .Where(v => candidates.Any(candidate => candidate.Z == v.Z)));
                     foreach (var road in _civ.Roads)
                         foreach (var v in road.Position.GetVertices())
-                            networkVertices.Add(v);
+                            if (candidates.Any(candidate => candidate.Z == v.Z))
+                                networkVertices.Add(v);
 
                     Vertex? bestTarget = null;
                     Vertex? bestFrom = null;
@@ -416,6 +423,7 @@ namespace SettlersOfIdlestan.Controller
                     {
                         foreach (var nv in networkVertices)
                         {
+                            if (nv.Z != candidate.Z) continue;
                             int dist = nv.EdgeDistanceTo(candidate);
                             if (dist < bestDist)
                             {
@@ -468,23 +476,28 @@ namespace SettlersOfIdlestan.Controller
         /// </summary>
         private List<Vertex> GetProspectiveVertices()
         {
-            var islandState = _mainController.CurrentMainState?.CurrentIslandState;
-            if (islandState == null || !islandState.VisibleIslandMaps.TryGetValue(_civ.Index, out var visibleMap))
+            var WorldState = _mainController.CurrentMainState?.CurrentWorldState;
+            if (WorldState == null || !WorldState.GetVisibleIslandMapsForZ(WorldState.CurrentViewedLayer).TryGetValue(_civ.Index, out var visibleMap))
                 return new List<Vertex>();
 
+            int z = visibleMap.Z;
             var visibleVertices = new HashSet<Vertex>();
             foreach (var hex in visibleMap.Tiles.Keys)
                 foreach (var dir in SecondaryHexDirectionUtils.AllSecondaryDirections)
                     visibleVertices.Add(hex.Vertex(dir));
 
-            var networkVertices = new HashSet<Vertex>(_civ.Cities.Select(c => c.Position));
+            var networkVertices = new HashSet<Vertex>(_civ.Cities
+                .Select(c => c.Position)
+                .Where(v => v.Z == z));
             foreach (var road in _civ.Roads)
                 foreach (var v in road.Position.GetVertices())
-                    networkVertices.Add(v);
+                    if (v.Z == z)
+                        networkVertices.Add(v);
 
-            var visibleEnemyCities = islandState.Civilizations
+            var visibleEnemyCities = WorldState.Civilizations
                 .Where(c => c.Index != _civ.Index)
                 .SelectMany(c => c.Cities)
+                .Where(city => city.Position.Z == z)
                 .Where(city => city.Position.GetHexes().Any(h => visibleMap.GetTile(h) != null))
                 .Select(city => city.Position)
                 .ToList();
@@ -495,7 +508,7 @@ namespace SettlersOfIdlestan.Controller
             return visibleVertices
                 .Where(v => !networkVertices.Contains(v))
                 .Where(v => v.GetHexes().Any(h => visibleMap.GetTile(h) is { TerrainType: not TerrainType.Water }))
-                .Where(v => _civ.Cities.All(c => c.Position.EdgeDistanceTo(v) >= minOwn))
+                .Where(v => _civ.Cities.Where(c => c.Position.Z == v.Z).All(c => c.Position.EdgeDistanceTo(v) >= minOwn))
                 .Where(v => visibleEnemyCities.All(ec => ec.EdgeDistanceTo(v) >= minEnemy))
                 .ToList();
         }

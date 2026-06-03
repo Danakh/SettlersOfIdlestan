@@ -4,38 +4,40 @@ using System.Text.Json.Serialization;
 namespace SettlersOfIdlestan.Model.HexGrid;
 
 /// <summary>
-/// Système de coordonnées axiales pour les grilles hexagonales.
+/// SystÃ¨me de coordonnÃ©es axiales pour les grilles hexagonales.
 /// 
-/// Dans ce système, chaque hexagone est identifié par deux coordonnées (q, r):
-/// - q: coordonnée colonne (axe horizontal)
-/// - r: coordonnée ligne (axe diagonal)
+/// Dans ce systÃ¨me, chaque hexagone est identifiÃ© par deux coordonnÃ©es (q, r):
+/// - q: coordonnÃ©e colonne (axe horizontal)
+/// - r: coordonnÃ©e ligne (axe diagonal)
 /// 
-/// Les voisins d'un hexagone sont obtenus en ajoutant des déplacements prédéfinis
-/// selon la direction choisie. Ce système est plus simple que les coordonnées
-/// cubiques (q, r, s) car la troisième coordonnée peut être dérivée: s = -q - r
+/// Les voisins d'un hexagone sont obtenus en ajoutant des dÃ©placements prÃ©dÃ©finis
+/// selon la direction choisie. Ce systÃ¨me est plus simple que les coordonnÃ©es
+/// cubiques (q, r, s) car la troisiÃ¨me coordonnÃ©e peut Ãªtre dÃ©rivÃ©e: s = -q - r
 /// </summary>
 [Serializable]
 [JsonConverter(typeof(HexCoordJsonConverter))]
 public class HexCoord
 {
-    public HexCoord(int q, int r)
+    public HexCoord(int q, int r, int z)
     {
         Q = q;
         R = r;
+        Z = z;
     }
 
     public int Q { get; }
     public int R { get; }
+    public int Z { get; }
 
     /// <summary>
-    /// Retourne la coordonnée s (dérivée) pour compatibilité avec système cubique.
-    /// Dans le système axial, s = -q - r
+    /// Retourne la coordonnÃ©e s (dÃ©rivÃ©e) pour compatibilitÃ© avec systÃ¨me cubique.
+    /// Dans le systÃ¨me axial, s = -q - r
     /// </summary>
     public int S => -Q - R;
 
     /// <summary>
-    /// Retourne les coordonnées du voisin dans la direction principale spécifiée.
-    /// Les déplacements sont définis pour le système de coordonnées axiales.
+    /// Retourne les coordonnÃ©es du voisin dans la direction principale spÃ©cifiÃ©e.
+    /// Les dÃ©placements sont dÃ©finis pour le systÃ¨me de coordonnÃ©es axiales.
     /// </summary>
     public HexCoord Neighbor(HexDirection direction)
     {
@@ -50,7 +52,7 @@ public class HexCoord
         };
 
         var (dq, dr) = deltas[direction];
-        return new HexCoord(Q + dq, R + dr);
+        return new HexCoord(Q + dq, R + dr, Z);
     }
 
     /// <summary>
@@ -62,8 +64,8 @@ public class HexCoord
     }
 
     /// <summary>
-    /// Retourne le vertex correspondant à une direction secondaire.
-    /// Un vertex est formé par cet hexagone et deux de ses voisins selon les directions principales.
+    /// Retourne le vertex correspondant Ã  une direction secondaire.
+    /// Un vertex est formÃ© par cet hexagone et deux de ses voisins selon les directions principales.
     /// </summary>
     public Vertex Vertex(SecondaryHexDirection direction)
     {
@@ -74,8 +76,8 @@ public class HexCoord
     }
 
     /// <summary>
-    /// Retourne l'edge correspondant à une direction principale.
-    /// Un edge est formé par cet hexagone et son voisin dans la direction principale spécifiée.
+    /// Retourne l'edge correspondant Ã  une direction principale.
+    /// Un edge est formÃ© par cet hexagone et son voisin dans la direction principale spÃ©cifiÃ©e.
     /// </summary>
     public Edge Edge(HexDirection direction)
     {
@@ -84,7 +86,7 @@ public class HexCoord
     }
 
     /// <summary>
-    /// Retourne l'edge sortant correspondant à une direction secondaire.
+    /// Retourne l'edge sortant correspondant Ã  une direction secondaire.
     /// Un edge sortant part de cet hexagone dans la direction principale qui suit 
     /// la direction secondaire dans le sens horaire.
     /// </summary>
@@ -101,48 +103,70 @@ public class HexCoord
     /// </summary>
     public int DistanceTo(HexCoord other)
     {
+        EnsureSameZ(other, nameof(DistanceTo));
         return (Math.Abs(Q - other.Q) +
                 Math.Abs(Q + R - other.Q - other.R) +
                 Math.Abs(R - other.R)) / 2;
     }
 
+    public bool HasSameZ(HexCoord other)
+    {
+        return Z == other.Z;
+    }
+
+    public void EnsureSameZ(HexCoord other, string operation)
+    {
+        if (!HasSameZ(other))
+        {
+            throw new ArgumentException(
+                $"Cannot {operation} across different map layers: {this} and {other}");
+        }
+    }
+
     /// <summary>
-    /// Vérifie l'égalité avec un autre HexCoord.
+    /// VÃ©rifie l'Ã©galitÃ© avec un autre HexCoord.
     /// </summary>
     public override bool Equals(object? obj)
     {
-        return obj is HexCoord other && Q == other.Q && R == other.R;
+        return obj is HexCoord other && Q == other.Q && R == other.R && Z == other.Z;
     }
 
     /// <summary>
-    /// Retourne une représentation en chaîne pour le débogage.
+    /// Retourne une reprÃ©sentation en chaÃ®ne pour le dÃ©bogage.
     /// </summary>
     public override string ToString()
     {
-        return $"({Q}, {R})";
+        return $"({Q}, {R}, z={Z})";
     }
 
     /// <summary>
-    /// Génère un hash pour utiliser comme clé dans des Maps/Sets.
+    /// GÃ©nÃ¨re un hash pour utiliser comme clÃ© dans des Maps/Sets.
     /// </summary>
     public override int GetHashCode()
     {
-        return HashCode.Combine(Q, R);
+        return Z == 0
+            ? HashCode.Combine(Q, R)
+            : HashCode.Combine(Q, R, Z);
     }
 
     /// <summary>
-    /// Sérialise la coordonnée en [q, r].
+    /// SÃ©rialise la coordonnÃ©e en [q, r, z].
     /// </summary>
     public int[] Serialize()
     {
-        return new[] { Q, R };
+        return new[] { Q, R, Z };
     }
 
     /// <summary>
-    /// Désérialise depuis [q, r].
+    /// DÃ©sÃ©rialise depuis [q, r] (legacy, z=0) ou [q, r, z].
     /// </summary>
     public static HexCoord Deserialize(int[] data)
     {
-        return new HexCoord(data[0], data[1]);
+        if (data.Length != 2 && data.Length != 3)
+        {
+            throw new ArgumentException("HexCoord data must contain [q, r] or [q, r, z]", nameof(data));
+        }
+
+        return new HexCoord(data[0], data[1], data.Length == 3 ? data[2] : 0);
     }
 }

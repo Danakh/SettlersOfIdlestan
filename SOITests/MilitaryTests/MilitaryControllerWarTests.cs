@@ -1,4 +1,4 @@
-using SettlersOfIdlestan.Controller.Island;
+﻿using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Controller.Military;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
@@ -22,14 +22,14 @@ namespace SOITests.MilitaryTests;
 /// </summary>
 public class MilitaryControllerWarTests
 {
-    private static readonly Vertex VertexA = Vertex.Create(new(0, 0), new(0, 1), new(1, 0));
-    private static readonly Vertex VertexB = Vertex.Create(new(0, 1), new(1, 0), new(1, 1));
+    private static readonly Vertex VertexA = Vertex.Create(new(0, 0, IslandMap.SurfaceLayer), new(0, 1, IslandMap.SurfaceLayer), new(1, 0, IslandMap.SurfaceLayer));
+    private static readonly Vertex VertexB = Vertex.Create(new(0, 1, IslandMap.SurfaceLayer), new(1, 0, IslandMap.SurfaceLayer), new(1, 1, IslandMap.SurfaceLayer));
 
     private static IslandMap BuildMap() => new([
-        new HexTile(new HexCoord(0, 0), TerrainType.Plain),
-        new HexTile(new HexCoord(0, 1), TerrainType.Plain),
-        new HexTile(new HexCoord(1, 0), TerrainType.Plain),
-        new HexTile(new HexCoord(1, 1), TerrainType.Plain),
+        new HexTile(new HexCoord(0, 0, IslandMap.SurfaceLayer), TerrainType.Plain),
+        new HexTile(new HexCoord(0, 1, IslandMap.SurfaceLayer), TerrainType.Plain),
+        new HexTile(new HexCoord(1, 0, IslandMap.SurfaceLayer), TerrainType.Plain),
+        new HexTile(new HexCoord(1, 1, IslandMap.SurfaceLayer), TerrainType.Plain),
     ]);
 
     /// <summary>
@@ -37,7 +37,7 @@ public class MilitaryControllerWarTests
     /// Le handler CityDestroyed → RefreshContestedTerritories est branché
     /// pour reproduire le comportement de MainGameController (après le fix).
     /// </summary>
-    private static (IslandState state, GameClock clock, MilitaryController ctrl, FeatureController featureCtrl, Barracks barracksA)
+    private static (WorldState state, GameClock clock, MilitaryController ctrl, FeatureController featureCtrl, Barracks barracksA)
         Setup(int soldiersA = 5)
     {
         var civA = new Civilization { Index = 0 };
@@ -50,7 +50,7 @@ public class MilitaryControllerWarTests
         var cityB = new City(VertexB) { CivilizationIndex = 1 };
         civB.Cities.Add(cityB);
 
-        var state = new IslandState(BuildMap(), [civA, civB], AtlasController.InvalidIslandId);
+        var state = new WorldState(BuildMap(), [civA, civB], AtlasController.InvalidIslandId);
         var clock = new GameClock();
         clock.Start();
 
@@ -87,8 +87,8 @@ public class MilitaryControllerWarTests
         var contested = state.Features.OfType<ContestedTerritory>().ToList();
 
         Assert.Equal(2, contested.Count);
-        Assert.Contains(contested, c => c.Position.Equals(new HexCoord(0, 1)));
-        Assert.Contains(contested, c => c.Position.Equals(new HexCoord(1, 0)));
+        Assert.Contains(contested, c => c.Position.Equals(new HexCoord(0, 1, IslandMap.SurfaceLayer)));
+        Assert.Contains(contested, c => c.Position.Equals(new HexCoord(1, 0, IslandMap.SurfaceLayer)));
     }
 
     [Fact]
@@ -98,7 +98,7 @@ public class MilitaryControllerWarTests
         var cityA = new City(VertexA) { CivilizationIndex = 0 };
         civA.Cities.Add(cityA);
 
-        var state = new IslandState(BuildMap(), [civA], AtlasController.InvalidIslandId);
+        var state = new WorldState(BuildMap(), [civA], AtlasController.InvalidIslandId);
         var clock = new GameClock();
 
         var featureCtrl = new FeatureController();
@@ -110,7 +110,7 @@ public class MilitaryControllerWarTests
     [Fact]
     public void ContestedTerritories_AreAbsent_WhenCitiesShareNoHex()
     {
-        var farVertexB = Vertex.Create(new(5, 0), new(5, 1), new(6, 0));
+        var farVertexB = Vertex.Create(new(5, 0, IslandMap.SurfaceLayer), new(5, 1, IslandMap.SurfaceLayer), new(6, 0, IslandMap.SurfaceLayer));
 
         var civA = new Civilization { Index = 0 };
         var cityA = new City(VertexA) { CivilizationIndex = 0 };
@@ -121,15 +121,15 @@ public class MilitaryControllerWarTests
         civB.Cities.Add(cityB);
 
         var map = new IslandMap([
-            new HexTile(new HexCoord(0, 0), TerrainType.Plain),
-            new HexTile(new HexCoord(0, 1), TerrainType.Plain),
-            new HexTile(new HexCoord(1, 0), TerrainType.Plain),
-            new HexTile(new HexCoord(5, 0), TerrainType.Plain),
-            new HexTile(new HexCoord(5, 1), TerrainType.Plain),
-            new HexTile(new HexCoord(6, 0), TerrainType.Plain),
+            new HexTile(new HexCoord(0, 0, IslandMap.SurfaceLayer), TerrainType.Plain),
+            new HexTile(new HexCoord(0, 1, IslandMap.SurfaceLayer), TerrainType.Plain),
+            new HexTile(new HexCoord(1, 0, IslandMap.SurfaceLayer), TerrainType.Plain),
+            new HexTile(new HexCoord(5, 0, IslandMap.SurfaceLayer), TerrainType.Plain),
+            new HexTile(new HexCoord(5, 1, IslandMap.SurfaceLayer), TerrainType.Plain),
+            new HexTile(new HexCoord(6, 0, IslandMap.SurfaceLayer), TerrainType.Plain),
         ]);
 
-        var state = new IslandState(map, [civA, civB], AtlasController.InvalidIslandId);
+        var state = new WorldState(map, [civA, civB], AtlasController.InvalidIslandId);
         var clock = new GameClock();
 
         var featureCtrl = new FeatureController();
@@ -171,7 +171,7 @@ public class MilitaryControllerWarTests
 
         cityA.FlowTarget = VertexB; // cible de renfort pour déclencher la logique
 
-        var state = new IslandState(BuildMap(), [civA, civB], AtlasController.InvalidIslandId);
+        var state = new WorldState(BuildMap(), [civA, civB], AtlasController.InvalidIslandId);
         var clock = new GameClock();
         clock.Start();
 

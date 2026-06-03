@@ -1,4 +1,4 @@
-using SettlersOfIdlestan.Controller.Island;
+﻿using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.GameplayModifier;
@@ -13,20 +13,20 @@ namespace SOITests.ControllerTests;
 
 public class BuildingControllerTests
 {
-    private static (IslandState state, BuildingController controller, Vertex cityVertex) CreateTestSetup()
+    private static (WorldState state, BuildingController controller, City city) CreateTestSetup()
     {
         var state = IslandTestFactory.CreateSevenHexIslandState();
         var controller = new BuildingController(state);
-        var cityVertex = state.Civilizations[0].Cities[0].Position;
-        return (state, controller, cityVertex);
+        var city = state.Civilizations[0].Cities[0];
+        return (state, controller, city);
     }
 
     [Fact]
     public void GetBuildingsAndBuildables_NewCity_ReturnsTownHall()
     {
-        var (state, controller, cityVertex) = CreateTestSetup();
+        var (state, controller, city) = CreateTestSetup();
 
-        var buildings = controller.GetBuildingsAndBuildables(0, cityVertex);
+        var buildings = controller.GetBuildingsAndBuildables(city);
 
         // A new city (level 0) should at least have the TownHall available (AvailableAtLevel = 0)
         Assert.Contains(buildings, b => b.Type == BuildingType.TownHall);
@@ -35,9 +35,9 @@ public class BuildingControllerTests
     [Fact]
     public void GetBuildingsAndBuildables_NewCity_DoesNotReturnHighLevelBuildings()
     {
-        var (state, controller, cityVertex) = CreateTestSetup();
+        var (state, controller, city) = CreateTestSetup();
 
-        var buildings = controller.GetBuildingsAndBuildables(0, cityVertex);
+        var buildings = controller.GetBuildingsAndBuildables(city);
 
         // Buildings with AvailableAtLevel > 0 should not appear when city level is 0
         Assert.DoesNotContain(buildings, b => b.Type == BuildingType.Library);
@@ -47,14 +47,13 @@ public class BuildingControllerTests
     [Fact]
     public void GetBuildingsAndBuildables_WithTownHall_ReturnsMoreBuildings()
     {
-        var (state, controller, cityVertex) = CreateTestSetup();
-        var city = state.Civilizations[0].Cities[0];
+        var (state, controller, city) = CreateTestSetup();
 
         // Add a TownHall at level 1 so city.Level becomes 1
         var townHall = new TownHall { Level = 1 };
         city.Buildings.Add(townHall);
 
-        var buildings = controller.GetBuildingsAndBuildables(0, cityVertex);
+        var buildings = controller.GetBuildingsAndBuildables(city);
 
         // TownHall should be the existing one
         Assert.Contains(buildings, b => b.Type == BuildingType.TownHall && b.Level == 1);
@@ -66,14 +65,13 @@ public class BuildingControllerTests
     [Fact]
     public void GetBuildingsAndBuildables_ResultIsSortedByAvailableAtLevel()
     {
-        var (state, controller, cityVertex) = CreateTestSetup();
-        var city = state.Civilizations[0].Cities[0];
+        var (state, controller, city) = CreateTestSetup();
 
         // Set city to level 2 so more buildings appear
         var townHall = new TownHall { Level = 2 };
         city.Buildings.Add(townHall);
 
-        var buildings = controller.GetBuildingsAndBuildables(0, cityVertex);
+        var buildings = controller.GetBuildingsAndBuildables(city);
 
         for (int i = 1; i < buildings.Count; i++)
         {
@@ -85,7 +83,7 @@ public class BuildingControllerTests
     [Fact]
     public void BuildBuilding_TownHall_ConsumesResourcesAndAddsBuilding()
     {
-        var (state, controller, cityVertex) = CreateTestSetup();
+        var (state, controller, city) = CreateTestSetup();
         var civ = state.Civilizations[0];
 
         // TownHall costs: 2 Food, 2 Wood, 2 Brick
@@ -93,10 +91,9 @@ public class BuildingControllerTests
         civ.AddResource(Resource.Wood, 2);
         civ.AddResource(Resource.Brick, 2);
 
-        var result = controller.BuildBuilding(0, cityVertex, BuildingType.TownHall);
+        var result = controller.BuildBuilding(city, BuildingType.TownHall);
 
         Assert.True(result);
-        var city = civ.Cities[0];
         Assert.Contains(city.Buildings, b => b.Type == BuildingType.TownHall && b.Level == 1);
         Assert.Equal(0, civ.GetResourceQuantity(Resource.Food));
         Assert.Equal(0, civ.GetResourceQuantity(Resource.Wood));
@@ -106,11 +103,11 @@ public class BuildingControllerTests
     [Fact]
     public void BuildBuilding_NotEnoughResources_ReturnsFalse()
     {
-        var (state, controller, cityVertex) = CreateTestSetup();
+        var (state, controller, city) = CreateTestSetup();
         var civ = state.Civilizations[0];
 
         // Don't add any resources
-        var result = controller.BuildBuilding(0, cityVertex, BuildingType.TownHall);
+        var result = controller.BuildBuilding(city, BuildingType.TownHall);
 
         Assert.False(result);
         Assert.Empty(civ.Cities[0].Buildings);
@@ -133,7 +130,7 @@ public class BuildingControllerTests
         civ.AddResource(Resource.Brick, 10);
         civ.AddResource(Resource.Stone, 10);
 
-        var result = controller.BuildBuilding(0, cityVertex, BuildingType.TownHall);
+        var result = controller.BuildBuilding(city, BuildingType.TownHall);
 
         Assert.True(result);
         Assert.Equal(2, townHall.Level);
@@ -157,7 +154,7 @@ public class BuildingControllerTests
         civ.AddResource(Resource.Gold, 1000);
         civ.AddResource(Resource.Glass, 1000);
 
-        var result = controller.BuildBuilding(0, cityVertex, BuildingType.TownHall);
+        var result = controller.BuildBuilding(city, BuildingType.TownHall);
 
         Assert.False(result);
         Assert.Equal(4, townHall.Level);
@@ -166,14 +163,14 @@ public class BuildingControllerTests
     [Fact]
     public void BuildBuilding_UnavailableBuilding_ReturnsFalse()
     {
-        var (state, controller, cityVertex) = CreateTestSetup();
+        var (state, controller, city) = CreateTestSetup();
         var civ = state.Civilizations[0];
 
         // City level is 0, Mill requires level 1
         civ.AddResource(Resource.Wood, 100);
         civ.AddResource(Resource.Brick, 100);
 
-        var result = controller.BuildBuilding(0, cityVertex, BuildingType.Mill);
+        var result = controller.BuildBuilding(city, BuildingType.Mill);
 
         Assert.False(result);
     }

@@ -17,7 +17,7 @@ namespace SettlersOfIdlestan.Controller;
 /// </summary>
 public class NpcGameController
 {
-    private IslandState? _state;
+    private WorldState? _state;
     private GameClock? _clock;
     private MilitaryController? _militaryController;
     private MainGameController? _mainController;
@@ -28,7 +28,7 @@ public class NpcGameController
     private long _lastStepTick = 0;
 
     public void Initialize(
-        IslandState state,
+        WorldState state,
         GameClock? clock,
         MilitaryController militaryController,
         MainGameController mainController)
@@ -79,7 +79,7 @@ public class NpcGameController
         bool hasEncounteredEnemy = aggressivity >= NpcAggressivityLevel.Expansionist
             && HasEncounteredEnemy(civ);
 
-        var autoplayer = new NpcCivilizationAutoplayer(civ, _state.Map, _mainController, aggressivity);
+        var autoplayer = new NpcCivilizationAutoplayer(civ, _state.GetMapForZ(IslandMap.SurfaceLayer), _mainController, aggressivity);
         autoplayer.TryStepOnce(shouldExpand: !hasEncounteredEnemy);
     }
 
@@ -94,51 +94,24 @@ public class NpcGameController
 
         bool shouldAttack = aggressivity == NpcAggressivityLevel.Warlike;
 
+        // Flux d'attaque : cités agressives avec soldats ciblent l'ennemi le plus proche.
+        // Les autres cités sont d'abord vidées pour que le renfort puisse les réévaluer.
         foreach (var city in civ.Cities)
         {
-            Vertex? newFlow = null;
-
-            // Flux d'attaque : cités agressives avec soldats ciblent l'ennemi le plus proche.
             if (shouldAttack && city.Soldiers > 0)
             {
                 var enemy = _militaryController.FindNearbyEnemyCity(city, civ);
                 if (enemy != null)
-                    newFlow = enemy.Position;
-            }
-
-            // Flux de renfort : si pas d'attaque, excédent de soldats et pas d'ennemi proche.
-            if (newFlow == null)
-            {
-                int capacity = city.MaxSoldiers;
-                if (capacity > 0
-                    && city.Soldiers * 2 >= capacity
-                    && _militaryController.FindNearbyEnemyCity(city, civ) == null)
                 {
-                    int range = _militaryController.ReinforcementRange(civ);
-                    City? target = null;
-                    int closestDist = int.MaxValue;
-
-                    foreach (var friendly in civ.Cities)
-                    {
-                        if (friendly == city) continue;
-                        int dist = city.Position.EdgeDistanceTo(friendly.Position);
-                        if (dist > range || dist >= closestDist) continue;
-
-                        int tCap = friendly.MaxSoldiers;
-                        if (tCap == 0 || friendly.Soldiers * 2 > tCap) continue;
-                        if (friendly.Soldiers + 2 >= city.Soldiers) continue;
-
-                        target = friendly;
-                        closestDist = dist;
-                    }
-
-                    if (target != null)
-                        newFlow = target.Position;
+                    _militaryController.SetCityFlow(city, enemy.Position);
+                    continue;
                 }
             }
-
-            _militaryController.SetCityFlow(city, newFlow);
+            _militaryController.SetCityFlow(city, null);
         }
+
+        // Flux de renfort : délégué à MilitaryController pour les cités sans flux d'attaque.
+        _militaryController.UpdateCivilizationReinforcementFlows(civ);
     }
 
     /// <summary>
@@ -148,11 +121,13 @@ public class NpcGameController
     private bool HasEncounteredEnemy(Civilization npcCiv)
     {
         if (_state == null) return false;
-        if (!_state.VisibleIslandMaps.TryGetValue(npcCiv.Index, out var visibleMap)) return false;
+        var z = npcCiv.Cities.FirstOrDefault()?.Position.Z ?? IslandMap.SurfaceLayer;
+        if (!_state.GetVisibleIslandMapsForZ(z).TryGetValue(npcCiv.Index, out var visibleMap)) return false;
 
         return _state.Civilizations
             .Where(c => c.Index != npcCiv.Index)
             .SelectMany(c => c.Cities)
+            .Where(city => city.Position.Z == z)
             .Any(city => city.Position.GetHexes().Any(h => visibleMap.HasTile(h)));
     }
 

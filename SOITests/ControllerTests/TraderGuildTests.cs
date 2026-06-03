@@ -1,4 +1,4 @@
-using SettlersOfIdlestan.Controller.Island;
+﻿using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
@@ -12,7 +12,7 @@ namespace SOITests.ControllerTests;
 
 public class TraderGuildTests
 {
-    private static (IslandState state, BuildingController controller, Civilization civ) CreateSetup()
+    private static (WorldState state, BuildingController controller, Civilization civ) CreateSetup()
     {
         var state = IslandTestFactory.CreateSevenHexIslandState();
         var civ = state.Civilizations[0];

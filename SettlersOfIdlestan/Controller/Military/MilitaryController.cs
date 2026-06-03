@@ -1,6 +1,6 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using SettlersOfIdlestan.Model.Bandits;
+using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.Civilization;
@@ -8,8 +8,10 @@ using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.GameplayModifier;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
+using SettlersOfIdlestan.Model.Monsters;
 using System;
 using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
+using TechId = SettlersOfIdlestan.Model.Civilization.TechnologyId;
 
 namespace SettlersOfIdlestan.Controller.Military;
 
@@ -49,8 +51,18 @@ public class ReinforcementEventArgs(Vertex sourceCity, Vertex targetCity, List<V
 /// </summary>
 public class MilitaryController
 {
-    private IslandState? _state;
+    private WorldState? _state;
     private GameClock? _clock;
+    private RoadController? _roadController;
+
+    private long _lastPlayerAutoReinforcementTick = 0;
+    private long _lastPlayerAutoAttackTick = 0;
+
+    /// <summary>Intervalle entre deux recalculs des flux de renfort automatiques du joueur (2 000 ticks = 20 s).</summary>
+    public const long AutoReinforcementIntervalTicks = 2_000L;
+
+    /// <summary>Intervalle entre deux recalculs des cibles d'attaque automatique du joueur (2 000 ticks = 20 s).</summary>
+    public const long AutoAttackIntervalTicks = 2_000L;
 
     /// <summary>Intervalle de production d'un soldat (1 000 ticks = 10 s à vitesse normale).</summary>
     public const long SoldierProductionIntervalTicks = 1_000L;
@@ -87,8 +99,9 @@ public class MilitaryController
     public int ReinforcementRange(Civilization civ)
         => civ.ModifierAggregator.ApplyModifiers(ECategory.REINFORCEMENT_RANGE, "", DefaultReinforcementRange);
 
+    public event EventHandler<SoldierAttackEventArgs>? SoldierAttackedMonster;
+    /// <summary>Alias de compatibilité — préférer SoldierAttackedMonster.</summary>
     public event EventHandler<SoldierAttackEventArgs>? SoldierAttackedBandit;
-    public event EventHandler<SoldierAttackEventArgs>? SoldierAttackedHideout;
     public event EventHandler<CityAttackEventArgs>? SoldierAttackedCity;
     public event EventHandler<CityBuildingDestroyedEventArgs>? CityBuildingDestroyed;
     public event EventHandler<CityDestroyedEventArgs>? CityDestroyed;
@@ -123,13 +136,14 @@ public class MilitaryController
         return score;
     }
 
-    internal void Initialize(IslandState? state, GameClock? clock)
+    internal void Initialize(WorldState? state, GameClock? clock, RoadController? roadController = null)
     {
         if (_clock != null)
             _clock.Advanced -= OnClockAdvanced;
 
         _state = state;
         _clock = clock;
+        _roadController = roadController;
 
         if (_clock != null)
             _clock.Advanced += OnClockAdvanced;
@@ -146,11 +160,44 @@ public class MilitaryController
         if (_state == null) return;
         ProduceSoldiers(currentTick);
         ResolveSoldierFeeding(currentTick);
-        ResolveBanditCombat(currentTick);
-        ResolveHideoutCombat(currentTick);
+        ResolveMonsterCombat(currentTick);
         ResolveDefenseRegen(currentTick);
         ResolveCityAttacks(currentTick);
         ResolveReinforcements(currentTick);
+        ResolvePlayerAutoReinforcement(currentTick);
+        ResolvePlayerAutoAttack(currentTick);
+    }
+
+    private void ResolvePlayerAutoReinforcement(long currentTick)
+    {
+        if (_state == null) return;
+        if (!_state.AutomationSettings.MilitaryReinforcementAutomationEnabled) return;
+        if (currentTick - _lastPlayerAutoReinforcementTick < AutoReinforcementIntervalTicks) return;
+        _lastPlayerAutoReinforcementTick = currentTick;
+
+        var playerCiv = _state.PlayerCivilization;
+        if (!playerCiv.TechnologyTree.CompletedTechnologies.Contains(TechId.AdvancedTactics)) return;
+
+        UpdateCivilizationReinforcementFlows(playerCiv);
+    }
+
+    private void ResolvePlayerAutoAttack(long currentTick)
+    {
+        if (_state == null) return;
+        if (!_state.AutomationSettings.MilitaryAttackAutomationEnabled) return;
+        if (currentTick - _lastPlayerAutoAttackTick < AutoAttackIntervalTicks) return;
+        _lastPlayerAutoAttackTick = currentTick;
+
+        var playerCiv = _state.PlayerCivilization;
+        if (!playerCiv.TechnologyTree.CompletedTechnologies.Contains(TechId.AdvancedStrategy)) return;
+
+        foreach (var city in playerCiv.Cities)
+        {
+            if (city.FlowTarget != null && IsEnemyCityAt(city.FlowTarget, playerCiv)) continue;
+            var enemy = FindNearbyEnemyCity(city, playerCiv);
+            if (enemy != null)
+                SetCityFlow(city, enemy.Position);
+        }
     }
 
     // ── Production ───────────────────────────────────────────────────────────
@@ -240,56 +287,31 @@ public class MilitaryController
         }
     }
 
-    // ── Combat — bandits ─────────────────────────────────────────────────────
+    // ── Combat — monstres (générique) ────────────────────────────────────────
 
-    private void ResolveBanditCombat(long currentTick)
+    private void ResolveMonsterCombat(long currentTick)
     {
         if (_state == null) return;
 
-        var deadBandits = new List<Bandit>();
-        foreach (var bandit in _state.Features.OfType<Bandit>())
+        var deadMonsters = new List<MonsterFeature>();
+        foreach (var monster in _state.Features.OfType<MonsterFeature>())
         {
-            if (currentTick - bandit.LastMovedTick < CombatIntervalTicks) continue;
+            if (currentTick - monster.LastAttackedByMilitaryTick < CombatIntervalTicks) continue;
 
-            AttackBandit(bandit);
-            if (bandit.Hp <= 0)
-                deadBandits.Add(bandit);
+            if (AttackMonsterWithSoldiers(monster, currentTick) && monster.Hp <= 0)
+                deadMonsters.Add(monster);
         }
 
-        foreach (var b in deadBandits)
+        foreach (var m in deadMonsters)
         {
-            _state.RemoveFeature(b);
-            _state.EventLog.Add(b.RemovedEventType);
+            _state.RemoveFeature(m);
+            _state.EventLog.Add(m.RemovedEventType);
         }
     }
 
-    // ── Combat — repaires de bandits ─────────────────────────────────────────
-
-    private void ResolveHideoutCombat(long currentTick)
+    private bool AttackMonsterWithSoldiers(MonsterFeature monster, long currentTick)
     {
-        if (_state == null) return;
-
-        var deadHideouts = new List<BanditHideout>();
-        foreach (var hideout in _state.Features.OfType<BanditHideout>())
-        {
-            if (!hideout.Found) continue;
-            if (currentTick - hideout.LastAttackedTick < CombatIntervalTicks) continue;
-
-            AttackHideout(hideout, currentTick);
-            if (hideout.Hp <= 0)
-                deadHideouts.Add(hideout);
-        }
-
-        foreach (var h in deadHideouts)
-        {
-            _state.RemoveFeature(h);
-            _state.EventLog.Add(h.RemovedEventType);
-        }
-    }
-
-    private void AttackHideout(BanditHideout hideout, long currentTick)
-    {
-        if (_state == null) return;
+        if (_state == null) return false;
 
         foreach (var civ in _state.Civilizations)
         {
@@ -298,16 +320,17 @@ public class MilitaryController
                 if (city.Soldiers == 0) continue;
 
                 var cityHexes = city.Position.GetHexes();
-                bool isOnCityHex = cityHexes.Any(h => h.Equals(hideout.Position));
-                if (!isOnCityHex) continue;
+                if (!cityHexes.Any(h => h.Equals(monster.Position))) continue;
 
                 city.Soldiers--;
-                hideout.Hp--;
-                hideout.LastAttackedTick = currentTick;
-                SoldierAttackedHideout?.Invoke(this, new SoldierAttackEventArgs(city.Position, hideout.Position));
-                return;
+                monster.Hp--;
+                monster.LastAttackedByMilitaryTick = currentTick;
+                SoldierAttackedMonster?.Invoke(this, new SoldierAttackEventArgs(city.Position, monster.Position));
+                SoldierAttackedBandit?.Invoke(this, new SoldierAttackEventArgs(city.Position, monster.Position));
+                return true;
             }
         }
+        return false;
     }
 
     // ── Régénération de défense ──────────────────────────────────────────────
@@ -332,8 +355,54 @@ public class MilitaryController
 
     // ── Flux joueur ──────────────────────────────────────────────────────────
 
-    /// <summary>Définit ou efface le flux militaire d'une cité joueur.</summary>
+    /// <summary>Définit ou efface le flux militaire d'une cité.</summary>
     public void SetCityFlow(City city, Vertex? target) => city.FlowTarget = target;
+
+    /// <summary>
+    /// Réévalue et assigne les flux de renfort pour chaque cité de la civilisation.
+    /// Les flux ciblant une ville ennemie (attaque manuelle) ne sont pas modifiés.
+    /// </summary>
+    public void UpdateCivilizationReinforcementFlows(Civilization civ)
+    {
+        foreach (var city in civ.Cities)
+        {
+            if (city.FlowTarget != null && IsEnemyCityAt(city.FlowTarget, civ)) continue;
+
+            Vertex? newFlow = null;
+            int capacity = city.MaxSoldiers;
+            if (capacity > 0
+                && city.Soldiers * 2 >= capacity
+                && FindNearbyEnemyCity(city, civ) == null)
+            {
+                int range = ReinforcementRange(civ);
+                City? target = null;
+                int closestDist = int.MaxValue;
+
+                foreach (var friendly in civ.Cities)
+                {
+                    if (friendly == city) continue;
+                    if (friendly.Position.Z != city.Position.Z) continue;
+                    int dist = city.Position.EdgeDistanceTo(friendly.Position);
+                    if (dist > range || dist >= closestDist) continue;
+
+                    int tCap = friendly.MaxSoldiers;
+                    if (tCap == 0 || friendly.Soldiers * 2 > tCap) continue;
+                    if (friendly.Soldiers + 2 >= city.Soldiers) continue;
+
+                    target = friendly;
+                    closestDist = dist;
+                }
+
+                if (target != null)
+                    newFlow = target.Position;
+            }
+
+            SetCityFlow(city, newFlow);
+        }
+    }
+
+    private bool IsEnemyCityAt(Vertex target, Civilization civ)
+        => _state!.Civilizations.Any(c => c.Index != civ.Index && c.Cities.Any(cc => cc.Position.Equals(target)));
 
     // ── Combat — villes adverses ─────────────────────────────────────────────
 
@@ -372,6 +441,7 @@ public class MilitaryController
         foreach (var (civ, city) in citiesToDestroy)
         {
             civ.Cities.Remove(city);
+            _roadController?.OnCityDestroyed(civ, city.Position);
             ClearFlowsTargeting(city.Position);
             CityDestroyed?.Invoke(this, new CityDestroyedEventArgs(city.Position));
             _state!.RecalculateVisibleIslandMaps();
@@ -408,6 +478,7 @@ public class MilitaryController
             if (defenderCiv.Index == attackerCiv.Index) continue;
             foreach (var defenderCity in defenderCiv.Cities)
             {
+                if (defenderCity.Position.Z != attackerCity.Position.Z) continue;
                 if (!IsCityVisibleTo(defenderCity, attackerCiv)) continue;
                 int dist = attackerCity.Position.EdgeDistanceTo(defenderCity.Position);
                 if (dist <= range && dist < closestDist)
@@ -452,7 +523,8 @@ public class MilitaryController
 
     private bool IsCityVisibleTo(City city, Civilization civ)
     {
-        if (!_state!.VisibleIslandMaps.TryGetValue(civ.Index, out var visibleMap)) return true;
+        var visibleMaps = _state!.GetVisibleIslandMapsForZ(city.Position.Z);
+        if (!visibleMaps.TryGetValue(civ.Index, out var visibleMap)) return true;
         return city.Position.GetHexes().Any(h => visibleMap.HasTile(h));
     }
 
@@ -489,29 +561,4 @@ public class MilitaryController
         return true;
     }
 
-    /// <summary>
-    /// Cherche une ville avec des soldats dont un hex est voisin du bandit,
-    /// et déclenche une attaque (1 soldat consommé, 1 PV de dégât).
-    /// </summary>
-    private void AttackBandit(Bandit bandit)
-    {
-        if (_state == null) return;
-
-        foreach (var civ in _state.Civilizations)
-        {
-            foreach (var city in civ.Cities)
-            {
-                if (city.Soldiers == 0) continue;
-
-                var cityHexes = city.Position.GetHexes();
-                bool isOnCityHex = cityHexes.Any(h => h.Equals(bandit.Position));
-                if (!isOnCityHex) continue;
-
-                city.Soldiers--;
-                bandit.Hp--;
-                SoldierAttackedBandit?.Invoke(this, new SoldierAttackEventArgs(city.Position, bandit.Position));
-                return;
-            }
-        }
-    }
 }
