@@ -94,6 +94,13 @@ public static class TechnologyDefinitions
 
         // === TIER 2 ===
 
+        new(TechnologyId.RapidConstruction,
+            "tech_rapid_construction_name", "tech_rapid_construction_desc",
+            cost: 600,
+            prerequisites: new[] { TechnologyId.MilitaryBuildings },
+            modifiers: new Modifier[] { new(ECategory.BUILDING_DEFENSE_ON_CONSTRUCT, EType.ADDITIVE, 1) },
+            tier: 2, line: 6),
+
         new(TechnologyId.HarvestTools,
             "tech_harvest_tools_name", "tech_harvest_tools_desc",
             cost: 1665,
@@ -195,7 +202,7 @@ public static class TechnologyDefinitions
         new(TechnologyId.AdvancedTactics,
             "tech_advanced_tactics_name", "tech_advanced_tactics_desc",
             cost: 6500,
-            prerequisites: new[] { TechnologyId.MilitaryMastery, TechnologyId.MilitaryBuildings },
+            prerequisites: new[] { TechnologyId.MilitaryMastery, TechnologyId.RapidConstruction },
             modifiers: new Modifier[] { },
             tier: 3, line: 7),
 

@@ -292,15 +292,18 @@ namespace SettlersOfIdlestan.Controller.Island
             {
                 resultBuilding.Level = 1;
                 city.Buildings.Add(resultBuilding);
-                city.CurrentDefense += resultBuilding.GetDefenseBonus();
+                int defBonus = resultBuilding.GetDefenseBonus();
+                if (defBonus > 0 && civ.ModifierAggregator.HasModifier(ECategory.BUILDING_DEFENSE_ON_CONSTRUCT))
+                    city.CurrentDefense += defBonus;
                 if (resultBuilding.IsUnique && !civ.UniqueBuildings.Contains(resultBuilding.Type))
                     civ.UniqueBuildings.Add(resultBuilding.Type);
             }
             else
             {
-                int oldDefenseBonus = existing.GetDefenseBonus();
                 existing.Level += 1;
-                city.CurrentDefense += existing.GetDefenseBonus() - oldDefenseBonus;
+                int defBonus = existing.GetDefenseBonus();
+                if (defBonus > 0 && civ.ModifierAggregator.HasModifier(ECategory.BUILDING_DEFENSE_ON_CONSTRUCT))
+                    city.CurrentDefense += defBonus;
             }
 
             if (type == BuildingType.Watchtower)

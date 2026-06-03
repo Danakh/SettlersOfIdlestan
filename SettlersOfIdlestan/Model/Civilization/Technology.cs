@@ -17,6 +17,7 @@ public enum TechnologyId
     Orpaillage,
     MilitaryTactics,
     MilitaryBuildings,
+    RapidConstruction,
     // Tier 2
     HarvestTools,
     AdvancedArchitecture,

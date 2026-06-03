@@ -187,7 +187,14 @@ namespace SettlersOfIdlestan.Controller.Island
                     if (!city.Buildings.Any(b => b.Type == bt))
                     {
                         var b = BuildingController.CreateBuilding(bt);
-                        if (b != null) { b.Level = 1; city.Buildings.Add(b); }
+                        if (b != null)
+                        {
+                            b.Level = 1;
+                            city.Buildings.Add(b);
+                            int defBonus = b.GetDefenseBonus();
+                            if (defBonus > 0 && civ.ModifierAggregator.HasModifier(ECategory.BUILDING_DEFENSE_ON_CONSTRUCT))
+                                city.CurrentDefense += defBonus;
+                        }
                     }
 
             _state.RecalculateVisibleIslandMap(civilizationIndex);

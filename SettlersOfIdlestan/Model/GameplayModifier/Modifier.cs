@@ -46,6 +46,8 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             CITY_MAX_SOLDIERS_BONUS,
             /// <summary>Or supplémentaire par tranche de 10 unités vendues en une seule vente groupée. SubCategory unused.</summary>
             TRADE_BULK_GOLD_BONUS,
+            /// <summary>Quand un bâtiment contribuant à MaxDefense est construit/amélioré, ajoute aussi sa valeur à CurrentDefense. SubCategory unused.</summary>
+            BUILDING_DEFENSE_ON_CONSTRUCT,
         }
 
         public enum EType

@@ -311,6 +311,8 @@
   "tech_architecture_desc": "Unlocks Wonder construction",
   "tech_military_buildings_name": "Military Buildings",
   "tech_military_buildings_desc": "+2 Barracks max level",
+  "tech_rapid_construction_name": "Rapid Construction",
+  "tech_rapid_construction_desc": "Defensive buildings built or upgraded also increase current defense",
   "tech_advanced_architecture_name": "Advanced Architecture",
   "tech_advanced_architecture_desc": "+1 max level production buildings",
   "tech_storage_optimization_name": "Storage Optimization",

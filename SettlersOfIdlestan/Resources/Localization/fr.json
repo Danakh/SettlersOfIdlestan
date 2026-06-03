@@ -311,6 +311,8 @@
   "tech_architecture_desc": "Débloque la construction de Merveilles",
   "tech_military_buildings_name": "Bâtiments militaires",
   "tech_military_buildings_desc": "+2 niveau max Caserne",
+  "tech_rapid_construction_name": "Construction rapide",
+  "tech_rapid_construction_desc": "Les bâtiments défensifs construits ou améliorés augmentent aussi la défense actuelle",
   "tech_advanced_architecture_name": "Architecture avancée",
   "tech_advanced_architecture_desc": "+1 niveau max bâtiments de production",
   "tech_storage_optimization_name": "Stockage optimisé",
