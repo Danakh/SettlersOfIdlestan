@@ -35,7 +35,7 @@ public enum TechnologyId
     EpicHarvest,
     TradeRoutes,
     ImprovedResearch,
-    MilitarySupremacy,
+    AdvancedStrategy,
     AutomaticMarket,
     // Tier 5
     MerchantGuild,

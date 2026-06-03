@@ -54,9 +54,13 @@ public class MilitaryController
     private GameClock? _clock;
 
     private long _lastPlayerAutoReinforcementTick = 0;
+    private long _lastPlayerAutoAttackTick = 0;
 
     /// <summary>Intervalle entre deux recalculs des flux de renfort automatiques du joueur (2 000 ticks = 20 s).</summary>
     public const long AutoReinforcementIntervalTicks = 2_000L;
+
+    /// <summary>Intervalle entre deux recalculs des cibles d'attaque automatique du joueur (2 000 ticks = 20 s).</summary>
+    public const long AutoAttackIntervalTicks = 2_000L;
 
     /// <summary>Intervalle de production d'un soldat (1 000 ticks = 10 s à vitesse normale).</summary>
     public const long SoldierProductionIntervalTicks = 1_000L;
@@ -158,6 +162,7 @@ public class MilitaryController
         ResolveCityAttacks(currentTick);
         ResolveReinforcements(currentTick);
         ResolvePlayerAutoReinforcement(currentTick);
+        ResolvePlayerAutoAttack(currentTick);
     }
 
     private void ResolvePlayerAutoReinforcement(long currentTick)
@@ -171,6 +176,25 @@ public class MilitaryController
         if (!playerCiv.TechnologyTree.CompletedTechnologies.Contains(TechId.AdvancedTactics)) return;
 
         UpdateCivilizationReinforcementFlows(playerCiv);
+    }
+
+    private void ResolvePlayerAutoAttack(long currentTick)
+    {
+        if (_state == null) return;
+        if (!_state.AutomationSettings.MilitaryAttackAutomationEnabled) return;
+        if (currentTick - _lastPlayerAutoAttackTick < AutoAttackIntervalTicks) return;
+        _lastPlayerAutoAttackTick = currentTick;
+
+        var playerCiv = _state.PlayerCivilization;
+        if (!playerCiv.TechnologyTree.CompletedTechnologies.Contains(TechId.AdvancedStrategy)) return;
+
+        foreach (var city in playerCiv.Cities)
+        {
+            if (city.FlowTarget != null && IsEnemyCityAt(city.FlowTarget, playerCiv)) continue;
+            var enemy = FindNearbyEnemyCity(city, playerCiv);
+            if (enemy != null)
+                SetCityFlow(city, enemy.Position);
+        }
     }
 
     // ── Production ───────────────────────────────────────────────────────────

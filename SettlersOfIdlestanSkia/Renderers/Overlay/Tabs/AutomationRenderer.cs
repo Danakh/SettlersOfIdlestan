@@ -36,6 +36,7 @@ public sealed class AutomationRenderer : IDisposable
     private SKRect _libraryToggleRect = SKRect.Empty;
     private SKRect _marketToggleRect = SKRect.Empty;
     private SKRect _militaryReinforcementToggleRect = SKRect.Empty;
+    private SKRect _militaryAttackToggleRect = SKRect.Empty;
     private bool _hoveredRoadToggle;
     private bool _hoveredOutpostToggle;
     private bool _hoveredProductionToggle;
@@ -43,6 +44,7 @@ public sealed class AutomationRenderer : IDisposable
     private bool _hoveredLibraryToggle;
     private bool _hoveredMarketToggle;
     private bool _hoveredMilitaryReinforcementToggle;
+    private bool _hoveredMilitaryAttackToggle;
 
     private readonly SKPaint _bgPaint              = new() { Color = new SKColor(18, 18, 24, 240), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _cardPaint            = new() { Color = new SKColor(30, 30, 40, 220), Style = SKPaintStyle.Fill, IsAntialias = true };
@@ -252,6 +254,26 @@ public sealed class AutomationRenderer : IDisposable
                 _localization.Get("automation_military_reinforcement_name"),
                 _localization.Get("automation_military_reinforcement_locked"));
         }
+        y += rowH + RowSpacing;
+
+        // --- Military attack automation row (AdvancedStrategy technology) ---
+        bool hasAdvancedStrategy = civ.TechnologyTree.CompletedTechnologies.Contains(TechId.AdvancedStrategy);
+        if (hasAdvancedStrategy)
+        {
+            (_militaryAttackToggleRect, rowH) = DrawAutomationRow(
+                canvas, x, y, contentWidth,
+                WorldState.AutomationSettings.MilitaryAttackAutomationEnabled,
+                _hoveredMilitaryAttackToggle,
+                _localization.Get("automation_military_attack_name"),
+                _localization.Get("automation_military_attack_desc"));
+        }
+        else
+        {
+            _militaryAttackToggleRect = SKRect.Empty;
+            rowH = DrawLockedRow(canvas, x, y, contentWidth,
+                _localization.Get("automation_military_attack_name"),
+                _localization.Get("automation_military_attack_locked"));
+        }
     }
 
     private (SKRect toggleRect, float height) DrawAutomationRow(
@@ -345,6 +367,7 @@ public sealed class AutomationRenderer : IDisposable
         _hoveredLibraryToggle                = !_libraryToggleRect.IsEmpty                && _libraryToggleRect.Contains(position.X, position.Y);
         _hoveredMarketToggle                 = !_marketToggleRect.IsEmpty                 && _marketToggleRect.Contains(position.X, position.Y);
         _hoveredMilitaryReinforcementToggle  = !_militaryReinforcementToggleRect.IsEmpty  && _militaryReinforcementToggleRect.Contains(position.X, position.Y);
+        _hoveredMilitaryAttackToggle         = !_militaryAttackToggleRect.IsEmpty         && _militaryAttackToggleRect.Contains(position.X, position.Y);
     }
 
     public bool HandlePointerPressed(SKPoint position)
@@ -391,6 +414,12 @@ public sealed class AutomationRenderer : IDisposable
         if (!_militaryReinforcementToggleRect.IsEmpty && _militaryReinforcementToggleRect.Contains(position.X, position.Y))
         {
             state.AutomationSettings.MilitaryReinforcementAutomationEnabled = !state.AutomationSettings.MilitaryReinforcementAutomationEnabled;
+            return true;
+        }
+
+        if (!_militaryAttackToggleRect.IsEmpty && _militaryAttackToggleRect.Contains(position.X, position.Y))
+        {
+            state.AutomationSettings.MilitaryAttackAutomationEnabled = !state.AutomationSettings.MilitaryAttackAutomationEnabled;
             return true;
         }
 

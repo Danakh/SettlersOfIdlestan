@@ -362,9 +362,9 @@ public class TechnologyModifierTests
     }
 
     [Fact]
-    public void MilitarySupremacy_CityDefense_Plus1()
+    public void AdvancedStrategy_NoCityDefenseModifier()
     {
-        Assert.Equal(1, BuildAggregator(TechnologyId.MilitarySupremacy).ApplyModifiers(ECategory.CITY_DEFENSE, "", 0));
+        Assert.Equal(0, BuildAggregator(TechnologyId.AdvancedStrategy).ApplyModifiers(ECategory.CITY_DEFENSE, "", 0));
     }
 
     [Fact]
