@@ -11,6 +11,7 @@ namespace SettlersOfIdlestan.Model.IslandFeatures;
 [JsonDerivedType(typeof(Bandit), "Bandit")]
 [JsonDerivedType(typeof(BanditHideout), "BanditHideout")]
 [JsonDerivedType(typeof(Dragon), "Dragon")]
+[JsonDerivedType(typeof(Rats), "Rats")]
 [JsonDerivedType(typeof(TreasureTrove), "TreasureTrove")]
 [JsonDerivedType(typeof(Wonder), "Wonder")]
 [JsonDerivedType(typeof(ContestedTerritory), "ContestedTerritory")]

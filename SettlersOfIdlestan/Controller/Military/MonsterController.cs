@@ -22,9 +22,6 @@ public class MonsterFeatureController
     /// <summary>Intervalle de déplacement par défaut (3 000 ticks = 30 s à vitesse normale).</summary>
     public const long MovementIntervalTicks = 3_000L;
 
-    /// <summary>Cooldown de récolte après le départ d'un monstre mobile (1 000 ticks = 10 s).</summary>
-    public const long DepartureCooldownTicks = 1_000L;
-
     internal void Initialize(WorldState? state, GameClock? clock, GamePRNG? prng = null)
     {
         if (_clock != null)
@@ -165,8 +162,11 @@ public class MonsterFeatureController
         monster.LastAttackTargetVertex = null;
         monster.LastAttackedByMilitaryTick = currentTick; // grâce après mouvement
 
-        if (!oldPosition.Equals(monster.Position))
-            _state.BanditCooldownUntil[oldPosition] = currentTick + DepartureCooldownTicks;
+        if (!oldPosition.Equals(monster.Position) && monster.DepartureCooldownTicks > 0)
+        {
+            _state.BanditCooldownUntil[oldPosition] = currentTick + monster.DepartureCooldownTicks;
+            _state.BanditCooldownDuration[oldPosition] = monster.DepartureCooldownTicks;
+        }
     }
 
     // ── Attaque des villes ───────────────────────────────────────────────────

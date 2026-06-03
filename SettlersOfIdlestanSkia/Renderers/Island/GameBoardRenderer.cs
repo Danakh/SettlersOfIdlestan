@@ -137,7 +137,7 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
                 // Underworld view: dark cave background
                 canvas.DrawColor(new SKColor(15, 8, 30));
                 DrawIslandMap(canvas, worldState.GetMapForZ(LayerState.UnderworldZ), worldState.PlayerCivilization.Index,
-                    mainGameState.Clock.CurrentTick, null, null, null, null);
+                    mainGameState.Clock.CurrentTick, null, null, null, null, null);
                 return;
             }
         }
@@ -166,7 +166,7 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
                         .Where(f => f.ShouldRenderIcon && (f.SvgIconResourceName != null || f.TextIcon != null))
                         .GroupBy(f => f.Position)
                         .ToDictionary(g => g.Key, g => (IEnumerable<IslandFeature>)g);
-                    DrawIslandMap(canvas, mapToRender, playerIdx, mgs.Clock.CurrentTick, manualTimes, worldState.BanditCooldownUntil, banditPositions, harvestBlockedPositions, featuresByPosition);
+                    DrawIslandMap(canvas, mapToRender, playerIdx, mgs.Clock.CurrentTick, manualTimes, worldState.BanditCooldownUntil, worldState.BanditCooldownDuration, banditPositions, harvestBlockedPositions, featuresByPosition);
 
                     var selectedWonder = _wonderService?.SelectedWonder;
                     if (selectedWonder != null && _selectedWonderPaint != null)
@@ -183,6 +183,7 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
         long currentTick,
         Dictionary<HexCoord, long>? manualTimes,
         Dictionary<HexCoord, long>? banditCooldownUntil,
+        Dictionary<HexCoord, long>? banditCooldownDuration,
         HashSet<HexCoord>? banditPositions,
         HashSet<HexCoord>? harvestBlockedPositions,
         Dictionary<HexCoord, IEnumerable<IslandFeature>>? featuresByPosition = null)
@@ -190,7 +191,7 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
         foreach (var (coord, tile) in map.Tiles)
         {
             var (x, y) = AxialToIsland(coord.Q, coord.R);
-            DrawHexagonTile(canvas, coord, x, y, tile, playerIdx, currentTick, manualTimes, banditCooldownUntil, banditPositions, harvestBlockedPositions, featuresByPosition);
+            DrawHexagonTile(canvas, coord, x, y, tile, playerIdx, currentTick, manualTimes, banditCooldownUntil, banditCooldownDuration, banditPositions, harvestBlockedPositions, featuresByPosition);
         }
     }
 
@@ -214,6 +215,7 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
         int playerIdx, long currentTick,
         Dictionary<HexCoord, long>? manualTimes,
         Dictionary<HexCoord, long>? banditCooldownUntil,
+        Dictionary<HexCoord, long>? banditCooldownDuration,
         HashSet<HexCoord>? banditPositions,
         HashSet<HexCoord>? harvestBlockedPositions,
         Dictionary<HexCoord, IEnumerable<IslandFeature>>? featuresByPosition = null)
@@ -236,7 +238,7 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
             foreach (var feature in features)
                 DrawFeatureMarker(canvas, centerX, centerY, feature);
 
-        DrawHarvestIndicator(canvas, centerX, centerY, tile, playerIdx, currentTick, manualTimes, banditCooldownUntil, banditPositions, harvestBlockedPositions);
+        DrawHarvestIndicator(canvas, centerX, centerY, tile, playerIdx, currentTick, manualTimes, banditCooldownUntil, banditCooldownDuration, banditPositions, harvestBlockedPositions);
 
         if (DebugSettings.ShowHexCoords && _textPaint != null && tile.Coord != null)
         {
@@ -281,6 +283,7 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
         int playerIdx, long currentTick,
         Dictionary<HexCoord, long>? manualTimes,
         Dictionary<HexCoord, long>? banditCooldownUntil,
+        Dictionary<HexCoord, long>? banditCooldownDuration,
         HashSet<HexCoord>? banditPositions,
         HashSet<HexCoord>? harvestBlockedPositions)
     {
@@ -297,9 +300,8 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
             && banditCooldownUntil.TryGetValue(tile.Coord, out var banditUntil)
             && currentTick < banditUntil)
         {
-            float ratio = Math.Clamp(
-                (float)(currentTick - (banditUntil - MonsterFeatureController.DepartureCooldownTicks)) / MonsterFeatureController.DepartureCooldownTicks,
-                0f, 1f);
+            long duration = banditCooldownDuration != null && banditCooldownDuration.TryGetValue(tile.Coord, out var d) ? d : banditUntil;
+            float ratio = Math.Clamp((float)(currentTick - (banditUntil - duration)) / duration, 0f, 1f);
             DrawBanditCooldownRing(canvas, cx, cy, ratio);
         }
 

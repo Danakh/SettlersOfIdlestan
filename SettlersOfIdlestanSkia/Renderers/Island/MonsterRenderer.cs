@@ -23,6 +23,7 @@ public class MonsterRenderer : HexBasedRenderer, IGameRenderer
     private const float BanditIconSize = 24f;
     private const float HideoutIconSize = 32f;
     private const float DragonIconSize = 36f;
+    private const float RatsIconSize = 22f;
     private const float ResourceIconSize = 18f;
     private const float AttackParticleDuration = 0.5f;
     private const float AttackParticleIconSize = 16f;
@@ -56,11 +57,11 @@ public class MonsterRenderer : HexBasedRenderer, IGameRenderer
     private readonly Dictionary<Resource, SKSvg?> _resourceIcons = new();
     private SKSvg? _banditSvg;
     private SKSvg? _hideoutSvg;
+    private SKSvg? _dragonSvg;
+    private SKSvg? _ratsSvg;
     private SKSvg? _attackSvg;
     private SKPaint? _resourceFlyPaint;
     private SKPaint? _attackParticlePaint;
-    private SKFont? _dragonFont;
-    private SKPaint? _dragonPaint;
     private bool _disposed;
 
     public MonsterRenderer(ResourceManager resourceManager)
@@ -86,6 +87,20 @@ public class MonsterRenderer : HexBasedRenderer, IGameRenderer
             _hideoutSvg.Load(hideoutStream);
         }
 
+        using var dragonStream = assembly.GetManifestResourceStream($"{assembly.GetName().Name}.Resources.icons.military.monster-dragon.svg");
+        if (dragonStream != null)
+        {
+            _dragonSvg = new SKSvg();
+            _dragonSvg.Load(dragonStream);
+        }
+
+        using var ratsStream = assembly.GetManifestResourceStream($"{assembly.GetName().Name}.Resources.icons.military.monster-rats.svg");
+        if (ratsStream != null)
+        {
+            _ratsSvg = new SKSvg();
+            _ratsSvg.Load(ratsStream);
+        }
+
         foreach (Resource resource in Enum.GetValues<Resource>())
         {
             string name = resource.ToString().ToLower();
@@ -95,8 +110,6 @@ public class MonsterRenderer : HexBasedRenderer, IGameRenderer
 
         _resourceFlyPaint = new SKPaint { Color = SKColors.White };
         _attackParticlePaint = new SKPaint { IsAntialias = true };
-        _dragonFont = new SKFont { Size = DragonIconSize };
-        _dragonPaint = new SKPaint { IsAntialias = true };
         try { _attackSvg = _resourceManager.LoadImage("Resources.icons.military.attack.svg"); } catch { }
     }
 
@@ -165,7 +178,18 @@ public class MonsterRenderer : HexBasedRenderer, IGameRenderer
             if (visibleMap != null && !visibleMap.HasTile(dragon.Position)) continue;
 
             var (dx, dy) = AxialToIsland(dragon.Position.Q, dragon.Position.R);
-            DrawDragonIcon(canvas, new SKPoint(dx, dy));
+            DrawSvgMonsterIcon(canvas, new SKPoint(dx, dy), _dragonSvg, DragonIconSize);
+        }
+
+        // Draw rats
+        foreach (var rats in WorldState.Features.OfType<Rats>())
+        {
+            if (!rats.Found) continue;
+            if (rats.Position.Z != context.CurrentLayer) continue;
+            if (visibleMap != null && !visibleMap.HasTile(rats.Position)) continue;
+
+            var (rx, ry) = AxialToIsland(rats.Position.Q, rats.Position.R);
+            DrawSvgMonsterIcon(canvas, new SKPoint(rx, ry), _ratsSvg, RatsIconSize);
         }
 
         // Draw bandits
@@ -288,11 +312,17 @@ public class MonsterRenderer : HexBasedRenderer, IGameRenderer
         canvas.Restore();
     }
 
-    private void DrawDragonIcon(SKCanvas canvas, SKPoint center)
+    private static void DrawSvgMonsterIcon(SKCanvas canvas, SKPoint center, SKSvg? svg, float size)
     {
-        if (_dragonFont == null || _dragonPaint == null) return;
-        canvas.DrawText("🐉", center.X - DragonIconSize / 2f, center.Y + DragonIconSize / 3f,
-            SKTextAlign.Left, _dragonFont, _dragonPaint);
+        var picture = svg?.Picture;
+        if (picture == null) return;
+
+        float scale = size / 64f;
+        canvas.Save();
+        canvas.Translate(center.X - size / 2f, center.Y - size / 2f);
+        canvas.Scale(scale);
+        canvas.DrawPicture(picture);
+        canvas.Restore();
     }
 
     private void DrawAttackParticle(SKCanvas canvas, SKPoint center, float alpha)
@@ -371,15 +401,13 @@ public class MonsterRenderer : HexBasedRenderer, IGameRenderer
         if (_disposed) return;
         _banditSvg = null;
         _hideoutSvg = null;
+        _dragonSvg = null;
+        _ratsSvg = null;
         _attackSvg = null;
         _resourceFlyPaint?.Dispose();
         _resourceFlyPaint = null;
         _attackParticlePaint?.Dispose();
         _attackParticlePaint = null;
-        _dragonFont?.Dispose();
-        _dragonFont = null;
-        _dragonPaint?.Dispose();
-        _dragonPaint = null;
         _disposed = true;
     }
 }

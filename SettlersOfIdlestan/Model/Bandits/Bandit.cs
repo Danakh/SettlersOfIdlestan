@@ -16,6 +16,7 @@ public class Bandit : MonsterFeature
     public override bool BlocksHarvest => true;
     public override bool CanMove => true;
     public override long MovementIntervalTicks => 3_000L;
+    public override long DepartureCooldownTicks => 1_000L;
     public override int AttackRangeInHexes => 1;
     public override long AttackIntervalTicks => RaidIntervalTicks;
     public override int AttackResources => 1;

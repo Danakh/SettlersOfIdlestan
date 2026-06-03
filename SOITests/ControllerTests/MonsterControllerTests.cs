@@ -186,7 +186,8 @@ namespace SOITests.ControllerTests
 
             // Advance past the departure cooldown (bandit won't move again because its
             // LastMovedTick was just updated — next move requires another MovementIntervalTicks).
-            clock.SimulateAdvance(MonsterFeatureController.DepartureCooldownTicks + 1);
+            var bandit = state.Features.OfType<Bandit>().First();
+            clock.SimulateAdvance(bandit.DepartureCooldownTicks + 1);
 
             Assert.False(controller.IsHarvestBlocked(Center, clock.CurrentTick),
                 "Cooldown should have expired");
