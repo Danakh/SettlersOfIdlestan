@@ -297,12 +297,17 @@ namespace SettlersOfIdlestan.Controller.Island
             var visited = new HashSet<Edge>();
             var frontier = new List<Road>();
 
-            foreach (var road in roads)
+            var vertexIndex = BuildVertexIndex(roads);
+
+            if (vertexIndex.TryGetValue(vertex, out var seed))
             {
-                if (road.Position.GetVertices().Any(v => v.Equals(vertex)) && visited.Add(road.Position))
+                foreach (var road in seed)
                 {
-                    result.Add(road);
-                    frontier.Add(road);
+                    if (visited.Add(road.Position))
+                    {
+                        result.Add(road);
+                        frontier.Add(road);
+                    }
                 }
             }
 
@@ -311,12 +316,12 @@ namespace SettlersOfIdlestan.Controller.Island
                 var next = new List<Road>();
                 foreach (var current in frontier)
                 {
-                    var currentVerts = current.Position.GetVertices();
-                    foreach (var neighbor in roads)
+                    foreach (var v in current.Position.GetVertices())
                     {
-                        if (visited.Contains(neighbor.Position)) continue;
-                        if (neighbor.Position.GetVertices().Any(nv => currentVerts.Any(cv => cv.Equals(nv))))
+                        if (!vertexIndex.TryGetValue(v, out var neighbors)) continue;
+                        foreach (var neighbor in neighbors)
                         {
+                            if (visited.Contains(neighbor.Position)) continue;
                             visited.Add(neighbor.Position);
                             result.Add(neighbor);
                             next.Add(neighbor);
@@ -355,19 +360,17 @@ namespace SettlersOfIdlestan.Controller.Island
 
         private void ComputeRoadDistancesForCivilization(Civilization civ)
         {
-            // initialize distances
             foreach (var r in civ.Roads)
-            {
                 r.DistanceToNearestCity = int.MaxValue;
-            }
 
+            var vertexToRoads = BuildVertexIndex(civ.Roads);
+            var cityVertices = new HashSet<Vertex>(civ.Cities.Select(c => c.Position));
             var queue = new Queue<Road>();
 
-            // roads adjacent to a city have distance 1
             foreach (var r in civ.Roads)
             {
                 var verts = r.Position.GetVertices();
-                if (verts.Any(v => civ.Cities.Any(c => c.Position.Equals(v))))
+                if (verts.Any(v => cityVertices.Contains(v)))
                 {
                     r.DistanceToNearestCity = 1;
                     queue.Enqueue(r);
@@ -377,19 +380,33 @@ namespace SettlersOfIdlestan.Controller.Island
             while (queue.Count > 0)
             {
                 var current = queue.Dequeue();
-                var currentVerts = current.Position.GetVertices();
-
-                foreach (var neighbor in civ.Roads)
+                var nextDist = current.DistanceToNearestCity + 1;
+                foreach (var v in current.Position.GetVertices())
                 {
-                    if (neighbor.DistanceToNearestCity != int.MaxValue) continue; // already set
-                    var neighVerts = neighbor.Position.GetVertices();
-                    if (currentVerts.Any(cv => neighVerts.Any(nv => nv.Equals(cv))))
+                    if (!vertexToRoads.TryGetValue(v, out var neighbors)) continue;
+                    foreach (var neighbor in neighbors)
                     {
-                        neighbor.DistanceToNearestCity = current.DistanceToNearestCity + 1;
+                        if (neighbor.DistanceToNearestCity != int.MaxValue) continue;
+                        neighbor.DistanceToNearestCity = nextDist;
                         queue.Enqueue(neighbor);
                     }
                 }
             }
+        }
+
+        private static Dictionary<Vertex, List<Road>> BuildVertexIndex(IEnumerable<Road> roads)
+        {
+            var index = new Dictionary<Vertex, List<Road>>();
+            foreach (var r in roads)
+            {
+                foreach (var v in r.Position.GetVertices())
+                {
+                    if (!index.TryGetValue(v, out var list))
+                        index[v] = list = new List<Road>();
+                    list.Add(r);
+                }
+            }
+            return index;
         }
 
         private int GetDistanceForEdge(Edge edge, Civilization civ)
