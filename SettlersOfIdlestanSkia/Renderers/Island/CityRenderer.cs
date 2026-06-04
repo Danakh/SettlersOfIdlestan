@@ -131,8 +131,8 @@ public class CityRenderer : HexBasedRenderer, IGameRenderer
 
             if (worldState.CurrentViewedLayer == LayerState.UnderworldZ && worldState.Layers.TryGetValue(LayerState.UnderworldZ, out var underworldLayer))
             {
-                // Render underworld cities (all visible, no fog of war)
-                DrawCities(canvas, underworldLayer.Cities, worldState.PlayerCivilization, underworldLayer.Map);
+                foreach (var civ in worldState.Civilizations)
+                    DrawCities(canvas, underworldLayer.Cities.Where(c => c.CivilizationIndex == civ.Index).ToList(), civ, underworldLayer.Map);
                 return;
             }
 
