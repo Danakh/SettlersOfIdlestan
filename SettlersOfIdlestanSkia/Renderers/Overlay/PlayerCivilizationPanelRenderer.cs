@@ -32,6 +32,7 @@ public sealed class PlayerCivilizationPanelRenderer : IDisposable
     private readonly TradeRenderer _tradeRenderer;
     private readonly PrestigeRenderer _prestigeRenderer;
     private WonderSelectionService? _wonderSelectionService;
+    private readonly TooltipRenderer _tooltipRenderer;
 
     private const float CollapseTabW = 14f;
     private const float CollapseTabH = 24f;
@@ -48,6 +49,7 @@ public sealed class PlayerCivilizationPanelRenderer : IDisposable
 
     private bool _hoveredTrade, _hoveredPrestige, _hoveredWonder;
     private bool _hoveredBarracks, _hoveredLab;
+    private bool _wonderEnabled;
     private bool _disposed;
 
     private readonly SKPaint _panelBgPaint        = new() { Color = new SKColor(24, 24, 30, 230), Style = SKPaintStyle.Fill, IsAntialias = true };
@@ -79,7 +81,8 @@ public sealed class PlayerCivilizationPanelRenderer : IDisposable
         Action closeAll,
         TradeRenderer tradeRenderer,
         PrestigeRenderer prestigeRenderer,
-        WonderSelectionService? wonderSelectionService)
+        WonderSelectionService? wonderSelectionService,
+        TooltipRenderer tooltipRenderer)
     {
         _gameControllerService = gameControllerService;
         _localization = localization;
@@ -87,6 +90,7 @@ public sealed class PlayerCivilizationPanelRenderer : IDisposable
         _tradeRenderer = tradeRenderer;
         _prestigeRenderer = prestigeRenderer;
         _wonderSelectionService = wonderSelectionService;
+        _tooltipRenderer = tooltipRenderer;
     }
 
     public void Initialize(SKSize canvasSize) => _canvasSize = canvasSize;
@@ -111,6 +115,7 @@ public sealed class PlayerCivilizationPanelRenderer : IDisposable
         bool prestigeAvail   = prestigeVisible && IsPrestigeAvailable();
         int  prestigePoints  = prestigeVisible ? GetPrestigePoints() : 0;
         bool wonderVisible   = IsWonderVisible() && CanPlaceWonder();
+        _wonderEnabled = wonderVisible && context.CurrentLayer == 0;
         bool hasBarracks     = HasBuilt<Barracks>(civ);
         bool hasLabs         = HasBuilt<Laboratory>(civ);
 
@@ -211,8 +216,8 @@ public sealed class PlayerCivilizationPanelRenderer : IDisposable
             if (wonderVisible)
             {
                 _wonderButtonRect = BtnRect(btnIdx++);
-                canvas.DrawRoundRect(_wonderButtonRect, 6, 6, _hoveredWonder ? _btnHoverPaint : _btnPaint);
-                canvas.DrawText(_localization.Get("wonder_action_short"), _wonderButtonRect.MidX, _wonderButtonRect.MidY + 4f, SKTextAlign.Center, _btnSmFont, _btnTextPaint);
+                canvas.DrawRoundRect(_wonderButtonRect, 6, 6, _wonderEnabled ? (_hoveredWonder ? _btnHoverPaint : _btnPaint) : _btnDisabledPaint);
+                canvas.DrawText(_localization.Get("wonder_action_short"), _wonderButtonRect.MidX, _wonderButtonRect.MidY + 4f, SKTextAlign.Center, _btnSmFont, _wonderEnabled ? _btnTextPaint : _btnDisabledTxtPaint);
             }
 
             y = actionsY + ((btnIdx + 1) / 2) * (BtnHeight + BtnSpacing);
@@ -277,6 +282,9 @@ public sealed class PlayerCivilizationPanelRenderer : IDisposable
         _hoveredWonder   = !_wonderButtonRect.IsEmpty   && _wonderButtonRect.Contains(pos.X, pos.Y);
         _hoveredBarracks = !_barracksToggleRect.IsEmpty && _barracksToggleRect.Contains(pos.X, pos.Y);
         _hoveredLab      = !_labToggleRect.IsEmpty      && _labToggleRect.Contains(pos.X, pos.Y);
+
+        if (_hoveredWonder && !_wonderEnabled)
+            _tooltipRenderer.SetTooltip(_localization.Get("tooltip_wonder_surface_only"), new SKPoint(_wonderButtonRect.Right, _wonderButtonRect.Top));
     }
 
     public bool HandlePointerPressed(SKPoint pos)
@@ -305,7 +313,7 @@ public sealed class PlayerCivilizationPanelRenderer : IDisposable
             return true;
         }
 
-        if (!_wonderButtonRect.IsEmpty && _wonderButtonRect.Contains(pos.X, pos.Y) && CanPlaceWonder() && _wonderSelectionService != null)
+        if (!_wonderButtonRect.IsEmpty && _wonderButtonRect.Contains(pos.X, pos.Y) && _wonderEnabled && _wonderSelectionService != null)
         {
             _closeAll();
             _wonderSelectionService.Enter();

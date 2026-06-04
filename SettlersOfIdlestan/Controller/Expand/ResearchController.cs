@@ -252,10 +252,10 @@ namespace SettlersOfIdlestan.Controller.Expand
         }
 
         public bool IsResearchUnlocked()
-            => _prestigeState?.PurchasedVertices.Contains(PrestigeMap.CentralVertex) == true;
+            => _state?.PlayerCivilization.ModifierAggregator.HasModifier(Modifier.ECategory.UNLOCK_RESEARCH_SYSTEM) == true;
 
         public bool IsResearchQueueUnlocked()
-            => _prestigeState?.PurchasedVertices.Contains(PrestigeMap.KnowledgeMasteryVertex) == true;
+            => _state?.PlayerCivilization.ModifierAggregator.HasModifier(Modifier.ECategory.UNLOCK_RESEARCH_QUEUE) == true;
 
         private bool IsPrestigeRequirementMet(TechnologyId id)
         {

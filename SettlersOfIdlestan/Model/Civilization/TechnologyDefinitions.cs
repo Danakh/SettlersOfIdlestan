@@ -94,6 +94,13 @@ public static class TechnologyDefinitions
 
         // === TIER 2 ===
 
+        new(TechnologyId.RapidConstruction,
+            "tech_rapid_construction_name", "tech_rapid_construction_desc",
+            cost: 600,
+            prerequisites: new[] { TechnologyId.MilitaryBuildings },
+            modifiers: new Modifier[] { new(ECategory.BUILDING_DEFENSE_ON_CONSTRUCT, EType.ADDITIVE, 1) },
+            tier: 2, line: 6),
+
         new(TechnologyId.HarvestTools,
             "tech_harvest_tools_name", "tech_harvest_tools_desc",
             cost: 1665,
@@ -195,8 +202,8 @@ public static class TechnologyDefinitions
         new(TechnologyId.AdvancedTactics,
             "tech_advanced_tactics_name", "tech_advanced_tactics_desc",
             cost: 6500,
-            prerequisites: new[] { TechnologyId.MilitaryMastery, TechnologyId.MilitaryBuildings },
-            modifiers: new Modifier[] { },
+            prerequisites: new[] { TechnologyId.MilitaryMastery, TechnologyId.RapidConstruction },
+            modifiers: new Modifier[] { new(ECategory.UNLOCK_AUTO_REINFORCEMENT, EType.ADDITIVE, 1) },
             tier: 3, line: 7),
 
         // === TIER 4 — Premiers croisements ===
@@ -233,7 +240,7 @@ public static class TechnologyDefinitions
             "tech_advanced_strategy_name", "tech_advanced_strategy_desc",
             cost: 19350,
             prerequisites: new[] { TechnologyId.AdvancedTactics, TechnologyId.GrandArchitecture },
-            modifiers: new Modifier[] { },
+            modifiers: new Modifier[] { new(ECategory.UNLOCK_AUTO_ATTACK, EType.ADDITIVE, 1) },
             tier: 4, line: 7),
 
         // === TIER 5 — Grandes convergences ===
