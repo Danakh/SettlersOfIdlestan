@@ -94,13 +94,16 @@ public class NpcGameController
 
         bool shouldAttack = aggressivity == NpcAggressivityLevel.Warlike;
 
+        // Cibles restreintes aux civs qui ont attaqué ce NPC (si aucune, attaque globale).
+        var warEnemies = civ.NpcParameters?.WarEnemyCivIndices;
+
         // Flux d'attaque : cités agressives avec soldats ciblent l'ennemi le plus proche.
         // Les autres cités sont d'abord vidées pour que le renfort puisse les réévaluer.
         foreach (var city in civ.Cities)
         {
             if (shouldAttack && city.Soldiers > 0)
             {
-                var enemy = _militaryController.FindNearbyEnemyCity(city, civ);
+                var enemy = _militaryController.FindNearbyEnemyCity(city, civ, warEnemies);
                 if (enemy != null)
                 {
                     _militaryController.SetCityFlow(city, enemy.Position);
@@ -147,8 +150,14 @@ public class NpcGameController
         var npcParams = targetCiv.NpcParameters;
         if (npcParams == null) return;
 
-        if (npcParams.AggressivityLevel != NpcAggressivityLevel.Pacifist)
-            npcParams.AggressivityLevel = NpcAggressivityLevel.Warlike;
+        if (npcParams.AggressivityLevel == NpcAggressivityLevel.Pacifist) return;
+
+        npcParams.AggressivityLevel = NpcAggressivityLevel.Warlike;
+
+        var attackerCiv = _state.Civilizations.FirstOrDefault(c =>
+            c.Cities.Any(city => city.Position.Equals(e.SourceCity)));
+        if (attackerCiv != null && !npcParams.WarEnemyCivIndices.Contains(attackerCiv.Index))
+            npcParams.WarEnemyCivIndices.Add(attackerCiv.Index);
     }
 
     private static void FillNpcResources(Civilization civ)
