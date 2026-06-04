@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Linq;
 using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Controller.Expand;
+using SettlersOfIdlestan.Model.Monsters;
 
 namespace SOITests.ControllerTests
 {
@@ -72,24 +73,24 @@ namespace SOITests.ControllerTests
             Assert.Equal(1, sources.Single(source => source.LabelKey == "building_townhall_name").Points);
         }
 
-        // ── Bandit prestige bonus ────────────────────────────────────────────
+        // ── Monster prestige bonus ───────────────────────────────────────────
 
         [Fact]
-        public void Prestige_BanditBonus_ZeroWhenNoBanditsDefeated()
+        public void Prestige_MonsterBonus_ZeroWhenMonstersPresent()
         {
             var state = IslandTestFactory.CreateSevenHexIslandState();
-            state.RunRecord.BanditsDefeated = 0;
+            state.Features.Add(new Bandit(new HexCoord(0, 0, IslandMap.SurfaceLayer)));
             var controller = new PrestigeController();
             controller.Initialize(state.Civilizations[0], state);
 
-            Assert.Equal(0, controller.GetBanditBonus());
+            Assert.Equal(0, controller.GetMonsterBonus());
         }
 
         [Fact]
-        public void Prestige_BanditBonus_TwentyPercentOfBuildingSubtotal()
+        public void Prestige_MonsterBonus_TwentyPercentOfBuildingSubtotal()
         {
             var state = IslandTestFactory.CreateSevenHexIslandState();
-            state.RunRecord.BanditsDefeated = 3;
+            // pas de monstres sur le SurfaceLayer = bonus actif
             var civ = state.Civilizations[0];
             civ.Cities[0].Buildings.Add(new Temple());
             civ.Cities[0].Buildings.Add(new Temple());
@@ -100,7 +101,7 @@ namespace SOITests.ControllerTests
             controller.Initialize(civ, state);
 
             Assert.Equal(5, controller.GetBuildingSubtotal());
-            Assert.Equal(1, controller.GetBanditBonus()); // 5 / 5 = 1
+            Assert.Equal(1, controller.GetMonsterBonus()); // 5 / 5 = 1
         }
 
         // ── Wonder prestige bonus ────────────────────────────────────────────

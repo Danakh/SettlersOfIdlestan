@@ -7,6 +7,7 @@ using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Security;
 
 namespace SettlersOfIdlestan.Controller.Island
 {
@@ -72,6 +73,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 if (invested >= required) { toDeselect.Add(resource); continue; }
 
                 int stock = playerCiv.GetResourceQuantity(resource);
+                if (stock < 1) continue;
                 int amount = Math.Max(1, stock / 100);
                 if (amount <= 0) continue;
 
@@ -93,6 +95,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 wonder.Level++;
                 wonder.InvestedResources.Clear();
                 wonder.InvestmentEnabled.Clear();
+                _state.EventLog.Add(GameEventType.WonderLevelUp, wonder.Level.ToString());
             }
         }
 

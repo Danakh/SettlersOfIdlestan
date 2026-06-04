@@ -17,6 +17,7 @@ public class GameRecord
     public int TotalPrestigesPerformed { get; set; }
     public int TotalBanditsDefeated { get; set; }
     public int TotalHideoutsDestroyed { get; set; }
+    public int TotalDragonsDefeated { get; set; }
 
     /// <summary>Nombre de fois que chaque type de bâtiment a été construit (clé = BuildingType.ToString()).</summary>
     public Dictionary<string, int> BuildingCounts { get; set; } = new();

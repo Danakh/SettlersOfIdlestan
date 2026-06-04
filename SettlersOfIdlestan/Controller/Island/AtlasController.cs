@@ -25,7 +25,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 };
                 var features = new List<IslandFeatureParameters>
                 {
-                    new IslandFeatureParameters(IslandFeatureType.Bandit,       IslandFeaturePlacement.FarFromPlayer),
+                    new IslandFeatureParameters(IslandFeatureType.Rats, IslandFeaturePlacement.FarFromPlayer),
                 };
                 return new IslandParameters(WorldId, tileData, features, IslandShapeType.Compact);
             }

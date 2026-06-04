@@ -6,6 +6,7 @@ window.gameInterop = {
         const id = ++this._nextHandlerId;
         const allowedLetters = new Set(['i', 'r', 'p', 's', 'c']);
         const allowedModifiers = new Set(['control', 'shift']);
+        const allowedSpecial = new Set(['escape']);
 
         const keyDownHandler = (e) => {
             if (e.repeat) return;
@@ -14,6 +15,8 @@ window.gameInterop = {
                 dotNetRef.invokeMethodAsync('OnKeyDown', e.key.toUpperCase());
             } else if (allowedModifiers.has(lower)) {
                 dotNetRef.invokeMethodAsync('OnKeyDown', e.key); // "Control" / "Shift" as-is
+            } else if (allowedSpecial.has(lower)) {
+                dotNetRef.invokeMethodAsync('OnKeyDown', e.key); // "Escape" as-is
             }
         };
         const keyUpHandler = (e) => {

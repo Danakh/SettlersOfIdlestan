@@ -127,10 +127,10 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay
             var featuresAtCoord = WorldState.Features.Where(f => f.Position.Equals(coord));
             var featureTooltipEntries = featuresAtCoord.Select(f => f.GetTooltipEntry()).Where(e => e != null);
             bool harvestBlockedByFeature = featuresAtCoord.Any(f => f.BlocksHarvest);
-            bool banditCooldownActive = WorldState.PlunderCooldownUntil.TryGetValue(coord, out var banditUntil)
-                && currentTick < banditUntil;
+            bool plunderCooldownActive = WorldState.PlunderCooldownUntil.TryGetValue(coord, out var plunderUntil)
+                && currentTick < plunderUntil;
 
-            if (manualResources.Count == 0 && autoResources.Count == 0 && featureTooltipEntries.Count() == 0 && !banditCooldownActive)
+            if (manualResources.Count == 0 && autoResources.Count == 0 && featureTooltipEntries.Count() == 0 && !plunderCooldownActive)
             {
                 if (tile == null) return;
                 var terrainKey = $"hex_tooltip_terrain_{tile.TerrainType.ToString().ToLower()}";
@@ -152,12 +152,12 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay
             foreach (var entry in featureTooltipEntries)
                 lines.Add(_localizationService.Resolve(entry!));
 
-            if (banditCooldownActive)
+            if (plunderCooldownActive)
             {
-                double remaining = (banditUntil - currentTick) / 100.0;
-                long cooldownDuration = WorldState.PlunderCooldownDuration.TryGetValue(coord, out var dur) ? dur : banditUntil;
+                double remaining = (plunderUntil - currentTick) / 100.0;
+                long cooldownDuration = WorldState.PlunderCooldownDuration.TryGetValue(coord, out var dur) ? dur : plunderUntil;
                 double max = cooldownDuration / 100.0;
-                lines.Add($"{_localizationService.Get("hex_tooltip_bandit_cooldown")}: {remaining:F1}s / {max:0.#}s");
+                lines.Add($"{_localizationService.Get("hex_tooltip_plunder_cooldown")}: {remaining:F1}s / {max:0.#}s");
             }
 
             if (!harvestBlockedByFeature && manualResources.Count > 0)

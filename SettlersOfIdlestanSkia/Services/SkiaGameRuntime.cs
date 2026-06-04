@@ -217,7 +217,7 @@ public sealed class SkiaGameRuntime : IDisposable
         playerResourcesOverlayRenderer.ConnectLowStock(null, _gameControllerService.PlayerCivilization!);
 
         var tradeRenderer        = new TradeRenderer(_gameControllerService, _localizationService!, tooltipRenderer, _resourceManager!);
-        var prestigeRenderer     = new PrestigeRenderer(_gameControllerService, _localizationService!, RequestPrestige);
+        var prestigeRenderer     = new PrestigeRenderer(_gameControllerService, _localizationService!, RequestPrestige, tooltipRenderer);
         var prestigeMapRenderer  = new PrestigeMapRenderer(_gameControllerService, _localizationService!, tooltipRenderer);
         var prestigeHistoryRenderer = new PrestigeHistoryRenderer(_gameControllerService, _localizationService!);
         var timeControlRenderer  = new TimeControlRenderer(_gameControllerService, _inputService!, _localizationService!);

@@ -73,6 +73,7 @@ public partial class MainPage : ContentPage
 		Windows.System.VirtualKey.P => "P",
 		Windows.System.VirtualKey.S => "S",
 		Windows.System.VirtualKey.C => "C",
+		Windows.System.VirtualKey.Escape => "Escape",
 		Windows.System.VirtualKey.Control or
 		Windows.System.VirtualKey.LeftControl or
 		Windows.System.VirtualKey.RightControl => "Control",

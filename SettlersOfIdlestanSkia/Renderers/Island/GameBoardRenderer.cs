@@ -48,8 +48,8 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
     private const float AutoArcBaseRadius = 10f;
     private const float AutoArcGap = 5f;   // décalage entre deux arcs concentriques (mine + carrière)
     private const float AutoArcStroke = 3f;
-    private const float BanditRingRadius = 12f;
-    private const float BanditRingStroke = 3f;
+    private const float PlunderRingRadius = 12f;
+    private const float PlunderRingStroke = 3f;
 
     private static readonly Dictionary<TerrainType, SKColor> TerrainColors = new()
     {
@@ -160,13 +160,12 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
                     var playerIdx = worldState.PlayerCivilization.Index;
                     worldState.HarvestLastTimesByCivilization.TryGetValue(playerIdx, out var manualTimes);
 
-                    var banditPositions = new HashSet<HexCoord>(worldState.Features.OfType<Bandit>().Select(b => b.Position));
                     var harvestBlockedPositions = new HashSet<HexCoord>(worldState.Features.Where(f => f.BlocksHarvest).Select(f => f.Position));
                     var featuresByPosition = worldState.Features
                         .Where(f => f.ShouldRenderIcon && (f.SvgIconResourceName != null || f.TextIcon != null))
                         .GroupBy(f => f.Position)
                         .ToDictionary(g => g.Key, g => (IEnumerable<IslandFeature>)g);
-                    DrawIslandMap(canvas, mapToRender, playerIdx, mgs.Clock.CurrentTick, manualTimes, worldState.PlunderCooldownUntil, worldState.PlunderCooldownDuration, banditPositions, harvestBlockedPositions, featuresByPosition);
+                    DrawIslandMap(canvas, mapToRender, playerIdx, mgs.Clock.CurrentTick, manualTimes, worldState.PlunderCooldownUntil, worldState.PlunderCooldownDuration, harvestBlockedPositions, featuresByPosition);
 
                     var selectedWonder = _wonderService?.SelectedWonder;
                     if (selectedWonder != null && _selectedWonderPaint != null)
@@ -182,16 +181,15 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
     private void DrawIslandMap(SKCanvas canvas, IslandMap map, int playerIdx,
         long currentTick,
         Dictionary<HexCoord, long>? manualTimes,
-        Dictionary<HexCoord, long>? banditCooldownUntil,
-        Dictionary<HexCoord, long>? banditCooldownDuration,
-        HashSet<HexCoord>? banditPositions,
+        Dictionary<HexCoord, long>? plunderCooldownUntil,
+        Dictionary<HexCoord, long>? plunderCooldownDuration,
         HashSet<HexCoord>? harvestBlockedPositions,
         Dictionary<HexCoord, IEnumerable<IslandFeature>>? featuresByPosition = null)
     {
         foreach (var (coord, tile) in map.Tiles)
         {
             var (x, y) = AxialToIsland(coord.Q, coord.R);
-            DrawHexagonTile(canvas, coord, x, y, tile, playerIdx, currentTick, manualTimes, banditCooldownUntil, banditCooldownDuration, banditPositions, harvestBlockedPositions, featuresByPosition);
+            DrawHexagonTile(canvas, coord, x, y, tile, playerIdx, currentTick, manualTimes, plunderCooldownUntil, plunderCooldownDuration, harvestBlockedPositions, featuresByPosition);
         }
     }
 
@@ -214,9 +212,8 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
     private void DrawHexagonTile(SKCanvas canvas, HexCoord coord, float centerX, float centerY, HexTile tile,
         int playerIdx, long currentTick,
         Dictionary<HexCoord, long>? manualTimes,
-        Dictionary<HexCoord, long>? banditCooldownUntil,
-        Dictionary<HexCoord, long>? banditCooldownDuration,
-        HashSet<HexCoord>? banditPositions,
+        Dictionary<HexCoord, long>? plunderCooldownUntil,
+        Dictionary<HexCoord, long>? plunderCooldownDuration,
         HashSet<HexCoord>? harvestBlockedPositions,
         Dictionary<HexCoord, IEnumerable<IslandFeature>>? featuresByPosition = null)
     {
@@ -238,7 +235,7 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
             foreach (var feature in features)
                 DrawFeatureMarker(canvas, centerX, centerY, feature);
 
-        DrawHarvestIndicator(canvas, centerX, centerY, tile, playerIdx, currentTick, manualTimes, banditCooldownUntil, banditCooldownDuration, banditPositions, harvestBlockedPositions);
+        DrawHarvestIndicator(canvas, centerX, centerY, tile, playerIdx, currentTick, manualTimes, plunderCooldownUntil, plunderCooldownDuration, harvestBlockedPositions);
 
         if (DebugSettings.ShowHexCoords && _textPaint != null && tile.Coord != null)
         {
@@ -282,31 +279,27 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
     private void DrawHarvestIndicator(SKCanvas canvas, float cx, float cy, HexTile tile,
         int playerIdx, long currentTick,
         Dictionary<HexCoord, long>? manualTimes,
-        Dictionary<HexCoord, long>? banditCooldownUntil,
-        Dictionary<HexCoord, long>? banditCooldownDuration,
-        HashSet<HexCoord>? banditPositions,
+        Dictionary<HexCoord, long>? plunderCooldownUntil,
+        Dictionary<HexCoord, long>? plunderCooldownDuration,
         HashSet<HexCoord>? harvestBlockedPositions)
     {
         if (_dotPaint == null || _ringBgPaint == null || _ringProgressPaint == null)
             return;
 
-        // Anneau bandit (le plus externe)
-        bool banditHere = banditPositions?.Contains(tile.Coord) == true;
-        if (banditHere)
-        {
-            DrawBanditCooldownRing(canvas, cx, cy, ratio: 1f);
-        }
-        else if (banditCooldownUntil != null
-            && banditCooldownUntil.TryGetValue(tile.Coord, out var banditUntil)
-            && currentTick < banditUntil)
-        {
-            long duration = banditCooldownDuration != null && banditCooldownDuration.TryGetValue(tile.Coord, out var d) ? d : banditUntil;
-            float ratio = Math.Clamp((float)(currentTick - (banditUntil - duration)) / duration, 0f, 1f);
-            DrawBanditCooldownRing(canvas, cx, cy, ratio);
-        }
-
+        // Anneau pillage (le plus externe)
         if (harvestBlockedPositions?.Contains(tile.Coord) == true)
+        {
+            DrawPlunderCooldownRing(canvas, cx, cy, ratio: 1f);
             return;
+        }
+        else if (plunderCooldownUntil != null
+            && plunderCooldownUntil.TryGetValue(tile.Coord, out var plunderUntil)
+            && currentTick < plunderUntil)
+        {
+            long duration = plunderCooldownDuration != null && plunderCooldownDuration.TryGetValue(tile.Coord, out var d) ? d : plunderUntil;
+            float ratio = Math.Clamp((float)(currentTick - (plunderUntil - duration)) / duration, 0f, 1f);
+            DrawPlunderCooldownRing(canvas, cx, cy, ratio);
+        }
 
         // Arcs de cooldown automatique au vertex de la ville (un arc par bâtiment).
         // Le rayon s'incrémente uniquement pour plusieurs bâtiments de la MÊME ville sur le même hex.
@@ -362,18 +355,18 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
         }
     }
 
-    private void DrawBanditCooldownRing(SKCanvas canvas, float cx, float cy, float ratio)
+    private void DrawPlunderCooldownRing(SKCanvas canvas, float cx, float cy, float ratio)
     {
-        var rect = new SKRect(cx - BanditRingRadius, cy - BanditRingRadius, cx + BanditRingRadius, cy + BanditRingRadius);
+        var rect = new SKRect(cx - PlunderRingRadius, cy - PlunderRingRadius, cx + PlunderRingRadius, cy + PlunderRingRadius);
 
         _ringBgPaint!.Color = new SKColor(80, 0, 0, 150);
-        _ringBgPaint.StrokeWidth = BanditRingStroke;
+        _ringBgPaint.StrokeWidth = PlunderRingStroke;
         canvas.DrawOval(rect, _ringBgPaint);
 
         if (ratio > 0f)
         {
             _ringProgressPaint!.Color = new SKColor(220, 40, 40, 230);
-            _ringProgressPaint.StrokeWidth = BanditRingStroke;
+            _ringProgressPaint.StrokeWidth = PlunderRingStroke;
             canvas.DrawArc(rect, -90f, ratio * 360f, false, _ringProgressPaint);
         }
     }
