@@ -2,8 +2,10 @@ using SettlersOfIdlestan.Controller;
 using SettlersOfIdlestan.Controller.Expand;
 using SettlersOfIdlestan.Services.Localization;
 using SettlersOfIdlestanSkia.Core;
+using SettlersOfIdlestanSkia.Renderers.Overlay;
 using SettlersOfIdlestanSkia.Services;
 using SkiaSharp;
+using System.Collections.Generic;
 
 namespace SettlersOfIdlestanSkia.Renderers.Overlay.Popup;
 
@@ -18,17 +20,22 @@ public sealed class PrestigeRenderer : IDisposable
 
     private readonly GameControllerService _gameControllerService;
     private readonly ILocalizationService _localization;
+    private readonly TooltipRenderer _tooltipRenderer;
     private readonly Action _prestigeRequested;
     private SKSize _canvasSize;
     private SKRect _prestigeButtonRect = SKRect.Empty;
     private SKRect _closeButtonRect = SKRect.Empty;
+    private SKPoint _lastPointerPosition;
     private bool _disposed;
+
+    private readonly List<(SKRect Rect, string Key)> _hoverRects = new();
 
     private readonly PopupChrome _chrome = new();
     private readonly SKPaint _buttonPaint = new() { Color = new SKColor(46, 125, 50), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _buttonDisabledPaint = new() { Color = new SKColor(70, 70, 70, 220), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _textPaint = new() { Color = SKColors.White, IsAntialias = true };
     private readonly SKPaint _mutedTextPaint = new() { Color = new SKColor(190, 190, 195), IsAntialias = true };
+    private readonly SKPaint _warningTextPaint = new() { Color = new SKColor(220, 70, 70), IsAntialias = true };
     private readonly SKPaint _separatorPaint = new() { Color = new SKColor(100, 100, 110, 180), StrokeWidth = 1, Style = SKPaintStyle.Stroke };
     private readonly SKFont _titleFont = new() { Size = 20, Typeface = SkiaFonts.Bold };
     private readonly SKFont _font = new() { Size = 14, Typeface = SkiaFonts.Regular };
@@ -36,11 +43,12 @@ public sealed class PrestigeRenderer : IDisposable
 
     public bool IsOpen { get; private set; }
 
-    public PrestigeRenderer(GameControllerService gameControllerService, ILocalizationService localization, Action prestigeRequested)
+    public PrestigeRenderer(GameControllerService gameControllerService, ILocalizationService localization, Action prestigeRequested, TooltipRenderer tooltipRenderer)
     {
         _gameControllerService = gameControllerService;
         _localization = localization;
         _prestigeRequested = prestigeRequested;
+        _tooltipRenderer = tooltipRenderer;
     }
 
     public void Initialize(SKSize canvasSize)
@@ -51,6 +59,12 @@ public sealed class PrestigeRenderer : IDisposable
     public void Open() => IsOpen = true;
 
     public void Close() => IsOpen = false;
+
+    public void HandlePointerMoved(SKPoint position)
+    {
+        if (!IsOpen) return;
+        _lastPointerPosition = position;
+    }
 
     public void Render(SKCanvas canvas)
     {
@@ -69,13 +83,18 @@ public sealed class PrestigeRenderer : IDisposable
         var sources = controller.GetPrestigePointSources();
         bool wondersUnlocked = controller.WondersUnlocked();
         float y = popup.Top + 68;
-        // listBottom adjusts to leave room for bonus rows
-        float listBottom = wondersUnlocked ? popup.Bottom - 156 : popup.Bottom - 126;
+        // listBottom : réserve de place pour dragon + monstre + wonder (optionnel) + total
+        float listBottom = wondersUnlocked ? popup.Bottom - 184 : popup.Bottom - 154;
         int maxVisibleSources = Math.Max(0, (int)((listBottom - y) / SourceRowHeight));
+
+        _hoverRects.Clear();
+
         foreach (var source in sources.Take(maxVisibleSources))
         {
             canvas.DrawText(_localization.Get(source.LabelKey), popup.Left + Padding, y, _font, _textPaint);
             canvas.DrawText(source.Points.ToString(), popup.Right - Padding, y, SKTextAlign.Right, _boldFont, _textPaint);
+            if (source.TooltipKey != null)
+                _hoverRects.Add((new SKRect(popup.Left, y - _font.Size, popup.Right, y + 6), source.TooltipKey));
             y += SourceRowHeight;
         }
 
@@ -85,10 +104,22 @@ public sealed class PrestigeRenderer : IDisposable
             canvas.DrawText(string.Format(_localization.Get("prestige_more_sources"), hiddenSourceCount), popup.Left + Padding, y, _font, _mutedTextPaint);
         }
 
-        // Bandits (always shown)
+        // Dragon bonus
+        int dragonBonus = controller.GetDragonBonus();
+        canvas.DrawLine(popup.Left + Padding, popup.Bottom - 170, popup.Right - Padding, popup.Bottom - 170, _separatorPaint);
+        canvas.DrawText(_localization.Get("prestige_dragon_bonus"), popup.Left + Padding, popup.Bottom - 156, _font, _mutedTextPaint);
+        canvas.DrawText($"+{dragonBonus}", popup.Right - Padding, popup.Bottom - 156, SKTextAlign.Right, _boldFont, _mutedTextPaint);
+        _hoverRects.Add((new SKRect(popup.Left, popup.Bottom - 170, popup.Right, popup.Bottom - 142), "prestige_tooltip_dragon_bonus"));
+
+        // Monstres
+        bool hasMonstersLeft = controller.HasSurfaceMonsters();
         canvas.DrawLine(popup.Left + Padding, popup.Bottom - 142, popup.Right - Padding, popup.Bottom - 142, _separatorPaint);
-        canvas.DrawText(_localization.Get("prestige_bandit_bonus"), popup.Left + Padding, popup.Bottom - 128, _font, _mutedTextPaint);
-        canvas.DrawText("×1.2", popup.Right - Padding, popup.Bottom - 128, SKTextAlign.Right, _boldFont, _mutedTextPaint);
+        canvas.DrawText(_localization.Get("prestige_monster_bonus"), popup.Left + Padding, popup.Bottom - 128, _font, _mutedTextPaint);
+        if (hasMonstersLeft)
+            canvas.DrawText("×1", popup.Right - Padding, popup.Bottom - 128, SKTextAlign.Right, _boldFont, _warningTextPaint);
+        else
+            canvas.DrawText("×1.2", popup.Right - Padding, popup.Bottom - 128, SKTextAlign.Right, _boldFont, _mutedTextPaint);
+        _hoverRects.Add((new SKRect(popup.Left, popup.Bottom - 142, popup.Right, popup.Bottom - 114), "prestige_tooltip_monster_bonus"));
 
         // Wonder (shown when unlocked)
         if (wondersUnlocked)
@@ -99,6 +130,7 @@ public sealed class PrestigeRenderer : IDisposable
             string wonderLabel = _localization.GetFormated("prestige_wonder_bonus", wonderLevel, timeFactor, duration);
             canvas.DrawText(wonderLabel, popup.Left + Padding, popup.Bottom - 100, _font, _mutedTextPaint);
             canvas.DrawText($"×{wonderLevel * timeFactor}", popup.Right - Padding, popup.Bottom - 100, SKTextAlign.Right, _boldFont, _mutedTextPaint);
+            _hoverRects.Add((new SKRect(popup.Left, popup.Bottom - 114, popup.Right, popup.Bottom - 86), "prestige_tooltip_wonder_bonus"));
         }
 
         // Total (fixed position, always well above the button)
@@ -124,6 +156,16 @@ public sealed class PrestigeRenderer : IDisposable
                 SKTextAlign.Center,
                 _font,
                 _mutedTextPaint);
+        }
+
+        // Tooltip on hover
+        foreach (var (rect, key) in _hoverRects)
+        {
+            if (rect.Contains(_lastPointerPosition.X, _lastPointerPosition.Y))
+            {
+                _tooltipRenderer.SetTooltip(_localization.Get(key), new SKPoint(rect.Right, rect.Top));
+                break;
+            }
         }
     }
 
@@ -185,6 +227,7 @@ public sealed class PrestigeRenderer : IDisposable
         _buttonDisabledPaint.Dispose();
         _textPaint.Dispose();
         _mutedTextPaint.Dispose();
+        _warningTextPaint.Dispose();
         _separatorPaint.Dispose();
         _titleFont.Dispose();
         _font.Dispose();

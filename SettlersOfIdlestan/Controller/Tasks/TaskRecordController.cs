@@ -219,10 +219,18 @@ public class TaskRecordController
     private void HandleFeatureRemoved(object? sender, IslandFeature e)
     {
         if (_gameRecord == null || _runRecord == null) return;
-        if (e is not BanditHideout) return;
-        _gameRecord.TotalHideoutsDestroyed++;
-        _runRecord.HideoutsDestroyed++;
-        CheckTaskCompletions();
+        if (e is BanditHideout)
+        {
+            _gameRecord.TotalHideoutsDestroyed++;
+            _runRecord.HideoutsDestroyed++;
+            CheckTaskCompletions();
+        }
+        else if (e is Dragon)
+        {
+            _gameRecord.TotalDragonsDefeated++;
+            _runRecord.DragonsDefeated++;
+            CheckTaskCompletions();
+        }
     }
 
     private void HandleGoldObtainedFromTrade(int amount)

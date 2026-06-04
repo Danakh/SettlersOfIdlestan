@@ -409,6 +409,8 @@ public sealed class OverlayRenderer : IGameRenderer
             _settingsPopupRenderer.HandlePointerMoved(e.Position);
         if (_tradeRenderer.IsOpen)
             _tradeRenderer.HandlePointerMoved(e.Position);
+        if (_prestigeRenderer.IsOpen)
+            _prestigeRenderer.HandlePointerMoved(e.Position);
         if (_activeTab == TabPrestige)
             _prestigeMapRenderer.HandlePointerMoved(e.Position);
         if (_activeTab == TabAutomation)

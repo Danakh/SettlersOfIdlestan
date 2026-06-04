@@ -272,6 +272,9 @@ public class IslandMapGenerator
                 case IslandFeatureType.Dragon:
                     WorldState.AddFeature(new Dragon(hex));
                     break;
+                case IslandFeatureType.Rats:
+                    WorldState.AddFeature(new Rats(hex));
+                    break;
             }
         }
     }

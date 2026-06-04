@@ -6,6 +6,7 @@ using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Prestige;
 using SettlersOfIdlestan.Model.IslandFeatures;
+using SettlersOfIdlestan.Model.Monsters;
 using SettlersOfIdlestan.Controller.Generator;
 using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
 
@@ -64,19 +65,32 @@ namespace SettlersOfIdlestan.Controller.Expand
             return level * timeFactor;
         }
 
-        public int GetBanditBonus()
+        private bool HasNoSurfaceMonsters() => !HasSurfaceMonsters();
+
+        public bool HasSurfaceMonsters() =>
+            _islandState != null && _islandState.Features
+                .OfType<MonsterFeature>()
+                .Any(m => m.Position.Z == IslandMap.SurfaceLayer);
+
+        public int GetMonsterBonus()
         {
-            if (_islandState == null || _islandState.RunRecord.BanditsDefeated == 0)
+            if (!HasNoSurfaceMonsters())
                 return 0;
             return GetBuildingSubtotal() / 5;
         }
 
+        public int GetDragonBonus()
+        {
+            if (_islandState == null) return 0;
+            return _islandState.RunRecord.DragonsDefeated * 5;
+        }
+
         public int CalculatePrestigePoints()
         {
-            int subtotal = GetBuildingSubtotal();
+            int subtotal = GetBuildingSubtotal() + GetDragonBonus();
             int wonderMult = GetWonderBonus(); // = level × timeFactor, 0 si pas de wonder
             double result = wonderMult > 0 ? (double)subtotal * wonderMult : subtotal;
-            if (_islandState != null && _islandState.RunRecord.BanditsDefeated > 0)
+            if (HasNoSurfaceMonsters())
                 result *= 1.2;
             return (int)result;
         }
@@ -87,6 +101,7 @@ namespace SettlersOfIdlestan.Controller.Expand
                 return Array.Empty<PrestigePointSource>();
 
             var sources = new Dictionary<string, int>();
+            var tooltipKeys = new Dictionary<string, string>();
             foreach (var city in _playerCivilization.Cities)
             {
                 foreach (var building in city.Buildings)
@@ -96,12 +111,13 @@ namespace SettlersOfIdlestan.Controller.Expand
                     {
                         if (!sources.TryAdd(building.NameKey, points))
                             sources[building.NameKey] += points;
+                        tooltipKeys.TryAdd(building.NameKey, $"prestige_source_tooltip_{building.Type.ToString().ToLower()}");
                     }
                 }
             }
 
             return sources
-                .Select(source => new PrestigePointSource(source.Key, source.Value))
+                .Select(source => new PrestigePointSource(source.Key, source.Value, tooltipKeys.GetValueOrDefault(source.Key)))
                 .OrderBy(source => source.LabelKey)
                 .ToList();
         }
@@ -169,5 +185,5 @@ namespace SettlersOfIdlestan.Controller.Expand
         }
     }
 
-    public readonly record struct PrestigePointSource(string LabelKey, int Points);
+    public readonly record struct PrestigePointSource(string LabelKey, int Points, string? TooltipKey = null);
 }

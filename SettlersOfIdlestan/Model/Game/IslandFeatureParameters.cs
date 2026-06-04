@@ -6,6 +6,7 @@ namespace SettlersOfIdlestan.Model.Game
         TreasureTrove,
         BanditHideout,
         Dragon,
+        Rats,
     }
 
     public enum IslandFeaturePlacement
