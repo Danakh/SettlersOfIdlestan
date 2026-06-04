@@ -105,7 +105,7 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
             {
                 var city = _gameControllerService.TryBuildCityForPlayer(HoverState.HoveredVertex);
                 if (city != null)
-                    _cityBuildingService.SetSelectedCity(city.Position);
+                    SetSelectedCity(city.Position);
                 RefreshHover(e.Position);
                 return;
             }

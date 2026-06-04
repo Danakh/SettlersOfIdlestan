@@ -33,6 +33,7 @@ public sealed class WonderPlacementRenderer : HexBasedRenderer, IGameRenderer
     private SKFont? _titleFont;
 
     private SKRect _cancelButtonRect = SKRect.Empty;
+    private int _currentLayer = IslandMap.SurfaceLayer;
     private bool _disposed;
 
     public WonderPlacementRenderer(
@@ -48,6 +49,7 @@ public sealed class WonderPlacementRenderer : HexBasedRenderer, IGameRenderer
 
         _inputService.PointerPressed += OnPointerPressed;
         _inputService.PointerMoved += OnPointerMoved;
+        _inputService.KeyPressed += OnKeyPressed;
     }
 
     public void Initialize(SKSize canvasSize)
@@ -67,6 +69,8 @@ public sealed class WonderPlacementRenderer : HexBasedRenderer, IGameRenderer
     {
         if (_disposed || !_selectionService.IsActive) return;
 
+        _currentLayer = context.CurrentLayer;
+
         // Semi-transparent dim overlay
         canvas.DrawRect(new SKRect(0, 0, context.CanvasSize.Width, context.CanvasSize.Height), _dimPaint!);
 
@@ -78,7 +82,7 @@ public sealed class WonderPlacementRenderer : HexBasedRenderer, IGameRenderer
             -context.CameraPosition.Y * context.ZoomLevel);
         canvas.SetMatrix(canvas.TotalMatrix.PostConcat(matrix));
 
-        foreach (var hex in _selectionService.PlaceableHexes)
+        foreach (var hex in _selectionService.PlaceableHexes.Where(h => h.Z == _currentLayer))
         {
             var (cx, cy) = AxialToIsland(hex.Q, hex.R);
             var pts = GetHexagonPoints(cx, cy, HexSize);
@@ -114,7 +118,7 @@ public sealed class WonderPlacementRenderer : HexBasedRenderer, IGameRenderer
 
         var islandPt = ScreenToIsland(e.Position);
         var (q, r) = IslandToAxial(islandPt.X, islandPt.Y);
-        var hex = new HexCoord(q, r, IslandMap.SurfaceLayer);
+        var hex = new HexCoord(q, r, _currentLayer);
         _selectionService.HoveredHex = _selectionService.PlaceableHexes.Any(h => h.Equals(hex)) ? hex : null;
     }
 
@@ -131,9 +135,15 @@ public sealed class WonderPlacementRenderer : HexBasedRenderer, IGameRenderer
 
         var islandPt = ScreenToIsland(e.Position);
         var (q, r) = IslandToAxial(islandPt.X, islandPt.Y);
-        var hex = new HexCoord(q, r, IslandMap.SurfaceLayer);
+        var hex = new HexCoord(q, r, _currentLayer);
         if (_selectionService.PlaceableHexes.Any(h => h.Equals(hex)))
             _selectionService.Confirm(hex);
+    }
+
+    private void OnKeyPressed(object? sender, KeyEventArgs e)
+    {
+        if (_selectionService.IsActive && e.Key == "Escape")
+            _selectionService.Cancel();
     }
 
     private SKPoint ScreenToIsland(SKPoint screen)
@@ -148,6 +158,7 @@ public sealed class WonderPlacementRenderer : HexBasedRenderer, IGameRenderer
         if (_disposed) return;
         _inputService.PointerPressed -= OnPointerPressed;
         _inputService.PointerMoved -= OnPointerMoved;
+        _inputService.KeyPressed -= OnKeyPressed;
         _dimPaint?.Dispose();
         _selectableFill?.Dispose();
         _hoverFill?.Dispose();

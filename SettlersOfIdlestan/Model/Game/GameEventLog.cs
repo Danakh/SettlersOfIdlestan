@@ -12,6 +12,7 @@ public enum GameEventType
     CivilizationDiscovered,
     SoldierStarved,
     WonderPlaced,
+    WonderLevelUp,
     RuntimeError,
     DragonDiscovered,
     DragonDefeated,

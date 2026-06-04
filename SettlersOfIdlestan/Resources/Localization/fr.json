@@ -427,6 +427,8 @@
   "prestige_wonder": "Merveille",
   "event_wonder_placed_title": "🏛 Merveille fondée !",
   "event_wonder_placed_body": "Votre civilisation a posé la première pierre d'une Merveille.",
+  "event_wonder_levelup_title": "🏛 Merveille : niveau supérieur !",
+  "event_wonder_levelup_body": "Votre Merveille a atteint le niveau {0}.",
   "event_runtime_error_title": "⚠ Erreur interne",
   "task_harvest_wood_name": "Récolter du Bois",
   "task_harvest_wood_desc": "Cliquez sur un hex de forêt adjacent à votre ville pour récolter du bois.",
