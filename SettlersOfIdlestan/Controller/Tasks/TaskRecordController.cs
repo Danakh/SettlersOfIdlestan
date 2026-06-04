@@ -70,7 +70,6 @@ public class TaskRecordController
         _cityBuilderController.OnCityBuilt += HandleCityBuilt;
         _prestigeMapController.OnVertexPurchased += HandleVertexPurchased;
         _researchController.OnResearchCompleted += HandleResearchCompleted;
-        _militaryController.SoldierAttackedMonster += HandleBanditDefeated;
         _islandState.FeatureRemoved += HandleFeatureRemoved;
         _harvestController.OnHarvestCompleted += HandleHarvestCompleted;
         _tradeController.GoldObtainedFromTrade += HandleGoldObtainedFromTrade;
@@ -83,7 +82,6 @@ public class TaskRecordController
         if (_cityBuilderController != null) _cityBuilderController.OnCityBuilt -= HandleCityBuilt;
         if (_prestigeMapController != null) _prestigeMapController.OnVertexPurchased -= HandleVertexPurchased;
         if (_researchController != null) _researchController.OnResearchCompleted -= HandleResearchCompleted;
-        if (_militaryController != null) _militaryController.SoldierAttackedMonster -= HandleBanditDefeated;
         if (_islandState != null) _islandState.FeatureRemoved -= HandleFeatureRemoved;
         if (_harvestController != null) _harvestController.OnHarvestCompleted -= HandleHarvestCompleted;
         if (_tradeController != null) _tradeController.GoldObtainedFromTrade -= HandleGoldObtainedFromTrade;
@@ -208,18 +206,16 @@ public class TaskRecordController
         CheckTaskCompletions();
     }
 
-    private void HandleBanditDefeated(object? sender, SoldierAttackEventArgs e)
-    {
-        if (_gameRecord == null || _runRecord == null) return;
-        _gameRecord.TotalBanditsDefeated++;
-        _runRecord.BanditsDefeated++;
-        CheckTaskCompletions();
-    }
-
     private void HandleFeatureRemoved(object? sender, IslandFeature e)
     {
         if (_gameRecord == null || _runRecord == null) return;
-        if (e is BanditHideout)
+        if (e is Bandit)
+        {
+            _gameRecord.TotalBanditsDefeated++;
+            _runRecord.BanditsDefeated++;
+            CheckTaskCompletions();
+        }
+        else if (e is BanditHideout)
         {
             _gameRecord.TotalHideoutsDestroyed++;
             _runRecord.HideoutsDestroyed++;

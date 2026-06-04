@@ -244,8 +244,8 @@ namespace SOITests.ControllerTests
             clock.SimulateAdvance(MilitaryController.CombatIntervalTicks);
 
             Assert.NotNull(firedArgs);
-            Assert.Equal(NE.Q, firedArgs.BanditPosition.Q);
-            Assert.Equal(NE.R, firedArgs.BanditPosition.R);
+            Assert.Equal(NE.Q, firedArgs.MonsterPosition.Q);
+            Assert.Equal(NE.R, firedArgs.MonsterPosition.R);
         }
 
         [Fact]

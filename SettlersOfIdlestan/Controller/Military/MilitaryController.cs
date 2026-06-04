@@ -15,10 +15,10 @@ using TechId = SettlersOfIdlestan.Model.Civilization.TechnologyId;
 
 namespace SettlersOfIdlestan.Controller.Military;
 
-public class SoldierAttackEventArgs(Vertex cityVertex, HexCoord banditPosition) : EventArgs
+public class SoldierAttackEventArgs(Vertex cityVertex, HexCoord monsterPosition) : EventArgs
 {
     public Vertex CityVertex { get; } = cityVertex;
-    public HexCoord BanditPosition { get; } = banditPosition;
+    public HexCoord MonsterPosition { get; } = monsterPosition;
 }
 
 public class CityAttackEventArgs(Vertex sourceCity, Vertex targetCity, List<Vertex> path) : EventArgs

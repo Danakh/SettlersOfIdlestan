@@ -53,7 +53,7 @@ namespace SettlersOfIdlestan.Controller.Island
         private WorldState? _state;
         private GameClock? _clock;
         private TradeController? _tradeController;
-        private MonsterFeatureController? _banditController;
+        private MonsterFeatureController? _monsterController;
 
         // 2 s × 100 ticks/s
         public const long HarvestCooldownTicks = 200L;
@@ -77,7 +77,7 @@ namespace SettlersOfIdlestan.Controller.Island
             Initialize(state, clock);
         }
 
-        internal void Initialize(WorldState? state, GameClock? clock, TradeController? tradeController = null, MonsterFeatureController? banditController = null, GamePRNG? prng = null)
+        internal void Initialize(WorldState? state, GameClock? clock, TradeController? tradeController = null, MonsterFeatureController? monsterController = null, GamePRNG? prng = null)
         {
             if (_clock != null)
                 _clock.Advanced -= OnClockAdvanced;
@@ -85,7 +85,7 @@ namespace SettlersOfIdlestan.Controller.Island
             _state = state;
             _clock = clock;
             _tradeController = tradeController;
-            _banditController = banditController;
+            _monsterController = monsterController;
             if (prng != null) _prng = prng;
             _productionCache.Clear();
 
@@ -123,7 +123,7 @@ namespace SettlersOfIdlestan.Controller.Island
                     if (!hexBlocked.TryGetValue(hex, out bool blocked))
                     {
                         blocked = _state.Features.Any(f => f.Position.Equals(hex) && f.BlocksHarvest)
-                            || _banditController?.HasDepartureCooldown(hex, now) == true;
+                            || _monsterController?.HasDepartureCooldown(hex, now) == true;
                         hexBlocked[hex] = blocked;
                     }
                     if (blocked) continue;
@@ -428,7 +428,7 @@ namespace SettlersOfIdlestan.Controller.Island
 
             if (_state.Features.Any(f => f.Position.Equals(hex) && f.BlocksHarvest))
                 return false;
-            if (_banditController?.HasDepartureCooldown(hex, now) == true)
+            if (_monsterController?.HasDepartureCooldown(hex, now) == true)
                 return false;
 
             var civMap = _state.HarvestLastTimesByCivilization;

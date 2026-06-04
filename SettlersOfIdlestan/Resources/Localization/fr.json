@@ -290,7 +290,7 @@
   "hex_tooltip_auto": "Auto",
   "hex_tooltip_ready": "Prêt!",
   "hex_tooltip_bandit_info": "⚔ Bandit — récolte bloquée ({0}/{1} PV)",
-  "hex_tooltip_bandit_cooldown": "⚔ Récupération après pillage",
+  "hex_tooltip_plunder_cooldown": "⚔ Récupération après pillage",
   "hex_tooltip_treasure_trove": "💰 Trésor — construire un avant-poste ici rapporte 10 Or",
   "prestige_no_bandits": "Aucun bandit",
   "tab_research": "Recherche",
