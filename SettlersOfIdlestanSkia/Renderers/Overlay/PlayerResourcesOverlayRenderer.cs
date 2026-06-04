@@ -11,8 +11,6 @@ using Svg.Skia;
 
 namespace SettlersOfIdlestanSkia.Renderers.Overlay;
 
-public enum BarDisplayMode { Island, Prestige, Research }
-
 /// <summary>
 /// Renderer affichant un bandeau avec les ressources du joueur actuel sur toute la hauteur de la fenêtre.
 /// Les ressources s'affichent horizontalement à gauche, avec une icône de menu à droite.
@@ -50,7 +48,6 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
 
     private static readonly SKColor ItemBackground = new SKColor(40, 40, 40, 210);
 
-    public BarDisplayMode Mode { get; set; } = BarDisplayMode.Island;
     public float ResourceStartX { get; set; } = Padding;
 
     public bool Disposed => _disposed;
@@ -134,20 +131,6 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
             return;
 
         _currentTotalTime = context.TotalTime;
-
-        if (Mode == BarDisplayMode.Prestige)
-        {
-            int prestigePoints = mainGameState.PrestigeState?.PrestigePoints ?? 0;
-            DrawPrestigePointsBar(canvas, prestigePoints);
-            return;
-        }
-
-        if (Mode == BarDisplayMode.Research)
-        {
-            int rp = mainGameState.PrestigeState?.TechnologyTree.ResearchPoints ?? 0;
-            DrawResearchPointsBar(canvas, rp);
-            return;
-        }
 
         var WorldState = mainGameState.CurrentWorldState;
         if (WorldState == null)

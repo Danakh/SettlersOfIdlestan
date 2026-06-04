@@ -189,8 +189,6 @@ public sealed class OverlayRenderer : IGameRenderer
             _playerResourcesOverlayRenderer.ResourceStartX = PlayerResourcesOverlayRenderer.Padding;
         }
 
-        _playerResourcesOverlayRenderer.Mode = BarDisplayMode.Island;
-
         bool onResearchTab    = _activeTab == TabResearch    && _hasResearchTab;
         bool onPrestigeTab    = _activeTab == TabPrestige;
         bool onHistoryTab     = _activeTab == TabStats;
@@ -287,8 +285,6 @@ public sealed class OverlayRenderer : IGameRenderer
 
     private void CheckResourceBarTooltip()
     {
-        if (_playerResourcesOverlayRenderer.Mode != BarDisplayMode.Island) return;
-
         var hoveredResource = _playerResourcesOverlayRenderer.GetResourceAtPoint(_lastPointerPosition);
         if (!hoveredResource.HasValue) return;
 
