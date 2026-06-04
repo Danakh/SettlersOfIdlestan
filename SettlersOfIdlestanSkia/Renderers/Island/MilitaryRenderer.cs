@@ -2,7 +2,9 @@
 using Svg.Skia;
 using SettlersOfIdlestan.Controller.Military;
 using SettlersOfIdlestan.Model.HexGrid;
+using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestanSkia.Core;
+using SettlersOfIdlestanSkia.Renderers.Debug;
 using SettlersOfIdlestanSkia.Services;
 using System.Collections.Generic;
 using System.Linq;
@@ -21,6 +23,7 @@ public class MilitaryRenderer : HexBasedRenderer, IGameRenderer
     private sealed class MilitaryParticle
     {
         public List<SKPoint> Path = new();
+        public List<Vertex>? VertexPath;
         public float Progress;
     }
 
@@ -120,7 +123,7 @@ public class MilitaryRenderer : HexBasedRenderer, IGameRenderer
     {
         if (vertexPath.Count == 0) return;
         var pathPoints = vertexPath.Select(v => VertexToIsland(v)).ToList();
-        _reinforceParticles.Add(new MilitaryParticle { Path = pathPoints, Progress = 0f });
+        _reinforceParticles.Add(new MilitaryParticle { Path = pathPoints, VertexPath = vertexPath, Progress = 0f });
     }
 
     public void Render(SKCanvas canvas, GameRenderContext context)
@@ -129,8 +132,20 @@ public class MilitaryRenderer : HexBasedRenderer, IGameRenderer
         DrawDragInteraction(canvas, context);
 
         float dt = context.DeltaTime;
-        AdvanceParticles(canvas, _particles, dt, reinforce: false);
-        AdvanceParticles(canvas, _reinforceParticles, dt, reinforce: true);
+
+        IslandMap? visibleMap = null;
+        var worldState = _gameControllerService?.CurrentWorldState;
+        if (worldState != null)
+        {
+            if (DebugSettings.ShowFullMap)
+                visibleMap = worldState.CurrentViewedMap;
+            else if (worldState.GetVisibleIslandMapsForZ(worldState.CurrentViewedLayer)
+                .TryGetValue(worldState.PlayerCivilization.Index, out var vm))
+                visibleMap = vm;
+        }
+
+        AdvanceParticles(canvas, _particles, dt, reinforce: false, visibleMap: null);
+        AdvanceParticles(canvas, _reinforceParticles, dt, reinforce: true, visibleMap: visibleMap);
     }
 
     private void DrawFlowLines(SKCanvas canvas)
@@ -230,7 +245,7 @@ public class MilitaryRenderer : HexBasedRenderer, IGameRenderer
         canvas.DrawPath(path, _arrowPaint);
     }
 
-    private void AdvanceParticles(SKCanvas canvas, List<MilitaryParticle> particles, float dt, bool reinforce)
+    private void AdvanceParticles(SKCanvas canvas, List<MilitaryParticle> particles, float dt, bool reinforce, IslandMap? visibleMap)
     {
         for (int i = particles.Count - 1; i >= 0; i--)
         {
@@ -242,6 +257,17 @@ public class MilitaryRenderer : HexBasedRenderer, IGameRenderer
             float t = p.Progress * segments;
             int seg = Math.Min((int)t, segments - 1);
             float segT = Smoothstep(Math.Clamp(t - seg, 0f, 1f));
+
+            if (visibleMap != null && p.VertexPath != null && p.VertexPath.Count > 1)
+            {
+                var vFrom = p.VertexPath[seg];
+                var vTo = p.VertexPath[Math.Min(seg + 1, p.VertexPath.Count - 1)];
+                if (!IsSegmentVisible(vFrom, vTo, visibleMap))
+                {
+                    if (p.Progress >= 1f) particles.RemoveAt(i);
+                    continue;
+                }
+            }
 
             var from = p.Path[seg];
             var to = p.Path[Math.Min(seg + 1, p.Path.Count - 1)];
@@ -258,6 +284,22 @@ public class MilitaryRenderer : HexBasedRenderer, IGameRenderer
             if (p.Progress >= 1f)
                 particles.RemoveAt(i);
         }
+    }
+
+    private static bool IsSegmentVisible(Vertex v1, Vertex v2, IslandMap visibleMap)
+    {
+        if (v1.Z != visibleMap.Z) return false;
+        var v1Hexes = v1.GetHexes();
+        var v2Hexes = v2.GetHexes();
+        int sharedCount = 0;
+        foreach (var h1 in v1Hexes)
+            foreach (var h2 in v2Hexes)
+                if (h1.Equals(h2))
+                {
+                    if (!visibleMap.HasTile(h1)) return false;
+                    sharedCount++;
+                }
+        return sharedCount > 0;
     }
 
     private void DrawIcon(SKCanvas canvas, SKPoint center, float alpha)
