@@ -481,7 +481,7 @@ public class MilitaryController
                 city.FlowTarget = null;
     }
 
-    public City? FindNearbyEnemyCity(City attackerCity, Civilization attackerCiv)
+    public City? FindNearbyEnemyCity(City attackerCity, Civilization attackerCiv, IReadOnlyCollection<int>? targetCivIndices = null)
     {
         int range = CityAttackRange(attackerCiv);
         City? closest = null;
@@ -490,6 +490,7 @@ public class MilitaryController
         foreach (var defenderCiv in _state!.Civilizations)
         {
             if (defenderCiv.Index == attackerCiv.Index) continue;
+            if (targetCivIndices != null && targetCivIndices.Count > 0 && !targetCivIndices.Contains(defenderCiv.Index)) continue;
             foreach (var defenderCity in defenderCiv.Cities)
             {
                 if (defenderCity.Position.Z != attackerCity.Position.Z) continue;
