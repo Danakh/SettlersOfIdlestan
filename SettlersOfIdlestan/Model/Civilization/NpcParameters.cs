@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using SettlersOfIdlestan.Model.GameplayModifier;
 
 namespace SettlersOfIdlestan.Model.Civilization;
 
@@ -28,4 +29,10 @@ public class NpcParameters
     /// sont limitées à ces civilisations (agressivité ciblée plutôt que globale).
     /// </summary>
     public List<int> WarEnemyCivIndices { get; set; } = new();
+
+    /// <summary>
+    /// Modificateurs persistants spécifiques à ce NPC (ex: civilisations agressives underworld).
+    /// Quand non-null, remplace les modificateurs NPC standard lors du SetupModifierAggregator.
+    /// </summary>
+    public List<Modifier>? ExtraModifiers { get; set; }
 }

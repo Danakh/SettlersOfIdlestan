@@ -63,8 +63,11 @@ namespace SettlersOfIdlestan.Controller.Island
         public const long SeaportGenerationCooldownTicks = 1000L;
         // 60 s × 100 ticks/s
         public const long MarketGoldGenerationCooldownTicks = 6000L;
+        // 1 s × 100 ticks/s
+        public const long PassiveResourceGenerationIntervalTicks = 100L;
 
         private GamePRNG _prng = new();
+        private long _lastPassiveGenTick = 0;
 
         private readonly record struct ProductionEntry(HexCoord Hex, City City, Building Building, Resource Resource);
         private readonly System.Collections.Generic.Dictionary<int, System.Collections.Generic.List<ProductionEntry>> _productionCache = new();
@@ -100,6 +103,8 @@ namespace SettlersOfIdlestan.Controller.Island
             try { PerformSeaportGenerations(); }
             catch { }
             try { PerformMarketGoldGenerations(); }
+            catch { }
+            try { PerformPassiveResourceGenerations(e.CurrentTick); }
             catch { }
         }
 
@@ -262,6 +267,26 @@ namespace SettlersOfIdlestan.Controller.Island
                     civ.AddResource(Resource.Gold, 1);
                     market.LastGoldGenerationTick = now;
                     OnRandomResourceGenerated?.Invoke(this, new MarketGenerationEventArgs(civ.Index, Resource.Gold, city.Position));
+                }
+            }
+        }
+
+        private void PerformPassiveResourceGenerations(long currentTick)
+        {
+            if (_state == null) return;
+            if (currentTick - _lastPassiveGenTick < PassiveResourceGenerationIntervalTicks) return;
+            _lastPassiveGenTick = currentTick;
+
+            foreach (var civ in _state.Civilizations)
+            {
+                foreach (Resource resource in Enum.GetValues<Resource>())
+                {
+                    int amount = civ.ModifierAggregator.ApplyModifiers(
+                        ECategory.PASSIVE_RESOURCE_GENERATION, resource.ToString(), 0);
+                    if (amount > 0)
+                    {
+                        try { civ.AddResource(resource, amount); } catch { }
+                    }
                 }
             }
         }

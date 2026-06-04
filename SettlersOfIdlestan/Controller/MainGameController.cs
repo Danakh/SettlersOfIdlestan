@@ -271,7 +271,12 @@ namespace SettlersOfIdlestan.Controller
             var npcModifiers = NpcModifierSetMaker.Create(maxTechTier: 3, maxPrestigeDistance: 2);
 
             foreach (var civ in WorldState!.Civilizations.Where(c => c.IsNpc))
-                civ.SetupModifierAggregator(civ.TechnologyTree, npcModifiers, new UniqueBuildingsModifierProvider(civ));
+            {
+                if (civ.NpcParameters?.ExtraModifiers is { Count: > 0 } extras)
+                    civ.SetupModifierAggregator(civ.TechnologyTree, new StaticModifierProvider(extras), new UniqueBuildingsModifierProvider(civ));
+                else
+                    civ.SetupModifierAggregator(civ.TechnologyTree, npcModifiers, new UniqueBuildingsModifierProvider(civ));
+            }
 
             _prestigeModifierProvider?.Dispose();
             _prestigeModifierProvider = new PrestigeModifierProvider(prestigeState, PrestigeMapController.DefaultMap);
