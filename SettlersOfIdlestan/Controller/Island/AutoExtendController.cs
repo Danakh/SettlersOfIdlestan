@@ -76,6 +76,7 @@ public class AutoExtendController
             _state.RecalculateVisibleIslandMap(civIndex);
 
         if (layerState.ArrivalVertex == null) return;
+        if (civIndex != _state.PlayerCivilization.Index) return;
 
         foreach (var newHex in newHexes)
             TrySpawnAggressiveCivilization(newHex, layerState, playerVisibleHexesBefore, z);
