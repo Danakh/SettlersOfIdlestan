@@ -1,3 +1,4 @@
+using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.IslandMap;
 
 namespace SettlersOfIdlestan.Model.Buildings;
@@ -16,4 +17,9 @@ public class Watchtower : Building
         { Resource.Stone, 20 },
         { Resource.Wood, 10 },
     };
+
+    public override bool IsBuildingAvailableForCity(IslandMap.IslandMap map, City city)
+    {
+        return (map.Z == IslandMap.IslandMap.SurfaceLayer) && base.IsBuildingAvailableForCity(map, city);
+    }
 }
