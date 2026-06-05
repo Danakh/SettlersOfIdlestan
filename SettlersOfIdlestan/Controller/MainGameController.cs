@@ -244,6 +244,7 @@ namespace SettlersOfIdlestan.Controller
         private void OnBuildingChangedInvalidateHarvestCache(object? sender, BuildingBuiltEventArgs e)
             => HarvestController.InvalidateProductionCache();
 
+
         private void OnCityBuiltInvalidateHarvestCache(object? sender, OutpostAutoBuiltEventArgs e)
         {
             FeatureController.RefreshContestedTerritories();
@@ -273,9 +274,9 @@ namespace SettlersOfIdlestan.Controller
             foreach (var civ in WorldState!.Civilizations.Where(c => c.IsNpc))
             {
                 if (civ.NpcParameters?.ExtraModifiers is { Count: > 0 } extras)
-                    civ.SetupModifierAggregator(civ.TechnologyTree, new StaticModifierProvider(extras), new UniqueBuildingsModifierProvider(civ));
+                    civ.SetupModifierAggregator(civ.TechnologyTree, new StaticModifierProvider(extras), new UniqueBuildingsModifierProvider());
                 else
-                    civ.SetupModifierAggregator(civ.TechnologyTree, npcModifiers, new UniqueBuildingsModifierProvider(civ));
+                    civ.SetupModifierAggregator(civ.TechnologyTree, npcModifiers, new UniqueBuildingsModifierProvider());
             }
 
             _prestigeModifierProvider?.Dispose();
@@ -284,7 +285,7 @@ namespace SettlersOfIdlestan.Controller
             playerCiv.SetupModifierAggregator(
                 playerCiv.TechnologyTree,
                 _prestigeModifierProvider,
-                new UniqueBuildingsModifierProvider(playerCiv));
+                new UniqueBuildingsModifierProvider());
         }
     }
 }

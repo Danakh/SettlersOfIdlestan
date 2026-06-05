@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using Xunit;
 using SettlersOfIdlestan.Controller;
 using SettlersOfIdlestan.Model.IslandMap;
@@ -18,6 +19,9 @@ namespace SOITests.ControllerTests
             private readonly List<Modifier> _mods;
             public FlatModifierProvider(params Modifier[] mods) => _mods = new(mods);
             public IEnumerable<Modifier> GetModifiers() => _mods;
+#pragma warning disable CS0067
+            public event Action? OnModifiersChanged;
+#pragma warning restore CS0067
         }
 
         [Fact]

@@ -18,11 +18,17 @@ public class PrestigeModifierProvider : IModifierProvider, IDisposable
         RebuildCache();
     }
 
+    public event Action? OnModifiersChanged;
+
     public IEnumerable<Modifier> GetModifiers() => _cache;
 
     public void Dispose() => _map.VertexPurchased -= OnVertexPurchased;
 
-    private void OnVertexPurchased(Vertex _) => RebuildCache();
+    private void OnVertexPurchased(Vertex _)
+    {
+        RebuildCache();
+        OnModifiersChanged?.Invoke();
+    }
 
     private void RebuildCache()
     {

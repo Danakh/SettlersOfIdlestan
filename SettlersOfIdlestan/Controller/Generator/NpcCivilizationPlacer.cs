@@ -131,7 +131,7 @@ public class NpcCivilizationPlacer
         AddStep1ProductionBuildings(map, city);
         city.Buildings.Add(new Market());
         city.Buildings.Add(new Warehouse { Level = 1 });
-        civ.Cities.Add(city);
+        civ.AddCity(city);
         FillMaxResources(civ);
     }
 

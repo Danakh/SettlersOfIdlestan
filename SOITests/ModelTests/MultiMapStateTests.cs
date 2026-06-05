@@ -1,4 +1,4 @@
-﻿using SettlersOfIdlestan.Controller.Island;
+using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
@@ -51,7 +51,7 @@ public class MultiMapStateTests
         var b = new HexCoord(1, 0, IslandMap.SurfaceLayer);
         var c = new HexCoord(0, 1, IslandMap.SurfaceLayer);
         var civ = new Civilization { Index = 0 };
-        civ.Cities.Add(new City(Vertex.Create(a, b, c)) { CivilizationIndex = 0 });
+        civ.AddCity(new City(Vertex.Create(a, b, c)) { CivilizationIndex = 0 });
 
         var state = new WorldState(
             new IslandMap([

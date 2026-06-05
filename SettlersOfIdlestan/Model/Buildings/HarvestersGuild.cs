@@ -5,7 +5,7 @@ using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
 
 namespace SettlersOfIdlestan.Model.Buildings;
 
-public class HarvestersGuild : Building, IModifierProvider
+public class HarvestersGuild : Building, IUniqueBuilding
 {
     private static readonly BuildingType[] ProductionBuildingTypes =
     [
@@ -50,7 +50,7 @@ public class HarvestersGuild : Building, IModifierProvider
         _ => new ResourceSet()
     };
 
-    public IEnumerable<Modifier> GetModifiers()
+    public IEnumerable<Modifier> GetUniqueBuildingModifiers()
     {
         if (Level <= 0) yield break;
 

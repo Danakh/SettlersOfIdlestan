@@ -1,4 +1,4 @@
-﻿using SettlersOfIdlestan.Controller.Island;
+using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
@@ -76,7 +76,7 @@ public class BuildersGuildAutomationTests
 
         // City at the vertex shared by center, east and north-east
         var cityVertex = Vertex.Create(C, R1_E, R1_NE);
-        civ.Cities.Add(new City(cityVertex) { CivilizationIndex = 0 });
+        civ.AddCity(new City(cityVertex) { CivilizationIndex = 0 });
 
         return new WorldState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
     }

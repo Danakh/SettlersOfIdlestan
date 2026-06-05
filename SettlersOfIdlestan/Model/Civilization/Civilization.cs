@@ -3,6 +3,7 @@ using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.GameplayModifier;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json.Serialization;
 using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
 
@@ -34,10 +35,30 @@ public class Civilization
     /// </summary>
     public NpcParameters? NpcParameters { get; set; }
 
+    private List<City> _cities = new();
+
     /// <summary>
-    /// Gets or sets the list of cities in the civilization.
+    /// Liste des villes de la civilisation — lecture seule ; utiliser AddCity / RemoveCity pour muter.
     /// </summary>
-    public List<City> Cities { get; set; } = new();
+    [JsonIgnore]
+    public IReadOnlyList<City> Cities => _cities;
+
+    // Utilisé uniquement par la sérialisation JSON.
+    [JsonPropertyName("Cities")]
+    [JsonInclude]
+    public List<City> CitiesSerialized
+    {
+        get => _cities;
+        private set => _cities = value ?? new();
+    }
+
+    public void AddCity(City city) => _cities.Add(city);
+
+    public void RemoveCity(City city)
+    {
+        _cities.Remove(city);
+        RebuildUniqueBuildingsModifiers();
+    }
 
     /// <summary>
     /// Gets or sets the list of roads in the civilization.
@@ -60,6 +81,9 @@ public class Civilization
     [JsonIgnore]
     public ModifierAggregator ModifierAggregator { get; } = new();
 
+    [JsonIgnore]
+    public UniqueBuildingsModifierProvider? UniqueBuildingsModifierProvider { get; private set; }
+
     /// <summary>
     /// Registers the given providers on the aggregator, replacing any previous registration.
     /// Call this after deserialization or when the set of providers changes.
@@ -67,8 +91,28 @@ public class Civilization
     public void SetupModifierAggregator(params IModifierProvider[] providers)
     {
         ModifierAggregator.Clear();
+        UniqueBuildingsModifierProvider = null;
         foreach (var p in providers)
+        {
             ModifierAggregator.Register(p);
+            if (p is UniqueBuildingsModifierProvider ubmp)
+                UniqueBuildingsModifierProvider = ubmp;
+        }
+        RebuildUniqueBuildingsModifiers();
+    }
+
+    /// <summary>
+    /// Reconstruit le cache des modifiers issus des bâtiments IUniqueBuilding de toutes les villes.
+    /// À appeler après construction/amélioration d'un IUniqueBuilding, ou après la perte d'une ville.
+    /// </summary>
+    public void RebuildUniqueBuildingsModifiers()
+    {
+        if (UniqueBuildingsModifierProvider == null) return;
+        var modifiers = _cities
+            .SelectMany(c => c.Buildings)
+            .OfType<IUniqueBuilding>()
+            .SelectMany(b => b.GetUniqueBuildingModifiers());
+        UniqueBuildingsModifierProvider.Rebuild(modifiers);
     }
 
     /// <summary>

@@ -1,6 +1,7 @@
-﻿using SettlersOfIdlestan.Controller.Island;
+using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Controller.Military;
 using SettlersOfIdlestan.Model.Buildings;
+using SettlersOfIdlestan.Model.GameplayModifier;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
@@ -25,7 +26,6 @@ namespace SOITests.ControllerTests
 
         /// <summary>
         /// Ville au vertex Vertex(NE, East, NE11) avec une caserne.
-        /// Seul MilitaryController est enregistré ; BanditController ne l'est pas,
         /// donc bandit.LastMovedTick reste à 0 et le combat se déclenche à chaque
         /// SimulateAdvance(CombatIntervalTicks).
         /// </summary>
@@ -47,7 +47,7 @@ namespace SOITests.ControllerTests
             var vertex = Vertex.Create(NE, East, NE11);
             var city = new City(vertex) { CivilizationIndex = 0, Soldiers = initialSoldiers };
             city.Buildings.Add(new Barracks { Level = barracksLevel });
-            civ.Cities.Add(city);
+            civ.AddCity(city);
 
             var state = new WorldState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
 
@@ -296,7 +296,7 @@ namespace SOITests.ControllerTests
             double baseRate = controller.GetSoldierProductionRate(city, civ);
 
             var academy = new MilitaryAcademy { Level = 4 };
-            civ.SetupModifierAggregator(academy);
+            civ.SetupModifierAggregator(new StaticModifierProvider(academy.GetUniqueBuildingModifiers()));
 
             double newRate = controller.GetSoldierProductionRate(city, civ);
 
@@ -310,7 +310,7 @@ namespace SOITests.ControllerTests
             var civ = state.Civilizations[0];
 
             var academy = new MilitaryAcademy { Level = 4 };
-            civ.SetupModifierAggregator(academy);
+            civ.SetupModifierAggregator(new StaticModifierProvider(academy.GetUniqueBuildingModifiers()));
 
             // Avec UnitProductionSpeed=2.0, l'intervalle effectif est 500 ticks
             clock.SimulateAdvance(MilitaryController.SoldierProductionIntervalTicks / 2);

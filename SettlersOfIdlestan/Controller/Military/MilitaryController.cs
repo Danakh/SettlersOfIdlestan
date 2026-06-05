@@ -445,7 +445,7 @@ public class MilitaryController
         foreach (var (civ, city) in citiesToDestroy)
         {
             city.RaiseDestroyed();
-            civ.Cities.Remove(city);
+            civ.RemoveCity(city);
             _roadController?.OnCityDestroyed(civ, city.Position);
             NotifyCityDestroyed(city.Position, civ.Index);
             _state!.RecalculateVisibleIslandMaps();

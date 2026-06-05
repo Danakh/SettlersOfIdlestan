@@ -1,4 +1,4 @@
-﻿using SettlersOfIdlestan.Controller.Expand;
+using SettlersOfIdlestan.Controller.Expand;
 using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Controller.Military;
 using SettlersOfIdlestan.Model.Buildings;
@@ -49,7 +49,7 @@ public class CivilizationLowStockTests
         var city = new City(CityVertex) { CivilizationIndex = 0, Soldiers = 0 };
         city.Buildings.Add(new TownHall { Level = 4 }); // city.Level=4 → oreMax = 5*(4-2) = 10
         city.Buildings.Add(new Barracks { Level = 2 });
-        civ.Cities.Add(city);
+        civ.AddCity(city);
 
         var state = new WorldState(MinimalMap(), [civ], AtlasController.InvalidIslandId);
         var clock = new GameClock();
@@ -110,7 +110,7 @@ public class CivilizationLowStockTests
         var civ = new Civilization { Index = 0 };
         civ.Resources[Resource.Food] = initialFood;
         var city = new City(CityVertex) { CivilizationIndex = 0, Soldiers = soldiers };
-        civ.Cities.Add(city);
+        civ.AddCity(city);
 
         var state = new WorldState(MinimalMap(), [civ], AtlasController.InvalidIslandId);
         var clock = new GameClock();
@@ -176,7 +176,7 @@ public class CivilizationLowStockTests
         var lab = new Laboratory { Level = 1, ActivationStatus = ActivationStatus.ACTIVE };
         var city = new City(CityVertex) { CivilizationIndex = 0 };
         city.Buildings.Add(lab);
-        civ.Cities.Add(city);
+        civ.AddCity(city);
 
         var state = new WorldState(MinimalMap(), [civ], AtlasController.InvalidIslandId);
         var prestigeState = new PrestigeState(state);

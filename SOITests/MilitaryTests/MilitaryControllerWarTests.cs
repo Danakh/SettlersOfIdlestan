@@ -1,4 +1,4 @@
-﻿using SettlersOfIdlestan.Controller.Island;
+using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Controller.Military;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
@@ -44,11 +44,11 @@ public class MilitaryControllerWarTests
         var cityA = new City(VertexA) { CivilizationIndex = 0, Soldiers = soldiersA };
         var barracksA = new Barracks { Level = 2 };
         cityA.Buildings.Add(barracksA);
-        civA.Cities.Add(cityA);
+        civA.AddCity(cityA);
 
         var civB = new Civilization { Index = 1 };
         var cityB = new City(VertexB) { CivilizationIndex = 1 };
-        civB.Cities.Add(cityB);
+        civB.AddCity(cityB);
 
         var state = new WorldState(BuildMap(), [civA, civB], AtlasController.InvalidIslandId);
         var clock = new GameClock();
@@ -96,7 +96,7 @@ public class MilitaryControllerWarTests
     {
         var civA = new Civilization { Index = 0 };
         var cityA = new City(VertexA) { CivilizationIndex = 0 };
-        civA.Cities.Add(cityA);
+        civA.AddCity(cityA);
 
         var state = new WorldState(BuildMap(), [civA], AtlasController.InvalidIslandId);
         var clock = new GameClock();
@@ -114,11 +114,11 @@ public class MilitaryControllerWarTests
 
         var civA = new Civilization { Index = 0 };
         var cityA = new City(VertexA) { CivilizationIndex = 0 };
-        civA.Cities.Add(cityA);
+        civA.AddCity(cityA);
 
         var civB = new Civilization { Index = 1 };
         var cityB = new City(farVertexB) { CivilizationIndex = 1 };
-        civB.Cities.Add(cityB);
+        civB.AddCity(cityB);
 
         var map = new IslandMap([
             new HexTile(new HexCoord(0, 0, IslandMap.SurfaceLayer), TerrainType.Plain),
@@ -162,12 +162,12 @@ public class MilitaryControllerWarTests
         var cityA = new City(VertexA) { CivilizationIndex = 0, Soldiers = 10 };
         var barracksA = new Barracks { Level = 2 };
         cityA.Buildings.Add(barracksA);
-        civA.Cities.Add(cityA);
+        civA.AddCity(cityA);
 
         var civB = new Civilization { Index = 1 };
         var cityB = new City(VertexB) { CivilizationIndex = 1 };
         cityB.Buildings.Add(new TownHall { Level = 1 });
-        civB.Cities.Add(cityB);
+        civB.AddCity(cityB);
 
         cityA.FlowTarget = VertexB; // cible de renfort pour déclencher la logique
 

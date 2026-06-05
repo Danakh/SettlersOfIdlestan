@@ -17,7 +17,7 @@ public class VisibleIslandMapTests
         var hidden = new HexCoord(2, 2, IslandMap.SurfaceLayer);
         var map = CreateMap(a, b, c, hidden);
         var civilization = new Civilization();
-        civilization.Cities.Add(new City(Vertex.Create(a, b, c)));
+        civilization.AddCity(new City(Vertex.Create(a, b, c)));
 
         var visibleMap = new VisibleIslandMap(map, civilization);
 
@@ -51,7 +51,7 @@ public class VisibleIslandMapTests
         var c = new HexCoord(0, 1, IslandMap.SurfaceLayer);
         var map = CreateMap(a);
         var civilization = new Civilization();
-        civilization.Cities.Add(new City(Vertex.Create(a, b, c)));
+        civilization.AddCity(new City(Vertex.Create(a, b, c)));
 
         var visibleMap = new VisibleIslandMap(map, civilization);
 

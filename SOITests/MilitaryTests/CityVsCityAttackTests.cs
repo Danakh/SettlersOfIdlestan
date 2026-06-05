@@ -1,4 +1,4 @@
-﻿using SettlersOfIdlestan.Controller.Island;
+using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Controller.Military;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
@@ -40,13 +40,13 @@ public class CityVsCityAttackTests
         var cityA = new City(VertexA) { CivilizationIndex = 0, Soldiers = soldiersA };
         var barracksA = new Barracks { Level = 2 };
         cityA.Buildings.Add(barracksA);
-        civA.Cities.Add(cityA);
+        civA.AddCity(cityA);
 
         var civB = new Civilization { Index = 1 };
         var cityB = new City(VertexB) { CivilizationIndex = 1 };
         if (buildingsB != null)
             foreach (var b in buildingsB) cityB.Buildings.Add(b);
-        civB.Cities.Add(cityB);
+        civB.AddCity(cityB);
 
         var state = new WorldState(BuildMap(), [civA, civB], AtlasController.InvalidIslandId);
         var clock = new GameClock();

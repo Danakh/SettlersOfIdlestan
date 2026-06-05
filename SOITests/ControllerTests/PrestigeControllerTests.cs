@@ -1,4 +1,4 @@
-﻿using Xunit;
+using Xunit;
 using SettlersOfIdlestan.Controller;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Buildings;
@@ -203,7 +203,7 @@ namespace SOITests.ControllerTests
             var civ = new SettlersOfIdlestan.Model.Civilization.Civilization { Index = 0 };
             var vertex = Vertex.Create(new HexCoord(0, 0, IslandMap.SurfaceLayer), new HexCoord(1, 0, IslandMap.SurfaceLayer), new HexCoord(0, 1, IslandMap.SurfaceLayer));
             var city = new SettlersOfIdlestan.Model.Civilization.City(vertex) { CivilizationIndex = 0 };
-            civ.Cities.Add(city);
+            civ.AddCity(city);
             return new WorldState(map, new List<SettlersOfIdlestan.Model.Civilization.Civilization> { civ }, AtlasController.InvalidIslandId);
         }
 

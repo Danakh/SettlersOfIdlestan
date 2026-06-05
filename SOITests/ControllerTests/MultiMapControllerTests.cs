@@ -1,4 +1,4 @@
-﻿using SettlersOfIdlestan.Controller.Island;
+using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Controller.Military;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
@@ -60,7 +60,7 @@ public class MultiMapControllerTests
             new HexCoord(0, 0, IslandMap.SurfaceLayer),
             new HexCoord(1, 0, IslandMap.SurfaceLayer),
             new HexCoord(0, 1, IslandMap.SurfaceLayer));
-        enemyCiv.Cities.Add(new City(enemyVertex) { CivilizationIndex = enemyCiv.Index });
+        enemyCiv.AddCity(new City(enemyVertex) { CivilizationIndex = enemyCiv.Index });
         state.Civilizations.Add(enemyCiv);
         state.RecalculateVisibleIslandMaps();
 
@@ -79,7 +79,7 @@ public class MultiMapControllerTests
         var surfaceB = new HexCoord(1, 0, IslandMap.SurfaceLayer);
         var surfaceC = new HexCoord(0, 1, IslandMap.SurfaceLayer);
         var civ = new Civilization { Index = 0 };
-        civ.Cities.Add(new City(Vertex.Create(surfaceA, surfaceB, surfaceC)) { CivilizationIndex = 0 });
+        civ.AddCity(new City(Vertex.Create(surfaceA, surfaceB, surfaceC)) { CivilizationIndex = 0 });
 
         var state = new WorldState(
             new IslandMap([

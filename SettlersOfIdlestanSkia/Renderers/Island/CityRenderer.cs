@@ -188,9 +188,9 @@ public class CityRenderer : HexBasedRenderer, IGameRenderer
     /// <summary>
     /// Dessine les villes d'une civilisation.
     /// </summary>
-    private void DrawCities(SKCanvas canvas, List<City> cities, Civilization civilization, IslandMap visibleMap)
+    private void DrawCities(SKCanvas canvas, IEnumerable<City> cities, Civilization civilization, IslandMap visibleMap)
     {
-        if (cities.Count == 0 || _settlementPaint == null || _cityPaint == null || _borderPaint == null)
+        if (!cities.Any() || _settlementPaint == null || _cityPaint == null || _borderPaint == null)
             return;
 
         // Sélectionne la couleur de la civilisation

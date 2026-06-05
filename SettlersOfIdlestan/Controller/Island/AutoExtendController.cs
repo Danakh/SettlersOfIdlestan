@@ -215,7 +215,7 @@ public class AutoExtendController
             var city = new City(vertex) { CivilizationIndex = newCivIndex };
             PopulateAggressiveCity(city, map);
             city.Soldiers = city.MaxSoldiers + npcCiv.CityMaxSoldiersBonus;
-            npcCiv.Cities.Add(city);
+            npcCiv.AddCity(city);
             layerState.Cities.Add(city);
             citiesPlaced++;
         }

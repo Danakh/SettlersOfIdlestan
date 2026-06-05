@@ -5,7 +5,7 @@ using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
 
 namespace SettlersOfIdlestan.Model.Buildings;
 
-public class ArtisansGuild : Building, IModifierProvider
+public class ArtisansGuild : Building, IUniqueBuilding
 {
     public long LastArtisanBuildTick { get; set; }
 
@@ -35,7 +35,7 @@ public class ArtisansGuild : Building, IModifierProvider
 
     public override ResourceSet GetUpgradeCost(int level) => new ResourceSet();
 
-    public IEnumerable<Modifier> GetModifiers()
+    public IEnumerable<Modifier> GetUniqueBuildingModifiers()
     {
         if (Level <= 0) yield break;
 

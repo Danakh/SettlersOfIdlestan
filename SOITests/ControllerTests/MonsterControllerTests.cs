@@ -62,8 +62,8 @@ namespace SOITests.ControllerTests
             var cityB = new City(vertexB) { CivilizationIndex = 0 };
             cityB.Buildings.Add(new Barracks { Level = activeBarracks ? 1 : 0 });
 
-            civ.Cities.Add(cityA);
-            civ.Cities.Add(cityB);
+            civ.AddCity(cityA);
+            civ.AddCity(cityB);
 
             var state = new WorldState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
             state.AddFeature(new Bandit(Center, 0) { Found = true });
@@ -214,7 +214,7 @@ namespace SOITests.ControllerTests
             var map = new IslandMap(tiles);
             var civ = new Civilization { Index = 0 };
             var city = new City(Vertex.Create(ne, east, Center)) { CivilizationIndex = 0 };
-            civ.Cities.Add(city);
+            civ.AddCity(city);
 
             var state = new WorldState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
             state.AddFeature(new Bandit(Center, 0) { Found = true });
