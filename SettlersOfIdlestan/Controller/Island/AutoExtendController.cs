@@ -6,17 +6,22 @@ namespace SettlersOfIdlestan.Controller.Island;
 
 /// <summary>
 /// Étend automatiquement la carte de l'underworld quand une route touche un hexagone manquant.
-/// Probabilités fixes : 50% Montagne, 50% Désert.
+/// Probabilités : 50% Montagne, 40% Désert, 5% Filon de Mithril, 5% Grotte de Cristal.
 /// </summary>
 public class AutoExtendController
 {
     private WorldState? _state;
     private GamePRNG _prng = new();
 
+    // 20 entrées : 10x Mountain=50%, 8x Desert=40%, 1x MithrilVein=5%, 1x CrystalCave=5%
     private static readonly TerrainType[] TerrainPool = new[]
     {
-        TerrainType.Mountain,
-        TerrainType.Desert,
+        TerrainType.Mountain, TerrainType.Mountain, TerrainType.Mountain, TerrainType.Mountain, TerrainType.Mountain,
+        TerrainType.Mountain, TerrainType.Mountain, TerrainType.Mountain, TerrainType.Mountain, TerrainType.Mountain,
+        TerrainType.Desert,   TerrainType.Desert,   TerrainType.Desert,   TerrainType.Desert,   TerrainType.Desert,
+        TerrainType.Desert,   TerrainType.Desert,   TerrainType.Desert,
+        TerrainType.MithrilVein,
+        TerrainType.CrystalCave,
     };
 
     internal AutoExtendController() { }

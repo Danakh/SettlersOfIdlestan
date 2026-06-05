@@ -61,7 +61,8 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
         { Resource.Ore, new SKColor(69, 69, 69) },         // Gris foncé
         { Resource.Gold, new SKColor(255, 215, 0) },         // Or
         { Resource.Glass, new SKColor(173, 216, 230) },         // Bleu clair
-        { Resource.Crystal, new SKColor(147, 112, 219) } // Violet
+        { Resource.Crystal, new SKColor(147, 112, 219) }, // Violet
+        { Resource.Mithril, new SKColor(100, 180, 230) }  // Bleu acier
     };
 
     public IslandMainRenderer(IConstructionHoverProvider constructionHoverProvider, TooltipRenderer tooltipRenderer, HarvestController harvestController, ResourceManager resourceManager, MilitaryController militaryController, Func<int> currentLayer)

@@ -12,7 +12,8 @@ public enum Resource
     Ore,
     Gold,
     Glass,
-    Crystal
+    Crystal,
+    Mithril
 }
 
 public class ResourceUtils
@@ -32,6 +33,7 @@ public class ResourceUtils
     public static List<Resource> AdvancedResources = new List<Resource>
     {
         Resource.Glass,
-        Resource.Crystal
+        Resource.Crystal,
+        Resource.Mithril
     };
 }

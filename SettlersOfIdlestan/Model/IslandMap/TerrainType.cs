@@ -10,5 +10,7 @@ public enum TerrainType
     Plain,
     Mountain,
     Desert,
-    Water
+    Water,
+    MithrilVein,
+    CrystalCave
 }

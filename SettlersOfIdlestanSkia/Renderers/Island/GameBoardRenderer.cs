@@ -57,8 +57,10 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
         { TerrainType.Hill,     new SKColor(210, 180, 140) },
         { TerrainType.Plain,    new SKColor(144, 238, 144) },
         { TerrainType.Mountain, new SKColor(139, 69, 19) },
-        { TerrainType.Desert,   new SKColor(238, 214, 175) },
-        { TerrainType.Water,    new SKColor(30, 144, 255) },
+        { TerrainType.Desert,      new SKColor(238, 214, 175) },
+        { TerrainType.Water,       new SKColor(30, 144, 255) },
+        { TerrainType.MithrilVein, new SKColor(60, 90, 140) },   // Bleu-gris profond
+        { TerrainType.CrystalCave, new SKColor(185, 130, 220) }, // Violet cristallin
     };
 
     public GameBoardRenderer(HarvestController harvestController, ResourceManager resourceManager)
