@@ -164,6 +164,12 @@ public class CityBuildingService
         return building.Level >= BuildingController.GetMaxLevel(building, SelectedCity.CivilizationIndex);
     }
 
+    public int GetMaxLevel(Building building)
+    {
+        if (SelectedCity == null) return building.GetDefaultMaxLevel();
+        return BuildingController.GetMaxLevel(building, SelectedCity.CivilizationIndex);
+    }
+
     /// <summary>
     /// Returns true if the building could be built/upgraded if resources were available,
     /// ignoring the resource check (but still checking unique constraints and prerequisites).

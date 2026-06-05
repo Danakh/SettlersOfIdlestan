@@ -385,6 +385,18 @@ public class SelectedCityPanelRenderer : IGameRenderer
                 var description = _localization.Get(levelDescriptionKey);
                 if (levelDescriptionKey == description)
                     description = _localization.Get(hoveredBuilding.DescriptionKey);
+
+                if (hoveredBuilding is Market)
+                {
+                    int maxLevel = _cityBuildingService.GetMaxLevel(hoveredBuilding);
+                    if (maxLevel >= 3)
+                        description = _localization.Get("building_market_desc_maxlvl3");
+                    else if (maxLevel >= 2)
+                        description = _localization.Get("building_market_desc_maxlvl2");
+                    else
+                        description = _localization.Get("building_market_desc");
+                }
+
                 var cost = hoveredBuilding.Level == 0 ? hoveredBuilding.GetBuildCost() : hoveredBuilding.GetUpgradeCost(hoveredBuilding.Level + 1);
 
                 var tooltipLines = new List<string> { buildingName, "", description, "" };
