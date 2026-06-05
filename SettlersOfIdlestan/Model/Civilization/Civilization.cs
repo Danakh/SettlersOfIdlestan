@@ -3,6 +3,7 @@ using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.GameplayModifier;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json.Serialization;
 using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
 
@@ -34,41 +35,84 @@ public class Civilization
     /// </summary>
     public NpcParameters? NpcParameters { get; set; }
 
+    private List<City> _cities = new();
+
     /// <summary>
-    /// Gets or sets the list of cities in the civilization.
+    /// Liste des villes de la civilisation — lecture seule ; utiliser AddCity / RemoveCity pour muter.
     /// </summary>
-    public List<City> Cities { get; set; } = new();
+    [JsonIgnore]
+    public IReadOnlyList<City> Cities => _cities;
+
+    // Utilisé uniquement par la sérialisation JSON.
+    [JsonPropertyName("Cities")]
+    [JsonInclude]
+    public List<City> CitiesSerialized
+    {
+        get => _cities;
+        private set => _cities = value ?? new();
+    }
+
+    public void AddCity(City city) => _cities.Add(city);
+
+    public void RemoveCity(City city)
+    {
+        _cities.Remove(city);
+        RebuildUniqueBuildingsModifiers();
+    }
 
     /// <summary>
     /// Gets or sets the list of roads in the civilization.
     /// </summary>
     public List<Road> Roads { get; set; } = new();
 
-    /// <summary>
-    /// Gets or sets the technology tree of the civilization.
-    /// For the player, this is assigned from PrestigeState.TechnologyTree during initialization.
-    /// For NPC civs, this is always a fresh empty tree (NPCs do not accumulate research).
-    /// Not serialized here — the player's tree is persisted in PrestigeState.
-    /// </summary>
-    [JsonIgnore]
-    public TechnologyTree TechnologyTree { get; set; } = new();
+    private TechnologyTree _technologyTree = new();
 
     /// <summary>
-    /// Aggregates modifiers from all providers (TechnologyTree, Prestige, …).
-    /// Must be initialized via <see cref="SetupModifierAggregator"/> before use.
+    /// Gets or sets the technology tree of the civilization.
+    /// Pour le joueur, assigné depuis PrestigeState.TechnologyTree après désérialisation.
+    /// Pour les NPCs, toujours un arbre vide.
     /// </summary>
+    [JsonIgnore]
+    public TechnologyTree TechnologyTree
+    {
+        get => _technologyTree;
+        set
+        {
+            ModifierAggregator.Replace(_technologyTree, value);
+            _technologyTree = value;
+        }
+    }
+
     [JsonIgnore]
     public ModifierAggregator ModifierAggregator { get; } = new();
 
-    /// <summary>
-    /// Registers the given providers on the aggregator, replacing any previous registration.
-    /// Call this after deserialization or when the set of providers changes.
-    /// </summary>
-    public void SetupModifierAggregator(params IModifierProvider[] providers)
+    [JsonIgnore]
+    public UniqueBuildingsModifierProvider UniqueBuildingsModifierProvider { get; } = new();
+
+    public Civilization()
     {
-        ModifierAggregator.Clear();
-        foreach (var p in providers)
-            ModifierAggregator.Register(p);
+        ModifierAggregator.Register(_technologyTree);
+        ModifierAggregator.Register(UniqueBuildingsModifierProvider);
+    }
+
+    /// <summary>
+    /// Ajoute un provider supplémentaire à l'agrégateur (prestige, NPC bonuses…).
+    /// Les providers par défaut (TechnologyTree, UniqueBuildingsModifierProvider) sont toujours présents.
+    /// </summary>
+    public void AddCustomAggregator(IModifierProvider provider)
+        => ModifierAggregator.Register(provider);
+
+    /// <summary>
+    /// Reconstruit le cache des modifiers issus des bâtiments IUniqueBuilding de toutes les villes.
+    /// À appeler après construction/amélioration d'un IUniqueBuilding, ou après la perte d'une ville.
+    /// </summary>
+    public void RebuildUniqueBuildingsModifiers()
+    {
+        var modifiers = _cities
+            .SelectMany(c => c.Buildings)
+            .OfType<IUniqueBuilding>()
+            .SelectMany(b => b.GetUniqueBuildingModifiers());
+        UniqueBuildingsModifierProvider.Rebuild(modifiers);
     }
 
     /// <summary>

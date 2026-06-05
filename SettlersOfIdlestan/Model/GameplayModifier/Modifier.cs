@@ -56,6 +56,8 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             UNLOCK_AUTO_REINFORCEMENT,
             /// <summary>Flags que l'attaque automatique est déverrouillée pour la civilisation.</summary>
             UNLOCK_AUTO_ATTACK,
+            /// <summary>Bonus fixe de génération de ressource par cycle (1 000 ticks). SubCategory = Resource enum name.</summary>
+            PASSIVE_RESOURCE_GENERATION,
         }
 
         public enum EType

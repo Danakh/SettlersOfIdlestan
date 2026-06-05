@@ -1,4 +1,4 @@
-﻿using SettlersOfIdlestan.Controller.Island;
+using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Controller.Military;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
@@ -33,7 +33,7 @@ public class CityDefenseTests
         civ.Resources[Resource.Stone] = 9999;
         var city = new City(CityVertex) { CivilizationIndex = 0 };
         foreach (var b in buildings) city.Buildings.Add(b);
-        civ.Cities.Add(city);
+        civ.AddCity(city);
 
         var state = new WorldState(map, [civ], AtlasController.InvalidIslandId);
         var clock = new GameClock();

@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.HexGrid;
+using System.Text.Json.Serialization;
 
 namespace SettlersOfIdlestan.Model.IslandMap;
 
@@ -24,6 +25,12 @@ public class LayerState
     /// Quand true, la construction d'une route génère automatiquement les hexagones manquants adjacents.
     /// </summary>
     public bool AutoExtend { get; set; }
+
+    /// <summary>
+    /// Vertex d'arrivée du joueur sur cette couche (premier avant-poste).
+    /// Null pour les couches sans point d'entrée fixe.
+    /// </summary>
+    public Vertex? ArrivalVertex { get; set; }
 
     [System.Text.Json.Serialization.JsonConstructor]
     public LayerState()
@@ -65,6 +72,7 @@ public class LayerState
             Map = map,
             Cities = new List<City> { outpost },
             AutoExtend = true,
+            ArrivalVertex = outpostVertex,
         };
     }
 }

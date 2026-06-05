@@ -180,7 +180,6 @@ public class BuildingControllerTests
     {
         var (state, controller, cityVertex) = CreateTestSetup();
         var civ = state.Civilizations[0];
-        civ.SetupModifierAggregator(civ.TechnologyTree);
 
         var city = civ.Cities[0];
 
@@ -203,6 +202,7 @@ public class BuildingControllerTests
             SettlersOfIdlestan.Model.GameplayModifier.Modifier.EType.ADDITIVE,
             3);
         civ.TechnologyTree.Modifiers.Add(modifier);
+        civ.TechnologyTree.NotifyModifiersChanged();
 
         // Check max level after modifier (should be 3: 0 + 3)
         int maxLevelAfter = controller.GetMaxLevel(library, 0);

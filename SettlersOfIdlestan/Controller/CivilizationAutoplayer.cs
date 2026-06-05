@@ -206,6 +206,78 @@ namespace SettlersOfIdlestan.Controller
             return didSomething;
         }
 
+        /// <summary>Step 0 : expansion seule — outpost si un vertex est disponible, sinon route vers un vertex prospectif.
+        /// N'effectue aucune construction de bâtiments.</summary>
+        public bool TryStep0Once()
+        {
+            bool didSomething = false;
+
+            var possibleConstructionVertex = _cityBuilderController.GetBuildableVertices(_civ.Index).FirstOrDefault();
+            if (possibleConstructionVertex != null)
+            {
+                if (TryBuildOutpostOnce(possibleConstructionVertex, withGrind: true))
+                    didSomething = true;
+                return didSomething;
+            }
+
+            bool buildableRoadFound = false;
+            var candidates = GetProspectiveVertices();
+            if (candidates.Count > 0)
+            {
+                var networkVertices = new HashSet<Vertex>(_civ.Cities
+                    .Select(c => c.Position)
+                    .Where(v => candidates.Any(candidate => candidate.Z == v.Z)));
+                foreach (var road in _civ.Roads)
+                    foreach (var v in road.Position.GetVertices())
+                        if (candidates.Any(candidate => candidate.Z == v.Z))
+                            networkVertices.Add(v);
+
+                Vertex? bestTarget = null;
+                Vertex? bestFrom = null;
+                int bestDist = int.MaxValue;
+                foreach (var candidate in candidates)
+                {
+                    foreach (var nv in networkVertices)
+                    {
+                        if (nv.Z != candidate.Z) continue;
+                        int dist = nv.EdgeDistanceTo(candidate);
+                        if (dist < bestDist)
+                        {
+                            bestDist = dist;
+                            bestTarget = candidate;
+                            bestFrom = nv;
+                        }
+                    }
+                }
+
+                if (bestTarget != null && bestFrom != null)
+                {
+                    var buildableRoads = _roadController.GetBuildableRoads(_civ.Index);
+                    var path = HexGridPathfinder.FindVertexPath(bestFrom, bestTarget);
+                    var shared = path[0].GetHexes().Intersect(path[1].GetHexes()).ToArray();
+                    Debug.Assert(shared.Length == 2);
+                    var edge = Edge.Create(shared[0], shared[1]);
+                    if (buildableRoads.Any(r => r.Position.Equals(edge)))
+                    {
+                        buildableRoadFound = true;
+                        if (TryBuildRoadOnce(edge, withGrind: true))
+                            didSomething = true;
+                    }
+                }
+            }
+
+            if (!buildableRoadFound)
+            {
+                var nextRoad = _roadController.GetBuildableRoads(_civ.Index)
+                    .OrderByDescending(r => r.DistanceToNearestCity)
+                    .FirstOrDefault();
+                if (nextRoad != null && TryBuildRoadOnce(nextRoad.Position, withGrind: true))
+                    didSomething = true;
+            }
+
+            return didSomething;
+        }
+
         /// <summary>Step militaire : construit Palissade et Caserne dans les villes proches d'une civilisation ennemie (&lt; 5 edges).</summary>
         public bool TryMilitaryStepOnce()
         {

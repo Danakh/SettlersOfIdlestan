@@ -138,7 +138,7 @@ public class IslandMapGenerator
         city.CivilizationIndex = civilization.Index;
         var townHall = new TownHall { Level = 1 };
         city.Buildings.Add(townHall);
-        civilization.Cities.Add(city);
+        civilization.AddCity(city);
     }
 
     /// <summary>

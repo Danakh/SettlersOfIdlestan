@@ -19,9 +19,6 @@ public class TraderGuildTests
         var city = civ.Cities[0];
         city.Buildings.Add(new TownHall { Level = 1 }); // city.Level = 1 → Market available
 
-        // Register UniqueBuildingsModifierProvider so buildings' IModifierProvider are aggregated
-        civ.SetupModifierAggregator(civ.TechnologyTree, new UniqueBuildingsModifierProvider(civ));
-
         var controller = new BuildingController(state);
         return (state, controller, civ);
     }
@@ -40,6 +37,7 @@ public class TraderGuildTests
         Assert.Equal(1, controller.GetMaxLevel(market, 0));
 
         city.Buildings.Add(new TraderGuild { Level = 1 });
+        civ.RebuildUniqueBuildingsModifiers();
 
         Assert.Equal(4, controller.GetMaxLevel(market, 0));
     }
@@ -120,6 +118,7 @@ public class TraderGuildTests
         city.Buildings.First(b => b.Type == BuildingType.TownHall).Level = 8;
 
         city.Buildings.Add(new TraderGuild { Level = 1 });
+        civ.RebuildUniqueBuildingsModifiers();
         var market = new Market { Level = 1 };
         city.Buildings.Add(market);
 

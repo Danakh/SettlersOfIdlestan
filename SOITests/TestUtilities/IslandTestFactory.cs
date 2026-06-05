@@ -1,4 +1,4 @@
-﻿using SettlersOfIdlestan.Controller.Island;
+using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
@@ -43,7 +43,7 @@ public static class IslandTestFactory
         // Place a city on the vertex shared by center, NE and E
         var cityVertex = Vertex.Create(center, ne, e);
         var city = new City(cityVertex) { CivilizationIndex = civ.Index };
-        civ.Cities.Add(city);
+        civ.AddCity(city);
 
         var state = new WorldState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
         return state;

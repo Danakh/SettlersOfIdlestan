@@ -1,4 +1,4 @@
-﻿using SettlersOfIdlestan.Controller;
+using SettlersOfIdlestan.Controller;
 using SettlersOfIdlestan.Controller.Expand;
 using SettlersOfIdlestan.Controller.Generator;
 using SettlersOfIdlestan.Controller.Island;
@@ -192,7 +192,7 @@ public class RoadControllerTests
             new(land2, TerrainType.Plain),
         });
         var civ  = new Civilization { Index = 0 };
-        civ.Cities.Add(new City(Vertex.Create(land, w1, w2)) { CivilizationIndex = 0 });
+        civ.AddCity(new City(Vertex.Create(land, w1, w2)) { CivilizationIndex = 0 });
         var state = new WorldState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
         return (state, civ);
     }
@@ -209,7 +209,7 @@ public class RoadControllerTests
             new(w2,   TerrainType.Water),
         });
         var civ  = new Civilization { Index = 0 };
-        civ.Cities.Add(new City(Vertex.Create(land, w1, w2)) { CivilizationIndex = 0 });
+        civ.AddCity(new City(Vertex.Create(land, w1, w2)) { CivilizationIndex = 0 });
         var state = new WorldState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
         return (state, civ);
     }
@@ -220,9 +220,7 @@ public class RoadControllerTests
     {
         var prestige = new PrestigeState();
         prestige.PurchasedVertices.Add(PrestigeMap.MaritimeRoutesVertex);
-        civ.SetupModifierAggregator(
-            civ.TechnologyTree,
-            new PrestigeModifierProvider(prestige, PrestigeMapController.DefaultMap));
+        civ.AddCustomAggregator(new PrestigeModifierProvider(prestige, PrestigeMapController.DefaultMap));
     }
 
     [Fact]
@@ -410,14 +408,14 @@ public class RoadControllerTests
         var map = BuildFiveHexMap();
         var civ = new Civilization { Index = 0 };
         var cityVertex = Vertex.Create(Ha, Hb, Hc);
-        civ.Cities.Add(new City(cityVertex) { CivilizationIndex = 0 });
+        civ.AddCity(new City(cityVertex) { CivilizationIndex = 0 });
         civ.Roads.Add(new Road(Edge.Create(Hb, Hc)) { CivilizationIndex = 0, DistanceToNearestCity = 1 });
         civ.Roads.Add(new Road(Edge.Create(Hb, Hd)) { CivilizationIndex = 0, DistanceToNearestCity = 2 });
 
         var state = new WorldState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
         var controller = new RoadController(state);
 
-        civ.Cities.Remove(civ.Cities[0]);
+        civ.RemoveCity(civ.Cities[0]);
         controller.OnCityDestroyed(civ, cityVertex);
 
         Assert.Empty(civ.Roads);
@@ -429,7 +427,7 @@ public class RoadControllerTests
         var map = BuildFiveHexMap();
         var civ = new Civilization { Index = 0 };
         var cityVertex = Vertex.Create(Ha, Hb, Hc);
-        civ.Cities.Add(new City(cityVertex) { CivilizationIndex = 0 });
+        civ.AddCity(new City(cityVertex) { CivilizationIndex = 0 });
         civ.Roads.Add(new Road(Edge.Create(Hb, Hc)) { CivilizationIndex = 0, DistanceToNearestCity = 1 });
         civ.Roads.Add(new Road(Edge.Create(Hb, Hd)) { CivilizationIndex = 0, DistanceToNearestCity = 2 });
         civ.Roads.Add(new Road(Edge.Create(Hd, He)) { CivilizationIndex = 0, DistanceToNearestCity = 3 });
@@ -437,7 +435,7 @@ public class RoadControllerTests
         var state = new WorldState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
         var controller = new RoadController(state);
 
-        civ.Cities.Remove(civ.Cities[0]);
+        civ.RemoveCity(civ.Cities[0]);
         controller.OnCityDestroyed(civ, cityVertex);
 
         // R3 était uniquement connectée via R1+R2 — elle doit être supprimée aussi
@@ -451,8 +449,8 @@ public class RoadControllerTests
         var civ = new Civilization { Index = 0 };
         var cityVertexA = Vertex.Create(Ha, Hb, Hc);
         var cityVertexB = Vertex.Create(Hb, Hd, He);
-        civ.Cities.Add(new City(cityVertexA) { CivilizationIndex = 0 });
-        civ.Cities.Add(new City(cityVertexB) { CivilizationIndex = 0 });
+        civ.AddCity(new City(cityVertexA) { CivilizationIndex = 0 });
+        civ.AddCity(new City(cityVertexB) { CivilizationIndex = 0 });
         var r3Edge = Edge.Create(Hd, He);
         civ.Roads.Add(new Road(Edge.Create(Hb, Hc)) { CivilizationIndex = 0, DistanceToNearestCity = 1 });
         civ.Roads.Add(new Road(Edge.Create(Hb, Hd)) { CivilizationIndex = 0, DistanceToNearestCity = 2 });
@@ -462,7 +460,7 @@ public class RoadControllerTests
         var controller = new RoadController(state);
 
         // Destruction de la ville A uniquement
-        civ.Cities.Remove(civ.Cities.First(c => c.Position.Equals(cityVertexA)));
+        civ.RemoveCity(civ.Cities.First(c => c.Position.Equals(cityVertexA)));
         controller.OnCityDestroyed(civ, cityVertexA);
 
         // R3 touche la ville B (Vertex(b,d,e)) → elle doit être conservée
@@ -491,11 +489,11 @@ public class RoadControllerTests
         });
 
         var playerCiv = new Civilization { Index = 0 };
-        playerCiv.Cities.Add(new City(Vertex.Create(Ha, Hb, Hc)) { CivilizationIndex = 0 });
+        playerCiv.AddCity(new City(Vertex.Create(Ha, Hb, Hc)) { CivilizationIndex = 0 });
         playerCiv.Roads.Add(new Road(Edge.Create(Hb, Hc)) { CivilizationIndex = 0, DistanceToNearestCity = 1 });
 
         var enemyCiv = new Civilization { Index = 1 };
-        enemyCiv.Cities.Add(new City(Vertex.Create(Hb, Hc, Hd)) { CivilizationIndex = 1 });
+        enemyCiv.AddCity(new City(Vertex.Create(Hb, Hc, Hd)) { CivilizationIndex = 1 });
 
         var state = new WorldState(map, new List<Civilization> { playerCiv, enemyCiv }, AtlasController.InvalidIslandId);
         var controller = new RoadController(state);
@@ -518,11 +516,11 @@ public class RoadControllerTests
         });
 
         var playerCiv = new Civilization { Index = 0 };
-        playerCiv.Cities.Add(new City(Vertex.Create(Ha, Hb, Hc)) { CivilizationIndex = 0 });
+        playerCiv.AddCity(new City(Vertex.Create(Ha, Hb, Hc)) { CivilizationIndex = 0 });
         playerCiv.Roads.Add(new Road(Edge.Create(Hb, Hc)) { CivilizationIndex = 0, DistanceToNearestCity = 1 });
 
         var enemyCiv = new Civilization { Index = 1 };
-        enemyCiv.Cities.Add(new City(Vertex.Create(Hb, Hc, Hd)) { CivilizationIndex = 1 });
+        enemyCiv.AddCity(new City(Vertex.Create(Hb, Hc, Hd)) { CivilizationIndex = 1 });
 
         var state = new WorldState(map, new List<Civilization> { playerCiv, enemyCiv }, AtlasController.InvalidIslandId);
         var controller = new RoadController(state);
@@ -546,13 +544,13 @@ public class RoadControllerTests
         });
 
         var playerCiv = new Civilization { Index = 0 };
-        playerCiv.Cities.Add(new City(Vertex.Create(Ha, Hb, Hc)) { CivilizationIndex = 0 });
+        playerCiv.AddCity(new City(Vertex.Create(Ha, Hb, Hc)) { CivilizationIndex = 0 });
         playerCiv.Roads.Add(new Road(Edge.Create(Hb, Hc)) { CivilizationIndex = 0, DistanceToNearestCity = 1 });
         playerCiv.AddResource(Resource.Wood, 10);
         playerCiv.AddResource(Resource.Brick, 10);
 
         var enemyCiv = new Civilization { Index = 1 };
-        enemyCiv.Cities.Add(new City(Vertex.Create(Hb, Hc, Hd)) { CivilizationIndex = 1 });
+        enemyCiv.AddCity(new City(Vertex.Create(Hb, Hc, Hd)) { CivilizationIndex = 1 });
 
         var state = new WorldState(map, new List<Civilization> { playerCiv, enemyCiv }, AtlasController.InvalidIslandId);
         var controller = new RoadController(state);
@@ -569,10 +567,10 @@ public class RoadControllerTests
         var map = BuildFiveHexMap();
 
         var playerCiv = new Civilization { Index = 0 };
-        playerCiv.Cities.Add(new City(Vertex.Create(Hb, Hc, Hd)) { CivilizationIndex = 0 });
+        playerCiv.AddCity(new City(Vertex.Create(Hb, Hc, Hd)) { CivilizationIndex = 0 });
 
         var enemyCiv = new Civilization { Index = 1 };
-        enemyCiv.Cities.Add(new City(Vertex.Create(Ha, Hb, Hc)) { CivilizationIndex = 1 });
+        enemyCiv.AddCity(new City(Vertex.Create(Ha, Hb, Hc)) { CivilizationIndex = 1 });
         var r2Edge = Edge.Create(Hb, Hd);
         enemyCiv.Roads.Add(new Road(Edge.Create(Hb, Hc)) { CivilizationIndex = 1, DistanceToNearestCity = 1 });
         enemyCiv.Roads.Add(new Road(r2Edge)               { CivilizationIndex = 1, DistanceToNearestCity = 2 });

@@ -177,7 +177,7 @@ namespace SettlersOfIdlestan.Controller.Island
             civ.PayResourceCost(cost);
 
             var city = new City(vertex) { CivilizationIndex = civilizationIndex };
-            civ.Cities.Add(city);
+            civ.AddCity(city);
 
             if (vertex.Z != IslandMap.SurfaceLayer && _state.Layers.TryGetValue(vertex.Z, out var layer))
                 layer.Cities.Add(city);

@@ -297,6 +297,8 @@ namespace SettlersOfIdlestan.Controller.Island
                     city.CurrentDefense += defBonus;
                 if (resultBuilding.IsUnique && !civ.UniqueBuildings.Contains(resultBuilding.Type))
                     civ.UniqueBuildings.Add(resultBuilding.Type);
+                if (resultBuilding is IUniqueBuilding)
+                    civ.RebuildUniqueBuildingsModifiers();
             }
             else
             {
@@ -304,6 +306,8 @@ namespace SettlersOfIdlestan.Controller.Island
                 int defBonus = existing.GetDefenseBonus();
                 if (defBonus > 0 && civ.ModifierAggregator.HasModifier(ECategory.BUILDING_DEFENSE_ON_CONSTRUCT))
                     city.CurrentDefense += defBonus;
+                if (existing is IUniqueBuilding)
+                    civ.RebuildUniqueBuildingsModifiers();
             }
 
             if (type == BuildingType.Watchtower)

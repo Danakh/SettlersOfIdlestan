@@ -136,10 +136,13 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
             var worldState = mainGameState.CurrentWorldState;
             if (worldState != null && worldState.CurrentViewedLayer == LayerState.UnderworldZ && worldState.Layers.ContainsKey(LayerState.UnderworldZ))
             {
-                // Underworld view: dark cave background
                 canvas.DrawColor(new SKColor(15, 8, 30));
-                DrawIslandMap(canvas, worldState.GetMapForZ(LayerState.UnderworldZ), worldState.PlayerCivilization.Index,
-                    mainGameState.Clock.CurrentTick, null, null, null, null, null);
+                var playerIdx = worldState.PlayerCivilization.Index;
+                IslandMap? underworldMap = DebugSettings.ShowFullMap
+                    ? worldState.GetMapForZ(LayerState.UnderworldZ)
+                    : worldState.GetVisibleIslandMapsForZ(LayerState.UnderworldZ).TryGetValue(playerIdx, out var uvm) ? uvm : null;
+                if (underworldMap != null)
+                    DrawIslandMap(canvas, underworldMap, playerIdx, mainGameState.Clock.CurrentTick, null, null, null, null, null);
                 return;
             }
         }

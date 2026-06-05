@@ -20,6 +20,9 @@ public class TechnologyTree : IModifierProvider
     [JsonIgnore]
     public List<Modifier> Modifiers { get; private set; } = new();
 
+    public event Action? OnModifiersChanged;
+    public void NotifyModifiersChanged() => OnModifiersChanged?.Invoke();
+
     public IEnumerable<Modifier> GetModifiers() => Modifiers;
 
     public void RebuildModifiers()
@@ -31,6 +34,7 @@ public class TechnologyTree : IModifierProvider
             if (tech != null)
                 Modifiers.AddRange(tech.Modifiers);
         }
+        OnModifiersChanged?.Invoke();
     }
 
     public void CompleteResearch(TechnologyId id)
@@ -48,6 +52,7 @@ public class TechnologyTree : IModifierProvider
             ActiveResearchConsumed = 0;
             ActiveResearchLastConsumptionTick = 0;
         }
+        OnModifiersChanged?.Invoke();
     }
 
     public int ApplyModifiers(ECategory category, string subCategory, int baseValue)

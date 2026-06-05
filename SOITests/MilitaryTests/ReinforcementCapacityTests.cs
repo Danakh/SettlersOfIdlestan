@@ -1,4 +1,4 @@
-﻿using SettlersOfIdlestan.Controller.Island;
+using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Controller.Military;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
@@ -46,8 +46,8 @@ public class ReinforcementCapacityTests
         var target = new City(VertexTarget) { CivilizationIndex = 0, Soldiers = targetSoldiers };
         target.Buildings.Add(new Barracks { Level = targetBarracksLevel });
 
-        civ.Cities.Add(source);
-        civ.Cities.Add(target);
+        civ.AddCity(source);
+        civ.AddCity(target);
 
         source.FlowTarget = VertexTarget;
 

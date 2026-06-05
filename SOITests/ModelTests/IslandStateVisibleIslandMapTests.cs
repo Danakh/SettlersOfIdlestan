@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
 using SettlersOfIdlestan.Controller;
@@ -22,7 +22,7 @@ public class IslandStateVisibleIslandMapTests
         var c = new HexCoord(0, 1, IslandMap.SurfaceLayer);
         var map = CreateMap(a, b, c);
         var civilization = new Civilization { Index = 0 };
-        civilization.Cities.Add(new City(Vertex.Create(a, b, c)));
+        civilization.AddCity(new City(Vertex.Create(a, b, c)));
 
         var state = new WorldState(map, new List<Civilization> { civilization }, AtlasController.InvalidIslandId);
 
@@ -40,7 +40,7 @@ public class IslandStateVisibleIslandMapTests
         var c = new HexCoord(0, 1, IslandMap.SurfaceLayer);
         var map = CreateMap(a, b, c);
         var civilization = new Civilization { Index = 0 };
-        civilization.Cities.Add(new City(Vertex.Create(a, b, c)));
+        civilization.AddCity(new City(Vertex.Create(a, b, c)));
         var state = new WorldState(map, new List<Civilization> { civilization }, AtlasController.InvalidIslandId);
 
         var json = JsonSerializer.Serialize(state, SerializationService.SerializationOptions());

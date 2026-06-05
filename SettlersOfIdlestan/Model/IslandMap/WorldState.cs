@@ -185,7 +185,7 @@ public class WorldState : IJsonOnDeserialized
                 continue;
 
             if (!civilization.Cities.Any(existing => existing.Position.Equals(city.Position)))
-                civilization.Cities.Add(city);
+                civilization.AddCity(city);
         }
     }
 

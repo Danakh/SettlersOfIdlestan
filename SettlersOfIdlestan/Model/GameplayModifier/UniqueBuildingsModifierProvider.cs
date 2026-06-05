@@ -1,24 +1,20 @@
 namespace SettlersOfIdlestan.Model.GameplayModifier;
 
 /// <summary>
-/// Aggregates modifiers from all unique buildings in a civilization that implement IModifierProvider.
-/// Registered once at startup; queries buildings dynamically so modifiers activate as soon as a
-/// building is constructed, without requiring a re-initialization of the aggregator.
+/// Fournit les modifiers issus des bâtiments uniques d'une civilisation.
+/// Le cache est reconstruit explicitement via <see cref="Rebuild"/> plutôt que par requête dynamique.
 /// </summary>
 public class UniqueBuildingsModifierProvider : IModifierProvider
 {
-    private readonly Civilization.Civilization _civ;
+    private List<Modifier> _cache = new();
 
-    public UniqueBuildingsModifierProvider(Civilization.Civilization civ)
-    {
-        _civ = civ;
-    }
+    public event Action? OnModifiersChanged;
 
-    public IEnumerable<Modifier> GetModifiers()
+    public IEnumerable<Modifier> GetModifiers() => _cache;
+
+    public void Rebuild(IEnumerable<Modifier> modifiers)
     {
-        return _civ.Cities
-            .SelectMany(c => c.Buildings)
-            .OfType<IModifierProvider>()
-            .SelectMany(p => p.GetModifiers());
+        _cache = modifiers.ToList();
+        OnModifiersChanged?.Invoke();
     }
 }
