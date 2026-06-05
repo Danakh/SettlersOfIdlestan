@@ -13,7 +13,8 @@ public enum Resource
     Gold,
     Glass,
     Crystal,
-    Mithril
+    Mithril,
+    Steel
 }
 
 public class ResourceUtils
@@ -34,6 +35,7 @@ public class ResourceUtils
     {
         Resource.Glass,
         Resource.Crystal,
-        Resource.Mithril
+        Resource.Mithril,
+        Resource.Steel
     };
 }
