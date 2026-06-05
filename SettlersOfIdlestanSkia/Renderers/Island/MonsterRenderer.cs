@@ -26,6 +26,7 @@ public class MonsterRenderer : HexBasedRenderer, IGameRenderer
     {
         public HexCoord ModelPosition = new(0, 0, IslandMap.SurfaceLayer);
         // Movement
+        public HexCoord FromHex = new(0, 0, IslandMap.SurfaceLayer);
         public SKPoint From;
         public SKPoint To;
         public float MoveProgress = 1f;
@@ -131,6 +132,7 @@ public class MonsterRenderer : HexBasedRenderer, IGameRenderer
             var targetPoint = HexToPoint(monster.Position);
             if (!v.ModelPosition.Equals(monster.Position))
             {
+                v.FromHex = v.ModelPosition;
                 v.From = CurrentVisualPoint(v);
                 v.To = targetPoint;
                 v.MoveProgress = 0f;
@@ -172,7 +174,12 @@ public class MonsterRenderer : HexBasedRenderer, IGameRenderer
             // Rendering — filtered by found / layer / visibility
             if (!monster.Found) continue;
             if (monster.Position.Z != context.CurrentLayer) continue;
-            if (visibleMap != null && !visibleMap.HasTile(monster.Position)) continue;
+            if (visibleMap != null)
+            {
+                bool destVisible = visibleMap.HasTile(monster.Position);
+                bool fromVisible = v.MoveProgress < 1f && visibleMap.HasTile(v.FromHex);
+                if (!destVisible && !fromVisible) continue;
+            }
 
             var svgName = monster.SvgIconResourceName;
             if (svgName == null) continue;
@@ -219,10 +226,12 @@ public class MonsterRenderer : HexBasedRenderer, IGameRenderer
     {
         while (_monsterVisuals.Count < monsters.Count)
         {
-            var pos = HexToPoint(monsters[_monsterVisuals.Count].Position);
+            var hex = monsters[_monsterVisuals.Count].Position;
+            var pos = HexToPoint(hex);
             _monsterVisuals.Add(new MonsterVisual
             {
-                ModelPosition = monsters[_monsterVisuals.Count].Position,
+                ModelPosition = hex,
+                FromHex = hex,
                 From = pos,
                 To = pos,
                 HomePos = pos,
