@@ -42,9 +42,9 @@ public static class TechnologyDefinitions
         new(TechnologyId.Agriculture,
             "tech_agriculture_name", "tech_agriculture_desc",
             cost: 600,
-            prerequisites: new[] { TechnologyId.HarvestEfficiency },
+            prerequisites: new[] { TechnologyId.ImprovedHarvest },
             modifiers: new Modifier[] { new(ECategory.HARVEST_PRODUCTION_BONUS, "Mill", EType.ADDITIVE, 50) },
-            tier: 1, line: 0),
+            tier: 2, line: 0),
 
         new(TechnologyId.ImprovedHarvest,
             "tech_improved_harvest_name", "tech_improved_harvest_desc",
@@ -74,12 +74,19 @@ public static class TechnologyDefinitions
             modifiers: new Modifier[] { new(ECategory.RESEARCH_SPEED, EType.ADDITIVE, 0.15) },
             tier: 1, line: 5),
 
+        new(TechnologyId.Fortifications,
+            "tech_fortifications_name", "tech_fortifications_desc",
+            cost: 400,
+            prerequisites: new[] { TechnologyId.Architecture },
+            modifiers: new Modifier[] { new(ECategory.BUILDING_MAX_LEVEL, "Palisade", EType.ADDITIVE, 1) },
+            tier: 1, line: 6),
+
         new(TechnologyId.MilitaryBuildings,
             "tech_military_buildings_name", "tech_military_buildings_desc",
             cost: 400,
-            prerequisites: new[] { TechnologyId.Architecture, TechnologyId.MilitaryDiscipline },
+            prerequisites: new[] { TechnologyId.Fortifications, TechnologyId.MilitaryTactics },
             modifiers: new Modifier[] { new(ECategory.BUILDING_MAX_LEVEL, "Barracks", EType.ADDITIVE, 2) },
-            tier: 1, line: 6),
+            tier: 2, line: 6),
 
         new(TechnologyId.MilitaryTactics,
             "tech_military_tactics_name", "tech_military_tactics_desc",
@@ -99,7 +106,7 @@ public static class TechnologyDefinitions
             cost: 600,
             prerequisites: new[] { TechnologyId.MilitaryBuildings },
             modifiers: new Modifier[] { new(ECategory.BUILDING_DEFENSE_ON_CONSTRUCT, EType.ADDITIVE, 1) },
-            tier: 2, line: 6),
+            tier: 3, line: 6),
 
         new(TechnologyId.HarvestTools,
             "tech_harvest_tools_name", "tech_harvest_tools_desc",
@@ -204,7 +211,7 @@ public static class TechnologyDefinitions
             cost: 6500,
             prerequisites: new[] { TechnologyId.MilitaryMastery, TechnologyId.RapidConstruction },
             modifiers: new Modifier[] { new(ECategory.UNLOCK_AUTO_REINFORCEMENT, EType.ADDITIVE, 1) },
-            tier: 3, line: 7),
+            tier: 4, line: 7),
 
         // === TIER 4 — Premiers croisements ===
 
@@ -241,7 +248,7 @@ public static class TechnologyDefinitions
             cost: 19350,
             prerequisites: new[] { TechnologyId.AdvancedTactics, TechnologyId.GrandArchitecture },
             modifiers: new Modifier[] { new(ECategory.UNLOCK_AUTO_ATTACK, EType.ADDITIVE, 1) },
-            tier: 4, line: 7),
+            tier: 5, line: 7),
 
         // === TIER 5 — Grandes convergences ===
         
@@ -268,7 +275,7 @@ public static class TechnologyDefinitions
                 new(ECategory.CITY_DEFENSE, EType.ADDITIVE, 1),
                 new(ECategory.UNIT_PRODUCTION_SPEED, EType.ADDITIVE, 0.3),
             },
-            tier: 5, line: 7),
+            tier: 6, line: 7),
 
         // === TIER 6 ===
         

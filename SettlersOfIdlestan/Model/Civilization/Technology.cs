@@ -16,6 +16,7 @@ public enum TechnologyId
     Erudition,
     Orpaillage,
     MilitaryTactics,
+    Fortifications,
     MilitaryBuildings,
     RapidConstruction,
     // Tier 2
