@@ -220,9 +220,7 @@ public class RoadControllerTests
     {
         var prestige = new PrestigeState();
         prestige.PurchasedVertices.Add(PrestigeMap.MaritimeRoutesVertex);
-        civ.SetupModifierAggregator(
-            civ.TechnologyTree,
-            new PrestigeModifierProvider(prestige, PrestigeMapController.DefaultMap));
+        civ.AddCustomAggregator(new PrestigeModifierProvider(prestige, PrestigeMapController.DefaultMap));
     }
 
     [Fact]

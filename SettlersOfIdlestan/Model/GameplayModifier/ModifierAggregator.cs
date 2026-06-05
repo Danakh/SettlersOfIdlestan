@@ -16,11 +16,13 @@ public class ModifierAggregator
         Invalidate();
     }
 
-    public void Clear()
+    public void Replace(IModifierProvider old, IModifierProvider newProvider)
     {
-        foreach (var p in _providers)
-            p.OnModifiersChanged -= Invalidate;
-        _providers.Clear();
+        int idx = _providers.IndexOf(old);
+        if (idx < 0) return;
+        old.OnModifiersChanged -= Invalidate;
+        _providers[idx] = newProvider;
+        newProvider.OnModifiersChanged += Invalidate;
         Invalidate();
     }
 

@@ -43,7 +43,7 @@ public class NpcCivilizationPlacer
             if (initialVertex == null) return false;
 
             allOccupied.Add(initialVertex);
-            civ.SetupModifierAggregator(npcModifiers);
+            civ.AddCustomAggregator(npcModifiers);
             PopulateMinimumNpc(state.GetMapForZ(IslandMap.SurfaceLayer), civ, initialVertex);
         }
 

@@ -180,7 +180,6 @@ public class BuildingControllerTests
     {
         var (state, controller, cityVertex) = CreateTestSetup();
         var civ = state.Civilizations[0];
-        civ.SetupModifierAggregator(civ.TechnologyTree);
 
         var city = civ.Cities[0];
 

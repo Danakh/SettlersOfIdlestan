@@ -153,9 +153,7 @@ namespace SOITests.ControllerTests
             civ.Cities[0].Buildings.Add(new Market());
             civ.Cities[0].Buildings.Add(new TownHall { Level = 8 }); // capacity = 5*(2+8)=50
 
-            var tree = new TechnologyTree();
-            tree.CompleteResearch(TechnologyId.EfficientTrading); // TRADE_BULK_GOLD_BONUS +1
-            civ.SetupModifierAggregator(tree);
+            civ.TechnologyTree.CompleteResearch(TechnologyId.EfficientTrading); // TRADE_BULK_GOLD_BONUS +1
 
             civ.AddResource(Resource.Wood, 50); // 10 packs at sell-rate 5
 
@@ -176,7 +174,7 @@ namespace SOITests.ControllerTests
             civ.Cities[0].Buildings.Add(new Market());
             civ.Cities[0].Buildings.Add(new TownHall { Level = 8 }); // capacity=50
 
-            civ.SetupModifierAggregator(new FlatModifierProvider(
+            civ.AddCustomAggregator(new FlatModifierProvider(
                 new Modifier(ECategory.TRADE_BULK_GOLD_BONUS, EType.ADDITIVE, 3)));
 
             civ.AddResource(Resource.Wood, 50);

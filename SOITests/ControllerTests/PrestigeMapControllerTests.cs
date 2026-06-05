@@ -19,9 +19,7 @@ public class PrestigeMapControllerTests
     {
         var civ = island.PlayerCivilization;
         civ.TechnologyTree = prestige.TechnologyTree;
-        civ.SetupModifierAggregator(
-            prestige.TechnologyTree,
-            new PrestigeModifierProvider(prestige, PrestigeMapController.DefaultMap));
+        civ.AddCustomAggregator(new PrestigeModifierProvider(prestige, PrestigeMapController.DefaultMap));
     }
 
     // ─── CanPurchaseVertex ───────────────────────────────────────────────────

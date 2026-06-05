@@ -296,7 +296,7 @@ namespace SOITests.ControllerTests
             double baseRate = controller.GetSoldierProductionRate(city, civ);
 
             var academy = new MilitaryAcademy { Level = 4 };
-            civ.SetupModifierAggregator(new StaticModifierProvider(academy.GetUniqueBuildingModifiers()));
+            civ.AddCustomAggregator(new StaticModifierProvider(academy.GetUniqueBuildingModifiers()));
 
             double newRate = controller.GetSoldierProductionRate(city, civ);
 
@@ -310,7 +310,7 @@ namespace SOITests.ControllerTests
             var civ = state.Civilizations[0];
 
             var academy = new MilitaryAcademy { Level = 4 };
-            civ.SetupModifierAggregator(new StaticModifierProvider(academy.GetUniqueBuildingModifiers()));
+            civ.AddCustomAggregator(new StaticModifierProvider(academy.GetUniqueBuildingModifiers()));
 
             // Avec UnitProductionSpeed=2.0, l'intervalle effectif est 500 ticks
             clock.SimulateAdvance(MilitaryController.SoldierProductionIntervalTicks / 2);

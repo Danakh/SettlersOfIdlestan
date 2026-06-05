@@ -65,41 +65,42 @@ public class Civilization
     /// </summary>
     public List<Road> Roads { get; set; } = new();
 
-    /// <summary>
-    /// Gets or sets the technology tree of the civilization.
-    /// For the player, this is assigned from PrestigeState.TechnologyTree during initialization.
-    /// For NPC civs, this is always a fresh empty tree (NPCs do not accumulate research).
-    /// Not serialized here — the player's tree is persisted in PrestigeState.
-    /// </summary>
-    [JsonIgnore]
-    public TechnologyTree TechnologyTree { get; set; } = new();
+    private TechnologyTree _technologyTree = new();
 
     /// <summary>
-    /// Aggregates modifiers from all providers (TechnologyTree, Prestige, …).
-    /// Must be initialized via <see cref="SetupModifierAggregator"/> before use.
+    /// Gets or sets the technology tree of the civilization.
+    /// Pour le joueur, assigné depuis PrestigeState.TechnologyTree après désérialisation.
+    /// Pour les NPCs, toujours un arbre vide.
     /// </summary>
+    [JsonIgnore]
+    public TechnologyTree TechnologyTree
+    {
+        get => _technologyTree;
+        set
+        {
+            ModifierAggregator.Replace(_technologyTree, value);
+            _technologyTree = value;
+        }
+    }
+
     [JsonIgnore]
     public ModifierAggregator ModifierAggregator { get; } = new();
 
     [JsonIgnore]
-    public UniqueBuildingsModifierProvider? UniqueBuildingsModifierProvider { get; private set; }
+    public UniqueBuildingsModifierProvider UniqueBuildingsModifierProvider { get; } = new();
+
+    public Civilization()
+    {
+        ModifierAggregator.Register(_technologyTree);
+        ModifierAggregator.Register(UniqueBuildingsModifierProvider);
+    }
 
     /// <summary>
-    /// Registers the given providers on the aggregator, replacing any previous registration.
-    /// Call this after deserialization or when the set of providers changes.
+    /// Ajoute un provider supplémentaire à l'agrégateur (prestige, NPC bonuses…).
+    /// Les providers par défaut (TechnologyTree, UniqueBuildingsModifierProvider) sont toujours présents.
     /// </summary>
-    public void SetupModifierAggregator(params IModifierProvider[] providers)
-    {
-        ModifierAggregator.Clear();
-        UniqueBuildingsModifierProvider = null;
-        foreach (var p in providers)
-        {
-            ModifierAggregator.Register(p);
-            if (p is UniqueBuildingsModifierProvider ubmp)
-                UniqueBuildingsModifierProvider = ubmp;
-        }
-        RebuildUniqueBuildingsModifiers();
-    }
+    public void AddCustomAggregator(IModifierProvider provider)
+        => ModifierAggregator.Register(provider);
 
     /// <summary>
     /// Reconstruit le cache des modifiers issus des bâtiments IUniqueBuilding de toutes les villes.
@@ -107,7 +108,6 @@ public class Civilization
     /// </summary>
     public void RebuildUniqueBuildingsModifiers()
     {
-        if (UniqueBuildingsModifierProvider == null) return;
         var modifiers = _cities
             .SelectMany(c => c.Buildings)
             .OfType<IUniqueBuilding>()

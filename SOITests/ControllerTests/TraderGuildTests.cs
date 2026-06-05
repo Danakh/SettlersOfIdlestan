@@ -19,8 +19,6 @@ public class TraderGuildTests
         var city = civ.Cities[0];
         city.Buildings.Add(new TownHall { Level = 1 }); // city.Level = 1 → Market available
 
-        civ.SetupModifierAggregator(civ.TechnologyTree, new UniqueBuildingsModifierProvider());
-
         var controller = new BuildingController(state);
         return (state, controller, civ);
     }

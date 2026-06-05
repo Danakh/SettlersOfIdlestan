@@ -274,18 +274,15 @@ namespace SettlersOfIdlestan.Controller
             foreach (var civ in WorldState!.Civilizations.Where(c => c.IsNpc))
             {
                 if (civ.NpcParameters?.ExtraModifiers is { Count: > 0 } extras)
-                    civ.SetupModifierAggregator(civ.TechnologyTree, new StaticModifierProvider(extras), new UniqueBuildingsModifierProvider());
+                    civ.AddCustomAggregator(new StaticModifierProvider(extras));
                 else
-                    civ.SetupModifierAggregator(civ.TechnologyTree, npcModifiers, new UniqueBuildingsModifierProvider());
+                    civ.AddCustomAggregator(npcModifiers);
             }
 
             _prestigeModifierProvider?.Dispose();
             _prestigeModifierProvider = new PrestigeModifierProvider(prestigeState, PrestigeMapController.DefaultMap);
             var playerCiv = WorldState.PlayerCivilization;
-            playerCiv.SetupModifierAggregator(
-                playerCiv.TechnologyTree,
-                _prestigeModifierProvider,
-                new UniqueBuildingsModifierProvider());
+            playerCiv.AddCustomAggregator(_prestigeModifierProvider);
         }
     }
 }

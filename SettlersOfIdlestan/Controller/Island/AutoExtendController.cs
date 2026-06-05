@@ -195,7 +195,7 @@ public class AutoExtendController
                 ExtraModifiers = extraModifiers,
             },
         };
-        npcCiv.SetupModifierAggregator(new StaticModifierProvider(extraModifiers));
+        npcCiv.AddCustomAggregator(new StaticModifierProvider(extraModifiers));
 
         // Placement des villes (jusqu'à AggressiveCivCityCount)
         int citiesPlaced = 0;
