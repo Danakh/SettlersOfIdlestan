@@ -49,21 +49,6 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
         _militaryRenderer.ConnectInteractionService(service);
     }
 
-    /// <summary>
-    /// Dictionnaire de couleurs pour les ressources (pour les particules de récolte).
-    /// </summary>
-    internal static readonly Dictionary<Resource, SKColor> ResourceColors = new()
-    {
-        { Resource.Food, new SKColor(255, 192, 203) },       // Rose
-        { Resource.Wood, new SKColor(139, 69, 19) },          // Marron
-        { Resource.Brick, new SKColor(210, 105, 30) },        // Brique orange-marron
-        { Resource.Stone, new SKColor(128, 128, 128) },         // Gris
-        { Resource.Ore, new SKColor(69, 69, 69) },         // Gris foncé
-        { Resource.Gold, new SKColor(255, 215, 0) },         // Or
-        { Resource.Glass, new SKColor(173, 216, 230) },         // Bleu clair
-        { Resource.Crystal, new SKColor(147, 112, 219) } // Violet
-    };
-
     public IslandMainRenderer(IConstructionHoverProvider constructionHoverProvider, TooltipRenderer tooltipRenderer, HarvestController harvestController, ResourceManager resourceManager, MilitaryController militaryController, Func<int> currentLayer)
     {
         _gameBoardRenderer = new GameBoardRenderer(harvestController, resourceManager);

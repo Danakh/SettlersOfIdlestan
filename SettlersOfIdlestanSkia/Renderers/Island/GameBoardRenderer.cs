@@ -30,7 +30,6 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
     private SKPaint? _hexFillPaint;
     private SKPaint? _textPaint;
     private SKFont? _textFont;
-    private SKPaint? _dotPaint;
     private SKPaint? _ringBgPaint;
     private SKPaint? _ringProgressPaint;
     private SKPaint? _textIconPaint;
@@ -39,10 +38,12 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
     private bool _disposed;
 
     private readonly Dictionary<HexCoord, SKPath> _hexPathCache = new();
+    private readonly Dictionary<Resource, SKSvg?> _resourceIcons = new();
 
     private const float WonderSelectionRadius = 28f;
-    private const float DotRadius = 5f;
     private const float ManualRingRadius = 5f;
+    private const float ResourceIconSize = 12f;
+    private const float SvgNaturalSize = 32f;
     private const float ManualRingStroke = 3f;
     // Arc auto : centré au vertex de la ville, rayon juste supérieur à CityRadius (8 px)
     private const float AutoArcBaseRadius = 10f;
@@ -96,12 +97,6 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
         _textIconFont = new SKFont(SkiaFonts.Regular, 16f) { Edging = SKFontEdging.Antialias };
         _textIconPaint = new SKPaint { IsAntialias = true, Color = SKColors.White };
 
-        _dotPaint = new SKPaint
-        {
-            Style = SKPaintStyle.Fill,
-            IsAntialias = true
-        };
-
         _ringBgPaint = new SKPaint
         {
             Style = SKPaintStyle.Stroke,
@@ -122,6 +117,13 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
             StrokeWidth = 3,
             IsAntialias = true
         };
+
+        foreach (Resource resource in Enum.GetValues(typeof(Resource)))
+        {
+            string name = resource.ToString().ToLower();
+            try { _resourceIcons[resource] = _resourceManager.LoadImage($"Resources.icons.resources.{name}.svg"); }
+            catch { _resourceIcons[resource] = null; }
+        }
     }
 
     public void Render(SKCanvas canvas, GameRenderContext context)
@@ -286,7 +288,7 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
         Dictionary<HexCoord, long>? plunderCooldownDuration,
         HashSet<HexCoord>? harvestBlockedPositions)
     {
-        if (_dotPaint == null || _ringBgPaint == null || _ringProgressPaint == null)
+        if (_ringBgPaint == null || _ringProgressPaint == null)
             return;
 
         // Anneau pillage (le plus externe)
@@ -327,7 +329,7 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
                 new SKColor(160, 230, 160, 230));
 
         if (manualResources.Count > 0)
-            DrawResourcePie(canvas, cx, cy, DotRadius, manualResources);
+            DrawResourceIcon(canvas, cx, cy, manualResources[0]);
     }
 
     /// <summary>
@@ -374,37 +376,17 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
         }
     }
 
-    /// <summary>
-    /// Dessine un cercle plein (1 ressource) ou un camembert à parts égales (N ressources).
-    /// </summary>
-    private void DrawResourcePie(SKCanvas canvas, float cx, float cy, float radius, IReadOnlyList<Resource> resources)
+    private void DrawResourceIcon(SKCanvas canvas, float cx, float cy, Resource resource)
     {
-        if (resources.Count == 1)
-        {
-            _dotPaint!.Color = IslandMainRenderer.ResourceColors.GetValueOrDefault(resources[0], SKColors.White);
-            canvas.DrawCircle(cx, cy, radius, _dotPaint);
-        }
-        else
-        {
-            float sliceDeg = 360f / resources.Count;
-            var rect = new SKRect(cx - radius, cy - radius, cx + radius, cy + radius);
+        if (!_resourceIcons.TryGetValue(resource, out var svg) || svg?.Picture == null)
+            return;
 
-            for (int i = 0; i < resources.Count; i++)
-            {
-                using var path = new SKPath();
-                path.MoveTo(cx, cy);
-                path.ArcTo(rect, -90f + i * sliceDeg, sliceDeg, false);
-                path.Close();
-
-                _dotPaint!.Color = IslandMainRenderer.ResourceColors.GetValueOrDefault(resources[i], SKColors.White);
-                canvas.DrawPath(path, _dotPaint);
-            }
-        }
-
-        // Contour du cercle
-        _ringBgPaint!.Color = new SKColor(0, 0, 0, 90);
-        _ringBgPaint.StrokeWidth = 1f;
-        canvas.DrawCircle(cx, cy, radius, _ringBgPaint);
+        float scale = ResourceIconSize / SvgNaturalSize;
+        canvas.Save();
+        canvas.Translate(cx - ResourceIconSize / 2f, cy - ResourceIconSize / 2f);
+        canvas.Scale(scale);
+        canvas.DrawPicture(svg.Picture);
+        canvas.Restore();
     }
 
     /// <summary>
@@ -445,7 +427,6 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
         _hexFillPaint?.Dispose();
         _textPaint?.Dispose();
         _textFont?.Dispose();
-        _dotPaint?.Dispose();
         _ringBgPaint?.Dispose();
         _ringProgressPaint?.Dispose();
         _textIconPaint?.Dispose();
