@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
@@ -57,14 +58,15 @@ public class NpcCivilizationPlacer
         var mainController = new MainGameController();
         mainController.SetGame(new MainGameState(state, clock));
 
+        var map = state.GetMapForZ(IslandMap.SurfaceLayer);
         foreach (var civ in npcCivs)
         {
             var level = civ.NpcParameters?.EvolutionLevel ?? NpcEvolutionLevel.Minimum;
             if (level == NpcEvolutionLevel.Minimum) continue;
 
             var aggressivity = civ.NpcParameters?.AggressivityLevel ?? NpcAggressivityLevel.Cautious;
-            var autoplayer = new NpcCivilizationAutoplayer(civ, state.GetMapForZ(IslandMap.SurfaceLayer), mainController, aggressivity);
-            ExpandNpcWithAutoplayer(autoplayer, civ, level);
+            var autoplayer = new NpcCivilizationAutoplayer(civ, map, mainController, aggressivity);
+            ExpandNpcWithAutoplayer(autoplayer, civ, map, level);
         }
 
         return true;
@@ -164,26 +166,113 @@ public class NpcCivilizationPlacer
     };
 
     private static void ExpandNpcWithAutoplayer(
-        NpcCivilizationAutoplayer autoplayer, Civilization civ, NpcEvolutionLevel level)
+        NpcCivilizationAutoplayer autoplayer, Civilization civ, IslandMap map, NpcEvolutionLevel level)
     {
         int target = TargetCityCount(level);
 
         for (int i = 0; i < MaxExpandIterations; i++)
         {
+            if (civ.Cities.Count >= target) break;
             FillMaxResources(civ);
-            autoplayer.TryStepOnce(shouldExpand: civ.Cities.Count < target);
+            autoplayer.Inner.TryStep0Once();
         }
 
-        if (level >= NpcEvolutionLevel.Medium)
+        AddDefaultBuildingsForLevel(map, civ, level);
+        FillMaxResources(civ);
+    }
+
+    private static readonly BuildingType[] StrongNonUniqueBuildings =
+    {
+        BuildingType.TownHall, BuildingType.Market, BuildingType.Mine, BuildingType.Warehouse,
+        BuildingType.Forge, BuildingType.Library, BuildingType.Temple, BuildingType.BuildersGuild,
+        BuildingType.Laboratory, BuildingType.Barracks, BuildingType.Palisade, BuildingType.Watchtower,
+        BuildingType.Academy, BuildingType.MilitaryAcademy,
+    };
+
+    private static void AddDefaultBuildingsForLevel(IslandMap map, Civilization civ, NpcEvolutionLevel level)
+    {
+        foreach (var city in civ.Cities)
+            ApplyBuildingsForLevel(map, city, level);
+    }
+
+    private static void ApplyBuildingsForLevel(IslandMap map, City city, NpcEvolutionLevel level)
+    {
+        // Terrain-based production buildings
+        foreach (var hex in city.Position.GetHexes())
         {
-            for (int i = 0; i < MaxExpandIterations; i++)
+            var tile = map.GetTile(hex);
+            if (tile == null) continue;
+            var bt = GetProductionBuildingType(tile.TerrainType);
+            if (bt == null) continue;
+
+            if (level == NpcEvolutionLevel.Strong)
             {
-                FillMaxResources(civ);
-                autoplayer.Inner.TryStep2Once(shouldExpand: false);
+                var proto = BuildingController.CreateBuilding(bt.Value);
+                if (proto != null) EnsureBuilding(city, bt.Value, proto.GetDefaultMaxLevel());
+            }
+            else
+            {
+                int prodLevel = level == NpcEvolutionLevel.Medium ? 3 : 2;
+                EnsureBuilding(city, bt.Value, prodLevel);
             }
         }
 
-        FillMaxResources(civ);
+        switch (level)
+        {
+            case NpcEvolutionLevel.Minimum:
+                EnsureBuilding(city, BuildingType.TownHall, 1);
+                EnsureBuilding(city, BuildingType.Market, 1);
+                break;
+
+            case NpcEvolutionLevel.Low:
+                EnsureBuilding(city, BuildingType.TownHall, 2);
+                EnsureBuilding(city, BuildingType.Market, 1);
+                EnsureBuilding(city, BuildingType.Warehouse, 1);
+                break;
+
+            case NpcEvolutionLevel.Medium:
+                EnsureBuilding(city, BuildingType.TownHall, 3);
+                EnsureBuilding(city, BuildingType.Market, 1);
+                EnsureBuilding(city, BuildingType.Warehouse, 3);
+                EnsureBuilding(city, BuildingType.Palisade);
+                EnsureBuilding(city, BuildingType.Barracks);
+                break;
+
+            case NpcEvolutionLevel.Strong:
+                foreach (var bt in StrongNonUniqueBuildings)
+                {
+                    var proto = BuildingController.CreateBuilding(bt);
+                    if (proto != null) EnsureBuilding(city, bt, proto.GetDefaultMaxLevel());
+                }
+                break;
+        }
+    }
+
+    private static BuildingType? GetProductionBuildingType(TerrainType terrain) => terrain switch
+    {
+        TerrainType.Forest   => BuildingType.Sawmill,
+        TerrainType.Plain    => BuildingType.Mill,
+        TerrainType.Hill     => BuildingType.Brickworks,
+        TerrainType.Mountain => BuildingType.Quarry,
+        TerrainType.Water    => BuildingType.Seaport,
+        TerrainType.Desert   => BuildingType.GlassWorks,
+        _                    => null,
+    };
+
+    private static void EnsureBuilding(City city, BuildingType type, int targetLevel = 1)
+    {
+        var existing = city.Buildings.FirstOrDefault(b => b.Type == type);
+        if (existing == null)
+        {
+            var building = BuildingController.CreateBuilding(type);
+            if (building == null) return;
+            building.Level = targetLevel;
+            city.Buildings.Add(building);
+        }
+        else if (existing.Level < targetLevel)
+        {
+            existing.Level = targetLevel;
+        }
     }
 
     private static void FillMaxResources(Civilization civ)
