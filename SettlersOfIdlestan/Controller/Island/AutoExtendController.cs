@@ -13,19 +13,22 @@ namespace SettlersOfIdlestan.Controller.Island;
 
 /// <summary>
 /// Étend automatiquement la carte de l'underworld quand une route touche un hexagone manquant.
-/// Probabilités fixes : 50% Montagne, 50% Désert.
-/// Peut aussi générer des civilisations agressives sur les vertex non-visibles à distance du vertex d'arrivée.
 /// </summary>
 public class AutoExtendController
 {
     private WorldState? _state;
     private GamePRNG _prng = new();
 
-    private static readonly TerrainType[] TerrainPool =
-    [
-        TerrainType.Mountain,
-        TerrainType.Desert,
-    ];
+    // 20 entrées : 10x Mountain=50%, 8x Desert=40%, 1x MithrilVein=5%, 1x CrystalCave=5%
+    private static readonly TerrainType[] TerrainPool = new[]
+    {
+        TerrainType.Mountain, TerrainType.Mountain, TerrainType.Mountain, TerrainType.Mountain, TerrainType.Mountain,
+        TerrainType.Mountain, TerrainType.Mountain, TerrainType.Mountain, TerrainType.Mountain, TerrainType.Mountain,
+        TerrainType.Desert,   TerrainType.Desert,   TerrainType.Desert,   TerrainType.Desert,   TerrainType.Desert,
+        TerrainType.Desert,   TerrainType.Desert,   TerrainType.Desert,
+        TerrainType.MithrilVein,
+        TerrainType.CrystalCave,
+    };
 
     private const int MaxTotalCivilizations = 8;
     private const int AggressiveCivSpawnChancePercent = 10;
