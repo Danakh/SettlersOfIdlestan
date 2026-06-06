@@ -463,6 +463,16 @@ public class SelectedCityPanelRenderer : IGameRenderer
                     tooltipLines.Add("");
                 }
 
+                if (hoveredBuilding is Mine && hoveredBuilding.Level > 0)
+                {
+                    int goldChance = _cityBuildingService.GetSelectedCivilizationMineGoldChancePercent();
+                    if (goldChance > 0)
+                    {
+                        tooltipLines.Add(_localization.Get("mine_gold_bonus") + $" {goldChance}%");
+                        tooltipLines.Add("");
+                    }
+                }
+
                 if (hoveredBuilding is Seaport seaportBuilding && seaportBuilding.Level >= 3)
                 {
                     long currentTick = _cityBuildingService.GetCurrentTick();

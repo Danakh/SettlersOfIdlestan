@@ -133,6 +133,16 @@ public class CityBuildingService
         return worldState.Civilizations[SelectedCity.CivilizationIndex].ForgeDoubleHarvestBonus * building.Level;
     }
 
+    public int GetSelectedCivilizationMineGoldChancePercent()
+    {
+        if (SelectedCity == null)
+            return 0;
+        var worldState = State;
+        if (worldState == null || SelectedCity.CivilizationIndex >= worldState.Civilizations.Count)
+            return 0;
+        return worldState.Civilizations[SelectedCity.CivilizationIndex].MineGoldChancePercent;
+    }
+
     public long GetCurrentTick() => _mainGameController.CurrentMainState?.Clock?.CurrentTick ?? 0;
 
     public (int available, int max) GetSelectedCitySoldiers()

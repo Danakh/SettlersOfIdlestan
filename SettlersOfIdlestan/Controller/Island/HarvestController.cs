@@ -142,19 +142,25 @@ namespace SettlersOfIdlestan.Controller.Island
 
                     building.AutoHarvestLastTicks[hex] = now;
 
-                    var actualResource = resource;
-                    if (building is Mine && resource == Resource.Ore && civ.MineGoldChancePercent > 0
-                        && _prng.Next(100) < civ.MineGoldChancePercent)
-                        actualResource = Resource.Gold;
+                    bool goldBonus = building is Mine && resource == Resource.Ore
+                        && civ.MineGoldChancePercent > 0
+                        && _prng.Next(100) < civ.MineGoldChancePercent;
 
-                    TryAutoTradeOnOverflow(civ, actualResource);
-                    civ.AddResource(actualResource, 1);
+                    TryAutoTradeOnOverflow(civ, resource);
+                    civ.AddResource(resource, 1);
 
                     harvested ??= new System.Collections.Generic.Dictionary<(HexCoord, City), ResourceSet>();
                     var key = (hex, city);
                     if (!harvested.TryGetValue(key, out var rs))
                         harvested[key] = rs = new ResourceSet();
-                    rs[actualResource] += 1;
+                    rs[resource] += 1;
+
+                    if (goldBonus)
+                    {
+                        TryAutoTradeOnOverflow(civ, Resource.Gold);
+                        civ.AddResource(Resource.Gold, 1);
+                        rs[Resource.Gold] += 1;
+                    }
 
                     var forge = city.Buildings.OfType<Forge>().FirstOrDefault();
                     int forgeChance = forge != null ? forge.DoubleProdChancePercent + civ.ForgeDoubleHarvestBonus : 0;
@@ -164,9 +170,15 @@ namespace SettlersOfIdlestan.Controller.Island
                     int multiplier = (forgeDoubled ? 2 : 1) * (harvestDoubled ? 2 : 1);
                     for (int i = 1; i < multiplier; i++)
                     {
-                        TryAutoTradeOnOverflow(civ, actualResource);
-                        civ.AddResource(actualResource, 1);
-                        rs[actualResource] += 1;
+                        TryAutoTradeOnOverflow(civ, resource);
+                        civ.AddResource(resource, 1);
+                        rs[resource] += 1;
+                        if (goldBonus)
+                        {
+                            TryAutoTradeOnOverflow(civ, Resource.Gold);
+                            civ.AddResource(Resource.Gold, 1);
+                            rs[Resource.Gold] += 1;
+                        }
                     }
                 }
 
@@ -405,15 +417,11 @@ namespace SettlersOfIdlestan.Controller.Island
                 double expectedMultiplier = (1 + forgeChance / 100.0) * (1 + harvestProductionChance / 100.0);
                 double ratePerSecond = 100.0 / effective * expectedMultiplier;
 
+                AddProductionRate(result, resource, ratePerSecond);
                 if (building is Mine && resource == Resource.Ore && civ.MineGoldChancePercent > 0)
                 {
                     double goldChance = civ.MineGoldChancePercent / 100.0;
                     AddProductionRate(result, Resource.Gold, ratePerSecond * goldChance);
-                    AddProductionRate(result, Resource.Ore, ratePerSecond * (1 - goldChance));
-                }
-                else
-                {
-                    AddProductionRate(result, resource, ratePerSecond);
                 }
             }
 
