@@ -146,6 +146,7 @@ public class PrestigeMap
                 {
                     new(ECategory.STARTING_CITY_BUILDING, "Seaport", EType.ADDITIVE, 1),
                     new(ECategory.STARTING_CITY_BUILDING, "Market",  EType.ADDITIVE, 1),
+                    new(ECategory.PRESTIGE_GAIN, EType.ADDITIVE, 0.1),
                 }
             ),
             new(
