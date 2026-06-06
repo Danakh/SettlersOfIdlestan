@@ -104,6 +104,14 @@ public class GameControllerService
         return _controller.CityBuilderController.BuildCity(playerIndex, vertex);
     }
 
+    public List<Edge> GetEnemyProtectedRoadEdgesForPlayer()
+    {
+        var playerIndex = PlayerCivilizationIndex
+            ?? throw new InvalidOperationException("La civilisation du joueur n'est pas disponible.");
+
+        return _controller.RoadController.GetEnemyProtectedRoadEdges(playerIndex);
+    }
+
     public Road? TryBuildRoadForPlayer(Edge edge)
     {
         var playerIndex = PlayerCivilizationIndex

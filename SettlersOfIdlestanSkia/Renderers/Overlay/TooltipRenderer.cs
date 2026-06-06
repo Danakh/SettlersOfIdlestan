@@ -1,5 +1,6 @@
 ﻿using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Controller.Military;
+using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Services.Localization;
@@ -101,6 +102,18 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay
             _tooltipScreenPosition = _islandRendererContext.IslandToScreen(islandPosition, _gameRenderContext.ZoomLevel, _gameRenderContext.CameraPosition);
         }
 
+        public void SetEnemyProtectedRoadTooltip(Edge roadPosition)
+        {
+            if (_islandRendererContext == null || _gameRenderContext == null)
+                return;
+
+            _tooltipTexts = new string[] { _localizationService.Get("road_enemy_protected") };
+            _tooltipCost = null;
+
+            var islandPosition = _islandRendererContext.EdgeToIslandPoint(roadPosition);
+            _tooltipScreenPosition = _islandRendererContext.IslandToScreen(islandPosition, _gameRenderContext.ZoomLevel, _gameRenderContext.CameraPosition);
+        }
+
         public void SetOutpostConstructionTooltip(Vertex cityPosition)
         {
             if (_islandRendererContext == null || _gameRenderContext == null)
@@ -112,6 +125,64 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay
 
             var islandPosition = _islandRendererContext.VertexToIslandPoint(cityPosition);
             _tooltipScreenPosition = _islandRendererContext.IslandToScreen(islandPosition, _gameRenderContext.ZoomLevel, _gameRenderContext.CameraPosition);
+        }
+
+        public void SetCityTooltip(City city, Civilization? civ, bool isPlayerCity, MilitaryController militaryController, Vertex vertex)
+        {
+            if (_islandRendererContext == null || _gameRenderContext == null) return;
+
+            var lines = new List<string>();
+
+            if (isPlayerCity)
+            {
+                lines.Add(city.Level <= 1
+                    ? _localizationService.Get("city_tooltip_own_outpost")
+                    : _localizationService.GetFormated("city_tooltip_own", city.Level));
+            }
+            else
+            {
+                lines.Add(_localizationService.GetFormated("city_tooltip_enemy", city.Level));
+            }
+
+            if (civ != null)
+            {
+                int maxSoldiers = militaryController.GetMaximumSoldierCapacity(city, civ);
+                if (maxSoldiers > 0)
+                {
+                    if (isPlayerCity)
+                    {
+                        double rate = militaryController.GetSoldierProductionRate(city, civ);
+                        lines.Add(rate > 0
+                            ? _localizationService.GetFormated("city_tooltip_soldiers_rate", city.Soldiers, maxSoldiers, $"{rate:0.##}")
+                            : _localizationService.GetFormated("city_tooltip_soldiers", city.Soldiers, maxSoldiers));
+                    }
+                    else
+                    {
+                        lines.Add(_localizationService.GetFormated("city_tooltip_soldiers", city.Soldiers, maxSoldiers));
+                    }
+                }
+
+                int maxDef = militaryController.GetDefenseScore(city, civ);
+                if (maxDef > 0)
+                {
+                    if (isPlayerCity)
+                    {
+                        double rate = militaryController.GetDefenseRegenRate(city, civ);
+                        lines.Add(rate > 0
+                            ? _localizationService.GetFormated("city_tooltip_defense_rate", city.CurrentDefense, maxDef, $"{rate:0.##}")
+                            : _localizationService.GetFormated("city_tooltip_defense", city.CurrentDefense, maxDef));
+                    }
+                    else
+                    {
+                        lines.Add(_localizationService.GetFormated("city_tooltip_defense", city.CurrentDefense, maxDef));
+                    }
+                }
+            }
+
+            _tooltipTexts = lines.ToArray();
+            _tooltipCost = null;
+            var islandPos = _islandRendererContext.VertexToIslandPoint(vertex);
+            _tooltipScreenPosition = _islandRendererContext.IslandToScreen(islandPos, _gameRenderContext.ZoomLevel, _gameRenderContext.CameraPosition);
         }
 
         public void SetHexHarvestTooltip(HexCoord coord, HarvestController harvestController, WorldState WorldState, long currentTick)

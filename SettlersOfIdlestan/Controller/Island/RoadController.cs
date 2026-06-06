@@ -158,10 +158,18 @@ namespace SettlersOfIdlestan.Controller.Island
                 }
             }
 
+            var enemyProtectedEdges = new HashSet<Edge>(
+                _state.Civilizations
+                    .Where(c => c.Index != civilizationIndex)
+                    .SelectMany(c => c.Roads)
+                    .Where(r => r.DistanceToNearestCity <= 2)
+                    .Select(r => r.Position));
+
             var result = new List<Road>();
             foreach (var edge in candidates)
             {
                 if (ownOccupied.Any(e => e.Equals(edge))) continue;
+                if (enemyProtectedEdges.Contains(edge)) continue;
                 if (!IsEdgeOnLand(edge))
                 {
                     if (!civ.ModifierAggregator.HasModifier(Modifier.ECategory.UNLOCK_MARITIME_ROUTES)
@@ -177,6 +185,48 @@ namespace SettlersOfIdlestan.Controller.Island
 
             _buildableRoadsCache[civilizationIndex] = (civ.Cities.Count, result);
             return result;
+        }
+
+        /// <summary>
+        /// Retourne les arêtes adjacentes au réseau de la civilisation qui sont bloquées par une route
+        /// ennemie à distance ≤ 2 de sa ville (zone d'influence protégée).
+        /// </summary>
+        public List<Edge> GetEnemyProtectedRoadEdges(int civilizationIndex)
+        {
+            if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
+
+            var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex)
+                          ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
+
+            var ownOccupied = new HashSet<Edge>(civ.Roads.Select(r => r.Position));
+
+            var candidates = new HashSet<Edge>();
+            foreach (var city in civ.Cities)
+            {
+                foreach (var edge in GetEdgesAtVertex(city.Position))
+                    candidates.Add(edge);
+            }
+            foreach (var road in civ.Roads)
+            {
+                foreach (var vertex in road.Position.GetVertices())
+                {
+                    if (HasEnemyCityAt(vertex, civ)) continue;
+                    var thirdHex = vertex.GetHexes().First(h => !h.Equals(road.Position.Hex1) && !h.Equals(road.Position.Hex2));
+                    candidates.Add(Edge.Create(road.Position.Hex1, thirdHex));
+                    candidates.Add(Edge.Create(road.Position.Hex2, thirdHex));
+                }
+            }
+
+            var enemyProtectedEdges = new HashSet<Edge>(
+                _state.Civilizations
+                    .Where(c => c.Index != civilizationIndex)
+                    .SelectMany(c => c.Roads)
+                    .Where(r => r.DistanceToNearestCity <= 2)
+                    .Select(r => r.Position));
+
+            return candidates
+                .Where(e => !ownOccupied.Contains(e) && enemyProtectedEdges.Contains(e))
+                .ToList();
         }
 
         /// <summary>
@@ -224,6 +274,14 @@ namespace SettlersOfIdlestan.Controller.Island
             // Seule notre propre civilisation peut bloquer la construction
             if (civ.Roads.Any(r => r.Position.Equals(edge)))
                 throw new InvalidOperationException("Edge already occupied");
+
+            // Les routes ennemies proches de leur ville ne sont pas conquérables
+            bool isEnemyProtected = _state.Civilizations
+                .Where(c => c.Index != civilizationIndex)
+                .SelectMany(c => c.Roads)
+                .Any(r => r.Position.Equals(edge) && r.DistanceToNearestCity <= 2);
+            if (isEnemyProtected)
+                throw new InvalidOperationException("Edge is protected by an enemy road");
 
             // V�rifier constructible
             if (!IsEdgeBuildableByCivilization(edge, civ))

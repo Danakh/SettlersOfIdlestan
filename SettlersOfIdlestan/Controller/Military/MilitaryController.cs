@@ -128,6 +128,14 @@ public class MilitaryController
         return civ.UnitProductionSpeed * ticksPerSecond / SoldierProductionIntervalTicks;
     }
 
+    /// <summary>Points de défense régénérés par seconde (0 si aucune défense max).</summary>
+    public double GetDefenseRegenRate(City city, Civilization civ)
+    {
+        if (GetDefenseScore(city, civ) <= 0) return 0;
+        const double ticksPerSecond = 100.0;
+        return civ.CityDefenseRegenSpeed * ticksPerSecond / DefenseRegenIntervalTicks;
+    }
+
     /// <summary>Score de défense maximal de la ville (bâtiments + modificateurs de civilisation).</summary>
     public int GetDefenseScore(City city, Civilization? civ = null)
     {

@@ -302,10 +302,11 @@ namespace SettlersOfIdlestan.Controller.Island
             }
             else
             {
+                int oldDefBonus = existing.GetDefenseBonus();
                 existing.Level += 1;
-                int defBonus = existing.GetDefenseBonus();
-                if (defBonus > 0 && civ.ModifierAggregator.HasModifier(ECategory.BUILDING_DEFENSE_ON_CONSTRUCT))
-                    city.CurrentDefense += defBonus;
+                int defDelta = existing.GetDefenseBonus() - oldDefBonus;
+                if (defDelta > 0 && civ.ModifierAggregator.HasModifier(ECategory.BUILDING_DEFENSE_ON_CONSTRUCT))
+                    city.CurrentDefense += defDelta;
                 if (existing is IUniqueBuilding)
                     civ.RebuildUniqueBuildingsModifiers();
             }

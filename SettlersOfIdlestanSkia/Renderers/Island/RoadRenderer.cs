@@ -106,8 +106,11 @@ public class RoadRenderer : HexBasedRenderer, IGameRenderer
         if ((state.HoveredEdge != null) && (state.HoveredEdge.Z == context.CurrentLayer))
         {
             DrawEdgeHighlight(canvas, state.HoveredEdge, _hoverEdgePaint, 0.14f);
-
             _tooltipRenderer.SetRoadConstructionTooltip(state.HoveredEdge);
+        }
+        else if ((state.HoveredEnemyProtectedEdge != null) && (state.HoveredEnemyProtectedEdge.Z == context.CurrentLayer))
+        {
+            _tooltipRenderer.SetEnemyProtectedRoadTooltip(state.HoveredEnemyProtectedEdge);
         }
     }
 
