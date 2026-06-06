@@ -72,7 +72,9 @@ public sealed class PlayerCivilizationPanelRenderer : IDisposable
     private readonly SKPaint _toggleKnobPaint     = new() { Color = SKColors.White, Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _rowLabelPaint       = new() { Color = new SKColor(215, 215, 225), IsAntialias = true };
     private readonly SKPaint _rowLabelDimPaint    = new() { Color = new SKColor(140, 140, 150, 160), IsAntialias = true };
-    private readonly SKPaint _dimTogglePaint      = new() { Color = new SKColor(70, 70, 80), Style = SKPaintStyle.Fill, IsAntialias = true };
+    private readonly SKPaint _dimTogglePaint             = new() { Color = new SKColor(70, 70, 80),   Style = SKPaintStyle.Fill, IsAntialias = true };
+    private readonly SKPaint _indeterminatePaint         = new() { Color = new SKColor(90, 90, 105),  Style = SKPaintStyle.Fill, IsAntialias = true };
+    private readonly SKPaint _indeterminateHoverPaint    = new() { Color = new SKColor(110, 110, 125), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _collapseTabBgPaint  = new() { Color = new SKColor(24, 24, 30, 230), Style = SKPaintStyle.Fill, IsAntialias = true };
 
     private readonly SKFont _sectionFont = new() { Size = TitleSize, Typeface = SkiaFonts.Regular };
@@ -246,14 +248,14 @@ public sealed class PlayerCivilizationPanelRenderer : IDisposable
 
             if (hasBarracks)
             {
-                bool allOn = AreAllActive<Barracks>(civ);
+                bool? allOn = AreAllActiveNullable<Barracks>(civ);
                 _barracksToggleRect = DrawToggleRow(canvas, x, y, allOn, _hoveredBarracks, _localization.Get("building_barracks_name"));
                 y += RowHeight;
             }
 
             if (hasSteelWeapons)
             {
-                bool allOn = AreAllSteelWeaponsActive(civ);
+                bool? allOn = AreAllSteelWeaponsActiveNullable(civ);
                 bool noBarracksActive = !civ.Cities.SelectMany(c => c.Buildings.OfType<Barracks>()).Any(b => b.Level >= 1 && b.ActivationStatus == ActivationStatus.ACTIVE);
                 _steelWeaponsToggleRect = DrawToggleRow(canvas, x, y, allOn, _hoveredSteelWeapons, _localization.Get("toggle_steel_weapons"), isDimmed: noBarracksActive);
                 y += RowHeight;
@@ -261,14 +263,14 @@ public sealed class PlayerCivilizationPanelRenderer : IDisposable
 
             if (hasLabs)
             {
-                bool allOn = AreAllActive<Laboratory>(civ);
+                bool? allOn = AreAllActiveNullable<Laboratory>(civ);
                 _labToggleRect = DrawToggleRow(canvas, x, y, allOn, _hoveredLab, _localization.Get("building_laboratory_name"));
                 y += RowHeight;
             }
 
             if (hasSmelters)
             {
-                bool allOn = AreAllActive<Smelter>(civ);
+                bool? allOn = AreAllActiveNullable<Smelter>(civ);
                 _smelterToggleRect = DrawToggleRow(canvas, x, y, allOn, _hoveredSmelter, _localization.Get("building_smelter_name"));
             }
         }
@@ -286,25 +288,32 @@ public sealed class PlayerCivilizationPanelRenderer : IDisposable
             _tooltipRenderer.SetTooltip(_localization.Get("tooltip_toggle_smelter"), new SKPoint(_smelterToggleRect.Right, _smelterToggleRect.Top));
     }
 
-    private SKRect DrawToggleRow(SKCanvas canvas, float x, float y, bool isOn, bool isHovered, string label, bool isDimmed = false)
+    private SKRect DrawToggleRow(SKCanvas canvas, float x, float y, bool? isOn, bool isHovered, string label, bool isDimmed = false)
     {
         float toggleY  = y + (RowHeight - ToggleHeight) / 2f;
         float radius   = ToggleHeight / 2f;
         var   trackRect = new SKRect(x, toggleY, x + ToggleWidth, toggleY + ToggleHeight);
 
-        // Piste (fond vert ou rouge, ou grisé si inactif)
-        var fill = isDimmed
-            ? _dimTogglePaint
-            : (isOn ? (isHovered ? _onHoverPaint : _onPaint) : (isHovered ? _offHoverPaint : _offPaint));
+        SKPaint fill;
+        if (isDimmed)
+            fill = _dimTogglePaint;
+        else if (isOn == null)
+            fill = isHovered ? _indeterminateHoverPaint : _indeterminatePaint;
+        else if (isOn.Value)
+            fill = isHovered ? _onHoverPaint : _onPaint;
+        else
+            fill = isHovered ? _offHoverPaint : _offPaint;
+
         canvas.DrawRoundRect(trackRect, radius, radius, fill);
         canvas.DrawRoundRect(trackRect, radius, radius, _toggleBorderPaint);
 
-        // Bouton circulaire blanc
-        float knobR    = radius - 3f;
-        float knobCy   = toggleY + radius;
-        float knobCx   = isOn
-            ? x + ToggleWidth - radius - 1f  // droite quand ON
-            : x + radius + 1f;               // gauche quand OFF
+        float knobR  = radius - 3f;
+        float knobCy = toggleY + radius;
+        float knobCx = isOn == null
+            ? x + ToggleWidth / 2f               // centre quand mixte
+            : (isOn.Value
+                ? x + ToggleWidth - radius - 1f  // droite quand ON
+                : x + radius + 1f);              // gauche quand OFF
         canvas.DrawCircle(knobCx, knobCy, knobR, _toggleKnobPaint);
 
         canvas.DrawText(label, x + ToggleWidth + 10f, y + RowHeight / 2f + 5f, _labelFont, isDimmed ? _rowLabelDimPaint : _rowLabelPaint);
@@ -434,10 +443,14 @@ public sealed class PlayerCivilizationPanelRenderer : IDisposable
     private static bool HasBuilt<T>(Civilization civ) where T : Building
         => civ.Cities.Any(c => c.Buildings.OfType<T>().Any(b => b.Level >= 1));
 
-    private static bool AreAllActive<T>(Civilization civ) where T : Building
+    private static bool? AreAllActiveNullable<T>(Civilization civ) where T : Building
     {
         var list = civ.Cities.SelectMany(c => c.Buildings.OfType<T>()).Where(b => b.Level >= 1).ToList();
-        return list.Count > 0 && list.All(b => b.ActivationStatus == ActivationStatus.ACTIVE);
+        if (list.Count == 0) return false;
+        bool allOn = list.All(b => b.ActivationStatus == ActivationStatus.ACTIVE);
+        if (allOn) return true;
+        bool anyOn = list.Any(b => b.ActivationStatus == ActivationStatus.ACTIVE);
+        return anyOn ? null : false;
     }
 
     private static void ToggleAll<T>(Civilization civ) where T : Building
@@ -448,10 +461,14 @@ public sealed class PlayerCivilizationPanelRenderer : IDisposable
         foreach (var b in list) b.ActivationStatus = next;
     }
 
-    private static bool AreAllSteelWeaponsActive(Civilization civ)
+    private static bool? AreAllSteelWeaponsActiveNullable(Civilization civ)
     {
         var list = civ.Cities.SelectMany(c => c.Buildings.OfType<Barracks>()).Where(b => b.Level >= 1).ToList();
-        return list.Count > 0 && list.All(b => b.UsesSteelWeapons);
+        if (list.Count == 0) return false;
+        bool allOn = list.All(b => b.UsesSteelWeapons);
+        if (allOn) return true;
+        bool anyOn = list.Any(b => b.UsesSteelWeapons);
+        return anyOn ? null : false;
     }
 
     private static void ToggleAllSteelWeapons(Civilization civ)
@@ -482,6 +499,8 @@ public sealed class PlayerCivilizationPanelRenderer : IDisposable
         _rowLabelPaint.Dispose();
         _rowLabelDimPaint.Dispose();
         _dimTogglePaint.Dispose();
+        _indeterminatePaint.Dispose();
+        _indeterminateHoverPaint.Dispose();
         _collapseTabBgPaint.Dispose();
         _sectionFont.Dispose();
         _btnFont.Dispose();
