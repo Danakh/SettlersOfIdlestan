@@ -22,8 +22,8 @@ public class NpcGameController
     private MilitaryController? _militaryController;
     private MainGameController? _mainController;
 
-    /// <summary>Interval between NPC autoplayer turns (2 000 ticks = 20 s at normal speed).</summary>
-    public const long NpcStepIntervalTicks = 2_000L;
+    /// <summary>Interval between NPC autoplayer turns (100 ticks = 1 s at normal speed).</summary>
+    public const long NpcStepIntervalTicks = 100L;
 
     private long _lastStepTick = 0;
 
@@ -72,7 +72,7 @@ public class NpcGameController
         var aggressivity = civ.NpcParameters?.AggressivityLevel ?? NpcAggressivityLevel.Cautious;
         if (aggressivity == NpcAggressivityLevel.Pacifist) return;
 
-        FillNpcResources(civ);
+        //FillNpcResources(civ);
         UpdateNpcMilitaryFlows(civ, aggressivity);
 
         // Aggressive civs stop expanding once they can see an enemy.
