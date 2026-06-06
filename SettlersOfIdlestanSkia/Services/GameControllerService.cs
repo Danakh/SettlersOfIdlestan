@@ -71,6 +71,12 @@ public class GameControllerService
         _controller.PerformPrestige();
     }
 
+    public void RestartIsland()
+    {
+        _controller.RestartIsland();
+        _cityBuildingService = new CityBuildingService(_controller);
+    }
+
     public List<Vertex> GetBuildableCityVerticesForPlayer()
     {
         var playerIndex = PlayerCivilizationIndex

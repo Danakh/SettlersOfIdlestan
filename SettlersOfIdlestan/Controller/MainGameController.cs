@@ -157,6 +157,26 @@ namespace SettlersOfIdlestan.Controller
             PrestigeMapController.ApplyPrestigeToNewGame(nextWorldState, CurrentMainState.PrestigeState);
         }
 
+        public void RestartIsland()
+        {
+            if (CurrentMainState?.PrestigeState == null) return;
+
+            var worldId = CurrentMainState.CurrentWorldState?.WorldId ?? AtlasController.GetFirstWorldId();
+            var parameters = AtlasController.GetIslandParameters(worldId);
+
+            CurrentMainState.PrestigeState.WorldState = null;
+            var generator = new Generator.IslandMapGenerator(CurrentMainState.PRNG);
+            var newWorldState = generator.GenerateWorldState(
+                parameters,
+                CurrentMainState.Clock.CurrentTick,
+                startTick: CurrentMainState.Clock.CurrentTick)
+                ?? throw new InvalidOperationException("Failed to restart island.");
+
+            CurrentMainState.PrestigeState.WorldState = newWorldState;
+            InitializeControllersForCurrentIsland();
+            PrestigeMapController.ApplyPrestigeToNewGame(newWorldState, CurrentMainState.PrestigeState);
+        }
+
         public void PerformPrestige()
         {
             if (CurrentMainState == null)
