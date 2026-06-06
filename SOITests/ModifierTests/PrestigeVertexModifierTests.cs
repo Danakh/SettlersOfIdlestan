@@ -186,10 +186,10 @@ public class PrestigeVertexModifierTests
     }
 
     [Fact]
-    public void KnowledgeMasteryVertex_UnlocksResearch_Erudition()
+    public void KnowledgeMasteryVertex_UnlocksResearch_Archivage()
     {
         var aggregator = BuildAggregator(PrestigeMap.KnowledgeMasteryVertex);
-        Assert.True(aggregator.HasModifier(ECategory.UNLOCK_RESEARCH, "Erudition"));
+        Assert.True(aggregator.HasModifier(ECategory.UNLOCK_RESEARCH, "Archivage"));
     }
 
     // ── CITY_MAX_SOLDIERS_BONUS ───────────────────────────────────────────────

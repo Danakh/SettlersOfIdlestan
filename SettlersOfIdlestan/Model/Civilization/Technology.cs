@@ -13,7 +13,7 @@ public enum TechnologyId
     // Tier 1
     ImprovedHarvest,
     StorageOptimization,
-    Erudition,
+    Archivage,
     Orpaillage,
     MilitaryTactics,
     Fortifications,
@@ -30,9 +30,10 @@ public enum TechnologyId
     MasterHarvest,
     GrandArchitecture,
     Scholarship,
-    Masterwork,
+    MaitriseDesAlliages,
     AdvancedTactics,
     EfficientTrading,
+    Compagnonage,
     // Tier 4
     EpicHarvest,
     TradeRoutes,
@@ -40,18 +41,11 @@ public enum TechnologyId
     AdvancedStrategy,
     AutomaticMarket,
     // Tier 5
-    MerchantGuild,
     MasterResearch,
     GloriousEmpire,
     // Tier 6
     IndustrialAge,
     Enlightenment,
-    // Tier 7
-    RenaissanceAge,
-    // Tier 8
-    GoldenEra,
-    // Tier 9
-    Utopia,
 }
 
 public enum TechnologyStatus

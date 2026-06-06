@@ -245,7 +245,7 @@ public class PrestigeMap
                 cost: Cost(KnowledgeMasteryVertex),
                 modifiers: new Modifier[]
                 {
-                    new(ECategory.UNLOCK_RESEARCH, "Erudition", EType.ADDITIVE, 1),
+                    new(ECategory.UNLOCK_RESEARCH, "Archivage", EType.ADDITIVE, 1),
                     new(ECategory.UNLOCK_RESEARCH_QUEUE, EType.ADDITIVE, 1),
                 }
             ),

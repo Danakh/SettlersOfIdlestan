@@ -55,24 +55,6 @@ public class TechnologyModifierTests
         Assert.Equal(0.35, BuildAggregator(TechnologyId.EpicHarvest).ApplyModifiers(ECategory.HARVEST_SPEED, "", 0.0), 5);
     }
 
-    [Fact]
-    public void RenaissanceAge_HarvestSpeed_Plus0Point3()
-    {
-        Assert.Equal(0.3, BuildAggregator(TechnologyId.RenaissanceAge).ApplyModifiers(ECategory.HARVEST_SPEED, "", 0.0), 5);
-    }
-
-    [Fact]
-    public void GoldenEra_HarvestSpeed_Plus0Point5()
-    {
-        Assert.Equal(0.5, BuildAggregator(TechnologyId.GoldenEra).ApplyModifiers(ECategory.HARVEST_SPEED, "", 0.0), 5);
-    }
-
-    [Fact]
-    public void Utopia_HarvestSpeed_Plus0Point5()
-    {
-        Assert.Equal(0.5, BuildAggregator(TechnologyId.Utopia).ApplyModifiers(ECategory.HARVEST_SPEED, "", 0.0), 5);
-    }
-
     // ── FORGE_DOUBLE_HARVEST_BONUS ────────────────────────────────────────────
 
     [Fact]
@@ -88,9 +70,9 @@ public class TechnologyModifierTests
     }
 
     [Fact]
-    public void Masterwork_ForgeDoubleHarvestBonus_Plus15()
+    public void MaitriseDesAlliages_ForgeDoubleHarvestBonus_Plus15()
     {
-        Assert.Equal(15, BuildAggregator(TechnologyId.Masterwork).ApplyModifiers(ECategory.FORGE_DOUBLE_HARVEST_BONUS, "", 0));
+        Assert.Equal(15, BuildAggregator(TechnologyId.MaitriseDesAlliages).ApplyModifiers(ECategory.FORGE_DOUBLE_HARVEST_BONUS, "", 0));
     }
 
     // ── UNLOCK_WONDERS ────────────────────────────────────────────────────────
@@ -139,12 +121,6 @@ public class TechnologyModifierTests
         Assert.Equal(0.3, BuildAggregator(TechnologyId.GloriousEmpire).ApplyModifiers(ECategory.UNIT_PRODUCTION_SPEED, "", 0.0), 5);
     }
 
-    [Fact]
-    public void RenaissanceAge_UnitProductionSpeed_Plus0Point2()
-    {
-        Assert.Equal(0.2, BuildAggregator(TechnologyId.RenaissanceAge).ApplyModifiers(ECategory.UNIT_PRODUCTION_SPEED, "", 0.0), 5);
-    }
-
     // ── CITY_ATTACK_RANGE ─────────────────────────────────────────────────────
 
     [Fact]
@@ -172,9 +148,9 @@ public class TechnologyModifierTests
     // ── RESEARCH_SPEED ────────────────────────────────────────────────────────
 
     [Fact]
-    public void Erudition_ResearchSpeed_Plus0Point15()
+    public void Archivage_ResearchSpeed_Plus0Point15()
     {
-        Assert.Equal(0.15, BuildAggregator(TechnologyId.Erudition).ApplyModifiers(ECategory.RESEARCH_SPEED, "", 0.0), 5);
+        Assert.Equal(0.15, BuildAggregator(TechnologyId.Archivage).ApplyModifiers(ECategory.RESEARCH_SPEED, "", 0.0), 5);
     }
 
     [Fact]
@@ -201,12 +177,6 @@ public class TechnologyModifierTests
         Assert.Equal(0.4, BuildAggregator(TechnologyId.Enlightenment).ApplyModifiers(ECategory.RESEARCH_SPEED, "", 0.0), 5);
     }
 
-    [Fact]
-    public void GoldenEra_ResearchSpeed_Plus0Point5()
-    {
-        Assert.Equal(0.5, BuildAggregator(TechnologyId.GoldenEra).ApplyModifiers(ECategory.RESEARCH_SPEED, "", 0.0), 5);
-    }
-
     // ── MINE_GOLD_CHANCE_PERCENT ──────────────────────────────────────────────
 
     [Fact]
@@ -229,11 +199,6 @@ public class TechnologyModifierTests
         Assert.Equal(0.15, BuildAggregator(TechnologyId.Enlightenment).ApplyModifiers(ECategory.RESEARCH_COST_REDUCTION, "", 0.0), 5);
     }
 
-    [Fact]
-    public void Utopia_ResearchCostReduction_Plus0Point2()
-    {
-        Assert.Equal(0.2, BuildAggregator(TechnologyId.Utopia).ApplyModifiers(ECategory.RESEARCH_COST_REDUCTION, "", 0.0), 5);
-    }
 
     // ── BUILDING_MAX_LEVEL ────────────────────────────────────────────────────
 
@@ -341,17 +306,6 @@ public class TechnologyModifierTests
         Assert.Equal(3.0, BuildAggregator(TechnologyId.TradeRoutes).ApplyModifiers(ECategory.TRADE_GOLD_PACKAGES, "", 0.0), 5);
     }
 
-    [Fact]
-    public void MerchantGuild_TradeGoldPackages_Plus5()
-    {
-        Assert.Equal(5.0, BuildAggregator(TechnologyId.MerchantGuild).ApplyModifiers(ECategory.TRADE_GOLD_PACKAGES, "", 0.0), 5);
-    }
-
-    [Fact]
-    public void GoldenEra_TradeGoldPackages_Plus5()
-    {
-        Assert.Equal(5.0, BuildAggregator(TechnologyId.GoldenEra).ApplyModifiers(ECategory.TRADE_GOLD_PACKAGES, "", 0.0), 5);
-    }
 
     // ── CITY_DEFENSE ──────────────────────────────────────────────────────────
 
@@ -373,9 +327,17 @@ public class TechnologyModifierTests
         Assert.Equal(1, BuildAggregator(TechnologyId.GloriousEmpire).ApplyModifiers(ECategory.CITY_DEFENSE, "", 0));
     }
 
+    // ── BUILDING_MAX_LEVEL (Compagnonage) ─────────────────────────────────────
+
     [Fact]
-    public void Utopia_CityDefense_Plus2()
+    public void Compagnonage_MillMaxLevel_Plus1()
     {
-        Assert.Equal(2, BuildAggregator(TechnologyId.Utopia).ApplyModifiers(ECategory.CITY_DEFENSE, "", 0));
+        Assert.Equal(1, BuildAggregator(TechnologyId.Compagnonage).ApplyModifiers(ECategory.BUILDING_MAX_LEVEL, "Mill", 0));
+    }
+
+    [Fact]
+    public void Compagnonage_BrickworksMaxLevel_Plus1()
+    {
+        Assert.Equal(1, BuildAggregator(TechnologyId.Compagnonage).ApplyModifiers(ECategory.BUILDING_MAX_LEVEL, "Brickworks", 0));
     }
 }
