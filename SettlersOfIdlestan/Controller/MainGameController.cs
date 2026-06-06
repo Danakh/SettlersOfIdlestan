@@ -136,6 +136,27 @@ namespace SettlersOfIdlestan.Controller
             return mainState;
         }
 
+        /// <summary>
+        /// Transporte la civilisation du joueur dans une carte de débogage compacte (7 hexagones,
+        /// 1 NPC Strong/Aggressive avec 1 seule ville), sans conditions de prestige.
+        /// </summary>
+        public void GoToDebugMap()
+        {
+            if (CurrentMainState == null) return;
+
+            var parameters = Generator.DebugMapGenerator.CreateParameters();
+            var generator = new Generator.DebugMapGenerator(CurrentMainState.PRNG);
+            var nextWorldState = generator.GenerateWorldState(
+                parameters,
+                CurrentMainState.Clock.CurrentTick,
+                startTick: CurrentMainState.Clock.CurrentTick)
+                ?? throw new InvalidOperationException("Failed to generate debug map.");
+
+            CurrentMainState.PrestigeState!.WorldState = nextWorldState;
+            InitializeControllersForCurrentIsland();
+            PrestigeMapController.ApplyPrestigeToNewGame(nextWorldState, CurrentMainState.PrestigeState);
+        }
+
         public void PerformPrestige()
         {
             if (CurrentMainState == null)

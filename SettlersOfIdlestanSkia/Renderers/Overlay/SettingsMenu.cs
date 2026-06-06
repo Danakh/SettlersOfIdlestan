@@ -122,6 +122,11 @@ public class SettingsMenu
                 LabelKey = "menu_add_prestige",
                 Action = AddPrestigePoints
             });
+            _menuItems.Add(new MenuItem
+            {
+                LabelKey = "menu_goto_debug_map",
+                Action = GoToDebugMap
+            });
         }
     }
 
@@ -364,6 +369,13 @@ public class SettingsMenu
             mainState.PrestigeState.PrestigePoints += 1000;
             mainState.PrestigeState.TotalPrestigePointsEarned += 1000;
         }
+    }
+
+    private void GoToDebugMap()
+    {
+        _cityBuildingService.ClearSelectedCity();
+        _gameController.GoToDebugMap();
+        _onAfterNewGame?.Invoke();
     }
 
     private void StartNewGame()
