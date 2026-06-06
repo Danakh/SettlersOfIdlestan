@@ -34,7 +34,6 @@ public sealed class DebugPanelRenderer : IGameRenderer, IDisposable
     private SKRect       _closeRect;
     private readonly SKRect[] _toggleRects = new SKRect[3];
 
-    private bool _justOpened;
     private bool _disposed;
 
     private static readonly string[] LabelKeys = { "debug_show_hex_coords", "debug_show_autoplayer", "debug_show_full_map" };
@@ -73,7 +72,6 @@ public sealed class DebugPanelRenderer : IGameRenderer, IDisposable
     public void Open()
     {
         IsOpen = true;
-        _justOpened = true;
     }
 
     public void Close() => IsOpen = false;
@@ -111,7 +109,6 @@ public sealed class DebugPanelRenderer : IGameRenderer, IDisposable
     private void HandlePointerPressed(object? sender, PointerEventArgs e)
     {
         if (_disposed || e.Button != PointerButton.Left) return;
-        if (_justOpened) { _justOpened = false; return; }
         if (!IsOpen) return;
 
         if (_closeRect.Contains(e.Position.X, e.Position.Y))

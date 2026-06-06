@@ -26,7 +26,6 @@ public sealed class GameOverPopupRenderer : IDisposable
     private readonly SKFont  _btnFont          = new() { Size = 14, Typeface = SkiaFonts.Bold };
 
     private SKRect _restartRect = SKRect.Empty;
-    private bool   _justOpened;
     private bool   _disposed;
 
     public bool IsOpen { get; private set; }
@@ -39,8 +38,7 @@ public sealed class GameOverPopupRenderer : IDisposable
 
     public void Open()
     {
-        IsOpen      = true;
-        _justOpened = true;
+        IsOpen = true;
     }
 
     public void Render(SKCanvas canvas, SKSize canvasSize)
@@ -83,7 +81,6 @@ public sealed class GameOverPopupRenderer : IDisposable
     public void HandlePointerPressed(SKPoint pos, PointerButton button)
     {
         if (!IsOpen || _disposed) return;
-        if (_justOpened) { _justOpened = false; return; }
 
         if (_restartRect.Contains(pos.X, pos.Y))
         {
