@@ -350,11 +350,11 @@ public class RoadControllerTests
         var generator = new IslandMapGenerator();
         generator.PopulatePlayerCivilization(map, playerCiv, playerVertex);
 
-        // Ennemi : route déjà construite sur l'arête b-c (adjacente à la ville du joueur)
+        // Ennemi : route sur l'arête b-c à distance > 2 de sa ville (sinon protégée, non conquérable)
         var contestedEdge = Edge.Create(b, c);
-        enemyCiv.Roads.Add(new Road(contestedEdge) { CivilizationIndex = 1, DistanceToNearestCity = 1 });
+        enemyCiv.Roads.Add(new Road(contestedEdge) { CivilizationIndex = 1, DistanceToNearestCity = 3 });
 
-        // Distance 1 => coût 2 bois + 2 briques
+        // Coût du joueur : distance 1 depuis sa propre ville => 2 bois + 2 briques
         playerCiv.AddResource(Resource.Wood, 2);
         playerCiv.AddResource(Resource.Brick, 2);
 
@@ -562,7 +562,8 @@ public class RoadControllerTests
     public void BuildRoad_OverEnemyRoad_RemovesDisconnectedEnemyChain()
     {
         // Joueur : ville à Vertex(b,c,d), construit sur Edge(b,c) (route ennemie)
-        // Ennemi : ville à Vertex(a,b,c), R1=Edge(b,c) (d=1), R2=Edge(b,d) (d=2)
+        // Ennemi : ville à Vertex(a,b,c), R1=Edge(b,c) (d=3), R2=Edge(b,d) (d=4)
+        // Les routes à distance ≤ 2 sont protégées ; d=3 est conquérable.
         // Après que le joueur prend Edge(b,c), R2 n'est plus connectée → supprimée
         var map = BuildFiveHexMap();
 
@@ -572,8 +573,8 @@ public class RoadControllerTests
         var enemyCiv = new Civilization { Index = 1 };
         enemyCiv.AddCity(new City(Vertex.Create(Ha, Hb, Hc)) { CivilizationIndex = 1 });
         var r2Edge = Edge.Create(Hb, Hd);
-        enemyCiv.Roads.Add(new Road(Edge.Create(Hb, Hc)) { CivilizationIndex = 1, DistanceToNearestCity = 1 });
-        enemyCiv.Roads.Add(new Road(r2Edge)               { CivilizationIndex = 1, DistanceToNearestCity = 2 });
+        enemyCiv.Roads.Add(new Road(Edge.Create(Hb, Hc)) { CivilizationIndex = 1, DistanceToNearestCity = 3 });
+        enemyCiv.Roads.Add(new Road(r2Edge)               { CivilizationIndex = 1, DistanceToNearestCity = 4 });
 
         var state = new WorldState(map, new List<Civilization> { playerCiv, enemyCiv }, AtlasController.InvalidIslandId);
         var controller = new RoadController(state);
