@@ -31,6 +31,7 @@ public enum TechnologyId
     GrandArchitecture,
     Scholarship,
     MaitriseDesAlliages,
+    SteelWeapons,
     AdvancedTactics,
     EfficientTrading,
     Compagnonage,

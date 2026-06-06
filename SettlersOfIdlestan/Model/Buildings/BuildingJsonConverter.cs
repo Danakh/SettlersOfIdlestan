@@ -63,6 +63,7 @@ namespace SettlersOfIdlestan.Model.Buildings
                 BuildingType.TraderGuild => typeof(TraderGuild),
                 BuildingType.MilitaryAcademy => typeof(MilitaryAcademy),
                 BuildingType.DeepestMine => typeof(DeepestMine),
+                BuildingType.Smelter => typeof(Smelter),
                 _ => throw new JsonException($"Unknown building type: {bType}")
             };
 

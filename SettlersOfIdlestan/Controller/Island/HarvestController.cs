@@ -104,6 +104,8 @@ namespace SettlersOfIdlestan.Controller.Island
             catch { }
             try { PerformMarketGoldGenerations(); }
             catch { }
+            try { PerformSmelterProductions(e.CurrentTick); }
+            catch { }
             try { PerformPassiveResourceGenerations(e.CurrentTick); }
             catch { }
         }
@@ -279,6 +281,43 @@ namespace SettlersOfIdlestan.Controller.Island
                     civ.AddResource(Resource.Gold, 1);
                     market.LastGoldGenerationTick = now;
                     OnRandomResourceGenerated?.Invoke(this, new MarketGenerationEventArgs(civ.Index, Resource.Gold, city.Position));
+                }
+            }
+        }
+
+        private void PerformSmelterProductions(long currentTick)
+        {
+            if (_state == null) return;
+
+            foreach (var civ in _state.Civilizations)
+            {
+                foreach (var city in civ.Cities)
+                {
+                    var smelter = city.Buildings.OfType<Smelter>().FirstOrDefault();
+                    if (smelter == null || smelter.Level < 1 || smelter.ActivationStatus != ActivationStatus.ACTIVE) continue;
+
+                    if (smelter.LastProductionTick == 0)
+                    {
+                        smelter.LastProductionTick = currentTick;
+                        continue;
+                    }
+                    if (currentTick - smelter.LastProductionTick < Smelter.ProductionCooldownTicks) continue;
+
+                    if (civ.GetResourceQuantity(Resource.Ore) < Smelter.OreInputPerCycle)
+                    {
+                        civ.RaiseLowStock(Resource.Ore);
+                        continue;
+                    }
+                    if (civ.GetResourceQuantity(Resource.Wood) < Smelter.WoodInputPerCycle)
+                    {
+                        civ.RaiseLowStock(Resource.Wood);
+                        continue;
+                    }
+
+                    civ.RemoveResource(Resource.Ore,  Smelter.OreInputPerCycle);
+                    civ.RemoveResource(Resource.Wood, Smelter.WoodInputPerCycle);
+                    civ.AddResource(Resource.Steel, 1);
+                    smelter.LastProductionTick = currentTick;
                 }
             }
         }

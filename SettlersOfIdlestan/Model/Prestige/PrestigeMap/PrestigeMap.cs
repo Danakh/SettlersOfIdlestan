@@ -40,7 +40,8 @@ public class PrestigeMap
     public static readonly Vertex ArtisansGuildVertex    = Vertex.Create(new(-1, 2, 0), new(0, 1, 0), new(0, 2, 0));
     public static readonly Vertex MilitaryStrategyVertex  = Vertex.Create(new(1, 0, 0), new(2,  0, 0), new(2, -1, 0));
     public static readonly Vertex ConscriptionVertex      = Vertex.Create(new(1, 0, 0), new(1, -1, 0), new(2, -1, 0));
-    public static readonly Vertex MilitaryAcademyVertex   = Vertex.Create(new(2, 0, 0), new(2, -1, 0), new(3, -1, 0));
+    public static readonly Vertex MilitaryAcademyVertex   = Vertex.Create(new(1,  1, 0), new(2,  0, 0), new(2,  1, 0));
+    public static readonly Vertex SteelSecretVertex       = Vertex.Create(new(2,  0, 0), new(2, -1, 0), new(3, -1, 0));
     public static readonly Vertex KnowledgeMasteryVertex  = Vertex.Create(new(1, 1, 0), new(0,  2, 0), new(1,  2, 0));
     public static readonly Vertex WatchtowerVertex           = Vertex.Create(new(0, 0, 0), new(-1, 0, 0), new(-1, 1, 0));
     public static readonly Vertex MaritimeRoutesVertex       = Vertex.Create(new(-1, 0, 0), new(-1, 1, 0), new(-2, 1, 0));
@@ -60,7 +61,6 @@ public class PrestigeMap
     public static readonly Vertex PlaceholderC2Vertex = Vertex.Create(new(2,  0, 0), new(3, -1, 0), new(3,  0, 0));
     public static readonly Vertex PlaceholderC3Vertex = Vertex.Create(new(2,  0, 0), new(3,  0, 0), new(2,  1, 0));
     // Around ResearchCostReduction (1,1) / ExperimentalScience (2,0) outer east
-    public static readonly Vertex PlaceholderD1Vertex = Vertex.Create(new(1,  1, 0), new(2,  0, 0), new(2,  1, 0));
     public static readonly Vertex PlaceholderD2Vertex = Vertex.Create(new(1,  1, 0), new(2,  1, 0), new(1,  2, 0));
     // Around WarehouseMaxLevel (-1,0) / FortifiedOutpost (0,-1) outer NW
     public static readonly Vertex PlaceholderE1Vertex = Vertex.Create(new(-1,  0, 0), new( 0, -1, 0), new(-1, -1, 0));
@@ -255,6 +255,17 @@ public class PrestigeMap
                 cost: Cost(AcademyVertex),
                 modifiers: new Modifier[] { new(ECategory.BUILDING_MAX_LEVEL, "Academy", EType.ADDITIVE, 1) }
             ),
+            new(
+                SteelSecretVertex,
+                "prestige_vertex_steel_secret",
+                cost: Cost(SteelSecretVertex),
+                modifiers: new Modifier[]
+                {
+                    new(ECategory.BUILDING_MAX_LEVEL, "Smelter", EType.ADDITIVE, 2),
+                    new(ECategory.UNLOCK_RESOURCE, "Steel", EType.ADDITIVE, 1),
+                    new(ECategory.UNLOCK_RESEARCH, "SteelWeapons", EType.ADDITIVE, 1),
+                }
+            ),
             // ── Placeholder vertices (no bonuses) ────────────────────────────
             new(PlaceholderA1Vertex, "prestige_vertex_placeholder", cost: Cost(PlaceholderA1Vertex), modifiers: Array.Empty<Modifier>()),
             new(PlaceholderA2Vertex, "prestige_vertex_placeholder", cost: Cost(PlaceholderA2Vertex), modifiers: Array.Empty<Modifier>()),
@@ -264,7 +275,6 @@ public class PrestigeMap
             new(PlaceholderC1Vertex, "prestige_vertex_placeholder", cost: Cost(PlaceholderC1Vertex), modifiers: Array.Empty<Modifier>()),
             new(PlaceholderC2Vertex, "prestige_vertex_placeholder", cost: Cost(PlaceholderC2Vertex), modifiers: Array.Empty<Modifier>()),
             new(PlaceholderC3Vertex, "prestige_vertex_placeholder", cost: Cost(PlaceholderC3Vertex), modifiers: Array.Empty<Modifier>()),
-            new(PlaceholderD1Vertex, "prestige_vertex_placeholder", cost: Cost(PlaceholderD1Vertex), modifiers: Array.Empty<Modifier>()),
             new(PlaceholderD2Vertex, "prestige_vertex_placeholder", cost: Cost(PlaceholderD2Vertex), modifiers: Array.Empty<Modifier>()),
             new(PlaceholderE1Vertex, "prestige_vertex_placeholder", cost: Cost(PlaceholderE1Vertex), modifiers: Array.Empty<Modifier>()),
             new(PlaceholderE2Vertex, "prestige_vertex_placeholder", cost: Cost(PlaceholderE2Vertex), modifiers: Array.Empty<Modifier>()),

@@ -127,6 +127,10 @@ public enum BuildingType
     /// Mine Profonde - Bâtiment unique. Creuse jusqu'à l'Inframonde et y ouvre un avant-poste.
     /// </summary>
     DeepestMine,
+    /// <summary>
+    /// Fonderie - Convertit du minerai et du bois en acier. Débloqué par le prestige (Secret de l'Acier).
+    /// </summary>
+    Smelter,
 }
 
 /// <summary>

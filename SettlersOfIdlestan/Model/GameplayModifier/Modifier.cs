@@ -60,6 +60,8 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             PASSIVE_RESOURCE_GENERATION,
             /// <summary>Multiplicateur additif sur les points de prestige gagnés. Base = 0.0; +0.1 = +10%.</summary>
             PRESTIGE_GAIN,
+            /// <summary>Flags que les armes en acier sont déverrouillées pour les casernes (1 Acier supplémentaire → 5 soldats d'un coup).</summary>
+            UNLOCK_STEEL_WEAPONS,
         }
 
         public enum EType

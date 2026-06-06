@@ -399,6 +399,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 BuildingType.TraderGuild => new TraderGuild(),
                 BuildingType.MilitaryAcademy => new MilitaryAcademy(),
                 BuildingType.DeepestMine => new DeepestMine(),
+                BuildingType.Smelter => new Smelter(),
                 _ => null,
             };
         }

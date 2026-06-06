@@ -6,6 +6,7 @@ using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Controller.Expand;
 using SettlersOfIdlestan.Controller.Military;
+using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
 
 namespace SettlersOfIdlestanSkia.Services;
 
@@ -85,6 +86,20 @@ public class CityBuildingService
         building.ActivationStatus = building.ActivationStatus == ActivationStatus.ACTIVE
             ? ActivationStatus.INACTIVE
             : ActivationStatus.ACTIVE;
+    }
+
+    public bool IsSteelWeaponsUnlocked()
+    {
+        if (SelectedCity == null || State == null) return false;
+        var civ = State.Civilizations.FirstOrDefault(c => c.Index == SelectedCity.CivilizationIndex);
+        return civ?.ModifierAggregator.HasModifier(ECategory.UNLOCK_STEEL_WEAPONS) ?? false;
+    }
+
+    public void ToggleBarracksSteelWeapons()
+    {
+        var barracks = SelectedCity?.Buildings.OfType<Barracks>().FirstOrDefault(b => b.Level >= 1);
+        if (barracks == null) return;
+        barracks.UsesSteelWeapons = !barracks.UsesSteelWeapons;
     }
 
     public bool CanBuildOrUpgrade(Building building)

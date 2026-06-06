@@ -1,5 +1,6 @@
 using SettlersOfIdlestan.Controller.Expand;
 using SettlersOfIdlestan.Model.Buildings;
+using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Services.Localization;
@@ -46,9 +47,11 @@ public sealed class PlayerCivilizationPanelRenderer : IDisposable
     private SKRect _wonderButtonRect   = SKRect.Empty;
     private SKRect _barracksToggleRect = SKRect.Empty;
     private SKRect _labToggleRect      = SKRect.Empty;
+    private SKRect _smelterToggleRect      = SKRect.Empty;
+    private SKRect _steelWeaponsToggleRect = SKRect.Empty;
 
     private bool _hoveredTrade, _hoveredPrestige, _hoveredWonder;
-    private bool _hoveredBarracks, _hoveredLab;
+    private bool _hoveredBarracks, _hoveredLab, _hoveredSmelter, _hoveredSteelWeapons;
     private bool _wonderEnabled;
     private bool _disposed;
 
@@ -68,6 +71,8 @@ public sealed class PlayerCivilizationPanelRenderer : IDisposable
     private readonly SKPaint _toggleBorderPaint   = new() { Color = new SKColor(180, 180, 200), StrokeWidth = 1.2f, Style = SKPaintStyle.Stroke, IsAntialias = true };
     private readonly SKPaint _toggleKnobPaint     = new() { Color = SKColors.White, Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _rowLabelPaint       = new() { Color = new SKColor(215, 215, 225), IsAntialias = true };
+    private readonly SKPaint _rowLabelDimPaint    = new() { Color = new SKColor(140, 140, 150, 160), IsAntialias = true };
+    private readonly SKPaint _dimTogglePaint      = new() { Color = new SKColor(70, 70, 80), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _collapseTabBgPaint  = new() { Color = new SKColor(24, 24, 30, 230), Style = SKPaintStyle.Fill, IsAntialias = true };
 
     private readonly SKFont _sectionFont = new() { Size = TitleSize, Typeface = SkiaFonts.Regular };
@@ -116,14 +121,16 @@ public sealed class PlayerCivilizationPanelRenderer : IDisposable
         int  prestigePoints  = prestigeVisible ? GetPrestigePoints() : 0;
         bool wonderVisible   = IsWonderVisible() && CanPlaceWonder();
         _wonderEnabled = wonderVisible && context.CurrentLayer == 0;
-        bool hasBarracks     = HasBuilt<Barracks>(civ);
-        bool hasLabs         = HasBuilt<Laboratory>(civ);
+        bool hasBarracks        = HasBuilt<Barracks>(civ);
+        bool hasLabs            = HasBuilt<Laboratory>(civ);
+        bool hasSmelters        = HasBuilt<Smelter>(civ);
+        bool hasSteelWeapons    = hasBarracks && civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_STEEL_WEAPONS);
 
         bool showActions  = tradeVisible || prestigeVisible || wonderVisible;
-        bool showControls = hasBarracks || hasLabs;
+        bool showControls = hasBarracks || hasLabs || hasSmelters;
 
         _tradeButtonRect = _prestigeButtonRect = _wonderButtonRect = SKRect.Empty;
-        _barracksToggleRect = _labToggleRect = SKRect.Empty;
+        _barracksToggleRect = _labToggleRect = _smelterToggleRect = _steelWeaponsToggleRect = SKRect.Empty;
 
         if (!showActions && !showControls)
         {
@@ -158,8 +165,10 @@ public sealed class PlayerCivilizationPanelRenderer : IDisposable
         if (showControls)
         {
             h += TitleHeight;
-            if (hasBarracks) h += RowHeight;
-            if (hasLabs)     h += RowHeight;
+            if (hasBarracks)      h += RowHeight;
+            if (hasSteelWeapons)  h += RowHeight;
+            if (hasLabs)          h += RowHeight;
+            if (hasSmelters)      h += RowHeight;
         }
         h += PanelPadding;
 
@@ -242,22 +251,51 @@ public sealed class PlayerCivilizationPanelRenderer : IDisposable
                 y += RowHeight;
             }
 
+            if (hasSteelWeapons)
+            {
+                bool allOn = AreAllSteelWeaponsActive(civ);
+                bool noBarracksActive = !civ.Cities.SelectMany(c => c.Buildings.OfType<Barracks>()).Any(b => b.Level >= 1 && b.ActivationStatus == ActivationStatus.ACTIVE);
+                _steelWeaponsToggleRect = DrawToggleRow(canvas, x, y, allOn, _hoveredSteelWeapons, _localization.Get("toggle_steel_weapons"), isDimmed: noBarracksActive);
+                y += RowHeight;
+            }
+
             if (hasLabs)
             {
                 bool allOn = AreAllActive<Laboratory>(civ);
                 _labToggleRect = DrawToggleRow(canvas, x, y, allOn, _hoveredLab, _localization.Get("building_laboratory_name"));
+                y += RowHeight;
+            }
+
+            if (hasSmelters)
+            {
+                bool allOn = AreAllActive<Smelter>(civ);
+                _smelterToggleRect = DrawToggleRow(canvas, x, y, allOn, _hoveredSmelter, _localization.Get("building_smelter_name"));
             }
         }
+
+        // Tooltips — appelés chaque frame pour persister tant que la souris ne bouge pas
+        if (_hoveredWonder && !_wonderEnabled)
+            _tooltipRenderer.SetTooltip(_localization.Get("tooltip_wonder_surface_only"), new SKPoint(_wonderButtonRect.Right, _wonderButtonRect.Top));
+        else if (_hoveredBarracks)
+            _tooltipRenderer.SetTooltip(_localization.Get("tooltip_toggle_barracks"), new SKPoint(_barracksToggleRect.Right, _barracksToggleRect.Top));
+        else if (_hoveredSteelWeapons)
+            _tooltipRenderer.SetTooltip(_localization.Get("tooltip_toggle_steel_weapons"), new SKPoint(_steelWeaponsToggleRect.Right, _steelWeaponsToggleRect.Top));
+        else if (_hoveredLab)
+            _tooltipRenderer.SetTooltip(_localization.Get("tooltip_toggle_lab"), new SKPoint(_labToggleRect.Right, _labToggleRect.Top));
+        else if (_hoveredSmelter)
+            _tooltipRenderer.SetTooltip(_localization.Get("tooltip_toggle_smelter"), new SKPoint(_smelterToggleRect.Right, _smelterToggleRect.Top));
     }
 
-    private SKRect DrawToggleRow(SKCanvas canvas, float x, float y, bool isOn, bool isHovered, string label)
+    private SKRect DrawToggleRow(SKCanvas canvas, float x, float y, bool isOn, bool isHovered, string label, bool isDimmed = false)
     {
         float toggleY  = y + (RowHeight - ToggleHeight) / 2f;
         float radius   = ToggleHeight / 2f;
         var   trackRect = new SKRect(x, toggleY, x + ToggleWidth, toggleY + ToggleHeight);
 
-        // Piste (fond vert ou rouge)
-        var fill = isOn ? (isHovered ? _onHoverPaint : _onPaint) : (isHovered ? _offHoverPaint : _offPaint);
+        // Piste (fond vert ou rouge, ou grisé si inactif)
+        var fill = isDimmed
+            ? _dimTogglePaint
+            : (isOn ? (isHovered ? _onHoverPaint : _onPaint) : (isHovered ? _offHoverPaint : _offPaint));
         canvas.DrawRoundRect(trackRect, radius, radius, fill);
         canvas.DrawRoundRect(trackRect, radius, radius, _toggleBorderPaint);
 
@@ -269,7 +307,7 @@ public sealed class PlayerCivilizationPanelRenderer : IDisposable
             : x + radius + 1f;               // gauche quand OFF
         canvas.DrawCircle(knobCx, knobCy, knobR, _toggleKnobPaint);
 
-        canvas.DrawText(label, x + ToggleWidth + 10f, y + RowHeight / 2f + 5f, _labelFont, _rowLabelPaint);
+        canvas.DrawText(label, x + ToggleWidth + 10f, y + RowHeight / 2f + 5f, _labelFont, isDimmed ? _rowLabelDimPaint : _rowLabelPaint);
 
         return trackRect;
     }
@@ -282,9 +320,9 @@ public sealed class PlayerCivilizationPanelRenderer : IDisposable
         _hoveredWonder   = !_wonderButtonRect.IsEmpty   && _wonderButtonRect.Contains(pos.X, pos.Y);
         _hoveredBarracks = !_barracksToggleRect.IsEmpty && _barracksToggleRect.Contains(pos.X, pos.Y);
         _hoveredLab      = !_labToggleRect.IsEmpty      && _labToggleRect.Contains(pos.X, pos.Y);
+        _hoveredSmelter      = !_smelterToggleRect.IsEmpty      && _smelterToggleRect.Contains(pos.X, pos.Y);
+        _hoveredSteelWeapons = !_steelWeaponsToggleRect.IsEmpty && _steelWeaponsToggleRect.Contains(pos.X, pos.Y);
 
-        if (_hoveredWonder && !_wonderEnabled)
-            _tooltipRenderer.SetTooltip(_localization.Get("tooltip_wonder_surface_only"), new SKPoint(_wonderButtonRect.Right, _wonderButtonRect.Top));
     }
 
     public bool HandlePointerPressed(SKPoint pos)
@@ -332,6 +370,18 @@ public sealed class PlayerCivilizationPanelRenderer : IDisposable
             if (!_labToggleRect.IsEmpty && _labToggleRect.Contains(pos.X, pos.Y))
             {
                 ToggleAll<Laboratory>(civ);
+                return true;
+            }
+
+            if (!_smelterToggleRect.IsEmpty && _smelterToggleRect.Contains(pos.X, pos.Y))
+            {
+                ToggleAll<Smelter>(civ);
+                return true;
+            }
+
+            if (!_steelWeaponsToggleRect.IsEmpty && _steelWeaponsToggleRect.Contains(pos.X, pos.Y))
+            {
+                ToggleAllSteelWeapons(civ);
                 return true;
             }
         }
@@ -398,6 +448,19 @@ public sealed class PlayerCivilizationPanelRenderer : IDisposable
         foreach (var b in list) b.ActivationStatus = next;
     }
 
+    private static bool AreAllSteelWeaponsActive(Civilization civ)
+    {
+        var list = civ.Cities.SelectMany(c => c.Buildings.OfType<Barracks>()).Where(b => b.Level >= 1).ToList();
+        return list.Count > 0 && list.All(b => b.UsesSteelWeapons);
+    }
+
+    private static void ToggleAllSteelWeapons(Civilization civ)
+    {
+        var list = civ.Cities.SelectMany(c => c.Buildings.OfType<Barracks>()).Where(b => b.Level >= 1).ToList();
+        bool allOn = list.All(b => b.UsesSteelWeapons);
+        foreach (var b in list) b.UsesSteelWeapons = !allOn;
+    }
+
     public void Dispose()
     {
         if (_disposed) return;
@@ -417,6 +480,8 @@ public sealed class PlayerCivilizationPanelRenderer : IDisposable
         _toggleBorderPaint.Dispose();
         _toggleKnobPaint.Dispose();
         _rowLabelPaint.Dispose();
+        _rowLabelDimPaint.Dispose();
+        _dimTogglePaint.Dispose();
         _collapseTabBgPaint.Dispose();
         _sectionFont.Dispose();
         _btnFont.Dispose();

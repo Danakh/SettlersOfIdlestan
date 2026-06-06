@@ -45,6 +45,7 @@ public class SelectedCityPanelRenderer : IGameRenderer
     private Dictionary<SKRect, BuildingType> _btnRects = new Dictionary<SKRect, BuildingType>();
     private Dictionary<SKRect, BuildingType> _hoverRects = new Dictionary<SKRect, BuildingType>();
     private Dictionary<SKRect, BuildingType> _checkboxRects = new Dictionary<SKRect, BuildingType>();
+    private Dictionary<SKRect, BuildingType> _steelWeaponsCheckboxRects = new Dictionary<SKRect, BuildingType>();
     private bool _showUniqueBuildings = false;
     private SKRect _tabRegularRect = SKRect.Empty;
     private SKRect _tabUniqueRect = SKRect.Empty;
@@ -55,8 +56,11 @@ public class SelectedCityPanelRenderer : IGameRenderer
     private SKPaint? _dimCostTextPaint;
     private SKPaint? _btnOtherCityPaint;
     private SKPaint? _checkboxActivePaint;
+    private SKPaint? _checkboxActiveDimPaint;
     private SKPaint? _checkboxInactivePaint;
     private SKPaint? _checkboxBorderPaint;
+    private BuildingType? _hoveredActivationCheckbox = null;
+    private bool _hoveredSteelWeaponsCheckbox = false;
     private SKPaint? _collapseTabPaint;
     private SKPaint? _scrollTrackPaint;
     private SKPaint? _scrollThumbPaint;
@@ -81,6 +85,7 @@ public class SelectedCityPanelRenderer : IGameRenderer
         _btnRects.Clear();
         _hoverRects.Clear();
         _checkboxRects.Clear();
+        _steelWeaponsCheckboxRects.Clear();
         _showUniqueBuildings = false;
         _lastSelectedCity = null;
         _panelBounds = SKRect.Empty;
@@ -120,6 +125,7 @@ public class SelectedCityPanelRenderer : IGameRenderer
         _dimCostTextPaint = new SKPaint { Color = new SKColor(100, 100, 110, 160), IsAntialias = true };
         _btnOtherCityPaint = new SKPaint { Color = new SKColor(60, 55, 80, 200), Style = SKPaintStyle.Fill, IsAntialias = true };
         _checkboxActivePaint = new SKPaint { Color = new SKColor(46, 160, 67, 230), Style = SKPaintStyle.Fill, IsAntialias = true };
+        _checkboxActiveDimPaint = new SKPaint { Color = new SKColor(46, 160, 67, 90), Style = SKPaintStyle.Fill, IsAntialias = true };
         _checkboxInactivePaint = new SKPaint { Color = new SKColor(40, 40, 50, 200), Style = SKPaintStyle.Fill, IsAntialias = true };
         _checkboxBorderPaint = new SKPaint { Color = new SKColor(160, 160, 180, 200), Style = SKPaintStyle.Stroke, StrokeWidth = 1.5f, IsAntialias = true };
         _collapseTabPaint = new SKPaint { Color = new SKColor(30, 30, 40, 220), Style = SKPaintStyle.Fill, IsAntialias = true };
@@ -173,6 +179,7 @@ public class SelectedCityPanelRenderer : IGameRenderer
         _btnRects.Clear();
         _hoverRects.Clear();
         _checkboxRects.Clear();
+        _steelWeaponsCheckboxRects.Clear();
         _tabRegularRect = SKRect.Empty;
         _tabUniqueRect = SKRect.Empty;
 
@@ -231,7 +238,8 @@ public class SelectedCityPanelRenderer : IGameRenderer
 
             // Case à cocher pour les bâtiments activables construits dans cette ville
             bool hasCheckbox = isBuiltInThisCity && building.ActivationStatus != ActivationStatus.NON_ACTIVABLE;
-            float nameOffsetX = hasCheckbox ? 20f : 0f;
+            bool hasSteelWeaponsCheckbox = hasCheckbox && building is Barracks && _cityBuildingService.IsSteelWeaponsUnlocked();
+            float nameOffsetX = hasCheckbox ? (hasSteelWeaponsCheckbox ? 40f : 20f) : 0f;
 
             if (hasCheckbox)
             {
@@ -249,6 +257,28 @@ public class SelectedCityPanelRenderer : IGameRenderer
                     canvas.DrawLine(cbX + cbSize / 2f - 1f, cbY + cbSize - 3f, cbX + cbSize - 2f, cbY + 3f, checkPaint);
                 }
                 _checkboxRects[new SKRect(cbX - 2, cbY - 2, cbX + cbSize + 2, cbY + cbSize + 2)] = building.Type;
+            }
+
+            if (hasSteelWeaponsCheckbox && building is Barracks barracksBuilding)
+            {
+                const float cbSize = 13f;
+                float cbX = panelX + Padding + 20f;
+                float cbY = yRow + (RowHeight - cbSize) / 2f;
+                var cbRect = new SKRect(cbX, cbY, cbX + cbSize, cbY + cbSize);
+                bool barracksActive = barracksBuilding.ActivationStatus == ActivationStatus.ACTIVE;
+                var fillPaint = barracksBuilding.UsesSteelWeapons
+                    ? (barracksActive ? _checkboxActivePaint : _checkboxActiveDimPaint)
+                    : _checkboxInactivePaint;
+                canvas.DrawRoundRect(cbRect, 3, 3, fillPaint);
+                canvas.DrawRoundRect(cbRect, 3, 3, _checkboxBorderPaint);
+                if (barracksBuilding.UsesSteelWeapons)
+                {
+                    byte checkAlpha = barracksActive ? (byte)255 : (byte)100;
+                    using var checkPaint = new SKPaint { Color = new SKColor(255, 255, 255, checkAlpha), StrokeWidth = 2f, Style = SKPaintStyle.Stroke, IsAntialias = true, StrokeCap = SKStrokeCap.Round };
+                    canvas.DrawLine(cbX + 2.5f, cbY + cbSize / 2f, cbX + cbSize / 2f - 1f, cbY + cbSize - 3f, checkPaint);
+                    canvas.DrawLine(cbX + cbSize / 2f - 1f, cbY + cbSize - 3f, cbX + cbSize - 2f, cbY + 3f, checkPaint);
+                }
+                _steelWeaponsCheckboxRects[new SKRect(cbX - 2, cbY - 2, cbX + cbSize + 2, cbY + cbSize + 2)] = building.Type;
             }
 
             var namePaint = isBuiltInOtherCity ? _dimTextPaint : _textPaint;
@@ -533,6 +563,16 @@ public class SelectedCityPanelRenderer : IGameRenderer
                     tooltipLines.Add("");
                 }
 
+                if (hoveredBuilding is Smelter smelter && smelter.Level > 0)
+                {
+                    long currentTick = _cityBuildingService.GetCurrentTick();
+                    long elapsed = smelter.LastProductionTick == 0 ? 0 : currentTick - smelter.LastProductionTick;
+                    long remaining = Math.Max(0, Smelter.ProductionCooldownTicks - elapsed);
+                    tooltipLines.Add(_localization.Get("smelter_production_cooldown") + $" {remaining / 100.0:0.0}s/{Smelter.ProductionCooldownTicks / 100.0:0.0}s");
+                    tooltipLines.Add(_localization.Get("smelter_production_costs"));
+                    tooltipLines.Add("");
+                }
+
                 if (hoveredBuilding is Laboratory laboratory && laboratory.Level > 0)
                 {
                     bool isLabAtMax = _cityBuildingService.IsAtMaxLevel(laboratory);
@@ -580,6 +620,16 @@ public class SelectedCityPanelRenderer : IGameRenderer
                 TooltipRenderUtils.DrawTooltip(canvas, _canvasSize, _lastPointerPosition, tooltipLines.ToArray(), _font10!, cost, _resourceIcons);
             }
         }
+        else if (_hoveredActivationCheckbox.HasValue)
+        {
+            var lines = new[] { _localization.Get("tooltip_activate_building") };
+            TooltipRenderUtils.DrawTooltip(canvas, _canvasSize, _lastPointerPosition, lines, _font10!, new ResourceSet(), _resourceIcons);
+        }
+        else if (_hoveredSteelWeaponsCheckbox)
+        {
+            var lines = new[] { _localization.Get("tooltip_steel_weapons_checkbox") };
+            TooltipRenderUtils.DrawTooltip(canvas, _canvasSize, _lastPointerPosition, lines, _font10!, new ResourceSet(), _resourceIcons);
+        }
     }
 
     private void HandlePointerMoved(object? sender, PointerEventArgs e)
@@ -587,13 +637,34 @@ public class SelectedCityPanelRenderer : IGameRenderer
         if (!IsInputEnabled)
         {
             _hoveredBuildingType = null;
+            _hoveredActivationCheckbox = null;
+            _hoveredSteelWeaponsCheckbox = false;
             return;
         }
 
         _lastPointerPosition = e.Position;
-        
-        // Détecter si on survole un bâtiment
+        _hoveredActivationCheckbox = null;
+        _hoveredSteelWeaponsCheckbox = false;
         _hoveredBuildingType = null;
+
+        // Cases à cocher prioritaires sur le survol de ligne
+        foreach (var (rect, buildingType) in _checkboxRects)
+        {
+            if (rect.Contains(e.Position.X, e.Position.Y))
+            {
+                _hoveredActivationCheckbox = buildingType;
+                return;
+            }
+        }
+        foreach (var (rect, _) in _steelWeaponsCheckboxRects)
+        {
+            if (rect.Contains(e.Position.X, e.Position.Y))
+            {
+                _hoveredSteelWeaponsCheckbox = true;
+                return;
+            }
+        }
+
         foreach (var (rect, buildingType) in _hoverRects)
         {
             if (rect.Contains(e.Position.X, e.Position.Y))
@@ -642,6 +713,16 @@ public class SelectedCityPanelRenderer : IGameRenderer
             }
         }
 
+        // Clic sur la case armes en acier (Caserne)
+        foreach (var (rect, _) in _steelWeaponsCheckboxRects)
+        {
+            if (rect.Contains(e.Position.X, e.Position.Y))
+            {
+                _cityBuildingService.ToggleBarracksSteelWeapons();
+                return;
+            }
+        }
+
         // Clic sur un bouton de construction
         foreach (var (rect, buildingType) in _hoverRects)
         {
@@ -672,6 +753,7 @@ public class SelectedCityPanelRenderer : IGameRenderer
         _tabActivePaint?.Dispose();
         _tabInactivePaint?.Dispose();
         _checkboxActivePaint?.Dispose();
+        _checkboxActiveDimPaint?.Dispose();
         _checkboxInactivePaint?.Dispose();
         _checkboxBorderPaint?.Dispose();
         _collapseTabPaint?.Dispose();

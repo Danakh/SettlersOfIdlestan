@@ -180,6 +180,13 @@ public static class TechnologyDefinitions
             modifiers: new Modifier[] { new(ECategory.FORGE_DOUBLE_HARVEST_BONUS, EType.ADDITIVE, 15) },
             tier: 3, line: 2),
 
+        new(TechnologyId.SteelWeapons,
+            "tech_steel_weapons_name", "tech_steel_weapons_desc",
+            cost: 15000,
+            prerequisites: new[] { TechnologyId.MaitriseDesAlliages },
+            modifiers: new Modifier[] { new(ECategory.UNLOCK_STEEL_WEAPONS, EType.ADDITIVE, 1) },
+            tier: 4, line: 2),
+
         new(TechnologyId.EfficientTrading,
             "tech_efficient_trading_name", "tech_efficient_trading_desc",
             cost: 5000,

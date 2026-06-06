@@ -225,14 +225,32 @@ public class MilitaryController
                 var barracks = city.Buildings.OfType<Barracks>()
                     .FirstOrDefault(b => b.ActivationStatus == ActivationStatus.ACTIVE && b.Level >= SoldierProductionMinLevel);
                 if (barracks == null) continue;
+
+                bool useSteelWeapons = barracks.UsesSteelWeapons
+                    && civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_STEEL_WEAPONS);
+
                 if (civ.GetResourceQuantity(Resource.Ore) < 1)
                 {
                     civ.RaiseLowStock(Resource.Ore);
                     continue;
                 }
+                if (useSteelWeapons && civ.GetResourceQuantity(Resource.Steel) < 1)
+                {
+                    civ.RaiseLowStock(Resource.Steel);
+                    continue;
+                }
 
                 civ.RemoveResource(Resource.Ore, 1);
-                city.Soldiers++;
+                if (useSteelWeapons)
+                {
+                    civ.RemoveResource(Resource.Steel, 1);
+                    int toAdd = Math.Min(5, GetMaximumSoldierCapacity(city, civ) - city.Soldiers);
+                    city.Soldiers += toAdd;
+                }
+                else
+                {
+                    city.Soldiers++;
+                }
                 city.LastSoldierProductionTick = currentTick;
 
                 if (civ.Index == _state.PlayerCivilization.Index)
