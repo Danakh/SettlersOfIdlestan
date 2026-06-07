@@ -23,6 +23,8 @@ internal class ReinforcementEngine
     private long _lastPlayerAutoAttackTick = 0;
 
     private const int DefaultReinforcementRange = 5;
+    private const long AutoReinforcementIntervalTicks = 100L;
+    private const long AutoAttackIntervalTicks = 100L;
 
     internal void Initialize(WorldState? state, CityAttackEngine cityAttackEngine, SoldierProductionEngine productionEngine)
     {
@@ -65,7 +67,7 @@ internal class ReinforcementEngine
     {
         if (_state == null) return;
         if (!_state.AutomationSettings.MilitaryReinforcementAutomationEnabled) return;
-        if (currentTick - _lastPlayerAutoReinforcementTick < MilitaryController.AutoReinforcementIntervalTicks) return;
+        if (currentTick - _lastPlayerAutoReinforcementTick < AutoReinforcementIntervalTicks) return;
         _lastPlayerAutoReinforcementTick = currentTick;
 
         var playerCiv = _state.PlayerCivilization;
@@ -78,7 +80,7 @@ internal class ReinforcementEngine
     {
         if (_state == null) return;
         if (!_state.AutomationSettings.MilitaryAttackAutomationEnabled) return;
-        if (currentTick - _lastPlayerAutoAttackTick < MilitaryController.AutoAttackIntervalTicks) return;
+        if (currentTick - _lastPlayerAutoAttackTick < AutoAttackIntervalTicks) return;
         _lastPlayerAutoAttackTick = currentTick;
 
         var playerCiv = _state.PlayerCivilization;

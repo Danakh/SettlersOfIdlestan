@@ -21,8 +21,7 @@ internal class MonsterCombatEngine
     }
 
     internal void ResolveMonsterCombat(long currentTick,
-        Action<SoldierAttackEventArgs> onSoldierAttackedMonster,
-        Action<SoldierAttackEventArgs> onSoldierAttackedBandit)
+        Action<SoldierAttackEventArgs> onSoldierAttackedMonster)
     {
         if (_state == null) return;
 
@@ -31,7 +30,7 @@ internal class MonsterCombatEngine
         {
             if (currentTick - monster.LastAttackedByMilitaryTick < MilitaryController.CombatIntervalTicks) continue;
 
-            if (AttackMonsterWithSoldiers(monster, currentTick, onSoldierAttackedMonster, onSoldierAttackedBandit) && monster.Hp <= 0)
+            if (AttackMonsterWithSoldiers(monster, currentTick, onSoldierAttackedMonster) && monster.Hp <= 0)
                 deadMonsters.Add(monster);
         }
 
@@ -43,8 +42,7 @@ internal class MonsterCombatEngine
     }
 
     internal bool AttackMonsterWithSoldiers(MonsterFeature monster, long currentTick,
-        Action<SoldierAttackEventArgs> onSoldierAttackedMonster,
-        Action<SoldierAttackEventArgs> onSoldierAttackedBandit)
+        Action<SoldierAttackEventArgs> onSoldierAttackedMonster)
     {
         if (_state == null) return false;
 
@@ -61,7 +59,6 @@ internal class MonsterCombatEngine
                 monster.Hp--;
                 monster.LastAttackedByMilitaryTick = currentTick;
                 onSoldierAttackedMonster(new SoldierAttackEventArgs(city.Position, monster.Position));
-                onSoldierAttackedBandit(new SoldierAttackEventArgs(city.Position, monster.Position));
                 return true;
             }
         }

@@ -16,6 +16,8 @@ internal class SoldierProductionEngine
 {
     private WorldState? _state;
 
+    internal const int SoldierProductionMinLevel = 1;
+
     internal void Initialize(WorldState? state)
     {
         _state = state;
@@ -36,7 +38,7 @@ internal class SoldierProductionEngine
                 if (currentTick - city.LastSoldierProductionTick < effectiveProductionInterval) continue;
 
                 var barracks = city.Buildings.OfType<Barracks>()
-                    .FirstOrDefault(b => b.ActivationStatus == ActivationStatus.ACTIVE && b.Level >= MilitaryController.SoldierProductionMinLevel);
+                    .FirstOrDefault(b => b.ActivationStatus == ActivationStatus.ACTIVE && b.Level >= SoldierProductionMinLevel);
                 if (barracks == null) continue;
 
                 bool useSteelWeapons = barracks.UsesSteelWeapons

@@ -41,7 +41,6 @@ public class ReinforcementEventArgs(Vertex sourceCity, Vertex targetCity, List<V
 
 /// <summary>
 /// Coordinateur militaire : délègue la logique aux 4 moteurs internes.
-/// Conserve l'API publique complète pour la compatibilité externe.
 /// </summary>
 public class MilitaryController
 {
@@ -53,22 +52,13 @@ public class MilitaryController
     private readonly CityAttackEngine _cityAttackEngine = new();
     private readonly ReinforcementEngine _reinforcementEngine = new();
 
-    // ── Constantes publiques (compatibilité) ─────────────────────────────────
-
-    /// <summary>Intervalle entre deux recalculs des flux de renfort automatiques du joueur (100 ticks = 1 s).</summary>
-    public const long AutoReinforcementIntervalTicks = 100L;
-
-    /// <summary>Intervalle entre deux recalculs des cibles d'attaque automatique du joueur (100 ticks = 1 s).</summary>
-    public const long AutoAttackIntervalTicks = 100L;
+    // ── Constantes publiques ─────────────────────────────────────────────────
 
     /// <summary>Intervalle de production d'un soldat (1 000 ticks = 10 s à vitesse normale).</summary>
     public const long SoldierProductionIntervalTicks = 1_000L;
 
     /// <summary>Intervalle entre deux attaques d'une même cible (synchronisé avec MovementIntervalTicks).</summary>
     public const long CombatIntervalTicks = 100L;
-
-    /// <summary>Niveau de Caserne à partir duquel la production de soldats est active.</summary>
-    public const int SoldierProductionMinLevel = 1;
 
     /// <summary>Intervalle de régénération d'un point de défense (500 ticks).</summary>
     public const long DefenseRegenIntervalTicks = 500L;
@@ -85,8 +75,6 @@ public class MilitaryController
     // ── Events publics ───────────────────────────────────────────────────────
 
     public event EventHandler<SoldierAttackEventArgs>? SoldierAttackedMonster;
-    /// <summary>Alias de compatibilité — préférer SoldierAttackedMonster.</summary>
-    public event EventHandler<SoldierAttackEventArgs>? SoldierAttackedBandit;
     public event EventHandler<CityAttackEventArgs>? SoldierAttackedCity;
     public event EventHandler<CityBuildingDestroyedEventArgs>? CityBuildingDestroyed;
     public event EventHandler<CityDestroyedEventArgs>? CityDestroyed;
@@ -108,7 +96,7 @@ public class MilitaryController
     public double GetSoldierProductionRate(City city, Civilization civ)
     {
         var barracks = city.Buildings.OfType<Barracks>()
-            .FirstOrDefault(b => b.ActivationStatus == ActivationStatus.ACTIVE && b.Level >= SoldierProductionMinLevel);
+            .FirstOrDefault(b => b.ActivationStatus == ActivationStatus.ACTIVE && b.Level >= SoldierProductionEngine.SoldierProductionMinLevel);
         if (barracks == null) return 0;
         const double ticksPerSecond = 100.0;
         return civ.UnitProductionSpeed * ticksPerSecond / SoldierProductionIntervalTicks;
@@ -170,8 +158,7 @@ public class MilitaryController
         _productionEngine.ProduceSoldiers(currentTick);
         _productionEngine.ResolveSoldierFeeding(currentTick);
         _monsterCombatEngine.ResolveMonsterCombat(currentTick,
-            args => SoldierAttackedMonster?.Invoke(this, args),
-            args => SoldierAttackedBandit?.Invoke(this, args));
+            args => SoldierAttackedMonster?.Invoke(this, args));
         ResolveDefenseRegen(currentTick);
         _cityAttackEngine.ResolveCityAttacks(currentTick,
             args => SoldierAttackedCity?.Invoke(this, args),
