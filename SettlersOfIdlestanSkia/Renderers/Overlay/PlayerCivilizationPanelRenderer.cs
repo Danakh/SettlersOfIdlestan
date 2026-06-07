@@ -39,6 +39,7 @@ public sealed class PlayerCivilizationPanelRenderer : IDisposable
     private const float CollapseTabH = 24f;
     private bool _collapsed = false;
     private SKRect _collapseTabRect = SKRect.Empty;
+    public float TopOverride { get; set; } = 0f;
 
     private SKSize _canvasSize;
     private SKRect _panelBounds        = SKRect.Empty;
@@ -142,7 +143,7 @@ public sealed class PlayerCivilizationPanelRenderer : IDisposable
         }
 
         float contentW = PanelWidth - PanelPadding * 2;
-        float panelTop = PlayerResourcesOverlayRenderer.BarHeight + 10f;
+        float panelTop = (TopOverride > 0f ? TopOverride : PlayerResourcesOverlayRenderer.BarHeight) + 10f;
         float tabTop = panelTop + 8f;
 
         if (_collapsed)

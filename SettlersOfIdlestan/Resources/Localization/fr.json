@@ -219,6 +219,8 @@
   "tooltip_harvest_auto": "Auto :",
   "tooltip_harvest_auto_next": "→ Prochain niv. :",
   "menu_about": "À propos",
+  "menu_layout_mobile": "Activer mode mobile",
+  "menu_layout_desktop": "Activer mode bureau",
   "about_title": "À propos",
   "about_by": "Jeu par Danakh",
   "about_inspired": "Inspiré par le célèbre jeu de société Les Colons de Catane",

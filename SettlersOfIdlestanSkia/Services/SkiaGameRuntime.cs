@@ -42,6 +42,7 @@ public sealed class SkiaGameRuntime : IDisposable
     private string? _corruptSaveJson;
     private GameOverPopupRenderer? _gameOverPopup;
     private bool _gameOverPending;
+    private UILayoutService? _uiLayoutService;
 
     public event Action? QuitRequested;
 
@@ -99,6 +100,7 @@ public sealed class SkiaGameRuntime : IDisposable
         _cameraService        = new CameraService();
         _localizationService  = new LocalizationService();
         _gameControllerService = new GameControllerService();
+        _uiLayoutService      = new UILayoutService();
 
         bool isNewGame = false;
 
@@ -202,6 +204,7 @@ public sealed class SkiaGameRuntime : IDisposable
         islandMainRenderer.ConnectMilitaryEvents(_gameControllerService.MainGameController.MilitaryController, _gameControllerService!, () => _prestigeTransitionPending, () => _overlayRenderer?.IsIslandTabActive ?? true);
 
         var selectedCityPanelRenderer = new SelectedCityPanelRenderer(_gameControllerService.CityBuildingService!, _localizationService!, _inputService!, _resourceManager!);
+        selectedCityPanelRenderer.LayoutService = _uiLayoutService;
         _wonderService = new WonderService();
         _constructionInteractionService.AttachWonderService(_wonderService);
         islandMainRenderer.ConnectWonderService(_wonderService);
@@ -212,7 +215,7 @@ public sealed class SkiaGameRuntime : IDisposable
         DebugPanelRenderer? debugPanelRenderer = null;
         if (allowDebugMode)
             debugPanelRenderer = new DebugPanelRenderer(_inputService!, _localizationService!);
-        var settingsMenu = new SettingsMenu(_gameControllerService.MainGameController, _inputService!, _localizationService!, aboutRenderer, settingsPopupRenderer, _fileSystemService!, _gameControllerService.CityBuildingService!, allowDebugMode, debugPanelRenderer, StartNewGameIntro);
+        var settingsMenu = new SettingsMenu(_gameControllerService.MainGameController, _inputService!, _localizationService!, aboutRenderer, settingsPopupRenderer, _fileSystemService!, _gameControllerService.CityBuildingService!, allowDebugMode, debugPanelRenderer, StartNewGameIntro, _uiLayoutService);
 
         _playerResourcesOverlayRenderer = new PlayerResourcesOverlayRenderer(_localizationService!, _resourceManager!);
         var playerResourcesOverlayRenderer = _playerResourcesOverlayRenderer;
@@ -244,7 +247,8 @@ public sealed class SkiaGameRuntime : IDisposable
             researchRenderer,
             eventLogRenderer,
             automationRenderer,
-            tooltipRenderer);
+            tooltipRenderer,
+            _uiLayoutService!);
         _overlayRenderer.ConnectWonderService(_wonderSelectionService);
         _renderService.RegisterRenderer(_overlayRenderer);
         _constructionInteractionService.ShouldSuppressHover = pos =>

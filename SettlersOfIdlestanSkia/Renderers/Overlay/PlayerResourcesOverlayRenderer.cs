@@ -40,6 +40,7 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
     private readonly Dictionary<Resource, SKSvg?> _resourceIcons = new();
     private readonly Dictionary<Resource, SKRect> _resourceRects = new();
     public const float BarHeight = 50;
+    public const float SecondRowHeight = 36f;
     public const float IconSize = 32;
     private const float RectangleWidth = 66;
     private const float RectangleHeight = 32;
@@ -49,6 +50,10 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
     private static readonly SKColor ItemBackground = new SKColor(40, 40, 40, 210);
 
     public float ResourceStartX { get; set; } = Padding;
+    public bool ShowGearInBar { get; set; } = true;
+    public float ScrollOffset { get; set; } = 0f;
+    private float _totalResourcesContentWidth;
+    public float TotalResourcesContentWidth => _totalResourcesContentWidth;
 
     public bool Disposed => _disposed;
     public SKRect GearRect
@@ -160,13 +165,19 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
             .Where(r => !ResourceUtils.AdvancedResources.Contains(r)
                         || (prestigeState?.IsResourceDiscovered(r, map) ?? false))
             .ToList();
-        float barWidth = _canvasSize.Width;
 
         DrawBarBackground(canvas);
 
-        float currentX = ResourceStartX;
         float itemY = (BarHeight - RectangleHeight) / 2;
+        float scroll = ScrollOffset;
 
+        // Zone de clip : évite que les items débordent sur le gear ou hors de la barre
+        float clipRight = ShowGearInBar ? _canvasSize.Width - Padding - IconSize - 4f : _canvasSize.Width - Padding;
+        canvas.Save();
+        canvas.ClipRect(new SKRect(ResourceStartX, 0, clipRight, BarHeight));
+        canvas.Translate(-scroll, 0);
+
+        float currentX = ResourceStartX;
         _resourceRects.Clear();
         foreach (var resource in resourceTypes)
         {
@@ -174,15 +185,24 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
             var maxQuantity = civilization.GetResourceMaxQuantity(resource);
             if (maxQuantity > 0)
             {
-                _resourceRects[resource] = new SKRect(currentX, itemY, currentX + RectangleWidth, itemY + RectangleHeight);
+                // Rect en coordonnées écran (avant la translation du canvas)
+                _resourceRects[resource] = new SKRect(currentX - scroll, itemY, currentX - scroll + RectangleWidth, itemY + RectangleHeight);
                 DrawResourceItem(canvas, resource, quantity, maxQuantity, currentX, itemY, IsFlickering(resource));
                 currentX += RectangleWidth + itemSpacing;
             }
         }
+        _totalResourcesContentWidth = currentX - ResourceStartX;
+        canvas.Restore();
 
-        float gearX = barWidth - Padding - IconSize;
-        DrawGearIcon(canvas, gearX, itemY, IconSize);
+        if (ShowGearInBar)
+        {
+            float gearX = _canvasSize.Width - Padding - IconSize;
+            DrawGearIcon(canvas, gearX, itemY, IconSize);
+        }
     }
+
+    public void DrawGearAt(SKCanvas canvas, float x, float y, float size)
+        => DrawGearIcon(canvas, x, y, size);
 
     private void DrawResearchPointsBar(SKCanvas canvas, int researchPoints)
     {

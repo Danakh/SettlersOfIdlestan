@@ -39,6 +39,7 @@ public class SelectedWonderPanelRenderer : IGameRenderer
     private const float Padding = 10;
     private const float BarHeight = 10;
 
+    public float TopOverride { get; set; } = 0f;
     private SKRect _panelBounds = SKRect.Empty;
     private SKRect _closeRect = SKRect.Empty;
     private SKRect _collapseTabRect = SKRect.Empty;
@@ -125,7 +126,7 @@ public class SelectedWonderPanelRenderer : IGameRenderer
         var costList = cost.ToList();
 
         float panelX = _canvasSize.Width - PanelWidth - 10;
-        float panelY = 60;
+        float panelY = TopOverride > 0f ? TopOverride : 60f;
         float tabTop = panelY + 8f;
 
         if (_collapsed)

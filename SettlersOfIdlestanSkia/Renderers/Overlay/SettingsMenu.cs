@@ -42,6 +42,7 @@ public class SettingsMenu
     private readonly CityBuildingService _cityBuildingService;
     private readonly DebugPanelRenderer? _debugPanelRenderer;
     private readonly Action? _onAfterNewGame;
+    private readonly UILayoutService? _uiLayout;
     private List<MenuItem> _menuItems = new();
 
     private float _gearX;
@@ -50,6 +51,7 @@ public class SettingsMenu
     private class MenuItem
     {
         public string LabelKey { get; set; } = "";
+        public Func<string>? DynamicLabel { get; set; }
         public Action? Action { get; set; }
         public bool IsSeparator { get; set; } = false;
         public bool IsClickable => !IsSeparator && Action != null;
@@ -57,7 +59,7 @@ public class SettingsMenu
 
     public bool IsOpen => _isOpen;
 
-    public SettingsMenu(MainGameController gameController, InputHandlingService inputService, LocalizationService localization, AboutRenderer aboutRenderer, SettingsPopupRenderer settingsPopupRenderer, IFileSystemService fileSystemService, CityBuildingService cityBuildingService, bool allowDebugMode = false, DebugPanelRenderer? debugPanelRenderer = null, Action? onAfterNewGame = null)
+    public SettingsMenu(MainGameController gameController, InputHandlingService inputService, LocalizationService localization, AboutRenderer aboutRenderer, SettingsPopupRenderer settingsPopupRenderer, IFileSystemService fileSystemService, CityBuildingService cityBuildingService, bool allowDebugMode = false, DebugPanelRenderer? debugPanelRenderer = null, Action? onAfterNewGame = null, UILayoutService? uiLayout = null)
     {
         _gameController = gameController;
         _inputService = inputService;
@@ -68,6 +70,7 @@ public class SettingsMenu
         _cityBuildingService = cityBuildingService;
         _debugPanelRenderer = debugPanelRenderer;
         _onAfterNewGame = onAfterNewGame;
+        _uiLayout = uiLayout;
         _inputService.PointerPressed += HandlePointerPressed;
 
         Initialize();
@@ -102,6 +105,18 @@ public class SettingsMenu
             LabelKey = "menu_about",
             Action = ToggleAboutPopUp
         });
+
+        if (_uiLayout != null)
+        {
+            _menuItems.Add(new MenuItem { IsSeparator = true });
+            _menuItems.Add(new MenuItem
+            {
+                DynamicLabel = () => _uiLayout.IsMobile
+                    ? _localization.Get("menu_layout_desktop")
+                    : _localization.Get("menu_layout_mobile"),
+                Action = () => _uiLayout.ToggleForceMode()
+            });
+        }
 
         if (allowDebugMode)
         {
@@ -248,7 +263,8 @@ public class SettingsMenu
                     const float padding = 8;
                     float textX = menuX + padding;
                     float textY = currentY + itemHeight / 2 + _textFont.Size / 2;
-                    canvas.DrawText(_localization.Get(item.LabelKey), textX, textY, _textFont, _textPaint);
+                    string label = item.DynamicLabel?.Invoke() ?? _localization.Get(item.LabelKey);
+                    canvas.DrawText(label, textX, textY, _textFont, _textPaint);
                 }
             }
 

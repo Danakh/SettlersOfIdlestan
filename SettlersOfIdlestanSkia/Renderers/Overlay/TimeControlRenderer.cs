@@ -32,6 +32,7 @@ public class TimeControlRenderer : IDisposable
 
     private SKSize _canvasSize;
     private float _rightEdge;
+    private float _rowTop;
 
     private SKRect _pauseRect = SKRect.Empty;
     private SKRect _playRect = SKRect.Empty;
@@ -59,17 +60,18 @@ public class TimeControlRenderer : IDisposable
         _inputService.PointerMoved += HandlePointerMoved;
     }
 
-    public void Initialize(SKSize canvasSize, float rightEdge)
+    public void Initialize(SKSize canvasSize, float rightEdge, float rowTop = 0f)
     {
         _canvasSize = canvasSize;
         _rightEdge = rightEdge;
+        _rowTop = rowTop;
         RecalcRects();
     }
 
     private void RecalcRects()
     {
-        float barHeight = PlayerResourcesOverlayRenderer.BarHeight;
-        float buttonY = (barHeight - ButtonSize) / 2f;
+        float rowH = _rowTop > 0f ? PlayerResourcesOverlayRenderer.SecondRowHeight : PlayerResourcesOverlayRenderer.BarHeight;
+        float buttonY = _rowTop + (rowH - ButtonSize) / 2f;
 
         // Bank display (leftmost)
         float bankLeft = _rightEdge - TotalWidth;
