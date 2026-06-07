@@ -81,10 +81,11 @@ public sealed class PlayerCivilizationPanelRenderer : IDisposable
     private readonly SKPaint _indeterminateHoverPaint    = new() { Color = new SKColor(110, 110, 125), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _collapseTabBgPaint  = new() { Color = new SKColor(24, 24, 30, 230), Style = SKPaintStyle.Fill, IsAntialias = true };
 
-    private readonly SKFont _sectionFont = new() { Size = TitleSize, Typeface = SkiaFonts.Regular };
-    private readonly SKFont _btnFont     = new() { Size = 13f,       Typeface = SkiaFonts.Bold };
-    private readonly SKFont _btnSmFont   = new() { Size = 11f,       Typeface = SkiaFonts.Bold };
-    private readonly SKFont _labelFont   = new() { Size = 13f,       Typeface = SkiaFonts.Regular };
+    private SKFont _sectionFont = new() { Size = TitleSize, Typeface = SkiaFonts.Regular };
+    private SKFont _btnFont     = new() { Size = 13f,       Typeface = SkiaFonts.Bold };
+    private SKFont _btnSmFont   = new() { Size = 11f,       Typeface = SkiaFonts.Bold };
+    private SKFont _labelFont   = new() { Size = 13f,       Typeface = SkiaFonts.Regular };
+    private float _lastUiScale  = 0f;
 
     public PlayerCivilizationPanelRenderer(
         GameControllerService gameControllerService,
@@ -121,6 +122,28 @@ public sealed class PlayerCivilizationPanelRenderer : IDisposable
         var civ = _gameControllerService.PlayerCivilization;
         if (civ == null) return;
 
+        float s = context.UiScale;
+        if (s != _lastUiScale)
+        {
+            _lastUiScale = s;
+            _sectionFont.Dispose(); _sectionFont = new SKFont { Size = TitleSize * s, Typeface = SkiaFonts.Regular };
+            _btnFont.Dispose();     _btnFont     = new SKFont { Size = 13f * s,       Typeface = SkiaFonts.Bold };
+            _btnSmFont.Dispose();   _btnSmFont   = new SKFont { Size = 11f * s,       Typeface = SkiaFonts.Bold };
+            _labelFont.Dispose();   _labelFont   = new SKFont { Size = 13f * s,       Typeface = SkiaFonts.Regular };
+        }
+
+        float panelLeft    = PanelLeft * s;
+        float panelWidth   = PanelWidth * s;
+        float panelPadding = PanelPadding * s;
+        float btnHeight    = BtnHeight * s;
+        float btnSpacing   = BtnSpacing * s;
+        float titleSize    = TitleSize * s;
+        float titleHeight  = TitleHeight * s;
+        float rowHeight    = RowHeight * s;
+        float sepSpacing   = SepSpacing * s;
+        float collapseTabW = CollapseTabW * s;
+        float collapseTabH = CollapseTabH * s;
+
         bool tradeVisible    = IsTradeVisible();
         bool prestigeVisible = IsPrestigeVisible();
         bool prestigeAvail   = prestigeVisible && IsPrestigeAvailable();
@@ -145,116 +168,116 @@ public sealed class PlayerCivilizationPanelRenderer : IDisposable
             return;
         }
 
-        float contentW = PanelWidth - PanelPadding * 2;
-        float panelTop = (TopOverride > 0f ? TopOverride : PlayerResourcesOverlayRenderer.BarHeight * context.UiScale) + 10f;
-        float tabTop = panelTop + 8f;
+        float contentW = panelWidth - panelPadding * 2;
+        float panelTop = (TopOverride > 0f ? TopOverride : PlayerResourcesOverlayRenderer.BarHeight * s) + 10f * s;
+        float tabTop = panelTop + 8f * s;
 
         if (_collapsed)
         {
-            _collapseTabRect = new SKRect(0, tabTop, CollapseTabW, tabTop + CollapseTabH);
+            _collapseTabRect = new SKRect(0, tabTop, collapseTabW, tabTop + collapseTabH);
             _panelBounds = _collapseTabRect;
-            canvas.DrawRoundRect(_collapseTabRect, 4, 4, _collapseTabBgPaint);
-            canvas.DrawRoundRect(_collapseTabRect, 4, 4, _panelBorderPaint);
-            canvas.DrawText("►", _collapseTabRect.MidX, _collapseTabRect.MidY + 5f, SKTextAlign.Center, _btnFont, _btnTextPaint);
+            canvas.DrawRoundRect(_collapseTabRect, 4 * s, 4 * s, _collapseTabBgPaint);
+            canvas.DrawRoundRect(_collapseTabRect, 4 * s, 4 * s, _panelBorderPaint);
+            canvas.DrawText("►", _collapseTabRect.MidX, _collapseTabRect.MidY + 5f * s, SKTextAlign.Center, _btnFont, _btnTextPaint);
             return;
         }
 
         // Measure total height
-        float h = PanelPadding;
+        float h = panelPadding;
         if (showActions)
         {
             int actionCount = (tradeVisible ? 1 : 0) + (prestigeVisible ? 1 : 0) + (wonderVisible ? 1 : 0);
             int actionRows  = (actionCount + 1) / 2;
-            h += TitleHeight + actionRows * (BtnHeight + BtnSpacing);
+            h += titleHeight + actionRows * (btnHeight + btnSpacing);
         }
-        if (showActions && showControls) h += SepSpacing * 2 + 1f;
+        if (showActions && showControls) h += sepSpacing * 2 + 1f;
         if (showControls)
         {
-            h += TitleHeight;
-            if (hasBarracks)      h += RowHeight;
-            if (hasSteelWeapons)  h += RowHeight;
-            if (hasLabs)          h += RowHeight;
-            if (hasSmelters)      h += RowHeight;
+            h += titleHeight;
+            if (hasBarracks)     h += rowHeight;
+            if (hasSteelWeapons) h += rowHeight;
+            if (hasLabs)         h += rowHeight;
+            if (hasSmelters)     h += rowHeight;
         }
-        h += PanelPadding;
+        h += panelPadding;
 
-        _panelBounds = new SKRect(PanelLeft, panelTop, PanelLeft + PanelWidth, panelTop + h);
-        canvas.DrawRoundRect(_panelBounds, 8, 8, _panelBgPaint);
-        canvas.DrawRoundRect(_panelBounds, 8, 8, _panelBorderPaint);
+        _panelBounds = new SKRect(panelLeft, panelTop, panelLeft + panelWidth, panelTop + h);
+        canvas.DrawRoundRect(_panelBounds, 8 * s, 8 * s, _panelBgPaint);
+        canvas.DrawRoundRect(_panelBounds, 8 * s, 8 * s, _panelBorderPaint);
 
         // Onglet collapse (bord droit du panneau)
-        _collapseTabRect = new SKRect(PanelLeft + PanelWidth, tabTop, PanelLeft + PanelWidth + CollapseTabW, tabTop + CollapseTabH);
-        canvas.DrawRoundRect(_collapseTabRect, 4, 4, _collapseTabBgPaint);
-        canvas.DrawRoundRect(_collapseTabRect, 4, 4, _panelBorderPaint);
-        canvas.DrawText("◄", _collapseTabRect.MidX, _collapseTabRect.MidY + 5f, SKTextAlign.Center, _btnFont, _btnTextPaint);
+        _collapseTabRect = new SKRect(panelLeft + panelWidth, tabTop, panelLeft + panelWidth + collapseTabW, tabTop + collapseTabH);
+        canvas.DrawRoundRect(_collapseTabRect, 4 * s, 4 * s, _collapseTabBgPaint);
+        canvas.DrawRoundRect(_collapseTabRect, 4 * s, 4 * s, _panelBorderPaint);
+        canvas.DrawText("◄", _collapseTabRect.MidX, _collapseTabRect.MidY + 5f * s, SKTextAlign.Center, _btnFont, _btnTextPaint);
 
-        float x = PanelLeft + PanelPadding;
-        float y = panelTop + PanelPadding;
+        float x = panelLeft + panelPadding;
+        float y = panelTop + panelPadding;
 
         if (showActions)
         {
-            canvas.DrawText(_localization.Get("panel_civ_actions"), x, y + TitleSize, _sectionFont, _sectionTitlePaint);
-            y += TitleHeight;
+            canvas.DrawText(_localization.Get("panel_civ_actions"), x, y + titleSize, _sectionFont, _sectionTitlePaint);
+            y += titleHeight;
 
-            const float colGap   = 6f;
-            float       colW     = (contentW - colGap) / 2f;
+            float colGap = 6f * s;
+            float colW   = (contentW - colGap) / 2f;
             int  actionCount = (tradeVisible ? 1 : 0) + (prestigeVisible ? 1 : 0) + (wonderVisible ? 1 : 0);
             float actionsY   = y;
             int   btnIdx     = 0;
 
             SKRect BtnRect(int idx)
             {
-                float col       = idx % 2;
-                float row       = idx / 2;
-                bool  lastOdd   = idx == actionCount - 1 && actionCount % 2 == 1;
-                float bw        = lastOdd ? contentW : colW;
-                float bx        = x + col * (colW + colGap);
-                float by        = actionsY + row * (BtnHeight + BtnSpacing);
-                return new SKRect(bx, by, bx + bw, by + BtnHeight);
+                float col     = idx % 2;
+                float row     = idx / 2;
+                bool  lastOdd = idx == actionCount - 1 && actionCount % 2 == 1;
+                float bw      = lastOdd ? contentW : colW;
+                float bx      = x + col * (colW + colGap);
+                float by      = actionsY + row * (btnHeight + btnSpacing);
+                return new SKRect(bx, by, bx + bw, by + btnHeight);
             }
 
             if (tradeVisible)
             {
                 _tradeButtonRect = BtnRect(btnIdx++);
-                canvas.DrawRoundRect(_tradeButtonRect, 6, 6, _hoveredTrade ? _btnHoverPaint : _btnPaint);
-                canvas.DrawText(_localization.Get("trade_action"), _tradeButtonRect.MidX, _tradeButtonRect.MidY + 4f, SKTextAlign.Center, _btnSmFont, _btnTextPaint);
+                canvas.DrawRoundRect(_tradeButtonRect, 6 * s, 6 * s, _hoveredTrade ? _btnHoverPaint : _btnPaint);
+                canvas.DrawText(_localization.Get("trade_action"), _tradeButtonRect.MidX, _tradeButtonRect.MidY + 4f * s, SKTextAlign.Center, _btnSmFont, _btnTextPaint);
             }
 
             if (prestigeVisible)
             {
                 _prestigeButtonRect = BtnRect(btnIdx++);
-                canvas.DrawRoundRect(_prestigeButtonRect, 6, 6, prestigeAvail ? (_hoveredPrestige ? _btnHoverPaint : _btnPaint) : _btnDisabledPaint);
+                canvas.DrawRoundRect(_prestigeButtonRect, 6 * s, 6 * s, prestigeAvail ? (_hoveredPrestige ? _btnHoverPaint : _btnPaint) : _btnDisabledPaint);
                 string prestigeLabel = $"{_localization.Get("prestige_action")} ({prestigePoints})";
-                canvas.DrawText(prestigeLabel, _prestigeButtonRect.MidX, _prestigeButtonRect.MidY + 4f, SKTextAlign.Center, _btnSmFont, prestigeAvail ? _btnTextPaint : _btnDisabledTxtPaint);
+                canvas.DrawText(prestigeLabel, _prestigeButtonRect.MidX, _prestigeButtonRect.MidY + 4f * s, SKTextAlign.Center, _btnSmFont, prestigeAvail ? _btnTextPaint : _btnDisabledTxtPaint);
             }
 
             if (wonderVisible)
             {
                 _wonderButtonRect = BtnRect(btnIdx++);
-                canvas.DrawRoundRect(_wonderButtonRect, 6, 6, _wonderEnabled ? (_hoveredWonder ? _btnHoverPaint : _btnPaint) : _btnDisabledPaint);
-                canvas.DrawText(_localization.Get("wonder_action_short"), _wonderButtonRect.MidX, _wonderButtonRect.MidY + 4f, SKTextAlign.Center, _btnSmFont, _wonderEnabled ? _btnTextPaint : _btnDisabledTxtPaint);
+                canvas.DrawRoundRect(_wonderButtonRect, 6 * s, 6 * s, _wonderEnabled ? (_hoveredWonder ? _btnHoverPaint : _btnPaint) : _btnDisabledPaint);
+                canvas.DrawText(_localization.Get("wonder_action_short"), _wonderButtonRect.MidX, _wonderButtonRect.MidY + 4f * s, SKTextAlign.Center, _btnSmFont, _wonderEnabled ? _btnTextPaint : _btnDisabledTxtPaint);
             }
 
-            y = actionsY + ((btnIdx + 1) / 2) * (BtnHeight + BtnSpacing);
+            y = actionsY + ((btnIdx + 1) / 2) * (btnHeight + btnSpacing);
         }
 
         if (showActions && showControls)
         {
-            y += SepSpacing;
+            y += sepSpacing;
             canvas.DrawLine(x, y, x + contentW, y, _separatorPaint);
-            y += SepSpacing + 1f;
+            y += sepSpacing + 1f;
         }
 
         if (showControls)
         {
-            canvas.DrawText(_localization.Get("panel_civ_controls"), x, y + TitleSize, _sectionFont, _sectionTitlePaint);
-            y += TitleHeight;
+            canvas.DrawText(_localization.Get("panel_civ_controls"), x, y + titleSize, _sectionFont, _sectionTitlePaint);
+            y += titleHeight;
 
             if (hasBarracks)
             {
                 bool? allOn = AreAllActiveNullable<Barracks>(civ);
                 _barracksToggleRect = DrawToggleRow(canvas, x, y, allOn, _hoveredBarracks, _localization.Get("building_barracks_name"));
-                y += RowHeight;
+                y += rowHeight;
             }
 
             if (hasSteelWeapons)
@@ -262,14 +285,14 @@ public sealed class PlayerCivilizationPanelRenderer : IDisposable
                 bool? allOn = AreAllSteelWeaponsActiveNullable(civ);
                 bool noBarracksActive = !civ.Cities.SelectMany(c => c.Buildings.OfType<Barracks>()).Any(b => b.Level >= 1 && b.ActivationStatus == ActivationStatus.ACTIVE);
                 _steelWeaponsToggleRect = DrawToggleRow(canvas, x, y, allOn, _hoveredSteelWeapons, _localization.Get("toggle_steel_weapons"), isDimmed: noBarracksActive);
-                y += RowHeight;
+                y += rowHeight;
             }
 
             if (hasLabs)
             {
                 bool? allOn = AreAllActiveNullable<Laboratory>(civ);
                 _labToggleRect = DrawToggleRow(canvas, x, y, allOn, _hoveredLab, _localization.Get("building_laboratory_name"));
-                y += RowHeight;
+                y += rowHeight;
             }
 
             if (hasSmelters)
@@ -294,9 +317,13 @@ public sealed class PlayerCivilizationPanelRenderer : IDisposable
 
     private SKRect DrawToggleRow(SKCanvas canvas, float x, float y, bool? isOn, bool isHovered, string label, bool isDimmed = false)
     {
-        float toggleY  = y + (RowHeight - ToggleHeight) / 2f;
-        float radius   = ToggleHeight / 2f;
-        var   trackRect = new SKRect(x, toggleY, x + ToggleWidth, toggleY + ToggleHeight);
+        float s = _lastUiScale;
+        float toggleW  = ToggleWidth * s;
+        float toggleH  = ToggleHeight * s;
+        float rowH     = RowHeight * s;
+        float toggleY  = y + (rowH - toggleH) / 2f;
+        float radius   = toggleH / 2f;
+        var   trackRect = new SKRect(x, toggleY, x + toggleW, toggleY + toggleH);
 
         SKPaint fill;
         if (isDimmed)
@@ -311,16 +338,16 @@ public sealed class PlayerCivilizationPanelRenderer : IDisposable
         canvas.DrawRoundRect(trackRect, radius, radius, fill);
         canvas.DrawRoundRect(trackRect, radius, radius, _toggleBorderPaint);
 
-        float knobR  = radius - 3f;
+        float knobR  = radius - 3f * s;
         float knobCy = toggleY + radius;
         float knobCx = isOn == null
-            ? x + ToggleWidth / 2f               // centre quand mixte
+            ? x + toggleW / 2f
             : (isOn.Value
-                ? x + ToggleWidth - radius - 1f  // droite quand ON
-                : x + radius + 1f);              // gauche quand OFF
+                ? x + toggleW - radius - 1f * s
+                : x + radius + 1f * s);
         canvas.DrawCircle(knobCx, knobCy, knobR, _toggleKnobPaint);
 
-        canvas.DrawText(label, x + ToggleWidth + 10f, y + RowHeight / 2f + 5f, _labelFont, isDimmed ? _rowLabelDimPaint : _rowLabelPaint);
+        canvas.DrawText(label, x + toggleW + 10f * s, y + rowH / 2f + 5f * s, _labelFont, isDimmed ? _rowLabelDimPaint : _rowLabelPaint);
 
         return trackRect;
     }

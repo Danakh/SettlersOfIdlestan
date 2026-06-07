@@ -22,6 +22,7 @@ public class SettingsMenu
 
     private bool _isOpen = false;
     private int _hoveredItemIndex = -1;
+    private float _lastScale = 0f;
 
     private SKPaint? _backgroundPaint;
     private SKPaint? _menuItemPaint;
@@ -220,19 +221,28 @@ public class SettingsMenu
         if (!_isOpen)
             return;
 
-        const float cornerRadius = 4;
-        float menuX = gearX - MenuItemWidth + 20;
-        float menuY = barHeight + 5;
+        float s = _uiLayout?.UiScale ?? 1f;
+        if (s != _lastScale)
+        {
+            _lastScale = s;
+            _textFont?.Dispose();
+            _textFont = new SKFont { Size = 12 * s, Typeface = SkiaFonts.Bold };
+        }
+
+        float menuItemW  = MenuItemWidth * s;
+        float menuItemH  = MenuItemHeight * s;
+        float separatorH = SeparatorHeight * s;
+        float cornerRadius = 4 * s;
+        float menuX = gearX - menuItemW + 20 * s;
+        float menuY = barHeight + 5 * s;
 
         // Calcule la hauteur totale du menu
         float totalHeight = 0;
         foreach (var item in _menuItems)
-        {
-            totalHeight += item.IsSeparator ? SeparatorHeight : MenuItemHeight;
-        }
+            totalHeight += item.IsSeparator ? separatorH : menuItemH;
 
         // Dessine le fond du menu
-        var menuRect = new SKRect(menuX, menuY, menuX + MenuItemWidth, menuY + totalHeight);
+        var menuRect = new SKRect(menuX, menuY, menuX + menuItemW, menuY + totalHeight);
         canvas.DrawRoundRect(menuRect, cornerRadius, cornerRadius, _backgroundPaint);
         canvas.DrawRoundRect(menuRect, cornerRadius, cornerRadius, _borderPaint);
 
@@ -241,27 +251,22 @@ public class SettingsMenu
         for (int i = 0; i < _menuItems.Count; i++)
         {
             var item = _menuItems[i];
-            float itemHeight = item.IsSeparator ? SeparatorHeight : MenuItemHeight;
-            var itemRect = new SKRect(menuX, currentY, menuX + MenuItemWidth, currentY + itemHeight);
+            float itemHeight = item.IsSeparator ? separatorH : menuItemH;
+            var itemRect = new SKRect(menuX, currentY, menuX + menuItemW, currentY + itemHeight);
 
             if (item.IsSeparator)
             {
-                // Dessine le séparateur
                 DrawSeparator(canvas, itemRect, item.LabelKey);
             }
             else
             {
-                // Fond de l'item (hover ou normal)
                 var bgPaint = i == _hoveredItemIndex ? _menuItemHoverPaint : _menuItemPaint;
                 canvas.DrawRect(itemRect, bgPaint);
-
                 canvas.DrawRect(itemRect, _itemBorderPaint);
 
-                // Texte
                 if (_textFont != null && _textPaint != null)
                 {
-                    const float padding = 8;
-                    float textX = menuX + padding;
+                    float textX = menuX + 8 * s;
                     float textY = currentY + itemHeight / 2 + _textFont.Size / 2;
                     string label = item.DynamicLabel?.Invoke() ?? _localization.Get(item.LabelKey);
                     canvas.DrawText(label, textX, textY, _textFont, _textPaint);
@@ -297,25 +302,26 @@ public class SettingsMenu
         if (!_isOpen)
             return;
 
+        float s = _uiLayout?.UiScale ?? 1f;
+        float menuItemW  = MenuItemWidth * s;
+        float menuItemH  = MenuItemHeight * s;
+        float separatorH = SeparatorHeight * s;
+
         // Vérifie si le clic est sur la roue crantée pour l'ignorer
-        float gearY = (_barHeight - IconSize) / 2;
-        var gearRect = new SKRect(_gearX, gearY, _gearX + IconSize, gearY + IconSize);
+        float iconSize = PlayerResourcesOverlayRenderer.IconSize * s;
+        float gearY = (_barHeight - iconSize) / 2;
+        var gearRect = new SKRect(_gearX, gearY, _gearX + iconSize, gearY + iconSize);
         if (gearRect.Contains(e.Position.X, e.Position.Y))
-        {
-            // Ignore le clic sur la roue crantée
             return;
-        }
 
         // Calcule la hauteur totale et les Y positions
-        float menuX = _gearX - MenuItemWidth + 20;
-        float menuY = _barHeight + 5;
+        float menuX = _gearX - menuItemW + 20 * s;
+        float menuY = _barHeight + 5 * s;
         float totalHeight = 0;
         foreach (var item in _menuItems)
-        {
-            totalHeight += item.IsSeparator ? SeparatorHeight : MenuItemHeight;
-        }
+            totalHeight += item.IsSeparator ? separatorH : menuItemH;
 
-        var menuRect = new SKRect(menuX, menuY, menuX + MenuItemWidth, menuY + totalHeight);
+        var menuRect = new SKRect(menuX, menuY, menuX + menuItemW, menuY + totalHeight);
 
         if (menuRect.Contains(e.Position.X, e.Position.Y))
         {
@@ -324,7 +330,7 @@ public class SettingsMenu
             for (int i = 0; i < _menuItems.Count; i++)
             {
                 var item = _menuItems[i];
-                float itemHeight = item.IsSeparator ? SeparatorHeight : MenuItemHeight;
+                float itemHeight = item.IsSeparator ? separatorH : menuItemH;
 
                 if (e.Position.Y >= currentY && e.Position.Y < currentY + itemHeight)
                 {

@@ -54,6 +54,7 @@ public class SelectedWonderPanelRenderer : IGameRenderer
     private int _lastVisibleCount = 0;
     private const float CollapseTabW = 14f;
     private const float CollapseTabH = 24f;
+    private float _lastUiScale = 0f;
 
     public bool IsInputEnabled { get; set; } = true;
     public bool ContainsPoint(SKPoint point) =>
@@ -122,48 +123,65 @@ public class SelectedWonderPanelRenderer : IGameRenderer
 
         _checkboxRects.Clear();
 
+        if (context.UiScale != _lastUiScale)
+        {
+            _lastUiScale = context.UiScale;
+            _font10?.Dispose(); _font10 = new SKFont { Size = 10 * _lastUiScale, Typeface = SkiaFonts.Regular };
+            _font12?.Dispose(); _font12 = new SKFont { Size = 12 * _lastUiScale, Typeface = SkiaFonts.Regular };
+            _font15?.Dispose(); _font15 = new SKFont { Size = 15 * _lastUiScale, Typeface = SkiaFonts.Bold };
+        }
+
+        float s = _lastUiScale;
+        float panelWidth   = PanelWidth * s;
+        float rowHeight    = RowHeight * s;
+        float titleHeight  = TitleHeight * s;
+        float padding      = Padding * s;
+        float barH         = BarHeight * s;
+        float collapseTabW = CollapseTabW * s;
+        float collapseTabH = CollapseTabH * s;
+
         var cost = WonderController.GetLevelCost(wonder.Level + 1);
         int resourceCount = cost.Count;
         var costList = cost.ToList();
 
-        float panelX = _canvasSize.Width - PanelWidth - 10;
-        float panelY = TopOverride > 0f ? TopOverride : 60f;
-        float tabTop = panelY + 8f;
+        float panelX = _canvasSize.Width - panelWidth - 10 * s;
+        float panelY = TopOverride > 0f ? TopOverride : PlayerResourcesOverlayRenderer.BarHeight * s + 10 * s;
+        float tabTop = panelY + 8f * s;
 
         if (_collapsed)
         {
-            _collapseTabRect = new SKRect(_canvasSize.Width - CollapseTabW, tabTop, _canvasSize.Width, tabTop + CollapseTabH);
+            _collapseTabRect = new SKRect(_canvasSize.Width - collapseTabW, tabTop, _canvasSize.Width, tabTop + collapseTabH);
             _panelBounds = _collapseTabRect;
-            canvas.DrawRoundRect(_collapseTabRect, 4, 4, _collapseTabPaint);
-            canvas.DrawRoundRect(_collapseTabRect, 4, 4, _borderPaint);
-            canvas.DrawText("◄", _collapseTabRect.MidX, _collapseTabRect.MidY + 5f, SKTextAlign.Center, _font12, _textPaint);
+            canvas.DrawRoundRect(_collapseTabRect, 4 * s, 4 * s, _collapseTabPaint);
+            canvas.DrawRoundRect(_collapseTabRect, 4 * s, 4 * s, _borderPaint);
+            canvas.DrawText("◄", _collapseTabRect.MidX, _collapseTabRect.MidY + 5f * s, SKTextAlign.Center, _font12, _textPaint);
             return;
         }
 
-        float maxPanelHeight = Math.Max(0, _canvasSize.Height - panelY - 20);
-        int visibleResourceCount = Math.Min(resourceCount, Math.Max(0, (int)((maxPanelHeight - TitleHeight - Padding) / RowHeight)));
+        float maxPanelHeight = Math.Max(0, _canvasSize.Height - panelY - 20 * s);
+        int visibleResourceCount = Math.Min(resourceCount, Math.Max(0, (int)((maxPanelHeight - titleHeight - padding) / rowHeight)));
         _lastResourceCount = resourceCount;
         _lastVisibleCount = visibleResourceCount;
         _scrollOffset = Math.Clamp(_scrollOffset, 0, Math.Max(0, resourceCount - visibleResourceCount));
         bool needsScrollbar = resourceCount > visibleResourceCount;
 
-        float panelHeight = TitleHeight + visibleResourceCount * RowHeight + Padding;
-        _panelBounds = new SKRect(panelX, panelY, panelX + PanelWidth, panelY + panelHeight);
-        canvas.DrawRoundRect(panelX, panelY, PanelWidth, panelHeight, 12, 12, _bgPaint);
-        canvas.DrawRoundRect(panelX, panelY, PanelWidth, panelHeight, 12, 12, _borderPaint);
+        float panelHeight = titleHeight + visibleResourceCount * rowHeight + padding;
+        _panelBounds = new SKRect(panelX, panelY, panelX + panelWidth, panelY + panelHeight);
+        canvas.DrawRoundRect(panelX, panelY, panelWidth, panelHeight, 12 * s, 12 * s, _bgPaint);
+        canvas.DrawRoundRect(panelX, panelY, panelWidth, panelHeight, 12 * s, 12 * s, _borderPaint);
 
         // Titre + bouton fermer
         string title = _localization.Get("wonder_panel_title") + " " + (wonder.Level + 1);
-        canvas.DrawText(title, panelX + Padding, panelY + TitleHeight - 8, _font15, _textPaint);
+        canvas.DrawText(title, panelX + padding, panelY + titleHeight - 8 * s, _font15, _textPaint);
 
-        const float closeSize = 20;
-        float closeX = panelX + PanelWidth - Padding - closeSize;
-        float closeY = panelY + (TitleHeight - closeSize) / 2;
+        float closeSize = 20 * s;
+        float closeX = panelX + panelWidth - padding - closeSize;
+        float closeY = panelY + (titleHeight - closeSize) / 2;
         _closeRect = new SKRect(closeX, closeY, closeX + closeSize, closeY + closeSize);
-        canvas.DrawRoundRect(_closeRect, 4, 4, _closePaint);
-        canvas.DrawText("✕", _closeRect.MidX, _closeRect.MidY + 5, SKTextAlign.Center, _font12, _textPaint);
+        canvas.DrawRoundRect(_closeRect, 4 * s, 4 * s, _closePaint);
+        canvas.DrawText("✕", _closeRect.MidX, _closeRect.MidY + 5 * s, SKTextAlign.Center, _font12, _textPaint);
 
-        float y = panelY + TitleHeight;
+        float y = panelY + titleHeight;
 
         foreach (var kvp in costList.Skip(_scrollOffset).Take(visibleResourceCount))
         {
@@ -173,79 +191,79 @@ public class SelectedWonderPanelRenderer : IGameRenderer
             bool enabled = wonder.InvestmentEnabled.Contains(resource);
             bool done = invested >= required;
 
-            float rowCenterY = y + RowHeight / 2;
+            float rowCenterY = y + rowHeight / 2;
 
             // Checkbox
-            const float cbSize = 14f;
-            float cbX = panelX + Padding;
-            float cbY = rowCenterY - RowHeight / 4 - cbSize / 2;
+            float cbSize = 14f * s;
+            float cbX = panelX + padding;
+            float cbY = rowCenterY - rowHeight / 4 - cbSize / 2;
             var cbRect = new SKRect(cbX, cbY, cbX + cbSize, cbY + cbSize);
-            canvas.DrawRoundRect(cbRect, 3, 3, done ? _checkboxActivePaint : (enabled ? _checkboxActivePaint : _checkboxInactivePaint));
-            canvas.DrawRoundRect(cbRect, 3, 3, _checkboxBorderPaint);
+            canvas.DrawRoundRect(cbRect, 3 * s, 3 * s, done ? _checkboxActivePaint : (enabled ? _checkboxActivePaint : _checkboxInactivePaint));
+            canvas.DrawRoundRect(cbRect, 3 * s, 3 * s, _checkboxBorderPaint);
             if (enabled || done)
             {
-                using var checkPaint = new SKPaint { Color = SKColors.White, StrokeWidth = 2f, Style = SKPaintStyle.Stroke, IsAntialias = true, StrokeCap = SKStrokeCap.Round };
-                canvas.DrawLine(cbX + 2.5f, cbY + cbSize / 2f, cbX + cbSize / 2f - 1f, cbY + cbSize - 3f, checkPaint);
-                canvas.DrawLine(cbX + cbSize / 2f - 1f, cbY + cbSize - 3f, cbX + cbSize - 2f, cbY + 3f, checkPaint);
+                using var checkPaint = new SKPaint { Color = SKColors.White, StrokeWidth = 2f * s, Style = SKPaintStyle.Stroke, IsAntialias = true, StrokeCap = SKStrokeCap.Round };
+                canvas.DrawLine(cbX + 2.5f * s, cbY + cbSize / 2f, cbX + cbSize / 2f - 1f * s, cbY + cbSize - 3f * s, checkPaint);
+                canvas.DrawLine(cbX + cbSize / 2f - 1f * s, cbY + cbSize - 3f * s, cbX + cbSize - 2f * s, cbY + 3f * s, checkPaint);
             }
             if (!done)
-                _checkboxRects[new SKRect(cbX - 3, cbY - 3, cbX + cbSize + 3, cbY + cbSize + 3)] = resource;
+                _checkboxRects[new SKRect(cbX - 3 * s, cbY - 3 * s, cbX + cbSize + 3 * s, cbY + cbSize + 3 * s)] = resource;
 
             // Icône ressource
-            const float iconSize = 16f;
-            float iconX = panelX + Padding + cbSize + 4;
-            float iconY = rowCenterY - RowHeight / 4 - iconSize / 2;
+            float iconSize = 16f * s;
+            float iconX = panelX + padding + cbSize + 4 * s;
+            float iconY = rowCenterY - rowHeight / 4 - iconSize / 2;
             if (_resourceIcons.TryGetValue(resource, out var svg) && svg?.Picture != null)
             {
-                float scale = iconSize / 32f;
+                float svgScale = iconSize / 32f;
                 canvas.Save();
                 canvas.Translate(iconX, iconY);
-                canvas.Scale(scale);
+                canvas.Scale(svgScale);
                 canvas.DrawPicture(svg.Picture);
                 canvas.Restore();
             }
 
             // Nom de la ressource
-            float textX = iconX + iconSize + 4;
+            float textX = iconX + iconSize + 4 * s;
             string resName = _localization.Get("resource_" + resource.ToString().ToLower());
-            canvas.DrawText(resName, textX, rowCenterY - RowHeight / 4 + 5, _font12, done ? _dimTextPaint : _textPaint);
+            canvas.DrawText(resName, textX, rowCenterY - rowHeight / 4 + 5 * s, _font12, done ? _dimTextPaint : _textPaint);
 
             // Montant investie / requis (à droite)
             string amountText = $"{invested}/{required}";
-            canvas.DrawText(amountText, panelX + PanelWidth - Padding, rowCenterY - RowHeight / 4 + 5, SKTextAlign.Right, _font10, done ? _barFillPaint : _dimTextPaint);
+            canvas.DrawText(amountText, panelX + panelWidth - padding, rowCenterY - rowHeight / 4 + 5 * s, SKTextAlign.Right, _font10, done ? _barFillPaint : _dimTextPaint);
 
             // Barre de progression (en bas de chaque rangée)
-            float barX = panelX + Padding;
-            float barY = y + RowHeight - BarHeight - 8;
-            float barWidth = PanelWidth - 2 * Padding;
+            float barX = panelX + padding;
+            float barY = y + rowHeight - barH - 8 * s;
+            float barWidth = panelWidth - 2 * padding;
             float fillWidth = done ? barWidth : (required > 0 ? Math.Min(barWidth, (float)((double)invested / required * barWidth)) : 0);
 
-            canvas.DrawRoundRect(barX, barY, barWidth, BarHeight, 3, 3, _barBgPaint);
+            canvas.DrawRoundRect(barX, barY, barWidth, barH, 3 * s, 3 * s, _barBgPaint);
             if (fillWidth > 0)
-                canvas.DrawRoundRect(barX, barY, fillWidth, BarHeight, 3, 3, _barFillPaint);
+                canvas.DrawRoundRect(barX, barY, fillWidth, barH, 3 * s, 3 * s, _barFillPaint);
 
-            y += RowHeight;
+            y += rowHeight;
         }
 
         // Scrollbar
         if (needsScrollbar)
         {
-            const float scrollW = 5f;
-            float trackX = panelX + PanelWidth - scrollW - 2f;
-            float trackTop = panelY + TitleHeight;
-            float trackH = visibleResourceCount * RowHeight;
-            canvas.DrawRoundRect(trackX, trackTop, scrollW, trackH, 3, 3, _scrollTrackPaint);
-            float thumbH = Math.Max(16f, (float)visibleResourceCount / resourceCount * trackH);
+            float scrollW = 5f * s;
+            float trackX = panelX + panelWidth - scrollW - 2f * s;
+            float trackTop = panelY + titleHeight;
+            float trackH = visibleResourceCount * rowHeight;
+            canvas.DrawRoundRect(trackX, trackTop, scrollW, trackH, 3 * s, 3 * s, _scrollTrackPaint);
+            float thumbH = Math.Max(16f * s, (float)visibleResourceCount / resourceCount * trackH);
             float maxScroll = Math.Max(1, resourceCount - visibleResourceCount);
             float thumbTop = trackTop + (float)_scrollOffset / maxScroll * (trackH - thumbH);
-            canvas.DrawRoundRect(trackX, thumbTop, scrollW, thumbH, 3, 3, _scrollThumbPaint);
+            canvas.DrawRoundRect(trackX, thumbTop, scrollW, thumbH, 3 * s, 3 * s, _scrollThumbPaint);
         }
 
         // Onglet collapse
-        _collapseTabRect = new SKRect(panelX - CollapseTabW, tabTop, panelX, tabTop + CollapseTabH);
-        canvas.DrawRoundRect(_collapseTabRect, 4, 4, _collapseTabPaint);
-        canvas.DrawRoundRect(_collapseTabRect, 4, 4, _borderPaint);
-        canvas.DrawText("►", _collapseTabRect.MidX, _collapseTabRect.MidY + 5f, SKTextAlign.Center, _font12, _textPaint);
+        _collapseTabRect = new SKRect(panelX - collapseTabW, tabTop, panelX, tabTop + collapseTabH);
+        canvas.DrawRoundRect(_collapseTabRect, 4 * s, 4 * s, _collapseTabPaint);
+        canvas.DrawRoundRect(_collapseTabRect, 4 * s, 4 * s, _borderPaint);
+        canvas.DrawText("►", _collapseTabRect.MidX, _collapseTabRect.MidY + 5f * s, SKTextAlign.Center, _font12, _textPaint);
     }
 
     private void HandlePointerPressed(object? sender, PointerEventArgs e)
