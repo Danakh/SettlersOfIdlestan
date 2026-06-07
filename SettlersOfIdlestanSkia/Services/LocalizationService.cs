@@ -32,7 +32,7 @@ public class LocalizationService
         string languageCode = GetLanguageCode(language);
         string resourceName = $"SettlersOfIdlestan.Resources.Localization.{languageCode}.json";
 
-        var assembly = Assembly.GetExecutingAssembly();
+        var assembly = typeof(LocalizedEntry).Assembly;
         var translationDict = new Dictionary<string, string>();
 
         using (var stream = assembly.GetManifestResourceStream(resourceName))
