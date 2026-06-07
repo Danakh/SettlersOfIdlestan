@@ -113,7 +113,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 civ.Roads.Add(road);
                 ComputeRoadDistancesForCivilization(civ);
                 _buildableRoadsCache.Clear();
-                _state.RecalculateVisibleIslandMap(civ.Index);
+                _state.Visibility.RecalculateFor(civ.Index);
 
                 OnAutoRoadBuilt?.Invoke(this, new RoadAutoBuiltEventArgs(civ.Index, chosen.Position));
             }
@@ -310,7 +310,7 @@ namespace SettlersOfIdlestan.Controller.Island
 
             ComputeRoadDistancesForCivilization(civ);
             _buildableRoadsCache.Clear();
-            _state.RecalculateVisibleIslandMap(civilizationIndex);
+            _state.Visibility.RecalculateFor(civilizationIndex);
 
             OnRoadBuilt?.Invoke(this, new RoadAutoBuiltEventArgs(civilizationIndex, edge));
             return road;
@@ -346,7 +346,7 @@ namespace SettlersOfIdlestan.Controller.Island
             RemoveDisconnectedRoads(civ);
 
             _buildableRoadsCache.Clear();
-            _state?.RecalculateVisibleIslandMap(civ.Index);
+            _state?.Visibility.RecalculateFor(civ.Index);
         }
 
         private static List<Road> GetRoadsWithinDistanceOfVertex(List<Road> roads, Vertex vertex, int maxDistance)

@@ -142,7 +142,7 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
                 var playerIdx = worldState.PlayerCivilization.Index;
                 IslandMap? underworldMap = DebugSettings.ShowFullMap
                     ? worldState.GetMapForZ(LayerState.UnderworldZ)
-                    : worldState.GetVisibleIslandMapsForZ(LayerState.UnderworldZ).TryGetValue(playerIdx, out var uvm) ? uvm : null;
+                    : worldState.Visibility.GetForZ(LayerState.UnderworldZ).TryGetValue(playerIdx, out var uvm) ? uvm : null;
                 if (underworldMap != null)
                     DrawIslandMap(canvas, underworldMap, playerIdx, mainGameState.Clock.CurrentTick, null, null, null, null, null);
                 return;
@@ -159,7 +159,7 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
                 IslandMap? mapToRender = null;
                 if (DebugSettings.ShowFullMap)
                     mapToRender = worldState.GetMapForZ(IslandMap.SurfaceLayer);
-                else if (worldState.GetVisibleIslandMapsForZ(worldState.CurrentViewedLayer).TryGetValue(worldState.PlayerCivilization.Index, out var visibleMap))
+                else if (worldState.Visibility.GetForZ(worldState.CurrentViewedLayer).TryGetValue(worldState.PlayerCivilization.Index, out var visibleMap))
                     mapToRender = visibleMap;
 
                 if (mapToRender != null)

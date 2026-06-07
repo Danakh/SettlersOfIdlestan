@@ -265,7 +265,7 @@ public class MonsterFeatureController
                 city.RaiseDestroyed();
                 civ.RemoveCity(city);
                 CityDestroyedByMonster?.Invoke(this, new CityDestroyedEventArgs(city.Position, civ.Index));
-                _state!.RecalculateVisibleIslandMaps();
+                _state!.Visibility.Recalculate();
                 return;
             }
         }

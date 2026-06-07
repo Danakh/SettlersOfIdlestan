@@ -134,7 +134,7 @@ public class CityRenderer : HexBasedRenderer, IGameRenderer
                 var playerIdx = worldState.PlayerCivilization.Index;
                 var visibilityMap = DebugSettings.ShowFullMap
                     ? (IslandMap)underworldLayer.Map
-                    : worldState.GetVisibleIslandMapsForZ(LayerState.UnderworldZ).TryGetValue(playerIdx, out var uvm) ? uvm : underworldLayer.Map;
+                    : worldState.Visibility.GetForZ(LayerState.UnderworldZ).TryGetValue(playerIdx, out var uvm) ? uvm : underworldLayer.Map;
                 foreach (var civ in worldState.Civilizations)
                     DrawCities(canvas, civ.Cities.Where(c => c.Position.Z == LayerState.UnderworldZ).ToList(), civ, visibilityMap);
                 return;
@@ -143,7 +143,7 @@ public class CityRenderer : HexBasedRenderer, IGameRenderer
             IslandMap? mapForVisibility;
             if (DebugSettings.ShowFullMap)
                 mapForVisibility = worldState.GetMapForZ(IslandMap.SurfaceLayer);
-            else if (!worldState.GetVisibleIslandMapsForZ(worldState.CurrentViewedLayer).TryGetValue(worldState.PlayerCivilization.Index, out var vm))
+            else if (!worldState.Visibility.GetForZ(worldState.CurrentViewedLayer).TryGetValue(worldState.PlayerCivilization.Index, out var vm))
                 return;
             else
                 mapForVisibility = vm;

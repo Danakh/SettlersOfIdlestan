@@ -474,7 +474,7 @@ public class MilitaryController
             civ.RemoveCity(city);
             _roadController?.OnCityDestroyed(civ, city.Position);
             NotifyCityDestroyed(city.Position, civ.Index);
-            _state!.RecalculateVisibleIslandMaps();
+            _state!.Visibility.Recalculate();
         }
     }
 
@@ -564,7 +564,7 @@ public class MilitaryController
 
     private bool IsCityVisibleTo(City city, Civilization civ)
     {
-        var visibleMaps = _state!.GetVisibleIslandMapsForZ(city.Position.Z);
+        var visibleMaps = _state!.Visibility.GetForZ(city.Position.Z);
         if (!visibleMaps.TryGetValue(civ.Index, out var visibleMap)) return true;
         return city.Position.GetHexes().Any(h => visibleMap.HasTile(h));
     }

@@ -155,7 +155,7 @@ public class MilitaryRenderer : HexBasedRenderer, IGameRenderer
         {
             if (DebugSettings.ShowFullMap)
                 visibleMap = worldState.CurrentViewedMap;
-            else if (worldState.GetVisibleIslandMapsForZ(worldState.CurrentViewedLayer)
+            else if (worldState.Visibility.GetForZ(worldState.CurrentViewedLayer)
                 .TryGetValue(worldState.PlayerCivilization.Index, out var vm))
                 visibleMap = vm;
         }

@@ -194,7 +194,7 @@ namespace SettlersOfIdlestan.Controller.Island
                         }
                     }
 
-            _state.RecalculateVisibleIslandMap(civilizationIndex);
+            _state.Visibility.RecalculateFor(civilizationIndex);
 
             var cityHexSet = new HashSet<HexCoord>(city.Position.GetHexes());
             var claimedTroves = _state.Features.OfType<TreasureTrove>()

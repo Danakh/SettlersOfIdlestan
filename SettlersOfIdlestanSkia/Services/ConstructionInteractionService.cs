@@ -147,7 +147,7 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
             return;
         }
 
-        if (WorldState?.GetVisibleIslandMapsForZ(hexCoord.Z).TryGetValue(playerIndex, out var visibleMap) == true &&
+        if (WorldState?.Visibility.GetForZ(hexCoord.Z).TryGetValue(playerIndex, out var visibleMap) == true &&
             visibleMap.HasTile(hexCoord))
         {
             _harvestService.TryManualHarvest(hexCoord);
@@ -203,7 +203,7 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
             {
                 var WorldState = _gameControllerService.CurrentWorldState;
                 var playerIndex = WorldState?.PlayerCivilization.Index ?? 0;
-                if (WorldState?.GetVisibleIslandMapsForZ(hexCoord.Z).TryGetValue(playerIndex, out var visibleMap) == true &&
+                if (WorldState?.Visibility.GetForZ(hexCoord.Z).TryGetValue(playerIndex, out var visibleMap) == true &&
                     visibleMap.HasTile(hexCoord))
                 {
                     hoveredHex = hexCoord;
@@ -246,7 +246,7 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
             if (city.CivilizationIndex != playerIndex)
                 continue;
 
-            if (WorldState.GetVisibleIslandMapsForZ(WorldState.CurrentViewedLayer).TryGetValue(playerIndex, out var visibleMap) &&
+            if (WorldState.Visibility.GetForZ(WorldState.CurrentViewedLayer).TryGetValue(playerIndex, out var visibleMap) &&
                 (city.Position.Z != visibleMap.Z ||
                 !city.Position.GetHexes().Any(visibleMap.HasTile)))
             {
@@ -278,7 +278,7 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
         Vertex? best = null;
         var bestDistance = float.MaxValue;
 
-        if (!worldState.GetVisibleIslandMapsForZ(worldState.CurrentViewedLayer).TryGetValue(playerIndex, out var visibleMap))
+        if (!worldState.Visibility.GetForZ(worldState.CurrentViewedLayer).TryGetValue(playerIndex, out var visibleMap))
             return null;
 
         foreach (var city in worldState.GetAllCities())

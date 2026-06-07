@@ -234,7 +234,7 @@ namespace SettlersOfIdlestan.Controller
                 if (prestigeState != null)
                     WorldState.PlayerCivilization.TechnologyTree = prestigeState.TechnologyTree;
 
-                WorldState.RecalculateVisibleIslandMaps();
+                WorldState.Visibility.Recalculate();
 
                 SetupModifierAggregators();
 

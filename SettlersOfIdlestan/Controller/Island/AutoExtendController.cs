@@ -76,7 +76,7 @@ public class AutoExtendController
         }
 
         if (newHexes.Count > 0)
-            _state.RecalculateVisibleIslandMap(civIndex);
+            _state.Visibility.RecalculateFor(civIndex);
 
         if (layerState.ArrivalVertex == null) return;
         if (civIndex != _state.PlayerCivilization.Index) return;
@@ -91,7 +91,7 @@ public class AutoExtendController
     {
         if (_state == null) return new HashSet<HexCoord>();
 
-        var visibleMaps = _state.GetVisibleIslandMapsForZ(layerState.Map.Z);
+        var visibleMaps = _state.Visibility.GetForZ(layerState.Map.Z);
         if (!visibleMaps.TryGetValue(_state.PlayerCivilization.Index, out var visibleMap))
             return new HashSet<HexCoord>();
 
@@ -228,7 +228,7 @@ public class AutoExtendController
         FillMaxResources(npcCiv);
 
         _state.Civilizations.Add(npcCiv);
-        _state.RecalculateVisibleIslandMaps();
+        _state.Visibility.Recalculate();
     }
 
     private List<Vertex> FindCandidateCityVertices(

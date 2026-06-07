@@ -65,14 +65,14 @@ public class MultiMapStateTests
 
         var underworldLayer = LayerState.EstablishOupostInNewAutoExpandLayer(civ);
         state.Layers[LayerState.UnderworldZ] = underworldLayer;
-        state.RecalculateVisibleIslandMaps();
+        state.Visibility.Recalculate();
 
         var underworldHex = new HexCoord(0, 0, LayerState.UnderworldZ);
         Assert.Contains(civ.Cities, city => city.Position.Z == LayerState.UnderworldZ);
-        Assert.True(state.GetVisibleIslandMapsForZ(0).GetValueOrDefault(0)?.HasTile(a) ?? false);
-        Assert.DoesNotContain(state.GetVisibleIslandMapsForZ(0).GetValueOrDefault(0)?.Tiles.Keys ?? Enumerable.Empty<HexCoord>(), coord => coord.Z == LayerState.UnderworldZ);
+        Assert.True(state.Visibility.GetForZ(0).GetValueOrDefault(0)?.HasTile(a) ?? false);
+        Assert.DoesNotContain(state.Visibility.GetForZ(0).GetValueOrDefault(0)?.Tiles.Keys ?? Enumerable.Empty<HexCoord>(), coord => coord.Z == LayerState.UnderworldZ);
 
-        var underworldVisibleMap = state.GetVisibleIslandMapsForZ(LayerState.UnderworldZ)[0];
+        var underworldVisibleMap = state.Visibility.GetForZ(LayerState.UnderworldZ)[0];
         Assert.True(underworldVisibleMap.HasTile(underworldHex));
         Assert.DoesNotContain(underworldVisibleMap.Tiles.Keys, coord => coord.Z == IslandMap.SurfaceLayer);
     }

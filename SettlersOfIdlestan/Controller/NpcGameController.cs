@@ -125,7 +125,7 @@ public class NpcGameController
     {
         if (_state == null) return false;
         var z = npcCiv.Cities.FirstOrDefault()?.Position.Z ?? IslandMap.SurfaceLayer;
-        if (!_state.GetVisibleIslandMapsForZ(z).TryGetValue(npcCiv.Index, out var visibleMap)) return false;
+        if (!_state.Visibility.GetForZ(z).TryGetValue(npcCiv.Index, out var visibleMap)) return false;
 
         return _state.Civilizations
             .Where(c => c.Index != npcCiv.Index)

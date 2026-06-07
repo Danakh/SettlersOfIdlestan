@@ -26,7 +26,7 @@ public class IslandStateVisibleIslandMapTests
 
         var state = new WorldState(map, new List<Civilization> { civilization }, AtlasController.InvalidIslandId);
 
-        Assert.True(state.GetVisibleIslandMapsForZ(0).TryGetValue(0, out var visibleMap));
+        Assert.True(state.Visibility.GetForZ(0).TryGetValue(0, out var visibleMap));
         Assert.True(visibleMap.HasTile(a));
         Assert.True(visibleMap.HasTile(b));
         Assert.True(visibleMap.HasTile(c));
@@ -47,7 +47,7 @@ public class IslandStateVisibleIslandMapTests
         var reloaded = JsonSerializer.Deserialize<WorldState>(json, SerializationService.SerializationOptions());
 
         Assert.NotNull(reloaded);
-        Assert.True(reloaded!.GetVisibleIslandMapsForZ(0).TryGetValue(0, out var visibleMap));
+        Assert.True(reloaded!.Visibility.GetForZ(0).TryGetValue(0, out var visibleMap));
         Assert.Equal(3, visibleMap.Tiles.Count);
         Assert.True(visibleMap.HasTile(a));
         Assert.True(visibleMap.HasTile(b));
@@ -67,8 +67,8 @@ public class IslandStateVisibleIslandMapTests
 
         var cityVertex = Vertex.Create(a, b, c);
         new IslandMapGenerator().PopulatePlayerCivilization(map, civilization, cityVertex);
-        state.RecalculateVisibleIslandMap(0);
-        Assert.False(state.GetVisibleIslandMapsForZ(0).GetValueOrDefault(0)?.HasTile(roadEndpointOnly) ?? false);
+        state.Visibility.RecalculateFor(0);
+        Assert.False(state.Visibility.GetForZ(0).GetValueOrDefault(0)?.HasTile(roadEndpointOnly) ?? false);
 
         civilization.AddResource(Resource.Wood, 2);
         civilization.AddResource(Resource.Brick, 2);
@@ -76,7 +76,7 @@ public class IslandStateVisibleIslandMapTests
         var controller = new RoadController(state);
         controller.BuildRoad(0, Edge.Create(a, b));
 
-        Assert.True(state.GetVisibleIslandMapsForZ(0).GetValueOrDefault(0)?.HasTile(roadEndpointOnly) ?? false);
+        Assert.True(state.Visibility.GetForZ(0).GetValueOrDefault(0)?.HasTile(roadEndpointOnly) ?? false);
     }
 
     private static IslandMap CreateMap(params HexCoord[] coords)

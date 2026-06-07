@@ -86,7 +86,7 @@ namespace SettlersOfIdlestan.Controller.Island
 
             var underworldLayer = LayerState.EstablishOupostInNewAutoExpandLayer(playerCiv);
             _state.Layers[LayerState.UnderworldZ] = underworldLayer;
-            _state.RecalculateVisibleIslandMap(playerCiv.Index);
+            _state.Visibility.RecalculateFor(playerCiv.Index);
         }
 
         private void PerformHarvestersGuildProductionAutomation()
@@ -312,7 +312,7 @@ namespace SettlersOfIdlestan.Controller.Island
             }
 
             if (type == BuildingType.Watchtower)
-                _state.RecalculateVisibleIslandMap(city.CivilizationIndex);
+                _state.Visibility.RecalculateFor(city.CivilizationIndex);
 
             OnBuildingBuilt?.Invoke(this, new BuildingBuiltEventArgs(
                 city, type, resultBuilding.Level, existing == null));
