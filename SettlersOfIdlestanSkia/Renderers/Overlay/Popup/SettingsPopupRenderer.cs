@@ -78,7 +78,10 @@ public sealed class SettingsPopupRenderer : IDisposable
         var settings = _gameController.CurrentMainState?.Settings;
         if (settings == null) return;
 
-        float s = scale;
+        const float margin = 20f;
+        float s = Math.Min(scale, Math.Min(
+            (_canvasSize.Width  - margin) / PopupWidth,
+            (_canvasSize.Height - margin) / PopupHeight));
         _currentScale = s;
         if (s != _lastScale)
         {

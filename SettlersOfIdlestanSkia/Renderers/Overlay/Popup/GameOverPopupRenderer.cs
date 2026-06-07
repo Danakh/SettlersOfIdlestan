@@ -43,7 +43,10 @@ public sealed class GameOverPopupRenderer : IDisposable
     {
         if (!IsOpen || _disposed) return;
 
-        float s = scale;
+        const float margin = 20f;
+        float s = Math.Min(scale, Math.Min(
+            (canvasSize.Width  - margin) / PopupWidth,
+            (canvasSize.Height - margin) / PopupHeight));
         if (s != _lastScale)
         {
             _lastScale = s;
