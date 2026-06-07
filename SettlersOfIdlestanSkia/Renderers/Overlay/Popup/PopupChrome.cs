@@ -3,9 +3,6 @@ using SkiaSharp;
 
 namespace SettlersOfIdlestanSkia.Renderers.Overlay.Popup;
 
-/// <summary>
-/// Couleurs et dessin partagés entre tous les popups du jeu.
-/// </summary>
 public sealed class PopupChrome : IDisposable
 {
     // ── Couleurs de référence ────────────────────────────────────────────────────
@@ -14,7 +11,7 @@ public sealed class PopupChrome : IDisposable
     public static readonly SKColor OverlayColor    = new(0, 0, 0, 120);
     public static readonly SKColor CloseBtnColor   = new(90, 50, 50, 230);
 
-    // ── Constantes de layout ────────────────────────────────────────────────────
+    // ── Constantes de layout (valeurs de base à scale=1) ────────────────────────
     public const float CornerRadius  = 10f;
     public const float CloseSize     = 28f;
     public const float CloseMargin   = 10f;
@@ -24,30 +21,34 @@ public sealed class PopupChrome : IDisposable
     private readonly SKPaint _overlayPaint = new() { Color = OverlayColor,    Style = SKPaintStyle.Fill };
     private readonly SKPaint _closeBgPaint = new() { Color = CloseBtnColor,   Style = SKPaintStyle.Fill,   IsAntialias = true };
     private readonly SKPaint _closeXPaint  = new() { Color = SKColors.White,  IsAntialias = true };
-    private readonly SKFont  _closeFont    = new() { Size = 14, Typeface = SkiaFonts.Bold };
+    private SKFont  _closeFont    = new() { Size = 14, Typeface = SkiaFonts.Bold };
+    private float   _lastFontScale = 0f;
 
     private bool _disposed;
 
-    /// <summary>Dessine le fond plein-écran + fond du popup + bordure.</summary>
-    public void DrawBackground(SKCanvas canvas, SKRect popup, SKSize canvasSize)
+    public void DrawBackground(SKCanvas canvas, SKRect popup, SKSize canvasSize, float s = 1f)
     {
         canvas.DrawRect(new SKRect(0, 0, canvasSize.Width, canvasSize.Height), _overlayPaint);
-        canvas.DrawRoundRect(popup, CornerRadius, CornerRadius, _bgPaint);
-        canvas.DrawRoundRect(popup, CornerRadius, CornerRadius, _borderPaint);
+        canvas.DrawRoundRect(popup, CornerRadius * s, CornerRadius * s, _bgPaint);
+        canvas.DrawRoundRect(popup, CornerRadius * s, CornerRadius * s, _borderPaint);
     }
 
-    /// <summary>Retourne le rect standard de la croix de fermeture (coin haut-droit).</summary>
-    public static SKRect GetCloseRect(SKRect popup) =>
-        new(popup.Right - CloseMargin - CloseSize,
-            popup.Top  + CloseMargin,
-            popup.Right - CloseMargin,
-            popup.Top  + CloseMargin + CloseSize);
+    public static SKRect GetCloseRect(SKRect popup, float s = 1f) =>
+        new(popup.Right - (CloseMargin + CloseSize) * s,
+            popup.Top  + CloseMargin * s,
+            popup.Right - CloseMargin * s,
+            popup.Top  + (CloseMargin + CloseSize) * s);
 
-    /// <summary>Dessine la croix de fermeture.</summary>
-    public void DrawCloseButton(SKCanvas canvas, SKRect rect)
+    public void DrawCloseButton(SKCanvas canvas, SKRect rect, float s = 1f)
     {
-        canvas.DrawRoundRect(rect, 5, 5, _closeBgPaint);
-        canvas.DrawText("X", rect.MidX, rect.MidY + 6, SKTextAlign.Center, _closeFont, _closeXPaint);
+        if (s != _lastFontScale)
+        {
+            _lastFontScale = s;
+            _closeFont.Dispose();
+            _closeFont = new SKFont { Size = 14 * s, Typeface = SkiaFonts.Bold };
+        }
+        canvas.DrawRoundRect(rect, 5 * s, 5 * s, _closeBgPaint);
+        canvas.DrawText("X", rect.MidX, rect.MidY + 6 * s, SKTextAlign.Center, _closeFont, _closeXPaint);
     }
 
     public void Dispose()

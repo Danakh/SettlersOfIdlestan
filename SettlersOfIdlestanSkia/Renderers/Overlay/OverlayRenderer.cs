@@ -332,7 +332,7 @@ public sealed class OverlayRenderer : IGameRenderer
 
         _tradeRenderer.Render(canvas);
         _prestigeRenderer.Render(canvas);
-        _settingsPopupRenderer.Render(canvas);
+        _settingsPopupRenderer.Render(canvas, _uiLayout.UiScale);
 
         DrawMapSwitchButton(canvas, context);
         CheckResourceBarTooltip();

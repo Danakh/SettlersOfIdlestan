@@ -411,8 +411,9 @@ public sealed class SkiaGameRuntime : IDisposable
 
         _renderService.RenderFrame(canvas, gameState!, _cameraService);
 
-        _corruptSavePopup?.Render(canvas, _lastCanvasSize);
-        _gameOverPopup?.Render(canvas, _lastCanvasSize);
+        float uiScale = _uiLayoutService?.UiScale ?? 1f;
+        _corruptSavePopup?.Render(canvas, _lastCanvasSize, uiScale);
+        _gameOverPopup?.Render(canvas, _lastCanvasSize, uiScale);
     }
 
     public void HandlePointerPressed(float x, float y, int pointerId = 0, PointerButton button = PointerButton.Left)

@@ -35,11 +35,13 @@ public sealed class SettingsPopupRenderer : IDisposable
     private readonly SKPaint _offHoverPaint    = new() { Color = new SKColor(185, 65, 65),   Style = SKPaintStyle.Fill,   IsAntialias = true };
     private readonly SKPaint _toggleBorderPaint = new() { Color = new SKColor(180, 180, 200), StrokeWidth = 1.2f, Style = SKPaintStyle.Stroke, IsAntialias = true };
     private readonly SKPaint _toggleKnobPaint  = new() { Color = SKColors.White,             Style = SKPaintStyle.Fill,   IsAntialias = true };
-    private readonly SKFont  _titleFont        = new() { Size = 16, Typeface = SkiaFonts.Bold };
-    private readonly SKFont  _labelFont        = new() { Size = 13, Typeface = SkiaFonts.Bold };
-    private readonly SKFont  _btnFont          = new() { Size = 12, Typeface = SkiaFonts.Bold };
+    private SKFont  _titleFont  = new() { Size = 16, Typeface = SkiaFonts.Bold };
+    private SKFont  _labelFont  = new() { Size = 13, Typeface = SkiaFonts.Bold };
+    private SKFont  _btnFont    = new() { Size = 12, Typeface = SkiaFonts.Bold };
+    private float   _lastScale  = 0f;
 
     private SKSize _canvasSize;
+    private float  _currentScale = 1f;
     private SKRect _closeButtonRect    = SKRect.Empty;
     private SKRect _popupRect          = SKRect.Empty;
     private SKRect _btnFrench          = SKRect.Empty;
@@ -69,59 +71,80 @@ public sealed class SettingsPopupRenderer : IDisposable
 
     public void Close() => IsOpen = false;
 
-    public void Render(SKCanvas canvas)
+    public void Render(SKCanvas canvas, float scale = 1f)
     {
         if (!IsOpen || _disposed) return;
 
         var settings = _gameController.CurrentMainState?.Settings;
         if (settings == null) return;
 
-        float x = (_canvasSize.Width  - PopupWidth)  / 2;
-        float y = (_canvasSize.Height - PopupHeight) / 2;
-        _popupRect = new SKRect(x, y, x + PopupWidth, y + PopupHeight);
+        float s = scale;
+        _currentScale = s;
+        if (s != _lastScale)
+        {
+            _lastScale = s;
+            _titleFont.Dispose(); _titleFont = new SKFont { Size = 16 * s, Typeface = SkiaFonts.Bold };
+            _labelFont.Dispose(); _labelFont = new SKFont { Size = 13 * s, Typeface = SkiaFonts.Bold };
+            _btnFont.Dispose();   _btnFont   = new SKFont { Size = 12 * s, Typeface = SkiaFonts.Bold };
+        }
 
-        _chrome.DrawBackground(canvas, _popupRect, _canvasSize);
+        float popupW        = PopupWidth      * s;
+        float popupH        = PopupHeight     * s;
+        float btnW          = BtnWidth        * s;
+        float btnH          = BtnHeight       * s;
+        float btnGap        = BtnGap          * s;
+        float btnRightMargin = BtnRightMargin * s;
+        float rowSpacingY   = RowSpacingY     * s;
+        float firstRowY     = FirstRowY       * s;
+        float toggleW       = ToggleWidth     * s;
+        float toggleH       = ToggleHeight    * s;
 
-        _closeButtonRect = PopupChrome.GetCloseRect(_popupRect);
-        _chrome.DrawCloseButton(canvas, _closeButtonRect);
+        float x = (_canvasSize.Width  - popupW) / 2;
+        float y = (_canvasSize.Height - popupH) / 2;
+        _popupRect = new SKRect(x, y, x + popupW, y + popupH);
+
+        _chrome.DrawBackground(canvas, _popupRect, _canvasSize, s);
+
+        _closeButtonRect = PopupChrome.GetCloseRect(_popupRect, s);
+        _chrome.DrawCloseButton(canvas, _closeButtonRect, s);
 
         string title = _localization.Get("settings_title");
         float titleW = _titleFont.MeasureText(title);
-        canvas.DrawText(title, x + (PopupWidth - titleW) / 2, y + 34, _titleFont, _textPaint);
+        canvas.DrawText(title, x + (popupW - titleW) / 2, y + 34 * s, _titleFont, _textPaint);
 
-        float btnRight = x + PopupWidth - BtnRightMargin;
-        float btn2Left = btnRight - BtnWidth;
-        float btn1Left = btn2Left - BtnGap - BtnWidth;
+        float btnRight = x + popupW - btnRightMargin;
+        float btn2Left = btnRight - btnW;
+        float btn1Left = btn2Left - btnGap - btnW;
 
-        float row1Y = y + FirstRowY;
-        _btnFrench  = MakeRect(btn1Left, row1Y, BtnWidth, BtnHeight);
-        _btnEnglish = MakeRect(btn2Left, row1Y, BtnWidth, BtnHeight);
-        DrawRow(canvas, x, row1Y, "settings_language", new[]
+        float row1Y = y + firstRowY;
+        _btnFrench  = MakeRect(btn1Left, row1Y, btnW, btnH);
+        _btnEnglish = MakeRect(btn2Left, row1Y, btnW, btnH);
+        DrawRow(canvas, x, row1Y, "settings_language", btnH, s, new[]
         {
             (_btnFrench,  "menu_language_french",  settings.Language == Language.French),
             (_btnEnglish, "menu_language_english", settings.Language == Language.English),
         });
 
-        float row2Y = y + FirstRowY + RowSpacingY;
+        float row2Y = y + firstRowY + rowSpacingY;
         _pauseToggleRect = DrawToggleRow(canvas, x, row2Y, btnRight, "settings_pause_after_prestige",
-            settings.PauseAfterPrestige, _hoveredPause);
+            settings.PauseAfterPrestige, _hoveredPause, btnH, toggleW, toggleH, s);
 
-        float row3Y = y + FirstRowY + RowSpacingY * 2;
+        float row3Y = y + firstRowY + rowSpacingY * 2;
         _particlesToggleRect = DrawToggleRow(canvas, x, row3Y, btnRight, "settings_harvest_particles",
-            settings.ShowHarvestParticles, _hoveredParticles);
+            settings.ShowHarvestParticles, _hoveredParticles, btnH, toggleW, toggleH, s);
     }
 
-    private void DrawRow(SKCanvas canvas, float popX, float rowY, string labelKey,
+    private void DrawRow(SKCanvas canvas, float popX, float rowY, string labelKey, float btnH, float s,
         (SKRect rect, string textKey, bool active)[] buttons)
     {
         canvas.DrawText(_localization.Get(labelKey) + " :",
-            popX + 20, rowY + BtnHeight / 2 + _labelFont.Size / 2,
+            popX + 20 * s, rowY + btnH / 2 + _labelFont.Size / 2,
             _labelFont, _labelPaint);
 
         foreach (var (rect, textKey, active) in buttons)
         {
-            canvas.DrawRoundRect(rect, 6, 6, active ? _activeBtnPaint : _inactiveBtnPaint);
-            canvas.DrawRoundRect(rect, 6, 6, _btnBorderPaint);
+            canvas.DrawRoundRect(rect, 6 * s, 6 * s, active ? _activeBtnPaint : _inactiveBtnPaint);
+            canvas.DrawRoundRect(rect, 6 * s, 6 * s, _btnBorderPaint);
             string text = _localization.Get(textKey);
             float tw = _btnFont.MeasureText(text);
             canvas.DrawText(text, rect.Left + (rect.Width - tw) / 2,
@@ -130,24 +153,24 @@ public sealed class SettingsPopupRenderer : IDisposable
     }
 
     private SKRect DrawToggleRow(SKCanvas canvas, float popX, float rowY, float rightEdge,
-        string labelKey, bool isOn, bool isHovered)
+        string labelKey, bool isOn, bool isHovered, float btnH, float toggleW, float toggleH, float s)
     {
         canvas.DrawText(_localization.Get(labelKey) + " :",
-            popX + 20, rowY + BtnHeight / 2 + _labelFont.Size / 2,
+            popX + 20 * s, rowY + btnH / 2 + _labelFont.Size / 2,
             _labelFont, _labelPaint);
 
-        float toggleX = rightEdge - ToggleWidth;
-        float toggleY = rowY + (BtnHeight - ToggleHeight) / 2f;
-        float radius  = ToggleHeight / 2f;
-        var   trackRect = new SKRect(toggleX, toggleY, toggleX + ToggleWidth, toggleY + ToggleHeight);
+        float toggleX = rightEdge - toggleW;
+        float toggleY = rowY + (btnH - toggleH) / 2f;
+        float radius  = toggleH / 2f;
+        var   trackRect = new SKRect(toggleX, toggleY, toggleX + toggleW, toggleY + toggleH);
 
         var fill = isOn ? (isHovered ? _onHoverPaint : _onPaint) : (isHovered ? _offHoverPaint : _offPaint);
         canvas.DrawRoundRect(trackRect, radius, radius, fill);
         canvas.DrawRoundRect(trackRect, radius, radius, _toggleBorderPaint);
 
-        float knobR  = radius - 3f;
+        float knobR  = radius - 3f * s;
         float knobCy = toggleY + radius;
-        float knobCx = isOn ? toggleX + ToggleWidth - radius - 1f : toggleX + radius + 1f;
+        float knobCx = isOn ? toggleX + toggleW - radius - 1f * s : toggleX + radius + 1f * s;
         canvas.DrawCircle(knobCx, knobCy, knobR, _toggleKnobPaint);
 
         return trackRect;
@@ -155,7 +178,6 @@ public sealed class SettingsPopupRenderer : IDisposable
 
     private static SKRect MakeRect(float x, float y, float w, float h) => new(x, y, x + w, y + h);
 
-    /// <returns>true si le clic est consommé (popup visible), false sinon.</returns>
     public bool HandlePointerPressed(SKPoint pos, PointerButton button)
     {
         if (!IsOpen) return false;
