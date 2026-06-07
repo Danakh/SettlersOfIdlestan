@@ -1,7 +1,7 @@
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.IslandMap;
-using SettlersOfIdlestan.Services.Localization;
+using SettlersOfIdlestanSkia.Services.Localization;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Services;
 using SkiaSharp;
@@ -17,7 +17,7 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay;
 
 public class SelectedCityPanelRenderer : IGameRenderer
 {
-    private readonly ILocalizationService _localization;
+    private readonly LocalizationService _localization;
     private readonly CityBuildingService _cityBuildingService;
     private readonly InputHandlingService _inputService;
     private readonly ResourceManager _resourceManager;
@@ -93,7 +93,7 @@ public class SelectedCityPanelRenderer : IGameRenderer
         _scrollOffset = 0;
     }
 
-    public SelectedCityPanelRenderer(CityBuildingService cityBuildingService, ILocalizationService localization, InputHandlingService inputService, ResourceManager resourceManager)
+    public SelectedCityPanelRenderer(CityBuildingService cityBuildingService, LocalizationService localization, InputHandlingService inputService, ResourceManager resourceManager)
     {
         _cityBuildingService = cityBuildingService;
         _inputService = inputService;

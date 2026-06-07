@@ -1,4 +1,4 @@
-using SettlersOfIdlestan.Services.Localization;
+using SettlersOfIdlestanSkia.Services.Localization;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Services;
 using SkiaSharp;
@@ -12,7 +12,7 @@ public sealed class GameOverPopupRenderer : IDisposable
     private const float BtnWidth    = 260;
     private const float BtnHeight   = 44;
 
-    private readonly ILocalizationService _localization;
+    private readonly LocalizationService _localization;
     private readonly Action               _onRestart;
 
     private readonly PopupChrome _chrome       = new();
@@ -30,7 +30,7 @@ public sealed class GameOverPopupRenderer : IDisposable
 
     public bool IsOpen { get; private set; }
 
-    public GameOverPopupRenderer(ILocalizationService localization, Action onRestart)
+    public GameOverPopupRenderer(LocalizationService localization, Action onRestart)
     {
         _localization = localization;
         _onRestart    = onRestart;

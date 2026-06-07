@@ -1,6 +1,6 @@
 ﻿using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.Prestige;
-using SettlersOfIdlestan.Services.Localization;
+using SettlersOfIdlestanSkia.Services.Localization;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Renderers.Overlay;
 using SettlersOfIdlestanSkia.Services;
@@ -20,7 +20,7 @@ public sealed class PrestigeHistoryRenderer : IDisposable
     private const float CardRadius = 8;
 
     private readonly GameControllerService _gameControllerService;
-    private readonly ILocalizationService _localization;
+    private readonly LocalizationService _localization;
 
     private SKSize _canvasSize;
     private bool _disposed;
@@ -38,7 +38,7 @@ public sealed class PrestigeHistoryRenderer : IDisposable
     private readonly SKFont _font = new() { Size = 13, Typeface = SkiaFonts.Regular };
     private readonly SKFont _smallFont = new() { Size = 11, Typeface = SkiaFonts.Regular };
 
-    public PrestigeHistoryRenderer(GameControllerService gameControllerService, ILocalizationService localization)
+    public PrestigeHistoryRenderer(GameControllerService gameControllerService, LocalizationService localization)
     {
         _gameControllerService = gameControllerService;
         _localization = localization;

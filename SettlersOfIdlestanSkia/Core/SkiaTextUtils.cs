@@ -6,7 +6,7 @@ using System.Text;
 namespace SettlersOfIdlestanSkia.Core
 {
     using SettlersOfIdlestan.Model.IslandMap;
-    using SettlersOfIdlestan.Services.Localization;
+    using SettlersOfIdlestanSkia.Services.Localization;
     using SkiaSharp;
     using static System.Net.Mime.MediaTypeNames;
 
@@ -157,7 +157,7 @@ namespace SettlersOfIdlestanSkia.Core
             DrawTextLayout(canvas, layout, x, y, font, paint);
         }
 
-        public static string computeCostString(ILocalizationService localizationService, ResourceSet cost)
+        public static string computeCostString(LocalizationService localizationService, ResourceSet cost)
         {
             return string.Join(" | ", cost.Select(kvp => $"{localizationService.Get($"resource_{kvp.Key.ToString().ToLower()}_short")}: {kvp.Value}"));
         }

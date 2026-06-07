@@ -5,7 +5,7 @@ using SettlersOfIdlestan.Model.GameplayModifier;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.Prestige;
 using SettlersOfIdlestan.Model.Prestige.PrestigeMap;
-using SettlersOfIdlestan.Services.Localization;
+using SettlersOfIdlestanSkia.Services.Localization;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Renderers.Debug;
 using SettlersOfIdlestanSkia.Services;
@@ -42,7 +42,7 @@ public sealed class PrestigeMapRenderer : IGameRenderer
     private const float PanClampMargin = 80f;
 
     private readonly GameControllerService _gameControllerService;
-    private readonly ILocalizationService _localization;
+    private readonly LocalizationService _localization;
     private readonly TooltipRenderer _tooltipRenderer;
 
     private SKSize _canvasSize;
@@ -96,7 +96,7 @@ public sealed class PrestigeMapRenderer : IGameRenderer
 
     public PrestigeMapRenderer(
         GameControllerService gameControllerService,
-        ILocalizationService localization,
+        LocalizationService localization,
         TooltipRenderer tooltipRenderer)
     {
         _gameControllerService = gameControllerService;

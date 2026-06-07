@@ -1,6 +1,6 @@
 using SkiaSharp;
 using SettlersOfIdlestanSkia.Services;
-using SettlersOfIdlestan.Services.Localization;
+using SettlersOfIdlestanSkia.Services.Localization;
 using SettlersOfIdlestanSkia.Core;
 
 namespace SettlersOfIdlestanSkia.Renderers.Overlay.Popup;
@@ -17,11 +17,11 @@ public class AboutRenderer : IGameRenderer
     private readonly SKFont _textFont;
     private SKSize _canvasSize;
     private readonly InputHandlingService _inputService;
-    private readonly ILocalizationService _localization;
+    private readonly LocalizationService _localization;
 
     public bool IsVisible => _isVisible;
 
-    public AboutRenderer(InputHandlingService inputService, ILocalizationService localization)
+    public AboutRenderer(InputHandlingService inputService, LocalizationService localization)
     {
         _inputService = inputService;
         _localization = localization;

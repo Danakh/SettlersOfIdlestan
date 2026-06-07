@@ -1,6 +1,6 @@
 using SettlersOfIdlestan.Controller;
 using SettlersOfIdlestan.Controller.Expand;
-using SettlersOfIdlestan.Services.Localization;
+using SettlersOfIdlestanSkia.Services.Localization;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Renderers.Overlay;
 using SettlersOfIdlestanSkia.Services;
@@ -19,7 +19,7 @@ public sealed class PrestigeRenderer : IDisposable
     private const float SourceRowHeight = 24;
 
     private readonly GameControllerService _gameControllerService;
-    private readonly ILocalizationService _localization;
+    private readonly LocalizationService _localization;
     private readonly TooltipRenderer _tooltipRenderer;
     private readonly Action _prestigeRequested;
     private SKSize _canvasSize;
@@ -43,7 +43,7 @@ public sealed class PrestigeRenderer : IDisposable
 
     public bool IsOpen { get; private set; }
 
-    public PrestigeRenderer(GameControllerService gameControllerService, ILocalizationService localization, Action prestigeRequested, TooltipRenderer tooltipRenderer)
+    public PrestigeRenderer(GameControllerService gameControllerService, LocalizationService localization, Action prestigeRequested, TooltipRenderer tooltipRenderer)
     {
         _gameControllerService = gameControllerService;
         _localization = localization;

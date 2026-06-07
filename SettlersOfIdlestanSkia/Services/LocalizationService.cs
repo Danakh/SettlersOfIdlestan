@@ -2,12 +2,12 @@ using System.Reflection;
 using System.Text.Json;
 using SettlersOfIdlestan.Model.Localization;
 
-namespace SettlersOfIdlestan.Services.Localization;
+namespace SettlersOfIdlestanSkia.Services.Localization;
 
 /// <summary>
 /// Service de localisation chargé les traductions à partir de fichiers JSON.
 /// </summary>
-public class LocalizationService : ILocalizationService
+public class LocalizationService
 {
     private Language _currentLanguage = Language.French;
     private readonly Dictionary<Language, Dictionary<string, string>> _translations = new();

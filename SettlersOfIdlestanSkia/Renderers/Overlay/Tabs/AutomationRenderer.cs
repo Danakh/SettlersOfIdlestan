@@ -2,7 +2,7 @@
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
-using SettlersOfIdlestan.Services.Localization;
+using SettlersOfIdlestanSkia.Services.Localization;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Services;
 using SkiaSharp;
@@ -24,7 +24,7 @@ public sealed class AutomationRenderer : IDisposable
     private const float TextOffsetX = ToggleWidth + 14f;
 
     private readonly GameControllerService _gameControllerService;
-    private readonly ILocalizationService _localization;
+    private readonly LocalizationService _localization;
 
     private SKSize _canvasSize;
     private bool _disposed;
@@ -74,7 +74,7 @@ public sealed class AutomationRenderer : IDisposable
     private static readonly BuildingType[] LibraryTypes    = [BuildingType.Library];
     private static readonly BuildingType[] MarketTypes     = [BuildingType.Market];
 
-    public AutomationRenderer(GameControllerService gameControllerService, ILocalizationService localization)
+    public AutomationRenderer(GameControllerService gameControllerService, LocalizationService localization)
     {
         _gameControllerService = gameControllerService;
         _localization = localization;

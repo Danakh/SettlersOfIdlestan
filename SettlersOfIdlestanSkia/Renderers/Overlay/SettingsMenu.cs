@@ -1,6 +1,6 @@
 ﻿using SettlersOfIdlestan.Controller;
 using SettlersOfIdlestan.Model.IslandMap;
-using SettlersOfIdlestan.Services.Localization;
+using SettlersOfIdlestanSkia.Services.Localization;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Renderers.Debug;
 using SettlersOfIdlestanSkia.Renderers.Overlay.Popup;
@@ -35,7 +35,7 @@ public class SettingsMenu
 
     private readonly MainGameController _gameController;
     private readonly InputHandlingService _inputService;
-    private readonly ILocalizationService _localization;
+    private readonly LocalizationService _localization;
     private readonly AboutRenderer _aboutRenderer;
     private readonly SettingsPopupRenderer _settingsPopupRenderer;
     private readonly IFileSystemService _fileSystemService;
@@ -57,7 +57,7 @@ public class SettingsMenu
 
     public bool IsOpen => _isOpen;
 
-    public SettingsMenu(MainGameController gameController, InputHandlingService inputService, ILocalizationService localization, AboutRenderer aboutRenderer, SettingsPopupRenderer settingsPopupRenderer, IFileSystemService fileSystemService, CityBuildingService cityBuildingService, bool allowDebugMode = false, DebugPanelRenderer? debugPanelRenderer = null, Action? onAfterNewGame = null)
+    public SettingsMenu(MainGameController gameController, InputHandlingService inputService, LocalizationService localization, AboutRenderer aboutRenderer, SettingsPopupRenderer settingsPopupRenderer, IFileSystemService fileSystemService, CityBuildingService cityBuildingService, bool allowDebugMode = false, DebugPanelRenderer? debugPanelRenderer = null, Action? onAfterNewGame = null)
     {
         _gameController = gameController;
         _inputService = inputService;

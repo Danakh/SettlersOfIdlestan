@@ -1,5 +1,5 @@
 using SkiaSharp;
-using SettlersOfIdlestan.Services.Localization;
+using SettlersOfIdlestanSkia.Services.Localization;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Renderers.Overlay.Popup;
 using SettlersOfIdlestanSkia.Services;
@@ -17,7 +17,7 @@ public sealed class DebugPanelRenderer : IGameRenderer, IDisposable
     private const float ToggleRightPad = 24f;
 
     private readonly InputHandlingService  _inputService;
-    private readonly ILocalizationService  _localization;
+    private readonly LocalizationService  _localization;
 
     private readonly PopupChrome _chrome              = new();
     private readonly SKFont      _titleFont           = new() { Size = 15, Typeface = SkiaFonts.Bold };
@@ -40,7 +40,7 @@ public sealed class DebugPanelRenderer : IGameRenderer, IDisposable
 
     public bool IsOpen { get; private set; }
 
-    public DebugPanelRenderer(InputHandlingService inputService, ILocalizationService localization)
+    public DebugPanelRenderer(InputHandlingService inputService, LocalizationService localization)
     {
         _inputService = inputService;
         _localization = localization;

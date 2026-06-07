@@ -1,7 +1,7 @@
 using SkiaSharp;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Services;
-using SettlersOfIdlestan.Services.Localization;
+using SettlersOfIdlestanSkia.Services.Localization;
 using SettlersOfIdlestanSkia.Renderers.Island;
 
 namespace SettlersOfIdlestanSkia.Renderers.Debug;
@@ -14,12 +14,12 @@ public class DebugOverlayRenderer : IGameRenderer
     private readonly InputHandlingService _inputService;
     private readonly CameraService _cameraService;
     private readonly IslandMainRenderer _islandRenderer;
-    private readonly ILocalizationService _localization;
+    private readonly LocalizationService _localization;
 
     private readonly SKPaint _textPaint = new() { Color = SKColors.Red, IsAntialias = true };
     private readonly SKFont _textFont = new SKFont(SKTypeface.Default, 14);
 
-    public DebugOverlayRenderer(InputHandlingService inputService, CameraService cameraService, IslandMainRenderer islandRenderer, ILocalizationService localization)
+    public DebugOverlayRenderer(InputHandlingService inputService, CameraService cameraService, IslandMainRenderer islandRenderer, LocalizationService localization)
     {
         _inputService = inputService;
         _cameraService = cameraService;

@@ -3,7 +3,7 @@ using SettlersOfIdlestan.Controller.Military;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
-using SettlersOfIdlestan.Services.Localization;
+using SettlersOfIdlestanSkia.Services.Localization;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Services;
 using SkiaSharp;
@@ -26,13 +26,13 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay
 
         private IslandMainRenderer? _islandRendererContext;
         private GameRenderContext? _gameRenderContext;
-        private readonly ILocalizationService _localizationService;
+        private readonly LocalizationService _localizationService;
         private readonly CityBuilderController _cityController;
         private readonly RoadController _roadController;
         private readonly ResourceManager _resourceManager;
         private readonly Dictionary<Resource, SKSvg?> _resourceIcons = new();
 
-        public TooltipRenderer(ILocalizationService localizationService, GameControllerService gameControllerService, ResourceManager resourceManager)
+        public TooltipRenderer(LocalizationService localizationService, GameControllerService gameControllerService, ResourceManager resourceManager)
         {
             _localizationService = localizationService;
             _cityController = gameControllerService.MainGameController.CityBuilderController;

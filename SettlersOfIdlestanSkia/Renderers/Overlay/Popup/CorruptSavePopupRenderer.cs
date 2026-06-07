@@ -1,4 +1,4 @@
-using SettlersOfIdlestan.Services.Localization;
+using SettlersOfIdlestanSkia.Services.Localization;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Services;
 using SkiaSharp;
@@ -13,7 +13,7 @@ public sealed class CorruptSavePopupRenderer : IDisposable
     private const float BtnHeight   = 42;
     private const float BtnGap      = 10;
 
-    private readonly ILocalizationService _localization;
+    private readonly LocalizationService _localization;
     private readonly IFileSystemService   _fileSystemService;
     private readonly string               _corruptJson;
     private readonly Action               _onStartFresh;
@@ -41,7 +41,7 @@ public sealed class CorruptSavePopupRenderer : IDisposable
     public bool IsOpen { get; private set; }
 
     public CorruptSavePopupRenderer(
-        ILocalizationService localization,
+        LocalizationService localization,
         IFileSystemService   fileSystemService,
         string               corruptJson,
         Action               onStartFresh,

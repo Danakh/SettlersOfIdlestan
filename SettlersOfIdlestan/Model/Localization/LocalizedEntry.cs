@@ -1,7 +1,7 @@
 namespace SettlersOfIdlestan.Model.Localization;
 
 /// <summary>
-/// Capture une clé de localisation et ses arguments, résolvable via ILocalizationService.
+/// Capture une clé de localisation et ses arguments, résolvable via LocalizationService.
 /// </summary>
 public record LocalizedEntry(string Key, object[] Args)
 {

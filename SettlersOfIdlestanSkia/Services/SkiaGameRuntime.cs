@@ -2,7 +2,7 @@
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Renderers;
-using SettlersOfIdlestan.Services.Localization;
+using SettlersOfIdlestanSkia.Services.Localization;
 using SettlersOfIdlestanSkia.Services;
 using SettlersOfIdlestanSkia.Renderers.Debug;
 using SettlersOfIdlestanSkia.Renderers.Island;
@@ -23,7 +23,7 @@ public sealed class SkiaGameRuntime : IDisposable
     private CameraService? _cameraService;
     private HarvestService? _harvestService;
     private ConstructionInteractionService? _constructionInteractionService;
-    private ILocalizationService? _localizationService;
+    private LocalizationService? _localizationService;
     private IFileSystemService? _fileSystemService;
     private IslandMainRenderer? _islandMainRenderer;
     private OverlayRenderer? _overlayRenderer;

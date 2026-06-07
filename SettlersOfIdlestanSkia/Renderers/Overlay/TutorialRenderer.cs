@@ -1,6 +1,6 @@
 ﻿using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.Tasks;
-using SettlersOfIdlestan.Services.Localization;
+using SettlersOfIdlestanSkia.Services.Localization;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Services;
 using SkiaSharp;
@@ -9,7 +9,7 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay;
 
 public class TutorialRenderer : IGameRenderer
 {
-    private readonly ILocalizationService _localization;
+    private readonly LocalizationService _localization;
     private readonly InputHandlingService _inputService;
 
     private SKSize _canvasSize;
@@ -40,7 +40,7 @@ public class TutorialRenderer : IGameRenderer
     private static readonly SKColor ColorProgress               = new(180, 180, 180, 160);
     private static readonly SKColor ColorSeparator              = new(255, 255, 255, 50);
 
-    public TutorialRenderer(ILocalizationService localization, InputHandlingService inputService)
+    public TutorialRenderer(LocalizationService localization, InputHandlingService inputService)
     {
         _localization = localization;
         _inputService = inputService;

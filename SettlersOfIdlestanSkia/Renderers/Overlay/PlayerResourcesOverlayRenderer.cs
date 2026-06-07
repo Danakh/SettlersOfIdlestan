@@ -3,7 +3,7 @@ using SettlersOfIdlestan.Controller.Expand;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.IslandMap;
-using SettlersOfIdlestan.Services.Localization;
+using SettlersOfIdlestanSkia.Services.Localization;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Services;
 using SkiaSharp;
@@ -35,7 +35,7 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
     private SKSize _canvasSize;
     private bool _disposed;
 
-    private readonly ILocalizationService _localization;
+    private readonly LocalizationService _localization;
     private readonly ResourceManager _resourceManager;
     private readonly Dictionary<Resource, SKSvg?> _resourceIcons = new();
     private readonly Dictionary<Resource, SKRect> _resourceRects = new();
@@ -61,7 +61,7 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
         }
     }
 
-    public PlayerResourcesOverlayRenderer(ILocalizationService localization, ResourceManager resourceManager)
+    public PlayerResourcesOverlayRenderer(LocalizationService localization, ResourceManager resourceManager)
     {
         _localization = localization;
         _resourceManager = resourceManager;

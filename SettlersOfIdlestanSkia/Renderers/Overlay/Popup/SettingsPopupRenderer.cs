@@ -1,5 +1,5 @@
 using SettlersOfIdlestan.Controller;
-using SettlersOfIdlestan.Services.Localization;
+using SettlersOfIdlestanSkia.Services.Localization;
 using SettlersOfIdlestan.Model.Localization;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Services;
@@ -21,7 +21,7 @@ public sealed class SettingsPopupRenderer : IDisposable
     private const float ToggleHeight   = 24f;
 
     private readonly MainGameController _gameController;
-    private readonly ILocalizationService _localization;
+    private readonly LocalizationService _localization;
 
     private readonly PopupChrome _chrome = new();
     private readonly SKPaint _activeBtnPaint   = new() { Color = new SKColor(60, 100, 180),  Style = SKPaintStyle.Fill,   IsAntialias = true };
@@ -53,7 +53,7 @@ public sealed class SettingsPopupRenderer : IDisposable
 
     public bool IsOpen { get; private set; }
 
-    public SettingsPopupRenderer(MainGameController gameController, ILocalizationService localization)
+    public SettingsPopupRenderer(MainGameController gameController, LocalizationService localization)
     {
         _gameController = gameController;
         _localization   = localization;

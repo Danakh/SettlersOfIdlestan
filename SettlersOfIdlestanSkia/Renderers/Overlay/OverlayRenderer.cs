@@ -3,7 +3,7 @@ using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.IslandMap;
-using SettlersOfIdlestan.Services.Localization;
+using SettlersOfIdlestanSkia.Services.Localization;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Renderers.Overlay.Popup;
 using SettlersOfIdlestanSkia.Renderers.Overlay.Tabs;
@@ -31,7 +31,7 @@ public sealed class OverlayRenderer : IGameRenderer
 
     private readonly InputHandlingService _inputService;
     private readonly GameControllerService _gameControllerService;
-    private readonly ILocalizationService _localization;
+    private readonly LocalizationService _localization;
     private readonly PlayerResourcesOverlayRenderer _playerResourcesOverlayRenderer;
     private readonly SettingsMenu _settingsMenu;
     private readonly SettingsPopupRenderer _settingsPopupRenderer;
@@ -82,7 +82,7 @@ public sealed class OverlayRenderer : IGameRenderer
     public OverlayRenderer(
         InputHandlingService inputService,
         GameControllerService gameControllerService,
-        ILocalizationService localization,
+        LocalizationService localization,
         PlayerResourcesOverlayRenderer playerResourcesOverlayRenderer,
         SettingsMenu settingsMenu,
         SettingsPopupRenderer settingsPopupRenderer,

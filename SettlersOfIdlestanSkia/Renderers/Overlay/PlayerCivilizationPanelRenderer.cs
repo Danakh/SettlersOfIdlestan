@@ -3,7 +3,7 @@ using SettlersOfIdlestan.Model.Buildings;
 using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
-using SettlersOfIdlestan.Services.Localization;
+using SettlersOfIdlestanSkia.Services.Localization;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Renderers.Overlay.Popup;
 using SettlersOfIdlestanSkia.Services;
@@ -28,7 +28,7 @@ public sealed class PlayerCivilizationPanelRenderer : IDisposable
     private const float SepSpacing   = 8f;
 
     private readonly GameControllerService _gameControllerService;
-    private readonly ILocalizationService _localization;
+    private readonly LocalizationService _localization;
     private readonly Action _closeAll;
     private readonly TradeRenderer _tradeRenderer;
     private readonly PrestigeRenderer _prestigeRenderer;
@@ -84,7 +84,7 @@ public sealed class PlayerCivilizationPanelRenderer : IDisposable
 
     public PlayerCivilizationPanelRenderer(
         GameControllerService gameControllerService,
-        ILocalizationService localization,
+        LocalizationService localization,
         Action closeAll,
         TradeRenderer tradeRenderer,
         PrestigeRenderer prestigeRenderer,
