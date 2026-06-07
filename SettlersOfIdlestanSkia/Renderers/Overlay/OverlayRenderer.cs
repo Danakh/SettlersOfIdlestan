@@ -136,6 +136,7 @@ public sealed class OverlayRenderer : IGameRenderer
             prestigeRenderer,
             wonderSelectionService: null,
             tooltipRenderer);
+        _playerCivPanel.OnExpanded = () => { if (_uiLayout.IsMobile) DeselectCityAndWonder(); };
         _inputService.PointerPressed += HandlePointerPressed;
         _inputService.PointerMoved += HandlePointerMoved;
         _inputService.PointerReleased += HandlePointerReleased;
@@ -257,6 +258,16 @@ public sealed class OverlayRenderer : IGameRenderer
         float mobileTop = PlayerResourcesOverlayRenderer.BarHeight + PlayerResourcesOverlayRenderer.SecondRowHeight;
         _playerCivPanel.TopOverride    = isMobile ? mobileTop : 0f;
         _selectedWonderPanelRenderer.TopOverride = isMobile ? mobileTop : 0f;
+        _selectedCityPanelRenderer.TopOverride   = isMobile ? mobileTop : 0f;
+
+        // En mode mobile : exclusion mutuelle entre panneaux gauche et droit
+        if (isMobile)
+        {
+            bool rightPanelOpen = _gameControllerService.CityBuildingService?.SelectedCity != null
+                               || _selectedWonderPanelRenderer.HasSelection;
+            if (rightPanelOpen && !_playerCivPanel.IsCollapsed)
+                _playerCivPanel.Collapse();
+        }
 
         _playerResourcesOverlayRenderer.Render(canvas, context);
 
