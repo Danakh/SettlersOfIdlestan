@@ -87,6 +87,88 @@ window.gameInterop = {
         console.error('[SOI]', message);
     },
 
+    _touchState: null,
+
+    registerTouchHandler: function (dotNetRef) {
+        let lastDist = null;
+        let isPinching = false;
+        let lastX = 0, lastY = 0;
+
+        const getDist = (t1, t2) => {
+            const dx = t1.clientX - t2.clientX;
+            const dy = t1.clientY - t2.clientY;
+            return Math.sqrt(dx * dx + dy * dy);
+        };
+
+        const onTouchStart = (e) => {
+            e.preventDefault();
+            if (e.touches.length === 2) {
+                if (!isPinching) dotNetRef.invokeMethodAsync('OnTouchEnd', lastX, lastY);
+                isPinching = true;
+                lastDist = getDist(e.touches[0], e.touches[1]);
+            } else if (e.touches.length === 1 && !isPinching) {
+                lastX = e.touches[0].clientX;
+                lastY = e.touches[0].clientY;
+                dotNetRef.invokeMethodAsync('OnTouchStart', lastX, lastY);
+            }
+        };
+
+        const onTouchMove = (e) => {
+            e.preventDefault();
+            if (e.touches.length === 2 && isPinching) {
+                const d = getDist(e.touches[0], e.touches[1]);
+                if (lastDist !== null) {
+                    const delta = d - lastDist;
+                    const cx = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+                    const cy = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+                    dotNetRef.invokeMethodAsync('OnPinch', delta, cx, cy);
+                }
+                lastDist = d;
+            } else if (e.touches.length === 1 && !isPinching) {
+                lastX = e.touches[0].clientX;
+                lastY = e.touches[0].clientY;
+                dotNetRef.invokeMethodAsync('OnTouchMove', lastX, lastY);
+            }
+        };
+
+        const onTouchEnd = (e) => {
+            e.preventDefault();
+            if (e.touches.length < 2 && isPinching) {
+                isPinching = false;
+                lastDist = null;
+                if (e.touches.length === 1) {
+                    lastX = e.touches[0].clientX;
+                    lastY = e.touches[0].clientY;
+                    dotNetRef.invokeMethodAsync('OnTouchStart', lastX, lastY);
+                }
+            }
+            if (e.touches.length === 0) {
+                if (e.changedTouches.length > 0) {
+                    lastX = e.changedTouches[0].clientX;
+                    lastY = e.changedTouches[0].clientY;
+                }
+                dotNetRef.invokeMethodAsync('OnTouchEnd', lastX, lastY);
+            }
+        };
+
+        document.addEventListener('touchstart', onTouchStart, { passive: false });
+        document.addEventListener('touchmove', onTouchMove, { passive: false });
+        document.addEventListener('touchend', onTouchEnd, { passive: false });
+        document.addEventListener('touchcancel', onTouchEnd, { passive: false });
+
+        this._touchState = { start: onTouchStart, move: onTouchMove, end: onTouchEnd };
+    },
+
+    unregisterTouchHandler: function () {
+        if (this._touchState) {
+            document.removeEventListener('touchstart', this._touchState.start);
+            document.removeEventListener('touchmove', this._touchState.move);
+            document.removeEventListener('touchend', this._touchState.end);
+            document.removeEventListener('touchcancel', this._touchState.end);
+            this._touchState = null;
+        }
+    },
+
     openFilePicker: function () {
         return new Promise((resolve) => {
             const input = document.createElement('input');

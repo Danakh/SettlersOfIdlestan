@@ -60,6 +60,7 @@
         _dotNetRef = DotNetObjectReference.Create(this);
         _keyboardHandlerId = await JS.InvokeAsync<int>("gameInterop.registerKeyboardHandler", _dotNetRef);
         await JS.InvokeVoidAsync("gameInterop.registerVisibilityHandler", _dotNetRef);
+        await JS.InvokeVoidAsync("gameInterop.registerTouchHandler", _dotNetRef);
 
         _cts = new CancellationTokenSource();
         _ = RunGameLoop(_cts.Token);
@@ -124,6 +125,22 @@
     private void OnContextMenu(MouseEventArgs e) { }
 
     [JSInvokable]
+    public void OnTouchStart(double x, double y)
+        => _runtime?.HandlePointerPressed((float)x * _dpr, (float)y * _dpr, 0, PointerButton.Left);
+
+    [JSInvokable]
+    public void OnTouchMove(double x, double y)
+        => _runtime?.HandlePointerMoved((float)x * _dpr, (float)y * _dpr, 0);
+
+    [JSInvokable]
+    public void OnTouchEnd(double x, double y)
+        => _runtime?.HandlePointerReleased((float)x * _dpr, (float)y * _dpr, 0, PointerButton.Left);
+
+    [JSInvokable]
+    public void OnPinch(double delta, double centerX, double centerY)
+        => _runtime?.HandleZoom((float)delta * 2f, (float)centerX * _dpr, (float)centerY * _dpr);
+
+    [JSInvokable]
     public void OnKeyDown(string key) => _runtime?.HandleKeyPressed(key);
 
     [JSInvokable]
@@ -156,6 +173,7 @@
         }
 
         await JS.InvokeVoidAsync("gameInterop.unregisterVisibilityHandler");
+        await JS.InvokeVoidAsync("gameInterop.unregisterTouchHandler");
 
         _dotNetRef?.Dispose();
         _dotNetRef = null;
