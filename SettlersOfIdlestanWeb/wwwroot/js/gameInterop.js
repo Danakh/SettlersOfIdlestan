@@ -44,6 +44,17 @@ window.gameInterop = {
         return window.devicePixelRatio || 1;
     },
 
+    getPhysicalPixelsPerCm: function () {
+        const div = document.createElement('div');
+        div.style.width = '1cm';
+        div.style.position = 'absolute';
+        div.style.visibility = 'hidden';
+        document.body.appendChild(div);
+        const cssPixelsPerCm = div.offsetWidth;
+        document.body.removeChild(div);
+        return cssPixelsPerCm * (window.devicePixelRatio || 1);
+    },
+
 
     downloadFile: function (fileName, content) {
         const blob = new Blob([content], { type: 'application/json' });

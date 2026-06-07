@@ -19,7 +19,7 @@ public sealed class ResearchRenderer : IGameRenderer
     private const float ColSpacing = 180f;
     private const float RowSpacing = 76f;
     private const float PanelPadding = 16f;
-    private const float TopOffset = PlayerResourcesOverlayRenderer.BarHeight + 8f;
+    private float _topOffset = PlayerResourcesOverlayRenderer.BarHeight + 8f;
     private const float HeaderHeight = 32f;
 
     private const float MinZoom = 0.4f;
@@ -99,8 +99,8 @@ public sealed class ResearchRenderer : IGameRenderer
         int maxRowsInAnyCol = byCol.Max(g => g.Max(kv => kv.Value.row) + 1);
 
         float totalTreeHeight = maxRowsInAnyCol * RowSpacing - (RowSpacing - NodeHeight);
-        float startY = TopOffset + PanelPadding + (canvasSize.Height - TopOffset - PanelPadding * 2 - totalTreeHeight) / 2f;
-        startY = Math.Max(TopOffset + PanelPadding, startY);
+        float startY = _topOffset + PanelPadding + (canvasSize.Height - _topOffset - PanelPadding * 2 - totalTreeHeight) / 2f;
+        startY = Math.Max(_topOffset + PanelPadding, startY);
 
         int maxCol = byCol.Max(g => g.Key);
         float totalTreeWidth = (maxCol + 1) * NodeWidth + maxCol * (ColSpacing - NodeWidth);
@@ -136,11 +136,18 @@ public sealed class ResearchRenderer : IGameRenderer
 
         var ctrl = _gameControllerService.MainGameController.ResearchController;
 
-        canvas.DrawRect(new SKRect(0, TopOffset, _canvasSize.Width, _canvasSize.Height), _bgPaint);
+        float scaled = PlayerResourcesOverlayRenderer.BarHeight * context.UiScale + 8f;
+        if (Math.Abs(scaled - _topOffset) > 0.5f)
+        {
+            _topOffset = scaled;
+            ComputeNodeRects(_canvasSize);
+        }
+
+        canvas.DrawRect(new SKRect(0, _topOffset, _canvasSize.Width, _canvasSize.Height), _bgPaint);
 
         // Zoomed content
         canvas.Save();
-        canvas.ClipRect(new SKRect(0, TopOffset + HeaderHeight, _canvasSize.Width, _canvasSize.Height));
+        canvas.ClipRect(new SKRect(0, _topOffset + HeaderHeight, _canvasSize.Width, _canvasSize.Height));
         canvas.Translate(_panOffset.X, _panOffset.Y);
         canvas.Scale(_zoom);
         DrawLines(canvas, ctrl);
@@ -148,14 +155,14 @@ public sealed class ResearchRenderer : IGameRenderer
         canvas.Restore();
 
         // Fixed header (drawn on top so nodes can't overlap it)
-        canvas.DrawRect(new SKRect(0, TopOffset, _canvasSize.Width, TopOffset + HeaderHeight), _bgPaint);
+        canvas.DrawRect(new SKRect(0, _topOffset, _canvasSize.Width, _topOffset + HeaderHeight), _bgPaint);
         if (_gameControllerService.PlayerCivilization != null)
         {
             double rps = ctrl.GetResearchPointsPerSecond();
             string rpLabel = rps > 0
                 ? $"{_localization.Get("research_points_label")}: {ctrl.ResearchPoints} (+{rps.ToString("0.##")}/s)"
                 : $"{_localization.Get("research_points_label")}: {ctrl.ResearchPoints}";
-            canvas.DrawText(rpLabel, PanelPadding, TopOffset + 24f, _nameFont, _textPaint);
+            canvas.DrawText(rpLabel, PanelPadding, _topOffset + 24f, _nameFont, _textPaint);
         }
 
         // Tooltip
@@ -369,7 +376,7 @@ public sealed class ResearchRenderer : IGameRenderer
         if (cR < PanClampMargin) px += PanClampMargin - cR;
         else if (cL > _canvasSize.Width - PanClampMargin) px -= cL - (_canvasSize.Width - PanClampMargin);
 
-        if (cB < TopOffset + PanClampMargin) py += TopOffset + PanClampMargin - cB;
+        if (cB < _topOffset + PanClampMargin) py += _topOffset + PanClampMargin - cB;
         else if (cT > _canvasSize.Height - PanClampMargin) py -= cT - (_canvasSize.Height - PanClampMargin);
 
         _panOffset = new SKPoint(px, py);

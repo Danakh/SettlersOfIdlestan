@@ -87,7 +87,7 @@ public sealed class AutomationRenderer : IDisposable
         if (_disposed) return;
         if (context.GameState is not MainGameState) return;
 
-        float topBar = PlayerResourcesOverlayRenderer.BarHeight;
+        float topBar = PlayerResourcesOverlayRenderer.BarHeight * context.UiScale;
         canvas.DrawRect(new SKRect(0, topBar, _canvasSize.Width, _canvasSize.Height), _bgPaint);
 
         float contentWidth = Math.Min(640f, _canvasSize.Width - Padding * 2);

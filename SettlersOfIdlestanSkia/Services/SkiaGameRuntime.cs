@@ -287,6 +287,12 @@ public sealed class SkiaGameRuntime : IDisposable
         monsterController.CityDestroyedByMonster  += OnCityDestroyedCheckGameOver;
     }
 
+    public void SetUiScale(float scale)
+    {
+        if (_uiLayoutService != null) _uiLayoutService.UiScale = scale;
+        if (_renderService != null) _renderService.UiScale = scale;
+    }
+
     public void EnsureCanvasInitialized(SKSize canvasSize)
     {
         if (_isDisposed)

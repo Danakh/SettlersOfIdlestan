@@ -9,6 +9,8 @@ public class UILayoutService
 
     public const float MobileTabBarHeight = 44f;
 
+    public float UiScale { get; set; } = 1f;
+
     public void UpdateCanvasSize(SKSize size) => _canvasSize = size;
 
     // Auto-détection : petit écran ou orientation portrait

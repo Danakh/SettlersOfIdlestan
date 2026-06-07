@@ -146,7 +146,7 @@ public sealed class PlayerCivilizationPanelRenderer : IDisposable
         }
 
         float contentW = PanelWidth - PanelPadding * 2;
-        float panelTop = (TopOverride > 0f ? TopOverride : PlayerResourcesOverlayRenderer.BarHeight) + 10f;
+        float panelTop = (TopOverride > 0f ? TopOverride : PlayerResourcesOverlayRenderer.BarHeight * context.UiScale) + 10f;
         float tabTop = panelTop + 8f;
 
         if (_collapsed)

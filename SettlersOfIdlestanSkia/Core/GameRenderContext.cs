@@ -39,4 +39,10 @@ public class GameRenderContext
     /// Temps total écoulé depuis le démarrage.
     /// </summary>
     public float TotalTime { get; set; }
+
+    /// <summary>
+    /// Facteur d'échelle UI basé sur la densité physique de l'écran (px/cm).
+    /// 1.0 = écran desktop 96 DPI, ~3.0 = mobile haute densité.
+    /// </summary>
+    public float UiScale { get; init; } = 1f;
 }

@@ -16,6 +16,8 @@ public class RenderService : IDisposable
     private float _totalTime;
     private bool _disposed;
 
+    public float UiScale { get; set; } = 1f;
+
     public RenderService()
     {
     }
@@ -80,7 +82,8 @@ public class RenderService : IDisposable
             CanvasSize = canvasSize,
             TotalTime = _totalTime,
             CameraPosition = cameraService?.Position ?? SKPoint.Empty,
-            ZoomLevel = cameraService?.ZoomLevel ?? 1.0f
+            ZoomLevel = cameraService?.ZoomLevel ?? 1.0f,
+            UiScale = UiScale
         };
 
         // Appelle chaque renderer dans l'ordre

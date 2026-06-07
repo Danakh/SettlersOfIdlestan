@@ -62,6 +62,9 @@
         await JS.InvokeVoidAsync("gameInterop.registerVisibilityHandler", _dotNetRef);
         await JS.InvokeVoidAsync("gameInterop.registerTouchHandler", _dotNetRef);
 
+        double physPxPerCm = await JS.InvokeAsync<double>("gameInterop.getPhysicalPixelsPerCm");
+        _runtime.SetUiScale(Math.Clamp((float)(physPxPerCm / 37.8), 1f, 4f));
+
         _cts = new CancellationTokenSource();
         _ = RunGameLoop(_cts.Token);
     }

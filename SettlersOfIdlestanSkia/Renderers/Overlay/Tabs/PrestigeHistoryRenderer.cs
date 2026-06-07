@@ -51,7 +51,7 @@ public sealed class PrestigeHistoryRenderer : IDisposable
         if (_disposed) return;
         if (context.GameState is not MainGameState mainGameState) return;
 
-        float topBarHeight = PlayerResourcesOverlayRenderer.BarHeight;
+        float topBarHeight = PlayerResourcesOverlayRenderer.BarHeight * context.UiScale;
         var area = new SKRect(0, topBarHeight, _canvasSize.Width, _canvasSize.Height);
         canvas.DrawRect(area, _bgPaint);
 
