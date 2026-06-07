@@ -496,7 +496,8 @@ public sealed class OverlayRenderer : IGameRenderer
                                     || _settingsMenu.IsOpen || _settingsPopupRenderer.IsOpen;
     public bool IsPointBlockedByUI(SKPoint point) =>
         IsAnyOverlayOpen || _selectedCityPanelRenderer.ContainsPoint(point) || _selectedWonderPanelRenderer.ContainsPoint(point)
-        || _playerCivPanel.ContainsPoint(point);
+        || _playerCivPanel.ContainsPoint(point)
+        || (_uiLayout.IsMobile && point.Y < PlayerResourcesOverlayRenderer.BarHeight * _uiLayout.UiScale);
     public bool IsIslandTabActive => _activeTab == TabIsland;
 
     private void HandlePointerMoved(object? sender, PointerEventArgs e)
