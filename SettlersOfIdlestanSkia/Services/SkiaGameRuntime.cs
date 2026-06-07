@@ -264,6 +264,7 @@ public sealed class SkiaGameRuntime : IDisposable
         }
         _renderService.RegisterRenderer(aboutRenderer);
         _tutorialRenderer = new TutorialRenderer(_localizationService!, _inputService!);
+        _tutorialRenderer.LayoutService = _uiLayoutService;
         _renderService.RegisterRenderer(_tutorialRenderer);
         _renderService.RegisterRenderer(tooltipRenderer);
 

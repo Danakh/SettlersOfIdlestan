@@ -1,8 +1,8 @@
 ﻿using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.Tasks;
-using SettlersOfIdlestanSkia.Services.Localization;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Services;
+using SettlersOfIdlestanSkia.Services.Localization;
 using SkiaSharp;
 
 namespace SettlersOfIdlestanSkia.Renderers.Overlay;
@@ -11,6 +11,8 @@ public class TutorialRenderer : IGameRenderer
 {
     private readonly LocalizationService _localization;
     private readonly InputHandlingService _inputService;
+    public UILayoutService? LayoutService { get; set; }
+    private bool IsMobile => LayoutService?.IsMobile ?? false;
 
     private SKSize _canvasSize;
     private readonly SKFont _titleFont    = new() { Size = 14, Typeface = SkiaFonts.Bold };
@@ -85,7 +87,8 @@ public class TutorialRenderer : IGameRenderer
         float secondaryLabelH = hasSecondary ? _optionalFont.Spacing + 2f : 0f;
         float secondaryTasksH = _step.SecondaryTasks.Count * (_taskFont.Spacing + 2f);
         float panelH   = PanelPadding + titleH + descH + separatorH + primaryTasksH + secondaryGapH + secondaryLabelH + secondaryTasksH + PanelPadding;
-        float panelTop = _canvasSize.Height - panelH - 10f;
+        float bottomMargin = IsMobile ? UILayoutService.MobileTabBarHeight + 10f : 10f;
+        float panelTop = _canvasSize.Height - panelH - bottomMargin;
 
         var panelRect = new SKRect(PanelLeft, panelTop, PanelLeft + PanelWidth, panelTop + panelH);
 
