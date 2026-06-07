@@ -22,6 +22,7 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay
         private ResourceSet? _tooltipCost;
         private SKPoint _tooltipScreenPosition = SKPoint.Empty;
         private SKSize _canvasSize;
+        private float _lastUiScale = 0f;
         private SKFont _font10 = new SKFont { Size = 10, Typeface = SkiaFonts.Regular };
 
         private IslandMainRenderer? _islandRendererContext;
@@ -285,9 +286,15 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay
 
         public void Render(SKCanvas canvas, GameRenderContext context)
         {
+            if (context.UiScale != _lastUiScale)
+            {
+                _lastUiScale = context.UiScale;
+                _font10.Dispose();
+                _font10 = new SKFont { Size = 10 * _lastUiScale, Typeface = SkiaFonts.Regular };
+            }
             if (_tooltipTexts.Length > 0)
             {
-                TooltipRenderUtils.DrawTooltip(canvas, _canvasSize, _tooltipScreenPosition, _tooltipTexts, _font10, _tooltipCost, _resourceIcons);
+                TooltipRenderUtils.DrawTooltip(canvas, _canvasSize, _tooltipScreenPosition, _tooltipTexts, _font10, _tooltipCost, _resourceIcons, _lastUiScale);
                 _tooltipTexts = new string[0];
                 _tooltipCost = null;
             }

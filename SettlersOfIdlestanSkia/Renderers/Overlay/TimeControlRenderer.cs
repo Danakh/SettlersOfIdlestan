@@ -146,7 +146,7 @@ public class TimeControlRenderer : IDisposable
             _                    => null
         };
         if (lines == null) return;
-        TooltipRenderUtils.DrawTooltip(canvas, _canvasSize, _lastPointerPosition, lines, _tooltipFont, null, new());
+        TooltipRenderUtils.DrawTooltip(canvas, _canvasSize, _lastPointerPosition, lines, _tooltipFont, null, new(), _scale);
     }
 
     private void DrawBankLabel(SKCanvas canvas, long bankTicks)

@@ -23,6 +23,7 @@ public class SelectedCityPanelRenderer : IGameRenderer
     private readonly ResourceManager _resourceManager;
     private readonly Dictionary<Resource, SKSvg?> _resourceIcons = new();
     private SKSize _canvasSize;
+    private float _lastUiScale = 0f;
     private SKFont? _font15;
     private SKFont? _font12;
     private SKFont? _font10;
@@ -163,6 +164,13 @@ public class SelectedCityPanelRenderer : IGameRenderer
             _panelBounds = SKRect.Empty;
             _collapseTabRect = SKRect.Empty;
             return;
+        }
+
+        if (context.UiScale != _lastUiScale)
+        {
+            _lastUiScale = context.UiScale;
+            _font10?.Dispose();
+            _font10 = new SKFont { Size = 10 * _lastUiScale, Typeface = SkiaFonts.Regular };
         }
 
         bool isMobile = IsMobile;
@@ -625,18 +633,18 @@ public class SelectedCityPanelRenderer : IGameRenderer
                     }
                 }
 
-                TooltipRenderUtils.DrawTooltip(canvas, _canvasSize, _lastPointerPosition, tooltipLines.ToArray(), _font10!, cost, _resourceIcons);
+                TooltipRenderUtils.DrawTooltip(canvas, _canvasSize, _lastPointerPosition, tooltipLines.ToArray(), _font10!, cost, _resourceIcons, _lastUiScale);
             }
         }
         else if (_hoveredActivationCheckbox.HasValue)
         {
             var lines = new[] { _localization.Get("tooltip_activate_building") };
-            TooltipRenderUtils.DrawTooltip(canvas, _canvasSize, _lastPointerPosition, lines, _font10!, new ResourceSet(), _resourceIcons);
+            TooltipRenderUtils.DrawTooltip(canvas, _canvasSize, _lastPointerPosition, lines, _font10!, new ResourceSet(), _resourceIcons, _lastUiScale);
         }
         else if (_hoveredSteelWeaponsCheckbox)
         {
             var lines = new[] { _localization.Get("tooltip_steel_weapons_checkbox") };
-            TooltipRenderUtils.DrawTooltip(canvas, _canvasSize, _lastPointerPosition, lines, _font10!, new ResourceSet(), _resourceIcons);
+            TooltipRenderUtils.DrawTooltip(canvas, _canvasSize, _lastPointerPosition, lines, _font10!, new ResourceSet(), _resourceIcons, _lastUiScale);
         }
     }
 

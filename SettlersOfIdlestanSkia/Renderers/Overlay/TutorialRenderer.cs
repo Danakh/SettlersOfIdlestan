@@ -17,7 +17,8 @@ public class TutorialRenderer : IGameRenderer
     private readonly SKFont _descFont     = new() { Size = 11, Typeface = SkiaFonts.Regular };
     private readonly SKFont _taskFont     = new() { Size = 12, Typeface = SkiaFonts.Regular };
     private readonly SKFont _optionalFont = new() { Size = 10, Typeface = SkiaFonts.Regular };
-    private readonly SKFont _tooltipFont  = new() { Size = 11, Typeface = SkiaFonts.Regular };
+    private float _lastUiScale = 0f;
+    private SKFont _tooltipFont = new() { Size = 11, Typeface = SkiaFonts.Regular };
 
     private TutorialStep? _step;
 
@@ -53,6 +54,12 @@ public class TutorialRenderer : IGameRenderer
 
     public void Render(SKCanvas canvas, GameRenderContext context)
     {
+        if (context.UiScale != _lastUiScale)
+        {
+            _lastUiScale = context.UiScale;
+            _tooltipFont.Dispose();
+            _tooltipFont = new SKFont { Size = 11 * _lastUiScale, Typeface = SkiaFonts.Regular };
+        }
         if (_step == null) return;
         _taskRects.Clear();
 
@@ -151,7 +158,7 @@ public class TutorialRenderer : IGameRenderer
         {
             string taskDesc = _localization.Get(_hoveredTask.DescKey);
             if (!string.IsNullOrEmpty(taskDesc))
-                TooltipRenderUtils.DrawTooltip(canvas, _canvasSize, _lastPointerPosition, [taskDesc], _tooltipFont);
+                TooltipRenderUtils.DrawTooltip(canvas, _canvasSize, _lastPointerPosition, [taskDesc], _tooltipFont, uiScale: _lastUiScale);
         }
     }
 

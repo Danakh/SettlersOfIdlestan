@@ -64,7 +64,8 @@ public sealed class ResearchRenderer : IGameRenderer
     private readonly SKPaint _dimTextPaint = new() { Color = new SKColor(150, 150, 160), IsAntialias = true };
     private readonly SKFont _nameFont = new() { Size = 12, Typeface = SkiaFonts.Bold };
     private readonly SKFont _smallFont = new() { Size = 10, Typeface = SkiaFonts.Regular };
-    private readonly SKFont _tooltipFont = new() { Size = 10, Typeface = SkiaFonts.Regular };
+    private float _lastUiScale = 0f;
+    private SKFont _tooltipFont = new() { Size = 10, Typeface = SkiaFonts.Regular };
 
     // Layout: column index → row index → TechnologyId
     private static readonly Dictionary<TechnologyId, (int col, int row)> Layout =
@@ -133,6 +134,12 @@ public sealed class ResearchRenderer : IGameRenderer
     {
         if (_disposed) return;
         if (context.GameState is not MainGameState) return;
+        if (context.UiScale != _lastUiScale)
+        {
+            _lastUiScale = context.UiScale;
+            _tooltipFont.Dispose();
+            _tooltipFont = new SKFont { Size = 10 * _lastUiScale, Typeface = SkiaFonts.Regular };
+        }
 
         var ctrl = _gameControllerService.MainGameController.ResearchController;
 
@@ -172,7 +179,7 @@ public sealed class ResearchRenderer : IGameRenderer
             if (hoveredTech != null)
             {
                 string desc = _localization.Get(hoveredTech.DescKey);
-                TooltipRenderUtils.DrawTooltip(canvas, _canvasSize, _lastPointerPosition, new[] { desc }, _tooltipFont);
+                TooltipRenderUtils.DrawTooltip(canvas, _canvasSize, _lastPointerPosition, new[] { desc }, _tooltipFont, uiScale: _lastUiScale);
             }
         }
     }

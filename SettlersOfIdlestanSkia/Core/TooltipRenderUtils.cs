@@ -25,19 +25,22 @@ namespace SettlersOfIdlestanSkia.Core
             string[] texts,
             SKFont font,
             ResourceSet? cost,
-            Dictionary<Resource, SKSvg?>? resourceIcons)
+            Dictionary<Resource, SKSvg?>? resourceIcons,
+            float uiScale)
         {
-            float width = BaseTooltipWidth;
+            float textPadding = TextPadding * uiScale;
+            float costIconSize = CostIconSize * uiScale;
+            float width = BaseTooltipWidth * uiScale;
 
             if (cost != null && cost.Count > 0 && resourceIcons != null)
             {
-                float cw = 2 * TextPadding;
+                float cw = 2 * textPadding;
                 foreach (var kvp in cost)
-                    cw += CostIconSize + 3f + font.MeasureText(kvp.Value.ToString()) + 8f;
+                    cw += costIconSize + 3f * uiScale + font.MeasureText(kvp.Value.ToString()) + 8f * uiScale;
                 width = Math.Max(width, cw);
             }
 
-            var probe = SkiaTextUtils.MeasureWrappedText(texts, width - 2 * TextPadding, font);
+            var probe = SkiaTextUtils.MeasureWrappedText(texts, width - 2 * textPadding, font);
             if (probe.Lines.Count >= 3)
             {
                 float maxRaw = 0f;
@@ -46,7 +49,7 @@ namespace SettlersOfIdlestanSkia.Core
                         if (!string.IsNullOrEmpty(sentence))
                             maxRaw = Math.Max(maxRaw, font.MeasureText(sentence));
 
-                float ideal = maxRaw + 2 * TextPadding;
+                float ideal = maxRaw + 2 * textPadding;
                 float maxAllowed = width * 1.5f;
                 width = Math.Min(maxAllowed, Math.Max(width, ideal));
             }
@@ -61,38 +64,45 @@ namespace SettlersOfIdlestanSkia.Core
             string[] texts,
             SKFont font,
             ResourceSet? cost = null,
-            Dictionary<Resource, SKSvg?>? resourceIcons = null)
+            Dictionary<Resource, SKSvg?>? resourceIcons = null,
+            float uiScale = 1f)
         {
+            float textPadding = TextPadding * uiScale;
+            float verticalPadding = VerticalPadding * uiScale;
+            float costIconSize = CostIconSize * uiScale;
+            float costRowHeight = CostRowHeight * uiScale;
+
             bool hasCost = cost != null && cost.Count > 0;
 
-            float tooltipWidth = ComputeTooltipWidth(texts, font, cost, resourceIcons);
+            float tooltipWidth = ComputeTooltipWidth(texts, font, cost, resourceIcons, uiScale);
 
-            var textLayout = SkiaTextUtils.MeasureWrappedText(texts, tooltipWidth - 2 * TextPadding, font);
+            var textLayout = SkiaTextUtils.MeasureWrappedText(texts, tooltipWidth - 2 * textPadding, font);
 
             float textBlockHeight = textLayout.Size.Height + font.Spacing / 2;
-            float tooltipHeight = textBlockHeight + 2 * VerticalPadding;
-            if (hasCost) tooltipHeight += 4f + CostRowHeight + VerticalPadding;
+            float tooltipHeight = textBlockHeight + 2 * verticalPadding;
+            if (hasCost) tooltipHeight += 4f * uiScale + costRowHeight + verticalPadding;
 
-            float tooltipX = pointerPosition.X + 15;
-            float tooltipY = pointerPosition.Y + 15;
+            float tooltipX = pointerPosition.X + 15 * uiScale;
+            float tooltipY = pointerPosition.Y + 15 * uiScale;
 
             if (tooltipX + tooltipWidth > canvasSize.Width)
-                tooltipX = pointerPosition.X - tooltipWidth - 10;
+                tooltipX = pointerPosition.X - tooltipWidth - 10 * uiScale;
             if (tooltipY + tooltipHeight > canvasSize.Height)
-                tooltipY = pointerPosition.Y - tooltipHeight - 10;
+                tooltipY = pointerPosition.Y - tooltipHeight - 10 * uiScale;
 
-            canvas.DrawRoundRect(tooltipX, tooltipY, tooltipWidth, tooltipHeight, 8, 8, _tooltipBgPaint);
-            canvas.DrawRoundRect(tooltipX, tooltipY, tooltipWidth, tooltipHeight, 8, 8, _tooltipBorderPaint);
+            float cornerRadius = 8 * uiScale;
+            canvas.DrawRoundRect(tooltipX, tooltipY, tooltipWidth, tooltipHeight, cornerRadius, cornerRadius, _tooltipBgPaint);
+            canvas.DrawRoundRect(tooltipX, tooltipY, tooltipWidth, tooltipHeight, cornerRadius, cornerRadius, _tooltipBorderPaint);
 
-            SkiaTextUtils.DrawTextLayout(canvas, textLayout, tooltipX + TextPadding, tooltipY + VerticalPadding + font.Spacing, font, _tooltipTextPaint);
+            SkiaTextUtils.DrawTextLayout(canvas, textLayout, tooltipX + textPadding, tooltipY + verticalPadding + font.Spacing, font, _tooltipTextPaint);
 
             if (hasCost && resourceIcons != null)
             {
-                float separatorY = tooltipY + VerticalPadding + textBlockHeight + 2f;
-                canvas.DrawLine(tooltipX + 4, separatorY, tooltipX + tooltipWidth - 4, separatorY, _tooltipBorderPaint);
+                float separatorY = tooltipY + verticalPadding + textBlockHeight + 2f * uiScale;
+                canvas.DrawLine(tooltipX + 4 * uiScale, separatorY, tooltipX + tooltipWidth - 4 * uiScale, separatorY, _tooltipBorderPaint);
 
-                float rowY = separatorY + 2f;
-                float iconX = tooltipX + TextPadding;
+                float rowY = separatorY + 2f * uiScale;
+                float iconX = tooltipX + textPadding;
 
                 foreach (var kvp in cost!)
                 {
@@ -100,18 +110,18 @@ namespace SettlersOfIdlestanSkia.Core
                     var picture = svg?.Picture;
                     if (picture != null)
                     {
-                        float scale = CostIconSize / 32f;
+                        float scale = costIconSize / 32f;
                         canvas.Save();
-                        canvas.Translate(iconX, rowY + (CostRowHeight - CostIconSize) / 2f);
+                        canvas.Translate(iconX, rowY + (costRowHeight - costIconSize) / 2f);
                         canvas.Scale(scale);
                         canvas.DrawPicture(picture);
                         canvas.Restore();
                     }
-                    iconX += CostIconSize + 3f;
+                    iconX += costIconSize + 3f * uiScale;
 
                     string numText = kvp.Value.ToString();
-                    canvas.DrawText(numText, iconX, rowY + (CostRowHeight + font.Size) / 2f, font, _tooltipTextPaint);
-                    iconX += font.MeasureText(numText) + 8f;
+                    canvas.DrawText(numText, iconX, rowY + (costRowHeight + font.Size) / 2f, font, _tooltipTextPaint);
+                    iconX += font.MeasureText(numText) + 8f * uiScale;
                 }
             }
         }
