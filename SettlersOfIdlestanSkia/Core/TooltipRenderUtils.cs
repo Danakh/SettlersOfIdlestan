@@ -90,6 +90,17 @@ namespace SettlersOfIdlestanSkia.Core
             if (tooltipY + tooltipHeight > canvasSize.Height)
                 tooltipY = pointerPosition.Y - tooltipHeight - 10 * uiScale;
 
+            // Si le tooltip déborde encore (des deux côtés), on centre
+            if (tooltipX < 0 && tooltipX + tooltipWidth > canvasSize.Width)
+                tooltipX = (canvasSize.Width - tooltipWidth) / 2f;
+            else
+                tooltipX = Math.Max(0, tooltipX);
+
+            if (tooltipY < 0 && tooltipY + tooltipHeight > canvasSize.Height)
+                tooltipY = (canvasSize.Height - tooltipHeight) / 2f;
+            else
+                tooltipY = Math.Max(0, tooltipY);
+
             float cornerRadius = 8 * uiScale;
             canvas.DrawRoundRect(tooltipX, tooltipY, tooltipWidth, tooltipHeight, cornerRadius, cornerRadius, _tooltipBgPaint);
             canvas.DrawRoundRect(tooltipX, tooltipY, tooltipWidth, tooltipHeight, cornerRadius, cornerRadius, _tooltipBorderPaint);
