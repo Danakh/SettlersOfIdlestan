@@ -130,6 +130,7 @@ public class NpcCivilizationPlacer
     {
         var city = new City(vertex) { CivilizationIndex = civ.Index };
         city.Buildings.Add(new TownHall { Level = 2 });
+        city.InvalidateLevelCache();
         AddStep1ProductionBuildings(map, city);
         city.Buildings.Add(new Market());
         city.Buildings.Add(new Warehouse { Level = 1 });
@@ -268,6 +269,7 @@ public class NpcCivilizationPlacer
             if (building == null) return;
             building.Level = targetLevel;
             city.Buildings.Add(building);
+            if (type == BuildingType.TownHall) city.InvalidateLevelCache();
         }
         else if (existing.Level < targetLevel)
         {

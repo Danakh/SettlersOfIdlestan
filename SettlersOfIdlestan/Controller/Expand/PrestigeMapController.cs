@@ -102,7 +102,7 @@ public class PrestigeMapController
         if (!city.Buildings.Any(b => b.Type == bt))
         {
             var building = BuildingController.CreateBuilding(bt);
-            if (building != null) { building.Level = 1; city.Buildings.Add(building); }
+            if (building != null) { building.Level = 1; city.Buildings.Add(building); if (bt == BuildingType.TownHall) city.InvalidateLevelCache(); }
         }
     }
 }

@@ -69,6 +69,11 @@ public class City
     /// </summary>
     public Vertex? FlowTarget { get; set; }
 
+    [NonSerialized]
+    private Building? _cachedTownHall;
+    [NonSerialized]
+    private bool _townHallCacheValid;
+
     /// <summary>
     /// Gets the effective level of the city.
     /// Level 1 is the base level (outpost) when no TownHall is built.
@@ -79,9 +84,19 @@ public class City
     {
         get
         {
-            var th = Buildings.FirstOrDefault(b => b.Type == BuildingType.TownHall);
-            return th != null ? th.Level : 0;
+            if (!_townHallCacheValid)
+            {
+                _cachedTownHall = Buildings.FirstOrDefault(b => b.Type == BuildingType.TownHall);
+                _townHallCacheValid = true;
+            }
+            return _cachedTownHall?.Level ?? 0;
         }
+    }
+
+    internal void InvalidateLevelCache()
+    {
+        _cachedTownHall = null;
+        _townHallCacheValid = false;
     }
 
     /// <summary>

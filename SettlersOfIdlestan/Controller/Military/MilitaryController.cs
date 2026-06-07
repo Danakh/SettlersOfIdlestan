@@ -568,6 +568,7 @@ public class MilitaryController
             if (townHall.Level <= 0)
             {
                 targetCity.Buildings.Remove(townHall);
+                targetCity.InvalidateLevelCache();
                 CityBuildingDestroyed?.Invoke(this, new CityBuildingDestroyedEventArgs(targetCity.Position));
             }
             return false;

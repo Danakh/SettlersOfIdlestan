@@ -253,7 +253,10 @@ public class MonsterFeatureController
                     damage -= thDmg;
                     didSomething = true;
                     if (townHall.Level <= 0)
+                    {
                         city.Buildings.Remove(townHall);
+                        city.InvalidateLevelCache();
+                    }
                 }
             }
 

@@ -191,6 +191,7 @@ namespace SettlersOfIdlestan.Controller.Island
                         {
                             b.Level = 1;
                             city.Buildings.Add(b);
+                            if (b.Type == BuildingType.TownHall) city.InvalidateLevelCache();
                             int defBonus = b.GetDefenseBonus();
                             if (defBonus > 0 && civ.ModifierAggregator.HasModifier(ECategory.BUILDING_DEFENSE_ON_CONSTRUCT))
                                 city.CurrentDefense += defBonus;
