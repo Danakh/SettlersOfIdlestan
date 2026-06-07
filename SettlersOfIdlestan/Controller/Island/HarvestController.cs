@@ -99,15 +99,15 @@ namespace SettlersOfIdlestan.Controller.Island
         private void OnClockAdvanced(object? sender, GameClockAdvancedEventArgs e)
         {
             try { PerformAutomaticProductionHarvests(); }
-            catch { }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[HarvestController] {nameof(PerformAutomaticProductionHarvests)}: {ex}"); }
             try { PerformSeaportGenerations(); }
-            catch { }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[HarvestController] {nameof(PerformSeaportGenerations)}: {ex}"); }
             try { PerformMarketGoldGenerations(); }
-            catch { }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[HarvestController] {nameof(PerformMarketGoldGenerations)}: {ex}"); }
             try { PerformSmelterProductions(e.CurrentTick); }
-            catch { }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[HarvestController] {nameof(PerformSmelterProductions)}: {ex}"); }
             try { PerformPassiveResourceGenerations(e.CurrentTick); }
-            catch { }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[HarvestController] {nameof(PerformPassiveResourceGenerations)}: {ex}"); }
         }
 
         private void PerformAutomaticProductionHarvests()
@@ -336,7 +336,8 @@ namespace SettlersOfIdlestan.Controller.Island
                         ECategory.PASSIVE_RESOURCE_GENERATION, resource.ToString(), 0);
                     if (amount > 0)
                     {
-                        try { civ.AddResource(resource, amount); } catch { }
+                        try { civ.AddResource(resource, amount); }
+                        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[HarvestController] AddResource {resource}: {ex.Message}"); }
                     }
                 }
             }

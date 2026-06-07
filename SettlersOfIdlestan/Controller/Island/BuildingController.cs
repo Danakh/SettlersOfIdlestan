@@ -60,15 +60,15 @@ namespace SettlersOfIdlestan.Controller.Island
         private void OnClockAdvanced(object? sender, GameClockAdvancedEventArgs e)
         {
             try { PerformHarvestersGuildProductionAutomation(); }
-            catch { }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[BuildingController] {nameof(PerformHarvestersGuildProductionAutomation)}: {ex}"); }
             try { PerformArtisansGuildAutomation(); }
-            catch { }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[BuildingController] {nameof(PerformArtisansGuildAutomation)}: {ex}"); }
             try { PerformAcademyAutomation(); }
-            catch { }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[BuildingController] {nameof(PerformAcademyAutomation)}: {ex}"); }
             try { PerformTraderGuildAutomation(); }
-            catch { }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[BuildingController] {nameof(PerformTraderGuildAutomation)}: {ex}"); }
             try { TryInitializeUnderworld(); }
-            catch { }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[BuildingController] {nameof(TryInitializeUnderworld)}: {ex}"); }
         }
 
         private void TryInitializeUnderworld()

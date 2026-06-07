@@ -161,7 +161,7 @@ public class MilitaryController
     private void OnClockAdvanced(object? sender, GameClockAdvancedEventArgs e)
     {
         try { Update(e.CurrentTick); }
-        catch (Exception) { }
+        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[MilitaryController] {nameof(Update)}: {ex}"); }
     }
 
     private void Update(long currentTick)

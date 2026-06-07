@@ -52,7 +52,7 @@ public class NpcGameController
     private void OnClockAdvanced(object? sender, GameClockAdvancedEventArgs e)
     {
         try { Update(e.CurrentTick); }
-        catch (Exception) { }
+        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[NpcGameController] {nameof(Update)}: {ex}"); }
     }
 
     private void Update(long currentTick)
@@ -167,7 +167,7 @@ public class NpcGameController
             int max = civ.GetResourceMaxQuantity(resource);
             if (max <= 0) continue;
             try { civ.AddResource(resource, max); }
-            catch { }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[NpcGameController] AddResource {resource}: {ex.Message}"); }
         }
     }
 }

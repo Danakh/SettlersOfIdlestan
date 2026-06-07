@@ -35,7 +35,7 @@ namespace SettlersOfIdlestan.Controller.Island
         private void OnClockAdvanced(object? sender, GameClockAdvancedEventArgs e)
         {
             try { ProcessInvestment(); }
-            catch { }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[WonderController] {nameof(ProcessInvestment)}: {ex}"); }
         }
 
         public static ResourceSet GetLevelCost(int level)
