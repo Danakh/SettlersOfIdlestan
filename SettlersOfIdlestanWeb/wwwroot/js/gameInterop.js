@@ -128,11 +128,11 @@ window.gameInterop = {
             e.preventDefault();
             if (e.touches.length === 2 && isPinching) {
                 const d = getDist(e.touches[0], e.touches[1]);
-                if (lastDist !== null) {
-                    const delta = d - lastDist;
+                if (lastDist !== null && lastDist > 0) {
+                    const ratio = d / lastDist;
                     const cx = (e.touches[0].clientX + e.touches[1].clientX) / 2;
                     const cy = (e.touches[0].clientY + e.touches[1].clientY) / 2;
-                    dotNetRef.invokeMethodAsync('OnPinch', delta, cx, cy);
+                    dotNetRef.invokeMethodAsync('OnPinch', ratio, cx, cy);
                 }
                 lastDist = d;
             } else if (e.touches.length === 1 && !isPinching) {
