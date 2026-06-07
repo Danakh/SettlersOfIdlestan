@@ -21,7 +21,17 @@ public class NpcCivilizationAutoplayer
         MainGameController mainController,
         NpcAggressivityLevel aggressivity)
     {
-        _inner = new CivilizationAutoplayer(civ, map, mainController);
+        _inner = new CivilizationAutoplayer(
+            civ, map,
+            mainController.RoadController,
+            mainController.HarvestController,
+            mainController.BuildingController,
+            mainController.CityBuilderController,
+            mainController.TradeController,
+            mainController.ResearchController,
+            mainController.PrestigeController,
+            mainController.PrestigeMapController,
+            mainController.CurrentMainState?.CurrentWorldState);
         _aggressivity = aggressivity;
     }
 

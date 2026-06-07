@@ -48,7 +48,19 @@ namespace SOITests.ControllerTests
             var mainController = new MainGameController();
             mainController.SetGame(new MainGameState(state, clock));
 
-            var auto = new CivilizationAutoplayer(civ, map, mainController);
+            var auto = new CivilizationAutoplayer(
+                civ, map,
+                mainController.RoadController,
+                mainController.HarvestController,
+                mainController.BuildingController,
+                mainController.CityBuilderController,
+                mainController.TradeController,
+                mainController.ResearchController,
+                mainController.PrestigeController,
+                mainController.PrestigeMapController,
+                state,
+                mainController.CurrentMainState?.PrestigeState,
+                mainController.PerformPrestige);
             var runner = new CivilizationAutoplayerRunner(auto, civ, mainController);
 
             var firstBuildable = Edge.Create(b, c);

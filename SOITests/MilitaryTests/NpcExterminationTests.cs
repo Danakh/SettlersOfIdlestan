@@ -87,7 +87,20 @@ public class NpcExterminationTests
 
         // ── Autoplayer joueur ────────────────────────────────────────────────────
         var playerCiv = WorldState.PlayerCivilization;
-        var auto   = new CivilizationAutoplayer(playerCiv, WorldState.GetMapForZ(IslandMap.SurfaceLayer), mainController);
+        var auto = new CivilizationAutoplayer(
+            playerCiv,
+            WorldState.GetMapForZ(IslandMap.SurfaceLayer),
+            mainController.RoadController,
+            mainController.HarvestController,
+            mainController.BuildingController,
+            mainController.CityBuilderController,
+            mainController.TradeController,
+            mainController.ResearchController,
+            mainController.PrestigeController,
+            mainController.PrestigeMapController,
+            WorldState,
+            mainController.CurrentMainState?.PrestigeState,
+            mainController.PerformPrestige);
         var runner = new CivilizationAutoplayerRunner(auto, playerCiv, mainController);
 
         // Step 1 : atteindre 4 villes avec TownHall pour couvrir suffisamment l'île
