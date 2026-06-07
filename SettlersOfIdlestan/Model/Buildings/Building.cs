@@ -1,4 +1,3 @@
-using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
 using System.Text.Json.Serialization;
@@ -269,7 +268,7 @@ public class Building
     /// <param name="map">The island map.</param>
     /// <param name="city">The city.</param>
     /// <returns>True if the building is available for the city, false otherwise.</returns>
-    public virtual bool IsBuildingAvailableForCity(IslandMap.IslandMap map, City city)
+    public virtual bool IsBuildingAvailableForCity(IslandMap.IslandMap map, IBuildingContext city)
     {
         return city.Level >= AvailableAtLevel;
     }
@@ -289,11 +288,11 @@ public class Building
     /// Returns true if all build prerequisites (beyond resources) are satisfied.
     /// Override in derived classes to add extra conditions.
     /// </summary>
-    public virtual bool HasBuildPrerequisites(City city) => true;
+    public virtual bool HasBuildPrerequisites(IBuildingContext city) => true;
 
     /// <summary>
     /// Returns the localization key describing the missing prerequisite, or null if none.
     /// Used by the UI to show a tooltip warning when HasBuildPrerequisites is false.
     /// </summary>
-    public virtual string? GetMissingPrerequisiteKey(City city) => null;
+    public virtual string? GetMissingPrerequisiteKey(IBuildingContext city) => null;
 }

@@ -7,7 +7,7 @@ namespace SettlersOfIdlestan.Model.Civilization;
 /// Represents a city in the game.
 /// </summary>
 [Serializable]
-public class City
+public class City : IBuildingContext
 {
     /// <summary>
     /// Gets or sets the position of the city on the hex grid.
@@ -23,6 +23,8 @@ public class City
     /// Gets or sets the list of buildings in the city.
     /// </summary>
     public List<Building> Buildings { get; set; } = new();
+
+    IReadOnlyList<Building> IBuildingContext.Buildings => Buildings;
 
     /// <summary>
     /// Défense actuelle (dynamique). Se régénère jusqu'à MaxDefense.

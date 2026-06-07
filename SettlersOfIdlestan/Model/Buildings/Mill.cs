@@ -1,4 +1,3 @@
-using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.IslandMap;
 
 namespace SettlersOfIdlestan.Model.Buildings;
@@ -44,7 +43,7 @@ public class Mill : Building
         { Resource.Brick, 5 * (level + 1) }
     };
 
-    public override bool IsBuildingAvailableForCity(IslandMap.IslandMap map, City city)
+    public override bool IsBuildingAvailableForCity(IslandMap.IslandMap map, IBuildingContext city)
     {
         if (!base.IsBuildingAvailableForCity(map, city))
             return false;

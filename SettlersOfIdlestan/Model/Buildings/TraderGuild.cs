@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using System.Linq;
-using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.GameplayModifier;
 using SettlersOfIdlestan.Model.IslandMap;
 using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
@@ -22,14 +21,14 @@ public class TraderGuild : Building, IUniqueBuilding
 
     public long GetAutoMarketCooldownTicks() => 1000L;
 
-    public override bool HasBuildPrerequisites(City city)
+    public override bool HasBuildPrerequisites(IBuildingContext city)
     {
         bool hasMarket = city.Buildings.Any(b => b.Type == BuildingType.Market && b.Level >= 1);
         bool hasSeaport4 = city.Buildings.Any(b => b.Type == BuildingType.Seaport && b.Level >= 4);
         return hasMarket && hasSeaport4;
     }
 
-    public override string? GetMissingPrerequisiteKey(City city)
+    public override string? GetMissingPrerequisiteKey(IBuildingContext city)
     {
         if (!city.Buildings.Any(b => b.Type == BuildingType.Market && b.Level >= 1))
             return "tooltip_requires_market";

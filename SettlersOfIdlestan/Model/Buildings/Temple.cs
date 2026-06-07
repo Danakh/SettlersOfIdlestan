@@ -1,4 +1,3 @@
-using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.IslandMap;
 
 namespace SettlersOfIdlestan.Model.Buildings;
@@ -28,7 +27,7 @@ public class Temple : Building
         { Resource.Stone, 20 * (level + 1) }
     };
 
-    public override bool IsBuildingAvailableForCity(IslandMap.IslandMap map, City city)
+    public override bool IsBuildingAvailableForCity(IslandMap.IslandMap map, IBuildingContext city)
     {
         return (map.Z == IslandMap.IslandMap.SurfaceLayer) && base.IsBuildingAvailableForCity(map, city);
     }

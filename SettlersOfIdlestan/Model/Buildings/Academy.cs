@@ -1,4 +1,3 @@
-using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.GameplayModifier;
 using SettlersOfIdlestan.Model.IslandMap;
 using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
@@ -20,10 +19,10 @@ public class Academy : Building, IUniqueBuilding
 
     public long GetAutoLibraryCooldownTicks() => 1000L;
 
-    public override bool HasBuildPrerequisites(City city) =>
+    public override bool HasBuildPrerequisites(IBuildingContext city) =>
         city.Buildings.Any(b => b.Type == BuildingType.Library && b.Level >= 4);
 
-    public override string? GetMissingPrerequisiteKey(City city) =>
+    public override string? GetMissingPrerequisiteKey(IBuildingContext city) =>
         HasBuildPrerequisites(city) ? null : "tooltip_requires_library_level4";
 
     public override ResourceSet GetBuildCost() => new ResourceSet

@@ -1,4 +1,3 @@
-using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.IslandMap;
 
 namespace SettlersOfIdlestan.Model.Buildings;
@@ -61,7 +60,7 @@ public class Seaport : Building
     public double GetGenerationCooldownMultiplier() =>
         Level >= 3 ? Math.Pow(0.8, Level - 3) : 1.0;
 
-    public override bool IsBuildingAvailableForCity(IslandMap.IslandMap map, City city)
+    public override bool IsBuildingAvailableForCity(IslandMap.IslandMap map, IBuildingContext city)
     {
         if (!base.IsBuildingAvailableForCity(map, city))
             return false;
