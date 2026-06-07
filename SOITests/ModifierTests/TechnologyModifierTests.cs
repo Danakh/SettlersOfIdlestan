@@ -115,12 +115,6 @@ public class TechnologyModifierTests
         Assert.Equal(0.0, BuildAggregator(TechnologyId.AdvancedTactics).ApplyModifiers(ECategory.UNIT_PRODUCTION_SPEED, "", 0.0), 5);
     }
 
-    [Fact]
-    public void GloriousEmpire_UnitProductionSpeed_Plus0Point3()
-    {
-        Assert.Equal(0.3, BuildAggregator(TechnologyId.GloriousEmpire).ApplyModifiers(ECategory.UNIT_PRODUCTION_SPEED, "", 0.0), 5);
-    }
-
     // ── CITY_ATTACK_RANGE ─────────────────────────────────────────────────────
 
     [Fact]
@@ -171,12 +165,6 @@ public class TechnologyModifierTests
         Assert.Equal(0.3, BuildAggregator(TechnologyId.MasterResearch).ApplyModifiers(ECategory.RESEARCH_SPEED, "", 0.0), 5);
     }
 
-    [Fact]
-    public void Enlightenment_ResearchSpeed_Plus0Point4()
-    {
-        Assert.Equal(0.4, BuildAggregator(TechnologyId.Enlightenment).ApplyModifiers(ECategory.RESEARCH_SPEED, "", 0.0), 5);
-    }
-
     // ── MINE_GOLD_CHANCE_PERCENT ──────────────────────────────────────────────
 
     [Fact]
@@ -191,12 +179,6 @@ public class TechnologyModifierTests
     public void ResearchMethods_ResearchCostReduction_Plus0Point1()
     {
         Assert.Equal(0.1, BuildAggregator(TechnologyId.ResearchMethods).ApplyModifiers(ECategory.RESEARCH_COST_REDUCTION, "", 0.0), 5);
-    }
-
-    [Fact]
-    public void Enlightenment_ResearchCostReduction_Plus0Point15()
-    {
-        Assert.Equal(0.15, BuildAggregator(TechnologyId.Enlightenment).ApplyModifiers(ECategory.RESEARCH_COST_REDUCTION, "", 0.0), 5);
     }
 
 
@@ -262,42 +244,6 @@ public class TechnologyModifierTests
         Assert.Equal(1, BuildAggregator(TechnologyId.GrandArchitecture).ApplyModifiers(ECategory.BUILDING_MAX_LEVEL, "Barracks", 0));
     }
 
-    [Fact]
-    public void IndustrialAge_SawmillMaxLevel_Plus1()
-    {
-        Assert.Equal(1, BuildAggregator(TechnologyId.IndustrialAge).ApplyModifiers(ECategory.BUILDING_MAX_LEVEL, "Sawmill", 0));
-    }
-
-    [Fact]
-    public void IndustrialAge_BrickworksMaxLevel_Plus1()
-    {
-        Assert.Equal(1, BuildAggregator(TechnologyId.IndustrialAge).ApplyModifiers(ECategory.BUILDING_MAX_LEVEL, "Brickworks", 0));
-    }
-
-    [Fact]
-    public void IndustrialAge_QuarryMaxLevel_Plus1()
-    {
-        Assert.Equal(1, BuildAggregator(TechnologyId.IndustrialAge).ApplyModifiers(ECategory.BUILDING_MAX_LEVEL, "Quarry", 0));
-    }
-
-    [Fact]
-    public void IndustrialAge_MillMaxLevel_Plus1()
-    {
-        Assert.Equal(1, BuildAggregator(TechnologyId.IndustrialAge).ApplyModifiers(ECategory.BUILDING_MAX_LEVEL, "Mill", 0));
-    }
-
-    [Fact]
-    public void IndustrialAge_MineMaxLevel_Plus1()
-    {
-        Assert.Equal(1, BuildAggregator(TechnologyId.IndustrialAge).ApplyModifiers(ECategory.BUILDING_MAX_LEVEL, "Mine", 0));
-    }
-
-    [Fact]
-    public void IndustrialAge_ForgeMaxLevel_Plus1()
-    {
-        Assert.Equal(1, BuildAggregator(TechnologyId.IndustrialAge).ApplyModifiers(ECategory.BUILDING_MAX_LEVEL, "Forge", 0));
-    }
-
     // ── TRADE_GOLD_PACKAGES ───────────────────────────────────────────────────
 
     [Fact]
@@ -319,12 +265,6 @@ public class TechnologyModifierTests
     public void AdvancedStrategy_NoCityDefenseModifier()
     {
         Assert.Equal(0, BuildAggregator(TechnologyId.AdvancedStrategy).ApplyModifiers(ECategory.CITY_DEFENSE, "", 0));
-    }
-
-    [Fact]
-    public void GloriousEmpire_CityDefense_Plus1()
-    {
-        Assert.Equal(1, BuildAggregator(TechnologyId.GloriousEmpire).ApplyModifiers(ECategory.CITY_DEFENSE, "", 0));
     }
 
     // ── BUILDING_MAX_LEVEL (Compagnonage) ─────────────────────────────────────

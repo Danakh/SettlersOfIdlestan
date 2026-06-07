@@ -43,10 +43,6 @@ public enum TechnologyId
     AutomaticMarket,
     // Tier 5
     MasterResearch,
-    GloriousEmpire,
-    // Tier 6
-    IndustrialAge,
-    Enlightenment,
 }
 
 public enum TechnologyStatus
