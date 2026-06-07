@@ -5,7 +5,7 @@ using SettlersOfIdlestan.Model.GameplayModifier;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.Prestige;
 using SettlersOfIdlestan.Model.Prestige.PrestigeMap;
-using SettlersOfIdlestan.Services.Localization;
+using SettlersOfIdlestanSkia.Services.Localization;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Renderers.Debug;
 using SettlersOfIdlestanSkia.Services;
@@ -42,7 +42,7 @@ public sealed class PrestigeMapRenderer : IGameRenderer
     private const float PanClampMargin = 80f;
 
     private readonly GameControllerService _gameControllerService;
-    private readonly ILocalizationService _localization;
+    private readonly LocalizationService _localization;
     private readonly TooltipRenderer _tooltipRenderer;
 
     private SKSize _canvasSize;
@@ -96,7 +96,7 @@ public sealed class PrestigeMapRenderer : IGameRenderer
 
     public PrestigeMapRenderer(
         GameControllerService gameControllerService,
-        ILocalizationService localization,
+        LocalizationService localization,
         TooltipRenderer tooltipRenderer)
     {
         _gameControllerService = gameControllerService;
@@ -530,6 +530,8 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         Modifier.ECategory.UNLOCK_MARITIME_ROUTES    => _localization.Get("prestige_tooltip_unlocks_maritime_routes"),
         Modifier.ECategory.UNLOCK_RESEARCH_SYSTEM    => _localization.Get("prestige_tooltip_unlocks_research_system"),
         Modifier.ECategory.UNLOCK_RESEARCH_QUEUE     => _localization.Get("prestige_tooltip_unlocks_research_queue"),
+        Modifier.ECategory.UNLOCK_RESOURCE            => $"{_localization.Get("prestige_tooltip_unlocks_resource")} {_localization.Get($"resource_{mod.SubCategory.ToLower()}")}",
+        Modifier.ECategory.PRESTIGE_GAIN              => $"+{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_prestige_gain")}",
         _ => $"+{mod.Value}"
     };
 

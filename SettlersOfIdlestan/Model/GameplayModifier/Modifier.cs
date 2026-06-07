@@ -58,6 +58,10 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             UNLOCK_AUTO_ATTACK,
             /// <summary>Bonus fixe de génération de ressource par cycle (1 000 ticks). SubCategory = Resource enum name.</summary>
             PASSIVE_RESOURCE_GENERATION,
+            /// <summary>Multiplicateur additif sur les points de prestige gagnés. Base = 0.0; +0.1 = +10%.</summary>
+            PRESTIGE_GAIN,
+            /// <summary>Flags que les armes en acier sont déverrouillées pour les casernes (1 Acier supplémentaire → 5 soldats d'un coup).</summary>
+            UNLOCK_STEEL_WEAPONS,
         }
 
         public enum EType

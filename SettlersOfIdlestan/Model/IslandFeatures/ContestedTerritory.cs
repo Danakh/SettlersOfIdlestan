@@ -1,6 +1,6 @@
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
-using SettlersOfIdlestan.Services.Localization;
+using SettlersOfIdlestan.Model.Localization;
 
 namespace SettlersOfIdlestan.Model.IslandFeatures;
 

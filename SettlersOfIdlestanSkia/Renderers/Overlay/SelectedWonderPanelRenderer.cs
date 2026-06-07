@@ -1,6 +1,6 @@
 using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Model.IslandMap;
-using SettlersOfIdlestan.Services.Localization;
+using SettlersOfIdlestanSkia.Services.Localization;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Services;
 using SkiaSharp;
@@ -14,7 +14,7 @@ public class SelectedWonderPanelRenderer : IGameRenderer
 {
     private readonly WonderService _wonderService;
     private readonly InputHandlingService _inputService;
-    private readonly ILocalizationService _localization;
+    private readonly LocalizationService _localization;
     private readonly ResourceManager _resourceManager;
     private readonly Dictionary<Resource, SKSvg?> _resourceIcons = new();
 
@@ -61,7 +61,7 @@ public class SelectedWonderPanelRenderer : IGameRenderer
     public SelectedWonderPanelRenderer(
         WonderService wonderService,
         InputHandlingService inputService,
-        ILocalizationService localization,
+        LocalizationService localization,
         ResourceManager resourceManager)
     {
         _wonderService = wonderService;

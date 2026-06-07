@@ -136,6 +136,47 @@ namespace SettlersOfIdlestan.Controller
             return mainState;
         }
 
+        /// <summary>
+        /// Transporte la civilisation du joueur dans une carte de débogage compacte (7 hexagones,
+        /// 1 NPC Strong/Aggressive avec 1 seule ville), sans conditions de prestige.
+        /// </summary>
+        public void GoToDebugMap()
+        {
+            if (CurrentMainState == null) return;
+
+            var parameters = Generator.DebugMapGenerator.CreateParameters();
+            var generator = new Generator.DebugMapGenerator(CurrentMainState.PRNG);
+            var nextWorldState = generator.GenerateWorldState(
+                parameters,
+                CurrentMainState.Clock.CurrentTick,
+                startTick: CurrentMainState.Clock.CurrentTick)
+                ?? throw new InvalidOperationException("Failed to generate debug map.");
+
+            CurrentMainState.PrestigeState!.WorldState = nextWorldState;
+            InitializeControllersForCurrentIsland();
+            PrestigeMapController.ApplyPrestigeToNewGame(nextWorldState, CurrentMainState.PrestigeState);
+        }
+
+        public void RestartIsland()
+        {
+            if (CurrentMainState?.PrestigeState == null) return;
+
+            var worldId = CurrentMainState.CurrentWorldState?.WorldId ?? AtlasController.GetFirstWorldId();
+            var parameters = AtlasController.GetIslandParameters(worldId);
+
+            CurrentMainState.PrestigeState.WorldState = null;
+            var generator = new Generator.IslandMapGenerator(CurrentMainState.PRNG);
+            var newWorldState = generator.GenerateWorldState(
+                parameters,
+                CurrentMainState.Clock.CurrentTick,
+                startTick: CurrentMainState.Clock.CurrentTick)
+                ?? throw new InvalidOperationException("Failed to restart island.");
+
+            CurrentMainState.PrestigeState.WorldState = newWorldState;
+            InitializeControllersForCurrentIsland();
+            PrestigeMapController.ApplyPrestigeToNewGame(newWorldState, CurrentMainState.PrestigeState);
+        }
+
         public void PerformPrestige()
         {
             if (CurrentMainState == null)
@@ -193,7 +234,7 @@ namespace SettlersOfIdlestan.Controller
                 if (prestigeState != null)
                     WorldState.PlayerCivilization.TechnologyTree = prestigeState.TechnologyTree;
 
-                WorldState.RecalculateVisibleIslandMaps();
+                WorldState.Visibility.Recalculate();
 
                 SetupModifierAggregators();
 

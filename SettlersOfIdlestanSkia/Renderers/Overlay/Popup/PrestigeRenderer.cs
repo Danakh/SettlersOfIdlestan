@@ -1,6 +1,6 @@
 using SettlersOfIdlestan.Controller;
 using SettlersOfIdlestan.Controller.Expand;
-using SettlersOfIdlestan.Services.Localization;
+using SettlersOfIdlestanSkia.Services.Localization;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Renderers.Overlay;
 using SettlersOfIdlestanSkia.Services;
@@ -19,7 +19,7 @@ public sealed class PrestigeRenderer : IDisposable
     private const float SourceRowHeight = 24;
 
     private readonly GameControllerService _gameControllerService;
-    private readonly ILocalizationService _localization;
+    private readonly LocalizationService _localization;
     private readonly TooltipRenderer _tooltipRenderer;
     private readonly Action _prestigeRequested;
     private SKSize _canvasSize;
@@ -43,7 +43,7 @@ public sealed class PrestigeRenderer : IDisposable
 
     public bool IsOpen { get; private set; }
 
-    public PrestigeRenderer(GameControllerService gameControllerService, ILocalizationService localization, Action prestigeRequested, TooltipRenderer tooltipRenderer)
+    public PrestigeRenderer(GameControllerService gameControllerService, LocalizationService localization, Action prestigeRequested, TooltipRenderer tooltipRenderer)
     {
         _gameControllerService = gameControllerService;
         _localization = localization;
@@ -82,9 +82,12 @@ public sealed class PrestigeRenderer : IDisposable
         var controller = _gameControllerService.MainGameController.PrestigeController;
         var sources = controller.GetPrestigePointSources();
         bool wondersUnlocked = controller.WondersUnlocked();
+        double gainBonus = controller.GetPrestigeGainBonus();
+        bool showGainBonus = gainBonus > 0;
+        float gainOffset = showGainBonus ? 28f : 0f;
         float y = popup.Top + 68;
-        // listBottom : réserve de place pour dragon + monstre + wonder (optionnel) + total
-        float listBottom = wondersUnlocked ? popup.Bottom - 184 : popup.Bottom - 154;
+        // listBottom : réserve de place pour monstre + gain (optionnel) + wonder (optionnel) + total
+        float listBottom = popup.Bottom - 152 - gainOffset;
         int maxVisibleSources = Math.Max(0, (int)((listBottom - y) / SourceRowHeight));
 
         _hoverRects.Clear();
@@ -104,33 +107,35 @@ public sealed class PrestigeRenderer : IDisposable
             canvas.DrawText(string.Format(_localization.Get("prestige_more_sources"), hiddenSourceCount), popup.Left + Padding, y, _font, _mutedTextPaint);
         }
 
-        // Dragon bonus
-        int dragonBonus = controller.GetDragonBonus();
-        canvas.DrawLine(popup.Left + Padding, popup.Bottom - 170, popup.Right - Padding, popup.Bottom - 170, _separatorPaint);
-        canvas.DrawText(_localization.Get("prestige_dragon_bonus"), popup.Left + Padding, popup.Bottom - 156, _font, _mutedTextPaint);
-        canvas.DrawText($"+{dragonBonus}", popup.Right - Padding, popup.Bottom - 156, SKTextAlign.Right, _boldFont, _mutedTextPaint);
-        _hoverRects.Add((new SKRect(popup.Left, popup.Bottom - 170, popup.Right, popup.Bottom - 142), "prestige_tooltip_dragon_bonus"));
-
         // Monstres
         bool hasMonstersLeft = controller.HasSurfaceMonsters();
-        canvas.DrawLine(popup.Left + Padding, popup.Bottom - 142, popup.Right - Padding, popup.Bottom - 142, _separatorPaint);
-        canvas.DrawText(_localization.Get("prestige_monster_bonus"), popup.Left + Padding, popup.Bottom - 128, _font, _mutedTextPaint);
+        canvas.DrawLine(popup.Left + Padding, popup.Bottom - 142 - gainOffset, popup.Right - Padding, popup.Bottom - 142 - gainOffset, _separatorPaint);
+        canvas.DrawText(_localization.Get("prestige_monster_bonus"), popup.Left + Padding, popup.Bottom - 128 - gainOffset, _font, _mutedTextPaint);
         if (hasMonstersLeft)
-            canvas.DrawText("×1", popup.Right - Padding, popup.Bottom - 128, SKTextAlign.Right, _boldFont, _warningTextPaint);
+            canvas.DrawText("×1", popup.Right - Padding, popup.Bottom - 128 - gainOffset, SKTextAlign.Right, _boldFont, _warningTextPaint);
         else
-            canvas.DrawText("×1.2", popup.Right - Padding, popup.Bottom - 128, SKTextAlign.Right, _boldFont, _mutedTextPaint);
-        _hoverRects.Add((new SKRect(popup.Left, popup.Bottom - 142, popup.Right, popup.Bottom - 114), "prestige_tooltip_monster_bonus"));
+            canvas.DrawText("×1.2", popup.Right - Padding, popup.Bottom - 128 - gainOffset, SKTextAlign.Right, _boldFont, _mutedTextPaint);
+        _hoverRects.Add((new SKRect(popup.Left, popup.Bottom - 142 - gainOffset, popup.Right, popup.Bottom - 114 - gainOffset), "prestige_tooltip_monster_bonus"));
 
         // Wonder (shown when unlocked)
         if (wondersUnlocked)
         {
-            canvas.DrawLine(popup.Left + Padding, popup.Bottom - 114, popup.Right - Padding, popup.Bottom - 114, _separatorPaint);
+            canvas.DrawLine(popup.Left + Padding, popup.Bottom - 114 - gainOffset, popup.Right - Padding, popup.Bottom - 114 - gainOffset, _separatorPaint);
             var (wonderLevel, timeFactor, runTicks) = controller.GetWonderBonusDetails();
             string duration = FormatRunDuration(runTicks);
             string wonderLabel = _localization.GetFormated("prestige_wonder_bonus", wonderLevel, timeFactor, duration);
-            canvas.DrawText(wonderLabel, popup.Left + Padding, popup.Bottom - 100, _font, _mutedTextPaint);
-            canvas.DrawText($"×{wonderLevel * timeFactor}", popup.Right - Padding, popup.Bottom - 100, SKTextAlign.Right, _boldFont, _mutedTextPaint);
-            _hoverRects.Add((new SKRect(popup.Left, popup.Bottom - 114, popup.Right, popup.Bottom - 86), "prestige_tooltip_wonder_bonus"));
+            canvas.DrawText(wonderLabel, popup.Left + Padding, popup.Bottom - 100 - gainOffset, _font, _mutedTextPaint);
+            canvas.DrawText($"×{Math.Max(1, wonderLevel * timeFactor)}", popup.Right - Padding, popup.Bottom - 100 - gainOffset, SKTextAlign.Right, _boldFont, _mutedTextPaint);
+            _hoverRects.Add((new SKRect(popup.Left, popup.Bottom - 114 - gainOffset, popup.Right, popup.Bottom - 86 - gainOffset), "prestige_tooltip_wonder_bonus"));
+        }
+
+        // Bonus gain de prestige (shown when > 0)
+        if (showGainBonus)
+        {
+            canvas.DrawLine(popup.Left + Padding, popup.Bottom - 114, popup.Right - Padding, popup.Bottom - 114, _separatorPaint);
+            canvas.DrawText(_localization.Get("prestige_gain_bonus"), popup.Left + Padding, popup.Bottom - 100, _font, _mutedTextPaint);
+            canvas.DrawText($"×{1 + gainBonus:0.##}", popup.Right - Padding, popup.Bottom - 100, SKTextAlign.Right, _boldFont, _mutedTextPaint);
+            _hoverRects.Add((new SKRect(popup.Left, popup.Bottom - 114, popup.Right, popup.Bottom - 86), "prestige_tooltip_prestige_gain_bonus"));
         }
 
         // Total (fixed position, always well above the button)

@@ -105,19 +105,19 @@ new(TechnologyId.MyTechnology,
 
 ## How to Add a Prestige Vertex
 
-**3 touch points** — everything lives in `Model/Prestige/PrestigeMap/PrestigeMap.cs`.
+**3 touch points** — coordinate in `Model/Prestige/PrestigeMap/PrestigeMap.cs`, definition in `PrestigeMapFactory.cs`.
 
-### 1. Declare the Vertex coordinate
+### 1. Declare the Vertex coordinate — `PrestigeMap.cs`
 ```csharp
 public static readonly Vertex MyVertex = Vertex.Create(new(1, 0), new(2, 0), new(1, 1));
 ```
 
-### 2. Add to `CreateDefault()` vertices array
+### 2. Add to `CreateDefault()` vertices array — `PrestigeMapFactory.cs`
 ```csharp
 new PrestigeVertex(
-    MyVertex,
+    PrestigeMap.MyVertex,
     "prestige_vertex_myvertex",
-    cost: Cost(MyVertex),
+    cost: Cost(PrestigeMap.MyVertex),
     modifiers: new Modifier[]
     {
         new(ECategory.BUILDING_MAX_LEVEL, "Library", EType.ADDITIVE, 1),
@@ -135,19 +135,19 @@ Cost is computed automatically from distance to center. Modifiers work the same 
 
 ## How to Add a Prestige Hex
 
-**3 touch points** — also in `PrestigeMap.cs`.
+**3 touch points** — coordinate in `PrestigeMap.cs`, definition in `PrestigeMapFactory.cs`.
 
-### 1. Declare the HexCoord
+### 1. Declare the HexCoord — `PrestigeMap.cs`
 ```csharp
 public static readonly HexCoord MyHexCoord = new(2, 0);
 ```
 
-### 2. Add to `CreateDefault()` hexes array
+### 2. Add to `CreateDefault()` hexes array — `PrestigeMapFactory.cs`
 ```csharp
 new PrestigeHex(
-    MyHexCoord,
+    PrestigeMap.MyHexCoord,
     "prestige_hex_myname",
-    adjacentVertices: Adjacent(MyHexCoord),
+    adjacentVertices: Adjacent(PrestigeMap.MyHexCoord),
     perVertexModifiers: new Modifier[]
     {
         new(ECategory.HARVEST_SPEED, EType.ADDITIVE, 0.1),

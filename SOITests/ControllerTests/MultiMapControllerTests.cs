@@ -62,7 +62,7 @@ public class MultiMapControllerTests
             new HexCoord(0, 1, IslandMap.SurfaceLayer));
         enemyCiv.AddCity(new City(enemyVertex) { CivilizationIndex = enemyCiv.Index });
         state.Civilizations.Add(enemyCiv);
-        state.RecalculateVisibleIslandMaps();
+        state.Visibility.Recalculate();
 
         var underworldCity = playerCiv.Cities.Single(city => city.Position.Z == LayerState.UnderworldZ);
         underworldCity.Soldiers = 1;
@@ -90,8 +90,9 @@ public class MultiMapControllerTests
             new List<Civilization> { civ },
             AtlasController.InvalidIslandId);
 
-        state.Layers[LayerState.UnderworldZ] = LayerState.CreateUnderworld(civ.Index);
-        state.RecalculateVisibleIslandMaps();
+        var underworldLayer = LayerState.EstablishOupostInNewAutoExpandLayer(civ);
+        state.Layers[LayerState.UnderworldZ] = underworldLayer;
+        state.Visibility.Recalculate();
         return (state, civ);
     }
 }

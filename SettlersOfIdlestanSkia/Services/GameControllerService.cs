@@ -71,6 +71,12 @@ public class GameControllerService
         _controller.PerformPrestige();
     }
 
+    public void RestartIsland()
+    {
+        _controller.RestartIsland();
+        _cityBuildingService = new CityBuildingService(_controller);
+    }
+
     public List<Vertex> GetBuildableCityVerticesForPlayer()
     {
         var playerIndex = PlayerCivilizationIndex
@@ -96,6 +102,14 @@ public class GameControllerService
             ?? throw new InvalidOperationException("La civilisation du joueur n'est pas disponible.");
 
         return _controller.CityBuilderController.BuildCity(playerIndex, vertex);
+    }
+
+    public List<Edge> GetEnemyProtectedRoadEdgesForPlayer()
+    {
+        var playerIndex = PlayerCivilizationIndex
+            ?? throw new InvalidOperationException("La civilisation du joueur n'est pas disponible.");
+
+        return _controller.RoadController.GetEnemyProtectedRoadEdges(playerIndex);
     }
 
     public Road? TryBuildRoadForPlayer(Edge edge)

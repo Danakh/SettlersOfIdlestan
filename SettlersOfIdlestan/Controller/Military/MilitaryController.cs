@@ -128,6 +128,14 @@ public class MilitaryController
         return civ.UnitProductionSpeed * ticksPerSecond / SoldierProductionIntervalTicks;
     }
 
+    /// <summary>Points de défense régénérés par seconde (0 si aucune défense max).</summary>
+    public double GetDefenseRegenRate(City city, Civilization civ)
+    {
+        if (GetDefenseScore(city, civ) <= 0) return 0;
+        const double ticksPerSecond = 100.0;
+        return civ.CityDefenseRegenSpeed * ticksPerSecond / DefenseRegenIntervalTicks;
+    }
+
     /// <summary>Score de défense maximal de la ville (bâtiments + modificateurs de civilisation).</summary>
     public int GetDefenseScore(City city, Civilization? civ = null)
     {
@@ -217,14 +225,32 @@ public class MilitaryController
                 var barracks = city.Buildings.OfType<Barracks>()
                     .FirstOrDefault(b => b.ActivationStatus == ActivationStatus.ACTIVE && b.Level >= SoldierProductionMinLevel);
                 if (barracks == null) continue;
+
+                bool useSteelWeapons = barracks.UsesSteelWeapons
+                    && civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_STEEL_WEAPONS);
+
                 if (civ.GetResourceQuantity(Resource.Ore) < 1)
                 {
                     civ.RaiseLowStock(Resource.Ore);
                     continue;
                 }
+                if (useSteelWeapons && civ.GetResourceQuantity(Resource.Steel) < 1)
+                {
+                    civ.RaiseLowStock(Resource.Steel);
+                    continue;
+                }
 
                 civ.RemoveResource(Resource.Ore, 1);
-                city.Soldiers++;
+                if (useSteelWeapons)
+                {
+                    civ.RemoveResource(Resource.Steel, 1);
+                    int toAdd = Math.Min(5, GetMaximumSoldierCapacity(city, civ) - city.Soldiers);
+                    city.Soldiers += toAdd;
+                }
+                else
+                {
+                    city.Soldiers++;
+                }
                 city.LastSoldierProductionTick = currentTick;
 
                 if (civ.Index == _state.PlayerCivilization.Index)
@@ -448,7 +474,7 @@ public class MilitaryController
             civ.RemoveCity(city);
             _roadController?.OnCityDestroyed(civ, city.Position);
             NotifyCityDestroyed(city.Position, civ.Index);
-            _state!.RecalculateVisibleIslandMaps();
+            _state!.Visibility.Recalculate();
         }
     }
 
@@ -538,7 +564,7 @@ public class MilitaryController
 
     private bool IsCityVisibleTo(City city, Civilization civ)
     {
-        var visibleMaps = _state!.GetVisibleIslandMapsForZ(city.Position.Z);
+        var visibleMaps = _state!.Visibility.GetForZ(city.Position.Z);
         if (!visibleMaps.TryGetValue(civ.Index, out var visibleMap)) return true;
         return city.Position.GetHexes().Any(h => visibleMap.HasTile(h));
     }

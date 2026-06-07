@@ -1,4 +1,3 @@
-using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.GameplayModifier;
 using SettlersOfIdlestan.Model.IslandMap;
 using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
@@ -25,13 +24,13 @@ public class HarvestersGuild : Building, IUniqueBuilding
 
     public long GetAutoProductionCooldownTicks() => 1000L;
 
-    public override bool HasBuildPrerequisites(City city)
+    public override bool HasBuildPrerequisites(IBuildingContext city)
     {
         int count = city.Buildings.Count(b => ProductionBuildingTypes.Contains(b.Type) && b.Level >= 4);
         return count >= 3;
     }
 
-    public override string? GetMissingPrerequisiteKey(City city) =>
+    public override string? GetMissingPrerequisiteKey(IBuildingContext city) =>
         HasBuildPrerequisites(city) ? null : "tooltip_requires_3_production_level4";
 
     public override ResourceSet GetBuildCost() => new ResourceSet

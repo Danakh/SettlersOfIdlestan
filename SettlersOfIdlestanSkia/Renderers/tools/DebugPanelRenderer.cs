@@ -1,5 +1,5 @@
 using SkiaSharp;
-using SettlersOfIdlestan.Services.Localization;
+using SettlersOfIdlestanSkia.Services.Localization;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Renderers.Overlay.Popup;
 using SettlersOfIdlestanSkia.Services;
@@ -17,7 +17,7 @@ public sealed class DebugPanelRenderer : IGameRenderer, IDisposable
     private const float ToggleRightPad = 24f;
 
     private readonly InputHandlingService  _inputService;
-    private readonly ILocalizationService  _localization;
+    private readonly LocalizationService  _localization;
 
     private readonly PopupChrome _chrome              = new();
     private readonly SKFont      _titleFont           = new() { Size = 15, Typeface = SkiaFonts.Bold };
@@ -34,14 +34,13 @@ public sealed class DebugPanelRenderer : IGameRenderer, IDisposable
     private SKRect       _closeRect;
     private readonly SKRect[] _toggleRects = new SKRect[3];
 
-    private bool _justOpened;
     private bool _disposed;
 
     private static readonly string[] LabelKeys = { "debug_show_hex_coords", "debug_show_autoplayer", "debug_show_full_map" };
 
     public bool IsOpen { get; private set; }
 
-    public DebugPanelRenderer(InputHandlingService inputService, ILocalizationService localization)
+    public DebugPanelRenderer(InputHandlingService inputService, LocalizationService localization)
     {
         _inputService = inputService;
         _localization = localization;
@@ -73,7 +72,6 @@ public sealed class DebugPanelRenderer : IGameRenderer, IDisposable
     public void Open()
     {
         IsOpen = true;
-        _justOpened = true;
     }
 
     public void Close() => IsOpen = false;
@@ -111,7 +109,6 @@ public sealed class DebugPanelRenderer : IGameRenderer, IDisposable
     private void HandlePointerPressed(object? sender, PointerEventArgs e)
     {
         if (_disposed || e.Button != PointerButton.Left) return;
-        if (_justOpened) { _justOpened = false; return; }
         if (!IsOpen) return;
 
         if (_closeRect.Contains(e.Position.X, e.Position.Y))

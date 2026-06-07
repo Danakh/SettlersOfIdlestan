@@ -134,16 +134,16 @@ public class CityRenderer : HexBasedRenderer, IGameRenderer
                 var playerIdx = worldState.PlayerCivilization.Index;
                 var visibilityMap = DebugSettings.ShowFullMap
                     ? (IslandMap)underworldLayer.Map
-                    : worldState.GetVisibleIslandMapsForZ(LayerState.UnderworldZ).TryGetValue(playerIdx, out var uvm) ? uvm : underworldLayer.Map;
+                    : worldState.Visibility.GetForZ(LayerState.UnderworldZ).TryGetValue(playerIdx, out var uvm) ? uvm : underworldLayer.Map;
                 foreach (var civ in worldState.Civilizations)
-                    DrawCities(canvas, underworldLayer.Cities.Where(c => c.CivilizationIndex == civ.Index).ToList(), civ, visibilityMap);
+                    DrawCities(canvas, civ.Cities.Where(c => c.Position.Z == LayerState.UnderworldZ).ToList(), civ, visibilityMap);
                 return;
             }
 
             IslandMap? mapForVisibility;
             if (DebugSettings.ShowFullMap)
                 mapForVisibility = worldState.GetMapForZ(IslandMap.SurfaceLayer);
-            else if (!worldState.GetVisibleIslandMapsForZ(worldState.CurrentViewedLayer).TryGetValue(worldState.PlayerCivilization.Index, out var vm))
+            else if (!worldState.Visibility.GetForZ(worldState.CurrentViewedLayer).TryGetValue(worldState.PlayerCivilization.Index, out var vm))
                 return;
             else
                 mapForVisibility = vm;
@@ -176,6 +176,35 @@ public class CityRenderer : HexBasedRenderer, IGameRenderer
         {
             var pt = VertexToIsland(state.HoveredCityVertex);
             canvas.DrawCircle(pt, 9f, _hoverCityPaint);
+
+            if (context.GameState is MainGameState mgs && mgs.CurrentWorldState != null)
+            {
+                var worldState = mgs.CurrentWorldState;
+                var city = worldState.FindCityAt(state.HoveredCityVertex);
+                if (city != null)
+                {
+                    var civ = worldState.Civilizations.FirstOrDefault(c => c.Index == city.CivilizationIndex);
+                    bool isPlayer = city.CivilizationIndex == worldState.PlayerCivilization.Index;
+                    _tooltipRenderer.SetCityTooltip(city, civ, isPlayer, _militaryController, state.HoveredCityVertex);
+                }
+            }
+        }
+
+        if (state.HoveredEnemyCityVertex != null)
+        {
+            var pt = VertexToIsland(state.HoveredEnemyCityVertex);
+            canvas.DrawCircle(pt, 9f, _hoverCityPaint);
+
+            if (context.GameState is MainGameState mgs2 && mgs2.CurrentWorldState != null)
+            {
+                var worldState2 = mgs2.CurrentWorldState;
+                var city = worldState2.FindCityAt(state.HoveredEnemyCityVertex);
+                if (city != null)
+                {
+                    var civ = worldState2.Civilizations.FirstOrDefault(c => c.Index == city.CivilizationIndex);
+                    _tooltipRenderer.SetCityTooltip(city, civ, isPlayerCity: false, _militaryController, state.HoveredEnemyCityVertex);
+                }
+            }
         }
 
         if (state.SelectedCityVertex != null)

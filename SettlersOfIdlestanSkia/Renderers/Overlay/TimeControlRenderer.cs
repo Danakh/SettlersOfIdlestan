@@ -1,5 +1,5 @@
 using SettlersOfIdlestan.Model.Game;
-using SettlersOfIdlestan.Services.Localization;
+using SettlersOfIdlestanSkia.Services.Localization;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Services;
 using SkiaSharp;
@@ -25,7 +25,7 @@ public class TimeControlRenderer : IDisposable
 
     private readonly GameControllerService _gameControllerService;
     private readonly InputHandlingService _inputService;
-    private readonly ILocalizationService _localization;
+    private readonly LocalizationService _localization;
 
     private HoveredControl _hoveredControl = HoveredControl.None;
     private SKPoint _lastPointerPosition;
@@ -50,7 +50,7 @@ public class TimeControlRenderer : IDisposable
 
     private bool _disposed;
 
-    public TimeControlRenderer(GameControllerService gameControllerService, InputHandlingService inputService, ILocalizationService localization)
+    public TimeControlRenderer(GameControllerService gameControllerService, InputHandlingService inputService, LocalizationService localization)
     {
         _gameControllerService = gameControllerService;
         _inputService = inputService;

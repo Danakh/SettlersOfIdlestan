@@ -6,6 +6,7 @@ using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Controller.Expand;
 using SettlersOfIdlestan.Controller.Military;
+using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
 
 namespace SettlersOfIdlestanSkia.Services;
 
@@ -87,6 +88,20 @@ public class CityBuildingService
             : ActivationStatus.ACTIVE;
     }
 
+    public bool IsSteelWeaponsUnlocked()
+    {
+        if (SelectedCity == null || State == null) return false;
+        var civ = State.Civilizations.FirstOrDefault(c => c.Index == SelectedCity.CivilizationIndex);
+        return civ?.ModifierAggregator.HasModifier(ECategory.UNLOCK_STEEL_WEAPONS) ?? false;
+    }
+
+    public void ToggleBarracksSteelWeapons()
+    {
+        var barracks = SelectedCity?.Buildings.OfType<Barracks>().FirstOrDefault(b => b.Level >= 1);
+        if (barracks == null) return;
+        barracks.UsesSteelWeapons = !barracks.UsesSteelWeapons;
+    }
+
     public bool CanBuildOrUpgrade(Building building)
     {
         if (SelectedCity == null)
@@ -133,6 +148,16 @@ public class CityBuildingService
         return worldState.Civilizations[SelectedCity.CivilizationIndex].ForgeDoubleHarvestBonus * building.Level;
     }
 
+    public int GetSelectedCivilizationMineGoldChancePercent()
+    {
+        if (SelectedCity == null)
+            return 0;
+        var worldState = State;
+        if (worldState == null || SelectedCity.CivilizationIndex >= worldState.Civilizations.Count)
+            return 0;
+        return worldState.Civilizations[SelectedCity.CivilizationIndex].MineGoldChancePercent;
+    }
+
     public long GetCurrentTick() => _mainGameController.CurrentMainState?.Clock?.CurrentTick ?? 0;
 
     public (int available, int max) GetSelectedCitySoldiers()
@@ -162,6 +187,12 @@ public class CityBuildingService
         if (SelectedCity == null)
             return false;
         return building.Level >= BuildingController.GetMaxLevel(building, SelectedCity.CivilizationIndex);
+    }
+
+    public int GetMaxLevel(Building building)
+    {
+        if (SelectedCity == null) return building.GetDefaultMaxLevel();
+        return BuildingController.GetMaxLevel(building, SelectedCity.CivilizationIndex);
     }
 
     /// <summary>

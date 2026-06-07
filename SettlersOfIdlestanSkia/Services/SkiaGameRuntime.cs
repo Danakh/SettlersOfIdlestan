@@ -2,7 +2,7 @@
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Renderers;
-using SettlersOfIdlestan.Services.Localization;
+using SettlersOfIdlestanSkia.Services.Localization;
 using SettlersOfIdlestanSkia.Services;
 using SettlersOfIdlestanSkia.Renderers.Debug;
 using SettlersOfIdlestanSkia.Renderers.Island;
@@ -23,7 +23,7 @@ public sealed class SkiaGameRuntime : IDisposable
     private CameraService? _cameraService;
     private HarvestService? _harvestService;
     private ConstructionInteractionService? _constructionInteractionService;
-    private ILocalizationService? _localizationService;
+    private LocalizationService? _localizationService;
     private IFileSystemService? _fileSystemService;
     private IslandMainRenderer? _islandMainRenderer;
     private OverlayRenderer? _overlayRenderer;
@@ -40,6 +40,8 @@ public sealed class SkiaGameRuntime : IDisposable
     private CorruptSavePopupRenderer? _corruptSavePopup;
     private bool _corruptSavePending;
     private string? _corruptSaveJson;
+    private GameOverPopupRenderer? _gameOverPopup;
+    private bool _gameOverPending;
 
     public event Action? QuitRequested;
 
@@ -272,6 +274,13 @@ public sealed class SkiaGameRuntime : IDisposable
 
         if (isNewGame && _gameControllerService.CurrentGameState is SettlersOfIdlestan.Model.Game.MainGameState introState)
             StartNewGameIntro(introState);
+
+        _gameOverPopup = new GameOverPopupRenderer(_localizationService!, HandleGameOverRestart);
+
+        var militaryController = _gameControllerService.MainGameController.MilitaryController;
+        var monsterController  = _gameControllerService.MainGameController.MonsterFeatureController;
+        militaryController.CityDestroyed          += OnCityDestroyedCheckGameOver;
+        monsterController.CityDestroyedByMonster  += OnCityDestroyedCheckGameOver;
     }
 
     public void EnsureCanvasInitialized(SKSize canvasSize)
@@ -329,6 +338,13 @@ public sealed class SkiaGameRuntime : IDisposable
         if (_prestigeTransitionPending && _islandMainRenderer?.IsBlackFadeComplete == true)
             CompletePrestigeTransition();
 
+        if (_gameOverPending)
+        {
+            _gameOverPending = false;
+            _gameControllerService.CurrentGameState?.Clock?.Pause();
+            _gameOverPopup?.Open();
+        }
+
         if (_gameControllerService.CurrentGameState is { } tutorialState)
             _tutorialService?.Update(tutorialState);
 
@@ -385,11 +401,13 @@ public sealed class SkiaGameRuntime : IDisposable
         _renderService.RenderFrame(canvas, gameState!, _cameraService);
 
         _corruptSavePopup?.Render(canvas, _lastCanvasSize);
+        _gameOverPopup?.Render(canvas, _lastCanvasSize);
     }
 
     public void HandlePointerPressed(float x, float y, int pointerId = 0, PointerButton button = PointerButton.Left)
     {
         if (_corruptSavePopup?.IsOpen == true) { _corruptSavePopup.HandlePointerPressed(new SKPoint(x, y), button); return; }
+        if (_gameOverPopup?.IsOpen == true) { _gameOverPopup.HandlePointerPressed(new SKPoint(x, y), button); return; }
         if (_introRenderer?.IsActive == true) return;
         _isPointerDown = true;
         _isPanning = false;
@@ -406,6 +424,7 @@ public sealed class SkiaGameRuntime : IDisposable
     public void HandlePointerMoved(float x, float y, int pointerId = 0)
     {
         if (_corruptSavePopup?.IsOpen == true) return;
+        if (_gameOverPopup?.IsOpen == true) return;
         if (_introRenderer?.IsActive == true) return;
         if (_isPointerDown && !_isPanSuppressedAtStart && (_overlayRenderer?.IsIslandTabActive ?? true) && pointerId == _activePanPointerId && _cameraService != null)
         {
@@ -427,6 +446,7 @@ public sealed class SkiaGameRuntime : IDisposable
     public void HandlePointerReleased(float x, float y, int pointerId = 0, PointerButton button = PointerButton.Left)
     {
         if (_corruptSavePopup?.IsOpen == true) return;
+        if (_gameOverPopup?.IsOpen == true) return;
         if (_introRenderer?.IsActive == true) return;
         var wasPanning = _isPanning && pointerId == _activePanPointerId;
         _isPointerDown = false;
@@ -494,6 +514,28 @@ public sealed class SkiaGameRuntime : IDisposable
 
         stats = default;
         return false;
+    }
+
+    private void OnCityDestroyedCheckGameOver(object? sender, SettlersOfIdlestan.Controller.Military.CityDestroyedEventArgs e)
+    {
+        var playerCiv = _gameControllerService?.PlayerCivilization;
+        if (playerCiv != null && playerCiv.Cities.Count == 0)
+            _gameOverPending = true;
+    }
+
+    private void HandleGameOverRestart()
+    {
+        var prevCiv = _gameControllerService?.PlayerCivilization;
+        _gameControllerService?.RestartIsland();
+        if (_playerResourcesOverlayRenderer != null && _gameControllerService?.PlayerCivilization != null)
+            _playerResourcesOverlayRenderer.ConnectLowStock(prevCiv, _gameControllerService.PlayerCivilization);
+        _gameControllerService?.CityBuildingService?.ClearSelectedCity();
+        _wonderService?.ClearSelectedWonder();
+        _constructionInteractionService?.ClearHover();
+        CenterCameraOnStartingCity();
+        _overlayRenderer?.Show();
+        ResetPointerState();
+        _gameControllerService?.CurrentGameState?.Clock?.Resume();
     }
 
     private void ResetPointerState()

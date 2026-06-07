@@ -2,6 +2,7 @@
 using SettlersOfIdlestanDesktop.Services;
 using SettlersOfIdlestanSkia.Services;
 using SkiaSharp.Views.Maui.Controls.Hosting;
+using System.Globalization;
 
 namespace SettlersOfIdlestanDesktop;
 
@@ -9,6 +10,7 @@ public static class MauiProgram
 {
 	public static MauiApp CreateMauiApp()
 	{
+		CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
 		var builder = MauiApp.CreateBuilder();
 		builder
 			.UseMauiApp<App>()

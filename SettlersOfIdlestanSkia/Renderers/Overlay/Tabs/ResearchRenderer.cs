@@ -1,7 +1,7 @@
 using SettlersOfIdlestan.Controller.Expand;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
-using SettlersOfIdlestan.Services.Localization;
+using SettlersOfIdlestanSkia.Services.Localization;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Renderers.Debug;
 using SettlersOfIdlestanSkia.Renderers.Overlay;
@@ -29,7 +29,7 @@ public sealed class ResearchRenderer : IGameRenderer
     private const float PanClampMargin = 100f;
 
     private readonly GameControllerService _gameControllerService;
-    private readonly ILocalizationService _localization;
+    private readonly LocalizationService _localization;
     private readonly InputHandlingService _inputService;
 
     private SKSize _canvasSize;
@@ -70,7 +70,7 @@ public sealed class ResearchRenderer : IGameRenderer
     private static readonly Dictionary<TechnologyId, (int col, int row)> Layout =
         TechnologyDefinitions.All.ToDictionary(t => t.Id, t => (t.Tier, t.Line));
 
-    public ResearchRenderer(GameControllerService gameControllerService, ILocalizationService localization, InputHandlingService inputService)
+    public ResearchRenderer(GameControllerService gameControllerService, LocalizationService localization, InputHandlingService inputService)
     {
         _gameControllerService = gameControllerService;
         _localization = localization;

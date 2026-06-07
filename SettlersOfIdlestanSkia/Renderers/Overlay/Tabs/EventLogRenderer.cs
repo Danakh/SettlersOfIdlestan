@@ -1,5 +1,5 @@
 ﻿using SettlersOfIdlestan.Model.Game;
-using SettlersOfIdlestan.Services.Localization;
+using SettlersOfIdlestanSkia.Services.Localization;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Services;
 using SkiaSharp;
@@ -18,7 +18,7 @@ public sealed class EventLogRenderer : IDisposable
     private const float BodyLineY = CardPadding + 30f;
 
     private readonly GameControllerService _gameControllerService;
-    private readonly ILocalizationService _localization;
+    private readonly LocalizationService _localization;
 
     private SKSize _canvasSize;
     private bool _disposed;
@@ -58,7 +58,7 @@ public sealed class EventLogRenderer : IDisposable
     private readonly SKFont _bodyFont = new() { Size = 12, Typeface = SkiaFonts.Regular };
     private readonly SKFont _headerFont = new() { Size = 17, Typeface = SkiaFonts.Bold };
 
-    public EventLogRenderer(GameControllerService gameControllerService, ILocalizationService localization)
+    public EventLogRenderer(GameControllerService gameControllerService, LocalizationService localization)
     {
         _gameControllerService = gameControllerService;
         _localization = localization;

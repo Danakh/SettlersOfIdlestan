@@ -24,6 +24,8 @@ public class MilitaryRenderer : HexBasedRenderer, IGameRenderer
     {
         public List<SKPoint> Path = new();
         public List<Vertex>? VertexPath;
+        public Vertex? SourceVertex;
+        public Vertex? TargetVertex;
         public float Progress;
     }
 
@@ -116,14 +118,28 @@ public class MilitaryRenderer : HexBasedRenderer, IGameRenderer
     {
         if (vertexPath.Count == 0) return;
         var pathPoints = vertexPath.Select(v => VertexToIsland(v)).ToList();
-        _particles.Add(new MilitaryParticle { Path = pathPoints, Progress = 0f });
+        _particles.Add(new MilitaryParticle
+        {
+            Path = pathPoints,
+            VertexPath = vertexPath,
+            SourceVertex = vertexPath[0],
+            TargetVertex = vertexPath[^1],
+            Progress = 0f,
+        });
     }
 
     private void EmitReinforceParticle(List<Vertex> vertexPath)
     {
         if (vertexPath.Count == 0) return;
         var pathPoints = vertexPath.Select(v => VertexToIsland(v)).ToList();
-        _reinforceParticles.Add(new MilitaryParticle { Path = pathPoints, VertexPath = vertexPath, Progress = 0f });
+        _reinforceParticles.Add(new MilitaryParticle
+        {
+            Path = pathPoints,
+            VertexPath = vertexPath,
+            SourceVertex = vertexPath[0],
+            TargetVertex = vertexPath[^1],
+            Progress = 0f,
+        });
     }
 
     public void Render(SKCanvas canvas, GameRenderContext context)
@@ -139,12 +155,12 @@ public class MilitaryRenderer : HexBasedRenderer, IGameRenderer
         {
             if (DebugSettings.ShowFullMap)
                 visibleMap = worldState.CurrentViewedMap;
-            else if (worldState.GetVisibleIslandMapsForZ(worldState.CurrentViewedLayer)
+            else if (worldState.Visibility.GetForZ(worldState.CurrentViewedLayer)
                 .TryGetValue(worldState.PlayerCivilization.Index, out var vm))
                 visibleMap = vm;
         }
 
-        AdvanceParticles(canvas, _particles, dt, reinforce: false, visibleMap: null);
+        AdvanceParticles(canvas, _particles, dt, reinforce: false, visibleMap: visibleMap);
         AdvanceParticles(canvas, _reinforceParticles, dt, reinforce: true, visibleMap: visibleMap);
     }
 
@@ -258,14 +274,25 @@ public class MilitaryRenderer : HexBasedRenderer, IGameRenderer
             int seg = Math.Min((int)t, segments - 1);
             float segT = Smoothstep(Math.Clamp(t - seg, 0f, 1f));
 
-            if (visibleMap != null && p.VertexPath != null && p.VertexPath.Count > 1)
+            if (visibleMap != null)
             {
-                var vFrom = p.VertexPath[seg];
-                var vTo = p.VertexPath[Math.Min(seg + 1, p.VertexPath.Count - 1)];
-                if (!IsSegmentVisible(vFrom, vTo, visibleMap))
+                bool sourceVisible = p.SourceVertex != null && IsVertexVisible(p.SourceVertex, visibleMap);
+                bool targetVisible = p.TargetVertex != null && IsVertexVisible(p.TargetVertex, visibleMap);
+                if (!sourceVisible && !targetVisible)
                 {
                     if (p.Progress >= 1f) particles.RemoveAt(i);
                     continue;
+                }
+
+                if (p.VertexPath != null && p.VertexPath.Count > 1)
+                {
+                    var vFrom = p.VertexPath[seg];
+                    var vTo = p.VertexPath[Math.Min(seg + 1, p.VertexPath.Count - 1)];
+                    if (!IsSegmentVisible(vFrom, vTo, visibleMap))
+                    {
+                        if (p.Progress >= 1f) particles.RemoveAt(i);
+                        continue;
+                    }
                 }
             }
 
@@ -284,6 +311,14 @@ public class MilitaryRenderer : HexBasedRenderer, IGameRenderer
             if (p.Progress >= 1f)
                 particles.RemoveAt(i);
         }
+    }
+
+    private static bool IsVertexVisible(Vertex v, IslandMap visibleMap)
+    {
+        if (v.Z != visibleMap.Z) return false;
+        foreach (var hex in v.GetHexes())
+            if (visibleMap.HasTile(hex)) return true;
+        return false;
     }
 
     private static bool IsSegmentVisible(Vertex v1, Vertex v2, IslandMap visibleMap)

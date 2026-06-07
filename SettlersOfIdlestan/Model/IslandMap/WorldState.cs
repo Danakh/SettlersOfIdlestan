@@ -46,7 +46,7 @@ public class WorldState : IJsonOnDeserialized
     public SettlersOfIdlestan.Model.Civilization.Civilization PlayerCivilization => Civilizations[0];
 
     [JsonIgnore]
-    private Dictionary<int, Dictionary<int, VisibleIslandMap>> VisibleIslandMapsByZ { get; set; } = new();
+    public WorldVisibility Visibility { get; }
 
     [JsonIgnore]
     public IslandMap CurrentViewedMap => GetMapForZ(
@@ -60,6 +60,7 @@ public class WorldState : IJsonOnDeserialized
 
     public WorldState(IslandMap map, List<SettlersOfIdlestan.Model.Civilization.Civilization> civilizations, int worldId)
     {
+        Visibility = new WorldVisibility(this);
         Layers = new Dictionary<int, LayerState> { { IslandMap.SurfaceLayer, new LayerState(map) } };
         Civilizations = civilizations;
         WorldId = worldId;
@@ -67,7 +68,7 @@ public class WorldState : IJsonOnDeserialized
         Features = new List<IslandFeature>();
         PlunderCooldownUntil = new Dictionary<HexCoord, long>();
         PlunderCooldownDuration = new Dictionary<HexCoord, long>();
-        RecalculateVisibleIslandMaps();
+        Visibility.Recalculate();
     }
 
     /// <summary>
@@ -76,6 +77,7 @@ public class WorldState : IJsonOnDeserialized
     [System.Text.Json.Serialization.JsonConstructor]
     public WorldState()
     {
+        Visibility = new WorldVisibility(this);
         Layers = new Dictionary<int, LayerState> { { IslandMap.SurfaceLayer, new LayerState() } };
         Civilizations = new List<SettlersOfIdlestan.Model.Civilization.Civilization>();
         HarvestLastTimesByCivilization = new Dictionary<int, Dictionary<SettlersOfIdlestan.Model.HexGrid.HexCoord, long>>();
@@ -86,58 +88,7 @@ public class WorldState : IJsonOnDeserialized
 
     public void OnDeserialized()
     {
-        NormalizeUnderworldCitiesIntoCivilizations();
-        RecalculateVisibleIslandMaps();
-    }
-
-    /// <summary>
-    /// Rebuilds visible maps for every civilization.
-    /// </summary>
-    public void RecalculateVisibleIslandMaps()
-    {
-        NormalizeUnderworldCitiesIntoCivilizations();
-
-        VisibleIslandMapsByZ = GetMapsByZ().ToDictionary(
-            kvp => kvp.Key,
-            kvp => Civilizations.ToDictionary(
-                civilization => civilization.Index,
-                civilization => new VisibleIslandMap(kvp.Value, civilization)));
-    }
-
-    /// <summary>
-    /// Rebuilds the visible map for one civilization after a road or city changed.
-    /// </summary>
-    public void RecalculateVisibleIslandMap(int civilizationIndex)
-    {
-        var civilization = Civilizations.FirstOrDefault(c => c.Index == civilizationIndex)
-            ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
-
-        NormalizeUnderworldCitiesIntoCivilizations();
-
-        foreach (var (z, map) in GetMapsByZ())
-        {
-            if (!VisibleIslandMapsByZ.TryGetValue(z, out var visibleMaps))
-            {
-                visibleMaps = new Dictionary<int, VisibleIslandMap>();
-                VisibleIslandMapsByZ[z] = visibleMaps;
-            }
-
-            visibleMaps[civilizationIndex] = new VisibleIslandMap(map, civilization);
-        }
-    }
-
-    public IReadOnlyDictionary<int, VisibleIslandMap> GetVisibleIslandMapsForZ(int z)
-    {
-        if (!VisibleIslandMapsByZ.TryGetValue(z, out var visibleMaps))
-        {
-            var map = GetMapForZ(z);
-            visibleMaps = Civilizations.ToDictionary(
-                civilization => civilization.Index,
-                civilization => new VisibleIslandMap(map, civilization));
-            VisibleIslandMapsByZ[z] = visibleMaps;
-        }
-
-        return visibleMaps;
+        Visibility.Recalculate();
     }
 
     public IslandMap GetMapForZ(int z)
@@ -168,25 +119,6 @@ public class WorldState : IJsonOnDeserialized
     {
         foreach (var (z, layer) in Layers)
             yield return new KeyValuePair<int, IslandMap>(z, layer.Map);
-    }
-
-    public void NormalizeUnderworldCitiesIntoCivilizations()
-    {
-        if (!Layers.TryGetValue(LayerState.UnderworldZ, out var underworldLayer) || underworldLayer.Cities.Count == 0)
-            return;
-
-        foreach (var city in underworldLayer.Cities)
-        {
-            if (city.Position.Z != underworldLayer.Map.Z)
-                throw new InvalidOperationException("Underworld city is not on the underworld map layer.");
-
-            var civilization = Civilizations.FirstOrDefault(c => c.Index == city.CivilizationIndex);
-            if (civilization == null)
-                continue;
-
-            if (!civilization.Cities.Any(existing => existing.Position.Equals(city.Position)))
-                civilization.AddCity(city);
-        }
     }
 
     /// <summary>

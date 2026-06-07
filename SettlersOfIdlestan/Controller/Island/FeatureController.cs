@@ -95,7 +95,7 @@ public class FeatureController
 
         var playerIdx = _state.PlayerCivilization.Index;
         var visibleMaps = _state.GetMapsByZ()
-            .Select(map => _state.GetVisibleIslandMapsForZ(map.Key))
+            .Select(map => _state.Visibility.GetForZ(map.Key))
             .Where(maps => maps.TryGetValue(playerIdx, out _))
             .Select(maps => maps[playerIdx])
             .ToList();
@@ -117,7 +117,7 @@ public class FeatureController
 
         var playerIdx = _state.PlayerCivilization.Index;
         var visibleMaps = _state.GetMapsByZ()
-            .Select(map => _state.GetVisibleIslandMapsForZ(map.Key))
+            .Select(map => _state.Visibility.GetForZ(map.Key))
             .Where(maps => maps.TryGetValue(playerIdx, out _))
             .Select(maps => maps[playerIdx])
             .ToList();

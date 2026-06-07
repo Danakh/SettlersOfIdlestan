@@ -41,10 +41,10 @@ public static class TechnologyDefinitions
         
         new(TechnologyId.Agriculture,
             "tech_agriculture_name", "tech_agriculture_desc",
-            cost: 600,
-            prerequisites: new[] { TechnologyId.HarvestEfficiency },
+            cost: 1650,
+            prerequisites: new[] { TechnologyId.ImprovedHarvest },
             modifiers: new Modifier[] { new(ECategory.HARVEST_PRODUCTION_BONUS, "Mill", EType.ADDITIVE, 50) },
-            tier: 1, line: 0),
+            tier: 2, line: 0),
 
         new(TechnologyId.ImprovedHarvest,
             "tech_improved_harvest_name", "tech_improved_harvest_desc",
@@ -67,19 +67,26 @@ public static class TechnologyDefinitions
             modifiers: new Modifier[] { new(ECategory.STORAGE_CAPACITY_BASIC, EType.ADDITIVE, 20) },
             tier: 1, line: 4),
 
-        new(TechnologyId.Erudition,
-            "tech_erudition_name", "tech_erudition_desc",
+        new(TechnologyId.Archivage,
+            "tech_archivage_name", "tech_archivage_desc",
             cost: 330,
             prerequisites: new[] { TechnologyId.Architecture },
             modifiers: new Modifier[] { new(ECategory.RESEARCH_SPEED, EType.ADDITIVE, 0.15) },
             tier: 1, line: 5),
 
+        new(TechnologyId.Fortifications,
+            "tech_fortifications_name", "tech_fortifications_desc",
+            cost: 400,
+            prerequisites: new[] { TechnologyId.Architecture },
+            modifiers: new Modifier[] { new(ECategory.BUILDING_MAX_LEVEL, "Palisade", EType.ADDITIVE, 1) },
+            tier: 1, line: 6),
+
         new(TechnologyId.MilitaryBuildings,
             "tech_military_buildings_name", "tech_military_buildings_desc",
-            cost: 400,
-            prerequisites: new[] { TechnologyId.Architecture, TechnologyId.MilitaryDiscipline },
+            cost: 1600,
+            prerequisites: new[] { TechnologyId.Fortifications, TechnologyId.MilitaryTactics },
             modifiers: new Modifier[] { new(ECategory.BUILDING_MAX_LEVEL, "Barracks", EType.ADDITIVE, 2) },
-            tier: 1, line: 6),
+            tier: 2, line: 6),
 
         new(TechnologyId.MilitaryTactics,
             "tech_military_tactics_name", "tech_military_tactics_desc",
@@ -96,10 +103,10 @@ public static class TechnologyDefinitions
 
         new(TechnologyId.RapidConstruction,
             "tech_rapid_construction_name", "tech_rapid_construction_desc",
-            cost: 600,
+            cost: 5500,
             prerequisites: new[] { TechnologyId.MilitaryBuildings },
             modifiers: new Modifier[] { new(ECategory.BUILDING_DEFENSE_ON_CONSTRUCT, EType.ADDITIVE, 1) },
-            tier: 2, line: 6),
+            tier: 3, line: 6),
 
         new(TechnologyId.HarvestTools,
             "tech_harvest_tools_name", "tech_harvest_tools_desc",
@@ -142,7 +149,7 @@ public static class TechnologyDefinitions
         new(TechnologyId.ResearchMethods,
             "tech_research_methods_name", "tech_research_methods_desc",
             cost: 1425,
-            prerequisites: new[] { TechnologyId.Erudition },
+            prerequisites: new[] { TechnologyId.Archivage },
             modifiers: new Modifier[] { new(ECategory.RESEARCH_COST_REDUCTION, EType.ADDITIVE, 0.1) },
             tier: 2, line: 5),
 
@@ -166,12 +173,19 @@ public static class TechnologyDefinitions
             modifiers: new Modifier[] { new(ECategory.HARVEST_SPEED, EType.ADDITIVE, 0.25) },
             tier: 3, line: 1),
 
-        new(TechnologyId.Masterwork,
-            "tech_masterwork_name", "tech_masterwork_desc",
+        new(TechnologyId.MaitriseDesAlliages,
+            "tech_maitrise_des_alliages_name", "tech_maitrise_des_alliages_desc",
             cost: 5560,
             prerequisites: new[] { TechnologyId.Metallurgy },
             modifiers: new Modifier[] { new(ECategory.FORGE_DOUBLE_HARVEST_BONUS, EType.ADDITIVE, 15) },
             tier: 3, line: 2),
+
+        new(TechnologyId.SteelWeapons,
+            "tech_steel_weapons_name", "tech_steel_weapons_desc",
+            cost: 15000,
+            prerequisites: new[] { TechnologyId.MaitriseDesAlliages },
+            modifiers: new Modifier[] { new(ECategory.UNLOCK_STEEL_WEAPONS, EType.ADDITIVE, 1) },
+            tier: 4, line: 2),
 
         new(TechnologyId.EfficientTrading,
             "tech_efficient_trading_name", "tech_efficient_trading_desc",
@@ -179,6 +193,17 @@ public static class TechnologyDefinitions
             prerequisites: new[] { TechnologyId.SpecializedMarket },
             modifiers: new Modifier[] { new(ECategory.TRADE_BULK_GOLD_BONUS, EType.ADDITIVE, 1) },
             tier: 3, line: 3),
+
+        new(TechnologyId.Compagnonage,
+            "tech_compagnonage_name", "tech_compagnonage_desc",
+            cost: 5200,
+            prerequisites: new[] { TechnologyId.HarvestTools },
+            modifiers: new Modifier[]
+            {
+                new(ECategory.BUILDING_MAX_LEVEL, "Mill",       EType.ADDITIVE, 1),
+                new(ECategory.BUILDING_MAX_LEVEL, "Brickworks", EType.ADDITIVE, 1),
+            },
+            tier: 3, line: 0),
 
         new(TechnologyId.GrandArchitecture,
             "tech_grand_architecture_name", "tech_grand_architecture_desc",
@@ -201,17 +226,17 @@ public static class TechnologyDefinitions
 
         new(TechnologyId.AdvancedTactics,
             "tech_advanced_tactics_name", "tech_advanced_tactics_desc",
-            cost: 6500,
+            cost: 17000,
             prerequisites: new[] { TechnologyId.MilitaryMastery, TechnologyId.RapidConstruction },
             modifiers: new Modifier[] { new(ECategory.UNLOCK_AUTO_REINFORCEMENT, EType.ADDITIVE, 1) },
-            tier: 3, line: 7),
+            tier: 4, line: 7),
 
         // === TIER 4 — Premiers croisements ===
 
         new(TechnologyId.EpicHarvest,
             "tech_epic_harvest_name", "tech_epic_harvest_desc",
             cost: 19350,
-            prerequisites: new[] { TechnologyId.MasterHarvest, TechnologyId.Masterwork },
+            prerequisites: new[] { TechnologyId.MasterHarvest, TechnologyId.MaitriseDesAlliages },
             modifiers: new Modifier[] { new(ECategory.HARVEST_SPEED, EType.ADDITIVE, 0.35) },
             tier: 4, line: 1),
 
@@ -238,19 +263,13 @@ public static class TechnologyDefinitions
 
         new(TechnologyId.AdvancedStrategy,
             "tech_advanced_strategy_name", "tech_advanced_strategy_desc",
-            cost: 19350,
+            cost: 51000,
             prerequisites: new[] { TechnologyId.AdvancedTactics, TechnologyId.GrandArchitecture },
             modifiers: new Modifier[] { new(ECategory.UNLOCK_AUTO_ATTACK, EType.ADDITIVE, 1) },
-            tier: 4, line: 7),
+            tier: 5, line: 7),
 
-        // === TIER 5 — Grandes convergences ===
+                // === TIER 5 — Grandes convergences ===
         
-        new(TechnologyId.MerchantGuild,
-            "tech_merchant_guild_name", "tech_merchant_guild_desc",
-            cost: 50370,
-            prerequisites: new[] { TechnologyId.EpicHarvest, TechnologyId.TradeRoutes },
-            modifiers: new Modifier[] { new(ECategory.TRADE_GOLD_PACKAGES, EType.ADDITIVE, 5) },
-            tier: 5, line: 4),
 
         new(TechnologyId.MasterResearch,
             "tech_master_research_name", "tech_master_research_desc",
@@ -259,85 +278,6 @@ public static class TechnologyDefinitions
             modifiers: new Modifier[] { new(ECategory.RESEARCH_SPEED, EType.ADDITIVE, 0.3) },
             tier: 5, line: 5),
 
-        new(TechnologyId.GloriousEmpire,
-            "tech_glorious_empire_name", "tech_glorious_empire_desc",
-            cost: 54240,
-            prerequisites: new[] { TechnologyId.AdvancedStrategy, TechnologyId.TradeRoutes },
-            modifiers: new Modifier[]
-            {
-                new(ECategory.CITY_DEFENSE, EType.ADDITIVE, 1),
-                new(ECategory.UNIT_PRODUCTION_SPEED, EType.ADDITIVE, 0.3),
-            },
-            tier: 5, line: 7),
-
-        // === TIER 6 ===
-        
-        new(TechnologyId.Enlightenment,
-            "tech_enlightenment_name", "tech_enlightenment_desc",
-            cost: 135730,
-            prerequisites: new[] { TechnologyId.MasterResearch },
-            modifiers: new Modifier[]
-            {
-                new(ECategory.RESEARCH_SPEED, EType.ADDITIVE, 0.4),
-                new(ECategory.RESEARCH_COST_REDUCTION, EType.ADDITIVE, 0.15),
-            },
-            tier: 6, line: 4),
-
-        new(TechnologyId.IndustrialAge,
-            "tech_industrial_age_name", "tech_industrial_age_desc",
-            cost: 135730,
-            prerequisites: new[] { TechnologyId.MerchantGuild, TechnologyId.GloriousEmpire },
-            modifiers: new Modifier[]
-            {
-                new(ECategory.BUILDING_MAX_LEVEL, "Sawmill",    EType.ADDITIVE, 1),
-                new(ECategory.BUILDING_MAX_LEVEL, "Brickworks", EType.ADDITIVE, 1),
-                new(ECategory.BUILDING_MAX_LEVEL, "Quarry",     EType.ADDITIVE, 1),
-                new(ECategory.BUILDING_MAX_LEVEL, "Mill",       EType.ADDITIVE, 1),
-                new(ECategory.BUILDING_MAX_LEVEL, "Mine",       EType.ADDITIVE, 1),
-                new(ECategory.BUILDING_MAX_LEVEL, "Forge",      EType.ADDITIVE, 1),
-            },
-            tier: 6, line: 6),
-
-        // === TIER 7 ===
-
-        new(TechnologyId.RenaissanceAge,
-            "tech_renaissance_age_name", "tech_renaissance_age_desc",
-            cost: 345040,
-            prerequisites: new[] { TechnologyId.IndustrialAge, TechnologyId.Enlightenment },
-            modifiers: new Modifier[]
-            {
-                new(ECategory.HARVEST_SPEED, EType.ADDITIVE, 0.3),
-                new(ECategory.UNIT_PRODUCTION_SPEED, EType.ADDITIVE, 0.2),
-            },
-            tier: 7, line: 5),
-
-        // === TIER 8 ===
-
-        new(TechnologyId.GoldenEra,
-            "tech_golden_era_name", "tech_golden_era_desc",
-            cost: 863280,
-            prerequisites: new[] { TechnologyId.RenaissanceAge },
-            modifiers: new Modifier[]
-            {
-                new(ECategory.HARVEST_SPEED, EType.ADDITIVE, 0.5),
-                new(ECategory.RESEARCH_SPEED, EType.ADDITIVE, 0.5),
-                new(ECategory.TRADE_GOLD_PACKAGES, EType.ADDITIVE, 5),
-            },
-            tier: 8, line: 5),
-
-        // === TIER 9 — Ultime ===
-
-        new(TechnologyId.Utopia,
-            "tech_utopia_name", "tech_utopia_desc",
-            cost: 2500000,
-            prerequisites: new[] { TechnologyId.GoldenEra },
-            modifiers: new Modifier[]
-            {
-                new(ECategory.HARVEST_SPEED, EType.ADDITIVE, 0.5),
-                new(ECategory.RESEARCH_COST_REDUCTION, EType.ADDITIVE, 0.2),
-                new(ECategory.CITY_DEFENSE, EType.ADDITIVE, 2),
-            },
-            tier: 9, line: 5),
     };
 
     public static Technology? Get(TechnologyId id) => All.FirstOrDefault(t => t.Id == id);

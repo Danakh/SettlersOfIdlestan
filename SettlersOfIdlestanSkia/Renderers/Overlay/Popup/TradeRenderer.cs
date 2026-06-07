@@ -2,7 +2,7 @@ using SettlersOfIdlestan.Controller;
 using SettlersOfIdlestan.Controller.Expand;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.IslandMap;
-using SettlersOfIdlestan.Services.Localization;
+using SettlersOfIdlestanSkia.Services.Localization;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Renderers.Overlay;
 using SettlersOfIdlestanSkia.Services;
@@ -31,7 +31,7 @@ public sealed class TradeRenderer : IDisposable
     private const float GoldCapsuleW = 150;
 
     private readonly GameControllerService _gameControllerService;
-    private readonly ILocalizationService _localization;
+    private readonly LocalizationService _localization;
     private readonly TooltipRenderer _tooltipRenderer;
     private readonly Dictionary<Resource, SKSvg?> _resourceIcons = new();
 
@@ -92,7 +92,7 @@ public sealed class TradeRenderer : IDisposable
 
     public bool IsOpen { get; private set; }
 
-    public TradeRenderer(GameControllerService gameControllerService, ILocalizationService localization, TooltipRenderer tooltipRenderer, ResourceManager resourceManager)
+    public TradeRenderer(GameControllerService gameControllerService, LocalizationService localization, TooltipRenderer tooltipRenderer, ResourceManager resourceManager)
     {
         _gameControllerService = gameControllerService;
         _localization = localization;

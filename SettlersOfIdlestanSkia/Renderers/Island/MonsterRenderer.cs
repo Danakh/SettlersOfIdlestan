@@ -93,7 +93,7 @@ public class MonsterRenderer : HexBasedRenderer, IGameRenderer
 
     private static bool IsSourceOrDestinationVisible(WorldState worldState, Vertex source, HexCoord target)
     {
-        if (!worldState.GetVisibleIslandMapsForZ(source.Z).TryGetValue(worldState.PlayerCivilization.Index, out var visibleMap))
+        if (!worldState.Visibility.GetForZ(source.Z).TryGetValue(worldState.PlayerCivilization.Index, out var visibleMap))
             return true;
         if (visibleMap.HasTile(target)) return true;
         foreach (var hex in source.GetHexes())
@@ -116,7 +116,7 @@ public class MonsterRenderer : HexBasedRenderer, IGameRenderer
 
         VisibleIslandMap? visibleMap = null;
         if (!DebugSettings.ShowFullMap)
-            worldState.GetVisibleIslandMapsForZ(worldState.CurrentViewedLayer).TryGetValue(worldState.PlayerCivilization.Index, out visibleMap);
+            worldState.Visibility.GetForZ(worldState.CurrentViewedLayer).TryGetValue(worldState.PlayerCivilization.Index, out visibleMap);
 
         float dt = context.DeltaTime;
 

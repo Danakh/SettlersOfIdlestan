@@ -3,7 +3,7 @@ using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Services;
-using SettlersOfIdlestan.Services.Localization;
+using SettlersOfIdlestanSkia.Services.Localization;
 
 namespace SettlersOfIdlestanSkia.Renderers.Island;
 
@@ -16,7 +16,7 @@ public sealed class WonderPlacementRenderer : HexBasedRenderer, IGameRenderer
     private readonly WonderSelectionService _selectionService;
     private readonly InputHandlingService _inputService;
     private readonly CameraService _cameraService;
-    private readonly ILocalizationService _localization;
+    private readonly LocalizationService _localization;
 
     private const float ButtonWidth = 120f;
     private const float ButtonHeight = 38f;
@@ -40,7 +40,7 @@ public sealed class WonderPlacementRenderer : HexBasedRenderer, IGameRenderer
         WonderSelectionService selectionService,
         InputHandlingService inputService,
         CameraService cameraService,
-        ILocalizationService localization)
+        LocalizationService localization)
     {
         _selectionService = selectionService;
         _inputService = inputService;

@@ -35,4 +35,10 @@ public class NpcParameters
     /// Quand non-null, remplace les modificateurs NPC standard lors du SetupModifierAggregator.
     /// </summary>
     public List<Modifier>? ExtraModifiers { get; set; }
+
+    /// <summary>
+    /// Nombre de villes cible pour ce NPC. Quand non-null, remplace la valeur par défaut
+    /// dérivée de EvolutionLevel (1/3/5/7).
+    /// </summary>
+    public int? CityCount { get; set; }
 }

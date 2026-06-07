@@ -84,9 +84,9 @@ namespace SettlersOfIdlestan.Controller.Island
 
             if (!hasDeepestMine) return;
 
-            _state.Layers[LayerState.UnderworldZ] = LayerState.CreateUnderworld(playerCiv.Index);
-            _state.NormalizeUnderworldCitiesIntoCivilizations();
-            _state.RecalculateVisibleIslandMap(playerCiv.Index);
+            var underworldLayer = LayerState.EstablishOupostInNewAutoExpandLayer(playerCiv);
+            _state.Layers[LayerState.UnderworldZ] = underworldLayer;
+            _state.Visibility.RecalculateFor(playerCiv.Index);
         }
 
         private void PerformHarvestersGuildProductionAutomation()
@@ -303,16 +303,17 @@ namespace SettlersOfIdlestan.Controller.Island
             }
             else
             {
+                int oldDefBonus = existing.GetDefenseBonus();
                 existing.Level += 1;
-                int defBonus = existing.GetDefenseBonus();
-                if (defBonus > 0 && civ.ModifierAggregator.HasModifier(ECategory.BUILDING_DEFENSE_ON_CONSTRUCT))
-                    city.CurrentDefense += defBonus;
+                int defDelta = existing.GetDefenseBonus() - oldDefBonus;
+                if (defDelta > 0 && civ.ModifierAggregator.HasModifier(ECategory.BUILDING_DEFENSE_ON_CONSTRUCT))
+                    city.CurrentDefense += defDelta;
                 if (existing is IUniqueBuilding)
                     civ.RebuildUniqueBuildingsModifiers();
             }
 
             if (type == BuildingType.Watchtower)
-                _state.RecalculateVisibleIslandMap(city.CivilizationIndex);
+                _state.Visibility.RecalculateFor(city.CivilizationIndex);
 
             OnBuildingBuilt?.Invoke(this, new BuildingBuiltEventArgs(
                 city, type, resultBuilding.Level, existing == null));
@@ -399,6 +400,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 BuildingType.TraderGuild => new TraderGuild(),
                 BuildingType.MilitaryAcademy => new MilitaryAcademy(),
                 BuildingType.DeepestMine => new DeepestMine(),
+                BuildingType.Smelter => new Smelter(),
                 _ => null,
             };
         }

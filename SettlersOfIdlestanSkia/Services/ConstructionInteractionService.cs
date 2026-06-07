@@ -147,7 +147,7 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
             return;
         }
 
-        if (WorldState?.GetVisibleIslandMapsForZ(hexCoord.Z).TryGetValue(playerIndex, out var visibleMap) == true &&
+        if (WorldState?.Visibility.GetForZ(hexCoord.Z).TryGetValue(playerIndex, out var visibleMap) == true &&
             visibleMap.HasTile(hexCoord))
         {
             _harvestService.TryManualHarvest(hexCoord);
@@ -164,10 +164,12 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
 
         var buildableVertices = _gameControllerService.GetBuildableCityVerticesForPlayer();
         var buildableEdges = _gameControllerService.GetBuildableRoadEdgesForPlayer();
+        var enemyProtectedEdges = _gameControllerService.GetEnemyProtectedRoadEdgesForPlayer();
 
         var islandPoint = _renderer.ScreenToIsland(screenPoint, _cameraService.CanvasSize, _cameraService.ZoomLevel, _cameraService.Position);
 
         var hoveredCityVertex = GetHoveredCityVertex(islandPoint);
+        var hoveredEnemyCityVertex = hoveredCityVertex == null ? GetHoveredEnemyCityVertex(islandPoint) : null;
 
         Vertex? hoveredVertex = null;
         var nearestVertex = _renderer.IslandToNearestVertex(islandPoint, currentZ);
@@ -181,18 +183,19 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
         }
 
         Edge? hoveredEdge = null;
+        Edge? hoveredEnemyProtectedEdge = null;
         var nearestEdge = _renderer.IslandToNearestEdge(islandPoint, currentZ);
-        if (buildableEdges.Any(e => e.Equals(nearestEdge)))
+        var edgeDist = SKPoint.Distance(islandPoint, _renderer.EdgeToIslandPoint(nearestEdge));
+        if (edgeDist <= EdgeHoverRadius)
         {
-            var dist = SKPoint.Distance(islandPoint, _renderer.EdgeToIslandPoint(nearestEdge));
-            if (dist <= EdgeHoverRadius)
-            {
+            if (buildableEdges.Any(e => e.Equals(nearestEdge)))
                 hoveredEdge = nearestEdge;
-            }
+            else if (enemyProtectedEdges.Any(e => e.Equals(nearestEdge)))
+                hoveredEnemyProtectedEdge = nearestEdge;
         }
 
         HexCoord? hoveredHex = null;
-        if (hoveredVertex == null && hoveredEdge == null && hoveredCityVertex == null)
+        if (hoveredVertex == null && hoveredEdge == null && hoveredEnemyProtectedEdge == null && hoveredCityVertex == null && hoveredEnemyCityVertex == null)
         {
             var hexCoord = _renderer.IslandToHexCoord(islandPoint, currentZ);
             var (hx, hy) = _renderer.AxialToIsland(hexCoord.Q, hexCoord.R);
@@ -200,7 +203,7 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
             {
                 var WorldState = _gameControllerService.CurrentWorldState;
                 var playerIndex = WorldState?.PlayerCivilization.Index ?? 0;
-                if (WorldState?.GetVisibleIslandMapsForZ(hexCoord.Z).TryGetValue(playerIndex, out var visibleMap) == true &&
+                if (WorldState?.Visibility.GetForZ(hexCoord.Z).TryGetValue(playerIndex, out var visibleMap) == true &&
                     visibleMap.HasTile(hexCoord))
                 {
                     hoveredHex = hexCoord;
@@ -215,7 +218,9 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
             hoveredEdge,
             hoveredCityVertex,
             _cityBuildingService.SelectedCity?.Position,
-            hoveredHex
+            hoveredHex,
+            hoveredEnemyProtectedEdge,
+            hoveredEnemyCityVertex
         );
     }
 
@@ -241,12 +246,47 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
             if (city.CivilizationIndex != playerIndex)
                 continue;
 
-            if (WorldState.GetVisibleIslandMapsForZ(WorldState.CurrentViewedLayer).TryGetValue(playerIndex, out var visibleMap) &&
+            if (WorldState.Visibility.GetForZ(WorldState.CurrentViewedLayer).TryGetValue(playerIndex, out var visibleMap) &&
                 (city.Position.Z != visibleMap.Z ||
                 !city.Position.GetHexes().Any(visibleMap.HasTile)))
             {
                 continue;
             }
+
+            var pt = _renderer.VertexToIslandPoint(city.Position);
+            var dist = SKPoint.Distance(islandPoint, pt);
+            if (dist < bestDistance)
+            {
+                bestDistance = dist;
+                best = city.Position;
+            }
+        }
+
+        return bestDistance <= 12f ? best : null;
+    }
+
+    private Vertex? GetHoveredEnemyCityVertex(SKPoint islandPoint)
+    {
+        if (_renderer == null)
+            return null;
+
+        var worldState = _gameControllerService.CurrentWorldState;
+        if (worldState == null)
+            return null;
+
+        var playerIndex = worldState.PlayerCivilization.Index;
+        Vertex? best = null;
+        var bestDistance = float.MaxValue;
+
+        if (!worldState.Visibility.GetForZ(worldState.CurrentViewedLayer).TryGetValue(playerIndex, out var visibleMap))
+            return null;
+
+        foreach (var city in worldState.GetAllCities())
+        {
+            if (city.CivilizationIndex == playerIndex)
+                continue;
+            if (city.Position.Z != visibleMap.Z || !city.Position.GetHexes().Any(visibleMap.HasTile))
+                continue;
 
             var pt = _renderer.VertexToIslandPoint(city.Position);
             var dist = SKPoint.Distance(islandPoint, pt);
@@ -287,9 +327,11 @@ public readonly record struct ConstructionHoverState(
     Edge? HoveredEdge,
     Vertex? HoveredCityVertex,
     Vertex? SelectedCityVertex,
-    HexCoord? HoveredHex)
+    HexCoord? HoveredHex,
+    Edge? HoveredEnemyProtectedEdge,
+    Vertex? HoveredEnemyCityVertex)
 {
     public static ConstructionHoverState Empty =>
-        new(Array.Empty<Vertex>(), Array.Empty<Edge>(), null, null, null, null, null);
+        new(Array.Empty<Vertex>(), Array.Empty<Edge>(), null, null, null, null, null, null, null);
 }
 

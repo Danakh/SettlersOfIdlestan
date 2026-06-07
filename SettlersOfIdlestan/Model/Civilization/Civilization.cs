@@ -140,7 +140,7 @@ public class Civilization
         ModifierAggregator.ApplyModifiers(ECategory.FORGE_DOUBLE_HARVEST_BONUS, "", 0);
 
     /// <summary>
-    /// Chance (en %) qu'une mine produise de l'or à la place d'un minerai lors d'une récolte automatique.
+    /// Chance (en %) qu'une mine produise de l'or en bonus (en plus du minerai) lors d'une récolte automatique.
     /// </summary>
     [JsonIgnore]
     public int MineGoldChancePercent => ModifierAggregator.ApplyModifiers(ECategory.MINE_GOLD_CHANCE_PERCENT, "", 0);

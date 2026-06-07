@@ -25,7 +25,7 @@ public class VertexPurchasedEventArgs : EventArgs
 
 public class PrestigeMapController
 {
-    public static readonly PrestigeMap DefaultMap = PrestigeMap.CreateDefault();
+    public static readonly PrestigeMap DefaultMap = PrestigeMapFactory.CreateDefault();
 
     public event EventHandler<VertexPurchasedEventArgs>? OnVertexPurchased;
 

@@ -85,6 +85,9 @@ namespace SettlersOfIdlestan.Controller.Expand
             return _islandState.RunRecord.DragonsDefeated * 5;
         }
 
+        public double GetPrestigeGainBonus()
+            => _playerCivilization?.ModifierAggregator.ApplyModifiers(ECategory.PRESTIGE_GAIN, "", 0.0) ?? 0.0;
+
         public int CalculatePrestigePoints()
         {
             int subtotal = GetBuildingSubtotal() + GetDragonBonus();
@@ -92,6 +95,9 @@ namespace SettlersOfIdlestan.Controller.Expand
             double result = wonderMult > 0 ? (double)subtotal * wonderMult : subtotal;
             if (HasNoSurfaceMonsters())
                 result *= 1.2;
+            double gainBonus = GetPrestigeGainBonus();
+            if (gainBonus > 0)
+                result *= (1 + gainBonus);
             return (int)result;
         }
 
@@ -114,6 +120,13 @@ namespace SettlersOfIdlestan.Controller.Expand
                         tooltipKeys.TryAdd(building.NameKey, $"prestige_source_tooltip_{building.Type.ToString().ToLower()}");
                     }
                 }
+            }
+
+            int dragonBonus = GetDragonBonus();
+            if (dragonBonus > 0)
+            {
+                sources["prestige_dragon_bonus"] = dragonBonus;
+                tooltipKeys["prestige_dragon_bonus"] = "prestige_tooltip_dragon_bonus";
             }
 
             return sources

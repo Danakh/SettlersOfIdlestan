@@ -13,7 +13,7 @@ namespace SettlersOfIdlestan.Controller.Island
         public IslandParameters GetIslandParameters(int WorldId)
         {
             // Pour la première île, on retourne les paramètres standards d'une partie normale
-            if (WorldId == 1)
+            if (WorldId <= 1)
             {
                 var tileData = new List<(TerrainType terrainType, int tileCount)>
                 {

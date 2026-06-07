@@ -81,7 +81,7 @@ public class RoadRenderer : HexBasedRenderer, IGameRenderer
                 IslandMap? mapForVisibility;
                 if (DebugSettings.ShowFullMap)
                     mapForVisibility = WorldState.CurrentViewedMap;
-                else if (!WorldState.GetVisibleIslandMapsForZ(WorldState.CurrentViewedLayer).TryGetValue(WorldState.PlayerCivilization.Index, out var vm))
+                else if (!WorldState.Visibility.GetForZ(WorldState.CurrentViewedLayer).TryGetValue(WorldState.PlayerCivilization.Index, out var vm))
                     return;
                 else
                     mapForVisibility = vm;
@@ -106,8 +106,11 @@ public class RoadRenderer : HexBasedRenderer, IGameRenderer
         if ((state.HoveredEdge != null) && (state.HoveredEdge.Z == context.CurrentLayer))
         {
             DrawEdgeHighlight(canvas, state.HoveredEdge, _hoverEdgePaint, 0.14f);
-
             _tooltipRenderer.SetRoadConstructionTooltip(state.HoveredEdge);
+        }
+        else if ((state.HoveredEnemyProtectedEdge != null) && (state.HoveredEnemyProtectedEdge.Z == context.CurrentLayer))
+        {
+            _tooltipRenderer.SetEnemyProtectedRoadTooltip(state.HoveredEnemyProtectedEdge);
         }
     }
 

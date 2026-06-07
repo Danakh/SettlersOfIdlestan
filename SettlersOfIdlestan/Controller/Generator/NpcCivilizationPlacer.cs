@@ -169,7 +169,7 @@ public class NpcCivilizationPlacer
     private static void ExpandNpcWithAutoplayer(
         NpcCivilizationAutoplayer autoplayer, Civilization civ, IslandMap map, NpcEvolutionLevel level)
     {
-        int target = TargetCityCount(level);
+        int target = civ.NpcParameters?.CityCount ?? TargetCityCount(level);
 
         for (int i = 0; i < MaxExpandIterations; i++)
         {
