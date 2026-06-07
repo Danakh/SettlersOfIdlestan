@@ -17,12 +17,16 @@ namespace SettlersOfIdlestan.Model.IslandMap;
 [Serializable]
 public class WorldState : IJsonOnDeserialized
 {
-    private readonly Dictionary<int, LayerState> _layers = new();
+    private Dictionary<int, LayerState> _layers = new();
 
     /// <summary>
     /// All map layers indexed by Z coordinate. Use GetMapForZ(z) to retrieve a layer's map.
     /// </summary>
-    public IReadOnlyDictionary<int, LayerState> Layers => _layers;
+    public Dictionary<int, LayerState> Layers
+    {
+        get => _layers;
+        set => _layers = value ?? new Dictionary<int, LayerState>();
+    }
 
     public void AddLayer(int z, LayerState layer) => _layers[z] = layer;
 

@@ -60,12 +60,21 @@ public class Civilization
         RebuildUniqueBuildingsModifiers();
     }
 
-    private readonly List<Road> _roads = new();
+    private List<Road> _roads = new();
 
     /// <summary>
-    /// Gets the list of roads in the civilization.
+    /// Gets the list of roads in the civilization — lecture seule ; utiliser AddRoad / RemoveRoad pour muter.
     /// </summary>
+    [JsonIgnore]
     public IReadOnlyList<Road> Roads => _roads;
+
+    [JsonPropertyName("Roads")]
+    [JsonInclude]
+    public List<Road> RoadsSerialized
+    {
+        get => _roads;
+        private set => _roads = value ?? new();
+    }
 
     public void AddRoad(Road road) => _roads.Add(road);
     public void RemoveRoad(Road road) => _roads.Remove(road);
@@ -249,27 +258,54 @@ public class Civilization
         return result + storageBonus;
     }
 
-    private readonly List<BuildingType> _uniqueBuildings = new();
+    private List<BuildingType> _uniqueBuildings = new();
 
     /// <summary>
     /// Bâtiments uniques construits par cette civilisation sur l'île courante.
     /// Empêche de construire deux fois le même bâtiment unique.
     /// </summary>
+    [JsonIgnore]
     public IReadOnlyList<BuildingType> UniqueBuildings => _uniqueBuildings;
+
+    [JsonPropertyName("UniqueBuildings")]
+    [JsonInclude]
+    public List<BuildingType> UniqueBuildingsSerialized
+    {
+        get => _uniqueBuildings;
+        private set => _uniqueBuildings = value ?? new();
+    }
 
     public void AddUniqueBuilding(BuildingType type) => _uniqueBuildings.Add(type);
 
-    private readonly List<Resource> _seaportEnhancedResources = new();
+    private List<Resource> _seaportEnhancedResources = new();
 
     /// <summary>Resources for which a level-3 Seaport has unlocked a 4:1 trade rate (permanent).</summary>
+    [JsonIgnore]
     public IReadOnlyList<Resource> SeaportEnhancedResources => _seaportEnhancedResources;
+
+    [JsonPropertyName("SeaportEnhancedResources")]
+    [JsonInclude]
+    public List<Resource> SeaportEnhancedResourcesSerialized
+    {
+        get => _seaportEnhancedResources;
+        private set => _seaportEnhancedResources = value ?? new();
+    }
 
     public void AddSeaportEnhancedResource(Resource resource) => _seaportEnhancedResources.Add(resource);
 
-    private readonly List<Resource> _seaportAutoTradeResources = new();
+    private List<Resource> _seaportAutoTradeResources = new();
 
     /// <summary>Resources for which a level-4 Seaport has activated permanent auto-trade (one slot per level-4 Seaport).</summary>
+    [JsonIgnore]
     public IReadOnlyList<Resource> SeaportAutoTradeResources => _seaportAutoTradeResources;
+
+    [JsonPropertyName("SeaportAutoTradeResources")]
+    [JsonInclude]
+    public List<Resource> SeaportAutoTradeResourcesSerialized
+    {
+        get => _seaportAutoTradeResources;
+        private set => _seaportAutoTradeResources = value ?? new();
+    }
 
     public void AddSeaportAutoTradeResource(Resource resource) => _seaportAutoTradeResources.Add(resource);
 
