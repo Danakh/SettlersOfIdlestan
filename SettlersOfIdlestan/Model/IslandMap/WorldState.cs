@@ -17,10 +17,14 @@ namespace SettlersOfIdlestan.Model.IslandMap;
 [Serializable]
 public class WorldState : IJsonOnDeserialized
 {
+    private readonly Dictionary<int, LayerState> _layers = new();
+
     /// <summary>
     /// All map layers indexed by Z coordinate. Use GetMapForZ(z) to retrieve a layer's map.
     /// </summary>
-    public Dictionary<int, LayerState> Layers { get; set; }
+    public IReadOnlyDictionary<int, LayerState> Layers => _layers;
+
+    public void AddLayer(int z, LayerState layer) => _layers[z] = layer;
 
     /// <summary>
     /// Z-coordinate of the layer currently displayed. Not persisted.
@@ -61,12 +65,10 @@ public class WorldState : IJsonOnDeserialized
     public WorldState(IslandMap map, List<SettlersOfIdlestan.Model.Civilization.Civilization> civilizations, int worldId)
     {
         Visibility = new WorldVisibility(this);
-        Layers = new Dictionary<int, LayerState> { { IslandMap.SurfaceLayer, new LayerState(map) } };
+        _layers[IslandMap.SurfaceLayer] = new LayerState(map);
         Civilizations = civilizations;
         WorldId = worldId;
-        HarvestLastTimesByCivilization = new Dictionary<int, Dictionary<SettlersOfIdlestan.Model.HexGrid.HexCoord, long>>();
         Features = new List<IslandFeature>();
-        PlunderCooldownUntil = new Dictionary<HexCoord, long>();
         PlunderCooldownDuration = new Dictionary<HexCoord, long>();
         Visibility.Recalculate();
     }
@@ -78,11 +80,9 @@ public class WorldState : IJsonOnDeserialized
     public WorldState()
     {
         Visibility = new WorldVisibility(this);
-        Layers = new Dictionary<int, LayerState> { { IslandMap.SurfaceLayer, new LayerState() } };
+        _layers[IslandMap.SurfaceLayer] = new LayerState();
         Civilizations = new List<SettlersOfIdlestan.Model.Civilization.Civilization>();
-        HarvestLastTimesByCivilization = new Dictionary<int, Dictionary<SettlersOfIdlestan.Model.HexGrid.HexCoord, long>>();
         Features = new List<IslandFeature>();
-        PlunderCooldownUntil = new Dictionary<HexCoord, long>();
         PlunderCooldownDuration = new Dictionary<HexCoord, long>();
     }
 
@@ -121,10 +121,22 @@ public class WorldState : IJsonOnDeserialized
             yield return new KeyValuePair<int, IslandMap>(z, layer.Map);
     }
 
+    private readonly Dictionary<int, Dictionary<HexCoord, long>> _harvestLastTimesByCivilization = new();
+
     /// <summary>
     /// Tick de simulation de la dernière récolte manuelle par civilisation et par hex (1 tick = 0.01 s).
     /// </summary>
-    public Dictionary<int, Dictionary<SettlersOfIdlestan.Model.HexGrid.HexCoord, long>> HarvestLastTimesByCivilization { get; set; }
+    public IReadOnlyDictionary<int, Dictionary<HexCoord, long>> HarvestLastTimesByCivilization => _harvestLastTimesByCivilization;
+
+    public Dictionary<HexCoord, long> GetOrCreateHarvestTimesForCiv(int civilizationIndex)
+    {
+        if (!_harvestLastTimesByCivilization.TryGetValue(civilizationIndex, out var perHex))
+        {
+            perHex = new Dictionary<HexCoord, long>();
+            _harvestLastTimesByCivilization[civilizationIndex] = perHex;
+        }
+        return perHex;
+    }
 
     /// <summary>
     /// Toutes les features de l'île (Bandit, BanditHideout, TreasureTrove).
@@ -151,10 +163,14 @@ public class WorldState : IJsonOnDeserialized
         return true;
     }
 
+    private readonly Dictionary<HexCoord, long> _plunderCooldownUntil = new();
+
     /// <summary>
     /// Tick jusqu'auquel la récolte est bloquée sur un hex après le départ d'un monstre mobile.
     /// </summary>
-    public Dictionary<HexCoord, long> PlunderCooldownUntil { get; set; }
+    public IReadOnlyDictionary<HexCoord, long> PlunderCooldownUntil => _plunderCooldownUntil;
+
+    public void SetPlunderCooldown(HexCoord hex, long untilTick) => _plunderCooldownUntil[hex] = untilTick;
 
     /// <summary>
     /// Durée totale du cooldown (en ticks) enregistrée au moment du départ du monstre.

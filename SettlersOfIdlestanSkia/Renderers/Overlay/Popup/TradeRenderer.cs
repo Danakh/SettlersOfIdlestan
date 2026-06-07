@@ -465,7 +465,7 @@ public sealed class TradeRenderer : IDisposable
 
     // ── Seaport checkboxes ───────────────────────────────────────────────────────
 
-    private void DrawSeaportL3Checkbox(SKCanvas canvas, SKRect row, Resource resource, List<Resource> enhanced, Civilization civ)
+    private void DrawSeaportL3Checkbox(SKCanvas canvas, SKRect row, Resource resource, IReadOnlyList<Resource> enhanced, Civilization civ)
     {
         float cx = row.Left + CheckboxGap;
         float cy = row.MidY - CheckboxSize / 2;
@@ -485,7 +485,7 @@ public sealed class TradeRenderer : IDisposable
         if (!isOn && canOn) _seaportL3Rects[cb] = resource;
     }
 
-    private void DrawSeaportL4Checkbox(SKCanvas canvas, SKRect row, Resource resource, List<Resource> autoTrade, Civilization civ)
+    private void DrawSeaportL4Checkbox(SKCanvas canvas, SKRect row, Resource resource, IReadOnlyList<Resource> autoTrade, Civilization civ)
     {
         float cx = row.Left + CheckboxSize + CheckboxGap * 2;
         float cy = row.MidY - CheckboxSize / 2;

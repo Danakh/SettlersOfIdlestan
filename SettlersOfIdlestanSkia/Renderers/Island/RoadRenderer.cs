@@ -137,7 +137,7 @@ public class RoadRenderer : HexBasedRenderer, IGameRenderer
     /// Dessine les routes d'une civilisation.
     /// </summary>
     private void DrawRoads(SKCanvas canvas, IslandMap visibleMap,
-        List<Road> roads, int civilizationIndex)
+        IReadOnlyList<Road> roads, int civilizationIndex)
     {
         if (_roadPaint == null || roads.Count == 0)
             return;

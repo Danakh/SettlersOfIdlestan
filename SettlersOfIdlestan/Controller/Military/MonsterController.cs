@@ -166,7 +166,7 @@ public class MonsterFeatureController
 
         if (!oldPosition.Equals(monster.Position) && monster.DepartureCooldownTicks > 0)
         {
-            _state.PlunderCooldownUntil[oldPosition] = currentTick + monster.DepartureCooldownTicks;
+            _state.SetPlunderCooldown(oldPosition, currentTick + monster.DepartureCooldownTicks);
             _state.PlunderCooldownDuration[oldPosition] = monster.DepartureCooldownTicks;
         }
     }

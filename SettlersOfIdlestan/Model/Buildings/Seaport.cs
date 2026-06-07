@@ -13,7 +13,7 @@ public class Seaport : Building
     public Seaport() : base(BuildingType.Seaport)
     {
         AvailableAtLevel = 0;
-        Actions.Add("Prestige");
+        _actions.Add("Prestige");
     }
 
     public override int GetDefaultMaxLevel()

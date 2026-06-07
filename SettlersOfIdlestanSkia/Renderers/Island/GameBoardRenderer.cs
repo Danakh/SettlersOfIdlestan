@@ -188,7 +188,7 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
     private void DrawIslandMap(SKCanvas canvas, IslandMap map, int playerIdx,
         long currentTick,
         Dictionary<HexCoord, long>? manualTimes,
-        Dictionary<HexCoord, long>? plunderCooldownUntil,
+        IReadOnlyDictionary<HexCoord, long>? plunderCooldownUntil,
         Dictionary<HexCoord, long>? plunderCooldownDuration,
         HashSet<HexCoord>? harvestBlockedPositions,
         Dictionary<HexCoord, IEnumerable<IslandFeature>>? featuresByPosition = null)
@@ -219,7 +219,7 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
     private void DrawHexagonTile(SKCanvas canvas, HexCoord coord, float centerX, float centerY, HexTile tile,
         int playerIdx, long currentTick,
         Dictionary<HexCoord, long>? manualTimes,
-        Dictionary<HexCoord, long>? plunderCooldownUntil,
+        IReadOnlyDictionary<HexCoord, long>? plunderCooldownUntil,
         Dictionary<HexCoord, long>? plunderCooldownDuration,
         HashSet<HexCoord>? harvestBlockedPositions,
         Dictionary<HexCoord, IEnumerable<IslandFeature>>? featuresByPosition = null)
@@ -286,7 +286,7 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
     private void DrawHarvestIndicator(SKCanvas canvas, float cx, float cy, HexTile tile,
         int playerIdx, long currentTick,
         Dictionary<HexCoord, long>? manualTimes,
-        Dictionary<HexCoord, long>? plunderCooldownUntil,
+        IReadOnlyDictionary<HexCoord, long>? plunderCooldownUntil,
         Dictionary<HexCoord, long>? plunderCooldownDuration,
         HashSet<HexCoord>? harvestBlockedPositions)
     {

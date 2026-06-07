@@ -35,7 +35,7 @@ public class VisibleIslandMapTests
         var hidden = new HexCoord(3, 3, IslandMap.SurfaceLayer);
         var map = CreateMap(a, b, endOnly1, endOnly2, hidden);
         var civilization = new Civilization();
-        civilization.Roads.Add(new Road(Edge.Create(a, b)));
+        civilization.AddRoad(new Road(Edge.Create(a, b)));
 
         var visibleMap = new VisibleIslandMap(map, civilization);
 

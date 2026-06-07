@@ -110,7 +110,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 var chosen = candidates[_prng.Next(candidates.Count)];
                 TryRemoveEnemyRoadAt(chosen.Position, civ.Index);
                 var road = new Road(chosen.Position) { CivilizationIndex = civ.Index, DistanceToNearestCity = chosen.DistanceToNearestCity };
-                civ.Roads.Add(road);
+                civ.AddRoad(road);
                 ComputeRoadDistancesForCivilization(civ);
                 _buildableRoadsCache.Clear();
                 _state.Visibility.RecalculateFor(civ.Index);
@@ -306,7 +306,7 @@ namespace SettlersOfIdlestan.Controller.Island
             civ.PayResourceCost(cost);
 
             var road = new Road(edge) { CivilizationIndex = civilizationIndex, DistanceToNearestCity = distance };
-            civ.Roads.Add(road);
+            civ.AddRoad(road);
 
             ComputeRoadDistancesForCivilization(civ);
             _buildableRoadsCache.Clear();
@@ -324,7 +324,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 var enemyRoad = otherCiv.Roads.FirstOrDefault(r => r.Position.Equals(edge));
                 if (enemyRoad != null)
                 {
-                    otherCiv.Roads.Remove(enemyRoad);
+                    otherCiv.RemoveRoad(enemyRoad);
                     ComputeRoadDistancesForCivilization(otherCiv);
                     RemoveDisconnectedRoads(otherCiv);
                     return;
@@ -340,7 +340,7 @@ namespace SettlersOfIdlestan.Controller.Island
         {
             var toRemove = GetRoadsWithinDistanceOfVertex(civ.Roads, cityVertex, 2);
             foreach (var road in toRemove)
-                civ.Roads.Remove(road);
+                civ.RemoveRoad(road);
 
             ComputeRoadDistancesForCivilization(civ);
             RemoveDisconnectedRoads(civ);
@@ -349,7 +349,7 @@ namespace SettlersOfIdlestan.Controller.Island
             _state?.Visibility.RecalculateFor(civ.Index);
         }
 
-        private static List<Road> GetRoadsWithinDistanceOfVertex(List<Road> roads, Vertex vertex, int maxDistance)
+        private static List<Road> GetRoadsWithinDistanceOfVertex(IReadOnlyList<Road> roads, Vertex vertex, int maxDistance)
         {
             var result = new List<Road>();
             var visited = new HashSet<Edge>();
@@ -394,7 +394,7 @@ namespace SettlersOfIdlestan.Controller.Island
 
         private static void RemoveDisconnectedRoads(Civilization civ)
         {
-            civ.Roads.RemoveAll(r => r.DistanceToNearestCity == int.MaxValue);
+            civ.RemoveAllRoads(r => r.DistanceToNearestCity == int.MaxValue);
         }
 
         private bool IsEdgeBuildableByCivilization(Edge edge, Civilization civ)

@@ -64,7 +64,7 @@ public class MultiMapStateTests
             AtlasController.InvalidIslandId);
 
         var underworldLayer = LayerState.EstablishOupostInNewAutoExpandLayer(civ);
-        state.Layers[LayerState.UnderworldZ] = underworldLayer;
+        state.AddLayer(LayerState.UnderworldZ, underworldLayer);
         state.Visibility.Recalculate();
 
         var underworldHex = new HexCoord(0, 0, LayerState.UnderworldZ);

@@ -218,7 +218,7 @@ namespace SOITests.ControllerTests
             {
                 civ.Cities[0].Buildings.Add(new Temple());
             }
-            civ.UniqueBuildings.Add(BuildingType.ImperialPort);
+            civ.AddUniqueBuilding(BuildingType.ImperialPort);
             var expectedPrestigePoints = controller.PrestigeController.CalculatePrestigePoints();
 
             controller.PerformPrestige();

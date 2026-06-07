@@ -91,7 +91,7 @@ public class MultiMapControllerTests
             AtlasController.InvalidIslandId);
 
         var underworldLayer = LayerState.EstablishOupostInNewAutoExpandLayer(civ);
-        state.Layers[LayerState.UnderworldZ] = underworldLayer;
+        state.AddLayer(LayerState.UnderworldZ, underworldLayer);
         state.Visibility.Recalculate();
         return (state, civ);
     }

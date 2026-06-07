@@ -85,7 +85,7 @@ public class BuildersGuildAutomationTests
     // Helper: advance clock until no new roads appear for one full 500-tick cycle
     // or until maxCycles is reached. Returns the number of cycles consumed.
     // -------------------------------------------------------------------------
-    private static void AdvanceUntilRoadSaturation(GameClock clock, List<Road> civRoads, int maxCycles = 60)
+    private static void AdvanceUntilRoadSaturation(GameClock clock, IReadOnlyList<Road> civRoads, int maxCycles = 60)
     {
         int prev = civRoads.Count;
         for (int i = 0; i < maxCycles; i++)

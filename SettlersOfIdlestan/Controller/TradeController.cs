@@ -171,7 +171,7 @@ namespace SettlersOfIdlestan.Controller
                       ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
             if (!CanEnhanceSeaportResource(civilizationIndex, resource))
                 throw new InvalidOperationException("Cannot enhance this resource: no available level-2 Market slot.");
-            civ.SeaportEnhancedResources.Add(resource);
+            civ.AddSeaportEnhancedResource(resource);
         }
 
         public bool CanActivateSeaportAutoTrade(int civilizationIndex, Resource resource)
@@ -190,7 +190,7 @@ namespace SettlersOfIdlestan.Controller
                       ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
             if (!CanActivateSeaportAutoTrade(civilizationIndex, resource))
                 throw new InvalidOperationException("Cannot activate auto-trade for this resource: no available level-3 Market slot or resource not enhanced.");
-            civ.SeaportAutoTradeResources.Add(resource);
+            civ.AddSeaportAutoTradeResource(resource);
         }
 
         public bool CanRecieveTrade(Civilization civ, Resource resource, int quantity = 1)

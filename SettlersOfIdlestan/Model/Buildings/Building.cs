@@ -236,16 +236,22 @@ public class Building
     /// </summary>
     public int AvailableAtLevel { get; set; }
 
+    private readonly Dictionary<HexCoord, long> _autoHarvestLastTicks = new();
+
     /// <summary>
     /// Tick de la dernière récolte automatique par hex, pour ce bâtiment spécifique.
     /// Clé = coordonnée hex ; valeur = tick de la dernière récolte.
     /// </summary>
-    public Dictionary<HexCoord, long> AutoHarvestLastTicks { get; set; } = new();
+    public IReadOnlyDictionary<HexCoord, long> AutoHarvestLastTicks => _autoHarvestLastTicks;
+
+    public void SetAutoHarvestTick(HexCoord hex, long tick) => _autoHarvestLastTicks[hex] = tick;
+
+    protected readonly List<string> _actions = new();
 
     /// <summary>
     /// Gets the list of actions associated with the building.
     /// </summary>
-    public List<string> Actions { get; } = new();
+    public IReadOnlyList<string> Actions => _actions;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Building"/> class.

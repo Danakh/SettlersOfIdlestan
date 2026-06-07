@@ -85,7 +85,7 @@ namespace SettlersOfIdlestan.Controller.Island
             if (!hasDeepestMine) return;
 
             var underworldLayer = LayerState.EstablishOupostInNewAutoExpandLayer(playerCiv);
-            _state.Layers[LayerState.UnderworldZ] = underworldLayer;
+            _state.AddLayer(LayerState.UnderworldZ, underworldLayer);
             _state.Visibility.RecalculateFor(playerCiv.Index);
         }
 
@@ -297,7 +297,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 if (defBonus > 0 && civ.ModifierAggregator.HasModifier(ECategory.BUILDING_DEFENSE_ON_CONSTRUCT))
                     city.CurrentDefense += defBonus;
                 if (resultBuilding.IsUnique && !civ.UniqueBuildings.Contains(resultBuilding.Type))
-                    civ.UniqueBuildings.Add(resultBuilding.Type);
+                    civ.AddUniqueBuilding(resultBuilding.Type);
                 if (resultBuilding is IUniqueBuilding)
                     civ.RebuildUniqueBuildingsModifiers();
             }

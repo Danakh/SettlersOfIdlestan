@@ -142,7 +142,7 @@ namespace SettlersOfIdlestan.Controller.Island
                     if (building.AutoHarvestLastTicks.TryGetValue(hex, out var lastBuildingTick) && now - lastBuildingTick < effective)
                         continue;
 
-                    building.AutoHarvestLastTicks[hex] = now;
+                    building.SetAutoHarvestTick(hex, now);
 
                     bool goldBonus = building is Mine && resource == Resource.Ore
                         && civ.MineGoldChancePercent > 0
@@ -503,12 +503,7 @@ namespace SettlersOfIdlestan.Controller.Island
             if (_monsterController?.HasDepartureCooldown(hex, now) == true)
                 return false;
 
-            var civMap = _state.HarvestLastTimesByCivilization;
-            if (!civMap.TryGetValue(civilizationIndex, out var perHex))
-            {
-                perHex = new System.Collections.Generic.Dictionary<HexCoord, long>();
-                civMap[civilizationIndex] = perHex;
-            }
+            var perHex = _state.GetOrCreateHarvestTimesForCiv(civilizationIndex);
             if (perHex.TryGetValue(hex, out var lastHarvest) && now - lastHarvest < HarvestCooldownTicks)
                 return false;
 

@@ -60,10 +60,16 @@ public class Civilization
         RebuildUniqueBuildingsModifiers();
     }
 
+    private readonly List<Road> _roads = new();
+
     /// <summary>
-    /// Gets or sets the list of roads in the civilization.
+    /// Gets the list of roads in the civilization.
     /// </summary>
-    public List<Road> Roads { get; set; } = new();
+    public IReadOnlyList<Road> Roads => _roads;
+
+    public void AddRoad(Road road) => _roads.Add(road);
+    public void RemoveRoad(Road road) => _roads.Remove(road);
+    public void RemoveAllRoads(Predicate<Road> match) => _roads.RemoveAll(match);
 
     private TechnologyTree _technologyTree = new();
 
@@ -243,17 +249,29 @@ public class Civilization
         return result + storageBonus;
     }
 
+    private readonly List<BuildingType> _uniqueBuildings = new();
+
     /// <summary>
     /// Bâtiments uniques construits par cette civilisation sur l'île courante.
     /// Empêche de construire deux fois le même bâtiment unique.
     /// </summary>
-    public List<BuildingType> UniqueBuildings { get; set; } = new();
+    public IReadOnlyList<BuildingType> UniqueBuildings => _uniqueBuildings;
+
+    public void AddUniqueBuilding(BuildingType type) => _uniqueBuildings.Add(type);
+
+    private readonly List<Resource> _seaportEnhancedResources = new();
 
     /// <summary>Resources for which a level-3 Seaport has unlocked a 4:1 trade rate (permanent).</summary>
-    public List<Resource> SeaportEnhancedResources { get; set; } = new();
+    public IReadOnlyList<Resource> SeaportEnhancedResources => _seaportEnhancedResources;
+
+    public void AddSeaportEnhancedResource(Resource resource) => _seaportEnhancedResources.Add(resource);
+
+    private readonly List<Resource> _seaportAutoTradeResources = new();
 
     /// <summary>Resources for which a level-4 Seaport has activated permanent auto-trade (one slot per level-4 Seaport).</summary>
-    public List<Resource> SeaportAutoTradeResources { get; set; } = new();
+    public IReadOnlyList<Resource> SeaportAutoTradeResources => _seaportAutoTradeResources;
+
+    public void AddSeaportAutoTradeResource(Resource resource) => _seaportAutoTradeResources.Add(resource);
 
     public event EventHandler<Resource>? LowStock;
 
