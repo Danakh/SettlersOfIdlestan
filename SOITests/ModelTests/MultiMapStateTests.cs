@@ -14,12 +14,13 @@ public class MultiMapStateTests
     [Fact]
     public void UnderworldState_CreateDefault_UsesUnderworldLayer()
     {
-        var underworld = LayerState.CreateUnderworld(playerCivIndex: 0);
+        var playerCiv = new Civilization { Index = 0 };
+        var underworld = LayerState.EstablishOupostInNewAutoExpandLayer(playerCiv);
 
         Assert.Equal(LayerState.UnderworldZ, underworld.Map.Z);
+        Assert.Single(playerCiv.Cities);
         Assert.All(underworld.Map.Tiles.Keys, coord => Assert.Equal(LayerState.UnderworldZ, coord.Z));
-        Assert.Single(underworld.Cities);
-        Assert.Equal(LayerState.UnderworldZ, underworld.Cities[0].Position.Z);
+        Assert.Equal(LayerState.UnderworldZ, playerCiv.Cities[0].Position.Z);
     }
 
     [Fact]
@@ -62,7 +63,8 @@ public class MultiMapStateTests
             new List<Civilization> { civ },
             AtlasController.InvalidIslandId);
 
-        state.Layers[LayerState.UnderworldZ] = LayerState.CreateUnderworld(civ.Index);
+        var underworldLayer = LayerState.EstablishOupostInNewAutoExpandLayer(civ);
+        state.Layers[LayerState.UnderworldZ] = underworldLayer;
         state.RecalculateVisibleIslandMaps();
 
         var underworldHex = new HexCoord(0, 0, LayerState.UnderworldZ);

@@ -136,7 +136,7 @@ public class CityRenderer : HexBasedRenderer, IGameRenderer
                     ? (IslandMap)underworldLayer.Map
                     : worldState.GetVisibleIslandMapsForZ(LayerState.UnderworldZ).TryGetValue(playerIdx, out var uvm) ? uvm : underworldLayer.Map;
                 foreach (var civ in worldState.Civilizations)
-                    DrawCities(canvas, underworldLayer.Cities.Where(c => c.CivilizationIndex == civ.Index).ToList(), civ, visibilityMap);
+                    DrawCities(canvas, civ.Cities.Where(c => c.Position.Z == LayerState.UnderworldZ).ToList(), civ, visibilityMap);
                 return;
             }
 

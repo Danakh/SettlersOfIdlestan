@@ -179,9 +179,6 @@ namespace SettlersOfIdlestan.Controller.Island
             var city = new City(vertex) { CivilizationIndex = civilizationIndex };
             civ.AddCity(city);
 
-            if (vertex.Z != IslandMap.SurfaceLayer && _state.Layers.TryGetValue(vertex.Z, out var layer))
-                layer.Cities.Add(city);
-
             if (civilizationIndex == _state.PlayerCivilization.Index)
                 foreach (var bt in civ.ModifierAggregator.GetGrantedBuildingTypes(ECategory.NEW_CITY_BUILDING))
                     if (!city.Buildings.Any(b => b.Type == bt))

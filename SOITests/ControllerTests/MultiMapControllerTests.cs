@@ -90,7 +90,8 @@ public class MultiMapControllerTests
             new List<Civilization> { civ },
             AtlasController.InvalidIslandId);
 
-        state.Layers[LayerState.UnderworldZ] = LayerState.CreateUnderworld(civ.Index);
+        var underworldLayer = LayerState.EstablishOupostInNewAutoExpandLayer(civ);
+        state.Layers[LayerState.UnderworldZ] = underworldLayer;
         state.RecalculateVisibleIslandMaps();
         return (state, civ);
     }

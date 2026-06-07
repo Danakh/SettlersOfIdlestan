@@ -1,25 +1,16 @@
-using System.Collections.Generic;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.HexGrid;
-using System.Text.Json.Serialization;
 
 namespace SettlersOfIdlestan.Model.IslandMap;
 
 /// <summary>
-/// State of a single map layer (Z-index). Contains the map tiles and any
-/// layer-specific cities (e.g. underworld outposts).
+/// State of a single map layer (Z-index). Contains the map tiles and layer metadata.
 /// </summary>
 public class LayerState
 {
     public const int UnderworldZ = 1;
 
     public IslandMap Map { get; set; }
-
-    /// <summary>
-    /// Cities that belong to this layer (e.g. outposts in the underworld).
-    /// Stored here in addition to their owning civilization's city list.
-    /// </summary>
-    public List<City> Cities { get; set; }
 
     /// <summary>
     /// Quand true, la construction d'une route génère automatiquement les hexagones manquants adjacents.
@@ -36,20 +27,19 @@ public class LayerState
     public LayerState()
     {
         Map = new IslandMap(System.Array.Empty<HexTile>());
-        Cities = new List<City>();
     }
 
     public LayerState(IslandMap map)
     {
         Map = map;
-        Cities = new List<City>();
     }
 
     /// <summary>
     /// Creates the default 3-hex underworld map with an outpost at the shared vertex.
     /// Hexes (0,0), (1,0), (0,1) form a triangle sharing one vertex.
+    /// The returned City must be added to the owning civilization by the caller.
     /// </summary>
-    public static LayerState CreateUnderworld(int playerCivIndex)
+    public static LayerState EstablishOupostInNewAutoExpandLayer(Civilization.Civilization playerCiv)
     {
         var tiles = new[]
         {
@@ -65,14 +55,16 @@ public class LayerState
             new HexCoord(1, 0, UnderworldZ),
             new HexCoord(0, 1, UnderworldZ));
 
-        var outpost = new City(outpostVertex) { CivilizationIndex = playerCivIndex };
+        var outpost = new City(outpostVertex) { CivilizationIndex = playerCiv.Index };
+        playerCiv.AddCity(outpost);
 
-        return new LayerState
+        var layer = new LayerState
         {
             Map = map,
-            Cities = new List<City> { outpost },
             AutoExtend = true,
             ArrivalVertex = outpostVertex,
         };
+
+        return layer;
     }
 }

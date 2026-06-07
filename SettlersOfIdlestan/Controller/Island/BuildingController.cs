@@ -84,8 +84,8 @@ namespace SettlersOfIdlestan.Controller.Island
 
             if (!hasDeepestMine) return;
 
-            _state.Layers[LayerState.UnderworldZ] = LayerState.CreateUnderworld(playerCiv.Index);
-            _state.NormalizeUnderworldCitiesIntoCivilizations();
+            var underworldLayer = LayerState.EstablishOupostInNewAutoExpandLayer(playerCiv);
+            _state.Layers[LayerState.UnderworldZ] = underworldLayer;
             _state.RecalculateVisibleIslandMap(playerCiv.Index);
         }
 

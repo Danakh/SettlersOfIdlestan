@@ -219,7 +219,6 @@ public class AutoExtendController
             PopulateAggressiveCity(city, map);
             city.Soldiers = city.MaxSoldiers + npcCiv.CityMaxSoldiersBonus;
             npcCiv.AddCity(city);
-            layerState.Cities.Add(city);
             citiesPlaced++;
         }
 
