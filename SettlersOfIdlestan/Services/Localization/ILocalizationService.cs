@@ -1,3 +1,5 @@
+using SettlersOfIdlestan.Model.Localization;
+
 namespace SettlersOfIdlestan.Services.Localization;
 
 /// <summary>

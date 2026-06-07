@@ -221,7 +221,10 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay
             }
 
             foreach (var entry in featureTooltipEntries)
-                lines.Add(_localizationService.Resolve(entry!));
+                if (entry!.Args.Length == 0) 
+                    lines.Add(_localizationService.Get(entry.Key));
+                else
+                    lines.Add(_localizationService.GetFormated(entry.Key, entry.Args));
 
             if (plunderCooldownActive)
             {

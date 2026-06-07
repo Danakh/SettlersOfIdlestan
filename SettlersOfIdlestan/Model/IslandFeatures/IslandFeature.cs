@@ -1,7 +1,7 @@
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.Monsters;
-using SettlersOfIdlestan.Services.Localization;
+using SettlersOfIdlestan.Model.Localization;
 using System.Text.Json.Serialization;
 
 namespace SettlersOfIdlestan.Model.IslandFeatures;

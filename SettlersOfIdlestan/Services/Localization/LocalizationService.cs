@@ -1,5 +1,6 @@
 using System.Reflection;
 using System.Text.Json;
+using SettlersOfIdlestan.Model.Localization;
 
 namespace SettlersOfIdlestan.Services.Localization;
 

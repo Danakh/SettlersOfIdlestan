@@ -1,5 +1,6 @@
 using SettlersOfIdlestan.Controller;
 using SettlersOfIdlestan.Services.Localization;
+using SettlersOfIdlestan.Model.Localization;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Services;
 using SkiaSharp;

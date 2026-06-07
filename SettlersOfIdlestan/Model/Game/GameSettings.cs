@@ -1,4 +1,4 @@
-using SettlersOfIdlestan.Services.Localization;
+using SettlersOfIdlestan.Model.Localization;
 
 namespace SettlersOfIdlestan.Model.Game;
 
