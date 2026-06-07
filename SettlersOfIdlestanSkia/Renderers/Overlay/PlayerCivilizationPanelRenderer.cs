@@ -40,6 +40,9 @@ public sealed class PlayerCivilizationPanelRenderer : IDisposable
     private bool _collapsed = false;
     private SKRect _collapseTabRect = SKRect.Empty;
     public float TopOverride { get; set; } = 0f;
+    public bool IsCollapsed => _collapsed;
+    public void Collapse() => _collapsed = true;
+    public Action? OnExpanded { get; set; }
 
     private SKSize _canvasSize;
     private SKRect _panelBounds        = SKRect.Empty;
@@ -341,7 +344,10 @@ public sealed class PlayerCivilizationPanelRenderer : IDisposable
 
         if (!_collapseTabRect.IsEmpty && _collapseTabRect.Contains(pos.X, pos.Y))
         {
+            bool wasCollapsed = _collapsed;
             _collapsed = !_collapsed;
+            if (wasCollapsed && !_collapsed)
+                OnExpanded?.Invoke();
             return true;
         }
 

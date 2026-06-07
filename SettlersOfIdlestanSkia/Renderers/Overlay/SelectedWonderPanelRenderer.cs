@@ -40,6 +40,7 @@ public class SelectedWonderPanelRenderer : IGameRenderer
     private const float BarHeight = 10;
 
     public float TopOverride { get; set; } = 0f;
+    public bool HasSelection => _wonderService.SelectedWonder != null;
     private SKRect _panelBounds = SKRect.Empty;
     private SKRect _closeRect = SKRect.Empty;
     private SKRect _collapseTabRect = SKRect.Empty;

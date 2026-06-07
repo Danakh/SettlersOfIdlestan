@@ -70,10 +70,9 @@ public class SelectedCityPanelRenderer : IGameRenderer
     private int _lastVisibleCount = 0;
     private const float CollapseTabW = 14f;
     private const float CollapseTabH = 24f;
-    private const float MobileHandleW = 60f;
-    private const float MobileHandleH = 22f;
     private SKRect _collapseTabRect = SKRect.Empty;
     public float ReservedBottomHeight { get; set; }
+    public float TopOverride { get; set; } = 0f;
     public bool IsInputEnabled { get; set; } = true;
     public UILayoutService? LayoutService { get; set; }
     private bool IsMobile => LayoutService?.IsMobile ?? false;
@@ -167,32 +166,17 @@ public class SelectedCityPanelRenderer : IGameRenderer
         }
 
         bool isMobile = IsMobile;
-        float panelX = isMobile
-            ? Math.Max(0f, (_canvasSize.Width - PanelWidth) / 2f)
-            : _canvasSize.Width - PanelWidth - 10;
-        const float DesktopPanelY = 60f;
-        float tabTop = DesktopPanelY + 8f;
+        float panelX = _canvasSize.Width - PanelWidth - 10;
+        float panelY0 = TopOverride > 0f ? TopOverride : 60f;
+        float tabTop = panelY0 + 8f;
 
         if (_collapsed)
         {
-            if (isMobile)
-            {
-                float hx = (_canvasSize.Width - MobileHandleW) / 2f;
-                float hy = _canvasSize.Height - UILayoutService.MobileTabBarHeight - 4 - MobileHandleH;
-                _collapseTabRect = new SKRect(hx, hy, hx + MobileHandleW, hy + MobileHandleH);
-                _panelBounds = _collapseTabRect;
-                canvas.DrawRoundRect(_collapseTabRect, 8, 8, _collapseTabPaint);
-                canvas.DrawRoundRect(_collapseTabRect, 8, 8, _borderPaint);
-                canvas.DrawText("▲", _collapseTabRect.MidX, _collapseTabRect.MidY + 5f, SKTextAlign.Center, _font12, _textPaint);
-            }
-            else
-            {
-                _collapseTabRect = new SKRect(_canvasSize.Width - CollapseTabW, tabTop, _canvasSize.Width, tabTop + CollapseTabH);
-                _panelBounds = _collapseTabRect;
-                canvas.DrawRoundRect(_collapseTabRect, 4, 4, _collapseTabPaint);
-                canvas.DrawRoundRect(_collapseTabRect, 4, 4, _borderPaint);
-                canvas.DrawText("◄", _collapseTabRect.MidX, _collapseTabRect.MidY + 5f, SKTextAlign.Center, _font12, _textPaint);
-            }
+            _collapseTabRect = new SKRect(_canvasSize.Width - CollapseTabW, tabTop, _canvasSize.Width, tabTop + CollapseTabH);
+            _panelBounds = _collapseTabRect;
+            canvas.DrawRoundRect(_collapseTabRect, 4, 4, _collapseTabPaint);
+            canvas.DrawRoundRect(_collapseTabRect, 4, 4, _borderPaint);
+            canvas.DrawText("◄", _collapseTabRect.MidX, _collapseTabRect.MidY + 5f, SKTextAlign.Center, _font12, _textPaint);
             return;
         }
 
@@ -221,8 +205,8 @@ public class SelectedCityPanelRenderer : IGameRenderer
         int buildingCount = buildings.Count;
 
         float maxPanelHeight = isMobile
-            ? Math.Max(0f, _canvasSize.Height - (PlayerResourcesOverlayRenderer.BarHeight + PlayerResourcesOverlayRenderer.SecondRowHeight) - UILayoutService.MobileTabBarHeight - 16f)
-            : Math.Max(0, _canvasSize.Height - DesktopPanelY - ReservedBottomHeight - 10);
+            ? Math.Max(0f, _canvasSize.Height - panelY0 - UILayoutService.MobileTabBarHeight - 8f)
+            : Math.Max(0, _canvasSize.Height - panelY0 - ReservedBottomHeight - 10);
         int visibleBuildingCount = Math.Min(buildingCount, Math.Max(0, (int)((maxPanelHeight - 2 * Padding - tabArea - MilitaryFooterHeight) / RowHeight)));
 
         _lastBuildingCount = buildingCount;
@@ -241,10 +225,7 @@ public class SelectedCityPanelRenderer : IGameRenderer
         if (panelHeight < tabArea + 2 * Padding + MilitaryFooterHeight)
             panelHeight = tabArea + 2 * Padding + MilitaryFooterHeight;
 
-        float mobileHeaderH = PlayerResourcesOverlayRenderer.BarHeight + PlayerResourcesOverlayRenderer.SecondRowHeight;
-        float panelY = isMobile
-            ? Math.Max(mobileHeaderH + 4f, _canvasSize.Height - panelHeight - UILayoutService.MobileTabBarHeight - 4f)
-            : DesktopPanelY;
+        float panelY = panelY0;
 
         _panelBounds = new SKRect(panelX, panelY, panelX + PanelWidth, panelY + panelHeight);
 
@@ -426,23 +407,10 @@ public class SelectedCityPanelRenderer : IGameRenderer
         }
 
         // Onglet collapse
-        if (isMobile)
-        {
-            // Handle horizontal centré au-dessus du panel
-            float hx = panelX + (PanelWidth - MobileHandleW) / 2f;
-            float hy = panelY - MobileHandleH - 2f;
-            _collapseTabRect = new SKRect(hx, hy, hx + MobileHandleW, hy + MobileHandleH);
-            canvas.DrawRoundRect(_collapseTabRect, 8, 8, _collapseTabPaint);
-            canvas.DrawRoundRect(_collapseTabRect, 8, 8, _borderPaint);
-            canvas.DrawText("▼", _collapseTabRect.MidX, _collapseTabRect.MidY + 5f, SKTextAlign.Center, _font12, _textPaint);
-        }
-        else
-        {
-            _collapseTabRect = new SKRect(panelX - CollapseTabW, tabTop, panelX, tabTop + CollapseTabH);
-            canvas.DrawRoundRect(_collapseTabRect, 4, 4, _collapseTabPaint);
-            canvas.DrawRoundRect(_collapseTabRect, 4, 4, _borderPaint);
-            canvas.DrawText("►", _collapseTabRect.MidX, _collapseTabRect.MidY + 5f, SKTextAlign.Center, _font12, _textPaint);
-        }
+        _collapseTabRect = new SKRect(panelX - CollapseTabW, tabTop, panelX, tabTop + CollapseTabH);
+        canvas.DrawRoundRect(_collapseTabRect, 4, 4, _collapseTabPaint);
+        canvas.DrawRoundRect(_collapseTabRect, 4, 4, _borderPaint);
+        canvas.DrawText("►", _collapseTabRect.MidX, _collapseTabRect.MidY + 5f, SKTextAlign.Center, _font12, _textPaint);
 
         // Tooltip au survol
         if (_hoveredBuildingType.HasValue)
