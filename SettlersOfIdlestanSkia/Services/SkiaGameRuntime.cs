@@ -42,6 +42,7 @@ public sealed class SkiaGameRuntime : IDisposable
     private string? _corruptSaveJson;
     private GameOverPopupRenderer? _gameOverPopup;
     private bool _gameOverPending;
+    private HardResetPopupRenderer? _hardResetPopup;
     private UILayoutService? _uiLayoutService;
 
     public event Action? QuitRequested;
@@ -215,7 +216,12 @@ public sealed class SkiaGameRuntime : IDisposable
         DebugPanelRenderer? debugPanelRenderer = null;
         if (allowDebugMode)
             debugPanelRenderer = new DebugPanelRenderer(_inputService!, _localizationService!, _uiLayoutService!);
-        var settingsMenu = new SettingsMenu(_gameControllerService.MainGameController, _inputService!, _localizationService!, aboutRenderer, settingsPopupRenderer, _fileSystemService!, _gameControllerService.CityBuildingService!, allowDebugMode, debugPanelRenderer, StartNewGameIntro, _uiLayoutService);
+        _hardResetPopup = new HardResetPopupRenderer(
+            _localizationService!,
+            _fileSystemService!,
+            onConfirm: () => QuitRequested?.Invoke());
+
+        var settingsMenu = new SettingsMenu(_gameControllerService.MainGameController, _inputService!, _localizationService!, aboutRenderer, settingsPopupRenderer, _fileSystemService!, _gameControllerService.CityBuildingService!, allowDebugMode, debugPanelRenderer, StartNewGameIntro, _uiLayoutService, onHardReset: () => _hardResetPopup?.Open());
 
         _playerResourcesOverlayRenderer = new PlayerResourcesOverlayRenderer(_localizationService!, _resourceManager!);
         var playerResourcesOverlayRenderer = _playerResourcesOverlayRenderer;
@@ -414,10 +420,12 @@ public sealed class SkiaGameRuntime : IDisposable
         float uiScale = _uiLayoutService?.UiScale ?? 1f;
         _corruptSavePopup?.Render(canvas, _lastCanvasSize, uiScale);
         _gameOverPopup?.Render(canvas, _lastCanvasSize, uiScale);
+        _hardResetPopup?.Render(canvas, _lastCanvasSize, uiScale);
     }
 
     public void HandlePointerPressed(float x, float y, int pointerId = 0, PointerButton button = PointerButton.Left)
     {
+        if (_hardResetPopup?.IsOpen == true) { _hardResetPopup.HandlePointerPressed(new SKPoint(x, y), button); return; }
         if (_corruptSavePopup?.IsOpen == true) { _corruptSavePopup.HandlePointerPressed(new SKPoint(x, y), button); return; }
         if (_gameOverPopup?.IsOpen == true) { _gameOverPopup.HandlePointerPressed(new SKPoint(x, y), button); return; }
         if (_introRenderer?.IsActive == true) return;
@@ -435,6 +443,7 @@ public sealed class SkiaGameRuntime : IDisposable
 
     public void HandlePointerMoved(float x, float y, int pointerId = 0)
     {
+        if (_hardResetPopup?.IsOpen == true) return;
         if (_corruptSavePopup?.IsOpen == true) return;
         if (_gameOverPopup?.IsOpen == true) return;
         if (_introRenderer?.IsActive == true) return;
@@ -457,6 +466,7 @@ public sealed class SkiaGameRuntime : IDisposable
 
     public void HandlePointerReleased(float x, float y, int pointerId = 0, PointerButton button = PointerButton.Left)
     {
+        if (_hardResetPopup?.IsOpen == true) return;
         if (_corruptSavePopup?.IsOpen == true) return;
         if (_gameOverPopup?.IsOpen == true) return;
         if (_introRenderer?.IsActive == true) return;
@@ -670,6 +680,8 @@ public sealed class SkiaGameRuntime : IDisposable
 
         _corruptSavePopup?.Dispose();
         _corruptSavePopup = null;
+        _hardResetPopup?.Dispose();
+        _hardResetPopup = null;
         _constructionInteractionService?.Cleanup();
         _militaryInteractionService?.Cleanup();
         _renderService?.Dispose();
