@@ -345,6 +345,10 @@ public sealed class ResearchRenderer : IGameRenderer
                 if (status == TechnologyStatus.Available)
                     ctrl.StartResearch(techId);
             }
+            else if (ctrl.ActiveResearchConsumed == 0 && status == TechnologyStatus.Available)
+            {
+                ctrl.StartResearch(techId);
+            }
             else
             {
                 if (ctrl.GetQueuedResearch() == techId)

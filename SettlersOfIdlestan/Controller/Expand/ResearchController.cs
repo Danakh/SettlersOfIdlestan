@@ -24,6 +24,7 @@ namespace SettlersOfIdlestan.Controller.Expand
         // Convenience accessors for renderers — go through PrestigeState so the source is explicit.
         public int ResearchPoints => _prestigeState?.TechnologyTree.ResearchPoints ?? 0;
         public TechnologyId? ActiveResearch => _prestigeState?.TechnologyTree.ActiveResearch;
+        public int ActiveResearchConsumed => _prestigeState?.TechnologyTree.ActiveResearchConsumed ?? 0;
 
         private TechnologyTree? Tree => _prestigeState?.TechnologyTree;
 
