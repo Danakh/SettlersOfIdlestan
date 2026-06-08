@@ -15,6 +15,13 @@ public partial class MainPage : ContentPage
 	private SKPoint _lastPinchCenter;
 	private bool _isPinching;
 
+	// Zoom propre : ne recalculer la distance que quand les DEUX doigts ont bougé depuis le
+	// dernier snapshot, afin d'éviter les faux zooms intermédiaires (un doigt à jour, l'autre non).
+	private readonly Dictionary<long, SKPoint> _pinchSnapshot = [];
+	private long _pinchLastMovedId = -1L;
+	private int _pinchSameIdStreak;
+	private const int PinchSameIdStreakThreshold = 3;
+
 	public MainPage()
 	{
 		InitializeComponent();
@@ -142,6 +149,10 @@ public partial class MainPage : ContentPage
 					_isPinching = true;
 					_lastPinchDist = GetPinchDistance();
 					_lastPinchCenter = GetPinchCenter();
+					_pinchSnapshot.Clear();
+					foreach (var kvp in _activePointers) _pinchSnapshot[kvp.Key] = kvp.Value;
+					_pinchLastMovedId = -1L;
+					_pinchSameIdStreak = 0;
 					// Annule le pan en cours au moment où le deuxième doigt touche
 					_runtime.HandlePointerReleased(e.Location.X, e.Location.Y, (int)e.Id, ToPointerButton(e.MouseButton));
 				}
@@ -155,15 +166,33 @@ public partial class MainPage : ContentPage
 				_activePointers[e.Id] = e.Location;
 				if (_isPinching && _activePointers.Count >= 2)
 				{
-					var newDist = GetPinchDistance();
+					var newDist   = GetPinchDistance();
 					var newCenter = GetPinchCenter();
-					if (_lastPinchDist > 0f && newDist > 0f)
+
+					float panDx = newCenter.X - _lastPinchCenter.X;
+					float panDy = newCenter.Y - _lastPinchCenter.Y;
+
+					// Ne recalculer le zoom que quand on a vu les deux doigts depuis le dernier
+					// snapshot (alternance A→B), ou après N events du même doigt (l'autre est fixe).
+					if (e.Id == _pinchLastMovedId) _pinchSameIdStreak++;
+					else                            _pinchSameIdStreak = 0;
+					_pinchLastMovedId = e.Id;
+
+					bool differentFinger = _pinchSameIdStreak == 0 && _pinchSnapshot.Count >= 2;
+					bool singleFingerTimeout = _pinchSameIdStreak >= PinchSameIdStreakThreshold;
+
+					float scaleRatio = 1f;
+					if (differentFinger || singleFingerTimeout)
 					{
-						float panDx = newCenter.X - _lastPinchCenter.X;
-						float panDy = newCenter.Y - _lastPinchCenter.Y;
-						_runtime.HandlePinch(newDist / _lastPinchDist, newCenter.X, newCenter.Y, panDx, panDy);
+						float snapDist = GetDistanceFrom(_pinchSnapshot);
+						if (snapDist > 0f && newDist > 0f)
+							scaleRatio = newDist / snapDist;
+						foreach (var kvp in _activePointers) _pinchSnapshot[kvp.Key] = kvp.Value;
+						_pinchSameIdStreak = 0;
 					}
-					_lastPinchDist = newDist;
+
+					_runtime.HandlePinch(scaleRatio, newCenter.X, newCenter.Y, panDx, panDy);
+					_lastPinchDist   = newDist;
 					_lastPinchCenter = newCenter;
 				}
 				else if (!_isPinching)
@@ -175,10 +204,13 @@ public partial class MainPage : ContentPage
 			case SKTouchAction.Released:
 			case SKTouchAction.Cancelled:
 				_activePointers.Remove(e.Id);
+				_pinchSnapshot.Remove(e.Id);
 				if (_activePointers.Count < 2)
 				{
 					_isPinching = false;
 					_lastPinchDist = 0f;
+					_pinchLastMovedId = -1L;
+					_pinchSameIdStreak = 0;
 				}
 				if (!_isPinching)
 				{
@@ -194,12 +226,14 @@ public partial class MainPage : ContentPage
 		e.Handled = true;
 	}
 
-	private float GetPinchDistance()
+	private float GetPinchDistance() => GetDistanceFrom(_activePointers);
+
+	private static float GetDistanceFrom(Dictionary<long, SKPoint> pts)
 	{
-		var pts = _activePointers.Values.ToArray();
-		if (pts.Length < 2) return 0f;
-		var dx = pts[0].X - pts[1].X;
-		var dy = pts[0].Y - pts[1].Y;
+		var arr = pts.Values.ToArray();
+		if (arr.Length < 2) return 0f;
+		var dx = arr[0].X - arr[1].X;
+		var dy = arr[0].Y - arr[1].Y;
 		return MathF.Sqrt(dx * dx + dy * dy);
 	}
 

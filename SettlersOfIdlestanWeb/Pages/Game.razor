@@ -140,8 +140,8 @@
         => _runtime?.HandlePointerReleased((float)x * _dpr, (float)y * _dpr, 0, PointerButton.Left);
 
     [JSInvokable]
-    public void OnPinch(double ratio, double centerX, double centerY)
-        => _runtime?.HandlePinch((float)ratio, (float)centerX * _dpr, (float)centerY * _dpr);
+    public void OnPinch(double ratio, double centerX, double centerY, double panDx = 0, double panDy = 0)
+        => _runtime?.HandlePinch((float)ratio, (float)centerX * _dpr, (float)centerY * _dpr, (float)panDx * _dpr, (float)panDy * _dpr);
 
     [JSInvokable]
     public void OnKeyDown(string key) => _runtime?.HandleKeyPressed(key);

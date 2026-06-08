@@ -102,6 +102,7 @@ window.gameInterop = {
 
     registerTouchHandler: function (dotNetRef) {
         let lastDist = null;
+        let lastCx = 0, lastCy = 0;
         let isPinching = false;
         let lastX = 0, lastY = 0;
 
@@ -117,6 +118,8 @@ window.gameInterop = {
                 if (!isPinching) dotNetRef.invokeMethodAsync('OnTouchEnd', lastX, lastY);
                 isPinching = true;
                 lastDist = getDist(e.touches[0], e.touches[1]);
+                lastCx = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+                lastCy = (e.touches[0].clientY + e.touches[1].clientY) / 2;
             } else if (e.touches.length === 1 && !isPinching) {
                 lastX = e.touches[0].clientX;
                 lastY = e.touches[0].clientY;
@@ -128,13 +131,17 @@ window.gameInterop = {
             e.preventDefault();
             if (e.touches.length === 2 && isPinching) {
                 const d = getDist(e.touches[0], e.touches[1]);
+                const cx = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+                const cy = (e.touches[0].clientY + e.touches[1].clientY) / 2;
                 if (lastDist !== null && lastDist > 0) {
                     const ratio = d / lastDist;
-                    const cx = (e.touches[0].clientX + e.touches[1].clientX) / 2;
-                    const cy = (e.touches[0].clientY + e.touches[1].clientY) / 2;
-                    dotNetRef.invokeMethodAsync('OnPinch', ratio, cx, cy);
+                    const panDx = cx - lastCx;
+                    const panDy = cy - lastCy;
+                    dotNetRef.invokeMethodAsync('OnPinch', ratio, cx, cy, panDx, panDy);
                 }
                 lastDist = d;
+                lastCx = cx;
+                lastCy = cy;
             } else if (e.touches.length === 1 && !isPinching) {
                 lastX = e.touches[0].clientX;
                 lastY = e.touches[0].clientY;
