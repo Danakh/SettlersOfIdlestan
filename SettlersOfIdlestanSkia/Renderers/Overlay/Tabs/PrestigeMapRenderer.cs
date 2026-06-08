@@ -57,6 +57,12 @@ public sealed class PrestigeMapRenderer : IGameRenderer
     private SKPoint _pressPosition;
     private SKPoint _lastPanMovePosition;
 
+    private bool _showVertexNames = true;
+    private bool _showHexNames = true;
+
+    private SKRect ToggleVertexNamesBtn => new(_canvasSize.Width - 176f, _barH + 5f, _canvasSize.Width - 96f, _barH + 27f);
+    private SKRect ToggleHexNamesBtn    => new(_canvasSize.Width - 88f,  _barH + 5f, _canvasSize.Width - 8f,  _barH + 27f);
+
     private Vertex? _hoveredVertex;
     private HexCoord? _hoveredHex;
 
@@ -90,10 +96,12 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         Style = SKPaintStyle.Stroke, IsAntialias = true,
     };
 
-    private readonly SKPaint _textBlackPaint = new() { Color = SKColors.Black, IsAntialias = true };
-    private readonly SKPaint _textWhitePaint = new() { Color = SKColors.White, IsAntialias = true };
-    private readonly SKFont  _labelFont     = new() { Size = 10, Typeface = SkiaFonts.Regular };
-    private readonly SKFont  _labelFontBold = new() { Size = 10, Typeface = SkiaFonts.Bold };
+    private readonly SKPaint _textBlackPaint  = new() { Color = SKColors.Black, IsAntialias = true };
+    private readonly SKPaint _textWhitePaint  = new() { Color = SKColors.White, IsAntialias = true };
+    private readonly SKFont  _labelFont      = new() { Size = 10, Typeface = SkiaFonts.Regular };
+    private readonly SKFont  _labelFontBold  = new() { Size = 10, Typeface = SkiaFonts.Bold };
+    private readonly SKPaint _toggleActivePaint   = new() { Color = new SKColor(60, 100, 180), Style = SKPaintStyle.Fill, IsAntialias = true };
+    private readonly SKPaint _toggleInactivePaint = new() { Color = new SKColor(80, 80, 90),  Style = SKPaintStyle.Fill, IsAntialias = true };
 
     public PrestigeMapRenderer(
         GameControllerService gameControllerService,
@@ -170,6 +178,7 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         canvas.DrawRect(new SKRect(0, _barH, _canvasSize.Width, _barH + HeaderHeight), _headerBgPaint);
         string ppLabel = $"{_localization.Get("prestige_points_label")}: {prestigeState.PrestigePoints}";
         SkiaTextUtils.DrawText(canvas, ppLabel, 16f, _barH + 24f, _headerFont, _textWhitePaint);
+        DrawToggleButtons(canvas);
 
         if (_hoveredVertex != null)
             BuildVertexTooltip(_hoveredVertex, prestigeState);
@@ -219,8 +228,11 @@ public sealed class PrestigeMapRenderer : IGameRenderer
             canvas.DrawPath(path, _hexFillPaint);
             canvas.DrawPath(path, _hexBorderPaint);
 
-            string name = _localization.Get(hex.LocalizationKey);
-            SkiaTextUtils.DrawText(canvas, name, pos.X, pos.Y + 4f, SKTextAlign.Center, _labelFont, _textBlackPaint);
+            if (_showHexNames)
+            {
+                string name = _localization.Get(hex.LocalizationKey);
+                SkiaTextUtils.DrawText(canvas, name, pos.X, pos.Y + 4f, SKTextAlign.Center, _labelFont, _textBlackPaint);
+            }
         }
     }
 
@@ -271,11 +283,12 @@ public sealed class PrestigeMapRenderer : IGameRenderer
             if (purchased)
                 SkiaTextUtils.DrawText(canvas, "✓", pos.X, pos.Y + 4f, SKTextAlign.Center, _labelFontBold, _textWhitePaint);
 
-            var local = LocalVertexPos(vertex.Coord);
-            var offset = new SKPoint(local.X - CentralLocal.X, local.Y - CentralLocal.Y);
-            var labelPos = RadialLabelPos(offset, pos, vr + 13f);
-            string name = _localization.Get(vertex.LocalizationKey);
-            SkiaTextUtils.DrawText(canvas, name, labelPos.X, labelPos.Y, SKTextAlign.Center, _labelFont, _textBlackPaint);
+            if (_showVertexNames)
+            {
+                string name = _localization.Get(vertex.LocalizationKey);
+                float labelY = IsSouthTip(vertex.Coord) ? pos.Y + 6f : pos.Y + 2f;
+                SkiaTextUtils.DrawText(canvas, name, pos.X + vr, labelY, SKTextAlign.Left, _labelFont, _textBlackPaint);
+            }
         }
     }
 
@@ -283,6 +296,13 @@ public sealed class PrestigeMapRenderer : IGameRenderer
 
     public void HandlePointerMoved(SKPoint position)
     {
+        if (position.Y <= _barH + HeaderHeight)
+        {
+            _hoveredVertex = null;
+            _hoveredHex = null;
+            return;
+        }
+
         if (_pointerDown)
         {
             float dx = position.X - _pressPosition.X;
@@ -349,6 +369,17 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         _isPanning = false;
 
         if (wasPanning) return;
+
+        if (ToggleVertexNamesBtn.Contains(position))
+        {
+            _showVertexNames = !_showVertexNames;
+            return;
+        }
+        if (ToggleHexNamesBtn.Contains(position))
+        {
+            _showHexNames = !_showHexNames;
+            return;
+        }
 
         float vr = VertexCircleRadius * _zoom;
         foreach (var vertex in PrestigeMapController.DefaultMap.Vertices)
@@ -539,6 +570,20 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         _ => $"+{mod.Value}"
     };
 
+    // ─── Toggle buttons ───────────────────────────────────────────────────────
+
+    private void DrawToggleButtons(SKCanvas canvas)
+    {
+        DrawToggleButton(canvas, ToggleVertexNamesBtn, _localization.Get("prestige_toggle_vertex_names"), _showVertexNames);
+        DrawToggleButton(canvas, ToggleHexNamesBtn,    _localization.Get("prestige_toggle_hex_names"),    _showHexNames);
+    }
+
+    private void DrawToggleButton(SKCanvas canvas, SKRect rect, string label, bool active)
+    {
+        canvas.DrawRoundRect(rect, 4f, 4f, active ? _toggleActivePaint : _toggleInactivePaint);
+        SkiaTextUtils.DrawText(canvas, label, rect.MidX, rect.MidY + 4f, SKTextAlign.Center, _labelFont, _textWhitePaint);
+    }
+
     // ─── Position helpers ─────────────────────────────────────────────────────
 
     private static SKPoint LocalHexPos(HexCoord c)
@@ -567,14 +612,16 @@ public sealed class PrestigeMapRenderer : IGameRenderer
                    _mapCenter.Y + (local.Y - CentralLocal.Y) * _zoom);
     }
 
-    private static SKPoint RadialLabelPos(SKPoint offset, SKPoint screenPos, float dist)
+    // Un vertex est la pointe sud d'un hex si exactement 1 de ses 3 hex adjacents est au-dessus de lui.
+    // (pointe nord : 2 hex centres au-dessus)
+    private static bool IsSouthTip(Vertex v)
     {
-        float len = MathF.Sqrt(offset.X * offset.X + offset.Y * offset.Y);
-        if (len < 0.01f)
-            return new SKPoint(screenPos.X, screenPos.Y + dist);
-        return new SKPoint(
-            screenPos.X + offset.X / len * dist,
-            screenPos.Y + offset.Y / len * dist + 4f);
+        var vPos = LocalVertexPos(v);
+        int above = 0;
+        if (LocalHexPos(v.Hex1).Y < vPos.Y - 0.1f) above++;
+        if (LocalHexPos(v.Hex2).Y < vPos.Y - 0.1f) above++;
+        if (LocalHexPos(v.Hex3).Y < vPos.Y - 0.1f) above++;
+        return above == 1;
     }
 
     private static SKPoint[] GetHexPoints(float cx, float cy, float size)
@@ -630,5 +677,7 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         _textWhitePaint.Dispose();
         _labelFont.Dispose();
         _labelFontBold.Dispose();
+        _toggleActivePaint.Dispose();
+        _toggleInactivePaint.Dispose();
     }
 }

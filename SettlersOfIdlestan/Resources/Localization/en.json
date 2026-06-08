@@ -209,6 +209,8 @@
   "tab_island": "Island",
   "tab_prestige_map": "Prestige",
   "prestige_points_label": "Prestige points",
+  "prestige_toggle_vertex_names": "Vertex names",
+  "prestige_toggle_hex_names": "Hex names",
   "tooltip_building_prestige": "Prestige points:",
   "tooltip_building_prestige_next": "Next level:",
   "tooltip_requires_seaport_4": "⚠ Requires a level 4 Seaport in this city",

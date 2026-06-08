@@ -209,6 +209,8 @@
   "tab_island": "Île",
   "tab_prestige_map": "Prestige",
   "prestige_points_label": "Points de prestige",
+  "prestige_toggle_vertex_names": "Noms vertex",
+  "prestige_toggle_hex_names": "Noms hex",
   "tooltip_building_prestige": "Points de prestige :",
   "tooltip_building_prestige_next": "Prochain niveau :",
   "tooltip_requires_seaport_4": "⚠ Nécessite un Port de pêche niveau 4 dans cette ville",
