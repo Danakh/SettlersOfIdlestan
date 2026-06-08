@@ -1,4 +1,4 @@
-﻿using SettlersOfIdlestan.Controller;
+using SettlersOfIdlestan.Controller;
 using SettlersOfIdlestanSkia.Services.Localization;
 using SettlersOfIdlestan.Model.Localization;
 using SettlersOfIdlestanSkia.Core;
@@ -7,41 +7,38 @@ using SkiaSharp;
 
 namespace SettlersOfIdlestanSkia.Renderers.Overlay.Popup;
 
-public sealed class SettingsPopupRenderer : IDisposable
+public sealed class SettingsPopupRenderer : PopupRendererBase
 {
-    private const float PopupWidth     = 580;
-    private const float PopupHeight    = 274;
-    private const float BtnWidth       = 120;
-    private const float BtnHeight      = 34;
-    private const float BtnGap         = 10;
-    private const float BtnRightMargin = 24;
-    private const float RowSpacingY    = 64;
-    private const float FirstRowY      = 72;
-    private const float ToggleWidth    = 46f;
-    private const float ToggleHeight   = 24f;
+    protected override float PopupWidth    => 580;
+    protected override float PopupHeight   => 274;
+    protected override float BtnFontSize   => 12f;
 
-    private readonly MainGameController _gameController;
+    private const float BtnWidth        = 120;
+    private const float BtnHeight       = 34;
+    private const float BtnGap          = 10;
+    private const float BtnRightMargin  = 24;
+    private const float RowSpacingY     = 64;
+    private const float FirstRowY       = 72;
+    private const float ToggleWidth     = 46f;
+    private const float ToggleHeight    = 24f;
+
+    private readonly MainGameController  _gameController;
     private readonly LocalizationService _localization;
 
-    private readonly PopupChrome _chrome = new();
-    private readonly SKPaint _activeBtnPaint   = new() { Color = new SKColor(60, 100, 180),  Style = SKPaintStyle.Fill,   IsAntialias = true };
-    private readonly SKPaint _inactiveBtnPaint = new() { Color = new SKColor(55, 55, 65),    Style = SKPaintStyle.Fill,   IsAntialias = true };
-    private readonly SKPaint _btnBorderPaint   = new() { Color = new SKColor(100, 100, 120), StrokeWidth = 1, Style = SKPaintStyle.Stroke, IsAntialias = true };
-    private readonly SKPaint _textPaint        = new() { Color = SKColors.White,             IsAntialias = true };
-    private readonly SKPaint _labelPaint       = new() { Color = new SKColor(200, 200, 210), IsAntialias = true };
-    private readonly SKPaint _onPaint          = new() { Color = new SKColor(46, 125, 50),   Style = SKPaintStyle.Fill,   IsAntialias = true };
-    private readonly SKPaint _onHoverPaint     = new() { Color = new SKColor(60, 150, 64),   Style = SKPaintStyle.Fill,   IsAntialias = true };
-    private readonly SKPaint _offPaint         = new() { Color = new SKColor(160, 50, 50),   Style = SKPaintStyle.Fill,   IsAntialias = true };
-    private readonly SKPaint _offHoverPaint    = new() { Color = new SKColor(185, 65, 65),   Style = SKPaintStyle.Fill,   IsAntialias = true };
+    // Settings-specific paints
+    private readonly SKPaint _activeBtnPaint    = new() { Color = new SKColor(60, 100, 180),  Style = SKPaintStyle.Fill,   IsAntialias = true };
+    private readonly SKPaint _inactiveBtnPaint  = new() { Color = new SKColor(55, 55, 65),    Style = SKPaintStyle.Fill,   IsAntialias = true };
+    private readonly SKPaint _labelPaint        = new() { Color = new SKColor(200, 200, 210), IsAntialias = true };
+    private readonly SKPaint _onPaint           = new() { Color = new SKColor(46, 125, 50),   Style = SKPaintStyle.Fill,   IsAntialias = true };
+    private readonly SKPaint _onHoverPaint      = new() { Color = new SKColor(60, 150, 64),   Style = SKPaintStyle.Fill,   IsAntialias = true };
+    private readonly SKPaint _offPaint          = new() { Color = new SKColor(160, 50, 50),   Style = SKPaintStyle.Fill,   IsAntialias = true };
+    private readonly SKPaint _offHoverPaint     = new() { Color = new SKColor(185, 65, 65),   Style = SKPaintStyle.Fill,   IsAntialias = true };
     private readonly SKPaint _toggleBorderPaint = new() { Color = new SKColor(180, 180, 200), StrokeWidth = 1.2f, Style = SKPaintStyle.Stroke, IsAntialias = true };
-    private readonly SKPaint _toggleKnobPaint  = new() { Color = SKColors.White,             Style = SKPaintStyle.Fill,   IsAntialias = true };
-    private SKFont  _titleFont  = new() { Size = 16, Typeface = SkiaFonts.Bold };
-    private SKFont  _labelFont  = new() { Size = 13, Typeface = SkiaFonts.Bold };
-    private SKFont  _btnFont    = new() { Size = 12, Typeface = SkiaFonts.Bold };
-    private float   _lastScale  = 0f;
+    private readonly SKPaint _toggleKnobPaint   = new() { Color = SKColors.White,             Style = SKPaintStyle.Fill,   IsAntialias = true };
 
-    private SKSize _canvasSize;
-    private float  _currentScale = 1f;
+    // Settings-specific font (label, Bold 13)
+    private SKFont _labelFont = new() { Size = 13, Typeface = SkiaFonts.Bold };
+
     private SKRect _closeButtonRect    = SKRect.Empty;
     private SKRect _popupRect          = SKRect.Empty;
     private SKRect _btnFrench          = SKRect.Empty;
@@ -50,10 +47,6 @@ public sealed class SettingsPopupRenderer : IDisposable
     private SKRect _particlesToggleRect = SKRect.Empty;
 
     private bool _hoveredPause, _hoveredParticles;
-    private bool _disposed;
-    private bool _justOpened;
-
-    public bool IsOpen { get; private set; }
 
     public SettingsPopupRenderer(MainGameController gameController, LocalizationService localization)
     {
@@ -61,35 +54,21 @@ public sealed class SettingsPopupRenderer : IDisposable
         _localization   = localization;
     }
 
-    public void Initialize(SKSize canvasSize) => _canvasSize = canvasSize;
-
-    public void Open()
+    protected override void OnFontsUpdated(float s)
     {
-        IsOpen = true;
-        _justOpened = true;
+        _labelFont.Dispose();
+        _labelFont = new SKFont { Size = 13 * s, Typeface = SkiaFonts.Bold };
     }
-
-    public void Close() => IsOpen = false;
 
     public void Render(SKCanvas canvas, float scale = 1f)
     {
-        if (!IsOpen || _disposed) return;
+        if (!IsOpen || Disposed) return;
 
         var settings = _gameController.CurrentMainState?.Settings;
         if (settings == null) return;
 
-        const float margin = 20f;
-        float s = Math.Min(scale, Math.Min(
-            (_canvasSize.Width  - margin) / PopupWidth,
-            (_canvasSize.Height - margin) / PopupHeight));
-        _currentScale = s;
-        if (s != _lastScale)
-        {
-            _lastScale = s;
-            _titleFont.Dispose(); _titleFont = new SKFont { Size = 16 * s, Typeface = SkiaFonts.Bold };
-            _labelFont.Dispose(); _labelFont = new SKFont { Size = 13 * s, Typeface = SkiaFonts.Bold };
-            _btnFont.Dispose();   _btnFont   = new SKFont { Size = 12 * s, Typeface = SkiaFonts.Bold };
-        }
+        float s = ComputeScale(scale);
+        UpdateFonts(s);
 
         float popupW        = PopupWidth      * s;
         float popupH        = PopupHeight     * s;
@@ -102,18 +81,18 @@ public sealed class SettingsPopupRenderer : IDisposable
         float toggleW       = ToggleWidth     * s;
         float toggleH       = ToggleHeight    * s;
 
-        float x = (_canvasSize.Width  - popupW) / 2;
-        float y = (_canvasSize.Height - popupH) / 2;
+        float x = (CanvasSize.Width  - popupW) / 2;
+        float y = (CanvasSize.Height - popupH) / 2;
         _popupRect = new SKRect(x, y, x + popupW, y + popupH);
 
-        _chrome.DrawBackground(canvas, _popupRect, _canvasSize, s);
+        DrawBackground(canvas, _popupRect, s);
 
-        _closeButtonRect = PopupChrome.GetCloseRect(_popupRect, s);
-        _chrome.DrawCloseButton(canvas, _closeButtonRect, s);
+        _closeButtonRect = GetCloseRect(_popupRect, s);
+        DrawCloseButton(canvas, _closeButtonRect, s);
 
-        string title = _localization.Get("settings_title");
-        float titleW = _titleFont.MeasureText(title);
-        SkiaTextUtils.DrawText(canvas, title, x + (popupW - titleW) / 2, y + 34 * s, _titleFont, _textPaint);
+        string title  = _localization.Get("settings_title");
+        float  titleW = TitleFont!.MeasureText(title);
+        SkiaTextUtils.DrawText(canvas, title, x + (popupW - titleW) / 2, y + 34 * s, TitleFont, TextPaint);
 
         float btnRight = x + popupW - btnRightMargin;
         float btn2Left = btnRight - btnW;
@@ -141,17 +120,19 @@ public sealed class SettingsPopupRenderer : IDisposable
         (SKRect rect, string textKey, bool active)[] buttons)
     {
         SkiaTextUtils.DrawText(canvas, _localization.Get(labelKey) + " :",
-            popX + 20 * s, rowY + btnH / 2 + _labelFont.Size / 2,
-            _labelFont, _labelPaint);
+            popX + 20 * s, rowY + btnH / 2 + _labelFont.Size / 2, _labelFont, _labelPaint);
 
         foreach (var (rect, textKey, active) in buttons)
         {
-            canvas.DrawRoundRect(rect, 6 * s, 6 * s, active ? _activeBtnPaint : _inactiveBtnPaint);
-            canvas.DrawRoundRect(rect, 6 * s, 6 * s, _btnBorderPaint);
+            var fill = active ? _activeBtnPaint : _inactiveBtnPaint;
+            canvas.DrawRoundRect(rect, 6 * s, 6 * s, fill);
+            canvas.DrawRoundRect(rect, 6 * s, 6 * s, BtnBorderPaint);
             string text = _localization.Get(textKey);
-            float tw = _btnFont.MeasureText(text);
-            SkiaTextUtils.DrawText(canvas, text, rect.Left + (rect.Width - tw) / 2,
-                rect.Top + rect.Height / 2 + _btnFont.Size / 2, _btnFont, _textPaint);
+            float  tw   = BtnFont!.MeasureText(text);
+            SkiaTextUtils.DrawText(canvas, text,
+                rect.Left + (rect.Width - tw) / 2,
+                rect.Top  + rect.Height / 2 + BtnFont.Size / 2,
+                BtnFont, TextPaint);
         }
     }
 
@@ -159,12 +140,11 @@ public sealed class SettingsPopupRenderer : IDisposable
         string labelKey, bool isOn, bool isHovered, float btnH, float toggleW, float toggleH, float s)
     {
         SkiaTextUtils.DrawText(canvas, _localization.Get(labelKey) + " :",
-            popX + 20 * s, rowY + btnH / 2 + _labelFont.Size / 2,
-            _labelFont, _labelPaint);
+            popX + 20 * s, rowY + btnH / 2 + _labelFont.Size / 2, _labelFont, _labelPaint);
 
-        float toggleX = rightEdge - toggleW;
-        float toggleY = rowY + (btnH - toggleH) / 2f;
-        float radius  = toggleH / 2f;
+        float toggleX   = rightEdge - toggleW;
+        float toggleY   = rowY + (btnH - toggleH) / 2f;
+        float radius    = toggleH / 2f;
         var   trackRect = new SKRect(toggleX, toggleY, toggleX + toggleW, toggleY + toggleH);
 
         var fill = isOn ? (isHovered ? _onHoverPaint : _onPaint) : (isHovered ? _offHoverPaint : _offPaint);
@@ -184,14 +164,9 @@ public sealed class SettingsPopupRenderer : IDisposable
     public bool HandlePointerPressed(SKPoint pos, PointerButton button)
     {
         if (!IsOpen) return false;
+        if (JustOpened) { JustOpened = false; return true; }
 
-        if (_justOpened) { _justOpened = false; return true; }
-
-        if (_closeButtonRect.Contains(pos.X, pos.Y))
-        {
-            Close();
-            return true;
-        }
+        if (_closeButtonRect.Contains(pos.X, pos.Y)) { Close(); return true; }
 
         if (_btnFrench.Contains(pos.X, pos.Y))  { ApplyLanguage(Language.French);  return true; }
         if (_btnEnglish.Contains(pos.X, pos.Y)) { ApplyLanguage(Language.English); return true; }
@@ -199,23 +174,18 @@ public sealed class SettingsPopupRenderer : IDisposable
         var settings = _gameController.CurrentMainState?.Settings;
         if (settings != null)
         {
-            if (!_pauseToggleRect.IsEmpty    && _pauseToggleRect.Contains(pos.X, pos.Y))    { settings.PauseAfterPrestige   = !settings.PauseAfterPrestige;   return true; }
+            if (!_pauseToggleRect.IsEmpty     && _pauseToggleRect.Contains(pos.X, pos.Y))     { settings.PauseAfterPrestige    = !settings.PauseAfterPrestige;    return true; }
             if (!_particlesToggleRect.IsEmpty && _particlesToggleRect.Contains(pos.X, pos.Y)) { settings.ShowHarvestParticles = !settings.ShowHarvestParticles; return true; }
         }
 
-        if (!_popupRect.Contains(pos.X, pos.Y))
-        {
-            Close();
-            return false;
-        }
-
+        if (!_popupRect.Contains(pos.X, pos.Y)) { Close(); return false; }
         return true;
     }
 
     public void HandlePointerMoved(SKPoint pos)
     {
-        if (!IsOpen || _disposed) return;
-        _hoveredPause     = !_pauseToggleRect.IsEmpty    && _pauseToggleRect.Contains(pos.X, pos.Y);
+        if (!IsOpen || Disposed) return;
+        _hoveredPause     = !_pauseToggleRect.IsEmpty     && _pauseToggleRect.Contains(pos.X, pos.Y);
         _hoveredParticles = !_particlesToggleRect.IsEmpty && _particlesToggleRect.Contains(pos.X, pos.Y);
     }
 
@@ -227,14 +197,11 @@ public sealed class SettingsPopupRenderer : IDisposable
             settings.Language = lang;
     }
 
-    public void Dispose()
+    public override void Dispose()
     {
-        if (_disposed) return;
-        _chrome.Dispose();
+        if (Disposed) return;
         _activeBtnPaint.Dispose();
         _inactiveBtnPaint.Dispose();
-        _btnBorderPaint.Dispose();
-        _textPaint.Dispose();
         _labelPaint.Dispose();
         _onPaint.Dispose();
         _onHoverPaint.Dispose();
@@ -242,9 +209,7 @@ public sealed class SettingsPopupRenderer : IDisposable
         _offHoverPaint.Dispose();
         _toggleBorderPaint.Dispose();
         _toggleKnobPaint.Dispose();
-        _titleFont.Dispose();
         _labelFont.Dispose();
-        _btnFont.Dispose();
-        _disposed = true;
+        base.Dispose();
     }
 }

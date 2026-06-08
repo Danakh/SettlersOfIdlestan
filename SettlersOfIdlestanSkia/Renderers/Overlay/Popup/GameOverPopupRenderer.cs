@@ -1,35 +1,27 @@
-﻿using SettlersOfIdlestanSkia.Services.Localization;
+using SettlersOfIdlestanSkia.Services.Localization;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Services;
 using SkiaSharp;
 
 namespace SettlersOfIdlestanSkia.Renderers.Overlay.Popup;
 
-public sealed class GameOverPopupRenderer : IDisposable
+public sealed class GameOverPopupRenderer : PopupRendererBase
 {
-    private const float PopupWidth  = 460;
-    private const float PopupHeight = 240;
-    private const float BtnWidth    = 260;
-    private const float BtnHeight   = 44;
+    protected override float PopupWidth    => 460;
+    protected override float PopupHeight   => 240;
+    protected override float TitleFontSize => 20f;
+    protected override float BtnFontSize   => 14f;
+
+    private const float BtnWidth  = 260;
+    private const float BtnHeight = 44;
 
     private readonly LocalizationService _localization;
-    private readonly Action               _onRestart;
+    private readonly Action              _onRestart;
 
-    private readonly PopupChrome _chrome       = new();
-    private readonly SKPaint _titlePaint       = new() { Color = new SKColor(220, 80,  80),  IsAntialias = true };
-    private readonly SKPaint _textPaint        = new() { Color = SKColors.White,              IsAntialias = true };
-    private readonly SKPaint _subtlePaint      = new() { Color = new SKColor(180, 180, 190), IsAntialias = true };
-    private readonly SKPaint _restartBtnPaint  = new() { Color = new SKColor(60,  110, 180), Style = SKPaintStyle.Fill, IsAntialias = true };
-    private readonly SKPaint _btnBorder        = new() { Color = new SKColor(100, 100, 120), StrokeWidth = 1, Style = SKPaintStyle.Stroke, IsAntialias = true };
-    private SKFont  _titleFont = new() { Size = 20, Typeface = SkiaFonts.Bold };
-    private SKFont  _bodyFont  = new() { Size = 13, Typeface = SkiaFonts.Regular };
-    private SKFont  _btnFont   = new() { Size = 14, Typeface = SkiaFonts.Bold };
-    private float   _lastScale = 0f;
+    private readonly SKPaint _titlePaint      = new() { Color = new SKColor(220, 80,  80),  IsAntialias = true };
+    private readonly SKPaint _restartBtnPaint = new() { Color = new SKColor(60,  110, 180), Style = SKPaintStyle.Fill, IsAntialias = true };
 
     private SKRect _restartRect = SKRect.Empty;
-    private bool   _disposed;
-
-    public bool IsOpen { get; private set; }
 
     public GameOverPopupRenderer(LocalizationService localization, Action onRestart)
     {
@@ -37,66 +29,43 @@ public sealed class GameOverPopupRenderer : IDisposable
         _onRestart    = onRestart;
     }
 
-    public void Open() => IsOpen = true;
-
     public void Render(SKCanvas canvas, SKSize canvasSize, float scale = 1f)
     {
-        if (!IsOpen || _disposed) return;
-
-        const float margin = 20f;
-        float s = Math.Min(scale, Math.Min(
-            (canvasSize.Width  - margin) / PopupWidth,
-            (canvasSize.Height - margin) / PopupHeight));
-        if (s != _lastScale)
-        {
-            _lastScale = s;
-            _titleFont.Dispose(); _titleFont = new SKFont { Size = 20 * s, Typeface = SkiaFonts.Bold };
-            _bodyFont.Dispose();  _bodyFont  = new SKFont { Size = 13 * s, Typeface = SkiaFonts.Regular };
-            _btnFont.Dispose();   _btnFont   = new SKFont { Size = 14 * s, Typeface = SkiaFonts.Bold };
-        }
+        if (!IsOpen || Disposed) return;
+        CanvasSize = canvasSize;
+        float s    = ComputeScale(scale);
+        UpdateFonts(s);
 
         float popupW = PopupWidth  * s;
         float popupH = PopupHeight * s;
         float btnW   = BtnWidth    * s;
         float btnH   = BtnHeight   * s;
+        var   popup  = GetCenteredRect(s);
 
-        float x = (canvasSize.Width  - popupW) / 2;
-        float y = (canvasSize.Height - popupH) / 2;
-        var popup = new SKRect(x, y, x + popupW, y + popupH);
-
-        _chrome.DrawBackground(canvas, popup, canvasSize, s);
+        DrawBackground(canvas, popup, s);
 
         string title = _localization.Get("game_over_title");
-        float titleW = _titleFont.MeasureText(title);
-        SkiaTextUtils.DrawText(canvas, title, x + (popupW - titleW) / 2f, y + 50 * s, _titleFont, _titlePaint);
+        float  titleW = TitleFont!.MeasureText(title);
+        SkiaTextUtils.DrawText(canvas, title, popup.Left + (popupW - titleW) / 2f, popup.Top + 50 * s, TitleFont, _titlePaint);
 
-        float lineY = y + 90 * s;
+        float lineY = popup.Top + 90 * s;
         foreach (var key in new[] { "game_over_line1", "game_over_line2" })
         {
             string line = _localization.Get(key);
-            float lw = _bodyFont.MeasureText(line);
-            SkiaTextUtils.DrawText(canvas, line, x + (popupW - lw) / 2f, lineY, _bodyFont, _subtlePaint);
-            lineY += _bodyFont.Size * 1.8f;
+            float  lw   = BodyFont!.MeasureText(line);
+            SkiaTextUtils.DrawText(canvas, line, popup.Left + (popupW - lw) / 2f, lineY, BodyFont, SubtlePaint);
+            lineY += BodyFont.Size * 1.8f;
         }
 
-        float btnX = x + (popupW - btnW) / 2f;
-        float btnY = y + popupH - btnH - 28 * s;
+        float btnX = popup.Left + (popupW - btnW) / 2f;
+        float btnY = popup.Top  + popupH - btnH - 28 * s;
         _restartRect = new SKRect(btnX, btnY, btnX + btnW, btnY + btnH);
-
-        canvas.DrawRoundRect(_restartRect, 6 * s, 6 * s, _restartBtnPaint);
-        canvas.DrawRoundRect(_restartRect, 6 * s, 6 * s, _btnBorder);
-        string label = _localization.Get("game_over_btn_restart");
-        float lw2 = _btnFont.MeasureText(label);
-        SkiaTextUtils.DrawText(canvas, label,
-            _restartRect.Left + (btnW - lw2) / 2f,
-            _restartRect.Top  + (btnH + _btnFont.Size) / 2f,
-            _btnFont, _textPaint);
+        DrawButton(canvas, _restartRect, _restartBtnPaint, _localization.Get("game_over_btn_restart"), s);
     }
 
     public void HandlePointerPressed(SKPoint pos, PointerButton button)
     {
-        if (!IsOpen || _disposed) return;
-
+        if (!IsOpen || Disposed) return;
         if (_restartRect.Contains(pos.X, pos.Y))
         {
             IsOpen = false;
@@ -104,18 +73,11 @@ public sealed class GameOverPopupRenderer : IDisposable
         }
     }
 
-    public void Dispose()
+    public override void Dispose()
     {
-        if (_disposed) return;
-        _chrome.Dispose();
+        if (Disposed) return;
         _titlePaint.Dispose();
-        _textPaint.Dispose();
-        _subtlePaint.Dispose();
         _restartBtnPaint.Dispose();
-        _btnBorder.Dispose();
-        _titleFont.Dispose();
-        _bodyFont.Dispose();
-        _btnFont.Dispose();
-        _disposed = true;
+        base.Dispose();
     }
 }

@@ -369,7 +369,7 @@ public class SettingsMenu
 
     private void ToggleAboutPopUp()
     {
-        _aboutRenderer.Show();
+        _aboutRenderer.Open();
     }
 
     private void AddResources()
