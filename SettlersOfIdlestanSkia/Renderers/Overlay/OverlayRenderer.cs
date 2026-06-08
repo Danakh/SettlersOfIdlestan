@@ -11,6 +11,7 @@ using SettlersOfIdlestanSkia.Services;
 using SkiaSharp;
 using System.Collections.Generic;
 using System.Linq;
+using SettlersOfIdlestanSkia.Renderers.Overlay.Panels;
 
 namespace SettlersOfIdlestanSkia.Renderers.Overlay;
 

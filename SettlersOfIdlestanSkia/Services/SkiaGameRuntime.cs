@@ -11,6 +11,7 @@ using SettlersOfIdlestanSkia.Renderers.Overlay.Popup;
 using SettlersOfIdlestanSkia.Renderers.Overlay.Tabs;
 using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.IslandMap;
+using SettlersOfIdlestanSkia.Renderers.Overlay.Panels;
 
 namespace SettlersOfIdlestanSkia.Services;
 

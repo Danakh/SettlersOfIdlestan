@@ -1,4 +1,4 @@
-﻿using SettlersOfIdlestan.Controller.Expand;
+using SettlersOfIdlestan.Controller.Expand;
 using SettlersOfIdlestan.Model.Buildings;
 using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
 using SettlersOfIdlestan.Model.Civilization;
@@ -11,9 +11,9 @@ using SkiaSharp;
 using System;
 using System.Linq;
 
-namespace SettlersOfIdlestanSkia.Renderers.Overlay;
+namespace SettlersOfIdlestanSkia.Renderers.Overlay.Panels;
 
-public sealed class PlayerCivilizationPanelRenderer : IDisposable
+public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
 {
     private const float PanelLeft    = 10f;
     private const float PanelWidth   = 240f;
@@ -35,17 +35,10 @@ public sealed class PlayerCivilizationPanelRenderer : IDisposable
     private WonderSelectionService? _wonderSelectionService;
     private readonly TooltipRenderer _tooltipRenderer;
 
-    private const float CollapseTabW = 14f;
-    private const float CollapseTabH = 24f;
-    private bool _collapsed = false;
-    private SKRect _collapseTabRect = SKRect.Empty;
-    public float TopOverride { get; set; } = 0f;
-    public bool IsCollapsed => _collapsed;
-    public void Collapse() => _collapsed = true;
+    public bool IsCollapsed  => Collapsed;
+    public void Collapse()   => Collapsed = true;
     public Action? OnExpanded { get; set; }
 
-    private SKSize _canvasSize;
-    private SKRect _panelBounds        = SKRect.Empty;
     private SKRect _tradeButtonRect    = SKRect.Empty;
     private SKRect _prestigeButtonRect = SKRect.Empty;
     private SKRect _wonderButtonRect   = SKRect.Empty;
@@ -59,33 +52,30 @@ public sealed class PlayerCivilizationPanelRenderer : IDisposable
     private bool _wonderEnabled;
     private bool _disposed;
 
-    private readonly SKPaint _panelBgPaint        = new() { Color = new SKColor(24, 24, 30, 230), Style = SKPaintStyle.Fill, IsAntialias = true };
-    private readonly SKPaint _panelBorderPaint    = new() { Color = SKColors.Gold, StrokeWidth = 1f, Style = SKPaintStyle.Stroke, IsAntialias = true };
-    private readonly SKPaint _sectionTitlePaint   = new() { Color = new SKColor(160, 160, 175), IsAntialias = true };
-    private readonly SKPaint _separatorPaint      = new() { Color = new SKColor(60, 60, 80), StrokeWidth = 0.8f, Style = SKPaintStyle.Stroke };
-    private readonly SKPaint _btnPaint            = new() { Color = new SKColor(46, 125, 50), Style = SKPaintStyle.Fill, IsAntialias = true };
-    private readonly SKPaint _btnHoverPaint       = new() { Color = new SKColor(60, 150, 64), Style = SKPaintStyle.Fill, IsAntialias = true };
-    private readonly SKPaint _btnDisabledPaint    = new() { Color = new SKColor(70, 70, 78), Style = SKPaintStyle.Fill, IsAntialias = true };
-    private readonly SKPaint _btnTextPaint        = new() { Color = SKColors.White, IsAntialias = true };
-    private readonly SKPaint _btnDisabledTxtPaint = new() { Color = new SKColor(160, 160, 165), IsAntialias = true };
-    private readonly SKPaint _onPaint             = new() { Color = new SKColor(46, 125, 50), Style = SKPaintStyle.Fill, IsAntialias = true };
-    private readonly SKPaint _onHoverPaint        = new() { Color = new SKColor(60, 150, 64), Style = SKPaintStyle.Fill, IsAntialias = true };
-    private readonly SKPaint _offPaint            = new() { Color = new SKColor(160, 50, 50), Style = SKPaintStyle.Fill, IsAntialias = true };
-    private readonly SKPaint _offHoverPaint       = new() { Color = new SKColor(185, 65, 65), Style = SKPaintStyle.Fill, IsAntialias = true };
-    private readonly SKPaint _toggleBorderPaint   = new() { Color = new SKColor(180, 180, 200), StrokeWidth = 1.2f, Style = SKPaintStyle.Stroke, IsAntialias = true };
-    private readonly SKPaint _toggleKnobPaint     = new() { Color = SKColors.White, Style = SKPaintStyle.Fill, IsAntialias = true };
-    private readonly SKPaint _rowLabelPaint       = new() { Color = new SKColor(215, 215, 225), IsAntialias = true };
-    private readonly SKPaint _rowLabelDimPaint    = new() { Color = new SKColor(140, 140, 150, 160), IsAntialias = true };
-    private readonly SKPaint _dimTogglePaint             = new() { Color = new SKColor(70, 70, 80),   Style = SKPaintStyle.Fill, IsAntialias = true };
-    private readonly SKPaint _indeterminatePaint         = new() { Color = new SKColor(90, 90, 105),  Style = SKPaintStyle.Fill, IsAntialias = true };
-    private readonly SKPaint _indeterminateHoverPaint    = new() { Color = new SKColor(110, 110, 125), Style = SKPaintStyle.Fill, IsAntialias = true };
-    private readonly SKPaint _collapseTabBgPaint  = new() { Color = new SKColor(24, 24, 30, 230), Style = SKPaintStyle.Fill, IsAntialias = true };
+    // CivPanel-specific paints
+    private SKPaint? _sectionTitlePaint;
+    private SKPaint? _separatorPaint;
+    private SKPaint? _btnPaint;
+    private SKPaint? _btnHoverPaint;
+    private SKPaint? _btnDisabledPaint;
+    private SKPaint? _btnDisabledTxtPaint;
+    private SKPaint? _onPaint;
+    private SKPaint? _onHoverPaint;
+    private SKPaint? _offPaint;
+    private SKPaint? _offHoverPaint;
+    private SKPaint? _toggleBorderPaint;
+    private SKPaint? _toggleKnobPaint;
+    private SKPaint? _rowLabelPaint;
+    private SKPaint? _rowLabelDimPaint;
+    private SKPaint? _dimTogglePaint;
+    private SKPaint? _indeterminatePaint;
+    private SKPaint? _indeterminateHoverPaint;
 
-    private SKFont _sectionFont = new() { Size = TitleSize, Typeface = SkiaFonts.Regular };
-    private SKFont _btnFont     = new() { Size = 13f,       Typeface = SkiaFonts.Bold };
-    private SKFont _btnSmFont   = new() { Size = 11f,       Typeface = SkiaFonts.Bold };
-    private SKFont _labelFont   = new() { Size = 13f,       Typeface = SkiaFonts.Regular };
-    private float _lastUiScale  = 0f;
+    // CivPanel-specific fonts (different sizes than base Font10/12/15)
+    private SKFont? _sectionFont;
+    private SKFont? _btnFont;
+    private SKFont? _btnSmFont;
+    private SKFont? _labelFont;
 
     public PlayerCivilizationPanelRenderer(
         GameControllerService gameControllerService,
@@ -105,16 +95,32 @@ public sealed class PlayerCivilizationPanelRenderer : IDisposable
         _tooltipRenderer = tooltipRenderer;
     }
 
-    public void Initialize(SKSize canvasSize) => _canvasSize = canvasSize;
+    public override void Initialize(SKSize canvasSize)
+    {
+        base.Initialize(canvasSize);
+        _sectionTitlePaint    = new SKPaint { Color = new SKColor(160, 160, 175),      IsAntialias = true };
+        _separatorPaint       = new SKPaint { Color = new SKColor(60, 60, 80),         StrokeWidth = 0.8f, Style = SKPaintStyle.Stroke };
+        _btnPaint             = new SKPaint { Color = new SKColor(46, 125, 50),        Style = SKPaintStyle.Fill, IsAntialias = true };
+        _btnHoverPaint        = new SKPaint { Color = new SKColor(60, 150, 64),        Style = SKPaintStyle.Fill, IsAntialias = true };
+        _btnDisabledPaint     = new SKPaint { Color = new SKColor(70, 70, 78),         Style = SKPaintStyle.Fill, IsAntialias = true };
+        _btnDisabledTxtPaint  = new SKPaint { Color = new SKColor(160, 160, 165),      IsAntialias = true };
+        _onPaint              = new SKPaint { Color = new SKColor(46, 125, 50),        Style = SKPaintStyle.Fill, IsAntialias = true };
+        _onHoverPaint         = new SKPaint { Color = new SKColor(60, 150, 64),        Style = SKPaintStyle.Fill, IsAntialias = true };
+        _offPaint             = new SKPaint { Color = new SKColor(160, 50, 50),        Style = SKPaintStyle.Fill, IsAntialias = true };
+        _offHoverPaint        = new SKPaint { Color = new SKColor(185, 65, 65),        Style = SKPaintStyle.Fill, IsAntialias = true };
+        _toggleBorderPaint    = new SKPaint { Color = new SKColor(180, 180, 200),      StrokeWidth = 1.2f, Style = SKPaintStyle.Stroke, IsAntialias = true };
+        _toggleKnobPaint      = new SKPaint { Color = SKColors.White,                  Style = SKPaintStyle.Fill, IsAntialias = true };
+        _rowLabelPaint        = new SKPaint { Color = new SKColor(215, 215, 225),      IsAntialias = true };
+        _rowLabelDimPaint     = new SKPaint { Color = new SKColor(140, 140, 150, 160), IsAntialias = true };
+        _dimTogglePaint       = new SKPaint { Color = new SKColor(70, 70, 80),         Style = SKPaintStyle.Fill, IsAntialias = true };
+        _indeterminatePaint      = new SKPaint { Color = new SKColor(90, 90, 105),     Style = SKPaintStyle.Fill, IsAntialias = true };
+        _indeterminateHoverPaint = new SKPaint { Color = new SKColor(110, 110, 125),   Style = SKPaintStyle.Fill, IsAntialias = true };
+    }
 
     public void ConnectWonderSelectionService(WonderSelectionService service)
         => _wonderSelectionService = service;
 
-    public bool ContainsPoint(SKPoint point) =>
-        (!_panelBounds.IsEmpty && _panelBounds.Contains(point.X, point.Y)) ||
-        (!_collapseTabRect.IsEmpty && _collapseTabRect.Contains(point.X, point.Y));
-
-    public void Render(SKCanvas canvas, GameRenderContext context)
+    public override void Render(SKCanvas canvas, GameRenderContext context)
     {
         if (_disposed) return;
         if (context.GameState is not MainGameState) return;
@@ -123,13 +129,14 @@ public sealed class PlayerCivilizationPanelRenderer : IDisposable
         if (civ == null) return;
 
         float s = context.UiScale;
-        if (s != _lastUiScale)
+        float prevScale = LastUiScale;
+        UpdateScale(s);
+        if (LastUiScale != prevScale)
         {
-            _lastUiScale = s;
-            _sectionFont.Dispose(); _sectionFont = new SKFont { Size = TitleSize * s, Typeface = SkiaFonts.Regular };
-            _btnFont.Dispose();     _btnFont     = new SKFont { Size = 13f * s,       Typeface = SkiaFonts.Bold };
-            _btnSmFont.Dispose();   _btnSmFont   = new SKFont { Size = 11f * s,       Typeface = SkiaFonts.Bold };
-            _labelFont.Dispose();   _labelFont   = new SKFont { Size = 13f * s,       Typeface = SkiaFonts.Regular };
+            _sectionFont?.Dispose(); _sectionFont = new SKFont { Size = TitleSize * s, Typeface = SkiaFonts.Regular };
+            _btnFont?.Dispose();     _btnFont     = new SKFont { Size = 13f * s,       Typeface = SkiaFonts.Bold };
+            _btnSmFont?.Dispose();   _btnSmFont   = new SKFont { Size = 11f * s,       Typeface = SkiaFonts.Bold };
+            _labelFont?.Dispose();   _labelFont   = new SKFont { Size = 13f * s,       Typeface = SkiaFonts.Regular };
         }
 
         float panelLeft    = PanelLeft * s;
@@ -150,10 +157,10 @@ public sealed class PlayerCivilizationPanelRenderer : IDisposable
         int  prestigePoints  = prestigeVisible ? GetPrestigePoints() : 0;
         bool wonderVisible   = IsWonderVisible() && CanPlaceWonder();
         _wonderEnabled = wonderVisible && context.CurrentLayer == 0;
-        bool hasBarracks        = HasBuilt<Barracks>(civ);
-        bool hasLabs            = HasBuilt<Laboratory>(civ);
-        bool hasSmelters        = HasBuilt<Smelter>(civ);
-        bool hasSteelWeapons    = hasBarracks && civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_STEEL_WEAPONS);
+        bool hasBarracks     = HasBuilt<Barracks>(civ);
+        bool hasLabs         = HasBuilt<Laboratory>(civ);
+        bool hasSmelters     = HasBuilt<Smelter>(civ);
+        bool hasSteelWeapons = hasBarracks && civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_STEEL_WEAPONS);
 
         bool showActions  = tradeVisible || prestigeVisible || wonderVisible;
         bool showControls = hasBarracks || hasLabs || hasSmelters;
@@ -163,26 +170,24 @@ public sealed class PlayerCivilizationPanelRenderer : IDisposable
 
         if (!showActions && !showControls)
         {
-            _panelBounds = SKRect.Empty;
-            _collapseTabRect = SKRect.Empty;
+            PanelBounds = SKRect.Empty;
+            CollapseTabRect = SKRect.Empty;
             return;
         }
 
         float contentW = panelWidth - panelPadding * 2;
         float panelTop = (TopOverride > 0f ? TopOverride : PlayerResourcesOverlayRenderer.BarHeight * s) + 10f * s;
-        float tabTop = panelTop + 8f * s;
+        float tabTop   = panelTop + 8f * s;
 
-        if (_collapsed)
+        if (Collapsed)
         {
-            _collapseTabRect = new SKRect(0, tabTop, collapseTabW, tabTop + collapseTabH);
-            _panelBounds = _collapseTabRect;
-            canvas.DrawRoundRect(_collapseTabRect, 4 * s, 4 * s, _collapseTabBgPaint);
-            canvas.DrawRoundRect(_collapseTabRect, 4 * s, 4 * s, _panelBorderPaint);
-            SkiaTextUtils.DrawText(canvas, "►", _collapseTabRect.MidX, _collapseTabRect.MidY + 5f * s, SKTextAlign.Center, _btnFont, _btnTextPaint);
+            CollapseTabRect = new SKRect(0, tabTop, collapseTabW, tabTop + collapseTabH);
+            PanelBounds = CollapseTabRect;
+            DrawCollapseTabRect(canvas, CollapseTabRect, "►");
             return;
         }
 
-        // Measure total height
+        // Measure total panel height
         float h = panelPadding;
         if (showActions)
         {
@@ -201,15 +206,12 @@ public sealed class PlayerCivilizationPanelRenderer : IDisposable
         }
         h += panelPadding;
 
-        _panelBounds = new SKRect(panelLeft, panelTop, panelLeft + panelWidth, panelTop + h);
-        canvas.DrawRoundRect(_panelBounds, 8 * s, 8 * s, _panelBgPaint);
-        canvas.DrawRoundRect(_panelBounds, 8 * s, 8 * s, _panelBorderPaint);
+        PanelBounds = new SKRect(panelLeft, panelTop, panelLeft + panelWidth, panelTop + h);
+        DrawPanelChrome(canvas, panelLeft, panelTop, panelWidth, h, cornerRadius: 8f);
 
-        // Onglet collapse (bord droit du panneau)
-        _collapseTabRect = new SKRect(panelLeft + panelWidth, tabTop, panelLeft + panelWidth + collapseTabW, tabTop + collapseTabH);
-        canvas.DrawRoundRect(_collapseTabRect, 4 * s, 4 * s, _collapseTabBgPaint);
-        canvas.DrawRoundRect(_collapseTabRect, 4 * s, 4 * s, _panelBorderPaint);
-        SkiaTextUtils.DrawText(canvas, "◄", _collapseTabRect.MidX, _collapseTabRect.MidY + 5f * s, SKTextAlign.Center, _btnFont, _btnTextPaint);
+        // Collapse handle on the right edge of the panel
+        CollapseTabRect = new SKRect(panelLeft + panelWidth, tabTop, panelLeft + panelWidth + collapseTabW, tabTop + collapseTabH);
+        DrawCollapseTabRect(canvas, CollapseTabRect, "◄");
 
         float x = panelLeft + panelPadding;
         float y = panelTop + panelPadding;
@@ -221,7 +223,7 @@ public sealed class PlayerCivilizationPanelRenderer : IDisposable
 
             float colGap = 6f * s;
             float colW   = (contentW - colGap) / 2f;
-            int  actionCount = (tradeVisible ? 1 : 0) + (prestigeVisible ? 1 : 0) + (wonderVisible ? 1 : 0);
+            int   actionCount = (tradeVisible ? 1 : 0) + (prestigeVisible ? 1 : 0) + (wonderVisible ? 1 : 0);
             float actionsY   = y;
             int   btnIdx     = 0;
 
@@ -240,7 +242,7 @@ public sealed class PlayerCivilizationPanelRenderer : IDisposable
             {
                 _tradeButtonRect = BtnRect(btnIdx++);
                 canvas.DrawRoundRect(_tradeButtonRect, 6 * s, 6 * s, _hoveredTrade ? _btnHoverPaint : _btnPaint);
-                SkiaTextUtils.DrawText(canvas, _localization.Get("trade_action"), _tradeButtonRect.MidX, _tradeButtonRect.MidY + 4f * s, SKTextAlign.Center, _btnSmFont, _btnTextPaint);
+                SkiaTextUtils.DrawText(canvas, _localization.Get("trade_action"), _tradeButtonRect.MidX, _tradeButtonRect.MidY + 4f * s, SKTextAlign.Center, _btnSmFont, TextPaint);
             }
 
             if (prestigeVisible)
@@ -248,14 +250,14 @@ public sealed class PlayerCivilizationPanelRenderer : IDisposable
                 _prestigeButtonRect = BtnRect(btnIdx++);
                 canvas.DrawRoundRect(_prestigeButtonRect, 6 * s, 6 * s, prestigeAvail ? (_hoveredPrestige ? _btnHoverPaint : _btnPaint) : _btnDisabledPaint);
                 string prestigeLabel = $"{_localization.Get("prestige_action")} ({prestigePoints})";
-                SkiaTextUtils.DrawText(canvas, prestigeLabel, _prestigeButtonRect.MidX, _prestigeButtonRect.MidY + 4f * s, SKTextAlign.Center, _btnSmFont, prestigeAvail ? _btnTextPaint : _btnDisabledTxtPaint);
+                SkiaTextUtils.DrawText(canvas, prestigeLabel, _prestigeButtonRect.MidX, _prestigeButtonRect.MidY + 4f * s, SKTextAlign.Center, _btnSmFont, prestigeAvail ? TextPaint : _btnDisabledTxtPaint);
             }
 
             if (wonderVisible)
             {
                 _wonderButtonRect = BtnRect(btnIdx++);
                 canvas.DrawRoundRect(_wonderButtonRect, 6 * s, 6 * s, _wonderEnabled ? (_hoveredWonder ? _btnHoverPaint : _btnPaint) : _btnDisabledPaint);
-                SkiaTextUtils.DrawText(canvas, _localization.Get("wonder_action_short"), _wonderButtonRect.MidX, _wonderButtonRect.MidY + 4f * s, SKTextAlign.Center, _btnSmFont, _wonderEnabled ? _btnTextPaint : _btnDisabledTxtPaint);
+                SkiaTextUtils.DrawText(canvas, _localization.Get("wonder_action_short"), _wonderButtonRect.MidX, _wonderButtonRect.MidY + 4f * s, SKTextAlign.Center, _btnSmFont, _wonderEnabled ? TextPaint : _btnDisabledTxtPaint);
             }
 
             y = actionsY + ((btnIdx + 1) / 2) * (btnHeight + btnSpacing);
@@ -302,7 +304,7 @@ public sealed class PlayerCivilizationPanelRenderer : IDisposable
             }
         }
 
-        // Tooltips — appelés chaque frame pour persister tant que la souris ne bouge pas
+        // Tooltips — set each frame so they persist while hovering
         if (_hoveredWonder && !_wonderEnabled)
             _tooltipRenderer.SetTooltip(_localization.Get("tooltip_wonder_surface_only"), new SKPoint(_wonderButtonRect.Right, _wonderButtonRect.Top));
         else if (_hoveredBarracks)
@@ -317,15 +319,15 @@ public sealed class PlayerCivilizationPanelRenderer : IDisposable
 
     private SKRect DrawToggleRow(SKCanvas canvas, float x, float y, bool? isOn, bool isHovered, string label, bool isDimmed = false)
     {
-        float s = _lastUiScale;
-        float toggleW  = ToggleWidth * s;
-        float toggleH  = ToggleHeight * s;
-        float rowH     = RowHeight * s;
-        float toggleY  = y + (rowH - toggleH) / 2f;
-        float radius   = toggleH / 2f;
-        var   trackRect = new SKRect(x, toggleY, x + toggleW, toggleY + toggleH);
+        float s       = LastUiScale;
+        float toggleW = ToggleWidth * s;
+        float toggleH = ToggleHeight * s;
+        float rowH    = RowHeight * s;
+        float toggleY = y + (rowH - toggleH) / 2f;
+        float radius  = toggleH / 2f;
+        var trackRect = new SKRect(x, toggleY, x + toggleW, toggleY + toggleH);
 
-        SKPaint fill;
+        SKPaint? fill;
         if (isDimmed)
             fill = _dimTogglePaint;
         else if (isOn == null)
@@ -358,27 +360,26 @@ public sealed class PlayerCivilizationPanelRenderer : IDisposable
         _hoveredTrade    = !_tradeButtonRect.IsEmpty    && _tradeButtonRect.Contains(pos.X, pos.Y);
         _hoveredPrestige = !_prestigeButtonRect.IsEmpty && _prestigeButtonRect.Contains(pos.X, pos.Y);
         _hoveredWonder   = !_wonderButtonRect.IsEmpty   && _wonderButtonRect.Contains(pos.X, pos.Y);
-        _hoveredBarracks = !_barracksToggleRect.IsEmpty && _barracksToggleRect.Contains(pos.X, pos.Y);
-        _hoveredLab      = !_labToggleRect.IsEmpty      && _labToggleRect.Contains(pos.X, pos.Y);
+        _hoveredBarracks     = !_barracksToggleRect.IsEmpty     && _barracksToggleRect.Contains(pos.X, pos.Y);
+        _hoveredLab          = !_labToggleRect.IsEmpty          && _labToggleRect.Contains(pos.X, pos.Y);
         _hoveredSmelter      = !_smelterToggleRect.IsEmpty      && _smelterToggleRect.Contains(pos.X, pos.Y);
         _hoveredSteelWeapons = !_steelWeaponsToggleRect.IsEmpty && _steelWeaponsToggleRect.Contains(pos.X, pos.Y);
-
     }
 
     public bool HandlePointerPressed(SKPoint pos)
     {
         if (_disposed) return false;
 
-        if (!_collapseTabRect.IsEmpty && _collapseTabRect.Contains(pos.X, pos.Y))
+        if (!CollapseTabRect.IsEmpty && CollapseTabRect.Contains(pos.X, pos.Y))
         {
-            bool wasCollapsed = _collapsed;
-            _collapsed = !_collapsed;
-            if (wasCollapsed && !_collapsed)
+            bool wasCollapsed = Collapsed;
+            Collapsed = !Collapsed;
+            if (wasCollapsed && !Collapsed)
                 OnExpanded?.Invoke();
             return true;
         }
 
-        if (!_panelBounds.Contains(pos.X, pos.Y)) return false;
+        if (!PanelBounds.Contains(pos.X, pos.Y)) return false;
 
         if (!_tradeButtonRect.IsEmpty && _tradeButtonRect.Contains(pos.X, pos.Y))
         {
@@ -429,7 +430,7 @@ public sealed class PlayerCivilizationPanelRenderer : IDisposable
             }
         }
 
-        return true; // absorb clicks that land on the panel background
+        return true;
     }
 
     private bool IsTradeVisible()
@@ -512,34 +513,31 @@ public sealed class PlayerCivilizationPanelRenderer : IDisposable
         foreach (var b in list) b.UsesSteelWeapons = !allOn;
     }
 
-    public void Dispose()
+    public override void Dispose()
     {
         if (_disposed) return;
-        _panelBgPaint.Dispose();
-        _panelBorderPaint.Dispose();
-        _sectionTitlePaint.Dispose();
-        _separatorPaint.Dispose();
-        _btnPaint.Dispose();
-        _btnHoverPaint.Dispose();
-        _btnDisabledPaint.Dispose();
-        _btnTextPaint.Dispose();
-        _btnDisabledTxtPaint.Dispose();
-        _onPaint.Dispose();
-        _onHoverPaint.Dispose();
-        _offPaint.Dispose();
-        _offHoverPaint.Dispose();
-        _toggleBorderPaint.Dispose();
-        _toggleKnobPaint.Dispose();
-        _rowLabelPaint.Dispose();
-        _rowLabelDimPaint.Dispose();
-        _dimTogglePaint.Dispose();
-        _indeterminatePaint.Dispose();
-        _indeterminateHoverPaint.Dispose();
-        _collapseTabBgPaint.Dispose();
-        _sectionFont.Dispose();
-        _btnFont.Dispose();
-        _btnSmFont.Dispose();
-        _labelFont.Dispose();
+        _sectionTitlePaint?.Dispose();
+        _separatorPaint?.Dispose();
+        _btnPaint?.Dispose();
+        _btnHoverPaint?.Dispose();
+        _btnDisabledPaint?.Dispose();
+        _btnDisabledTxtPaint?.Dispose();
+        _onPaint?.Dispose();
+        _onHoverPaint?.Dispose();
+        _offPaint?.Dispose();
+        _offHoverPaint?.Dispose();
+        _toggleBorderPaint?.Dispose();
+        _toggleKnobPaint?.Dispose();
+        _rowLabelPaint?.Dispose();
+        _rowLabelDimPaint?.Dispose();
+        _dimTogglePaint?.Dispose();
+        _indeterminatePaint?.Dispose();
+        _indeterminateHoverPaint?.Dispose();
+        _sectionFont?.Dispose();
+        _btnFont?.Dispose();
+        _btnSmFont?.Dispose();
+        _labelFont?.Dispose();
         _disposed = true;
+        base.Dispose();
     }
 }
