@@ -20,7 +20,7 @@ public sealed class OverlayRenderer : IGameRenderer
     private readonly SettingsPopupRenderer _settingsPopupRenderer;
     private readonly SelectedCityPanelRenderer _selectedCityPanelRenderer;
     private readonly SelectedWonderPanelRenderer _selectedWonderPanelRenderer;
-    private readonly TradeRenderer _tradeRenderer;
+    private readonly TradePopupRenderer _tradeRenderer;
     private readonly PrestigeRenderer _prestigeRenderer;
     private readonly PrestigeMapRenderer _prestigeMapRenderer;
     private readonly PrestigeHistoryRenderer _prestigeHistoryRenderer;
@@ -60,7 +60,7 @@ public sealed class OverlayRenderer : IGameRenderer
         SettingsPopupRenderer settingsPopupRenderer,
         SelectedCityPanelRenderer selectedCityPanelRenderer,
         SelectedWonderPanelRenderer selectedWonderPanelRenderer,
-        TradeRenderer tradeRenderer,
+        TradePopupRenderer tradeRenderer,
         PrestigeRenderer prestigeRenderer,
         PrestigeMapRenderer prestigeMapRenderer,
         PrestigeHistoryRenderer prestigeHistoryRenderer,

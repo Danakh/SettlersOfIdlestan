@@ -11,7 +11,7 @@ using Svg.Skia;
 
 namespace SettlersOfIdlestanSkia.Renderers.Overlay.Popup;
 
-public sealed class TradeRenderer : PopupRendererBase
+public sealed class TradePopupRenderer : PopupRendererBase
 {
     protected override float PopupWidth    => 700;
     protected override float PopupHeight   => 560;
@@ -87,7 +87,7 @@ public sealed class TradeRenderer : PopupRendererBase
     private readonly SKPaint _confirmYesPaint     = new() { Color = new SKColor(46,  125, 50),           Style = SKPaintStyle.Fill,   IsAntialias = true };
     private readonly SKPaint _confirmNoPaint      = new() { Color = new SKColor(140, 50,  50),           Style = SKPaintStyle.Fill,   IsAntialias = true };
 
-    public TradeRenderer(
+    public TradePopupRenderer(
         GameControllerService gameControllerService,
         LocalizationService   localization,
         TooltipRenderer       tooltipRenderer,

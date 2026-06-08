@@ -30,7 +30,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
     private readonly GameControllerService _gameControllerService;
     private readonly LocalizationService _localization;
     private readonly Action _closeAll;
-    private readonly TradeRenderer _tradeRenderer;
+    private readonly TradePopupRenderer _tradeRenderer;
     private readonly PrestigeRenderer _prestigeRenderer;
     private WonderSelectionService? _wonderSelectionService;
     private readonly TooltipRenderer _tooltipRenderer;
@@ -81,7 +81,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         GameControllerService gameControllerService,
         LocalizationService localization,
         Action closeAll,
-        TradeRenderer tradeRenderer,
+        TradePopupRenderer tradeRenderer,
         PrestigeRenderer prestigeRenderer,
         WonderSelectionService? wonderSelectionService,
         TooltipRenderer tooltipRenderer)
