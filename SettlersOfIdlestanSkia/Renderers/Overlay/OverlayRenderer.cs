@@ -200,7 +200,8 @@ public sealed class OverlayRenderer : IGameRenderer
 
         bool isMobile = _uiLayout.IsMobile;
         float uiScale = _uiLayout.UiScale;
-        if (_activeTabs.Count > 1)
+        bool showTabBar = isMobile || _activeTabs.Count > 1;
+        if (showTabBar)
         {
             if (isMobile)
             {
@@ -282,7 +283,7 @@ public sealed class OverlayRenderer : IGameRenderer
 
         _playerResourcesOverlayRenderer.Render(canvas, context);
 
-        if (_activeTabs.Count > 1)
+        if (showTabBar)
             DrawTabButtons(canvas);
 
         if (onResearchTab)
