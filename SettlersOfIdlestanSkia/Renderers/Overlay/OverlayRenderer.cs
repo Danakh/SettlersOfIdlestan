@@ -1,36 +1,17 @@
-﻿using System;
-using SettlersOfIdlestan.Model.Buildings;
-using SettlersOfIdlestan.Model.Civilization;
+using System;
 using SettlersOfIdlestan.Model.Game;
-using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestanSkia.Services.Localization;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Renderers.Overlay.Popup;
 using SettlersOfIdlestanSkia.Renderers.Overlay.Tabs;
 using SettlersOfIdlestanSkia.Services;
 using SkiaSharp;
-using System.Collections.Generic;
-using System.Linq;
 using SettlersOfIdlestanSkia.Renderers.Overlay.Panels;
 
 namespace SettlersOfIdlestanSkia.Renderers.Overlay;
 
 public sealed class OverlayRenderer : IGameRenderer
 {
-    private const float TabWidth = 62;
-    private const float TabHeight = 28;
-    private const float TabMarginLeft = 8;
-    private const float TabSpacing = 5;
-    private const float MobileTabHeight = UILayoutService.MobileTabBarHeight;
-
-    // Logical tab IDs (stable, independent of visual position)
-    private const int TabIsland     = 0;
-    private const int TabResearch   = 1;
-    private const int TabPrestige   = 2;
-    private const int TabStats      = 3;
-    private const int TabEvents     = 4;
-    private const int TabAutomation = 5;
-
     private readonly InputHandlingService _inputService;
     private readonly GameControllerService _gameControllerService;
     private readonly LocalizationService _localization;
@@ -49,44 +30,23 @@ public sealed class OverlayRenderer : IGameRenderer
     private readonly AutomationRenderer _automationRenderer;
     private readonly TooltipRenderer _tooltipRenderer;
     private readonly PlayerCivilizationPanelRenderer _playerCivPanel;
-
-    private readonly SKPaint _buttonTextPaint = new() { Color = SKColors.White, IsAntialias = true };
-    private readonly SKPaint _disabledTextPaint = new() { Color = new SKColor(180, 180, 185), IsAntialias = true };
-
-    private readonly SKPaint _activeTabPaint = new() { Color = new SKColor(60, 100, 160), Style = SKPaintStyle.Fill, IsAntialias = true };
-    private readonly SKPaint _inactiveTabPaint = new() { Color = new SKColor(35, 35, 45), Style = SKPaintStyle.Fill, IsAntialias = true };
-    private readonly SKPaint _blinkTabPaint = new() { Style = SKPaintStyle.Fill, IsAntialias = true };
-    private readonly SKPaint _activeTabBorderPaint = new() { Color = SKColors.Gold, StrokeWidth = 1.5f, Style = SKPaintStyle.Stroke, IsAntialias = true };
-    private SKFont _tabFont = new() { Size = 12, Typeface = SkiaFonts.Bold };
+    private readonly TabBarRenderer _tabBar;
+    private readonly MapSwitchButtonRenderer _mapSwitchButton;
 
     private readonly UILayoutService _uiLayout;
     private SKSize _canvasSize;
     private SKPoint _lastPointerPosition;
     private WonderSelectionService? _wonderSelectionService;
 
-    // Deuxième ligne mobile (horloge + gear)
+    // Mobile second row (time controls + gear background)
     private SKRect _mobileGearRect;
-    private readonly SKPaint _secondRowBgPaint = new() { Color = new SKColor(0, 0, 0, 220), Style = SKPaintStyle.Fill, IsAntialias = true };
+    private readonly SKPaint _secondRowBgPaint     = new() { Color = new SKColor(0, 0, 0, 220), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _secondRowBorderPaint = new() { Color = SKColors.Gold, StrokeWidth = 1f, Style = SKPaintStyle.Stroke, IsAntialias = true };
 
-    // Drag horizontal des ressources (mode mobile)
+    // Horizontal resource bar drag (mobile)
     private bool _isDraggingResources;
     private float _resourceDragLastX;
 
-    // Map switch button (surface ↔ underworld)
-    private SKRect _mapSwitchRect;
-    private readonly SKPaint _mapSwitchActivePaint = new() { Color = new SKColor(40, 25, 70), Style = SKPaintStyle.Fill, IsAntialias = true };
-    private readonly SKPaint _mapSwitchBorderPaint = new() { Color = new SKColor(160, 100, 220), StrokeWidth = 1.5f, Style = SKPaintStyle.Stroke, IsAntialias = true };
-    private SKFont _mapSwitchFont = new() { Size = 11, Typeface = SkiaFonts.Bold };
-
-    // Dynamic tab list: (tabId, screenRect) computed each frame
-    private readonly List<(int tabId, SKRect rect)> _activeTabs = new();
-
-    private int _activeTab = TabIsland;
-    private bool _hasResearchTab;
-    private bool _hasAutomationTab;
-    private bool _hasNewEvent;
-    private int? _seenEventCount;
     private bool _disposed;
     private bool _isVisible = true;
     private bool _suppressNextPress;
@@ -111,24 +71,28 @@ public sealed class OverlayRenderer : IGameRenderer
         TooltipRenderer tooltipRenderer,
         UILayoutService uiLayout)
     {
-        _uiLayout = uiLayout;
-        _inputService = inputService;
-        _gameControllerService = gameControllerService;
-        _localization = localization;
+        _uiLayout                       = uiLayout;
+        _inputService                   = inputService;
+        _gameControllerService          = gameControllerService;
+        _localization                   = localization;
         _playerResourcesOverlayRenderer = playerResourcesOverlayRenderer;
-        _settingsMenu = settingsMenu;
-        _settingsPopupRenderer = settingsPopupRenderer;
-        _selectedCityPanelRenderer = selectedCityPanelRenderer;
-        _selectedWonderPanelRenderer = selectedWonderPanelRenderer;
-        _tradeRenderer = tradeRenderer;
-        _prestigeRenderer = prestigeRenderer;
-        _prestigeMapRenderer = prestigeMapRenderer;
-        _prestigeHistoryRenderer = prestigeHistoryRenderer;
-        _timeControlRenderer = timeControlRenderer;
-        _researchRenderer = researchRenderer;
-        _eventLogRenderer = eventLogRenderer;
-        _automationRenderer = automationRenderer;
-        _tooltipRenderer = tooltipRenderer;
+        _settingsMenu                   = settingsMenu;
+        _settingsPopupRenderer          = settingsPopupRenderer;
+        _selectedCityPanelRenderer      = selectedCityPanelRenderer;
+        _selectedWonderPanelRenderer    = selectedWonderPanelRenderer;
+        _tradeRenderer                  = tradeRenderer;
+        _prestigeRenderer               = prestigeRenderer;
+        _prestigeMapRenderer            = prestigeMapRenderer;
+        _prestigeHistoryRenderer        = prestigeHistoryRenderer;
+        _timeControlRenderer            = timeControlRenderer;
+        _researchRenderer               = researchRenderer;
+        _eventLogRenderer               = eventLogRenderer;
+        _automationRenderer             = automationRenderer;
+        _tooltipRenderer                = tooltipRenderer;
+
+        _tabBar          = new TabBarRenderer(localization, gameControllerService, uiLayout);
+        _mapSwitchButton = new MapSwitchButtonRenderer(localization, uiLayout, gameControllerService);
+
         _playerCivPanel = new PlayerCivilizationPanelRenderer(
             gameControllerService,
             localization,
@@ -138,18 +102,20 @@ public sealed class OverlayRenderer : IGameRenderer
             wonderSelectionService: null,
             tooltipRenderer);
         _playerCivPanel.OnExpanded = () => { if (_uiLayout.IsMobile) DeselectCityAndWonder(); };
-        _inputService.PointerPressed += HandlePointerPressed;
-        _inputService.PointerMoved += HandlePointerMoved;
+
+        _inputService.PointerPressed  += HandlePointerPressed;
+        _inputService.PointerMoved    += HandlePointerMoved;
         _inputService.PointerReleased += HandlePointerReleased;
-        _inputService.ZoomChanged += HandleZoomChanged;
-        _inputService.KeyPressed += HandleKeyInput;
-        _inputService.KeyReleased += HandleKeyRelease;
+        _inputService.ZoomChanged     += HandleZoomChanged;
+        _inputService.KeyPressed      += HandleKeyInput;
+        _inputService.KeyReleased     += HandleKeyRelease;
     }
 
     public void Initialize(SKSize canvasSize)
     {
         _canvasSize = canvasSize;
         _uiLayout.UpdateCanvasSize(canvasSize);
+
         _playerResourcesOverlayRenderer.Initialize(canvasSize);
         _selectedCityPanelRenderer.Initialize(canvasSize);
         _selectedWonderPanelRenderer.Initialize(canvasSize);
@@ -162,114 +128,35 @@ public sealed class OverlayRenderer : IGameRenderer
         _eventLogRenderer.Initialize(canvasSize);
         _automationRenderer.Initialize(canvasSize);
         _playerCivPanel.Initialize(canvasSize);
+        _tabBar.Initialize(canvasSize);
+        _mapSwitchButton.Initialize(canvasSize);
 
         _playerResourcesOverlayRenderer.ShowGearInBar = !_uiLayout.IsMobile;
 
         float scale = _uiLayout.UiScale;
-        _tabFont.Dispose();
-        _tabFont = new SKFont { Size = 12 * scale, Typeface = SkiaFonts.Bold };
-        _mapSwitchFont.Dispose();
-        _mapSwitchFont = new SKFont { Size = 11 * scale, Typeface = SkiaFonts.Bold };
-
-        float timeControlRight = _uiLayout.GearX - 8f * scale;
-        _timeControlRenderer.Initialize(canvasSize, timeControlRight, _uiLayout.TimeControlRowTop, scale);
+        _timeControlRenderer.Initialize(canvasSize, _uiLayout.GearX - 8f * scale, _uiLayout.TimeControlRowTop, scale);
     }
 
     public void Render(SKCanvas canvas, GameRenderContext context)
     {
-        if (_disposed) return;
-        if (!_isVisible) return;
+        if (_disposed || !_isVisible) return;
 
-        bool showTabs = HasPrestigePoints(context);
-        _hasResearchTab = IsResearchUnlocked();
-        _hasAutomationTab = HasAnyAutomation();
+        _tabBar.Update(context);
+        _playerResourcesOverlayRenderer.ResourceStartX = _tabBar.ResourceStartX;
 
-        // Sanitize active tab if it's no longer available
-        if (!_hasResearchTab && _activeTab == TabResearch) _activeTab = TabIsland;
-        if (!showTabs && (_activeTab == TabPrestige || _activeTab == TabStats || _activeTab == TabEvents)) _activeTab = TabIsland;
-        if (!_hasAutomationTab && _activeTab == TabAutomation) _activeTab = TabIsland;
-
-        // Build the ordered list of visible tabs for this frame
-        _activeTabs.Clear();
-        _activeTabs.Add((TabIsland, default));
-        if (_hasResearchTab) _activeTabs.Add((TabResearch, default));
-        if (showTabs) { _activeTabs.Add((TabPrestige, default)); _activeTabs.Add((TabStats, default)); _activeTabs.Add((TabEvents, default)); }
-        if (_hasAutomationTab) _activeTabs.Add((TabAutomation, default));
-
-        bool isMobile = _uiLayout.IsMobile;
-        float uiScale = _uiLayout.UiScale;
-        bool showTabBar = isMobile || _activeTabs.Count > 1;
-        if (showTabBar)
-        {
-            if (isMobile)
-            {
-                // Tabs en bas, pleine largeur, plus hautes pour le tactile
-                float mobileTabH = MobileTabHeight * uiScale;
-                float tabY = _canvasSize.Height - mobileTabH - 2;
-                float tabW = _canvasSize.Width / _activeTabs.Count;
-                for (int i = 0; i < _activeTabs.Count; i++)
-                {
-                    float x = i * tabW;
-                    _activeTabs[i] = (_activeTabs[i].tabId, new SKRect(x, tabY, x + tabW, tabY + mobileTabH));
-                }
-                _playerResourcesOverlayRenderer.ResourceStartX = UILayoutService.BarPadding * uiScale;
-            }
-            else
-            {
-                float scaledBarH = _uiLayout.ResourceBarBottom;
-                float scaledTabH = TabHeight * uiScale;
-                float scaledTabW = TabWidth * uiScale;
-                float tabY = (scaledBarH - scaledTabH) / 2;
-                float tabX = TabMarginLeft * uiScale;
-                for (int i = 0; i < _activeTabs.Count; i++)
-                {
-                    var rect = new SKRect(tabX, tabY, tabX + scaledTabW, tabY + scaledTabH);
-                    _activeTabs[i] = (_activeTabs[i].tabId, rect);
-                    tabX += scaledTabW + TabSpacing * uiScale;
-                }
-                _playerResourcesOverlayRenderer.ResourceStartX = tabX + TabMarginLeft * uiScale;
-            }
-        }
-        else
-        {
-            _playerResourcesOverlayRenderer.ResourceStartX = UILayoutService.BarPadding * uiScale;
-        }
-
-        bool onResearchTab    = _activeTab == TabResearch    && _hasResearchTab;
-        bool onPrestigeTab    = _activeTab == TabPrestige;
-        bool onHistoryTab     = _activeTab == TabStats;
-        bool onEventsTab      = _activeTab == TabEvents;
-        bool onAutomationTab  = _activeTab == TabAutomation  && _hasAutomationTab;
-
-        int currentEventCount = _gameControllerService.CurrentWorldState?.EventLog?.Entries.Count ?? 0;
-        if (_seenEventCount == null || _seenEventCount > currentEventCount)
-        {
-            _seenEventCount = currentEventCount;
-            _hasNewEvent = false;
-        }
-        else if (onEventsTab)
-        {
-            _seenEventCount = currentEventCount;
-            _hasNewEvent = false;
-        }
-        else if (currentEventCount > _seenEventCount)
-        {
-            _hasNewEvent = true;
-        }
-
-        bool isUnderworld = _gameControllerService.CurrentWorldState?.CurrentViewedLayer == LayerState.UnderworldZ;
-        bool panelsEnabled = !onResearchTab && !onPrestigeTab && !onHistoryTab && !onEventsTab && !onAutomationTab
-            && !_tradeRenderer.IsOpen && !_prestigeRenderer.IsOpen;
-        _selectedCityPanelRenderer.IsInputEnabled = panelsEnabled;
+        int activeTab      = _tabBar.ActiveTab;
+        bool isMobile      = _uiLayout.IsMobile;
+        bool panelsEnabled = activeTab == TabBarRenderer.TabIsland
+                          && !_tradeRenderer.IsOpen && !_prestigeRenderer.IsOpen;
+        _selectedCityPanelRenderer.IsInputEnabled  = panelsEnabled;
         _selectedWonderPanelRenderer.IsInputEnabled = panelsEnabled;
-        _researchRenderer.IsActive = onResearchTab;
+        _researchRenderer.IsActive = activeTab == TabBarRenderer.TabResearch;
 
         float panelTop = _uiLayout.PanelTopY;
         _playerCivPanel.TopOverride              = panelTop;
         _selectedWonderPanelRenderer.TopOverride = panelTop;
         _selectedCityPanelRenderer.TopOverride   = panelTop;
 
-        // En mode mobile : exclusion mutuelle entre panneaux gauche et droit
         if (isMobile)
         {
             bool rightPanelOpen = _gameControllerService.CityBuildingService?.SelectedCity != null
@@ -279,45 +166,38 @@ public sealed class OverlayRenderer : IGameRenderer
         }
 
         _playerResourcesOverlayRenderer.Render(canvas, context);
+        _tabBar.Render(canvas);
 
-        if (showTabBar)
-            DrawTabButtons(canvas);
-
-        if (onResearchTab)
+        switch (activeTab)
         {
-            _researchRenderer.Render(canvas, context);
-        }
-        else if (onPrestigeTab)
-        {
-            _prestigeMapRenderer.RenderPrestigeMap(canvas, context);
-        }
-        else if (onHistoryTab)
-        {
-            _prestigeHistoryRenderer.RenderHistory(canvas, context);
-        }
-        else if (onEventsTab)
-        {
-            _eventLogRenderer.RenderEvents(canvas, context);
-        }
-        else if (onAutomationTab)
-        {
-            _automationRenderer.RenderAutomationPage(canvas, context);
-        }
-        else
-        {
-            _playerCivPanel.Render(canvas, context);
-            _selectedCityPanelRenderer.Render(canvas, context);
-            _selectedWonderPanelRenderer.Render(canvas, context);
+            case TabBarRenderer.TabResearch:
+                _researchRenderer.Render(canvas, context);
+                break;
+            case TabBarRenderer.TabPrestige:
+                _prestigeMapRenderer.RenderPrestigeMap(canvas, context);
+                break;
+            case TabBarRenderer.TabStats:
+                _prestigeHistoryRenderer.RenderHistory(canvas, context);
+                break;
+            case TabBarRenderer.TabEvents:
+                _eventLogRenderer.RenderEvents(canvas, context);
+                break;
+            case TabBarRenderer.TabAutomation:
+                _automationRenderer.RenderAutomationPage(canvas, context);
+                break;
+            default:
+                _playerCivPanel.Render(canvas, context);
+                _selectedCityPanelRenderer.Render(canvas, context);
+                _selectedWonderPanelRenderer.Render(canvas, context);
+                break;
         }
 
-        float gearX = _uiLayout.GearX;
-
-        // Ordre : fond 2e ligne → time controls → gear (pour que les boutons soient visibles)
         if (isMobile)
             DrawMobileSecondRowBackground(canvas);
 
         _timeControlRenderer.Render(canvas, context);
 
+        float gearX = _uiLayout.GearX;
         if (isMobile)
             DrawMobileGearIcon(canvas, gearX);
         _settingsMenu.Draw(canvas, gearX, _uiLayout.SecondRowBottom);
@@ -326,19 +206,19 @@ public sealed class OverlayRenderer : IGameRenderer
         _prestigeRenderer.Render(canvas);
         _settingsPopupRenderer.Render(canvas, _uiLayout.UiScale);
 
-        DrawMapSwitchButton(canvas, context);
+        _mapSwitchButton.Render(canvas);
         CheckResourceBarTooltip();
     }
 
     private void DrawMobileSecondRowBackground(SKCanvas canvas)
     {
-        float scale = _uiLayout.UiScale;
+        float scale  = _uiLayout.UiScale;
         float rowTop = _uiLayout.ResourceBarBottom;
         float rowH   = UILayoutService.SecondRowHeight * scale;
-        float cornerRadius = 4 * scale;
-        var rowRect = new SKRect(0, rowTop, _canvasSize.Width, rowTop + rowH);
-        canvas.DrawRoundRect(rowRect, cornerRadius, cornerRadius, _secondRowBgPaint);
-        canvas.DrawRoundRect(rowRect, cornerRadius, cornerRadius, _secondRowBorderPaint);
+        float cr     = 4 * scale;
+        var rowRect  = new SKRect(0, rowTop, _canvasSize.Width, rowTop + rowH);
+        canvas.DrawRoundRect(rowRect, cr, cr, _secondRowBgPaint);
+        canvas.DrawRoundRect(rowRect, cr, cr, _secondRowBorderPaint);
     }
 
     private void DrawMobileGearIcon(SKCanvas canvas, float gearX)
@@ -352,132 +232,22 @@ public sealed class OverlayRenderer : IGameRenderer
         _playerResourcesOverlayRenderer.DrawGearAt(canvas, gearX, gearY, iconSize);
     }
 
-    private void DrawMapSwitchButton(SKCanvas canvas, GameRenderContext context)
-    {
-        if (context.GameState is not MainGameState mgs) return;
-        var worldState = mgs.CurrentWorldState;
-        if (worldState == null || !worldState.Layers.ContainsKey(LayerState.UnderworldZ)) return;
-
-        float s = _uiLayout.UiScale;
-        float btnW = 130f * s;
-        float btnH = 22f * s;
-        float btnX = (_canvasSize.Width - btnW) / 2f;
-        float btnY = _uiLayout.ResourceBarBottom + 3f * s;
-        _mapSwitchRect = new SKRect(btnX, btnY, btnX + btnW, btnY + btnH);
-
-        canvas.DrawRoundRect(_mapSwitchRect, 5 * s, 5 * s, _mapSwitchActivePaint);
-        canvas.DrawRoundRect(_mapSwitchRect, 5 * s, 5 * s, _mapSwitchBorderPaint);
-
-        string label = worldState.CurrentViewedLayer == LayerState.UnderworldZ
-            ? _localization.Get("btn_map_surface")
-            : _localization.Get("btn_map_underworld");
-        SkiaTextUtils.DrawText(canvas, label, _mapSwitchRect.MidX, _mapSwitchRect.MidY + 4f * s, SKTextAlign.Center, _mapSwitchFont, _buttonTextPaint);
-    }
-
     private void CheckResourceBarTooltip()
     {
         var hoveredResource = _playerResourcesOverlayRenderer.GetResourceAtPoint(_lastPointerPosition);
         if (!hoveredResource.HasValue) return;
 
-        var WorldState = _gameControllerService.CurrentWorldState;
-        if (WorldState == null) return;
+        var worldState = _gameControllerService.CurrentWorldState;
+        if (worldState == null) return;
 
         string resourceName = _localization.Get($"resource_{hoveredResource.Value.ToString().ToLower()}");
-
         var rates = _gameControllerService.MainGameController.HarvestController
-            .GetAverageProductionRatesPerSecond(WorldState.PlayerCivilization.Index);
+            .GetAverageProductionRatesPerSecond(worldState.PlayerCivilization.Index);
 
         if (rates.TryGetValue(hoveredResource.Value, out double rate) && rate > 0.0001)
             _tooltipRenderer.SetTooltipLines(new[] { resourceName, $"+{rate:F2}/s" }, _lastPointerPosition);
         else
             _tooltipRenderer.SetTooltip(resourceName, _lastPointerPosition);
-    }
-
-    private bool HasPrestigePoints(GameRenderContext context)
-    {
-        if (context.GameState is not MainGameState mainGameState) return false;
-        return (mainGameState.PrestigeState?.TotalPrestigePointsEarned ?? 0) > 0;
-    }
-
-    private bool IsResearchUnlocked()
-    {
-        try { return _gameControllerService.MainGameController.ResearchController.IsResearchUnlocked(); }
-        catch { return false; }
-    }
-
-    private bool HasAnyAutomation()
-    {
-        try
-        {
-            var civ = _gameControllerService.PlayerCivilization;
-            if (civ == null) return false;
-            foreach (var city in civ.Cities)
-                foreach (var b in city.Buildings)
-                    if (b.ProvidesAutomation && b.Level > 0) return true;
-            var completed = civ.TechnologyTree.CompletedTechnologies;
-            return completed.Contains(TechnologyId.AdvancedTactics) || completed.Contains(TechnologyId.AdvancedStrategy);
-        }
-        catch { return false; }
-    }
-
-    private bool ShouldBlinkResearchTab()
-    {
-        if (!_hasResearchTab || _activeTab == TabResearch) return false;
-        try { return _gameControllerService.MainGameController.ResearchController.ActiveResearch == null; }
-        catch { return false; }
-    }
-
-    private void DrawTabButtons(SKCanvas canvas)
-    {
-        bool blinkResearch = ShouldBlinkResearchTab();
-        float blinkT = (float)(Math.Sin(Environment.TickCount64 / 500.0) * 0.5 + 0.5);
-
-        foreach (var (tabId, rect) in _activeTabs)
-        {
-            bool blink = (blinkResearch && tabId == TabResearch) || (_hasNewEvent && tabId == TabEvents);
-            DrawTab(canvas, rect, GetTabLabel(tabId), _activeTab == tabId, blink ? blinkT : -1f);
-        }
-    }
-
-    private string GetTabLabel(int tabId) => tabId switch
-    {
-        TabIsland     => _localization.Get("tab_island"),
-        TabResearch   => _localization.Get("tab_research"),
-        TabPrestige   => _localization.Get("tab_prestige_map"),
-        TabStats      => _localization.Get("tab_stats"),
-        TabEvents     => _localization.Get("tab_events"),
-        TabAutomation => _localization.Get("tab_automation"),
-        _             => "?"
-    };
-
-    private void DrawTab(SKCanvas canvas, SKRect rect, string label, bool isActive, float blinkT = -1f)
-    {
-        SKPaint bgPaint;
-        if (isActive)
-        {
-            bgPaint = _activeTabPaint;
-        }
-        else if (blinkT >= 0f)
-        {
-            const byte r0 = 35, g0 = 35, b0 = 45;
-            const byte r1 = 160, g1 = 100, b1 = 10;
-            _blinkTabPaint.Color = new SKColor(
-                (byte)(r0 + (r1 - r0) * blinkT),
-                (byte)(g0 + (g1 - g0) * blinkT),
-                (byte)(b0 + (b1 - b0) * blinkT));
-            bgPaint = _blinkTabPaint;
-        }
-        else
-        {
-            bgPaint = _inactiveTabPaint;
-        }
-
-        float cr = 5 * _uiLayout.UiScale;
-        canvas.DrawRoundRect(rect, cr, cr, bgPaint);
-        if (isActive)
-            canvas.DrawRoundRect(rect, cr, cr, _activeTabBorderPaint);
-        var textPaint = isActive ? _buttonTextPaint : _disabledTextPaint;
-        SkiaTextUtils.DrawText(canvas, label, rect.MidX, rect.MidY + 5 * _uiLayout.UiScale, SKTextAlign.Center, _tabFont, textPaint);
     }
 
     public void ConnectWonderService(WonderSelectionService wonderSelectionService)
@@ -487,41 +257,40 @@ public sealed class OverlayRenderer : IGameRenderer
     }
 
     public bool IsAnyOverlayOpen => _tradeRenderer.IsOpen || _prestigeRenderer.IsOpen
-                                    || _settingsMenu.IsOpen || _settingsPopupRenderer.IsOpen;
+                                 || _settingsMenu.IsOpen  || _settingsPopupRenderer.IsOpen;
+
     public bool IsPointBlockedByUI(SKPoint point) =>
-        IsAnyOverlayOpen || _selectedCityPanelRenderer.ContainsPoint(point) || _selectedWonderPanelRenderer.ContainsPoint(point)
+        IsAnyOverlayOpen
+        || _selectedCityPanelRenderer.ContainsPoint(point)
+        || _selectedWonderPanelRenderer.ContainsPoint(point)
         || _playerCivPanel.ContainsPoint(point)
         || (_uiLayout.IsMobile && point.Y < _uiLayout.ResourceBarBottom);
-    public bool IsIslandTabActive => _activeTab == TabIsland;
+
+    public bool IsIslandTabActive => _tabBar.ActiveTab == TabBarRenderer.TabIsland;
 
     private void HandlePointerMoved(object? sender, PointerEventArgs e)
     {
         if (!_isVisible) return;
 
-        // Drag horizontal des ressources (mode mobile)
         if (_isDraggingResources)
         {
-            float delta = _resourceDragLastX - e.Position.X;
+            float delta        = _resourceDragLastX - e.Position.X;
             _resourceDragLastX = e.Position.X;
-            float visibleW = _canvasSize.Width - UILayoutService.BarPadding * _uiLayout.UiScale;
-            float maxScroll = Math.Max(0f, _playerResourcesOverlayRenderer.TotalResourcesContentWidth - visibleW);
+            float visibleW     = _canvasSize.Width - UILayoutService.BarPadding * _uiLayout.UiScale;
+            float maxScroll    = Math.Max(0f, _playerResourcesOverlayRenderer.TotalResourcesContentWidth - visibleW);
             _playerResourcesOverlayRenderer.ScrollOffset =
                 Math.Clamp(_playerResourcesOverlayRenderer.ScrollOffset + delta, 0f, maxScroll);
             return;
         }
 
-        if (_settingsPopupRenderer.IsOpen)
-            _settingsPopupRenderer.HandlePointerMoved(e.Position);
-        if (_tradeRenderer.IsOpen)
-            _tradeRenderer.HandlePointerMoved(e.Position);
-        if (_prestigeRenderer.IsOpen)
-            _prestigeRenderer.HandlePointerMoved(e.Position);
-        if (_activeTab == TabPrestige)
-            _prestigeMapRenderer.HandlePointerMoved(e.Position);
-        if (_activeTab == TabAutomation)
-            _automationRenderer.HandlePointerMoved(e.Position);
-        if (_activeTab == TabIsland)
-            _playerCivPanel.HandlePointerMoved(e.Position);
+        if (_settingsPopupRenderer.IsOpen) _settingsPopupRenderer.HandlePointerMoved(e.Position);
+        if (_tradeRenderer.IsOpen)         _tradeRenderer.HandlePointerMoved(e.Position);
+        if (_prestigeRenderer.IsOpen)      _prestigeRenderer.HandlePointerMoved(e.Position);
+
+        int activeTab = _tabBar.ActiveTab;
+        if (activeTab == TabBarRenderer.TabPrestige)   _prestigeMapRenderer.HandlePointerMoved(e.Position);
+        if (activeTab == TabBarRenderer.TabAutomation) _automationRenderer.HandlePointerMoved(e.Position);
+        if (activeTab == TabBarRenderer.TabIsland)     _playerCivPanel.HandlePointerMoved(e.Position);
 
         _lastPointerPosition = e.Position;
     }
@@ -532,13 +301,12 @@ public sealed class OverlayRenderer : IGameRenderer
         if (_suppressNextPress) { _suppressNextPress = false; return; }
 
         if (_settingsPopupRenderer.HandlePointerPressed(e.Position, e.Button)) return;
-        if (_prestigeRenderer.HandlePointerPressed(e.Position, e.Button)) return;
-        if (_tradeRenderer.HandlePointerPressed(e.Position, e.Button)) return;
+        if (_prestigeRenderer.HandlePointerPressed(e.Position, e.Button))      return;
+        if (_tradeRenderer.HandlePointerPressed(e.Position, e.Button))         return;
         if (e.Button != PointerButton.Left) return;
 
         bool isMobile = _uiLayout.IsMobile;
 
-        // Gear : en mode mobile il est dans la 2e ligne, sinon dans la barre ressources
         var gearRect = isMobile ? _mobileGearRect : _playerResourcesOverlayRenderer.GearRect;
         if (gearRect != default && gearRect.Contains(e.Position.X, e.Position.Y))
         {
@@ -546,53 +314,29 @@ public sealed class OverlayRenderer : IGameRenderer
             return;
         }
 
-        // Drag des ressources (mode mobile, zone barre du haut)
         if (isMobile && e.Position.Y < _uiLayout.ResourceBarBottom)
         {
             _isDraggingResources = true;
-            _resourceDragLastX = e.Position.X;
+            _resourceDragLastX   = e.Position.X;
             return;
         }
 
-        // Map switch button
-        if (_mapSwitchRect != default && _mapSwitchRect.Contains(e.Position.X, e.Position.Y))
+        if (_mapSwitchButton.HandlePointerPressed(e.Position, onSwitchedToUnderworld: () =>
         {
-            var worldState = _gameControllerService.CurrentWorldState;
-            if (worldState?.Layers.ContainsKey(LayerState.UnderworldZ) == true)
-            {
-                worldState.CurrentViewedLayer = worldState.CurrentViewedLayer == LayerState.UnderworldZ
-                    ? IslandMap.SurfaceLayer
-                    : LayerState.UnderworldZ;
-                if (worldState.CurrentViewedLayer == LayerState.UnderworldZ)
-                    _activeTab = TabIsland;
-                DeselectCityAndWonder();
-            }
+            _tabBar.SetActiveTab(TabBarRenderer.TabIsland);
+            DeselectCityAndWonder();
+        }))
+        {
+            DeselectCityAndWonder();
             return;
         }
 
-        // Tab clicks
-        foreach (var (tabId, rect) in _activeTabs)
-        {
-            if (rect.Contains(e.Position.X, e.Position.Y))
-            {
-                _activeTab = tabId;
-                return;
-            }
-        }
+        if (_tabBar.HandlePointerPressed(e.Position)) return;
 
-        if (_activeTab == TabPrestige)
-        {
-            _prestigeMapRenderer.HandlePointerPressed(e.Position);
-            return;
-        }
-
-        if (_activeTab == TabAutomation)
-        {
-            _automationRenderer.HandlePointerPressed(e.Position);
-            return;
-        }
-
-        if (_activeTab == TabStats || _activeTab == TabResearch || _activeTab == TabEvents) return;
+        int activeTab = _tabBar.ActiveTab;
+        if (activeTab == TabBarRenderer.TabPrestige)   { _prestigeMapRenderer.HandlePointerPressed(e.Position); return; }
+        if (activeTab == TabBarRenderer.TabAutomation) { _automationRenderer.HandlePointerPressed(e.Position); return; }
+        if (activeTab is TabBarRenderer.TabStats or TabBarRenderer.TabResearch or TabBarRenderer.TabEvents) return;
 
         _playerCivPanel.HandlePointerPressed(e.Position);
     }
@@ -610,7 +354,7 @@ public sealed class OverlayRenderer : IGameRenderer
         _tradeRenderer.Close();
         _prestigeRenderer.Close();
         DeselectCityAndWonder();
-        _selectedCityPanelRenderer.IsInputEnabled = false;
+        _selectedCityPanelRenderer.IsInputEnabled  = false;
         _selectedWonderPanelRenderer.IsInputEnabled = false;
     }
 
@@ -623,33 +367,31 @@ public sealed class OverlayRenderer : IGameRenderer
     public void Show(bool suppressNextPress = false)
     {
         _isVisible = true;
-        _selectedCityPanelRenderer.IsInputEnabled = true;
+        _selectedCityPanelRenderer.IsInputEnabled  = true;
         _selectedWonderPanelRenderer.IsInputEnabled = true;
         if (suppressNextPress) _suppressNextPress = true;
     }
 
-    public void SwitchToPrestigeTab()
-    {
-        _activeTab = TabPrestige;
-    }
+    public void SwitchToPrestigeTab() => _tabBar.SetActiveTab(TabBarRenderer.TabPrestige);
 
     private void HandlePointerReleased(object? sender, PointerEventArgs e)
     {
         _isDraggingResources = false;
         if (!_isVisible) return;
-        if (_activeTab == TabPrestige)
+        if (_tabBar.ActiveTab == TabBarRenderer.TabPrestige)
             _prestigeMapRenderer.HandlePointerReleased(e.Position);
     }
 
     private void HandleZoomChanged(object? sender, ZoomEventArgs e)
     {
         if (!_isVisible) return;
-        if (_activeTab == TabPrestige)
+        int activeTab = _tabBar.ActiveTab;
+        if (activeTab == TabBarRenderer.TabPrestige)
         {
             _prestigeMapRenderer.HandleZoom(e);
             return;
         }
-        if (_activeTab == TabIsland)
+        if (activeTab == TabBarRenderer.TabIsland)
         {
             if (_selectedCityPanelRenderer.ContainsPoint(e.Center))
                 _selectedCityPanelRenderer.HandleScroll(e.ZoomDelta);
@@ -666,15 +408,7 @@ public sealed class OverlayRenderer : IGameRenderer
             _tradeRenderer.HandleKeyDown(e.Key);
             return;
         }
-        switch (e.Key)
-        {
-            case "I": _activeTab = TabIsland;     break;
-            case "R": _activeTab = TabResearch;   break;
-            case "P": _activeTab = TabPrestige;   break;
-            case "S": _activeTab = TabStats;      break;
-            case "E": _activeTab = TabEvents;     break;
-            case "A": if (_hasAutomationTab) _activeTab = TabAutomation; break;
-        }
+        _tabBar.HandleKeyInput(e.Key);
     }
 
     private void HandleKeyRelease(object? sender, KeyEventArgs e)
@@ -688,25 +422,19 @@ public sealed class OverlayRenderer : IGameRenderer
     {
         if (_disposed) return;
 
-        _inputService.PointerPressed -= HandlePointerPressed;
-        _inputService.PointerMoved -= HandlePointerMoved;
+        _inputService.PointerPressed  -= HandlePointerPressed;
+        _inputService.PointerMoved    -= HandlePointerMoved;
         _inputService.PointerReleased -= HandlePointerReleased;
-        _inputService.ZoomChanged -= HandleZoomChanged;
-        _inputService.KeyPressed -= HandleKeyInput;
-        _inputService.KeyReleased -= HandleKeyRelease;
+        _inputService.ZoomChanged     -= HandleZoomChanged;
+        _inputService.KeyPressed      -= HandleKeyInput;
+        _inputService.KeyReleased     -= HandleKeyRelease;
+
         _playerResourcesOverlayRenderer.Dispose();
         _selectedCityPanelRenderer.Dispose();
         _selectedWonderPanelRenderer.Dispose();
         _settingsMenu.Dispose();
         _tradeRenderer.Dispose();
         _prestigeRenderer.Dispose();
-        _buttonTextPaint.Dispose();
-        _disabledTextPaint.Dispose();
-        _activeTabPaint.Dispose();
-        _inactiveTabPaint.Dispose();
-        _blinkTabPaint.Dispose();
-        _activeTabBorderPaint.Dispose();
-        _tabFont.Dispose();
         _prestigeMapRenderer.Dispose();
         _prestigeHistoryRenderer.Dispose();
         _timeControlRenderer.Dispose();
@@ -714,11 +442,11 @@ public sealed class OverlayRenderer : IGameRenderer
         _eventLogRenderer.Dispose();
         _automationRenderer.Dispose();
         _playerCivPanel.Dispose();
-        _mapSwitchActivePaint.Dispose();
-        _mapSwitchBorderPaint.Dispose();
-        _mapSwitchFont.Dispose();
+        _tabBar.Dispose();
+        _mapSwitchButton.Dispose();
         _secondRowBgPaint.Dispose();
         _secondRowBorderPaint.Dispose();
+
         _disposed = true;
     }
 }
