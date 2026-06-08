@@ -377,7 +377,7 @@ public sealed class OverlayRenderer : IGameRenderer
         string label = worldState.CurrentViewedLayer == LayerState.UnderworldZ
             ? _localization.Get("btn_map_surface")
             : _localization.Get("btn_map_underworld");
-        canvas.DrawText(label, _mapSwitchRect.MidX, _mapSwitchRect.MidY + 4f * s, SKTextAlign.Center, _mapSwitchFont, _buttonTextPaint);
+        SkiaTextUtils.DrawText(canvas, label, _mapSwitchRect.MidX, _mapSwitchRect.MidY + 4f * s, SKTextAlign.Center, _mapSwitchFont, _buttonTextPaint);
     }
 
     private void CheckResourceBarTooltip()
@@ -483,7 +483,7 @@ public sealed class OverlayRenderer : IGameRenderer
         if (isActive)
             canvas.DrawRoundRect(rect, cr, cr, _activeTabBorderPaint);
         var textPaint = isActive ? _buttonTextPaint : _disabledTextPaint;
-        canvas.DrawText(label, rect.MidX, rect.MidY + 5 * _uiLayout.UiScale, SKTextAlign.Center, _tabFont, textPaint);
+        SkiaTextUtils.DrawText(canvas, label, rect.MidX, rect.MidY + 5 * _uiLayout.UiScale, SKTextAlign.Center, _tabFont, textPaint);
     }
 
     public void ConnectWonderService(WonderSelectionService wonderSelectionService)

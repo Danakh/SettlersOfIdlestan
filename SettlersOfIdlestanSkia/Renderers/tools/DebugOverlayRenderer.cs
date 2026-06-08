@@ -1,4 +1,4 @@
-using SkiaSharp;
+﻿using SkiaSharp;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Services;
 using SettlersOfIdlestanSkia.Services.Localization;
@@ -56,7 +56,7 @@ public class DebugOverlayRenderer : IGameRenderer
         float yStart = canvasSize.Height - margin - lines.Length * lineHeight;
         for (int i = 0; i < lines.Length; i++)
         {
-            canvas.DrawText(lines[i], canvasSize.Width - margin, yStart + i * lineHeight, SKTextAlign.Right, _textFont, _textPaint);
+            SkiaTextUtils.DrawText(canvas, lines[i], canvasSize.Width - margin, yStart + i * lineHeight, SKTextAlign.Right, _textFont, _textPaint);
         }
     }
 }

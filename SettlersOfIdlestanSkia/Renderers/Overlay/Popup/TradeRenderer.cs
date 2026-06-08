@@ -1,4 +1,4 @@
-using SettlersOfIdlestan.Controller;
+﻿using SettlersOfIdlestan.Controller;
 using SettlersOfIdlestan.Controller.Expand;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.IslandMap;
@@ -150,7 +150,7 @@ public sealed class TradeRenderer : IDisposable
 
         var popup = GetPopupRect();
         _chrome.DrawBackground(canvas, popup, _canvasSize);
-        canvas.DrawText(_localization.Get("trade_title"), popup.MidX, popup.Top + 28, SKTextAlign.Center, _titleFont, _textPaint);
+        SkiaTextUtils.DrawText(canvas, _localization.Get("trade_title"), popup.MidX, popup.Top + 28, SKTextAlign.Center, _titleFont, _textPaint);
         _closeButtonRect = PopupChrome.GetCloseRect(popup);
         _chrome.DrawCloseButton(canvas, _closeButtonRect);
 
@@ -287,7 +287,7 @@ public sealed class TradeRenderer : IDisposable
                              : showL3 ? CheckboxSize + CheckboxGap * 2
                              : 0f;
 
-        canvas.DrawText(_localization.Get("trade_give"), x + ColWidth / 2, y + 16, SKTextAlign.Center, _boldFont, _textPaint);
+        SkiaTextUtils.DrawText(canvas, _localization.Get("trade_give"), x + ColWidth / 2, y + 16, SKTextAlign.Center, _boldFont, _textPaint);
 
         float rowY = y + 26;
         foreach (var resource in ResourceUtils.BasicResources.Where(r => tc.CanTradeResource(civ, r)))
@@ -309,9 +309,9 @@ public sealed class TradeRenderer : IDisposable
             DrawIcon(canvas, resource, iconX, row.MidY);
 
             string sellName = _localization.Get($"resource_{resource.ToString().ToLower()}");
-            canvas.DrawText(sellName, iconX + IconSize + 5, row.MidY + 5, _font, canSell ? _textPaint : _mutedTextPaint);
+            SkiaTextUtils.DrawText(canvas, sellName, iconX + IconSize + 5, row.MidY + 5, _font, canSell ? _textPaint : _mutedTextPaint);
 
-            canvas.DrawText($"{available}/{maxQty}", row.MidX, row.MidY + 5, SKTextAlign.Center, _smallFont, _mutedTextPaint);
+            SkiaTextUtils.DrawText(canvas, $"{available}/{maxQty}", row.MidX, row.MidY + 5, SKTextAlign.Center, _smallFont, _mutedTextPaint);
 
             string btnText = string.Format(_localization.Get("trade_sell_button"), units, ActiveMultiplier);
             var btn = DrawActionButton(canvas, row, btnText, canSell);
@@ -340,7 +340,7 @@ public sealed class TradeRenderer : IDisposable
                             || (prestigeState?.IsResourceDiscovered(r, map) ?? false)))
             .ToList();
 
-        canvas.DrawText(_localization.Get("trade_advanced_title"), x + ColWidth / 2, y + 16, SKTextAlign.Center, _boldFont, _textPaint);
+        SkiaTextUtils.DrawText(canvas, _localization.Get("trade_advanced_title"), x + ColWidth / 2, y + 16, SKTextAlign.Center, _boldFont, _textPaint);
 
         float rowY = y + 26;
         foreach (var resource in buyable)
@@ -356,9 +356,9 @@ public sealed class TradeRenderer : IDisposable
             DrawIcon(canvas, resource, row.Left + 8, row.MidY);
 
             string buyName = _localization.Get($"resource_{resource.ToString().ToLower()}");
-            canvas.DrawText(buyName, row.Left + 8 + IconSize + 5, row.MidY + 5, _font, canBuy ? _textPaint : _mutedTextPaint);
+            SkiaTextUtils.DrawText(canvas, buyName, row.Left + 8 + IconSize + 5, row.MidY + 5, _font, canBuy ? _textPaint : _mutedTextPaint);
 
-            canvas.DrawText($"{qty}/{maxQty}", row.MidX, row.MidY + 5, SKTextAlign.Center, _smallFont, _mutedTextPaint);
+            SkiaTextUtils.DrawText(canvas, $"{qty}/{maxQty}", row.MidX, row.MidY + 5, SKTextAlign.Center, _smallFont, _mutedTextPaint);
 
             string btnText = string.Format(_localization.Get("trade_buy_button"), cost, ActiveMultiplier);
             var btn = DrawActionButton(canvas, row, btnText, canBuy);
@@ -399,7 +399,7 @@ public sealed class TradeRenderer : IDisposable
         float btnY = row.MidY - BtnH / 2f;
         var btn = new SKRect(btnX, btnY, btnX + BtnW, btnY + BtnH);
         canvas.DrawRoundRect(btn, 5, 5, active ? _activeButtonPaint : _disabledBtnPaint);
-        canvas.DrawText(text, btn.MidX, btn.MidY + 5, SKTextAlign.Center, _font, active ? _textPaint : _mutedTextPaint);
+        SkiaTextUtils.DrawText(canvas, text, btn.MidX, btn.MidY + 5, SKTextAlign.Center, _font, active ? _textPaint : _mutedTextPaint);
         return btn;
     }
 
@@ -424,7 +424,7 @@ public sealed class TradeRenderer : IDisposable
             DrawIconSized(canvas, Resource.Gold, iconX, capsule.MidY, goldIconSize);
 
             string qtyText = $"{goldQty}/{goldMax}";
-            canvas.DrawText(qtyText, iconX + goldIconSize + 5, capsule.MidY + 4, _smallFont, _textPaint);
+            SkiaTextUtils.DrawText(canvas, qtyText, iconX + goldIconSize + 5, capsule.MidY + 4, _smallFont, _textPaint);
         }
 
         // Multiplicateurs
@@ -447,7 +447,7 @@ public sealed class TradeRenderer : IDisposable
         var border = isTemporary ? _multTempBorder : isActive ? _multActiveBorder : _multInactiveBorder;
         canvas.DrawRoundRect(rect, 4, 4, fill);
         canvas.DrawRoundRect(rect, 4, 4, border);
-        canvas.DrawText(label, rect.MidX, rect.MidY + 5, SKTextAlign.Center, _font,
+        SkiaTextUtils.DrawText(canvas, label, rect.MidX, rect.MidY + 5, SKTextAlign.Center, _font,
             (isActive || isTemporary) ? _textPaint : _mutedTextPaint);
     }
 
@@ -481,7 +481,7 @@ public sealed class TradeRenderer : IDisposable
         _checkboxBorderPaint.StrokeWidth = hovered && canOn ? 2f : 1.5f;
         canvas.DrawRoundRect(cb, 3, 3, _checkboxFillPaint);
         canvas.DrawRoundRect(cb, 3, 3, _checkboxBorderPaint);
-        if (isOn)  canvas.DrawText("4", cb.MidX, cb.MidY + 5, SKTextAlign.Center, _font, _textPaint);
+        if (isOn)  SkiaTextUtils.DrawText(canvas, "4", cb.MidX, cb.MidY + 5, SKTextAlign.Center, _font, _textPaint);
         if (!isOn && canOn) _seaportL3Rects[cb] = resource;
     }
 
@@ -501,7 +501,7 @@ public sealed class TradeRenderer : IDisposable
         _checkboxBorderPaint.StrokeWidth = hovered && canOn ? 2f : 1.5f;
         canvas.DrawRoundRect(cb, 3, 3, _checkboxFillPaint);
         canvas.DrawRoundRect(cb, 3, 3, _checkboxBorderPaint);
-        if (isOn)  canvas.DrawText("A", cb.MidX, cb.MidY + 5, SKTextAlign.Center, _font, _textPaint);
+        if (isOn)  SkiaTextUtils.DrawText(canvas, "A", cb.MidX, cb.MidY + 5, SKTextAlign.Center, _font, _textPaint);
         if (!isOn && canOn) _seaportL4Rects[cb] = resource;
     }
 
@@ -557,16 +557,16 @@ public sealed class TradeRenderer : IDisposable
         string resourceName  = _localization.Get($"resource_{resource.ToString().ToLower()}");
         string msgKey        = isAutoTrade ? "trade_seaport_autotrade_confirm"           : "trade_seaport_confirm";
         string permanentKey  = isAutoTrade ? "trade_seaport_autotrade_confirm_permanent" : "trade_seaport_confirm_permanent";
-        canvas.DrawText(string.Format(_localization.Get(msgKey), resourceName), _confirmPopupRect.MidX, py + 42, SKTextAlign.Center, _font, _textPaint);
-        canvas.DrawText(_localization.Get(permanentKey), _confirmPopupRect.MidX, py + 64, SKTextAlign.Center, _smallFont, _mutedTextPaint);
+        SkiaTextUtils.DrawText(canvas, string.Format(_localization.Get(msgKey), resourceName), _confirmPopupRect.MidX, py + 42, SKTextAlign.Center, _font, _textPaint);
+        SkiaTextUtils.DrawText(canvas, _localization.Get(permanentKey), _confirmPopupRect.MidX, py + 64, SKTextAlign.Center, _smallFont, _mutedTextPaint);
 
         float btnW = 100, btnH = 32, btnY = py + h - 16 - btnH;
         _confirmYesRect = new SKRect(_confirmPopupRect.MidX - btnW - 8, btnY, _confirmPopupRect.MidX - 8,          btnY + btnH);
         _confirmNoRect  = new SKRect(_confirmPopupRect.MidX + 8,        btnY, _confirmPopupRect.MidX + 8 + btnW, btnY + btnH);
         canvas.DrawRoundRect(_confirmYesRect, 6, 6, _confirmYesPaint);
         canvas.DrawRoundRect(_confirmNoRect,  6, 6, _confirmNoPaint);
-        canvas.DrawText(_localization.Get("trade_seaport_confirm_yes"), _confirmYesRect.MidX, _confirmYesRect.MidY + 5, SKTextAlign.Center, _boldFont, _textPaint);
-        canvas.DrawText(_localization.Get("trade_seaport_confirm_no"),  _confirmNoRect.MidX,  _confirmNoRect.MidY  + 5, SKTextAlign.Center, _boldFont, _textPaint);
+        SkiaTextUtils.DrawText(canvas, _localization.Get("trade_seaport_confirm_yes"), _confirmYesRect.MidX, _confirmYesRect.MidY + 5, SKTextAlign.Center, _boldFont, _textPaint);
+        SkiaTextUtils.DrawText(canvas, _localization.Get("trade_seaport_confirm_no"),  _confirmNoRect.MidX,  _confirmNoRect.MidY  + 5, SKTextAlign.Center, _boldFont, _textPaint);
     }
 
     // ── Layout ───────────────────────────────────────────────────────────────────

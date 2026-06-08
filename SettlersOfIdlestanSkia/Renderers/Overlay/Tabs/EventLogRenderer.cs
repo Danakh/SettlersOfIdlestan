@@ -78,13 +78,13 @@ public sealed class EventLogRenderer : IDisposable
         float x = (_canvasSize.Width - contentWidth) / 2;
         float y = topBarHeight + Padding;
 
-        canvas.DrawText(_localization.Get("tab_events"), x, y + 14, _headerFont, _accentPaint);
+        SkiaTextUtils.DrawText(canvas, _localization.Get("tab_events"), x, y + 14, _headerFont, _accentPaint);
         y += 28f;
 
         var eventLog = mainGameState.CurrentWorldState?.EventLog;
         if (eventLog == null || !eventLog.HasEntries)
         {
-            canvas.DrawText(_localization.Get("events_empty"), x, y + 14, _bodyFont, _mutedPaint);
+            SkiaTextUtils.DrawText(canvas, _localization.Get("events_empty"), x, y + 14, _bodyFont, _mutedPaint);
             return;
         }
 
@@ -96,8 +96,8 @@ public sealed class EventLogRenderer : IDisposable
             var cardRect = new SKRect(x, y, x + contentWidth, y + CardHeight);
             canvas.DrawRoundRect(cardRect, CardRadius, CardRadius, cardPaint);
             canvas.DrawRoundRect(cardRect, CardRadius, CardRadius, borderPaint);
-            canvas.DrawText(title, x + CardPadding, y + TitleLineY, _titleFont, titlePaint);
-            canvas.DrawText(body, x + CardPadding, y + BodyLineY, _bodyFont, _bodyTextPaint);
+            SkiaTextUtils.DrawText(canvas, title, x + CardPadding, y + TitleLineY, _titleFont, titlePaint);
+            SkiaTextUtils.DrawText(canvas, body, x + CardPadding, y + BodyLineY, _bodyFont, _bodyTextPaint);
             y += CardHeight + CardSpacing;
         }
     }

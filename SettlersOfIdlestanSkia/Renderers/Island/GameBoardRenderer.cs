@@ -247,7 +247,7 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
         if (DebugSettings.ShowHexCoords && _textPaint != null && tile.Coord != null)
         {
             _textPaint.Color = SKColors.Black;
-            canvas.DrawText($"{tile.Coord.Q},{tile.Coord.R}", centerX, centerY + HexSize / 2.5f, SKTextAlign.Center, _textFont, _textPaint);
+            SkiaTextUtils.DrawText(canvas, $"{tile.Coord.Q},{tile.Coord.R}", centerX, centerY + HexSize / 2.5f, SKTextAlign.Center, _textFont, _textPaint);
         }
     }
 
@@ -275,7 +275,7 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
 
         var textIcon = feature.TextIcon;
         if (textIcon != null && _textIconFont != null && _textIconPaint != null)
-            canvas.DrawText(textIcon, cx, cy + _textIconFont.Size / 2f - 1f, SKTextAlign.Center, _textIconFont, _textIconPaint);
+            SkiaTextUtils.DrawText(canvas, textIcon, cx, cy + _textIconFont.Size / 2f - 1f, SKTextAlign.Center, _textIconFont, _textIconPaint);
     }
 
     /// <summary>

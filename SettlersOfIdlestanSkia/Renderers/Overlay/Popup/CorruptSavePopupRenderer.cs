@@ -1,4 +1,4 @@
-using SettlersOfIdlestanSkia.Services.Localization;
+﻿using SettlersOfIdlestanSkia.Services.Localization;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Services;
 using SkiaSharp;
@@ -91,14 +91,14 @@ public sealed class CorruptSavePopupRenderer : IDisposable
 
         string title = _localization.Get("corrupt_save_title");
         float titleW = _titleFont.MeasureText(title);
-        canvas.DrawText(title, x + (popupW - titleW) / 2f, y + 44 * s, _titleFont, _titlePaint);
+        SkiaTextUtils.DrawText(canvas, title, x + (popupW - titleW) / 2f, y + 44 * s, _titleFont, _titlePaint);
 
         float lineY = y + 84 * s;
         foreach (var key in new[] { "corrupt_save_line1", "corrupt_save_line2" })
         {
             string line = _localization.Get(key);
             float lw = _bodyFont.MeasureText(line);
-            canvas.DrawText(line, x + (popupW - lw) / 2f, lineY, _bodyFont, _subtlePaint);
+            SkiaTextUtils.DrawText(canvas, line, x + (popupW - lw) / 2f, lineY, _bodyFont, _subtlePaint);
             lineY += _bodyFont.Size * 1.7f;
         }
 
@@ -121,7 +121,7 @@ public sealed class CorruptSavePopupRenderer : IDisposable
         canvas.DrawRoundRect(rect, 6 * s, 6 * s, fill);
         canvas.DrawRoundRect(rect, 6 * s, 6 * s, _btnBorder);
         float tw = _btnFont.MeasureText(label);
-        canvas.DrawText(label,
+        SkiaTextUtils.DrawText(canvas, label,
             rect.Left + (rect.Width - tw) / 2f,
             rect.Top  + (rect.Height + _btnFont.Size) / 2f,
             _btnFont, _textPaint);

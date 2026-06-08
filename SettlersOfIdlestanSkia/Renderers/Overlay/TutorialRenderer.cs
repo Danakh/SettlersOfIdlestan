@@ -100,7 +100,7 @@ public class TutorialRenderer : IGameRenderer
 
         // Title
         using var titlePaint = new SKPaint { Color = ColorTitle, IsAntialias = true };
-        canvas.DrawText(title, x, y, _titleFont, titlePaint);
+        SkiaTextUtils.DrawText(canvas, title, x, y, _titleFont, titlePaint);
         y += 6f;
 
         // Description
@@ -127,9 +127,9 @@ public class TutorialRenderer : IGameRenderer
             y += _taskFont.Size;
             bool done = task.IsCompleted(gameRecord, runRecord, WorldState);
             var taskPaint = done ? donePaint : pendingPaint;
-            canvas.DrawText(done ? "✓" : "☐", x, y, _taskFont, taskPaint);
+            SkiaTextUtils.DrawText(canvas, done ? "✓" : "☐", x, y, _taskFont, taskPaint);
             string name = _localization.Get(task.NameKey);
-            canvas.DrawText(name, x + TaskMarkerW, y, _taskFont, taskPaint);
+            SkiaTextUtils.DrawText(canvas, name, x + TaskMarkerW, y, _taskFont, taskPaint);
             DrawProgress(canvas, task, gameRecord, runRecord, WorldState, x + TaskMarkerW + _taskFont.MeasureText(name) + 4f, y, progressPaint);
             y += 2f;
             _taskRects.Add((new SKRect(PanelLeft, taskTop, PanelLeft + PanelWidth, y), task));
@@ -139,7 +139,7 @@ public class TutorialRenderer : IGameRenderer
         {
             y += secondaryGapH;
             using var optionalPaint = new SKPaint { Color = ColorTaskSecondaryPending, IsAntialias = true };
-            canvas.DrawText(_localization.Get("tutorial_optional"), x, y + _optionalFont.Size, _optionalFont, optionalPaint);
+            SkiaTextUtils.DrawText(canvas, _localization.Get("tutorial_optional"), x, y + _optionalFont.Size, _optionalFont, optionalPaint);
             y += secondaryLabelH;
 
             foreach (var task in _step.SecondaryTasks)
@@ -148,9 +148,9 @@ public class TutorialRenderer : IGameRenderer
                 y += _taskFont.Size;
                 bool done = task.IsCompleted(gameRecord, runRecord, WorldState);
                 var taskPaint = done ? secondaryDonePaint : secondaryPendingPaint;
-                canvas.DrawText(done ? "✓" : "☐", x, y, _taskFont, taskPaint);
+                SkiaTextUtils.DrawText(canvas, done ? "✓" : "☐", x, y, _taskFont, taskPaint);
                 string name = _localization.Get(task.NameKey);
-                canvas.DrawText(name, x + TaskMarkerW, y, _taskFont, taskPaint);
+                SkiaTextUtils.DrawText(canvas, name, x + TaskMarkerW, y, _taskFont, taskPaint);
                 DrawProgress(canvas, task, gameRecord, runRecord, WorldState, x + TaskMarkerW + _taskFont.MeasureText(name) + 4f, y, progressPaint);
                 y += 2f;
                 _taskRects.Add((new SKRect(PanelLeft, taskTop, PanelLeft + PanelWidth, y), task));
@@ -170,7 +170,7 @@ public class TutorialRenderer : IGameRenderer
         if (task.GetProgress == null) return;
         var (current, max) = task.GetProgress(gameRecord, runRecord, WorldState);
         if (max <= 1) return;
-        canvas.DrawText($"({Math.Min(current, max)}/{max})", x, y, _optionalFont, paint);
+        SkiaTextUtils.DrawText(canvas, $"({Math.Min(current, max)}/{max})", x, y, _optionalFont, paint);
     }
 
     private void HandlePointerMoved(object? sender, PointerEventArgs e)

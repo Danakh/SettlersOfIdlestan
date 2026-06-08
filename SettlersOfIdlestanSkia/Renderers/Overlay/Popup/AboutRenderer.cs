@@ -1,4 +1,4 @@
-using SkiaSharp;
+﻿using SkiaSharp;
 using SettlersOfIdlestanSkia.Services;
 using SettlersOfIdlestanSkia.Services.Localization;
 using SettlersOfIdlestanSkia.Core;
@@ -90,7 +90,7 @@ public class AboutRenderer : IGameRenderer
             float textWidth = _textFont.MeasureText(lines[i]);
             float textX = x + (width - textWidth) / 2;
             float textY = startY + i * lineHeight;
-            canvas.DrawText(lines[i], textX, textY, _textFont, _textPaint);
+            SkiaTextUtils.DrawText(canvas, lines[i], textX, textY, _textFont, _textPaint);
         }
     }
 

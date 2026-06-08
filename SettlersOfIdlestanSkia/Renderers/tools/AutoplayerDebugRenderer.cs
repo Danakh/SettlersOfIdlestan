@@ -113,7 +113,7 @@ public class AutoplayerDebugRenderer : IGameRenderer
         canvas.DrawRoundRect(rect, 4, 4, isActive ? _activePaint : _inactivePaint);
         canvas.DrawRoundRect(rect, 4, 4, _borderPaint);
         float textY = rect.MidY + _font.Size / 2f - 2f;
-        canvas.DrawText(label, rect.MidX, textY, SKTextAlign.Center, _font, _textPaint);
+        SkiaTextUtils.DrawText(canvas, label, rect.MidX, textY, SKTextAlign.Center, _font, _textPaint);
     }
 
     private void HandlePointerPressed(object? sender, PointerEventArgs e)

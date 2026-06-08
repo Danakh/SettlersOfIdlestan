@@ -1,4 +1,4 @@
-using SkiaSharp;
+﻿using SkiaSharp;
 using SettlersOfIdlestanSkia.Services.Localization;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Renderers.Overlay.Popup;
@@ -85,14 +85,14 @@ public sealed class DebugPanelRenderer : IGameRenderer, IDisposable
         _chrome.DrawBackground(canvas, _panelRect, _canvasSize);
         _chrome.DrawCloseButton(canvas, _closeRect);
 
-        canvas.DrawText(_localization.Get("debug_panel_title"), _panelRect.MidX, _panelRect.Top + 38f,
+        SkiaTextUtils.DrawText(canvas, _localization.Get("debug_panel_title"), _panelRect.MidX, _panelRect.Top + 38f,
             SKTextAlign.Center, _titleFont, _titlePaint);
 
         bool[] states = { DebugSettings.ShowHexCoords, DebugSettings.ShowAutoplayerCommands, DebugSettings.ShowFullMap, _uiLayout.IsForcedMobile };
         for (int i = 0; i < 4; i++)
         {
             float rowMidY = _panelRect.Top + FirstRowY + i * RowHeight + RowHeight / 2f;
-            canvas.DrawText(_localization.Get(LabelKeys[i]), _panelRect.Left + 20f,
+            SkiaTextUtils.DrawText(canvas, _localization.Get(LabelKeys[i]), _panelRect.Left + 20f,
                 rowMidY + _labelFont.Size / 2f, _labelFont, _labelPaint);
             DrawToggle(canvas, _toggleRects[i], states[i]);
         }

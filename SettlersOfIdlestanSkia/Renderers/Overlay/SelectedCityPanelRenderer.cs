@@ -1,4 +1,4 @@
-using SettlersOfIdlestan.Model.Buildings;
+﻿using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestanSkia.Services.Localization;
@@ -194,7 +194,7 @@ public class SelectedCityPanelRenderer : IGameRenderer
             _panelBounds = _collapseTabRect;
             canvas.DrawRoundRect(_collapseTabRect, 4 * s, 4 * s, _collapseTabPaint);
             canvas.DrawRoundRect(_collapseTabRect, 4 * s, 4 * s, _borderPaint);
-            canvas.DrawText("◄", _collapseTabRect.MidX, _collapseTabRect.MidY + 5f * s, SKTextAlign.Center, _font12, _textPaint);
+            SkiaTextUtils.DrawText(canvas, "◄", _collapseTabRect.MidX, _collapseTabRect.MidY + 5f * s, SKTextAlign.Center, _font12, _textPaint);
             return;
         }
 
@@ -309,7 +309,7 @@ public class SelectedCityPanelRenderer : IGameRenderer
 
             var namePaint = isBuiltInOtherCity ? _dimTextPaint : _textPaint;
             var label = _localization.Get(building.NameKey) + (isBuilt ? $" (Niv {building.Level})" : "");
-            canvas.DrawText(label, panelX + padding + nameOffsetX, yRow + 18 * s, _font15, namePaint);
+            SkiaTextUtils.DrawText(canvas, label, panelX + padding + nameOffsetX, yRow + 18 * s, _font15, namePaint);
 
             if (!isBuiltInOtherCity && !isAtMaxLevel)
             {
@@ -334,7 +334,7 @@ public class SelectedCityPanelRenderer : IGameRenderer
                         }
                         iconX += costIconSize + 2f * s;
                         string numText = kvp.Value.ToString();
-                        canvas.DrawText(numText, iconX, centerY + _font10!.Size / 2f, _font10, _costTextPaint);
+                        SkiaTextUtils.DrawText(canvas, numText, iconX, centerY + _font10!.Size / 2f, _font10, _costTextPaint);
                         iconX += _font10.MeasureText(numText) + 6f * s;
                     }
                 }
@@ -365,7 +365,7 @@ public class SelectedCityPanelRenderer : IGameRenderer
                     var btnFillPaint = isAtMaxLevel ? _btnMaxLevelPaint : (isDisabledBtn ? _btnDisabledPaint : (isBuiltInThisCity ? _btnUpgradePaint : _btnBuildPaint));
                     var btnTextUsePaint = isDisabledBtn ? _btnDisabledTextPaint : _textPaint;
                     canvas.DrawRoundRect(btnX, btnY, btnWidth, btnHeight, 7 * s, 7 * s, btnFillPaint);
-                    canvas.DrawText(btnText, btnCenterX, btnCenterY, SKTextAlign.Center, _font12, btnTextUsePaint);
+                    SkiaTextUtils.DrawText(canvas, btnText, btnCenterX, btnCenterY, SKTextAlign.Center, _font12, btnTextUsePaint);
 
                     var btnRect = new SKRect(btnX, btnY, btnX + btnWidth, btnY + btnHeight);
                     _btnRects[btnRect] = building.Type;
@@ -391,8 +391,8 @@ public class SelectedCityPanelRenderer : IGameRenderer
             canvas.DrawRoundRect(_tabRegularRect, 5 * s, 5 * s, _borderPaint);
             canvas.DrawRoundRect(_tabUniqueRect, 5 * s, 5 * s, _borderPaint);
 
-            canvas.DrawText(_localization.Get("tab_buildings_classic"), _tabRegularRect.MidX, _tabRegularRect.MidY + 5f * s, SKTextAlign.Center, _font12, _textPaint);
-            canvas.DrawText(_localization.Get("tab_buildings_unique"), _tabUniqueRect.MidX, _tabUniqueRect.MidY + 5f * s, SKTextAlign.Center, _font12, _textPaint);
+            SkiaTextUtils.DrawText(canvas, _localization.Get("tab_buildings_classic"), _tabRegularRect.MidX, _tabRegularRect.MidY + 5f * s, SKTextAlign.Center, _font12, _textPaint);
+            SkiaTextUtils.DrawText(canvas, _localization.Get("tab_buildings_unique"), _tabUniqueRect.MidX, _tabUniqueRect.MidY + 5f * s, SKTextAlign.Center, _font12, _textPaint);
         }
 
         // Scrollbar
@@ -421,14 +421,14 @@ public class SelectedCityPanelRenderer : IGameRenderer
             string defenseLabel = _localization.Get("footer_defense");
             string militaryText = $"{soldiersLabel}: {soldiers}/{maxSoldiers}    {defenseLabel}: {defense}/{maxDefense}";
             float textY = footerY + militaryFooterH / 2f + _font10!.Size / 2f - 1f;
-            canvas.DrawText(militaryText, panelX + panelWidth / 2f, textY, SKTextAlign.Center, _font10, _costTextPaint);
+            SkiaTextUtils.DrawText(canvas, militaryText, panelX + panelWidth / 2f, textY, SKTextAlign.Center, _font10, _costTextPaint);
         }
 
         // Onglet collapse
         _collapseTabRect = new SKRect(panelX - collapseTabW, tabTop, panelX, tabTop + collapseTabH);
         canvas.DrawRoundRect(_collapseTabRect, 4 * s, 4 * s, _collapseTabPaint);
         canvas.DrawRoundRect(_collapseTabRect, 4 * s, 4 * s, _borderPaint);
-        canvas.DrawText("►", _collapseTabRect.MidX, _collapseTabRect.MidY + 5f * s, SKTextAlign.Center, _font12, _textPaint);
+        SkiaTextUtils.DrawText(canvas, "►", _collapseTabRect.MidX, _collapseTabRect.MidY + 5f * s, SKTextAlign.Center, _font12, _textPaint);
 
         // Tooltip au survol
         if (_hoveredBuildingType.HasValue)

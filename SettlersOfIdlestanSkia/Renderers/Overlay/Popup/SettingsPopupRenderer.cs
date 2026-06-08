@@ -1,4 +1,4 @@
-using SettlersOfIdlestan.Controller;
+﻿using SettlersOfIdlestan.Controller;
 using SettlersOfIdlestanSkia.Services.Localization;
 using SettlersOfIdlestan.Model.Localization;
 using SettlersOfIdlestanSkia.Core;
@@ -113,7 +113,7 @@ public sealed class SettingsPopupRenderer : IDisposable
 
         string title = _localization.Get("settings_title");
         float titleW = _titleFont.MeasureText(title);
-        canvas.DrawText(title, x + (popupW - titleW) / 2, y + 34 * s, _titleFont, _textPaint);
+        SkiaTextUtils.DrawText(canvas, title, x + (popupW - titleW) / 2, y + 34 * s, _titleFont, _textPaint);
 
         float btnRight = x + popupW - btnRightMargin;
         float btn2Left = btnRight - btnW;
@@ -140,7 +140,7 @@ public sealed class SettingsPopupRenderer : IDisposable
     private void DrawRow(SKCanvas canvas, float popX, float rowY, string labelKey, float btnH, float s,
         (SKRect rect, string textKey, bool active)[] buttons)
     {
-        canvas.DrawText(_localization.Get(labelKey) + " :",
+        SkiaTextUtils.DrawText(canvas, _localization.Get(labelKey) + " :",
             popX + 20 * s, rowY + btnH / 2 + _labelFont.Size / 2,
             _labelFont, _labelPaint);
 
@@ -150,7 +150,7 @@ public sealed class SettingsPopupRenderer : IDisposable
             canvas.DrawRoundRect(rect, 6 * s, 6 * s, _btnBorderPaint);
             string text = _localization.Get(textKey);
             float tw = _btnFont.MeasureText(text);
-            canvas.DrawText(text, rect.Left + (rect.Width - tw) / 2,
+            SkiaTextUtils.DrawText(canvas, text, rect.Left + (rect.Width - tw) / 2,
                 rect.Top + rect.Height / 2 + _btnFont.Size / 2, _btnFont, _textPaint);
         }
     }
@@ -158,7 +158,7 @@ public sealed class SettingsPopupRenderer : IDisposable
     private SKRect DrawToggleRow(SKCanvas canvas, float popX, float rowY, float rightEdge,
         string labelKey, bool isOn, bool isHovered, float btnH, float toggleW, float toggleH, float s)
     {
-        canvas.DrawText(_localization.Get(labelKey) + " :",
+        SkiaTextUtils.DrawText(canvas, _localization.Get(labelKey) + " :",
             popX + 20 * s, rowY + btnH / 2 + _labelFont.Size / 2,
             _labelFont, _labelPaint);
 

@@ -94,7 +94,7 @@ public sealed class AutomationRenderer : IDisposable
         float x = (_canvasSize.Width - contentWidth) / 2;
         float y = topBar + Padding;
 
-        canvas.DrawText(_localization.Get("tab_automation"), x, y + 14, _headerFont, _accentPaint);
+        SkiaTextUtils.DrawText(canvas, _localization.Get("tab_automation"), x, y + 14, _headerFont, _accentPaint);
         y += 32f;
 
         var civ = _gameControllerService.PlayerCivilization;
@@ -126,7 +126,7 @@ public sealed class AutomationRenderer : IDisposable
 
         // === Colonne gauche : constructions automatiques ===
         float leftY = startY;
-        canvas.DrawText(_localization.Get("automation_header_buildings"), leftX, leftY + 12, _nameFont, _accentPaint);
+        SkiaTextUtils.DrawText(canvas, _localization.Get("automation_header_buildings"), leftX, leftY + 12, _nameFont, _accentPaint);
         leftY += 20f;
 
         if (buildersGuild != null && buildersGuild.Level >= 1)
@@ -184,7 +184,7 @@ public sealed class AutomationRenderer : IDisposable
 
         // === Colonne droite : comportements militaires ===
         float rightY = startY;
-        canvas.DrawText(_localization.Get("automation_header_behaviors"), rightX, rightY + 12, _nameFont, _accentPaint);
+        SkiaTextUtils.DrawText(canvas, _localization.Get("automation_header_behaviors"), rightX, rightY + 12, _nameFont, _accentPaint);
         rightY += 20f;
 
         bool hasAdvancedTactics = civ.TechnologyTree.CompletedTechnologies.Contains(TechId.AdvancedTactics);
@@ -225,11 +225,11 @@ public sealed class AutomationRenderer : IDisposable
         canvas.DrawRoundRect(toggleRect, 5, 5, fillPaint);
         canvas.DrawRoundRect(toggleRect, 5, 5, _toggleBorderPaint);
         string toggleLabel = isOn ? _localization.Get("automation_on") : _localization.Get("automation_off");
-        canvas.DrawText(toggleLabel, toggleRect.MidX, toggleRect.MidY + 4, SKTextAlign.Center, _toggleFont, _toggleTextPaint);
+        SkiaTextUtils.DrawText(canvas, toggleLabel, toggleRect.MidX, toggleRect.MidY + 4, SKTextAlign.Center, _toggleFont, _toggleTextPaint);
 
         float textX = x + 12f + TextOffsetX;
-        canvas.DrawText(name, textX, y + 18, _nameFont, _namePaint);
-        canvas.DrawText(desc, textX, y + 36, _descFont, _descPaint);
+        SkiaTextUtils.DrawText(canvas, name, textX, y + 18, _nameFont, _namePaint);
+        SkiaTextUtils.DrawText(canvas, desc, textX, y + 36, _descFont, _descPaint);
 
         if (hasSummary)
         {
@@ -247,8 +247,8 @@ public sealed class AutomationRenderer : IDisposable
         canvas.DrawRoundRect(cardRect, 6, 6, _cardBorderPaint);
 
         float textX = x + 12f;
-        canvas.DrawText(name, textX, y + 18, _nameFont, _mutedPaint);
-        canvas.DrawText(lockDesc, textX, y + 36, _descFont, _mutedPaint);
+        SkiaTextUtils.DrawText(canvas, name, textX, y + 18, _nameFont, _mutedPaint);
+        SkiaTextUtils.DrawText(canvas, lockDesc, textX, y + 36, _descFont, _mutedPaint);
 
         return RowHeight;
     }
@@ -284,7 +284,7 @@ public sealed class AutomationRenderer : IDisposable
                 paint = _summaryBuiltPaint;
             }
 
-            canvas.DrawText(text, curX, y, _summaryFont, paint);
+            SkiaTextUtils.DrawText(canvas, text, curX, y, _summaryFont, paint);
             curX += _summaryFont.MeasureText(text);
         }
     }

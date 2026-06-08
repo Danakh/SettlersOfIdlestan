@@ -1,4 +1,4 @@
-using SkiaSharp;
+﻿using SkiaSharp;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestanSkia.Core;
@@ -96,7 +96,7 @@ public sealed class WonderPlacementRenderer : HexBasedRenderer, IGameRenderer
         canvas.Restore();
 
         // Title instruction
-        canvas.DrawText(
+        SkiaTextUtils.DrawText(canvas, 
             _localization.Get("wonder_select_hex"),
             context.CanvasSize.Width / 2f, 60f,
             SKTextAlign.Center, _titleFont!, _titlePaint!);
@@ -109,7 +109,7 @@ public sealed class WonderPlacementRenderer : HexBasedRenderer, IGameRenderer
             context.CanvasSize.Height - ButtonMargin);
 
         canvas.DrawRoundRect(_cancelButtonRect, 7, 7, _cancelBgPaint!);
-        canvas.DrawText(_localization.Get("ui_cancel"), _cancelButtonRect.MidX, _cancelButtonRect.MidY + 6, SKTextAlign.Center, _cancelFont!, _cancelTextPaint!);
+        SkiaTextUtils.DrawText(canvas, _localization.Get("ui_cancel"), _cancelButtonRect.MidX, _cancelButtonRect.MidY + 6, SKTextAlign.Center, _cancelFont!, _cancelTextPaint!);
     }
 
     private void OnPointerMoved(object? sender, PointerEventArgs e)

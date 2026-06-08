@@ -1,4 +1,4 @@
-using SettlersOfIdlestan.Controller.Expand;
+﻿using SettlersOfIdlestan.Controller.Expand;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestanSkia.Services.Localization;
@@ -169,7 +169,7 @@ public sealed class ResearchRenderer : IGameRenderer
             string rpLabel = rps > 0
                 ? $"{_localization.Get("research_points_label")}: {ctrl.ResearchPoints} (+{rps.ToString("0.##")}/s)"
                 : $"{_localization.Get("research_points_label")}: {ctrl.ResearchPoints}";
-            canvas.DrawText(rpLabel, PanelPadding, _topOffset + 24f, _nameFont, _textPaint);
+            SkiaTextUtils.DrawText(canvas, rpLabel, PanelPadding, _topOffset + 24f, _nameFont, _textPaint);
         }
 
         // Tooltip
@@ -245,7 +245,7 @@ public sealed class ResearchRenderer : IGameRenderer
 
         var textPaint = (status == TechnologyStatus.Inactive && !isQueued) ? _dimTextPaint : _textPaint;
         string name = _localization.Get(tech.NameKey);
-        canvas.DrawText(name, rect.MidX, rect.Top + 18f, SKTextAlign.Center, _nameFont, textPaint);
+        SkiaTextUtils.DrawText(canvas, name, rect.MidX, rect.Top + 18f, SKTextAlign.Center, _nameFont, textPaint);
 
         string subText;
         if (status == TechnologyStatus.Completed)
@@ -266,7 +266,7 @@ public sealed class ResearchRenderer : IGameRenderer
             var (_, total) = ctrl.GetResearchProgress(tech.Id);
             subText = $"{total} PR";
         }
-        canvas.DrawText(subText, rect.MidX, rect.Top + 36f, SKTextAlign.Center, _smallFont, isQueued ? _queuedTextPaint : textPaint);
+        SkiaTextUtils.DrawText(canvas, subText, rect.MidX, rect.Top + 36f, SKTextAlign.Center, _smallFont, isQueued ? _queuedTextPaint : textPaint);
     }
 
     // ─── Input handling ──────────────────────────────────────────────────────

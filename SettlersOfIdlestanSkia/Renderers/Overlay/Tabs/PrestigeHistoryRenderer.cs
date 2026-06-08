@@ -73,7 +73,7 @@ public sealed class PrestigeHistoryRenderer : IDisposable
         var controller = _gameControllerService.MainGameController.PrestigeController;
 
         string title = _localization.Get("stats_current_run");
-        canvas.DrawText(title, x, y + 14, _titleFont, _accentPaint);
+        SkiaTextUtils.DrawText(canvas, title, x, y + 14, _titleFont, _accentPaint);
         y += 24;
 
         long tickDuration = mainGameState.Clock.CurrentTick - (island?.StartTick ?? 0);
@@ -108,12 +108,12 @@ public sealed class PrestigeHistoryRenderer : IDisposable
         var history = mainGameState.PrestigeState?.RunHistory;
         if (history == null || history.Count == 0)
         {
-            canvas.DrawText(_localization.Get("stats_no_history"), x, y + 14, _font, _mutedPaint);
+            SkiaTextUtils.DrawText(canvas, _localization.Get("stats_no_history"), x, y + 14, _font, _mutedPaint);
             return;
         }
 
         string title = _localization.Get("stats_past_runs");
-        canvas.DrawText(title, x, y + 14, _titleFont, _textPaint);
+        SkiaTextUtils.DrawText(canvas, title, x, y + 14, _titleFont, _textPaint);
         y += 24;
 
         float cardHeight = CardPadding + RowHeight * 2 + CardPadding;
@@ -145,8 +145,8 @@ public sealed class PrestigeHistoryRenderer : IDisposable
 
     private void DrawStatCell(SKCanvas canvas, float x, float y, string label, string value, float cellWidth)
     {
-        canvas.DrawText(label, x, y - 2, _smallFont, _labelPaint);
-        canvas.DrawText(value, x, y + 14, _boldFont, _textPaint);
+        SkiaTextUtils.DrawText(canvas, label, x, y - 2, _smallFont, _labelPaint);
+        SkiaTextUtils.DrawText(canvas, value, x, y + 14, _boldFont, _textPaint);
     }
 
     private static string FormatTicks(long ticks)

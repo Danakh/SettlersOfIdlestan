@@ -1,4 +1,4 @@
-using SettlersOfIdlestan.Controller.Island;
+﻿using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestanSkia.Services.Localization;
 using SettlersOfIdlestanSkia.Core;
@@ -154,7 +154,7 @@ public class SelectedWonderPanelRenderer : IGameRenderer
             _panelBounds = _collapseTabRect;
             canvas.DrawRoundRect(_collapseTabRect, 4 * s, 4 * s, _collapseTabPaint);
             canvas.DrawRoundRect(_collapseTabRect, 4 * s, 4 * s, _borderPaint);
-            canvas.DrawText("◄", _collapseTabRect.MidX, _collapseTabRect.MidY + 5f * s, SKTextAlign.Center, _font12, _textPaint);
+            SkiaTextUtils.DrawText(canvas, "◄", _collapseTabRect.MidX, _collapseTabRect.MidY + 5f * s, SKTextAlign.Center, _font12, _textPaint);
             return;
         }
 
@@ -172,14 +172,14 @@ public class SelectedWonderPanelRenderer : IGameRenderer
 
         // Titre + bouton fermer
         string title = _localization.Get("wonder_panel_title") + " " + (wonder.Level + 1);
-        canvas.DrawText(title, panelX + padding, panelY + titleHeight - 8 * s, _font15, _textPaint);
+        SkiaTextUtils.DrawText(canvas, title, panelX + padding, panelY + titleHeight - 8 * s, _font15, _textPaint);
 
         float closeSize = 20 * s;
         float closeX = panelX + panelWidth - padding - closeSize;
         float closeY = panelY + (titleHeight - closeSize) / 2;
         _closeRect = new SKRect(closeX, closeY, closeX + closeSize, closeY + closeSize);
         canvas.DrawRoundRect(_closeRect, 4 * s, 4 * s, _closePaint);
-        canvas.DrawText("✕", _closeRect.MidX, _closeRect.MidY + 5 * s, SKTextAlign.Center, _font12, _textPaint);
+        SkiaTextUtils.DrawText(canvas, "✕", _closeRect.MidX, _closeRect.MidY + 5 * s, SKTextAlign.Center, _font12, _textPaint);
 
         float y = panelY + titleHeight;
 
@@ -226,11 +226,11 @@ public class SelectedWonderPanelRenderer : IGameRenderer
             // Nom de la ressource
             float textX = iconX + iconSize + 4 * s;
             string resName = _localization.Get("resource_" + resource.ToString().ToLower());
-            canvas.DrawText(resName, textX, rowCenterY - rowHeight / 4 + 5 * s, _font12, done ? _dimTextPaint : _textPaint);
+            SkiaTextUtils.DrawText(canvas, resName, textX, rowCenterY - rowHeight / 4 + 5 * s, _font12, done ? _dimTextPaint : _textPaint);
 
             // Montant investie / requis (à droite)
             string amountText = $"{invested}/{required}";
-            canvas.DrawText(amountText, panelX + panelWidth - padding, rowCenterY - rowHeight / 4 + 5 * s, SKTextAlign.Right, _font10, done ? _barFillPaint : _dimTextPaint);
+            SkiaTextUtils.DrawText(canvas, amountText, panelX + panelWidth - padding, rowCenterY - rowHeight / 4 + 5 * s, SKTextAlign.Right, _font10, done ? _barFillPaint : _dimTextPaint);
 
             // Barre de progression (en bas de chaque rangée)
             float barX = panelX + padding;
@@ -263,7 +263,7 @@ public class SelectedWonderPanelRenderer : IGameRenderer
         _collapseTabRect = new SKRect(panelX - collapseTabW, tabTop, panelX, tabTop + collapseTabH);
         canvas.DrawRoundRect(_collapseTabRect, 4 * s, 4 * s, _collapseTabPaint);
         canvas.DrawRoundRect(_collapseTabRect, 4 * s, 4 * s, _borderPaint);
-        canvas.DrawText("►", _collapseTabRect.MidX, _collapseTabRect.MidY + 5f * s, SKTextAlign.Center, _font12, _textPaint);
+        SkiaTextUtils.DrawText(canvas, "►", _collapseTabRect.MidX, _collapseTabRect.MidY + 5f * s, SKTextAlign.Center, _font12, _textPaint);
     }
 
     private void HandlePointerPressed(object? sender, PointerEventArgs e)

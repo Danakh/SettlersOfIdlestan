@@ -1,4 +1,4 @@
-using SettlersOfIdlestan.Model.Game;
+﻿using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestanSkia.Services.Localization;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Services;
@@ -158,7 +158,7 @@ public class TimeControlRenderer : IDisposable
         double seconds = bankTicks / 100.0;
         string text = FormatBankTime(seconds);
         float textY = _bankRect.MidY + _bankFont.Size / 2f - 1f;
-        canvas.DrawText(text, _bankRect.MidX, textY, SKTextAlign.Center, _bankFont, _bankTextPaint);
+        SkiaTextUtils.DrawText(canvas, text, _bankRect.MidX, textY, SKTextAlign.Center, _bankFont, _bankTextPaint);
     }
 
     private static string FormatBankTime(double seconds)
@@ -174,7 +174,7 @@ public class TimeControlRenderer : IDisposable
         canvas.DrawRoundRect(rect, 4, 4, _borderPaint);
 
         float textY = rect.MidY + _font.Size / 2f - 2f;
-        canvas.DrawText(label, rect.MidX, textY, SKTextAlign.Center, _font, _textPaint);
+        SkiaTextUtils.DrawText(canvas, label, rect.MidX, textY, SKTextAlign.Center, _font, _textPaint);
     }
 
     private void HandlePointerMoved(object? sender, PointerEventArgs e)

@@ -238,7 +238,7 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
 
         string label = $"{_localization.Get("research_points_label")}: {researchPoints}";
         float textY = BarHeight * s / 2 + _textFont.Size / 2 - 2 * s;
-        canvas.DrawText(label, ResourceStartX, textY, _textFont, _textPaint);
+        SkiaTextUtils.DrawText(canvas, label, ResourceStartX, textY, _textFont, _textPaint);
     }
 
     private void DrawPrestigePointsBar(SKCanvas canvas, int prestigePoints)
@@ -255,7 +255,7 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
 
         string label = $"{_localization.Get("prestige_points_label")}: {prestigePoints}";
         float textY = BarHeight * s / 2 + _textFont.Size / 2 - 2 * s;
-        canvas.DrawText(label, ResourceStartX, textY, _textFont, _textPaint);
+        SkiaTextUtils.DrawText(canvas, label, ResourceStartX, textY, _textFont, _textPaint);
     }
 
     public void ConnectLowStock(Civilization? previous, Civilization next)
@@ -325,10 +325,10 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
             float line2Y = line1Y + textH + 2f * s;
 
             float line1Width = _smallFont.MeasureText(quantityText);
-            canvas.DrawText(quantityText, x + rectW - line1Width - 4f * s, line1Y, _smallFont, _textPaint);
+            SkiaTextUtils.DrawText(canvas, quantityText, x + rectW - line1Width - 4f * s, line1Y, _smallFont, _textPaint);
 
             float line2Width = _smallFont.MeasureText(maxText);
-            canvas.DrawText(maxText, x + rectW - line2Width - 4f * s, line2Y, _smallFont, _textPaint);
+            SkiaTextUtils.DrawText(canvas, maxText, x + rectW - line2Width - 4f * s, line2Y, _smallFont, _textPaint);
         }
         else
         {
@@ -337,7 +337,7 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
             float textHeight = _smallFont.Size;
             float textY = y + (rectH + textHeight) / 2f - 2f * s;
             float textWidth = _smallFont.MeasureText(resourceValueText);
-            canvas.DrawText(resourceValueText, x + rectW - textWidth - 4f * s, textY, _smallFont, _textPaint);
+            SkiaTextUtils.DrawText(canvas, resourceValueText, x + rectW - textWidth - 4f * s, textY, _smallFont, _textPaint);
         }
     }
 

@@ -1,4 +1,4 @@
-using SettlersOfIdlestan.Controller.Expand;
+﻿using SettlersOfIdlestan.Controller.Expand;
 using SettlersOfIdlestan.Model.Buildings;
 using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
 using SettlersOfIdlestan.Model.Civilization;
@@ -178,7 +178,7 @@ public sealed class PlayerCivilizationPanelRenderer : IDisposable
             _panelBounds = _collapseTabRect;
             canvas.DrawRoundRect(_collapseTabRect, 4 * s, 4 * s, _collapseTabBgPaint);
             canvas.DrawRoundRect(_collapseTabRect, 4 * s, 4 * s, _panelBorderPaint);
-            canvas.DrawText("►", _collapseTabRect.MidX, _collapseTabRect.MidY + 5f * s, SKTextAlign.Center, _btnFont, _btnTextPaint);
+            SkiaTextUtils.DrawText(canvas, "►", _collapseTabRect.MidX, _collapseTabRect.MidY + 5f * s, SKTextAlign.Center, _btnFont, _btnTextPaint);
             return;
         }
 
@@ -209,14 +209,14 @@ public sealed class PlayerCivilizationPanelRenderer : IDisposable
         _collapseTabRect = new SKRect(panelLeft + panelWidth, tabTop, panelLeft + panelWidth + collapseTabW, tabTop + collapseTabH);
         canvas.DrawRoundRect(_collapseTabRect, 4 * s, 4 * s, _collapseTabBgPaint);
         canvas.DrawRoundRect(_collapseTabRect, 4 * s, 4 * s, _panelBorderPaint);
-        canvas.DrawText("◄", _collapseTabRect.MidX, _collapseTabRect.MidY + 5f * s, SKTextAlign.Center, _btnFont, _btnTextPaint);
+        SkiaTextUtils.DrawText(canvas, "◄", _collapseTabRect.MidX, _collapseTabRect.MidY + 5f * s, SKTextAlign.Center, _btnFont, _btnTextPaint);
 
         float x = panelLeft + panelPadding;
         float y = panelTop + panelPadding;
 
         if (showActions)
         {
-            canvas.DrawText(_localization.Get("panel_civ_actions"), x, y + titleSize, _sectionFont, _sectionTitlePaint);
+            SkiaTextUtils.DrawText(canvas, _localization.Get("panel_civ_actions"), x, y + titleSize, _sectionFont, _sectionTitlePaint);
             y += titleHeight;
 
             float colGap = 6f * s;
@@ -240,7 +240,7 @@ public sealed class PlayerCivilizationPanelRenderer : IDisposable
             {
                 _tradeButtonRect = BtnRect(btnIdx++);
                 canvas.DrawRoundRect(_tradeButtonRect, 6 * s, 6 * s, _hoveredTrade ? _btnHoverPaint : _btnPaint);
-                canvas.DrawText(_localization.Get("trade_action"), _tradeButtonRect.MidX, _tradeButtonRect.MidY + 4f * s, SKTextAlign.Center, _btnSmFont, _btnTextPaint);
+                SkiaTextUtils.DrawText(canvas, _localization.Get("trade_action"), _tradeButtonRect.MidX, _tradeButtonRect.MidY + 4f * s, SKTextAlign.Center, _btnSmFont, _btnTextPaint);
             }
 
             if (prestigeVisible)
@@ -248,14 +248,14 @@ public sealed class PlayerCivilizationPanelRenderer : IDisposable
                 _prestigeButtonRect = BtnRect(btnIdx++);
                 canvas.DrawRoundRect(_prestigeButtonRect, 6 * s, 6 * s, prestigeAvail ? (_hoveredPrestige ? _btnHoverPaint : _btnPaint) : _btnDisabledPaint);
                 string prestigeLabel = $"{_localization.Get("prestige_action")} ({prestigePoints})";
-                canvas.DrawText(prestigeLabel, _prestigeButtonRect.MidX, _prestigeButtonRect.MidY + 4f * s, SKTextAlign.Center, _btnSmFont, prestigeAvail ? _btnTextPaint : _btnDisabledTxtPaint);
+                SkiaTextUtils.DrawText(canvas, prestigeLabel, _prestigeButtonRect.MidX, _prestigeButtonRect.MidY + 4f * s, SKTextAlign.Center, _btnSmFont, prestigeAvail ? _btnTextPaint : _btnDisabledTxtPaint);
             }
 
             if (wonderVisible)
             {
                 _wonderButtonRect = BtnRect(btnIdx++);
                 canvas.DrawRoundRect(_wonderButtonRect, 6 * s, 6 * s, _wonderEnabled ? (_hoveredWonder ? _btnHoverPaint : _btnPaint) : _btnDisabledPaint);
-                canvas.DrawText(_localization.Get("wonder_action_short"), _wonderButtonRect.MidX, _wonderButtonRect.MidY + 4f * s, SKTextAlign.Center, _btnSmFont, _wonderEnabled ? _btnTextPaint : _btnDisabledTxtPaint);
+                SkiaTextUtils.DrawText(canvas, _localization.Get("wonder_action_short"), _wonderButtonRect.MidX, _wonderButtonRect.MidY + 4f * s, SKTextAlign.Center, _btnSmFont, _wonderEnabled ? _btnTextPaint : _btnDisabledTxtPaint);
             }
 
             y = actionsY + ((btnIdx + 1) / 2) * (btnHeight + btnSpacing);
@@ -270,7 +270,7 @@ public sealed class PlayerCivilizationPanelRenderer : IDisposable
 
         if (showControls)
         {
-            canvas.DrawText(_localization.Get("panel_civ_controls"), x, y + titleSize, _sectionFont, _sectionTitlePaint);
+            SkiaTextUtils.DrawText(canvas, _localization.Get("panel_civ_controls"), x, y + titleSize, _sectionFont, _sectionTitlePaint);
             y += titleHeight;
 
             if (hasBarracks)
@@ -347,7 +347,7 @@ public sealed class PlayerCivilizationPanelRenderer : IDisposable
                 : x + radius + 1f * s);
         canvas.DrawCircle(knobCx, knobCy, knobR, _toggleKnobPaint);
 
-        canvas.DrawText(label, x + toggleW + 10f * s, y + rowH / 2f + 5f * s, _labelFont, isDimmed ? _rowLabelDimPaint : _rowLabelPaint);
+        SkiaTextUtils.DrawText(canvas, label, x + toggleW + 10f * s, y + rowH / 2f + 5f * s, _labelFont, isDimmed ? _rowLabelDimPaint : _rowLabelPaint);
 
         return trackRect;
     }

@@ -257,7 +257,7 @@ public class SettingsMenu
                     float textX = menuX + 8 * s;
                     float textY = currentY + itemHeight / 2 + _textFont.Size / 2;
                     string label = item.DynamicLabel?.Invoke() ?? _localization.Get(item.LabelKey);
-                    canvas.DrawText(label, textX, textY, _textFont, _textPaint);
+                    SkiaTextUtils.DrawText(canvas, label, textX, textY, _textFont, _textPaint);
                 }
             }
 
@@ -273,7 +273,7 @@ public class SettingsMenu
             float textY = rect.MidY + _textFont.Size / 2;
             float textX = rect.Left + (rect.Width - _textFont.MeasureText(text)) / 2;
 
-            canvas.DrawText(text, textX, textY, _textFont, _separatorTextPaint);
+            SkiaTextUtils.DrawText(canvas, text, textX, textY, _textFont, _separatorTextPaint);
         }
     }
 

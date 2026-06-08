@@ -1,4 +1,4 @@
-using SettlersOfIdlestan.Controller.Expand;
+﻿using SettlersOfIdlestan.Controller.Expand;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.GameplayModifier;
@@ -169,7 +169,7 @@ public sealed class PrestigeMapRenderer : IGameRenderer
 
         canvas.DrawRect(new SKRect(0, _barH, _canvasSize.Width, _barH + HeaderHeight), _headerBgPaint);
         string ppLabel = $"{_localization.Get("prestige_points_label")}: {prestigeState.PrestigePoints}";
-        canvas.DrawText(ppLabel, 16f, _barH + 24f, _headerFont, _textWhitePaint);
+        SkiaTextUtils.DrawText(canvas, ppLabel, 16f, _barH + 24f, _headerFont, _textWhitePaint);
 
         if (_hoveredVertex != null)
             BuildVertexTooltip(_hoveredVertex, prestigeState);
@@ -220,7 +220,7 @@ public sealed class PrestigeMapRenderer : IGameRenderer
             canvas.DrawPath(path, _hexBorderPaint);
 
             string name = _localization.Get(hex.LocalizationKey);
-            canvas.DrawText(name, pos.X, pos.Y + 4f, SKTextAlign.Center, _labelFont, _textBlackPaint);
+            SkiaTextUtils.DrawText(canvas, name, pos.X, pos.Y + 4f, SKTextAlign.Center, _labelFont, _textBlackPaint);
         }
     }
 
@@ -269,13 +269,13 @@ public sealed class PrestigeMapRenderer : IGameRenderer
             canvas.DrawCircle(pos, vr, _vertexBorderPaint);
 
             if (purchased)
-                canvas.DrawText("✓", pos.X, pos.Y + 4f, SKTextAlign.Center, _labelFontBold, _textWhitePaint);
+                SkiaTextUtils.DrawText(canvas, "✓", pos.X, pos.Y + 4f, SKTextAlign.Center, _labelFontBold, _textWhitePaint);
 
             var local = LocalVertexPos(vertex.Coord);
             var offset = new SKPoint(local.X - CentralLocal.X, local.Y - CentralLocal.Y);
             var labelPos = RadialLabelPos(offset, pos, vr + 13f);
             string name = _localization.Get(vertex.LocalizationKey);
-            canvas.DrawText(name, labelPos.X, labelPos.Y, SKTextAlign.Center, _labelFont, _textBlackPaint);
+            SkiaTextUtils.DrawText(canvas, name, labelPos.X, labelPos.Y, SKTextAlign.Center, _labelFont, _textBlackPaint);
         }
     }
 

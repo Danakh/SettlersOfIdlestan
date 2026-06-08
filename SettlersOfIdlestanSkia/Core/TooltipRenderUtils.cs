@@ -1,4 +1,4 @@
-using SkiaSharp;
+﻿using SkiaSharp;
 using Svg.Skia;
 using SettlersOfIdlestan.Model.IslandMap;
 using System;
@@ -131,7 +131,7 @@ namespace SettlersOfIdlestanSkia.Core
                     iconX += costIconSize + 3f * uiScale;
 
                     string numText = kvp.Value.ToString();
-                    canvas.DrawText(numText, iconX, rowY + (costRowHeight + font.Size) / 2f, font, _tooltipTextPaint);
+                    SkiaTextUtils.DrawText(canvas, numText, iconX, rowY + (costRowHeight + font.Size) / 2f, font, _tooltipTextPaint);
                     iconX += font.MeasureText(numText) + 8f * uiScale;
                 }
             }

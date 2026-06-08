@@ -1,4 +1,4 @@
-using SettlersOfIdlestanSkia.Services.Localization;
+﻿using SettlersOfIdlestanSkia.Services.Localization;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Services;
 using SkiaSharp;
@@ -68,14 +68,14 @@ public sealed class GameOverPopupRenderer : IDisposable
 
         string title = _localization.Get("game_over_title");
         float titleW = _titleFont.MeasureText(title);
-        canvas.DrawText(title, x + (popupW - titleW) / 2f, y + 50 * s, _titleFont, _titlePaint);
+        SkiaTextUtils.DrawText(canvas, title, x + (popupW - titleW) / 2f, y + 50 * s, _titleFont, _titlePaint);
 
         float lineY = y + 90 * s;
         foreach (var key in new[] { "game_over_line1", "game_over_line2" })
         {
             string line = _localization.Get(key);
             float lw = _bodyFont.MeasureText(line);
-            canvas.DrawText(line, x + (popupW - lw) / 2f, lineY, _bodyFont, _subtlePaint);
+            SkiaTextUtils.DrawText(canvas, line, x + (popupW - lw) / 2f, lineY, _bodyFont, _subtlePaint);
             lineY += _bodyFont.Size * 1.8f;
         }
 
@@ -87,7 +87,7 @@ public sealed class GameOverPopupRenderer : IDisposable
         canvas.DrawRoundRect(_restartRect, 6 * s, 6 * s, _btnBorder);
         string label = _localization.Get("game_over_btn_restart");
         float lw2 = _btnFont.MeasureText(label);
-        canvas.DrawText(label,
+        SkiaTextUtils.DrawText(canvas, label,
             _restartRect.Left + (btnW - lw2) / 2f,
             _restartRect.Top  + (btnH + _btnFont.Size) / 2f,
             _btnFont, _textPaint);

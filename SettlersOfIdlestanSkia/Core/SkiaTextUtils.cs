@@ -103,14 +103,9 @@ namespace SettlersOfIdlestanSkia.Core
         }
 
         /// <summary>
-        /// Dessine les lignes de texte à partir d'un layout.
+        /// Dessine les lignes de texte à partir d'un layout, avec fallback automatique
+        /// vers les polices Symbols/Emoji pour les caractères hors NotoSans.
         /// </summary>
-        /// <param name="canvas">Le canvas Skia sur lequel dessiner.</param>
-        /// <param name="layout">Le layout contenant les lignes à dessiner.</param>
-        /// <param name="x">Position X de départ.</param>
-        /// <param name="y">Position Y de la première ligne (baseline).</param>
-        /// <param name="font">La police à utiliser.</param>
-        /// <param name="paint">Le pinceau à utiliser.</param>
         public static void DrawTextLayout(
             SKCanvas canvas,
             WrappedTextLayout layout,
@@ -126,9 +121,95 @@ namespace SettlersOfIdlestanSkia.Core
 
             foreach (string line in layout.Lines)
             {
-                canvas.DrawText(line, x, currentY, SKTextAlign.Left, font, paint);
+                DrawText(canvas, line, x, currentY, SKTextAlign.Left, font, paint);
                 currentY += lineHeight;
             }
+        }
+
+        /// <summary>
+        /// Remplacement de canvas.DrawText gérant le fallback multi-police pour les symboles
+        /// Unicode (⚠ ⚔ ✓ ☐ ► ◄ …) et les emoji (💰 🐉 …) absents de NotoSans.
+        /// Utilise la même signature que SKCanvas.DrawText pour faciliter la substitution.
+        /// </summary>
+        public static void DrawText(
+            SKCanvas canvas, string text, float x, float y, SKTextAlign align, SKFont? font, SKPaint? paint)
+        {
+            if (string.IsNullOrEmpty(text) || font is null || paint is null) return;
+
+            var primary = font.Typeface ?? SKTypeface.Default;
+
+            // Fast path : aucun fallback nécessaire (cas courant : texte latin pur)
+            bool needsFallback = false;
+            for (int k = 0; k < text.Length; k++)
+            {
+                int cp = char.IsHighSurrogate(text[k]) && k + 1 < text.Length
+                    ? char.ConvertToUtf32(text[k], text[k + 1]) : text[k];
+                if (SkiaFonts.FallbackFor(cp, primary) != primary) { needsFallback = true; break; }
+            }
+
+            if (!needsFallback)
+            {
+                canvas.DrawText(text, x, y, align, font, paint);
+                return;
+            }
+
+            // Découpe le texte en runs consécutifs partageant la même typeface
+            var runs = BuildRuns(text, primary, font.Size);
+
+            float totalWidth = 0f;
+            foreach (var (_, f, w) in runs) totalWidth += w;
+
+            float startX = align == SKTextAlign.Center ? x - totalWidth / 2f
+                         : align == SKTextAlign.Right   ? x - totalWidth
+                         : x;
+
+            float cx = startX;
+            foreach (var (seg, f, w) in runs)
+            {
+                canvas.DrawText(seg, cx, y, SKTextAlign.Left, f, paint);
+                cx += w;
+                f.Dispose();
+            }
+        }
+
+        /// <summary>
+        /// Surcharge sans alignement (équivalent SKTextAlign.Left).
+        /// </summary>
+        public static void DrawText(
+            SKCanvas canvas, string text, float x, float y, SKFont? font, SKPaint? paint)
+            => DrawText(canvas, text, x, y, SKTextAlign.Left, font, paint);
+
+        // Construit la liste de runs (segment, SKFont créé, largeur mesurée).
+        // L'appelant est responsable de disposer les SKFont retournés.
+        private static List<(string text, SKFont font, float width)> BuildRuns(
+            string text, SKTypeface primary, float size)
+        {
+            var runs = new List<(string, SKFont, float)>();
+            var sb = new StringBuilder();
+            var currentTf = primary;
+
+            void FlushRun()
+            {
+                if (sb.Length == 0) return;
+                var seg = sb.ToString();
+                var f = new SKFont(currentTf, size);
+                runs.Add((seg, f, f.MeasureText(seg)));
+                sb.Clear();
+            }
+
+            for (int i = 0; i < text.Length;)
+            {
+                bool isSurrogate = char.IsHighSurrogate(text[i]) && i + 1 < text.Length;
+                int charLen = isSurrogate ? 2 : 1;
+                int cp = isSurrogate ? char.ConvertToUtf32(text[i], text[i + 1]) : text[i];
+                var tf = SkiaFonts.FallbackFor(cp, primary);
+                if (tf != currentTf) { FlushRun(); currentTf = tf; }
+                sb.Append(text, i, charLen);
+                i += charLen;
+            }
+            FlushRun();
+
+            return runs;
         }
 
         public static void DrawWrappedText(

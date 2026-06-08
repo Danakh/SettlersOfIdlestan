@@ -245,7 +245,7 @@ public class CityRenderer : HexBasedRenderer, IGameRenderer
             canvas.DrawCircle(pixelPos.X, pixelPos.Y, radius, _borderPaint);
 
             if (city.Level >= 2)
-                canvas.DrawText(city.Level.ToString(), pixelPos.X, pixelPos.Y + 4, SKTextAlign.Center, _cityLevelFont, _cityLevelTextPaint);
+                SkiaTextUtils.DrawText(canvas, city.Level.ToString(), pixelPos.X, pixelPos.Y + 4, SKTextAlign.Center, _cityLevelFont, _cityLevelTextPaint);
 
             DrawMilitaryScores(canvas, city, civilization, pixelPos, radius);
         }
@@ -277,7 +277,7 @@ public class CityRenderer : HexBasedRenderer, IGameRenderer
         if (showAttack)
         {
             DrawMilitaryIcon(canvas, _attackSvg, new SKPoint(x, yBase), new SKColor(220, 80, 60));
-            canvas.DrawText(attack.ToString(), x + MilitaryIconSize / 2f + 2f, yBase + 3f, SKTextAlign.Left, _militaryTextFont, _militaryTextPaint);
+            SkiaTextUtils.DrawText(canvas, attack.ToString(), x + MilitaryIconSize / 2f + 2f, yBase + 3f, SKTextAlign.Left, _militaryTextFont, _militaryTextPaint);
             x += spacing;
         }
         if (showDefense)
@@ -285,7 +285,7 @@ public class CityRenderer : HexBasedRenderer, IGameRenderer
             var defColor = currentDefense == 0 ? new SKColor(200, 60, 60) : new SKColor(80, 160, 220);
             DrawMilitaryIcon(canvas, _defenseSvg, new SKPoint(x, yBase), defColor);
             string defText = $"{currentDefense}/{maxDefense}";
-            canvas.DrawText(defText, x + MilitaryIconSize / 2f + 2f, yBase + 3f, SKTextAlign.Left, _militaryTextFont, _militaryTextPaint);
+            SkiaTextUtils.DrawText(canvas, defText, x + MilitaryIconSize / 2f + 2f, yBase + 3f, SKTextAlign.Left, _militaryTextFont, _militaryTextPaint);
         }
     }
 

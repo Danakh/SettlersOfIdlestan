@@ -1,4 +1,4 @@
-using SettlersOfIdlestanSkia.Core;
+﻿using SettlersOfIdlestanSkia.Core;
 using SkiaSharp;
 
 namespace SettlersOfIdlestanSkia.Renderers.Overlay.Popup;
@@ -48,7 +48,7 @@ public sealed class PopupChrome : IDisposable
             _closeFont = new SKFont { Size = 14 * s, Typeface = SkiaFonts.Bold };
         }
         canvas.DrawRoundRect(rect, 5 * s, 5 * s, _closeBgPaint);
-        canvas.DrawText("X", rect.MidX, rect.MidY + 6 * s, SKTextAlign.Center, _closeFont, _closeXPaint);
+        SkiaTextUtils.DrawText(canvas, "X", rect.MidX, rect.MidY + 6 * s, SKTextAlign.Center, _closeFont, _closeXPaint);
     }
 
     public void Dispose()
