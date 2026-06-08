@@ -87,4 +87,11 @@ public class DesktopFileSystemService : IFileSystemService
             return File.ReadAllText(path);
         return null;
     }
+
+    public async Task DeleteAuto()
+    {
+        var path = GetAutoSavePath();
+        if (File.Exists(path))
+            File.Delete(path);
+    }
 }

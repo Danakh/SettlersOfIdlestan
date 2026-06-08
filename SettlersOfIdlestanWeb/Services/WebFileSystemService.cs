@@ -21,4 +21,7 @@ public class WebFileSystemService : IFileSystemService
 
     public async Task<string?> LoadAuto()
         => await _js.InvokeAsync<string?>("localStorage.getItem", AutoSaveKey);
+
+    public async Task DeleteAuto()
+        => await _js.InvokeVoidAsync("localStorage.removeItem", AutoSaveKey);
 }

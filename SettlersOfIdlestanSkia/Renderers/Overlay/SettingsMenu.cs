@@ -43,6 +43,7 @@ public class SettingsMenu
     private readonly CityBuildingService _cityBuildingService;
     private readonly DebugPanelRenderer? _debugPanelRenderer;
     private readonly Action? _onAfterNewGame;
+    private readonly Action? _onHardReset;
     private readonly UILayoutService? _uiLayout;
     private List<MenuItem> _menuItems = new();
 
@@ -60,7 +61,7 @@ public class SettingsMenu
 
     public bool IsOpen => _isOpen;
 
-    public SettingsMenu(MainGameController gameController, InputHandlingService inputService, LocalizationService localization, AboutRenderer aboutRenderer, SettingsPopupRenderer settingsPopupRenderer, IFileSystemService fileSystemService, CityBuildingService cityBuildingService, bool allowDebugMode = false, DebugPanelRenderer? debugPanelRenderer = null, Action? onAfterNewGame = null, UILayoutService? uiLayout = null)
+    public SettingsMenu(MainGameController gameController, InputHandlingService inputService, LocalizationService localization, AboutRenderer aboutRenderer, SettingsPopupRenderer settingsPopupRenderer, IFileSystemService fileSystemService, CityBuildingService cityBuildingService, bool allowDebugMode = false, DebugPanelRenderer? debugPanelRenderer = null, Action? onAfterNewGame = null, UILayoutService? uiLayout = null, Action? onHardReset = null)
     {
         _gameController = gameController;
         _inputService = inputService;
@@ -71,6 +72,7 @@ public class SettingsMenu
         _cityBuildingService = cityBuildingService;
         _debugPanelRenderer = debugPanelRenderer;
         _onAfterNewGame = onAfterNewGame;
+        _onHardReset = onHardReset;
         _uiLayout = uiLayout;
         _inputService.PointerPressed += HandlePointerPressed;
 
@@ -97,6 +99,14 @@ public class SettingsMenu
         {
             LabelKey = "menu_load_game",
             Action = LoadGame
+        });
+
+        _menuItems.Add(new MenuItem { IsSeparator = true });
+
+        _menuItems.Add(new MenuItem
+        {
+            LabelKey = "menu_hard_reset",
+            Action = OpenHardResetPopup
         });
 
         _menuItems.Add(new MenuItem { IsSeparator = true });
@@ -345,6 +355,11 @@ public class SettingsMenu
     private void OpenSettingsPopup()
     {
         _settingsPopupRenderer.Open();
+    }
+
+    private void OpenHardResetPopup()
+    {
+        _onHardReset?.Invoke();
     }
 
     private void OpenDebugPanel()

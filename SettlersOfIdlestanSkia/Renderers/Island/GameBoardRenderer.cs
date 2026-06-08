@@ -238,11 +238,11 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
         if (_hexBorderPaint != null)
             canvas.DrawPath(path, _hexBorderPaint);
 
+        DrawHarvestIndicator(canvas, centerX, centerY, tile, playerIdx, currentTick, manualTimes, plunderCooldownUntil, plunderCooldownDuration, harvestBlockedPositions);
+
         if (featuresByPosition?.TryGetValue(coord, out var features) == true)
             foreach (var feature in features)
                 DrawFeatureMarker(canvas, centerX, centerY, feature);
-
-        DrawHarvestIndicator(canvas, centerX, centerY, tile, playerIdx, currentTick, manualTimes, plunderCooldownUntil, plunderCooldownDuration, harvestBlockedPositions);
 
         if (DebugSettings.ShowHexCoords && _textPaint != null && tile.Coord != null)
         {

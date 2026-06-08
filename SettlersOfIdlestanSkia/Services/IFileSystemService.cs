@@ -26,5 +26,10 @@ namespace SettlersOfIdlestanSkia.Services
         /// Load the game from the auto-save file. Returns null if not found.
         /// </summary>
         Task<string?> LoadAuto();
+
+        /// <summary>
+        /// Delete the auto-save file.
+        /// </summary>
+        Task DeleteAuto();
     }
 }
