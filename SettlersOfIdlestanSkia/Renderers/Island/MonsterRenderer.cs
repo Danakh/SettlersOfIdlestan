@@ -46,7 +46,7 @@ public class MonsterRenderer : HexBasedRenderer, IGameRenderer
         public float Progress;
     }
 
-    private readonly List<MonsterVisual> _monsterVisuals = new();
+    private readonly Dictionary<MonsterFeature, MonsterVisual> _monsterVisuals = new();
     private readonly List<AttackParticle> _attackParticles = new();
     private readonly ResourceManager _resourceManager;
     private readonly Dictionary<Resource, SKSvg?> _resourceIcons = new();
@@ -122,10 +122,9 @@ public class MonsterRenderer : HexBasedRenderer, IGameRenderer
         var monsters = worldState.Features.OfType<MonsterFeature>().ToList();
         SyncMonsterVisuals(monsters);
 
-        for (int i = 0; i < monsters.Count; i++)
+        foreach (var monster in monsters)
         {
-            var monster = monsters[i];
-            var v = _monsterVisuals[i];
+            var v = _monsterVisuals[monster];
 
             // Movement animation
             var targetPoint = HexToPoint(monster.Position);
@@ -222,21 +221,26 @@ public class MonsterRenderer : HexBasedRenderer, IGameRenderer
 
     private void SyncMonsterVisuals(IList<MonsterFeature> monsters)
     {
-        while (_monsterVisuals.Count < monsters.Count)
+        // Add visuals for new monsters
+        foreach (var monster in monsters)
         {
-            var hex = monsters[_monsterVisuals.Count].Position;
+            if (_monsterVisuals.ContainsKey(monster)) continue;
+            var hex = monster.Position;
             var pos = HexToPoint(hex);
-            _monsterVisuals.Add(new MonsterVisual
+            _monsterVisuals[monster] = new MonsterVisual
             {
                 ModelPosition = hex,
                 FromHex = hex,
                 From = pos,
                 To = pos,
                 HomePos = pos,
-            });
+            };
         }
-        while (_monsterVisuals.Count > monsters.Count)
-            _monsterVisuals.RemoveAt(_monsterVisuals.Count - 1);
+
+        // Remove visuals for monsters that are gone
+        var toRemove = _monsterVisuals.Keys.Except(monsters).ToList();
+        foreach (var gone in toRemove)
+            _monsterVisuals.Remove(gone);
     }
 
     private SKPoint CurrentVisualPoint(MonsterVisual v)
