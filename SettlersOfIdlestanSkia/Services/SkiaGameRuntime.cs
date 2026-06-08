@@ -45,6 +45,7 @@ public sealed class SkiaGameRuntime : IDisposable
     private bool _gameOverPending;
     private HardResetPopupRenderer? _hardResetPopup;
     private AboutRenderer? _aboutRenderer;
+    private DebugPanelRenderer? _debugPanelRenderer;
     private UILayoutService? _uiLayoutService;
 
     public event Action? QuitRequested;
@@ -218,7 +219,10 @@ public sealed class SkiaGameRuntime : IDisposable
         var settingsPopupRenderer = new SettingsPopupRenderer(_gameControllerService.MainGameController, _localizationService!);
         DebugPanelRenderer? debugPanelRenderer = null;
         if (allowDebugMode)
-            debugPanelRenderer = new DebugPanelRenderer(_inputService!, _localizationService!, _uiLayoutService!);
+        {
+            _debugPanelRenderer = new DebugPanelRenderer(_inputService!, _localizationService!, _uiLayoutService!);
+            debugPanelRenderer = _debugPanelRenderer;
+        }
         _hardResetPopup = new HardResetPopupRenderer(
             _localizationService!,
             _fileSystemService!,
@@ -269,7 +273,6 @@ public sealed class SkiaGameRuntime : IDisposable
         {
             _renderService.RegisterRenderer(new DebugOverlayRenderer(_inputService!, _cameraService!, islandMainRenderer, _localizationService!));
             _renderService.RegisterRenderer(new AutoplayerDebugRenderer(_gameControllerService, _inputService!));
-            _renderService.RegisterRenderer(debugPanelRenderer!);
         }
         _tutorialRenderer = new TutorialRenderer(_localizationService!, _inputService!);
         _tutorialRenderer.LayoutService = _uiLayoutService;
@@ -421,6 +424,7 @@ public sealed class SkiaGameRuntime : IDisposable
 
         float uiScale = _uiLayoutService?.UiScale ?? 1f;
         _aboutRenderer?.Render(canvas, _lastCanvasSize, uiScale);
+        _debugPanelRenderer?.Render(canvas, _lastCanvasSize, uiScale);
         _corruptSavePopup?.Render(canvas, _lastCanvasSize, uiScale);
         _gameOverPopup?.Render(canvas, _lastCanvasSize, uiScale);
         _hardResetPopup?.Render(canvas, _lastCanvasSize, uiScale);
@@ -687,6 +691,8 @@ public sealed class SkiaGameRuntime : IDisposable
 
         _aboutRenderer?.Dispose();
         _aboutRenderer = null;
+        _debugPanelRenderer?.Dispose();
+        _debugPanelRenderer = null;
         _corruptSavePopup?.Dispose();
         _corruptSavePopup = null;
         _hardResetPopup?.Dispose();
