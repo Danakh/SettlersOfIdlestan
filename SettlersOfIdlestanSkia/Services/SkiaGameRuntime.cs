@@ -44,6 +44,7 @@ public sealed class SkiaGameRuntime : IDisposable
     private GameOverPopupRenderer? _gameOverPopup;
     private bool _gameOverPending;
     private HardResetPopupRenderer? _hardResetPopup;
+    private AboutRenderer? _aboutRenderer;
     private UILayoutService? _uiLayoutService;
 
     public event Action? QuitRequested;
@@ -212,7 +213,8 @@ public sealed class SkiaGameRuntime : IDisposable
         islandMainRenderer.ConnectWonderService(_wonderService);
         var selectedWonderPanelRenderer = new SelectedWonderPanelRenderer(_wonderService, _inputService!, _localizationService!, _resourceManager!);
 
-        var aboutRenderer        = new AboutRenderer(_inputService!, _localizationService!);
+        _aboutRenderer = new AboutRenderer(_inputService!, _localizationService!);
+        var aboutRenderer = _aboutRenderer;
         var settingsPopupRenderer = new SettingsPopupRenderer(_gameControllerService.MainGameController, _localizationService!);
         DebugPanelRenderer? debugPanelRenderer = null;
         if (allowDebugMode)
@@ -269,7 +271,6 @@ public sealed class SkiaGameRuntime : IDisposable
             _renderService.RegisterRenderer(new AutoplayerDebugRenderer(_gameControllerService, _inputService!));
             _renderService.RegisterRenderer(debugPanelRenderer!);
         }
-        _renderService.RegisterRenderer(aboutRenderer);
         _tutorialRenderer = new TutorialRenderer(_localizationService!, _inputService!);
         _tutorialRenderer.LayoutService = _uiLayoutService;
         _renderService.RegisterRenderer(_tutorialRenderer);
@@ -419,6 +420,7 @@ public sealed class SkiaGameRuntime : IDisposable
         _renderService.RenderFrame(canvas, gameState!, _cameraService);
 
         float uiScale = _uiLayoutService?.UiScale ?? 1f;
+        _aboutRenderer?.Render(canvas, _lastCanvasSize, uiScale);
         _corruptSavePopup?.Render(canvas, _lastCanvasSize, uiScale);
         _gameOverPopup?.Render(canvas, _lastCanvasSize, uiScale);
         _hardResetPopup?.Render(canvas, _lastCanvasSize, uiScale);
@@ -683,6 +685,8 @@ public sealed class SkiaGameRuntime : IDisposable
         if (_isDisposed)
             return;
 
+        _aboutRenderer?.Dispose();
+        _aboutRenderer = null;
         _corruptSavePopup?.Dispose();
         _corruptSavePopup = null;
         _hardResetPopup?.Dispose();

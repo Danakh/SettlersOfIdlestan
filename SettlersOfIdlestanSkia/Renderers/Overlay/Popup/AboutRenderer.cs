@@ -1,11 +1,11 @@
 using SkiaSharp;
+using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Services;
 using SettlersOfIdlestanSkia.Services.Localization;
-using SettlersOfIdlestanSkia.Core;
 
 namespace SettlersOfIdlestanSkia.Renderers.Overlay.Popup;
 
-public class AboutRenderer : PopupRendererBase, IGameRenderer
+public class AboutRenderer : PopupRendererBase
 {
     private const float BaseHeight     = 180f;
     private const float BaseCorner     = 16f;
@@ -24,12 +24,13 @@ public class AboutRenderer : PopupRendererBase, IGameRenderer
     public override void Open()  => IsOpen = true;
     public override void Close() => IsOpen = false;
 
-    public void Render(SKCanvas canvas, GameRenderContext context)
+    public void Render(SKCanvas canvas, SKSize canvasSize, float scale = 1f)
     {
-        if (!IsOpen) return;
+        if (!IsOpen || Disposed) return;
+        CanvasSize = canvasSize;
 
         const float margin = 20f;
-        float s = Math.Min(context.UiScale, (CanvasSize.Height - margin) / BaseHeight);
+        float s = Math.Min(scale, (CanvasSize.Height - margin) / BaseHeight);
         UpdateFonts(s);
 
         float width  = Math.Min(CanvasSize.Width * 0.7f, CanvasSize.Width - margin);
