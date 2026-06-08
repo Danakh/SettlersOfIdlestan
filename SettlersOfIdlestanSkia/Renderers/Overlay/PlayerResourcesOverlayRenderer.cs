@@ -33,6 +33,7 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
     private float _currentTotalTime;
 
     private SKSize _canvasSize;
+    private float _uiScale = 1f;
     private bool _disposed;
 
     private readonly LocalizationService _localization;
@@ -60,10 +61,19 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
     {
         get
         {
-            float gearX = _canvasSize.Width - Padding - IconSize;
-            float gearY = (BarHeight - IconSize) / 2;
-            return new SKRect(gearX, gearY, gearX + IconSize, gearY + IconSize);
+            float s = _uiScale;
+            float gearX = _canvasSize.Width - Padding * s - IconSize * s;
+            float gearY = (BarHeight - IconSize) / 2 * s;
+            return new SKRect(gearX, gearY, gearX + IconSize * s, gearY + IconSize * s);
         }
+    }
+
+    private void ReinitializeFonts()
+    {
+        _textFont?.Dispose();
+        _smallFont?.Dispose();
+        _textFont = new SKFont { Size = 12 * _uiScale, Typeface = SkiaFonts.Bold };
+        _smallFont = new SKFont { Size = 10 * _uiScale, Typeface = SkiaFonts.Regular };
     }
 
     public PlayerResourcesOverlayRenderer(LocalizationService localization, ResourceManager resourceManager)
@@ -105,8 +115,7 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
             IsAntialias = true
         };
 
-        _textFont = new SKFont { Size = 12, Typeface = SkiaFonts.Bold };
-        _smallFont = new SKFont { Size = 10, Typeface = SkiaFonts.Regular };
+        ReinitializeFonts();
 
         _itemBgPaint = new SKPaint { Color = ItemBackground, Style = SKPaintStyle.Fill, IsAntialias = true };
         _itemBorderPaint = new SKPaint { Color = new SKColor(255, 255, 255, 60), Style = SKPaintStyle.Stroke, StrokeWidth = 1, IsAntialias = true };
@@ -137,6 +146,12 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
 
         _currentTotalTime = context.TotalTime;
 
+        if (Math.Abs(context.UiScale - _uiScale) > 0.001f)
+        {
+            _uiScale = context.UiScale;
+            ReinitializeFonts();
+        }
+
         var WorldState = mainGameState.CurrentWorldState;
         if (WorldState == null)
             return;
@@ -150,15 +165,21 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
 
     private void DrawBarBackground(SKCanvas canvas)
     {
-        const float cornerRadius = 8;
-        var rect = new SKRect(0, 0, _canvasSize.Width, BarHeight);
+        float cornerRadius = 8 * _uiScale;
+        var rect = new SKRect(0, 0, _canvasSize.Width, BarHeight * _uiScale);
         canvas.DrawRoundRect(rect, cornerRadius, cornerRadius, _backgroundPaint);
         canvas.DrawRoundRect(rect, cornerRadius, cornerRadius, _borderPaint);
     }
 
     private void DrawResourcesBar(SKCanvas canvas, SettlersOfIdlestan.Model.Civilization.Civilization civilization, SettlersOfIdlestan.Model.Prestige.PrestigeState? prestigeState)
     {
-        const float itemSpacing = 16;
+        float s = _uiScale;
+        float itemSpacing = 16 * s;
+        float barH = BarHeight * s;
+        float rectW = RectangleWidth * s;
+        float rectH = RectangleHeight * s;
+        float iconContainerSz = IconSize * s;
+        float padding = Padding * s;
 
         var map = PrestigeMapController.DefaultMap;
         var resourceTypes = Enum.GetValues(typeof(Resource)).Cast<Resource>()
@@ -168,13 +189,13 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
 
         DrawBarBackground(canvas);
 
-        float itemY = (BarHeight - RectangleHeight) / 2;
+        float itemY = (barH - rectH) / 2;
         float scroll = ScrollOffset;
 
         // Zone de clip : évite que les items débordent sur le gear ou hors de la barre
-        float clipRight = ShowGearInBar ? _canvasSize.Width - Padding - IconSize - 4f : _canvasSize.Width - Padding;
+        float clipRight = ShowGearInBar ? _canvasSize.Width - padding - iconContainerSz - 4f * s : _canvasSize.Width - padding;
         canvas.Save();
-        canvas.ClipRect(new SKRect(ResourceStartX, 0, clipRight, BarHeight));
+        canvas.ClipRect(new SKRect(ResourceStartX, 0, clipRight, barH));
         canvas.Translate(-scroll, 0);
 
         float currentX = ResourceStartX;
@@ -186,9 +207,9 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
             if (maxQuantity > 0)
             {
                 // Rect en coordonnées écran (avant la translation du canvas)
-                _resourceRects[resource] = new SKRect(currentX - scroll, itemY, currentX - scroll + RectangleWidth, itemY + RectangleHeight);
+                _resourceRects[resource] = new SKRect(currentX - scroll, itemY, currentX - scroll + rectW, itemY + rectH);
                 DrawResourceItem(canvas, resource, quantity, maxQuantity, currentX, itemY, IsFlickering(resource));
-                currentX += RectangleWidth + itemSpacing;
+                currentX += rectW + itemSpacing;
             }
         }
         _totalResourcesContentWidth = currentX - ResourceStartX;
@@ -196,8 +217,8 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
 
         if (ShowGearInBar)
         {
-            float gearX = _canvasSize.Width - Padding - IconSize;
-            DrawGearIcon(canvas, gearX, itemY, IconSize);
+            float gearX = _canvasSize.Width - padding - iconContainerSz;
+            DrawGearIcon(canvas, gearX, itemY, iconContainerSz);
         }
     }
 
@@ -208,14 +229,15 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
     {
         DrawBarBackground(canvas);
 
-        float gearX = _canvasSize.Width - Padding - IconSize;
-        float itemY = (BarHeight - RectangleHeight) / 2;
-        DrawGearIcon(canvas, gearX, itemY, IconSize);
+        float s = _uiScale;
+        float gearX = _canvasSize.Width - Padding * s - IconSize * s;
+        float itemY = (BarHeight - RectangleHeight) / 2 * s;
+        DrawGearIcon(canvas, gearX, itemY, IconSize * s);
 
         if (_textFont == null || _textPaint == null) return;
 
         string label = $"{_localization.Get("research_points_label")}: {researchPoints}";
-        float textY = BarHeight / 2 + _textFont.Size / 2 - 2;
+        float textY = BarHeight * s / 2 + _textFont.Size / 2 - 2 * s;
         canvas.DrawText(label, ResourceStartX, textY, _textFont, _textPaint);
     }
 
@@ -223,15 +245,16 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
     {
         DrawBarBackground(canvas);
 
-        float gearX = _canvasSize.Width - Padding - IconSize;
-        float itemY = (BarHeight - RectangleHeight) / 2;
-        DrawGearIcon(canvas, gearX, itemY, IconSize);
+        float s = _uiScale;
+        float gearX = _canvasSize.Width - Padding * s - IconSize * s;
+        float itemY = (BarHeight - RectangleHeight) / 2 * s;
+        DrawGearIcon(canvas, gearX, itemY, IconSize * s);
 
         if (_textFont == null || _textPaint == null)
             return;
 
         string label = $"{_localization.Get("prestige_points_label")}: {prestigePoints}";
-        float textY = BarHeight / 2 + _textFont.Size / 2 - 2;
+        float textY = BarHeight * s / 2 + _textFont.Size / 2 - 2 * s;
         canvas.DrawText(label, ResourceStartX, textY, _textFont, _textPaint);
     }
 
@@ -255,17 +278,21 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
 
     private void DrawResourceItem(SKCanvas canvas, Resource resource, int quantity, int maxQuantity, float x, float y, bool isFlickering)
     {
-        var itemRect = new SKRect(x, y, x + RectangleWidth, y + RectangleHeight);
+        float s = _uiScale;
+        float rectW = RectangleWidth * s;
+        float rectH = RectangleHeight * s;
+        float cornerRadius = 4 * s;
+        var itemRect = new SKRect(x, y, x + rectW, y + rectH);
 
-        canvas.DrawRoundRect(itemRect, 4, 4, _itemBgPaint);
-        canvas.DrawRoundRect(itemRect, 4, 4, _itemBorderPaint);
+        canvas.DrawRoundRect(itemRect, cornerRadius, cornerRadius, _itemBgPaint);
+        canvas.DrawRoundRect(itemRect, cornerRadius, cornerRadius, _itemBorderPaint);
 
         if (isFlickering && _lowStockPaint != null)
         {
             float phase = (float)(Math.Sin(_currentTotalTime * Math.PI * 4) * 0.5 + 0.5);
             byte alpha = (byte)(55 + 200 * phase);
             _lowStockPaint.Color = new SKColor(255, 80, 0, alpha);
-            canvas.DrawRoundRect(itemRect, 4, 4, _lowStockPaint);
+            canvas.DrawRoundRect(itemRect, cornerRadius, cornerRadius, _lowStockPaint);
         }
 
         // Icône de ressource (côté gauche, centrée verticalement)
@@ -273,9 +300,10 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
         var picture = svg?.Picture;
         if (picture != null)
         {
-            float iconScale = ResourceIconSize / 32f;
-            float iconY = y + (RectangleHeight - ResourceIconSize) / 2f;
-            float iconX = x + 3f;
+            float iconDisplaySize = ResourceIconSize * s;
+            float iconScale = iconDisplaySize / 32f;
+            float iconY = y + (rectH - iconDisplaySize) / 2f;
+            float iconX = x + 3f * s;
             canvas.Save();
             canvas.Translate(iconX, iconY);
             canvas.Scale(iconScale);
@@ -292,24 +320,24 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
             string maxText = $"/{FormatCompact(maxQuantity)}";
 
             float textH = _smallFont.Size;
-            float totalH = textH * 2 + 2f;
-            float line1Y = y + (RectangleHeight - totalH) / 2f + textH;
-            float line2Y = line1Y + textH + 2f;
+            float totalH = textH * 2 + 2f * s;
+            float line1Y = y + (rectH - totalH) / 2f + textH;
+            float line2Y = line1Y + textH + 2f * s;
 
             float line1Width = _smallFont.MeasureText(quantityText);
-            canvas.DrawText(quantityText, x + RectangleWidth - line1Width - 4f, line1Y, _smallFont, _textPaint);
+            canvas.DrawText(quantityText, x + rectW - line1Width - 4f * s, line1Y, _smallFont, _textPaint);
 
             float line2Width = _smallFont.MeasureText(maxText);
-            canvas.DrawText(maxText, x + RectangleWidth - line2Width - 4f, line2Y, _smallFont, _textPaint);
+            canvas.DrawText(maxText, x + rectW - line2Width - 4f * s, line2Y, _smallFont, _textPaint);
         }
         else
         {
             // Ligne unique : quantité/max
             var resourceValueText = $"{quantity}/{maxQuantity}";
             float textHeight = _smallFont.Size;
-            float textY = y + (RectangleHeight + textHeight) / 2f - 2f;
+            float textY = y + (rectH + textHeight) / 2f - 2f * s;
             float textWidth = _smallFont.MeasureText(resourceValueText);
-            canvas.DrawText(resourceValueText, x + RectangleWidth - textWidth - 4f, textY, _smallFont, _textPaint);
+            canvas.DrawText(resourceValueText, x + rectW - textWidth - 4f * s, textY, _smallFont, _textPaint);
         }
     }
 

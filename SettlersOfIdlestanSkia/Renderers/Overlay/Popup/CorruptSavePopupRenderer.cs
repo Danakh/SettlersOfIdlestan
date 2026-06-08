@@ -27,9 +27,10 @@ public sealed class CorruptSavePopupRenderer : IDisposable
     private readonly SKPaint _newGamePaint  = new() { Color = new SKColor(140, 40,  40),  Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _quitPaint     = new() { Color = new SKColor(55,  55,  65),  Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _btnBorder     = new() { Color = new SKColor(100, 100, 120), StrokeWidth = 1, Style = SKPaintStyle.Stroke, IsAntialias = true };
-    private readonly SKFont  _titleFont     = new() { Size = 16, Typeface = SkiaFonts.Bold };
-    private readonly SKFont  _bodyFont      = new() { Size = 13, Typeface = SkiaFonts.Regular };
-    private readonly SKFont  _btnFont       = new() { Size = 13, Typeface = SkiaFonts.Bold };
+    private SKFont  _titleFont = new() { Size = 16, Typeface = SkiaFonts.Bold };
+    private SKFont  _bodyFont  = new() { Size = 13, Typeface = SkiaFonts.Regular };
+    private SKFont  _btnFont   = new() { Size = 13, Typeface = SkiaFonts.Bold };
+    private float   _lastScale = 0f;
 
     private SKRect _exportRect  = SKRect.Empty;
     private SKRect _newGameRect = SKRect.Empty;
@@ -60,47 +61,65 @@ public sealed class CorruptSavePopupRenderer : IDisposable
         _justOpened = true;
     }
 
-    public void Render(SKCanvas canvas, SKSize canvasSize)
+    public void Render(SKCanvas canvas, SKSize canvasSize, float scale = 1f)
     {
         if (!IsOpen || _disposed) return;
 
-        float x = (canvasSize.Width  - PopupWidth)  / 2;
-        float y = (canvasSize.Height - PopupHeight) / 2;
-        var popup = new SKRect(x, y, x + PopupWidth, y + PopupHeight);
+        const float margin = 20f;
+        float s = Math.Min(scale, Math.Min(
+            (canvasSize.Width  - margin) / PopupWidth,
+            (canvasSize.Height - margin) / PopupHeight));
+        if (s != _lastScale)
+        {
+            _lastScale = s;
+            _titleFont.Dispose(); _titleFont = new SKFont { Size = 16 * s, Typeface = SkiaFonts.Bold };
+            _bodyFont.Dispose();  _bodyFont  = new SKFont { Size = 13 * s, Typeface = SkiaFonts.Regular };
+            _btnFont.Dispose();   _btnFont   = new SKFont { Size = 13 * s, Typeface = SkiaFonts.Bold };
+        }
 
-        _chrome.DrawBackground(canvas, popup, canvasSize);
+        float popupW = PopupWidth  * s;
+        float popupH = PopupHeight * s;
+        float btnW   = BtnWidth    * s;
+        float btnH   = BtnHeight   * s;
+        float btnGap = BtnGap      * s;
+
+        float x = (canvasSize.Width  - popupW) / 2;
+        float y = (canvasSize.Height - popupH) / 2;
+        var popup = new SKRect(x, y, x + popupW, y + popupH);
+
+        _chrome.DrawBackground(canvas, popup, canvasSize, s);
 
         string title = _localization.Get("corrupt_save_title");
         float titleW = _titleFont.MeasureText(title);
-        canvas.DrawText(title, x + (PopupWidth - titleW) / 2f, y + 44, _titleFont, _titlePaint);
+        canvas.DrawText(title, x + (popupW - titleW) / 2f, y + 44 * s, _titleFont, _titlePaint);
 
-        float lineY = y + 84;
+        float lineY = y + 84 * s;
         foreach (var key in new[] { "corrupt_save_line1", "corrupt_save_line2" })
         {
             string line = _localization.Get(key);
             float lw = _bodyFont.MeasureText(line);
-            canvas.DrawText(line, x + (PopupWidth - lw) / 2f, lineY, _bodyFont, _subtlePaint);
+            canvas.DrawText(line, x + (popupW - lw) / 2f, lineY, _bodyFont, _subtlePaint);
             lineY += _bodyFont.Size * 1.7f;
         }
 
-        float btnX = x + (PopupWidth - BtnWidth) / 2f;
-        float btn1Y = y + 148;
-        float btn2Y = btn1Y + BtnHeight + BtnGap;
-        float btn3Y = btn2Y + BtnHeight + BtnGap;
+        float btnX = x + (popupW - btnW) / 2f;
+        float btn1Y = y + 148 * s;
+        float btn2Y = btn1Y + btnH + btnGap;
+        float btn3Y = btn2Y + btnH + btnGap;
 
-        _exportRect  = new SKRect(btnX, btn1Y, btnX + BtnWidth, btn1Y + BtnHeight);
-        _newGameRect = new SKRect(btnX, btn2Y, btnX + BtnWidth, btn2Y + BtnHeight);
-        _quitRect    = new SKRect(btnX, btn3Y, btnX + BtnWidth, btn3Y + BtnHeight);
+        _exportRect  = new SKRect(btnX, btn1Y, btnX + btnW, btn1Y + btnH);
+        _newGameRect = new SKRect(btnX, btn2Y, btnX + btnW, btn2Y + btnH);
+        _quitRect    = new SKRect(btnX, btn3Y, btnX + btnW, btn3Y + btnH);
 
-        DrawBtn(canvas, _exportRect,  _exportPaint,  _localization.Get("corrupt_save_btn_export"));
-        DrawBtn(canvas, _newGameRect, _newGamePaint, _localization.Get("corrupt_save_btn_new_game"));
-        DrawBtn(canvas, _quitRect,    _quitPaint,    _localization.Get("corrupt_save_btn_quit"));
+        DrawBtn(canvas, _exportRect,  _exportPaint,  _localization.Get("corrupt_save_btn_export"),   s);
+        DrawBtn(canvas, _newGameRect, _newGamePaint, _localization.Get("corrupt_save_btn_new_game"), s);
+        DrawBtn(canvas, _quitRect,    _quitPaint,    _localization.Get("corrupt_save_btn_quit"),     s);
     }
 
-    private void DrawBtn(SKCanvas canvas, SKRect rect, SKPaint fill, string label)
+    private void DrawBtn(SKCanvas canvas, SKRect rect, SKPaint fill, string label, float s)
     {
-        canvas.DrawRoundRect(rect, 6, 6, fill);
-        canvas.DrawRoundRect(rect, 6, 6, _btnBorder);
+        canvas.DrawRoundRect(rect, 6 * s, 6 * s, fill);
+        canvas.DrawRoundRect(rect, 6 * s, 6 * s, _btnBorder);
         float tw = _btnFont.MeasureText(label);
         canvas.DrawText(label,
             rect.Left + (rect.Width - tw) / 2f,

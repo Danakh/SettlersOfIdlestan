@@ -214,7 +214,7 @@ public sealed class SkiaGameRuntime : IDisposable
         var settingsPopupRenderer = new SettingsPopupRenderer(_gameControllerService.MainGameController, _localizationService!);
         DebugPanelRenderer? debugPanelRenderer = null;
         if (allowDebugMode)
-            debugPanelRenderer = new DebugPanelRenderer(_inputService!, _localizationService!);
+            debugPanelRenderer = new DebugPanelRenderer(_inputService!, _localizationService!, _uiLayoutService!);
         var settingsMenu = new SettingsMenu(_gameControllerService.MainGameController, _inputService!, _localizationService!, aboutRenderer, settingsPopupRenderer, _fileSystemService!, _gameControllerService.CityBuildingService!, allowDebugMode, debugPanelRenderer, StartNewGameIntro, _uiLayoutService);
 
         _playerResourcesOverlayRenderer = new PlayerResourcesOverlayRenderer(_localizationService!, _resourceManager!);
@@ -264,6 +264,7 @@ public sealed class SkiaGameRuntime : IDisposable
         }
         _renderService.RegisterRenderer(aboutRenderer);
         _tutorialRenderer = new TutorialRenderer(_localizationService!, _inputService!);
+        _tutorialRenderer.LayoutService = _uiLayoutService;
         _renderService.RegisterRenderer(_tutorialRenderer);
         _renderService.RegisterRenderer(tooltipRenderer);
 
@@ -285,6 +286,12 @@ public sealed class SkiaGameRuntime : IDisposable
         var monsterController  = _gameControllerService.MainGameController.MonsterFeatureController;
         militaryController.CityDestroyed          += OnCityDestroyedCheckGameOver;
         monsterController.CityDestroyedByMonster  += OnCityDestroyedCheckGameOver;
+    }
+
+    public void SetUiScale(float scale)
+    {
+        if (_uiLayoutService != null) _uiLayoutService.UiScale = scale;
+        if (_renderService != null) _renderService.UiScale = scale;
     }
 
     public void EnsureCanvasInitialized(SKSize canvasSize)
@@ -404,8 +411,9 @@ public sealed class SkiaGameRuntime : IDisposable
 
         _renderService.RenderFrame(canvas, gameState!, _cameraService);
 
-        _corruptSavePopup?.Render(canvas, _lastCanvasSize);
-        _gameOverPopup?.Render(canvas, _lastCanvasSize);
+        float uiScale = _uiLayoutService?.UiScale ?? 1f;
+        _corruptSavePopup?.Render(canvas, _lastCanvasSize, uiScale);
+        _gameOverPopup?.Render(canvas, _lastCanvasSize, uiScale);
     }
 
     public void HandlePointerPressed(float x, float y, int pointerId = 0, PointerButton button = PointerButton.Left)
@@ -473,6 +481,16 @@ public sealed class SkiaGameRuntime : IDisposable
             _cameraService.ZoomAt(_cameraService.ZoomLevel * zoomFactor, new SKPoint(x, y));
         }
         _inputService?.HandleZoom(wheelDelta, x, y);
+    }
+
+    public void HandlePinch(float scaleRatio, float x, float y)
+    {
+        if (_introRenderer?.IsActive == true) return;
+        if (_cameraService == null || scaleRatio <= 0f) return;
+
+        bool overUI = _overlayRenderer?.IsPointBlockedByUI(new SKPoint(x, y)) ?? false;
+        if (!overUI && (_overlayRenderer?.IsIslandTabActive ?? true))
+            _cameraService.ZoomAt(_cameraService.ZoomLevel * scaleRatio, new SKPoint(x, y));
     }
 
     public void HandleKeyReleased(string key) => _inputService?.HandleKeyReleased(key);

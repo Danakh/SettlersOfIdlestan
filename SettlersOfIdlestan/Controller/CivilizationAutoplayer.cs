@@ -1,10 +1,11 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.Buildings;
+using SettlersOfIdlestan.Model.Prestige;
 using SettlersOfIdlestan.Controller.Expand;
 using SettlersOfIdlestan.Controller.Island;
 using System.Diagnostics;
@@ -26,7 +27,12 @@ namespace SettlersOfIdlestan.Controller
         private readonly BuildingController _buildingController;
         private readonly CityBuilderController _cityBuilderController;
         private readonly TradeController _tradeController;
-        private readonly MainGameController _mainController;
+        private readonly ResearchController _researchController;
+        private readonly PrestigeController _prestigeController;
+        private readonly PrestigeMapController _prestigeMapController;
+        private readonly WorldState? _worldState;
+        private readonly PrestigeState? _prestigeState;
+        private readonly Action? _performPrestige;
 
         private static readonly BuildingType[] Step1Buildings =
         {
@@ -47,17 +53,34 @@ namespace SettlersOfIdlestan.Controller
 
         public Civilization Civilization => _civ;
 
-        public CivilizationAutoplayer(Civilization civ, IslandMap map, MainGameController mainController)
+        public CivilizationAutoplayer(
+            Civilization civ,
+            IslandMap map,
+            RoadController roadController,
+            HarvestController harvestController,
+            BuildingController buildingController,
+            CityBuilderController cityBuilderController,
+            TradeController tradeController,
+            ResearchController researchController,
+            PrestigeController prestigeController,
+            PrestigeMapController prestigeMapController,
+            WorldState? worldState,
+            PrestigeState? prestigeState = null,
+            Action? performPrestige = null)
         {
             _civ = civ ?? throw new ArgumentNullException(nameof(civ));
             _map = map ?? throw new ArgumentNullException(nameof(map));
-            _mainController = mainController ?? throw new ArgumentNullException(nameof(mainController));
-
-            _roadController = mainController.RoadController;
-            _harvestController = mainController.HarvestController;
-            _cityBuilderController = mainController.CityBuilderController;
-            _buildingController = mainController.BuildingController;
-            _tradeController = mainController.TradeController;
+            _roadController = roadController ?? throw new ArgumentNullException(nameof(roadController));
+            _harvestController = harvestController ?? throw new ArgumentNullException(nameof(harvestController));
+            _buildingController = buildingController ?? throw new ArgumentNullException(nameof(buildingController));
+            _cityBuilderController = cityBuilderController ?? throw new ArgumentNullException(nameof(cityBuilderController));
+            _tradeController = tradeController ?? throw new ArgumentNullException(nameof(tradeController));
+            _researchController = researchController ?? throw new ArgumentNullException(nameof(researchController));
+            _prestigeController = prestigeController ?? throw new ArgumentNullException(nameof(prestigeController));
+            _prestigeMapController = prestigeMapController ?? throw new ArgumentNullException(nameof(prestigeMapController));
+            _worldState = worldState;
+            _prestigeState = prestigeState;
+            _performPrestige = performPrestige;
         }
 
         // ── Primitive utilities ──────────────────────────────────────────────────
@@ -154,7 +177,7 @@ namespace SettlersOfIdlestan.Controller
         /// Also builds Libraries once research is unlocked via prestige.</summary>
         public bool TryStep2Once(bool shouldExpand = true)
         {
-            var buildings = _mainController.ResearchController.IsResearchUnlocked()
+            var buildings = _researchController.IsResearchUnlocked()
                 ? Step2WithLibraryBuildings
                 : Step2Buildings;
             return TryStepOnce(buildings, shouldExpand);
@@ -165,9 +188,8 @@ namespace SettlersOfIdlestan.Controller
         /// first coastal city: Seaport 4, Warehouse 4, TownHall 4, then ImperialPort.</summary>
         public bool TryStep3Once(bool shouldExpand = true)
         {
-            var prestigeCtrl = _mainController.PrestigeController;
-            bool readyForPort = prestigeCtrl.CalculatePrestigePoints() >= PrestigeController.PrestigeRequiredPoints
-                                && !prestigeCtrl.HasImperialPort();
+            bool readyForPort = _prestigeController.CalculatePrestigePoints() >= PrestigeController.PrestigeRequiredPoints
+                                && !_prestigeController.HasImperialPort();
 
             if (readyForPort)
                 return TryStep3PortFocusOnce();
@@ -281,8 +303,7 @@ namespace SettlersOfIdlestan.Controller
         /// <summary>Step militaire : construit Palissade et Caserne dans les villes proches d'une civilisation ennemie (&lt; 5 edges).</summary>
         public bool TryMilitaryStepOnce()
         {
-            var WorldState = _mainController.CurrentMainState?.CurrentWorldState;
-            if (WorldState == null) return false;
+            if (_worldState == null) return false;
 
             bool didSomething = false;
             TryGrindOnce(null);
@@ -369,26 +390,24 @@ namespace SettlersOfIdlestan.Controller
 
         /// <summary>
         /// Performs the prestige transition and greedily distributes all available prestige points.
-        /// Returns false if prestige is not yet available.
+        /// Returns false if prestige is not yet available or performPrestige was not provided.
         /// The autoplayer's civ/map references become stale after this call — do not reuse them.
         /// </summary>
         public bool TryPrestigeOnce()
         {
-            if (!_mainController.PrestigeController.PrestigeIsAvailable()) return false;
+            if (_performPrestige == null || !_prestigeController.PrestigeIsAvailable()) return false;
 
-            _mainController.PerformPrestige();
+            _performPrestige();
 
-            var prestigeState = _mainController.CurrentMainState?.PrestigeState;
-            if (prestigeState != null)
+            if (_prestigeState != null)
             {
-                var ctrl = _mainController.PrestigeMapController;
                 bool purchased;
                 do
                 {
                     purchased = false;
                     foreach (var vertex in PrestigeMapController.DefaultMap.Vertices.OrderBy(v => v.Cost))
                     {
-                        if (ctrl.PurchaseVertex(prestigeState, vertex.Coord))
+                        if (_prestigeMapController.PurchaseVertex(_prestigeState, vertex.Coord))
                         {
                             purchased = true;
                             break;
@@ -407,31 +426,30 @@ namespace SettlersOfIdlestan.Controller
         /// </summary>
         public bool TryResearchOnce()
         {
-            var researchCtrl = _mainController.ResearchController;
-            if (!researchCtrl.IsResearchUnlocked()) return false;
+            if (!_researchController.IsResearchUnlocked()) return false;
 
             bool didSomething = false;
 
             bool isAnyInProgress = TechnologyDefinitions.All
-                .Any(t => researchCtrl.GetStatus(t.Id) == TechnologyStatus.InProgress);
+                .Any(t => _researchController.GetStatus(t.Id) == TechnologyStatus.InProgress);
 
             if (!isAnyInProgress)
             {
                 var next = TechnologyDefinitions.All
-                    .Where(t => researchCtrl.GetStatus(t.Id) == TechnologyStatus.Available)
+                    .Where(t => _researchController.GetStatus(t.Id) == TechnologyStatus.Available)
                     .OrderBy(t => t.Cost)
                     .FirstOrDefault();
-                if (next != null && researchCtrl.StartResearch(next.Id))
+                if (next != null && _researchController.StartResearch(next.Id))
                     didSomething = true;
             }
 
-            if (researchCtrl.IsResearchQueueUnlocked() && researchCtrl.GetQueuedResearch() == null)
+            if (_researchController.IsResearchQueueUnlocked() && _researchController.GetQueuedResearch() == null)
             {
                 var queued = TechnologyDefinitions.All
-                    .Where(t => researchCtrl.CanBeQueued(t.Id))
+                    .Where(t => _researchController.CanBeQueued(t.Id))
                     .OrderBy(t => t.Cost)
                     .FirstOrDefault();
-                if (queued != null && researchCtrl.SetQueuedResearch(queued.Id))
+                if (queued != null && _researchController.SetQueuedResearch(queued.Id))
                     didSomething = true;
             }
 
@@ -467,7 +485,7 @@ namespace SettlersOfIdlestan.Controller
                 foreach (var bt in targetBuildings)
                 {
                     var shouldGrind = !hasGrindedThisStep && !shouldExpand;
-                    if (TryBuildBuildingOnce(city, bt, withGrind: shouldGrind)) 
+                    if (TryBuildBuildingOnce(city, bt, withGrind: shouldGrind))
                         didSomething = true;
                     if (shouldGrind)
                         hasGrindedThisStep = true;
@@ -548,8 +566,8 @@ namespace SettlersOfIdlestan.Controller
         /// </summary>
         private List<Vertex> GetProspectiveVertices()
         {
-            var WorldState = _mainController.CurrentMainState?.CurrentWorldState;
-            if (WorldState == null || !WorldState.Visibility.GetForZ(WorldState.CurrentViewedLayer).TryGetValue(_civ.Index, out var visibleMap))
+            var worldState = _worldState;
+            if (worldState == null || !worldState.Visibility.GetForZ(worldState.CurrentViewedLayer).TryGetValue(_civ.Index, out var visibleMap))
                 return new List<Vertex>();
 
             int z = visibleMap.Z;
@@ -566,7 +584,7 @@ namespace SettlersOfIdlestan.Controller
                     if (v.Z == z)
                         networkVertices.Add(v);
 
-            var visibleEnemyCities = WorldState.Civilizations
+            var visibleEnemyCities = worldState.Civilizations
                 .Where(c => c.Index != _civ.Index)
                 .SelectMany(c => c.Cities)
                 .Where(city => city.Position.Z == z)

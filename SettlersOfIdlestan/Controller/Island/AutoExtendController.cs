@@ -317,7 +317,8 @@ public class AutoExtendController
             int max = civ.GetResourceMaxQuantity(resource);
             if (max > 0)
             {
-                try { civ.AddResource(resource, max); } catch { }
+                try { civ.AddResource(resource, max); }
+                catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[AutoExtendController] AddResource {resource}: {ex.Message}"); }
             }
         }
     }

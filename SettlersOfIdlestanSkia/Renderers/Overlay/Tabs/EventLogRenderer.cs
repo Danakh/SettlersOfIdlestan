@@ -71,7 +71,7 @@ public sealed class EventLogRenderer : IDisposable
         if (_disposed) return;
         if (context.GameState is not MainGameState mainGameState) return;
 
-        float topBarHeight = PlayerResourcesOverlayRenderer.BarHeight;
+        float topBarHeight = PlayerResourcesOverlayRenderer.BarHeight * context.UiScale;
         canvas.DrawRect(new SKRect(0, topBarHeight, _canvasSize.Width, _canvasSize.Height), _bgPaint);
 
         float contentWidth = Math.Min(720f, _canvasSize.Width - Padding * 2);

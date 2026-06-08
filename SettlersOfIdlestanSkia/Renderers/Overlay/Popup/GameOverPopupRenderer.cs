@@ -21,9 +21,10 @@ public sealed class GameOverPopupRenderer : IDisposable
     private readonly SKPaint _subtlePaint      = new() { Color = new SKColor(180, 180, 190), IsAntialias = true };
     private readonly SKPaint _restartBtnPaint  = new() { Color = new SKColor(60,  110, 180), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _btnBorder        = new() { Color = new SKColor(100, 100, 120), StrokeWidth = 1, Style = SKPaintStyle.Stroke, IsAntialias = true };
-    private readonly SKFont  _titleFont        = new() { Size = 20, Typeface = SkiaFonts.Bold };
-    private readonly SKFont  _bodyFont         = new() { Size = 13, Typeface = SkiaFonts.Regular };
-    private readonly SKFont  _btnFont          = new() { Size = 14, Typeface = SkiaFonts.Bold };
+    private SKFont  _titleFont = new() { Size = 20, Typeface = SkiaFonts.Bold };
+    private SKFont  _bodyFont  = new() { Size = 13, Typeface = SkiaFonts.Regular };
+    private SKFont  _btnFont   = new() { Size = 14, Typeface = SkiaFonts.Bold };
+    private float   _lastScale = 0f;
 
     private SKRect _restartRect = SKRect.Empty;
     private bool   _disposed;
@@ -36,45 +37,59 @@ public sealed class GameOverPopupRenderer : IDisposable
         _onRestart    = onRestart;
     }
 
-    public void Open()
-    {
-        IsOpen = true;
-    }
+    public void Open() => IsOpen = true;
 
-    public void Render(SKCanvas canvas, SKSize canvasSize)
+    public void Render(SKCanvas canvas, SKSize canvasSize, float scale = 1f)
     {
         if (!IsOpen || _disposed) return;
 
-        float x = (canvasSize.Width  - PopupWidth)  / 2;
-        float y = (canvasSize.Height - PopupHeight) / 2;
-        var popup = new SKRect(x, y, x + PopupWidth, y + PopupHeight);
+        const float margin = 20f;
+        float s = Math.Min(scale, Math.Min(
+            (canvasSize.Width  - margin) / PopupWidth,
+            (canvasSize.Height - margin) / PopupHeight));
+        if (s != _lastScale)
+        {
+            _lastScale = s;
+            _titleFont.Dispose(); _titleFont = new SKFont { Size = 20 * s, Typeface = SkiaFonts.Bold };
+            _bodyFont.Dispose();  _bodyFont  = new SKFont { Size = 13 * s, Typeface = SkiaFonts.Regular };
+            _btnFont.Dispose();   _btnFont   = new SKFont { Size = 14 * s, Typeface = SkiaFonts.Bold };
+        }
 
-        _chrome.DrawBackground(canvas, popup, canvasSize);
+        float popupW = PopupWidth  * s;
+        float popupH = PopupHeight * s;
+        float btnW   = BtnWidth    * s;
+        float btnH   = BtnHeight   * s;
+
+        float x = (canvasSize.Width  - popupW) / 2;
+        float y = (canvasSize.Height - popupH) / 2;
+        var popup = new SKRect(x, y, x + popupW, y + popupH);
+
+        _chrome.DrawBackground(canvas, popup, canvasSize, s);
 
         string title = _localization.Get("game_over_title");
         float titleW = _titleFont.MeasureText(title);
-        canvas.DrawText(title, x + (PopupWidth - titleW) / 2f, y + 50, _titleFont, _titlePaint);
+        canvas.DrawText(title, x + (popupW - titleW) / 2f, y + 50 * s, _titleFont, _titlePaint);
 
-        float lineY = y + 90;
+        float lineY = y + 90 * s;
         foreach (var key in new[] { "game_over_line1", "game_over_line2" })
         {
             string line = _localization.Get(key);
             float lw = _bodyFont.MeasureText(line);
-            canvas.DrawText(line, x + (PopupWidth - lw) / 2f, lineY, _bodyFont, _subtlePaint);
+            canvas.DrawText(line, x + (popupW - lw) / 2f, lineY, _bodyFont, _subtlePaint);
             lineY += _bodyFont.Size * 1.8f;
         }
 
-        float btnX = x + (PopupWidth - BtnWidth) / 2f;
-        float btnY = y + PopupHeight - BtnHeight - 28;
-        _restartRect = new SKRect(btnX, btnY, btnX + BtnWidth, btnY + BtnHeight);
+        float btnX = x + (popupW - btnW) / 2f;
+        float btnY = y + popupH - btnH - 28 * s;
+        _restartRect = new SKRect(btnX, btnY, btnX + btnW, btnY + btnH);
 
-        canvas.DrawRoundRect(_restartRect, 6, 6, _restartBtnPaint);
-        canvas.DrawRoundRect(_restartRect, 6, 6, _btnBorder);
+        canvas.DrawRoundRect(_restartRect, 6 * s, 6 * s, _restartBtnPaint);
+        canvas.DrawRoundRect(_restartRect, 6 * s, 6 * s, _btnBorder);
         string label = _localization.Get("game_over_btn_restart");
         float lw2 = _btnFont.MeasureText(label);
         canvas.DrawText(label,
-            _restartRect.Left + (BtnWidth - lw2) / 2f,
-            _restartRect.Top  + (BtnHeight + _btnFont.Size) / 2f,
+            _restartRect.Left + (btnW - lw2) / 2f,
+            _restartRect.Top  + (btnH + _btnFont.Size) / 2f,
             _btnFont, _textPaint);
     }
 

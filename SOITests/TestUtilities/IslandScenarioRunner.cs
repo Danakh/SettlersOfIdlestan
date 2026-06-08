@@ -46,7 +46,20 @@ public static class IslandScenarioRunner
 
         var worldState = controller.CurrentMainState!.CurrentWorldState!;
         var civ = worldState.Civilizations.First();
-        var autoplayer = new CivilizationAutoplayer(civ, worldState.GetMapForZ(IslandMap.SurfaceLayer), controller);
+        var autoplayer = new CivilizationAutoplayer(
+            civ,
+            worldState.GetMapForZ(IslandMap.SurfaceLayer),
+            controller.RoadController,
+            controller.HarvestController,
+            controller.BuildingController,
+            controller.CityBuilderController,
+            controller.TradeController,
+            controller.ResearchController,
+            controller.PrestigeController,
+            controller.PrestigeMapController,
+            worldState,
+            controller.CurrentMainState!.PrestigeState,
+            controller.PerformPrestige);
         var runner = new CivilizationAutoplayerRunner(autoplayer, civ, controller);
 
         step.RunAction(runner, () => step.Condition(controller));

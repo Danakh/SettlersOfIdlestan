@@ -51,7 +51,7 @@ namespace SettlersOfIdlestan.Controller
 
         public MainGameController()
         {
-            // Create controllers with null state; Initialize will be called with the real state when available
+            // Initialize() sera appelé avec le vrai état plus tard
             RoadController = new RoadController();
             HarvestController = new HarvestController();
             TradeController = new TradeController();
@@ -240,15 +240,21 @@ namespace SettlersOfIdlestan.Controller
 
                 AutoExtendController.Initialize(WorldState, CurrentMainState!.PRNG);
 
-                // Initialize controllers to operate on the real island state and clock
+                // Ordre d'initialisation contraint — ne pas modifier sans vérifier les dépendances :
+                // 1. RoadController  — requis par MilitaryController (nettoyage routes détruites)
+                // 2. FeatureController — doit découvrir les features avant tout combat/mouvement
+                // 3. MilitaryController — doit s'abonner à l'horloge AVANT MonsterFeatureController
+                //    pour que le combat soit résolu avant le déplacement des monstres
+                // 4. MonsterFeatureController — dépend de RoadController (indirect, via WorldState)
+                // 5. TradeController — requis par HarvestController (auto-vente en cas de débordement)
+                // 6. HarvestController — dépend de TradeController et MonsterFeatureController
+                // 7. Reste des controllers (BuildingController, CityBuilderController, etc.) — indépendants
                 RoadController.Initialize(WorldState, Clock, CurrentMainState!.PRNG);
-                // FeatureController discovers features before any combat or movement runs.
-                // MilitaryController must subscribe before MonsterFeatureController so combat resolves before movement.
                 FeatureController.Initialize(WorldState, Clock);
                 MilitaryController.Initialize(WorldState, Clock, RoadController);
                 MonsterFeatureController.Initialize(WorldState, Clock, CurrentMainState!.PRNG);
-                HarvestController.Initialize(WorldState, Clock, TradeController, MonsterFeatureController, CurrentMainState!.PRNG);
                 TradeController.Initialize(WorldState);
+                HarvestController.Initialize(WorldState, Clock, TradeController, MonsterFeatureController, CurrentMainState!.PRNG);
                 BuildingController.Initialize(WorldState, Clock);
                 CityBuilderController.Initialize(WorldState, Clock, CurrentMainState!.PRNG);
                 PrestigeController.Initialize(WorldState.PlayerCivilization, WorldState, Clock);

@@ -82,7 +82,20 @@ public class AutoplayerDebugRenderer : IGameRenderer
 
         if (!ReferenceEquals(playerCiv, _lastCivRef))
         {
-            _autoplayer = new CivilizationAutoplayer(playerCiv, worldState.GetMapForZ(IslandMap.SurfaceLayer), mainController);
+            _autoplayer = new CivilizationAutoplayer(
+                playerCiv,
+                worldState.GetMapForZ(IslandMap.SurfaceLayer),
+                mainController.RoadController,
+                mainController.HarvestController,
+                mainController.BuildingController,
+                mainController.CityBuilderController,
+                mainController.TradeController,
+                mainController.ResearchController,
+                mainController.PrestigeController,
+                mainController.PrestigeMapController,
+                worldState,
+                mainController.CurrentMainState?.PrestigeState,
+                mainController.PerformPrestige);
             _lastCivRef = playerCiv;
         }
 

@@ -56,7 +56,7 @@ public sealed class OverlayRenderer : IGameRenderer
     private readonly SKPaint _inactiveTabPaint = new() { Color = new SKColor(35, 35, 45), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _blinkTabPaint = new() { Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _activeTabBorderPaint = new() { Color = SKColors.Gold, StrokeWidth = 1.5f, Style = SKPaintStyle.Stroke, IsAntialias = true };
-    private readonly SKFont _tabFont = new() { Size = 12, Typeface = SkiaFonts.Bold };
+    private SKFont _tabFont = new() { Size = 12, Typeface = SkiaFonts.Bold };
 
     private readonly UILayoutService _uiLayout;
     private SKSize _canvasSize;
@@ -76,7 +76,7 @@ public sealed class OverlayRenderer : IGameRenderer
     private SKRect _mapSwitchRect;
     private readonly SKPaint _mapSwitchActivePaint = new() { Color = new SKColor(40, 25, 70), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _mapSwitchBorderPaint = new() { Color = new SKColor(160, 100, 220), StrokeWidth = 1.5f, Style = SKPaintStyle.Stroke, IsAntialias = true };
-    private readonly SKFont _mapSwitchFont = new() { Size = 11, Typeface = SkiaFonts.Bold };
+    private SKFont _mapSwitchFont = new() { Size = 11, Typeface = SkiaFonts.Bold };
 
     // Dynamic tab list: (tabId, screenRect) computed each frame
     private readonly List<(int tabId, SKRect rect)> _activeTabs = new();
@@ -165,10 +165,16 @@ public sealed class OverlayRenderer : IGameRenderer
         bool isMobile = _uiLayout.IsMobile;
         _playerResourcesOverlayRenderer.ShowGearInBar = !isMobile;
 
-        float gearX = canvasSize.Width - PlayerResourcesOverlayRenderer.Padding - PlayerResourcesOverlayRenderer.IconSize;
-        float timeControlRight = gearX - 8f;
-        float rowTop = isMobile ? PlayerResourcesOverlayRenderer.BarHeight : 0f;
-        _timeControlRenderer.Initialize(canvasSize, timeControlRight, rowTop);
+        float scale = _uiLayout.UiScale;
+        _tabFont.Dispose();
+        _tabFont = new SKFont { Size = 12 * scale, Typeface = SkiaFonts.Bold };
+        _mapSwitchFont.Dispose();
+        _mapSwitchFont = new SKFont { Size = 11 * scale, Typeface = SkiaFonts.Bold };
+
+        float gearX = canvasSize.Width - PlayerResourcesOverlayRenderer.Padding * scale - PlayerResourcesOverlayRenderer.IconSize * scale;
+        float timeControlRight = gearX - 8f * scale;
+        float rowTop = isMobile ? PlayerResourcesOverlayRenderer.BarHeight * scale : 0f;
+        _timeControlRenderer.Initialize(canvasSize, timeControlRight, rowTop, scale);
     }
 
     public void Render(SKCanvas canvas, GameRenderContext context)
@@ -193,36 +199,41 @@ public sealed class OverlayRenderer : IGameRenderer
         if (_hasAutomationTab) _activeTabs.Add((TabAutomation, default));
 
         bool isMobile = _uiLayout.IsMobile;
+        float uiScale = _uiLayout.UiScale;
         if (_activeTabs.Count > 1)
         {
             if (isMobile)
             {
                 // Tabs en bas, pleine largeur, plus hautes pour le tactile
-                float tabY = _canvasSize.Height - MobileTabHeight - 2;
+                float mobileTabH = MobileTabHeight * uiScale;
+                float tabY = _canvasSize.Height - mobileTabH - 2;
                 float tabW = _canvasSize.Width / _activeTabs.Count;
                 for (int i = 0; i < _activeTabs.Count; i++)
                 {
                     float x = i * tabW;
-                    _activeTabs[i] = (_activeTabs[i].tabId, new SKRect(x, tabY, x + tabW, tabY + MobileTabHeight));
+                    _activeTabs[i] = (_activeTabs[i].tabId, new SKRect(x, tabY, x + tabW, tabY + mobileTabH));
                 }
-                _playerResourcesOverlayRenderer.ResourceStartX = PlayerResourcesOverlayRenderer.Padding;
+                _playerResourcesOverlayRenderer.ResourceStartX = PlayerResourcesOverlayRenderer.Padding * uiScale;
             }
             else
             {
-                float tabY = (PlayerResourcesOverlayRenderer.BarHeight - TabHeight) / 2;
-                float tabX = TabMarginLeft;
+                float scaledBarH = PlayerResourcesOverlayRenderer.BarHeight * uiScale;
+                float scaledTabH = TabHeight * uiScale;
+                float scaledTabW = TabWidth * uiScale;
+                float tabY = (scaledBarH - scaledTabH) / 2;
+                float tabX = TabMarginLeft * uiScale;
                 for (int i = 0; i < _activeTabs.Count; i++)
                 {
-                    var rect = new SKRect(tabX, tabY, tabX + TabWidth, tabY + TabHeight);
+                    var rect = new SKRect(tabX, tabY, tabX + scaledTabW, tabY + scaledTabH);
                     _activeTabs[i] = (_activeTabs[i].tabId, rect);
-                    tabX += TabWidth + TabSpacing;
+                    tabX += scaledTabW + TabSpacing * uiScale;
                 }
-                _playerResourcesOverlayRenderer.ResourceStartX = tabX + TabMarginLeft;
+                _playerResourcesOverlayRenderer.ResourceStartX = tabX + TabMarginLeft * uiScale;
             }
         }
         else
         {
-            _playerResourcesOverlayRenderer.ResourceStartX = PlayerResourcesOverlayRenderer.Padding;
+            _playerResourcesOverlayRenderer.ResourceStartX = PlayerResourcesOverlayRenderer.Padding * uiScale;
         }
 
         bool onResearchTab    = _activeTab == TabResearch    && _hasResearchTab;
@@ -255,7 +266,7 @@ public sealed class OverlayRenderer : IGameRenderer
         _researchRenderer.IsActive = onResearchTab;
 
         // En mode mobile, les panneaux latéraux démarrent sous la 2e ligne
-        float mobileTop = PlayerResourcesOverlayRenderer.BarHeight + PlayerResourcesOverlayRenderer.SecondRowHeight;
+        float mobileTop = (PlayerResourcesOverlayRenderer.BarHeight + PlayerResourcesOverlayRenderer.SecondRowHeight) * uiScale;
         _playerCivPanel.TopOverride    = isMobile ? mobileTop : 0f;
         _selectedWonderPanelRenderer.TopOverride = isMobile ? mobileTop : 0f;
         _selectedCityPanelRenderer.TopOverride   = isMobile ? mobileTop : 0f;
@@ -301,46 +312,47 @@ public sealed class OverlayRenderer : IGameRenderer
             _selectedWonderPanelRenderer.Render(canvas, context);
         }
 
-        float gearX = _canvasSize.Width - PlayerResourcesOverlayRenderer.Padding - PlayerResourcesOverlayRenderer.IconSize;
+        float gearX = _canvasSize.Width - PlayerResourcesOverlayRenderer.Padding * uiScale - PlayerResourcesOverlayRenderer.IconSize * uiScale;
 
         // Ordre : fond 2e ligne → time controls → gear (pour que les boutons soient visibles)
         if (isMobile)
-            DrawMobileSecondRowBackground(canvas);
+            DrawMobileSecondRowBackground(canvas, uiScale);
 
         _timeControlRenderer.Render(canvas, context);
 
         if (isMobile)
         {
-            DrawMobileGearIcon(canvas, gearX);
-            _settingsMenu.Draw(canvas, gearX, PlayerResourcesOverlayRenderer.BarHeight + PlayerResourcesOverlayRenderer.SecondRowHeight);
+            DrawMobileGearIcon(canvas, gearX, uiScale);
+            _settingsMenu.Draw(canvas, gearX, (PlayerResourcesOverlayRenderer.BarHeight + PlayerResourcesOverlayRenderer.SecondRowHeight) * uiScale);
         }
         else
         {
-            _settingsMenu.Draw(canvas, gearX, PlayerResourcesOverlayRenderer.BarHeight);
+            _settingsMenu.Draw(canvas, gearX, PlayerResourcesOverlayRenderer.BarHeight * uiScale);
         }
 
         _tradeRenderer.Render(canvas);
         _prestigeRenderer.Render(canvas);
-        _settingsPopupRenderer.Render(canvas);
+        _settingsPopupRenderer.Render(canvas, _uiLayout.UiScale);
 
         DrawMapSwitchButton(canvas, context);
         CheckResourceBarTooltip();
     }
 
-    private void DrawMobileSecondRowBackground(SKCanvas canvas)
+    private void DrawMobileSecondRowBackground(SKCanvas canvas, float scale)
     {
-        float rowTop = PlayerResourcesOverlayRenderer.BarHeight;
-        float rowH = PlayerResourcesOverlayRenderer.SecondRowHeight;
+        float rowTop = PlayerResourcesOverlayRenderer.BarHeight * scale;
+        float rowH = PlayerResourcesOverlayRenderer.SecondRowHeight * scale;
+        float cornerRadius = 4 * scale;
         var rowRect = new SKRect(0, rowTop, _canvasSize.Width, rowTop + rowH);
-        canvas.DrawRoundRect(rowRect, 4, 4, _secondRowBgPaint);
-        canvas.DrawRoundRect(rowRect, 4, 4, _secondRowBorderPaint);
+        canvas.DrawRoundRect(rowRect, cornerRadius, cornerRadius, _secondRowBgPaint);
+        canvas.DrawRoundRect(rowRect, cornerRadius, cornerRadius, _secondRowBorderPaint);
     }
 
-    private void DrawMobileGearIcon(SKCanvas canvas, float gearX)
+    private void DrawMobileGearIcon(SKCanvas canvas, float gearX, float scale)
     {
-        float rowTop = PlayerResourcesOverlayRenderer.BarHeight;
-        float rowH = PlayerResourcesOverlayRenderer.SecondRowHeight;
-        float iconSize = PlayerResourcesOverlayRenderer.IconSize;
+        float rowTop = PlayerResourcesOverlayRenderer.BarHeight * scale;
+        float rowH = PlayerResourcesOverlayRenderer.SecondRowHeight * scale;
+        float iconSize = PlayerResourcesOverlayRenderer.IconSize * scale;
         float gearY = rowTop + (rowH - iconSize) / 2f;
         _mobileGearRect = new SKRect(gearX, gearY, gearX + iconSize, gearY + iconSize);
         _playerResourcesOverlayRenderer.DrawGearAt(canvas, gearX, gearY, iconSize);
@@ -352,19 +364,20 @@ public sealed class OverlayRenderer : IGameRenderer
         var worldState = mgs.CurrentWorldState;
         if (worldState == null || !worldState.Layers.ContainsKey(LayerState.UnderworldZ)) return;
 
-        const float btnW = 130f;
-        const float btnH = 22f;
+        float s = _uiLayout.UiScale;
+        float btnW = 130f * s;
+        float btnH = 22f * s;
         float btnX = (_canvasSize.Width - btnW) / 2f;
-        float btnY = PlayerResourcesOverlayRenderer.BarHeight + 3f;
+        float btnY = PlayerResourcesOverlayRenderer.BarHeight * s + 3f * s;
         _mapSwitchRect = new SKRect(btnX, btnY, btnX + btnW, btnY + btnH);
 
-        canvas.DrawRoundRect(_mapSwitchRect, 5, 5, _mapSwitchActivePaint);
-        canvas.DrawRoundRect(_mapSwitchRect, 5, 5, _mapSwitchBorderPaint);
+        canvas.DrawRoundRect(_mapSwitchRect, 5 * s, 5 * s, _mapSwitchActivePaint);
+        canvas.DrawRoundRect(_mapSwitchRect, 5 * s, 5 * s, _mapSwitchBorderPaint);
 
         string label = worldState.CurrentViewedLayer == LayerState.UnderworldZ
             ? _localization.Get("btn_map_surface")
             : _localization.Get("btn_map_underworld");
-        canvas.DrawText(label, _mapSwitchRect.MidX, _mapSwitchRect.MidY + 4f, SKTextAlign.Center, _mapSwitchFont, _buttonTextPaint);
+        canvas.DrawText(label, _mapSwitchRect.MidX, _mapSwitchRect.MidY + 4f * s, SKTextAlign.Center, _mapSwitchFont, _buttonTextPaint);
     }
 
     private void CheckResourceBarTooltip()
@@ -465,11 +478,12 @@ public sealed class OverlayRenderer : IGameRenderer
             bgPaint = _inactiveTabPaint;
         }
 
-        canvas.DrawRoundRect(rect, 5, 5, bgPaint);
+        float cr = 5 * _uiLayout.UiScale;
+        canvas.DrawRoundRect(rect, cr, cr, bgPaint);
         if (isActive)
-            canvas.DrawRoundRect(rect, 5, 5, _activeTabBorderPaint);
+            canvas.DrawRoundRect(rect, cr, cr, _activeTabBorderPaint);
         var textPaint = isActive ? _buttonTextPaint : _disabledTextPaint;
-        canvas.DrawText(label, rect.MidX, rect.MidY + 5, SKTextAlign.Center, _tabFont, textPaint);
+        canvas.DrawText(label, rect.MidX, rect.MidY + 5 * _uiLayout.UiScale, SKTextAlign.Center, _tabFont, textPaint);
     }
 
     public void ConnectWonderService(WonderSelectionService wonderSelectionService)
@@ -482,7 +496,8 @@ public sealed class OverlayRenderer : IGameRenderer
                                     || _settingsMenu.IsOpen || _settingsPopupRenderer.IsOpen;
     public bool IsPointBlockedByUI(SKPoint point) =>
         IsAnyOverlayOpen || _selectedCityPanelRenderer.ContainsPoint(point) || _selectedWonderPanelRenderer.ContainsPoint(point)
-        || _playerCivPanel.ContainsPoint(point);
+        || _playerCivPanel.ContainsPoint(point)
+        || (_uiLayout.IsMobile && point.Y < PlayerResourcesOverlayRenderer.BarHeight * _uiLayout.UiScale);
     public bool IsIslandTabActive => _activeTab == TabIsland;
 
     private void HandlePointerMoved(object? sender, PointerEventArgs e)
@@ -494,7 +509,7 @@ public sealed class OverlayRenderer : IGameRenderer
         {
             float delta = _resourceDragLastX - e.Position.X;
             _resourceDragLastX = e.Position.X;
-            float visibleW = _canvasSize.Width - PlayerResourcesOverlayRenderer.Padding;
+            float visibleW = _canvasSize.Width - PlayerResourcesOverlayRenderer.Padding * _uiLayout.UiScale;
             float maxScroll = Math.Max(0f, _playerResourcesOverlayRenderer.TotalResourcesContentWidth - visibleW);
             _playerResourcesOverlayRenderer.ScrollOffset =
                 Math.Clamp(_playerResourcesOverlayRenderer.ScrollOffset + delta, 0f, maxScroll);
@@ -538,7 +553,7 @@ public sealed class OverlayRenderer : IGameRenderer
         }
 
         // Drag des ressources (mode mobile, zone barre du haut)
-        if (isMobile && e.Position.Y < PlayerResourcesOverlayRenderer.BarHeight)
+        if (isMobile && e.Position.Y < PlayerResourcesOverlayRenderer.BarHeight * _uiLayout.UiScale)
         {
             _isDraggingResources = true;
             _resourceDragLastX = e.Position.X;

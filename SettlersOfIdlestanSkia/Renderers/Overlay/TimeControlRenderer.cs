@@ -33,6 +33,7 @@ public class TimeControlRenderer : IDisposable
     private SKSize _canvasSize;
     private float _rightEdge;
     private float _rowTop;
+    private float _scale = 1f;
 
     private SKRect _pauseRect = SKRect.Empty;
     private SKRect _playRect = SKRect.Empty;
@@ -45,9 +46,9 @@ public class TimeControlRenderer : IDisposable
     private readonly SKPaint _borderPaint = new() { Color = new SKColor(100, 100, 130), StrokeWidth = 1f, Style = SKPaintStyle.Stroke, IsAntialias = true };
     private readonly SKPaint _textPaint = new() { Color = SKColors.White, IsAntialias = true };
     private readonly SKPaint _bankTextPaint = new() { Color = new SKColor(200, 240, 255), IsAntialias = true };
-    private readonly SKFont _font = new() { Size = 13, Typeface = SkiaFonts.Bold };
-    private readonly SKFont _bankFont = new() { Size = 11, Typeface = SkiaFonts.Regular };
-    private readonly SKFont _tooltipFont = new() { Size = 10, Typeface = SkiaFonts.Regular };
+    private SKFont _font = new() { Size = 13, Typeface = SkiaFonts.Bold };
+    private SKFont _bankFont = new() { Size = 11, Typeface = SkiaFonts.Regular };
+    private SKFont _tooltipFont = new() { Size = 10, Typeface = SkiaFonts.Regular };
 
     private bool _disposed;
 
@@ -60,34 +61,47 @@ public class TimeControlRenderer : IDisposable
         _inputService.PointerMoved += HandlePointerMoved;
     }
 
-    public void Initialize(SKSize canvasSize, float rightEdge, float rowTop = 0f)
+    public void Initialize(SKSize canvasSize, float rightEdge, float rowTop = 0f, float scale = 1f)
     {
         _canvasSize = canvasSize;
         _rightEdge = rightEdge;
         _rowTop = rowTop;
+        _scale = scale;
+        _font.Dispose();  _font = new SKFont { Size = 13 * scale, Typeface = SkiaFonts.Bold };
+        _bankFont.Dispose(); _bankFont = new SKFont { Size = 11 * scale, Typeface = SkiaFonts.Regular };
+        _tooltipFont.Dispose(); _tooltipFont = new SKFont { Size = 10 * scale, Typeface = SkiaFonts.Regular };
         RecalcRects();
     }
 
     private void RecalcRects()
     {
-        float rowH = _rowTop > 0f ? PlayerResourcesOverlayRenderer.SecondRowHeight : PlayerResourcesOverlayRenderer.BarHeight;
-        float buttonY = _rowTop + (rowH - ButtonSize) / 2f;
+        float s = _scale;
+        float rowH = _rowTop > 0f
+            ? PlayerResourcesOverlayRenderer.SecondRowHeight * s
+            : PlayerResourcesOverlayRenderer.BarHeight * s;
+        float buttonSz = ButtonSize * s;
+        float buttonY = _rowTop + (rowH - buttonSz) / 2f;
+
+        float bankW = BankLabelWidth * s;
+        float gap = BankToButtonsGap * s;
+        float spacing = ButtonSpacing * s;
+        float totalW = bankW + gap + 3 * buttonSz + 2 * spacing;
 
         // Bank display (leftmost)
-        float bankLeft = _rightEdge - TotalWidth;
-        _bankRect = new SKRect(bankLeft, buttonY, bankLeft + BankLabelWidth, buttonY + ButtonSize);
+        float bankLeft = _rightEdge - totalW;
+        _bankRect = new SKRect(bankLeft, buttonY, bankLeft + bankW, buttonY + buttonSz);
 
         // Pause button
-        float p1x = bankLeft + BankLabelWidth + BankToButtonsGap;
-        _pauseRect = new SKRect(p1x, buttonY, p1x + ButtonSize, buttonY + ButtonSize);
+        float p1x = bankLeft + bankW + gap;
+        _pauseRect = new SKRect(p1x, buttonY, p1x + buttonSz, buttonY + buttonSz);
 
         // Play button
-        float p2x = p1x + ButtonSize + ButtonSpacing;
-        _playRect = new SKRect(p2x, buttonY, p2x + ButtonSize, buttonY + ButtonSize);
+        float p2x = p1x + buttonSz + spacing;
+        _playRect = new SKRect(p2x, buttonY, p2x + buttonSz, buttonY + buttonSz);
 
         // Fast-forward button
-        float p3x = p2x + ButtonSize + ButtonSpacing;
-        _fastRect = new SKRect(p3x, buttonY, p3x + ButtonSize, buttonY + ButtonSize);
+        float p3x = p2x + buttonSz + spacing;
+        _fastRect = new SKRect(p3x, buttonY, p3x + buttonSz, buttonY + buttonSz);
     }
 
     public void Render(SKCanvas canvas, GameRenderContext context)
@@ -132,7 +146,7 @@ public class TimeControlRenderer : IDisposable
             _                    => null
         };
         if (lines == null) return;
-        TooltipRenderUtils.DrawTooltip(canvas, _canvasSize, _lastPointerPosition, lines, _tooltipFont, null, new());
+        TooltipRenderUtils.DrawTooltip(canvas, _canvasSize, _lastPointerPosition, lines, _tooltipFont, null, new(), _scale);
     }
 
     private void DrawBankLabel(SKCanvas canvas, long bankTicks)

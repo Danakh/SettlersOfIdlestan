@@ -10,6 +10,9 @@ namespace SettlersOfIdlestanDesktop;
 public partial class MainPage : ContentPage
 {
 	private SkiaGameRuntime? _runtime;
+	private readonly Dictionary<long, SKPoint> _activePointers = [];
+	private float _lastPinchDist;
+	private bool _isPinching;
 
 	public MainPage()
 	{
@@ -21,7 +24,11 @@ public partial class MainPage : ContentPage
 		base.OnAppearing();
 		_runtime = new SkiaGameRuntime();
 		_runtime.QuitRequested += () => MainThread.BeginInvokeOnMainThread(() => Application.Current?.Quit());
-		_runtime.Initialize(new DesktopFileSystemService(), allowDebugMode: true);
+		bool allowDebugMode = false;
+#if DEBUG
+		allowDebugMode = Environment.GetCommandLineArgs().Contains("--debug");
+#endif
+		_runtime.Initialize(new DesktopFileSystemService(), allowDebugMode);
 		MainThread.BeginInvokeOnMainThread(() => Dispatcher.StartTimer(TimeSpan.FromMilliseconds(16), RenderFrame));
 	}
 
@@ -125,20 +132,53 @@ public partial class MainPage : ContentPage
 		if (_runtime == null)
 			return;
 
-		// Traduit les événements SkiaSharp en événements de jeu
 		switch (e.ActionType)
 		{
 			case SKTouchAction.Pressed:
-				_runtime.HandlePointerPressed(e.Location.X, e.Location.Y, (int)e.Id, ToPointerButton(e.MouseButton));
+				_activePointers[e.Id] = e.Location;
+				if (_activePointers.Count == 2)
+				{
+					_isPinching = true;
+					_lastPinchDist = GetPinchDistance();
+					// Annule le pan en cours au moment où le deuxième doigt touche
+					_runtime.HandlePointerReleased(e.Location.X, e.Location.Y, (int)e.Id, ToPointerButton(e.MouseButton));
+				}
+				else if (!_isPinching)
+				{
+					_runtime.HandlePointerPressed(e.Location.X, e.Location.Y, (int)e.Id, ToPointerButton(e.MouseButton));
+				}
 				break;
 
 			case SKTouchAction.Moved:
-				_runtime.HandlePointerMoved(e.Location.X, e.Location.Y, (int)e.Id);
+				_activePointers[e.Id] = e.Location;
+				if (_isPinching && _activePointers.Count >= 2)
+				{
+					var newDist = GetPinchDistance();
+					if (_lastPinchDist > 0f && newDist > 0f)
+					{
+						var center = GetPinchCenter();
+						_runtime.HandlePinch(newDist / _lastPinchDist, center.X, center.Y);
+					}
+					_lastPinchDist = newDist;
+				}
+				else if (!_isPinching)
+				{
+					_runtime.HandlePointerMoved(e.Location.X, e.Location.Y, (int)e.Id);
+				}
 				break;
 
 			case SKTouchAction.Released:
 			case SKTouchAction.Cancelled:
-				_runtime.HandlePointerReleased(e.Location.X, e.Location.Y, (int)e.Id, ToPointerButton(e.MouseButton));
+				_activePointers.Remove(e.Id);
+				if (_activePointers.Count < 2)
+				{
+					_isPinching = false;
+					_lastPinchDist = 0f;
+				}
+				if (!_isPinching)
+				{
+					_runtime.HandlePointerReleased(e.Location.X, e.Location.Y, (int)e.Id, ToPointerButton(e.MouseButton));
+				}
 				break;
 
 			case SKTouchAction.WheelChanged:
@@ -147,6 +187,22 @@ public partial class MainPage : ContentPage
 		}
 
 		e.Handled = true;
+	}
+
+	private float GetPinchDistance()
+	{
+		var pts = _activePointers.Values.ToArray();
+		if (pts.Length < 2) return 0f;
+		var dx = pts[0].X - pts[1].X;
+		var dy = pts[0].Y - pts[1].Y;
+		return MathF.Sqrt(dx * dx + dy * dy);
+	}
+
+	private SKPoint GetPinchCenter()
+	{
+		var pts = _activePointers.Values.ToArray();
+		if (pts.Length < 2) return SKPoint.Empty;
+		return new SKPoint((pts[0].X + pts[1].X) / 2f, (pts[0].Y + pts[1].Y) / 2f);
 	}
 
 	private static PointerButton ToPointerButton(SKMouseButton mouseButton)

@@ -9,7 +9,7 @@ namespace SettlersOfIdlestanSkia.Renderers.Debug;
 public sealed class DebugPanelRenderer : IGameRenderer, IDisposable
 {
     private const float PanelWidth    = 380f;
-    private const float PanelHeight   = 230f;
+    private const float PanelHeight   = 280f;
     private const float ToggleWidth   = 46f;
     private const float ToggleHeight  = 24f;
     private const float RowHeight     = 50f;
@@ -18,6 +18,7 @@ public sealed class DebugPanelRenderer : IGameRenderer, IDisposable
 
     private readonly InputHandlingService  _inputService;
     private readonly LocalizationService  _localization;
+    private readonly UILayoutService      _uiLayout;
 
     private readonly PopupChrome _chrome              = new();
     private readonly SKFont      _titleFont           = new() { Size = 15, Typeface = SkiaFonts.Bold };
@@ -32,18 +33,19 @@ public sealed class DebugPanelRenderer : IGameRenderer, IDisposable
     private SKSize       _canvasSize;
     private SKRect       _panelRect;
     private SKRect       _closeRect;
-    private readonly SKRect[] _toggleRects = new SKRect[3];
+    private readonly SKRect[] _toggleRects = new SKRect[4];
 
     private bool _disposed;
 
-    private static readonly string[] LabelKeys = { "debug_show_hex_coords", "debug_show_autoplayer", "debug_show_full_map" };
+    private static readonly string[] LabelKeys = { "debug_show_hex_coords", "debug_show_autoplayer", "debug_show_full_map", "debug_force_mobile" };
 
     public bool IsOpen { get; private set; }
 
-    public DebugPanelRenderer(InputHandlingService inputService, LocalizationService localization)
+    public DebugPanelRenderer(InputHandlingService inputService, LocalizationService localization, UILayoutService uiLayout)
     {
         _inputService = inputService;
         _localization = localization;
+        _uiLayout = uiLayout;
         _inputService.PointerPressed += HandlePointerPressed;
     }
 
@@ -60,7 +62,7 @@ public sealed class DebugPanelRenderer : IGameRenderer, IDisposable
         _panelRect = new SKRect(px, py, px + PanelWidth, py + PanelHeight);
         _closeRect = PopupChrome.GetCloseRect(_panelRect);
 
-        for (int i = 0; i < 3; i++)
+        for (int i = 0; i < 4; i++)
         {
             float rowMidY = _panelRect.Top + FirstRowY + i * RowHeight + RowHeight / 2f;
             float tx = _panelRect.Right - ToggleRightPad - ToggleWidth;
@@ -86,8 +88,8 @@ public sealed class DebugPanelRenderer : IGameRenderer, IDisposable
         canvas.DrawText(_localization.Get("debug_panel_title"), _panelRect.MidX, _panelRect.Top + 38f,
             SKTextAlign.Center, _titleFont, _titlePaint);
 
-        bool[] states = { DebugSettings.ShowHexCoords, DebugSettings.ShowAutoplayerCommands, DebugSettings.ShowFullMap };
-        for (int i = 0; i < 3; i++)
+        bool[] states = { DebugSettings.ShowHexCoords, DebugSettings.ShowAutoplayerCommands, DebugSettings.ShowFullMap, _uiLayout.IsForcedMobile };
+        for (int i = 0; i < 4; i++)
         {
             float rowMidY = _panelRect.Top + FirstRowY + i * RowHeight + RowHeight / 2f;
             canvas.DrawText(_localization.Get(LabelKeys[i]), _panelRect.Left + 20f,
@@ -117,7 +119,7 @@ public sealed class DebugPanelRenderer : IGameRenderer, IDisposable
             return;
         }
 
-        for (int i = 0; i < 3; i++)
+        for (int i = 0; i < 4; i++)
         {
             if (_toggleRects[i].Contains(e.Position.X, e.Position.Y))
             {
@@ -126,6 +128,7 @@ public sealed class DebugPanelRenderer : IGameRenderer, IDisposable
                     case 0: DebugSettings.ShowHexCoords          = !DebugSettings.ShowHexCoords;          break;
                     case 1: DebugSettings.ShowAutoplayerCommands = !DebugSettings.ShowAutoplayerCommands; break;
                     case 2: DebugSettings.ShowFullMap            = !DebugSettings.ShowFullMap;            break;
+                    case 3: _uiLayout.ToggleForceMode();                                                  break;
                 }
                 return;
             }

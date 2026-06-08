@@ -63,7 +63,7 @@ namespace SettlersOfIdlestan.Controller.Island
         private void OnClockAdvanced(object? sender, GameClockAdvancedEventArgs e)
         {
             try { PerformBuildersGuildOutpostConstruction(); }
-            catch { }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[CityBuilderController] {nameof(PerformBuildersGuildOutpostConstruction)}: {ex}"); }
         }
 
         private void PerformBuildersGuildOutpostConstruction()
@@ -110,7 +110,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 BuildCity(civ.Index, chosen);
                 OnAutoOutpostBuilt?.Invoke(this, new OutpostAutoBuiltEventArgs(civ.Index, chosen));
             }
-            catch { }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[CityBuilderController] BuildCity at {chosen}: {ex}"); }
         }
 
         /// <summary>

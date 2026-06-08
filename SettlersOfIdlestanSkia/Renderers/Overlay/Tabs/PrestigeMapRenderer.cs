@@ -48,6 +48,7 @@ public sealed class PrestigeMapRenderer : IGameRenderer
     private SKSize _canvasSize;
     private SKPoint _mapCenter;
     private float _zoom = 1f;
+    private float _barH = PlayerResourcesOverlayRenderer.BarHeight;
     private float _maxLocalExtentX;
     private float _maxLocalExtentY;
 
@@ -107,8 +108,7 @@ public sealed class PrestigeMapRenderer : IGameRenderer
     public void Initialize(SKSize canvasSize)
     {
         _canvasSize = canvasSize;
-        float barH = PlayerResourcesOverlayRenderer.BarHeight;
-        _mapCenter = new SKPoint(canvasSize.Width / 2f, barH + (canvasSize.Height - barH) * 0.45f);
+        _mapCenter = new SKPoint(canvasSize.Width / 2f, _barH + (canvasSize.Height - _barH) * 0.45f);
         _zoom = 1f;
         _pointerDown = false;
         _isPanning = false;
@@ -150,21 +150,26 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         var prestigeState = mainState?.PrestigeState;
         if (prestigeState == null) return;
 
-        float barH = PlayerResourcesOverlayRenderer.BarHeight;
-        canvas.DrawRect(0f, barH, _canvasSize.Width, _canvasSize.Height - barH, _bgPaint);
+        float newBarH = PlayerResourcesOverlayRenderer.BarHeight * context.UiScale;
+        if (Math.Abs(newBarH - _barH) > 0.5f)
+        {
+            _barH = newBarH;
+            _mapCenter = new SKPoint(_canvasSize.Width / 2f, _barH + (_canvasSize.Height - _barH) * 0.45f);
+        }
+        canvas.DrawRect(0f, _barH, _canvasSize.Width, _canvasSize.Height - _barH, _bgPaint);
 
         UpdateVisibility(prestigeState);
 
         canvas.Save();
-        canvas.ClipRect(new SKRect(0, barH + HeaderHeight, _canvasSize.Width, _canvasSize.Height));
+        canvas.ClipRect(new SKRect(0, _barH + HeaderHeight, _canvasSize.Width, _canvasSize.Height));
         DrawHexes(canvas, prestigeState);
         DrawRoads(canvas, prestigeState);
         DrawVertices(canvas, prestigeState);
         canvas.Restore();
 
-        canvas.DrawRect(new SKRect(0, barH, _canvasSize.Width, barH + HeaderHeight), _headerBgPaint);
+        canvas.DrawRect(new SKRect(0, _barH, _canvasSize.Width, _barH + HeaderHeight), _headerBgPaint);
         string ppLabel = $"{_localization.Get("prestige_points_label")}: {prestigeState.PrestigePoints}";
-        canvas.DrawText(ppLabel, 16f, barH + 24f, _headerFont, _textWhitePaint);
+        canvas.DrawText(ppLabel, 16f, _barH + 24f, _headerFont, _textWhitePaint);
 
         if (_hoveredVertex != null)
             BuildVertexTooltip(_hoveredVertex, prestigeState);
@@ -376,7 +381,6 @@ public sealed class PrestigeMapRenderer : IGameRenderer
 
     private void ClampMapCenter()
     {
-        float barH = PlayerResourcesOverlayRenderer.BarHeight;
         float extW = _maxLocalExtentX * _zoom;
         float extH = _maxLocalExtentY * _zoom;
 
@@ -387,7 +391,7 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         if (cx + extW < PanClampMargin) cx = PanClampMargin - extW;
         else if (cx - extW > _canvasSize.Width - PanClampMargin) cx = _canvasSize.Width - PanClampMargin + extW;
 
-        if (cy + extH < barH + PanClampMargin) cy = barH + PanClampMargin - extH;
+        if (cy + extH < _barH + PanClampMargin) cy = _barH + PanClampMargin - extH;
         else if (cy - extH > _canvasSize.Height - PanClampMargin) cy = _canvasSize.Height - PanClampMargin + extH;
 
         _mapCenter = new SKPoint(cx, cy);
