@@ -367,7 +367,7 @@
   "tech_military_tactics_desc": "+15% vitesse de production d'unités, +1 portée d'attaque de ville",
   "tech_military_mastery_name": "Maîtrise militaire",
   "tech_military_mastery_desc": "+25% vitesse de production d'unités, +1 défense de ville",
-  "tab_events": "Événements",
+  "tab_events": "Journal",
   "events_empty": "Aucun événement pour l'instant.",
   "event_bandit_title": "⚔ Bandit repéré !",
   "event_bandit_body": "Ce bandit bloque la récolte sur son hex et peut voler des ressources.",
