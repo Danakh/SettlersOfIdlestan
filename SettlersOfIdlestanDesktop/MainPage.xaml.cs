@@ -12,6 +12,7 @@ public partial class MainPage : ContentPage
 	private SkiaGameRuntime? _runtime;
 	private readonly Dictionary<long, SKPoint> _activePointers = [];
 	private float _lastPinchDist;
+	private SKPoint _lastPinchCenter;
 	private bool _isPinching;
 
 	public MainPage()
@@ -140,6 +141,7 @@ public partial class MainPage : ContentPage
 				{
 					_isPinching = true;
 					_lastPinchDist = GetPinchDistance();
+					_lastPinchCenter = GetPinchCenter();
 					// Annule le pan en cours au moment où le deuxième doigt touche
 					_runtime.HandlePointerReleased(e.Location.X, e.Location.Y, (int)e.Id, ToPointerButton(e.MouseButton));
 				}
@@ -154,12 +156,15 @@ public partial class MainPage : ContentPage
 				if (_isPinching && _activePointers.Count >= 2)
 				{
 					var newDist = GetPinchDistance();
+					var newCenter = GetPinchCenter();
 					if (_lastPinchDist > 0f && newDist > 0f)
 					{
-						var center = GetPinchCenter();
-						_runtime.HandlePinch(newDist / _lastPinchDist, center.X, center.Y);
+						float panDx = newCenter.X - _lastPinchCenter.X;
+						float panDy = newCenter.Y - _lastPinchCenter.Y;
+						_runtime.HandlePinch(newDist / _lastPinchDist, newCenter.X, newCenter.Y, panDx, panDy);
 					}
 					_lastPinchDist = newDist;
+					_lastPinchCenter = newCenter;
 				}
 				else if (!_isPinching)
 				{

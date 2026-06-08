@@ -493,14 +493,18 @@ public sealed class SkiaGameRuntime : IDisposable
         _inputService?.HandleZoom(wheelDelta, x, y);
     }
 
-    public void HandlePinch(float scaleRatio, float x, float y)
+    public void HandlePinch(float scaleRatio, float x, float y, float panDeltaX = 0f, float panDeltaY = 0f)
     {
         if (_introRenderer?.IsActive == true) return;
         if (_cameraService == null || scaleRatio <= 0f) return;
 
         bool overUI = _overlayRenderer?.IsPointBlockedByUI(new SKPoint(x, y)) ?? false;
         if (!overUI && (_overlayRenderer?.IsIslandTabActive ?? true))
+        {
+            if (panDeltaX != 0f || panDeltaY != 0f)
+                _cameraService.Pan(panDeltaX, panDeltaY);
             _cameraService.ZoomAt(_cameraService.ZoomLevel * scaleRatio, new SKPoint(x, y));
+        }
     }
 
     public void HandleKeyReleased(string key) => _inputService?.HandleKeyReleased(key);
