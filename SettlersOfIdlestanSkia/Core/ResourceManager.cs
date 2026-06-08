@@ -29,13 +29,7 @@ public class ResourceManager : IDisposable
         using var stream = _assembly.GetManifestResourceStream(fullName);
 
         if (stream == null)
-        {
-            foreach (var res in _assembly.GetManifestResourceNames())
-            {
-                Console.WriteLine($"Ressource disponible : {res}");
-            }
-            throw new FileNotFoundException($"Ressource SVG introuvable : {fullName}");
-        }
+            return null;
 
         var svg = new SKSvg();
         svg.Load(stream);

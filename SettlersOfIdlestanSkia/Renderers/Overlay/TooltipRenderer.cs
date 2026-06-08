@@ -48,14 +48,7 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay
             foreach (Resource resource in Enum.GetValues(typeof(Resource)))
             {
                 string name = resource.ToString().ToLower();
-                try
-                {
-                    _resourceIcons[resource] = _resourceManager.LoadImage($"Resources.icons.resources.{name}.svg");
-                }
-                catch
-                {
-                    _resourceIcons[resource] = null;
-                }
+                _resourceIcons[resource] = _resourceManager.LoadImage($"Resources.icons.resources.{name}.svg");
             }
         }
 

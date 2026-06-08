@@ -73,14 +73,7 @@ public class HarvestRenderer : IGameRenderer
         foreach (Resource resource in Enum.GetValues(typeof(Resource)))
         {
             string name = resource.ToString().ToLower();
-            try
-            {
-                _icons[resource] = _resourceManager.LoadImage($"Resources.icons.resources.{name}.svg");
-            }
-            catch
-            {
-                _icons[resource] = null;
-            }
+            _icons[resource] = _resourceManager.LoadImage($"Resources.icons.resources.{name}.svg");
         }
     }
 

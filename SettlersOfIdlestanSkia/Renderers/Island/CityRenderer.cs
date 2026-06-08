@@ -115,8 +115,8 @@ public class CityRenderer : HexBasedRenderer, IGameRenderer
         _militaryTextFont = new SKFont { Size = 8 };
         _iconColorPaint = new SKPaint { IsAntialias = true };
 
-        try { _attackSvg = _resourceManager.LoadImage("Resources.icons.military.attack.svg"); } catch { }
-        try { _defenseSvg = _resourceManager.LoadImage("Resources.icons.military.defense.svg"); } catch { }
+        _attackSvg = _resourceManager.LoadImage("Resources.icons.military.attack.svg");
+        _defenseSvg = _resourceManager.LoadImage("Resources.icons.military.defense.svg");
     }
 
     public void Render(SKCanvas canvas, GameRenderContext context)

@@ -11,10 +11,7 @@ namespace SettlersOfIdlestanSkia.Renderers.Island;
 /// </summary>
 public abstract class HexBasedRenderer
 {
-    /// <summary>
-    /// Taille des hexagones en pixels.
-    /// </summary>
-    protected const float HexSize = 40f;
+    protected const float HexSize = GameConstants.HexSize;
 
     /// <summary>
     /// Convertit des coordonnées hexagonales (Q, R) en coordonnées Island (x, y).

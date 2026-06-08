@@ -662,7 +662,6 @@ public sealed class SkiaGameRuntime : IDisposable
         if (_cameraService == null) return;
 
         const float DefaultZoom = 1.0f;
-        const float HexSize = 40f;
         float sqrt3 = (float)Math.Sqrt(3);
 
         var WorldState = _gameControllerService?.CurrentGameState?.CurrentWorldState;
@@ -671,9 +670,9 @@ public sealed class SkiaGameRuntime : IDisposable
         if (playerCity != null)
         {
             var v = playerCity.Position;
-            float x1 = HexSize * sqrt3 * (v.Hex1.Q + v.Hex1.R / 2f), y1 = HexSize * -3f / 2f * v.Hex1.R;
-            float x2 = HexSize * sqrt3 * (v.Hex2.Q + v.Hex2.R / 2f), y2 = HexSize * -3f / 2f * v.Hex2.R;
-            float x3 = HexSize * sqrt3 * (v.Hex3.Q + v.Hex3.R / 2f), y3 = HexSize * -3f / 2f * v.Hex3.R;
+            float x1 = GameConstants.HexSize * sqrt3 * (v.Hex1.Q + v.Hex1.R / 2f), y1 = GameConstants.HexSize * -3f / 2f * v.Hex1.R;
+            float x2 = GameConstants.HexSize * sqrt3 * (v.Hex2.Q + v.Hex2.R / 2f), y2 = GameConstants.HexSize * -3f / 2f * v.Hex2.R;
+            float x3 = GameConstants.HexSize * sqrt3 * (v.Hex3.Q + v.Hex3.R / 2f), y3 = GameConstants.HexSize * -3f / 2f * v.Hex3.R;
             _cameraService.SetZoom(DefaultZoom, keepCenteredOnScreen: false);
             _cameraService.CenterOn((x1 + x2 + x3) / 3f, (y1 + y2 + y3) / 3f);
         }

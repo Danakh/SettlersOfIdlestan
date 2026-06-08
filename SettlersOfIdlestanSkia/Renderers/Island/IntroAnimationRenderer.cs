@@ -46,8 +46,7 @@ public class IntroAnimationRenderer : HexBasedRenderer, IGameRenderer
 
     public void Initialize(SKSize canvasSize)
     {
-        try { _tradeshipSvg = _resourceManager.LoadImage("Resources.icons.military.tradeship.svg"); }
-        catch { }
+        _tradeshipSvg = _resourceManager.LoadImage("Resources.icons.military.tradeship.svg");
 
         _overlayPaint  = new SKPaint { Style = SKPaintStyle.Fill };
         _waterHexPaint = new SKPaint { Style = SKPaintStyle.Fill, IsAntialias = true };

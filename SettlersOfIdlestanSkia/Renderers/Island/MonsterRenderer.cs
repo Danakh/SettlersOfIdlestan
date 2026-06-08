@@ -65,13 +65,12 @@ public class MonsterRenderer : HexBasedRenderer, IGameRenderer
         foreach (Resource resource in Enum.GetValues<Resource>())
         {
             string name = resource.ToString().ToLower();
-            try { _resourceIcons[resource] = _resourceManager.LoadImage($"Resources.icons.resources.{name}.svg"); }
-            catch { _resourceIcons[resource] = null; }
+            _resourceIcons[resource] = _resourceManager.LoadImage($"Resources.icons.resources.{name}.svg");
         }
 
         _resourceFlyPaint = new SKPaint { Color = SKColors.White };
         _attackParticlePaint = new SKPaint { IsAntialias = true };
-        try { _attackSvg = _resourceManager.LoadImage("Resources.icons.military.attack.svg"); } catch { }
+        _attackSvg = _resourceManager.LoadImage("Resources.icons.military.attack.svg");
     }
 
     public void Connect(
@@ -197,8 +196,7 @@ public class MonsterRenderer : HexBasedRenderer, IGameRenderer
                 pos = normalPos;
             }
 
-            SKSvg? svg = null;
-            try { svg = _resourceManager.LoadImage(svgName); } catch { }
+            SKSvg? svg = _resourceManager.LoadImage(svgName);
             DrawSvgMonsterIcon(canvas, pos, svg, monster.SvgIconSize * monster.IconSizeFactor);
 
             if (v.ResourceFlyProgress < 1f && v.FlyingResource != null)

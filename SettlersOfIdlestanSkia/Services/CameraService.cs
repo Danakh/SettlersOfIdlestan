@@ -1,4 +1,5 @@
 using SkiaSharp;
+using SettlersOfIdlestanSkia.Core;
 
 namespace SettlersOfIdlestanSkia.Services;
 
@@ -41,9 +42,8 @@ public class CameraService
     /// <summary>
     /// Centre la caméra sur l'ensemble des tuiles de la carte pour montrer toute l'île.
     /// </summary>
-    public void FitMapToView(IEnumerable<SettlersOfIdlestan.Model.HexGrid.HexCoord> hexCoords, float hexSize = 40f)
+    public void FitMapToView(IEnumerable<SettlersOfIdlestan.Model.HexGrid.HexCoord> hexCoords, float hexSize = GameConstants.HexSize)
     {
-        const float HexSize = 40f;
         float sqrt3 = (float)System.Math.Sqrt(3);
         
         var coords = hexCoords.ToList();
@@ -59,8 +59,8 @@ public class CameraService
 
         foreach (var hex in coords)
         {
-            float x = HexSize * sqrt3 * (hex.Q + hex.R / 2f);
-            float y = HexSize * -3f / 2f * hex.R;
+            float x = hexSize * sqrt3 * (hex.Q + hex.R / 2f);
+            float y = hexSize * -3f / 2f * hex.R;
 
             minX = Math.Min(minX, x);
             maxX = Math.Max(maxX, x);
@@ -71,14 +71,14 @@ public class CameraService
         // Centre et zoom pour afficher toute la carte
         float centerX = (minX + maxX) / 2;
         float centerY = (minY + maxY) / 2;
-        float width = maxX - minX + HexSize * 2;
-        float height = maxY - minY + HexSize * 2;
+        float width = maxX - minX + hexSize * 2;
+        float height = maxY - minY + hexSize * 2;
 
         float zoomX = _canvasSize.Width / width;
         float zoomY = _canvasSize.Height / height;
         float zoom = Math.Min(zoomX, zoomY) * 0.9f; // 0.9 pour un peu de padding
 
-        _zoomLevel = Math.Max(0.1f, Math.Min(zoom, 3f));
+        _zoomLevel = Math.Max(GameConstants.ZoomMin, Math.Min(zoom, GameConstants.ZoomMaxFitView));
         CenterOn(centerX, centerY);
     }
 
@@ -87,7 +87,7 @@ public class CameraService
     /// </summary>
     public void SetZoom(float zoom, bool keepCenteredOnScreen = true)
     {
-        if (zoom < 0.1f || zoom > 10f)
+        if (zoom < GameConstants.ZoomMin || zoom > GameConstants.ZoomMax)
             return;
 
         if (keepCenteredOnScreen)
@@ -112,7 +112,7 @@ public class CameraService
     /// </summary>
     public void ZoomAt(float zoom, SKPoint screenCenter)
     {
-        if (zoom < 0.1f || zoom > 10f)
+        if (zoom < GameConstants.ZoomMin || zoom > GameConstants.ZoomMax)
             return;
 
         var worldUnderCursor = ScreenToWorld(screenCenter);
