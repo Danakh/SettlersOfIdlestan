@@ -1,4 +1,4 @@
-﻿using SettlersOfIdlestan.Model.Buildings;
+using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestanSkia.Services.Localization;
@@ -15,21 +15,14 @@ using SettlersOfIdlestan.Controller.Island;
 
 namespace SettlersOfIdlestanSkia.Renderers.Overlay;
 
-public class SelectedCityPanelRenderer : IGameRenderer
+public class SelectedCityPanelRenderer : PanelRendererBase
 {
     private readonly LocalizationService _localization;
     private readonly CityBuildingService _cityBuildingService;
     private readonly InputHandlingService _inputService;
     private readonly ResourceManager _resourceManager;
     private readonly Dictionary<Resource, SKSvg?> _resourceIcons = new();
-    private SKSize _canvasSize;
-    private float _lastUiScale = 0f;
-    private SKFont? _font15;
-    private SKFont? _font12;
-    private SKFont? _font10;
-    private SKPaint? _bgPaint;
-    private SKPaint? _borderPaint;
-    private SKPaint? _textPaint;
+
     private SKPaint? _costTextPaint;
     private SKPaint? _btnBuildPaint;
     private SKPaint? _btnUpgradePaint;
@@ -38,11 +31,13 @@ public class SelectedCityPanelRenderer : IGameRenderer
     private SKPaint? _btnMaxLevelPaint;
     private SKPoint _lastPointerPosition = SKPoint.Empty;
     private BuildingType? _hoveredBuildingType = null;
+
     private const float PanelWidth = 300;
     private const float RowHeight = 36;
     private const float Padding = 10;
     private const float TabHeight = 28f;
     private const float MilitaryFooterHeight = 22f;
+
     private Dictionary<SKRect, BuildingType> _btnRects = new Dictionary<SKRect, BuildingType>();
     private Dictionary<SKRect, BuildingType> _hoverRects = new Dictionary<SKRect, BuildingType>();
     private Dictionary<SKRect, BuildingType> _checkboxRects = new Dictionary<SKRect, BuildingType>();
@@ -56,46 +51,13 @@ public class SelectedCityPanelRenderer : IGameRenderer
     private SKPaint? _dimTextPaint;
     private SKPaint? _dimCostTextPaint;
     private SKPaint? _btnOtherCityPaint;
-    private SKPaint? _checkboxActivePaint;
     private SKPaint? _checkboxActiveDimPaint;
-    private SKPaint? _checkboxInactivePaint;
-    private SKPaint? _checkboxBorderPaint;
     private BuildingType? _hoveredActivationCheckbox = null;
     private bool _hoveredSteelWeaponsCheckbox = false;
-    private SKPaint? _collapseTabPaint;
-    private SKPaint? _scrollTrackPaint;
-    private SKPaint? _scrollThumbPaint;
-    private bool _collapsed = false;
-    private int _scrollOffset = 0;
-    private int _lastBuildingCount = 0;
-    private int _lastVisibleCount = 0;
-    private const float CollapseTabW = 14f;
-    private const float CollapseTabH = 24f;
-    private SKRect _collapseTabRect = SKRect.Empty;
+
     public float ReservedBottomHeight { get; set; }
-    public float TopOverride { get; set; } = 0f;
-    public bool IsInputEnabled { get; set; } = true;
     public UILayoutService? LayoutService { get; set; }
     private bool IsMobile => LayoutService?.IsMobile ?? false;
-    private SKRect _panelBounds = SKRect.Empty;
-    public bool ContainsPoint(SKPoint point) =>
-        (!_panelBounds.IsEmpty && _panelBounds.Contains(point.X, point.Y)) ||
-        (!_collapseTabRect.IsEmpty && _collapseTabRect.Contains(point.X, point.Y));
-
-    public void Close()
-    {
-        _cityBuildingService.ClearSelectedCity();
-        _hoveredBuildingType = null;
-        _btnRects.Clear();
-        _hoverRects.Clear();
-        _checkboxRects.Clear();
-        _steelWeaponsCheckboxRects.Clear();
-        _showUniqueBuildings = false;
-        _lastSelectedCity = null;
-        _panelBounds = SKRect.Empty;
-        _collapseTabRect = SKRect.Empty;
-        _scrollOffset = 0;
-    }
 
     public SelectedCityPanelRenderer(CityBuildingService cityBuildingService, LocalizationService localization, InputHandlingService inputService, ResourceManager resourceManager)
     {
@@ -107,34 +69,21 @@ public class SelectedCityPanelRenderer : IGameRenderer
         _inputService.PointerPressed += HandlePointerPressed;
     }
 
-    public void Initialize(SKSize canvasSize)
+    public override void Initialize(SKSize canvasSize)
     {
-        _canvasSize = canvasSize;
-
-        _font15 = new SKFont { Size = 15, Typeface = SkiaFonts.Regular };
-        _font12 = new SKFont { Size = 12, Typeface = SkiaFonts.Regular };
-        _font10 = new SKFont { Size = 10, Typeface = SkiaFonts.Regular };
-        _bgPaint = new SKPaint { Color = new SKColor(30, 30, 40, 220), Style = SKPaintStyle.Fill, IsAntialias = true };
-        _borderPaint = new SKPaint { Color = new SKColor(200, 200, 220, 180), Style = SKPaintStyle.Stroke, StrokeWidth = 2, IsAntialias = true };
-        _textPaint = new SKPaint { Color = SKColors.White, IsAntialias = true };
-        _costTextPaint = new SKPaint { Color = new SKColor(200, 200, 200, 200), IsAntialias = true };
-        _btnBuildPaint = new SKPaint { Color = new SKColor(21, 101, 192, 255), Style = SKPaintStyle.Fill, IsAntialias = true };
-        _btnUpgradePaint = new SKPaint { Color = new SKColor(46, 125, 50, 255), Style = SKPaintStyle.Fill, IsAntialias = true };
-        _btnDisabledPaint = new SKPaint { Color = new SKColor(100, 100, 100, 200), Style = SKPaintStyle.Fill, IsAntialias = true };
+        base.Initialize(canvasSize);
+        _costTextPaint       = new SKPaint { Color = new SKColor(200, 200, 200, 200), IsAntialias = true };
+        _btnBuildPaint       = new SKPaint { Color = new SKColor(21, 101, 192, 255),  Style = SKPaintStyle.Fill, IsAntialias = true };
+        _btnUpgradePaint     = new SKPaint { Color = new SKColor(46, 125, 50, 255),   Style = SKPaintStyle.Fill, IsAntialias = true };
+        _btnDisabledPaint    = new SKPaint { Color = new SKColor(100, 100, 100, 200), Style = SKPaintStyle.Fill, IsAntialias = true };
         _btnDisabledTextPaint = new SKPaint { Color = new SKColor(150, 150, 150, 255), IsAntialias = true };
-        _btnMaxLevelPaint = new SKPaint { Color = new SKColor(120, 90, 20, 200), Style = SKPaintStyle.Fill, IsAntialias = true };
-        _tabActivePaint = new SKPaint { Color = new SKColor(60, 60, 85, 240), Style = SKPaintStyle.Fill, IsAntialias = true };
-        _tabInactivePaint = new SKPaint { Color = new SKColor(20, 20, 30, 180), Style = SKPaintStyle.Fill, IsAntialias = true };
-        _dimTextPaint = new SKPaint { Color = new SKColor(130, 130, 140, 200), IsAntialias = true };
-        _dimCostTextPaint = new SKPaint { Color = new SKColor(100, 100, 110, 160), IsAntialias = true };
-        _btnOtherCityPaint = new SKPaint { Color = new SKColor(60, 55, 80, 200), Style = SKPaintStyle.Fill, IsAntialias = true };
-        _checkboxActivePaint = new SKPaint { Color = new SKColor(46, 160, 67, 230), Style = SKPaintStyle.Fill, IsAntialias = true };
+        _btnMaxLevelPaint    = new SKPaint { Color = new SKColor(120, 90, 20, 200),   Style = SKPaintStyle.Fill, IsAntialias = true };
+        _tabActivePaint      = new SKPaint { Color = new SKColor(60, 60, 85, 240),    Style = SKPaintStyle.Fill, IsAntialias = true };
+        _tabInactivePaint    = new SKPaint { Color = new SKColor(20, 20, 30, 180),    Style = SKPaintStyle.Fill, IsAntialias = true };
+        _dimTextPaint        = new SKPaint { Color = new SKColor(130, 130, 140, 200), IsAntialias = true };
+        _dimCostTextPaint    = new SKPaint { Color = new SKColor(100, 100, 110, 160), IsAntialias = true };
+        _btnOtherCityPaint   = new SKPaint { Color = new SKColor(60, 55, 80, 200),    Style = SKPaintStyle.Fill, IsAntialias = true };
         _checkboxActiveDimPaint = new SKPaint { Color = new SKColor(46, 160, 67, 90), Style = SKPaintStyle.Fill, IsAntialias = true };
-        _checkboxInactivePaint = new SKPaint { Color = new SKColor(40, 40, 50, 200), Style = SKPaintStyle.Fill, IsAntialias = true };
-        _checkboxBorderPaint = new SKPaint { Color = new SKColor(160, 160, 180, 200), Style = SKPaintStyle.Stroke, StrokeWidth = 1.5f, IsAntialias = true };
-        _collapseTabPaint = new SKPaint { Color = new SKColor(30, 30, 40, 220), Style = SKPaintStyle.Fill, IsAntialias = true };
-        _scrollTrackPaint = new SKPaint { Color = new SKColor(50, 50, 65, 200), Style = SKPaintStyle.Fill, IsAntialias = true };
-        _scrollThumbPaint = new SKPaint { Color = new SKColor(130, 130, 165, 210), Style = SKPaintStyle.Fill, IsAntialias = true };
 
         foreach (Resource resource in Enum.GetValues(typeof(Resource)))
         {
@@ -150,51 +99,51 @@ public class SelectedCityPanelRenderer : IGameRenderer
         }
     }
 
-    public void HandleScroll(float delta)
+    public void Close()
     {
-        if (_collapsed) return;
-        int dir = delta > 0 ? -1 : 1;
-        _scrollOffset = Math.Clamp(_scrollOffset + dir, 0, Math.Max(0, _lastBuildingCount - _lastVisibleCount));
+        _cityBuildingService.ClearSelectedCity();
+        _hoveredBuildingType = null;
+        _btnRects.Clear();
+        _hoverRects.Clear();
+        _checkboxRects.Clear();
+        _steelWeaponsCheckboxRects.Clear();
+        _showUniqueBuildings = false;
+        _lastSelectedCity = null;
+        PanelBounds = SKRect.Empty;
+        CollapseTabRect = SKRect.Empty;
+        ScrollOffset = 0;
     }
 
-    public void Render(SKCanvas canvas, GameRenderContext context)
+    public override void Render(SKCanvas canvas, GameRenderContext context)
     {
         if (_cityBuildingService.SelectedCity == null)
         {
-            _panelBounds = SKRect.Empty;
-            _collapseTabRect = SKRect.Empty;
+            PanelBounds = SKRect.Empty;
+            CollapseTabRect = SKRect.Empty;
             return;
         }
 
-        if (context.UiScale != _lastUiScale)
-        {
-            _lastUiScale = context.UiScale;
-            _font10?.Dispose(); _font10 = new SKFont { Size = 10 * _lastUiScale, Typeface = SkiaFonts.Regular };
-            _font12?.Dispose(); _font12 = new SKFont { Size = 12 * _lastUiScale, Typeface = SkiaFonts.Regular };
-            _font15?.Dispose(); _font15 = new SKFont { Size = 15 * _lastUiScale, Typeface = SkiaFonts.Regular };
-        }
+        UpdateScale(context.UiScale);
+        float s = LastUiScale;
 
-        float s = _lastUiScale;
-        float panelWidth        = PanelWidth * s;
-        float rowHeight         = RowHeight * s;
-        float padding           = Padding * s;
-        float tabHeight         = TabHeight * s;
-        float militaryFooterH   = MilitaryFooterHeight * s;
-        float collapseTabW      = CollapseTabW * s;
-        float collapseTabH      = CollapseTabH * s;
+        float panelWidth      = PanelWidth * s;
+        float rowHeight       = RowHeight * s;
+        float padding         = Padding * s;
+        float tabHeight       = TabHeight * s;
+        float militaryFooterH = MilitaryFooterHeight * s;
+        float collapseTabW    = CollapseTabW * s;
+        float collapseTabH    = CollapseTabH * s;
 
         bool isMobile = IsMobile;
-        float panelX = _canvasSize.Width - panelWidth - 10 * s;
+        float panelX  = CanvasSize.Width - panelWidth - 10 * s;
         float panelY0 = TopOverride > 0f ? TopOverride : PlayerResourcesOverlayRenderer.BarHeight * s + 10 * s;
-        float tabTop = panelY0 + 8f * s;
+        float tabTop  = panelY0 + 8f * s;
 
-        if (_collapsed)
+        if (Collapsed)
         {
-            _collapseTabRect = new SKRect(_canvasSize.Width - collapseTabW, tabTop, _canvasSize.Width, tabTop + collapseTabH);
-            _panelBounds = _collapseTabRect;
-            canvas.DrawRoundRect(_collapseTabRect, 4 * s, 4 * s, _collapseTabPaint);
-            canvas.DrawRoundRect(_collapseTabRect, 4 * s, 4 * s, _borderPaint);
-            SkiaTextUtils.DrawText(canvas, "◄", _collapseTabRect.MidX, _collapseTabRect.MidY + 5f * s, SKTextAlign.Center, _font12, _textPaint);
+            CollapseTabRect = new SKRect(CanvasSize.Width - collapseTabW, tabTop, CanvasSize.Width, tabTop + collapseTabH);
+            PanelBounds = CollapseTabRect;
+            DrawCollapseTabRect(canvas, CollapseTabRect, "◄");
             return;
         }
 
@@ -205,12 +154,11 @@ public class SelectedCityPanelRenderer : IGameRenderer
         _tabRegularRect = SKRect.Empty;
         _tabUniqueRect = SKRect.Empty;
 
-        // Réinitialise l'onglet quand on change de ville
         if (_cityBuildingService.SelectedCity != _lastSelectedCity)
         {
             _showUniqueBuildings = false;
             _lastSelectedCity = _cityBuildingService.SelectedCity;
-            _scrollOffset = 0;
+            ScrollOffset = 0;
         }
 
         bool hasUnique = _cityBuildingService.HasUniqueBuildingsUnlocked();
@@ -223,19 +171,19 @@ public class SelectedCityPanelRenderer : IGameRenderer
         int buildingCount = buildings.Count;
 
         float maxPanelHeight = isMobile
-            ? Math.Max(0f, _canvasSize.Height - panelY0 - UILayoutService.MobileTabBarHeight - 8f)
-            : Math.Max(0, _canvasSize.Height - panelY0 - ReservedBottomHeight - 10 * s);
+            ? Math.Max(0f, CanvasSize.Height - panelY0 - UILayoutService.MobileTabBarHeight - 8f)
+            : Math.Max(0, CanvasSize.Height - panelY0 - ReservedBottomHeight - 10 * s);
         int visibleBuildingCount = Math.Min(buildingCount, Math.Max(0, (int)((maxPanelHeight - 2 * padding - tabArea - militaryFooterH) / rowHeight)));
 
-        _lastBuildingCount = buildingCount;
-        _lastVisibleCount = visibleBuildingCount;
-        _scrollOffset = Math.Clamp(_scrollOffset, 0, Math.Max(0, buildingCount - visibleBuildingCount));
+        LastTotalCount   = buildingCount;
+        LastVisibleCount = visibleBuildingCount;
+        ScrollOffset = Math.Clamp(ScrollOffset, 0, Math.Max(0, buildingCount - visibleBuildingCount));
         bool needsScrollbar = buildingCount > visibleBuildingCount;
 
         if (!hasUnique && visibleBuildingCount == 0)
         {
-            _panelBounds = SKRect.Empty;
-            _collapseTabRect = SKRect.Empty;
+            PanelBounds = SKRect.Empty;
+            CollapseTabRect = SKRect.Empty;
             return;
         }
 
@@ -245,24 +193,21 @@ public class SelectedCityPanelRenderer : IGameRenderer
 
         float panelY = panelY0;
 
-        _panelBounds = new SKRect(panelX, panelY, panelX + panelWidth, panelY + panelHeight);
-
-        canvas.DrawRoundRect(panelX, panelY, panelWidth, panelHeight, 12 * s, 12 * s, _bgPaint);
-        canvas.DrawRoundRect(panelX, panelY, panelWidth, panelHeight, 12 * s, 12 * s, _borderPaint);
+        PanelBounds = new SKRect(panelX, panelY, panelX + panelWidth, panelY + panelHeight);
+        DrawPanelChrome(canvas, panelX, panelY, panelWidth, panelHeight);
 
         float y = panelY + padding;
 
-        var visibleBuildings = buildings.Skip(_scrollOffset).Take(visibleBuildingCount).ToList();
+        var visibleBuildings = buildings.Skip(ScrollOffset).Take(visibleBuildingCount).ToList();
         foreach (var (building, index) in visibleBuildings.Select((item, i) => (item, i)))
         {
-            bool isBuiltInThisCity = building.Level > 0 && _cityBuildingService.IsBuiltInSelectedCity(building);
+            bool isBuiltInThisCity  = building.Level > 0 && _cityBuildingService.IsBuiltInSelectedCity(building);
             bool isBuiltInOtherCity = building.Level > 0 && !_cityBuildingService.IsBuiltInSelectedCity(building);
             bool isBuilt = building.Level > 0;
             var canBuildOrUpgrade = !isBuiltInOtherCity && _cityBuildingService.CanBuildOrUpgrade(building);
             var isAtMaxLevel = isBuiltInThisCity && _cityBuildingService.IsAtMaxLevel(building);
             var yRow = y + index * rowHeight;
 
-            // Case à cocher pour les bâtiments activables construits dans cette ville
             bool hasCheckbox = isBuiltInThisCity && building.ActivationStatus != ActivationStatus.NON_ACTIVABLE;
             bool hasSteelWeaponsCheckbox = hasCheckbox && building is Barracks && _cityBuildingService.IsSteelWeaponsUnlocked();
             float nameOffsetX = hasCheckbox ? (hasSteelWeaponsCheckbox ? 40f * s : 20f * s) : 0f;
@@ -273,9 +218,9 @@ public class SelectedCityPanelRenderer : IGameRenderer
                 float cbX = panelX + padding;
                 float cbY = yRow + (rowHeight - cbSize) / 2f;
                 var cbRect = new SKRect(cbX, cbY, cbX + cbSize, cbY + cbSize);
-                var fillPaint = building.ActivationStatus == ActivationStatus.ACTIVE ? _checkboxActivePaint : _checkboxInactivePaint;
+                var fillPaint = building.ActivationStatus == ActivationStatus.ACTIVE ? CheckboxActivePaint : CheckboxInactivePaint;
                 canvas.DrawRoundRect(cbRect, 3 * s, 3 * s, fillPaint);
-                canvas.DrawRoundRect(cbRect, 3 * s, 3 * s, _checkboxBorderPaint);
+                canvas.DrawRoundRect(cbRect, 3 * s, 3 * s, CheckboxBorderPaint);
                 if (building.ActivationStatus == ActivationStatus.ACTIVE)
                 {
                     using var checkPaint = new SKPaint { Color = SKColors.White, StrokeWidth = 2f * s, Style = SKPaintStyle.Stroke, IsAntialias = true, StrokeCap = SKStrokeCap.Round };
@@ -293,10 +238,10 @@ public class SelectedCityPanelRenderer : IGameRenderer
                 var cbRect = new SKRect(cbX, cbY, cbX + cbSize, cbY + cbSize);
                 bool barracksActive = barracksBuilding.ActivationStatus == ActivationStatus.ACTIVE;
                 var fillPaint = barracksBuilding.UsesSteelWeapons
-                    ? (barracksActive ? _checkboxActivePaint : _checkboxActiveDimPaint)
-                    : _checkboxInactivePaint;
+                    ? (barracksActive ? CheckboxActivePaint : _checkboxActiveDimPaint)
+                    : CheckboxInactivePaint;
                 canvas.DrawRoundRect(cbRect, 3 * s, 3 * s, fillPaint);
-                canvas.DrawRoundRect(cbRect, 3 * s, 3 * s, _checkboxBorderPaint);
+                canvas.DrawRoundRect(cbRect, 3 * s, 3 * s, CheckboxBorderPaint);
                 if (barracksBuilding.UsesSteelWeapons)
                 {
                     byte checkAlpha = barracksActive ? (byte)255 : (byte)100;
@@ -307,9 +252,9 @@ public class SelectedCityPanelRenderer : IGameRenderer
                 _steelWeaponsCheckboxRects[new SKRect(cbX - 2 * s, cbY - 2 * s, cbX + cbSize + 2 * s, cbY + cbSize + 2 * s)] = building.Type;
             }
 
-            var namePaint = isBuiltInOtherCity ? _dimTextPaint : _textPaint;
+            var namePaint = isBuiltInOtherCity ? _dimTextPaint : TextPaint;
             var label = _localization.Get(building.NameKey) + (isBuilt ? $" (Niv {building.Level})" : "");
-            SkiaTextUtils.DrawText(canvas, label, panelX + padding + nameOffsetX, yRow + 18 * s, _font15, namePaint);
+            SkiaTextUtils.DrawText(canvas, label, panelX + padding + nameOffsetX, yRow + 18 * s, Font15, namePaint);
 
             if (!isBuiltInOtherCity && !isAtMaxLevel)
             {
@@ -334,18 +279,18 @@ public class SelectedCityPanelRenderer : IGameRenderer
                         }
                         iconX += costIconSize + 2f * s;
                         string numText = kvp.Value.ToString();
-                        SkiaTextUtils.DrawText(canvas, numText, iconX, centerY + _font10!.Size / 2f, _font10, _costTextPaint);
-                        iconX += _font10.MeasureText(numText) + 6f * s;
+                        SkiaTextUtils.DrawText(canvas, numText, iconX, centerY + Font10!.Size / 2f, Font10, _costTextPaint);
+                        iconX += Font10.MeasureText(numText) + 6f * s;
                     }
                 }
             }
 
-            // Bouton action
+            // Action button
             {
-                float btnWidth = 90 * s;
+                float btnWidth  = 90 * s;
                 float btnHeight = 26 * s;
-                float btnX = panelX + panelWidth - btnWidth - padding;
-                float btnY = yRow + 6 * s;
+                float btnX      = panelX + panelWidth - btnWidth - padding;
+                float btnY      = yRow + 6 * s;
                 float btnCenterX = btnX + btnWidth / 2;
                 float btnCenterY = btnY + btnHeight / 2 + 6 * s;
 
@@ -353,7 +298,7 @@ public class SelectedCityPanelRenderer : IGameRenderer
 
                 if (isBuiltInOtherCity)
                 {
-                    // Bouton caché : bâtiment unique déjà construit dans une autre ville
+                    // hidden — unique building already built in another city
                 }
                 else if (isBuiltInThisCity || !building.IsUnique || canBuildOrUpgrade || canBuildIgnoringResources)
                 {
@@ -362,10 +307,10 @@ public class SelectedCityPanelRenderer : IGameRenderer
                     if (isAtMaxLevel)
                         btnText = _localization.Get("action_maxlevel");
 
-                    var btnFillPaint = isAtMaxLevel ? _btnMaxLevelPaint : (isDisabledBtn ? _btnDisabledPaint : (isBuiltInThisCity ? _btnUpgradePaint : _btnBuildPaint));
-                    var btnTextUsePaint = isDisabledBtn ? _btnDisabledTextPaint : _textPaint;
+                    var btnFillPaint  = isAtMaxLevel ? _btnMaxLevelPaint : (isDisabledBtn ? _btnDisabledPaint : (isBuiltInThisCity ? _btnUpgradePaint : _btnBuildPaint));
+                    var btnTextPaint  = isDisabledBtn ? _btnDisabledTextPaint : TextPaint;
                     canvas.DrawRoundRect(btnX, btnY, btnWidth, btnHeight, 7 * s, 7 * s, btnFillPaint);
-                    SkiaTextUtils.DrawText(canvas, btnText, btnCenterX, btnCenterY, SKTextAlign.Center, _font12, btnTextUsePaint);
+                    SkiaTextUtils.DrawText(canvas, btnText, btnCenterX, btnCenterY, SKTextAlign.Center, Font12, btnTextPaint);
 
                     var btnRect = new SKRect(btnX, btnY, btnX + btnWidth, btnY + btnHeight);
                     _btnRects[btnRect] = building.Type;
@@ -376,61 +321,55 @@ public class SelectedCityPanelRenderer : IGameRenderer
             }
         }
 
-        // Onglets bâtiments classiques / uniques (en bas de la liste)
+        // Classic / unique building tabs
         if (hasUnique)
         {
             float tabY = panelY + padding + visibleBuildingCount * rowHeight + padding / 2f;
-            float gap = 4f * s;
+            float gap  = 4f * s;
             float tabW = (panelWidth - 2 * padding - gap) / 2f;
 
             _tabRegularRect = new SKRect(panelX + padding, tabY, panelX + padding + tabW, tabY + tabHeight);
-            _tabUniqueRect = new SKRect(panelX + padding + tabW + gap, tabY, panelX + panelWidth - padding, tabY + tabHeight);
+            _tabUniqueRect  = new SKRect(panelX + padding + tabW + gap, tabY, panelX + panelWidth - padding, tabY + tabHeight);
 
             canvas.DrawRoundRect(_tabRegularRect, 5 * s, 5 * s, _showUniqueBuildings ? _tabInactivePaint : _tabActivePaint);
-            canvas.DrawRoundRect(_tabUniqueRect, 5 * s, 5 * s, _showUniqueBuildings ? _tabActivePaint : _tabInactivePaint);
-            canvas.DrawRoundRect(_tabRegularRect, 5 * s, 5 * s, _borderPaint);
-            canvas.DrawRoundRect(_tabUniqueRect, 5 * s, 5 * s, _borderPaint);
+            canvas.DrawRoundRect(_tabUniqueRect,  5 * s, 5 * s, _showUniqueBuildings ? _tabActivePaint   : _tabInactivePaint);
+            canvas.DrawRoundRect(_tabRegularRect, 5 * s, 5 * s, BorderPaint);
+            canvas.DrawRoundRect(_tabUniqueRect,  5 * s, 5 * s, BorderPaint);
 
-            SkiaTextUtils.DrawText(canvas, _localization.Get("tab_buildings_classic"), _tabRegularRect.MidX, _tabRegularRect.MidY + 5f * s, SKTextAlign.Center, _font12, _textPaint);
-            SkiaTextUtils.DrawText(canvas, _localization.Get("tab_buildings_unique"), _tabUniqueRect.MidX, _tabUniqueRect.MidY + 5f * s, SKTextAlign.Center, _font12, _textPaint);
+            SkiaTextUtils.DrawText(canvas, _localization.Get("tab_buildings_classic"), _tabRegularRect.MidX, _tabRegularRect.MidY + 5f * s, SKTextAlign.Center, Font12, TextPaint);
+            SkiaTextUtils.DrawText(canvas, _localization.Get("tab_buildings_unique"),  _tabUniqueRect.MidX,  _tabUniqueRect.MidY  + 5f * s, SKTextAlign.Center, Font12, TextPaint);
         }
 
         // Scrollbar
         if (needsScrollbar)
         {
             float scrollW = 5f * s;
-            float trackX = panelX + panelWidth - scrollW - 2f * s;
+            float trackX  = panelX + panelWidth - scrollW - 2f * s;
             float trackTop = panelY + padding;
-            float trackH = visibleBuildingCount * rowHeight;
-            canvas.DrawRoundRect(trackX, trackTop, scrollW, trackH, 3 * s, 3 * s, _scrollTrackPaint);
-            float thumbH = Math.Max(16f * s, (float)visibleBuildingCount / buildingCount * trackH);
-            float maxScroll = Math.Max(1, buildingCount - visibleBuildingCount);
-            float thumbTop = trackTop + (float)_scrollOffset / maxScroll * (trackH - thumbH);
-            canvas.DrawRoundRect(trackX, thumbTop, scrollW, thumbH, 3 * s, 3 * s, _scrollThumbPaint);
+            float trackH  = visibleBuildingCount * rowHeight;
+            DrawScrollbar(canvas, trackX, trackTop, trackH, buildingCount, visibleBuildingCount, ScrollOffset);
         }
 
-        // Pied de panneau militaire (toujours visible)
+        // Military footer
         {
             float footerY = panelY + panelHeight - militaryFooterH;
             using var dividerPaint = new SKPaint { Color = new SKColor(200, 200, 220, 60), Style = SKPaintStyle.Stroke, StrokeWidth = 1, IsAntialias = true };
             canvas.DrawLine(panelX + padding, footerY, panelX + panelWidth - padding, footerY, dividerPaint);
 
             var (soldiers, maxSoldiers) = _cityBuildingService.GetSelectedCitySoldiers();
-            var (defense, maxDefense) = _cityBuildingService.GetSelectedCityDefense();
-            string soldiersLabel = _localization.Get("footer_soldiers");
-            string defenseLabel = _localization.Get("footer_defense");
-            string militaryText = $"{soldiersLabel}: {soldiers}/{maxSoldiers}    {defenseLabel}: {defense}/{maxDefense}";
-            float textY = footerY + militaryFooterH / 2f + _font10!.Size / 2f - 1f;
-            SkiaTextUtils.DrawText(canvas, militaryText, panelX + panelWidth / 2f, textY, SKTextAlign.Center, _font10, _costTextPaint);
+            var (defense, maxDefense)   = _cityBuildingService.GetSelectedCityDefense();
+            string soldiersLabel  = _localization.Get("footer_soldiers");
+            string defenseLabel   = _localization.Get("footer_defense");
+            string militaryText   = $"{soldiersLabel}: {soldiers}/{maxSoldiers}    {defenseLabel}: {defense}/{maxDefense}";
+            float textY = footerY + militaryFooterH / 2f + Font10!.Size / 2f - 1f;
+            SkiaTextUtils.DrawText(canvas, militaryText, panelX + panelWidth / 2f, textY, SKTextAlign.Center, Font10, _costTextPaint);
         }
 
-        // Onglet collapse
-        _collapseTabRect = new SKRect(panelX - collapseTabW, tabTop, panelX, tabTop + collapseTabH);
-        canvas.DrawRoundRect(_collapseTabRect, 4 * s, 4 * s, _collapseTabPaint);
-        canvas.DrawRoundRect(_collapseTabRect, 4 * s, 4 * s, _borderPaint);
-        SkiaTextUtils.DrawText(canvas, "►", _collapseTabRect.MidX, _collapseTabRect.MidY + 5f * s, SKTextAlign.Center, _font12, _textPaint);
+        // Collapse handle
+        CollapseTabRect = new SKRect(panelX - collapseTabW, tabTop, panelX, tabTop + collapseTabH);
+        DrawCollapseTabRect(canvas, CollapseTabRect, "►");
 
-        // Tooltip au survol
+        // Hover tooltips
         if (_hoveredBuildingType.HasValue)
         {
             var hoveredBuilding = visibleBuildings.FirstOrDefault(b => b.Type == _hoveredBuildingType.Value);
@@ -482,7 +421,7 @@ public class SelectedCityPanelRenderer : IGameRenderer
                 }
 
                 var manualHarvestRes = hoveredBuilding.ManualHarvestResource;
-                var autoHarvestRes = hoveredBuilding.AutomaticHarvestResource;
+                var autoHarvestRes   = hoveredBuilding.AutomaticHarvestResource;
                 if (manualHarvestRes.HasValue || autoHarvestRes.HasValue)
                 {
                     bool isAtMaxForHarvest = _cityBuildingService.IsAtMaxLevel(hoveredBuilding);
@@ -510,7 +449,7 @@ public class SelectedCityPanelRenderer : IGameRenderer
 
                 if (hoveredBuilding is Forge forge && forge.Level > 0)
                 {
-                    int forgeBonus = _cityBuildingService.GetSelectedCivilizationForgeBonus(forge);
+                    int forgeBonus  = _cityBuildingService.GetSelectedCivilizationForgeBonus(forge);
                     int totalChance = forge.DoubleProdChancePercent + forgeBonus;
                     string forgeText = _localization.Get("forge_double_prod") + $" {totalChance}%";
                     if (forgeBonus > 0)
@@ -549,13 +488,13 @@ public class SelectedCityPanelRenderer : IGameRenderer
                 {
                     long currentTick = _cityBuildingService.GetCurrentTick();
 
-                    long roadElapsed = buildersGuild.LastRoadBuildTick == 0 ? 0 : currentTick - buildersGuild.LastRoadBuildTick;
+                    long roadElapsed   = buildersGuild.LastRoadBuildTick == 0 ? 0 : currentTick - buildersGuild.LastRoadBuildTick;
                     long roadRemaining = Math.Max(0, RoadController.AutoRoadBuildCooldownTicks - roadElapsed);
                     tooltipLines.Add(_localization.Get("buildersguild_next_road") + $" {roadRemaining / 100.0:0.0}s/{RoadController.AutoRoadBuildCooldownTicks / 100.0:0.0}s");
 
                     if (buildersGuild.Level >= 4)
                     {
-                        long outpostElapsed = buildersGuild.LastOutpostBuildTick == 0 ? 0 : currentTick - buildersGuild.LastOutpostBuildTick;
+                        long outpostElapsed   = buildersGuild.LastOutpostBuildTick == 0 ? 0 : currentTick - buildersGuild.LastOutpostBuildTick;
                         long outpostRemaining = Math.Max(0, CityBuilderController.AutoOutpostBuildCooldownTicks - outpostElapsed);
                         tooltipLines.Add(_localization.Get("buildersguild_next_outpost") + $" {outpostRemaining / 100.0:0.0}s/{CityBuilderController.AutoOutpostBuildCooldownTicks / 100.0:0.0}s");
                     }
@@ -569,8 +508,8 @@ public class SelectedCityPanelRenderer : IGameRenderer
                     if (library.CanProduceResearch)
                     {
                         long currentTick = _cityBuildingService.GetCurrentTick();
-                        long elapsed = library.LastResearchTick == 0 ? 0 : currentTick - library.LastResearchTick;
-                        long cooldown = library.GetResearchCooldownTicks();
+                        long elapsed   = library.LastResearchTick == 0 ? 0 : currentTick - library.LastResearchTick;
+                        long cooldown  = library.GetResearchCooldownTicks();
                         long remaining = Math.Max(0, cooldown - elapsed);
                         tooltipLines.Add(_localization.Get("library_research_cooldown") + $" {remaining / 100.0:0.0}s/{cooldown / 100.0:0.0}s");
                         if (!isLibraryAtMax)
@@ -592,7 +531,7 @@ public class SelectedCityPanelRenderer : IGameRenderer
                 if (hoveredBuilding is Smelter smelter && smelter.Level > 0)
                 {
                     long currentTick = _cityBuildingService.GetCurrentTick();
-                    long elapsed = smelter.LastProductionTick == 0 ? 0 : currentTick - smelter.LastProductionTick;
+                    long elapsed   = smelter.LastProductionTick == 0 ? 0 : currentTick - smelter.LastProductionTick;
                     long remaining = Math.Max(0, Smelter.ProductionCooldownTicks - elapsed);
                     tooltipLines.Add(_localization.Get("smelter_production_cooldown") + $" {remaining / 100.0:0.0}s/{Smelter.ProductionCooldownTicks / 100.0:0.0}s");
                     tooltipLines.Add(_localization.Get("smelter_production_costs"));
@@ -603,8 +542,8 @@ public class SelectedCityPanelRenderer : IGameRenderer
                 {
                     bool isLabAtMax = _cityBuildingService.IsAtMaxLevel(laboratory);
                     long currentTick = _cityBuildingService.GetCurrentTick();
-                    long cooldown = laboratory.GetResearchCooldownTicks();
-                    long elapsed = laboratory.LastResearchTick == 0 ? 0 : currentTick - laboratory.LastResearchTick;
+                    long cooldown  = laboratory.GetResearchCooldownTicks();
+                    long elapsed   = laboratory.LastResearchTick == 0 ? 0 : currentTick - laboratory.LastResearchTick;
                     long remaining = Math.Max(0, cooldown - elapsed);
                     tooltipLines.Add(_localization.Get("laboratory_research_cooldown") + $" {remaining / 100.0:0.0}s/{cooldown / 100.0:0.0}s");
                     tooltipLines.Add(_localization.Get("laboratory_research_gold_cost"));
@@ -643,18 +582,18 @@ public class SelectedCityPanelRenderer : IGameRenderer
                     }
                 }
 
-                TooltipRenderUtils.DrawTooltip(canvas, _canvasSize, _lastPointerPosition, tooltipLines.ToArray(), _font10!, cost, _resourceIcons, _lastUiScale);
+                TooltipRenderUtils.DrawTooltip(canvas, CanvasSize, _lastPointerPosition, tooltipLines.ToArray(), Font10!, cost, _resourceIcons, LastUiScale);
             }
         }
         else if (_hoveredActivationCheckbox.HasValue)
         {
             var lines = new[] { _localization.Get("tooltip_activate_building") };
-            TooltipRenderUtils.DrawTooltip(canvas, _canvasSize, _lastPointerPosition, lines, _font10!, new ResourceSet(), _resourceIcons, _lastUiScale);
+            TooltipRenderUtils.DrawTooltip(canvas, CanvasSize, _lastPointerPosition, lines, Font10!, new ResourceSet(), _resourceIcons, LastUiScale);
         }
         else if (_hoveredSteelWeaponsCheckbox)
         {
             var lines = new[] { _localization.Get("tooltip_steel_weapons_checkbox") };
-            TooltipRenderUtils.DrawTooltip(canvas, _canvasSize, _lastPointerPosition, lines, _font10!, new ResourceSet(), _resourceIcons, _lastUiScale);
+            TooltipRenderUtils.DrawTooltip(canvas, CanvasSize, _lastPointerPosition, lines, Font10!, new ResourceSet(), _resourceIcons, LastUiScale);
         }
     }
 
@@ -673,7 +612,6 @@ public class SelectedCityPanelRenderer : IGameRenderer
         _hoveredSteelWeaponsCheckbox = false;
         _hoveredBuildingType = null;
 
-        // Cases à cocher prioritaires sur le survol de ligne
         foreach (var (rect, buildingType) in _checkboxRects)
         {
             if (rect.Contains(e.Position.X, e.Position.Y))
@@ -705,31 +643,24 @@ public class SelectedCityPanelRenderer : IGameRenderer
     {
         if (e.Button != PointerButton.Left) return;
 
-        if (!_collapseTabRect.IsEmpty && _collapseTabRect.Contains(e.Position.X, e.Position.Y))
-        {
-            _collapsed = !_collapsed;
-            return;
-        }
-
+        if (HandleCollapseTabPress(e.Position)) return;
         if (!IsInputEnabled) return;
 
-        // Clic sur un onglet
         if (_tabRegularRect != SKRect.Empty && _tabRegularRect.Contains(e.Position.X, e.Position.Y))
         {
             _showUniqueBuildings = false;
             _hoveredBuildingType = null;
-            _scrollOffset = 0;
+            ScrollOffset = 0;
             return;
         }
         if (_tabUniqueRect != SKRect.Empty && _tabUniqueRect.Contains(e.Position.X, e.Position.Y))
         {
             _showUniqueBuildings = true;
             _hoveredBuildingType = null;
-            _scrollOffset = 0;
+            ScrollOffset = 0;
             return;
         }
 
-        // Clic sur une case à cocher d'activation
         foreach (var (rect, buildingType) in _checkboxRects)
         {
             if (rect.Contains(e.Position.X, e.Position.Y))
@@ -739,7 +670,6 @@ public class SelectedCityPanelRenderer : IGameRenderer
             }
         }
 
-        // Clic sur la case armes en acier (Caserne)
         foreach (var (rect, _) in _steelWeaponsCheckboxRects)
         {
             if (rect.Contains(e.Position.X, e.Position.Y))
@@ -749,7 +679,6 @@ public class SelectedCityPanelRenderer : IGameRenderer
             }
         }
 
-        // Clic sur un bouton de construction
         foreach (var (rect, buildingType) in _hoverRects)
         {
             if (rect.Contains(e.Position.X, e.Position.Y))
@@ -760,16 +689,10 @@ public class SelectedCityPanelRenderer : IGameRenderer
         }
     }
 
-    public void Dispose()
+    public override void Dispose()
     {
         _inputService.PointerMoved -= HandlePointerMoved;
         _inputService.PointerPressed -= HandlePointerPressed;
-        _font15?.Dispose();
-        _font12?.Dispose();
-        _font10?.Dispose();
-        _bgPaint?.Dispose();
-        _borderPaint?.Dispose();
-        _textPaint?.Dispose();
         _costTextPaint?.Dispose();
         _btnBuildPaint?.Dispose();
         _btnUpgradePaint?.Dispose();
@@ -778,12 +701,10 @@ public class SelectedCityPanelRenderer : IGameRenderer
         _btnMaxLevelPaint?.Dispose();
         _tabActivePaint?.Dispose();
         _tabInactivePaint?.Dispose();
-        _checkboxActivePaint?.Dispose();
+        _dimTextPaint?.Dispose();
+        _dimCostTextPaint?.Dispose();
+        _btnOtherCityPaint?.Dispose();
         _checkboxActiveDimPaint?.Dispose();
-        _checkboxInactivePaint?.Dispose();
-        _checkboxBorderPaint?.Dispose();
-        _collapseTabPaint?.Dispose();
-        _scrollTrackPaint?.Dispose();
-        _scrollThumbPaint?.Dispose();
+        base.Dispose();
     }
 }
