@@ -13,7 +13,7 @@ using System.Linq;
 using SettlersOfIdlestan.Controller.Military;
 using SettlersOfIdlestan.Controller.Island;
 
-namespace SettlersOfIdlestanSkia.Renderers.Overlay;
+namespace SettlersOfIdlestanSkia.Renderers.Overlay.Panels;
 
 public class SelectedCityPanelRenderer : PanelRendererBase
 {

@@ -2,7 +2,7 @@ using SettlersOfIdlestanSkia.Core;
 using SkiaSharp;
 using System;
 
-namespace SettlersOfIdlestanSkia.Renderers.Overlay;
+namespace SettlersOfIdlestanSkia.Renderers.Overlay.Panels;
 
 public abstract class PanelRendererBase : IGameRenderer
 {

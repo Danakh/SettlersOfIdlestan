@@ -11,7 +11,7 @@ using SkiaSharp;
 using System;
 using System.Linq;
 
-namespace SettlersOfIdlestanSkia.Renderers.Overlay;
+namespace SettlersOfIdlestanSkia.Renderers.Overlay.Panels;
 
 public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
 {

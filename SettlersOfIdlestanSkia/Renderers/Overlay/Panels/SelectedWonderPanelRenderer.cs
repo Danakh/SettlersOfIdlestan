@@ -8,7 +8,7 @@ using Svg.Skia;
 using System;
 using System.Collections.Generic;
 
-namespace SettlersOfIdlestanSkia.Renderers.Overlay;
+namespace SettlersOfIdlestanSkia.Renderers.Overlay.Panels;
 
 public class SelectedWonderPanelRenderer : PanelRendererBase
 {
