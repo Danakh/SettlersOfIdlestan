@@ -20,6 +20,7 @@
   "debug_show_hex_coords": "Coordonnées Hex",
   "debug_show_autoplayer": "Commandes Autoplayer",
   "debug_show_full_map": "Voir Toute La Carte",
+  "debug_force_mobile": "Forcer mode mobile",
   "city_panel_no_selection": "Aucune ville sélectionnée. Cliquez sur une ville dans la carte.",
   "city_panel_level": "Niveau",
   "city_panel_buildings": "Bâtiments",

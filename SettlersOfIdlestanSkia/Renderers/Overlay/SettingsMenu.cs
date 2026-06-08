@@ -107,18 +107,6 @@ public class SettingsMenu
             Action = ToggleAboutPopUp
         });
 
-        if (_uiLayout != null)
-        {
-            _menuItems.Add(new MenuItem { IsSeparator = true });
-            _menuItems.Add(new MenuItem
-            {
-                DynamicLabel = () => _uiLayout.IsMobile
-                    ? _localization.Get("menu_layout_desktop")
-                    : _localization.Get("menu_layout_mobile"),
-                Action = () => _uiLayout.ToggleForceMode()
-            });
-        }
-
         if (allowDebugMode)
         {
             _menuItems.Add(new MenuItem { IsSeparator = true });

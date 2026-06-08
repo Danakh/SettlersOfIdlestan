@@ -214,7 +214,7 @@ public sealed class SkiaGameRuntime : IDisposable
         var settingsPopupRenderer = new SettingsPopupRenderer(_gameControllerService.MainGameController, _localizationService!);
         DebugPanelRenderer? debugPanelRenderer = null;
         if (allowDebugMode)
-            debugPanelRenderer = new DebugPanelRenderer(_inputService!, _localizationService!);
+            debugPanelRenderer = new DebugPanelRenderer(_inputService!, _localizationService!, _uiLayoutService!);
         var settingsMenu = new SettingsMenu(_gameControllerService.MainGameController, _inputService!, _localizationService!, aboutRenderer, settingsPopupRenderer, _fileSystemService!, _gameControllerService.CityBuildingService!, allowDebugMode, debugPanelRenderer, StartNewGameIntro, _uiLayoutService);
 
         _playerResourcesOverlayRenderer = new PlayerResourcesOverlayRenderer(_localizationService!, _resourceManager!);
