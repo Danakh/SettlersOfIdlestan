@@ -186,16 +186,16 @@ public class MonsterFeatureController
             return;
         }
 
-        ApplyMonsterAttack(monster, target.Value.city, target.Value.civ, currentTick);
+        ApplyMonsterAttack(monster, target, currentTick);
     }
 
-    private (City city, Civilization civ)? FindAttackTarget(MonsterFeature monster)
+    private City? FindAttackTarget(MonsterFeature monster)
     {
         // Priorité : villes dont un hex coïncide avec la position du monstre
         foreach (var civ in _state!.Civilizations)
             foreach (var city in civ.Cities)
                 if (city.Position.GetHexes().Any(h => h.Equals(monster.Position)))
-                    return (city, civ);
+                    return city;
 
         if (monster.AttackRangeInHexes < 2) return null;
 
@@ -208,14 +208,16 @@ public class MonsterFeatureController
         foreach (var civ in _state.Civilizations)
             foreach (var city in civ.Cities)
                 if (city.Position.GetHexes().Any(h => neighborSet.Contains(h)))
-                    return (city, civ);
+                    return city;
 
         return null;
     }
 
-    private void ApplyMonsterAttack(MonsterFeature monster, City city, Civilization civ, long tick)
+    private void ApplyMonsterAttack(MonsterFeature monster, City city, long tick)
     {
         monster.LastAttackTick = tick;
+        var civ = _state!.Civilizations.FirstOrDefault(c => c.Index == city.CivilizationIndex);
+        if (civ == null) return;
 
         if (!monster.IgnoresPalisade && city.Buildings.OfType<Palisade>().Any(b => b.Level > 0))
         {

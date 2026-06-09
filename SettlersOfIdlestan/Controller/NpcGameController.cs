@@ -103,7 +103,7 @@ public class NpcGameController
         {
             if (shouldAttack && city.Soldiers > 0)
             {
-                var enemy = _militaryController.FindNearbyEnemyCity(city, civ, warEnemies);
+                var enemy = _militaryController.FindNearbyEnemyCity(city, warEnemies);
                 if (enemy != null)
                 {
                     _militaryController.SetCityFlow(city, enemy.Position);

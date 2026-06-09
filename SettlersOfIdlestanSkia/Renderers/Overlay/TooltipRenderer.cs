@@ -145,7 +145,7 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay
                 {
                     if (isPlayerCity)
                     {
-                        double rate = militaryController.GetSoldierProductionRate(city, civ);
+                        double rate = militaryController.GetSoldierProductionRate(city);
                         lines.Add(rate > 0
                             ? _localizationService.GetFormated("city_tooltip_soldiers_rate", city.Soldiers, maxSoldiers, $"{rate:0.##}")
                             : _localizationService.GetFormated("city_tooltip_soldiers", city.Soldiers, maxSoldiers));
@@ -156,12 +156,12 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay
                     }
                 }
 
-                int maxDef = militaryController.GetDefenseScore(city, civ);
+                int maxDef = militaryController.GetDefenseScore(city);
                 if (maxDef > 0)
                 {
                     if (isPlayerCity)
                     {
-                        double rate = militaryController.GetDefenseRegenRate(city, civ);
+                        double rate = militaryController.GetDefenseRegenRate(city);
                         lines.Add(rate > 0
                             ? _localizationService.GetFormated("city_tooltip_defense_rate", city.CurrentDefense, maxDef, $"{rate:0.##}")
                             : _localizationService.GetFormated("city_tooltip_defense", city.CurrentDefense, maxDef));

@@ -99,13 +99,15 @@ internal class CityAttackEngine
                 city.FlowTarget = null;
     }
 
-    internal City? FindNearbyEnemyCity(City attackerCity, Civilization attackerCiv, IReadOnlyCollection<int>? targetCivIndices = null)
+    internal City? FindNearbyEnemyCity(City attackerCity, IReadOnlyCollection<int>? targetCivIndices = null)
     {
+        var attackerCiv = _state!.Civilizations.FirstOrDefault(c => c.Index == attackerCity.CivilizationIndex);
+        if (attackerCiv == null) return null;
         int range = CityAttackRange(attackerCiv);
         City? closest = null;
         int closestDist = int.MaxValue;
 
-        foreach (var defenderCiv in _state!.Civilizations)
+        foreach (var defenderCiv in _state.Civilizations)
         {
             if (defenderCiv.Index == attackerCiv.Index) continue;
             if (targetCivIndices != null && targetCivIndices.Count > 0 && !targetCivIndices.Contains(defenderCiv.Index)) continue;

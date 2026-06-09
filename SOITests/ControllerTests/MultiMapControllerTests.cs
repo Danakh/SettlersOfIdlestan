@@ -70,7 +70,7 @@ public class MultiMapControllerTests
         var controller = new MilitaryController();
         controller.Initialize(state, new GameClock());
 
-        Assert.Null(controller.FindNearbyEnemyCity(underworldCity, playerCiv));
+        Assert.Null(controller.FindNearbyEnemyCity(underworldCity));
     }
 
     private static (WorldState State, Civilization Civilization) CreateStateWithUnderworldOutpost()

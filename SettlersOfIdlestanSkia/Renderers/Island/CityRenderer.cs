@@ -257,7 +257,7 @@ public class CityRenderer : HexBasedRenderer, IGameRenderer
             return;
 
         int attack = _militaryController.GetAttackScore(city);
-        int maxDefense = _militaryController.GetDefenseScore(city, civilization);
+        int maxDefense = _militaryController.GetDefenseScore(city);
         int currentDefense = city.CurrentDefense;
 
         bool showAttack = attack > 0;

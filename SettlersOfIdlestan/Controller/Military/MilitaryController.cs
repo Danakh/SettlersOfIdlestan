@@ -93,27 +93,32 @@ public class MilitaryController
     /// Soldats produits par seconde dans la ville (0 si pas de Caserne active au niveau minimum).
     /// Tient compte du modificateur UnitProductionSpeed de la civilisation.
     /// </summary>
-    public double GetSoldierProductionRate(City city, Civilization civ)
+    public double GetSoldierProductionRate(City city)
     {
         var barracks = city.Buildings.OfType<Barracks>()
             .FirstOrDefault(b => b.ActivationStatus == ActivationStatus.ACTIVE && b.Level >= SoldierProductionEngine.SoldierProductionMinLevel);
         if (barracks == null) return 0;
+        var civ = _state?.Civilizations.FirstOrDefault(c => c.Index == city.CivilizationIndex);
+        if (civ == null) return 0;
         const double ticksPerSecond = 100.0;
         return civ.UnitProductionSpeed * ticksPerSecond / SoldierProductionIntervalTicks;
     }
 
     /// <summary>Points de défense régénérés par seconde (0 si aucune défense max).</summary>
-    public double GetDefenseRegenRate(City city, Civilization civ)
+    public double GetDefenseRegenRate(City city)
     {
-        if (GetDefenseScore(city, civ) <= 0) return 0;
+        if (GetDefenseScore(city) <= 0) return 0;
+        var civ = _state?.Civilizations.FirstOrDefault(c => c.Index == city.CivilizationIndex);
+        if (civ == null) return 0;
         const double ticksPerSecond = 100.0;
         return civ.CityDefenseRegenSpeed * ticksPerSecond / DefenseRegenIntervalTicks;
     }
 
     /// <summary>Score de défense maximal de la ville (bâtiments + modificateurs de civilisation).</summary>
-    public int GetDefenseScore(City city, Civilization? civ = null)
+    public int GetDefenseScore(City city)
     {
         int score = city.MaxDefense;
+        var civ = _state?.Civilizations.FirstOrDefault(c => c.Index == city.CivilizationIndex);
         if (civ != null)
             score += civ.ModifierAggregator.ApplyModifiers(ECategory.CITY_DEFENSE, "", 0);
         return score;
@@ -178,7 +183,7 @@ public class MilitaryController
         foreach (var civ in _state!.Civilizations)
             foreach (var city in civ.Cities)
             {
-                int maxDef = GetDefenseScore(city, civ);
+                int maxDef = GetDefenseScore(city);
                 if (city.CurrentDefense >= maxDef) continue;
                 long effectiveRegenInterval = (long)(DefenseRegenIntervalTicks / civ.CityDefenseRegenSpeed);
                 if (currentTick - city.LastDefenseRegenTick < effectiveRegenInterval) continue;
@@ -202,8 +207,8 @@ public class MilitaryController
     public void UpdateCivilizationReinforcementFlows(Civilization civ)
         => _reinforcementEngine.UpdateCivilizationReinforcementFlows(civ);
 
-    public City? FindNearbyEnemyCity(City attackerCity, Civilization attackerCiv, IReadOnlyCollection<int>? targetCivIndices = null)
-        => _cityAttackEngine.FindNearbyEnemyCity(attackerCity, attackerCiv, targetCivIndices);
+    public City? FindNearbyEnemyCity(City attackerCity, IReadOnlyCollection<int>? targetCivIndices = null)
+        => _cityAttackEngine.FindNearbyEnemyCity(attackerCity, targetCivIndices);
 
     /// <summary>
     /// Clears flows, fires <see cref="CityDestroyed"/>, and recalculates visibility.

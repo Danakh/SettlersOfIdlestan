@@ -89,7 +89,7 @@ internal class ReinforcementEngine
         foreach (var city in playerCiv.Cities)
         {
             if (city.FlowTarget != null && IsEnemyCityAt(city.FlowTarget, playerCiv)) continue;
-            var enemy = _cityAttackEngine!.FindNearbyEnemyCity(city, playerCiv);
+            var enemy = _cityAttackEngine!.FindNearbyEnemyCity(city);
             if (enemy != null)
                 SetCityFlow(city, enemy.Position);
         }
@@ -105,7 +105,7 @@ internal class ReinforcementEngine
             int capacity = city.MaxSoldiers;
             if (capacity > 0
                 && city.Soldiers * 4 >= capacity
-                && _cityAttackEngine!.FindNearbyEnemyCity(city, civ) == null)
+                && _cityAttackEngine!.FindNearbyEnemyCity(city) == null)
             {
                 int range = ReinforcementRange(civ);
                 City? target = null;

@@ -171,10 +171,7 @@ public class CityBuildingService
     {
         if (SelectedCity == null) return (0, 0);
         var mc = _mainGameController.MilitaryController;
-        var worldState = State;
-        if (SelectedCity.CivilizationIndex >= worldState.Civilizations.Count) return (0, 0);
-        var civ = worldState.Civilizations[SelectedCity.CivilizationIndex];
-        return (SelectedCity.CurrentDefense, mc.GetDefenseScore(SelectedCity, civ));
+        return (SelectedCity.CurrentDefense, mc.GetDefenseScore(SelectedCity));
     }
 
     public long GetEffectiveSeaportGenerationCooldown(Seaport seaport)

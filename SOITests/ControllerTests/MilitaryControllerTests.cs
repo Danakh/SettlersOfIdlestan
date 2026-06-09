@@ -268,20 +268,18 @@ namespace SOITests.ControllerTests
         [Fact]
         public void GetSoldierProductionRate_NoBarracks_ReturnsZero()
         {
-            var (state, _, controller, city) = CreateSetup(initialSoldiers: 0);
+            var (_, _, controller, city) = CreateSetup(initialSoldiers: 0);
             city.Buildings.Clear();
-            var civ = state.Civilizations[0];
 
-            Assert.Equal(0, controller.GetSoldierProductionRate(city, civ));
+            Assert.Equal(0, controller.GetSoldierProductionRate(city));
         }
 
         [Fact]
         public void GetSoldierProductionRate_WithBarracks_ReturnsBaseRate()
         {
-            var (state, _, controller, city) = CreateSetup(initialSoldiers: 0);
-            var civ = state.Civilizations[0];
+            var (_, _, controller, city) = CreateSetup(initialSoldiers: 0);
 
-            double rate = controller.GetSoldierProductionRate(city, civ);
+            double rate = controller.GetSoldierProductionRate(city);
 
             // base: 1 soldier per 1000 ticks, 100 ticks/s → 0.1 soldiers/s
             Assert.Equal(0.1, rate, precision: 6);
@@ -293,12 +291,12 @@ namespace SOITests.ControllerTests
             var (state, _, controller, city) = CreateSetup(initialSoldiers: 0);
             var civ = state.Civilizations[0];
 
-            double baseRate = controller.GetSoldierProductionRate(city, civ);
+            double baseRate = controller.GetSoldierProductionRate(city);
 
             var academy = new MilitaryAcademy { Level = 4 };
             civ.AddCustomAggregator(new StaticModifierProvider(academy.GetUniqueBuildingModifiers()));
 
-            double newRate = controller.GetSoldierProductionRate(city, civ);
+            double newRate = controller.GetSoldierProductionRate(city);
 
             Assert.Equal(baseRate * 2, newRate, precision: 6);
         }
