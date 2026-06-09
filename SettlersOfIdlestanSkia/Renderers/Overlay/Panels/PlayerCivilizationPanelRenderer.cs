@@ -183,7 +183,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         {
             CollapseTabRect = new SKRect(0, tabTop, collapseTabW, tabTop + collapseTabH);
             PanelBounds = CollapseTabRect;
-            DrawCollapseTabRect(canvas, CollapseTabRect, "►");
+            DrawCollapseTabRect(canvas, CollapseTabRect, true);
             return;
         }
 
@@ -209,9 +209,10 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         PanelBounds = new SKRect(panelLeft, panelTop, panelLeft + panelWidth, panelTop + h);
         DrawPanelChrome(canvas, panelLeft, panelTop, panelWidth, h, cornerRadius: 8f);
 
-        // Collapse handle on the right edge of the panel
-        CollapseTabRect = new SKRect(panelLeft + panelWidth, tabTop, panelLeft + panelWidth + collapseTabW, tabTop + collapseTabH);
-        DrawCollapseTabRect(canvas, CollapseTabRect, "◄");
+        // Collapse handle — shifted left to slightly overlap the panel
+        float tabOverlap = 6f * s;
+        CollapseTabRect = new SKRect(panelLeft + panelWidth - tabOverlap, tabTop, panelLeft + panelWidth - tabOverlap + collapseTabW, tabTop + collapseTabH);
+        DrawCollapseTabRect(canvas, CollapseTabRect, false);
 
         float x = panelLeft + panelPadding;
         float y = panelTop + panelPadding;

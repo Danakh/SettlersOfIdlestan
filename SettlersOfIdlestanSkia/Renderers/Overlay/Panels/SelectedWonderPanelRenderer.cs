@@ -91,14 +91,14 @@ public class SelectedWonderPanelRenderer : PanelRendererBase
         var costList = cost.ToList();
 
         float panelX = CanvasSize.Width - panelWidth - 10 * s;
-        float panelY = TopOverride > 0f ? TopOverride : PlayerResourcesOverlayRenderer.BarHeight * s + 10 * s;
+        float panelY = (TopOverride > 0f ? TopOverride : PlayerResourcesOverlayRenderer.BarHeight * s) + 10 * s;
         float tabTop = panelY + 8f * s;
 
         if (Collapsed)
         {
             CollapseTabRect = new SKRect(CanvasSize.Width - collapseTabW, tabTop, CanvasSize.Width, tabTop + collapseTabH);
             PanelBounds = CollapseTabRect;
-            DrawCollapseTabRect(canvas, CollapseTabRect, "◄");
+            DrawCollapseTabRect(canvas, CollapseTabRect, false);
             return;
         }
 
@@ -195,8 +195,10 @@ public class SelectedWonderPanelRenderer : PanelRendererBase
             DrawScrollbar(canvas, trackX, panelY + titleHeight, visibleResourceCount * rowHeight, resourceCount, visibleResourceCount, ScrollOffset);
         }
 
-        CollapseTabRect = new SKRect(panelX - collapseTabW, tabTop, panelX, tabTop + collapseTabH);
-        DrawCollapseTabRect(canvas, CollapseTabRect, "►");
+        // Collapse handle — shifted right to slightly overlap the panel
+        float tabOverlap = 6f * s;
+        CollapseTabRect = new SKRect(panelX - collapseTabW + tabOverlap, tabTop, panelX + tabOverlap, tabTop + collapseTabH);
+        DrawCollapseTabRect(canvas, CollapseTabRect, true);
     }
 
     private void HandlePointerPressed(object? sender, PointerEventArgs e)

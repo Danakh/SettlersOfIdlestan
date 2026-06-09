@@ -6,8 +6,8 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay.Panels;
 
 public abstract class PanelRendererBase : IGameRenderer
 {
-    protected const float CollapseTabW = 14f;
-    protected const float CollapseTabH = 24f;
+    protected const float CollapseTabW = 22f;
+    protected const float CollapseTabH = 32f;
 
     // Common paints — initialized in Initialize()
     protected SKPaint? BgPaint;
@@ -76,13 +76,33 @@ public abstract class PanelRendererBase : IGameRenderer
         canvas.DrawRoundRect(x, y, width, height, r, r, BorderPaint);
     }
 
-    // Draws the collapse handle rectangle with its arrow character
-    protected void DrawCollapseTabRect(SKCanvas canvas, SKRect rect, string arrow)
+    // Draws the collapse handle rectangle with a triangle arrow
+    protected void DrawCollapseTabRect(SKCanvas canvas, SKRect rect, bool pointRight)
     {
         float s = LastUiScale;
         canvas.DrawRoundRect(rect, 4 * s, 4 * s, _collapseTabPaint);
         canvas.DrawRoundRect(rect, 4 * s, 4 * s, BorderPaint);
-        SkiaTextUtils.DrawText(canvas, arrow, rect.MidX, rect.MidY + 5f * s, SKTextAlign.Center, Font12, TextPaint);
+
+        float cx = rect.MidX;
+        float cy = rect.MidY;
+        float tw = rect.Width  * 0.52f;
+        float th = rect.Height * 0.58f;
+
+        using var path = new SKPath();
+        if (pointRight)
+        {
+            path.MoveTo(cx - tw * 0.5f, cy - th * 0.5f);
+            path.LineTo(cx + tw * 0.5f, cy);
+            path.LineTo(cx - tw * 0.5f, cy + th * 0.5f);
+        }
+        else
+        {
+            path.MoveTo(cx + tw * 0.5f, cy - th * 0.5f);
+            path.LineTo(cx - tw * 0.5f, cy);
+            path.LineTo(cx + tw * 0.5f, cy + th * 0.5f);
+        }
+        path.Close();
+        canvas.DrawPath(path, TextPaint);
     }
 
     // Scrollbar track + thumb; scrollW is always 5f * scale

@@ -129,14 +129,14 @@ public class SelectedCityPanelRenderer : PanelRendererBase
 
         bool isMobile = IsMobile;
         float panelX  = CanvasSize.Width - panelWidth - 10 * s;
-        float panelY0 = TopOverride > 0f ? TopOverride : PlayerResourcesOverlayRenderer.BarHeight * s + 10 * s;
+        float panelY0 = (TopOverride > 0f ? TopOverride : PlayerResourcesOverlayRenderer.BarHeight * s) + 10 * s;
         float tabTop  = panelY0 + 8f * s;
 
         if (Collapsed)
         {
             CollapseTabRect = new SKRect(CanvasSize.Width - collapseTabW, tabTop, CanvasSize.Width, tabTop + collapseTabH);
             PanelBounds = CollapseTabRect;
-            DrawCollapseTabRect(canvas, CollapseTabRect, "◄");
+            DrawCollapseTabRect(canvas, CollapseTabRect, false);
             return;
         }
 
@@ -358,9 +358,10 @@ public class SelectedCityPanelRenderer : PanelRendererBase
             SkiaTextUtils.DrawText(canvas, militaryText, panelX + panelWidth / 2f, textY, SKTextAlign.Center, Font10, _costTextPaint);
         }
 
-        // Collapse handle
-        CollapseTabRect = new SKRect(panelX - collapseTabW, tabTop, panelX, tabTop + collapseTabH);
-        DrawCollapseTabRect(canvas, CollapseTabRect, "►");
+        // Collapse handle — shifted right to slightly overlap the panel
+        float tabOverlap = 6f * s;
+        CollapseTabRect = new SKRect(panelX - collapseTabW + tabOverlap, tabTop, panelX + tabOverlap, tabTop + collapseTabH);
+        DrawCollapseTabRect(canvas, CollapseTabRect, true);
 
         // Hover tooltips
         if (_hoveredBuildingType.HasValue)
