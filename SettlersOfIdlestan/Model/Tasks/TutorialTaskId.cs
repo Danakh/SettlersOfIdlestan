@@ -38,4 +38,6 @@ public enum TutorialTaskId
     KillBandit,
     PerformSecondPrestige,
     DestroyBanditHideout,
+    PlaceWonder,
+    BuildWonder,
 }

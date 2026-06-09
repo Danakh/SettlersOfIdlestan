@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
+using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.IslandMap;
 
 namespace SettlersOfIdlestan.Model.Tasks;
@@ -227,5 +228,15 @@ public static class TutorialTaskDefinitions
         new TutorialTask(TutorialTaskId.DestroyBanditHideout,
             "task_destroy_bandit_hideout_name", "task_destroy_bandit_hideout_desc",
             (g, _, _) => g.TotalHideoutsDestroyed >= 1),
+
+        new TutorialTask(TutorialTaskId.PlaceWonder,
+            "task_place_wonder_name", "task_place_wonder_desc",
+            (g, _, island) => g.HasPlacedWonder
+                || island?.Features.OfType<Wonder>().Any() == true),
+
+        new TutorialTask(TutorialTaskId.BuildWonder,
+            "task_build_wonder_name", "task_build_wonder_desc",
+            (g, _, island) => g.HasBuiltWonder
+                || island?.Features.OfType<Wonder>().Any(w => w.Level >= 1) == true),
     };
 }

@@ -191,5 +191,25 @@ public static class TutorialStepDefinitions
             },
             secondaryTasks: System.Array.Empty<TutorialTask>()
         ),
+
+        new TutorialStep(
+            "tutorial_step_place_wonder_title",
+            "tutorial_step_place_wonder_desc",
+            primaryTasks: new[]
+            {
+                Task(TutorialTaskId.PlaceWonder),
+            },
+            secondaryTasks: System.Array.Empty<TutorialTask>()
+        ),
+
+        new TutorialStep(
+            "tutorial_step_wonder_title",
+            "tutorial_step_wonder_desc",
+            primaryTasks: new[]
+            {
+                Task(TutorialTaskId.BuildWonder),
+            },
+            secondaryTasks: System.Array.Empty<TutorialTask>()
+        ),
     };
 }

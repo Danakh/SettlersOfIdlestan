@@ -18,6 +18,9 @@ namespace SettlersOfIdlestan.Controller.Island
 
         public const long InvestmentIntervalTicks = 100L;
 
+        public event EventHandler? OnWonderPlaced;
+        public event EventHandler<int>? OnWonderLevelUp;
+
         internal WonderController() { }
 
         internal void Initialize(WorldState? state, GameClock? clock = null)
@@ -96,6 +99,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 wonder.InvestedResources.Clear();
                 wonder.InvestmentEnabled.Clear();
                 _state.EventLog.Add(GameEventType.WonderLevelUp, wonder.Level.ToString());
+                OnWonderLevelUp?.Invoke(this, wonder.Level);
             }
         }
 
@@ -156,6 +160,7 @@ namespace SettlersOfIdlestan.Controller.Island
             var wonder = new Wonder(position);
             _state.AddFeature(wonder);
             _state.EventLog.Add(GameEventType.WonderPlaced);
+            OnWonderPlaced?.Invoke(this, EventArgs.Empty);
             return wonder;
         }
     }
