@@ -90,12 +90,15 @@ public sealed class SkiaGameRuntime : IDisposable
             _gameScreen.EnsureCanvasInitialized(_lastCanvasSize);
     }
 
-    private void OnContinueRequested()
+    // async void : handler d'événement ; le blocage synchrone (GetResult) est
+    // interdit sur le runtime WebAssembly mono-thread.
+    private async void OnContinueRequested()
     {
-        var saveJson = _fileSystemService!.LoadAuto().GetAwaiter().GetResult();
         _titleScreen?.Dispose();
         _titleScreen   = null;
         _onTitleScreen = false;
+
+        var saveJson = await _fileSystemService!.LoadAuto();
 
         _gameScreen = new GameScreen(
             _fileSystemService!,
@@ -111,12 +114,12 @@ public sealed class SkiaGameRuntime : IDisposable
             _gameScreen.EnsureCanvasInitialized(_lastCanvasSize);
     }
 
-    private void OnReturnToTitle()
+    private async void OnReturnToTitle()
     {
         _gameScreen?.Dispose();
         _gameScreen = null;
 
-        bool hasSave = _fileSystemService!.LoadAuto().GetAwaiter().GetResult() != null;
+        bool hasSave = await _fileSystemService!.LoadAuto() != null;
         ShowTitleScreen(hasSave);
 
     }
