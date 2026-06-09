@@ -202,7 +202,7 @@ public sealed class OverlayRenderer : IGameRenderer
             DrawMobileGearIcon(canvas, gearX);
         _settingsMenu.Draw(canvas, gearX, _uiLayout.SecondRowBottom);
 
-        _tradeRenderer.Render(canvas);
+        _tradeRenderer.Render(canvas, _uiLayout.UiScale);
         _prestigeRenderer.Render(canvas);
         _settingsPopupRenderer.Render(canvas, _uiLayout.UiScale);
 
@@ -378,6 +378,7 @@ public sealed class OverlayRenderer : IGameRenderer
     {
         _isDraggingResources = false;
         if (!_isVisible) return;
+        if (_tradeRenderer.IsOpen) _tradeRenderer.HandlePointerReleased(e.Position);
         if (_tabBar.ActiveTab == TabBarRenderer.TabPrestige)
             _prestigeMapRenderer.HandlePointerReleased(e.Position);
     }
@@ -385,6 +386,11 @@ public sealed class OverlayRenderer : IGameRenderer
     private void HandleZoomChanged(object? sender, ZoomEventArgs e)
     {
         if (!_isVisible) return;
+        if (_tradeRenderer.IsOpen)
+        {
+            _tradeRenderer.HandleScroll(e.ZoomDelta);
+            return;
+        }
         int activeTab = _tabBar.ActiveTab;
         if (activeTab == TabBarRenderer.TabPrestige)
         {
