@@ -169,6 +169,9 @@ public sealed class ResearchRenderer : IGameRenderer
             string rpLabel = rps > 0
                 ? $"{_localization.Get("research_points_label")}: {ctrl.ResearchPoints} (+{rps.ToString("0.##")}/s)"
                 : $"{_localization.Get("research_points_label")}: {ctrl.ResearchPoints}";
+            var (investPct, investPs) = ctrl.GetResearchConsumptionInfo();
+            if (investPs > 0)
+                rpLabel += $"  |  {_localization.Get("research_investment_label")} ({investPct.ToString("0")}%): {investPs.ToString("0.##")}/s";
             SkiaTextUtils.DrawText(canvas, rpLabel, PanelPadding, _topOffset + 24f, _nameFont, _textPaint);
         }
 
