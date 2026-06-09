@@ -107,7 +107,7 @@ public sealed class MilitaryInteractionService
         DragTargetIsInRange = false;
 
         var city = FindPlayerCityNear(ScreenToIsland(e.Position), _gameControllerService.CurrentWorldState!.CurrentViewedLayer);
-        if (city != null)
+        if ((city != null) && (_militaryController.GetMaximumSoldierCapacity(city) > 0))
         {
             _potentialDragCity = city;
             _potentialDragStartScreen = e.Position;

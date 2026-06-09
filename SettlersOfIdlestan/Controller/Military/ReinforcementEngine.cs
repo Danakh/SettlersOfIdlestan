@@ -51,7 +51,7 @@ internal class ReinforcementEngine
                 var targetCity = civ.Cities.FirstOrDefault(c => c != sourceCity && c.Position.Equals(sourceCity.FlowTarget));
                 if (targetCity == null) continue;
                 if (sourceCity.Position.EdgeDistanceTo(targetCity.Position) > ReinforcementRange(civ)) continue;
-                if (targetCity.Soldiers >= _productionEngine!.GetMaximumSoldierCapacity(targetCity, civ)) continue;
+                if (targetCity.Soldiers >= _productionEngine!.GetMaximumSoldierCapacity(targetCity)) continue;
 
                 sourceCity.Soldiers--;
                 targetCity.Soldiers++;

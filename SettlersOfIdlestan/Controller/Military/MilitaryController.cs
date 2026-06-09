@@ -86,8 +86,8 @@ public class MilitaryController
     public int GetAttackScore(City city) => city.Soldiers;
 
     /// <summary>Capacité maximale de soldats de la ville, tous bâtiments garnison confondus.</summary>
-    public int GetMaximumSoldierCapacity(City city, Civilization civ)
-        => _productionEngine.GetMaximumSoldierCapacity(city, civ);
+    public int GetMaximumSoldierCapacity(City city)
+        => _productionEngine.GetMaximumSoldierCapacity(city);
 
     /// <summary>
     /// Soldats produits par seconde dans la ville (0 si pas de Caserne active au niveau minimum).

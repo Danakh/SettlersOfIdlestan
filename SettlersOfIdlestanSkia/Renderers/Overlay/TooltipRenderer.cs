@@ -140,7 +140,7 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay
 
             if (civ != null)
             {
-                int maxSoldiers = militaryController.GetMaximumSoldierCapacity(city, civ);
+                int maxSoldiers = militaryController.GetMaximumSoldierCapacity(city);
                 if (maxSoldiers > 0)
                 {
                     if (isPlayerCity)

@@ -23,8 +23,8 @@ internal class SoldierProductionEngine
         _state = state;
     }
 
-    internal int GetMaximumSoldierCapacity(City city, Civilization civ)
-        => city.MaxSoldiers + civ.CityMaxSoldiersBonus;
+    internal int GetMaximumSoldierCapacity(City city)
+        => city.MaxSoldiers + _state!.Civilizations[city.CivilizationIndex].CityMaxSoldiersBonus;
 
     internal void ProduceSoldiers(long currentTick)
     {
@@ -33,7 +33,7 @@ internal class SoldierProductionEngine
         foreach (var civ in _state.Civilizations)
             foreach (var city in civ.Cities)
             {
-                if (city.Soldiers >= GetMaximumSoldierCapacity(city, civ)) continue;
+                if (city.Soldiers >= GetMaximumSoldierCapacity(city)) continue;
                 long effectiveProductionInterval = (long)(MilitaryController.SoldierProductionIntervalTicks / civ.UnitProductionSpeed);
                 if (currentTick - city.LastSoldierProductionTick < effectiveProductionInterval) continue;
 
@@ -59,7 +59,7 @@ internal class SoldierProductionEngine
                 if (useSteelWeapons)
                 {
                     civ.RemoveResource(Resource.Steel, 1);
-                    int toAdd = Math.Min(5, GetMaximumSoldierCapacity(city, civ) - city.Soldiers);
+                    int toAdd = Math.Min(5, GetMaximumSoldierCapacity(city) - city.Soldiers);
                     city.Soldiers += toAdd;
                 }
                 else
