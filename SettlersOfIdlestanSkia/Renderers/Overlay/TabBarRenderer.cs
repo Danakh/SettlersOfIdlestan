@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using SettlersOfIdlestan.Controller.Expand;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestanSkia.Core;
@@ -42,6 +44,10 @@ public sealed class TabBarRenderer : IDisposable
     private bool _hasAutomationTab;
     private bool _hasNewEvent;
     private int? _seenEventCount;
+    private bool _prestigeGlowing;
+    private bool _lastCanBuyPrestige;
+    private bool _researchGlowing;
+    private bool _lastResearchIdleWithPoints;
     private SKSize _canvasSize;
 
     /// X offset from which the resource bar content should start (after the tabs).
@@ -99,6 +105,8 @@ public sealed class TabBarRenderer : IDisposable
         {
             ComputeTabRects(isMobile, uiScale);
             UpdateEventNotification();
+            UpdatePrestigeNotification();
+            UpdateResearchNotification();
         }
         else
         {
@@ -163,12 +171,13 @@ public sealed class TabBarRenderer : IDisposable
 
     private void DrawTabButtons(SKCanvas canvas)
     {
-        bool blinkResearch = ShouldBlinkResearchTab();
         float blinkT = (float)(Math.Sin(Environment.TickCount64 / 500.0) * 0.5 + 0.5);
 
         foreach (var (tabId, rect) in _activeTabs)
         {
-            bool blink = (blinkResearch && tabId == TabResearch) || (_hasNewEvent && tabId == TabEvents);
+            bool blink = (_prestigeGlowing && tabId == TabPrestige)
+                      || (_researchGlowing  && tabId == TabResearch)
+                      || (_hasNewEvent      && tabId == TabEvents);
             DrawTab(canvas, rect, GetTabLabel(tabId), _activeTab == tabId, blink ? blinkT : -1f);
         }
     }
@@ -274,10 +283,66 @@ public sealed class TabBarRenderer : IDisposable
         catch { return false; }
     }
 
-    private bool ShouldBlinkResearchTab()
+    private void UpdatePrestigeNotification()
     {
-        if (!_hasResearchTab || _activeTab == TabResearch) return false;
-        try { return _gameControllerService.MainGameController.ResearchController.ActiveResearch == null; }
+        bool canBuyNow = CanBuyAnyPrestigeVertex();
+        if (_activeTab == TabPrestige)
+        {
+            _prestigeGlowing = false;
+            _lastCanBuyPrestige = canBuyNow;
+        }
+        else if (canBuyNow && !_lastCanBuyPrestige)
+        {
+            _prestigeGlowing = true;
+            _lastCanBuyPrestige = true;
+        }
+        else if (!canBuyNow)
+        {
+            _lastCanBuyPrestige = false;
+            _prestigeGlowing = false;
+        }
+    }
+
+    private bool CanBuyAnyPrestigeVertex()
+    {
+        try
+        {
+            var prestigeState = _gameControllerService.CurrentGameState?.PrestigeState;
+            if (prestigeState == null) return false;
+            var controller = _gameControllerService.MainGameController.PrestigeMapController;
+            return PrestigeMapController.DefaultMap.Vertices.Any(v => controller.CanPurchaseVertex(prestigeState, v.Coord));
+        }
+        catch { return false; }
+    }
+
+    private void UpdateResearchNotification()
+    {
+        bool idleWithPoints = IsResearchIdleWithPoints();
+        if (_activeTab == TabResearch)
+        {
+            _researchGlowing = false;
+            _lastResearchIdleWithPoints = idleWithPoints;
+        }
+        else if (idleWithPoints && !_lastResearchIdleWithPoints)
+        {
+            _researchGlowing = true;
+            _lastResearchIdleWithPoints = true;
+        }
+        else if (!idleWithPoints)
+        {
+            _lastResearchIdleWithPoints = false;
+            _researchGlowing = false;
+        }
+    }
+
+    private bool IsResearchIdleWithPoints()
+    {
+        if (!_hasResearchTab) return false;
+        try
+        {
+            var rc = _gameControllerService.MainGameController.ResearchController;
+            return rc.ActiveResearch == null && rc.ResearchPoints > 0;
+        }
         catch { return false; }
     }
 
