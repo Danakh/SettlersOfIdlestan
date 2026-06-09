@@ -87,6 +87,12 @@ public sealed class MilitaryInteractionService
         return best;
     }
 
+    private bool IsValidFlowTarget(City target)
+    {
+        var playerIndex = _gameControllerService.CurrentWorldState?.PlayerCivilization?.Index ?? -1;
+        return target.CivilizationIndex != playerIndex || _militaryController.GetMaximumSoldierCapacity(target) > 0;
+    }
+
     private bool IsInRange(City source, City target)
     {
         var playerCiv = _gameControllerService.CurrentWorldState?.PlayerCivilization;
@@ -134,6 +140,8 @@ public sealed class MilitaryInteractionService
         if (_activeDragSourceCity != null)
         {
             var target = FindAnyCityNear(ScreenToIsland(e.Position), _activeDragSourceCity.Position.Z);
+            if (target != null && !IsValidFlowTarget(target))
+                target = null;
             DragTargetCity = target;
             DragTargetIsInRange = target != null && target != _activeDragSourceCity && IsInRange(_activeDragSourceCity, target);
         }
@@ -148,6 +156,8 @@ public sealed class MilitaryInteractionService
         if (_activeDragSourceCity != null)
         {
             var target = FindAnyCityNear(ScreenToIsland(e.Position), _activeDragSourceCity.Position.Z);
+            if (target != null && !IsValidFlowTarget(target))
+                target = null;
 
             if (target == null || target == _activeDragSourceCity)
             {

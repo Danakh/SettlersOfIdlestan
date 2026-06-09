@@ -140,5 +140,15 @@ internal class ReinforcementEngine
     internal bool IsEnemyCityAt(Vertex target, Civilization civ)
         => _state!.Civilizations.Any(c => c.Index != civ.Index && c.Cities.Any(cc => cc.Position.Equals(target)));
 
-    internal void SetCityFlow(City city, Vertex? target) => city.FlowTarget = target;
+    internal void SetCityFlow(City city, Vertex? target)
+    {
+        if (target != null && _state != null)
+        {
+            var sourceCiv = _state.Civilizations.FirstOrDefault(c => c.Index == city.CivilizationIndex);
+            var allyTarget = sourceCiv?.Cities.FirstOrDefault(c => c.Position.Equals(target));
+            if (allyTarget != null && allyTarget.MaxSoldiers == 0)
+                target = null;
+        }
+        city.FlowTarget = target;
+    }
 }
