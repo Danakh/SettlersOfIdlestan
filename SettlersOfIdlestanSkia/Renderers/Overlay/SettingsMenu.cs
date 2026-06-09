@@ -1,4 +1,5 @@
 ﻿using SettlersOfIdlestan.Controller;
+using SettlersOfIdlestan.Controller.Expand;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestanSkia.Services.Localization;
 using SettlersOfIdlestanSkia.Core;
@@ -391,8 +392,11 @@ public class SettingsMenu
         var mainState = _gameController.CurrentMainState;
         if (mainState?.PrestigeState != null)
         {
-            mainState.PrestigeState.PrestigePoints += 1000;
-            mainState.PrestigeState.TotalPrestigePointsEarned += 1000;
+            mainState.PrestigeState.PrestigePoints += 10000;
+            mainState.PrestigeState.TotalPrestigePointsEarned += 10000;
+            mainState.PrestigeState.TechnologyTree.ResearchPoints = Math.Min(
+                mainState.PrestigeState.TechnologyTree.ResearchPoints + 10000,
+                ResearchController.MaxResearchPoints);
         }
     }
 
