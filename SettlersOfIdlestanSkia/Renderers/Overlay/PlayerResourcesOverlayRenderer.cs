@@ -27,6 +27,8 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
     private SKPaint? _itemBorderPaint;
     private SKPaint? _gearCenterPaint;
     private SKPaint? _lowStockPaint;
+    private SKPaint? _scrollTrackPaint;
+    private SKPaint? _scrollThumbPaint;
 
     private readonly ConcurrentDictionary<Resource, long> _lowStockTimestamps = new();
     private const long LowStockFlickerDurationMs = 5000;
@@ -121,6 +123,8 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
         _itemBorderPaint = new SKPaint { Color = new SKColor(255, 255, 255, 60), Style = SKPaintStyle.Stroke, StrokeWidth = 1, IsAntialias = true };
         _gearCenterPaint = new SKPaint { Color = SKColors.Gold, Style = SKPaintStyle.Stroke, StrokeWidth = 1.5f, IsAntialias = true };
         _lowStockPaint = new SKPaint { Style = SKPaintStyle.Stroke, StrokeWidth = 2, IsAntialias = true };
+        _scrollTrackPaint = new SKPaint { Color = new SKColor(255, 255, 255, 25), Style = SKPaintStyle.Fill, IsAntialias = true };
+        _scrollThumbPaint = new SKPaint { Color = new SKColor(255, 255, 255, 90), Style = SKPaintStyle.Fill, IsAntialias = true };
 
         foreach (Resource resource in Enum.GetValues(typeof(Resource)))
         {
@@ -208,11 +212,32 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
         _totalResourcesContentWidth = currentX - ResourceStartX;
         canvas.Restore();
 
+        DrawScrollbarIndicator(canvas, barH, clipRight);
+
         if (ShowGearInBar)
         {
             float gearX = _canvasSize.Width - padding - iconContainerSz;
             DrawGearIcon(canvas, gearX, itemY, iconContainerSz);
         }
+    }
+
+    private void DrawScrollbarIndicator(SKCanvas canvas, float barH, float clipRight)
+    {
+        float trackW = clipRight - ResourceStartX;
+        if (_totalResourcesContentWidth <= trackW) return;
+
+        const float scrollbarH = 3f;
+        const float scrollbarRadius = 1.5f;
+        float trackY = barH - scrollbarH - 2f;
+
+        var trackRect = new SKRect(ResourceStartX, trackY, clipRight, trackY + scrollbarH);
+        canvas.DrawRoundRect(trackRect, scrollbarRadius, scrollbarRadius, _scrollTrackPaint);
+
+        float thumbW = trackW * (trackW / _totalResourcesContentWidth);
+        float maxScroll = _totalResourcesContentWidth - trackW;
+        float thumbX = ResourceStartX + (ScrollOffset / maxScroll) * (trackW - thumbW);
+        var thumbRect = new SKRect(thumbX, trackY, thumbX + thumbW, trackY + scrollbarH);
+        canvas.DrawRoundRect(thumbRect, scrollbarRadius, scrollbarRadius, _scrollThumbPaint);
     }
 
     public void DrawGearAt(SKCanvas canvas, float x, float y, float size)
@@ -403,6 +428,8 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
         _itemBorderPaint?.Dispose();
         _gearCenterPaint?.Dispose();
         _lowStockPaint?.Dispose();
+        _scrollTrackPaint?.Dispose();
+        _scrollThumbPaint?.Dispose();
         _disposed = true;
     }
 }
