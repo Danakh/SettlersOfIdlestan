@@ -1,3 +1,4 @@
+using System.Reflection;
 using SkiaSharp;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Services;
@@ -37,6 +38,9 @@ public sealed class TitleScreen : IDisposable
     private SKFont? _sectionTitleFont;
     private SKFont? _btnFont;
     private float _lastFontScale;
+
+    private string? _cachedChangelogContent;
+    private SettlersOfIdlestan.Model.Localization.Language _cachedChangelogLanguage = (SettlersOfIdlestan.Model.Localization.Language)(-1);
 
     public event Action? NewGameRequested;
     public event Action? ContinueRequested;
@@ -93,7 +97,7 @@ public sealed class TitleScreen : IDisposable
         SkiaTextUtils.DrawText(canvas, sectionTitle, cx - stW / 2f, boxY + 18 * s, _sectionTitleFont, _textPaint);
 
         float contentY = boxY + 36 * s;
-        string content = _localization.Get("title_changelog_content");
+        string content = GetChangelogContent();
         if (!string.IsNullOrWhiteSpace(content))
         {
             // Clamp box height based on available space
@@ -120,6 +124,30 @@ public sealed class TitleScreen : IDisposable
 
             canvas.Restore();
         }
+    }
+
+    private string GetChangelogContent()
+    {
+        var lang = _localization.CurrentLanguage;
+        if (_cachedChangelogContent != null && _cachedChangelogLanguage == lang)
+            return _cachedChangelogContent;
+
+        string langCode = lang == SettlersOfIdlestan.Model.Localization.Language.English ? "en" : "fr";
+        string resourceName = $"SettlersOfIdlestanSkia.Resources.changelog.changelog_{langCode}.txt";
+
+        var asm = Assembly.GetExecutingAssembly();
+        using var stream = asm.GetManifestResourceStream(resourceName);
+        if (stream == null)
+        {
+            _cachedChangelogContent  = string.Empty;
+            _cachedChangelogLanguage = lang;
+            return string.Empty;
+        }
+
+        using var reader = new StreamReader(stream, System.Text.Encoding.UTF8);
+        _cachedChangelogContent  = reader.ReadToEnd();
+        _cachedChangelogLanguage = lang;
+        return _cachedChangelogContent;
     }
 
     private void RenderButtons(SKCanvas canvas, SKSize canvasSize, float s)

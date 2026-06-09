@@ -1,0 +1,7 @@
+⚠ Ce jeu est encore en alpha. Le contenu et l'équilibre peuvent changer à tout moment.
+Le changelog n'est pas activement mis à jour pour le moment.
+
+---
+
+v0.1
+Trois îles sont disponibles, chacune générée de manière procédurale. Un tutoriel guide les nouveaux joueurs à travers les mécaniques de base. Le combat militaire permet de défendre ses villes contre les bandits et les dragons. Le premier niveau de prestige est accessible, permettant de débloquer des bonus permanents entre les parties. Un arbre de recherches offre des améliorations progressives à la civilisation.

@@ -12,6 +12,7 @@
   <ItemGroup>
     <EmbeddedResource Include="Resources\icons\**\*.svg" />
     <EmbeddedResource Include="Resources\fonts\*.ttf" />
+    <EmbeddedResource Include="Resources\changelog\*.txt" />
   </ItemGroup>
 
   <PropertyGroup>

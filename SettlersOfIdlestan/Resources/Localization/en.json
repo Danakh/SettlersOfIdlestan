@@ -20,7 +20,6 @@
   "hard_reset_btn_cancel": "Cancel",
   "hard_reset_btn_confirm": "Confirm",
   "title_changelog_title": "Changelog",
-  "title_changelog_content": "v0.9 — Title screen, screen navigation\nv0.8 — Wonders, extended tutorial\nv0.7 — Monster & bandit system\nv0.6 — Prestige and prestige map\nv0.5 — Inter-city trading\nv0.4 — Research & technologies\nv0.3 — Road building\nv0.2 — Procedural island generation\nv0.1 — Game foundations",
   "title_btn_continue": "Continue",
   "title_btn_new_game": "New Game",
   "title_btn_hard_reset": "Hard Reset",
