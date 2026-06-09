@@ -33,6 +33,7 @@ public class TaskRecordController
     private MilitaryController? _militaryController;
     private HarvestController? _harvestController;
     private TradeController? _tradeController;
+    private WonderController? _wonderController;
 
     public event EventHandler<TutorialTaskId>? OnTaskCompleted;
 
@@ -49,7 +50,8 @@ public class TaskRecordController
         ResearchController researchController,
         MilitaryController militaryController,
         HarvestController harvestController,
-        TradeController tradeController)
+        TradeController tradeController,
+        WonderController wonderController)
     {
         Unsubscribe();
 
@@ -65,6 +67,7 @@ public class TaskRecordController
         _militaryController = militaryController;
         _harvestController = harvestController;
         _tradeController = tradeController;
+        _wonderController = wonderController;
 
         _buildingController.OnBuildingBuilt += HandleBuildingBuilt;
         _roadController.OnRoadBuilt += HandleRoadBuilt;
@@ -76,6 +79,8 @@ public class TaskRecordController
         _tradeController.GoldObtainedFromTrade += HandleGoldObtainedFromTrade;
         _militaryController.ReinforcementSent += HandleReinforcementSent;
         _militaryController.CityDestroyed += HandleCityDestroyed;
+        _wonderController.OnWonderPlaced += HandleWonderPlaced;
+        _wonderController.OnWonderLevelUp += HandleWonderLevelUp;
     }
 
     private void Unsubscribe()
@@ -90,6 +95,8 @@ public class TaskRecordController
         if (_tradeController != null) _tradeController.GoldObtainedFromTrade -= HandleGoldObtainedFromTrade;
         if (_militaryController != null) _militaryController.ReinforcementSent -= HandleReinforcementSent;
         if (_militaryController != null) _militaryController.CityDestroyed -= HandleCityDestroyed;
+        if (_wonderController != null) _wonderController.OnWonderPlaced -= HandleWonderPlaced;
+        if (_wonderController != null) _wonderController.OnWonderLevelUp -= HandleWonderLevelUp;
     }
 
     /// <summary>
@@ -220,6 +227,21 @@ public class TaskRecordController
             _gameRecord.TotalEnemyCitiesDestroyed++;
             CheckTaskCompletions();
         }
+    }
+
+    private void HandleWonderPlaced(object? sender, EventArgs e)
+    {
+        if (_gameRecord == null) return;
+        _gameRecord.HasPlacedWonder = true;
+        CheckTaskCompletions();
+    }
+
+    private void HandleWonderLevelUp(object? sender, int level)
+    {
+        if (_gameRecord == null) return;
+        if (level >= 1)
+            _gameRecord.HasBuiltWonder = true;
+        CheckTaskCompletions();
     }
 
     private void HandleResearchCompleted(object? sender, TechnologyId e)

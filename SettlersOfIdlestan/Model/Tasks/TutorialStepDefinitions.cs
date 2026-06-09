@@ -70,7 +70,7 @@ public static class TutorialStepDefinitions
             },
             secondaryTasks: new[]
             {
-                Task(TutorialTaskId.Build5Palisades),
+                Task(TutorialTaskId.Build20ProductionBuildingsLevel2),
             }
         ),
 
@@ -169,16 +169,47 @@ public static class TutorialStepDefinitions
         ),
 
         new TutorialStep(
+            "tutorial_step_second_prestige_title",
+            "tutorial_step_second_prestige_desc",
+            primaryTasks: new[]
+            {
+                Task(TutorialTaskId.PerformSecondPrestige),
+            },
+            secondaryTasks: new[]
+            {
+                Task(TutorialTaskId.KillBandit),
+                Task(TutorialTaskId.DestroyBanditHideout),
+            }
+        ),
+
+        new TutorialStep(
             "tutorial_step_war_title",
             "tutorial_step_war_desc",
             primaryTasks: new[]
             {
                 Task(TutorialTaskId.DestroyEnemyCity),
             },
-            secondaryTasks: new[]
+            secondaryTasks: System.Array.Empty<TutorialTask>()
+        ),
+
+        new TutorialStep(
+            "tutorial_step_place_wonder_title",
+            "tutorial_step_place_wonder_desc",
+            primaryTasks: new[]
             {
-                Task(TutorialTaskId.KillBandit),
-            }
+                Task(TutorialTaskId.PlaceWonder),
+            },
+            secondaryTasks: System.Array.Empty<TutorialTask>()
+        ),
+
+        new TutorialStep(
+            "tutorial_step_wonder_title",
+            "tutorial_step_wonder_desc",
+            primaryTasks: new[]
+            {
+                Task(TutorialTaskId.BuildWonder),
+            },
+            secondaryTasks: System.Array.Empty<TutorialTask>()
         ),
     };
 }

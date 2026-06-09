@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
+using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.IslandMap;
 
 namespace SettlersOfIdlestan.Model.Tasks;
@@ -122,6 +123,15 @@ public static class TutorialTaskDefinitions
                 || CountBuilding(island, BuildingType.Palisade) >= 5,
             (g, _, island) => (LiveMax(g.BuildingCounts.GetValueOrDefault("Palisade"), CountBuilding(island, BuildingType.Palisade)), 5)),
 
+        new TutorialTask(TutorialTaskId.Build20ProductionBuildingsLevel2,
+            "task_build_20_production_level2_name", "task_build_20_production_level2_desc",
+            (g, _, island) => g.ProductionBuildingsReachedLevel2 >= 20
+                || island?.PlayerCivilization.Cities.SelectMany(c => c.Buildings)
+                    .Count(b => ProductionBuildingTypes.Contains(b.Type) && b.Level >= 2) >= 20,
+            (g, _, island) => (LiveMax(g.ProductionBuildingsReachedLevel2,
+                island?.PlayerCivilization.Cities.SelectMany(c => c.Buildings)
+                    .Count(b => ProductionBuildingTypes.Contains(b.Type) && b.Level >= 2)), 20)),
+
         new TutorialTask(TutorialTaskId.BuildImperialPort,
             "task_build_imperial_port_name", "task_build_imperial_port_desc",
             (g, _, island) => g.BuildingCounts.GetValueOrDefault("ImperialPort") >= 1
@@ -219,5 +229,23 @@ public static class TutorialTaskDefinitions
         new TutorialTask(TutorialTaskId.KillBandit,
             "task_kill_bandit_name", "task_kill_bandit_desc",
             (g, _, _) => g.TotalBanditsDefeated >= 1),
+
+        new TutorialTask(TutorialTaskId.PerformSecondPrestige,
+            "task_perform_second_prestige_name", "task_perform_second_prestige_desc",
+            (g, _, _) => g.TotalPrestigesPerformed >= 2),
+
+        new TutorialTask(TutorialTaskId.DestroyBanditHideout,
+            "task_destroy_bandit_hideout_name", "task_destroy_bandit_hideout_desc",
+            (g, _, _) => g.TotalHideoutsDestroyed >= 1),
+
+        new TutorialTask(TutorialTaskId.PlaceWonder,
+            "task_place_wonder_name", "task_place_wonder_desc",
+            (g, _, island) => g.HasPlacedWonder
+                || island?.Features.OfType<Wonder>().Any() == true),
+
+        new TutorialTask(TutorialTaskId.BuildWonder,
+            "task_build_wonder_name", "task_build_wonder_desc",
+            (g, _, island) => g.HasBuiltWonder
+                || island?.Features.OfType<Wonder>().Any(w => w.Level >= 1) == true),
     };
 }

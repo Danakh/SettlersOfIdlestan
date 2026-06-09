@@ -49,6 +49,12 @@ public class GameRecord
     /// <summary>Nombre de villes ennemies détruites par le joueur (cross-prestige).</summary>
     public int TotalEnemyCitiesDestroyed { get; set; }
 
+    /// <summary>True si le joueur a placé une merveille sur la carte au moins une fois.</summary>
+    public bool HasPlacedWonder { get; set; }
+
+    /// <summary>True si le joueur a construit une merveille (niveau ≥ 1) au moins une fois.</summary>
+    public bool HasBuiltWonder { get; set; }
+
     /// <summary>IDs des tâches tutoriel complétées (clé = TutorialTaskId.ToString()).</summary>
     public HashSet<string> CompletedTasks { get; set; } = new();
 }

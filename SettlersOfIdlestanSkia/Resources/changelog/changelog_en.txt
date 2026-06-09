@@ -1,0 +1,12 @@
+⚠ This game is still in alpha. Content and balance may change at any time.
+The changelog is not actively maintained at the moment.
+
+---
+
+v0.2
+
+
+---
+
+v0.1
+Three islands are available, each procedurally generated. A tutorial guides new players through the core mechanics. Military combat lets you defend your cities against bandits and dragons. The first prestige level is unlockable, granting permanent bonuses that carry over between runs. A research tree provides progressive upgrades to your civilization.

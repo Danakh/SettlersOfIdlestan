@@ -14,6 +14,7 @@ public enum TutorialTaskId
     Build10Cities,
     Build5Libraries,
     Build5Palisades,
+    Build20ProductionBuildingsLevel2,
     SeaportAndTownHallLevel4SameCity,
     SeaportLevel4,
     TownHallLevel4,
@@ -36,4 +37,8 @@ public enum TutorialTaskId
     CreateReinforcementFlow,
     DestroyEnemyCity,
     KillBandit,
+    PerformSecondPrestige,
+    DestroyBanditHideout,
+    PlaceWonder,
+    BuildWonder,
 }

@@ -164,6 +164,16 @@ new PrestigeHex(
 
 ---
 
+## Changelog
+
+The changelog files are at `SettlersOfIdlestanSkia/Resources/changelog/changelog_fr.txt` and `changelog_en.txt`.
+
+**When to update:** Only for significant new gameplay features (new systems, new game mechanics, new content). Do **not** add entries for balance changes, bug fixes, refactors, or UI polish — those changes should not appear in the changelog automatically.
+
+Add content under the latest version block. Do not create a new version entry unless explicitly asked to.
+
+---
+
 ## Tooltips & Localization
 
 **Translation files:** `SettlersOfIdlestan/Resources/Localization/fr.json` and `en.json`.  
