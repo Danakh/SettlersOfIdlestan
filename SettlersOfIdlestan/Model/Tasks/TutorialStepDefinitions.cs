@@ -70,7 +70,7 @@ public static class TutorialStepDefinitions
             },
             secondaryTasks: new[]
             {
-                Task(TutorialTaskId.Build5Palisades),
+                Task(TutorialTaskId.Build20ProductionBuildingsLevel2),
             }
         ),
 

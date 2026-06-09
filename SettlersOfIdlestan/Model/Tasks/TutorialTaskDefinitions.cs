@@ -123,6 +123,15 @@ public static class TutorialTaskDefinitions
                 || CountBuilding(island, BuildingType.Palisade) >= 5,
             (g, _, island) => (LiveMax(g.BuildingCounts.GetValueOrDefault("Palisade"), CountBuilding(island, BuildingType.Palisade)), 5)),
 
+        new TutorialTask(TutorialTaskId.Build20ProductionBuildingsLevel2,
+            "task_build_20_production_level2_name", "task_build_20_production_level2_desc",
+            (g, _, island) => g.ProductionBuildingsReachedLevel2 >= 20
+                || island?.PlayerCivilization.Cities.SelectMany(c => c.Buildings)
+                    .Count(b => ProductionBuildingTypes.Contains(b.Type) && b.Level >= 2) >= 20,
+            (g, _, island) => (LiveMax(g.ProductionBuildingsReachedLevel2,
+                island?.PlayerCivilization.Cities.SelectMany(c => c.Buildings)
+                    .Count(b => ProductionBuildingTypes.Contains(b.Type) && b.Level >= 2)), 20)),
+
         new TutorialTask(TutorialTaskId.BuildImperialPort,
             "task_build_imperial_port_name", "task_build_imperial_port_desc",
             (g, _, island) => g.BuildingCounts.GetValueOrDefault("ImperialPort") >= 1
