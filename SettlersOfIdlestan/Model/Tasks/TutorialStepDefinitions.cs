@@ -169,16 +169,27 @@ public static class TutorialStepDefinitions
         ),
 
         new TutorialStep(
+            "tutorial_step_second_prestige_title",
+            "tutorial_step_second_prestige_desc",
+            primaryTasks: new[]
+            {
+                Task(TutorialTaskId.PerformSecondPrestige),
+            },
+            secondaryTasks: new[]
+            {
+                Task(TutorialTaskId.KillBandit),
+                Task(TutorialTaskId.DestroyBanditHideout),
+            }
+        ),
+
+        new TutorialStep(
             "tutorial_step_war_title",
             "tutorial_step_war_desc",
             primaryTasks: new[]
             {
                 Task(TutorialTaskId.DestroyEnemyCity),
             },
-            secondaryTasks: new[]
-            {
-                Task(TutorialTaskId.KillBandit),
-            }
+            secondaryTasks: System.Array.Empty<TutorialTask>()
         ),
     };
 }

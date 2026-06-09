@@ -36,4 +36,6 @@ public enum TutorialTaskId
     CreateReinforcementFlow,
     DestroyEnemyCity,
     KillBandit,
+    PerformSecondPrestige,
+    DestroyBanditHideout,
 }

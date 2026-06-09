@@ -219,5 +219,13 @@ public static class TutorialTaskDefinitions
         new TutorialTask(TutorialTaskId.KillBandit,
             "task_kill_bandit_name", "task_kill_bandit_desc",
             (g, _, _) => g.TotalBanditsDefeated >= 1),
+
+        new TutorialTask(TutorialTaskId.PerformSecondPrestige,
+            "task_perform_second_prestige_name", "task_perform_second_prestige_desc",
+            (g, _, _) => g.TotalPrestigesPerformed >= 2),
+
+        new TutorialTask(TutorialTaskId.DestroyBanditHideout,
+            "task_destroy_bandit_hideout_name", "task_destroy_bandit_hideout_desc",
+            (g, _, _) => g.TotalHideoutsDestroyed >= 1),
     };
 }
