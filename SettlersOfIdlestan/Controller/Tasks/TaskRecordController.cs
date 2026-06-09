@@ -9,6 +9,7 @@ using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Monsters;
+using SettlersOfIdlestan.Model.Prestige.PrestigeMap;
 using SettlersOfIdlestan.Model.Tasks;
 
 namespace SettlersOfIdlestan.Controller.Tasks;
@@ -73,6 +74,8 @@ public class TaskRecordController
         _islandState.FeatureRemoved += HandleFeatureRemoved;
         _harvestController.OnHarvestCompleted += HandleHarvestCompleted;
         _tradeController.GoldObtainedFromTrade += HandleGoldObtainedFromTrade;
+        _militaryController.ReinforcementSent += HandleReinforcementSent;
+        _militaryController.CityDestroyed += HandleCityDestroyed;
     }
 
     private void Unsubscribe()
@@ -85,6 +88,8 @@ public class TaskRecordController
         if (_islandState != null) _islandState.FeatureRemoved -= HandleFeatureRemoved;
         if (_harvestController != null) _harvestController.OnHarvestCompleted -= HandleHarvestCompleted;
         if (_tradeController != null) _tradeController.GoldObtainedFromTrade -= HandleGoldObtainedFromTrade;
+        if (_militaryController != null) _militaryController.ReinforcementSent -= HandleReinforcementSent;
+        if (_militaryController != null) _militaryController.CityDestroyed -= HandleCityDestroyed;
     }
 
     /// <summary>
@@ -195,7 +200,26 @@ public class TaskRecordController
     {
         if (_gameRecord == null) return;
         _gameRecord.TotalPrestigeVerticesPurchased++;
+        if (e.Vertex.Equals(PrestigeMap.BarracksVertex))
+            _gameRecord.HasPurchasedBarracksVertex = true;
         CheckTaskCompletions();
+    }
+
+    private void HandleReinforcementSent(object? sender, ReinforcementEventArgs e)
+    {
+        if (_gameRecord == null) return;
+        _gameRecord.HasCreatedReinforcementFlow = true;
+        CheckTaskCompletions();
+    }
+
+    private void HandleCityDestroyed(object? sender, CityDestroyedEventArgs e)
+    {
+        if (_gameRecord == null) return;
+        if (e.CivilizationIndex != _playerCivIndex && e.CivilizationIndex >= 0)
+        {
+            _gameRecord.TotalEnemyCitiesDestroyed++;
+            CheckTaskCompletions();
+        }
     }
 
     private void HandleResearchCompleted(object? sender, TechnologyId e)

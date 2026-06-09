@@ -235,6 +235,15 @@ namespace SettlersOfIdlestan.Controller.Expand
             return (0, cost);
         }
 
+        public (double percent, double perSecond) GetResearchConsumptionInfo()
+        {
+            if (Tree?.ActiveResearch == null || ResearchPoints <= 0) return (0, 0);
+            int consumed = Math.Max(1, ResearchPoints / 100);
+            double perSecond = consumed * (100.0 / ResearchConsumptionCooldownTicks);
+            double percent = consumed * 100.0 / ResearchPoints;
+            return (percent, perSecond);
+        }
+
         public double GetResearchPointsPerSecond()
         {
             if (_state == null) return 0.0;

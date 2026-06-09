@@ -29,4 +29,11 @@ public enum TutorialTaskId
     BuyResearchVertex,
     CompleteFirstResearch,
     BuildLibraryLevel2,
+    BuildBarracks,
+    BuyBarracksVertex,
+    CompleteMilitaryBuildingsResearch,
+    Build2Barracks,
+    CreateReinforcementFlow,
+    DestroyEnemyCity,
+    KillBandit,
 }

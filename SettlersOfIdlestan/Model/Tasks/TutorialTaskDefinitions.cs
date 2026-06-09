@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using SettlersOfIdlestan.Model.Buildings;
+using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.IslandMap;
 
 namespace SettlersOfIdlestan.Model.Tasks;
@@ -183,5 +184,40 @@ public static class TutorialTaskDefinitions
             "task_reach_enough_victory_points_name", "task_reach_enough_victory_points_desc",
             (g, _, island) => g.TotalPrestigesPerformed >= 1 || ComputePrestigePoints(island) >= 35,
             (g, _, island) => (g.TotalPrestigesPerformed >= 1 ? 35 : ComputePrestigePoints(island), 35)),
+
+        new TutorialTask(TutorialTaskId.BuildBarracks,
+            "task_build_barracks_name", "task_build_barracks_desc",
+            (g, _, island) => g.BuildingCounts.GetValueOrDefault("Barracks") >= 1
+                || CountBuilding(island, BuildingType.Barracks) >= 1),
+
+        new TutorialTask(TutorialTaskId.BuyBarracksVertex,
+            "task_buy_barracks_vertex_name", "task_buy_barracks_vertex_desc",
+            (g, _, _) => g.HasPurchasedBarracksVertex),
+
+        new TutorialTask(TutorialTaskId.CompleteMilitaryBuildingsResearch,
+            "task_complete_military_buildings_research_name", "task_complete_military_buildings_research_desc",
+            (g, _, island) => island?.PlayerCivilization.TechnologyTree.CompletedTechnologies.Contains(TechnologyId.MilitaryBuildings) == true),
+
+        new TutorialTask(TutorialTaskId.Build2Barracks,
+            "task_build_2_barracks_name", "task_build_2_barracks_desc",
+            (g, _, island) => g.BuildingCounts.GetValueOrDefault("Barracks") >= 2
+                || CountBuilding(island, BuildingType.Barracks) >= 2,
+            (g, _, island) => (LiveMax(g.BuildingCounts.GetValueOrDefault("Barracks"), CountBuilding(island, BuildingType.Barracks)), 2)),
+
+        new TutorialTask(TutorialTaskId.CreateReinforcementFlow,
+            "task_create_reinforcement_flow_name", "task_create_reinforcement_flow_desc",
+            (g, _, island) => g.HasCreatedReinforcementFlow
+                || island?.PlayerCivilization.Cities.Any(c =>
+                    c.FlowTarget != null &&
+                    island.PlayerCivilization.Cities.Any(other =>
+                        other != c && other.Position.Equals(c.FlowTarget))) == true),
+
+        new TutorialTask(TutorialTaskId.DestroyEnemyCity,
+            "task_destroy_enemy_city_name", "task_destroy_enemy_city_desc",
+            (g, _, _) => g.TotalEnemyCitiesDestroyed >= 1),
+
+        new TutorialTask(TutorialTaskId.KillBandit,
+            "task_kill_bandit_name", "task_kill_bandit_desc",
+            (g, _, _) => g.TotalBanditsDefeated >= 1),
     };
 }

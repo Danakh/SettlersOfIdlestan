@@ -40,6 +40,15 @@ public class GameRecord
     /// <summary>Or total reçu via échanges commerciaux.</summary>
     public int TotalGoldObtainedFromTrade { get; set; }
 
+    /// <summary>True si le joueur a acheté le sommet Caserne dans la carte de prestige.</summary>
+    public bool HasPurchasedBarracksVertex { get; set; }
+
+    /// <summary>True si un flux de renfort a été envoyé entre deux villes du joueur.</summary>
+    public bool HasCreatedReinforcementFlow { get; set; }
+
+    /// <summary>Nombre de villes ennemies détruites par le joueur (cross-prestige).</summary>
+    public int TotalEnemyCitiesDestroyed { get; set; }
+
     /// <summary>IDs des tâches tutoriel complétées (clé = TutorialTaskId.ToString()).</summary>
     public HashSet<string> CompletedTasks { get; set; } = new();
 }

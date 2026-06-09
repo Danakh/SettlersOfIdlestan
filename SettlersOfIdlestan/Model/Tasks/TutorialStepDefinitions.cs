@@ -142,5 +142,43 @@ public static class TutorialStepDefinitions
                 Task(TutorialTaskId.BuildLibraryLevel2),
             }
         ),
+
+        new TutorialStep(
+            "tutorial_step_barracks_title",
+            "tutorial_step_barracks_desc",
+            primaryTasks: new[]
+            {
+                Task(TutorialTaskId.BuildBarracks),
+            },
+            secondaryTasks: new[]
+            {
+                Task(TutorialTaskId.BuyBarracksVertex),
+                Task(TutorialTaskId.CompleteMilitaryBuildingsResearch),
+            }
+        ),
+
+        new TutorialStep(
+            "tutorial_step_reinforcement_title",
+            "tutorial_step_reinforcement_desc",
+            primaryTasks: new[]
+            {
+                Task(TutorialTaskId.Build2Barracks),
+                Task(TutorialTaskId.CreateReinforcementFlow),
+            },
+            secondaryTasks: System.Array.Empty<TutorialTask>()
+        ),
+
+        new TutorialStep(
+            "tutorial_step_war_title",
+            "tutorial_step_war_desc",
+            primaryTasks: new[]
+            {
+                Task(TutorialTaskId.DestroyEnemyCity),
+            },
+            secondaryTasks: new[]
+            {
+                Task(TutorialTaskId.KillBandit),
+            }
+        ),
     };
 }
