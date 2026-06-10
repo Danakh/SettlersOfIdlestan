@@ -278,6 +278,7 @@ public static class TechnologyDefinitions
             modifiers: new Modifier[] { new(ECategory.RESEARCH_SPEED, EType.ADDITIVE, 0.3) },
             tier: 5, line: 5),
 
+            prerequisites: new[] { TechnologyId.TemperedSteel, TechnologyId.MasterResearch },
     };
 
     public static Technology? Get(TechnologyId id) => All.FirstOrDefault(t => t.Id == id);
