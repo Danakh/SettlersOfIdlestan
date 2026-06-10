@@ -18,6 +18,12 @@ public enum GameEventType
     DragonDefeated,
     RatsDiscovered,
     RatsDefeated,
+    TrollDiscovered,
+    TrollDefeated,
+    OgreDiscovered,
+    OgreDefeated,
+    DeepestMinePlaced,
+    DeepestMineDug,
 }
 
 public record GameLogEntry(GameEventType Type, string? Message = null);

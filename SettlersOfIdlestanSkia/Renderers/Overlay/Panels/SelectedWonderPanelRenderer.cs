@@ -31,7 +31,7 @@ public class SelectedWonderPanelRenderer : PanelRendererBase
 
     protected override SKTypeface Font15Typeface => SkiaFonts.Bold;
 
-    public bool HasSelection => _wonderService.SelectedWonder != null;
+    public bool HasSelection => _wonderService.SelectedInvestable != null;
     private SKRect _closeRect = SKRect.Empty;
     private readonly Dictionary<SKRect, Resource> _checkboxRects = new();
 
@@ -65,7 +65,7 @@ public class SelectedWonderPanelRenderer : PanelRendererBase
 
     public override void Render(SKCanvas canvas, GameRenderContext context)
     {
-        var wonder = _wonderService.SelectedWonder;
+        var wonder = _wonderService.SelectedInvestable;
         if (wonder == null)
         {
             PanelBounds = SKRect.Empty;
@@ -86,7 +86,7 @@ public class SelectedWonderPanelRenderer : PanelRendererBase
         float collapseTabW = CollapseTabW * s;
         float collapseTabH = CollapseTabH * s;
 
-        var cost = WonderController.GetLevelCost(wonder.Level + 1);
+        var cost = wonder.GetInvestmentCost();
         int resourceCount = cost.Count;
         var costList = cost.ToList();
 
@@ -114,7 +114,8 @@ public class SelectedWonderPanelRenderer : PanelRendererBase
         DrawPanelChrome(canvas, panelX, panelY, panelWidth, panelHeight);
 
         // Title + close button
-        string title = _localization.Get("wonder_panel_title") + " " + (wonder.Level + 1);
+        string title = _localization.Get(wonder.PanelTitleKey)
+            + (wonder.PanelTitleSuffix != null ? " " + wonder.PanelTitleSuffix : "");
         SkiaTextUtils.DrawText(canvas, title, panelX + padding, panelY + titleHeight - 8 * s, Font15, TextPaint);
 
         float closeSize = 20 * s;
@@ -210,7 +211,7 @@ public class SelectedWonderPanelRenderer : PanelRendererBase
 
         if (!_closeRect.IsEmpty && _closeRect.Contains(e.Position.X, e.Position.Y))
         {
-            _wonderService.ClearSelectedWonder();
+            _wonderService.ClearSelectedInvestable();
             return;
         }
 
@@ -226,7 +227,7 @@ public class SelectedWonderPanelRenderer : PanelRendererBase
 
     public void Close()
     {
-        _wonderService.ClearSelectedWonder();
+        _wonderService.ClearSelectedInvestable();
         Collapsed = false;
         ScrollOffset = 0;
         PanelBounds = SKRect.Empty;

@@ -21,8 +21,10 @@ public class PrestigeMap
     public static readonly HexCoord WarehouseMaxLevelCoord    = new(-1,  0, 0);
     // Branche de l'Acier (nord-est)
     public static readonly HexCoord SteelworksCoord           = new( 3, -1, 0);
+    // Branche de l'Inframonde (nord-ouest)
+    public static readonly HexCoord ExcavationsCoord          = new(-1, -1, 0);
+    public static readonly HexCoord UnderworldCoord           = new(-2, -1, 0);
     // Placeholder hexes (no bonuses)
-    public static readonly HexCoord NorthWestPlaceholderCoord = new(-1, -1, 0);
     public static readonly HexCoord SouthPlaceholderCoord     = new(-1,  3, 0);
 
     // ── Prestige vertices (HexGrid Vertex objects) ────────────────────────────
@@ -80,12 +82,16 @@ public class PrestigeMap
     // Around GoldTrade (-1,2) outer SW
     public static readonly Vertex PlaceholderH1Vertex = Vertex.Create(new(-1,  2, 0), new(-1,  3, 0), new(-2,  3, 0));
     public static readonly Vertex PlaceholderH2Vertex = Vertex.Create(new(-1,  2, 0), new(-2,  3, 0), new(-2,  2, 0));
-    // Connecting vertices toward new NW placeholder hex (-2,-1) — involve (-2,0) which is not mapped
-    public static readonly Vertex PlaceholderNW4Vertex = Vertex.Create(new(-2,  0, 0), new(-2, -1, 0), new(-1, -1, 0));
-    // Outer vertices of new NW placeholder hex (-2,-1)
-    public static readonly Vertex PlaceholderNWDVertex = Vertex.Create(new(-2, -1, 0), new(-1, -2, 0), new(-1, -1, 0));
-    // North corner of NW placeholder hex (-1,-1) — between (-1,-2) and (0,-2), both unmapped
-    public static readonly Vertex PlaceholderNWBVertex = Vertex.Create(new(-1, -1, 0), new(-1, -2, 0), new( 0, -2, 0));
+    // ── Branche de l'Inframonde (nord-ouest) — autour des hexes Excavations (-1,-1) et Inframonde (-2,-1)
+    // Porte d'entrée : déverrouille la Mine Profonde (plus chère que le Secret de l'Acier)
+    public static readonly Vertex DeepestMineVertex     = Vertex.Create(new(-2,  0, 0), new(-2, -1, 0), new(-1, -1, 0));
+    public static readonly Vertex MushroomCultureVertex = Vertex.Create(new(-2, -1, 0), new(-1, -2, 0), new(-1, -1, 0));
+    public static readonly Vertex UnderworldWatchVertex = Vertex.Create(new(-1, -1, 0), new(-1, -2, 0), new( 0, -2, 0));
+    public static readonly Vertex DeepProspectorsVertex = Vertex.Create(new(-2, -1, 0), new(-2,  0, 0), new(-3,  0, 0));
+    public static readonly Vertex TreasureHuntersVertex = Vertex.Create(new(-2, -1, 0), new(-3,  0, 0), new(-3, -1, 0));
+    public static readonly Vertex MithrilVertex         = Vertex.Create(new(-2, -1, 0), new(-3, -1, 0), new(-2, -2, 0));
+    // Coin nord de l'hex Inframonde — réservé pour le futur
+    public static readonly Vertex PlaceholderNWEVertex  = Vertex.Create(new(-2, -1, 0), new(-2, -2, 0), new(-1, -2, 0));
     // Connecting vertex toward new S placeholder hex (-1,3) — involves (0,3) which is not mapped
     public static readonly Vertex PlaceholderS3Vertex  = Vertex.Create(new( 0,  3, 0), new(-1,  4, 0), new(-1,  3, 0));
     // Outer vertices of new S placeholder hex (-1,3)

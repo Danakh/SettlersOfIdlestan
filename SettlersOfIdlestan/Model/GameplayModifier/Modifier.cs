@@ -74,6 +74,10 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             UNLOCK_STEEL_TRADE,
             /// <summary>Multiplicateur de vitesse d'envoi des renforts. Base = 1.0; +1.0 = intervalle divisé par 2.</summary>
             REINFORCEMENT_SPEED,
+            /// <summary>Flags que la Mine Profonde (accès à l'Inframonde) est déverrouillée pour la civilisation.</summary>
+            UNLOCK_DEEPEST_MINE,
+            /// <summary>Chance (en %) supplémentaire qu'un trésor apparaisse sur un nouvel hexagone de l'Inframonde.</summary>
+            UNDERWORLD_TREASURE_CHANCE_PERCENT,
         }
 
         public enum EType

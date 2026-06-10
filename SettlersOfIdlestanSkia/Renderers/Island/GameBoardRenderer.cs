@@ -62,6 +62,7 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
         { TerrainType.Water,       new SKColor(30, 144, 255) },
         { TerrainType.MithrilVein, new SKColor(60, 90, 140) },   // Bleu-gris profond
         { TerrainType.CrystalCave, new SKColor(185, 130, 220) }, // Violet cristallin
+        { TerrainType.MushroomCave, new SKColor(150, 105, 125) }, // Mauve fongique
     };
 
     public GameBoardRenderer(HarvestController harvestController, ResourceManager resourceManager)
@@ -173,10 +174,10 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
                         .ToDictionary(g => g.Key, g => (IEnumerable<IslandFeature>)g);
                     DrawIslandMap(canvas, mapToRender, playerIdx, mgs.Clock.CurrentTick, manualTimes, worldState.PlunderCooldownUntil, worldState.PlunderCooldownDuration, harvestBlockedPositions, featuresByPosition);
 
-                    var selectedWonder = _wonderService?.SelectedWonder;
-                    if (selectedWonder != null && _selectedWonderPaint != null)
+                    var selectedInvestable = _wonderService?.SelectedInvestable;
+                    if (selectedInvestable != null && _selectedWonderPaint != null)
                     {
-                        var (wx, wy) = AxialToIsland(selectedWonder.Position.Q, selectedWonder.Position.R);
+                        var (wx, wy) = AxialToIsland(selectedInvestable.Position.Q, selectedInvestable.Position.R);
                         canvas.DrawCircle(wx, wy, WonderSelectionRadius, _selectedWonderPaint);
                     }
                 }

@@ -5,6 +5,7 @@ The changelog is not actively maintained at the moment.
 
 v0.2
 The Age of Steel: the north-east branch of the prestige map grows beyond the Steel Secret with five new vertices and the Steelworks hex. Two new buildings appear: the Blast Furnace (a unique building boosting all Smelters) and the Arsenal. New Steel Armor mechanic: soldiers lost in combat can be saved by consuming Steel. Five new advanced technologies complete the branch, including Rail Logistics (faster reinforcements) and Special Steels (selling Steel at the market).
+The Descent into the Underworld: the north-west branch of the prestige map opens the way to the depths. The Deepest Mine becomes a grand dig site placed on a Mountain like a Wonder: invest your resources (including 1000 Steel) to break through to the Underworld. Below ground, Mushroom Caves feed your outposts through the new Mushroom Farm, treasures await explorers, and Mithril can finally be extracted with the Mithril Mine. But the Underworld is violent: regenerating trolls and devastating ogres roam the tunnels. Four new technologies accompany the descent, from Speleology to Mithril Tools.
 
 ---
 

@@ -123,7 +123,8 @@ public enum BuildingType
     /// </summary>
     MilitaryAcademy,
     /// <summary>
-    /// Mine Profonde - Bâtiment unique. Creuse jusqu'à l'Inframonde et y ouvre un avant-poste.
+    /// Mine Profonde - [Legacy] Conservé uniquement pour la désérialisation des anciennes sauvegardes.
+    /// La Mine Profonde est désormais une IslandFeature placée comme une Merveille.
     /// </summary>
     DeepestMine,
     /// <summary>
@@ -138,6 +139,14 @@ public enum BuildingType
     /// Arsenal - Augmente la capacité de soldats et permet de sauver des soldats en consommant de l'Acier (Armures d'Acier). Débloqué par le prestige (Génie Militaire).
     /// </summary>
     Arsenal,
+    /// <summary>
+    /// Ferme fongique - Produit automatiquement de la nourriture sur les Cavernes aux Champignons adjacentes (Inframonde). Débloqué par le prestige (Cultures Fongiques).
+    /// </summary>
+    MushroomFarm,
+    /// <summary>
+    /// Mine de Mithril - Extrait automatiquement du Mithril des Filons adjacents (Inframonde). Débloqué par le prestige (Le Mithril).
+    /// </summary>
+    MithrilMine,
 }
 
 /// <summary>

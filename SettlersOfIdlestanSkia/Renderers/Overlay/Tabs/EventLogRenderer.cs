@@ -156,6 +156,30 @@ public sealed class EventLogRenderer : IDisposable
             _successCardPaint, _successBorderPaint, _successTextPaint,
             _localization.Get("event_rats_defeated_title"),
             _localization.Get("event_rats_defeated_body")),
+        GameEventType.TrollDiscovered => (
+            _dangerCardPaint, _dangerBorderPaint, _dangerTextPaint,
+            _localization.Get("event_troll_title"),
+            _localization.Get("event_troll_body")),
+        GameEventType.TrollDefeated => (
+            _successCardPaint, _successBorderPaint, _successTextPaint,
+            _localization.Get("event_troll_defeated_title"),
+            _localization.Get("event_troll_defeated_body")),
+        GameEventType.OgreDiscovered => (
+            _dangerCardPaint, _dangerBorderPaint, _dangerTextPaint,
+            _localization.Get("event_ogre_title"),
+            _localization.Get("event_ogre_body")),
+        GameEventType.OgreDefeated => (
+            _successCardPaint, _successBorderPaint, _successTextPaint,
+            _localization.Get("event_ogre_defeated_title"),
+            _localization.Get("event_ogre_defeated_body")),
+        GameEventType.DeepestMinePlaced => (
+            _discoveryCardPaint, _discoveryBorderPaint, _discoveryTextPaint,
+            _localization.Get("event_deepest_mine_placed_title"),
+            _localization.Get("event_deepest_mine_placed_body")),
+        GameEventType.DeepestMineDug => (
+            _discoveryCardPaint, _discoveryBorderPaint, _discoveryTextPaint,
+            _localization.Get("event_deepest_mine_dug_title"),
+            _localization.Get("event_deepest_mine_dug_body")),
         _ => (_dangerCardPaint, _dangerBorderPaint, _bodyTextPaint, "?", entry.Message ?? "")
     };
 

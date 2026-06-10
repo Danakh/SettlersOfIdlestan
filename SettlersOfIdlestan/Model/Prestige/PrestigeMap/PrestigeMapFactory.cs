@@ -203,6 +203,71 @@ public static class PrestigeMapFactory
                     new(ECategory.BUILDING_MAX_LEVEL, "Smelter", EType.ADDITIVE, 1),
                 }
             ),
+            // ── Branche de l'Inframonde (nord-ouest) ──────────────────────────
+            new(
+                PrestigeMap.DeepestMineVertex,
+                "prestige_vertex_deepest_mine",
+                // Porte d'entrée de l'Inframonde — volontairement plus chère que toute la branche de l'Acier
+                cost: 2500,
+                modifiers: new Modifier[]
+                {
+                    new(ECategory.UNLOCK_DEEPEST_MINE, EType.ADDITIVE, 1),
+                    new(ECategory.UNLOCK_RESEARCH, "Speleologie", EType.ADDITIVE, 1),
+                }
+            ),
+            // Coûts explicites : la formule par défaut explose à cette distance du centre.
+            // Progression : porte 2500 → 10 000 → 25 000/50 000 → Mithril 250 000 (un des derniers).
+            new(
+                PrestigeMap.MushroomCultureVertex,
+                "prestige_vertex_mushroom_culture",
+                cost: 10000,
+                modifiers: new Modifier[]
+                {
+                    new(ECategory.BUILDING_MAX_LEVEL, "MushroomFarm", EType.ADDITIVE, 2),
+                    new(ECategory.UNLOCK_RESEARCH, "CultureFongique", EType.ADDITIVE, 1),
+                }
+            ),
+            new(
+                PrestigeMap.UnderworldWatchVertex,
+                "prestige_vertex_underworld_watch",
+                cost: 10000,
+                modifiers: new Modifier[]
+                {
+                    new(ECategory.NEW_CITY_BUILDING, "Watchtower", EType.ADDITIVE, 1),
+                    new(ECategory.CITY_DEFENSE, EType.ADDITIVE, 2),
+                }
+            ),
+            new(
+                PrestigeMap.DeepProspectorsVertex,
+                "prestige_vertex_deep_prospectors",
+                cost: 25000,
+                modifiers: new Modifier[]
+                {
+                    new(ECategory.MINE_GOLD_CHANCE_PERCENT, EType.ADDITIVE, 10),
+                    new(ECategory.BUILDING_MAX_LEVEL, "Mine", EType.ADDITIVE, 1),
+                }
+            ),
+            new(
+                PrestigeMap.TreasureHuntersVertex,
+                "prestige_vertex_treasure_hunters",
+                cost: 50000,
+                modifiers: new Modifier[]
+                {
+                    new(ECategory.UNDERWORLD_TREASURE_CHANCE_PERCENT, EType.ADDITIVE, 5),
+                    new(ECategory.UNLOCK_RESEARCH, "CartographieSouterraine", EType.ADDITIVE, 1),
+                }
+            ),
+            new(
+                PrestigeMap.MithrilVertex,
+                "prestige_vertex_mithril",
+                cost: 250000,
+                modifiers: new Modifier[]
+                {
+                    new(ECategory.UNLOCK_RESOURCE, "Mithril", EType.ADDITIVE, 1),
+                    new(ECategory.BUILDING_MAX_LEVEL, "MithrilMine", EType.ADDITIVE, 2),
+                    new(ECategory.UNLOCK_RESEARCH, "OutilsEnMithril", EType.ADDITIVE, 1),
+                }
+            ),
             // ── Placeholder vertices (no bonuses) ────────────────────────────
             new(PrestigeMap.PlaceholderA1Vertex, "prestige_vertex_placeholder", cost: Cost(PrestigeMap.PlaceholderA1Vertex), modifiers: Array.Empty<Modifier>()),
             new(PrestigeMap.PlaceholderA2Vertex, "prestige_vertex_placeholder", cost: Cost(PrestigeMap.PlaceholderA2Vertex), modifiers: Array.Empty<Modifier>()),
@@ -221,9 +286,7 @@ public static class PrestigeMapFactory
             new(PrestigeMap.PlaceholderG3Vertex, "prestige_vertex_placeholder", cost: Cost(PrestigeMap.PlaceholderG3Vertex), modifiers: Array.Empty<Modifier>()),
             new(PrestigeMap.PlaceholderH1Vertex, "prestige_vertex_placeholder", cost: Cost(PrestigeMap.PlaceholderH1Vertex), modifiers: Array.Empty<Modifier>()),
             new(PrestigeMap.PlaceholderH2Vertex, "prestige_vertex_placeholder", cost: Cost(PrestigeMap.PlaceholderH2Vertex), modifiers: Array.Empty<Modifier>()),
-            new(PrestigeMap.PlaceholderNW4Vertex, "prestige_vertex_placeholder", cost: Cost(PrestigeMap.PlaceholderNW4Vertex), modifiers: Array.Empty<Modifier>()),
-            new(PrestigeMap.PlaceholderNWDVertex, "prestige_vertex_placeholder", cost: Cost(PrestigeMap.PlaceholderNWDVertex), modifiers: Array.Empty<Modifier>()),
-            new(PrestigeMap.PlaceholderNWBVertex, "prestige_vertex_placeholder", cost: Cost(PrestigeMap.PlaceholderNWBVertex), modifiers: Array.Empty<Modifier>()),
+            new(PrestigeMap.PlaceholderNWEVertex, "prestige_vertex_placeholder", cost: Cost(PrestigeMap.PlaceholderNWEVertex), modifiers: Array.Empty<Modifier>()),
             new(PrestigeMap.PlaceholderS3Vertex,  "prestige_vertex_placeholder", cost: Cost(PrestigeMap.PlaceholderS3Vertex),  modifiers: Array.Empty<Modifier>()),
             new(PrestigeMap.PlaceholderSAVertex,  "prestige_vertex_placeholder", cost: Cost(PrestigeMap.PlaceholderSAVertex),  modifiers: Array.Empty<Modifier>()),
             new(PrestigeMap.PlaceholderSBVertex,  "prestige_vertex_placeholder", cost: Cost(PrestigeMap.PlaceholderSBVertex),  modifiers: Array.Empty<Modifier>()),
@@ -324,13 +387,28 @@ public static class PrestigeMapFactory
                 adjacentVertices: Adjacent(PrestigeMap.SteelworksCoord),
                 perVertexModifiers: new Modifier[] { new(ECategory.SMELTER_SPEED, EType.ADDITIVE, 0.15) }
             ),
-            // ── Placeholder hexes ─────────────────────────────────────────────
+            // ── Hexes de l'Inframonde (branche nord-ouest) ────────────────────
             new(
-                PrestigeMap.NorthWestPlaceholderCoord,
-                "prestige_hex_placeholder",
-                adjacentVertices: Adjacent(PrestigeMap.NorthWestPlaceholderCoord),
-                perVertexModifiers: Array.Empty<Modifier>()
+                PrestigeMap.ExcavationsCoord,
+                "prestige_hex_excavations",
+                adjacentVertices: Adjacent(PrestigeMap.ExcavationsCoord),
+                perVertexModifiers: new Modifier[]
+                {
+                    new(ECategory.HARVEST_SPEED, "Mine",   EType.ADDITIVE, 0.1),
+                    new(ECategory.HARVEST_SPEED, "Quarry", EType.ADDITIVE, 0.1),
+                }
             ),
+            new(
+                PrestigeMap.UnderworldCoord,
+                "prestige_hex_underworld",
+                adjacentVertices: Adjacent(PrestigeMap.UnderworldCoord),
+                perVertexModifiers: new Modifier[]
+                {
+                    new(ECategory.HARVEST_SPEED, "MushroomFarm", EType.ADDITIVE, 0.15),
+                    new(ECategory.HARVEST_SPEED, "MithrilMine",  EType.ADDITIVE, 0.15),
+                }
+            ),
+            // ── Placeholder hexes ─────────────────────────────────────────────
             new(
                 PrestigeMap.SouthPlaceholderCoord,
                 "prestige_hex_placeholder",

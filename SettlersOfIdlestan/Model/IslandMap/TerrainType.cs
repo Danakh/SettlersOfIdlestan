@@ -12,5 +12,6 @@ public enum TerrainType
     Desert,
     Water,
     MithrilVein,
-    CrystalCave
+    CrystalCave,
+    MushroomCave
 }

@@ -67,26 +67,6 @@ namespace SettlersOfIdlestan.Controller.Island
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[BuildingController] {nameof(PerformAcademyAutomation)}: {ex}"); }
             try { PerformTraderGuildAutomation(); }
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[BuildingController] {nameof(PerformTraderGuildAutomation)}: {ex}"); }
-            try { TryInitializeUnderworld(); }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[BuildingController] {nameof(TryInitializeUnderworld)}: {ex}"); }
-        }
-
-        private void TryInitializeUnderworld()
-        {
-            if (_state == null || _state.Layers.ContainsKey(LayerState.UnderworldZ)) return;
-
-            var playerCiv = _state.PlayerCivilization;
-            bool hasDeepestMine = false;
-            foreach (var city in playerCiv.Cities)
-                foreach (var building in city.Buildings)
-                    if (building.Type == BuildingType.DeepestMine && building.Level > 0)
-                    { hasDeepestMine = true; break; }
-
-            if (!hasDeepestMine) return;
-
-            var underworldLayer = LayerState.EstablishOupostInNewAutoExpandLayer(playerCiv);
-            _state.AddLayer(LayerState.UnderworldZ, underworldLayer);
-            _state.Visibility.RecalculateFor(playerCiv.Index);
         }
 
         private void PerformHarvestersGuildProductionAutomation()
@@ -399,10 +379,12 @@ namespace SettlersOfIdlestan.Controller.Island
                 BuildingType.Academy => new Academy(),
                 BuildingType.TraderGuild => new TraderGuild(),
                 BuildingType.MilitaryAcademy => new MilitaryAcademy(),
-                BuildingType.DeepestMine => new DeepestMine(),
+                // BuildingType.DeepestMine : legacy — la Mine Profonde est désormais une IslandFeature
                 BuildingType.Smelter => new Smelter(),
                 BuildingType.BlastFurnace => new BlastFurnace(),
                 BuildingType.Arsenal => new Arsenal(),
+                BuildingType.MushroomFarm => new MushroomFarm(),
+                BuildingType.MithrilMine => new MithrilMine(),
                 _ => null,
             };
         }

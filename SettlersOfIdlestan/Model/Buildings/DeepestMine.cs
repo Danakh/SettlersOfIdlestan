@@ -3,6 +3,11 @@ using System.Linq;
 
 namespace SettlersOfIdlestan.Model.Buildings;
 
+/// <summary>
+/// [Legacy] Conservé uniquement pour la désérialisation des anciennes sauvegardes.
+/// La Mine Profonde est désormais une IslandFeature (voir Model/IslandFeatures/DeepestMine.cs)
+/// placée comme une Merveille et creusée par investissement progressif.
+/// </summary>
 public class DeepestMine : Building
 {
     public DeepestMine() : base(BuildingType.DeepestMine)
@@ -23,9 +28,10 @@ public class DeepestMine : Building
 
     public override int GetDefaultMaxLevel() => 1;
 
+    // Plus jamais constructible — remplacé par la feature DeepestMine.
     public override bool IsBuildingAvailableForCity(IslandMap.IslandMap map, IBuildingContext city)
     {
-        return city.Level >= 4 && map.VertexHasTerrainType(city.Position, TerrainType.Mountain);
+        return false;
     }
 
     public override bool HasBuildPrerequisites(IBuildingContext city)

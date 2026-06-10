@@ -96,8 +96,11 @@ public sealed class WonderPlacementRenderer : HexBasedRenderer, IGameRenderer
         canvas.Restore();
 
         // Title instruction
-        SkiaTextUtils.DrawText(canvas, 
-            _localization.Get("wonder_select_hex"),
+        string titleKey = _selectionService.Kind == HexPlacementKind.DeepestMine
+            ? "deepest_mine_select_hex"
+            : "wonder_select_hex";
+        SkiaTextUtils.DrawText(canvas,
+            _localization.Get(titleKey),
             context.CanvasSize.Width / 2f, 60f,
             SKTextAlign.Center, _titleFont!, _titlePaint!);
 

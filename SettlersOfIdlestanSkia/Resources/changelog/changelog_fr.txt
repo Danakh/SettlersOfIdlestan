@@ -5,6 +5,7 @@ Le changelog n'est pas activement mis à jour pour le moment.
 
 v0.2
 L'Âge de l'Acier : la branche nord-est de la carte de prestige se développe au-delà du Secret de l'Acier avec cinq nouveaux vertex et l'hex Forges. Deux nouveaux bâtiments font leur apparition : le Haut-Fourneau (bâtiment unique qui booste toutes les Fonderies) et l'Arsenal. Nouvelle mécanique Armures d'Acier : les soldats perdus au combat peuvent être sauvés en consommant de l'Acier. Cinq nouvelles recherches avancées complètent la branche, dont la Logistique Ferrée (renforts accélérés) et les Aciers Spéciaux (vente d'Acier au marché).
+La Descente vers l'Inframonde : la branche nord-ouest de la carte de prestige ouvre la voie des profondeurs. La Mine Profonde devient un grand chantier placé sur une Montagne comme une Merveille : investissez vos ressources (dont 1000 Acier) pour percer jusqu'à l'Inframonde. Sous terre, des Cavernes aux Champignons nourrissent vos avant-postes grâce à la nouvelle Ferme fongique, des trésors attendent les explorateurs, et le Mithril peut enfin être extrait par la Mine de Mithril. Mais l'Inframonde est violent : trolls régénérants et ogres destructeurs errent dans les galeries. Quatre nouvelles recherches accompagnent la descente, de la Spéléologie aux Outils en Mithril.
 
 ---
 

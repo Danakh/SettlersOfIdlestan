@@ -41,13 +41,17 @@ public enum TechnologyId
     ImprovedResearch,
     AdvancedStrategy,
     AutomaticMarket,
+    Speleologie,
     // Tier 5
     MasterResearch,
     Siderurgie,
+    CultureFongique,
+    CartographieSouterraine,
     // Tier 6
     SteelArmor,
     TemperedSteel,
     RailLogistics,
+    OutilsEnMithril,
     // Tier 7
     SpecialSteels,
 }

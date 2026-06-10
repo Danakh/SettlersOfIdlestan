@@ -41,18 +41,7 @@ namespace SettlersOfIdlestan.Controller.Island
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[WonderController] {nameof(ProcessInvestment)}: {ex}"); }
         }
 
-        public static ResourceSet GetLevelCost(int level)
-        {
-            return new ResourceSet
-            {
-                { Resource.Food,  5000 * level * level },
-                { Resource.Wood,  5000 * level * level },
-                { Resource.Brick, 5000 * level * level },
-                { Resource.Stone, 5000 * level * level },
-                { Resource.Gold,  10000 * level * level },
-                { Resource.Ore,   2000 * level * level },
-            };
-        }
+        public static ResourceSet GetLevelCost(int level) => Wonder.GetLevelCost(level);
 
         private void ProcessInvestment()
         {

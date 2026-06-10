@@ -19,13 +19,14 @@ public class AutoExtendController
     private WorldState? _state;
     private GamePRNG _prng = new();
 
-    // 20 entrées : 10x Mountain=50%, 8x Desert=40%, 1x MithrilVein=5%, 1x CrystalCave=5%
+    // 20 entrées : 9x Mountain=45%, 7x Desert=35%, 2x MushroomCave=10%, 1x MithrilVein=5%, 1x CrystalCave=5%
     private static readonly TerrainType[] TerrainPool = new[]
     {
         TerrainType.Mountain, TerrainType.Mountain, TerrainType.Mountain, TerrainType.Mountain, TerrainType.Mountain,
-        TerrainType.Mountain, TerrainType.Mountain, TerrainType.Mountain, TerrainType.Mountain, TerrainType.Mountain,
+        TerrainType.Mountain, TerrainType.Mountain, TerrainType.Mountain, TerrainType.Mountain,
         TerrainType.Desert,   TerrainType.Desert,   TerrainType.Desert,   TerrainType.Desert,   TerrainType.Desert,
-        TerrainType.Desert,   TerrainType.Desert,   TerrainType.Desert,
+        TerrainType.Desert,   TerrainType.Desert,
+        TerrainType.MushroomCave, TerrainType.MushroomCave,
         TerrainType.MithrilVein,
         TerrainType.CrystalCave,
     };
@@ -35,6 +36,11 @@ public class AutoExtendController
     private const int ExtraHexCount = 10;
     private const int AggressiveCivCityCount = 3;
     private const int MinHexDistanceFromArrival = 2;
+
+    // Monstres errants et trésors de l'Inframonde (chance par nouvel hexagone)
+    private const int TrollSpawnChancePercent = 6;
+    private const int OgreSpawnChancePercent = 3;
+    private const int BaseTreasureChancePercent = 2;
 
     internal AutoExtendController() { }
 
@@ -82,7 +88,44 @@ public class AutoExtendController
         if (civIndex != _state.PlayerCivilization.Index) return;
 
         foreach (var newHex in newHexes)
+        {
+            TrySpawnUnderworldDenizen(newHex, layerState, z);
             TrySpawnAggressiveCivilization(newHex, layerState, playerVisibleHexesBefore, z);
+        }
+    }
+
+    // ── Spawn de monstres errants et trésors (Inframonde) ────────────────────
+
+    private void TrySpawnUnderworldDenizen(HexCoord newHex, LayerState layerState, int z)
+    {
+        if (_state == null || z != LayerState.UnderworldZ) return;
+
+        // Distance minimale depuis le vertex d'arrivée — pas de monstre sur le pas de la porte
+        var arrivalHexes = layerState.ArrivalVertex!.GetHexes();
+        int minDist = int.MaxValue;
+        foreach (var h in arrivalHexes)
+        {
+            if (!newHex.HasSameZ(h)) continue;
+            int d = newHex.DistanceTo(h);
+            if (d < minDist) minDist = d;
+        }
+        if (minDist < MinHexDistanceFromArrival) return;
+
+        if (_state.Features.Any(f => f.Position.Equals(newHex))) return;
+
+        int roll = _prng.Next(100);
+        int trollThreshold = TrollSpawnChancePercent;
+        int ogreThreshold = trollThreshold + OgreSpawnChancePercent;
+        int treasureChance = BaseTreasureChancePercent + _state.PlayerCivilization.ModifierAggregator
+            .ApplyModifiers(Modifier.ECategory.UNDERWORLD_TREASURE_CHANCE_PERCENT, "", 0);
+        int treasureThreshold = ogreThreshold + treasureChance;
+
+        if (roll < trollThreshold)
+            _state.AddFeature(new Model.Monsters.Troll(newHex));
+        else if (roll < ogreThreshold)
+            _state.AddFeature(new Model.Monsters.Ogre(newHex));
+        else if (roll < treasureThreshold)
+            _state.AddFeature(new Model.IslandFeatures.TreasureTrove(newHex));
     }
 
     // ── Helpers visibilité ────────────────────────────────────────────────────

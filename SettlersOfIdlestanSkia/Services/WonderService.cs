@@ -3,26 +3,30 @@ using SettlersOfIdlestan.Model.IslandMap;
 
 namespace SettlersOfIdlestanSkia.Services;
 
+/// <summary>
+/// Sélection courante d'une feature à investissement (Merveille, Mine Profonde…)
+/// pour l'affichage du panneau d'investissement.
+/// </summary>
 public class WonderService
 {
-    public Wonder? SelectedWonder { get; private set; }
+    public IInvestableFeature? SelectedInvestable { get; private set; }
 
-    public void SetSelectedWonder(Wonder wonder)
+    public void SetSelectedInvestable(IInvestableFeature feature)
     {
-        SelectedWonder = wonder;
+        SelectedInvestable = feature;
     }
 
-    public void ClearSelectedWonder()
+    public void ClearSelectedInvestable()
     {
-        SelectedWonder = null;
+        SelectedInvestable = null;
     }
 
     public void ToggleInvestment(Resource resource)
     {
-        if (SelectedWonder == null) return;
-        if (SelectedWonder.InvestmentEnabled.Contains(resource))
-            SelectedWonder.InvestmentEnabled.Remove(resource);
+        if (SelectedInvestable == null) return;
+        if (SelectedInvestable.InvestmentEnabled.Contains(resource))
+            SelectedInvestable.InvestmentEnabled.Remove(resource);
         else
-            SelectedWonder.InvestmentEnabled.Add(resource);
+            SelectedInvestable.InvestmentEnabled.Add(resource);
     }
 }

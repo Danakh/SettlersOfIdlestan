@@ -186,6 +186,7 @@ public sealed class GameScreen : IDisposable
 
         _wonderSelectionService = new WonderSelectionService();
         _wonderSelectionService.ConnectWonderController(_gameControllerService.MainGameController.WonderController);
+        _wonderSelectionService.ConnectDeepestMineController(_gameControllerService.MainGameController.DeepestMineController);
         _wonderSelectionService.Entered                  += OnWonderSelectionEntered;
         _wonderSelectionService.WonderPlacementConfirmed += OnWonderPlacementConfirmed;
         _wonderSelectionService.Cancelled                += OnWonderSelectionCancelled;
@@ -534,7 +535,7 @@ public sealed class GameScreen : IDisposable
         if (_playerResourcesOverlayRenderer != null && _gameControllerService.PlayerCivilization != null)
             _playerResourcesOverlayRenderer.ConnectLowStock(prevCiv, _gameControllerService.PlayerCivilization);
         _gameControllerService.CityBuildingService?.ClearSelectedCity();
-        _wonderService?.ClearSelectedWonder();
+        _wonderService?.ClearSelectedInvestable();
         _constructionInteractionService?.ClearHover();
         CenterCameraOnStartingCity();
         _overlayRenderer?.Show();
@@ -570,7 +571,10 @@ public sealed class GameScreen : IDisposable
 
     private void OnWonderPlacementConfirmed(object? sender, HexCoord hex)
     {
-        _gameControllerService.MainGameController.WonderController.PlaceWonder(hex);
+        if (_wonderSelectionService?.Kind == HexPlacementKind.DeepestMine)
+            _gameControllerService.MainGameController.DeepestMineController.PlaceDeepestMine(hex);
+        else
+            _gameControllerService.MainGameController.WonderController.PlaceWonder(hex);
         _gameControllerService.CurrentGameState?.Clock?.Resume();
         _overlayRenderer?.Show(suppressNextPress: true);
     }
@@ -598,7 +602,7 @@ public sealed class GameScreen : IDisposable
         if (_playerResourcesOverlayRenderer != null && _gameControllerService.PlayerCivilization != null)
             _playerResourcesOverlayRenderer.ConnectLowStock(prevCiv, _gameControllerService.PlayerCivilization);
         _gameControllerService.CityBuildingService?.ClearSelectedCity();
-        _wonderService?.ClearSelectedWonder();
+        _wonderService?.ClearSelectedInvestable();
         _constructionInteractionService?.ClearHover();
 
         CenterCameraOnStartingCity();

@@ -131,18 +131,18 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
         if (_renderer == null)
             return;
 
-        // Fallback: clic sur un hex — vérifie d'abord si c'est une wonder.
+        // Fallback: clic sur un hex — vérifie d'abord si c'est une feature à investissement (Merveille, Mine Profonde…).
         var WorldState = _gameControllerService.CurrentWorldState;
         int currentZ = WorldState?.CurrentViewedLayer ?? IslandMap.SurfaceLayer;
         var hex = _renderer.ScreenToHex(e.Position, _cameraService.CanvasSize, _cameraService.ZoomLevel, _cameraService.Position);
         var hexCoord = new HexCoord(hex.q, hex.r, currentZ);
         var playerIndex = WorldState?.PlayerCivilization.Index ?? 0;
 
-        var clickedWonder = WorldState?.Features.OfType<Wonder>().FirstOrDefault(w => w.Position.Equals(hexCoord));
-        if (clickedWonder != null)
+        var clickedInvestable = WorldState?.Features.OfType<IInvestableFeature>().FirstOrDefault(w => w.Position.Equals(hexCoord));
+        if (clickedInvestable != null)
         {
             _cityBuildingService.ClearSelectedCity();
-            _wonderService?.SetSelectedWonder(clickedWonder);
+            _wonderService?.SetSelectedInvestable(clickedInvestable);
             RefreshHover(e.Position);
             return;
         }
@@ -302,7 +302,7 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
 
     private void SetSelectedCity(Vertex selectedCityVertex)
     {
-        _wonderService?.ClearSelectedWonder();
+        _wonderService?.ClearSelectedInvestable();
         _cityBuildingService.SetSelectedCity(selectedCityVertex);
         HoverState = HoverState with { SelectedCityVertex = selectedCityVertex };
     }

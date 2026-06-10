@@ -319,6 +319,47 @@ public static class TechnologyDefinitions
             modifiers: new Modifier[] { new(ECategory.UNLOCK_STEEL_TRADE, EType.ADDITIVE, 1) },
             tier: 7, line: 3),
 
+        // === Branche de l'Inframonde (débloquée par les vertex de prestige du nord-ouest) ===
+
+        new(TechnologyId.Speleologie,
+            "tech_speleologie_name", "tech_speleologie_desc",
+            cost: 18000,
+            prerequisites: new[] { TechnologyId.MasterHarvest },
+            modifiers: new Modifier[]
+            {
+                new(ECategory.HARVEST_SPEED, "Mine", EType.ADDITIVE, 0.25),
+                new(ECategory.STORAGE_CAPACITY_ADVANCED, EType.ADDITIVE, 10),
+            },
+            tier: 4, line: 0),
+
+        new(TechnologyId.CultureFongique,
+            "tech_culture_fongique_name", "tech_culture_fongique_desc",
+            cost: 35000,
+            prerequisites: new[] { TechnologyId.Speleologie, TechnologyId.Agriculture },
+            modifiers: new Modifier[]
+            {
+                new(ECategory.HARVEST_SPEED, "MushroomFarm", EType.ADDITIVE, 0.25),
+                new(ECategory.HARVEST_PRODUCTION_BONUS, "MushroomFarm", EType.ADDITIVE, 25),
+            },
+            tier: 5, line: 0),
+
+        new(TechnologyId.CartographieSouterraine,
+            "tech_cartographie_souterraine_name", "tech_cartographie_souterraine_desc",
+            cost: 40000,
+            prerequisites: new[] { TechnologyId.Speleologie },
+            modifiers: new Modifier[]
+            {
+                new(ECategory.UNDERWORLD_TREASURE_CHANCE_PERCENT, EType.ADDITIVE, 5),
+            },
+            tier: 5, line: 1),
+
+        new(TechnologyId.OutilsEnMithril,
+            "tech_outils_en_mithril_name", "tech_outils_en_mithril_desc",
+            cost: 120000,
+            prerequisites: new[] { TechnologyId.Speleologie },
+            modifiers: new Modifier[] { new(ECategory.HARVEST_SPEED, EType.ADDITIVE, 0.25) },
+            tier: 6, line: 0),
+
     };
 
     public static Technology? Get(TechnologyId id) => All.FirstOrDefault(t => t.Id == id);

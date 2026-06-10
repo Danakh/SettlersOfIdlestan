@@ -34,6 +34,7 @@ namespace SettlersOfIdlestan.Controller
         public MonsterFeatureController BanditController => MonsterFeatureController;
         public MilitaryController MilitaryController { get; private set; }
         public WonderController WonderController { get; private set; }
+        public DeepestMineController DeepestMineController { get; private set; }
         public NpcGameController NpcGameController { get; private set; }
         public GameClock? Clock { get; private set; }
         // Holds the currently loaded main game state when created or imported
@@ -65,6 +66,7 @@ namespace SettlersOfIdlestan.Controller
             MonsterFeatureController = new MonsterFeatureController();
             MilitaryController = new MilitaryController();
             WonderController = new WonderController();
+            DeepestMineController = new DeepestMineController();
             TaskRecordController = new TaskRecordController();
             AutoExtendController = new AutoExtendController();
             NpcGameController = new NpcGameController();
@@ -259,6 +261,7 @@ namespace SettlersOfIdlestan.Controller
                 CityBuilderController.Initialize(WorldState, Clock, CurrentMainState!.PRNG);
                 PrestigeController.Initialize(WorldState.PlayerCivilization, WorldState, Clock);
                 WonderController.Initialize(WorldState, Clock);
+                DeepestMineController.Initialize(WorldState, Clock);
                 ResearchController.Initialize(WorldState, Clock, CurrentMainState?.PrestigeState);
                 NpcGameController.Initialize(WorldState, Clock, MilitaryController, this);
 

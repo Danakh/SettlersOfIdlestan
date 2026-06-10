@@ -42,15 +42,17 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
     private SKRect _tradeButtonRect    = SKRect.Empty;
     private SKRect _prestigeButtonRect = SKRect.Empty;
     private SKRect _wonderButtonRect   = SKRect.Empty;
+    private SKRect _deepestMineButtonRect = SKRect.Empty;
     private SKRect _barracksToggleRect = SKRect.Empty;
     private SKRect _labToggleRect      = SKRect.Empty;
     private SKRect _smelterToggleRect      = SKRect.Empty;
     private SKRect _steelWeaponsToggleRect = SKRect.Empty;
     private SKRect _arsenalToggleRect      = SKRect.Empty;
 
-    private bool _hoveredTrade, _hoveredPrestige, _hoveredWonder;
+    private bool _hoveredTrade, _hoveredPrestige, _hoveredWonder, _hoveredDeepestMine;
     private bool _hoveredBarracks, _hoveredLab, _hoveredSmelter, _hoveredSteelWeapons, _hoveredArsenal;
     private bool _wonderEnabled;
+    private bool _deepestMineEnabled;
     private bool _disposed;
 
     // CivPanel-specific paints
@@ -158,16 +160,18 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         int  prestigePoints  = prestigeVisible ? GetPrestigePoints() : 0;
         bool wonderVisible   = IsWonderVisible() && CanPlaceWonder();
         _wonderEnabled = wonderVisible && context.CurrentLayer == 0;
+        bool deepestMineVisible = CanPlaceDeepestMine();
+        _deepestMineEnabled = deepestMineVisible && context.CurrentLayer == 0;
         bool hasBarracks     = HasBuilt<Barracks>(civ);
         bool hasLabs         = HasBuilt<Laboratory>(civ);
         bool hasSmelters     = HasBuilt<Smelter>(civ);
         bool hasArsenals     = HasBuilt<Arsenal>(civ);
         bool hasSteelWeapons = hasBarracks && civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_STEEL_WEAPONS);
 
-        bool showActions  = tradeVisible || prestigeVisible || wonderVisible;
+        bool showActions  = tradeVisible || prestigeVisible || wonderVisible || deepestMineVisible;
         bool showControls = hasBarracks || hasLabs || hasSmelters || hasArsenals;
 
-        _tradeButtonRect = _prestigeButtonRect = _wonderButtonRect = SKRect.Empty;
+        _tradeButtonRect = _prestigeButtonRect = _wonderButtonRect = _deepestMineButtonRect = SKRect.Empty;
         _barracksToggleRect = _labToggleRect = _smelterToggleRect = _steelWeaponsToggleRect = _arsenalToggleRect = SKRect.Empty;
 
         if (!showActions && !showControls)
@@ -193,7 +197,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         float h = panelPadding;
         if (showActions)
         {
-            int actionCount = (tradeVisible ? 1 : 0) + (prestigeVisible ? 1 : 0) + (wonderVisible ? 1 : 0);
+            int actionCount = (tradeVisible ? 1 : 0) + (prestigeVisible ? 1 : 0) + (wonderVisible ? 1 : 0) + (deepestMineVisible ? 1 : 0);
             int actionRows  = (actionCount + 1) / 2;
             h += titleHeight + actionRows * (btnHeight + btnSpacing);
         }
@@ -227,7 +231,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
 
             float colGap = 6f * s;
             float colW   = (contentW - colGap) / 2f;
-            int   actionCount = (tradeVisible ? 1 : 0) + (prestigeVisible ? 1 : 0) + (wonderVisible ? 1 : 0);
+            int   actionCount = (tradeVisible ? 1 : 0) + (prestigeVisible ? 1 : 0) + (wonderVisible ? 1 : 0) + (deepestMineVisible ? 1 : 0);
             float actionsY   = y;
             int   btnIdx     = 0;
 
@@ -262,6 +266,13 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
                 _wonderButtonRect = BtnRect(btnIdx++);
                 canvas.DrawRoundRect(_wonderButtonRect, 6 * s, 6 * s, _wonderEnabled ? (_hoveredWonder ? _btnHoverPaint : _btnPaint) : _btnDisabledPaint);
                 SkiaTextUtils.DrawText(canvas, _localization.Get("wonder_action_short"), _wonderButtonRect.MidX, _wonderButtonRect.MidY + 4f * s, SKTextAlign.Center, _btnSmFont, _wonderEnabled ? TextPaint : _btnDisabledTxtPaint);
+            }
+
+            if (deepestMineVisible)
+            {
+                _deepestMineButtonRect = BtnRect(btnIdx++);
+                canvas.DrawRoundRect(_deepestMineButtonRect, 6 * s, 6 * s, _deepestMineEnabled ? (_hoveredDeepestMine ? _btnHoverPaint : _btnPaint) : _btnDisabledPaint);
+                SkiaTextUtils.DrawText(canvas, _localization.Get("deepest_mine_action_short"), _deepestMineButtonRect.MidX, _deepestMineButtonRect.MidY + 4f * s, SKTextAlign.Center, _btnSmFont, _deepestMineEnabled ? TextPaint : _btnDisabledTxtPaint);
             }
 
             y = actionsY + ((btnIdx + 1) / 2) * (btnHeight + btnSpacing);
@@ -318,6 +329,10 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         // Tooltips — set each frame so they persist while hovering
         if (_hoveredWonder && !_wonderEnabled)
             _tooltipRenderer.SetTooltip(_localization.Get("tooltip_wonder_surface_only"), new SKPoint(_wonderButtonRect.Right, _wonderButtonRect.Top));
+        else if (_hoveredDeepestMine && !_deepestMineEnabled)
+            _tooltipRenderer.SetTooltip(_localization.Get("tooltip_deepest_mine_surface_only"), new SKPoint(_deepestMineButtonRect.Right, _deepestMineButtonRect.Top));
+        else if (_hoveredDeepestMine)
+            _tooltipRenderer.SetTooltip(_localization.Get("tooltip_deepest_mine"), new SKPoint(_deepestMineButtonRect.Right, _deepestMineButtonRect.Top));
         else if (_hoveredBarracks)
             _tooltipRenderer.SetTooltip(_localization.Get("tooltip_toggle_barracks"), new SKPoint(_barracksToggleRect.Right, _barracksToggleRect.Top));
         else if (_hoveredSteelWeapons)
@@ -373,6 +388,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         _hoveredTrade    = !_tradeButtonRect.IsEmpty    && _tradeButtonRect.Contains(pos.X, pos.Y);
         _hoveredPrestige = !_prestigeButtonRect.IsEmpty && _prestigeButtonRect.Contains(pos.X, pos.Y);
         _hoveredWonder   = !_wonderButtonRect.IsEmpty   && _wonderButtonRect.Contains(pos.X, pos.Y);
+        _hoveredDeepestMine = !_deepestMineButtonRect.IsEmpty && _deepestMineButtonRect.Contains(pos.X, pos.Y);
         _hoveredBarracks     = !_barracksToggleRect.IsEmpty     && _barracksToggleRect.Contains(pos.X, pos.Y);
         _hoveredLab          = !_labToggleRect.IsEmpty          && _labToggleRect.Contains(pos.X, pos.Y);
         _hoveredSmelter      = !_smelterToggleRect.IsEmpty      && _smelterToggleRect.Contains(pos.X, pos.Y);
@@ -413,6 +429,13 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         {
             _closeAll();
             _wonderSelectionService.Enter();
+            return true;
+        }
+
+        if (!_deepestMineButtonRect.IsEmpty && _deepestMineButtonRect.Contains(pos.X, pos.Y) && _deepestMineEnabled && _wonderSelectionService != null)
+        {
+            _closeAll();
+            _wonderSelectionService.EnterDeepestMine();
             return true;
         }
 
@@ -492,6 +515,14 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         var civ = _gameControllerService.PlayerCivilization;
         if (civ == null) return false;
         try { return _gameControllerService.MainGameController.WonderController.CanPlaceWonder(civ); }
+        catch { return false; }
+    }
+
+    private bool CanPlaceDeepestMine()
+    {
+        var civ = _gameControllerService.PlayerCivilization;
+        if (civ == null) return false;
+        try { return _gameControllerService.MainGameController.DeepestMineController.CanPlaceDeepestMine(civ); }
         catch { return false; }
     }
 

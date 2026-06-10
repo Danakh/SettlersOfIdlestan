@@ -571,6 +571,10 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         Modifier.ECategory.STEEL_WEAPONS_SOLDIER_COUNT => $"+{(int)mod.Value} {_localization.Get("prestige_tooltip_steel_weapons_soldiers")}",
         Modifier.ECategory.REINFORCEMENT_RANGE        => $"+{(int)mod.Value} {_localization.Get("prestige_tooltip_reinforcement_range")}",
         Modifier.ECategory.PASSIVE_RESOURCE_GENERATION => $"+{(int)mod.Value} {_localization.Get($"resource_{mod.SubCategory.ToLower()}")}{_localization.Get("prestige_tooltip_passive_generation")}",
+        Modifier.ECategory.UNLOCK_DEEPEST_MINE        => _localization.Get("prestige_tooltip_unlocks_deepest_mine"),
+        Modifier.ECategory.UNDERWORLD_TREASURE_CHANCE_PERCENT => $"+{(int)mod.Value}% {_localization.Get("prestige_tooltip_underworld_treasure")}",
+        Modifier.ECategory.MINE_GOLD_CHANCE_PERCENT   => $"+{(int)mod.Value}% {_localization.Get("prestige_tooltip_mine_gold_chance")}",
+        Modifier.ECategory.NEW_CITY_BUILDING          => $"{_localization.Get("prestige_tooltip_new_city_building")} {_localization.Get($"building_{mod.SubCategory.ToLower()}_name")}",
         _ => $"+{mod.Value}"
     };
 
