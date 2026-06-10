@@ -301,9 +301,10 @@ namespace SettlersOfIdlestan.Controller.Island
                         smelter.LastProductionTick = currentTick;
                         continue;
                     }
-                    if (currentTick - smelter.LastProductionTick < Smelter.ProductionCooldownTicks) continue;
+                    if (currentTick - smelter.LastProductionTick < GetEffectiveSmelterCooldown(civ)) continue;
 
-                    if (civ.GetResourceQuantity(Resource.Ore) < Smelter.OreInputPerCycle)
+                    int oreInput = GetSmelterOreInput(civ);
+                    if (civ.GetResourceQuantity(Resource.Ore) < oreInput)
                     {
                         civ.RaiseLowStock(Resource.Ore);
                         continue;
@@ -314,9 +315,9 @@ namespace SettlersOfIdlestan.Controller.Island
                         continue;
                     }
 
-                    civ.RemoveResource(Resource.Ore,  Smelter.OreInputPerCycle);
+                    civ.RemoveResource(Resource.Ore,  oreInput);
                     civ.RemoveResource(Resource.Wood, Smelter.WoodInputPerCycle);
-                    civ.AddResource(Resource.Steel, 1);
+                    civ.AddResource(Resource.Steel, GetSmelterSteelOutput(civ));
                     smelter.LastProductionTick = currentTick;
                 }
             }
@@ -348,6 +349,21 @@ namespace SettlersOfIdlestan.Controller.Island
             double multiplier = seaport.GetGenerationCooldownMultiplier();
             return Math.Max(1L, (long)(SeaportGenerationCooldownTicks * multiplier));
         }
+
+        /// <summary>Cooldown effectif du cycle de la Fonderie, après application du modificateur SMELTER_SPEED.</summary>
+        public static long GetEffectiveSmelterCooldown(Civilization civ)
+        {
+            double speed = civ.ModifierAggregator.ApplyModifiers(ECategory.SMELTER_SPEED, "", 1.0);
+            return Math.Max(1L, (long)(Smelter.ProductionCooldownTicks / speed));
+        }
+
+        /// <summary>Minerai consommé par cycle de la Fonderie, après application du modificateur SMELTER_ORE_INPUT.</summary>
+        public static int GetSmelterOreInput(Civilization civ)
+            => Math.Max(1, civ.ModifierAggregator.ApplyModifiers(ECategory.SMELTER_ORE_INPUT, "", Smelter.OreInputPerCycle));
+
+        /// <summary>Acier produit par cycle de la Fonderie, après application des modificateurs BUILDING_PRODUCTION (Haut-Fourneau, Acier Trempé…).</summary>
+        public static int GetSmelterSteelOutput(Civilization civ)
+            => Math.Max(1, civ.ModifierAggregator.ApplyModifiers(ECategory.BUILDING_PRODUCTION, "Smelter", Smelter.SteelOutputPerCycle));
 
         public IReadOnlyList<Resource> GetManualHarvestableResources(int civilizationIndex, HexCoord hex)
         {

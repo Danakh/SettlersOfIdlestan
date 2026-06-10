@@ -179,6 +179,49 @@ public class CityBuildingService
         return HarvestController.GetEffectiveSeaportGenerationCooldown(seaport);
     }
 
+    private Civilization? SelectedCivilization
+    {
+        get
+        {
+            if (SelectedCity == null) return null;
+            var worldState = State;
+            if (worldState == null || SelectedCity.CivilizationIndex >= worldState.Civilizations.Count) return null;
+            return worldState.Civilizations[SelectedCity.CivilizationIndex];
+        }
+    }
+
+    /// <summary>Cooldown effectif du cycle de la Fonderie de la civilisation sélectionnée.</summary>
+    public long GetSmelterEffectiveCooldown()
+    {
+        var civ = SelectedCivilization;
+        return civ == null ? Smelter.ProductionCooldownTicks : HarvestController.GetEffectiveSmelterCooldown(civ);
+    }
+
+    /// <summary>Minerai consommé par coulée de la Fonderie de la civilisation sélectionnée.</summary>
+    public int GetSmelterOreInput()
+    {
+        var civ = SelectedCivilization;
+        return civ == null ? Smelter.OreInputPerCycle : HarvestController.GetSmelterOreInput(civ);
+    }
+
+    /// <summary>Acier produit par coulée de la Fonderie de la civilisation sélectionnée.</summary>
+    public int GetSmelterSteelOutput()
+    {
+        var civ = SelectedCivilization;
+        return civ == null ? Smelter.SteelOutputPerCycle : HarvestController.GetSmelterSteelOutput(civ);
+    }
+
+    /// <summary>Soldats produits par cycle Armes en Acier de la civilisation sélectionnée.</summary>
+    public int GetSteelWeaponsSoldierCount()
+    {
+        var civ = SelectedCivilization;
+        return civ == null ? MilitaryController.SteelWeaponsBaseSoldierCount : MilitaryController.GetSteelWeaponsSoldierCount(civ);
+    }
+
+    /// <summary>Vrai si la recherche Armures d'Acier est complétée pour la civilisation sélectionnée.</summary>
+    public bool IsSteelArmorUnlocked()
+        => SelectedCivilization?.ModifierAggregator.HasModifier(ECategory.UNLOCK_STEEL_ARMOR) ?? false;
+
     public bool IsAtMaxLevel(Building building)
     {
         if (SelectedCity == null)

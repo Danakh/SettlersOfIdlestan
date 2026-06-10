@@ -46,9 +46,10 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
     private SKRect _labToggleRect      = SKRect.Empty;
     private SKRect _smelterToggleRect      = SKRect.Empty;
     private SKRect _steelWeaponsToggleRect = SKRect.Empty;
+    private SKRect _arsenalToggleRect      = SKRect.Empty;
 
     private bool _hoveredTrade, _hoveredPrestige, _hoveredWonder;
-    private bool _hoveredBarracks, _hoveredLab, _hoveredSmelter, _hoveredSteelWeapons;
+    private bool _hoveredBarracks, _hoveredLab, _hoveredSmelter, _hoveredSteelWeapons, _hoveredArsenal;
     private bool _wonderEnabled;
     private bool _disposed;
 
@@ -160,13 +161,14 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         bool hasBarracks     = HasBuilt<Barracks>(civ);
         bool hasLabs         = HasBuilt<Laboratory>(civ);
         bool hasSmelters     = HasBuilt<Smelter>(civ);
+        bool hasArsenals     = HasBuilt<Arsenal>(civ);
         bool hasSteelWeapons = hasBarracks && civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_STEEL_WEAPONS);
 
         bool showActions  = tradeVisible || prestigeVisible || wonderVisible;
-        bool showControls = hasBarracks || hasLabs || hasSmelters;
+        bool showControls = hasBarracks || hasLabs || hasSmelters || hasArsenals;
 
         _tradeButtonRect = _prestigeButtonRect = _wonderButtonRect = SKRect.Empty;
-        _barracksToggleRect = _labToggleRect = _smelterToggleRect = _steelWeaponsToggleRect = SKRect.Empty;
+        _barracksToggleRect = _labToggleRect = _smelterToggleRect = _steelWeaponsToggleRect = _arsenalToggleRect = SKRect.Empty;
 
         if (!showActions && !showControls)
         {
@@ -203,6 +205,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             if (hasSteelWeapons) h += rowHeight;
             if (hasLabs)         h += rowHeight;
             if (hasSmelters)     h += rowHeight;
+            if (hasArsenals)     h += rowHeight;
         }
         h += panelPadding;
 
@@ -302,6 +305,13 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             {
                 bool? allOn = AreAllActiveNullable<Smelter>(civ);
                 _smelterToggleRect = DrawToggleRow(canvas, x, y, allOn, _hoveredSmelter, _localization.Get("building_smelter_name"));
+                y += rowHeight;
+            }
+
+            if (hasArsenals)
+            {
+                bool? allOn = AreAllActiveNullable<Arsenal>(civ);
+                _arsenalToggleRect = DrawToggleRow(canvas, x, y, allOn, _hoveredArsenal, _localization.Get("building_arsenal_name"));
             }
         }
 
@@ -316,6 +326,8 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             _tooltipRenderer.SetTooltip(_localization.Get("tooltip_toggle_lab"), new SKPoint(_labToggleRect.Right, _labToggleRect.Top));
         else if (_hoveredSmelter)
             _tooltipRenderer.SetTooltip(_localization.Get("tooltip_toggle_smelter"), new SKPoint(_smelterToggleRect.Right, _smelterToggleRect.Top));
+        else if (_hoveredArsenal)
+            _tooltipRenderer.SetTooltip(_localization.Get("tooltip_toggle_arsenal"), new SKPoint(_arsenalToggleRect.Right, _arsenalToggleRect.Top));
     }
 
     private SKRect DrawToggleRow(SKCanvas canvas, float x, float y, bool? isOn, bool isHovered, string label, bool isDimmed = false)
@@ -365,6 +377,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         _hoveredLab          = !_labToggleRect.IsEmpty          && _labToggleRect.Contains(pos.X, pos.Y);
         _hoveredSmelter      = !_smelterToggleRect.IsEmpty      && _smelterToggleRect.Contains(pos.X, pos.Y);
         _hoveredSteelWeapons = !_steelWeaponsToggleRect.IsEmpty && _steelWeaponsToggleRect.Contains(pos.X, pos.Y);
+        _hoveredArsenal      = !_arsenalToggleRect.IsEmpty      && _arsenalToggleRect.Contains(pos.X, pos.Y);
     }
 
     public bool HandlePointerPressed(SKPoint pos)
@@ -421,6 +434,12 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             if (!_smelterToggleRect.IsEmpty && _smelterToggleRect.Contains(pos.X, pos.Y))
             {
                 ToggleAll<Smelter>(civ);
+                return true;
+            }
+
+            if (!_arsenalToggleRect.IsEmpty && _arsenalToggleRect.Contains(pos.X, pos.Y))
+            {
+                ToggleAll<Arsenal>(civ);
                 return true;
             }
 

@@ -150,14 +150,65 @@ public static class PrestigeMapFactory
                     new(ECategory.UNLOCK_RESEARCH, "SteelWeapons", EType.ADDITIVE, 1),
                 }
             ),
+            // ── Branche de l'Acier (nord-est) ─────────────────────────────────
+            new(
+                PrestigeMap.BlastFurnaceVertex,
+                "prestige_vertex_blast_furnace",
+                cost: Cost(PrestigeMap.BlastFurnaceVertex),
+                modifiers: new Modifier[]
+                {
+                    new(ECategory.BUILDING_MAX_LEVEL, "Smelter", EType.ADDITIVE, 2),
+                    new(ECategory.BUILDING_MAX_LEVEL, "BlastFurnace", EType.ADDITIVE, 1),
+                    new(ECategory.UNLOCK_RESEARCH, "Siderurgie", EType.ADDITIVE, 1),
+                }
+            ),
+            new(
+                PrestigeMap.MilitaryEngineeringVertex,
+                "prestige_vertex_military_engineering",
+                cost: Cost(PrestigeMap.MilitaryEngineeringVertex),
+                modifiers: new Modifier[]
+                {
+                    new(ECategory.BUILDING_MAX_LEVEL, "Arsenal", EType.ADDITIVE, 3),
+                    new(ECategory.UNLOCK_RESEARCH, "SteelArmor", EType.ADDITIVE, 1),
+                }
+            ),
+            new(
+                PrestigeMap.SteelLegionVertex,
+                "prestige_vertex_steel_legion",
+                cost: Cost(PrestigeMap.SteelLegionVertex),
+                modifiers: new Modifier[]
+                {
+                    new(ECategory.STEEL_WEAPONS_SOLDIER_COUNT, EType.ADDITIVE, 3),
+                    new(ECategory.CITY_MAX_SOLDIERS_BONUS, EType.ADDITIVE, 10),
+                }
+            ),
+            new(
+                PrestigeMap.ImperialRoadsVertex,
+                "prestige_vertex_imperial_roads",
+                cost: Cost(PrestigeMap.ImperialRoadsVertex),
+                modifiers: new Modifier[]
+                {
+                    new(ECategory.REINFORCEMENT_RANGE, EType.ADDITIVE, 2),
+                    new(ECategory.UNLOCK_RESEARCH, "RailLogistics", EType.ADDITIVE, 1),
+                }
+            ),
+            new(
+                PrestigeMap.MasterSmithsVertex,
+                "prestige_vertex_master_smiths",
+                cost: Cost(PrestigeMap.MasterSmithsVertex),
+                modifiers: new Modifier[]
+                {
+                    new(ECategory.PASSIVE_RESOURCE_GENERATION, "Steel", EType.ADDITIVE, 1),
+                    new(ECategory.BUILDING_MAX_LEVEL, "Arsenal", EType.ADDITIVE, 2),
+                    new(ECategory.BUILDING_MAX_LEVEL, "Smelter", EType.ADDITIVE, 1),
+                }
+            ),
             // ── Placeholder vertices (no bonuses) ────────────────────────────
             new(PrestigeMap.PlaceholderA1Vertex, "prestige_vertex_placeholder", cost: Cost(PrestigeMap.PlaceholderA1Vertex), modifiers: Array.Empty<Modifier>()),
             new(PrestigeMap.PlaceholderA2Vertex, "prestige_vertex_placeholder", cost: Cost(PrestigeMap.PlaceholderA2Vertex), modifiers: Array.Empty<Modifier>()),
             new(PrestigeMap.PlaceholderA3Vertex, "prestige_vertex_placeholder", cost: Cost(PrestigeMap.PlaceholderA3Vertex), modifiers: Array.Empty<Modifier>()),
             new(PrestigeMap.PlaceholderB1Vertex, "prestige_vertex_placeholder", cost: Cost(PrestigeMap.PlaceholderB1Vertex), modifiers: Array.Empty<Modifier>()),
             new(PrestigeMap.PlaceholderB2Vertex, "prestige_vertex_placeholder", cost: Cost(PrestigeMap.PlaceholderB2Vertex), modifiers: Array.Empty<Modifier>()),
-            new(PrestigeMap.PlaceholderC1Vertex, "prestige_vertex_placeholder", cost: Cost(PrestigeMap.PlaceholderC1Vertex), modifiers: Array.Empty<Modifier>()),
-            new(PrestigeMap.PlaceholderC2Vertex, "prestige_vertex_placeholder", cost: Cost(PrestigeMap.PlaceholderC2Vertex), modifiers: Array.Empty<Modifier>()),
             new(PrestigeMap.PlaceholderC3Vertex, "prestige_vertex_placeholder", cost: Cost(PrestigeMap.PlaceholderC3Vertex), modifiers: Array.Empty<Modifier>()),
             new(PrestigeMap.PlaceholderD2Vertex, "prestige_vertex_placeholder", cost: Cost(PrestigeMap.PlaceholderD2Vertex), modifiers: Array.Empty<Modifier>()),
             new(PrestigeMap.PlaceholderE1Vertex, "prestige_vertex_placeholder", cost: Cost(PrestigeMap.PlaceholderE1Vertex), modifiers: Array.Empty<Modifier>()),
@@ -170,9 +221,6 @@ public static class PrestigeMapFactory
             new(PrestigeMap.PlaceholderG3Vertex, "prestige_vertex_placeholder", cost: Cost(PrestigeMap.PlaceholderG3Vertex), modifiers: Array.Empty<Modifier>()),
             new(PrestigeMap.PlaceholderH1Vertex, "prestige_vertex_placeholder", cost: Cost(PrestigeMap.PlaceholderH1Vertex), modifiers: Array.Empty<Modifier>()),
             new(PrestigeMap.PlaceholderH2Vertex, "prestige_vertex_placeholder", cost: Cost(PrestigeMap.PlaceholderH2Vertex), modifiers: Array.Empty<Modifier>()),
-            new(PrestigeMap.PlaceholderNE1Vertex, "prestige_vertex_placeholder", cost: Cost(PrestigeMap.PlaceholderNE1Vertex), modifiers: Array.Empty<Modifier>()),
-            new(PrestigeMap.PlaceholderNE2Vertex, "prestige_vertex_placeholder", cost: Cost(PrestigeMap.PlaceholderNE2Vertex), modifiers: Array.Empty<Modifier>()),
-            new(PrestigeMap.PlaceholderNE3Vertex, "prestige_vertex_placeholder", cost: Cost(PrestigeMap.PlaceholderNE3Vertex), modifiers: Array.Empty<Modifier>()),
             new(PrestigeMap.PlaceholderNW4Vertex, "prestige_vertex_placeholder", cost: Cost(PrestigeMap.PlaceholderNW4Vertex), modifiers: Array.Empty<Modifier>()),
             new(PrestigeMap.PlaceholderNWDVertex, "prestige_vertex_placeholder", cost: Cost(PrestigeMap.PlaceholderNWDVertex), modifiers: Array.Empty<Modifier>()),
             new(PrestigeMap.PlaceholderNWBVertex, "prestige_vertex_placeholder", cost: Cost(PrestigeMap.PlaceholderNWBVertex), modifiers: Array.Empty<Modifier>()),
@@ -269,13 +317,14 @@ public static class PrestigeMapFactory
                 adjacentVertices: Adjacent(PrestigeMap.WarehouseMaxLevelCoord),
                 perVertexModifiers: new Modifier[] { new(ECategory.BUILDING_MAX_LEVEL, "Warehouse", EType.ADDITIVE, 1) }
             ),
-            // ── Placeholder hexes ─────────────────────────────────────────────
+            // ── Hex Forges (branche de l'Acier) ───────────────────────────────
             new(
-                PrestigeMap.NorthEastPlaceholderCoord,
-                "prestige_hex_placeholder",
-                adjacentVertices: Adjacent(PrestigeMap.NorthEastPlaceholderCoord),
-                perVertexModifiers: Array.Empty<Modifier>()
+                PrestigeMap.SteelworksCoord,
+                "prestige_hex_steelworks",
+                adjacentVertices: Adjacent(PrestigeMap.SteelworksCoord),
+                perVertexModifiers: new Modifier[] { new(ECategory.SMELTER_SPEED, EType.ADDITIVE, 0.15) }
             ),
+            // ── Placeholder hexes ─────────────────────────────────────────────
             new(
                 PrestigeMap.NorthWestPlaceholderCoord,
                 "prestige_hex_placeholder",

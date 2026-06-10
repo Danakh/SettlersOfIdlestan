@@ -4,7 +4,7 @@ The changelog is not actively maintained at the moment.
 ---
 
 v0.2
-
+The Age of Steel: the north-east branch of the prestige map grows beyond the Steel Secret with five new vertices and the Steelworks hex. Two new buildings appear: the Blast Furnace (a unique building boosting all Smelters) and the Arsenal. New Steel Armor mechanic: soldiers lost in combat can be saved by consuming Steel. Five new advanced technologies complete the branch, including Rail Logistics (faster reinforcements) and Special Steels (selling Steel at the market).
 
 ---
 

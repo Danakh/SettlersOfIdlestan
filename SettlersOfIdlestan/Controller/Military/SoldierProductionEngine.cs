@@ -59,7 +59,7 @@ internal class SoldierProductionEngine
                 if (useSteelWeapons)
                 {
                     civ.RemoveResource(Resource.Steel, 1);
-                    int toAdd = Math.Min(5, GetMaximumSoldierCapacity(city) - city.Soldiers);
+                    int toAdd = Math.Min(MilitaryController.GetSteelWeaponsSoldierCount(civ), GetMaximumSoldierCapacity(city) - city.Soldiers);
                     city.Soldiers += toAdd;
                 }
                 else

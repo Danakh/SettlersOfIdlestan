@@ -72,6 +72,13 @@ public class MilitaryController
     /// <summary>Intervalle entre deux cycles de consommation de nourriture par les soldats (1 000 ticks = 10 s).</summary>
     public const long SoldierFeedIntervalTicks = 1_000L;
 
+    /// <summary>Soldats produits par cycle Armes en Acier, avant modificateurs (STEEL_WEAPONS_SOLDIER_COUNT).</summary>
+    public const int SteelWeaponsBaseSoldierCount = 5;
+
+    /// <summary>Soldats effectivement produits par cycle Armes en Acier pour la civilisation.</summary>
+    public static int GetSteelWeaponsSoldierCount(Civilization civ)
+        => Math.Max(1, civ.ModifierAggregator.ApplyModifiers(ECategory.STEEL_WEAPONS_SOLDIER_COUNT, "", SteelWeaponsBaseSoldierCount));
+
     // ── Events publics ───────────────────────────────────────────────────────
 
     public event EventHandler<SoldierAttackEventArgs>? SoldierAttackedMonster;

@@ -525,10 +525,22 @@ public class SelectedCityPanelRenderer : PanelRendererBase
                 if (hoveredBuilding is Smelter smelter && smelter.Level > 0)
                 {
                     long currentTick = _cityBuildingService.GetCurrentTick();
+                    long cooldown  = _cityBuildingService.GetSmelterEffectiveCooldown();
                     long elapsed   = smelter.LastProductionTick == 0 ? 0 : currentTick - smelter.LastProductionTick;
-                    long remaining = Math.Max(0, Smelter.ProductionCooldownTicks - elapsed);
-                    tooltipLines.Add(_localization.Get("smelter_production_cooldown") + $" {remaining / 100.0:0.0}s/{Smelter.ProductionCooldownTicks / 100.0:0.0}s");
-                    tooltipLines.Add(_localization.Get("smelter_production_costs"));
+                    long remaining = Math.Max(0, cooldown - elapsed);
+                    tooltipLines.Add(_localization.Get("smelter_production_cooldown") + $" {remaining / 100.0:0.0}s/{cooldown / 100.0:0.0}s");
+                    tooltipLines.Add(_localization.GetFormated("smelter_production_costs",
+                        _cityBuildingService.GetSmelterOreInput(), _cityBuildingService.GetSmelterSteelOutput()));
+                    tooltipLines.Add("");
+                }
+
+                if (hoveredBuilding is Arsenal arsenal && arsenal.Level > 0)
+                {
+                    tooltipLines.Add(_localization.GetFormated("arsenal_max_soldiers_bonus", arsenal.GetMaxSoldiersBonus()));
+                    if (_cityBuildingService.IsSteelArmorUnlocked())
+                        tooltipLines.Add(_localization.GetFormated("arsenal_armor_save_chance", arsenal.ArmorSavePercent));
+                    else
+                        tooltipLines.Add(_localization.Get("arsenal_armor_save_locked"));
                     tooltipLines.Add("");
                 }
 
@@ -586,7 +598,7 @@ public class SelectedCityPanelRenderer : PanelRendererBase
         }
         else if (_hoveredSteelWeaponsCheckbox)
         {
-            var lines = new[] { _localization.Get("tooltip_steel_weapons_checkbox") };
+            var lines = new[] { _localization.GetFormated("tooltip_steel_weapons_checkbox", _cityBuildingService.GetSteelWeaponsSoldierCount()) };
             TooltipRenderUtils.DrawTooltip(canvas, CanvasSize, _lastPointerPosition, lines, Font10!, new ResourceSet(), _resourceIcons, LastUiScale);
         }
     }

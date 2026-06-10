@@ -264,7 +264,7 @@ public static class TechnologyDefinitions
         new(TechnologyId.AdvancedStrategy,
             "tech_advanced_strategy_name", "tech_advanced_strategy_desc",
             cost: 51000,
-            prerequisites: new[] { TechnologyId.AdvancedTactics, TechnologyId.GrandArchitecture },
+            prerequisites: new[] { TechnologyId.AdvancedTactics },
             modifiers: new Modifier[] { new(ECategory.UNLOCK_AUTO_ATTACK, EType.ADDITIVE, 1) },
             tier: 5, line: 7),
 
@@ -277,6 +277,47 @@ public static class TechnologyDefinitions
             prerequisites: new[] { TechnologyId.ImprovedResearch, TechnologyId.TradeRoutes },
             modifiers: new Modifier[] { new(ECategory.RESEARCH_SPEED, EType.ADDITIVE, 0.3) },
             tier: 5, line: 5),
+
+        // === Branche de l'Acier (débloquée par les vertex de prestige du nord-est) ===
+
+        new(TechnologyId.Siderurgie,
+            "tech_siderurgie_name", "tech_siderurgie_desc",
+            cost: 20000,
+            prerequisites: new[] { TechnologyId.SteelWeapons },
+            modifiers: new Modifier[] { new(ECategory.SMELTER_ORE_INPUT, EType.ADDITIVE, -2) },
+            tier: 5, line: 2),
+
+        new(TechnologyId.SteelArmor,
+            "tech_steel_armor_name", "tech_steel_armor_desc",
+            cost: 50000,
+            prerequisites: new[] { TechnologyId.Siderurgie },
+            modifiers: new Modifier[] { new(ECategory.UNLOCK_STEEL_ARMOR, EType.ADDITIVE, 1) },
+            tier: 6, line: 2),
+
+        new(TechnologyId.TemperedSteel,
+            "tech_tempered_steel_name", "tech_tempered_steel_desc",
+            cost: 55000,
+            prerequisites: new[] { TechnologyId.Siderurgie },
+            modifiers: new Modifier[] { new(ECategory.BUILDING_PRODUCTION, "Smelter", EType.ADDITIVE, 1) },
+            tier: 6, line: 1),
+
+        new(TechnologyId.RailLogistics,
+            "tech_rail_logistics_name", "tech_rail_logistics_desc",
+            cost: 150000,
+            prerequisites: new[] { TechnologyId.AdvancedStrategy },
+            modifiers: new Modifier[]
+            {
+                new(ECategory.REINFORCEMENT_SPEED, EType.ADDITIVE, 1.0),
+                new(ECategory.REINFORCEMENT_RANGE, EType.ADDITIVE, 1),
+            },
+            tier: 6, line: 7),
+
+        new(TechnologyId.SpecialSteels,
+            "tech_special_steels_name", "tech_special_steels_desc",
+            cost: 160000,
+            prerequisites: new[] { TechnologyId.TemperedSteel, TechnologyId.TradeRoutes },
+            modifiers: new Modifier[] { new(ECategory.UNLOCK_STEEL_TRADE, EType.ADDITIVE, 1) },
+            tier: 7, line: 3),
 
     };
 

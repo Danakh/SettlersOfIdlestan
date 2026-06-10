@@ -19,8 +19,9 @@ public class PrestigeMap
     public static readonly HexCoord ExperimentalScienceCoord  = new(2,   0, 0);
     public static readonly HexCoord DefenseRegenCoord         = new(2,  -1, 0);
     public static readonly HexCoord WarehouseMaxLevelCoord    = new(-1,  0, 0);
+    // Branche de l'Acier (nord-est)
+    public static readonly HexCoord SteelworksCoord           = new( 3, -1, 0);
     // Placeholder hexes (no bonuses)
-    public static readonly HexCoord NorthEastPlaceholderCoord = new( 3, -1, 0);
     public static readonly HexCoord NorthWestPlaceholderCoord = new(-1, -1, 0);
     public static readonly HexCoord SouthPlaceholderCoord     = new(-1,  3, 0);
 
@@ -40,6 +41,12 @@ public class PrestigeMap
     public static readonly Vertex ConscriptionVertex      = Vertex.Create(new(1, 0, 0), new(1, -1, 0), new(2, -1, 0));
     public static readonly Vertex MilitaryAcademyVertex   = Vertex.Create(new(1,  1, 0), new(2,  0, 0), new(2,  1, 0));
     public static readonly Vertex SteelSecretVertex       = Vertex.Create(new(2,  0, 0), new(2, -1, 0), new(3, -1, 0));
+    // Branche de l'Acier (nord-est) — autour de l'hex Forges (3,-1)
+    public static readonly Vertex BlastFurnaceVertex          = Vertex.Create(new(2, -1, 0), new(3, -2, 0), new(3, -1, 0));
+    public static readonly Vertex MilitaryEngineeringVertex   = Vertex.Create(new(2,  0, 0), new(3, -1, 0), new(3,  0, 0));
+    public static readonly Vertex ImperialRoadsVertex         = Vertex.Create(new(3, -1, 0), new(4, -1, 0), new(3,  0, 0));
+    public static readonly Vertex SteelLegionVertex           = Vertex.Create(new(3, -1, 0), new(3, -2, 0), new(4, -2, 0));
+    public static readonly Vertex MasterSmithsVertex          = Vertex.Create(new(3, -1, 0), new(4, -2, 0), new(4, -1, 0));
     public static readonly Vertex KnowledgeMasteryVertex  = Vertex.Create(new(1, 1, 0), new(0,  2, 0), new(1,  2, 0));
     public static readonly Vertex WatchtowerVertex           = Vertex.Create(new(0, 0, 0), new(-1, 0, 0), new(-1, 1, 0));
     public static readonly Vertex MaritimeRoutesVertex       = Vertex.Create(new(-1, 0, 0), new(-1, 1, 0), new(-2, 1, 0));
@@ -54,9 +61,7 @@ public class PrestigeMap
     // Around DefenseRegen (2,-1) / UnitProductionSpeed (1,-1) outer east
     public static readonly Vertex PlaceholderB1Vertex = Vertex.Create(new(1, -1, 0), new(2, -2, 0), new(2, -1, 0));
     public static readonly Vertex PlaceholderB2Vertex = Vertex.Create(new(2, -1, 0), new(2, -2, 0), new(3, -2, 0));
-    // Outer NE connecting DefenseRegen → new NE hex (3,-1) / ExperimentalScience (2,0)
-    public static readonly Vertex PlaceholderC1Vertex = Vertex.Create(new(2, -1, 0), new(3, -2, 0), new(3, -1, 0));
-    public static readonly Vertex PlaceholderC2Vertex = Vertex.Create(new(2,  0, 0), new(3, -1, 0), new(3,  0, 0));
+    // Outer NE — east corner of ExperimentalScience (2,0)
     public static readonly Vertex PlaceholderC3Vertex = Vertex.Create(new(2,  0, 0), new(3,  0, 0), new(2,  1, 0));
     // Around ResearchCostReduction (1,1) / ExperimentalScience (2,0) outer east
     public static readonly Vertex PlaceholderD2Vertex = Vertex.Create(new(1,  1, 0), new(2,  1, 0), new(1,  2, 0));
@@ -75,10 +80,6 @@ public class PrestigeMap
     // Around GoldTrade (-1,2) outer SW
     public static readonly Vertex PlaceholderH1Vertex = Vertex.Create(new(-1,  2, 0), new(-1,  3, 0), new(-2,  3, 0));
     public static readonly Vertex PlaceholderH2Vertex = Vertex.Create(new(-1,  2, 0), new(-2,  3, 0), new(-2,  2, 0));
-    // Outer vertices of new NE placeholder hex (3,-1)
-    public static readonly Vertex PlaceholderNE1Vertex = Vertex.Create(new(3, -1, 0), new(4, -1, 0), new(3,  0, 0));
-    public static readonly Vertex PlaceholderNE2Vertex = Vertex.Create(new(3, -1, 0), new(3, -2, 0), new(4, -2, 0));
-    public static readonly Vertex PlaceholderNE3Vertex = Vertex.Create(new(3, -1, 0), new(4, -2, 0), new(4, -1, 0));
     // Connecting vertices toward new NW placeholder hex (-2,-1) — involve (-2,0) which is not mapped
     public static readonly Vertex PlaceholderNW4Vertex = Vertex.Create(new(-2,  0, 0), new(-2, -1, 0), new(-1, -1, 0));
     // Outer vertices of new NW placeholder hex (-2,-1)

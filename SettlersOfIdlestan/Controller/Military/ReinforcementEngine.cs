@@ -36,6 +36,13 @@ internal class ReinforcementEngine
     internal int ReinforcementRange(Civilization civ)
         => civ.ModifierAggregator.ApplyModifiers(ECategory.REINFORCEMENT_RANGE, "", DefaultReinforcementRange);
 
+    /// <summary>Intervalle effectif entre deux renforts, après application du modificateur REINFORCEMENT_SPEED.</summary>
+    internal static long EffectiveReinforcementInterval(Civilization civ)
+    {
+        double speed = civ.ModifierAggregator.ApplyModifiers(ECategory.REINFORCEMENT_SPEED, "", 1.0);
+        return Math.Max(1L, (long)(MilitaryController.ReinforcementIntervalTicks / speed));
+    }
+
     internal void ResolveReinforcements(long currentTick, Action<ReinforcementEventArgs> onReinforcementSent)
     {
         if (_state == null) return;
@@ -44,7 +51,7 @@ internal class ReinforcementEngine
         {
             foreach (var sourceCity in civ.Cities.ToList())
             {
-                if (currentTick - sourceCity.LastReinforcementTick < MilitaryController.ReinforcementIntervalTicks) continue;
+                if (currentTick - sourceCity.LastReinforcementTick < EffectiveReinforcementInterval(civ)) continue;
                 if (sourceCity.Soldiers == 0) continue;
                 if (sourceCity.FlowTarget == null) continue;
 

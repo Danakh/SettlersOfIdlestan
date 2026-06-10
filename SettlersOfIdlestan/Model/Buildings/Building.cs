@@ -130,6 +130,14 @@ public enum BuildingType
     /// Fonderie - Convertit du minerai et du bois en acier. Débloqué par le prestige (Secret de l'Acier).
     /// </summary>
     Smelter,
+    /// <summary>
+    /// Haut-Fourneau - Bâtiment unique. Toutes les Fonderies de la civilisation produisent +1 Acier par cycle. Débloqué par le prestige (Hauts-Fourneaux).
+    /// </summary>
+    BlastFurnace,
+    /// <summary>
+    /// Arsenal - Augmente la capacité de soldats et permet de sauver des soldats en consommant de l'Acier (Armures d'Acier). Débloqué par le prestige (Génie Militaire).
+    /// </summary>
+    Arsenal,
 }
 
 /// <summary>

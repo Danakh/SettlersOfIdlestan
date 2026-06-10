@@ -7,6 +7,7 @@ public class Smelter : Building
     public const long ProductionCooldownTicks = 1000L; // 10 s
     public const int OreInputPerCycle  = 5;
     public const int WoodInputPerCycle = 2;
+    public const int SteelOutputPerCycle = 1;
 
     public long LastProductionTick { get; set; } = 0;
 

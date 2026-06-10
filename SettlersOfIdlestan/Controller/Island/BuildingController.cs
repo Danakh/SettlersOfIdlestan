@@ -401,6 +401,8 @@ namespace SettlersOfIdlestan.Controller.Island
                 BuildingType.MilitaryAcademy => new MilitaryAcademy(),
                 BuildingType.DeepestMine => new DeepestMine(),
                 BuildingType.Smelter => new Smelter(),
+                BuildingType.BlastFurnace => new BlastFurnace(),
+                BuildingType.Arsenal => new Arsenal(),
                 _ => null,
             };
         }

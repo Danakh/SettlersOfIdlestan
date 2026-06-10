@@ -17,6 +17,9 @@ namespace SettlersOfIdlestan.Controller
         private const int BuyRateOre = 5;
         private const int BuyRateAdvanced = 20;
 
+        /// <summary>Or reçu pour 1 Acier vendu (recherche Aciers Spéciaux).</summary>
+        public const int SteelSellGoldValue = 10;
+
         public event Action<int>? GoldObtainedFromTrade;
 
         internal TradeController(WorldState? state = null)
@@ -50,10 +53,27 @@ namespace SettlersOfIdlestan.Controller
         /// </summary>
         public int GetSellRate(int civilizationIndex, Resource res)
         {
+            if (res == Resource.Steel) return 1;
             var civ = _state?.Civilizations.Find(c => c.Index == civilizationIndex);
             if (civ != null && civ.SeaportEnhancedResources.Contains(res))
                 return DefaultSellRate - 1;
             return DefaultSellRate;
+        }
+
+        /// <summary>Vrai si la vente d'Acier au marché est déverrouillée (recherche Aciers Spéciaux).</summary>
+        public bool IsSteelTradeUnlocked(int civilizationIndex)
+        {
+            var civ = _state?.Civilizations.Find(c => c.Index == civilizationIndex);
+            return civ?.ModifierAggregator.HasModifier(ECategory.UNLOCK_STEEL_TRADE) ?? false;
+        }
+
+        /// <summary>Or total reçu pour la vente de <paramref name="quantity"/> paquets de la ressource.</summary>
+        public int GetSellGoldYield(int civilizationIndex, Resource resource, int quantity)
+        {
+            if (resource == Resource.Steel) return quantity * SteelSellGoldValue;
+            var civ = _state?.Civilizations.Find(c => c.Index == civilizationIndex);
+            int bulkBonus = civ?.ModifierAggregator.ApplyModifiers(ECategory.TRADE_BULK_GOLD_BONUS, "", 0) ?? 0;
+            return quantity + (quantity / 10) * bulkBonus;
         }
 
         /// <summary>
@@ -73,21 +93,21 @@ namespace SettlersOfIdlestan.Controller
         public bool SellResource(int civilizationIndex, Resource resource, int quantity = 1)
         {
             if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
-            if (!ResourceUtils.BasicResources.Contains(resource))
-                throw new ArgumentException("Only basic resources can be sold.", nameof(resource));
+            if (!ResourceUtils.BasicResources.Contains(resource) && resource != Resource.Steel)
+                throw new ArgumentException("Only basic resources and steel can be sold.", nameof(resource));
 
             var civ = _state.Civilizations.Find(c => c.Index == civilizationIndex)
                       ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
 
             if (!IsTradeAvailable(civilizationIndex)) return false;
+            if (resource == Resource.Steel && !IsSteelTradeUnlocked(civilizationIndex)) return false;
 
             int offerPerPack = GetSellRate(civilizationIndex, resource);
             int totalOffer = offerPerPack * quantity;
 
             if (civ.GetResourceQuantity(resource) < totalOffer) return false;
 
-            int bulkBonus = civ.ModifierAggregator.ApplyModifiers(ECategory.TRADE_BULK_GOLD_BONUS, "", 0);
-            int totalGold = quantity + (quantity / 10) * bulkBonus;
+            int totalGold = GetSellGoldYield(civilizationIndex, resource, quantity);
 
             if (!CanRecieveTrade(civ, Resource.Gold, totalGold)) return false;
 

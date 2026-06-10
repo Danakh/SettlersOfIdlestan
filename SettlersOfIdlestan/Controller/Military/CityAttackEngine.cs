@@ -4,6 +4,7 @@ using System.Linq;
 using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
+using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
 using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
@@ -17,6 +18,7 @@ internal class CityAttackEngine
 {
     private WorldState? _state;
     private RoadController? _roadController;
+    private readonly GamePRNG _prng = new();
 
     private const int DefaultCityAttackRange = 3;
 
@@ -48,7 +50,9 @@ internal class CityAttackEngine
                 if (targetCity == null) continue;
                 if (attackerCity.Position.EdgeDistanceTo(targetCity.Position) > CityAttackRange(attackerCiv)) continue;
 
-                attackerCity.Soldiers--;
+                // Armures d'Acier : le soldat envoyé peut survivre en consommant 1 Acier
+                if (SteelArmorEngine.TrySaveSoldiers(attackerCiv, attackerCity, 1, _prng) == 0)
+                    attackerCity.Soldiers--;
                 attackerCity.LastCityAttackTick = currentTick;
 
                 var path = HexGridPathfinder.FindVertexPath(attackerCity.Position, targetCity.Position);
@@ -139,7 +143,10 @@ internal class CityAttackEngine
         // Les soldats défenseurs absorbent l'attaque : les deux soldats meurent, la défense est intacte.
         if (targetCity.Soldiers > 0)
         {
-            targetCity.Soldiers--;
+            // Armures d'Acier : le défenseur peut survivre en consommant 1 Acier (l'attaque reste absorbée)
+            var defenderCiv = _state!.Civilizations.FirstOrDefault(c => c.Index == targetCity.CivilizationIndex);
+            if (SteelArmorEngine.TrySaveSoldiers(defenderCiv, targetCity, 1, _prng) == 0)
+                targetCity.Soldiers--;
             return false;
         }
 

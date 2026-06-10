@@ -43,6 +43,13 @@ public enum TechnologyId
     AutomaticMarket,
     // Tier 5
     MasterResearch,
+    Siderurgie,
+    // Tier 6
+    SteelArmor,
+    TemperedSteel,
+    RailLogistics,
+    // Tier 7
+    SpecialSteels,
 }
 
 public enum TechnologyStatus

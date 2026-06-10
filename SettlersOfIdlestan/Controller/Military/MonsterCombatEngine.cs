@@ -14,6 +14,7 @@ namespace SettlersOfIdlestan.Controller.Military;
 internal class MonsterCombatEngine
 {
     private WorldState? _state;
+    private readonly GamePRNG _prng = new();
 
     internal void Initialize(WorldState? state)
     {
@@ -55,7 +56,9 @@ internal class MonsterCombatEngine
                 var cityHexes = city.Position.GetHexes();
                 if (!cityHexes.Any(h => h.Equals(monster.Position))) continue;
 
-                city.Soldiers--;
+                // Armures d'Acier : le soldat peut survivre à l'assaut en consommant 1 Acier
+                if (SteelArmorEngine.TrySaveSoldiers(civ, city, 1, _prng) == 0)
+                    city.Soldiers--;
                 monster.Hp--;
                 monster.LastAttackedByMilitaryTick = currentTick;
                 onSoldierAttackedMonster(new SoldierAttackEventArgs(city.Position, monster.Position));

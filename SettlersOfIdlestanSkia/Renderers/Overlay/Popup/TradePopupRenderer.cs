@@ -245,7 +245,7 @@ public sealed class TradePopupRenderer : PopupRendererBase
         if (civ == null) return 0;
         var tc = _gameControllerService.MainGameController.TradeController;
 
-        int sellCount = ResourceUtils.BasicResources.Count(r => tc.CanTradeResource(civ, r));
+        int sellCount = GetSellableResources(civ).Count;
 
         var prestigeState = _gameControllerService.CurrentGameState?.PrestigeState;
         var map = PrestigeMapController.DefaultMap;
@@ -370,10 +370,11 @@ public sealed class TradePopupRenderer : PopupRendererBase
                     var civ = _gameControllerService.PlayerCivilization;
                     if (civ != null)
                     {
-                        var tc       = _gameControllerService.MainGameController.TradeController;
-                        int sellRate = tc.GetSellRate(civ.Index, resource);
+                        var tc        = _gameControllerService.MainGameController.TradeController;
+                        int sellRate  = tc.GetSellRate(civ.Index, resource);
+                        int goldYield = tc.GetSellGoldYield(civ.Index, resource, ActiveMultiplier);
                         if (civ.GetResourceQuantity(resource) >= sellRate * ActiveMultiplier
-                            && tc.CanRecieveTrade(civ, Resource.Gold, ActiveMultiplier))
+                            && tc.CanRecieveTrade(civ, Resource.Gold, goldYield))
                             tc.SellResource(civ.Index, resource, ActiveMultiplier);
                     }
                     return true;
@@ -418,6 +419,16 @@ public sealed class TradePopupRenderer : PopupRendererBase
 
     // ── Sell side ─────────────────────────────────────────────────────────────────
 
+    // Ressources de base vendables + Acier si la recherche Aciers Spéciaux est complétée
+    private List<Resource> GetSellableResources(Civilization civ)
+    {
+        var tc = _gameControllerService.MainGameController.TradeController;
+        var sellable = ResourceUtils.BasicResources.Where(r => tc.CanTradeResource(civ, r)).ToList();
+        if (tc.IsSteelTradeUnlocked(civ.Index) && tc.CanTradeResource(civ, Resource.Steel))
+            sellable.Add(Resource.Steel);
+        return sellable;
+    }
+
     private void DrawSellSide(SKCanvas canvas, float x, float y, float s)
     {
         var civ = _gameControllerService.PlayerCivilization;
@@ -434,19 +445,21 @@ public sealed class TradePopupRenderer : PopupRendererBase
         SkiaTextUtils.DrawText(canvas, _localization.Get("trade_give"), x + ColWidth * s / 2, y + 16 * s, SKTextAlign.Center, BtnFont!, TextPaint);
 
         float rowY = y + 26 * s;
-        foreach (var resource in ResourceUtils.BasicResources.Where(r => tc.CanTradeResource(civ, r)))
+        foreach (var resource in GetSellableResources(civ))
         {
             int  sellRate  = tc.GetSellRate(civ.Index, resource);
             int  units     = sellRate * ActiveMultiplier;
+            int  goldYield = tc.GetSellGoldYield(civ.Index, resource, ActiveMultiplier);
             int  available = civ.GetResourceQuantity(resource);
             int  maxQty    = civ.GetResourceMaxQuantity(resource);
-            bool canSell   = available >= units && tc.CanRecieveTrade(civ, Resource.Gold, ActiveMultiplier);
+            bool canSell   = available >= units && tc.CanRecieveTrade(civ, Resource.Gold, goldYield);
 
             var row = new SKRect(x, rowY, x + ColWidth * s, rowY + RowHeight * s);
             DrawRowBackground(canvas, row, canSell, s);
 
-            if (showL3) DrawSeaportL3Checkbox(canvas, row, resource, civ.SeaportEnhancedResources, civ, s);
-            if (showL4 && civ.SeaportEnhancedResources.Contains(resource))
+            bool isBasic = ResourceUtils.BasicResources.Contains(resource);
+            if (showL3 && isBasic) DrawSeaportL3Checkbox(canvas, row, resource, civ.SeaportEnhancedResources, civ, s);
+            if (showL4 && isBasic && civ.SeaportEnhancedResources.Contains(resource))
                 DrawSeaportL4Checkbox(canvas, row, resource, civ.SeaportAutoTradeResources, civ, s);
 
             float iconX = row.Left + 8 * s + checkboxOffset;
@@ -457,7 +470,7 @@ public sealed class TradePopupRenderer : PopupRendererBase
 
             SkiaTextUtils.DrawText(canvas, $"{available}/{maxQty}", row.MidX, row.MidY + 5 * s, SKTextAlign.Center, _smallFont, SubtlePaint);
 
-            string btnText = string.Format(_localization.Get("trade_sell_button"), units, ActiveMultiplier);
+            string btnText = string.Format(_localization.Get("trade_sell_button"), units, goldYield);
             var    btn     = DrawActionButton(canvas, row, btnText, canSell, s);
             _sellBtnRects[btn] = resource;
             if (!canSell)

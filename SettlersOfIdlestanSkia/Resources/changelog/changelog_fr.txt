@@ -4,7 +4,7 @@ Le changelog n'est pas activement mis à jour pour le moment.
 ---
 
 v0.2
-
+L'Âge de l'Acier : la branche nord-est de la carte de prestige se développe au-delà du Secret de l'Acier avec cinq nouveaux vertex et l'hex Forges. Deux nouveaux bâtiments font leur apparition : le Haut-Fourneau (bâtiment unique qui booste toutes les Fonderies) et l'Arsenal. Nouvelle mécanique Armures d'Acier : les soldats perdus au combat peuvent être sauvés en consommant de l'Acier. Cinq nouvelles recherches avancées complètent la branche, dont la Logistique Ferrée (renforts accélérés) et les Aciers Spéciaux (vente d'Acier au marché).
 
 ---
 

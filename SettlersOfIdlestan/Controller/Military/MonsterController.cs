@@ -233,9 +233,15 @@ public class MonsterFeatureController
 
         if (damage > 0)
         {
-            // 1. Soldats
+            // 1. Soldats — Armures d'Acier : chaque soldat touché peut survivre en consommant 1 Acier
             int soldierDmg = Math.Min(damage, city.Soldiers);
-            if (soldierDmg > 0) { city.Soldiers -= soldierDmg; damage -= soldierDmg; didSomething = true; }
+            if (soldierDmg > 0)
+            {
+                int saved = SteelArmorEngine.TrySaveSoldiers(civ, city, soldierDmg, _prng);
+                city.Soldiers -= soldierDmg - saved;
+                damage -= soldierDmg;
+                didSomething = true;
+            }
 
             // 2. Défense
             if (damage > 0)
