@@ -10,8 +10,8 @@ namespace SettlersOfIdlestan.Model.Monsters;
 [Serializable]
 public class BanditHideout : MonsterFeature
 {
-    public const int MaxBanditsOnIsland = 10;
-    public const long SpawnIntervalTicks = 5_000L;
+    public const int MaxBanditsOnIsland = 5;
+    public const long SpawnIntervalTicks = 6_000L;
 
     public override int MaxHp => 50;
     public override bool BlocksHarvest => true;

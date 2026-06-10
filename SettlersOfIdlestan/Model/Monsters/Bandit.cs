@@ -9,7 +9,7 @@ namespace SettlersOfIdlestan.Model.Monsters;
 public class Bandit : MonsterFeature
 {
     /// <summary>Conservé pour la compatibilité avec les tests existants.</summary>
-    public const long RaidIntervalTicks = 100L;
+    public const long RaidIntervalTicks = 200L;
 
     public override int MaxHp => 20;
     public override bool BlocksHarvest => true;
