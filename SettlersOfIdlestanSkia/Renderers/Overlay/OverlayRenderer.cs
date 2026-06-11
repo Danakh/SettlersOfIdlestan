@@ -33,6 +33,7 @@ public sealed class OverlayRenderer : IGameRenderer
     private readonly PlayerCivilizationPanelRenderer _playerCivPanel;
     private readonly TabBarRenderer _tabBar;
     private readonly MapSwitchButtonRenderer _mapSwitchButton;
+    private readonly ZoomControlRenderer _zoomControl;
 
     private readonly UILayoutService _uiLayout;
     private SKSize _canvasSize;
@@ -95,6 +96,7 @@ public sealed class OverlayRenderer : IGameRenderer
 
         _tabBar          = new TabBarRenderer(localization, gameControllerService, uiLayout);
         _mapSwitchButton = new MapSwitchButtonRenderer(localization, uiLayout, gameControllerService);
+        _zoomControl     = new ZoomControlRenderer(inputService, uiLayout);
 
         _playerCivPanel = new PlayerCivilizationPanelRenderer(
             gameControllerService,
@@ -134,6 +136,7 @@ public sealed class OverlayRenderer : IGameRenderer
         _playerCivPanel.Initialize(canvasSize);
         _tabBar.Initialize(canvasSize);
         _mapSwitchButton.Initialize(canvasSize);
+        _zoomControl.Initialize(canvasSize, _uiLayout.UiScale);
 
         _playerResourcesOverlayRenderer.ShowGearInBar = !_uiLayout.IsMobile;
 
@@ -214,6 +217,10 @@ public sealed class OverlayRenderer : IGameRenderer
         _settingsPopupRenderer.Render(canvas, _uiLayout.UiScale);
 
         _mapSwitchButton.Render(canvas);
+
+        if (activeTab == TabBarRenderer.TabIsland)
+            _zoomControl.Render(canvas);
+
         CheckResourceBarTooltip();
     }
 
@@ -271,6 +278,7 @@ public sealed class OverlayRenderer : IGameRenderer
         || _selectedCityPanelRenderer.ContainsPoint(point)
         || _selectedWonderPanelRenderer.ContainsPoint(point)
         || _playerCivPanel.ContainsPoint(point)
+        || _zoomControl.ContainsPoint(point)
         || (_uiLayout.IsMobile && point.Y < _uiLayout.ResourceBarBottom);
 
     public bool IsIslandTabActive => _tabBar.ActiveTab == TabBarRenderer.TabIsland;
@@ -381,6 +389,12 @@ public sealed class OverlayRenderer : IGameRenderer
         if (suppressNextPress) _suppressNextPress = true;
     }
 
+    public void ConnectZoomCallbacks(Action zoomIn, Action zoomOut)
+    {
+        _zoomControl.OnZoomIn  = zoomIn;
+        _zoomControl.OnZoomOut = zoomOut;
+    }
+
     public void SwitchToPrestigeTab() => _tabBar.SetActiveTab(TabBarRenderer.TabPrestige);
 
     private void HandlePointerReleased(object? sender, PointerEventArgs e)
@@ -460,6 +474,7 @@ public sealed class OverlayRenderer : IGameRenderer
         _playerCivPanel.Dispose();
         _tabBar.Dispose();
         _mapSwitchButton.Dispose();
+        _zoomControl.Dispose();
         _secondRowBgPaint.Dispose();
         _secondRowBorderPaint.Dispose();
 

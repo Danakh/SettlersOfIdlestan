@@ -265,6 +265,9 @@ public sealed class GameScreen : IDisposable
             timeControlRenderer, researchRenderer, eventLogRenderer, automationRenderer,
             ritualsRenderer, tooltipRenderer, _uiLayoutService);
         _overlayRenderer.ConnectWonderService(_wonderSelectionService);
+        _overlayRenderer.ConnectZoomCallbacks(
+            () => _cameraService.SetZoom(_cameraService.ZoomLevel * ZoomStep),
+            () => _cameraService.SetZoom(_cameraService.ZoomLevel / ZoomStep));
         _renderService.RegisterRenderer(_overlayRenderer);
 
         _constructionInteractionService.ShouldSuppressHover = pos =>
@@ -632,7 +635,11 @@ public sealed class GameScreen : IDisposable
             float x1 = GameConstants.HexSize * sqrt3 * (v.Hex1.Q + v.Hex1.R / 2f), y1 = GameConstants.HexSize * -3f / 2f * v.Hex1.R;
             float x2 = GameConstants.HexSize * sqrt3 * (v.Hex2.Q + v.Hex2.R / 2f), y2 = GameConstants.HexSize * -3f / 2f * v.Hex2.R;
             float x3 = GameConstants.HexSize * sqrt3 * (v.Hex3.Q + v.Hex3.R / 2f), y3 = GameConstants.HexSize * -3f / 2f * v.Hex3.R;
-            _cameraService.SetZoom(DefaultZoom, keepCenteredOnScreen: false);
+            var canvas = _cameraService.CanvasSize;
+            float maxDim    = Math.Max(canvas.Width, canvas.Height);
+            float minZoom   = maxDim > 0f ? maxDim * 0.1f / (2f * GameConstants.HexSize) : DefaultZoom;
+            float zoom      = Math.Max(DefaultZoom, minZoom);
+            _cameraService.SetZoom(zoom, keepCenteredOnScreen: false);
             _cameraService.CenterOn((x1 + x2 + x3) / 3f, (y1 + y2 + y3) / 3f);
         }
         else
