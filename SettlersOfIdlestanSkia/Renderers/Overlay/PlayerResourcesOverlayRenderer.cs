@@ -27,6 +27,7 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
     private SKPaint? _itemBorderPaint;
     private SKPaint? _gearCenterPaint;
     private SKPaint? _lowStockPaint;
+    private SKPaint? _maxStockTextPaint;
     private SKPaint? _scrollTrackPaint;
     private SKPaint? _scrollThumbPaint;
 
@@ -123,6 +124,7 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
         _itemBorderPaint = new SKPaint { Color = new SKColor(255, 255, 255, 60), Style = SKPaintStyle.Stroke, StrokeWidth = 1, IsAntialias = true };
         _gearCenterPaint = new SKPaint { Color = SKColors.Gold, Style = SKPaintStyle.Stroke, StrokeWidth = 1.5f, IsAntialias = true };
         _lowStockPaint = new SKPaint { Style = SKPaintStyle.Stroke, StrokeWidth = 2, IsAntialias = true };
+        _maxStockTextPaint = new SKPaint { Color = new SKColor(220, 60, 60), IsAntialias = true };
         _scrollTrackPaint = new SKPaint { Color = new SKColor(255, 255, 255, 25), Style = SKPaintStyle.Fill, IsAntialias = true };
         _scrollThumbPaint = new SKPaint { Color = new SKColor(255, 255, 255, 90), Style = SKPaintStyle.Fill, IsAntialias = true };
 
@@ -205,7 +207,8 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
             {
                 // Rect en coordonnées écran (avant la translation du canvas)
                 _resourceRects[resource] = new SKRect(currentX - scroll, itemY, currentX - scroll + rectW, itemY + rectH);
-                DrawResourceItem(canvas, resource, quantity, maxQuantity, currentX, itemY, IsFlickering(resource));
+                bool isAtMax = quantity >= maxQuantity && !civilization.SeaportAutoTradeResources.Contains(resource);
+                DrawResourceItem(canvas, resource, quantity, maxQuantity, currentX, itemY, IsFlickering(resource), isAtMax);
                 currentX += rectW + itemSpacing;
             }
         }
@@ -294,7 +297,7 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
         return Environment.TickCount64 - ts < LowStockFlickerDurationMs;
     }
 
-    private void DrawResourceItem(SKCanvas canvas, Resource resource, int quantity, int maxQuantity, float x, float y, bool isFlickering)
+    private void DrawResourceItem(SKCanvas canvas, Resource resource, int quantity, int maxQuantity, float x, float y, bool isFlickering, bool isAtMax = false)
     {
         float s = _uiScale;
         float rectW = RectangleWidth * s;
@@ -331,6 +334,8 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
 
         if (_smallFont == null || _textPaint == null) return;
 
+        var qtyPaint = (isAtMax && _maxStockTextPaint != null) ? _maxStockTextPaint : _textPaint;
+
         if (maxQuantity > 1000)
         {
             // Deux lignes : stock en haut, max en bas
@@ -343,10 +348,10 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
             float line2Y = line1Y + textH + 2f * s;
 
             float line1Width = _smallFont.MeasureText(quantityText);
-            SkiaTextUtils.DrawText(canvas, quantityText, x + rectW - line1Width - 4f * s, line1Y, _smallFont, _textPaint);
+            SkiaTextUtils.DrawText(canvas, quantityText, x + rectW - line1Width - 4f * s, line1Y, _smallFont, qtyPaint);
 
             float line2Width = _smallFont.MeasureText(maxText);
-            SkiaTextUtils.DrawText(canvas, maxText, x + rectW - line2Width - 4f * s, line2Y, _smallFont, _textPaint);
+            SkiaTextUtils.DrawText(canvas, maxText, x + rectW - line2Width - 4f * s, line2Y, _smallFont, qtyPaint);
         }
         else
         {
@@ -355,7 +360,7 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
             float textHeight = _smallFont.Size;
             float textY = y + (rectH + textHeight) / 2f - 2f * s;
             float textWidth = _smallFont.MeasureText(resourceValueText);
-            SkiaTextUtils.DrawText(canvas, resourceValueText, x + rectW - textWidth - 4f * s, textY, _smallFont, _textPaint);
+            SkiaTextUtils.DrawText(canvas, resourceValueText, x + rectW - textWidth - 4f * s, textY, _smallFont, qtyPaint);
         }
     }
 
@@ -428,6 +433,7 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
         _itemBorderPaint?.Dispose();
         _gearCenterPaint?.Dispose();
         _lowStockPaint?.Dispose();
+        _maxStockTextPaint?.Dispose();
         _scrollTrackPaint?.Dispose();
         _scrollThumbPaint?.Dispose();
         _disposed = true;

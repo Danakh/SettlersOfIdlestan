@@ -100,6 +100,7 @@ public sealed class TradePopupRenderer : PopupRendererBase
     private readonly SKPaint _confirmNoPaint      = new() { Color = new SKColor(140, 50,  50),        Style = SKPaintStyle.Fill,   IsAntialias = true };
     private readonly SKPaint _scrollTrackPaint    = new() { Color = new SKColor(50,  50,  65,  200),  Style = SKPaintStyle.Fill,   IsAntialias = true };
     private readonly SKPaint _scrollThumbPaint    = new() { Color = new SKColor(130, 130, 165, 210),  Style = SKPaintStyle.Fill,   IsAntialias = true };
+    private readonly SKPaint _maxStockPaint       = new() { Color = new SKColor(220, 60,  60),        IsAntialias = true };
 
     public TradePopupRenderer(
         GameControllerService gameControllerService,
@@ -249,11 +250,12 @@ public sealed class TradePopupRenderer : PopupRendererBase
 
         var prestigeState = _gameControllerService.CurrentGameState?.PrestigeState;
         var map = PrestigeMapController.DefaultMap;
-        int buyCount = ResourceUtils.BasicResources.Count()
+        int buyCount = ResourceUtils.BasicResources.Count(r => tc.CanTradeResource(civ, r))
             + Enum.GetValues<Resource>()
                 .Where(r => !ResourceUtils.BasicResources.Contains(r) && r != Resource.Gold)
-                .Count(r => !ResourceUtils.AdvancedResources.Contains(r)
-                            || (prestigeState?.IsResourceDiscovered(r, map) ?? false));
+                .Where(r => !ResourceUtils.AdvancedResources.Contains(r)
+                            || (prestigeState?.IsResourceDiscovered(r, map) ?? false))
+                .Count(r => tc.CanTradeResource(civ, r));
 
         int maxRows = Math.Max(sellCount, buyCount);
         return (26 + maxRows * (RowHeight + 4)) * s;
@@ -468,7 +470,8 @@ public sealed class TradePopupRenderer : PopupRendererBase
             string sellName = _localization.Get($"resource_{resource.ToString().ToLower()}");
             SkiaTextUtils.DrawText(canvas, sellName, iconX + (IconSize + 5) * s, row.MidY + 5 * s, BodyFont!, canSell ? TextPaint : SubtlePaint);
 
-            SkiaTextUtils.DrawText(canvas, $"{available}/{maxQty}", row.MidX, row.MidY + 5 * s, SKTextAlign.Center, _smallFont, SubtlePaint);
+            bool isAtMax = available >= maxQty && !civ.SeaportAutoTradeResources.Contains(resource);
+            SkiaTextUtils.DrawText(canvas, $"{available}/{maxQty}", row.MidX, row.MidY + 5 * s, SKTextAlign.Center, _smallFont, isAtMax ? _maxStockPaint : SubtlePaint);
 
             string btnText = string.Format(_localization.Get("trade_sell_button"), units, goldYield);
             var    btn     = DrawActionButton(canvas, row, btnText, canSell, s);
@@ -495,6 +498,7 @@ public sealed class TradePopupRenderer : PopupRendererBase
                 .Where(r => !ResourceUtils.BasicResources.Contains(r) && r != Resource.Gold)
                 .Where(r => !ResourceUtils.AdvancedResources.Contains(r)
                             || (prestigeState?.IsResourceDiscovered(r, map) ?? false)))
+            .Where(r => tc.CanTradeResource(civ, r))
             .ToList();
 
         SkiaTextUtils.DrawText(canvas, _localization.Get("trade_advanced_title"), x + ColWidth * s / 2, y + 16 * s, SKTextAlign.Center, BtnFont!, TextPaint);
@@ -515,7 +519,8 @@ public sealed class TradePopupRenderer : PopupRendererBase
             string buyName = _localization.Get($"resource_{resource.ToString().ToLower()}");
             SkiaTextUtils.DrawText(canvas, buyName, row.Left + (8 + IconSize + 5) * s, row.MidY + 5 * s, BodyFont!, canBuy ? TextPaint : SubtlePaint);
 
-            SkiaTextUtils.DrawText(canvas, $"{qty}/{maxQty}", row.MidX, row.MidY + 5 * s, SKTextAlign.Center, _smallFont, SubtlePaint);
+            bool isAtMax = qty >= maxQty && !civ.SeaportAutoTradeResources.Contains(resource);
+            SkiaTextUtils.DrawText(canvas, $"{qty}/{maxQty}", row.MidX, row.MidY + 5 * s, SKTextAlign.Center, _smallFont, isAtMax ? _maxStockPaint : SubtlePaint);
 
             string btnText = string.Format(_localization.Get("trade_buy_button"), cost, ActiveMultiplier);
             var    btn     = DrawActionButton(canvas, row, btnText, canBuy, s);
@@ -580,7 +585,8 @@ public sealed class TradePopupRenderer : PopupRendererBase
             DrawIconSized(canvas, Resource.Gold, iconX, capsule.MidY, goldIconSize);
 
             string qtyText = $"{goldQty}/{goldMax}";
-            SkiaTextUtils.DrawText(canvas, qtyText, iconX + goldIconSize + 5 * s, capsule.MidY + 4 * s, _smallFont, TextPaint);
+            bool goldAtMax = goldQty >= goldMax;
+            SkiaTextUtils.DrawText(canvas, qtyText, iconX + goldIconSize + 5 * s, capsule.MidY + 4 * s, _smallFont, goldAtMax ? _maxStockPaint : TextPaint);
         }
 
         float totalW = (MultBtnW * 3 + MultBtnGap * 2) * s;
@@ -742,6 +748,7 @@ public sealed class TradePopupRenderer : PopupRendererBase
         _confirmDimPaint.Dispose(); _confirmBgPaint.Dispose();    _confirmBorderPaint.Dispose();
         _confirmYesPaint.Dispose(); _confirmNoPaint.Dispose();
         _scrollTrackPaint.Dispose(); _scrollThumbPaint.Dispose();
+        _maxStockPaint.Dispose();
         base.Dispose();
     }
 }
