@@ -419,7 +419,7 @@ public class SelectedCityPanelRenderer : PanelRendererBase
                 if (manualHarvestRes.HasValue || autoHarvestRes.HasValue)
                 {
                     bool isAtMaxForHarvest = _cityBuildingService.IsAtMaxLevel(hoveredBuilding);
-                    int displayLvl = Math.Max(1, hoveredBuilding.Level);
+                    int displayLvl = hoveredBuilding.Level;
 
                     tooltipLines.Add(_localization.Get("tooltip_harvest_header"));
 
@@ -436,19 +436,55 @@ public class SelectedCityPanelRenderer : PanelRendererBase
                         tooltipLines.Add(_localization.Get("tooltip_harvest_auto") + " " + (autoActive ? autoName : "—"));
                         if (!autoActive && !isAtMaxForHarvest && displayLvl + 1 >= hoveredBuilding.AutomaticHarvestUnlockLevel)
                             tooltipLines.Add(_localization.Get("tooltip_harvest_auto_next") + " " + autoName);
+
+                        double speedMult = _cityBuildingService.GetHarvestSpeedMultiplier(hoveredBuilding);
+                        if (autoActive)
+                        {
+                            long rawCooldown = hoveredBuilding.GetAutomaticHarvestCooldown(HarvestController.AutomaticHarvestCooldownTicks, displayLvl);
+                            long effective = Math.Max(1L, (long)(rawCooldown / speedMult));
+                            tooltipLines.Add(_localization.Get("tooltip_harvest_rate") + $" {effective / 100.0:0.0}s");
+                            if (!isAtMaxForHarvest)
+                            {
+                                long nextRaw = hoveredBuilding.GetAutomaticHarvestCooldown(HarvestController.AutomaticHarvestCooldownTicks, displayLvl + 1);
+                                long nextEffective = Math.Max(1L, (long)(nextRaw / speedMult));
+                                if (nextEffective != effective)
+                                    tooltipLines.Add(_localization.Get("tooltip_harvest_auto_next") + $" {nextEffective / 100.0:0.0}s");
+                            }
+                        }
+                        else if (!isAtMaxForHarvest && displayLvl + 1 >= hoveredBuilding.AutomaticHarvestUnlockLevel)
+                        {
+                            int activateLevel = hoveredBuilding.AutomaticHarvestUnlockLevel;
+                            long previewRaw = hoveredBuilding.GetAutomaticHarvestCooldown(HarvestController.AutomaticHarvestCooldownTicks, activateLevel);
+                            long previewEffective = Math.Max(1L, (long)(previewRaw / speedMult));
+                            tooltipLines.Add(_localization.Get("tooltip_harvest_rate") + $" {previewEffective / 100.0:0.0}s");
+                        }
                     }
 
                     tooltipLines.Add("");
                 }
 
-                if (hoveredBuilding is Forge forge && forge.Level > 0)
+                if (hoveredBuilding is Forge forge)
                 {
-                    int forgeBonus  = _cityBuildingService.GetSelectedCivilizationForgeBonus(forge);
-                    int totalChance = forge.DoubleProdChancePercent + forgeBonus;
-                    string forgeText = _localization.Get("forge_double_prod") + $" {totalChance}%";
-                    if (forgeBonus > 0)
-                        forgeText += $" ({forge.DoubleProdChancePercent}% + {forgeBonus}% {_localization.Get("forge_double_prod_research_bonus")})";
-                    tooltipLines.Add(forgeText);
+                    if (forge.Level > 0)
+                    {
+                        int forgeBonus  = _cityBuildingService.GetSelectedCivilizationForgeBonus(forge);
+                        int totalChance = forge.DoubleProdChancePercent + forgeBonus;
+                        string forgeText = _localization.Get("forge_double_prod") + $" {totalChance}%";
+                        if (forgeBonus > 0)
+                            forgeText += $" ({forge.DoubleProdChancePercent}% + {forgeBonus}% {_localization.Get("forge_double_prod_research_bonus")})";
+                        tooltipLines.Add(forgeText);
+                        if (!_cityBuildingService.IsAtMaxLevel(forge))
+                        {
+                            int civBonusPerLevel = _cityBuildingService.GetCivilizationForgeHarvestBonusPerLevel();
+                            int nextChance = (forge.Level + 1) * (10 + civBonusPerLevel);
+                            tooltipLines.Add(_localization.Get("tooltip_harvest_auto_next") + $" {nextChance}%");
+                        }
+                    }
+                    else
+                    {
+                        int civBonusPerLevel = _cityBuildingService.GetCivilizationForgeHarvestBonusPerLevel();
+                        tooltipLines.Add(_localization.Get("tooltip_harvest_auto_next") + " " + _localization.Get("forge_double_prod") + $" {10 + civBonusPerLevel}%");
+                    }
                     tooltipLines.Add("");
                 }
 
@@ -541,6 +577,29 @@ public class SelectedCityPanelRenderer : PanelRendererBase
                         tooltipLines.Add(_localization.GetFormated("arsenal_armor_save_chance", arsenal.ArmorSavePercent));
                     else
                         tooltipLines.Add(_localization.Get("arsenal_armor_save_locked"));
+                    tooltipLines.Add("");
+                }
+
+                if (hoveredBuilding is Warehouse warehouse)
+                {
+                    if (warehouse.Level == 0)
+                        tooltipLines.Add(_localization.Get("warehouse_build_storage"));
+                    else if (!_cityBuildingService.IsAtMaxLevel(warehouse))
+                        tooltipLines.Add(_localization.Get("warehouse_upgrade_storage"));
+                    tooltipLines.Add("");
+                }
+
+                if (hoveredBuilding is MilitaryAcademy militaryAcademy && militaryAcademy.Level > 0)
+                {
+                    int soldierBonus = militaryAcademy.GetMaxSoldiersBonus();
+                    int prodBonus = (int)Math.Round(militaryAcademy.Level * 25.0);
+                    tooltipLines.Add(_localization.GetFormated("militaryacademy_stats", soldierBonus, prodBonus));
+                    if (!_cityBuildingService.IsAtMaxLevel(militaryAcademy))
+                    {
+                        int nextSoldier = (militaryAcademy.Level + 1) * MilitaryAcademy.MaxSoldiersPerLevel;
+                        int nextProd = (militaryAcademy.Level + 1) * 25;
+                        tooltipLines.Add(_localization.Get("tooltip_harvest_auto_next") + " " + _localization.GetFormated("militaryacademy_stats", nextSoldier, nextProd));
+                    }
                     tooltipLines.Add("");
                 }
 

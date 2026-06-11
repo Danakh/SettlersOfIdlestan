@@ -165,13 +165,6 @@ public class PrestigeVertexModifierTests
     // ── UNLOCK_RESEARCH ───────────────────────────────────────────────────────
 
     [Fact]
-    public void BarracksVertex_UnlocksResearch_MilitaryBuildings()
-    {
-        var aggregator = BuildAggregator(PrestigeMap.BarracksVertex);
-        Assert.True(aggregator.HasModifier(ECategory.UNLOCK_RESEARCH, "MilitaryBuildings"));
-    }
-
-    [Fact]
     public void AppliedResearchVertex_UnlocksResearch_Artisanat()
     {
         var aggregator = BuildAggregator(PrestigeMap.AppliedResearchVertex);

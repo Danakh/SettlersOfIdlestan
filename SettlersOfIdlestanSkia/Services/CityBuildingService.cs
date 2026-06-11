@@ -222,6 +222,18 @@ public class CityBuildingService
     public bool IsSteelArmorUnlocked()
         => SelectedCivilization?.ModifierAggregator.HasModifier(ECategory.UNLOCK_STEEL_ARMOR) ?? false;
 
+    /// <summary>Multiplicateur de vitesse de récolte auto pour ce bâtiment (modificateurs civ inclus).</summary>
+    public double GetHarvestSpeedMultiplier(Building building)
+    {
+        var civ = SelectedCivilization;
+        if (civ == null) return 1.0;
+        return civ.ModifierAggregator.ApplyModifiers(ECategory.HARVEST_SPEED, building.Type.ToString(), 1.0);
+    }
+
+    /// <summary>Bonus de récolte double de la Forge par niveau, venant des modificateurs de civilisation.</summary>
+    public int GetCivilizationForgeHarvestBonusPerLevel()
+        => SelectedCivilization?.ForgeDoubleHarvestBonus ?? 0;
+
     public bool IsAtMaxLevel(Building building)
     {
         if (SelectedCity == null)

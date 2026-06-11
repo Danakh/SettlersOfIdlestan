@@ -217,11 +217,12 @@ public class Building
     /// <summary>
     /// Returns the raw auto-harvest cooldown in ticks for this building, before civilization
     /// speed modifiers are applied. Default: baseCooldownTicks minus 0.5 s (50 ticks) per level
-    /// above AutomaticHarvestUnlockLevel.
+    /// above AutomaticHarvestUnlockLevel. Pass <paramref name="atLevel"/> to query a hypothetical level.
     /// </summary>
-    public virtual long GetAutomaticHarvestCooldown(long baseCooldownTicks)
+    public virtual long GetAutomaticHarvestCooldown(long baseCooldownTicks, int? atLevel = null)
     {
-        long levelsAbove = Math.Max(0, Level - AutomaticHarvestUnlockLevel);
+        int level = atLevel ?? Level;
+        long levelsAbove = Math.Max(0, level - AutomaticHarvestUnlockLevel);
         return Math.Max(1L, baseCooldownTicks - levelsAbove * 50);
     }
 

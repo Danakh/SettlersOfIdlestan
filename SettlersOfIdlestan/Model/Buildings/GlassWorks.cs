@@ -24,9 +24,10 @@ public class GlassWorks : Building
     }
 
     // Desert production is 2x slower than other terrains
-    public override long GetAutomaticHarvestCooldown(long baseCooldownTicks)
+    public override long GetAutomaticHarvestCooldown(long baseCooldownTicks, int? atLevel = null)
     {
-        long levelsAbove = Math.Max(0, Level - AutomaticHarvestUnlockLevel);
+        int level = atLevel ?? Level;
+        long levelsAbove = Math.Max(0, level - AutomaticHarvestUnlockLevel);
         return Math.Max(1L, baseCooldownTicks * 2 - levelsAbove * 50);
     }
 
