@@ -20,8 +20,9 @@ public class DeepestMine : Building
     public override ResourceSet GetBuildCost() => new ResourceSet
     {
         { Resource.Stone, 1000 },
-        { Resource.Ore, 300 },
+        { Resource.Ore, 500 },
         { Resource.Gold, 1000 },
+        { Resource.Steel, 100 },
     };
 
     public override ResourceSet GetUpgradeCost(int level) => new();

@@ -6,7 +6,7 @@ public class Mine : Building
 {
     public Mine() : base(BuildingType.Mine)
     {
-        AvailableAtLevel = 2;
+        AvailableAtLevel = 3;
     }
 
     public override int GetDefaultMaxLevel() => 4;
