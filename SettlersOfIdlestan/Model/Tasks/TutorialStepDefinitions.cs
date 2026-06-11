@@ -62,6 +62,20 @@ public static class TutorialStepDefinitions
         ),
 
         new TutorialStep(
+            "tutorial_step_production_title",
+            "tutorial_step_production_desc",
+            primaryTasks: new[]
+            {
+                Task(TutorialTaskId.Build10ProductionBuildings),
+            },
+            secondaryTasks: new[]
+            {
+                Task(TutorialTaskId.Build5Cities),
+                Task(TutorialTaskId.Upgrade5ProductionBuildingsLevel2),
+            }
+        ),
+
+        new TutorialStep(
             "tutorial_step_empire_title",
             "tutorial_step_empire_desc",
             primaryTasks: new[]

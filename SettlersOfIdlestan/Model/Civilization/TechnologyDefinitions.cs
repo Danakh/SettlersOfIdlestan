@@ -30,6 +30,13 @@ public static class TechnologyDefinitions
             modifiers: new Modifier[] { new(ECategory.UNLOCK_WONDERS, EType.ADDITIVE, 1) },
             tier: 0, line: 5),
 
+        new(TechnologyId.Fortifications,
+            "tech_fortifications_name", "tech_fortifications_desc",
+            cost: 100,
+            prerequisites: Array.Empty<TechnologyId>(),
+            modifiers: new Modifier[] { new(ECategory.BUILDING_MAX_LEVEL, "Palisade", EType.ADDITIVE, 1) },
+            tier: 0, line: 6),
+
         new(TechnologyId.MilitaryDiscipline,
             "tech_military_discipline_name", "tech_military_discipline_desc",
             cost: 120,
@@ -74,17 +81,10 @@ public static class TechnologyDefinitions
             modifiers: new Modifier[] { new(ECategory.RESEARCH_SPEED, EType.ADDITIVE, 0.15) },
             tier: 1, line: 5),
 
-        new(TechnologyId.Fortifications,
-            "tech_fortifications_name", "tech_fortifications_desc",
-            cost: 400,
-            prerequisites: new[] { TechnologyId.Architecture },
-            modifiers: new Modifier[] { new(ECategory.BUILDING_MAX_LEVEL, "Palisade", EType.ADDITIVE, 1) },
-            tier: 1, line: 6),
-
         new(TechnologyId.MilitaryBuildings,
             "tech_military_buildings_name", "tech_military_buildings_desc",
             cost: 1600,
-            prerequisites: new[] { TechnologyId.Fortifications, TechnologyId.MilitaryTactics },
+            prerequisites: new[] { TechnologyId.Fortifications, TechnologyId.Architecture },
             modifiers: new Modifier[] { new(ECategory.BUILDING_MAX_LEVEL, "Barracks", EType.ADDITIVE, 2) },
             tier: 2, line: 6),
 

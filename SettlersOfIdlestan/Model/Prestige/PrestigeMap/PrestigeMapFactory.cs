@@ -75,7 +75,6 @@ public static class PrestigeMapFactory
                 modifiers: new Modifier[]
                 {
                     new(ECategory.BUILDING_MAX_LEVEL, "Barracks", EType.ADDITIVE, 2),
-                    new(ECategory.UNLOCK_RESEARCH, "MilitaryBuildings", EType.ADDITIVE, 1),
                 }
             ),
             new(

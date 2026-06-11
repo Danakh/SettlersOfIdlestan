@@ -33,9 +33,9 @@ public enum BuildingType
     /// </summary>
     Palisade,
     /// <summary>
-    /// March� - Permet le commerce
+    /// Port maritime - Permet la r�colte de nourriture et le commerce maritime
     /// </summary>
-    Market,
+    Seaport,
     /// <summary>
     /// Scierie - Produit du bois
     /// </summary>
@@ -53,13 +53,13 @@ public enum BuildingType
     /// </summary>
     Quarry,
     /// <summary>
+    /// March� - Permet le commerce
+    /// </summary>
+    Market,
+    /// <summary>
     /// Mine - Automatise la récolte de minerai
     /// </summary>
     Mine,
-    /// <summary>
-    /// Port maritime - Permet la r�colte de nourriture et le commerce maritime
-    /// </summary>
-    Seaport,
     /// <summary>
     /// Entrep�t - Augmente la capacit� de stockage des ressources
     /// </summary>

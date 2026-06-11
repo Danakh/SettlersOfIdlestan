@@ -86,6 +86,31 @@ public static class TutorialTaskDefinitions
                 island?.PlayerCivilization.Cities.SelectMany(c => c.Buildings)
                     .Count(b => ProductionBuildingTypes.Contains(b.Type) && b.Level >= 2)), 2)),
 
+        new TutorialTask(TutorialTaskId.Build10ProductionBuildings,
+            "task_build_10_production_name", "task_build_10_production_desc",
+            (g, _, island) => ProductionBuildingTypes.Sum(t => g.BuildingCounts.GetValueOrDefault(t.ToString())) >= 10
+                || island?.PlayerCivilization.Cities.SelectMany(c => c.Buildings)
+                    .Count(b => ProductionBuildingTypes.Contains(b.Type)) >= 10,
+            (g, _, island) => (LiveMax(
+                ProductionBuildingTypes.Sum(t => g.BuildingCounts.GetValueOrDefault(t.ToString())),
+                island?.PlayerCivilization.Cities.SelectMany(c => c.Buildings)
+                    .Count(b => ProductionBuildingTypes.Contains(b.Type))), 10)),
+
+        new TutorialTask(TutorialTaskId.Build5Cities,
+            "task_build_5_cities_name", "task_build_5_cities_desc",
+            (g, _, island) => g.TotalCitiesBuilt >= 5
+                || island?.PlayerCivilization.Cities.Count >= 5,
+            (g, _, island) => (LiveMax(g.TotalCitiesBuilt, (island?.PlayerCivilization.Cities.Count ?? 1) - 1), 5)),
+
+        new TutorialTask(TutorialTaskId.Upgrade5ProductionBuildingsLevel2,
+            "task_upgrade_5_production_level2_name", "task_upgrade_5_production_level2_desc",
+            (g, _, island) => g.ProductionBuildingsReachedLevel2 >= 5
+                || island?.PlayerCivilization.Cities.SelectMany(c => c.Buildings)
+                    .Count(b => ProductionBuildingTypes.Contains(b.Type) && b.Level >= 2) >= 5,
+            (g, _, island) => (LiveMax(g.ProductionBuildingsReachedLevel2,
+                island?.PlayerCivilization.Cities.SelectMany(c => c.Buildings)
+                    .Count(b => ProductionBuildingTypes.Contains(b.Type) && b.Level >= 2)), 5)),
+
         new TutorialTask(TutorialTaskId.Build10Cities,
             "task_build_10_cities_name", "task_build_10_cities_desc",
             (g, _, island) => g.TotalCitiesBuilt >= 10
