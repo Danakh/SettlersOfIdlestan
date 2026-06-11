@@ -54,12 +54,11 @@ public sealed class HardResetPopupRenderer : PopupRendererBase
         DrawBackground(canvas, popup, s);
 
         string title = _localization.Get("hard_reset_title");
-        float  titleW = TitleFont!.MeasureText(title);
-        canvas.DrawText(title, popup.Left + (popupW - titleW) / 2f, popup.Top + 44 * s, TitleFont, _titlePaint);
+        SkiaTextUtils.DrawText(canvas, title, popup.Left + popupW / 2f, popup.Top + 44 * s, SKTextAlign.Center, TitleFont, _titlePaint);
 
         string desc = _localization.Get("hard_reset_desc");
         float  descW = BodyFont!.MeasureText(desc);
-        canvas.DrawText(desc, popup.Left + (popupW - descW) / 2f, popup.Top + 90 * s, BodyFont, SubtlePaint);
+        SkiaTextUtils.DrawText(canvas, desc, popup.Left + (popupW - descW) / 2f, popup.Top + 90 * s, BodyFont, SubtlePaint);
 
         float btnY = popup.Top + 160 * s;
         _cancelRect  = new SKRect(btnStartX,              btnY, btnStartX + btnW,          btnY + btnH);
@@ -72,7 +71,6 @@ public sealed class HardResetPopupRenderer : PopupRendererBase
     public void HandlePointerPressed(SKPoint pos, PointerButton button)
     {
         if (!IsOpen || Disposed) return;
-        if (JustOpened) { JustOpened = false; return; }
 
         if (_cancelRect.Contains(pos.X, pos.Y))  { IsOpen = false; return; }
         if (_confirmRect.Contains(pos.X, pos.Y)) { IsOpen = false; _ = _fileSystemService.DeleteAuto(); _onConfirm(); }
