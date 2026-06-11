@@ -45,6 +45,7 @@ public class SettingsMenu
     private readonly DebugPanelRenderer? _debugPanelRenderer;
     private readonly Action? _onAfterNewGame;
     private readonly Action? _onReturnToMenu;
+    private readonly Action? _onRestartIsland;
     private readonly UILayoutService? _uiLayout;
     private List<MenuItem> _menuItems = new();
 
@@ -62,7 +63,7 @@ public class SettingsMenu
 
     public bool IsOpen => _isOpen;
 
-    public SettingsMenu(MainGameController gameController, InputHandlingService inputService, LocalizationService localization, AboutRenderer aboutRenderer, SettingsPopupRenderer settingsPopupRenderer, IFileSystemService fileSystemService, CityBuildingService cityBuildingService, bool allowDebugMode = false, DebugPanelRenderer? debugPanelRenderer = null, Action? onAfterNewGame = null, UILayoutService? uiLayout = null, Action? onReturnToMenu = null)
+    public SettingsMenu(MainGameController gameController, InputHandlingService inputService, LocalizationService localization, AboutRenderer aboutRenderer, SettingsPopupRenderer settingsPopupRenderer, IFileSystemService fileSystemService, CityBuildingService cityBuildingService, bool allowDebugMode = false, DebugPanelRenderer? debugPanelRenderer = null, Action? onAfterNewGame = null, UILayoutService? uiLayout = null, Action? onReturnToMenu = null, Action? onRestartIsland = null)
     {
         _gameController = gameController;
         _inputService = inputService;
@@ -74,6 +75,7 @@ public class SettingsMenu
         _debugPanelRenderer = debugPanelRenderer;
         _onAfterNewGame = onAfterNewGame;
         _onReturnToMenu = onReturnToMenu;
+        _onRestartIsland = onRestartIsland;
         _uiLayout = uiLayout;
         _inputService.PointerPressed += HandlePointerPressed;
 
@@ -95,6 +97,11 @@ public class SettingsMenu
         {
             LabelKey = "menu_load_game",
             Action = LoadGame
+        });
+        _menuItems.Add(new MenuItem
+        {
+            LabelKey = "menu_restart_island",
+            Action = RestartIsland
         });
 
         _menuItems.Add(new MenuItem { IsSeparator = true });
@@ -351,6 +358,11 @@ public class SettingsMenu
     private void OpenSettingsPopup()
     {
         _settingsPopupRenderer.Open();
+    }
+
+    private void RestartIsland()
+    {
+        _onRestartIsland?.Invoke();
     }
 
     private void ReturnToMenu()

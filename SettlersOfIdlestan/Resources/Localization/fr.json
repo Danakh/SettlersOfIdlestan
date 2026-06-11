@@ -14,6 +14,7 @@
   "new_game": "Nouvelle Partie",
   "menu_save_game": "Enregistrer la partie",
   "menu_load_game": "Charger une partie",
+  "menu_restart_island": "Recommencer l'île",
   "menu_return_to_menu": "Retourner au menu",
   "menu_hard_reset": "Réinitialisation totale",
   "hard_reset_title": "⚠ Réinitialisation totale",

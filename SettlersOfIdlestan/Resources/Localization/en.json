@@ -14,6 +14,7 @@
   "new_game": "New Game",
   "menu_save_game": "Save Game",
   "menu_load_game": "Load Game",
+  "menu_restart_island": "Restart Island",
   "menu_return_to_menu": "Return to Menu",
   "menu_hard_reset": "Hard Reset",
   "hard_reset_title": "⚠ Hard Reset",
