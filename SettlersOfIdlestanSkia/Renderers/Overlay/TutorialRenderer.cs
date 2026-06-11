@@ -38,8 +38,8 @@ public class TutorialRenderer : IGameRenderer
     private static readonly SKColor ColorDesc                   = new(200, 200, 200, 200);
     private static readonly SKColor ColorTaskPending            = new(255, 255, 255, 210);
     private static readonly SKColor ColorTaskDone               = new(120, 220, 120, 180);
-    private static readonly SKColor ColorTaskSecondaryPending   = new(180, 180, 180, 140);
-    private static readonly SKColor ColorTaskSecondaryDone      = new(100, 180, 100, 130);
+    private static readonly SKColor ColorTaskSecondaryPending   = new(220, 220, 220, 200);
+    private static readonly SKColor ColorTaskSecondaryDone      = new(120, 220, 120, 150);
     private static readonly SKColor ColorProgress               = new(180, 180, 180, 160);
     private static readonly SKColor ColorSeparator              = new(255, 255, 255, 50);
 
