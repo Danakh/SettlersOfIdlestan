@@ -241,7 +241,7 @@ public sealed class GameScreen : IDisposable
             _fileSystemService, _gameControllerService.CityBuildingService!,
             allowDebugMode, debugPanelRenderer,
             StartNewGameIntro, _uiLayoutService,
-            onHardReset: () => _hardResetPopup?.Open());
+            onReturnToMenu: () => ReturnToTitleRequested?.Invoke());
 
         _playerResourcesOverlayRenderer = new PlayerResourcesOverlayRenderer(_localizationService, _resourceManager);
         _playerResourcesOverlayRenderer.ConnectLowStock(null, _gameControllerService.PlayerCivilization!);

@@ -44,7 +44,7 @@ public class SettingsMenu
     private readonly CityBuildingService _cityBuildingService;
     private readonly DebugPanelRenderer? _debugPanelRenderer;
     private readonly Action? _onAfterNewGame;
-    private readonly Action? _onHardReset;
+    private readonly Action? _onReturnToMenu;
     private readonly UILayoutService? _uiLayout;
     private List<MenuItem> _menuItems = new();
 
@@ -62,7 +62,7 @@ public class SettingsMenu
 
     public bool IsOpen => _isOpen;
 
-    public SettingsMenu(MainGameController gameController, InputHandlingService inputService, LocalizationService localization, AboutRenderer aboutRenderer, SettingsPopupRenderer settingsPopupRenderer, IFileSystemService fileSystemService, CityBuildingService cityBuildingService, bool allowDebugMode = false, DebugPanelRenderer? debugPanelRenderer = null, Action? onAfterNewGame = null, UILayoutService? uiLayout = null, Action? onHardReset = null)
+    public SettingsMenu(MainGameController gameController, InputHandlingService inputService, LocalizationService localization, AboutRenderer aboutRenderer, SettingsPopupRenderer settingsPopupRenderer, IFileSystemService fileSystemService, CityBuildingService cityBuildingService, bool allowDebugMode = false, DebugPanelRenderer? debugPanelRenderer = null, Action? onAfterNewGame = null, UILayoutService? uiLayout = null, Action? onReturnToMenu = null)
     {
         _gameController = gameController;
         _inputService = inputService;
@@ -73,7 +73,7 @@ public class SettingsMenu
         _cityBuildingService = cityBuildingService;
         _debugPanelRenderer = debugPanelRenderer;
         _onAfterNewGame = onAfterNewGame;
-        _onHardReset = onHardReset;
+        _onReturnToMenu = onReturnToMenu;
         _uiLayout = uiLayout;
         _inputService.PointerPressed += HandlePointerPressed;
 
@@ -86,11 +86,6 @@ public class SettingsMenu
         });
 
         _menuItems.Add(new MenuItem { IsSeparator = true });
-        _menuItems.Add(new MenuItem
-        {
-            LabelKey = "new_game",
-            Action = StartNewGame
-        });
         _menuItems.Add(new MenuItem
         {
             LabelKey = "menu_save_game",
@@ -106,8 +101,8 @@ public class SettingsMenu
 
         _menuItems.Add(new MenuItem
         {
-            LabelKey = "menu_hard_reset",
-            Action = OpenHardResetPopup
+            LabelKey = "menu_return_to_menu",
+            Action = ReturnToMenu
         });
 
         _menuItems.Add(new MenuItem { IsSeparator = true });
@@ -358,9 +353,9 @@ public class SettingsMenu
         _settingsPopupRenderer.Open();
     }
 
-    private void OpenHardResetPopup()
+    private void ReturnToMenu()
     {
-        _onHardReset?.Invoke();
+        _onReturnToMenu?.Invoke();
     }
 
     private void OpenDebugPanel()
@@ -406,14 +401,6 @@ public class SettingsMenu
         _gameController.GoToDebugMap();
         _onAfterNewGame?.Invoke();
     }
-
-    private void StartNewGame()
-    {
-        _cityBuildingService.ClearSelectedCity();
-        _gameController.CreateNewGame();
-        _onAfterNewGame?.Invoke();
-    }
-
 
     private async void SaveGame()
     {
