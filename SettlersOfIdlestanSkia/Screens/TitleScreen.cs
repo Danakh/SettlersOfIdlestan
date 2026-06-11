@@ -42,6 +42,20 @@ public sealed class TitleScreen : IDisposable
     private string? _cachedChangelogContent;
     private SettlersOfIdlestan.Model.Localization.Language _cachedChangelogLanguage = (SettlersOfIdlestan.Model.Localization.Language)(-1);
 
+    // Scroll state
+    private float   _scrollOffsetPx        = 0f;
+    private float   _totalContentH         = 0f;
+    private float   _viewportH             = 0f;
+    private bool    _isDraggingScrollbar   = false;
+    private float   _scrollDragStartY      = 0f;
+    private float   _scrollDragStartOffset = 0f;
+    private SKRect  _changelogBoxRect      = SKRect.Empty;
+    private SKRect  _scrollTrackRect       = SKRect.Empty;
+    private SKRect  _scrollThumbRect       = SKRect.Empty;
+
+    private readonly SKPaint _scrollTrackPaint = new() { Color = new SKColor(50,  50,  65,  200), Style = SKPaintStyle.Fill, IsAntialias = true };
+    private readonly SKPaint _scrollThumbPaint = new() { Color = new SKColor(130, 130, 165, 210), Style = SKPaintStyle.Fill, IsAntialias = true };
+
     public event Action? NewGameRequested;
     public event Action? ContinueRequested;
 
@@ -100,30 +114,59 @@ public sealed class TitleScreen : IDisposable
         string content = GetChangelogContent();
         if (!string.IsNullOrWhiteSpace(content))
         {
-            // Clamp box height based on available space
             float btnAreaTop = canvasSize.Height - 130 * s;
             float maxBoxH    = Math.Max(60 * s, btnAreaTop - contentY - 20 * s);
 
             var boxRect = new SKRect(boxX, contentY - 8 * s, boxX + boxW, contentY - 8 * s + maxBoxH);
+            _changelogBoxRect = boxRect;
             canvas.DrawRoundRect(boxRect, 6 * s, 6 * s, _sectionBgPaint);
             canvas.DrawRoundRect(boxRect, 6 * s, 6 * s, _sectionBorderPaint);
 
+            var layout    = SkiaTextUtils.MeasureWrappedText(content, boxW - 36 * s, _bodyFont!);
+            float lineH   = _bodyFont!.Spacing;
+            float innerPad = 10 * s;
+            _totalContentH = layout.Lines.Count * lineH + innerPad * 2;
+            _viewportH     = maxBoxH;
+
+            float maxScroll = Math.Max(0, _totalContentH - _viewportH);
+            _scrollOffsetPx = Math.Clamp(_scrollOffsetPx, 0, maxScroll);
+            bool needsScroll = _totalContentH > _viewportH + 1f;
+
             canvas.Save();
             canvas.ClipRoundRect(new SKRoundRect(boxRect, 6 * s));
+            canvas.Translate(0, -_scrollOffsetPx);
 
-            var layout = SkiaTextUtils.MeasureWrappedText(content, boxW - 24 * s, _bodyFont!);
-            float lineH = _bodyFont!.Spacing;
             float textX = boxX + 12 * s;
-            float textY = contentY + 4 * s;
+            float textY = contentY + innerPad;
             foreach (var line in layout.Lines)
             {
-                if (textY + lineH > boxRect.Bottom - 6 * s) break;
                 SkiaTextUtils.DrawText(canvas, line, textX, textY, _bodyFont, _subtlePaint);
                 textY += lineH;
             }
 
             canvas.Restore();
+
+            if (needsScroll)
+                DrawChangelogScrollbar(canvas, boxRect, maxScroll, s);
         }
+    }
+
+    private void DrawChangelogScrollbar(SKCanvas canvas, SKRect boxRect, float maxScroll, float s)
+    {
+        float scrollW  = 5f * s;
+        float trackX   = boxRect.Right - scrollW - 5 * s;
+        float trackTop = boxRect.Top   + 4 * s;
+        float trackH   = boxRect.Height - 8 * s;
+
+        _scrollTrackRect = new SKRect(trackX, trackTop, trackX + scrollW, trackTop + trackH);
+
+        float thumbRatio = _viewportH / _totalContentH;
+        float thumbH     = Math.Max(16f * s, thumbRatio * trackH);
+        float thumbTop   = trackTop + (maxScroll > 0 ? (_scrollOffsetPx / maxScroll) * (trackH - thumbH) : 0);
+        _scrollThumbRect = new SKRect(trackX, thumbTop, trackX + scrollW, thumbTop + thumbH);
+
+        canvas.DrawRoundRect(_scrollTrackRect, 3 * s, 3 * s, _scrollTrackPaint);
+        canvas.DrawRoundRect(_scrollThumbRect, 3 * s, 3 * s, _scrollThumbPaint);
     }
 
     private string GetChangelogContent()
@@ -197,6 +240,15 @@ public sealed class TitleScreen : IDisposable
         _btnFont?.Dispose();         _btnFont         = new SKFont { Size = 16 * s, Typeface = SkiaFonts.Bold };
     }
 
+    public void HandleScroll(float delta)
+    {
+        if (_disposed) return;
+        float step      = _bodyFont?.Spacing ?? 14f;
+        float dir       = delta > 0 ? -1f : 1f;
+        float maxScroll = Math.Max(0, _totalContentH - _viewportH);
+        _scrollOffsetPx = Math.Clamp(_scrollOffsetPx + dir * step * 3, 0, maxScroll);
+    }
+
     public void HandlePointerPressed(float x, float y, PointerButton button)
     {
         if (_disposed) return;
@@ -208,6 +260,23 @@ public sealed class TitleScreen : IDisposable
         }
 
         var pos = new SKPoint(x, y);
+
+        if (!_scrollThumbRect.IsEmpty && _scrollThumbRect.Contains(pos))
+        {
+            _isDraggingScrollbar   = true;
+            _scrollDragStartY      = y;
+            _scrollDragStartOffset = _scrollOffsetPx;
+            return;
+        }
+
+        if (!_scrollTrackRect.IsEmpty && _scrollTrackRect.Contains(pos))
+        {
+            float maxScroll = Math.Max(0, _totalContentH - _viewportH);
+            float ratio     = (y - _scrollTrackRect.Top) / _scrollTrackRect.Height;
+            _scrollOffsetPx = Math.Clamp(ratio * maxScroll, 0, maxScroll);
+            return;
+        }
+
         if (_primaryBtnRect.Contains(pos))
         {
             if (_hasSave) ContinueRequested?.Invoke();
@@ -219,8 +288,20 @@ public sealed class TitleScreen : IDisposable
         }
     }
 
-    public void HandlePointerMoved(float x, float y) { }
-    public void HandlePointerReleased(float x, float y, PointerButton button) { }
+    public void HandlePointerMoved(float x, float y)
+    {
+        if (_disposed || !_isDraggingScrollbar) return;
+        float dy         = y - _scrollDragStartY;
+        float thumbRange = _scrollTrackRect.Height - _scrollThumbRect.Height;
+        float maxScroll  = Math.Max(0, _totalContentH - _viewportH);
+        float scrollPerPx = thumbRange > 0 ? maxScroll / thumbRange : 0;
+        _scrollOffsetPx = Math.Clamp(_scrollDragStartOffset + dy * scrollPerPx, 0, maxScroll);
+    }
+
+    public void HandlePointerReleased(float x, float y, PointerButton button)
+    {
+        _isDraggingScrollbar = false;
+    }
 
     public void Dispose()
     {
@@ -235,6 +316,8 @@ public sealed class TitleScreen : IDisposable
         _sectionBgPaint.Dispose();
         _sectionBorderPaint.Dispose();
         _dividerPaint.Dispose();
+        _scrollTrackPaint.Dispose();
+        _scrollThumbPaint.Dispose();
         _titleFont?.Dispose();
         _sectionTitleFont?.Dispose();
         _bodyFont?.Dispose();

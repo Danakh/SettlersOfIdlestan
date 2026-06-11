@@ -183,7 +183,8 @@ public sealed class SkiaGameRuntime : IDisposable
 
     public void HandleZoom(float wheelDelta, float x, float y)
     {
-        if (!_onTitleScreen) _gameScreen?.HandleZoom(wheelDelta, x, y);
+        if (_onTitleScreen) _titleScreen?.HandleScroll(wheelDelta);
+        else                _gameScreen?.HandleZoom(wheelDelta, x, y);
     }
 
     public void HandlePinch(float scaleRatio, float x, float y, float panDeltaX = 0f, float panDeltaY = 0f)

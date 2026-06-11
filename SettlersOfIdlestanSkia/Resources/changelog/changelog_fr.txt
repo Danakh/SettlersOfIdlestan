@@ -4,11 +4,15 @@ Le changelog n'est pas activement mis à jour pour le moment.
 ---
 
 v0.2
-L'Éveil de la Magie : la branche sud de la carte de prestige se consacre au développement de la magie autour de l'hex Lignes Telluriques. Les Cercles de Fées et les Dolmens apparaissent sur l'île et génèrent des cristaux, première source de cette ressource avant même l'Inframonde. Le Secret de la Magie débloque la Tour de Mages et un nouvel écran Rituels : lancez et entretenez des rituels en consommant des cristaux — leur effet croît linéairement avec la puissance, mais leur coût grimpe au carré. Le nombre de tours limite les rituels actifs, la somme de leurs niveaux limite la puissance totale. Six rituels à découvrir par la recherche, de la Croissance à la Lumière des Profondeurs, pour booster production, armées et exploration de l'Inframonde.
-L'Âge de l'Acier : la branche nord-est de la carte de prestige se développe au-delà du Secret de l'Acier avec cinq nouveaux vertex et l'hex Forges. Deux nouveaux bâtiments font leur apparition : le Haut-Fourneau (bâtiment unique qui booste toutes les Fonderies) et l'Arsenal. Nouvelle mécanique Armures d'Acier : les soldats perdus au combat peuvent être sauvés en consommant de l'Acier. Cinq nouvelles recherches avancées complètent la branche, dont la Logistique Ferrée (renforts accélérés) et les Aciers Spéciaux (vente d'Acier au marché).
-La Descente vers l'Inframonde : la branche nord-ouest de la carte de prestige ouvre la voie des profondeurs. La Mine Profonde devient un grand chantier placé sur une Montagne comme une Merveille : investissez vos ressources (dont 1000 Acier) pour percer jusqu'à l'Inframonde. Sous terre, des Cavernes aux Champignons nourrissent vos avant-postes grâce à la nouvelle Ferme fongique, des trésors attendent les explorateurs, et le Mithril peut enfin être extrait par la Mine de Mithril. Mais l'Inframonde est violent : trolls régénérants et ogres destructeurs errent dans les galeries. Quatre nouvelles recherches accompagnent la descente, de la Spéléologie aux Outils en Mithril.
+• Ajout de l'acier
+• Refonte de l'Inframonde
+• Ajout de la magie
 
 ---
 
 v0.1
-Trois îles sont disponibles, chacune générée de manière procédurale. Un tutoriel guide les nouveaux joueurs à travers les mécaniques de base. Le combat militaire permet de défendre ses villes contre les bandits et les dragons. Le premier niveau de prestige est accessible, permettant de débloquer des bonus permanents entre les parties. Un arbre de recherches offre des améliorations progressives à la civilisation.
+• Trois îles disponibles, générées de manière procédurale
+• Tutoriel pour guider les nouveaux joueurs
+• Combat militaire contre bandits et dragons
+• Prestige : débloquez des bonus permanents entre les parties
+• Arbre de recherches avec des améliorations progressives
