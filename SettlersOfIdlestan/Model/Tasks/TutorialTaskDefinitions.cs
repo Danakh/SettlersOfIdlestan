@@ -77,6 +77,12 @@ public static class TutorialTaskDefinitions
             (g, _, island) => g.TotalCitiesBuilt >= 1
                 || island?.PlayerCivilization.Cities.Count >= 2),
 
+        new TutorialTask(TutorialTaskId.BuildSecondTownHall,
+            "task_build_second_townhall_name", "task_build_second_townhall_desc",
+            (g, _, island) => g.BuildingCounts.GetValueOrDefault("TownHall") >= 1
+                || CountBuilding(island, BuildingType.TownHall) >= 2,
+            (g, _, island) => (LiveMax(g.BuildingCounts.GetValueOrDefault("TownHall"), CountBuilding(island, BuildingType.TownHall)), 2)),
+
         new TutorialTask(TutorialTaskId.UpgradeProductionBuildingsLevel2,
             "task_upgrade_production_level2_name", "task_upgrade_production_level2_desc",
             (g, _, island) => g.ProductionBuildingsReachedLevel2 >= 2
@@ -210,6 +216,12 @@ public static class TutorialTaskDefinitions
             "task_build_library_level_name", "task_build_library_level_desc",
             (g, _, island) => g.BuildingCounts.GetValueOrDefault("Library") >= 1
                 || CountBuilding(island, BuildingType.Library) >= 1),
+
+        new TutorialTask(TutorialTaskId.Build3Libraries,
+            "task_build_3_libraries_name", "task_build_3_libraries_desc",
+            (g, _, island) => g.BuildingCounts.GetValueOrDefault("Library") >= 3
+                || CountBuilding(island, BuildingType.Library) >= 3,
+            (g, _, island) => (LiveMax(g.BuildingCounts.GetValueOrDefault("Library"), CountBuilding(island, BuildingType.Library)), 3)),
 
         new TutorialTask(TutorialTaskId.PerformPrestige,
             "task_perform_prestige_name", "task_perform_prestige_desc",

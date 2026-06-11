@@ -28,11 +28,18 @@ public static class TutorialStepDefinitions
             {
                 Task(TutorialTaskId.BuildSeaport),
             },
-            secondaryTasks: new[]
+            secondaryTasks: System.Array.Empty<TutorialTask>()
+        ),
+
+        new TutorialStep(
+            "tutorial_step_production_buildings_title",
+            "tutorial_step_production_buildings_desc",
+            primaryTasks: new[]
             {
                 Task(TutorialTaskId.BuildSawmill),
                 Task(TutorialTaskId.BuildBrickworks),
-            }
+            },
+            secondaryTasks: System.Array.Empty<TutorialTask>()
         ),
 
         new TutorialStep(
@@ -54,6 +61,7 @@ public static class TutorialStepDefinitions
             primaryTasks: new[]
             {
                 Task(TutorialTaskId.BuildSecondCity),
+                Task(TutorialTaskId.BuildSecondTownHall),
             },
             secondaryTasks: new[]
             {
@@ -109,11 +117,9 @@ public static class TutorialStepDefinitions
             primaryTasks: new[]
             {
                 Task(TutorialTaskId.SeaportLevel4),
-            },
-            secondaryTasks: new[]
-            {
                 Task(TutorialTaskId.TownHallLevel4),
-            }
+            },
+            secondaryTasks: System.Array.Empty<TutorialTask>()
         ),
 
         new TutorialStep(
@@ -149,11 +155,12 @@ public static class TutorialStepDefinitions
             primaryTasks: new[]
             {
                 Task(TutorialTaskId.BuyResearchVertex),
+                Task(TutorialTaskId.BuildLibraryLevel2),
                 Task(TutorialTaskId.CompleteFirstResearch),
             },
             secondaryTasks: new[]
             {
-                Task(TutorialTaskId.BuildLibraryLevel2),
+                Task(TutorialTaskId.Build3Libraries),
             }
         ),
 

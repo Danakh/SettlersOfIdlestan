@@ -17,7 +17,7 @@ namespace SettlersOfIdlestan.Controller.Island
             {
                 var tileData = new List<(TerrainType terrainType, int tileCount)>
                 {
-                    (TerrainType.Forest, 5),
+                    (TerrainType.Forest, 6),
                     (TerrainType.Hill, 5),
                     (TerrainType.Plain, 4),
                     (TerrainType.Mountain, 4),
@@ -34,10 +34,10 @@ namespace SettlersOfIdlestan.Controller.Island
             {
                 var tileData = new List<(TerrainType terrainType, int tileCount)>
                 {
-                    (TerrainType.Forest, 7),
-                    (TerrainType.Hill, 7),
-                    (TerrainType.Plain, 7),
-                    (TerrainType.Mountain, 7),
+                    (TerrainType.Forest, 8),
+                    (TerrainType.Hill, 8),
+                    (TerrainType.Plain, 8),
+                    (TerrainType.Mountain, 8),
                     (TerrainType.Desert, 3),
                 };
                 var features = new List<IslandFeatureParameters>
@@ -54,10 +54,10 @@ namespace SettlersOfIdlestan.Controller.Island
             {
                 var tileData = new List<(TerrainType terrainType, int tileCount)>
                 {
-                    (TerrainType.Forest, 9),
-                    (TerrainType.Hill, 9),
-                    (TerrainType.Plain, 9),
-                    (TerrainType.Mountain, 9),
+                    (TerrainType.Forest, 10),
+                    (TerrainType.Hill, 10),
+                    (TerrainType.Plain, 10),
+                    (TerrainType.Mountain, 10),
                     (TerrainType.Desert, 3),
                 };
                 var features = new List<IslandFeatureParameters>
@@ -81,11 +81,11 @@ namespace SettlersOfIdlestan.Controller.Island
             {
                 var tileData = new List<(TerrainType terrainType, int tileCount)>
                 {
-                    (TerrainType.Forest, 9),
-                    (TerrainType.Hill, 9),
-                    (TerrainType.Plain, 9),
-                    (TerrainType.Mountain, 9),
-                    (TerrainType.Desert, 3),
+                    (TerrainType.Forest, 12),
+                    (TerrainType.Hill, 12),
+                    (TerrainType.Plain, 12),
+                    (TerrainType.Mountain, 12),
+                    (TerrainType.Desert, 4),
                 };
                 var features = new List<IslandFeatureParameters>
                 {
@@ -121,11 +121,11 @@ namespace SettlersOfIdlestan.Controller.Island
 
             var tileData = new List<(TerrainType terrainType, int tileCount)>
             {
-                (TerrainType.Forest, 12),
-                (TerrainType.Hill, 12),
-                (TerrainType.Plain, 12),
-                (TerrainType.Mountain, 12),
-                (TerrainType.Desert, 4),
+                (TerrainType.Forest, 15),
+                (TerrainType.Hill, 15),
+                (TerrainType.Plain, 15),
+                (TerrainType.Mountain, 15),
+                (TerrainType.Desert, 5),
             };
 
             var features = new List<IslandFeatureParameters>
