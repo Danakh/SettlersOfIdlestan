@@ -68,6 +68,7 @@ namespace SettlersOfIdlestan.Model.Buildings
                 BuildingType.Arsenal => typeof(Arsenal),
                 BuildingType.MushroomFarm => typeof(MushroomFarm),
                 BuildingType.MithrilMine => typeof(MithrilMine),
+                BuildingType.MageTower => typeof(MageTower),
                 _ => throw new JsonException($"Unknown building type: {bType}")
             };
 

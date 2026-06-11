@@ -268,6 +268,82 @@ public static class PrestigeMapFactory
                     new(ECategory.UNLOCK_RESEARCH, "OutilsEnMithril", EType.ADDITIVE, 1),
                 }
             ),
+            // ── Branche de la Magie (sud) ──────────────────────────────────────
+            // Deux entrées bon marché donnent accès aux cristaux en surface (Cercles de
+            // Fées, Dolmens) avant ou en même temps que l'Inframonde. La porte (Secret de
+            // la Magie) coûte autant que la porte de l'Inframonde (2500).
+            // Progression : 400/1000 → porte 2500 → 10 000 → 25 000/50 000 → Archimage 250 000.
+            new(
+                PrestigeMap.FairyCirclesVertex,
+                "prestige_vertex_fairy_circles",
+                cost: Cost(PrestigeMap.FairyCirclesVertex),
+                modifiers: new Modifier[]
+                {
+                    new(ECategory.MAGIC_FEATURE_COUNT, "FairyCircle", EType.ADDITIVE, 2),
+                    new(ECategory.UNLOCK_RESOURCE, "Crystal", EType.ADDITIVE, 1),
+                }
+            ),
+            new(
+                PrestigeMap.DolmensVertex,
+                "prestige_vertex_dolmens",
+                cost: 1000,
+                modifiers: new Modifier[]
+                {
+                    new(ECategory.MAGIC_FEATURE_COUNT, "Dolmen", EType.ADDITIVE, 2),
+                    new(ECategory.UNLOCK_RESOURCE, "Crystal", EType.ADDITIVE, 1),
+                }
+            ),
+            new(
+                PrestigeMap.MagicSecretVertex,
+                "prestige_vertex_magic_secret",
+                // Porte d'entrée de la Magie — au moins aussi chère que la porte de l'Inframonde
+                cost: 2500,
+                modifiers: new Modifier[]
+                {
+                    new(ECategory.UNLOCK_MAGIC, EType.ADDITIVE, 1),
+                    new(ECategory.BUILDING_MAX_LEVEL, "MageTower", EType.ADDITIVE, 3),
+                    new(ECategory.UNLOCK_RESEARCH, "MagicInitiation", EType.ADDITIVE, 1),
+                }
+            ),
+            new(
+                PrestigeMap.FocalizationVertex,
+                "prestige_vertex_focalization",
+                cost: 10000,
+                modifiers: new Modifier[]
+                {
+                    new(ECategory.BUILDING_MAX_LEVEL, "MageTower", EType.ADDITIVE, 2),
+                }
+            ),
+            new(
+                PrestigeMap.InnerCircleVertex,
+                "prestige_vertex_inner_circle",
+                cost: 25000,
+                modifiers: new Modifier[]
+                {
+                    new(ECategory.RITUAL_MAX_COUNT, EType.ADDITIVE, 1),
+                }
+            ),
+            new(
+                PrestigeMap.CrystalomancyVertex,
+                "prestige_vertex_crystalomancy",
+                cost: 50000,
+                modifiers: new Modifier[]
+                {
+                    new(ECategory.RITUAL_UPKEEP_REDUCTION, EType.ADDITIVE, 0.2),
+                    new(ECategory.HARVEST_SPEED, "MageTower", EType.ADDITIVE, 0.5),
+                }
+            ),
+            new(
+                PrestigeMap.ArchmageVertex,
+                "prestige_vertex_archmage",
+                cost: 250000,
+                modifiers: new Modifier[]
+                {
+                    new(ECategory.RITUAL_MAX_COUNT, EType.ADDITIVE, 1),
+                    new(ECategory.RITUAL_TOTAL_POWER, EType.ADDITIVE, 0.25),
+                    new(ECategory.PASSIVE_RESOURCE_GENERATION, "Crystal", EType.ADDITIVE, 1),
+                }
+            ),
             // ── Placeholder vertices (no bonuses) ────────────────────────────
             new(PrestigeMap.PlaceholderA1Vertex, "prestige_vertex_placeholder", cost: Cost(PrestigeMap.PlaceholderA1Vertex), modifiers: Array.Empty<Modifier>()),
             new(PrestigeMap.PlaceholderA2Vertex, "prestige_vertex_placeholder", cost: Cost(PrestigeMap.PlaceholderA2Vertex), modifiers: Array.Empty<Modifier>()),
@@ -281,15 +357,8 @@ public static class PrestigeMapFactory
             new(PrestigeMap.PlaceholderE3Vertex, "prestige_vertex_placeholder", cost: Cost(PrestigeMap.PlaceholderE3Vertex), modifiers: Array.Empty<Modifier>()),
             new(PrestigeMap.PlaceholderE4Vertex, "prestige_vertex_placeholder", cost: Cost(PrestigeMap.PlaceholderE4Vertex), modifiers: Array.Empty<Modifier>()),
             new(PrestigeMap.PlaceholderF1Vertex, "prestige_vertex_placeholder", cost: Cost(PrestigeMap.PlaceholderF1Vertex), modifiers: Array.Empty<Modifier>()),
-            new(PrestigeMap.PlaceholderG1Vertex, "prestige_vertex_placeholder", cost: Cost(PrestigeMap.PlaceholderG1Vertex), modifiers: Array.Empty<Modifier>()),
             new(PrestigeMap.PlaceholderG2Vertex, "prestige_vertex_placeholder", cost: Cost(PrestigeMap.PlaceholderG2Vertex), modifiers: Array.Empty<Modifier>()),
-            new(PrestigeMap.PlaceholderG3Vertex, "prestige_vertex_placeholder", cost: Cost(PrestigeMap.PlaceholderG3Vertex), modifiers: Array.Empty<Modifier>()),
-            new(PrestigeMap.PlaceholderH1Vertex, "prestige_vertex_placeholder", cost: Cost(PrestigeMap.PlaceholderH1Vertex), modifiers: Array.Empty<Modifier>()),
-            new(PrestigeMap.PlaceholderH2Vertex, "prestige_vertex_placeholder", cost: Cost(PrestigeMap.PlaceholderH2Vertex), modifiers: Array.Empty<Modifier>()),
             new(PrestigeMap.PlaceholderNWEVertex, "prestige_vertex_placeholder", cost: Cost(PrestigeMap.PlaceholderNWEVertex), modifiers: Array.Empty<Modifier>()),
-            new(PrestigeMap.PlaceholderS3Vertex,  "prestige_vertex_placeholder", cost: Cost(PrestigeMap.PlaceholderS3Vertex),  modifiers: Array.Empty<Modifier>()),
-            new(PrestigeMap.PlaceholderSAVertex,  "prestige_vertex_placeholder", cost: Cost(PrestigeMap.PlaceholderSAVertex),  modifiers: Array.Empty<Modifier>()),
-            new(PrestigeMap.PlaceholderSBVertex,  "prestige_vertex_placeholder", cost: Cost(PrestigeMap.PlaceholderSBVertex),  modifiers: Array.Empty<Modifier>()),
         };
 
         IReadOnlyList<Vertex> Adjacent(HexCoord hex)
@@ -408,12 +477,12 @@ public static class PrestigeMapFactory
                     new(ECategory.HARVEST_SPEED, "MithrilMine",  EType.ADDITIVE, 0.15),
                 }
             ),
-            // ── Placeholder hexes ─────────────────────────────────────────────
+            // ── Hex Lignes Telluriques (branche de la Magie) ──────────────────
             new(
-                PrestigeMap.SouthPlaceholderCoord,
-                "prestige_hex_placeholder",
-                adjacentVertices: Adjacent(PrestigeMap.SouthPlaceholderCoord),
-                perVertexModifiers: Array.Empty<Modifier>()
+                PrestigeMap.LeyLinesCoord,
+                "prestige_hex_ley_lines",
+                adjacentVertices: Adjacent(PrestigeMap.LeyLinesCoord),
+                perVertexModifiers: new Modifier[] { new(ECategory.RITUAL_TOTAL_POWER, EType.ADDITIVE, 0.05) }
             ),
         };
 

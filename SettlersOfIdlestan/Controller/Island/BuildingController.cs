@@ -385,6 +385,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 BuildingType.Arsenal => new Arsenal(),
                 BuildingType.MushroomFarm => new MushroomFarm(),
                 BuildingType.MithrilMine => new MithrilMine(),
+                BuildingType.MageTower => new MageTower(),
                 _ => null,
             };
         }

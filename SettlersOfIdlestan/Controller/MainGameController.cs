@@ -35,6 +35,7 @@ namespace SettlersOfIdlestan.Controller
         public MilitaryController MilitaryController { get; private set; }
         public WonderController WonderController { get; private set; }
         public DeepestMineController DeepestMineController { get; private set; }
+        public Magic.MagicController MagicController { get; private set; }
         public NpcGameController NpcGameController { get; private set; }
         public GameClock? Clock { get; private set; }
         // Holds the currently loaded main game state when created or imported
@@ -67,6 +68,7 @@ namespace SettlersOfIdlestan.Controller
             MilitaryController = new MilitaryController();
             WonderController = new WonderController();
             DeepestMineController = new DeepestMineController();
+            MagicController = new Magic.MagicController();
             TaskRecordController = new TaskRecordController();
             AutoExtendController = new AutoExtendController();
             NpcGameController = new NpcGameController();
@@ -262,10 +264,13 @@ namespace SettlersOfIdlestan.Controller
                 PrestigeController.Initialize(WorldState.PlayerCivilization, WorldState, Clock);
                 WonderController.Initialize(WorldState, Clock);
                 DeepestMineController.Initialize(WorldState, Clock);
+                MagicController.Initialize(WorldState, Clock, CurrentMainState!.PRNG);
                 ResearchController.Initialize(WorldState, Clock, CurrentMainState?.PrestigeState);
                 NpcGameController.Initialize(WorldState, Clock, MilitaryController, this);
 
                 // Invalide le cache de production dès qu'un bâtiment est construit/amélioré ou une ville créée
+                MagicController.OnRitualsChanged -= OnRitualsChangedInvalidateHarvestCache;
+                MagicController.OnRitualsChanged += OnRitualsChangedInvalidateHarvestCache;
                 BuildingController.OnBuildingBuilt -= OnBuildingChangedInvalidateHarvestCache;
                 CityBuilderController.OnCityBuilt -= OnCityBuiltInvalidateHarvestCache;
                 MilitaryController.CityDestroyed -= OnCityDestroyedRefreshContested;
@@ -292,6 +297,9 @@ namespace SettlersOfIdlestan.Controller
             => AutoExtendController.TryExtendMapAfterRoad(e.CivilizationIndex, e.RoadPosition);
 
         private void OnBuildingChangedInvalidateHarvestCache(object? sender, BuildingBuiltEventArgs e)
+            => HarvestController.InvalidateProductionCache();
+
+        private void OnRitualsChangedInvalidateHarvestCache(object? sender, EventArgs e)
             => HarvestController.InvalidateProductionCache();
 
 

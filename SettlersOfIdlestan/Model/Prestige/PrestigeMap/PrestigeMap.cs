@@ -24,8 +24,8 @@ public class PrestigeMap
     // Branche de l'Inframonde (nord-ouest)
     public static readonly HexCoord ExcavationsCoord          = new(-1, -1, 0);
     public static readonly HexCoord UnderworldCoord           = new(-2, -1, 0);
-    // Placeholder hexes (no bonuses)
-    public static readonly HexCoord SouthPlaceholderCoord     = new(-1,  3, 0);
+    // Branche de la Magie (sud)
+    public static readonly HexCoord LeyLinesCoord             = new(-1,  3, 0);
 
     // ── Prestige vertices (HexGrid Vertex objects) ────────────────────────────
     // Layout: pointy-top, R=60, Central vertex at screen center.
@@ -75,13 +75,14 @@ public class PrestigeMap
     public static readonly Vertex PlaceholderE4Vertex = Vertex.Create(new(-1,  0, 0), new(-2,  0, 0), new(-1, -1, 0));
     // Around StorageCapacity (-1,1) outer west
     public static readonly Vertex PlaceholderF1Vertex = Vertex.Create(new(-1,  1, 0), new(-2,  2, 0), new(-2,  1, 0));
-    // Around ArtisansProduction (0,2) / GoldTrade (-1,2) outer south connecting to new S hex (0,3)
-    public static readonly Vertex PlaceholderG1Vertex = Vertex.Create(new(-1,  2, 0), new( 0,  2, 0), new(-1,  3, 0));
+    // ── Branche de la Magie (sud) — autour de l'hex Lignes Telluriques (-1,3)
+    // Deux entrées : Cercles de Fées (depuis la Guilde des Artisans) et Dolmens (depuis la Guilde des Marchands)
+    public static readonly Vertex FairyCirclesVertex  = Vertex.Create(new(-1,  2, 0), new( 0,  2, 0), new(-1,  3, 0));
     public static readonly Vertex PlaceholderG2Vertex = Vertex.Create(new( 0,  2, 0), new( 1,  2, 0), new( 0,  3, 0));
-    public static readonly Vertex PlaceholderG3Vertex = Vertex.Create(new( 0,  2, 0), new( 0,  3, 0), new(-1,  3, 0));
-    // Around GoldTrade (-1,2) outer SW
-    public static readonly Vertex PlaceholderH1Vertex = Vertex.Create(new(-1,  2, 0), new(-1,  3, 0), new(-2,  3, 0));
-    public static readonly Vertex PlaceholderH2Vertex = Vertex.Create(new(-1,  2, 0), new(-2,  3, 0), new(-2,  2, 0));
+    // Porte d'entrée : déverrouille la magie (au moins aussi chère que la porte de l'Inframonde)
+    public static readonly Vertex MagicSecretVertex   = Vertex.Create(new( 0,  2, 0), new( 0,  3, 0), new(-1,  3, 0));
+    public static readonly Vertex FocalizationVertex  = Vertex.Create(new(-1,  2, 0), new(-1,  3, 0), new(-2,  3, 0));
+    public static readonly Vertex DolmensVertex       = Vertex.Create(new(-1,  2, 0), new(-2,  3, 0), new(-2,  2, 0));
     // ── Branche de l'Inframonde (nord-ouest) — autour des hexes Excavations (-1,-1) et Inframonde (-2,-1)
     // Porte d'entrée : déverrouille la Mine Profonde (plus chère que le Secret de l'Acier)
     public static readonly Vertex DeepestMineVertex     = Vertex.Create(new(-2,  0, 0), new(-2, -1, 0), new(-1, -1, 0));
@@ -92,11 +93,10 @@ public class PrestigeMap
     public static readonly Vertex MithrilVertex         = Vertex.Create(new(-2, -1, 0), new(-3, -1, 0), new(-2, -2, 0));
     // Coin nord de l'hex Inframonde — réservé pour le futur
     public static readonly Vertex PlaceholderNWEVertex  = Vertex.Create(new(-2, -1, 0), new(-2, -2, 0), new(-1, -2, 0));
-    // Connecting vertex toward new S placeholder hex (-1,3) — involves (0,3) which is not mapped
-    public static readonly Vertex PlaceholderS3Vertex  = Vertex.Create(new( 0,  3, 0), new(-1,  4, 0), new(-1,  3, 0));
-    // Outer vertices of new S placeholder hex (-1,3)
-    public static readonly Vertex PlaceholderSAVertex  = Vertex.Create(new(-1,  3, 0), new(-1,  4, 0), new(-2,  4, 0));
-    public static readonly Vertex PlaceholderSBVertex  = Vertex.Create(new(-1,  3, 0), new(-2,  4, 0), new(-2,  3, 0));
+    // Sommets profonds de la branche de la Magie (coins sud de l'hex Lignes Telluriques)
+    public static readonly Vertex ArchmageVertex      = Vertex.Create(new( 0,  3, 0), new(-1,  4, 0), new(-1,  3, 0));
+    public static readonly Vertex CrystalomancyVertex = Vertex.Create(new(-1,  3, 0), new(-1,  4, 0), new(-2,  4, 0));
+    public static readonly Vertex InnerCircleVertex   = Vertex.Create(new(-1,  3, 0), new(-2,  4, 0), new(-2,  3, 0));
 
     public IReadOnlyList<PrestigeVertex> Vertices { get; }
     public IReadOnlyList<PrestigeHex> Hexes { get; }

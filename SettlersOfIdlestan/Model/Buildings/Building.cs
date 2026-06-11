@@ -147,6 +147,10 @@ public enum BuildingType
     /// Mine de Mithril - Extrait automatiquement du Mithril des Filons adjacents (Inframonde). Débloqué par le prestige (Le Mithril).
     /// </summary>
     MithrilMine,
+    /// <summary>
+    /// Tour de Mages - Limite le nombre et la puissance des rituels actifs. Extrait des cristaux des Grottes de Cristal adjacentes. Débloqué par le prestige (Secret de la Magie).
+    /// </summary>
+    MageTower,
 }
 
 /// <summary>

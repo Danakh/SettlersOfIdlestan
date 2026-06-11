@@ -28,6 +28,7 @@ public sealed class OverlayRenderer : IGameRenderer
     private readonly ResearchRenderer _researchRenderer;
     private readonly EventLogRenderer _eventLogRenderer;
     private readonly AutomationRenderer _automationRenderer;
+    private readonly RitualsRenderer _ritualsRenderer;
     private readonly TooltipRenderer _tooltipRenderer;
     private readonly PlayerCivilizationPanelRenderer _playerCivPanel;
     private readonly TabBarRenderer _tabBar;
@@ -68,6 +69,7 @@ public sealed class OverlayRenderer : IGameRenderer
         ResearchRenderer researchRenderer,
         EventLogRenderer eventLogRenderer,
         AutomationRenderer automationRenderer,
+        RitualsRenderer ritualsRenderer,
         TooltipRenderer tooltipRenderer,
         UILayoutService uiLayout)
     {
@@ -88,6 +90,7 @@ public sealed class OverlayRenderer : IGameRenderer
         _researchRenderer               = researchRenderer;
         _eventLogRenderer               = eventLogRenderer;
         _automationRenderer             = automationRenderer;
+        _ritualsRenderer                = ritualsRenderer;
         _tooltipRenderer                = tooltipRenderer;
 
         _tabBar          = new TabBarRenderer(localization, gameControllerService, uiLayout);
@@ -127,6 +130,7 @@ public sealed class OverlayRenderer : IGameRenderer
         _researchRenderer.Initialize(canvasSize);
         _eventLogRenderer.Initialize(canvasSize);
         _automationRenderer.Initialize(canvasSize);
+        _ritualsRenderer.Initialize(canvasSize);
         _playerCivPanel.Initialize(canvasSize);
         _tabBar.Initialize(canvasSize);
         _mapSwitchButton.Initialize(canvasSize);
@@ -184,6 +188,9 @@ public sealed class OverlayRenderer : IGameRenderer
                 break;
             case TabBarRenderer.TabAutomation:
                 _automationRenderer.RenderAutomationPage(canvas, context);
+                break;
+            case TabBarRenderer.TabRituals:
+                _ritualsRenderer.RenderRitualsPage(canvas, context);
                 break;
             default:
                 _playerCivPanel.Render(canvas, context);
@@ -290,6 +297,7 @@ public sealed class OverlayRenderer : IGameRenderer
         int activeTab = _tabBar.ActiveTab;
         if (activeTab == TabBarRenderer.TabPrestige)   _prestigeMapRenderer.HandlePointerMoved(e.Position);
         if (activeTab == TabBarRenderer.TabAutomation) _automationRenderer.HandlePointerMoved(e.Position);
+        if (activeTab == TabBarRenderer.TabRituals)    _ritualsRenderer.HandlePointerMoved(e.Position);
         if (activeTab == TabBarRenderer.TabIsland)     _playerCivPanel.HandlePointerMoved(e.Position);
 
         _lastPointerPosition = e.Position;
@@ -336,6 +344,7 @@ public sealed class OverlayRenderer : IGameRenderer
         int activeTab = _tabBar.ActiveTab;
         if (activeTab == TabBarRenderer.TabPrestige)   { _prestigeMapRenderer.HandlePointerPressed(e.Position); return; }
         if (activeTab == TabBarRenderer.TabAutomation) { _automationRenderer.HandlePointerPressed(e.Position); return; }
+        if (activeTab == TabBarRenderer.TabRituals)    { _ritualsRenderer.HandlePointerPressed(e.Position); return; }
         if (activeTab is TabBarRenderer.TabStats or TabBarRenderer.TabResearch or TabBarRenderer.TabEvents) return;
 
         _playerCivPanel.HandlePointerPressed(e.Position);
@@ -447,6 +456,7 @@ public sealed class OverlayRenderer : IGameRenderer
         _researchRenderer.Dispose();
         _eventLogRenderer.Dispose();
         _automationRenderer.Dispose();
+        _ritualsRenderer.Dispose();
         _playerCivPanel.Dispose();
         _tabBar.Dispose();
         _mapSwitchButton.Dispose();

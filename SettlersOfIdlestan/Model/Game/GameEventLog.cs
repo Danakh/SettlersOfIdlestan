@@ -24,6 +24,9 @@ public enum GameEventType
     OgreDefeated,
     DeepestMinePlaced,
     DeepestMineDug,
+    FairyCircleDiscovered,
+    DolmenDiscovered,
+    RitualCollapsed,
 }
 
 public record GameLogEntry(GameEventType Type, string? Message = null);

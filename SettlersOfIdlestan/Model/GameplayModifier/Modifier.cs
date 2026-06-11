@@ -78,6 +78,18 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             UNLOCK_DEEPEST_MINE,
             /// <summary>Chance (en %) supplémentaire qu'un trésor apparaisse sur un nouvel hexagone de l'Inframonde.</summary>
             UNDERWORLD_TREASURE_CHANCE_PERCENT,
+            /// <summary>Flags que la magie est déverrouillée (Tours de Mages, écran Rituels, branche de recherche).</summary>
+            UNLOCK_MAGIC,
+            /// <summary>SubCategory = RitualId name. Signale que le rituel est connu (débloqué par recherche).</summary>
+            UNLOCK_RITUAL,
+            /// <summary>Rituels actifs simultanés supplémentaires (base = nombre de Tours de Mages).</summary>
+            RITUAL_MAX_COUNT,
+            /// <summary>Multiplicateur du budget de puissance des rituels. Base = 1.0; +0.05 = +5%.</summary>
+            RITUAL_TOTAL_POWER,
+            /// <summary>Fraction de réduction du coût d'entretien des rituels (0.2 = -20%).</summary>
+            RITUAL_UPKEEP_REDUCTION,
+            /// <summary>Nombre de features magiques présentes sur l'île. SubCategory = "FairyCircle" ou "Dolmen".</summary>
+            MAGIC_FEATURE_COUNT,
         }
 
         public enum EType

@@ -19,6 +19,7 @@ public sealed class TabBarRenderer : IDisposable
     public const int TabStats      = 3;
     public const int TabEvents     = 4;
     public const int TabAutomation = 5;
+    public const int TabRituals    = 6;
 
     private const float TabWidth      = 62;
     private const float TabHeight     = 28;
@@ -42,6 +43,7 @@ public sealed class TabBarRenderer : IDisposable
     private int _activeTab = TabIsland;
     private bool _hasResearchTab;
     private bool _hasAutomationTab;
+    private bool _hasRitualsTab;
     private bool _hasNewEvent;
     private int? _seenEventCount;
     private bool _prestigeGlowing;
@@ -85,14 +87,17 @@ public sealed class TabBarRenderer : IDisposable
         bool showPrestigeTabs = HasPrestigePoints(context);
         _hasResearchTab   = IsResearchUnlocked();
         _hasAutomationTab = HasAnyAutomation();
+        _hasRitualsTab    = IsMagicUnlocked();
 
         if (!_hasResearchTab   && _activeTab == TabResearch)   _activeTab = TabIsland;
         if (!showPrestigeTabs  && _activeTab is TabPrestige or TabStats or TabEvents) _activeTab = TabIsland;
         if (!_hasAutomationTab && _activeTab == TabAutomation) _activeTab = TabIsland;
+        if (!_hasRitualsTab    && _activeTab == TabRituals)    _activeTab = TabIsland;
 
         _activeTabs.Clear();
         _activeTabs.Add((TabIsland, default));
         if (_hasResearchTab)   _activeTabs.Add((TabResearch, default));
+        if (_hasRitualsTab)    _activeTabs.Add((TabRituals, default));
         if (showPrestigeTabs)  { _activeTabs.Add((TabPrestige, default)); _activeTabs.Add((TabStats, default)); _activeTabs.Add((TabEvents, default)); }
         if (_hasAutomationTab) _activeTabs.Add((TabAutomation, default));
 
@@ -190,6 +195,7 @@ public sealed class TabBarRenderer : IDisposable
         TabStats      => _localization.Get("tab_stats"),
         TabEvents     => _localization.Get("tab_events"),
         TabAutomation => _localization.Get("tab_automation"),
+        TabRituals    => _localization.Get("tab_rituals"),
         _             => "?"
     };
 
@@ -250,6 +256,9 @@ public sealed class TabBarRenderer : IDisposable
             case "A":
                 if (_hasAutomationTab) { _activeTab = TabAutomation; return true; }
                 break;
+            case "M":
+                if (_hasRitualsTab) { _activeTab = TabRituals; return true; }
+                break;
         }
         return false;
     }
@@ -265,6 +274,12 @@ public sealed class TabBarRenderer : IDisposable
     private bool IsResearchUnlocked()
     {
         try { return _gameControllerService.MainGameController.ResearchController.IsResearchUnlocked(); }
+        catch { return false; }
+    }
+
+    private bool IsMagicUnlocked()
+    {
+        try { return _gameControllerService.MainGameController.MagicController.IsMagicUnlocked(); }
         catch { return false; }
     }
 

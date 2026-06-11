@@ -193,6 +193,11 @@ public class WorldState : IJsonOnDeserialized
     public RunRecord RunRecord { get; set; } = new();
 
     /// <summary>
+    /// État de la magie du joueur (rituels actifs). Réinitialisé à chaque prestige.
+    /// </summary>
+    public Magic.MagicState Magic { get; set; } = new();
+
+    /// <summary>
     /// Tick du dernier cycle de nourrissage des soldats (toutes civilisations, global).
     /// </summary>
     public long LastSoldierFeedTick { get; set; } = 0;

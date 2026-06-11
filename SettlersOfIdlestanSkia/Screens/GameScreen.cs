@@ -254,6 +254,7 @@ public sealed class GameScreen : IDisposable
         var researchRenderer        = new ResearchRenderer(_gameControllerService, _localizationService, _inputService);
         var eventLogRenderer        = new EventLogRenderer(_gameControllerService, _localizationService);
         var automationRenderer      = new AutomationRenderer(_gameControllerService, _localizationService);
+        var ritualsRenderer         = new RitualsRenderer(_gameControllerService, _localizationService);
 
         _overlayRenderer = new OverlayRenderer(
             _inputService, _gameControllerService, _localizationService,
@@ -261,7 +262,7 @@ public sealed class GameScreen : IDisposable
             selectedCityPanelRenderer, selectedWonderPanelRenderer,
             tradeRenderer, prestigeRenderer, prestigeMapRenderer, prestigeHistoryRenderer,
             timeControlRenderer, researchRenderer, eventLogRenderer, automationRenderer,
-            tooltipRenderer, _uiLayoutService);
+            ritualsRenderer, tooltipRenderer, _uiLayoutService);
         _overlayRenderer.ConnectWonderService(_wonderSelectionService);
         _renderService.RegisterRenderer(_overlayRenderer);
 

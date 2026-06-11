@@ -180,6 +180,18 @@ public sealed class EventLogRenderer : IDisposable
             _discoveryCardPaint, _discoveryBorderPaint, _discoveryTextPaint,
             _localization.Get("event_deepest_mine_dug_title"),
             _localization.Get("event_deepest_mine_dug_body")),
+        GameEventType.FairyCircleDiscovered => (
+            _rewardCardPaint, _rewardBorderPaint, _rewardTextPaint,
+            _localization.Get("event_fairy_circle_title"),
+            _localization.Get("event_fairy_circle_body")),
+        GameEventType.DolmenDiscovered => (
+            _rewardCardPaint, _rewardBorderPaint, _rewardTextPaint,
+            _localization.Get("event_dolmen_title"),
+            _localization.Get("event_dolmen_body")),
+        GameEventType.RitualCollapsed => (
+            _warningCardPaint, _warningBorderPaint, _warningTextPaint,
+            _localization.Get("event_ritual_collapsed_title"),
+            _localization.Get("event_ritual_collapsed_body")),
         _ => (_dangerCardPaint, _dangerBorderPaint, _bodyTextPaint, "?", entry.Message ?? "")
     };
 

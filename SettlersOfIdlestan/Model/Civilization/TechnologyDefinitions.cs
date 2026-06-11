@@ -360,6 +360,51 @@ public static class TechnologyDefinitions
             modifiers: new Modifier[] { new(ECategory.HARVEST_SPEED, EType.ADDITIVE, 0.25) },
             tier: 6, line: 0),
 
+        // === Branche de la Magie (débloquée par le vertex de prestige Secret de la Magie) ===
+        // Chaque recherche débloque un rituel à lancer depuis l'écran Rituels.
+
+        new(TechnologyId.MagicInitiation,
+            "tech_magic_initiation_name", "tech_magic_initiation_desc",
+            cost: 20000,
+            prerequisites: new[] { TechnologyId.Scholarship },
+            modifiers: new Modifier[] { new(ECategory.UNLOCK_RITUAL, "Growth", EType.ADDITIVE, 1) },
+            tier: 4, line: 8),
+
+        new(TechnologyId.ArdentForgeRitual,
+            "tech_ardent_forge_ritual_name", "tech_ardent_forge_ritual_desc",
+            cost: 35000,
+            prerequisites: new[] { TechnologyId.MagicInitiation },
+            modifiers: new Modifier[] { new(ECategory.UNLOCK_RITUAL, "ArdentForge", EType.ADDITIVE, 1) },
+            tier: 5, line: 8),
+
+        new(TechnologyId.ClairvoyanceRitual,
+            "tech_clairvoyance_ritual_name", "tech_clairvoyance_ritual_desc",
+            cost: 35000,
+            prerequisites: new[] { TechnologyId.MagicInitiation },
+            modifiers: new Modifier[] { new(ECategory.UNLOCK_RITUAL, "Clairvoyance", EType.ADDITIVE, 1) },
+            tier: 5, line: 9),
+
+        new(TechnologyId.MartialBlessingRitual,
+            "tech_martial_blessing_ritual_name", "tech_martial_blessing_ritual_desc",
+            cost: 70000,
+            prerequisites: new[] { TechnologyId.ArdentForgeRitual },
+            modifiers: new Modifier[] { new(ECategory.UNLOCK_RITUAL, "MartialBlessing", EType.ADDITIVE, 1) },
+            tier: 6, line: 8),
+
+        new(TechnologyId.ArcaneShieldRitual,
+            "tech_arcane_shield_ritual_name", "tech_arcane_shield_ritual_desc",
+            cost: 70000,
+            prerequisites: new[] { TechnologyId.ClairvoyanceRitual },
+            modifiers: new Modifier[] { new(ECategory.UNLOCK_RITUAL, "ArcaneShield", EType.ADDITIVE, 1) },
+            tier: 6, line: 9),
+
+        new(TechnologyId.DeepLightRitual,
+            "tech_deep_light_ritual_name", "tech_deep_light_ritual_desc",
+            cost: 150000,
+            prerequisites: new[] { TechnologyId.MartialBlessingRitual, TechnologyId.Speleologie },
+            modifiers: new Modifier[] { new(ECategory.UNLOCK_RITUAL, "DeepLight", EType.ADDITIVE, 1) },
+            tier: 7, line: 8),
+
     };
 
     public static Technology? Get(TechnologyId id) => All.FirstOrDefault(t => t.Id == id);

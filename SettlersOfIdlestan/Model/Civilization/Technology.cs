@@ -54,6 +54,13 @@ public enum TechnologyId
     OutilsEnMithril,
     // Tier 7
     SpecialSteels,
+    // Branche de la Magie (débloquée par le vertex de prestige Secret de la Magie)
+    MagicInitiation,
+    ArdentForgeRitual,
+    ClairvoyanceRitual,
+    MartialBlessingRitual,
+    ArcaneShieldRitual,
+    DeepLightRitual,
 }
 
 public enum TechnologyStatus
