@@ -257,7 +257,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             {
                 _prestigeButtonRect = BtnRect(btnIdx++);
                 canvas.DrawRoundRect(_prestigeButtonRect, 6 * s, 6 * s, prestigeAvail ? (_hoveredPrestige ? _btnHoverPaint : _btnPaint) : _btnDisabledPaint);
-                string prestigeLabel = $"{_localization.Get("prestige_action")} ({prestigePoints})";
+                string prestigeLabel = $"{_localization.Get("prestige_action")} (+{prestigePoints})";
                 SkiaTextUtils.DrawText(canvas, prestigeLabel, _prestigeButtonRect.MidX, _prestigeButtonRect.MidY + 4f * s, SKTextAlign.Center, _btnSmFont, prestigeAvail ? TextPaint : _btnDisabledTxtPaint);
             }
 
@@ -327,7 +327,17 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         }
 
         // Tooltips — set each frame so they persist while hovering
-        if (_hoveredWonder && !_wonderEnabled)
+        if (_hoveredPrestige && !prestigeAvail && prestigeVisible)
+        {
+            var lines = new System.Collections.Generic.List<string>();
+            if (!HasPrestigeImperialPort())
+                lines.Add(_localization.Get("tooltip_prestige_no_imperial_port"));
+            if (prestigePoints < PrestigeController.PrestigeRequiredPoints)
+                lines.Add(_localization.GetFormated("tooltip_prestige_not_enough_points", prestigePoints, PrestigeController.PrestigeRequiredPoints));
+            if (lines.Count > 0)
+                _tooltipRenderer.SetTooltipLines(lines.ToArray(), new SKPoint(_prestigeButtonRect.Right, _prestigeButtonRect.Top));
+        }
+        else if (_hoveredWonder && !_wonderEnabled)
             _tooltipRenderer.SetTooltip(_localization.Get("tooltip_wonder_surface_only"), new SKPoint(_wonderButtonRect.Right, _wonderButtonRect.Top));
         else if (_hoveredDeepestMine && !_deepestMineEnabled)
             _tooltipRenderer.SetTooltip(_localization.Get("tooltip_deepest_mine_surface_only"), new SKPoint(_deepestMineButtonRect.Right, _deepestMineButtonRect.Top));
@@ -494,6 +504,12 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
     {
         try { return _gameControllerService.MainGameController.PrestigeController.PrestigeIsAvailable(); }
         catch { return false; }
+    }
+
+    private bool HasPrestigeImperialPort()
+    {
+        try { return _gameControllerService.MainGameController.PrestigeController.HasImperialPort(); }
+        catch { return true; }
     }
 
     private int GetPrestigePoints()

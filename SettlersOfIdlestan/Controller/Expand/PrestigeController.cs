@@ -35,13 +35,16 @@ namespace SettlersOfIdlestan.Controller.Expand
         public const int PrestigeVisiblePoints = 10;
         public const int PrestigeRequiredPoints = 20;
 
-        public bool PrestigeIsVisible() => CalculatePrestigePoints() >= PrestigeVisiblePoints;
+        public bool PrestigeIsVisible() => (CalculatePrestigePoints() >= PrestigeVisiblePoints) || HasImperialPort();
 
         public bool HasImperialPort() =>
             _playerCivilization?.UniqueBuildings.Contains(BuildingType.ImperialPort) == true;
 
+        public bool HasEnoughPrestigePoints() =>
+            CalculatePrestigePoints() >= PrestigeRequiredPoints;
+
         public bool PrestigeIsAvailable() =>
-            CalculatePrestigePoints() >= PrestigeRequiredPoints && HasImperialPort();
+             HasEnoughPrestigePoints() && HasImperialPort();
 
         public int GetBuildingSubtotal() => GetPrestigePointSources().Sum(source => source.Points);
 

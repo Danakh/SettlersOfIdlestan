@@ -198,6 +198,8 @@
   "trade_tooltip_no_offers": "Rien à vendre",
   "trade_tooltip_no_gold": "Or insuffisant",
   "prestige_action": "Prestige",
+  "tooltip_prestige_no_imperial_port": "⚠ Nécessite un Port Impérial",
+  "tooltip_prestige_not_enough_points": "⚠ Points de prestige insuffisants ({0}/{1})",
   "prestige_title": "Prestige",
   "prestige_total": "Total",
   "prestige_wonder_bonus": "Merveille niv.{0} × {1} ({2})",

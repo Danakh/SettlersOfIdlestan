@@ -198,6 +198,8 @@
   "trade_tooltip_no_offers": "Nothing to sell",
   "trade_tooltip_no_gold": "Not enough gold",
   "prestige_action": "Prestige",
+  "tooltip_prestige_no_imperial_port": "⚠ Requires an Imperial Port",
+  "tooltip_prestige_not_enough_points": "⚠ Not enough prestige points ({0}/{1})",
   "prestige_title": "Prestige",
   "prestige_total": "Total",
   "prestige_wonder_bonus": "Wonder lv.{0} × {1} ({2})",
