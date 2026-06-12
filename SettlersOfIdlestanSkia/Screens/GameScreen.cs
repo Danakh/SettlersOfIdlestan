@@ -48,7 +48,6 @@ public sealed class GameScreen : IDisposable
     private GameOverPopupRenderer? _gameOverPopup;
     private bool _gameOverPending;
     private HardResetPopupRenderer? _hardResetPopup;
-    private AboutRenderer? _aboutRenderer;
     private DebugPanelRenderer? _debugPanelRenderer;
     private bool _prestigeTransitionPending;
 
@@ -150,9 +149,14 @@ public sealed class GameScreen : IDisposable
 
     private void SetupRenderers(bool isNewGame, bool allowDebugMode)
     {
-        var savedLanguage = _gameControllerService.CurrentGameState?.Settings?.Language;
-        if (savedLanguage.HasValue)
-            _localizationService.SetLanguage(savedLanguage.Value);
+        var gameSettings = _gameControllerService.CurrentGameState?.Settings;
+        if (gameSettings != null)
+        {
+            if (isNewGame)
+                gameSettings.Language = _localizationService.CurrentLanguage;
+            else
+                _localizationService.SetLanguage(gameSettings.Language);
+        }
 
         _harvestService = new HarvestService(_gameControllerService);
 
@@ -218,8 +222,6 @@ public sealed class GameScreen : IDisposable
 
         var selectedWonderPanelRenderer = new SelectedWonderPanelRenderer(_wonderService, _inputService, _localizationService, _resourceManager);
 
-        _aboutRenderer = new AboutRenderer(_inputService, _localizationService);
-
         var settingsPopupRenderer = new SettingsPopupRenderer(_gameControllerService.MainGameController, _localizationService);
 
         DebugPanelRenderer? debugPanelRenderer = null;
@@ -237,7 +239,7 @@ public sealed class GameScreen : IDisposable
         var settingsMenu = new SettingsMenu(
             _gameControllerService.MainGameController,
             _inputService, _localizationService,
-            _aboutRenderer, settingsPopupRenderer,
+            settingsPopupRenderer,
             _fileSystemService, _gameControllerService.CityBuildingService!,
             allowDebugMode, debugPanelRenderer,
             StartNewGameIntro, _uiLayoutService,
@@ -401,7 +403,6 @@ public sealed class GameScreen : IDisposable
         _renderService.RenderFrame(canvas, gameState, _cameraService);
 
         float uiScale = _uiLayoutService.UiScale;
-        _aboutRenderer?.Render(canvas, _lastCanvasSize, uiScale);
         _debugPanelRenderer?.Render(canvas, _lastCanvasSize, uiScale);
         _corruptSavePopup?.Render(canvas, _lastCanvasSize, uiScale);
         _gameOverPopup?.Render(canvas, _lastCanvasSize, uiScale);
@@ -652,7 +653,6 @@ public sealed class GameScreen : IDisposable
     public void Dispose()
     {
         if (_isDisposed) return;
-        _aboutRenderer?.Dispose();
         _debugPanelRenderer?.Dispose();
         _corruptSavePopup?.Dispose();
         _hardResetPopup?.Dispose();

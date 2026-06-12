@@ -1,8 +1,10 @@
 using System.Reflection;
 using SkiaSharp;
+using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Services;
 using SettlersOfIdlestanSkia.Services.Localization;
+using SettlersOfIdlestanSkia.Renderers.Overlay;
 using SettlersOfIdlestanSkia.Renderers.Overlay.Popup;
 
 namespace SettlersOfIdlestanSkia.Screens;
@@ -22,16 +24,30 @@ public sealed class TitleScreen : IDisposable
     private SKRect _primaryBtnRect;
     private SKRect _hardResetBtnRect;
 
-    private readonly SKPaint _bgPaint           = new() { Color = new SKColor(15, 15, 22),   Style = SKPaintStyle.Fill };
-    private readonly SKPaint _titlePaint         = new() { Color = new SKColor(230, 190, 90), IsAntialias = true };
-    private readonly SKPaint _primaryBtnPaint    = new() { Color = new SKColor(35, 80, 130),  Style = SKPaintStyle.Fill, IsAntialias = true };
-    private readonly SKPaint _resetBtnPaint      = new() { Color = new SKColor(80, 30, 30),   Style = SKPaintStyle.Fill, IsAntialias = true };
+    // Tab state
+    private int    _activeTab    = 0; // 0=Changelog  1=Crédits  2=Paramètres
+    private SKRect _tabChangelog = SKRect.Empty;
+    private SKRect _tabCredits   = SKRect.Empty;
+    private SKRect _tabSettings  = SKRect.Empty;
+
+    private readonly GameSettings        _settings;
+    private readonly SettingsContentPanel _settingsPanel;
+
+    private const float TabsTopY      = 105f;
+    private const float TabsH         = 30f;
+    private const float ContentStartY = TabsTopY + TabsH + 8f; // 143
+
+    private readonly SKPaint _bgPaint           = new() { Color = new SKColor(15, 15, 22),    Style = SKPaintStyle.Fill };
+    private readonly SKPaint _titlePaint         = new() { Color = new SKColor(230, 190, 90),  IsAntialias = true };
+    private readonly SKPaint _primaryBtnPaint    = new() { Color = new SKColor(35, 80, 130),   Style = SKPaintStyle.Fill, IsAntialias = true };
+    private readonly SKPaint _activeTabPaint     = new() { Color = new SKColor(45, 90, 145),   Style = SKPaintStyle.Fill, IsAntialias = true };
+    private readonly SKPaint _resetBtnPaint      = new() { Color = new SKColor(80, 30, 30),    Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _btnBorderPaint     = new() { Color = new SKColor(100, 100, 125), StrokeWidth = 1, Style = SKPaintStyle.Stroke, IsAntialias = true };
-    private readonly SKPaint _textPaint          = new() { Color = SKColors.White,             IsAntialias = true };
-    private readonly SKPaint _subtlePaint        = new() { Color = new SKColor(155, 155, 170), IsAntialias = true };
-    private readonly SKPaint _sectionBgPaint     = new() { Color = new SKColor(22, 22, 32),    Style = SKPaintStyle.Fill, IsAntialias = true };
-    private readonly SKPaint _sectionBorderPaint = new() { Color = new SKColor(55, 55, 75),    StrokeWidth = 1, Style = SKPaintStyle.Stroke, IsAntialias = true };
-    private readonly SKPaint _dividerPaint       = new() { Color = new SKColor(100, 85, 45),   StrokeWidth = 2, Style = SKPaintStyle.Stroke };
+    private readonly SKPaint _textPaint          = new() { Color = SKColors.White,              IsAntialias = true };
+    private readonly SKPaint _subtlePaint        = new() { Color = new SKColor(155, 155, 170),  IsAntialias = true };
+    private readonly SKPaint _sectionBgPaint     = new() { Color = new SKColor(22, 22, 32),     Style = SKPaintStyle.Fill, IsAntialias = true };
+    private readonly SKPaint _sectionBorderPaint = new() { Color = new SKColor(55, 55, 75),     StrokeWidth = 1, Style = SKPaintStyle.Stroke, IsAntialias = true };
+    private readonly SKPaint _dividerPaint       = new() { Color = new SKColor(100, 85, 45),    StrokeWidth = 2, Style = SKPaintStyle.Stroke };
 
     private SKFont? _titleFont;
     private SKFont? _bodyFont;
@@ -42,7 +58,7 @@ public sealed class TitleScreen : IDisposable
     private string? _cachedChangelogContent;
     private SettlersOfIdlestan.Model.Localization.Language _cachedChangelogLanguage = (SettlersOfIdlestan.Model.Localization.Language)(-1);
 
-    // Scroll state
+    // Scroll state (changelog only)
     private float   _scrollOffsetPx        = 0f;
     private float   _totalContentH         = 0f;
     private float   _viewportH             = 0f;
@@ -56,15 +72,41 @@ public sealed class TitleScreen : IDisposable
     private readonly SKPaint _scrollTrackPaint = new() { Color = new SKColor(50,  50,  65,  200), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _scrollThumbPaint = new() { Color = new SKColor(130, 130, 165, 210), Style = SKPaintStyle.Fill, IsAntialias = true };
 
+    // Discord button
+    private const string DiscordUrl     = "https://discord.gg/DBCvwt9vZf";
+    private const string DiscordSvgPath =
+        "M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 " +
+        "18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 " +
+        "4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057.1 18.1.12 18.14.143 18.16a19.9 19.9 0 0 0 " +
+        "5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 " +
+        "13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 " +
+        "1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 " +
+        "12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 " +
+        ".084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061" +
+        ".061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 " +
+        "2.176 1.095 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333" +
+        ".955-2.419 2.157-2.419 1.21 0 2.176 1.095 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z";
+
+    private readonly SKPaint _discordBgPaint    = new() { Color = new SKColor(88, 101, 242), Style = SKPaintStyle.Fill, IsAntialias = true };
+    private readonly SKPaint _discordHoverPaint = new() { Color = new SKColor(71,  82, 196), Style = SKPaintStyle.Fill, IsAntialias = true };
+    private readonly SKPaint _discordLogoPaint  = new() { Color = SKColors.White,            Style = SKPaintStyle.Fill, IsAntialias = true };
+
+    private SKRect _discordBtnRect  = SKRect.Empty;
+    private bool   _hoveredDiscord;
+
     public event Action? NewGameRequested;
     public event Action? ContinueRequested;
+    public event Action<string>? DiscordLinkClicked;
 
-    public TitleScreen(IFileSystemService fileSystemService, LocalizationService localization, UILayoutService uiLayoutService, bool hasSave)
+    public TitleScreen(IFileSystemService fileSystemService, LocalizationService localization,
+        UILayoutService uiLayoutService, bool hasSave, GameSettings? settings = null)
     {
         _fileSystemService = fileSystemService;
         _localization      = localization;
         _uiLayoutService   = uiLayoutService;
         _hasSave           = hasSave;
+        _settings          = settings ?? new GameSettings();
+        _settingsPanel     = new SettingsContentPanel();
 
         _hardResetPopup = new HardResetPopupRenderer(
             localization, fileSystemService,
@@ -92,25 +134,69 @@ public sealed class TitleScreen : IDisposable
         float divHalfW = Math.Min(220 * s, cx - 20 * s);
         canvas.DrawLine(cx - divHalfW, divY, cx + divHalfW, divY, _dividerPaint);
 
-        RenderChangelog(canvas, canvasSize, s);
+        RenderTabs(canvas, canvasSize, s);
+
+        switch (_activeTab)
+        {
+            case 0: RenderChangelog(canvas, canvasSize, s); break;
+            case 1: RenderCredits(canvas, canvasSize, s);   break;
+            case 2: RenderSettingsTab(canvas, canvasSize, s); break;
+        }
+
         RenderButtons(canvas, canvasSize, s);
+        RenderDiscordButton(canvas, canvasSize, s);
 
         _hardResetPopup?.Render(canvas, canvasSize, uiScale);
     }
+
+    // ── Onglets ────────────────────────────────────────────────────────────────
+
+    private void RenderTabs(SKCanvas canvas, SKSize canvasSize, float s)
+    {
+        float cx   = canvasSize.Width / 2f;
+        float boxW = Math.Min(640 * s, canvasSize.Width - 60 * s);
+        float boxX = cx - boxW / 2f;
+        float tabY = TabsTopY * s;
+        float tabH = TabsH    * s;
+        float tabW = boxW / 3f;
+
+        _tabChangelog = new SKRect(boxX,             tabY, boxX + tabW,       tabY + tabH);
+        _tabCredits   = new SKRect(boxX + tabW,      tabY, boxX + tabW * 2f,  tabY + tabH);
+        _tabSettings  = new SKRect(boxX + tabW * 2f, tabY, boxX + boxW,       tabY + tabH);
+
+        SKRect[] rects  = { _tabChangelog, _tabCredits, _tabSettings };
+        string[] labels =
+        {
+            _localization.Get("title_tab_changelog"),
+            _localization.Get("title_tab_credits"),
+            _localization.Get("title_tab_settings"),
+        };
+
+        for (int i = 0; i < 3; i++)
+        {
+            var rect    = rects[i];
+            var bgPaint = i == _activeTab ? _activeTabPaint : _sectionBgPaint;
+            canvas.DrawRoundRect(rect, 4 * s, 4 * s, bgPaint);
+            canvas.DrawRoundRect(rect, 4 * s, 4 * s, _sectionBorderPaint);
+
+            float tw       = _sectionTitleFont!.MeasureText(labels[i]);
+            var   txtPaint = i == _activeTab ? _textPaint : _subtlePaint;
+            SkiaTextUtils.DrawText(canvas, labels[i],
+                rect.Left + (rect.Width  - tw) / 2f,
+                rect.Top  + (rect.Height + _sectionTitleFont.Size) / 2f,
+                _sectionTitleFont, txtPaint);
+        }
+    }
+
+    // ── Contenu : Changelog ────────────────────────────────────────────────────
 
     private void RenderChangelog(SKCanvas canvas, SKSize canvasSize, float s)
     {
         float cx    = canvasSize.Width / 2f;
         float boxW  = Math.Min(640 * s, canvasSize.Width - 60 * s);
         float boxX  = cx - boxW / 2f;
-        float boxY  = 105 * s;
+        float contentY = ContentStartY * s;
 
-        // Section header
-        string sectionTitle = _localization.Get("title_changelog_title");
-        float stW = _sectionTitleFont!.MeasureText(sectionTitle);
-        SkiaTextUtils.DrawText(canvas, sectionTitle, cx - stW / 2f, boxY + 18 * s, _sectionTitleFont, _textPaint);
-
-        float contentY = boxY + 36 * s;
         string content = GetChangelogContent();
         if (!string.IsNullOrWhiteSpace(content))
         {
@@ -175,7 +261,7 @@ public sealed class TitleScreen : IDisposable
         if (_cachedChangelogContent != null && _cachedChangelogLanguage == lang)
             return _cachedChangelogContent;
 
-        string langCode = lang == SettlersOfIdlestan.Model.Localization.Language.English ? "en" : "fr";
+        string langCode    = lang == SettlersOfIdlestan.Model.Localization.Language.English ? "en" : "fr";
         string resourceName = $"SettlersOfIdlestanSkia.Resources.changelog.changelog_{langCode}.txt";
 
         var asm = Assembly.GetExecutingAssembly();
@@ -193,6 +279,80 @@ public sealed class TitleScreen : IDisposable
         return _cachedChangelogContent;
     }
 
+    // ── Contenu : Crédits ──────────────────────────────────────────────────────
+
+    private void RenderCredits(SKCanvas canvas, SKSize canvasSize, float s)
+    {
+        float cx       = canvasSize.Width / 2f;
+        float startY   = ContentStartY * s + 30 * s;
+        float lineH    = _sectionTitleFont!.Size * 2.8f;
+
+        string studio = _localization.Get("credits_studio");
+        float sw = _sectionTitleFont.MeasureText(studio);
+        SkiaTextUtils.DrawText(canvas, studio, cx - sw / 2f, startY, _sectionTitleFont, _titlePaint);
+
+        string dev = _localization.Get("credits_dev");
+        float dw = _bodyFont!.MeasureText(dev);
+        SkiaTextUtils.DrawText(canvas, dev, cx - dw / 2f, startY + lineH, _bodyFont, _textPaint);
+
+        string ai = _localization.Get("credits_ai");
+        float aw = _bodyFont.MeasureText(ai);
+        SkiaTextUtils.DrawText(canvas, ai, cx - aw / 2f, startY + lineH * 2f, _bodyFont, _subtlePaint);
+    }
+
+    // ── Contenu : Paramètres ───────────────────────────────────────────────────
+
+    private void RenderSettingsTab(SKCanvas canvas, SKSize canvasSize, float s)
+    {
+        float cx    = canvasSize.Width / 2f;
+        float boxW  = Math.Min(640 * s, canvasSize.Width - 60 * s);
+        float boxX  = cx - boxW / 2f;
+        float y     = ContentStartY * s + 16 * s;
+
+        // Panel width leaves a 24px right margin (même alignement que le popup)
+        _settingsPanel.Render(canvas, boxX, y, boxW - 24 * s, s, _settings, _localization);
+    }
+
+    // ── Bouton Discord ─────────────────────────────────────────────────────────
+
+    private void RenderDiscordButton(SKCanvas canvas, SKSize canvasSize, float s)
+    {
+        float btnW   = 148f * s;
+        float btnH   = 38f  * s;
+        float margin = 10f  * s;
+        float btnX   = canvasSize.Width  - btnW - margin;
+        float btnY   = canvasSize.Height - btnH - margin;
+        _discordBtnRect = new SKRect(btnX, btnY, btnX + btnW, btnY + btnH);
+
+        canvas.DrawRoundRect(_discordBtnRect, 8f * s, 8f * s,
+            _hoveredDiscord ? _discordHoverPaint : _discordBgPaint);
+
+        // Icône Discord — logo "Clyde" officiel (path SVG, viewBox ~24×24)
+        float iconSize = btnH - 10f * s;
+        float iconX    = btnX + 10f * s;
+        float iconY    = btnY + (btnH - iconSize) / 2f;
+        DrawDiscordLogo(canvas, iconX, iconY, iconSize);
+
+        // Texte "Discord"
+        string label = "Discord";
+        float  textX = iconX + iconSize + 8f * s;
+        float  textY = btnY + (btnH + _btnFont!.Size) / 2f;
+        SkiaTextUtils.DrawText(canvas, label, textX, textY, _btnFont, _textPaint);
+    }
+
+    private void DrawDiscordLogo(SKCanvas canvas, float x, float y, float size)
+    {
+        using var path = SKPath.ParseSvgPathData(DiscordSvgPath);
+        if (path == null) return;
+        var b = path.TightBounds;
+        if (b.Width <= 0 || b.Height <= 0) return;
+        float scale = size / Math.Max(b.Width, b.Height);
+        path.Transform(SKMatrix.CreateScaleTranslation(scale, scale, x - b.Left * scale, y - b.Top * scale));
+        canvas.DrawPath(path, _discordLogoPaint);
+    }
+
+    // ── Boutons du bas ─────────────────────────────────────────────────────────
+
     private void RenderButtons(SKCanvas canvas, SKSize canvasSize, float s)
     {
         float cx   = canvasSize.Width / 2f;
@@ -205,7 +365,7 @@ public sealed class TitleScreen : IDisposable
         {
             float totalW = btnW * 2 + gap;
             float startX = cx - totalW / 2f;
-            _primaryBtnRect   = new SKRect(startX,            btnY, startX + btnW,       btnY + btnH);
+            _primaryBtnRect   = new SKRect(startX,             btnY, startX + btnW,      btnY + btnH);
             _hardResetBtnRect = new SKRect(startX + btnW + gap, btnY, startX + totalW, btnY + btnH);
             DrawBtn(canvas, _primaryBtnRect,   _primaryBtnPaint, _localization.Get("title_btn_continue"),   s);
             DrawBtn(canvas, _hardResetBtnRect, _resetBtnPaint,   _localization.Get("title_btn_hard_reset"), s);
@@ -234,15 +394,17 @@ public sealed class TitleScreen : IDisposable
     {
         if (s == _lastFontScale) return;
         _lastFontScale = s;
-        _titleFont?.Dispose();       _titleFont       = new SKFont { Size = 38 * s, Typeface = SkiaFonts.Bold };
+        _titleFont?.Dispose();        _titleFont        = new SKFont { Size = 38 * s, Typeface = SkiaFonts.Bold };
         _sectionTitleFont?.Dispose(); _sectionTitleFont = new SKFont { Size = 13 * s, Typeface = SkiaFonts.Bold };
-        _bodyFont?.Dispose();        _bodyFont        = new SKFont { Size = 13 * s, Typeface = SkiaFonts.Regular };
-        _btnFont?.Dispose();         _btnFont         = new SKFont { Size = 16 * s, Typeface = SkiaFonts.Bold };
+        _bodyFont?.Dispose();         _bodyFont         = new SKFont { Size = 13 * s, Typeface = SkiaFonts.Regular };
+        _btnFont?.Dispose();          _btnFont          = new SKFont { Size = 16 * s, Typeface = SkiaFonts.Bold };
     }
+
+    // ── Gestion des interactions ───────────────────────────────────────────────
 
     public void HandleScroll(float delta)
     {
-        if (_disposed) return;
+        if (_disposed || _activeTab != 0) return;
         float step      = _bodyFont?.Spacing ?? 14f;
         float dir       = delta > 0 ? -1f : 1f;
         float maxScroll = Math.Max(0, _totalContentH - _viewportH);
@@ -261,22 +423,42 @@ public sealed class TitleScreen : IDisposable
 
         var pos = new SKPoint(x, y);
 
-        if (!_scrollThumbRect.IsEmpty && _scrollThumbRect.Contains(pos))
+        // Bouton Discord
+        if (!_discordBtnRect.IsEmpty && _discordBtnRect.Contains(pos))
         {
-            _isDraggingScrollbar   = true;
-            _scrollDragStartY      = y;
-            _scrollDragStartOffset = _scrollOffsetPx;
+            DiscordLinkClicked?.Invoke(DiscordUrl);
             return;
         }
 
-        if (!_scrollTrackRect.IsEmpty && _scrollTrackRect.Contains(pos))
+        // Clic sur un onglet
+        if (_tabChangelog.Contains(pos)) { _activeTab = 0; return; }
+        if (_tabCredits.Contains(pos))   { _activeTab = 1; return; }
+        if (_tabSettings.Contains(pos))  { _activeTab = 2; return; }
+
+        // Scrollbar changelog
+        if (_activeTab == 0)
         {
-            float maxScroll = Math.Max(0, _totalContentH - _viewportH);
-            float ratio     = (y - _scrollTrackRect.Top) / _scrollTrackRect.Height;
-            _scrollOffsetPx = Math.Clamp(ratio * maxScroll, 0, maxScroll);
-            return;
+            if (!_scrollThumbRect.IsEmpty && _scrollThumbRect.Contains(pos))
+            {
+                _isDraggingScrollbar   = true;
+                _scrollDragStartY      = y;
+                _scrollDragStartOffset = _scrollOffsetPx;
+                return;
+            }
+            if (!_scrollTrackRect.IsEmpty && _scrollTrackRect.Contains(pos))
+            {
+                float maxScroll = Math.Max(0, _totalContentH - _viewportH);
+                float ratio     = (y - _scrollTrackRect.Top) / _scrollTrackRect.Height;
+                _scrollOffsetPx = Math.Clamp(ratio * maxScroll, 0, maxScroll);
+                return;
+            }
         }
 
+        // Paramètres
+        if (_activeTab == 2)
+            _settingsPanel.HandleClick(pos, _settings, _localization);
+
+        // Boutons du bas
         if (_primaryBtnRect.Contains(pos))
         {
             if (_hasSave) ContinueRequested?.Invoke();
@@ -290,12 +472,22 @@ public sealed class TitleScreen : IDisposable
 
     public void HandlePointerMoved(float x, float y)
     {
-        if (_disposed || !_isDraggingScrollbar) return;
-        float dy         = y - _scrollDragStartY;
-        float thumbRange = _scrollTrackRect.Height - _scrollThumbRect.Height;
-        float maxScroll  = Math.Max(0, _totalContentH - _viewportH);
-        float scrollPerPx = thumbRange > 0 ? maxScroll / thumbRange : 0;
-        _scrollOffsetPx = Math.Clamp(_scrollDragStartOffset + dy * scrollPerPx, 0, maxScroll);
+        if (_disposed) return;
+
+        _hoveredDiscord = !_discordBtnRect.IsEmpty && _discordBtnRect.Contains(x, y);
+
+        if (_isDraggingScrollbar && _activeTab == 0)
+        {
+            float dy          = y - _scrollDragStartY;
+            float thumbRange  = _scrollTrackRect.Height - _scrollThumbRect.Height;
+            float maxScroll   = Math.Max(0, _totalContentH - _viewportH);
+            float scrollPerPx = thumbRange > 0 ? maxScroll / thumbRange : 0;
+            _scrollOffsetPx   = Math.Clamp(_scrollDragStartOffset + dy * scrollPerPx, 0, maxScroll);
+            return;
+        }
+
+        if (_activeTab == 2)
+            _settingsPanel.HandleHover(new SKPoint(x, y));
     }
 
     public void HandlePointerReleased(float x, float y, PointerButton button)
@@ -309,6 +501,7 @@ public sealed class TitleScreen : IDisposable
         _bgPaint.Dispose();
         _titlePaint.Dispose();
         _primaryBtnPaint.Dispose();
+        _activeTabPaint.Dispose();
         _resetBtnPaint.Dispose();
         _btnBorderPaint.Dispose();
         _textPaint.Dispose();
@@ -322,6 +515,10 @@ public sealed class TitleScreen : IDisposable
         _sectionTitleFont?.Dispose();
         _bodyFont?.Dispose();
         _btnFont?.Dispose();
+        _discordBgPaint.Dispose();
+        _discordHoverPaint.Dispose();
+        _discordLogoPaint.Dispose();
+        _settingsPanel.Dispose();
         _hardResetPopup?.Dispose();
         _disposed = true;
     }

@@ -45,7 +45,8 @@
         try
         {
             _runtime = new SkiaGameRuntime();
-            _runtime.QuitRequested += () => _ = JS.InvokeVoidAsync("window.close");
+            _runtime.QuitRequested      += () => _ = JS.InvokeVoidAsync("window.close");
+            _runtime.DiscordLinkClicked += url => _ = JS.InvokeVoidAsync("window.open", url, "_blank");
             await _runtime.InitializeAsync(FileSystemService);
         }
         catch (Exception ex)

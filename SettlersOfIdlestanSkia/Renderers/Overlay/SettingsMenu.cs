@@ -38,7 +38,6 @@ public class SettingsMenu
     private readonly MainGameController _gameController;
     private readonly InputHandlingService _inputService;
     private readonly LocalizationService _localization;
-    private readonly AboutRenderer _aboutRenderer;
     private readonly SettingsPopupRenderer _settingsPopupRenderer;
     private readonly IFileSystemService _fileSystemService;
     private readonly CityBuildingService _cityBuildingService;
@@ -63,12 +62,11 @@ public class SettingsMenu
 
     public bool IsOpen => _isOpen;
 
-    public SettingsMenu(MainGameController gameController, InputHandlingService inputService, LocalizationService localization, AboutRenderer aboutRenderer, SettingsPopupRenderer settingsPopupRenderer, IFileSystemService fileSystemService, CityBuildingService cityBuildingService, bool allowDebugMode = false, DebugPanelRenderer? debugPanelRenderer = null, Action? onAfterNewGame = null, UILayoutService? uiLayout = null, Action? onReturnToMenu = null, Action? onRestartIsland = null)
+    public SettingsMenu(MainGameController gameController, InputHandlingService inputService, LocalizationService localization, SettingsPopupRenderer settingsPopupRenderer, IFileSystemService fileSystemService, CityBuildingService cityBuildingService, bool allowDebugMode = false, DebugPanelRenderer? debugPanelRenderer = null, Action? onAfterNewGame = null, UILayoutService? uiLayout = null, Action? onReturnToMenu = null, Action? onRestartIsland = null)
     {
         _gameController = gameController;
         _inputService = inputService;
         _localization = localization;
-        _aboutRenderer = aboutRenderer;
         _settingsPopupRenderer = settingsPopupRenderer;
         _fileSystemService = fileSystemService;
         _cityBuildingService = cityBuildingService;
@@ -110,14 +108,6 @@ public class SettingsMenu
         {
             LabelKey = "menu_return_to_menu",
             Action = ReturnToMenu
-        });
-
-        _menuItems.Add(new MenuItem { IsSeparator = true });
-
-        _menuItems.Add(new MenuItem
-        {
-            LabelKey = "menu_about",
-            Action = ToggleAboutPopUp
         });
 
         if (allowDebugMode)
@@ -373,11 +363,6 @@ public class SettingsMenu
     private void OpenDebugPanel()
     {
         _debugPanelRenderer?.Open();
-    }
-
-    private void ToggleAboutPopUp()
-    {
-        _aboutRenderer.Open();
     }
 
     private void AddResources()

@@ -31,7 +31,9 @@ public partial class MainPage : ContentPage
 	{
 		base.OnAppearing();
 		_runtime = new SkiaGameRuntime();
-		_runtime.QuitRequested += () => MainThread.BeginInvokeOnMainThread(() => Application.Current?.Quit());
+		_runtime.QuitRequested      += () => MainThread.BeginInvokeOnMainThread(() => Application.Current?.Quit());
+		_runtime.DiscordLinkClicked += url => MainThread.BeginInvokeOnMainThread(async () =>
+			await Launcher.OpenAsync(new Uri(url)));
 		bool allowDebugMode = false;
 #if DEBUG
 		allowDebugMode = Environment.GetCommandLineArgs().Contains("--debug");

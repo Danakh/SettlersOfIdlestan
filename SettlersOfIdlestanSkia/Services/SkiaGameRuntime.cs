@@ -1,4 +1,5 @@
 using SkiaSharp;
+using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Services.Localization;
 using SettlersOfIdlestanSkia.Services;
@@ -17,15 +18,17 @@ public sealed class SkiaGameRuntime : IDisposable
     private IFileSystemService?   _fileSystemService;
     private bool                  _allowDebugMode;
 
-    private TitleScreen? _titleScreen;
-    private GameScreen?  _gameScreen;
-    private bool         _onTitleScreen;
+    private TitleScreen?  _titleScreen;
+    private GameScreen?   _gameScreen;
+    private bool          _onTitleScreen;
+    private GameSettings  _titleSettings = new();
 
     private SKSize _lastCanvasSize;
     private bool   _isDisposed;
     private bool   _isInitialized;
 
     public event Action? QuitRequested;
+    public event Action<string>? DiscordLinkClicked;
 
     // ── Initialisation ────────────────────────────────────────────────────────
 
@@ -52,6 +55,9 @@ public sealed class SkiaGameRuntime : IDisposable
         _localizationService = new LocalizationService();
         _uiLayoutService     = new UILayoutService();
 
+        _titleSettings = ExtractSettings(autoJson);
+        _localizationService.SetLanguage(_titleSettings.Language);
+
         bool hasSave = !string.IsNullOrEmpty(autoJson);
         ShowTitleScreen(hasSave);
 
@@ -63,11 +69,11 @@ public sealed class SkiaGameRuntime : IDisposable
     private void ShowTitleScreen(bool hasSave)
     {
         _titleScreen?.Dispose();
-        _titleScreen = new TitleScreen(_fileSystemService!, _localizationService!, _uiLayoutService!, hasSave);
-        _titleScreen.NewGameRequested  += OnNewGameRequested;
-        _titleScreen.ContinueRequested += OnContinueRequested;
+        _titleScreen = new TitleScreen(_fileSystemService!, _localizationService!, _uiLayoutService!, hasSave, _titleSettings);
+        _titleScreen.NewGameRequested   += OnNewGameRequested;
+        _titleScreen.ContinueRequested  += OnContinueRequested;
+        _titleScreen.DiscordLinkClicked += url => DiscordLinkClicked?.Invoke(url);
         _onTitleScreen = true;
-
     }
 
     private void OnNewGameRequested()
@@ -119,9 +125,26 @@ public sealed class SkiaGameRuntime : IDisposable
         _gameScreen?.Dispose();
         _gameScreen = null;
 
-        bool hasSave = await _fileSystemService!.LoadAuto() != null;
-        ShowTitleScreen(hasSave);
+        var autoJson   = await _fileSystemService!.LoadAuto();
+        _titleSettings = ExtractSettings(autoJson);
+        _localizationService!.SetLanguage(_titleSettings.Language);
+        ShowTitleScreen(autoJson != null);
+    }
 
+    private static GameSettings ExtractSettings(string? json)
+    {
+        if (string.IsNullOrEmpty(json)) return new GameSettings();
+        try
+        {
+            using var doc = System.Text.Json.JsonDocument.Parse(json);
+            if (doc.RootElement.TryGetProperty("Settings", out var prop))
+            {
+                var s = System.Text.Json.JsonSerializer.Deserialize<GameSettings>(prop);
+                if (s != null) return s;
+            }
+        }
+        catch { }
+        return new GameSettings();
     }
 
     // ── API publique (inchangée pour les shells Desktop/Web) ─────────────────
