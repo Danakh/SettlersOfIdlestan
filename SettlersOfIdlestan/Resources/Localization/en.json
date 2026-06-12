@@ -206,6 +206,7 @@
   "prestige_action": "Prestige",
   "tooltip_prestige_no_imperial_port": "⚠ Requires an Imperial Port",
   "tooltip_prestige_not_enough_points": "⚠ Not enough prestige points ({0}/{1})",
+  "tooltip_prestige_next_island": "Accumulated points can be spent on the next island",
   "prestige_title": "Prestige",
   "prestige_total": "Total",
   "prestige_wonder_bonus": "Wonder lv.{0} × {1} ({2})",

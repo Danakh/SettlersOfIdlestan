@@ -327,15 +327,19 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         }
 
         // Tooltips — set each frame so they persist while hovering
-        if (_hoveredPrestige && !prestigeAvail && prestigeVisible)
+        if (_hoveredPrestige && prestigeAvail && prestigeVisible)
+        {
+            _tooltipRenderer.SetTooltip(_localization.Get("tooltip_prestige_next_island"), new SKPoint(_prestigeButtonRect.Right, _prestigeButtonRect.Top));
+        }
+        else if (_hoveredPrestige && !prestigeAvail && prestigeVisible)
         {
             var lines = new System.Collections.Generic.List<string>();
             if (!HasPrestigeImperialPort())
                 lines.Add(_localization.Get("tooltip_prestige_no_imperial_port"));
             if (prestigePoints < PrestigeController.PrestigeRequiredPoints)
                 lines.Add(_localization.GetFormated("tooltip_prestige_not_enough_points", prestigePoints, PrestigeController.PrestigeRequiredPoints));
-            if (lines.Count > 0)
-                _tooltipRenderer.SetTooltipLines(lines.ToArray(), new SKPoint(_prestigeButtonRect.Right, _prestigeButtonRect.Top));
+            lines.Add(_localization.Get("tooltip_prestige_next_island"));
+            _tooltipRenderer.SetTooltipLines(lines.ToArray(), new SKPoint(_prestigeButtonRect.Right, _prestigeButtonRect.Top));
         }
         else if (_hoveredWonder && !_wonderEnabled)
             _tooltipRenderer.SetTooltip(_localization.Get("tooltip_wonder_surface_only"), new SKPoint(_wonderButtonRect.Right, _wonderButtonRect.Top));

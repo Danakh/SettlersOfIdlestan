@@ -206,6 +206,7 @@
   "prestige_action": "Prestige",
   "tooltip_prestige_no_imperial_port": "⚠ Nécessite un Port Impérial",
   "tooltip_prestige_not_enough_points": "⚠ Points de prestige insuffisants ({0}/{1})",
+  "tooltip_prestige_next_island": "Les points accumulés pourront être dépensés sur la prochaine île",
   "prestige_title": "Prestige",
   "prestige_total": "Total",
   "prestige_wonder_bonus": "Merveille niv.{0} × {1} ({2})",
