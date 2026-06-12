@@ -52,8 +52,9 @@ public class NpcExterminationTests
             [
                 new NpcParameters
                 {
-                    EvolutionLevel    = NpcEvolutionLevel.Minimum,
-                    AggressivityLevel = NpcAggressivityLevel.Pacifist
+                    EvolutionLevel       = NpcEvolutionLevel.Minimum,
+                    AggressivityLevel    = NpcAggressivityLevel.Pacifist,
+                    MinDistanceFromPlayer = 3,
                 }
             ]
         };

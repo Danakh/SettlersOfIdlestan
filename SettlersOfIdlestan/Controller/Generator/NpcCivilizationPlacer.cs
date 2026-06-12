@@ -21,10 +21,16 @@ public class NpcCivilizationPlacer
 {
     private const int MaxExpandIterations = 500;
 
+    /// <summary>Distance minimale par défaut (edges) entre toute ville NPC et la ville initiale du joueur.</summary>
+    public const int DefaultMinPlayerDistance = 8;
+
+    private const int MaxPlacementAttempts = 5;
+
     /// <summary>
     /// Place les civilisations NPC de l'état d'île fourni.
     /// La ville du joueur doit déjà être placée avant l'appel.
-    /// Retourne false si un placement initial est impossible.
+    /// Garantit que toutes les villes NPC (initiales et expansion) sont à ≥ leur MinDistanceFromPlayer
+    /// edges de la ville du joueur. Place autant de NPC que possible si la carte est trop petite.
     /// </summary>
     public bool PlaceNpcCivilizations(WorldState state)
     {
@@ -33,24 +39,40 @@ public class NpcCivilizationPlacer
         var npcCivs = state.Civilizations.Where(c => c.IsNpc).ToList();
         if (npcCivs.Count == 0) return true;
 
-        var allOccupied = new List<Vertex> { state.PlayerCivilization.Cities[0].Position };
-        var validVertices = FindValidCityVertices(state.GetMapForZ(IslandMap.SurfaceLayer));
+        var playerVertex = state.PlayerCivilization.Cities[0].Position;
+        var allValidVertices = FindValidCityVertices(state.GetMapForZ(IslandMap.SurfaceLayer));
 
         var npcModifiers = NpcModifierSetMaker.Create(maxTechTier: 3, maxPrestigeDistance: 2);
-
-        foreach (var civ in npcCivs)
+        var maritimeModifier = new StaticModifierProvider(new[]
         {
-            var initialVertex = FindBestVertex(validVertices, allOccupied);
-            if (initialVertex == null) return false;
+            new Modifier(Modifier.ECategory.UNLOCK_MARITIME_ROUTES, Modifier.EType.ADDITIVE, 1),
+        });
 
-            allOccupied.Add(initialVertex);
-            civ.AddCustomAggregator(npcModifiers);
-            PopulateMinimumNpc(state.GetMapForZ(IslandMap.SurfaceLayer), civ, initialVertex);
+        // Glouton avec retry : rotation de la liste pour varier le bris d'égalité
+        List<Vertex> bestPlacement = new();
+        for (int attempt = 0; attempt < MaxPlacementAttempts; attempt++)
+        {
+            var candidates = attempt == 0
+                ? allValidVertices
+                : RotateList(allValidVertices, attempt * Math.Max(1, allValidVertices.Count / MaxPlacementAttempts));
+            var placed = PlaceVerticesGreedy(candidates, playerVertex, npcCivs);
+            if (placed.Count > bestPlacement.Count)
+                bestPlacement = placed;
+            if (placed.Count == npcCivs.Count)
+                break;
         }
 
-        bool needsExpansion = npcCivs.Any(c =>
-            (c.NpcParameters?.EvolutionLevel ?? NpcEvolutionLevel.Minimum) != NpcEvolutionLevel.Minimum);
+        var map = state.GetMapForZ(IslandMap.SurfaceLayer);
+        for (int i = 0; i < bestPlacement.Count; i++)
+        {
+            var civ = npcCivs[i];
+            civ.AddCustomAggregator(npcModifiers);
+            civ.AddCustomAggregator(maritimeModifier);
+            PopulateMinimumNpc(map, civ, bestPlacement[i]);
+        }
 
+        bool needsExpansion = npcCivs.Take(bestPlacement.Count).Any(c =>
+            (c.NpcParameters?.EvolutionLevel ?? NpcEvolutionLevel.Minimum) != NpcEvolutionLevel.Minimum);
         if (!needsExpansion) return true;
 
         var clock = new GameClock();
@@ -58,18 +80,49 @@ public class NpcCivilizationPlacer
         var mainController = new MainGameController();
         mainController.SetGame(new MainGameState(state, clock));
 
-        var map = state.GetMapForZ(IslandMap.SurfaceLayer);
-        foreach (var civ in npcCivs)
+        foreach (var civ in npcCivs.Take(bestPlacement.Count))
         {
             var level = civ.NpcParameters?.EvolutionLevel ?? NpcEvolutionLevel.Minimum;
             if (level == NpcEvolutionLevel.Minimum) continue;
 
             var aggressivity = civ.NpcParameters?.AggressivityLevel ?? NpcAggressivityLevel.Cautious;
             var autoplayer = new NpcCivilizationAutoplayer(civ, map, mainController, aggressivity);
-            ExpandNpcWithAutoplayer(autoplayer, civ, map, level);
+            ExpandNpcWithAutoplayer(autoplayer, civ, map, level, playerVertex);
         }
 
         return true;
+    }
+
+    private static List<Vertex> PlaceVerticesGreedy(
+        List<Vertex> allValidVertices, Vertex playerVertex, List<Civilization> npcCivs)
+    {
+        var occupied = new List<Vertex> { playerVertex };
+        var placed = new List<Vertex>();
+
+        foreach (var civ in npcCivs)
+        {
+            int minDist = civ.NpcParameters?.MinDistanceFromPlayer ?? DefaultMinPlayerDistance;
+            var candidates = allValidVertices
+                .Where(v => v.EdgeDistanceTo(playerVertex) >= minDist)
+                .ToList();
+            var vertex = FindBestVertex(candidates, occupied);
+            if (vertex == null) break;
+            occupied.Add(vertex);
+            placed.Add(vertex);
+        }
+
+        return placed;
+    }
+
+    private static List<T> RotateList<T>(List<T> list, int offset)
+    {
+        if (list.Count == 0) return list;
+        offset = ((offset % list.Count) + list.Count) % list.Count;
+        if (offset == 0) return list;
+        var result = new List<T>(list.Count);
+        result.AddRange(list.GetRange(offset, list.Count - offset));
+        result.AddRange(list.GetRange(0, offset));
+        return result;
     }
 
     /// <summary>
@@ -167,15 +220,27 @@ public class NpcCivilizationPlacer
     };
 
     private static void ExpandNpcWithAutoplayer(
-        NpcCivilizationAutoplayer autoplayer, Civilization civ, IslandMap map, NpcEvolutionLevel level)
+        NpcCivilizationAutoplayer autoplayer, Civilization civ, IslandMap map, NpcEvolutionLevel level,
+        Vertex playerVertex)
     {
         int target = civ.NpcParameters?.CityCount ?? TargetCityCount(level);
+        int minDist = civ.NpcParameters?.MinDistanceFromPlayer ?? DefaultMinPlayerDistance;
 
         for (int i = 0; i < MaxExpandIterations; i++)
         {
             if (civ.Cities.Count >= target) break;
             FillMaxResources(civ);
+
+            var snapshot = civ.Cities.Select(c => c.Position).ToHashSet();
             autoplayer.Inner.TryStep0Once();
+
+            // Supprimer toute ville nouvellement fondée trop proche du joueur
+            var tooClose = civ.Cities
+                .Where(c => !snapshot.Contains(c.Position) &&
+                            c.Position.EdgeDistanceTo(playerVertex) < minDist)
+                .ToList();
+            foreach (var city in tooClose)
+                civ.RemoveCity(city);
         }
 
         AddDefaultBuildingsForLevel(map, civ, level);

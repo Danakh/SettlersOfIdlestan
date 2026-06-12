@@ -41,4 +41,10 @@ public class NpcParameters
     /// dérivée de EvolutionLevel (1/3/5/7).
     /// </summary>
     public int? CityCount { get; set; }
+
+    /// <summary>
+    /// Distance minimale en edges entre toute ville de ce NPC et la ville initiale du joueur.
+    /// Null = utilise la valeur par défaut du placer (8).
+    /// </summary>
+    public int? MinDistanceFromPlayer { get; set; }
 }

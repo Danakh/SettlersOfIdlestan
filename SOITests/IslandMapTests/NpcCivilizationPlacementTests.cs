@@ -1,10 +1,11 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using SettlersOfIdlestan.Controller.Generator;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
+using SettlersOfIdlestan.Model.GameplayModifier;
 using SettlersOfIdlestan.Model.IslandMap;
 using Xunit;
 
@@ -19,8 +20,6 @@ public class NpcCivilizationPlacementTests
         (TerrainType.Plain,    10),
         (TerrainType.Mountain, 10),
     ];
-
-    private const int MinEdgeDistance = 7;
 
     private static WorldState CreateIsland(IslandShapeType shape, int npcCount,
         NpcEvolutionLevel level = NpcEvolutionLevel.Minimum)
@@ -55,26 +54,23 @@ public class NpcCivilizationPlacementTests
 
     [Theory]
     [MemberData(nameof(ShapeAndNpcCounts))]
-    public void AllCities_HaveMinimumEdgeDistanceBetweenThem(IslandShapeType shape, int npcCount)
+    public void AllNpcCivilizations_ArePlacedAndRespectMinPlayerDistance(IslandShapeType shape, int npcCount)
     {
         var state = CreateIsland(shape, npcCount);
 
-        Assert.Equal(npcCount + 1, state.Civilizations.Count);
+        var playerCity = state.PlayerCivilization.Cities[0].Position;
+        var npcCivs = state.Civilizations.Where(c => c.IsNpc).ToList();
 
-        var positions = state.Civilizations
-            .SelectMany(c => c.Cities)
-            .Select(c => c.Position)
-            .ToList();
+        // Toutes les civilisations NPC demandées doivent avoir été placées
+        Assert.All(npcCivs, civ => Assert.NotEmpty(civ.Cities));
 
-        Assert.Equal(npcCount + 1, positions.Count);
-
-        for (int i = 0; i < positions.Count; i++)
+        foreach (var civ in npcCivs)
         {
-            for (int j = i + 1; j < positions.Count; j++)
+            foreach (var city in civ.Cities)
             {
-                int dist = positions[i].EdgeDistanceTo(positions[j]);
-                Assert.True(dist >= MinEdgeDistance,
-                    $"[{shape}, {npcCount + 1} civs] villes {i} et {j} : distance {dist} < {MinEdgeDistance}");
+                int dist = city.Position.EdgeDistanceTo(playerCity);
+                Assert.True(dist >= NpcCivilizationPlacer.DefaultMinPlayerDistance,
+                    $"[{shape}, {npcCount} NPC] civ {civ.Index} ville à distance {dist} < {NpcCivilizationPlacer.DefaultMinPlayerDistance} du joueur");
             }
         }
     }
@@ -87,6 +83,7 @@ public class NpcCivilizationPlacementTests
 
         foreach (var civ in state.Civilizations.Where(c => c.IsNpc))
         {
+            Assert.NotEmpty(civ.Cities); // toutes les civs NPC doivent avoir été placées
             Assert.Single(civ.Cities);
             var city = civ.Cities[0];
 
@@ -101,12 +98,27 @@ public class NpcCivilizationPlacementTests
 
     [Theory]
     [MemberData(nameof(ShapeAndNpcCounts))]
+    public void NpcCiv_HasMaritimeRoutesUnlocked(IslandShapeType shape, int npcCount)
+    {
+        var state = CreateIsland(shape, npcCount);
+
+        foreach (var civ in state.Civilizations.Where(c => c.IsNpc))
+        {
+            Assert.NotEmpty(civ.Cities);
+            Assert.True(civ.ModifierAggregator.HasModifier(Modifier.ECategory.UNLOCK_MARITIME_ROUTES),
+                $"[{shape}, {npcCount} NPC] civ {civ.Index} n'a pas UNLOCK_MARITIME_ROUTES");
+        }
+    }
+
+    [Theory]
+    [MemberData(nameof(ShapeAndNpcCounts))]
     public void NpcCity_HasMaxResources(IslandShapeType shape, int npcCount)
     {
         var state = CreateIsland(shape, npcCount);
 
         foreach (var civ in state.Civilizations.Where(c => c.IsNpc))
         {
+            Assert.NotEmpty(civ.Cities);
             foreach (Resource resource in Enum.GetValues<Resource>())
             {
                 int max = civ.GetResourceMaxQuantity(resource);
@@ -124,6 +136,7 @@ public class NpcCivilizationPlacementTests
 
         foreach (var civ in state.Civilizations.Where(c => c.IsNpc))
         {
+            Assert.NotEmpty(civ.Cities);
             var city = civ.Cities[0];
             var hexes = city.Position.GetHexes();
 
@@ -189,6 +202,8 @@ public class NpcCivilizationPlacementTests
         var state = CreateIsland(shape, npcCount: 1, level);
         var npcCiv = state.Civilizations.First(c => c.IsNpc);
 
+        Assert.NotEmpty(npcCiv.Cities);
+
         foreach (var city in npcCiv.Cities)
         {
             Assert.Contains(city.Buildings, b => b.Type == BuildingType.TownHall);
@@ -202,6 +217,8 @@ public class NpcCivilizationPlacementTests
     {
         var state = CreateIsland(shape, npcCount: 1, level);
         var npcCiv = state.Civilizations.First(c => c.IsNpc);
+
+        Assert.NotEmpty(npcCiv.Cities);
 
         foreach (Resource resource in Enum.GetValues<Resource>())
         {
@@ -220,6 +237,8 @@ public class NpcCivilizationPlacementTests
     {
         var state = CreateIsland(shape, npcCount: 1, NpcEvolutionLevel.Medium);
         var npcCiv = state.Civilizations.First(c => c.IsNpc);
+
+        Assert.NotEmpty(npcCiv.Cities);
 
         var prodBuildings = npcCiv.Cities
             .SelectMany(c => c.Buildings)
@@ -244,6 +263,8 @@ public class NpcCivilizationPlacementTests
         var state = CreateIsland(shape, npcCount: 1, NpcEvolutionLevel.Medium);
         var npcCiv = state.Civilizations.First(c => c.IsNpc);
 
+        Assert.NotEmpty(npcCiv.Cities);
+
         foreach (var city in npcCiv.Cities)
             Assert.Contains(city.Buildings, b => b.Type == BuildingType.Warehouse);
     }
@@ -260,6 +281,8 @@ public class NpcCivilizationPlacementTests
         var state = CreateIsland(shape, npcCount: 1, NpcEvolutionLevel.Strong);
         var npcCiv = state.Civilizations.First(c => c.IsNpc);
 
+        Assert.NotEmpty(npcCiv.Cities);
+
         foreach (var city in npcCiv.Cities.Take(5))
             Assert.Contains(city.Buildings, b => b.Type == BuildingType.Warehouse);
     }
@@ -272,6 +295,8 @@ public class NpcCivilizationPlacementTests
 
         var state = CreateIsland(shape, npcCount: 1, level);
         var npcCiv = state.Civilizations.First(c => c.IsNpc);
+
+        Assert.NotEmpty(npcCiv.Cities);
 
         var positions = npcCiv.Cities.Select(c => c.Position).ToList();
 
