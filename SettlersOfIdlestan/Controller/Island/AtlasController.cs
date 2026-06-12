@@ -130,6 +130,8 @@ namespace SettlersOfIdlestan.Controller.Island
 
             var features = new List<IslandFeatureParameters>
             {
+                new IslandFeatureParameters(IslandFeatureType.Rats,          IslandFeaturePlacement.CloseToPlayer),
+                new IslandFeatureParameters(IslandFeatureType.Rats,          IslandFeaturePlacement.CloseToPlayer),
                 new IslandFeatureParameters(IslandFeatureType.Bandit,        IslandFeaturePlacement.FarFromPlayer),
                 new IslandFeatureParameters(IslandFeatureType.Bandit,        IslandFeaturePlacement.FarFromPlayer),
                 new IslandFeatureParameters(IslandFeatureType.TreasureTrove, IslandFeaturePlacement.Random),
