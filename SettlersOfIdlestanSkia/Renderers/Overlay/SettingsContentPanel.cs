@@ -74,14 +74,14 @@ public sealed class SettingsContentPanel : IDisposable
         float btn2Left = rightEdge - btnW;
         float btn1Left = btn2Left - btnGap - btnW;
 
-        // Row 1 — Language
+        // Row 1 — Language (English first)
         float row1Y = y;
-        _btnFrench  = new SKRect(btn1Left, row1Y, btn1Left + btnW, row1Y + btnH);
-        _btnEnglish = new SKRect(btn2Left, row1Y, btn2Left + btnW, row1Y + btnH);
+        _btnEnglish = new SKRect(btn1Left, row1Y, btn1Left + btnW, row1Y + btnH);
+        _btnFrench  = new SKRect(btn2Left, row1Y, btn2Left + btnW, row1Y + btnH);
         DrawRow(canvas, x, row1Y, localization.Get("settings_language"), btnH, s,
         [
-            (_btnFrench,  localization.Get("menu_language_french"),  settings.Language == Language.French),
             (_btnEnglish, localization.Get("menu_language_english"), settings.Language == Language.English),
+            (_btnFrench,  localization.Get("menu_language_french"),  settings.Language == Language.French),
         ]);
 
         // Row 2 — Pause after prestige

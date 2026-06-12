@@ -34,17 +34,19 @@ public sealed class SkiaGameRuntime : IDisposable
 
     public void Initialize(IFileSystemService fileSystemService, bool allowDebugMode = false)
     {
-        var autoJson = fileSystemService.LoadAuto().GetAwaiter().GetResult();
-        InitializeCore(fileSystemService, autoJson, allowDebugMode);
+        var autoJson     = fileSystemService.LoadAuto().GetAwaiter().GetResult();
+        var settingsJson = fileSystemService.LoadSettings().GetAwaiter().GetResult();
+        InitializeCore(fileSystemService, autoJson, settingsJson, allowDebugMode);
     }
 
     public async Task InitializeAsync(IFileSystemService fileSystemService, bool allowDebugMode = false)
     {
-        var autoJson = await fileSystemService.LoadAuto();
-        InitializeCore(fileSystemService, autoJson, allowDebugMode);
+        var autoJson     = await fileSystemService.LoadAuto();
+        var settingsJson = await fileSystemService.LoadSettings();
+        InitializeCore(fileSystemService, autoJson, settingsJson, allowDebugMode);
     }
 
-    private void InitializeCore(IFileSystemService fileSystemService, string? autoJson, bool allowDebugMode)
+    private void InitializeCore(IFileSystemService fileSystemService, string? autoJson, string? settingsJson, bool allowDebugMode)
     {
         if (_isDisposed)    throw new ObjectDisposedException(nameof(SkiaGameRuntime));
         if (_isInitialized) return;
@@ -55,7 +57,7 @@ public sealed class SkiaGameRuntime : IDisposable
         _localizationService = new LocalizationService();
         _uiLayoutService     = new UILayoutService();
 
-        _titleSettings = ExtractSettings(autoJson);
+        _titleSettings = ParseSettings(settingsJson) ?? ExtractSettings(autoJson);
         _localizationService.SetLanguage(_titleSettings.Language);
 
         bool hasSave = !string.IsNullOrEmpty(autoJson);
@@ -125,10 +127,18 @@ public sealed class SkiaGameRuntime : IDisposable
         _gameScreen?.Dispose();
         _gameScreen = null;
 
-        var autoJson   = await _fileSystemService!.LoadAuto();
-        _titleSettings = ExtractSettings(autoJson);
+        var autoJson     = await _fileSystemService!.LoadAuto();
+        var settingsJson = await _fileSystemService.LoadSettings();
+        _titleSettings   = ParseSettings(settingsJson) ?? ExtractSettings(autoJson);
         _localizationService!.SetLanguage(_titleSettings.Language);
         ShowTitleScreen(autoJson != null);
+    }
+
+    private static GameSettings? ParseSettings(string? json)
+    {
+        if (string.IsNullOrEmpty(json)) return null;
+        try { return System.Text.Json.JsonSerializer.Deserialize<GameSettings>(json); }
+        catch { return null; }
     }
 
     private static GameSettings ExtractSettings(string? json)

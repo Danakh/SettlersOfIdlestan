@@ -222,7 +222,7 @@ public sealed class GameScreen : IDisposable
 
         var selectedWonderPanelRenderer = new SelectedWonderPanelRenderer(_wonderService, _inputService, _localizationService, _resourceManager);
 
-        var settingsPopupRenderer = new SettingsPopupRenderer(_gameControllerService.MainGameController, _localizationService);
+        var settingsPopupRenderer = new SettingsPopupRenderer(_gameControllerService.MainGameController, _localizationService, _fileSystemService);
 
         DebugPanelRenderer? debugPanelRenderer = null;
         if (allowDebugMode)

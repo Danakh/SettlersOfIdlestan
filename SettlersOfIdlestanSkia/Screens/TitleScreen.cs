@@ -455,8 +455,8 @@ public sealed class TitleScreen : IDisposable
         }
 
         // Paramètres
-        if (_activeTab == 2)
-            _settingsPanel.HandleClick(pos, _settings, _localization);
+        if (_activeTab == 2 && _settingsPanel.HandleClick(pos, _settings, _localization))
+            _ = _fileSystemService.SaveSettings(System.Text.Json.JsonSerializer.Serialize(_settings));
 
         // Boutons du bas
         if (_primaryBtnRect.Contains(pos))

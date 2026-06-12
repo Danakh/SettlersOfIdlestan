@@ -6,7 +6,8 @@ namespace SettlersOfIdlestanWeb.Services;
 public class WebFileSystemService : IFileSystemService
 {
     private readonly IJSRuntime _js;
-    private const string AutoSaveKey = "settlers_autosave";
+    private const string AutoSaveKey    = "settlers_autosave";
+    private const string SettingsKey    = "settlers_settings";
 
     public WebFileSystemService(IJSRuntime js) => _js = js;
 
@@ -24,4 +25,10 @@ public class WebFileSystemService : IFileSystemService
 
     public async Task DeleteAuto()
         => await _js.InvokeVoidAsync("localStorage.removeItem", AutoSaveKey);
+
+    public async Task SaveSettings(string content)
+        => await _js.InvokeVoidAsync("localStorage.setItem", SettingsKey, content);
+
+    public async Task<string?> LoadSettings()
+        => await _js.InvokeAsync<string?>("localStorage.getItem", SettingsKey);
 }

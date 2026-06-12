@@ -31,5 +31,15 @@ namespace SettlersOfIdlestanSkia.Services
         /// Delete the auto-save file.
         /// </summary>
         Task DeleteAuto();
+
+        /// <summary>
+        /// Save the game settings to a dedicated settings file.
+        /// </summary>
+        Task SaveSettings(string content);
+
+        /// <summary>
+        /// Load the game settings from the dedicated settings file. Returns null if not found.
+        /// </summary>
+        Task<string?> LoadSettings();
     }
 }

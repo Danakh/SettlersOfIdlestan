@@ -18,15 +18,17 @@ public sealed class SettingsPopupRenderer : PopupRendererBase
 
     private readonly MainGameController  _gameController;
     private readonly LocalizationService _localization;
+    private readonly IFileSystemService  _fileSystemService;
     private readonly SettingsContentPanel _contentPanel = new();
 
     private SKRect _closeButtonRect = SKRect.Empty;
     private SKRect _popupRect       = SKRect.Empty;
 
-    public SettingsPopupRenderer(MainGameController gameController, LocalizationService localization)
+    public SettingsPopupRenderer(MainGameController gameController, LocalizationService localization, IFileSystemService fileSystemService)
     {
-        _gameController = gameController;
-        _localization   = localization;
+        _gameController    = gameController;
+        _localization      = localization;
+        _fileSystemService = fileSystemService;
     }
 
     public void Render(SKCanvas canvas, float scale = 1f)
@@ -66,7 +68,10 @@ public sealed class SettingsPopupRenderer : PopupRendererBase
 
         var settings = _gameController.CurrentMainState?.Settings;
         if (settings != null && _contentPanel.HandleClick(pos, settings, _localization))
+        {
+            _ = _fileSystemService.SaveSettings(System.Text.Json.JsonSerializer.Serialize(settings));
             return true;
+        }
 
         if (!_popupRect.Contains(pos.X, pos.Y)) { Close(); return false; }
         return true;
