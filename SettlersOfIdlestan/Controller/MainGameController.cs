@@ -5,7 +5,9 @@ using SettlersOfIdlestan.Controller.Tasks;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.GameplayModifier;
+using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.IslandMap;
+using SettlersOfIdlestan.Model.Monsters;
 using SettlersOfIdlestan.Model.Prestige;
 using SettlersOfIdlestan.Services;
 using System;
@@ -283,6 +285,8 @@ namespace SettlersOfIdlestan.Controller
                 MonsterFeatureController.CityDestroyedByMonster += OnCityDestroyedByMonster;
                 RoadController.OnRoadBuilt += OnRoadBuiltExtendMap;
                 RoadController.OnAutoRoadBuilt += OnRoadBuiltExtendMap;
+                FeatureController.OnFeatureDiscovered -= OnFeatureDiscovered;
+                FeatureController.OnFeatureDiscovered += OnFeatureDiscovered;
                 prestigeState?.TechnologyTree.RebuildModifiers();
 
                 var gameRecord = CurrentMainState!.GameRecord;
@@ -291,6 +295,12 @@ namespace SettlersOfIdlestan.Controller
                     PrestigeMapController, ResearchController, MilitaryController, HarvestController,
                     TradeController, WonderController);
             }
+        }
+
+        private void OnFeatureDiscovered(object? sender, IslandFeature feature)
+        {
+            if (feature is Rats && CurrentMainState != null && !CurrentMainState.GameRecord.HasEncounteredRats)
+                CurrentMainState.GameRecord.HasEncounteredRats = true;
         }
 
         private void OnRoadBuiltExtendMap(object? sender, RoadAutoBuiltEventArgs e)

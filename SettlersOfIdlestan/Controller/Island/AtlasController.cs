@@ -42,7 +42,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 };
                 var features = new List<IslandFeatureParameters>
                 {
-                    new IslandFeatureParameters(IslandFeatureType.Bandit,        IslandFeaturePlacement.FarFromPlayer),
+                    new IslandFeatureParameters(IslandFeatureType.Rats,          IslandFeaturePlacement.CloseToPlayer),
                     new IslandFeatureParameters(IslandFeatureType.Bandit,        IslandFeaturePlacement.FarFromPlayer),
                     new IslandFeatureParameters(IslandFeatureType.TreasureTrove, IslandFeaturePlacement.Random),
                     new IslandFeatureParameters(IslandFeatureType.BanditHideout, IslandFeaturePlacement.FarFromPlayer),
@@ -62,7 +62,8 @@ namespace SettlersOfIdlestan.Controller.Island
                 };
                 var features = new List<IslandFeatureParameters>
                 {
-                    new IslandFeatureParameters(IslandFeatureType.Bandit,        IslandFeaturePlacement.FarFromPlayer),
+                    new IslandFeatureParameters(IslandFeatureType.Rats,          IslandFeaturePlacement.CloseToPlayer),
+                    new IslandFeatureParameters(IslandFeatureType.Rats,          IslandFeaturePlacement.Random),
                     new IslandFeatureParameters(IslandFeatureType.Bandit,        IslandFeaturePlacement.FarFromPlayer),
                     new IslandFeatureParameters(IslandFeatureType.TreasureTrove, IslandFeaturePlacement.Random),
                     new IslandFeatureParameters(IslandFeatureType.BanditHideout, IslandFeaturePlacement.FarFromPlayer),
@@ -71,8 +72,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 {
                     NpcCivilizations =
                     [
-                        new NpcParameters { EvolutionLevel = NpcEvolutionLevel.Low, AggressivityLevel = NpcAggressivityLevel.Pacifist },
-                        new NpcParameters { EvolutionLevel = NpcEvolutionLevel.Low, AggressivityLevel = NpcAggressivityLevel.Pacifist },
+                        new NpcParameters { EvolutionLevel = NpcEvolutionLevel.Medium, AggressivityLevel = NpcAggressivityLevel.Pacifist },
                     ]
                 };
             }
@@ -89,7 +89,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 };
                 var features = new List<IslandFeatureParameters>
                 {
-                    new IslandFeatureParameters(IslandFeatureType.Bandit,        IslandFeaturePlacement.FarFromPlayer),
+                    new IslandFeatureParameters(IslandFeatureType.Rats,          IslandFeaturePlacement.CloseToPlayer),
                     new IslandFeatureParameters(IslandFeatureType.Bandit,        IslandFeaturePlacement.FarFromPlayer),
                     new IslandFeatureParameters(IslandFeatureType.TreasureTrove, IslandFeaturePlacement.Random),
                     new IslandFeatureParameters(IslandFeatureType.BanditHideout, IslandFeaturePlacement.FarFromPlayer),
@@ -130,6 +130,8 @@ namespace SettlersOfIdlestan.Controller.Island
 
             var features = new List<IslandFeatureParameters>
             {
+                new IslandFeatureParameters(IslandFeatureType.Rats,          IslandFeaturePlacement.CloseToPlayer),
+                new IslandFeatureParameters(IslandFeatureType.Rats,          IslandFeaturePlacement.Random),
                 new IslandFeatureParameters(IslandFeatureType.Bandit,        IslandFeaturePlacement.FarFromPlayer),
                 new IslandFeatureParameters(IslandFeatureType.Bandit,        IslandFeaturePlacement.FarFromPlayer),
                 new IslandFeatureParameters(IslandFeatureType.TreasureTrove, IslandFeaturePlacement.Random),

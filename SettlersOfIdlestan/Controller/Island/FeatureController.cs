@@ -3,6 +3,7 @@ using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.HexGrid;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -17,6 +18,8 @@ public class FeatureController
     private WorldState? _state;
     private GameClock? _clock;
     private List<IslandFeature> _features = new();
+
+    public event EventHandler<IslandFeature>? OnFeatureDiscovered;
 
     internal void Initialize(WorldState? state, GameClock? clock)
     {
@@ -107,6 +110,7 @@ public class FeatureController
             {
                 feature.Found = true;
                 _state.EventLog.Add(feature.DiscoveredEventType);
+                OnFeatureDiscovered?.Invoke(this, feature);
             }
         }
     }

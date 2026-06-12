@@ -55,6 +55,9 @@ public class GameRecord
     /// <summary>True si le joueur a construit une merveille (niveau ≥ 1) au moins une fois.</summary>
     public bool HasBuiltWonder { get; set; }
 
+    /// <summary>True si le joueur a aperçu des rats pour la première fois (cross-prestige).</summary>
+    public bool HasEncounteredRats { get; set; }
+
     /// <summary>IDs des tâches tutoriel complétées (clé = TutorialTaskId.ToString()).</summary>
     public HashSet<string> CompletedTasks { get; set; } = new();
 }
