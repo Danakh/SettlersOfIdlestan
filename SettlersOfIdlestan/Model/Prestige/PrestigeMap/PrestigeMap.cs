@@ -22,8 +22,7 @@ public class PrestigeMap
     // Branche de l'Acier (nord-est)
     public static readonly HexCoord SteelworksCoord           = new( 3, -1, 0);
     // Branche de l'Inframonde (nord-ouest)
-    public static readonly HexCoord ExcavationsCoord          = new(-1, -1, 0);
-    public static readonly HexCoord UnderworldCoord           = new(-2, -1, 0);
+    public static readonly HexCoord UnderworldCoord           = new(-1, -1, 0);
     // Branche de la Magie (sud)
     public static readonly HexCoord LeyLinesCoord             = new(-1,  3, 0);
 
@@ -67,12 +66,8 @@ public class PrestigeMap
     public static readonly Vertex PlaceholderC3Vertex = Vertex.Create(new(2,  0, 0), new(3,  0, 0), new(2,  1, 0));
     // Around ResearchCostReduction (1,1) / ExperimentalScience (2,0) outer east
     public static readonly Vertex PlaceholderD2Vertex = Vertex.Create(new(1,  1, 0), new(2,  1, 0), new(1,  2, 0));
-    // Around WarehouseMaxLevel (-1,0) / FortifiedOutpost (0,-1) outer NW
-    public static readonly Vertex PlaceholderE1Vertex = Vertex.Create(new(-1,  0, 0), new( 0, -1, 0), new(-1, -1, 0));
-    public static readonly Vertex PlaceholderE2Vertex = Vertex.Create(new( 0, -1, 0), new(-1, -1, 0), new( 0, -2, 0));
     // Outer W connecting WarehouseMaxLevel → new NW hex (-2,0)
     public static readonly Vertex PlaceholderE3Vertex = Vertex.Create(new(-1,  0, 0), new(-2,  1, 0), new(-2,  0, 0));
-    public static readonly Vertex PlaceholderE4Vertex = Vertex.Create(new(-1,  0, 0), new(-2,  0, 0), new(-1, -1, 0));
     // Around StorageCapacity (-1,1) outer west
     public static readonly Vertex PlaceholderF1Vertex = Vertex.Create(new(-1,  1, 0), new(-2,  2, 0), new(-2,  1, 0));
     // ── Branche de la Magie (sud) — autour de l'hex Lignes Telluriques (-1,3)
@@ -85,14 +80,12 @@ public class PrestigeMap
     public static readonly Vertex DolmensVertex       = Vertex.Create(new(-1,  2, 0), new(-2,  3, 0), new(-2,  2, 0));
     // ── Branche de l'Inframonde (nord-ouest) — autour des hexes Excavations (-1,-1) et Inframonde (-2,-1)
     // Porte d'entrée : déverrouille la Mine Profonde (plus chère que le Secret de l'Acier)
-    public static readonly Vertex DeepestMineVertex     = Vertex.Create(new(-2,  0, 0), new(-2, -1, 0), new(-1, -1, 0));
-    public static readonly Vertex MushroomCultureVertex = Vertex.Create(new(-2, -1, 0), new(-1, -2, 0), new(-1, -1, 0));
+    public static readonly Vertex DeepestMineVertex     = Vertex.Create(new(-1,  0, 0), new(-1, -1, 0), new( 0, -1, 0));
+    public static readonly Vertex MushroomCultureVertex = Vertex.Create(new( 0, -1, 0), new(-1, -1, 0), new( 0, -2, 0));
     public static readonly Vertex UnderworldWatchVertex = Vertex.Create(new(-1, -1, 0), new(-1, -2, 0), new( 0, -2, 0));
-    public static readonly Vertex DeepProspectorsVertex = Vertex.Create(new(-2, -1, 0), new(-2,  0, 0), new(-3,  0, 0));
-    public static readonly Vertex TreasureHuntersVertex = Vertex.Create(new(-2, -1, 0), new(-3,  0, 0), new(-3, -1, 0));
-    public static readonly Vertex MithrilVertex         = Vertex.Create(new(-2, -1, 0), new(-3, -1, 0), new(-2, -2, 0));
-    // Coin nord de l'hex Inframonde — réservé pour le futur
-    public static readonly Vertex PlaceholderNWEVertex  = Vertex.Create(new(-2, -1, 0), new(-2, -2, 0), new(-1, -2, 0));
+    public static readonly Vertex DeepProspectorsVertex = Vertex.Create(new(-1,  0, 0), new(-2,  0, 0), new(-1, -1, 0));
+    public static readonly Vertex TreasureHuntersVertex = Vertex.Create(new(-2,  0, 0), new(-2, -1, 0), new(-1, -1, 0));
+    public static readonly Vertex MithrilVertex         = Vertex.Create(new(-2, -1, 0), new(-1, -2, 0), new(-1, -1, 0));
     // Sommets profonds de la branche de la Magie (coins sud de l'hex Lignes Telluriques)
     public static readonly Vertex ArchmageVertex      = Vertex.Create(new( 0,  3, 0), new(-1,  4, 0), new(-1,  3, 0));
     public static readonly Vertex CrystalomancyVertex = Vertex.Create(new(-1,  3, 0), new(-1,  4, 0), new(-2,  4, 0));

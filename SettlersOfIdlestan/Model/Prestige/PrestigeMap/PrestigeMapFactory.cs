@@ -351,13 +351,9 @@ public static class PrestigeMapFactory
             new(PrestigeMap.PlaceholderB2Vertex, "prestige_vertex_placeholder", cost: Cost(PrestigeMap.PlaceholderB2Vertex), modifiers: Array.Empty<Modifier>()),
             new(PrestigeMap.PlaceholderC3Vertex, "prestige_vertex_placeholder", cost: Cost(PrestigeMap.PlaceholderC3Vertex), modifiers: Array.Empty<Modifier>()),
             new(PrestigeMap.PlaceholderD2Vertex, "prestige_vertex_placeholder", cost: Cost(PrestigeMap.PlaceholderD2Vertex), modifiers: Array.Empty<Modifier>()),
-            new(PrestigeMap.PlaceholderE1Vertex, "prestige_vertex_placeholder", cost: Cost(PrestigeMap.PlaceholderE1Vertex), modifiers: Array.Empty<Modifier>()),
-            new(PrestigeMap.PlaceholderE2Vertex, "prestige_vertex_placeholder", cost: Cost(PrestigeMap.PlaceholderE2Vertex), modifiers: Array.Empty<Modifier>()),
             new(PrestigeMap.PlaceholderE3Vertex, "prestige_vertex_placeholder", cost: Cost(PrestigeMap.PlaceholderE3Vertex), modifiers: Array.Empty<Modifier>()),
-            new(PrestigeMap.PlaceholderE4Vertex, "prestige_vertex_placeholder", cost: Cost(PrestigeMap.PlaceholderE4Vertex), modifiers: Array.Empty<Modifier>()),
             new(PrestigeMap.PlaceholderF1Vertex, "prestige_vertex_placeholder", cost: Cost(PrestigeMap.PlaceholderF1Vertex), modifiers: Array.Empty<Modifier>()),
             new(PrestigeMap.PlaceholderG2Vertex, "prestige_vertex_placeholder", cost: Cost(PrestigeMap.PlaceholderG2Vertex), modifiers: Array.Empty<Modifier>()),
-            new(PrestigeMap.PlaceholderNWEVertex, "prestige_vertex_placeholder", cost: Cost(PrestigeMap.PlaceholderNWEVertex), modifiers: Array.Empty<Modifier>()),
         };
 
         IReadOnlyList<Vertex> Adjacent(HexCoord hex)
@@ -456,16 +452,6 @@ public static class PrestigeMapFactory
                 perVertexModifiers: new Modifier[] { new(ECategory.SMELTER_SPEED, EType.ADDITIVE, 0.15) }
             ),
             // ── Hexes de l'Inframonde (branche nord-ouest) ────────────────────
-            new(
-                PrestigeMap.ExcavationsCoord,
-                "prestige_hex_excavations",
-                adjacentVertices: Adjacent(PrestigeMap.ExcavationsCoord),
-                perVertexModifiers: new Modifier[]
-                {
-                    new(ECategory.HARVEST_SPEED, "Mine",   EType.ADDITIVE, 0.1),
-                    new(ECategory.HARVEST_SPEED, "Quarry", EType.ADDITIVE, 0.1),
-                }
-            ),
             new(
                 PrestigeMap.UnderworldCoord,
                 "prestige_hex_underworld",
