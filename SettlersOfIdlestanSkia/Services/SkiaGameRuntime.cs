@@ -71,7 +71,7 @@ public sealed class SkiaGameRuntime : IDisposable
     private void ShowTitleScreen(bool hasSave)
     {
         _titleScreen?.Dispose();
-        _titleScreen = new TitleScreen(_fileSystemService!, _localizationService!, _uiLayoutService!, hasSave, _titleSettings);
+        _titleScreen = new TitleScreen(_fileSystemService!, _localizationService!, _uiLayoutService!, _resourceManager!, hasSave, _titleSettings);
         _titleScreen.NewGameRequested   += OnNewGameRequested;
         _titleScreen.ContinueRequested  += OnContinueRequested;
         _titleScreen.DiscordLinkClicked += url => DiscordLinkClicked?.Invoke(url);
