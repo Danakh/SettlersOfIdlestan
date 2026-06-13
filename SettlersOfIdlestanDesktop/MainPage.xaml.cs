@@ -40,8 +40,6 @@ public partial class MainPage : ContentPage
 		allowDebugMode = Environment.GetCommandLineArgs().Contains("--debug");
 #endif
 		_runtime.Initialize(new DesktopFileSystemService(), allowDebugMode);
-		if (_runtime.IsFullscreenEnabled)
-			MainThread.BeginInvokeOnMainThread(() => ApplyFullscreen(true));
 		MainThread.BeginInvokeOnMainThread(() => Dispatcher.StartTimer(TimeSpan.FromMilliseconds(16), RenderFrame));
 	}
 
@@ -72,6 +70,7 @@ public partial class MainPage : ContentPage
 				root.PreviewKeyUp += OnPlatformKeyUp;
 				_keyboardSource = root;
 				_keyboardSubscribed = true;
+				if (_runtime?.IsFullscreenEnabled == true) ApplyFullscreen(true);
 				return;
 			}
 		}
@@ -83,6 +82,7 @@ public partial class MainPage : ContentPage
 			pageRoot.PreviewKeyUp += OnPlatformKeyUp;
 			_keyboardSource = pageRoot;
 			_keyboardSubscribed = true;
+			if (_runtime?.IsFullscreenEnabled == true) ApplyFullscreen(true);
 		}
 	}
 
@@ -277,12 +277,30 @@ public partial class MainPage : ContentPage
 		if (windows == null || windows.Count == 0) return;
 		if (windows[0].Handler?.PlatformView is not Microsoft.Maui.MauiWinUIWindow winUIWindow) return;
 
-		var handle   = WinRT.Interop.WindowNative.GetWindowHandle(winUIWindow);
-		var windowId = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(handle);
+		var handle    = WinRT.Interop.WindowNative.GetWindowHandle(winUIWindow);
+		var windowId  = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(handle);
 		var appWindow = Microsoft.UI.Windowing.AppWindow.GetFromWindowId(windowId);
-		appWindow.SetPresenter(fullscreen
-			? Microsoft.UI.Windowing.AppWindowPresenterKind.FullScreen
-			: Microsoft.UI.Windowing.AppWindowPresenterKind.Default);
+
+		if (fullscreen)
+		{
+			// Lire la hauteur de la titlebar AVANT le changement de presenter (après, elle vaut 0).
+			double titleBarHeight = appWindow.TitleBar?.Height ?? 0;
+
+			appWindow.SetPresenter(Microsoft.UI.Windowing.AppWindowPresenterKind.FullScreen);
+
+			// MAUI laisse un padding haut (= titleBarHeight) dans WindowRootView même en plein écran.
+			// On le compense avec une marge négative sur le contenu racine de la fenêtre.
+			if (winUIWindow.Content is Microsoft.UI.Xaml.FrameworkElement root && titleBarHeight > 0)
+				root.Margin = new Microsoft.UI.Xaml.Thickness(0, -titleBarHeight, 0, 0);
+		}
+		else
+		{
+			appWindow.SetPresenter(Microsoft.UI.Windowing.AppWindowPresenterKind.Default);
+
+			// Rétablir la marge normale — MAUI va restaurer l'inset titlebar via AppWindow.Changed.
+			if (winUIWindow.Content is Microsoft.UI.Xaml.FrameworkElement root)
+				root.Margin = new Microsoft.UI.Xaml.Thickness(0);
+		}
 #endif
 	}
 

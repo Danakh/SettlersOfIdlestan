@@ -49,6 +49,8 @@
             _runtime.DiscordLinkClicked     += url => _ = JS.InvokeVoidAsync("window.open", url, "_blank");
             _runtime.FullscreenStateChanged += fullscreen => _ = JS.InvokeVoidAsync("gameInterop.setFullscreen", fullscreen);
             await _runtime.InitializeAsync(FileSystemService);
+            if (_runtime.IsFullscreenEnabled)
+                await _runtime.SyncFullscreenSetting(false);
         }
         catch (Exception ex)
         {
