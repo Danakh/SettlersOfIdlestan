@@ -2,7 +2,6 @@ using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Prestige;
 using SettlersOfIdlestan.Model.Tasks;
 using System;
-using System.Net.NetworkInformation;
 
 namespace SettlersOfIdlestan.Model.Game
 {
@@ -31,13 +30,30 @@ namespace SettlersOfIdlestan.Model.Game
         /// </summary>
         public GameRecord GameRecord { get; set; } = new();
 
-        public MainGameState(int? prngSeed = null)
+        /// <summary>Constructeur sans paramètre requis par la désérialisation JSON.</summary>
+        public MainGameState()
         {
             GodState = new GodState();
             Clock = new GameClock();
-            PRNG = (prngSeed.HasValue) ? new GamePRNG(prngSeed.Value) : new GamePRNG();
+            PRNG = new GamePRNG();
         }
 
+        /// <summary>
+        /// Crée un état de jeu vierge. <paramref name="prngSeed"/> null → seed aléatoire (production) ;
+        /// valeur fournie → seed fixe (tests, parties déterministes).
+        /// </summary>
+        public MainGameState(int? prngSeed)
+        {
+            GodState = new GodState();
+            Clock = new GameClock();
+            PRNG = prngSeed.HasValue ? new GamePRNG(prngSeed.Value) : new GamePRNG();
+        }
+
+        /// <summary>
+        /// Câble un WorldState déjà construit (génération NPC, scénarios de test).
+        /// Le <paramref name="prng"/> est le même que celui utilisé pour la génération de la carte,
+        /// garantissant un PRNG unique et continu sur toute la création.
+        /// </summary>
         public MainGameState(WorldState worldState, GameClock clock, GamePRNG prng)
         {
             var prestigeState = new PrestigeState(worldState);
