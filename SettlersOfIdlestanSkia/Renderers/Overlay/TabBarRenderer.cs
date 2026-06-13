@@ -88,9 +88,11 @@ public sealed class TabBarRenderer : IDisposable
         _hasResearchTab   = IsResearchUnlocked();
         _hasAutomationTab = HasAnyAutomation();
         _hasRitualsTab    = IsMagicUnlocked();
+        bool showEventsTab = showPrestigeTabs || HasEventLogEntries();
 
         if (!_hasResearchTab   && _activeTab == TabResearch)   _activeTab = TabIsland;
-        if (!showPrestigeTabs  && _activeTab is TabPrestige or TabStats or TabEvents) _activeTab = TabIsland;
+        if (!showPrestigeTabs  && _activeTab is TabPrestige or TabStats) _activeTab = TabIsland;
+        if (!showEventsTab     && _activeTab == TabEvents)     _activeTab = TabIsland;
         if (!_hasAutomationTab && _activeTab == TabAutomation) _activeTab = TabIsland;
         if (!_hasRitualsTab    && _activeTab == TabRituals)    _activeTab = TabIsland;
 
@@ -98,7 +100,8 @@ public sealed class TabBarRenderer : IDisposable
         _activeTabs.Add((TabIsland, default));
         if (_hasResearchTab)   _activeTabs.Add((TabResearch, default));
         if (_hasRitualsTab)    _activeTabs.Add((TabRituals, default));
-        if (showPrestigeTabs)  { _activeTabs.Add((TabPrestige, default)); _activeTabs.Add((TabStats, default)); _activeTabs.Add((TabEvents, default)); }
+        if (showPrestigeTabs)  { _activeTabs.Add((TabPrestige, default)); _activeTabs.Add((TabStats, default)); }
+        if (showEventsTab)     _activeTabs.Add((TabEvents, default));
         if (_hasAutomationTab) _activeTabs.Add((TabAutomation, default));
 
         bool isMobile   = _uiLayout.IsMobile;
@@ -269,6 +272,12 @@ public sealed class TabBarRenderer : IDisposable
     {
         if (context.GameState is not MainGameState mgs) return false;
         return (mgs.PrestigeState?.TotalPrestigePointsEarned ?? 0) > 0;
+    }
+
+    private bool HasEventLogEntries()
+    {
+        try { return _gameControllerService.CurrentWorldState?.EventLog?.HasEntries == true; }
+        catch { return false; }
     }
 
     private bool IsResearchUnlocked()
