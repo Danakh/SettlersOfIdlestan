@@ -13,6 +13,8 @@ namespace SettlersOfIdlestanSkia.Services;
 public class CityBuildingService
 {
     private readonly MainGameController _mainGameController;
+    public event EventHandler? SelectionChanged;
+
     public City? SelectedCity { get; private set; } = null;
     private WorldState State => _mainGameController.CurrentMainState?.CurrentWorldState ?? throw new InvalidOperationException("Island state is not available.");
     private BuildingController BuildingController => _mainGameController.BuildingController ?? throw new InvalidOperationException("BuildingController is not available.");
@@ -32,7 +34,11 @@ public class CityBuildingService
 
     public void SetSelectedCity(Vertex selectedCityVertex)
     {
-        SelectedCity = State.FindCityAt(selectedCityVertex);
+        var newCity = State.FindCityAt(selectedCityVertex);
+        bool changed = newCity != SelectedCity;
+        SelectedCity = newCity;
+        if (changed && SelectedCity != null)
+            SelectionChanged?.Invoke(this, EventArgs.Empty);
     }
 
     public void ClearSelectedCity()

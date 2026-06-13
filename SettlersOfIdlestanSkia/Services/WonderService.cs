@@ -9,11 +9,16 @@ namespace SettlersOfIdlestanSkia.Services;
 /// </summary>
 public class WonderService
 {
+    public event EventHandler? SelectionChanged;
+
     public IInvestableFeature? SelectedInvestable { get; private set; }
 
     public void SetSelectedInvestable(IInvestableFeature feature)
     {
+        bool changed = feature != SelectedInvestable;
         SelectedInvestable = feature;
+        if (changed)
+            SelectionChanged?.Invoke(this, EventArgs.Empty);
     }
 
     public void ClearSelectedInvestable()

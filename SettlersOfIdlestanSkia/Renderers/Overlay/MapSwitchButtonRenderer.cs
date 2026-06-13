@@ -14,9 +14,12 @@ public sealed class MapSwitchButtonRenderer : IDisposable
     private readonly UILayoutService _uiLayout;
     private readonly GameControllerService _gameControllerService;
 
-    private readonly SKPaint _bgPaint     = new() { Color = new SKColor(40, 25, 70), Style = SKPaintStyle.Fill, IsAntialias = true };
-    private readonly SKPaint _borderPaint = new() { Color = new SKColor(160, 100, 220), StrokeWidth = 1.5f, Style = SKPaintStyle.Stroke, IsAntialias = true };
-    private readonly SKPaint _textPaint   = new() { Color = SKColors.White, IsAntialias = true };
+    private readonly SKPaint _bgPaint         = new() { Color = new SKColor(40, 25, 70), Style = SKPaintStyle.Fill, IsAntialias = true };
+    private readonly SKPaint _borderPaint     = new() { Color = new SKColor(160, 100, 220), StrokeWidth = 1.5f, Style = SKPaintStyle.Stroke, IsAntialias = true };
+    private readonly SKPaint _textPaint       = new() { Color = SKColors.White, IsAntialias = true };
+    private readonly SKPaint _bgDisabledPaint = new() { Color = new SKColor(30, 30, 35), Style = SKPaintStyle.Fill, IsAntialias = true };
+    private readonly SKPaint _borderDisabledPaint = new() { Color = new SKColor(80, 80, 90), StrokeWidth = 1.5f, Style = SKPaintStyle.Stroke, IsAntialias = true };
+    private readonly SKPaint _textDisabledPaint   = new() { Color = new SKColor(100, 100, 110), IsAntialias = true };
     private SKFont _font = new() { Size = 11, Typeface = SkiaFonts.Bold };
 
     private SKRect _buttonRect;
@@ -45,18 +48,23 @@ public sealed class MapSwitchButtonRenderer : IDisposable
         if (worldState == null || !worldState.Layers.ContainsKey(LayerState.UnderworldZ)) return;
 
         float s = _uiLayout.UiScale;
-        float btnW = 130f * s, btnH = 22f * s;
+        float btnW = 180f * s, btnH = 22f * s;
         float btnX = (_canvasSize.Width - btnW) / 2f;
         float btnY = _uiLayout.ResourceBarBottom + 3f * s;
         _buttonRect = new SKRect(btnX, btnY, btnX + btnW, btnY + btnH);
 
-        canvas.DrawRoundRect(_buttonRect, 5 * s, 5 * s, _bgPaint);
-        canvas.DrawRoundRect(_buttonRect, 5 * s, 5 * s, _borderPaint);
+        bool accessible = IsUnderworldAccessible(worldState);
+        var bgPaint     = accessible ? _bgPaint         : _bgDisabledPaint;
+        var borderPaint = accessible ? _borderPaint      : _borderDisabledPaint;
+        var textPaint   = accessible ? _textPaint        : _textDisabledPaint;
+
+        canvas.DrawRoundRect(_buttonRect, 5 * s, 5 * s, bgPaint);
+        canvas.DrawRoundRect(_buttonRect, 5 * s, 5 * s, borderPaint);
 
         string label = worldState.CurrentViewedLayer == LayerState.UnderworldZ
             ? _localization.Get("btn_map_surface")
             : _localization.Get("btn_map_underworld");
-        SkiaTextUtils.DrawText(canvas, label, _buttonRect.MidX, _buttonRect.MidY + 4f * s, SKTextAlign.Center, _font, _textPaint);
+        SkiaTextUtils.DrawText(canvas, label, _buttonRect.MidX, _buttonRect.MidY + 4f * s, SKTextAlign.Center, _font, textPaint);
     }
 
     /// Returns true if the click was consumed.
@@ -67,6 +75,7 @@ public sealed class MapSwitchButtonRenderer : IDisposable
 
         var worldState = _gameControllerService.CurrentWorldState;
         if (worldState?.Layers.ContainsKey(LayerState.UnderworldZ) != true) return false;
+        if (!IsUnderworldAccessible(worldState)) return true; // consomme le clic sans action
 
         worldState.CurrentViewedLayer = worldState.CurrentViewedLayer == LayerState.UnderworldZ
             ? IslandMap.SurfaceLayer
@@ -78,11 +87,20 @@ public sealed class MapSwitchButtonRenderer : IDisposable
         return true;
     }
 
+    private static bool IsUnderworldAccessible(WorldState worldState)
+    {
+        var map = worldState.GetMapForZ(LayerState.UnderworldZ);
+        return map != null && map.Tiles.Count > 0;
+    }
+
     public void Dispose()
     {
         _bgPaint.Dispose();
         _borderPaint.Dispose();
         _textPaint.Dispose();
+        _bgDisabledPaint.Dispose();
+        _borderDisabledPaint.Dispose();
+        _textDisabledPaint.Dispose();
         _font.Dispose();
     }
 }

@@ -192,6 +192,10 @@ public sealed class EventLogRenderer : IDisposable
             _warningCardPaint, _warningBorderPaint, _warningTextPaint,
             _localization.Get("event_ritual_collapsed_title"),
             _localization.Get("event_ritual_collapsed_body")),
+        GameEventType.UnderworldLost => (
+            _dangerCardPaint, _dangerBorderPaint, _dangerTextPaint,
+            _localization.Get("event_underworld_lost_title"),
+            _localization.Get("event_underworld_lost_body")),
         _ => (_dangerCardPaint, _dangerBorderPaint, _bodyTextPaint, "?", entry.Message ?? "")
     };
 

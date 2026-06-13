@@ -467,6 +467,8 @@
   "event_deepest_mine_placed_body": "The dig site is open. Invest resources to dig down to the Underworld.",
   "event_deepest_mine_dug_title": "⛏ The Underworld opens!",
   "event_deepest_mine_dug_body": "The Deepest Mine has broken through. An outpost awaits you in the Underworld.",
+  "event_underworld_lost_title": "💀 Outpost lost!",
+  "event_underworld_lost_body": "Your last outpost in the Underworld has been destroyed. Re-invest in the Deepest Mine to reopen access.",
   "event_fairy_circle_title": "✨ Fairy Circle discovered!",
   "event_fairy_circle_body": "The fairies share their crystals. Your passive crystal generation increases.",
   "event_dolmen_title": "🗿 Dolmen discovered!",

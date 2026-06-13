@@ -467,6 +467,8 @@
   "event_deepest_mine_placed_body": "Le chantier est ouvert. Investissez des ressources pour creuser jusqu'à l'Inframonde.",
   "event_deepest_mine_dug_title": "⛏ L'Inframonde s'ouvre !",
   "event_deepest_mine_dug_body": "La Mine Profonde a percé la croûte. Un avant-poste vous attend dans l'Inframonde.",
+  "event_underworld_lost_title": "💀 Avant-poste perdu !",
+  "event_underworld_lost_body": "Votre dernier avant-poste dans l'Inframonde a été détruit. Réinvestissez dans la Mine Profonde pour rouvrir l'accès.",
   "event_fairy_circle_title": "✨ Cercle de Fées découvert !",
   "event_fairy_circle_body": "Les fées vous offrent leurs cristaux. Votre génération passive de cristaux augmente.",
   "event_dolmen_title": "🗿 Dolmen découvert !",

@@ -147,7 +147,9 @@ namespace SettlersOfIdlestan.Controller.Island
             // Remplace la couche par une map vide sans la supprimer :
             // les features dont Position.Z == UnderworldZ restent valides pour GetMapFor,
             // mais trouvent une carte sans tuiles (elles deviennent invisibles).
-            _state.AddLayer(LayerState.UnderworldZ, new LayerState());
+            // Le Z doit être explicitement UnderworldZ : IslandMap(empty) defaulte à Z=0.
+            _state.AddLayer(LayerState.UnderworldZ,
+                new LayerState(new IslandMap(System.Array.Empty<HexTile>(), LayerState.UnderworldZ)));
 
             // Retire les features orphelines de l'ancienne couche
             foreach (var feature in _state.Features.Where(f => f.Position.Z == LayerState.UnderworldZ).ToList())
@@ -156,6 +158,12 @@ namespace SettlersOfIdlestan.Controller.Island
             // Nettoie les routes de l'Inframonde pour toutes les civilisations
             foreach (var civ in _state.Civilizations)
                 civ.RemoveAllRoads(r => r.Position.Z == LayerState.UnderworldZ);
+
+            // Retire les civilisations NPC dont toutes les villes étaient dans l'Inframonde
+            _state.Civilizations.RemoveAll(c =>
+                c.Index != _state.PlayerCivilization.Index
+                && c.Cities.Count > 0
+                && c.Cities.All(city => city.Position.Z == LayerState.UnderworldZ));
 
             // Revient sur la surface si le joueur regardait l'Inframonde
             _state.CurrentViewedLayer = IslandMap.SurfaceLayer;

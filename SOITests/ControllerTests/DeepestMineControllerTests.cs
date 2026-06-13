@@ -240,5 +240,26 @@ namespace SOITests.ControllerTests
             Assert.True(mine.Dug);
             Assert.True(state.Layers.ContainsKey(LayerState.UnderworldZ));
         }
+
+        [Fact]
+        public void LastUnderworldCityDestroyed_RemovesUnderworldNpcCivilizations()
+        {
+            var (state, clock, controller) = CreateSetup();
+            DigMineAndOpenUnderworld(state, clock, controller);
+
+            // Simule une civ NPC dans l'Inframonde (spawné par AutoExtendController)
+            var underworldVertex = state.PlayerCivilization.Cities
+                .First(c => c.Position.Z == LayerState.UnderworldZ).Position;
+            var npcCiv = new Civilization { Index = state.Civilizations.Max(c => c.Index) + 1, IsNpc = true };
+            var npcCity = new City(underworldVertex) { CivilizationIndex = npcCiv.Index };
+            npcCiv.AddCity(npcCity);
+            state.Civilizations.Add(npcCiv);
+
+            var underworldCity = state.PlayerCivilization.Cities.First(c => c.Position.Z == LayerState.UnderworldZ);
+            state.PlayerCivilization.RemoveCity(underworldCity);
+            controller.OnCityDestroyed(underworldCity.Position, state.PlayerCivilization.Index);
+
+            Assert.DoesNotContain(state.Civilizations, c => c.Index == npcCiv.Index);
+        }
     }
 }

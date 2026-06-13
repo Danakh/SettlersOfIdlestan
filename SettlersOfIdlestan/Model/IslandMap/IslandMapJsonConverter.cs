@@ -36,12 +36,17 @@ namespace SettlersOfIdlestan.Model.IslandMap
                 throw new JsonException($"Failed to deserialize Tiles dictionary. Raw JSON: {tilesElem.GetRawText()}", ex);
             }
 
-            return new IslandMap(dict.Values);
+            int z = IslandMap.SurfaceLayer;
+            if (root.TryGetProperty("Z", out var zElem))
+                z = zElem.GetInt32();
+
+            return new IslandMap(dict.Values, z);
         }
 
         public override void Write(Utf8JsonWriter writer, IslandMap value, JsonSerializerOptions options)
         {
             writer.WriteStartObject();
+            writer.WriteNumber("Z", value.Z);
             writer.WritePropertyName("Tiles");
             JsonSerializer.Serialize(writer, value.Tiles, options);
             writer.WriteEndObject();

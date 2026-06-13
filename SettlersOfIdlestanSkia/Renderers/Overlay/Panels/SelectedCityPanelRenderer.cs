@@ -67,6 +67,7 @@ public class SelectedCityPanelRenderer : PanelRendererBase
         _resourceManager = resourceManager;
         _inputService.PointerMoved += HandlePointerMoved;
         _inputService.PointerPressed += HandlePointerPressed;
+        _cityBuildingService.SelectionChanged += (_, _) => Collapsed = false;
     }
 
     public override void Initialize(SKSize canvasSize)

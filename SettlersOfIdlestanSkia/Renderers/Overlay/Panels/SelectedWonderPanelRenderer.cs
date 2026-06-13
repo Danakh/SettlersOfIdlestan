@@ -46,6 +46,7 @@ public class SelectedWonderPanelRenderer : PanelRendererBase
         _localization = localization;
         _resourceManager = resourceManager;
         _inputService.PointerPressed += HandlePointerPressed;
+        _wonderService.SelectionChanged += (_, _) => Collapsed = false;
     }
 
     public override void Initialize(SKSize canvasSize)
