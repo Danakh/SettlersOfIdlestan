@@ -31,14 +31,17 @@ public partial class MainPage : ContentPage
 	{
 		base.OnAppearing();
 		_runtime = new SkiaGameRuntime();
-		_runtime.QuitRequested      += () => MainThread.BeginInvokeOnMainThread(() => Application.Current?.Quit());
-		_runtime.DiscordLinkClicked += url => MainThread.BeginInvokeOnMainThread(async () =>
+		_runtime.QuitRequested         += () => MainThread.BeginInvokeOnMainThread(() => Application.Current?.Quit());
+		_runtime.DiscordLinkClicked    += url => MainThread.BeginInvokeOnMainThread(async () =>
 			await Launcher.OpenAsync(new Uri(url)));
+		_runtime.FullscreenStateChanged += fullscreen => MainThread.BeginInvokeOnMainThread(() => ApplyFullscreen(fullscreen));
 		bool allowDebugMode = false;
 #if DEBUG
 		allowDebugMode = Environment.GetCommandLineArgs().Contains("--debug");
 #endif
 		_runtime.Initialize(new DesktopFileSystemService(), allowDebugMode);
+		if (_runtime.IsFullscreenEnabled)
+			MainThread.BeginInvokeOnMainThread(() => ApplyFullscreen(true));
 		MainThread.BeginInvokeOnMainThread(() => Dispatcher.StartTimer(TimeSpan.FromMilliseconds(16), RenderFrame));
 	}
 
@@ -265,6 +268,22 @@ public partial class MainPage : ContentPage
 		_runtime.Tick();
 		GameCanvas.InvalidateSurface();
 		return true;
+	}
+
+	private static void ApplyFullscreen(bool fullscreen)
+	{
+#if WINDOWS
+		var windows = Microsoft.Maui.Controls.Application.Current?.Windows;
+		if (windows == null || windows.Count == 0) return;
+		if (windows[0].Handler?.PlatformView is not Microsoft.Maui.MauiWinUIWindow winUIWindow) return;
+
+		var handle   = WinRT.Interop.WindowNative.GetWindowHandle(winUIWindow);
+		var windowId = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(handle);
+		var appWindow = Microsoft.UI.Windowing.AppWindow.GetFromWindowId(windowId);
+		appWindow.SetPresenter(fullscreen
+			? Microsoft.UI.Windowing.AppWindowPresenterKind.FullScreen
+			: Microsoft.UI.Windowing.AppWindowPresenterKind.Default);
+#endif
 	}
 
 	protected override void OnDisappearing()

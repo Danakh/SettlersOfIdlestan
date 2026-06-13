@@ -35,14 +35,18 @@ public sealed class SettingsContentPanel : IDisposable
     private SKFont _btnFont   = new() { Size = 12f, Typeface = SkiaFonts.Bold };
     private float  _lastScale;
 
-    private SKRect _btnFrench           = SKRect.Empty;
-    private SKRect _btnEnglish          = SKRect.Empty;
-    private SKRect _pauseToggleRect     = SKRect.Empty;
-    private SKRect _particlesToggleRect = SKRect.Empty;
+    private SKRect _btnFrench              = SKRect.Empty;
+    private SKRect _btnEnglish             = SKRect.Empty;
+    private SKRect _pauseToggleRect        = SKRect.Empty;
+    private SKRect _particlesToggleRect    = SKRect.Empty;
+    private SKRect _fullscreenToggleRect   = SKRect.Empty;
 
     private bool _hoveredPause;
     private bool _hoveredParticles;
+    private bool _hoveredFullscreen;
     private bool _disposed;
+
+    public event Action<bool>? FullscreenToggleRequested;
 
     private void UpdateFonts(float s)
     {
@@ -84,17 +88,22 @@ public sealed class SettingsContentPanel : IDisposable
             (_btnFrench,  localization.Get("menu_language_french"),  settings.Language == Language.French),
         ]);
 
-        // Row 2 — Pause after prestige
-        float row2Y = y + spacingY;
+        // Row 2 — Fullscreen
+        float row4Y = y + spacingY;
+        _fullscreenToggleRect = DrawToggleRow(canvas, x, row4Y, rightEdge,
+            localization.Get("settings_fullscreen"), settings.Fullscreen, _hoveredFullscreen, btnH, toggleW, toggleH, s);
+
+        // Row 3 — Pause after prestige
+        float row2Y = y + spacingY * 2f;
         _pauseToggleRect = DrawToggleRow(canvas, x, row2Y, rightEdge,
             localization.Get("settings_pause_after_prestige"), settings.PauseAfterPrestige, _hoveredPause, btnH, toggleW, toggleH, s);
 
-        // Row 3 — Harvest particles
-        float row3Y = y + spacingY * 2f;
+        // Row 4 — Harvest particles
+        float row3Y = y + spacingY * 3f;
         _particlesToggleRect = DrawToggleRow(canvas, x, row3Y, rightEdge,
             localization.Get("settings_harvest_particles"), settings.ShowHarvestParticles, _hoveredParticles, btnH, toggleW, toggleH, s);
 
-        return spacingY * 2f + btnH;
+        return spacingY * 3f + btnH;
     }
 
     private void DrawRow(SKCanvas canvas, float rowX, float rowY, string label, float btnH, float s,
@@ -163,13 +172,20 @@ public sealed class SettingsContentPanel : IDisposable
             settings.ShowHarvestParticles = !settings.ShowHarvestParticles;
             return true;
         }
+        if (!_fullscreenToggleRect.IsEmpty && _fullscreenToggleRect.Contains(pos.X, pos.Y))
+        {
+            settings.Fullscreen = !settings.Fullscreen;
+            FullscreenToggleRequested?.Invoke(settings.Fullscreen);
+            return true;
+        }
         return false;
     }
 
     public void HandleHover(SKPoint pos)
     {
-        _hoveredPause     = !_pauseToggleRect.IsEmpty     && _pauseToggleRect.Contains(pos.X, pos.Y);
-        _hoveredParticles = !_particlesToggleRect.IsEmpty && _particlesToggleRect.Contains(pos.X, pos.Y);
+        _hoveredPause      = !_pauseToggleRect.IsEmpty      && _pauseToggleRect.Contains(pos.X, pos.Y);
+        _hoveredParticles  = !_particlesToggleRect.IsEmpty  && _particlesToggleRect.Contains(pos.X, pos.Y);
+        _hoveredFullscreen = !_fullscreenToggleRect.IsEmpty && _fullscreenToggleRect.Contains(pos.X, pos.Y);
     }
 
     public void Dispose()

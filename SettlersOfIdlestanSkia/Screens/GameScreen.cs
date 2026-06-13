@@ -11,6 +11,7 @@ using SettlersOfIdlestanSkia.Renderers.Overlay.Popup;
 using SettlersOfIdlestanSkia.Renderers.Overlay.Tabs;
 using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.IslandMap;
+using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestanSkia.Renderers.Overlay.Panels;
 
 namespace SettlersOfIdlestanSkia.Screens;
@@ -79,6 +80,11 @@ public sealed class GameScreen : IDisposable
 
     /// <summary>Déclenché lors du "Quit" sur la popup de sauvegarde corrompue.</summary>
     public event Action? QuitRequested;
+
+    public event Action<bool>? FullscreenToggleRequested;
+
+    public GameSettings? GetCurrentSettings() =>
+        _gameControllerService.MainGameController.CurrentMainState?.Settings;
 
     public GameScreen(
         IFileSystemService fileSystemService,
@@ -223,6 +229,7 @@ public sealed class GameScreen : IDisposable
         var selectedWonderPanelRenderer = new SelectedWonderPanelRenderer(_wonderService, _inputService, _localizationService, _resourceManager);
 
         var settingsPopupRenderer = new SettingsPopupRenderer(_gameControllerService.MainGameController, _localizationService, _fileSystemService);
+        settingsPopupRenderer.FullscreenToggleRequested += v => FullscreenToggleRequested?.Invoke(v);
 
         DebugPanelRenderer? debugPanelRenderer = null;
         if (allowDebugMode)

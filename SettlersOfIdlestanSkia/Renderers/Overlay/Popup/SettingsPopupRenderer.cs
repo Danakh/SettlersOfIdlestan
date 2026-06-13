@@ -10,7 +10,7 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay.Popup;
 public sealed class SettingsPopupRenderer : PopupRendererBase
 {
     protected override float PopupWidth  => 580;
-    protected override float PopupHeight => 274;
+    protected override float PopupHeight => 338;
     protected override float BtnFontSize => 12f;
 
     private const float BtnRightMargin = 24;
@@ -21,6 +21,8 @@ public sealed class SettingsPopupRenderer : PopupRendererBase
     private readonly IFileSystemService  _fileSystemService;
     private readonly SettingsContentPanel _contentPanel = new();
 
+    public event Action<bool>? FullscreenToggleRequested;
+
     private SKRect _closeButtonRect = SKRect.Empty;
     private SKRect _popupRect       = SKRect.Empty;
 
@@ -29,6 +31,7 @@ public sealed class SettingsPopupRenderer : PopupRendererBase
         _gameController    = gameController;
         _localization      = localization;
         _fileSystemService = fileSystemService;
+        _contentPanel.FullscreenToggleRequested += v => FullscreenToggleRequested?.Invoke(v);
     }
 
     public void Render(SKCanvas canvas, float scale = 1f)

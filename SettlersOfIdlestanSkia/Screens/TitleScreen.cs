@@ -85,6 +85,7 @@ public sealed class TitleScreen : IDisposable
     public event Action? NewGameRequested;
     public event Action? ContinueRequested;
     public event Action<string>? DiscordLinkClicked;
+    public event Action<bool>? FullscreenToggleRequested;
 
     public TitleScreen(IFileSystemService fileSystemService, LocalizationService localization,
         UILayoutService uiLayoutService, ResourceManager resourceManager, bool hasSave, GameSettings? settings = null)
@@ -95,6 +96,7 @@ public sealed class TitleScreen : IDisposable
         _hasSave           = hasSave;
         _settings          = settings ?? new GameSettings();
         _settingsPanel     = new SettingsContentPanel();
+        _settingsPanel.FullscreenToggleRequested += v => FullscreenToggleRequested?.Invoke(v);
         _discordSvg        = resourceManager.LoadImage("Resources.icons.links.DiscordLink.svg");
 
         _hardResetPopup = new HardResetPopupRenderer(

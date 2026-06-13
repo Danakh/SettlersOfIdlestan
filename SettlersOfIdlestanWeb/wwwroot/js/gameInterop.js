@@ -187,6 +187,52 @@ window.gameInterop = {
         }
     },
 
+    _fullscreenHandler: null,
+    _f11Handler: null,
+
+    registerFullscreenHandler: function (dotNetRef) {
+        this._fullscreenHandler = () => {
+            const isFullscreen = !!(document.fullscreenElement || document.webkitFullscreenElement);
+            dotNetRef.invokeMethodAsync('OnFullscreenChanged', isFullscreen);
+        };
+        document.addEventListener('fullscreenchange', this._fullscreenHandler);
+        document.addEventListener('webkitfullscreenchange', this._fullscreenHandler);
+
+        // F11 natif du navigateur ne déclenche pas fullscreenchange — on le remplace
+        // par l'API JS pour que l'événement soit bien capté.
+        this._f11Handler = (e) => {
+            if (e.key === 'F11') {
+                e.preventDefault();
+                const isFullscreen = !!(document.fullscreenElement || document.webkitFullscreenElement);
+                this.setFullscreen(!isFullscreen);
+            }
+        };
+        document.addEventListener('keydown', this._f11Handler);
+    },
+
+    unregisterFullscreenHandler: function () {
+        if (this._fullscreenHandler) {
+            document.removeEventListener('fullscreenchange', this._fullscreenHandler);
+            document.removeEventListener('webkitfullscreenchange', this._fullscreenHandler);
+            this._fullscreenHandler = null;
+        }
+        if (this._f11Handler) {
+            document.removeEventListener('keydown', this._f11Handler);
+            this._f11Handler = null;
+        }
+    },
+
+    setFullscreen: function (fullscreen) {
+        if (fullscreen) {
+            const el = document.documentElement;
+            const fn = el.requestFullscreen || el.webkitRequestFullscreen;
+            if (fn) fn.call(el);
+        } else {
+            const fn = document.exitFullscreen || document.webkitExitFullscreen;
+            if (fn) fn.call(document);
+        }
+    },
+
     openFilePicker: function () {
         return new Promise((resolve) => {
             const input = document.createElement('input');
