@@ -28,7 +28,7 @@ namespace SettlersOfIdlestan.Controller.Magic
 
         private WorldState? _state;
         private GameClock? _clock;
-        private GamePRNG _prng = new();
+        private GamePRNG? _prng = new();
         private MagicModifierProvider? _provider;
         private long _lastPassiveTick;
 
@@ -44,7 +44,7 @@ namespace SettlersOfIdlestan.Controller.Magic
 
             _state = state;
             _clock = clock;
-            _prng = prng ?? new GamePRNG();
+            _prng = prng;
             _lastPassiveTick = 0;
 
             if (_state != null && _state.Civilizations.Count > 0)
@@ -316,7 +316,7 @@ namespace SettlersOfIdlestan.Controller.Magic
 
             for (int i = 0; i < missing && candidates.Count > 0; i++)
             {
-                int index = _prng.Next(candidates.Count);
+                int index = _prng!.Next(candidates.Count);
                 var position = candidates[index];
                 candidates.RemoveAt(index);
                 _state.AddFeature(factory(position));

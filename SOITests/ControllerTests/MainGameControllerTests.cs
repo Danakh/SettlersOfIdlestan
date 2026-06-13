@@ -25,10 +25,8 @@ namespace SOITests.ControllerTests
         public void ImportMainState_PreservesCities()
         {
             var WorldState = IslandTestFactory.CreateSevenHexIslandState();
-            var prestige = new PrestigeState(WorldState);
-            var god = new GodState(prestige);
             var clock = new GameClock();
-            var mainState = new MainGameState(god, clock);
+            var mainState = new MainGameState(WorldState, clock, new GamePRNG(42));
 
             var json = JsonSerializer.Serialize(mainState, SerializationService.SerializationOptions());
 
@@ -49,10 +47,8 @@ namespace SOITests.ControllerTests
         public void ExportMainState_RoundtripPreservesCities()
         {
             var WorldState = IslandTestFactory.CreateSevenHexIslandState();
-            var prestige = new PrestigeState(WorldState);
-            var god = new GodState(prestige);
             var clock = new GameClock();
-            var mainState = new MainGameState(god, clock);
+            var mainState = new MainGameState(WorldState, clock, new GamePRNG(42));
 
             var json = JsonSerializer.Serialize(mainState, SerializationService.SerializationOptions());
 

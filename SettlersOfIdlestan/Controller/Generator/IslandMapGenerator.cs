@@ -19,9 +19,9 @@ public class IslandMapGenerator
 {
     private readonly GamePRNG _prng;
 
-    internal IslandMapGenerator(GamePRNG? prng = null)
+    internal IslandMapGenerator(GamePRNG prng)
     {
-        _prng = prng ?? new GamePRNG();
+        _prng = prng;
     }
 
     /// <summary>
@@ -124,7 +124,7 @@ public class IslandMapGenerator
         var WorldState = new WorldState(map, civs, parameters.WorldId) { StartTick = startTick };
 
         if (parameters.NpcCivilizations.Count > 0)
-            new NpcCivilizationPlacer().PlaceNpcCivilizations(WorldState);
+            new NpcCivilizationPlacer().PlaceNpcCivilizations(WorldState, _prng);
 
         if (parameters.Features.Count > 0)
             PlaceFeatures(WorldState, parameters.Features, currentTick);

@@ -4,6 +4,7 @@ using SettlersOfIdlestan.Controller.Generator;
 using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
+using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.GameplayModifier;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
@@ -39,7 +40,7 @@ public class RoadControllerTests
         var state = new WorldState(map, civs, AtlasController.InvalidIslandId);
 
         var vertex = Vertex.Create(a, b, c);
-        IslandMapGenerator generator = new IslandMapGenerator();
+        IslandMapGenerator generator = new IslandMapGenerator(new GamePRNG(42));
         generator.PopulatePlayerCivilization(map, civ, vertex);
 
         var controller = new RoadController(state);
@@ -70,7 +71,7 @@ public class RoadControllerTests
         var state = new WorldState(map, civs, AtlasController.InvalidIslandId);
 
         var vertex = Vertex.Create(a, b, c);
-        IslandMapGenerator generator = new IslandMapGenerator();
+        IslandMapGenerator generator = new IslandMapGenerator(new GamePRNG(42));
         generator.PopulatePlayerCivilization(map, civ, vertex);
 
         // Occupy edge a-b
@@ -105,7 +106,7 @@ public class RoadControllerTests
         var state = new WorldState(map, civs, AtlasController.InvalidIslandId);
 
         var vertex = Vertex.Create(a, b, c);
-        IslandMapGenerator generator = new IslandMapGenerator();
+        IslandMapGenerator generator = new IslandMapGenerator(new GamePRNG(42));
         generator.PopulatePlayerCivilization(map, civ, vertex);
 
         // give enough resources: 2 wood and 2 brick
@@ -145,7 +146,7 @@ public class RoadControllerTests
         var state = new WorldState(map, civs, AtlasController.InvalidIslandId);
 
         var vertex = Vertex.Create(a, b, c);
-        IslandMapGenerator generator = new IslandMapGenerator();
+        IslandMapGenerator generator = new IslandMapGenerator(new GamePRNG(42));
         generator.PopulatePlayerCivilization(map, civ, vertex);
 
         var controller = new RoadController(state);
@@ -347,7 +348,7 @@ public class RoadControllerTests
 
         // Joueur : ville au vertex a-b-c
         var playerVertex = Vertex.Create(a, b, c);
-        var generator = new IslandMapGenerator();
+        var generator = new IslandMapGenerator(new GamePRNG(42));
         generator.PopulatePlayerCivilization(map, playerCiv, playerVertex);
 
         // Ennemi : route sur l'arête b-c à distance > 2 de sa ville (sinon protégée, non conquérable)

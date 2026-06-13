@@ -1,6 +1,7 @@
 ﻿using SettlersOfIdlestan.Controller.Generator;
 using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Model.Civilization;
+using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Services;
@@ -17,7 +18,7 @@ public class IslandGeneratorTests
     public void GenerateIsland_WithLandTiles_PlacesAllTiles()
     {
         // Arrange
-        var generator = new IslandMapGenerator();
+        var generator = new IslandMapGenerator(new GamePRNG(42));
         var tileData = new List<(TerrainType terrainType, int tileCount)>
         {
             (TerrainType.Forest, 5),
@@ -38,7 +39,7 @@ public class IslandGeneratorTests
     public void GenerateIsland_LandTilesHaveAtLeastTwoNeighborsSmall()
     {
         // Arrange
-        var generator = new IslandMapGenerator();
+        var generator = new IslandMapGenerator(new GamePRNG(42));
         var tileData = new List<(TerrainType terrainType, int tileCount)>
         {
             (TerrainType.Forest, 1),
@@ -64,7 +65,7 @@ public class IslandGeneratorTests
     public void GenerateIsland_LandTilesHaveAtLeastTwoNeighbors()
     {
         // Arrange
-        var generator = new IslandMapGenerator();
+        var generator = new IslandMapGenerator(new GamePRNG(42));
         var tileData = new List<(TerrainType terrainType, int tileCount)>
         {
             (TerrainType.Forest, 5),
@@ -93,7 +94,7 @@ public class IslandGeneratorTests
     public void GenerateIsland_LandTilesAreSurroundedByWater()
     {
         // Arrange
-        var generator = new IslandMapGenerator();
+        var generator = new IslandMapGenerator(new GamePRNG(42));
         var tileData = new List<(TerrainType terrainType, int tileCount)>
         {
             (TerrainType.Forest, 1),
@@ -119,7 +120,7 @@ public class IslandGeneratorTests
     public void GenerateIsland_ContainsRequiredResourcesAndWater()
     {
         // Arrange
-        var generator = new IslandMapGenerator();
+        var generator = new IslandMapGenerator(new GamePRNG(42));
         var tileData = new List<(TerrainType terrainType, int tileCount)>
         {
             (TerrainType.Forest, 5),
@@ -146,7 +147,7 @@ public class IslandGeneratorTests
     public void GenerateIsland_EmptyList_ReturnsEmptyMap()
     {
         // Arrange
-        var generator = new IslandMapGenerator();
+        var generator = new IslandMapGenerator(new GamePRNG(42));
         var landData = new List<(TerrainType terrainType, int tileCount)>();
         var civilizations = new List<Civilization> { new() { Index = 0 } };
 
@@ -162,7 +163,7 @@ public class IslandGeneratorTests
     public void GenerateIsland_HasVertexAdjacentToHillForestWater_WhenPossible()
     {
         // Arrange
-        var generator = new IslandMapGenerator();
+        var generator = new IslandMapGenerator(new GamePRNG(42));
         var tileData = new List<(TerrainType terrainType, int tileCount)>
         {
             (TerrainType.Hill, 1),
@@ -280,7 +281,7 @@ public class IslandGeneratorTests
     public void IslandState_Serialization_RoundTrip()
     {
         // Arrange
-        var generator = new IslandMapGenerator();
+        var generator = new IslandMapGenerator(new GamePRNG(42));
         var tileData = new List<(TerrainType terrainType, int tileCount)>
         {
             (TerrainType.Forest, 5),

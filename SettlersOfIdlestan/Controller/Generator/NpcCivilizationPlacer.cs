@@ -32,7 +32,7 @@ public class NpcCivilizationPlacer
     /// Garantit que toutes les villes NPC (initiales et expansion) sont à ≥ leur MinDistanceFromPlayer
     /// edges de la ville du joueur. Place autant de NPC que possible si la carte est trop petite.
     /// </summary>
-    public bool PlaceNpcCivilizations(WorldState state)
+    public bool PlaceNpcCivilizations(WorldState state, GamePRNG prng)
     {
         if (state.PlayerCivilization.Cities.Count == 0) return false;
 
@@ -78,7 +78,7 @@ public class NpcCivilizationPlacer
         var clock = new GameClock();
         clock.Start();
         var mainController = new MainGameController();
-        mainController.SetGame(new MainGameState(state, clock));
+        mainController.SetGame(new MainGameState(state, clock, prng));
 
         foreach (var civ in npcCivs.Take(bestPlacement.Count))
         {

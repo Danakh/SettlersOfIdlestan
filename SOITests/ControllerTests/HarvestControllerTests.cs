@@ -36,7 +36,7 @@ namespace SOITests.ControllerTests
 
             // Place a city adjacent to the wood tile and add a Sawmill (produces wood)
             var vertex = Vertex.Create(a, b, c);
-            IslandMapGenerator generator = new IslandMapGenerator();
+            IslandMapGenerator generator = new IslandMapGenerator(new GamePRNG(42));
             generator.PopulatePlayerCivilization(map, civ, vertex);
             var city = civ.Cities[0];
             city.Buildings.Add(new Sawmill());

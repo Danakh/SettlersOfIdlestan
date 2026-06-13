@@ -39,14 +39,14 @@ namespace SOITests.ControllerTests
             var state = new WorldState(map, civs, AtlasController.InvalidIslandId);
 
             var vertex = Vertex.Create(a, b, c);
-            IslandMapGenerator generator = new IslandMapGenerator();
+            IslandMapGenerator generator = new IslandMapGenerator(new GamePRNG(42));
             generator.PopulatePlayerCivilization(map, civ, vertex);
 
             var clock = new GameClock();
             clock.Start();
 
             var mainController = new MainGameController();
-            mainController.SetGame(new MainGameState(state, clock));
+            mainController.SetGame(new MainGameState(state, clock, new GamePRNG(42)));
 
             var auto = new CivilizationAutoplayer(
                 civ, map,

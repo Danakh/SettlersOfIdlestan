@@ -124,9 +124,7 @@ namespace SettlersOfIdlestan.Controller
         {
             if (parameters == null) throw new ArgumentNullException(nameof(parameters));
 
-            var mainState = new MainGameState();
-            if (prngSeed.HasValue)
-                mainState.PRNG = new GamePRNG(prngSeed.Value);
+            var mainState = new MainGameState(prngSeed);
 
             var generator = new Generator.IslandMapGenerator(mainState.PRNG);
             var WorldState = generator.GenerateWorldState(parameters, mainState.Clock.CurrentTick);
@@ -263,6 +261,7 @@ namespace SettlersOfIdlestan.Controller
                 HarvestController.Initialize(WorldState, Clock, TradeController, MonsterFeatureController, CurrentMainState!.PRNG);
                 BuildingController.Initialize(WorldState, Clock);
                 CityBuilderController.Initialize(WorldState, Clock, CurrentMainState!.PRNG);
+                AtlasController.Initialize(CurrentMainState!.PRNG);
                 PrestigeController.Initialize(WorldState.PlayerCivilization, WorldState, Clock);
                 WonderController.Initialize(WorldState, Clock);
                 DeepestMineController.Initialize(WorldState, Clock);

@@ -10,6 +10,13 @@ namespace SettlersOfIdlestan.Controller.Island
     {
         public const int InvalidIslandId = -1;
 
+        private GamePRNG? _prng;
+
+        public void Initialize(GamePRNG prng)
+        {
+            _prng = prng;
+        }
+
         public IslandParameters GetIslandParameters(int WorldId)
         {
             // Pour la première île, on retourne les paramètres standards d'une partie normale
@@ -112,12 +119,10 @@ namespace SettlersOfIdlestan.Controller.Island
             return new IslandParameters(InvalidIslandId, new List<(TerrainType terrainType, int tileCount)>());
         }
 
-        private static IslandParameters BuildHighEndIsland(int WorldId)
+        private IslandParameters BuildHighEndIsland(int WorldId)
         {
-            var prng = new GamePRNG(WorldId);
-
             var shapes = Enum.GetValues<IslandShapeType>();
-            var shape = shapes[prng.Next(shapes.Length)];
+            var shape = shapes[_prng!.Next(shapes.Length)];
 
             var tileData = new List<(TerrainType terrainType, int tileCount)>
             {
@@ -141,13 +146,13 @@ namespace SettlersOfIdlestan.Controller.Island
                 new IslandFeatureParameters(IslandFeatureType.Dragon,        IslandFeaturePlacement.FarFromPlayer),
             };
 
-            int civCount = prng.Next(4, 7); // 4-6 civilisations NPC
+            int civCount = _prng.Next(4, 7); // 4-6 civilisations NPC
             var npcCivs = new List<NpcParameters>(civCount);
             for (int i = 0; i < civCount; i++)
             {
                 // Plus d'expansion => moins agressif (et vice-versa), avec léger bruit.
-                int expansionScore    = prng.Next(0, 4);
-                int aggressivityScore = Math.Clamp(3 - expansionScore + prng.Next(-1, 2), 0, 3);
+                int expansionScore    = _prng.Next(0, 4);
+                int aggressivityScore = Math.Clamp(3 - expansionScore + _prng.Next(-1, 2), 0, 3);
                 npcCivs.Add(new NpcParameters
                 {
                     EvolutionLevel    = (NpcEvolutionLevel)expansionScore,

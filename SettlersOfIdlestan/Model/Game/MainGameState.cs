@@ -1,7 +1,8 @@
-using System;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Prestige;
 using SettlersOfIdlestan.Model.Tasks;
+using System;
+using System.Net.NetworkInformation;
 
 namespace SettlersOfIdlestan.Model.Game
 {
@@ -30,25 +31,19 @@ namespace SettlersOfIdlestan.Model.Game
         /// </summary>
         public GameRecord GameRecord { get; set; } = new();
 
-        public MainGameState()
+        public MainGameState(int? prngSeed = null)
         {
             GodState = new GodState();
             Clock = new GameClock();
-            PRNG = new GamePRNG();
+            PRNG = (prngSeed.HasValue) ? new GamePRNG(prngSeed.Value) : new GamePRNG();
         }
 
-        public MainGameState(WorldState worldState, GameClock clock)
+        public MainGameState(WorldState worldState, GameClock clock, GamePRNG prng)
         {
             var prestigeState = new PrestigeState(worldState);
             GodState = new GodState(prestigeState);
             Clock = clock;
-            PRNG = new GamePRNG();
-        }
-        public MainGameState(GodState godState, GameClock clock)
-        {
-            GodState = godState;
-            Clock = clock;
-            PRNG = new GamePRNG();
+            PRNG = prng;
         }
     }
 }

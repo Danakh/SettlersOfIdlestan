@@ -12,7 +12,7 @@ public class DebugMapGenerator : IslandMapGenerator
 {
     public const int DebugWorldId = 0;
 
-    internal DebugMapGenerator(GamePRNG? prng = null) : base(prng) { }
+    internal DebugMapGenerator(GamePRNG prng) : base(prng) { }
 
     public static IslandParameters CreateParameters() => new IslandParameters(
         worldId: DebugWorldId,

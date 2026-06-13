@@ -5,6 +5,7 @@ using SettlersOfIdlestan.Controller;
 using SettlersOfIdlestan.Controller.Generator;
 using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Model.Civilization;
+using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Services;
@@ -66,7 +67,7 @@ public class IslandStateVisibleIslandMapTests
         var state = new WorldState(map, new List<Civilization> { civilization }, AtlasController.InvalidIslandId);
 
         var cityVertex = Vertex.Create(a, b, c);
-        new IslandMapGenerator().PopulatePlayerCivilization(map, civilization, cityVertex);
+        new IslandMapGenerator(new GamePRNG(42)).PopulatePlayerCivilization(map, civilization, cityVertex);
         state.Visibility.RecalculateFor(0);
         Assert.False(state.Visibility.GetForZ(0).GetValueOrDefault(0)?.HasTile(roadEndpointOnly) ?? false);
 
