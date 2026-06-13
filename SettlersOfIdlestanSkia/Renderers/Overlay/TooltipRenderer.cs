@@ -188,7 +188,7 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay
             var manualResources = harvestController.GetManualHarvestableResources(playerIdx, coord);
             var autoResources = harvestController.GetAutomaticHarvestableResources(playerIdx, coord);
 
-            var tile = WorldState.GetMapForZ(coord.Z).GetTile(coord);
+            var tile = WorldState.GetMapForZ(coord.Z)?.GetTile(coord);
             var featuresAtCoord = WorldState.Features.Where(f => f.Position.Equals(coord));
             var featureTooltipEntries = featuresAtCoord.Select(f => f.GetTooltipEntry()).Where(e => e != null);
             bool harvestBlockedByFeature = featuresAtCoord.Any(f => f.BlocksHarvest);

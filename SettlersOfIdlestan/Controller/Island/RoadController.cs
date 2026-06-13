@@ -254,8 +254,9 @@ namespace SettlersOfIdlestan.Controller.Island
             var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex)
                       ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
 
-            // V�rifier que l'ar�te fait partie de la carte
+            // Vérifier que l'arête fait partie de la carte
             var map = _state.GetMapFor(edge);
+            if (map == null) throw new ArgumentException("Edge belongs to an unknown layer.", nameof(edge));
             var mapTiles = map.Tiles;
             if (!mapTiles.ContainsKey(edge.Hex1) || !mapTiles.ContainsKey(edge.Hex2))
                 throw new ArgumentException("Edge not part of the map", nameof(edge));
@@ -501,7 +502,8 @@ namespace SettlersOfIdlestan.Controller.Island
         private bool IsValidMaritimeEdge(Edge edge)
         {
             if (_state == null) return false;
-            var mapTiles = _state.GetMapFor(edge).Tiles;
+            var mapTiles = _state.GetMapFor(edge)?.Tiles;
+            if (mapTiles == null) return false;
             foreach (var v in edge.GetVertices())
             {
                 bool touchesLand = v.GetHexes().Any(h =>
@@ -515,7 +517,8 @@ namespace SettlersOfIdlestan.Controller.Island
         {
             if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
 
-            var mapTiles = _state.GetMapFor(edge).Tiles;
+            var mapTiles = _state.GetMapFor(edge)?.Tiles;
+            if (mapTiles == null) return false;
             bool hex1IsWaterOrAbsent = !mapTiles.TryGetValue(edge.Hex1, out var tile1) || tile1.TerrainType == TerrainType.Water;
             bool hex2IsWaterOrAbsent = !mapTiles.TryGetValue(edge.Hex2, out var tile2) || tile2.TerrainType == TerrainType.Water;
             return !(hex1IsWaterOrAbsent && hex2IsWaterOrAbsent);

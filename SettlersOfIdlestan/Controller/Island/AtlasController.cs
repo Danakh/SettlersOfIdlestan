@@ -73,7 +73,7 @@ namespace SettlersOfIdlestan.Controller.Island
                     new IslandFeatureParameters(IslandFeatureType.Rats,          IslandFeaturePlacement.Random),
                     new IslandFeatureParameters(IslandFeatureType.Bandit,        IslandFeaturePlacement.FarFromPlayer),
                     new IslandFeatureParameters(IslandFeatureType.TreasureTrove, IslandFeaturePlacement.Random),
-                    new IslandFeatureParameters(IslandFeatureType.BanditHideout, IslandFeaturePlacement.FarFromPlayer),
+                    new IslandFeatureParameters(IslandFeatureType.BanditHideout, IslandFeaturePlacement.FarFromAllCivilization),
                 };
                 return new IslandParameters(WorldId, tileData, features, IslandShapeType.Crescent)
                 {
@@ -99,7 +99,7 @@ namespace SettlersOfIdlestan.Controller.Island
                     new IslandFeatureParameters(IslandFeatureType.Rats,          IslandFeaturePlacement.CloseToPlayer),
                     new IslandFeatureParameters(IslandFeatureType.Bandit,        IslandFeaturePlacement.FarFromPlayer),
                     new IslandFeatureParameters(IslandFeatureType.TreasureTrove, IslandFeaturePlacement.Random),
-                    new IslandFeatureParameters(IslandFeatureType.BanditHideout, IslandFeaturePlacement.FarFromPlayer),
+                    new IslandFeatureParameters(IslandFeatureType.BanditHideout, IslandFeaturePlacement.FarFromAllCivilization),
                 };
                 return new IslandParameters(WorldId, tileData, features, IslandShapeType.Archipelago)
                 {
@@ -141,8 +141,8 @@ namespace SettlersOfIdlestan.Controller.Island
                 new IslandFeatureParameters(IslandFeatureType.Bandit,        IslandFeaturePlacement.FarFromPlayer),
                 new IslandFeatureParameters(IslandFeatureType.TreasureTrove, IslandFeaturePlacement.Random),
                 new IslandFeatureParameters(IslandFeatureType.TreasureTrove, IslandFeaturePlacement.Random),
-                new IslandFeatureParameters(IslandFeatureType.BanditHideout, IslandFeaturePlacement.FarFromPlayer),
-                new IslandFeatureParameters(IslandFeatureType.BanditHideout, IslandFeaturePlacement.FarFromPlayer),
+                new IslandFeatureParameters(IslandFeatureType.BanditHideout, IslandFeaturePlacement.FarFromAllCivilization),
+                new IslandFeatureParameters(IslandFeatureType.BanditHideout, IslandFeaturePlacement.FarFromAllCivilization),
                 new IslandFeatureParameters(IslandFeatureType.Dragon,        IslandFeaturePlacement.FarFromPlayer),
             };
 

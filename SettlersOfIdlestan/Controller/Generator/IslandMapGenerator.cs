@@ -245,7 +245,7 @@ public class IslandMapGenerator
     /// </summary>
     public void PlaceFeatures(WorldState WorldState, IEnumerable<IslandFeatureParameters> features, long currentTick)
     {
-        var landHexes = WorldState.GetMapForZ(IslandMap.SurfaceLayer).Tiles.Values
+        var landHexes = WorldState.GetMapForZ(IslandMap.SurfaceLayer)!.Tiles.Values
             .Where(t => t.TerrainType != TerrainType.Water)
             .Select(t => t.Coord)
             .ToList();
@@ -256,9 +256,14 @@ public class IslandMapGenerator
             ? WorldState.PlayerCivilization.Cities[0].Position.GetHexes()
             : null;
 
+        HexCoord[] allCivHexes = WorldState.Civilizations
+            .SelectMany(c => c.Cities)
+            .SelectMany(city => city.Position.GetHexes())
+            .ToArray();
+
         foreach (var feature in features)
         {
-            var hex = PickHex(landHexes, cityHexes, feature.Placement);
+            var hex = PickHex(landHexes, cityHexes, allCivHexes, feature.Placement);
             switch (feature.Type)
             {
                 case IslandFeatureType.Bandit:
@@ -280,20 +285,33 @@ public class IslandMapGenerator
         }
     }
 
-    private HexCoord PickHex(List<HexCoord> landHexes, HexCoord[]? cityHexes, IslandFeaturePlacement placement)
+    private HexCoord PickHex(List<HexCoord> landHexes, HexCoord[]? cityHexes, HexCoord[] allCivHexes, IslandFeaturePlacement placement)
     {
+        if (placement == IslandFeaturePlacement.FarFromAllCivilization)
+        {
+            if (allCivHexes.Length == 0)
+                return landHexes[_prng.Next(landHexes.Count)];
+
+            var candidates = new List<HexCoord>(10);
+            for (int i = 0; i < 10; i++)
+                candidates.Add(landHexes[_prng.Next(landHexes.Count)]);
+
+            int MinDistToAnyCiv(HexCoord hex) => allCivHexes.Min(ch => hex.DistanceTo(ch));
+            return candidates.OrderByDescending(MinDistToAnyCiv).First();
+        }
+
         if (placement == IslandFeaturePlacement.Random || cityHexes == null)
             return landHexes[_prng.Next(landHexes.Count)];
 
-        var candidates = new List<HexCoord>(5);
+        var playerCandidates = new List<HexCoord>(5);
         for (int i = 0; i < 5; i++)
-            candidates.Add(landHexes[_prng.Next(landHexes.Count)]);
+            playerCandidates.Add(landHexes[_prng.Next(landHexes.Count)]);
 
         int DistanceToCity(HexCoord hex) => cityHexes.Min(ch => hex.DistanceTo(ch));
 
         return placement == IslandFeaturePlacement.FarFromPlayer
-            ? candidates.OrderByDescending(DistanceToCity).First()
-            : candidates.OrderBy(DistanceToCity).First();
+            ? playerCandidates.OrderByDescending(DistanceToCity).First()
+            : playerCandidates.OrderBy(DistanceToCity).First();
     }
 
     /// <summary>

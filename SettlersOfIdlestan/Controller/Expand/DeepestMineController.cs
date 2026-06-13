@@ -88,6 +88,7 @@ namespace SettlersOfIdlestan.Controller.Island
             if (cost.Keys.All(r => (mine.InvestedResources.TryGetValue(r, out var inv) ? inv : 0) >= cost[r]))
             {
                 mine.Dug = true;
+                mine.WasEverDug = true;
                 mine.InvestmentEnabled.Clear();
                 _state.EventLog.Add(GameEventType.DeepestMineDug);
                 OnDeepestMineDug?.Invoke(this, EventArgs.Empty);
@@ -97,12 +98,17 @@ namespace SettlersOfIdlestan.Controller.Island
         /// <summary>
         /// Ouvre l'Inframonde si la Mine Profonde est creusée (feature) ou si une ancienne
         /// sauvegarde contient le bâtiment legacy Mine Profonde.
+        /// La couche peut déjà exister (vide) après une perte de l'Inframonde : on teste
+        /// la présence d'un avant-poste joueur plutôt que l'existence de la couche.
         /// </summary>
         private void TryInitializeUnderworld()
         {
-            if (_state == null || _state.Layers.ContainsKey(LayerState.UnderworldZ)) return;
+            if (_state == null) return;
 
             var playerCiv = _state.PlayerCivilization;
+
+            // Déjà un avant-poste joueur dans l'Inframonde → rien à faire
+            if (playerCiv.Cities.Any(c => c.Position.Z == LayerState.UnderworldZ)) return;
 
             bool hasDugMine = _state.Features.OfType<DeepestMine>().Any(m => m.Dug);
             bool hasLegacyBuilding = playerCiv.Cities.Any(city =>
@@ -113,6 +119,57 @@ namespace SettlersOfIdlestan.Controller.Island
             var underworldLayer = LayerState.EstablishOupostInNewAutoExpandLayer(playerCiv);
             _state.AddLayer(LayerState.UnderworldZ, underworldLayer);
             _state.Visibility.RecalculateFor(playerCiv.Index);
+        }
+
+        /// <summary>
+        /// À appeler lorsqu'une ville du joueur est détruite.
+        /// Si c'était la dernière ville dans l'Inframonde, réinitialise la mine à 50 % d'investissement.
+        /// </summary>
+        public void OnCityDestroyed(Vertex cityVertex, int civilizationIndex)
+        {
+            if (_state == null) return;
+            var playerCiv = _state.PlayerCivilization;
+            if (civilizationIndex != playerCiv.Index) return;
+            if (cityVertex.Z != LayerState.UnderworldZ) return;
+
+            // La ville a déjà été retirée : vérifie s'il en reste dans l'Inframonde
+            if (playerCiv.Cities.Any(c => c.Position.Z == LayerState.UnderworldZ)) return;
+
+            ResetUnderworldAfterLastCityDestroyed();
+        }
+
+        private void ResetUnderworldAfterLastCityDestroyed()
+        {
+            if (_state == null) return;
+            var mine = _state.Features.OfType<DeepestMine>().FirstOrDefault();
+            if (mine == null) return;
+
+            // Remplace la couche par une map vide sans la supprimer :
+            // les features dont Position.Z == UnderworldZ restent valides pour GetMapFor,
+            // mais trouvent une carte sans tuiles (elles deviennent invisibles).
+            _state.AddLayer(LayerState.UnderworldZ, new LayerState());
+
+            // Retire les features orphelines de l'ancienne couche
+            foreach (var feature in _state.Features.Where(f => f.Position.Z == LayerState.UnderworldZ).ToList())
+                _state.RemoveFeature(feature);
+
+            // Nettoie les routes de l'Inframonde pour toutes les civilisations
+            foreach (var civ in _state.Civilizations)
+                civ.RemoveAllRoads(r => r.Position.Z == LayerState.UnderworldZ);
+
+            // Revient sur la surface si le joueur regardait l'Inframonde
+            _state.CurrentViewedLayer = IslandMap.SurfaceLayer;
+
+            // Remet la mine à 50 % du coût total pour permettre un nouveau creusement
+            mine.Dug = false;
+            mine.InvestmentEnabled.Clear();
+            mine.InvestedResources.Clear();
+            var cost = mine.GetInvestmentCost();
+            foreach (var kvp in cost)
+                mine.InvestedResources[kvp.Key] = kvp.Value / 2;
+
+            _state.EventLog.Add(GameEventType.UnderworldLost);
+            _state.Visibility.Recalculate();
         }
 
         public bool HasDeepestMineUnlocked(Civilization playerCiv)
@@ -154,7 +211,7 @@ namespace SettlersOfIdlestan.Controller.Island
             foreach (var hex in playerCityHexes)
             {
                 if (hex.Z != IslandMap.SurfaceLayer) continue;
-                var tile = _state.GetMapFor(hex).GetTile(hex);
+                var tile = _state.GetMapFor(hex)?.GetTile(hex);
                 if (tile == null) continue;
                 if (tile.TerrainType != TerrainType.Mountain) continue;
                 if (enemyZone.Contains(hex)) continue;

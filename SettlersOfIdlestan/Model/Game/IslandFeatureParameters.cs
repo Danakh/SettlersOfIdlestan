@@ -13,6 +13,7 @@ namespace SettlersOfIdlestan.Model.Game
     {
         CloseToPlayer,
         FarFromPlayer,
+        FarFromAllCivilization,
         Random
     }
 

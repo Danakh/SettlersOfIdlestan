@@ -131,7 +131,7 @@ namespace SettlersOfIdlestan.Controller.Island
             var result = new List<HexCoord>();
             foreach (var hex in playerCityHexes)
             {
-                var tile = _state.GetMapFor(hex).GetTile(hex);
+                var tile = _state.GetMapFor(hex)?.GetTile(hex);
                 if (tile == null) continue;
                 if (tile.TerrainType == TerrainType.Water) continue;
                 if (enemyZone.Contains(hex)) continue;
@@ -145,7 +145,7 @@ namespace SettlersOfIdlestan.Controller.Island
         public Wonder? PlaceWonder(HexCoord position)
         {
             if (_state == null) return null;
-            _state.GetMapFor(position);
+            if (_state.GetMapFor(position) == null) return null;
             var wonder = new Wonder(position);
             _state.AddFeature(wonder);
             _state.EventLog.Add(GameEventType.WonderPlaced);

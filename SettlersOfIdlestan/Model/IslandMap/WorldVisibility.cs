@@ -52,6 +52,7 @@ public class WorldVisibility
         if (!_byZ.TryGetValue(z, out var visibleMaps))
         {
             var map = _world.GetMapForZ(z);
+            if (map == null) return new Dictionary<int, VisibleIslandMap>();
             visibleMaps = _world.Civilizations.ToDictionary(
                 civ => civ.Index,
                 civ => new VisibleIslandMap(map, civ));

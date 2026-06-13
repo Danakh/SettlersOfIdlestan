@@ -210,7 +210,7 @@ namespace SettlersOfIdlestan.Controller.Island
                         foreach (var hex in city.Position.GetHexes())
                         {
                             if (hex == null || !visitedHexes.Add(hex)) continue;
-                            var tile = _state.GetMapFor(hex).GetTile(hex);
+                            var tile = _state.GetMapFor(hex)?.GetTile(hex);
                             if (tile == null) continue;
                             foreach (var adjacentCity in civ.Cities.Where(c => c.Position.IsAdjacentTo(hex)))
                                 foreach (var building in adjacentCity.Buildings)
@@ -370,7 +370,7 @@ namespace SettlersOfIdlestan.Controller.Island
             if (_state == null) return Array.Empty<Resource>();
             var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex);
             if (civ == null) return Array.Empty<Resource>();
-            var tile = _state.GetMapFor(hex).GetTile(hex);
+            var tile = _state.GetMapFor(hex)?.GetTile(hex);
             if (tile == null) return Array.Empty<Resource>();
 
             var resources = new HashSet<Resource>();
@@ -388,7 +388,7 @@ namespace SettlersOfIdlestan.Controller.Island
             if (_state == null) return Array.Empty<Resource>();
             var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex);
             if (civ == null) return Array.Empty<Resource>();
-            var tile = _state.GetMapFor(hex).GetTile(hex);
+            var tile = _state.GetMapFor(hex)?.GetTile(hex);
             if (tile == null) return Array.Empty<Resource>();
 
             var resources = new HashSet<Resource>();
@@ -413,7 +413,7 @@ namespace SettlersOfIdlestan.Controller.Island
             if (_state == null) return System.Array.Empty<(Vertex, BuildingType, Resource, long, long)>();
             var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex);
             if (civ == null) return System.Array.Empty<(Vertex, BuildingType, Resource, long, long)>();
-            var tile = _state.GetMapFor(hex).GetTile(hex);
+            var tile = _state.GetMapFor(hex)?.GetTile(hex);
             if (tile == null) return System.Array.Empty<(Vertex, BuildingType, Resource, long, long)>();
 
             var result = new System.Collections.Generic.List<(Vertex, BuildingType, Resource, long, long)>();
@@ -528,7 +528,7 @@ namespace SettlersOfIdlestan.Controller.Island
             if (cities.Count == 0)
                 return false;
 
-            var tile = _state.GetMapFor(hex).GetTile(hex);
+            var tile = _state.GetMapFor(hex)?.GetTile(hex);
             if (tile == null) return false;
 
             var harvested = new ResourceSet();

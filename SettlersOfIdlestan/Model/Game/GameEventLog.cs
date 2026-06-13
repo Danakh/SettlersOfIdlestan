@@ -24,6 +24,7 @@ public enum GameEventType
     OgreDefeated,
     DeepestMinePlaced,
     DeepestMineDug,
+    UnderworldLost,
     FairyCircleDiscovered,
     DolmenDiscovered,
     RitualCollapsed,

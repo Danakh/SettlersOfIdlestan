@@ -29,6 +29,7 @@ public class WorldState : IJsonOnDeserialized
     }
 
     public void AddLayer(int z, LayerState layer) => _layers[z] = layer;
+    public void RemoveLayer(int z) => _layers.Remove(z);
 
     /// <summary>
     /// Z-coordinate of the layer currently displayed. Not persisted.
@@ -58,7 +59,7 @@ public class WorldState : IJsonOnDeserialized
 
     [JsonIgnore]
     public IslandMap CurrentViewedMap => GetMapForZ(
-        Layers.ContainsKey(CurrentViewedLayer) ? CurrentViewedLayer : IslandMap.SurfaceLayer);
+        Layers.ContainsKey(CurrentViewedLayer) ? CurrentViewedLayer : IslandMap.SurfaceLayer)!;
 
     /// <summary>
     /// Transient event log for the current session. Not persisted.
@@ -95,17 +96,17 @@ public class WorldState : IJsonOnDeserialized
         Visibility.Recalculate();
     }
 
-    public IslandMap GetMapForZ(int z)
+    public IslandMap? GetMapForZ(int z)
     {
         if (Layers.TryGetValue(z, out var layer))
             return layer.Map;
 
-        throw new ArgumentException($"No island map exists for layer z={z}.", nameof(z));
+        return null;
     }
 
-    public IslandMap GetMapFor(HexCoord coord) => GetMapForZ(coord.Z);
-    public IslandMap GetMapFor(Vertex vertex) => GetMapForZ(vertex.Z);
-    public IslandMap GetMapFor(Edge edge) => GetMapForZ(edge.Z);
+    public IslandMap? GetMapFor(HexCoord coord) => GetMapForZ(coord.Z);
+    public IslandMap? GetMapFor(Vertex vertex) => GetMapForZ(vertex.Z);
+    public IslandMap? GetMapFor(Edge edge) => GetMapForZ(edge.Z);
 
     public bool TryGetMapForZ(int z, out IslandMap map)
     {

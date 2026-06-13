@@ -84,7 +84,7 @@ public class AutoplayerDebugRenderer : IGameRenderer
         {
             _autoplayer = new CivilizationAutoplayer(
                 playerCiv,
-                worldState.GetMapForZ(IslandMap.SurfaceLayer),
+                worldState.GetMapForZ(IslandMap.SurfaceLayer)!,
                 mainController.RoadController,
                 mainController.HarvestController,
                 mainController.BuildingController,

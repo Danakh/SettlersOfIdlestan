@@ -160,7 +160,7 @@ namespace SettlersOfIdlestan.Controller.Island
         {
             if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
             if (vertex == null) throw new ArgumentNullException(nameof(vertex));
-            _state.GetMapFor(vertex);
+            if (_state.GetMapFor(vertex) == null) throw new ArgumentException("Vertex belongs to an unknown layer.", nameof(vertex));
 
             var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex)
                       ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));

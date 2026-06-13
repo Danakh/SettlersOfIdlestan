@@ -40,7 +40,7 @@ public class NpcCivilizationPlacer
         if (npcCivs.Count == 0) return true;
 
         var playerVertex = state.PlayerCivilization.Cities[0].Position;
-        var allValidVertices = FindValidCityVertices(state.GetMapForZ(IslandMap.SurfaceLayer));
+        var allValidVertices = FindValidCityVertices(state.GetMapForZ(IslandMap.SurfaceLayer)!);
 
         var npcModifiers = NpcModifierSetMaker.Create(maxTechTier: 3, maxPrestigeDistance: 2);
         var maritimeModifier = new StaticModifierProvider(new[]
@@ -62,7 +62,7 @@ public class NpcCivilizationPlacer
                 break;
         }
 
-        var map = state.GetMapForZ(IslandMap.SurfaceLayer);
+        var map = state.GetMapForZ(IslandMap.SurfaceLayer)!;
         for (int i = 0; i < bestPlacement.Count; i++)
         {
             var civ = npcCivs[i];

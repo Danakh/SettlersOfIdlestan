@@ -20,15 +20,16 @@ public class DeepestMine : IslandFeature, IInvestableFeature
     public override GameEventType DiscoveredEventType => GameEventType.NoEvent;
     public override GameEventType RemovedEventType => GameEventType.NoEvent;
 
-    public override string? SvgIconResourceName => Dug
-        ? "Resources.icons.features.skullcave.svg"
-        : "Resources.icons.features.rockcave.svg";
+    public override string? SvgIconResourceName => "Resources.icons.features.rockcave.svg";
     public override float SvgIconSize => 40f;
 
-    public override LocalizedEntry GetTooltipEntry() => new(Dug ? "hex_tooltip_deepest_mine_dug" : "hex_tooltip_deepest_mine");
+    public override LocalizedEntry GetTooltipEntry() => new(WasEverDug ? "hex_tooltip_deepest_mine_dug" : "hex_tooltip_deepest_mine");
 
     /// <summary>True quand le creusement est terminé et que l'Inframonde est accessible.</summary>
     public bool Dug { get; set; } = false;
+
+    /// <summary>Reste true une fois que la mine a été creusée pour la première fois ; pilote l'icône.</summary>
+    public bool WasEverDug { get; set; } = false;
 
     public Dictionary<Resource, long> InvestedResources { get; set; } = new();
     public List<Resource> InvestmentEnabled { get; set; } = new();

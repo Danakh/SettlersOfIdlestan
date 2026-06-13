@@ -165,5 +165,80 @@ namespace SOITests.ControllerTests
 
             Assert.False(state.Layers.ContainsKey(LayerState.UnderworldZ));
         }
+
+        // ── Perte de l'Inframonde ────────────────────────────────────────────
+
+        private static DeepestMine DigMineAndOpenUnderworld(WorldState state, GameClock clock, DeepestMineController controller)
+        {
+            var mine = controller.PlaceDeepestMine(MountainHex)!;
+            var cost = DeepestMine.GetDigCost();
+            foreach (var kvp in cost)
+            {
+                mine.InvestedResources[kvp.Key] = kvp.Value;
+                mine.InvestmentEnabled.Add(kvp.Key);
+            }
+            clock.SimulateAdvance(DeepestMineController.InvestmentIntervalTicks + 1);
+            return mine;
+        }
+
+        [Fact]
+        public void LastUnderworldCityDestroyed_ResetsMineTo50Percent()
+        {
+            var (state, clock, controller) = CreateSetup();
+            var mine = DigMineAndOpenUnderworld(state, clock, controller);
+
+            var underworldCity = state.PlayerCivilization.Cities.First(c => c.Position.Z == LayerState.UnderworldZ);
+            state.PlayerCivilization.RemoveCity(underworldCity);
+            controller.OnCityDestroyed(underworldCity.Position, state.PlayerCivilization.Index);
+
+            // La couche reste (vide) pour que GetMapFor reste valide
+            Assert.True(state.Layers.ContainsKey(LayerState.UnderworldZ));
+            Assert.Empty(state.GetMapForZ(LayerState.UnderworldZ)!.Tiles);
+            // Plus d'avant-poste joueur
+            Assert.DoesNotContain(state.PlayerCivilization.Cities, c => c.Position.Z == LayerState.UnderworldZ);
+            // Mine réouvrable
+            Assert.False(mine.Dug);
+            // Ressources à 50 %
+            var cost = DeepestMine.GetDigCost();
+            foreach (var kvp in cost)
+                Assert.Equal(kvp.Value / 2, mine.InvestedResources[kvp.Key]);
+        }
+
+        [Fact]
+        public void LastUnderworldCityDestroyed_IconUnchanged()
+        {
+            var (state, clock, controller) = CreateSetup();
+            var mine = DigMineAndOpenUnderworld(state, clock, controller);
+            var iconBefore = mine.SvgIconResourceName;
+
+            var underworldCity = state.PlayerCivilization.Cities.First(c => c.Position.Z == LayerState.UnderworldZ);
+            state.PlayerCivilization.RemoveCity(underworldCity);
+            controller.OnCityDestroyed(underworldCity.Position, state.PlayerCivilization.Index);
+
+            Assert.True(mine.WasEverDug);
+            Assert.Equal(iconBefore, mine.SvgIconResourceName);
+        }
+
+        [Fact]
+        public void LastUnderworldCityDestroyed_NewUnderworldOpensAfterRedigging()
+        {
+            var (state, clock, controller) = CreateSetup();
+            var mine = DigMineAndOpenUnderworld(state, clock, controller);
+
+            var underworldCity = state.PlayerCivilization.Cities.First(c => c.Position.Z == LayerState.UnderworldZ);
+            state.PlayerCivilization.RemoveCity(underworldCity);
+            controller.OnCityDestroyed(underworldCity.Position, state.PlayerCivilization.Index);
+
+            // Complète l'investissement restant (50 %)
+            var cost = DeepestMine.GetDigCost();
+            foreach (var kvp in cost)
+                mine.InvestedResources[kvp.Key] = kvp.Value;
+            mine.InvestmentEnabled.AddRange(cost.Keys);
+
+            clock.SimulateAdvance(DeepestMineController.InvestmentIntervalTicks + 1);
+
+            Assert.True(mine.Dug);
+            Assert.True(state.Layers.ContainsKey(LayerState.UnderworldZ));
+        }
     }
 }

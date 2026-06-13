@@ -132,7 +132,7 @@ public class MonsterFeatureController
     {
         if (_state == null) return;
 
-        var map = _state.GetMapFor(monster.Position);
+        var map = _state.GetMapFor(monster.Position)!;
         var neighbors = monster.Position.Neighbors()
             .Where(n => map.HasTile(n) && map.GetTile(n)!.TerrainType != TerrainType.Water)
             .ToList();
@@ -200,7 +200,7 @@ public class MonsterFeatureController
         if (monster.AttackRangeInHexes < 2) return null;
 
         // Portée étendue : hexes voisins du monstre
-        var map = _state.GetMapFor(monster.Position);
+        var map = _state.GetMapFor(monster.Position)!;
         var neighborSet = monster.Position.Neighbors()
             .Where(n => map.HasTile(n))
             .ToHashSet();

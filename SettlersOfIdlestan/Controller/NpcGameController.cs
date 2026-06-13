@@ -79,7 +79,7 @@ public class NpcGameController
         bool hasEncounteredEnemy = aggressivity >= NpcAggressivityLevel.Expansionist
             && HasEncounteredEnemy(civ);
 
-        var autoplayer = new NpcCivilizationAutoplayer(civ, _state.GetMapForZ(IslandMap.SurfaceLayer), _mainController, aggressivity);
+        var autoplayer = new NpcCivilizationAutoplayer(civ, _state.GetMapForZ(IslandMap.SurfaceLayer)!, _mainController, aggressivity);
         autoplayer.TryStepOnce(shouldExpand: !hasEncounteredEnemy);
     }
 

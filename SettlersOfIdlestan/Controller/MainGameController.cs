@@ -258,12 +258,14 @@ namespace SettlersOfIdlestan.Controller
                 BuildingController.OnBuildingBuilt -= OnBuildingChangedInvalidateHarvestCache;
                 CityBuilderController.OnCityBuilt -= OnCityBuiltInvalidateHarvestCache;
                 MilitaryController.CityDestroyed -= OnCityDestroyedRefreshContested;
+                MilitaryController.CityDestroyed -= OnCityDestroyedCheckUnderworld;
                 MonsterFeatureController.CityDestroyedByMonster -= OnCityDestroyedByMonster;
                 RoadController.OnRoadBuilt -= OnRoadBuiltExtendMap;
                 RoadController.OnAutoRoadBuilt -= OnRoadBuiltExtendMap;
                 BuildingController.OnBuildingBuilt += OnBuildingChangedInvalidateHarvestCache;
                 CityBuilderController.OnCityBuilt += OnCityBuiltInvalidateHarvestCache;
                 MilitaryController.CityDestroyed += OnCityDestroyedRefreshContested;
+                MilitaryController.CityDestroyed += OnCityDestroyedCheckUnderworld;
                 MonsterFeatureController.CityDestroyedByMonster += OnCityDestroyedByMonster;
                 RoadController.OnRoadBuilt += OnRoadBuiltExtendMap;
                 RoadController.OnAutoRoadBuilt += OnRoadBuiltExtendMap;
@@ -303,6 +305,9 @@ namespace SettlersOfIdlestan.Controller
 
         private void OnCityDestroyedRefreshContested(object? sender, CityDestroyedEventArgs e)
             => FeatureController.RefreshContestedTerritories();
+
+        private void OnCityDestroyedCheckUnderworld(object? sender, CityDestroyedEventArgs e)
+            => DeepestMineController.OnCityDestroyed(e.CityVertex, e.CivilizationIndex);
 
         private void OnCityDestroyedByMonster(object? sender, CityDestroyedEventArgs e)
         {

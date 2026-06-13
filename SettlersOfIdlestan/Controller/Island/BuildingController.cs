@@ -199,7 +199,8 @@ namespace SettlersOfIdlestan.Controller.Island
                 else
                 {
                     if ((GetMaxLevel(prototype, city.CivilizationIndex) > 0) &&
-                        prototype.IsBuildingAvailableForCity(_state.GetMapFor(city.Position), city))
+                        _state.GetMapFor(city.Position) is { } map0 &&
+                        prototype.IsBuildingAvailableForCity(map0, city))
                     {
                         result.Add(prototype);
                     }
@@ -231,7 +232,8 @@ namespace SettlersOfIdlestan.Controller.Island
             {
                 var prototype = CreateBuilding(type) ?? throw new ArgumentException("Unknown building type", nameof(type));
 
-                if (!prototype.IsBuildingAvailableForCity(_state.GetMapFor(city.Position), city))
+                if (_state.GetMapFor(city.Position) is not { } map1 ||
+                    !prototype.IsBuildingAvailableForCity(map1, city))
                     return false;
 
                 if (prototype.IsUnique &&
@@ -330,7 +332,8 @@ namespace SettlersOfIdlestan.Controller.Island
                                    ?? prototype;
                     result.Add(instance);
                 }
-                else if (prototype.IsBuildingAvailableForCity(_state.GetMapFor(city.Position), city))
+                else if (_state.GetMapFor(city.Position) is { } map2 &&
+                         prototype.IsBuildingAvailableForCity(map2, city))
                 {
                     result.Add(prototype);
                 }
