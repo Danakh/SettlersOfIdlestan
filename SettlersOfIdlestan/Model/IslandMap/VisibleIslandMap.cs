@@ -13,7 +13,7 @@ namespace SettlersOfIdlestan.Model.IslandMap;
 public class VisibleIslandMap : IslandMap
 {
     public VisibleIslandMap(IslandMap sourceMap, CivilizationModel civilization)
-        : base(GetVisibleTiles(sourceMap, civilization))
+        : base(GetVisibleTiles(sourceMap, civilization), sourceMap.Z)
     {
     }
 
