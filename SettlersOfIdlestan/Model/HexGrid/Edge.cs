@@ -165,7 +165,10 @@ public class Edge
     public override int GetHashCode()
     {
         var normalized = Normalize(Hex1, Hex2);
-        return HashCode.Combine(normalized.Item1, normalized.Item2);
+        unchecked
+        {
+            return normalized.Item1.GetHashCode() * 31 + normalized.Item2.GetHashCode();
+        }
     }
 
     /// <summary>

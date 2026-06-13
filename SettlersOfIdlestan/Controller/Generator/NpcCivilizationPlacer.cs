@@ -87,7 +87,7 @@ public class NpcCivilizationPlacer
 
             var aggressivity = civ.NpcParameters?.AggressivityLevel ?? NpcAggressivityLevel.Cautious;
             var autoplayer = new NpcCivilizationAutoplayer(civ, map, mainController, aggressivity);
-            ExpandNpcWithAutoplayer(autoplayer, civ, map, level, playerVertex);
+            ExpandNpcWithAutoplayer(autoplayer, civ, map, level, playerVertex, mainController.RoadController);
         }
 
         return true;
@@ -221,7 +221,7 @@ public class NpcCivilizationPlacer
 
     private static void ExpandNpcWithAutoplayer(
         NpcCivilizationAutoplayer autoplayer, Civilization civ, IslandMap map, NpcEvolutionLevel level,
-        Vertex playerVertex)
+        Vertex playerVertex, Island.RoadController roadController)
     {
         int target = civ.NpcParameters?.CityCount ?? TargetCityCount(level);
         int minDist = civ.NpcParameters?.MinDistanceFromPlayer ?? DefaultMinPlayerDistance;
@@ -234,13 +234,16 @@ public class NpcCivilizationPlacer
             var snapshot = civ.Cities.Select(c => c.Position).ToHashSet();
             autoplayer.Inner.TryStep0Once();
 
-            // Supprimer toute ville nouvellement fondée trop proche du joueur
+            // Supprimer toute ville nouvellement fondée trop proche du joueur et nettoyer les routes orphelines
             var tooClose = civ.Cities
                 .Where(c => !snapshot.Contains(c.Position) &&
                             c.Position.EdgeDistanceTo(playerVertex) < minDist)
                 .ToList();
             foreach (var city in tooClose)
+            {
                 civ.RemoveCity(city);
+                roadController.OnCityDestroyed(civ, city.Position);
+            }
         }
 
         AddDefaultBuildingsForLevel(map, civ, level);

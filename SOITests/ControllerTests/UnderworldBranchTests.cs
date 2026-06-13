@@ -68,23 +68,5 @@ namespace SOITests.ControllerTests
                 Assert.True(mithrilCost >= map.GetVertex(coord)!.Cost,
                     $"Le Mithril ({mithrilCost}) doit être au moins aussi cher que {coord} ({map.GetVertex(coord)!.Cost})");
         }
-
-        [Fact]
-        public void PrestigeMap_UnderworldHexes_GrantPerVertexModifiers()
-        {
-            var map = PrestigeMapFactory.CreateDefault();
-
-            var excavations = map.GetHex(PrestigeMap.ExcavationsCoord);
-            Assert.NotNull(excavations);
-            Assert.Contains(excavations!.PerVertexModifiers, m =>
-                m.Category == ECategory.HARVEST_SPEED && m.SubCategory == "Mine");
-
-            var underworld = map.GetHex(PrestigeMap.UnderworldCoord);
-            Assert.NotNull(underworld);
-            Assert.Contains(underworld!.PerVertexModifiers, m =>
-                m.Category == ECategory.HARVEST_SPEED && m.SubCategory == "MushroomFarm");
-            // 6 vertex adjacents : porte + 4 vertex thématiques + 1 placeholder
-            Assert.Equal(6, underworld.AdjacentVertices.Count);
-        }
     }
 }

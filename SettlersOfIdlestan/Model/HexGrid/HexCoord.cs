@@ -144,9 +144,10 @@ public class HexCoord
     /// </summary>
     public override int GetHashCode()
     {
-        return Z == 0
-            ? HashCode.Combine(Q, R)
-            : HashCode.Combine(Q, R, Z);
+        unchecked
+        {
+            return (Q * 31 + R) * 31 + Z;
+        }
     }
 
     /// <summary>

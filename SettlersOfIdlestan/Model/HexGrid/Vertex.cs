@@ -157,7 +157,10 @@ public class Vertex
     public override int GetHashCode()
     {
         var normalized = Normalize(Hex1, Hex2, Hex3);
-        return HashCode.Combine(normalized[0], normalized[1], normalized[2]);
+        unchecked
+        {
+            return (normalized[0].GetHashCode() * 31 + normalized[1].GetHashCode()) * 31 + normalized[2].GetHashCode();
+        }
     }
 
     /// <summary>

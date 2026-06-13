@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using SettlersOfIdlestan.Controller.Generator;
@@ -21,12 +21,26 @@ public class NpcCivilizationPlacementTests
         (TerrainType.Mountain, 10),
     ];
 
+    // Île grande pour les tests d'évolution avancée (Medium/Strong = 5-7 villes NPC).
+    // 20 tuiles par type suffisent maintenant que l'expansion nettoie les routes orphelines.
+    private static readonly IEnumerable<(TerrainType, int)> TileData80 =
+    [
+        (TerrainType.Forest,   20),
+        (TerrainType.Hill,     20),
+        (TerrainType.Plain,    20),
+        (TerrainType.Mountain, 20),
+    ];
+
     private static WorldState CreateIsland(IslandShapeType shape, int npcCount,
         NpcEvolutionLevel level = NpcEvolutionLevel.Minimum)
     {
+        var tileData = level is NpcEvolutionLevel.Medium or NpcEvolutionLevel.Strong
+            ? TileData80
+            : TileData40;
+
         var parameters = new IslandParameters(
             worldId: 0,
-            tileData: TileData40,
+            tileData: tileData,
             shapeType: shape)
         {
             NpcCivilizations = Enumerable.Range(0, npcCount)
@@ -34,7 +48,7 @@ public class NpcCivilizationPlacementTests
                 .ToList()
         };
 
-        var state = new IslandMapGenerator().GenerateWorldState(parameters, currentTick: 0);
+        var state = new IslandMapGenerator(new GamePRNG(42)).GenerateWorldState(parameters, currentTick: 0);
         Assert.NotNull(state);
         return state;
     }
