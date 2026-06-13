@@ -76,6 +76,16 @@ public static class SaveUtils
 
     // ── Internals ─────────────────────────────────────────────────────────────
 
+    /// <summary>Supprime tous les fichiers .json dans saves/{folder}.</summary>
+    public static void ClearFolder(string folder)
+    {
+        var solutionRoot = GetSolutionRootDirectory(Directory.GetCurrentDirectory());
+        var dir = Path.Combine(solutionRoot, "saves", folder);
+        if (!Directory.Exists(dir)) return;
+        foreach (var file in Directory.GetFiles(dir, "*.json"))
+            File.Delete(file);
+    }
+
     private static string ResolvePath(string folder, string name)
     {
         var solutionRoot = GetSolutionRootDirectory(Directory.GetCurrentDirectory());
