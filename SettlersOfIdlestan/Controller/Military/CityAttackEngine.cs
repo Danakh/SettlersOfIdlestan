@@ -72,6 +72,7 @@ internal class CityAttackEngine
         {
             city.RaiseDestroyed();
             civ.RemoveCity(city);
+            civ.TrimResourcesToMax();
             _roadController?.OnCityDestroyed(civ, city.Position);
             NotifyCityDestroyed(city.Position, civ.Index, onCityDestroyed);
             _state!.Visibility.Recalculate();
@@ -166,6 +167,7 @@ internal class CityAttackEngine
                 targetCity.InvalidateLevelCache();
                 onCityBuildingDestroyed(new CityBuildingDestroyedEventArgs(targetCity.Position));
             }
+            _state!.Civilizations.FirstOrDefault(c => c.Index == targetCity.CivilizationIndex)?.TrimResourcesToMax();
             return false;
         }
 

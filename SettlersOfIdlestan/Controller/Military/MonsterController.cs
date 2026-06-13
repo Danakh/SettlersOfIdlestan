@@ -265,6 +265,7 @@ public class MonsterFeatureController
                         city.Buildings.Remove(townHall);
                         city.InvalidateLevelCache();
                     }
+                    civ.TrimResourcesToMax();
                 }
             }
 
@@ -275,6 +276,7 @@ public class MonsterFeatureController
                 monster.LastAttackResourcesString = null;
                 city.RaiseDestroyed();
                 civ.RemoveCity(city);
+                civ.TrimResourcesToMax();
                 CityDestroyedByMonster?.Invoke(this, new CityDestroyedEventArgs(city.Position, civ.Index));
                 _state!.Visibility.Recalculate();
                 return;

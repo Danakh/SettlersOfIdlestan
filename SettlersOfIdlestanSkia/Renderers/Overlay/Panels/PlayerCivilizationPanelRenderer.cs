@@ -341,6 +341,8 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             lines.Add(_localization.Get("tooltip_prestige_next_island"));
             _tooltipRenderer.SetTooltipLines(lines.ToArray(), new SKPoint(_prestigeButtonRect.Right, _prestigeButtonRect.Top));
         }
+        else if (_hoveredWonder && _wonderEnabled)
+            _tooltipRenderer.SetTooltip(_localization.Get("tooltip_wonder"), new SKPoint(_wonderButtonRect.Right, _wonderButtonRect.Top));
         else if (_hoveredWonder && !_wonderEnabled)
             _tooltipRenderer.SetTooltip(_localization.Get("tooltip_wonder_surface_only"), new SKPoint(_wonderButtonRect.Right, _wonderButtonRect.Top));
         else if (_hoveredDeepestMine && !_deepestMineEnabled)

@@ -258,6 +258,16 @@ public class Civilization
         return result + storageBonus;
     }
 
+    public void TrimResourcesToMax()
+    {
+        foreach (var resource in _resources.Keys.ToList())
+        {
+            var max = GetResourceMaxQuantity(resource);
+            if (_resources[resource] > max)
+                _resources[resource] = max;
+        }
+    }
+
     private List<BuildingType> _uniqueBuildings = new();
 
     /// <summary>
