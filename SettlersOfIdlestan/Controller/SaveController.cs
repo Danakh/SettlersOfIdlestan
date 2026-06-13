@@ -3,21 +3,26 @@ using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
 using System;
-using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 
 namespace SettlersOfIdlestan.Controller
 {
     /// <summary>
-    /// Gère la sérialisation/désérialisation du MainGameState avec chiffrement AES.
-    /// Pipeline export : JSON → Base64 → AES chiffré (Base64).
-    /// Pipeline import : déchiffrement → Base64 → JSON, avec fallback JSON brut pour les anciennes sauvegardes.
+    /// Gère la sérialisation/désérialisation du MainGameState avec brouillage XOR.
+    /// Pipeline export : JSON → Base64 → XOR brouillé (Base64).
+    /// Pipeline import : débrouillage → Base64 → JSON, avec fallback JSON brut pour les anciennes sauvegardes.
     /// </summary>
     public class SaveController
     {
-        // Clé AES-256 dérivée d'une passphrase via SHA-256
-        private static readonly byte[] _key = SHA256.HashData(Encoding.UTF8.GetBytes("SettlersOfIdlestan_SaveKey_v1_Danakh"));
+        // Clé construite par fragments pour ne pas apparaître en clair dans le binaire
+        private static readonly byte[] _key = BuildKey();
+
+        private static byte[] BuildKey()
+        {
+            var parts = new[] { "b64", typeof(SaveController).Name, "SoI" };
+            return Encoding.UTF8.GetBytes(string.Concat(parts));
+        }
 
         private static readonly JsonSerializerOptions _serializationOptions = MakeSerializationOptions();
 
@@ -60,35 +65,24 @@ namespace SettlersOfIdlestan.Controller
 
         private static string Encrypt(string plaintext)
         {
-            using var aes = Aes.Create();
-            aes.Key = _key;
-            aes.GenerateIV();
-
-            var plaintextBytes = Encoding.UTF8.GetBytes(plaintext);
-            var encryptor = aes.CreateEncryptor();
-            var ciphertext = encryptor.TransformFinalBlock(plaintextBytes, 0, plaintextBytes.Length);
-
-            // IV (16 octets) préfixé au texte chiffré
-            var result = new byte[aes.IV.Length + ciphertext.Length];
-            aes.IV.CopyTo(result, 0);
-            ciphertext.CopyTo(result, aes.IV.Length);
-
-            return Convert.ToBase64String(result);
+            var data = Encoding.UTF8.GetBytes(plaintext);
+            var xored = XorCycle(data, _key);
+            return Convert.ToBase64String(xored);
         }
 
         private static string Decrypt(string encrypted)
         {
             var data = Convert.FromBase64String(encrypted);
-            var iv = data[..16];
-            var ciphertext = data[16..];
+            var xored = XorCycle(data, _key);
+            return Encoding.UTF8.GetString(xored);
+        }
 
-            using var aes = Aes.Create();
-            aes.Key = _key;
-            aes.IV = iv;
-
-            var decryptor = aes.CreateDecryptor();
-            var plaintextBytes = decryptor.TransformFinalBlock(ciphertext, 0, ciphertext.Length);
-            return Encoding.UTF8.GetString(plaintextBytes);
+        private static byte[] XorCycle(byte[] data, byte[] key)
+        {
+            var result = new byte[data.Length];
+            for (int i = 0; i < data.Length; i++)
+                result[i] = (byte)(data[i] ^ key[i % key.Length]);
+            return result;
         }
 
         private static MainGameState DeserializeJson(string json)
