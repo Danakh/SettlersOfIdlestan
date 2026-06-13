@@ -299,7 +299,7 @@ public class IslandGeneratorTests
 
         // Assert
         Assert.NotNull(deserialized);
-        Assert.Equal(original.GetMapForZ(IslandMap.SurfaceLayer).Tiles.Count, deserialized.GetMapForZ(IslandMap.SurfaceLayer).Tiles.Count);
+        Assert.Equal(original.GetMapForZ(IslandMap.SurfaceLayer)!.Tiles.Count, deserialized.GetMapForZ(IslandMap.SurfaceLayer)!.Tiles.Count);
         Assert.Equal(original.Civilizations.Count, deserialized.Civilizations.Count);
         Assert.Equal(original.PlayerCivilization.Index, deserialized.PlayerCivilization.Index);
     }

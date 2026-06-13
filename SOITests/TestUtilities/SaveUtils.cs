@@ -107,7 +107,7 @@ public static class SaveUtils
         var reloadedIsland = reloadedController.CurrentMainState?.CurrentWorldState
                              ?? throw new InvalidOperationException("Reloaded controller does not have a current island state");
 
-        Assert.Equal(originalIsland.GetMapForZ(IslandMap.SurfaceLayer).Tiles.Count, reloadedIsland.GetMapForZ(IslandMap.SurfaceLayer).Tiles.Count);
+        Assert.Equal(originalIsland.GetMapForZ(IslandMap.SurfaceLayer)!.Tiles.Count, reloadedIsland.GetMapForZ(IslandMap.SurfaceLayer)!.Tiles.Count);
         Assert.Equal(originalIsland.Civilizations.Count, reloadedIsland.Civilizations.Count);
         Assert.Equal(
             originalIsland.Civilizations.Sum(c => c.Roads.Count),

@@ -5,6 +5,7 @@ using SettlersOfIdlestan.Controller.Expand;
 using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Game;
+using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.IslandMap;
 using SOITests.TestUtilities;
 using Xunit;
@@ -66,6 +67,32 @@ namespace SOITests.IslandMapTests
             Condition = ctrl => ctrl.PrestigeController.PrestigeIsAvailable(),
             AssertFailMessage = ctrl =>
                 $"Expected prestige to be available (has {ctrl.PrestigeController.CalculatePrestigePoints()} / {PrestigeController.PrestigeRequiredPoints})",
+        };
+
+        private static IslandStepDefinition WonderPlacedStep(string saveName) => new()
+        {
+            SaveName = saveName,
+            RunAction = (runner, cond) => runner.RunStepWonderSetupUntil(cond),
+            Condition = ctrl =>
+            {
+                var worldState = ctrl.CurrentMainState?.CurrentWorldState;
+                var wonder = worldState?.Features.OfType<Wonder>().FirstOrDefault();
+                return wonder != null && wonder.InvestmentEnabled.Count > 0;
+            },
+            AssertFailMessage = _ => "Expected wonder to be placed with investment enabled",
+        };
+
+        private static IslandStepDefinition WonderLevel1Step(string saveName) => new()
+        {
+            SaveName = saveName,
+            RunAction = (runner, cond) => runner.RunStepWaitUntil(cond),
+            Condition = ctrl =>
+            {
+                var worldState = ctrl.CurrentMainState?.CurrentWorldState;
+                var wonder = worldState?.Features.OfType<Wonder>().FirstOrDefault();
+                return wonder != null && wonder.Level >= 1;
+            },
+            AssertFailMessage = _ => "Expected wonder to be at level 1",
         };
 
         // ── Island 1 scenario ────────────────────────────────────────────────
@@ -141,6 +168,32 @@ namespace SOITests.IslandMapTests
                 TenCitiesStep("Island3_Step2bis"),
                 PrestigePointsStep("Island3_Step3"),
                 PrestigeAvailableStep("Island3_Step3bis"),
+                WonderPlacedStep("Island3_Wonder_Step0"),
+                WonderLevel1Step("Island3_Wonder_Step1"),
+            },
+        };
+
+        // ── Island 4 scenario ────────────────────────────────────────────────
+
+        private static readonly IslandScenario Island4 = new()
+        {
+            Name = "Island4",
+            CreateFreshController = folder => SaveUtils.LoadSave(folder, "Island3_Wonder_Step1"),
+            IsInputAvailable = folder => SaveUtils.SaveExists(folder, "Island3_Wonder_Step1"),
+            Steps = new List<IslandStepDefinition>
+            {
+                // Step 0: third prestige transition + greedy point distribution.
+                new()
+                {
+                    SaveName = "Island4_Step0",
+                    RunAction = (runner, cond) => runner.RunStepPrestige(cond),
+                    Condition = ctrl => ctrl.CurrentMainState?.PrestigeState?.RunHistory.Count >= 3,
+                    AssertFailMessage = _ => "Expected third prestige to have been performed (RunHistory.Count < 3)",
+                },
+                TwoCitiesStep("Island4_Step1"),
+                SixCitiesStep("Island4_Step2"),
+                TenCitiesStep("Island4_Step2bis"),
+                PrestigePointsStep("Island4_Step3"),
             },
         };
 
@@ -157,7 +210,8 @@ namespace SOITests.IslandMapTests
             [
                 (Island1, 0), (Island1, 1), (Island1, 2), (Island1, 3), (Island1, 4),
                 (Island2, 0), (Island2, 1), (Island2, 2), (Island2, 3), (Island2, 4), (Island2, 5),
-                (Island3, 0), (Island3, 1), (Island3, 2), (Island3, 3), (Island3, 4), (Island3, 5),
+                (Island3, 0), (Island3, 1), (Island3, 2), (Island3, 3), (Island3, 4), (Island3, 5), (Island3, 6), (Island3, 7),
+                (Island4, 0), (Island4, 1), (Island4, 2), (Island4, 3), (Island4, 4),
             ];
             foreach (var (scenario, stepIndex) in steps)
                 IslandScenarioRunner.RunStep(scenario, stepIndex, "current", saveFinal: true);
@@ -237,6 +291,36 @@ namespace SOITests.IslandMapTests
         public void Current_Island3_Step3bis() =>
             IslandScenarioRunner.RunStep(Island3, 5, "current", saveFinal: true);
 
+        [Fact]
+        public void Current_Island3_Wonder_Step0() =>
+            IslandScenarioRunner.RunStep(Island3, 6, "current", saveFinal: true);
+
+        [Fact]
+        public void Current_Island3_Wonder_Step1() =>
+            IslandScenarioRunner.RunStep(Island3, 7, "current", saveFinal: true);
+
+        // ── Island 4 — current mode ───────────────────────────────────────────
+
+        [Fact]
+        public void Current_Island4_Step0_Prestige() =>
+            IslandScenarioRunner.RunStep(Island4, 0, "current", saveFinal: true);
+
+        [Fact]
+        public void Current_Island4_Step1() =>
+            IslandScenarioRunner.RunStep(Island4, 1, "current", saveFinal: true);
+
+        [Fact]
+        public void Current_Island4_Step2() =>
+            IslandScenarioRunner.RunStep(Island4, 2, "current", saveFinal: true);
+
+        [Fact]
+        public void Current_Island4_Step2bis() =>
+            IslandScenarioRunner.RunStep(Island4, 3, "current", saveFinal: true);
+
+        [Fact]
+        public void Current_Island4_Step3() =>
+            IslandScenarioRunner.RunStep(Island4, 4, "current", saveFinal: true);
+
         // ── Island 1 — from release-1.0 (no save, silent skip if missing) ────
 
         [Fact]
@@ -306,5 +390,35 @@ namespace SOITests.IslandMapTests
         [Fact]
         public void Release1_0_Island3_Step3bis() =>
             IslandScenarioRunner.RunStep(Island3, 5, "release-1.0", saveFinal: false);
+
+        [Fact]
+        public void Release1_0_Island3_Wonder_Step0() =>
+            IslandScenarioRunner.RunStep(Island3, 6, "release-1.0", saveFinal: false);
+
+        [Fact]
+        public void Release1_0_Island3_Wonder_Step1() =>
+            IslandScenarioRunner.RunStep(Island3, 7, "release-1.0", saveFinal: false);
+
+        // ── Island 4 — from release-1.0 ──────────────────────────────────────
+
+        [Fact]
+        public void Release1_0_Island4_Step0_Prestige() =>
+            IslandScenarioRunner.RunStep(Island4, 0, "release-1.0", saveFinal: false);
+
+        [Fact]
+        public void Release1_0_Island4_Step1() =>
+            IslandScenarioRunner.RunStep(Island4, 1, "release-1.0", saveFinal: false);
+
+        [Fact]
+        public void Release1_0_Island4_Step2() =>
+            IslandScenarioRunner.RunStep(Island4, 2, "release-1.0", saveFinal: false);
+
+        [Fact]
+        public void Release1_0_Island4_Step2bis() =>
+            IslandScenarioRunner.RunStep(Island4, 3, "release-1.0", saveFinal: false);
+
+        [Fact]
+        public void Release1_0_Island4_Step3() =>
+            IslandScenarioRunner.RunStep(Island4, 4, "release-1.0", saveFinal: false);
     }
 }

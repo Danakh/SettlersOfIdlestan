@@ -1,9 +1,11 @@
 using System;
 using System.Linq;
 using SettlersOfIdlestan.Controller;
+using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.HexGrid;
+using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.IslandMap;
 
 namespace SOITests.TestUtilities;
@@ -140,6 +142,53 @@ public class CivilizationAutoplayerRunner
         for (int i = 0; i < maxIterations && !condition(); i++)
         {
             try { _autoplayer.TryMilitaryStepOnce(); } catch { }
+            Advance();
+        }
+    }
+    public void RunStepWaitUntil(Func<bool> condition, int maxIterations = 100000)
+    {
+        for (int i = 0; i < maxIterations && !condition(); i++)
+        {
+            _autoplayer.TryTradeForResourceOnce(Resource.Gold);
+            Advance();
+        }
+    }
+
+    /// <summary>
+    /// Grind step-3 actions until Architecture is researched, then places the wonder and
+    /// enables investment for all level-1 resources. Exits as soon as the condition is met.
+    /// </summary>
+    public void RunStepWonderSetupUntil(Func<bool> condition, int maxIterations = 10000)
+    {
+        for (int i = 0; i < maxIterations && !condition(); i++)
+        {
+            try
+            {
+                _autoplayer.TryStep2Once(shouldExpand: false);
+
+                var worldState = _controller.CurrentMainState?.CurrentWorldState;
+                if (worldState != null)
+                {
+                    var wonderCtrl = _controller.WonderController;
+                    var wonder = worldState.Features.OfType<Wonder>().FirstOrDefault();
+
+                    if (wonder == null && wonderCtrl.CanPlaceWonder(worldState.PlayerCivilization))
+                    {
+                        var hexes = wonderCtrl.GetPlaceableHexes();
+                        if (hexes.Count > 0)
+                            wonder = wonderCtrl.PlaceWonder(hexes[0]);
+                    }
+
+                    if (wonder != null)
+                    {
+                        var cost = WonderController.GetLevelCost(1);
+                        foreach (var r in cost.Keys)
+                            if (!wonder.InvestmentEnabled.Contains(r))
+                                wonder.InvestmentEnabled.Add(r);
+                    }
+                }
+            }
+            catch { }
             Advance();
         }
     }

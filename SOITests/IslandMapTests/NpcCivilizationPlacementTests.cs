@@ -156,7 +156,7 @@ public class NpcCivilizationPlacementTests
 
             foreach (var hex in hexes)
             {
-                var tile = state.GetMapForZ(IslandMap.SurfaceLayer).GetTile(hex);
+                var tile = state.GetMapForZ(IslandMap.SurfaceLayer)!.GetTile(hex);
                 if (tile == null) continue;
 
                 switch (tile.TerrainType)
