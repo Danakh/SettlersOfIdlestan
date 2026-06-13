@@ -3,7 +3,6 @@ using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Prestige;
-using SettlersOfIdlestan.Services;
 using SOITests.TestUtilities;
 using System.Text.Json;
 using Xunit;
@@ -28,7 +27,7 @@ namespace SOITests.ControllerTests
             var clock = new GameClock();
             var mainState = new MainGameState(WorldState, clock, new GamePRNG(42));
 
-            var json = JsonSerializer.Serialize(mainState, SerializationService.SerializationOptions());
+            var json = JsonSerializer.Serialize(mainState, SaveController.SerializationOptions());
 
             var controller = new MainGameController();
             var imported = controller.ImportMainState(json);
@@ -50,15 +49,16 @@ namespace SOITests.ControllerTests
             var clock = new GameClock();
             var mainState = new MainGameState(WorldState, clock, new GamePRNG(42));
 
-            var json = JsonSerializer.Serialize(mainState, SerializationService.SerializationOptions());
+            var json = JsonSerializer.Serialize(mainState, SaveController.SerializationOptions());
 
             var controller = new MainGameController();
             controller.ImportMainState(json);
 
             var exported = controller.ExportMainState();
 
-            var deserializeOptions = CreateOptions(caseInsensitive: true);
-            var round = JsonSerializer.Deserialize<MainGameState>(exported, deserializeOptions);
+            // L'export est chiffré — on passe par ImportMainState pour le round-trip
+            var controller2 = new MainGameController();
+            var round = controller2.ImportMainState(exported);
 
             Assert.NotNull(round);
             var island = round.CurrentWorldState;

@@ -149,6 +149,14 @@ namespace SOITests.IslandMapTests
         [Fact]
         public void Rebuild_All_Current_Saves()
         {
+            // Vider le dossier current avant de reconstruire pour garantir
+            // qu'aucun fichier obsolète (ex: ancien format JSON non-chiffré) ne subsiste.
+            var solutionRoot = GetSolutionRootForTest();
+            var currentDir = System.IO.Path.Combine(solutionRoot, "saves", "current");
+            if (System.IO.Directory.Exists(currentDir))
+                foreach (var file in System.IO.Directory.GetFiles(currentDir, "*.json"))
+                    System.IO.File.Delete(file);
+
             (IslandScenario scenario, int stepIndex)[] steps =
             [
                 (Island1, 0), (Island1, 1), (Island1, 2), (Island1, 3), (Island1, 4),
@@ -157,6 +165,18 @@ namespace SOITests.IslandMapTests
             ];
             foreach (var (scenario, stepIndex) in steps)
                 IslandScenarioRunner.RunStep(scenario, stepIndex, "current", saveFinal: true);
+        }
+
+        private static string GetSolutionRootForTest()
+        {
+            var dir = new System.IO.DirectoryInfo(System.IO.Directory.GetCurrentDirectory());
+            while (dir != null)
+            {
+                if (dir.GetFiles("*.csproj").Length > 0)
+                    return dir.FullName;
+                dir = dir.Parent;
+            }
+            return System.IO.Directory.GetCurrentDirectory();
         }
 
         // ── Island 1 — current mode (creates/overwrites saves/current) ────────

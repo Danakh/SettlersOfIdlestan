@@ -4,7 +4,7 @@ using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
-using SettlersOfIdlestan.Services;
+using SettlersOfIdlestan.Controller;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
@@ -294,8 +294,8 @@ public class IslandGeneratorTests
         var original = new WorldState(originalMap, civilizations, AtlasController.InvalidIslandId);
 
         // Act
-        var json = JsonSerializer.Serialize(original, SerializationService.SerializationOptions());
-        var deserialized = JsonSerializer.Deserialize<WorldState>(json, SerializationService.SerializationOptions());
+        var json = JsonSerializer.Serialize(original, SaveController.SerializationOptions());
+        var deserialized = JsonSerializer.Deserialize<WorldState>(json, SaveController.SerializationOptions());
 
         // Assert
         Assert.NotNull(deserialized);

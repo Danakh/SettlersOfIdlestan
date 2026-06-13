@@ -9,7 +9,6 @@ using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Monsters;
 using SettlersOfIdlestan.Model.Prestige;
-using SettlersOfIdlestan.Services;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -53,6 +52,8 @@ namespace SettlersOfIdlestan.Controller
         public SettlersOfIdlestan.Model.Civilization.Civilization? PlayerCivilization 
             => CurrentMainState?.CurrentWorldState?.PlayerCivilization;
 
+        private readonly SaveController _saveController = new();
+
         public MainGameController()
         {
             // Initialize() sera appelé avec le vrai état plus tard
@@ -77,41 +78,23 @@ namespace SettlersOfIdlestan.Controller
         }
 
         /// <summary>
-        /// Export the current MainGameState as a JSON string. Uses available JSON converters for island map types.
+        /// Exporte le MainGameState courant via le SaveController (JSON → Base64 → AES chiffré).
         /// </summary>
         public string ExportMainState()
         {
             if (CurrentMainState == null) throw new InvalidOperationException("No main state available to export.");
-
-            CurrentMainState.Clock.LastSaveTime = DateTimeOffset.UtcNow;
-            return System.Text.Json.JsonSerializer.Serialize(CurrentMainState, SerializationService.SerializationOptions());
+            return _saveController.Export(CurrentMainState);
         }
 
         /// <summary>
-        /// Import a MainGameState from JSON and wire controllers to operate on it.
-        /// Returns the deserialized MainGameState.
+        /// Importe un MainGameState depuis une sauvegarde chiffrée (ou JSON brut pour les anciennes sauvegardes).
+        /// Retourne le MainGameState désérialisé et connecte les contrôleurs.
         /// </summary>
-        public SettlersOfIdlestan.Model.Game.MainGameState ImportMainState(string json)
+        public SettlersOfIdlestan.Model.Game.MainGameState ImportMainState(string data)
         {
-            if (string.IsNullOrWhiteSpace(json)) throw new ArgumentException("json cannot be empty", nameof(json));
-
-            var options = new System.Text.Json.JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true
-            };
-            options.Converters.Add(new SettlersOfIdlestan.Model.HexGrid.HexCoordJsonConverter());
-            options.Converters.Add(new SettlersOfIdlestan.Model.HexGrid.EdgeJsonConverter());
-            // ensure Building polymorphic types are deserialized
-            options.Converters.Add(new SettlersOfIdlestan.Model.Buildings.BuildingJsonConverter());
-            options.Converters.Add(new SettlersOfIdlestan.Model.IslandMap.IslandMapJsonConverter());
-            // ensure Vertex (city positions) are properly deserialized when importing
-            options.Converters.Add(new SettlersOfIdlestan.Model.HexGrid.VertexJsonConverter());
-
-            var mainState = System.Text.Json.JsonSerializer.Deserialize<SettlersOfIdlestan.Model.Game.MainGameState>(json, options)
-                            ?? throw new InvalidOperationException("Failed to deserialize MainGameState.");
-
+            if (string.IsNullOrWhiteSpace(data)) throw new ArgumentException("data cannot be empty", nameof(data));
+            var mainState = _saveController.Import(data);
             SetGameFromSave(mainState);
-
             return mainState;
         }
 

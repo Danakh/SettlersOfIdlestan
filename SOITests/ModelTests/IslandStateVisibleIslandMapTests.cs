@@ -8,7 +8,6 @@ using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
-using SettlersOfIdlestan.Services;
 using Xunit;
 
 namespace SOITests.ModelTests;
@@ -44,8 +43,8 @@ public class IslandStateVisibleIslandMapTests
         civilization.AddCity(new City(Vertex.Create(a, b, c)));
         var state = new WorldState(map, new List<Civilization> { civilization }, AtlasController.InvalidIslandId);
 
-        var json = JsonSerializer.Serialize(state, SerializationService.SerializationOptions());
-        var reloaded = JsonSerializer.Deserialize<WorldState>(json, SerializationService.SerializationOptions());
+        var json = JsonSerializer.Serialize(state, SaveController.SerializationOptions());
+        var reloaded = JsonSerializer.Deserialize<WorldState>(json, SaveController.SerializationOptions());
 
         Assert.NotNull(reloaded);
         Assert.True(reloaded!.Visibility.GetForZ(0).TryGetValue(0, out var visibleMap));
