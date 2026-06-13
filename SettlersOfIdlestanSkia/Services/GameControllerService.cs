@@ -71,6 +71,11 @@ public class GameControllerService
         _controller.PerformPrestige();
     }
 
+    public void PerformPrestigeAndRestartCurrentIsland()
+    {
+        _controller.PerformPrestigeAndRestartCurrentIsland();
+    }
+
     public void RestartIsland()
     {
         _controller.RestartIsland();

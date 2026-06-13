@@ -18,7 +18,7 @@ namespace SettlersOfIdlestan.Controller.Expand
         private GameSettings? _settings;
 
         public const long ResearchConsumptionCooldownTicks = 100L;
-        public const int MaxResearchPoints = 9999;
+        public const int MaxResearchPoints = 999999;
 
         public event EventHandler<TechnologyId>? OnResearchCompleted;
 

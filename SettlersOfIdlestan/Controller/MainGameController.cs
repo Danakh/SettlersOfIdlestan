@@ -177,6 +177,22 @@ namespace SettlersOfIdlestan.Controller
             PrestigeMapController.ApplyPrestigeToNewGame(CurrentMainState.CurrentWorldState!, CurrentMainState.PrestigeState);
         }
 
+        /// <summary>
+        /// Comme PerformPrestige, mais régénère la même île (mode démo : rester sur l'île 3).
+        /// </summary>
+        public void PerformPrestigeAndRestartCurrentIsland()
+        {
+            if (CurrentMainState == null)
+                throw new InvalidOperationException("No main state available.");
+
+            var currentIslandId = CurrentMainState.CurrentWorldState?.WorldId ?? AtlasController.GetFirstWorldId();
+            var parameters = AtlasController.GetIslandParameters(currentIslandId);
+            TaskRecordController.RecordPrestige();
+            PrestigeController.PerformPrestige(CurrentMainState, parameters);
+            InitializeControllersForCurrentIsland();
+            PrestigeMapController.ApplyPrestigeToNewGame(CurrentMainState.CurrentWorldState!, CurrentMainState.PrestigeState);
+        }
+
         public MainGameState? CreateNewGame()
         {
             int WorldId = AtlasController.GetFirstWorldId();

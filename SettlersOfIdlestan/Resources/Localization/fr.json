@@ -776,7 +776,7 @@
   "demo_mode_research_locked": "[Démo]",
   "demo_end_title": "Démo terminée !",
   "demo_end_line1": "Félicitations, vous avez complété les 3 îles de la démo !",
-  "demo_end_line2": "Rejouez pour accumuler plus de bonus de prestige.",
-  "demo_end_replay": "Rejouer"
+  "demo_end_line2": "Rejouez l'île 3 en conservant vos bonus de prestige.",
+  "demo_end_replay": "Rejouer l'île 3"
 }
 

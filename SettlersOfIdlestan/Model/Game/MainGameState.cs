@@ -30,6 +30,13 @@ namespace SettlersOfIdlestan.Model.Game
         /// </summary>
         public GameRecord GameRecord { get; set; } = new();
 
+        /// <summary>
+        /// Indique que cette sauvegarde provient d'une version démo.
+        /// Dans le jeu complet, vérifier ce flag à l'import pour proposer une conversion
+        /// (désactiver DemoMode, afficher un message de bienvenue, etc.).
+        /// </summary>
+        public bool IsDemoSave { get; set; } = false;
+
         /// <summary>Constructeur sans paramètre requis par la désérialisation JSON.</summary>
         public MainGameState()
         {

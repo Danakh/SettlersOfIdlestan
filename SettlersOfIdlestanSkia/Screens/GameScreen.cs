@@ -52,6 +52,7 @@ public sealed class GameScreen : IDisposable
     private DebugPanelRenderer? _debugPanelRenderer;
     private DemoEndPopupRenderer? _demoEndPopup;
     private bool _prestigeTransitionPending;
+    private bool _demoReplayPending;
 
     private bool _isDisposed;
     private bool _isCanvasInitialized;
@@ -120,8 +121,11 @@ public sealed class GameScreen : IDisposable
                 isNewGame = true;
             }
 
-            if (demoMode && _gameControllerService.CurrentGameState?.Settings is { } s)
-                s.DemoMode = true;
+            if (demoMode && _gameControllerService.CurrentGameState is { } gs)
+            {
+                gs.Settings.DemoMode = true;
+                gs.IsDemoSave = true;
+            }
 
             SetupRenderers(isNewGame, allowDebugMode);
         }
@@ -311,7 +315,7 @@ public sealed class GameScreen : IDisposable
             StartNewGameIntro(introState);
 
         _gameOverPopup = new GameOverPopupRenderer(_localizationService, HandleGameOverRestart);
-        _demoEndPopup  = new DemoEndPopupRenderer(_localizationService, DoPrestige);
+        _demoEndPopup  = new DemoEndPopupRenderer(_localizationService, DoDemoReplay);
 
         var militaryController = _gameControllerService.MainGameController.MilitaryController;
         var monsterController  = _gameControllerService.MainGameController.MonsterFeatureController;
@@ -613,7 +617,7 @@ public sealed class GameScreen : IDisposable
         if (_prestigeTransitionPending || _islandMainRenderer == null || _overlayRenderer == null) return;
 
         var mainState = _gameControllerService.MainGameController.CurrentMainState;
-        if (mainState?.Settings.DemoMode == true && (mainState.PrestigeState?.RunHistory.Count ?? 0) == 2)
+        if (mainState?.Settings.DemoMode == true && (mainState.PrestigeState?.RunHistory.Count ?? 0) >= 2)
         {
             _demoEndPopup?.Open();
             return;
@@ -630,12 +634,29 @@ public sealed class GameScreen : IDisposable
         _prestigeTransitionPending = true;
     }
 
+    private void DoDemoReplay()
+    {
+        if (_prestigeTransitionPending || _islandMainRenderer == null || _overlayRenderer == null) return;
+        _overlayRenderer.Hide();
+        _islandMainRenderer.BeginBlackFade(0.5f);
+        _prestigeTransitionPending = true;
+        _demoReplayPending = true;
+    }
+
     private void CompletePrestigeTransition()
     {
         if (_cameraService == null) return;
 
         var prevCiv = _gameControllerService.PlayerCivilization;
-        _gameControllerService.PerformPrestige();
+        if (_demoReplayPending)
+        {
+            _demoReplayPending = false;
+            _gameControllerService.PerformPrestigeAndRestartCurrentIsland();
+        }
+        else
+        {
+            _gameControllerService.PerformPrestige();
+        }
         if (_playerResourcesOverlayRenderer != null && _gameControllerService.PlayerCivilization != null)
             _playerResourcesOverlayRenderer.ConnectLowStock(prevCiv, _gameControllerService.PlayerCivilization);
         _gameControllerService.CityBuildingService?.ClearSelectedCity();
