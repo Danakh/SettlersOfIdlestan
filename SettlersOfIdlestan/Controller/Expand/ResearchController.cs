@@ -15,6 +15,7 @@ namespace SettlersOfIdlestan.Controller.Expand
         private WorldState? _state;
         private GameClock? _clock;
         private PrestigeState? _prestigeState;
+        private GameSettings? _settings;
 
         public const long ResearchConsumptionCooldownTicks = 100L;
         public const int MaxResearchPoints = 9999;
@@ -30,7 +31,7 @@ namespace SettlersOfIdlestan.Controller.Expand
 
         internal ResearchController() { }
 
-        internal void Initialize(WorldState? state, GameClock? clock, PrestigeState? prestigeState)
+        internal void Initialize(WorldState? state, GameClock? clock, PrestigeState? prestigeState, GameSettings? settings = null)
         {
             if (_clock != null)
                 _clock.Advanced -= OnClockAdvanced;
@@ -38,6 +39,7 @@ namespace SettlersOfIdlestan.Controller.Expand
             _state = state;
             _clock = clock;
             _prestigeState = prestigeState;
+            _settings = settings;
 
             if (_clock != null)
                 _clock.Advanced += OnClockAdvanced;
@@ -145,9 +147,13 @@ namespace SettlersOfIdlestan.Controller.Expand
             }
         }
 
+        public bool IsDemoLocked(TechnologyId id)
+            => _settings?.DemoMode == true && (TechnologyDefinitions.Get(id)?.Tier ?? 0) >= 4;
+
         public bool StartResearch(TechnologyId id)
         {
             if (_state == null || Tree == null) return false;
+            if (IsDemoLocked(id)) return false;
             var tree = Tree;
             if (tree.CompletedTechnologies.Contains(id)) return false;
             if (tree.ActiveResearch == id) return false;
@@ -183,6 +189,7 @@ namespace SettlersOfIdlestan.Controller.Expand
         public bool CanBeQueued(TechnologyId id)
         {
             if (Tree == null) return false;
+            if (IsDemoLocked(id)) return false;
             if (!IsResearchQueueUnlocked()) return false;
             var tree = Tree;
             if (tree.CompletedTechnologies.Contains(id)) return false;
@@ -209,6 +216,7 @@ namespace SettlersOfIdlestan.Controller.Expand
         public TechnologyStatus GetStatus(TechnologyId id)
         {
             if (Tree == null) return TechnologyStatus.Inactive;
+            if (IsDemoLocked(id)) return TechnologyStatus.Inactive;
             var tree = Tree;
 
             if (tree.CompletedTechnologies.Contains(id)) return TechnologyStatus.Completed;
@@ -287,15 +295,25 @@ namespace SettlersOfIdlestan.Controller.Expand
 
             if (tree.CompletedTechnologies.Contains(id)) return true;
             if (tree.ActiveResearch == id) return true;
+
+            // En mode démo : affiche les nœuds tier 4+ seulement si tous leurs prérequis sont tier < 4
+            // (une seule rangée de cadenas visible, les tiers suivants restent cachés)
+            if (IsDemoLocked(id))
+            {
+                var tech = TechnologyDefinitions.Get(id);
+                if (tech == null) return false;
+                return tech.Prerequisites.All(p => !IsDemoLocked(p));
+            }
+
             if (!IsPrestigeRequirementMet(id)) return false;
 
-            var tech = TechnologyDefinitions.Get(id);
-            if (tech == null) return false;
+            var techDef = TechnologyDefinitions.Get(id);
+            if (techDef == null) return false;
 
-            if (ArePrerequisitesMet(tree, tech)) return true;
+            if (ArePrerequisitesMet(tree, techDef)) return true;
 
             // Visible si tous les prérequis manquants sont eux-mêmes faisables (Available ou InProgress)
-            foreach (var prereqId in tech.Prerequisites)
+            foreach (var prereqId in techDef.Prerequisites)
             {
                 if (tree.CompletedTechnologies.Contains(prereqId)) continue;
                 var prereqStatus = GetStatus(prereqId);

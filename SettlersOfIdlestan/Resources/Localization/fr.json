@@ -771,6 +771,12 @@
   "corrupt_save_line2": "Exportez-le pour l'envoyer au support avant de continuer.",
   "corrupt_save_btn_export": "💾 Exporter la sauvegarde",
   "corrupt_save_btn_new_game": "Repartir de zéro",
-  "corrupt_save_btn_quit": "Quitter"
+  "corrupt_save_btn_quit": "Quitter",
+  "demo_mode_vertex_locked": "Verrouillé (version démo)",
+  "demo_mode_research_locked": "[Démo]",
+  "demo_end_title": "Démo terminée !",
+  "demo_end_line1": "Félicitations, vous avez complété les 3 îles de la démo !",
+  "demo_end_line2": "Rejouez pour accumuler plus de bonus de prestige.",
+  "demo_end_replay": "Rejouer"
 }
 

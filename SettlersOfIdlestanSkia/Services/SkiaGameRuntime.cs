@@ -17,6 +17,7 @@ public sealed class SkiaGameRuntime : IDisposable
     private UILayoutService?      _uiLayoutService;
     private IFileSystemService?   _fileSystemService;
     private bool                  _allowDebugMode;
+    private bool                  _demoMode;
 
     private TitleScreen?  _titleScreen;
     private GameScreen?   _gameScreen;
@@ -53,32 +54,34 @@ public sealed class SkiaGameRuntime : IDisposable
 
     // ── Initialisation ────────────────────────────────────────────────────────
 
-    public void Initialize(IFileSystemService fileSystemService, bool allowDebugMode = false)
+    public void Initialize(IFileSystemService fileSystemService, bool allowDebugMode = false, bool demoMode = false)
     {
         var autoJson     = fileSystemService.LoadAuto().GetAwaiter().GetResult();
         var settingsJson = fileSystemService.LoadSettings().GetAwaiter().GetResult();
-        InitializeCore(fileSystemService, autoJson, settingsJson, allowDebugMode);
+        InitializeCore(fileSystemService, autoJson, settingsJson, allowDebugMode, demoMode);
     }
 
-    public async Task InitializeAsync(IFileSystemService fileSystemService, bool allowDebugMode = false)
+    public async Task InitializeAsync(IFileSystemService fileSystemService, bool allowDebugMode = false, bool demoMode = false)
     {
         var autoJson     = await fileSystemService.LoadAuto();
         var settingsJson = await fileSystemService.LoadSettings();
-        InitializeCore(fileSystemService, autoJson, settingsJson, allowDebugMode);
+        InitializeCore(fileSystemService, autoJson, settingsJson, allowDebugMode, demoMode);
     }
 
-    private void InitializeCore(IFileSystemService fileSystemService, string? autoJson, string? settingsJson, bool allowDebugMode)
+    private void InitializeCore(IFileSystemService fileSystemService, string? autoJson, string? settingsJson, bool allowDebugMode, bool demoMode = false)
     {
         if (_isDisposed)    throw new ObjectDisposedException(nameof(SkiaGameRuntime));
         if (_isInitialized) return;
 
         _fileSystemService   = fileSystemService;
         _allowDebugMode      = allowDebugMode;
+        _demoMode            = demoMode;
         _resourceManager     = new ResourceManager();
         _localizationService = new LocalizationService();
         _uiLayoutService     = new UILayoutService();
 
         _titleSettings = ParseSettings(settingsJson) ?? ExtractSettings(autoJson);
+        if (_demoMode) _titleSettings.DemoMode = true;
         _localizationService.SetLanguage(_titleSettings.Language);
 
         bool hasSave = !string.IsNullOrEmpty(autoJson);
@@ -112,7 +115,8 @@ public sealed class SkiaGameRuntime : IDisposable
             _uiLayoutService!,
             _resourceManager!,
             saveJson: null,
-            _allowDebugMode);
+            _allowDebugMode,
+            _demoMode);
         _gameScreen.ReturnToTitleRequested    += OnReturnToTitle;
         _gameScreen.QuitRequested             += () => QuitRequested?.Invoke();
         _gameScreen.FullscreenToggleRequested += v => FullscreenStateChanged?.Invoke(v);
@@ -137,7 +141,8 @@ public sealed class SkiaGameRuntime : IDisposable
             _uiLayoutService!,
             _resourceManager!,
             saveJson,
-            _allowDebugMode);
+            _allowDebugMode,
+            _demoMode);
         _gameScreen.ReturnToTitleRequested    += OnReturnToTitle;
         _gameScreen.QuitRequested             += () => QuitRequested?.Invoke();
         _gameScreen.FullscreenToggleRequested += v => FullscreenStateChanged?.Invoke(v);

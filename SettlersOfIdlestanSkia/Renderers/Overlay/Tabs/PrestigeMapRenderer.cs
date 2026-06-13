@@ -257,21 +257,24 @@ public sealed class PrestigeMapRenderer : IGameRenderer
     private void DrawVertices(SKCanvas canvas, PrestigeState state)
     {
         var controller = _gameControllerService.MainGameController.PrestigeMapController;
+        bool demoMode  = _gameControllerService.MainGameController.CurrentMainState?.Settings.DemoMode ?? false;
         float vr = VertexCircleRadius * _zoom;
 
         foreach (var vertex in PrestigeMapController.DefaultMap.Vertices)
         {
             if (!_visibleVertices.Contains(vertex.Coord)) continue;
             var pos = ScreenPosVertex(vertex.Coord);
-            bool purchased = state.PurchasedVertices.Contains(vertex.Coord);
-            bool canBuy    = controller.CanPurchaseVertex(state, vertex.Coord);
-            bool isHovered = vertex.Coord.Equals(_hoveredVertex);
+            bool purchased   = state.PurchasedVertices.Contains(vertex.Coord);
+            bool demoLocked  = demoMode && vertex.Cost > 100 && !purchased;
+            bool canBuy      = !demoLocked && controller.CanPurchaseVertex(state, vertex.Coord, demoMode);
+            bool isHovered   = vertex.Coord.Equals(_hoveredVertex);
 
-            SKColor fill = purchased  ? new SKColor(220, 50, 50)
-                : canBuy              ? new SKColor(60, 160, 255, 200)
-                                      : new SKColor(110, 110, 120, 200);
+            SKColor fill = purchased   ? new SKColor(220, 50, 50)
+                : demoLocked           ? new SKColor(50, 50, 60, 200)
+                : canBuy               ? new SKColor(60, 160, 255, 200)
+                                       : new SKColor(110, 110, 120, 200);
 
-            if (isHovered && !purchased)
+            if (isHovered && !purchased && !demoLocked)
                 fill = new SKColor(255, 235, 59, 220);
 
             _vertexFillPaint.Color = fill;
@@ -282,6 +285,8 @@ public sealed class PrestigeMapRenderer : IGameRenderer
 
             if (purchased)
                 SkiaTextUtils.DrawText(canvas, "✓", pos.X, pos.Y + 4f, SKTextAlign.Center, _labelFontBold, _textWhitePaint);
+            else if (demoLocked)
+                SkiaTextUtils.DrawText(canvas, "D", pos.X, pos.Y + 4f, SKTextAlign.Center, _labelFontBold, _textWhitePaint);
 
             if (_showVertexNames)
             {
@@ -391,8 +396,11 @@ public sealed class PrestigeMapRenderer : IGameRenderer
             {
                 var mainState = _gameControllerService.MainGameController.CurrentMainState;
                 if (mainState?.PrestigeState != null)
+                {
+                    bool demoMode = mainState.Settings.DemoMode;
                     _gameControllerService.MainGameController.PrestigeMapController
-                        .PurchaseVertex(mainState.PrestigeState, vertex.Coord);
+                        .PurchaseVertex(mainState.PrestigeState, vertex.Coord, demoMode);
+                }
                 return;
             }
         }
@@ -464,15 +472,21 @@ public sealed class PrestigeMapRenderer : IGameRenderer
 
         lines.Add("");
 
-        bool purchased = state.PurchasedVertices.Contains(coord);
+        bool purchased  = state.PurchasedVertices.Contains(coord);
+        bool demoMode   = _gameControllerService.MainGameController.CurrentMainState?.Settings.DemoMode ?? false;
+        bool demoLocked = demoMode && vertex.Cost > 100 && !purchased;
         if (purchased)
         {
             lines.Add(_localization.Get("prestige_tooltip_purchased"));
         }
+        else if (demoLocked)
+        {
+            lines.Add(_localization.Get("demo_mode_vertex_locked"));
+        }
         else
         {
             bool canBuy = _gameControllerService.MainGameController.PrestigeMapController
-                .CanPurchaseVertex(state, coord);
+                .CanPurchaseVertex(state, coord, demoMode);
             if (!canBuy && state.PrestigePoints >= vertex.Cost)
             {
                 var neighbors = PrestigeMapController.DefaultMap.GetNeighbors(coord);

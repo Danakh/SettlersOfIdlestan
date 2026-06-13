@@ -50,6 +50,7 @@ public sealed class GameScreen : IDisposable
     private bool _gameOverPending;
     private HardResetPopupRenderer? _hardResetPopup;
     private DebugPanelRenderer? _debugPanelRenderer;
+    private DemoEndPopupRenderer? _demoEndPopup;
     private bool _prestigeTransitionPending;
 
     private bool _isDisposed;
@@ -92,7 +93,8 @@ public sealed class GameScreen : IDisposable
         UILayoutService uiLayoutService,
         ResourceManager resourceManager,
         string? saveJson,
-        bool allowDebugMode)
+        bool allowDebugMode,
+        bool demoMode = false)
     {
         _fileSystemService    = fileSystemService;
         _localizationService  = localizationService;
@@ -117,6 +119,9 @@ public sealed class GameScreen : IDisposable
                 _gameControllerService.InitializeNewGame();
                 isNewGame = true;
             }
+
+            if (demoMode && _gameControllerService.CurrentGameState?.Settings is { } s)
+                s.DemoMode = true;
 
             SetupRenderers(isNewGame, allowDebugMode);
         }
@@ -306,6 +311,7 @@ public sealed class GameScreen : IDisposable
             StartNewGameIntro(introState);
 
         _gameOverPopup = new GameOverPopupRenderer(_localizationService, HandleGameOverRestart);
+        _demoEndPopup  = new DemoEndPopupRenderer(_localizationService, DoPrestige);
 
         var militaryController = _gameControllerService.MainGameController.MilitaryController;
         var monsterController  = _gameControllerService.MainGameController.MonsterFeatureController;
@@ -414,6 +420,7 @@ public sealed class GameScreen : IDisposable
         _corruptSavePopup?.Render(canvas, _lastCanvasSize, uiScale);
         _gameOverPopup?.Render(canvas, _lastCanvasSize, uiScale);
         _hardResetPopup?.Render(canvas, _lastCanvasSize, uiScale);
+        _demoEndPopup?.Render(canvas, _lastCanvasSize, uiScale);
     }
 
     public void HandlePointerPressed(float x, float y, int pointerId, PointerButton button)
@@ -421,6 +428,7 @@ public sealed class GameScreen : IDisposable
         if (_hardResetPopup?.IsOpen == true)  { _hardResetPopup.HandlePointerPressed(new SKPoint(x, y), button);  return; }
         if (_corruptSavePopup?.IsOpen == true) { _corruptSavePopup.HandlePointerPressed(new SKPoint(x, y), button); return; }
         if (_gameOverPopup?.IsOpen == true)    { _gameOverPopup.HandlePointerPressed(new SKPoint(x, y), button);   return; }
+        if (_demoEndPopup?.IsOpen == true)     { _demoEndPopup.HandlePointerPressed(new SKPoint(x, y), button);    return; }
         if (_introRenderer?.IsActive == true)  return;
 
         _isPointerDown        = true;
@@ -440,6 +448,7 @@ public sealed class GameScreen : IDisposable
         if (_hardResetPopup?.IsOpen  == true) return;
         if (_corruptSavePopup?.IsOpen == true) return;
         if (_gameOverPopup?.IsOpen   == true) return;
+        if (_demoEndPopup?.IsOpen    == true) return;
         if (_introRenderer?.IsActive == true) return;
 
         if (_isPointerDown && !_isPanSuppressedAtStart && (_overlayRenderer?.IsIslandTabActive ?? true)
@@ -461,6 +470,7 @@ public sealed class GameScreen : IDisposable
         if (_hardResetPopup?.IsOpen  == true) return;
         if (_corruptSavePopup?.IsOpen == true) return;
         if (_gameOverPopup?.IsOpen   == true) return;
+        if (_demoEndPopup?.IsOpen    == true) return;
         if (_introRenderer?.IsActive == true) return;
 
         bool wasPanning = _isPanning && pointerId == _activePanPointerId;
@@ -601,6 +611,20 @@ public sealed class GameScreen : IDisposable
     private void RequestPrestige()
     {
         if (_prestigeTransitionPending || _islandMainRenderer == null || _overlayRenderer == null) return;
+
+        var mainState = _gameControllerService.MainGameController.CurrentMainState;
+        if (mainState?.Settings.DemoMode == true && (mainState.PrestigeState?.RunHistory.Count ?? 0) == 2)
+        {
+            _demoEndPopup?.Open();
+            return;
+        }
+
+        DoPrestige();
+    }
+
+    private void DoPrestige()
+    {
+        if (_prestigeTransitionPending || _islandMainRenderer == null || _overlayRenderer == null) return;
         _overlayRenderer.Hide();
         _islandMainRenderer.BeginBlackFade(0.5f);
         _prestigeTransitionPending = true;
@@ -663,6 +687,7 @@ public sealed class GameScreen : IDisposable
         _debugPanelRenderer?.Dispose();
         _corruptSavePopup?.Dispose();
         _hardResetPopup?.Dispose();
+        _demoEndPopup?.Dispose();
         _constructionInteractionService?.Cleanup();
         _militaryInteractionService?.Cleanup();
         _renderService.Dispose();

@@ -8,4 +8,5 @@ public class GameSettings
     public bool PauseAfterPrestige { get; set; } = false;
     public bool ShowHarvestParticles { get; set; } = true;
     public bool Fullscreen { get; set; } = false;
+    public bool DemoMode { get; set; } = false;
 }

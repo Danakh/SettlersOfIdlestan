@@ -253,7 +253,8 @@ public sealed class TitleScreen : IDisposable
             return _cachedChangelogContent;
 
         string langCode    = lang == SettlersOfIdlestan.Model.Localization.Language.English ? "en" : "fr";
-        string resourceName = $"SettlersOfIdlestanSkia.Resources.changelog.changelog_{langCode}.txt";
+        string suffix      = _settings.DemoMode ? "demo_" : "";
+        string resourceName = $"SettlersOfIdlestanSkia.Resources.changelog.changelog_{suffix}{langCode}.txt";
 
         var asm = Assembly.GetExecutingAssembly();
         using var stream = asm.GetManifestResourceStream(resourceName);

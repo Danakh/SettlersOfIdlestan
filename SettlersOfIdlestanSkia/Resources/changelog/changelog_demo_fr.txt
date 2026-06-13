@@ -1,0 +1,22 @@
+Bienvenue dans la démo de Settlers of Idlestan !
+J'espère qu'elle vous plaira.
+
+---
+
+Ce que vous pouvez explorer dans cette démo :
+
+• 3 îles générées de manière procédurale
+• Le début de l'arbre de prestige — débloquez vos premiers bonus permanents
+• L'arbre de recherches avec ses trois premiers paliers d'améliorations
+• Le combat militaire — écrasez vos premiers adversaires
+
+---
+
+Ce qui vous attend dans la version complète :
+
+• Plus de technologies et d'améliorations à débloquer
+• De nouvelles ressources à découvrir
+• L'Inframonde — explorez les profondeurs sous vos îles
+• Des monstres puissants à affronter
+• Les arcanes de la magie — rituels et cristaux
+• ... et le second palier de prestige

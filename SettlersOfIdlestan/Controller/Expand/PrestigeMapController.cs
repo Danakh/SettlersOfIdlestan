@@ -29,11 +29,12 @@ public class PrestigeMapController
 
     public event EventHandler<VertexPurchasedEventArgs>? OnVertexPurchased;
 
-    public bool CanPurchaseVertex(PrestigeState prestigeState, Vertex vertexCoord)
+    public bool CanPurchaseVertex(PrestigeState prestigeState, Vertex vertexCoord, bool demoMode = false)
     {
         var vertex = DefaultMap.GetVertex(vertexCoord);
         if (vertex == null) return false;
         if (prestigeState.PurchasedVertices.Contains(vertexCoord)) return false;
+        if (demoMode && vertex.Cost > 100) return false;
 
         // Central vertex is always reachable; all others require a purchased neighbor.
         if (!vertexCoord.Equals(PrestigeMap.CentralVertex))
@@ -46,9 +47,9 @@ public class PrestigeMapController
         return prestigeState.PrestigePoints >= vertex.Cost;
     }
 
-    public bool PurchaseVertex(PrestigeState prestigeState, Vertex vertexCoord)
+    public bool PurchaseVertex(PrestigeState prestigeState, Vertex vertexCoord, bool demoMode = false)
     {
-        if (!CanPurchaseVertex(prestigeState, vertexCoord)) return false;
+        if (!CanPurchaseVertex(prestigeState, vertexCoord, demoMode)) return false;
 
         var vertex = DefaultMap.GetVertex(vertexCoord)!;
         prestigeState.PrestigePoints -= vertex.Cost;

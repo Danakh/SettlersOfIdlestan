@@ -218,7 +218,8 @@ public sealed class ResearchRenderer : IGameRenderer
 
     private void DrawNode(SKCanvas canvas, Technology tech, SKRect rect, TechnologyStatus status, ResearchController ctrl)
     {
-        bool isQueued = ctrl.GetQueuedResearch() == tech.Id;
+        bool isQueued    = ctrl.GetQueuedResearch() == tech.Id;
+        bool isDemoLocked = ctrl.IsDemoLocked(tech.Id);
 
         var bgPaint = status switch
         {
@@ -251,7 +252,11 @@ public sealed class ResearchRenderer : IGameRenderer
         SkiaTextUtils.DrawText(canvas, name, rect.MidX, rect.Top + 18f, SKTextAlign.Center, _nameFont, textPaint);
 
         string subText;
-        if (status == TechnologyStatus.Completed)
+        if (isDemoLocked)
+        {
+            subText = _localization.Get("demo_mode_research_locked");
+        }
+        else if (status == TechnologyStatus.Completed)
         {
             subText = "✓";
         }

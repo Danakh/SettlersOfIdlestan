@@ -771,6 +771,12 @@
   "corrupt_save_line2": "Export it to send to support before continuing.",
   "corrupt_save_btn_export": "💾 Export Save File",
   "corrupt_save_btn_new_game": "Start Fresh",
-  "corrupt_save_btn_quit": "Quit"
+  "corrupt_save_btn_quit": "Quit",
+  "demo_mode_vertex_locked": "Locked (demo version)",
+  "demo_mode_research_locked": "[Demo]",
+  "demo_end_title": "Demo Complete!",
+  "demo_end_line1": "Congratulations, you've completed the 3 demo islands!",
+  "demo_end_line2": "Play again to accumulate more prestige bonuses.",
+  "demo_end_replay": "Play Again"
 }
 

@@ -249,7 +249,7 @@ namespace SettlersOfIdlestan.Controller
                 WonderController.Initialize(WorldState, Clock);
                 DeepestMineController.Initialize(WorldState, Clock);
                 MagicController.Initialize(WorldState, Clock, CurrentMainState!.PRNG);
-                ResearchController.Initialize(WorldState, Clock, CurrentMainState?.PrestigeState);
+                ResearchController.Initialize(WorldState, Clock, CurrentMainState?.PrestigeState, CurrentMainState?.Settings);
                 NpcGameController.Initialize(WorldState, Clock, MilitaryController, this);
 
                 // Invalide le cache de production dès qu'un bâtiment est construit/amélioré ou une ville créée
