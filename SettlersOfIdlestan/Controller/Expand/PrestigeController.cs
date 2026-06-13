@@ -88,6 +88,12 @@ namespace SettlersOfIdlestan.Controller.Expand
             return _islandState.RunRecord.DragonsDefeated * 5;
         }
 
+        public int GetTreasureTroveBonus()
+        {
+            if (_islandState == null) return 0;
+            return _islandState.RunRecord.TreasuresTroveClaimed;
+        }
+
         public double GetPrestigeGainBonus()
             => _playerCivilization?.ModifierAggregator.ApplyModifiers(ECategory.PRESTIGE_GAIN, "", 0.0) ?? 0.0;
 
@@ -130,6 +136,13 @@ namespace SettlersOfIdlestan.Controller.Expand
             {
                 sources["prestige_dragon_bonus"] = dragonBonus;
                 tooltipKeys["prestige_dragon_bonus"] = "prestige_tooltip_dragon_bonus";
+            }
+
+            int troveBonus = GetTreasureTroveBonus();
+            if (troveBonus > 0)
+            {
+                sources["prestige_treasure_trove_bonus"] = troveBonus;
+                tooltipKeys["prestige_treasure_trove_bonus"] = "prestige_tooltip_treasure_trove_bonus";
             }
 
             return sources

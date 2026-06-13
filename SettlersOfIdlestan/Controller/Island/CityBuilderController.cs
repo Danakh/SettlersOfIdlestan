@@ -206,6 +206,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 _state.EventLog.Add(trove.RemovedEventType);
                 _state.RemoveFeature(trove);
                 civ.AddResource(Resource.Gold, 100);
+                _state.RunRecord.TreasuresTroveClaimed++;
             }
 
             OnCityBuilt?.Invoke(this, new OutpostAutoBuiltEventArgs(civilizationIndex, vertex));
