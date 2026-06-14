@@ -1,4 +1,5 @@
 using SkiaSharp;
+using SettlersOfIdlestan.Controller.Store;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Services.Localization;
@@ -16,6 +17,7 @@ public sealed class SkiaGameRuntime : IDisposable
     private LocalizationService?  _localizationService;
     private UILayoutService?      _uiLayoutService;
     private IFileSystemService?   _fileSystemService;
+    private StoreController?      _storeController;
     private bool                  _allowDebugMode;
     private bool                  _demoMode;
 
@@ -54,26 +56,27 @@ public sealed class SkiaGameRuntime : IDisposable
 
     // ── Initialisation ────────────────────────────────────────────────────────
 
-    public void Initialize(IFileSystemService fileSystemService, bool allowDebugMode = false, bool demoMode = false)
+    public void Initialize(IFileSystemService fileSystemService, bool allowDebugMode = false, bool demoMode = false, StoreController? storeController = null)
     {
         var autoJson     = fileSystemService.LoadAuto().GetAwaiter().GetResult();
         var settingsJson = fileSystemService.LoadSettings().GetAwaiter().GetResult();
-        InitializeCore(fileSystemService, autoJson, settingsJson, allowDebugMode, demoMode);
+        InitializeCore(fileSystemService, autoJson, settingsJson, allowDebugMode, demoMode, storeController);
     }
 
-    public async Task InitializeAsync(IFileSystemService fileSystemService, bool allowDebugMode = false, bool demoMode = false)
+    public async Task InitializeAsync(IFileSystemService fileSystemService, bool allowDebugMode = false, bool demoMode = false, StoreController? storeController = null)
     {
         var autoJson     = await fileSystemService.LoadAuto();
         var settingsJson = await fileSystemService.LoadSettings();
-        InitializeCore(fileSystemService, autoJson, settingsJson, allowDebugMode, demoMode);
+        InitializeCore(fileSystemService, autoJson, settingsJson, allowDebugMode, demoMode, storeController);
     }
 
-    private void InitializeCore(IFileSystemService fileSystemService, string? autoJson, string? settingsJson, bool allowDebugMode, bool demoMode = false)
+    private void InitializeCore(IFileSystemService fileSystemService, string? autoJson, string? settingsJson, bool allowDebugMode, bool demoMode = false, StoreController? storeController = null)
     {
         if (_isDisposed)    throw new ObjectDisposedException(nameof(SkiaGameRuntime));
         if (_isInitialized) return;
 
         _fileSystemService   = fileSystemService;
+        _storeController     = storeController;
         _allowDebugMode      = allowDebugMode;
         _demoMode            = demoMode;
         _resourceManager     = new ResourceManager();
@@ -81,6 +84,15 @@ public sealed class SkiaGameRuntime : IDisposable
         _uiLayoutService     = new UILayoutService();
 
         _titleSettings = ParseSettings(settingsJson) ?? ExtractSettings(autoJson);
+
+        // Pas de settings sauvegardés → demander la langue préférée au store
+        if (settingsJson == null && _storeController != null)
+        {
+            var storeLang = _storeController.GetPreferredLanguage();
+            if (storeLang.HasValue)
+                _titleSettings.Language = storeLang.Value;
+        }
+
         if (_demoMode) _titleSettings.DemoMode = true;
         _localizationService.SetLanguage(_titleSettings.Language);
 
@@ -116,7 +128,8 @@ public sealed class SkiaGameRuntime : IDisposable
             _resourceManager!,
             saveJson: null,
             _allowDebugMode,
-            _demoMode);
+            _demoMode,
+            _storeController);
         _gameScreen.ReturnToTitleRequested    += OnReturnToTitle;
         _gameScreen.QuitRequested             += () => QuitRequested?.Invoke();
         _gameScreen.FullscreenToggleRequested += v => FullscreenStateChanged?.Invoke(v);
@@ -142,7 +155,8 @@ public sealed class SkiaGameRuntime : IDisposable
             _resourceManager!,
             saveJson,
             _allowDebugMode,
-            _demoMode);
+            _demoMode,
+            _storeController);
         _gameScreen.ReturnToTitleRequested    += OnReturnToTitle;
         _gameScreen.QuitRequested             += () => QuitRequested?.Invoke();
         _gameScreen.FullscreenToggleRequested += v => FullscreenStateChanged?.Invoke(v);

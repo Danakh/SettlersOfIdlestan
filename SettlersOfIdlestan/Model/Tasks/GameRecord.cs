@@ -58,6 +58,9 @@ public class GameRecord
     /// <summary>True si le joueur a aperçu des rats pour la première fois (cross-prestige).</summary>
     public bool HasEncounteredRats { get; set; }
 
+    /// <summary>Maximum de points de prestige gagnés en une seule partie (total gagné, pas le solde).</summary>
+    public int MaxPrestigePointsInSingleRun { get; set; }
+
     /// <summary>IDs des tâches tutoriel complétées (clé = TutorialTaskId.ToString()).</summary>
     public HashSet<string> CompletedTasks { get; set; } = new();
 }

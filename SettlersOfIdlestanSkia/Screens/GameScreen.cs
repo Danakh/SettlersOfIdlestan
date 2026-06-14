@@ -11,6 +11,7 @@ using SettlersOfIdlestanSkia.Renderers.Overlay.Popup;
 using SettlersOfIdlestanSkia.Renderers.Overlay.Tabs;
 using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.IslandMap;
+using SettlersOfIdlestan.Controller.Store;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestanSkia.Renderers.Overlay.Panels;
 
@@ -95,7 +96,8 @@ public sealed class GameScreen : IDisposable
         ResourceManager resourceManager,
         string? saveJson,
         bool allowDebugMode,
-        bool demoMode = false)
+        bool demoMode = false,
+        StoreController? storeController = null)
     {
         _fileSystemService    = fileSystemService;
         _localizationService  = localizationService;
@@ -156,6 +158,8 @@ public sealed class GameScreen : IDisposable
                 onQuit:       () => { QuitRequested?.Invoke(); });
             _corruptSavePopup.Open();
         }
+
+        storeController?.Connect(_gameControllerService.MainGameController.TaskRecordController);
 
         _tickStopwatch.Restart();
         _fpsStopwatch.Restart();

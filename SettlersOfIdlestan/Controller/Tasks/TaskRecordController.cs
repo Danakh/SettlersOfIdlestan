@@ -36,6 +36,7 @@ public class TaskRecordController
     private WonderController? _wonderController;
 
     public event EventHandler<TutorialTaskId>? OnTaskCompleted;
+    public event EventHandler<GameRecord>? PrestigeRecorded;
 
     internal TaskRecordController() { }
 
@@ -101,12 +102,16 @@ public class TaskRecordController
 
     /// <summary>
     /// Appelé par MainGameController.PerformPrestige() avant la réinitialisation des controllers.
+    /// <paramref name="earnedPrestigePoints"/> est le nombre de points gagnés pour cette partie.
     /// </summary>
-    internal void RecordPrestige()
+    internal void RecordPrestige(int earnedPrestigePoints)
     {
         if (_gameRecord == null) return;
         _gameRecord.TotalPrestigesPerformed++;
+        if (earnedPrestigePoints > _gameRecord.MaxPrestigePointsInSingleRun)
+            _gameRecord.MaxPrestigePointsInSingleRun = earnedPrestigePoints;
         CheckTaskCompletions();
+        PrestigeRecorded?.Invoke(this, _gameRecord);
     }
 
     private void HandleHarvestCompleted(object? sender, HarvestCompletedEventArgs e)

@@ -4,7 +4,9 @@ using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.Desktop;
 using OpenTK.Windowing.GraphicsLibraryFramework;
+using SettlersOfIdlestan.Controller.Store;
 using SettlersOfIdlestanOpenTK.Services;
+using SettlersOfIdlestanOpenTK.Services.Store;
 using SettlersOfIdlestanSkia.Services;
 using SkiaSharp;
 
@@ -13,9 +15,10 @@ namespace SettlersOfIdlestanOpenTK;
 sealed class SoiGameWindow : GameWindow
 {
     private readonly SkiaGameRuntime _runtime = new();
-    private GRContext?              _grContext;
-    private GRBackendRenderTarget?  _renderTarget;
-    private SKSurface?              _surface;
+    private StoreController?         _storeController;
+    private GRContext?               _grContext;
+    private GRBackendRenderTarget?   _renderTarget;
+    private SKSurface?               _surface;
 
     public SoiGameWindow() : base(
         new GameWindowSettings { UpdateFrequency = 0 },
@@ -41,7 +44,9 @@ sealed class SoiGameWindow : GameWindow
         var args = Environment.GetCommandLineArgs();
         bool allowDebug = args.Contains("--debug");
         bool demoMode   = args.Contains("--demo");
-        _runtime.Initialize(new DesktopFileSystemService(), allowDebug, demoMode);
+
+        _storeController = new StoreController([new StoreServiceSteam()]);
+        _runtime.Initialize(new DesktopFileSystemService(), allowDebug, demoMode, _storeController);
 
         var glInterface = GRGlInterface.Create();
         _grContext = GRContext.CreateGl(glInterface);
@@ -136,6 +141,7 @@ sealed class SoiGameWindow : GameWindow
         _renderTarget?.Dispose();
         _grContext?.Dispose();
         _runtime.Dispose();
+        _storeController?.Dispose();
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
