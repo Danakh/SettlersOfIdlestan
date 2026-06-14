@@ -528,7 +528,8 @@ public sealed class PrestigeMapRenderer : IGameRenderer
                     bool isPct = mod.Category is Modifier.ECategory.HARVEST_SPEED
                         or Modifier.ECategory.RESEARCH_SPEED
                         or Modifier.ECategory.UNIT_PRODUCTION_SPEED
-                        or Modifier.ECategory.RESEARCH_COST_REDUCTION;
+                        or Modifier.ECategory.RESEARCH_COST_REDUCTION
+                        or Modifier.ECategory.MARKET_GOLD_SPEED;
                     bool isFloat = mod.Category is Modifier.ECategory.TRADE_GOLD_PACKAGES;
                     string totalStr = isPct ? $"+{(int)(total * 100)}%" : isFloat ? $"{total:0.##}" : $"+{(int)total}";
                     lines.Add($"{_localization.Get("prestige_tooltip_current_bonus")}: {totalStr}");
@@ -594,6 +595,7 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         Modifier.ECategory.RITUAL_TOTAL_POWER         => $"+{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_ritual_total_power")}",
         Modifier.ECategory.RITUAL_UPKEEP_REDUCTION    => $"-{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_ritual_upkeep")}",
         Modifier.ECategory.MAGIC_FEATURE_COUNT        => $"+{(int)mod.Value} {_localization.Get($"prestige_tooltip_magic_feature_{mod.SubCategory.ToLower()}")}",
+        Modifier.ECategory.MARKET_GOLD_SPEED           => $"+{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_market_gold_speed")}",
         _ => $"+{mod.Value}"
     };
 

@@ -90,6 +90,8 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             RITUAL_UPKEEP_REDUCTION,
             /// <summary>Nombre de features magiques présentes sur l'île. SubCategory = "FairyCircle" ou "Dolmen".</summary>
             MAGIC_FEATURE_COUNT,
+            /// <summary>Multiplicateur additif de vitesse de génération d'or des marchés. Base = 1.0; +0.1 = +10%.</summary>
+            MARKET_GOLD_SPEED,
         }
 
         public enum EType

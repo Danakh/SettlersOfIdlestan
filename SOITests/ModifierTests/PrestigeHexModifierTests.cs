@@ -136,14 +136,14 @@ public class PrestigeHexModifierTests
         Assert.Equal(5, aggregator.ApplyModifiers(ECategory.STORAGE_CAPACITY_ADVANCED, "", 0));
     }
 
-    // ── GoldTradeCoord (-1,2) — TRADE_GOLD_PACKAGES "" -0.5 ────────────────
+    // ── GoldTradeCoord (-1,2) — MARKET_GOLD_SPEED "" +0.1 ──────────────────
     // Adjacent: HarvestGuild, ArtisansGuild, TraderGuild
 
     [Fact]
-    public void GoldTradeHex_HarvestGuildVertex_TradeGoldPackagesMinusHalf()
+    public void GoldTradeHex_HarvestGuildVertex_MarketGoldSpeedPlusTenPercent()
     {
         var aggregator = BuildAggregator(PrestigeMap.HarvestGuildVertex);
-        Assert.Equal(-0.5, aggregator.ApplyModifiers(ECategory.TRADE_GOLD_PACKAGES, "", 0.0), 5);
+        Assert.Equal(1.1, aggregator.ApplyModifiers(ECategory.MARKET_GOLD_SPEED, "", 1.0), 5);
     }
 
     // ── ArtisansProductionCoord (0,2) — HARVEST_SPEED "Mine" +0.1

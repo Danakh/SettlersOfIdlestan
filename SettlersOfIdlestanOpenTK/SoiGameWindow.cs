@@ -44,8 +44,11 @@ sealed class SoiGameWindow : GameWindow
         _runtime.FullscreenStateChanged += ApplyFullscreen;
 
         var args = Environment.GetCommandLineArgs();
-        bool allowDebug = args.Contains("--debug");
-        bool demoMode   = true;
+        bool allowDebug = false;
+#if DEBUG
+        allowDebug = args.Contains("--debug");
+#endif
+        bool demoMode   = false;
 
         _storeController = new StoreController([new StoreServiceSteam()]);
         _runtime.Initialize(new DesktopFileSystemService(), allowDebug, demoMode, _storeController);

@@ -334,6 +334,7 @@
   "prestige_hex_defense_regen": "Defensive Regeneration",
   "prestige_hex_warehouse_max_level": "Expanded Warehouses",
   "prestige_tooltip_gold_packages": "packs offered per gold",
+  "prestige_tooltip_market_gold_speed": "market gold production speed",
   "prestige_tooltip_city_defense": "city defense",
   "prestige_tooltip_city_max_soldiers": "soldier capacity per city",
   "prestige_tooltip_city_defense_regen": "defense regen speed",

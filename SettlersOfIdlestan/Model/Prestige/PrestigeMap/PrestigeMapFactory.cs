@@ -408,7 +408,7 @@ public static class PrestigeMapFactory
                 PrestigeMap.GoldTradeCoord,
                 "prestige_hex_gold_trade",
                 adjacentVertices: Adjacent(PrestigeMap.GoldTradeCoord),
-                perVertexModifiers: new Modifier[] { new(ECategory.TRADE_GOLD_PACKAGES, EType.ADDITIVE, -0.5) }
+                perVertexModifiers: new Modifier[] { new(ECategory.MARKET_GOLD_SPEED, EType.ADDITIVE, 0.1) }
             ),
             new(
                 PrestigeMap.ArtisansProductionCoord,

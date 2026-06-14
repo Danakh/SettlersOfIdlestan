@@ -39,7 +39,7 @@ public partial class MainPage : ContentPage
 #if DEBUG
 		allowDebugMode = Environment.GetCommandLineArgs().Contains("--debug");
 #endif
-		bool demoMode = true;
+		bool demoMode = false;
 		_runtime.Initialize(new DesktopFileSystemService(), allowDebugMode, demoMode);
 		MainThread.BeginInvokeOnMainThread(() => Dispatcher.StartTimer(TimeSpan.FromMilliseconds(16), RenderFrame));
 	}

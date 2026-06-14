@@ -276,7 +276,9 @@ namespace SettlersOfIdlestan.Controller.Island
                         continue;
                     }
 
-                    if (now - market.LastGoldGenerationTick < MarketGoldGenerationCooldownTicks) continue;
+                    double marketSpeedMultiplier = civ.ModifierAggregator.ApplyModifiers(ECategory.MARKET_GOLD_SPEED, "", 1.0);
+                    long effectiveCooldown = (long)(MarketGoldGenerationCooldownTicks / marketSpeedMultiplier);
+                    if (now - market.LastGoldGenerationTick < effectiveCooldown) continue;
 
                     civ.AddResource(Resource.Gold, 1);
                     market.LastGoldGenerationTick = now;

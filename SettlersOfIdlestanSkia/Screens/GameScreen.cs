@@ -127,10 +127,11 @@ public sealed class GameScreen : IDisposable
                 isNewGame = true;
             }
 
-            if (demoMode && _gameControllerService.CurrentGameState is { } gs)
+            MainGameState? gs = _gameControllerService.CurrentGameState;
+            if (gs != null)
             {
-                gs.Settings.DemoMode = true;
-                gs.IsDemoSave = true;
+                gs.Settings.DemoMode = demoMode;
+                gs.IsDemoSave = demoMode;
             }
 
             SetupRenderers(isNewGame, allowDebugMode);
