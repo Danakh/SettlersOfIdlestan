@@ -43,7 +43,7 @@ sealed class SoiGameWindow : GameWindow
 
         var args = Environment.GetCommandLineArgs();
         bool allowDebug = args.Contains("--debug");
-        bool demoMode   = args.Contains("--demo");
+        bool demoMode   = true;
 
         _storeController = new StoreController([new StoreServiceSteam()]);
         _runtime.Initialize(new DesktopFileSystemService(), allowDebug, demoMode, _storeController);

@@ -1,7 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using SettlersOfIdlestan.Controller.Tasks;
+using SettlersOfIdlestan.Controller.Achievements;
+using SettlersOfIdlestan.Model.Achievements;
 using SettlersOfIdlestan.Model.Localization;
 using SettlersOfIdlestan.Model.Tasks;
 
@@ -12,50 +13,57 @@ namespace SettlersOfIdlestan.Controller.Store;
 /// </summary>
 public class StoreController : IDisposable
 {
+    private readonly List<IStoreService> _allServices;
     private readonly List<IStoreService> _activeServices;
-    private TaskRecordController? _connectedController;
+    private AchievementController? _connectedAchievementController;
 
     public IReadOnlyList<IStoreService> ActiveServices => _activeServices;
 
     public StoreController(IEnumerable<IStoreService>? services = null)
     {
-        _activeServices = services?.Where(s => s.IsAvailable).ToList() ?? [];
+        _allServices    = services?.ToList() ?? [];
+        _activeServices = _allServices.Where(s => s.IsAvailable).ToList();
     }
 
     /// <summary>
-    /// Souscrit aux événements du TaskRecordController pour synchroniser achievements et stats.
+    /// Retourne le statut de connexion de chaque service détecté (exclut NotDetected).
+    /// </summary>
+    public IReadOnlyList<(string Name, StoreConnectionStatus Status)> GetConnectionStatuses()
+    {
+        var result = new List<(string, StoreConnectionStatus)>();
+        foreach (var svc in _allServices)
+        {
+            if (svc.ConnectionStatus != StoreConnectionStatus.NotDetected)
+                result.Add((svc.Name, svc.ConnectionStatus));
+        }
+        return result;
+    }
+
+    /// <summary>
+    /// Souscrit aux événements de l'AchievementController pour synchroniser les achievements avec les stores.
     /// Peut être appelé plusieurs fois — remplace la connexion précédente.
     /// </summary>
-    public void Connect(TaskRecordController taskRecordController)
+    public void Connect(AchievementController achievementController)
     {
-        if (_connectedController != null)
-        {
-            _connectedController.OnTaskCompleted  -= HandleTaskCompleted;
-            _connectedController.PrestigeRecorded -= HandlePrestigeRecorded;
-        }
+        if (_connectedAchievementController != null)
+            _connectedAchievementController.OnAchievementUnlocked -= HandleAchievementUnlocked;
 
-        _connectedController = taskRecordController;
-        taskRecordController.OnTaskCompleted  += HandleTaskCompleted;
-        taskRecordController.PrestigeRecorded += HandlePrestigeRecorded;
+        _connectedAchievementController = achievementController;
+        achievementController.OnAchievementUnlocked += HandleAchievementUnlocked;
     }
 
-    private void HandlePrestigeRecorded(object? sender, GameRecord record)
-        => SendStats(record);
-
-    private void HandleTaskCompleted(object? sender, TutorialTaskId taskId)
+    private void HandleAchievementUnlocked(object? sender, AchievementId id)
     {
-        var achievementId = GetAchievementId(taskId);
-        if (achievementId != null) UnlockAchievement(achievementId);
+        var storeId = GetStoreAchievementId(id);
+        if (storeId != null) UnlockAchievement(storeId);
     }
 
     /// <summary>
-    /// Mapping des tâches tutoriel vers les IDs d'achievements du store.
-    /// Les IDs correspondent aux noms définis dans le portail Steam (ou équivalent).
+    /// Mapping des AchievementId vers les identifiants définis dans le portail Steam (ou équivalent).
     /// </summary>
-    private static string? GetAchievementId(TutorialTaskId taskId) => taskId switch
+    private static string? GetStoreAchievementId(AchievementId id) => id switch
     {
-        TutorialTaskId.PerformPrestige       => "ACH_FIRST_PRESTIGE",
-        TutorialTaskId.PerformSecondPrestige => "ACH_SECOND_PRESTIGE",
+        AchievementId.FirstPrestige => "ACH_FIRST_PRESTIGE",
         _ => null,
     };
 
@@ -74,12 +82,6 @@ public class StoreController : IDisposable
         return null;
     }
 
-    public void SendStats(GameRecord gameRecord)
-    {
-        foreach (var service in _activeServices)
-            service.SendStats(gameRecord);
-    }
-
     public void UnlockAchievement(string achievementId)
     {
         foreach (var service in _activeServices)
@@ -90,14 +92,14 @@ public class StoreController : IDisposable
 
     public void Dispose()
     {
-        if (_connectedController != null)
+        if (_connectedAchievementController != null)
         {
-            _connectedController.OnTaskCompleted  -= HandleTaskCompleted;
-            _connectedController.PrestigeRecorded -= HandlePrestigeRecorded;
-            _connectedController = null;
+            _connectedAchievementController.OnAchievementUnlocked -= HandleAchievementUnlocked;
+            _connectedAchievementController = null;
         }
-        foreach (var service in _activeServices)
+        foreach (var service in _allServices)
             service.Dispose();
+        _allServices.Clear();
         _activeServices.Clear();
     }
 }

@@ -1,4 +1,5 @@
-﻿using SettlersOfIdlestan.Controller.Expand;
+﻿using SettlersOfIdlestan.Controller.Achievements;
+using SettlersOfIdlestan.Controller.Expand;
 using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Controller.Military;
 using SettlersOfIdlestan.Controller.Tasks;
@@ -44,6 +45,7 @@ namespace SettlersOfIdlestan.Controller
         private PrestigeModifierProvider? _prestigeModifierProvider;
         public AtlasController AtlasController { get; private set; }
         public TaskRecordController TaskRecordController { get; private set; }
+        public AchievementController AchievementController { get; private set; }
         public AutoExtendController AutoExtendController { get; private set; }
 
         /// <summary>
@@ -73,6 +75,8 @@ namespace SettlersOfIdlestan.Controller
             DeepestMineController = new DeepestMineController();
             MagicController = new Magic.MagicController();
             TaskRecordController = new TaskRecordController();
+            AchievementController = new AchievementController();
+            AchievementController.Connect(TaskRecordController);
             AutoExtendController = new AutoExtendController();
             NpcGameController = new NpcGameController();
         }

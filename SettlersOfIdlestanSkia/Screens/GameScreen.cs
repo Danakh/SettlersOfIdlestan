@@ -14,6 +14,9 @@ using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Controller.Store;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestanSkia.Renderers.Overlay.Panels;
+using SettlersOfIdlestan.Controller.Achievements;
+using SettlersOfIdlestan.Model.Achievements;
+using SettlersOfIdlestan.Model.Tasks;
 
 namespace SettlersOfIdlestanSkia.Screens;
 
@@ -44,6 +47,7 @@ public sealed class GameScreen : IDisposable
     private TutorialService? _tutorialService;
     private MilitaryInteractionService? _militaryInteractionService;
     private PlayerResourcesOverlayRenderer? _playerResourcesOverlayRenderer;
+    private NotificationToastRenderer? _notificationToastRenderer;
     private CorruptSavePopupRenderer? _corruptSavePopup;
     private bool _corruptSavePending;
     private string? _corruptSaveJson;
@@ -159,7 +163,8 @@ public sealed class GameScreen : IDisposable
             _corruptSavePopup.Open();
         }
 
-        storeController?.Connect(_gameControllerService.MainGameController.TaskRecordController);
+        storeController?.Connect(_gameControllerService.MainGameController.AchievementController);
+        ShowStoreConnectionNotifications(storeController);
 
         _tickStopwatch.Restart();
         _fpsStopwatch.Restart();
@@ -315,6 +320,11 @@ public sealed class GameScreen : IDisposable
             else           _tutorialService.InitializeForLoadedGame(tutorialState);
         }
 
+        _notificationToastRenderer = new NotificationToastRenderer(_uiLayoutService);
+        _renderService.RegisterRenderer(_notificationToastRenderer);
+
+        _gameControllerService.MainGameController.AchievementController.OnAchievementUnlocked += OnAchievementUnlocked;
+
         if (isNewGame && _gameControllerService.CurrentGameState is SettlersOfIdlestan.Model.Game.MainGameState introState)
             StartNewGameIntro(introState);
 
@@ -438,6 +448,7 @@ public sealed class GameScreen : IDisposable
         if (_gameOverPopup?.IsOpen == true)    { _gameOverPopup.HandlePointerPressed(new SKPoint(x, y), button);   return; }
         if (_demoEndPopup?.IsOpen == true)     { _demoEndPopup.HandlePointerPressed(new SKPoint(x, y), button);    return; }
         if (_introRenderer?.IsActive == true)  return;
+        if (_notificationToastRenderer?.HandlePointerPressed(new SKPoint(x, y)) == true) return;
 
         _isPointerDown        = true;
         _isPanning            = false;
@@ -550,6 +561,33 @@ public sealed class GameScreen : IDisposable
         }
         stats = default;
         return false;
+    }
+
+    private void OnAchievementUnlocked(object? sender, AchievementId id)
+    {
+        if (_notificationToastRenderer == null) return;
+        var def = AchievementDefinitions.All.FirstOrDefault(d => d.Id == id);
+        string title   = _localizationService.Get("notification_achievement_title");
+        string message = def != null ? _localizationService.Get(def.NameKey) : id.ToString();
+        _notificationToastRenderer.ShowNotification(title, message, NotificationIcon.Achievement);
+    }
+
+    internal void ShowStoreConnectionNotifications(StoreController? storeController)
+    {
+        if (storeController == null || _notificationToastRenderer == null) return;
+        foreach (var (name, status) in storeController.GetConnectionStatuses())
+        {
+            if (status == StoreConnectionStatus.Connected)
+            {
+                string msg = _localizationService.GetFormated("notification_store_connected", name);
+                _notificationToastRenderer.ShowNotification(msg, string.Empty, NotificationIcon.StoreOk);
+            }
+            else if (status == StoreConnectionStatus.Failed)
+            {
+                string msg = _localizationService.GetFormated("notification_store_failed", name);
+                _notificationToastRenderer.ShowNotification(msg, string.Empty, NotificationIcon.StoreFail);
+            }
+        }
     }
 
     private void OnCityDestroyedCheckGameOver(object? sender, SettlersOfIdlestan.Controller.Military.CityDestroyedEventArgs e)

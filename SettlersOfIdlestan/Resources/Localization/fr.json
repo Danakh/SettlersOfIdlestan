@@ -777,6 +777,10 @@
   "demo_end_title": "Démo terminée !",
   "demo_end_line1": "Félicitations, vous avez complété les 3 îles de la démo !",
   "demo_end_line2": "Rejouez l'île 3 en conservant vos bonus de prestige.",
-  "demo_end_replay": "Rejouer l'île 3"
+  "demo_end_replay": "Rejouer l'île 3",
+  "achievement_first_prestige_name": "Premier Prestige",
+  "notification_achievement_title": "Succès débloqué",
+  "notification_store_connected": "{0} connecté",
+  "notification_store_failed": "Connexion {0} échouée"
 }
 

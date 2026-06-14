@@ -777,6 +777,10 @@
   "demo_end_title": "Demo Complete!",
   "demo_end_line1": "Congratulations, you've completed the 3 demo islands!",
   "demo_end_line2": "Replay island 3 and keep your prestige bonuses.",
-  "demo_end_replay": "Replay Island 3"
+  "demo_end_replay": "Replay Island 3",
+  "achievement_first_prestige_name": "First Prestige",
+  "notification_achievement_title": "Achievement unlocked",
+  "notification_store_connected": "{0} connected",
+  "notification_store_failed": "{0} connection failed"
 }
 

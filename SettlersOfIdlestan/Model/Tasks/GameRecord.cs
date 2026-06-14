@@ -63,4 +63,7 @@ public class GameRecord
 
     /// <summary>IDs des tâches tutoriel complétées (clé = TutorialTaskId.ToString()).</summary>
     public HashSet<string> CompletedTasks { get; set; } = new();
+
+    /// <summary>IDs des achievements débloqués (clé = AchievementId.ToString()).</summary>
+    public HashSet<string> CompletedAchievements { get; set; } = new();
 }

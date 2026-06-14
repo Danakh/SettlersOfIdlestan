@@ -1,43 +1,48 @@
 using SettlersOfIdlestan.Controller.Store;
 using SettlersOfIdlestan.Model.Localization;
-using SettlersOfIdlestan.Model.Tasks;
 using Steamworks;
 
 namespace SettlersOfIdlestanOpenTK.Services.Store;
 
 /// <summary>
 /// Intégration Steam via Steamworks.NET.
-/// IsAvailable retourne false si Steam n'est pas lancé ou si steam_appid.txt est absent.
+/// ConnectionStatus = Connected si Steam est lancé et l'init réussit,
+/// Failed si Steam est détecté mais refuse la connexion,
+/// NotDetected si la DLL Steam est absente (Steam non installé).
 /// </summary>
 public class StoreServiceSteam : IStoreService
 {
-    private readonly bool _initialized;
+    public string Name => "Steam";
+    public StoreConnectionStatus ConnectionStatus { get; }
+    public bool IsAvailable => ConnectionStatus == StoreConnectionStatus.Connected;
 
     public StoreServiceSteam()
     {
-        _initialized = TryInitialize();
+        ConnectionStatus = TryInitialize();
     }
 
-    public bool IsAvailable => _initialized;
-
-    private static bool TryInitialize()
+    private static StoreConnectionStatus TryInitialize()
     {
         try
         {
-            if (!SteamAPI.Init()) return false;
+            if (!SteamAPI.Init()) return StoreConnectionStatus.Failed;
             // Demande asynchrone des stats — la réponse arrive via callback avant le premier prestige
             SteamUserStats.RequestCurrentStats();
-            return true;
+            return StoreConnectionStatus.Connected;
+        }
+        catch (DllNotFoundException)
+        {
+            return StoreConnectionStatus.NotDetected;
         }
         catch
         {
-            return false;
+            return StoreConnectionStatus.Failed;
         }
     }
 
     public Language? GetPreferredLanguage()
     {
-        if (!_initialized) return null;
+        if (!IsAvailable) return null;
 
         return SteamApps.GetCurrentGameLanguage() switch
         {
@@ -47,23 +52,15 @@ public class StoreServiceSteam : IStoreService
         };
     }
 
-    public void SendStats(GameRecord gameRecord)
-    {
-        if (!_initialized) return;
-
-        SteamUserStats.SetStat("max_prestige_points_single_run", gameRecord.MaxPrestigePointsInSingleRun);
-        SteamUserStats.StoreStats();
-    }
-
     public void UnlockAchievement(string achievementId)
     {
-        if (!_initialized) return;
+        if (!IsAvailable) return;
         SteamUserStats.SetAchievement(achievementId);
         SteamUserStats.StoreStats();
     }
 
     public void Dispose()
     {
-        if (_initialized) SteamAPI.Shutdown();
+        if (IsAvailable) SteamAPI.Shutdown();
     }
 }
