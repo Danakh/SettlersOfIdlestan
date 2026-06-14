@@ -48,7 +48,7 @@ public static class IslandScenarioRunner
         var civ = worldState.Civilizations.First();
         var autoplayer = new CivilizationAutoplayer(
             civ,
-            worldState.GetMapForZ(IslandMap.SurfaceLayer),
+            worldState.GetMapForZ(IslandMap.SurfaceLayer)!,
             controller.RoadController,
             controller.HarvestController,
             controller.BuildingController,

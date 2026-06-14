@@ -90,7 +90,7 @@ public class NpcExterminationTests
         var playerCiv = WorldState.PlayerCivilization;
         var auto = new CivilizationAutoplayer(
             playerCiv,
-            WorldState.GetMapForZ(IslandMap.SurfaceLayer),
+            WorldState.GetMapForZ(IslandMap.SurfaceLayer)!,
             mainController.RoadController,
             mainController.HarvestController,
             mainController.BuildingController,
