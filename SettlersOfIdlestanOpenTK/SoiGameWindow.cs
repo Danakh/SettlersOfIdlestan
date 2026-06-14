@@ -28,6 +28,7 @@ sealed class SoiGameWindow : GameWindow
             Title       = "Settlers of Idlestan",
             ClientSize  = new Vector2i(1280, 720),
             StencilBits = 8,
+            Icon        = LoadIcon(),
         })
     {
     }
@@ -36,7 +37,6 @@ sealed class SoiGameWindow : GameWindow
     {
         base.OnLoad();
 
-        Icon = LoadIcon();
         VSync = VSyncMode.On;
 
         _runtime.QuitRequested          += Close;

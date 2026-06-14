@@ -5,6 +5,8 @@
     <OutputType>Exe</OutputType>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <ApplicationIcon>Resources\appicon.ico</ApplicationIcon>
+    <AssemblyName>SettlersOfIdlestan</AssemblyName>
   </PropertyGroup>
 
   <ItemGroup>
