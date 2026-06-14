@@ -201,6 +201,7 @@ Both files must always be kept in sync.
 - **Deterministic generation**: `GamePRNG` is seeded — keep generation logic in `Generator/`, avoid `System.Random` elsewhere.
 - **Rendering**: new renderers must be registered in `RenderService`; render order matters for layering.
 - **Hex coordinates**: axial (q, r) system; cubic `s = -q - r` computed on demand.
+- **Modifier tooltips**: toute nouvelle `ECategory` nécessite obligatoirement (1) un cas dans `FormatModifier()` dans `PrestigeMapRenderer.cs`, (2) les clés de localisation correspondantes dans `fr.json` et `en.json`.
 
 ## Testing
 
