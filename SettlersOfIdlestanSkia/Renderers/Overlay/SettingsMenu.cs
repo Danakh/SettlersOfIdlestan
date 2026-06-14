@@ -384,10 +384,10 @@ public class SettingsMenu
         var mainState = _gameController.CurrentMainState;
         if (mainState?.PrestigeState != null)
         {
-            mainState.PrestigeState.PrestigePoints += 10000;
-            mainState.PrestigeState.TotalPrestigePointsEarned += 10000;
+            mainState.PrestigeState.PrestigePoints += 100000;
+            mainState.PrestigeState.TotalPrestigePointsEarned += 100000;
             mainState.PrestigeState.TechnologyTree.ResearchPoints = Math.Min(
-                mainState.PrestigeState.TechnologyTree.ResearchPoints + 10000,
+                mainState.PrestigeState.TechnologyTree.ResearchPoints + 1000000,
                 ResearchController.MaxResearchPoints);
         }
     }
