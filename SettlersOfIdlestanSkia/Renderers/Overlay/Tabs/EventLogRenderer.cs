@@ -172,6 +172,14 @@ public sealed class EventLogRenderer : IDisposable
             _successCardPaint, _successBorderPaint, _successTextPaint,
             _localization.Get("event_ogre_defeated_title"),
             _localization.Get("event_ogre_defeated_body")),
+        GameEventType.DragonDiscovered => (
+            _dangerCardPaint, _dangerBorderPaint, _dangerTextPaint,
+            _localization.Get("event_dragon_discovered_title"),
+            _localization.Get("event_dragon_discovered_body")),
+        GameEventType.DragonDefeated => (
+            _successCardPaint, _successBorderPaint, _successTextPaint,
+            _localization.Get("event_dragon_defeated_title"),
+            _localization.Get("event_dragon_defeated_body")),
         GameEventType.DeepestMinePlaced => (
             _discoveryCardPaint, _discoveryBorderPaint, _discoveryTextPaint,
             _localization.Get("event_deepest_mine_placed_title"),

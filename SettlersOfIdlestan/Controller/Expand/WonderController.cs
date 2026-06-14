@@ -87,7 +87,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 wonder.Level++;
                 wonder.InvestedResources.Clear();
                 wonder.InvestmentEnabled.Clear();
-                _state.EventLog.Add(GameEventType.WonderLevelUp, wonder.Level.ToString());
+                _state.EventLog.Add(GameEventType.WonderLevelUp, wonder.Level.ToString(), toast: true);
                 OnWonderLevelUp?.Invoke(this, wonder.Level);
             }
         }

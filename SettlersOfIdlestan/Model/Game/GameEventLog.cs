@@ -30,19 +30,25 @@ public enum GameEventType
     RitualCollapsed,
 }
 
-public record GameLogEntry(GameEventType Type, string? Message = null);
+public record GameLogEntry(GameEventType Type, string? Message = null, bool Toast = false);
 
 public class GameEventLog
 {
     private const int MaxEntries = 50;
     public List<GameLogEntry> Entries { get; } = new();
 
-    public void Add(GameEventType type, string? message = null)
+    private readonly Queue<GameLogEntry> _pendingToasts = new();
+
+    public void Add(GameEventType type, string? message = null, bool toast = false)
     {
-        Entries.Insert(0, new GameLogEntry(type, message));
+        var entry = new GameLogEntry(type, message, toast);
+        Entries.Insert(0, entry);
         if (Entries.Count > MaxEntries)
             Entries.RemoveAt(MaxEntries);
+        if (toast) _pendingToasts.Enqueue(entry);
     }
+
+    public bool TryDequeueToast(out GameLogEntry entry) => _pendingToasts.TryDequeue(out entry!);
 
     public bool HasEntries => Entries.Count > 0;
 }

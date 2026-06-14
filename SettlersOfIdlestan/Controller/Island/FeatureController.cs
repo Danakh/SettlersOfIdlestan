@@ -109,7 +109,8 @@ public class FeatureController
                 visibleMaps.Any(visibleMap => visibleMap.IsOnSameLayer(feature.Position) && visibleMap.HasTile(feature.Position)))
             {
                 feature.Found = true;
-                _state.EventLog.Add(feature.DiscoveredEventType);
+                bool featureToast = feature.DiscoveredEventType is GameEventType.BanditHideoutDiscovered or GameEventType.DragonDiscovered;
+                _state.EventLog.Add(feature.DiscoveredEventType, toast: featureToast);
                 OnFeatureDiscovered?.Invoke(this, feature);
             }
         }
@@ -147,7 +148,7 @@ public class FeatureController
             if (isCivVisible)
             {
                 civ.DiscoveredByPlayer = true;
-                _state.EventLog.Add(GameEventType.CivilizationDiscovered);
+                _state.EventLog.Add(GameEventType.CivilizationDiscovered, toast: true);
             }
         }
     }

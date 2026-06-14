@@ -371,6 +371,7 @@ public sealed class GameScreen : IDisposable
         var deltaTime = (float)Math.Clamp(elapsed, 0f, 0.1f);
 
         _gameControllerService.Update(deltaTime);
+        DrainEventToasts();
 
         bool introActive = _introRenderer?.IsActive == true;
         if (introActive)       _gameControllerService.CurrentGameState?.Clock?.Pause();
@@ -561,6 +562,40 @@ public sealed class GameScreen : IDisposable
         }
         stats = default;
         return false;
+    }
+
+    private void DrainEventToasts()
+    {
+        var eventLog = _gameControllerService.CurrentGameState?.CurrentWorldState?.EventLog;
+        if (eventLog == null || _notificationToastRenderer == null) return;
+        while (eventLog.TryDequeueToast(out var entry))
+            ShowEventToast(entry);
+    }
+
+    private void ShowEventToast(GameLogEntry entry)
+    {
+        if (_notificationToastRenderer == null) return;
+        var (title, message, icon) = entry.Type switch
+        {
+            GameEventType.WonderLevelUp => (
+                _localizationService.Get("event_wonder_levelup_title"),
+                _localizationService.GetFormated("event_wonder_levelup_body", entry.Message ?? "?"),
+                NotificationIcon.Achievement),
+            GameEventType.CivilizationDiscovered => (
+                _localizationService.Get("event_civilization_discovered_title"),
+                _localizationService.Get("event_civilization_discovered_body"),
+                NotificationIcon.Info),
+            GameEventType.BanditHideoutDiscovered => (
+                _localizationService.Get("event_bandit_hideout_title"),
+                _localizationService.Get("event_bandit_hideout_body"),
+                NotificationIcon.StoreFail),
+            GameEventType.DragonDiscovered => (
+                _localizationService.Get("event_dragon_discovered_title"),
+                _localizationService.Get("event_dragon_discovered_body"),
+                NotificationIcon.StoreFail),
+            _ => (entry.Type.ToString(), entry.Message ?? string.Empty, NotificationIcon.Info)
+        };
+        _notificationToastRenderer.ShowNotification(title, message, icon);
     }
 
     private void OnAchievementUnlocked(object? sender, AchievementId id)
