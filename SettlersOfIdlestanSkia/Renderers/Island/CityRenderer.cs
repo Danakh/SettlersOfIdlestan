@@ -148,10 +148,13 @@ public class CityRenderer : HexBasedRenderer, IGameRenderer
             else
                 mapForVisibility = vm;
 
-            // Dessine les villes de chaque civilisation
-            foreach (var civilization in worldState.Civilizations)
+            if (mapForVisibility != null)
             {
-                DrawCities(canvas, civilization.Cities, civilization, mapForVisibility);
+                // Dessine les villes de chaque civilisation
+                foreach (var civilization in worldState.Civilizations)
+                {
+                    DrawCities(canvas, civilization.Cities, civilization, mapForVisibility);
+                }
             }
         }
     }
