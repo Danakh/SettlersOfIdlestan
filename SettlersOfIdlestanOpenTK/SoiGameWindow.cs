@@ -2,6 +2,7 @@ using System.Diagnostics;
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
+using OpenTK.Windowing.Common.Input;
 using OpenTK.Windowing.Desktop;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using SettlersOfIdlestan.Controller.Store;
@@ -35,6 +36,7 @@ sealed class SoiGameWindow : GameWindow
     {
         base.OnLoad();
 
+        Icon = LoadIcon();
         VSync = VSyncMode.On;
 
         _runtime.QuitRequested          += Close;
@@ -142,6 +144,18 @@ sealed class SoiGameWindow : GameWindow
         _grContext?.Dispose();
         _runtime.Dispose();
         _storeController?.Dispose();
+    }
+
+    // ── Icon ──────────────────────────────────────────────────────────────────
+
+    private static WindowIcon LoadIcon()
+    {
+        using var stream = typeof(SoiGameWindow).Assembly
+            .GetManifestResourceStream("SettlersOfIdlestanOpenTK.Resources.appicon.png")!;
+        using var bmp = SKBitmap.Decode(stream).Copy(SKColorType.Rgba8888);
+        var pixels = new byte[bmp.Width * bmp.Height * 4];
+        System.Runtime.InteropServices.Marshal.Copy(bmp.GetPixels(), pixels, 0, pixels.Length);
+        return new WindowIcon(new OpenTK.Windowing.Common.Input.Image(bmp.Width, bmp.Height, pixels));
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────

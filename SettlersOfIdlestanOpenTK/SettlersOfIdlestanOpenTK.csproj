@@ -8,6 +8,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="Resources\appicon.png" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="OpenTK.Windowing.Desktop" Version="4.8.2" />
     <PackageReference Include="OpenTK.Graphics" Version="4.8.2" />
     <PackageReference Include="SkiaSharp" Version="3.119.2" />
