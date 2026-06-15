@@ -166,18 +166,18 @@ public class MilitaryRenderer : HexBasedRenderer, IGameRenderer
 
     private void DrawFlowLines(SKCanvas canvas)
     {
-        var WorldState = _gameControllerService?.CurrentWorldState;
+        var worldState = _gameControllerService?.CurrentWorldState;
         var playerCiv = _gameControllerService?.PlayerCivilization;
-        if (WorldState == null || playerCiv == null || _flowRedPaint == null || _flowGreenPaint == null || _arrowPaint == null) return;
+        if (worldState == null || playerCiv == null || _flowRedPaint == null || _flowGreenPaint == null || _arrowPaint == null) return;
 
-        var allCities = WorldState.Civilizations.SelectMany(c => c.Cities).ToList();
+        var allCities = worldState.Civilizations.SelectMany(c => c.Cities).ToList();
 
-        foreach (var civ in WorldState.Civilizations)
+        foreach (var civ in worldState.Civilizations)
         {
             foreach (var sourceCity in civ.Cities)
             {
                 if (sourceCity.FlowTarget == null) continue;
-                if (sourceCity.Position.Z != _gameControllerService?.CurrentWorldState?.CurrentViewedLayer) continue;
+                if (sourceCity.Position.Z != worldState.CurrentViewedLayer) continue;
 
                 var targetCity = allCities.FirstOrDefault(c => c.Position.Equals(sourceCity.FlowTarget));
                 if (targetCity == null) continue;
@@ -194,7 +194,6 @@ public class MilitaryRenderer : HexBasedRenderer, IGameRenderer
 
                 var sourcePt = VertexToIsland(sourceCity.Position);
                 var targetPt = VertexToIsland(targetCity.Position);
-
                 canvas.DrawLine(sourcePt, targetPt, linePaint);
                 DrawArrowhead(canvas, sourcePt, targetPt, arrowColor);
             }

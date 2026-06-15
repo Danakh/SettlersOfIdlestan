@@ -12,6 +12,8 @@ namespace SettlersOfIdlestan.Controller.Military;
 
 /// <summary>
 /// Gère les renforts entre villes alliées et les automatisations d'attaque/renfort du joueur.
+/// Les soldats expédiés réservent immédiatement un slot dans la ville cible et suivent les routes
+/// de la civilisation. Ils arrivent après un délai de ReinforcementTicksPerRoadSegment × nbSegments.
 /// </summary>
 internal class ReinforcementEngine
 {
@@ -21,6 +23,19 @@ internal class ReinforcementEngine
 
     private long _lastPlayerAutoReinforcementTick = 0;
     private long _lastPlayerAutoAttackTick = 0;
+
+    // Cache du graphe d'adjacence par (civIndex, z), invalidé dès que le nombre de routes change.
+    private readonly Dictionary<(int civIndex, int z), (int roadCount, Dictionary<Vertex, List<Vertex>> adj)> _adjCache = new();
+
+    private Dictionary<Vertex, List<Vertex>> GetAdjacency(Civilization civ, int z)
+    {
+        var key = (civ.Index, z);
+        if (_adjCache.TryGetValue(key, out var cached) && cached.roadCount == civ.Roads.Count)
+            return cached.adj;
+        var adj = RoadPathfinder.BuildAdjacency(civ.Roads, z);
+        _adjCache[key] = (civ.Roads.Count, adj);
+        return adj;
+    }
 
     private const int DefaultReinforcementRange = 5;
     private const long AutoReinforcementIntervalTicks = 100L;
@@ -36,11 +51,33 @@ internal class ReinforcementEngine
     internal int ReinforcementRange(Civilization civ)
         => civ.ModifierAggregator.ApplyModifiers(ECategory.REINFORCEMENT_RANGE, "", DefaultReinforcementRange);
 
-    /// <summary>Intervalle effectif entre deux renforts, après application du modificateur REINFORCEMENT_SPEED.</summary>
+    /// <summary>Intervalle effectif entre deux expéditions depuis la même ville, après REINFORCEMENT_SPEED.</summary>
     internal static long EffectiveReinforcementInterval(Civilization civ)
     {
         double speed = civ.ModifierAggregator.ApplyModifiers(ECategory.REINFORCEMENT_SPEED, "", 1.0);
         return Math.Max(1L, (long)(MilitaryController.ReinforcementIntervalTicks / speed));
+    }
+
+    /// <summary>
+    /// Convertit les soldats dont le tick d'arrivée est atteint de IncomingSoldiers vers la garnison.
+    /// </summary>
+    internal void ResolveArrivals(long currentTick)
+    {
+        if (_state == null) return;
+        foreach (var civ in _state.Civilizations)
+        {
+            foreach (var city in civ.Cities)
+            {
+                for (int i = city.IncomingSoldiers.Count - 1; i >= 0; i--)
+                {
+                    if (city.IncomingSoldiers[i].ArrivalTick > currentTick) continue;
+                    city.IncomingSoldiers.RemoveAt(i);
+                    int max = _productionEngine!.GetMaximumSoldierCapacity(city);
+                    if (city.Soldiers < max)
+                        city.Soldiers++;
+                }
+            }
+        }
     }
 
     internal void ResolveReinforcements(long currentTick, Action<ReinforcementEventArgs> onReinforcementSent)
@@ -49,23 +86,39 @@ internal class ReinforcementEngine
 
         foreach (var civ in _state.Civilizations)
         {
-            foreach (var sourceCity in civ.Cities.ToList())
+            long interval = EffectiveReinforcementInterval(civ);
+            int range = ReinforcementRange(civ);
+
+            // Lookup O(1) ville par position — évite FirstOrDefault O(n) pour chaque ville source
+            var cityByPos = new Dictionary<Vertex, City>(civ.Cities.Count);
+            foreach (var c in civ.Cities) cityByPos[c.Position] = c;
+
+            foreach (var sourceCity in civ.Cities)
             {
-                if (currentTick - sourceCity.LastReinforcementTick < EffectiveReinforcementInterval(civ)) continue;
+                if (currentTick - sourceCity.LastReinforcementTick < interval) continue;
                 if (sourceCity.Soldiers == 0) continue;
                 if (sourceCity.FlowTarget == null) continue;
 
-                var targetCity = civ.Cities.FirstOrDefault(c => c != sourceCity && c.Position.Equals(sourceCity.FlowTarget));
-                if (targetCity == null) continue;
-                if (sourceCity.Position.EdgeDistanceTo(targetCity.Position) > ReinforcementRange(civ)) continue;
-                if (targetCity.Soldiers >= _productionEngine!.GetMaximumSoldierCapacity(targetCity)) continue;
+                if (!cityByPos.TryGetValue(sourceCity.FlowTarget, out var targetCity) || targetCity == sourceCity) continue;
+
+                var adj = GetAdjacency(civ, sourceCity.Position.Z);
+                var roadPath = RoadPathfinder.FindPathInGraph(adj, sourceCity.Position, targetCity.Position);
+                if (roadPath == null) continue;
+
+                int roadSegments = roadPath.Count - 1;
+                if (roadSegments > range) continue;
+
+                // Le slot est réservé immédiatement : garnison + en-transit ne doit pas dépasser la capacité max
+                int effectiveTarget = targetCity.Soldiers + targetCity.IncomingSoldiers.Count;
+                if (effectiveTarget >= _productionEngine!.GetMaximumSoldierCapacity(targetCity)) continue;
 
                 sourceCity.Soldiers--;
-                targetCity.Soldiers++;
                 sourceCity.LastReinforcementTick = currentTick;
 
-                var path = HexGridPathfinder.FindVertexPath(sourceCity.Position, targetCity.Position);
-                onReinforcementSent(new ReinforcementEventArgs(sourceCity.Position, targetCity.Position, path));
+                long arrivalTick = currentTick + roadSegments * MilitaryController.ReinforcementTicksPerRoadSegment;
+                targetCity.IncomingSoldiers.Add(new InTransitSoldier(arrivalTick));
+
+                onReinforcementSent(new ReinforcementEventArgs(sourceCity.Position, targetCity.Position, roadPath));
             }
         }
     }
@@ -104,9 +157,18 @@ internal class ReinforcementEngine
 
     internal void UpdateCivilizationReinforcementFlows(Civilization civ)
     {
+        // HashSet des positions ennemies — évite le double Any() pour chaque ville
+        var enemyPositions = new HashSet<Vertex>();
+        foreach (var otherCiv in _state!.Civilizations)
+            if (otherCiv.Index != civ.Index)
+                foreach (var ec in otherCiv.Cities)
+                    enemyPositions.Add(ec.Position);
+
+        int range = ReinforcementRange(civ);
+
         foreach (var city in civ.Cities)
         {
-            if (city.FlowTarget != null && IsEnemyCityAt(city.FlowTarget, civ)) continue;
+            if (city.FlowTarget != null && enemyPositions.Contains(city.FlowTarget)) continue;
 
             Vertex? newFlow = null;
             int capacity = city.MaxSoldiers;
@@ -114,19 +176,22 @@ internal class ReinforcementEngine
                 && city.Soldiers * 4 >= capacity
                 && _cityAttackEngine!.FindNearbyEnemyCity(city) == null)
             {
-                int range = ReinforcementRange(civ);
+                int z = city.Position.Z;
+                var adj = GetAdjacency(civ, z);
                 City? target = null;
                 int fewestSoldiers = city.Soldiers;
 
                 foreach (var friendly in civ.Cities)
                 {
                     if (friendly == city) continue;
-                    if (friendly.Position.Z != city.Position.Z) continue;
-                    int dist = city.Position.EdgeDistanceTo(friendly.Position);
-                    if (dist > range) continue;
+                    if (friendly.Position.Z != z) continue;
+
+                    var roadPath = RoadPathfinder.FindPathInGraph(adj, city.Position, friendly.Position);
+                    if (roadPath == null || roadPath.Count - 1 > range) continue;
 
                     int tCap = friendly.MaxSoldiers;
-                    if (tCap == 0 || friendly.Soldiers * 2 > tCap) continue;
+                    int effectiveFriendly = friendly.Soldiers + friendly.IncomingSoldiers.Count;
+                    if (tCap == 0 || effectiveFriendly * 2 > tCap) continue;
                     if (friendly.Soldiers + 2 >= city.Soldiers) continue;
 
                     if (friendly.Soldiers < fewestSoldiers)

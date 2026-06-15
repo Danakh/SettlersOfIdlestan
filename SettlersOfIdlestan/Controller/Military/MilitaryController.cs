@@ -72,6 +72,9 @@ public class MilitaryController
     /// <summary>Intervalle entre deux cycles de consommation de nourriture par les soldats (1 000 ticks = 10 s).</summary>
     public const long SoldierFeedIntervalTicks = 1_000L;
 
+    /// <summary>Délai de transit par segment de route (20 ticks = 0.2 s).</summary>
+    public const long ReinforcementTicksPerRoadSegment = 20L;
+
     /// <summary>Soldats produits par cycle Armes en Acier, avant modificateurs (STEEL_WEAPONS_SOLDIER_COUNT).</summary>
     public const int SteelWeaponsBaseSoldierCount = 5;
 
@@ -168,6 +171,7 @@ public class MilitaryController
     private void Update(long currentTick)
     {
         if (_state == null) return;
+        _reinforcementEngine.ResolveArrivals(currentTick);
         _productionEngine.ProduceSoldiers(currentTick);
         _productionEngine.ResolveSoldierFeeding(currentTick);
         _monsterCombatEngine.ResolveMonsterCombat(currentTick,

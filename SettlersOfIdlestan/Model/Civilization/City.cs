@@ -67,6 +67,11 @@ public class City : IBuildingContext
     public long LastReinforcementTick { get; set; }
 
     /// <summary>
+    /// Soldats en transit vers cette ville. Leur slot est réservé dès le départ de la ville source.
+    /// </summary>
+    public List<InTransitSoldier> IncomingSoldiers { get; set; } = new();
+
+    /// <summary>
     /// Flux défini par le joueur : cité cible à attaquer ou à renforcer. Null si aucun flux.
     /// </summary>
     public Vertex? FlowTarget { get; set; }

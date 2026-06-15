@@ -33,7 +33,7 @@ internal class SoldierProductionEngine
         foreach (var civ in _state.Civilizations)
             foreach (var city in civ.Cities)
             {
-                if (city.Soldiers >= GetMaximumSoldierCapacity(city)) continue;
+                if (city.Soldiers + city.IncomingSoldiers.Count >= GetMaximumSoldierCapacity(city)) continue;
                 long effectiveProductionInterval = (long)(MilitaryController.SoldierProductionIntervalTicks / civ.UnitProductionSpeed);
                 if (currentTick - city.LastSoldierProductionTick < effectiveProductionInterval) continue;
 
