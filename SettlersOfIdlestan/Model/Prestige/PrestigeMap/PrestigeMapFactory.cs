@@ -364,7 +364,15 @@ public static class PrestigeMapFactory
             new(PrestigeMap.PlaceholderA3Vertex, "prestige_vertex_placeholder", cost: Cost(PrestigeMap.PlaceholderA3Vertex), modifiers: Array.Empty<Modifier>()),
             new(PrestigeMap.PlaceholderB2Vertex, "prestige_vertex_placeholder", cost: Cost(PrestigeMap.PlaceholderB2Vertex), modifiers: Array.Empty<Modifier>()),
             new(PrestigeMap.PlaceholderC3Vertex, "prestige_vertex_placeholder", cost: Cost(PrestigeMap.PlaceholderC3Vertex), modifiers: Array.Empty<Modifier>()),
-            new(PrestigeMap.PlaceholderD2Vertex, "prestige_vertex_placeholder", cost: Cost(PrestigeMap.PlaceholderD2Vertex), modifiers: Array.Empty<Modifier>()),
+            new(
+                PrestigeMap.WarRoomVertex,
+                "prestige_vertex_war_room",
+                cost: Cost(PrestigeMap.WarRoomVertex),
+                modifiers: new Modifier[]
+                {
+                    new(ECategory.BUILDING_MAX_LEVEL, "WarRoom", EType.ADDITIVE, 1),
+                }
+            ),
             new(
                 PrestigeMap.ImperialPortVertex,
                 "prestige_vertex_imperial_port",

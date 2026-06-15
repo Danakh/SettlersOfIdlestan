@@ -69,6 +69,8 @@ namespace SettlersOfIdlestan.Controller.Island
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[BuildingController] {nameof(PerformTraderGuildAutomation)}: {ex}"); }
             try { PerformImperialPortSeaportAutomation(); }
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[BuildingController] {nameof(PerformImperialPortSeaportAutomation)}: {ex}"); }
+            try { PerformWarRoomAutomation(); }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[BuildingController] {nameof(PerformWarRoomAutomation)}: {ex}"); }
         }
 
         private void PerformHarvestersGuildProductionAutomation()
@@ -144,6 +146,25 @@ namespace SettlersOfIdlestan.Controller.Island
                 long tick = guild.LastMarketBuildTick;
                 TickGuildAutomation(civ, ref tick, guild.GetAutoMarketCooldownTicks(), enabled, targets, now);
                 guild.LastMarketBuildTick = tick;
+            }
+        }
+
+        private void PerformWarRoomAutomation()
+        {
+            if (_state == null || _clock == null) return;
+            long now = _clock.CurrentTick;
+            BuildingType[] targets = [BuildingType.Barracks, BuildingType.MilitaryAcademy, BuildingType.Arsenal];
+
+            foreach (var civ in _state.Civilizations)
+            {
+                var warRoom = civ.Cities.SelectMany(c => c.Buildings).OfType<WarRoom>().FirstOrDefault();
+                if (warRoom == null || warRoom.Level == 0) continue;
+
+                bool isPlayer = civ.Index == _state.PlayerCivilization.Index;
+                bool enabled = !isPlayer || _state.AutomationSettings.MilitaryBuildingAutomationEnabled;
+                long tick = warRoom.LastMilitaryBuildTick;
+                TickGuildAutomation(civ, ref tick, warRoom.GetAutoMilitaryCooldownTicks(), enabled, targets, now);
+                warRoom.LastMilitaryBuildTick = tick;
             }
         }
 
@@ -408,6 +429,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 BuildingType.MushroomFarm => new MushroomFarm(),
                 BuildingType.MithrilMine => new MithrilMine(),
                 BuildingType.MageTower => new MageTower(),
+                BuildingType.WarRoom => new WarRoom(),
                 _ => null,
             };
         }

@@ -64,8 +64,8 @@ public class PrestigeMap
     public static readonly Vertex PlaceholderB2Vertex = Vertex.Create(new(2, -1, 0), new(2, -2, 0), new(3, -2, 0));
     // Outer NE — east corner of ExperimentalScience (2,0)
     public static readonly Vertex PlaceholderC3Vertex = Vertex.Create(new(2,  0, 0), new(3,  0, 0), new(2,  1, 0));
-    // Around ResearchCostReduction (1,1) / ExperimentalScience (2,0) outer east
-    public static readonly Vertex PlaceholderD2Vertex = Vertex.Create(new(1,  1, 0), new(2,  1, 0), new(1,  2, 0));
+    // Sud de MilitaryAcademy — partage les hexes (1,1) et (2,1) avec MilitaryAcademyVertex
+    public static readonly Vertex WarRoomVertex       = Vertex.Create(new(1,  1, 0), new(2,  1, 0), new(1,  2, 0));
     // Outer W connecting WarehouseMaxLevel → new NW hex (-2,0)
     public static readonly Vertex ImperialPortVertex  = Vertex.Create(new(-1,  0, 0), new(-2,  1, 0), new(-2,  0, 0));
     // Around StorageCapacity (-1,1) outer west

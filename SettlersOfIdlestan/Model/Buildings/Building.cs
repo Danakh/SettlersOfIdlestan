@@ -151,6 +151,10 @@ public enum BuildingType
     /// Tour de Mages - Limite le nombre et la puissance des rituels actifs. Extrait des cristaux des Grottes de Cristal adjacentes. Débloqué par le prestige (Secret de la Magie).
     /// </summary>
     MageTower,
+    /// <summary>
+    /// Salle de Guerre - Bâtiment unique. Débloque l'automatisation des bâtiments militaires (Casernes, Arsenaux) et fournit +50% de vitesse de production de troupes. Débloqué par le prestige.
+    /// </summary>
+    WarRoom,
 }
 
 /// <summary>
