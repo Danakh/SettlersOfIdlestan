@@ -24,14 +24,14 @@ namespace SOITests.ControllerTests
             Assert.Contains(mushroom!.Modifiers, m =>
                 m.Category == ECategory.BUILDING_MAX_LEVEL && m.SubCategory == "MushroomFarm");
 
-            var mithril = map.GetVertex(PrestigeMap.MithrilVertex);
+            var mithril = map.GetVertex(PrestigeMap.MithrilMineVertex);
             Assert.NotNull(mithril);
             Assert.Contains(mithril!.Modifiers, m =>
                 m.Category == ECategory.UNLOCK_RESOURCE && m.SubCategory == "Mithril");
             Assert.Contains(mithril.Modifiers, m =>
                 m.Category == ECategory.BUILDING_MAX_LEVEL && m.SubCategory == "MithrilMine");
 
-            Assert.NotNull(map.GetVertex(PrestigeMap.UnderworldWatchVertex));
+            Assert.NotNull(map.GetVertex(PrestigeMap.AbyssRiftVertex));
             Assert.NotNull(map.GetVertex(PrestigeMap.DeepProspectorsVertex));
             Assert.NotNull(map.GetVertex(PrestigeMap.TreasureHuntersVertex));
         }
@@ -50,23 +50,23 @@ namespace SOITests.ControllerTests
         }
 
         [Fact]
-        public void PrestigeMap_MithrilVertex_IsTheMostExpensiveOfTheBranch()
+        public void PrestigeMap_AbyssRiftVertex_IsTheMostExpensiveOfTheBranch()
         {
             var map = PrestigeMapFactory.CreateDefault();
-            var mithrilCost = map.GetVertex(PrestigeMap.MithrilVertex)!.Cost;
+            var mithrilCost = map.GetVertex(PrestigeMap.AbyssRiftVertex)!.Cost;
 
             var branchVertices = new[]
             {
                 PrestigeMap.DeepestMineVertex,
                 PrestigeMap.MushroomCultureVertex,
-                PrestigeMap.UnderworldWatchVertex,
+                PrestigeMap.MithrilMineVertex,
                 PrestigeMap.DeepProspectorsVertex,
                 PrestigeMap.TreasureHuntersVertex,
             };
 
             foreach (var coord in branchVertices)
                 Assert.True(mithrilCost >= map.GetVertex(coord)!.Cost,
-                    $"Le Mithril ({mithrilCost}) doit être au moins aussi cher que {coord} ({map.GetVertex(coord)!.Cost})");
+                    $"L'Abîme ({mithrilCost}) doit être au moins aussi cher que {coord} ({map.GetVertex(coord)!.Cost})");
         }
     }
 }

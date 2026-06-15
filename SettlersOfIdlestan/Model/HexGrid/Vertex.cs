@@ -85,12 +85,10 @@ public class Vertex
     public override bool Equals(object? obj)
     {
         if (obj is not Vertex other) return false;
-        var thisHexes = Normalize(Hex1, Hex2, Hex3);
-        var otherHexes = Normalize(other.Hex1, other.Hex2, other.Hex3);
 
-        return thisHexes[0].Equals(otherHexes[0]) &&
-               thisHexes[1].Equals(otherHexes[1]) &&
-               thisHexes[2].Equals(otherHexes[2]);
+        return Hex1.Equals(other.Hex1) &&
+               Hex2.Equals(other.Hex2) &&
+               Hex3.Equals(other.Hex3);
     }
 
     /// <summary>
@@ -156,10 +154,9 @@ public class Vertex
     /// </summary>
     public override int GetHashCode()
     {
-        var normalized = Normalize(Hex1, Hex2, Hex3);
         unchecked
         {
-            return (normalized[0].GetHashCode() * 31 + normalized[1].GetHashCode()) * 31 + normalized[2].GetHashCode();
+            return (Hex1.GetHashCode() * 31 + Hex2.GetHashCode()) * 31 + Hex3.GetHashCode();
         }
     }
 

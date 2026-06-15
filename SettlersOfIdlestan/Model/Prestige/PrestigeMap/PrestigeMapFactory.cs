@@ -227,7 +227,7 @@ public static class PrestigeMapFactory
                 }
             ),
             new(
-                PrestigeMap.UnderworldWatchVertex,
+                PrestigeMap.MithrilMineVertex,
                 "prestige_vertex_mithril",
                 cost: 10000,
                 modifiers: new Modifier[]
@@ -258,7 +258,7 @@ public static class PrestigeMapFactory
                 }
             ),
             new(
-                PrestigeMap.MithrilVertex,
+                PrestigeMap.AbyssRiftVertex,
                 "prestige_vertex_abyss_rift",
                 cost: 250000,
                 modifiers: new Modifier[]
@@ -361,9 +361,9 @@ public static class PrestigeMapFactory
                 cost: Cost(PrestigeMap.BarbacaneVertex),
                 modifiers: new Modifier[] { new(ECategory.CITY_DEFENSE_PROTECTS_SOLDIERS, EType.ADDITIVE, 1) }
             ),
-            new(PrestigeMap.PlaceholderA3Vertex, "prestige_vertex_placeholder", cost: Cost(PrestigeMap.PlaceholderA3Vertex), modifiers: Array.Empty<Modifier>()),
-            new(PrestigeMap.PlaceholderB2Vertex, "prestige_vertex_placeholder", cost: Cost(PrestigeMap.PlaceholderB2Vertex), modifiers: Array.Empty<Modifier>()),
-            new(PrestigeMap.PlaceholderC3Vertex, "prestige_vertex_placeholder", cost: Cost(PrestigeMap.PlaceholderC3Vertex), modifiers: Array.Empty<Modifier>()),
+            new(PrestigeMap.SiegeTrainingVertex, "prestige_vertex_placeholder", cost: Cost(PrestigeMap.SiegeTrainingVertex), modifiers: Array.Empty<Modifier>()),
+            new(PrestigeMap.ForgeApproachVertex, "prestige_vertex_placeholder", cost: Cost(PrestigeMap.ForgeApproachVertex), modifiers: Array.Empty<Modifier>()),
+            new(PrestigeMap.OuterScienceVertex,  "prestige_vertex_placeholder", cost: Cost(PrestigeMap.OuterScienceVertex),  modifiers: Array.Empty<Modifier>()),
             new(
                 PrestigeMap.WarRoomVertex,
                 "prestige_vertex_war_room",
@@ -383,8 +383,8 @@ public static class PrestigeMapFactory
                     new(ECategory.PRESTIGE_GAIN_PER_SEAPORT_LEVEL4, EType.ADDITIVE, 0.05),
                 }
             ),
-            new(PrestigeMap.PlaceholderF1Vertex, "prestige_vertex_placeholder", cost: Cost(PrestigeMap.PlaceholderF1Vertex), modifiers: Array.Empty<Modifier>()),
-            new(PrestigeMap.PlaceholderG2Vertex, "prestige_vertex_placeholder", cost: Cost(PrestigeMap.PlaceholderG2Vertex), modifiers: Array.Empty<Modifier>()),
+            new(PrestigeMap.OuterHarborVertex,    "prestige_vertex_placeholder", cost: Cost(PrestigeMap.OuterHarborVertex),    modifiers: Array.Empty<Modifier>()),
+            new(PrestigeMap.MysticCrossingVertex,  "prestige_vertex_placeholder", cost: Cost(PrestigeMap.MysticCrossingVertex),  modifiers: Array.Empty<Modifier>()),
         };
 
         IReadOnlyList<Vertex> Adjacent(HexCoord hex)

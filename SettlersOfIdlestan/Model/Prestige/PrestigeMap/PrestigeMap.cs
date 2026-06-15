@@ -58,22 +58,22 @@ public class PrestigeMap
     // Around FortifiedOutpost (0,-1) / UnitProductionSpeed (1,-1) north edge
     public static readonly Vertex ReinforcedPalisadeVertex = Vertex.Create(new(0, -1, 0), new(1, -2, 0), new(1, -1, 0));
     public static readonly Vertex BarbacaneVertex      = Vertex.Create(new(0, -1, 0), new(0, -2, 0), new(1, -2, 0));
-    public static readonly Vertex PlaceholderA3Vertex = Vertex.Create(new(1, -1, 0), new(1, -2, 0), new(2, -2, 0));
+    public static readonly Vertex SiegeTrainingVertex  = Vertex.Create(new(1, -1, 0), new(1, -2, 0), new(2, -2, 0));
     // Around DefenseRegen (2,-1) / UnitProductionSpeed (1,-1) outer east
-    public static readonly Vertex AdvancedGuardVertex = Vertex.Create(new(1, -1, 0), new(2, -2, 0), new(2, -1, 0));
-    public static readonly Vertex PlaceholderB2Vertex = Vertex.Create(new(2, -1, 0), new(2, -2, 0), new(3, -2, 0));
+    public static readonly Vertex AdvancedGuardVertex  = Vertex.Create(new(1, -1, 0), new(2, -2, 0), new(2, -1, 0));
+    public static readonly Vertex ForgeApproachVertex  = Vertex.Create(new(2, -1, 0), new(2, -2, 0), new(3, -2, 0));
     // Outer NE — east corner of ExperimentalScience (2,0)
-    public static readonly Vertex PlaceholderC3Vertex = Vertex.Create(new(2,  0, 0), new(3,  0, 0), new(2,  1, 0));
+    public static readonly Vertex OuterScienceVertex   = Vertex.Create(new(2,  0, 0), new(3,  0, 0), new(2,  1, 0));
     // Sud de MilitaryAcademy — partage les hexes (1,1) et (2,1) avec MilitaryAcademyVertex
-    public static readonly Vertex WarRoomVertex       = Vertex.Create(new(1,  1, 0), new(2,  1, 0), new(1,  2, 0));
+    public static readonly Vertex WarRoomVertex        = Vertex.Create(new(1,  1, 0), new(2,  1, 0), new(1,  2, 0));
     // Outer W connecting WarehouseMaxLevel → new NW hex (-2,0)
-    public static readonly Vertex ImperialPortVertex  = Vertex.Create(new(-1,  0, 0), new(-2,  1, 0), new(-2,  0, 0));
+    public static readonly Vertex ImperialPortVertex   = Vertex.Create(new(-1,  0, 0), new(-2,  1, 0), new(-2,  0, 0));
     // Around StorageCapacity (-1,1) outer west
-    public static readonly Vertex PlaceholderF1Vertex = Vertex.Create(new(-1,  1, 0), new(-2,  2, 0), new(-2,  1, 0));
+    public static readonly Vertex OuterHarborVertex    = Vertex.Create(new(-1,  1, 0), new(-2,  2, 0), new(-2,  1, 0));
     // ── Branche de la Magie (sud) — autour de l'hex Lignes Telluriques (-1,3)
     // Deux entrées : Cercles de Fées (depuis la Guilde des Artisans) et Dolmens (depuis la Guilde des Marchands)
-    public static readonly Vertex FairyCirclesVertex  = Vertex.Create(new(-1,  2, 0), new( 0,  2, 0), new(-1,  3, 0));
-    public static readonly Vertex PlaceholderG2Vertex = Vertex.Create(new( 0,  2, 0), new( 1,  2, 0), new( 0,  3, 0));
+    public static readonly Vertex FairyCirclesVertex   = Vertex.Create(new(-1,  2, 0), new( 0,  2, 0), new(-1,  3, 0));
+    public static readonly Vertex MysticCrossingVertex = Vertex.Create(new( 0,  2, 0), new( 1,  2, 0), new( 0,  3, 0));
     // Porte d'entrée : déverrouille la magie (au moins aussi chère que la porte de l'Inframonde)
     public static readonly Vertex MagicSecretVertex   = Vertex.Create(new( 0,  2, 0), new( 0,  3, 0), new(-1,  3, 0));
     public static readonly Vertex FocalizationVertex  = Vertex.Create(new(-1,  2, 0), new(-1,  3, 0), new(-2,  3, 0));
@@ -82,10 +82,10 @@ public class PrestigeMap
     // Porte d'entrée : déverrouille la Mine Profonde (plus chère que le Secret de l'Acier)
     public static readonly Vertex DeepestMineVertex     = Vertex.Create(new(-1,  0, 0), new(-1, -1, 0), new( 0, -1, 0));
     public static readonly Vertex MushroomCultureVertex = Vertex.Create(new( 0, -1, 0), new(-1, -1, 0), new( 0, -2, 0));
-    public static readonly Vertex UnderworldWatchVertex = Vertex.Create(new(-1, -1, 0), new(-1, -2, 0), new( 0, -2, 0));
+    public static readonly Vertex MithrilMineVertex    = Vertex.Create(new(-1, -1, 0), new(-1, -2, 0), new( 0, -2, 0));
     public static readonly Vertex DeepProspectorsVertex = Vertex.Create(new(-1,  0, 0), new(-2,  0, 0), new(-1, -1, 0));
     public static readonly Vertex TreasureHuntersVertex = Vertex.Create(new(-2,  0, 0), new(-2, -1, 0), new(-1, -1, 0));
-    public static readonly Vertex MithrilVertex         = Vertex.Create(new(-2, -1, 0), new(-1, -2, 0), new(-1, -1, 0));
+    public static readonly Vertex AbyssRiftVertex       = Vertex.Create(new(-2, -1, 0), new(-1, -2, 0), new(-1, -1, 0));
     // Sommets profonds de la branche de la Magie (coins sud de l'hex Lignes Telluriques)
     public static readonly Vertex ArchmageVertex      = Vertex.Create(new( 0,  3, 0), new(-1,  4, 0), new(-1,  3, 0));
     public static readonly Vertex CrystalomancyVertex = Vertex.Create(new(-1,  3, 0), new(-1,  4, 0), new(-2,  4, 0));

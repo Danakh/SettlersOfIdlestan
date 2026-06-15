@@ -7,6 +7,7 @@ using SOITests.TestUtilities;
 using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
 using SettlersOfIdlestan.Model.Prestige.PrestigeMap;
 using SettlersOfIdlestan.Controller.Expand;
+using System;
 
 namespace SOITests.ControllerTests;
 
@@ -213,10 +214,10 @@ public class PrestigeMapControllerTests
         Controller().ApplyPrestigeToNewGame(island, prestige);
 
         var civ = island.PlayerCivilization;
-        Assert.Equal(2, civ.GetResourceQuantity(Resource.Food));
-        Assert.Equal(2, civ.GetResourceQuantity(Resource.Wood));
-        Assert.Equal(2, civ.GetResourceQuantity(Resource.Brick));
-        Assert.Equal(2, civ.GetResourceQuantity(Resource.Stone));
+        Assert.Equal(5, civ.GetResourceQuantity(Resource.Food));
+        Assert.Equal(5, civ.GetResourceQuantity(Resource.Wood));
+        Assert.Equal(5, civ.GetResourceQuantity(Resource.Brick));
+        Assert.Equal(5, civ.GetResourceQuantity(Resource.Stone));
     }
 
     [Fact]
@@ -231,8 +232,9 @@ public class PrestigeMapControllerTests
         Controller().ApplyPrestigeToNewGame(island, prestige);
 
         var civ = island.PlayerCivilization;
-        Assert.Equal(6, civ.GetResourceQuantity(Resource.Food));
-        Assert.Equal(6, civ.GetResourceQuantity(Resource.Wood));
+        int targetValue = Math.Min(15, civ.GetResourceMaxQuantity(Resource.Food));
+        Assert.Equal(targetValue, civ.GetResourceQuantity(Resource.Food));
+        Assert.Equal(targetValue, civ.GetResourceQuantity(Resource.Wood));
     }
 
     [Fact]
