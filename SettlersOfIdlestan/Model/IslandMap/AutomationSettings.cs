@@ -11,4 +11,6 @@ public class AutomationSettings
     public bool SeaportBuildingAutomationEnabled { get; set; } = false;
     public bool MilitaryReinforcementAutomationEnabled { get; set; } = false;
     public bool MilitaryAttackAutomationEnabled { get; set; } = false;
+
+    public HashSet<string> PinnedToCivPanel { get; set; } = [];
 }

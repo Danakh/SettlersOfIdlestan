@@ -6,6 +6,7 @@ using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestanSkia.Services.Localization;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Renderers.Overlay.Popup;
+using SettlersOfIdlestanSkia.Renderers.Overlay.Tabs;
 using SettlersOfIdlestanSkia.Services;
 using SkiaSharp;
 using System;
@@ -43,14 +44,10 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
     private SKRect _prestigeButtonRect = SKRect.Empty;
     private SKRect _wonderButtonRect   = SKRect.Empty;
     private SKRect _deepestMineButtonRect = SKRect.Empty;
-    private SKRect _barracksToggleRect = SKRect.Empty;
-    private SKRect _labToggleRect      = SKRect.Empty;
-    private SKRect _smelterToggleRect      = SKRect.Empty;
-    private SKRect _steelWeaponsToggleRect = SKRect.Empty;
-    private SKRect _arsenalToggleRect      = SKRect.Empty;
+    private readonly List<(SKRect rect, string pinKey, string tooltipKey)> _pinnedItemRects = new();
+    private int _hoveredPinnedIndex = -1;
 
     private bool _hoveredTrade, _hoveredPrestige, _hoveredWonder, _hoveredDeepestMine;
-    private bool _hoveredBarracks, _hoveredLab, _hoveredSmelter, _hoveredSteelWeapons, _hoveredArsenal;
     private bool _wonderEnabled;
     private bool _deepestMineEnabled;
     private bool _disposed;
@@ -150,11 +147,14 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         bool hasArsenals     = HasBuilt<Arsenal>(civ);
         bool hasSteelWeapons = hasBarracks && civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_STEEL_WEAPONS);
 
+        var worldState = _gameControllerService.CurrentWorldState;
+        var pinned = worldState?.AutomationSettings.PinnedToCivPanel ?? (IReadOnlySet<string>)new HashSet<string>();
+
         bool showActions  = tradeVisible || prestigeVisible || wonderVisible || deepestMineVisible;
-        bool showControls = hasBarracks || hasLabs || hasSmelters || hasArsenals;
+        bool showControls = pinned.Any(k => IsKeyShowable(k, civ, worldState, hasBarracks, hasSteelWeapons, hasLabs, hasSmelters, hasArsenals));
 
         _tradeButtonRect = _prestigeButtonRect = _wonderButtonRect = _deepestMineButtonRect = SKRect.Empty;
-        _barracksToggleRect = _labToggleRect = _smelterToggleRect = _steelWeaponsToggleRect = _arsenalToggleRect = SKRect.Empty;
+        _pinnedItemRects.Clear();
 
         if (!showActions && !showControls)
         {
@@ -187,11 +187,9 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         if (showControls)
         {
             h += titleHeight;
-            if (hasBarracks)     h += rowHeight;
-            if (hasSteelWeapons) h += rowHeight;
-            if (hasLabs)         h += rowHeight;
-            if (hasSmelters)     h += rowHeight;
-            if (hasArsenals)     h += rowHeight;
+            foreach (var k in pinned)
+                if (IsKeyShowable(k, civ, worldState, hasBarracks, hasSteelWeapons, hasLabs, hasSmelters, hasArsenals))
+                    h += rowHeight;
         }
         h += panelPadding;
 
@@ -272,39 +270,49 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             SkiaTextUtils.DrawText(canvas, _localization.Get("panel_civ_controls"), x, y + titleSize, _sectionFont, _sectionTitlePaint);
             y += titleHeight;
 
-            if (hasBarracks)
+            foreach (var key in pinned)
             {
-                bool? allOn = AreAllActiveNullable<Barracks>(civ);
-                _barracksToggleRect = DrawToggleRow(canvas, x, y, allOn, _hoveredBarracks, _localization.Get("building_barracks_name"));
-                y += rowHeight;
-            }
+                if (!IsKeyShowable(key, civ, worldState, hasBarracks, hasSteelWeapons, hasLabs, hasSmelters, hasArsenals))
+                    continue;
 
-            if (hasSteelWeapons)
-            {
-                bool? allOn = AreAllSteelWeaponsActiveNullable(civ);
-                bool noBarracksActive = !civ.Cities.SelectMany(c => c.Buildings.OfType<Barracks>()).Any(b => b.Level >= 1 && b.ActivationStatus == ActivationStatus.ACTIVE);
-                _steelWeaponsToggleRect = DrawToggleRow(canvas, x, y, allOn, _hoveredSteelWeapons, _localization.Get("toggle_steel_weapons"), isDimmed: noBarracksActive);
-                y += rowHeight;
-            }
+                int idx = _pinnedItemRects.Count;
+                bool isHovered = _hoveredPinnedIndex == idx;
 
-            if (hasLabs)
-            {
-                bool? allOn = AreAllActiveNullable<Laboratory>(civ);
-                _labToggleRect = DrawToggleRow(canvas, x, y, allOn, _hoveredLab, _localization.Get("building_laboratory_name"));
-                y += rowHeight;
-            }
+                SKRect toggleRect;
+                string tooltipKey;
 
-            if (hasSmelters)
-            {
-                bool? allOn = AreAllActiveNullable<Smelter>(civ);
-                _smelterToggleRect = DrawToggleRow(canvas, x, y, allOn, _hoveredSmelter, _localization.Get("building_smelter_name"));
+                switch (key)
+                {
+                    case AutomationRenderer.PinKeyBarracks:
+                        toggleRect = DrawToggleRow(canvas, x, y, AreAllActiveNullable<Barracks>(civ), isHovered, _localization.Get("building_barracks_name"));
+                        tooltipKey = "tooltip_toggle_barracks";
+                        break;
+                    case AutomationRenderer.PinKeySteelWeapons:
+                    {
+                        bool noActive = !civ.Cities.SelectMany(c => c.Buildings.OfType<Barracks>()).Any(b => b.Level >= 1 && b.ActivationStatus == ActivationStatus.ACTIVE);
+                        toggleRect = DrawToggleRow(canvas, x, y, AreAllSteelWeaponsActiveNullable(civ), isHovered, _localization.Get("toggle_steel_weapons"), isDimmed: noActive);
+                        tooltipKey = "tooltip_toggle_steel_weapons";
+                        break;
+                    }
+                    case AutomationRenderer.PinKeyLaboratory:
+                        toggleRect = DrawToggleRow(canvas, x, y, AreAllActiveNullable<Laboratory>(civ), isHovered, _localization.Get("building_laboratory_name"));
+                        tooltipKey = "tooltip_toggle_lab";
+                        break;
+                    case AutomationRenderer.PinKeySmelter:
+                        toggleRect = DrawToggleRow(canvas, x, y, AreAllActiveNullable<Smelter>(civ), isHovered, _localization.Get("building_smelter_name"));
+                        tooltipKey = "tooltip_toggle_smelter";
+                        break;
+                    case AutomationRenderer.PinKeyArsenal:
+                        toggleRect = DrawToggleRow(canvas, x, y, AreAllActiveNullable<Arsenal>(civ), isHovered, _localization.Get("building_arsenal_name"));
+                        tooltipKey = "tooltip_toggle_arsenal";
+                        break;
+                    default:
+                        toggleRect = DrawAutomationToggleRow(canvas, x, y, key, worldState!, isHovered, contentW);
+                        tooltipKey = "tooltip_pin_to_civ_panel";
+                        break;
+                }
+                _pinnedItemRects.Add((toggleRect, key, tooltipKey));
                 y += rowHeight;
-            }
-
-            if (hasArsenals)
-            {
-                bool? allOn = AreAllActiveNullable<Arsenal>(civ);
-                _arsenalToggleRect = DrawToggleRow(canvas, x, y, allOn, _hoveredArsenal, _localization.Get("building_arsenal_name"));
             }
         }
 
@@ -331,16 +339,11 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             _tooltipRenderer.SetTooltip(_localization.Get("tooltip_deepest_mine_surface_only"), new SKPoint(_deepestMineButtonRect.Right, _deepestMineButtonRect.Top));
         else if (_hoveredDeepestMine)
             _tooltipRenderer.SetTooltip(_localization.Get("tooltip_deepest_mine"), new SKPoint(_deepestMineButtonRect.Right, _deepestMineButtonRect.Top));
-        else if (_hoveredBarracks)
-            _tooltipRenderer.SetTooltip(_localization.Get("tooltip_toggle_barracks"), new SKPoint(_barracksToggleRect.Right, _barracksToggleRect.Top));
-        else if (_hoveredSteelWeapons)
-            _tooltipRenderer.SetTooltip(_localization.Get("tooltip_toggle_steel_weapons"), new SKPoint(_steelWeaponsToggleRect.Right, _steelWeaponsToggleRect.Top));
-        else if (_hoveredLab)
-            _tooltipRenderer.SetTooltip(_localization.Get("tooltip_toggle_lab"), new SKPoint(_labToggleRect.Right, _labToggleRect.Top));
-        else if (_hoveredSmelter)
-            _tooltipRenderer.SetTooltip(_localization.Get("tooltip_toggle_smelter"), new SKPoint(_smelterToggleRect.Right, _smelterToggleRect.Top));
-        else if (_hoveredArsenal)
-            _tooltipRenderer.SetTooltip(_localization.Get("tooltip_toggle_arsenal"), new SKPoint(_arsenalToggleRect.Right, _arsenalToggleRect.Top));
+        else if (_hoveredPinnedIndex >= 0 && _hoveredPinnedIndex < _pinnedItemRects.Count)
+        {
+            var (rect, _, tooltipKey) = _pinnedItemRects[_hoveredPinnedIndex];
+            _tooltipRenderer.SetTooltip(_localization.Get(tooltipKey), new SKPoint(rect.Right, rect.Top));
+        }
     }
 
     private SKRect DrawToggleRow(SKCanvas canvas, float x, float y, bool? isOn, bool isHovered, string label, bool isDimmed = false)
@@ -359,15 +362,16 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
     public void HandlePointerMoved(SKPoint pos)
     {
         if (_disposed) return;
-        _hoveredTrade    = !_tradeButtonRect.IsEmpty    && _tradeButtonRect.Contains(pos.X, pos.Y);
-        _hoveredPrestige = !_prestigeButtonRect.IsEmpty && _prestigeButtonRect.Contains(pos.X, pos.Y);
-        _hoveredWonder   = !_wonderButtonRect.IsEmpty   && _wonderButtonRect.Contains(pos.X, pos.Y);
+        _hoveredTrade       = !_tradeButtonRect.IsEmpty       && _tradeButtonRect.Contains(pos.X, pos.Y);
+        _hoveredPrestige    = !_prestigeButtonRect.IsEmpty    && _prestigeButtonRect.Contains(pos.X, pos.Y);
+        _hoveredWonder      = !_wonderButtonRect.IsEmpty      && _wonderButtonRect.Contains(pos.X, pos.Y);
         _hoveredDeepestMine = !_deepestMineButtonRect.IsEmpty && _deepestMineButtonRect.Contains(pos.X, pos.Y);
-        _hoveredBarracks     = !_barracksToggleRect.IsEmpty     && _barracksToggleRect.Contains(pos.X, pos.Y);
-        _hoveredLab          = !_labToggleRect.IsEmpty          && _labToggleRect.Contains(pos.X, pos.Y);
-        _hoveredSmelter      = !_smelterToggleRect.IsEmpty      && _smelterToggleRect.Contains(pos.X, pos.Y);
-        _hoveredSteelWeapons = !_steelWeaponsToggleRect.IsEmpty && _steelWeaponsToggleRect.Contains(pos.X, pos.Y);
-        _hoveredArsenal      = !_arsenalToggleRect.IsEmpty      && _arsenalToggleRect.Contains(pos.X, pos.Y);
+
+        _hoveredPinnedIndex = -1;
+        for (int i = 0; i < _pinnedItemRects.Count; i++)
+        {
+            if (_pinnedItemRects[i].rect.Contains(pos.X, pos.Y)) { _hoveredPinnedIndex = i; break; }
+        }
     }
 
     public bool HandlePointerPressed(SKPoint pos)
@@ -414,40 +418,74 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         }
 
         var civ = _gameControllerService.PlayerCivilization;
-        if (civ != null)
+        var worldState = _gameControllerService.CurrentWorldState;
+
+        for (int i = 0; i < _pinnedItemRects.Count; i++)
         {
-            if (!_barracksToggleRect.IsEmpty && _barracksToggleRect.Contains(pos.X, pos.Y))
-            {
-                ToggleAll<Barracks>(civ);
-                return true;
-            }
-
-            if (!_labToggleRect.IsEmpty && _labToggleRect.Contains(pos.X, pos.Y))
-            {
-                ToggleAll<Laboratory>(civ);
-                return true;
-            }
-
-            if (!_smelterToggleRect.IsEmpty && _smelterToggleRect.Contains(pos.X, pos.Y))
-            {
-                ToggleAll<Smelter>(civ);
-                return true;
-            }
-
-            if (!_arsenalToggleRect.IsEmpty && _arsenalToggleRect.Contains(pos.X, pos.Y))
-            {
-                ToggleAll<Arsenal>(civ);
-                return true;
-            }
-
-            if (!_steelWeaponsToggleRect.IsEmpty && _steelWeaponsToggleRect.Contains(pos.X, pos.Y))
-            {
-                ToggleAllSteelWeapons(civ);
-                return true;
-            }
+            if (!_pinnedItemRects[i].rect.Contains(pos.X, pos.Y)) continue;
+            string key = _pinnedItemRects[i].pinKey;
+            HandlePinnedToggle(key, civ, worldState);
+            return true;
         }
 
         return true;
+    }
+
+    private void HandlePinnedToggle(string key, Civilization? civ, SettlersOfIdlestan.Model.IslandMap.WorldState? worldState)
+    {
+        var settings = worldState?.AutomationSettings;
+        switch (key)
+        {
+            case AutomationRenderer.PinKeyBarracks:      if (civ != null) ToggleAll<Barracks>(civ);    break;
+            case AutomationRenderer.PinKeySteelWeapons:  if (civ != null) ToggleAllSteelWeapons(civ);  break;
+            case AutomationRenderer.PinKeyLaboratory:    if (civ != null) ToggleAll<Laboratory>(civ);  break;
+            case AutomationRenderer.PinKeySmelter:       if (civ != null) ToggleAll<Smelter>(civ);     break;
+            case AutomationRenderer.PinKeyArsenal:       if (civ != null) ToggleAll<Arsenal>(civ);     break;
+            case AutomationRenderer.PinKeyRoad:          if (settings != null) settings.RoadAutomationEnabled = !settings.RoadAutomationEnabled;                           break;
+            case AutomationRenderer.PinKeyOutpost:       if (settings != null) settings.OutpostAutomationEnabled = !settings.OutpostAutomationEnabled;                     break;
+            case AutomationRenderer.PinKeyProduction:    if (settings != null) settings.ProductionBuildingAutomationEnabled = !settings.ProductionBuildingAutomationEnabled; break;
+            case AutomationRenderer.PinKeyArtisan:       if (settings != null) settings.ArtisanBuildingAutomationEnabled = !settings.ArtisanBuildingAutomationEnabled;     break;
+            case AutomationRenderer.PinKeyLibrary:       if (settings != null) settings.LibraryBuildingAutomationEnabled = !settings.LibraryBuildingAutomationEnabled;     break;
+            case AutomationRenderer.PinKeyMarket:        if (settings != null) settings.MarketBuildingAutomationEnabled = !settings.MarketBuildingAutomationEnabled;       break;
+            case AutomationRenderer.PinKeySeaport:       if (settings != null) settings.SeaportBuildingAutomationEnabled = !settings.SeaportBuildingAutomationEnabled;     break;
+            case AutomationRenderer.PinKeyMilReinforce:  if (settings != null) settings.MilitaryReinforcementAutomationEnabled = !settings.MilitaryReinforcementAutomationEnabled; break;
+            case AutomationRenderer.PinKeyMilAttack:     if (settings != null) settings.MilitaryAttackAutomationEnabled = !settings.MilitaryAttackAutomationEnabled;       break;
+        }
+    }
+
+    private static bool IsKeyShowable(string key, Civilization civ,
+        SettlersOfIdlestan.Model.IslandMap.WorldState? worldState,
+        bool hasBarracks, bool hasSteelWeapons, bool hasLabs, bool hasSmelters, bool hasArsenals)
+    {
+        return key switch
+        {
+            AutomationRenderer.PinKeyBarracks     => hasBarracks,
+            AutomationRenderer.PinKeySteelWeapons => hasSteelWeapons,
+            AutomationRenderer.PinKeyLaboratory   => hasLabs,
+            AutomationRenderer.PinKeySmelter      => hasSmelters,
+            AutomationRenderer.PinKeyArsenal      => hasArsenals,
+            _ => worldState != null, // automation keys: always show if world state available
+        };
+    }
+
+    private SKRect DrawAutomationToggleRow(SKCanvas canvas, float x, float y, string key,
+        SettlersOfIdlestan.Model.IslandMap.WorldState worldState, bool isHovered, float contentW)
+    {
+        var settings = worldState.AutomationSettings;
+        (bool value, string nameKey) = key switch
+        {
+            AutomationRenderer.PinKeyRoad         => (settings.RoadAutomationEnabled,                      "automation_road_name"),
+            AutomationRenderer.PinKeyOutpost      => (settings.OutpostAutomationEnabled,                   "automation_outpost_name"),
+            AutomationRenderer.PinKeyProduction   => (settings.ProductionBuildingAutomationEnabled,        "automation_production_name"),
+            AutomationRenderer.PinKeyArtisan      => (settings.ArtisanBuildingAutomationEnabled,           "automation_artisan_name"),
+            AutomationRenderer.PinKeyLibrary      => (settings.LibraryBuildingAutomationEnabled,           "automation_library_name"),
+            AutomationRenderer.PinKeyMarket       => (settings.MarketBuildingAutomationEnabled,            "automation_market_name"),
+            AutomationRenderer.PinKeySeaport      => (settings.SeaportBuildingAutomationEnabled,           "automation_seaport_name"),
+            AutomationRenderer.PinKeyMilReinforce => (settings.MilitaryReinforcementAutomationEnabled,     "automation_military_reinforcement_name"),
+            AutomationRenderer.PinKeyMilAttack    => (settings.MilitaryAttackAutomationEnabled,            "automation_military_attack_name"),
+            _                                     => (false, key),
+        };
+        return DrawToggleRow(canvas, x, y, (bool?)value, isHovered, _localization.Get(nameKey));
     }
 
     private bool IsTradeVisible()

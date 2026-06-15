@@ -139,6 +139,7 @@
   "automation_off": "OFF",
   "panel_civ_actions": "Actions",
   "panel_civ_controls": "Controls",
+  "tooltip_pin_to_civ_panel": "Show in civilization panel",
   "building_harvestersguild_name": "Harvesters Guild",
   "building_harvestersguild_desc": "Unique building. Unlocks level 5 for production buildings and automates their construction. Available at Capital level (4).",
   "building_harvestersguild_desc_1": "Unlocks level 5 (Sawmill, Brickworks, Quarry, Mill). Auto-upgrades production buildings every 10s.",
