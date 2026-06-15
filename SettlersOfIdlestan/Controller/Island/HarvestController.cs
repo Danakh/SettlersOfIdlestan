@@ -131,7 +131,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 {
                     if (!hexBlocked.TryGetValue(hex, out bool blocked))
                     {
-                        blocked = _state.Features.Any(f => f.Position.Equals(hex) && f.BlocksHarvest)
+                        blocked = _state.GetFeaturesAt(hex).Any(f => f.BlocksHarvest)
                             || _monsterController?.HasDepartureCooldown(hex, now) == true;
                         hexBlocked[hex] = blocked;
                     }
@@ -139,7 +139,7 @@ namespace SettlersOfIdlestan.Controller.Island
 
                     if (!hexCorruption.TryGetValue(hex, out int corruptionLevel))
                     {
-                        var corruption = _state.Features.OfType<Corruption>().FirstOrDefault(f => f.Position.Equals(hex));
+                        var corruption = _state.GetFeaturesAt(hex).OfType<Corruption>().FirstOrDefault();
                         corruptionLevel = corruption?.Level ?? 0;
                         hexCorruption[hex] = corruptionLevel;
                     }
@@ -430,7 +430,7 @@ namespace SettlersOfIdlestan.Controller.Island
             if (tile == null) return System.Array.Empty<(Vertex, BuildingType, Resource, long, long)>();
 
             var result = new System.Collections.Generic.List<(Vertex, BuildingType, Resource, long, long)>();
-            var corruptionOnHex = _state.Features.OfType<Corruption>().FirstOrDefault(f => f.Position.Equals(hex));
+            var corruptionOnHex = _state.GetFeaturesAt(hex).OfType<Corruption>().FirstOrDefault();
             int hexCorruptLevel = corruptionOnHex?.Level ?? 0;
             foreach (var city in civ.Cities.Where(c => c.Position.IsAdjacentTo(hex)))
                 foreach (var building in city.Buildings)
@@ -476,14 +476,14 @@ namespace SettlersOfIdlestan.Controller.Island
             {
                 if (!hexAllowed.TryGetValue(hex, out bool allowed))
                 {
-                    allowed = !_state.Features.Any(f => f.Position.Equals(hex) && f.BlocksHarvest);
+                    allowed = !_state.GetFeaturesAt(hex).Any(f => f.BlocksHarvest);
                     hexAllowed[hex] = allowed;
                 }
                 if (!allowed) continue;
 
                 if (!hexCorruptionRate.TryGetValue(hex, out int corruptionLvl))
                 {
-                    var corruption = _state.Features.OfType<Corruption>().FirstOrDefault(f => f.Position.Equals(hex));
+                    var corruption = _state.GetFeaturesAt(hex).OfType<Corruption>().FirstOrDefault();
                     corruptionLvl = corruption?.Level ?? 0;
                     hexCorruptionRate[hex] = corruptionLvl;
                 }
@@ -542,7 +542,7 @@ namespace SettlersOfIdlestan.Controller.Island
 
             long now = _clock.CurrentTick;
 
-            if (_state.Features.Any(f => f.Position.Equals(hex) && f.BlocksHarvest))
+            if (_state.GetFeaturesAt(hex).Any(f => f.BlocksHarvest))
                 return false;
             if (_monsterController?.HasDepartureCooldown(hex, now) == true)
                 return false;

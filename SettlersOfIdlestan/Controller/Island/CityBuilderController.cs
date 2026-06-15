@@ -199,9 +199,8 @@ namespace SettlersOfIdlestan.Controller.Island
             _state.Visibility.RecalculateFor(civilizationIndex);
 
             var cityHexSet = new HashSet<HexCoord>(city.Position.GetHexes());
-            var claimedTroves = _state.Features.OfType<TreasureTrove>()
-                .Where(t => cityHexSet.Contains(t.Position))
-                .ToList();
+            var claimedTroves = cityHexSet.SelectMany(h => _state.GetFeaturesAt(h))
+                .OfType<TreasureTrove>();
             foreach (var trove in claimedTroves)
             {
                 _state.EventLog.Add(trove.RemovedEventType);

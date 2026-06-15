@@ -93,6 +93,7 @@ public class WorldState : IJsonOnDeserialized
 
     public void OnDeserialized()
     {
+        RebuildHexCache();
         Visibility.Recalculate();
     }
 
@@ -149,6 +150,43 @@ public class WorldState : IJsonOnDeserialized
     /// </summary>
     public List<IslandFeature> Features { get; set; }
 
+    [JsonIgnore]
+    private Dictionary<HexCoord, List<IslandFeature>> _featuresByHex = new();
+
+    private void AddToHexCache(IslandFeature feature)
+    {
+        if (!_featuresByHex.TryGetValue(feature.Position, out var list))
+        {
+            list = new List<IslandFeature>();
+            _featuresByHex[feature.Position] = list;
+        }
+        list.Add(feature);
+    }
+
+    private void RemoveFromHexCache(IslandFeature feature)
+    {
+        if (_featuresByHex.TryGetValue(feature.Position, out var list))
+        {
+            list.Remove(feature);
+            if (list.Count == 0)
+                _featuresByHex.Remove(feature.Position);
+        }
+    }
+
+    private void RebuildHexCache()
+    {
+        _featuresByHex.Clear();
+        foreach (var f in Features)
+            AddToHexCache(f);
+    }
+
+    /// <summary>Retourne les features présentes sur cet hex (liste vide si aucune).</summary>
+    public IReadOnlyList<IslandFeature> GetFeaturesAt(HexCoord hex)
+        => _featuresByHex.TryGetValue(hex, out var list) ? list : Array.Empty<IslandFeature>();
+
+    /// <summary>Retourne true si au moins une feature est présente sur cet hex.</summary>
+    public bool HasFeaturesAt(HexCoord hex) => _featuresByHex.ContainsKey(hex);
+
     /// <summary>Déclenché quand une feature est ajoutée via AddFeature.</summary>
     public event EventHandler<IslandFeature>? FeatureAdded;
 
@@ -158,14 +196,23 @@ public class WorldState : IJsonOnDeserialized
     public void AddFeature(IslandFeature feature)
     {
         Features.Add(feature);
+        AddToHexCache(feature);
         FeatureAdded?.Invoke(this, feature);
     }
 
     public bool RemoveFeature(IslandFeature feature)
     {
         if (!Features.Remove(feature)) return false;
+        RemoveFromHexCache(feature);
         FeatureRemoved?.Invoke(this, feature);
         return true;
+    }
+
+    public void MoveFeature(IslandFeature feature, HexCoord newPosition)
+    {
+        RemoveFromHexCache(feature);
+        feature.Position = newPosition;
+        AddToHexCache(feature);
     }
 
     private readonly Dictionary<HexCoord, long> _plunderCooldownUntil = new();

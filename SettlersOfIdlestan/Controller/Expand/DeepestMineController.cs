@@ -223,7 +223,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 if (tile == null) continue;
                 if (tile.TerrainType != TerrainType.Mountain) continue;
                 if (enemyZone.Contains(hex)) continue;
-                if (_state.Features.Any(f => f.Position.Equals(hex))) continue;
+                if (_state.HasFeaturesAt(hex)) continue;
                 result.Add(hex);
             }
 

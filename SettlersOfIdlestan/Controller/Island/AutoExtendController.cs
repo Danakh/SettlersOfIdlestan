@@ -116,7 +116,7 @@ public class AutoExtendController
         if (minDist < MinHexDistanceFromArrival) return;
 
         // Monstres et trésors : seulement si l'hex est libre
-        if (!_state.Features.Any(f => f.Position.Equals(newHex)))
+        if (!_state.HasFeaturesAt(newHex))
         {
             int roll = _prng.Next(100);
             int trollThreshold = TrollSpawnChancePercent;

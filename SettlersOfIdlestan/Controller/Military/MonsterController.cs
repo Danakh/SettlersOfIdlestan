@@ -145,12 +145,12 @@ public class MonsterFeatureController
         }
 
         var noBlockingNoCooldown = neighbors
-            .Where(n => !_state.Features.Any(f => f.Position.Equals(n) && f.BlocksHarvest) &&
+            .Where(n => !_state.GetFeaturesAt(n).Any(f => f.BlocksHarvest) &&
                         (!_state.PlunderCooldownUntil.TryGetValue(n, out var until) || currentTick >= until))
             .ToList();
 
         var noBlocking = neighbors
-            .Where(n => !_state.Features.Any(f => f.Position.Equals(n) && f.BlocksHarvest))
+            .Where(n => !_state.GetFeaturesAt(n).Any(f => f.BlocksHarvest))
             .ToList();
 
         var candidates = noBlockingNoCooldown.Count > 0 ? noBlockingNoCooldown
@@ -158,7 +158,7 @@ public class MonsterFeatureController
                        : neighbors;
 
         var oldPosition = monster.Position;
-        monster.Position = candidates[_prng.Next(candidates.Count)];
+        _state.MoveFeature(monster, candidates[_prng.Next(candidates.Count)]);
         monster.LastMovedTick = currentTick;
         monster.LastAttackTick = currentTick;
         monster.LastAttackTargetVertex = null;
@@ -333,7 +333,7 @@ public class MonsterFeatureController
     {
         if (_state == null) return false;
 
-        if (_state.Features.Any(f => f.Position.Equals(hex) && f.BlocksHarvest))
+        if (_state.GetFeaturesAt(hex).Any(f => f.BlocksHarvest))
             return true;
 
         return HasDepartureCooldown(hex, currentTick);
