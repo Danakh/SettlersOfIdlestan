@@ -367,32 +367,37 @@ public static class PrestigeMapFactory
                 "prestige_hex_starting_resources",
                 adjacentVertices: Adjacent(PrestigeMap.StartingResourcesCoord),
                 perVertexModifiers: Array.Empty<Modifier>(),
-                startingResourceBonusPerVertex: 2
+                startingResourceBonusPerVertex: 2,
+                domain: PrestigeHexDomain.Exploit
             ),
             new(
                 PrestigeMap.HarvestSpeedCoord,
                 "prestige_hex_harvest_speed",
                 adjacentVertices: Adjacent(PrestigeMap.HarvestSpeedCoord),
-                perVertexModifiers: new Modifier[] { new(ECategory.HARVEST_SPEED, EType.ADDITIVE, 0.1) }
+                perVertexModifiers: new Modifier[] { new(ECategory.HARVEST_SPEED, EType.ADDITIVE, 0.1) },
+                domain: PrestigeHexDomain.Exploit
             ),
             new(
                 PrestigeMap.ResearchSpeedCoord,
                 "prestige_hex_research_speed",
                 adjacentVertices: Adjacent(PrestigeMap.ResearchSpeedCoord),
-                perVertexModifiers: new Modifier[] { new(ECategory.RESEARCH_SPEED, EType.ADDITIVE, 0.1) }
+                perVertexModifiers: new Modifier[] { new(ECategory.RESEARCH_SPEED, EType.ADDITIVE, 0.1) },
+                domain: PrestigeHexDomain.Explore
             ),
             // ── Outer hexes (each adjacent to one outer vertex only) ─────────
             new(
                 PrestigeMap.UnitProductionSpeedCoord,
                 "prestige_hex_unit_production_speed",
                 adjacentVertices: Adjacent(PrestigeMap.UnitProductionSpeedCoord),
-                perVertexModifiers: new Modifier[] { new(ECategory.UNIT_PRODUCTION_SPEED, EType.ADDITIVE, 0.1) }
+                perVertexModifiers: new Modifier[] { new(ECategory.UNIT_PRODUCTION_SPEED, EType.ADDITIVE, 0.1) },
+                domain: PrestigeHexDomain.Exterminate
             ),
             new(
                 PrestigeMap.ResearchCostReductionCoord,
                 "prestige_hex_research_cost_reduction",
                 adjacentVertices: Adjacent(PrestigeMap.ResearchCostReductionCoord),
-                perVertexModifiers: new Modifier[] { new(ECategory.RESEARCH_COST_REDUCTION, EType.ADDITIVE, 0.1) }
+                perVertexModifiers: new Modifier[] { new(ECategory.RESEARCH_COST_REDUCTION, EType.ADDITIVE, 0.1) },
+                domain: PrestigeHexDomain.Explore
             ),
             new(
                 PrestigeMap.StorageCapacityCoord,
@@ -402,13 +407,15 @@ public static class PrestigeMapFactory
                 {
                     new(ECategory.STORAGE_CAPACITY_BASIC,    EType.ADDITIVE, 10),
                     new(ECategory.STORAGE_CAPACITY_ADVANCED, EType.ADDITIVE,  5),
-                }
+                },
+                domain: PrestigeHexDomain.Expand
             ),
             new(
                 PrestigeMap.GoldTradeCoord,
                 "prestige_hex_gold_trade",
                 adjacentVertices: Adjacent(PrestigeMap.GoldTradeCoord),
-                perVertexModifiers: new Modifier[] { new(ECategory.MARKET_GOLD_SPEED, EType.ADDITIVE, 0.1) }
+                perVertexModifiers: new Modifier[] { new(ECategory.MARKET_GOLD_SPEED, EType.ADDITIVE, 0.1) },
+                domain: PrestigeHexDomain.Expand
             ),
             new(
                 PrestigeMap.ArtisansProductionCoord,
@@ -418,38 +425,44 @@ public static class PrestigeMapFactory
                 {
                     new(ECategory.HARVEST_SPEED, "Mine",       EType.ADDITIVE, 0.1),
                     new(ECategory.HARVEST_SPEED, "GlassWorks", EType.ADDITIVE, 0.1),
-                }
+                },
+                domain: PrestigeHexDomain.Exploit
             ),
             new(
                 PrestigeMap.FortifiedOutpostCoord,
                 "prestige_hex_fortifications",
                 adjacentVertices: Adjacent(PrestigeMap.FortifiedOutpostCoord),
-                perVertexModifiers: new Modifier[] { new(ECategory.CITY_DEFENSE, EType.ADDITIVE, 2) }
+                perVertexModifiers: new Modifier[] { new(ECategory.CITY_DEFENSE, EType.ADDITIVE, 2) },
+                domain: PrestigeHexDomain.Exterminate
             ),
             new(
                 PrestigeMap.ExperimentalScienceCoord,
                 "prestige_hex_experimental_science",
                 adjacentVertices: Adjacent(PrestigeMap.ExperimentalScienceCoord),
-                perVertexModifiers: new Modifier[] { new(ECategory.BUILDING_PRODUCTION, "Laboratory", EType.ADDITIVE, 1) }
+                perVertexModifiers: new Modifier[] { new(ECategory.BUILDING_PRODUCTION, "Laboratory", EType.ADDITIVE, 1) },
+                domain: PrestigeHexDomain.Explore
             ),
             new(
                 PrestigeMap.DefenseRegenCoord,
                 "prestige_hex_defense_regen",
                 adjacentVertices: Adjacent(PrestigeMap.DefenseRegenCoord),
-                perVertexModifiers: new Modifier[] { new(ECategory.CITY_DEFENSE_REGEN_SPEED, EType.ADDITIVE, 0.1) }
+                perVertexModifiers: new Modifier[] { new(ECategory.CITY_DEFENSE_REGEN_SPEED, EType.ADDITIVE, 0.1) },
+                domain: PrestigeHexDomain.Exterminate
             ),
             new(
                 PrestigeMap.WarehouseMaxLevelCoord,
                 "prestige_hex_warehouse_max_level",
                 adjacentVertices: Adjacent(PrestigeMap.WarehouseMaxLevelCoord),
-                perVertexModifiers: new Modifier[] { new(ECategory.BUILDING_MAX_LEVEL, "Warehouse", EType.ADDITIVE, 1) }
+                perVertexModifiers: new Modifier[] { new(ECategory.BUILDING_MAX_LEVEL, "Warehouse", EType.ADDITIVE, 1) },
+                domain: PrestigeHexDomain.Expand
             ),
             // ── Hex Forges (branche de l'Acier) ───────────────────────────────
             new(
                 PrestigeMap.SteelworksCoord,
                 "prestige_hex_steelworks",
                 adjacentVertices: Adjacent(PrestigeMap.SteelworksCoord),
-                perVertexModifiers: new Modifier[] { new(ECategory.SMELTER_SPEED, EType.ADDITIVE, 0.15) }
+                perVertexModifiers: new Modifier[] { new(ECategory.SMELTER_SPEED, EType.ADDITIVE, 0.15) },
+                domain: PrestigeHexDomain.Exterminate
             ),
             // ── Hexes de l'Inframonde (branche nord-ouest) ────────────────────
             new(
@@ -460,14 +473,16 @@ public static class PrestigeMapFactory
                 {
                     new(ECategory.HARVEST_SPEED, "MushroomFarm", EType.ADDITIVE, 0.15),
                     new(ECategory.HARVEST_SPEED, "MithrilMine",  EType.ADDITIVE, 0.15),
-                }
+                },
+                domain: PrestigeHexDomain.Explore
             ),
             // ── Hex Lignes Telluriques (branche de la Magie) ──────────────────
             new(
                 PrestigeMap.LeyLinesCoord,
                 "prestige_hex_ley_lines",
                 adjacentVertices: Adjacent(PrestigeMap.LeyLinesCoord),
-                perVertexModifiers: new Modifier[] { new(ECategory.RITUAL_TOTAL_POWER, EType.ADDITIVE, 0.05) }
+                perVertexModifiers: new Modifier[] { new(ECategory.RITUAL_TOTAL_POWER, EType.ADDITIVE, 0.05) },
+                domain: PrestigeHexDomain.Explore
             ),
         };
 

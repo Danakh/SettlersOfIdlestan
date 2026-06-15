@@ -10,18 +10,21 @@ public class PrestigeHex
     public IReadOnlyList<Vertex> AdjacentVertices { get; }
     public IReadOnlyList<Modifier> PerVertexModifiers { get; }
     public int StartingResourceBonusPerVertex { get; }
+    public PrestigeHexDomain Domain { get; }
 
     public PrestigeHex(
         HexCoord coord,
         string localizationKey,
         IReadOnlyList<Vertex> adjacentVertices,
         IReadOnlyList<Modifier> perVertexModifiers,
-        int startingResourceBonusPerVertex = 0)
+        int startingResourceBonusPerVertex = 0,
+        PrestigeHexDomain domain = PrestigeHexDomain.None)
     {
         Coord = coord;
         LocalizationKey = localizationKey;
         AdjacentVertices = adjacentVertices;
         PerVertexModifiers = perVertexModifiers;
         StartingResourceBonusPerVertex = startingResourceBonusPerVertex;
+        Domain = domain;
     }
 }

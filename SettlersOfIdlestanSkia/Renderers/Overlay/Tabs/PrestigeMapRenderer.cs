@@ -25,13 +25,11 @@ public sealed class PrestigeMapRenderer : IGameRenderer
 
     private static readonly SKPoint CentralLocal = LocalVertexPos(PrestigeMap.CentralVertex);
 
-    private static readonly SKColor[] HexGrayByActivity =
-    {
-        new(210, 213, 218),
-        new(175, 178, 185),
-        new(135, 138, 148),
-        new( 95,  98, 110),
-    };
+    private static readonly SKColor ColorExploit      = new(180, 220, 185);
+    private static readonly SKColor ColorExplore      = new(175, 200, 235);
+    private static readonly SKColor ColorExpand       = new(235, 205, 155);
+    private static readonly SKColor ColorExterminate  = new(230, 175, 175);
+    private static readonly SKColor ColorNone         = new(210, 213, 218);
 
     private const float HeaderHeight = 32f;
 
@@ -215,18 +213,19 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         {
             if (!_visibleHexes.Contains(hex.Coord)) continue;
             var pos = ScreenPosHex(hex.Coord);
-            int adjCount = hex.AdjacentVertices.Count(v => state.PurchasedVertices.Contains(v));
             bool isHovered = hex.Coord.Equals(_hoveredHex);
 
             var points = GetHexPoints(pos.X, pos.Y, hexR);
             using var path = PointsToPath(points);
 
-            var color = HexGrayByActivity[Math.Clamp(adjCount, 0, HexGrayByActivity.Length - 1)];
-            if (isHovered) color = Brighten(color, 20);
+            var color = DomainColor(hex.Domain);
+            if (isHovered) color = Brighten(color, 25);
 
             _hexFillPaint.Color = color;
             canvas.DrawPath(path, _hexFillPaint);
             canvas.DrawPath(path, _hexBorderPaint);
+
+            DrawHexPieChart(canvas, hex, pos, hexR, state);
 
             if (_showHexNames)
             {
@@ -235,6 +234,63 @@ public sealed class PrestigeMapRenderer : IGameRenderer
             }
         }
     }
+
+    private void DrawHexPieChart(SKCanvas canvas, PrestigeHex hex, SKPoint center, float hexR, PrestigeState state)
+    {
+        float outerR = hexR * 0.48f;
+        float innerR = hexR * 0.22f;
+        const float GapDeg = 3f;
+        float cx = center.X, cy = center.Y;
+
+        // Map each adjacent vertex to its hex corner sector (0 = top, clockwise)
+        var hexLocalPos = LocalHexPos(hex.Coord);
+        var vertexBySector = new Vertex?[6];
+        foreach (var v in hex.AdjacentVertices)
+        {
+            var vLocal = LocalVertexPos(v);
+            float dx = vLocal.X - hexLocalPos.X;
+            float dy = vLocal.Y - hexLocalPos.Y;
+            float angleDeg = MathF.Atan2(dy, dx) * 180f / MathF.PI;
+            float normalized = ((angleDeg + 90f) % 360f + 360f) % 360f;
+            int sector = (int)MathF.Round(normalized / 60f) % 6;
+            vertexBySector[sector] = v;
+        }
+
+        for (int i = 0; i < 6; i++)
+        {
+            var v = vertexBySector[i];
+            if (v == null) continue;
+
+            bool purchased = state.PurchasedVertices.Contains(v);
+            float arcStart = -90f + i * 60f + GapDeg * 0.5f;
+            float arcSweep = 60f - GapDeg;
+            float arcEnd   = arcStart + arcSweep;
+            float startRad = arcStart * MathF.PI / 180f;
+            float endRad   = arcEnd   * MathF.PI / 180f;
+
+            using var slicePath = new SKPath();
+            slicePath.MoveTo(cx + innerR * MathF.Cos(startRad), cy + innerR * MathF.Sin(startRad));
+            slicePath.LineTo(cx + outerR * MathF.Cos(startRad), cy + outerR * MathF.Sin(startRad));
+            slicePath.ArcTo(new SKRect(cx - outerR, cy - outerR, cx + outerR, cy + outerR), arcStart, arcSweep, false);
+            slicePath.LineTo(cx + innerR * MathF.Cos(endRad), cy + innerR * MathF.Sin(endRad));
+            slicePath.ArcTo(new SKRect(cx - innerR, cy - innerR, cx + innerR, cy + innerR), arcEnd, -arcSweep, false);
+            slicePath.Close();
+
+            _hexFillPaint.Color = purchased
+                ? new SKColor(255, 210, 50, 230)
+                : new SKColor(220, 220, 230, 90);
+            canvas.DrawPath(slicePath, _hexFillPaint);
+        }
+    }
+
+    private static SKColor DomainColor(PrestigeHexDomain domain) => domain switch
+    {
+        PrestigeHexDomain.Exploit     => ColorExploit,
+        PrestigeHexDomain.Explore     => ColorExplore,
+        PrestigeHexDomain.Expand      => ColorExpand,
+        PrestigeHexDomain.Exterminate => ColorExterminate,
+        _                             => ColorNone,
+    };
 
     private void DrawRoads(SKCanvas canvas, PrestigeState state)
     {
