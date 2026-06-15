@@ -157,7 +157,7 @@ public sealed class AutomationRenderer : IDisposable
         float x = (_canvasSize.Width - contentWidth) / 2;
         float y = topBar + Padding;
 
-        SkiaTextUtils.DrawText(canvas, _localization.Get("tab_automation"), x, y + 14, _headerFont, _accentPaint);
+        SkiaTextUtils.DrawText(canvas, _localization.Get("automation_title"), x, y + 14, _headerFont, _accentPaint);
         y += 32f;
 
         var civ = _gameControllerService.PlayerCivilization;
@@ -306,7 +306,7 @@ public sealed class AutomationRenderer : IDisposable
         if (anyBuildingControls)
         {
             rightY += 4f;
-            SkiaTextUtils.DrawText(canvas, _localization.Get("panel_civ_controls"), rightX, rightY + 12, _nameFont, _accentPaint);
+            SkiaTextUtils.DrawText(canvas, _localization.Get("automation_header_controls"), rightX, rightY + 12, _nameFont, _accentPaint);
             rightY += 20f;
 
             if (hasBarracks)
