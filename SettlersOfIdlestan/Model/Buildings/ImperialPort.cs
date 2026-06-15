@@ -20,6 +20,11 @@ public class ImperialPort : Building
         { Resource.Gold, 30 },
     };
 
+    public override bool ProvidesAutomation => true;
+
+    public long LastSeaportBuildTick { get; set; }
+    public long GetAutoSeaportCooldownTicks() => 1000L;
+
     public override ResourceSet GetUpgradeCost(int level) => new();
 
     public override bool IsBuildingAvailableForCity(IslandMap.IslandMap map, IBuildingContext city)

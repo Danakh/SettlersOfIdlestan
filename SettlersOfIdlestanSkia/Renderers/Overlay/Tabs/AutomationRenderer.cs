@@ -2,6 +2,7 @@
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
+using SettlersOfIdlestan.Model.GameplayModifier;
 using SettlersOfIdlestanSkia.Services.Localization;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Services;
@@ -37,6 +38,7 @@ public sealed class AutomationRenderer : IDisposable
     private SKRect _artisanToggleRect = SKRect.Empty;
     private SKRect _libraryToggleRect = SKRect.Empty;
     private SKRect _marketToggleRect = SKRect.Empty;
+    private SKRect _seaportToggleRect = SKRect.Empty;
     private SKRect _militaryReinforcementToggleRect = SKRect.Empty;
     private SKRect _militaryAttackToggleRect = SKRect.Empty;
     private bool _hoveredRoadToggle;
@@ -45,6 +47,7 @@ public sealed class AutomationRenderer : IDisposable
     private bool _hoveredArtisanToggle;
     private bool _hoveredLibraryToggle;
     private bool _hoveredMarketToggle;
+    private bool _hoveredSeaportToggle;
     private bool _hoveredMilitaryReinforcementToggle;
     private bool _hoveredMilitaryAttackToggle;
 
@@ -86,6 +89,7 @@ public sealed class AutomationRenderer : IDisposable
     private static readonly BuildingType[] ArtisanTypes    = [BuildingType.Forge, BuildingType.Warehouse];
     private static readonly BuildingType[] LibraryTypes    = [BuildingType.Library];
     private static readonly BuildingType[] MarketTypes     = [BuildingType.Market];
+    private static readonly BuildingType[] SeaportTypes    = [BuildingType.Seaport];
 
     public AutomationRenderer(GameControllerService gameControllerService, LocalizationService localization)
     {
@@ -134,6 +138,7 @@ public sealed class AutomationRenderer : IDisposable
         ArtisansGuild? artisansGuild = null;
         Academy? academy = null;
         TraderGuild? traderGuild = null;
+        ImperialPort? imperialPort = null;
         foreach (var city in civ.Cities)
         {
             buildersGuild ??= city.Buildings.OfType<BuildersGuild>().FirstOrDefault();
@@ -141,8 +146,10 @@ public sealed class AutomationRenderer : IDisposable
             artisansGuild ??= city.Buildings.OfType<ArtisansGuild>().FirstOrDefault();
             academy ??= city.Buildings.OfType<Academy>().FirstOrDefault();
             traderGuild ??= city.Buildings.OfType<TraderGuild>().FirstOrDefault();
-            if (buildersGuild != null && harvestersGuild != null && artisansGuild != null && academy != null && traderGuild != null) break;
+            imperialPort ??= city.Buildings.OfType<ImperialPort>().FirstOrDefault();
+            if (buildersGuild != null && harvestersGuild != null && artisansGuild != null && academy != null && traderGuild != null && imperialPort != null) break;
         }
+        bool hasSeaportAutomation = civ.ModifierAggregator.HasModifier(Modifier.ECategory.UNLOCK_SEAPORT_AUTOMATION);
 
         const float ColGap = 12f;
         float colWidth = (contentWidth - ColGap) / 2f;
@@ -209,6 +216,16 @@ public sealed class AutomationRenderer : IDisposable
             _marketToggleRect = SKRect.Empty;
             rowH = DrawLockedRow(canvas, leftX, leftY, colWidth, _localization.Get("automation_market_name"), _localization.Get("automation_market_locked"));
         }
+        leftY += rowH + RowSpacing;
+
+        if (hasSeaportAutomation && imperialPort != null)
+            (_seaportToggleRect, rowH) = DrawAutomationRow(canvas, leftX, leftY, colWidth, WorldState.AutomationSettings.SeaportBuildingAutomationEnabled, _hoveredSeaportToggle, _localization.Get("automation_seaport_name"), _localization.Get("automation_seaport_desc"), null, civ.Cities, SeaportTypes);
+        else
+        {
+            _seaportToggleRect = SKRect.Empty;
+            DrawLockedRow(canvas, leftX, leftY, colWidth, _localization.Get("automation_seaport_name"), _localization.Get("automation_seaport_locked"));
+        }
+
         float leftBottom = leftY + rowH;
 
         // === Colonne droite : comportements militaires ===
@@ -387,6 +404,7 @@ public sealed class AutomationRenderer : IDisposable
         _hoveredArtisanToggle                = !_artisanToggleRect.IsEmpty                && _artisanToggleRect.Contains(adj.X, adj.Y);
         _hoveredLibraryToggle                = !_libraryToggleRect.IsEmpty                && _libraryToggleRect.Contains(adj.X, adj.Y);
         _hoveredMarketToggle                 = !_marketToggleRect.IsEmpty                 && _marketToggleRect.Contains(adj.X, adj.Y);
+        _hoveredSeaportToggle                = !_seaportToggleRect.IsEmpty                && _seaportToggleRect.Contains(adj.X, adj.Y);
         _hoveredMilitaryReinforcementToggle  = !_militaryReinforcementToggleRect.IsEmpty  && _militaryReinforcementToggleRect.Contains(adj.X, adj.Y);
         _hoveredMilitaryAttackToggle         = !_militaryAttackToggleRect.IsEmpty         && _militaryAttackToggleRect.Contains(adj.X, adj.Y);
 
@@ -452,6 +470,12 @@ public sealed class AutomationRenderer : IDisposable
         if (!_marketToggleRect.IsEmpty && _marketToggleRect.Contains(adj.X, adj.Y))
         {
             state.AutomationSettings.MarketBuildingAutomationEnabled = !state.AutomationSettings.MarketBuildingAutomationEnabled;
+            return true;
+        }
+
+        if (!_seaportToggleRect.IsEmpty && _seaportToggleRect.Contains(adj.X, adj.Y))
+        {
+            state.AutomationSettings.SeaportBuildingAutomationEnabled = !state.AutomationSettings.SeaportBuildingAutomationEnabled;
             return true;
         }
 

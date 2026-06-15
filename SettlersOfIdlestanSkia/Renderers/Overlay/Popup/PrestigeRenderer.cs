@@ -72,11 +72,14 @@ public sealed class PrestigeRenderer : PopupRendererBase
         var controller       = _gameControllerService.MainGameController.PrestigeController;
         var sources          = controller.GetPrestigePointSources();
         bool wondersUnlocked = controller.WondersUnlocked();
-        double gainBonus     = controller.GetPrestigeGainBonus();
-        bool showGainBonus   = gainBonus > 0;
-        float gainOffset     = showGainBonus ? 28f : 0f;
+        double gainBonus         = controller.GetPrestigeGainBonus();
+        double seaportBonus      = controller.GetSeaportPrestigeBonus();
+        bool showGainBonus       = gainBonus > 0;
+        bool showSeaportBonus    = seaportBonus > 0;
+        float gainOffset         = showGainBonus    ? 28f : 0f;
+        float seaportOffset      = showSeaportBonus ? 28f : 0f;
         float y              = popup.Top + 68;
-        float listBottom     = popup.Bottom - 152 - gainOffset;
+        float listBottom     = popup.Bottom - 152 - gainOffset - seaportOffset;
         int maxVisibleSources = Math.Max(0, (int)((listBottom - y) / SourceRowHeight));
 
         _hoverRects.Clear();
@@ -96,33 +99,43 @@ public sealed class PrestigeRenderer : PopupRendererBase
 
         // Monstres
         bool hasMonstersLeft = controller.HasSurfaceMonsters();
-        canvas.DrawLine(popup.Left + Padding, popup.Bottom - 142 - gainOffset, popup.Right - Padding, popup.Bottom - 142 - gainOffset, _separatorPaint);
-        SkiaTextUtils.DrawText(canvas, _localization.Get("prestige_monster_bonus"), popup.Left + Padding, popup.Bottom - 128 - gainOffset, BodyFont!, SubtlePaint);
+        canvas.DrawLine(popup.Left + Padding, popup.Bottom - 142 - gainOffset - seaportOffset, popup.Right - Padding, popup.Bottom - 142 - gainOffset - seaportOffset, _separatorPaint);
+        SkiaTextUtils.DrawText(canvas, _localization.Get("prestige_monster_bonus"), popup.Left + Padding, popup.Bottom - 128 - gainOffset - seaportOffset, BodyFont!, SubtlePaint);
         if (hasMonstersLeft)
-            SkiaTextUtils.DrawText(canvas, "×1",   popup.Right - Padding, popup.Bottom - 128 - gainOffset, SKTextAlign.Right, BtnFont!, _warningTextPaint);
+            SkiaTextUtils.DrawText(canvas, "×1",   popup.Right - Padding, popup.Bottom - 128 - gainOffset - seaportOffset, SKTextAlign.Right, BtnFont!, _warningTextPaint);
         else
-            SkiaTextUtils.DrawText(canvas, "×1.2", popup.Right - Padding, popup.Bottom - 128 - gainOffset, SKTextAlign.Right, BtnFont!, SubtlePaint);
-        _hoverRects.Add((new SKRect(popup.Left, popup.Bottom - 142 - gainOffset, popup.Right, popup.Bottom - 114 - gainOffset), "prestige_tooltip_monster_bonus"));
+            SkiaTextUtils.DrawText(canvas, "×1.2", popup.Right - Padding, popup.Bottom - 128 - gainOffset - seaportOffset, SKTextAlign.Right, BtnFont!, SubtlePaint);
+        _hoverRects.Add((new SKRect(popup.Left, popup.Bottom - 142 - gainOffset - seaportOffset, popup.Right, popup.Bottom - 114 - gainOffset - seaportOffset), "prestige_tooltip_monster_bonus"));
 
         // Wonder (affiché quand débloqué)
         if (wondersUnlocked)
         {
-            canvas.DrawLine(popup.Left + Padding, popup.Bottom - 114 - gainOffset, popup.Right - Padding, popup.Bottom - 114 - gainOffset, _separatorPaint);
+            canvas.DrawLine(popup.Left + Padding, popup.Bottom - 114 - gainOffset - seaportOffset, popup.Right - Padding, popup.Bottom - 114 - gainOffset - seaportOffset, _separatorPaint);
             var (wonderLevel, timeFactor, runTicks) = controller.GetWonderBonusDetails();
             string duration    = FormatRunDuration(runTicks);
             string wonderLabel = _localization.GetFormated("prestige_wonder_bonus", wonderLevel, timeFactor, duration);
-            SkiaTextUtils.DrawText(canvas, wonderLabel, popup.Left + Padding, popup.Bottom - 100 - gainOffset, BodyFont!, SubtlePaint);
-            SkiaTextUtils.DrawText(canvas, $"×{Math.Max(1, wonderLevel * timeFactor)}", popup.Right - Padding, popup.Bottom - 100 - gainOffset, SKTextAlign.Right, BtnFont!, SubtlePaint);
-            _hoverRects.Add((new SKRect(popup.Left, popup.Bottom - 114 - gainOffset, popup.Right, popup.Bottom - 86 - gainOffset), "prestige_tooltip_wonder_bonus"));
+            SkiaTextUtils.DrawText(canvas, wonderLabel, popup.Left + Padding, popup.Bottom - 100 - gainOffset - seaportOffset, BodyFont!, SubtlePaint);
+            SkiaTextUtils.DrawText(canvas, $"×{Math.Max(1, wonderLevel * timeFactor)}", popup.Right - Padding, popup.Bottom - 100 - gainOffset - seaportOffset, SKTextAlign.Right, BtnFont!, SubtlePaint);
+            _hoverRects.Add((new SKRect(popup.Left, popup.Bottom - 114 - gainOffset - seaportOffset, popup.Right, popup.Bottom - 86 - gainOffset - seaportOffset), "prestige_tooltip_wonder_bonus"));
         }
 
         // Bonus gain de prestige (affiché quand > 0)
         if (showGainBonus)
         {
+            canvas.DrawLine(popup.Left + Padding, popup.Bottom - 114 - seaportOffset, popup.Right - Padding, popup.Bottom - 114 - seaportOffset, _separatorPaint);
+            SkiaTextUtils.DrawText(canvas, _localization.Get("prestige_gain_bonus"), popup.Left + Padding, popup.Bottom - 100 - seaportOffset, BodyFont!, SubtlePaint);
+            SkiaTextUtils.DrawText(canvas, $"×{1 + gainBonus:0.##}", popup.Right - Padding, popup.Bottom - 100 - seaportOffset, SKTextAlign.Right, BtnFont!, SubtlePaint);
+            _hoverRects.Add((new SKRect(popup.Left, popup.Bottom - 114 - seaportOffset, popup.Right, popup.Bottom - 86 - seaportOffset), "prestige_tooltip_prestige_gain_bonus"));
+        }
+
+        // Bonus Ports niv. 4 (affiché quand > 0)
+        if (showSeaportBonus)
+        {
+            int portCount = controller.GetSeaportLevel4Count();
             canvas.DrawLine(popup.Left + Padding, popup.Bottom - 114, popup.Right - Padding, popup.Bottom - 114, _separatorPaint);
-            SkiaTextUtils.DrawText(canvas, _localization.Get("prestige_gain_bonus"), popup.Left + Padding, popup.Bottom - 100, BodyFont!, SubtlePaint);
-            SkiaTextUtils.DrawText(canvas, $"×{1 + gainBonus:0.##}", popup.Right - Padding, popup.Bottom - 100, SKTextAlign.Right, BtnFont!, SubtlePaint);
-            _hoverRects.Add((new SKRect(popup.Left, popup.Bottom - 114, popup.Right, popup.Bottom - 86), "prestige_tooltip_prestige_gain_bonus"));
+            SkiaTextUtils.DrawText(canvas, _localization.GetFormated("prestige_seaport_bonus", portCount), popup.Left + Padding, popup.Bottom - 100, BodyFont!, SubtlePaint);
+            SkiaTextUtils.DrawText(canvas, $"+{seaportBonus * 100:0}%", popup.Right - Padding, popup.Bottom - 100, SKTextAlign.Right, BtnFont!, SubtlePaint);
+            _hoverRects.Add((new SKRect(popup.Left, popup.Bottom - 114, popup.Right, popup.Bottom - 86), "prestige_tooltip_seaport_bonus"));
         }
 
         // Total

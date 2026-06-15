@@ -67,6 +67,8 @@ namespace SettlersOfIdlestan.Controller.Island
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[BuildingController] {nameof(PerformAcademyAutomation)}: {ex}"); }
             try { PerformTraderGuildAutomation(); }
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[BuildingController] {nameof(PerformTraderGuildAutomation)}: {ex}"); }
+            try { PerformImperialPortSeaportAutomation(); }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[BuildingController] {nameof(PerformImperialPortSeaportAutomation)}: {ex}"); }
         }
 
         private void PerformHarvestersGuildProductionAutomation()
@@ -143,6 +145,23 @@ namespace SettlersOfIdlestan.Controller.Island
                 TickGuildAutomation(civ, ref tick, guild.GetAutoMarketCooldownTicks(), enabled, targets, now);
                 guild.LastMarketBuildTick = tick;
             }
+        }
+
+        private void PerformImperialPortSeaportAutomation()
+        {
+            if (_state == null || _clock == null) return;
+            long now = _clock.CurrentTick;
+
+            var civ = _state.PlayerCivilization;
+            if (!civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_SEAPORT_AUTOMATION)) return;
+
+            var imperialPort = civ.Cities.SelectMany(c => c.Buildings).OfType<ImperialPort>().FirstOrDefault();
+            if (imperialPort == null) return;
+
+            bool enabled = _state.AutomationSettings.SeaportBuildingAutomationEnabled;
+            long tick = imperialPort.LastSeaportBuildTick;
+            TickGuildAutomation(civ, ref tick, imperialPort.GetAutoSeaportCooldownTicks(), enabled, [BuildingType.Seaport], now);
+            imperialPort.LastSeaportBuildTick = tick;
         }
 
         private void TickGuildAutomation(

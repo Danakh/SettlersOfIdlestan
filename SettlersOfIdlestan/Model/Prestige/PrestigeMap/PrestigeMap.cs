@@ -67,7 +67,7 @@ public class PrestigeMap
     // Around ResearchCostReduction (1,1) / ExperimentalScience (2,0) outer east
     public static readonly Vertex PlaceholderD2Vertex = Vertex.Create(new(1,  1, 0), new(2,  1, 0), new(1,  2, 0));
     // Outer W connecting WarehouseMaxLevel → new NW hex (-2,0)
-    public static readonly Vertex PlaceholderE3Vertex = Vertex.Create(new(-1,  0, 0), new(-2,  1, 0), new(-2,  0, 0));
+    public static readonly Vertex ImperialPortVertex  = Vertex.Create(new(-1,  0, 0), new(-2,  1, 0), new(-2,  0, 0));
     // Around StorageCapacity (-1,1) outer west
     public static readonly Vertex PlaceholderF1Vertex = Vertex.Create(new(-1,  1, 0), new(-2,  2, 0), new(-2,  1, 0));
     // ── Branche de la Magie (sud) — autour de l'hex Lignes Telluriques (-1,3)

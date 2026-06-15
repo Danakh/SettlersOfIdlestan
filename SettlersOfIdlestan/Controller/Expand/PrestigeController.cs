@@ -97,6 +97,18 @@ namespace SettlersOfIdlestan.Controller.Expand
         public double GetPrestigeGainBonus()
             => _playerCivilization?.ModifierAggregator.ApplyModifiers(ECategory.PRESTIGE_GAIN, "", 0.0) ?? 0.0;
 
+        public int GetSeaportLevel4Count()
+            => _playerCivilization?.Cities.SelectMany(c => c.Buildings)
+                .Count(b => b.Type == BuildingType.Seaport && b.Level >= 4) ?? 0;
+
+        public double GetSeaportPrestigeBonus()
+        {
+            if (_playerCivilization == null) return 0.0;
+            double perSeaport = _playerCivilization.ModifierAggregator.ApplyModifiers(ECategory.PRESTIGE_GAIN_PER_SEAPORT_LEVEL4, "", 0.0);
+            if (perSeaport <= 0) return 0.0;
+            return GetSeaportLevel4Count() * perSeaport;
+        }
+
         public int CalculatePrestigePoints()
         {
             int subtotal = GetBuildingSubtotal() + GetDragonBonus();
@@ -105,8 +117,9 @@ namespace SettlersOfIdlestan.Controller.Expand
             if (HasNoSurfaceMonsters())
                 result *= 1.2;
             double gainBonus = GetPrestigeGainBonus();
-            if (gainBonus > 0)
-                result *= (1 + gainBonus);
+            double seaportBonus = GetSeaportPrestigeBonus();
+            if (gainBonus > 0 || seaportBonus > 0)
+                result *= (1 + gainBonus + seaportBonus);
             return (int)result;
         }
 

@@ -365,7 +365,16 @@ public static class PrestigeMapFactory
             new(PrestigeMap.PlaceholderB2Vertex, "prestige_vertex_placeholder", cost: Cost(PrestigeMap.PlaceholderB2Vertex), modifiers: Array.Empty<Modifier>()),
             new(PrestigeMap.PlaceholderC3Vertex, "prestige_vertex_placeholder", cost: Cost(PrestigeMap.PlaceholderC3Vertex), modifiers: Array.Empty<Modifier>()),
             new(PrestigeMap.PlaceholderD2Vertex, "prestige_vertex_placeholder", cost: Cost(PrestigeMap.PlaceholderD2Vertex), modifiers: Array.Empty<Modifier>()),
-            new(PrestigeMap.PlaceholderE3Vertex, "prestige_vertex_placeholder", cost: Cost(PrestigeMap.PlaceholderE3Vertex), modifiers: Array.Empty<Modifier>()),
+            new(
+                PrestigeMap.ImperialPortVertex,
+                "prestige_vertex_imperial_port",
+                cost: Cost(PrestigeMap.ImperialPortVertex),
+                modifiers: new Modifier[]
+                {
+                    new(ECategory.UNLOCK_SEAPORT_AUTOMATION, EType.ADDITIVE, 1),
+                    new(ECategory.PRESTIGE_GAIN_PER_SEAPORT_LEVEL4, EType.ADDITIVE, 0.05),
+                }
+            ),
             new(PrestigeMap.PlaceholderF1Vertex, "prestige_vertex_placeholder", cost: Cost(PrestigeMap.PlaceholderF1Vertex), modifiers: Array.Empty<Modifier>()),
             new(PrestigeMap.PlaceholderG2Vertex, "prestige_vertex_placeholder", cost: Cost(PrestigeMap.PlaceholderG2Vertex), modifiers: Array.Empty<Modifier>()),
         };

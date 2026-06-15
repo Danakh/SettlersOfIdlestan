@@ -96,6 +96,10 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             UNLOCK_ABYSS,
             /// <summary>Barbacane : si la défense courante de la cité est > 20 quand un soldat défenseur devrait mourir, perd 1 défense à la place. SubCategory unused.</summary>
             CITY_DEFENSE_PROTECTS_SOLDIERS,
+            /// <summary>Flags que le Port Impérial peut automatiser la construction des Ports maritimes.</summary>
+            UNLOCK_SEAPORT_AUTOMATION,
+            /// <summary>Bonus additif de prestige par Port maritime au niveau max. Base = 0.0 ; +0.05 = +5% par port niv. 4.</summary>
+            PRESTIGE_GAIN_PER_SEAPORT_LEVEL4,
         }
 
         public enum EType
