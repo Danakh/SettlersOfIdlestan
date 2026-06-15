@@ -119,9 +119,9 @@ public sealed class AutomationRenderer : IDisposable
     private readonly SKFont _descFont    = new() { Size = 11, Typeface = SkiaFonts.Regular };
     private readonly SKFont _summaryFont = new() { Size = 10, Typeface = SkiaFonts.Regular };
 
-    private static readonly BuildingType[] ProductionTypes = [BuildingType.Sawmill, BuildingType.Brickworks, BuildingType.Quarry, BuildingType.Mill];
+    private static readonly BuildingType[] ProductionTypes = [BuildingType.Sawmill, BuildingType.Brickworks, BuildingType.Quarry, BuildingType.Mill, BuildingType.GlassWorks];
     private static readonly BuildingType[] ArtisanTypes    = [BuildingType.Forge, BuildingType.Warehouse];
-    private static readonly BuildingType[] LibraryTypes    = [BuildingType.Library];
+    private static readonly BuildingType[] LibraryTypes    = [BuildingType.Library, BuildingType.Laboratory];
     private static readonly BuildingType[] MarketTypes     = [BuildingType.Market];
     private static readonly BuildingType[] SeaportTypes    = [BuildingType.Seaport];
 
