@@ -31,6 +31,7 @@ public sealed class PrestigeMapRenderer : IGameRenderer
     private static readonly SKColor ColorExterminate  = new(230, 175, 175);
     private static readonly SKColor ColorNone         = new(210, 213, 218);
 
+
     private const float HeaderHeight = 32f;
 
     private const float MinZoom = 0.4f;
@@ -96,8 +97,10 @@ public sealed class PrestigeMapRenderer : IGameRenderer
 
     private readonly SKPaint _textBlackPaint  = new() { Color = SKColors.Black, IsAntialias = true };
     private readonly SKPaint _textWhitePaint  = new() { Color = SKColors.White, IsAntialias = true };
+    private readonly SKPaint _textGreenPaint  = new() { Color = new SKColor(20, 160, 50), IsAntialias = true };
     private readonly SKFont  _labelFont      = new() { Size = 10, Typeface = SkiaFonts.Regular };
     private readonly SKFont  _labelFontBold  = new() { Size = 10, Typeface = SkiaFonts.Bold };
+    private readonly SKFont  _checkFont      = new() { Size = 16, Typeface = SkiaFonts.Bold };
     private readonly SKPaint _toggleActivePaint   = new() { Color = new SKColor(60, 100, 180), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _toggleInactivePaint = new() { Color = new SKColor(80, 80, 90),  Style = SKPaintStyle.Fill, IsAntialias = true };
 
@@ -325,22 +328,26 @@ public sealed class PrestigeMapRenderer : IGameRenderer
             bool canBuy      = !demoLocked && controller.CanPurchaseVertex(state, vertex.Coord, demoMode);
             bool isHovered   = vertex.Coord.Equals(_hoveredVertex);
 
-            SKColor fill = purchased   ? new SKColor(220, 50, 50)
-                : demoLocked           ? new SKColor(50, 50, 60, 200)
-                : canBuy               ? new SKColor(60, 160, 255, 200)
-                                       : new SKColor(110, 110, 120, 200);
+            SKColor baseGrey = new(85, 90, 100);
+            SKColor fill = demoLocked
+                ? new SKColor(30, 30, 40, 220)
+                : baseGrey.WithAlpha(canBuy || purchased ? (byte)220 : (byte)130);
 
             if (isHovered && !purchased && !demoLocked)
-                fill = new SKColor(255, 235, 59, 220);
+                fill = Brighten(baseGrey, 50);
+
+            int dist = vertex.Coord.EdgeDistanceTo(PrestigeMap.CentralVertex);
+            var (sides, startAngle) = VertexShape(dist);
+            using var shapePath = CreatePolygonPath(pos, vr, sides, startAngle);
 
             _vertexFillPaint.Color = fill;
-            canvas.DrawCircle(pos, vr, _vertexFillPaint);
+            canvas.DrawPath(shapePath, _vertexFillPaint);
 
             _vertexBorderPaint.StrokeWidth = isHovered ? 2.5f : 1.5f;
-            canvas.DrawCircle(pos, vr, _vertexBorderPaint);
+            canvas.DrawPath(shapePath, _vertexBorderPaint);
 
             if (purchased)
-                SkiaTextUtils.DrawText(canvas, "✓", pos.X, pos.Y + 4f, SKTextAlign.Center, _labelFontBold, _textWhitePaint);
+                SkiaTextUtils.DrawText(canvas, "✓", pos.X, pos.Y + 6f, SKTextAlign.Center, _checkFont, _textGreenPaint);
             else if (demoLocked)
                 SkiaTextUtils.DrawText(canvas, "D", pos.X, pos.Y + 4f, SKTextAlign.Center, _labelFontBold, _textWhitePaint);
 
@@ -680,6 +687,35 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         SkiaTextUtils.DrawText(canvas, label, rect.MidX, rect.MidY + 4f, SKTextAlign.Center, _labelFont, _textWhitePaint);
     }
 
+    // ─── Vertex shape helpers ─────────────────────────────────────────────────
+
+    // Impair → pointe en bas (90°) ; pair → symétrie horizontale
+    private static (int sides, float startAngleDeg) VertexShape(int distanceFromCenter) => distanceFromCenter switch
+    {
+        0 => (3,   90f),    // triangle,  pointe en bas
+        1 => (4,  -90f),    // losange,   pointe en haut
+        2 => (5,   90f),    // pentagone, pointe en bas
+        3 => (6,    0f),    // hexagone,  bord plat en haut
+        4 => (7,   90f),    // heptagone, pointe en bas
+        5 => (8,  22.5f),   // octogone,  pointe en bas
+        6 => (9,   90f),    // nonagone,  pointe en bas
+        _ => (10,  18f),    // décagone,  pointe en bas
+    };
+
+    private static SKPath CreatePolygonPath(SKPoint center, float radius, int sides, float startAngleDeg)
+    {
+        var path = new SKPath();
+        float step = 360f / sides;
+        for (int i = 0; i < sides; i++)
+        {
+            float rad = (startAngleDeg + i * step) * MathF.PI / 180f;
+            var pt = new SKPoint(center.X + radius * MathF.Cos(rad), center.Y + radius * MathF.Sin(rad));
+            if (i == 0) path.MoveTo(pt); else path.LineTo(pt);
+        }
+        path.Close();
+        return path;
+    }
+
     // ─── Position helpers ─────────────────────────────────────────────────────
 
     private static SKPoint LocalHexPos(HexCoord c)
@@ -771,8 +807,10 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         _vertexBorderPaint.Dispose();
         _textBlackPaint.Dispose();
         _textWhitePaint.Dispose();
+        _textGreenPaint.Dispose();
         _labelFont.Dispose();
         _labelFontBold.Dispose();
+        _checkFont.Dispose();
         _toggleActivePaint.Dispose();
         _toggleInactivePaint.Dispose();
     }
