@@ -35,10 +35,13 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
     private SKPaint? _textIconPaint;
     private SKFont? _textIconFont;
     private SKPaint? _selectedWonderPaint;
+    private SKPaint? _corruptionPaint;
     private bool _disposed;
 
     private readonly Dictionary<HexCoord, SKPath> _hexPathCache = new();
     private readonly Dictionary<Resource, SKSvg?> _resourceIcons = new();
+
+    private const float CorruptionCircleRadiusFactor = 0.8f;
 
     private const float WonderSelectionRadius = 28f;
     private const float ManualRingRadius = 5f;
@@ -121,6 +124,13 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
             IsAntialias = true
         };
 
+        _corruptionPaint = new SKPaint
+        {
+            Color = new SKColor(160, 32, 240, 210),
+            Style = SKPaintStyle.Stroke,
+            IsAntialias = true
+        };
+
         foreach (Resource resource in Enum.GetValues(typeof(Resource)))
         {
             string name = resource.ToString().ToLower();
@@ -144,7 +154,13 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
                     ? worldState.GetMapForZ(LayerState.UnderworldZ)
                     : worldState.Visibility.GetForZ(LayerState.UnderworldZ).TryGetValue(playerIdx, out var uvm) ? uvm : null;
                 if (underworldMap != null)
-                    DrawIslandMap(canvas, underworldMap, playerIdx, mainGameState.Clock.CurrentTick, null, null, null, null, null);
+                {
+                    var uwCorruption = worldState.Features
+                        .OfType<Corruption>()
+                        .GroupBy(f => f.Position)
+                        .ToDictionary(g => g.Key, g => g.Max(c => c.Level));
+                    DrawIslandMap(canvas, underworldMap, playerIdx, mainGameState.Clock.CurrentTick, null, null, null, null, null, uwCorruption);
+                }
                 return;
             }
         }
@@ -172,7 +188,11 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
                         .Where(f => f.ShouldRenderIcon && (f.SvgIconResourceName != null || f.TextIcon != null))
                         .GroupBy(f => f.Position)
                         .ToDictionary(g => g.Key, g => (IEnumerable<IslandFeature>)g);
-                    DrawIslandMap(canvas, mapToRender, playerIdx, mgs.Clock.CurrentTick, manualTimes, worldState.PlunderCooldownUntil, worldState.PlunderCooldownDuration, harvestBlockedPositions, featuresByPosition);
+                    var corruptionByHex = worldState.Features
+                        .OfType<Corruption>()
+                        .GroupBy(f => f.Position)
+                        .ToDictionary(g => g.Key, g => g.Max(c => c.Level));
+                    DrawIslandMap(canvas, mapToRender, playerIdx, mgs.Clock.CurrentTick, manualTimes, worldState.PlunderCooldownUntil, worldState.PlunderCooldownDuration, harvestBlockedPositions, featuresByPosition, corruptionByHex);
 
                     var selectedInvestable = _wonderService?.SelectedInvestable;
                     if (selectedInvestable != null && _selectedWonderPaint != null)
@@ -191,12 +211,13 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
         IReadOnlyDictionary<HexCoord, long>? plunderCooldownUntil,
         Dictionary<HexCoord, long>? plunderCooldownDuration,
         HashSet<HexCoord>? harvestBlockedPositions,
-        Dictionary<HexCoord, IEnumerable<IslandFeature>>? featuresByPosition = null)
+        Dictionary<HexCoord, IEnumerable<IslandFeature>>? featuresByPosition = null,
+        Dictionary<HexCoord, int>? corruptionByHex = null)
     {
         foreach (var (coord, tile) in map.Tiles)
         {
             var (x, y) = AxialToIsland(coord.Q, coord.R);
-            DrawHexagonTile(canvas, coord, x, y, tile, playerIdx, currentTick, manualTimes, plunderCooldownUntil, plunderCooldownDuration, harvestBlockedPositions, featuresByPosition);
+            DrawHexagonTile(canvas, coord, x, y, tile, playerIdx, currentTick, manualTimes, plunderCooldownUntil, plunderCooldownDuration, harvestBlockedPositions, featuresByPosition, corruptionByHex);
         }
     }
 
@@ -222,7 +243,8 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
         IReadOnlyDictionary<HexCoord, long>? plunderCooldownUntil,
         Dictionary<HexCoord, long>? plunderCooldownDuration,
         HashSet<HexCoord>? harvestBlockedPositions,
-        Dictionary<HexCoord, IEnumerable<IslandFeature>>? featuresByPosition = null)
+        Dictionary<HexCoord, IEnumerable<IslandFeature>>? featuresByPosition = null,
+        Dictionary<HexCoord, int>? corruptionByHex = null)
     {
         var path = GetOrCreateHexPath(coord, centerX, centerY);
 
@@ -238,6 +260,9 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
         if (_hexBorderPaint != null)
             canvas.DrawPath(path, _hexBorderPaint);
 
+        if (corruptionByHex?.TryGetValue(coord, out int corruptLevel) == true && corruptLevel > 0)
+            DrawCorruptionCircle(canvas, centerX, centerY, corruptLevel);
+
         DrawHarvestIndicator(canvas, centerX, centerY, tile, playerIdx, currentTick, manualTimes, plunderCooldownUntil, plunderCooldownDuration, harvestBlockedPositions);
 
         if (featuresByPosition?.TryGetValue(coord, out var features) == true)
@@ -249,6 +274,13 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
             _textPaint.Color = SKColors.Black;
             SkiaTextUtils.DrawText(canvas, $"{tile.Coord.Q},{tile.Coord.R}", centerX, centerY + HexSize / 2.5f, SKTextAlign.Center, _textFont, _textPaint);
         }
+    }
+
+    private void DrawCorruptionCircle(SKCanvas canvas, float cx, float cy, int level)
+    {
+        if (_corruptionPaint == null) return;
+        _corruptionPaint.StrokeWidth = Math.Clamp(level, 1, 10);
+        canvas.DrawCircle(cx, cy, HexSize * CorruptionCircleRadiusFactor, _corruptionPaint);
     }
 
     private void DrawFeatureMarker(SKCanvas canvas, float cx, float cy, IslandFeature feature)

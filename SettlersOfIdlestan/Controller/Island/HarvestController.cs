@@ -7,6 +7,7 @@ using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.Buildings;
 using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
 using SettlersOfIdlestan.Controller.Military;
+using SettlersOfIdlestan.Model.IslandFeatures;
 
 namespace SettlersOfIdlestan.Controller.Island
 {
@@ -123,6 +124,7 @@ namespace SettlersOfIdlestan.Controller.Island
 
                 // Mémoïse les vérifications dynamiques par hex pour éviter de les répéter par bâtiment
                 var hexBlocked = new System.Collections.Generic.Dictionary<HexCoord, bool>();
+                var hexCorruption = new System.Collections.Generic.Dictionary<HexCoord, int>();
                 System.Collections.Generic.Dictionary<(HexCoord, City), ResourceSet>? harvested = null;
 
                 foreach (var (hex, city, building, resource) in entries)
@@ -135,9 +137,18 @@ namespace SettlersOfIdlestan.Controller.Island
                     }
                     if (blocked) continue;
 
+                    if (!hexCorruption.TryGetValue(hex, out int corruptionLevel))
+                    {
+                        var corruption = _state.Features.OfType<Corruption>().FirstOrDefault(f => f.Position.Equals(hex));
+                        corruptionLevel = corruption?.Level ?? 0;
+                        hexCorruption[hex] = corruptionLevel;
+                    }
+
                     long raw = building.GetAutomaticHarvestCooldown(AutomaticHarvestCooldownTicks);
                     double speedMultiplier = civ.ModifierAggregator.ApplyModifiers(ECategory.HARVEST_SPEED, building.Type.ToString(), 1.0);
                     long effective = Math.Max(1L, (long)(raw / speedMultiplier));
+                    if (corruptionLevel > 0)
+                        effective = Math.Max(1L, (long)(effective * Math.Pow(2, corruptionLevel)));
 
                     if (building.AutoHarvestLastTicks.TryGetValue(hex, out var lastBuildingTick) && now - lastBuildingTick < effective)
                         continue;
@@ -419,6 +430,8 @@ namespace SettlersOfIdlestan.Controller.Island
             if (tile == null) return System.Array.Empty<(Vertex, BuildingType, Resource, long, long)>();
 
             var result = new System.Collections.Generic.List<(Vertex, BuildingType, Resource, long, long)>();
+            var corruptionOnHex = _state.Features.OfType<Corruption>().FirstOrDefault(f => f.Position.Equals(hex));
+            int hexCorruptLevel = corruptionOnHex?.Level ?? 0;
             foreach (var city in civ.Cities.Where(c => c.Position.IsAdjacentTo(hex)))
                 foreach (var building in city.Buildings)
                 {
@@ -427,6 +440,8 @@ namespace SettlersOfIdlestan.Controller.Island
                     long raw = building.GetAutomaticHarvestCooldown(AutomaticHarvestCooldownTicks);
                     double speedMultiplier = civ.ModifierAggregator.ApplyModifiers(ECategory.HARVEST_SPEED, building.Type.ToString(), 1.0);
                     long effective = Math.Max(1L, (long)(raw / speedMultiplier));
+                    if (hexCorruptLevel > 0)
+                        effective = Math.Max(1L, (long)(effective * Math.Pow(2, hexCorruptLevel)));
                     building.AutoHarvestLastTicks.TryGetValue(hex, out var lastTick);
                     result.Add((city.Position, building.Type, resource.Value, lastTick, effective));
                 }
@@ -455,6 +470,7 @@ namespace SettlersOfIdlestan.Controller.Island
 
             var entries = GetOrBuildProductionCache(civilizationIndex);
             var hexAllowed = new System.Collections.Generic.Dictionary<HexCoord, bool>();
+            var hexCorruptionRate = new System.Collections.Generic.Dictionary<HexCoord, int>();
 
             foreach (var (hex, city, building, resource) in entries)
             {
@@ -465,9 +481,18 @@ namespace SettlersOfIdlestan.Controller.Island
                 }
                 if (!allowed) continue;
 
+                if (!hexCorruptionRate.TryGetValue(hex, out int corruptionLvl))
+                {
+                    var corruption = _state.Features.OfType<Corruption>().FirstOrDefault(f => f.Position.Equals(hex));
+                    corruptionLvl = corruption?.Level ?? 0;
+                    hexCorruptionRate[hex] = corruptionLvl;
+                }
+
                 long raw = building.GetAutomaticHarvestCooldown(AutomaticHarvestCooldownTicks);
                 double speedMultiplier = civ.ModifierAggregator.ApplyModifiers(ECategory.HARVEST_SPEED, building.Type.ToString(), 1.0);
                 long effective = Math.Max(1L, (long)(raw / speedMultiplier));
+                if (corruptionLvl > 0)
+                    effective = Math.Max(1L, (long)(effective * Math.Pow(2, corruptionLvl)));
 
                 var forge = city.Buildings.OfType<Forge>().FirstOrDefault();
                 int forgeChance = forge != null && forge.Level > 0 ? forge.DoubleProdChancePercent + civ.ForgeDoubleHarvestBonus : 0;

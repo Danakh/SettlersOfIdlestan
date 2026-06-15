@@ -509,6 +509,7 @@
   "event_ritual_collapsed_title": "🔮 Rituel effondré !",
   "event_ritual_collapsed_body": "Faute de cristaux ou de Tours de Mages, un de vos rituels s'est effondré.",
   "hex_tooltip_contested": "⚔ Territoire disputé — aucune production",
+  "hex_tooltip_corruption_info": "☠ Corruption (niv. {0}) — production divisée par {1}",
   "event_civilization_discovered_title": "🏛 Civilisation rencontrée !",
   "event_civilization_discovered_body": "Une nouvelle civilisation a été aperçue dans votre voisinage.",
   "event_soldier_starved_title": "☠ Soldats morts de faim !",

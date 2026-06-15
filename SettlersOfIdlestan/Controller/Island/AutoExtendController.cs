@@ -96,6 +96,10 @@ public class AutoExtendController
 
     // ── Spawn de monstres errants et trésors (Inframonde) ────────────────────
 
+    // Corruption : -10% + 5% par distance au point d'arrivée
+    private const int CorruptionBaseChancePercent = -10;
+    private const int CorruptionChancePerDistancePercent = 5;
+
     private void TrySpawnUnderworldDenizen(HexCoord newHex, LayerState layerState, int z)
     {
         if (_state == null || z != LayerState.UnderworldZ) return;
@@ -111,21 +115,28 @@ public class AutoExtendController
         }
         if (minDist < MinHexDistanceFromArrival) return;
 
-        if (_state.Features.Any(f => f.Position.Equals(newHex))) return;
+        // Monstres et trésors : seulement si l'hex est libre
+        if (!_state.Features.Any(f => f.Position.Equals(newHex)))
+        {
+            int roll = _prng.Next(100);
+            int trollThreshold = TrollSpawnChancePercent;
+            int ogreThreshold = trollThreshold + OgreSpawnChancePercent;
+            int treasureChance = BaseTreasureChancePercent + _state.PlayerCivilization.ModifierAggregator
+                .ApplyModifiers(Modifier.ECategory.UNDERWORLD_TREASURE_CHANCE_PERCENT, "", 0);
+            int treasureThreshold = ogreThreshold + treasureChance;
 
-        int roll = _prng.Next(100);
-        int trollThreshold = TrollSpawnChancePercent;
-        int ogreThreshold = trollThreshold + OgreSpawnChancePercent;
-        int treasureChance = BaseTreasureChancePercent + _state.PlayerCivilization.ModifierAggregator
-            .ApplyModifiers(Modifier.ECategory.UNDERWORLD_TREASURE_CHANCE_PERCENT, "", 0);
-        int treasureThreshold = ogreThreshold + treasureChance;
+            if (roll < trollThreshold)
+                _state.AddFeature(new Model.Monsters.Troll(newHex));
+            else if (roll < ogreThreshold)
+                _state.AddFeature(new Model.Monsters.Ogre(newHex));
+            else if (roll < treasureThreshold)
+                _state.AddFeature(new Model.IslandFeatures.TreasureTrove(newHex));
+        }
 
-        if (roll < trollThreshold)
-            _state.AddFeature(new Model.Monsters.Troll(newHex));
-        else if (roll < ogreThreshold)
-            _state.AddFeature(new Model.Monsters.Ogre(newHex));
-        else if (roll < treasureThreshold)
-            _state.AddFeature(new Model.IslandFeatures.TreasureTrove(newHex));
+        // Corruption : indépendante des autres features, chance croissante avec la distance
+        int corruptionChance = CorruptionBaseChancePercent + CorruptionChancePerDistancePercent * minDist;
+        if (corruptionChance > 0 && _prng.Next(100) < corruptionChance)
+            _state.AddFeature(new Model.IslandFeatures.Corruption(newHex));
     }
 
     // ── Helpers visibilité ────────────────────────────────────────────────────
