@@ -144,8 +144,16 @@ internal class CityAttackEngine
         // Les soldats défenseurs absorbent l'attaque : les deux soldats meurent, la défense est intacte.
         if (targetCity.Soldiers > 0)
         {
-            // Armures d'Acier : le défenseur peut survivre en consommant 1 Acier (l'attaque reste absorbée)
             var defenderCiv = _state!.Civilizations.FirstOrDefault(c => c.Index == targetCity.CivilizationIndex);
+            // Barbacane : si la défense est > 20, perd 1 défense au lieu d'un soldat.
+            if (defenderCiv != null
+                && defenderCiv.ModifierAggregator.HasModifier(ECategory.CITY_DEFENSE_PROTECTS_SOLDIERS)
+                && targetCity.CurrentDefense > 20)
+            {
+                targetCity.CurrentDefense--;
+                return false;
+            }
+            // Armures d'Acier : le défenseur peut survivre en consommant 1 Acier (l'attaque reste absorbée)
             if (SteelArmorEngine.TrySaveSoldiers(defenderCiv, targetCity, 1, _prng) == 0)
                 targetCity.Soldiers--;
             return false;

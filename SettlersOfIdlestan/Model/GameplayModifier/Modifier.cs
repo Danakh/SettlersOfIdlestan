@@ -94,6 +94,8 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             MARKET_GOLD_SPEED,
             /// <summary>Flags que la Faille des Abysses est déverrouillée (réservé pour une future fonctionnalité).</summary>
             UNLOCK_ABYSS,
+            /// <summary>Barbacane : si la défense courante de la cité est > 20 quand un soldat défenseur devrait mourir, perd 1 défense à la place. SubCategory unused.</summary>
+            CITY_DEFENSE_PROTECTS_SOLDIERS,
         }
 
         public enum EType

@@ -240,8 +240,8 @@ public sealed class PrestigeMapRenderer : IGameRenderer
 
     private void DrawHexPieChart(SKCanvas canvas, PrestigeHex hex, SKPoint center, float hexR, PrestigeState state)
     {
-        float outerR = hexR * 0.48f;
-        float innerR = hexR * 0.22f;
+        float outerR = hexR * 0.8f;
+        float innerR = hexR * 0.6f;
         const float GapDeg = 3f;
         float cx = center.X, cy = center.Y;
 
@@ -265,7 +265,7 @@ public sealed class PrestigeMapRenderer : IGameRenderer
             if (v == null) continue;
 
             bool purchased = state.PurchasedVertices.Contains(v);
-            float arcStart = -90f + i * 60f + GapDeg * 0.5f;
+            float arcStart = -120f + i * 60f + GapDeg * 0.5f;
             float arcSweep = 60f - GapDeg;
             float arcEnd   = arcStart + arcSweep;
             float startRad = arcStart * MathF.PI / 180f;
@@ -669,7 +669,8 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         Modifier.ECategory.RITUAL_TOTAL_POWER         => $"+{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_ritual_total_power")}",
         Modifier.ECategory.RITUAL_UPKEEP_REDUCTION    => $"-{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_ritual_upkeep")}",
         Modifier.ECategory.MAGIC_FEATURE_COUNT        => $"+{(int)mod.Value} {_localization.Get($"prestige_tooltip_magic_feature_{mod.SubCategory.ToLower()}")}",
-        Modifier.ECategory.MARKET_GOLD_SPEED           => $"+{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_market_gold_speed")}",
+        Modifier.ECategory.MARKET_GOLD_SPEED               => $"+{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_market_gold_speed")}",
+        Modifier.ECategory.CITY_DEFENSE_PROTECTS_SOLDIERS => _localization.Get("prestige_tooltip_city_defense_protects_soldiers"),
         _ => $"+{mod.Value}"
     };
 

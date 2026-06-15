@@ -355,7 +355,12 @@ public static class PrestigeMapFactory
                 cost: Cost(PrestigeMap.AdvancedGuardVertex),
                 modifiers: new Modifier[] { new(ECategory.NEW_CITY_BUILDING, "Watchtower", EType.ADDITIVE, 1) }
             ),
-            new(PrestigeMap.PlaceholderA2Vertex, "prestige_vertex_placeholder", cost: Cost(PrestigeMap.PlaceholderA2Vertex), modifiers: Array.Empty<Modifier>()),
+            new(
+                PrestigeMap.BarbacaneVertex,
+                "prestige_vertex_barbacane",
+                cost: Cost(PrestigeMap.BarbacaneVertex),
+                modifiers: new Modifier[] { new(ECategory.CITY_DEFENSE_PROTECTS_SOLDIERS, EType.ADDITIVE, 1) }
+            ),
             new(PrestigeMap.PlaceholderA3Vertex, "prestige_vertex_placeholder", cost: Cost(PrestigeMap.PlaceholderA3Vertex), modifiers: Array.Empty<Modifier>()),
             new(PrestigeMap.PlaceholderB2Vertex, "prestige_vertex_placeholder", cost: Cost(PrestigeMap.PlaceholderB2Vertex), modifiers: Array.Empty<Modifier>()),
             new(PrestigeMap.PlaceholderC3Vertex, "prestige_vertex_placeholder", cost: Cost(PrestigeMap.PlaceholderC3Vertex), modifiers: Array.Empty<Modifier>()),

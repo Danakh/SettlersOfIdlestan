@@ -57,7 +57,7 @@ public class PrestigeMap
     // ── Placeholder vertices — fill all open corners around mapped hexes ──────
     // Around FortifiedOutpost (0,-1) / UnitProductionSpeed (1,-1) north edge
     public static readonly Vertex ReinforcedPalisadeVertex = Vertex.Create(new(0, -1, 0), new(1, -2, 0), new(1, -1, 0));
-    public static readonly Vertex PlaceholderA2Vertex = Vertex.Create(new(0, -1, 0), new(0, -2, 0), new(1, -2, 0));
+    public static readonly Vertex BarbacaneVertex      = Vertex.Create(new(0, -1, 0), new(0, -2, 0), new(1, -2, 0));
     public static readonly Vertex PlaceholderA3Vertex = Vertex.Create(new(1, -1, 0), new(1, -2, 0), new(2, -2, 0));
     // Around DefenseRegen (2,-1) / UnitProductionSpeed (1,-1) outer east
     public static readonly Vertex AdvancedGuardVertex = Vertex.Create(new(1, -1, 0), new(2, -2, 0), new(2, -1, 0));
