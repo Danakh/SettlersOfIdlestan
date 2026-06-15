@@ -404,6 +404,8 @@ public sealed class OverlayRenderer : IGameRenderer
         if (_tradeRenderer.IsOpen) _tradeRenderer.HandlePointerReleased(e.Position);
         if (_tabBar.ActiveTab == TabBarRenderer.TabPrestige)
             _prestigeMapRenderer.HandlePointerReleased(e.Position);
+        if (_tabBar.ActiveTab == TabBarRenderer.TabAutomation)
+            _automationRenderer.HandlePointerReleased(e.Position);
     }
 
     private void HandleZoomChanged(object? sender, ZoomEventArgs e)
@@ -427,6 +429,8 @@ public sealed class OverlayRenderer : IGameRenderer
             else if (_selectedWonderPanelRenderer.ContainsPoint(e.Center))
                 _selectedWonderPanelRenderer.HandleScroll(e.ZoomDelta);
         }
+        if (activeTab == TabBarRenderer.TabAutomation)
+            _automationRenderer.HandleScroll(e.ZoomDelta);
     }
 
     private void HandleKeyInput(object? sender, KeyEventArgs e)

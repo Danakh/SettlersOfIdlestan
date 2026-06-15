@@ -20,6 +20,7 @@ public sealed class AutomationRenderer : IDisposable
     private const float ToggleHeight = 28f;
     private const float RowMinHeight = 54f;
     private const float SummaryHeight = 20f;
+    private const float SummaryLineHeight = 16f;
     private const float RowSpacing = 8f;
     private const float TextOffsetX = ToggleWidth + 14f;
     private const float DescRightPad = 12f;
@@ -51,6 +52,15 @@ public sealed class AutomationRenderer : IDisposable
     private string? _hoveredNote;
     private SKPoint _mousePosition;
 
+    private float _scrollOffsetPx        = 0f;
+    private float _totalContentH         = 0f;
+    private float _viewportH             = 0f;
+    private bool  _isDraggingScrollbar   = false;
+    private float _scrollDragStartY      = 0f;
+    private float _scrollDragStartOffset = 0f;
+    private SKRect _scrollTrackRect      = SKRect.Empty;
+    private SKRect _scrollThumbRect      = SKRect.Empty;
+
     private readonly SKPaint _bgPaint              = new() { Color = new SKColor(18, 18, 24, 240), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _cardPaint            = new() { Color = new SKColor(30, 30, 40, 220), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _cardBorderPaint      = new() { Color = new SKColor(60, 60, 80), StrokeWidth = 1f, Style = SKPaintStyle.Stroke, IsAntialias = true };
@@ -64,6 +74,8 @@ public sealed class AutomationRenderer : IDisposable
     private readonly SKPaint _summaryBuiltPaint    = new() { Color = new SKColor(120, 175, 120), IsAntialias = true };
     private readonly SKPaint _summaryEmptyPaint    = new() { Color = new SKColor(95, 95, 108), IsAntialias = true };
     private readonly SKPaint _summaryDividerPaint  = new() { Color = new SKColor(50, 50, 65), StrokeWidth = 0.5f, Style = SKPaintStyle.Stroke };
+    private readonly SKPaint _scrollTrackPaint     = new() { Color = new SKColor(50, 50, 65, 200), Style = SKPaintStyle.Fill, IsAntialias = true };
+    private readonly SKPaint _scrollThumbPaint     = new() { Color = new SKColor(130, 130, 165, 210), Style = SKPaintStyle.Fill, IsAntialias = true };
 
     private readonly SKFont _headerFont  = new() { Size = 17, Typeface = SkiaFonts.Bold };
     private readonly SKFont _nameFont    = new() { Size = 13, Typeface = SkiaFonts.Bold };
@@ -93,6 +105,15 @@ public sealed class AutomationRenderer : IDisposable
         float topBar = PlayerResourcesOverlayRenderer.BarHeight * context.UiScale;
         canvas.DrawRect(new SKRect(0, topBar, _canvasSize.Width, _canvasSize.Height), _bgPaint);
 
+        _viewportH = _canvasSize.Height - topBar;
+        float maxScroll = Math.Max(0, _totalContentH - _viewportH);
+        _scrollOffsetPx = Math.Clamp(_scrollOffsetPx, 0, maxScroll);
+        bool needsScroll = _totalContentH > _viewportH + 1f;
+
+        canvas.Save();
+        canvas.ClipRect(new SKRect(0, topBar, _canvasSize.Width, _canvasSize.Height));
+        canvas.Translate(0, -_scrollOffsetPx);
+
         float contentWidth = Math.Min(640f, _canvasSize.Width - Padding * 2);
         float x = (_canvasSize.Width - contentWidth) / 2;
         float y = topBar + Padding;
@@ -102,7 +123,11 @@ public sealed class AutomationRenderer : IDisposable
 
         var civ = _gameControllerService.PlayerCivilization;
         var WorldState = _gameControllerService.CurrentWorldState;
-        if (civ == null || WorldState == null) return;
+        if (civ == null || WorldState == null)
+        {
+            canvas.Restore();
+            return;
+        }
 
         BuildersGuild? buildersGuild = null;
         HarvestersGuild? harvestersGuild = null;
@@ -184,6 +209,7 @@ public sealed class AutomationRenderer : IDisposable
             _marketToggleRect = SKRect.Empty;
             rowH = DrawLockedRow(canvas, leftX, leftY, colWidth, _localization.Get("automation_market_name"), _localization.Get("automation_market_locked"));
         }
+        float leftBottom = leftY + rowH;
 
         // === Colonne droite : comportements militaires ===
         float rightY = startY;
@@ -206,8 +232,16 @@ public sealed class AutomationRenderer : IDisposable
         else
         {
             _militaryAttackToggleRect = SKRect.Empty;
-            DrawLockedRow(canvas, rightX, rightY, colWidth, _localization.Get("automation_military_attack_name"), _localization.Get("automation_military_attack_locked"));
+            rowH = DrawLockedRow(canvas, rightX, rightY, colWidth, _localization.Get("automation_military_attack_name"), _localization.Get("automation_military_attack_locked"));
         }
+        float rightBottom = rightY + rowH;
+
+        canvas.Restore();
+
+        _totalContentH = Math.Max(leftBottom, rightBottom) + Padding - topBar;
+
+        if (needsScroll)
+            DrawScrollbar(canvas, topBar, _viewportH);
 
         if (_hoveredNote != null)
             DrawFloatingTooltip(canvas, _hoveredNote, _mousePosition);
@@ -220,6 +254,7 @@ public sealed class AutomationRenderer : IDisposable
         IEnumerable<City>? cities = null, BuildingType[]? summaryTypes = null)
     {
         bool hasSummary = cities != null && summaryTypes != null;
+        int summaryLines = !hasSummary ? 0 : summaryTypes!.Length > 3 ? 2 : 1;
 
         float textX = x + 12f + TextOffsetX;
         float descMaxWidth = width - 12f - TextOffsetX - DescRightPad;
@@ -227,7 +262,8 @@ public sealed class AutomationRenderer : IDisposable
 
         // Hauteur dynamique : nom (baseline y+18) + desc wrappée + padding bas
         float contentHeight = Math.Max(RowMinHeight, 18f + _nameFont.Spacing + 2f + descLayout.Size.Height + 10f);
-        float cardHeight = contentHeight + (hasSummary ? SummaryHeight : 0);
+        float summaryExtra = summaryLines == 0 ? 0f : SummaryHeight + (summaryLines - 1) * SummaryLineHeight;
+        float cardHeight = contentHeight + summaryExtra;
 
         var cardRect = new SKRect(x, y, x + width, y + cardHeight);
         canvas.DrawRoundRect(cardRect, 6, 6, _cardPaint);
@@ -288,6 +324,14 @@ public sealed class AutomationRenderer : IDisposable
 
     private void DrawBuildingSummary(SKCanvas canvas, float x, float y, IEnumerable<City> cities, BuildingType[] types)
     {
+        int firstRowCount = types.Length > 3 ? (types.Length + 1) / 2 : types.Length;
+        DrawSummaryLine(canvas, x, y, cities, types[..firstRowCount]);
+        if (types.Length > firstRowCount)
+            DrawSummaryLine(canvas, x, y + SummaryLineHeight, cities, types[firstRowCount..]);
+    }
+
+    private void DrawSummaryLine(SKCanvas canvas, float x, float y, IEnumerable<City> cities, BuildingType[] types)
+    {
         float curX = x;
         bool first = true;
         foreach (var type in types)
@@ -325,76 +369,135 @@ public sealed class AutomationRenderer : IDisposable
     public void HandlePointerMoved(SKPoint position)
     {
         _mousePosition = position;
-        _hoveredRoadToggle                   = !_roadToggleRect.IsEmpty                   && _roadToggleRect.Contains(position.X, position.Y);
-        _hoveredOutpostToggle                = !_outpostToggleRect.IsEmpty                && _outpostToggleRect.Contains(position.X, position.Y);
-        _hoveredProductionToggle             = !_productionToggleRect.IsEmpty             && _productionToggleRect.Contains(position.X, position.Y);
-        _hoveredArtisanToggle                = !_artisanToggleRect.IsEmpty                && _artisanToggleRect.Contains(position.X, position.Y);
-        _hoveredLibraryToggle                = !_libraryToggleRect.IsEmpty                && _libraryToggleRect.Contains(position.X, position.Y);
-        _hoveredMarketToggle                 = !_marketToggleRect.IsEmpty                 && _marketToggleRect.Contains(position.X, position.Y);
-        _hoveredMilitaryReinforcementToggle  = !_militaryReinforcementToggleRect.IsEmpty  && _militaryReinforcementToggleRect.Contains(position.X, position.Y);
-        _hoveredMilitaryAttackToggle         = !_militaryAttackToggleRect.IsEmpty         && _militaryAttackToggleRect.Contains(position.X, position.Y);
+
+        if (_isDraggingScrollbar)
+        {
+            float dy         = position.Y - _scrollDragStartY;
+            float thumbRange = _scrollTrackRect.Height - _scrollThumbRect.Height;
+            float maxScroll  = Math.Max(0, _totalContentH - _viewportH);
+            float scrollPerPx = thumbRange > 0 ? maxScroll / thumbRange : 0;
+            _scrollOffsetPx  = Math.Clamp(_scrollDragStartOffset + dy * scrollPerPx, 0, maxScroll);
+            return;
+        }
+
+        var adj = new SKPoint(position.X, position.Y + _scrollOffsetPx);
+        _hoveredRoadToggle                   = !_roadToggleRect.IsEmpty                   && _roadToggleRect.Contains(adj.X, adj.Y);
+        _hoveredOutpostToggle                = !_outpostToggleRect.IsEmpty                && _outpostToggleRect.Contains(adj.X, adj.Y);
+        _hoveredProductionToggle             = !_productionToggleRect.IsEmpty             && _productionToggleRect.Contains(adj.X, adj.Y);
+        _hoveredArtisanToggle                = !_artisanToggleRect.IsEmpty                && _artisanToggleRect.Contains(adj.X, adj.Y);
+        _hoveredLibraryToggle                = !_libraryToggleRect.IsEmpty                && _libraryToggleRect.Contains(adj.X, adj.Y);
+        _hoveredMarketToggle                 = !_marketToggleRect.IsEmpty                 && _marketToggleRect.Contains(adj.X, adj.Y);
+        _hoveredMilitaryReinforcementToggle  = !_militaryReinforcementToggleRect.IsEmpty  && _militaryReinforcementToggleRect.Contains(adj.X, adj.Y);
+        _hoveredMilitaryAttackToggle         = !_militaryAttackToggleRect.IsEmpty         && _militaryAttackToggleRect.Contains(adj.X, adj.Y);
 
         _hoveredNote = null;
         foreach (var (rect, note) in _hoverableCards)
         {
-            if (rect.Contains(position.X, position.Y)) { _hoveredNote = note; break; }
+            if (rect.Contains(adj.X, adj.Y)) { _hoveredNote = note; break; }
         }
     }
 
     public bool HandlePointerPressed(SKPoint position)
     {
+        if (!_scrollThumbRect.IsEmpty && _scrollThumbRect.Contains(position.X, position.Y))
+        {
+            _isDraggingScrollbar   = true;
+            _scrollDragStartY      = position.Y;
+            _scrollDragStartOffset = _scrollOffsetPx;
+            return true;
+        }
+        if (!_scrollTrackRect.IsEmpty && _scrollTrackRect.Contains(position.X, position.Y))
+        {
+            float relY      = position.Y - _scrollTrackRect.Top;
+            float maxScroll = Math.Max(0, _totalContentH - _viewportH);
+            _scrollOffsetPx = Math.Clamp(relY / _scrollTrackRect.Height * maxScroll, 0, maxScroll);
+            return true;
+        }
+
         var state = _gameControllerService.CurrentWorldState;
         if (state == null) return false;
 
-        if (!_roadToggleRect.IsEmpty && _roadToggleRect.Contains(position.X, position.Y))
+        var adj = new SKPoint(position.X, position.Y + _scrollOffsetPx);
+
+        if (!_roadToggleRect.IsEmpty && _roadToggleRect.Contains(adj.X, adj.Y))
         {
             state.AutomationSettings.RoadAutomationEnabled = !state.AutomationSettings.RoadAutomationEnabled;
             return true;
         }
 
-        if (!_outpostToggleRect.IsEmpty && _outpostToggleRect.Contains(position.X, position.Y))
+        if (!_outpostToggleRect.IsEmpty && _outpostToggleRect.Contains(adj.X, adj.Y))
         {
             state.AutomationSettings.OutpostAutomationEnabled = !state.AutomationSettings.OutpostAutomationEnabled;
             return true;
         }
 
-        if (!_productionToggleRect.IsEmpty && _productionToggleRect.Contains(position.X, position.Y))
+        if (!_productionToggleRect.IsEmpty && _productionToggleRect.Contains(adj.X, adj.Y))
         {
             state.AutomationSettings.ProductionBuildingAutomationEnabled = !state.AutomationSettings.ProductionBuildingAutomationEnabled;
             return true;
         }
 
-        if (!_artisanToggleRect.IsEmpty && _artisanToggleRect.Contains(position.X, position.Y))
+        if (!_artisanToggleRect.IsEmpty && _artisanToggleRect.Contains(adj.X, adj.Y))
         {
             state.AutomationSettings.ArtisanBuildingAutomationEnabled = !state.AutomationSettings.ArtisanBuildingAutomationEnabled;
             return true;
         }
 
-        if (!_libraryToggleRect.IsEmpty && _libraryToggleRect.Contains(position.X, position.Y))
+        if (!_libraryToggleRect.IsEmpty && _libraryToggleRect.Contains(adj.X, adj.Y))
         {
             state.AutomationSettings.LibraryBuildingAutomationEnabled = !state.AutomationSettings.LibraryBuildingAutomationEnabled;
             return true;
         }
 
-        if (!_marketToggleRect.IsEmpty && _marketToggleRect.Contains(position.X, position.Y))
+        if (!_marketToggleRect.IsEmpty && _marketToggleRect.Contains(adj.X, adj.Y))
         {
             state.AutomationSettings.MarketBuildingAutomationEnabled = !state.AutomationSettings.MarketBuildingAutomationEnabled;
             return true;
         }
 
-        if (!_militaryReinforcementToggleRect.IsEmpty && _militaryReinforcementToggleRect.Contains(position.X, position.Y))
+        if (!_militaryReinforcementToggleRect.IsEmpty && _militaryReinforcementToggleRect.Contains(adj.X, adj.Y))
         {
             state.AutomationSettings.MilitaryReinforcementAutomationEnabled = !state.AutomationSettings.MilitaryReinforcementAutomationEnabled;
             return true;
         }
 
-        if (!_militaryAttackToggleRect.IsEmpty && _militaryAttackToggleRect.Contains(position.X, position.Y))
+        if (!_militaryAttackToggleRect.IsEmpty && _militaryAttackToggleRect.Contains(adj.X, adj.Y))
         {
             state.AutomationSettings.MilitaryAttackAutomationEnabled = !state.AutomationSettings.MilitaryAttackAutomationEnabled;
             return true;
         }
 
         return false;
+    }
+
+    public void HandlePointerReleased(SKPoint position)
+    {
+        _isDraggingScrollbar = false;
+    }
+
+    public void HandleScroll(float delta)
+    {
+        const float step = 60f;
+        float dir = delta > 0 ? -1f : 1f;
+        float maxScroll = Math.Max(0, _totalContentH - _viewportH);
+        _scrollOffsetPx = Math.Clamp(_scrollOffsetPx + dir * step, 0, maxScroll);
+    }
+
+    private void DrawScrollbar(SKCanvas canvas, float trackTop, float trackH)
+    {
+        const float scrollW      = 6f;
+        const float scrollMargin = 4f;
+        float trackX = _canvasSize.Width - scrollW - scrollMargin;
+
+        _scrollTrackRect = new SKRect(trackX, trackTop, trackX + scrollW, trackTop + trackH);
+        canvas.DrawRoundRect(_scrollTrackRect, 3, 3, _scrollTrackPaint);
+
+        float thumbRatio = _viewportH / _totalContentH;
+        float thumbH     = Math.Max(24f, thumbRatio * trackH);
+        float maxScroll  = Math.Max(1, _totalContentH - _viewportH);
+        float thumbTop   = trackTop + (_scrollOffsetPx / maxScroll) * (trackH - thumbH);
+        _scrollThumbRect = new SKRect(trackX, thumbTop, trackX + scrollW, thumbTop + thumbH);
+        canvas.DrawRoundRect(_scrollThumbRect, 3, 3, _scrollThumbPaint);
     }
 
     public void Dispose()
@@ -413,6 +516,8 @@ public sealed class AutomationRenderer : IDisposable
         _summaryBuiltPaint.Dispose();
         _summaryEmptyPaint.Dispose();
         _summaryDividerPaint.Dispose();
+        _scrollTrackPaint.Dispose();
+        _scrollThumbPaint.Dispose();
         _headerFont.Dispose();
         _nameFont.Dispose();
         _descFont.Dispose();
