@@ -502,8 +502,7 @@ public static class PrestigeMapFactory
                 adjacentVertices: Adjacent(PrestigeMap.UnderworldCoord),
                 perVertexModifiers: new Modifier[]
                 {
-                    new(ECategory.HARVEST_SPEED, "MushroomFarm", EType.ADDITIVE, 0.15),
-                    new(ECategory.HARVEST_SPEED, "MithrilMine",  EType.ADDITIVE, 0.15),
+                    new(ECategory.UNDERWORLD_ROAD_BASE_REDUCTION, EType.ADDITIVE, 1),
                 },
                 domain: PrestigeHexDomain.Explore
             ),

@@ -100,6 +100,8 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             UNLOCK_SEAPORT_AUTOMATION,
             /// <summary>Bonus additif de prestige par Port maritime au niveau max. Base = 0.0 ; +0.05 = +5% par port niv. 4.</summary>
             PRESTIGE_GAIN_PER_SEAPORT_LEVEL4,
+            /// <summary>Réduction du coût de route de base de l'Inframonde. Chaque point réduit la pierre de base de 1 et le minerai de base de 0,5 (arrondi inférieur), avant multiplication par arrivalDist.</summary>
+            UNDERWORLD_ROAD_BASE_REDUCTION,
         }
 
         public enum EType

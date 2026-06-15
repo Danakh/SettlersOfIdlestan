@@ -576,10 +576,18 @@ namespace SettlersOfIdlestan.Controller.Island
             var cost = GetRoadCost(distance, civ);
             if (edge.Z == LayerState.UnderworldZ)
             {
-                int arrivalDist = GetDistanceFromArrivalVertex(edge, civ);
-                cost[Resource.Ore] = cost[Resource.Ore] + 4 * arrivalDist;
-                cost[Resource.Stone] = cost[Resource.Stone] + 10 * arrivalDist;
+                int reduction = civ.ModifierAggregator.ApplyModifiers(Modifier.ECategory.UNDERWORLD_ROAD_BASE_REDUCTION, "", 0);
+                int baseOre   = Math.Max(0, 5  - reduction / 2);
+                int baseStone = Math.Max(0, 10 - reduction);
+                cost[Resource.Ore]   = cost[Resource.Ore]   + baseOre;
+                cost[Resource.Stone] = cost[Resource.Stone] + baseStone;
             }
+            foreach (var k in cost.Keys)
+            {
+                double arrivalDist = Math.Round(Math.Pow(GetDistanceFromArrivalVertex(edge, civ), 1.5));
+                cost[k] = cost[k] * (int)arrivalDist;
+            }
+
             return cost;
         }
 
