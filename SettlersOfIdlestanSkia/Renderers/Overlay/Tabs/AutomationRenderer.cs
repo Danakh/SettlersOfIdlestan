@@ -680,11 +680,21 @@ public sealed class AutomationRenderer : IDisposable
         if (!_militaryReinforcementToggleRect.IsEmpty && _militaryReinforcementToggleRect.Contains(adj.X, adj.Y))
         {
             state.AutomationSettings.MilitaryReinforcementAutomationEnabled = !state.AutomationSettings.MilitaryReinforcementAutomationEnabled;
+            if (!state.AutomationSettings.MilitaryReinforcementAutomationEnabled)
+            {
+                var civR = _gameControllerService.PlayerCivilization;
+                if (civR != null) _gameControllerService.MainGameController.MilitaryController.ClearReinforcementFlows(civR);
+            }
             return true;
         }
         if (!_militaryAttackToggleRect.IsEmpty && _militaryAttackToggleRect.Contains(adj.X, adj.Y))
         {
             state.AutomationSettings.MilitaryAttackAutomationEnabled = !state.AutomationSettings.MilitaryAttackAutomationEnabled;
+            if (!state.AutomationSettings.MilitaryAttackAutomationEnabled)
+            {
+                var civA = _gameControllerService.PlayerCivilization;
+                if (civA != null) _gameControllerService.MainGameController.MilitaryController.ClearAttackFlows(civA);
+            }
             return true;
         }
 

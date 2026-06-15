@@ -448,8 +448,22 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             case AutomationRenderer.PinKeyLibrary:       if (settings != null) settings.LibraryBuildingAutomationEnabled = !settings.LibraryBuildingAutomationEnabled;     break;
             case AutomationRenderer.PinKeyMarket:        if (settings != null) settings.MarketBuildingAutomationEnabled = !settings.MarketBuildingAutomationEnabled;       break;
             case AutomationRenderer.PinKeySeaport:       if (settings != null) settings.SeaportBuildingAutomationEnabled = !settings.SeaportBuildingAutomationEnabled;     break;
-            case AutomationRenderer.PinKeyMilReinforce:  if (settings != null) settings.MilitaryReinforcementAutomationEnabled = !settings.MilitaryReinforcementAutomationEnabled; break;
-            case AutomationRenderer.PinKeyMilAttack:     if (settings != null) settings.MilitaryAttackAutomationEnabled = !settings.MilitaryAttackAutomationEnabled;       break;
+            case AutomationRenderer.PinKeyMilReinforce:
+                if (settings != null)
+                {
+                    settings.MilitaryReinforcementAutomationEnabled = !settings.MilitaryReinforcementAutomationEnabled;
+                    if (!settings.MilitaryReinforcementAutomationEnabled && civ != null)
+                        _gameControllerService.MainGameController.MilitaryController.ClearReinforcementFlows(civ);
+                }
+                break;
+            case AutomationRenderer.PinKeyMilAttack:
+                if (settings != null)
+                {
+                    settings.MilitaryAttackAutomationEnabled = !settings.MilitaryAttackAutomationEnabled;
+                    if (!settings.MilitaryAttackAutomationEnabled && civ != null)
+                        _gameControllerService.MainGameController.MilitaryController.ClearAttackFlows(civ);
+                }
+                break;
         }
     }
 

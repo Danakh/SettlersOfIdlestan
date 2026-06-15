@@ -158,4 +158,18 @@ internal class ReinforcementEngine
         }
         city.FlowTarget = target;
     }
+
+    internal void ClearReinforcementFlows(Civilization civ)
+    {
+        foreach (var city in civ.Cities)
+            if (city.FlowTarget != null && !IsEnemyCityAt(city.FlowTarget, civ))
+                SetCityFlow(city, null);
+    }
+
+    internal void ClearAttackFlows(Civilization civ)
+    {
+        foreach (var city in civ.Cities)
+            if (city.FlowTarget != null && IsEnemyCityAt(city.FlowTarget, civ))
+                SetCityFlow(city, null);
+    }
 }

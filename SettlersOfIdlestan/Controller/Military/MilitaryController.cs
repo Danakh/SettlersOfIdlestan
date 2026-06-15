@@ -209,6 +209,12 @@ public class MilitaryController
     /// <summary>Définit ou efface le flux militaire d'une cité.</summary>
     public void SetCityFlow(City city, Vertex? target) => _reinforcementEngine.SetCityFlow(city, target);
 
+    /// <summary>Efface tous les flux de renfort (vers alliés) de la civilisation.</summary>
+    public void ClearReinforcementFlows(Civilization civ) => _reinforcementEngine.ClearReinforcementFlows(civ);
+
+    /// <summary>Efface tous les flux d'attaque (vers ennemis) de la civilisation.</summary>
+    public void ClearAttackFlows(Civilization civ) => _reinforcementEngine.ClearAttackFlows(civ);
+
     /// <summary>
     /// Réévalue et assigne les flux de renfort pour chaque cité de la civilisation.
     /// Les flux ciblant une ville ennemie (attaque manuelle) ne sont pas modifiés.
