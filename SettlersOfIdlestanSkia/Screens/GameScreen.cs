@@ -43,6 +43,7 @@ public sealed class GameScreen : IDisposable
     private bool _wasIntroActive;
     private WonderSelectionService? _wonderSelectionService;
     private WonderService? _wonderService;
+    private RaidSelectionService? _raidSelectionService;
     private TutorialRenderer? _tutorialRenderer;
     private TutorialService? _tutorialService;
     private MilitaryInteractionService? _militaryInteractionService;
@@ -223,6 +224,13 @@ public sealed class GameScreen : IDisposable
         var wonderSelectionRenderer = new WonderPlacementRenderer(_wonderSelectionService, _inputService, _cameraService, _localizationService);
         _renderService.RegisterRenderer(wonderSelectionRenderer);
 
+        _raidSelectionService = new RaidSelectionService();
+        _raidSelectionService.Entered              += OnRaidSelectionEntered;
+        _raidSelectionService.RaidTargetConfirmed  += OnRaidTargetConfirmed;
+        _raidSelectionService.Cancelled            += OnRaidSelectionCancelled;
+        var raidTargetRenderer = new RaidTargetRenderer(_raidSelectionService, _inputService, _cameraService, _localizationService);
+        _renderService.RegisterRenderer(raidTargetRenderer);
+
         _introRenderer = new IntroAnimationRenderer(_resourceManager);
         _renderService.RegisterRenderer(_introRenderer);
 
@@ -293,6 +301,7 @@ public sealed class GameScreen : IDisposable
             timeControlRenderer, researchRenderer, eventLogRenderer, automationRenderer,
             ritualsRenderer, tooltipRenderer, _uiLayoutService);
         _overlayRenderer.ConnectWonderService(_wonderSelectionService);
+        _overlayRenderer.ConnectRaidService(_raidSelectionService);
         _overlayRenderer.ConnectZoomCallbacks(
             () => _cameraService.SetZoom(_cameraService.ZoomLevel * ZoomStep),
             () => _cameraService.SetZoom(_cameraService.ZoomLevel / ZoomStep));
@@ -685,6 +694,27 @@ public sealed class GameScreen : IDisposable
     }
 
     private void OnWonderSelectionCancelled(object? sender, EventArgs e)
+    {
+        _gameControllerService.CurrentGameState?.Clock?.Resume();
+        _overlayRenderer?.Show(suppressNextPress: true);
+    }
+
+    private void OnRaidSelectionEntered(object? sender, EventArgs e)
+    {
+        _gameControllerService.CurrentGameState?.Clock?.Pause();
+        _overlayRenderer?.Hide();
+    }
+
+    private void OnRaidTargetConfirmed(object? sender, SettlersOfIdlestan.Model.HexGrid.Vertex targetVertex)
+    {
+        var playerCiv = _gameControllerService.PlayerCivilization;
+        if (playerCiv != null)
+            _gameControllerService.MainGameController.MilitaryController.StartRaid(playerCiv, targetVertex);
+        _gameControllerService.CurrentGameState?.Clock?.Resume();
+        _overlayRenderer?.Show(suppressNextPress: true);
+    }
+
+    private void OnRaidSelectionCancelled(object? sender, EventArgs e)
     {
         _gameControllerService.CurrentGameState?.Clock?.Resume();
         _overlayRenderer?.Show(suppressNextPress: true);

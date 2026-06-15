@@ -31,6 +31,7 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay
         private readonly CityBuilderController _cityController;
         private readonly RoadController _roadController;
         private readonly ResourceManager _resourceManager;
+        private readonly GameControllerService _gameControllerService;
         private readonly Dictionary<Resource, SKSvg?> _resourceIcons = new();
 
         public TooltipRenderer(LocalizationService localizationService, GameControllerService gameControllerService, ResourceManager resourceManager)
@@ -39,6 +40,7 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay
             _cityController = gameControllerService.MainGameController.CityBuilderController;
             _roadController = gameControllerService.MainGameController.RoadController;
             _resourceManager = resourceManager;
+            _gameControllerService = gameControllerService;
         }
 
         public void Initialize(SKSize canvasSize)
@@ -113,7 +115,10 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay
             if (_islandRendererContext == null || _gameRenderContext == null)
                 return;
 
-            var cost = _cityController.NewCityBuildingCost();
+            var civ = _gameControllerService.PlayerCivilization;
+            var cost = civ != null
+                ? _cityController.NewCityBuildingCostFor(cityPosition, civ)
+                : _cityController.NewCityBuildingCost();
             _tooltipTexts = new string[] { _localizationService.Get("outpost_construction") };
             _tooltipCost = cost;
 

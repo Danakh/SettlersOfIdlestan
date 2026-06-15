@@ -674,6 +674,7 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         Modifier.ECategory.UNLOCK_SEAPORT_AUTOMATION  => _localization.Get("prestige_tooltip_unlocks_seaport_automation"),
         Modifier.ECategory.PRESTIGE_GAIN_PER_SEAPORT_LEVEL4 => $"+{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_prestige_per_seaport")}",
         Modifier.ECategory.UNDERWORLD_ROAD_BASE_REDUCTION   => _localization.Get("prestige_tooltip_underworld_road_reduction"),
+        Modifier.ECategory.UNLOCK_RAID                      => _localization.Get("prestige_tooltip_unlocks_raid"),
         _ => $"+{mod.Value}"
     };
 

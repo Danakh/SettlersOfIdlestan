@@ -200,7 +200,8 @@ namespace SettlersOfIdlestan.Controller.Island
 
             var cityHexSet = new HashSet<HexCoord>(city.Position.GetHexes());
             var claimedTroves = cityHexSet.SelectMany(h => _state.GetFeaturesAt(h))
-                .OfType<TreasureTrove>();
+                .OfType<TreasureTrove>()
+                .ToList();
             foreach (var trove in claimedTroves)
             {
                 _state.EventLog.Add(trove.RemovedEventType);
@@ -220,6 +221,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 { Resource.Brick, 10 },
                 { Resource.Wood, 10 },
                 { Resource.Food, 15 },
+                { Resource.Gold, 10 },
             };
         }
 
@@ -229,11 +231,9 @@ namespace SettlersOfIdlestan.Controller.Island
             if (targetVertex.Z == LayerState.UnderworldZ)
             {
                 int underworldCities = civ.Cities.Count(c => c.Position.Z == LayerState.UnderworldZ);
-                if (underworldCities > 0)
-                {
-                    cost[Resource.Food] = cost[Resource.Food] + 5 * underworldCities;
-                    cost[Resource.Gold] = cost[Resource.Gold] + 5 * underworldCities;
-                }
+                double multiplier = 1.0 + 0.5 * underworldCities;
+                foreach (var resource in cost.Keys.ToList())
+                    cost[resource] = (int)Math.Round(cost[resource] * multiplier);
             }
             return cost;
         }

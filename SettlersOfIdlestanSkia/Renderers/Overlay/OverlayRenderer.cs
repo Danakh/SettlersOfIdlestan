@@ -39,6 +39,7 @@ public sealed class OverlayRenderer : IGameRenderer
     private SKSize _canvasSize;
     private SKPoint _lastPointerPosition;
     private WonderSelectionService? _wonderSelectionService;
+    private RaidSelectionService? _raidSelectionService;
 
     // Mobile second row (time controls + gear background)
     private SKRect _mobileGearRect;
@@ -268,6 +269,12 @@ public sealed class OverlayRenderer : IGameRenderer
     {
         _wonderSelectionService = wonderSelectionService;
         _playerCivPanel.ConnectWonderSelectionService(wonderSelectionService);
+    }
+
+    public void ConnectRaidService(RaidSelectionService raidSelectionService)
+    {
+        _raidSelectionService = raidSelectionService;
+        _playerCivPanel.ConnectRaidSelectionService(raidSelectionService);
     }
 
     public bool IsAnyOverlayOpen => _tradeRenderer.IsOpen || _prestigeRenderer.IsOpen

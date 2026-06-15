@@ -42,7 +42,12 @@ internal class CityAttackEngine
         {
             foreach (var attackerCity in attackerCiv.Cities.ToList())
             {
-                if (currentTick - attackerCity.LastCityAttackTick < MilitaryController.CityAttackIntervalTicks) continue;
+                var raidTarget = _state!.AutomationSettings.RaidTargetVertex;
+                bool isRaidAttack = raidTarget != null && attackerCity.FlowTarget?.Equals(raidTarget) == true;
+                long effectiveInterval = isRaidAttack
+                    ? MilitaryController.CityAttackIntervalTicks / 2
+                    : MilitaryController.CityAttackIntervalTicks;
+                if (currentTick - attackerCity.LastCityAttackTick < effectiveInterval) continue;
                 if (attackerCity.Soldiers == 0) continue;
                 if (attackerCity.FlowTarget == null) continue;
 

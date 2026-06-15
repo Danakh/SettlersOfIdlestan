@@ -51,6 +51,7 @@ public class MilitaryController
     private readonly MonsterCombatEngine _monsterCombatEngine = new();
     private readonly CityAttackEngine _cityAttackEngine = new();
     private readonly ReinforcementEngine _reinforcementEngine = new();
+    private readonly RaidEngine _raidEngine = new();
 
     // ── Constantes publiques ─────────────────────────────────────────────────
 
@@ -157,6 +158,7 @@ public class MilitaryController
         _monsterCombatEngine.Initialize(state);
         _cityAttackEngine.Initialize(state, roadController);
         _reinforcementEngine.Initialize(state, _cityAttackEngine, _productionEngine);
+        _raidEngine.Initialize(state, _cityAttackEngine, _reinforcementEngine);
 
         if (_clock != null)
             _clock.Advanced += OnClockAdvanced;
@@ -185,6 +187,7 @@ public class MilitaryController
             args => ReinforcementSent?.Invoke(this, args));
         _reinforcementEngine.ResolvePlayerAutoReinforcement(currentTick);
         _reinforcementEngine.ResolvePlayerAutoAttack(currentTick);
+        _raidEngine.Update(currentTick);
     }
 
     // ── Régénération de défense ──────────────────────────────────────────────
@@ -228,6 +231,15 @@ public class MilitaryController
 
     public City? FindNearbyEnemyCity(City attackerCity, IReadOnlyCollection<int>? targetCivIndices = null)
         => _cityAttackEngine.FindNearbyEnemyCity(attackerCity, targetCivIndices);
+
+    // ── Raid ─────────────────────────────────────────────────────────────────
+
+    public bool IsRaidUnlocked(Civilization civ) => _raidEngine.IsRaidUnlocked(civ);
+    public bool IsRaidActive() => _raidEngine.IsRaidActive();
+    public Vertex? GetRaidTarget() => _raidEngine.GetRaidTarget();
+    public List<Vertex> GetSelectableTargets(Civilization civ) => _raidEngine.GetSelectableTargets(civ);
+    public void StartRaid(Civilization civ, Vertex target) => _raidEngine.StartRaid(civ, target);
+    public void StopRaid(Civilization civ) => _raidEngine.StopRaid(civ);
 
     /// <summary>
     /// Clears flows, fires <see cref="CityDestroyed"/>, and recalculates visibility.

@@ -3,6 +3,7 @@ using SettlersOfIdlestan.Model.Buildings;
 using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
+using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestanSkia.Services.Localization;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Renderers.Overlay.Popup;
@@ -34,6 +35,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
     private readonly TradePopupRenderer _tradeRenderer;
     private readonly PrestigeRenderer _prestigeRenderer;
     private WonderSelectionService? _wonderSelectionService;
+    private RaidSelectionService? _raidSelectionService;
     private readonly TooltipRenderer _tooltipRenderer;
 
     public bool IsCollapsed  => Collapsed;
@@ -44,13 +46,16 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
     private SKRect _prestigeButtonRect = SKRect.Empty;
     private SKRect _wonderButtonRect   = SKRect.Empty;
     private SKRect _deepestMineButtonRect = SKRect.Empty;
+    private SKRect _raidButtonRect     = SKRect.Empty;
     private readonly List<(SKRect rect, string pinKey, string tooltipKey)> _pinnedItemRects = new();
     private int _hoveredPinnedIndex = -1;
 
-    private bool _hoveredTrade, _hoveredPrestige, _hoveredWonder, _hoveredDeepestMine;
+    private bool _hoveredTrade, _hoveredPrestige, _hoveredWonder, _hoveredDeepestMine, _hoveredRaid;
     private bool _wonderEnabled;
     private bool _deepestMineEnabled;
     private bool _disposed;
+    private SKPaint? _btnRaidActivePaint;
+    private SKPaint? _btnRaidActiveHoverPaint;
 
     // CivPanel-specific paints
     private SKPaint? _sectionTitlePaint;
@@ -93,6 +98,8 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         _separatorPaint       = new SKPaint { Color = new SKColor(60, 60, 80),         StrokeWidth = 0.8f, Style = SKPaintStyle.Stroke };
         _btnPaint             = new SKPaint { Color = new SKColor(46, 125, 50),        Style = SKPaintStyle.Fill, IsAntialias = true };
         _btnHoverPaint        = new SKPaint { Color = new SKColor(60, 150, 64),        Style = SKPaintStyle.Fill, IsAntialias = true };
+        _btnRaidActivePaint      = new SKPaint { Color = new SKColor(170, 40, 40),    Style = SKPaintStyle.Fill, IsAntialias = true };
+        _btnRaidActiveHoverPaint = new SKPaint { Color = new SKColor(200, 60, 60),    Style = SKPaintStyle.Fill, IsAntialias = true };
         _btnDisabledPaint     = new SKPaint { Color = new SKColor(70, 70, 78),         Style = SKPaintStyle.Fill, IsAntialias = true };
         _btnDisabledTxtPaint  = new SKPaint { Color = new SKColor(160, 160, 165),      IsAntialias = true };
         _rowLabelPaint        = new SKPaint { Color = new SKColor(215, 215, 225),      IsAntialias = true };
@@ -101,6 +108,9 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
 
     public void ConnectWonderSelectionService(WonderSelectionService service)
         => _wonderSelectionService = service;
+
+    public void ConnectRaidSelectionService(RaidSelectionService service)
+        => _raidSelectionService = service;
 
     public override void Render(SKCanvas canvas, GameRenderContext context)
     {
@@ -141,6 +151,8 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         _wonderEnabled = wonderVisible && context.CurrentLayer == 0;
         bool deepestMineVisible = CanPlaceDeepestMine();
         _deepestMineEnabled = deepestMineVisible && context.CurrentLayer == 0;
+        bool raidVisible   = IsRaidVisible();
+        bool raidActive    = raidVisible && IsRaidActive();
         bool hasBarracks     = HasBuilt<Barracks>(civ);
         bool hasLabs         = HasBuilt<Laboratory>(civ);
         bool hasSmelters     = HasBuilt<Smelter>(civ);
@@ -150,10 +162,10 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         var worldState = _gameControllerService.CurrentWorldState;
         var pinned = worldState?.AutomationSettings.PinnedToCivPanel ?? (IReadOnlySet<string>)new HashSet<string>();
 
-        bool showActions  = tradeVisible || prestigeVisible || wonderVisible || deepestMineVisible;
+        bool showActions  = tradeVisible || prestigeVisible || wonderVisible || deepestMineVisible || raidVisible;
         bool showControls = pinned.Any(k => IsKeyShowable(k, civ, worldState, hasBarracks, hasSteelWeapons, hasLabs, hasSmelters, hasArsenals));
 
-        _tradeButtonRect = _prestigeButtonRect = _wonderButtonRect = _deepestMineButtonRect = SKRect.Empty;
+        _tradeButtonRect = _prestigeButtonRect = _wonderButtonRect = _deepestMineButtonRect = _raidButtonRect = SKRect.Empty;
         _pinnedItemRects.Clear();
 
         if (!showActions && !showControls)
@@ -179,7 +191,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         float h = panelPadding;
         if (showActions)
         {
-            int actionCount = (tradeVisible ? 1 : 0) + (prestigeVisible ? 1 : 0) + (wonderVisible ? 1 : 0) + (deepestMineVisible ? 1 : 0);
+            int actionCount = (tradeVisible ? 1 : 0) + (prestigeVisible ? 1 : 0) + (wonderVisible ? 1 : 0) + (deepestMineVisible ? 1 : 0) + (raidVisible ? 1 : 0);
             int actionRows  = (actionCount + 1) / 2;
             h += titleHeight + actionRows * (btnHeight + btnSpacing);
         }
@@ -253,6 +265,17 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
                 _deepestMineButtonRect = BtnRect(btnIdx++);
                 canvas.DrawRoundRect(_deepestMineButtonRect, 6 * s, 6 * s, _deepestMineEnabled ? (_hoveredDeepestMine ? _btnHoverPaint : _btnPaint) : _btnDisabledPaint);
                 SkiaTextUtils.DrawText(canvas, _localization.Get("deepest_mine_action_short"), _deepestMineButtonRect.MidX, _deepestMineButtonRect.MidY + 4f * s, SKTextAlign.Center, _btnSmFont, _deepestMineEnabled ? TextPaint : _btnDisabledTxtPaint);
+            }
+
+            if (raidVisible)
+            {
+                _raidButtonRect = BtnRect(btnIdx++);
+                SKPaint raidBg = raidActive
+                    ? (_hoveredRaid ? _btnRaidActiveHoverPaint! : _btnRaidActivePaint!)
+                    : (_hoveredRaid ? _btnHoverPaint! : _btnPaint!);
+                canvas.DrawRoundRect(_raidButtonRect, 6 * s, 6 * s, raidBg);
+                string raidLabel = raidActive ? _localization.Get("raid_action_stop") : _localization.Get("raid_action");
+                SkiaTextUtils.DrawText(canvas, raidLabel, _raidButtonRect.MidX, _raidButtonRect.MidY + 4f * s, SKTextAlign.Center, _btnSmFont, TextPaint);
             }
 
             y = actionsY + ((btnIdx + 1) / 2) * (btnHeight + btnSpacing);
@@ -366,6 +389,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         _hoveredPrestige    = !_prestigeButtonRect.IsEmpty    && _prestigeButtonRect.Contains(pos.X, pos.Y);
         _hoveredWonder      = !_wonderButtonRect.IsEmpty      && _wonderButtonRect.Contains(pos.X, pos.Y);
         _hoveredDeepestMine = !_deepestMineButtonRect.IsEmpty && _deepestMineButtonRect.Contains(pos.X, pos.Y);
+        _hoveredRaid        = !_raidButtonRect.IsEmpty        && _raidButtonRect.Contains(pos.X, pos.Y);
 
         _hoveredPinnedIndex = -1;
         for (int i = 0; i < _pinnedItemRects.Count; i++)
@@ -414,6 +438,24 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         {
             _closeAll();
             _wonderSelectionService.EnterDeepestMine();
+            return true;
+        }
+
+        if (!_raidButtonRect.IsEmpty && _raidButtonRect.Contains(pos.X, pos.Y))
+        {
+            var playerCiv = _gameControllerService.PlayerCivilization;
+            if (IsRaidActive())
+            {
+                if (playerCiv != null)
+                    _gameControllerService.MainGameController.MilitaryController.StopRaid(playerCiv);
+            }
+            else if (_raidSelectionService != null && playerCiv != null)
+            {
+                _closeAll();
+                var targets = _gameControllerService.MainGameController.MilitaryController.GetSelectableTargets(playerCiv);
+                if (targets.Count > 0)
+                    _raidSelectionService.Enter(targets);
+            }
             return true;
         }
 
@@ -558,6 +600,20 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         catch { return false; }
     }
 
+    private bool IsRaidVisible()
+    {
+        var civ = _gameControllerService.PlayerCivilization;
+        if (civ == null) return false;
+        try { return _gameControllerService.MainGameController.MilitaryController.IsRaidUnlocked(civ); }
+        catch { return false; }
+    }
+
+    private bool IsRaidActive()
+    {
+        try { return _gameControllerService.MainGameController.MilitaryController.IsRaidActive(); }
+        catch { return false; }
+    }
+
     private static bool HasBuilt<T>(Civilization civ) where T : Building
         => civ.Cities.Any(c => c.Buildings.OfType<T>().Any(b => b.Level >= 1));
 
@@ -607,6 +663,8 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         _btnDisabledTxtPaint?.Dispose();
         _rowLabelPaint?.Dispose();
         _rowLabelDimPaint?.Dispose();
+        _btnRaidActivePaint?.Dispose();
+        _btnRaidActiveHoverPaint?.Dispose();
         _sectionFont?.Dispose();
         _btnFont?.Dispose();
         _btnSmFont?.Dispose();

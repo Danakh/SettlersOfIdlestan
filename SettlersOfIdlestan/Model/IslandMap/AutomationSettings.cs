@@ -1,3 +1,5 @@
+using SettlersOfIdlestan.Model.HexGrid;
+
 namespace SettlersOfIdlestan.Model.IslandMap;
 
 public class AutomationSettings
@@ -14,4 +16,10 @@ public class AutomationSettings
     public bool MilitaryAttackAutomationEnabled { get; set; } = false;
 
     public HashSet<string> PinnedToCivPanel { get; set; } = [];
+
+    /// <summary>Position de la ville ciblée par un raid actif. Null si aucun raid en cours.</summary>
+    public Vertex? RaidTargetVertex { get; set; } = null;
+
+    /// <summary>Coût en or par seconde du raid actif. 0 si aucun raid. Commence à 10, monte de 2 par seconde.</summary>
+    public int RaidCurrentUpkeep { get; set; } = 0;
 }

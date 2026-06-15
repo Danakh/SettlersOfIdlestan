@@ -361,7 +361,12 @@ public static class PrestigeMapFactory
                 cost: Cost(PrestigeMap.BarbacaneVertex),
                 modifiers: new Modifier[] { new(ECategory.CITY_DEFENSE_PROTECTS_SOLDIERS, EType.ADDITIVE, 1) }
             ),
-            new(PrestigeMap.SiegeTrainingVertex, "prestige_vertex_placeholder", cost: Cost(PrestigeMap.SiegeTrainingVertex), modifiers: Array.Empty<Modifier>()),
+            new(
+                PrestigeMap.SiegeTrainingVertex,
+                "prestige_vertex_raid_action",
+                cost: Cost(PrestigeMap.SiegeTrainingVertex),
+                modifiers: new Modifier[] { new(ECategory.UNLOCK_RAID, EType.ADDITIVE, 1) }
+            ),
             new(PrestigeMap.ForgeApproachVertex, "prestige_vertex_placeholder", cost: Cost(PrestigeMap.ForgeApproachVertex), modifiers: Array.Empty<Modifier>()),
             new(PrestigeMap.OuterScienceVertex,  "prestige_vertex_placeholder", cost: Cost(PrestigeMap.OuterScienceVertex),  modifiers: Array.Empty<Modifier>()),
             new(
