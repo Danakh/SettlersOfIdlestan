@@ -269,8 +269,8 @@ public class MonsterFeatureController
                 }
             }
 
-            // 4. Destruction de la ville — dégâts résiduels après townhall détruit
-            if (damage > 0 && !city.Buildings.OfType<TownHall>().Any())
+            // 4. Destruction de la ville — plus de Townhall (même si damage tombé à 0 pendant la cascade)
+            if (!city.Buildings.OfType<TownHall>().Any())
             {
                 monster.LastAttackTargetVertex = city.Position;
                 monster.LastAttackResourcesString = null;
