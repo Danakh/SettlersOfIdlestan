@@ -89,7 +89,7 @@ public class Hex
     /// </summary>
     public Vertex GetVertexBySecondaryDirection(SecondaryHexDirection direction)
     {
-        var (dir1, dir2) = SecondaryHexDirectionUtils.SecondaryToMainDirectionPairs[direction];
+        var (dir1, dir2) = SecondaryHexDirectionUtils.GetMainDirectionPair(direction);
         var neighbor1 = Neighbor(dir1);
         var neighbor2 = Neighbor(dir2);
 

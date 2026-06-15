@@ -65,9 +65,7 @@ public class Edge
     /// </summary>
     public override bool Equals(object? obj)
     {
-        return obj is Edge other &&
-               ((Hex1.Equals(other.Hex1) && Hex2.Equals(other.Hex2)) ||
-                (Hex1.Equals(other.Hex2) && Hex2.Equals(other.Hex1)));
+        return obj is Edge other && Hex1.Equals(other.Hex1) && Hex2.Equals(other.Hex2);
     }
 
     /// <summary>
@@ -110,45 +108,10 @@ public class Edge
     /// </summary>
     public Vertex OtherVertex(Vertex vertex)
     {
-        var (h1, h2) = GetHexes();
-        var verticesH1 = new[]
-        {
-            h1.Vertex(SecondaryHexDirection.N),
-            h1.Vertex(SecondaryHexDirection.EN),
-            h1.Vertex(SecondaryHexDirection.ES),
-            h1.Vertex(SecondaryHexDirection.S),
-            h1.Vertex(SecondaryHexDirection.WS),
-            h1.Vertex(SecondaryHexDirection.WN)
-        };
-        var verticesH2 = new[]
-        {
-            h2.Vertex(SecondaryHexDirection.N),
-            h2.Vertex(SecondaryHexDirection.EN),
-            h2.Vertex(SecondaryHexDirection.ES),
-            h2.Vertex(SecondaryHexDirection.S),
-            h2.Vertex(SecondaryHexDirection.WS),
-            h2.Vertex(SecondaryHexDirection.WN)
-        };
-
-        // Trouver les deux vertex communs aux deux hexagones
-        var commonVertices = verticesH1.Where(v1 => verticesH2.Any(v2 => v1.Equals(v2))).ToList();
-        if (commonVertices.Count != 2)
-        {
-            throw new InvalidOperationException("Les vertex ne sont pas partagés");
-        }
-        // Retourner l'autre vertex
-        if (commonVertices[0].Equals(vertex))
-        {
-            return commonVertices[1];
-        }
-        else if (commonVertices[1].Equals(vertex))
-        {
-            return commonVertices[0];
-        }
-        else
-        {
-            throw new ArgumentException("Le vertex n'est pas connecté à cette arête");
-        }
+        var vertices = GetVertices();
+        if (vertices[0].Equals(vertex)) return vertices[1];
+        if (vertices[1].Equals(vertex)) return vertices[0];
+        throw new ArgumentException("Le vertex n'est pas connecté à cette arête");
     }
 
     /// <summary>
@@ -164,10 +127,9 @@ public class Edge
     /// </summary>
     public override int GetHashCode()
     {
-        var normalized = Normalize(Hex1, Hex2);
         unchecked
         {
-            return normalized.Item1.GetHashCode() * 31 + normalized.Item2.GetHashCode();
+            return Hex1.GetHashCode() * 31 + Hex2.GetHashCode();
         }
     }
 
@@ -190,30 +152,23 @@ public class Edge
 
     /// <summary>
     /// Retourne les deux vertex (sommets) partagés par les deux hexagones formant l'arête.
+    /// L'Edge étant normalisé, la direction de Hex1→Hex2 est toujours E, NE ou SE.
     /// </summary>
     public Vertex[] GetVertices()
     {
-        var (h1, h2) = GetHexes();
-        var verticesH1 = new[]
+        HexDirection dir = (Hex2.Q - Hex1.Q, Hex2.R - Hex1.R) switch
         {
-            h1.Vertex(SecondaryHexDirection.N),
-            h1.Vertex(SecondaryHexDirection.EN),
-            h1.Vertex(SecondaryHexDirection.ES),
-            h1.Vertex(SecondaryHexDirection.S),
-            h1.Vertex(SecondaryHexDirection.WS),
-            h1.Vertex(SecondaryHexDirection.WN)
+            (1,  0) => HexDirection.E,
+            (0,  1) => HexDirection.NE,
+            _       => HexDirection.SE,  // (1, -1)
         };
-        var verticesH2 = new[]
-        {
-            h2.Vertex(SecondaryHexDirection.N),
-            h2.Vertex(SecondaryHexDirection.EN),
-            h2.Vertex(SecondaryHexDirection.ES),
-            h2.Vertex(SecondaryHexDirection.S),
-            h2.Vertex(SecondaryHexDirection.WS),
-            h2.Vertex(SecondaryHexDirection.WN)
-        };
-
-        return verticesH1.Where(v1 => verticesH2.Any(v2 => v1.Equals(v2))).Distinct().ToArray();
+        var third1 = Hex1.Neighbor(dir.Previous());
+        var third2 = Hex1.Neighbor(dir.Next());
+        return
+        [
+            Vertex.Create(Hex1, Hex2, third1),
+            Vertex.Create(Hex1, Hex2, third2),
+        ];
     }
 
     /// <summary>
@@ -231,7 +186,13 @@ public class Edge
 
         foreach (var vertex in vertices)
         {
-            var thirdHex = vertex.GetHexes().First(h => !h.Equals(Hex1) && !h.Equals(Hex2));
+            HexCoord thirdHex;
+            if (!vertex.Hex1.Equals(Hex1) && !vertex.Hex1.Equals(Hex2))
+                thirdHex = vertex.Hex1;
+            else if (!vertex.Hex2.Equals(Hex1) && !vertex.Hex2.Equals(Hex2))
+                thirdHex = vertex.Hex2;
+            else
+                thirdHex = vertex.Hex3;
             neighbors[i++] = Edge.Create(Hex1, thirdHex);
             neighbors[i++] = Edge.Create(Hex2, thirdHex);
         }

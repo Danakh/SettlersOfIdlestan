@@ -44,8 +44,8 @@ public class Vertex
     /// </summary>
     public static Vertex Create(HexCoord hex1, HexCoord hex2, HexCoord hex3)
     {
-        var normalized = Normalize(hex1, hex2, hex3);
-        return new Vertex(normalized[0], normalized[1], normalized[2]);
+        var (h1, h2, h3) = Normalize(hex1, hex2, hex3);
+        return new Vertex(h1, h2, h3);
     }
 
     /// <summary>
@@ -67,16 +67,18 @@ public class Vertex
     /// Normalise l'ordre de trois coordonnÃ©es pour garantir l'unicitÃ©.
     /// Trie par q puis r.
     /// </summary>
-    private static HexCoord[] Normalize(HexCoord hex1, HexCoord hex2, HexCoord hex3)
+    private static (HexCoord, HexCoord, HexCoord) Normalize(HexCoord a, HexCoord b, HexCoord c)
     {
-        var hexes = new[] { hex1, hex2, hex3 };
-        Array.Sort(hexes, (a, b) =>
+        static int Cmp(HexCoord x, HexCoord y)
         {
-            if (a.Z != b.Z) return a.Z.CompareTo(b.Z);
-            if (a.Q != b.Q) return a.Q.CompareTo(b.Q);
-            return a.R.CompareTo(b.R);
-        });
-        return hexes;
+            if (x.Z != y.Z) return x.Z - y.Z;
+            if (x.Q != y.Q) return x.Q - y.Q;
+            return x.R - y.R;
+        }
+        if (Cmp(a, b) > 0) (a, b) = (b, a);
+        if (Cmp(b, c) > 0) (b, c) = (c, b);
+        if (Cmp(a, b) > 0) (a, b) = (b, a);
+        return (a, b, c);
     }
 
     /// <summary>
@@ -113,13 +115,12 @@ public class Vertex
     /// </summary>
     public Vertex[] GetAdjacentVertices()
     {
-        var hexes = GetHexes();
-        return new[]
-        {
-            Edge.Create(hexes[0], hexes[1]).OtherVertex(this),
-            Edge.Create(hexes[1], hexes[2]).OtherVertex(this),
-            Edge.Create(hexes[0], hexes[2]).OtherVertex(this),
-        };
+        return
+        [
+            Edge.Create(Hex1, Hex2).OtherVertex(this),
+            Edge.Create(Hex2, Hex3).OtherVertex(this),
+            Edge.Create(Hex1, Hex3).OtherVertex(this),
+        ];
     }
 
     /// <summary>

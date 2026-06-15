@@ -42,7 +42,7 @@ public class SecondaryHexDirectionTests
     [InlineData(SecondaryHexDirection.WN, HexDirection.W, HexDirection.NW)]
     public void SecondaryToMainDirectionPairs_ReturnsCorrectPairs(SecondaryHexDirection secondary, HexDirection expected1, HexDirection expected2)
     {
-        var (dir1, dir2) = SecondaryHexDirectionUtils.SecondaryToMainDirectionPairs[secondary];
+        var (dir1, dir2) = SecondaryHexDirectionUtils.GetMainDirectionPair(secondary);
         Assert.Equal(expected1, dir1);
         Assert.Equal(expected2, dir2);
     }

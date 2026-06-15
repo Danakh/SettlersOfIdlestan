@@ -39,28 +39,30 @@ public class HexCoord
     /// Retourne les coordonnées du voisin dans la direction principale spécifiée.
     /// Les déplacements sont définis pour le système de coordonnées axiales.
     /// </summary>
-    public HexCoord Neighbor(HexDirection direction)
+    public HexCoord Neighbor(HexDirection direction) => direction switch
     {
-        var deltas = new Dictionary<HexDirection, (int dq, int dr)>
-        {
-            { HexDirection.W, (-1, 0) },
-            { HexDirection.E, (1, 0) },
-            { HexDirection.NE, (0, 1) },
-            { HexDirection.SE, (1, -1) },
-            { HexDirection.NW, (-1, 1) },
-            { HexDirection.SW, (0, -1) },
-        };
-
-        var (dq, dr) = deltas[direction];
-        return new HexCoord(Q + dq, R + dr, Z);
-    }
+        HexDirection.W  => new HexCoord(Q - 1, R,     Z),
+        HexDirection.NW => new HexCoord(Q - 1, R + 1, Z),
+        HexDirection.NE => new HexCoord(Q,     R + 1, Z),
+        HexDirection.E  => new HexCoord(Q + 1, R,     Z),
+        HexDirection.SE => new HexCoord(Q + 1, R - 1, Z),
+        _               => new HexCoord(Q,     R - 1, Z),  // SW
+    };
 
     /// <summary>
     /// Retourne tous les voisins de cet hexagone en utilisant les directions principales.
     /// </summary>
     public HexCoord[] Neighbors()
     {
-        return HexDirectionUtils.AllHexDirections.Select(dir => Neighbor(dir)).ToArray();
+        return
+        [
+            Neighbor(HexDirection.W),
+            Neighbor(HexDirection.NW),
+            Neighbor(HexDirection.NE),
+            Neighbor(HexDirection.E),
+            Neighbor(HexDirection.SE),
+            Neighbor(HexDirection.SW),
+        ];
     }
 
     /// <summary>
@@ -69,7 +71,7 @@ public class HexCoord
     /// </summary>
     public Vertex Vertex(SecondaryHexDirection direction)
     {
-        var (dir1, dir2) = SecondaryHexDirectionUtils.SecondaryToMainDirectionPairs[direction];
+        var (dir1, dir2) = SecondaryHexDirectionUtils.GetMainDirectionPair(direction);
         var neighbor1 = Neighbor(dir1);
         var neighbor2 = Neighbor(dir2);
         return HexGrid.Vertex.Create(this, neighbor1, neighbor2);
@@ -92,7 +94,7 @@ public class HexCoord
     /// </summary>
     public Edge OutgoingEdge(SecondaryHexDirection direction)
     {
-        var mainDirs = SecondaryHexDirectionUtils.SecondaryToMainDirectionPairs[direction];
+        var mainDirs = SecondaryHexDirectionUtils.GetMainDirectionPair(direction);
         var neighbor0 = Neighbor(mainDirs.Item1);
         var neighbor1 = Neighbor(mainDirs.Item2);
         return HexGrid.Edge.Create(neighbor0, neighbor1);

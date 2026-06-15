@@ -3,11 +3,11 @@ using System;
 namespace SettlersOfIdlestan.Model.HexGrid;
 
 /// <summary>
-/// Représente les six directions secondaires dans une grille hexagonale.
+/// Reprï¿½sente les six directions secondaires dans une grille hexagonale.
 /// Ces directions permettent d'indiquer les vertexs et edges autour d'un hexagone.
 /// 
 /// Les directions secondaires s'intercalent entre les directions principales
-/// pour former un total de 12 directions espacées comme les heures d'une horloge :
+/// pour former un total de 12 directions espacï¿½es comme les heures d'une horloge :
 /// - N (Nord) : 12h
 /// - EN (Est-Nord) : 1h
 /// - ES (Est-Sud) : 4h
@@ -49,7 +49,7 @@ public static class SecondaryHexDirectionUtils
     ];
 
     /// <summary>
-    /// Retourne la direction inverse (opposée) d'une direction secondaire.
+    /// Retourne la direction inverse (opposÃ©e) d'une direction secondaire.
     /// N ? S, EN ? WS, ES ? WN
     /// </summary>
     public static SecondaryHexDirection InverseSecondaryHexDirection(SecondaryHexDirection direction)
@@ -66,16 +66,17 @@ public static class SecondaryHexDirectionUtils
         };
     }
 
-    /// <summary>
-    /// Dictionnaire des paires de directions principales pour chaque direction secondaire.
-    /// </summary>
-    public static readonly Dictionary<SecondaryHexDirection, (HexDirection, HexDirection)> SecondaryToMainDirectionPairs = new()
-    {
-        { SecondaryHexDirection.N, (HexDirection.NW, HexDirection.NE) },
-        { SecondaryHexDirection.EN, (HexDirection.NE, HexDirection.E) },
-        { SecondaryHexDirection.ES, (HexDirection.E, HexDirection.SE) },
-        { SecondaryHexDirection.S, (HexDirection.SE, HexDirection.SW) },
-        { SecondaryHexDirection.WS, (HexDirection.SW, HexDirection.W) },
-        { SecondaryHexDirection.WN, (HexDirection.W, HexDirection.NW) },
-    };
+    // IndexÃ© par (int)SecondaryHexDirection : N=0, EN=1, ES=2, S=3, WS=4, WN=5
+    private static readonly (HexDirection, HexDirection)[] _mainDirectionPairs =
+    [
+        (HexDirection.NW, HexDirection.NE),  // N
+        (HexDirection.NE, HexDirection.E),   // EN
+        (HexDirection.E,  HexDirection.SE),  // ES
+        (HexDirection.SE, HexDirection.SW),  // S
+        (HexDirection.SW, HexDirection.W),   // WS
+        (HexDirection.W,  HexDirection.NW),  // WN
+    ];
+
+    public static (HexDirection, HexDirection) GetMainDirectionPair(SecondaryHexDirection direction)
+        => _mainDirectionPairs[(int)direction];
 }
