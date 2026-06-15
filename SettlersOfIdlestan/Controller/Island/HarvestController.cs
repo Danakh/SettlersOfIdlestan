@@ -176,11 +176,13 @@ namespace SettlersOfIdlestan.Controller.Island
                     }
 
                     var forge = city.Buildings.OfType<Forge>().FirstOrDefault();
-                    int forgeChance = forge != null ? forge.DoubleProdChancePercent + civ.ForgeDoubleHarvestBonus : 0;
-                    bool forgeDoubled = forge != null && forge.Level > 0 && _prng.Next(100) < forgeChance;
+                    int forgeChance = forge != null ? forge.DoubleProdChancePercent + civ.ForgeDoubleHarvestBonus * forge.Level : 0;
+                    int forgeBonus = 0;
+                    if (forge != null && forge.Level > 0)
+                        forgeBonus = forgeChance / 100 + (_prng.Next(100) < forgeChance % 100 ? 1 : 0);
                     int harvestProductionChance = civ.GetHarvestProductionBonus(building.Type.ToString());
                     bool harvestDoubled = harvestProductionChance > 0 && _prng.Next(100) < harvestProductionChance;
-                    int multiplier = (forgeDoubled ? 2 : 1) * (harvestDoubled ? 2 : 1);
+                    int multiplier = (1 + forgeBonus) * (harvestDoubled ? 2 : 1);
                     for (int i = 1; i < multiplier; i++)
                     {
                         TryAutoTradeOnOverflow(civ, resource);
@@ -495,7 +497,7 @@ namespace SettlersOfIdlestan.Controller.Island
                     effective = Math.Max(1L, (long)(effective * Math.Pow(2, corruptionLvl)));
 
                 var forge = city.Buildings.OfType<Forge>().FirstOrDefault();
-                int forgeChance = forge != null && forge.Level > 0 ? forge.DoubleProdChancePercent + civ.ForgeDoubleHarvestBonus : 0;
+                int forgeChance = forge != null && forge.Level > 0 ? forge.DoubleProdChancePercent + civ.ForgeDoubleHarvestBonus * forge.Level : 0;
                 int harvestProductionChance = civ.GetHarvestProductionBonus(building.Type.ToString());
                 double expectedMultiplier = (1 + forgeChance / 100.0) * (1 + harvestProductionChance / 100.0);
                 double ratePerSecond = 100.0 / effective * expectedMultiplier;
