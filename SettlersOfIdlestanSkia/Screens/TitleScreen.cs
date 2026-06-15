@@ -286,10 +286,6 @@ public sealed class TitleScreen : IDisposable
         string dev = _localization.Get("credits_dev");
         float dw = _bodyFont!.MeasureText(dev);
         SkiaTextUtils.DrawText(canvas, dev, cx - dw / 2f, startY + lineH, _bodyFont, _textPaint);
-
-        string ai = _localization.Get("credits_ai");
-        float aw = _bodyFont.MeasureText(ai);
-        SkiaTextUtils.DrawText(canvas, ai, cx - aw / 2f, startY + lineH * 2f, _bodyFont, _subtlePaint);
     }
 
     // ── Contenu : Paramètres ───────────────────────────────────────────────────
