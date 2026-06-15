@@ -74,7 +74,7 @@ namespace SettlersOfIdlestan.Controller.Island
             var civ = _state.PlayerCivilization;
 
             BuildersGuild? guild = null;
-            foreach (var city in civ.Cities)
+            foreach (var city in civ.Cities.Where(c => c.Position.Z == IslandMap.SurfaceLayer))
             {
                 guild = city.Buildings.OfType<BuildersGuild>().FirstOrDefault();
                 if (guild != null) break;
@@ -99,11 +99,12 @@ namespace SettlersOfIdlestan.Controller.Island
 
             guild.LastOutpostBuildTick = now;
 
-            var buildable = GetBuildableVertices(civ.Index);
+            var buildable = GetBuildableVertices(civ.Index)
+                .Where(v => v.Z == IslandMap.SurfaceLayer).ToList();
             if (buildable.Count == 0) return;
 
             var chosen = buildable[_prng.Next(buildable.Count)];
-            if (!civ.CanPayResourceCost(NewCityBuildingCost())) return;
+            if (!civ.CanPayResourceCost(NewCityBuildingCostFor(chosen, civ))) return;
 
             try
             {
@@ -169,7 +170,7 @@ namespace SettlersOfIdlestan.Controller.Island
             if (!buildable.Any(v => v.Equals(vertex)))
                 throw new InvalidOperationException("Vertex not buildable by this civilization");
 
-            var cost = NewCityBuildingCost();
+            var cost = NewCityBuildingCostFor(vertex, civ);
 
             if (!civ.CanPayResourceCost(cost))
                 return null;
@@ -221,6 +222,21 @@ namespace SettlersOfIdlestan.Controller.Island
                 { Resource.Wood, 10 },
                 { Resource.Food, 15 },
             };
+        }
+
+        public ResourceSet NewCityBuildingCostFor(Vertex targetVertex, Civilization civ)
+        {
+            var cost = NewCityBuildingCost();
+            if (targetVertex.Z == LayerState.UnderworldZ)
+            {
+                int underworldCities = civ.Cities.Count(c => c.Position.Z == LayerState.UnderworldZ);
+                if (underworldCities > 0)
+                {
+                    cost[Resource.Food] = cost[Resource.Food] + 5 * underworldCities;
+                    cost[Resource.Gold] = cost[Resource.Gold] + 5 * underworldCities;
+                }
+            }
+            return cost;
         }
 
         public int MinDistanceBetweenCities => 2;

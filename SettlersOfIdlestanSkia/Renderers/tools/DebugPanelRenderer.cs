@@ -22,11 +22,7 @@ public sealed class DebugPanelRenderer : PopupRendererBase
     private readonly LocalizationService  _localization;
     private readonly UILayoutService      _uiLayout;
 
-    private readonly SKPaint _titlePaint        = new() { Color = SKColors.Gold,              IsAntialias = true };
-    private readonly SKPaint _onPaint           = new() { Color = new SKColor(46, 125, 50),    Style = SKPaintStyle.Fill,   IsAntialias = true };
-    private readonly SKPaint _offPaint          = new() { Color = new SKColor(160, 50, 50),    Style = SKPaintStyle.Fill,   IsAntialias = true };
-    private readonly SKPaint _toggleBorderPaint = new() { Color = new SKColor(180, 180, 200),  StrokeWidth = 1.2f, Style = SKPaintStyle.Stroke, IsAntialias = true };
-    private readonly SKPaint _knobPaint         = new() { Color = SKColors.White,              Style = SKPaintStyle.Fill,   IsAntialias = true };
+    private readonly SKPaint _titlePaint = new() { Color = SKColors.Gold, IsAntialias = true };
 
     private SKFont? _labelFont;
 
@@ -85,15 +81,8 @@ public sealed class DebugPanelRenderer : PopupRendererBase
         }
     }
 
-    private void DrawToggle(SKCanvas canvas, SKRect rect, bool isOn, float s)
-    {
-        float r = rect.Height / 2f;
-        canvas.DrawRoundRect(rect, r, r, isOn ? _onPaint : _offPaint);
-        canvas.DrawRoundRect(rect, r, r, _toggleBorderPaint);
-        float knobR = r - 3f * s;
-        float knobX = isOn ? rect.Right - knobR - 3f * s : rect.Left + knobR + 3f * s;
-        canvas.DrawCircle(knobX, rect.MidY, knobR, _knobPaint);
-    }
+    private static void DrawToggle(SKCanvas canvas, SKRect rect, bool isOn, float s)
+        => SkiaToggleUtils.Draw(canvas, rect, isOn, false);
 
     private void HandlePointerPressed(object? sender, PointerEventArgs e)
     {
@@ -129,10 +118,6 @@ public sealed class DebugPanelRenderer : PopupRendererBase
         if (Disposed) return;
         _inputService.PointerPressed -= HandlePointerPressed;
         _titlePaint.Dispose();
-        _onPaint.Dispose();
-        _offPaint.Dispose();
-        _toggleBorderPaint.Dispose();
-        _knobPaint.Dispose();
         _labelFont?.Dispose();
         base.Dispose();
         GC.SuppressFinalize(this);

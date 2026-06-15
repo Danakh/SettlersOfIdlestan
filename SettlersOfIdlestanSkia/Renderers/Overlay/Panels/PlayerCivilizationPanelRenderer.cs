@@ -62,17 +62,8 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
     private SKPaint? _btnHoverPaint;
     private SKPaint? _btnDisabledPaint;
     private SKPaint? _btnDisabledTxtPaint;
-    private SKPaint? _onPaint;
-    private SKPaint? _onHoverPaint;
-    private SKPaint? _offPaint;
-    private SKPaint? _offHoverPaint;
-    private SKPaint? _toggleBorderPaint;
-    private SKPaint? _toggleKnobPaint;
     private SKPaint? _rowLabelPaint;
     private SKPaint? _rowLabelDimPaint;
-    private SKPaint? _dimTogglePaint;
-    private SKPaint? _indeterminatePaint;
-    private SKPaint? _indeterminateHoverPaint;
 
     // CivPanel-specific fonts (different sizes than base Font10/12/15)
     private SKFont? _sectionFont;
@@ -107,17 +98,8 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         _btnHoverPaint        = new SKPaint { Color = new SKColor(60, 150, 64),        Style = SKPaintStyle.Fill, IsAntialias = true };
         _btnDisabledPaint     = new SKPaint { Color = new SKColor(70, 70, 78),         Style = SKPaintStyle.Fill, IsAntialias = true };
         _btnDisabledTxtPaint  = new SKPaint { Color = new SKColor(160, 160, 165),      IsAntialias = true };
-        _onPaint              = new SKPaint { Color = new SKColor(46, 125, 50),        Style = SKPaintStyle.Fill, IsAntialias = true };
-        _onHoverPaint         = new SKPaint { Color = new SKColor(60, 150, 64),        Style = SKPaintStyle.Fill, IsAntialias = true };
-        _offPaint             = new SKPaint { Color = new SKColor(160, 50, 50),        Style = SKPaintStyle.Fill, IsAntialias = true };
-        _offHoverPaint        = new SKPaint { Color = new SKColor(185, 65, 65),        Style = SKPaintStyle.Fill, IsAntialias = true };
-        _toggleBorderPaint    = new SKPaint { Color = new SKColor(180, 180, 200),      StrokeWidth = 1.2f, Style = SKPaintStyle.Stroke, IsAntialias = true };
-        _toggleKnobPaint      = new SKPaint { Color = SKColors.White,                  Style = SKPaintStyle.Fill, IsAntialias = true };
         _rowLabelPaint        = new SKPaint { Color = new SKColor(215, 215, 225),      IsAntialias = true };
         _rowLabelDimPaint     = new SKPaint { Color = new SKColor(140, 140, 150, 160), IsAntialias = true };
-        _dimTogglePaint       = new SKPaint { Color = new SKColor(70, 70, 80),         Style = SKPaintStyle.Fill, IsAntialias = true };
-        _indeterminatePaint      = new SKPaint { Color = new SKColor(90, 90, 105),     Style = SKPaintStyle.Fill, IsAntialias = true };
-        _indeterminateHoverPaint = new SKPaint { Color = new SKColor(110, 110, 125),   Style = SKPaintStyle.Fill, IsAntialias = true };
     }
 
     public void ConnectWonderSelectionService(WonderSelectionService service)
@@ -368,33 +350,9 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         float toggleH = ToggleHeight * s;
         float rowH    = RowHeight * s;
         float toggleY = y + (rowH - toggleH) / 2f;
-        float radius  = toggleH / 2f;
         var trackRect = new SKRect(x, toggleY, x + toggleW, toggleY + toggleH);
-
-        SKPaint? fill;
-        if (isDimmed)
-            fill = _dimTogglePaint;
-        else if (isOn == null)
-            fill = isHovered ? _indeterminateHoverPaint : _indeterminatePaint;
-        else if (isOn.Value)
-            fill = isHovered ? _onHoverPaint : _onPaint;
-        else
-            fill = isHovered ? _offHoverPaint : _offPaint;
-
-        canvas.DrawRoundRect(trackRect, radius, radius, fill);
-        canvas.DrawRoundRect(trackRect, radius, radius, _toggleBorderPaint);
-
-        float knobR  = radius - 3f * s;
-        float knobCy = toggleY + radius;
-        float knobCx = isOn == null
-            ? x + toggleW / 2f
-            : (isOn.Value
-                ? x + toggleW - radius - 1f * s
-                : x + radius + 1f * s);
-        canvas.DrawCircle(knobCx, knobCy, knobR, _toggleKnobPaint);
-
+        SkiaToggleUtils.Draw(canvas, trackRect, isOn, isHovered, isDimmed);
         SkiaTextUtils.DrawText(canvas, label, x + toggleW + 10f * s, y + rowH / 2f + 5f * s, _labelFont, isDimmed ? _rowLabelDimPaint : _rowLabelPaint);
-
         return trackRect;
     }
 
@@ -595,17 +553,8 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         _btnHoverPaint?.Dispose();
         _btnDisabledPaint?.Dispose();
         _btnDisabledTxtPaint?.Dispose();
-        _onPaint?.Dispose();
-        _onHoverPaint?.Dispose();
-        _offPaint?.Dispose();
-        _offHoverPaint?.Dispose();
-        _toggleBorderPaint?.Dispose();
-        _toggleKnobPaint?.Dispose();
         _rowLabelPaint?.Dispose();
         _rowLabelDimPaint?.Dispose();
-        _dimTogglePaint?.Dispose();
-        _indeterminatePaint?.Dispose();
-        _indeterminateHoverPaint?.Dispose();
         _sectionFont?.Dispose();
         _btnFont?.Dispose();
         _btnSmFont?.Dispose();

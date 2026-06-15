@@ -75,7 +75,7 @@ namespace SettlersOfIdlestan.Controller.Island
             foreach (var civ in _state.Civilizations)
             {
                 BuildersGuild? guild = null;
-                foreach (var city in civ.Cities)
+                foreach (var city in civ.Cities.Where(c => c.Position.Z == IslandMap.SurfaceLayer))
                 {
                     guild = city.Buildings.OfType<BuildersGuild>().FirstOrDefault();
                     if (guild != null) break;
@@ -101,7 +101,8 @@ namespace SettlersOfIdlestan.Controller.Island
 
                 var candidates = new List<Road>();
                 for (int d = 1; d <= guild.MaxAutoRoadDistance; d++)
-                    candidates.AddRange(GetBuildableRoadsAtDistance(civ.Index, d));
+                    candidates.AddRange(GetBuildableRoadsAtDistance(civ.Index, d)
+                        .Where(r => r.Position.Z == IslandMap.SurfaceLayer));
 
                 guild.LastRoadBuildTick = now;
 
@@ -572,7 +573,53 @@ namespace SettlersOfIdlestan.Controller.Island
                 return GetMaritimeRoadCost();
             var civ = _state!.PlayerCivilization;
             var distance = GetDistanceForEdge(edge, civ);
-            return GetRoadCost(distance, civ);
+            var cost = GetRoadCost(distance, civ);
+            if (edge.Z == LayerState.UnderworldZ)
+            {
+                int arrivalDist = GetDistanceFromArrivalVertex(edge, civ);
+                cost[Resource.Ore] = cost[Resource.Ore] + 4 * arrivalDist;
+                cost[Resource.Stone] = cost[Resource.Stone] + 10 * arrivalDist;
+            }
+            return cost;
+        }
+
+        private int GetDistanceFromArrivalVertex(Edge edge, Civilization civ)
+        {
+            if (_state == null) return 1;
+            if (!_state.Layers.TryGetValue(LayerState.UnderworldZ, out var underworldLayer)) return 1;
+            var arrival = underworldLayer.ArrivalVertex;
+            if (arrival == null) return 1;
+
+            var underworldRoads = civ.Roads.Where(r => r.Position.Z == LayerState.UnderworldZ).ToList();
+            var vertexIndex = BuildVertexIndex(underworldRoads);
+
+            var dist = new Dictionary<Vertex, int> { [arrival] = 0 };
+            var queue = new Queue<Vertex>();
+            queue.Enqueue(arrival);
+
+            while (queue.Count > 0)
+            {
+                var v = queue.Dequeue();
+                if (!vertexIndex.TryGetValue(v, out var neighbors)) continue;
+                foreach (var road in neighbors)
+                {
+                    foreach (var nv in road.Position.GetVertices())
+                    {
+                        if (dist.ContainsKey(nv)) continue;
+                        dist[nv] = dist[v] + 1;
+                        queue.Enqueue(nv);
+                    }
+                }
+            }
+
+            int minVertexDist = int.MaxValue;
+            foreach (var v in edge.GetVertices())
+            {
+                if (dist.TryGetValue(v, out var d))
+                    minVertexDist = Math.Min(minVertexDist, d);
+            }
+
+            return minVertexDist == int.MaxValue ? 1 : minVertexDist + 1;
         }
     }
 }

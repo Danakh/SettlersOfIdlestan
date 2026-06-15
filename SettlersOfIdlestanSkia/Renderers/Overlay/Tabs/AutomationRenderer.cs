@@ -18,10 +18,11 @@ public sealed class AutomationRenderer : IDisposable
     private const float Padding = 20f;
     private const float ToggleWidth = 60f;
     private const float ToggleHeight = 28f;
-    private const float RowHeight = 54f;
+    private const float RowMinHeight = 54f;
     private const float SummaryHeight = 20f;
     private const float RowSpacing = 8f;
     private const float TextOffsetX = ToggleWidth + 14f;
+    private const float DescRightPad = 12f;
 
     private readonly GameControllerService _gameControllerService;
     private readonly LocalizationService _localization;
@@ -46,17 +47,18 @@ public sealed class AutomationRenderer : IDisposable
     private bool _hoveredMilitaryReinforcementToggle;
     private bool _hoveredMilitaryAttackToggle;
 
+    private readonly List<(SKRect rect, string note)> _hoverableCards = new();
+    private string? _hoveredNote;
+    private SKPoint _mousePosition;
+
     private readonly SKPaint _bgPaint              = new() { Color = new SKColor(18, 18, 24, 240), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _cardPaint            = new() { Color = new SKColor(30, 30, 40, 220), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _cardBorderPaint      = new() { Color = new SKColor(60, 60, 80), StrokeWidth = 1f, Style = SKPaintStyle.Stroke, IsAntialias = true };
-    private readonly SKPaint _onPaint              = new() { Color = new SKColor(46, 125, 50), Style = SKPaintStyle.Fill, IsAntialias = true };
-    private readonly SKPaint _onHoverPaint         = new() { Color = new SKColor(60, 150, 64), Style = SKPaintStyle.Fill, IsAntialias = true };
-    private readonly SKPaint _offPaint             = new() { Color = new SKColor(70, 70, 78), Style = SKPaintStyle.Fill, IsAntialias = true };
-    private readonly SKPaint _offHoverPaint        = new() { Color = new SKColor(90, 90, 100), Style = SKPaintStyle.Fill, IsAntialias = true };
-    private readonly SKPaint _toggleBorderPaint    = new() { Color = new SKColor(120, 120, 140), StrokeWidth = 1.2f, Style = SKPaintStyle.Stroke, IsAntialias = true };
-    private readonly SKPaint _toggleTextPaint      = new() { Color = SKColors.White, IsAntialias = true };
     private readonly SKPaint _namePaint            = new() { Color = new SKColor(230, 230, 240), IsAntialias = true };
     private readonly SKPaint _descPaint            = new() { Color = new SKColor(150, 150, 165), IsAntialias = true };
+    private readonly SKPaint _notePaint            = new() { Color = new SKColor(100, 160, 130), IsAntialias = true };
+    private readonly SKPaint _tooltipBgPaint       = new() { Color = new SKColor(22, 22, 32, 245), Style = SKPaintStyle.Fill, IsAntialias = true };
+    private readonly SKPaint _tooltipBorderPaint   = new() { Color = new SKColor(80, 120, 100), StrokeWidth = 1f, Style = SKPaintStyle.Stroke, IsAntialias = true };
     private readonly SKPaint _mutedPaint           = new() { Color = new SKColor(110, 110, 125), IsAntialias = true };
     private readonly SKPaint _accentPaint          = new() { Color = new SKColor(255, 215, 0), IsAntialias = true };
     private readonly SKPaint _summaryBuiltPaint    = new() { Color = new SKColor(120, 175, 120), IsAntialias = true };
@@ -66,7 +68,6 @@ public sealed class AutomationRenderer : IDisposable
     private readonly SKFont _headerFont  = new() { Size = 17, Typeface = SkiaFonts.Bold };
     private readonly SKFont _nameFont    = new() { Size = 13, Typeface = SkiaFonts.Bold };
     private readonly SKFont _descFont    = new() { Size = 11, Typeface = SkiaFonts.Regular };
-    private readonly SKFont _toggleFont  = new() { Size = 11, Typeface = SkiaFonts.Bold };
     private readonly SKFont _summaryFont = new() { Size = 10, Typeface = SkiaFonts.Regular };
 
     private static readonly BuildingType[] ProductionTypes = [BuildingType.Sawmill, BuildingType.Brickworks, BuildingType.Quarry, BuildingType.Mill];
@@ -86,6 +87,8 @@ public sealed class AutomationRenderer : IDisposable
     {
         if (_disposed) return;
         if (context.GameState is not MainGameState) return;
+
+        _hoverableCards.Clear();
 
         float topBar = PlayerResourcesOverlayRenderer.BarHeight * context.UiScale;
         canvas.DrawRect(new SKRect(0, topBar, _canvasSize.Width, _canvasSize.Height), _bgPaint);
@@ -130,7 +133,7 @@ public sealed class AutomationRenderer : IDisposable
         leftY += 20f;
 
         if (buildersGuild != null && buildersGuild.Level >= 1)
-            (_roadToggleRect, rowH) = DrawAutomationRow(canvas, leftX, leftY, colWidth, WorldState.AutomationSettings.RoadAutomationEnabled, _hoveredRoadToggle, _localization.Get("automation_road_name"), _localization.Get("automation_road_desc"));
+            (_roadToggleRect, rowH) = DrawAutomationRow(canvas, leftX, leftY, colWidth, WorldState.AutomationSettings.RoadAutomationEnabled, _hoveredRoadToggle, _localization.Get("automation_road_name"), _localization.Get("automation_road_desc"), _localization.Get("automation_road_note"));
         else
         {
             _roadToggleRect = SKRect.Empty;
@@ -139,7 +142,7 @@ public sealed class AutomationRenderer : IDisposable
         leftY += rowH + RowSpacing;
 
         if (buildersGuild != null && buildersGuild.Level >= 4)
-            (_outpostToggleRect, rowH) = DrawAutomationRow(canvas, leftX, leftY, colWidth, WorldState.AutomationSettings.OutpostAutomationEnabled, _hoveredOutpostToggle, _localization.Get("automation_outpost_name"), _localization.Get("automation_outpost_desc"));
+            (_outpostToggleRect, rowH) = DrawAutomationRow(canvas, leftX, leftY, colWidth, WorldState.AutomationSettings.OutpostAutomationEnabled, _hoveredOutpostToggle, _localization.Get("automation_outpost_name"), _localization.Get("automation_outpost_desc"), _localization.Get("automation_outpost_note"));
         else
         {
             _outpostToggleRect = SKRect.Empty;
@@ -148,7 +151,7 @@ public sealed class AutomationRenderer : IDisposable
         leftY += rowH + RowSpacing;
 
         if (harvestersGuild != null && harvestersGuild.Level >= 1)
-            (_productionToggleRect, rowH) = DrawAutomationRow(canvas, leftX, leftY, colWidth, WorldState.AutomationSettings.ProductionBuildingAutomationEnabled, _hoveredProductionToggle, _localization.Get("automation_production_name"), _localization.Get("automation_production_desc"), civ.Cities, ProductionTypes);
+            (_productionToggleRect, rowH) = DrawAutomationRow(canvas, leftX, leftY, colWidth, WorldState.AutomationSettings.ProductionBuildingAutomationEnabled, _hoveredProductionToggle, _localization.Get("automation_production_name"), _localization.Get("automation_production_desc"), _localization.Get("automation_production_note"), civ.Cities, ProductionTypes);
         else
         {
             _productionToggleRect = SKRect.Empty;
@@ -157,7 +160,7 @@ public sealed class AutomationRenderer : IDisposable
         leftY += rowH + RowSpacing;
 
         if (artisansGuild != null && artisansGuild.Level >= 1)
-            (_artisanToggleRect, rowH) = DrawAutomationRow(canvas, leftX, leftY, colWidth, WorldState.AutomationSettings.ArtisanBuildingAutomationEnabled, _hoveredArtisanToggle, _localization.Get("automation_artisan_name"), _localization.Get("automation_artisan_desc"), civ.Cities, ArtisanTypes);
+            (_artisanToggleRect, rowH) = DrawAutomationRow(canvas, leftX, leftY, colWidth, WorldState.AutomationSettings.ArtisanBuildingAutomationEnabled, _hoveredArtisanToggle, _localization.Get("automation_artisan_name"), _localization.Get("automation_artisan_desc"), _localization.Get("automation_artisan_note"), civ.Cities, ArtisanTypes);
         else
         {
             _artisanToggleRect = SKRect.Empty;
@@ -166,7 +169,7 @@ public sealed class AutomationRenderer : IDisposable
         leftY += rowH + RowSpacing;
 
         if (academy != null && academy.Level >= 1)
-            (_libraryToggleRect, rowH) = DrawAutomationRow(canvas, leftX, leftY, colWidth, WorldState.AutomationSettings.LibraryBuildingAutomationEnabled, _hoveredLibraryToggle, _localization.Get("automation_library_name"), _localization.Get("automation_library_desc"), civ.Cities, LibraryTypes);
+            (_libraryToggleRect, rowH) = DrawAutomationRow(canvas, leftX, leftY, colWidth, WorldState.AutomationSettings.LibraryBuildingAutomationEnabled, _hoveredLibraryToggle, _localization.Get("automation_library_name"), _localization.Get("automation_library_desc"), _localization.Get("automation_library_note"), civ.Cities, LibraryTypes);
         else
         {
             _libraryToggleRect = SKRect.Empty;
@@ -175,7 +178,7 @@ public sealed class AutomationRenderer : IDisposable
         leftY += rowH + RowSpacing;
 
         if (traderGuild != null && traderGuild.Level >= 1)
-            (_marketToggleRect, rowH) = DrawAutomationRow(canvas, leftX, leftY, colWidth, WorldState.AutomationSettings.MarketBuildingAutomationEnabled, _hoveredMarketToggle, _localization.Get("automation_market_name"), _localization.Get("automation_market_desc"), civ.Cities, MarketTypes);
+            (_marketToggleRect, rowH) = DrawAutomationRow(canvas, leftX, leftY, colWidth, WorldState.AutomationSettings.MarketBuildingAutomationEnabled, _hoveredMarketToggle, _localization.Get("automation_market_name"), _localization.Get("automation_market_desc"), _localization.Get("automation_market_note"), civ.Cities, MarketTypes);
         else
         {
             _marketToggleRect = SKRect.Empty;
@@ -189,7 +192,7 @@ public sealed class AutomationRenderer : IDisposable
 
         bool hasAdvancedTactics = civ.TechnologyTree.CompletedTechnologies.Contains(TechId.AdvancedTactics);
         if (hasAdvancedTactics)
-            (_militaryReinforcementToggleRect, rowH) = DrawAutomationRow(canvas, rightX, rightY, colWidth, WorldState.AutomationSettings.MilitaryReinforcementAutomationEnabled, _hoveredMilitaryReinforcementToggle, _localization.Get("automation_military_reinforcement_name"), _localization.Get("automation_military_reinforcement_desc"));
+            (_militaryReinforcementToggleRect, rowH) = DrawAutomationRow(canvas, rightX, rightY, colWidth, WorldState.AutomationSettings.MilitaryReinforcementAutomationEnabled, _hoveredMilitaryReinforcementToggle, _localization.Get("automation_military_reinforcement_name"), _localization.Get("automation_military_reinforcement_desc"), _localization.Get("automation_military_reinforcement_note"));
         else
         {
             _militaryReinforcementToggleRect = SKRect.Empty;
@@ -199,50 +202,80 @@ public sealed class AutomationRenderer : IDisposable
 
         bool hasAdvancedStrategy = civ.TechnologyTree.CompletedTechnologies.Contains(TechId.AdvancedStrategy);
         if (hasAdvancedStrategy)
-            (_militaryAttackToggleRect, rowH) = DrawAutomationRow(canvas, rightX, rightY, colWidth, WorldState.AutomationSettings.MilitaryAttackAutomationEnabled, _hoveredMilitaryAttackToggle, _localization.Get("automation_military_attack_name"), _localization.Get("automation_military_attack_desc"));
+            (_militaryAttackToggleRect, rowH) = DrawAutomationRow(canvas, rightX, rightY, colWidth, WorldState.AutomationSettings.MilitaryAttackAutomationEnabled, _hoveredMilitaryAttackToggle, _localization.Get("automation_military_attack_name"), _localization.Get("automation_military_attack_desc"), _localization.Get("automation_military_attack_note"));
         else
         {
             _militaryAttackToggleRect = SKRect.Empty;
             DrawLockedRow(canvas, rightX, rightY, colWidth, _localization.Get("automation_military_attack_name"), _localization.Get("automation_military_attack_locked"));
         }
+
+        if (_hoveredNote != null)
+            DrawFloatingTooltip(canvas, _hoveredNote, _mousePosition);
     }
 
     private (SKRect toggleRect, float height) DrawAutomationRow(
         SKCanvas canvas, float x, float y, float width,
         bool isOn, bool isHovered, string name, string desc,
+        string? note = null,
         IEnumerable<City>? cities = null, BuildingType[]? summaryTypes = null)
     {
         bool hasSummary = cities != null && summaryTypes != null;
-        float cardHeight = hasSummary ? RowHeight + SummaryHeight : RowHeight;
+
+        float textX = x + 12f + TextOffsetX;
+        float descMaxWidth = width - 12f - TextOffsetX - DescRightPad;
+        var descLayout = SkiaTextUtils.MeasureWrappedText(desc, descMaxWidth, _descFont);
+
+        // Hauteur dynamique : nom (baseline y+18) + desc wrappée + padding bas
+        float contentHeight = Math.Max(RowMinHeight, 18f + _nameFont.Spacing + 2f + descLayout.Size.Height + 10f);
+        float cardHeight = contentHeight + (hasSummary ? SummaryHeight : 0);
 
         var cardRect = new SKRect(x, y, x + width, y + cardHeight);
         canvas.DrawRoundRect(cardRect, 6, 6, _cardPaint);
         canvas.DrawRoundRect(cardRect, 6, 6, _cardBorderPaint);
 
-        float toggleY = y + (RowHeight - ToggleHeight) / 2f;
+        float toggleY = y + (contentHeight - ToggleHeight) / 2f;
         var toggleRect = new SKRect(x + 12f, toggleY, x + 12f + ToggleWidth, toggleY + ToggleHeight);
-        var fillPaint = isOn ? (isHovered ? _onHoverPaint : _onPaint) : (isHovered ? _offHoverPaint : _offPaint);
-        canvas.DrawRoundRect(toggleRect, 5, 5, fillPaint);
-        canvas.DrawRoundRect(toggleRect, 5, 5, _toggleBorderPaint);
-        string toggleLabel = isOn ? _localization.Get("automation_on") : _localization.Get("automation_off");
-        SkiaTextUtils.DrawText(canvas, toggleLabel, toggleRect.MidX, toggleRect.MidY + 4, SKTextAlign.Center, _toggleFont, _toggleTextPaint);
+        SkiaToggleUtils.Draw(canvas, toggleRect, isOn, isHovered);
 
-        float textX = x + 12f + TextOffsetX;
         SkiaTextUtils.DrawText(canvas, name, textX, y + 18, _nameFont, _namePaint);
-        SkiaTextUtils.DrawText(canvas, desc, textX, y + 36, _descFont, _descPaint);
+        SkiaTextUtils.DrawWrappedText(canvas, desc, textX, y + 18f + _nameFont.Spacing + 2f, descMaxWidth, _descFont, _descPaint);
 
         if (hasSummary)
         {
-            canvas.DrawLine(x + 12f, y + RowHeight, x + width - 12f, y + RowHeight, _summaryDividerPaint);
-            DrawBuildingSummary(canvas, x + 12f, y + RowHeight + 14f, cities!, summaryTypes!);
+            canvas.DrawLine(x + 12f, y + contentHeight, x + width - 12f, y + contentHeight, _summaryDividerPaint);
+            DrawBuildingSummary(canvas, x + 12f, y + contentHeight + 14f, cities!, summaryTypes!);
         }
+
+        if (note != null)
+            _hoverableCards.Add((cardRect, note));
 
         return (toggleRect, cardHeight);
     }
 
+    private void DrawFloatingTooltip(SKCanvas canvas, string text, SKPoint pos)
+    {
+        const float MaxW = 240f;
+        const float PadX = 10f;
+        const float PadY = 8f;
+
+        var layout = SkiaTextUtils.MeasureWrappedText(text, MaxW, _descFont);
+        float w = layout.Size.Width + PadX * 2;
+        float h = layout.Size.Height + PadY * 2;
+
+        float tx = pos.X + 14f;
+        float ty = pos.Y - h - 6f;
+        if (tx + w > _canvasSize.Width - 6) tx = _canvasSize.Width - 6 - w;
+        if (ty < 0) ty = pos.Y + 18f;
+
+        var rect = new SKRect(tx, ty, tx + w, ty + h);
+        canvas.DrawRoundRect(rect, 5, 5, _tooltipBgPaint);
+        canvas.DrawRoundRect(rect, 5, 5, _tooltipBorderPaint);
+        SkiaTextUtils.DrawWrappedText(canvas, text, tx + PadX, ty + PadY + _descFont.Size, MaxW, _descFont, _notePaint);
+    }
+
     private float DrawLockedRow(SKCanvas canvas, float x, float y, float width, string name, string lockDesc)
     {
-        var cardRect = new SKRect(x, y, x + width, y + RowHeight);
+        var cardRect = new SKRect(x, y, x + width, y + RowMinHeight);
         canvas.DrawRoundRect(cardRect, 6, 6, _cardPaint);
         canvas.DrawRoundRect(cardRect, 6, 6, _cardBorderPaint);
 
@@ -250,7 +283,7 @@ public sealed class AutomationRenderer : IDisposable
         SkiaTextUtils.DrawText(canvas, name, textX, y + 18, _nameFont, _mutedPaint);
         SkiaTextUtils.DrawText(canvas, lockDesc, textX, y + 36, _descFont, _mutedPaint);
 
-        return RowHeight;
+        return RowMinHeight;
     }
 
     private void DrawBuildingSummary(SKCanvas canvas, float x, float y, IEnumerable<City> cities, BuildingType[] types)
@@ -291,6 +324,7 @@ public sealed class AutomationRenderer : IDisposable
 
     public void HandlePointerMoved(SKPoint position)
     {
+        _mousePosition = position;
         _hoveredRoadToggle                   = !_roadToggleRect.IsEmpty                   && _roadToggleRect.Contains(position.X, position.Y);
         _hoveredOutpostToggle                = !_outpostToggleRect.IsEmpty                && _outpostToggleRect.Contains(position.X, position.Y);
         _hoveredProductionToggle             = !_productionToggleRect.IsEmpty             && _productionToggleRect.Contains(position.X, position.Y);
@@ -299,6 +333,12 @@ public sealed class AutomationRenderer : IDisposable
         _hoveredMarketToggle                 = !_marketToggleRect.IsEmpty                 && _marketToggleRect.Contains(position.X, position.Y);
         _hoveredMilitaryReinforcementToggle  = !_militaryReinforcementToggleRect.IsEmpty  && _militaryReinforcementToggleRect.Contains(position.X, position.Y);
         _hoveredMilitaryAttackToggle         = !_militaryAttackToggleRect.IsEmpty         && _militaryAttackToggleRect.Contains(position.X, position.Y);
+
+        _hoveredNote = null;
+        foreach (var (rect, note) in _hoverableCards)
+        {
+            if (rect.Contains(position.X, position.Y)) { _hoveredNote = note; break; }
+        }
     }
 
     public bool HandlePointerPressed(SKPoint position)
@@ -363,14 +403,11 @@ public sealed class AutomationRenderer : IDisposable
         _bgPaint.Dispose();
         _cardPaint.Dispose();
         _cardBorderPaint.Dispose();
-        _onPaint.Dispose();
-        _onHoverPaint.Dispose();
-        _offPaint.Dispose();
-        _offHoverPaint.Dispose();
-        _toggleBorderPaint.Dispose();
-        _toggleTextPaint.Dispose();
         _namePaint.Dispose();
         _descPaint.Dispose();
+        _notePaint.Dispose();
+        _tooltipBgPaint.Dispose();
+        _tooltipBorderPaint.Dispose();
         _mutedPaint.Dispose();
         _accentPaint.Dispose();
         _summaryBuiltPaint.Dispose();
@@ -379,7 +416,6 @@ public sealed class AutomationRenderer : IDisposable
         _headerFont.Dispose();
         _nameFont.Dispose();
         _descFont.Dispose();
-        _toggleFont.Dispose();
         _summaryFont.Dispose();
         _disposed = true;
     }

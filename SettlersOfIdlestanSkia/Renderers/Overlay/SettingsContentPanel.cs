@@ -22,12 +22,6 @@ public sealed class SettingsContentPanel : IDisposable
     private readonly SKPaint _activeBtnPaint    = new() { Color = new SKColor(60, 100, 180),  Style = SKPaintStyle.Fill,   IsAntialias = true };
     private readonly SKPaint _inactiveBtnPaint  = new() { Color = new SKColor(55, 55, 65),    Style = SKPaintStyle.Fill,   IsAntialias = true };
     private readonly SKPaint _labelPaint        = new() { Color = new SKColor(200, 200, 210), IsAntialias = true };
-    private readonly SKPaint _onPaint           = new() { Color = new SKColor(46, 125, 50),   Style = SKPaintStyle.Fill,   IsAntialias = true };
-    private readonly SKPaint _onHoverPaint      = new() { Color = new SKColor(60, 150, 64),   Style = SKPaintStyle.Fill,   IsAntialias = true };
-    private readonly SKPaint _offPaint          = new() { Color = new SKColor(160, 50, 50),   Style = SKPaintStyle.Fill,   IsAntialias = true };
-    private readonly SKPaint _offHoverPaint     = new() { Color = new SKColor(185, 65, 65),   Style = SKPaintStyle.Fill,   IsAntialias = true };
-    private readonly SKPaint _toggleBorderPaint = new() { Color = new SKColor(180, 180, 200), StrokeWidth = 1.2f, Style = SKPaintStyle.Stroke, IsAntialias = true };
-    private readonly SKPaint _toggleKnobPaint   = new() { Color = SKColors.White,             Style = SKPaintStyle.Fill,   IsAntialias = true };
     private readonly SKPaint _btnBorderPaint    = new() { Color = new SKColor(100, 100, 120), StrokeWidth = 1f, Style = SKPaintStyle.Stroke, IsAntialias = true };
     private readonly SKPaint _textPaint         = new() { Color = SKColors.White,             IsAntialias = true };
 
@@ -130,20 +124,8 @@ public sealed class SettingsContentPanel : IDisposable
         SkiaTextUtils.DrawText(canvas, label + " :",
             rowX + 20f * s, rowY + btnH / 2f + _labelFont.Size / 2f, _labelFont, _labelPaint);
 
-        float toggleX   = rightEdge - toggleW;
-        float toggleY   = rowY + (btnH - toggleH) / 2f;
-        float radius    = toggleH / 2f;
-        var   trackRect = new SKRect(toggleX, toggleY, toggleX + toggleW, toggleY + toggleH);
-
-        var fill = isOn ? (isHovered ? _onHoverPaint : _onPaint) : (isHovered ? _offHoverPaint : _offPaint);
-        canvas.DrawRoundRect(trackRect, radius, radius, fill);
-        canvas.DrawRoundRect(trackRect, radius, radius, _toggleBorderPaint);
-
-        float knobR  = radius - 3f * s;
-        float knobCy = toggleY + radius;
-        float knobCx = isOn ? toggleX + toggleW - radius - 1f * s : toggleX + radius + 1f * s;
-        canvas.DrawCircle(knobCx, knobCy, knobR, _toggleKnobPaint);
-
+        var trackRect = new SKRect(rightEdge - toggleW, rowY + (btnH - toggleH) / 2f, rightEdge, rowY + (btnH + toggleH) / 2f);
+        SkiaToggleUtils.Draw(canvas, trackRect, isOn, isHovered);
         return trackRect;
     }
 
@@ -195,12 +177,6 @@ public sealed class SettingsContentPanel : IDisposable
         _activeBtnPaint.Dispose();
         _inactiveBtnPaint.Dispose();
         _labelPaint.Dispose();
-        _onPaint.Dispose();
-        _onHoverPaint.Dispose();
-        _offPaint.Dispose();
-        _offHoverPaint.Dispose();
-        _toggleBorderPaint.Dispose();
-        _toggleKnobPaint.Dispose();
         _btnBorderPaint.Dispose();
         _textPaint.Dispose();
         _labelFont.Dispose();
