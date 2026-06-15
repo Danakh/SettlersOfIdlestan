@@ -313,6 +313,12 @@ public class Building
     public virtual int GetMaxSoldiersBonus() => 0;
 
     /// <summary>
+    /// Returns an additive bonus to this city's defense regeneration speed (stacks with civ-wide modifiers).
+    /// Base = 0; +0.2 = regen 20% faster for this city.
+    /// </summary>
+    public virtual double GetDefenseRegenBonus() => 0.0;
+
+    /// <summary>
     /// Returns true if all build prerequisites (beyond resources) are satisfied.
     /// Override in derived classes to add extra conditions.
     /// </summary>

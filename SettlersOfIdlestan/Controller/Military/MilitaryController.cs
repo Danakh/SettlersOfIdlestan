@@ -118,7 +118,8 @@ public class MilitaryController
         var civ = _state?.Civilizations.FirstOrDefault(c => c.Index == city.CivilizationIndex);
         if (civ == null) return 0;
         const double ticksPerSecond = 100.0;
-        return civ.CityDefenseRegenSpeed * ticksPerSecond / DefenseRegenIntervalTicks;
+        double cityRegenSpeed = civ.CityDefenseRegenSpeed + city.Buildings.Sum(b => b.GetDefenseRegenBonus());
+        return cityRegenSpeed * ticksPerSecond / DefenseRegenIntervalTicks;
     }
 
     /// <summary>Score de défense maximal de la ville (bâtiments + modificateurs de civilisation).</summary>
@@ -192,7 +193,8 @@ public class MilitaryController
             {
                 int maxDef = GetDefenseScore(city);
                 if (city.CurrentDefense >= maxDef) continue;
-                long effectiveRegenInterval = (long)(DefenseRegenIntervalTicks / civ.CityDefenseRegenSpeed);
+                double cityRegenSpeed = civ.CityDefenseRegenSpeed + city.Buildings.Sum(b => b.GetDefenseRegenBonus());
+                long effectiveRegenInterval = (long)(DefenseRegenIntervalTicks / cityRegenSpeed);
                 if (currentTick - city.LastDefenseRegenTick < effectiveRegenInterval) continue;
                 if (civ.GetResourceQuantity(Resource.Wood) < 1 || civ.GetResourceQuantity(Resource.Stone) < 1) continue;
                 civ.RemoveResource(Resource.Wood, 1);

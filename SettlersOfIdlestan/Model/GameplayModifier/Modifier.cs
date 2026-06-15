@@ -92,6 +92,8 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             MAGIC_FEATURE_COUNT,
             /// <summary>Multiplicateur additif de vitesse de génération d'or des marchés. Base = 1.0; +0.1 = +10%.</summary>
             MARKET_GOLD_SPEED,
+            /// <summary>Flags que la Faille des Abysses est déverrouillée (réservé pour une future fonctionnalité).</summary>
+            UNLOCK_ABYSS,
         }
 
         public enum EType

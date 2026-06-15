@@ -510,6 +510,16 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         foreach (var mod in vertex.Modifiers.Where(m => m.Category == Modifier.ECategory.UNLOCK_RESEARCH))
             lines.Add($"{_localization.Get("prestige_tooltip_unlocks_research")}: {UnlockResearchName(mod.SubCategory)}");
 
+        if (vertex.Modifiers.Any(m => m.Category == Modifier.ECategory.UNLOCK_ABYSS))
+        {
+            int abyssLevel = PrestigeMapController.DefaultMap.Vertices
+                .Where(v => state.PurchasedVertices.Contains(v.Coord))
+                .SelectMany(v => v.Modifiers)
+                .Where(m => m.Category == Modifier.ECategory.UNLOCK_ABYSS)
+                .Sum(m => (int)m.Value);
+            lines.Add($"{_localization.Get("prestige_tooltip_abyss_access")}: {abyssLevel}/3");
+        }
+
         var startingCityBuildings = vertex.StartingCityBuildings;
         if (startingCityBuildings.Count > 0)
         {
@@ -647,6 +657,7 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         Modifier.ECategory.MINE_GOLD_CHANCE_PERCENT   => $"+{(int)mod.Value}% {_localization.Get("prestige_tooltip_mine_gold_chance")}",
         Modifier.ECategory.NEW_CITY_BUILDING          => $"{_localization.Get("prestige_tooltip_new_city_building")} {_localization.Get($"building_{mod.SubCategory.ToLower()}_name")}",
         Modifier.ECategory.UNLOCK_MAGIC               => _localization.Get("prestige_tooltip_unlocks_magic"),
+        Modifier.ECategory.UNLOCK_ABYSS               => _localization.Get("prestige_tooltip_unlocks_abyss"),
         Modifier.ECategory.RITUAL_MAX_COUNT           => $"+{(int)mod.Value} {_localization.Get("prestige_tooltip_ritual_max_count")}",
         Modifier.ECategory.RITUAL_TOTAL_POWER         => $"+{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_ritual_total_power")}",
         Modifier.ECategory.RITUAL_UPKEEP_REDUCTION    => $"-{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_ritual_upkeep")}",

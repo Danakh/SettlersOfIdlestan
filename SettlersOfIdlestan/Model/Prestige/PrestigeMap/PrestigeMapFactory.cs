@@ -228,12 +228,13 @@ public static class PrestigeMapFactory
             ),
             new(
                 PrestigeMap.UnderworldWatchVertex,
-                "prestige_vertex_underworld_watch",
+                "prestige_vertex_mithril",
                 cost: 10000,
                 modifiers: new Modifier[]
                 {
-                    new(ECategory.NEW_CITY_BUILDING, "Watchtower", EType.ADDITIVE, 1),
-                    new(ECategory.CITY_DEFENSE, EType.ADDITIVE, 2),
+                    new(ECategory.UNLOCK_RESOURCE, "Mithril", EType.ADDITIVE, 1),
+                    new(ECategory.BUILDING_MAX_LEVEL, "MithrilMine", EType.ADDITIVE, 2),
+                    new(ECategory.UNLOCK_RESEARCH, "OutilsEnMithril", EType.ADDITIVE, 1),
                 }
             ),
             new(
@@ -258,13 +259,11 @@ public static class PrestigeMapFactory
             ),
             new(
                 PrestigeMap.MithrilVertex,
-                "prestige_vertex_mithril",
+                "prestige_vertex_abyss_rift",
                 cost: 250000,
                 modifiers: new Modifier[]
                 {
-                    new(ECategory.UNLOCK_RESOURCE, "Mithril", EType.ADDITIVE, 1),
-                    new(ECategory.BUILDING_MAX_LEVEL, "MithrilMine", EType.ADDITIVE, 2),
-                    new(ECategory.UNLOCK_RESEARCH, "OutilsEnMithril", EType.ADDITIVE, 1),
+                    new(ECategory.UNLOCK_ABYSS, EType.ADDITIVE, 1),
                 }
             ),
             // ── Branche de la Magie (sud) ──────────────────────────────────────
@@ -344,10 +343,20 @@ public static class PrestigeMapFactory
                 }
             ),
             // ── Placeholder vertices (no bonuses) ────────────────────────────
-            new(PrestigeMap.PlaceholderA1Vertex, "prestige_vertex_placeholder", cost: Cost(PrestigeMap.PlaceholderA1Vertex), modifiers: Array.Empty<Modifier>()),
+            new(
+                PrestigeMap.ReinforcedPalisadeVertex,
+                "prestige_vertex_reinforced_palisade",
+                cost: Cost(PrestigeMap.ReinforcedPalisadeVertex),
+                modifiers: new Modifier[] { new(ECategory.BUILDING_MAX_LEVEL, "Palisade", EType.ADDITIVE, 1) }
+            ),
+            new(
+                PrestigeMap.AdvancedGuardVertex,
+                "prestige_vertex_advanced_guard",
+                cost: Cost(PrestigeMap.AdvancedGuardVertex),
+                modifiers: new Modifier[] { new(ECategory.NEW_CITY_BUILDING, "Watchtower", EType.ADDITIVE, 1) }
+            ),
             new(PrestigeMap.PlaceholderA2Vertex, "prestige_vertex_placeholder", cost: Cost(PrestigeMap.PlaceholderA2Vertex), modifiers: Array.Empty<Modifier>()),
             new(PrestigeMap.PlaceholderA3Vertex, "prestige_vertex_placeholder", cost: Cost(PrestigeMap.PlaceholderA3Vertex), modifiers: Array.Empty<Modifier>()),
-            new(PrestigeMap.PlaceholderB1Vertex, "prestige_vertex_placeholder", cost: Cost(PrestigeMap.PlaceholderB1Vertex), modifiers: Array.Empty<Modifier>()),
             new(PrestigeMap.PlaceholderB2Vertex, "prestige_vertex_placeholder", cost: Cost(PrestigeMap.PlaceholderB2Vertex), modifiers: Array.Empty<Modifier>()),
             new(PrestigeMap.PlaceholderC3Vertex, "prestige_vertex_placeholder", cost: Cost(PrestigeMap.PlaceholderC3Vertex), modifiers: Array.Empty<Modifier>()),
             new(PrestigeMap.PlaceholderD2Vertex, "prestige_vertex_placeholder", cost: Cost(PrestigeMap.PlaceholderD2Vertex), modifiers: Array.Empty<Modifier>()),
@@ -367,7 +376,7 @@ public static class PrestigeMapFactory
                 "prestige_hex_starting_resources",
                 adjacentVertices: Adjacent(PrestigeMap.StartingResourcesCoord),
                 perVertexModifiers: Array.Empty<Modifier>(),
-                startingResourceBonusPerVertex: 2,
+                startingResourceBonusPerVertex: 5,
                 domain: PrestigeHexDomain.Exploit
             ),
             new(
