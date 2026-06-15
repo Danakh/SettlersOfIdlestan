@@ -14,7 +14,7 @@ public class GlassWorks : Building
 
     public override Resource? AutomaticHarvestResource => Resource.Glass;
 
-    public override int AutomaticHarvestUnlockLevel => 2;
+    public override int AutomaticHarvestUnlockLevel => 1;
 
     public override Resource? AutomaticHarvestCapability(TerrainType terrain)
     {
