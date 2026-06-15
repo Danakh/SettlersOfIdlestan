@@ -9,12 +9,12 @@ public enum Resource
     Wood,
     Brick,
     Stone,
-    Ore,
     Gold,
+    Ore,
     Glass,
+    Steel,
     Crystal,
     Mithril,
-    Steel
 }
 
 public class ResourceUtils
