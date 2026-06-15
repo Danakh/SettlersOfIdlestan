@@ -173,6 +173,13 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay
                 }
             }
 
+            var uniqueBuilding = city.Buildings.FirstOrDefault(b => b.IsUnique);
+            if (uniqueBuilding != null)
+            {
+                var buildingName = _localizationService.Get($"building_{uniqueBuilding.Type.ToString().ToLower()}_name");
+                lines.Add(_localizationService.GetFormated("city_tooltip_unique_building", buildingName));
+            }
+
             _tooltipTexts = lines.ToArray();
             _tooltipCost = null;
             var islandPos = _islandRendererContext.VertexToIslandPoint(vertex);

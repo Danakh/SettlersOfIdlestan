@@ -300,6 +300,7 @@
   "city_tooltip_soldiers_rate": "Soldats : {0} / {1}  (+{2}/s)",
   "city_tooltip_defense": "Défense : {0} / {1}",
   "city_tooltip_defense_rate": "Défense : {0} / {1}  (+{2}/s)",
+  "city_tooltip_unique_building": "! {0}",
   "prestige_vertex_central": "Recherche",
   "prestige_vertex_seaport_market": "Port & Marché",
   "prestige_vertex_watchtower": "Tour de guet",

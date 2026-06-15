@@ -248,7 +248,11 @@ public class CityRenderer : HexBasedRenderer, IGameRenderer
             canvas.DrawCircle(pixelPos.X, pixelPos.Y, radius, _borderPaint);
 
             if (city.Level >= 2)
-                SkiaTextUtils.DrawText(canvas, city.Level.ToString(), pixelPos.X, pixelPos.Y + 4, SKTextAlign.Center, _cityLevelFont, _cityLevelTextPaint);
+            {
+                bool hasUnique = city.Buildings.Any(b => b.IsUnique);
+                string label = hasUnique ? $"{city.Level}!" : city.Level.ToString();
+                SkiaTextUtils.DrawText(canvas, label, pixelPos.X, pixelPos.Y + 4, SKTextAlign.Center, _cityLevelFont, _cityLevelTextPaint);
+            }
 
             DrawMilitaryScores(canvas, city, civilization, pixelPos, radius);
         }
