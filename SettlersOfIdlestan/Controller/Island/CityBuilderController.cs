@@ -221,7 +221,6 @@ namespace SettlersOfIdlestan.Controller.Island
                 { Resource.Brick, 10 },
                 { Resource.Wood, 10 },
                 { Resource.Food, 15 },
-                { Resource.Gold, 10 },
             };
         }
 
@@ -234,6 +233,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 double multiplier = 1.0 + 0.5 * underworldCities;
                 foreach (var resource in cost.Keys.ToList())
                     cost[resource] = (int)Math.Round(cost[resource] * multiplier);
+                cost[Resource.Gold] = 10;
             }
             return cost;
         }
