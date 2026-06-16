@@ -72,13 +72,20 @@ internal class SoldierProductionEngine
             if (totalSoldiers == 0) continue;
 
             int freePerCity = (int)civ.ModifierAggregator.ApplyModifiers(ECategory.SOLDIER_FOOD_FREE_PER_CITY, "", 0.0);
-            int totalFree = Math.Min(totalSoldiers, freePerCity * civ.Cities.Count);
-            int soldiersNeedingFood = totalSoldiers - totalFree;
+
+            // Le quota gratuit s'applique par ville individuellement.
+            // Les soldats au-delà du quota sont les seuls à consommer de la nourriture.
+            int[] payingPerCity = new int[civ.Cities.Count];
+            int totalNeedingFood = 0;
+            for (int i = 0; i < civ.Cities.Count; i++)
+            {
+                payingPerCity[i] = Math.Max(0, civ.Cities[i].Soldiers - freePerCity);
+                totalNeedingFood += payingPerCity[i];
+            }
 
             int availableFood = civ.GetResourceQuantity(Resource.Food);
-            int foodConsumed = Math.Min(soldiersNeedingFood, availableFood);
-            int fedSoldiers = totalFree + foodConsumed;
-            int starvedSoldiers = totalSoldiers - fedSoldiers;
+            int foodConsumed = Math.Min(totalNeedingFood, availableFood);
+            int starvedSoldiers = totalNeedingFood - foodConsumed;
 
             if (foodConsumed > 0)
             {
@@ -99,13 +106,29 @@ internal class SoldierProductionEngine
 
             if (starvedSoldiers > 0)
             {
+                // Distribution proportionnelle uniquement parmi les soldats payants
+                // (au-delà du quota gratuit), pour ne pas pénaliser les villes qui ont
+                // exactement le quota ou moins.
                 int toKill = starvedSoldiers;
-                foreach (var city in civ.Cities)
+                int payingLeft = totalNeedingFood;
+                for (int i = 0; i < civ.Cities.Count; i++)
                 {
                     if (toKill <= 0) break;
-                    int kill = Math.Min(toKill, city.Soldiers);
-                    city.Soldiers -= kill;
+                    if (payingPerCity[i] == 0) continue;
+                    int kill = (int)Math.Round((double)toKill * payingPerCity[i] / payingLeft);
+                    kill = Math.Min(kill, Math.Min(civ.Cities[i].Soldiers, toKill));
+                    civ.Cities[i].Soldiers -= kill;
                     toKill -= kill;
+                    payingLeft -= payingPerCity[i];
+                }
+                // Reste éventuel dû aux arrondis : uniquement sur les soldats payants
+                for (int i = 0; i < civ.Cities.Count && toKill > 0; i++)
+                {
+                    if (civ.Cities[i].Soldiers > freePerCity)
+                    {
+                        civ.Cities[i].Soldiers--;
+                        toKill--;
+                    }
                 }
 
                 if (civ.Index == _state.PlayerCivilization.Index)
