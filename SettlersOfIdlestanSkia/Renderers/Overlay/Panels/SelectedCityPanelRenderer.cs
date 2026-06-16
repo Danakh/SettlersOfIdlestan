@@ -439,27 +439,19 @@ public class SelectedCityPanelRenderer : PanelRendererBase
                     tooltipLines.Add("");
                 }
 
-                if (hoveredBuilding is Forge forge)
+                if (hoveredBuilding is Forge forge && forge.Level > 0)
                 {
-                    if (forge.Level > 0)
-                    {
-                        int forgeBonus  = _cityBuildingService.GetSelectedCivilizationForgeBonus(forge);
-                        int totalChance = forge.DoubleProdChancePercent + forgeBonus;
-                        string forgeText = _localization.Get("forge_double_prod") + $" {totalChance}%";
-                        if (forgeBonus > 0)
-                            forgeText += $" ({forge.DoubleProdChancePercent}% + {forgeBonus}% {_localization.Get("forge_double_prod_research_bonus")})";
-                        tooltipLines.Add(forgeText);
-                        if (!_cityBuildingService.IsAtMaxLevel(forge))
-                        {
-                            int civBonusPerLevel = _cityBuildingService.GetCivilizationForgeHarvestBonusPerLevel();
-                            int nextChance = (forge.Level + 1) * (10 + civBonusPerLevel);
-                            tooltipLines.Add(_localization.Get("tooltip_harvest_auto_next") + $" {nextChance}%");
-                        }
-                    }
-                    else
+                    int forgeBonus  = _cityBuildingService.GetSelectedCivilizationForgeBonus(forge);
+                    int totalChance = forge.DoubleProdChancePercent + forgeBonus;
+                    string forgeText = _localization.Get("forge_double_prod") + $" {totalChance}%";
+                    if (forgeBonus > 0)
+                        forgeText += $" ({forge.DoubleProdChancePercent}% + {forgeBonus}% {_localization.Get("forge_double_prod_research_bonus")})";
+                    tooltipLines.Add(forgeText);
+                    if (!_cityBuildingService.IsAtMaxLevel(forge))
                     {
                         int civBonusPerLevel = _cityBuildingService.GetCivilizationForgeHarvestBonusPerLevel();
-                        tooltipLines.Add(_localization.Get("tooltip_harvest_auto_next") + " " + _localization.Get("forge_double_prod") + $" {10 + civBonusPerLevel}%");
+                        int nextChance = (forge.Level + 1) * (10 + civBonusPerLevel);
+                        tooltipLines.Add(_localization.Get("tooltip_harvest_auto_next") + $" {nextChance}%");
                     }
                     tooltipLines.Add("");
                 }
