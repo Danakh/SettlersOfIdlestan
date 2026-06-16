@@ -3,6 +3,14 @@ Le changelog n'est pas activement mis à jour pour le moment.
 
 ---
 
+v0.3
+• Nouvelles ressources militaires : armes et armures en acier
+• Améliorations système militaire
+• Nouveaux pouvoirs de prestige
+• Notifications pour les événements importants
+
+---
+
 v0.2
 • Ajout de l'acier
 • Refonte de l'Inframonde
