@@ -89,13 +89,18 @@ internal class SoldierProductionEngine
             int totalSoldiers = civ.Cities.Sum(city => city.Soldiers);
             if (totalSoldiers == 0) continue;
 
+            int freePerCity = (int)civ.ModifierAggregator.ApplyModifiers(ECategory.SOLDIER_FOOD_FREE_PER_CITY, "", 0.0);
+            int totalFree = Math.Min(totalSoldiers, freePerCity * civ.Cities.Count);
+            int soldiersNeedingFood = totalSoldiers - totalFree;
+
             int availableFood = civ.GetResourceQuantity(Resource.Food);
-            int fedSoldiers = Math.Min(totalSoldiers, availableFood);
+            int foodConsumed = Math.Min(soldiersNeedingFood, availableFood);
+            int fedSoldiers = totalFree + foodConsumed;
             int starvedSoldiers = totalSoldiers - fedSoldiers;
 
-            if (fedSoldiers > 0)
+            if (foodConsumed > 0)
             {
-                civ.RemoveResource(Resource.Food, fedSoldiers);
+                civ.RemoveResource(Resource.Food, foodConsumed);
 
                 if (civ.Index == _state.PlayerCivilization.Index)
                 {

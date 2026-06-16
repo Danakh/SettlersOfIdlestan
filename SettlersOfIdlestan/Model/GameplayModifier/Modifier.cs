@@ -104,6 +104,8 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             UNDERWORLD_ROAD_BASE_REDUCTION,
             /// <summary>Flags que l'action Raid est déverrouillée pour la civilisation du joueur.</summary>
             UNLOCK_RAID,
+            /// <summary>Nombre de soldats par ville dont la nourriture d'entretien est offerte chaque cycle. SubCategory unused.</summary>
+            SOLDIER_FOOD_FREE_PER_CITY,
         }
 
         public enum EType

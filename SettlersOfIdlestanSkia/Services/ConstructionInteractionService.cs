@@ -29,6 +29,12 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
     private DateTime _lastClickTime = DateTime.MinValue;
     private SKPoint _lastClickPosition = SKPoint.Empty;
 
+    private List<Vertex>? _cachedBuildableVertices;
+    private List<Edge>?   _cachedBuildableEdges;
+    private List<Edge>?   _cachedEnemyProtectedEdges;
+    private int _cachedCityCount = -1;
+    private int _cachedRoadCount = -1;
+
     public ConstructionHoverState HoverState { get; private set; } = ConstructionHoverState.Empty;
 
     public Func<SKPoint, bool>? ShouldSuppressHover { get; set; }
@@ -155,6 +161,20 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
         RefreshHover(e.Position);
     }
 
+    private void RefreshBuildableCache()
+    {
+        var playerCiv = _gameControllerService.CurrentWorldState?.PlayerCivilization;
+        int cityCount = playerCiv?.Cities.Count ?? 0;
+        int roadCount = playerCiv?.Roads.Count ?? 0;
+        if (_cachedBuildableVertices != null && cityCount == _cachedCityCount && roadCount == _cachedRoadCount)
+            return;
+        _cachedBuildableVertices   = _gameControllerService.GetBuildableCityVerticesForPlayer();
+        _cachedBuildableEdges      = _gameControllerService.GetBuildableRoadEdgesForPlayer();
+        _cachedEnemyProtectedEdges = _gameControllerService.GetEnemyProtectedRoadEdgesForPlayer();
+        _cachedCityCount = cityCount;
+        _cachedRoadCount = roadCount;
+    }
+
     private void RefreshHover(SKPoint screenPoint)
     {
         if (_renderer == null)
@@ -162,9 +182,10 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
 
         int currentZ = _gameControllerService.CurrentWorldState?.CurrentViewedLayer ?? IslandMap.SurfaceLayer;
 
-        var buildableVertices = _gameControllerService.GetBuildableCityVerticesForPlayer();
-        var buildableEdges = _gameControllerService.GetBuildableRoadEdgesForPlayer();
-        var enemyProtectedEdges = _gameControllerService.GetEnemyProtectedRoadEdgesForPlayer();
+        RefreshBuildableCache();
+        var buildableVertices  = _cachedBuildableVertices!;
+        var buildableEdges     = _cachedBuildableEdges!;
+        var enemyProtectedEdges = _cachedEnemyProtectedEdges!;
 
         var islandPoint = _renderer.ScreenToIsland(screenPoint, _cameraService.CanvasSize, _cameraService.ZoomLevel, _cameraService.Position);
 
@@ -317,6 +338,7 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
     public void ClearHover()
     {
         HoverState = ConstructionHoverState.Empty;
+        _cachedBuildableVertices = null;
     }
 }
 

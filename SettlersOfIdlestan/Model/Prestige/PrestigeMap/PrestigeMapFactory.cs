@@ -388,8 +388,13 @@ public static class PrestigeMapFactory
                     new(ECategory.PRESTIGE_GAIN_PER_SEAPORT_LEVEL4, EType.ADDITIVE, 0.05),
                 }
             ),
-            new(PrestigeMap.OuterHarborVertex,    "prestige_vertex_placeholder", cost: Cost(PrestigeMap.OuterHarborVertex),    modifiers: Array.Empty<Modifier>()),
-            new(PrestigeMap.MysticCrossingVertex,  "prestige_vertex_placeholder", cost: Cost(PrestigeMap.MysticCrossingVertex),  modifiers: Array.Empty<Modifier>()),
+            new(PrestigeMap.MysticCrossingVertex,    "prestige_vertex_placeholder", cost: Cost(PrestigeMap.MysticCrossingVertex),    modifiers: Array.Empty<Modifier>()),
+            new(
+                PrestigeMap.OuterHarborVertex,
+                "prestige_vertex_strategic_rations",
+                cost: Cost(PrestigeMap.OuterHarborVertex),
+                modifiers: new Modifier[] { new(ECategory.SOLDIER_FOOD_FREE_PER_CITY, EType.ADDITIVE, 10) }
+            ),
         };
 
         IReadOnlyList<Vertex> Adjacent(HexCoord hex)
