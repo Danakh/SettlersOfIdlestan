@@ -320,7 +320,7 @@ namespace SettlersOfIdlestan.Controller.Island
                         smelter.LastProductionTick = currentTick;
                         continue;
                     }
-                    if (currentTick - smelter.LastProductionTick < GetEffectiveSmelterCooldown(civ)) continue;
+                    if (currentTick - smelter.LastProductionTick < GetEffectiveSmelterCooldown(civ, smelter)) continue;
 
                     int oreInput = GetSmelterOreInput(civ);
                     if (civ.GetResourceQuantity(Resource.Ore) < oreInput)
@@ -398,11 +398,12 @@ namespace SettlersOfIdlestan.Controller.Island
         public static long GetForgeConsumableInterval(int forgeLevel)
             => Math.Max(1L, (long)(ForgeConsumableBaseIntervalTicks * Math.Pow(0.9, forgeLevel - 1)));
 
-        /// <summary>Cooldown effectif du cycle de la Fonderie, après application du modificateur SMELTER_SPEED.</summary>
-        public static long GetEffectiveSmelterCooldown(Civilization civ)
+        /// <summary>Cooldown effectif du cycle de la Fonderie, après réduction par niveau puis application du modificateur SMELTER_SPEED.</summary>
+        public static long GetEffectiveSmelterCooldown(Civilization civ, Smelter smelter)
         {
+            long baseCooldown = smelter.GetAutomaticHarvestCooldown(Smelter.ProductionCooldownTicks);
             double speed = civ.ModifierAggregator.ApplyModifiers(ECategory.SMELTER_SPEED, "", 1.0);
-            return Math.Max(1L, (long)(Smelter.ProductionCooldownTicks / speed));
+            return Math.Max(1L, (long)(baseCooldown / speed));
         }
 
         /// <summary>Minerai consommé par cycle de la Fonderie, après application du modificateur SMELTER_ORE_INPUT.</summary>
