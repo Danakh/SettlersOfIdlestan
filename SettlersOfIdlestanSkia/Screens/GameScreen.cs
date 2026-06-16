@@ -133,6 +133,7 @@ public sealed class GameScreen : IDisposable
             {
                 gs.Settings.DemoMode = demoMode;
                 gs.IsDemoSave = demoMode;
+                ApplyManualUiScale(gs.Settings.UiScale);
             }
 
             SetupRenderers(isNewGame, allowDebugMode);
@@ -257,6 +258,7 @@ public sealed class GameScreen : IDisposable
 
         var settingsPopupRenderer = new SettingsPopupRenderer(_gameControllerService.MainGameController, _localizationService, _fileSystemService);
         settingsPopupRenderer.FullscreenToggleRequested += v => FullscreenToggleRequested?.Invoke(v);
+        settingsPopupRenderer.UiScaleChanged += ApplyManualUiScale;
 
         DebugPanelRenderer? debugPanelRenderer = null;
         if (allowDebugMode)
@@ -347,10 +349,25 @@ public sealed class GameScreen : IDisposable
         monsterController.CityDestroyedByMonster += OnCityDestroyedCheckGameOver;
     }
 
+    /// <summary>Définit l'échelle UI automatique détectée par la plateforme hôte (densité d'écran, grande résolution…).</summary>
     public void SetUiScale(float scale)
     {
-        if (_uiLayoutService != null) _uiLayoutService.UiScale = scale;
-        if (_renderService   != null) _renderService.UiScale   = scale;
+        if (_uiLayoutService != null) _uiLayoutService.AutoUiScale = scale;
+        SyncRenderServiceUiScale();
+    }
+
+    /// <summary>Applique le multiplicateur d'échelle manuel choisi par le joueur (slider des paramètres).</summary>
+    public void ApplyManualUiScale(float multiplier)
+    {
+        if (_uiLayoutService != null)
+            _uiLayoutService.ManualUiScaleMultiplier = Math.Clamp(multiplier, SettingsContentPanel.UiScaleMin, SettingsContentPanel.UiScaleMax);
+        SyncRenderServiceUiScale();
+    }
+
+    private void SyncRenderServiceUiScale()
+    {
+        if (_renderService != null && _uiLayoutService != null)
+            _renderService.UiScale = _uiLayoutService.UiScale;
     }
 
     public void EnsureCanvasInitialized(SKSize canvasSize)

@@ -97,6 +97,10 @@ public sealed class TitleScreen : IDisposable
         _settings          = settings ?? new GameSettings();
         _settingsPanel     = new SettingsContentPanel();
         _settingsPanel.FullscreenToggleRequested += v => FullscreenToggleRequested?.Invoke(v);
+        _settingsPanel.UiScaleChanged += v => _uiLayoutService.ManualUiScaleMultiplier =
+            Math.Clamp(v, SettingsContentPanel.UiScaleMin, SettingsContentPanel.UiScaleMax);
+        _uiLayoutService.ManualUiScaleMultiplier =
+            Math.Clamp(_settings.UiScale, SettingsContentPanel.UiScaleMin, SettingsContentPanel.UiScaleMax);
         _discordSvg        = resourceManager.LoadImage("Resources.icons.links.DiscordLink.svg");
 
         _hardResetPopup = new HardResetPopupRenderer(
@@ -411,8 +415,8 @@ public sealed class TitleScreen : IDisposable
         }
 
         // Clic sur un onglet
-        if (_tabChangelog.Contains(pos)) { _activeTab = 0; return; }
-        if (_tabCredits.Contains(pos))   { _activeTab = 1; return; }
+        if (_tabChangelog.Contains(pos)) { _settingsPanel.ClearFocus(); _activeTab = 0; return; }
+        if (_tabCredits.Contains(pos))   { _settingsPanel.ClearFocus(); _activeTab = 1; return; }
         if (_tabSettings.Contains(pos))  { _activeTab = 2; return; }
 
         // Scrollbar changelog
@@ -467,12 +471,23 @@ public sealed class TitleScreen : IDisposable
         }
 
         if (_activeTab == 2)
-            _settingsPanel.HandleHover(new SKPoint(x, y));
+            _settingsPanel.HandlePointerMoved(new SKPoint(x, y), _settings);
     }
 
     public void HandlePointerReleased(float x, float y, PointerButton button)
     {
         _isDraggingScrollbar = false;
+
+        if (_activeTab == 2 && _settingsPanel.HandlePointerReleased(_settings))
+            _ = _fileSystemService.SaveSettings(System.Text.Json.JsonSerializer.Serialize(_settings));
+    }
+
+    /// <summary>Flèches gauche/droite pour ajuster le slider d'échelle UI quand il est survolé.</summary>
+    public void HandleKeyPressed(string key)
+    {
+        if (_disposed || _activeTab != 2) return;
+        if (_settingsPanel.HandleArrowKey(key, _settings))
+            _ = _fileSystemService.SaveSettings(System.Text.Json.JsonSerializer.Serialize(_settings));
     }
 
     public void Dispose()

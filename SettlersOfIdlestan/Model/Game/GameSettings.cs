@@ -9,4 +9,5 @@ public class GameSettings
     public bool ShowHarvestParticles { get; set; } = true;
     public bool Fullscreen { get; set; } = false;
     public bool DemoMode { get; set; } = false;
+    public float UiScale { get; set; } = 1f;
 }

@@ -14,7 +14,14 @@ public class UILayoutService
     public const float BarPadding      = 12f;
     public const float MobileTabBarHeight = 44f;
 
-    public float UiScale { get; set; } = 1f;
+    /// Échelle détectée automatiquement par la plateforme hôte (densité d'écran, grande résolution…).
+    public float AutoUiScale { get; set; } = 1f;
+
+    /// Multiplicateur manuel choisi par le joueur dans les paramètres (x0.5 à x4), en plus de l'échelle automatique.
+    public float ManualUiScaleMultiplier { get; set; } = 1f;
+
+    /// Échelle effective appliquée à l'ensemble de l'UI.
+    public float UiScale => AutoUiScale * ManualUiScaleMultiplier;
 
     public void UpdateCanvasSize(SKSize size) => _canvasSize = size;
 

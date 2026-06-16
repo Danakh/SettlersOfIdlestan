@@ -6,7 +6,7 @@ window.gameInterop = {
         const id = ++this._nextHandlerId;
         const allowedLetters = new Set(['i', 'r', 'p', 's', 'c']);
         const allowedModifiers = new Set(['control', 'shift']);
-        const allowedSpecial = new Set(['escape']);
+        const allowedSpecial = new Set(['escape', 'arrowleft', 'arrowright']);
 
         const keyDownHandler = (e) => {
             if (e.repeat) return;
