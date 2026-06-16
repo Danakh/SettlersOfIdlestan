@@ -107,7 +107,7 @@ public sealed class AutomationRenderer : IDisposable
     private readonly SKPaint _accentPaint          = new() { Color = new SKColor(255, 215, 0), IsAntialias = true };
     private readonly SKPaint _summaryBuiltPaint    = new() { Color = new SKColor(120, 175, 120), IsAntialias = true };
     private readonly SKPaint _summaryEmptyPaint    = new() { Color = new SKColor(95, 95, 108), IsAntialias = true };
-    private readonly SKPaint _summaryDividerPaint  = new() { Color = new SKColor(50, 50, 65), StrokeWidth = 0.5f, Style = SKPaintStyle.Stroke };
+    private readonly SKPaint _summaryDividerPaint  = new() { Color = new SKColor(70, 70, 88), StrokeWidth = 1f, Style = SKPaintStyle.Stroke, IsAntialias = true };
     private readonly SKPaint _scrollTrackPaint     = new() { Color = new SKColor(50, 50, 65, 200), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _scrollThumbPaint     = new() { Color = new SKColor(130, 130, 165, 210), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _pinBorderPaint       = new() { Color = new SKColor(100, 100, 120), StrokeWidth = 1f, Style = SKPaintStyle.Stroke, IsAntialias = true };
@@ -119,8 +119,8 @@ public sealed class AutomationRenderer : IDisposable
     private readonly SKFont _descFont    = new() { Size = 11, Typeface = SkiaFonts.Regular };
     private readonly SKFont _summaryFont = new() { Size = 10, Typeface = SkiaFonts.Regular };
 
-    private static readonly BuildingType[] ProductionTypes = [BuildingType.Sawmill, BuildingType.Brickworks, BuildingType.Quarry, BuildingType.Mill, BuildingType.GlassWorks];
-    private static readonly BuildingType[] ArtisanTypes    = [BuildingType.Forge, BuildingType.Warehouse];
+    private static readonly BuildingType[] ProductionTypes = [BuildingType.Sawmill, BuildingType.Brickworks, BuildingType.Quarry, BuildingType.Mill, BuildingType.MushroomFarm];
+    private static readonly BuildingType[] ArtisanTypes    = [BuildingType.Forge, BuildingType.Warehouse, BuildingType.GlassWorks, BuildingType.Smelter];
     private static readonly BuildingType[] LibraryTypes    = [BuildingType.Library, BuildingType.Laboratory];
     private static readonly BuildingType[] MarketTypes     = [BuildingType.Market];
     private static readonly BuildingType[] SeaportTypes    = [BuildingType.Seaport];
@@ -381,7 +381,7 @@ public sealed class AutomationRenderer : IDisposable
         string? pinKey = null, bool isPinHovered = false, bool isPinned = false)
     {
         bool hasSummary = cities != null && summaryTypes != null;
-        int summaryLines = !hasSummary ? 0 : summaryTypes!.Length > 3 ? 2 : 1;
+        int summaryLines = !hasSummary ? 0 : summaryTypes!.Length;
 
         float textX = x + 12f + TextOffsetX;
         float rightReserve = pinKey != null ? PinCheckboxSize + PinCheckboxMargin * 2 : DescRightPad;
@@ -504,10 +504,8 @@ public sealed class AutomationRenderer : IDisposable
 
     private void DrawBuildingSummary(SKCanvas canvas, float x, float y, IEnumerable<City> cities, BuildingType[] types)
     {
-        int firstRowCount = types.Length > 3 ? (types.Length + 1) / 2 : types.Length;
-        DrawSummaryLine(canvas, x, y, cities, types[..firstRowCount]);
-        if (types.Length > firstRowCount)
-            DrawSummaryLine(canvas, x, y + SummaryLineHeight, cities, types[firstRowCount..]);
+        for (int i = 0; i < types.Length; i++)
+            DrawSummaryLine(canvas, x, y + i * SummaryLineHeight, cities, [types[i]]);
     }
 
     private void DrawSummaryLine(SKCanvas canvas, float x, float y, IEnumerable<City> cities, BuildingType[] types)
