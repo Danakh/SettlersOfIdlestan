@@ -72,7 +72,7 @@ namespace SOITests.ControllerTests
             clock.Start();
 
             var controller = new MonsterFeatureController();
-            controller.Initialize(state, clock);
+            controller.Initialize(state, clock, new GamePRNG());
 
             return (state, clock, controller);
         }
@@ -102,7 +102,7 @@ namespace SOITests.ControllerTests
             var clock = new GameClock();
             clock.Start();
             var controller = new MonsterFeatureController();
-            controller.Initialize(state, clock);
+            controller.Initialize(state, clock, new GamePRNG());
 
             for (int i = 0; i < 10; i++)
                 clock.SimulateAdvance(MonsterFeatureController.MovementIntervalTicks);
@@ -125,7 +125,7 @@ namespace SOITests.ControllerTests
             var clock = new GameClock();
             clock.Start();
             var controller = new MonsterFeatureController();
-            controller.Initialize(state, clock);
+            controller.Initialize(state, clock, new GamePRNG());
 
             Assert.True(controller.IsHarvestBlocked(Center, clock.CurrentTick));
         }
@@ -150,7 +150,7 @@ namespace SOITests.ControllerTests
             var clock = new GameClock();
             clock.Start();
             var controller = new MonsterFeatureController();
-            controller.Initialize(state, clock);
+            controller.Initialize(state, clock, new GamePRNG());
 
             // Trigger one move: bandit must go to plain (only valid destination).
             clock.SimulateAdvance(MonsterFeatureController.MovementIntervalTicks);
@@ -179,7 +179,7 @@ namespace SOITests.ControllerTests
             var clock = new GameClock();
             clock.Start();
             var controller = new MonsterFeatureController();
-            controller.Initialize(state, clock);
+            controller.Initialize(state, clock, new GamePRNG());
 
             clock.SimulateAdvance(MonsterFeatureController.MovementIntervalTicks);
             Assert.Equal(plain, state.Features.OfType<Bandit>().First().Position);
@@ -222,7 +222,7 @@ namespace SOITests.ControllerTests
             var clock = new GameClock();
             clock.Start();
             var controller = new MonsterFeatureController();
-            controller.Initialize(state, clock);
+            controller.Initialize(state, clock, new GamePRNG());
 
             return (state, clock, controller, civ);
         }

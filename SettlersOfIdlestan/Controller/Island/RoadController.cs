@@ -29,7 +29,7 @@ namespace SettlersOfIdlestan.Controller.Island
     {
         private WorldState? _state;
         private GameClock? _clock;
-        private GamePRNG _prng = new();
+        private GamePRNG? _prng;
         private readonly Dictionary<int, (int CityCount, List<Road> Roads)> _buildableRoadsCache = new();
 
         // 5 s × 100 ticks/s — same cadence as automatic harvests
@@ -108,7 +108,7 @@ namespace SettlersOfIdlestan.Controller.Island
 
                 if (candidates.Count == 0) continue;
 
-                var chosen = candidates[_prng.Next(candidates.Count)];
+                var chosen = candidates[_prng!.Next(candidates.Count)];
                 TryRemoveEnemyRoadAt(chosen.Position, civ.Index);
                 var road = new Road(chosen.Position) { CivilizationIndex = civ.Index, DistanceToNearestCity = chosen.DistanceToNearestCity };
                 civ.AddRoad(road);

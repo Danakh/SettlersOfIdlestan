@@ -50,7 +50,7 @@ namespace SOITests.ControllerTests
             var clock = new GameClock();
             clock.Start();
             var controller = new MilitaryController();
-            controller.Initialize(state, clock);
+            controller.Initialize(state, clock, prng: new GamePRNG());
 
             return (state, clock, city);
         }

@@ -17,7 +17,7 @@ namespace SettlersOfIdlestan.Controller.Island;
 public class AutoExtendController
 {
     private WorldState? _state;
-    private GamePRNG _prng = new();
+    private GamePRNG? _prng;
 
     // 20 entrées : 9x Mountain=45%, 7x Desert=35%, 2x MushroomCave=10%, 1x MithrilVein=5%, 1x CrystalCave=5%
     private static readonly TerrainType[] TerrainPool = new[]
@@ -118,7 +118,7 @@ public class AutoExtendController
         // Monstres et trésors : seulement si l'hex est libre
         if (!_state.HasFeaturesAt(newHex))
         {
-            int roll = _prng.Next(100);
+            int roll = _prng!.Next(100);
             int trollThreshold = TrollSpawnChancePercent;
             int ogreThreshold = trollThreshold + OgreSpawnChancePercent;
             int treasureChance = BaseTreasureChancePercent + _state.PlayerCivilization.ModifierAggregator
@@ -135,7 +135,7 @@ public class AutoExtendController
 
         // Corruption : indépendante des autres features, chance croissante avec la distance
         int corruptionChance = CorruptionBaseChancePercent + CorruptionChancePerDistancePercent * minDist;
-        if (corruptionChance > 0 && _prng.Next(100) < corruptionChance)
+        if (corruptionChance > 0 && _prng!.Next(100) < corruptionChance)
             _state.AddFeature(new Model.IslandFeatures.Corruption(newHex));
     }
 
@@ -190,7 +190,7 @@ public class AutoExtendController
         if (!hasNewVertex) return;
 
         // 10% de chance
-        if (_prng.Next(100) >= AggressiveCivSpawnChancePercent) return;
+        if (_prng!.Next(100) >= AggressiveCivSpawnChancePercent) return;
 
         SpawnAggressiveCivilization(newHex, layerState, playerVisibleHexesBefore, z);
     }
@@ -377,5 +377,5 @@ public class AutoExtendController
         }
     }
 
-    private TerrainType RollTerrain() => TerrainPool[_prng.Next(TerrainPool.Length)];
+    private TerrainType RollTerrain() => TerrainPool[_prng!.Next(TerrainPool.Length)];
 }

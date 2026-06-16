@@ -199,6 +199,7 @@ Both files must always be kept in sync.
 - **Polymorphic buildings**: `Building` is abstract; subtypes need a discriminator entry in `BuildingJsonConverter` — always update the converter.
 - **State persistence**: `MainGameState` is fully JSON-serialized; don't make model fields non-serializable without updating converters in `Services/`.
 - **Deterministic generation**: `GamePRNG` is seeded — keep generation logic in `Generator/`, avoid `System.Random` elsewhere.
+- **PRNG instance unique** : en dehors des tests, ne jamais faire `new GamePRNG()` dans un contrôleur ou moteur de jeu. Toujours utiliser le `GamePRNG` unique de `MainGameState.PRNG`, récupéré et câblé pendant `Initialize()` (voir `MainGameController.InitializeControllersForCurrentIsland`). Un `new GamePRNG()` local désynchronise la partie de son seed et casse le déterminisme.
 - **Rendering**: new renderers must be registered in `RenderService`; render order matters for layering.
 - **Hex coordinates**: axial (q, r) system; cubic `s = -q - r` computed on demand.
 - **Modifier tooltips**: toute nouvelle `ECategory` nécessite obligatoirement (1) un cas dans `FormatModifier()` dans `PrestigeMapRenderer.cs`, (2) les clés de localisation correspondantes dans `fr.json` et `en.json`.

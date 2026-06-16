@@ -39,7 +39,7 @@ public class CityDefenseTests
         var clock = new GameClock();
         clock.Start();
         var ctrl = new MilitaryController();
-        ctrl.Initialize(state, clock);
+        ctrl.Initialize(state, clock, prng: new GamePRNG());
 
         return (clock, ctrl, city);
     }

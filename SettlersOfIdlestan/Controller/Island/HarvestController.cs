@@ -69,7 +69,7 @@ namespace SettlersOfIdlestan.Controller.Island
         // 10 s × 100 ticks/s — intervalle de base de production de consommables par la Forge (niv. 1)
         public const long ForgeConsumableBaseIntervalTicks = 1000L;
 
-        private GamePRNG _prng = new();
+        private GamePRNG? _prng;
         private long _lastPassiveGenTick = 0;
 
         private readonly record struct ProductionEntry(HexCoord Hex, City City, Building Building, Resource Resource);
@@ -161,7 +161,7 @@ namespace SettlersOfIdlestan.Controller.Island
 
                     bool goldBonus = building is Mine && resource == Resource.Ore
                         && civ.MineGoldChancePercent > 0
-                        && _prng.Next(100) < civ.MineGoldChancePercent;
+                        && _prng!.Next(100) < civ.MineGoldChancePercent;
 
                     TryAutoTradeOnOverflow(civ, resource);
                     civ.AddResource(resource, 1);
@@ -183,9 +183,9 @@ namespace SettlersOfIdlestan.Controller.Island
                     int forgeChance = forge != null ? forge.DoubleProdChancePercent + civ.ForgeDoubleHarvestBonus * forge.Level : 0;
                     int forgeBonus = 0;
                     if (forge != null && forge.Level > 0)
-                        forgeBonus = forgeChance / 100 + (_prng.Next(100) < forgeChance % 100 ? 1 : 0);
+                        forgeBonus = forgeChance / 100 + (_prng!.Next(100) < forgeChance % 100 ? 1 : 0);
                     int harvestProductionChance = civ.GetHarvestProductionBonus(building.Type.ToString());
-                    bool harvestDoubled = harvestProductionChance > 0 && _prng.Next(100) < harvestProductionChance;
+                    bool harvestDoubled = harvestProductionChance > 0 && _prng!.Next(100) < harvestProductionChance;
                     int multiplier = (1 + forgeBonus) * (harvestDoubled ? 2 : 1);
                     for (int i = 1; i < multiplier; i++)
                     {
@@ -266,7 +266,7 @@ namespace SettlersOfIdlestan.Controller.Island
 
                     if (now - seaport.LastGenerationTick < effectiveCooldown) continue;
 
-                    var resource = ResourceUtils.BasicResources[_prng.Next(ResourceUtils.BasicResources.Count)];
+                    var resource = ResourceUtils.BasicResources[_prng!.Next(ResourceUtils.BasicResources.Count)];
                     TryAutoTradeOnOverflow(civ, resource);
                     civ.AddResource(resource, 1);
                     seaport.LastGenerationTick = now;

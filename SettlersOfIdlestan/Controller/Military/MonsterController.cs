@@ -17,7 +17,7 @@ public class MonsterFeatureController
 
     private WorldState? _state;
     private GameClock? _clock;
-    private GamePRNG _prng = new();
+    private GamePRNG? _prng;
 
     private List<MonsterFeature> _monsters = new();
 
@@ -158,7 +158,7 @@ public class MonsterFeatureController
                        : neighbors;
 
         var oldPosition = monster.Position;
-        _state.MoveFeature(monster, candidates[_prng.Next(candidates.Count)]);
+        _state.MoveFeature(monster, candidates[_prng!.Next(candidates.Count)]);
         monster.LastMovedTick = currentTick;
         monster.LastAttackTick = currentTick;
         monster.LastAttackTargetVertex = null;
@@ -237,7 +237,7 @@ public class MonsterFeatureController
             int soldierDmg = Math.Min(damage, city.Soldiers);
             if (soldierDmg > 0)
             {
-                int saved = SteelArmorEngine.TrySaveSoldiers(civ, city, soldierDmg, _prng);
+                int saved = SteelArmorEngine.TrySaveSoldiers(civ, city, soldierDmg, _prng!);
                 city.Soldiers -= soldierDmg - saved;
                 damage -= soldierDmg;
                 didSomething = true;
@@ -293,7 +293,7 @@ public class MonsterFeatureController
                     .Where(r => civ.GetResourceQuantity(r) > 0)
                     .ToList();
                 if (stealable.Count == 0) break;
-                var resource = stealable[_prng.Next(stealable.Count)];
+                var resource = stealable[_prng!.Next(stealable.Count)];
                 civ.RemoveResource(resource, 1);
                 stolen.Add(resource.ToString());
             }
