@@ -48,10 +48,13 @@ internal class MonsterCombatEngine
     {
         if (_state == null) return false;
 
+        bool didAttack = false;
         foreach (var civ in _state.Civilizations)
         {
+            if (monster.Hp <= 0) break;
             foreach (var city in civ.Cities)
             {
+                if (monster.Hp <= 0) break;
                 if (city.Soldiers == 0) continue;
 
                 var cityHexes = city.Position.GetHexes();
@@ -69,9 +72,9 @@ internal class MonsterCombatEngine
                 if (hasSteelWeapon) monster.Hp--;
                 monster.LastAttackedByMilitaryTick = currentTick;
                 onSoldierAttackedMonster(new SoldierAttackEventArgs(city.Position, monster.Position));
-                return true;
+                didAttack = true;
             }
         }
-        return false;
+        return didAttack;
     }
 }
