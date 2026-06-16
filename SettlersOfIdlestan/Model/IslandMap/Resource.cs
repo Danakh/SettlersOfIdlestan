@@ -15,6 +15,8 @@ public enum Resource
     Steel,
     Crystal,
     Mithril,
+    SteelWeapon,
+    SteelArmor,
 }
 
 public class ResourceUtils
@@ -37,5 +39,10 @@ public class ResourceUtils
         Resource.Crystal,
         Resource.Mithril,
         Resource.Steel
+    };
+    public static List<Resource> ConsumableResources = new List<Resource>
+    {
+        Resource.SteelWeapon,
+        Resource.SteelArmor,
     };
 }

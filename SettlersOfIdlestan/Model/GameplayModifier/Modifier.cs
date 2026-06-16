@@ -60,15 +60,15 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             PASSIVE_RESOURCE_GENERATION,
             /// <summary>Multiplicateur additif sur les points de prestige gagnés. Base = 0.0; +0.1 = +10%.</summary>
             PRESTIGE_GAIN,
-            /// <summary>Flags que les armes en acier sont déverrouillées pour les casernes (1 Acier supplémentaire → 5 soldats d'un coup).</summary>
+            /// <summary>Flags que les Forges peuvent produire des ArmeAcier (consommable) au rythme de 1/10 s accéléré par niveau.</summary>
             UNLOCK_STEEL_WEAPONS,
             /// <summary>Multiplicateur de vitesse de production de la Fonderie. Base = 1.0; +0.15 = +15%.</summary>
             SMELTER_SPEED,
             /// <summary>Bonus (négatif) appliqué au coût en minerai du cycle de la Fonderie. Base = Smelter.OreInputPerCycle.</summary>
             SMELTER_ORE_INPUT,
-            /// <summary>Soldats produits par cycle Armes en Acier. Base = MilitaryController.SteelWeaponsBaseSoldierCount.</summary>
+            /// <summary>Obsolète — plus utilisé depuis l'introduction des consommables. Conservé pour compatibilité des sauvegardes.</summary>
             STEEL_WEAPONS_SOLDIER_COUNT,
-            /// <summary>Flags que les Armures d'Acier sont déverrouillées : un soldat perdu peut être sauvé en consommant 1 Acier (chance selon l'Arsenal de la ville).</summary>
+            /// <summary>Flags que les Forges peuvent produire des ArmureAcier (consommable) ; chaque armure consommée donne 50 % de chance de sauver un soldat.</summary>
             UNLOCK_STEEL_ARMOR,
             /// <summary>Flags que la vente d'Acier au marché est déverrouillée (prix premium).</summary>
             UNLOCK_STEEL_TRADE,

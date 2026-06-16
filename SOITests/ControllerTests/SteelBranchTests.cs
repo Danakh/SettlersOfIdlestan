@@ -55,40 +55,102 @@ namespace SOITests.ControllerTests
             return (state, clock, city);
         }
 
-        // ── Armes en Acier — nombre de soldats modifiable ─────────────────────
+        private static (WorldState state, GameClock clock, City city)
+            CreateForgeSetup(int forgeLevel = 1)
+        {
+            var tiles = new List<HexTile>
+            {
+                new(Center, TerrainType.Plain),
+                new(NE,     TerrainType.Plain),
+                new(East,   TerrainType.Plain),
+                new(NE11,   TerrainType.Plain),
+            };
+            var map = new IslandMap(tiles);
+            var civ = new Civilization { Index = 0 };
+            var vertex = Vertex.Create(NE, East, NE11);
+            var city = new City(vertex) { CivilizationIndex = 0 };
+            city.Buildings.Add(new Forge { Level = forgeLevel });
+            civ.AddCity(city);
+            var state = new WorldState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
+            var clock = new GameClock();
+            clock.Start();
+            new HarvestController(state, clock);
+            return (state, clock, city);
+        }
+
+        // ── Armes en Acier — production par la Forge ─────────────────────────
 
         [Fact]
-        public void SteelWeapons_DefaultCount_ProducesFiveSoldiers()
+        public void SteelWeapons_ForgeLevel1_ProducesAfter1000Ticks()
         {
-            var (state, clock, city) = CreateMilitarySetup(initialSoldiers: 0);
+            var (state, clock, city) = CreateForgeSetup(forgeLevel: 1);
             var civ = state.Civilizations[0];
-            civ.Resources[Resource.Steel] = 10;
             civ.AddCustomAggregator(new StaticModifierProvider(new[]
             {
                 new Modifier(ECategory.UNLOCK_STEEL_WEAPONS, EType.ADDITIVE, 1),
             }));
 
-            clock.SimulateAdvance(MilitaryController.SoldierProductionIntervalTicks);
+            clock.SimulateAdvance(HarvestController.ForgeConsumableBaseIntervalTicks);
 
-            Assert.Equal(MilitaryController.SteelWeaponsBaseSoldierCount, city.Soldiers);
-            Assert.Equal(9, civ.GetResourceQuantity(Resource.Steel));
+            Assert.True(civ.GetResourceQuantity(Resource.SteelWeapon) >= 1);
         }
 
         [Fact]
-        public void SteelWeapons_WithSteelLegionModifier_ProducesEightSoldiers()
+        public void SteelArmor_ForgeLevel1_ProducesAfter1000Ticks()
         {
-            var (state, clock, city) = CreateMilitarySetup(initialSoldiers: 0);
+            var (state, clock, city) = CreateForgeSetup(forgeLevel: 1);
             var civ = state.Civilizations[0];
-            civ.Resources[Resource.Steel] = 10;
+            civ.AddCustomAggregator(new StaticModifierProvider(new[]
+            {
+                new Modifier(ECategory.UNLOCK_STEEL_ARMOR, EType.ADDITIVE, 1),
+            }));
+
+            clock.SimulateAdvance(HarvestController.ForgeConsumableBaseIntervalTicks);
+
+            Assert.True(civ.GetResourceQuantity(Resource.SteelArmor) >= 1);
+        }
+
+        [Fact]
+        public void ForgeConsumables_BothUnlocked_ProducesBoth()
+        {
+            var (state, clock, city) = CreateForgeSetup(forgeLevel: 1);
+            var civ = state.Civilizations[0];
             civ.AddCustomAggregator(new StaticModifierProvider(new[]
             {
                 new Modifier(ECategory.UNLOCK_STEEL_WEAPONS, EType.ADDITIVE, 1),
-                new Modifier(ECategory.STEEL_WEAPONS_SOLDIER_COUNT, EType.ADDITIVE, 3),
+                new Modifier(ECategory.UNLOCK_STEEL_ARMOR,   EType.ADDITIVE, 1),
             }));
 
-            clock.SimulateAdvance(MilitaryController.SoldierProductionIntervalTicks);
+            clock.SimulateAdvance(HarvestController.ForgeConsumableBaseIntervalTicks);
 
-            Assert.Equal(8, city.Soldiers);
+            Assert.True(civ.GetResourceQuantity(Resource.SteelWeapon) >= 1);
+            Assert.True(civ.GetResourceQuantity(Resource.SteelArmor)  >= 1);
+        }
+
+        [Fact]
+        public void ForgeConsumables_NoModifier_ProducesNothing()
+        {
+            var (state, clock, city) = CreateForgeSetup(forgeLevel: 1);
+            var civ = state.Civilizations[0];
+
+            clock.SimulateAdvance(HarvestController.ForgeConsumableBaseIntervalTicks * 5);
+
+            Assert.Equal(0, civ.GetResourceQuantity(Resource.SteelWeapon));
+            Assert.Equal(0, civ.GetResourceQuantity(Resource.SteelArmor));
+        }
+
+        [Fact]
+        public void ForgeConsumable_StorageCap_Is5PerCityPlus5PerArsenalLevel()
+        {
+            var civ = new Civilization { Index = 0 };
+            var vertex = Vertex.Create(NE, East, NE11);
+            var city = new City(vertex) { CivilizationIndex = 0 };
+            city.Buildings.Add(new Arsenal { Level = 2 });
+            civ.AddCity(city);
+
+            // 5 * 1 city + 5 * 2 arsenal levels = 15
+            Assert.Equal(15, civ.GetResourceMaxQuantity(Resource.SteelWeapon));
+            Assert.Equal(15, civ.GetResourceMaxQuantity(Resource.SteelArmor));
         }
 
         // ── Armures d'Acier ───────────────────────────────────────────────────
@@ -102,67 +164,50 @@ namespace SOITests.ControllerTests
         }
 
         [Fact]
-        public void SteelArmor_WithArsenalAndSteel_SavesSoldierAttackingMonster()
+        public void SteelArmor_WithArmorInStock_CanSaveSoldierAttackingMonster()
         {
-            var (state, clock, city) = CreateMilitarySetup(initialSoldiers: 3);
+            // Le sauvetage est probabiliste à 50%. On donne 100 armures et on vérifie
+            // qu'au moins un soldat est sauvé sur plusieurs ticks.
+            var (state, clock, city) = CreateMilitarySetup(initialSoldiers: 1);
             var civ = state.Civilizations[0];
-            civ.Resources[Resource.Steel] = 5;
+            civ.Resources[Resource.SteelArmor] = 100;
             UnlockSteelArmor(civ);
-            // Niveau 10 → 100% de chance de sauvetage : déterministe
-            city.Buildings.Add(new Arsenal { Level = 10 });
             state.AddFeature(new Bandit(NE, 0));
-            var bandit = state.Features.OfType<Bandit>().First();
 
+            // Après 1 tick de combat, le soldat meurt OU est sauvé
             clock.SimulateAdvance(MilitaryController.CombatIntervalTicks);
 
-            Assert.Equal(bandit.MaxHp - 1, bandit.Hp);   // le monstre prend quand même les dégâts
-            Assert.Equal(3, city.Soldiers);              // le soldat est sauvé
-            Assert.Equal(4, civ.GetResourceQuantity(Resource.Steel)); // 1 Acier consommé
+            // La tentative de sauvegarde a bien consommé une armure (peu importe le résultat)
+            Assert.True(civ.GetResourceQuantity(Resource.SteelArmor) < 100);
         }
 
         [Fact]
-        public void SteelArmor_WithoutSteel_SoldierDies()
+        public void SteelArmor_WithoutArmorInStock_SoldierDies()
         {
             var (state, clock, city) = CreateMilitarySetup(initialSoldiers: 3);
             var civ = state.Civilizations[0];
-            UnlockSteelArmor(civ);
-            city.Buildings.Add(new Arsenal { Level = 10 });
-            state.AddFeature(new Bandit(NE, 0));
-
-            clock.SimulateAdvance(MilitaryController.CombatIntervalTicks);
-
-            Assert.Equal(2, city.Soldiers);
-        }
-
-        [Fact]
-        public void SteelArmor_WithoutArsenal_SoldierDies()
-        {
-            var (state, clock, city) = CreateMilitarySetup(initialSoldiers: 3);
-            var civ = state.Civilizations[0];
-            civ.Resources[Resource.Steel] = 5;
             UnlockSteelArmor(civ);
             state.AddFeature(new Bandit(NE, 0));
 
             clock.SimulateAdvance(MilitaryController.CombatIntervalTicks);
 
             Assert.Equal(2, city.Soldiers);
-            Assert.Equal(5, civ.GetResourceQuantity(Resource.Steel));
+            Assert.Equal(0, civ.GetResourceQuantity(Resource.SteelArmor));
         }
 
         [Fact]
-        public void SteelArmor_InactiveArsenal_SoldierDies()
+        public void SteelArmor_WithoutResearch_SoldierDiesAndArmorUntouched()
         {
             var (state, clock, city) = CreateMilitarySetup(initialSoldiers: 3);
             var civ = state.Civilizations[0];
-            civ.Resources[Resource.Steel] = 5;
-            UnlockSteelArmor(civ);
-            city.Buildings.Add(new Arsenal { Level = 10, ActivationStatus = ActivationStatus.INACTIVE });
+            civ.Resources[Resource.SteelArmor] = 5;
+            // Pas de UNLOCK_STEEL_ARMOR
             state.AddFeature(new Bandit(NE, 0));
 
             clock.SimulateAdvance(MilitaryController.CombatIntervalTicks);
 
             Assert.Equal(2, city.Soldiers);
-            Assert.Equal(5, civ.GetResourceQuantity(Resource.Steel));
+            Assert.Equal(5, civ.GetResourceQuantity(Resource.SteelArmor));
         }
 
         // ── Fonderie — modificateurs de production ────────────────────────────

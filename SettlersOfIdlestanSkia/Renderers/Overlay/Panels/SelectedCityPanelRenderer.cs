@@ -41,7 +41,6 @@ public class SelectedCityPanelRenderer : PanelRendererBase
     private Dictionary<SKRect, BuildingType> _btnRects = new Dictionary<SKRect, BuildingType>();
     private Dictionary<SKRect, BuildingType> _hoverRects = new Dictionary<SKRect, BuildingType>();
     private Dictionary<SKRect, BuildingType> _checkboxRects = new Dictionary<SKRect, BuildingType>();
-    private Dictionary<SKRect, BuildingType> _steelWeaponsCheckboxRects = new Dictionary<SKRect, BuildingType>();
     private bool _showUniqueBuildings = false;
     private SKRect _tabRegularRect = SKRect.Empty;
     private SKRect _tabUniqueRect = SKRect.Empty;
@@ -53,7 +52,6 @@ public class SelectedCityPanelRenderer : PanelRendererBase
     private SKPaint? _btnOtherCityPaint;
     private SKPaint? _checkboxActiveDimPaint;
     private BuildingType? _hoveredActivationCheckbox = null;
-    private bool _hoveredSteelWeaponsCheckbox = false;
 
     public float ReservedBottomHeight { get; set; }
     public UILayoutService? LayoutService { get; set; }
@@ -100,7 +98,6 @@ public class SelectedCityPanelRenderer : PanelRendererBase
         _btnRects.Clear();
         _hoverRects.Clear();
         _checkboxRects.Clear();
-        _steelWeaponsCheckboxRects.Clear();
         _showUniqueBuildings = false;
         _lastSelectedCity = null;
         PanelBounds = SKRect.Empty;
@@ -144,7 +141,6 @@ public class SelectedCityPanelRenderer : PanelRendererBase
         _btnRects.Clear();
         _hoverRects.Clear();
         _checkboxRects.Clear();
-        _steelWeaponsCheckboxRects.Clear();
         _tabRegularRect = SKRect.Empty;
         _tabUniqueRect = SKRect.Empty;
 
@@ -203,8 +199,7 @@ public class SelectedCityPanelRenderer : PanelRendererBase
             var yRow = y + index * rowHeight;
 
             bool hasCheckbox = isBuiltInThisCity && building.ActivationStatus != ActivationStatus.NON_ACTIVABLE;
-            bool hasSteelWeaponsCheckbox = hasCheckbox && building is Barracks && _cityBuildingService.IsSteelWeaponsUnlocked();
-            float nameOffsetX = hasCheckbox ? (hasSteelWeaponsCheckbox ? 40f * s : 20f * s) : 0f;
+            float nameOffsetX = hasCheckbox ? 20f * s : 0f;
 
             if (hasCheckbox)
             {
@@ -222,28 +217,6 @@ public class SelectedCityPanelRenderer : PanelRendererBase
                     canvas.DrawLine(cbX + cbSize / 2f - 1f * s, cbY + cbSize - 3f * s, cbX + cbSize - 2f * s, cbY + 3f * s, checkPaint);
                 }
                 _checkboxRects[new SKRect(cbX - 2 * s, cbY - 2 * s, cbX + cbSize + 2 * s, cbY + cbSize + 2 * s)] = building.Type;
-            }
-
-            if (hasSteelWeaponsCheckbox && building is Barracks barracksBuilding)
-            {
-                float cbSize = 13f * s;
-                float cbX = panelX + padding + 20f * s;
-                float cbY = yRow + (rowHeight - cbSize) / 2f;
-                var cbRect = new SKRect(cbX, cbY, cbX + cbSize, cbY + cbSize);
-                bool barracksActive = barracksBuilding.ActivationStatus == ActivationStatus.ACTIVE;
-                var fillPaint = barracksBuilding.UsesSteelWeapons
-                    ? (barracksActive ? CheckboxActivePaint : _checkboxActiveDimPaint)
-                    : CheckboxInactivePaint;
-                canvas.DrawRoundRect(cbRect, 3 * s, 3 * s, fillPaint);
-                canvas.DrawRoundRect(cbRect, 3 * s, 3 * s, CheckboxBorderPaint);
-                if (barracksBuilding.UsesSteelWeapons)
-                {
-                    byte checkAlpha = barracksActive ? (byte)255 : (byte)100;
-                    using var checkPaint = new SKPaint { Color = new SKColor(255, 255, 255, checkAlpha), StrokeWidth = 2f * s, Style = SKPaintStyle.Stroke, IsAntialias = true, StrokeCap = SKStrokeCap.Round };
-                    canvas.DrawLine(cbX + 2.5f * s, cbY + cbSize / 2f, cbX + cbSize / 2f - 1f * s, cbY + cbSize - 3f * s, checkPaint);
-                    canvas.DrawLine(cbX + cbSize / 2f - 1f * s, cbY + cbSize - 3f * s, cbX + cbSize - 2f * s, cbY + 3f * s, checkPaint);
-                }
-                _steelWeaponsCheckboxRects[new SKRect(cbX - 2 * s, cbY - 2 * s, cbX + cbSize + 2 * s, cbY + cbSize + 2 * s)] = building.Type;
             }
 
             var namePaint = isBuiltInOtherCity ? _dimTextPaint : TextPaint;
@@ -656,11 +629,6 @@ public class SelectedCityPanelRenderer : PanelRendererBase
             var lines = new[] { _localization.Get("tooltip_activate_building") };
             TooltipRenderUtils.DrawTooltip(canvas, CanvasSize, _lastPointerPosition, lines, Font10!, new ResourceSet(), _resourceIcons, LastUiScale);
         }
-        else if (_hoveredSteelWeaponsCheckbox)
-        {
-            var lines = new[] { _localization.GetFormated("tooltip_steel_weapons_checkbox", _cityBuildingService.GetSteelWeaponsSoldierCount()) };
-            TooltipRenderUtils.DrawTooltip(canvas, CanvasSize, _lastPointerPosition, lines, Font10!, new ResourceSet(), _resourceIcons, LastUiScale);
-        }
     }
 
     private void HandlePointerMoved(object? sender, PointerEventArgs e)
@@ -669,13 +637,11 @@ public class SelectedCityPanelRenderer : PanelRendererBase
         {
             _hoveredBuildingType = null;
             _hoveredActivationCheckbox = null;
-            _hoveredSteelWeaponsCheckbox = false;
             return;
         }
 
         _lastPointerPosition = e.Position;
         _hoveredActivationCheckbox = null;
-        _hoveredSteelWeaponsCheckbox = false;
         _hoveredBuildingType = null;
 
         foreach (var (rect, buildingType) in _checkboxRects)
@@ -683,14 +649,6 @@ public class SelectedCityPanelRenderer : PanelRendererBase
             if (rect.Contains(e.Position.X, e.Position.Y))
             {
                 _hoveredActivationCheckbox = buildingType;
-                return;
-            }
-        }
-        foreach (var (rect, _) in _steelWeaponsCheckboxRects)
-        {
-            if (rect.Contains(e.Position.X, e.Position.Y))
-            {
-                _hoveredSteelWeaponsCheckbox = true;
                 return;
             }
         }
@@ -732,15 +690,6 @@ public class SelectedCityPanelRenderer : PanelRendererBase
             if (rect.Contains(e.Position.X, e.Position.Y))
             {
                 _cityBuildingService.ToggleBuildingActivation(buildingType);
-                return;
-            }
-        }
-
-        foreach (var (rect, _) in _steelWeaponsCheckboxRects)
-        {
-            if (rect.Contains(e.Position.X, e.Position.Y))
-            {
-                _cityBuildingService.ToggleBarracksSteelWeapons();
                 return;
             }
         }

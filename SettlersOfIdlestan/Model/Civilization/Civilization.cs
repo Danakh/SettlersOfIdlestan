@@ -240,6 +240,13 @@ public class Civilization
 
     public int GetResourceMaxQuantity(Resource resource)
     {
+        if (ResourceUtils.ConsumableResources.Contains(resource))
+        {
+            int totalArsenalLevel = Cities.Sum(city =>
+                city.Buildings.OfType<Arsenal>().Sum(a => a.Level));
+            return 5 * Cities.Count + 5 * totalArsenalLevel;
+        }
+
         int baseCityResourceMax = 2 * Cities.Count + Cities.Sum(city => city.Level);
         int advancedCityResourceMax = Cities.Sum(city => Math.Max(0, city.Level - 2));
         int cityWithWarehouseCount = Cities.Count(city => city.Buildings.Any(building => building.Type == BuildingType.Warehouse));

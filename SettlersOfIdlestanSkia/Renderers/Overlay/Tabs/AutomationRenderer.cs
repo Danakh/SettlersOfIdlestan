@@ -40,7 +40,6 @@ public sealed class AutomationRenderer : IDisposable
     internal const string PinKeyMilReinforce  = "MilitaryReinforcement";
     internal const string PinKeyMilAttack     = "MilitaryAttack";
     internal const string PinKeyBarracks      = "Barracks";
-    internal const string PinKeySteelWeapons  = "SteelWeapons";
     internal const string PinKeyLaboratory    = "Laboratory";
     internal const string PinKeySmelter       = "Smelter";
     internal const string PinKeyArsenal       = "Arsenal";
@@ -62,7 +61,6 @@ public sealed class AutomationRenderer : IDisposable
     private SKRect _militaryReinforcementToggleRect = SKRect.Empty;
     private SKRect _militaryAttackToggleRect = SKRect.Empty;
     private SKRect _barracksToggleRect     = SKRect.Empty;
-    private SKRect _steelWeaponsToggleRect = SKRect.Empty;
     private SKRect _labToggleRect          = SKRect.Empty;
     private SKRect _smelterToggleRect      = SKRect.Empty;
     private SKRect _arsenalToggleRect      = SKRect.Empty;
@@ -77,7 +75,6 @@ public sealed class AutomationRenderer : IDisposable
     private bool _hoveredMilitaryReinforcementToggle;
     private bool _hoveredMilitaryAttackToggle;
     private bool _hoveredBarracksToggle;
-    private bool _hoveredSteelWeaponsToggle;
     private bool _hoveredLabToggle;
     private bool _hoveredSmelterToggle;
     private bool _hoveredArsenalToggle;
@@ -313,7 +310,6 @@ public sealed class AutomationRenderer : IDisposable
 
         // --- Contrôles bâtiments ---
         bool hasBarracks    = BuildingExists<Barracks>(civ);
-        bool hasSteelWeapons = hasBarracks && civ.ModifierAggregator.HasModifier(Modifier.ECategory.UNLOCK_STEEL_WEAPONS);
         bool hasLabs        = BuildingExists<Laboratory>(civ);
         bool hasSmelters    = BuildingExists<Smelter>(civ);
         bool hasArsenals    = BuildingExists<Arsenal>(civ);
@@ -332,15 +328,6 @@ public sealed class AutomationRenderer : IDisposable
                 rightY += rowH + RowSpacing;
             }
             else _barracksToggleRect = SKRect.Empty;
-
-            if (hasSteelWeapons)
-            {
-                bool? allSteelOn = AreAllSteelWeaponsActiveNullable(civ);
-                bool noBarracksActive = !civ.Cities.SelectMany(c => c.Buildings.OfType<Barracks>()).Any(b => b.Level >= 1 && b.ActivationStatus == ActivationStatus.ACTIVE);
-                (_steelWeaponsToggleRect, rowH) = DrawBuildingControlRow(canvas, rightX, rightY, colWidth, allSteelOn, _hoveredSteelWeaponsToggle, _localization.Get("toggle_steel_weapons"), _localization.Get("tooltip_toggle_steel_weapons"), PinKeySteelWeapons, _hoveredPinKey == PinKeySteelWeapons, pinned.Contains(PinKeySteelWeapons), isDimmed: noBarracksActive);
-                rightY += rowH + RowSpacing;
-            }
-            else _steelWeaponsToggleRect = SKRect.Empty;
 
             if (hasLabs)
             {
@@ -368,7 +355,7 @@ public sealed class AutomationRenderer : IDisposable
         }
         else
         {
-            _barracksToggleRect = _steelWeaponsToggleRect = _labToggleRect = _smelterToggleRect = _arsenalToggleRect = SKRect.Empty;
+            _barracksToggleRect = _labToggleRect = _smelterToggleRect = _arsenalToggleRect = SKRect.Empty;
         }
 
         float rightBottom = rightY;
@@ -585,7 +572,6 @@ public sealed class AutomationRenderer : IDisposable
         _hoveredMilitaryReinforcementToggle  = !_militaryReinforcementToggleRect.IsEmpty  && _militaryReinforcementToggleRect.Contains(adj.X, adj.Y);
         _hoveredMilitaryAttackToggle         = !_militaryAttackToggleRect.IsEmpty         && _militaryAttackToggleRect.Contains(adj.X, adj.Y);
         _hoveredBarracksToggle      = !_barracksToggleRect.IsEmpty      && _barracksToggleRect.Contains(adj.X, adj.Y);
-        _hoveredSteelWeaponsToggle  = !_steelWeaponsToggleRect.IsEmpty  && _steelWeaponsToggleRect.Contains(adj.X, adj.Y);
         _hoveredLabToggle           = !_labToggleRect.IsEmpty           && _labToggleRect.Contains(adj.X, adj.Y);
         _hoveredSmelterToggle       = !_smelterToggleRect.IsEmpty       && _smelterToggleRect.Contains(adj.X, adj.Y);
         _hoveredArsenalToggle       = !_arsenalToggleRect.IsEmpty       && _arsenalToggleRect.Contains(adj.X, adj.Y);
@@ -706,10 +692,6 @@ public sealed class AutomationRenderer : IDisposable
             {
                 ToggleAll<Barracks>(civ); return true;
             }
-            if (!_steelWeaponsToggleRect.IsEmpty && _steelWeaponsToggleRect.Contains(adj.X, adj.Y))
-            {
-                ToggleAllSteelWeapons(civ); return true;
-            }
             if (!_labToggleRect.IsEmpty && _labToggleRect.Contains(adj.X, adj.Y))
             {
                 ToggleAll<Laboratory>(civ); return true;
@@ -751,27 +733,12 @@ public sealed class AutomationRenderer : IDisposable
         return list.Any(b => b.ActivationStatus == ActivationStatus.ACTIVE) ? null : false;
     }
 
-    private static bool? AreAllSteelWeaponsActiveNullable(Civilization civ)
-    {
-        var list = civ.Cities.SelectMany(c => c.Buildings.OfType<Barracks>()).Where(b => b.Level >= 1).ToList();
-        if (list.Count == 0) return false;
-        if (list.All(b => b.UsesSteelWeapons)) return true;
-        return list.Any(b => b.UsesSteelWeapons) ? null : false;
-    }
-
     private static void ToggleAll<T>(Civilization civ) where T : Building
     {
         var list = civ.Cities.SelectMany(c => c.Buildings.OfType<T>()).Where(b => b.Level >= 1).ToList();
         bool allActive = list.All(b => b.ActivationStatus == ActivationStatus.ACTIVE);
         var next = allActive ? ActivationStatus.INACTIVE : ActivationStatus.ACTIVE;
         foreach (var b in list) b.ActivationStatus = next;
-    }
-
-    private static void ToggleAllSteelWeapons(Civilization civ)
-    {
-        var list = civ.Cities.SelectMany(c => c.Buildings.OfType<Barracks>()).Where(b => b.Level >= 1).ToList();
-        bool allOn = list.All(b => b.UsesSteelWeapons);
-        foreach (var b in list) b.UsesSteelWeapons = !allOn;
     }
 
     private void DrawScrollbar(SKCanvas canvas, float trackTop, float trackH)

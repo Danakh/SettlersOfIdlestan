@@ -66,6 +66,8 @@ namespace SettlersOfIdlestan.Controller.Island
         public const long MarketGoldGenerationCooldownTicks = 6000L;
         // 1 s × 100 ticks/s
         public const long PassiveResourceGenerationIntervalTicks = 100L;
+        // 10 s × 100 ticks/s — intervalle de base de production de consommables par la Forge (niv. 1)
+        public const long ForgeConsumableBaseIntervalTicks = 1000L;
 
         private GamePRNG _prng = new();
         private long _lastPassiveGenTick = 0;
@@ -109,6 +111,8 @@ namespace SettlersOfIdlestan.Controller.Island
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[HarvestController] {nameof(PerformSmelterProductions)}: {ex}"); }
             try { PerformPassiveResourceGenerations(e.CurrentTick); }
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[HarvestController] {nameof(PerformPassiveResourceGenerations)}: {ex}"); }
+            try { PerformForgeConsumableProductions(e.CurrentTick); }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[HarvestController] {nameof(PerformForgeConsumableProductions)}: {ex}"); }
         }
 
         private void PerformAutomaticProductionHarvests()
@@ -364,6 +368,35 @@ namespace SettlersOfIdlestan.Controller.Island
             double multiplier = seaport.GetGenerationCooldownMultiplier();
             return Math.Max(1L, (long)(SeaportGenerationCooldownTicks * multiplier));
         }
+
+        private void PerformForgeConsumableProductions(long currentTick)
+        {
+            if (_state == null) return;
+
+            foreach (var civ in _state.Civilizations)
+            {
+                bool producesWeapons = civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_STEEL_WEAPONS);
+                bool producesArmor   = civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_STEEL_ARMOR);
+                if (!producesWeapons && !producesArmor) continue;
+
+                foreach (var city in civ.Cities)
+                {
+                    var forge = city.Buildings.OfType<Forge>().FirstOrDefault(f => f.Level >= 1);
+                    if (forge == null) continue;
+
+                    long interval = GetForgeConsumableInterval(forge.Level);
+                    if (currentTick - forge.LastConsumableProductionTick < interval) continue;
+
+                    if (producesWeapons) civ.AddResource(Resource.SteelWeapon, 1);
+                    if (producesArmor)   civ.AddResource(Resource.SteelArmor, 1);
+                    forge.LastConsumableProductionTick = currentTick;
+                }
+            }
+        }
+
+        /// <summary>Intervalle de production de consommables pour une forge du niveau donné (x0.9 par niveau).</summary>
+        public static long GetForgeConsumableInterval(int forgeLevel)
+            => Math.Max(1L, (long)(ForgeConsumableBaseIntervalTicks * Math.Pow(0.9, forgeLevel - 1)));
 
         /// <summary>Cooldown effectif du cycle de la Fonderie, après application du modificateur SMELTER_SPEED.</summary>
         public static long GetEffectiveSmelterCooldown(Civilization civ)

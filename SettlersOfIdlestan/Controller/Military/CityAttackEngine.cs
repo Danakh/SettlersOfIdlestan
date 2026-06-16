@@ -55,7 +55,12 @@ internal class CityAttackEngine
                 if (targetCity == null) continue;
                 if (attackerCity.Position.EdgeDistanceTo(targetCity.Position) > CityAttackRange(attackerCiv)) continue;
 
-                // Armures d'Acier : le soldat envoyé peut survivre en consommant 1 Acier
+                // Armes en Acier : consomme 1 ArmeAcier pour infliger 1 dégât supplémentaire
+                bool hasSteelWeapon = attackerCiv.ModifierAggregator.HasModifier(ECategory.UNLOCK_STEEL_WEAPONS)
+                    && attackerCiv.GetResourceQuantity(Resource.SteelWeapon) >= 1;
+                if (hasSteelWeapon) attackerCiv.RemoveResource(Resource.SteelWeapon, 1);
+
+                // Armures d'Acier : le soldat envoyé peut survivre en consommant 1 ArmureAcier
                 if (SteelArmorEngine.TrySaveSoldiers(attackerCiv, attackerCity, 1, _prng) == 0)
                     attackerCity.Soldiers--;
                 attackerCity.LastCityAttackTick = currentTick;
@@ -64,6 +69,8 @@ internal class CityAttackEngine
                 onSoldierAttackedCity(new CityAttackEventArgs(attackerCity.Position, targetCity.Position, path));
 
                 bool destroyed = ApplyAttackToCity(targetCity, onCityBuildingDestroyed);
+                if (!destroyed && hasSteelWeapon)
+                    destroyed = ApplyAttackToCity(targetCity, onCityBuildingDestroyed);
                 if (destroyed)
                 {
                     var ownerCiv = _state.Civilizations.FirstOrDefault(c => c.Index == targetCity.CivilizationIndex);

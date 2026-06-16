@@ -94,20 +94,6 @@ public class CityBuildingService
             : ActivationStatus.ACTIVE;
     }
 
-    public bool IsSteelWeaponsUnlocked()
-    {
-        if (SelectedCity == null || State == null) return false;
-        var civ = State.Civilizations.FirstOrDefault(c => c.Index == SelectedCity.CivilizationIndex);
-        return civ?.ModifierAggregator.HasModifier(ECategory.UNLOCK_STEEL_WEAPONS) ?? false;
-    }
-
-    public void ToggleBarracksSteelWeapons()
-    {
-        var barracks = SelectedCity?.Buildings.OfType<Barracks>().FirstOrDefault(b => b.Level >= 1);
-        if (barracks == null) return;
-        barracks.UsesSteelWeapons = !barracks.UsesSteelWeapons;
-    }
-
     public bool CanBuildOrUpgrade(Building building)
     {
         if (SelectedCity == null)
@@ -215,13 +201,6 @@ public class CityBuildingService
     {
         var civ = SelectedCivilization;
         return civ == null ? Smelter.SteelOutputPerCycle : HarvestController.GetSmelterSteelOutput(civ);
-    }
-
-    /// <summary>Soldats produits par cycle Armes en Acier de la civilisation sélectionnée.</summary>
-    public int GetSteelWeaponsSoldierCount()
-    {
-        var civ = SelectedCivilization;
-        return civ == null ? MilitaryController.SteelWeaponsBaseSoldierCount : MilitaryController.GetSteelWeaponsSoldierCount(civ);
     }
 
     /// <summary>Vrai si la recherche Armures d'Acier est complétée pour la civilisation sélectionnée.</summary>

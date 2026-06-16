@@ -6,9 +6,6 @@ public class Barracks : Building
 {
     public const int MaxSoldiersPerLevel = 5;
 
-    /// <summary>Quand vrai, la caserne consomme 1 Acier supplémentaire par cycle et produit 5 soldats d'un coup.</summary>
-    public bool UsesSteelWeapons { get; set; } = true;
-
     public Barracks() : base(BuildingType.Barracks)
     {
         AvailableAtLevel = 1;

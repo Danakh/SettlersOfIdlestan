@@ -76,13 +76,6 @@ public class MilitaryController
     /// <summary>Délai de transit par segment de route (20 ticks = 0.2 s).</summary>
     public const long ReinforcementTicksPerRoadSegment = 20L;
 
-    /// <summary>Soldats produits par cycle Armes en Acier, avant modificateurs (STEEL_WEAPONS_SOLDIER_COUNT).</summary>
-    public const int SteelWeaponsBaseSoldierCount = 5;
-
-    /// <summary>Soldats effectivement produits par cycle Armes en Acier pour la civilisation.</summary>
-    public static int GetSteelWeaponsSoldierCount(Civilization civ)
-        => Math.Max(1, civ.ModifierAggregator.ApplyModifiers(ECategory.STEEL_WEAPONS_SOLDIER_COUNT, "", SteelWeaponsBaseSoldierCount));
-
     // ── Events publics ───────────────────────────────────────────────────────
 
     public event EventHandler<SoldierAttackEventArgs>? SoldierAttackedMonster;

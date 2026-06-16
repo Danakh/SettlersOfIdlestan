@@ -177,8 +177,8 @@ public static class PrestigeMapFactory
                 cost: Cost(PrestigeMap.SteelLegionVertex),
                 modifiers: new Modifier[]
                 {
-                    new(ECategory.STEEL_WEAPONS_SOLDIER_COUNT, EType.ADDITIVE, 3),
                     new(ECategory.CITY_MAX_SOLDIERS_BONUS, EType.ADDITIVE, 10),
+                    new(ECategory.SOLDIER_FOOD_FREE_PER_CITY, EType.ADDITIVE, 3),
                 }
             ),
             new(
@@ -187,7 +187,7 @@ public static class PrestigeMapFactory
                 cost: Cost(PrestigeMap.ImperialRoadsVertex),
                 modifiers: new Modifier[]
                 {
-                    new(ECategory.REINFORCEMENT_RANGE, EType.ADDITIVE, 2),
+                    new(ECategory.CITY_ATTACK_RANGE, EType.ADDITIVE, 1),
                     new(ECategory.UNLOCK_RESEARCH, "RailLogistics", EType.ADDITIVE, 1),
                 }
             ),

@@ -157,13 +157,12 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         bool hasLabs         = HasBuilt<Laboratory>(civ);
         bool hasSmelters     = HasBuilt<Smelter>(civ);
         bool hasArsenals     = HasBuilt<Arsenal>(civ);
-        bool hasSteelWeapons = hasBarracks && civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_STEEL_WEAPONS);
 
         var worldState = _gameControllerService.CurrentWorldState;
         var pinned = worldState?.AutomationSettings.PinnedToCivPanel ?? (IReadOnlySet<string>)new HashSet<string>();
 
         bool showActions  = tradeVisible || prestigeVisible || wonderVisible || deepestMineVisible || raidVisible;
-        bool showControls = pinned.Any(k => IsKeyShowable(k, civ, worldState, hasBarracks, hasSteelWeapons, hasLabs, hasSmelters, hasArsenals));
+        bool showControls = pinned.Any(k => IsKeyShowable(k, civ, worldState, hasBarracks, hasLabs, hasSmelters, hasArsenals));
 
         _tradeButtonRect = _prestigeButtonRect = _wonderButtonRect = _deepestMineButtonRect = _raidButtonRect = SKRect.Empty;
         _pinnedItemRects.Clear();
@@ -200,7 +199,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         {
             h += titleHeight;
             foreach (var k in pinned)
-                if (IsKeyShowable(k, civ, worldState, hasBarracks, hasSteelWeapons, hasLabs, hasSmelters, hasArsenals))
+                if (IsKeyShowable(k, civ, worldState, hasBarracks, hasLabs, hasSmelters, hasArsenals))
                     h += rowHeight;
         }
         h += panelPadding;
@@ -295,7 +294,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
 
             foreach (var key in pinned)
             {
-                if (!IsKeyShowable(key, civ, worldState, hasBarracks, hasSteelWeapons, hasLabs, hasSmelters, hasArsenals))
+                if (!IsKeyShowable(key, civ, worldState, hasBarracks, hasLabs, hasSmelters, hasArsenals))
                     continue;
 
                 int idx = _pinnedItemRects.Count;
@@ -310,13 +309,6 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
                         toggleRect = DrawToggleRow(canvas, x, y, AreAllActiveNullable<Barracks>(civ), isHovered, _localization.Get("building_barracks_name"));
                         tooltipKey = "tooltip_toggle_barracks";
                         break;
-                    case AutomationRenderer.PinKeySteelWeapons:
-                    {
-                        bool noActive = !civ.Cities.SelectMany(c => c.Buildings.OfType<Barracks>()).Any(b => b.Level >= 1 && b.ActivationStatus == ActivationStatus.ACTIVE);
-                        toggleRect = DrawToggleRow(canvas, x, y, AreAllSteelWeaponsActiveNullable(civ), isHovered, _localization.Get("toggle_steel_weapons"), isDimmed: noActive);
-                        tooltipKey = "tooltip_toggle_steel_weapons";
-                        break;
-                    }
                     case AutomationRenderer.PinKeyLaboratory:
                         toggleRect = DrawToggleRow(canvas, x, y, AreAllActiveNullable<Laboratory>(civ), isHovered, _localization.Get("building_laboratory_name"));
                         tooltipKey = "tooltip_toggle_lab";
@@ -479,7 +471,6 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         switch (key)
         {
             case AutomationRenderer.PinKeyBarracks:      if (civ != null) ToggleAll<Barracks>(civ);    break;
-            case AutomationRenderer.PinKeySteelWeapons:  if (civ != null) ToggleAllSteelWeapons(civ);  break;
             case AutomationRenderer.PinKeyLaboratory:    if (civ != null) ToggleAll<Laboratory>(civ);  break;
             case AutomationRenderer.PinKeySmelter:       if (civ != null) ToggleAll<Smelter>(civ);     break;
             case AutomationRenderer.PinKeyArsenal:       if (civ != null) ToggleAll<Arsenal>(civ);     break;
@@ -511,12 +502,11 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
 
     private static bool IsKeyShowable(string key, Civilization civ,
         SettlersOfIdlestan.Model.IslandMap.WorldState? worldState,
-        bool hasBarracks, bool hasSteelWeapons, bool hasLabs, bool hasSmelters, bool hasArsenals)
+        bool hasBarracks, bool hasLabs, bool hasSmelters, bool hasArsenals)
     {
         return key switch
         {
             AutomationRenderer.PinKeyBarracks     => hasBarracks,
-            AutomationRenderer.PinKeySteelWeapons => hasSteelWeapons,
             AutomationRenderer.PinKeyLaboratory   => hasLabs,
             AutomationRenderer.PinKeySmelter      => hasSmelters,
             AutomationRenderer.PinKeyArsenal      => hasArsenals,
@@ -633,23 +623,6 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         bool allActive = list.All(b => b.ActivationStatus == ActivationStatus.ACTIVE);
         var next = allActive ? ActivationStatus.INACTIVE : ActivationStatus.ACTIVE;
         foreach (var b in list) b.ActivationStatus = next;
-    }
-
-    private static bool? AreAllSteelWeaponsActiveNullable(Civilization civ)
-    {
-        var list = civ.Cities.SelectMany(c => c.Buildings.OfType<Barracks>()).Where(b => b.Level >= 1).ToList();
-        if (list.Count == 0) return false;
-        bool allOn = list.All(b => b.UsesSteelWeapons);
-        if (allOn) return true;
-        bool anyOn = list.Any(b => b.UsesSteelWeapons);
-        return anyOn ? null : false;
-    }
-
-    private static void ToggleAllSteelWeapons(Civilization civ)
-    {
-        var list = civ.Cities.SelectMany(c => c.Buildings.OfType<Barracks>()).Where(b => b.Level >= 1).ToList();
-        bool allOn = list.All(b => b.UsesSteelWeapons);
-        foreach (var b in list) b.UsesSteelWeapons = !allOn;
     }
 
     public override void Dispose()
