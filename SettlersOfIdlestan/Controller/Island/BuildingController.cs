@@ -77,7 +77,7 @@ namespace SettlersOfIdlestan.Controller.Island
         {
             if (_state == null || _clock == null) return;
             long now = _clock.CurrentTick;
-            BuildingType[] targets = [BuildingType.Sawmill, BuildingType.Brickworks, BuildingType.Quarry, BuildingType.Mill, BuildingType.GlassWorks, BuildingType.MushroomFarm, BuildingType.Smelter];
+            BuildingType[] targets = [BuildingType.Sawmill, BuildingType.Brickworks, BuildingType.Quarry, BuildingType.Mill, BuildingType.MushroomFarm];
 
             foreach (var civ in _state.Civilizations)
             {
@@ -96,7 +96,7 @@ namespace SettlersOfIdlestan.Controller.Island
         {
             if (_state == null || _clock == null) return;
             long now = _clock.CurrentTick;
-            BuildingType[] targets = [BuildingType.Forge, BuildingType.Warehouse];
+            BuildingType[] targets = [BuildingType.Forge, BuildingType.Warehouse, BuildingType.GlassWorks, BuildingType.Smelter];
 
             foreach (var civ in _state.Civilizations)
             {
