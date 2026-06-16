@@ -343,7 +343,9 @@ public class SelectedCityPanelRenderer : PanelRendererBase
             var hoveredBuilding = visibleBuildings.FirstOrDefault(b => b.Type == _hoveredBuildingType.Value);
             if (hoveredBuilding != null)
             {
-                var buildingName = _localization.Get(hoveredBuilding.NameKey);
+                var buildingName = hoveredBuilding.Level == 0
+                    ? _localization.GetFormated("tooltip_build_building", _localization.Get(hoveredBuilding.NameKey))
+                    : _localization.Get(hoveredBuilding.NameKey);
                 var levelDescriptionKey = hoveredBuilding.DescriptionKey + "_" + hoveredBuilding.Level;
                 var description = _localization.Get(levelDescriptionKey);
                 if (levelDescriptionKey == description)
@@ -390,7 +392,7 @@ public class SelectedCityPanelRenderer : PanelRendererBase
 
                 var manualHarvestRes = hoveredBuilding.ManualHarvestResource;
                 var autoHarvestRes   = hoveredBuilding.AutomaticHarvestResource;
-                if (manualHarvestRes.HasValue || autoHarvestRes.HasValue)
+                if (hoveredBuilding.Level > 0 && (manualHarvestRes.HasValue || autoHarvestRes.HasValue))
                 {
                     bool isAtMaxForHarvest = _cityBuildingService.IsAtMaxLevel(hoveredBuilding);
                     int displayLvl = hoveredBuilding.Level;
@@ -472,6 +474,25 @@ public class SelectedCityPanelRenderer : PanelRendererBase
                     }
                 }
 
+                if (hoveredBuilding is Palisade palisade && palisade.Level > 0)
+                {
+                    int defenseBonus = palisade.GetDefenseBonusAtLevel(palisade.Level);
+                    double regenBonus = palisade.GetDefenseRegenBonusAtLevel(palisade.Level);
+                    tooltipLines.Add(_localization.GetFormated("palisade_defense_bonus", defenseBonus));
+                    if (regenBonus > 0)
+                        tooltipLines.Add(_localization.GetFormated("palisade_regen_bonus", (int)Math.Round(regenBonus * 100)));
+                    if (!_cityBuildingService.IsAtMaxLevel(palisade))
+                    {
+                        int nextDefense = palisade.GetDefenseBonusAtLevel(palisade.Level + 1);
+                        double nextRegen = palisade.GetDefenseRegenBonusAtLevel(palisade.Level + 1);
+                        if (nextDefense != defenseBonus)
+                            tooltipLines.Add(_localization.Get("tooltip_harvest_auto_next") + " " + _localization.GetFormated("palisade_defense_bonus", nextDefense));
+                        if (nextRegen != regenBonus)
+                            tooltipLines.Add(_localization.Get("tooltip_harvest_auto_next") + " " + _localization.GetFormated("palisade_regen_bonus", (int)Math.Round(nextRegen * 100)));
+                    }
+                    tooltipLines.Add("");
+                }
+
                 if (hoveredBuilding is Seaport seaportBuilding && seaportBuilding.Level >= 3)
                 {
                     long currentTick = _cityBuildingService.GetCurrentTick();
@@ -485,6 +506,11 @@ public class SelectedCityPanelRenderer : PanelRendererBase
                 if (hoveredBuilding is Barracks barracks && barracks.Level > 0)
                 {
                     tooltipLines.Add(_localization.GetFormated("barracks_max_soldiers_bonus", barracks.GetMaxSoldiersBonus()));
+                    if (!_cityBuildingService.IsAtMaxLevel(barracks))
+                    {
+                        int nextBonus = Barracks.MaxSoldiersPerLevel * (barracks.Level + 1);
+                        tooltipLines.Add(_localization.Get("tooltip_harvest_auto_next") + " " + _localization.GetFormated("barracks_max_soldiers_bonus", nextBonus));
+                    }
                     tooltipLines.Add("");
                 }
 

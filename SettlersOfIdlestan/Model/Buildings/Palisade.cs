@@ -11,14 +11,18 @@ public class Palisade : Building
 
     public override int GetDefaultMaxLevel() => 1;
 
-    public override int GetDefenseBonus() => Level switch
+    public override int GetDefenseBonus() => GetDefenseBonusAtLevel(Level);
+
+    public int GetDefenseBonusAtLevel(int level) => level switch
     {
         >= 3 => 30,
         2    => 20,
         _    => 10,
     };
 
-    public override double GetDefenseRegenBonus() => Level switch
+    public override double GetDefenseRegenBonus() => GetDefenseRegenBonusAtLevel(Level);
+
+    public double GetDefenseRegenBonusAtLevel(int level) => level switch
     {
         >= 3 => 0.4,
         2    => 0.2,
