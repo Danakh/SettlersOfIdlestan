@@ -5,6 +5,7 @@ using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Monsters;
+using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
 
 namespace SettlersOfIdlestan.Controller.Military;
 
@@ -56,10 +57,16 @@ internal class MonsterCombatEngine
                 var cityHexes = city.Position.GetHexes();
                 if (!cityHexes.Any(h => h.Equals(monster.Position))) continue;
 
+                // Armes en Acier : consomme 1 ArmeAcier pour infliger 1 dégât supplémentaire
+                bool hasSteelWeapon = civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_STEEL_WEAPONS)
+                    && civ.GetResourceQuantity(Resource.SteelWeapon) >= 1;
+                if (hasSteelWeapon) civ.RemoveResource(Resource.SteelWeapon, 1);
+
                 // Armures d'Acier : le soldat peut survivre à l'assaut en consommant 1 Acier
                 if (SteelArmorEngine.TrySaveSoldiers(civ, city, 1, _prng) == 0)
                     city.Soldiers--;
                 monster.Hp--;
+                if (hasSteelWeapon) monster.Hp--;
                 monster.LastAttackedByMilitaryTick = currentTick;
                 onSoldierAttackedMonster(new SoldierAttackEventArgs(city.Position, monster.Position));
                 return true;
