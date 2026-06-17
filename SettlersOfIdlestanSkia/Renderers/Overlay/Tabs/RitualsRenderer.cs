@@ -225,9 +225,12 @@ public sealed class RitualsRenderer : IDisposable
         SkiaTextUtils.DrawText(canvas, _localization.Get(def.NameKey), textX, y + 19, _nameFont, _namePaint);
         SkiaTextUtils.DrawText(canvas, _localization.Get(def.DescKey), textX, y + 37, _descFont, _descPaint);
 
-        string costText = def.TargetKind == SpellTargetKind.AllyCity
-            ? _localization.GetFormated("spell_cast_cost_troops", def.CrystalCost, def.TroopReward)
-            : _localization.GetFormated("spell_cast_cost", def.CrystalCost, def.GoldReward);
+        string costText = def.TargetKind switch
+        {
+            SpellTargetKind.AllyCity => _localization.GetFormated("spell_cast_cost_troops", def.CrystalCost, def.TroopReward),
+            SpellTargetKind.BuildableVertex => _localization.GetFormated("spell_cast_cost_city", def.CrystalCost),
+            _ => _localization.GetFormated("spell_cast_cost", def.CrystalCost, def.GoldReward),
+        };
         SkiaTextUtils.DrawText(canvas, costText, textX, y + 58, _descFont, _costPaint);
 
         float buttonX = x + width - ButtonWidth - 14f;
@@ -293,6 +296,13 @@ public sealed class RitualsRenderer : IDisposable
             var targets = magic.GetAllyCityTargets();
             _targetSelectionService.EnterVertexSelection("spell_select_ally_city", targets,
                 target => magic.CastSpellOnCity(id, target), TargetSelectionTheme.Friendly);
+        }
+        else if (def.TargetKind == SpellTargetKind.BuildableVertex)
+        {
+            if (_targetSelectionService == null) return;
+            var targets = magic.GetBuildableCityTargets();
+            _targetSelectionService.EnterVertexSelection("spell_select_buildable_vertex", targets,
+                target => magic.CastSpellOnVertex(id, target), TargetSelectionTheme.Friendly);
         }
         else
         {

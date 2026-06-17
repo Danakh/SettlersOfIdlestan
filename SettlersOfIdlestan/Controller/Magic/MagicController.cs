@@ -1,3 +1,4 @@
+using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
@@ -31,13 +32,16 @@ namespace SettlersOfIdlestan.Controller.Magic
         private GamePRNG? _prng;
         private MagicModifierProvider? _provider;
         private long _lastPassiveTick;
+        private CityBuilderController? _cityBuilder;
+        private BuildingController? _buildingController;
 
         /// <summary>Déclenché à chaque lancement/arrêt/changement de puissance d'un rituel.</summary>
         public event EventHandler? OnRitualsChanged;
 
         internal MagicController() { }
 
-        internal void Initialize(WorldState? state, GameClock? clock, GamePRNG? prng = null)
+        internal void Initialize(WorldState? state, GameClock? clock, GamePRNG? prng = null,
+            CityBuilderController? cityBuilder = null, BuildingController? buildingController = null)
         {
             if (_clock != null)
                 _clock.Advanced -= OnClockAdvanced;
@@ -45,6 +49,8 @@ namespace SettlersOfIdlestan.Controller.Magic
             _state = state;
             _clock = clock;
             _prng = prng;
+            _cityBuilder = cityBuilder;
+            _buildingController = buildingController;
             _lastPassiveTick = 0;
 
             if (_state != null && _state.Civilizations.Count > 0)
@@ -263,6 +269,62 @@ namespace SettlersOfIdlestan.Controller.Magic
 
             civ.RemoveResource(Resource.Crystal, def.CrystalCost);
             city.Soldiers = Math.Min(city.MaxSoldiers, city.Soldiers + def.TroopReward);
+            return true;
+        }
+
+        /// <summary>Vertex constructibles par le joueur sur le calque actuellement affiché, ciblables par le sort d'édification.</summary>
+        public List<Vertex> GetBuildableCityTargets()
+        {
+            var civ = GetPlayerCiv();
+            if (civ == null || _state == null || _cityBuilder == null) return new List<Vertex>();
+            int currentLayer = _state.CurrentViewedLayer;
+            return _cityBuilder.GetBuildableVertices(civ.Index).Where(v => v.Z == currentLayer).ToList();
+        }
+
+        /// <summary>
+        /// Lance un sort ciblant un vertex constructible : fonde gratuitement une ville déjà développée
+        /// (Hôtel de ville niveau <see cref="ArcaneEdificationTownHallLevel"/>, tous les bâtiments disponibles
+        /// au niveau <see cref="ArcaneEdificationBuildingLevel"/>, défense et garnison au maximum).
+        /// </summary>
+        public const int ArcaneEdificationTownHallLevel = 3;
+        public const int ArcaneEdificationBuildingLevel = 2;
+
+        public bool CastSpellOnVertex(SpellId id, Vertex vertex)
+        {
+            var def = SpellDefinitions.Get(id);
+            if (def == null || def.TargetKind != SpellTargetKind.BuildableVertex) return false;
+            if (!CanCastSpell(id)) return false;
+            if (_cityBuilder == null || _buildingController == null) return false;
+            var civ = GetPlayerCiv()!;
+
+            City city;
+            try { city = _cityBuilder.CreateCityFree(civ.Index, vertex); }
+            catch (InvalidOperationException) { return false; }
+            catch (ArgumentException) { return false; }
+
+            civ.RemoveResource(Resource.Crystal, def.CrystalCost);
+
+            var townHall = city.Buildings.FirstOrDefault(b => b.Type == BuildingType.TownHall);
+            if (townHall == null)
+            {
+                townHall = BuildingController.CreateBuilding(BuildingType.TownHall)!;
+                city.Buildings.Add(townHall);
+            }
+            townHall.Level = Math.Max(townHall.Level, ArcaneEdificationTownHallLevel);
+            city.InvalidateLevelCache();
+
+            foreach (var building in _buildingController.GetBuildingsAndBuildables(city))
+            {
+                if (building.Type == BuildingType.TownHall) continue;
+                if (!city.Buildings.Contains(building))
+                    city.Buildings.Add(building);
+                building.Level = Math.Max(building.Level, ArcaneEdificationBuildingLevel);
+            }
+
+            city.CurrentDefense = city.MaxDefense;
+            city.Soldiers = city.MaxSoldiers;
+
+            BuildingController.RecalculateStorageCapacity(civ);
             return true;
         }
 

@@ -64,6 +64,7 @@ public enum TechnologyId
     // Branche des Sorts Instantanés (débloquée par le vertex de prestige Invocations)
     Invocation,
     TroopSummoning,
+    ArcaneEdification,
 }
 
 public enum TechnologyStatus

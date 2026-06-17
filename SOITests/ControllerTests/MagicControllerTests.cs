@@ -1,8 +1,10 @@
+using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Controller.Magic;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.GameplayModifier;
+using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Magic;
@@ -49,10 +51,23 @@ namespace SOITests.ControllerTests
             var clock = new GameClock();
             clock.Start();
 
+            var cityBuilder = new CityBuilderController(state);
+            var buildingController = new BuildingController(state);
+
             var controller = new MagicController();
-            controller.Initialize(state, clock, new GamePRNG(42));
+            controller.Initialize(state, clock, new GamePRNG(42), cityBuilder, buildingController);
 
             return (state, clock, controller);
+        }
+
+        /// <summary>Ajoute une route lointaine offrant un vertex constructible, hors de portée de la ville existante.</summary>
+        private static Vertex AddFarBuildableVertex(Civilization civ)
+        {
+            var farA = new HexCoord(20, 0, IslandMap.SurfaceLayer);
+            var farB = new HexCoord(21, 0, IslandMap.SurfaceLayer);
+            var farC = new HexCoord(20, 1, IslandMap.SurfaceLayer);
+            civ.AddRoad(new Road(Edge.Create(farA, farB)));
+            return Vertex.Create(farA, farB, farC);
         }
 
         // ── Déblocage ────────────────────────────────────────────────────────
@@ -443,6 +458,85 @@ namespace SOITests.ControllerTests
 
             Assert.False(controller.CastSpellOnCity(SpellId.SummonTroops, farAwayVertex));
             Assert.Equal(200, civ.GetResourceQuantity(Resource.Crystal));
+        }
+
+        // ── Sort ciblé (édification arcanique) ────────────────────────────────
+
+        private static void GrantCrystalStorage(Civilization civ, int amount)
+            => civ.AddCustomAggregator(new StaticModifierProvider(new List<Modifier>
+            {
+                new(ECategory.STORAGE_CAPACITY_ADVANCED, EType.ADDITIVE, amount),
+            }));
+
+        [Fact]
+        public void CastSpellOnVertex_FailsForUntargetedCast()
+        {
+            var (state, _, controller) = CreateSetup();
+            var civ = state.PlayerCivilization;
+            UnlockSpells(civ, SpellId.ArcaneEdification);
+            GrantCrystalStorage(civ, 1000);
+            civ.AddResource(Resource.Crystal, 1000);
+
+            Assert.False(controller.CastSpell(SpellId.ArcaneEdification));
+        }
+
+        [Fact]
+        public void CastSpellOnVertex_FailsForNonBuildableVertex()
+        {
+            var (state, _, controller) = CreateSetup();
+            var civ = state.PlayerCivilization;
+            UnlockSpells(civ, SpellId.ArcaneEdification);
+            GrantCrystalStorage(civ, 1000);
+            civ.AddResource(Resource.Crystal, 1000);
+
+            var unreachableVertex = Vertex.Create(
+                new HexCoord(50, 0, IslandMap.SurfaceLayer),
+                new HexCoord(51, 0, IslandMap.SurfaceLayer),
+                new HexCoord(50, 1, IslandMap.SurfaceLayer));
+
+            Assert.False(controller.CastSpellOnVertex(SpellId.ArcaneEdification, unreachableVertex));
+            Assert.Equal(1000, civ.GetResourceQuantity(Resource.Crystal));
+        }
+
+        [Fact]
+        public void CastSpellOnVertex_FoundsFullyDevelopedCity()
+        {
+            var (state, _, controller) = CreateSetup();
+            var civ = state.PlayerCivilization;
+            UnlockSpells(civ, SpellId.ArcaneEdification);
+            GrantCrystalStorage(civ, 1000);
+            civ.AddResource(Resource.Crystal, 1000);
+
+            var targetVertex = AddFarBuildableVertex(civ);
+
+            Assert.True(controller.CastSpellOnVertex(SpellId.ArcaneEdification, targetVertex));
+
+            // Coût : 500 cristaux, sans récompense en or/troupes
+            Assert.Equal(500, civ.GetResourceQuantity(Resource.Crystal));
+
+            var city = civ.Cities.Single(c => c.Position.Equals(targetVertex));
+            var townHall = city.Buildings.Single(b => b.Type == BuildingType.TownHall);
+            Assert.Equal(MagicController.ArcaneEdificationTownHallLevel, townHall.Level);
+
+            var otherBuildings = city.Buildings.Where(b => b.Type != BuildingType.TownHall).ToList();
+            Assert.NotEmpty(otherBuildings);
+            Assert.All(otherBuildings, b => Assert.Equal(MagicController.ArcaneEdificationBuildingLevel, b.Level));
+
+            // Défense et garnison fournies au maximum, sans coût supplémentaire
+            Assert.Equal(city.MaxDefense, city.CurrentDefense);
+            Assert.Equal(city.MaxSoldiers, city.Soldiers);
+        }
+
+        [Fact]
+        public void CastSpellOnVertex_FailsWithoutMagicUnlock()
+        {
+            var (state, _, controller) = CreateSetup();
+            var civ = state.PlayerCivilization;
+            civ.AddResource(Resource.Crystal, 1000);
+            var targetVertex = AddFarBuildableVertex(civ);
+
+            Assert.False(controller.CastSpellOnVertex(SpellId.ArcaneEdification, targetVertex));
+            Assert.DoesNotContain(civ.Cities, c => c.Position.Equals(targetVertex));
         }
     }
 }

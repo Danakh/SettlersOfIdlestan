@@ -9,16 +9,20 @@ public enum SpellId
     Abundance,
     /// <summary>Invocation de Troupes — consomme des cristaux pour faire apparaître des soldats dans une ville alliée ciblée.</summary>
     SummonTroops,
+    /// <summary>Édification Arcanique — fait apparaître une ville entièrement développée sur un vertex constructible ciblé.</summary>
+    ArcaneEdification,
 }
 
 /// <summary>
 /// Cible requise pour lancer un sort. <see cref="None"/> : effet immédiat sans ciblage.
 /// <see cref="AllyCity"/> : le joueur doit désigner une de ses propres villes.
+/// <see cref="BuildableVertex"/> : le joueur doit désigner un vertex où il peut fonder une ville.
 /// </summary>
 public enum SpellTargetKind
 {
     None,
     AllyCity,
+    BuildableVertex,
 }
 
 /// <summary>

@@ -161,15 +161,11 @@ namespace SettlersOfIdlestan.Controller.Island
         {
             if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
             if (vertex == null) throw new ArgumentNullException(nameof(vertex));
-            var vertexMap = _state.GetMapFor(vertex);
-            if (vertexMap == null) throw new ArgumentException("Vertex belongs to an unknown layer.", nameof(vertex));
 
             var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex)
                       ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
 
-            var buildable = GetBuildableVertices(civilizationIndex);
-            if (!buildable.Any(v => v.Equals(vertex)))
-                throw new InvalidOperationException("Vertex not buildable by this civilization");
+            EnsureVertexBuildable(civilizationIndex, vertex);
 
             var cost = NewCityBuildingCostFor(vertex, civ);
 
@@ -177,6 +173,38 @@ namespace SettlersOfIdlestan.Controller.Island
                 return null;
 
             civ.PayResourceCost(cost);
+
+            return CreateCityAt(civilizationIndex, vertex, civ);
+        }
+
+        /// <summary>
+        /// Fonde une ville sur un vertex constructible sans en payer le coût (utilisé par les sorts magiques).
+        /// Lance une exception si le vertex n'est pas constructible par cette civilisation.
+        /// </summary>
+        public City CreateCityFree(int civilizationIndex, Vertex vertex)
+        {
+            if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
+            if (vertex == null) throw new ArgumentNullException(nameof(vertex));
+
+            var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex)
+                      ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
+
+            EnsureVertexBuildable(civilizationIndex, vertex);
+
+            return CreateCityAt(civilizationIndex, vertex, civ);
+        }
+
+        private void EnsureVertexBuildable(int civilizationIndex, Vertex vertex)
+        {
+            var buildable = GetBuildableVertices(civilizationIndex);
+            if (!buildable.Any(v => v.Equals(vertex)))
+                throw new InvalidOperationException("Vertex not buildable by this civilization");
+        }
+
+        private City CreateCityAt(int civilizationIndex, Vertex vertex, Civilization civ)
+        {
+            var vertexMap = _state!.GetMapFor(vertex)
+                ?? throw new ArgumentException("Vertex belongs to an unknown layer.", nameof(vertex));
 
             var city = new City(vertex) { CivilizationIndex = civilizationIndex };
             civ.AddCity(city);

@@ -426,6 +426,13 @@ public static class TechnologyDefinitions
             modifiers: new Modifier[] { new(ECategory.UNLOCK_SPELL, "SummonTroops", EType.ADDITIVE, 1) },
             tier: 5, line: 10),
 
+        new(TechnologyId.ArcaneEdification,
+            "tech_arcane_edification_name", "tech_arcane_edification_desc",
+            cost: 70000,
+            prerequisites: new[] { TechnologyId.Invocation },
+            modifiers: new Modifier[] { new(ECategory.UNLOCK_SPELL, "ArcaneEdification", EType.ADDITIVE, 1) },
+            tier: 6, line: 11),
+
     };
 
     public static Technology? Get(TechnologyId id) => All.FirstOrDefault(t => t.Id == id);
