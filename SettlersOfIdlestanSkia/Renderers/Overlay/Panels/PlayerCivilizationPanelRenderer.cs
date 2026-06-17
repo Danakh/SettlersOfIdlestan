@@ -332,7 +332,13 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         }
 
         // Tooltips — set each frame so they persist while hovering
-        if (_hoveredPrestige && prestigeAvail && prestigeVisible)
+        if (_hoveredTrade)
+            _tooltipRenderer.SetTooltip(_localization.Get("tooltip_trade"), new SKPoint(_tradeButtonRect.Right, _tradeButtonRect.Top));
+        else if (_hoveredRaid && raidActive)
+            _tooltipRenderer.SetTooltip(_localization.Get("tooltip_raid_active"), new SKPoint(_raidButtonRect.Right, _raidButtonRect.Top));
+        else if (_hoveredRaid)
+            _tooltipRenderer.SetTooltip(_localization.Get("tooltip_raid"), new SKPoint(_raidButtonRect.Right, _raidButtonRect.Top));
+        else if (_hoveredPrestige && prestigeAvail && prestigeVisible)
         {
             _tooltipRenderer.SetTooltip(_localization.Get("tooltip_prestige_next_island"), new SKPoint(_prestigeButtonRect.Right, _prestigeButtonRect.Top));
         }
