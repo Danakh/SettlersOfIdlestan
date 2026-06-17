@@ -278,8 +278,8 @@ namespace SettlersOfIdlestan.Controller.Magic
             EnsureMagicFeatures();
 
             var civ = _state.PlayerCivilization;
-            int crystals = _state.Features.OfType<FairyCircle>().Count(f => f.Found) * FairyCircle.CrystalsPerCycle
-                         + _state.Features.OfType<Dolmen>().Count(f => f.Found) * Dolmen.CrystalsPerCycle;
+            // Les Cercles de Fées sont récoltés par la Hutte d'Alchimie (HarvestController), pas par ce cycle passif.
+            int crystals = _state.Features.OfType<Dolmen>().Count(f => f.Found) * Dolmen.CrystalsPerCycle;
             if (crystals > 0)
             {
                 try { civ.AddResource(Resource.Crystal, crystals); }

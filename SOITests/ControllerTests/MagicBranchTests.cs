@@ -21,12 +21,16 @@ namespace SOITests.ControllerTests
             Assert.Contains(gate.Modifiers, m =>
                 m.Category == ECategory.UNLOCK_RESEARCH && m.SubCategory == "MagicInitiation");
 
-            var fairyCircles = map.GetVertex(PrestigeMap.FairyCirclesVertex);
-            Assert.NotNull(fairyCircles);
-            Assert.Contains(fairyCircles!.Modifiers, m =>
+            var alchimistHut = map.GetVertex(PrestigeMap.AlchimistHutVertex);
+            Assert.NotNull(alchimistHut);
+            Assert.Contains(alchimistHut!.Modifiers, m =>
                 m.Category == ECategory.MAGIC_FEATURE_COUNT && m.SubCategory == "FairyCircle");
-            Assert.Contains(fairyCircles.Modifiers, m =>
+            Assert.Contains(alchimistHut.Modifiers, m =>
                 m.Category == ECategory.UNLOCK_RESOURCE && m.SubCategory == "Crystal");
+            Assert.Contains(alchimistHut.Modifiers, m =>
+                m.Category == ECategory.BUILDING_MAX_LEVEL && m.SubCategory == "AlchimistHut");
+            Assert.Contains(alchimistHut.Modifiers, m =>
+                m.Category == ECategory.UNLOCK_HEALING_POTION);
 
             var dolmens = map.GetVertex(PrestigeMap.DolmensVertex);
             Assert.NotNull(dolmens);
@@ -60,7 +64,7 @@ namespace SOITests.ControllerTests
 
             // Les vertex précurseurs (source de cristaux en surface) sont accessibles
             // avant la porte, pour pouvoir démarrer la magie sans l'Inframonde.
-            Assert.True(map.GetVertex(PrestigeMap.FairyCirclesVertex)!.Cost < gateCost);
+            Assert.True(map.GetVertex(PrestigeMap.AlchimistHutVertex)!.Cost < gateCost);
             Assert.True(map.GetVertex(PrestigeMap.DolmensVertex)!.Cost < gateCost);
         }
 
@@ -72,7 +76,7 @@ namespace SOITests.ControllerTests
 
             var branchVertices = new[]
             {
-                PrestigeMap.FairyCirclesVertex,
+                PrestigeMap.AlchimistHutVertex,
                 PrestigeMap.DolmensVertex,
                 PrestigeMap.MagicSecretVertex,
                 PrestigeMap.FocalizationVertex,

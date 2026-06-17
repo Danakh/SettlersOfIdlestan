@@ -155,6 +155,10 @@ public enum BuildingType
     /// Salle de Guerre - Bâtiment unique. Débloque l'automatisation des bâtiments militaires (Casernes, Arsenaux) et fournit +50% de vitesse de production de troupes. Débloqué par le prestige.
     /// </summary>
     WarRoom,
+    /// <summary>
+    /// Hutte d'Alchimie - Permet de récolter les cristaux des Cercles de Fées adjacents et produit des Potions de Soin. Ne peut être construite qu'adjacente à un Cercle de Fées découvert. Débloquée par le prestige (Hutte d'Alchimie).
+    /// </summary>
+    AlchimistHut,
 }
 
 /// <summary>
@@ -346,8 +350,21 @@ public class Building
     public virtual bool HasBuildPrerequisites(IBuildingContext city) => true;
 
     /// <summary>
+    /// Overload of <see cref="HasBuildPrerequisites(IBuildingContext)"/> with access to the WorldState,
+    /// for prerequisites depending on map features (e.g. adjacency to a discovered IslandFeature).
+    /// Default implementation ignores state and falls back to the simple overload.
+    /// </summary>
+    public virtual bool HasBuildPrerequisites(IBuildingContext city, WorldState state) => HasBuildPrerequisites(city);
+
+    /// <summary>
     /// Returns the localization key describing the missing prerequisite, or null if none.
     /// Used by the UI to show a tooltip warning when HasBuildPrerequisites is false.
     /// </summary>
     public virtual string? GetMissingPrerequisiteKey(IBuildingContext city) => null;
+
+    /// <summary>
+    /// Overload of <see cref="GetMissingPrerequisiteKey(IBuildingContext)"/> with access to the WorldState.
+    /// Default implementation ignores state and falls back to the simple overload.
+    /// </summary>
+    public virtual string? GetMissingPrerequisiteKey(IBuildingContext city, WorldState state) => GetMissingPrerequisiteKey(city);
 }

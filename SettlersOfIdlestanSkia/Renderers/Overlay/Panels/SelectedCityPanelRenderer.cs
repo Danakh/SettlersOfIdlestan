@@ -378,7 +378,7 @@ public class SelectedCityPanelRenderer : PanelRendererBase
                     }
                     else
                     {
-                        var missingKey = hoveredBuilding.GetMissingPrerequisiteKey(_cityBuildingService.SelectedCity);
+                        var missingKey = _cityBuildingService.GetMissingPrerequisiteKey(hoveredBuilding);
                         if (missingKey != null)
                         {
                             tooltipLines.Add(_localization.Get(missingKey));

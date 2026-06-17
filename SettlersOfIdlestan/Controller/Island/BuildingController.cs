@@ -460,6 +460,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 BuildingType.MithrilMine => new MithrilMine(),
                 BuildingType.MageTower => new MageTower(),
                 BuildingType.WarRoom => new WarRoom(),
+                BuildingType.AlchimistHut => new AlchimistHut(),
                 _ => null,
             };
         }

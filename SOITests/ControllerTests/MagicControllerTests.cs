@@ -266,11 +266,12 @@ namespace SOITests.ControllerTests
         }
 
         [Fact]
-        public void PassiveCycle_DiscoveredFeaturesGenerateCrystals()
+        public void PassiveCycle_OnlyDolmenGeneratesCrystals_FairyCircleHandledByAlchimistHut()
         {
             var (state, clock, controller) = CreateSetup();
             var civ = state.PlayerCivilization;
 
+            // Les Cercles de Fées sont récoltés par la Hutte d'Alchimie (HarvestController), pas par ce cycle passif.
             var circle = new FairyCircle(new SettlersOfIdlestan.Model.HexGrid.HexCoord(1, 0, IslandMap.SurfaceLayer)) { Found = true };
             var dolmen = new Dolmen(new SettlersOfIdlestan.Model.HexGrid.HexCoord(-1, 0, IslandMap.SurfaceLayer)) { Found = true };
             state.AddFeature(circle);
@@ -278,9 +279,7 @@ namespace SOITests.ControllerTests
 
             clock.SimulateAdvance(MagicController.UpkeepIntervalTicks);
 
-            // 1 (Cercle de Fées) + 2 (Dolmen) = 3 cristaux par cycle
-            Assert.Equal(FairyCircle.CrystalsPerCycle + Dolmen.CrystalsPerCycle,
-                civ.GetResourceQuantity(Resource.Crystal));
+            Assert.Equal(Dolmen.CrystalsPerCycle, civ.GetResourceQuantity(Resource.Crystal));
         }
 
         [Fact]

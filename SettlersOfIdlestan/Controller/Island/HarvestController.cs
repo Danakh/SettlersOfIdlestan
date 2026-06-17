@@ -69,6 +69,8 @@ namespace SettlersOfIdlestan.Controller.Island
         public const long PassiveResourceGenerationIntervalTicks = 100L;
         // 10 s × 100 ticks/s — intervalle de base de production de consommables par la Forge (niv. 1)
         public const long ForgeConsumableBaseIntervalTicks = 1000L;
+        // 10 s × 100 ticks/s — intervalle de base de production de Potions de Soin par la Hutte d'Alchimie (niv. 1)
+        public const long AlchimistHutPotionBaseIntervalTicks = 1000L;
 
         private GamePRNG? _prng;
         private long _lastPassiveGenTick = 0;
@@ -114,6 +116,10 @@ namespace SettlersOfIdlestan.Controller.Island
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[HarvestController] {nameof(PerformPassiveResourceGenerations)}: {ex}"); }
             try { PerformForgeConsumableProductions(e.CurrentTick); }
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[HarvestController] {nameof(PerformForgeConsumableProductions)}: {ex}"); }
+            try { PerformAlchimistHutPotionProductions(e.CurrentTick); }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[HarvestController] {nameof(PerformAlchimistHutPotionProductions)}: {ex}"); }
+            try { PerformAlchimistHutCrystalProductions(e.CurrentTick); }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[HarvestController] {nameof(PerformAlchimistHutCrystalProductions)}: {ex}"); }
         }
 
         private void PerformAutomaticProductionHarvests()
@@ -405,6 +411,66 @@ namespace SettlersOfIdlestan.Controller.Island
         /// <summary>Intervalle de production de consommables pour une forge du niveau donné (x0.9 par niveau).</summary>
         public static long GetForgeConsumableInterval(int forgeLevel)
             => Math.Max(1L, (long)(ForgeConsumableBaseIntervalTicks * Math.Pow(0.9, forgeLevel - 1)));
+
+        private void PerformAlchimistHutPotionProductions(long currentTick)
+        {
+            if (_state == null) return;
+
+            foreach (var civ in _state.Civilizations)
+            {
+                if (!civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_HEALING_POTION)) continue;
+
+                foreach (var city in civ.Cities)
+                {
+                    var hut = city.Buildings.OfType<AlchimistHut>().FirstOrDefault(h => h.Level >= 1);
+                    if (hut == null) continue;
+
+                    long interval = GetAlchimistHutPotionInterval(hut.Level);
+                    if (currentTick - hut.LastPotionProductionTick < interval) continue;
+
+                    civ.AddResource(Resource.HealingPotion, 1);
+                    hut.LastPotionProductionTick = currentTick;
+                }
+            }
+        }
+
+        /// <summary>Intervalle de production de Potions de Soin pour une Hutte d'Alchimie du niveau donné (x0.9 par niveau).</summary>
+        public static long GetAlchimistHutPotionInterval(int level)
+            => Math.Max(1L, (long)(AlchimistHutPotionBaseIntervalTicks * Math.Pow(0.9, level - 1)));
+
+        /// <summary>
+        /// Récolte automatique des cristaux des Cercles de Fées adjacents par la Hutte d'Alchimie.
+        /// Comportement aligné sur les bâtiments de production : cooldown de base 60s (réduit avec le
+        /// niveau via Building.GetAutomaticHarvestCooldown) et modificateur HARVEST_SPEED applicable.
+        /// </summary>
+        private void PerformAlchimistHutCrystalProductions(long currentTick)
+        {
+            if (_state == null) return;
+
+            foreach (var civ in _state.Civilizations)
+            {
+                foreach (var city in civ.Cities)
+                {
+                    var hut = city.Buildings.OfType<AlchimistHut>().FirstOrDefault(h => h.Level >= h.AutomaticHarvestUnlockLevel);
+                    if (hut == null) continue;
+
+                    long raw = hut.GetAutomaticHarvestCooldown(AutomaticHarvestCooldownTicks);
+                    double speedMultiplier = civ.ModifierAggregator.ApplyModifiers(ECategory.HARVEST_SPEED, hut.Type.ToString(), 1.0);
+                    long effective = Math.Max(1L, (long)(raw / speedMultiplier));
+                    if (currentTick - hut.LastCrystalProductionTick < effective) continue;
+
+                    hut.LastCrystalProductionTick = currentTick;
+
+                    int circleCount = city.Position.GetHexes()
+                        .SelectMany(hex => _state.GetFeaturesAt(hex).OfType<FairyCircle>())
+                        .Count(f => f.Found);
+                    if (circleCount <= 0) continue;
+
+                    TryAutoTradeOnOverflow(civ, city, Resource.Crystal);
+                    civ.AddResource(Resource.Crystal, circleCount * FairyCircle.CrystalsPerCycle);
+                }
+            }
+        }
 
         /// <summary>Cooldown effectif du cycle de la Fonderie, après réduction par niveau puis application du modificateur SMELTER_SPEED.</summary>
         public static long GetEffectiveSmelterCooldown(Civilization civ, Smelter smelter)

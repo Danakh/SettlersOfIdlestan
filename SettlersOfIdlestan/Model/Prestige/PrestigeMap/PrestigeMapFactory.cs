@@ -272,13 +272,15 @@ public static class PrestigeMapFactory
             // la Magie) coûte autant que la porte de l'Inframonde (2500).
             // Progression : 400/1000 → porte 2500 → 10 000 → 25 000/50 000 → Archimage 250 000.
             new(
-                PrestigeMap.FairyCirclesVertex,
-                "prestige_vertex_fairy_circles",
-                cost: Cost(PrestigeMap.FairyCirclesVertex),
+                PrestigeMap.AlchimistHutVertex,
+                "prestige_vertex_alchimisthut",
+                cost: Cost(PrestigeMap.AlchimistHutVertex),
                 modifiers: new Modifier[]
                 {
                     new(ECategory.MAGIC_FEATURE_COUNT, "FairyCircle", EType.ADDITIVE, 2),
                     new(ECategory.UNLOCK_RESOURCE, "Crystal", EType.ADDITIVE, 1),
+                    new(ECategory.BUILDING_MAX_LEVEL, "AlchimistHut", EType.ADDITIVE, 3),
+                    new(ECategory.UNLOCK_HEALING_POTION, EType.ADDITIVE, 1),
                 }
             ),
             new(

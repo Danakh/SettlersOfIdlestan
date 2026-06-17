@@ -110,6 +110,8 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             UNLOCK_RAID,
             /// <summary>Nombre de soldats par ville dont la nourriture d'entretien est offerte chaque cycle. SubCategory unused.</summary>
             SOLDIER_FOOD_FREE_PER_CITY,
+            /// <summary>Flags que la Hutte d'Alchimie peut produire des Potions de Soin (consommable) ; chaque potion consommée donne 50 % de chance de sauver un soldat.</summary>
+            UNLOCK_HEALING_POTION,
         }
 
         public enum EType

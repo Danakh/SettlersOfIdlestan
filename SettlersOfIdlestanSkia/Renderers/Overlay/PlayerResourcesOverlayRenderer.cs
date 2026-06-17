@@ -58,6 +58,7 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
     {
         { Resource.SteelWeapon, Modifier.ECategory.UNLOCK_STEEL_WEAPONS },
         { Resource.SteelArmor, Modifier.ECategory.UNLOCK_STEEL_ARMOR },
+        { Resource.HealingPotion, Modifier.ECategory.UNLOCK_HEALING_POTION },
     };
 
     public float ResourceStartX { get; set; } = Padding;

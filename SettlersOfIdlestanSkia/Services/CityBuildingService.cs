@@ -110,7 +110,7 @@ public class CityBuildingService
             return false;
 
         // Check build prerequisites (e.g. required other buildings)
-        if (building.Level == 0 && !building.HasBuildPrerequisites(SelectedCity))
+        if (building.Level == 0 && !building.HasBuildPrerequisites(SelectedCity, worldState))
             return false;
 
         // Only one unique building per city
@@ -251,8 +251,12 @@ public class CityBuildingService
         var worldState = State;
         if (SelectedCity.CivilizationIndex >= worldState.Civilizations.Count) return false;
         if (IsAtMaxLevel(building)) return false;
-        if (building.Level == 0 && !building.HasBuildPrerequisites(SelectedCity)) return false;
+        if (building.Level == 0 && !building.HasBuildPrerequisites(SelectedCity, worldState)) return false;
         if (building.Level == 0 && building.IsUnique && SelectedCityHasAnyUniqueBuilding()) return false;
         return true;
     }
+
+    /// <summary>Clé de localisation du prérequis manquant pour ce bâtiment, ou null si tous les prérequis sont remplis.</summary>
+    public string? GetMissingPrerequisiteKey(Building building)
+        => SelectedCity == null ? null : building.GetMissingPrerequisiteKey(SelectedCity, State);
 }
