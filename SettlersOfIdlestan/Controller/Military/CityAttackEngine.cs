@@ -18,14 +18,15 @@ internal class CityAttackEngine
 {
     private WorldState? _state;
     private RoadController? _roadController;
-    private readonly GamePRNG _prng = new();
+    private GamePRNG? _prng;
 
     private const int DefaultCityAttackRange = 3;
 
-    internal void Initialize(WorldState? state, RoadController? roadController)
+    internal void Initialize(WorldState? state, RoadController? roadController, GamePRNG? prng = null)
     {
         _state = state;
         _roadController = roadController;
+        _prng = prng;
     }
 
     internal int CityAttackRange(Civilization civ)
@@ -61,7 +62,7 @@ internal class CityAttackEngine
                 if (hasSteelWeapon) attackerCiv.RemoveResource(Resource.SteelWeapon, 1);
 
                 // Armures d'Acier : le soldat envoyé peut survivre en consommant 1 ArmureAcier
-                if (SteelArmorEngine.TrySaveSoldiers(attackerCiv, attackerCity, 1, _prng) == 0)
+                if (SteelArmorEngine.TrySaveSoldiers(attackerCiv, attackerCity, 1, _prng!) == 0)
                     attackerCity.Soldiers--;
                 attackerCity.LastCityAttackTick = currentTick;
 
@@ -166,7 +167,7 @@ internal class CityAttackEngine
                 return false;
             }
             // Armures d'Acier : le défenseur peut survivre en consommant 1 Acier (l'attaque reste absorbée)
-            if (SteelArmorEngine.TrySaveSoldiers(defenderCiv, targetCity, 1, _prng) == 0)
+            if (SteelArmorEngine.TrySaveSoldiers(defenderCiv, targetCity, 1, _prng!) == 0)
                 targetCity.Soldiers--;
             return false;
         }
@@ -187,7 +188,12 @@ internal class CityAttackEngine
                 targetCity.InvalidateLevelCache();
                 onCityBuildingDestroyed(new CityBuildingDestroyedEventArgs(targetCity.Position));
             }
-            _state!.Civilizations.FirstOrDefault(c => c.Index == targetCity.CivilizationIndex)?.TrimResourcesToMax();
+            var defenderCivAfterAttack = _state!.Civilizations.FirstOrDefault(c => c.Index == targetCity.CivilizationIndex);
+            if (defenderCivAfterAttack != null)
+            {
+                BuildingController.RecalculateStorageCapacity(defenderCivAfterAttack);
+                defenderCivAfterAttack.TrimResourcesToMax();
+            }
             return false;
         }
 

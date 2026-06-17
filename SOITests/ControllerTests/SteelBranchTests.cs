@@ -50,7 +50,7 @@ namespace SOITests.ControllerTests
             var clock = new GameClock();
             clock.Start();
             var controller = new MilitaryController();
-            controller.Initialize(state, clock);
+            controller.Initialize(state, clock, prng: new GamePRNG());
 
             return (state, clock, city);
         }
@@ -219,7 +219,7 @@ namespace SOITests.ControllerTests
 
             Assert.Equal(Smelter.OreInputPerCycle, HarvestController.GetSmelterOreInput(civ));
             Assert.Equal(Smelter.SteelOutputPerCycle, HarvestController.GetSmelterSteelOutput(civ));
-            Assert.Equal(Smelter.ProductionCooldownTicks, HarvestController.GetEffectiveSmelterCooldown(civ));
+            Assert.Equal(Smelter.ProductionCooldownTicks, HarvestController.GetEffectiveSmelterCooldown(civ, new Smelter { Level = 1 }));
         }
 
         [Fact]
@@ -254,7 +254,15 @@ namespace SOITests.ControllerTests
                 new Modifier(ECategory.SMELTER_SPEED, EType.ADDITIVE, 0.15),
             }));
 
-            Assert.True(HarvestController.GetEffectiveSmelterCooldown(civ) < Smelter.ProductionCooldownTicks);
+            Assert.True(HarvestController.GetEffectiveSmelterCooldown(civ, new Smelter { Level = 1 }) < Smelter.ProductionCooldownTicks);
+        }
+
+        [Fact]
+        public void Smelter_HigherLevel_HasShorterCooldown()
+        {
+            var civ = new Civilization { Index = 0 };
+
+            Assert.True(HarvestController.GetEffectiveSmelterCooldown(civ, new Smelter { Level = 3 }) < Smelter.ProductionCooldownTicks);
         }
 
         // ── Commerce — vente d'Acier (Aciers Spéciaux) ────────────────────────

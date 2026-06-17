@@ -83,7 +83,7 @@ public class SoldierFeedingTests
         var state = new WorldState(SingleCityMap(), [civ], AtlasController.InvalidIslandId);
         var clock = new GameClock();
         clock.Start();
-        new MilitaryController().Initialize(state, clock);
+        new MilitaryController().Initialize(state, clock, prng: new GamePRNG());
         return (state, clock, civ);
     }
 
@@ -108,7 +108,7 @@ public class SoldierFeedingTests
         var state = new WorldState(TwoCityMap(), [civ], AtlasController.InvalidIslandId);
         var clock = new GameClock();
         clock.Start();
-        new MilitaryController().Initialize(state, clock);
+        new MilitaryController().Initialize(state, clock, prng: new GamePRNG());
         return (state, clock, civ, city1, city2);
     }
 
@@ -135,7 +135,7 @@ public class SoldierFeedingTests
         var state = new WorldState(ThreeCityMap(), [civ], AtlasController.InvalidIslandId);
         var clock = new GameClock();
         clock.Start();
-        new MilitaryController().Initialize(state, clock);
+        new MilitaryController().Initialize(state, clock, prng: new GamePRNG());
         return (state, clock, civ, city1, city2, city3);
     }
 

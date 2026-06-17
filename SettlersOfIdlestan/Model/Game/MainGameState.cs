@@ -53,7 +53,7 @@ namespace SettlersOfIdlestan.Model.Game
         {
             GodState = new GodState();
             Clock = new GameClock();
-            PRNG = prngSeed.HasValue ? new GamePRNG(prngSeed.Value) : new GamePRNG();
+            PRNG = prngSeed.HasValue ? new GamePRNG(prngSeed.Value) : new GamePRNG(Environment.TickCount);
         }
 
         /// <summary>

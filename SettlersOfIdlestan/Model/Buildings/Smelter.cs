@@ -20,6 +20,8 @@ public class Smelter : Building
     // Verrouillé par défaut ; débloqué par le vertex de prestige Secret de l'Acier (+2 niveaux max)
     public override int GetDefaultMaxLevel() => 0;
 
+    public override int AutomaticHarvestUnlockLevel => 1;
+
     public override ResourceSet GetBuildCost() => new ResourceSet
     {
         { Resource.Stone, 60 },

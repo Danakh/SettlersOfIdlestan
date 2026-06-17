@@ -58,7 +58,7 @@ public class MilitaryControllerWarTests
         featureCtrl.Initialize(state, clock);
 
         var ctrl = new MilitaryController();
-        ctrl.Initialize(state, clock);
+        ctrl.Initialize(state, clock, prng: new GamePRNG());
 
         // Branchement identique à MainGameController après le fix du bug
         ctrl.CityDestroyed += (_, _) => featureCtrl.RefreshContestedTerritories();
@@ -179,7 +179,7 @@ public class MilitaryControllerWarTests
         featureCtrl.Initialize(state, clock);
 
         var ctrl = new MilitaryController();
-        ctrl.Initialize(state, clock);
+        ctrl.Initialize(state, clock, prng: new GamePRNG());
         ctrl.CityDestroyed += (_, _) => featureCtrl.RefreshContestedTerritories();
 
         // Après le premier coup : TownHall retiré, ville toujours en vie

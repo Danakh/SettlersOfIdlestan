@@ -10,7 +10,7 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay.Popup;
 public sealed class SettingsPopupRenderer : PopupRendererBase
 {
     protected override float PopupWidth  => 580;
-    protected override float PopupHeight => 338;
+    protected override float PopupHeight => 402;
     protected override float BtnFontSize => 12f;
 
     private const float BtnRightMargin = 24;
@@ -22,6 +22,7 @@ public sealed class SettingsPopupRenderer : PopupRendererBase
     private readonly SettingsContentPanel _contentPanel = new();
 
     public event Action<bool>? FullscreenToggleRequested;
+    public event Action<float>? UiScaleChanged;
 
     private SKRect _closeButtonRect = SKRect.Empty;
     private SKRect _popupRect       = SKRect.Empty;
@@ -32,6 +33,7 @@ public sealed class SettingsPopupRenderer : PopupRendererBase
         _localization      = localization;
         _fileSystemService = fileSystemService;
         _contentPanel.FullscreenToggleRequested += v => FullscreenToggleRequested?.Invoke(v);
+        _contentPanel.UiScaleChanged             += v => UiScaleChanged?.Invoke(v);
     }
 
     public void Render(SKCanvas canvas, float scale = 1f)
@@ -83,7 +85,35 @@ public sealed class SettingsPopupRenderer : PopupRendererBase
     public void HandlePointerMoved(SKPoint pos)
     {
         if (!IsOpen || Disposed) return;
-        _contentPanel.HandleHover(pos);
+        var settings = _gameController.CurrentMainState?.Settings;
+        if (settings != null) _contentPanel.HandlePointerMoved(pos, settings);
+    }
+
+    public void HandlePointerReleased(SKPoint pos)
+    {
+        if (!IsOpen || Disposed) return;
+        var settings = _gameController.CurrentMainState?.Settings;
+        if (settings == null) return;
+        if (!_contentPanel.HandlePointerReleased(settings)) return;
+
+        _ = _fileSystemService.SaveSettings(System.Text.Json.JsonSerializer.Serialize(settings));
+    }
+
+    /// <summary>Flèches gauche/droite pour ajuster le slider d'échelle UI quand il est survolé.</summary>
+    public bool HandleKeyPressed(string key)
+    {
+        if (!IsOpen || Disposed) return false;
+        var settings = _gameController.CurrentMainState?.Settings;
+        if (settings == null || !_contentPanel.HandleArrowKey(key, settings)) return false;
+
+        _ = _fileSystemService.SaveSettings(System.Text.Json.JsonSerializer.Serialize(settings));
+        return true;
+    }
+
+    public override void Close()
+    {
+        _contentPanel.ClearFocus();
+        base.Close();
     }
 
     public override void Dispose()

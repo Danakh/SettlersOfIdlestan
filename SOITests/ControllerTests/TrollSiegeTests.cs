@@ -102,9 +102,9 @@ namespace SOITests.ControllerTests
             clock.Start();
 
             // MilitaryController : production soldats + combat soldats→monstre
-            new MilitaryController().Initialize(state, clock);
+            new MilitaryController().Initialize(state, clock, prng: new GamePRNG());
             // MonsterFeatureController : regen PV + attaque du Troll sur les villes
-            new MonsterFeatureController().Initialize(state, clock);
+            new MonsterFeatureController().Initialize(state, clock, new GamePRNG());
 
             return (state, clock, civ, city1, city2, troll);
         }

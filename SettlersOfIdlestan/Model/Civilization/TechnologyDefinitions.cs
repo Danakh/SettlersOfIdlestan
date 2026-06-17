@@ -130,7 +130,11 @@ public static class TechnologyDefinitions
             "tech_specialized_market_name", "tech_specialized_market_desc",
             cost: 1500,
             prerequisites: new[] { TechnologyId.StorageOptimization },
-            modifiers: new Modifier[] { new(ECategory.BUILDING_MAX_LEVEL, "Market", EType.ADDITIVE, 1) },
+            modifiers: new Modifier[]
+            {
+                new(ECategory.BUILDING_MAX_LEVEL, "Market", EType.ADDITIVE, 3),
+                new(ECategory.UNLOCK_MARKET_SPECIALIZATION, EType.ADDITIVE, 1),
+            },
             tier: 2, line: 3),
 
         new(TechnologyId.AdvancedArchitecture,
@@ -244,7 +248,7 @@ public static class TechnologyDefinitions
             "tech_automatic_market_name", "tech_automatic_market_desc",
             cost: 15000,
             prerequisites: new[] { TechnologyId.EfficientTrading },
-            modifiers: new Modifier[] { new(ECategory.BUILDING_MAX_LEVEL, "Market", EType.ADDITIVE, 1) },
+            modifiers: new Modifier[] { new(ECategory.UNLOCK_AUTO_MARKET_TRADE, EType.ADDITIVE, 1) },
             tier: 4, line: 3),
 
         new(TechnologyId.TradeRoutes,

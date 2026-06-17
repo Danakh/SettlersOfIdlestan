@@ -3,6 +3,14 @@ The changelog is not actively maintained at the moment.
 
 ---
 
+v0.3
+• New military resources: steel weapons and armor
+• Military system improvements
+• New prestige powers
+• Toast notifications for important events
+
+---
+
 v0.2
 • Added steel
 • Underworld overhaul

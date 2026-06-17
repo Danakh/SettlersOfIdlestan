@@ -20,6 +20,16 @@ public class Warehouse : Building
         return 2;
     }
 
+    /// <summary>Bonus de capacité de stockage (ressources de base) : +20 à la construction, +10 par niveau.</summary>
+    public override int GetStorageCapacityBonusBasic() => GetStorageCapacityBonusBasicAtLevel(Level);
+
+    public int GetStorageCapacityBonusBasicAtLevel(int level) => level <= 0 ? 0 : 20 + 10 * level;
+
+    /// <summary>Bonus de capacité de stockage (ressources avancées) : +5 à la construction, +5 par niveau.</summary>
+    public override int GetStorageCapacityBonusAdvanced() => GetStorageCapacityBonusAdvancedAtLevel(Level);
+
+    public int GetStorageCapacityBonusAdvancedAtLevel(int level) => level <= 0 ? 0 : 5 + 5 * level;
+
     /// <summary>
     /// Gets the build cost of the warehouse.
     /// </summary>

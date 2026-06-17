@@ -85,6 +85,7 @@ public class MonsterRenderer : HexBasedRenderer, IGameRenderer
             if (!isIslandTabActive()) return;
             var worldState = gameControllerService.CurrentWorldState;
             if (worldState == null) return;
+            if (args.CityVertex.Z != worldState.CurrentViewedLayer) return;
             if (!IsSourceOrDestinationVisible(worldState, args.CityVertex, args.MonsterPosition)) return;
             EmitAttackParticle(args.CityVertex, args.MonsterPosition);
         };

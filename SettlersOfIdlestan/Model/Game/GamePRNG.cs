@@ -27,7 +27,7 @@ namespace SettlersOfIdlestan.Model.Game
         /// <summary>Constructeur sans paramètre requis par la désérialisation JSON.</summary>
         public GamePRNG()
         {
-            Seed = Environment.TickCount;
+            Seed = 42;
             // State initialisé lazily dans Step() pour que la désérialisation puisse
             // écraser Seed avant le premier appel.
         }

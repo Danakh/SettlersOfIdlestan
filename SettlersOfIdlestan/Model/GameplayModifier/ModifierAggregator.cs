@@ -9,6 +9,13 @@ public class ModifierAggregator
     private readonly Dictionary<ECategory, List<Modifier>> _cache = new();
     private bool _dirty = true;
 
+    /// <summary>
+    /// Déclenché chaque fois qu'un provider notifie un changement (recherche, prestige, rituel…)
+    /// ou qu'un provider est enregistré/remplacé. Permet aux caches dérivés (ex: capacité de
+    /// stockage) de se recalculer sans que la civilisation n'ait à connaître la logique de calcul.
+    /// </summary>
+    public event Action? Changed;
+
     public void Register(IModifierProvider provider)
     {
         _providers.Add(provider);
@@ -26,7 +33,11 @@ public class ModifierAggregator
         Invalidate();
     }
 
-    private void Invalidate() => _dirty = true;
+    private void Invalidate()
+    {
+        _dirty = true;
+        Changed?.Invoke();
+    }
 
     private IReadOnlyList<Modifier> GetCached(ECategory category)
     {

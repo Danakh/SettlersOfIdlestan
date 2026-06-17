@@ -54,7 +54,7 @@ public class CivilizationLowStockTests
         var state = new WorldState(MinimalMap(), [civ], AtlasController.InvalidIslandId);
         var clock = new GameClock();
         clock.Start();
-        new MilitaryController().Initialize(state, clock);
+        new MilitaryController().Initialize(state, clock, prng: new GamePRNG());
         return (clock, civ);
     }
 
@@ -115,7 +115,7 @@ public class CivilizationLowStockTests
         var state = new WorldState(MinimalMap(), [civ], AtlasController.InvalidIslandId);
         var clock = new GameClock();
         clock.Start();
-        new MilitaryController().Initialize(state, clock);
+        new MilitaryController().Initialize(state, clock, prng: new GamePRNG());
         return (clock, civ);
     }
 

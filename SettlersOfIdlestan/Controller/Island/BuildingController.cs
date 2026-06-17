@@ -55,6 +55,9 @@ namespace SettlersOfIdlestan.Controller.Island
 
             if (_clock != null)
                 _clock.Advanced += OnClockAdvanced;
+
+            foreach (var civ in _state.Civilizations)
+                RecalculateStorageCapacity(civ);
         }
 
         private void OnClockAdvanced(object? sender, GameClockAdvancedEventArgs e)
@@ -337,6 +340,8 @@ namespace SettlersOfIdlestan.Controller.Island
             if (type == BuildingType.Watchtower)
                 _state.Visibility.RecalculateFor(city.CivilizationIndex);
 
+            RecalculateStorageCapacity(civ);
+
             OnBuildingBuilt?.Invoke(this, new BuildingBuiltEventArgs(
                 city, type, resultBuilding.Level, existing == null));
 
@@ -392,6 +397,31 @@ namespace SettlersOfIdlestan.Controller.Island
             int maxLevel = building.GetDefaultMaxLevel();
             maxLevel = civ.ModifierAggregator.ApplyModifiers(ECategory.BUILDING_MAX_LEVEL, building.Type.ToString(), maxLevel);
             return maxLevel;
+        }
+
+        /// <summary>
+        /// Recalcule intégralement la capacité de stockage (ressources de base / avancées) de la
+        /// civilisation et met à jour son cache. À appeler après toute construction/amélioration/
+        /// destruction de bâtiment, ajout/retrait de ville, ou changement de l'agrégateur de modificateurs.
+        /// </summary>
+        public static void RecalculateStorageCapacity(Model.Civilization.Civilization civ)
+        {
+            int basic = 10 * civ.Cities.Count;
+            int advanced = 0;
+
+            foreach (var city in civ.Cities)
+            {
+                foreach (var building in city.Buildings)
+                {
+                    basic += building.GetStorageCapacityBonusBasic();
+                    advanced += building.GetStorageCapacityBonusAdvanced();
+                }
+            }
+
+            basic += civ.ModifierAggregator.ApplyModifiers(ECategory.STORAGE_CAPACITY_BASIC, "", 0);
+            advanced += civ.ModifierAggregator.ApplyModifiers(ECategory.STORAGE_CAPACITY_ADVANCED, "", 0);
+
+            civ.SetStorageCapacityCache(basic, advanced);
         }
 
         public static Building? CreateBuilding(BuildingType type)

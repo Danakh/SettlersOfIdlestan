@@ -31,7 +31,7 @@ namespace SettlersOfIdlestan.Controller.Island
     {
         private WorldState? _state;
         private GameClock? _clock;
-        private GamePRNG _prng = new();
+        private GamePRNG? _prng;
 
         // 10 s × 100 ticks/s
         public const long AutoOutpostBuildCooldownTicks = 1000L;
@@ -103,7 +103,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 .Where(v => v.Z == IslandMap.SurfaceLayer).ToList();
             if (buildable.Count == 0) return;
 
-            var chosen = buildable[_prng.Next(buildable.Count)];
+            var chosen = buildable[_prng!.Next(buildable.Count)];
             if (!civ.CanPayResourceCost(NewCityBuildingCostFor(chosen, civ))) return;
 
             try

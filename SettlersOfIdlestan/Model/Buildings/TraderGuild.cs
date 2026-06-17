@@ -50,6 +50,6 @@ public class TraderGuild : Building, IUniqueBuilding
     public IEnumerable<Modifier> GetUniqueBuildingModifiers()
     {
         if (Level <= 0) yield break;
-        yield return new Modifier(ECategory.BUILDING_MAX_LEVEL, "Market", EType.ADDITIVE, 3);
+        yield return new Modifier(ECategory.BUILDING_MAX_LEVEL, "Market", EType.ADDITIVE, 2);
     }
 }

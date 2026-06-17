@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using Xunit;
 using SettlersOfIdlestan.Controller;
+using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Buildings;
 using SOITests.TestUtilities;
@@ -152,6 +153,7 @@ namespace SOITests.ControllerTests
             var civ = state.Civilizations[0];
             civ.Cities[0].Buildings.Add(new Market());
             civ.Cities[0].Buildings.Add(new TownHall { Level = 8 }); // capacity = 5*(2+8)=50
+            BuildingController.RecalculateStorageCapacity(civ);
 
             civ.TechnologyTree.CompleteResearch(TechnologyId.EfficientTrading); // TRADE_BULK_GOLD_BONUS +1
 
@@ -173,6 +175,7 @@ namespace SOITests.ControllerTests
             var civ = state.Civilizations[0];
             civ.Cities[0].Buildings.Add(new Market());
             civ.Cities[0].Buildings.Add(new TownHall { Level = 8 }); // capacity=50
+            BuildingController.RecalculateStorageCapacity(civ);
 
             civ.AddCustomAggregator(new FlatModifierProvider(
                 new Modifier(ECategory.TRADE_BULK_GOLD_BONUS, EType.ADDITIVE, 3)));
@@ -193,6 +196,7 @@ namespace SOITests.ControllerTests
             var civ = state.Civilizations[0];
             civ.Cities[0].Buildings.Add(new Market());
             civ.Cities[0].Buildings.Add(new TownHall { Level = 8 }); // capacity=50
+            BuildingController.RecalculateStorageCapacity(civ);
             civ.AddResource(Resource.Wood, 50);
 
             var controller = new TradeController(state);
@@ -220,6 +224,7 @@ namespace SOITests.ControllerTests
             var civ = state.Civilizations[0];
             civ.Cities[0].Buildings.Add(new Market());
             civ.Cities[0].Buildings.Add(new TownHall { Level = 3 }); // city.Level=3 → Ore has capacity
+            BuildingController.RecalculateStorageCapacity(civ);
             civ.AddResource(Resource.Gold, 15);
 
             var controller = new TradeController(state);
@@ -229,6 +234,48 @@ namespace SOITests.ControllerTests
 
             Assert.Equal(0, civ.GetResourceQuantity(Resource.Gold));
             Assert.Equal(3, civ.GetResourceQuantity(Resource.Ore));
+        }
+
+        // ── Market specialization (SpecializedMarket research) ──────────────────
+
+        [Fact]
+        public void CanEnhanceSeaportResource_ReturnsFalse_WithoutSpecializedMarketResearch()
+        {
+            WorldState state = IslandTestFactory.CreateSevenHexIslandState();
+            var civ = state.Civilizations[0];
+            civ.Cities[0].Buildings.Add(new Market { Level = 4 });
+
+            var controller = new TradeController(state);
+
+            Assert.False(controller.CanEnhanceSeaportResource(0, Resource.Wood));
+        }
+
+        [Fact]
+        public void CanEnhanceSeaportResource_ReturnsTrue_WithResearchAndMarketLevel4()
+        {
+            WorldState state = IslandTestFactory.CreateSevenHexIslandState();
+            var civ = state.Civilizations[0];
+            civ.Cities[0].Buildings.Add(new Market { Level = 4 });
+            civ.TechnologyTree.CompleteResearch(TechnologyId.StorageOptimization);
+            civ.TechnologyTree.CompleteResearch(TechnologyId.SpecializedMarket);
+
+            var controller = new TradeController(state);
+
+            Assert.True(controller.CanEnhanceSeaportResource(0, Resource.Wood));
+        }
+
+        [Fact]
+        public void CanEnhanceSeaportResource_ReturnsFalse_WithResearchButMarketBelowLevel4()
+        {
+            WorldState state = IslandTestFactory.CreateSevenHexIslandState();
+            var civ = state.Civilizations[0];
+            civ.Cities[0].Buildings.Add(new Market { Level = 2 });
+            civ.TechnologyTree.CompleteResearch(TechnologyId.StorageOptimization);
+            civ.TechnologyTree.CompleteResearch(TechnologyId.SpecializedMarket);
+
+            var controller = new TradeController(state);
+
+            Assert.False(controller.CanEnhanceSeaportResource(0, Resource.Wood));
         }
     }
 

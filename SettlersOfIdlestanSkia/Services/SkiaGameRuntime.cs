@@ -204,9 +204,10 @@ public sealed class SkiaGameRuntime : IDisposable
 
     private bool _isCanvasInitialized;
 
+    /// <summary>Définit l'échelle UI automatique détectée par la plateforme hôte (densité d'écran, grande résolution…).</summary>
     public void SetUiScale(float scale)
     {
-        if (_uiLayoutService != null) _uiLayoutService.UiScale = scale;
+        if (_uiLayoutService != null) _uiLayoutService.AutoUiScale = scale;
         _gameScreen?.SetUiScale(scale);
     }
 
@@ -275,7 +276,8 @@ public sealed class SkiaGameRuntime : IDisposable
 
     public void HandleKeyPressed(string key)
     {
-        if (!_onTitleScreen) _gameScreen?.HandleKeyPressed(key, _allowDebugMode);
+        if (_onTitleScreen) _titleScreen?.HandleKeyPressed(key);
+        else                _gameScreen?.HandleKeyPressed(key, _allowDebugMode);
     }
 
     public void NotifyPageVisible(double hiddenSeconds)

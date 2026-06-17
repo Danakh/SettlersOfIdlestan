@@ -69,7 +69,7 @@ namespace SettlersOfIdlestan.Controller.Island
         // 10 s × 100 ticks/s — intervalle de base de production de consommables par la Forge (niv. 1)
         public const long ForgeConsumableBaseIntervalTicks = 1000L;
 
-        private GamePRNG _prng = new();
+        private GamePRNG? _prng;
         private long _lastPassiveGenTick = 0;
 
         private readonly record struct ProductionEntry(HexCoord Hex, City City, Building Building, Resource Resource);
@@ -161,9 +161,9 @@ namespace SettlersOfIdlestan.Controller.Island
 
                     bool goldBonus = building is Mine && resource == Resource.Ore
                         && civ.MineGoldChancePercent > 0
-                        && _prng.Next(100) < civ.MineGoldChancePercent;
+                        && _prng!.Next(100) < civ.MineGoldChancePercent;
 
-                    TryAutoTradeOnOverflow(civ, resource);
+                    TryAutoTradeOnOverflow(civ, city, resource);
                     civ.AddResource(resource, 1);
 
                     harvested ??= new System.Collections.Generic.Dictionary<(HexCoord, City), ResourceSet>();
@@ -174,7 +174,7 @@ namespace SettlersOfIdlestan.Controller.Island
 
                     if (goldBonus)
                     {
-                        TryAutoTradeOnOverflow(civ, Resource.Gold);
+                        TryAutoTradeOnOverflow(civ, city, Resource.Gold);
                         civ.AddResource(Resource.Gold, 1);
                         rs[Resource.Gold] += 1;
                     }
@@ -183,18 +183,18 @@ namespace SettlersOfIdlestan.Controller.Island
                     int forgeChance = forge != null ? forge.DoubleProdChancePercent + civ.ForgeDoubleHarvestBonus * forge.Level : 0;
                     int forgeBonus = 0;
                     if (forge != null && forge.Level > 0)
-                        forgeBonus = forgeChance / 100 + (_prng.Next(100) < forgeChance % 100 ? 1 : 0);
+                        forgeBonus = forgeChance / 100 + (_prng!.Next(100) < forgeChance % 100 ? 1 : 0);
                     int harvestProductionChance = civ.GetHarvestProductionBonus(building.Type.ToString());
-                    bool harvestDoubled = harvestProductionChance > 0 && _prng.Next(100) < harvestProductionChance;
+                    bool harvestDoubled = harvestProductionChance > 0 && _prng!.Next(100) < harvestProductionChance;
                     int multiplier = (1 + forgeBonus) * (harvestDoubled ? 2 : 1);
                     for (int i = 1; i < multiplier; i++)
                     {
-                        TryAutoTradeOnOverflow(civ, resource);
+                        TryAutoTradeOnOverflow(civ, city, resource);
                         civ.AddResource(resource, 1);
                         rs[resource] += 1;
                         if (goldBonus)
                         {
-                            TryAutoTradeOnOverflow(civ, Resource.Gold);
+                            TryAutoTradeOnOverflow(civ, city, Resource.Gold);
                             civ.AddResource(Resource.Gold, 1);
                             rs[Resource.Gold] += 1;
                         }
@@ -266,8 +266,8 @@ namespace SettlersOfIdlestan.Controller.Island
 
                     if (now - seaport.LastGenerationTick < effectiveCooldown) continue;
 
-                    var resource = ResourceUtils.BasicResources[_prng.Next(ResourceUtils.BasicResources.Count)];
-                    TryAutoTradeOnOverflow(civ, resource);
+                    var resource = ResourceUtils.BasicResources[_prng!.Next(ResourceUtils.BasicResources.Count)];
+                    TryAutoTradeOnOverflow(civ, city, resource);
                     civ.AddResource(resource, 1);
                     seaport.LastGenerationTick = now;
                     OnRandomResourceGenerated?.Invoke(this, new MarketGenerationEventArgs(civ.Index, resource, city.Position));
@@ -293,8 +293,7 @@ namespace SettlersOfIdlestan.Controller.Island
                         continue;
                     }
 
-                    double marketSpeedMultiplier = civ.ModifierAggregator.ApplyModifiers(ECategory.MARKET_GOLD_SPEED, "", 1.0);
-                    long effectiveCooldown = (long)(MarketGoldGenerationCooldownTicks / marketSpeedMultiplier);
+                    long effectiveCooldown = GetEffectiveMarketGoldGenerationCooldown(civ, market.Level);
                     if (now - market.LastGoldGenerationTick < effectiveCooldown) continue;
 
                     civ.AddResource(Resource.Gold, 1);
@@ -320,7 +319,7 @@ namespace SettlersOfIdlestan.Controller.Island
                         smelter.LastProductionTick = currentTick;
                         continue;
                     }
-                    if (currentTick - smelter.LastProductionTick < GetEffectiveSmelterCooldown(civ)) continue;
+                    if (currentTick - smelter.LastProductionTick < GetEffectiveSmelterCooldown(civ, smelter)) continue;
 
                     int oreInput = GetSmelterOreInput(civ);
                     if (civ.GetResourceQuantity(Resource.Ore) < oreInput)
@@ -369,6 +368,14 @@ namespace SettlersOfIdlestan.Controller.Island
             return Math.Max(1L, (long)(SeaportGenerationCooldownTicks * multiplier));
         }
 
+        /// <summary>Cooldown effectif de génération d'or du Marché (×0.9 par niveau), après application du modificateur MARKET_GOLD_SPEED.</summary>
+        public static long GetEffectiveMarketGoldGenerationCooldown(Civilization civ, int level)
+        {
+            double speedMultiplier = civ.ModifierAggregator.ApplyModifiers(ECategory.MARKET_GOLD_SPEED, "", 1.0);
+            long baseCooldown = (long)(MarketGoldGenerationCooldownTicks * Math.Pow(0.9, level - 1));
+            return Math.Max(1L, (long)(baseCooldown / speedMultiplier));
+        }
+
         private void PerformForgeConsumableProductions(long currentTick)
         {
             if (_state == null) return;
@@ -398,11 +405,12 @@ namespace SettlersOfIdlestan.Controller.Island
         public static long GetForgeConsumableInterval(int forgeLevel)
             => Math.Max(1L, (long)(ForgeConsumableBaseIntervalTicks * Math.Pow(0.9, forgeLevel - 1)));
 
-        /// <summary>Cooldown effectif du cycle de la Fonderie, après application du modificateur SMELTER_SPEED.</summary>
-        public static long GetEffectiveSmelterCooldown(Civilization civ)
+        /// <summary>Cooldown effectif du cycle de la Fonderie, après réduction par niveau puis application du modificateur SMELTER_SPEED.</summary>
+        public static long GetEffectiveSmelterCooldown(Civilization civ, Smelter smelter)
         {
+            long baseCooldown = smelter.GetAutomaticHarvestCooldown(Smelter.ProductionCooldownTicks);
             double speed = civ.ModifierAggregator.ApplyModifiers(ECategory.SMELTER_SPEED, "", 1.0);
-            return Math.Max(1L, (long)(Smelter.ProductionCooldownTicks / speed));
+            return Math.Max(1L, (long)(baseCooldown / speed));
         }
 
         /// <summary>Minerai consommé par cycle de la Fonderie, après application du modificateur SMELTER_ORE_INPUT.</summary>
@@ -483,10 +491,16 @@ namespace SettlersOfIdlestan.Controller.Island
             return result;
         }
 
-        private void TryAutoTradeOnOverflow(Civilization civ, Resource res)
+        /// <summary>
+        /// Vend automatiquement le surplus d'une ressource de base dès lors que la recherche Marché Automatique
+        /// est complétée et que la ville productrice possède un Marché niv.4+.
+        /// </summary>
+        private void TryAutoTradeOnOverflow(Civilization civ, City city, Resource res)
         {
             if (_tradeController == null) return;
-            if (!civ.SeaportAutoTradeResources.Contains(res)) return;
+            if (!ResourceUtils.BasicResources.Contains(res)) return;
+            if (!civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_AUTO_MARKET_TRADE)) return;
+            if (!city.Buildings.OfType<Market>().Any(m => m.Level >= 4)) return;
             if (civ.GetResourceQuantity(res) + 1 <= civ.GetResourceMaxQuantity(res)) return;
 
             _tradeController.SellResource(civ.Index, res);

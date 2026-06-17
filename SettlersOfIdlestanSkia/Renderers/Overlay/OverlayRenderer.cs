@@ -408,6 +408,7 @@ public sealed class OverlayRenderer : IGameRenderer
     {
         _isDraggingResources = false;
         if (!_isVisible) return;
+        if (_settingsPopupRenderer.IsOpen) _settingsPopupRenderer.HandlePointerReleased(e.Position);
         if (_tradeRenderer.IsOpen) _tradeRenderer.HandlePointerReleased(e.Position);
         if (_tabBar.ActiveTab == TabBarRenderer.TabPrestige)
             _prestigeMapRenderer.HandlePointerReleased(e.Position);
@@ -448,6 +449,7 @@ public sealed class OverlayRenderer : IGameRenderer
             _tradeRenderer.HandleKeyDown(e.Key);
             return;
         }
+        if (_settingsPopupRenderer.IsOpen && _settingsPopupRenderer.HandleKeyPressed(e.Key)) return;
         _tabBar.HandleKeyInput(e.Key);
     }
 

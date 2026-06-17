@@ -52,7 +52,7 @@ public class CityVsCityAttackTests
         var clock = new GameClock();
         clock.Start();
         var ctrl = new MilitaryController();
-        ctrl.Initialize(state, clock);
+        ctrl.Initialize(state, clock, prng: new GamePRNG());
 
         cityA.FlowTarget = VertexB; // cible d'attaque pour déclencher la logique
 

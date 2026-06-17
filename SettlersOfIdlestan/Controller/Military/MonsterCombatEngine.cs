@@ -15,11 +15,12 @@ namespace SettlersOfIdlestan.Controller.Military;
 internal class MonsterCombatEngine
 {
     private WorldState? _state;
-    private readonly GamePRNG _prng = new();
+    private GamePRNG? _prng;
 
-    internal void Initialize(WorldState? state)
+    internal void Initialize(WorldState? state, GamePRNG? prng = null)
     {
         _state = state;
+        _prng = prng;
     }
 
     internal void ResolveMonsterCombat(long currentTick,
@@ -48,10 +49,13 @@ internal class MonsterCombatEngine
     {
         if (_state == null) return false;
 
+        bool didAttack = false;
         foreach (var civ in _state.Civilizations)
         {
+            if (monster.Hp <= 0) break;
             foreach (var city in civ.Cities)
             {
+                if (monster.Hp <= 0) break;
                 if (city.Soldiers == 0) continue;
 
                 var cityHexes = city.Position.GetHexes();
@@ -63,15 +67,15 @@ internal class MonsterCombatEngine
                 if (hasSteelWeapon) civ.RemoveResource(Resource.SteelWeapon, 1);
 
                 // Armures d'Acier : le soldat peut survivre à l'assaut en consommant 1 Acier
-                if (SteelArmorEngine.TrySaveSoldiers(civ, city, 1, _prng) == 0)
+                if (SteelArmorEngine.TrySaveSoldiers(civ, city, 1, _prng!) == 0)
                     city.Soldiers--;
                 monster.Hp--;
                 if (hasSteelWeapon) monster.Hp--;
                 monster.LastAttackedByMilitaryTick = currentTick;
                 onSoldierAttackedMonster(new SoldierAttackEventArgs(city.Position, monster.Position));
-                return true;
+                didAttack = true;
             }
         }
-        return false;
+        return didAttack;
     }
 }

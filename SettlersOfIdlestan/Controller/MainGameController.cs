@@ -258,7 +258,7 @@ namespace SettlersOfIdlestan.Controller
                 // 7. Reste des controllers (BuildingController, CityBuilderController, etc.) — indépendants
                 RoadController.Initialize(WorldState, Clock, CurrentMainState!.PRNG);
                 FeatureController.Initialize(WorldState, Clock);
-                MilitaryController.Initialize(WorldState, Clock, RoadController);
+                MilitaryController.Initialize(WorldState, Clock, RoadController, CurrentMainState!.PRNG);
                 MonsterFeatureController.Initialize(WorldState, Clock, CurrentMainState!.PRNG);
                 TradeController.Initialize(WorldState);
                 HarvestController.Initialize(WorldState, Clock, TradeController, MonsterFeatureController, CurrentMainState!.PRNG);

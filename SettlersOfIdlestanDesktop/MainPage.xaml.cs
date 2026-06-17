@@ -41,7 +41,28 @@ public partial class MainPage : ContentPage
 #endif
 		bool demoMode = false;
 		_runtime.Initialize(new DesktopFileSystemService(), allowDebugMode, demoMode);
+		ApplyScreenBasedUiScale();
 		MainThread.BeginInvokeOnMainThread(() => Dispatcher.StartTimer(TimeSpan.FromMilliseconds(16), RenderFrame));
+	}
+
+	// Échelle UI par défaut sur les grands écrans : DeviceDisplay donne la taille physique
+	// de l'écran (et non celle de la fenêtre/zone d'affichage), ce qui permet de détecter
+	// les résolutions élevées même si l'app démarre dans une petite fenêtre.
+	private void ApplyScreenBasedUiScale()
+	{
+		try
+		{
+			var display = Microsoft.Maui.Devices.DeviceDisplay.Current.MainDisplayInfo;
+			if (display.Width > 1920)
+			{
+				float scale = Math.Clamp((float)(display.Width / 1920.0), 1f, 2f);
+				_runtime?.SetUiScale(scale);
+			}
+		}
+		catch
+		{
+			// DeviceDisplay indisponible sur cette plateforme — pas d'échelle automatique.
+		}
 	}
 
 #if WINDOWS
@@ -95,6 +116,8 @@ public partial class MainPage : ContentPage
 		Windows.System.VirtualKey.S => "S",
 		Windows.System.VirtualKey.C => "C",
 		Windows.System.VirtualKey.Escape => "Escape",
+		Windows.System.VirtualKey.Left => "ArrowLeft",
+		Windows.System.VirtualKey.Right => "ArrowRight",
 		Windows.System.VirtualKey.Control or
 		Windows.System.VirtualKey.LeftControl or
 		Windows.System.VirtualKey.RightControl => "Control",

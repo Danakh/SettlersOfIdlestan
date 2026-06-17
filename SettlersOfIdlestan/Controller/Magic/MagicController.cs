@@ -28,7 +28,7 @@ namespace SettlersOfIdlestan.Controller.Magic
 
         private WorldState? _state;
         private GameClock? _clock;
-        private GamePRNG? _prng = new();
+        private GamePRNG? _prng;
         private MagicModifierProvider? _provider;
         private long _lastPassiveTick;
 

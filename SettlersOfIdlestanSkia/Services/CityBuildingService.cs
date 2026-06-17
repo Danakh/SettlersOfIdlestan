@@ -171,6 +171,14 @@ public class CityBuildingService
         return HarvestController.GetEffectiveSeaportGenerationCooldown(seaport);
     }
 
+    /// <summary>Cooldown effectif de génération d'or du Marché de la civilisation sélectionnée.</summary>
+    public long GetMarketGoldGenerationCooldown(Market market, int? atLevel = null)
+    {
+        var civ = SelectedCivilization;
+        return civ == null ? HarvestController.MarketGoldGenerationCooldownTicks
+            : HarvestController.GetEffectiveMarketGoldGenerationCooldown(civ, atLevel ?? market.Level);
+    }
+
     private Civilization? SelectedCivilization
     {
         get
@@ -186,7 +194,8 @@ public class CityBuildingService
     public long GetSmelterEffectiveCooldown()
     {
         var civ = SelectedCivilization;
-        return civ == null ? Smelter.ProductionCooldownTicks : HarvestController.GetEffectiveSmelterCooldown(civ);
+        var smelter = SelectedCity?.Buildings.OfType<Smelter>().FirstOrDefault();
+        return civ == null || smelter == null ? Smelter.ProductionCooldownTicks : HarvestController.GetEffectiveSmelterCooldown(civ, smelter);
     }
 
     /// <summary>Minerai consommé par coulée de la Fonderie de la civilisation sélectionnée.</summary>
