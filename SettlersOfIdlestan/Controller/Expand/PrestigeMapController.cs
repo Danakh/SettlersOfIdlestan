@@ -90,20 +90,25 @@ public class PrestigeMapController
 
         // STARTING_CITY_BUILDING: initial city only
         foreach (var bt in civ.ModifierAggregator.GetGrantedBuildingTypes(ECategory.STARTING_CITY_BUILDING))
-            GrantBuildingToCity(startingCity, bt);
+            GrantBuildingToCity(WorldState, startingCity, bt);
 
         // NEW_CITY_BUILDING: every outpost — apply to initial city here, BuildCity handles the rest
         foreach (var city in civ.Cities)
             foreach (var bt in civ.ModifierAggregator.GetGrantedBuildingTypes(ECategory.NEW_CITY_BUILDING))
-                GrantBuildingToCity(city, bt);
+                GrantBuildingToCity(WorldState, city, bt);
     }
 
-    private static void GrantBuildingToCity(City city, BuildingType bt)
+    private static void GrantBuildingToCity(WorldState worldState, City city, BuildingType bt)
     {
         if (!city.Buildings.Any(b => b.Type == bt))
         {
             var building = BuildingController.CreateBuilding(bt);
-            if (building != null) { building.Level = 1; city.Buildings.Add(building); if (bt == BuildingType.TownHall) city.InvalidateLevelCache(); }
+            if (building == null) return;
+            var map = worldState.GetMapFor(city.Position);
+            if (map == null || !building.IsAvailableInLayer(map.Z)) return;
+            building.Level = 1;
+            city.Buildings.Add(building);
+            if (bt == BuildingType.TownHall) city.InvalidateLevelCache();
         }
     }
 }

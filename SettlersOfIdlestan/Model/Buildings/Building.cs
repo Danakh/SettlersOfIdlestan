@@ -306,6 +306,13 @@ public class Building
     }
 
     /// <summary>
+    /// Determines if this building type can exist on the given map layer (e.g. surface vs. underworld).
+    /// Used both for normal construction checks and for prestige-granted free buildings,
+    /// which otherwise bypass <see cref="IsBuildingAvailableForCity"/>.
+    /// </summary>
+    public virtual bool IsAvailableInLayer(int z) => true;
+
+    /// <summary>
     /// Returns the max-defense bonus this building contributes to its city.
     /// CurrentDefense is immediately increased by this amount when the building is constructed.
     /// </summary>

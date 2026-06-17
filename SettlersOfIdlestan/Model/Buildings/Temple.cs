@@ -27,8 +27,10 @@ public class Temple : Building
         { Resource.Stone, 20 * (level + 1) }
     };
 
+    public override bool IsAvailableInLayer(int z) => z == IslandMap.IslandMap.SurfaceLayer;
+
     public override bool IsBuildingAvailableForCity(IslandMap.IslandMap map, IBuildingContext city)
     {
-        return (map.Z == IslandMap.IslandMap.SurfaceLayer) && base.IsBuildingAvailableForCity(map, city);
+        return IsAvailableInLayer(map.Z) && base.IsBuildingAvailableForCity(map, city);
     }
 }
