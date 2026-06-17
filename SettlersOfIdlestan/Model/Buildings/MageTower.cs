@@ -12,7 +12,7 @@ public class MageTower : Building
 {
     public MageTower() : base(BuildingType.MageTower)
     {
-        AvailableAtLevel = 2;
+        AvailableAtLevel = 4;
     }
 
     // Verrouillé par défaut ; débloqué par le vertex de prestige Secret de la Magie (+3 niveaux max)

@@ -17,11 +17,14 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay.Tabs;
 public sealed class RitualsRenderer : IDisposable
 {
     private const float Padding = 20f;
-    private const float RowHeight = 78f;
+    private const float RowMinHeight = 78f;
     private const float RowSpacing = 8f;
     private const float ButtonWidth = 76f;
     private const float ButtonHeight = 26f;
     private const float PowerButtonSize = 26f;
+    private const float TextLeftPad = 14f;
+    private const float TextRightGap = 10f;
+    private const float TextBottomPad = 14f;
 
     private readonly GameControllerService _gameControllerService;
     private readonly LocalizationService _localization;
@@ -30,6 +33,15 @@ public sealed class RitualsRenderer : IDisposable
     private SKSize _canvasSize;
     private bool _disposed;
     private SKPoint _hoverPosition;
+
+    private float _scrollOffsetPx        = 0f;
+    private float _totalContentH         = 0f;
+    private float _viewportH             = 0f;
+    private bool  _isDraggingScrollbar   = false;
+    private float _scrollDragStartY      = 0f;
+    private float _scrollDragStartOffset = 0f;
+    private SKRect _scrollTrackRect      = SKRect.Empty;
+    private SKRect _scrollThumbRect      = SKRect.Empty;
 
     private readonly List<(RitualId id, SKRect launchRect, SKRect minusRect, SKRect plusRect)> _buttonRects = new();
     private readonly List<(SpellId id, SKRect castRect)> _spellButtonRects = new();
@@ -52,6 +64,9 @@ public sealed class RitualsRenderer : IDisposable
     private readonly SKPaint _mutedPaint        = new() { Color = new SKColor(110, 110, 125), IsAntialias = true };
     private readonly SKPaint _accentPaint       = new() { Color = new SKColor(190, 150, 255), IsAntialias = true };
     private readonly SKPaint _summaryPaint      = new() { Color = new SKColor(200, 200, 215), IsAntialias = true };
+    private readonly SKPaint _warningPaint      = new() { Color = new SKColor(210, 140, 90), IsAntialias = true };
+    private readonly SKPaint _scrollTrackPaint  = new() { Color = new SKColor(50, 50, 65, 200), Style = SKPaintStyle.Fill, IsAntialias = true };
+    private readonly SKPaint _scrollThumbPaint  = new() { Color = new SKColor(130, 130, 165, 210), Style = SKPaintStyle.Fill, IsAntialias = true };
 
     private readonly SKFont _headerFont = new() { Size = 17, Typeface = SkiaFonts.Bold };
     private readonly SKFont _nameFont   = new() { Size = 13, Typeface = SkiaFonts.Bold };
@@ -80,6 +95,15 @@ public sealed class RitualsRenderer : IDisposable
         float topBar = PlayerResourcesOverlayRenderer.BarHeight * context.UiScale;
         canvas.DrawRect(new SKRect(0, topBar, _canvasSize.Width, _canvasSize.Height), _bgPaint);
 
+        _viewportH = _canvasSize.Height - topBar;
+        float maxScroll = Math.Max(0, _totalContentH - _viewportH);
+        _scrollOffsetPx = Math.Clamp(_scrollOffsetPx, 0, maxScroll);
+        bool needsScroll = _totalContentH > _viewportH + 1f;
+
+        canvas.Save();
+        canvas.ClipRect(new SKRect(0, topBar, _canvasSize.Width, _canvasSize.Height));
+        canvas.Translate(0, -_scrollOffsetPx);
+
         float contentWidth = Math.Min(640f, _canvasSize.Width - Padding * 2);
         float x = (_canvasSize.Width - contentWidth) / 2;
         float y = topBar + Padding;
@@ -89,7 +113,7 @@ public sealed class RitualsRenderer : IDisposable
 
         var civ = _gameControllerService.PlayerCivilization;
         var magic = _gameControllerService.MainGameController.MagicController;
-        if (civ == null) return;
+        if (civ == null) { canvas.Restore(); return; }
 
         // ── Résumé : tours, rituels actifs, puissance, cristaux ───────────────
         int crystals = civ.GetResourceQuantity(Resource.Crystal);
@@ -114,10 +138,7 @@ public sealed class RitualsRenderer : IDisposable
         else
         {
             foreach (var def in known)
-            {
-                if (y + RowHeight > _canvasSize.Height - Padding) break;
                 y += DrawRitualRow(canvas, x, y, contentWidth, def, magic) + RowSpacing;
-            }
         }
 
         // ── Sorts instantanés ───────────────────────────────────────────────
@@ -129,10 +150,54 @@ public sealed class RitualsRenderer : IDisposable
             y += 24f;
 
             foreach (var def in knownSpells)
-            {
-                if (y + RowHeight > _canvasSize.Height - Padding) break;
                 y += DrawSpellRow(canvas, x, y, contentWidth, def, magic) + RowSpacing;
-            }
+        }
+
+        canvas.Restore();
+
+        _totalContentH = y + Padding - topBar;
+
+        if (needsScroll)
+            DrawScrollbar(canvas, topBar, _viewportH);
+    }
+
+    /// <summary>
+    /// Mesure le texte (nom / description / coût / avertissement optionnel) wrappé sur la largeur
+    /// disponible, en réservant la colonne des boutons à droite. Retourne les layouts et la hauteur
+    /// totale de carte nécessaire.
+    /// </summary>
+    private (WrappedTextLayout name, WrappedTextLayout desc, WrappedTextLayout cost, WrappedTextLayout? warning, float cardHeight) MeasureCardText(
+        string name, string desc, string costText, string? warningText, float width)
+    {
+        float maxWidth = width - TextLeftPad - ButtonWidth - TextLeftPad - TextRightGap;
+
+        var nameLayout = SkiaTextUtils.MeasureWrappedText(name, maxWidth, _nameFont);
+        var descLayout = SkiaTextUtils.MeasureWrappedText(desc, maxWidth, _descFont);
+        var costLayout = SkiaTextUtils.MeasureWrappedText(costText, maxWidth, _descFont);
+        WrappedTextLayout? warningLayout = warningText == null ? null
+            : SkiaTextUtils.MeasureWrappedText(warningText, maxWidth, _descFont);
+
+        float contentHeight = 19f + nameLayout.Size.Height + 4f + descLayout.Size.Height + 6f + costLayout.Size.Height;
+        if (warningLayout != null) contentHeight += 6f + warningLayout.Size.Height;
+        contentHeight += TextBottomPad;
+        float cardHeight = Math.Max(RowMinHeight, contentHeight);
+
+        return (nameLayout, descLayout, costLayout, warningLayout, cardHeight);
+    }
+
+    private void DrawCardText(SKCanvas canvas, float textX, float y,
+        WrappedTextLayout nameLayout, WrappedTextLayout descLayout, WrappedTextLayout costLayout, WrappedTextLayout? warningLayout)
+    {
+        float curY = y + 19f;
+        SkiaTextUtils.DrawTextLayout(canvas, nameLayout, textX, curY, _nameFont, _namePaint);
+        curY += nameLayout.Size.Height + 4f;
+        SkiaTextUtils.DrawTextLayout(canvas, descLayout, textX, curY, _descFont, _descPaint);
+        curY += descLayout.Size.Height + 6f;
+        SkiaTextUtils.DrawTextLayout(canvas, costLayout, textX, curY, _descFont, _costPaint);
+        if (warningLayout != null)
+        {
+            curY += costLayout.Size.Height + 6f;
+            SkiaTextUtils.DrawTextLayout(canvas, warningLayout, textX, curY, _descFont, _warningPaint);
         }
     }
 
@@ -142,20 +207,21 @@ public sealed class RitualsRenderer : IDisposable
         var active = magic.GetActiveRitual(def.Id);
         bool isActive = active != null;
 
-        var cardRect = new SKRect(x, y, x + width, y + RowHeight);
-        canvas.DrawRoundRect(cardRect, 6, 6, isActive ? _cardActivePaint : _cardPaint);
-        canvas.DrawRoundRect(cardRect, 6, 6, isActive ? _cardActiveBorder : _cardBorderPaint);
-
-        float textX = x + 14f;
-        SkiaTextUtils.DrawText(canvas, _localization.Get(def.NameKey), textX, y + 19, _nameFont, _namePaint);
-        SkiaTextUtils.DrawText(canvas, _localization.Get(def.DescKey), textX, y + 37, _descFont, _descPaint);
-
         // Coûts : lancement (puissance 1) ou entretien courant
         string costText = isActive
             ? _localization.GetFormated("ritual_upkeep_cost", magic.GetUpkeepCost(def, active!.Power))
             : _localization.GetFormated("ritual_launch_cost",
                 SettlersOfIdlestan.Controller.Magic.MagicController.GetLaunchCost(def, 1));
-        SkiaTextUtils.DrawText(canvas, costText, textX, y + 58, _descFont, _costPaint);
+
+        var (nameLayout, descLayout, costLayout, warningLayout, cardHeight) = MeasureCardText(
+            _localization.Get(def.NameKey), _localization.Get(def.DescKey), costText, null, width);
+
+        var cardRect = new SKRect(x, y, x + width, y + cardHeight);
+        canvas.DrawRoundRect(cardRect, 6, 6, isActive ? _cardActivePaint : _cardPaint);
+        canvas.DrawRoundRect(cardRect, 6, 6, isActive ? _cardActiveBorder : _cardBorderPaint);
+
+        float textX = x + TextLeftPad;
+        DrawCardText(canvas, textX, y, nameLayout, descLayout, costLayout, warningLayout);
 
         // ── Bouton Lancer / Arrêter ────────────────────────────────────────────
         float buttonX = x + width - ButtonWidth - 14f;
@@ -211,33 +277,37 @@ public sealed class RitualsRenderer : IDisposable
         }
 
         _buttonRects.Add((def.Id, launchRect, minusRect, plusRect));
-        return RowHeight;
+        return cardHeight;
     }
 
     private float DrawSpellRow(SKCanvas canvas, float x, float y, float width,
         SpellDefinition def, SettlersOfIdlestan.Controller.Magic.MagicController magic)
     {
-        var cardRect = new SKRect(x, y, x + width, y + RowHeight);
-        canvas.DrawRoundRect(cardRect, 6, 6, _cardPaint);
-        canvas.DrawRoundRect(cardRect, 6, 6, _cardBorderPaint);
-
-        float textX = x + 14f;
-        SkiaTextUtils.DrawText(canvas, _localization.Get(def.NameKey), textX, y + 19, _nameFont, _namePaint);
-        SkiaTextUtils.DrawText(canvas, _localization.Get(def.DescKey), textX, y + 37, _descFont, _descPaint);
-
         string costText = def.TargetKind switch
         {
             SpellTargetKind.AllyCity => _localization.GetFormated("spell_cast_cost_troops", def.CrystalCost, def.TroopReward),
             SpellTargetKind.BuildableVertex => _localization.GetFormated("spell_cast_cost_city", def.CrystalCost),
             _ => _localization.GetFormated("spell_cast_cost", def.CrystalCost, def.GoldReward),
         };
-        SkiaTextUtils.DrawText(canvas, costText, textX, y + 58, _descFont, _costPaint);
+
+        bool canCast = magic.CanCastSpell(def.Id);
+        string? blockedReasonKey = canCast ? null : magic.GetSpellBlockedReasonKey(def.Id);
+        string? warningText = blockedReasonKey != null ? _localization.Get(blockedReasonKey) : null;
+
+        var (nameLayout, descLayout, costLayout, warningLayout, cardHeight) = MeasureCardText(
+            _localization.Get(def.NameKey), _localization.Get(def.DescKey), costText, warningText, width);
+
+        var cardRect = new SKRect(x, y, x + width, y + cardHeight);
+        canvas.DrawRoundRect(cardRect, 6, 6, _cardPaint);
+        canvas.DrawRoundRect(cardRect, 6, 6, _cardBorderPaint);
+
+        float textX = x + TextLeftPad;
+        DrawCardText(canvas, textX, y, nameLayout, descLayout, costLayout, warningLayout);
 
         float buttonX = x + width - ButtonWidth - 14f;
-        float buttonY = y + (RowHeight - ButtonHeight) / 2f;
+        float buttonY = y + (cardHeight - ButtonHeight) / 2f;
         var castRect = new SKRect(buttonX, buttonY, buttonX + ButtonWidth, buttonY + ButtonHeight);
         bool hovered = castRect.Contains(_hoverPosition.X, _hoverPosition.Y);
-        bool canCast = magic.CanCastSpell(def.Id);
 
         SKPaint buttonPaint = canCast ? (hovered ? _launchHoverPaint : _launchPaint) : _disabledPaint;
         canvas.DrawRoundRect(castRect, 5, 5, buttonPaint);
@@ -245,29 +315,58 @@ public sealed class RitualsRenderer : IDisposable
         SkiaTextUtils.DrawText(canvas, _localization.Get("spell_button_cast"), castRect.MidX, castRect.MidY + 4, SKTextAlign.Center, _buttonFont, _buttonTextPaint);
 
         _spellButtonRects.Add((def.Id, castRect));
-        return RowHeight;
+        return cardHeight;
     }
 
-    public void HandlePointerMoved(SKPoint position) => _hoverPosition = position;
+    public void HandlePointerMoved(SKPoint position)
+    {
+        if (_isDraggingScrollbar)
+        {
+            float dy         = position.Y - _scrollDragStartY;
+            float thumbRange = _scrollTrackRect.Height - _scrollThumbRect.Height;
+            float maxScroll  = Math.Max(0, _totalContentH - _viewportH);
+            float scrollPerPx = thumbRange > 0 ? maxScroll / thumbRange : 0;
+            _scrollOffsetPx  = Math.Clamp(_scrollDragStartOffset + dy * scrollPerPx, 0, maxScroll);
+            return;
+        }
+
+        _hoverPosition = new SKPoint(position.X, position.Y + _scrollOffsetPx);
+    }
 
     public bool HandlePointerPressed(SKPoint position)
     {
+        if (!_scrollThumbRect.IsEmpty && _scrollThumbRect.Contains(position.X, position.Y))
+        {
+            _isDraggingScrollbar   = true;
+            _scrollDragStartY      = position.Y;
+            _scrollDragStartOffset = _scrollOffsetPx;
+            return true;
+        }
+        if (!_scrollTrackRect.IsEmpty && _scrollTrackRect.Contains(position.X, position.Y))
+        {
+            float relY      = position.Y - _scrollTrackRect.Top;
+            float maxScroll = Math.Max(0, _totalContentH - _viewportH);
+            _scrollOffsetPx = Math.Clamp(relY / _scrollTrackRect.Height * maxScroll, 0, maxScroll);
+            return true;
+        }
+
         var magic = _gameControllerService.MainGameController.MagicController;
+        var adj = new SKPoint(position.X, position.Y + _scrollOffsetPx);
 
         foreach (var (id, launchRect, minusRect, plusRect) in _buttonRects)
         {
-            if (!launchRect.IsEmpty && launchRect.Contains(position.X, position.Y))
+            if (!launchRect.IsEmpty && launchRect.Contains(adj.X, adj.Y))
             {
                 if (magic.GetActiveRitual(id) != null) magic.StopRitual(id);
                 else magic.LaunchRitual(id);
                 return true;
             }
-            if (!minusRect.IsEmpty && minusRect.Contains(position.X, position.Y))
+            if (!minusRect.IsEmpty && minusRect.Contains(adj.X, adj.Y))
             {
                 magic.DecreaseRitualPower(id);
                 return true;
             }
-            if (!plusRect.IsEmpty && plusRect.Contains(position.X, position.Y))
+            if (!plusRect.IsEmpty && plusRect.Contains(adj.X, adj.Y))
             {
                 magic.IncreaseRitualPower(id);
                 return true;
@@ -276,13 +375,43 @@ public sealed class RitualsRenderer : IDisposable
 
         foreach (var (id, castRect) in _spellButtonRects)
         {
-            if (castRect.Contains(position.X, position.Y))
+            if (castRect.Contains(adj.X, adj.Y))
             {
                 CastOrTargetSpell(id, magic);
                 return true;
             }
         }
         return false;
+    }
+
+    public void HandlePointerReleased(SKPoint position)
+    {
+        _isDraggingScrollbar = false;
+    }
+
+    public void HandleScroll(float delta)
+    {
+        const float step = 60f;
+        float dir = delta > 0 ? -1f : 1f;
+        float maxScroll = Math.Max(0, _totalContentH - _viewportH);
+        _scrollOffsetPx = Math.Clamp(_scrollOffsetPx + dir * step, 0, maxScroll);
+    }
+
+    private void DrawScrollbar(SKCanvas canvas, float trackTop, float trackH)
+    {
+        const float scrollW      = 6f;
+        const float scrollMargin = 4f;
+        float trackX = _canvasSize.Width - scrollW - scrollMargin;
+
+        _scrollTrackRect = new SKRect(trackX, trackTop, trackX + scrollW, trackTop + trackH);
+        canvas.DrawRoundRect(_scrollTrackRect, 3, 3, _scrollTrackPaint);
+
+        float thumbRatio = _viewportH / _totalContentH;
+        float thumbH     = Math.Max(24f, thumbRatio * trackH);
+        float maxScroll  = Math.Max(1, _totalContentH - _viewportH);
+        float thumbTop   = trackTop + (_scrollOffsetPx / maxScroll) * (trackH - thumbH);
+        _scrollThumbRect = new SKRect(trackX, thumbTop, trackX + scrollW, thumbTop + thumbH);
+        canvas.DrawRoundRect(_scrollThumbRect, 3, 3, _scrollThumbPaint);
     }
 
     private void CastOrTargetSpell(SpellId id, SettlersOfIdlestan.Controller.Magic.MagicController magic)
@@ -331,6 +460,9 @@ public sealed class RitualsRenderer : IDisposable
         _mutedPaint.Dispose();
         _accentPaint.Dispose();
         _summaryPaint.Dispose();
+        _warningPaint.Dispose();
+        _scrollTrackPaint.Dispose();
+        _scrollThumbPaint.Dispose();
         _headerFont.Dispose();
         _nameFont.Dispose();
         _descFont.Dispose();

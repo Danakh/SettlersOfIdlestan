@@ -232,7 +232,24 @@ namespace SettlersOfIdlestan.Controller.Magic
             var def = SpellDefinitions.Get(id);
             if (civ == null || def == null) return false;
             if (!IsMagicUnlocked() || !IsSpellKnown(id)) return false;
+            if (def.TargetKind == SpellTargetKind.AllyCity && GetAllyCityTargets().Count == 0) return false;
+            if (def.TargetKind == SpellTargetKind.BuildableVertex && GetBuildableCityTargets().Count == 0) return false;
             return civ.GetResourceQuantity(Resource.Crystal) >= def.CrystalCost;
+        }
+
+        /// <summary>
+        /// Clé de localisation expliquant pourquoi un sort connu ne peut pas être lancé actuellement
+        /// (absence de cible valide ou cristaux insuffisants), ou null s'il est castable.
+        /// </summary>
+        public string? GetSpellBlockedReasonKey(SpellId id)
+        {
+            var civ = GetPlayerCiv();
+            var def = SpellDefinitions.Get(id);
+            if (civ == null || def == null) return null;
+            if (def.TargetKind == SpellTargetKind.AllyCity && GetAllyCityTargets().Count == 0) return "spell_blocked_no_ally_city";
+            if (def.TargetKind == SpellTargetKind.BuildableVertex && GetBuildableCityTargets().Count == 0) return "spell_blocked_no_buildable_vertex";
+            if (civ.GetResourceQuantity(Resource.Crystal) < def.CrystalCost) return "spell_blocked_crystals";
+            return null;
         }
 
         /// <summary>Lance un sort sans ciblage : effet instantané, sans entretien ni puissance.</summary>

@@ -538,5 +538,60 @@ namespace SOITests.ControllerTests
             Assert.False(controller.CastSpellOnVertex(SpellId.ArcaneEdification, targetVertex));
             Assert.DoesNotContain(civ.Cities, c => c.Position.Equals(targetVertex));
         }
+
+        // ── Raisons de blocage (UI : sort grisé + explication) ────────────────
+
+        [Fact]
+        public void CanCastSpell_FailsWithoutBuildableVertex()
+        {
+            var (state, _, controller) = CreateSetup();
+            var civ = state.PlayerCivilization;
+            UnlockSpells(civ, SpellId.ArcaneEdification);
+            GrantCrystalStorage(civ, 1000);
+            civ.AddResource(Resource.Crystal, 1000);
+
+            // Aucune route n'a été ajoutée : pas de vertex constructible.
+            Assert.False(controller.CanCastSpell(SpellId.ArcaneEdification));
+            Assert.Equal("spell_blocked_no_buildable_vertex", controller.GetSpellBlockedReasonKey(SpellId.ArcaneEdification));
+        }
+
+        [Fact]
+        public void GetSpellBlockedReasonKey_ReturnsCrystalsReasonWhenTargetExists()
+        {
+            var (state, _, controller) = CreateSetup();
+            var civ = state.PlayerCivilization;
+            UnlockSpells(civ, SpellId.ArcaneEdification);
+            AddFarBuildableVertex(civ);
+
+            // Pas assez de cristaux (capacité de stockage par défaut très basse).
+            Assert.False(controller.CanCastSpell(SpellId.ArcaneEdification));
+            Assert.Equal("spell_blocked_crystals", controller.GetSpellBlockedReasonKey(SpellId.ArcaneEdification));
+        }
+
+        [Fact]
+        public void GetSpellBlockedReasonKey_ReturnsNoAllyCityReasonWhenNoCities()
+        {
+            var (state, _, controller) = CreateSetup();
+            var civ = state.PlayerCivilization;
+            UnlockSpells(civ, SpellId.SummonTroops);
+            civ.RemoveCity(civ.Cities[0]);
+
+            Assert.False(controller.CanCastSpell(SpellId.SummonTroops));
+            Assert.Equal("spell_blocked_no_ally_city", controller.GetSpellBlockedReasonKey(SpellId.SummonTroops));
+        }
+
+        [Fact]
+        public void GetSpellBlockedReasonKey_ReturnsNullWhenCastable()
+        {
+            var (state, _, controller) = CreateSetup();
+            var civ = state.PlayerCivilization;
+            UnlockSpells(civ, SpellId.ArcaneEdification);
+            GrantCrystalStorage(civ, 1000);
+            civ.AddResource(Resource.Crystal, 1000);
+            AddFarBuildableVertex(civ);
+
+            Assert.True(controller.CanCastSpell(SpellId.ArcaneEdification));
+            Assert.Null(controller.GetSpellBlockedReasonKey(SpellId.ArcaneEdification));
+        }
     }
 }
