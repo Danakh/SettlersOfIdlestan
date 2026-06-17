@@ -324,22 +324,6 @@ public class Civilization
 
     public void AddSeaportEnhancedResource(Resource resource) => _seaportEnhancedResources.Add(resource);
 
-    private List<Resource> _seaportAutoTradeResources = new();
-
-    /// <summary>Resources for which a level-4 Seaport has activated permanent auto-trade (one slot per level-4 Seaport).</summary>
-    [JsonIgnore]
-    public IReadOnlyList<Resource> SeaportAutoTradeResources => _seaportAutoTradeResources;
-
-    [JsonPropertyName("SeaportAutoTradeResources")]
-    [JsonInclude]
-    public List<Resource> SeaportAutoTradeResourcesSerialized
-    {
-        get => _seaportAutoTradeResources;
-        private set => _seaportAutoTradeResources = value ?? new();
-    }
-
-    public void AddSeaportAutoTradeResource(Resource resource) => _seaportAutoTradeResources.Add(resource);
-
     public event EventHandler<Resource>? LowStock;
 
     internal void RaiseLowStock(Resource resource) => LowStock?.Invoke(this, resource);

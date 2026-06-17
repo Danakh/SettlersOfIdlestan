@@ -72,6 +72,10 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             UNLOCK_STEEL_ARMOR,
             /// <summary>Flags que la vente d'Acier au marché est déverrouillée (prix premium).</summary>
             UNLOCK_STEEL_TRADE,
+            /// <summary>Flags que la vente automatique du surplus est déverrouillée pour les villes possédant un Marché niv.4+.</summary>
+            UNLOCK_AUTO_MARKET_TRADE,
+            /// <summary>Flags que la spécialisation des Marchés (taux de vente 4:1) est déverrouillée pour la civilisation.</summary>
+            UNLOCK_MARKET_SPECIALIZATION,
             /// <summary>Multiplicateur de vitesse d'envoi des renforts. Base = 1.0; +1.0 = intervalle divisé par 2.</summary>
             REINFORCEMENT_SPEED,
             /// <summary>Flags que la Mine Profonde (accès à l'Inframonde) est déverrouillée pour la civilisation.</summary>

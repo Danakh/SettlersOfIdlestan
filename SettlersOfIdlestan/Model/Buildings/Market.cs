@@ -21,10 +21,11 @@ public class Market : Building
         { Resource.Brick, 5 }
     };
 
-    public override ResourceSet GetUpgradeCost(int level) => level switch
+    public override ResourceSet GetUpgradeCost(int level) => new ResourceSet
     {
-        2 => new ResourceSet { { Resource.Food, 50 }, { Resource.Wood, 30 }, { Resource.Gold, 20 } },
-        3 => new ResourceSet { { Resource.Food, 100 }, { Resource.Wood, 60 }, { Resource.Gold, 40 } },
-        _ => new ResourceSet()
+        { Resource.Food, 50 * level },
+        { Resource.Wood, 20 * level },
+        { Resource.Brick, 20 * level },
+        { Resource.Gold, 20 * level }
     };
 }

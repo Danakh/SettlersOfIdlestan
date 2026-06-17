@@ -163,7 +163,7 @@ namespace SettlersOfIdlestan.Controller.Island
                         && civ.MineGoldChancePercent > 0
                         && _prng!.Next(100) < civ.MineGoldChancePercent;
 
-                    TryAutoTradeOnOverflow(civ, resource);
+                    TryAutoTradeOnOverflow(civ, city, resource);
                     civ.AddResource(resource, 1);
 
                     harvested ??= new System.Collections.Generic.Dictionary<(HexCoord, City), ResourceSet>();
@@ -174,7 +174,7 @@ namespace SettlersOfIdlestan.Controller.Island
 
                     if (goldBonus)
                     {
-                        TryAutoTradeOnOverflow(civ, Resource.Gold);
+                        TryAutoTradeOnOverflow(civ, city, Resource.Gold);
                         civ.AddResource(Resource.Gold, 1);
                         rs[Resource.Gold] += 1;
                     }
@@ -189,12 +189,12 @@ namespace SettlersOfIdlestan.Controller.Island
                     int multiplier = (1 + forgeBonus) * (harvestDoubled ? 2 : 1);
                     for (int i = 1; i < multiplier; i++)
                     {
-                        TryAutoTradeOnOverflow(civ, resource);
+                        TryAutoTradeOnOverflow(civ, city, resource);
                         civ.AddResource(resource, 1);
                         rs[resource] += 1;
                         if (goldBonus)
                         {
-                            TryAutoTradeOnOverflow(civ, Resource.Gold);
+                            TryAutoTradeOnOverflow(civ, city, Resource.Gold);
                             civ.AddResource(Resource.Gold, 1);
                             rs[Resource.Gold] += 1;
                         }
@@ -267,7 +267,7 @@ namespace SettlersOfIdlestan.Controller.Island
                     if (now - seaport.LastGenerationTick < effectiveCooldown) continue;
 
                     var resource = ResourceUtils.BasicResources[_prng!.Next(ResourceUtils.BasicResources.Count)];
-                    TryAutoTradeOnOverflow(civ, resource);
+                    TryAutoTradeOnOverflow(civ, city, resource);
                     civ.AddResource(resource, 1);
                     seaport.LastGenerationTick = now;
                     OnRandomResourceGenerated?.Invoke(this, new MarketGenerationEventArgs(civ.Index, resource, city.Position));
@@ -293,8 +293,7 @@ namespace SettlersOfIdlestan.Controller.Island
                         continue;
                     }
 
-                    double marketSpeedMultiplier = civ.ModifierAggregator.ApplyModifiers(ECategory.MARKET_GOLD_SPEED, "", 1.0);
-                    long effectiveCooldown = (long)(MarketGoldGenerationCooldownTicks / marketSpeedMultiplier);
+                    long effectiveCooldown = GetEffectiveMarketGoldGenerationCooldown(civ, market.Level);
                     if (now - market.LastGoldGenerationTick < effectiveCooldown) continue;
 
                     civ.AddResource(Resource.Gold, 1);
@@ -367,6 +366,14 @@ namespace SettlersOfIdlestan.Controller.Island
         {
             double multiplier = seaport.GetGenerationCooldownMultiplier();
             return Math.Max(1L, (long)(SeaportGenerationCooldownTicks * multiplier));
+        }
+
+        /// <summary>Cooldown effectif de génération d'or du Marché (×0.9 par niveau), après application du modificateur MARKET_GOLD_SPEED.</summary>
+        public static long GetEffectiveMarketGoldGenerationCooldown(Civilization civ, int level)
+        {
+            double speedMultiplier = civ.ModifierAggregator.ApplyModifiers(ECategory.MARKET_GOLD_SPEED, "", 1.0);
+            long baseCooldown = (long)(MarketGoldGenerationCooldownTicks * Math.Pow(0.9, level - 1));
+            return Math.Max(1L, (long)(baseCooldown / speedMultiplier));
         }
 
         private void PerformForgeConsumableProductions(long currentTick)
@@ -484,10 +491,16 @@ namespace SettlersOfIdlestan.Controller.Island
             return result;
         }
 
-        private void TryAutoTradeOnOverflow(Civilization civ, Resource res)
+        /// <summary>
+        /// Vend automatiquement le surplus d'une ressource de base dès lors que la recherche Marché Automatique
+        /// est complétée et que la ville productrice possède un Marché niv.4+.
+        /// </summary>
+        private void TryAutoTradeOnOverflow(Civilization civ, City city, Resource res)
         {
             if (_tradeController == null) return;
-            if (!civ.SeaportAutoTradeResources.Contains(res)) return;
+            if (!ResourceUtils.BasicResources.Contains(res)) return;
+            if (!civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_AUTO_MARKET_TRADE)) return;
+            if (!city.Buildings.OfType<Market>().Any(m => m.Level >= 4)) return;
             if (civ.GetResourceQuantity(res) + 1 <= civ.GetResourceMaxQuantity(res)) return;
 
             _tradeController.SellResource(civ.Index, res);

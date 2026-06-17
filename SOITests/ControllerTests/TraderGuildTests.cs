@@ -26,7 +26,7 @@ public class TraderGuildTests
     // ── Max level ────────────────────────────────────────────────────────────
 
     [Fact]
-    public void TraderGuild_IncreasesMarketMaxLevelByThree()
+    public void TraderGuild_IncreasesMarketMaxLevelByTwo()
     {
         var (state, controller, civ) = CreateSetup();
         var city = civ.Cities[0];
@@ -39,7 +39,7 @@ public class TraderGuildTests
         city.Buildings.Add(new TraderGuild { Level = 1 });
         civ.RebuildUniqueBuildingsModifiers();
 
-        Assert.Equal(4, controller.GetMaxLevel(market, 0));
+        Assert.Equal(3, controller.GetMaxLevel(market, 0));
     }
 
     [Fact]
@@ -113,19 +113,21 @@ public class TraderGuildTests
         var (state, controller, civ) = CreateSetup();
         var city = civ.Cities[0];
 
-        // Bump TownHall level so storage fits upgrade cost (Food 50, Wood 30, Gold 20):
-        // Basic max = 5*(2+8)=50, Advanced max = 5*(8-2)=30
-        city.Buildings.First(b => b.Type == BuildingType.TownHall).Level = 8;
+        // Bump TownHall level so storage fits upgrade cost (Food 100, Wood 40, Brick 40, Gold 40):
+        // Basic max = 10 (1 city) + 5×20 = 110
+        city.Buildings.First(b => b.Type == BuildingType.TownHall).Level = 20;
+        BuildingController.RecalculateStorageCapacity(civ);
 
         city.Buildings.Add(new TraderGuild { Level = 1 });
         civ.RebuildUniqueBuildingsModifiers();
         var market = new Market { Level = 1 };
         city.Buildings.Add(market);
 
-        // Upgrade level 1→2 cost: Food 50, Wood 30, Gold 20
-        civ.AddResource(Resource.Food, 50);
-        civ.AddResource(Resource.Wood, 30);
-        civ.AddResource(Resource.Gold, 20);
+        // Upgrade level 1→2 cost: Food 100, Wood 40, Brick 40, Gold 40 (GetUpgradeCost(2) = 50*2/20*2/20*2/20*2)
+        civ.AddResource(Resource.Food, 100);
+        civ.AddResource(Resource.Wood, 40);
+        civ.AddResource(Resource.Brick, 40);
+        civ.AddResource(Resource.Gold, 40);
 
         state.AutomationSettings.MarketBuildingAutomationEnabled = true;
 
@@ -140,13 +142,13 @@ public class TraderGuildTests
     }
 
     [Fact]
-    public void TraderGuild_AutomationCannotUpgradeMarketBeyondLevel4()
+    public void TraderGuild_AutomationCannotUpgradeMarketBeyondLevel3()
     {
         var (state, controller, civ) = CreateSetup();
         var city = civ.Cities[0];
 
         city.Buildings.Add(new TraderGuild { Level = 1 });
-        var market = new Market { Level = 4 }; // already at max
+        var market = new Market { Level = 3 }; // already at max
         city.Buildings.Add(market);
 
         civ.AddResource(Resource.Food, 500);
@@ -162,8 +164,8 @@ public class TraderGuildTests
         clock.SimulateAdvance(10);
         clock.SimulateAdvance(1000);
 
-        // Still at 4: max level is 1 (default) + 3 (TraderGuild) = 4
-        Assert.Equal(4, market.Level);
+        // Still at 3: max level is 1 (default) + 2 (TraderGuild) = 3
+        Assert.Equal(3, market.Level);
     }
 
     // ── Seaport random resource generation ───────────────────────────────────

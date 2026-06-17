@@ -354,12 +354,9 @@ public class SelectedCityPanelRenderer : PanelRendererBase
                 if (hoveredBuilding is Market)
                 {
                     int maxLevel = _cityBuildingService.GetMaxLevel(hoveredBuilding);
-                    if (maxLevel >= 3)
-                        description = _localization.Get("building_market_desc_maxlvl3");
-                    else if (maxLevel >= 2)
-                        description = _localization.Get("building_market_desc_maxlvl2");
-                    else
-                        description = _localization.Get("building_market_desc");
+                    description = maxLevel >= 4
+                        ? _localization.Get("building_market_desc_maxlvl4")
+                        : _localization.Get("building_market_desc");
                 }
 
                 var cost = hoveredBuilding.Level == 0 ? hoveredBuilding.GetBuildCost() : hoveredBuilding.GetUpgradeCost(hoveredBuilding.Level + 1);
@@ -492,6 +489,22 @@ public class SelectedCityPanelRenderer : PanelRendererBase
                     long effectiveCooldown = _cityBuildingService.GetEffectiveSeaportGenerationCooldown(seaportBuilding);
                     long remaining = Math.Max(0, effectiveCooldown - elapsed);
                     tooltipLines.Add(_localization.Get("seaport_generation_cooldown") + $" {remaining/100.0:0.0}s/{effectiveCooldown/100.0:0.0}s");
+                    tooltipLines.Add("");
+                }
+
+                if (hoveredBuilding is Market market && market.Level > 0)
+                {
+                    long currentTick = _cityBuildingService.GetCurrentTick();
+                    long elapsed   = market.LastGoldGenerationTick == 0 ? 0 : currentTick - market.LastGoldGenerationTick;
+                    long cooldown  = _cityBuildingService.GetMarketGoldGenerationCooldown(market);
+                    long remaining = Math.Max(0, cooldown - elapsed);
+                    tooltipLines.Add(_localization.Get("market_gold_cooldown") + $" {remaining / 100.0:0.0}s/{cooldown / 100.0:0.0}s");
+                    if (!_cityBuildingService.IsAtMaxLevel(market))
+                    {
+                        long nextCooldown = _cityBuildingService.GetMarketGoldGenerationCooldown(market, market.Level + 1);
+                        if (nextCooldown != cooldown)
+                            tooltipLines.Add(_localization.Get("tooltip_building_prestige_next") + $" {nextCooldown / 100.0:0.0}s");
+                    }
                     tooltipLines.Add("");
                 }
 

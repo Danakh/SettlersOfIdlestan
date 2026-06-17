@@ -207,7 +207,7 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
             {
                 // Rect en coordonnées écran (avant la translation du canvas)
                 _resourceRects[resource] = new SKRect(currentX - scroll, itemY, currentX - scroll + rectW, itemY + rectH);
-                bool isAtMax = quantity >= maxQuantity && !civilization.SeaportAutoTradeResources.Contains(resource);
+                bool isAtMax = quantity >= maxQuantity;
                 DrawResourceItem(canvas, resource, quantity, maxQuantity, currentX, itemY, IsFlickering(resource), isAtMax);
                 currentX += rectW + itemSpacing;
             }

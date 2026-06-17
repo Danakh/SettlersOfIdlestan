@@ -176,12 +176,20 @@ namespace SettlersOfIdlestan.Controller
             return count;
         }
 
+        /// <summary>Vrai si la recherche Marché Spécialisé est complétée pour la civilisation.</summary>
+        public bool IsMarketSpecializationUnlocked(int civilizationIndex)
+        {
+            var civ = _state?.Civilizations.Find(c => c.Index == civilizationIndex);
+            return civ?.ModifierAggregator.HasModifier(ECategory.UNLOCK_MARKET_SPECIALIZATION) ?? false;
+        }
+
         public bool CanEnhanceSeaportResource(int civilizationIndex, Resource resource)
         {
             var civ = _state?.Civilizations.Find(c => c.Index == civilizationIndex);
             if (civ == null) return false;
+            if (!IsMarketSpecializationUnlocked(civilizationIndex)) return false;
             if (civ.SeaportEnhancedResources.Contains(resource)) return false;
-            return civ.SeaportEnhancedResources.Count < GetMarketCountAtMinLevel(civilizationIndex, 2);
+            return civ.SeaportEnhancedResources.Count < GetMarketCountAtMinLevel(civilizationIndex, 4);
         }
 
         public void SetSeaportEnhancedResource(int civilizationIndex, Resource resource)
@@ -190,27 +198,8 @@ namespace SettlersOfIdlestan.Controller
             var civ = _state.Civilizations.Find(c => c.Index == civilizationIndex)
                       ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
             if (!CanEnhanceSeaportResource(civilizationIndex, resource))
-                throw new InvalidOperationException("Cannot enhance this resource: no available level-2 Market slot.");
+                throw new InvalidOperationException("Cannot enhance this resource: research not completed or no available level-4 Market slot.");
             civ.AddSeaportEnhancedResource(resource);
-        }
-
-        public bool CanActivateSeaportAutoTrade(int civilizationIndex, Resource resource)
-        {
-            var civ = _state?.Civilizations.Find(c => c.Index == civilizationIndex);
-            if (civ == null) return false;
-            if (!civ.SeaportEnhancedResources.Contains(resource)) return false;
-            if (civ.SeaportAutoTradeResources.Contains(resource)) return false;
-            return civ.SeaportAutoTradeResources.Count < GetMarketCountAtMinLevel(civilizationIndex, 3);
-        }
-
-        public void AddSeaportAutoTradeResource(int civilizationIndex, Resource resource)
-        {
-            if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
-            var civ = _state.Civilizations.Find(c => c.Index == civilizationIndex)
-                      ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
-            if (!CanActivateSeaportAutoTrade(civilizationIndex, resource))
-                throw new InvalidOperationException("Cannot activate auto-trade for this resource: no available level-3 Market slot or resource not enhanced.");
-            civ.AddSeaportAutoTradeResource(resource);
         }
 
         public bool CanRecieveTrade(Civilization civ, Resource resource, int quantity = 1)
