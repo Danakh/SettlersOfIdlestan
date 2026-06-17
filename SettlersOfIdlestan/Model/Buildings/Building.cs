@@ -323,6 +323,16 @@ public class Building
     public virtual double GetDefenseRegenBonus() => 0.0;
 
     /// <summary>
+    /// Returns the bonus this building contributes to the civilization's basic resource storage capacity.
+    /// </summary>
+    public virtual int GetStorageCapacityBonusBasic() => 0;
+
+    /// <summary>
+    /// Returns the bonus this building contributes to the civilization's advanced resource storage capacity.
+    /// </summary>
+    public virtual int GetStorageCapacityBonusAdvanced() => 0;
+
+    /// <summary>
     /// Returns true if all build prerequisites (beyond resources) are satisfied.
     /// Override in derived classes to add extra conditions.
     /// </summary>

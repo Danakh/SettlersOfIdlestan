@@ -1,3 +1,4 @@
+using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.GameplayModifier;
@@ -52,12 +53,17 @@ public class Civilization
         private set => _cities = value ?? new();
     }
 
-    public void AddCity(City city) => _cities.Add(city);
+    public void AddCity(City city)
+    {
+        _cities.Add(city);
+        BuildingController.RecalculateStorageCapacity(this);
+    }
 
     public void RemoveCity(City city)
     {
         _cities.Remove(city);
         RebuildUniqueBuildingsModifiers();
+        BuildingController.RecalculateStorageCapacity(this);
     }
 
     private List<Road> _roads = new();
@@ -108,6 +114,7 @@ public class Civilization
     {
         ModifierAggregator.Register(_technologyTree);
         ModifierAggregator.Register(UniqueBuildingsModifierProvider);
+        ModifierAggregator.Changed += () => BuildingController.RecalculateStorageCapacity(this);
     }
 
     /// <summary>
@@ -238,6 +245,26 @@ public class Civilization
         return _resources.TryGetValue(resource, out var q) ? q : 0;
     }
 
+    /// <summary>
+    /// Cache de la capacité de stockage (ressources de base / avancées), recalculé par
+    /// <see cref="BuildingController.RecalculateStorageCapacity"/> à chaque construction/destruction
+    /// de bâtiment, changement de l'agrégateur de modificateurs, ou ajout/retrait de ville.
+    /// </summary>
+    [JsonIgnore]
+    public int StorageCapacityBasic { get; private set; }
+
+    [JsonIgnore]
+    public int StorageCapacityAdvanced { get; private set; }
+
+    /// <summary>
+    /// Appelé uniquement par BuildingController après recalcul complet de la capacité de stockage.
+    /// </summary>
+    public void SetStorageCapacityCache(int basic, int advanced)
+    {
+        StorageCapacityBasic = basic;
+        StorageCapacityAdvanced = advanced;
+    }
+
     public int GetResourceMaxQuantity(Resource resource)
     {
         if (ResourceUtils.ConsumableResources.Contains(resource))
@@ -247,22 +274,9 @@ public class Civilization
             return 5 * Cities.Count + 5 * totalArsenalLevel;
         }
 
-        int baseCityResourceMax = 2 * Cities.Count + Cities.Sum(city => city.Level);
-        int advancedCityResourceMax = Cities.Sum(city => Math.Max(0, city.Level - 2));
-        int cityWithWarehouseCount = Cities.Count(city => city.Buildings.Any(building => building.Type == BuildingType.Warehouse));
-        int warehouseLevelCount = Cities.Sum(city => Math.Max(0, city.Buildings.Sum(building => (building.Type == BuildingType.Warehouse) ? building.Level : 0)));
-
         bool isBasic = ResourceUtils.BasicResources.Contains(resource);
         bool isBasicStorage = isBasic || resource == Resource.Gold;
-        int storageBonus = isBasicStorage
-            ? ModifierAggregator.ApplyModifiers(ECategory.STORAGE_CAPACITY_BASIC, "", 0)
-            : ModifierAggregator.ApplyModifiers(ECategory.STORAGE_CAPACITY_ADVANCED, "", 0);
-
-        int result = isBasicStorage
-            ? 5 * baseCityResourceMax + 20 * cityWithWarehouseCount + 10 * warehouseLevelCount
-            : 5 * advancedCityResourceMax + 5 * cityWithWarehouseCount + 5 * warehouseLevelCount;
-
-        return result + storageBonus;
+        return isBasicStorage ? StorageCapacityBasic : StorageCapacityAdvanced;
     }
 
     public void TrimResourcesToMax()

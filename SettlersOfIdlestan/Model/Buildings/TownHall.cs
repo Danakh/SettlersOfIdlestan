@@ -20,6 +20,16 @@ public class TownHall : Building
         return 4;
     }
 
+    /// <summary>Bonus de capacité de stockage (ressources de base) : +5 par niveau d'Hôtel de Ville.</summary>
+    public override int GetStorageCapacityBonusBasic() => GetStorageCapacityBonusBasicAtLevel(Level);
+
+    public int GetStorageCapacityBonusBasicAtLevel(int level) => 5 * level;
+
+    /// <summary>Bonus de capacité de stockage (ressources avancées) : +5 par niveau au-delà du niveau 2.</summary>
+    public override int GetStorageCapacityBonusAdvanced() => GetStorageCapacityBonusAdvancedAtLevel(Level);
+
+    public int GetStorageCapacityBonusAdvancedAtLevel(int level) => 5 * Math.Max(0, level - 2);
+
     public override Resource? ManualHarvestCapability(TerrainType terrain)
     {
         if (terrain == TerrainType.Forest)

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
@@ -265,6 +266,7 @@ public class MonsterFeatureController
                         city.Buildings.Remove(townHall);
                         city.InvalidateLevelCache();
                     }
+                    BuildingController.RecalculateStorageCapacity(civ);
                     civ.TrimResourcesToMax();
                 }
             }

@@ -28,6 +28,7 @@ namespace SOITests.ControllerTests
             var state = IslandTestFactory.CreateSevenHexIslandState();
             var city = state.PlayerCivilization.Cities[0];
             city.Buildings.Add(new TownHall { Level = TownHallLevel });
+            BuildingController.RecalculateStorageCapacity(state.PlayerCivilization);
 
             var wonder = new Wonder(WonderHex) { Level = 0 };
             state.AddFeature(wonder);
@@ -164,6 +165,7 @@ namespace SOITests.ControllerTests
             var state = IslandTestFactory.CreateSevenHexIslandState();
             var civ = state.PlayerCivilization;
             civ.Cities[0].Buildings.Add(new TownHall { Level = TownHallLevel });
+            BuildingController.RecalculateStorageCapacity(civ);
             civ.AddResource(Resource.Food, 110);
 
             var clock = new GameClock();

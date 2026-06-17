@@ -347,6 +347,8 @@ public class NpcCivilizationPlacer
 
     private static void FillMaxResources(Civilization civ)
     {
+        BuildingController.RecalculateStorageCapacity(civ);
+
         foreach (Resource resource in Enum.GetValues<Resource>())
         {
             int max = civ.GetResourceMaxQuantity(resource);

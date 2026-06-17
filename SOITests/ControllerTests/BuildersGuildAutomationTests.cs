@@ -175,6 +175,7 @@ public class BuildersGuildAutomationTests
         city.Buildings.Add(new TownHall { Level = 4 });
         var guild = new BuildersGuild { Level = 1 };
         city.Buildings.Add(guild);
+        BuildingController.RecalculateStorageCapacity(civ);
 
         civ.AddResource(Resource.Wood,  30);
         civ.AddResource(Resource.Brick, 30);

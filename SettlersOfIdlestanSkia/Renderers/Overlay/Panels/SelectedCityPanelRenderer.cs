@@ -574,10 +574,39 @@ public class SelectedCityPanelRenderer : PanelRendererBase
 
                 if (hoveredBuilding is Warehouse warehouse)
                 {
-                    if (warehouse.Level == 0)
-                        tooltipLines.Add(_localization.Get("warehouse_build_storage"));
-                    else if (!_cityBuildingService.IsAtMaxLevel(warehouse))
-                        tooltipLines.Add(_localization.Get("warehouse_upgrade_storage"));
+                    if (warehouse.Level > 0)
+                    {
+                        tooltipLines.Add(_localization.GetFormated("warehouse_storage_bonus",
+                            warehouse.GetStorageCapacityBonusBasic(), warehouse.GetStorageCapacityBonusAdvanced()));
+                    }
+                    if (!_cityBuildingService.IsAtMaxLevel(warehouse))
+                    {
+                        int nextBasic = warehouse.GetStorageCapacityBonusBasicAtLevel(warehouse.Level + 1);
+                        int nextAdvanced = warehouse.GetStorageCapacityBonusAdvancedAtLevel(warehouse.Level + 1);
+                        tooltipLines.Add(_localization.Get("tooltip_harvest_auto_next") + " " +
+                            _localization.GetFormated("warehouse_storage_bonus", nextBasic, nextAdvanced));
+                    }
+                    tooltipLines.Add("");
+                }
+
+                if (hoveredBuilding is TownHall townHall && townHall.Level > 0)
+                {
+                    int basicBonus = townHall.GetStorageCapacityBonusBasic();
+                    int advancedBonus = townHall.GetStorageCapacityBonusAdvanced();
+                    tooltipLines.Add(_localization.GetFormated("townhall_storage_bonus_basic", basicBonus));
+                    if (advancedBonus > 0)
+                        tooltipLines.Add(_localization.GetFormated("townhall_storage_bonus_advanced", advancedBonus));
+                    if (!_cityBuildingService.IsAtMaxLevel(townHall))
+                    {
+                        int nextBasic = townHall.GetStorageCapacityBonusBasicAtLevel(townHall.Level + 1);
+                        int nextAdvanced = townHall.GetStorageCapacityBonusAdvancedAtLevel(townHall.Level + 1);
+                        if (nextBasic != basicBonus)
+                            tooltipLines.Add(_localization.Get("tooltip_harvest_auto_next") + " " +
+                                _localization.GetFormated("townhall_storage_bonus_basic", nextBasic));
+                        if (nextAdvanced != advancedBonus)
+                            tooltipLines.Add(_localization.Get("tooltip_harvest_auto_next") + " " +
+                                _localization.GetFormated("townhall_storage_bonus_advanced", nextAdvanced));
+                    }
                     tooltipLines.Add("");
                 }
 

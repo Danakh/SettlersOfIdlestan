@@ -188,7 +188,12 @@ internal class CityAttackEngine
                 targetCity.InvalidateLevelCache();
                 onCityBuildingDestroyed(new CityBuildingDestroyedEventArgs(targetCity.Position));
             }
-            _state!.Civilizations.FirstOrDefault(c => c.Index == targetCity.CivilizationIndex)?.TrimResourcesToMax();
+            var defenderCivAfterAttack = _state!.Civilizations.FirstOrDefault(c => c.Index == targetCity.CivilizationIndex);
+            if (defenderCivAfterAttack != null)
+            {
+                BuildingController.RecalculateStorageCapacity(defenderCivAfterAttack);
+                defenderCivAfterAttack.TrimResourcesToMax();
+            }
             return false;
         }
 
