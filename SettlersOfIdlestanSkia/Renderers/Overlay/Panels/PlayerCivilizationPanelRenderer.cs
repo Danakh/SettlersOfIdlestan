@@ -222,15 +222,15 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
 
             float colGap = 6f * s;
             float colW   = (contentW - colGap) / 2f;
-            int   actionCount = (tradeVisible ? 1 : 0) + (prestigeVisible ? 1 : 0) + (wonderVisible ? 1 : 0) + (deepestMineVisible ? 1 : 0);
+            int   actionCount = (tradeVisible ? 1 : 0) + (prestigeVisible ? 1 : 0) + (wonderVisible ? 1 : 0) + (deepestMineVisible ? 1 : 0) + (raidVisible ? 1 : 0);
             float actionsY   = y;
             int   btnIdx     = 0;
 
-            SKRect BtnRect(int idx)
+            SKRect BtnRect(int idx, bool allowFullWidth = true)
             {
                 float col     = idx % 2;
                 float row     = idx / 2;
-                bool  lastOdd = idx == actionCount - 1 && actionCount % 2 == 1;
+                bool  lastOdd = allowFullWidth && idx == actionCount - 1 && actionCount % 2 == 1;
                 float bw      = lastOdd ? contentW : colW;
                 float bx      = x + col * (colW + colGap);
                 float by      = actionsY + row * (btnHeight + btnSpacing);
@@ -261,9 +261,9 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
 
             if (deepestMineVisible)
             {
-                _deepestMineButtonRect = BtnRect(btnIdx++);
+                _deepestMineButtonRect = BtnRect(btnIdx++, allowFullWidth: false);
                 canvas.DrawRoundRect(_deepestMineButtonRect, 6 * s, 6 * s, _deepestMineEnabled ? (_hoveredDeepestMine ? _btnHoverPaint : _btnPaint) : _btnDisabledPaint);
-                SkiaTextUtils.DrawText(canvas, _localization.Get("deepest_mine_action_short"), _deepestMineButtonRect.MidX, _deepestMineButtonRect.MidY + 4f * s, SKTextAlign.Center, _btnSmFont, _deepestMineEnabled ? TextPaint : _btnDisabledTxtPaint);
+                DrawWrappedButtonText(canvas, _deepestMineButtonRect, _localization.Get("deepest_mine_action_short"), _btnSmFont!, _deepestMineEnabled ? TextPaint! : _btnDisabledTxtPaint!, s);
             }
 
             if (raidVisible)
@@ -358,6 +358,19 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         {
             var (rect, _, tooltipKey) = _pinnedItemRects[_hoveredPinnedIndex];
             _tooltipRenderer.SetTooltip(_localization.Get(tooltipKey), new SKPoint(rect.Right, rect.Top));
+        }
+    }
+
+    private static void DrawWrappedButtonText(SKCanvas canvas, SKRect rect, string text, SKFont font, SKPaint paint, float s)
+    {
+        float maxWidth = rect.Width - 8f * s;
+        var layout = SkiaTextUtils.MeasureWrappedText(text, maxWidth, font);
+        float lineHeight = font.Spacing;
+        float baseline = rect.MidY + 4f * s - (layout.Lines.Count - 1) * lineHeight / 2f;
+        foreach (var line in layout.Lines)
+        {
+            SkiaTextUtils.DrawText(canvas, line, rect.MidX, baseline, SKTextAlign.Center, font, paint);
+            baseline += lineHeight;
         }
     }
 
