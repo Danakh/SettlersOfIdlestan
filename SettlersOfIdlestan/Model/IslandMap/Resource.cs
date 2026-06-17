@@ -17,6 +17,9 @@ public enum Resource
     Mithril,
     SteelWeapon,
     SteelArmor,
+    MithrilWeapon,
+    MithrilArmor,
+    HealingPotion,
 }
 
 public class ResourceUtils
@@ -44,5 +47,8 @@ public class ResourceUtils
     {
         Resource.SteelWeapon,
         Resource.SteelArmor,
+        Resource.MithrilWeapon,
+        Resource.MithrilArmor,
+        Resource.HealingPotion,
     };
 }

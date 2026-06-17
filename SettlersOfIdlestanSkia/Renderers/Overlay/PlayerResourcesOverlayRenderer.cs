@@ -2,6 +2,7 @@
 using SettlersOfIdlestan.Controller.Expand;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
+using SettlersOfIdlestan.Model.GameplayModifier;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestanSkia.Services.Localization;
 using SettlersOfIdlestanSkia.Core;
@@ -52,6 +53,12 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
     public const float Padding = 12;
 
     private static readonly SKColor ItemBackground = new SKColor(40, 40, 40, 210);
+
+    private static readonly Dictionary<Resource, Modifier.ECategory> ConsumableUnlockCategories = new()
+    {
+        { Resource.SteelWeapon, Modifier.ECategory.UNLOCK_STEEL_WEAPONS },
+        { Resource.SteelArmor, Modifier.ECategory.UNLOCK_STEEL_ARMOR },
+    };
 
     public float ResourceStartX { get; set; } = Padding;
     public bool ShowGearInBar { get; set; } = true;
@@ -131,9 +138,14 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
         foreach (Resource resource in Enum.GetValues(typeof(Resource)))
         {
             string name = resource.ToString().ToLower();
-            _resourceIcons[resource] = _resourceManager.LoadImage($"Resources.icons.resources.{name}.svg");
+            string folder = ResourceUtils.ConsumableResources.Contains(resource) ? "consumable_sprites" : "resources";
+            _resourceIcons[resource] = _resourceManager.LoadImage($"Resources.icons.{folder}.{name}.svg");
         }
     }
+
+    private static bool IsConsumableUnlocked(Resource resource, Civilization civilization)
+        => ConsumableUnlockCategories.TryGetValue(resource, out var category)
+            && civilization.ModifierAggregator.HasModifier(category);
 
     public void Render(SKCanvas canvas, GameRenderContext context)
     {
@@ -184,6 +196,8 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
         var resourceTypes = Enum.GetValues(typeof(Resource)).Cast<Resource>()
             .Where(r => !ResourceUtils.AdvancedResources.Contains(r)
                         || (prestigeState?.IsResourceDiscovered(r, map) ?? false))
+            .Where(r => !ResourceUtils.ConsumableResources.Contains(r)
+                        || IsConsumableUnlocked(r, civilization))
             .ToList();
 
         DrawBarBackground(canvas);
@@ -322,7 +336,7 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
         if (picture != null)
         {
             float iconDisplaySize = ResourceIconSize * s;
-            float iconScale = iconDisplaySize / 32f;
+            float iconScale = iconDisplaySize / picture.CullRect.Width;
             float iconY = y + (rectH - iconDisplaySize) / 2f;
             float iconX = x + 3f * s;
             canvas.Save();
