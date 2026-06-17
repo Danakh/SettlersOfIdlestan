@@ -13,7 +13,7 @@ namespace SOITests.ControllerTests
         {
             var map = PrestigeMapFactory.CreateDefault();
 
-            var gate = map.GetVertex(PrestigeMap.MagicSecretVertex);
+            var gate = map.GetVertex(PrestigeMap.RitualsVertex);
             Assert.NotNull(gate);
             Assert.Contains(gate!.Modifiers, m => m.Category == ECategory.UNLOCK_MAGIC);
             Assert.Contains(gate.Modifiers, m =>
@@ -37,7 +37,11 @@ namespace SOITests.ControllerTests
             Assert.Contains(dolmens!.Modifiers, m =>
                 m.Category == ECategory.MAGIC_FEATURE_COUNT && m.SubCategory == "Dolmen");
 
-            Assert.NotNull(map.GetVertex(PrestigeMap.FocalizationVertex));
+            var invocations = map.GetVertex(PrestigeMap.InvocationsVertex);
+            Assert.NotNull(invocations);
+            Assert.Contains(invocations!.Modifiers, m =>
+                m.Category == ECategory.UNLOCK_RESEARCH && m.SubCategory == "Invocation");
+
             Assert.NotNull(map.GetVertex(PrestigeMap.InnerCircleVertex));
             Assert.NotNull(map.GetVertex(PrestigeMap.CrystalomancyVertex));
             Assert.NotNull(map.GetVertex(PrestigeMap.ArchmageVertex));
@@ -47,7 +51,7 @@ namespace SOITests.ControllerTests
         public void PrestigeMap_MagicGate_CostsAtLeastAsMuchAsUnderworldGate()
         {
             var map = PrestigeMapFactory.CreateDefault();
-            var magicGate = map.GetVertex(PrestigeMap.MagicSecretVertex)!;
+            var magicGate = map.GetVertex(PrestigeMap.RitualsVertex)!;
             var underworldGate = map.GetVertex(PrestigeMap.DeepestMineVertex)!;
 
             // La magie n'est disponible que dans l'Inframonde : sa porte doit coûter
@@ -60,7 +64,7 @@ namespace SOITests.ControllerTests
         public void PrestigeMap_FairyCirclesAndDolmens_AreCheaperThanMagicGate()
         {
             var map = PrestigeMapFactory.CreateDefault();
-            int gateCost = map.GetVertex(PrestigeMap.MagicSecretVertex)!.Cost;
+            int gateCost = map.GetVertex(PrestigeMap.RitualsVertex)!.Cost;
 
             // Les vertex précurseurs (source de cristaux en surface) sont accessibles
             // avant la porte, pour pouvoir démarrer la magie sans l'Inframonde.
@@ -78,8 +82,8 @@ namespace SOITests.ControllerTests
             {
                 PrestigeMap.AlchimistHutVertex,
                 PrestigeMap.DolmensVertex,
-                PrestigeMap.MagicSecretVertex,
-                PrestigeMap.FocalizationVertex,
+                PrestigeMap.RitualsVertex,
+                PrestigeMap.InvocationsVertex,
                 PrestigeMap.InnerCircleVertex,
                 PrestigeMap.CrystalomancyVertex,
             };

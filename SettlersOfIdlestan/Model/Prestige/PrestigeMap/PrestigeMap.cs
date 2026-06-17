@@ -75,8 +75,8 @@ public class PrestigeMap
     public static readonly Vertex AlchimistHutVertex   = Vertex.Create(new(-1,  2, 0), new( 0,  2, 0), new(-1,  3, 0));
     public static readonly Vertex MysticCrossingVertex = Vertex.Create(new( 0,  2, 0), new( 1,  2, 0), new( 0,  3, 0));
     // Porte d'entrée : déverrouille la magie (au moins aussi chère que la porte de l'Inframonde)
-    public static readonly Vertex MagicSecretVertex   = Vertex.Create(new( 0,  2, 0), new( 0,  3, 0), new(-1,  3, 0));
-    public static readonly Vertex FocalizationVertex  = Vertex.Create(new(-1,  2, 0), new(-1,  3, 0), new(-2,  3, 0));
+    public static readonly Vertex RitualsVertex       = Vertex.Create(new( 0,  2, 0), new( 0,  3, 0), new(-1,  3, 0));
+    public static readonly Vertex InvocationsVertex   = Vertex.Create(new(-1,  2, 0), new(-1,  3, 0), new(-2,  3, 0));
     public static readonly Vertex DolmensVertex       = Vertex.Create(new(-1,  2, 0), new(-2,  3, 0), new(-2,  2, 0));
     // ── Branche de l'Inframonde (nord-ouest) — autour des hexes Excavations (-1,-1) et Inframonde (-2,-1)
     // Porte d'entrée : déverrouille la Mine Profonde (plus chère que le Secret de l'Acier)

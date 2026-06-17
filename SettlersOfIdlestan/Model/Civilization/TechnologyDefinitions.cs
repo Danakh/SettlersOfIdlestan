@@ -409,6 +409,16 @@ public static class TechnologyDefinitions
             modifiers: new Modifier[] { new(ECategory.UNLOCK_RITUAL, "DeepLight", EType.ADDITIVE, 1) },
             tier: 7, line: 8),
 
+        // === Branche des Sorts Instantanés (débloquée par le vertex de prestige Invocations) ===
+        // Chaque recherche débloque un sort à lancer depuis l'écran Rituels.
+
+        new(TechnologyId.Invocation,
+            "tech_invocation_name", "tech_invocation_desc",
+            cost: 20000,
+            prerequisites: new[] { TechnologyId.Scholarship },
+            modifiers: new Modifier[] { new(ECategory.UNLOCK_SPELL, "Abundance", EType.ADDITIVE, 1) },
+            tier: 4, line: 10),
+
     };
 
     public static Technology? Get(TechnologyId id) => All.FirstOrDefault(t => t.Id == id);

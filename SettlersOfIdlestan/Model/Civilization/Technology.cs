@@ -61,6 +61,8 @@ public enum TechnologyId
     MartialBlessingRitual,
     ArcaneShieldRitual,
     DeepLightRitual,
+    // Branche des Sorts Instantanés (débloquée par le vertex de prestige Invocations)
+    Invocation,
 }
 
 public enum TechnologyStatus

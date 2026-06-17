@@ -31,6 +31,7 @@ public sealed class RitualsRenderer : IDisposable
     private SKPoint _hoverPosition;
 
     private readonly List<(RitualId id, SKRect launchRect, SKRect minusRect, SKRect plusRect)> _buttonRects = new();
+    private readonly List<(SpellId id, SKRect castRect)> _spellButtonRects = new();
 
     private readonly SKPaint _bgPaint           = new() { Color = new SKColor(18, 18, 24, 240), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _cardPaint         = new() { Color = new SKColor(30, 30, 40, 220), Style = SKPaintStyle.Fill, IsAntialias = true };
@@ -71,6 +72,7 @@ public sealed class RitualsRenderer : IDisposable
         if (context.GameState is not MainGameState) return;
 
         _buttonRects.Clear();
+        _spellButtonRects.Clear();
 
         float topBar = PlayerResourcesOverlayRenderer.BarHeight * context.UiScale;
         canvas.DrawRect(new SKRect(0, topBar, _canvasSize.Width, _canvasSize.Height), _bgPaint);
@@ -104,13 +106,30 @@ public sealed class RitualsRenderer : IDisposable
         if (known.Count == 0)
         {
             SkiaTextUtils.DrawText(canvas, _localization.Get("rituals_none_known"), x, y + 12, _descFont, _mutedPaint);
-            return;
+            y += 26f;
+        }
+        else
+        {
+            foreach (var def in known)
+            {
+                if (y + RowHeight > _canvasSize.Height - Padding) break;
+                y += DrawRitualRow(canvas, x, y, contentWidth, def, magic) + RowSpacing;
+            }
         }
 
-        foreach (var def in known)
+        // ── Sorts instantanés ───────────────────────────────────────────────
+        var knownSpells = magic.GetKnownSpells();
+        if (knownSpells.Count > 0)
         {
-            if (y + RowHeight > _canvasSize.Height - Padding) break;
-            y += DrawRitualRow(canvas, x, y, contentWidth, def, magic) + RowSpacing;
+            y += 10f;
+            SkiaTextUtils.DrawText(canvas, _localization.Get("rituals_spells_header"), x, y + 12, _nameFont, _accentPaint);
+            y += 24f;
+
+            foreach (var def in knownSpells)
+            {
+                if (y + RowHeight > _canvasSize.Height - Padding) break;
+                y += DrawSpellRow(canvas, x, y, contentWidth, def, magic) + RowSpacing;
+            }
         }
     }
 
@@ -192,6 +211,35 @@ public sealed class RitualsRenderer : IDisposable
         return RowHeight;
     }
 
+    private float DrawSpellRow(SKCanvas canvas, float x, float y, float width,
+        SpellDefinition def, SettlersOfIdlestan.Controller.Magic.MagicController magic)
+    {
+        var cardRect = new SKRect(x, y, x + width, y + RowHeight);
+        canvas.DrawRoundRect(cardRect, 6, 6, _cardPaint);
+        canvas.DrawRoundRect(cardRect, 6, 6, _cardBorderPaint);
+
+        float textX = x + 14f;
+        SkiaTextUtils.DrawText(canvas, _localization.Get(def.NameKey), textX, y + 19, _nameFont, _namePaint);
+        SkiaTextUtils.DrawText(canvas, _localization.Get(def.DescKey), textX, y + 37, _descFont, _descPaint);
+
+        string costText = _localization.GetFormated("spell_cast_cost", def.CrystalCost, def.GoldReward);
+        SkiaTextUtils.DrawText(canvas, costText, textX, y + 58, _descFont, _costPaint);
+
+        float buttonX = x + width - ButtonWidth - 14f;
+        float buttonY = y + (RowHeight - ButtonHeight) / 2f;
+        var castRect = new SKRect(buttonX, buttonY, buttonX + ButtonWidth, buttonY + ButtonHeight);
+        bool hovered = castRect.Contains(_hoverPosition.X, _hoverPosition.Y);
+        bool canCast = magic.CanCastSpell(def.Id);
+
+        SKPaint buttonPaint = canCast ? (hovered ? _launchHoverPaint : _launchPaint) : _disabledPaint;
+        canvas.DrawRoundRect(castRect, 5, 5, buttonPaint);
+        canvas.DrawRoundRect(castRect, 5, 5, _buttonBorderPaint);
+        SkiaTextUtils.DrawText(canvas, _localization.Get("spell_button_cast"), castRect.MidX, castRect.MidY + 4, SKTextAlign.Center, _buttonFont, _buttonTextPaint);
+
+        _spellButtonRects.Add((def.Id, castRect));
+        return RowHeight;
+    }
+
     public void HandlePointerMoved(SKPoint position) => _hoverPosition = position;
 
     public bool HandlePointerPressed(SKPoint position)
@@ -214,6 +262,15 @@ public sealed class RitualsRenderer : IDisposable
             if (!plusRect.IsEmpty && plusRect.Contains(position.X, position.Y))
             {
                 magic.IncreaseRitualPower(id);
+                return true;
+            }
+        }
+
+        foreach (var (id, castRect) in _spellButtonRects)
+        {
+            if (castRect.Contains(position.X, position.Y))
+            {
+                magic.CastSpell(id);
                 return true;
             }
         }

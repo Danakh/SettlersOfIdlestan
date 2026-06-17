@@ -268,8 +268,8 @@ public static class PrestigeMapFactory
             ),
             // ── Branche de la Magie (sud) ──────────────────────────────────────
             // Deux entrées bon marché donnent accès aux cristaux en surface (Cercles de
-            // Fées, Dolmens) avant ou en même temps que l'Inframonde. La porte (Secret de
-            // la Magie) coûte autant que la porte de l'Inframonde (2500).
+            // Fées, Dolmens) avant ou en même temps que l'Inframonde. La porte (Rituels)
+            // coûte autant que la porte de l'Inframonde (2500).
             // Progression : 400/1000 → porte 2500 → 10 000 → 25 000/50 000 → Archimage 250 000.
             new(
                 PrestigeMap.AlchimistHutVertex,
@@ -294,24 +294,25 @@ public static class PrestigeMapFactory
                 }
             ),
             new(
-                PrestigeMap.MagicSecretVertex,
-                "prestige_vertex_magic_secret",
+                PrestigeMap.RitualsVertex,
+                "prestige_vertex_rituals",
                 // Porte d'entrée de la Magie — au moins aussi chère que la porte de l'Inframonde
                 cost: 2500,
                 modifiers: new Modifier[]
                 {
                     new(ECategory.UNLOCK_MAGIC, EType.ADDITIVE, 1),
-                    new(ECategory.BUILDING_MAX_LEVEL, "MageTower", EType.ADDITIVE, 3),
+                    new(ECategory.BUILDING_MAX_LEVEL, "MageTower", EType.ADDITIVE, 2),
                     new(ECategory.UNLOCK_RESEARCH, "MagicInitiation", EType.ADDITIVE, 1),
                 }
             ),
             new(
-                PrestigeMap.FocalizationVertex,
-                "prestige_vertex_focalization",
+                PrestigeMap.InvocationsVertex,
+                "prestige_vertex_invocations",
                 cost: 10000,
                 modifiers: new Modifier[]
                 {
                     new(ECategory.BUILDING_MAX_LEVEL, "MageTower", EType.ADDITIVE, 2),
+                    new(ECategory.UNLOCK_RESEARCH, "Invocation", EType.ADDITIVE, 1),
                 }
             ),
             new(

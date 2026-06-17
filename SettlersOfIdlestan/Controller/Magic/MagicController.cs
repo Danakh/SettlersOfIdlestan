@@ -211,6 +211,36 @@ namespace SettlersOfIdlestan.Controller.Magic
             return true;
         }
 
+        // ── Sorts instantanés ────────────────────────────────────────────────
+
+        public bool IsSpellKnown(SpellId id)
+            => GetPlayerCiv()?.ModifierAggregator.HasModifier(ECategory.UNLOCK_SPELL, id.ToString()) == true;
+
+        /// <summary>Sorts débloqués par la recherche, dans l'ordre des définitions.</summary>
+        public IReadOnlyList<SpellDefinition> GetKnownSpells()
+            => SpellDefinitions.All.Where(s => IsSpellKnown(s.Id)).ToList();
+
+        public bool CanCastSpell(SpellId id)
+        {
+            var civ = GetPlayerCiv();
+            var def = SpellDefinitions.Get(id);
+            if (civ == null || def == null) return false;
+            if (!IsMagicUnlocked() || !IsSpellKnown(id)) return false;
+            return civ.GetResourceQuantity(Resource.Crystal) >= def.CrystalCost;
+        }
+
+        /// <summary>Lance un sort : effet instantané, sans entretien ni puissance.</summary>
+        public bool CastSpell(SpellId id)
+        {
+            if (!CanCastSpell(id)) return false;
+            var civ = GetPlayerCiv()!;
+            var def = SpellDefinitions.Get(id)!;
+
+            civ.RemoveResource(Resource.Crystal, def.CrystalCost);
+            civ.AddResource(Resource.Gold, def.GoldReward);
+            return true;
+        }
+
         // ── Entretien & effondrement ──────────────────────────────────────────
 
         private void ProcessUpkeep()

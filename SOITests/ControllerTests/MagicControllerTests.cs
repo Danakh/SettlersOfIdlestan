@@ -26,6 +26,14 @@ namespace SOITests.ControllerTests
             civ.AddCustomAggregator(new StaticModifierProvider(modifiers));
         }
 
+        private static void UnlockSpells(Civilization civ, params SpellId[] knownSpells)
+        {
+            var modifiers = new List<Modifier> { new(ECategory.UNLOCK_MAGIC, EType.ADDITIVE, 1) };
+            foreach (var spell in knownSpells)
+                modifiers.Add(new(ECategory.UNLOCK_SPELL, spell.ToString(), EType.ADDITIVE, 1));
+            civ.AddCustomAggregator(new StaticModifierProvider(modifiers));
+        }
+
         private static MageTower AddMageTower(WorldState state, int level = 1)
         {
             var tower = new MageTower { Level = level };
@@ -293,6 +301,57 @@ namespace SOITests.ControllerTests
             clock.SimulateAdvance(MagicController.UpkeepIntervalTicks);
 
             Assert.Equal(0, civ.GetResourceQuantity(Resource.Crystal));
+        }
+
+        // ── Sorts instantanés ────────────────────────────────────────────────
+
+        [Fact]
+        public void CastSpell_FailsWithoutMagicUnlock()
+        {
+            var (state, _, controller) = CreateSetup();
+            state.PlayerCivilization.AddResource(Resource.Crystal, 50);
+
+            Assert.False(controller.CanCastSpell(SpellId.Abundance));
+            Assert.False(controller.CastSpell(SpellId.Abundance));
+        }
+
+        [Fact]
+        public void CastSpell_FailsWithoutCrystals()
+        {
+            var (state, _, controller) = CreateSetup();
+            UnlockSpells(state.PlayerCivilization, SpellId.Abundance);
+
+            Assert.False(controller.CanCastSpell(SpellId.Abundance));
+        }
+
+        [Fact]
+        public void CastSpell_ConsumesCrystalsAndGrantsGold()
+        {
+            var (state, _, controller) = CreateSetup();
+            var civ = state.PlayerCivilization;
+            UnlockSpells(civ, SpellId.Abundance);
+            civ.AddCustomAggregator(new StaticModifierProvider(new List<Modifier>
+            {
+                new(ECategory.STORAGE_CAPACITY_BASIC, EType.ADDITIVE, 2000),
+            }));
+            civ.AddResource(Resource.Crystal, 20);
+
+            Assert.True(controller.CastSpell(SpellId.Abundance));
+
+            // Coût : 10 cristaux → récompense : 1000 or
+            Assert.Equal(10, civ.GetResourceQuantity(Resource.Crystal));
+            Assert.Equal(1000, civ.GetResourceQuantity(Resource.Gold));
+        }
+
+        [Fact]
+        public void GetKnownSpells_ReturnsOnlyUnlockedSpells()
+        {
+            var (state, _, controller) = CreateSetup();
+            UnlockSpells(state.PlayerCivilization, SpellId.Abundance);
+
+            var known = controller.GetKnownSpells();
+            Assert.Single(known);
+            Assert.Equal(SpellId.Abundance, known[0].Id);
         }
     }
 }
