@@ -353,5 +353,96 @@ namespace SOITests.ControllerTests
             Assert.Single(known);
             Assert.Equal(SpellId.Abundance, known[0].Id);
         }
+
+        // ── Sorts ciblés (invocation de troupes) ─────────────────────────────
+
+        [Fact]
+        public void CastSpell_FailsForTargetedSpell()
+        {
+            var (state, _, controller) = CreateSetup();
+            UnlockSpells(state.PlayerCivilization, SpellId.SummonTroops);
+            state.PlayerCivilization.AddResource(Resource.Crystal, 200);
+
+            Assert.False(controller.CastSpell(SpellId.SummonTroops));
+        }
+
+        [Fact]
+        public void GetAllyCityTargets_ReturnsPlayerCitiesOnCurrentLayer()
+        {
+            var (state, _, controller) = CreateSetup();
+
+            var targets = controller.GetAllyCityTargets();
+            Assert.Contains(state.PlayerCivilization.Cities[0].Position, targets);
+        }
+
+        [Fact]
+        public void CastSpellOnCity_FailsWithoutMagicUnlock()
+        {
+            var (state, _, controller) = CreateSetup();
+            var civ = state.PlayerCivilization;
+            civ.AddResource(Resource.Crystal, 200);
+            civ.Cities[0].Buildings.Add(new Barracks { Level = 5 });
+
+            Assert.False(controller.CastSpellOnCity(SpellId.SummonTroops, civ.Cities[0].Position));
+        }
+
+        [Fact]
+        public void CastSpellOnCity_ConsumesCrystalsAndAddsSoldiers()
+        {
+            var (state, _, controller) = CreateSetup();
+            var civ = state.PlayerCivilization;
+            UnlockSpells(civ, SpellId.SummonTroops);
+            civ.Cities[0].Buildings.Add(new Barracks { Level = 30 });
+            civ.AddCustomAggregator(new StaticModifierProvider(new List<Modifier>
+            {
+                new(ECategory.STORAGE_CAPACITY_ADVANCED, EType.ADDITIVE, 200),
+            }));
+            civ.AddResource(Resource.Crystal, 200);
+
+            Assert.True(controller.CastSpellOnCity(SpellId.SummonTroops, civ.Cities[0].Position));
+
+            Assert.Equal(100, civ.GetResourceQuantity(Resource.Crystal));
+            Assert.Equal(100, civ.Cities[0].Soldiers);
+        }
+
+        [Fact]
+        public void CastSpellOnCity_CapsAtMaxSoldiers()
+        {
+            var (state, _, controller) = CreateSetup();
+            var civ = state.PlayerCivilization;
+            UnlockSpells(civ, SpellId.SummonTroops);
+            civ.Cities[0].Buildings.Add(new Barracks { Level = 1 }); // MaxSoldiers = 5
+            civ.AddCustomAggregator(new StaticModifierProvider(new List<Modifier>
+            {
+                new(ECategory.STORAGE_CAPACITY_ADVANCED, EType.ADDITIVE, 200),
+            }));
+            civ.AddResource(Resource.Crystal, 200);
+
+            Assert.True(controller.CastSpellOnCity(SpellId.SummonTroops, civ.Cities[0].Position));
+
+            Assert.Equal(5, civ.Cities[0].Soldiers);
+        }
+
+        [Fact]
+        public void CastSpellOnCity_FailsForUnknownVertex()
+        {
+            var (state, _, controller) = CreateSetup();
+            var civ = state.PlayerCivilization;
+            UnlockSpells(civ, SpellId.SummonTroops);
+            civ.Cities[0].Buildings.Add(new Barracks { Level = 5 });
+            civ.AddCustomAggregator(new StaticModifierProvider(new List<Modifier>
+            {
+                new(ECategory.STORAGE_CAPACITY_ADVANCED, EType.ADDITIVE, 200),
+            }));
+            civ.AddResource(Resource.Crystal, 200);
+
+            var farAwayVertex = SettlersOfIdlestan.Model.HexGrid.Vertex.Create(
+                new SettlersOfIdlestan.Model.HexGrid.HexCoord(50, 0, IslandMap.SurfaceLayer),
+                new SettlersOfIdlestan.Model.HexGrid.HexCoord(51, 0, IslandMap.SurfaceLayer),
+                new SettlersOfIdlestan.Model.HexGrid.HexCoord(50, 1, IslandMap.SurfaceLayer));
+
+            Assert.False(controller.CastSpellOnCity(SpellId.SummonTroops, farAwayVertex));
+            Assert.Equal(200, civ.GetResourceQuantity(Resource.Crystal));
+        }
     }
 }

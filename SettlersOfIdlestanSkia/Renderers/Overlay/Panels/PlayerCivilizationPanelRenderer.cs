@@ -34,8 +34,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
     private readonly Action _closeAll;
     private readonly TradePopupRenderer _tradeRenderer;
     private readonly PrestigeRenderer _prestigeRenderer;
-    private WonderSelectionService? _wonderSelectionService;
-    private RaidSelectionService? _raidSelectionService;
+    private TargetSelectionService? _targetSelectionService;
     private readonly TooltipRenderer _tooltipRenderer;
 
     public bool IsCollapsed  => Collapsed;
@@ -79,7 +78,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         Action closeAll,
         TradePopupRenderer tradeRenderer,
         PrestigeRenderer prestigeRenderer,
-        WonderSelectionService? wonderSelectionService,
+        TargetSelectionService? targetSelectionService,
         TooltipRenderer tooltipRenderer)
     {
         _gameControllerService = gameControllerService;
@@ -87,7 +86,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         _closeAll = closeAll;
         _tradeRenderer = tradeRenderer;
         _prestigeRenderer = prestigeRenderer;
-        _wonderSelectionService = wonderSelectionService;
+        _targetSelectionService = targetSelectionService;
         _tooltipRenderer = tooltipRenderer;
     }
 
@@ -106,11 +105,8 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         _rowLabelDimPaint     = new SKPaint { Color = new SKColor(140, 140, 150, 160), IsAntialias = true };
     }
 
-    public void ConnectWonderSelectionService(WonderSelectionService service)
-        => _wonderSelectionService = service;
-
-    public void ConnectRaidSelectionService(RaidSelectionService service)
-        => _raidSelectionService = service;
+    public void ConnectTargetSelectionService(TargetSelectionService service)
+        => _targetSelectionService = service;
 
     public override void Render(SKCanvas canvas, GameRenderContext context)
     {
@@ -438,17 +434,21 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             return true;
         }
 
-        if (!_wonderButtonRect.IsEmpty && _wonderButtonRect.Contains(pos.X, pos.Y) && _wonderEnabled && _wonderSelectionService != null)
+        if (!_wonderButtonRect.IsEmpty && _wonderButtonRect.Contains(pos.X, pos.Y) && _wonderEnabled && _targetSelectionService != null)
         {
             _closeAll();
-            _wonderSelectionService.Enter();
+            var wonderController = _gameControllerService.MainGameController.WonderController;
+            _targetSelectionService.EnterHexSelection("wonder_select_hex", wonderController.GetPlaceableHexes(),
+                hex => wonderController.PlaceWonder(hex), TargetSelectionTheme.Friendly);
             return true;
         }
 
-        if (!_deepestMineButtonRect.IsEmpty && _deepestMineButtonRect.Contains(pos.X, pos.Y) && _deepestMineEnabled && _wonderSelectionService != null)
+        if (!_deepestMineButtonRect.IsEmpty && _deepestMineButtonRect.Contains(pos.X, pos.Y) && _deepestMineEnabled && _targetSelectionService != null)
         {
             _closeAll();
-            _wonderSelectionService.EnterDeepestMine();
+            var deepestMineController = _gameControllerService.MainGameController.DeepestMineController;
+            _targetSelectionService.EnterHexSelection("deepest_mine_select_hex", deepestMineController.GetPlaceableHexes(),
+                hex => deepestMineController.PlaceDeepestMine(hex), TargetSelectionTheme.Friendly);
             return true;
         }
 
@@ -460,12 +460,14 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
                 if (playerCiv != null)
                     _gameControllerService.MainGameController.MilitaryController.StopRaid(playerCiv);
             }
-            else if (_raidSelectionService != null && playerCiv != null)
+            else if (_targetSelectionService != null && playerCiv != null)
             {
                 _closeAll();
-                var targets = _gameControllerService.MainGameController.MilitaryController.GetSelectableTargets(playerCiv);
+                var militaryController = _gameControllerService.MainGameController.MilitaryController;
+                var targets = militaryController.GetSelectableTargets(playerCiv);
                 if (targets.Count > 0)
-                    _raidSelectionService.Enter(targets);
+                    _targetSelectionService.EnterVertexSelection("raid_select_city", targets,
+                        target => militaryController.StartRaid(playerCiv, target), TargetSelectionTheme.Hostile);
             }
             return true;
         }

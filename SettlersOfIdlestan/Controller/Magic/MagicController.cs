@@ -229,15 +229,40 @@ namespace SettlersOfIdlestan.Controller.Magic
             return civ.GetResourceQuantity(Resource.Crystal) >= def.CrystalCost;
         }
 
-        /// <summary>Lance un sort : effet instantané, sans entretien ni puissance.</summary>
+        /// <summary>Lance un sort sans ciblage : effet instantané, sans entretien ni puissance.</summary>
         public bool CastSpell(SpellId id)
         {
+            var def = SpellDefinitions.Get(id);
+            if (def == null || def.TargetKind != SpellTargetKind.None) return false;
             if (!CanCastSpell(id)) return false;
             var civ = GetPlayerCiv()!;
-            var def = SpellDefinitions.Get(id)!;
 
             civ.RemoveResource(Resource.Crystal, def.CrystalCost);
             civ.AddResource(Resource.Gold, def.GoldReward);
+            return true;
+        }
+
+        /// <summary>Villes du joueur sur le calque actuellement affiché, ciblables par un sort d'invocation.</summary>
+        public List<Vertex> GetAllyCityTargets()
+        {
+            var civ = GetPlayerCiv();
+            if (civ == null || _state == null) return new List<Vertex>();
+            int currentLayer = _state.CurrentViewedLayer;
+            return civ.Cities.Where(c => c.Position.Z == currentLayer).Select(c => c.Position).ToList();
+        }
+
+        /// <summary>Lance un sort ciblant une ville alliée : consomme les cristaux et applique l'effet sur la ville visée.</summary>
+        public bool CastSpellOnCity(SpellId id, Vertex cityVertex)
+        {
+            var def = SpellDefinitions.Get(id);
+            if (def == null || def.TargetKind != SpellTargetKind.AllyCity) return false;
+            if (!CanCastSpell(id)) return false;
+            var civ = GetPlayerCiv()!;
+            var city = _state!.FindCityAt(cityVertex);
+            if (city == null || city.CivilizationIndex != civ.Index) return false;
+
+            civ.RemoveResource(Resource.Crystal, def.CrystalCost);
+            city.Soldiers = Math.Min(city.MaxSoldiers, city.Soldiers + def.TroopReward);
             return true;
         }
 

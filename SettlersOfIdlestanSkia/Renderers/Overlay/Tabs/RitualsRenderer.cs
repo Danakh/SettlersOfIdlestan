@@ -25,6 +25,7 @@ public sealed class RitualsRenderer : IDisposable
 
     private readonly GameControllerService _gameControllerService;
     private readonly LocalizationService _localization;
+    private readonly TargetSelectionService? _targetSelectionService;
 
     private SKSize _canvasSize;
     private bool _disposed;
@@ -58,10 +59,12 @@ public sealed class RitualsRenderer : IDisposable
     private readonly SKFont _buttonFont = new() { Size = 11, Typeface = SkiaFonts.Bold };
     private readonly SKFont _powerFont  = new() { Size = 14, Typeface = SkiaFonts.Bold };
 
-    public RitualsRenderer(GameControllerService gameControllerService, LocalizationService localization)
+    public RitualsRenderer(GameControllerService gameControllerService, LocalizationService localization,
+        TargetSelectionService? targetSelectionService = null)
     {
         _gameControllerService = gameControllerService;
         _localization = localization;
+        _targetSelectionService = targetSelectionService;
     }
 
     public void Initialize(SKSize canvasSize) => _canvasSize = canvasSize;
@@ -222,7 +225,9 @@ public sealed class RitualsRenderer : IDisposable
         SkiaTextUtils.DrawText(canvas, _localization.Get(def.NameKey), textX, y + 19, _nameFont, _namePaint);
         SkiaTextUtils.DrawText(canvas, _localization.Get(def.DescKey), textX, y + 37, _descFont, _descPaint);
 
-        string costText = _localization.GetFormated("spell_cast_cost", def.CrystalCost, def.GoldReward);
+        string costText = def.TargetKind == SpellTargetKind.AllyCity
+            ? _localization.GetFormated("spell_cast_cost_troops", def.CrystalCost, def.TroopReward)
+            : _localization.GetFormated("spell_cast_cost", def.CrystalCost, def.GoldReward);
         SkiaTextUtils.DrawText(canvas, costText, textX, y + 58, _descFont, _costPaint);
 
         float buttonX = x + width - ButtonWidth - 14f;
@@ -270,11 +275,29 @@ public sealed class RitualsRenderer : IDisposable
         {
             if (castRect.Contains(position.X, position.Y))
             {
-                magic.CastSpell(id);
+                CastOrTargetSpell(id, magic);
                 return true;
             }
         }
         return false;
+    }
+
+    private void CastOrTargetSpell(SpellId id, SettlersOfIdlestan.Controller.Magic.MagicController magic)
+    {
+        var def = SpellDefinitions.Get(id);
+        if (def == null) return;
+
+        if (def.TargetKind == SpellTargetKind.AllyCity)
+        {
+            if (_targetSelectionService == null) return;
+            var targets = magic.GetAllyCityTargets();
+            _targetSelectionService.EnterVertexSelection("spell_select_ally_city", targets,
+                target => magic.CastSpellOnCity(id, target), TargetSelectionTheme.Friendly);
+        }
+        else
+        {
+            magic.CastSpell(id);
+        }
     }
 
     public void Dispose()

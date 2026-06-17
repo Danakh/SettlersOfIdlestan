@@ -51,7 +51,7 @@ public class AlchimistHut : Building
     {
         { Resource.Stone,   50 },
         { Resource.Glass,   10 },
-        { Resource.Crystal,  5 },
+        { Resource.Gold,    50 },
     };
 
     public override ResourceSet GetUpgradeCost(int level) => new ResourceSet

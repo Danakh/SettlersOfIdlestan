@@ -38,8 +38,7 @@ public sealed class OverlayRenderer : IGameRenderer
     private readonly UILayoutService _uiLayout;
     private SKSize _canvasSize;
     private SKPoint _lastPointerPosition;
-    private WonderSelectionService? _wonderSelectionService;
-    private RaidSelectionService? _raidSelectionService;
+    private TargetSelectionService? _targetSelectionService;
 
     // Mobile second row (time controls + gear background)
     private SKRect _mobileGearRect;
@@ -105,7 +104,7 @@ public sealed class OverlayRenderer : IGameRenderer
             closeAll: CloseAll,
             tradeRenderer,
             prestigeRenderer,
-            wonderSelectionService: null,
+            targetSelectionService: null,
             tooltipRenderer);
         _playerCivPanel.OnExpanded = () => { if (_uiLayout.IsMobile) DeselectCityAndWonder(); };
 
@@ -265,16 +264,10 @@ public sealed class OverlayRenderer : IGameRenderer
             _tooltipRenderer.SetTooltip(resourceName, _lastPointerPosition);
     }
 
-    public void ConnectWonderService(WonderSelectionService wonderSelectionService)
+    public void ConnectTargetSelectionService(TargetSelectionService targetSelectionService)
     {
-        _wonderSelectionService = wonderSelectionService;
-        _playerCivPanel.ConnectWonderSelectionService(wonderSelectionService);
-    }
-
-    public void ConnectRaidService(RaidSelectionService raidSelectionService)
-    {
-        _raidSelectionService = raidSelectionService;
-        _playerCivPanel.ConnectRaidSelectionService(raidSelectionService);
+        _targetSelectionService = targetSelectionService;
+        _playerCivPanel.ConnectTargetSelectionService(targetSelectionService);
     }
 
     public bool IsAnyOverlayOpen => _tradeRenderer.IsOpen || _prestigeRenderer.IsOpen
@@ -403,6 +396,7 @@ public sealed class OverlayRenderer : IGameRenderer
     }
 
     public void SwitchToPrestigeTab() => _tabBar.SetActiveTab(TabBarRenderer.TabPrestige);
+    public void SwitchToIslandTab() => _tabBar.SetActiveTab(TabBarRenderer.TabIsland);
 
     private void HandlePointerReleased(object? sender, PointerEventArgs e)
     {

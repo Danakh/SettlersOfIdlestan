@@ -41,9 +41,8 @@ public sealed class GameScreen : IDisposable
     private OverlayRenderer? _overlayRenderer;
     private IntroAnimationRenderer? _introRenderer;
     private bool _wasIntroActive;
-    private WonderSelectionService? _wonderSelectionService;
+    private TargetSelectionService? _targetSelectionService;
     private WonderService? _wonderService;
-    private RaidSelectionService? _raidSelectionService;
     private TutorialRenderer? _tutorialRenderer;
     private TutorialService? _tutorialService;
     private MilitaryInteractionService? _militaryInteractionService;
@@ -215,22 +214,13 @@ public sealed class GameScreen : IDisposable
         _militaryInteractionService.AttachRenderer(islandMainRenderer);
         islandMainRenderer.ConnectMilitaryInteractionService(_militaryInteractionService);
 
-        _wonderSelectionService = new WonderSelectionService();
-        _wonderSelectionService.ConnectWonderController(_gameControllerService.MainGameController.WonderController);
-        _wonderSelectionService.ConnectDeepestMineController(_gameControllerService.MainGameController.DeepestMineController);
-        _wonderSelectionService.Entered                  += OnWonderSelectionEntered;
-        _wonderSelectionService.WonderPlacementConfirmed += OnWonderPlacementConfirmed;
-        _wonderSelectionService.Cancelled                += OnWonderSelectionCancelled;
+        _targetSelectionService = new TargetSelectionService();
+        _targetSelectionService.Entered   += OnTargetSelectionEntered;
+        _targetSelectionService.Confirmed += OnTargetSelectionConfirmed;
+        _targetSelectionService.Cancelled += OnTargetSelectionCancelled;
 
-        var wonderSelectionRenderer = new WonderPlacementRenderer(_wonderSelectionService, _inputService, _cameraService, _localizationService);
-        _renderService.RegisterRenderer(wonderSelectionRenderer);
-
-        _raidSelectionService = new RaidSelectionService();
-        _raidSelectionService.Entered              += OnRaidSelectionEntered;
-        _raidSelectionService.RaidTargetConfirmed  += OnRaidTargetConfirmed;
-        _raidSelectionService.Cancelled            += OnRaidSelectionCancelled;
-        var raidTargetRenderer = new RaidTargetRenderer(_raidSelectionService, _inputService, _cameraService, _localizationService);
-        _renderService.RegisterRenderer(raidTargetRenderer);
+        var targetSelectionRenderer = new TargetSelectionRenderer(_targetSelectionService, _inputService, _cameraService, _localizationService);
+        _renderService.RegisterRenderer(targetSelectionRenderer);
 
         _introRenderer = new IntroAnimationRenderer(_resourceManager);
         _renderService.RegisterRenderer(_introRenderer);
@@ -293,7 +283,7 @@ public sealed class GameScreen : IDisposable
         var researchRenderer        = new ResearchRenderer(_gameControllerService, _localizationService, _inputService);
         var eventLogRenderer        = new EventLogRenderer(_gameControllerService, _localizationService);
         var automationRenderer      = new AutomationRenderer(_gameControllerService, _localizationService);
-        var ritualsRenderer         = new RitualsRenderer(_gameControllerService, _localizationService);
+        var ritualsRenderer         = new RitualsRenderer(_gameControllerService, _localizationService, _targetSelectionService);
 
         _overlayRenderer = new OverlayRenderer(
             _inputService, _gameControllerService, _localizationService,
@@ -302,8 +292,7 @@ public sealed class GameScreen : IDisposable
             tradeRenderer, prestigeRenderer, prestigeMapRenderer, prestigeHistoryRenderer,
             timeControlRenderer, researchRenderer, eventLogRenderer, automationRenderer,
             ritualsRenderer, tooltipRenderer, _uiLayoutService);
-        _overlayRenderer.ConnectWonderService(_wonderSelectionService);
-        _overlayRenderer.ConnectRaidService(_raidSelectionService);
+        _overlayRenderer.ConnectTargetSelectionService(_targetSelectionService);
         _overlayRenderer.ConnectZoomCallbacks(
             () => _cameraService.SetZoom(_cameraService.ZoomLevel * ZoomStep),
             () => _cameraService.SetZoom(_cameraService.ZoomLevel / ZoomStep));
@@ -311,7 +300,7 @@ public sealed class GameScreen : IDisposable
 
         _constructionInteractionService.ShouldSuppressHover = pos =>
             (_overlayRenderer.IsPointBlockedByUI(pos))
-            || (_wonderSelectionService.IsActive)
+            || (_targetSelectionService.IsActive)
             || (_militaryInteractionService.ShouldSuppressConstruction);
 
         if (allowDebugMode)
@@ -694,44 +683,20 @@ public sealed class GameScreen : IDisposable
         state.Clock?.Pause();
     }
 
-    private void OnWonderSelectionEntered(object? sender, EventArgs e)
+    private void OnTargetSelectionEntered(object? sender, EventArgs e)
     {
         _gameControllerService.CurrentGameState?.Clock?.Pause();
+        _overlayRenderer?.SwitchToIslandTab();
         _overlayRenderer?.Hide();
     }
 
-    private void OnWonderPlacementConfirmed(object? sender, HexCoord hex)
-    {
-        if (_wonderSelectionService?.Kind == HexPlacementKind.DeepestMine)
-            _gameControllerService.MainGameController.DeepestMineController.PlaceDeepestMine(hex);
-        else
-            _gameControllerService.MainGameController.WonderController.PlaceWonder(hex);
-        _gameControllerService.CurrentGameState?.Clock?.Resume();
-        _overlayRenderer?.Show(suppressNextPress: true);
-    }
-
-    private void OnWonderSelectionCancelled(object? sender, EventArgs e)
+    private void OnTargetSelectionConfirmed(object? sender, EventArgs e)
     {
         _gameControllerService.CurrentGameState?.Clock?.Resume();
         _overlayRenderer?.Show(suppressNextPress: true);
     }
 
-    private void OnRaidSelectionEntered(object? sender, EventArgs e)
-    {
-        _gameControllerService.CurrentGameState?.Clock?.Pause();
-        _overlayRenderer?.Hide();
-    }
-
-    private void OnRaidTargetConfirmed(object? sender, SettlersOfIdlestan.Model.HexGrid.Vertex targetVertex)
-    {
-        var playerCiv = _gameControllerService.PlayerCivilization;
-        if (playerCiv != null)
-            _gameControllerService.MainGameController.MilitaryController.StartRaid(playerCiv, targetVertex);
-        _gameControllerService.CurrentGameState?.Clock?.Resume();
-        _overlayRenderer?.Show(suppressNextPress: true);
-    }
-
-    private void OnRaidSelectionCancelled(object? sender, EventArgs e)
+    private void OnTargetSelectionCancelled(object? sender, EventArgs e)
     {
         _gameControllerService.CurrentGameState?.Clock?.Resume();
         _overlayRenderer?.Show(suppressNextPress: true);

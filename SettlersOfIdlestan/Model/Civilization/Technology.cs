@@ -63,6 +63,7 @@ public enum TechnologyId
     DeepLightRitual,
     // Branche des Sorts Instantanés (débloquée par le vertex de prestige Invocations)
     Invocation,
+    TroopSummoning,
 }
 
 public enum TechnologyStatus
