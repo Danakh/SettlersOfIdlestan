@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.IslandMap;
@@ -437,6 +438,24 @@ namespace SettlersOfIdlestan.Controller.Island
                     if (res.HasValue) resources.Add(res.Value);
                 }
             return resources.ToList();
+        }
+
+        /// <summary>
+        /// Retourne, pour un type de terrain donné, les bâtiments (existants ou non dans la ville)
+        /// capables de récolter manuellement ce terrain et la ressource associée.
+        /// Utilisé pour indiquer au joueur quoi construire quand aucune récolte manuelle n'est disponible.
+        /// </summary>
+        public static IReadOnlyList<(BuildingType BuildingType, Resource Resource)> GetManualHarvestBuildingHints(TerrainType terrain)
+        {
+            var hints = new List<(BuildingType, Resource)>();
+            foreach (BuildingType type in Enum.GetValues(typeof(BuildingType)))
+            {
+                var building = BuildingController.CreateBuilding(type);
+                var resource = building?.ManualHarvestCapability(terrain);
+                if (resource.HasValue)
+                    hints.Add((type, resource.Value));
+            }
+            return hints;
         }
 
         public IReadOnlyList<Resource> GetAutomaticHarvestableResources(int civilizationIndex, HexCoord hex)

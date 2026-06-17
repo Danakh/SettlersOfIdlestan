@@ -427,6 +427,8 @@
   "prestige_tooltip_magic_feature_dolmen": "Dolmens on the island (passive crystals)",
   "hex_tooltip_manual": "Manual harvest",
   "hex_tooltip_auto": "Auto",
+  "hex_tooltip_build_to_harvest": "Build {0} to harvest {1}",
+  "hex_tooltip_not_manually_harvestable": "Not manually harvestable",
   "hex_tooltip_ready": "Ready!",
   "hex_tooltip_bandit_info": "⚔ Bandit — harvest blocked ({0}/{1} HP)",
   "hex_tooltip_plunder_cooldown": "⚔ Recovery after looting",

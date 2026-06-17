@@ -211,7 +211,10 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay
             {
                 if (tile == null) return;
                 var terrainKey = $"hex_tooltip_terrain_{tile.TerrainType.ToString().ToLower()}";
-                _tooltipTexts = new string[] { _localizationService.Get(terrainKey) };
+                var earlyLines = new List<string> { _localizationService.Get(terrainKey) };
+                if (!harvestBlockedByFeature)
+                    AppendManualHarvestHintLines(earlyLines, tile.TerrainType);
+                _tooltipTexts = earlyLines.ToArray();
                 _tooltipCost = null;
                 var terrainIslandPos = _islandRendererContext.HexCoordToIslandPoint(coord);
                 _tooltipScreenPosition = _islandRendererContext.IslandToScreen(terrainIslandPos, _gameRenderContext.ZoomLevel, _gameRenderContext.CameraPosition);
@@ -251,6 +254,10 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay
                     lines.Add(FormatCooldownLine($"{manualLabel} ({resourceName})", coord, manualTimes, currentTick, manualCooldown));
                 }
             }
+            else if (!harvestBlockedByFeature && tile != null)
+            {
+                AppendManualHarvestHintLines(lines, tile.TerrainType);
+            }
 
             if (!harvestBlockedByFeature && autoResources.Count > 0)
             {
@@ -273,6 +280,23 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay
             _tooltipCost = null;
             var islandPos = _islandRendererContext.HexCoordToIslandPoint(coord);
             _tooltipScreenPosition = _islandRendererContext.IslandToScreen(islandPos, _gameRenderContext.ZoomLevel, _gameRenderContext.CameraPosition);
+        }
+
+        private void AppendManualHarvestHintLines(List<string> lines, TerrainType terrain)
+        {
+            var hints = HarvestController.GetManualHarvestBuildingHints(terrain);
+            if (hints.Count == 0)
+            {
+                lines.Add(_localizationService.Get("hex_tooltip_not_manually_harvestable"));
+                return;
+            }
+
+            foreach (var (buildingType, resource) in hints)
+            {
+                string buildingName = _localizationService.Get($"building_{buildingType.ToString().ToLower()}_name");
+                string resourceName = _localizationService.Get($"resource_{resource.ToString().ToLower()}");
+                lines.Add(_localizationService.GetFormated("hex_tooltip_build_to_harvest", buildingName, resourceName));
+            }
         }
 
         private string FormatCooldownLine(string label, HexCoord coord, Dictionary<HexCoord, long>? times, long currentTick, long cooldownTicks)

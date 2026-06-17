@@ -427,6 +427,8 @@
   "prestige_tooltip_magic_feature_dolmen": "Dolmens sur l'île (cristaux passifs)",
   "hex_tooltip_manual": "Récolte manuelle",
   "hex_tooltip_auto": "Auto",
+  "hex_tooltip_build_to_harvest": "Construire {0} pour récolter {1}",
+  "hex_tooltip_not_manually_harvestable": "Non récoltable manuellement",
   "hex_tooltip_ready": "Prêt!",
   "hex_tooltip_bandit_info": "⚔ Bandit — récolte bloquée ({0}/{1} PV)",
   "hex_tooltip_plunder_cooldown": "⚔ Récupération après pillage",
