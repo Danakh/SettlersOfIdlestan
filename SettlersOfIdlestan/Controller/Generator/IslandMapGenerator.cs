@@ -256,6 +256,12 @@ public class IslandMapGenerator
             ? WorldState.PlayerCivilization.Cities[0].Position.GetHexes()
             : null;
 
+        // Never place a feature on one of the player's two starting land hexes.
+        if (cityHexes != null)
+            landHexes.RemoveAll(cityHexes.Contains);
+
+        if (landHexes.Count == 0) return;
+
         HexCoord[] allCivHexes = WorldState.Civilizations
             .SelectMany(c => c.Cities)
             .SelectMany(city => city.Position.GetHexes())
