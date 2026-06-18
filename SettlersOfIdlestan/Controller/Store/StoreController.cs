@@ -64,6 +64,14 @@ public class StoreController : IDisposable
     private static string? GetStoreAchievementId(AchievementId id) => id switch
     {
         AchievementId.FirstPrestige => "ACH_FIRST_PRESTIGE",
+        AchievementId.SlayDragon => "ACH_SLAY_DRAGON",
+        AchievementId.WonderLevel1 => "ACH_WONDER_LEVEL_1",
+        AchievementId.WonderLevel4 => "ACH_WONDER_LEVEL_4",
+        AchievementId.FoundUnderworldCity => "ACH_FOUND_UNDERWORLD_CITY",
+        AchievementId.BuildCorruptionSpire => "ACH_BUILD_CORRUPTION_SPIRE",
+        AchievementId.SlayTrollsAndOgres => "ACH_SLAY_TROLLS_AND_OGRES",
+        AchievementId.FiveUniqueBuildingsOneIsland => "ACH_FIVE_UNIQUE_BUILDINGS_ONE_ISLAND",
+        AchievementId.TenUniqueBuildingsOneIsland => "ACH_TEN_UNIQUE_BUILDINGS_ONE_ISLAND",
         _ => null,
     };
 

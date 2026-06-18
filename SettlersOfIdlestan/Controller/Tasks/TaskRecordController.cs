@@ -39,6 +39,12 @@ public class TaskRecordController
     public event EventHandler<TutorialTaskId>? OnTaskCompleted;
     public event EventHandler<GameRecord>? PrestigeRecorded;
 
+    /// <summary>
+    /// Émis après chaque mise à jour de GameRecord (tout événement de jeu suivi), permettant à
+    /// l'AchievementController de valider les achievements en temps réel plutôt qu'au seul prestige.
+    /// </summary>
+    public event EventHandler<GameRecord>? GameRecordUpdated;
+
     internal TaskRecordController() { }
 
     internal void Initialize(
@@ -341,6 +347,7 @@ public class TaskRecordController
                 OnTaskCompleted?.Invoke(this, task.Id);
             }
         }
+        GameRecordUpdated?.Invoke(this, _gameRecord);
     }
 
     public bool IsTaskCompleted(TutorialTaskId id)

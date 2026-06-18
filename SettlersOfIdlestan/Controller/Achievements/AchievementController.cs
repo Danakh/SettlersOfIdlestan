@@ -15,13 +15,15 @@ public class AchievementController
 
     /// <summary>
     /// Souscrit aux événements du TaskRecordController pour déclencher les vérifications.
+    /// GameRecordUpdated est émis après chaque événement de jeu suivi (pas seulement au prestige),
+    /// ce qui permet de valider et débloquer un achievement dès que sa condition est remplie.
     /// </summary>
     public void Connect(TaskRecordController taskRecordController)
     {
-        taskRecordController.PrestigeRecorded += HandlePrestigeRecorded;
+        taskRecordController.GameRecordUpdated += HandleGameRecordUpdated;
     }
 
-    private void HandlePrestigeRecorded(object? sender, GameRecord record)
+    private void HandleGameRecordUpdated(object? sender, GameRecord record)
         => CheckAchievements(record);
 
     /// <summary>
