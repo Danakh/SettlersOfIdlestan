@@ -18,6 +18,8 @@ public class GameRecord
     public int TotalBanditsDefeated { get; set; }
     public int TotalHideoutsDestroyed { get; set; }
     public int TotalDragonsDefeated { get; set; }
+    public int TotalTrollsDefeated { get; set; }
+    public int TotalOgresDefeated { get; set; }
 
     /// <summary>Nombre de fois que chaque type de bâtiment a été construit (clé = BuildingType.ToString()).</summary>
     public Dictionary<string, int> BuildingCounts { get; set; } = new();
@@ -54,6 +56,18 @@ public class GameRecord
 
     /// <summary>True si le joueur a construit une merveille (niveau ≥ 1) au moins une fois.</summary>
     public bool HasBuiltWonder { get; set; }
+
+    /// <summary>Niveau maximum atteint par la merveille (cross-prestige).</summary>
+    public int MaxWonderLevelReached { get; set; }
+
+    /// <summary>True si le joueur a fondé une ville dans l'Inframonde au moins une fois.</summary>
+    public bool HasFoundedUnderworldCity { get; set; }
+
+    /// <summary>True si le joueur a entièrement construit une Spire de Corruption.</summary>
+    public bool HasBuiltCorruptionSpire { get; set; }
+
+    /// <summary>Nombre maximum de types de bâtiments différents présents simultanément sur une même île (cross-prestige).</summary>
+    public int MaxUniqueBuildingTypesOnIsland { get; set; }
 
     /// <summary>True si le joueur a aperçu des rats pour la première fois (cross-prestige).</summary>
     public bool HasEncounteredRats { get; set; }

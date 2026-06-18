@@ -15,6 +15,8 @@ public class RunRecord
     public int BanditsDefeated { get; set; }
     public int HideoutsDestroyed { get; set; }
     public int DragonsDefeated { get; set; }
+    public int TrollsDefeated { get; set; }
+    public int OgresDefeated { get; set; }
     public int TreasuresTroveClaimed { get; set; }
 
     /// <summary>Nombre de fois que chaque type de bâtiment a été construit ce run (clé = BuildingType.ToString()).</summary>

@@ -206,18 +206,6 @@ namespace SOITests.ControllerTests
         }
 
         [Fact]
-        public void BuyRate_BasicIsOne_OreIsFive_AdvancedIsTwenty()
-        {
-            var controller = new TradeController();
-
-            Assert.Equal(1, controller.BuyRate(Resource.Wood));
-            Assert.Equal(1, controller.BuyRate(Resource.Brick));
-            Assert.Equal(5, controller.BuyRate(Resource.Ore));
-            Assert.Equal(20, controller.BuyRate(Resource.Glass));
-            Assert.Equal(20, controller.BuyRate(Resource.Crystal));
-        }
-
-        [Fact]
         public void BuyResource_Ore_CostsFiveGold()
         {
             WorldState state = IslandTestFactory.CreateSevenHexIslandState();

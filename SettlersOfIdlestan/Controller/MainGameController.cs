@@ -304,7 +304,7 @@ namespace SettlersOfIdlestan.Controller
                 TaskRecordController.Initialize(gameRecord, WorldState.RunRecord, WorldState,
                     BuildingController, RoadController, CityBuilderController,
                     PrestigeMapController, ResearchController, MilitaryController, HarvestController,
-                    TradeController, WonderController);
+                    TradeController, WonderController, CorruptionSpireController);
             }
         }
 

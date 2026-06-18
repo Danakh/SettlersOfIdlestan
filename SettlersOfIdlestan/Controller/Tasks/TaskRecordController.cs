@@ -34,6 +34,7 @@ public class TaskRecordController
     private HarvestController? _harvestController;
     private TradeController? _tradeController;
     private WonderController? _wonderController;
+    private CorruptionSpireController? _corruptionSpireController;
 
     public event EventHandler<TutorialTaskId>? OnTaskCompleted;
     public event EventHandler<GameRecord>? PrestigeRecorded;
@@ -52,7 +53,8 @@ public class TaskRecordController
         MilitaryController militaryController,
         HarvestController harvestController,
         TradeController tradeController,
-        WonderController wonderController)
+        WonderController wonderController,
+        CorruptionSpireController corruptionSpireController)
     {
         Unsubscribe();
 
@@ -69,6 +71,7 @@ public class TaskRecordController
         _harvestController = harvestController;
         _tradeController = tradeController;
         _wonderController = wonderController;
+        _corruptionSpireController = corruptionSpireController;
 
         _buildingController.OnBuildingBuilt += HandleBuildingBuilt;
         _roadController.OnRoadBuilt += HandleRoadBuilt;
@@ -82,6 +85,7 @@ public class TaskRecordController
         _militaryController.CityDestroyed += HandleCityDestroyed;
         _wonderController.OnWonderPlaced += HandleWonderPlaced;
         _wonderController.OnWonderLevelUp += HandleWonderLevelUp;
+        _corruptionSpireController.OnCorruptionSpireBuilt += HandleCorruptionSpireBuilt;
     }
 
     private void Unsubscribe()
@@ -98,6 +102,7 @@ public class TaskRecordController
         if (_militaryController != null) _militaryController.CityDestroyed -= HandleCityDestroyed;
         if (_wonderController != null) _wonderController.OnWonderPlaced -= HandleWonderPlaced;
         if (_wonderController != null) _wonderController.OnWonderLevelUp -= HandleWonderLevelUp;
+        if (_corruptionSpireController != null) _corruptionSpireController.OnCorruptionSpireBuilt -= HandleCorruptionSpireBuilt;
     }
 
     /// <summary>
@@ -152,6 +157,7 @@ public class TaskRecordController
             string key = e.BuildingType.ToString();
             _gameRecord.BuildingCounts[key] = _gameRecord.BuildingCounts.GetValueOrDefault(key) + 1;
             _runRecord.BuildingCounts[key] = _runRecord.BuildingCounts.GetValueOrDefault(key) + 1;
+            UpdateMaxUniqueBuildingTypesOnIsland();
         }
         else
         {
@@ -198,6 +204,18 @@ public class TaskRecordController
         CheckTaskCompletions();
     }
 
+    private void UpdateMaxUniqueBuildingTypesOnIsland()
+    {
+        if (_gameRecord == null || _islandState == null) return;
+        int uniqueTypes = _islandState.PlayerCivilization.Cities
+            .SelectMany(c => c.Buildings)
+            .Select(b => b.Type)
+            .Distinct()
+            .Count();
+        if (uniqueTypes > _gameRecord.MaxUniqueBuildingTypesOnIsland)
+            _gameRecord.MaxUniqueBuildingTypesOnIsland = uniqueTypes;
+    }
+
     private void HandleCityBuilt(object? sender, OutpostAutoBuiltEventArgs e)
     {
         if (_gameRecord == null || _runRecord == null) return;
@@ -205,6 +223,8 @@ public class TaskRecordController
 
         _gameRecord.TotalCitiesBuilt++;
         _runRecord.CitiesBuilt++;
+        if (e.Position.Z == LayerState.UnderworldZ)
+            _gameRecord.HasFoundedUnderworldCity = true;
         CheckTaskCompletions();
     }
 
@@ -246,6 +266,15 @@ public class TaskRecordController
         if (_gameRecord == null) return;
         if (level >= 1)
             _gameRecord.HasBuiltWonder = true;
+        if (level > _gameRecord.MaxWonderLevelReached)
+            _gameRecord.MaxWonderLevelReached = level;
+        CheckTaskCompletions();
+    }
+
+    private void HandleCorruptionSpireBuilt(object? sender, EventArgs e)
+    {
+        if (_gameRecord == null) return;
+        _gameRecord.HasBuiltCorruptionSpire = true;
         CheckTaskCompletions();
     }
 
@@ -276,6 +305,18 @@ public class TaskRecordController
         {
             _gameRecord.TotalDragonsDefeated++;
             _runRecord.DragonsDefeated++;
+            CheckTaskCompletions();
+        }
+        else if (e is Troll)
+        {
+            _gameRecord.TotalTrollsDefeated++;
+            _runRecord.TrollsDefeated++;
+            CheckTaskCompletions();
+        }
+        else if (e is Ogre)
+        {
+            _gameRecord.TotalOgresDefeated++;
+            _runRecord.OgresDefeated++;
             CheckTaskCompletions();
         }
     }
