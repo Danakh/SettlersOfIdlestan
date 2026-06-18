@@ -136,7 +136,10 @@ public class CityRenderer : HexBasedRenderer, IGameRenderer
                     ? (IslandMap)underworldLayer.Map
                     : worldState.Visibility.GetForZ(LayerState.UnderworldZ).TryGetValue(playerIdx, out var uvm) ? uvm : underworldLayer.Map;
                 foreach (var civ in worldState.Civilizations)
-                    DrawCities(canvas, civ.Cities.Where(c => c.Position.Z == LayerState.UnderworldZ).ToList(), civ, visibilityMap);
+                {
+                    bool isPlayerCiv = (civ == worldState.PlayerCivilization);
+                    DrawCities(canvas, civ.Cities.Where(c => c.Position.Z == LayerState.UnderworldZ).ToList(), civ, visibilityMap, isPlayerCiv);
+                }
                 return;
             }
 
@@ -153,7 +156,8 @@ public class CityRenderer : HexBasedRenderer, IGameRenderer
                 // Dessine les villes de chaque civilisation
                 foreach (var civilization in worldState.Civilizations)
                 {
-                    DrawCities(canvas, civilization.Cities, civilization, mapForVisibility);
+                    bool isPlayerCiv = (civilization == worldState.PlayerCivilization);
+                    DrawCities(canvas, civilization.Cities, civilization, mapForVisibility, isPlayerCiv);
                 }
             }
         }
@@ -220,7 +224,7 @@ public class CityRenderer : HexBasedRenderer, IGameRenderer
     /// <summary>
     /// Dessine les villes d'une civilisation.
     /// </summary>
-    private void DrawCities(SKCanvas canvas, IEnumerable<City> cities, Civilization civilization, IslandMap visibleMap)
+    private void DrawCities(SKCanvas canvas, IEnumerable<City> cities, Civilization civilization, IslandMap visibleMap, bool isPlayerCiv)
     {
         if (!cities.Any() || _settlementPaint == null || _cityPaint == null || _borderPaint == null)
             return;
@@ -249,8 +253,8 @@ public class CityRenderer : HexBasedRenderer, IGameRenderer
 
             if (city.Level >= 2)
             {
-                bool hasUnique = city.Buildings.Any(b => b.IsUnique);
-                string label = hasUnique ? $"{city.Level}!" : city.Level.ToString();
+                bool shouldShowUnique = isPlayerCiv && city.Buildings.Any(b => b.IsUnique);
+                string label = shouldShowUnique ? $"{city.Level}!" : city.Level.ToString();
                 SkiaTextUtils.DrawText(canvas, label, pixelPos.X, pixelPos.Y + 4, SKTextAlign.Center, _cityLevelFont, _cityLevelTextPaint);
             }
 
