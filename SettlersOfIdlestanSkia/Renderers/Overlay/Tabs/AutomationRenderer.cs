@@ -133,7 +133,7 @@ public sealed class AutomationRenderer : IDisposable
     private static readonly BuildingType[] LibraryTypes    = [BuildingType.Library, BuildingType.Laboratory];
     private static readonly BuildingType[] MarketTypes     = [BuildingType.Market];
     private static readonly BuildingType[] SeaportTypes    = [BuildingType.Seaport];
-    private static readonly BuildingType[] MilitaryTypes   = [BuildingType.Barracks, BuildingType.MilitaryAcademy, BuildingType.Arsenal];
+    private static readonly BuildingType[] MilitaryTypes   = [BuildingType.Barracks, BuildingType.MilitaryAcademy, BuildingType.Arsenal, BuildingType.WeaponSmith, BuildingType.ArmorSmith];
 
     public AutomationRenderer(GameControllerService gameControllerService, LocalizationService localization)
     {

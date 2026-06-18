@@ -156,7 +156,7 @@ namespace SettlersOfIdlestan.Controller.Island
         {
             if (_state == null || _clock == null) return;
             long now = _clock.CurrentTick;
-            BuildingType[] targets = [BuildingType.Barracks, BuildingType.MilitaryAcademy, BuildingType.Arsenal];
+            BuildingType[] targets = [BuildingType.Barracks, BuildingType.MilitaryAcademy, BuildingType.Arsenal, BuildingType.WeaponSmith, BuildingType.ArmorSmith];
 
             foreach (var civ in _state.Civilizations)
             {

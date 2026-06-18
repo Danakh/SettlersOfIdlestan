@@ -134,7 +134,7 @@
   "automation_seaport_desc": "Automatically builds/upgrades Seaports",
   "automation_seaport_locked": "Requires the Imperial Port prestige vertex + an Imperial Port",
   "automation_military_buildings_name": "Military Buildings",
-  "automation_military_buildings_desc": "Automatically builds/upgrades Barracks, Military Academies and Arsenals",
+  "automation_military_buildings_desc": "Automatically builds/upgrades Barracks, Military Academies, Arsenals, Weapon Smiths and Armor Smiths",
   "automation_military_buildings_note": "The order in which buildings are upgraded is random.",
   "automation_military_buildings_locked": "Requires a War Room",
   "automation_military_reinforcement_name": "Reinforcement",
