@@ -16,6 +16,8 @@ namespace SettlersOfIdlestan.Controller
         private const int BuyRateBasic = 1;
         private const int BuyRateOre = 5;
         private const int BuyRateAdvanced = 20;
+        private const int BuyRateCrystal = 100;
+        private const int BuyRateMithril = 100;
 
         /// <summary>Or reçu pour 1 Acier vendu (recherche Aciers Spéciaux).</summary>
         public const int SteelSellGoldValue = 10;
@@ -84,6 +86,8 @@ namespace SettlersOfIdlestan.Controller
         {
             if (ResourceUtils.BasicResources.Contains(resource)) return BuyRateBasic;
             if (resource == Resource.Ore) return BuyRateOre;
+            if (resource == Resource.Crystal) return BuyRateCrystal;
+            if (resource == Resource.Mithril) return BuyRateMithril;
             return BuyRateAdvanced;
         }
 
