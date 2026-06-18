@@ -163,6 +163,7 @@ namespace SettlersOfIdlestan.Controller.Island
             return new IslandParameters(WorldId, tileData, features, shape)
             {
                 NpcCivilizations = npcCivs,
+                HasBonusIsland = _prng.Next(100) < 50,
             };
         }
 

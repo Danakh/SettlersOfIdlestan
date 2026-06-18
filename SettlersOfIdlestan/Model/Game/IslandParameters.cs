@@ -12,6 +12,7 @@ namespace SettlersOfIdlestan.Model.Game
         public List<IslandFeatureParameters> Features { get; set; }
         public IslandShapeType ShapeType { get; set; }
         public List<NpcParameters> NpcCivilizations { get; set; } = new();
+        public bool HasBonusIsland { get; set; }
 
         public IslandParameters(int worldId, IEnumerable<(TerrainType terrainType, int tileCount)> tileData, IEnumerable<IslandFeatureParameters>? features = null, IslandShapeType shapeType = IslandShapeType.Compact)
         {

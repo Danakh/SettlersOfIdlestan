@@ -131,7 +131,93 @@ public class IslandMapGenerator
         if (parameters.Features.Count > 0)
             PlaceFeatures(WorldState, parameters.Features, currentTick);
 
+        if (parameters.HasBonusIsland)
+            TryAddBonusIsland(WorldState);
+
         return WorldState;
+    }
+
+    // Petite île bonus rattachée à l'île principale par un isthme étroit (un edge entre deux
+    // hex terrestres dont les deux hex de flanc sont de l'eau) : 1-2 hex, avec un trésor (80%),
+    // un cercle de fées (10%) ou un dragon (10%) dessus.
+    private const int BonusIslandSecondHexChancePercent = 50;
+    private const int BonusIslandTreasureChancePercent = 80;
+    private const int BonusIslandFairyCircleChancePercent = 10;
+
+    private static readonly TerrainType[] BonusIslandTerrainPool =
+    {
+        TerrainType.Forest, TerrainType.Hill, TerrainType.Plain, TerrainType.Mountain, TerrainType.Desert,
+    };
+
+    /// <summary>
+    /// Ajoute une petite île bonus (1-2 hex) accessible depuis l'île principale via un isthme.
+    /// On cherche un hex terrestre côtier <c>a</c> et une direction où l'hex voisin <c>b</c> est
+    /// encore de l'eau mais où les deux hex de flanc de la future arête a-b sont aussi de l'eau :
+    /// poser un nouvel hex terrestre sur <c>b</c> crée alors un isthme complet (arête a-b flanquée
+    /// d'eau des deux côtés), sans nécessiter qu'un tel isthme existe déjà sur la carte.
+    /// </summary>
+    private void TryAddBonusIsland(WorldState worldState)
+    {
+        var map = worldState.GetMapForZ(IslandMap.SurfaceLayer);
+        if (map == null) return;
+
+        var landCoords = new HashSet<HexCoord>(
+            map.Tiles.Values.Where(t => t.TerrainType != TerrainType.Water).Select(t => t.Coord));
+
+        var startCandidates = new List<(HexCoord start, HexCoord flank1, HexCoord flank2)>();
+        foreach (var a in landCoords)
+        {
+            foreach (var dir in HexDirectionUtils.AllHexDirections)
+            {
+                var b = a.Neighbor(dir);
+                if (landCoords.Contains(b)) continue;
+
+                var c1 = a.Neighbor(dir.Next());
+                var c2 = a.Neighbor(dir.Previous());
+                if (!landCoords.Contains(c1) && !landCoords.Contains(c2))
+                    startCandidates.Add((b, c1, c2));
+            }
+        }
+
+        if (startCandidates.Count == 0) return;
+
+        var chosen = startCandidates[_prng.Next(startCandidates.Count)];
+        var startHex = chosen.start;
+
+        var islandHexes = new List<HexCoord> { startHex };
+        if (_prng.Next(100) < BonusIslandSecondHexChancePercent)
+        {
+            // Exclut les deux hex de flanc qui garantissent l'isthme : les convertir en terre
+            // briserait la configuration "route maritime" qu'on vient de créer.
+            var extraCandidates = startHex.Neighbors()
+                .Where(n => !landCoords.Contains(n) && !n.Equals(chosen.flank1) && !n.Equals(chosen.flank2))
+                .ToList();
+            if (extraCandidates.Count > 0)
+                islandHexes.Add(extraCandidates[_prng.Next(extraCandidates.Count)]);
+        }
+
+        var terrain = BonusIslandTerrainPool[_prng.Next(BonusIslandTerrainPool.Length)];
+        foreach (var hex in islandHexes)
+            map.AddTile(new HexTile(hex, terrain));
+
+        // Garantit que la nouvelle île est bien encerclée d'eau (étend la carte si nécessaire).
+        foreach (var hex in islandHexes)
+            foreach (var dir in HexDirectionUtils.AllHexDirections)
+            {
+                var neighbor = hex.Neighbor(dir);
+                if (!map.HasTile(neighbor))
+                    map.AddTile(new HexTile(neighbor, TerrainType.Water));
+            }
+
+        var featureHex = islandHexes[_prng.Next(islandHexes.Count)];
+        int roll = _prng.Next(100);
+        IslandFeature feature = roll < BonusIslandTreasureChancePercent
+            ? new TreasureTrove(featureHex)
+            : roll < BonusIslandTreasureChancePercent + BonusIslandFairyCircleChancePercent
+                ? new FairyCircle(featureHex)
+                : new Dragon(featureHex);
+
+        worldState.AddFeature(feature);
     }
 
     public void PopulatePlayerCivilization(IslandMap map, Civilization civilization, Vertex vertex)
