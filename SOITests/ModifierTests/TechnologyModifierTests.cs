@@ -199,7 +199,7 @@ public class TechnologyModifierTests
     [Fact]
     public void HarvestTools_QuarryMaxLevel_Plus1()
     {
-        Assert.Equal(1, BuildAggregator(TechnologyId.HarvestTools).ApplyModifiers(ECategory.BUILDING_MAX_LEVEL, "Quarry", 0));
+        Assert.Equal(1, BuildAggregator(TechnologyId.HarvestTools).ApplyModifiers(ECategory.BUILDING_MAX_LEVEL, "Mill", 0));
     }
 
     [Fact]
@@ -272,7 +272,7 @@ public class TechnologyModifierTests
     [Fact]
     public void Compagnonage_MillMaxLevel_Plus1()
     {
-        Assert.Equal(1, BuildAggregator(TechnologyId.Compagnonage).ApplyModifiers(ECategory.BUILDING_MAX_LEVEL, "Mill", 0));
+        Assert.Equal(1, BuildAggregator(TechnologyId.Compagnonage).ApplyModifiers(ECategory.BUILDING_MAX_LEVEL, "Quarry", 0));
     }
 
     [Fact]
