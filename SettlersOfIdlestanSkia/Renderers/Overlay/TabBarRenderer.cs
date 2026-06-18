@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using SettlersOfIdlestan.Controller.Expand;
+using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestanSkia.Core;
@@ -300,7 +301,7 @@ public sealed class TabBarRenderer : IDisposable
             if (civ == null) return false;
             foreach (var city in civ.Cities)
                 foreach (var b in city.Buildings)
-                    if (b.ProvidesAutomation && b.Level > 0) return true;
+                    if (b.Level > 0 && (b.ProvidesAutomation || b.ActivationStatus != ActivationStatus.NON_ACTIVABLE)) return true;
             var completed = civ.TechnologyTree.CompletedTechnologies;
             return completed.Contains(TechnologyId.AdvancedTactics) || completed.Contains(TechnologyId.AdvancedStrategy);
         }
