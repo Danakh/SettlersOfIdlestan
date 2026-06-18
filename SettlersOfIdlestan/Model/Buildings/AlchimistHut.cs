@@ -22,9 +22,16 @@ public class AlchimistHut : Building
     /// <summary>Dernier tick où la hutte a produit une Potion de Soin.</summary>
     public long LastPotionProductionTick { get; set; } = 0;
 
+    /// <summary>Verre consommé par Potion de Soin produite.</summary>
+    public const int GlassInputPerPotion = 1;
+
+    /// <summary>Cristal consommé par Potion de Soin produite.</summary>
+    public const int CrystalInputPerPotion = 1;
+
     public AlchimistHut() : base(BuildingType.AlchimistHut)
     {
         AvailableAtLevel = 1;
+        ActivationStatus = ActivationStatus.ACTIVE;
     }
 
     // Verrouillée par défaut ; débloquée par le vertex de prestige Hutte d'Alchimie (+3 niveaux max)

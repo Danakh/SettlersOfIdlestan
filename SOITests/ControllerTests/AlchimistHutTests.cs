@@ -148,10 +148,12 @@ namespace SOITests.ControllerTests
         // ── Production de Potions de Soin ───────────────────────────────────
 
         [Fact]
-        public void HealingPotion_AlchimistHutLevel1_ProducesAfter1000Ticks()
+        public void HealingPotion_AlchimistHutLevel1_ProducesAfter1000TicksAndConsumesGlassAndCrystal()
         {
             var (state, city) = CreateSetup();
             var civ = state.PlayerCivilization;
+            civ.Resources[Resource.Glass] = 10;
+            civ.Resources[Resource.Crystal] = 10;
             city.Buildings.Add(new AlchimistHut { Level = 1 });
             civ.AddCustomAggregator(new StaticModifierProvider(new[]
             {
@@ -164,6 +166,8 @@ namespace SOITests.ControllerTests
             clock.SimulateAdvance(HarvestController.AlchimistHutPotionBaseIntervalTicks);
 
             Assert.True(civ.GetResourceQuantity(Resource.HealingPotion) >= 1);
+            Assert.Equal(10 - AlchimistHut.GlassInputPerPotion, civ.GetResourceQuantity(Resource.Glass));
+            Assert.Equal(10 - AlchimistHut.CrystalInputPerPotion, civ.GetResourceQuantity(Resource.Crystal));
         }
 
         [Fact]
@@ -171,7 +175,50 @@ namespace SOITests.ControllerTests
         {
             var (state, city) = CreateSetup();
             var civ = state.PlayerCivilization;
+            civ.Resources[Resource.Glass] = 10;
+            civ.Resources[Resource.Crystal] = 10;
             city.Buildings.Add(new AlchimistHut { Level = 1 });
+            var clock = new GameClock();
+            clock.Start();
+            new HarvestController(state, clock);
+
+            clock.SimulateAdvance(HarvestController.AlchimistHutPotionBaseIntervalTicks * 5);
+
+            Assert.Equal(0, civ.GetResourceQuantity(Resource.HealingPotion));
+        }
+
+        [Fact]
+        public void HealingPotion_NotEnoughGlassOrCrystal_ProducesNothing()
+        {
+            var (state, city) = CreateSetup();
+            var civ = state.PlayerCivilization;
+            city.Buildings.Add(new AlchimistHut { Level = 1 });
+            civ.AddCustomAggregator(new StaticModifierProvider(new[]
+            {
+                new Modifier(ECategory.UNLOCK_HEALING_POTION, EType.ADDITIVE, 1),
+            }));
+            var clock = new GameClock();
+            clock.Start();
+            new HarvestController(state, clock);
+
+            clock.SimulateAdvance(HarvestController.AlchimistHutPotionBaseIntervalTicks * 5);
+
+            Assert.Equal(0, civ.GetResourceQuantity(Resource.HealingPotion));
+        }
+
+        [Fact]
+        public void HealingPotion_Inactive_ProducesNothing()
+        {
+            var (state, city) = CreateSetup();
+            var civ = state.PlayerCivilization;
+            civ.Resources[Resource.Glass] = 10;
+            civ.Resources[Resource.Crystal] = 10;
+            var hut = new AlchimistHut { Level = 1, ActivationStatus = ActivationStatus.INACTIVE };
+            city.Buildings.Add(hut);
+            civ.AddCustomAggregator(new StaticModifierProvider(new[]
+            {
+                new Modifier(ECategory.UNLOCK_HEALING_POTION, EType.ADDITIVE, 1),
+            }));
             var clock = new GameClock();
             clock.Start();
             new HarvestController(state, clock);

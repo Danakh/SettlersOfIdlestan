@@ -56,7 +56,7 @@ namespace SOITests.ControllerTests
         }
 
         private static (WorldState state, GameClock clock, City city)
-            CreateForgeSetup(int forgeLevel = 1)
+            CreateSmithSetup(int weaponSmithLevel = 0, int armorSmithLevel = 0, int initialSteel = 999)
         {
             var tiles = new List<HexTile>
             {
@@ -67,9 +67,11 @@ namespace SOITests.ControllerTests
             };
             var map = new IslandMap(tiles);
             var civ = new Civilization { Index = 0 };
+            civ.Resources[Resource.Steel] = initialSteel;
             var vertex = Vertex.Create(NE, East, NE11);
             var city = new City(vertex) { CivilizationIndex = 0 };
-            city.Buildings.Add(new Forge { Level = forgeLevel });
+            if (weaponSmithLevel > 0) city.Buildings.Add(new WeaponSmith { Level = weaponSmithLevel });
+            if (armorSmithLevel > 0) city.Buildings.Add(new ArmorSmith { Level = armorSmithLevel });
             civ.AddCity(city);
             var state = new WorldState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
             var clock = new GameClock();
@@ -78,65 +80,78 @@ namespace SOITests.ControllerTests
             return (state, clock, city);
         }
 
-        // ── Armes en Acier — production par la Forge ─────────────────────────
+        // ── Armes/Armures en Acier — production par la Forge d'Armes / d'Armures ──
 
         [Fact]
-        public void SteelWeapons_ForgeLevel1_ProducesAfter1000Ticks()
+        public void WeaponSmith_Level1_ProducesAfter1000TicksAndConsumesSteel()
         {
-            var (state, clock, city) = CreateForgeSetup(forgeLevel: 1);
+            var (state, clock, city) = CreateSmithSetup(weaponSmithLevel: 1);
             var civ = state.Civilizations[0];
-            civ.AddCustomAggregator(new StaticModifierProvider(new[]
-            {
-                new Modifier(ECategory.UNLOCK_STEEL_WEAPONS, EType.ADDITIVE, 1),
-            }));
 
-            clock.SimulateAdvance(HarvestController.ForgeConsumableBaseIntervalTicks);
+            clock.SimulateAdvance(HarvestController.WeaponSmithBaseIntervalTicks);
 
             Assert.True(civ.GetResourceQuantity(Resource.SteelWeapon) >= 1);
+            Assert.Equal(999 - WeaponSmith.SteelInputPerWeapon, civ.GetResourceQuantity(Resource.Steel));
         }
 
         [Fact]
-        public void SteelArmor_ForgeLevel1_ProducesAfter1000Ticks()
+        public void ArmorSmith_Level1_ProducesAfter1000TicksAndConsumesSteel()
         {
-            var (state, clock, city) = CreateForgeSetup(forgeLevel: 1);
+            var (state, clock, city) = CreateSmithSetup(armorSmithLevel: 1);
             var civ = state.Civilizations[0];
-            civ.AddCustomAggregator(new StaticModifierProvider(new[]
-            {
-                new Modifier(ECategory.UNLOCK_STEEL_ARMOR, EType.ADDITIVE, 1),
-            }));
 
-            clock.SimulateAdvance(HarvestController.ForgeConsumableBaseIntervalTicks);
+            clock.SimulateAdvance(HarvestController.ArmorSmithBaseIntervalTicks);
 
             Assert.True(civ.GetResourceQuantity(Resource.SteelArmor) >= 1);
+            Assert.Equal(999 - ArmorSmith.SteelInputPerArmor, civ.GetResourceQuantity(Resource.Steel));
         }
 
         [Fact]
-        public void ForgeConsumables_BothUnlocked_ProducesBoth()
+        public void WeaponSmithAndArmorSmith_BothBuilt_ProduceBoth()
         {
-            var (state, clock, city) = CreateForgeSetup(forgeLevel: 1);
+            var (state, clock, city) = CreateSmithSetup(weaponSmithLevel: 1, armorSmithLevel: 1);
             var civ = state.Civilizations[0];
-            civ.AddCustomAggregator(new StaticModifierProvider(new[]
-            {
-                new Modifier(ECategory.UNLOCK_STEEL_WEAPONS, EType.ADDITIVE, 1),
-                new Modifier(ECategory.UNLOCK_STEEL_ARMOR,   EType.ADDITIVE, 1),
-            }));
 
-            clock.SimulateAdvance(HarvestController.ForgeConsumableBaseIntervalTicks);
+            clock.SimulateAdvance(HarvestController.WeaponSmithBaseIntervalTicks);
 
             Assert.True(civ.GetResourceQuantity(Resource.SteelWeapon) >= 1);
             Assert.True(civ.GetResourceQuantity(Resource.SteelArmor)  >= 1);
         }
 
         [Fact]
-        public void ForgeConsumables_NoModifier_ProducesNothing()
+        public void WeaponSmith_NoBuilding_ProducesNothing()
         {
-            var (state, clock, city) = CreateForgeSetup(forgeLevel: 1);
+            var (state, clock, city) = CreateSmithSetup();
             var civ = state.Civilizations[0];
 
-            clock.SimulateAdvance(HarvestController.ForgeConsumableBaseIntervalTicks * 5);
+            clock.SimulateAdvance(HarvestController.WeaponSmithBaseIntervalTicks * 5);
 
             Assert.Equal(0, civ.GetResourceQuantity(Resource.SteelWeapon));
             Assert.Equal(0, civ.GetResourceQuantity(Resource.SteelArmor));
+        }
+
+        [Fact]
+        public void WeaponSmith_NotEnoughSteel_ProducesNothing()
+        {
+            var (state, clock, city) = CreateSmithSetup(weaponSmithLevel: 1, initialSteel: 1);
+            var civ = state.Civilizations[0];
+
+            clock.SimulateAdvance(HarvestController.WeaponSmithBaseIntervalTicks * 5);
+
+            Assert.Equal(0, civ.GetResourceQuantity(Resource.SteelWeapon));
+            Assert.Equal(1, civ.GetResourceQuantity(Resource.Steel));
+        }
+
+        [Fact]
+        public void WeaponSmith_Inactive_ProducesNothing()
+        {
+            var (state, clock, city) = CreateSmithSetup(weaponSmithLevel: 1);
+            city.Buildings.OfType<WeaponSmith>().First().ActivationStatus = ActivationStatus.INACTIVE;
+            var civ = state.Civilizations[0];
+
+            clock.SimulateAdvance(HarvestController.WeaponSmithBaseIntervalTicks * 5);
+
+            Assert.Equal(0, civ.GetResourceQuantity(Resource.SteelWeapon));
         }
 
         [Fact]

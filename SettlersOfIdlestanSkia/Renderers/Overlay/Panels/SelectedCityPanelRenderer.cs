@@ -585,6 +585,57 @@ public class SelectedCityPanelRenderer : PanelRendererBase
                     tooltipLines.Add("");
                 }
 
+                if (hoveredBuilding is WeaponSmith weaponSmith && weaponSmith.Level > 0)
+                {
+                    long currentTick = _cityBuildingService.GetCurrentTick();
+                    long cooldown  = _cityBuildingService.GetWeaponSmithEffectiveCooldown();
+                    long elapsed   = weaponSmith.LastProductionTick == 0 ? 0 : currentTick - weaponSmith.LastProductionTick;
+                    long remaining = Math.Max(0, cooldown - elapsed);
+                    tooltipLines.Add(_localization.Get("weaponsmith_production_cooldown") + $" {remaining / 100.0:0.0}s/{cooldown / 100.0:0.0}s");
+                    tooltipLines.Add(_localization.GetFormated("weaponsmith_production_costs", WeaponSmith.SteelInputPerWeapon));
+                    if (!_cityBuildingService.IsAtMaxLevel(weaponSmith))
+                    {
+                        long nextCooldown = _cityBuildingService.GetWeaponSmithEffectiveCooldown(weaponSmith.Level + 1);
+                        if (nextCooldown != cooldown)
+                            tooltipLines.Add(_localization.Get("tooltip_building_prestige_next") + $" {nextCooldown / 100.0:0.0}s");
+                    }
+                    tooltipLines.Add("");
+                }
+
+                if (hoveredBuilding is ArmorSmith armorSmith && armorSmith.Level > 0)
+                {
+                    long currentTick = _cityBuildingService.GetCurrentTick();
+                    long cooldown  = _cityBuildingService.GetArmorSmithEffectiveCooldown();
+                    long elapsed   = armorSmith.LastProductionTick == 0 ? 0 : currentTick - armorSmith.LastProductionTick;
+                    long remaining = Math.Max(0, cooldown - elapsed);
+                    tooltipLines.Add(_localization.Get("armorsmith_production_cooldown") + $" {remaining / 100.0:0.0}s/{cooldown / 100.0:0.0}s");
+                    tooltipLines.Add(_localization.GetFormated("armorsmith_production_costs", ArmorSmith.SteelInputPerArmor));
+                    if (!_cityBuildingService.IsAtMaxLevel(armorSmith))
+                    {
+                        long nextCooldown = _cityBuildingService.GetArmorSmithEffectiveCooldown(armorSmith.Level + 1);
+                        if (nextCooldown != cooldown)
+                            tooltipLines.Add(_localization.Get("tooltip_building_prestige_next") + $" {nextCooldown / 100.0:0.0}s");
+                    }
+                    tooltipLines.Add("");
+                }
+
+                if (hoveredBuilding is AlchimistHut alchimistHut && alchimistHut.Level > 0)
+                {
+                    long currentTick = _cityBuildingService.GetCurrentTick();
+                    long cooldown  = _cityBuildingService.GetAlchimistHutPotionCooldown();
+                    long elapsed   = alchimistHut.LastPotionProductionTick == 0 ? 0 : currentTick - alchimistHut.LastPotionProductionTick;
+                    long remaining = Math.Max(0, cooldown - elapsed);
+                    tooltipLines.Add(_localization.Get("alchimisthut_potion_cooldown") + $" {remaining / 100.0:0.0}s/{cooldown / 100.0:0.0}s");
+                    tooltipLines.Add(_localization.GetFormated("alchimisthut_potion_costs", AlchimistHut.GlassInputPerPotion, AlchimistHut.CrystalInputPerPotion));
+                    if (!_cityBuildingService.IsAtMaxLevel(alchimistHut))
+                    {
+                        long nextCooldown = _cityBuildingService.GetAlchimistHutPotionCooldown(alchimistHut.Level + 1);
+                        if (nextCooldown != cooldown)
+                            tooltipLines.Add(_localization.Get("tooltip_building_prestige_next") + $" {nextCooldown / 100.0:0.0}s");
+                    }
+                    tooltipLines.Add("");
+                }
+
                 if (hoveredBuilding is Warehouse warehouse)
                 {
                     if (warehouse.Level > 0)

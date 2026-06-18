@@ -71,6 +71,8 @@ namespace SettlersOfIdlestan.Model.Buildings
                 BuildingType.MageTower => typeof(MageTower),
                 BuildingType.WarRoom => typeof(WarRoom),
                 BuildingType.AlchimistHut => typeof(AlchimistHut),
+                BuildingType.WeaponSmith => typeof(WeaponSmith),
+                BuildingType.ArmorSmith => typeof(ArmorSmith),
                 _ => throw new JsonException($"Unknown building type: {bType}")
             };
 

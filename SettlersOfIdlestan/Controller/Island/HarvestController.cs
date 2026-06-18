@@ -67,8 +67,10 @@ namespace SettlersOfIdlestan.Controller.Island
         public const long MarketGoldGenerationCooldownTicks = 6000L;
         // 1 s × 100 ticks/s
         public const long PassiveResourceGenerationIntervalTicks = 100L;
-        // 10 s × 100 ticks/s — intervalle de base de production de consommables par la Forge (niv. 1)
-        public const long ForgeConsumableBaseIntervalTicks = 1000L;
+        // 10 s × 100 ticks/s — intervalle de base de production de la Forge d'Armes (niv. 1)
+        public const long WeaponSmithBaseIntervalTicks = 1000L;
+        // 10 s × 100 ticks/s — intervalle de base de production de la Forge d'Armures (niv. 1)
+        public const long ArmorSmithBaseIntervalTicks = 1000L;
         // 10 s × 100 ticks/s — intervalle de base de production de Potions de Soin par la Hutte d'Alchimie (niv. 1)
         public const long AlchimistHutPotionBaseIntervalTicks = 1000L;
 
@@ -114,8 +116,10 @@ namespace SettlersOfIdlestan.Controller.Island
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[HarvestController] {nameof(PerformSmelterProductions)}: {ex}"); }
             try { PerformPassiveResourceGenerations(e.CurrentTick); }
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[HarvestController] {nameof(PerformPassiveResourceGenerations)}: {ex}"); }
-            try { PerformForgeConsumableProductions(e.CurrentTick); }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[HarvestController] {nameof(PerformForgeConsumableProductions)}: {ex}"); }
+            try { PerformWeaponSmithProductions(e.CurrentTick); }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[HarvestController] {nameof(PerformWeaponSmithProductions)}: {ex}"); }
+            try { PerformArmorSmithProductions(e.CurrentTick); }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[HarvestController] {nameof(PerformArmorSmithProductions)}: {ex}"); }
             try { PerformAlchimistHutPotionProductions(e.CurrentTick); }
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[HarvestController] {nameof(PerformAlchimistHutPotionProductions)}: {ex}"); }
             try { PerformAlchimistHutCrystalProductions(e.CurrentTick); }
@@ -383,34 +387,65 @@ namespace SettlersOfIdlestan.Controller.Island
             return Math.Max(1L, (long)(baseCooldown / speedMultiplier));
         }
 
-        private void PerformForgeConsumableProductions(long currentTick)
+        private void PerformWeaponSmithProductions(long currentTick)
         {
             if (_state == null) return;
 
             foreach (var civ in _state.Civilizations)
             {
-                bool producesWeapons = civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_STEEL_WEAPONS);
-                bool producesArmor   = civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_STEEL_ARMOR);
-                if (!producesWeapons && !producesArmor) continue;
-
                 foreach (var city in civ.Cities)
                 {
-                    var forge = city.Buildings.OfType<Forge>().FirstOrDefault(f => f.Level >= 1);
-                    if (forge == null) continue;
+                    var smith = city.Buildings.OfType<WeaponSmith>().FirstOrDefault();
+                    if (smith == null || smith.Level < 1 || smith.ActivationStatus != ActivationStatus.ACTIVE) continue;
 
-                    long interval = GetForgeConsumableInterval(forge.Level);
-                    if (currentTick - forge.LastConsumableProductionTick < interval) continue;
+                    if (currentTick - smith.LastProductionTick < GetWeaponSmithInterval(smith.Level)) continue;
 
-                    if (producesWeapons) civ.AddResource(Resource.SteelWeapon, 1);
-                    if (producesArmor)   civ.AddResource(Resource.SteelArmor, 1);
-                    forge.LastConsumableProductionTick = currentTick;
+                    if (civ.GetResourceQuantity(Resource.Steel) < WeaponSmith.SteelInputPerWeapon)
+                    {
+                        civ.RaiseLowStock(Resource.Steel);
+                        continue;
+                    }
+
+                    civ.RemoveResource(Resource.Steel, WeaponSmith.SteelInputPerWeapon);
+                    civ.AddResource(Resource.SteelWeapon, 1);
+                    smith.LastProductionTick = currentTick;
                 }
             }
         }
 
-        /// <summary>Intervalle de production de consommables pour une forge du niveau donné (x0.9 par niveau).</summary>
-        public static long GetForgeConsumableInterval(int forgeLevel)
-            => Math.Max(1L, (long)(ForgeConsumableBaseIntervalTicks * Math.Pow(0.9, forgeLevel - 1)));
+        /// <summary>Intervalle de production de la Forge d'Armes du niveau donné (x0.9 par niveau).</summary>
+        public static long GetWeaponSmithInterval(int level)
+            => Math.Max(1L, (long)(WeaponSmithBaseIntervalTicks * Math.Pow(0.9, level - 1)));
+
+        private void PerformArmorSmithProductions(long currentTick)
+        {
+            if (_state == null) return;
+
+            foreach (var civ in _state.Civilizations)
+            {
+                foreach (var city in civ.Cities)
+                {
+                    var smith = city.Buildings.OfType<ArmorSmith>().FirstOrDefault();
+                    if (smith == null || smith.Level < 1 || smith.ActivationStatus != ActivationStatus.ACTIVE) continue;
+
+                    if (currentTick - smith.LastProductionTick < GetArmorSmithInterval(smith.Level)) continue;
+
+                    if (civ.GetResourceQuantity(Resource.Steel) < ArmorSmith.SteelInputPerArmor)
+                    {
+                        civ.RaiseLowStock(Resource.Steel);
+                        continue;
+                    }
+
+                    civ.RemoveResource(Resource.Steel, ArmorSmith.SteelInputPerArmor);
+                    civ.AddResource(Resource.SteelArmor, 1);
+                    smith.LastProductionTick = currentTick;
+                }
+            }
+        }
+
+        /// <summary>Intervalle de production de la Forge d'Armures du niveau donné (x0.9 par niveau).</summary>
+        public static long GetArmorSmithInterval(int level)
+            => Math.Max(1L, (long)(ArmorSmithBaseIntervalTicks * Math.Pow(0.9, level - 1)));
 
         private void PerformAlchimistHutPotionProductions(long currentTick)
         {
@@ -423,11 +458,24 @@ namespace SettlersOfIdlestan.Controller.Island
                 foreach (var city in civ.Cities)
                 {
                     var hut = city.Buildings.OfType<AlchimistHut>().FirstOrDefault(h => h.Level >= 1);
-                    if (hut == null) continue;
+                    if (hut == null || hut.ActivationStatus != ActivationStatus.ACTIVE) continue;
 
                     long interval = GetAlchimistHutPotionInterval(hut.Level);
                     if (currentTick - hut.LastPotionProductionTick < interval) continue;
 
+                    if (civ.GetResourceQuantity(Resource.Glass) < AlchimistHut.GlassInputPerPotion)
+                    {
+                        civ.RaiseLowStock(Resource.Glass);
+                        continue;
+                    }
+                    if (civ.GetResourceQuantity(Resource.Crystal) < AlchimistHut.CrystalInputPerPotion)
+                    {
+                        civ.RaiseLowStock(Resource.Crystal);
+                        continue;
+                    }
+
+                    civ.RemoveResource(Resource.Glass, AlchimistHut.GlassInputPerPotion);
+                    civ.RemoveResource(Resource.Crystal, AlchimistHut.CrystalInputPerPotion);
                     civ.AddResource(Resource.HealingPotion, 1);
                     hut.LastPotionProductionTick = currentTick;
                 }

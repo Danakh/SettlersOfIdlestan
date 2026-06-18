@@ -22,9 +22,6 @@ public class Forge : Building
     /// </summary>
     public int DoubleProdChancePercent => Level * 10;
 
-    /// <summary>Dernier tick où la forge a produit des consommables (armes/armures en acier).</summary>
-    public long LastConsumableProductionTick { get; set; } = 0;
-
     public override ResourceSet GetBuildCost() => new ResourceSet
     {
         { Resource.Brick, 40 },

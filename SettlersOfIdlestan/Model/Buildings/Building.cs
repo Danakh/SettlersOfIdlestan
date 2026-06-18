@@ -159,6 +159,14 @@ public enum BuildingType
     /// Hutte d'Alchimie - Permet de récolter les cristaux des Cercles de Fées adjacents et produit des Potions de Soin. Ne peut être construite qu'adjacente à un Cercle de Fées découvert. Débloquée par le prestige (Hutte d'Alchimie).
     /// </summary>
     AlchimistHut,
+    /// <summary>
+    /// Forge d'Armes - Produit des Armes en Acier en consommant de l'Acier. Débloquée par la recherche Armes en Acier.
+    /// </summary>
+    WeaponSmith,
+    /// <summary>
+    /// Forge d'Armures - Produit des Armures en Acier en consommant de l'Acier. Débloquée par la recherche Armures d'Acier.
+    /// </summary>
+    ArmorSmith,
 }
 
 /// <summary>

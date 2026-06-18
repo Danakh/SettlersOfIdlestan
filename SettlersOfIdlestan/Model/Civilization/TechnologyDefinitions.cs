@@ -188,7 +188,11 @@ public static class TechnologyDefinitions
             "tech_steel_weapons_name", "tech_steel_weapons_desc",
             cost: 15000,
             prerequisites: new[] { TechnologyId.MaitriseDesAlliages },
-            modifiers: new Modifier[] { new(ECategory.UNLOCK_STEEL_WEAPONS, EType.ADDITIVE, 1) },
+            modifiers: new Modifier[]
+            {
+                new(ECategory.UNLOCK_STEEL_WEAPONS, EType.ADDITIVE, 1),
+                new(ECategory.BUILDING_MAX_LEVEL, "WeaponSmith", EType.ADDITIVE, 2),
+            },
             tier: 4, line: 3),
 
         new(TechnologyId.EfficientTrading,
@@ -295,7 +299,11 @@ public static class TechnologyDefinitions
             "tech_steel_armor_name", "tech_steel_armor_desc",
             cost: 50000,
             prerequisites: new[] { TechnologyId.Siderurgie },
-            modifiers: new Modifier[] { new(ECategory.UNLOCK_STEEL_ARMOR, EType.ADDITIVE, 1) },
+            modifiers: new Modifier[]
+            {
+                new(ECategory.UNLOCK_STEEL_ARMOR, EType.ADDITIVE, 1),
+                new(ECategory.BUILDING_MAX_LEVEL, "ArmorSmith", EType.ADDITIVE, 2),
+            },
             tier: 6, line: 3),
 
         new(TechnologyId.TemperedSteel,

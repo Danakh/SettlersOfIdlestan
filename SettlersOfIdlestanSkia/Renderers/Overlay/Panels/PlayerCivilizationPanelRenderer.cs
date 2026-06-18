@@ -153,12 +153,15 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         bool hasLabs         = HasBuilt<Laboratory>(civ);
         bool hasSmelters     = HasBuilt<Smelter>(civ);
         bool hasArsenals     = HasBuilt<Arsenal>(civ);
+        bool hasWeaponSmiths  = HasBuilt<WeaponSmith>(civ);
+        bool hasArmorSmiths   = HasBuilt<ArmorSmith>(civ);
+        bool hasAlchimistHuts = HasBuilt<AlchimistHut>(civ);
 
         var worldState = _gameControllerService.CurrentWorldState;
         var pinned = worldState?.AutomationSettings.PinnedToCivPanel ?? (IReadOnlySet<string>)new HashSet<string>();
 
         bool showActions  = tradeVisible || prestigeVisible || wonderVisible || deepestMineVisible || raidVisible;
-        bool showControls = pinned.Any(k => IsKeyShowable(k, civ, worldState, hasBarracks, hasLabs, hasSmelters, hasArsenals));
+        bool showControls = pinned.Any(k => IsKeyShowable(k, civ, worldState, hasBarracks, hasLabs, hasSmelters, hasArsenals, hasWeaponSmiths, hasArmorSmiths, hasAlchimistHuts));
 
         _tradeButtonRect = _prestigeButtonRect = _wonderButtonRect = _deepestMineButtonRect = _raidButtonRect = SKRect.Empty;
         _pinnedItemRects.Clear();
@@ -195,7 +198,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         {
             h += titleHeight;
             foreach (var k in pinned)
-                if (IsKeyShowable(k, civ, worldState, hasBarracks, hasLabs, hasSmelters, hasArsenals))
+                if (IsKeyShowable(k, civ, worldState, hasBarracks, hasLabs, hasSmelters, hasArsenals, hasWeaponSmiths, hasArmorSmiths, hasAlchimistHuts))
                     h += rowHeight;
         }
         h += panelPadding;
@@ -290,7 +293,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
 
             foreach (var key in pinned)
             {
-                if (!IsKeyShowable(key, civ, worldState, hasBarracks, hasLabs, hasSmelters, hasArsenals))
+                if (!IsKeyShowable(key, civ, worldState, hasBarracks, hasLabs, hasSmelters, hasArsenals, hasWeaponSmiths, hasArmorSmiths, hasAlchimistHuts))
                     continue;
 
                 int idx = _pinnedItemRects.Count;
@@ -316,6 +319,18 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
                     case AutomationRenderer.PinKeyArsenal:
                         toggleRect = DrawToggleRow(canvas, x, y, AreAllActiveNullable<Arsenal>(civ), isHovered, _localization.Get("building_arsenal_name"));
                         tooltipKey = "tooltip_toggle_arsenal";
+                        break;
+                    case AutomationRenderer.PinKeyWeaponSmith:
+                        toggleRect = DrawToggleRow(canvas, x, y, AreAllActiveNullable<WeaponSmith>(civ), isHovered, _localization.Get("building_weaponsmith_name"));
+                        tooltipKey = "tooltip_toggle_weaponsmith";
+                        break;
+                    case AutomationRenderer.PinKeyArmorSmith:
+                        toggleRect = DrawToggleRow(canvas, x, y, AreAllActiveNullable<ArmorSmith>(civ), isHovered, _localization.Get("building_armorsmith_name"));
+                        tooltipKey = "tooltip_toggle_armorsmith";
+                        break;
+                    case AutomationRenderer.PinKeyAlchimistHut:
+                        toggleRect = DrawToggleRow(canvas, x, y, AreAllActiveNullable<AlchimistHut>(civ), isHovered, _localization.Get("building_alchimisthut_name"));
+                        tooltipKey = "tooltip_toggle_alchimisthut";
                         break;
                     default:
                         toggleRect = DrawAutomationToggleRow(canvas, x, y, key, worldState!, isHovered, contentW);
@@ -495,6 +510,9 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             case AutomationRenderer.PinKeyLaboratory:    if (civ != null) ToggleAll<Laboratory>(civ);  break;
             case AutomationRenderer.PinKeySmelter:       if (civ != null) ToggleAll<Smelter>(civ);     break;
             case AutomationRenderer.PinKeyArsenal:       if (civ != null) ToggleAll<Arsenal>(civ);     break;
+            case AutomationRenderer.PinKeyWeaponSmith:   if (civ != null) ToggleAll<WeaponSmith>(civ); break;
+            case AutomationRenderer.PinKeyArmorSmith:    if (civ != null) ToggleAll<ArmorSmith>(civ);  break;
+            case AutomationRenderer.PinKeyAlchimistHut:  if (civ != null) ToggleAll<AlchimistHut>(civ); break;
             case AutomationRenderer.PinKeyRoad:          if (settings != null) settings.RoadAutomationEnabled = !settings.RoadAutomationEnabled;                           break;
             case AutomationRenderer.PinKeyOutpost:       if (settings != null) settings.OutpostAutomationEnabled = !settings.OutpostAutomationEnabled;                     break;
             case AutomationRenderer.PinKeyProduction:    if (settings != null) settings.ProductionBuildingAutomationEnabled = !settings.ProductionBuildingAutomationEnabled; break;
@@ -523,7 +541,8 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
 
     private static bool IsKeyShowable(string key, Civilization civ,
         SettlersOfIdlestan.Model.IslandMap.WorldState? worldState,
-        bool hasBarracks, bool hasLabs, bool hasSmelters, bool hasArsenals)
+        bool hasBarracks, bool hasLabs, bool hasSmelters, bool hasArsenals,
+        bool hasWeaponSmiths, bool hasArmorSmiths, bool hasAlchimistHuts)
     {
         return key switch
         {
@@ -531,6 +550,9 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             AutomationRenderer.PinKeyLaboratory   => hasLabs,
             AutomationRenderer.PinKeySmelter      => hasSmelters,
             AutomationRenderer.PinKeyArsenal      => hasArsenals,
+            AutomationRenderer.PinKeyWeaponSmith  => hasWeaponSmiths,
+            AutomationRenderer.PinKeyArmorSmith   => hasArmorSmiths,
+            AutomationRenderer.PinKeyAlchimistHut => hasAlchimistHuts,
             _ => worldState != null, // automation keys: always show if world state available
         };
     }
