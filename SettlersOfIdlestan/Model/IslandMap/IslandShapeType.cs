@@ -5,5 +5,7 @@ public enum IslandShapeType
     Compact,
     Crescent,
     Archipelago,
-    Elongated
+    Elongated,
+    Lake,
+    InlandSea
 }

@@ -106,6 +106,8 @@ public class IslandMapGenerator
             IslandShapeType.Crescent    => new IslandShapeGeneratorCrescent(),
             IslandShapeType.Archipelago => new IslandShapeGeneratorArchipelago(_prng),
             IslandShapeType.Elongated   => new IslandShapeGeneratorElongated(_prng),
+            IslandShapeType.Lake        => new IslandShapeGeneratorLake(_prng),
+            IslandShapeType.InlandSea   => new IslandShapeGeneratorInlandSea(_prng),
             _                           => new IslandShapeGeneratorCompact(_prng)
         };
 
