@@ -28,6 +28,8 @@ public enum GameEventType
     FairyCircleDiscovered,
     DolmenDiscovered,
     RitualCollapsed,
+    CorruptionSpirePlaced,
+    CorruptionSpireBuilt,
 }
 
 public record GameLogEntry(GameEventType Type, string? Message = null, bool Toast = false);

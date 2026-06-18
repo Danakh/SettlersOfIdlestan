@@ -229,5 +229,74 @@ namespace SOITests.ControllerTests
             Assert.Equal(initialIsland.WorldId + 1, newIsland.WorldId);
             Assert.False(controller.PrestigeController.PrestigeIsVisible());
         }
+
+        // ── Spire de Corruption ──────────────────────────────────────────────
+
+        [Fact]
+        public void CorruptionSpireMultiplier_OneWhenNotBuilt()
+        {
+            var state = IslandTestFactory.CreateSevenHexIslandState();
+            var controller = new PrestigeController();
+            controller.Initialize(state.Civilizations[0], state);
+
+            Assert.Equal(1, controller.GetCorruptionSpireMultiplier());
+        }
+
+        [Fact]
+        public void CorruptionSpireMultiplier_TwiceCorruptionLevelWhenBuilt()
+        {
+            var state = IslandTestFactory.CreateSevenHexIslandState();
+            state.AddFeature(new SettlersOfIdlestan.Model.IslandFeatures.CorruptionSpire(new HexCoord(0, 0, SettlersOfIdlestan.Model.IslandMap.LayerState.UnderworldZ)) { Built = true });
+            var prestigeState = new SettlersOfIdlestan.Model.Prestige.PrestigeState { CurrentCorruptionLevel = 3 };
+            var controller = new PrestigeController();
+            controller.Initialize(state.Civilizations[0], state, prestigeState: prestigeState);
+
+            Assert.Equal(6, controller.GetCorruptionSpireMultiplier()); // 2 × 3
+        }
+
+        [Fact]
+        public void CorruptionSpireMultiplier_OneWhileUnderConstruction()
+        {
+            var state = IslandTestFactory.CreateSevenHexIslandState();
+            state.AddFeature(new SettlersOfIdlestan.Model.IslandFeatures.CorruptionSpire(new HexCoord(0, 0, SettlersOfIdlestan.Model.IslandMap.LayerState.UnderworldZ)) { Built = false });
+            var prestigeState = new SettlersOfIdlestan.Model.Prestige.PrestigeState { CurrentCorruptionLevel = 3 };
+            var controller = new PrestigeController();
+            controller.Initialize(state.Civilizations[0], state, prestigeState: prestigeState);
+
+            Assert.Equal(1, controller.GetCorruptionSpireMultiplier());
+        }
+
+        [Fact]
+        public void CalculatePrestigePoints_AppliesCorruptionSpireMultiplier()
+        {
+            var state = IslandTestFactory.CreateSevenHexIslandState();
+            state.AddFeature(new SettlersOfIdlestan.Model.IslandFeatures.CorruptionSpire(new HexCoord(0, 0, SettlersOfIdlestan.Model.IslandMap.LayerState.UnderworldZ)) { Built = true });
+            var prestigeState = new SettlersOfIdlestan.Model.Prestige.PrestigeState { CurrentCorruptionLevel = 2 };
+            var civ = state.Civilizations[0];
+            civ.Cities[0].Buildings.Add(new Temple()); // subtotal = 1, monster bonus ×1.2 (pas de monstre)
+            var controller = new PrestigeController();
+            controller.Initialize(civ, state, prestigeState: prestigeState);
+
+            // (1 × 1.2) × (2 × 2) = 4.8 → (int) 4
+            Assert.Equal(4, controller.CalculatePrestigePoints());
+        }
+
+        [Fact]
+        public void PerformPrestige_Corrupted_IncrementsCorruptionLevelOnlyWhenSpireBuilt()
+        {
+            var mainController = new MainGameController();
+            mainController.CreateNewGame();
+            var civ = mainController.CurrentMainState!.CurrentWorldState!.PlayerCivilization;
+            civ.AddUniqueBuilding(BuildingType.ImperialPort);
+            for (int i = 0; i < 20; i++)
+                civ.Cities[0].Buildings.Add(new Temple());
+
+            Assert.Equal(1, mainController.CurrentMainState.PrestigeState!.CurrentCorruptionLevel);
+
+            mainController.PerformPrestige(corrupted: true);
+
+            // Pas de Spire construite → le niveau de corruption ne bouge pas
+            Assert.Equal(1, mainController.CurrentMainState.PrestigeState!.CurrentCorruptionLevel);
+        }
     }
 }

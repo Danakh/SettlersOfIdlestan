@@ -192,14 +192,12 @@ public static class PrestigeMapFactory
                 }
             ),
             new(
-                PrestigeMap.MasterSmithsVertex,
-                "prestige_vertex_master_smiths",
-                cost: Cost(PrestigeMap.MasterSmithsVertex),
+                PrestigeMap.PlanarGateVertex,
+                "prestige_vertex_planar_gate",
+                cost: Cost(PrestigeMap.PlanarGateVertex),
                 modifiers: new Modifier[]
                 {
-                    new(ECategory.PASSIVE_RESOURCE_GENERATION, "Steel", EType.ADDITIVE, 1),
-                    new(ECategory.BUILDING_MAX_LEVEL, "Arsenal", EType.ADDITIVE, 2),
-                    new(ECategory.BUILDING_MAX_LEVEL, "Smelter", EType.ADDITIVE, 1),
+                    new(ECategory.UNLOCK_ABYSS, EType.ADDITIVE, 1),
                 }
             ),
             // ── Branche de l'Inframonde (nord-ouest) ──────────────────────────
@@ -325,13 +323,12 @@ public static class PrestigeMapFactory
                 }
             ),
             new(
-                PrestigeMap.CrystalomancyVertex,
-                "prestige_vertex_crystalomancy",
-                cost: Cost(PrestigeMap.CrystalomancyVertex),
+                PrestigeMap.DarkEclipseRitualVertex,
+                "prestige_vertex_dark_eclipse_ritual",
+                cost: Cost(PrestigeMap.DarkEclipseRitualVertex),
                 modifiers: new Modifier[]
                 {
-                    new(ECategory.RITUAL_UPKEEP_REDUCTION, EType.ADDITIVE, 0.2),
-                    new(ECategory.HARVEST_SPEED, "MageTower", EType.ADDITIVE, 0.5),
+                    new(ECategory.UNLOCK_ABYSS, EType.ADDITIVE, 1),
                 }
             ),
             new(

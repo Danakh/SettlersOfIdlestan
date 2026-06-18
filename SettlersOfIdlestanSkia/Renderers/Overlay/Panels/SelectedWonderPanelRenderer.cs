@@ -1,4 +1,5 @@
 using SettlersOfIdlestan.Controller.Island;
+using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestanSkia.Services.Localization;
 using SettlersOfIdlestanSkia.Core;
@@ -22,12 +23,14 @@ public class SelectedWonderPanelRenderer : PanelRendererBase
     private SKPaint? _barBgPaint;
     private SKPaint? _barFillPaint;
     private SKPaint? _closePaint;
+    private SKPaint? _corruptedAvailablePaint;
 
     private const float PanelWidth = 280;
     private const float RowHeight = 50;
     private const float TitleHeight = 32;
     private const float Padding = 10;
     private const float BarHeight = 10;
+    private const float FooterHeight = 28;
 
     protected override SKTypeface Font15Typeface => SkiaFonts.Bold;
 
@@ -56,6 +59,7 @@ public class SelectedWonderPanelRenderer : PanelRendererBase
         _barBgPaint   = new SKPaint { Color = new SKColor(50, 50, 65, 200),    Style = SKPaintStyle.Fill, IsAntialias = true };
         _barFillPaint = new SKPaint { Color = new SKColor(180, 140, 30, 230),  Style = SKPaintStyle.Fill, IsAntialias = true };
         _closePaint   = new SKPaint { Color = new SKColor(200, 80, 80, 220),   Style = SKPaintStyle.Fill, IsAntialias = true };
+        _corruptedAvailablePaint = new SKPaint { Color = new SKColor(190, 110, 230, 230), IsAntialias = true };
 
         foreach (Resource resource in Enum.GetValues(typeof(Resource)))
         {
@@ -103,14 +107,17 @@ public class SelectedWonderPanelRenderer : PanelRendererBase
             return;
         }
 
+        bool showCorruptedPrestigeAvailable = wonder is CorruptionSpire { Built: true };
+        float footerHeight = showCorruptedPrestigeAvailable ? FooterHeight * s : 0f;
+
         float maxPanelHeight = Math.Max(0, CanvasSize.Height - panelY - 20 * s);
-        int visibleResourceCount = Math.Min(resourceCount, Math.Max(0, (int)((maxPanelHeight - titleHeight - padding) / rowHeight)));
+        int visibleResourceCount = Math.Min(resourceCount, Math.Max(0, (int)((maxPanelHeight - titleHeight - padding - footerHeight) / rowHeight)));
         LastTotalCount   = resourceCount;
         LastVisibleCount = visibleResourceCount;
         ScrollOffset = Math.Clamp(ScrollOffset, 0, Math.Max(0, resourceCount - visibleResourceCount));
         bool needsScrollbar = resourceCount > visibleResourceCount;
 
-        float panelHeight = titleHeight + visibleResourceCount * rowHeight + padding;
+        float panelHeight = titleHeight + visibleResourceCount * rowHeight + footerHeight + padding;
         PanelBounds = new SKRect(panelX, panelY, panelX + panelWidth, panelY + panelHeight);
         DrawPanelChrome(canvas, panelX, panelY, panelWidth, panelHeight);
 
@@ -190,6 +197,14 @@ public class SelectedWonderPanelRenderer : PanelRendererBase
             y += rowHeight;
         }
 
+        if (showCorruptedPrestigeAvailable)
+        {
+            SkiaTextUtils.DrawText(canvas,
+                _localization.Get("corruption_spire_panel_corrupted_prestige_available"),
+                panelX + panelWidth / 2f, y + footerHeight / 2f + 5 * s,
+                SKTextAlign.Center, Font12, _corruptedAvailablePaint);
+        }
+
         if (needsScrollbar)
         {
             float scrollW = 5f * s;
@@ -244,6 +259,7 @@ public class SelectedWonderPanelRenderer : PanelRendererBase
         _barBgPaint?.Dispose();
         _barFillPaint?.Dispose();
         _closePaint?.Dispose();
+        _corruptedAvailablePaint?.Dispose();
         base.Dispose();
     }
 }

@@ -17,17 +17,19 @@ namespace SettlersOfIdlestan.Controller.Expand
         private Civilization? _playerCivilization;
         private WorldState? _islandState;
         private GameClock? _clock;
+        private PrestigeState? _prestigeState;
 
         internal PrestigeController()
         {
             // no op
         }
 
-        internal void Initialize(Civilization playerCivilization, WorldState? WorldState = null, GameClock? clock = null)
+        internal void Initialize(Civilization playerCivilization, WorldState? WorldState = null, GameClock? clock = null, PrestigeState? prestigeState = null)
         {
             _playerCivilization = playerCivilization;
             _islandState = WorldState;
             _clock = clock;
+            _prestigeState = prestigeState;
         }
 
         private long GetCurrentTick() => _clock?.CurrentTick ?? 0;
@@ -109,6 +111,15 @@ namespace SettlersOfIdlestan.Controller.Expand
             return GetSeaportLevel4Count() * perSeaport;
         }
 
+        public bool HasCorruptionSpireBuilt()
+            => _islandState?.Features.OfType<CorruptionSpire>().Any(f => f.Built) == true;
+
+        /// <summary>Multiplicateur de la Spire de Corruption : 2 × niveau de corruption courant si construite, sinon 1.</summary>
+        public int GetCorruptionSpireMultiplier()
+            => HasCorruptionSpireBuilt() ? 2 * (_prestigeState?.CurrentCorruptionLevel ?? 1) : 1;
+
+        public int GetCorruptionLevel() => _prestigeState?.CurrentCorruptionLevel ?? 1;
+
         public int CalculatePrestigePoints()
         {
             int subtotal = GetBuildingSubtotal() + GetDragonBonus();
@@ -120,6 +131,7 @@ namespace SettlersOfIdlestan.Controller.Expand
             double seaportBonus = GetSeaportPrestigeBonus();
             if (gainBonus > 0 || seaportBonus > 0)
                 result *= (1 + gainBonus + seaportBonus);
+            result *= GetCorruptionSpireMultiplier();
             return (int)result;
         }
 
@@ -185,6 +197,9 @@ namespace SettlersOfIdlestan.Controller.Expand
         }
 
         public void PerformPrestige(MainGameState mainGameState, IslandParameters nextIslandParameters)
+            => PerformPrestige(mainGameState, nextIslandParameters, corrupted: false);
+
+        public void PerformPrestige(MainGameState mainGameState, IslandParameters nextIslandParameters, bool corrupted)
         {
             if (!PrestigeIsAvailable())
                 throw new InvalidOperationException("Prestige is not available.");
@@ -192,6 +207,9 @@ namespace SettlersOfIdlestan.Controller.Expand
                 throw new InvalidOperationException("PrestigeState is not available.");
 
             var points = CalculatePrestigePoints();
+
+            if (corrupted && HasCorruptionSpireBuilt())
+                mainGameState.PrestigeState.CurrentCorruptionLevel++;
 
             var currentIsland = mainGameState.CurrentWorldState;
             if (currentIsland != null)

@@ -7,6 +7,7 @@ using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.GameplayModifier;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
+using SettlersOfIdlestan.Model.Prestige;
 using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
 
 namespace SettlersOfIdlestan.Controller.Island;
@@ -18,6 +19,7 @@ public class AutoExtendController
 {
     private WorldState? _state;
     private GamePRNG? _prng;
+    private PrestigeState? _prestigeState;
 
     // 20 entrées : 9x Mountain=45%, 7x Desert=35%, 2x MushroomCave=10%, 1x MithrilVein=5%, 1x CrystalCave=5%
     private static readonly TerrainType[] TerrainPool = new[]
@@ -44,10 +46,11 @@ public class AutoExtendController
 
     internal AutoExtendController() { }
 
-    internal void Initialize(WorldState state, GamePRNG prng)
+    internal void Initialize(WorldState state, GamePRNG prng, PrestigeState? prestigeState = null)
     {
         _state = state;
         _prng = prng;
+        _prestigeState = prestigeState;
     }
 
     /// <summary>
@@ -96,9 +99,12 @@ public class AutoExtendController
 
     // ── Spawn de monstres errants et trésors (Inframonde) ────────────────────
 
-    // Corruption : -10% + 5% par distance au point d'arrivée
-    private const int CorruptionBaseChancePercent = -10;
+    // Corruption : -20% + 5% par distance au point d'arrivée + 10% par niveau de corruption
+    // (le -10% de base supplémentaire compense le +10%×niveau, neutre au niveau 1 par défaut).
+    private const int CorruptionBaseChancePercent = -20;
     private const int CorruptionChancePerDistancePercent = 5;
+    private const int CorruptionChancePerLevelPercent = 10;
+    private const int CorruptionLevelUpChancePercent = 50;
 
     private void TrySpawnUnderworldDenizen(HexCoord newHex, LayerState layerState, int z)
     {
@@ -133,10 +139,26 @@ public class AutoExtendController
                 _state.AddFeature(new Model.IslandFeatures.TreasureTrove(newHex));
         }
 
-        // Corruption : indépendante des autres features, chance croissante avec la distance
-        int corruptionChance = CorruptionBaseChancePercent + CorruptionChancePerDistancePercent * minDist;
+        // Corruption : indépendante des autres features, chance croissante avec la distance et le niveau de corruption
+        int corruptionLevel = _prestigeState?.CurrentCorruptionLevel ?? 1;
+        int corruptionChance = CorruptionBaseChancePercent
+            + CorruptionChancePerDistancePercent * minDist
+            + CorruptionChancePerLevelPercent * corruptionLevel;
         if (corruptionChance > 0 && _prng!.Next(100) < corruptionChance)
-            _state.AddFeature(new Model.IslandFeatures.Corruption(newHex));
+            _state.AddFeature(new Model.IslandFeatures.Corruption(newHex, RollCorruptionLevel(corruptionLevel)));
+    }
+
+    /// <summary>
+    /// Tire le niveau d'une zone corrompue : démarre à 1, puis monte d'un niveau avec
+    /// CorruptionLevelUpChancePercent de chance à chaque palier, jusqu'à l'échec ou jusqu'à
+    /// atteindre le niveau de corruption de l'île.
+    /// </summary>
+    private int RollCorruptionLevel(int maxLevel)
+    {
+        int level = 1;
+        while (level < maxLevel && _prng!.Next(100) < CorruptionLevelUpChancePercent)
+            level++;
+        return level;
     }
 
     // ── Helpers visibilité ────────────────────────────────────────────────────

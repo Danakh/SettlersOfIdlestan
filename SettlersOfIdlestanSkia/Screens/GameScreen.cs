@@ -58,6 +58,7 @@ public sealed class GameScreen : IDisposable
     private DemoEndPopupRenderer? _demoEndPopup;
     private bool _prestigeTransitionPending;
     private bool _demoReplayPending;
+    private bool _corruptedPrestigePending;
 
     private bool _isDisposed;
     private bool _isCanvasInitialized;
@@ -702,7 +703,7 @@ public sealed class GameScreen : IDisposable
         _overlayRenderer?.Show(suppressNextPress: true);
     }
 
-    private void RequestPrestige()
+    private void RequestPrestige(bool corrupted)
     {
         if (_prestigeTransitionPending || _islandMainRenderer == null || _overlayRenderer == null) return;
 
@@ -713,15 +714,16 @@ public sealed class GameScreen : IDisposable
             return;
         }
 
-        DoPrestige();
+        DoPrestige(corrupted);
     }
 
-    private void DoPrestige()
+    private void DoPrestige(bool corrupted)
     {
         if (_prestigeTransitionPending || _islandMainRenderer == null || _overlayRenderer == null) return;
         _overlayRenderer.Hide();
         _islandMainRenderer.BeginBlackFade(0.5f);
         _prestigeTransitionPending = true;
+        _corruptedPrestigePending = corrupted;
     }
 
     private void DoDemoReplay()
@@ -731,6 +733,7 @@ public sealed class GameScreen : IDisposable
         _islandMainRenderer.BeginBlackFade(0.5f);
         _prestigeTransitionPending = true;
         _demoReplayPending = true;
+        _corruptedPrestigePending = false;
     }
 
     private void CompletePrestigeTransition()
@@ -738,14 +741,16 @@ public sealed class GameScreen : IDisposable
         if (_cameraService == null) return;
 
         var prevCiv = _gameControllerService.PlayerCivilization;
+        bool corrupted = _corruptedPrestigePending;
+        _corruptedPrestigePending = false;
         if (_demoReplayPending)
         {
             _demoReplayPending = false;
-            _gameControllerService.PerformPrestigeAndRestartCurrentIsland();
+            _gameControllerService.PerformPrestigeAndRestartCurrentIsland(corrupted);
         }
         else
         {
-            _gameControllerService.PerformPrestige();
+            _gameControllerService.PerformPrestige(corrupted);
         }
         if (_playerResourcesOverlayRenderer != null && _gameControllerService.PlayerCivilization != null)
             _playerResourcesOverlayRenderer.ConnectLowStock(prevCiv, _gameControllerService.PlayerCivilization);

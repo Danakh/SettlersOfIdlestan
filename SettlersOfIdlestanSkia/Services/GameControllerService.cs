@@ -66,14 +66,14 @@ public class GameControllerService
         _controller.CurrentMainState.Clock.OfflineBankTicks += (long)(seconds * 100);
     }
 
-    public void PerformPrestige()
+    public void PerformPrestige(bool corrupted = false)
     {
-        _controller.PerformPrestige();
+        _controller.PerformPrestige(corrupted);
     }
 
-    public void PerformPrestigeAndRestartCurrentIsland()
+    public void PerformPrestigeAndRestartCurrentIsland(bool corrupted = false)
     {
-        _controller.PerformPrestigeAndRestartCurrentIsland();
+        _controller.PerformPrestigeAndRestartCurrentIsland(corrupted);
     }
 
     public void RestartIsland()

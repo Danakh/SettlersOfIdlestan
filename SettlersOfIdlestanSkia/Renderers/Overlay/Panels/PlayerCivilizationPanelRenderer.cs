@@ -4,6 +4,7 @@ using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
+using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestanSkia.Services.Localization;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Renderers.Overlay.Popup;
@@ -46,12 +47,14 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
     private SKRect _wonderButtonRect   = SKRect.Empty;
     private SKRect _deepestMineButtonRect = SKRect.Empty;
     private SKRect _raidButtonRect     = SKRect.Empty;
+    private SKRect _spireButtonRect    = SKRect.Empty;
     private readonly List<(SKRect rect, string pinKey, string tooltipKey)> _pinnedItemRects = new();
     private int _hoveredPinnedIndex = -1;
 
-    private bool _hoveredTrade, _hoveredPrestige, _hoveredWonder, _hoveredDeepestMine, _hoveredRaid;
+    private bool _hoveredTrade, _hoveredPrestige, _hoveredWonder, _hoveredDeepestMine, _hoveredRaid, _hoveredSpire;
     private bool _wonderEnabled;
     private bool _deepestMineEnabled;
+    private bool _spireEnabled;
     private bool _disposed;
     private SKPaint? _btnRaidActivePaint;
     private SKPaint? _btnRaidActiveHoverPaint;
@@ -147,6 +150,8 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         _wonderEnabled = wonderVisible && context.CurrentLayer == 0;
         bool deepestMineVisible = CanPlaceDeepestMine();
         _deepestMineEnabled = deepestMineVisible && context.CurrentLayer == 0;
+        bool spireVisible   = CanPlaceSpire();
+        _spireEnabled = spireVisible && context.CurrentLayer == LayerState.UnderworldZ;
         bool raidVisible   = IsRaidVisible();
         bool raidActive    = raidVisible && IsRaidActive();
         bool hasBarracks     = HasBuilt<Barracks>(civ);
@@ -160,10 +165,10 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         var worldState = _gameControllerService.CurrentWorldState;
         var pinned = worldState?.AutomationSettings.PinnedToCivPanel ?? (IReadOnlySet<string>)new HashSet<string>();
 
-        bool showActions  = tradeVisible || prestigeVisible || wonderVisible || deepestMineVisible || raidVisible;
+        bool showActions  = tradeVisible || prestigeVisible || wonderVisible || deepestMineVisible || spireVisible || raidVisible;
         bool showControls = pinned.Any(k => IsKeyShowable(k, civ, worldState, hasBarracks, hasLabs, hasSmelters, hasArsenals, hasWeaponSmiths, hasArmorSmiths, hasAlchimistHuts));
 
-        _tradeButtonRect = _prestigeButtonRect = _wonderButtonRect = _deepestMineButtonRect = _raidButtonRect = SKRect.Empty;
+        _tradeButtonRect = _prestigeButtonRect = _wonderButtonRect = _deepestMineButtonRect = _spireButtonRect = _raidButtonRect = SKRect.Empty;
         _pinnedItemRects.Clear();
 
         if (!showActions && !showControls)
@@ -189,7 +194,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         float h = panelPadding;
         if (showActions)
         {
-            int actionCount = (tradeVisible ? 1 : 0) + (prestigeVisible ? 1 : 0) + (wonderVisible ? 1 : 0) + (deepestMineVisible ? 1 : 0) + (raidVisible ? 1 : 0);
+            int actionCount = (tradeVisible ? 1 : 0) + (prestigeVisible ? 1 : 0) + (wonderVisible ? 1 : 0) + (deepestMineVisible ? 1 : 0) + (spireVisible ? 1 : 0) + (raidVisible ? 1 : 0);
             int actionRows  = (actionCount + 1) / 2;
             h += titleHeight + actionRows * (btnHeight + btnSpacing);
         }
@@ -221,7 +226,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
 
             float colGap = 6f * s;
             float colW   = (contentW - colGap) / 2f;
-            int   actionCount = (tradeVisible ? 1 : 0) + (prestigeVisible ? 1 : 0) + (wonderVisible ? 1 : 0) + (deepestMineVisible ? 1 : 0) + (raidVisible ? 1 : 0);
+            int   actionCount = (tradeVisible ? 1 : 0) + (prestigeVisible ? 1 : 0) + (wonderVisible ? 1 : 0) + (deepestMineVisible ? 1 : 0) + (spireVisible ? 1 : 0) + (raidVisible ? 1 : 0);
             float actionsY   = y;
             int   btnIdx     = 0;
 
@@ -263,6 +268,13 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
                 _deepestMineButtonRect = BtnRect(btnIdx++, allowFullWidth: false);
                 canvas.DrawRoundRect(_deepestMineButtonRect, 6 * s, 6 * s, _deepestMineEnabled ? (_hoveredDeepestMine ? _btnHoverPaint : _btnPaint) : _btnDisabledPaint);
                 DrawWrappedButtonText(canvas, _deepestMineButtonRect, _localization.Get("deepest_mine_action_short"), _btnSmFont!, _deepestMineEnabled ? TextPaint! : _btnDisabledTxtPaint!, s);
+            }
+
+            if (spireVisible)
+            {
+                _spireButtonRect = BtnRect(btnIdx++, allowFullWidth: false);
+                canvas.DrawRoundRect(_spireButtonRect, 6 * s, 6 * s, _spireEnabled ? (_hoveredSpire ? _btnHoverPaint : _btnPaint) : _btnDisabledPaint);
+                DrawWrappedButtonText(canvas, _spireButtonRect, _localization.Get("spire_action_short"), _btnSmFont!, _spireEnabled ? TextPaint! : _btnDisabledTxtPaint!, s);
             }
 
             if (raidVisible)
@@ -371,6 +383,10 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             _tooltipRenderer.SetTooltip(_localization.Get("tooltip_deepest_mine_surface_only"), new SKPoint(_deepestMineButtonRect.Right, _deepestMineButtonRect.Top));
         else if (_hoveredDeepestMine)
             _tooltipRenderer.SetTooltip(_localization.Get("tooltip_deepest_mine"), new SKPoint(_deepestMineButtonRect.Right, _deepestMineButtonRect.Top));
+        else if (_hoveredSpire && !_spireEnabled)
+            _tooltipRenderer.SetTooltip(_localization.Get("tooltip_spire_underworld_only"), new SKPoint(_spireButtonRect.Right, _spireButtonRect.Top));
+        else if (_hoveredSpire)
+            _tooltipRenderer.SetTooltip(_localization.Get("tooltip_spire"), new SKPoint(_spireButtonRect.Right, _spireButtonRect.Top));
         else if (_hoveredPinnedIndex >= 0 && _hoveredPinnedIndex < _pinnedItemRects.Count)
         {
             var (rect, _, tooltipKey) = _pinnedItemRects[_hoveredPinnedIndex];
@@ -411,6 +427,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         _hoveredPrestige    = !_prestigeButtonRect.IsEmpty    && _prestigeButtonRect.Contains(pos.X, pos.Y);
         _hoveredWonder      = !_wonderButtonRect.IsEmpty      && _wonderButtonRect.Contains(pos.X, pos.Y);
         _hoveredDeepestMine = !_deepestMineButtonRect.IsEmpty && _deepestMineButtonRect.Contains(pos.X, pos.Y);
+        _hoveredSpire       = !_spireButtonRect.IsEmpty       && _spireButtonRect.Contains(pos.X, pos.Y);
         _hoveredRaid        = !_raidButtonRect.IsEmpty        && _raidButtonRect.Contains(pos.X, pos.Y);
 
         _hoveredPinnedIndex = -1;
@@ -464,6 +481,15 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             var deepestMineController = _gameControllerService.MainGameController.DeepestMineController;
             _targetSelectionService.EnterHexSelection("deepest_mine_select_hex", deepestMineController.GetPlaceableHexes(),
                 hex => deepestMineController.PlaceDeepestMine(hex), TargetSelectionTheme.Friendly);
+            return true;
+        }
+
+        if (!_spireButtonRect.IsEmpty && _spireButtonRect.Contains(pos.X, pos.Y) && _spireEnabled && _targetSelectionService != null)
+        {
+            _closeAll();
+            var spireController = _gameControllerService.MainGameController.CorruptionSpireController;
+            _targetSelectionService.EnterHexSelection("spire_select_hex", spireController.GetPlaceableHexes(),
+                hex => spireController.PlaceCorruptionSpire(hex), TargetSelectionTheme.Friendly);
             return true;
         }
 
@@ -630,6 +656,14 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         var civ = _gameControllerService.PlayerCivilization;
         if (civ == null) return false;
         try { return _gameControllerService.MainGameController.DeepestMineController.CanPlaceDeepestMine(civ); }
+        catch { return false; }
+    }
+
+    private bool CanPlaceSpire()
+    {
+        var civ = _gameControllerService.PlayerCivilization;
+        if (civ == null) return false;
+        try { return _gameControllerService.MainGameController.CorruptionSpireController.CanPlaceCorruptionSpire(civ); }
         catch { return false; }
     }
 

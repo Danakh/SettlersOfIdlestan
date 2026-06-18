@@ -47,7 +47,7 @@ public class PrestigeMap
     public static readonly Vertex MilitaryEngineeringVertex   = Vertex.Create(new(2,  0, 0), new(3, -1, 0), new(3,  0, 0));
     public static readonly Vertex ImperialRoadsVertex         = Vertex.Create(new(3, -1, 0), new(4, -1, 0), new(3,  0, 0));
     public static readonly Vertex SteelLegionVertex           = Vertex.Create(new(3, -1, 0), new(3, -2, 0), new(4, -2, 0));
-    public static readonly Vertex MasterSmithsVertex          = Vertex.Create(new(3, -1, 0), new(4, -2, 0), new(4, -1, 0));
+    public static readonly Vertex PlanarGateVertex             = Vertex.Create(new(3, -1, 0), new(4, -2, 0), new(4, -1, 0));
     public static readonly Vertex KnowledgeMasteryVertex  = Vertex.Create(new(1, 1, 0), new(0,  2, 0), new(1,  2, 0));
     public static readonly Vertex WatchtowerVertex           = Vertex.Create(new(0, 0, 0), new(-1, 0, 0), new(-1, 1, 0));
     public static readonly Vertex MaritimeRoutesVertex       = Vertex.Create(new(-1, 0, 0), new(-1, 1, 0), new(-2, 1, 0));
@@ -88,7 +88,7 @@ public class PrestigeMap
     public static readonly Vertex AbyssRiftVertex       = Vertex.Create(new(-2, -1, 0), new(-1, -2, 0), new(-1, -1, 0));
     // Sommets profonds de la branche de la Magie (coins sud de l'hex Lignes Telluriques)
     public static readonly Vertex ArchmageVertex      = Vertex.Create(new( 0,  3, 0), new(-1,  4, 0), new(-1,  3, 0));
-    public static readonly Vertex CrystalomancyVertex = Vertex.Create(new(-1,  3, 0), new(-1,  4, 0), new(-2,  4, 0));
+    public static readonly Vertex DarkEclipseRitualVertex = Vertex.Create(new(-1,  3, 0), new(-1,  4, 0), new(-2,  4, 0));
     public static readonly Vertex InvocationCircleVertex = Vertex.Create(new(-1,  3, 0), new(-2,  4, 0), new(-2,  3, 0));
 
     public IReadOnlyList<PrestigeVertex> Vertices { get; }

@@ -159,7 +159,18 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
                         .OfType<Corruption>()
                         .GroupBy(f => f.Position)
                         .ToDictionary(g => g.Key, g => g.Max(c => c.Level));
-                    DrawIslandMap(canvas, underworldMap, playerIdx, mainGameState.Clock.CurrentTick, null, null, null, null, null, uwCorruption);
+                    var uwFeaturesByPosition = worldState.Features
+                        .Where(f => f.ShouldRenderIcon && (f.SvgIconResourceName != null || f.TextIcon != null))
+                        .GroupBy(f => f.Position)
+                        .ToDictionary(g => g.Key, g => (IEnumerable<IslandFeature>)g);
+                    DrawIslandMap(canvas, underworldMap, playerIdx, mainGameState.Clock.CurrentTick, null, null, null, null, uwFeaturesByPosition, uwCorruption);
+
+                    var selectedInvestable = _wonderService?.SelectedInvestable;
+                    if (selectedInvestable != null && selectedInvestable.Position.Z == LayerState.UnderworldZ && _selectedWonderPaint != null)
+                    {
+                        var (wx, wy) = AxialToIsland(selectedInvestable.Position.Q, selectedInvestable.Position.R);
+                        canvas.DrawCircle(wx, wy, WonderSelectionRadius, _selectedWonderPaint);
+                    }
                 }
                 return;
             }

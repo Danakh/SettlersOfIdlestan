@@ -1,4 +1,8 @@
 using SettlersOfIdlestan.Model.Prestige.PrestigeMap;
+using SettlersOfIdlestan.Model.Prestige;
+using SettlersOfIdlestan.Model.GameplayModifier;
+using SettlersOfIdlestan.Controller.Expand;
+using SOITests.TestUtilities;
 using System.Linq;
 using Xunit;
 using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
@@ -54,6 +58,35 @@ namespace SOITests.ControllerTests
             foreach (var coord in branchVertices)
                 Assert.True(mithrilCost >= map.GetVertex(coord)!.Cost,
                     $"L'Abîme ({mithrilCost}) doit être au moins aussi cher que {coord} ({map.GetVertex(coord)!.Cost})");
+        }
+
+        // ── Déblocage complet de l'Abîme (Faille des Abysses + Porte Planaire + Rituel de l'Éclipse Noire) ──
+
+        [Fact]
+        public void AbyssUnlock_NotReachedWithOnlyTwoOfThreeVertices()
+        {
+            var island = IslandTestFactory.CreateSevenHexIslandState();
+            var prestige = new PrestigeState();
+            prestige.PurchasedVertices.Add(PrestigeMap.AbyssRiftVertex);
+            prestige.PurchasedVertices.Add(PrestigeMap.PlanarGateVertex);
+            island.PlayerCivilization.AddCustomAggregator(new PrestigeModifierProvider(prestige, PrestigeMapController.DefaultMap));
+
+            var controller = new CorruptionSpireController();
+            Assert.False(controller.HasCorruptionSpireUnlocked(island.PlayerCivilization));
+        }
+
+        [Fact]
+        public void AbyssUnlock_ReachedWithAllThreeVertices()
+        {
+            var island = IslandTestFactory.CreateSevenHexIslandState();
+            var prestige = new PrestigeState();
+            prestige.PurchasedVertices.Add(PrestigeMap.AbyssRiftVertex);
+            prestige.PurchasedVertices.Add(PrestigeMap.PlanarGateVertex);
+            prestige.PurchasedVertices.Add(PrestigeMap.DarkEclipseRitualVertex);
+            island.PlayerCivilization.AddCustomAggregator(new PrestigeModifierProvider(prestige, PrestigeMapController.DefaultMap));
+
+            var controller = new CorruptionSpireController();
+            Assert.True(controller.HasCorruptionSpireUnlocked(island.PlayerCivilization));
         }
     }
 }

@@ -37,6 +37,7 @@ namespace SettlersOfIdlestan.Controller
         public MilitaryController MilitaryController { get; private set; }
         public WonderController WonderController { get; private set; }
         public DeepestMineController DeepestMineController { get; private set; }
+        public CorruptionSpireController CorruptionSpireController { get; private set; }
         public Magic.MagicController MagicController { get; private set; }
         public NpcGameController NpcGameController { get; private set; }
         public GameClock? Clock { get; private set; }
@@ -73,6 +74,7 @@ namespace SettlersOfIdlestan.Controller
             MilitaryController = new MilitaryController();
             WonderController = new WonderController();
             DeepestMineController = new DeepestMineController();
+            CorruptionSpireController = new CorruptionSpireController();
             MagicController = new Magic.MagicController();
             TaskRecordController = new TaskRecordController();
             AchievementController = new AchievementController();
@@ -168,7 +170,9 @@ namespace SettlersOfIdlestan.Controller
             PrestigeMapController.ApplyPrestigeToNewGame(newWorldState, CurrentMainState.PrestigeState);
         }
 
-        public void PerformPrestige()
+        public void PerformPrestige() => PerformPrestige(corrupted: false);
+
+        public void PerformPrestige(bool corrupted)
         {
             if (CurrentMainState == null)
                 throw new InvalidOperationException("No main state available.");
@@ -176,7 +180,7 @@ namespace SettlersOfIdlestan.Controller
             var nextIslandId = AtlasController.GetNextWorldId(CurrentMainState);
             var parameters = AtlasController.GetIslandParameters(nextIslandId);
             TaskRecordController.RecordPrestige(PrestigeController.CalculatePrestigePoints());
-            PrestigeController.PerformPrestige(CurrentMainState, parameters);
+            PrestigeController.PerformPrestige(CurrentMainState, parameters, corrupted);
             InitializeControllersForCurrentIsland();
             PrestigeMapController.ApplyPrestigeToNewGame(CurrentMainState.CurrentWorldState!, CurrentMainState.PrestigeState);
         }
@@ -184,7 +188,9 @@ namespace SettlersOfIdlestan.Controller
         /// <summary>
         /// Comme PerformPrestige, mais régénère la même île (mode démo : rester sur l'île 3).
         /// </summary>
-        public void PerformPrestigeAndRestartCurrentIsland()
+        public void PerformPrestigeAndRestartCurrentIsland() => PerformPrestigeAndRestartCurrentIsland(corrupted: false);
+
+        public void PerformPrestigeAndRestartCurrentIsland(bool corrupted)
         {
             if (CurrentMainState == null)
                 throw new InvalidOperationException("No main state available.");
@@ -192,7 +198,7 @@ namespace SettlersOfIdlestan.Controller
             var currentIslandId = CurrentMainState.CurrentWorldState?.WorldId ?? AtlasController.GetFirstWorldId();
             var parameters = AtlasController.GetIslandParameters(currentIslandId);
             TaskRecordController.RecordPrestige(PrestigeController.CalculatePrestigePoints());
-            PrestigeController.PerformPrestige(CurrentMainState, parameters);
+            PrestigeController.PerformPrestige(CurrentMainState, parameters, corrupted);
             InitializeControllersForCurrentIsland();
             PrestigeMapController.ApplyPrestigeToNewGame(CurrentMainState.CurrentWorldState!, CurrentMainState.PrestigeState);
         }
@@ -245,7 +251,7 @@ namespace SettlersOfIdlestan.Controller
 
                 SetupModifierAggregators();
 
-                AutoExtendController.Initialize(WorldState, CurrentMainState!.PRNG);
+                AutoExtendController.Initialize(WorldState, CurrentMainState!.PRNG, CurrentMainState?.PrestigeState);
 
                 // Ordre d'initialisation contraint — ne pas modifier sans vérifier les dépendances :
                 // 1. RoadController  — requis par MilitaryController (nettoyage routes détruites)
@@ -265,9 +271,10 @@ namespace SettlersOfIdlestan.Controller
                 BuildingController.Initialize(WorldState, Clock);
                 CityBuilderController.Initialize(WorldState, Clock, CurrentMainState!.PRNG);
                 AtlasController.Initialize(CurrentMainState!.PRNG);
-                PrestigeController.Initialize(WorldState.PlayerCivilization, WorldState, Clock);
+                PrestigeController.Initialize(WorldState.PlayerCivilization, WorldState, Clock, CurrentMainState?.PrestigeState);
                 WonderController.Initialize(WorldState, Clock);
                 DeepestMineController.Initialize(WorldState, Clock);
+                CorruptionSpireController.Initialize(WorldState, Clock);
                 MagicController.Initialize(WorldState, Clock, CurrentMainState!.PRNG, CityBuilderController, BuildingController, HarvestController);
                 ResearchController.Initialize(WorldState, Clock, CurrentMainState?.PrestigeState, CurrentMainState?.Settings);
                 NpcGameController.Initialize(WorldState, Clock, MilitaryController, this);

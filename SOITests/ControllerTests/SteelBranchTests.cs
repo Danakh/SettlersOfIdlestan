@@ -341,7 +341,7 @@ namespace SOITests.ControllerTests
 
             Assert.NotNull(map.GetVertex(PrestigeMap.SteelLegionVertex));
             Assert.NotNull(map.GetVertex(PrestigeMap.ImperialRoadsVertex));
-            Assert.NotNull(map.GetVertex(PrestigeMap.MasterSmithsVertex));
+            Assert.NotNull(map.GetVertex(PrestigeMap.PlanarGateVertex));
         }
 
         [Fact]

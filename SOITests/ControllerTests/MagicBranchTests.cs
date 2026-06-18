@@ -43,7 +43,7 @@ namespace SOITests.ControllerTests
                 m.Category == ECategory.UNLOCK_RESEARCH && m.SubCategory == "Invocation");
 
             Assert.NotNull(map.GetVertex(PrestigeMap.InvocationCircleVertex));
-            Assert.NotNull(map.GetVertex(PrestigeMap.CrystalomancyVertex));
+            Assert.NotNull(map.GetVertex(PrestigeMap.DarkEclipseRitualVertex));
             Assert.NotNull(map.GetVertex(PrestigeMap.ArchmageVertex));
         }
 

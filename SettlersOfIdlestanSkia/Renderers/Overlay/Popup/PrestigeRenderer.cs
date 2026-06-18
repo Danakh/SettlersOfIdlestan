@@ -24,9 +24,10 @@ public sealed class PrestigeRenderer : PopupRendererBase
     private readonly GameControllerService _gameControllerService;
     private readonly LocalizationService   _localization;
     private readonly TooltipRenderer       _tooltipRenderer;
-    private readonly Action                _prestigeRequested;
+    private readonly Action<bool>          _prestigeRequested;
 
-    private SKRect  _prestigeButtonRect  = SKRect.Empty;
+    private SKRect  _prestigeButtonRect          = SKRect.Empty;
+    private SKRect  _corruptedPrestigeButtonRect = SKRect.Empty;
     private SKRect  _closeButtonRect     = SKRect.Empty;
     private SKPoint _lastPointerPosition;
 
@@ -34,13 +35,14 @@ public sealed class PrestigeRenderer : PopupRendererBase
 
     private readonly SKPaint _buttonPaint         = new() { Color = new SKColor(46, 125, 50),      Style = SKPaintStyle.Fill,   IsAntialias = true };
     private readonly SKPaint _buttonDisabledPaint = new() { Color = new SKColor(70, 70, 70, 220),  Style = SKPaintStyle.Fill,   IsAntialias = true };
+    private readonly SKPaint _corruptedButtonPaint = new() { Color = new SKColor(120, 40, 150),     Style = SKPaintStyle.Fill,   IsAntialias = true };
     private readonly SKPaint _warningTextPaint    = new() { Color = new SKColor(220, 70, 70),       IsAntialias = true };
     private readonly SKPaint _separatorPaint      = new() { Color = new SKColor(100, 100, 110, 180), StrokeWidth = 1, Style = SKPaintStyle.Stroke };
 
     public PrestigeRenderer(
         GameControllerService gameControllerService,
         LocalizationService   localization,
-        Action                prestigeRequested,
+        Action<bool>          prestigeRequested,
         TooltipRenderer       tooltipRenderer)
     {
         _gameControllerService = gameControllerService;
@@ -72,14 +74,17 @@ public sealed class PrestigeRenderer : PopupRendererBase
         var controller       = _gameControllerService.MainGameController.PrestigeController;
         var sources          = controller.GetPrestigePointSources();
         bool wondersUnlocked = controller.WondersUnlocked();
+        bool showSpireBonus      = controller.HasCorruptionSpireBuilt();
         double gainBonus         = controller.GetPrestigeGainBonus();
         double seaportBonus      = controller.GetSeaportPrestigeBonus();
         bool showGainBonus       = gainBonus > 0;
         bool showSeaportBonus    = seaportBonus > 0;
         float gainOffset         = showGainBonus    ? 28f : 0f;
         float seaportOffset      = showSeaportBonus ? 28f : 0f;
+        float spireOffset        = showSpireBonus   ? 28f : 0f;
+        float belowWonderOffset  = gainOffset + seaportOffset + spireOffset;
         float y              = popup.Top + 68;
-        float listBottom     = popup.Bottom - 152 - gainOffset - seaportOffset;
+        float listBottom     = popup.Bottom - 152 - belowWonderOffset;
         int maxVisibleSources = Math.Max(0, (int)((listBottom - y) / SourceRowHeight));
 
         _hoverRects.Clear();
@@ -99,24 +104,35 @@ public sealed class PrestigeRenderer : PopupRendererBase
 
         // Monstres
         bool hasMonstersLeft = controller.HasSurfaceMonsters();
-        canvas.DrawLine(popup.Left + Padding, popup.Bottom - 142 - gainOffset - seaportOffset, popup.Right - Padding, popup.Bottom - 142 - gainOffset - seaportOffset, _separatorPaint);
-        SkiaTextUtils.DrawText(canvas, _localization.Get("prestige_monster_bonus"), popup.Left + Padding, popup.Bottom - 128 - gainOffset - seaportOffset, BodyFont!, SubtlePaint);
+        canvas.DrawLine(popup.Left + Padding, popup.Bottom - 142 - belowWonderOffset, popup.Right - Padding, popup.Bottom - 142 - belowWonderOffset, _separatorPaint);
+        SkiaTextUtils.DrawText(canvas, _localization.Get("prestige_monster_bonus"), popup.Left + Padding, popup.Bottom - 128 - belowWonderOffset, BodyFont!, SubtlePaint);
         if (hasMonstersLeft)
-            SkiaTextUtils.DrawText(canvas, "×1",   popup.Right - Padding, popup.Bottom - 128 - gainOffset - seaportOffset, SKTextAlign.Right, BtnFont!, _warningTextPaint);
+            SkiaTextUtils.DrawText(canvas, "×1",   popup.Right - Padding, popup.Bottom - 128 - belowWonderOffset, SKTextAlign.Right, BtnFont!, _warningTextPaint);
         else
-            SkiaTextUtils.DrawText(canvas, "×1.2", popup.Right - Padding, popup.Bottom - 128 - gainOffset - seaportOffset, SKTextAlign.Right, BtnFont!, SubtlePaint);
-        _hoverRects.Add((new SKRect(popup.Left, popup.Bottom - 142 - gainOffset - seaportOffset, popup.Right, popup.Bottom - 114 - gainOffset - seaportOffset), "prestige_tooltip_monster_bonus"));
+            SkiaTextUtils.DrawText(canvas, "×1.2", popup.Right - Padding, popup.Bottom - 128 - belowWonderOffset, SKTextAlign.Right, BtnFont!, SubtlePaint);
+        _hoverRects.Add((new SKRect(popup.Left, popup.Bottom - 142 - belowWonderOffset, popup.Right, popup.Bottom - 114 - belowWonderOffset), "prestige_tooltip_monster_bonus"));
 
         // Wonder (affiché quand débloqué)
         if (wondersUnlocked)
         {
-            canvas.DrawLine(popup.Left + Padding, popup.Bottom - 114 - gainOffset - seaportOffset, popup.Right - Padding, popup.Bottom - 114 - gainOffset - seaportOffset, _separatorPaint);
+            canvas.DrawLine(popup.Left + Padding, popup.Bottom - 114 - belowWonderOffset, popup.Right - Padding, popup.Bottom - 114 - belowWonderOffset, _separatorPaint);
             var (wonderLevel, timeFactor, runTicks) = controller.GetWonderBonusDetails();
             string duration    = FormatRunDuration(runTicks);
             string wonderLabel = _localization.GetFormated("prestige_wonder_bonus", wonderLevel, timeFactor, duration);
-            SkiaTextUtils.DrawText(canvas, wonderLabel, popup.Left + Padding, popup.Bottom - 100 - gainOffset - seaportOffset, BodyFont!, SubtlePaint);
-            SkiaTextUtils.DrawText(canvas, $"×{Math.Max(1, wonderLevel * timeFactor)}", popup.Right - Padding, popup.Bottom - 100 - gainOffset - seaportOffset, SKTextAlign.Right, BtnFont!, SubtlePaint);
-            _hoverRects.Add((new SKRect(popup.Left, popup.Bottom - 114 - gainOffset - seaportOffset, popup.Right, popup.Bottom - 86 - gainOffset - seaportOffset), "prestige_tooltip_wonder_bonus"));
+            SkiaTextUtils.DrawText(canvas, wonderLabel, popup.Left + Padding, popup.Bottom - 100 - belowWonderOffset, BodyFont!, SubtlePaint);
+            SkiaTextUtils.DrawText(canvas, $"×{Math.Max(1, wonderLevel * timeFactor)}", popup.Right - Padding, popup.Bottom - 100 - belowWonderOffset, SKTextAlign.Right, BtnFont!, SubtlePaint);
+            _hoverRects.Add((new SKRect(popup.Left, popup.Bottom - 114 - belowWonderOffset, popup.Right, popup.Bottom - 86 - belowWonderOffset), "prestige_tooltip_wonder_bonus"));
+        }
+
+        // Spire de Corruption (affichée quand construite)
+        if (showSpireBonus)
+        {
+            float spireRowOffset = gainOffset + seaportOffset;
+            canvas.DrawLine(popup.Left + Padding, popup.Bottom - 114 - spireRowOffset, popup.Right - Padding, popup.Bottom - 114 - spireRowOffset, _separatorPaint);
+            string spireLabel = _localization.GetFormated("prestige_corruption_spire_bonus", controller.GetCorruptionLevel());
+            SkiaTextUtils.DrawText(canvas, spireLabel, popup.Left + Padding, popup.Bottom - 100 - spireRowOffset, BodyFont!, SubtlePaint);
+            SkiaTextUtils.DrawText(canvas, $"×{controller.GetCorruptionSpireMultiplier()}", popup.Right - Padding, popup.Bottom - 100 - spireRowOffset, SKTextAlign.Right, BtnFont!, SubtlePaint);
+            _hoverRects.Add((new SKRect(popup.Left, popup.Bottom - 114 - spireRowOffset, popup.Right, popup.Bottom - 86 - spireRowOffset), "prestige_tooltip_corruption_spire_bonus"));
         }
 
         // Bonus gain de prestige (affiché quand > 0)
@@ -147,8 +163,26 @@ public sealed class PrestigeRenderer : PopupRendererBase
         bool canPrestige     = controller.PrestigeIsAvailable();
         bool hasEnoughPoints = controller.CalculatePrestigePoints() >= PrestigeController.PrestigeRequiredPoints;
         bool hasImperialPort = controller.HasImperialPort();
+        bool hasSpire        = controller.HasCorruptionSpireBuilt();
 
-        _prestigeButtonRect = new SKRect(popup.MidX - 75, popup.Bottom - Padding - ButtonHeight, popup.MidX + 75, popup.Bottom - Padding);
+        if (hasSpire)
+        {
+            const float gap  = 10;
+            const float btnW = 110;
+            _prestigeButtonRect = new SKRect(popup.MidX - btnW - gap / 2, popup.Bottom - Padding - ButtonHeight, popup.MidX - gap / 2, popup.Bottom - Padding);
+            _corruptedPrestigeButtonRect = new SKRect(popup.MidX + gap / 2, popup.Bottom - Padding - ButtonHeight, popup.MidX + gap / 2 + btnW, popup.Bottom - Padding);
+
+            canvas.DrawRoundRect(_corruptedPrestigeButtonRect, 7, 7, canPrestige ? _corruptedButtonPaint : _buttonDisabledPaint);
+            SkiaTextUtils.DrawText(canvas, _localization.Get("prestige_corrupted_action"), _corruptedPrestigeButtonRect.MidX, _corruptedPrestigeButtonRect.MidY + 5, SKTextAlign.Center, BtnFont!, TextPaint);
+
+            _hoverRects.Add((_corruptedPrestigeButtonRect, "prestige_tooltip_corrupted_action"));
+        }
+        else
+        {
+            _corruptedPrestigeButtonRect = SKRect.Empty;
+            _prestigeButtonRect = new SKRect(popup.MidX - 75, popup.Bottom - Padding - ButtonHeight, popup.MidX + 75, popup.Bottom - Padding);
+        }
+
         canvas.DrawRoundRect(_prestigeButtonRect, 7, 7, canPrestige ? _buttonPaint : _buttonDisabledPaint);
         SkiaTextUtils.DrawText(canvas, _localization.Get("prestige_action"), _prestigeButtonRect.MidX, _prestigeButtonRect.MidY + 5, SKTextAlign.Center, BtnFont!, TextPaint);
 
@@ -156,7 +190,7 @@ public sealed class PrestigeRenderer : PopupRendererBase
         {
             SkiaTextUtils.DrawText(canvas,
                 _localization.Get("prestige_requires_imperial_port"),
-                _prestigeButtonRect.MidX,
+                popup.MidX,
                 _prestigeButtonRect.Bottom + 18,
                 SKTextAlign.Center,
                 BodyFont!, SubtlePaint);
@@ -184,7 +218,14 @@ public sealed class PrestigeRenderer : PopupRendererBase
         if (_prestigeButtonRect.Contains(position.X, position.Y)
             && _gameControllerService.MainGameController.PrestigeController.PrestigeIsAvailable())
         {
-            _prestigeRequested();
+            _prestigeRequested(false);
+            return true;
+        }
+
+        if (!_corruptedPrestigeButtonRect.IsEmpty && _corruptedPrestigeButtonRect.Contains(position.X, position.Y)
+            && _gameControllerService.MainGameController.PrestigeController.PrestigeIsAvailable())
+        {
+            _prestigeRequested(true);
             return true;
         }
 
@@ -216,6 +257,7 @@ public sealed class PrestigeRenderer : PopupRendererBase
         if (Disposed) return;
         _buttonPaint.Dispose();
         _buttonDisabledPaint.Dispose();
+        _corruptedButtonPaint.Dispose();
         _warningTextPaint.Dispose();
         _separatorPaint.Dispose();
         base.Dispose();

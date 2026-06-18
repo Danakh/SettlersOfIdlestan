@@ -22,6 +22,9 @@ public class PrestigeState
 
     public TechnologyTree TechnologyTree { get; set; } = new();
 
+    /// <summary>Niveau de corruption de l'Inframonde. Augmente la sévérité et la chance des zones corrompues. Démarre à 1.</summary>
+    public int CurrentCorruptionLevel { get; set; } = 1;
+
     public PrestigeState() { }
 
     public PrestigeState(WorldState worldState)
