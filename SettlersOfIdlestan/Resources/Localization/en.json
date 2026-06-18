@@ -427,6 +427,7 @@
   "prestige_tooltip_ritual_total_power": "total ritual power",
   "prestige_tooltip_ritual_upkeep": "ritual upkeep cost",
   "prestige_tooltip_spell_cost": "crystal cost",
+  "prestige_tooltip_spell_cost_all": "crystal cost of all spells",
   "prestige_tooltip_magic_feature_fairycircle": "Allows finding Fairy Circles",
   "prestige_tooltip_unlocks_healing_potion": "Unlocks Healing Potion production (Alchemist Hut)",
   "prestige_tooltip_magic_feature_dolmen": "Dolmens on the island (passive crystals)",

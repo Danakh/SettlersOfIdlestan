@@ -427,6 +427,7 @@
   "prestige_tooltip_ritual_total_power": "puissance totale des rituels",
   "prestige_tooltip_ritual_upkeep": "coût d'entretien des rituels",
   "prestige_tooltip_spell_cost": "coût en cristaux",
+  "prestige_tooltip_spell_cost_all": "coût en cristaux de tous les sorts",
   "prestige_tooltip_magic_feature_fairycircle": "Permet de trouver les cercles de fées",
   "prestige_tooltip_unlocks_healing_potion": "Débloque la production de Potions de Soin (Hutte d'Alchimie)",
   "prestige_tooltip_magic_feature_dolmen": "Dolmens sur l'île (cristaux passifs)",

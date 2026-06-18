@@ -114,7 +114,7 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             UNLOCK_HEALING_POTION,
             /// <summary>SubCategory = SpellId name. Signale que le sort instantané est connu (débloqué par recherche).</summary>
             UNLOCK_SPELL,
-            /// <summary>Fraction de réduction du coût en cristaux d'un sort. SubCategory = SpellId name (0.25 = -25%).</summary>
+            /// <summary>Fraction de réduction du coût en cristaux d'un sort. SubCategory = SpellId name (vide = s'applique à tous les sorts) (0.25 = -25%).</summary>
             SPELL_COST_REDUCTION,
         }
 

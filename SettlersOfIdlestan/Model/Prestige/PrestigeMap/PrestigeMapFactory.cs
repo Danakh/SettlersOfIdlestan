@@ -321,7 +321,7 @@ public static class PrestigeMapFactory
                 cost: Cost(PrestigeMap.InvocationCircleVertex),
                 modifiers: new Modifier[]
                 {
-                    new(ECategory.SPELL_COST_REDUCTION, "SummonTroops", EType.ADDITIVE, 0.25),
+                    new(ECategory.SPELL_COST_REDUCTION, EType.ADDITIVE, 0.25),
                 }
             ),
             new(
