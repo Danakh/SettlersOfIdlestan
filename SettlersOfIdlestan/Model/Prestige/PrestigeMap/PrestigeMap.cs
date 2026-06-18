@@ -110,10 +110,9 @@ public class PrestigeMap
     public IReadOnlyList<PrestigeVertex> GetNeighbors(Vertex coord)
         => Vertices.Where(v => !v.Coord.Equals(coord) && coord.IsAdjacentTo(v.Coord)).ToList();
 
-    // Default cost formula: central = 10, others = 10 + distance² × 5.
     public static int DefaultCost(int distanceFromCenter)
     {
-        int[] costPerDistance = new int[] { 10, 25, 100, 400, 2000, 10000 };
+        int[] costPerDistance = new int[] { 10, 25, 100, 400, 2000, 10000, 40000, 200000, 1000000 };
         int len = costPerDistance.Length;
         return distanceFromCenter < len
             ? costPerDistance[distanceFromCenter]

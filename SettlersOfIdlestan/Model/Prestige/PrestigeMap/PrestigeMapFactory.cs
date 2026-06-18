@@ -207,7 +207,7 @@ public static class PrestigeMapFactory
                 PrestigeMap.DeepestMineVertex,
                 "prestige_vertex_deepest_mine",
                 // Porte d'entrée de l'Inframonde — volontairement plus chère que toute la branche de l'Acier
-                cost: 2500,
+                cost: Cost(PrestigeMap.DeepestMineVertex),
                 modifiers: new Modifier[]
                 {
                     new(ECategory.UNLOCK_DEEPEST_MINE, EType.ADDITIVE, 1),
@@ -219,7 +219,7 @@ public static class PrestigeMapFactory
             new(
                 PrestigeMap.MushroomCultureVertex,
                 "prestige_vertex_mushroom_culture",
-                cost: 10000,
+                cost: Cost(PrestigeMap.MushroomCultureVertex),
                 modifiers: new Modifier[]
                 {
                     new(ECategory.BUILDING_MAX_LEVEL, "MushroomFarm", EType.ADDITIVE, 2),
@@ -229,7 +229,7 @@ public static class PrestigeMapFactory
             new(
                 PrestigeMap.MithrilMineVertex,
                 "prestige_vertex_mithril",
-                cost: 10000,
+                cost: Cost(PrestigeMap.MithrilMineVertex),
                 modifiers: new Modifier[]
                 {
                     new(ECategory.UNLOCK_RESOURCE, "Mithril", EType.ADDITIVE, 1),
@@ -240,7 +240,7 @@ public static class PrestigeMapFactory
             new(
                 PrestigeMap.DeepProspectorsVertex,
                 "prestige_vertex_deep_prospectors",
-                cost: 25000,
+                cost: Cost(PrestigeMap.DeepProspectorsVertex),
                 modifiers: new Modifier[]
                 {
                     new(ECategory.MINE_GOLD_CHANCE_PERCENT, EType.ADDITIVE, 10),
@@ -250,7 +250,7 @@ public static class PrestigeMapFactory
             new(
                 PrestigeMap.TreasureHuntersVertex,
                 "prestige_vertex_treasure_hunters",
-                cost: 50000,
+                cost: Cost(PrestigeMap.TreasureHuntersVertex),
                 modifiers: new Modifier[]
                 {
                     new(ECategory.UNDERWORLD_TREASURE_CHANCE_PERCENT, EType.ADDITIVE, 5),
@@ -260,7 +260,7 @@ public static class PrestigeMapFactory
             new(
                 PrestigeMap.AbyssRiftVertex,
                 "prestige_vertex_abyss_rift",
-                cost: 250000,
+                cost: Cost(PrestigeMap.AbyssRiftVertex),
                 modifiers: new Modifier[]
                 {
                     new(ECategory.UNLOCK_ABYSS, EType.ADDITIVE, 1),
@@ -286,7 +286,7 @@ public static class PrestigeMapFactory
             new(
                 PrestigeMap.DolmensVertex,
                 "prestige_vertex_dolmens",
-                cost: 1000,
+                cost: Cost(PrestigeMap.DolmensVertex),
                 modifiers: new Modifier[]
                 {
                     new(ECategory.MAGIC_FEATURE_COUNT, "Dolmen", EType.ADDITIVE, 2),
@@ -297,7 +297,7 @@ public static class PrestigeMapFactory
                 PrestigeMap.RitualsVertex,
                 "prestige_vertex_rituals",
                 // Porte d'entrée de la Magie — au moins aussi chère que la porte de l'Inframonde
-                cost: 2500,
+                cost: Cost(PrestigeMap.RitualsVertex),
                 modifiers: new Modifier[]
                 {
                     new(ECategory.UNLOCK_MAGIC, EType.ADDITIVE, 1),
@@ -308,7 +308,7 @@ public static class PrestigeMapFactory
             new(
                 PrestigeMap.InvocationsVertex,
                 "prestige_vertex_invocations",
-                cost: 10000,
+                cost: Cost(PrestigeMap.InvocationsVertex),
                 modifiers: new Modifier[]
                 {
                     new(ECategory.BUILDING_MAX_LEVEL, "MageTower", EType.ADDITIVE, 2),
@@ -318,7 +318,7 @@ public static class PrestigeMapFactory
             new(
                 PrestigeMap.InvocationCircleVertex,
                 "prestige_vertex_invocation_circle",
-                cost: 25000,
+                cost: Cost(PrestigeMap.InvocationCircleVertex),
                 modifiers: new Modifier[]
                 {
                     new(ECategory.SPELL_COST_REDUCTION, "SummonTroops", EType.ADDITIVE, 0.25),
@@ -327,7 +327,7 @@ public static class PrestigeMapFactory
             new(
                 PrestigeMap.CrystalomancyVertex,
                 "prestige_vertex_crystalomancy",
-                cost: 50000,
+                cost: Cost(PrestigeMap.CrystalomancyVertex),
                 modifiers: new Modifier[]
                 {
                     new(ECategory.RITUAL_UPKEEP_REDUCTION, EType.ADDITIVE, 0.2),
@@ -337,7 +337,7 @@ public static class PrestigeMapFactory
             new(
                 PrestigeMap.ArchmageVertex,
                 "prestige_vertex_archmage",
-                cost: 250000,
+                cost: Cost(PrestigeMap.ArchmageVertex),
                 modifiers: new Modifier[]
                 {
                     new(ECategory.RITUAL_MAX_COUNT, EType.ADDITIVE, 1),
