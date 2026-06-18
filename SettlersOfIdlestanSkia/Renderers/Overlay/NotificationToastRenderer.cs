@@ -22,7 +22,7 @@ public sealed class NotificationToastRenderer : IGameRenderer, IDisposable
     private SKSize _canvasSize;
 
     private const int   MaxToasts      = 3;
-    private const float ToastDuration  = 3f;
+    private const float ToastDuration  = 5f;
     private const float FadeOutTime    = 0.4f;
     private const float SlideInTime    = 0.25f;
     private const float ToastWidth     = 274f;
