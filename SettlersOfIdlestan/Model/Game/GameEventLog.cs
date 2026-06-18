@@ -26,6 +26,7 @@ public enum GameEventType
     DeepestMineDug,
     UnderworldLost,
     FairyCircleDiscovered,
+    /// <summary>Obsolète — Dolmen retiré du jeu. Conservé pour la désérialisation des anciennes sauvegardes.</summary>
     DolmenDiscovered,
     RitualCollapsed,
     CorruptionSpirePlaced,

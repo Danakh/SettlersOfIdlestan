@@ -19,7 +19,7 @@ namespace SettlersOfIdlestan.Controller.Magic
     /// <see cref="MagicModifierProvider"/>, effondrement quand les cristaux manquent.
     /// Le nombre de Tours de Mages limite le nombre de rituels actifs ; la somme de
     /// leurs niveaux limite la puissance totale.
-    /// Gère aussi la génération passive de cristaux des Cercles de Fées et Dolmens,
+    /// Gère aussi la génération passive de cristaux des Cercles de Fées,
     /// et leur apparition sur l'île quand les vertex de prestige sont achetés.
     /// </summary>
     public class MagicController
@@ -142,12 +142,11 @@ namespace SettlersOfIdlestan.Controller.Magic
         public readonly record struct CrystalRateBreakdown(
             double AlchimistHutPerSecond,
             double MageTowerPerSecond,
-            double DolmenPerSecond,
             double PassivePerSecond,
             double RitualUpkeepPerSecond)
         {
             public double NetPerSecond
-                => AlchimistHutPerSecond + MageTowerPerSecond + DolmenPerSecond + PassivePerSecond - RitualUpkeepPerSecond;
+                => AlchimistHutPerSecond + MageTowerPerSecond + PassivePerSecond - RitualUpkeepPerSecond;
         }
 
         public CrystalRateBreakdown GetCrystalRateBreakdown()
@@ -158,7 +157,6 @@ namespace SettlersOfIdlestan.Controller.Magic
             double alchimistHut = _harvestController?.GetAlchimistHutCrystalRatePerSecond(civ.Index) ?? 0.0;
             double mageTower = _harvestController?.GetMageTowerCrystalRatePerSecond(civ.Index) ?? 0.0;
             double cycleSeconds = UpkeepIntervalTicks / 100.0;
-            double dolmen = _state.Features.OfType<Dolmen>().Count(f => f.Found) * Dolmen.CrystalsPerCycle / cycleSeconds;
             double passive = civ.ModifierAggregator.ApplyModifiers(ECategory.PASSIVE_RESOURCE_GENERATION, nameof(Resource.Crystal), 0);
 
             double upkeep = 0;
@@ -169,7 +167,7 @@ namespace SettlersOfIdlestan.Controller.Magic
             }
             upkeep /= cycleSeconds;
 
-            return new CrystalRateBreakdown(alchimistHut, mageTower, dolmen, passive, upkeep);
+            return new CrystalRateBreakdown(alchimistHut, mageTower, passive, upkeep);
         }
 
         // ── Coûts ─────────────────────────────────────────────────────────────
@@ -452,7 +450,7 @@ namespace SettlersOfIdlestan.Controller.Magic
             _state.EventLog.Add(GameEventType.RitualCollapsed);
         }
 
-        // ── Cercles de Fées & Dolmens ─────────────────────────────────────────
+        // ── Cercles de Fées ───────────────────────────────────────────────────
 
         private void ProcessPassiveCycle()
         {
@@ -463,20 +461,12 @@ namespace SettlersOfIdlestan.Controller.Magic
             _lastPassiveTick = now;
 
             EnsureMagicFeatures();
-
-            var civ = _state.PlayerCivilization;
             // Les Cercles de Fées sont récoltés par la Hutte d'Alchimie (HarvestController), pas par ce cycle passif.
-            int crystals = _state.Features.OfType<Dolmen>().Count(f => f.Found) * Dolmen.CrystalsPerCycle;
-            if (crystals > 0)
-            {
-                try { civ.AddResource(Resource.Crystal, crystals); }
-                catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[MagicController] AddResource Crystal: {ex.Message}"); }
-            }
         }
 
         /// <summary>
-        /// Fait apparaître les Cercles de Fées et Dolmens manquants sur la surface,
-        /// selon les modificateurs MAGIC_FEATURE_COUNT (vertex de prestige).
+        /// Fait apparaître les Cercles de Fées manquants sur la surface,
+        /// selon le modificateur MAGIC_FEATURE_COUNT (vertex de prestige).
         /// </summary>
         public void EnsureMagicFeatures()
         {
@@ -484,10 +474,8 @@ namespace SettlersOfIdlestan.Controller.Magic
 
             var aggregator = _state.PlayerCivilization.ModifierAggregator;
             int targetCircles = aggregator.ApplyModifiers(ECategory.MAGIC_FEATURE_COUNT, nameof(FairyCircle), 0);
-            int targetDolmens = aggregator.ApplyModifiers(ECategory.MAGIC_FEATURE_COUNT, nameof(Dolmen), 0);
 
             SpawnMissingFeatures(targetCircles - _state.Features.OfType<FairyCircle>().Count(), pos => new FairyCircle(pos));
-            SpawnMissingFeatures(targetDolmens - _state.Features.OfType<Dolmen>().Count(), pos => new Dolmen(pos));
         }
 
         private void SpawnMissingFeatures(int missing, Func<HexCoord, IslandFeature> factory)

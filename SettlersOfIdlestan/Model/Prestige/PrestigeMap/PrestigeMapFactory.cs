@@ -265,9 +265,10 @@ public static class PrestigeMapFactory
                 }
             ),
             // ── Branche de la Magie (sud) ──────────────────────────────────────
-            // Deux entrées bon marché donnent accès aux cristaux en surface (Cercles de
-            // Fées, Dolmens) avant ou en même temps que l'Inframonde. La porte (Rituels)
-            // coûte autant que la porte de l'Inframonde (2500).
+            // Une entrée bon marché donne accès aux cristaux en surface (Cercles de
+            // Fées) avant ou en même temps que l'Inframonde ; l'autre (Achat Automatique)
+            // est une commodité économique. La porte (Rituels) coûte autant que la porte
+            // de l'Inframonde (2500).
             // Progression : 400/1000 → porte 2500 → 10 000 → 25 000/50 000 → Archimage 250 000.
             new(
                 PrestigeMap.AlchimistHutVertex,
@@ -282,13 +283,12 @@ public static class PrestigeMapFactory
                 }
             ),
             new(
-                PrestigeMap.DolmensVertex,
-                "prestige_vertex_dolmens",
-                cost: Cost(PrestigeMap.DolmensVertex),
+                PrestigeMap.AutoBuyVertex,
+                "prestige_vertex_autobuy",
+                cost: Cost(PrestigeMap.AutoBuyVertex),
                 modifiers: new Modifier[]
                 {
-                    new(ECategory.MAGIC_FEATURE_COUNT, "Dolmen", EType.ADDITIVE, 2),
-                    new(ECategory.UNLOCK_RESOURCE, "Crystal", EType.ADDITIVE, 1),
+                    new(ECategory.UNLOCK_AUTO_BUY_TRADE, EType.ADDITIVE, 1),
                 }
             ),
             new(

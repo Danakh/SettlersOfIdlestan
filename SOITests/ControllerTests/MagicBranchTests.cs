@@ -32,10 +32,10 @@ namespace SOITests.ControllerTests
             Assert.Contains(alchimistHut.Modifiers, m =>
                 m.Category == ECategory.UNLOCK_HEALING_POTION);
 
-            var dolmens = map.GetVertex(PrestigeMap.DolmensVertex);
-            Assert.NotNull(dolmens);
-            Assert.Contains(dolmens!.Modifiers, m =>
-                m.Category == ECategory.MAGIC_FEATURE_COUNT && m.SubCategory == "Dolmen");
+            var autoBuy = map.GetVertex(PrestigeMap.AutoBuyVertex);
+            Assert.NotNull(autoBuy);
+            Assert.Contains(autoBuy!.Modifiers, m =>
+                m.Category == ECategory.UNLOCK_AUTO_BUY_TRADE);
 
             var invocations = map.GetVertex(PrestigeMap.InvocationsVertex);
             Assert.NotNull(invocations);
@@ -61,7 +61,7 @@ namespace SOITests.ControllerTests
         }
 
         [Fact]
-        public void PrestigeMap_FairyCirclesAndDolmens_AreCheaperThanMagicGate()
+        public void PrestigeMap_FairyCirclesAndAutoBuy_AreCheaperThanMagicGate()
         {
             var map = PrestigeMapFactory.CreateDefault();
             int gateCost = map.GetVertex(PrestigeMap.RitualsVertex)!.Cost;
@@ -69,7 +69,7 @@ namespace SOITests.ControllerTests
             // Les vertex précurseurs (source de cristaux en surface) sont accessibles
             // avant la porte, pour pouvoir démarrer la magie sans l'Inframonde.
             Assert.True(map.GetVertex(PrestigeMap.AlchimistHutVertex)!.Cost < gateCost);
-            Assert.True(map.GetVertex(PrestigeMap.DolmensVertex)!.Cost < gateCost);
+            Assert.True(map.GetVertex(PrestigeMap.AutoBuyVertex)!.Cost < gateCost);
         }
 
         [Fact]

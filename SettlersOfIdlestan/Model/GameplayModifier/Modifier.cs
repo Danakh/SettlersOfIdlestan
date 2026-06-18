@@ -76,6 +76,8 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             UNLOCK_AUTO_MARKET_TRADE,
             /// <summary>Flags que la spécialisation des Marchés (taux de vente 4:1) est déverrouillée pour la civilisation.</summary>
             UNLOCK_MARKET_SPECIALIZATION,
+            /// <summary>Flags que l'achat automatique de la ressource de base la plus rare avec l'or excédentaire est déverrouillé pour les villes possédant un Marché niv.4+.</summary>
+            UNLOCK_AUTO_BUY_TRADE,
             /// <summary>Multiplicateur de vitesse d'envoi des renforts. Base = 1.0; +1.0 = intervalle divisé par 2.</summary>
             REINFORCEMENT_SPEED,
             /// <summary>Flags que la Mine Profonde (accès à l'Inframonde) est déverrouillée pour la civilisation.</summary>
@@ -92,7 +94,7 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             RITUAL_TOTAL_POWER,
             /// <summary>Fraction de réduction du coût d'entretien des rituels (0.2 = -20%).</summary>
             RITUAL_UPKEEP_REDUCTION,
-            /// <summary>Nombre de features magiques présentes sur l'île. SubCategory = "FairyCircle" ou "Dolmen".</summary>
+            /// <summary>Nombre de features magiques présentes sur l'île. SubCategory = "FairyCircle".</summary>
             MAGIC_FEATURE_COUNT,
             /// <summary>Multiplicateur additif de vitesse de génération d'or des marchés. Base = 1.0; +0.1 = +10%.</summary>
             MARKET_GOLD_SPEED,

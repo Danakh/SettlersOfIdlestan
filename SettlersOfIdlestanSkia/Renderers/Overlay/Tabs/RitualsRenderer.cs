@@ -211,8 +211,6 @@ public sealed class RitualsRenderer : IDisposable
             lines.Add(_localization.GetFormated("rituals_crystals_tooltip_alchimist", $"{breakdown.AlchimistHutPerSecond:0.#}"));
         if (breakdown.MageTowerPerSecond > 0.001)
             lines.Add(_localization.GetFormated("rituals_crystals_tooltip_magetower", $"{breakdown.MageTowerPerSecond:0.#}"));
-        if (breakdown.DolmenPerSecond > 0.001)
-            lines.Add(_localization.GetFormated("rituals_crystals_tooltip_dolmen", $"{breakdown.DolmenPerSecond:0.#}"));
         if (breakdown.PassivePerSecond > 0.001)
             lines.Add(_localization.GetFormated("rituals_crystals_tooltip_passive", $"{breakdown.PassivePerSecond:0.#}"));
         if (breakdown.RitualUpkeepPerSecond > 0.001)

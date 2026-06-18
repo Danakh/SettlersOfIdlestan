@@ -274,7 +274,7 @@ namespace SOITests.ControllerTests
             Assert.Equal(1, controller.GetUpkeepCost(def, 1));
         }
 
-        // ── Cercles de Fées & Dolmens ────────────────────────────────────────
+        // ── Cercles de Fées ───────────────────────────────────────────────────
 
         [Fact]
         public void EnsureMagicFeatures_SpawnsFeaturesFromModifiers()
@@ -283,34 +283,15 @@ namespace SOITests.ControllerTests
             state.PlayerCivilization.AddCustomAggregator(new StaticModifierProvider(new List<Modifier>
             {
                 new(ECategory.MAGIC_FEATURE_COUNT, "FairyCircle", EType.ADDITIVE, 2),
-                new(ECategory.MAGIC_FEATURE_COUNT, "Dolmen", EType.ADDITIVE, 1),
             }));
 
             controller.EnsureMagicFeatures();
 
             Assert.Equal(2, state.Features.OfType<FairyCircle>().Count());
-            Assert.Single(state.Features.OfType<Dolmen>());
 
             // Idempotent : pas de doublons au second appel
             controller.EnsureMagicFeatures();
             Assert.Equal(2, state.Features.OfType<FairyCircle>().Count());
-        }
-
-        [Fact]
-        public void PassiveCycle_OnlyDolmenGeneratesCrystals_FairyCircleHandledByAlchimistHut()
-        {
-            var (state, clock, controller) = CreateSetup();
-            var civ = state.PlayerCivilization;
-
-            // Les Cercles de Fées sont récoltés par la Hutte d'Alchimie (HarvestController), pas par ce cycle passif.
-            var circle = new FairyCircle(new SettlersOfIdlestan.Model.HexGrid.HexCoord(1, 0, IslandMap.SurfaceLayer)) { Found = true };
-            var dolmen = new Dolmen(new SettlersOfIdlestan.Model.HexGrid.HexCoord(-1, 0, IslandMap.SurfaceLayer)) { Found = true };
-            state.AddFeature(circle);
-            state.AddFeature(dolmen);
-
-            clock.SimulateAdvance(MagicController.UpkeepIntervalTicks);
-
-            Assert.Equal(Dolmen.CrystalsPerCycle, civ.GetResourceQuantity(Resource.Crystal));
         }
 
         [Fact]

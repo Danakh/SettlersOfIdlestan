@@ -192,10 +192,6 @@ public sealed class EventLogRenderer : IDisposable
             _rewardCardPaint, _rewardBorderPaint, _rewardTextPaint,
             _localization.Get("event_fairy_circle_title"),
             _localization.Get("event_fairy_circle_body")),
-        GameEventType.DolmenDiscovered => (
-            _rewardCardPaint, _rewardBorderPaint, _rewardTextPaint,
-            _localization.Get("event_dolmen_title"),
-            _localization.Get("event_dolmen_body")),
         GameEventType.RitualCollapsed => (
             _warningCardPaint, _warningBorderPaint, _warningTextPaint,
             _localization.Get("event_ritual_collapsed_title"),

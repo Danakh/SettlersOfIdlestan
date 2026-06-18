@@ -109,6 +109,9 @@ namespace SettlersOfIdlestan.Controller
 
             int totalGold = GetSellGoldYield(civilizationIndex, resource, quantity);
 
+            if (!CanRecieveTrade(civ, Resource.Gold, totalGold) && IsAutoBuyUnlocked(civilizationIndex))
+                while (!CanRecieveTrade(civ, Resource.Gold, totalGold) && TryAutoBuyOnGoldOverflow(civilizationIndex, totalGold)) { }
+
             if (!CanRecieveTrade(civ, Resource.Gold, totalGold)) return false;
 
             civ.RemoveResource(resource, totalOffer);
@@ -138,6 +141,34 @@ namespace SettlersOfIdlestan.Controller
             var civ = _state.Civilizations.Find(c => c.Index == civIndex)!;
             civ.RemoveResource(Resource.Gold, BuyRate(resource) * quantity);
             civ.AddResource(resource, quantity);
+        }
+
+        /// <summary>Vrai si le vertex de prestige Achat Automatique est débloqué et qu'au moins un Marché niv.4+ existe.</summary>
+        public bool IsAutoBuyUnlocked(int civilizationIndex)
+        {
+            var civ = _state?.Civilizations.Find(c => c.Index == civilizationIndex);
+            if (civ == null) return false;
+            if (!civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_AUTO_BUY_TRADE)) return false;
+            return GetMarketCountAtMinLevel(civilizationIndex, 4) > 0;
+        }
+
+        /// <summary>
+        /// Si <paramref name="incomingGold"/> ferait dépasser le stockage d'or, achète une unité de la
+        /// ressource de base la plus rare avec l'or excédentaire pour ne pas le gâcher (Achat Automatique).
+        /// Retourne vrai si un achat a eu lieu.
+        /// </summary>
+        public bool TryAutoBuyOnGoldOverflow(int civilizationIndex, int incomingGold = 1)
+        {
+            if (_state == null || incomingGold <= 0) return false;
+            var civ = _state.Civilizations.Find(c => c.Index == civilizationIndex);
+            if (civ == null) return false;
+            if (civ.GetResourceQuantity(Resource.Gold) + incomingGold <= civ.GetResourceMaxQuantity(Resource.Gold)) return false;
+
+            var resource = ResourceUtils.BasicResources.OrderBy(r => civ.GetResourceQuantity(r)).First();
+            if (!CanBuyResource(civilizationIndex, resource)) return false;
+
+            BuyResource(civilizationIndex, resource);
+            return true;
         }
 
         public int GetMaxSeaportLevel(int civilizationIndex)

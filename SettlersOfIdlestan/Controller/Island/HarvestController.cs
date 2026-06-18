@@ -185,7 +185,7 @@ namespace SettlersOfIdlestan.Controller.Island
 
                     if (goldBonus)
                     {
-                        TryAutoTradeOnOverflow(civ, city, Resource.Gold);
+                        TryAutoBuyOnGoldOverflow(civ, city);
                         civ.AddResource(Resource.Gold, 1);
                         rs[Resource.Gold] += 1;
                     }
@@ -643,6 +643,19 @@ namespace SettlersOfIdlestan.Controller.Island
             if (civ.GetResourceQuantity(res) + 1 <= civ.GetResourceMaxQuantity(res)) return;
 
             _tradeController.SellResource(civ.Index, res);
+        }
+
+        /// <summary>
+        /// Achète automatiquement la ressource de base la plus rare avec l'or excédentaire dès lors que le vertex
+        /// de prestige Achat Automatique est débloqué et que la ville productrice possède un Marché niv.4+.
+        /// </summary>
+        private void TryAutoBuyOnGoldOverflow(Civilization civ, City city)
+        {
+            if (_tradeController == null) return;
+            if (!civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_AUTO_BUY_TRADE)) return;
+            if (!city.Buildings.OfType<Market>().Any(m => m.Level >= 4)) return;
+
+            _tradeController.TryAutoBuyOnGoldOverflow(civ.Index);
         }
 
         /// <summary>
