@@ -6,8 +6,11 @@ public class Arsenal : Building
 {
     public const int MaxSoldiersPerLevel = 4;
 
-    /// <summary>Chance (en %) par niveau de sauver un soldat perdu en consommant 1 Acier (Armures d'Acier).</summary>
-    public const int ArmorSavePercentPerLevel = 10;
+    /// <summary>Chance (en %) de base de sauver un soldat perdu en consommant 1 Acier (Armures d'Acier), sans Arsenal.</summary>
+    public const int ArmorSaveBasePercent = 35;
+
+    /// <summary>Chance (en %) additionnelle par niveau d'Arsenal de sauver un soldat perdu dans cette ville.</summary>
+    public const int ArmorSavePercentPerLevel = 5;
 
     public Arsenal() : base(BuildingType.Arsenal)
     {
@@ -21,7 +24,7 @@ public class Arsenal : Building
     public override int GetMaxSoldiersBonus() => MaxSoldiersPerLevel * Level;
 
     /// <summary>Chance (en %) de sauver un soldat perdu, pour le niveau actuel.</summary>
-    public int ArmorSavePercent => ArmorSavePercentPerLevel * Level;
+    public int ArmorSavePercent => ArmorSaveBasePercent + ArmorSavePercentPerLevel * Level;
 
     public override ResourceSet GetBuildCost() => new ResourceSet
     {

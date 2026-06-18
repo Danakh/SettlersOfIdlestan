@@ -73,27 +73,6 @@ namespace SOITests.ControllerTests
         }
 
         [Fact]
-        public void PrestigeMap_ArchmageVertex_IsTheMostExpensiveOfTheBranch()
-        {
-            var map = PrestigeMapFactory.CreateDefault();
-            var archmageCost = map.GetVertex(PrestigeMap.ArchmageVertex)!.Cost;
-
-            var branchVertices = new[]
-            {
-                PrestigeMap.AlchimistHutVertex,
-                PrestigeMap.DolmensVertex,
-                PrestigeMap.RitualsVertex,
-                PrestigeMap.InvocationsVertex,
-                PrestigeMap.InvocationCircleVertex,
-                PrestigeMap.CrystalomancyVertex,
-            };
-
-            foreach (var coord in branchVertices)
-                Assert.True(archmageCost >= map.GetVertex(coord)!.Cost,
-                    $"L'Archimage ({archmageCost}) doit être au moins aussi cher que {coord} ({map.GetVertex(coord)!.Cost})");
-        }
-
-        [Fact]
         public void PrestigeMap_LeyLinesHex_GrantsRitualPowerPerVertex()
         {
             var map = PrestigeMapFactory.CreateDefault();

@@ -1,3 +1,5 @@
+using System.Linq;
+using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.IslandMap;
@@ -7,13 +9,13 @@ namespace SettlersOfIdlestan.Controller.Military;
 
 /// <summary>
 /// Armures d'Acier et Potions de Soin : quand un soldat devrait mourir (attaque ou défense), consomme
-/// 1 ArmureAcier ou 1 PotionDeSoin et a 50 % de chance de le sauver pour chacune. Les chances sont
-/// sommées avant le tirage (100 % de chance de sauvetage quand les deux consommables sont disponibles).
+/// 1 ArmureAcier ou 1 PotionDeSoin et a une chance de le sauver pour chacune. Les Armures d'Acier
+/// donnent <see cref="Arsenal.ArmorSaveBasePercent"/> % de base, augmenté de <see cref="Arsenal.ArmorSavePercentPerLevel"/> %
+/// par niveau d'Arsenal dans cette ville. Les chances sont sommées avant le tirage.
 /// Nécessite les recherches/bâtiments correspondants (Armures d'Acier, Hutte d'Alchimie) et le consommable en stock.
 /// </summary>
 internal static class SteelArmorEngine
 {
-    private const int SteelArmorSaveChancePercent = 50;
     private const int HealingPotionSaveChancePercent = 50;
 
     /// <summary>
@@ -28,6 +30,9 @@ internal static class SteelArmorEngine
         bool hasHealingPotion = civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_HEALING_POTION);
         if (!hasSteelArmor && !hasHealingPotion) return 0;
 
+        int arsenalLevel = city.Buildings.OfType<Arsenal>().Sum(a => a.Level);
+        int steelArmorSaveChancePercent = Arsenal.ArmorSaveBasePercent + Arsenal.ArmorSavePercentPerLevel * arsenalLevel;
+
         int saved = 0;
         for (int i = 0; i < losses; i++)
         {
@@ -35,7 +40,7 @@ internal static class SteelArmorEngine
             bool healingPotionAvailable = hasHealingPotion && civ.GetResourceQuantity(Resource.HealingPotion) >= 1;
             if (!steelArmorAvailable && !healingPotionAvailable) break;
 
-            int steelArmorChance = steelArmorAvailable ? SteelArmorSaveChancePercent : 0;
+            int steelArmorChance = steelArmorAvailable ? steelArmorSaveChancePercent : 0;
             int healingPotionChance = healingPotionAvailable ? HealingPotionSaveChancePercent : 0;
 
             int roll = prng.Next(100);

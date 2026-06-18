@@ -400,6 +400,8 @@ namespace SettlersOfIdlestan.Controller.Island
 
                     if (currentTick - smith.LastProductionTick < GetWeaponSmithInterval(smith.Level)) continue;
 
+                    if (civ.GetResourceQuantity(Resource.SteelWeapon) >= civ.GetResourceMaxQuantity(Resource.SteelWeapon)) continue;
+
                     if (civ.GetResourceQuantity(Resource.Steel) < WeaponSmith.SteelInputPerWeapon)
                     {
                         civ.RaiseLowStock(Resource.Steel);
@@ -429,6 +431,8 @@ namespace SettlersOfIdlestan.Controller.Island
                     if (smith == null || smith.Level < 1 || smith.ActivationStatus != ActivationStatus.ACTIVE) continue;
 
                     if (currentTick - smith.LastProductionTick < GetArmorSmithInterval(smith.Level)) continue;
+
+                    if (civ.GetResourceQuantity(Resource.SteelArmor) >= civ.GetResourceMaxQuantity(Resource.SteelArmor)) continue;
 
                     if (civ.GetResourceQuantity(Resource.Steel) < ArmorSmith.SteelInputPerArmor)
                     {
@@ -462,6 +466,8 @@ namespace SettlersOfIdlestan.Controller.Island
 
                     long interval = GetAlchimistHutPotionInterval(hut.Level);
                     if (currentTick - hut.LastPotionProductionTick < interval) continue;
+
+                    if (civ.GetResourceQuantity(Resource.HealingPotion) >= civ.GetResourceMaxQuantity(Resource.HealingPotion)) continue;
 
                     if (civ.GetResourceQuantity(Resource.Glass) < AlchimistHut.GlassInputPerPotion)
                     {

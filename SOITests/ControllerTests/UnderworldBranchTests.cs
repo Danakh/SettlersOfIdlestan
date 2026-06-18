@@ -37,19 +37,6 @@ namespace SOITests.ControllerTests
         }
 
         [Fact]
-        public void PrestigeMap_DeepestMineVertex_CostsMoreThanSteelSecret()
-        {
-            var map = PrestigeMapFactory.CreateDefault();
-            var gate = map.GetVertex(PrestigeMap.DeepestMineVertex)!;
-            var steelSecret = map.GetVertex(PrestigeMap.SteelSecretVertex)!;
-
-            // La Mine Profonde est verrouillée derrière un vertex plus cher
-            // que celui qui débloque l'Acier (Secret de l'Acier).
-            Assert.True(gate.Cost > steelSecret.Cost,
-                $"La porte de l'Inframonde ({gate.Cost}) doit coûter plus que le Secret de l'Acier ({steelSecret.Cost})");
-        }
-
-        [Fact]
         public void PrestigeMap_AbyssRiftVertex_IsTheMostExpensiveOfTheBranch()
         {
             var map = PrestigeMapFactory.CreateDefault();

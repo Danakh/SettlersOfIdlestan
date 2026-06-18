@@ -237,6 +237,8 @@ namespace SOITests.ControllerTests
             var civ = state.PlayerCivilization;
             civ.Resources[Resource.SteelArmor] = 1000;
             civ.Resources[Resource.HealingPotion] = 1000;
+            // Arsenal niveau 3 : 35% (base armure) + 5%*3 (arsenal) + 50% (potion) = 100%.
+            city.Buildings.Add(new Arsenal { Level = 3 });
             civ.AddCustomAggregator(new StaticModifierProvider(new[]
             {
                 new Modifier(ECategory.UNLOCK_STEEL_ARMOR, EType.ADDITIVE, 1),
