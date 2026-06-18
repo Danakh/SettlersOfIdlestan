@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.HexGrid;
 
@@ -22,6 +23,21 @@ public class LayerState
     /// Null pour les couches sans point d'entrée fixe.
     /// </summary>
     public Vertex? ArrivalVertex { get; set; }
+
+    /// <summary>
+    /// Hexagones (absolus) formant un motif de base de la rivière de cette couche, généré une
+    /// seule fois. La rivière est de longueur infinie : elle se répète indéfiniment en se
+    /// translatant de <see cref="RiverCycleDisplacementQ"/>/<see cref="RiverCycleDisplacementR"/>
+    /// à chaque répétition, ce qui permet de tester l'appartenance de n'importe quel hexagone
+    /// (même découvert hors-ordre) sans dépendre de l'ordre d'exploration. Vide si pas encore générée.
+    /// </summary>
+    public List<HexCoord> RiverCycleHexes { get; set; } = new();
+
+    /// <summary>Décalage (q, r) appliqué à <see cref="RiverCycleHexes"/> à chaque répétition du motif.</summary>
+    public int RiverCycleDisplacementQ { get; set; }
+
+    /// <summary>Décalage (q, r) appliqué à <see cref="RiverCycleHexes"/> à chaque répétition du motif.</summary>
+    public int RiverCycleDisplacementR { get; set; }
 
     [System.Text.Json.Serialization.JsonConstructor]
     public LayerState()

@@ -39,6 +39,21 @@ public class AutoExtendController
     private const int AggressiveCivCityCount = 3;
     private const int MinHexDistanceFromArrival = 2;
 
+    // Génération de la rivière (suite d'hex Water, longueur infinie dans les deux sens, jamais
+    // une ligne droite) : son point le plus proche du point d'arrivée est entre 3 et 7 hex de
+    // celui-ci, puis un motif de quelques segments (avec au moins un virage garanti) se répète
+    // indéfiniment de part et d'autre sans jamais repasser sous la distance minimale.
+    // Voir EnsureRiverPlanned/IsRiverHex pour le détail de la construction.
+    private const int InitialOutpostHexCount = 3;
+    private const int MinRiverDistanceFromArrival = 3;
+    private const int MaxRiverStartDistanceFromArrival = 7;
+    private const int RiverSegmentCount = 3;
+    private const int RiverSegmentMinLength = 4;
+    private const int RiverSegmentMaxLength = 8;
+    private const int RiverTurnChancePercent = 50;
+    private const int RiverGenerationMaxAttempts = 30;
+    private const int RiverValidationCycleCount = 3;
+
     // Monstres errants et trésors de l'Inframonde (chance par nouvel hexagone)
     private const int TrollSpawnChancePercent = 6;
     private const int OgreSpawnChancePercent = 3;
@@ -67,6 +82,7 @@ public class AutoExtendController
             return;
 
         var map = layerState.Map;
+        EnsureRiverPlanned(layerState);
 
         // Snapshot des hexagones visibles par le joueur AVANT l'ajout des nouvelles tuiles
         var playerVisibleHexesBefore = GetPlayerVisibleHexCoords(layerState);
@@ -78,7 +94,7 @@ public class AutoExtendController
             {
                 if (!map.HasTile(hex))
                 {
-                    map.AddTile(new HexTile(hex, RollTerrain()));
+                    map.AddTile(new HexTile(hex, RollTerrainForHex(hex, layerState)));
                     newHexes.Add(hex);
                 }
             }
@@ -121,8 +137,10 @@ public class AutoExtendController
         }
         if (minDist < MinHexDistanceFromArrival) return;
 
-        // Monstres et trésors : seulement si l'hex est libre
-        if (!_state.HasFeaturesAt(newHex))
+        bool isWater = layerState.Map.GetTile(newHex)?.TerrainType == TerrainType.Water;
+
+        // Monstres et trésors : seulement si l'hex est libre et n'est pas de l'eau (rivière)
+        if (!isWater && !_state.HasFeaturesAt(newHex))
         {
             int roll = _prng!.Next(100);
             int trollThreshold = TrollSpawnChancePercent;
@@ -244,7 +262,7 @@ public class AutoExtendController
 
                 if (!map.HasTile(neighbor))
                 {
-                    map.AddTile(new HexTile(neighbor, RollTerrain()));
+                    map.AddTile(new HexTile(neighbor, RollTerrainForHex(neighbor, layerState)));
                     extraHexes.Add(neighbor);
                 }
 
@@ -402,4 +420,159 @@ public class AutoExtendController
     }
 
     private TerrainType RollTerrain() => TerrainPool[_prng!.Next(TerrainPool.Length)];
+
+    // ── Génération de la rivière ──────────────────────────────────────────────
+
+    private TerrainType RollTerrainForHex(HexCoord hex, LayerState layerState) =>
+        IsRiverHex(hex, layerState) ? TerrainType.Water : RollTerrain();
+
+    /// <summary>
+    /// Planifie une fois le motif de base (quelques segments, avec au moins un virage garanti pour
+    /// que le tracé ne soit jamais une ligne droite) de la rivière de cette couche, sans poser
+    /// aucune tuile : l'appartenance de chaque hex est ensuite testée à la demande par
+    /// <see cref="IsRiverHex"/>, indépendamment de l'ordre d'exploration du joueur, ce qui permet à
+    /// la rivière de s'étendre à l'infini de part et d'autre du point de départ. Ne fait rien pour
+    /// les sauvegardes antérieures où la couche a déjà été explorée au-delà de l'avant-poste
+    /// initial, afin de ne pas modifier rétroactivement du terrain déjà généré.
+    /// </summary>
+    private void EnsureRiverPlanned(LayerState layerState)
+    {
+        if (layerState.ArrivalVertex == null) return;
+        if (layerState.RiverCycleHexes.Count > 0) return;
+        if (layerState.Map.Tiles.Count > InitialOutpostHexCount) return;
+
+        var arrivalHexes = layerState.ArrivalVertex.GetHexes();
+        var anchor = arrivalHexes[0];
+
+        for (int attempt = 0; attempt < RiverGenerationMaxAttempts; attempt++)
+        {
+            var radialDir = (HexDirection)_prng!.Next(6);
+            int startDist = _prng.Next(MinRiverDistanceFromArrival, MaxRiverStartDistanceFromArrival + 1);
+
+            var start = anchor;
+            for (int i = 0; i < startDist; i++)
+                start = start.Neighbor(radialDir);
+
+            // Direction tangente (rotation de 120°) plutôt que radiale, pour que le motif reste
+            // globalement le long de la bande de distance de départ plutôt que de s'en éloigner direct.
+            bool clockwise = _prng.Next(2) == 0;
+            var dir = clockwise ? radialDir.Next().Next() : radialDir.Previous().Previous();
+
+            var cycleHexes = new List<HexCoord> { start };
+            var current = start;
+            bool valid = true;
+
+            for (int seg = 0; seg < RiverSegmentCount && valid; seg++)
+            {
+                // Le 2e segment tourne toujours (garantit que le motif n'est jamais une ligne
+                // droite) ; les segments suivants ont une chance de légère déviation supplémentaire.
+                bool forceTurn = seg == 1;
+                if (seg > 0 && (forceTurn || _prng.Next(100) < RiverTurnChancePercent))
+                    dir = _prng.Next(2) == 0 ? dir.Next() : dir.Previous();
+
+                int length = _prng.Next(RiverSegmentMinLength, RiverSegmentMaxLength + 1);
+                for (int s = 0; s < length; s++)
+                {
+                    current = current.Neighbor(dir);
+                    if (MinDistanceToAny(current, arrivalHexes) < MinRiverDistanceFromArrival)
+                    {
+                        valid = false;
+                        break;
+                    }
+                    cycleHexes.Add(current);
+                }
+            }
+
+            if (!valid) continue;
+
+            // Le motif se répète indéfiniment : le cycle suivant reprend exactement la même forme,
+            // translaté par ce déplacement (un pas de plus dans la dernière direction utilisée,
+            // pour rester connecté sans saut ni chevauchement).
+            var nextCycleStart = current.Neighbor(dir);
+            int dispQ = nextCycleStart.Q - start.Q;
+            int dispR = nextCycleStart.R - start.R;
+
+            if (!ValidateRepeatedCycles(cycleHexes, start, dispQ, dispR, arrivalHexes))
+                continue;
+
+            layerState.RiverCycleHexes = cycleHexes;
+            layerState.RiverCycleDisplacementQ = dispQ;
+            layerState.RiverCycleDisplacementR = dispR;
+            return;
+        }
+    }
+
+    /// <summary>
+    /// Vérifie que les quelques répétitions suivantes du motif (translaté par le déplacement de
+    /// cycle, dans les deux sens puisque la rivière s'étend à l'infini de part et d'autre du point
+    /// de départ) respectent elles aussi la distance minimale au point d'arrivée, par sécurité
+    /// au-delà de la validation déjà faite sur le premier cycle.
+    /// </summary>
+    private static bool ValidateRepeatedCycles(
+        List<HexCoord> cycleHexes, HexCoord start, int dispQ, int dispR, HexCoord[] arrivalHexes)
+    {
+        for (int k = -RiverValidationCycleCount; k <= RiverValidationCycleCount; k++)
+        {
+            if (k == 0) continue;
+            foreach (var hex in cycleHexes)
+            {
+                var translated = new HexCoord(hex.Q + k * dispQ, hex.R + k * dispR, hex.Z);
+                if (MinDistanceToAny(translated, arrivalHexes) < MinRiverDistanceFromArrival)
+                    return false;
+            }
+        }
+        return true;
+    }
+
+    /// <summary>
+    /// Teste si un hexagone fait partie de la rivière (motif de base répété à l'infini de part et
+    /// d'autre du point de départ), quel que soit l'ordre dans lequel il est découvert : on calcule
+    /// le nombre de répétitions de cycle (positif ou négatif) qui le sépare du motif de base, puis
+    /// on compare ses coordonnées locales (une fois ce décalage retiré) à celles du motif. Une
+    /// vérification finale de distance protège contre tout cas limite.
+    /// </summary>
+    private static bool IsRiverHex(HexCoord hex, LayerState layerState)
+    {
+        if (layerState.RiverCycleHexes.Count == 0 || layerState.ArrivalVertex == null) return false;
+
+        var start = layerState.RiverCycleHexes[0];
+        if (hex.Z != start.Z) return false;
+
+        int dispQ = layerState.RiverCycleDisplacementQ;
+        int dispR = layerState.RiverCycleDisplacementR;
+
+        int dq = hex.Q - start.Q;
+        int dr = hex.R - start.R;
+
+        double denom = (double)dispQ * dispQ + (double)dispR * dispR;
+        int kEstimate = denom > 0 ? (int)Math.Round((dq * dispQ + dr * dispR) / denom) : 0;
+
+        for (int k = kEstimate - 1; k <= kEstimate + 1; k++)
+        {
+            int localQ = dq - k * dispQ;
+            int localR = dr - k * dispR;
+
+            foreach (var cycleHex in layerState.RiverCycleHexes)
+            {
+                if (cycleHex.Q - start.Q != localQ || cycleHex.R - start.R != localR) continue;
+
+                if (MinDistanceToAny(hex, layerState.ArrivalVertex.GetHexes()) < MinRiverDistanceFromArrival)
+                    return false;
+
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static int MinDistanceToAny(HexCoord hex, HexCoord[] hexes)
+    {
+        int min = int.MaxValue;
+        foreach (var h in hexes)
+        {
+            int d = hex.DistanceTo(h);
+            if (d < min) min = d;
+        }
+        return min;
+    }
 }
