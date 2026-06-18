@@ -89,7 +89,7 @@ public class PrestigeMap
     // Sommets profonds de la branche de la Magie (coins sud de l'hex Lignes Telluriques)
     public static readonly Vertex ArchmageVertex      = Vertex.Create(new( 0,  3, 0), new(-1,  4, 0), new(-1,  3, 0));
     public static readonly Vertex CrystalomancyVertex = Vertex.Create(new(-1,  3, 0), new(-1,  4, 0), new(-2,  4, 0));
-    public static readonly Vertex InnerCircleVertex   = Vertex.Create(new(-1,  3, 0), new(-2,  4, 0), new(-2,  3, 0));
+    public static readonly Vertex InvocationCircleVertex = Vertex.Create(new(-1,  3, 0), new(-2,  4, 0), new(-2,  3, 0));
 
     public IReadOnlyList<PrestigeVertex> Vertices { get; }
     public IReadOnlyList<PrestigeHex> Hexes { get; }

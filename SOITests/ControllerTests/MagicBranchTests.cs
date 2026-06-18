@@ -42,7 +42,7 @@ namespace SOITests.ControllerTests
             Assert.Contains(invocations!.Modifiers, m =>
                 m.Category == ECategory.UNLOCK_RESEARCH && m.SubCategory == "Invocation");
 
-            Assert.NotNull(map.GetVertex(PrestigeMap.InnerCircleVertex));
+            Assert.NotNull(map.GetVertex(PrestigeMap.InvocationCircleVertex));
             Assert.NotNull(map.GetVertex(PrestigeMap.CrystalomancyVertex));
             Assert.NotNull(map.GetVertex(PrestigeMap.ArchmageVertex));
         }
@@ -84,7 +84,7 @@ namespace SOITests.ControllerTests
                 PrestigeMap.DolmensVertex,
                 PrestigeMap.RitualsVertex,
                 PrestigeMap.InvocationsVertex,
-                PrestigeMap.InnerCircleVertex,
+                PrestigeMap.InvocationCircleVertex,
                 PrestigeMap.CrystalomancyVertex,
             };
 

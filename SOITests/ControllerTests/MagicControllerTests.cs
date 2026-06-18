@@ -84,14 +84,17 @@ namespace SOITests.ControllerTests
         }
 
         [Fact]
-        public void LaunchRitual_FailsWithoutMageTower()
+        public void LaunchRitual_SucceedsWithoutMageTower_AtBasePower()
         {
+            // Le nombre de rituels (1 de base) et la puissance maximale (1 de base) ne dépendent
+            // plus des Tours de Mages : un rituel de puissance 1 peut être lancé sans aucune tour.
             var (state, _, controller) = CreateSetup();
             UnlockMagic(state.PlayerCivilization, RitualId.Growth);
             state.PlayerCivilization.AddResource(Resource.Crystal, 50);
 
-            Assert.Equal(0, controller.MaxActiveRituals);
-            Assert.False(controller.CanLaunchRitual(RitualId.Growth));
+            Assert.Equal(1, controller.MaxActiveRituals);
+            Assert.Equal(1, controller.TotalPowerBudget);
+            Assert.True(controller.CanLaunchRitual(RitualId.Growth));
         }
 
         [Fact]
@@ -127,7 +130,7 @@ namespace SOITests.ControllerTests
         }
 
         [Fact]
-        public void LaunchRitual_LimitedByTowerCount()
+        public void LaunchRitual_LimitedToOneActiveRitualByDefault()
         {
             var (state, _, controller) = CreateSetup();
             var civ = state.PlayerCivilization;
@@ -135,7 +138,7 @@ namespace SOITests.ControllerTests
             AddMageTower(state, level: 3);
             civ.AddResource(Resource.Crystal, 50);
 
-            // 1 tour = 1 rituel actif max, même avec assez de puissance
+            // 1 rituel actif max par défaut (fixe), même avec assez de puissance
             Assert.True(controller.LaunchRitual(RitualId.Growth));
             Assert.False(controller.CanLaunchRitual(RitualId.Clairvoyance));
         }
@@ -165,7 +168,7 @@ namespace SOITests.ControllerTests
             var (state, _, controller) = CreateSetup();
             var civ = state.PlayerCivilization;
             UnlockMagic(civ, RitualId.Growth);
-            AddMageTower(state, level: 3);
+            AddMageTower(state, level: 10); // budget de puissance = floor(1 + 10×10%) = 2
             civ.AddResource(Resource.Crystal, 50);
 
             controller.LaunchRitual(RitualId.Growth); // 5 cristaux (p1)
@@ -186,7 +189,7 @@ namespace SOITests.ControllerTests
             var (state, _, controller) = CreateSetup();
             var civ = state.PlayerCivilization;
             UnlockMagic(civ, RitualId.Growth);
-            AddMageTower(state, level: 1); // budget de puissance = 1
+            AddMageTower(state, level: 1); // budget de puissance = floor(1 + 1×10%) = 1
             civ.AddResource(Resource.Crystal, 50);
 
             controller.LaunchRitual(RitualId.Growth);
@@ -231,22 +234,27 @@ namespace SOITests.ControllerTests
         }
 
         [Fact]
-        public void Upkeep_RitualCollapsesWhenTowerIsLost()
+        public void Upkeep_RitualPowerDecreasesWhenTowerLevelsAreLost()
         {
+            // Le budget de puissance de base (1) ne dépend plus des tours : perdre la seule tour
+            // ne fait donc plus s'effondrer un rituel de puissance 1, mais réduit la puissance
+            // d'un rituel qui dépassait ce budget de base grâce à la tour.
             var (state, clock, controller) = CreateSetup();
             var civ = state.PlayerCivilization;
             UnlockMagic(civ, RitualId.Growth);
-            var tower = AddMageTower(state);
+            var tower = AddMageTower(state, level: 10); // budget de puissance = floor(1 + 10×10%) = 2
             civ.AddResource(Resource.Crystal, 50);
 
             controller.LaunchRitual(RitualId.Growth);
+            controller.IncreaseRitualPower(RitualId.Growth);
+            Assert.Equal(2, controller.GetActiveRitual(RitualId.Growth)!.Power);
 
-            // La tour est détruite : plus aucun rituel ne peut être maintenu
+            // La tour est détruite : le budget retombe à 1 (base sans tour)
             state.PlayerCivilization.Cities[0].Buildings.Remove(tower);
             clock.SimulateAdvance(MagicController.UpkeepIntervalTicks);
 
-            Assert.Null(controller.GetActiveRitual(RitualId.Growth));
-            Assert.Contains(state.EventLog.Entries, e => e.Type == GameEventType.RitualCollapsed);
+            Assert.NotNull(controller.GetActiveRitual(RitualId.Growth));
+            Assert.Equal(1, controller.GetActiveRitual(RitualId.Growth)!.Power);
         }
 
         [Fact]
@@ -418,6 +426,28 @@ namespace SOITests.ControllerTests
 
             Assert.Equal(100, civ.GetResourceQuantity(Resource.Crystal));
             Assert.Equal(100, civ.Cities[0].Soldiers);
+        }
+
+        [Fact]
+        public void CastSpellOnCity_AppliesSpellCostReduction()
+        {
+            var (state, _, controller) = CreateSetup();
+            var civ = state.PlayerCivilization;
+            UnlockSpells(civ, SpellId.SummonTroops);
+            civ.Cities[0].Buildings.Add(new Barracks { Level = 30 });
+            civ.AddCustomAggregator(new StaticModifierProvider(new List<Modifier>
+            {
+                new(ECategory.STORAGE_CAPACITY_ADVANCED, EType.ADDITIVE, 200),
+                new(ECategory.SPELL_COST_REDUCTION, "SummonTroops", EType.ADDITIVE, 0.25),
+            }));
+            civ.AddResource(Resource.Crystal, 200);
+
+            // Coût de base 100 cristaux, réduit de 25% (Cercle d'Invocation) → 75
+            var def = SpellDefinitions.Get(SpellId.SummonTroops)!;
+            Assert.Equal(75, controller.GetSpellCost(def));
+
+            Assert.True(controller.CastSpellOnCity(SpellId.SummonTroops, civ.Cities[0].Position));
+            Assert.Equal(125, civ.GetResourceQuantity(Resource.Crystal));
         }
 
         [Fact]

@@ -268,7 +268,7 @@ namespace SettlersOfIdlestan.Controller
                 PrestigeController.Initialize(WorldState.PlayerCivilization, WorldState, Clock);
                 WonderController.Initialize(WorldState, Clock);
                 DeepestMineController.Initialize(WorldState, Clock);
-                MagicController.Initialize(WorldState, Clock, CurrentMainState!.PRNG, CityBuilderController, BuildingController);
+                MagicController.Initialize(WorldState, Clock, CurrentMainState!.PRNG, CityBuilderController, BuildingController, HarvestController);
                 ResearchController.Initialize(WorldState, Clock, CurrentMainState?.PrestigeState, CurrentMainState?.Settings);
                 NpcGameController.Initialize(WorldState, Clock, MilitaryController, this);
 

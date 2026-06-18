@@ -666,6 +666,64 @@ namespace SettlersOfIdlestan.Controller.Island
             dict[resource] = (dict.TryGetValue(resource, out var v) ? v : 0.0) + rate;
         }
 
+        /// <summary>Cristaux/seconde récoltés par les Tours de Mages sur des Grottes de Cristal, pour la civilisation donnée.</summary>
+        public double GetMageTowerCrystalRatePerSecond(int civilizationIndex)
+        {
+            if (_state == null) return 0.0;
+            var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex);
+            if (civ == null) return 0.0;
+
+            double total = 0.0;
+            foreach (var (hex, city, building, resource) in GetOrBuildProductionCache(civilizationIndex))
+            {
+                if (building.Type != BuildingType.MageTower || resource != Resource.Crystal) continue;
+                if (_state.GetFeaturesAt(hex).Any(f => f.BlocksHarvest)) continue;
+
+                long raw = building.GetAutomaticHarvestCooldown(AutomaticHarvestCooldownTicks);
+                double speedMultiplier = civ.ModifierAggregator.ApplyModifiers(ECategory.HARVEST_SPEED, building.Type.ToString(), 1.0);
+                long effective = Math.Max(1L, (long)(raw / speedMultiplier));
+
+                int corruptionLvl = _state.GetFeaturesAt(hex).OfType<Corruption>().FirstOrDefault()?.Level ?? 0;
+                if (corruptionLvl > 0)
+                    effective = Math.Max(1L, (long)(effective * Math.Pow(2, corruptionLvl)));
+
+                var forge = city.Buildings.OfType<Forge>().FirstOrDefault();
+                int forgeChance = forge != null && forge.Level > 0 ? forge.DoubleProdChancePercent + civ.ForgeDoubleHarvestBonus * forge.Level : 0;
+                int harvestProductionChance = civ.GetHarvestProductionBonus(building.Type.ToString());
+                double expectedMultiplier = (1 + forgeChance / 100.0) * (1 + harvestProductionChance / 100.0);
+
+                total += 100.0 / effective * expectedMultiplier;
+            }
+            return total;
+        }
+
+        /// <summary>Cristaux/seconde récoltés par les Huttes d'Alchimie sur les Cercles de Fées adjacents, pour la civilisation donnée.</summary>
+        public double GetAlchimistHutCrystalRatePerSecond(int civilizationIndex)
+        {
+            if (_state == null) return 0.0;
+            var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex);
+            if (civ == null) return 0.0;
+
+            double total = 0.0;
+            foreach (var city in civ.Cities)
+            {
+                var hut = city.Buildings.OfType<AlchimistHut>().FirstOrDefault(h => h.Level >= h.AutomaticHarvestUnlockLevel);
+                if (hut == null) continue;
+
+                int circleCount = city.Position.GetHexes()
+                    .SelectMany(hex => _state.GetFeaturesAt(hex).OfType<FairyCircle>())
+                    .Count(f => f.Found);
+                if (circleCount <= 0) continue;
+
+                long raw = hut.GetAutomaticHarvestCooldown(AutomaticHarvestCooldownTicks);
+                double speedMultiplier = civ.ModifierAggregator.ApplyModifiers(ECategory.HARVEST_SPEED, hut.Type.ToString(), 1.0);
+                long effective = Math.Max(1L, (long)(raw / speedMultiplier));
+
+                total += circleCount * FairyCircle.CrystalsPerCycle * (100.0 / effective);
+            }
+            return total;
+        }
+
         public bool ManualHarvest(int civilizationIndex, HexCoord hex)
         {
             if (_state == null || _clock == null)

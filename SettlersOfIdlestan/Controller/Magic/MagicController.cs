@@ -27,6 +27,9 @@ namespace SettlersOfIdlestan.Controller.Magic
         /// <summary>Durée d'un cycle d'entretien des rituels (1000 ticks = 10 s).</summary>
         public const long UpkeepIntervalTicks = 1000L;
 
+        /// <summary>Bonus additif de puissance maximale par niveau cumulé de Tour de Mages (10 %).</summary>
+        public const double MageTowerPowerBonusPerLevel = 0.10;
+
         private WorldState? _state;
         private GameClock? _clock;
         private GamePRNG? _prng;
@@ -34,6 +37,7 @@ namespace SettlersOfIdlestan.Controller.Magic
         private long _lastPassiveTick;
         private CityBuilderController? _cityBuilder;
         private BuildingController? _buildingController;
+        private HarvestController? _harvestController;
 
         /// <summary>Déclenché à chaque lancement/arrêt/changement de puissance d'un rituel.</summary>
         public event EventHandler? OnRitualsChanged;
@@ -41,7 +45,8 @@ namespace SettlersOfIdlestan.Controller.Magic
         internal MagicController() { }
 
         internal void Initialize(WorldState? state, GameClock? clock, GamePRNG? prng = null,
-            CityBuilderController? cityBuilder = null, BuildingController? buildingController = null)
+            CityBuilderController? cityBuilder = null, BuildingController? buildingController = null,
+            HarvestController? harvestController = null)
         {
             if (_clock != null)
                 _clock.Advanced -= OnClockAdvanced;
@@ -51,6 +56,7 @@ namespace SettlersOfIdlestan.Controller.Magic
             _prng = prng;
             _cityBuilder = cityBuilder;
             _buildingController = buildingController;
+            _harvestController = harvestController;
             _lastPassiveTick = 0;
 
             if (_state != null && _state.Civilizations.Count > 0)
@@ -100,33 +106,71 @@ namespace SettlersOfIdlestan.Controller.Magic
         public int MageTowerTotalLevel
             => GetPlayerCiv()?.Cities.Sum(c => c.Buildings.Where(b => b.Type == BuildingType.MageTower).Sum(b => b.Level)) ?? 0;
 
-        /// <summary>Nombre maximal de rituels actifs simultanés.</summary>
+        /// <summary>Nombre maximal de rituels actifs simultanés : fixe à 1, augmenté uniquement par l'Archimage.</summary>
         public int MaxActiveRituals
         {
             get
             {
                 var civ = GetPlayerCiv();
                 if (civ == null || !IsMagicUnlocked()) return 0;
-                int towers = MageTowerCount;
-                if (towers == 0) return 0;
-                return civ.ModifierAggregator.ApplyModifiers(ECategory.RITUAL_MAX_COUNT, "", towers);
+                return civ.ModifierAggregator.ApplyModifiers(ECategory.RITUAL_MAX_COUNT, "", 1);
             }
         }
 
-        /// <summary>Budget total de puissance (somme des niveaux des tours × bonus).</summary>
-        public int TotalPowerBudget
+        /// <summary>
+        /// Budget de puissance exact avant arrondi : base 1, +10 % par niveau cumulé de Tour de Mages,
+        /// puis bonus additifs de prestige (Archimage, Lignes Telluriques, ...).
+        /// </summary>
+        public double TotalPowerBudgetExact
         {
             get
             {
                 var civ = GetPlayerCiv();
                 if (civ == null || !IsMagicUnlocked()) return 0;
-                double multiplier = civ.ModifierAggregator.ApplyModifiers(ECategory.RITUAL_TOTAL_POWER, "", 1.0);
-                return (int)Math.Floor(MageTowerTotalLevel * multiplier);
+                double towerBonus = MageTowerTotalLevel * MageTowerPowerBonusPerLevel;
+                return civ.ModifierAggregator.ApplyModifiers(ECategory.RITUAL_TOTAL_POWER, "", 1.0 + towerBonus);
             }
         }
 
+        /// <summary>Budget total de puissance, arrondi à l'inférieur.</summary>
+        public int TotalPowerBudget => (int)Math.Floor(TotalPowerBudgetExact);
+
         /// <summary>Puissance actuellement consommée par les rituels actifs.</summary>
         public int UsedPower => _state?.Magic.ActiveRituals.Sum(r => r.Power) ?? 0;
+
+        /// <summary>Décomposition du débit net de cristaux par source, pour affichage (tooltip).</summary>
+        public readonly record struct CrystalRateBreakdown(
+            double AlchimistHutPerSecond,
+            double MageTowerPerSecond,
+            double DolmenPerSecond,
+            double PassivePerSecond,
+            double RitualUpkeepPerSecond)
+        {
+            public double NetPerSecond
+                => AlchimistHutPerSecond + MageTowerPerSecond + DolmenPerSecond + PassivePerSecond - RitualUpkeepPerSecond;
+        }
+
+        public CrystalRateBreakdown GetCrystalRateBreakdown()
+        {
+            var civ = GetPlayerCiv();
+            if (civ == null || _state == null) return default;
+
+            double alchimistHut = _harvestController?.GetAlchimistHutCrystalRatePerSecond(civ.Index) ?? 0.0;
+            double mageTower = _harvestController?.GetMageTowerCrystalRatePerSecond(civ.Index) ?? 0.0;
+            double cycleSeconds = UpkeepIntervalTicks / 100.0;
+            double dolmen = _state.Features.OfType<Dolmen>().Count(f => f.Found) * Dolmen.CrystalsPerCycle / cycleSeconds;
+            double passive = civ.ModifierAggregator.ApplyModifiers(ECategory.PASSIVE_RESOURCE_GENERATION, nameof(Resource.Crystal), 0);
+
+            double upkeep = 0;
+            foreach (var active in _state.Magic.ActiveRituals)
+            {
+                var def = RitualDefinitions.Get(active.Id);
+                if (def != null) upkeep += GetUpkeepCost(def, active.Power);
+            }
+            upkeep /= cycleSeconds;
+
+            return new CrystalRateBreakdown(alchimistHut, mageTower, dolmen, passive, upkeep);
+        }
 
         // ── Coûts ─────────────────────────────────────────────────────────────
 
@@ -226,6 +270,15 @@ namespace SettlersOfIdlestan.Controller.Magic
         public IReadOnlyList<SpellDefinition> GetKnownSpells()
             => SpellDefinitions.All.Where(s => IsSpellKnown(s.Id)).ToList();
 
+        /// <summary>Coût en cristaux d'un sort, réduit par SPELL_COST_REDUCTION (SubCategory = SpellId name).</summary>
+        public int GetSpellCost(SpellDefinition def)
+        {
+            double reduction = GetPlayerCiv()?.ModifierAggregator
+                .ApplyModifiers(ECategory.SPELL_COST_REDUCTION, def.Id.ToString(), 0.0) ?? 0.0;
+            reduction = Math.Clamp(reduction, 0.0, 0.9);
+            return (int)Math.Ceiling(def.CrystalCost * (1.0 - reduction));
+        }
+
         public bool CanCastSpell(SpellId id)
         {
             var civ = GetPlayerCiv();
@@ -234,7 +287,7 @@ namespace SettlersOfIdlestan.Controller.Magic
             if (!IsMagicUnlocked() || !IsSpellKnown(id)) return false;
             if (def.TargetKind == SpellTargetKind.AllyCity && GetAllyCityTargets().Count == 0) return false;
             if (def.TargetKind == SpellTargetKind.BuildableVertex && GetBuildableCityTargets().Count == 0) return false;
-            return civ.GetResourceQuantity(Resource.Crystal) >= def.CrystalCost;
+            return civ.GetResourceQuantity(Resource.Crystal) >= GetSpellCost(def);
         }
 
         /// <summary>
@@ -248,7 +301,7 @@ namespace SettlersOfIdlestan.Controller.Magic
             if (civ == null || def == null) return null;
             if (def.TargetKind == SpellTargetKind.AllyCity && GetAllyCityTargets().Count == 0) return "spell_blocked_no_ally_city";
             if (def.TargetKind == SpellTargetKind.BuildableVertex && GetBuildableCityTargets().Count == 0) return "spell_blocked_no_buildable_vertex";
-            if (civ.GetResourceQuantity(Resource.Crystal) < def.CrystalCost) return "spell_blocked_crystals";
+            if (civ.GetResourceQuantity(Resource.Crystal) < GetSpellCost(def)) return "spell_blocked_crystals";
             return null;
         }
 
@@ -260,7 +313,7 @@ namespace SettlersOfIdlestan.Controller.Magic
             if (!CanCastSpell(id)) return false;
             var civ = GetPlayerCiv()!;
 
-            civ.RemoveResource(Resource.Crystal, def.CrystalCost);
+            civ.RemoveResource(Resource.Crystal, GetSpellCost(def));
             civ.AddResource(Resource.Gold, def.GoldReward);
             return true;
         }
@@ -284,7 +337,7 @@ namespace SettlersOfIdlestan.Controller.Magic
             var city = _state!.FindCityAt(cityVertex);
             if (city == null || city.CivilizationIndex != civ.Index) return false;
 
-            civ.RemoveResource(Resource.Crystal, def.CrystalCost);
+            civ.RemoveResource(Resource.Crystal, GetSpellCost(def));
             city.Soldiers = Math.Min(city.MaxSoldiers, city.Soldiers + def.TroopReward);
             return true;
         }
@@ -319,7 +372,7 @@ namespace SettlersOfIdlestan.Controller.Magic
             catch (InvalidOperationException) { return false; }
             catch (ArgumentException) { return false; }
 
-            civ.RemoveResource(Resource.Crystal, def.CrystalCost);
+            civ.RemoveResource(Resource.Crystal, GetSpellCost(def));
 
             var townHall = city.Buildings.FirstOrDefault(b => b.Type == BuildingType.TownHall);
             if (townHall == null)

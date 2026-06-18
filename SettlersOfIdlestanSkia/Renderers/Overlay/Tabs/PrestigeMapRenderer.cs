@@ -682,6 +682,7 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         Modifier.ECategory.UNLOCK_AUTO_MARKET_TRADE         => _localization.Get("prestige_tooltip_unlocks_auto_market_trade"),
         Modifier.ECategory.UNLOCK_MARKET_SPECIALIZATION     => _localization.Get("prestige_tooltip_unlocks_market_specialization"),
         Modifier.ECategory.UNLOCK_HEALING_POTION            => _localization.Get("prestige_tooltip_unlocks_healing_potion"),
+        Modifier.ECategory.SPELL_COST_REDUCTION             => $"-{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_spell_cost")} — {_localization.Get($"spell_{mod.SubCategory.ToLower()}_name")}",
         _ => $"+{mod.Value}"
     };
 

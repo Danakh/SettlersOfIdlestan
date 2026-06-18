@@ -283,7 +283,7 @@ public sealed class GameScreen : IDisposable
         var researchRenderer        = new ResearchRenderer(_gameControllerService, _localizationService, _inputService);
         var eventLogRenderer        = new EventLogRenderer(_gameControllerService, _localizationService);
         var automationRenderer      = new AutomationRenderer(_gameControllerService, _localizationService);
-        var ritualsRenderer         = new RitualsRenderer(_gameControllerService, _localizationService, _targetSelectionService);
+        var ritualsRenderer         = new RitualsRenderer(_gameControllerService, _localizationService, tooltipRenderer, _targetSelectionService);
 
         _overlayRenderer = new OverlayRenderer(
             _inputService, _gameControllerService, _localizationService,

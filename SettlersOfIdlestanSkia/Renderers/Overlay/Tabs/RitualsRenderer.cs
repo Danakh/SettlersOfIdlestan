@@ -29,6 +29,7 @@ public sealed class RitualsRenderer : IDisposable
     private readonly GameControllerService _gameControllerService;
     private readonly LocalizationService _localization;
     private readonly TargetSelectionService? _targetSelectionService;
+    private readonly TooltipRenderer _tooltipRenderer;
 
     private SKSize _canvasSize;
     private bool _disposed;
@@ -75,10 +76,11 @@ public sealed class RitualsRenderer : IDisposable
     private readonly SKFont _powerFont  = new() { Size = 14, Typeface = SkiaFonts.Bold };
 
     public RitualsRenderer(GameControllerService gameControllerService, LocalizationService localization,
-        TargetSelectionService? targetSelectionService = null)
+        TooltipRenderer tooltipRenderer, TargetSelectionService? targetSelectionService = null)
     {
         _gameControllerService = gameControllerService;
         _localization = localization;
+        _tooltipRenderer = tooltipRenderer;
         _targetSelectionService = targetSelectionService;
     }
 
@@ -115,19 +117,9 @@ public sealed class RitualsRenderer : IDisposable
         var magic = _gameControllerService.MainGameController.MagicController;
         if (civ == null) { canvas.Restore(); return; }
 
-        // ── Résumé : tours, rituels actifs, puissance, cristaux ───────────────
-        int crystals = civ.GetResourceQuantity(Resource.Crystal);
-        string summary = _localization.GetFormated("rituals_summary",
-            magic.MageTowerCount, magic.ActiveRituals.Count, magic.MaxActiveRituals,
-            magic.UsedPower, magic.TotalPowerBudget, crystals);
-        SkiaTextUtils.DrawText(canvas, summary, x, y + 12, _descFont, _summaryPaint);
+        // ── Résumé : puissance maximale (gauche), cristaux (droite) ───────────
+        DrawTopStats(canvas, x, y, contentWidth, magic, civ);
         y += 26f;
-
-        if (magic.MageTowerCount == 0)
-        {
-            SkiaTextUtils.DrawText(canvas, _localization.Get("rituals_no_towers"), x, y + 12, _descFont, _mutedPaint);
-            y += 26f;
-        }
 
         var known = magic.GetKnownRituals();
         if (known.Count == 0)
@@ -159,6 +151,75 @@ public sealed class RitualsRenderer : IDisposable
 
         if (needsScroll)
             DrawScrollbar(canvas, topBar, _viewportH);
+    }
+
+    /// <summary>
+    /// Dessine "Puissance Maximale" à gauche et "Cristaux (±/s)" à droite, avec tooltips explicatifs.
+    /// Les rectangles sont exprimés en coordonnées de contenu (avant défilement) ; la position affichée
+    /// du tooltip est convertie en coordonnées écran via <see cref="_scrollOffsetPx"/>.
+    /// </summary>
+    private void DrawTopStats(SKCanvas canvas, float x, float y, float width,
+        SettlersOfIdlestan.Controller.Magic.MagicController magic, SettlersOfIdlestan.Model.Civilization.Civilization civ)
+    {
+        string powerLabel = _localization.GetFormated("rituals_power_max_label", magic.TotalPowerBudget);
+        float powerWidth = _descFont.MeasureText(powerLabel);
+        var powerRect = new SKRect(x - 4f, y, x + powerWidth + 4f, y + 22f);
+        SkiaTextUtils.DrawText(canvas, powerLabel, x, y + 14, _descFont, _summaryPaint);
+
+        int crystals = civ.GetResourceQuantity(Resource.Crystal);
+        var rateBreakdown = magic.GetCrystalRateBreakdown();
+        double net = rateBreakdown.NetPerSecond;
+        string ratePart = $"{(net >= 0 ? "+" : "")}{net:0.#}";
+        string crystalsLabel = _localization.GetFormated("rituals_crystals_label", crystals, ratePart);
+        float crystalsWidth = _descFont.MeasureText(crystalsLabel);
+        float crystalsX = x + width - crystalsWidth;
+        var crystalsRect = new SKRect(crystalsX - 4f, y, x + width + 4f, y + 22f);
+        SkiaTextUtils.DrawText(canvas, crystalsLabel, crystalsX, y + 14, _descFont, _summaryPaint);
+
+        if (powerRect.Contains(_hoverPosition.X, _hoverPosition.Y))
+        {
+            var lines = BuildPowerTooltipLines(magic);
+            _tooltipRenderer.SetTooltipLines(lines, new SKPoint(powerRect.Left, powerRect.Bottom - _scrollOffsetPx));
+        }
+        else if (crystalsRect.Contains(_hoverPosition.X, _hoverPosition.Y))
+        {
+            var lines = BuildCrystalTooltipLines(rateBreakdown);
+            _tooltipRenderer.SetTooltipLines(lines, new SKPoint(crystalsRect.Left, crystalsRect.Bottom - _scrollOffsetPx));
+        }
+    }
+
+    private string[] BuildPowerTooltipLines(SettlersOfIdlestan.Controller.Magic.MagicController magic)
+    {
+        var lines = new List<string>();
+        double towerBonusPercent = magic.MageTowerTotalLevel
+            * SettlersOfIdlestan.Controller.Magic.MagicController.MageTowerPowerBonusPerLevel * 100.0;
+        lines.Add(_localization.GetFormated("rituals_power_tooltip_towers", $"{towerBonusPercent:0.#}"));
+
+        double totalExact = magic.TotalPowerBudgetExact;
+        double otherPercent = (totalExact - 1.0 - towerBonusPercent / 100.0) * 100.0;
+        if (Math.Abs(otherPercent) > 0.01)
+            lines.Add(_localization.GetFormated("rituals_power_tooltip_other", $"{otherPercent:0.#}"));
+
+        lines.Add(_localization.GetFormated("rituals_power_tooltip_total", $"{totalExact:0.#}"));
+        return lines.ToArray();
+    }
+
+    private string[] BuildCrystalTooltipLines(SettlersOfIdlestan.Controller.Magic.MagicController.CrystalRateBreakdown breakdown)
+    {
+        var lines = new List<string>();
+        if (breakdown.AlchimistHutPerSecond > 0.001)
+            lines.Add(_localization.GetFormated("rituals_crystals_tooltip_alchimist", $"{breakdown.AlchimistHutPerSecond:0.#}"));
+        if (breakdown.MageTowerPerSecond > 0.001)
+            lines.Add(_localization.GetFormated("rituals_crystals_tooltip_magetower", $"{breakdown.MageTowerPerSecond:0.#}"));
+        if (breakdown.DolmenPerSecond > 0.001)
+            lines.Add(_localization.GetFormated("rituals_crystals_tooltip_dolmen", $"{breakdown.DolmenPerSecond:0.#}"));
+        if (breakdown.PassivePerSecond > 0.001)
+            lines.Add(_localization.GetFormated("rituals_crystals_tooltip_passive", $"{breakdown.PassivePerSecond:0.#}"));
+        if (breakdown.RitualUpkeepPerSecond > 0.001)
+            lines.Add(_localization.GetFormated("rituals_crystals_tooltip_upkeep", $"{breakdown.RitualUpkeepPerSecond:0.#}"));
+        if (lines.Count == 0)
+            lines.Add(_localization.Get("rituals_crystals_tooltip_none"));
+        return lines.ToArray();
     }
 
     /// <summary>
@@ -283,11 +344,12 @@ public sealed class RitualsRenderer : IDisposable
     private float DrawSpellRow(SKCanvas canvas, float x, float y, float width,
         SpellDefinition def, SettlersOfIdlestan.Controller.Magic.MagicController magic)
     {
+        int spellCost = magic.GetSpellCost(def);
         string costText = def.TargetKind switch
         {
-            SpellTargetKind.AllyCity => _localization.GetFormated("spell_cast_cost_troops", def.CrystalCost, def.TroopReward),
-            SpellTargetKind.BuildableVertex => _localization.GetFormated("spell_cast_cost_city", def.CrystalCost),
-            _ => _localization.GetFormated("spell_cast_cost", def.CrystalCost, def.GoldReward),
+            SpellTargetKind.AllyCity => _localization.GetFormated("spell_cast_cost_troops", spellCost, def.TroopReward),
+            SpellTargetKind.BuildableVertex => _localization.GetFormated("spell_cast_cost_city", spellCost),
+            _ => _localization.GetFormated("spell_cast_cost", spellCost, def.GoldReward),
         };
 
         bool canCast = magic.CanCastSpell(def.Id);

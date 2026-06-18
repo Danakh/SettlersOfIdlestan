@@ -316,12 +316,12 @@ public static class PrestigeMapFactory
                 }
             ),
             new(
-                PrestigeMap.InnerCircleVertex,
-                "prestige_vertex_inner_circle",
+                PrestigeMap.InvocationCircleVertex,
+                "prestige_vertex_invocation_circle",
                 cost: 25000,
                 modifiers: new Modifier[]
                 {
-                    new(ECategory.RITUAL_MAX_COUNT, EType.ADDITIVE, 1),
+                    new(ECategory.SPELL_COST_REDUCTION, "SummonTroops", EType.ADDITIVE, 0.25),
                 }
             ),
             new(
