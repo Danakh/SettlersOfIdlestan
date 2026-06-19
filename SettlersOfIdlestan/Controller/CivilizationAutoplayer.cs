@@ -390,10 +390,13 @@ namespace SettlersOfIdlestan.Controller
 
         /// <summary>
         /// Performs the prestige transition and greedily distributes all available prestige points.
+        /// <paramref name="priorityVertices"/>, if given, are purchased first (in order, still subject to
+        /// the normal cost/adjacency rules) before the remaining balance is spent on the cheapest
+        /// reachable vertices — useful to deterministically unlock a specific building.
         /// Returns false if prestige is not yet available or performPrestige was not provided.
         /// The autoplayer's civ/map references become stale after this call — do not reuse them.
         /// </summary>
-        public bool TryPrestigeOnce()
+        public bool TryPrestigeOnce(IReadOnlyList<Vertex>? priorityVertices = null)
         {
             if (_performPrestige == null || !_prestigeController.PrestigeIsAvailable()) return false;
 
@@ -401,6 +404,10 @@ namespace SettlersOfIdlestan.Controller
 
             if (_prestigeState != null)
             {
+                if (priorityVertices != null)
+                    foreach (var vertex in priorityVertices)
+                        _prestigeMapController.PurchaseVertex(_prestigeState, vertex);
+
                 bool purchased;
                 do
                 {

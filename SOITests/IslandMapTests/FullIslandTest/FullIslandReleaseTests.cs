@@ -45,13 +45,18 @@ namespace SOITests.IslandMapTests.FullIslandTest
         public void Release1_0_Island2_Step2bis() =>
             IslandScenarioRunner.RunStep(FullIslandScenarios.Island2, 3, "release-1.0", saveFinal: false);
 
+        // Note: no Release1_0_Island2_Step2ter_ExterminateMonsters fact — the frozen release-1.0
+        // lineage predates the Barracks-priority-purchase logic, so Barracks is never unlocked
+        // there and the extermination condition could never be met. Step3/Step3bis below silently
+        // skip too once their expected "previous step" save is missing under the new numbering.
+
         [Fact]
         public void Release1_0_Island2_Step3() =>
-            IslandScenarioRunner.RunStep(FullIslandScenarios.Island2, 4, "release-1.0", saveFinal: false);
+            IslandScenarioRunner.RunStep(FullIslandScenarios.Island2, 5, "release-1.0", saveFinal: false);
 
         [Fact]
         public void Release1_0_Island2_Step3bis() =>
-            IslandScenarioRunner.RunStep(FullIslandScenarios.Island2, 5, "release-1.0", saveFinal: false);
+            IslandScenarioRunner.RunStep(FullIslandScenarios.Island2, 6, "release-1.0", saveFinal: false);
 
         // ── Island 3 — from release-1.0 ──────────────────────────────────────
 
@@ -71,21 +76,25 @@ namespace SOITests.IslandMapTests.FullIslandTest
         public void Release1_0_Island3_Step2bis() =>
             IslandScenarioRunner.RunStep(FullIslandScenarios.Island3, 3, "release-1.0", saveFinal: false);
 
-        [Fact]
-        public void Release1_0_Island3_Step3() =>
-            IslandScenarioRunner.RunStep(FullIslandScenarios.Island3, 4, "release-1.0", saveFinal: false);
+        // Note: no Release1_0_Island3_Step2ter_ExterminateCivilizations fact — same reason as
+        // Island 2's extermination step (see above); Step3 onward silently skip once their
+        // expected "previous step" save is missing under the new numbering.
 
         [Fact]
-        public void Release1_0_Island3_Step3bis() =>
+        public void Release1_0_Island3_Step3() =>
             IslandScenarioRunner.RunStep(FullIslandScenarios.Island3, 5, "release-1.0", saveFinal: false);
 
         [Fact]
-        public void Release1_0_Island3_Wonder_Step0() =>
+        public void Release1_0_Island3_Step3bis() =>
             IslandScenarioRunner.RunStep(FullIslandScenarios.Island3, 6, "release-1.0", saveFinal: false);
 
         [Fact]
-        public void Release1_0_Island3_Wonder_Step1() =>
+        public void Release1_0_Island3_Wonder_Step0() =>
             IslandScenarioRunner.RunStep(FullIslandScenarios.Island3, 7, "release-1.0", saveFinal: false);
+
+        [Fact]
+        public void Release1_0_Island3_Wonder_Step1() =>
+            IslandScenarioRunner.RunStep(FullIslandScenarios.Island3, 8, "release-1.0", saveFinal: false);
 
         // ── Island 4 — from release-1.0 ──────────────────────────────────────
 

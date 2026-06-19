@@ -7,6 +7,7 @@ using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.IslandMap;
+using SettlersOfIdlestan.Model.Prestige.PrestigeMap;
 using SOITests.TestUtilities;
 
 namespace SOITests.IslandMapTests.FullIslandTest
@@ -54,13 +55,13 @@ namespace SOITests.IslandMapTests.FullIslandTest
                 $"Expected at least 10 cities, got {ctrl.CurrentMainState!.CurrentWorldState!.Civilizations.First().Cities.Count}",
         };
 
-        private static IslandStepDefinition PrestigePointsStep(string saveName) => new()
+        private static IslandStepDefinition PrestigePointsStep(string saveName, int requiredPoints = PrestigeController.PrestigeRequiredPoints, bool shouldExpand = false, int maxIterations = 10000) => new()
         {
             SaveName = saveName,
-            RunAction = (runner, cond) => runner.RunStep3Until(cond, shouldExpand: false),
-            Condition = ctrl => ctrl.PrestigeController.CalculatePrestigePoints() >= PrestigeController.PrestigeRequiredPoints,
+            RunAction = (runner, cond) => runner.RunStep3Until(cond, shouldExpand: shouldExpand, maxIterations: maxIterations),
+            Condition = ctrl => ctrl.PrestigeController.CalculatePrestigePoints() >= requiredPoints,
             AssertFailMessage = ctrl =>
-                $"Expected enough prestige points (has {ctrl.PrestigeController.CalculatePrestigePoints()} / {PrestigeController.PrestigeRequiredPoints})",
+                $"Expected at least {requiredPoints} prestige points (has {ctrl.PrestigeController.CalculatePrestigePoints()})",
         };
 
         private static IslandStepDefinition PrestigeAvailableStep(string saveName) => new()
@@ -70,6 +71,37 @@ namespace SOITests.IslandMapTests.FullIslandTest
             Condition = ctrl => ctrl.PrestigeController.PrestigeIsAvailable(),
             AssertFailMessage = ctrl =>
                 $"Expected prestige to be available (has {ctrl.PrestigeController.CalculatePrestigePoints()} / {PrestigeController.PrestigeRequiredPoints})",
+        };
+
+        /// <summary>
+        /// Keeps building Barracks/Palisade and growing the civilization until every surface monster
+        /// (Rats, Bandit, BanditHideout, ...) has been destroyed. Requires the Barracks prestige vertex
+        /// to already be purchased (see Island2's Step0 priority-vertex purchase) — otherwise no soldiers
+        /// are ever produced and the condition can never be met.
+        /// </summary>
+        private static IslandStepDefinition ExterminateMonstersStep(string saveName) => new()
+        {
+            SaveName = saveName,
+            RunAction = (runner, cond) => runner.RunStepExterminateMonstersUntil(cond),
+            Condition = ctrl => !ctrl.PrestigeController.HasSurfaceMonsters(),
+            AssertFailMessage = _ => "Expected all surface monsters to have been exterminated",
+        };
+
+        /// <summary>
+        /// Keeps building Barracks/Palisade and attacking the nearest enemy city until every NPC
+        /// civilization has lost all of its cities. Requires the Barracks prestige vertex to already
+        /// be purchased.
+        /// </summary>
+        private static IslandStepDefinition ExterminateCivilizationsStep(string saveName) => new()
+        {
+            SaveName = saveName,
+            RunAction = (runner, cond) => runner.RunStepExterminateCivilizationsUntil(cond),
+            Condition = ctrl => ctrl.CurrentMainState!.CurrentWorldState!.Civilizations.Where(c => c.IsNpc).All(c => c.Cities.Count == 0),
+            AssertFailMessage = ctrl =>
+            {
+                var remaining = ctrl.CurrentMainState!.CurrentWorldState!.Civilizations.Where(c => c.IsNpc).Sum(c => c.Cities.Count);
+                return $"Expected all NPC civilizations to have been exterminated, {remaining} NPC cities remain";
+            },
         };
 
         private static IslandStepDefinition WonderPlacedStep(string saveName) => new()
@@ -102,6 +134,10 @@ namespace SOITests.IslandMapTests.FullIslandTest
 
         private const int FixedTestSeed = 42;
 
+        /// <summary>Island 1 is pushed to 35 prestige points before prestiging — exactly enough
+        /// (Central=10 + Barracks=25) to deterministically unlock the Barracks for Island 2.</summary>
+        private const int Island1RequiredPrestigePoints = 35;
+
         internal static readonly IslandScenario Island1 = new()
         {
             Name = "Island1",
@@ -117,12 +153,14 @@ namespace SOITests.IslandMapTests.FullIslandTest
                 TwoCitiesStep("Island1_Step1"),
                 SixCitiesStep("Island1_Step2"),
                 TenCitiesStep("Island1_Step2bis"),
-                PrestigePointsStep("Island1_Step3"),
+                PrestigePointsStep("Island1_Step3", Island1RequiredPrestigePoints, shouldExpand: true, maxIterations: 20000),
                 PrestigeAvailableStep("Island1_Step3bis"),
             },
         };
 
         // ── Island 2 scenario ────────────────────────────────────────────────
+
+        private const int Island2RequiredPrestigePoints = 70;
 
         internal static readonly IslandScenario Island2 = new()
         {
@@ -132,11 +170,13 @@ namespace SOITests.IslandMapTests.FullIslandTest
             IsInputAvailable = folder => SaveUtils.SaveExists(folder, "Island1_Step3bis"),
             Steps = new List<IslandStepDefinition>
             {
-                // Step 0: prestige transition + greedy point distribution.
+                // Step 0: prestige transition. Barracks is purchased first (deterministically, using
+                // Island 1's 35 banked points) so monsters can be exterminated below; the remaining
+                // balance, if any, is then spent greedily as usual.
                 new()
                 {
                     SaveName = "Island2_Step0",
-                    RunAction = (runner, cond) => runner.RunStepPrestige(cond),
+                    RunAction = (runner, cond) => runner.RunStepPrestige(cond, new[] { PrestigeMap.CentralVertex, PrestigeMap.BarracksVertex }),
                     Condition = ctrl => ctrl.CurrentMainState?.PrestigeState?.RunHistory.Count >= 1,
                     AssertFailMessage = _ => "Expected prestige to have been performed (RunHistory is empty)",
                     IsPrestigeStep = true,
@@ -144,7 +184,8 @@ namespace SOITests.IslandMapTests.FullIslandTest
                 TwoCitiesStep("Island2_Step1"),
                 SixCitiesStep("Island2_Step2"),
                 TenCitiesStep("Island2_Step2bis"),
-                PrestigePointsStep("Island2_Step3"),
+                ExterminateMonstersStep("Island2_Step2ter"),
+                PrestigePointsStep("Island2_Step3", Island2RequiredPrestigePoints),
                 PrestigeAvailableStep("Island2_Step3bis"),
             },
         };
@@ -171,6 +212,7 @@ namespace SOITests.IslandMapTests.FullIslandTest
                 TwoCitiesStep("Island3_Step1"),
                 SixCitiesStep("Island3_Step2"),
                 TenCitiesStep("Island3_Step2bis"),
+                ExterminateCivilizationsStep("Island3_Step2ter"),
                 PrestigePointsStep("Island3_Step3"),
                 PrestigeAvailableStep("Island3_Step3bis"),
                 WonderPlacedStep("Island3_Wonder_Step0"),

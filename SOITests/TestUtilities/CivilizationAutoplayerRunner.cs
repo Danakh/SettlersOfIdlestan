@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using SettlersOfIdlestan.Controller;
 using SettlersOfIdlestan.Controller.Island;
@@ -98,13 +99,64 @@ public class CivilizationAutoplayerRunner
 
     /// <summary>
     /// Performs prestige and greedily distributes all prestige points.
+    /// <paramref name="priorityVertices"/>, if given, are purchased first — useful to deterministically
+    /// unlock a specific building (e.g. the Barracks) regardless of the default cheapest-first order.
     /// Exits as soon as the condition is true (normally after one iteration).
     /// </summary>
-    public void RunStepPrestige(Func<bool> condition, int maxIterations = 100)
+    public void RunStepPrestige(Func<bool> condition, IReadOnlyList<Vertex>? priorityVertices = null, int maxIterations = 100)
     {
         for (int i = 0; i < maxIterations && !condition(); i++)
         {
-            try { _autoplayer.TryPrestigeOnce(); } catch { }
+            try { _autoplayer.TryPrestigeOnce(priorityVertices); } catch { }
+            Advance();
+        }
+    }
+
+    /// <summary>
+    /// Builds Barracks/Palisade and keeps growing the civilization (new cities + economy) each iteration.
+    /// Melee combat against monsters resolves automatically once a city's footprint reaches the monster
+    /// and it has soldiers — no explicit attack action is needed. Exits once the condition
+    /// (e.g. no surface monsters left) is met.
+    /// </summary>
+    public void RunStepExterminateMonstersUntil(Func<bool> condition, int maxIterations = 50000)
+    {
+        for (int i = 0; i < maxIterations && !condition(); i++)
+        {
+            try
+            {
+                _autoplayer.TryMilitaryStepOnce();
+                _autoplayer.TryStep2Once(shouldExpand: true);
+            }
+            catch { }
+            Advance();
+        }
+    }
+
+    /// <summary>
+    /// Builds Barracks/Palisade, keeps growing the civilization (so player cities eventually fall
+    /// within attack range of NPC territory), and points each idle player city's attack flow at the
+    /// nearest enemy city within range (matching MilitaryController.FindNearbyEnemyCity — the same
+    /// range/visibility rules the real attack resolution uses). Exits once the condition (e.g. all
+    /// NPC civilizations eliminated) is met.
+    /// </summary>
+    public void RunStepExterminateCivilizationsUntil(Func<bool> condition, int maxIterations = 50000)
+    {
+        for (int i = 0; i < maxIterations && !condition(); i++)
+        {
+            try
+            {
+                _autoplayer.TryMilitaryStepOnce();
+                _autoplayer.TryStep2Once(shouldExpand: true);
+
+                var militaryController = _controller.MilitaryController;
+                foreach (var city in _civ.Cities.ToList())
+                {
+                    if (city.FlowTarget != null) continue;
+                    var enemy = militaryController.FindNearbyEnemyCity(city);
+                    if (enemy != null) militaryController.SetCityFlow(city, enemy.Position);
+                }
+            }
+            catch { }
             Advance();
         }
     }

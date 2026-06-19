@@ -8,12 +8,12 @@ namespace SOITests.TestUtilities;
 
 /// <summary>
 /// Appends one CSV row per prestige to saves/run_current.csv (or run_release.csv), summarizing
-/// progression: cities built, total building levels, prestige points generated, prestige
-/// vertices purchased, completed research and achievements unlocked.
+/// progression: ticks elapsed during the run, cities built, total building levels, prestige
+/// points generated, prestige vertices purchased, completed research and achievements unlocked.
 /// </summary>
 public static class RunSummaryReporter
 {
-    private const string Header = "Prestige,CityCount,TotalBuildingLevels,PrestigePointsGenerated,PrestigeVerticesPurchased,ResearchCompleted,AchievementsUnlocked";
+    private const string Header = "Prestige,Ticks,CityCount,TotalBuildingLevels,PrestigePointsGenerated,PrestigeVerticesPurchased,ResearchCompleted,AchievementsUnlocked";
 
     /// <summary>Deletes any existing recap file for the given folder, ready for a fresh run.</summary>
     public static void Reset(string loadFolder)
@@ -40,6 +40,7 @@ public static class RunSummaryReporter
 
         writer.WriteLine(string.Join(",",
             prestigeState.RunHistory.Count.ToString(CultureInfo.InvariantCulture),
+            lastRun.TickDuration.ToString(CultureInfo.InvariantCulture),
             lastRun.CityCount.ToString(CultureInfo.InvariantCulture),
             lastRun.TotalBuildingLevels.ToString(CultureInfo.InvariantCulture),
             lastRun.PrestigePoints.ToString(CultureInfo.InvariantCulture),

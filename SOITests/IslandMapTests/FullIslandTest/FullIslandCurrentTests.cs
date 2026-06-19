@@ -50,12 +50,16 @@ namespace SOITests.IslandMapTests.FullIslandTest
             IslandScenarioRunner.RunStep(FullIslandScenarios.Island2, 3, "current", saveFinal: true);
 
         [Fact]
-        public void Current_Island2_Step3() =>
+        public void Current_Island2_Step2ter_ExterminateMonsters() =>
             IslandScenarioRunner.RunStep(FullIslandScenarios.Island2, 4, "current", saveFinal: true);
 
         [Fact]
-        public void Current_Island2_Step3bis() =>
+        public void Current_Island2_Step3() =>
             IslandScenarioRunner.RunStep(FullIslandScenarios.Island2, 5, "current", saveFinal: true);
+
+        [Fact]
+        public void Current_Island2_Step3bis() =>
+            IslandScenarioRunner.RunStep(FullIslandScenarios.Island2, 6, "current", saveFinal: true);
 
         // ── Island 3 — current mode ───────────────────────────────────────────
 
@@ -76,20 +80,24 @@ namespace SOITests.IslandMapTests.FullIslandTest
             IslandScenarioRunner.RunStep(FullIslandScenarios.Island3, 3, "current", saveFinal: true);
 
         [Fact]
-        public void Current_Island3_Step3() =>
+        public void Current_Island3_Step2ter_ExterminateCivilizations() =>
             IslandScenarioRunner.RunStep(FullIslandScenarios.Island3, 4, "current", saveFinal: true);
 
         [Fact]
-        public void Current_Island3_Step3bis() =>
+        public void Current_Island3_Step3() =>
             IslandScenarioRunner.RunStep(FullIslandScenarios.Island3, 5, "current", saveFinal: true);
 
         [Fact]
-        public void Current_Island3_Wonder_Step0() =>
+        public void Current_Island3_Step3bis() =>
             IslandScenarioRunner.RunStep(FullIslandScenarios.Island3, 6, "current", saveFinal: true);
 
         [Fact]
-        public void Current_Island3_Wonder_Step1() =>
+        public void Current_Island3_Wonder_Step0() =>
             IslandScenarioRunner.RunStep(FullIslandScenarios.Island3, 7, "current", saveFinal: true);
+
+        [Fact]
+        public void Current_Island3_Wonder_Step1() =>
+            IslandScenarioRunner.RunStep(FullIslandScenarios.Island3, 8, "current", saveFinal: true);
 
         // ── Island 4 — current mode ───────────────────────────────────────────
 
