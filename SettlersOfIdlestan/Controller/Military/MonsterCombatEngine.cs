@@ -25,6 +25,13 @@ internal class MonsterCombatEngine
         _prng = prng;
     }
 
+    /// <summary>Intervalle effectif entre deux attaques contre un même monstre, après ATTACK_SPEED.</summary>
+    private static long EffectiveCombatInterval(Civilization civ)
+    {
+        double speed = civ.ModifierAggregator.ApplyModifiers(ECategory.ATTACK_SPEED, "", 1.0);
+        return Math.Max(1L, (long)(MilitaryController.CombatIntervalTicks / speed));
+    }
+
     internal void ResolveMonsterCombat(long currentTick,
         Action<SoldierAttackEventArgs> onSoldierAttackedMonster)
     {
@@ -33,8 +40,6 @@ internal class MonsterCombatEngine
         var deadMonsters = new List<MonsterFeature>();
         foreach (var monster in _state.Features.OfType<MonsterFeature>())
         {
-            if (currentTick - monster.LastAttackedByMilitaryTick < MilitaryController.CombatIntervalTicks) continue;
-
             if (AttackMonsterWithSoldiers(monster, currentTick, onSoldierAttackedMonster) && monster.Hp <= 0)
                 deadMonsters.Add(monster);
         }
@@ -51,10 +56,12 @@ internal class MonsterCombatEngine
     {
         if (_state == null) return false;
 
+        long lastAttackTick = monster.LastAttackedByMilitaryTick;
         bool didAttack = false;
         foreach (var civ in _state.Civilizations)
         {
             if (monster.Hp <= 0) break;
+            if (currentTick - lastAttackTick < EffectiveCombatInterval(civ)) continue;
             foreach (var city in civ.Cities)
             {
                 if (monster.Hp <= 0) break;
@@ -136,7 +143,7 @@ internal class MonsterCombatEngine
 
                 int distance = DistanceTo(city, monster);
                 if (distance <= MeleeRange) continue; // déjà géré par le combat de corps-à-corps automatique
-                if (currentTick - monster.LastAttackedByMilitaryTick < MilitaryController.CombatIntervalTicks) continue;
+                if (currentTick - monster.LastAttackedByMilitaryTick < EffectiveCombatInterval(civ)) continue;
                 if (GetAttackAvailability(city, monster) != MonsterAttackAvailability.Available) continue;
 
                 bool hasSteelWeapon = civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_STEEL_WEAPONS)

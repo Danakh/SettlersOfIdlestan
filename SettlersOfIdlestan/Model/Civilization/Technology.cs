@@ -49,6 +49,7 @@ public enum TechnologyId
     Siderurgie,
     CultureFongique,
     CartographieSouterraine,
+    WatchtowerConstruction,
     // Tier 6
     SteelArmor,
     TemperedSteel,

@@ -120,6 +120,8 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             SPELL_COST_REDUCTION,
             /// <summary>Flags que les villes peuvent attaquer activement une MonsterFeature à distance 2 si elles possèdent une Tour de guet. SubCategory unused.</summary>
             UNLOCK_RANGED_MONSTER_ATTACK,
+            /// <summary>Multiplicateur de vitesse d'attaque, contre les monstres et contre les villes ennemies. Base = 1.0; +1.0 = intervalle divisé par 2.</summary>
+            ATTACK_SPEED,
         }
 
         public enum EType

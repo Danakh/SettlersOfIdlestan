@@ -45,9 +45,11 @@ internal class CityAttackEngine
             {
                 var raidTarget = _state!.AutomationSettings.RaidTargetVertex;
                 bool isRaidAttack = raidTarget != null && attackerCity.FlowTarget?.Equals(raidTarget) == true;
-                long effectiveInterval = isRaidAttack
+                long baseInterval = isRaidAttack
                     ? MilitaryController.CityAttackIntervalTicks / 2
                     : MilitaryController.CityAttackIntervalTicks;
+                double speed = attackerCiv.ModifierAggregator.ApplyModifiers(ECategory.ATTACK_SPEED, "", 1.0);
+                long effectiveInterval = Math.Max(1L, (long)(baseInterval / speed));
                 if (currentTick - attackerCity.LastCityAttackTick < effectiveInterval) continue;
                 if (attackerCity.Soldiers == 0) continue;
                 if (attackerCity.FlowTarget == null) continue;

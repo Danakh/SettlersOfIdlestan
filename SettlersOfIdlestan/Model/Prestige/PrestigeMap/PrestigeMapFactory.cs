@@ -354,10 +354,10 @@ public static class PrestigeMapFactory
                 modifiers: new Modifier[] { new(ECategory.BUILDING_MAX_LEVEL, "Palisade", EType.ADDITIVE, 1) }
             ),
             new(
-                PrestigeMap.AdvancedGuardVertex,
-                "prestige_vertex_advanced_guard",
-                cost: Cost(PrestigeMap.AdvancedGuardVertex),
-                modifiers: new Modifier[] { new(ECategory.NEW_CITY_BUILDING, "Watchtower", EType.ADDITIVE, 1) }
+                PrestigeMap.RapidDeploymentVertex,
+                "prestige_vertex_rapid_deployment",
+                cost: Cost(PrestigeMap.RapidDeploymentVertex),
+                modifiers: new Modifier[] { new(ECategory.ATTACK_SPEED, EType.ADDITIVE, 1.0) }
             ),
             new(
                 PrestigeMap.BarbacaneVertex,

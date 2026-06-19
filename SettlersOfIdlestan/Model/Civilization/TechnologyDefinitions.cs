@@ -288,6 +288,13 @@ public static class TechnologyDefinitions
             modifiers: new Modifier[] { new(ECategory.UNLOCK_AUTO_ATTACK, EType.ADDITIVE, 1) },
             tier: 5, line: 8),
 
+        new(TechnologyId.WatchtowerConstruction,
+            "tech_watchtower_construction_name", "tech_watchtower_construction_desc",
+            cost: 52000,
+            prerequisites: new[] { TechnologyId.RapidConstruction, TechnologyId.Surveillance },
+            modifiers: new Modifier[] { new(ECategory.NEW_CITY_BUILDING, "Watchtower", EType.ADDITIVE, 1) },
+            tier: 5, line: 7),
+
                 // === TIER 5 — Grandes convergences ===
         
 
