@@ -41,7 +41,7 @@ public class CorruptionSpire : IslandFeature, IInvestableFeature
         { Resource.Mithril,   200 },
     };
 
-    public ResourceSet GetInvestmentCost() => GetSpireCost();
+    public ResourceSet GetInvestmentCost(SettlersOfIdlestan.Model.Civilization.Civilization playerCiv) => GetSpireCost();
 
     [JsonIgnore]
     public string PanelTitleKey => "corruption_spire_panel_title";

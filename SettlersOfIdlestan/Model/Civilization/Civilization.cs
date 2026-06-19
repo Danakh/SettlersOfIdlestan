@@ -155,6 +155,19 @@ public class Civilization
     [JsonIgnore]
     public double ResearchCostReduction => ModifierAggregator.ApplyModifiers(ECategory.RESEARCH_COST_REDUCTION, "", 0.0);
 
+    /// <summary>
+    /// Wonder level-up cost reduction fraction (0.0 = no reduction, 0.1 = 10% cheaper). Applies only to the Wonder.
+    /// </summary>
+    [JsonIgnore]
+    public double WonderCostReduction => ModifierAggregator.ApplyModifiers(ECategory.WONDER_COST_REDUCTION, "", 0.0);
+
+    /// <summary>
+    /// Investment speed multiplier (base 1.0) applied to a resource's investment amount when its stock
+    /// exceeds 50% of its max capacity. Affects the Wonder, the Deepest Mine and the Corruption Spire.
+    /// </summary>
+    [JsonIgnore]
+    public double InvestmentSpeedHighStockBonus => ModifierAggregator.ApplyModifiers(ECategory.INVESTMENT_SPEED_HIGH_STOCK_BONUS, "", 1.0);
+
     public int GetHarvestProductionBonus(string buildingType) =>
         ModifierAggregator.ApplyModifiers(ECategory.HARVEST_PRODUCTION_BONUS, buildingType, 0);
 

@@ -54,7 +54,7 @@ namespace SettlersOfIdlestan.Controller.Island
             wonder.LastInvestmentTick = now;
 
             var playerCiv = _state.PlayerCivilization;
-            var cost = GetLevelCost(wonder.Level + 1);
+            var cost = wonder.GetInvestmentCost(playerCiv);
             var toDeselect = new List<Resource>();
 
             foreach (var resource in wonder.InvestmentEnabled)
@@ -68,6 +68,10 @@ namespace SettlersOfIdlestan.Controller.Island
                 if (stock < 1) continue;
                 int amount = Math.Max(1, stock / 100);
                 if (amount <= 0) continue;
+
+                int maxStock = playerCiv.GetResourceMaxQuantity(resource);
+                if (maxStock > 0 && stock > maxStock * 0.5)
+                    amount = Math.Max(1, (int)(amount * playerCiv.InvestmentSpeedHighStockBonus));
 
                 long remaining = required - invested;
                 if (amount > remaining) amount = (int)remaining;

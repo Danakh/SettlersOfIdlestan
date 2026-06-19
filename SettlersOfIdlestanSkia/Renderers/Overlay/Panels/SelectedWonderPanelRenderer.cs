@@ -71,7 +71,8 @@ public class SelectedWonderPanelRenderer : PanelRendererBase
     public override void Render(SKCanvas canvas, GameRenderContext context)
     {
         var wonder = _wonderService.SelectedInvestable;
-        if (wonder == null)
+        var playerCiv = context.GameState.CurrentWorldState?.PlayerCivilization;
+        if (wonder == null || playerCiv == null)
         {
             PanelBounds = SKRect.Empty;
             CollapseTabRect = SKRect.Empty;
@@ -91,7 +92,7 @@ public class SelectedWonderPanelRenderer : PanelRendererBase
         float collapseTabW = CollapseTabW * s;
         float collapseTabH = CollapseTabH * s;
 
-        var cost = wonder.GetInvestmentCost();
+        var cost = wonder.GetInvestmentCost(playerCiv);
         int resourceCount = cost.Count;
         var costList = cost.ToList();
 

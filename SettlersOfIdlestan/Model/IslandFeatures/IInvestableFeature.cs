@@ -22,8 +22,8 @@ public interface IInvestableFeature
     /// <summary>Tick du dernier cycle d'investissement.</summary>
     long LastInvestmentTick { get; set; }
 
-    /// <summary>Coût total de l'objectif d'investissement courant.</summary>
-    ResourceSet GetInvestmentCost();
+    /// <summary>Coût total de l'objectif d'investissement courant (modificateurs de la civilisation appliqués).</summary>
+    ResourceSet GetInvestmentCost(SettlersOfIdlestan.Model.Civilization.Civilization playerCiv);
 
     /// <summary>Clé de localisation du titre du panneau d'investissement.</summary>
     string PanelTitleKey { get; }

@@ -39,12 +39,11 @@ public class DeepestMine : IslandFeature, IInvestableFeature
     public static ResourceSet GetDigCost() => new ResourceSet
     {
         { Resource.Stone, 1000 },
-        { Resource.Ore,    300 },
-        { Resource.Gold,  1000 },
-        { Resource.Steel, 1000 },
+        { Resource.Ore,   2000 },
+        { Resource.Gold,  2000 },
     };
 
-    public ResourceSet GetInvestmentCost() => GetDigCost();
+    public ResourceSet GetInvestmentCost(SettlersOfIdlestan.Model.Civilization.Civilization playerCiv) => GetDigCost();
 
     [JsonIgnore]
     public string PanelTitleKey => "deepest_mine_panel_title";

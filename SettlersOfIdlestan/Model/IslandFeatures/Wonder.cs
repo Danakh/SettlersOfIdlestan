@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
 using SettlersOfIdlestan.Model.Game;
@@ -37,7 +38,17 @@ public class Wonder : IslandFeature, IInvestableFeature
         { Resource.Ore,   2000 * level * level },
     };
 
-    public ResourceSet GetInvestmentCost() => GetLevelCost(Level + 1);
+    public ResourceSet GetInvestmentCost(SettlersOfIdlestan.Model.Civilization.Civilization playerCiv)
+    {
+        var baseCost = GetLevelCost(Level + 1);
+        double reduction = playerCiv.WonderCostReduction;
+        if (reduction <= 0) return baseCost;
+
+        var reduced = new ResourceSet();
+        foreach (var kvp in baseCost)
+            reduced.Add(kvp.Key, Math.Max(1, (int)(kvp.Value * (1.0 - reduction))));
+        return reduced;
+    }
 
     [JsonIgnore]
     public string PanelTitleKey => "wonder_panel_title";

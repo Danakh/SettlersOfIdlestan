@@ -58,7 +58,7 @@ namespace SettlersOfIdlestan.Controller.Island
             mine.LastInvestmentTick = now;
 
             var playerCiv = _state.PlayerCivilization;
-            var cost = mine.GetInvestmentCost();
+            var cost = mine.GetInvestmentCost(playerCiv);
             var toDeselect = new List<Resource>();
 
             foreach (var resource in mine.InvestmentEnabled)
@@ -71,6 +71,10 @@ namespace SettlersOfIdlestan.Controller.Island
                 int stock = playerCiv.GetResourceQuantity(resource);
                 if (stock < 1) continue;
                 int amount = Math.Max(1, stock / 100);
+
+                int maxStock = playerCiv.GetResourceMaxQuantity(resource);
+                if (maxStock > 0 && stock > maxStock * 0.5)
+                    amount = Math.Max(1, (int)(amount * playerCiv.InvestmentSpeedHighStockBonus));
 
                 long remaining = required - invested;
                 if (amount > remaining) amount = (int)remaining;
@@ -172,7 +176,7 @@ namespace SettlersOfIdlestan.Controller.Island
             mine.Dug = false;
             mine.InvestmentEnabled.Clear();
             mine.InvestedResources.Clear();
-            var cost = mine.GetInvestmentCost();
+            var cost = mine.GetInvestmentCost(_state.PlayerCivilization);
             foreach (var kvp in cost)
                 mine.InvestedResources[kvp.Key] = kvp.Value / 2;
 

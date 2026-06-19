@@ -31,7 +31,7 @@ public class MageTower : Building
     public override ResourceSet GetBuildCost() => new ResourceSet
     {
         { Resource.Stone,   60 },
-        { Resource.Glass,    5 },
+        { Resource.Glass,   20 },
         { Resource.Crystal,  5 },
         { Resource.Gold,    30 },
     };
@@ -39,7 +39,7 @@ public class MageTower : Building
     public override ResourceSet GetUpgradeCost(int level) => new ResourceSet
     {
         { Resource.Stone,   40 * (level + 1) },
-        { Resource.Glass,    5 * (level + 1) },
+        { Resource.Glass,   20 * (level + 1) },
         { Resource.Crystal,  5 * (level + 1) },
         { Resource.Gold,    20 * (level + 1) },
     };

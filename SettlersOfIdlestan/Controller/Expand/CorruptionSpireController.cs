@@ -58,7 +58,7 @@ namespace SettlersOfIdlestan.Controller.Expand
             spire.LastInvestmentTick = now;
 
             var playerCiv = _state.PlayerCivilization;
-            var cost = spire.GetInvestmentCost();
+            var cost = spire.GetInvestmentCost(playerCiv);
             var toDeselect = new List<Resource>();
 
             foreach (var resource in spire.InvestmentEnabled)
@@ -71,6 +71,10 @@ namespace SettlersOfIdlestan.Controller.Expand
                 int stock = playerCiv.GetResourceQuantity(resource);
                 if (stock < 1) continue;
                 int amount = Math.Max(1, stock / 100);
+
+                int maxStock = playerCiv.GetResourceMaxQuantity(resource);
+                if (maxStock > 0 && stock > maxStock * 0.5)
+                    amount = Math.Max(1, (int)(amount * playerCiv.InvestmentSpeedHighStockBonus));
 
                 long remaining = required - invested;
                 if (amount > remaining) amount = (int)remaining;

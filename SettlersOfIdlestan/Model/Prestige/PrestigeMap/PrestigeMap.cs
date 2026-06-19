@@ -73,7 +73,8 @@ public class PrestigeMap
     // ── Branche de la Magie (sud) — autour de l'hex Lignes Telluriques (-1,3)
     // Deux entrées : Hutte d'Alchimie / Cercles de Fées (depuis la Guilde des Artisans) et Achat Automatique (depuis la Guilde des Marchands)
     public static readonly Vertex AlchimistHutVertex   = Vertex.Create(new(-1,  2, 0), new( 0,  2, 0), new(-1,  3, 0));
-    public static readonly Vertex MysticCrossingVertex = Vertex.Create(new( 0,  2, 0), new( 1,  2, 0), new( 0,  3, 0));
+    // Coin partagé avec l'hex Production artisanale (0,2)
+    public static readonly Vertex MasterArtisansVertex = Vertex.Create(new( 0,  2, 0), new( 1,  2, 0), new( 0,  3, 0));
     // Porte d'entrée : déverrouille la magie (au moins aussi chère que la porte de l'Inframonde)
     public static readonly Vertex RitualsVertex       = Vertex.Create(new( 0,  2, 0), new( 0,  3, 0), new(-1,  3, 0));
     public static readonly Vertex InvocationsVertex   = Vertex.Create(new(-1,  2, 0), new(-1,  3, 0), new(-2,  3, 0));

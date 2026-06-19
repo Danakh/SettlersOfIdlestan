@@ -122,6 +122,10 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             UNLOCK_RANGED_MONSTER_ATTACK,
             /// <summary>Multiplicateur de vitesse d'attaque, contre les monstres et contre les villes ennemies. Base = 1.0; +1.0 = intervalle divisé par 2.</summary>
             ATTACK_SPEED,
+            /// <summary>Fraction de réduction du coût de montée de niveau de la Merveille (uniquement). Base = 0.0; 0.1 = -10%.</summary>
+            WONDER_COST_REDUCTION,
+            /// <summary>Multiplicateur de vitesse d'investissement des constructions majeures (Merveille, Mine Profonde, Spire de Corruption), actif uniquement pour une ressource investie dont le stock dépasse 50% de sa capacité maximale. Base = 1.0; +1.0 = vitesse doublée.</summary>
+            INVESTMENT_SPEED_HIGH_STOCK_BONUS,
         }
 
         public enum EType

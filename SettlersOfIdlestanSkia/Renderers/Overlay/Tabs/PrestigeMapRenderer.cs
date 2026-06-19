@@ -599,13 +599,21 @@ public sealed class PrestigeMapRenderer : IGameRenderer
                 foreach (var mod in hex.PerVertexModifiers)
                 {
                     double total = mod.Value * adjCount;
-                    bool isPct = mod.Category is Modifier.ECategory.HARVEST_SPEED
-                        or Modifier.ECategory.RESEARCH_SPEED
-                        or Modifier.ECategory.UNIT_PRODUCTION_SPEED
-                        or Modifier.ECategory.RESEARCH_COST_REDUCTION
-                        or Modifier.ECategory.MARKET_GOLD_SPEED;
-                    bool isFloat = mod.Category is Modifier.ECategory.TRADE_GOLD_PACKAGES;
-                    string totalStr = isPct ? $"+{(int)(total * 100)}%" : isFloat ? $"{total:0.##}" : $"+{(int)total}";
+                    string totalStr;
+                    if (mod.Category == Modifier.ECategory.UNDERWORLD_ROAD_BASE_REDUCTION)
+                    {
+                        totalStr = $"-{(int)total}/-{(int)(total / 2)}";
+                    }
+                    else
+                    {
+                        bool isPct = mod.Category is Modifier.ECategory.HARVEST_SPEED
+                            or Modifier.ECategory.RESEARCH_SPEED
+                            or Modifier.ECategory.UNIT_PRODUCTION_SPEED
+                            or Modifier.ECategory.RESEARCH_COST_REDUCTION
+                            or Modifier.ECategory.MARKET_GOLD_SPEED;
+                        bool isFloat = mod.Category is Modifier.ECategory.TRADE_GOLD_PACKAGES;
+                        totalStr = isPct ? $"+{(int)(total * 100)}%" : isFloat ? $"{total:0.##}" : $"+{(int)total}";
+                    }
                     lines.Add($"{_localization.Get("prestige_tooltip_current_bonus")}: {totalStr}");
                     lines.Add($"({FormatModifier(mod)} × {adjCount})");
                 }
@@ -688,6 +696,8 @@ public sealed class PrestigeMapRenderer : IGameRenderer
             : $"-{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_spell_cost")} — {_localization.Get($"spell_{mod.SubCategory.ToLower()}_name")}",
         Modifier.ECategory.UNLOCK_RANGED_MONSTER_ATTACK     => _localization.Get("prestige_tooltip_unlocks_ranged_monster_attack"),
         Modifier.ECategory.ATTACK_SPEED                     => $"+{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_attack_speed")}",
+        Modifier.ECategory.WONDER_COST_REDUCTION            => $"-{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_wonder_cost_reduction")}",
+        Modifier.ECategory.INVESTMENT_SPEED_HIGH_STOCK_BONUS => $"+{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_investment_speed_high_stock")}",
         _ => $"+{mod.Value}"
     };
 

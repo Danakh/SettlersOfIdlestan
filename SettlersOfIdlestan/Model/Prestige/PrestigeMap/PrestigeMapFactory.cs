@@ -392,7 +392,16 @@ public static class PrestigeMapFactory
                     new(ECategory.PRESTIGE_GAIN_PER_SEAPORT_LEVEL4, EType.ADDITIVE, 0.05),
                 }
             ),
-            new(PrestigeMap.MysticCrossingVertex,    "prestige_vertex_placeholder", cost: Cost(PrestigeMap.MysticCrossingVertex),    modifiers: Array.Empty<Modifier>()),
+            new(
+                PrestigeMap.MasterArtisansVertex,
+                "prestige_vertex_master_artisans",
+                cost: Cost(PrestigeMap.MasterArtisansVertex),
+                modifiers: new Modifier[]
+                {
+                    new(ECategory.WONDER_COST_REDUCTION, EType.ADDITIVE, 0.1),
+                    new(ECategory.INVESTMENT_SPEED_HIGH_STOCK_BONUS, EType.ADDITIVE, 1.0),
+                }
+            ),
             new(
                 PrestigeMap.OuterHarborVertex,
                 "prestige_vertex_strategic_rations",
