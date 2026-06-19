@@ -133,7 +133,7 @@ public static class SaveUtils
         }
     }
 
-    private static string GetSolutionRootDirectory(string startDirectory)
+    internal static string GetSolutionRootDirectory(string startDirectory)
     {
         var dir = new DirectoryInfo(startDirectory);
         while (dir != null)

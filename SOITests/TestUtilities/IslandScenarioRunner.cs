@@ -15,7 +15,8 @@ public static class IslandScenarioRunner
     /// <param name="stepIndex">0-based index into scenario.Steps.</param>
     /// <param name="loadFolder">Subfolder under saves/ from which to load the previous step's save (e.g. "current", "release-1.0").</param>
     /// <param name="saveFinal">When true, saves the result to saves/{loadFolder}/{step.SaveName}.json after asserting.</param>
-    public static void RunStep(IslandScenario scenario, int stepIndex, string loadFolder, bool saveFinal)
+    /// <returns>The controller used to run the step, or null when the step was skipped.</returns>
+    public static MainGameController? RunStep(IslandScenario scenario, int stepIndex, string loadFolder, bool saveFinal)
     {
         if (stepIndex < 0 || stepIndex >= scenario.Steps.Count)
             throw new ArgumentOutOfRangeException(nameof(stepIndex));
@@ -28,7 +29,7 @@ public static class IslandScenarioRunner
             if (scenario.IsInputAvailable != null && !scenario.IsInputAvailable(loadFolder))
             {
                 Console.WriteLine($"[SKIP] Input not available in '{loadFolder}' for scenario '{scenario.Name}' step 0.");
-                return;
+                return null;
             }
             controller = scenario.CreateFreshController(loadFolder);
         }
@@ -39,7 +40,7 @@ public static class IslandScenarioRunner
             {
                 // Release saves not yet created — silently skip rather than fail.
                 Console.WriteLine($"[SKIP] saves/{loadFolder}/{prevSaveName}.json not found — skipping release regression step.");
-                return;
+                return null;
             }
             controller = SaveUtils.LoadSave(loadFolder, prevSaveName);
         }
@@ -68,5 +69,7 @@ public static class IslandScenarioRunner
 
         if (saveFinal)
             SaveUtils.SaveAndReloadAndAssertEqual(controller, loadFolder, step.SaveName);
+
+        return controller;
     }
 }
