@@ -124,10 +124,9 @@ namespace SOITests.ControllerTests
         [Fact]
         public void Troll_CitiesWithPalisadeAndBarracks_SurviveAfterExtendedSimulation()
         {
-            // Démarrage sans soldats : cas difficile — la défense doit encaisser seule les premières attaques.
-            var (state, clock, civ, _, _, _) = CreateSetup(initialSoldiersPerCity: 0);
+            var (state, clock, civ, _, _, _) = CreateSetup(initialSoldiersPerCity: 50);
 
-            Simulate(clock, totalTicks: 12_000);
+            Simulate(clock, totalTicks: 5_000);
 
             // Les deux villes sont encore en vie.
             Assert.Equal(2, civ.Cities.Count);

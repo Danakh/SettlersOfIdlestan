@@ -163,7 +163,7 @@ public class Civilization
 
     /// <summary>
     /// Investment speed multiplier (base 1.0) applied to a resource's investment amount when its stock
-    /// exceeds 50% of its max capacity. Affects all Monuments (Wonder, Deepest Mine, Corruption Spire…).
+    /// exceeds 50% of its max capacity. Affects the Wonder, the Deepest Mine and the Corruption Spire.
     /// </summary>
     [JsonIgnore]
     public double InvestmentSpeedHighStockBonus => ModifierAggregator.ApplyModifiers(ECategory.INVESTMENT_SPEED_HIGH_STOCK_BONUS, "", 1.0);

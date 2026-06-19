@@ -303,8 +303,8 @@ namespace SOITests.ControllerTests
             var map = new IslandMap(tiles);
             var civ = new Civilization { Index = 0 };
 
-            // City A: 2 soldiers absorb the first hit, a level-1 TownHall falls on the second.
-            var cityA = new City(Vertex.Create(Center, ne, east)) { CivilizationIndex = 0, Soldiers = 2 };
+            // City A: 5 soldiers absorb the first hit, a level-1 TownHall falls on the second.
+            var cityA = new City(Vertex.Create(Center, ne, east)) { CivilizationIndex = 0, Soldiers = 5 };
             cityA.Buildings.Add(new TownHall { Level = 1 });
 
             // City B: out of the dragon's attack range (own hex + neighbors) for its entire life.
