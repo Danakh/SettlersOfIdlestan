@@ -16,6 +16,7 @@ public enum TechnologyId
     Archivage,
     Orpaillage,
     MilitaryTactics,
+    Scouting,
     Fortifications,
     MilitaryBuildings,
     RapidConstruction,

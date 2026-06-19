@@ -184,6 +184,8 @@ public class MonsterFeatureController
         if (target == null)
         {
             monster.LastAttackTick = currentTick;
+            monster.LastAttackTargetVertex = null;
+            monster.LastAttackResourcesString = null;
             return;
         }
 

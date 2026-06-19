@@ -185,6 +185,13 @@ public class PrestigeVertexModifierTests
         Assert.True(aggregator.HasModifier(ECategory.UNLOCK_RESEARCH, "Archivage"));
     }
 
+    [Fact]
+    public void WatchtowerVertex_UnlocksResearch_Scouting()
+    {
+        var aggregator = BuildAggregator(PrestigeMap.WatchtowerVertex);
+        Assert.True(aggregator.HasModifier(ECategory.UNLOCK_RESEARCH, "Scouting"));
+    }
+
     // ── CITY_MAX_SOLDIERS_BONUS ───────────────────────────────────────────────
 
     [Fact]

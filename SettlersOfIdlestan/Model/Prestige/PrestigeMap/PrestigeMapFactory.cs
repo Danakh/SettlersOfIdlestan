@@ -37,7 +37,11 @@ public static class PrestigeMapFactory
                 PrestigeMap.WatchtowerVertex,
                 "prestige_vertex_watchtower",
                 cost: Cost(PrestigeMap.WatchtowerVertex),
-                modifiers: new Modifier[] { new(ECategory.BUILDING_MAX_LEVEL, "Watchtower", EType.ADDITIVE, 1) }
+                modifiers: new Modifier[]
+                {
+                    new(ECategory.BUILDING_MAX_LEVEL, "Watchtower", EType.ADDITIVE, 1),
+                    new(ECategory.UNLOCK_RESEARCH, "Scouting", EType.ADDITIVE, 1),
+                }
             ),
             new(
                 PrestigeMap.MaritimeRoutesVertex,

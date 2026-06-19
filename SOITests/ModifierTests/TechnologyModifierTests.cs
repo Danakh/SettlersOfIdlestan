@@ -118,9 +118,9 @@ public class TechnologyModifierTests
     // ── CITY_ATTACK_RANGE ─────────────────────────────────────────────────────
 
     [Fact]
-    public void MilitaryTactics_CityAttackRange_Plus1()
+    public void Scouting_CityAttackRange_Plus1()
     {
-        Assert.Equal(1, BuildAggregator(TechnologyId.MilitaryTactics).ApplyModifiers(ECategory.CITY_ATTACK_RANGE, "", 0));
+        Assert.Equal(1, BuildAggregator(TechnologyId.Scouting).ApplyModifiers(ECategory.CITY_ATTACK_RANGE, "", 0));
     }
 
     // ── HARVEST_PRODUCTION_BONUS ──────────────────────────────────────────────

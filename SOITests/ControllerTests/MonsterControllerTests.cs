@@ -274,5 +274,87 @@ namespace SOITests.ControllerTests
             clock.SimulateAdvance(1);
             Assert.Equal(8, civ.GetResourceQuantity(Resource.Wood));
         }
+
+        // ── Dragon target consistency after a city is destroyed ────────────────
+
+        [Fact]
+        public void Dragon_AfterDestroyingCity_StopsTargetingItAndKeepsCountsConsistent()
+        {
+            // City A sits on the dragon's own hex (always in range). City B is a
+            // separate cluster far away, never adjacent to the dragon, and must
+            // never be attacked nor destroyed.
+            var ne   = new HexCoord(0, 1, IslandMap.SurfaceLayer);
+            var east = new HexCoord(1, 0, IslandMap.SurfaceLayer);
+
+            var farCenter = new HexCoord(20, 0, IslandMap.SurfaceLayer);
+            var farNE     = new HexCoord(20, 1, IslandMap.SurfaceLayer);
+            var farEast   = new HexCoord(21, 0, IslandMap.SurfaceLayer);
+
+            var tiles = new List<HexTile>
+            {
+                new(Center,    TerrainType.Desert),
+                new(ne,        TerrainType.Plain),
+                new(east,      TerrainType.Plain),
+                new(farCenter, TerrainType.Plain),
+                new(farNE,     TerrainType.Plain),
+                new(farEast,   TerrainType.Plain),
+            };
+
+            var map = new IslandMap(tiles);
+            var civ = new Civilization { Index = 0 };
+
+            // City A: 2 soldiers absorb the first hit, a level-1 TownHall falls on the second.
+            var cityA = new City(Vertex.Create(Center, ne, east)) { CivilizationIndex = 0, Soldiers = 2 };
+            cityA.Buildings.Add(new TownHall { Level = 1 });
+
+            // City B: out of the dragon's attack range (own hex + neighbors) for its entire life.
+            var cityB = new City(Vertex.Create(farCenter, farNE, farEast)) { CivilizationIndex = 0 };
+            cityB.Buildings.Add(new TownHall { Level = 5 });
+
+            civ.AddCity(cityA);
+            civ.AddCity(cityB);
+
+            var state = new WorldState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
+            var dragon = new Dragon(Center) { Found = true };
+            state.AddFeature(dragon);
+
+            var clock = new GameClock();
+            clock.Start();
+            var controller = new MonsterFeatureController();
+            controller.Initialize(state, clock, new GamePRNG());
+
+            void AssertCityCountsConsistent()
+            {
+                Assert.Equal(civ.Cities.Count, state.GetAllCities().Count());
+                Assert.Contains(cityB, civ.Cities);
+                Assert.NotEqual(cityB.Position, dragon.LastAttackTargetVertex);
+            }
+
+            // Attack 1: city A's garrison absorbs the hit, city A survives.
+            clock.SimulateAdvance(Dragon.DragonAttackIntervalTicks);
+            Assert.Equal(2, civ.Cities.Count);
+            Assert.Equal(cityA.Position, dragon.LastAttackTargetVertex);
+            AssertCityCountsConsistent();
+
+            // Attack 2: garrison is gone, the TownHall falls → city A is destroyed.
+            clock.SimulateAdvance(Dragon.DragonAttackIntervalTicks);
+            Assert.Equal(1, civ.Cities.Count);
+            Assert.DoesNotContain(cityA, civ.Cities);
+            AssertCityCountsConsistent();
+
+            // From now on the dragon has no reachable target (its former target is gone).
+            // At every following attack interval, the dragon must NOT keep reporting a
+            // target at the destroyed city's vertex — that was the reported bug (the
+            // dragon visually keeps "attacking" a location after its city was destroyed).
+            for (int i = 0; i < 5; i++)
+            {
+                clock.SimulateAdvance(Dragon.DragonAttackIntervalTicks);
+
+                Assert.Null(dragon.LastAttackTargetVertex);
+                Assert.Null(state.FindCityAt(cityA.Position));
+                Assert.Equal(1, civ.Cities.Count);
+                AssertCityCountsConsistent();
+            }
+        }
     }
 }

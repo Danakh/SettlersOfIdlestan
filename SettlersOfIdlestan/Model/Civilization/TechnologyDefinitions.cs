@@ -92,12 +92,16 @@ public static class TechnologyDefinitions
             "tech_military_tactics_name", "tech_military_tactics_desc",
             cost: 500,
             prerequisites: new[] { TechnologyId.MilitaryDiscipline },
-            modifiers: new Modifier[]
-            {
-                new(ECategory.UNIT_PRODUCTION_SPEED, EType.ADDITIVE, 0.15),
-                new(ECategory.CITY_ATTACK_RANGE, EType.ADDITIVE, 1),
-            },
+            modifiers: new Modifier[] { new(ECategory.UNIT_PRODUCTION_SPEED, EType.ADDITIVE, 0.15) },
             tier: 1, line: 8),
+
+        // Débloquée par le vertex de prestige Tour de Guet
+        new(TechnologyId.Scouting,
+            "tech_scouting_name", "tech_scouting_desc",
+            cost: 350,
+            prerequisites: Array.Empty<TechnologyId>(),
+            modifiers: new Modifier[] { new(ECategory.CITY_ATTACK_RANGE, EType.ADDITIVE, 1) },
+            tier: 1, line: 9),
 
         // === TIER 2 ===
 
