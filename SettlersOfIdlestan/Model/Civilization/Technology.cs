@@ -39,6 +39,7 @@ public enum TechnologyId
     Surveillance,
     // Tier 4
     EpicHarvest,
+    // [Legacy] Recherche "Routes commerciales" supprimée — conservée uniquement pour la désérialisation des anciennes sauvegardes.
     TradeRoutes,
     ImprovedResearch,
     AdvancedStrategy,
@@ -56,6 +57,7 @@ public enum TechnologyId
     RailLogistics,
     OutilsEnMithril,
     // Tier 7
+    // [Legacy] Recherche "Aciers Spéciaux" supprimée — conservée uniquement pour la désérialisation des anciennes sauvegardes.
     SpecialSteels,
     // Branche de la Magie (débloquée par le vertex de prestige Secret de la Magie)
     MagicInitiation,

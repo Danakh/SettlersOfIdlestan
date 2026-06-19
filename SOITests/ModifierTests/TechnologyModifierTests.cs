@@ -244,15 +244,6 @@ public class TechnologyModifierTests
         Assert.Equal(1, BuildAggregator(TechnologyId.GrandArchitecture).ApplyModifiers(ECategory.BUILDING_MAX_LEVEL, "Barracks", 0));
     }
 
-    // ── TRADE_GOLD_PACKAGES ───────────────────────────────────────────────────
-
-    [Fact]
-    public void TradeRoutes_TradeGoldPackages_Plus3()
-    {
-        Assert.Equal(3.0, BuildAggregator(TechnologyId.TradeRoutes).ApplyModifiers(ECategory.TRADE_GOLD_PACKAGES, "", 0.0), 5);
-    }
-
-
     // ── CITY_DEFENSE ──────────────────────────────────────────────────────────
 
     [Fact]

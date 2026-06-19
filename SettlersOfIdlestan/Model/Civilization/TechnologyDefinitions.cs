@@ -267,13 +267,6 @@ public static class TechnologyDefinitions
             modifiers: new Modifier[] { new(ECategory.UNLOCK_AUTO_MARKET_TRADE, EType.ADDITIVE, 1) },
             tier: 4, line: 4),
 
-        new(TechnologyId.TradeRoutes,
-            "tech_trade_routes_name", "tech_trade_routes_desc",
-            cost: 15500,
-            prerequisites: new[] { TechnologyId.GrandArchitecture },
-            modifiers: new Modifier[] { new(ECategory.TRADE_GOLD_PACKAGES, EType.ADDITIVE, 3) },
-            tier: 4, line: 5),
-
         new(TechnologyId.ImprovedResearch,
             "tech_improved_research_name", "tech_improved_research_desc",
             cost: 17425,
@@ -301,7 +294,7 @@ public static class TechnologyDefinitions
         new(TechnologyId.MasterResearch,
             "tech_master_research_name", "tech_master_research_desc",
             cost: 50370,
-            prerequisites: new[] { TechnologyId.ImprovedResearch, TechnologyId.TradeRoutes },
+            prerequisites: new[] { TechnologyId.ImprovedResearch },
             modifiers: new Modifier[] { new(ECategory.RESEARCH_SPEED, EType.ADDITIVE, 0.3) },
             tier: 5, line: 6),
 
@@ -342,13 +335,6 @@ public static class TechnologyDefinitions
                 new(ECategory.REINFORCEMENT_RANGE, EType.ADDITIVE, 1),
             },
             tier: 6, line: 8),
-
-        new(TechnologyId.SpecialSteels,
-            "tech_special_steels_name", "tech_special_steels_desc",
-            cost: 160000,
-            prerequisites: new[] { TechnologyId.TemperedSteel, TechnologyId.TradeRoutes },
-            modifiers: new Modifier[] { new(ECategory.UNLOCK_STEEL_TRADE, EType.ADDITIVE, 1) },
-            tier: 7, line: 4),
 
         // === Branche de l'Inframonde (débloquée par les vertex de prestige du nord-ouest) ===
 
