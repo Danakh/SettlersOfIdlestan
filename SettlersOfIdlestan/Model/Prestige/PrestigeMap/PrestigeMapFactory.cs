@@ -372,14 +372,24 @@ public static class PrestigeMapFactory
                 modifiers: new Modifier[] { new(ECategory.UNLOCK_RAID, EType.ADDITIVE, 1) }
             ),
             new(PrestigeMap.ForgeApproachVertex, "prestige_vertex_placeholder", cost: Cost(PrestigeMap.ForgeApproachVertex), modifiers: Array.Empty<Modifier>()),
-            new(PrestigeMap.OuterScienceVertex,  "prestige_vertex_placeholder", cost: Cost(PrestigeMap.OuterScienceVertex),  modifiers: Array.Empty<Modifier>()),
             new(
-                PrestigeMap.WarRoomVertex,
+                PrestigeMap.OuterScienceVertex,
                 "prestige_vertex_war_room",
-                cost: Cost(PrestigeMap.WarRoomVertex),
+                cost: Cost(PrestigeMap.OuterScienceVertex),
                 modifiers: new Modifier[]
                 {
                     new(ECategory.BUILDING_MAX_LEVEL, "WarRoom", EType.ADDITIVE, 1),
+                }
+            ),
+            new(
+                PrestigeMap.WarRoomVertex,
+                "prestige_vertex_research_institute",
+                cost: Cost(PrestigeMap.WarRoomVertex),
+                modifiers: new Modifier[]
+                {
+                    new(ECategory.BUILDING_MAX_LEVEL, "Library", EType.ADDITIVE, 1),
+                    new(ECategory.BUILDING_MAX_LEVEL, "Laboratory", EType.ADDITIVE, 1),
+                    new(ECategory.BUILDING_MAX_LEVEL, "Academy", EType.ADDITIVE, 1),
                 }
             ),
             new(

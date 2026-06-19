@@ -105,6 +105,22 @@ public class PrestigeVertexModifierTests
         Assert.Equal(1, aggregator.ApplyModifiers(ECategory.BUILDING_MAX_LEVEL, "Academy", 0));
     }
 
+    [Fact]
+    public void OuterScienceVertex_WarRoomMaxLevel_Plus1()
+    {
+        var aggregator = BuildAggregator(PrestigeMap.OuterScienceVertex);
+        Assert.Equal(1, aggregator.ApplyModifiers(ECategory.BUILDING_MAX_LEVEL, "WarRoom", 0));
+    }
+
+    [Fact]
+    public void WarRoomVertex_ResearchInstitute_GrantsMaxLevelToLibraryLaboratoryAndAcademy()
+    {
+        var aggregator = BuildAggregator(PrestigeMap.WarRoomVertex);
+        Assert.Equal(1, aggregator.ApplyModifiers(ECategory.BUILDING_MAX_LEVEL, "Library", 0));
+        Assert.Equal(1, aggregator.ApplyModifiers(ECategory.BUILDING_MAX_LEVEL, "Laboratory", 0));
+        Assert.Equal(1, aggregator.ApplyModifiers(ECategory.BUILDING_MAX_LEVEL, "Academy", 0));
+    }
+
     // ── STARTING_CITY_BUILDING ────────────────────────────────────────────────
 
     [Fact]

@@ -38,6 +38,6 @@ public class Academy : Building, IUniqueBuilding
     {
         if (Level <= 0) yield break;
 
-        yield return new Modifier(ECategory.RESEARCH_SPEED, EType.ADDITIVE, 1.0);
+        yield return new Modifier(ECategory.RESEARCH_SPEED, EType.ADDITIVE, 1.0 * Level);
     }
 }
