@@ -12,7 +12,7 @@ namespace SettlersOfIdlestan.Model.Monsters;
 [Serializable]
 public class Ogre : MonsterFeature
 {
-    public const int OgreMaxHp = 60;
+    public const int OgreMaxHp = 100;
 
     public override int MaxHp => OgreMaxHp;
     public override bool BlocksHarvest => true;
@@ -21,11 +21,11 @@ public class Ogre : MonsterFeature
     public override long MovementIntervalTicks => 6_000L;
     public override long DepartureCooldownTicks => 1_500L;
 
-    public override int AttackRangeInHexes => 2;
+    public override int AttackRangeInHexes => 1;
     public override long AttackIntervalTicks => 300L;
     public override bool IgnoresPalisade => true;
-    public override int AttackDamage => 3;
-    public override int AttackResources => 3;
+    public override int AttackDamage => 5;
+    public override int AttackResources => 5;
 
     public override GameEventType DiscoveredEventType => GameEventType.OgreDiscovered;
     public override GameEventType RemovedEventType => GameEventType.OgreDefeated;

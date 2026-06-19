@@ -22,6 +22,8 @@ public enum GameEventType
     TrollDefeated,
     OgreDiscovered,
     OgreDefeated,
+    MinorDemonDiscovered,
+    MinorDemonDefeated,
     DeepestMinePlaced,
     DeepestMineDug,
     UnderworldLost,

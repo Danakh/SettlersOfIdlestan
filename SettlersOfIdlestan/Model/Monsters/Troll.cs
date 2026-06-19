@@ -13,7 +13,7 @@ namespace SettlersOfIdlestan.Model.Monsters;
 public class Troll : MonsterFeature
 {
     public const int TrollMaxHp = 40;
-    public const long TrollHpRegenIntervalTicks = 200L;
+    public const long TrollHpRegenIntervalTicks = 100L;
 
     public override int MaxHp => TrollMaxHp;
     public override bool BlocksHarvest => true;
@@ -28,7 +28,7 @@ public class Troll : MonsterFeature
     public override int AttackRangeInHexes => 1;
     public override long AttackIntervalTicks => 200L;
     public override bool IgnoresPalisade => true;
-    public override int AttackDamage => 1;
+    public override int AttackDamage => 3;
     public override int AttackResources => 2;
 
     public override GameEventType DiscoveredEventType => GameEventType.TrollDiscovered;

@@ -18,17 +18,16 @@ namespace SettlersOfIdlestan.Controller.Island;
 public class AutoExtendController
 {
     private WorldState? _state;
+    private GameClock? _clock;
     private GamePRNG? _prng;
     private PrestigeState? _prestigeState;
 
-    // 20 entrées : 9x Mountain=45%, 7x Desert=35%, 2x MushroomCave=10%, 1x MithrilVein=5%, 1x CrystalCave=5%
     private static readonly TerrainType[] TerrainPool = new[]
     {
         TerrainType.Mountain, TerrainType.Mountain, TerrainType.Mountain, TerrainType.Mountain, TerrainType.Mountain,
-        TerrainType.Mountain, TerrainType.Mountain, TerrainType.Mountain, TerrainType.Mountain,
-        TerrainType.Desert,   TerrainType.Desert,   TerrainType.Desert,   TerrainType.Desert,   TerrainType.Desert,
-        TerrainType.Desert,   TerrainType.Desert,
-        TerrainType.MushroomCave, TerrainType.MushroomCave,
+        TerrainType.Mountain, TerrainType.Mountain, TerrainType.Mountain, TerrainType.Mountain, TerrainType.Mountain,
+        TerrainType.Desert,   TerrainType.Desert,   TerrainType.Desert,   TerrainType.Desert,
+        TerrainType.MushroomCave, TerrainType.MushroomCave, TerrainType.MushroomCave, TerrainType.MushroomCave,
         TerrainType.MithrilVein,
         TerrainType.CrystalCave,
     };
@@ -59,13 +58,91 @@ public class AutoExtendController
     private const int OgreSpawnChancePercent = 3;
     private const int BaseTreasureChancePercent = 2;
 
+    // Monstre de bordure : tente une apparition à intervalle régulier sur les cartes auto-étendues,
+    // en bordure de la zone déjà explorée (pas seulement lors de la génération de nouveaux hexes).
+    private const long BorderMonsterCheckIntervalTicks = 6_000L;
+    private const int BorderMonsterSpawnChancePercent = 5;
+    private const int BorderMonsterTrollChancePercent = 65;
+
     internal AutoExtendController() { }
 
-    internal void Initialize(WorldState state, GamePRNG prng, PrestigeState? prestigeState = null)
+    internal void Initialize(WorldState state, GamePRNG prng, GameClock? clock = null, PrestigeState? prestigeState = null)
     {
+        if (_clock != null)
+            _clock.Advanced -= OnClockAdvanced;
+
         _state = state;
         _prng = prng;
+        _clock = clock;
         _prestigeState = prestigeState;
+
+        if (_clock != null)
+            _clock.Advanced += OnClockAdvanced;
+    }
+
+    private void OnClockAdvanced(object? sender, GameClockAdvancedEventArgs e)
+    {
+        try { TrySpawnBorderMonsters(e.CurrentTick); }
+        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[AutoExtendController] {nameof(TrySpawnBorderMonsters)}: {ex}"); }
+    }
+
+    /// <summary>
+    /// Toutes les <see cref="BorderMonsterCheckIntervalTicks"/> ticks, sur chaque carte gérée par
+    /// AutoExtendController, tente de faire apparaître un monstre en bordure de la zone explorée
+    /// (<see cref="BorderMonsterSpawnChancePercent"/> de chance). Le type tiré dépend du niveau de
+    /// corruption de l'île : (niveau - 1)% de chance d'un démon mineur, sinon 65 % troll / 35 % ogre.
+    /// </summary>
+    private void TrySpawnBorderMonsters(long currentTick)
+    {
+        if (_state == null || _prng == null) return;
+
+        foreach (var layerState in _state.Layers.Values)
+        {
+            if (!layerState.AutoExtend || layerState.ArrivalVertex == null) continue;
+            if (currentTick - layerState.LastBorderMonsterSpawnTick < BorderMonsterCheckIntervalTicks) continue;
+            layerState.LastBorderMonsterSpawnTick = currentTick;
+
+            if (_prng.Next(100) >= BorderMonsterSpawnChancePercent) continue;
+
+            var borderHexes = GetBorderHexes(layerState);
+            if (borderHexes.Count == 0) continue;
+
+            var hex = borderHexes[_prng.Next(borderHexes.Count)];
+            _state.AddFeature(RollBorderMonster(hex));
+        }
+    }
+
+    /// <summary>Hexes occupés en bordure de la zone explorée : au moins un voisin hors carte, sans eau ni feature.</summary>
+    private List<HexCoord> GetBorderHexes(LayerState layerState)
+    {
+        var map = layerState.Map;
+        var arrivalHexes = layerState.ArrivalVertex!.GetHexes();
+        var result = new List<HexCoord>();
+
+        foreach (var (hex, tile) in map.Tiles)
+        {
+            if (tile.TerrainType == TerrainType.Water) continue;
+            if (_state!.HasFeaturesAt(hex)) continue;
+            if (MinDistanceToAny(hex, arrivalHexes) < MinHexDistanceFromArrival) continue;
+            if (!hex.Neighbors().Any(n => !map.HasTile(n))) continue;
+
+            result.Add(hex);
+        }
+
+        return result;
+    }
+
+    private Model.Monsters.MonsterFeature RollBorderMonster(HexCoord hex)
+    {
+        int corruptionLevel = _prestigeState?.CurrentCorruptionLevel ?? 1;
+        int demonChancePercent = Math.Max(0, corruptionLevel - 1);
+
+        if (_prng!.Next(100) < demonChancePercent)
+            return new Model.Monsters.MinorDemon(hex);
+
+        return _prng.Next(100) < BorderMonsterTrollChancePercent
+            ? new Model.Monsters.Troll(hex)
+            : new Model.Monsters.Ogre(hex);
     }
 
     /// <summary>

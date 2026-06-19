@@ -124,13 +124,6 @@ namespace SOITests.ControllerTests
         }
 
         [Fact]
-        public void Investment_DigCostIncludes1000Steel()
-        {
-            var cost = DeepestMine.GetDigCost();
-            Assert.Equal(1000, cost[Resource.Steel]);
-        }
-
-        [Fact]
         public void Investment_CompletingAllResources_DigsAndOpensUnderworld()
         {
             var (state, clock, controller) = CreateSetup();

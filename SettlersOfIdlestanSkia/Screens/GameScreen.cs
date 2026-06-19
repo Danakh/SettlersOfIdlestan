@@ -610,6 +610,10 @@ public sealed class GameScreen : IDisposable
                 _localizationService.Get("event_dragon_discovered_title"),
                 _localizationService.Get("event_dragon_discovered_body"),
                 NotificationIcon.StoreFail),
+            GameEventType.MinorDemonDiscovered => (
+                _localizationService.Get("event_minor_demon_discovered_title"),
+                _localizationService.Get("event_minor_demon_discovered_body"),
+                NotificationIcon.StoreFail),
             _ => (entry.Type.ToString(), entry.Message ?? string.Empty, NotificationIcon.Info)
         };
         _notificationToastRenderer.ShowNotification(title, message, icon);

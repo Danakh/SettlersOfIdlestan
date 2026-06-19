@@ -24,6 +24,8 @@ public abstract class MonsterFeature : IslandFeature
     // ── Mouvement (opt-in) ─────────────────────────────────────────────────
     public virtual bool CanMove => false;
     public virtual long MovementIntervalTicks => long.MaxValue;
+    /// <summary>Nombre d'hexes parcourus à chaque déplacement (1 = un seul pas).</summary>
+    public virtual int MovementRangeInHexes => 1;
     /// <summary>Ticks de blocage de récolte laissés sur l'ancien hex après départ. 0 = pas de cooldown.</summary>
     public virtual long DepartureCooldownTicks => 0L;
     /// <summary>Tick du dernier déplacement (utilisé pour la grâce après mouvement).</summary>

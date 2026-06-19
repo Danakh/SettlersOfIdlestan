@@ -13,6 +13,7 @@ namespace SettlersOfIdlestan.Model.IslandFeatures;
 [JsonDerivedType(typeof(Rats), "Rats")]
 [JsonDerivedType(typeof(Troll), "Troll")]
 [JsonDerivedType(typeof(Ogre), "Ogre")]
+[JsonDerivedType(typeof(MinorDemon), "MinorDemon")]
 [JsonDerivedType(typeof(TreasureTrove), "TreasureTrove")]
 [JsonDerivedType(typeof(Wonder), "Wonder")]
 [JsonDerivedType(typeof(DeepestMine), "DeepestMineFeature")]

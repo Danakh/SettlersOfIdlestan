@@ -109,7 +109,7 @@ public class FeatureController
                 visibleMaps.Any(visibleMap => visibleMap.IsOnSameLayer(feature.Position) && visibleMap.HasTile(feature.Position)))
             {
                 feature.Found = true;
-                bool featureToast = feature.DiscoveredEventType is GameEventType.BanditHideoutDiscovered or GameEventType.DragonDiscovered;
+                bool featureToast = feature.DiscoveredEventType is GameEventType.BanditHideoutDiscovered or GameEventType.DragonDiscovered or GameEventType.MinorDemonDiscovered;
                 _state.EventLog.Add(feature.DiscoveredEventType, toast: featureToast);
                 OnFeatureDiscovered?.Invoke(this, feature);
             }

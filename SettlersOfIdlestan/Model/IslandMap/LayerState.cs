@@ -39,6 +39,9 @@ public class LayerState
     /// <summary>Décalage (q, r) appliqué à <see cref="RiverCycleHexes"/> à chaque répétition du motif.</summary>
     public int RiverCycleDisplacementR { get; set; }
 
+    /// <summary>Dernier tick où la chance d'apparition d'un monstre en bordure de carte a été testée.</summary>
+    public long LastBorderMonsterSpawnTick { get; set; }
+
     [System.Text.Json.Serialization.JsonConstructor]
     public LayerState()
     {

@@ -21,8 +21,8 @@ public class Dragon : MonsterFeature
     public override int AttackRangeInHexes => 2;
     public override long AttackIntervalTicks => DragonAttackIntervalTicks;
     public override bool IgnoresPalisade => true;
-    public override int AttackDamage => 2;
-    public override int AttackResources => 5;
+    public override int AttackDamage => 5;
+    public override int AttackResources => 1;
 
     public override GameEventType DiscoveredEventType => GameEventType.DragonDiscovered;
     public override GameEventType RemovedEventType => GameEventType.DragonDefeated;

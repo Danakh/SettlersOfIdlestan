@@ -251,7 +251,7 @@ namespace SettlersOfIdlestan.Controller
 
                 SetupModifierAggregators();
 
-                AutoExtendController.Initialize(WorldState, CurrentMainState!.PRNG, CurrentMainState?.PrestigeState);
+                AutoExtendController.Initialize(WorldState, CurrentMainState!.PRNG, Clock, CurrentMainState?.PrestigeState);
 
                 // Ordre d'initialisation contraint — ne pas modifier sans vérifier les dépendances :
                 // 1. RoadController  — requis par MilitaryController (nettoyage routes détruites)

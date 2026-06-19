@@ -133,17 +133,32 @@ public class MonsterFeatureController
     {
         if (_state == null) return;
 
-        var map = _state.GetMapFor(monster.Position)!;
+        int steps = Math.Max(1, monster.MovementRangeInHexes);
+        int movedSteps = 0;
+        for (int i = 0; i < steps; i++)
+        {
+            if (!TryMoveOneHex(monster, currentTick)) break;
+            movedSteps++;
+        }
+
+        monster.LastMovedTick = currentTick;
+        monster.LastAttackedByMilitaryTick = currentTick; // grâce après mouvement
+        if (movedSteps > 0)
+        {
+            monster.LastAttackTick = currentTick;
+            monster.LastAttackTargetVertex = null;
+        }
+    }
+
+    /// <summary>Déplace le monstre d'un seul hex. Retourne false si aucun voisin n'est franchissable.</summary>
+    private bool TryMoveOneHex(MonsterFeature monster, long currentTick)
+    {
+        var map = _state!.GetMapFor(monster.Position)!;
         var neighbors = monster.Position.Neighbors()
             .Where(n => map.HasTile(n) && map.GetTile(n)!.TerrainType != TerrainType.Water)
             .ToList();
 
-        if (neighbors.Count == 0)
-        {
-            monster.LastMovedTick = currentTick;
-            monster.LastAttackedByMilitaryTick = currentTick;
-            return;
-        }
+        if (neighbors.Count == 0) return false;
 
         var noBlockingNoCooldown = neighbors
             .Where(n => !_state.GetFeaturesAt(n).Any(f => f.BlocksHarvest) &&
@@ -160,16 +175,14 @@ public class MonsterFeatureController
 
         var oldPosition = monster.Position;
         _state.MoveFeature(monster, candidates[_prng!.Next(candidates.Count)]);
-        monster.LastMovedTick = currentTick;
-        monster.LastAttackTick = currentTick;
-        monster.LastAttackTargetVertex = null;
-        monster.LastAttackedByMilitaryTick = currentTick; // grâce après mouvement
 
         if (!oldPosition.Equals(monster.Position) && monster.DepartureCooldownTicks > 0)
         {
             _state.SetPlunderCooldown(oldPosition, currentTick + monster.DepartureCooldownTicks);
             _state.PlunderCooldownDuration[oldPosition] = monster.DepartureCooldownTicks;
         }
+
+        return true;
     }
 
     // ── Attaque des villes ───────────────────────────────────────────────────
