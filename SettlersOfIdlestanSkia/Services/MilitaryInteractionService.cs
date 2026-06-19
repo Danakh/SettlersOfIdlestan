@@ -1,6 +1,10 @@
-﻿using SkiaSharp;
+﻿using System;
+using System.Linq;
+using SkiaSharp;
 using SettlersOfIdlestan.Controller.Military;
 using SettlersOfIdlestan.Model.Civilization;
+using SettlersOfIdlestan.Model.HexGrid;
+using SettlersOfIdlestan.Model.Monsters;
 using SettlersOfIdlestanSkia.Renderers.Island;
 
 namespace SettlersOfIdlestanSkia.Services;
@@ -8,7 +12,13 @@ namespace SettlersOfIdlestanSkia.Services;
 public sealed class MilitaryInteractionService
 {
     private const float CitySnapRadius = 20f;
+    private const float MonsterSnapRadius = 20f;
     private const float DragThreshold = 8f;
+
+    /// <summary>Clé de localisation du tooltip affiché en survol quand l'attaque à distance 2 manque de Tour de guet.</summary>
+    public const string RequiresWatchtowerMessageKey = "tooltip_monster_attack_requires_watchtower";
+    /// <summary>Clé de localisation du tooltip affiché en survol quand le monstre est hors de portée.</summary>
+    public const string TooFarMessageKey = "tooltip_monster_attack_too_far";
 
     private readonly GameControllerService _gameControllerService;
     private readonly MilitaryController _militaryController;
@@ -24,6 +34,8 @@ public sealed class MilitaryInteractionService
     public City? DragSourceCity => _activeDragSourceCity;
     public City? DragTargetCity { get; private set; }
     public bool DragTargetIsInRange { get; private set; }
+    public MonsterFeature? DragTargetMonster { get; private set; }
+    public MonsterAttackAvailability DragTargetMonsterAvailability { get; private set; }
     public SKPoint DragCurrentScreenPoint { get; private set; }
 
     /// <summary>True si un press vient d'être posé sur une cité alliée (pour suppression du pan).</summary>
@@ -87,6 +99,23 @@ public sealed class MilitaryInteractionService
         return best;
     }
 
+    private MonsterFeature? FindMonsterNear(SKPoint islandPoint, int layer)
+    {
+        var worldState = _gameControllerService.CurrentWorldState;
+        if (worldState == null || _renderer == null) return null;
+
+        MonsterFeature? best = null;
+        float bestDist = MonsterSnapRadius;
+        foreach (var monster in worldState.Features.OfType<MonsterFeature>())
+        {
+            if (!monster.Found) continue;
+            if (monster.Position.Z != layer) continue;
+            float dist = SKPoint.Distance(islandPoint, _renderer.HexCoordToIslandPoint(monster.Position));
+            if (dist < bestDist) { bestDist = dist; best = monster; }
+        }
+        return best;
+    }
+
     private bool IsValidFlowTarget(City target)
     {
         var playerIndex = _gameControllerService.CurrentWorldState?.PlayerCivilization?.Index ?? -1;
@@ -111,6 +140,8 @@ public sealed class MilitaryInteractionService
         DragCurrentScreenPoint = e.Position;
         DragTargetCity = null;
         DragTargetIsInRange = false;
+        DragTargetMonster = null;
+        DragTargetMonsterAvailability = MonsterAttackAvailability.TooFar;
 
         var city = FindPlayerCityNear(ScreenToIsland(e.Position), _gameControllerService.CurrentWorldState!.CurrentViewedLayer);
         if ((city != null) && (_militaryController.GetMaximumSoldierCapacity(city) > 0))
@@ -139,11 +170,25 @@ public sealed class MilitaryInteractionService
 
         if (_activeDragSourceCity != null)
         {
-            var target = FindAnyCityNear(ScreenToIsland(e.Position), _activeDragSourceCity.Position.Z);
+            var islandPoint = ScreenToIsland(e.Position);
+            var target = FindAnyCityNear(islandPoint, _activeDragSourceCity.Position.Z);
             if (target != null && !IsValidFlowTarget(target))
                 target = null;
             DragTargetCity = target;
             DragTargetIsInRange = target != null && target != _activeDragSourceCity && IsInRange(_activeDragSourceCity, target);
+
+            if (target != null && target != _activeDragSourceCity)
+            {
+                DragTargetMonster = null;
+            }
+            else
+            {
+                var monster = FindMonsterNear(islandPoint, _activeDragSourceCity.Position.Z);
+                DragTargetMonster = monster;
+                DragTargetMonsterAvailability = monster != null
+                    ? _militaryController.GetMonsterAttackAvailability(_activeDragSourceCity, monster)
+                    : MonsterAttackAvailability.TooFar;
+            }
         }
     }
 
@@ -155,25 +200,39 @@ public sealed class MilitaryInteractionService
 
         if (_activeDragSourceCity != null)
         {
-            var target = FindAnyCityNear(ScreenToIsland(e.Position), _activeDragSourceCity.Position.Z);
+            var islandPoint = ScreenToIsland(e.Position);
+            var target = FindAnyCityNear(islandPoint, _activeDragSourceCity.Position.Z);
             if (target != null && !IsValidFlowTarget(target))
                 target = null;
 
-            if (target == null || target == _activeDragSourceCity)
+            if (target != null && target != _activeDragSourceCity)
             {
-                _militaryController.SetCityFlow(_activeDragSourceCity, null);
+                if (IsInRange(_activeDragSourceCity, target))
+                    _militaryController.SetCityFlow(_activeDragSourceCity, target.Position);
+                // hors portée → ne rien faire (conserver le flux existant)
             }
-            else if (IsInRange(_activeDragSourceCity, target))
+            else
             {
-                _militaryController.SetCityFlow(_activeDragSourceCity, target.Position);
+                var monster = FindMonsterNear(islandPoint, _activeDragSourceCity.Position.Z);
+                if (monster == null)
+                {
+                    _militaryController.SetCityFlow(_activeDragSourceCity, null);
+                    _militaryController.SetMonsterFlow(_activeDragSourceCity, null);
+                }
+                else if (_militaryController.GetMonsterAttackAvailability(_activeDragSourceCity, monster) == MonsterAttackAvailability.Available)
+                {
+                    _militaryController.SetMonsterFlow(_activeDragSourceCity, monster.Position);
+                }
+                // bloqué (trop loin / nécessite une tour de guet) → ne rien faire (conserver le flux existant) ;
+                // la raison est déjà visible en tooltip pendant le survol (cf. MilitaryRenderer.DrawDragInteraction).
             }
-            // hors portée → ne rien faire (conserver le flux existant)
         }
 
         _activeDragSourceCity = null;
         _potentialDragCity = null;
         DragTargetCity = null;
         DragTargetIsInRange = false;
+        DragTargetMonster = null;
     }
 
     public void Cleanup()

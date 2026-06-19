@@ -118,6 +118,8 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             UNLOCK_SPELL,
             /// <summary>Fraction de réduction du coût en cristaux d'un sort. SubCategory = SpellId name (vide = s'applique à tous les sorts) (0.25 = -25%).</summary>
             SPELL_COST_REDUCTION,
+            /// <summary>Flags que les villes peuvent attaquer activement une MonsterFeature à distance 2 si elles possèdent une Tour de guet. SubCategory unused.</summary>
+            UNLOCK_RANGED_MONSTER_ATTACK,
         }
 
         public enum EType

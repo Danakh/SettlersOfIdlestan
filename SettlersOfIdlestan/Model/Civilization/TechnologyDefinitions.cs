@@ -217,6 +217,14 @@ public static class TechnologyDefinitions
             },
             tier: 3, line: 1),
 
+        // Continue la ligne de la Tour de Guet (Scouting) : permet d'attaquer les monstres à distance 2.
+        new(TechnologyId.Surveillance,
+            "tech_surveillance_name", "tech_surveillance_desc",
+            cost: 5500,
+            prerequisites: new[] { TechnologyId.Scouting },
+            modifiers: new Modifier[] { new(ECategory.UNLOCK_RANGED_MONSTER_ATTACK, EType.ADDITIVE, 1) },
+            tier: 3, line: 9),
+
         new(TechnologyId.GrandArchitecture,
             "tech_grand_architecture_name", "tech_grand_architecture_desc",
             cost: 5560,

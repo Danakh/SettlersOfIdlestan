@@ -6,6 +6,7 @@ using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Services;
+using SettlersOfIdlestanSkia.Services.Localization;
 using SettlersOfIdlestanSkia.Renderers.Overlay;
 
 namespace SettlersOfIdlestanSkia.Renderers.Island;
@@ -49,7 +50,7 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
         _militaryRenderer.ConnectInteractionService(service);
     }
 
-    public IslandMainRenderer(IConstructionHoverProvider constructionHoverProvider, TooltipRenderer tooltipRenderer, HarvestController harvestController, ResourceManager resourceManager, MilitaryController militaryController, Func<int> currentLayer)
+    public IslandMainRenderer(IConstructionHoverProvider constructionHoverProvider, TooltipRenderer tooltipRenderer, LocalizationService localizationService, HarvestController harvestController, ResourceManager resourceManager, MilitaryController militaryController, Func<int> currentLayer)
     {
         _gameBoardRenderer = new GameBoardRenderer(harvestController, resourceManager);
         _roadRenderer = new RoadRenderer(tooltipRenderer);
@@ -57,7 +58,7 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
         _harvestParticleSystem = new HarvestParticleSystem();
         _harvestRenderer = new HarvestRenderer(_harvestParticleSystem, resourceManager, currentLayer);
         _banditRenderer = new MonsterRenderer(resourceManager);
-        _militaryRenderer = new MilitaryRenderer();
+        _militaryRenderer = new MilitaryRenderer(tooltipRenderer, localizationService);
         _constructionHoverProvider = constructionHoverProvider;
         _tooltipRenderer = tooltipRenderer;
         _harvestController = harvestController;

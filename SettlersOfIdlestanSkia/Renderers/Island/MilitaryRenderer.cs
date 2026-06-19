@@ -3,9 +3,12 @@ using Svg.Skia;
 using SettlersOfIdlestan.Controller.Military;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
+using SettlersOfIdlestan.Model.Monsters;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Renderers.Debug;
+using SettlersOfIdlestanSkia.Renderers.Overlay;
 using SettlersOfIdlestanSkia.Services;
+using SettlersOfIdlestanSkia.Services.Localization;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -42,7 +45,15 @@ public class MilitaryRenderer : HexBasedRenderer, IGameRenderer
     private MilitaryController? _militaryController;
     private GameControllerService? _gameControllerService;
     private MilitaryInteractionService? _interactionService;
+    private readonly TooltipRenderer _tooltipRenderer;
+    private readonly LocalizationService _localizationService;
     private bool _disposed;
+
+    public MilitaryRenderer(TooltipRenderer tooltipRenderer, LocalizationService localizationService)
+    {
+        _tooltipRenderer = tooltipRenderer;
+        _localizationService = localizationService;
+    }
 
     public void Initialize(SKSize canvasSize)
     {
@@ -197,7 +208,30 @@ public class MilitaryRenderer : HexBasedRenderer, IGameRenderer
                 canvas.DrawLine(sourcePt, targetPt, linePaint);
                 DrawArrowhead(canvas, sourcePt, targetPt, arrowColor);
             }
+
+            foreach (var sourceCity in civ.Cities)
+            {
+                if (sourceCity.MonsterAttackTarget == null) continue;
+                if (sourceCity.Position.Z != worldState.CurrentViewedLayer) continue;
+                if (civ.Index != playerCiv.Index) continue;
+
+                var monster = worldState.Features.OfType<MonsterFeature>()
+                    .FirstOrDefault(f => f.Position.Equals(sourceCity.MonsterAttackTarget));
+                if (monster == null) continue;
+
+                var sourcePt = VertexToIsland(sourceCity.Position);
+                var targetPt = HexToIsland(monster.Position);
+                var arrowColor = new SKColor(220, 60, 60, 220);
+                canvas.DrawLine(sourcePt, targetPt, _flowRedPaint);
+                DrawArrowhead(canvas, sourcePt, targetPt, arrowColor);
+            }
         }
+    }
+
+    private SKPoint HexToIsland(HexCoord hex)
+    {
+        var (x, y) = AxialToIsland(hex.Q, hex.R);
+        return new SKPoint(x, y);
     }
 
     private void DrawDragInteraction(SKCanvas canvas, GameRenderContext context)
@@ -230,6 +264,27 @@ public class MilitaryRenderer : HexBasedRenderer, IGameRenderer
                 ? (isAlly ? new SKColor(50, 200, 80, 220) : new SKColor(220, 60, 60, 220))
                 : new SKColor(150, 150, 150, 180);
             canvas.DrawCircle(targetPt, 20f, _dragCirclePaint);
+        }
+        else if (_interactionService.DragTargetMonster is { } targetMonster)
+        {
+            var targetPt = HexToIsland(targetMonster.Position);
+            var availability = _interactionService.DragTargetMonsterAvailability;
+            _dragCirclePaint.Color = availability switch
+            {
+                MonsterAttackAvailability.Available => new SKColor(220, 60, 60, 220),
+                MonsterAttackAvailability.RequiresWatchtower => new SKColor(230, 180, 40, 220),
+                _ => new SKColor(150, 150, 150, 180),
+            };
+            canvas.DrawCircle(targetPt, 20f, _dragCirclePaint);
+
+            string? reasonKey = availability switch
+            {
+                MonsterAttackAvailability.RequiresWatchtower => MilitaryInteractionService.RequiresWatchtowerMessageKey,
+                MonsterAttackAvailability.TooFar => MilitaryInteractionService.TooFarMessageKey,
+                _ => null,
+            };
+            if (reasonKey != null)
+                _tooltipRenderer.SetTooltip(_localizationService.Get(reasonKey), screen);
         }
     }
 

@@ -686,6 +686,7 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         Modifier.ECategory.SPELL_COST_REDUCTION             => mod.SubCategory == ""
             ? $"-{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_spell_cost_all")}"
             : $"-{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_spell_cost")} — {_localization.Get($"spell_{mod.SubCategory.ToLower()}_name")}",
+        Modifier.ECategory.UNLOCK_RANGED_MONSTER_ATTACK     => _localization.Get("prestige_tooltip_unlocks_ranged_monster_attack"),
         _ => $"+{mod.Value}"
     };
 

@@ -36,6 +36,7 @@ public enum TechnologyId
     AdvancedTactics,
     EfficientTrading,
     Compagnonage,
+    Surveillance,
     // Tier 4
     EpicHarvest,
     TradeRoutes,

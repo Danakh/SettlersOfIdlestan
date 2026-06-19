@@ -197,7 +197,7 @@ public sealed class GameScreen : IDisposable
             _gameControllerService.CityBuildingService!);
 
         var islandMainRenderer = new IslandMainRenderer(
-            _constructionInteractionService, tooltipRenderer,
+            _constructionInteractionService, tooltipRenderer, _localizationService,
             _gameControllerService.MainGameController.HarvestController,
             _resourceManager,
             _gameControllerService.MainGameController.MilitaryController,

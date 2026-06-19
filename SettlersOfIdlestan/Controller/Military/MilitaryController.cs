@@ -4,6 +4,7 @@ using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
+using SettlersOfIdlestan.Model.Monsters;
 using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
 
 namespace SettlersOfIdlestan.Controller.Military;
@@ -37,6 +38,20 @@ public class ReinforcementEventArgs(Vertex sourceCity, Vertex targetCity, List<V
     public Vertex SourceCity { get; } = sourceCity;
     public Vertex TargetCity { get; } = targetCity;
     public List<Vertex> Path { get; } = path;
+}
+
+/// <summary>
+/// Résultat de <see cref="MilitaryController.GetMonsterAttackAvailability"/> : indique si une ville peut
+/// attaquer une MonsterFeature donnée, et pourquoi sinon.
+/// </summary>
+public enum MonsterAttackAvailability
+{
+    /// <summary>Attaque possible (corps-à-corps à distance ≤ 1, ou distance 2 avec Surveillance + Tour de guet).</summary>
+    Available,
+    /// <summary>Distance 2 atteignable avec la techno Surveillance mais la ville n'a pas de Tour de guet active.</summary>
+    RequiresWatchtower,
+    /// <summary>Distance ≥ 3, ou distance 2 sans la techno Surveillance.</summary>
+    TooFar,
 }
 
 /// <summary>
@@ -171,6 +186,8 @@ public class MilitaryController
         _productionEngine.ResolveSoldierFeeding(currentTick);
         _monsterCombatEngine.ResolveMonsterCombat(currentTick,
             args => SoldierAttackedMonster?.Invoke(this, args));
+        _monsterCombatEngine.ResolveRangedAttacks(currentTick,
+            args => SoldierAttackedMonster?.Invoke(this, args));
         ResolveDefenseRegen(currentTick);
         _cityAttackEngine.ResolveCityAttacks(currentTick,
             args => SoldierAttackedCity?.Invoke(this, args),
@@ -206,8 +223,23 @@ public class MilitaryController
 
     // ── Méthodes publiques (commandes) ───────────────────────────────────────
 
-    /// <summary>Définit ou efface le flux militaire d'une cité.</summary>
-    public void SetCityFlow(City city, Vertex? target) => _reinforcementEngine.SetCityFlow(city, target);
+    /// <summary>Définit ou efface le flux militaire d'une cité. Annule un flux d'attaque de monstre actif.</summary>
+    public void SetCityFlow(City city, Vertex? target)
+    {
+        _reinforcementEngine.SetCityFlow(city, target);
+        if (target != null) city.MonsterAttackTarget = null;
+    }
+
+    /// <summary>Définit ou efface le flux d'attaque à distance d'une cité contre une MonsterFeature. Annule un flux de ville actif.</summary>
+    public void SetMonsterFlow(City city, HexCoord? target)
+    {
+        city.MonsterAttackTarget = target;
+        if (target != null) _reinforcementEngine.SetCityFlow(city, null);
+    }
+
+    /// <summary>Détermine si une ville peut attaquer une MonsterFeature donnée (portée, techno Surveillance, Tour de guet).</summary>
+    public MonsterAttackAvailability GetMonsterAttackAvailability(City city, MonsterFeature monster)
+        => _monsterCombatEngine.GetAttackAvailability(city, monster);
 
     /// <summary>Efface tous les flux de renfort (vers alliés) de la civilisation.</summary>
     public void ClearReinforcementFlows(Civilization civ) => _reinforcementEngine.ClearReinforcementFlows(civ);

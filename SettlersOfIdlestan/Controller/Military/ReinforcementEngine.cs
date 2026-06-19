@@ -169,6 +169,7 @@ internal class ReinforcementEngine
         foreach (var city in civ.Cities)
         {
             if (city.FlowTarget != null && enemyPositions.Contains(city.FlowTarget)) continue;
+            if (city.MonsterAttackTarget != null) continue;
 
             Vertex? newFlow = null;
             int capacity = city.MaxSoldiers;

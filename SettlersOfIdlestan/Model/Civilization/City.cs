@@ -76,6 +76,12 @@ public class City : IBuildingContext
     /// </summary>
     public Vertex? FlowTarget { get; set; }
 
+    /// <summary>
+    /// Flux défini par le joueur : MonsterFeature ciblée pour une attaque à distance. Null si aucune cible.
+    /// Mutuellement exclusif avec <see cref="FlowTarget"/>.
+    /// </summary>
+    public HexCoord? MonsterAttackTarget { get; set; }
+
     [NonSerialized]
     private Building? _cachedTownHall;
     [NonSerialized]
