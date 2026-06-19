@@ -1,33 +1,22 @@
 using System;
-using System.Collections.Generic;
 using System.Text.Json.Serialization;
-using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Localization;
 
 namespace SettlersOfIdlestan.Model.IslandFeatures;
 
-public class Wonder : IslandFeature, IInvestableFeature
+public class Wonder : Monument
 {
-    public override bool BlocksHarvest => true;
-    public override bool IsDiscoverable => false;
-
     public override LocalizedEntry GetTooltipEntry() => new("hex_tooltip_wonder");
-
-    public override GameEventType DiscoveredEventType => GameEventType.NoEvent;
-    public override GameEventType RemovedEventType => GameEventType.NoEvent;
 
     public override string? SvgIconResourceName => $"Resources.icons.features.wonder_{Level}.svg";
     public override float SvgIconSize => 50f;
 
-    public Wonder(HexCoord position) : base(position) { Found = true; }
+    public Wonder(HexCoord position) : base(position) { }
     public int Level { get; set; } = 0;
 
-    public Dictionary<Resource, long> InvestedResources { get; set; } = new();
-    public List<Resource> InvestmentEnabled { get; set; } = new();
-    public long LastInvestmentTick { get; set; } = 0;
-
+    /// <summary>Coût statique du level-up (non modifié à la création, modifié lors de l'appel à GetInvestmentCost)</summary>
     public static ResourceSet GetLevelCost(int level) => new ResourceSet
     {
         { Resource.Food,  5000 * level * level },
@@ -38,7 +27,8 @@ public class Wonder : IslandFeature, IInvestableFeature
         { Resource.Ore,   2000 * level * level },
     };
 
-    public ResourceSet GetInvestmentCost(SettlersOfIdlestan.Model.Civilization.Civilization playerCiv)
+    /// <summary>Coût applique WonderCostReduction de la civilisation</summary>
+    public override ResourceSet GetInvestmentCost(SettlersOfIdlestan.Model.Civilization.Civilization playerCiv)
     {
         var baseCost = GetLevelCost(Level + 1);
         double reduction = playerCiv.WonderCostReduction;
@@ -51,10 +41,10 @@ public class Wonder : IslandFeature, IInvestableFeature
     }
 
     [JsonIgnore]
-    public string PanelTitleKey => "wonder_panel_title";
+    public override string PanelTitleKey => "wonder_panel_title";
 
     [JsonIgnore]
-    public string? PanelTitleSuffix => (Level + 1).ToString();
+    public override string? PanelTitleSuffix => (Level + 1).ToString();
 
     [JsonConstructor]
     public Wonder() : base() { }

@@ -24,7 +24,7 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
 {
     private readonly HarvestController _harvestController;
     private readonly ResourceManager _resourceManager;
-    private WonderService? _wonderService;
+    private MonumentService? _monumentService;
 
     private SKPaint? _hexBorderPaint;
     private SKPaint? _hexFillPaint;
@@ -34,7 +34,7 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
     private SKPaint? _ringProgressPaint;
     private SKPaint? _textIconPaint;
     private SKFont? _textIconFont;
-    private SKPaint? _selectedWonderPaint;
+    private SKPaint? _selectedMonumentPaint;
     private SKPaint? _corruptionPaint;
     private bool _disposed;
 
@@ -43,7 +43,7 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
 
     private const float CorruptionCircleRadiusFactor = 0.8f;
 
-    private const float WonderSelectionRadius = 28f;
+    private const float MonumentSelectionRadius = 28f;
     private const float ManualRingRadius = 5f;
     private const float ResourceIconSize = 12f;
     private const float SvgNaturalSize = 32f;
@@ -74,7 +74,7 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
         _resourceManager = resourceManager;
     }
 
-    public void ConnectWonderService(WonderService wonderService) => _wonderService = wonderService;
+    public void ConnectMonumentService(MonumentService monumentService) => _monumentService = monumentService;
 
     public void Initialize(SKSize canvasSize)
     {
@@ -116,7 +116,7 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
             IsAntialias = true
         };
 
-        _selectedWonderPaint = new SKPaint
+        _selectedMonumentPaint = new SKPaint
         {
             Color = new SKColor(255, 215, 0, 230),
             Style = SKPaintStyle.Stroke,
@@ -165,11 +165,11 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
                         .ToDictionary(g => g.Key, g => (IEnumerable<IslandFeature>)g);
                     DrawIslandMap(canvas, underworldMap, playerIdx, mainGameState.Clock.CurrentTick, null, null, null, null, uwFeaturesByPosition, uwCorruption);
 
-                    var selectedInvestable = _wonderService?.SelectedInvestable;
-                    if (selectedInvestable != null && selectedInvestable.Position.Z == LayerState.UnderworldZ && _selectedWonderPaint != null)
+                    var selectedInvestable = _monumentService?.SelectedInvestable;
+                    if (selectedInvestable != null && selectedInvestable.Position.Z == LayerState.UnderworldZ && _selectedMonumentPaint != null)
                     {
                         var (wx, wy) = AxialToIsland(selectedInvestable.Position.Q, selectedInvestable.Position.R);
-                        canvas.DrawCircle(wx, wy, WonderSelectionRadius, _selectedWonderPaint);
+                        canvas.DrawCircle(wx, wy, MonumentSelectionRadius, _selectedMonumentPaint);
                     }
                 }
                 return;
@@ -205,11 +205,11 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
                         .ToDictionary(g => g.Key, g => g.Max(c => c.Level));
                     DrawIslandMap(canvas, mapToRender, playerIdx, mgs.Clock.CurrentTick, manualTimes, worldState.PlunderCooldownUntil, worldState.PlunderCooldownDuration, harvestBlockedPositions, featuresByPosition, corruptionByHex);
 
-                    var selectedInvestable = _wonderService?.SelectedInvestable;
-                    if (selectedInvestable != null && _selectedWonderPaint != null)
+                    var selectedInvestable = _monumentService?.SelectedInvestable;
+                    if (selectedInvestable != null && _selectedMonumentPaint != null)
                     {
                         var (wx, wy) = AxialToIsland(selectedInvestable.Position.Q, selectedInvestable.Position.R);
-                        canvas.DrawCircle(wx, wy, WonderSelectionRadius, _selectedWonderPaint);
+                        canvas.DrawCircle(wx, wy, MonumentSelectionRadius, _selectedMonumentPaint);
                     }
                 }
             }
@@ -475,7 +475,7 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
         _ringProgressPaint?.Dispose();
         _textIconPaint?.Dispose();
         _textIconFont?.Dispose();
-        _selectedWonderPaint?.Dispose();
+        _selectedMonumentPaint?.Dispose();
 
         foreach (var path in _hexPathCache.Values)
             path.Dispose();

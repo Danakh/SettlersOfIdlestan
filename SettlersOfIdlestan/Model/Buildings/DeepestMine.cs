@@ -6,7 +6,7 @@ namespace SettlersOfIdlestan.Model.Buildings;
 /// <summary>
 /// [Legacy] Conservé uniquement pour la désérialisation des anciennes sauvegardes.
 /// La Mine Profonde est désormais une IslandFeature (voir Model/IslandFeatures/DeepestMine.cs)
-/// placée comme une Merveille et creusée par investissement progressif.
+/// placée comme un Monument et creusée par investissement progressif.
 /// </summary>
 public class DeepestMine : Building
 {

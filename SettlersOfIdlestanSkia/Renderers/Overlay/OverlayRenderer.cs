@@ -19,7 +19,7 @@ public sealed class OverlayRenderer : IGameRenderer
     private readonly SettingsMenu _settingsMenu;
     private readonly SettingsPopupRenderer _settingsPopupRenderer;
     private readonly SelectedCityPanelRenderer _selectedCityPanelRenderer;
-    private readonly SelectedWonderPanelRenderer _selectedWonderPanelRenderer;
+    private readonly SelectedMonumentPanelRenderer _selectedMonumentPanelRenderer;
     private readonly TradePopupRenderer _tradeRenderer;
     private readonly PrestigeRenderer _prestigeRenderer;
     private readonly PrestigeMapRenderer _prestigeMapRenderer;
@@ -61,7 +61,7 @@ public sealed class OverlayRenderer : IGameRenderer
         SettingsMenu settingsMenu,
         SettingsPopupRenderer settingsPopupRenderer,
         SelectedCityPanelRenderer selectedCityPanelRenderer,
-        SelectedWonderPanelRenderer selectedWonderPanelRenderer,
+        SelectedMonumentPanelRenderer selectedMonumentPanelRenderer,
         TradePopupRenderer tradeRenderer,
         PrestigeRenderer prestigeRenderer,
         PrestigeMapRenderer prestigeMapRenderer,
@@ -82,7 +82,7 @@ public sealed class OverlayRenderer : IGameRenderer
         _settingsMenu                   = settingsMenu;
         _settingsPopupRenderer          = settingsPopupRenderer;
         _selectedCityPanelRenderer      = selectedCityPanelRenderer;
-        _selectedWonderPanelRenderer    = selectedWonderPanelRenderer;
+        _selectedMonumentPanelRenderer    = selectedMonumentPanelRenderer;
         _tradeRenderer                  = tradeRenderer;
         _prestigeRenderer               = prestigeRenderer;
         _prestigeMapRenderer            = prestigeMapRenderer;
@@ -106,7 +106,7 @@ public sealed class OverlayRenderer : IGameRenderer
             prestigeRenderer,
             targetSelectionService: null,
             tooltipRenderer);
-        _playerCivPanel.OnExpanded = () => { if (_uiLayout.IsMobile) DeselectCityAndWonder(); };
+        _playerCivPanel.OnExpanded = () => { if (_uiLayout.IsMobile) DeselectCityAndMonument(); };
 
         _inputService.PointerPressed  += HandlePointerPressed;
         _inputService.PointerMoved    += HandlePointerMoved;
@@ -123,7 +123,7 @@ public sealed class OverlayRenderer : IGameRenderer
 
         _playerResourcesOverlayRenderer.Initialize(canvasSize);
         _selectedCityPanelRenderer.Initialize(canvasSize);
-        _selectedWonderPanelRenderer.Initialize(canvasSize);
+        _selectedMonumentPanelRenderer.Initialize(canvasSize);
         _tradeRenderer.Initialize(canvasSize);
         _prestigeRenderer.Initialize(canvasSize);
         _settingsPopupRenderer.Initialize(canvasSize);
@@ -156,18 +156,18 @@ public sealed class OverlayRenderer : IGameRenderer
         bool panelsEnabled = activeTab == TabBarRenderer.TabIsland
                           && !_tradeRenderer.IsOpen && !_prestigeRenderer.IsOpen;
         _selectedCityPanelRenderer.IsInputEnabled  = panelsEnabled;
-        _selectedWonderPanelRenderer.IsInputEnabled = panelsEnabled;
+        _selectedMonumentPanelRenderer.IsInputEnabled = panelsEnabled;
         _researchRenderer.IsActive = activeTab == TabBarRenderer.TabResearch;
 
         float panelTop = _uiLayout.PanelTopY;
         _playerCivPanel.TopOverride              = panelTop;
-        _selectedWonderPanelRenderer.TopOverride = panelTop;
+        _selectedMonumentPanelRenderer.TopOverride = panelTop;
         _selectedCityPanelRenderer.TopOverride   = panelTop;
 
         if (isMobile)
         {
             bool rightPanelOpen = _gameControllerService.CityBuildingService?.SelectedCity != null
-                               || _selectedWonderPanelRenderer.HasSelection;
+                               || _selectedMonumentPanelRenderer.HasSelection;
             if (rightPanelOpen && !_playerCivPanel.IsCollapsed)
                 _playerCivPanel.Collapse();
         }
@@ -198,7 +198,7 @@ public sealed class OverlayRenderer : IGameRenderer
             default:
                 _playerCivPanel.Render(canvas, context);
                 _selectedCityPanelRenderer.Render(canvas, context);
-                _selectedWonderPanelRenderer.Render(canvas, context);
+                _selectedMonumentPanelRenderer.Render(canvas, context);
                 break;
         }
 
@@ -276,7 +276,7 @@ public sealed class OverlayRenderer : IGameRenderer
     public bool IsPointBlockedByUI(SKPoint point) =>
         IsAnyOverlayOpen
         || _selectedCityPanelRenderer.ContainsPoint(point)
-        || _selectedWonderPanelRenderer.ContainsPoint(point)
+        || _selectedMonumentPanelRenderer.ContainsPoint(point)
         || _playerCivPanel.ContainsPoint(point)
         || _zoomControl.ContainsPoint(point)
         || (_uiLayout.IsMobile && point.Y < _uiLayout.ResourceBarBottom);
@@ -340,10 +340,10 @@ public sealed class OverlayRenderer : IGameRenderer
         if (_mapSwitchButton.HandlePointerPressed(e.Position, onSwitchedToUnderworld: () =>
         {
             _tabBar.SetActiveTab(TabBarRenderer.TabIsland);
-            DeselectCityAndWonder();
+            DeselectCityAndMonument();
         }))
         {
-            DeselectCityAndWonder();
+            DeselectCityAndMonument();
             return;
         }
 
@@ -358,10 +358,10 @@ public sealed class OverlayRenderer : IGameRenderer
         _playerCivPanel.HandlePointerPressed(e.Position);
     }
 
-    private void DeselectCityAndWonder()
+    private void DeselectCityAndMonument()
     {
         _selectedCityPanelRenderer.Close();
-        _selectedWonderPanelRenderer.Close();
+        _selectedMonumentPanelRenderer.Close();
     }
 
     public void CloseAll()
@@ -370,9 +370,9 @@ public sealed class OverlayRenderer : IGameRenderer
         _settingsPopupRenderer.Close();
         _tradeRenderer.Close();
         _prestigeRenderer.Close();
-        DeselectCityAndWonder();
+        DeselectCityAndMonument();
         _selectedCityPanelRenderer.IsInputEnabled  = false;
-        _selectedWonderPanelRenderer.IsInputEnabled = false;
+        _selectedMonumentPanelRenderer.IsInputEnabled = false;
     }
 
     public void Hide()
@@ -385,7 +385,7 @@ public sealed class OverlayRenderer : IGameRenderer
     {
         _isVisible = true;
         _selectedCityPanelRenderer.IsInputEnabled  = true;
-        _selectedWonderPanelRenderer.IsInputEnabled = true;
+        _selectedMonumentPanelRenderer.IsInputEnabled = true;
         if (suppressNextPress) _suppressNextPress = true;
     }
 
@@ -430,8 +430,8 @@ public sealed class OverlayRenderer : IGameRenderer
         {
             if (_selectedCityPanelRenderer.ContainsPoint(e.Center))
                 _selectedCityPanelRenderer.HandleScroll(e.ZoomDelta);
-            else if (_selectedWonderPanelRenderer.ContainsPoint(e.Center))
-                _selectedWonderPanelRenderer.HandleScroll(e.ZoomDelta);
+            else if (_selectedMonumentPanelRenderer.ContainsPoint(e.Center))
+                _selectedMonumentPanelRenderer.HandleScroll(e.ZoomDelta);
         }
         if (activeTab == TabBarRenderer.TabAutomation)
             _automationRenderer.HandleScroll(e.ZoomDelta);
@@ -471,7 +471,7 @@ public sealed class OverlayRenderer : IGameRenderer
 
         _playerResourcesOverlayRenderer.Dispose();
         _selectedCityPanelRenderer.Dispose();
-        _selectedWonderPanelRenderer.Dispose();
+        _selectedMonumentPanelRenderer.Dispose();
         _settingsMenu.Dispose();
         _tradeRenderer.Dispose();
         _prestigeRenderer.Dispose();

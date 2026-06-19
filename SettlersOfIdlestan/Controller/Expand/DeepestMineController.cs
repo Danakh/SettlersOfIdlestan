@@ -1,3 +1,4 @@
+using SettlersOfIdlestan.Controller.Expand;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
@@ -11,7 +12,7 @@ using System.Linq;
 namespace SettlersOfIdlestan.Controller.Island
 {
     /// <summary>
-    /// Gère la Mine Profonde : placement (comme une Merveille, uniquement sur Montagne),
+    /// Gère la Mine Profonde : placement (comme tout Monument, uniquement sur Montagne),
     /// creusement par investissement progressif (1000 Acier entre autres), puis ouverture
     /// de l'avant-poste dans l'Inframonde.
     /// </summary>
@@ -20,7 +21,7 @@ namespace SettlersOfIdlestan.Controller.Island
         private WorldState? _state;
         private GameClock? _clock;
 
-        public const long InvestmentIntervalTicks = 100L;
+        public const long InvestmentIntervalTicks = MonumentInvestment.IntervalTicks;
 
         public event EventHandler? OnDeepestMinePlaced;
         public event EventHandler? OnDeepestMineDug;
@@ -52,51 +53,17 @@ namespace SettlersOfIdlestan.Controller.Island
             if (_state == null || _clock == null) return;
             var mine = _state.Features.OfType<DeepestMine>().FirstOrDefault();
             if (mine == null || mine.Dug || mine.InvestmentEnabled.Count == 0) return;
-
-            long now = _clock.CurrentTick;
-            if (now - mine.LastInvestmentTick < InvestmentIntervalTicks) return;
-            mine.LastInvestmentTick = now;
+            if (_clock.CurrentTick - mine.LastInvestmentTick < InvestmentIntervalTicks) return;
 
             var playerCiv = _state.PlayerCivilization;
             var cost = mine.GetInvestmentCost(playerCiv);
-            var toDeselect = new List<Resource>();
+            if (!MonumentInvestment.ProcessTick(mine, cost, playerCiv, _clock.CurrentTick)) return;
 
-            foreach (var resource in mine.InvestmentEnabled)
-            {
-                if (!cost.Contains(resource)) continue;
-                long invested = mine.InvestedResources.TryGetValue(resource, out var inv) ? inv : 0;
-                long required = cost[resource];
-                if (invested >= required) { toDeselect.Add(resource); continue; }
-
-                int stock = playerCiv.GetResourceQuantity(resource);
-                if (stock < 1) continue;
-                int amount = Math.Max(1, stock / 100);
-
-                int maxStock = playerCiv.GetResourceMaxQuantity(resource);
-                if (maxStock > 0 && stock > maxStock * 0.5)
-                    amount = Math.Max(1, (int)(amount * playerCiv.InvestmentSpeedHighStockBonus));
-
-                long remaining = required - invested;
-                if (amount > remaining) amount = (int)remaining;
-
-                playerCiv.RemoveResource(resource, amount);
-                long newInvested = invested + amount;
-                mine.InvestedResources[resource] = newInvested;
-                if (newInvested >= required)
-                    toDeselect.Add(resource);
-            }
-
-            foreach (var r in toDeselect)
-                mine.InvestmentEnabled.Remove(r);
-
-            if (cost.Keys.All(r => (mine.InvestedResources.TryGetValue(r, out var inv) ? inv : 0) >= cost[r]))
-            {
-                mine.Dug = true;
-                mine.WasEverDug = true;
-                mine.InvestmentEnabled.Clear();
-                _state.EventLog.Add(GameEventType.DeepestMineDug);
-                OnDeepestMineDug?.Invoke(this, EventArgs.Empty);
-            }
+            mine.Dug = true;
+            mine.WasEverDug = true;
+            mine.InvestmentEnabled.Clear();
+            _state.EventLog.Add(GameEventType.DeepestMineDug);
+            OnDeepestMineDug?.Invoke(this, EventArgs.Empty);
         }
 
         /// <summary>

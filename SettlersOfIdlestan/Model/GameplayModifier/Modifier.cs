@@ -124,7 +124,7 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             ATTACK_SPEED,
             /// <summary>Fraction de réduction du coût de montée de niveau de la Merveille (uniquement). Base = 0.0; 0.1 = -10%.</summary>
             WONDER_COST_REDUCTION,
-            /// <summary>Multiplicateur de vitesse d'investissement des constructions majeures (Merveille, Mine Profonde, Spire de Corruption), actif uniquement pour une ressource investie dont le stock dépasse 50% de sa capacité maximale. Base = 1.0; +1.0 = vitesse doublée.</summary>
+            /// <summary>Multiplicateur de vitesse d'investissement des Monuments (Merveille, Mine Profonde, Spire de Corruption), actif uniquement pour une ressource investie dont le stock dépasse 50% de sa capacité maximale. Base = 1.0; +1.0 = vitesse doublée.</summary>
             INVESTMENT_SPEED_HIGH_STOCK_BONUS,
             /// <summary>Flags que l'action de relocalisation de ville est déverrouillée pour la civilisation du joueur.</summary>
             UNLOCK_RELOCATION,

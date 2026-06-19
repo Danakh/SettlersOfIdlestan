@@ -23,7 +23,7 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
     private readonly InputHandlingService _inputService;
     private readonly CameraService _cameraService;
     private readonly CityBuildingService _cityBuildingService;
-    private WonderService? _wonderService;
+    private MonumentService? _monumentService;
     private IslandMainRenderer? _renderer;
 
     private DateTime _lastClickTime = DateTime.MinValue;
@@ -62,9 +62,9 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
         _renderer = renderer ?? throw new ArgumentNullException(nameof(renderer));
     }
 
-    public void AttachWonderService(WonderService wonderService)
+    public void AttachMonumentService(MonumentService monumentService)
     {
-        _wonderService = wonderService;
+        _monumentService = monumentService;
     }
 
     private void OnPointerMoved(object? sender, PointerEventArgs e)
@@ -137,18 +137,18 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
         if (_renderer == null)
             return;
 
-        // Fallback: clic sur un hex — vérifie d'abord si c'est une feature à investissement (Merveille, Mine Profonde…).
+        // Fallback: clic sur un hex — vérifie d'abord si c'est un Monument (Merveille, Mine Profonde…).
         var WorldState = _gameControllerService.CurrentWorldState;
         int currentZ = WorldState?.CurrentViewedLayer ?? IslandMap.SurfaceLayer;
         var hex = _renderer.ScreenToHex(e.Position, _cameraService.CanvasSize, _cameraService.ZoomLevel, _cameraService.Position);
         var hexCoord = new HexCoord(hex.q, hex.r, currentZ);
         var playerIndex = WorldState?.PlayerCivilization.Index ?? 0;
 
-        var clickedInvestable = WorldState?.Features.OfType<IInvestableFeature>().FirstOrDefault(w => w.Position.Equals(hexCoord));
-        if (clickedInvestable != null)
+        var clickedMonument = WorldState?.Features.OfType<Monument>().FirstOrDefault(w => w.Position.Equals(hexCoord));
+        if (clickedMonument != null)
         {
             _cityBuildingService.ClearSelectedCity();
-            _wonderService?.SetSelectedInvestable(clickedInvestable);
+            _monumentService?.SetSelectedInvestable(clickedMonument);
             RefreshHover(e.Position);
             return;
         }
@@ -323,7 +323,7 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
 
     private void SetSelectedCity(Vertex selectedCityVertex)
     {
-        _wonderService?.ClearSelectedInvestable();
+        _monumentService?.ClearSelectedInvestable();
         _cityBuildingService.SetSelectedCity(selectedCityVertex);
         HoverState = HoverState with { SelectedCityVertex = selectedCityVertex };
     }

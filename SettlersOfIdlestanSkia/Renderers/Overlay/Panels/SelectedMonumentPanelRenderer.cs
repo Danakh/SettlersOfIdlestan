@@ -11,9 +11,9 @@ using System.Collections.Generic;
 
 namespace SettlersOfIdlestanSkia.Renderers.Overlay.Panels;
 
-public class SelectedWonderPanelRenderer : PanelRendererBase
+public class SelectedMonumentPanelRenderer : PanelRendererBase
 {
-    private readonly WonderService _wonderService;
+    private readonly MonumentService _monumentService;
     private readonly InputHandlingService _inputService;
     private readonly LocalizationService _localization;
     private readonly ResourceManager _resourceManager;
@@ -34,22 +34,22 @@ public class SelectedWonderPanelRenderer : PanelRendererBase
 
     protected override SKTypeface Font15Typeface => SkiaFonts.Bold;
 
-    public bool HasSelection => _wonderService.SelectedInvestable != null;
+    public bool HasSelection => _monumentService.SelectedInvestable != null;
     private SKRect _closeRect = SKRect.Empty;
     private readonly Dictionary<SKRect, Resource> _checkboxRects = new();
 
-    public SelectedWonderPanelRenderer(
-        WonderService wonderService,
+    public SelectedMonumentPanelRenderer(
+        MonumentService monumentService,
         InputHandlingService inputService,
         LocalizationService localization,
         ResourceManager resourceManager)
     {
-        _wonderService = wonderService;
+        _monumentService = monumentService;
         _inputService = inputService;
         _localization = localization;
         _resourceManager = resourceManager;
         _inputService.PointerPressed += HandlePointerPressed;
-        _wonderService.SelectionChanged += (_, _) => Collapsed = false;
+        _monumentService.SelectionChanged += (_, _) => Collapsed = false;
     }
 
     public override void Initialize(SKSize canvasSize)
@@ -70,9 +70,9 @@ public class SelectedWonderPanelRenderer : PanelRendererBase
 
     public override void Render(SKCanvas canvas, GameRenderContext context)
     {
-        var wonder = _wonderService.SelectedInvestable;
+        var monument = _monumentService.SelectedInvestable;
         var playerCiv = context.GameState.CurrentWorldState?.PlayerCivilization;
-        if (wonder == null || playerCiv == null)
+        if (monument == null || playerCiv == null)
         {
             PanelBounds = SKRect.Empty;
             CollapseTabRect = SKRect.Empty;
@@ -92,7 +92,7 @@ public class SelectedWonderPanelRenderer : PanelRendererBase
         float collapseTabW = CollapseTabW * s;
         float collapseTabH = CollapseTabH * s;
 
-        var cost = wonder.GetInvestmentCost(playerCiv);
+        var cost = monument.GetInvestmentCost(playerCiv);
         int resourceCount = cost.Count;
         var costList = cost.ToList();
 
@@ -108,7 +108,7 @@ public class SelectedWonderPanelRenderer : PanelRendererBase
             return;
         }
 
-        bool showCorruptedPrestigeAvailable = wonder is CorruptionSpire { Built: true };
+        bool showCorruptedPrestigeAvailable = monument is CorruptionSpire { Built: true };
         float footerHeight = showCorruptedPrestigeAvailable ? FooterHeight * s : 0f;
 
         float maxPanelHeight = Math.Max(0, CanvasSize.Height - panelY - 20 * s);
@@ -123,8 +123,8 @@ public class SelectedWonderPanelRenderer : PanelRendererBase
         DrawPanelChrome(canvas, panelX, panelY, panelWidth, panelHeight);
 
         // Title + close button
-        string title = _localization.Get(wonder.PanelTitleKey)
-            + (wonder.PanelTitleSuffix != null ? " " + wonder.PanelTitleSuffix : "");
+        string title = _localization.Get(monument.PanelTitleKey)
+            + (monument.PanelTitleSuffix != null ? " " + monument.PanelTitleSuffix : "");
         SkiaTextUtils.DrawText(canvas, title, panelX + padding, panelY + titleHeight - 8 * s, Font15, TextPaint);
 
         float closeSize = 20 * s;
@@ -140,8 +140,8 @@ public class SelectedWonderPanelRenderer : PanelRendererBase
         {
             Resource resource = kvp.Key;
             long required = kvp.Value;
-            long invested = wonder.InvestedResources.TryGetValue(resource, out var inv) ? inv : 0;
-            bool enabled = wonder.InvestmentEnabled.Contains(resource);
+            long invested = monument.InvestedResources.TryGetValue(resource, out var inv) ? inv : 0;
+            bool enabled = monument.InvestmentEnabled.Contains(resource);
             bool done = invested >= required;
 
             float rowCenterY = y + rowHeight / 2;
@@ -228,7 +228,7 @@ public class SelectedWonderPanelRenderer : PanelRendererBase
 
         if (!_closeRect.IsEmpty && _closeRect.Contains(e.Position.X, e.Position.Y))
         {
-            _wonderService.ClearSelectedInvestable();
+            _monumentService.ClearSelectedInvestable();
             return;
         }
 
@@ -236,7 +236,7 @@ public class SelectedWonderPanelRenderer : PanelRendererBase
         {
             if (rect.Contains(e.Position.X, e.Position.Y))
             {
-                _wonderService.ToggleInvestment(resource);
+                _monumentService.ToggleInvestment(resource);
                 return;
             }
         }
@@ -244,7 +244,7 @@ public class SelectedWonderPanelRenderer : PanelRendererBase
 
     public void Close()
     {
-        _wonderService.ClearSelectedInvestable();
+        _monumentService.ClearSelectedInvestable();
         Collapsed = false;
         ScrollOffset = 0;
         PanelBounds = SKRect.Empty;

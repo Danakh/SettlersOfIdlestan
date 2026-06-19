@@ -124,7 +124,7 @@ public enum BuildingType
     MilitaryAcademy,
     /// <summary>
     /// Mine Profonde - [Legacy] Conservé uniquement pour la désérialisation des anciennes sauvegardes.
-    /// La Mine Profonde est désormais une IslandFeature placée comme une Merveille.
+    /// La Mine Profonde est désormais une IslandFeature placée comme un Monument.
     /// </summary>
     DeepestMine,
     /// <summary>

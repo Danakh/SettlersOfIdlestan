@@ -4,16 +4,16 @@ using SettlersOfIdlestan.Model.IslandMap;
 namespace SettlersOfIdlestanSkia.Services;
 
 /// <summary>
-/// Sélection courante d'une feature à investissement (Merveille, Mine Profonde…)
+/// Sélection courante d'un Monument (Merveille, Mine Profonde…)
 /// pour l'affichage du panneau d'investissement.
 /// </summary>
-public class WonderService
+public class MonumentService
 {
     public event EventHandler? SelectionChanged;
 
-    public IInvestableFeature? SelectedInvestable { get; private set; }
+    public Monument? SelectedInvestable { get; private set; }
 
-    public void SetSelectedInvestable(IInvestableFeature feature)
+    public void SetSelectedInvestable(Monument feature)
     {
         bool changed = feature != SelectedInvestable;
         SelectedInvestable = feature;

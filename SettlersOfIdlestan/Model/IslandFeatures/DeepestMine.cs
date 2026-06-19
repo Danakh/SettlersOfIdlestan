@@ -1,6 +1,4 @@
-using System.Collections.Generic;
 using System.Text.Json.Serialization;
-using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Localization;
@@ -8,18 +6,12 @@ using SettlersOfIdlestan.Model.Localization;
 namespace SettlersOfIdlestan.Model.IslandFeatures;
 
 /// <summary>
-/// Mine Profonde — feature unique placée comme une Merveille, uniquement sur une Montagne.
+/// Mine Profonde — Monument placé uniquement sur une Montagne.
 /// Le joueur investit progressivement des ressources pour la creuser ; une fois creusée,
 /// elle ouvre un avant-poste dans l'Inframonde.
 /// </summary>
-public class DeepestMine : IslandFeature, IInvestableFeature
+public class DeepestMine : Monument
 {
-    public override bool BlocksHarvest => true;
-    public override bool IsDiscoverable => false;
-
-    public override GameEventType DiscoveredEventType => GameEventType.NoEvent;
-    public override GameEventType RemovedEventType => GameEventType.NoEvent;
-
     public override string? SvgIconResourceName => "Resources.icons.features.rockcave.svg";
     public override float SvgIconSize => 40f;
 
@@ -31,11 +23,7 @@ public class DeepestMine : IslandFeature, IInvestableFeature
     /// <summary>Reste true une fois que la mine a été creusée pour la première fois ; pilote l'icône.</summary>
     public bool WasEverDug { get; set; } = false;
 
-    public Dictionary<Resource, long> InvestedResources { get; set; } = new();
-    public List<Resource> InvestmentEnabled { get; set; } = new();
-    public long LastInvestmentTick { get; set; } = 0;
-
-    /// <summary>Coût total du creusement jusqu'à l'Inframonde.</summary>
+    /// <summary>Coût statique du creusement jusqu'à l'Inframonde (pas de modificateur)</summary>
     public static ResourceSet GetDigCost() => new ResourceSet
     {
         { Resource.Stone, 1000 },
@@ -43,15 +31,15 @@ public class DeepestMine : IslandFeature, IInvestableFeature
         { Resource.Gold,  2000 },
     };
 
-    public ResourceSet GetInvestmentCost(SettlersOfIdlestan.Model.Civilization.Civilization playerCiv) => GetDigCost();
+    public override ResourceSet GetInvestmentCost(SettlersOfIdlestan.Model.Civilization.Civilization playerCiv) => GetDigCost();
 
     [JsonIgnore]
-    public string PanelTitleKey => "deepest_mine_panel_title";
+    public override string PanelTitleKey => "deepest_mine_panel_title";
 
     [JsonIgnore]
-    public string? PanelTitleSuffix => null;
+    public override string? PanelTitleSuffix => null;
 
-    public DeepestMine(HexCoord position) : base(position) { Found = true; }
+    public DeepestMine(HexCoord position) : base(position) { }
 
     [JsonConstructor]
     public DeepestMine() : base() { }

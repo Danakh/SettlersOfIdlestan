@@ -42,7 +42,7 @@ public sealed class GameScreen : IDisposable
     private IntroAnimationRenderer? _introRenderer;
     private bool _wasIntroActive;
     private TargetSelectionService? _targetSelectionService;
-    private WonderService? _wonderService;
+    private MonumentService? _monumentService;
     private TutorialRenderer? _tutorialRenderer;
     private TutorialService? _tutorialService;
     private MilitaryInteractionService? _militaryInteractionService;
@@ -241,11 +241,11 @@ public sealed class GameScreen : IDisposable
             _gameControllerService.CityBuildingService!, _localizationService, _inputService, _resourceManager);
         selectedCityPanelRenderer.LayoutService = _uiLayoutService;
 
-        _wonderService = new WonderService();
-        _constructionInteractionService.AttachWonderService(_wonderService);
-        islandMainRenderer.ConnectWonderService(_wonderService);
+        _monumentService = new MonumentService();
+        _constructionInteractionService.AttachMonumentService(_monumentService);
+        islandMainRenderer.ConnectMonumentService(_monumentService);
 
-        var selectedWonderPanelRenderer = new SelectedWonderPanelRenderer(_wonderService, _inputService, _localizationService, _resourceManager);
+        var selectedMonumentPanelRenderer = new SelectedMonumentPanelRenderer(_monumentService, _inputService, _localizationService, _resourceManager);
 
         var settingsPopupRenderer = new SettingsPopupRenderer(_gameControllerService.MainGameController, _localizationService, _fileSystemService);
         settingsPopupRenderer.FullscreenToggleRequested += v => FullscreenToggleRequested?.Invoke(v);
@@ -289,7 +289,7 @@ public sealed class GameScreen : IDisposable
         _overlayRenderer = new OverlayRenderer(
             _inputService, _gameControllerService, _localizationService,
             _playerResourcesOverlayRenderer, settingsMenu, settingsPopupRenderer,
-            selectedCityPanelRenderer, selectedWonderPanelRenderer,
+            selectedCityPanelRenderer, selectedMonumentPanelRenderer,
             tradeRenderer, prestigeRenderer, prestigeMapRenderer, prestigeHistoryRenderer,
             timeControlRenderer, researchRenderer, eventLogRenderer, automationRenderer,
             ritualsRenderer, tooltipRenderer, _uiLayoutService);
@@ -660,7 +660,7 @@ public sealed class GameScreen : IDisposable
         if (_playerResourcesOverlayRenderer != null && _gameControllerService.PlayerCivilization != null)
             _playerResourcesOverlayRenderer.ConnectLowStock(prevCiv, _gameControllerService.PlayerCivilization);
         _gameControllerService.CityBuildingService?.ClearSelectedCity();
-        _wonderService?.ClearSelectedInvestable();
+        _monumentService?.ClearSelectedInvestable();
         _constructionInteractionService?.ClearHover();
         CenterCameraOnStartingCity();
         _overlayRenderer?.Show();
@@ -759,7 +759,7 @@ public sealed class GameScreen : IDisposable
         if (_playerResourcesOverlayRenderer != null && _gameControllerService.PlayerCivilization != null)
             _playerResourcesOverlayRenderer.ConnectLowStock(prevCiv, _gameControllerService.PlayerCivilization);
         _gameControllerService.CityBuildingService?.ClearSelectedCity();
-        _wonderService?.ClearSelectedInvestable();
+        _monumentService?.ClearSelectedInvestable();
         _constructionInteractionService?.ClearHover();
 
         CenterCameraOnStartingCity();

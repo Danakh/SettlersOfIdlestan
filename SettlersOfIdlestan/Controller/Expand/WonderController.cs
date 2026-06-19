@@ -1,4 +1,5 @@
-﻿using SettlersOfIdlestan.Model.Civilization;
+﻿using SettlersOfIdlestan.Controller.Expand;
+using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandFeatures;
@@ -7,7 +8,6 @@ using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net.Security;
 
 namespace SettlersOfIdlestan.Controller.Island
 {
@@ -16,7 +16,7 @@ namespace SettlersOfIdlestan.Controller.Island
         private WorldState? _state;
         private GameClock? _clock;
 
-        public const long InvestmentIntervalTicks = 100L;
+        public const long InvestmentIntervalTicks = MonumentInvestment.IntervalTicks;
 
         public event EventHandler? OnWonderPlaced;
         public event EventHandler<int>? OnWonderLevelUp;
@@ -48,52 +48,17 @@ namespace SettlersOfIdlestan.Controller.Island
             if (_state == null || _clock == null) return;
             var wonder = _state.Features.OfType<Wonder>().FirstOrDefault();
             if (wonder == null || wonder.InvestmentEnabled.Count == 0) return;
-
-            long now = _clock.CurrentTick;
-            if (now - wonder.LastInvestmentTick < InvestmentIntervalTicks) return;
-            wonder.LastInvestmentTick = now;
+            if (_clock.CurrentTick - wonder.LastInvestmentTick < InvestmentIntervalTicks) return;
 
             var playerCiv = _state.PlayerCivilization;
             var cost = wonder.GetInvestmentCost(playerCiv);
-            var toDeselect = new List<Resource>();
+            if (!MonumentInvestment.ProcessTick(wonder, cost, playerCiv, _clock.CurrentTick)) return;
 
-            foreach (var resource in wonder.InvestmentEnabled)
-            {
-                if (!cost.Contains(resource)) continue;
-                long invested = wonder.InvestedResources.TryGetValue(resource, out var inv) ? inv : 0;
-                long required = cost[resource];
-                if (invested >= required) { toDeselect.Add(resource); continue; }
-
-                int stock = playerCiv.GetResourceQuantity(resource);
-                if (stock < 1) continue;
-                int amount = Math.Max(1, stock / 100);
-                if (amount <= 0) continue;
-
-                int maxStock = playerCiv.GetResourceMaxQuantity(resource);
-                if (maxStock > 0 && stock > maxStock * 0.5)
-                    amount = Math.Max(1, (int)(amount * playerCiv.InvestmentSpeedHighStockBonus));
-
-                long remaining = required - invested;
-                if (amount > remaining) amount = (int)remaining;
-
-                playerCiv.RemoveResource(resource, amount);
-                long newInvested = invested + amount;
-                wonder.InvestedResources[resource] = newInvested;
-                if (newInvested >= required)
-                    toDeselect.Add(resource);
-            }
-
-            foreach (var r in toDeselect)
-                wonder.InvestmentEnabled.Remove(r);
-
-            if (cost.Keys.All(r => (wonder.InvestedResources.TryGetValue(r, out var inv) ? inv : 0) >= cost[r]))
-            {
-                wonder.Level++;
-                wonder.InvestedResources.Clear();
-                wonder.InvestmentEnabled.Clear();
-                _state.EventLog.Add(GameEventType.WonderLevelUp, wonder.Level.ToString(), toast: true);
-                OnWonderLevelUp?.Invoke(this, wonder.Level);
-            }
+            wonder.Level++;
+            wonder.InvestedResources.Clear();
+            wonder.InvestmentEnabled.Clear();
+            _state.EventLog.Add(GameEventType.WonderLevelUp, wonder.Level.ToString(), toast: true);
+            OnWonderLevelUp?.Invoke(this, wonder.Level);
         }
 
         public bool HasWondersUnlocked(Civilization playerCiv)

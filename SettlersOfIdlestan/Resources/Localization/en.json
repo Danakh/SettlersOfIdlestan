@@ -396,7 +396,7 @@
   "prestige_tooltip_city_defense_regen": "defense regen speed",
   "prestige_tooltip_attack_speed": "attack speed",
   "prestige_tooltip_wonder_cost_reduction": "Wonder cost",
-  "prestige_tooltip_investment_speed_high_stock": "investment speed (Wonder, Deepest Mine, Spire) if stock > 50%",
+  "prestige_tooltip_investment_speed_high_stock": "Monument investment speed if stock > 50%",
   "prestige_tooltip_city_defense_protects_soldiers": "Barbican: once defense exceeds 20 pts, enemy attacks no longer kill soldiers first, they reduce defense instead",
   "prestige_tooltip_production": "production",
   "prestige_tooltip_unlocks_research": "Unlocks",

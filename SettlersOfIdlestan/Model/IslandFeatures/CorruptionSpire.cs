@@ -1,6 +1,4 @@
-using System.Collections.Generic;
 using System.Text.Json.Serialization;
-using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Localization;
@@ -8,18 +6,12 @@ using SettlersOfIdlestan.Model.Localization;
 namespace SettlersOfIdlestan.Model.IslandFeatures;
 
 /// <summary>
-/// Spire de Corruption — merveille de l'Inframonde, plaçable uniquement sur une zone corrompue.
-/// Construite par investissement progressif comme une Merveille / Mine Profonde. Une fois bâtie,
+/// Spire de Corruption — Monument de l'Inframonde, plaçable uniquement sur une zone corrompue.
+/// Construite par investissement progressif comme tout Monument. Une fois bâtie,
 /// multiplie les points de prestige par 2 × le niveau de corruption courant.
 /// </summary>
-public class CorruptionSpire : IslandFeature, IInvestableFeature
+public class CorruptionSpire : Monument
 {
-    public override bool BlocksHarvest => true;
-    public override bool IsDiscoverable => false;
-
-    public override GameEventType DiscoveredEventType => GameEventType.NoEvent;
-    public override GameEventType RemovedEventType => GameEventType.NoEvent;
-
     public override string? SvgIconResourceName => "Resources.icons.features.crystaltower.svg";
     public override float SvgIconSize => 40f;
 
@@ -27,10 +19,6 @@ public class CorruptionSpire : IslandFeature, IInvestableFeature
 
     /// <summary>True une fois l'investissement terminé : la Spire amplifie alors les points de prestige.</summary>
     public bool Built { get; set; } = false;
-
-    public Dictionary<Resource, long> InvestedResources { get; set; } = new();
-    public List<Resource> InvestmentEnabled { get; set; } = new();
-    public long LastInvestmentTick { get; set; } = 0;
 
     public static ResourceSet GetSpireCost() => new ResourceSet
     {
@@ -41,15 +29,15 @@ public class CorruptionSpire : IslandFeature, IInvestableFeature
         { Resource.Mithril,   200 },
     };
 
-    public ResourceSet GetInvestmentCost(SettlersOfIdlestan.Model.Civilization.Civilization playerCiv) => GetSpireCost();
+    public override ResourceSet GetInvestmentCost(SettlersOfIdlestan.Model.Civilization.Civilization playerCiv) => GetSpireCost();
 
     [JsonIgnore]
-    public string PanelTitleKey => "corruption_spire_panel_title";
+    public override string PanelTitleKey => "corruption_spire_panel_title";
 
     [JsonIgnore]
-    public string? PanelTitleSuffix => null;
+    public override string? PanelTitleSuffix => null;
 
-    public CorruptionSpire(HexCoord position) : base(position) { Found = true; }
+    public CorruptionSpire(HexCoord position) : base(position) { }
 
     [JsonConstructor]
     public CorruptionSpire() : base() { }
