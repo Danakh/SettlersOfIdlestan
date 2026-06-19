@@ -3,6 +3,16 @@ The changelog is not actively maintained at the moment.
 
 ---
 
+v0.4
+• Prestige map finalization for beta tests
+• New monster: the Minor Demon
+• Scouting and targeted attacks against monsters
+• Market overhaul and resource autobuy
+• Small bonus islands reachable by isthmus, with treasure, fairy circle, or dragon
+• New achievements
+
+---
+
 v0.3
 • New military resources: steel weapons and armor
 • Military system improvements
