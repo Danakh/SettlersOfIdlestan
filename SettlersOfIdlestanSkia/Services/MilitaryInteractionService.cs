@@ -17,8 +17,8 @@ public sealed class MilitaryInteractionService
 
     /// <summary>Clé de localisation du tooltip affiché en survol quand l'attaque à distance 2 manque de Tour de guet.</summary>
     public const string RequiresWatchtowerMessageKey = "tooltip_monster_attack_requires_watchtower";
-    /// <summary>Clé de localisation du tooltip affiché en survol quand le monstre est hors de portée.</summary>
-    public const string TooFarMessageKey = "tooltip_monster_attack_too_far";
+    /// <summary>Clé de localisation du tooltip affiché en survol quand la cible (ville ou monstre) est hors de portée.</summary>
+    public const string TooFarMessageKey = "tooltip_attack_too_far";
 
     private readonly GameControllerService _gameControllerService;
     private readonly MilitaryController _militaryController;

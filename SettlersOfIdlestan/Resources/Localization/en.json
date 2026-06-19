@@ -642,7 +642,7 @@
   "tech_surveillance_desc": "Lets you actively attack a monster at distance 2 if the city has a Watchtower",
   "prestige_tooltip_unlocks_ranged_monster_attack": "unlocks attacking monsters at distance 2 (with a Watchtower)",
   "tooltip_monster_attack_requires_watchtower": "⚠ Requires a Watchtower",
-  "tooltip_monster_attack_too_far": "Too far",
+  "tooltip_attack_too_far": "Too far",
   "prestige_vertex_knowledge_mastery": "Knowledge Mastery",
   "prestige_vertex_placeholder": "Placeholder",
   "prestige_hex_placeholder": "Placeholder",

@@ -642,7 +642,7 @@
   "tech_surveillance_desc": "Permet d'attaquer activement un monstre à distance 2 si la ville possède une Tour de guet",
   "prestige_tooltip_unlocks_ranged_monster_attack": "débloque l'attaque des monstres à distance 2 (avec Tour de guet)",
   "tooltip_monster_attack_requires_watchtower": "⚠ Nécessite une Tour de guet",
-  "tooltip_monster_attack_too_far": "Trop loin",
+  "tooltip_attack_too_far": "Trop loin",
   "prestige_vertex_knowledge_mastery": "Maîtrise du savoir",
   "prestige_vertex_placeholder": "Placeholder",
   "prestige_hex_placeholder": "Placeholder",
