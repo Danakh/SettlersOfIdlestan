@@ -698,6 +698,7 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         Modifier.ECategory.ATTACK_SPEED                     => $"+{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_attack_speed")}",
         Modifier.ECategory.WONDER_COST_REDUCTION            => $"-{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_wonder_cost_reduction")}",
         Modifier.ECategory.INVESTMENT_SPEED_HIGH_STOCK_BONUS => $"+{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_investment_speed_high_stock")}",
+        Modifier.ECategory.UNLOCK_RELOCATION                 => _localization.Get("prestige_tooltip_unlocks_relocation"),
         _ => $"+{mod.Value}"
     };
 

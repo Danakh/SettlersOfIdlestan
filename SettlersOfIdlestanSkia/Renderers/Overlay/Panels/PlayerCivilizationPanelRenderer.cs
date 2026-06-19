@@ -1,4 +1,5 @@
 using SettlersOfIdlestan.Controller.Expand;
+using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Model.Buildings;
 using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
 using SettlersOfIdlestan.Model.Civilization;
@@ -48,13 +49,15 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
     private SKRect _deepestMineButtonRect = SKRect.Empty;
     private SKRect _raidButtonRect     = SKRect.Empty;
     private SKRect _spireButtonRect    = SKRect.Empty;
+    private SKRect _relocationButtonRect = SKRect.Empty;
     private readonly List<(SKRect rect, string pinKey, string tooltipKey)> _pinnedItemRects = new();
     private int _hoveredPinnedIndex = -1;
 
-    private bool _hoveredTrade, _hoveredPrestige, _hoveredWonder, _hoveredDeepestMine, _hoveredRaid, _hoveredSpire;
+    private bool _hoveredTrade, _hoveredPrestige, _hoveredWonder, _hoveredDeepestMine, _hoveredRaid, _hoveredSpire, _hoveredRelocation;
     private bool _wonderEnabled;
     private bool _deepestMineEnabled;
     private bool _spireEnabled;
+    private bool _relocationEnabled;
     private bool _disposed;
     private SKPaint? _btnRaidActivePaint;
     private SKPaint? _btnRaidActiveHoverPaint;
@@ -154,6 +157,8 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         _spireEnabled = spireVisible && context.CurrentLayer == LayerState.UnderworldZ;
         bool raidVisible   = IsRaidVisible();
         bool raidActive    = raidVisible && IsRaidActive();
+        bool relocationVisible = IsRelocationVisible();
+        _relocationEnabled = relocationVisible && CanAffordRelocation();
         bool hasBarracks     = HasBuilt<Barracks>(civ);
         bool hasLabs         = HasBuilt<Laboratory>(civ);
         bool hasSmelters     = HasBuilt<Smelter>(civ);
@@ -165,10 +170,10 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         var worldState = _gameControllerService.CurrentWorldState;
         var pinned = worldState?.AutomationSettings.PinnedToCivPanel ?? (IReadOnlySet<string>)new HashSet<string>();
 
-        bool showActions  = tradeVisible || prestigeVisible || wonderVisible || deepestMineVisible || spireVisible || raidVisible;
+        bool showActions  = tradeVisible || prestigeVisible || wonderVisible || deepestMineVisible || spireVisible || raidVisible || relocationVisible;
         bool showControls = pinned.Any(k => IsKeyShowable(k, civ, worldState, hasBarracks, hasLabs, hasSmelters, hasArsenals, hasWeaponSmiths, hasArmorSmiths, hasAlchimistHuts));
 
-        _tradeButtonRect = _prestigeButtonRect = _wonderButtonRect = _deepestMineButtonRect = _spireButtonRect = _raidButtonRect = SKRect.Empty;
+        _tradeButtonRect = _prestigeButtonRect = _wonderButtonRect = _deepestMineButtonRect = _spireButtonRect = _raidButtonRect = _relocationButtonRect = SKRect.Empty;
         _pinnedItemRects.Clear();
 
         if (!showActions && !showControls)
@@ -194,7 +199,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         float h = panelPadding;
         if (showActions)
         {
-            int actionCount = (tradeVisible ? 1 : 0) + (prestigeVisible ? 1 : 0) + (wonderVisible ? 1 : 0) + (deepestMineVisible ? 1 : 0) + (spireVisible ? 1 : 0) + (raidVisible ? 1 : 0);
+            int actionCount = (tradeVisible ? 1 : 0) + (prestigeVisible ? 1 : 0) + (wonderVisible ? 1 : 0) + (deepestMineVisible ? 1 : 0) + (spireVisible ? 1 : 0) + (raidVisible ? 1 : 0) + (relocationVisible ? 1 : 0);
             int actionRows  = (actionCount + 1) / 2;
             h += titleHeight + actionRows * (btnHeight + btnSpacing);
         }
@@ -226,7 +231,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
 
             float colGap = 6f * s;
             float colW   = (contentW - colGap) / 2f;
-            int   actionCount = (tradeVisible ? 1 : 0) + (prestigeVisible ? 1 : 0) + (wonderVisible ? 1 : 0) + (deepestMineVisible ? 1 : 0) + (spireVisible ? 1 : 0) + (raidVisible ? 1 : 0);
+            int   actionCount = (tradeVisible ? 1 : 0) + (prestigeVisible ? 1 : 0) + (wonderVisible ? 1 : 0) + (deepestMineVisible ? 1 : 0) + (spireVisible ? 1 : 0) + (raidVisible ? 1 : 0) + (relocationVisible ? 1 : 0);
             float actionsY   = y;
             int   btnIdx     = 0;
 
@@ -286,6 +291,13 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
                 canvas.DrawRoundRect(_raidButtonRect, 6 * s, 6 * s, raidBg);
                 string raidLabel = raidActive ? _localization.Get("raid_action_stop") : _localization.Get("raid_action");
                 SkiaTextUtils.DrawText(canvas, raidLabel, _raidButtonRect.MidX, _raidButtonRect.MidY + 4f * s, SKTextAlign.Center, _btnSmFont, TextPaint);
+            }
+
+            if (relocationVisible)
+            {
+                _relocationButtonRect = BtnRect(btnIdx++);
+                canvas.DrawRoundRect(_relocationButtonRect, 6 * s, 6 * s, _relocationEnabled ? (_hoveredRelocation ? _btnHoverPaint : _btnPaint) : _btnDisabledPaint);
+                SkiaTextUtils.DrawText(canvas, _localization.Get("relocation_action_short"), _relocationButtonRect.MidX, _relocationButtonRect.MidY + 4f * s, SKTextAlign.Center, _btnSmFont, _relocationEnabled ? TextPaint : _btnDisabledTxtPaint);
             }
 
             y = actionsY + ((btnIdx + 1) / 2) * (btnHeight + btnSpacing);
@@ -387,6 +399,10 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             _tooltipRenderer.SetTooltip(_localization.Get("tooltip_spire_underworld_only"), new SKPoint(_spireButtonRect.Right, _spireButtonRect.Top));
         else if (_hoveredSpire)
             _tooltipRenderer.SetTooltip(_localization.Get("tooltip_spire"), new SKPoint(_spireButtonRect.Right, _spireButtonRect.Top));
+        else if (_hoveredRelocation && _relocationEnabled)
+            _tooltipRenderer.SetTooltip(_localization.Get("tooltip_relocation"), new SKPoint(_relocationButtonRect.Right, _relocationButtonRect.Top));
+        else if (_hoveredRelocation && !_relocationEnabled)
+            _tooltipRenderer.SetTooltip(_localization.Get("tooltip_relocation_insufficient_resources"), new SKPoint(_relocationButtonRect.Right, _relocationButtonRect.Top));
         else if (_hoveredPinnedIndex >= 0 && _hoveredPinnedIndex < _pinnedItemRects.Count)
         {
             var (rect, _, tooltipKey) = _pinnedItemRects[_hoveredPinnedIndex];
@@ -429,6 +445,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         _hoveredDeepestMine = !_deepestMineButtonRect.IsEmpty && _deepestMineButtonRect.Contains(pos.X, pos.Y);
         _hoveredSpire       = !_spireButtonRect.IsEmpty       && _spireButtonRect.Contains(pos.X, pos.Y);
         _hoveredRaid        = !_raidButtonRect.IsEmpty        && _raidButtonRect.Contains(pos.X, pos.Y);
+        _hoveredRelocation  = !_relocationButtonRect.IsEmpty  && _relocationButtonRect.Contains(pos.X, pos.Y);
 
         _hoveredPinnedIndex = -1;
         for (int i = 0; i < _pinnedItemRects.Count; i++)
@@ -509,6 +526,30 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
                 if (targets.Count > 0)
                     _targetSelectionService.EnterVertexSelection("raid_select_city", targets,
                         target => militaryController.StartRaid(playerCiv, target), TargetSelectionTheme.Hostile);
+            }
+            return true;
+        }
+
+        if (!_relocationButtonRect.IsEmpty && _relocationButtonRect.Contains(pos.X, pos.Y) && _relocationEnabled && _targetSelectionService != null)
+        {
+            var playerCiv = _gameControllerService.PlayerCivilization;
+            if (playerCiv != null)
+            {
+                _closeAll();
+                var cityBuilderController = _gameControllerService.MainGameController.CityBuilderController;
+                var cityTargets = playerCiv.Cities.Select(c => c.Position).ToList();
+                if (cityTargets.Count > 0)
+                    _targetSelectionService.EnterVertexSelection("relocation_select_city", cityTargets,
+                        source =>
+                        {
+                            var city = playerCiv.Cities.FirstOrDefault(c => c.Position.Equals(source));
+                            if (city == null) return;
+                            var destinations = cityBuilderController.GetRelocationTargets(city);
+                            if (destinations.Count == 0) return;
+                            _targetSelectionService.EnterVertexSelection("relocation_select_destination", destinations,
+                                destination => cityBuilderController.RelocateCity(city, destination),
+                                TargetSelectionTheme.Friendly);
+                        }, TargetSelectionTheme.Friendly);
             }
             return true;
         }
@@ -678,6 +719,22 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
     private bool IsRaidActive()
     {
         try { return _gameControllerService.MainGameController.MilitaryController.IsRaidActive(); }
+        catch { return false; }
+    }
+
+    private bool IsRelocationVisible()
+    {
+        var civ = _gameControllerService.PlayerCivilization;
+        if (civ == null) return false;
+        try { return _gameControllerService.MainGameController.CityBuilderController.IsRelocationUnlocked(civ); }
+        catch { return false; }
+    }
+
+    private bool CanAffordRelocation()
+    {
+        var civ = _gameControllerService.PlayerCivilization;
+        if (civ == null) return false;
+        try { return civ.CanPayResourceCost(CityBuilderController.RelocationCost()); }
         catch { return false; }
     }
 

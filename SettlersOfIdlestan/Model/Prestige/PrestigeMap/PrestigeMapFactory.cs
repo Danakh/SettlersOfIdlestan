@@ -371,7 +371,6 @@ public static class PrestigeMapFactory
                 cost: Cost(PrestigeMap.SiegeTrainingVertex),
                 modifiers: new Modifier[] { new(ECategory.UNLOCK_RAID, EType.ADDITIVE, 1) }
             ),
-            new(PrestigeMap.ForgeApproachVertex, "prestige_vertex_placeholder", cost: Cost(PrestigeMap.ForgeApproachVertex), modifiers: Array.Empty<Modifier>()),
             new(
                 PrestigeMap.OuterScienceVertex,
                 "prestige_vertex_war_room",
@@ -413,10 +412,16 @@ public static class PrestigeMapFactory
                 }
             ),
             new(
-                PrestigeMap.OuterHarborVertex,
+                PrestigeMap.StrategicRationsVertex,
                 "prestige_vertex_strategic_rations",
-                cost: Cost(PrestigeMap.OuterHarborVertex),
+                cost: Cost(PrestigeMap.StrategicRationsVertex),
                 modifiers: new Modifier[] { new(ECategory.SOLDIER_FOOD_FREE_PER_CITY, EType.ADDITIVE, 10) }
+            ),
+            new(
+                PrestigeMap.OuterHarborVertex,
+                "prestige_vertex_relocation",
+                cost: Cost(PrestigeMap.OuterHarborVertex),
+                modifiers: new Modifier[] { new(ECategory.UNLOCK_RELOCATION, EType.ADDITIVE, 1) }
             ),
         };
 

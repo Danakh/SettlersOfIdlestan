@@ -57,11 +57,12 @@ public class PrestigeMap
     // ── Placeholder vertices — fill all open corners around mapped hexes ──────
     // Around FortifiedOutpost (0,-1) / UnitProductionSpeed (1,-1) north edge
     public static readonly Vertex ReinforcedPalisadeVertex = Vertex.Create(new(0, -1, 0), new(1, -2, 0), new(1, -1, 0));
-    public static readonly Vertex BarbacaneVertex      = Vertex.Create(new(0, -1, 0), new(0, -2, 0), new(1, -2, 0));
+    public static readonly Vertex StrategicRationsVertex = Vertex.Create(new(0, -1, 0), new(0, -2, 0), new(1, -2, 0));
     public static readonly Vertex SiegeTrainingVertex  = Vertex.Create(new(1, -1, 0), new(1, -2, 0), new(2, -2, 0));
     // Around DefenseRegen (2,-1) / UnitProductionSpeed (1,-1) outer east
     public static readonly Vertex RapidDeploymentVertex  = Vertex.Create(new(1, -1, 0), new(2, -2, 0), new(2, -1, 0));
-    public static readonly Vertex ForgeApproachVertex  = Vertex.Create(new(2, -1, 0), new(2, -2, 0), new(3, -2, 0));
+    // Pointe nord de l'hex DefenseRegen (2,-1)
+    public static readonly Vertex BarbacaneVertex      = Vertex.Create(new(2, -1, 0), new(2, -2, 0), new(3, -2, 0));
     // Outer NE — east corner of ExperimentalScience (2,0)
     public static readonly Vertex OuterScienceVertex   = Vertex.Create(new(2,  0, 0), new(3,  0, 0), new(2,  1, 0));
     // Sud de MilitaryAcademy — partage les hexes (1,1) et (2,1) avec MilitaryAcademyVertex

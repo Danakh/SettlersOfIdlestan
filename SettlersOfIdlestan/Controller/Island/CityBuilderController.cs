@@ -122,7 +122,9 @@ namespace SettlersOfIdlestan.Controller.Island
         /// - no city of another civilization is at distance < 2 (at least 2 edges required between civs)
         /// - no existing city of the same civilization is at distance < 3
         /// </summary>
-        public List<Vertex> GetBuildableVertices(int civilizationIndex)
+        /// <param name="excludingCity">If set, this city is ignored by the same-civilization distance check —
+        /// used for relocation, to test constructibility as if the city had not been placed yet.</param>
+        public List<Vertex> GetBuildableVertices(int civilizationIndex, City? excludingCity = null)
         {
             if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
 
@@ -146,12 +148,57 @@ namespace SettlersOfIdlestan.Controller.Island
                     .Where(city => city.Position.Z == v.Z)
                     .Any(city => city.Position.EdgeDistanceTo(v) < MinDistanceBetweenCities)) &&
                 !civ.Cities
-                    .Where(city => city.Position.Z == v.Z)
+                    .Where(city => city != excludingCity && city.Position.Z == v.Z)
                     .Any(city => city.Position.EdgeDistanceTo(v) < MinDistanceBetweenCivilizationCities))
                 .ToList();
 
             return vertices;
         }
+
+        /// <summary>
+        /// Vertices a city could relocate to: constructible as if the city weren't there, within
+        /// <paramref name="maxEdgeDistance"/> edges of its current position, excluding that position itself.
+        /// </summary>
+        public List<Vertex> GetRelocationTargets(City city, int maxEdgeDistance = 3)
+        {
+            var origin = city.Position;
+            return GetBuildableVertices(city.CivilizationIndex, excludingCity: city)
+                .Where(v => !v.Equals(origin) && origin.EdgeDistanceTo(v) <= maxEdgeDistance)
+                .ToList();
+        }
+
+        public static ResourceSet RelocationCost() => new()
+        {
+            { Resource.Gold, 100 },
+            { Resource.Food, 100 },
+        };
+
+        /// <summary>
+        /// Moves a city to a new vertex, paying <see cref="RelocationCost"/>. Returns false if the destination
+        /// is not a valid relocation target or the civilization cannot afford the cost — nothing is charged in that case.
+        /// </summary>
+        public bool RelocateCity(City city, Vertex destination)
+        {
+            if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
+
+            var civ = _state.Civilizations.FirstOrDefault(c => c.Index == city.CivilizationIndex)
+                      ?? throw new ArgumentException("Civilization not found", nameof(city));
+
+            if (!GetRelocationTargets(city).Any(v => v.Equals(destination)))
+                return false;
+
+            var cost = RelocationCost();
+            if (!civ.CanPayResourceCost(cost))
+                return false;
+
+            civ.PayResourceCost(cost);
+            city.Position = destination;
+            _state.Visibility.RecalculateFor(city.CivilizationIndex);
+            return true;
+        }
+
+        public bool IsRelocationUnlocked(Civilization civ)
+            => civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_RELOCATION);
 
         /// <summary>
         /// Build a city at the given vertex. Cost: 10 Brick, 10 Wood, 10 Wheat, 10 Sheep.
