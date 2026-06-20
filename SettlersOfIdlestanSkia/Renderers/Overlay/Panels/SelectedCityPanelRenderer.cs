@@ -24,6 +24,7 @@ public class SelectedCityPanelRenderer : PanelRendererBase
     private readonly Dictionary<Resource, SKSvg?> _resourceIcons = new();
 
     private SKPaint? _costTextPaint;
+    private SKPaint? _costAffordableTextPaint;
     private SKPaint? _btnBuildPaint;
     private SKPaint? _btnUpgradePaint;
     private SKPaint? _btnDisabledPaint;
@@ -72,6 +73,7 @@ public class SelectedCityPanelRenderer : PanelRendererBase
     {
         base.Initialize(canvasSize);
         _costTextPaint       = new SKPaint { Color = new SKColor(200, 200, 200, 200), IsAntialias = true };
+        _costAffordableTextPaint = new SKPaint { Color = new SKColor(110, 220, 110), IsAntialias = true };
         _btnBuildPaint       = new SKPaint { Color = new SKColor(21, 101, 192, 255),  Style = SKPaintStyle.Fill, IsAntialias = true };
         _btnUpgradePaint     = new SKPaint { Color = new SKColor(46, 125, 50, 255),   Style = SKPaintStyle.Fill, IsAntialias = true };
         _btnDisabledPaint    = new SKPaint { Color = new SKColor(100, 100, 100, 200), Style = SKPaintStyle.Fill, IsAntialias = true };
@@ -246,7 +248,9 @@ public class SelectedCityPanelRenderer : PanelRendererBase
                         }
                         iconX += costIconSize + 2f * s;
                         string numText = kvp.Value.ToString();
-                        SkiaTextUtils.DrawText(canvas, numText, iconX, centerY + Font10!.Size / 2f, Font10, _costTextPaint);
+                        bool canAfford = _cityBuildingService.GetSelectedCivilizationResourceQuantity(kvp.Key) >= kvp.Value;
+                        var numPaint = canAfford ? _costAffordableTextPaint : _costTextPaint;
+                        SkiaTextUtils.DrawText(canvas, numText, iconX, centerY + Font10!.Size / 2f, Font10, numPaint);
                         iconX += Font10.MeasureText(numText) + 6f * s;
                     }
                 }
@@ -732,7 +736,8 @@ public class SelectedCityPanelRenderer : PanelRendererBase
                     }
                 }
 
-                TooltipRenderUtils.DrawTooltip(canvas, CanvasSize, _lastPointerPosition, tooltipLines.ToArray(), Font10!, cost, _resourceIcons, LastUiScale);
+                TooltipRenderUtils.DrawTooltip(canvas, CanvasSize, _lastPointerPosition, tooltipLines.ToArray(), Font10!, cost, _resourceIcons, LastUiScale,
+                    _cityBuildingService.GetSelectedCivilizationResourceQuantity);
             }
         }
         else if (_hoveredActivationCheckbox.HasValue)
@@ -820,6 +825,7 @@ public class SelectedCityPanelRenderer : PanelRendererBase
         _inputService.PointerMoved -= HandlePointerMoved;
         _inputService.PointerPressed -= HandlePointerPressed;
         _costTextPaint?.Dispose();
+        _costAffordableTextPaint?.Dispose();
         _btnBuildPaint?.Dispose();
         _btnUpgradePaint?.Dispose();
         _btnDisabledPaint?.Dispose();

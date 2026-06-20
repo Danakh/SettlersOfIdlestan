@@ -323,7 +323,9 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay
             }
             if (_tooltipTexts.Length > 0)
             {
-                TooltipRenderUtils.DrawTooltip(canvas, _canvasSize, _tooltipScreenPosition, _tooltipTexts, _font10, _tooltipCost, _resourceIcons, _lastUiScale);
+                var playerCiv = _gameControllerService.PlayerCivilization;
+                TooltipRenderUtils.DrawTooltip(canvas, _canvasSize, _tooltipScreenPosition, _tooltipTexts, _font10, _tooltipCost, _resourceIcons, _lastUiScale,
+                    playerCiv != null ? playerCiv.GetResourceQuantity : null);
                 _tooltipTexts = new string[0];
                 _tooltipCost = null;
             }

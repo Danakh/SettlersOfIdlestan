@@ -280,4 +280,8 @@ public class CityBuildingService
     /// <summary>Clé de localisation du prérequis manquant pour ce bâtiment, ou null si tous les prérequis sont remplis.</summary>
     public string? GetMissingPrerequisiteKey(Building building)
         => SelectedCity == null ? null : building.GetMissingPrerequisiteKey(SelectedCity, State);
+
+    /// <summary>Quantité actuelle d'une ressource détenue par la civilisation de la ville sélectionnée (0 si aucune ville sélectionnée).</summary>
+    public int GetSelectedCivilizationResourceQuantity(Resource resource)
+        => SelectedCivilization?.GetResourceQuantity(resource) ?? 0;
 }

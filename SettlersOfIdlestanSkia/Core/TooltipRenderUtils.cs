@@ -11,6 +11,7 @@ namespace SettlersOfIdlestanSkia.Core
         static SKPaint _tooltipBgPaint = new SKPaint { Color = new SKColor(60, 60, 70, 240), Style = SKPaintStyle.Fill, IsAntialias = true };
         static SKPaint _tooltipBorderPaint = new SKPaint { Color = new SKColor(220, 220, 240, 200), Style = SKPaintStyle.Stroke, StrokeWidth = 1.5f, IsAntialias = true };
         static SKPaint _tooltipTextPaint = new SKPaint { Color = SKColors.White, IsAntialias = true };
+        static SKPaint _tooltipAffordableCostPaint = new SKPaint { Color = new SKColor(110, 220, 110), IsAntialias = true };
 
         const float TextPadding = 8f;
         const float VerticalPadding = 6f;
@@ -65,7 +66,8 @@ namespace SettlersOfIdlestanSkia.Core
             SKFont font,
             ResourceSet? cost = null,
             Dictionary<Resource, SKSvg?>? resourceIcons = null,
-            float uiScale = 1f)
+            float uiScale = 1f,
+            Func<Resource, int>? resourceStockProvider = null)
         {
             float textPadding = TextPadding * uiScale;
             float verticalPadding = VerticalPadding * uiScale;
@@ -131,7 +133,9 @@ namespace SettlersOfIdlestanSkia.Core
                     iconX += costIconSize + 3f * uiScale;
 
                     string numText = kvp.Value.ToString();
-                    SkiaTextUtils.DrawText(canvas, numText, iconX, rowY + (costRowHeight + font.Size) / 2f, font, _tooltipTextPaint);
+                    bool canAfford = resourceStockProvider != null && resourceStockProvider(kvp.Key) >= kvp.Value;
+                    var numPaint = canAfford ? _tooltipAffordableCostPaint : _tooltipTextPaint;
+                    SkiaTextUtils.DrawText(canvas, numText, iconX, rowY + (costRowHeight + font.Size) / 2f, font, numPaint);
                     iconX += font.MeasureText(numText) + 8f * uiScale;
                 }
             }
