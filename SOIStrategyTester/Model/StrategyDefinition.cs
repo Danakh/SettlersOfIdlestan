@@ -18,7 +18,9 @@ public enum PhaseKind
     Step3,
     /// <summary>auto.TryMilitaryStepOnce().</summary>
     Military,
-    /// <summary>auto.TryMilitaryStepOnce() + auto.TryStep2Once(true) — mirrors RunStepExterminateMonstersUntil.</summary>
+    /// <summary>auto.TryMilitaryStepOnce() + auto.TryStep2Once(true) — the high-level autoplayer loop
+    /// FullIslandScenarios' ExterminateMonstersStep used before being replaced by a Priority phase
+    /// (see SOIStrategyTester/Data/Best/island2-step2ter.best.json). Kept here for comparison baselines.</summary>
     ExterminateMonsters,
     /// <summary>Same as ExterminateMonsters, plus pointing idle cities' attack flow at the nearest enemy
     /// city — mirrors RunStepExterminateCivilizationsUntil.</summary>

@@ -1,0 +1,109 @@
+{
+  "Objective": {
+    "Kind": "NoSurfaceMonsters",
+    "CityCount": null,
+    "RequiredBuilding": null,
+    "Points": null,
+    "Level": null,
+    "Count": null
+  },
+  "Strategy": {
+    "Name": "NoForge-NoBrickworks-Priority",
+    "Phases": [
+      {
+        "Kind": "Priority",
+        "ShouldExpand": true,
+        "PrestigePriorityVertexNames": null,
+        "PriorityObjectives": [
+          {
+            "Kind": "BuildingLevel",
+            "Buildings": [
+              "TownHall"
+            ],
+            "TargetLevel": 3,
+            "TargetCityCount": null
+          },
+          {
+            "Kind": "BuildingLevel",
+            "Buildings": [
+              "Sawmill"
+            ],
+            "TargetLevel": 1,
+            "TargetCityCount": null
+          },
+          {
+            "Kind": "BuildingLevel",
+            "Buildings": [
+              "Quarry"
+            ],
+            "TargetLevel": 1,
+            "TargetCityCount": null
+          },
+          {
+            "Kind": "BuildingLevel",
+            "Buildings": [
+              "Mill"
+            ],
+            "TargetLevel": 1,
+            "TargetCityCount": null
+          },
+          {
+            "Kind": "BuildingLevel",
+            "Buildings": [
+              "Market"
+            ],
+            "TargetLevel": 1,
+            "TargetCityCount": null
+          },
+          {
+            "Kind": "BuildingLevel",
+            "Buildings": [
+              "Seaport"
+            ],
+            "TargetLevel": 1,
+            "TargetCityCount": null
+          },
+          {
+            "Kind": "BuildingLevel",
+            "Buildings": [
+              "Warehouse"
+            ],
+            "TargetLevel": 1,
+            "TargetCityCount": null
+          },
+          {
+            "Kind": "BuildingLevel",
+            "Buildings": [
+              "Mine"
+            ],
+            "TargetLevel": 1,
+            "TargetCityCount": null
+          },
+          {
+            "Kind": "BuildingLevel",
+            "Buildings": [
+              "Barracks"
+            ],
+            "TargetLevel": 1,
+            "TargetCityCount": null
+          },
+          {
+            "Kind": "CityCount",
+            "Buildings": null,
+            "TargetLevel": null,
+            "TargetCityCount": 30
+          }
+        ],
+        "Until": null,
+        "MaxIterations": null
+      }
+    ]
+  },
+  "Result": {
+    "StrategyName": "NoForge-NoBrickworks-Priority",
+    "Success": true,
+    "Ticks": 249200,
+    "Iterations": 2464,
+    "FailureReason": null
+  }
+}

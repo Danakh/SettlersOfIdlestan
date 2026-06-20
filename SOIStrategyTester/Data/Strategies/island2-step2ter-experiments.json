@@ -1,0 +1,65 @@
+[
+  {
+    "name": "ExterminateMonsters-HighLevel-Baseline",
+    "phases": [
+      { "kind": "ExterminateMonsters" }
+    ]
+  },
+  {
+    "name": "Full-Economy-Priority",
+    "phases": [
+      {
+        "kind": "Priority",
+        "priorityObjectives": [
+          { "kind": "BuildingLevel", "buildings": ["TownHall"], "targetLevel": 3 },
+          { "kind": "BuildingLevel", "buildings": ["Sawmill"], "targetLevel": 1 },
+          { "kind": "BuildingLevel", "buildings": ["Brickworks"], "targetLevel": 1 },
+          { "kind": "BuildingLevel", "buildings": ["Quarry"], "targetLevel": 1 },
+          { "kind": "BuildingLevel", "buildings": ["Mill"], "targetLevel": 1 },
+          { "kind": "BuildingLevel", "buildings": ["Market"], "targetLevel": 1 },
+          { "kind": "BuildingLevel", "buildings": ["Seaport"], "targetLevel": 1 },
+          { "kind": "BuildingLevel", "buildings": ["Warehouse"], "targetLevel": 1 },
+          { "kind": "BuildingLevel", "buildings": ["Mine"], "targetLevel": 1 },
+          { "kind": "BuildingLevel", "buildings": ["Forge"], "targetLevel": 1 },
+          { "kind": "BuildingLevel", "buildings": ["Barracks"], "targetLevel": 1 },
+          { "kind": "CityCount", "targetCityCount": 30 }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "Minimal-Priority",
+    "phases": [
+      {
+        "kind": "Priority",
+        "priorityObjectives": [
+          { "kind": "BuildingLevel", "buildings": ["TownHall"], "targetLevel": 3 },
+          { "kind": "BuildingLevel", "buildings": ["Sawmill"], "targetLevel": 1 },
+          { "kind": "BuildingLevel", "buildings": ["Mine"], "targetLevel": 1 },
+          { "kind": "BuildingLevel", "buildings": ["Barracks"], "targetLevel": 1 },
+          { "kind": "CityCount", "targetCityCount": 30 }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "NoForge-NoBrickworks-Priority",
+    "phases": [
+      {
+        "kind": "Priority",
+        "priorityObjectives": [
+          { "kind": "BuildingLevel", "buildings": ["TownHall"], "targetLevel": 3 },
+          { "kind": "BuildingLevel", "buildings": ["Sawmill"], "targetLevel": 1 },
+          { "kind": "BuildingLevel", "buildings": ["Quarry"], "targetLevel": 1 },
+          { "kind": "BuildingLevel", "buildings": ["Mill"], "targetLevel": 1 },
+          { "kind": "BuildingLevel", "buildings": ["Market"], "targetLevel": 1 },
+          { "kind": "BuildingLevel", "buildings": ["Seaport"], "targetLevel": 1 },
+          { "kind": "BuildingLevel", "buildings": ["Warehouse"], "targetLevel": 1 },
+          { "kind": "BuildingLevel", "buildings": ["Mine"], "targetLevel": 1 },
+          { "kind": "BuildingLevel", "buildings": ["Barracks"], "targetLevel": 1 },
+          { "kind": "CityCount", "targetCityCount": 30 }
+        ]
+      }
+    ]
+  }
+]

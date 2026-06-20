@@ -161,26 +161,6 @@ public class CivilizationAutoplayerRunner
     }
 
     /// <summary>
-    /// Builds Barracks/Palisade and keeps growing the civilization (new cities + economy) each iteration.
-    /// Melee combat against monsters resolves automatically once a city's footprint reaches the monster
-    /// and it has soldiers — no explicit attack action is needed. Exits once the condition
-    /// (e.g. no surface monsters left) is met.
-    /// </summary>
-    public void RunStepExterminateMonstersUntil(Func<bool> condition, int maxIterations = 50000)
-    {
-        for (int i = 0; i < maxIterations && !condition(); i++)
-        {
-            try
-            {
-                _autoplayer.TryMilitaryStepOnce();
-                _autoplayer.TryStep2Once(shouldExpand: true);
-            }
-            catch { }
-            Advance();
-        }
-    }
-
-    /// <summary>
     /// Builds Barracks/Palisade, keeps growing the civilization (so player cities eventually fall
     /// within attack range of NPC territory), and points each idle player city's attack flow at the
     /// nearest enemy city within range (matching MilitaryController.FindNearbyEnemyCity — the same
