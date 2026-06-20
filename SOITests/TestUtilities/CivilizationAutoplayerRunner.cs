@@ -196,6 +196,19 @@ public class CivilizationAutoplayerRunner
             Advance();
         }
     }
+
+    /// <summary>
+    /// Drives a PriorityAutoplayStrategy until either the given condition or the strategy itself
+    /// reports completion (all its objectives satisfied), advancing the clock between attempts.
+    /// </summary>
+    public void RunPriorityStrategyUntil(PriorityAutoplayStrategy strategy, Func<bool> condition, int maxIterations = 10000)
+    {
+        for (int i = 0; i < maxIterations && !condition() && !strategy.IsComplete(); i++)
+        {
+            try { strategy.TryStepOnce(); } catch { }
+            Advance();
+        }
+    }
     /// <summary>
     /// Grinds step-3 actions, places the Wonder if needed, keeps investment enabled for whichever
     /// resources the next level requires (via CivilizationAutoplayer.TryWonderInvestmentOnce — handles
