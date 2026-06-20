@@ -25,7 +25,7 @@ namespace SOITests.MilitaryTests;
 ///   2. Construire la Caserne par le step militaire,
 ///   3. Produire des soldats et attaquer jusqu'à extermination.
 ///
-/// L'île est générée comme dans FullIslandTest (IslandMapGenerator) avec :
+/// L'île est générée comme dans StepIslandTest (IslandMapGenerator) avec :
 ///   • 16 tuiles terrestres (Forest×4, Hill×4, Plain×4, Mountain×4)
 ///   • 1 NPC Low/Pacifiste dont la ville de départ reçoit une Palissade
 ///   • Prestige joueur (CentralVertex + BarracksVertex + LaboratoryVertex) injecté

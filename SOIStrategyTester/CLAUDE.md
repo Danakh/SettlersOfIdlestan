@@ -7,7 +7,7 @@ Guidance for Claude Code when working in this subdirectory.
 `SOIStrategyTester` is a CLI tool that loads a game state (a save file, or a brand-new game) and
 races one or more **autoplay strategies** against it, measuring how many game **ticks** each one
 takes to reach a given **objective**. It exists to find optimal play sequences offline, so that
-`SOITests/IslandMapTests/FullIslandTest/FullIslandScenarios.cs` can eventually be rewritten with the
+`SOITests/IslandMapTests/StepIslandTest/StepIslandScenarios.cs` can eventually be rewritten with the
 fastest known strategies — and so we can estimate how many ticks a good player needs to reach each
 prestige.
 
@@ -56,7 +56,7 @@ All strategies in one run start from an **identical** fresh copy of the starting
 `saves/5HexsMapWithTwoCities.json` (repo root) that predates the `IslandState`→`WorldState` rename and
 will silently deserialize into an empty world state. The save tests actually exercise lives at
 `SOITests/saves/5HexsMapWithTwoCities.json`. When in doubt, generate your own save with `--new-game
---seed <n>`, or point `--save` at a save you just produced via `FullIslandSaveGeneratorTests` /
+--seed <n>`, or point `--save` at a save you just produced via `StepIslandSaveGeneratorTests` /
 `SaveUtils`.
 
 ## Directory layout
@@ -78,7 +78,7 @@ SOIStrategyTester/
 ### ObjectiveSpec (`Data/Objectives/*.json`)
 
 One object, `kind` plus the fields it needs. These mirror the `Condition` lambdas in
-`FullIslandScenarios.cs` exactly:
+`StepIslandScenarios.cs` exactly:
 
 | kind | fields | mirrors |
 |---|---|---|
@@ -138,7 +138,7 @@ an early `CityCount` target turns out to be more than a given map can actually s
 after it (e.g. the Temple/TownHall stages that actually generate prestige points) never even starts,
 and the run hangs until `maxIterations`. This isn't hypothetical: an Island1 experiment that put
 `CityCount` first worked great on a fresh seed-42 game but deadlocked against the `release-1.0` fixture,
-whose map plateaus at 13 cities — see `Island1PrestigePointsStep` in `FullIslandScenarios.cs` for the
+whose map plateaus at 13 cities — see `Island1PrestigePointsStep` in `StepIslandScenarios.cs` for the
 fix (build first, expand only as an uncapped-but-rarely-needed fallback).
 
 A building unavailable to a city (terrain/prerequisites) or already at max level counts as done for
@@ -148,14 +148,14 @@ that city — it never blocks the objective forever.
 
 1. **Pick the objective.** Reuse a file under `Data/Objectives/`, or add a new one if the goal isn't
    covered yet (extend `SOIStrategyTester.Model.ObjectiveKind` + `ObjectiveEvaluator` first if the
-   condition kind itself is new — check `FullIslandScenarios.cs` for the exact semantics to mirror).
+   condition kind itself is new — check `StepIslandScenarios.cs` for the exact semantics to mirror).
 
 2. **Write or extend a strategies file** under `Data/Strategies/`. Put every variant you want to
    compare in the *same* array so they race from an identical starting state in one run. Good places
    to introduce variation:
    - Reorder phases (e.g. expand before vs. after maxing production).
    - Swap a coarse `Step1`/`Step2` phase for a `Priority` phase with a hand-picked building list/order
-     (this is the main lever for "per-step" optimization — it lets you express things FullIslandTest's
+     (this is the main lever for "per-step" optimization — it lets you express things StepIslandTest's
      fixed `Step1Buildings`/`Step2Buildings` arrays can't, like "Market before Sawmill" or "skip Mill").
    - Change `targetLevel`/`targetCityCount` checkpoints inside a `Priority` phase's objective list.
    - Vary `shouldExpand`, `prestigePriorityVertexNames`, or where a `Prestige` phase sits relative to
@@ -182,7 +182,7 @@ that city — it never blocks the objective forever.
 6. **Promote the winner.** `--best-output` already records the winning `StrategyDefinition` + its
    `StrategyRunResult` next to the objective it was raced against. Once a result is good enough to
    rely on, leave that file under `Data/Best/` (check it in) — it's the artifact that will eventually
-   feed the FullIslandTest rewrite (translate the winning phases back into
+   feed the StepIslandTest rewrite (translate the winning phases back into
    `CivilizationAutoplayerRunner` calls, or extend the runner to execute `PriorityAutoplayStrategy`
    phases directly).
 
@@ -204,7 +204,7 @@ that city — it never blocks the objective forever.
   (an early objective with unmet/unreachable preconditions silently blocks everything after it) but for
   expansion targets instead of cross-building trade.
 - `ExterminateCivilizations`/`ExterminateMonsters` and large `CityCount` targets can legitimately need
-  tens or hundreds of thousands of iterations (see `FullIslandScenarios.cs`'s `maxIterations` overrides
+  tens or hundreds of thousands of iterations (see `StepIslandScenarios.cs`'s `maxIterations` overrides
   for precedent) — use the phase-level `maxIterations` override rather than inflating the global default.
 - Comparisons are only fair when every strategy in a run starts from the *same* state — always pass
   the same `--seed`/`--save` for an entire comparison, never mix.

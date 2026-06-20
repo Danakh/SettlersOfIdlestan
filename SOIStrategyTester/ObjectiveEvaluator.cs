@@ -8,7 +8,7 @@ namespace SOIStrategyTester;
 
 /// <summary>
 /// Evaluates an ObjectiveSpec against the live game state. Mirrors the Condition lambdas in
-/// SOITests/IslandMapTests/FullIslandTest/FullIslandScenarios.cs so the same stopping conditions can
+/// SOITests/IslandMapTests/StepIslandTest/StepIslandScenarios.cs so the same stopping conditions can
 /// be expressed as data and reused both as a run's global objective and as a phase's "Until".
 /// </summary>
 public static class ObjectiveEvaluator

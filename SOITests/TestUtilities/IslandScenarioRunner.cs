@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using SettlersOfIdlestan.Controller;
 using SettlersOfIdlestan.Model.IslandMap;
@@ -45,6 +46,30 @@ public static class IslandScenarioRunner
             controller = SaveUtils.LoadSave(loadFolder, prevSaveName);
         }
 
+        RunSingleStep(controller, step);
+
+        if (saveFinal)
+            SaveUtils.SaveAndReloadAndAssertEqual(controller, loadFolder, step.SaveName);
+
+        return controller;
+    }
+
+    /// <summary>
+    /// Runs every given step on the SAME controller, in memory, with no save/reload between them —
+    /// used by FullIslandTest to collapse StepIslandTest's per-checkpoint Facts (each its own save +
+    /// assert) into a single continuous run from one prestige to the next. A fresh
+    /// CivilizationAutoplayer is rebuilt before each step regardless, since a Prestige step invalidates
+    /// the previous one's civ/map references (a new island gets generated).
+    /// </summary>
+    public static MainGameController RunChained(MainGameController controller, IEnumerable<IslandStepDefinition> steps)
+    {
+        foreach (var step in steps)
+            RunSingleStep(controller, step);
+        return controller;
+    }
+
+    private static void RunSingleStep(MainGameController controller, IslandStepDefinition step)
+    {
         var worldState = controller.CurrentMainState!.CurrentWorldState!;
         var civ = worldState.Civilizations.First();
         var autoplayer = new CivilizationAutoplayer(
@@ -67,10 +92,5 @@ public static class IslandScenarioRunner
         step.RunAction(runner, () => step.Condition(controller));
 
         Assert.True(step.Condition(controller), step.AssertFailMessage(controller));
-
-        if (saveFinal)
-            SaveUtils.SaveAndReloadAndAssertEqual(controller, loadFolder, step.SaveName);
-
-        return controller;
     }
 }

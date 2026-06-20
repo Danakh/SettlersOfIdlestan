@@ -3,7 +3,7 @@ using SettlersOfIdlestan.Model.Buildings;
 namespace SOIStrategyTester.Model;
 
 /// <summary>
-/// The stopping conditions used throughout SOITests' FullIslandScenarios, reified as data so the
+/// The stopping conditions used throughout SOITests' StepIslandScenarios, reified as data so the
 /// same condition can be supplied either as the run's global objective or as a phase's "Until"
 /// (the point where a strategy switches to its next phase).
 /// </summary>

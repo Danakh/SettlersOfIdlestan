@@ -193,7 +193,7 @@ public class CivilizationAutoplayerRunner
     /// Lightweight stand-in for <see cref="RunStepExterminateCivilizationsUntil"/>: just builds the
     /// Barracks to level 1 in every existing city, without ever attacking. Used while the full
     /// extermination loop is disabled for a given scenario step because it's too slow to run regularly
-    /// (see FullIslandScenarios.Island4) — keeps the save chain intact at a fraction of the cost, ready
+    /// (see StepIslandScenarios.Island4) — keeps the save chain intact at a fraction of the cost, ready
     /// to swap back to the full extermination step later.
     /// </summary>
     public void RunStepBuildBarracksUntil(Func<bool> condition, int maxIterations = 10000)
