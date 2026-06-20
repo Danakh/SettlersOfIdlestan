@@ -1,0 +1,32 @@
+[
+  {
+    "name": "Island1-Baseline",
+    "phases": [
+      {
+        "kind": "Step1",
+        "shouldExpand": true,
+        "until": { "kind": "CityCountWithBuilding", "cityCount": 2, "requiredBuilding": "TownHall" }
+      },
+      {
+        "kind": "Step2",
+        "shouldExpand": true,
+        "until": { "kind": "CityCount", "cityCount": 6 }
+      },
+      {
+        "kind": "Step2",
+        "shouldExpand": true,
+        "until": { "kind": "CityCount", "cityCount": 10 }
+      },
+      {
+        "kind": "Step3",
+        "shouldExpand": true,
+        "maxIterations": 20000,
+        "until": { "kind": "PrestigePointsAtLeast", "points": 35 }
+      },
+      {
+        "kind": "Step3",
+        "shouldExpand": false
+      }
+    ]
+  }
+]

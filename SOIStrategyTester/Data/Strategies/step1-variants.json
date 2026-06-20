@@ -1,0 +1,30 @@
+[
+  {
+    "name": "Step1-Greedy-Baseline",
+    "phases": [
+      {
+        "kind": "Step1",
+        "shouldExpand": true
+      }
+    ]
+  },
+  {
+    "name": "Step1-ProductionFirst-Priority",
+    "phases": [
+      {
+        "kind": "Priority",
+        "priorityObjectives": [
+          {
+            "kind": "BuildingLevel",
+            "buildings": ["TownHall", "Seaport", "Market", "Sawmill", "Brickworks", "Quarry", "Mill"],
+            "targetLevel": 1
+          },
+          {
+            "kind": "CityCount",
+            "targetCityCount": 2
+          }
+        ]
+      }
+    ]
+  }
+]

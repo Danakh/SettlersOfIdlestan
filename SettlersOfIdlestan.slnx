@@ -7,4 +7,7 @@
   <Project Path="SOITests/SOITests.csproj">
     <BuildDependency Project="SettlersOfIdlestan/SettlersOfIdlestanCore.csproj" />
   </Project>
+  <Project Path="SOIStrategyTester/SOIStrategyTester.csproj">
+    <BuildDependency Project="SettlersOfIdlestan/SettlersOfIdlestanCore.csproj" />
+  </Project>
 </Solution>
