@@ -96,22 +96,34 @@ namespace SOITests.IslandMapTests.StepIslandTest
         // BuildingLevel stage causes cross-building trade interference (TryGrindOnce repeatedly
         // chases a different missing resource each call and can churn the stockpile forever — see
         // BuildingLevelObjective's doc comment) — so each stays its own stage.
-        private static IslandStepDefinition Island1SixCitiesStep(string saveName) => new()
+        // Targets 12 cities, not 6: raced via SOIStrategyTester against the old 6-then-10 split (see
+        // island1-global-level2-experiments*.json) — pushing pure expansion all the way to 12 before
+        // any further production stage beats stopping at 6 or 10, and 13 deadlocks (Phase exceeded
+        // 20000 iterations) on this exact seed, consistent with the release-1.0 fixture's known plateau
+        // at 13 cities (see Island1PrestigePointsStep below) — so 12 is the largest safe margin found.
+        // SaveName stays "Island1_Cities6" (not renamed to match the new target) so the frozen
+        // saves/release-1.0/Island1_Cities10.json → Island1_Points35.json chain in StepIslandReleaseTests
+        // keeps loading correctly; Island1TenCitiesStep right below becomes a no-op now that this step
+        // already clears its >=10 condition, kept only so step indices/SaveNames stay stable for
+        // StepIslandCurrentTests/StepIslandReleaseTests/StepIslandSaveGeneratorTests, which all address
+        // Island1.Steps by position.
+        private static IslandStepDefinition Island1TwelveCitiesStep(string saveName) => new()
         {
             SaveName = saveName,
             RunAction = (runner, cond) => runner.RunPriorityStrategyUntil(new[]
             {
                 PriorityStage.Buildings(new[] { BuildingType.TownHall }, targetLevel: 1),
                 PriorityStage.Buildings(new[] { BuildingType.Sawmill }, targetLevel: 1),
-                PriorityStage.Cities(6),
+                PriorityStage.Cities(12),
             }, cond),
-            Condition = ctrl => ctrl.CurrentMainState!.CurrentWorldState!.Civilizations.First().Cities.Count >= 6,
+            Condition = ctrl => ctrl.CurrentMainState!.CurrentWorldState!.Civilizations.First().Cities.Count >= 12,
             AssertFailMessage = ctrl =>
-                $"Expected at least 6 cities, got {ctrl.CurrentMainState!.CurrentWorldState!.Civilizations.First().Cities.Count}",
+                $"Expected at least 12 cities, got {ctrl.CurrentMainState!.CurrentWorldState!.Civilizations.First().Cities.Count}",
         };
 
-        // With 6 cities' worth of economy already in place from Cities6, pure expansion (no further
-        // production building) reaches 10 cities faster than building Sawmill in each new city first.
+        // No-op pass-through now that Island1TwelveCitiesStep above already reaches 12 (>=10) cities —
+        // see its comment for why this step's own work was folded into the previous one instead of
+        // being removed outright.
         private static IslandStepDefinition Island1TenCitiesStep(string saveName) => new()
         {
             SaveName = saveName,
@@ -134,11 +146,17 @@ namespace SOITests.IslandMapTests.StepIslandTest
         // first and the map can't actually support that many cities (verified against the release-1.0
         // fixture, which plateaus at 13), Temple/TownHall would never even start and points would never
         // grow — confirmed by reproducing that exact deadlock against saves/release-1.0/Island1_Cities10.
+        // Seaport to level 2 (across all 12 cities) is raced in FIRST, ahead of Temple/TownHall — unlike
+        // Sawmill/Brickworks/Mill/Market/Warehouse level-2 upgrades (all tried via SOIStrategyTester and
+        // found to be net losses, see island1-global-level2-experiments*.json), Seaport2 alone pays for
+        // its own construction time several times over by speeding up the trade that funds everything
+        // after it, cutting ~19% off total ticks to PrestigeAvailable (95950 -> 77700 on seed 42).
         private static IslandStepDefinition Island1PrestigePointsStep(string saveName, int requiredPoints, int maxIterations) => new()
         {
             SaveName = saveName,
             RunAction = (runner, cond) => runner.RunPriorityStrategyUntil(new[]
             {
+                PriorityStage.Buildings(new[] { BuildingType.Seaport }, targetLevel: 2),
                 PriorityStage.Buildings(new[] { BuildingType.Temple }, targetLevel: 1),
                 PriorityStage.Buildings(new[] { BuildingType.TownHall }, targetLevel: 3),
                 PriorityStage.Cities(30),
@@ -366,7 +384,7 @@ namespace SOITests.IslandMapTests.StepIslandTest
             Steps = new List<IslandStepDefinition>
             {
                 TwoCitiesStep("Island1_Cities2"),
-                Island1SixCitiesStep("Island1_Cities6"),
+                Island1TwelveCitiesStep("Island1_Cities6"),
                 Island1TenCitiesStep("Island1_Cities10"),
                 Island1PrestigePointsStep("Island1_Points35", Island1RequiredPrestigePoints, maxIterations: 20000),
                 Island1PrestigeAvailableStep("Island1_PrestigeReady"),

@@ -599,6 +599,9 @@ namespace SettlersOfIdlestan.Controller.Island
         /// <summary>Cooldown de récolte manuelle en ticks.</summary>
         public long GetManualHarvestCooldownTicks(int civilizationIndex) => HarvestCooldownTicks;
 
+        /// <summary>Tick de simulation courant (0 si l'horloge n'est pas initialisée, ex. tests sans clock).</summary>
+        public long CurrentTick => _clock?.CurrentTick ?? 0;
+
         /// <summary>
         /// Retourne les informations de récolte automatique par bâtiment pour un hex donné.
         /// Chaque entrée = (vertex de la ville, type du bâtiment, ressource, tick de la dernière récolte, cooldown effectif).

@@ -40,6 +40,10 @@ namespace SettlersOfIdlestan.Controller
         private int _prospectiveVerticesCacheTotalCityCount = -1;
         private List<Vertex>? _prospectiveVerticesCache;
 
+        /// <summary>Simule le temps de réaction d'un joueur entre deux salves de clics de récolte manuelle.</summary>
+        private const long ClickCooldownTicks = 20L;
+        private long _nextClickAllowedTick = long.MinValue;
+
         private static readonly BuildingType[] Step1Buildings =
         {
             BuildingType.TownHall, BuildingType.Seaport, BuildingType.Market,
@@ -95,15 +99,21 @@ namespace SettlersOfIdlestan.Controller
 
         public void TryGrindOnce(ResourceSet? requiredResources)
         {
-            var toHarvest = new HashSet<HexCoord>();
-            foreach (var city in _civ.Cities)
+            long now = _harvestController.CurrentTick;
+            if (now >= _nextClickAllowedTick)
             {
-                foreach (var h in city.Position.GetHexes())
-                    if (h != null) toHarvest.Add(h);
-            }
+                _nextClickAllowedTick = now + ClickCooldownTicks;
 
-            foreach (var hex in toHarvest)
-                _harvestController.ManualHarvest(_civ.Index, hex);
+                var toHarvest = new HashSet<HexCoord>();
+                foreach (var city in _civ.Cities)
+                {
+                    foreach (var h in city.Position.GetHexes())
+                        if (h != null) toHarvest.Add(h);
+                }
+
+                foreach (var hex in toHarvest)
+                    _harvestController.ManualHarvest(_civ.Index, hex);
+            }
 
             if (requiredResources != null && requiredResources.Any())
             {
