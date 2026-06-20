@@ -35,6 +35,8 @@ namespace SettlersOfIdlestan.Controller.Island
         private WorldState? _state;
         private GameClock? _clock;
 
+        private static readonly BuildingType[] _allBuildingTypes = (BuildingType[])Enum.GetValues(typeof(BuildingType));
+
         public event EventHandler<BuildingBuiltEventArgs>? OnBuildingBuilt;
 
         internal BuildingController(WorldState? state = null)
@@ -223,37 +225,63 @@ namespace SettlersOfIdlestan.Controller.Island
         {
             if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
 
-            var civ = _state.Civilizations.FirstOrDefault(c => c.Index == city.CivilizationIndex)
-                      ?? throw new ArgumentException("Civilization not found", nameof(city.CivilizationIndex));
+            var existingByType = new Dictionary<BuildingType, Building>(city.Buildings.Count);
+            foreach (var b in city.Buildings)
+                existingByType[b.Type] = b;
 
-            var result = new List<Building>();
+            var map = _state.GetMapFor(city.Position);
 
-            foreach (BuildingType bt in Enum.GetValues(typeof(BuildingType)))
+            var result = new List<Building>(_allBuildingTypes.Length);
+
+            foreach (var bt in _allBuildingTypes)
             {
-                var prototype = CreateBuilding(bt);
-                if (prototype == null || prototype.IsUnique)
-                    continue;
-
-                var existing = city.Buildings.FirstOrDefault(b => b.Type == bt);
-                if (existing != null)
-                {
-                    result.Add(existing);
-                }
-                else
-                {
-                    if ((GetMaxLevel(prototype, city.CivilizationIndex) > 0) &&
-                        _state.GetMapFor(city.Position) is { } map0 &&
-                        prototype.IsBuildingAvailableForCity(map0, city))
-                    {
-                        result.Add(prototype);
-                    }
-                }
+                var entry = GetBuildingOrBuildableEntry(city, bt, existingByType, map);
+                if (entry != null)
+                    result.Add(entry);
             }
 
             // sort the result by available level
             result.Sort((a, b) => a.AvailableAtLevel.CompareTo(b.AvailableAtLevel));
 
             return result;
+        }
+
+        /// <summary>
+        /// Retourne le bâtiment existant ou le prototype constructible pour ce type précis dans la
+        /// ville donnée, ou null si ce type n'est pas disponible. Évite de reconstruire la liste
+        /// complète de <see cref="GetBuildingsAndBuildables"/> quand on ne s'intéresse qu'à un seul type.
+        /// </summary>
+        public Building? GetBuildingOrBuildable(City city, BuildingType type)
+        {
+            if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
+
+            var existing = city.Buildings.FirstOrDefault(b => b.Type == type);
+            return GetBuildingOrBuildableEntry(city, type, existing, _state.GetMapFor(city.Position));
+        }
+
+        private Building? GetBuildingOrBuildableEntry(City city, BuildingType bt, Dictionary<BuildingType, Building> existingByType, IslandMap? map)
+        {
+            existingByType.TryGetValue(bt, out var existing);
+            return GetBuildingOrBuildableEntry(city, bt, existing, map);
+        }
+
+        private Building? GetBuildingOrBuildableEntry(City city, BuildingType bt, Building? existing, IslandMap? map)
+        {
+            if (existing != null)
+                return existing.IsUnique ? null : existing;
+
+            var prototype = CreateBuilding(bt);
+            if (prototype == null || prototype.IsUnique)
+                return null;
+
+            if (GetMaxLevel(prototype, city.CivilizationIndex) > 0 &&
+                map != null &&
+                prototype.IsBuildingAvailableForCity(map, city))
+            {
+                return prototype;
+            }
+
+            return null;
         }
 
         /// <summary>
@@ -362,7 +390,7 @@ namespace SettlersOfIdlestan.Controller.Island
 
             var result = new List<Building>();
 
-            foreach (BuildingType bt in Enum.GetValues(typeof(BuildingType)))
+            foreach (var bt in _allBuildingTypes)
             {
                 var prototype = CreateBuilding(bt);
                 if (prototype == null || !prototype.IsUnique || GetMaxLevel(prototype, city.CivilizationIndex) <= 0)

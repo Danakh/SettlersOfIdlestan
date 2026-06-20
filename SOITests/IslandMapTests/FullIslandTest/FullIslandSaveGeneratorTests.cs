@@ -22,8 +22,9 @@ namespace SOITests.IslandMapTests.FullIslandTest
             [
                 (FullIslandScenarios.Island1, 0), (FullIslandScenarios.Island1, 1), (FullIslandScenarios.Island1, 2), (FullIslandScenarios.Island1, 3), (FullIslandScenarios.Island1, 4),
                 (FullIslandScenarios.Island2, 0), (FullIslandScenarios.Island2, 1), (FullIslandScenarios.Island2, 2), (FullIslandScenarios.Island2, 3), (FullIslandScenarios.Island2, 4), (FullIslandScenarios.Island2, 5), (FullIslandScenarios.Island2, 6),
-                (FullIslandScenarios.Island3, 0), (FullIslandScenarios.Island3, 1), (FullIslandScenarios.Island3, 2), (FullIslandScenarios.Island3, 3), (FullIslandScenarios.Island3, 4), (FullIslandScenarios.Island3, 5), (FullIslandScenarios.Island3, 6), (FullIslandScenarios.Island3, 7), (FullIslandScenarios.Island3, 8),
-                (FullIslandScenarios.Island4, 0), (FullIslandScenarios.Island4, 1), (FullIslandScenarios.Island4, 2), (FullIslandScenarios.Island4, 3), (FullIslandScenarios.Island4, 4),
+                (FullIslandScenarios.Island3, 0), (FullIslandScenarios.Island3, 1), (FullIslandScenarios.Island3, 2), (FullIslandScenarios.Island3, 3), (FullIslandScenarios.Island3, 4), (FullIslandScenarios.Island3, 5), (FullIslandScenarios.Island3, 6), (FullIslandScenarios.Island3, 7), (FullIslandScenarios.Island3, 8), (FullIslandScenarios.Island3, 9),
+                (FullIslandScenarios.Island4, 0), (FullIslandScenarios.Island4, 1), (FullIslandScenarios.Island4, 2), (FullIslandScenarios.Island4, 3), (FullIslandScenarios.Island4, 4), (FullIslandScenarios.Island4, 5), (FullIslandScenarios.Island4, 6), (FullIslandScenarios.Island4, 7), (FullIslandScenarios.Island4, 8),
+                (FullIslandScenarios.Island5, 0),
             ];
             foreach (var (scenario, stepIndex) in steps)
                 RunStepAndReport(scenario, stepIndex, "current", saveFinal: true);
@@ -44,7 +45,7 @@ namespace SOITests.IslandMapTests.FullIslandTest
                 (FullIslandScenarios.Island1, 1), (FullIslandScenarios.Island1, 2), (FullIslandScenarios.Island1, 3), (FullIslandScenarios.Island1, 4),
                 (FullIslandScenarios.Island2, 0), (FullIslandScenarios.Island2, 1), (FullIslandScenarios.Island2, 2), (FullIslandScenarios.Island2, 3), (FullIslandScenarios.Island2, 5), (FullIslandScenarios.Island2, 6),
                 (FullIslandScenarios.Island3, 0), (FullIslandScenarios.Island3, 1), (FullIslandScenarios.Island3, 2), (FullIslandScenarios.Island3, 3), (FullIslandScenarios.Island3, 5), (FullIslandScenarios.Island3, 6), (FullIslandScenarios.Island3, 7), (FullIslandScenarios.Island3, 8),
-                (FullIslandScenarios.Island4, 0), (FullIslandScenarios.Island4, 1), (FullIslandScenarios.Island4, 2), (FullIslandScenarios.Island4, 3), (FullIslandScenarios.Island4, 4),
+                (FullIslandScenarios.Island4, 0), (FullIslandScenarios.Island4, 1), (FullIslandScenarios.Island4, 2), (FullIslandScenarios.Island4, 3), (FullIslandScenarios.Island4, 5),
             ];
             foreach (var (scenario, stepIndex) in steps)
                 RunStepAndReport(scenario, stepIndex, "release-1.0", saveFinal: false);

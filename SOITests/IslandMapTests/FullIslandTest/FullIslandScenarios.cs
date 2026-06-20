@@ -92,10 +92,10 @@ namespace SOITests.IslandMapTests.FullIslandTest
         /// civilization has lost all of its cities. Requires the Barracks prestige vertex to already
         /// be purchased.
         /// </summary>
-        private static IslandStepDefinition ExterminateCivilizationsStep(string saveName) => new()
+        private static IslandStepDefinition ExterminateCivilizationsStep(string saveName, int maxIterations = 50000) => new()
         {
             SaveName = saveName,
-            RunAction = (runner, cond) => runner.RunStepExterminateCivilizationsUntil(cond),
+            RunAction = (runner, cond) => runner.RunStepExterminateCivilizationsUntil(cond, maxIterations),
             Condition = ctrl => ctrl.CurrentMainState!.CurrentWorldState!.Civilizations.Where(c => c.IsNpc).All(c => c.Cities.Count == 0),
             AssertFailMessage = ctrl =>
             {
@@ -107,7 +107,7 @@ namespace SOITests.IslandMapTests.FullIslandTest
         private static IslandStepDefinition WonderPlacedStep(string saveName) => new()
         {
             SaveName = saveName,
-            RunAction = (runner, cond) => runner.RunStepWonderSetupUntil(cond),
+            RunAction = (runner, cond) => runner.RunStepWonderUntil(cond),
             Condition = ctrl =>
             {
                 var worldState = ctrl.CurrentMainState?.CurrentWorldState;
@@ -117,17 +117,24 @@ namespace SOITests.IslandMapTests.FullIslandTest
             AssertFailMessage = _ => "Expected wonder to be placed with investment enabled",
         };
 
-        private static IslandStepDefinition WonderLevel1Step(string saveName) => new()
+        /// <summary>Waits for the Wonder to reach <paramref name="targetLevel"/>. Reusable for any
+        /// level — CivilizationAutoplayer.TryWonderInvestmentOnce re-enables investment for whichever
+        /// resources the next level needs each time the previous level-up clears it.</summary>
+        private static IslandStepDefinition WonderLevelStep(string saveName, int targetLevel) => new()
         {
             SaveName = saveName,
-            RunAction = (runner, cond) => runner.RunStepWaitUntil(cond),
+            RunAction = (runner, cond) => runner.RunStepWonderUntil(cond),
             Condition = ctrl =>
             {
                 var worldState = ctrl.CurrentMainState?.CurrentWorldState;
                 var wonder = worldState?.Features.OfType<Wonder>().FirstOrDefault();
-                return wonder != null && wonder.Level >= 1;
+                return wonder != null && wonder.Level >= targetLevel;
             },
-            AssertFailMessage = _ => "Expected wonder to be at level 1",
+            AssertFailMessage = ctrl =>
+            {
+                var wonder = ctrl.CurrentMainState?.CurrentWorldState?.Features.OfType<Wonder>().FirstOrDefault();
+                return $"Expected wonder to be at level {targetLevel} (has {wonder?.Level ?? 0})";
+            },
         };
 
         // ── Island 1 scenario ────────────────────────────────────────────────
@@ -216,7 +223,12 @@ namespace SOITests.IslandMapTests.FullIslandTest
                 PrestigePointsStep("Island3_Step3"),
                 PrestigeAvailableStep("Island3_Step3bis"),
                 WonderPlacedStep("Island3_Wonder_Step0"),
-                WonderLevel1Step("Island3_Wonder_Step1"),
+                WonderLevelStep("Island3_Wonder_Step1", targetLevel: 1),
+                // Pushed well past the default threshold, after the wonder's multiplier is already
+                // active: Island 4 (archipelago) needs the Watchtower (100) + MaritimeRoutes (400)
+                // chain bought deterministically at its own transition (see Island4's Step0), which
+                // requires a healthy banked surplus.
+                PrestigePointsStep("Island3_Step4", requiredPoints: 700, shouldExpand: true, maxIterations: 30000),
             },
         };
 
@@ -225,15 +237,18 @@ namespace SOITests.IslandMapTests.FullIslandTest
         internal static readonly IslandScenario Island4 = new()
         {
             Name = "Island4",
-            CreateFreshController = folder => SaveUtils.LoadSave(folder, "Island3_Wonder_Step1"),
-            IsInputAvailable = folder => SaveUtils.SaveExists(folder, "Island3_Wonder_Step1"),
+            CreateFreshController = folder => SaveUtils.LoadSave(folder, "Island3_Step4"),
+            IsInputAvailable = folder => SaveUtils.SaveExists(folder, "Island3_Step4"),
             Steps = new List<IslandStepDefinition>
             {
-                // Step 0: third prestige transition + greedy point distribution.
+                // Step 0: third prestige transition. Island 4 is an archipelago — Watchtower then
+                // MaritimeRoutes are purchased first (deterministically) so the player can build roads
+                // across water and reach the NPC civilizations on other landmasses; the remaining
+                // balance is then spent greedily as usual.
                 new()
                 {
                     SaveName = "Island4_Step0",
-                    RunAction = (runner, cond) => runner.RunStepPrestige(cond),
+                    RunAction = (runner, cond) => runner.RunStepPrestige(cond, new[] { PrestigeMap.WatchtowerVertex, PrestigeMap.MaritimeRoutesVertex }),
                     Condition = ctrl => ctrl.CurrentMainState?.PrestigeState?.RunHistory.Count >= 3,
                     AssertFailMessage = _ => "Expected third prestige to have been performed (RunHistory.Count < 3)",
                     IsPrestigeStep = true,
@@ -241,7 +256,35 @@ namespace SOITests.IslandMapTests.FullIslandTest
                 TwoCitiesStep("Island4_Step1"),
                 SixCitiesStep("Island4_Step2"),
                 TenCitiesStep("Island4_Step2bis"),
+                ExterminateCivilizationsStep("Island4_Step2ter", maxIterations: 150000),
                 PrestigePointsStep("Island4_Step3"),
+                PrestigeAvailableStep("Island4_Step3bis"),
+                WonderPlacedStep("Island4_Wonder_Step0"),
+                // One level further than Island 3's target (level 1) — the Wonder is a fresh,
+                // per-island feature, so Island 4 re-places it and pushes one level beyond.
+                WonderLevelStep("Island4_Wonder_Step1", targetLevel: 2),
+            },
+        };
+
+        // ── Island 5 scenario ────────────────────────────────────────────────
+        // Only goes up to the start of the run — the fourth prestige transition out of Island 4.
+
+        internal static readonly IslandScenario Island5 = new()
+        {
+            Name = "Island5",
+            CreateFreshController = folder => SaveUtils.LoadSave(folder, "Island4_Wonder_Step1"),
+            IsInputAvailable = folder => SaveUtils.SaveExists(folder, "Island4_Wonder_Step1"),
+            Steps = new List<IslandStepDefinition>
+            {
+                // Step 0: fourth prestige transition + greedy point distribution.
+                new()
+                {
+                    SaveName = "Island5_Step0",
+                    RunAction = (runner, cond) => runner.RunStepPrestige(cond),
+                    Condition = ctrl => ctrl.CurrentMainState?.PrestigeState?.RunHistory.Count >= 4,
+                    AssertFailMessage = _ => "Expected fourth prestige to have been performed (RunHistory.Count < 4)",
+                    IsPrestigeStep = true,
+                },
             },
         };
     }

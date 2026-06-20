@@ -114,8 +114,13 @@ namespace SOITests.IslandMapTests.FullIslandTest
         public void Release1_0_Island4_Step2bis() =>
             IslandScenarioRunner.RunStep(FullIslandScenarios.Island4, 3, "release-1.0", saveFinal: false);
 
+        // Note: no Release1_0_Island4_Step2ter_ExterminateCivilizations or Wonder facts — same reason
+        // as Island 2/3's extermination steps; Step3 onward silently skip once their expected
+        // "previous step" save is missing under the new numbering (and release-1.0 has no frozen
+        // saves past Island2 anyway, so these always skip today).
+
         [Fact]
         public void Release1_0_Island4_Step3() =>
-            IslandScenarioRunner.RunStep(FullIslandScenarios.Island4, 4, "release-1.0", saveFinal: false);
+            IslandScenarioRunner.RunStep(FullIslandScenarios.Island4, 5, "release-1.0", saveFinal: false);
     }
 }

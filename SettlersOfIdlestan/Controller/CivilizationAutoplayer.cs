@@ -5,6 +5,7 @@ using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.Buildings;
+using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.Prestige;
 using SettlersOfIdlestan.Controller.Expand;
 using SettlersOfIdlestan.Controller.Island;
@@ -33,6 +34,7 @@ namespace SettlersOfIdlestan.Controller
         private readonly WorldState? _worldState;
         private readonly PrestigeState? _prestigeState;
         private readonly Action? _performPrestige;
+        private readonly WonderController? _wonderController;
 
         private static readonly BuildingType[] Step1Buildings =
         {
@@ -66,7 +68,8 @@ namespace SettlersOfIdlestan.Controller
             PrestigeMapController prestigeMapController,
             WorldState? worldState,
             PrestigeState? prestigeState = null,
-            Action? performPrestige = null)
+            Action? performPrestige = null,
+            WonderController? wonderController = null)
         {
             _civ = civ ?? throw new ArgumentNullException(nameof(civ));
             _map = map ?? throw new ArgumentNullException(nameof(map));
@@ -81,6 +84,7 @@ namespace SettlersOfIdlestan.Controller
             _worldState = worldState;
             _prestigeState = prestigeState;
             _performPrestige = performPrestige;
+            _wonderController = wonderController;
         }
 
         // ── Primitive utilities ──────────────────────────────────────────────────
@@ -145,8 +149,7 @@ namespace SettlersOfIdlestan.Controller
         {
             if (city == null) throw new ArgumentNullException(nameof(city));
 
-            var buildables = _buildingController.GetBuildingsAndBuildables(city);
-            var target = buildables.FirstOrDefault(b => b.Type == buildingType);
+            var target = _buildingController.GetBuildingOrBuildable(city, buildingType);
             if (target == null) return false;
 
             // Skip already-maxed buildings
@@ -315,6 +318,39 @@ namespace SettlersOfIdlestan.Controller
                     if (TryBuildBuildingOnce(city, bt, withGrind: false))
                         didSomething = true;
                 }
+            }
+
+            return didSomething;
+        }
+
+        /// <summary>
+        /// Places the Wonder if not yet placed (requires Architecture/UNLOCK_WONDERS to be unlocked),
+        /// then keeps investment enabled for whichever resources the next level requires.
+        /// WonderController clears InvestmentEnabled after each level-up, so this must be called
+        /// repeatedly to keep investing toward subsequent levels. No-ops if the WonderController
+        /// dependency was not supplied or wonders are not unlocked.
+        /// </summary>
+        public bool TryWonderInvestmentOnce()
+        {
+            if (_wonderController == null || _worldState == null) return false;
+
+            var wonder = _worldState.Features.OfType<Wonder>().FirstOrDefault();
+            if (wonder == null)
+            {
+                if (!_wonderController.CanPlaceWonder(_civ)) return false;
+                var hexes = _wonderController.GetPlaceableHexes();
+                if (hexes.Count == 0) return false;
+                wonder = _wonderController.PlaceWonder(hexes[0]);
+                if (wonder == null) return false;
+            }
+
+            bool didSomething = false;
+            var cost = WonderController.GetLevelCost(wonder.Level + 1);
+            foreach (var resource in cost.Keys)
+            {
+                if (wonder.InvestmentEnabled.Contains(resource)) continue;
+                wonder.InvestmentEnabled.Add(resource);
+                didSomething = true;
             }
 
             return didSomething;

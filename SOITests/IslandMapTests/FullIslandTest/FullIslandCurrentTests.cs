@@ -99,6 +99,10 @@ namespace SOITests.IslandMapTests.FullIslandTest
         public void Current_Island3_Wonder_Step1() =>
             IslandScenarioRunner.RunStep(FullIslandScenarios.Island3, 8, "current", saveFinal: true);
 
+        [Fact]
+        public void Current_Island3_Step4() =>
+            IslandScenarioRunner.RunStep(FullIslandScenarios.Island3, 9, "current", saveFinal: true);
+
         // ── Island 4 — current mode ───────────────────────────────────────────
 
         [Fact]
@@ -118,7 +122,29 @@ namespace SOITests.IslandMapTests.FullIslandTest
             IslandScenarioRunner.RunStep(FullIslandScenarios.Island4, 3, "current", saveFinal: true);
 
         [Fact]
-        public void Current_Island4_Step3() =>
+        public void Current_Island4_Step2ter_ExterminateCivilizations() =>
             IslandScenarioRunner.RunStep(FullIslandScenarios.Island4, 4, "current", saveFinal: true);
+
+        [Fact]
+        public void Current_Island4_Step3() =>
+            IslandScenarioRunner.RunStep(FullIslandScenarios.Island4, 5, "current", saveFinal: true);
+
+        [Fact]
+        public void Current_Island4_Step3bis() =>
+            IslandScenarioRunner.RunStep(FullIslandScenarios.Island4, 6, "current", saveFinal: true);
+
+        [Fact]
+        public void Current_Island4_Wonder_Step0() =>
+            IslandScenarioRunner.RunStep(FullIslandScenarios.Island4, 7, "current", saveFinal: true);
+
+        [Fact]
+        public void Current_Island4_Wonder_Step1() =>
+            IslandScenarioRunner.RunStep(FullIslandScenarios.Island4, 8, "current", saveFinal: true);
+
+        // ── Island 5 — current mode (start of the run only) ───────────────────
+
+        [Fact]
+        public void Current_Island5_Step0_Prestige() =>
+            IslandScenarioRunner.RunStep(FullIslandScenarios.Island5, 0, "current", saveFinal: true);
     }
 }

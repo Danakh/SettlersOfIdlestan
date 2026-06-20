@@ -60,7 +60,8 @@ public static class IslandScenarioRunner
             controller.PrestigeMapController,
             worldState,
             controller.CurrentMainState!.PrestigeState,
-            controller.PerformPrestige);
+            controller.PerformPrestige,
+            controller.WonderController);
         var runner = new CivilizationAutoplayerRunner(autoplayer, civ, controller);
 
         step.RunAction(runner, () => step.Condition(controller));
