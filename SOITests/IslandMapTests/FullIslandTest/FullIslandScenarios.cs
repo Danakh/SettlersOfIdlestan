@@ -31,10 +31,15 @@ namespace SOITests.IslandMapTests.FullIslandTest
         // Not re-tuned per island (no Library/research dependency at this early stage, unlike
         // SixCitiesStep/TenCitiesStep below), but verified to pass for Island2/3/4 in both "current" and
         // "release-1.0" mode.
+        // Seaport before Market: a city that starts with banked Food (e.g. Island3, from
+        // PrestigeMapController.ApplyPrestigeToNewGame's starting-resource bonus) can afford Market
+        // before Seaport/Brickworks even with BuildingLevelObjective's combined-cost grind reserve
+        // (see its TryAdvanceOnce) — unlocking trade early gains nothing here since Market itself
+        // doesn't need protecting from anyone, so there's no reason to risk it racing ahead.
         private static readonly BuildingType[] Step1PriorityBuildings =
         {
             BuildingType.TownHall, BuildingType.Sawmill, BuildingType.Brickworks,
-            BuildingType.Mill, BuildingType.Market, BuildingType.Seaport,
+            BuildingType.Mill, BuildingType.Seaport, BuildingType.Market,
         };
 
         private static IslandStepDefinition TwoCitiesStep(string saveName) => new()

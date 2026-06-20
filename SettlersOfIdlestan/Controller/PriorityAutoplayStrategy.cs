@@ -4,6 +4,7 @@ using System.Linq;
 using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
+using SettlersOfIdlestan.Model.IslandMap;
 
 namespace SettlersOfIdlestan.Controller
 {
@@ -50,9 +51,31 @@ namespace SettlersOfIdlestan.Controller
         public bool TryAdvanceOnce()
         {
             foreach (var city in _autoplayer.Civilization.Cities.ToList())
+            {
+                // Grind once for the combined cost of every not-yet-done building in this stage, not just
+                // the one about to be attempted below — otherwise TryAutoTradeForPurchase, only seeing one
+                // building's cost at a time, can sell off a resource (e.g. Wood) that a *different* pending
+                // building in the same stage still needs (e.g. Seaport), churning the stockpile forever
+                // instead of ever accumulating enough for either. See PrestigeMapController.
+                // ApplyPrestigeToNewGame's starting-resource bonus for why this surfaced on Island3:
+                // enough banked Food to build Market (and unlock trade) before Brickworks/Seaport, with
+                // only one Hill hex's worth of Brick income, used to deadlock TwoCitiesStep entirely.
+                var reserve = new ResourceSet();
                 foreach (var bt in _buildingTypes)
-                    if (!IsDone(city, bt) && _autoplayer.TryBuildBuildingOnce(city, bt))
+                {
+                    if (IsDone(city, bt)) continue;
+                    var building = _buildingController.GetBuildingOrBuildable(city, bt);
+                    if (building == null) continue;
+                    var cost = building.Level == 0 ? building.GetBuildCost() : building.GetUpgradeCost(building.Level + 1);
+                    foreach (var (resource, amount) in cost)
+                        reserve[resource] = Math.Max(reserve[resource], amount);
+                }
+                _autoplayer.TryGrindOnce(reserve);
+
+                foreach (var bt in _buildingTypes)
+                    if (!IsDone(city, bt) && _autoplayer.TryBuildBuildingOnce(city, bt, withGrind: false))
                         return true;
+            }
             return false;
         }
 
