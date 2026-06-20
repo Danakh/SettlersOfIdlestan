@@ -22,10 +22,29 @@ namespace SOITests.IslandMapTests.FullIslandTest
     {
         // ── Shared step conditions ────────────────────────────────────────────
 
+        // Found via SOIStrategyTester for Island1 (SOIStrategyTester/Data/Best/island1-step1.best.json)
+        // and reused as-is for every island's first step: building only the production chain that
+        // actually matters (Sawmill/Brickworks/Mill for the road/outpost costs) plus Market/Seaport to
+        // unlock trade — needed because a city's terrain doesn't always produce every basic resource
+        // automatically, and without trade a missing one stalls forever — reaches 2 cities with
+        // TownHall faster than both the full Step1 building list and the high-level Step1 autoplayer.
+        // Not re-tuned per island (no Library/research dependency at this early stage, unlike
+        // SixCitiesStep/TenCitiesStep below), but verified to pass for Island2/3/4 in both "current" and
+        // "release-1.0" mode.
+        private static readonly BuildingType[] Step1PriorityBuildings =
+        {
+            BuildingType.TownHall, BuildingType.Sawmill, BuildingType.Brickworks,
+            BuildingType.Mill, BuildingType.Market, BuildingType.Seaport,
+        };
+
         private static IslandStepDefinition TwoCitiesStep(string saveName) => new()
         {
             SaveName = saveName,
-            RunAction = (runner, cond) => runner.RunStep1Until(cond),
+            RunAction = (runner, cond) => runner.RunPriorityStrategyUntil(new[]
+            {
+                PriorityStage.Buildings(Step1PriorityBuildings, targetLevel: 1),
+                PriorityStage.Cities(2),
+            }, cond),
             Condition = ctrl =>
             {
                 var civ = ctrl.CurrentMainState!.CurrentWorldState!.Civilizations[0];
@@ -59,43 +78,12 @@ namespace SOITests.IslandMapTests.FullIslandTest
 
         // ── Island 1-specific step definitions ──────────────────────────────────
         // Found via SOIStrategyTester (SOIStrategyTester/Data/Best/island1-step*.best.json) and used
-        // only for Island1, whose steps start from a fresh, research-less, un-prestiged game — the
-        // priority orderings below are tuned against exactly that starting state and don't generalize
-        // to Island2+ (e.g. they skip Library, which TwoCitiesStep/SixCitiesStep above still build once
-        // research is unlocked after the first prestige), so Island1 gets its own step definitions
-        // instead of reusing the shared ones.
-
-        // Building only the production chain that actually matters (Sawmill/Brickworks/Mill for the
-        // road/outpost costs) plus Market/Seaport to unlock trade — needed because the city's terrain
-        // doesn't always produce every basic resource automatically, and without trade a missing one
-        // stalls forever — reaches 2 cities with TownHall faster than both the full Step1 building list
-        // and the high-level Step1 autoplayer.
-        private static readonly BuildingType[] Island1Step1PriorityBuildings =
-        {
-            BuildingType.TownHall, BuildingType.Sawmill, BuildingType.Brickworks,
-            BuildingType.Mill, BuildingType.Market, BuildingType.Seaport,
-        };
-
-        private static IslandStepDefinition Island1TwoCitiesStep(string saveName) => new()
-        {
-            SaveName = saveName,
-            RunAction = (runner, cond) => runner.RunPriorityStrategyUntil(new[]
-            {
-                PriorityStage.Buildings(Island1Step1PriorityBuildings, targetLevel: 1),
-                PriorityStage.Cities(2),
-            }, cond),
-            Condition = ctrl =>
-            {
-                var civ = ctrl.CurrentMainState!.CurrentWorldState!.Civilizations[0];
-                return civ.Cities.Count >= 2
-                    && civ.Cities.All(c => c.Buildings.Any(b => b.Type == BuildingType.TownHall));
-            },
-            AssertFailMessage = ctrl =>
-            {
-                var civ = ctrl.CurrentMainState!.CurrentWorldState!.Civilizations[0];
-                return $"Expected at least 2 cities with TownHall, got {civ.Cities.Count}";
-            },
-        };
+        // only for Island1, whose later steps start from a fresh, research-less, un-prestiged game —
+        // the priority orderings below are tuned against exactly that starting state and don't
+        // generalize to Island2+ (e.g. they skip Library, which SixCitiesStep below still builds once
+        // research is unlocked after the first prestige), so Island1 gets its own step definitions for
+        // Step2 onward instead of reusing the shared ones. Step1 (TwoCitiesStep above) is shared by all
+        // islands — see its own comment.
 
         // Only TownHall + Sawmill are worth building before expanding — every other Step2 production
         // building (Brickworks, Mill, Market, Seaport, Warehouse, Mine, Forge) costs more in
@@ -316,7 +304,7 @@ namespace SOITests.IslandMapTests.FullIslandTest
             },
             Steps = new List<IslandStepDefinition>
             {
-                Island1TwoCitiesStep("Island1_Step1"),
+                TwoCitiesStep("Island1_Step1"),
                 Island1SixCitiesStep("Island1_Step2"),
                 Island1TenCitiesStep("Island1_Step2bis"),
                 Island1PrestigePointsStep("Island1_Step3", Island1RequiredPrestigePoints, maxIterations: 20000),
