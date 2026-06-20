@@ -320,8 +320,10 @@ namespace SOITests.ControllerTests
 
             var clock = new GameClock();
             clock.Start();
+            var cityBuilder = new CityBuilderController();
+            cityBuilder.Initialize(state, clock, new GamePRNG());
             var controller = new MonsterFeatureController();
-            controller.Initialize(state, clock, new GamePRNG());
+            controller.Initialize(state, clock, new GamePRNG(), cityBuilder);
 
             void AssertCityCountsConsistent()
             {

@@ -88,7 +88,7 @@ public class TaskRecordController
         _harvestController.OnHarvestCompleted += HandleHarvestCompleted;
         _tradeController.GoldObtainedFromTrade += HandleGoldObtainedFromTrade;
         _militaryController.ReinforcementSent += HandleReinforcementSent;
-        _militaryController.CityDestroyed += HandleCityDestroyed;
+        _cityBuilderController.OnCityDestroyed += HandleCityDestroyed;
         _wonderController.OnWonderPlaced += HandleWonderPlaced;
         _wonderController.OnWonderLevelUp += HandleWonderLevelUp;
         _corruptionSpireController.OnCorruptionSpireBuilt += HandleCorruptionSpireBuilt;
@@ -105,7 +105,7 @@ public class TaskRecordController
         if (_harvestController != null) _harvestController.OnHarvestCompleted -= HandleHarvestCompleted;
         if (_tradeController != null) _tradeController.GoldObtainedFromTrade -= HandleGoldObtainedFromTrade;
         if (_militaryController != null) _militaryController.ReinforcementSent -= HandleReinforcementSent;
-        if (_militaryController != null) _militaryController.CityDestroyed -= HandleCityDestroyed;
+        if (_cityBuilderController != null) _cityBuilderController.OnCityDestroyed -= HandleCityDestroyed;
         if (_wonderController != null) _wonderController.OnWonderPlaced -= HandleWonderPlaced;
         if (_wonderController != null) _wonderController.OnWonderLevelUp -= HandleWonderLevelUp;
         if (_corruptionSpireController != null) _corruptionSpireController.OnCorruptionSpireBuilt -= HandleCorruptionSpireBuilt;
@@ -253,7 +253,8 @@ public class TaskRecordController
     private void HandleCityDestroyed(object? sender, CityDestroyedEventArgs e)
     {
         if (_gameRecord == null) return;
-        if (e.CivilizationIndex != _playerCivIndex && e.CivilizationIndex >= 0)
+        // Only military conquest counts toward this achievement — monster-destroyed cities don't.
+        if (e.Cause == CityDestructionCause.Combat && e.CivilizationIndex != _playerCivIndex && e.CivilizationIndex >= 0)
         {
             _gameRecord.TotalEnemyCitiesDestroyed++;
             CheckTaskCompletions();

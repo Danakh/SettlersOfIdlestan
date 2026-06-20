@@ -57,11 +57,14 @@ public class MilitaryControllerWarTests
         var featureCtrl = new FeatureController();
         featureCtrl.Initialize(state, clock);
 
+        var cityBuilder = new CityBuilderController();
+        cityBuilder.Initialize(state, clock, new GamePRNG());
+
         var ctrl = new MilitaryController();
-        ctrl.Initialize(state, clock, prng: new GamePRNG());
+        ctrl.Initialize(state, clock, cityBuilder, prng: new GamePRNG());
 
         // Branchement identique à MainGameController après le fix du bug
-        ctrl.CityDestroyed += (_, _) => featureCtrl.RefreshContestedTerritories();
+        cityBuilder.OnCityDestroyed += (_, _) => featureCtrl.RefreshContestedTerritories();
 
         cityA.FlowTarget = VertexB; // cible de renfort pour déclencher la logique
 
@@ -178,9 +181,12 @@ public class MilitaryControllerWarTests
         var featureCtrl = new FeatureController();
         featureCtrl.Initialize(state, clock);
 
+        var cityBuilder = new CityBuilderController();
+        cityBuilder.Initialize(state, clock, new GamePRNG());
+
         var ctrl = new MilitaryController();
-        ctrl.Initialize(state, clock, prng: new GamePRNG());
-        ctrl.CityDestroyed += (_, _) => featureCtrl.RefreshContestedTerritories();
+        ctrl.Initialize(state, clock, cityBuilder, prng: new GamePRNG());
+        cityBuilder.OnCityDestroyed += (_, _) => featureCtrl.RefreshContestedTerritories();
 
         // Après le premier coup : TownHall retiré, ville toujours en vie
         clock.SimulateAdvance(MilitaryController.CityAttackIntervalTicks);

@@ -36,6 +36,10 @@ namespace SettlersOfIdlestan.Controller
         private readonly Action? _performPrestige;
         private readonly WonderController? _wonderController;
 
+        private VisibleIslandMap? _prospectiveVerticesCacheMap;
+        private int _prospectiveVerticesCacheTotalCityCount = -1;
+        private List<Vertex>? _prospectiveVerticesCache;
+
         private static readonly BuildingType[] Step1Buildings =
         {
             BuildingType.TownHall, BuildingType.Seaport, BuildingType.Market,
@@ -613,6 +617,16 @@ namespace SettlersOfIdlestan.Controller
             if (worldState == null || !worldState.Visibility.GetForZ(worldState.CurrentViewedLayer).TryGetValue(_civ.Index, out var visibleMap))
                 return new List<Vertex>();
 
+            // visibleMap is replaced by a new instance whenever this civ's visibility is recalculated
+            // (road/city built, sight-range building, etc.), so reference identity is a free, exact
+            // staleness check for everything except enemy city changes elsewhere on the map — those
+            // don't touch our own visibility but do change the city count, hence the second check.
+            int totalCityCount = worldState.Civilizations.Sum(c => c.Cities.Count);
+            if (_prospectiveVerticesCache != null &&
+                ReferenceEquals(_prospectiveVerticesCacheMap, visibleMap) &&
+                _prospectiveVerticesCacheTotalCityCount == totalCityCount)
+                return _prospectiveVerticesCache;
+
             int z = visibleMap.Z;
             var visibleVertices = new HashSet<Vertex>();
             foreach (var hex in visibleMap.Tiles.Keys)
@@ -638,12 +652,17 @@ namespace SettlersOfIdlestan.Controller
             int minOwn = _cityBuilderController.MinDistanceBetweenCivilizationCities;
             int minEnemy = _cityBuilderController.MinDistanceBetweenCities;
 
-            return visibleVertices
+            var result = visibleVertices
                 .Where(v => !networkVertices.Contains(v))
                 .Where(v => v.GetHexes().Any(h => visibleMap.GetTile(h) is { TerrainType: not TerrainType.Water }))
                 .Where(v => _civ.Cities.Where(c => c.Position.Z == v.Z).All(c => c.Position.EdgeDistanceTo(v) >= minOwn))
                 .Where(v => visibleEnemyCities.All(ec => ec.EdgeDistanceTo(v) >= minEnemy))
                 .ToList();
+
+            _prospectiveVerticesCacheMap = visibleMap;
+            _prospectiveVerticesCacheTotalCityCount = totalCityCount;
+            _prospectiveVerticesCache = result;
+            return result;
         }
     }
 }

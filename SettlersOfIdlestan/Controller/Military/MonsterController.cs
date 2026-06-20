@@ -14,18 +14,17 @@ namespace SettlersOfIdlestan.Controller.Military;
 
 public class MonsterFeatureController
 {
-    public event EventHandler<CityDestroyedEventArgs>? CityDestroyedByMonster;
-
     private WorldState? _state;
     private GameClock? _clock;
     private GamePRNG? _prng;
+    private CityBuilderController? _cityBuilderController;
 
     private List<MonsterFeature> _monsters = new();
 
     /// <summary>Intervalle de déplacement par défaut (3 000 ticks = 30 s à vitesse normale).</summary>
     public const long MovementIntervalTicks = 3_000L;
 
-    internal void Initialize(WorldState? state, GameClock? clock, GamePRNG? prng = null)
+    internal void Initialize(WorldState? state, GameClock? clock, GamePRNG? prng = null, CityBuilderController? cityBuilderController = null)
     {
         if (_clock != null)
             _clock.Advanced -= OnClockAdvanced;
@@ -39,6 +38,7 @@ public class MonsterFeatureController
         _state = state;
         _clock = clock;
         if (prng != null) _prng = prng;
+        _cityBuilderController = cityBuilderController;
 
         RebuildCache();
 
@@ -291,11 +291,7 @@ public class MonsterFeatureController
             {
                 monster.LastAttackTargetVertex = city.Position;
                 monster.LastAttackResourcesString = null;
-                city.RaiseDestroyed();
-                civ.RemoveCity(city);
-                civ.TrimResourcesToMax();
-                CityDestroyedByMonster?.Invoke(this, new CityDestroyedEventArgs(city.Position, civ.Index));
-                _state!.Visibility.Recalculate();
+                _cityBuilderController?.DestroyCity(city, CityDestructionCause.Monster);
                 return;
             }
         }

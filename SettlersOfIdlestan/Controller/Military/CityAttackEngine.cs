@@ -17,15 +17,15 @@ namespace SettlersOfIdlestan.Controller.Military;
 internal class CityAttackEngine
 {
     private WorldState? _state;
-    private RoadController? _roadController;
+    private CityBuilderController? _cityBuilderController;
     private GamePRNG? _prng;
 
     private const int DefaultCityAttackRange = 3;
 
-    internal void Initialize(WorldState? state, RoadController? roadController, GamePRNG? prng = null)
+    internal void Initialize(WorldState? state, CityBuilderController? cityBuilderController, GamePRNG? prng = null)
     {
         _state = state;
-        _roadController = roadController;
+        _cityBuilderController = cityBuilderController;
         _prng = prng;
     }
 
@@ -34,8 +34,7 @@ internal class CityAttackEngine
 
     internal void ResolveCityAttacks(long currentTick,
         Action<CityAttackEventArgs> onSoldierAttackedCity,
-        Action<CityBuildingDestroyedEventArgs> onCityBuildingDestroyed,
-        Action<CityDestroyedEventArgs> onCityDestroyed)
+        Action<CityBuildingDestroyedEventArgs> onCityBuildingDestroyed)
     {
         var citiesToDestroy = new List<(Civilization civ, City city)>();
 
@@ -85,12 +84,8 @@ internal class CityAttackEngine
 
         foreach (var (civ, city) in citiesToDestroy)
         {
-            city.RaiseDestroyed();
-            civ.RemoveCity(city);
-            civ.TrimResourcesToMax();
-            _roadController?.OnCityDestroyed(civ, city.Position);
-            NotifyCityDestroyed(city.Position, civ.Index, onCityDestroyed);
-            _state!.Visibility.Recalculate();
+            ClearFlowsTargeting(city.Position);
+            _cityBuilderController?.DestroyCity(city, CityDestructionCause.Combat);
         }
     }
 
@@ -103,12 +98,6 @@ internal class CityAttackEngine
             if (city != null) return city;
         }
         return null;
-    }
-
-    internal void NotifyCityDestroyed(Vertex position, int civilizationIndex, Action<CityDestroyedEventArgs> onCityDestroyed)
-    {
-        ClearFlowsTargeting(position);
-        onCityDestroyed(new CityDestroyedEventArgs(position, civilizationIndex));
     }
 
     internal void ClearFlowsTargeting(Vertex position)

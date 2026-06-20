@@ -27,12 +27,6 @@ public class CityBuildingDestroyedEventArgs(Vertex cityVertex) : EventArgs
     public Vertex CityVertex { get; } = cityVertex;
 }
 
-public class CityDestroyedEventArgs(Vertex cityVertex, int civilizationIndex = -1) : EventArgs
-{
-    public Vertex CityVertex { get; } = cityVertex;
-    public int CivilizationIndex { get; } = civilizationIndex;
-}
-
 public class ReinforcementEventArgs(Vertex sourceCity, Vertex targetCity, List<Vertex> path) : EventArgs
 {
     public Vertex SourceCity { get; } = sourceCity;
@@ -96,7 +90,6 @@ public class MilitaryController
     public event EventHandler<SoldierAttackEventArgs>? SoldierAttackedMonster;
     public event EventHandler<CityAttackEventArgs>? SoldierAttackedCity;
     public event EventHandler<CityBuildingDestroyedEventArgs>? CityBuildingDestroyed;
-    public event EventHandler<CityDestroyedEventArgs>? CityDestroyed;
     public event EventHandler<ReinforcementEventArgs>? ReinforcementSent;
 
     // ── Méthodes publiques (query) ───────────────────────────────────────────
@@ -154,7 +147,7 @@ public class MilitaryController
 
     // ── Initialisation ───────────────────────────────────────────────────────
 
-    internal void Initialize(WorldState? state, GameClock? clock, RoadController? roadController = null, GamePRNG? prng = null)
+    internal void Initialize(WorldState? state, GameClock? clock, CityBuilderController? cityBuilderController = null, GamePRNG? prng = null)
     {
         if (_clock != null)
             _clock.Advanced -= OnClockAdvanced;
@@ -164,7 +157,7 @@ public class MilitaryController
 
         _productionEngine.Initialize(state);
         _monsterCombatEngine.Initialize(state, prng);
-        _cityAttackEngine.Initialize(state, roadController, prng);
+        _cityAttackEngine.Initialize(state, cityBuilderController, prng);
         _reinforcementEngine.Initialize(state, _cityAttackEngine, _productionEngine);
         _raidEngine.Initialize(state, _cityAttackEngine, _reinforcementEngine);
 
@@ -191,8 +184,7 @@ public class MilitaryController
         ResolveDefenseRegen(currentTick);
         _cityAttackEngine.ResolveCityAttacks(currentTick,
             args => SoldierAttackedCity?.Invoke(this, args),
-            args => CityBuildingDestroyed?.Invoke(this, args),
-            args => CityDestroyed?.Invoke(this, args));
+            args => CityBuildingDestroyed?.Invoke(this, args));
         _reinforcementEngine.ResolveReinforcements(currentTick,
             args => ReinforcementSent?.Invoke(this, args));
         _reinforcementEngine.ResolvePlayerAutoReinforcement(currentTick);
@@ -265,12 +257,4 @@ public class MilitaryController
     public List<Vertex> GetSelectableTargets(Civilization civ) => _raidEngine.GetSelectableTargets(civ);
     public void StartRaid(Civilization civ, Vertex target) => _raidEngine.StartRaid(civ, target);
     public void StopRaid(Civilization civ) => _raidEngine.StopRaid(civ);
-
-    /// <summary>
-    /// Clears flows, fires <see cref="CityDestroyed"/>, and recalculates visibility.
-    /// Call after removing the city from its civilization and cleaning up roads.
-    /// </summary>
-    public void NotifyCityDestroyed(Vertex position, int civilizationIndex)
-        => _cityAttackEngine.NotifyCityDestroyed(position, civilizationIndex,
-            args => CityDestroyed?.Invoke(this, args));
 }

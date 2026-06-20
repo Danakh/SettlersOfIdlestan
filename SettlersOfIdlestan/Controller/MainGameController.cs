@@ -254,22 +254,24 @@ namespace SettlersOfIdlestan.Controller
                 AutoExtendController.Initialize(WorldState, CurrentMainState!.PRNG, Clock, CurrentMainState?.PrestigeState);
 
                 // Ordre d'initialisation contraint — ne pas modifier sans vérifier les dépendances :
-                // 1. RoadController  — requis par MilitaryController (nettoyage routes détruites)
-                // 2. FeatureController — doit découvrir les features avant tout combat/mouvement
-                // 3. MilitaryController — doit s'abonner à l'horloge AVANT MonsterFeatureController
+                // 1. RoadController  — nettoyage des routes après la destruction d'une ville
+                // 2. CityBuilderController — requis par MilitaryController/MonsterFeatureController
+                //    (point d'entrée unique de destruction de ville, cf. CityBuilderController.DestroyCity)
+                // 3. FeatureController — doit découvrir les features avant tout combat/mouvement
+                // 4. MilitaryController — doit s'abonner à l'horloge AVANT MonsterFeatureController
                 //    pour que le combat soit résolu avant le déplacement des monstres
-                // 4. MonsterFeatureController — dépend de RoadController (indirect, via WorldState)
-                // 5. TradeController — requis par HarvestController (auto-vente en cas de débordement)
-                // 6. HarvestController — dépend de TradeController et MonsterFeatureController
-                // 7. Reste des controllers (BuildingController, CityBuilderController, etc.) — indépendants
+                // 5. MonsterFeatureController — dépend de CityBuilderController
+                // 6. TradeController — requis par HarvestController (auto-vente en cas de débordement)
+                // 7. HarvestController — dépend de TradeController et MonsterFeatureController
+                // 8. Reste des controllers (BuildingController, etc.) — indépendants
                 RoadController.Initialize(WorldState, Clock, CurrentMainState!.PRNG);
+                CityBuilderController.Initialize(WorldState, Clock, CurrentMainState!.PRNG);
                 FeatureController.Initialize(WorldState, Clock);
-                MilitaryController.Initialize(WorldState, Clock, RoadController, CurrentMainState!.PRNG);
-                MonsterFeatureController.Initialize(WorldState, Clock, CurrentMainState!.PRNG);
+                MilitaryController.Initialize(WorldState, Clock, CityBuilderController, CurrentMainState!.PRNG);
+                MonsterFeatureController.Initialize(WorldState, Clock, CurrentMainState!.PRNG, CityBuilderController);
                 TradeController.Initialize(WorldState);
                 HarvestController.Initialize(WorldState, Clock, TradeController, MonsterFeatureController, CurrentMainState!.PRNG);
                 BuildingController.Initialize(WorldState, Clock);
-                CityBuilderController.Initialize(WorldState, Clock, CurrentMainState!.PRNG);
                 AtlasController.Initialize(CurrentMainState!.PRNG);
                 PrestigeController.Initialize(WorldState.PlayerCivilization, WorldState, Clock, CurrentMainState?.PrestigeState);
                 WonderController.Initialize(WorldState, Clock);
@@ -284,16 +286,12 @@ namespace SettlersOfIdlestan.Controller
                 MagicController.OnRitualsChanged += OnRitualsChangedInvalidateHarvestCache;
                 BuildingController.OnBuildingBuilt -= OnBuildingChangedInvalidateHarvestCache;
                 CityBuilderController.OnCityBuilt -= OnCityBuiltInvalidateHarvestCache;
-                MilitaryController.CityDestroyed -= OnCityDestroyedRefreshContested;
-                MilitaryController.CityDestroyed -= OnCityDestroyedCheckUnderworld;
-                MonsterFeatureController.CityDestroyedByMonster -= OnCityDestroyedByMonster;
+                CityBuilderController.OnCityDestroyed -= OnCityDestroyedHandler;
                 RoadController.OnRoadBuilt -= OnRoadBuiltExtendMap;
                 RoadController.OnAutoRoadBuilt -= OnRoadBuiltExtendMap;
                 BuildingController.OnBuildingBuilt += OnBuildingChangedInvalidateHarvestCache;
                 CityBuilderController.OnCityBuilt += OnCityBuiltInvalidateHarvestCache;
-                MilitaryController.CityDestroyed += OnCityDestroyedRefreshContested;
-                MilitaryController.CityDestroyed += OnCityDestroyedCheckUnderworld;
-                MonsterFeatureController.CityDestroyedByMonster += OnCityDestroyedByMonster;
+                CityBuilderController.OnCityDestroyed += OnCityDestroyedHandler;
                 RoadController.OnRoadBuilt += OnRoadBuiltExtendMap;
                 RoadController.OnAutoRoadBuilt += OnRoadBuiltExtendMap;
                 FeatureController.OnFeatureDiscovered -= OnFeatureDiscovered;
@@ -330,20 +328,20 @@ namespace SettlersOfIdlestan.Controller
             HarvestController.InvalidateProductionCache();
         }
 
-        private void OnCityDestroyedRefreshContested(object? sender, CityDestroyedEventArgs e)
-            => FeatureController.RefreshContestedTerritories();
-
-        private void OnCityDestroyedCheckUnderworld(object? sender, CityDestroyedEventArgs e)
-            => DeepestMineController.OnCityDestroyed(e.CityVertex, e.CivilizationIndex);
-
-        private void OnCityDestroyedByMonster(object? sender, CityDestroyedEventArgs e)
+        /// <summary>
+        /// Single subscriber to CityBuilderController.OnCityDestroyed — fires for every destruction
+        /// cause (military conquest or monster attack), so road cleanup, contested-territory refresh
+        /// and the underworld check all happen consistently regardless of cause.
+        /// </summary>
+        private void OnCityDestroyedHandler(object? sender, CityDestroyedEventArgs e)
         {
             var worldState = CurrentMainState?.CurrentWorldState;
-            if (worldState == null) return;
-            var civ = worldState.Civilizations.FirstOrDefault(c => c.Index == e.CivilizationIndex);
+            var civ = worldState?.Civilizations.FirstOrDefault(c => c.Index == e.CivilizationIndex);
             if (civ != null)
                 RoadController.OnCityDestroyed(civ, e.CityVertex);
-            MilitaryController.NotifyCityDestroyed(e.CityVertex, e.CivilizationIndex);
+
+            FeatureController.RefreshContestedTerritories();
+            DeepestMineController.OnCityDestroyed(e.CityVertex, e.CivilizationIndex);
         }
 
         private void SetupModifierAggregators()

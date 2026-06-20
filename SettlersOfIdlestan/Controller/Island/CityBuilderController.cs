@@ -24,6 +24,28 @@ namespace SettlersOfIdlestan.Controller.Island
         }
     }
 
+    /// <summary>What caused a city to be destroyed — lets subscribers of <see cref="CityBuilderController.OnCityDestroyed"/>
+    /// distinguish military conquest from monster attacks where that matters (e.g. task/achievement tracking).</summary>
+    public enum CityDestructionCause
+    {
+        Combat,
+        Monster,
+    }
+
+    public class CityDestroyedEventArgs : EventArgs
+    {
+        public Vertex CityVertex { get; }
+        public int CivilizationIndex { get; }
+        public CityDestructionCause Cause { get; }
+
+        public CityDestroyedEventArgs(Vertex cityVertex, int civilizationIndex, CityDestructionCause cause)
+        {
+            CityVertex = cityVertex;
+            CivilizationIndex = civilizationIndex;
+            Cause = cause;
+        }
+    }
+
     /// <summary>
     /// Controller handling city construction.
     /// </summary>
@@ -32,12 +54,14 @@ namespace SettlersOfIdlestan.Controller.Island
         private WorldState? _state;
         private GameClock? _clock;
         private GamePRNG? _prng;
+        private readonly Dictionary<int, (int RoadCount, int TotalCityCount, List<Vertex> Vertices)> _buildableVerticesCache = new();
 
         // 10 s × 100 ticks/s
         public const long AutoOutpostBuildCooldownTicks = 1000L;
 
         public event EventHandler<OutpostAutoBuiltEventArgs>? OnAutoOutpostBuilt;
         public event EventHandler<OutpostAutoBuiltEventArgs>? OnCityBuilt;
+        public event EventHandler<CityDestroyedEventArgs>? OnCityDestroyed;
 
         internal CityBuilderController(WorldState? state = null)
         {
@@ -53,6 +77,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 _clock.Advanced -= OnClockAdvanced;
 
             _state = state ?? throw new ArgumentNullException(nameof(state));
+            _buildableVerticesCache.Clear();
             _clock = clock;
             if (prng != null) _prng = prng;
 
@@ -131,6 +156,16 @@ namespace SettlersOfIdlestan.Controller.Island
             var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex)
                       ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
 
+            // Result only depends on this civ's roads and on every civ's cities (positions, via count
+            // as a cheap proxy — RelocateCity clears the cache explicitly since it changes a position
+            // without changing any count).
+            int totalCityCount = _state.Civilizations.Sum(c => c.Cities.Count);
+            if (excludingCity == null &&
+                _buildableVerticesCache.TryGetValue(civilizationIndex, out var cached) &&
+                cached.RoadCount == civ.Roads.Count &&
+                cached.TotalCityCount == totalCityCount)
+                return cached.Vertices;
+
             // Build vertex → touching roads map directly from the civilization's roads
             var vertices = new List<Vertex>();
             foreach (var road in civ.Roads)
@@ -151,6 +186,9 @@ namespace SettlersOfIdlestan.Controller.Island
                     .Where(city => city != excludingCity && city.Position.Z == v.Z)
                     .Any(city => city.Position.EdgeDistanceTo(v) < MinDistanceBetweenCivilizationCities))
                 .ToList();
+
+            if (excludingCity == null)
+                _buildableVerticesCache[civilizationIndex] = (civ.Roads.Count, totalCityCount, vertices);
 
             return vertices;
         }
@@ -193,6 +231,9 @@ namespace SettlersOfIdlestan.Controller.Island
 
             civ.PayResourceCost(cost);
             city.Position = destination;
+            // Position changed without any road/city count change — the count-keyed cache wouldn't
+            // otherwise notice, so clear it explicitly.
+            _buildableVerticesCache.Clear();
             _state.Visibility.RecalculateFor(city.CivilizationIndex);
             return true;
         }
@@ -290,6 +331,30 @@ namespace SettlersOfIdlestan.Controller.Island
 
             OnCityBuilt?.Invoke(this, new OutpostAutoBuiltEventArgs(civilizationIndex, vertex));
             return city;
+        }
+
+        /// <summary>
+        /// Single entry point for removing a city, whatever destroyed it (military conquest or a
+        /// monster attack). Callers (CityAttackEngine, MonsterFeatureController) must call this instead
+        /// of mutating <c>civ.Cities</c> themselves, so every downstream concern — road cleanup,
+        /// contested-territory refresh, underworld checks, this controller's own vertex cache — reacts
+        /// uniformly via <see cref="OnCityDestroyed"/> regardless of the cause.
+        /// </summary>
+        public void DestroyCity(City city, CityDestructionCause cause)
+        {
+            if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
+            if (city == null) throw new ArgumentNullException(nameof(city));
+
+            var civ = _state.Civilizations.FirstOrDefault(c => c.Index == city.CivilizationIndex)
+                      ?? throw new ArgumentException("City's civilization not found", nameof(city));
+
+            city.RaiseDestroyed();
+            civ.RemoveCity(city);
+            civ.TrimResourcesToMax();
+            _buildableVerticesCache.Clear();
+            _state.Visibility.Recalculate();
+
+            OnCityDestroyed?.Invoke(this, new CityDestroyedEventArgs(city.Position, civ.Index, cause));
         }
 
         public ResourceSet NewCityBuildingCost()

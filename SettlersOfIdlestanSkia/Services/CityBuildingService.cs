@@ -23,7 +23,7 @@ public class CityBuildingService
     public CityBuildingService(MainGameController mainGameController)
     {
         _mainGameController = mainGameController ?? throw new ArgumentNullException(nameof(mainGameController));
-        _mainGameController.MilitaryController.CityDestroyed += OnCityDestroyed;
+        _mainGameController.CityBuilderController.OnCityDestroyed += OnCityDestroyed;
     }
 
     private void OnCityDestroyed(object? sender, CityDestroyedEventArgs e)

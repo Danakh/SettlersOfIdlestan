@@ -333,10 +333,7 @@ public sealed class GameScreen : IDisposable
         _gameOverPopup = new GameOverPopupRenderer(_localizationService, HandleGameOverRestart);
         _demoEndPopup  = new DemoEndPopupRenderer(_localizationService, DoDemoReplay);
 
-        var militaryController = _gameControllerService.MainGameController.MilitaryController;
-        var monsterController  = _gameControllerService.MainGameController.MonsterFeatureController;
-        militaryController.CityDestroyed         += OnCityDestroyedCheckGameOver;
-        monsterController.CityDestroyedByMonster += OnCityDestroyedCheckGameOver;
+        _gameControllerService.MainGameController.CityBuilderController.OnCityDestroyed += OnCityDestroyedCheckGameOver;
     }
 
     /// <summary>Définit l'échelle UI automatique détectée par la plateforme hôte (densité d'écran, grande résolution…).</summary>
@@ -646,7 +643,7 @@ public sealed class GameScreen : IDisposable
         }
     }
 
-    private void OnCityDestroyedCheckGameOver(object? sender, SettlersOfIdlestan.Controller.Military.CityDestroyedEventArgs e)
+    private void OnCityDestroyedCheckGameOver(object? sender, SettlersOfIdlestan.Controller.Island.CityDestroyedEventArgs e)
     {
         var playerCiv = _gameControllerService.PlayerCivilization;
         if (playerCiv != null && playerCiv.Cities.Count == 0)

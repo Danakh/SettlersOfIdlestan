@@ -33,7 +33,7 @@ public class CityVsCityAttackTests
         new HexTile(new HexCoord(1, 1, IslandMap.SurfaceLayer), TerrainType.Plain),
     ]);
 
-    private static (WorldState state, GameClock clock, MilitaryController ctrl, City cityA, City cityB, Barracks barracksA)
+    private static (WorldState state, GameClock clock, MilitaryController ctrl, CityBuilderController cityBuilder, City cityA, City cityB, Barracks barracksA)
         Setup(int soldiersA = 5, IEnumerable<Building>? buildingsB = null)
     {
         var civA = new Civilization { Index = 0 };
@@ -51,12 +51,14 @@ public class CityVsCityAttackTests
         var state = new WorldState(BuildMap(), [civA, civB], AtlasController.InvalidIslandId);
         var clock = new GameClock();
         clock.Start();
+        var cityBuilder = new CityBuilderController();
+        cityBuilder.Initialize(state, clock, new GamePRNG());
         var ctrl = new MilitaryController();
-        ctrl.Initialize(state, clock, prng: new GamePRNG());
+        ctrl.Initialize(state, clock, cityBuilder, prng: new GamePRNG());
 
         cityA.FlowTarget = VertexB; // cible d'attaque pour déclencher la logique
 
-        return (state, clock, ctrl, cityA, cityB, barracksA);
+        return (state, clock, ctrl, cityBuilder, cityA, cityB, barracksA);
     }
 
     // ── Condition de déclenchement ────────────────────────────────────────
@@ -64,7 +66,7 @@ public class CityVsCityAttackTests
     [Fact]
     public void Attack_FiresAfterCityAttackIntervalTicks()
     {
-        var (_, clock, ctrl, _, _, barracksA) = Setup(soldiersA: 5);
+        var (_, clock, ctrl, _, _, _, barracksA) = Setup(soldiersA: 5);
 
         CityAttackEventArgs? args = null;
         ctrl.SoldierAttackedCity += (_, a) => args = a;
@@ -77,7 +79,7 @@ public class CityVsCityAttackTests
     [Fact]
     public void Attack_DoesNotFire_BeforeIntervalElapsed()
     {
-        var (_, clock, ctrl, _, _, barracksA) = Setup(soldiersA: 5);
+        var (_, clock, ctrl, _, _, _, barracksA) = Setup(soldiersA: 5);
 
         bool fired = false;
         ctrl.SoldierAttackedCity += (_, _) => fired = true;
@@ -93,7 +95,7 @@ public class CityVsCityAttackTests
         // cityB n'a pas de bâtiments — serait détruite au premier coup.
         // Si aucune attaque n'a lieu, la ville B existe toujours.
         // Soldats à 0 : aucune attaque ne peut se déclencher.
-        var (state, clock, _, _, _, _) = Setup(soldiersA: 0);
+        var (state, clock, _, _, _, _, _) = Setup(soldiersA: 0);
 
         clock.SimulateAdvance(MilitaryController.CityAttackIntervalTicks);
 
@@ -105,7 +107,7 @@ public class CityVsCityAttackTests
     [Fact]
     public void SoldierAttackedCity_Event_ContainsCorrectVertices()
     {
-        var (_, clock, ctrl, _, _, _) = Setup();
+        var (_, clock, ctrl, _, _, _, _) = Setup();
 
         CityAttackEventArgs? args = null;
         ctrl.SoldierAttackedCity += (_, a) => args = a;
@@ -120,7 +122,7 @@ public class CityVsCityAttackTests
     [Fact]
     public void SoldierAttackedCity_Event_PathIsNotEmpty()
     {
-        var (_, clock, ctrl, _, _, _) = Setup();
+        var (_, clock, ctrl, _, _, _, _) = Setup();
 
         CityAttackEventArgs? args = null;
         ctrl.SoldierAttackedCity += (_, a) => args = a;
@@ -139,7 +141,7 @@ public class CityVsCityAttackTests
     public void Attack_ConsumesOneSoldier()
     {
         // Capacité pleine (niveau 2 = 10) pour empêcher la production de s'activer.
-        var (_, clock, _, cityA, _, _) = Setup(soldiersA: Barracks.MaxSoldiersPerLevel * 2);
+        var (_, clock, _, _, cityA, _, _) = Setup(soldiersA: Barracks.MaxSoldiersPerLevel * 2);
 
         clock.SimulateAdvance(MilitaryController.CityAttackIntervalTicks);
 
@@ -150,7 +152,7 @@ public class CityVsCityAttackTests
     public void Attack_IsRateLimited_OneSoldierPerInterval()
     {
         var palisade = new Palisade { Level = 1 };
-        var (_, clock, _, cityA, cityB, barracksA) = Setup(soldiersA: 10, buildingsB: [palisade]);
+        var (_, clock, _, _, cityA, cityB, barracksA) = Setup(soldiersA: 10, buildingsB: [palisade]);
         barracksA.Level = 1; // capacité réduite à 5 pour isoler la logique de rate-limit
         cityB.CurrentDefense = 10; // défense pleine : pas de destruction de bâtiment
 
@@ -173,7 +175,7 @@ public class CityVsCityAttackTests
     public void Attack_ReducesCurrentDefense_WhenDefenseAboveZero()
     {
         var palisade = new Palisade { Level = 1 };
-        var (_, clock, ctrl, _, cityB, _) = Setup(buildingsB: [palisade]);
+        var (_, clock, ctrl, _, _, cityB, _) = Setup(buildingsB: [palisade]);
         cityB.CurrentDefense = ctrl.GetDefenseScore(cityB); // = 10, regen ne s'active pas
 
         clock.SimulateAdvance(MilitaryController.CityAttackIntervalTicks);
@@ -185,7 +187,7 @@ public class CityVsCityAttackTests
     public void Attack_DoesNotDestroyBuilding_WhenDefenseAboveZero()
     {
         var palisade = new Palisade { Level = 1 };
-        var (_, clock, ctrl, _, cityB, _) = Setup(buildingsB: [palisade]);
+        var (_, clock, ctrl, _, _, cityB, _) = Setup(buildingsB: [palisade]);
         cityB.CurrentDefense = ctrl.GetDefenseScore(cityB);
 
         clock.SimulateAdvance(MilitaryController.CityAttackIntervalTicks);
@@ -197,7 +199,7 @@ public class CityVsCityAttackTests
     public void Attack_ReducesTownHallLevel_WhenDefenseIsZero()
     {
         var townHall = new TownHall { Level = 2 };
-        var (_, clock, _, _, cityB, _) = Setup(buildingsB: [townHall]);
+        var (_, clock, _, _, _, cityB, _) = Setup(buildingsB: [townHall]);
 
         clock.SimulateAdvance(MilitaryController.CityAttackIntervalTicks);
 
@@ -208,7 +210,7 @@ public class CityVsCityAttackTests
     [Fact]
     public void CityBuildingDestroyed_EventFires_WhenTownHallReachesLevelZero()
     {
-        var (_, clock, ctrl, _, _, _) = Setup(buildingsB: [new TownHall { Level = 1 }]);
+        var (_, clock, ctrl, _, _, _, _) = Setup(buildingsB: [new TownHall { Level = 1 }]);
 
         CityBuildingDestroyedEventArgs? args = null;
         ctrl.CityBuildingDestroyed += (_, a) => args = a;
@@ -225,7 +227,7 @@ public class CityVsCityAttackTests
     public void Attack_DestroysCity_WhenNoBuildingsAndNoDefense()
     {
         // cityB sans bâtiments ni défense : détruite au premier coup
-        var (state, clock, _, _, _, _) = Setup(buildingsB: null);
+        var (state, clock, _, _, _, _, _) = Setup(buildingsB: null);
 
         clock.SimulateAdvance(MilitaryController.CityAttackIntervalTicks);
 
@@ -235,10 +237,10 @@ public class CityVsCityAttackTests
     [Fact]
     public void CityDestroyed_EventFires_WhenCityIsEliminated()
     {
-        var (_, clock, ctrl, _, _, _) = Setup(buildingsB: null);
+        var (_, clock, _, cityBuilder, _, _, _) = Setup(buildingsB: null);
 
         CityDestroyedEventArgs? args = null;
-        ctrl.CityDestroyed += (_, a) => args = a;
+        cityBuilder.OnCityDestroyed += (_, a) => args = a;
 
         clock.SimulateAdvance(MilitaryController.CityAttackIntervalTicks);
 
@@ -250,7 +252,7 @@ public class CityVsCityAttackTests
     public void Attack_RequiresMultipleHits_ToDestroyTownHallThenCity()
     {
         // TownHall niveau 1 : premier coup le retire, deuxième détruit la ville
-        var (state, clock, _, _, cityB, _) = Setup(soldiersA: 10, buildingsB: [new TownHall { Level = 1 }]);
+        var (state, clock, _, _, _, cityB, _) = Setup(soldiersA: 10, buildingsB: [new TownHall { Level = 1 }]);
 
         clock.SimulateAdvance(MilitaryController.CityAttackIntervalTicks);
         Assert.Empty(cityB.Buildings);
