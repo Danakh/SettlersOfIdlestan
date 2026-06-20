@@ -44,11 +44,13 @@ public sealed class SettingsContentPanel : IDisposable
     private SKRect _btnEnglish             = SKRect.Empty;
     private SKRect _pauseToggleRect        = SKRect.Empty;
     private SKRect _particlesToggleRect    = SKRect.Empty;
+    private SKRect _militaryStatsToggleRect = SKRect.Empty;
     private SKRect _fullscreenToggleRect   = SKRect.Empty;
     private SKRect _uiScaleSliderRect      = SKRect.Empty;
 
     private bool _hoveredPause;
     private bool _hoveredParticles;
+    private bool _hoveredMilitaryStats;
     private bool _hoveredFullscreen;
     private bool _hoveredUiScaleSlider;
     private bool _focusedUiScaleSlider;
@@ -114,12 +116,17 @@ public sealed class SettingsContentPanel : IDisposable
         _particlesToggleRect = DrawToggleRow(canvas, x, row3Y, rightEdge,
             localization.Get("settings_harvest_particles"), settings.ShowHarvestParticles, _hoveredParticles, btnH, toggleW, toggleH, s);
 
-        // Row 5 — UI scale (affiche la valeur en cours de glissement si un drag est actif, sans encore l'appliquer)
-        float row5Y = y + spacingY * 4f;
+        // Row 5 — Afficher les stats militaires des villes
+        float row6Y = y + spacingY * 4f;
+        _militaryStatsToggleRect = DrawToggleRow(canvas, x, row6Y, rightEdge,
+            localization.Get("settings_show_military_stats"), settings.ShowCityMilitaryStats, _hoveredMilitaryStats, btnH, toggleW, toggleH, s);
+
+        // Row 6 — UI scale (affiche la valeur en cours de glissement si un drag est actif, sans encore l'appliquer)
+        float row5Y = y + spacingY * 5f;
         _uiScaleSliderRect = DrawSliderRow(canvas, x, row5Y, rightEdge,
             localization.Get("settings_ui_scale"), _pendingUiScaleValue ?? settings.UiScale, UiScaleMin, UiScaleMax, _hoveredUiScaleSlider, btnH, s);
 
-        return spacingY * 4f + btnH;
+        return spacingY * 5f + btnH;
     }
 
     private SKRect DrawSliderRow(SKCanvas canvas, float rowX, float rowY, float rightEdge,
@@ -242,6 +249,12 @@ public sealed class SettingsContentPanel : IDisposable
             settings.ShowHarvestParticles = !settings.ShowHarvestParticles;
             return true;
         }
+        if (!_militaryStatsToggleRect.IsEmpty && _militaryStatsToggleRect.Contains(pos.X, pos.Y))
+        {
+            _focusedUiScaleSlider = false;
+            settings.ShowCityMilitaryStats = !settings.ShowCityMilitaryStats;
+            return true;
+        }
         if (!_fullscreenToggleRect.IsEmpty && _fullscreenToggleRect.Contains(pos.X, pos.Y))
         {
             _focusedUiScaleSlider = false;
@@ -270,6 +283,7 @@ public sealed class SettingsContentPanel : IDisposable
     {
         _hoveredPause         = !_pauseToggleRect.IsEmpty      && _pauseToggleRect.Contains(pos.X, pos.Y);
         _hoveredParticles     = !_particlesToggleRect.IsEmpty  && _particlesToggleRect.Contains(pos.X, pos.Y);
+        _hoveredMilitaryStats = !_militaryStatsToggleRect.IsEmpty && _militaryStatsToggleRect.Contains(pos.X, pos.Y);
         _hoveredFullscreen    = !_fullscreenToggleRect.IsEmpty && _fullscreenToggleRect.Contains(pos.X, pos.Y);
         _hoveredUiScaleSlider = !_uiScaleSliderRect.IsEmpty    && _uiScaleSliderRect.Contains(pos.X, pos.Y);
 

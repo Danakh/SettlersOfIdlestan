@@ -10,7 +10,7 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay.Popup;
 public sealed class SettingsPopupRenderer : PopupRendererBase
 {
     protected override float PopupWidth  => 580;
-    protected override float PopupHeight => 402;
+    protected override float PopupHeight => 466;
     protected override float BtnFontSize => 12f;
 
     private const float BtnRightMargin = 24;

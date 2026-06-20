@@ -138,7 +138,7 @@ public class CityRenderer : HexBasedRenderer, IGameRenderer
                 foreach (var civ in worldState.Civilizations)
                 {
                     bool isPlayerCiv = (civ == worldState.PlayerCivilization);
-                    DrawCities(canvas, civ.Cities.Where(c => c.Position.Z == LayerState.UnderworldZ).ToList(), civ, visibilityMap, isPlayerCiv);
+                    DrawCities(canvas, civ.Cities.Where(c => c.Position.Z == LayerState.UnderworldZ).ToList(), civ, visibilityMap, isPlayerCiv, mainGameState.Settings.ShowCityMilitaryStats);
                 }
                 return;
             }
@@ -157,7 +157,7 @@ public class CityRenderer : HexBasedRenderer, IGameRenderer
                 foreach (var civilization in worldState.Civilizations)
                 {
                     bool isPlayerCiv = (civilization == worldState.PlayerCivilization);
-                    DrawCities(canvas, civilization.Cities, civilization, mapForVisibility, isPlayerCiv);
+                    DrawCities(canvas, civilization.Cities, civilization, mapForVisibility, isPlayerCiv, mainGameState.Settings.ShowCityMilitaryStats);
                 }
             }
         }
@@ -224,7 +224,7 @@ public class CityRenderer : HexBasedRenderer, IGameRenderer
     /// <summary>
     /// Dessine les villes d'une civilisation.
     /// </summary>
-    private void DrawCities(SKCanvas canvas, IEnumerable<City> cities, Civilization civilization, IslandMap visibleMap, bool isPlayerCiv)
+    private void DrawCities(SKCanvas canvas, IEnumerable<City> cities, Civilization civilization, IslandMap visibleMap, bool isPlayerCiv, bool showMilitaryStats)
     {
         if (!cities.Any() || _settlementPaint == null || _cityPaint == null || _borderPaint == null)
             return;
@@ -258,7 +258,8 @@ public class CityRenderer : HexBasedRenderer, IGameRenderer
                 SkiaTextUtils.DrawText(canvas, label, pixelPos.X, pixelPos.Y + 4, SKTextAlign.Center, _cityLevelFont, _cityLevelTextPaint);
             }
 
-            DrawMilitaryScores(canvas, city, civilization, pixelPos, radius);
+            if (showMilitaryStats)
+                DrawMilitaryScores(canvas, city, civilization, pixelPos, radius);
         }
     }
 
