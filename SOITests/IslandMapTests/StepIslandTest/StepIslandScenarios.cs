@@ -201,7 +201,7 @@ namespace SOITests.IslandMapTests.StepIslandTest
         /// monster's hex and that city has soldiers — there's no separate "attack" action, which is why
         /// CityCount (not a fixed list of targets) is what actually finds the monsters here: it keeps
         /// expanding the civilization's footprint until it reaches them.
-        ///
+    ///
         /// Found via SOIStrategyTester (SOIStrategyTester/Data/Best/island2-step2ter.best.json) — beats
         /// the high-level TryMilitaryStepOnce+TryStep2Once loop this used to call (~285k ticks) by ~13%
         /// (~249k ticks). TownHall is pushed to level 3 (not just 1) because Mine — the only source of
@@ -286,7 +286,7 @@ namespace SOITests.IslandMapTests.StepIslandTest
         /// ExterminateMonstersStep) is tuned to the bare minimum that gets soldiers killing monsters, and
         /// Library has no bearing on that — keeping it as its own checkpoint avoids re-tuning that race
         /// every time research priorities change.
-        /// </summary>
+    /// </summary>
         private static IslandStepDefinition LibraryLevel1Step(string saveName, int maxIterations = 20000) => new()
         {
             SaveName = saveName,
@@ -418,7 +418,7 @@ namespace SOITests.IslandMapTests.StepIslandTest
             {
                 // Second prestige transition + greedy point distribution.
                 new()
-                {
+    {
                     SaveName = "Island3_Prestige",
                     RunAction = (runner, cond) => runner.RunStepPrestige(cond),
                     Condition = ctrl => ctrl.CurrentMainState?.PrestigeState?.RunHistory.Count >= 2,
@@ -491,10 +491,10 @@ namespace SOITests.IslandMapTests.StepIslandTest
             CreateFreshController = folder => SaveUtils.LoadSave(folder, "Island4_Wonder2"),
             IsInputAvailable = folder => SaveUtils.SaveExists(folder, "Island4_Wonder2"),
             Steps = new List<IslandStepDefinition>
-            {
+        {
                 // Fourth prestige transition + greedy point distribution.
                 new()
-                {
+            {
                     SaveName = "Island5_Prestige",
                     RunAction = (runner, cond) => runner.RunStepPrestige(cond),
                     Condition = ctrl => ctrl.CurrentMainState?.PrestigeState?.RunHistory.Count >= 4,
