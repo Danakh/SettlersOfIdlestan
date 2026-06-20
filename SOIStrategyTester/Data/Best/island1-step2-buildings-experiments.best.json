@@ -1,0 +1,196 @@
+{
+  "Objective": {
+    "Kind": "PrestigeAvailable",
+    "CityCount": null,
+    "RequiredBuilding": null,
+    "Points": null,
+    "Level": null,
+    "Count": null
+  },
+  "Strategy": {
+    "Name": "Champion-SeaportFirstInPhase2",
+    "Phases": [
+      {
+        "Kind": "Priority",
+        "ShouldExpand": true,
+        "PrestigePriorityVertexNames": null,
+        "PriorityObjectives": [
+          {
+            "Kind": "BuildingLevel",
+            "Buildings": [
+              "TownHall",
+              "Sawmill",
+              "Brickworks",
+              "Mill",
+              "Seaport",
+              "Market"
+            ],
+            "TargetLevel": 1,
+            "TargetCityCount": null
+          },
+          {
+            "Kind": "CityCount",
+            "Buildings": null,
+            "TargetLevel": null,
+            "TargetCityCount": 2
+          }
+        ],
+        "Until": {
+          "Kind": "CityCountWithBuilding",
+          "CityCount": 2,
+          "RequiredBuilding": "TownHall",
+          "Points": null,
+          "Level": null,
+          "Count": null
+        },
+        "MaxIterations": null
+      },
+      {
+        "Kind": "Priority",
+        "ShouldExpand": true,
+        "PrestigePriorityVertexNames": null,
+        "PriorityObjectives": [
+          {
+            "Kind": "BuildingLevel",
+            "Buildings": [
+              "TownHall"
+            ],
+            "TargetLevel": 1,
+            "TargetCityCount": null
+          },
+          {
+            "Kind": "BuildingLevel",
+            "Buildings": [
+              "Seaport"
+            ],
+            "TargetLevel": 1,
+            "TargetCityCount": null
+          },
+          {
+            "Kind": "BuildingLevel",
+            "Buildings": [
+              "Sawmill"
+            ],
+            "TargetLevel": 1,
+            "TargetCityCount": null
+          },
+          {
+            "Kind": "BuildingLevel",
+            "Buildings": [
+              "Brickworks"
+            ],
+            "TargetLevel": 1,
+            "TargetCityCount": null
+          },
+          {
+            "Kind": "BuildingLevel",
+            "Buildings": [
+              "Mill"
+            ],
+            "TargetLevel": 1,
+            "TargetCityCount": null
+          },
+          {
+            "Kind": "CityCount",
+            "Buildings": null,
+            "TargetLevel": null,
+            "TargetCityCount": 12
+          }
+        ],
+        "Until": {
+          "Kind": "CityCount",
+          "CityCount": 12,
+          "RequiredBuilding": null,
+          "Points": null,
+          "Level": null,
+          "Count": null
+        },
+        "MaxIterations": null
+      },
+      {
+        "Kind": "Priority",
+        "ShouldExpand": true,
+        "PrestigePriorityVertexNames": null,
+        "PriorityObjectives": [
+          {
+            "Kind": "BuildingLevel",
+            "Buildings": [
+              "Seaport"
+            ],
+            "TargetLevel": 2,
+            "TargetCityCount": null
+          },
+          {
+            "Kind": "BuildingLevel",
+            "Buildings": [
+              "Temple"
+            ],
+            "TargetLevel": 1,
+            "TargetCityCount": null
+          },
+          {
+            "Kind": "BuildingLevel",
+            "Buildings": [
+              "TownHall"
+            ],
+            "TargetLevel": 3,
+            "TargetCityCount": null
+          },
+          {
+            "Kind": "CityCount",
+            "Buildings": null,
+            "TargetLevel": null,
+            "TargetCityCount": 30
+          }
+        ],
+        "Until": {
+          "Kind": "PrestigePointsAtLeast",
+          "CityCount": null,
+          "RequiredBuilding": null,
+          "Points": 35,
+          "Level": null,
+          "Count": null
+        },
+        "MaxIterations": 20000
+      },
+      {
+        "Kind": "Priority",
+        "ShouldExpand": true,
+        "PrestigePriorityVertexNames": null,
+        "PriorityObjectives": [
+          {
+            "Kind": "BuildingLevel",
+            "Buildings": [
+              "Temple"
+            ],
+            "TargetLevel": 1,
+            "TargetCityCount": null
+          },
+          {
+            "Kind": "BuildingLevel",
+            "Buildings": [
+              "TownHall"
+            ],
+            "TargetLevel": 3,
+            "TargetCityCount": null
+          },
+          {
+            "Kind": "ImperialPort",
+            "Buildings": null,
+            "TargetLevel": null,
+            "TargetCityCount": null
+          }
+        ],
+        "Until": null,
+        "MaxIterations": 20000
+      }
+    ]
+  },
+  "Result": {
+    "StrategyName": "Champion-SeaportFirstInPhase2",
+    "Success": true,
+    "Ticks": 70050,
+    "Iterations": 1401,
+    "FailureReason": null
+  }
+}

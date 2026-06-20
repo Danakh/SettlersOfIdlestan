@@ -1,0 +1,139 @@
+[
+  {
+    "name": "Champion-ExpandTo12-ThenSeaport2",
+    "phases": [
+      {
+        "kind": "Priority",
+        "priorityObjectives": [
+          { "kind": "BuildingLevel", "buildings": ["TownHall", "Sawmill", "Brickworks", "Mill", "Seaport", "Market"], "targetLevel": 1 },
+          { "kind": "CityCount", "targetCityCount": 2 }
+        ],
+        "until": { "kind": "CityCountWithBuilding", "cityCount": 2, "requiredBuilding": "TownHall" }
+      },
+      {
+        "kind": "Priority",
+        "priorityObjectives": [
+          { "kind": "BuildingLevel", "buildings": ["TownHall"], "targetLevel": 1 },
+          { "kind": "BuildingLevel", "buildings": ["Sawmill"], "targetLevel": 1 },
+          { "kind": "CityCount", "targetCityCount": 12 }
+        ],
+        "until": { "kind": "CityCount", "cityCount": 12 }
+      },
+      {
+        "kind": "Priority",
+        "priorityObjectives": [
+          { "kind": "BuildingLevel", "buildings": ["Seaport"], "targetLevel": 2 },
+          { "kind": "BuildingLevel", "buildings": ["Temple"], "targetLevel": 1 },
+          { "kind": "BuildingLevel", "buildings": ["TownHall"], "targetLevel": 3 },
+          { "kind": "CityCount", "targetCityCount": 30 }
+        ],
+        "until": { "kind": "PrestigePointsAtLeast", "points": 35 },
+        "maxIterations": 20000
+      },
+      {
+        "kind": "Priority",
+        "priorityObjectives": [
+          { "kind": "BuildingLevel", "buildings": ["Temple"], "targetLevel": 1 },
+          { "kind": "BuildingLevel", "buildings": ["TownHall"], "targetLevel": 3 },
+          { "kind": "ImperialPort" }
+        ],
+        "maxIterations": 20000
+      }
+    ]
+  },
+  {
+    "name": "UserBaseline-Lvl1To10ThenLvl2ThenRush",
+    "phases": [
+      {
+        "kind": "Priority",
+        "priorityObjectives": [
+          { "kind": "BuildingLevel", "buildings": ["TownHall", "Sawmill", "Brickworks", "Mill", "Seaport", "Market"], "targetLevel": 1 },
+          { "kind": "CityCount", "targetCityCount": 2 }
+        ],
+        "until": { "kind": "CityCountWithBuilding", "cityCount": 2, "requiredBuilding": "TownHall" }
+      },
+      {
+        "kind": "Priority",
+        "priorityObjectives": [
+          { "kind": "BuildingLevel", "buildings": ["TownHall"], "targetLevel": 1 },
+          { "kind": "BuildingLevel", "buildings": ["Sawmill"], "targetLevel": 1 },
+          { "kind": "BuildingLevel", "buildings": ["Brickworks"], "targetLevel": 1 },
+          { "kind": "BuildingLevel", "buildings": ["Mill"], "targetLevel": 1 },
+          { "kind": "BuildingLevel", "buildings": ["Seaport"], "targetLevel": 1 },
+          { "kind": "BuildingLevel", "buildings": ["Market"], "targetLevel": 1 },
+          { "kind": "CityCount", "targetCityCount": 10 }
+        ],
+        "until": { "kind": "CityCount", "cityCount": 10 }
+      },
+      {
+        "kind": "Priority",
+        "priorityObjectives": [
+          { "kind": "BuildingLevel", "buildings": ["Sawmill"], "targetLevel": 2 },
+          { "kind": "BuildingLevel", "buildings": ["Brickworks"], "targetLevel": 2 },
+          { "kind": "BuildingLevel", "buildings": ["Mill"], "targetLevel": 2 },
+          { "kind": "BuildingLevel", "buildings": ["Seaport"], "targetLevel": 2 },
+          { "kind": "BuildingLevel", "buildings": ["Market"], "targetLevel": 2 },
+          { "kind": "BuildingLevel", "buildings": ["Temple"], "targetLevel": 1 },
+          { "kind": "BuildingLevel", "buildings": ["TownHall"], "targetLevel": 3 },
+          { "kind": "CityCount", "targetCityCount": 30 }
+        ],
+        "until": { "kind": "PrestigePointsAtLeast", "points": 35 },
+        "maxIterations": 20000
+      },
+      {
+        "kind": "Priority",
+        "priorityObjectives": [
+          { "kind": "BuildingLevel", "buildings": ["Temple"], "targetLevel": 1 },
+          { "kind": "BuildingLevel", "buildings": ["TownHall"], "targetLevel": 3 },
+          { "kind": "ImperialPort" }
+        ],
+        "maxIterations": 20000
+      }
+    ]
+  },
+  {
+    "name": "Champion-SeaportFirstInPhase2",
+    "phases": [
+      {
+        "kind": "Priority",
+        "priorityObjectives": [
+          { "kind": "BuildingLevel", "buildings": ["TownHall", "Sawmill", "Brickworks", "Mill", "Seaport", "Market"], "targetLevel": 1 },
+          { "kind": "CityCount", "targetCityCount": 2 }
+        ],
+        "until": { "kind": "CityCountWithBuilding", "cityCount": 2, "requiredBuilding": "TownHall" }
+      },
+      {
+        "kind": "Priority",
+        "priorityObjectives": [
+          { "kind": "BuildingLevel", "buildings": ["TownHall"], "targetLevel": 1 },
+          { "kind": "BuildingLevel", "buildings": ["Seaport"], "targetLevel": 1 },
+          { "kind": "BuildingLevel", "buildings": ["Sawmill"], "targetLevel": 1 },
+          { "kind": "BuildingLevel", "buildings": ["Brickworks"], "targetLevel": 1 },
+          { "kind": "BuildingLevel", "buildings": ["Mill"], "targetLevel": 1 },
+          { "kind": "CityCount", "targetCityCount": 12 }
+        ],
+        "until": { "kind": "CityCount", "cityCount": 12 }
+      },
+      {
+        "kind": "Priority",
+        "priorityObjectives": [
+          { "kind": "BuildingLevel", "buildings": ["Seaport"], "targetLevel": 2 },
+          { "kind": "BuildingLevel", "buildings": ["Temple"], "targetLevel": 1 },
+          { "kind": "BuildingLevel", "buildings": ["TownHall"], "targetLevel": 3 },
+          { "kind": "CityCount", "targetCityCount": 30 }
+        ],
+        "until": { "kind": "PrestigePointsAtLeast", "points": 35 },
+        "maxIterations": 20000
+      },
+      {
+        "kind": "Priority",
+        "priorityObjectives": [
+          { "kind": "BuildingLevel", "buildings": ["Temple"], "targetLevel": 1 },
+          { "kind": "BuildingLevel", "buildings": ["TownHall"], "targetLevel": 3 },
+          { "kind": "ImperialPort" }
+        ],
+        "maxIterations": 20000
+      }
+    ]
+  }
+]

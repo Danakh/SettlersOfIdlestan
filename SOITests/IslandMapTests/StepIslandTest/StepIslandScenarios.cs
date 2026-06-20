@@ -90,17 +90,22 @@ namespace SOITests.IslandMapTests.StepIslandTest
         // Cities6 onward instead of reusing the shared ones. Cities2 (TwoCitiesStep above) is shared by
         // all islands — see its own comment.
 
-        // Only TownHall + Sawmill are worth building before expanding — every other Step2 production
-        // building (Brickworks, Mill, Market, Seaport, Warehouse, Mine, Forge) costs more in
-        // construction time than it saves, and combining several building types in a single
-        // BuildingLevel stage causes cross-building trade interference (TryGrindOnce repeatedly
-        // chases a different missing resource each call and can churn the stockpile forever — see
-        // BuildingLevelObjective's doc comment) — so each stays its own stage.
-        // Targets 12 cities, not 6: raced via SOIStrategyTester against the old 6-then-10 split (see
-        // island1-global-level2-experiments*.json) — pushing pure expansion all the way to 12 before
-        // any further production stage beats stopping at 6 or 10, and 13 deadlocks (Phase exceeded
-        // 20000 iterations) on this exact seed, consistent with the release-1.0 fixture's known plateau
-        // at 13 cities (see Island1PrestigePointsStep below) — so 12 is the largest safe margin found.
+        // TownHall + Seaport + Sawmill + Brickworks + Mill are all worth building before expanding —
+        // raced via SOIStrategyTester (island1-step2-buildings-experiments.json) against the
+        // TownHall+Sawmill-only baseline this used to be: adding Brickworks/Mill cuts ~7% off the
+        // ticks to PrestigeAvailable, and adding Seaport on top of that (before Sawmill/Brickworks/
+        // Mill, since it's the one that unlocks trade) cuts another ~3%, for ~9.8% total (77700 ->
+        // 70050 on seed 42) — apparently the cost of building them across all 12 cities is repaid
+        // several times over by faster road/outpost funding during expansion. Market was also tried
+        // here and made things worse (forcing it onto landlocked cities wastes time relative to
+        // leaving it for Step1's first 2 cities only). Each building stays its own stage —
+        // combining several building types in a single BuildingLevel stage causes cross-building
+        // trade interference (TryGrindOnce repeatedly chases a different missing resource each call
+        // and can churn the stockpile forever — see BuildingLevelObjective's doc comment).
+        // Targets 12 cities, not 6: pushing pure expansion all the way to 12 before any further
+        // production stage beats stopping at 6, 10, 11 or 13 (13 deadlocks — Phase exceeded 20000
+        // iterations — on this exact seed, consistent with the release-1.0 fixture's known plateau at
+        // 13 cities, see Island1PrestigePointsStep below) — so 12 is the largest safe margin found.
         // SaveName stays "Island1_Cities6" (not renamed to match the new target) so the frozen
         // saves/release-1.0/Island1_Cities10.json → Island1_Points35.json chain in StepIslandReleaseTests
         // keeps loading correctly; Island1TenCitiesStep right below becomes a no-op now that this step
@@ -113,7 +118,10 @@ namespace SOITests.IslandMapTests.StepIslandTest
             RunAction = (runner, cond) => runner.RunPriorityStrategyUntil(new[]
             {
                 PriorityStage.Buildings(new[] { BuildingType.TownHall }, targetLevel: 1),
+                PriorityStage.Buildings(new[] { BuildingType.Seaport }, targetLevel: 1),
                 PriorityStage.Buildings(new[] { BuildingType.Sawmill }, targetLevel: 1),
+                PriorityStage.Buildings(new[] { BuildingType.Brickworks }, targetLevel: 1),
+                PriorityStage.Buildings(new[] { BuildingType.Mill }, targetLevel: 1),
                 PriorityStage.Cities(12),
             }, cond),
             Condition = ctrl => ctrl.CurrentMainState!.CurrentWorldState!.Civilizations.First().Cities.Count >= 12,
