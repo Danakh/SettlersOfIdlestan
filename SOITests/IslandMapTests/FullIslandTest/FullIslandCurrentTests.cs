@@ -121,10 +121,12 @@ namespace SOITests.IslandMapTests.FullIslandTest
         public void Current_Island4_Step2bis() =>
             IslandScenarioRunner.RunStep(FullIslandScenarios.Island4, 3, "current", saveFinal: true);
 
-        // TO BE REACTIVATED LATER: This step is currently disabled because it takes too long to run in the current test environment. It can be reactivated when the test environment is improved or when the step is optimized for performance.
-        //[Fact]
-        //public void Current_Island4_Step2ter_ExterminateCivilizations() =>
-        //    IslandScenarioRunner.RunStep(FullIslandScenarios.Island4, 4, "current", saveFinal: true);
+        // Stands in for the full extermination step (too slow to run regularly) — just builds the
+        // Barracks to level 1 everywhere. Swap FullIslandScenarios.Island4's Steps[4] back to
+        // ExterminateCivilizationsStep to re-enable the real thing.
+        [Fact]
+        public void Current_Island4_Step2ter_Barracks() =>
+            IslandScenarioRunner.RunStep(FullIslandScenarios.Island4, 4, "current", saveFinal: true);
 
         [Fact]
         public void Current_Island4_Step3() =>

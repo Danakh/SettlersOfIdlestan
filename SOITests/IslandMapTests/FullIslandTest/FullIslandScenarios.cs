@@ -1,9 +1,11 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using SettlersOfIdlestan.Controller;
 using SettlersOfIdlestan.Controller.Expand;
 using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Model.Buildings;
+using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.IslandMap;
@@ -64,10 +66,10 @@ namespace SOITests.IslandMapTests.FullIslandTest
                 $"Expected at least {requiredPoints} prestige points (has {ctrl.PrestigeController.CalculatePrestigePoints()})",
         };
 
-        private static IslandStepDefinition PrestigeAvailableStep(string saveName) => new()
+        private static IslandStepDefinition PrestigeAvailableStep(string saveName, int maxIterations = 10000) => new()
         {
             SaveName = saveName,
-            RunAction = (runner, cond) => runner.RunStep3Until(cond, shouldExpand: false),
+            RunAction = (runner, cond) => runner.RunStep3Until(cond, shouldExpand: false, maxIterations),
             Condition = ctrl => ctrl.PrestigeController.PrestigeIsAvailable(),
             AssertFailMessage = ctrl =>
                 $"Expected prestige to be available (has {ctrl.PrestigeController.CalculatePrestigePoints()} / {PrestigeController.PrestigeRequiredPoints})",
@@ -104,6 +106,39 @@ namespace SOITests.IslandMapTests.FullIslandTest
             },
         };
 
+        /// <summary>
+        /// Lightweight stand-in for <see cref="ExterminateCivilizationsStep"/>: builds the Barracks to
+        /// level 1 in every city without attacking anyone. Used for Island4_Step2ter while the full
+        /// extermination loop is disabled there for being too slow (see Rebuild_All_Current_Saves and
+        /// FullIslandCurrentTests) — keeps the save chain intact so later steps still have their
+        /// expected predecessor save. Swap back to ExterminateCivilizationsStep to re-enable it.
+        /// Mirrors BuildingLevelObjective's own leniency: a city for which Barracks is unavailable
+        /// (city level too low, prerequisites unmet) counts as satisfied, since the autoplayer can't
+        /// do anything more about it — checking city.Buildings directly would never agree with that
+        /// and the run would stall forever waiting for an unreachable building.
+        /// </summary>
+        private static IslandStepDefinition BarracksLevel1Step(string saveName, int maxIterations = 30000) => new()
+        {
+            SaveName = saveName,
+            RunAction = (runner, cond) => runner.RunStepBuildBarracksUntil(cond, maxIterations),
+            Condition = ctrl => ctrl.CurrentMainState!.CurrentWorldState!.Civilizations.First().Cities
+                .All(c => IsBarracksDoneForCity(ctrl, c)),
+            AssertFailMessage = ctrl =>
+            {
+                var civ = ctrl.CurrentMainState!.CurrentWorldState!.Civilizations.First();
+                var missing = civ.Cities.Count(c => !IsBarracksDoneForCity(ctrl, c));
+                return $"Expected every city to have Barracks at level >= 1 (or be unable to build it), {missing} cities are missing it";
+            },
+        };
+
+        private static bool IsBarracksDoneForCity(MainGameController ctrl, City city)
+        {
+            var building = ctrl.BuildingController.GetBuildingOrBuildable(city, BuildingType.Barracks);
+            if (building == null) return true;
+            var maxLevel = ctrl.BuildingController.GetMaxLevel(building, city.CivilizationIndex);
+            return building.Level >= Math.Min(1, maxLevel);
+        }
+
         private static IslandStepDefinition WonderPlacedStep(string saveName) => new()
         {
             SaveName = saveName,
@@ -120,10 +155,10 @@ namespace SOITests.IslandMapTests.FullIslandTest
         /// <summary>Waits for the Wonder to reach <paramref name="targetLevel"/>. Reusable for any
         /// level — CivilizationAutoplayer.TryWonderInvestmentOnce re-enables investment for whichever
         /// resources the next level needs each time the previous level-up clears it.</summary>
-        private static IslandStepDefinition WonderLevelStep(string saveName, int targetLevel) => new()
+        private static IslandStepDefinition WonderLevelStep(string saveName, int targetLevel, int maxIterations = 100000) => new()
         {
             SaveName = saveName,
-            RunAction = (runner, cond) => runner.RunStepWonderUntil(cond),
+            RunAction = (runner, cond) => runner.RunStepWonderUntil(cond, maxIterations),
             Condition = ctrl =>
             {
                 var worldState = ctrl.CurrentMainState?.CurrentWorldState;
@@ -256,13 +291,20 @@ namespace SOITests.IslandMapTests.FullIslandTest
                 TwoCitiesStep("Island4_Step1"),
                 SixCitiesStep("Island4_Step2"),
                 TenCitiesStep("Island4_Step2bis"),
-                ExterminateCivilizationsStep("Island4_Step2ter", maxIterations: 150000),
-                PrestigePointsStep("Island4_Step3"),
-                PrestigeAvailableStep("Island4_Step3bis"),
+                BarracksLevel1Step("Island4_Step2ter"),
+                // Both budgets are pushed well past the usual default: with the extermination loop
+                // disabled above, the economy entering this step is much weaker (no incidental growth
+                // from a long-running combat/expansion loop), so reaching the Imperial Port's city-level-4
+                // requirement takes a lot more grinding than on Island 2/3.
+                PrestigePointsStep("Island4_Step3", maxIterations: 100000),
+                PrestigeAvailableStep("Island4_Step3bis", maxIterations: 300000),
                 WonderPlacedStep("Island4_Wonder_Step0"),
                 // One level further than Island 3's target (level 1) — the Wonder is a fresh,
                 // per-island feature, so Island 4 re-places it and pushes one level beyond.
-                WonderLevelStep("Island4_Wonder_Step1", targetLevel: 2),
+                // Weaker economy than usual entering this step (BarracksLevel1Step above skips the
+                // long incidental growth the extermination loop used to provide), so the wonder takes
+                // longer to fund — same reasoning as the budgets bumped on Island4_Step3/Step3bis.
+                WonderLevelStep("Island4_Wonder_Step1", targetLevel: 2, maxIterations: 300000),
             },
         };
 

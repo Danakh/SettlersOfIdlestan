@@ -160,6 +160,20 @@ public class CivilizationAutoplayerRunner
         }
     }
 
+    /// <summary>
+    /// Lightweight stand-in for <see cref="RunStepExterminateCivilizationsUntil"/>: just builds the
+    /// Barracks to level 1 in every existing city, without ever attacking. Used while the full
+    /// extermination loop is disabled for a given scenario step because it's too slow to run regularly
+    /// (see FullIslandScenarios.Island4) — keeps the save chain intact at a fraction of the cost, ready
+    /// to swap back to the full extermination step later.
+    /// </summary>
+    public void RunStepBuildBarracksUntil(Func<bool> condition, int maxIterations = 10000)
+    {
+        var objective = new BuildingLevelObjective(_autoplayer, _controller.BuildingController,
+            new[] { BuildingType.Barracks }, targetLevel: 1);
+        var strategy = new PriorityAutoplayStrategy(new IAutoplayObjective[] { objective });
+        RunPriorityStrategyUntil(strategy, condition, maxIterations);
+    }
 
     public void RunStep1Until(Func<bool> condition, bool shouldExpand = true, int maxIterations = 10000)
     {
