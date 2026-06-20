@@ -1,6 +1,3 @@
-using System;
-using SettlersOfIdlestan.Controller;
-using SOITests.IslandMapTests.StepIslandTest;
 using SOITests.TestUtilities;
 using Xunit;
 
@@ -33,7 +30,7 @@ namespace SOITests.IslandMapTests.StepIslandTest
 
         [Fact]
         public void Rebuild_Release_Summary()
-            {
+        {
             // Mirrors the step indices exercised by StepIslandReleaseTests — release saves are
             // immutable frozen fixtures, so steps with no save chained from them are silently skipped.
             // No NoMonsters (extermination) entry — the frozen release-1.0 lineage predates that
