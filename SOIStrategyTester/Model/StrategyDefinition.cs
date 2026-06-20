@@ -38,6 +38,9 @@ public enum PriorityObjectiveKind
     BuildingLevel,
     /// <summary>CityCountObjective(TargetCityCount).</summary>
     CityCount,
+    /// <summary>ImperialPortObjective — focuses the first coastal city on Seaport/Warehouse/TownHall 4
+    /// then the Imperial Port itself. Needs no extra fields.</summary>
+    ImperialPort,
 }
 
 public class PriorityObjectiveSpec

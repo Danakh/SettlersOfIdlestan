@@ -1,0 +1,96 @@
+[
+  {
+    "name": "Step3-Greedy-Baseline",
+    "phases": [
+      {
+        "kind": "Step3",
+        "shouldExpand": true,
+        "maxIterations": 20000
+      }
+    ]
+  },
+  {
+    "name": "Step3-TempleTownHall3Plus15Cities-Priority",
+    "phases": [
+      {
+        "kind": "Priority",
+        "priorityObjectives": [
+          { "kind": "BuildingLevel", "buildings": ["Temple"], "targetLevel": 1 },
+          { "kind": "BuildingLevel", "buildings": ["TownHall"], "targetLevel": 3 },
+          { "kind": "CityCount", "targetCityCount": 15 }
+        ],
+        "maxIterations": 20000
+      }
+    ]
+  },
+  {
+    "name": "Step3-CitiesFirstThenTempleTownHall3-Priority",
+    "phases": [
+      {
+        "kind": "Priority",
+        "priorityObjectives": [
+          { "kind": "CityCount", "targetCityCount": 15 },
+          { "kind": "BuildingLevel", "buildings": ["Temple"], "targetLevel": 1 },
+          { "kind": "BuildingLevel", "buildings": ["TownHall"], "targetLevel": 3 }
+        ],
+        "maxIterations": 20000
+      }
+    ]
+  },
+  {
+    "name": "Step3-CitiesFirst12ThenTempleTownHall3-Priority",
+    "phases": [
+      {
+        "kind": "Priority",
+        "priorityObjectives": [
+          { "kind": "CityCount", "targetCityCount": 12 },
+          { "kind": "BuildingLevel", "buildings": ["Temple"], "targetLevel": 1 },
+          { "kind": "BuildingLevel", "buildings": ["TownHall"], "targetLevel": 3 }
+        ],
+        "maxIterations": 20000
+      }
+    ]
+  },
+  {
+    "name": "Step3-CitiesFirst13ThenTempleTownHall3-Priority",
+    "phases": [
+      {
+        "kind": "Priority",
+        "priorityObjectives": [
+          { "kind": "CityCount", "targetCityCount": 13 },
+          { "kind": "BuildingLevel", "buildings": ["Temple"], "targetLevel": 1 },
+          { "kind": "BuildingLevel", "buildings": ["TownHall"], "targetLevel": 3 }
+        ],
+        "maxIterations": 20000
+      }
+    ]
+  },
+  {
+    "name": "Step3-CitiesFirst11ThenTempleTownHall3-Priority",
+    "phases": [
+      {
+        "kind": "Priority",
+        "priorityObjectives": [
+          { "kind": "CityCount", "targetCityCount": 11 },
+          { "kind": "BuildingLevel", "buildings": ["Temple"], "targetLevel": 1 },
+          { "kind": "BuildingLevel", "buildings": ["TownHall"], "targetLevel": 3 }
+        ],
+        "maxIterations": 20000
+      }
+    ]
+  },
+  {
+    "name": "Step3-CitiesFirst20ThenTempleTownHall3-Priority",
+    "phases": [
+      {
+        "kind": "Priority",
+        "priorityObjectives": [
+          { "kind": "CityCount", "targetCityCount": 20 },
+          { "kind": "BuildingLevel", "buildings": ["Temple"], "targetLevel": 1 },
+          { "kind": "BuildingLevel", "buildings": ["TownHall"], "targetLevel": 3 }
+        ],
+        "maxIterations": 20000
+      }
+    ]
+  }
+]

@@ -1,0 +1,49 @@
+[
+  {
+    "name": "Step2bis-Greedy-Baseline",
+    "phases": [
+      {
+        "kind": "Step2",
+        "shouldExpand": true
+      }
+    ]
+  },
+  {
+    "name": "Step2bis-SawmillOnly-Priority",
+    "phases": [
+      {
+        "kind": "Priority",
+        "priorityObjectives": [
+          { "kind": "BuildingLevel", "buildings": ["TownHall"], "targetLevel": 1 },
+          { "kind": "BuildingLevel", "buildings": ["Sawmill"], "targetLevel": 1 },
+          { "kind": "CityCount", "targetCityCount": 10 }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "Step2bis-NoBuildings-Priority",
+    "phases": [
+      {
+        "kind": "Priority",
+        "priorityObjectives": [
+          { "kind": "CityCount", "targetCityCount": 10 }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "Step2bis-BrickworksAlso-Priority",
+    "phases": [
+      {
+        "kind": "Priority",
+        "priorityObjectives": [
+          { "kind": "BuildingLevel", "buildings": ["TownHall"], "targetLevel": 1 },
+          { "kind": "BuildingLevel", "buildings": ["Sawmill"], "targetLevel": 1 },
+          { "kind": "BuildingLevel", "buildings": ["Brickworks"], "targetLevel": 1 },
+          { "kind": "CityCount", "targetCityCount": 10 }
+        ]
+      }
+    ]
+  }
+]

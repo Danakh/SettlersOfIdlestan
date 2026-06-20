@@ -199,12 +199,18 @@ namespace SettlersOfIdlestan.Controller
                                 && !_prestigeController.HasImperialPort();
 
             if (readyForPort)
-                return TryStep3PortFocusOnce();
+                return TryBuildImperialPortOnce();
             else
                 return TryStepOnce(Step3Buildings, shouldExpand);
         }
 
-        private bool TryStep3PortFocusOnce()
+        /// <summary>
+        /// Focuses exclusively on the first coastal city to unlock the Imperial Port: Seaport 4,
+        /// Warehouse 4, TownHall 4, then the (unique) Imperial Port itself. Spreading these levels
+        /// across every city the way BuildingLevelObjective does would be far more expensive — the
+        /// Imperial Port only ever needs one qualifying city.
+        /// </summary>
+        public bool TryBuildImperialPortOnce()
         {
             var coastalCity = _civ.Cities.FirstOrDefault(c =>
                 _map.IsOnSameLayer(c.Position) &&

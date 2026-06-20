@@ -87,6 +87,28 @@ namespace SettlersOfIdlestan.Controller
     }
 
     /// <summary>
+    /// Satisfied once the civilization has built the (unique) Imperial Port. Advances by delegating to
+    /// <see cref="CivilizationAutoplayer.TryBuildImperialPortOnce"/>, which focuses exclusively on the
+    /// first coastal city rather than spreading Seaport/Warehouse/TownHall levels across every city the
+    /// way <see cref="BuildingLevelObjective"/> would — unique buildings are never returned as buildable
+    /// by <see cref="BuildingController.GetBuildingOrBuildable"/>, so BuildingLevelObjective can't drive
+    /// this on its own regardless of which building types are listed.
+    /// </summary>
+    public class ImperialPortObjective : IAutoplayObjective
+    {
+        private readonly CivilizationAutoplayer _autoplayer;
+
+        public ImperialPortObjective(CivilizationAutoplayer autoplayer)
+        {
+            _autoplayer = autoplayer ?? throw new ArgumentNullException(nameof(autoplayer));
+        }
+
+        public bool IsComplete() => _autoplayer.Civilization.UniqueBuildings.Contains(BuildingType.ImperialPort);
+
+        public bool TryAdvanceOnce() => _autoplayer.TryBuildImperialPortOnce();
+    }
+
+    /// <summary>
     /// Drives a <see cref="CivilizationAutoplayer"/> through an ordered list of <see cref="IAutoplayObjective"/>s,
     /// never acting on objective N+1 while objective N still has actionable progress to make. Each call to
     /// <see cref="TryStepOnce"/> re-scans the list from the top, so an event that re-opens an earlier

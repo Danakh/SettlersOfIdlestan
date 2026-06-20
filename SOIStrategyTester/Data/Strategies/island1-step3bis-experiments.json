@@ -1,0 +1,24 @@
+[
+  {
+    "name": "Step3bis-Greedy-Baseline",
+    "phases": [
+      {
+        "kind": "Step3",
+        "shouldExpand": false,
+        "maxIterations": 10000
+      }
+    ]
+  },
+  {
+    "name": "Step3bis-ImperialPort-Priority",
+    "phases": [
+      {
+        "kind": "Priority",
+        "priorityObjectives": [
+          { "kind": "ImperialPort" }
+        ],
+        "maxIterations": 10000
+      }
+    ]
+  }
+]

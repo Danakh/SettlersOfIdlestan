@@ -11,6 +11,55 @@ using SettlersOfIdlestan.Model.IslandMap;
 namespace SOITests.TestUtilities;
 
 /// <summary>
+/// One stage of a hand-tuned Priority strategy: either "build these to level N in every city" or
+/// "expand to city count N". These orderings are found offline by racing variants through
+/// SOIStrategyTester (see SOIStrategyTester/Data/Best/island1-*.best.json for the winning sequences) and
+/// then translated here, one PriorityStage per StrategyPhase.priorityObjectives entry.
+/// </summary>
+public abstract class PriorityStage
+{
+    public static PriorityStage Buildings(BuildingType[] buildings, int targetLevel) => new BuildingsStage(buildings, targetLevel);
+    public static PriorityStage Cities(int targetCount) => new CitiesStage(targetCount);
+    public static PriorityStage ImperialPort() => new ImperialPortStage();
+
+    internal abstract IAutoplayObjective ToObjective(CivilizationAutoplayer autoplayer, BuildingController buildingController);
+
+    private sealed class BuildingsStage : PriorityStage
+    {
+        private readonly BuildingType[] _buildings;
+        private readonly int _targetLevel;
+
+        public BuildingsStage(BuildingType[] buildings, int targetLevel)
+        {
+            _buildings = buildings;
+            _targetLevel = targetLevel;
+        }
+
+        internal override IAutoplayObjective ToObjective(CivilizationAutoplayer autoplayer, BuildingController buildingController) =>
+            new BuildingLevelObjective(autoplayer, buildingController, _buildings, _targetLevel);
+    }
+
+    private sealed class CitiesStage : PriorityStage
+    {
+        private readonly int _targetCount;
+
+        public CitiesStage(int targetCount)
+        {
+            _targetCount = targetCount;
+        }
+
+        internal override IAutoplayObjective ToObjective(CivilizationAutoplayer autoplayer, BuildingController buildingController) =>
+            new CityCountObjective(autoplayer, _targetCount);
+    }
+
+    private sealed class ImperialPortStage : PriorityStage
+    {
+        internal override IAutoplayObjective ToObjective(CivilizationAutoplayer autoplayer, BuildingController buildingController) =>
+            new ImperialPortObjective(autoplayer);
+    }
+}
+
+/// <summary>
 /// Test-layer wrapper around CivilizationAutoplayer that adds time-advancing loops.
 /// Keeps clock management out of the core library.
 /// </summary>
@@ -222,6 +271,16 @@ public class CivilizationAutoplayerRunner
             try { strategy.TryStepOnce(); } catch { }
             Advance();
         }
+    }
+
+    /// <summary>
+    /// Builds a PriorityAutoplayStrategy from a hand-tuned stage sequence and drives it. See
+    /// <see cref="PriorityStage"/> — the stages come from SOIStrategyTester experiments.
+    /// </summary>
+    public void RunPriorityStrategyUntil(IReadOnlyList<PriorityStage> stages, Func<bool> condition, int maxIterations = 10000)
+    {
+        var objectives = stages.Select(s => s.ToObjective(_autoplayer, _controller.BuildingController)).ToList();
+        RunPriorityStrategyUntil(new PriorityAutoplayStrategy(objectives), condition, maxIterations);
     }
     /// <summary>
     /// Grinds step-3 actions, places the Wonder if needed, keeps investment enabled for whichever

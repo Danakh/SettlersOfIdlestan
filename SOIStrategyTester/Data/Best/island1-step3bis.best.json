@@ -1,0 +1,53 @@
+{
+  "Objective": {
+    "Kind": "PrestigeAvailable",
+    "CityCount": null,
+    "RequiredBuilding": null,
+    "Points": null,
+    "Level": null,
+    "Count": null
+  },
+  "Strategy": {
+    "Name": "Step3bis-TempleTownHall3ThenImperialPort-Priority",
+    "Phases": [
+      {
+        "Kind": "Priority",
+        "ShouldExpand": true,
+        "PrestigePriorityVertexNames": null,
+        "PriorityObjectives": [
+          {
+            "Kind": "BuildingLevel",
+            "Buildings": [
+              "Temple"
+            ],
+            "TargetLevel": 1,
+            "TargetCityCount": null
+          },
+          {
+            "Kind": "BuildingLevel",
+            "Buildings": [
+              "TownHall"
+            ],
+            "TargetLevel": 3,
+            "TargetCityCount": null
+          },
+          {
+            "Kind": "ImperialPort",
+            "Buildings": null,
+            "TargetLevel": null,
+            "TargetCityCount": null
+          }
+        ],
+        "Until": null,
+        "MaxIterations": 20000
+      }
+    ]
+  },
+  "Result": {
+    "StrategyName": "Step3bis-TempleTownHall3ThenImperialPort-Priority",
+    "Success": true,
+    "Ticks": 96150,
+    "Iterations": 417,
+    "FailureReason": null
+  }
+}

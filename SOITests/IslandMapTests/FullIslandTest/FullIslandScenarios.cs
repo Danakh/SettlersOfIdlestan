@@ -57,6 +57,130 @@ namespace SOITests.IslandMapTests.FullIslandTest
                 $"Expected at least 10 cities, got {ctrl.CurrentMainState!.CurrentWorldState!.Civilizations.First().Cities.Count}",
         };
 
+        // ── Island 1-specific step definitions ──────────────────────────────────
+        // Found via SOIStrategyTester (SOIStrategyTester/Data/Best/island1-step*.best.json) and used
+        // only for Island1, whose steps start from a fresh, research-less, un-prestiged game — the
+        // priority orderings below are tuned against exactly that starting state and don't generalize
+        // to Island2+ (e.g. they skip Library, which TwoCitiesStep/SixCitiesStep above still build once
+        // research is unlocked after the first prestige), so Island1 gets its own step definitions
+        // instead of reusing the shared ones.
+
+        // Building only the production chain that actually matters (Sawmill/Brickworks/Mill for the
+        // road/outpost costs) plus Market/Seaport to unlock trade — needed because the city's terrain
+        // doesn't always produce every basic resource automatically, and without trade a missing one
+        // stalls forever — reaches 2 cities with TownHall faster than both the full Step1 building list
+        // and the high-level Step1 autoplayer.
+        private static readonly BuildingType[] Island1Step1PriorityBuildings =
+        {
+            BuildingType.TownHall, BuildingType.Sawmill, BuildingType.Brickworks,
+            BuildingType.Mill, BuildingType.Market, BuildingType.Seaport,
+        };
+
+        private static IslandStepDefinition Island1TwoCitiesStep(string saveName) => new()
+        {
+            SaveName = saveName,
+            RunAction = (runner, cond) => runner.RunPriorityStrategyUntil(new[]
+            {
+                PriorityStage.Buildings(Island1Step1PriorityBuildings, targetLevel: 1),
+                PriorityStage.Cities(2),
+            }, cond),
+            Condition = ctrl =>
+            {
+                var civ = ctrl.CurrentMainState!.CurrentWorldState!.Civilizations[0];
+                return civ.Cities.Count >= 2
+                    && civ.Cities.All(c => c.Buildings.Any(b => b.Type == BuildingType.TownHall));
+            },
+            AssertFailMessage = ctrl =>
+            {
+                var civ = ctrl.CurrentMainState!.CurrentWorldState!.Civilizations[0];
+                return $"Expected at least 2 cities with TownHall, got {civ.Cities.Count}";
+            },
+        };
+
+        // Only TownHall + Sawmill are worth building before expanding — every other Step2 production
+        // building (Brickworks, Mill, Market, Seaport, Warehouse, Mine, Forge) costs more in
+        // construction time than it saves, and combining several building types in a single
+        // BuildingLevel stage causes cross-building trade interference (TryGrindOnce repeatedly
+        // chases a different missing resource each call and can churn the stockpile forever — see
+        // BuildingLevelObjective's doc comment) — so each stays its own stage.
+        private static IslandStepDefinition Island1SixCitiesStep(string saveName) => new()
+        {
+            SaveName = saveName,
+            RunAction = (runner, cond) => runner.RunPriorityStrategyUntil(new[]
+            {
+                PriorityStage.Buildings(new[] { BuildingType.TownHall }, targetLevel: 1),
+                PriorityStage.Buildings(new[] { BuildingType.Sawmill }, targetLevel: 1),
+                PriorityStage.Cities(6),
+            }, cond),
+            Condition = ctrl => ctrl.CurrentMainState!.CurrentWorldState!.Civilizations.First().Cities.Count >= 6,
+            AssertFailMessage = ctrl =>
+                $"Expected at least 6 cities, got {ctrl.CurrentMainState!.CurrentWorldState!.Civilizations.First().Cities.Count}",
+        };
+
+        // With 6 cities' worth of economy already in place from Step2, pure expansion (no further
+        // production building) reaches 10 cities faster than building Sawmill in each new city first.
+        private static IslandStepDefinition Island1TenCitiesStep(string saveName) => new()
+        {
+            SaveName = saveName,
+            RunAction = (runner, cond) => runner.RunPriorityStrategyUntil(new[]
+            {
+                PriorityStage.Cities(10),
+            }, cond),
+            Condition = ctrl => ctrl.CurrentMainState!.CurrentWorldState!.Civilizations.First().Cities.Count >= 10,
+            AssertFailMessage = ctrl =>
+                $"Expected at least 10 cities, got {ctrl.CurrentMainState!.CurrentWorldState!.Civilizations.First().Cities.Count}",
+        };
+
+        // Temple (1pt) + TownHall level 3 (2pt, the cap — level 4 doesn't add more) tops out at exactly
+        // 30 points across 10 cities, and Island1 already has surface monsters at this stage (no 1.2x
+        // bonus) so that's short of the 35 required — extra cities close the gap. Building Temple/
+        // TownHall in the existing cities FIRST, with city count only as an uncapped (30, well above
+        // what's ever needed) topping-up fallback, is ~8% slower than expanding first on this exact
+        // seed/save chain, but expanding first is unsafe in general: PriorityAutoplayStrategy never
+        // touches a later objective while an earlier one has actionable work, so if CityCount came
+        // first and the map can't actually support that many cities (verified against the release-1.0
+        // fixture, which plateaus at 13), Temple/TownHall would never even start and points would never
+        // grow — confirmed by reproducing that exact deadlock against saves/release-1.0/Island1_Step2bis.
+        private static IslandStepDefinition Island1PrestigePointsStep(string saveName, int requiredPoints, int maxIterations) => new()
+        {
+            SaveName = saveName,
+            RunAction = (runner, cond) => runner.RunPriorityStrategyUntil(new[]
+            {
+                PriorityStage.Buildings(new[] { BuildingType.Temple }, targetLevel: 1),
+                PriorityStage.Buildings(new[] { BuildingType.TownHall }, targetLevel: 3),
+                PriorityStage.Cities(30),
+            }, cond, maxIterations),
+            Condition = ctrl => ctrl.PrestigeController.CalculatePrestigePoints() >= requiredPoints,
+            AssertFailMessage = ctrl =>
+                $"Expected at least {requiredPoints} prestige points (has {ctrl.PrestigeController.CalculatePrestigePoints()})",
+        };
+
+        // ImperialPortObjective wraps CivilizationAutoplayer.TryBuildImperialPortOnce — the unique
+        // ImperialPort building is never returned as buildable by BuildingController.GetBuildingOrBuildable,
+        // so BuildingLevelObjective can't drive this regardless of which buildings are listed.
+        // Temple/TownHall stages come first as a safety net: PrestigeIsAvailable also requires >=20
+        // points (not just the Imperial Port), and unlike Island1_Step3 this step's input isn't
+        // guaranteed to already clear that bar — confirmed against the release-1.0 fixture, whose frozen
+        // Island1_Step3 save only has 11 points under today's CalculatePrestigePoints (game-balance
+        // formula changes since that fixture was captured), which an ImperialPort-only strategy can never
+        // fix. No CityCount stage here on purpose, unlike Island1PrestigePointsStep: 10+ cities already
+        // clears 20 points once Temple/TownHall3 are done, and adding an uncapped expansion stage ahead
+        // of ImperialPort risks the same deadlock as Island1PrestigePointsStep if a given map can't
+        // support the target city count.
+        private static IslandStepDefinition Island1PrestigeAvailableStep(string saveName, int maxIterations = 20000) => new()
+        {
+            SaveName = saveName,
+            RunAction = (runner, cond) => runner.RunPriorityStrategyUntil(new[]
+            {
+                PriorityStage.Buildings(new[] { BuildingType.Temple }, targetLevel: 1),
+                PriorityStage.Buildings(new[] { BuildingType.TownHall }, targetLevel: 3),
+                PriorityStage.ImperialPort(),
+            }, cond, maxIterations),
+            Condition = ctrl => ctrl.PrestigeController.PrestigeIsAvailable(),
+            AssertFailMessage = ctrl =>
+                $"Expected prestige to be available (has {ctrl.PrestigeController.CalculatePrestigePoints()} / {PrestigeController.PrestigeRequiredPoints})",
+        };
+
         private static IslandStepDefinition PrestigePointsStep(string saveName, int requiredPoints = PrestigeController.PrestigeRequiredPoints, bool shouldExpand = false, int maxIterations = 10000) => new()
         {
             SaveName = saveName,
@@ -192,11 +316,11 @@ namespace SOITests.IslandMapTests.FullIslandTest
             },
             Steps = new List<IslandStepDefinition>
             {
-                TwoCitiesStep("Island1_Step1"),
-                SixCitiesStep("Island1_Step2"),
-                TenCitiesStep("Island1_Step2bis"),
-                PrestigePointsStep("Island1_Step3", Island1RequiredPrestigePoints, shouldExpand: true, maxIterations: 20000),
-                PrestigeAvailableStep("Island1_Step3bis"),
+                Island1TwoCitiesStep("Island1_Step1"),
+                Island1SixCitiesStep("Island1_Step2"),
+                Island1TenCitiesStep("Island1_Step2bis"),
+                Island1PrestigePointsStep("Island1_Step3", Island1RequiredPrestigePoints, maxIterations: 20000),
+                Island1PrestigeAvailableStep("Island1_Step3bis"),
             },
         };
 

@@ -1,0 +1,115 @@
+[
+  {
+    "name": "Step2-Greedy-Baseline",
+    "phases": [
+      {
+        "kind": "Step2",
+        "shouldExpand": true
+      }
+    ]
+  },
+  {
+    "name": "Step2-OneBuildingPerStage-Priority",
+    "phases": [
+      {
+        "kind": "Priority",
+        "priorityObjectives": [
+          { "kind": "BuildingLevel", "buildings": ["TownHall"], "targetLevel": 1 },
+          { "kind": "BuildingLevel", "buildings": ["Sawmill"], "targetLevel": 1 },
+          { "kind": "BuildingLevel", "buildings": ["Brickworks"], "targetLevel": 1 },
+          { "kind": "BuildingLevel", "buildings": ["Mill"], "targetLevel": 1 },
+          { "kind": "BuildingLevel", "buildings": ["Market"], "targetLevel": 1 },
+          { "kind": "BuildingLevel", "buildings": ["Seaport"], "targetLevel": 1 },
+          { "kind": "CityCount", "targetCityCount": 6 }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "Step2-CoreOnly-Priority",
+    "phases": [
+      {
+        "kind": "Priority",
+        "priorityObjectives": [
+          { "kind": "BuildingLevel", "buildings": ["TownHall"], "targetLevel": 1 },
+          { "kind": "BuildingLevel", "buildings": ["Sawmill"], "targetLevel": 1 },
+          { "kind": "BuildingLevel", "buildings": ["Brickworks"], "targetLevel": 1 },
+          { "kind": "BuildingLevel", "buildings": ["Mill"], "targetLevel": 1 },
+          { "kind": "CityCount", "targetCityCount": 6 }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "Step2-CoreMinimal-Priority",
+    "phases": [
+      {
+        "kind": "Priority",
+        "priorityObjectives": [
+          { "kind": "BuildingLevel", "buildings": ["TownHall"], "targetLevel": 1 },
+          { "kind": "BuildingLevel", "buildings": ["Sawmill"], "targetLevel": 1 },
+          { "kind": "BuildingLevel", "buildings": ["Brickworks"], "targetLevel": 1 },
+          { "kind": "CityCount", "targetCityCount": 6 }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "Step2-SawmillOnly-Priority",
+    "phases": [
+      {
+        "kind": "Priority",
+        "priorityObjectives": [
+          { "kind": "BuildingLevel", "buildings": ["TownHall"], "targetLevel": 1 },
+          { "kind": "BuildingLevel", "buildings": ["Sawmill"], "targetLevel": 1 },
+          { "kind": "CityCount", "targetCityCount": 6 }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "Step2-BrickworksFirst-Priority",
+    "phases": [
+      {
+        "kind": "Priority",
+        "priorityObjectives": [
+          { "kind": "BuildingLevel", "buildings": ["TownHall"], "targetLevel": 1 },
+          { "kind": "BuildingLevel", "buildings": ["Brickworks"], "targetLevel": 1 },
+          { "kind": "BuildingLevel", "buildings": ["Sawmill"], "targetLevel": 1 },
+          { "kind": "CityCount", "targetCityCount": 6 }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "Step2-NoBuildings-Priority",
+    "phases": [
+      {
+        "kind": "Priority",
+        "priorityObjectives": [
+          { "kind": "CityCount", "targetCityCount": 6 }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "Step2-OneBuildingPerStageFull-Priority",
+    "phases": [
+      {
+        "kind": "Priority",
+        "priorityObjectives": [
+          { "kind": "BuildingLevel", "buildings": ["TownHall"], "targetLevel": 1 },
+          { "kind": "BuildingLevel", "buildings": ["Sawmill"], "targetLevel": 1 },
+          { "kind": "BuildingLevel", "buildings": ["Brickworks"], "targetLevel": 1 },
+          { "kind": "BuildingLevel", "buildings": ["Mill"], "targetLevel": 1 },
+          { "kind": "BuildingLevel", "buildings": ["Market"], "targetLevel": 1 },
+          { "kind": "BuildingLevel", "buildings": ["Seaport"], "targetLevel": 1 },
+          { "kind": "BuildingLevel", "buildings": ["Warehouse"], "targetLevel": 1 },
+          { "kind": "BuildingLevel", "buildings": ["Mine"], "targetLevel": 1 },
+          { "kind": "BuildingLevel", "buildings": ["Forge"], "targetLevel": 1 },
+          { "kind": "CityCount", "targetCityCount": 6 }
+        ]
+      }
+    ]
+  }
+]

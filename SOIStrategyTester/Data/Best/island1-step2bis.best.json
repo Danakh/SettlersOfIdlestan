@@ -1,0 +1,37 @@
+{
+  "Objective": {
+    "Kind": "CityCount",
+    "CityCount": 10,
+    "RequiredBuilding": null,
+    "Points": null,
+    "Level": null,
+    "Count": null
+  },
+  "Strategy": {
+    "Name": "Step2bis-NoBuildings-Priority",
+    "Phases": [
+      {
+        "Kind": "Priority",
+        "ShouldExpand": true,
+        "PrestigePriorityVertexNames": null,
+        "PriorityObjectives": [
+          {
+            "Kind": "CityCount",
+            "Buildings": null,
+            "TargetLevel": null,
+            "TargetCityCount": 10
+          }
+        ],
+        "Until": null,
+        "MaxIterations": null
+      }
+    ]
+  },
+  "Result": {
+    "StrategyName": "Step2bis-NoBuildings-Priority",
+    "Success": true,
+    "Ticks": 28850,
+    "Iterations": 131,
+    "FailureReason": null
+  }
+}

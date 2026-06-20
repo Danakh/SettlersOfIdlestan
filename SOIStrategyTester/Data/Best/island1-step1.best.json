@@ -1,0 +1,50 @@
+{
+  "Objective": {
+    "Kind": "CityCountWithBuilding",
+    "CityCount": 2,
+    "RequiredBuilding": "TownHall",
+    "Points": null,
+    "Level": null,
+    "Count": null
+  },
+  "Strategy": {
+    "Name": "Step1-CoreProductionPlusTrade-Priority",
+    "Phases": [
+      {
+        "Kind": "Priority",
+        "ShouldExpand": true,
+        "PrestigePriorityVertexNames": null,
+        "PriorityObjectives": [
+          {
+            "Kind": "BuildingLevel",
+            "Buildings": [
+              "TownHall",
+              "Sawmill",
+              "Brickworks",
+              "Mill",
+              "Market",
+              "Seaport"
+            ],
+            "TargetLevel": 1,
+            "TargetCityCount": null
+          },
+          {
+            "Kind": "CityCount",
+            "Buildings": null,
+            "TargetLevel": null,
+            "TargetCityCount": 2
+          }
+        ],
+        "Until": null,
+        "MaxIterations": null
+      }
+    ]
+  },
+  "Result": {
+    "StrategyName": "Step1-CoreProductionPlusTrade-Priority",
+    "Success": true,
+    "Ticks": 9950,
+    "Iterations": 199,
+    "FailureReason": null
+  }
+}

@@ -1,0 +1,53 @@
+{
+  "Objective": {
+    "Kind": "PrestigePointsAtLeast",
+    "CityCount": null,
+    "RequiredBuilding": null,
+    "Points": 35,
+    "Level": null,
+    "Count": null
+  },
+  "Strategy": {
+    "Name": "Step3-TempleTownHall3ThenCities-Priority",
+    "Phases": [
+      {
+        "Kind": "Priority",
+        "ShouldExpand": true,
+        "PrestigePriorityVertexNames": null,
+        "PriorityObjectives": [
+          {
+            "Kind": "BuildingLevel",
+            "Buildings": [
+              "Temple"
+            ],
+            "TargetLevel": 1,
+            "TargetCityCount": null
+          },
+          {
+            "Kind": "BuildingLevel",
+            "Buildings": [
+              "TownHall"
+            ],
+            "TargetLevel": 3,
+            "TargetCityCount": null
+          },
+          {
+            "Kind": "CityCount",
+            "Buildings": null,
+            "TargetLevel": null,
+            "TargetCityCount": 30
+          }
+        ],
+        "Until": null,
+        "MaxIterations": 20000
+      }
+    ]
+  },
+  "Result": {
+    "StrategyName": "Step3-TempleTownHall3ThenCities-Priority",
+    "Success": true,
+    "Ticks": 75300,
+    "Iterations": 929,
+    "FailureReason": null
+  }
+}

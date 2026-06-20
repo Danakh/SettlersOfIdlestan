@@ -16,8 +16,11 @@ The actual strategy-driving primitives it wires up live in the core library:
 - `SettlersOfIdlestan.Controller.CivilizationAutoplayer` — coarse-grained moves (`TryStep1Once`,
   `TryStep2Once`, `TryStep3Once`, `TryMilitaryStepOnce`, `TryWonderInvestmentOnce`, `TryPrestigeOnce`).
 - `SettlersOfIdlestan.Controller.PriorityAutoplayStrategy` / `IAutoplayObjective` /
-  `BuildingLevelObjective` / `CityCountObjective` — fine-grained sequential priorities (never touches
-  objective N+1 while objective N still has actionable work).
+  `BuildingLevelObjective` / `CityCountObjective` / `ImperialPortObjective` — fine-grained sequential
+  priorities (never touches objective N+1 while objective N still has actionable work).
+  `ImperialPortObjective` wraps `CivilizationAutoplayer.TryBuildImperialPortOnce` — unique buildings
+  (`IsUnique`) are never returned as buildable by `BuildingController.GetBuildingOrBuildable`, so
+  `BuildingLevelObjective` can't drive them regardless of which building types are listed.
 
 This CLAUDE.md is the one you should read before being asked to "find a better strategy for X" — it
 explains the JSON vocabulary and the iteration loop, so you can run experiments without re-deriving
@@ -121,7 +124,22 @@ One object, `kind` plus the fields it needs. These mirror the `Condition` lambda
 ```json
 { "kind": "BuildingLevel", "buildings": ["TownHall", "Sawmill", ...], "targetLevel": 1 }
 { "kind": "CityCount", "targetCityCount": 5 }
+{ "kind": "ImperialPort" }
 ```
+
+`ImperialPort` needs no extra fields — it wraps `CivilizationAutoplayer.TryBuildImperialPortOnce`, which
+focuses exclusively on the first coastal city (Seaport 4, Warehouse 4, TownHall 4, then the unique
+Imperial Port). `BuildingLevel` can never drive this regardless of which building types are listed,
+since `IsUnique` buildings are never returned as buildable by `BuildingController.GetBuildingOrBuildable`.
+
+⚠️ **Put `CityCount` (and any other open-ended growth objective) last, or cap it conservatively.**
+`PriorityAutoplayStrategy` never touches objective N+1 while objective N still has actionable work — if
+an early `CityCount` target turns out to be more than a given map can actually support, every objective
+after it (e.g. the Temple/TownHall stages that actually generate prestige points) never even starts,
+and the run hangs until `maxIterations`. This isn't hypothetical: an Island1 experiment that put
+`CityCount` first worked great on a fresh seed-42 game but deadlocked against the `release-1.0` fixture,
+whose map plateaus at 13 cities — see `Island1PrestigePointsStep` in `FullIslandScenarios.cs` for the
+fix (build first, expand only as an uncapped-but-rarely-needed fallback).
 
 A building unavailable to a city (terrain/prerequisites) or already at max level counts as done for
 that city — it never blocks the objective forever.
@@ -174,6 +192,17 @@ that city — it never blocks the objective forever.
   island is generated). `StrategyRunner` already rebuilds the autoplayer at the start of every phase,
   so you don't need to do anything special — just be aware a "global" multi-phase strategy that
   crosses a prestige transition is exercising that rebuild.
+- **Never list more than one building type per `BuildingLevel` objective.** `BuildingLevelObjective.
+  TryAdvanceOnce` calls `TryBuildBuildingOnce(..., withGrind: true)` (the default) for *every* not-yet-done
+  (city, building) pair within a single call, unlike `CivilizationAutoplayer.TryStepOnce`'s deliberate
+  "grind once per step" discipline. With trade enabled, each failed attempt's grind can chase a
+  *different* missing resource than the previous one in the same tick, churning the stockpile and
+  stalling forever — reproduced directly: a `["Sawmill","Brickworks","Mill","Market","Seaport"]` list
+  hung for 300k+ iterations on a 2-resource thrash, while the same five buildings as five separate
+  single-building stages finished in ~120. Split every multi-building list into one stage per building.
+- See the `CityCount`-ordering warning above the `ImperialPort` example — it's the same family of bug
+  (an early objective with unmet/unreachable preconditions silently blocks everything after it) but for
+  expansion targets instead of cross-building trade.
 - `ExterminateCivilizations`/`ExterminateMonsters` and large `CityCount` targets can legitimately need
   tens or hundreds of thousands of iterations (see `FullIslandScenarios.cs`'s `maxIterations` overrides
   for precedent) — use the phase-level `maxIterations` override rather than inflating the global default.

@@ -1,0 +1,87 @@
+[
+  {
+    "name": "Step1-Greedy-Baseline",
+    "phases": [
+      {
+        "kind": "Step1",
+        "shouldExpand": true
+      }
+    ]
+  },
+  {
+    "name": "Step1-ProductionFirst-Priority",
+    "phases": [
+      {
+        "kind": "Priority",
+        "priorityObjectives": [
+          {
+            "kind": "BuildingLevel",
+            "buildings": ["TownHall", "Seaport", "Market", "Sawmill", "Brickworks", "Quarry", "Mill"],
+            "targetLevel": 1
+          },
+          {
+            "kind": "CityCount",
+            "targetCityCount": 2
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "Step1-MarketFirst-Priority",
+    "phases": [
+      {
+        "kind": "Priority",
+        "priorityObjectives": [
+          {
+            "kind": "BuildingLevel",
+            "buildings": ["TownHall", "Market", "Sawmill", "Brickworks", "Mill", "Seaport"],
+            "targetLevel": 1
+          },
+          {
+            "kind": "CityCount",
+            "targetCityCount": 2
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "Step1-SeaportFirst-Priority",
+    "phases": [
+      {
+        "kind": "Priority",
+        "priorityObjectives": [
+          {
+            "kind": "BuildingLevel",
+            "buildings": ["TownHall", "Seaport", "Sawmill", "Brickworks", "Mill", "Market"],
+            "targetLevel": 1
+          },
+          {
+            "kind": "CityCount",
+            "targetCityCount": 2
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "Step1-CoreProductionPlusTrade-Priority",
+    "phases": [
+      {
+        "kind": "Priority",
+        "priorityObjectives": [
+          {
+            "kind": "BuildingLevel",
+            "buildings": ["TownHall", "Sawmill", "Brickworks", "Mill", "Market", "Seaport"],
+            "targetLevel": 1
+          },
+          {
+            "kind": "CityCount",
+            "targetCityCount": 2
+          }
+        ]
+      }
+    ]
+  }
+]

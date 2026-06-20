@@ -1,0 +1,53 @@
+{
+  "Objective": {
+    "Kind": "CityCount",
+    "CityCount": 6,
+    "RequiredBuilding": null,
+    "Points": null,
+    "Level": null,
+    "Count": null
+  },
+  "Strategy": {
+    "Name": "Step2-SawmillOnly-Priority",
+    "Phases": [
+      {
+        "Kind": "Priority",
+        "ShouldExpand": true,
+        "PrestigePriorityVertexNames": null,
+        "PriorityObjectives": [
+          {
+            "Kind": "BuildingLevel",
+            "Buildings": [
+              "TownHall"
+            ],
+            "TargetLevel": 1,
+            "TargetCityCount": null
+          },
+          {
+            "Kind": "BuildingLevel",
+            "Buildings": [
+              "Sawmill"
+            ],
+            "TargetLevel": 1,
+            "TargetCityCount": null
+          },
+          {
+            "Kind": "CityCount",
+            "Buildings": null,
+            "TargetLevel": null,
+            "TargetCityCount": 6
+          }
+        ],
+        "Until": null,
+        "MaxIterations": null
+      }
+    ]
+  },
+  "Result": {
+    "StrategyName": "Step2-SawmillOnly-Priority",
+    "Success": true,
+    "Ticks": 22300,
+    "Iterations": 247,
+    "FailureReason": null
+  }
+}

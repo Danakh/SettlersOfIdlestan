@@ -170,6 +170,7 @@ public static class StrategyRunner
                 PriorityObjectiveKind.CityCount => new CityCountObjective(
                     auto,
                     spec.TargetCityCount ?? throw new ArgumentException("CityCount objective requires TargetCityCount.")),
+                PriorityObjectiveKind.ImperialPort => new ImperialPortObjective(auto),
                 _ => throw new NotSupportedException($"Unknown priority objective kind: {spec.Kind}")
             });
         }
