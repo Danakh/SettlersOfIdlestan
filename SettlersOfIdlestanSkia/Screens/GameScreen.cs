@@ -545,6 +545,71 @@ public sealed class GameScreen : IDisposable
     {
         _inputService.HandleKeyPressed(key);
         if (key == "C" && allowDebugMode) DebugAddResources();
+        if (key == "F9" && allowDebugMode) DebugExportIconCaptures();
+    }
+
+    /// <summary>
+    /// Outil de debug (F9) : exporte la vue caméra actuelle directement à 256/128/64/32/16, en
+    /// gardant le même cadrage (champ de vue) à chaque taille — le zoom est réduit proportionnellement
+    /// à la taille du canvas (sinon une taille plus petite recadrerait sur le carré central, en montrant
+    /// moins de scène). Le rendu reste natif à chaque taille (pas de downscale d'un grand screenshot),
+    /// ce qui garde les contours/traits lisibles.
+    /// </summary>
+    private void DebugExportIconCaptures()
+    {
+        if (_islandMainRenderer == null) return;
+        var gameState = _gameControllerService.CurrentGameState;
+        if (gameState == null) return;
+
+        var liveCanvasSize = _cameraService.CanvasSize;
+        var canvasCenter = new SKPoint(liveCanvasSize.Width / 2f, liveCanvasSize.Height / 2f);
+        var worldCenter = _cameraService.ScreenToWorld(canvasCenter);
+        float liveZoom = _cameraService.ZoomLevel;
+        string outputDir = FindIconExportDirectory();
+
+        foreach (int size in new[] { 256, 128, 64, 32, 16 })
+        {
+            float zoom = liveZoom * size / liveCanvasSize.Width;
+            var position = new SKPoint(
+                worldCenter.X - size / 2f / zoom,
+                worldCenter.Y - size / 2f / zoom);
+
+            using var surface = SKSurface.Create(new SKImageInfo(size, size, SKColorType.Rgba8888, SKAlphaType.Premul));
+            var canvas = surface.Canvas;
+            canvas.Clear(SKColors.Transparent);
+
+            var context = new GameRenderContext
+            {
+                GameState = gameState,
+                DeltaTime = 0f,
+                CanvasSize = new SKSize(size, size),
+                CameraPosition = position,
+                ZoomLevel = zoom,
+                UiScale = 1f
+            };
+
+            _islandMainRenderer.Render(canvas, context);
+
+            using var image = surface.Snapshot();
+            using var data = image.Encode(SKEncodedImageFormat.Png, 100);
+            using var stream = File.Create(Path.Combine(outputDir, $"icon_export_{size}.png"));
+            data.SaveTo(stream);
+        }
+    }
+
+    private static string FindIconExportDirectory()
+    {
+        for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir != null; dir = dir.Parent)
+        {
+            if (File.Exists(Path.Combine(dir.FullName, "SettlersOfIdlestan.slnx")))
+            {
+                var iconDir = Path.Combine(dir.FullName, "assets", "icon", "export");
+                Directory.CreateDirectory(iconDir);
+                return iconDir;
+            }
+        }
+        Directory.CreateDirectory(AppContext.BaseDirectory);
+        return AppContext.BaseDirectory;
     }
 
     private void DebugAddResources()

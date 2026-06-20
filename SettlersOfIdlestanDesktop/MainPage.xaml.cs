@@ -10,6 +10,7 @@ namespace SettlersOfIdlestanDesktop;
 public partial class MainPage : ContentPage
 {
 	private SkiaGameRuntime? _runtime;
+	private bool _allowDebugMode;
 	private readonly Dictionary<long, SKPoint> _activePointers = [];
 	private float _lastPinchDist;
 	private SKPoint _lastPinchCenter;
@@ -39,6 +40,7 @@ public partial class MainPage : ContentPage
 #if DEBUG
 		allowDebugMode = Environment.GetCommandLineArgs().Contains("--debug");
 #endif
+		_allowDebugMode = allowDebugMode;
 		bool demoMode = false;
 		_runtime.Initialize(new DesktopFileSystemService(), allowDebugMode, demoMode);
 		ApplyScreenBasedUiScale();
@@ -118,6 +120,8 @@ public partial class MainPage : ContentPage
 		Windows.System.VirtualKey.Escape => "Escape",
 		Windows.System.VirtualKey.Left => "ArrowLeft",
 		Windows.System.VirtualKey.Right => "ArrowRight",
+		Windows.System.VirtualKey.F9 => "F9",
+		Windows.System.VirtualKey.F10 => "F10",
 		Windows.System.VirtualKey.Control or
 		Windows.System.VirtualKey.LeftControl or
 		Windows.System.VirtualKey.RightControl => "Control",
@@ -134,8 +138,25 @@ public partial class MainPage : ContentPage
 		if (key != null)
 		{
 			_runtime.HandleKeyPressed(key);
+			if (key == "F10" && _allowDebugMode) ResizeWindowToIconPreview();
 			e.Handled = key != "Control" && key != "Shift";
 		}
+	}
+
+	/// <summary>Commande de debug (F10) : redimensionne la fenêtre à 256x256 pour prévisualiser le cadrage avant un export d'icône (F9).</summary>
+	private static void ResizeWindowToIconPreview()
+	{
+#if WINDOWS
+		var windows = Microsoft.Maui.Controls.Application.Current?.Windows;
+		if (windows == null || windows.Count == 0) return;
+		if (windows[0].Handler?.PlatformView is not Microsoft.Maui.MauiWinUIWindow winUIWindow) return;
+
+		var handle    = WinRT.Interop.WindowNative.GetWindowHandle(winUIWindow);
+		var windowId  = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(handle);
+		var appWindow = Microsoft.UI.Windowing.AppWindow.GetFromWindowId(windowId);
+
+		appWindow.ResizeClient(new Windows.Graphics.SizeInt32 { Width = 256, Height = 256 });
+#endif
 	}
 
 	private void OnPlatformKeyUp(object sender, Microsoft.UI.Xaml.Input.KeyRoutedEventArgs e)
