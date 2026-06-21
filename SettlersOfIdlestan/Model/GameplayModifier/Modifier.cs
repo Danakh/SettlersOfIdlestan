@@ -128,6 +128,10 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             INVESTMENT_SPEED_HIGH_STOCK_BONUS,
             /// <summary>Flags que l'action de relocalisation de ville est déverrouillée pour la civilisation du joueur.</summary>
             UNLOCK_RELOCATION,
+            /// <summary>Bonus de vitesse de récolte par niveau de Dominion sur l'hex où a lieu la récolte. Base = 0.0; agrégé via PerVertexModifiers (valeur × vertex de prestige adjacents achetés), puis multiplié par le niveau de Dominion au moment de la récolte.</summary>
+            DOMINION_HARVEST_SPEED_PER_LEVEL,
+            /// <summary>Flags que le Dominion est déverrouillé pour la civilisation (octroyé par le pouvoir divin Foi). Remplace l'ancien verrou générique RequiresGodPoint/HasEverHadGodPoint.</summary>
+            UNLOCK_DOMINION,
         }
 
         public enum EType

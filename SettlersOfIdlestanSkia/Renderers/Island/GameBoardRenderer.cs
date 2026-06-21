@@ -36,12 +36,14 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
     private SKFont? _textIconFont;
     private SKPaint? _selectedMonumentPaint;
     private SKPaint? _corruptionPaint;
+    private SKPaint? _dominionPaint;
     private bool _disposed;
 
     private readonly Dictionary<HexCoord, SKPath> _hexPathCache = new();
     private readonly Dictionary<Resource, SKSvg?> _resourceIcons = new();
 
     private const float CorruptionCircleRadiusFactor = 0.8f;
+    private const float DominionCircleRadiusFactor = 0.55f;
 
     private const float MonumentSelectionRadius = 28f;
     private const float ManualRingRadius = 5f;
@@ -131,6 +133,13 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
             IsAntialias = true
         };
 
+        _dominionPaint = new SKPaint
+        {
+            Color = new SKColor(255, 215, 0, 210),
+            Style = SKPaintStyle.Stroke,
+            IsAntialias = true
+        };
+
         foreach (Resource resource in Enum.GetValues(typeof(Resource)))
         {
             string name = resource.ToString().ToLower();
@@ -160,11 +169,15 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
                         .OfType<Corruption>()
                         .GroupBy(f => f.Position)
                         .ToDictionary(g => g.Key, g => g.Max(c => c.Level));
+                    var uwDominion = worldState.Features
+                        .OfType<Dominion>()
+                        .GroupBy(f => f.Position)
+                        .ToDictionary(g => g.Key, g => g.Max(d => d.Level));
                     var uwFeaturesByPosition = worldState.Features
                         .Where(f => f.ShouldRenderIcon && (f.SvgIconResourceName != null || f.TextIcon != null))
                         .GroupBy(f => f.Position)
                         .ToDictionary(g => g.Key, g => (IEnumerable<IslandFeature>)g);
-                    DrawIslandMap(canvas, underworldMap, playerIdx, mainGameState.Clock.CurrentTick, null, null, null, null, uwFeaturesByPosition, uwCorruption);
+                    DrawIslandMap(canvas, underworldMap, playerIdx, mainGameState.Clock.CurrentTick, null, null, null, null, uwFeaturesByPosition, uwCorruption, uwDominion);
 
                     var selectedInvestable = _monumentService?.SelectedInvestable;
                     if (selectedInvestable != null && selectedInvestable.Position.Z == LayerState.UnderworldZ && _selectedMonumentPaint != null)
@@ -205,7 +218,11 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
                         .OfType<Corruption>()
                         .GroupBy(f => f.Position)
                         .ToDictionary(g => g.Key, g => g.Max(c => c.Level));
-                    DrawIslandMap(canvas, mapToRender, playerIdx, mgs.Clock.CurrentTick, manualTimes, worldState.PlunderCooldownUntil, worldState.PlunderCooldownDuration, harvestBlockedPositions, featuresByPosition, corruptionByHex);
+                    var dominionByHex = worldState.Features
+                        .OfType<Dominion>()
+                        .GroupBy(f => f.Position)
+                        .ToDictionary(g => g.Key, g => g.Max(d => d.Level));
+                    DrawIslandMap(canvas, mapToRender, playerIdx, mgs.Clock.CurrentTick, manualTimes, worldState.PlunderCooldownUntil, worldState.PlunderCooldownDuration, harvestBlockedPositions, featuresByPosition, corruptionByHex, dominionByHex);
 
                     var selectedInvestable = _monumentService?.SelectedInvestable;
                     if (selectedInvestable != null && _selectedMonumentPaint != null)
@@ -225,12 +242,13 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
         Dictionary<HexCoord, long>? plunderCooldownDuration,
         HashSet<HexCoord>? harvestBlockedPositions,
         Dictionary<HexCoord, IEnumerable<IslandFeature>>? featuresByPosition = null,
-        Dictionary<HexCoord, int>? corruptionByHex = null)
+        Dictionary<HexCoord, int>? corruptionByHex = null,
+        Dictionary<HexCoord, int>? dominionByHex = null)
     {
         foreach (var (coord, tile) in map.Tiles)
         {
             var (x, y) = AxialToIsland(coord.Q, coord.R);
-            DrawHexagonTile(canvas, coord, x, y, tile, playerIdx, currentTick, manualTimes, plunderCooldownUntil, plunderCooldownDuration, harvestBlockedPositions, featuresByPosition, corruptionByHex);
+            DrawHexagonTile(canvas, coord, x, y, tile, playerIdx, currentTick, manualTimes, plunderCooldownUntil, plunderCooldownDuration, harvestBlockedPositions, featuresByPosition, corruptionByHex, dominionByHex);
         }
     }
 
@@ -257,7 +275,8 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
         Dictionary<HexCoord, long>? plunderCooldownDuration,
         HashSet<HexCoord>? harvestBlockedPositions,
         Dictionary<HexCoord, IEnumerable<IslandFeature>>? featuresByPosition = null,
-        Dictionary<HexCoord, int>? corruptionByHex = null)
+        Dictionary<HexCoord, int>? corruptionByHex = null,
+        Dictionary<HexCoord, int>? dominionByHex = null)
     {
         var path = GetOrCreateHexPath(coord, centerX, centerY);
 
@@ -275,6 +294,9 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
 
         if (corruptionByHex?.TryGetValue(coord, out int corruptLevel) == true && corruptLevel > 0)
             DrawCorruptionCircle(canvas, centerX, centerY, corruptLevel);
+
+        if (dominionByHex?.TryGetValue(coord, out int dominionLevel) == true && dominionLevel > 0)
+            DrawDominionCircle(canvas, centerX, centerY, dominionLevel);
 
         DrawHarvestIndicator(canvas, centerX, centerY, tile, playerIdx, currentTick, manualTimes, plunderCooldownUntil, plunderCooldownDuration, harvestBlockedPositions);
 
@@ -294,6 +316,13 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
         if (_corruptionPaint == null) return;
         _corruptionPaint.StrokeWidth = Math.Clamp(level, 1, 10);
         canvas.DrawCircle(cx, cy, HexSize * CorruptionCircleRadiusFactor, _corruptionPaint);
+    }
+
+    private void DrawDominionCircle(SKCanvas canvas, float cx, float cy, int level)
+    {
+        if (_dominionPaint == null) return;
+        _dominionPaint.StrokeWidth = Math.Clamp(level, 1, 10);
+        canvas.DrawCircle(cx, cy, HexSize * DominionCircleRadiusFactor, _dominionPaint);
     }
 
     private void DrawFeatureMarker(SKCanvas canvas, float cx, float cy, IslandFeature feature)

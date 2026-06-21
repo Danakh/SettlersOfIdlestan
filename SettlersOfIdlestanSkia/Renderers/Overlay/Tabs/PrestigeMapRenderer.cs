@@ -172,6 +172,7 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         var mainState = context.GameState as MainGameState;
         var prestigeState = mainState?.PrestigeState;
         if (prestigeState == null) return;
+        var civ = mainState!.CurrentWorldState?.PlayerCivilization;
 
         float newBarH = PlayerResourcesOverlayRenderer.BarHeight * context.UiScale;
         if (Math.Abs(newBarH - _barH) > 0.5f)
@@ -185,9 +186,9 @@ public sealed class PrestigeMapRenderer : IGameRenderer
 
         canvas.Save();
         canvas.ClipRect(new SKRect(0, _barH + HeaderHeight, _canvasSize.Width, _canvasSize.Height));
-        DrawHexes(canvas, prestigeState);
+        DrawHexes(canvas, prestigeState, civ);
         DrawRoads(canvas, prestigeState);
-        DrawVertices(canvas, prestigeState);
+        DrawVertices(canvas, prestigeState, civ);
         canvas.Restore();
 
         canvas.DrawRect(new SKRect(0, _barH, _canvasSize.Width, _barH + HeaderHeight), _headerBgPaint);
@@ -196,9 +197,9 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         DrawToggleButtons(canvas);
 
         if (_hoveredVertex != null)
-            BuildVertexTooltip(_hoveredVertex, prestigeState);
+            BuildVertexTooltip(_hoveredVertex, prestigeState, civ);
         else if (_hoveredHex != null)
-            BuildHexTooltip(_hoveredHex, prestigeState);
+            BuildHexTooltip(_hoveredHex, prestigeState, civ);
     }
 
     /// <summary>Debug "carte complète" ou pouvoir divin Oeil de Dieu : révèle toute la carte de prestige.</summary>
@@ -246,7 +247,7 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         }
     }
 
-    private void DrawHexes(SKCanvas canvas, PrestigeState state)
+    private void DrawHexes(SKCanvas canvas, PrestigeState state, Civilization? civ)
     {
         float hexR = R * _zoom;
         foreach (var hex in PrestigeMapController.DefaultMap.Hexes)
@@ -269,7 +270,8 @@ public sealed class PrestigeMapRenderer : IGameRenderer
 
             if (_showHexNames)
             {
-                string name = _localization.Get(hex.LocalizationKey);
+                bool locked = hex.RequiresDominionUnlock && !(civ?.ModifierAggregator.HasModifier(Modifier.ECategory.UNLOCK_DOMINION) ?? false);
+                string name = locked ? "???" : _localization.Get(hex.LocalizationKey);
                 SkiaTextUtils.DrawText(canvas, name, pos.X, pos.Y + 4f, SKTextAlign.Center, _labelFont, _textBlackPaint);
             }
         }
@@ -350,7 +352,7 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         }
     }
 
-    private void DrawVertices(SKCanvas canvas, PrestigeState state)
+    private void DrawVertices(SKCanvas canvas, PrestigeState state, Civilization? civ)
     {
         var controller = _gameControllerService.MainGameController.PrestigeMapController;
         bool demoMode  = _gameControllerService.MainGameController.CurrentMainState?.Settings.DemoMode ?? false;
@@ -390,7 +392,8 @@ public sealed class PrestigeMapRenderer : IGameRenderer
 
             if (_showVertexNames)
             {
-                string name = _localization.Get(vertex.LocalizationKey);
+                bool locked = vertex.RequiresDominionUnlock && !(civ?.ModifierAggregator.HasModifier(Modifier.ECategory.UNLOCK_DOMINION) ?? false);
+                string name = locked ? "???" : _localization.Get(vertex.LocalizationKey);
                 float labelY = IsSouthTip(vertex.Coord) ? pos.Y + 6f : pos.Y + 2f;
                 SkiaTextUtils.DrawText(canvas, name, pos.X + vr, labelY, SKTextAlign.Left, _labelFont, _textBlackPaint);
             }
@@ -538,10 +541,16 @@ public sealed class PrestigeMapRenderer : IGameRenderer
 
     // ─── Tooltip builders ────────────────────────────────────────────────────
 
-    private void BuildVertexTooltip(Vertex coord, PrestigeState state)
+    private void BuildVertexTooltip(Vertex coord, PrestigeState state, Civilization? civ)
     {
         var vertex = PrestigeMapController.DefaultMap.GetVertex(coord);
         if (vertex == null) return;
+
+        if (vertex.RequiresDominionUnlock && !(civ?.ModifierAggregator.HasModifier(Modifier.ECategory.UNLOCK_DOMINION) ?? false))
+        {
+            _tooltipRenderer.SetTooltipLines(new[] { "???", "", _localization.Get("prestige_tooltip_locked_faith") }, ScreenPosVertex(coord));
+            return;
+        }
 
         var lines = new List<string> { _localization.Get(vertex.LocalizationKey), "" };
 
@@ -613,10 +622,16 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         _tooltipRenderer.SetTooltipLines(lines.ToArray(), ScreenPosVertex(coord));
     }
 
-    private void BuildHexTooltip(HexCoord coord, PrestigeState state)
+    private void BuildHexTooltip(HexCoord coord, PrestigeState state, Civilization? civ)
     {
         var hex = PrestigeMapController.DefaultMap.GetHex(coord);
         if (hex == null) return;
+
+        if (hex.RequiresDominionUnlock && !(civ?.ModifierAggregator.HasModifier(Modifier.ECategory.UNLOCK_DOMINION) ?? false))
+        {
+            _tooltipRenderer.SetTooltipLines(new[] { "???", "", _localization.Get("prestige_tooltip_locked_faith") }, ScreenPosHex(coord));
+            return;
+        }
 
         var lines = new List<string> { _localization.Get(hex.LocalizationKey), "" };
 
@@ -647,7 +662,8 @@ public sealed class PrestigeMapRenderer : IGameRenderer
                             or Modifier.ECategory.RESEARCH_SPEED
                             or Modifier.ECategory.UNIT_PRODUCTION_SPEED
                             or Modifier.ECategory.RESEARCH_COST_REDUCTION
-                            or Modifier.ECategory.MARKET_GOLD_SPEED;
+                            or Modifier.ECategory.MARKET_GOLD_SPEED
+                            or Modifier.ECategory.DOMINION_HARVEST_SPEED_PER_LEVEL;
                         bool isFloat = mod.Category is Modifier.ECategory.TRADE_GOLD_PACKAGES;
                         totalStr = isPct ? $"+{(int)(total * 100)}%" : isFloat ? $"{total:0.##}" : $"+{(int)total}";
                     }
@@ -736,6 +752,8 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         Modifier.ECategory.WONDER_COST_REDUCTION            => $"-{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_wonder_cost_reduction")}",
         Modifier.ECategory.INVESTMENT_SPEED_HIGH_STOCK_BONUS => $"+{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_investment_speed_high_stock")}",
         Modifier.ECategory.UNLOCK_RELOCATION                 => _localization.Get("prestige_tooltip_unlocks_relocation"),
+        Modifier.ECategory.DOMINION_HARVEST_SPEED_PER_LEVEL  => $"+{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_harvest_speed")} {_localization.Get("prestige_tooltip_per_dominion_level")}",
+        Modifier.ECategory.UNLOCK_DOMINION                   => _localization.Get("prestige_tooltip_unlocks_dominion"),
         _ => $"+{mod.Value}"
     };
 

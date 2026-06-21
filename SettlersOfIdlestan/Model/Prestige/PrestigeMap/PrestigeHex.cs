@@ -12,13 +12,18 @@ public class PrestigeHex
     public int StartingResourceBonusPerVertex { get; }
     public PrestigeHexDomain Domain { get; }
 
+    /// <summary>Verrouillage générique : tant que le pouvoir divin Foi n'est pas débloqué
+    /// (UNLOCK_DOMINION), ce hex s'affiche en "???" et son contenu reste caché (voir PrestigeMapRenderer).</summary>
+    public bool RequiresDominionUnlock { get; }
+
     public PrestigeHex(
         HexCoord coord,
         string localizationKey,
         IReadOnlyList<Vertex> adjacentVertices,
         IReadOnlyList<Modifier> perVertexModifiers,
         int startingResourceBonusPerVertex = 0,
-        PrestigeHexDomain domain = PrestigeHexDomain.None)
+        PrestigeHexDomain domain = PrestigeHexDomain.None,
+        bool requiresDominionUnlock = false)
     {
         Coord = coord;
         LocalizationKey = localizationKey;
@@ -26,5 +31,6 @@ public class PrestigeHex
         PerVertexModifiers = perVertexModifiers;
         StartingResourceBonusPerVertex = startingResourceBonusPerVertex;
         Domain = domain;
+        RequiresDominionUnlock = requiresDominionUnlock;
     }
 }

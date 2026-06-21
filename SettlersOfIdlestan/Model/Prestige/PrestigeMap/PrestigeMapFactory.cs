@@ -600,12 +600,15 @@ public static class PrestigeMapFactory
                 perVertexModifiers: Array.Empty<Modifier>(),
                 domain: PrestigeHexDomain.Explore
             ),
+            // Dominion — à l'ouest de l'Inframonde. Caché derrière la Faille des Abysses (AbyssHexes)
+            // ET verrouillé en "???" tant que le pouvoir divin Foi n'est pas débloqué (UNLOCK_DOMINION).
             new(
                 PrestigeMap.AbyssDepthsCoord,
-                "prestige_hex_placeholder",
+                "prestige_hex_dominion",
                 adjacentVertices: Adjacent(PrestigeMap.AbyssDepthsCoord),
-                perVertexModifiers: Array.Empty<Modifier>(),
-                domain: PrestigeHexDomain.Explore
+                perVertexModifiers: new Modifier[] { new(ECategory.DOMINION_HARVEST_SPEED_PER_LEVEL, EType.ADDITIVE, 0.1) },
+                domain: PrestigeHexDomain.Exploit,
+                requiresDominionUnlock: true
             ),
             new(
                 PrestigeMap.AbyssChasmCoord,

@@ -126,6 +126,15 @@ namespace SettlersOfIdlestan.Controller.Island
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[HarvestController] {nameof(PerformAlchimistHutCrystalProductions)}: {ex}"); }
         }
 
+        /// <summary>Bonus additif de vitesse de récolte apporté par le Dominion présent sur l'hex de récolte (base 0 si aucun bonus de prestige Dominion n'est débloqué).</summary>
+        private double GetDominionHarvestSpeedBonus(Civilization civ, HexCoord hex)
+        {
+            double perLevel = civ.ModifierAggregator.ApplyModifiers(ECategory.DOMINION_HARVEST_SPEED_PER_LEVEL, "", 0.0);
+            if (perLevel <= 0) return 0.0;
+            int level = _state!.GetFeaturesAt(hex).OfType<Dominion>().FirstOrDefault()?.Level ?? 0;
+            return perLevel * level;
+        }
+
         private void PerformAutomaticProductionHarvests()
         {
             if (_state == null || _clock == null) return;
@@ -161,6 +170,7 @@ namespace SettlersOfIdlestan.Controller.Island
 
                     long raw = building.GetAutomaticHarvestCooldown(AutomaticHarvestCooldownTicks);
                     double speedMultiplier = civ.ModifierAggregator.ApplyModifiers(ECategory.HARVEST_SPEED, building.Type.ToString(), 1.0);
+                    speedMultiplier += GetDominionHarvestSpeedBonus(civ, hex);
                     long effective = Math.Max(1L, (long)(raw / speedMultiplier));
                     if (corruptionLevel > 0)
                         effective = Math.Max(1L, (long)(effective * Math.Pow(2, corruptionLevel)));
@@ -624,6 +634,7 @@ namespace SettlersOfIdlestan.Controller.Island
                     if (!resource.HasValue) continue;
                     long raw = building.GetAutomaticHarvestCooldown(AutomaticHarvestCooldownTicks);
                     double speedMultiplier = civ.ModifierAggregator.ApplyModifiers(ECategory.HARVEST_SPEED, building.Type.ToString(), 1.0);
+                    speedMultiplier += GetDominionHarvestSpeedBonus(civ, hex);
                     long effective = Math.Max(1L, (long)(raw / speedMultiplier));
                     if (hexCorruptLevel > 0)
                         effective = Math.Max(1L, (long)(effective * Math.Pow(2, hexCorruptLevel)));
@@ -694,6 +705,7 @@ namespace SettlersOfIdlestan.Controller.Island
 
                 long raw = building.GetAutomaticHarvestCooldown(AutomaticHarvestCooldownTicks);
                 double speedMultiplier = civ.ModifierAggregator.ApplyModifiers(ECategory.HARVEST_SPEED, building.Type.ToString(), 1.0);
+                speedMultiplier += GetDominionHarvestSpeedBonus(civ, hex);
                 long effective = Math.Max(1L, (long)(raw / speedMultiplier));
                 if (corruptionLvl > 0)
                     effective = Math.Max(1L, (long)(effective * Math.Pow(2, corruptionLvl)));
@@ -751,6 +763,7 @@ namespace SettlersOfIdlestan.Controller.Island
 
                 long raw = building.GetAutomaticHarvestCooldown(AutomaticHarvestCooldownTicks);
                 double speedMultiplier = civ.ModifierAggregator.ApplyModifiers(ECategory.HARVEST_SPEED, building.Type.ToString(), 1.0);
+                speedMultiplier += GetDominionHarvestSpeedBonus(civ, hex);
                 long effective = Math.Max(1L, (long)(raw / speedMultiplier));
 
                 int corruptionLvl = _state.GetFeaturesAt(hex).OfType<Corruption>().FirstOrDefault()?.Level ?? 0;

@@ -10,17 +10,21 @@ using System.Collections.Generic;
 namespace SettlersOfIdlestanSkia.Renderers.Overlay.Tabs;
 
 /// <summary>
-/// Écran Ascension : colonne des pouvoirs divins (GodState.AscensionState). Chaque pouvoir ne peut
-/// être débloqué qu'après celui situé juste en dessous dans la colonne.
+/// Écran Ascension : Foi est un grand bouton occupant toute la largeur en bas de l'écran ; les 4
+/// pouvoirs existants (Main/Oeil/Marche/Bras de Dieu) forment chacun leur propre colonne au-dessus
+/// de Foi (largeur cumulée des colonnes + espaces = largeur de Foi). Débloquer Foi déverrouille les
+/// 4 colonnes ; au sein d'une colonne, chaque pouvoir nécessite celui juste en dessous.
 /// </summary>
 public sealed class AscensionRenderer : IDisposable
 {
-    private const float Padding      = 20f;
-    private const float CardHeight   = 92f;
-    private const float CardSpacing  = 14f;
-    private const float ButtonWidth  = 120f;
-    private const float ButtonHeight = 30f;
-    private const float TextLeftPad  = 14f;
+    private const float Padding          = 20f;
+    private const int   Columns          = 4;
+    private const float ColumnGap        = 14f;
+    private const float CardSpacing      = 14f;
+    private const float ColumnCardHeight = 150f;
+    private const float FaithHeight      = 110f;
+    private const float ButtonHeight     = 26f;
+    private const float ColumnButtonWidth = 100f;
 
     private readonly GameControllerService _gameControllerService;
     private readonly LocalizationService _localization;
@@ -52,10 +56,11 @@ public sealed class AscensionRenderer : IDisposable
     private readonly SKPaint _mutedPaint        = new() { Color = new SKColor(100, 100, 112), IsAntialias = true };
     private readonly SKPaint _accentPaint       = new() { Color = new SKColor(230, 190, 90), IsAntialias = true };
 
-    private readonly SKFont _headerFont = new() { Size = 17, Typeface = SkiaFonts.Bold };
-    private readonly SKFont _nameFont   = new() { Size = 14, Typeface = SkiaFonts.Bold };
-    private readonly SKFont _descFont   = new() { Size = 11, Typeface = SkiaFonts.Regular };
-    private readonly SKFont _buttonFont = new() { Size = 11, Typeface = SkiaFonts.Bold };
+    private readonly SKFont _headerFont   = new() { Size = 17, Typeface = SkiaFonts.Bold };
+    private readonly SKFont _nameFont     = new() { Size = 14, Typeface = SkiaFonts.Bold };
+    private readonly SKFont _faithFont    = new() { Size = 16, Typeface = SkiaFonts.Bold };
+    private readonly SKFont _descFont     = new() { Size = 11, Typeface = SkiaFonts.Regular };
+    private readonly SKFont _buttonFont   = new() { Size = 11, Typeface = SkiaFonts.Bold };
 
     public AscensionRenderer(GameControllerService gameControllerService, LocalizationService localization, TooltipRenderer tooltipRenderer)
     {
@@ -79,26 +84,37 @@ public sealed class AscensionRenderer : IDisposable
         canvas.DrawRect(new SKRect(0, topBar, _canvasSize.Width, _canvasSize.Height), _bgPaint);
 
         var ascension = _gameControllerService.MainGameController.AscensionController;
-        var defs = AscensionPowerDefinitions.All;
 
-        float contentWidth = Math.Min(560f, _canvasSize.Width - Padding * 2);
+        float contentWidth = Math.Min(720f, _canvasSize.Width - Padding * 2);
         float x = (_canvasSize.Width - contentWidth) / 2;
         float y = topBar + Padding;
 
         SkiaTextUtils.DrawText(canvas, _localization.Get("tab_ascension"), x, y + 14, _headerFont, _accentPaint);
-        y += 40f;
 
-        // Colonne : le dernier élément de la liste (ArmOfGod) en haut, le premier (HandOfGod) en bas —
-        // débloquer un pouvoir nécessite celui juste en dessous.
-        for (int i = defs.Count - 1; i >= 0; i--)
+        // Foi : grand bouton occupant toute la largeur, ancré en bas de l'écran.
+        float faithBottom = _canvasSize.Height - Padding;
+        float faithTop = faithBottom - FaithHeight;
+        var faithRect = new SKRect(x, faithTop, x + contentWidth, faithBottom);
+        var faithDef = AscensionPowerDefinitions.Get(AscensionPowerId.Faith)!;
+        DrawFaithButton(canvas, faithRect, faithDef, ascension);
+
+        // Les 4 colonnes existantes montent au-dessus de Foi.
+        float columnWidth = (contentWidth - ColumnGap * (Columns - 1)) / Columns;
+        for (int col = 0; col < Columns; col++)
         {
-            DrawPowerCard(canvas, x, y, contentWidth, defs[i], ascension);
-            y += CardHeight;
-            if (i > 0)
+            float colX = x + col * (columnWidth + ColumnGap);
+            float lineX = colX + columnWidth / 2f;
+            float cardBottom = faithTop;
+
+            foreach (var def in AscensionPowerDefinitions.GetColumn(col))
             {
-                float lineX = x + contentWidth / 2f;
-                canvas.DrawLine(lineX, y, lineX, y + CardSpacing, _connectorPaint);
-                y += CardSpacing;
+                float gapTop = cardBottom - CardSpacing;
+                canvas.DrawLine(lineX, gapTop, lineX, cardBottom, _connectorPaint);
+
+                float cardTop = gapTop - ColumnCardHeight;
+                DrawColumnPowerCard(canvas, colX, cardTop, columnWidth, def, ascension);
+
+                cardBottom = cardTop;
             }
         }
 
@@ -106,28 +122,52 @@ public sealed class AscensionRenderer : IDisposable
             _tooltipRenderer.SetTooltip(_hoveredLockedTooltip, new SKPoint(_hoveredLockedRect.Right, _hoveredLockedRect.Top));
     }
 
-    private void DrawPowerCard(SKCanvas canvas, float x, float y, float width, AscensionPowerDefinition def, SettlersOfIdlestan.Controller.Ascension.AscensionController ascension)
+    private void DrawFaithButton(SKCanvas canvas, SKRect rect, AscensionPowerDefinition def, SettlersOfIdlestan.Controller.Ascension.AscensionController ascension)
+    {
+        bool unlocked    = ascension.IsPowerUnlocked(def.Id);
+        bool canPurchase = !unlocked && ascension.CanPurchasePower(def.Id);
+        bool hovered     = rect.Contains(_hoverPosition.X, _hoverPosition.Y);
+
+        var bg = unlocked ? _cardActivePaint : (canPurchase ? (hovered ? _unlockHoverPaint : _unlockPaint) : _disabledPaint);
+        canvas.DrawRoundRect(rect, 10, 10, bg);
+        canvas.DrawRoundRect(rect, 10, 10, unlocked ? _cardActiveBorder : _buttonBorderPaint);
+
+        SkiaTextUtils.DrawText(canvas, _localization.Get(def.NameKey), rect.MidX, rect.Top + 28f, SKTextAlign.Center, _faithFont, _namePaint);
+
+        var descLayout = SkiaTextUtils.MeasureWrappedText(_localization.Get(def.DescKey), rect.Width - 60f, _descFont);
+        DrawCenteredTextLayout(canvas, descLayout, rect.MidX, rect.Top + 48f, _descFont, _descPaint);
+
+        string statusLabel = unlocked
+            ? _localization.Get("ascension_power_unlocked_label")
+            : _localization.Get("ascension_power_unlock_button");
+        SkiaTextUtils.DrawText(canvas, statusLabel, rect.MidX, rect.Bottom - 12f, SKTextAlign.Center, _buttonFont, unlocked || canPurchase ? _buttonTextPaint : _mutedPaint);
+
+        if (canPurchase)
+            _purchaseButtonRects.Add((def.Id, rect));
+    }
+
+    private void DrawColumnPowerCard(SKCanvas canvas, float x, float y, float width, AscensionPowerDefinition def, SettlersOfIdlestan.Controller.Ascension.AscensionController ascension)
     {
         bool unlocked     = ascension.IsPowerUnlocked(def.Id);
         bool canPurchase  = !unlocked && ascension.CanPurchasePower(def.Id);
         bool locked       = !unlocked && !canPurchase;
 
-        var cardRect = new SKRect(x, y, x + width, y + CardHeight);
+        var cardRect = new SKRect(x, y, x + width, y + ColumnCardHeight);
         canvas.DrawRoundRect(cardRect, 8, 8, unlocked ? _cardActivePaint : (locked ? _cardLockedPaint : _cardPaint));
         canvas.DrawRoundRect(cardRect, 8, 8, unlocked ? _cardActiveBorder : _cardBorderPaint);
 
-        float textX = x + TextLeftPad;
-        float maxTextWidth = width - TextLeftPad - ButtonWidth - TextLeftPad - 10f;
+        float centerX = x + width / 2f;
 
         var namePaint = locked ? _mutedPaint : _namePaint;
-        SkiaTextUtils.DrawText(canvas, _localization.Get(def.NameKey), textX, y + 26f, _nameFont, namePaint);
+        SkiaTextUtils.DrawText(canvas, _localization.Get(def.NameKey), centerX, y + 22f, SKTextAlign.Center, _nameFont, namePaint);
 
-        var descLayout = SkiaTextUtils.MeasureWrappedText(_localization.Get(def.DescKey), maxTextWidth, _descFont);
-        SkiaTextUtils.DrawTextLayout(canvas, descLayout, textX, y + 46f, _descFont, locked ? _mutedPaint : _descPaint);
+        var descLayout = SkiaTextUtils.MeasureWrappedText(_localization.Get(def.DescKey), width - 16f, _descFont);
+        DrawCenteredTextLayout(canvas, descLayout, centerX, y + 40f, _descFont, locked ? _mutedPaint : _descPaint);
 
-        float buttonX = x + width - ButtonWidth - 14f;
-        float buttonY = y + (CardHeight - ButtonHeight) / 2f;
-        var buttonRect = new SKRect(buttonX, buttonY, buttonX + ButtonWidth, buttonY + ButtonHeight);
+        float buttonWidth = Math.Min(width - 16f, ColumnButtonWidth);
+        float buttonX = centerX - buttonWidth / 2f;
+        float buttonY = y + ColumnCardHeight - ButtonHeight - 10f;
+        var buttonRect = new SKRect(buttonX, buttonY, buttonX + buttonWidth, buttonY + ButtonHeight);
         bool hovered = buttonRect.Contains(_hoverPosition.X, _hoverPosition.Y);
 
         if (unlocked)
@@ -150,6 +190,17 @@ public sealed class AscensionRenderer : IDisposable
                 _hoveredLockedRect = buttonRect;
                 _hoveredLockedTooltip = _localization.Get("ascension_power_locked_tooltip");
             }
+        }
+    }
+
+    private static void DrawCenteredTextLayout(SKCanvas canvas, WrappedTextLayout layout, float centerX, float y, SKFont font, SKPaint paint)
+    {
+        float lineHeight = font.Spacing;
+        float currentY = y;
+        foreach (var line in layout.Lines)
+        {
+            SkiaTextUtils.DrawText(canvas, line, centerX, currentY, SKTextAlign.Center, font, paint);
+            currentY += lineHeight;
         }
     }
 
@@ -191,6 +242,7 @@ public sealed class AscensionRenderer : IDisposable
         _accentPaint.Dispose();
         _headerFont.Dispose();
         _nameFont.Dispose();
+        _faithFont.Dispose();
         _descFont.Dispose();
         _buttonFont.Dispose();
         _disposed = true;
