@@ -547,11 +547,20 @@ public sealed class GameScreen : IDisposable
     public void HandleKeyPressed(string key, bool allowDebugMode)
     {
         _inputService.HandleKeyPressed(key);
+        if (key == "Space") TogglePause();
         if (key == "C"   && allowDebugMode) DebugAddResources();
         if (key == "F9"  && allowDebugMode) DebugExportIconCaptures();
         if (key == "F10" && allowDebugMode) DebugExportScreenshotWithInterface();
         if (key == "F11" && allowDebugMode) DebugExportScreenshotWithTitle();
         if (key == "F12" && allowDebugMode) DebugExportScreenshotRaw();
+    }
+
+    private void TogglePause()
+    {
+        var clock = _gameControllerService.CurrentGameState?.Clock;
+        if (clock == null) return;
+        if (clock.SpeedMultiplier == 0) clock.Resume();
+        else clock.Pause();
     }
 
     /// <summary>

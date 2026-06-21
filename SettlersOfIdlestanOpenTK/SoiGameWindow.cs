@@ -184,6 +184,7 @@ sealed class SoiGameWindow : GameWindow
         Keys.P                                    => "P",
         Keys.S                                    => "S",
         Keys.C                                    => "C",
+        Keys.Space                                => "Space",
         Keys.Escape                               => "Escape",
         Keys.Left                                 => "ArrowLeft",
         Keys.Right                                => "ArrowRight",
