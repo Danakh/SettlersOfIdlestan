@@ -22,6 +22,7 @@ namespace SettlersOfIdlestan.Model.IslandFeatures;
 [JsonDerivedType(typeof(Dolmen), "Dolmen")]
 [JsonDerivedType(typeof(Corruption), "Corruption")]
 [JsonDerivedType(typeof(CorruptionSpire), "CorruptionSpire")]
+[JsonDerivedType(typeof(Adventurer), "Adventurer")]
 [Serializable]
 public abstract class IslandFeature
 {

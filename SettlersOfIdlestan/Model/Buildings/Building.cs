@@ -167,6 +167,11 @@ public enum BuildingType
     /// Forge d'Armures - Produit des Armures en Acier en consommant de l'Acier. Débloquée par la recherche Armures d'Acier.
     /// </summary>
     ArmorSmith,
+    /// <summary>
+    /// Guilde des Aventuriers - Bâtiment unique de l'Inframonde. Fait apparaître un Aventurier qui
+    /// combat les monstres errants ; un autre prend sa place à sa mort.
+    /// </summary>
+    AdventurersGuild,
 }
 
 /// <summary>

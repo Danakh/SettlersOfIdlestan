@@ -78,6 +78,7 @@ public class MonsterFeatureController
         if (_state == null) return;
 
         UpdateSpawns(currentTick);
+        UpdateAdventurerSpawns(currentTick);
 
         foreach (var monster in _monsters.ToList())
         {
@@ -101,7 +102,12 @@ public class MonsterFeatureController
             }
 
             if (!moved && monster.AttackRangeInHexes > 0)
-                AttackNearbyCity(monster, currentTick);
+            {
+                if (monster.AttacksOtherMonsters)
+                    AttackNearbyMonster(monster, currentTick);
+                else
+                    AttackNearbyCity(monster, currentTick);
+            }
         }
     }
 
@@ -114,6 +120,58 @@ public class MonsterFeatureController
             var spawn = monster.TrySpawn(_monsters, currentTick);
             if (spawn != null)
                 _state!.AddFeature(spawn);
+        }
+    }
+
+    /// <summary>
+    /// Fait apparaître un Aventurier près de chaque Guilde des Aventuriers construite, tant
+    /// qu'aucun n'est déjà en vie (bâtiment unique : au plus un Aventurier à la fois).
+    /// </summary>
+    private void UpdateAdventurerSpawns(long currentTick)
+    {
+        if (_state == null) return;
+        if (_monsters.Any(m => m is Adventurer)) return;
+
+        foreach (var civ in _state.Civilizations)
+        {
+            foreach (var city in civ.Cities)
+            {
+                var guild = city.Buildings.OfType<AdventurersGuild>().FirstOrDefault(b => b.Level > 0);
+                if (guild == null) continue;
+                if (currentTick - guild.LastAdventurerSpawnTick < AdventurersGuild.AdventurerRespawnCooldownTicks) continue;
+
+                guild.LastAdventurerSpawnTick = currentTick;
+                _state.AddFeature(new Adventurer(city.Position.GetHexes().First()));
+                return;
+            }
+        }
+    }
+
+    // ── Combat contre les autres monstres (Aventurier) ───────────────────────
+
+    private void AttackNearbyMonster(MonsterFeature monster, long currentTick)
+    {
+        if (_state == null) return;
+        if (currentTick - monster.LastAttackTick < monster.AttackIntervalTicks) return;
+        monster.LastAttackTick = currentTick;
+
+        var target = _monsters.FirstOrDefault(m =>
+            m != monster && !m.AttacksOtherMonsters && m.Found && m.Hp > 0 &&
+            m.Position.DistanceTo(monster.Position) <= monster.AttackRangeInHexes);
+        if (target == null) return;
+
+        target.Hp -= monster.AttackDamage;
+        monster.Hp -= target.AttackDamage;
+
+        if (target.Hp <= 0)
+        {
+            _state.RemoveFeature(target);
+            _state.EventLog.Add(target.RemovedEventType);
+        }
+        if (monster.Hp <= 0)
+        {
+            _state.RemoveFeature(monster);
+            _state.EventLog.Add(monster.RemovedEventType);
         }
     }
 

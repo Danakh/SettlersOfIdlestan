@@ -216,6 +216,14 @@ public sealed class EventLogRenderer : IDisposable
             _successCardPaint, _successBorderPaint, _successTextPaint,
             _localization.Get("event_corruption_spire_built_title"),
             _localization.Get("event_corruption_spire_built_body")),
+        GameEventType.AdventurerDiscovered => (
+            _discoveryCardPaint, _discoveryBorderPaint, _discoveryTextPaint,
+            _localization.Get("event_adventurer_title"),
+            _localization.Get("event_adventurer_body")),
+        GameEventType.AdventurerDefeated => (
+            _warningCardPaint, _warningBorderPaint, _warningTextPaint,
+            _localization.Get("event_adventurer_defeated_title"),
+            _localization.Get("event_adventurer_defeated_body")),
         _ => (_dangerCardPaint, _dangerBorderPaint, _bodyTextPaint, "?", entry.Message ?? "")
     };
 
