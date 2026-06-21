@@ -7,6 +7,7 @@
   "settings_show_military_stats": "Stats militaires des villes",
   "settings_fullscreen": "Plein écran",
   "settings_ui_scale": "Échelle de l'interface",
+  "settings_debug_window_resolution": "Résolution fenêtre (debug)",
   "menu_language": "Langue",
   "menu_language_french": "Français",
   "menu_language_english": "English",

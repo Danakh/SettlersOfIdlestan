@@ -90,6 +90,7 @@ public sealed class GameScreen : IDisposable
     public event Action? QuitRequested;
 
     public event Action<bool>? FullscreenToggleRequested;
+    public event Action<int, int>? DebugWindowResizeRequested;
 
     public GameSettings? GetCurrentSettings() =>
         _gameControllerService.MainGameController.CurrentMainState?.Settings;
@@ -247,9 +248,10 @@ public sealed class GameScreen : IDisposable
 
         var selectedMonumentPanelRenderer = new SelectedMonumentPanelRenderer(_monumentService, _inputService, _localizationService, _resourceManager);
 
-        var settingsPopupRenderer = new SettingsPopupRenderer(_gameControllerService.MainGameController, _localizationService, _fileSystemService);
-        settingsPopupRenderer.FullscreenToggleRequested += v => FullscreenToggleRequested?.Invoke(v);
-        settingsPopupRenderer.UiScaleChanged += ApplyManualUiScale;
+        var settingsPopupRenderer = new SettingsPopupRenderer(_gameControllerService.MainGameController, _localizationService, _fileSystemService, allowDebugMode);
+        settingsPopupRenderer.FullscreenToggleRequested  += v => FullscreenToggleRequested?.Invoke(v);
+        settingsPopupRenderer.UiScaleChanged             += ApplyManualUiScale;
+        settingsPopupRenderer.DebugWindowResizeRequested += (w, h) => DebugWindowResizeRequested?.Invoke(w, h);
 
         DebugPanelRenderer? debugPanelRenderer = null;
         if (allowDebugMode)
@@ -544,8 +546,10 @@ public sealed class GameScreen : IDisposable
     public void HandleKeyPressed(string key, bool allowDebugMode)
     {
         _inputService.HandleKeyPressed(key);
-        if (key == "C" && allowDebugMode) DebugAddResources();
-        if (key == "F9" && allowDebugMode) DebugExportIconCaptures();
+        if (key == "C"   && allowDebugMode) DebugAddResources();
+        if (key == "F9"  && allowDebugMode) DebugExportIconCaptures();
+        if (key == "F10" && allowDebugMode) DebugExportScreenshotWithInterface();
+        if (key == "F11" && allowDebugMode) DebugExportScreenshotWithTitle();
     }
 
     /// <summary>
@@ -565,7 +569,7 @@ public sealed class GameScreen : IDisposable
         var canvasCenter = new SKPoint(liveCanvasSize.Width / 2f, liveCanvasSize.Height / 2f);
         var worldCenter = _cameraService.ScreenToWorld(canvasCenter);
         float liveZoom = _cameraService.ZoomLevel;
-        string outputDir = FindIconExportDirectory();
+        string outputDir = FindExportDirectory();
 
         foreach (int size in new[] { 256, 128, 64, 32, 16 })
         {
@@ -597,15 +601,116 @@ public sealed class GameScreen : IDisposable
         }
     }
 
-    private static string FindIconExportDirectory()
+    /// <summary>Outil de debug (F10) : capture l'écran de jeu tel qu'affiché à l'écran, interface comprise
+    /// (barres de ressources, onglets, tooltips…), à la résolution actuelle de la fenêtre.</summary>
+    private void DebugExportScreenshotWithInterface()
+    {
+        var gameState = _gameControllerService.CurrentGameState;
+        if (gameState == null) return;
+
+        var canvasSize = _cameraService.CanvasSize;
+        if (!TryCreateExportSurface(canvasSize, out var surface)) return;
+        using (surface)
+        {
+            _renderService.RenderFrame(surface.Canvas, gameState, _cameraService);
+            SaveExportPng(surface, "screenshot_interface.png");
+        }
+    }
+
+    /// <summary>Outil de debug (F11) : capture la scène de jeu sans interface, avec le titre du jeu superposé
+    /// comme sur l'écran titre (sur une ou deux lignes selon la largeur disponible).</summary>
+    private void DebugExportScreenshotWithTitle()
+    {
+        if (_islandMainRenderer == null) return;
+        var gameState = _gameControllerService.CurrentGameState;
+        if (gameState == null) return;
+
+        var canvasSize = _cameraService.CanvasSize;
+        if (!TryCreateExportSurface(canvasSize, out var surface)) return;
+        using (surface)
+        {
+            var canvas = surface.Canvas;
+            var context = new GameRenderContext
+            {
+                GameState = gameState,
+                DeltaTime = 0f,
+                CanvasSize = canvasSize,
+                CameraPosition = _cameraService.Position,
+                ZoomLevel = _cameraService.ZoomLevel,
+                UiScale = _uiLayoutService.UiScale
+            };
+            _islandMainRenderer.Render(canvas, context);
+
+            DrawTitleOverlay(canvas, canvasSize, _uiLayoutService.UiScale);
+
+            SaveExportPng(surface, "screenshot_title.png");
+        }
+    }
+
+    private static void DrawTitleOverlay(SKCanvas canvas, SKSize canvasSize, float s)
+    {
+        const string title = "Settlers of Idlestan";
+        using var titleFont    = new SKFont { Size = 38f * s, Typeface = SkiaFonts.Bold };
+        using var titlePaint   = new SKPaint { Color = new SKColor(230, 190, 90), IsAntialias = true };
+        using var dividerPaint = new SKPaint { Color = new SKColor(100, 85, 45), StrokeWidth = 2f * s, Style = SKPaintStyle.Stroke };
+
+        float cx       = canvasSize.Width / 2f;
+        float margin   = 40f * s;
+        float maxWidth = Math.Max(10f, canvasSize.Width - margin * 2f);
+        float fullWidth = titleFont.MeasureText(title);
+
+        // Une seule ligne si elle tient dans la largeur disponible, sinon découpage par mot (1 ou 2 lignes).
+        List<string> lines = fullWidth <= maxWidth
+            ? [title]
+            : SkiaTextUtils.MeasureWrappedText(title, maxWidth, titleFont).Lines;
+
+        float lineH  = titleFont.Spacing;
+        float titleY = 70f * s;
+        foreach (var line in lines)
+        {
+            float lineW = titleFont.MeasureText(line);
+            SkiaTextUtils.DrawText(canvas, line, cx - lineW / 2f, titleY, titleFont, titlePaint);
+            titleY += lineH;
+        }
+
+        float divY     = titleY - lineH + 18f * s;
+        float divHalfW = Math.Min(220f * s, cx - 20f * s);
+        canvas.DrawLine(cx - divHalfW, divY, cx + divHalfW, divY, dividerPaint);
+    }
+
+    private static bool TryCreateExportSurface(SKSize canvasSize, out SKSurface surface)
+    {
+        int width  = (int)MathF.Round(canvasSize.Width);
+        int height = (int)MathF.Round(canvasSize.Height);
+        if (width <= 0 || height <= 0)
+        {
+            surface = null!;
+            return false;
+        }
+
+        surface = SKSurface.Create(new SKImageInfo(width, height, SKColorType.Rgba8888, SKAlphaType.Premul));
+        surface.Canvas.Clear(SKColors.Black);
+        return true;
+    }
+
+    private static void SaveExportPng(SKSurface surface, string fileName)
+    {
+        string outputDir = FindExportDirectory();
+        using var image = surface.Snapshot();
+        using var data = image.Encode(SKEncodedImageFormat.Png, 100);
+        using var stream = File.Create(Path.Combine(outputDir, fileName));
+        data.SaveTo(stream);
+    }
+
+    private static string FindExportDirectory()
     {
         for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir != null; dir = dir.Parent)
         {
             if (File.Exists(Path.Combine(dir.FullName, "SettlersOfIdlestan.slnx")))
             {
-                var iconDir = Path.Combine(dir.FullName, "assets", "icon", "export");
-                Directory.CreateDirectory(iconDir);
-                return iconDir;
+                var exportDir = Path.Combine(dir.FullName, "assets", "export");
+                Directory.CreateDirectory(exportDir);
+                return exportDir;
             }
         }
         Directory.CreateDirectory(AppContext.BaseDirectory);

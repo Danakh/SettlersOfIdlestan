@@ -36,6 +36,7 @@ public partial class MainPage : ContentPage
 		_runtime.DiscordLinkClicked    += url => MainThread.BeginInvokeOnMainThread(async () =>
 			await Launcher.OpenAsync(new Uri(url)));
 		_runtime.FullscreenStateChanged += fullscreen => MainThread.BeginInvokeOnMainThread(() => ApplyFullscreen(fullscreen));
+		_runtime.DebugWindowResizeRequested += (width, height) => MainThread.BeginInvokeOnMainThread(() => ResizeWindow(width, height));
 		bool allowDebugMode = false;
 #if DEBUG
 		allowDebugMode = Environment.GetCommandLineArgs().Contains("--debug");
@@ -122,6 +123,30 @@ public partial class MainPage : ContentPage
 		Windows.System.VirtualKey.Right => "ArrowRight",
 		Windows.System.VirtualKey.F9 => "F9",
 		Windows.System.VirtualKey.F10 => "F10",
+		Windows.System.VirtualKey.F11 => "F11",
+		Windows.System.VirtualKey.Number0 => "0",
+		Windows.System.VirtualKey.Number1 => "1",
+		Windows.System.VirtualKey.Number2 => "2",
+		Windows.System.VirtualKey.Number3 => "3",
+		Windows.System.VirtualKey.Number4 => "4",
+		Windows.System.VirtualKey.Number5 => "5",
+		Windows.System.VirtualKey.Number6 => "6",
+		Windows.System.VirtualKey.Number7 => "7",
+		Windows.System.VirtualKey.Number8 => "8",
+		Windows.System.VirtualKey.Number9 => "9",
+		Windows.System.VirtualKey.NumberPad0 => "0",
+		Windows.System.VirtualKey.NumberPad1 => "1",
+		Windows.System.VirtualKey.NumberPad2 => "2",
+		Windows.System.VirtualKey.NumberPad3 => "3",
+		Windows.System.VirtualKey.NumberPad4 => "4",
+		Windows.System.VirtualKey.NumberPad5 => "5",
+		Windows.System.VirtualKey.NumberPad6 => "6",
+		Windows.System.VirtualKey.NumberPad7 => "7",
+		Windows.System.VirtualKey.NumberPad8 => "8",
+		Windows.System.VirtualKey.NumberPad9 => "9",
+		Windows.System.VirtualKey.X => "X",
+		Windows.System.VirtualKey.Back => "Backspace",
+		Windows.System.VirtualKey.Enter => "Enter",
 		Windows.System.VirtualKey.Control or
 		Windows.System.VirtualKey.LeftControl or
 		Windows.System.VirtualKey.RightControl => "Control",
@@ -138,25 +163,8 @@ public partial class MainPage : ContentPage
 		if (key != null)
 		{
 			_runtime.HandleKeyPressed(key);
-			if (key == "F10" && _allowDebugMode) ResizeWindowToIconPreview();
 			e.Handled = key != "Control" && key != "Shift";
 		}
-	}
-
-	/// <summary>Commande de debug (F10) : redimensionne la fenêtre à 256x256 pour prévisualiser le cadrage avant un export d'icône (F9).</summary>
-	private static void ResizeWindowToIconPreview()
-	{
-#if WINDOWS
-		var windows = Microsoft.Maui.Controls.Application.Current?.Windows;
-		if (windows == null || windows.Count == 0) return;
-		if (windows[0].Handler?.PlatformView is not Microsoft.Maui.MauiWinUIWindow winUIWindow) return;
-
-		var handle    = WinRT.Interop.WindowNative.GetWindowHandle(winUIWindow);
-		var windowId  = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(handle);
-		var appWindow = Microsoft.UI.Windowing.AppWindow.GetFromWindowId(windowId);
-
-		appWindow.ResizeClient(new Windows.Graphics.SizeInt32 { Width = 256, Height = 256 });
-#endif
 	}
 
 	private void OnPlatformKeyUp(object sender, Microsoft.UI.Xaml.Input.KeyRoutedEventArgs e)
@@ -313,6 +321,22 @@ public partial class MainPage : ContentPage
 		_runtime.Tick();
 		GameCanvas.InvalidateSurface();
 		return true;
+	}
+
+	/// <summary>Debug uniquement : redimensionne la fenêtre native à la résolution saisie dans les paramètres.</summary>
+	private static void ResizeWindow(int width, int height)
+	{
+#if WINDOWS
+		var windows = Microsoft.Maui.Controls.Application.Current?.Windows;
+		if (windows == null || windows.Count == 0) return;
+		if (windows[0].Handler?.PlatformView is not Microsoft.Maui.MauiWinUIWindow winUIWindow) return;
+
+		var handle    = WinRT.Interop.WindowNative.GetWindowHandle(winUIWindow);
+		var windowId  = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(handle);
+		var appWindow = Microsoft.UI.Windowing.AppWindow.GetFromWindowId(windowId);
+
+		appWindow.ResizeClient(new Windows.Graphics.SizeInt32 { Width = width, Height = height });
+#endif
 	}
 
 	private static void ApplyFullscreen(bool fullscreen)

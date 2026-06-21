@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.Localization;
 using SettlersOfIdlestanSkia.Core;
@@ -25,6 +26,10 @@ public sealed class SettingsContentPanel : IDisposable
     public  const float UiScaleMin   = 0.5f;
     public  const float UiScaleMax   = 2f;
 
+    private const int MaxDebugResolutionLength = 11; // "99999x99999"
+    private const int MinDebugResolution = 256;
+    private static readonly Regex DebugResolutionRegex = new(@"^(\d{1,5})[xX](\d{1,5})$", RegexOptions.Compiled);
+
     private readonly SKPaint _activeBtnPaint    = new() { Color = new SKColor(60, 100, 180),  Style = SKPaintStyle.Fill,   IsAntialias = true };
     private readonly SKPaint _inactiveBtnPaint  = new() { Color = new SKColor(55, 55, 65),    Style = SKPaintStyle.Fill,   IsAntialias = true };
     private readonly SKPaint _labelPaint        = new() { Color = new SKColor(200, 200, 210), IsAntialias = true };
@@ -47,6 +52,7 @@ public sealed class SettingsContentPanel : IDisposable
     private SKRect _militaryStatsToggleRect = SKRect.Empty;
     private SKRect _fullscreenToggleRect   = SKRect.Empty;
     private SKRect _uiScaleSliderRect      = SKRect.Empty;
+    private SKRect _debugResolutionFieldRect = SKRect.Empty;
 
     private bool _hoveredPause;
     private bool _hoveredParticles;
@@ -58,8 +64,12 @@ public sealed class SettingsContentPanel : IDisposable
     private float? _pendingUiScaleValue;
     private bool _disposed;
 
+    private string _debugResolutionText     = "";
+    private bool   _debugResolutionFocused;
+
     public event Action<bool>? FullscreenToggleRequested;
     public event Action<float>? UiScaleChanged;
+    public event Action<int, int>? DebugWindowResizeRequested;
 
     private void UpdateFonts(float s)
     {
@@ -76,7 +86,7 @@ public sealed class SettingsContentPanel : IDisposable
     /// Returns the total height used by the content.
     /// </summary>
     public float Render(SKCanvas canvas, float x, float y, float width, float s,
-        GameSettings settings, LocalizationService localization)
+        GameSettings settings, LocalizationService localization, bool allowDebugMode = false, SKSize currentResolution = default)
     {
         UpdateFonts(s);
 
@@ -126,7 +136,42 @@ public sealed class SettingsContentPanel : IDisposable
         _uiScaleSliderRect = DrawSliderRow(canvas, x, row5Y, rightEdge,
             localization.Get("settings_ui_scale"), _pendingUiScaleValue ?? settings.UiScale, UiScaleMin, UiScaleMax, _hoveredUiScaleSlider, btnH, s);
 
-        return spacingY * 5f + btnH;
+        if (!allowDebugMode)
+            return spacingY * 5f + btnH;
+
+        // Row 7 (debug uniquement) — Résolution de la fenêtre, appliquée à l'appui sur Entrée.
+        // Tant que le champ n'a pas le focus, il reflète en continu la résolution actuelle de la fenêtre.
+        if (!_debugResolutionFocused && currentResolution.Width > 0f && currentResolution.Height > 0f)
+            _debugResolutionText = $"{(int)MathF.Round(currentResolution.Width)}x{(int)MathF.Round(currentResolution.Height)}";
+
+        float row7Y = y + spacingY * 6f;
+        _debugResolutionFieldRect = DrawTextInputRow(canvas, x, row7Y, rightEdge,
+            localization.Get("settings_debug_window_resolution"), _debugResolutionText, _debugResolutionFocused, btnH, s);
+
+        return spacingY * 6f + btnH;
+    }
+
+    private SKRect DrawTextInputRow(SKCanvas canvas, float rowX, float rowY, float rightEdge,
+        string label, string value, bool isFocused, float btnH, float s)
+    {
+        SkiaTextUtils.DrawText(canvas, label + " :",
+            rowX + 20f * s, rowY + btnH / 2f + _labelFont.Size / 2f, _labelFont, _labelPaint);
+
+        float fieldW = SliderWidth * s;
+        float fieldH = BtnHeight   * s;
+        float fieldX = rightEdge - fieldW;
+        var   fieldRect = new SKRect(fieldX, rowY, fieldX + fieldW, rowY + fieldH);
+
+        canvas.DrawRoundRect(fieldRect, 6f * s, 6f * s, _inactiveBtnPaint);
+        canvas.DrawRoundRect(fieldRect, 6f * s, 6f * s, isFocused ? _sliderKnobHoverBorder : _btnBorderPaint);
+
+        bool   hasValue     = value.Length > 0;
+        string displayText  = hasValue ? value : "1920x1080";
+        var    displayPaint = hasValue ? _textPaint : _labelPaint;
+        SkiaTextUtils.DrawText(canvas, displayText,
+            fieldRect.Left + 10f * s, fieldRect.Top + fieldRect.Height / 2f + _btnFont.Size / 2f, _btnFont, displayPaint);
+
+        return fieldRect;
     }
 
     private SKRect DrawSliderRow(SKCanvas canvas, float rowX, float rowY, float rightEdge,
@@ -221,43 +266,49 @@ public sealed class SettingsContentPanel : IDisposable
     }
 
     /// <summary>Returns true if a setting was changed.</summary>
-    public bool HandleClick(SKPoint pos, GameSettings settings, LocalizationService localization)
+    public bool HandleClick(SKPoint pos, GameSettings settings, LocalizationService localization, bool allowDebugMode = false)
     {
         if (_btnFrench.Contains(pos.X, pos.Y))
         {
-            _focusedUiScaleSlider = false;
+            _focusedUiScaleSlider   = false;
+            _debugResolutionFocused = false;
             localization.SetLanguage(Language.French);
             settings.Language = Language.French;
             return true;
         }
         if (_btnEnglish.Contains(pos.X, pos.Y))
         {
-            _focusedUiScaleSlider = false;
+            _focusedUiScaleSlider   = false;
+            _debugResolutionFocused = false;
             localization.SetLanguage(Language.English);
             settings.Language = Language.English;
             return true;
         }
         if (!_pauseToggleRect.IsEmpty && _pauseToggleRect.Contains(pos.X, pos.Y))
         {
-            _focusedUiScaleSlider = false;
+            _focusedUiScaleSlider   = false;
+            _debugResolutionFocused = false;
             settings.PauseAfterPrestige = !settings.PauseAfterPrestige;
             return true;
         }
         if (!_particlesToggleRect.IsEmpty && _particlesToggleRect.Contains(pos.X, pos.Y))
         {
-            _focusedUiScaleSlider = false;
+            _focusedUiScaleSlider   = false;
+            _debugResolutionFocused = false;
             settings.ShowHarvestParticles = !settings.ShowHarvestParticles;
             return true;
         }
         if (!_militaryStatsToggleRect.IsEmpty && _militaryStatsToggleRect.Contains(pos.X, pos.Y))
         {
-            _focusedUiScaleSlider = false;
+            _focusedUiScaleSlider   = false;
+            _debugResolutionFocused = false;
             settings.ShowCityMilitaryStats = !settings.ShowCityMilitaryStats;
             return true;
         }
         if (!_fullscreenToggleRect.IsEmpty && _fullscreenToggleRect.Contains(pos.X, pos.Y))
         {
-            _focusedUiScaleSlider = false;
+            _focusedUiScaleSlider   = false;
+            _debugResolutionFocused = false;
             settings.Fullscreen = !settings.Fullscreen;
             FullscreenToggleRequested?.Invoke(settings.Fullscreen);
             return true;
@@ -266,16 +317,69 @@ public sealed class SettingsContentPanel : IDisposable
         {
             // Démarre le drag mais ne change pas encore le réglage — appliqué au relâchement.
             // Le slider garde le focus clavier (flèches) même si la souris le quitte ensuite.
-            _focusedUiScaleSlider  = true;
-            _draggingUiScaleSlider = true;
+            _focusedUiScaleSlider   = true;
+            _debugResolutionFocused = false;
+            _draggingUiScaleSlider  = true;
             UpdatePendingUiScaleFromX(pos.X);
             return false;
         }
+        if (allowDebugMode && !_debugResolutionFieldRect.IsEmpty && _debugResolutionFieldRect.Contains(pos.X, pos.Y))
+        {
+            _focusedUiScaleSlider   = false;
+            _debugResolutionFocused = true;
+            return false;
+        }
+        _debugResolutionFocused = false;
         return false;
     }
 
-    /// <summary>Retire le focus clavier du slider — à appeler à la fermeture de l'écran/popup qui héberge ce panneau.</summary>
-    public void ClearFocus() => _focusedUiScaleSlider = false;
+    /// <summary>Traite une touche tapée dans le champ de résolution de debug. Retourne true si la touche a été
+    /// consommée par le champ (et ne doit donc pas être interprétée comme un raccourci de jeu).</summary>
+    public bool HandleTextKey(string key)
+    {
+        if (!_debugResolutionFocused) return false;
+
+        switch (key)
+        {
+            case "Escape":
+                _debugResolutionFocused = false;
+                return true;
+            case "Enter":
+                TryApplyDebugResolution();
+                return true;
+            case "Backspace":
+                if (_debugResolutionText.Length > 0)
+                    _debugResolutionText = _debugResolutionText[..^1];
+                return true;
+            default:
+                if (key.Length == 1 && _debugResolutionText.Length < MaxDebugResolutionLength &&
+                    (char.IsDigit(key[0]) || key[0] is 'x' or 'X'))
+                {
+                    _debugResolutionText += key[0];
+                }
+                return true;
+        }
+    }
+
+    /// <summary>Applique la résolution saisie — uniquement si elle correspond au format "LARGEURxHAUTEUR"
+    /// et que chaque dimension est d'au moins <see cref="MinDebugResolution"/> pixels.</summary>
+    private void TryApplyDebugResolution()
+    {
+        var match = DebugResolutionRegex.Match(_debugResolutionText);
+        if (!match.Success) return;
+        if (!int.TryParse(match.Groups[1].Value, out int width)  || width  < MinDebugResolution) return;
+        if (!int.TryParse(match.Groups[2].Value, out int height) || height < MinDebugResolution) return;
+
+        DebugWindowResizeRequested?.Invoke(width, height);
+    }
+
+    /// <summary>Retire le focus clavier du slider et du champ de résolution debug — à appeler à la fermeture
+    /// de l'écran/popup qui héberge ce panneau.</summary>
+    public void ClearFocus()
+    {
+        _focusedUiScaleSlider   = false;
+        _debugResolutionFocused = false;
+    }
 
     /// <summary>Met à jour le survol et la position visuelle du slider pendant un drag en cours
     /// (la valeur n'est pas encore appliquée — voir <see cref="HandlePointerReleased"/>).</summary>
