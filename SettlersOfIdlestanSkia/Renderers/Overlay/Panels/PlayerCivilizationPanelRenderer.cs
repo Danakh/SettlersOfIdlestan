@@ -522,10 +522,13 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             {
                 _closeAll();
                 var militaryController = _gameControllerService.MainGameController.MilitaryController;
-                var targets = militaryController.GetSelectableTargets(playerCiv);
-                if (targets.Count > 0)
-                    _targetSelectionService.EnterVertexSelection("raid_select_city", targets,
-                        target => militaryController.StartRaid(playerCiv, target), TargetSelectionTheme.Hostile);
+                var cityTargets = militaryController.GetSelectableTargets(playerCiv);
+                var monsterTargets = militaryController.GetSelectableMonsterTargets();
+                if (cityTargets.Count > 0 || monsterTargets.Count > 0)
+                    _targetSelectionService.EnterMixedSelection("raid_select_city",
+                        cityTargets, target => militaryController.StartRaid(playerCiv, target),
+                        monsterTargets, target => militaryController.StartMonsterRaid(playerCiv, target),
+                        TargetSelectionTheme.Hostile);
             }
             return true;
         }

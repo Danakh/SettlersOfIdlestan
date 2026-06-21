@@ -16,8 +16,8 @@ public static class IslandScenarioRunner
     /// <param name="stepIndex">0-based index into scenario.Steps.</param>
     /// <param name="loadFolder">Subfolder under saves/ from which to load the previous step's save (e.g. "current", "release-1.0").</param>
     /// <param name="saveFinal">When true, saves the result to saves/{loadFolder}/{step.SaveName}.json after asserting.</param>
-    /// <returns>The controller used to run the step, or null when the step was skipped.</returns>
-    public static MainGameController? RunStep(IslandScenario scenario, int stepIndex, string loadFolder, bool saveFinal)
+    /// <returns>The controller used to run the step.</returns>
+    public static MainGameController RunStep(IslandScenario scenario, int stepIndex, string loadFolder, bool saveFinal)
     {
         if (stepIndex < 0 || stepIndex >= scenario.Steps.Count)
             throw new ArgumentOutOfRangeException(nameof(stepIndex));
@@ -28,21 +28,14 @@ public static class IslandScenarioRunner
         if (stepIndex == 0)
         {
             if (scenario.IsInputAvailable != null && !scenario.IsInputAvailable(loadFolder))
-            {
-                Console.WriteLine($"[SKIP] Input not available in '{loadFolder}' for scenario '{scenario.Name}' step 0.");
-                return null;
-            }
+                Assert.Fail($"Input not available in '{loadFolder}' for scenario '{scenario.Name}' step 0.");
             controller = scenario.CreateFreshController(loadFolder);
         }
         else
         {
             var prevSaveName = scenario.Steps[stepIndex - 1].SaveName;
             if (!SaveUtils.SaveExists(loadFolder, prevSaveName))
-            {
-                // Release saves not yet created — silently skip rather than fail.
-                Console.WriteLine($"[SKIP] saves/{loadFolder}/{prevSaveName}.json not found — skipping release regression step.");
-                return null;
-            }
+                Assert.Fail($"saves/{loadFolder}/{prevSaveName}.json not found.");
             controller = SaveUtils.LoadSave(loadFolder, prevSaveName);
         }
 

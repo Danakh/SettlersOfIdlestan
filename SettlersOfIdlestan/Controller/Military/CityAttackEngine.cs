@@ -49,7 +49,7 @@ internal class CityAttackEngine
                     : MilitaryController.CityAttackIntervalTicks;
                 double speed = attackerCiv.ModifierAggregator.ApplyModifiers(ECategory.ATTACK_SPEED, "", 1.0);
                 long effectiveInterval = Math.Max(1L, (long)(baseInterval / speed));
-                if (currentTick - attackerCity.LastCityAttackTick < effectiveInterval) continue;
+                if (currentTick - attackerCity.LastAttackTick < effectiveInterval) continue;
                 if (attackerCity.Soldiers == 0) continue;
                 if (attackerCity.FlowTarget == null) continue;
 
@@ -65,7 +65,7 @@ internal class CityAttackEngine
                 // Armures d'Acier : le soldat envoyé peut survivre en consommant 1 ArmureAcier
                 if (SteelArmorEngine.TrySaveSoldiers(attackerCiv, attackerCity, 1, _prng!) == 0)
                     attackerCity.Soldiers--;
-                attackerCity.LastCityAttackTick = currentTick;
+                attackerCity.LastAttackTick = currentTick;
 
                 var path = HexGridPathfinder.FindVertexPath(attackerCity.Position, targetCity.Position);
                 onSoldierAttackedCity(new CityAttackEventArgs(attackerCity.Position, targetCity.Position, path));

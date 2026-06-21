@@ -4,38 +4,45 @@ using System.Linq;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
+using SettlersOfIdlestan.Model.Monsters;
 using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
 
 namespace SettlersOfIdlestan.Controller.Military;
 
 /// <summary>
-/// Gère l'action Raid : redirige tous les flux de la civilisation du joueur vers une ville ennemie cible.
-/// Les villes à portée d'attaque attaquent directement; les autres renforcent l'alliée la plus proche de la cible.
+/// Gère l'action Raid : redirige tous les flux de la civilisation du joueur vers une cible — une ville
+/// ennemie ou une MonsterFeature. Les villes à portée d'attaque attaquent directement; les autres renforcent
+/// l'alliée la plus proche de la cible.
 /// </summary>
 internal class RaidEngine
 {
     private WorldState? _state;
     private CityAttackEngine? _cityAttackEngine;
     private ReinforcementEngine? _reinforcementEngine;
+    private MonsterCombatEngine? _monsterCombatEngine;
 
     private const long RaidCheckIntervalTicks = 100L;
     private long _lastRaidCheckTick = 0;
 
-    internal void Initialize(WorldState? state, CityAttackEngine cityAttackEngine, ReinforcementEngine reinforcementEngine)
+    internal void Initialize(WorldState? state, CityAttackEngine cityAttackEngine, ReinforcementEngine reinforcementEngine, MonsterCombatEngine monsterCombatEngine)
     {
         _state = state;
         _cityAttackEngine = cityAttackEngine;
         _reinforcementEngine = reinforcementEngine;
+        _monsterCombatEngine = monsterCombatEngine;
     }
 
     internal bool IsRaidUnlocked(Civilization civ)
         => civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_RAID);
 
     internal bool IsRaidActive()
-        => _state?.AutomationSettings.RaidTargetVertex != null;
+        => _state?.AutomationSettings.RaidTargetVertex != null || _state?.AutomationSettings.RaidTargetHex != null;
 
     internal Vertex? GetRaidTarget()
         => _state?.AutomationSettings.RaidTargetVertex;
+
+    internal HexCoord? GetRaidTargetHex()
+        => _state?.AutomationSettings.RaidTargetHex;
 
     internal List<Vertex> GetSelectableTargets(Civilization playerCiv)
     {
@@ -54,6 +61,16 @@ internal class RaidEngine
         return targets;
     }
 
+    internal List<HexCoord> GetSelectableMonsterTargets()
+    {
+        if (_state == null) return new List<HexCoord>();
+        int currentLayer = _state.CurrentViewedLayer;
+        return _state.Features.OfType<MonsterFeature>()
+            .Where(m => m.Found && m.Position.Z == currentLayer)
+            .Select(m => m.Position)
+            .ToList();
+    }
+
     private bool IsCityVisibleTo(City city, Civilization civ)
     {
         var visibleMaps = _state!.Visibility.GetForZ(city.Position.Z);
@@ -64,24 +81,46 @@ internal class RaidEngine
     internal void StartRaid(Civilization civ, Vertex targetCityVertex)
     {
         if (_state == null) return;
+        _state.AutomationSettings.RaidTargetHex = null;
         _state.AutomationSettings.RaidTargetVertex = targetCityVertex;
         _state.AutomationSettings.RaidCurrentUpkeep = 10;
         ApplyRaidFlows(civ, targetCityVertex);
+    }
+
+    internal void StartMonsterRaid(Civilization civ, HexCoord targetHex)
+    {
+        if (_state == null) return;
+        _state.AutomationSettings.RaidTargetVertex = null;
+        _state.AutomationSettings.RaidTargetHex = targetHex;
+        _state.AutomationSettings.RaidCurrentUpkeep = 10;
+        ApplyMonsterRaidFlows(civ, targetHex);
     }
 
     internal void StopRaid(Civilization civ)
     {
         if (_state == null) return;
         var target = _state.AutomationSettings.RaidTargetVertex;
+        var targetHex = _state.AutomationSettings.RaidTargetHex;
         _state.AutomationSettings.RaidTargetVertex = null;
+        _state.AutomationSettings.RaidTargetHex = null;
         _state.AutomationSettings.RaidCurrentUpkeep = 0;
-        if (target == null) return;
 
-        int z = target.Z;
-        foreach (var city in civ.Cities)
+        if (target != null)
         {
-            if (city.Position.Z == z)
+            int z = target.Z;
+            foreach (var city in civ.Cities)
+                if (city.Position.Z == z)
+                    _reinforcementEngine!.SetCityFlow(city, null);
+        }
+        else if (targetHex != null)
+        {
+            int z = targetHex.Z;
+            foreach (var city in civ.Cities)
+            {
+                if (city.Position.Z != z) continue;
+                city.MonsterAttackTarget = null;
                 _reinforcementEngine!.SetCityFlow(city, null);
+            }
         }
     }
 
@@ -92,35 +131,63 @@ internal class RaidEngine
         _lastRaidCheckTick = currentTick;
 
         var target = _state.AutomationSettings.RaidTargetVertex;
-        if (target == null) return;
+        var targetHex = _state.AutomationSettings.RaidTargetHex;
+        if (target == null && targetHex == null) return;
 
         var playerCiv = _state.PlayerCivilization;
 
-        bool targetExists = _state.Civilizations.Any(c => c.Index != playerCiv.Index && c.Cities.Any(city => city.Position.Equals(target)));
-        if (!targetExists)
+        if (target != null)
         {
-            StopRaid(playerCiv);
-            return;
-        }
+            bool targetExists = _state.Civilizations.Any(c => c.Index != playerCiv.Index && c.Cities.Any(city => city.Position.Equals(target)));
+            if (!targetExists)
+            {
+                StopRaid(playerCiv);
+                return;
+            }
 
-        bool hasAttackFlow = playerCiv.Cities.Any(c => c.FlowTarget != null && c.FlowTarget.Equals(target));
-        if (!hasAttackFlow)
+            bool hasAttackFlow = playerCiv.Cities.Any(c => c.FlowTarget != null && c.FlowTarget.Equals(target));
+            if (!hasAttackFlow)
+            {
+                StopRaid(playerCiv);
+                return;
+            }
+
+            if (!PayUpkeep(playerCiv)) return;
+            ApplyRaidFlows(playerCiv, target);
+        }
+        else
         {
-            StopRaid(playerCiv);
-            return;
-        }
+            var monster = _state.Features.OfType<MonsterFeature>().FirstOrDefault(m => m.Position.Equals(targetHex));
+            if (monster == null)
+            {
+                StopRaid(playerCiv);
+                return;
+            }
 
-        // Upkeep : coût en or croissant ; arrêt du raid si fonds insuffisants
-        int upkeep = _state.AutomationSettings.RaidCurrentUpkeep;
+            bool hasAttackFlow = playerCiv.Cities.Any(c => c.MonsterAttackTarget != null && c.MonsterAttackTarget.Equals(targetHex));
+            if (!hasAttackFlow)
+            {
+                StopRaid(playerCiv);
+                return;
+            }
+
+            if (!PayUpkeep(playerCiv)) return;
+            ApplyMonsterRaidFlows(playerCiv, targetHex!);
+        }
+    }
+
+    /// <summary>Débite l'upkeep courant et l'augmente pour le prochain cycle. Retourne false (et arrête le raid) si les fonds sont insuffisants.</summary>
+    private bool PayUpkeep(Civilization playerCiv)
+    {
+        int upkeep = _state!.AutomationSettings.RaidCurrentUpkeep;
         if (playerCiv.GetResourceQuantity(Resource.Gold) < upkeep)
         {
             StopRaid(playerCiv);
-            return;
+            return false;
         }
         playerCiv.RemoveResource(Resource.Gold, upkeep);
         _state.AutomationSettings.RaidCurrentUpkeep = upkeep + 2;
-
-        ApplyRaidFlows(playerCiv, target);
+        return true;
     }
 
     private void ApplyRaidFlows(Civilization civ, Vertex target)
@@ -149,6 +216,45 @@ internal class RaidEngine
                     .OrderBy(a => a.Position.EdgeDistanceTo(target))
                     .FirstOrDefault();
 
+                _reinforcementEngine.SetCityFlow(city, nearestAlly?.Position);
+            }
+        }
+    }
+
+    private static int DistanceToMonster(City city, MonsterFeature monster)
+        => city.Position.GetHexes().Max(h => h.DistanceTo(monster.Position));
+
+    private void ApplyMonsterRaidFlows(Civilization civ, HexCoord targetHex)
+    {
+        if (_reinforcementEngine == null || _monsterCombatEngine == null || _state == null) return;
+
+        var monster = _state.Features.OfType<MonsterFeature>().FirstOrDefault(m => m.Position.Equals(targetHex));
+        if (monster == null) return;
+
+        int reinforcementRange = _reinforcementEngine.ReinforcementRange(civ);
+        int targetZ = targetHex.Z;
+        var citiesInLayer = civ.Cities.Where(c => c.Position.Z == targetZ).ToList();
+
+        foreach (var city in citiesInLayer)
+        {
+            bool canAttack = _monsterCombatEngine.GetAttackAvailability(city, monster) == MonsterAttackAvailability.Available;
+            if (canAttack)
+            {
+                city.MonsterAttackTarget = targetHex;
+                _reinforcementEngine.SetCityFlow(city, null);
+            }
+            else
+            {
+                // Renforce l'alliée la plus proche du monstre qui est aussi à portée de renfort
+                int distToTarget = DistanceToMonster(city, monster);
+                var nearestAlly = citiesInLayer
+                    .Where(a => a != city
+                             && DistanceToMonster(a, monster) < distToTarget
+                             && city.Position.EdgeDistanceTo(a.Position) <= reinforcementRange)
+                    .OrderBy(a => DistanceToMonster(a, monster))
+                    .FirstOrDefault();
+
+                city.MonsterAttackTarget = null;
                 _reinforcementEngine.SetCityFlow(city, nearestAlly?.Position);
             }
         }

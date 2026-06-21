@@ -4,11 +4,12 @@ using System.Collections.Generic;
 
 namespace SettlersOfIdlestanSkia.Services;
 
-/// <summary>Forme des cibles proposées : ville (Vertex) ou hexagone.</summary>
+/// <summary>Forme des cibles proposées : ville (Vertex), hexagone, ou les deux à la fois (ex: Raid sur ville ou monstre).</summary>
 public enum TargetSelectionShape
 {
     Vertex,
     Hex,
+    Mixed,
 }
 
 /// <summary>Thème visuel de la sélection — hostile (rouge) pour une cible ennemie, amical (vert) sinon.</summary>
@@ -80,9 +81,33 @@ public sealed class TargetSelectionService
         Entered?.Invoke(this, EventArgs.Empty);
     }
 
+    /// <summary>
+    /// Entre en mode ciblage mixte : propose simultanément des villes (Vertex) et des hexagones (ex: MonsterFeature),
+    /// chacun avec son propre callback de confirmation. Utilisé par le Raid, qui peut cibler une ville ennemie ou un monstre.
+    /// </summary>
+    public void EnterMixedSelection(string titleKey,
+        IReadOnlyList<Vertex> vertexTargets, Action<Vertex> onVertexConfirmed,
+        IReadOnlyList<HexCoord> hexTargets, Action<HexCoord> onHexConfirmed,
+        TargetSelectionTheme theme = TargetSelectionTheme.Hostile)
+    {
+        if (vertexTargets.Count == 0 && hexTargets.Count == 0) return;
+
+        Shape = TargetSelectionShape.Mixed;
+        Theme = theme;
+        TitleKey = titleKey;
+        VertexTargets = vertexTargets;
+        HexTargets = hexTargets;
+        _onVertexConfirmed = onVertexConfirmed;
+        _onHexConfirmed = onHexConfirmed;
+        HoveredVertex = null;
+        HoveredHex = null;
+        IsActive = true;
+        Entered?.Invoke(this, EventArgs.Empty);
+    }
+
     public void ConfirmVertex(Vertex target)
     {
-        if (!IsActive || Shape != TargetSelectionShape.Vertex) return;
+        if (!IsActive || Shape == TargetSelectionShape.Hex) return;
         var callback = _onVertexConfirmed;
         Reset();
         callback?.Invoke(target);
@@ -91,7 +116,7 @@ public sealed class TargetSelectionService
 
     public void ConfirmHex(HexCoord target)
     {
-        if (!IsActive || Shape != TargetSelectionShape.Hex) return;
+        if (!IsActive || Shape == TargetSelectionShape.Vertex) return;
         var callback = _onHexConfirmed;
         Reset();
         callback?.Invoke(target);

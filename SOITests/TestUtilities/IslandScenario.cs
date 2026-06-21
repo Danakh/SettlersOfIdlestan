@@ -20,7 +20,7 @@ public class IslandScenario
     /// Optional guard checked before step 0: returns true when the input for
     /// CreateFreshController is available in the given folder.
     /// When null, the input is assumed to be always available (e.g. pure fresh start).
-    /// When it returns false, step 0 is skipped silently (same behavior as missing intermediate saves).
+    /// When it returns false, step 0 fails outright (same behavior as a missing intermediate save).
     /// </summary>
     public Func<string, bool>? IsInputAvailable { get; init; }
 

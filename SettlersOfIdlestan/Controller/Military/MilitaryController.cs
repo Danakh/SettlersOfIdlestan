@@ -159,7 +159,7 @@ public class MilitaryController
         _monsterCombatEngine.Initialize(state, prng);
         _cityAttackEngine.Initialize(state, cityBuilderController, prng);
         _reinforcementEngine.Initialize(state, _cityAttackEngine, _productionEngine);
-        _raidEngine.Initialize(state, _cityAttackEngine, _reinforcementEngine);
+        _raidEngine.Initialize(state, _cityAttackEngine, _reinforcementEngine, _monsterCombatEngine);
 
         if (_clock != null)
             _clock.Advanced += OnClockAdvanced;
@@ -254,7 +254,10 @@ public class MilitaryController
     public bool IsRaidUnlocked(Civilization civ) => _raidEngine.IsRaidUnlocked(civ);
     public bool IsRaidActive() => _raidEngine.IsRaidActive();
     public Vertex? GetRaidTarget() => _raidEngine.GetRaidTarget();
+    public HexCoord? GetRaidTargetHex() => _raidEngine.GetRaidTargetHex();
     public List<Vertex> GetSelectableTargets(Civilization civ) => _raidEngine.GetSelectableTargets(civ);
+    public List<HexCoord> GetSelectableMonsterTargets() => _raidEngine.GetSelectableMonsterTargets();
     public void StartRaid(Civilization civ, Vertex target) => _raidEngine.StartRaid(civ, target);
+    public void StartMonsterRaid(Civilization civ, HexCoord target) => _raidEngine.StartMonsterRaid(civ, target);
     public void StopRaid(Civilization civ) => _raidEngine.StopRaid(civ);
 }

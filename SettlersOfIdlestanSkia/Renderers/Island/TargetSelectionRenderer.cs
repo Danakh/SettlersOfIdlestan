@@ -92,34 +92,27 @@ public sealed class TargetSelectionRenderer : HexBasedRenderer, IGameRenderer
             -context.CameraPosition.Y * context.ZoomLevel);
         canvas.SetMatrix(canvas.TotalMatrix.PostConcat(matrix));
 
-        if (_selectionService.Shape == TargetSelectionShape.Vertex)
+        var fill = hostile ? _hostileFill! : _friendlyFill!;
+        var hoverFill = hostile ? _hostileHoverFill! : _friendlyHoverFill!;
+        foreach (var target in _selectionService.VertexTargets)
         {
-            var fill = hostile ? _hostileFill! : _friendlyFill!;
-            var hoverFill = hostile ? _hostileHoverFill! : _friendlyHoverFill!;
-            foreach (var target in _selectionService.VertexTargets)
-            {
-                if (target.Z != _currentLayer) continue;
-                var pt = VertexToIsland(target);
-                bool isHovered = _selectionService.HoveredVertex?.Equals(target) == true;
-                canvas.DrawCircle(pt, VertexHighlightRadius, isHovered ? hoverFill : fill);
-            }
+            if (target.Z != _currentLayer) continue;
+            var pt = VertexToIsland(target);
+            bool isHovered = _selectionService.HoveredVertex?.Equals(target) == true;
+            canvas.DrawCircle(pt, VertexHighlightRadius, isHovered ? hoverFill : fill);
         }
-        else
-        {
-            var fill = hostile ? _hostileFill! : _friendlyFill!;
-            var hoverFill = hostile ? _hostileHoverFill! : _friendlyHoverFill!;
-            var border = hostile ? _hostileHexBorder! : _friendlyHexBorder!;
-            foreach (var hex in _selectionService.HexTargets)
-            {
-                if (hex.Z != _currentLayer) continue;
-                var (cx, cy) = AxialToIsland(hex.Q, hex.R);
-                var pts = GetHexagonPoints(cx, cy, HexSize);
-                using var path = PointsToPath(pts);
 
-                bool isHovered = _selectionService.HoveredHex?.Equals(hex) == true;
-                canvas.DrawPath(path, isHovered ? hoverFill : fill);
-                canvas.DrawPath(path, border);
-            }
+        var border = hostile ? _hostileHexBorder! : _friendlyHexBorder!;
+        foreach (var hex in _selectionService.HexTargets)
+        {
+            if (hex.Z != _currentLayer) continue;
+            var (cx, cy) = AxialToIsland(hex.Q, hex.R);
+            var pts = GetHexagonPoints(cx, cy, HexSize);
+            using var path = PointsToPath(pts);
+
+            bool isHovered = _selectionService.HoveredHex?.Equals(hex) == true;
+            canvas.DrawPath(path, isHovered ? hoverFill : fill);
+            canvas.DrawPath(path, border);
         }
 
         canvas.Restore();
@@ -145,24 +138,19 @@ public sealed class TargetSelectionRenderer : HexBasedRenderer, IGameRenderer
 
         var islandPt = ScreenToIsland(e.Position);
 
-        if (_selectionService.Shape == TargetSelectionShape.Vertex)
+        Vertex? hoveredVertex = null;
+        float bestDist = VertexSnapRadius;
+        foreach (var target in _selectionService.VertexTargets)
         {
-            Vertex? hovered = null;
-            float bestDist = VertexSnapRadius;
-            foreach (var target in _selectionService.VertexTargets)
-            {
-                if (target.Z != _currentLayer) continue;
-                float dist = SKPoint.Distance(islandPt, VertexToIsland(target));
-                if (dist < bestDist) { bestDist = dist; hovered = target; }
-            }
-            _selectionService.HoveredVertex = hovered;
+            if (target.Z != _currentLayer) continue;
+            float dist = SKPoint.Distance(islandPt, VertexToIsland(target));
+            if (dist < bestDist) { bestDist = dist; hoveredVertex = target; }
         }
-        else
-        {
-            var (q, r) = IslandToAxial(islandPt.X, islandPt.Y);
-            var hex = new HexCoord(q, r, _currentLayer);
-            _selectionService.HoveredHex = _selectionService.HexTargets.Any(h => h.Equals(hex)) ? hex : null;
-        }
+        _selectionService.HoveredVertex = hoveredVertex;
+
+        var (q, r) = IslandToAxial(islandPt.X, islandPt.Y);
+        var hoveredHex = new HexCoord(q, r, _currentLayer);
+        _selectionService.HoveredHex = _selectionService.HexTargets.Any(h => h.Equals(hoveredHex)) ? hoveredHex : null;
     }
 
     private void OnPointerPressed(object? sender, PointerEventArgs e)
@@ -178,26 +166,24 @@ public sealed class TargetSelectionRenderer : HexBasedRenderer, IGameRenderer
 
         var islandPt = ScreenToIsland(e.Position);
 
-        if (_selectionService.Shape == TargetSelectionShape.Vertex)
+        Vertex? bestVertex = null;
+        float bestDist = VertexSnapRadius;
+        foreach (var target in _selectionService.VertexTargets)
         {
-            Vertex? best = null;
-            float bestDist = VertexSnapRadius;
-            foreach (var target in _selectionService.VertexTargets)
-            {
-                if (target.Z != _currentLayer) continue;
-                float dist = SKPoint.Distance(islandPt, VertexToIsland(target));
-                if (dist < bestDist) { bestDist = dist; best = target; }
-            }
-            if (best != null)
-                _selectionService.ConfirmVertex(best);
+            if (target.Z != _currentLayer) continue;
+            float dist = SKPoint.Distance(islandPt, VertexToIsland(target));
+            if (dist < bestDist) { bestDist = dist; bestVertex = target; }
         }
-        else
+        if (bestVertex != null)
         {
-            var (q, r) = IslandToAxial(islandPt.X, islandPt.Y);
-            var hex = new HexCoord(q, r, _currentLayer);
-            if (_selectionService.HexTargets.Any(h => h.Equals(hex)))
-                _selectionService.ConfirmHex(hex);
+            _selectionService.ConfirmVertex(bestVertex);
+            return;
         }
+
+        var (q, r) = IslandToAxial(islandPt.X, islandPt.Y);
+        var hex = new HexCoord(q, r, _currentLayer);
+        if (_selectionService.HexTargets.Any(h => h.Equals(hex)))
+            _selectionService.ConfirmHex(hex);
     }
 
     private void OnKeyPressed(object? sender, KeyEventArgs e)

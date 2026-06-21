@@ -818,7 +818,7 @@
   "tooltip_spire_underworld_only": "⚠ La Spire de Corruption ne peut être bâtie que dans l'Inframonde, sur une zone corrompue",
   "raid_action": "Raid",
   "raid_action_stop": "Stop Raid",
-  "raid_select_city": "Choisissez une ville ennemie à attaquer",
+  "raid_select_city": "Choisissez une ville ennemie ou un monstre à attaquer",
   "deepest_mine_panel_title": "Mine Profonde — Creusement",
   "tooltip_deepest_mine": "Creusez jusqu'à l'Inframonde — uniquement sur une Montagne de votre territoire, loin des villes ennemies",
   "tooltip_deepest_mine_surface_only": "⚠ La Mine Profonde ne peut être creusée qu'en surface",

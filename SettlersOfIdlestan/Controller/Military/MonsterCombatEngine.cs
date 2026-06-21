@@ -56,16 +56,19 @@ internal class MonsterCombatEngine
     {
         if (_state == null) return false;
 
-        long lastAttackTick = monster.LastAttackedByMilitaryTick;
         bool didAttack = false;
         foreach (var civ in _state.Civilizations)
         {
             if (monster.Hp <= 0) break;
-            if (currentTick - lastAttackTick < EffectiveCombatInterval(civ)) continue;
+            // Grâce après déplacement : la cible ne peut pas être attaquée juste après s'être déplacée.
+            if (currentTick - monster.LastAttackedByMilitaryTick < EffectiveCombatInterval(civ)) continue;
             foreach (var city in civ.Cities)
             {
                 if (monster.Hp <= 0) break;
                 if (city.Soldiers == 0) continue;
+                // Cooldown porté par la ville : commun aux attaques de ville et de monstre, pour qu'une même ville
+                // ne puisse pas frapper deux cibles différentes trop vite — mais plusieurs villes attaquent en simultané.
+                if (currentTick - city.LastAttackTick < EffectiveCombatInterval(civ)) continue;
 
                 var cityHexes = city.Position.GetHexes();
                 if (!cityHexes.Any(h => h.Equals(monster.Position))) continue;
@@ -80,7 +83,7 @@ internal class MonsterCombatEngine
                     city.Soldiers--;
                 monster.Hp--;
                 if (hasSteelWeapon) monster.Hp--;
-                monster.LastAttackedByMilitaryTick = currentTick;
+                city.LastAttackTick = currentTick;
                 onSoldierAttackedMonster(new SoldierAttackEventArgs(city.Position, monster.Position));
                 didAttack = true;
             }
@@ -140,10 +143,15 @@ internal class MonsterCombatEngine
 
                 var monster = _state.Features.OfType<MonsterFeature>().FirstOrDefault(m => m.Position.Equals(city.MonsterAttackTarget));
                 if (monster == null) { city.MonsterAttackTarget = null; continue; }
+                if (monster.Hp <= 0) continue;
 
                 int distance = DistanceTo(city, monster);
                 if (distance <= MeleeRange) continue; // déjà géré par le combat de corps-à-corps automatique
+
+                // Grâce après déplacement : la cible ne peut pas être attaquée juste après s'être déplacée.
                 if (currentTick - monster.LastAttackedByMilitaryTick < EffectiveCombatInterval(civ)) continue;
+                // Cooldown porté par la ville : commun aux attaques de ville et de monstre (cf. AttackMonsterWithSoldiers).
+                if (currentTick - city.LastAttackTick < EffectiveCombatInterval(civ)) continue;
                 if (GetAttackAvailability(city, monster) != MonsterAttackAvailability.Available) continue;
 
                 bool hasSteelWeapon = civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_STEEL_WEAPONS)
@@ -154,7 +162,7 @@ internal class MonsterCombatEngine
                     city.Soldiers--;
                 monster.Hp--;
                 if (hasSteelWeapon) monster.Hp--;
-                monster.LastAttackedByMilitaryTick = currentTick;
+                city.LastAttackTick = currentTick;
                 onSoldierAttackedMonster(new SoldierAttackEventArgs(city.Position, monster.Position));
 
                 if (monster.Hp <= 0) deadMonsters.Add(monster);

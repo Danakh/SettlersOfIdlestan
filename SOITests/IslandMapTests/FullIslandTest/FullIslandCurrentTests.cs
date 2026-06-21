@@ -7,7 +7,8 @@ namespace SOITests.IslandMapTests.FullIslandTest
     /// One Fact per prestige cycle — each runs StepIslandScenarios' own (already-tuned) per-stage logic
     /// continuously in memory, from one prestige to the next, with no intermediate save/reload/assert
     /// checkpoint. See FullIslandScenarios for the chaining. Shares StepIslandTest's collection (and so
-    /// never runs in parallel with it) since these read the saves/current files it produces.
+    /// never runs in parallel with it) since Island2/3/4 below start from the saves/current/IslandN_Prestige.json
+    /// files produced by StepIslandSaveGeneratorTests.Rebuild_All_Current_Saves — run that first, or these fail.
     /// </summary>
     [Collection(StepIslandTestCollection.Name)]
     public class FullIslandCurrentTests

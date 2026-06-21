@@ -17,8 +17,11 @@ public class AutomationSettings
 
     public HashSet<string> PinnedToCivPanel { get; set; } = [];
 
-    /// <summary>Position de la ville ciblée par un raid actif. Null si aucun raid en cours.</summary>
+    /// <summary>Position de la ville ciblée par un raid actif. Null si aucun raid en cours ou si la cible est une MonsterFeature.</summary>
     public Vertex? RaidTargetVertex { get; set; } = null;
+
+    /// <summary>Position de la MonsterFeature ciblée par un raid actif. Null si aucun raid en cours ou si la cible est une ville.</summary>
+    public HexCoord? RaidTargetHex { get; set; } = null;
 
     /// <summary>Coût en or par seconde du raid actif. 0 si aucun raid. Commence à 10, monte de 2 par seconde.</summary>
     public int RaidCurrentUpkeep { get; set; } = 0;

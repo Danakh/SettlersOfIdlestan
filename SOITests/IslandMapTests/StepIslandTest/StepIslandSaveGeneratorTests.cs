@@ -32,10 +32,12 @@ namespace SOITests.IslandMapTests.StepIslandTest
         public void Rebuild_Release_Summary()
         {
             // Mirrors the step indices exercised by StepIslandReleaseTests — release saves are
-            // immutable frozen fixtures, so steps with no save chained from them are silently skipped.
-            // No NoMonsters (extermination) entry — the frozen release-1.0 lineage predates that
-            // requirement (see StepIslandReleaseTests for details); Points70 onward beyond it will
-            // silently skip once their expected "previous step" save is missing.
+            // immutable frozen fixtures checked into saves/release-1.0/, so any step here whose
+            // predecessor save isn't itself one of those checked-in fixtures now fails outright
+            // (IslandScenarioRunner.RunStep no longer skips silently). No NoMonsters (extermination)
+            // entry — the frozen release-1.0 lineage predates that requirement (see
+            // StepIslandReleaseTests for details); Points70 onward beyond it need their expected
+            // "previous step" fixture checked in or they fail.
             (IslandScenario scenario, int stepIndex)[] steps =
             [
                 (StepIslandScenarios.Island1, 1), (StepIslandScenarios.Island1, 2), (StepIslandScenarios.Island1, 3), (StepIslandScenarios.Island1, 4),

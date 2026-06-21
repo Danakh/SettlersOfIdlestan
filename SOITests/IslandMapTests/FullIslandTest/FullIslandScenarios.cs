@@ -1,9 +1,9 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using SettlersOfIdlestan.Controller;
 using SOITests.IslandMapTests.StepIslandTest;
 using SOITests.TestUtilities;
+using Xunit;
 
 namespace SOITests.IslandMapTests.FullIslandTest
 {
@@ -20,35 +20,33 @@ namespace SOITests.IslandMapTests.FullIslandTest
     /// which performs the actual transition this run stops at.
     ///
     /// Island2/3/4 start from saves/current/IslandN_Prestige.json, produced by
-    /// StepIslandSaveGeneratorTests — run that first if these silently skip. Island1 has no such
-    /// predecessor: it starts fresh, from the same fixed seed as StepIslandScenarios.
+    /// StepIslandSaveGeneratorTests.Rebuild_All_Current_Saves — run that first, these fail outright
+    /// (rather than silently skip) if the save is missing. Island1 has no such predecessor: it starts
+    /// fresh, from the same fixed seed as StepIslandScenarios.
     /// </summary>
     internal static class FullIslandScenarios
     {
-        internal static MainGameController? RunIsland1(string loadFolder) =>
+        internal static MainGameController RunIsland1(string loadFolder) =>
             IslandScenarioRunner.RunChained(
                 StepIslandScenarios.Island1.CreateFreshController(loadFolder),
                 StepIslandScenarios.Island1.Steps.Concat(new[] { StepIslandScenarios.Island2.Steps[0] }));
 
-        internal static MainGameController? RunIsland2(string loadFolder) =>
+        internal static MainGameController RunIsland2(string loadFolder) =>
             RunFromSave(loadFolder, "Island2_Prestige",
                 StepIslandScenarios.Island2.Steps.Skip(1).Concat(new[] { StepIslandScenarios.Island3.Steps[0] }));
 
-        internal static MainGameController? RunIsland3(string loadFolder) =>
+        internal static MainGameController RunIsland3(string loadFolder) =>
             RunFromSave(loadFolder, "Island3_Prestige",
                 StepIslandScenarios.Island3.Steps.Skip(1).Concat(new[] { StepIslandScenarios.Island4.Steps[0] }));
 
-        internal static MainGameController? RunIsland4(string loadFolder) =>
+        internal static MainGameController RunIsland4(string loadFolder) =>
             RunFromSave(loadFolder, "Island4_Prestige",
                 StepIslandScenarios.Island4.Steps.Skip(1).Concat(new[] { StepIslandScenarios.Island5.Steps[0] }));
 
-        private static MainGameController? RunFromSave(string loadFolder, string saveName, IEnumerable<IslandStepDefinition> steps)
+        private static MainGameController RunFromSave(string loadFolder, string saveName, IEnumerable<IslandStepDefinition> steps)
         {
             if (!SaveUtils.SaveExists(loadFolder, saveName))
-            {
-                Console.WriteLine($"[SKIP] saves/{loadFolder}/{saveName}.json not found — run StepIslandSaveGeneratorTests first.");
-                return null;
-            }
+                Assert.Fail($"saves/{loadFolder}/{saveName}.json not found — run StepIslandSaveGeneratorTests.Rebuild_All_Current_Saves first.");
             return IslandScenarioRunner.RunChained(SaveUtils.LoadSave(loadFolder, saveName), steps);
         }
     }

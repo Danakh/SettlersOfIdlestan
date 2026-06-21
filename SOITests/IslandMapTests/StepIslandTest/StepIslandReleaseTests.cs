@@ -4,7 +4,8 @@ using Xunit;
 namespace SOITests.IslandMapTests.StepIslandTest
 {
     /// <summary>
-    /// Plays each scenario step against the "release-1.0" saves (silent skip if a save is missing).
+    /// Plays each scenario step against the "release-1.0" saves (fails if the expected previous-step
+    /// save is missing — these frozen fixtures must be checked into saves/release-1.0/).
     /// </summary>
     [Collection(StepIslandTestCollection.Name)]
     public class StepIslandReleaseTests
@@ -51,8 +52,8 @@ namespace SOITests.IslandMapTests.StepIslandTest
 
         // Note: no Release1_0_Island2_NoMonsters fact — the frozen release-1.0 lineage predates the
         // Barracks-priority-purchase logic, so Barracks is never unlocked there and the extermination
-        // condition could never be met. Points70/PrestigeReady below silently skip too once their
-        // expected "previous step" save is missing under the new naming.
+        // condition could never be met. Points70/PrestigeReady below need the Island2_NoMonsters.json
+        // fixture checked into saves/release-1.0/ (under the new naming) or they fail outright.
 
         [Fact]
         public void Release1_0_Island2_Points70() =>
@@ -81,8 +82,8 @@ namespace SOITests.IslandMapTests.StepIslandTest
             IslandScenarioRunner.RunStep(StepIslandScenarios.Island3, 3, "release-1.0", saveFinal: false);
 
         // Note: no Release1_0_Island3_NoEnemies fact — same reason as Island 2's extermination step
-        // (see above); Points20 onward silently skip once their expected "previous step" save is
-        // missing under the new naming.
+        // (see above); Points20 onward need the Island3_NoEnemies.json fixture checked into
+        // saves/release-1.0/ (under the new naming) or they fail outright.
 
         [Fact]
         public void Release1_0_Island3_Points20() =>
@@ -119,9 +120,9 @@ namespace SOITests.IslandMapTests.StepIslandTest
             IslandScenarioRunner.RunStep(StepIslandScenarios.Island4, 3, "release-1.0", saveFinal: false);
 
         // Note: no Release1_0_Island4_Barracks1, PrestigeReady, WonderPlaced or Wonder2 facts — same
-        // reason as Island 2/3's extermination steps; Points20 below and each of these silently skip
-        // once its expected "previous step" save is missing under the new naming (and release-1.0 has
-        // no frozen saves past Island2 anyway, so these always skip today).
+        // reason as Island 2/3's extermination steps; Points20 below needs the Island4_Barracks1.json
+        // fixture checked into saves/release-1.0/ (under the new naming) or it fails outright
+        // (release-1.0 has no frozen saves past Island2 today, so this fails until that fixture exists).
 
         [Fact]
         public void Release1_0_Island4_Points20() =>

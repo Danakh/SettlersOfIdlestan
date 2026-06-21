@@ -818,7 +818,7 @@
   "tooltip_spire_underworld_only": "⚠ The Corruption Spire can only be built in the Underworld, on a corrupted zone",
   "raid_action": "Raid",
   "raid_action_stop": "Stop Raid",
-  "raid_select_city": "Choose an enemy city to raid",
+  "raid_select_city": "Choose an enemy city or a monster to raid",
   "deepest_mine_panel_title": "Deepest Mine — Digging",
   "tooltip_deepest_mine": "Dig down to the Underworld — only on a Mountain inside your territory, far from enemy cities",
   "tooltip_deepest_mine_surface_only": "⚠ The Deepest Mine can only be dug on the surface",

@@ -57,9 +57,11 @@ public class City : IBuildingContext
     public long LastDefenseRegenTick { get; set; }
 
     /// <summary>
-    /// Tick de la dernière attaque lancée par cette ville contre une ville adverse.
+    /// Tick de la dernière attaque lancée par cette ville, contre une ville adverse ou une MonsterFeature.
+    /// Cooldown commun aux deux types de cible : une ville ne peut pas attaquer trop vite, peu importe la cible,
+    /// mais plusieurs villes peuvent attaquer la même cible simultanément.
     /// </summary>
-    public long LastCityAttackTick { get; set; }
+    public long LastAttackTick { get; set; }
 
     /// <summary>
     /// Tick du dernier renfort envoyé par cette ville vers une ville alliée.
