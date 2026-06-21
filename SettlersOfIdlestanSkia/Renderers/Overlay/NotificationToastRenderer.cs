@@ -63,13 +63,19 @@ public sealed class NotificationToastRenderer : IGameRenderer, IDisposable
 
     public void Initialize(SKSize canvasSize) => _canvasSize = canvasSize;
 
-    public void Render(SKCanvas canvas, GameRenderContext context)
+    public void Render(SKCanvas canvas, GameRenderContext context) =>
+        Render(canvas, context.CanvasSize, context.DeltaTime, context.UiScale);
+
+    /// <summary>
+    /// Variante de rendu sans GameRenderContext, pour les écrans sans MainGameState (ex: TitleScreen).
+    /// </summary>
+    public void Render(SKCanvas canvas, SKSize canvasSize, float deltaTime, float uiScale)
     {
         if (_disposed || _toasts.Count == 0) return;
 
-        _canvasSize = context.CanvasSize;
-        float dt = context.DeltaTime;
-        float s  = context.UiScale;
+        _canvasSize = canvasSize;
+        float dt = deltaTime;
+        float s  = uiScale;
 
         // Avancer les timers et supprimer les toasts expirés
         for (int i = _toasts.Count - 1; i >= 0; i--)

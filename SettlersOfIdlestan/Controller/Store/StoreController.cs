@@ -96,6 +96,34 @@ public class StoreController : IDisposable
             service.UnlockAchievement(achievementId);
     }
 
+    /// <summary>
+    /// Sauvegarde le contenu vers le stockage cloud de chaque store disponible (ex: Steam Cloud).
+    /// </summary>
+    public void SaveCloudFile(string fileName, string content)
+    {
+        foreach (var service in _activeServices)
+            service.SaveCloudFile(fileName, content);
+    }
+
+    /// <summary>
+    /// Lit le contenu d'un fichier depuis le premier store disponible qui en a une copie, ou null si aucun.
+    /// </summary>
+    public string? LoadCloudFile(string fileName)
+    {
+        foreach (var service in _activeServices)
+        {
+            var content = service.LoadCloudFile(fileName);
+            if (content != null) return content;
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// Indique si un store du nom donné (ex: "Steam") est actuellement connecté.
+    /// </summary>
+    public bool IsConnected(string storeName) =>
+        _activeServices.Any(s => s.Name == storeName);
+
     // ── Dispose ───────────────────────────────────────────────────────────────
 
     public void Dispose()
