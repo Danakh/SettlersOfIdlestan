@@ -240,6 +240,18 @@ namespace SOITests.IslandMapTests.StepIslandTest
         /// instead made the race fail outright (see the gotcha in SOIStrategyTester/CLAUDE.md: once
         /// PriorityAutoplayStrategy considers CityCount "done" it stops expanding for good, even if a
         /// monster's hex was never actually reached).
+        ///
+        /// Palisade is gated on "a Bandit has been spotted" rather than built unconditionally: once the
+        /// (always-present) BanditHideout is found, it periodically spawns Bandits that steal resources
+        /// from any city without a Palisade (MonsterCombatEngine/MonsterController — Palisade fully blocks
+        /// the attack, not just reduces it). That theft competes directly with this stage's own stockpile
+        /// for Mine/Barracks, and is what turns this into a race the civilization can lose: confirmed by
+        /// racing the no-Palisade order against FullIslandTest's continuous (no intermediate save/reload)
+        /// path via SOIStrategyTester — it reliably times out at 60000 iterations with Bandits stealing
+        /// faster than the economy can recover, while adding this stage clears the same race in ~3100.
+        /// Moving Mine/Barracks earlier (before Quarry/Market/Seaport) was also tried as a fix and made
+        /// things worse instead: both need 40-50 Stone, and without Quarry/Market already up to produce
+        /// and trade for it, the grind stalls on Stone — same race, same outcome, with or without Palisade.
         /// </summary>
         private static IslandStepDefinition ExterminateMonstersStep(string saveName) => new()
         {
@@ -247,6 +259,7 @@ namespace SOITests.IslandMapTests.StepIslandTest
             RunAction = (runner, cond) => runner.RunPriorityStrategyUntil(new[]
             {
                 PriorityStage.Buildings(new[] { BuildingType.TownHall }, targetLevel: 3),
+                PriorityStage.BuildingsIfBanditSpotted(new[] { BuildingType.Palisade }, targetLevel: 1),
                 PriorityStage.Buildings(new[] { BuildingType.Sawmill }, targetLevel: 1),
                 PriorityStage.Buildings(new[] { BuildingType.Quarry }, targetLevel: 1),
                 PriorityStage.Buildings(new[] { BuildingType.Mill }, targetLevel: 1),

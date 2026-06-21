@@ -62,6 +62,7 @@ namespace SettlersOfIdlestan.Controller
         private static readonly BuildingType[] MilitaryBuildings = { BuildingType.Palisade, BuildingType.Barracks };
 
         public Civilization Civilization => _civ;
+        public WorldState? WorldState => _worldState;
 
         public CivilizationAutoplayer(
             Civilization civ,

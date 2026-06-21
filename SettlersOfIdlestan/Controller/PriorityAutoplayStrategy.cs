@@ -89,6 +89,30 @@ namespace SettlersOfIdlestan.Controller
     }
 
     /// <summary>
+    /// Wraps a <see cref="BuildingLevelObjective"/> behind a runtime predicate: while the predicate is
+    /// false, this objective reports itself as already complete (a no-op — control passes straight to
+    /// the next stage) and never touches the autoplayer. Once the predicate becomes true it behaves
+    /// exactly like the inner objective. Re-evaluated on every call since
+    /// <see cref="PriorityAutoplayStrategy.TryStepOnce"/> re-scans from the top each time, so e.g. a
+    /// stage gated on "a Bandit has been spotted" naturally reopens mid-run the moment one is, even if
+    /// later stages had already started.
+    /// </summary>
+    public class ConditionalBuildingLevelObjective : IAutoplayObjective
+    {
+        private readonly Func<bool> _predicate;
+        private readonly BuildingLevelObjective _inner;
+
+        public ConditionalBuildingLevelObjective(Func<bool> predicate, BuildingLevelObjective inner)
+        {
+            _predicate = predicate ?? throw new ArgumentNullException(nameof(predicate));
+            _inner = inner ?? throw new ArgumentNullException(nameof(inner));
+        }
+
+        public bool IsComplete() => !_predicate() || _inner.IsComplete();
+        public bool TryAdvanceOnce() => _inner.TryAdvanceOnce();
+    }
+
+    /// <summary>
     /// Satisfied once the civilization owns at least the target number of cities. Advances by delegating
     /// to <see cref="CivilizationAutoplayer.TryStep0Once"/> (pure expansion: an outpost when a buildable
     /// vertex exists, otherwise a road toward the nearest prospective vertex).

@@ -7,6 +7,7 @@ using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
+using SettlersOfIdlestan.Model.Monsters;
 
 namespace SOITests.TestUtilities;
 
@@ -21,6 +22,14 @@ public abstract class PriorityStage
     public static PriorityStage Buildings(BuildingType[] buildings, int targetLevel) => new BuildingsStage(buildings, targetLevel);
     public static PriorityStage Cities(int targetCount) => new CitiesStage(targetCount);
     public static PriorityStage ImperialPort() => new ImperialPortStage();
+
+    /// <summary>
+    /// Same as <see cref="Buildings"/>, except it's skipped entirely until at least one <see cref="Bandit"/>
+    /// has been spotted (<see cref="SettlersOfIdlestan.Model.IslandFeatures.IslandFeature.Found"/>) on the
+    /// surface — used to put up a Palisade only once bandits are actually a threat, rather than wasting
+    /// build time on it from turn one.
+    /// </summary>
+    public static PriorityStage BuildingsIfBanditSpotted(BuildingType[] buildings, int targetLevel) => new ConditionalBuildingsStage(buildings, targetLevel);
 
     internal abstract IAutoplayObjective ToObjective(CivilizationAutoplayer autoplayer, BuildingController buildingController);
 
@@ -56,6 +65,23 @@ public abstract class PriorityStage
     {
         internal override IAutoplayObjective ToObjective(CivilizationAutoplayer autoplayer, BuildingController buildingController) =>
             new ImperialPortObjective(autoplayer);
+    }
+
+    private sealed class ConditionalBuildingsStage : PriorityStage
+    {
+        private readonly BuildingType[] _buildings;
+        private readonly int _targetLevel;
+
+        public ConditionalBuildingsStage(BuildingType[] buildings, int targetLevel)
+        {
+            _buildings = buildings;
+            _targetLevel = targetLevel;
+        }
+
+        internal override IAutoplayObjective ToObjective(CivilizationAutoplayer autoplayer, BuildingController buildingController) =>
+            new ConditionalBuildingLevelObjective(
+                () => autoplayer.WorldState != null && autoplayer.WorldState.Features.OfType<Bandit>().Any(b => b.Found),
+                new BuildingLevelObjective(autoplayer, buildingController, _buildings, _targetLevel));
     }
 }
 

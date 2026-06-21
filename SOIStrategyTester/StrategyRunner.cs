@@ -6,6 +6,7 @@ using SettlersOfIdlestan.Controller;
 using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
+using SettlersOfIdlestan.Model.Monsters;
 using SOIStrategyTester.Model;
 
 namespace SOIStrategyTester;
@@ -171,6 +172,12 @@ public static class StrategyRunner
                     auto,
                     spec.TargetCityCount ?? throw new ArgumentException("CityCount objective requires TargetCityCount.")),
                 PriorityObjectiveKind.ImperialPort => new ImperialPortObjective(auto),
+                PriorityObjectiveKind.BuildingLevelIfBanditSpotted => new ConditionalBuildingLevelObjective(
+                    () => auto.WorldState != null && auto.WorldState.Features.OfType<Bandit>().Any(b => b.Found),
+                    new BuildingLevelObjective(
+                        auto, buildingController,
+                        spec.Buildings ?? throw new ArgumentException("BuildingLevelIfBanditSpotted objective requires Buildings."),
+                        spec.TargetLevel ?? throw new ArgumentException("BuildingLevelIfBanditSpotted objective requires TargetLevel."))),
                 _ => throw new NotSupportedException($"Unknown priority objective kind: {spec.Kind}")
             });
         }
