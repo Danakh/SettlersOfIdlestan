@@ -238,7 +238,8 @@ namespace SettlersOfIdlestan.Controller.Expand
             var nextWorldState = generator.GenerateWorldState(
                 nextIslandParameters,
                 mainGameState.Clock.CurrentTick,
-                startTick: mainGameState.Clock.CurrentTick)
+                startTick: mainGameState.Clock.CurrentTick,
+                surfaceCorruptionLevel: mainGameState.PrestigeState.SurfaceCorruptionLevel)
                 ?? throw new InvalidOperationException("Failed to generate next island.");
 
             mainGameState.PrestigeState.WorldState = nextWorldState;

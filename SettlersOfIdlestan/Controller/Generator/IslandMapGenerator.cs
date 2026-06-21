@@ -97,9 +97,11 @@ public class IslandMapGenerator
 
     /// <summary>
     /// Creates a complete WorldState: civilizations, map generation, and feature placement.
-    /// The shape generator is chosen from parameters.ShapeType.
+    /// The shape generator is chosen from parameters.ShapeType. <paramref name="surfaceCorruptionLevel"/>
+    /// gives each land hex (outside the player's starting city) a 10%-per-level chance of being
+    /// corrupted, with the corruption level itself rolled the same way as in auto-expand layers.
     /// </summary>
-    public WorldState? GenerateWorldState(IslandParameters parameters, long currentTick, long startTick = 0)
+    public WorldState? GenerateWorldState(IslandParameters parameters, long currentTick, long startTick = 0, int surfaceCorruptionLevel = 0)
     {
         IslandShapeGenerator shapeGenerator = parameters.ShapeType switch
         {
@@ -134,7 +136,39 @@ public class IslandMapGenerator
         if (parameters.HasBonusIsland)
             TryAddBonusIsland(WorldState);
 
+        if (surfaceCorruptionLevel > 0)
+            PlaceSurfaceCorruption(WorldState, surfaceCorruptionLevel);
+
         return WorldState;
+    }
+
+    private const int SurfaceCorruptionChancePerLevelPercent = 10;
+
+    /// <summary>
+    /// Donne à chaque hex de terre de la carte de surface (hors hexagones de la ville de départ
+    /// et hors hexagones déjà occupés par une feature) une chance de <see cref="SurfaceCorruptionChancePerLevelPercent"/>
+    /// par niveau d'être corrompu, le niveau de la corruption étant tiré comme dans les couches auto-étendues.
+    /// </summary>
+    private void PlaceSurfaceCorruption(WorldState worldState, int surfaceCorruptionLevel)
+    {
+        var map = worldState.GetMapForZ(IslandMap.SurfaceLayer);
+        if (map == null) return;
+
+        int chancePercent = SurfaceCorruptionChancePerLevelPercent * surfaceCorruptionLevel;
+
+        var cityHexes = worldState.PlayerCivilization.Cities.Count > 0
+            ? new HashSet<HexCoord>(worldState.PlayerCivilization.Cities[0].Position.GetHexes())
+            : new HashSet<HexCoord>();
+
+        foreach (var tile in map.Tiles.Values)
+        {
+            if (tile.TerrainType == TerrainType.Water) continue;
+            if (cityHexes.Contains(tile.Coord)) continue;
+            if (worldState.HasFeaturesAt(tile.Coord)) continue;
+
+            if (_prng.Next(100) < chancePercent)
+                worldState.AddFeature(new Corruption(tile.Coord, Corruption.RollLevel(_prng, surfaceCorruptionLevel)));
+        }
     }
 
     // Petite île bonus rattachée à l'île principale par un isthme étroit (un edge entre deux

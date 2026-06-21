@@ -162,7 +162,8 @@ namespace SettlersOfIdlestan.Controller
             var newWorldState = generator.GenerateWorldState(
                 parameters,
                 CurrentMainState.Clock.CurrentTick,
-                startTick: CurrentMainState.Clock.CurrentTick)
+                startTick: CurrentMainState.Clock.CurrentTick,
+                surfaceCorruptionLevel: CurrentMainState.PrestigeState.SurfaceCorruptionLevel)
                 ?? throw new InvalidOperationException("Failed to restart island.");
 
             CurrentMainState.PrestigeState.WorldState = newWorldState;

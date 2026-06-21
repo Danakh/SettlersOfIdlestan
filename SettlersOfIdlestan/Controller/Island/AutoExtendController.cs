@@ -197,7 +197,6 @@ public class AutoExtendController
     private const int CorruptionBaseChancePercent = -20;
     private const int CorruptionChancePerDistancePercent = 5;
     private const int CorruptionChancePerLevelPercent = 10;
-    private const int CorruptionLevelUpChancePercent = 50;
 
     private void TrySpawnUnderworldDenizen(HexCoord newHex, LayerState layerState, int z)
     {
@@ -244,17 +243,10 @@ public class AutoExtendController
     }
 
     /// <summary>
-    /// Tire le niveau d'une zone corrompue : démarre à 1, puis monte d'un niveau avec
-    /// CorruptionLevelUpChancePercent de chance à chaque palier, jusqu'à l'échec ou jusqu'à
-    /// atteindre le niveau de corruption de l'île.
+    /// Tire le niveau d'une zone corrompue via <see cref="Model.IslandFeatures.Corruption.RollLevel"/>,
+    /// jusqu'à atteindre le niveau de corruption de l'île.
     /// </summary>
-    private int RollCorruptionLevel(int maxLevel)
-    {
-        int level = 1;
-        while (level < maxLevel && _prng!.Next(100) < CorruptionLevelUpChancePercent)
-            level++;
-        return level;
-    }
+    private int RollCorruptionLevel(int maxLevel) => Model.IslandFeatures.Corruption.RollLevel(_prng!, maxLevel);
 
     // ── Helpers visibilité ────────────────────────────────────────────────────
 

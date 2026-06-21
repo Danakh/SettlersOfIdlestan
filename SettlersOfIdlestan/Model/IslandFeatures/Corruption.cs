@@ -26,4 +26,19 @@ public class Corruption : IslandFeature
     {
         Level = level;
     }
+
+    private const int LevelUpChancePercent = 50;
+
+    /// <summary>
+    /// Tire le niveau d'une zone corrompue : démarre à 1, puis monte d'un niveau avec
+    /// <see cref="LevelUpChancePercent"/> de chance à chaque palier, jusqu'à l'échec ou jusqu'à
+    /// atteindre <paramref name="maxLevel"/>.
+    /// </summary>
+    public static int RollLevel(GamePRNG prng, int maxLevel)
+    {
+        int level = 1;
+        while (level < maxLevel && prng.Next(100) < LevelUpChancePercent)
+            level++;
+        return level;
+    }
 }
