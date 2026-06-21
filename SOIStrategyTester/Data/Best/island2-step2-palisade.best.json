@@ -1,0 +1,109 @@
+{
+  "Objective": {
+    "Kind": "NoSurfaceMonsters",
+    "CityCount": null,
+    "RequiredBuilding": null,
+    "Points": null,
+    "Level": null,
+    "Count": null
+  },
+  "Strategy": {
+    "Name": "Baseline-Current",
+    "Phases": [
+      {
+        "Kind": "Priority",
+        "ShouldExpand": true,
+        "PrestigePriorityVertexNames": null,
+        "PriorityObjectives": [
+          {
+            "Kind": "BuildingLevel",
+            "Buildings": [
+              "TownHall"
+            ],
+            "TargetLevel": 3,
+            "TargetCityCount": null
+          },
+          {
+            "Kind": "BuildingLevel",
+            "Buildings": [
+              "Sawmill"
+            ],
+            "TargetLevel": 1,
+            "TargetCityCount": null
+          },
+          {
+            "Kind": "BuildingLevel",
+            "Buildings": [
+              "Quarry"
+            ],
+            "TargetLevel": 1,
+            "TargetCityCount": null
+          },
+          {
+            "Kind": "BuildingLevel",
+            "Buildings": [
+              "Mill"
+            ],
+            "TargetLevel": 1,
+            "TargetCityCount": null
+          },
+          {
+            "Kind": "BuildingLevel",
+            "Buildings": [
+              "Market"
+            ],
+            "TargetLevel": 1,
+            "TargetCityCount": null
+          },
+          {
+            "Kind": "BuildingLevel",
+            "Buildings": [
+              "Seaport"
+            ],
+            "TargetLevel": 1,
+            "TargetCityCount": null
+          },
+          {
+            "Kind": "BuildingLevel",
+            "Buildings": [
+              "Warehouse"
+            ],
+            "TargetLevel": 1,
+            "TargetCityCount": null
+          },
+          {
+            "Kind": "BuildingLevel",
+            "Buildings": [
+              "Mine"
+            ],
+            "TargetLevel": 1,
+            "TargetCityCount": null
+          },
+          {
+            "Kind": "BuildingLevel",
+            "Buildings": [
+              "Barracks"
+            ],
+            "TargetLevel": 1,
+            "TargetCityCount": null
+          },
+          {
+            "Kind": "CityCount",
+            "Buildings": null,
+            "TargetLevel": null,
+            "TargetCityCount": 30
+          }
+        ],
+        "Until": null,
+        "MaxIterations": 60000
+      }
+    ]
+  },
+  "Result": {
+    "StrategyName": "Baseline-Current",
+    "Success": true,
+    "Ticks": 247100,
+    "Iterations": 2960,
+    "FailureReason": null
+  }
+}

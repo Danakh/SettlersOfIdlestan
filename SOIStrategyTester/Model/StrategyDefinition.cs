@@ -43,6 +43,10 @@ public enum PriorityObjectiveKind
     /// <summary>ImperialPortObjective — focuses the first coastal city on Seaport/Warehouse/TownHall 4
     /// then the Imperial Port itself. Needs no extra fields.</summary>
     ImperialPort,
+    /// <summary>ConditionalBuildingLevelObjective(Buildings, TargetLevel) gated on "at least one Bandit
+    /// has been spotted (Found) on the surface" — a no-op until then. Mirrors
+    /// PriorityStage.BuildingsIfBanditSpotted.</summary>
+    BuildingLevelIfBanditSpotted,
 }
 
 public class PriorityObjectiveSpec
