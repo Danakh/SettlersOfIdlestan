@@ -148,7 +148,8 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
             var worldState = mainGameState.CurrentWorldState;
             if (worldState != null && worldState.CurrentViewedLayer == LayerState.UnderworldZ && worldState.Layers.ContainsKey(LayerState.UnderworldZ))
             {
-                canvas.DrawColor(new SKColor(15, 8, 30));
+                if (!DebugSettings.ExportTransparentBackground)
+                    canvas.DrawColor(new SKColor(15, 8, 30));
                 var playerIdx = worldState.PlayerCivilization.Index;
                 IslandMap? underworldMap = DebugSettings.ShowFullMap
                     ? worldState.GetMapForZ(LayerState.UnderworldZ)
@@ -176,7 +177,8 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
             }
         }
 
-        canvas.DrawColor(new SKColor(238, 242, 245));
+        if (!DebugSettings.ExportTransparentBackground)
+            canvas.DrawColor(new SKColor(238, 242, 245));
 
         if (context.GameState is MainGameState mgs)
         {
