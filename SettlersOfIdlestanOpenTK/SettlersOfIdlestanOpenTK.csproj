@@ -10,7 +10,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="Resources\appicon.png" />
+    <EmbeddedResource Include="Resources\appicon_16.png" />
+    <EmbeddedResource Include="Resources\appicon_32.png" />
+    <EmbeddedResource Include="Resources\appicon_64.png" />
+    <EmbeddedResource Include="Resources\appicon_128.png" />
+    <EmbeddedResource Include="Resources\appicon_256.png" />
   </ItemGroup>
 
   <ItemGroup>

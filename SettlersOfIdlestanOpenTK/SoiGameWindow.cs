@@ -182,14 +182,21 @@ sealed class SoiGameWindow : GameWindow
 
     // ── Icon ──────────────────────────────────────────────────────────────────
 
+    private static readonly int[] IconSizes = { 16, 32, 64, 128, 256 };
+
     private static WindowIcon LoadIcon()
     {
-        using var stream = typeof(SoiGameWindow).Assembly
-            .GetManifestResourceStream("SettlersOfIdlestanOpenTK.Resources.appicon.png")!;
-        using var bmp = SKBitmap.Decode(stream).Copy(SKColorType.Rgba8888);
-        var pixels = new byte[bmp.Width * bmp.Height * 4];
-        System.Runtime.InteropServices.Marshal.Copy(bmp.GetPixels(), pixels, 0, pixels.Length);
-        return new WindowIcon(new OpenTK.Windowing.Common.Input.Image(bmp.Width, bmp.Height, pixels));
+        var images = new OpenTK.Windowing.Common.Input.Image[IconSizes.Length];
+        for (int i = 0; i < IconSizes.Length; i++)
+        {
+            using var stream = typeof(SoiGameWindow).Assembly
+                .GetManifestResourceStream($"SettlersOfIdlestanOpenTK.Resources.appicon_{IconSizes[i]}.png")!;
+            using var bmp = SKBitmap.Decode(stream).Copy(SKColorType.Rgba8888);
+            var pixels = new byte[bmp.Width * bmp.Height * 4];
+            System.Runtime.InteropServices.Marshal.Copy(bmp.GetPixels(), pixels, 0, pixels.Length);
+            images[i] = new OpenTK.Windowing.Common.Input.Image(bmp.Width, bmp.Height, pixels);
+        }
+        return new WindowIcon(images);
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
