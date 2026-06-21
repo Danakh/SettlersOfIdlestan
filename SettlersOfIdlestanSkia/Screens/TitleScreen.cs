@@ -1,6 +1,7 @@
 using System.Reflection;
 using SkiaSharp;
 using Svg.Skia;
+using SettlersOfIdlestan.Controller.Store;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Services;
@@ -12,9 +13,15 @@ namespace SettlersOfIdlestanSkia.Screens;
 
 public sealed class TitleScreen : IDisposable
 {
+    private const string CloudSaveFileName = "autosave.json";
+
     private readonly IFileSystemService _fileSystemService;
     private readonly LocalizationService _localization;
     private readonly UILayoutService _uiLayoutService;
+    private readonly StoreController? _storeController;
+
+    private readonly NotificationToastRenderer _notificationToastRenderer;
+    private readonly System.Diagnostics.Stopwatch _frameStopwatch = new();
 
     private HardResetPopupRenderer? _hardResetPopup;
     private bool _hasSave;
@@ -24,6 +31,7 @@ public sealed class TitleScreen : IDisposable
 
     private SKRect _primaryBtnRect;
     private SKRect _hardResetBtnRect;
+    private SKRect _loadCloudBtnRect;
 
     // Tab state
     private int    _activeTab    = 0; // 0=Changelog  1=Crédits  2=Paramètres
@@ -44,6 +52,7 @@ public sealed class TitleScreen : IDisposable
     private readonly SKPaint _primaryBtnPaint    = new() { Color = new SKColor(35, 80, 130),   Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _activeTabPaint     = new() { Color = new SKColor(45, 90, 145),   Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _resetBtnPaint      = new() { Color = new SKColor(80, 30, 30),    Style = SKPaintStyle.Fill, IsAntialias = true };
+    private readonly SKPaint _loadCloudBtnPaint  = new() { Color = new SKColor(30, 90, 75),    Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _btnBorderPaint     = new() { Color = new SKColor(100, 100, 125), StrokeWidth = 1, Style = SKPaintStyle.Stroke, IsAntialias = true };
     private readonly SKPaint _textPaint          = new() { Color = SKColors.White,              IsAntialias = true };
     private readonly SKPaint _subtlePaint        = new() { Color = new SKColor(155, 155, 170),  IsAntialias = true };
@@ -90,7 +99,8 @@ public sealed class TitleScreen : IDisposable
     public event Action<int, int>? DebugWindowResizeRequested;
 
     public TitleScreen(IFileSystemService fileSystemService, LocalizationService localization,
-        UILayoutService uiLayoutService, ResourceManager resourceManager, bool hasSave, GameSettings? settings = null, bool allowDebugMode = false)
+        UILayoutService uiLayoutService, ResourceManager resourceManager, bool hasSave, GameSettings? settings = null, bool allowDebugMode = false,
+        StoreController? storeController = null)
     {
         _fileSystemService = fileSystemService;
         _localization      = localization;
@@ -98,6 +108,7 @@ public sealed class TitleScreen : IDisposable
         _hasSave           = hasSave;
         _settings          = settings ?? new GameSettings();
         _allowDebugMode    = allowDebugMode;
+        _storeController   = storeController;
         _settingsPanel     = new SettingsContentPanel();
         _settingsPanel.FullscreenToggleRequested += v => FullscreenToggleRequested?.Invoke(v);
         _settingsPanel.DebugWindowResizeRequested += (w, h) => DebugWindowResizeRequested?.Invoke(w, h);
@@ -110,7 +121,13 @@ public sealed class TitleScreen : IDisposable
         _hardResetPopup = new HardResetPopupRenderer(
             localization, fileSystemService,
             onConfirm: () => { _hasSave = false; });
+
+        _notificationToastRenderer = new NotificationToastRenderer(_uiLayoutService);
+        StoreConnectionToastHelper.ShowConnectionToasts(_storeController, _notificationToastRenderer, _localization);
+        _frameStopwatch.Start();
     }
+
+    private bool CanLoadFromCloud => _storeController?.IsConnected("Steam") == true;
 
     public void Render(SKCanvas canvas, SKSize canvasSize, float uiScale)
     {
@@ -146,6 +163,10 @@ public sealed class TitleScreen : IDisposable
         RenderDiscordButton(canvas, canvasSize, s);
 
         _hardResetPopup?.Render(canvas, canvasSize, uiScale);
+
+        float dt = (float)_frameStopwatch.Elapsed.TotalSeconds;
+        _frameStopwatch.Restart();
+        _notificationToastRenderer.Render(canvas, canvasSize, dt, uiScale);
     }
 
     // ── Onglets ────────────────────────────────────────────────────────────────
@@ -349,20 +370,35 @@ public sealed class TitleScreen : IDisposable
         float gap  = 20 * s;
         float btnY = canvasSize.Height - 80 * s;
 
+        bool showCloud = CanLoadFromCloud;
+        int  count     = 1 + (_hasSave ? 1 : 0) + (showCloud ? 1 : 0);
+        float totalW   = btnW * count + gap * (count - 1);
+        float startX   = cx - totalW / 2f;
+
+        int slot = 0;
+        _primaryBtnRect = new SKRect(startX + slot * (btnW + gap), btnY, startX + slot * (btnW + gap) + btnW, btnY + btnH);
+        DrawBtn(canvas, _primaryBtnRect, _primaryBtnPaint, _localization.Get(_hasSave ? "title_btn_continue" : "title_btn_new_game"), s);
+        slot++;
+
         if (_hasSave)
         {
-            float totalW = btnW * 2 + gap;
-            float startX = cx - totalW / 2f;
-            _primaryBtnRect   = new SKRect(startX,             btnY, startX + btnW,      btnY + btnH);
-            _hardResetBtnRect = new SKRect(startX + btnW + gap, btnY, startX + totalW, btnY + btnH);
-            DrawBtn(canvas, _primaryBtnRect,   _primaryBtnPaint, _localization.Get("title_btn_continue"),   s);
-            DrawBtn(canvas, _hardResetBtnRect, _resetBtnPaint,   _localization.Get("title_btn_hard_reset"), s);
+            _hardResetBtnRect = new SKRect(startX + slot * (btnW + gap), btnY, startX + slot * (btnW + gap) + btnW, btnY + btnH);
+            DrawBtn(canvas, _hardResetBtnRect, _resetBtnPaint, _localization.Get("title_btn_hard_reset"), s);
+            slot++;
         }
         else
         {
-            _primaryBtnRect   = new SKRect(cx - btnW / 2f, btnY, cx + btnW / 2f, btnY + btnH);
             _hardResetBtnRect = SKRect.Empty;
-            DrawBtn(canvas, _primaryBtnRect, _primaryBtnPaint, _localization.Get("title_btn_new_game"), s);
+        }
+
+        if (showCloud)
+        {
+            _loadCloudBtnRect = new SKRect(startX + slot * (btnW + gap), btnY, startX + slot * (btnW + gap) + btnW, btnY + btnH);
+            DrawBtn(canvas, _loadCloudBtnRect, _loadCloudBtnPaint, _localization.Get("title_btn_load_cloud"), s);
+        }
+        else
+        {
+            _loadCloudBtnRect = SKRect.Empty;
         }
     }
 
@@ -411,6 +447,8 @@ public sealed class TitleScreen : IDisposable
 
         var pos = new SKPoint(x, y);
 
+        if (_notificationToastRenderer.HandlePointerPressed(pos)) return;
+
         // Bouton Discord
         if (!_discordBtnRect.IsEmpty && _discordBtnRect.Contains(pos))
         {
@@ -456,6 +494,26 @@ public sealed class TitleScreen : IDisposable
         {
             _hardResetPopup?.Open();
         }
+        else if (!_loadCloudBtnRect.IsEmpty && _loadCloudBtnRect.Contains(pos))
+        {
+            LoadFromCloud();
+        }
+    }
+
+    private void LoadFromCloud()
+    {
+        var json = _storeController?.LoadCloudFile(CloudSaveFileName);
+        if (string.IsNullOrEmpty(json))
+        {
+            _notificationToastRenderer.ShowNotification(
+                _localization.Get("notification_cloud_load_empty"), string.Empty, NotificationIcon.StoreFail);
+            return;
+        }
+
+        _ = _fileSystemService.SaveAuto(json);
+        _hasSave = true;
+        _notificationToastRenderer.ShowNotification(
+            _localization.Get("notification_cloud_load_success"), string.Empty, NotificationIcon.StoreOk);
     }
 
     public void HandlePointerMoved(float x, float y)
@@ -503,6 +561,7 @@ public sealed class TitleScreen : IDisposable
         _primaryBtnPaint.Dispose();
         _activeTabPaint.Dispose();
         _resetBtnPaint.Dispose();
+        _loadCloudBtnPaint.Dispose();
         _btnBorderPaint.Dispose();
         _textPaint.Dispose();
         _subtlePaint.Dispose();
@@ -518,6 +577,7 @@ public sealed class TitleScreen : IDisposable
         _discordHoverOverlayPaint.Dispose();
         _settingsPanel.Dispose();
         _hardResetPopup?.Dispose();
+        _notificationToastRenderer.Dispose();
         _disposed = true;
     }
 }

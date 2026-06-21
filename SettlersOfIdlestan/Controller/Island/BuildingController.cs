@@ -316,7 +316,7 @@ namespace SettlersOfIdlestan.Controller.Island
             }
             else
             {
-                if (existing.Level >= GetMaxLevel(existing, city.CivilizationIndex))
+                if (existing.Level >= GetMaxLevel(existing, civ))
                     return false;
 
                 cost = existing.GetUpgradeCost(existing.Level + 1);
@@ -394,7 +394,7 @@ namespace SettlersOfIdlestan.Controller.Island
             foreach (var bt in _allBuildingTypes)
             {
                 var prototype = CreateBuilding(bt);
-                if (prototype == null || !prototype.IsUnique || GetMaxLevel(prototype, city.CivilizationIndex) <= 0)
+                if (prototype == null || !prototype.IsUnique || GetMaxLevel(prototype, civ) <= 0)
                     continue;
 
                 var existingInstance = civ.GetUniqueBuilding(bt);
@@ -418,12 +418,14 @@ namespace SettlersOfIdlestan.Controller.Island
         {
             if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
 
-            var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex)
-                      ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
+            var civ = _state.Civilizations[civilizationIndex];
+            return GetMaxLevel(building, civ);
+        }
 
-            int maxLevel = building.GetDefaultMaxLevel();
-            maxLevel = civ.ModifierAggregator.ApplyModifiers(ECategory.BUILDING_MAX_LEVEL, building.Type.ToString(), maxLevel);
-            return maxLevel;
+        public int GetMaxLevel(Building building, Civilization civ)
+        {
+            return civ.GetCachedMaxLevel(building.Type, () =>
+                civ.ModifierAggregator.ApplyModifiers(ECategory.BUILDING_MAX_LEVEL, building.Type.ToString(), building.GetDefaultMaxLevel()));
         }
 
         /// <summary>

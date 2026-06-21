@@ -1,3 +1,4 @@
+using System.Text;
 using SettlersOfIdlestan.Controller.Store;
 using SettlersOfIdlestan.Model.Localization;
 using Steamworks;
@@ -57,6 +58,34 @@ public class StoreServiceSteam : IStoreService
         if (!IsAvailable) return;
         SteamUserStats.SetAchievement(achievementId);
         SteamUserStats.StoreStats();
+    }
+
+    /// <summary>
+    /// Pousse le fichier vers Steam Cloud. Le client Steam gère seul le merge entre machines ;
+    /// on écrit ici toujours la version locale, qui reste la source de vérité côté jeu.
+    /// </summary>
+    public void SaveCloudFile(string fileName, string content)
+    {
+        if (!IsAvailable) return;
+        if (!SteamRemoteStorage.IsCloudEnabledForAccount() || !SteamRemoteStorage.IsCloudEnabledForApp()) return;
+
+        var data = Encoding.UTF8.GetBytes(content);
+        SteamRemoteStorage.FileWrite(fileName, data, data.Length);
+    }
+
+    public string? LoadCloudFile(string fileName)
+    {
+        if (!IsAvailable) return null;
+        if (!SteamRemoteStorage.FileExists(fileName)) return null;
+
+        int size = SteamRemoteStorage.GetFileSize(fileName);
+        if (size <= 0) return null;
+
+        var buffer = new byte[size];
+        int read = SteamRemoteStorage.FileRead(fileName, buffer, size);
+        if (read <= 0) return null;
+
+        return Encoding.UTF8.GetString(buffer, 0, read);
     }
 
     public void Dispose()

@@ -34,6 +34,7 @@ public sealed class GameScreen : IDisposable
     private readonly LocalizationService _localizationService;
     private readonly IFileSystemService _fileSystemService;
     private readonly UILayoutService _uiLayoutService;
+    private readonly StoreController? _storeController;
 
     private HarvestService? _harvestService;
     private ConstructionInteractionService? _constructionInteractionService;
@@ -79,6 +80,7 @@ public sealed class GameScreen : IDisposable
 
     private double _autoSaveTimer;
     private const double AutoSaveInterval = 5.0;
+    private const string CloudSaveFileName = "autosave.json";
 
     private Func<int> _currentLayer => () => _gameControllerService.CurrentGameState?.CurrentWorldState?.CurrentViewedLayer ?? 0;
 
@@ -108,6 +110,7 @@ public sealed class GameScreen : IDisposable
         _localizationService  = localizationService;
         _uiLayoutService      = uiLayoutService;
         _resourceManager      = resourceManager;
+        _storeController      = storeController;
         _inputService         = new InputHandlingService();
         _renderService        = new RenderService();
         _cameraService        = new CameraService();
@@ -167,7 +170,6 @@ public sealed class GameScreen : IDisposable
         }
 
         storeController?.Connect(_gameControllerService.MainGameController.AchievementController);
-        ShowStoreConnectionNotifications(storeController);
 
         _tickStopwatch.Restart();
         _fpsStopwatch.Restart();
@@ -417,6 +419,7 @@ public sealed class GameScreen : IDisposable
             {
                 var json = _gameControllerService.MainGameController.ExportMainState();
                 _fileSystemService.SaveAuto(json);
+                _storeController?.SaveCloudFile(CloudSaveFileName, json);
             }
         }
     }
@@ -883,24 +886,6 @@ public sealed class GameScreen : IDisposable
         string title   = _localizationService.Get("notification_achievement_title");
         string message = def != null ? _localizationService.Get(def.NameKey) : id.ToString();
         _notificationToastRenderer.ShowNotification(title, message, NotificationIcon.Achievement);
-    }
-
-    internal void ShowStoreConnectionNotifications(StoreController? storeController)
-    {
-        if (storeController == null || _notificationToastRenderer == null) return;
-        foreach (var (name, status) in storeController.GetConnectionStatuses())
-        {
-            if (status == StoreConnectionStatus.Connected)
-            {
-                string msg = _localizationService.GetFormated("notification_store_connected", name);
-                _notificationToastRenderer.ShowNotification(msg, string.Empty, NotificationIcon.StoreOk);
-            }
-            else if (status == StoreConnectionStatus.Failed)
-            {
-                string msg = _localizationService.GetFormated("notification_store_failed", name);
-                _notificationToastRenderer.ShowNotification(msg, string.Empty, NotificationIcon.StoreFail);
-            }
-        }
     }
 
     private void OnCityDestroyedCheckGameOver(object? sender, SettlersOfIdlestan.Controller.Island.CityDestroyedEventArgs e)

@@ -251,15 +251,14 @@ public class CityBuildingService
 
     public bool IsAtMaxLevel(Building building)
     {
-        if (SelectedCity == null)
-            return false;
-        return building.Level >= BuildingController.GetMaxLevel(building, SelectedCity.CivilizationIndex);
+        if (SelectedCivilization == null) return false;
+        return building.Level >= BuildingController.GetMaxLevel(building, SelectedCivilization);
     }
 
     public int GetMaxLevel(Building building)
     {
-        if (SelectedCity == null) return building.GetDefaultMaxLevel();
-        return BuildingController.GetMaxLevel(building, SelectedCity.CivilizationIndex);
+        if (SelectedCivilization == null) return building.GetDefaultMaxLevel();
+        return BuildingController.GetMaxLevel(building, SelectedCivilization);
     }
 
     /// <summary>

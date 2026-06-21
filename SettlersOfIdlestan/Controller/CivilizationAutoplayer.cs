@@ -168,7 +168,7 @@ namespace SettlersOfIdlestan.Controller
             if (target == null) return false;
 
             // Skip already-maxed buildings
-            if (target.Level > 0 && target.Level >= _buildingController.GetMaxLevel(target, _civ.Index))
+            if (target.Level > 0 && target.Level >= _buildingController.GetMaxLevel(target, _civ))
                 return false;
 
             if (_buildingController.BuildBuilding(city, buildingType))
@@ -238,7 +238,7 @@ namespace SettlersOfIdlestan.Controller
             foreach (var bt in new[] { BuildingType.Seaport, BuildingType.Warehouse, BuildingType.TownHall })
             {
                 Building? existing = coastalCity.Buildings.FirstOrDefault(b => b.Type == bt);
-                if ((existing == null) || existing.Level < _buildingController.GetMaxLevel(existing, _civ.Index))
+                if ((existing == null) || existing.Level < _buildingController.GetMaxLevel(existing, _civ))
                 {
                     if (TryBuildBuildingOnce(coastalCity, bt, withGrind: shouldGrind))
                         didSomething = true;

@@ -30,6 +30,7 @@
   "title_btn_continue": "Continuer",
   "title_btn_new_game": "Nouvelle Partie",
   "title_btn_hard_reset": "Réinitialisation",
+  "title_btn_load_cloud": "Charger depuis le Cloud",
   "debug_mouse_screen": "Souris écran",
   "debug_hex": "Hex",
   "debug_panel_title": "Panneau Debug",
@@ -972,6 +973,8 @@
   "achievement_ten_unique_buildings_one_island_name": "Architecte",
   "notification_achievement_title": "Succès débloqué",
   "notification_store_connected": "{0} connecté",
-  "notification_store_failed": "Connexion {0} échouée"
+  "notification_store_failed": "Connexion {0} échouée",
+  "notification_cloud_load_success": "Sauvegarde chargée depuis le Cloud",
+  "notification_cloud_load_empty": "Aucune sauvegarde trouvée dans le Cloud"
 }
 
