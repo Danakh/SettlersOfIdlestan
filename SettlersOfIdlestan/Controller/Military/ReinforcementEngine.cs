@@ -187,13 +187,13 @@ internal class ReinforcementEngine
                     if (friendly == city) continue;
                     if (friendly.Position.Z != z) continue;
 
-                    var roadPath = RoadPathfinder.FindPathInGraph(adj, city.Position, friendly.Position);
-                    if (roadPath == null || roadPath.Count - 1 > range) continue;
-
                     int tCap = friendly.MaxSoldiers;
                     int effectiveFriendly = friendly.Soldiers + friendly.IncomingSoldiers.Count;
                     if (tCap == 0 || effectiveFriendly * 2 > tCap) continue;
                     if (friendly.Soldiers + 2 >= city.Soldiers) continue;
+
+                    var roadPath = RoadPathfinder.FindPathInGraph(adj, city.Position, friendly.Position);
+                    if (roadPath == null || roadPath.Count - 1 > range) continue;
 
                     if (friendly.Soldiers < fewestSoldiers)
                     {
