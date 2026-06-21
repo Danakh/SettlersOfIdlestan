@@ -650,9 +650,27 @@ public sealed class GameScreen : IDisposable
     private static void DrawTitleOverlay(SKCanvas canvas, SKSize canvasSize, float s)
     {
         const string title = "Settlers of Idlestan";
-        using var titleFont    = new SKFont { Size = 38f * s, Typeface = SkiaFonts.Bold };
+        // Police agrandie de 50% (38 -> 57) par rapport à l'écran titre, pour rester lisible sur une capture.
+        using var titleFont = new SKFont { Size = 57f * s, Typeface = SkiaFonts.Bold };
         using var titlePaint   = new SKPaint { Color = new SKColor(230, 190, 90), IsAntialias = true };
         using var dividerPaint = new SKPaint { Color = new SKColor(100, 85, 45), StrokeWidth = 2f * s, Style = SKPaintStyle.Stroke };
+
+        // Halo doux + contour net en noir, dessinés sous le texte doré, pour garder le titre lisible
+        // même sur un fond clair (tuiles d'eau/herbe) sans changer la police elle-même.
+        using var glowPaint = new SKPaint
+        {
+            Color = new SKColor(0, 0, 0, 130),
+            IsAntialias = true,
+            MaskFilter = SKMaskFilter.CreateBlur(SKBlurStyle.Normal, 6f * s)
+        };
+        using var outlinePaint = new SKPaint
+        {
+            Color = SKColors.Black,
+            IsAntialias = true,
+            Style = SKPaintStyle.Stroke,
+            StrokeWidth = 3f * s,
+            StrokeJoin = SKStrokeJoin.Round
+        };
 
         float cx       = canvasSize.Width / 2f;
         float margin   = 40f * s;
@@ -669,7 +687,10 @@ public sealed class GameScreen : IDisposable
         foreach (var line in lines)
         {
             float lineW = titleFont.MeasureText(line);
-            SkiaTextUtils.DrawText(canvas, line, cx - lineW / 2f, titleY, titleFont, titlePaint);
+            float lineX = cx - lineW / 2f;
+            SkiaTextUtils.DrawText(canvas, line, lineX, titleY, titleFont, glowPaint);
+            SkiaTextUtils.DrawText(canvas, line, lineX, titleY, titleFont, outlinePaint);
+            SkiaTextUtils.DrawText(canvas, line, lineX, titleY, titleFont, titlePaint);
             titleY += lineH;
         }
 
