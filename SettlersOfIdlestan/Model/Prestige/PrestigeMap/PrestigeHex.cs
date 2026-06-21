@@ -12,13 +12,18 @@ public class PrestigeHex
     public int StartingResourceBonusPerVertex { get; }
     public PrestigeHexDomain Domain { get; }
 
+    /// <summary>Verrouillage générique : tant que le joueur n'a jamais eu de God Point, ce hex
+    /// s'affiche en "???" et son contenu reste caché (voir PrestigeMapRenderer).</summary>
+    public bool RequiresGodPoint { get; }
+
     public PrestigeHex(
         HexCoord coord,
         string localizationKey,
         IReadOnlyList<Vertex> adjacentVertices,
         IReadOnlyList<Modifier> perVertexModifiers,
         int startingResourceBonusPerVertex = 0,
-        PrestigeHexDomain domain = PrestigeHexDomain.None)
+        PrestigeHexDomain domain = PrestigeHexDomain.None,
+        bool requiresGodPoint = false)
     {
         Coord = coord;
         LocalizationKey = localizationKey;
@@ -26,5 +31,6 @@ public class PrestigeHex
         PerVertexModifiers = perVertexModifiers;
         StartingResourceBonusPerVertex = startingResourceBonusPerVertex;
         Domain = domain;
+        RequiresGodPoint = requiresGodPoint;
     }
 }

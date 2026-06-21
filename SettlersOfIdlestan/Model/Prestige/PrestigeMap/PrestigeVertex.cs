@@ -11,6 +11,10 @@ public class PrestigeVertex
     public int Cost { get; }
     public IReadOnlyList<Modifier> Modifiers { get; }
 
+    /// <summary>Verrouillage générique : tant que le joueur n'a jamais eu de God Point, ce vertex
+    /// s'affiche en "???" et son contenu reste caché (voir PrestigeMapRenderer).</summary>
+    public bool RequiresGodPoint { get; }
+
     /// <summary>Buildings from STARTING_CITY_BUILDING modifiers — granted to the initial city only.</summary>
     public IReadOnlyList<BuildingType> StartingCityBuildings =>
         Modifiers
@@ -31,11 +35,13 @@ public class PrestigeVertex
         Vertex coord,
         string localizationKey,
         int cost,
-        IReadOnlyList<Modifier> modifiers)
+        IReadOnlyList<Modifier> modifiers,
+        bool requiresGodPoint = false)
     {
         Coord = coord;
         LocalizationKey = localizationKey;
         Cost = cost;
         Modifiers = modifiers;
+        RequiresGodPoint = requiresGodPoint;
     }
 }

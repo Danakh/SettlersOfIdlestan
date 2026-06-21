@@ -4,11 +4,14 @@ using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
+using SettlersOfIdlestan.Model.GameplayModifier;
 using SettlersOfIdlestan.Model.HexGrid;
+using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.IslandMap;
 using System;
 using System.Collections.Generic;
 using Xunit;
+using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
 
 namespace SOITests.ControllerTests
 {
@@ -60,6 +63,54 @@ namespace SOITests.ControllerTests
 
             // Advance beyond the automatic cooldown (5s = 500 ticks) -> another harvest should occur
             clock.SimulateAdvance(500); // 5 s
+            Assert.Equal(2, civ.GetResourceQuantity(Resource.Wood));
+        }
+
+        [Fact]
+        public void AutomaticHarvest_WithDominionOnHex_HarvestsFaster()
+        {
+            var a = new HexCoord(0, 0, IslandMap.SurfaceLayer);
+            var b = new HexCoord(1, 0, IslandMap.SurfaceLayer);
+            var c = new HexCoord(0, 1, IslandMap.SurfaceLayer);
+
+            var tiles = new[]
+            {
+                new HexTile(a, TerrainType.Forest),
+                new HexTile(b, TerrainType.Plain),
+                new HexTile(c, TerrainType.Plain),
+            };
+
+            var map = new IslandMap(tiles);
+            var civ = new Civilization { Index = 0 };
+            var civs = new List<Civilization> { civ };
+            var state = new WorldState(map, civs, AtlasController.InvalidIslandId);
+
+            var vertex = Vertex.Create(a, b, c);
+            IslandMapGenerator generator = new IslandMapGenerator(new GamePRNG(42));
+            generator.PopulatePlayerCivilization(map, civ, vertex);
+            var city = civ.Cities[0];
+            city.Buildings.Add(new Sawmill());
+
+            // Dominion niveau 2 sur l'hex récolté + bonus de prestige de 0.5/niveau ⇒ vitesse ×2.
+            state.AddFeature(new Dominion(a, level: 2));
+            civ.AddCustomAggregator(new StaticModifierProvider(new[]
+            {
+                new Modifier(ECategory.DOMINION_HARVEST_SPEED_PER_LEVEL, EType.ADDITIVE, 0.5),
+            }));
+
+            var clock = new GameClock();
+            clock.Start();
+            new HarvestController(state, clock);
+
+            clock.SimulateAdvance(10);
+            Assert.Equal(1, civ.GetResourceQuantity(Resource.Wood));
+
+            // Cooldown effectif = 500 / 2 = 250 ticks : toujours rien à +100 ticks (110 écoulés).
+            clock.SimulateAdvance(100);
+            Assert.Equal(1, civ.GetResourceQuantity(Resource.Wood));
+
+            // 310 ticks écoulés depuis la première récolte ⩾ 250 ⇒ nouvelle récolte.
+            clock.SimulateAdvance(200);
             Assert.Equal(2, civ.GetResourceQuantity(Resource.Wood));
         }
 
