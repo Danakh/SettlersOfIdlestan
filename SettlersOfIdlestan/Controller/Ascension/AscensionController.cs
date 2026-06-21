@@ -11,8 +11,9 @@ using SettlersOfIdlestan.Model.IslandMap;
 namespace SettlersOfIdlestan.Controller.Ascension;
 
 /// <summary>
-/// Gère les pouvoirs divins (GodState.AscensionState) : déblocage séquentiel en colonne,
-/// effets passifs (Main de Dieu, Oeil de Dieu, Bras de Dieu) et l'action ciblée Marche de Dieu.
+/// Gère les pouvoirs divins (GodState.AscensionState) : Foi est le pouvoir fondateur (toujours
+/// disponible), qui déverrouille les 4 colonnes indépendantes (Main/Oeil/Marche/Bras de Dieu) ;
+/// effets passifs (Main de Dieu, Oeil de Dieu, Bras de Dieu, Foi) et l'action ciblée Marche de Dieu.
 /// </summary>
 public class AscensionController : IModifierProvider
 {
@@ -55,12 +56,20 @@ public class AscensionController : IModifierProvider
     {
         if (_ascensionState == null || IsPowerUnlocked(id)) return false;
 
-        int index = AscensionPowerDefinitions.IndexOf(id);
-        if (index < 0) return false;
-        if (index == 0) return true;
+        var def = AscensionPowerDefinitions.Get(id);
+        if (def == null) return false;
 
-        var previousId = AscensionPowerDefinitions.All[index - 1].Id;
-        return IsPowerUnlocked(previousId);
+        // Foi est le pouvoir fondateur : toujours disponible, sans prérequis.
+        if (def.Column == AscensionPowerDefinition.FoundationColumn) return true;
+
+        // Chaque colonne nécessite Foi, puis se débloque dans son propre ordre interne.
+        if (!IsPowerUnlocked(AscensionPowerId.Faith)) return false;
+
+        var column = AscensionPowerDefinitions.GetColumn(def.Column);
+        int posInColumn = column.IndexOf(def);
+        if (posInColumn <= 0) return true;
+
+        return IsPowerUnlocked(column[posInColumn - 1].Id);
     }
 
     public bool PurchasePower(AscensionPowerId id)
@@ -74,6 +83,12 @@ public class AscensionController : IModifierProvider
 
     public IEnumerable<Modifier> GetModifiers()
     {
+        if (IsPowerUnlocked(AscensionPowerId.Faith))
+        {
+            yield return new Modifier(Modifier.ECategory.BUILDING_MAX_LEVEL, "Temple", Modifier.EType.ADDITIVE, 3);
+            yield return new Modifier(Modifier.ECategory.UNLOCK_DOMINION, Modifier.EType.ADDITIVE, 1.0);
+        }
+
         if (IsPowerUnlocked(AscensionPowerId.ArmOfGod))
             yield return new Modifier(Modifier.ECategory.ATTACK_SPEED, Modifier.EType.ADDITIVE, 1.0);
     }

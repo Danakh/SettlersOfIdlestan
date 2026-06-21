@@ -601,14 +601,14 @@ public static class PrestigeMapFactory
                 domain: PrestigeHexDomain.Explore
             ),
             // Dominion — à l'ouest de l'Inframonde. Caché derrière la Faille des Abysses (AbyssHexes)
-            // ET verrouillé en "???" tant que le joueur n'a jamais eu de God Point.
+            // ET verrouillé en "???" tant que le pouvoir divin Foi n'est pas débloqué (UNLOCK_DOMINION).
             new(
                 PrestigeMap.AbyssDepthsCoord,
                 "prestige_hex_dominion",
                 adjacentVertices: Adjacent(PrestigeMap.AbyssDepthsCoord),
                 perVertexModifiers: new Modifier[] { new(ECategory.DOMINION_HARVEST_SPEED_PER_LEVEL, EType.ADDITIVE, 0.1) },
                 domain: PrestigeHexDomain.Exploit,
-                requiresGodPoint: true
+                requiresDominionUnlock: true
             ),
             new(
                 PrestigeMap.AbyssChasmCoord,

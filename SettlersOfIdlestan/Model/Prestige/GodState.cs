@@ -31,13 +31,6 @@ namespace SettlersOfIdlestan.Model.Prestige
         public int TotalGodPointsEarned { get; set; }
 
         /// <summary>
-        /// True dès que le joueur a obtenu au moins un God Point (même s'il l'a dépensé depuis).
-        /// Contrôle le déverrouillage générique des hex/vertex de prestige marqués RequiresGodPoint.
-        /// </summary>
-        [System.Text.Json.Serialization.JsonIgnore]
-        public bool HasEverHadGodPoint => TotalGodPointsEarned > 0;
-
-        /// <summary>
         /// Constructeur parameterless requis par certains sérialiseurs.
         /// </summary>
         public GodState() { }
