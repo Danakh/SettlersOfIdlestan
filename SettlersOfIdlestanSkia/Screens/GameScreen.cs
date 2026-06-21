@@ -628,7 +628,6 @@ public sealed class GameScreen : IDisposable
         DebugSettings.ShowHexCoords            = false;
         DebugSettings.ShowAutoplayerCommands   = false;
         DebugSettings.ShowFullMap              = false;
-        DebugSettings.SuppressDebugUiForExport = true;
         try
         {
             using (surface)
@@ -642,7 +641,6 @@ public sealed class GameScreen : IDisposable
             DebugSettings.ShowHexCoords            = prevHexCoords;
             DebugSettings.ShowAutoplayerCommands   = prevAutoplayer;
             DebugSettings.ShowFullMap              = prevFullMap;
-            DebugSettings.SuppressDebugUiForExport = false;
         }
     }
 

@@ -190,6 +190,10 @@ sealed class SoiGameWindow : GameWindow
         Keys.Right                                => "ArrowRight",
         Keys.LeftControl or Keys.RightControl     => "Control",
         Keys.LeftShift   or Keys.RightShift       => "Shift",
+        Keys.F9                                   => "F9",
+        Keys.F10                                  => "F10",
+        Keys.F11                                  => "F11",
+        Keys.F12                                  => "F12",
         _                                         => null,
     };
 }
