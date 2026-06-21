@@ -29,6 +29,7 @@ public sealed class OverlayRenderer : IGameRenderer
     private readonly EventLogRenderer _eventLogRenderer;
     private readonly AutomationRenderer _automationRenderer;
     private readonly RitualsRenderer _ritualsRenderer;
+    private readonly AscensionRenderer _ascensionRenderer;
     private readonly TooltipRenderer _tooltipRenderer;
     private readonly PlayerCivilizationPanelRenderer _playerCivPanel;
     private readonly TabBarRenderer _tabBar;
@@ -71,8 +72,10 @@ public sealed class OverlayRenderer : IGameRenderer
         EventLogRenderer eventLogRenderer,
         AutomationRenderer automationRenderer,
         RitualsRenderer ritualsRenderer,
+        AscensionRenderer ascensionRenderer,
         TooltipRenderer tooltipRenderer,
-        UILayoutService uiLayout)
+        UILayoutService uiLayout,
+        bool allowDebugMode = false)
     {
         _uiLayout                       = uiLayout;
         _inputService                   = inputService;
@@ -92,9 +95,10 @@ public sealed class OverlayRenderer : IGameRenderer
         _eventLogRenderer               = eventLogRenderer;
         _automationRenderer             = automationRenderer;
         _ritualsRenderer                = ritualsRenderer;
+        _ascensionRenderer              = ascensionRenderer;
         _tooltipRenderer                = tooltipRenderer;
 
-        _tabBar          = new TabBarRenderer(localization, gameControllerService, uiLayout);
+        _tabBar          = new TabBarRenderer(localization, gameControllerService, uiLayout, allowDebugMode);
         _mapSwitchButton = new MapSwitchButtonRenderer(localization, uiLayout, gameControllerService);
         _zoomControl     = new ZoomControlRenderer(inputService, uiLayout);
 
@@ -133,6 +137,7 @@ public sealed class OverlayRenderer : IGameRenderer
         _eventLogRenderer.Initialize(canvasSize);
         _automationRenderer.Initialize(canvasSize);
         _ritualsRenderer.Initialize(canvasSize);
+        _ascensionRenderer.Initialize(canvasSize);
         _playerCivPanel.Initialize(canvasSize);
         _tabBar.Initialize(canvasSize);
         _mapSwitchButton.Initialize(canvasSize);
@@ -194,6 +199,9 @@ public sealed class OverlayRenderer : IGameRenderer
                 break;
             case TabBarRenderer.TabRituals:
                 _ritualsRenderer.RenderRitualsPage(canvas, context);
+                break;
+            case TabBarRenderer.TabAscension:
+                _ascensionRenderer.RenderAscensionPage(canvas, context);
                 break;
             default:
                 _playerCivPanel.Render(canvas, context);
@@ -306,6 +314,7 @@ public sealed class OverlayRenderer : IGameRenderer
         if (activeTab == TabBarRenderer.TabPrestige)   _prestigeMapRenderer.HandlePointerMoved(e.Position);
         if (activeTab == TabBarRenderer.TabAutomation) _automationRenderer.HandlePointerMoved(e.Position);
         if (activeTab == TabBarRenderer.TabRituals)    _ritualsRenderer.HandlePointerMoved(e.Position);
+        if (activeTab == TabBarRenderer.TabAscension)  _ascensionRenderer.HandlePointerMoved(e.Position);
         if (activeTab == TabBarRenderer.TabIsland)     _playerCivPanel.HandlePointerMoved(e.Position);
 
         _lastPointerPosition = e.Position;
@@ -353,6 +362,7 @@ public sealed class OverlayRenderer : IGameRenderer
         if (activeTab == TabBarRenderer.TabPrestige)   { _prestigeMapRenderer.HandlePointerPressed(e.Position); return; }
         if (activeTab == TabBarRenderer.TabAutomation) { _automationRenderer.HandlePointerPressed(e.Position); return; }
         if (activeTab == TabBarRenderer.TabRituals)    { _ritualsRenderer.HandlePointerPressed(e.Position); return; }
+        if (activeTab == TabBarRenderer.TabAscension)  { _ascensionRenderer.HandlePointerPressed(e.Position); return; }
         if (activeTab is TabBarRenderer.TabStats or TabBarRenderer.TabResearch or TabBarRenderer.TabEvents) return;
 
         _playerCivPanel.HandlePointerPressed(e.Position);
@@ -482,6 +492,7 @@ public sealed class OverlayRenderer : IGameRenderer
         _eventLogRenderer.Dispose();
         _automationRenderer.Dispose();
         _ritualsRenderer.Dispose();
+        _ascensionRenderer.Dispose();
         _playerCivPanel.Dispose();
         _tabBar.Dispose();
         _mapSwitchButton.Dispose();

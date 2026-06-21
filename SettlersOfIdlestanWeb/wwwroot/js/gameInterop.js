@@ -9,6 +9,11 @@ window.gameInterop = {
         const allowedSpecial = new Set(['escape', 'arrowleft', 'arrowright']);
 
         const keyDownHandler = (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault(); // évite le scroll de la page
+                if (!e.repeat) dotNetRef.invokeMethodAsync('OnKeyDown', 'Space');
+                return;
+            }
             if (e.repeat) return;
             const lower = e.key.toLowerCase();
             if (allowedLetters.has(lower)) {

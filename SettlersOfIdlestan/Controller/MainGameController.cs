@@ -1,4 +1,5 @@
 ﻿using SettlersOfIdlestan.Controller.Achievements;
+using SettlersOfIdlestan.Controller.Ascension;
 using SettlersOfIdlestan.Controller.Expand;
 using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Controller.Military;
@@ -39,6 +40,7 @@ namespace SettlersOfIdlestan.Controller
         public DeepestMineController DeepestMineController { get; private set; }
         public CorruptionSpireController CorruptionSpireController { get; private set; }
         public Magic.MagicController MagicController { get; private set; }
+        public AscensionController AscensionController { get; private set; }
         public NpcGameController NpcGameController { get; private set; }
         public GameClock? Clock { get; private set; }
         // Holds the currently loaded main game state when created or imported
@@ -76,6 +78,7 @@ namespace SettlersOfIdlestan.Controller
             DeepestMineController = new DeepestMineController();
             CorruptionSpireController = new CorruptionSpireController();
             MagicController = new Magic.MagicController();
+            AscensionController = new AscensionController();
             TaskRecordController = new TaskRecordController();
             AchievementController = new AchievementController();
             AchievementController.Connect(TaskRecordController);
@@ -253,6 +256,10 @@ namespace SettlersOfIdlestan.Controller
 
                 WorldState.Visibility.Recalculate();
 
+                // Initialisé avant SetupModifierAggregators() : ce contrôleur sert lui-même de
+                // IModifierProvider et doit avoir purgé ses anciens abonnés avant d'être ré-enregistré.
+                AscensionController.Initialize(WorldState, Clock, CurrentMainState!.PRNG, HarvestController, CurrentMainState!.GodState.AscensionState);
+
                 SetupModifierAggregators();
 
                 AutoExtendController.Initialize(WorldState, CurrentMainState!.PRNG, Clock, CurrentMainState?.PrestigeState);
@@ -367,6 +374,7 @@ namespace SettlersOfIdlestan.Controller
             _prestigeModifierProvider = new PrestigeModifierProvider(prestigeState, PrestigeMapController.DefaultMap);
             var playerCiv = WorldState.PlayerCivilization;
             playerCiv.AddCustomAggregator(_prestigeModifierProvider);
+            playerCiv.AddCustomAggregator(AscensionController);
         }
     }
 }

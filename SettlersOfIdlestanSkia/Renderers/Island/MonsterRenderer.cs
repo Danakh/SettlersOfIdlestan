@@ -115,7 +115,7 @@ public class MonsterRenderer : HexBasedRenderer, IGameRenderer
         if (worldState == null) return;
 
         VisibleIslandMap? visibleMap = null;
-        if (!DebugSettings.ShowFullMap)
+        if (!DebugSettings.ShowFullMap && !mgs.GodState.AscensionState.IsEyeOfGodActive)
             worldState.Visibility.GetForZ(worldState.CurrentViewedLayer).TryGetValue(worldState.PlayerCivilization.Index, out visibleMap);
 
         float dt = context.DeltaTime;

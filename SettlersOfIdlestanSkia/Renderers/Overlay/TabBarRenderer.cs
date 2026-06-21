@@ -6,6 +6,7 @@ using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestanSkia.Core;
+using SettlersOfIdlestanSkia.Renderers.Debug;
 using SettlersOfIdlestanSkia.Services;
 using SettlersOfIdlestanSkia.Services.Localization;
 using SkiaSharp;
@@ -21,6 +22,7 @@ public sealed class TabBarRenderer : IDisposable
     public const int TabEvents     = 4;
     public const int TabAutomation = 5;
     public const int TabRituals    = 6;
+    public const int TabAscension  = 7;
 
     private const float TabWidth      = 62;
     private const float TabHeight     = 28;
@@ -31,6 +33,7 @@ public sealed class TabBarRenderer : IDisposable
     private readonly LocalizationService _localization;
     private readonly GameControllerService _gameControllerService;
     private readonly UILayoutService _uiLayout;
+    private readonly bool _allowDebugMode;
 
     private readonly SKPaint _buttonTextPaint      = new() { Color = SKColors.White, IsAntialias = true };
     private readonly SKPaint _disabledTextPaint    = new() { Color = new SKColor(180, 180, 185), IsAntialias = true };
@@ -45,6 +48,7 @@ public sealed class TabBarRenderer : IDisposable
     private bool _hasResearchTab;
     private bool _hasAutomationTab;
     private bool _hasRitualsTab;
+    private bool _hasAscensionTab;
     private bool _hasNewEvent;
     private int? _seenEventCount;
     private bool _prestigeGlowing;
@@ -66,11 +70,13 @@ public sealed class TabBarRenderer : IDisposable
     public TabBarRenderer(
         LocalizationService localization,
         GameControllerService gameControllerService,
-        UILayoutService uiLayout)
+        UILayoutService uiLayout,
+        bool allowDebugMode = false)
     {
         _localization = localization;
         _gameControllerService = gameControllerService;
         _uiLayout = uiLayout;
+        _allowDebugMode = allowDebugMode;
     }
 
     public void Initialize(SKSize canvasSize)
@@ -89,6 +95,7 @@ public sealed class TabBarRenderer : IDisposable
         _hasResearchTab   = IsResearchUnlocked();
         _hasAutomationTab = HasAnyAutomation();
         _hasRitualsTab    = IsMagicUnlocked();
+        _hasAscensionTab  = HasGodPoints(context);
         bool showEventsTab = showPrestigeTabs || HasEventLogEntries();
 
         if (!_hasResearchTab   && _activeTab == TabResearch)   _activeTab = TabIsland;
@@ -96,6 +103,7 @@ public sealed class TabBarRenderer : IDisposable
         if (!showEventsTab     && _activeTab == TabEvents)     _activeTab = TabIsland;
         if (!_hasAutomationTab && _activeTab == TabAutomation) _activeTab = TabIsland;
         if (!_hasRitualsTab    && _activeTab == TabRituals)    _activeTab = TabIsland;
+        if (!_hasAscensionTab  && _activeTab == TabAscension)  _activeTab = TabIsland;
 
         _activeTabs.Clear();
         _activeTabs.Add((TabIsland, default));
@@ -104,6 +112,7 @@ public sealed class TabBarRenderer : IDisposable
         if (showPrestigeTabs)  { _activeTabs.Add((TabPrestige, default)); _activeTabs.Add((TabStats, default)); }
         if (showEventsTab)     _activeTabs.Add((TabEvents, default));
         if (_hasAutomationTab) _activeTabs.Add((TabAutomation, default));
+        if (_hasAscensionTab)  _activeTabs.Add((TabAscension, default));
 
         bool isMobile   = _uiLayout.IsMobile;
         float uiScale   = _uiLayout.UiScale;
@@ -200,6 +209,7 @@ public sealed class TabBarRenderer : IDisposable
         TabEvents     => _localization.Get("tab_events"),
         TabAutomation => _localization.Get("tab_automation"),
         TabRituals    => _localization.Get("tab_rituals"),
+        TabAscension  => _localization.Get("tab_ascension"),
         _             => "?"
     };
 
@@ -273,6 +283,12 @@ public sealed class TabBarRenderer : IDisposable
     {
         if (context.GameState is not MainGameState mgs) return false;
         return (mgs.PrestigeState?.TotalPrestigePointsEarned ?? 0) > 0;
+    }
+
+    private bool HasGodPoints(GameRenderContext context)
+    {
+        if (context.GameState is not MainGameState mgs) return false;
+        return mgs.GodState.TotalGodPointsEarned > 0;
     }
 
     private bool HasEventLogEntries()

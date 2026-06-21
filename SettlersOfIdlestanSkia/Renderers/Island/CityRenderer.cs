@@ -132,7 +132,8 @@ public class CityRenderer : HexBasedRenderer, IGameRenderer
             if (worldState.CurrentViewedLayer == LayerState.UnderworldZ && worldState.Layers.TryGetValue(LayerState.UnderworldZ, out var underworldLayer))
             {
                 var playerIdx = worldState.PlayerCivilization.Index;
-                var visibilityMap = DebugSettings.ShowFullMap
+                bool eyeOfGod = mainGameState.GodState.AscensionState.IsEyeOfGodActive;
+                var visibilityMap = (DebugSettings.ShowFullMap || eyeOfGod)
                     ? (IslandMap)underworldLayer.Map
                     : worldState.Visibility.GetForZ(LayerState.UnderworldZ).TryGetValue(playerIdx, out var uvm) ? uvm : underworldLayer.Map;
                 foreach (var civ in worldState.Civilizations)
@@ -144,7 +145,7 @@ public class CityRenderer : HexBasedRenderer, IGameRenderer
             }
 
             IslandMap? mapForVisibility;
-            if (DebugSettings.ShowFullMap)
+            if (DebugSettings.ShowFullMap || mainGameState.GodState.AscensionState.IsEyeOfGodActive)
                 mapForVisibility = worldState.GetMapForZ(IslandMap.SurfaceLayer);
             else if (!worldState.Visibility.GetForZ(worldState.CurrentViewedLayer).TryGetValue(worldState.PlayerCivilization.Index, out var vm))
                 return;

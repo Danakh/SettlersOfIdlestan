@@ -76,7 +76,6 @@ public sealed class GameScreen : IDisposable
     private readonly System.Diagnostics.Stopwatch _tickStopwatch = new();
     private readonly System.Diagnostics.Stopwatch _fpsStopwatch  = new();
     private int _frameCount;
-    private RuntimeDebugStats? _pendingDebugStats;
 
     private double _autoSaveTimer;
     private const double AutoSaveInterval = 5.0;
@@ -287,6 +286,7 @@ public sealed class GameScreen : IDisposable
         var eventLogRenderer        = new EventLogRenderer(_gameControllerService, _localizationService);
         var automationRenderer      = new AutomationRenderer(_gameControllerService, _localizationService);
         var ritualsRenderer         = new RitualsRenderer(_gameControllerService, _localizationService, tooltipRenderer, _targetSelectionService);
+        var ascensionRenderer       = new AscensionRenderer(_gameControllerService, _localizationService, tooltipRenderer);
 
         _overlayRenderer = new OverlayRenderer(
             _inputService, _gameControllerService, _localizationService,
@@ -294,7 +294,7 @@ public sealed class GameScreen : IDisposable
             selectedCityPanelRenderer, selectedMonumentPanelRenderer,
             tradeRenderer, prestigeRenderer, prestigeMapRenderer, prestigeHistoryRenderer,
             timeControlRenderer, researchRenderer, eventLogRenderer, automationRenderer,
-            ritualsRenderer, tooltipRenderer, _uiLayoutService);
+            ritualsRenderer, ascensionRenderer, tooltipRenderer, _uiLayoutService, allowDebugMode);
         _overlayRenderer.ConnectTargetSelectionService(_targetSelectionService);
         _overlayRenderer.ConnectZoomCallbacks(
             () => _cameraService.SetZoom(_cameraService.ZoomLevel * ZoomStep),
@@ -384,7 +384,7 @@ public sealed class GameScreen : IDisposable
 
         var elapsed   = _tickStopwatch.Elapsed.TotalSeconds;
         _tickStopwatch.Restart();
-        var deltaTime = (float)Math.Clamp(elapsed, 0f, 0.1f);
+        var deltaTime = (float)Math.Max(elapsed, 0f);
 
         _gameControllerService.Update(deltaTime);
         DrainEventToasts();
@@ -418,17 +418,6 @@ public sealed class GameScreen : IDisposable
                 var json = _gameControllerService.MainGameController.ExportMainState();
                 _fileSystemService.SaveAuto(json);
             }
-        }
-
-        var fpsElapsed = _fpsStopwatch.Elapsed.TotalSeconds;
-        if (fpsElapsed >= 0.5)
-        {
-            var fps        = (float)(_frameCount / fpsElapsed);
-            _fpsStopwatch.Restart();
-            _frameCount    = 0;
-            var cameraPos  = _cameraService.Position;
-            var (cityCount, roadCount) = GetCityRoadCounts();
-            _pendingDebugStats = new RuntimeDebugStats(fps, cameraPos.X, cameraPos.Y, cityCount, roadCount);
         }
     }
 
@@ -546,10 +535,20 @@ public sealed class GameScreen : IDisposable
     public void HandleKeyPressed(string key, bool allowDebugMode)
     {
         _inputService.HandleKeyPressed(key);
+        if (key == "Space") TogglePause();
         if (key == "C"   && allowDebugMode) DebugAddResources();
         if (key == "F9"  && allowDebugMode) DebugExportIconCaptures();
         if (key == "F10" && allowDebugMode) DebugExportScreenshotWithInterface();
         if (key == "F11" && allowDebugMode) DebugExportScreenshotWithTitle();
+        if (key == "F12" && allowDebugMode) DebugExportScreenshotRaw();
+    }
+
+    private void TogglePause()
+    {
+        var clock = _gameControllerService.CurrentGameState?.Clock;
+        if (clock == null) return;
+        if (clock.SpeedMultiplier == 0) clock.Resume();
+        else clock.Pause();
     }
 
     /// <summary>
@@ -610,10 +609,26 @@ public sealed class GameScreen : IDisposable
 
         var canvasSize = _cameraService.CanvasSize;
         if (!TryCreateExportSurface(canvasSize, out var surface)) return;
-        using (surface)
+
+        bool prevHexCoords  = DebugSettings.ShowHexCoords;
+        bool prevAutoplayer = DebugSettings.ShowAutoplayerCommands;
+        bool prevFullMap    = DebugSettings.ShowFullMap;
+        DebugSettings.ShowHexCoords            = false;
+        DebugSettings.ShowAutoplayerCommands   = false;
+        DebugSettings.ShowFullMap              = false;
+        try
         {
-            _renderService.RenderFrame(surface.Canvas, gameState, _cameraService);
-            SaveExportPng(surface, "screenshot_interface.png");
+            using (surface)
+            {
+                _renderService.RenderFrame(surface.Canvas, gameState, _cameraService);
+                SaveExportPng(surface, "screenshot_interface.png");
+            }
+        }
+        finally
+        {
+            DebugSettings.ShowHexCoords            = prevHexCoords;
+            DebugSettings.ShowAutoplayerCommands   = prevAutoplayer;
+            DebugSettings.ShowFullMap              = prevFullMap;
         }
     }
 
@@ -647,62 +662,127 @@ public sealed class GameScreen : IDisposable
         }
     }
 
+    /// <summary>Outil de debug (F12) : capture la scène de jeu sans interface</summary>
+    private void DebugExportScreenshotRaw()
+    {
+        if (_islandMainRenderer == null) return;
+        var gameState = _gameControllerService.CurrentGameState;
+        if (gameState == null) return;
+
+        var canvasSize = _cameraService.CanvasSize;
+        if (!TryCreateExportSurface(canvasSize, out var surface)) return;
+        using (surface)
+        {
+            var canvas = surface.Canvas;
+            var context = new GameRenderContext
+            {
+                GameState = gameState,
+                DeltaTime = 0f,
+                CanvasSize = canvasSize,
+                CameraPosition = _cameraService.Position,
+                ZoomLevel = _cameraService.ZoomLevel,
+                UiScale = _uiLayoutService.UiScale
+            };
+            _islandMainRenderer.Render(canvas, context);
+
+            SaveExportPng(surface, "screenshot_raw.png");
+        }
+    }
+
     private static void DrawTitleOverlay(SKCanvas canvas, SKSize canvasSize, float s)
     {
         const string title = "Settlers of Idlestan";
-        // Police agrandie de 50% (38 -> 57) par rapport à l'écran titre, pour rester lisible sur une capture.
-        using var titleFont = new SKFont { Size = 57f * s, Typeface = SkiaFonts.Bold };
         using var titlePaint   = new SKPaint { Color = new SKColor(230, 190, 90), IsAntialias = true };
         using var dividerPaint = new SKPaint { Color = new SKColor(100, 85, 45), StrokeWidth = 2f * s, Style = SKPaintStyle.Stroke };
 
         // Halo doux + contour net en noir, dessinés sous le texte doré, pour garder le titre lisible
         // même sur un fond clair (tuiles d'eau/herbe) sans changer la police elle-même.
+        float glowBlurRadius = 6f * s;
         using var glowPaint = new SKPaint
         {
             Color = new SKColor(0, 0, 0, 130),
             IsAntialias = true,
-            MaskFilter = SKMaskFilter.CreateBlur(SKBlurStyle.Normal, 6f * s)
+            MaskFilter = SKMaskFilter.CreateBlur(SKBlurStyle.Normal, glowBlurRadius)
         };
         using var outlinePaint = new SKPaint
         {
             Color = SKColors.Black,
             IsAntialias = true,
             Style = SKPaintStyle.Stroke,
-            StrokeWidth = 3f * s,
+            StrokeWidth = 5f * s,
             StrokeJoin = SKStrokeJoin.Round
         };
 
-        float cx       = canvasSize.Width / 2f;
-        float margin   = 40f * s;
-        float maxWidth = Math.Max(10f, canvasSize.Width - margin * 2f);
-        float fullWidth = titleFont.MeasureText(title);
+        float cx        = canvasSize.Width / 2f;
+        float margin    = 40f * s;
+        float maxWidth  = Math.Max(10f, canvasSize.Width - margin * 2f);
+        float maxHeight = Math.Max(10f, canvasSize.Height - 10f * s);
 
-        // Une seule ligne si elle tient dans la largeur disponible, sinon découpage par mot (1 ou 2 lignes).
-        List<string> lines = fullWidth <= maxWidth
-            ? [title]
-            : SkiaTextUtils.MeasureWrappedText(title, maxWidth, titleFont).Lines;
+        // Réduit progressivement la taille de police tant que le titre (découpé en lignes) ne tient
+        // pas dans la largeur/hauteur disponibles — nécessaire quand la fenêtre est très petite.
+        const float minFontSize = 10f;
+        float fontSize = 80f * s;
+        var titleFont = new SKFont { Size = fontSize, Typeface = SkiaFonts.Bold };
 
-        float lineH  = titleFont.Spacing;
-        float titleY = 70f * s;
-        foreach (var line in lines)
+        List<string> lines;
+        float lineH, topOverhang;
+        while (true)
         {
-            float lineW = titleFont.MeasureText(line);
-            float lineX = cx - lineW / 2f;
-            SkiaTextUtils.DrawText(canvas, line, lineX, titleY, titleFont, glowPaint);
-            SkiaTextUtils.DrawText(canvas, line, lineX, titleY, titleFont, outlinePaint);
-            SkiaTextUtils.DrawText(canvas, line, lineX, titleY, titleFont, titlePaint);
-            titleY += lineH;
+            float fullWidth = titleFont.MeasureText(title);
+
+            // Une seule ligne si elle tient dans la largeur disponible, sinon découpage par mot.
+            lines = fullWidth <= maxWidth
+                ? [title]
+                : SkiaTextUtils.MeasureWrappedText(title, maxWidth, titleFont).Lines;
+
+            lineH = titleFont.Spacing;
+            float maxLineWidth = 0f;
+            foreach (var line in lines)
+                maxLineWidth = Math.Max(maxLineWidth, titleFont.MeasureText(line));
+
+            // Le contour noir et le halo dépassent du glyphe (demi-épaisseur du trait + rayon du flou) :
+            // il faut en tenir compte dans la marge du haut, sinon le contour des lettres les plus hautes
+            // (ascendantes) est rogné par le bord du canvas.
+            titleFont.GetFontMetrics(out var fontMetrics);
+            topOverhang = -fontMetrics.Top;
+            float totalHeight = topOverhang + outlinePaint.StrokeWidth / 2f + glowBlurRadius + lines.Count * lineH;
+
+            bool fits = maxLineWidth <= maxWidth && totalHeight <= maxHeight;
+            if (fits || fontSize <= minFontSize)
+                break;
+
+            titleFont.Dispose();
+            fontSize  = Math.Max(minFontSize, fontSize * 0.92f);
+            titleFont = new SKFont { Size = fontSize, Typeface = SkiaFonts.Bold };
         }
 
-        float divY     = titleY - lineH + 18f * s;
-        float divHalfW = Math.Min(220f * s, cx - 20f * s);
-        canvas.DrawLine(cx - divHalfW, divY, cx + divHalfW, divY, dividerPaint);
+        using (titleFont)
+        {
+            float strokeMargin = outlinePaint.StrokeWidth / 2f;
+            float glowMargin   = glowBlurRadius;
+            float titleY = 10f * s + topOverhang + strokeMargin + glowMargin;
+            foreach (var line in lines)
+            {
+                float lineW = titleFont.MeasureText(line);
+                float lineX = cx - lineW / 2f;
+                SkiaTextUtils.DrawText(canvas, line, lineX, titleY, titleFont, glowPaint);
+                SkiaTextUtils.DrawText(canvas, line, lineX, titleY, titleFont, outlinePaint);
+                SkiaTextUtils.DrawText(canvas, line, lineX, titleY, titleFont, titlePaint);
+                titleY += lineH;
+            }
+
+            float divY     = titleY - lineH + 18f * s;
+            float divHalfW = Math.Min(220f * s, cx - 20f * s);
+            canvas.DrawLine(cx - divHalfW, divY, cx + divHalfW, divY, dividerPaint);
+        }
     }
 
     private static bool TryCreateExportSurface(SKSize canvasSize, out SKSurface surface)
     {
-        int width  = (int)MathF.Round(canvasSize.Width);
-        int height = (int)MathF.Round(canvasSize.Height);
+        // Ceiling plutôt que Round : un export plus petit que la fenêtre réelle coupe l'image,
+        // alors qu'un export légèrement plus grand est inoffensif.
+        int width  = (int)MathF.Ceiling(canvasSize.Width);
+        int height = (int)MathF.Ceiling(canvasSize.Height);
         if (width <= 0 || height <= 0)
         {
             surface = null!;
@@ -710,7 +790,7 @@ public sealed class GameScreen : IDisposable
         }
 
         surface = SKSurface.Create(new SKImageInfo(width, height, SKColorType.Rgba8888, SKAlphaType.Premul));
-        surface.Canvas.Clear(SKColors.Black);
+        surface.Canvas.Clear(DebugSettings.ExportTransparentBackground ? SKColors.Transparent : SKColors.Black);
         return true;
     }
 
@@ -719,7 +799,8 @@ public sealed class GameScreen : IDisposable
         string outputDir = FindExportDirectory();
         using var image = surface.Snapshot();
         using var data = image.Encode(SKEncodedImageFormat.Png, 100);
-        using var stream = File.Create(Path.Combine(outputDir, fileName));
+        string resolvedFileName = $"{Path.GetFileNameWithoutExtension(fileName)}_{image.Width}x{image.Height}{Path.GetExtension(fileName)}";
+        using var stream = File.Create(Path.Combine(outputDir, resolvedFileName));
         data.SaveTo(stream);
     }
 
@@ -755,18 +836,6 @@ public sealed class GameScreen : IDisposable
     {
         var eventLog = _gameControllerService.CurrentGameState?.CurrentWorldState?.EventLog;
         eventLog?.Add(SettlersOfIdlestan.Model.Game.GameEventType.RuntimeError, ex.Message);
-    }
-
-    public bool TryGetDebugStats(out RuntimeDebugStats stats)
-    {
-        if (_pendingDebugStats is { } pending)
-        {
-            stats              = pending;
-            _pendingDebugStats = null;
-            return true;
-        }
-        stats = default;
-        return false;
     }
 
     private void DrainEventToasts()

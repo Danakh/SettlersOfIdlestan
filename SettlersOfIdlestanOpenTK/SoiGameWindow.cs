@@ -29,6 +29,10 @@ sealed class SoiGameWindow : GameWindow
             ClientSize  = new Vector2i(1280, 720),
             StencilBits = 8,
             Icon        = LoadIcon(),
+            // AutoIconify (true par défaut) minimise la fenêtre plein écran quand elle perd le focus
+            // (alt-tab, clic sur la barre des tâches) : c'est ce qui permet de revenir au bureau / aux
+            // autres fenêtres au lieu de rester bloqué au-dessus de tout. OnMinimized + l'accumulateur
+            // de GameClock garantissent que le rendu et le temps de jeu reprennent correctement ensuite.
         })
     {
     }
@@ -57,14 +61,37 @@ sealed class SoiGameWindow : GameWindow
         _grContext = GRContext.CreateGl(glInterface);
         RecreateRenderTarget(ClientSize.X, ClientSize.Y);
         _runtime.EnsureCanvasInitialized(new SKSize(ClientSize.X, ClientSize.Y));
+
+        // Doit venir après la création de _grContext : passer en plein écran déclenche un OnResize
+        // synchrone qui reconstruit la render target Skia, laquelle a besoin de _grContext non-null.
+        if (_runtime.IsFullscreenEnabled) ApplyFullscreen(true);
     }
 
     protected override void OnResize(ResizeEventArgs e)
     {
         base.OnResize(e);
+        // Taille 0x0 reçue en se minimisant : un GRBackendRenderTarget de cette taille est invalide,
+        // on attend OnMinimized(false) pour reconstruire la surface avec la vraie taille au retour.
+        if (e.Width <= 0 || e.Height <= 0) return;
+
         GL.Viewport(0, 0, e.Width, e.Height);
         RecreateRenderTarget(e.Width, e.Height);
         _runtime.EnsureCanvasInitialized(new SKSize(e.Width, e.Height));
+    }
+
+    protected override void OnMinimized(MinimizedEventArgs e)
+    {
+        base.OnMinimized(e);
+        // Au retour de minimisation, le contexte GL/la cible de rendu Skia (FBO capturé via
+        // GL.GetInteger) peut être désynchronisé de la fenêtre réapparue, ce qui gèle l'affichage
+        // (Tick continue de tourner mais SwapBuffers ne présente plus rien de nouveau).
+        // On force une reconstruction complète pour resynchroniser.
+        if (!e.IsMinimized && _grContext != null && ClientSize.X > 0 && ClientSize.Y > 0)
+        {
+            GL.Viewport(0, 0, ClientSize.X, ClientSize.Y);
+            RecreateRenderTarget(ClientSize.X, ClientSize.Y);
+            _runtime.EnsureCanvasInitialized(new SKSize(ClientSize.X, ClientSize.Y));
+        }
     }
 
     private void RecreateRenderTarget(int width, int height)
@@ -82,9 +109,13 @@ sealed class SoiGameWindow : GameWindow
     protected override void OnRenderFrame(FrameEventArgs args)
     {
         base.OnRenderFrame(args);
-        if (_surface == null || _grContext == null) return;
 
+        // Le Tick logique tourne toujours, même fenêtre minimisée ou surface momentanément absente,
+        // pour que le temps de jeu ne dérive pas (cf. clamp dans GameScreen.Tick()).
         _runtime.Tick();
+
+        if (WindowState == WindowState.Minimized || _surface == null || _grContext == null) return;
+
         _surface.Canvas.Clear(SKColors.Black);
         _runtime.Render(_surface.Canvas);
         _grContext.Flush();
@@ -184,11 +215,16 @@ sealed class SoiGameWindow : GameWindow
         Keys.P                                    => "P",
         Keys.S                                    => "S",
         Keys.C                                    => "C",
+        Keys.Space                                => "Space",
         Keys.Escape                               => "Escape",
         Keys.Left                                 => "ArrowLeft",
         Keys.Right                                => "ArrowRight",
         Keys.LeftControl or Keys.RightControl     => "Control",
         Keys.LeftShift   or Keys.RightShift       => "Shift",
+        Keys.F9                                   => "F9",
+        Keys.F10                                  => "F10",
+        Keys.F11                                  => "F11",
+        Keys.F12                                  => "F12",
         _                                         => null,
     };
 }

@@ -187,14 +187,19 @@ public sealed class PrestigeMapRenderer : IGameRenderer
             BuildHexTooltip(_hoveredHex, prestigeState);
     }
 
+    /// <summary>Debug "carte complète" ou pouvoir divin Oeil de Dieu : révèle toute la carte de prestige.</summary>
+    private bool IsFullMapVisible() =>
+        DebugSettings.ShowFullMap || (_gameControllerService.CurrentGameState?.GodState.AscensionState.IsEyeOfGodActive ?? false);
+
     private void UpdateVisibility(PrestigeState state)
     {
         var map = PrestigeMapController.DefaultMap;
+        bool fullMap = IsFullMapVisible();
 
         _visibleVertices.Clear();
         foreach (var v in map.Vertices)
         {
-            if (DebugSettings.ShowFullMap
+            if (fullMap
                 || v.Coord.Equals(PrestigeMap.CentralVertex)
                 || map.GetNeighbors(v.Coord).Any(n => state.PurchasedVertices.Contains(n.Coord)))
                 _visibleVertices.Add(v.Coord);
@@ -203,7 +208,7 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         _visibleHexes.Clear();
         foreach (var hex in map.Hexes)
         {
-            if (DebugSettings.ShowFullMap
+            if (fullMap
                 || hex.AdjacentVertices.Any(v => state.PurchasedVertices.Contains(v)))
                 _visibleHexes.Add(hex.Coord);
         }
