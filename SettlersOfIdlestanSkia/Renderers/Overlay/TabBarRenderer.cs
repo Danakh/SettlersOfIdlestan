@@ -6,6 +6,7 @@ using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestanSkia.Core;
+using SettlersOfIdlestanSkia.Renderers.Debug;
 using SettlersOfIdlestanSkia.Services;
 using SettlersOfIdlestanSkia.Services.Localization;
 using SkiaSharp;
@@ -94,7 +95,7 @@ public sealed class TabBarRenderer : IDisposable
         _hasResearchTab   = IsResearchUnlocked();
         _hasAutomationTab = HasAnyAutomation();
         _hasRitualsTab    = IsMagicUnlocked();
-        _hasAscensionTab  = _allowDebugMode;
+        _hasAscensionTab  = _allowDebugMode && !DebugSettings.SuppressDebugUiForExport;
         bool showEventsTab = showPrestigeTabs || HasEventLogEntries();
 
         if (!_hasResearchTab   && _activeTab == TabResearch)   _activeTab = TabIsland;

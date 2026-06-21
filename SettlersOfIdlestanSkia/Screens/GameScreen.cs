@@ -621,10 +621,28 @@ public sealed class GameScreen : IDisposable
 
         var canvasSize = _cameraService.CanvasSize;
         if (!TryCreateExportSurface(canvasSize, out var surface)) return;
-        using (surface)
+
+        bool prevHexCoords  = DebugSettings.ShowHexCoords;
+        bool prevAutoplayer = DebugSettings.ShowAutoplayerCommands;
+        bool prevFullMap    = DebugSettings.ShowFullMap;
+        DebugSettings.ShowHexCoords            = false;
+        DebugSettings.ShowAutoplayerCommands   = false;
+        DebugSettings.ShowFullMap              = false;
+        DebugSettings.SuppressDebugUiForExport = true;
+        try
         {
-            _renderService.RenderFrame(surface.Canvas, gameState, _cameraService);
-            SaveExportPng(surface, "screenshot_interface.png");
+            using (surface)
+            {
+                _renderService.RenderFrame(surface.Canvas, gameState, _cameraService);
+                SaveExportPng(surface, "screenshot_interface.png");
+            }
+        }
+        finally
+        {
+            DebugSettings.ShowHexCoords            = prevHexCoords;
+            DebugSettings.ShowAutoplayerCommands   = prevAutoplayer;
+            DebugSettings.ShowFullMap              = prevFullMap;
+            DebugSettings.SuppressDebugUiForExport = false;
         }
     }
 
