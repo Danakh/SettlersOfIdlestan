@@ -33,6 +33,7 @@ public sealed class TitleScreen : IDisposable
 
     private readonly GameSettings        _settings;
     private readonly SettingsContentPanel _settingsPanel;
+    private readonly bool _allowDebugMode;
 
     private const float TabsTopY      = 105f;
     private const float TabsH         = 30f;
@@ -86,17 +87,20 @@ public sealed class TitleScreen : IDisposable
     public event Action? ContinueRequested;
     public event Action<string>? DiscordLinkClicked;
     public event Action<bool>? FullscreenToggleRequested;
+    public event Action<int, int>? DebugWindowResizeRequested;
 
     public TitleScreen(IFileSystemService fileSystemService, LocalizationService localization,
-        UILayoutService uiLayoutService, ResourceManager resourceManager, bool hasSave, GameSettings? settings = null)
+        UILayoutService uiLayoutService, ResourceManager resourceManager, bool hasSave, GameSettings? settings = null, bool allowDebugMode = false)
     {
         _fileSystemService = fileSystemService;
         _localization      = localization;
         _uiLayoutService   = uiLayoutService;
         _hasSave           = hasSave;
         _settings          = settings ?? new GameSettings();
+        _allowDebugMode    = allowDebugMode;
         _settingsPanel     = new SettingsContentPanel();
         _settingsPanel.FullscreenToggleRequested += v => FullscreenToggleRequested?.Invoke(v);
+        _settingsPanel.DebugWindowResizeRequested += (w, h) => DebugWindowResizeRequested?.Invoke(w, h);
         _settingsPanel.UiScaleChanged += v => _uiLayoutService.ManualUiScaleMultiplier =
             Math.Clamp(v, SettingsContentPanel.UiScaleMin, SettingsContentPanel.UiScaleMax);
         _uiLayoutService.ManualUiScaleMultiplier =
@@ -302,7 +306,7 @@ public sealed class TitleScreen : IDisposable
         float y     = ContentStartY * s + 16 * s;
 
         // Panel width leaves a 24px right margin (même alignement que le popup)
-        _settingsPanel.Render(canvas, boxX, y, boxW - 24 * s, s, _settings, _localization);
+        _settingsPanel.Render(canvas, boxX, y, boxW - 24 * s, s, _settings, _localization, _allowDebugMode, canvasSize);
     }
 
     // ── Bouton Discord ─────────────────────────────────────────────────────────
@@ -439,7 +443,7 @@ public sealed class TitleScreen : IDisposable
         }
 
         // Paramètres
-        if (_activeTab == 2 && _settingsPanel.HandleClick(pos, _settings, _localization))
+        if (_activeTab == 2 && _settingsPanel.HandleClick(pos, _settings, _localization, _allowDebugMode))
             _ = _fileSystemService.SaveSettings(System.Text.Json.JsonSerializer.Serialize(_settings));
 
         // Boutons du bas
@@ -486,6 +490,7 @@ public sealed class TitleScreen : IDisposable
     public void HandleKeyPressed(string key)
     {
         if (_disposed || _activeTab != 2) return;
+        if (_settingsPanel.HandleTextKey(key)) return;
         if (_settingsPanel.HandleArrowKey(key, _settings))
             _ = _fileSystemService.SaveSettings(System.Text.Json.JsonSerializer.Serialize(_settings));
     }

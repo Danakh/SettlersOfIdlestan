@@ -10,7 +10,7 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay.Popup;
 public sealed class SettingsPopupRenderer : PopupRendererBase
 {
     protected override float PopupWidth  => 580;
-    protected override float PopupHeight => 466;
+    protected override float PopupHeight => _allowDebugMode ? 530 : 466;
     protected override float BtnFontSize => 12f;
 
     private const float BtnRightMargin = 24;
@@ -20,20 +20,24 @@ public sealed class SettingsPopupRenderer : PopupRendererBase
     private readonly LocalizationService _localization;
     private readonly IFileSystemService  _fileSystemService;
     private readonly SettingsContentPanel _contentPanel = new();
+    private readonly bool _allowDebugMode;
 
     public event Action<bool>? FullscreenToggleRequested;
     public event Action<float>? UiScaleChanged;
+    public event Action<int, int>? DebugWindowResizeRequested;
 
     private SKRect _closeButtonRect = SKRect.Empty;
     private SKRect _popupRect       = SKRect.Empty;
 
-    public SettingsPopupRenderer(MainGameController gameController, LocalizationService localization, IFileSystemService fileSystemService)
+    public SettingsPopupRenderer(MainGameController gameController, LocalizationService localization, IFileSystemService fileSystemService, bool allowDebugMode = false)
     {
         _gameController    = gameController;
         _localization      = localization;
         _fileSystemService = fileSystemService;
-        _contentPanel.FullscreenToggleRequested += v => FullscreenToggleRequested?.Invoke(v);
-        _contentPanel.UiScaleChanged             += v => UiScaleChanged?.Invoke(v);
+        _allowDebugMode    = allowDebugMode;
+        _contentPanel.FullscreenToggleRequested    += v => FullscreenToggleRequested?.Invoke(v);
+        _contentPanel.UiScaleChanged                += v => UiScaleChanged?.Invoke(v);
+        _contentPanel.DebugWindowResizeRequested    += (w, h) => DebugWindowResizeRequested?.Invoke(w, h);
     }
 
     public void Render(SKCanvas canvas, float scale = 1f)
@@ -61,7 +65,7 @@ public sealed class SettingsPopupRenderer : PopupRendererBase
         float  titleW = TitleFont!.MeasureText(title);
         SkiaTextUtils.DrawText(canvas, title, x + (popupW - titleW) / 2f, y + 34f * s, TitleFont, TextPaint);
 
-        _contentPanel.Render(canvas, x, y + FirstRowY * s, popupW - BtnRightMargin * s, s, settings, _localization);
+        _contentPanel.Render(canvas, x, y + FirstRowY * s, popupW - BtnRightMargin * s, s, settings, _localization, _allowDebugMode, CanvasSize);
     }
 
     public bool HandlePointerPressed(SKPoint pos, PointerButton button)
@@ -72,7 +76,7 @@ public sealed class SettingsPopupRenderer : PopupRendererBase
         if (_closeButtonRect.Contains(pos.X, pos.Y)) { Close(); return true; }
 
         var settings = _gameController.CurrentMainState?.Settings;
-        if (settings != null && _contentPanel.HandleClick(pos, settings, _localization))
+        if (settings != null && _contentPanel.HandleClick(pos, settings, _localization, _allowDebugMode))
         {
             _ = _fileSystemService.SaveSettings(System.Text.Json.JsonSerializer.Serialize(settings));
             return true;
@@ -103,6 +107,8 @@ public sealed class SettingsPopupRenderer : PopupRendererBase
     public bool HandleKeyPressed(string key)
     {
         if (!IsOpen || Disposed) return false;
+        if (_contentPanel.HandleTextKey(key)) return true;
+
         var settings = _gameController.CurrentMainState?.Settings;
         if (settings == null || !_contentPanel.HandleArrowKey(key, settings)) return false;
 

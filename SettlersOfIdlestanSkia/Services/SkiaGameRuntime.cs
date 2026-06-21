@@ -33,6 +33,7 @@ public sealed class SkiaGameRuntime : IDisposable
     public event Action? QuitRequested;
     public event Action<string>? DiscordLinkClicked;
     public event Action<bool>? FullscreenStateChanged;
+    public event Action<int, int>? DebugWindowResizeRequested;
 
     public bool IsFullscreenEnabled => _titleSettings.Fullscreen;
 
@@ -107,11 +108,12 @@ public sealed class SkiaGameRuntime : IDisposable
     private void ShowTitleScreen(bool hasSave)
     {
         _titleScreen?.Dispose();
-        _titleScreen = new TitleScreen(_fileSystemService!, _localizationService!, _uiLayoutService!, _resourceManager!, hasSave, _titleSettings);
-        _titleScreen.NewGameRequested         += OnNewGameRequested;
-        _titleScreen.ContinueRequested        += OnContinueRequested;
-        _titleScreen.DiscordLinkClicked       += url => DiscordLinkClicked?.Invoke(url);
+        _titleScreen = new TitleScreen(_fileSystemService!, _localizationService!, _uiLayoutService!, _resourceManager!, hasSave, _titleSettings, _allowDebugMode);
+        _titleScreen.NewGameRequested          += OnNewGameRequested;
+        _titleScreen.ContinueRequested         += OnContinueRequested;
+        _titleScreen.DiscordLinkClicked        += url => DiscordLinkClicked?.Invoke(url);
         _titleScreen.FullscreenToggleRequested += v => FullscreenStateChanged?.Invoke(v);
+        _titleScreen.DebugWindowResizeRequested += (w, h) => DebugWindowResizeRequested?.Invoke(w, h);
         _onTitleScreen = true;
     }
 
@@ -130,9 +132,10 @@ public sealed class SkiaGameRuntime : IDisposable
             _allowDebugMode,
             _demoMode,
             _storeController);
-        _gameScreen.ReturnToTitleRequested    += OnReturnToTitle;
-        _gameScreen.QuitRequested             += () => QuitRequested?.Invoke();
-        _gameScreen.FullscreenToggleRequested += v => FullscreenStateChanged?.Invoke(v);
+        _gameScreen.ReturnToTitleRequested     += OnReturnToTitle;
+        _gameScreen.QuitRequested              += () => QuitRequested?.Invoke();
+        _gameScreen.FullscreenToggleRequested  += v => FullscreenStateChanged?.Invoke(v);
+        _gameScreen.DebugWindowResizeRequested += (w, h) => DebugWindowResizeRequested?.Invoke(w, h);
 
         if (_isCanvasInitialized)
             _gameScreen.EnsureCanvasInitialized(_lastCanvasSize);
@@ -157,9 +160,10 @@ public sealed class SkiaGameRuntime : IDisposable
             _allowDebugMode,
             _demoMode,
             _storeController);
-        _gameScreen.ReturnToTitleRequested    += OnReturnToTitle;
-        _gameScreen.QuitRequested             += () => QuitRequested?.Invoke();
-        _gameScreen.FullscreenToggleRequested += v => FullscreenStateChanged?.Invoke(v);
+        _gameScreen.ReturnToTitleRequested     += OnReturnToTitle;
+        _gameScreen.QuitRequested              += () => QuitRequested?.Invoke();
+        _gameScreen.FullscreenToggleRequested  += v => FullscreenStateChanged?.Invoke(v);
+        _gameScreen.DebugWindowResizeRequested += (w, h) => DebugWindowResizeRequested?.Invoke(w, h);
 
         if (_isCanvasInitialized)
             _gameScreen.EnsureCanvasInitialized(_lastCanvasSize);

@@ -90,6 +90,7 @@ public sealed class GameScreen : IDisposable
     public event Action? QuitRequested;
 
     public event Action<bool>? FullscreenToggleRequested;
+    public event Action<int, int>? DebugWindowResizeRequested;
 
     public GameSettings? GetCurrentSettings() =>
         _gameControllerService.MainGameController.CurrentMainState?.Settings;
@@ -247,9 +248,10 @@ public sealed class GameScreen : IDisposable
 
         var selectedMonumentPanelRenderer = new SelectedMonumentPanelRenderer(_monumentService, _inputService, _localizationService, _resourceManager);
 
-        var settingsPopupRenderer = new SettingsPopupRenderer(_gameControllerService.MainGameController, _localizationService, _fileSystemService);
-        settingsPopupRenderer.FullscreenToggleRequested += v => FullscreenToggleRequested?.Invoke(v);
-        settingsPopupRenderer.UiScaleChanged += ApplyManualUiScale;
+        var settingsPopupRenderer = new SettingsPopupRenderer(_gameControllerService.MainGameController, _localizationService, _fileSystemService, allowDebugMode);
+        settingsPopupRenderer.FullscreenToggleRequested  += v => FullscreenToggleRequested?.Invoke(v);
+        settingsPopupRenderer.UiScaleChanged             += ApplyManualUiScale;
+        settingsPopupRenderer.DebugWindowResizeRequested += (w, h) => DebugWindowResizeRequested?.Invoke(w, h);
 
         DebugPanelRenderer? debugPanelRenderer = null;
         if (allowDebugMode)
