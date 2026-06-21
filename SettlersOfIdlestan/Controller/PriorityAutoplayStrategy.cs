@@ -83,7 +83,7 @@ namespace SettlersOfIdlestan.Controller
         {
             var building = _buildingController.GetBuildingOrBuildable(city, bt);
             if (building == null) return true;
-            var maxLevel = _buildingController.GetMaxLevel(building, _autoplayer.Civilization.Index);
+            var maxLevel = _buildingController.GetMaxLevel(building, _autoplayer.Civilization);
             return building.Level >= Math.Min(_targetLevel, maxLevel);
         }
     }

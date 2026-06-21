@@ -192,7 +192,7 @@ public class BuildingControllerTests
         city.Buildings.Add(library);
 
         // Check initial max level (Library.GetDefaultMaxLevel() returns 0)
-        int maxLevelBefore = controller.GetMaxLevel(library, 0);
+        int maxLevelBefore = controller.GetMaxLevel(library, civ);
         Assert.Equal(0, maxLevelBefore);
 
         // Add a modifier to the TechnologyTree that increases Library max level by 3
@@ -205,7 +205,7 @@ public class BuildingControllerTests
         civ.TechnologyTree.NotifyModifiersChanged();
 
         // Check max level after modifier (should be 3: 0 + 3)
-        int maxLevelAfter = controller.GetMaxLevel(library, 0);
+        int maxLevelAfter = controller.GetMaxLevel(library, civ);
         Assert.Equal(3, maxLevelAfter);
     }
 }

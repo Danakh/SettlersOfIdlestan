@@ -34,12 +34,12 @@ public class TraderGuildTests
         var market = new Market { Level = 1 };
         city.Buildings.Add(market);
 
-        Assert.Equal(1, controller.GetMaxLevel(market, 0));
+        Assert.Equal(1, controller.GetMaxLevel(market, civ));
 
         city.Buildings.Add(new TraderGuild { Level = 1 });
         civ.RebuildUniqueBuildingsModifiers();
 
-        Assert.Equal(3, controller.GetMaxLevel(market, 0));
+        Assert.Equal(3, controller.GetMaxLevel(market, civ));
     }
 
     [Fact]
@@ -49,7 +49,7 @@ public class TraderGuildTests
         var prototype = BuildingController.CreateBuilding(BuildingType.TraderGuild)!;
 
         // Without any modifier: default max level is 0 → can't be built
-        Assert.Equal(0, controller.GetMaxLevel(prototype, 0));
+        Assert.Equal(0, controller.GetMaxLevel(prototype, civ));
     }
 
     // ── Automation: first build ───────────────────────────────────────────────
