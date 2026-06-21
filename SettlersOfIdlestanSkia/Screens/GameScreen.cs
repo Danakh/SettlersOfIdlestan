@@ -688,7 +688,6 @@ public sealed class GameScreen : IDisposable
     private static void DrawTitleOverlay(SKCanvas canvas, SKSize canvasSize, float s)
     {
         const string title = "Settlers of Idlestan";
-        using var titleFont = new SKFont { Size = 80f * s, Typeface = SkiaFonts.Bold };
         using var titlePaint   = new SKPaint { Color = new SKColor(230, 190, 90), IsAntialias = true };
         using var dividerPaint = new SKPaint { Color = new SKColor(100, 85, 45), StrokeWidth = 2f * s, Style = SKPaintStyle.Stroke };
 
@@ -710,39 +709,68 @@ public sealed class GameScreen : IDisposable
             StrokeJoin = SKStrokeJoin.Round
         };
 
-        float cx       = canvasSize.Width / 2f;
-        float margin   = 40f * s;
-        float maxWidth = Math.Max(10f, canvasSize.Width - margin * 2f);
-        float fullWidth = titleFont.MeasureText(title);
+        float cx        = canvasSize.Width / 2f;
+        float margin    = 40f * s;
+        float maxWidth  = Math.Max(10f, canvasSize.Width - margin * 2f);
+        float maxHeight = Math.Max(10f, canvasSize.Height - 10f * s);
 
-        // Une seule ligne si elle tient dans la largeur disponible, sinon découpage par mot (1 ou 2 lignes).
-        List<string> lines = fullWidth <= maxWidth
-            ? [title]
-            : SkiaTextUtils.MeasureWrappedText(title, maxWidth, titleFont).Lines;
+        // Réduit progressivement la taille de police tant que le titre (découpé en lignes) ne tient
+        // pas dans la largeur/hauteur disponibles — nécessaire quand la fenêtre est très petite.
+        const float minFontSize = 10f;
+        float fontSize = 80f * s;
+        var titleFont = new SKFont { Size = fontSize, Typeface = SkiaFonts.Bold };
 
-        float lineH  = titleFont.Spacing;
-
-        // Le contour noir et le halo dépassent du glyphe (demi-épaisseur du trait + rayon du flou) :
-        // il faut en tenir compte dans la marge du haut, sinon le contour des lettres les plus hautes
-        // (ascendantes) est rogné par le bord du canvas.
-        titleFont.GetFontMetrics(out var fontMetrics);
-        float topOverhang  = -fontMetrics.Top;
-        float strokeMargin = outlinePaint.StrokeWidth / 2f;
-        float glowMargin   = glowBlurRadius;
-        float titleY = 10f * s + topOverhang + strokeMargin + glowMargin;
-        foreach (var line in lines)
+        List<string> lines;
+        float lineH, topOverhang;
+        while (true)
         {
-            float lineW = titleFont.MeasureText(line);
-            float lineX = cx - lineW / 2f;
-            SkiaTextUtils.DrawText(canvas, line, lineX, titleY, titleFont, glowPaint);
-            SkiaTextUtils.DrawText(canvas, line, lineX, titleY, titleFont, outlinePaint);
-            SkiaTextUtils.DrawText(canvas, line, lineX, titleY, titleFont, titlePaint);
-            titleY += lineH;
+            float fullWidth = titleFont.MeasureText(title);
+
+            // Une seule ligne si elle tient dans la largeur disponible, sinon découpage par mot.
+            lines = fullWidth <= maxWidth
+                ? [title]
+                : SkiaTextUtils.MeasureWrappedText(title, maxWidth, titleFont).Lines;
+
+            lineH = titleFont.Spacing;
+            float maxLineWidth = 0f;
+            foreach (var line in lines)
+                maxLineWidth = Math.Max(maxLineWidth, titleFont.MeasureText(line));
+
+            // Le contour noir et le halo dépassent du glyphe (demi-épaisseur du trait + rayon du flou) :
+            // il faut en tenir compte dans la marge du haut, sinon le contour des lettres les plus hautes
+            // (ascendantes) est rogné par le bord du canvas.
+            titleFont.GetFontMetrics(out var fontMetrics);
+            topOverhang = -fontMetrics.Top;
+            float totalHeight = topOverhang + outlinePaint.StrokeWidth / 2f + glowBlurRadius + lines.Count * lineH;
+
+            bool fits = maxLineWidth <= maxWidth && totalHeight <= maxHeight;
+            if (fits || fontSize <= minFontSize)
+                break;
+
+            titleFont.Dispose();
+            fontSize  = Math.Max(minFontSize, fontSize * 0.92f);
+            titleFont = new SKFont { Size = fontSize, Typeface = SkiaFonts.Bold };
         }
 
-        float divY     = titleY - lineH + 18f * s;
-        float divHalfW = Math.Min(220f * s, cx - 20f * s);
-        canvas.DrawLine(cx - divHalfW, divY, cx + divHalfW, divY, dividerPaint);
+        using (titleFont)
+        {
+            float strokeMargin = outlinePaint.StrokeWidth / 2f;
+            float glowMargin   = glowBlurRadius;
+            float titleY = 10f * s + topOverhang + strokeMargin + glowMargin;
+            foreach (var line in lines)
+            {
+                float lineW = titleFont.MeasureText(line);
+                float lineX = cx - lineW / 2f;
+                SkiaTextUtils.DrawText(canvas, line, lineX, titleY, titleFont, glowPaint);
+                SkiaTextUtils.DrawText(canvas, line, lineX, titleY, titleFont, outlinePaint);
+                SkiaTextUtils.DrawText(canvas, line, lineX, titleY, titleFont, titlePaint);
+                titleY += lineH;
+            }
+
+            float divY     = titleY - lineH + 18f * s;
+            float divHalfW = Math.Min(220f * s, cx - 20f * s);
+            canvas.DrawLine(cx - divHalfW, divY, cx + divHalfW, divY, dividerPaint);
+        }
     }
 
     private static bool TryCreateExportSurface(SKSize canvasSize, out SKSurface surface)

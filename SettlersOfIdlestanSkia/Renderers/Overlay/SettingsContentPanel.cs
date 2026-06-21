@@ -28,7 +28,7 @@ public sealed class SettingsContentPanel : IDisposable
     public  const float UiScaleMax   = 2f;
 
     private const int MaxDebugResolutionLength = 11; // "99999x99999"
-    private const int MinDebugResolution = 256;
+    private const int MinDebugResolution = 128;
     private static readonly Regex DebugResolutionRegex = new(@"^(\d{1,5})[xX](\d{1,5})$", RegexOptions.Compiled);
 
     private readonly SKPaint _activeBtnPaint    = new() { Color = new SKColor(60, 100, 180),  Style = SKPaintStyle.Fill,   IsAntialias = true };
