@@ -35,6 +35,10 @@ namespace SettlersOfIdlestan.Model.Game
         [JsonIgnore]
         private DateTimeOffset? _lastAdvanceTime;
 
+        /// <summary>Fraction de tick (0.01s) non encore consommée, reportée entre deux appels à <see cref="Advance"/>.</summary>
+        [JsonIgnore]
+        private double _tickAccumulator;
+
         // ── événement ────────────────────────────────────────────────────────
 
         public event EventHandler<GameClockAdvancedEventArgs>? Advanced;
@@ -55,24 +59,28 @@ namespace SettlersOfIdlestan.Model.Game
         {
             SpeedMultiplier = 1;
             _lastAdvanceTime = null;
+            _tickAccumulator = 0;
         }
 
         public void Pause()
         {
             SpeedMultiplier = 0;
             _lastAdvanceTime = null;
+            _tickAccumulator = 0;
         }
 
         public void Resume()
         {
             SpeedMultiplier = 1;
             _lastAdvanceTime = null;
+            _tickAccumulator = 0;
         }
 
         public void SetFast()
         {
             SpeedMultiplier = 3;
             _lastAdvanceTime = null;
+            _tickAccumulator = 0;
         }
 
         // ── hors-ligne ───────────────────────────────────────────────────────
@@ -90,6 +98,7 @@ namespace SettlersOfIdlestan.Model.Game
                 OfflineBankTicks += ticks;
             }
             _lastAdvanceTime = null;
+            _tickAccumulator = 0;
         }
 
         // ── avancement ───────────────────────────────────────────────────────
@@ -121,9 +130,16 @@ namespace SettlersOfIdlestan.Model.Game
             var elapsed = now - _lastAdvanceTime.Value;
             _lastAdvanceTime = now;
 
-            // Plafond à 100 ms par frame pour éviter les sauts indésirables
-            long realTicks = Math.Min((long)(elapsed.TotalSeconds * 100), 10L);
+            // Accumulateur fractionnaire : si Advance() est appelé plus de 100x/seconde (boucle de
+            // rendu non bridée par le vsync, ex. fenêtre minimisée ou plein écran sans vsync effectif),
+            // chaque appel individuel représente moins d'un tick. Sans report de la fraction d'un appel
+            // à l'autre, ce temps est perdu pour de bon et l'horloge ne s'écoule plus du tout.
+            // Plafond à 100 ms cumulés pour éviter les sauts indésirables (ex. reprise après une pause).
+            _tickAccumulator = Math.Min(_tickAccumulator + elapsed.TotalSeconds * 100, 10.0);
+
+            long realTicks = (long)_tickAccumulator;
             if (realTicks <= 0) return;
+            _tickAccumulator -= realTicks;
 
             if (SpeedMultiplier == 0)
             {
