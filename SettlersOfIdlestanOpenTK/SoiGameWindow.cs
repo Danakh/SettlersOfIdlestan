@@ -29,10 +29,10 @@ sealed class SoiGameWindow : GameWindow
             ClientSize  = new Vector2i(1280, 720),
             StencilBits = 8,
             Icon        = LoadIcon(),
-            // Sans ça, GLFW minimise automatiquement la fenêtre dès qu'elle perd le focus en plein écran,
-            // ce qui gèle la boucle de rendu : le Stopwatch de Tick() continue de tourner pendant que la
-            // fenêtre est minimisée, et le temps écoulé réel se retrouve écrasé par le clamp à 0.1s au réveil.
-            AutoIconify = false,
+            // AutoIconify (true par défaut) minimise la fenêtre plein écran quand elle perd le focus
+            // (alt-tab, clic sur la barre des tâches) : c'est ce qui permet de revenir au bureau / aux
+            // autres fenêtres au lieu de rester bloqué au-dessus de tout. OnMinimized + l'accumulateur
+            // de GameClock garantissent que le rendu et le temps de jeu reprennent correctement ensuite.
         })
     {
     }
@@ -61,6 +61,10 @@ sealed class SoiGameWindow : GameWindow
         _grContext = GRContext.CreateGl(glInterface);
         RecreateRenderTarget(ClientSize.X, ClientSize.Y);
         _runtime.EnsureCanvasInitialized(new SKSize(ClientSize.X, ClientSize.Y));
+
+        // Doit venir après la création de _grContext : passer en plein écran déclenche un OnResize
+        // synchrone qui reconstruit la render target Skia, laquelle a besoin de _grContext non-null.
+        if (_runtime.IsFullscreenEnabled) ApplyFullscreen(true);
     }
 
     protected override void OnResize(ResizeEventArgs e)
