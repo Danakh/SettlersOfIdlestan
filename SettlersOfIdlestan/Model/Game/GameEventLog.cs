@@ -33,6 +33,8 @@ public enum GameEventType
     RitualCollapsed,
     CorruptionSpirePlaced,
     CorruptionSpireBuilt,
+    AdventurerDiscovered,
+    AdventurerDefeated,
 }
 
 public record GameLogEntry(GameEventType Type, string? Message = null, bool Toast = false);

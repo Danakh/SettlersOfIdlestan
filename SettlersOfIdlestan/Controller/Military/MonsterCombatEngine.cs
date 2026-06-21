@@ -55,6 +55,7 @@ internal class MonsterCombatEngine
         Action<SoldierAttackEventArgs> onSoldierAttackedMonster)
     {
         if (_state == null) return false;
+        if (monster.AttacksOtherMonsters) return false; // monstres "amis" (ex. Aventurier) : jamais ciblés par les soldats
 
         bool didAttack = false;
         foreach (var civ in _state.Civilizations)
@@ -114,6 +115,8 @@ internal class MonsterCombatEngine
     /// </summary>
     internal MonsterAttackAvailability GetAttackAvailability(City city, MonsterFeature monster)
     {
+        if (monster.AttacksOtherMonsters) return MonsterAttackAvailability.TooFar; // monstres "amis" : jamais attaquables
+
         int distance = DistanceTo(city, monster);
         if (distance <= MeleeRange) return MonsterAttackAvailability.Available;
 

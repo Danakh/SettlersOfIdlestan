@@ -490,6 +490,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 BuildingType.AlchimistHut => new AlchimistHut(),
                 BuildingType.WeaponSmith => new WeaponSmith(),
                 BuildingType.ArmorSmith => new ArmorSmith(),
+                BuildingType.AdventurersGuild => new AdventurersGuild(),
                 _ => null,
             };
         }

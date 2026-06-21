@@ -53,6 +53,14 @@ public abstract class MonsterFeature : IslandFeature
     /// <summary>Noms des ressources volées lors de la dernière attaque (séparés par virgule), pour l'animation.</summary>
     public string? LastAttackResourcesString { get; set; } = null;
 
+    /// <summary>
+    /// Opt-in : ce monstre est « ami » et combat les autres monstres au lieu des villes
+    /// (utilise quand même AttackRangeInHexes/AttackIntervalTicks/AttackDamage ci-dessus).
+    /// Les monstres amis ne s'attaquent jamais entre eux et sont ignorés par le combat
+    /// automatique des soldats (cf. MonsterCombatEngine).
+    /// </summary>
+    public virtual bool AttacksOtherMonsters => false;
+
     // ── Invocation de nouvelles créatures (opt-in) ─────────────────────────
     /// <summary>Tente de générer une nouvelle MonsterFeature. Retourne null si aucune invocation n'a lieu.</summary>
     public virtual MonsterFeature? TrySpawn(IReadOnlyList<MonsterFeature> existingMonsters, long tick) => null;
