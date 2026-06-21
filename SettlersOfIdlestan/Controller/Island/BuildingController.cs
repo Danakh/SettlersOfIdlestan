@@ -59,7 +59,10 @@ namespace SettlersOfIdlestan.Controller.Island
                 _clock.Advanced += OnClockAdvanced;
 
             foreach (var civ in _state.Civilizations)
+            {
                 RecalculateStorageCapacity(civ);
+                civ.RebuildUniqueBuildingCache();
+            }
         }
 
         private void OnClockAdvanced(object? sender, GameClockAdvancedEventArgs e)
@@ -86,8 +89,7 @@ namespace SettlersOfIdlestan.Controller.Island
 
             foreach (var civ in _state.Civilizations)
             {
-                var guild = civ.Cities.SelectMany(c => c.Buildings).OfType<HarvestersGuild>().FirstOrDefault();
-                if (guild == null || guild.Level == 0) continue;
+                if (civ.GetUniqueBuilding(BuildingType.HarvestersGuild) is not HarvestersGuild guild || guild.Level == 0) continue;
 
                 bool isPlayer = civ.Index == _state.PlayerCivilization.Index;
                 bool enabled = !isPlayer || _state.AutomationSettings.ProductionBuildingAutomationEnabled;
@@ -105,8 +107,7 @@ namespace SettlersOfIdlestan.Controller.Island
 
             foreach (var civ in _state.Civilizations)
             {
-                var guild = civ.Cities.SelectMany(c => c.Buildings).OfType<ArtisansGuild>().FirstOrDefault();
-                if (guild == null || guild.Level == 0) continue;
+                if (civ.GetUniqueBuilding(BuildingType.ArtisansGuild) is not ArtisansGuild guild || guild.Level == 0) continue;
 
                 bool isPlayer = civ.Index == _state.PlayerCivilization.Index;
                 bool enabled = !isPlayer || _state.AutomationSettings.ArtisanBuildingAutomationEnabled;
@@ -124,8 +125,7 @@ namespace SettlersOfIdlestan.Controller.Island
 
             foreach (var civ in _state.Civilizations)
             {
-                var academy = civ.Cities.SelectMany(c => c.Buildings).OfType<Academy>().FirstOrDefault();
-                if (academy == null || academy.Level == 0) continue;
+                if (civ.GetUniqueBuilding(BuildingType.Academy) is not Academy academy || academy.Level == 0) continue;
 
                 bool isPlayer = civ.Index == _state.PlayerCivilization.Index;
                 bool enabled = !isPlayer || _state.AutomationSettings.LibraryBuildingAutomationEnabled;
@@ -143,8 +143,7 @@ namespace SettlersOfIdlestan.Controller.Island
 
             foreach (var civ in _state.Civilizations)
             {
-                var guild = civ.Cities.SelectMany(c => c.Buildings).OfType<TraderGuild>().FirstOrDefault();
-                if (guild == null || guild.Level == 0) continue;
+                if (civ.GetUniqueBuilding(BuildingType.TraderGuild) is not TraderGuild guild || guild.Level == 0) continue;
 
                 bool isPlayer = civ.Index == _state.PlayerCivilization.Index;
                 bool enabled = !isPlayer || _state.AutomationSettings.MarketBuildingAutomationEnabled;
@@ -162,8 +161,7 @@ namespace SettlersOfIdlestan.Controller.Island
 
             foreach (var civ in _state.Civilizations)
             {
-                var warRoom = civ.Cities.SelectMany(c => c.Buildings).OfType<WarRoom>().FirstOrDefault();
-                if (warRoom == null || warRoom.Level == 0) continue;
+                if (civ.GetUniqueBuilding(BuildingType.WarRoom) is not WarRoom warRoom || warRoom.Level == 0) continue;
 
                 bool isPlayer = civ.Index == _state.PlayerCivilization.Index;
                 bool enabled = !isPlayer || _state.AutomationSettings.MilitaryBuildingAutomationEnabled;
@@ -181,8 +179,7 @@ namespace SettlersOfIdlestan.Controller.Island
             var civ = _state.PlayerCivilization;
             if (!civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_SEAPORT_AUTOMATION)) return;
 
-            var imperialPort = civ.Cities.SelectMany(c => c.Buildings).OfType<ImperialPort>().FirstOrDefault();
-            if (imperialPort == null) return;
+            if (civ.GetUniqueBuilding(BuildingType.ImperialPort) is not ImperialPort imperialPort) return;
 
             bool enabled = _state.AutomationSettings.SeaportBuildingAutomationEnabled;
             long tick = imperialPort.LastSeaportBuildTick;
@@ -308,7 +305,7 @@ namespace SettlersOfIdlestan.Controller.Island
                     return false;
 
                 if (prototype.IsUnique &&
-                    (civ.UniqueBuildings.Contains(type) || civ.Cities.Any(c => c.Buildings.Any(b => b.Type == type))))
+                    (civ.UniqueBuildings.Contains(type) || civ.GetUniqueBuilding(type) != null))
                     return false;
 
                 if (prototype.IsUnique && city.Buildings.Any(b => b.IsUnique))
@@ -349,8 +346,12 @@ namespace SettlersOfIdlestan.Controller.Island
                 int defBonus = resultBuilding.GetDefenseBonus();
                 if (defBonus > 0 && civ.ModifierAggregator.HasModifier(ECategory.BUILDING_DEFENSE_ON_CONSTRUCT))
                     city.CurrentDefense += defBonus;
-                if (resultBuilding.IsUnique && !civ.UniqueBuildings.Contains(resultBuilding.Type))
-                    civ.AddUniqueBuilding(resultBuilding.Type);
+                if (resultBuilding.IsUnique)
+                {
+                    civ.RegisterUniqueBuildingInCache(resultBuilding);
+                    if (!civ.UniqueBuildings.Contains(resultBuilding.Type))
+                        civ.AddUniqueBuilding(resultBuilding.Type);
+                }
                 if (resultBuilding is IUniqueBuilding)
                     civ.RebuildUniqueBuildingsModifiers();
             }
@@ -396,14 +397,12 @@ namespace SettlersOfIdlestan.Controller.Island
                 if (prototype == null || !prototype.IsUnique || GetMaxLevel(prototype, city.CivilizationIndex) <= 0)
                     continue;
 
-                bool isBuilt = civ.UniqueBuildings.Contains(bt)
-                               || civ.Cities.Any(c => c.Buildings.Any(b => b.Type == bt));
+                var existingInstance = civ.GetUniqueBuilding(bt);
+                bool isBuilt = civ.UniqueBuildings.Contains(bt) || existingInstance != null;
 
                 if (isBuilt)
                 {
-                    var instance = civ.Cities.SelectMany(c => c.Buildings).FirstOrDefault(b => b.Type == bt)
-                                   ?? prototype;
-                    result.Add(instance);
+                    result.Add(existingInstance ?? prototype);
                 }
                 else if (_state.GetMapFor(city.Position) is { } map2 &&
                          prototype.IsBuildingAvailableForCity(map2, city))

@@ -63,6 +63,7 @@ public class Civilization
     {
         _cities.Remove(city);
         RebuildUniqueBuildingsModifiers();
+        RebuildUniqueBuildingCache();
         BuildingController.RecalculateStorageCapacity(this);
     }
 
@@ -135,6 +136,39 @@ public class Civilization
             .OfType<IUniqueBuilding>()
             .SelectMany(b => b.GetUniqueBuildingModifiers());
         UniqueBuildingsModifierProvider.Rebuild(modifiers);
+    }
+
+    private readonly Dictionary<BuildingType, Building> _uniqueBuildingCache = new();
+
+    /// <summary>
+    /// Retourne l'instance du bâtiment unique de ce type construit dans une ville de la civilisation,
+    /// ou null s'il n'existe pas. Sert à éviter de parcourir toutes les villes/bâtiments à chaque appel
+    /// (ex: automatisations des guildes). Le cache n'est mis à jour qu'à la construction d'un bâtiment
+    /// unique ou à la destruction d'une ville — voir <see cref="RegisterUniqueBuildingInCache"/> et
+    /// <see cref="RebuildUniqueBuildingCache"/>.
+    /// </summary>
+    public Building? GetUniqueBuilding(BuildingType type)
+        => _uniqueBuildingCache.TryGetValue(type, out var building) ? building : null;
+
+    /// <summary>
+    /// Enregistre un bâtiment unique nouvellement construit dans le cache, sans reparcourir les villes.
+    /// </summary>
+    public void RegisterUniqueBuildingInCache(Building building)
+    {
+        if (building.IsUnique)
+            _uniqueBuildingCache[building.Type] = building;
+    }
+
+    /// <summary>
+    /// Reconstruit entièrement le cache des bâtiments uniques à partir des villes actuelles.
+    /// À appeler après la perte d'une ville (destruction) ou après chargement d'une sauvegarde.
+    /// </summary>
+    public void RebuildUniqueBuildingCache()
+    {
+        _uniqueBuildingCache.Clear();
+        foreach (var building in _cities.SelectMany(c => c.Buildings))
+            if (building.IsUnique)
+                _uniqueBuildingCache[building.Type] = building;
     }
 
     /// <summary>

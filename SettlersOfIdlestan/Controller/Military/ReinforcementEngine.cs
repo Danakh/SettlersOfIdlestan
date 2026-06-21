@@ -192,6 +192,8 @@ internal class ReinforcementEngine
                     if (tCap == 0 || effectiveFriendly * 2 > tCap) continue;
                     if (friendly.Soldiers + 2 >= city.Soldiers) continue;
 
+                    if (friendly.Position.EdgeDistanceTo(city.Position) > range) continue;
+
                     var roadPath = RoadPathfinder.FindPathInGraph(adj, city.Position, friendly.Position);
                     if (roadPath == null || roadPath.Count - 1 > range) continue;
 
