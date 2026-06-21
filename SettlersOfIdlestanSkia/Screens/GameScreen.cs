@@ -767,7 +767,8 @@ public sealed class GameScreen : IDisposable
         string outputDir = FindExportDirectory();
         using var image = surface.Snapshot();
         using var data = image.Encode(SKEncodedImageFormat.Png, 100);
-        using var stream = File.Create(Path.Combine(outputDir, fileName));
+        string resolvedFileName = $"{Path.GetFileNameWithoutExtension(fileName)}_{image.Width}x{image.Height}{Path.GetExtension(fileName)}";
+        using var stream = File.Create(Path.Combine(outputDir, resolvedFileName));
         data.SaveTo(stream);
     }
 
