@@ -389,6 +389,8 @@ public class SettingsMenu
             mainState.PrestigeState.TechnologyTree.ResearchPoints = Math.Min(
                 mainState.PrestigeState.TechnologyTree.ResearchPoints + 1000000,
                 ResearchController.MaxResearchPoints);
+            mainState.GodState.GodPoints += 1000;
+            mainState.GodState.TotalGodPointsEarned += 1000;
         }
     }
 

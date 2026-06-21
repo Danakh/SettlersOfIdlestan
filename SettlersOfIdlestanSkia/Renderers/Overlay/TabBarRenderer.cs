@@ -95,7 +95,7 @@ public sealed class TabBarRenderer : IDisposable
         _hasResearchTab   = IsResearchUnlocked();
         _hasAutomationTab = HasAnyAutomation();
         _hasRitualsTab    = IsMagicUnlocked();
-        _hasAscensionTab  = _allowDebugMode && !DebugSettings.SuppressDebugUiForExport;
+        _hasAscensionTab  = HasGodPoints(context);
         bool showEventsTab = showPrestigeTabs || HasEventLogEntries();
 
         if (!_hasResearchTab   && _activeTab == TabResearch)   _activeTab = TabIsland;
@@ -283,6 +283,12 @@ public sealed class TabBarRenderer : IDisposable
     {
         if (context.GameState is not MainGameState mgs) return false;
         return (mgs.PrestigeState?.TotalPrestigePointsEarned ?? 0) > 0;
+    }
+
+    private bool HasGodPoints(GameRenderContext context)
+    {
+        if (context.GameState is not MainGameState mgs) return false;
+        return mgs.GodState.TotalGodPointsEarned > 0;
     }
 
     private bool HasEventLogEntries()
