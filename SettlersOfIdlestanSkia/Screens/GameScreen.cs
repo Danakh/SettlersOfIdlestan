@@ -550,6 +550,7 @@ public sealed class GameScreen : IDisposable
         if (key == "F9"  && allowDebugMode) DebugExportIconCaptures();
         if (key == "F10" && allowDebugMode) DebugExportScreenshotWithInterface();
         if (key == "F11" && allowDebugMode) DebugExportScreenshotWithTitle();
+        if (key == "F12" && allowDebugMode) DebugExportScreenshotRaw();
     }
 
     /// <summary>
@@ -647,28 +648,55 @@ public sealed class GameScreen : IDisposable
         }
     }
 
+    /// <summary>Outil de debug (F12) : capture la scène de jeu sans interface</summary>
+    private void DebugExportScreenshotRaw()
+    {
+        if (_islandMainRenderer == null) return;
+        var gameState = _gameControllerService.CurrentGameState;
+        if (gameState == null) return;
+
+        var canvasSize = _cameraService.CanvasSize;
+        if (!TryCreateExportSurface(canvasSize, out var surface)) return;
+        using (surface)
+        {
+            var canvas = surface.Canvas;
+            var context = new GameRenderContext
+            {
+                GameState = gameState,
+                DeltaTime = 0f,
+                CanvasSize = canvasSize,
+                CameraPosition = _cameraService.Position,
+                ZoomLevel = _cameraService.ZoomLevel,
+                UiScale = _uiLayoutService.UiScale
+            };
+            _islandMainRenderer.Render(canvas, context);
+
+            SaveExportPng(surface, "screenshot_raw.png");
+        }
+    }
+
     private static void DrawTitleOverlay(SKCanvas canvas, SKSize canvasSize, float s)
     {
         const string title = "Settlers of Idlestan";
-        // Police agrandie de 50% (38 -> 57) par rapport à l'écran titre, pour rester lisible sur une capture.
-        using var titleFont = new SKFont { Size = 57f * s, Typeface = SkiaFonts.Bold };
+        using var titleFont = new SKFont { Size = 80f * s, Typeface = SkiaFonts.Bold };
         using var titlePaint   = new SKPaint { Color = new SKColor(230, 190, 90), IsAntialias = true };
         using var dividerPaint = new SKPaint { Color = new SKColor(100, 85, 45), StrokeWidth = 2f * s, Style = SKPaintStyle.Stroke };
 
         // Halo doux + contour net en noir, dessinés sous le texte doré, pour garder le titre lisible
         // même sur un fond clair (tuiles d'eau/herbe) sans changer la police elle-même.
+        float glowBlurRadius = 6f * s;
         using var glowPaint = new SKPaint
         {
             Color = new SKColor(0, 0, 0, 130),
             IsAntialias = true,
-            MaskFilter = SKMaskFilter.CreateBlur(SKBlurStyle.Normal, 6f * s)
+            MaskFilter = SKMaskFilter.CreateBlur(SKBlurStyle.Normal, glowBlurRadius)
         };
         using var outlinePaint = new SKPaint
         {
             Color = SKColors.Black,
             IsAntialias = true,
             Style = SKPaintStyle.Stroke,
-            StrokeWidth = 3f * s,
+            StrokeWidth = 5f * s,
             StrokeJoin = SKStrokeJoin.Round
         };
 
@@ -683,7 +711,15 @@ public sealed class GameScreen : IDisposable
             : SkiaTextUtils.MeasureWrappedText(title, maxWidth, titleFont).Lines;
 
         float lineH  = titleFont.Spacing;
-        float titleY = 70f * s;
+
+        // Le contour noir et le halo dépassent du glyphe (demi-épaisseur du trait + rayon du flou) :
+        // il faut en tenir compte dans la marge du haut, sinon le contour des lettres les plus hautes
+        // (ascendantes) est rogné par le bord du canvas.
+        titleFont.GetFontMetrics(out var fontMetrics);
+        float topOverhang  = -fontMetrics.Top;
+        float strokeMargin = outlinePaint.StrokeWidth / 2f;
+        float glowMargin   = glowBlurRadius;
+        float titleY = 10f * s + topOverhang + strokeMargin + glowMargin;
         foreach (var line in lines)
         {
             float lineW = titleFont.MeasureText(line);
@@ -701,8 +737,10 @@ public sealed class GameScreen : IDisposable
 
     private static bool TryCreateExportSurface(SKSize canvasSize, out SKSurface surface)
     {
-        int width  = (int)MathF.Round(canvasSize.Width);
-        int height = (int)MathF.Round(canvasSize.Height);
+        // Ceiling plutôt que Round : un export plus petit que la fenêtre réelle coupe l'image,
+        // alors qu'un export légèrement plus grand est inoffensif.
+        int width  = (int)MathF.Ceiling(canvasSize.Width);
+        int height = (int)MathF.Ceiling(canvasSize.Height);
         if (width <= 0 || height <= 0)
         {
             surface = null!;
