@@ -2,6 +2,10 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Workflow
+
+- Never run `git commit` (or `git push`) unless explicitly instructed to in the current request. The user commits their own work — preparing/staging changes and describing them is fine, but do not create the commit yourself by default.
+
 ## Project Overview
 
 **SettlersOfIdlestan** is an idle management game in C# (.NET 10.0) where players lead a civilization on a procedurally generated hex-grid island. Core systems: resource management, city building, trading, prestige/meta-progression.
