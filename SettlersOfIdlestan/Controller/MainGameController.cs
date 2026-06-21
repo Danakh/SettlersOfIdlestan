@@ -231,7 +231,10 @@ namespace SettlersOfIdlestan.Controller
             CurrentMainState = mainGame;
             Clock = mainGame.Clock;
             Clock.ResumeAfterOffline(DateTimeOffset.UtcNow);
-            Clock.Start();
+            if (Clock.WasPausedAtSave)
+                Clock.Pause();
+            else
+                Clock.Start();
 
             InitializeControllersForCurrentIsland();
         }

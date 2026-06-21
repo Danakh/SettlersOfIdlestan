@@ -23,6 +23,9 @@ namespace SettlersOfIdlestan.Model.Game
         /// <summary>Heure réelle de la dernière sauvegarde, pour calculer les ticks hors-ligne au chargement.</summary>
         public DateTimeOffset LastSaveTime { get; set; }
 
+        /// <summary>Indique si le jeu était en pause au moment de la sauvegarde, pour restaurer cet état au chargement.</summary>
+        public bool WasPausedAtSave { get; set; }
+
         // ── runtime (non sérialisé) ──────────────────────────────────────────
 
         /// <summary>0 = pause, 1 = normal, 3 = accéléré.</summary>

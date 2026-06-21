@@ -42,6 +42,7 @@ namespace SettlersOfIdlestan.Controller
         public string Export(MainGameState state)
         {
             state.Clock.LastSaveTime = DateTimeOffset.UtcNow;
+            state.Clock.WasPausedAtSave = state.Clock.SpeedMultiplier == 0;
             var json = JsonSerializer.Serialize(state, _serializationOptions);
             var base64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(json));
             return Encrypt(base64);
