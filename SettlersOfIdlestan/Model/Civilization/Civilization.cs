@@ -115,7 +115,27 @@ public class Civilization
     {
         ModifierAggregator.Register(_technologyTree);
         ModifierAggregator.Register(UniqueBuildingsModifierProvider);
-        ModifierAggregator.Changed += () => BuildingController.RecalculateStorageCapacity(this);
+        ModifierAggregator.Changed += () =>
+        {
+            BuildingController.RecalculateStorageCapacity(this);
+            _maxLevelCache.Clear();
+        };
+    }
+
+    private readonly Dictionary<BuildingType, int> _maxLevelCache = new();
+
+    /// <summary>
+    /// Cache le niveau max par type de bâtiment (BuildingController.GetMaxLevel est sur le chemin chaud
+    /// de l'autoplay/des tests). Invalidé automatiquement via ModifierAggregator.Changed dès qu'un
+    /// provider de modificateurs change (recherche, prestige, bâtiments uniques…).
+    /// </summary>
+    public int GetCachedMaxLevel(BuildingType type, Func<int> compute)
+    {
+        if (_maxLevelCache.TryGetValue(type, out int cached))
+            return cached;
+        int value = compute();
+        _maxLevelCache[type] = value;
+        return value;
     }
 
     /// <summary>

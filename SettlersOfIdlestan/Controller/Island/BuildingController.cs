@@ -424,9 +424,8 @@ namespace SettlersOfIdlestan.Controller.Island
 
         public int GetMaxLevel(Building building, Civilization civ)
         {
-            int maxLevel = building.GetDefaultMaxLevel();
-            maxLevel = civ.ModifierAggregator.ApplyModifiers(ECategory.BUILDING_MAX_LEVEL, building.Type.ToString(), maxLevel);
-            return maxLevel;
+            return civ.GetCachedMaxLevel(building.Type, () =>
+                civ.ModifierAggregator.ApplyModifiers(ECategory.BUILDING_MAX_LEVEL, building.Type.ToString(), building.GetDefaultMaxLevel()));
         }
 
         /// <summary>
