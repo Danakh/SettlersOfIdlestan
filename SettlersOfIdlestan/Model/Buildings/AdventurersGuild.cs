@@ -21,6 +21,8 @@ public class AdventurersGuild : Building
 
     public override bool IsUnique => true;
 
+    public override int GetDefaultMaxLevel() => 0;
+
     public override bool IsAvailableInLayer(int z) => z != IslandMap.IslandMap.SurfaceLayer;
 
     public override ResourceSet GetBuildCost() => new ResourceSet

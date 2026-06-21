@@ -68,6 +68,20 @@ public sealed class PrestigeMapRenderer : IGameRenderer
     private readonly HashSet<Vertex> _visibleVertices = new();
     private readonly HashSet<HexCoord> _visibleHexes = new();
 
+    /// <summary>Hexs de la Branche des Abysses — masqués jusqu'à ce que les 3 vertex de déblocage
+    /// (Porte Planaire, Faille des Abysses, Rituel de l'Éclipse Noire) soient tous achetés.</summary>
+    private static readonly HashSet<HexCoord> AbyssHexes = new()
+    {
+        PrestigeMap.VoidForgeCoord, PrestigeMap.PlanarRuinsCoord,
+        PrestigeMap.AbyssDepthsCoord, PrestigeMap.AbyssChasmCoord,
+        PrestigeMap.AbyssGroveCoord, PrestigeMap.AbyssVoidCoord,
+    };
+
+    private static bool IsAbyssFullyUnlocked(PrestigeState state) =>
+        state.PurchasedVertices.Contains(PrestigeMap.PlanarGateVertex)
+        && state.PurchasedVertices.Contains(PrestigeMap.AbyssRiftVertex)
+        && state.PurchasedVertices.Contains(PrestigeMap.DarkEclipseRitualVertex);
+
     private readonly SKPaint _bgPaint = new() { Color = new SKColor(238, 242, 245), Style = SKPaintStyle.Fill };
     private readonly SKPaint _headerBgPaint = new() { Color = new SKColor(15, 17, 25, 210), Style = SKPaintStyle.Fill };
     private readonly SKFont  _headerFont = new() { Size = 12, Typeface = SkiaFonts.Bold };
@@ -191,26 +205,44 @@ public sealed class PrestigeMapRenderer : IGameRenderer
     private bool IsFullMapVisible() =>
         DebugSettings.ShowFullMap || (_gameControllerService.CurrentGameState?.GodState.AscensionState.IsEyeOfGodActive ?? false);
 
+    /// <summary>Hexs partagés par les deux sommets d'une arête (utilisés pour savoir si cette
+    /// arête traverse un hex encore masqué, par ex. la Branche des Abysses non débloquée).</summary>
+    private static IEnumerable<HexCoord> SharedHexes(Vertex a, Vertex b)
+    {
+        var bHexes = b.GetHexes();
+        return a.GetHexes().Where(h => bHexes.Any(bh => bh.Equals(h)));
+    }
+
     private void UpdateVisibility(PrestigeState state)
     {
         var map = PrestigeMapController.DefaultMap;
         bool fullMap = IsFullMapVisible();
+        bool abyssUnlocked = IsAbyssFullyUnlocked(state);
+
+        _visibleHexes.Clear();
+        foreach (var hex in map.Hexes)
+        {
+            if (AbyssHexes.Contains(hex.Coord))
+            {
+                if (fullMap || abyssUnlocked)
+                    _visibleHexes.Add(hex.Coord);
+                continue;
+            }
+
+            if (fullMap
+                || hex.AdjacentVertices.Any(v => state.PurchasedVertices.Contains(v)))
+                _visibleHexes.Add(hex.Coord);
+        }
 
         _visibleVertices.Clear();
         foreach (var v in map.Vertices)
         {
             if (fullMap
                 || v.Coord.Equals(PrestigeMap.CentralVertex)
-                || map.GetNeighbors(v.Coord).Any(n => state.PurchasedVertices.Contains(n.Coord)))
+                || map.GetNeighbors(v.Coord).Any(n =>
+                    state.PurchasedVertices.Contains(n.Coord)
+                    && SharedHexes(v.Coord, n.Coord).Any(h => _visibleHexes.Contains(h))))
                 _visibleVertices.Add(v.Coord);
-        }
-
-        _visibleHexes.Clear();
-        foreach (var hex in map.Hexes)
-        {
-            if (fullMap
-                || hex.AdjacentVertices.Any(v => state.PurchasedVertices.Contains(v)))
-                _visibleHexes.Add(hex.Coord);
         }
     }
 
