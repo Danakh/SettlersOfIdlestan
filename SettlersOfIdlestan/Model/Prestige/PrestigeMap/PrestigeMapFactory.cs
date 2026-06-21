@@ -423,6 +423,37 @@ public static class PrestigeMapFactory
                 cost: Cost(PrestigeMap.OuterHarborVertex),
                 modifiers: new Modifier[] { new(ECategory.UNLOCK_RELOCATION, EType.ADDITIVE, 1) }
             ),
+            // ── Branche des Abysses (placeholder, sauf Guilde des Aventuriers) ───
+            // Porte de l'Acier — autour de VoidForge / PlanarRuins
+            new(PrestigeMap.VoidBreachVertex,     "prestige_vertex_placeholder", cost: Cost(PrestigeMap.VoidBreachVertex),     modifiers: Array.Empty<Modifier>()),
+            new(PrestigeMap.DeepVoidVertex,       "prestige_vertex_placeholder", cost: Cost(PrestigeMap.DeepVoidVertex),       modifiers: Array.Empty<Modifier>()),
+            new(PrestigeMap.ShatteredRealmVertex, "prestige_vertex_placeholder", cost: Cost(PrestigeMap.ShatteredRealmVertex), modifiers: Array.Empty<Modifier>()),
+            new(PrestigeMap.FractureLineVertex,   "prestige_vertex_placeholder", cost: Cost(PrestigeMap.FractureLineVertex),   modifiers: Array.Empty<Modifier>()),
+            new(PrestigeMap.OuterRuinsVertex,     "prestige_vertex_placeholder", cost: Cost(PrestigeMap.OuterRuinsVertex),     modifiers: Array.Empty<Modifier>()),
+            new(PrestigeMap.CollapsedWallVertex,  "prestige_vertex_placeholder", cost: Cost(PrestigeMap.CollapsedWallVertex),  modifiers: Array.Empty<Modifier>()),
+            new(PrestigeMap.RuinedBastionVertex,  "prestige_vertex_placeholder", cost: Cost(PrestigeMap.RuinedBastionVertex),  modifiers: Array.Empty<Modifier>()),
+            // Porte de l'Inframonde — autour de AbyssDepths / AbyssChasm
+            new(PrestigeMap.OuterDepthsVertex,    "prestige_vertex_placeholder", cost: Cost(PrestigeMap.OuterDepthsVertex),    modifiers: Array.Empty<Modifier>()),
+            new(PrestigeMap.HollowVeinVertex,     "prestige_vertex_placeholder", cost: Cost(PrestigeMap.HollowVeinVertex),     modifiers: Array.Empty<Modifier>()),
+            new(PrestigeMap.AbyssalBreachVertex,  "prestige_vertex_placeholder", cost: Cost(PrestigeMap.AbyssalBreachVertex),  modifiers: Array.Empty<Modifier>()),
+            new(PrestigeMap.ForsakenTunnelVertex, "prestige_vertex_placeholder", cost: Cost(PrestigeMap.ForsakenTunnelVertex), modifiers: Array.Empty<Modifier>()),
+            // Seul vertex doté d'un pouvoir : débloque la Guilde des Aventuriers (max niveau 0 → 1).
+            new(
+                PrestigeMap.AdventurersGuildVertex,
+                "prestige_vertex_adventurers_guild",
+                cost: Cost(PrestigeMap.AdventurersGuildVertex),
+                modifiers: new Modifier[] { new(ECategory.BUILDING_MAX_LEVEL, "AdventurersGuild", EType.ADDITIVE, 1) }
+            ),
+            new(PrestigeMap.SunkenPathVertex,     "prestige_vertex_placeholder", cost: Cost(PrestigeMap.SunkenPathVertex),     modifiers: Array.Empty<Modifier>()),
+            new(PrestigeMap.BottomlessPitVertex,  "prestige_vertex_placeholder", cost: Cost(PrestigeMap.BottomlessPitVertex),  modifiers: Array.Empty<Modifier>()),
+            // Porte de la Magie — autour de AbyssGrove / AbyssVoid
+            new(PrestigeMap.VoidEdgeVertex,       "prestige_vertex_placeholder", cost: Cost(PrestigeMap.VoidEdgeVertex),       modifiers: Array.Empty<Modifier>()),
+            new(PrestigeMap.FarShoreVertex,       "prestige_vertex_placeholder", cost: Cost(PrestigeMap.FarShoreVertex),       modifiers: Array.Empty<Modifier>()),
+            new(PrestigeMap.LostSanctumVertex,    "prestige_vertex_placeholder", cost: Cost(PrestigeMap.LostSanctumVertex),    modifiers: Array.Empty<Modifier>()),
+            new(PrestigeMap.WitheredGroveVertex,  "prestige_vertex_placeholder", cost: Cost(PrestigeMap.WitheredGroveVertex),  modifiers: Array.Empty<Modifier>()),
+            new(PrestigeMap.ForgottenAltarVertex, "prestige_vertex_placeholder", cost: Cost(PrestigeMap.ForgottenAltarVertex), modifiers: Array.Empty<Modifier>()),
+            new(PrestigeMap.PaleMistVertex,       "prestige_vertex_placeholder", cost: Cost(PrestigeMap.PaleMistVertex),       modifiers: Array.Empty<Modifier>()),
+            new(PrestigeMap.SilentHollowVertex,   "prestige_vertex_placeholder", cost: Cost(PrestigeMap.SilentHollowVertex),   modifiers: Array.Empty<Modifier>()),
         };
 
         IReadOnlyList<Vertex> Adjacent(HexCoord hex)
@@ -550,6 +581,51 @@ public static class PrestigeMapFactory
                 "prestige_hex_ley_lines",
                 adjacentVertices: Adjacent(PrestigeMap.LeyLinesCoord),
                 perVertexModifiers: new Modifier[] { new(ECategory.RITUAL_TOTAL_POWER, EType.ADDITIVE, 0.05) },
+                domain: PrestigeHexDomain.Explore
+            ),
+            // ── Hexes des Abysses — placeholder, ajoutés pour entourer entièrement les trois
+            // vertex de déblocage de la Faille des Abysses (Porte Planaire / Faille des Abysses /
+            // Rituel de l'Éclipse Noire), une fois la branche débloquée.
+            new(
+                PrestigeMap.VoidForgeCoord,
+                "prestige_hex_placeholder",
+                adjacentVertices: Adjacent(PrestigeMap.VoidForgeCoord),
+                perVertexModifiers: Array.Empty<Modifier>(),
+                domain: PrestigeHexDomain.Explore
+            ),
+            new(
+                PrestigeMap.PlanarRuinsCoord,
+                "prestige_hex_placeholder",
+                adjacentVertices: Adjacent(PrestigeMap.PlanarRuinsCoord),
+                perVertexModifiers: Array.Empty<Modifier>(),
+                domain: PrestigeHexDomain.Explore
+            ),
+            new(
+                PrestigeMap.AbyssDepthsCoord,
+                "prestige_hex_placeholder",
+                adjacentVertices: Adjacent(PrestigeMap.AbyssDepthsCoord),
+                perVertexModifiers: Array.Empty<Modifier>(),
+                domain: PrestigeHexDomain.Explore
+            ),
+            new(
+                PrestigeMap.AbyssChasmCoord,
+                "prestige_hex_placeholder",
+                adjacentVertices: Adjacent(PrestigeMap.AbyssChasmCoord),
+                perVertexModifiers: Array.Empty<Modifier>(),
+                domain: PrestigeHexDomain.Explore
+            ),
+            new(
+                PrestigeMap.AbyssGroveCoord,
+                "prestige_hex_placeholder",
+                adjacentVertices: Adjacent(PrestigeMap.AbyssGroveCoord),
+                perVertexModifiers: Array.Empty<Modifier>(),
+                domain: PrestigeHexDomain.Explore
+            ),
+            new(
+                PrestigeMap.AbyssVoidCoord,
+                "prestige_hex_placeholder",
+                adjacentVertices: Adjacent(PrestigeMap.AbyssVoidCoord),
+                perVertexModifiers: Array.Empty<Modifier>(),
                 domain: PrestigeHexDomain.Explore
             ),
         };
