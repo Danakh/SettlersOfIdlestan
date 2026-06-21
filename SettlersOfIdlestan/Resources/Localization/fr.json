@@ -8,6 +8,7 @@
   "settings_fullscreen": "Plein écran",
   "settings_ui_scale": "Échelle de l'interface",
   "settings_debug_window_resolution": "Résolution fenêtre (debug)",
+  "settings_debug_export_transparent_bg": "Export PNG fond transparent (debug)",
   "menu_language": "Langue",
   "menu_language_french": "Français",
   "menu_language_english": "English",

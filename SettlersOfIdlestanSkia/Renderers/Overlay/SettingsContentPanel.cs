@@ -2,6 +2,7 @@ using System.Text.RegularExpressions;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.Localization;
 using SettlersOfIdlestanSkia.Core;
+using SettlersOfIdlestanSkia.Renderers.Debug;
 using SettlersOfIdlestanSkia.Services.Localization;
 using SkiaSharp;
 
@@ -53,12 +54,14 @@ public sealed class SettingsContentPanel : IDisposable
     private SKRect _fullscreenToggleRect   = SKRect.Empty;
     private SKRect _uiScaleSliderRect      = SKRect.Empty;
     private SKRect _debugResolutionFieldRect = SKRect.Empty;
+    private SKRect _exportTransparentBgToggleRect = SKRect.Empty;
 
     private bool _hoveredPause;
     private bool _hoveredParticles;
     private bool _hoveredMilitaryStats;
     private bool _hoveredFullscreen;
     private bool _hoveredUiScaleSlider;
+    private bool _hoveredExportTransparentBg;
     private bool _focusedUiScaleSlider;
     private bool _draggingUiScaleSlider;
     private float? _pendingUiScaleValue;
@@ -148,7 +151,13 @@ public sealed class SettingsContentPanel : IDisposable
         _debugResolutionFieldRect = DrawTextInputRow(canvas, x, row7Y, rightEdge,
             localization.Get("settings_debug_window_resolution"), _debugResolutionText, _debugResolutionFocused, btnH, s);
 
-        return spacingY * 6f + btnH;
+        // Row 8 (debug uniquement) — Export PNG avec fond transparent plutôt que le fond opaque habituel.
+        float row8Y = y + spacingY * 7f;
+        _exportTransparentBgToggleRect = DrawToggleRow(canvas, x, row8Y, rightEdge,
+            localization.Get("settings_debug_export_transparent_bg"), DebugSettings.ExportTransparentBackground,
+            _hoveredExportTransparentBg, btnH, toggleW, toggleH, s);
+
+        return spacingY * 7f + btnH;
     }
 
     private SKRect DrawTextInputRow(SKCanvas canvas, float rowX, float rowY, float rightEdge,
@@ -329,6 +338,13 @@ public sealed class SettingsContentPanel : IDisposable
             _debugResolutionFocused = true;
             return false;
         }
+        if (allowDebugMode && !_exportTransparentBgToggleRect.IsEmpty && _exportTransparentBgToggleRect.Contains(pos.X, pos.Y))
+        {
+            _focusedUiScaleSlider   = false;
+            _debugResolutionFocused = false;
+            DebugSettings.ExportTransparentBackground = !DebugSettings.ExportTransparentBackground;
+            return false;
+        }
         _debugResolutionFocused = false;
         return false;
     }
@@ -390,6 +406,7 @@ public sealed class SettingsContentPanel : IDisposable
         _hoveredMilitaryStats = !_militaryStatsToggleRect.IsEmpty && _militaryStatsToggleRect.Contains(pos.X, pos.Y);
         _hoveredFullscreen    = !_fullscreenToggleRect.IsEmpty && _fullscreenToggleRect.Contains(pos.X, pos.Y);
         _hoveredUiScaleSlider = !_uiScaleSliderRect.IsEmpty    && _uiScaleSliderRect.Contains(pos.X, pos.Y);
+        _hoveredExportTransparentBg = !_exportTransparentBgToggleRect.IsEmpty && _exportTransparentBgToggleRect.Contains(pos.X, pos.Y);
 
         if (_draggingUiScaleSlider)
             UpdatePendingUiScaleFromX(pos.X);

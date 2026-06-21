@@ -748,7 +748,7 @@ public sealed class GameScreen : IDisposable
         }
 
         surface = SKSurface.Create(new SKImageInfo(width, height, SKColorType.Rgba8888, SKAlphaType.Premul));
-        surface.Canvas.Clear(SKColors.Black);
+        surface.Canvas.Clear(DebugSettings.ExportTransparentBackground ? SKColors.Transparent : SKColors.Black);
         return true;
     }
 
