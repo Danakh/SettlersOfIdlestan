@@ -29,6 +29,10 @@ sealed class SoiGameWindow : GameWindow
             ClientSize  = new Vector2i(1280, 720),
             StencilBits = 8,
             Icon        = LoadIcon(),
+            // Sans ça, GLFW minimise automatiquement la fenêtre dès qu'elle perd le focus en plein écran,
+            // ce qui gèle la boucle de rendu : le Stopwatch de Tick() continue de tourner pendant que la
+            // fenêtre est minimisée, et le temps écoulé réel se retrouve écrasé par le clamp à 0.1s au réveil.
+            AutoIconify = false,
         })
     {
     }
@@ -62,9 +66,28 @@ sealed class SoiGameWindow : GameWindow
     protected override void OnResize(ResizeEventArgs e)
     {
         base.OnResize(e);
+        // Taille 0x0 reçue en se minimisant : un GRBackendRenderTarget de cette taille est invalide,
+        // on attend OnMinimized(false) pour reconstruire la surface avec la vraie taille au retour.
+        if (e.Width <= 0 || e.Height <= 0) return;
+
         GL.Viewport(0, 0, e.Width, e.Height);
         RecreateRenderTarget(e.Width, e.Height);
         _runtime.EnsureCanvasInitialized(new SKSize(e.Width, e.Height));
+    }
+
+    protected override void OnMinimized(MinimizedEventArgs e)
+    {
+        base.OnMinimized(e);
+        // Au retour de minimisation, le contexte GL/la cible de rendu Skia (FBO capturé via
+        // GL.GetInteger) peut être désynchronisé de la fenêtre réapparue, ce qui gèle l'affichage
+        // (Tick continue de tourner mais SwapBuffers ne présente plus rien de nouveau).
+        // On force une reconstruction complète pour resynchroniser.
+        if (!e.IsMinimized && _grContext != null && ClientSize.X > 0 && ClientSize.Y > 0)
+        {
+            GL.Viewport(0, 0, ClientSize.X, ClientSize.Y);
+            RecreateRenderTarget(ClientSize.X, ClientSize.Y);
+            _runtime.EnsureCanvasInitialized(new SKSize(ClientSize.X, ClientSize.Y));
+        }
     }
 
     private void RecreateRenderTarget(int width, int height)
@@ -82,9 +105,13 @@ sealed class SoiGameWindow : GameWindow
     protected override void OnRenderFrame(FrameEventArgs args)
     {
         base.OnRenderFrame(args);
-        if (_surface == null || _grContext == null) return;
 
+        // Le Tick logique tourne toujours, même fenêtre minimisée ou surface momentanément absente,
+        // pour que le temps de jeu ne dérive pas (cf. clamp dans GameScreen.Tick()).
         _runtime.Tick();
+
+        if (WindowState == WindowState.Minimized || _surface == null || _grContext == null) return;
+
         _surface.Canvas.Clear(SKColors.Black);
         _runtime.Render(_surface.Canvas);
         _grContext.Flush();

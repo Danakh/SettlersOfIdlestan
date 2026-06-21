@@ -76,7 +76,6 @@ public sealed class GameScreen : IDisposable
     private readonly System.Diagnostics.Stopwatch _tickStopwatch = new();
     private readonly System.Diagnostics.Stopwatch _fpsStopwatch  = new();
     private int _frameCount;
-    private RuntimeDebugStats? _pendingDebugStats;
 
     private double _autoSaveTimer;
     private const double AutoSaveInterval = 5.0;
@@ -385,7 +384,7 @@ public sealed class GameScreen : IDisposable
 
         var elapsed   = _tickStopwatch.Elapsed.TotalSeconds;
         _tickStopwatch.Restart();
-        var deltaTime = (float)Math.Clamp(elapsed, 0f, 0.1f);
+        var deltaTime = (float)Math.Max(elapsed, 0f);
 
         _gameControllerService.Update(deltaTime);
         DrainEventToasts();
@@ -419,17 +418,6 @@ public sealed class GameScreen : IDisposable
                 var json = _gameControllerService.MainGameController.ExportMainState();
                 _fileSystemService.SaveAuto(json);
             }
-        }
-
-        var fpsElapsed = _fpsStopwatch.Elapsed.TotalSeconds;
-        if (fpsElapsed >= 0.5)
-        {
-            var fps        = (float)(_frameCount / fpsElapsed);
-            _fpsStopwatch.Restart();
-            _frameCount    = 0;
-            var cameraPos  = _cameraService.Position;
-            var (cityCount, roadCount) = GetCityRoadCounts();
-            _pendingDebugStats = new RuntimeDebugStats(fps, cameraPos.X, cameraPos.Y, cityCount, roadCount);
         }
     }
 
@@ -848,18 +836,6 @@ public sealed class GameScreen : IDisposable
     {
         var eventLog = _gameControllerService.CurrentGameState?.CurrentWorldState?.EventLog;
         eventLog?.Add(SettlersOfIdlestan.Model.Game.GameEventType.RuntimeError, ex.Message);
-    }
-
-    public bool TryGetDebugStats(out RuntimeDebugStats stats)
-    {
-        if (_pendingDebugStats is { } pending)
-        {
-            stats              = pending;
-            _pendingDebugStats = null;
-            return true;
-        }
-        stats = default;
-        return false;
     }
 
     private void DrainEventToasts()

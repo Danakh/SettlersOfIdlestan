@@ -294,14 +294,6 @@ public sealed class SkiaGameRuntime : IDisposable
         if (!_onTitleScreen) _gameScreen?.NotifyError(ex);
     }
 
-    public bool TryGetDebugStats(out RuntimeDebugStats stats)
-    {
-        if (!_onTitleScreen && _gameScreen != null)
-            return _gameScreen.TryGetDebugStats(out stats);
-        stats = default;
-        return false;
-    }
-
     // ── Dispose ───────────────────────────────────────────────────────────────
 
     public void Dispose()
@@ -316,10 +308,3 @@ public sealed class SkiaGameRuntime : IDisposable
         _isDisposed      = true;
     }
 }
-
-public readonly record struct RuntimeDebugStats(
-    float fps,
-    float cameraX,
-    float cameraY,
-    int   cityCount,
-    int   roadCount);
