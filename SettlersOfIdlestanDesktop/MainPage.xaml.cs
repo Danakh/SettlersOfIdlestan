@@ -122,6 +122,8 @@ public partial class MainPage : ContentPage
 		Windows.System.VirtualKey.Left => "ArrowLeft",
 		Windows.System.VirtualKey.Right => "ArrowRight",
 		Windows.System.VirtualKey.F9 => "F9",
+		Windows.System.VirtualKey.F10 => "F10",
+		Windows.System.VirtualKey.F11 => "F11",
 		Windows.System.VirtualKey.Number0 => "0",
 		Windows.System.VirtualKey.Number1 => "1",
 		Windows.System.VirtualKey.Number2 => "2",
