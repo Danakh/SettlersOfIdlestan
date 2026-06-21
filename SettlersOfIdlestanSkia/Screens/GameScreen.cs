@@ -287,6 +287,7 @@ public sealed class GameScreen : IDisposable
         var eventLogRenderer        = new EventLogRenderer(_gameControllerService, _localizationService);
         var automationRenderer      = new AutomationRenderer(_gameControllerService, _localizationService);
         var ritualsRenderer         = new RitualsRenderer(_gameControllerService, _localizationService, tooltipRenderer, _targetSelectionService);
+        var ascensionRenderer       = new AscensionRenderer(_gameControllerService, _localizationService, tooltipRenderer);
 
         _overlayRenderer = new OverlayRenderer(
             _inputService, _gameControllerService, _localizationService,
@@ -294,7 +295,7 @@ public sealed class GameScreen : IDisposable
             selectedCityPanelRenderer, selectedMonumentPanelRenderer,
             tradeRenderer, prestigeRenderer, prestigeMapRenderer, prestigeHistoryRenderer,
             timeControlRenderer, researchRenderer, eventLogRenderer, automationRenderer,
-            ritualsRenderer, tooltipRenderer, _uiLayoutService);
+            ritualsRenderer, ascensionRenderer, tooltipRenderer, _uiLayoutService, allowDebugMode);
         _overlayRenderer.ConnectTargetSelectionService(_targetSelectionService);
         _overlayRenderer.ConnectZoomCallbacks(
             () => _cameraService.SetZoom(_cameraService.ZoomLevel * ZoomStep),

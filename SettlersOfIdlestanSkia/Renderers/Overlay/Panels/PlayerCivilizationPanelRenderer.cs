@@ -1,5 +1,7 @@
+using SettlersOfIdlestan.Controller.Ascension;
 using SettlersOfIdlestan.Controller.Expand;
 using SettlersOfIdlestan.Controller.Island;
+using SettlersOfIdlestan.Model.Ascension;
 using SettlersOfIdlestan.Model.Buildings;
 using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
 using SettlersOfIdlestan.Model.Civilization;
@@ -50,14 +52,16 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
     private SKRect _raidButtonRect     = SKRect.Empty;
     private SKRect _spireButtonRect    = SKRect.Empty;
     private SKRect _relocationButtonRect = SKRect.Empty;
+    private SKRect _walkOfGodButtonRect = SKRect.Empty;
     private readonly List<(SKRect rect, string pinKey, string tooltipKey)> _pinnedItemRects = new();
     private int _hoveredPinnedIndex = -1;
 
-    private bool _hoveredTrade, _hoveredPrestige, _hoveredWonder, _hoveredDeepestMine, _hoveredRaid, _hoveredSpire, _hoveredRelocation;
+    private bool _hoveredTrade, _hoveredPrestige, _hoveredWonder, _hoveredDeepestMine, _hoveredRaid, _hoveredSpire, _hoveredRelocation, _hoveredWalkOfGod;
     private bool _wonderEnabled;
     private bool _deepestMineEnabled;
     private bool _spireEnabled;
     private bool _relocationEnabled;
+    private bool _walkOfGodEnabled;
     private bool _disposed;
     private SKPaint? _btnRaidActivePaint;
     private SKPaint? _btnRaidActiveHoverPaint;
@@ -159,6 +163,9 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         bool raidActive    = raidVisible && IsRaidActive();
         bool relocationVisible = IsRelocationVisible();
         _relocationEnabled = relocationVisible && CanAffordRelocation();
+        var ascensionController = _gameControllerService.MainGameController.AscensionController;
+        bool walkOfGodVisible = ascensionController.IsPowerUnlocked(AscensionPowerId.WalkOfGod);
+        _walkOfGodEnabled = walkOfGodVisible && context.CurrentLayer == 0 && ascensionController.GetWalkOfGodTargetHexes().Count > 0;
         bool hasBarracks     = HasBuilt<Barracks>(civ);
         bool hasLabs         = HasBuilt<Laboratory>(civ);
         bool hasSmelters     = HasBuilt<Smelter>(civ);
@@ -170,10 +177,10 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         var worldState = _gameControllerService.CurrentWorldState;
         var pinned = worldState?.AutomationSettings.PinnedToCivPanel ?? (IReadOnlySet<string>)new HashSet<string>();
 
-        bool showActions  = tradeVisible || prestigeVisible || wonderVisible || deepestMineVisible || spireVisible || raidVisible || relocationVisible;
+        bool showActions  = tradeVisible || prestigeVisible || wonderVisible || deepestMineVisible || spireVisible || raidVisible || relocationVisible || walkOfGodVisible;
         bool showControls = pinned.Any(k => IsKeyShowable(k, civ, worldState, hasBarracks, hasLabs, hasSmelters, hasArsenals, hasWeaponSmiths, hasArmorSmiths, hasAlchimistHuts));
 
-        _tradeButtonRect = _prestigeButtonRect = _wonderButtonRect = _deepestMineButtonRect = _spireButtonRect = _raidButtonRect = _relocationButtonRect = SKRect.Empty;
+        _tradeButtonRect = _prestigeButtonRect = _wonderButtonRect = _deepestMineButtonRect = _spireButtonRect = _raidButtonRect = _relocationButtonRect = _walkOfGodButtonRect = SKRect.Empty;
         _pinnedItemRects.Clear();
 
         if (!showActions && !showControls)
@@ -199,7 +206,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         float h = panelPadding;
         if (showActions)
         {
-            int actionCount = (tradeVisible ? 1 : 0) + (prestigeVisible ? 1 : 0) + (wonderVisible ? 1 : 0) + (deepestMineVisible ? 1 : 0) + (spireVisible ? 1 : 0) + (raidVisible ? 1 : 0) + (relocationVisible ? 1 : 0);
+            int actionCount = (tradeVisible ? 1 : 0) + (prestigeVisible ? 1 : 0) + (wonderVisible ? 1 : 0) + (deepestMineVisible ? 1 : 0) + (spireVisible ? 1 : 0) + (raidVisible ? 1 : 0) + (relocationVisible ? 1 : 0) + (walkOfGodVisible ? 1 : 0);
             int actionRows  = (actionCount + 1) / 2;
             h += titleHeight + actionRows * (btnHeight + btnSpacing);
         }
@@ -231,7 +238,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
 
             float colGap = 6f * s;
             float colW   = (contentW - colGap) / 2f;
-            int   actionCount = (tradeVisible ? 1 : 0) + (prestigeVisible ? 1 : 0) + (wonderVisible ? 1 : 0) + (deepestMineVisible ? 1 : 0) + (spireVisible ? 1 : 0) + (raidVisible ? 1 : 0) + (relocationVisible ? 1 : 0);
+            int   actionCount = (tradeVisible ? 1 : 0) + (prestigeVisible ? 1 : 0) + (wonderVisible ? 1 : 0) + (deepestMineVisible ? 1 : 0) + (spireVisible ? 1 : 0) + (raidVisible ? 1 : 0) + (relocationVisible ? 1 : 0) + (walkOfGodVisible ? 1 : 0);
             float actionsY   = y;
             int   btnIdx     = 0;
 
@@ -298,6 +305,13 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
                 _relocationButtonRect = BtnRect(btnIdx++);
                 canvas.DrawRoundRect(_relocationButtonRect, 6 * s, 6 * s, _relocationEnabled ? (_hoveredRelocation ? _btnHoverPaint : _btnPaint) : _btnDisabledPaint);
                 SkiaTextUtils.DrawText(canvas, _localization.Get("relocation_action_short"), _relocationButtonRect.MidX, _relocationButtonRect.MidY + 4f * s, SKTextAlign.Center, _btnSmFont, _relocationEnabled ? TextPaint : _btnDisabledTxtPaint);
+            }
+
+            if (walkOfGodVisible)
+            {
+                _walkOfGodButtonRect = BtnRect(btnIdx++);
+                canvas.DrawRoundRect(_walkOfGodButtonRect, 6 * s, 6 * s, _walkOfGodEnabled ? (_hoveredWalkOfGod ? _btnHoverPaint : _btnPaint) : _btnDisabledPaint);
+                SkiaTextUtils.DrawText(canvas, _localization.Get("walkofgod_action_short"), _walkOfGodButtonRect.MidX, _walkOfGodButtonRect.MidY + 4f * s, SKTextAlign.Center, _btnSmFont, _walkOfGodEnabled ? TextPaint : _btnDisabledTxtPaint);
             }
 
             y = actionsY + ((btnIdx + 1) / 2) * (btnHeight + btnSpacing);
@@ -403,6 +417,8 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             _tooltipRenderer.SetTooltip(_localization.Get("tooltip_relocation"), new SKPoint(_relocationButtonRect.Right, _relocationButtonRect.Top));
         else if (_hoveredRelocation && !_relocationEnabled)
             _tooltipRenderer.SetTooltip(_localization.Get("tooltip_relocation_insufficient_resources"), new SKPoint(_relocationButtonRect.Right, _relocationButtonRect.Top));
+        else if (_hoveredWalkOfGod)
+            _tooltipRenderer.SetTooltip(_localization.Get("tooltip_walkofgod"), new SKPoint(_walkOfGodButtonRect.Right, _walkOfGodButtonRect.Top));
         else if (_hoveredPinnedIndex >= 0 && _hoveredPinnedIndex < _pinnedItemRects.Count)
         {
             var (rect, _, tooltipKey) = _pinnedItemRects[_hoveredPinnedIndex];
@@ -446,6 +462,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         _hoveredSpire       = !_spireButtonRect.IsEmpty       && _spireButtonRect.Contains(pos.X, pos.Y);
         _hoveredRaid        = !_raidButtonRect.IsEmpty        && _raidButtonRect.Contains(pos.X, pos.Y);
         _hoveredRelocation  = !_relocationButtonRect.IsEmpty  && _relocationButtonRect.Contains(pos.X, pos.Y);
+        _hoveredWalkOfGod   = !_walkOfGodButtonRect.IsEmpty   && _walkOfGodButtonRect.Contains(pos.X, pos.Y);
 
         _hoveredPinnedIndex = -1;
         for (int i = 0; i < _pinnedItemRects.Count; i++)
@@ -554,6 +571,15 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
                                 TargetSelectionTheme.Friendly);
                         }, TargetSelectionTheme.Friendly);
             }
+            return true;
+        }
+
+        if (!_walkOfGodButtonRect.IsEmpty && _walkOfGodButtonRect.Contains(pos.X, pos.Y) && _walkOfGodEnabled && _targetSelectionService != null)
+        {
+            _closeAll();
+            var ascensionController = _gameControllerService.MainGameController.AscensionController;
+            _targetSelectionService.EnterHexSelection("walkofgod_select_hex", ascensionController.GetWalkOfGodTargetHexes(),
+                hex => ascensionController.ChangeTerrainRandomly(hex), TargetSelectionTheme.Friendly);
             return true;
         }
 

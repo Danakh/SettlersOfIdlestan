@@ -1,3 +1,4 @@
+using SettlersOfIdlestan.Model.Ascension;
 using System;
 
 namespace SettlersOfIdlestan.Model.Prestige
@@ -13,6 +14,11 @@ namespace SettlersOfIdlestan.Model.Prestige
         /// L'�tat de prestige associ� au dieu.
         /// </summary>
         public PrestigeState? PrestigeState { get; set; }
+
+        /// <summary>
+        /// Pouvoirs divins débloqués (cross-prestige).
+        /// </summary>
+        public AscensionState AscensionState { get; set; } = new();
 
         /// <summary>
         /// Constructeur parameterless requis par certains s�rialiseurs.

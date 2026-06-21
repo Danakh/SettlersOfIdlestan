@@ -151,7 +151,7 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
                 if (!DebugSettings.ExportTransparentBackground)
                     canvas.DrawColor(new SKColor(15, 8, 30));
                 var playerIdx = worldState.PlayerCivilization.Index;
-                IslandMap? underworldMap = DebugSettings.ShowFullMap
+                IslandMap? underworldMap = (DebugSettings.ShowFullMap || mainGameState.GodState.AscensionState.IsEyeOfGodActive)
                     ? worldState.GetMapForZ(LayerState.UnderworldZ)
                     : worldState.Visibility.GetForZ(LayerState.UnderworldZ).TryGetValue(playerIdx, out var uvm) ? uvm : null;
                 if (underworldMap != null)
@@ -186,7 +186,7 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
             if (worldState != null)
             {
                 IslandMap? mapToRender = null;
-                if (DebugSettings.ShowFullMap)
+                if (DebugSettings.ShowFullMap || mgs.GodState.AscensionState.IsEyeOfGodActive)
                     mapToRender = worldState.GetMapForZ(IslandMap.SurfaceLayer);
                 else if (worldState.Visibility.GetForZ(worldState.CurrentViewedLayer).TryGetValue(worldState.PlayerCivilization.Index, out var visibleMap))
                     mapToRender = visibleMap;

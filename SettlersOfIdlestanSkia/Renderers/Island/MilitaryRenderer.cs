@@ -164,7 +164,8 @@ public class MilitaryRenderer : HexBasedRenderer, IGameRenderer
         var worldState = _gameControllerService?.CurrentWorldState;
         if (worldState != null)
         {
-            if (DebugSettings.ShowFullMap)
+            bool eyeOfGod = _gameControllerService?.CurrentGameState?.GodState.AscensionState.IsEyeOfGodActive ?? false;
+            if (DebugSettings.ShowFullMap || eyeOfGod)
                 visibleMap = worldState.CurrentViewedMap;
             else if (worldState.Visibility.GetForZ(worldState.CurrentViewedLayer)
                 .TryGetValue(worldState.PlayerCivilization.Index, out var vm))

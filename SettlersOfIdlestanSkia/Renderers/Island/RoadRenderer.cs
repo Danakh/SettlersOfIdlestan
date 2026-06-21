@@ -79,7 +79,7 @@ public class RoadRenderer : HexBasedRenderer, IGameRenderer
             if (WorldState != null)
             {
                 IslandMap? mapForVisibility;
-                if (DebugSettings.ShowFullMap)
+                if (DebugSettings.ShowFullMap || mainGameState.GodState.AscensionState.IsEyeOfGodActive)
                     mapForVisibility = WorldState.CurrentViewedMap;
                 else if (!WorldState.Visibility.GetForZ(WorldState.CurrentViewedLayer).TryGetValue(WorldState.PlayerCivilization.Index, out var vm))
                     return;

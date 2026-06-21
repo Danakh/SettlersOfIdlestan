@@ -187,15 +187,19 @@ public sealed class ResearchRenderer : IGameRenderer
         }
     }
 
+    /// <summary>Debug "carte complète" ou pouvoir divin Oeil de Dieu : révèle tout l'arbre de recherche.</summary>
+    private bool IsFullMapVisible() =>
+        DebugSettings.ShowFullMap || (_gameControllerService.CurrentGameState?.GodState.AscensionState.IsEyeOfGodActive ?? false);
+
     private void DrawLines(SKCanvas canvas, ResearchController ctrl)
     {
         foreach (var tech in TechnologyDefinitions.All)
         {
-            if (!DebugSettings.ShowFullMap && !ctrl.ShouldDisplay(tech.Id)) continue;
+            if (!IsFullMapVisible() && !ctrl.ShouldDisplay(tech.Id)) continue;
             if (!_nodeRects.TryGetValue(tech.Id, out var childRect)) continue;
             foreach (var prereqId in tech.Prerequisites)
             {
-                if (!DebugSettings.ShowFullMap && !ctrl.ShouldDisplay(prereqId)) continue;
+                if (!IsFullMapVisible() && !ctrl.ShouldDisplay(prereqId)) continue;
                 if (!_nodeRects.TryGetValue(prereqId, out var prereqRect)) continue;
                 bool prereqDone = ctrl.GetStatus(prereqId) == TechnologyStatus.Completed;
                 bool childDone = ctrl.GetStatus(tech.Id) != TechnologyStatus.Inactive;
@@ -209,7 +213,7 @@ public sealed class ResearchRenderer : IGameRenderer
     {
         foreach (var tech in TechnologyDefinitions.All)
         {
-            if (!DebugSettings.ShowFullMap && !ctrl.ShouldDisplay(tech.Id)) continue;
+            if (!IsFullMapVisible() && !ctrl.ShouldDisplay(tech.Id)) continue;
             if (!_nodeRects.TryGetValue(tech.Id, out var rect)) continue;
             var status = ctrl.GetStatus(tech.Id);
             DrawNode(canvas, tech, rect, status, ctrl);
@@ -320,7 +324,7 @@ public sealed class ResearchRenderer : IGameRenderer
         var ctrl = _gameControllerService.MainGameController.ResearchController;
         foreach (var (techId, rect) in _nodeRects)
         {
-            if (!DebugSettings.ShowFullMap && !ctrl.ShouldDisplay(techId)) continue;
+            if (!IsFullMapVisible() && !ctrl.ShouldDisplay(techId)) continue;
             if (rect.Contains(contentPos.X, contentPos.Y))
             {
                 _hoveredTechId = techId;
@@ -342,7 +346,7 @@ public sealed class ResearchRenderer : IGameRenderer
         var contentPos = ToContentSpace(e.Position);
         foreach (var (techId, rect) in _nodeRects)
         {
-            if (!DebugSettings.ShowFullMap && !ctrl.ShouldDisplay(techId)) continue;
+            if (!IsFullMapVisible() && !ctrl.ShouldDisplay(techId)) continue;
             if (!rect.Contains(contentPos.X, contentPos.Y)) continue;
 
             var status = ctrl.GetStatus(techId);
