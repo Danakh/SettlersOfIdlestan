@@ -128,21 +128,24 @@ public class TimeControlRenderer : IDisposable
                 (byte)MathF.Round(50 - 40 * t));
             pauseBg = _pauseFlickerPaint;
         }
+        bool isFast = speed > 1;
+        int fastMultiplier = isFast ? speed : clock.GetFastMultiplier();
+
         DrawButton(canvas, _pauseRect, "||", speed == 0, pauseBg);
         DrawButton(canvas, _playRect, ">", speed == 1, speed == 1 ? _activePaint : _inactivePaint);
-        DrawButton(canvas, _fastRect, ">>", speed == 3, speed == 3 ? _activePaint : _inactivePaint);
+        DrawButton(canvas, _fastRect, $"x{fastMultiplier}", isFast, isFast ? _activePaint : _inactivePaint);
 
-        DrawHoverTooltip(canvas);
+        DrawHoverTooltip(canvas, fastMultiplier);
     }
 
-    private void DrawHoverTooltip(SKCanvas canvas)
+    private void DrawHoverTooltip(SKCanvas canvas, int fastMultiplier)
     {
         string[]? lines = _hoveredControl switch
         {
             HoveredControl.Bank  => _localization.Get("timecontrol_bank_tooltip").Split('\n'),
             HoveredControl.Pause => new[] { _localization.Get("timecontrol_pause_tooltip") },
             HoveredControl.Play  => new[] { _localization.Get("timecontrol_play_tooltip") },
-            HoveredControl.Fast  => new[] { _localization.Get("timecontrol_fast_tooltip") },
+            HoveredControl.Fast  => new[] { _localization.GetFormated("timecontrol_fast_tooltip", fastMultiplier) },
             _                    => null
         };
         if (lines == null) return;
