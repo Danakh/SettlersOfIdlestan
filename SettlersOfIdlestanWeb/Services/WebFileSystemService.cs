@@ -8,6 +8,7 @@ public class WebFileSystemService : IFileSystemService
     private readonly IJSRuntime _js;
     private const string AutoSaveKey    = "settlers_autosave";
     private const string SettingsKey    = "settlers_settings";
+    private const string StatsKey       = "settlers_stats";
 
     public WebFileSystemService(IJSRuntime js) => _js = js;
 
@@ -31,4 +32,10 @@ public class WebFileSystemService : IFileSystemService
 
     public async Task<string?> LoadSettings()
         => await _js.InvokeAsync<string?>("localStorage.getItem", SettingsKey);
+
+    public async Task SaveStats(string content)
+        => await _js.InvokeVoidAsync("localStorage.setItem", StatsKey, content);
+
+    public async Task<string?> LoadStats()
+        => await _js.InvokeAsync<string?>("localStorage.getItem", StatsKey);
 }

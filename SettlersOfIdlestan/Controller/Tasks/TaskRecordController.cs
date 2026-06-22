@@ -6,9 +6,11 @@ using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Controller.Military;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
+using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Monsters;
+using SettlersOfIdlestan.Model.Prestige;
 using SettlersOfIdlestan.Model.Prestige.PrestigeMap;
 using SettlersOfIdlestan.Model.Tasks;
 
@@ -24,6 +26,9 @@ public class TaskRecordController
     private RunRecord? _runRecord;
     private WorldState? _islandState;
     private int _playerCivIndex;
+    private GodState? _godState;
+    private PlayerLifetimeStats? _lifetimeStats;
+    private int _lastSyncedGodPointsEarned;
 
     private BuildingController? _buildingController;
     private RoadController? _roadController;
@@ -60,7 +65,9 @@ public class TaskRecordController
         HarvestController harvestController,
         TradeController tradeController,
         WonderController wonderController,
-        CorruptionSpireController corruptionSpireController)
+        CorruptionSpireController corruptionSpireController,
+        GodState godState,
+        PlayerLifetimeStats lifetimeStats)
     {
         Unsubscribe();
 
@@ -78,6 +85,9 @@ public class TaskRecordController
         _tradeController = tradeController;
         _wonderController = wonderController;
         _corruptionSpireController = corruptionSpireController;
+        _godState = godState;
+        _lifetimeStats = lifetimeStats;
+        _lastSyncedGodPointsEarned = godState.TotalGodPointsEarned;
 
         _buildingController.OnBuildingBuilt += HandleBuildingBuilt;
         _roadController.OnRoadBuilt += HandleRoadBuilt;
@@ -121,8 +131,41 @@ public class TaskRecordController
         _gameRecord.TotalPrestigesPerformed++;
         if (earnedPrestigePoints > _gameRecord.MaxPrestigePointsInSingleRun)
             _gameRecord.MaxPrestigePointsInSingleRun = earnedPrestigePoints;
+        if (_lifetimeStats != null)
+        {
+            _lifetimeStats.TotalPrestigesPerformed++;
+            _lifetimeStats.TotalPrestigePointsEarned += earnedPrestigePoints;
+        }
         CheckTaskCompletions();
         PrestigeRecorded?.Invoke(this, _gameRecord);
+    }
+
+    /// <summary>
+    /// Met à jour les statistiques à vie (PlayerLifetimeStats) à partir de l'état courant.
+    /// Les points divins sont propagés par delta (GodState.TotalGodPointsEarned ne diminue jamais
+    /// au sein d'une partie, mais est réinitialisé à chaque "Nouvelle partie").
+    /// Les records par run sont propagés par maximum.
+    /// </summary>
+    private void SyncLifetimeStats()
+    {
+        if (_lifetimeStats == null) return;
+
+        if (_godState != null && _godState.TotalGodPointsEarned > _lastSyncedGodPointsEarned)
+        {
+            _lifetimeStats.TotalGodPointsEarned += _godState.TotalGodPointsEarned - _lastSyncedGodPointsEarned;
+            _lastSyncedGodPointsEarned = _godState.TotalGodPointsEarned;
+        }
+
+        if (_runRecord != null)
+        {
+            int monstersThisRun = _runRecord.BanditsDefeated + _runRecord.DragonsDefeated
+                + _runRecord.TrollsDefeated + _runRecord.OgresDefeated;
+            if (monstersThisRun > _lifetimeStats.MaxMonstersDefeatedInSingleRun)
+                _lifetimeStats.MaxMonstersDefeatedInSingleRun = monstersThisRun;
+
+            if (_runRecord.CitiesBuilt > _lifetimeStats.MaxCitiesFoundedInSingleRun)
+                _lifetimeStats.MaxCitiesFoundedInSingleRun = _runRecord.CitiesBuilt;
+        }
     }
 
     private void HandleHarvestCompleted(object? sender, HarvestCompletedEventArgs e)
@@ -338,6 +381,7 @@ public class TaskRecordController
     private void CheckTaskCompletions()
     {
         if (_gameRecord == null) return;
+        SyncLifetimeStats();
         foreach (var task in TutorialTaskDefinitions.All)
         {
             string key = task.Id.ToString();
