@@ -39,7 +39,7 @@ namespace SettlersOfIdlestan.Controller
         private VisibleIslandMap? _prospectiveVerticesCacheMap;
         private int _prospectiveVerticesCacheTotalCityCount = -1;
         private List<Vertex>? _prospectiveVerticesCache;
-        private readonly HashSet<Vertex> _excludedExpansionTargets = new();
+        private Func<Vertex, bool>? _expansionVertexFilter;
 
         /// <summary>Simule le temps de réaction d'un joueur entre deux salves de clics de récolte manuelle.</summary>
         private const long ClickCooldownTicks = 20L;
@@ -157,12 +157,17 @@ namespace SettlersOfIdlestan.Controller
         }
 
         /// <summary>
-        /// Excludes a vertex from future expansion-target selection (TryStep0Once/TryStepOnce road
-        /// targeting). Used by callers that reject an autoplayer-built city after the fact — e.g. NPC
-        /// placement undoing a city founded too close to the player — so the autoplayer doesn't keep
-        /// proposing the same rejected site every iteration.
+        /// Restricts which vertices TryStep0Once/TryStepOnce will ever build an outpost on or target
+        /// a road toward — both the immediate-outpost and the prospective-road-target paths consult
+        /// it. Pass null to clear. Used by callers with constraints the autoplayer itself doesn't know
+        /// about — e.g. NPC placement keeping new cities away from the player — so an invalid vertex
+        /// is never proposed in the first place, rather than built and then undone after the fact.
         /// </summary>
-        public void ExcludeExpansionTarget(Vertex vertex) => _excludedExpansionTargets.Add(vertex);
+        public void SetExpansionVertexFilter(Func<Vertex, bool>? filter) => _expansionVertexFilter = filter;
+
+        private Vertex? GetBuildableOutpostVertex() =>
+            _cityBuilderController.GetBuildableVertices(_civ.Index)
+                .FirstOrDefault(v => _expansionVertexFilter?.Invoke(v) ?? true);
 
         /// <summary>
         /// Attempts to build or upgrade the specified building. When <paramref name="withGrind"/> is
@@ -267,7 +272,7 @@ namespace SettlersOfIdlestan.Controller
         {
             bool didSomething = false;
 
-            var possibleConstructionVertex = _cityBuilderController.GetBuildableVertices(_civ.Index).FirstOrDefault();
+            var possibleConstructionVertex = GetBuildableOutpostVertex();
             if (possibleConstructionVertex != null)
             {
                 if (TryBuildOutpostOnce(possibleConstructionVertex, withGrind: true))
@@ -515,7 +520,7 @@ namespace SettlersOfIdlestan.Controller
             if (shouldExpand)
             {
                 // Try outpost if a buildable vertex is accessible
-                possibleConstructionVertex = _cityBuilderController.GetBuildableVertices(_civ.Index).FirstOrDefault();
+                possibleConstructionVertex = GetBuildableOutpostVertex();
                 if (possibleConstructionVertex != null)
                 {
                     if (TryBuildOutpostOnce(possibleConstructionVertex, withGrind: !hasGrindedThisStep))
@@ -646,8 +651,8 @@ namespace SettlersOfIdlestan.Controller
         /// </summary>
         private (Vertex target, Vertex from)? FindBestExpansionTarget(List<Vertex> candidates)
         {
-            if (_excludedExpansionTargets.Count > 0)
-                candidates = candidates.Where(v => !_excludedExpansionTargets.Contains(v)).ToList();
+            if (_expansionVertexFilter != null)
+                candidates = candidates.Where(_expansionVertexFilter).ToList();
             if (candidates.Count == 0) return null;
             int z = candidates[0].Z;
 
