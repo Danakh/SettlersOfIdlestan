@@ -118,7 +118,7 @@ namespace SettlersOfIdlestan.Controller
 
             var mainState = new MainGameState(prngSeed);
 
-            var generator = new Generator.IslandMapGenerator(mainState.PRNG);
+            var generator = new Generator.IslandMapGenerator(mainState.WorldPRNG);
             var WorldState = generator.GenerateWorldState(parameters, mainState.Clock.CurrentTick);
             if (WorldState is null) return null;
 
@@ -141,7 +141,7 @@ namespace SettlersOfIdlestan.Controller
             if (CurrentMainState == null) return;
 
             var parameters = Generator.DebugMapGenerator.CreateParameters();
-            var generator = new Generator.DebugMapGenerator(CurrentMainState.PRNG);
+            var generator = new Generator.DebugMapGenerator(CurrentMainState.WorldPRNG);
             var nextWorldState = generator.GenerateWorldState(
                 parameters,
                 CurrentMainState.Clock.CurrentTick,
@@ -161,7 +161,7 @@ namespace SettlersOfIdlestan.Controller
             var parameters = AtlasController.GetIslandParameters(worldId);
 
             CurrentMainState.PrestigeState.WorldState = null;
-            var generator = new Generator.IslandMapGenerator(CurrentMainState.PRNG);
+            var generator = new Generator.IslandMapGenerator(CurrentMainState.WorldPRNG);
             var newWorldState = generator.GenerateWorldState(
                 parameters,
                 CurrentMainState.Clock.CurrentTick,
@@ -262,7 +262,7 @@ namespace SettlersOfIdlestan.Controller
 
                 SetupModifierAggregators();
 
-                AutoExtendController.Initialize(WorldState, CurrentMainState!.PRNG, Clock, CurrentMainState?.PrestigeState);
+                AutoExtendController.Initialize(WorldState, CurrentMainState!.WorldPRNG, Clock, CurrentMainState?.PrestigeState);
 
                 // Ordre d'initialisation contraint — ne pas modifier sans vérifier les dépendances :
                 // 1. RoadController  — nettoyage des routes après la destruction d'une ville
@@ -283,7 +283,7 @@ namespace SettlersOfIdlestan.Controller
                 TradeController.Initialize(WorldState);
                 HarvestController.Initialize(WorldState, Clock, TradeController, MonsterFeatureController, CurrentMainState!.PRNG);
                 BuildingController.Initialize(WorldState, Clock);
-                AtlasController.Initialize(CurrentMainState!.PRNG);
+                AtlasController.Initialize(CurrentMainState!.WorldPRNG);
                 PrestigeController.Initialize(WorldState.PlayerCivilization, WorldState, Clock, CurrentMainState?.PrestigeState);
                 WonderController.Initialize(WorldState, Clock);
                 DeepestMineController.Initialize(WorldState, Clock);

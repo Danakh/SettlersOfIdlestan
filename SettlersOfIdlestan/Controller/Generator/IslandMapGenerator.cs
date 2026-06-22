@@ -294,42 +294,103 @@ public class IslandMapGenerator
         var tA = terrainDict[hexA];
         var tB = terrainDict[hexB];
 
-        // Already satisfied
-        if ((tA == TerrainType.Hill || tB == TerrainType.Hill) &&
-            (tA == TerrainType.Forest || tB == TerrainType.Forest))
-            return;
+        bool alreadySatisfied = (tA == TerrainType.Hill || tB == TerrainType.Hill) &&
+                                 (tA == TerrainType.Forest || tB == TerrainType.Forest);
 
-        // Ensure hexA holds Hill
-        if (tA != TerrainType.Hill && tB != TerrainType.Hill)
+        if (!alreadySatisfied)
         {
-            // Bring a Hill tile to hexA
-            var hillCoord = terrainDict.Keys
-                .FirstOrDefault(c => !c.Equals(hexA) && !c.Equals(hexB) && terrainDict[c] == TerrainType.Hill);
-            if (hillCoord is not null)
+            // Ensure hexA holds Hill
+            if (tA != TerrainType.Hill && tB != TerrainType.Hill)
             {
-                terrainDict[hillCoord] = tA;
-                terrainDict[hexA] = TerrainType.Hill;
-                tA = TerrainType.Hill;
+                // Bring a Hill tile to hexA
+                var hillCoord = terrainDict.Keys
+                    .FirstOrDefault(c => !c.Equals(hexA) && !c.Equals(hexB) && terrainDict[c] == TerrainType.Hill);
+                if (hillCoord is not null)
+                {
+                    terrainDict[hillCoord] = tA;
+                    terrainDict[hexA] = TerrainType.Hill;
+                    tA = TerrainType.Hill;
+                }
+            }
+            else if (tB == TerrainType.Hill)
+            {
+                // Put Hill in the hexA slot
+                (hexA, hexB) = (hexB, hexA);
+                (tA, tB) = (tB, tA);
+            }
+
+            // Ensure hexB holds Forest
+            if (tB != TerrainType.Forest)
+            {
+                var forestCoord = terrainDict.Keys
+                    .FirstOrDefault(c => !c.Equals(hexA) && !c.Equals(hexB) && terrainDict[c] == TerrainType.Forest);
+                if (forestCoord is not null)
+                {
+                    terrainDict[forestCoord] = tB;
+                    terrainDict[hexB] = TerrainType.Forest;
+                    tB = TerrainType.Forest;
+                }
             }
         }
         else if (tB == TerrainType.Hill)
         {
-            // Put Hill in the hexA slot
+            // Normalize so hexA always ends up holding Hill, hexB holding Forest
             (hexA, hexB) = (hexB, hexA);
             (tA, tB) = (tB, tA);
         }
 
-        // Ensure hexB holds Forest
-        if (tB != TerrainType.Forest)
-        {
-            var forestCoord = terrainDict.Keys
-                .FirstOrDefault(c => !c.Equals(hexA) && !c.Equals(hexB) && terrainDict[c] == TerrainType.Forest);
-            if (forestCoord is not null)
-            {
-                terrainDict[forestCoord] = tB;
-                terrainDict[hexB] = TerrainType.Forest;
-            }
-        }
+        if (tA == TerrainType.Hill && tB == TerrainType.Forest)
+            EnsureMountainPlainNearStart(terrainDict, coordSet, hexA, hexB);
+    }
+
+    /// <summary>
+    /// Swaps terrain so the land hexes adjacent to the starting Hill/Forest hexes contain both a
+    /// Mountain and a Plain tile (one each), pulling tiles in from elsewhere in the terrain pool
+    /// if needed. No-ops if Mountain/Plain tiles aren't available anywhere, or there's no adjacent
+    /// land slot to put them on.
+    /// </summary>
+    private static void EnsureMountainPlainNearStart(
+        Dictionary<HexCoord, TerrainType> terrainDict,
+        HashSet<HexCoord> coordSet,
+        HexCoord hillHex,
+        HexCoord forestHex)
+    {
+        var candidates = HexDirectionUtils.AllHexDirections
+            .SelectMany(d => new[] { hillHex.Neighbor(d), forestHex.Neighbor(d) })
+            .Where(c => coordSet.Contains(c) && !c.Equals(hillHex) && !c.Equals(forestHex))
+            .Distinct()
+            .ToList();
+
+        if (candidates.Count == 0) return;
+
+        var excludedFromSource = new HashSet<HexCoord>(candidates) { hillHex, forestHex };
+
+        EnsureTerrainAtOneOf(terrainDict, candidates, excludedFromSource, TerrainType.Mountain);
+        EnsureTerrainAtOneOf(terrainDict, candidates, excludedFromSource, TerrainType.Plain);
+    }
+
+    /// <summary>
+    /// Ensures at least one of the candidate hexes holds the given terrain, swapping a tile in
+    /// from elsewhere on the map (excluding excludedFromSource) if none of them already do.
+    /// </summary>
+    private static void EnsureTerrainAtOneOf(
+        Dictionary<HexCoord, TerrainType> terrainDict,
+        List<HexCoord> candidates,
+        HashSet<HexCoord> excludedFromSource,
+        TerrainType terrain)
+    {
+        if (candidates.Any(c => terrainDict[c] == terrain)) return;
+
+        var sourceCoord = terrainDict.Keys
+            .FirstOrDefault(c => !excludedFromSource.Contains(c) && terrainDict[c] == terrain);
+        if (sourceCoord is null) return;
+
+        // Avoid overwriting a candidate that already holds the other guaranteed terrain (Mountain/Plain)
+        var targetCoord = candidates.FirstOrDefault(c =>
+            terrainDict[c] != TerrainType.Mountain && terrainDict[c] != TerrainType.Plain) ?? candidates[0];
+
+        terrainDict[sourceCoord] = terrainDict[targetCoord];
+        terrainDict[targetCoord] = terrain;
     }
 
     /// <summary>

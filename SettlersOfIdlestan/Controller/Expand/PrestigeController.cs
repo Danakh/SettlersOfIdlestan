@@ -234,7 +234,7 @@ namespace SettlersOfIdlestan.Controller.Expand
             mainGameState.PrestigeState.TotalPrestigePointsEarned += points;
             mainGameState.PrestigeState.WorldState = null;
 
-            var generator = new IslandMapGenerator(mainGameState.PRNG);
+            var generator = new IslandMapGenerator(mainGameState.WorldPRNG);
             var nextWorldState = generator.GenerateWorldState(
                 nextIslandParameters,
                 mainGameState.Clock.CurrentTick,

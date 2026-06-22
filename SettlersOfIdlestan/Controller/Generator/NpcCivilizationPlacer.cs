@@ -234,7 +234,9 @@ public class NpcCivilizationPlacer
             var snapshot = civ.Cities.Select(c => c.Position).ToHashSet();
             autoplayer.Inner.TryStep0Once();
 
-            // Supprimer toute ville nouvellement fondée trop proche du joueur et nettoyer les routes orphelines
+            // Supprimer toute ville nouvellement fondée trop proche du joueur et nettoyer les routes orphelines.
+            // On exclut aussi son vertex des futures cibles d'expansion : sans ça, l'autoplayer (qui ne connaît
+            // pas la contrainte de distance au joueur) proposerait indéfiniment le même vertex rejeté.
             var tooClose = civ.Cities
                 .Where(c => !snapshot.Contains(c.Position) &&
                             c.Position.EdgeDistanceTo(playerVertex) < minDist)
@@ -243,6 +245,7 @@ public class NpcCivilizationPlacer
             {
                 civ.RemoveCity(city);
                 roadController.OnCityDestroyed(civ, city.Position);
+                autoplayer.Inner.ExcludeExpansionTarget(city.Position);
             }
         }
 

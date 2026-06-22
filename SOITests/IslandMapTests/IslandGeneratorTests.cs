@@ -194,6 +194,56 @@ public class IslandGeneratorTests
         Assert.Contains(TerrainType.Water, terrainsAtCity);
     }
 
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    [InlineData(4)]
+    [InlineData(5)]
+    [InlineData(6)]
+    [InlineData(7)]
+    [InlineData(8)]
+    [InlineData(9)]
+    [InlineData(10)]
+    [InlineData(42)]
+    [InlineData(12345)]
+    public void GenerateIsland_GuaranteesMountainAndPlainAdjacentToStartingHillAndForest(int seed)
+    {
+        // Arrange
+        var generator = new IslandMapGenerator(new GamePRNG(seed));
+        var tileData = new List<(TerrainType terrainType, int tileCount)>
+        {
+            (TerrainType.Hill, 1),
+            (TerrainType.Forest, 1),
+            (TerrainType.Mountain, 1),
+            (TerrainType.Plain, 1),
+            (TerrainType.Desert, 6),
+        };
+        var civilizations = new List<Civilization> { new() { Index = 0 } };
+
+        // Act
+        var map = generator.GenerateIsland(tileData, civilizations);
+        Assert.NotNull(map);
+        Assert.Single(civilizations[0].Cities);
+
+        // Assert: the city's Hill and Forest hexes both have a land neighbor, and together
+        // those neighbors contain a Mountain and a Plain.
+        Vertex cityPos = civilizations[0].Cities[0].Position!;
+        var coordToTerrain = map.Tiles.ToDictionary(t => t.Key, t => t.Value.TerrainType);
+        var hillHex = new[] { cityPos.Hex1, cityPos.Hex2, cityPos.Hex3 }
+            .First(c => coordToTerrain[c] == TerrainType.Hill);
+        var forestHex = new[] { cityPos.Hex1, cityPos.Hex2, cityPos.Hex3 }
+            .First(c => coordToTerrain[c] == TerrainType.Forest);
+
+        var neighborTerrains = hillHex.Neighbors().Concat(forestHex.Neighbors())
+            .Where(coordToTerrain.ContainsKey)
+            .Select(c => coordToTerrain[c])
+            .ToHashSet();
+
+        Assert.Contains(TerrainType.Mountain, neighborTerrains);
+        Assert.Contains(TerrainType.Plain, neighborTerrains);
+    }
+
     [Fact]
     public void FindVertexAdjacentToHillForestWater_ReturnsVertex_WhenHillForestWaterAreAdjacent()
     {
