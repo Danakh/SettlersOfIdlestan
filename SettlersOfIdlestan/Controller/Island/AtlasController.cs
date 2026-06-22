@@ -88,10 +88,10 @@ namespace SettlersOfIdlestan.Controller.Island
             {
                 var tileData = new List<(TerrainType terrainType, int tileCount)>
                 {
-                    (TerrainType.Forest, 12),
-                    (TerrainType.Hill, 12),
-                    (TerrainType.Plain, 12),
-                    (TerrainType.Mountain, 12),
+                    (TerrainType.Forest, 13),
+                    (TerrainType.Hill, 13),
+                    (TerrainType.Plain, 13),
+                    (TerrainType.Mountain, 13),
                     (TerrainType.Desert, 4),
                 };
                 var features = new List<IslandFeatureParameters>
