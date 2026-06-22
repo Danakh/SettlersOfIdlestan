@@ -213,6 +213,8 @@ public sealed class OverlayRenderer : IGameRenderer
         if (isMobile)
             DrawMobileSecondRowBackground(canvas);
 
+        float timeControlScale = _uiLayout.UiScale;
+        _timeControlRenderer.Initialize(_canvasSize, _uiLayout.GearX - 8f * timeControlScale, _uiLayout.TimeControlRowTop, timeControlScale);
         _timeControlRenderer.Render(canvas, context);
 
         float gearX = _uiLayout.GearX;
@@ -227,7 +229,10 @@ public sealed class OverlayRenderer : IGameRenderer
         _mapSwitchButton.Render(canvas);
 
         if (activeTab == TabBarRenderer.TabIsland)
+        {
+            _zoomControl.Initialize(_canvasSize, _uiLayout.UiScale);
             _zoomControl.Render(canvas);
+        }
 
         CheckResourceBarTooltip();
     }

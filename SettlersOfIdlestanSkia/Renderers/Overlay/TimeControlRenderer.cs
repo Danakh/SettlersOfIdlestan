@@ -66,10 +66,13 @@ public class TimeControlRenderer : IDisposable
         _canvasSize = canvasSize;
         _rightEdge = rightEdge;
         _rowTop = rowTop;
-        _scale = scale;
-        _font.Dispose();  _font = new SKFont { Size = 13 * scale, Typeface = SkiaFonts.Bold };
-        _bankFont.Dispose(); _bankFont = new SKFont { Size = 11 * scale, Typeface = SkiaFonts.Regular };
-        _tooltipFont.Dispose(); _tooltipFont = new SKFont { Size = 10 * scale, Typeface = SkiaFonts.Regular };
+        if (Math.Abs(scale - _scale) > 0.001f)
+        {
+            _scale = scale;
+            _font.Dispose();  _font = new SKFont { Size = 13 * scale, Typeface = SkiaFonts.Bold };
+            _bankFont.Dispose(); _bankFont = new SKFont { Size = 11 * scale, Typeface = SkiaFonts.Regular };
+            _tooltipFont.Dispose(); _tooltipFont = new SKFont { Size = 10 * scale, Typeface = SkiaFonts.Regular };
+        }
         RecalcRects();
     }
 

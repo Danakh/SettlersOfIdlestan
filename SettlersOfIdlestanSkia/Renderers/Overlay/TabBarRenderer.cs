@@ -42,6 +42,7 @@ public sealed class TabBarRenderer : IDisposable
     private readonly SKPaint _blinkTabPaint        = new() { Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _activeTabBorderPaint = new() { Color = SKColors.Gold, StrokeWidth = 1.5f, Style = SKPaintStyle.Stroke, IsAntialias = true };
     private SKFont _tabFont = new() { Size = 12, Typeface = SkiaFonts.Bold };
+    private float _tabFontScale = 1f;
 
     private readonly List<(int tabId, SKRect rect)> _activeTabs = new();
     private int _activeTab = TabIsland;
@@ -82,7 +83,13 @@ public sealed class TabBarRenderer : IDisposable
     public void Initialize(SKSize canvasSize)
     {
         _canvasSize = canvasSize;
-        float scale = _uiLayout.UiScale;
+        UpdateTabFontScale(_uiLayout.UiScale);
+    }
+
+    private void UpdateTabFontScale(float scale)
+    {
+        if (Math.Abs(scale - _tabFontScale) < 0.001f) return;
+        _tabFontScale = scale;
         _tabFont.Dispose();
         _tabFont = new SKFont { Size = 12 * scale, Typeface = SkiaFonts.Bold };
     }
@@ -91,6 +98,8 @@ public sealed class TabBarRenderer : IDisposable
     /// Sets <see cref="ResourceStartX"/> so callers can position the resource bar before drawing tabs on top.
     public void Update(GameRenderContext context)
     {
+        UpdateTabFontScale(_uiLayout.UiScale);
+
         bool showPrestigeTabs = HasPrestigePoints(context);
         _hasResearchTab   = IsResearchUnlocked();
         _hasAutomationTab = HasAnyAutomation();
