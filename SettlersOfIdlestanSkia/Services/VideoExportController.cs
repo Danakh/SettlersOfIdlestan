@@ -21,7 +21,9 @@ public sealed class VideoExportController
     }
 
     /// <param name="simulationSpeedMultiplier">1 = temps de jeu réel ; plus grand pour accélérer le temps simulé dans la vidéo.</param>
-    /// <returns>La commande ffmpeg à exécuter pour assembler la séquence en .mp4 (aussi écrite dans le dossier de sortie).</returns>
+    /// <param name="startFrameIndex">Index du premier fichier frame_XXXXX.png écrit ; permet d'enchaîner plusieurs appels dans le même dossier (ex: TrailerService) avec une numérotation continue.</param>
+    /// <param name="writeFfmpegCommand">Si false, n'écrit pas ffmpeg_command.txt (utile quand l'appelant assemble lui-même la commande finale après plusieurs séquences).</param>
+    /// <returns>La commande ffmpeg à exécuter pour assembler la séquence en .mp4 (aussi écrite dans le dossier de sortie si <paramref name="writeFfmpegCommand"/> est vrai).</returns>
     public string CaptureSequence(
         string outputDirectory,
         int widthPx,
@@ -31,7 +33,9 @@ public sealed class VideoExportController
         SKPoint cameraPosition,
         float zoomLevel,
         float simulationSpeedMultiplier = 1f,
-        Action<int, int>? onFrameCaptured = null)
+        Action<int, int>? onFrameCaptured = null,
+        int startFrameIndex = 0,
+        bool writeFfmpegCommand = true)
     {
         var gameState = _gameControllerService.CurrentGameState
             ?? throw new InvalidOperationException("Aucune partie en cours à capturer.");
@@ -64,7 +68,7 @@ public sealed class VideoExportController
 
             using var image = surface.Snapshot();
             using var data = image.Encode(SKEncodedImageFormat.Png, 100);
-            using var stream = File.Create(Path.Combine(outputDirectory, $"frame_{frame:D5}.png"));
+            using var stream = File.Create(Path.Combine(outputDirectory, $"frame_{startFrameIndex + frame:D5}.png"));
             data.SaveTo(stream);
 
             onFrameCaptured?.Invoke(frame + 1, totalFrames);
@@ -73,7 +77,10 @@ public sealed class VideoExportController
         string ffmpegCommand =
             $"ffmpeg -framerate {fps} -i \"{Path.Combine(outputDirectory, "frame_%05d.png")}\" " +
             $"-c:v libx264 -pix_fmt yuv420p \"{Path.Combine(outputDirectory, "trailer.mp4")}\"";
-        File.WriteAllText(Path.Combine(outputDirectory, "ffmpeg_command.txt"), ffmpegCommand);
+
+        if (writeFfmpegCommand)
+            File.WriteAllText(Path.Combine(outputDirectory, "ffmpeg_command.txt"), ffmpegCommand);
+
         return ffmpegCommand;
     }
 }

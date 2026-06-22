@@ -1,0 +1,25 @@
+{
+  "Width": 1920,
+  "Height": 1080,
+  "Fps": 30,
+  "Sequences": [
+    {
+      "Save": "Island2_Cities10.json",
+      "DurationSeconds": 5,
+      "SimulationSpeedMultiplier": 1.0,
+      "Camera": { "Mode": "FitMap" }
+    },
+    {
+      "Save": "Island3_WonderPlaced.json",
+      "DurationSeconds": 5,
+      "SimulationSpeedMultiplier": 1.0,
+      "Camera": { "Mode": "FitMap" }
+    },
+    {
+      "Save": "Island4_PrestigeReady.json",
+      "DurationSeconds": 5,
+      "SimulationSpeedMultiplier": 2.0,
+      "Camera": { "Mode": "FitMap" }
+    }
+  ]
+}
