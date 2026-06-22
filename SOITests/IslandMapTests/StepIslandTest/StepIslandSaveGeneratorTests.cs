@@ -1,3 +1,4 @@
+using System.Linq;
 using SOITests.TestUtilities;
 using Xunit;
 
@@ -12,10 +13,6 @@ namespace SOITests.IslandMapTests.StepIslandTest
         [Fact]
         public void Rebuild_All_Current_Saves()
         {
-            // Vider le dossier current avant de reconstruire pour garantir
-            // qu'aucun fichier obsolète (ex: ancien format JSON non-chiffré) ne subsiste.
-            SaveUtils.ClearFolder("current");
-
             (IslandScenario scenario, int stepIndex)[] steps =
             [
                 (StepIslandScenarios.Island1, 0), (StepIslandScenarios.Island1, 1), (StepIslandScenarios.Island1, 2), (StepIslandScenarios.Island1, 3), (StepIslandScenarios.Island1, 4),
@@ -26,6 +23,14 @@ namespace SOITests.IslandMapTests.StepIslandTest
             ];
             foreach (var (scenario, stepIndex) in steps)
                 IslandScenarioRunner.RunStep(scenario, stepIndex, "current", saveFinal: true);
+
+            // Nettoie les fichiers obsolètes (ex: ancien format JSON non-chiffré) seulement après
+            // la reconstruction : chaque save régénérée est remplacée de façon atomique pendant la
+            // boucle ci-dessus, donc elle reste lisible par StepIslandCurrentTests/FullIslandTest
+            // tout le temps du rebuild — seul ce nettoyage final retire les fichiers qui ne
+            // correspondent plus à aucun step.
+            var expectedNames = steps.Select(s => s.scenario.Steps[s.stepIndex].SaveName);
+            SaveUtils.PruneFolder("current", expectedNames);
         }
 
         [Fact]
