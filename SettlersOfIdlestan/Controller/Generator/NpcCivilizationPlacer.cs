@@ -87,7 +87,7 @@ public class NpcCivilizationPlacer
 
             var aggressivity = civ.NpcParameters?.AggressivityLevel ?? NpcAggressivityLevel.Cautious;
             var autoplayer = new NpcCivilizationAutoplayer(civ, map, mainController, aggressivity);
-            ExpandNpcWithAutoplayer(autoplayer, civ, map, level, playerVertex, mainController.RoadController);
+            ExpandNpcWithAutoplayer(autoplayer, civ, map, level, playerVertex);
         }
 
         return true;
@@ -221,29 +221,21 @@ public class NpcCivilizationPlacer
 
     private static void ExpandNpcWithAutoplayer(
         NpcCivilizationAutoplayer autoplayer, Civilization civ, IslandMap map, NpcEvolutionLevel level,
-        Vertex playerVertex, Island.RoadController roadController)
+        Vertex playerVertex)
     {
         int target = civ.NpcParameters?.CityCount ?? TargetCityCount(level);
         int minDist = civ.NpcParameters?.MinDistanceFromPlayer ?? DefaultMinPlayerDistance;
+
+        // L'autoplayer générique ne connaît pas la contrainte de distance au joueur : on la lui
+        // impose ici en amont, pour qu'un vertex trop proche ne soit jamais proposé ni construit.
+        autoplayer.Inner.SetExpansionVertexFilter(v => v.EdgeDistanceTo(playerVertex) >= minDist);
 
         for (int i = 0; i < MaxExpandIterations; i++)
         {
             if (civ.Cities.Count >= target) break;
             FillMaxResources(civ);
 
-            var snapshot = civ.Cities.Select(c => c.Position).ToHashSet();
             autoplayer.Inner.TryStep0Once();
-
-            // Supprimer toute ville nouvellement fondée trop proche du joueur et nettoyer les routes orphelines
-            var tooClose = civ.Cities
-                .Where(c => !snapshot.Contains(c.Position) &&
-                            c.Position.EdgeDistanceTo(playerVertex) < minDist)
-                .ToList();
-            foreach (var city in tooClose)
-            {
-                civ.RemoveCity(city);
-                roadController.OnCityDestroyed(civ, city.Position);
-            }
         }
 
         AddDefaultBuildingsForLevel(map, civ, level);

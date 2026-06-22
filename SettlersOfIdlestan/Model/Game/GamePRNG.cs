@@ -85,5 +85,11 @@ namespace SettlersOfIdlestan.Model.Game
                 (list[i], list[j]) = (list[j], list[i]);
             }
         }
+
+        /// <summary>
+        /// Dérive un entier utilisable comme seed pour un autre <see cref="GamePRNG"/> (typiquement
+        /// le PRNG de gameplay, dérivé une fois du PRNG de génération d'île).
+        /// </summary>
+        public int NextSeed() => Next(int.MaxValue);
     }
 }

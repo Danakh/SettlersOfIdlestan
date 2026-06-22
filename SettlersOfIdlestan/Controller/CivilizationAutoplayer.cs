@@ -39,6 +39,7 @@ namespace SettlersOfIdlestan.Controller
         private VisibleIslandMap? _prospectiveVerticesCacheMap;
         private int _prospectiveVerticesCacheTotalCityCount = -1;
         private List<Vertex>? _prospectiveVerticesCache;
+        private Func<Vertex, bool>? _expansionVertexFilter;
 
         /// <summary>Simule le temps de réaction d'un joueur entre deux salves de clics de récolte manuelle.</summary>
         private const long ClickCooldownTicks = 20L;
@@ -156,6 +157,19 @@ namespace SettlersOfIdlestan.Controller
         }
 
         /// <summary>
+        /// Restricts which vertices TryStep0Once/TryStepOnce will ever build an outpost on or target
+        /// a road toward — both the immediate-outpost and the prospective-road-target paths consult
+        /// it. Pass null to clear. Used by callers with constraints the autoplayer itself doesn't know
+        /// about — e.g. NPC placement keeping new cities away from the player — so an invalid vertex
+        /// is never proposed in the first place, rather than built and then undone after the fact.
+        /// </summary>
+        public void SetExpansionVertexFilter(Func<Vertex, bool>? filter) => _expansionVertexFilter = filter;
+
+        private Vertex? GetBuildableOutpostVertex() =>
+            _cityBuilderController.GetBuildableVertices(_civ.Index)
+                .FirstOrDefault(v => _expansionVertexFilter?.Invoke(v) ?? true);
+
+        /// <summary>
         /// Attempts to build or upgrade the specified building. When <paramref name="withGrind"/> is
         /// true (default) and resources are insufficient, calls TryGrindOnce to harvest/trade.
         /// Pass false when calling from TryStepOnce to avoid cross-building trade interference.
@@ -258,7 +272,7 @@ namespace SettlersOfIdlestan.Controller
         {
             bool didSomething = false;
 
-            var possibleConstructionVertex = _cityBuilderController.GetBuildableVertices(_civ.Index).FirstOrDefault();
+            var possibleConstructionVertex = GetBuildableOutpostVertex();
             if (possibleConstructionVertex != null)
             {
                 if (TryBuildOutpostOnce(possibleConstructionVertex, withGrind: true))
@@ -268,47 +282,20 @@ namespace SettlersOfIdlestan.Controller
 
             bool buildableRoadFound = false;
             var candidates = GetProspectiveVertices();
-            if (candidates.Count > 0)
+            var expansionTarget = FindBestExpansionTarget(candidates);
+            if (expansionTarget != null)
             {
-                var networkVertices = new HashSet<Vertex>(_civ.Cities
-                    .Select(c => c.Position)
-                    .Where(v => candidates.Any(candidate => candidate.Z == v.Z)));
-                foreach (var road in _civ.Roads)
-                    foreach (var v in road.Position.GetVertices())
-                        if (candidates.Any(candidate => candidate.Z == v.Z))
-                            networkVertices.Add(v);
-
-                Vertex? bestTarget = null;
-                Vertex? bestFrom = null;
-                int bestDist = int.MaxValue;
-                foreach (var candidate in candidates)
+                var (target, from) = expansionTarget.Value;
+                var buildableRoads = _roadController.GetBuildableRoads(_civ.Index);
+                var path = HexGridPathfinder.FindVertexPath(from, target);
+                var shared = path[0].GetHexes().Intersect(path[1].GetHexes()).ToArray();
+                Debug.Assert(shared.Length == 2);
+                var edge = Edge.Create(shared[0], shared[1]);
+                if (buildableRoads.Any(r => r.Position.Equals(edge)))
                 {
-                    foreach (var nv in networkVertices)
-                    {
-                        if (nv.Z != candidate.Z) continue;
-                        int dist = nv.EdgeDistanceTo(candidate);
-                        if (dist < bestDist)
-                        {
-                            bestDist = dist;
-                            bestTarget = candidate;
-                            bestFrom = nv;
-                        }
-                    }
-                }
-
-                if (bestTarget != null && bestFrom != null)
-                {
-                    var buildableRoads = _roadController.GetBuildableRoads(_civ.Index);
-                    var path = HexGridPathfinder.FindVertexPath(bestFrom, bestTarget);
-                    var shared = path[0].GetHexes().Intersect(path[1].GetHexes()).ToArray();
-                    Debug.Assert(shared.Length == 2);
-                    var edge = Edge.Create(shared[0], shared[1]);
-                    if (buildableRoads.Any(r => r.Position.Equals(edge)))
-                    {
-                        buildableRoadFound = true;
-                        if (TryBuildRoadOnce(edge, withGrind: true))
-                            didSomething = true;
-                    }
+                    buildableRoadFound = true;
+                    if (TryBuildRoadOnce(edge, withGrind: true))
+                        didSomething = true;
                 }
             }
 
@@ -533,7 +520,7 @@ namespace SettlersOfIdlestan.Controller
             if (shouldExpand)
             {
                 // Try outpost if a buildable vertex is accessible
-                possibleConstructionVertex = _cityBuilderController.GetBuildableVertices(_civ.Index).FirstOrDefault();
+                possibleConstructionVertex = GetBuildableOutpostVertex();
                 if (possibleConstructionVertex != null)
                 {
                     if (TryBuildOutpostOnce(possibleConstructionVertex, withGrind: !hasGrindedThisStep))
@@ -560,50 +547,23 @@ namespace SettlersOfIdlestan.Controller
             {
                 bool buildableRoadFound = false;
                 var candidates = GetProspectiveVertices();
-                if (candidates.Count > 0)
+                var expansionTarget = FindBestExpansionTarget(candidates);
+                if (expansionTarget != null)
                 {
-                    var networkVertices = new HashSet<Vertex>(_civ.Cities
-                        .Select(c => c.Position)
-                        .Where(v => candidates.Any(candidate => candidate.Z == v.Z)));
-                    foreach (var road in _civ.Roads)
-                        foreach (var v in road.Position.GetVertices())
-                            if (candidates.Any(candidate => candidate.Z == v.Z))
-                                networkVertices.Add(v);
-
-                    Vertex? bestTarget = null;
-                    Vertex? bestFrom = null;
-                    int bestDist = int.MaxValue;
-                    foreach (var candidate in candidates)
+                    var (target, from) = expansionTarget.Value;
+                    var buildableRoads = _roadController.GetBuildableRoads(_civ.Index);
+                    var path = HexGridPathfinder.FindVertexPath(from, target);
+                    var shared = path[0].GetHexes().Intersect(path[1].GetHexes()).ToArray();
+                    Debug.Assert(shared.Length == 2);
+                    var edge = Edge.Create(shared[0], shared[1]);
+                    if (buildableRoads.Any(r => r.Position.Equals(edge))) // can fail if the path needs martime road
                     {
-                        foreach (var nv in networkVertices)
+                        if (TryBuildRoadOnce(edge, withGrind: !hasGrindedThisStep))
                         {
-                            if (nv.Z != candidate.Z) continue;
-                            int dist = nv.EdgeDistanceTo(candidate);
-                            if (dist < bestDist)
-                            {
-                                bestDist = dist;
-                                bestTarget = candidate;
-                                bestFrom = nv;
-                            }
+                            didSomething = true;
                         }
-                    }
-
-                    if (bestTarget != null && bestFrom != null)
-                    {
-                        var buildableRoads = _roadController.GetBuildableRoads(_civ.Index);
-                        var path = HexGridPathfinder.FindVertexPath(bestFrom, bestTarget);
-                        var shared = path[0].GetHexes().Intersect(path[1].GetHexes()).ToArray();
-                        Debug.Assert(shared.Length == 2);
-                        var edge = Edge.Create(shared[0], shared[1]);
-                        if (buildableRoads.Any(r => r.Position.Equals(edge))) // can fail if the path needs martime road
-                        {
-                            if (TryBuildRoadOnce(edge, withGrind: !hasGrindedThisStep))
-                            {
-                                didSomething = true;
-                            }
-                            buildableRoadFound = true;
-                            hasGrindedThisStep = true;
-                        }
+                        buildableRoadFound = true;
+                        hasGrindedThisStep = true;
                     }
                 }
 
@@ -680,6 +640,84 @@ namespace SettlersOfIdlestan.Controller
             _prospectiveVerticesCacheTotalCityCount = totalCityCount;
             _prospectiveVerticesCache = result;
             return result;
+        }
+
+        /// <summary>
+        /// Among prospective expansion vertices, finds the nearest one to our road/city network
+        /// (proximity is always the primary criterion, exactly as before). When several candidates
+        /// tie on distance, picks the one whose terrain is currently scarcest around our cities — a
+        /// terrain hex shared by two cities counts twice towards availability, not once, since it
+        /// genuinely produces double and must weigh twice as much when judging scarcity.
+        /// </summary>
+        private (Vertex target, Vertex from)? FindBestExpansionTarget(List<Vertex> candidates)
+        {
+            if (_expansionVertexFilter != null)
+                candidates = candidates.Where(_expansionVertexFilter).ToList();
+            if (candidates.Count == 0) return null;
+            int z = candidates[0].Z;
+
+            var networkVertices = new HashSet<Vertex>(_civ.Cities
+                .Select(c => c.Position)
+                .Where(v => v.Z == z));
+            foreach (var road in _civ.Roads)
+                foreach (var v in road.Position.GetVertices())
+                    if (v.Z == z)
+                        networkVertices.Add(v);
+
+            if (networkVertices.Count == 0) return null;
+
+            var nearest = new List<(Vertex candidate, Vertex from, int dist)>();
+            int bestDist = int.MaxValue;
+            foreach (var candidate in candidates)
+            {
+                Vertex? from = null;
+                int dist = int.MaxValue;
+                foreach (var nv in networkVertices)
+                {
+                    int d = nv.EdgeDistanceTo(candidate);
+                    if (d < dist) { dist = d; from = nv; }
+                }
+                if (from == null) continue;
+
+                if (dist < bestDist)
+                {
+                    bestDist = dist;
+                    nearest.Clear();
+                }
+                if (dist == bestDist)
+                    nearest.Add((candidate, from, dist));
+            }
+
+            if (nearest.Count == 0) return null;
+            if (nearest.Count == 1) return (nearest[0].candidate, nearest[0].from);
+
+            // Tie-break: among equally-close candidates, prefer the scarcest terrain.
+            var map = _worldState?.GetMapForZ(z);
+            if (map == null) return (nearest[0].candidate, nearest[0].from);
+
+            var terrainAvailability = new Dictionary<TerrainType, int>();
+            foreach (var city in _civ.Cities.Where(c => c.Position.Z == z))
+                foreach (var hex in city.Position.GetHexes())
+                {
+                    var terrain = map.GetTile(hex)?.TerrainType;
+                    if (terrain == null || terrain == TerrainType.Water) continue;
+                    terrainAvailability[terrain.Value] = terrainAvailability.GetValueOrDefault(terrain.Value) + 1;
+                }
+
+            int ScarcityScore(Vertex v)
+            {
+                int min = int.MaxValue;
+                foreach (var hex in v.GetHexes())
+                {
+                    var terrain = map.GetTile(hex)?.TerrainType;
+                    if (terrain == null || terrain == TerrainType.Water) continue;
+                    min = Math.Min(min, terrainAvailability.GetValueOrDefault(terrain.Value));
+                }
+                return min == int.MaxValue ? 0 : min;
+            }
+
+            var best = nearest.OrderBy(n => ScarcityScore(n.candidate)).First();
+            return (best.candidate, best.from);
         }
     }
 }
