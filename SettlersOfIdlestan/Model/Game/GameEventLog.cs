@@ -35,6 +35,7 @@ public enum GameEventType
     CorruptionSpireBuilt,
     AdventurerDiscovered,
     AdventurerDefeated,
+    RaidMissingBarracks,
 }
 
 public record GameLogEntry(GameEventType Type, string? Message = null, bool Toast = false);

@@ -579,6 +579,8 @@
   "event_civilization_discovered_body": "Une nouvelle civilisation a été aperçue dans votre voisinage.",
   "event_soldier_starved_title": "☠ Soldats morts de faim !",
   "event_soldier_starved_body": "Des soldats sont morts faute de nourriture. Augmentez vos stocks de nourriture.",
+  "event_raid_missing_barracks_title": "⚠ Casernes manquantes !",
+  "event_raid_missing_barracks_body": "Une des villes les plus proches de la cible du raid n'a pas de Caserne.",
   "event_wonder_discovered_title": "🏛 Merveille découverte !",
   "event_wonder_discovered_body": "Une merveille se dresse sur cet hex. La récolte y est impossible.",
   "hex_tooltip_wonder": "🏛 Merveille — récolte bloquée",

@@ -224,6 +224,10 @@ public sealed class EventLogRenderer : IDisposable
             _warningCardPaint, _warningBorderPaint, _warningTextPaint,
             _localization.Get("event_adventurer_defeated_title"),
             _localization.Get("event_adventurer_defeated_body")),
+        GameEventType.RaidMissingBarracks => (
+            _warningCardPaint, _warningBorderPaint, _warningTextPaint,
+            _localization.Get("event_raid_missing_barracks_title"),
+            _localization.Get("event_raid_missing_barracks_body")),
         _ => (_dangerCardPaint, _dangerBorderPaint, _bodyTextPaint, "?", entry.Message ?? "")
     };
 

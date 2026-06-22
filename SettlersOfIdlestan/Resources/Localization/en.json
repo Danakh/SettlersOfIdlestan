@@ -579,6 +579,8 @@
   "event_civilization_discovered_body": "A new civilization has been spotted in your vicinity.",
   "event_soldier_starved_title": "☠ Soldiers starved!",
   "event_soldier_starved_body": "Some soldiers died from lack of food. Increase your food stockpile.",
+  "event_raid_missing_barracks_title": "⚠ Missing barracks!",
+  "event_raid_missing_barracks_body": "One of the cities nearest to the raid target has no Barracks.",
   "event_wonder_discovered_title": "🏛 Wonder discovered!",
   "event_wonder_discovered_body": "A wonder stands on this hex. Harvesting here is impossible.",
   "hex_tooltip_wonder": "🏛 Wonder — harvest blocked",

@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
+using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Monsters;
@@ -78,6 +80,8 @@ internal class RaidEngine
         return city.Position.GetHexes().Any(h => visibleMap.HasTile(h));
     }
 
+    private const int NearestCitiesCheckedForBarracks = 3;
+
     internal void StartRaid(Civilization civ, Vertex targetCityVertex)
     {
         if (_state == null) return;
@@ -85,6 +89,11 @@ internal class RaidEngine
         _state.AutomationSettings.RaidTargetVertex = targetCityVertex;
         _state.AutomationSettings.RaidCurrentUpkeep = 10;
         ApplyRaidFlows(civ, targetCityVertex);
+
+        var nearestCities = civ.Cities
+            .Where(c => c.Position.Z == targetCityVertex.Z)
+            .OrderBy(c => c.Position.EdgeDistanceTo(targetCityVertex));
+        WarnIfMissingBarracksNearTarget(nearestCities);
     }
 
     internal void StartMonsterRaid(Civilization civ, HexCoord targetHex)
@@ -94,6 +103,22 @@ internal class RaidEngine
         _state.AutomationSettings.RaidTargetHex = targetHex;
         _state.AutomationSettings.RaidCurrentUpkeep = 10;
         ApplyMonsterRaidFlows(civ, targetHex);
+
+        var nearestCities = civ.Cities
+            .Where(c => c.Position.Z == targetHex.Z)
+            .OrderBy(c => c.Position.GetHexes().Max(h => h.DistanceTo(targetHex)));
+        WarnIfMissingBarracksNearTarget(nearestCities);
+    }
+
+    /// <summary>Avertit le joueur si une des villes les plus proches de la cible n'a pas de Barracks (vulnérable en cas de contre-attaque).</summary>
+    private void WarnIfMissingBarracksNearTarget(IEnumerable<City> citiesOrderedByDistance)
+    {
+        if (_state == null) return;
+        bool missingBarracks = citiesOrderedByDistance
+            .Take(NearestCitiesCheckedForBarracks)
+            .Any(c => !c.Buildings.Any(b => b.Type == BuildingType.Barracks));
+        if (missingBarracks)
+            _state.EventLog.Add(GameEventType.RaidMissingBarracks, toast: true);
     }
 
     internal void StopRaid(Civilization civ)
