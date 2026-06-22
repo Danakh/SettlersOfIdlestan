@@ -55,6 +55,22 @@ public static class ObjectiveEvaluator
             case ObjectiveKind.PrestigeRunCountAtLeast:
                 return (controller.CurrentMainState?.PrestigeState?.RunHistory.Count ?? 0) >= Require(spec.Count, nameof(spec.Count));
 
+            case ObjectiveKind.UniqueBuildingPresent:
+                return civ.UniqueBuildings.Contains(Require(spec.RequiredBuilding, nameof(spec.RequiredBuilding)));
+
+            case ObjectiveKind.AllCitiesBuildingAtLeast:
+                {
+                    var requiredBuilding = Require(spec.RequiredBuilding, nameof(spec.RequiredBuilding));
+                    var level = Require(spec.Level, nameof(spec.Level));
+                    return civ.Cities.All(c =>
+                    {
+                        var building = controller.BuildingController.GetBuildingOrBuildable(c, requiredBuilding);
+                        if (building == null) return true;
+                        var maxLevel = controller.BuildingController.GetMaxLevel(building, c.CivilizationIndex);
+                        return building.Level >= Math.Min(level, maxLevel);
+                    });
+                }
+
             default:
                 throw new NotSupportedException($"Unknown objective kind: {spec.Kind}");
         }

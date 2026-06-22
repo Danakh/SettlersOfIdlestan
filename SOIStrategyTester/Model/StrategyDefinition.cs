@@ -28,6 +28,10 @@ public enum PhaseKind
     /// <summary>auto.TryStep2Once(false) + auto.TryWonderInvestmentOnce() + auto.TryTradeForResourceOnce(Gold)
     /// — mirrors RunStepWonderUntil.</summary>
     Wonder,
+    /// <summary>auto.TryWonderInvestmentOnce() + auto.TryTradeForResourceOnce(Gold) only — no building
+    /// progression. Comparison baseline to check whether TryStep2Once's resource competition during the
+    /// Wonder phase actually slows investment down.</summary>
+    WonderInvestOnly,
     /// <summary>auto.TryPrestigeOnce(PrestigePriorityVertexNames) — performs the prestige transition.</summary>
     Prestige,
     /// <summary>Drives a PriorityAutoplayStrategy built from PriorityObjectives.</summary>
@@ -47,6 +51,10 @@ public enum PriorityObjectiveKind
     /// has been spotted (Found) on the surface" — a no-op until then. Mirrors
     /// PriorityStage.BuildingsIfBanditSpotted.</summary>
     BuildingLevelIfBanditSpotted,
+    /// <summary>UniqueBuildingObjective(Building) — tries every city in turn via
+    /// CivilizationAutoplayer.TryBuildUniqueBuildingOnce. For unique buildings (ArtisansGuild,
+    /// HarvestersGuild, TraderGuild, ImperialPort, ...), which BuildingLevel can never drive.</summary>
+    UniqueBuilding,
 }
 
 public class PriorityObjectiveSpec
@@ -55,6 +63,8 @@ public class PriorityObjectiveSpec
     public List<BuildingType>? Buildings { get; set; }
     public int? TargetLevel { get; set; }
     public int? TargetCityCount { get; set; }
+    /// <summary>Required when Kind == UniqueBuilding.</summary>
+    public BuildingType? Building { get; set; }
 }
 
 public class StrategyPhase

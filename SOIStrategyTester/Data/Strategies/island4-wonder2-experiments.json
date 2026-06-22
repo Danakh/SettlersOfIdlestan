@@ -1,0 +1,28 @@
+[
+  {
+    "name": "baseline-wonder-only",
+    "phases": [
+      { "kind": "Wonder", "until": null }
+    ]
+  },
+  {
+    "name": "warehouse2-then-wonder",
+    "phases": [
+      {
+        "kind": "Priority",
+        "priorityObjectives": [
+          { "kind": "BuildingLevel", "buildings": ["Warehouse"], "targetLevel": 2 }
+        ],
+        "until": { "kind": "AllCitiesBuildingAtLeast", "requiredBuilding": "Warehouse", "level": 2 },
+        "maxIterations": 10000
+      },
+      { "kind": "Wonder", "until": null }
+    ]
+  },
+  {
+    "name": "invest-only-no-build",
+    "phases": [
+      { "kind": "WonderInvestOnly", "until": null }
+    ]
+  }
+]

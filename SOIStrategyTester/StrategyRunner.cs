@@ -123,6 +123,13 @@ public static class StrategyRunner
                     return did;
                 }
 
+            case PhaseKind.WonderInvestOnly:
+                {
+                    bool did = auto.TryWonderInvestmentOnce();
+                    did |= auto.TryTradeForResourceOnce(Resource.Gold);
+                    return did;
+                }
+
             case PhaseKind.Prestige:
                 return auto.TryPrestigeOnce(ResolvePriorityVertices(phase.PrestigePriorityVertexNames));
 
@@ -178,6 +185,9 @@ public static class StrategyRunner
                         auto, buildingController,
                         spec.Buildings ?? throw new ArgumentException("BuildingLevelIfBanditSpotted objective requires Buildings."),
                         spec.TargetLevel ?? throw new ArgumentException("BuildingLevelIfBanditSpotted objective requires TargetLevel."))),
+                PriorityObjectiveKind.UniqueBuilding => new UniqueBuildingObjective(
+                    auto,
+                    spec.Building ?? throw new ArgumentException("UniqueBuilding objective requires Building.")),
                 _ => throw new NotSupportedException($"Unknown priority objective kind: {spec.Kind}")
             });
         }

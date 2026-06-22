@@ -27,6 +27,15 @@ public enum ObjectiveKind
     WonderLevelAtLeast,
     /// <summary>PrestigeState.RunHistory.Count >= Count (i.e. the Nth prestige transition has happened).</summary>
     PrestigeRunCountAtLeast,
+    /// <summary>civ.UniqueBuildings.Contains(RequiredBuilding) — the (unique) building has been built
+    /// somewhere, regardless of city. Useful as a Priority phase's "Until" when priming a UniqueBuilding
+    /// objective (e.g. ArtisansGuild/HarvestersGuild/TraderGuild) before switching to another phase.</summary>
+    UniqueBuildingPresent,
+    /// <summary>Every city has RequiredBuilding at level >= Level, or the building is unavailable/maxed
+    /// for that city (which counts as done — mirrors StepIslandScenarios' IsBuildingAtLeastLevelForCity,
+    /// already used for the Library checkpoint). Useful as a Priority phase's "Until" when priming a
+    /// normal (non-unique) BuildingLevel objective, e.g. Warehouse, before switching to another phase.</summary>
+    AllCitiesBuildingAtLeast,
 }
 
 public class ObjectiveSpec

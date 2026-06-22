@@ -156,6 +156,39 @@ namespace SettlersOfIdlestan.Controller
     }
 
     /// <summary>
+    /// Satisfied once the civilization has built the given (unique) building anywhere. Advances by trying
+    /// <see cref="CivilizationAutoplayer.TryBuildUniqueBuildingOnce"/> across every city in turn — unlike
+    /// <see cref="BuildingLevelObjective"/>'s multi-building-type grind thrash, every city here chases the
+    /// exact same build cost, so grinding from each one is harmless. Unique buildings are never returned
+    /// as buildable by <see cref="BuildingController.GetBuildingOrBuildable"/>, so BuildingLevelObjective
+    /// can't drive them regardless of which building types are listed.
+    /// </summary>
+    public class UniqueBuildingObjective : IAutoplayObjective
+    {
+        private readonly CivilizationAutoplayer _autoplayer;
+        private readonly BuildingType _buildingType;
+
+        public UniqueBuildingObjective(CivilizationAutoplayer autoplayer, BuildingType buildingType)
+        {
+            _autoplayer = autoplayer ?? throw new ArgumentNullException(nameof(autoplayer));
+            _buildingType = buildingType;
+        }
+
+        public bool IsComplete() => _autoplayer.Civilization.UniqueBuildings.Contains(_buildingType);
+
+        public bool TryAdvanceOnce()
+        {
+            bool didSomething = false;
+            foreach (var city in _autoplayer.Civilization.Cities.ToList())
+            {
+                if (_autoplayer.TryBuildUniqueBuildingOnce(city, _buildingType, withGrind: true))
+                    didSomething = true;
+            }
+            return didSomething;
+        }
+    }
+
+    /// <summary>
     /// Drives a <see cref="CivilizationAutoplayer"/> through an ordered list of <see cref="IAutoplayObjective"/>s,
     /// never acting on objective N+1 while objective N still has actionable progress to make. Each call to
     /// <see cref="TryStepOnce"/> re-scans the list from the top, so an event that re-opens an earlier

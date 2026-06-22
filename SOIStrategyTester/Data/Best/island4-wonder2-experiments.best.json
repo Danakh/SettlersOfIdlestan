@@ -1,0 +1,30 @@
+{
+  "Objective": {
+    "Kind": "WonderLevelAtLeast",
+    "CityCount": null,
+    "RequiredBuilding": null,
+    "Points": null,
+    "Level": 2,
+    "Count": null
+  },
+  "Strategy": {
+    "Name": "baseline-wonder-only",
+    "Phases": [
+      {
+        "Kind": "Wonder",
+        "ShouldExpand": true,
+        "PrestigePriorityVertexNames": null,
+        "PriorityObjectives": null,
+        "Until": null,
+        "MaxIterations": null
+      }
+    ]
+  },
+  "Result": {
+    "StrategyName": "baseline-wonder-only",
+    "Success": true,
+    "Ticks": 4623850,
+    "Iterations": 56766,
+    "FailureReason": null
+  }
+}
