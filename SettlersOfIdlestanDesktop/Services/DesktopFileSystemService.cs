@@ -22,6 +22,7 @@ public class DesktopFileSystemService : IFileSystemService
 
     private static string GetAutoSavePath()     => Path.Combine(GetSavesDirectory(), "autosave.json");
     private static string GetSettingsPath()     => Path.Combine(GetSavesDirectory(), "settings.json");
+    private static string GetStatsPath()        => Path.Combine(GetSavesDirectory(), "playerstats.json");
 
     public async Task SaveText(string fileName, string content)
     {
@@ -104,6 +105,17 @@ public class DesktopFileSystemService : IFileSystemService
     public async Task<string?> LoadSettings()
     {
         var path = GetSettingsPath();
+        return File.Exists(path) ? File.ReadAllText(path) : null;
+    }
+
+    public async Task SaveStats(string content)
+    {
+        File.WriteAllText(GetStatsPath(), content);
+    }
+
+    public async Task<string?> LoadStats()
+    {
+        var path = GetStatsPath();
         return File.Exists(path) ? File.ReadAllText(path) : null;
     }
 }

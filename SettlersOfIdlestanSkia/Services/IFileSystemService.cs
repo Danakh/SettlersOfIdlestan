@@ -41,5 +41,16 @@ namespace SettlersOfIdlestanSkia.Services
         /// Load the game settings from the dedicated settings file. Returns null if not found.
         /// </summary>
         Task<string?> LoadSettings();
+
+        /// <summary>
+        /// Save the player's lifetime statistics to a dedicated file, independent of the save
+        /// game and of the settings file. Must survive "New Game" / hard reset.
+        /// </summary>
+        Task SaveStats(string content);
+
+        /// <summary>
+        /// Load the player's lifetime statistics from the dedicated stats file. Returns null if not found.
+        /// </summary>
+        Task<string?> LoadStats();
     }
 }

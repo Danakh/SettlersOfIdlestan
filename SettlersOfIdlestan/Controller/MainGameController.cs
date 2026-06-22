@@ -52,6 +52,12 @@ namespace SettlersOfIdlestan.Controller
         public AutoExtendController AutoExtendController { get; private set; }
 
         /// <summary>
+        /// Statistiques cumulatives à vie (cross-sauvegarde) — chargées/sauvegardées par la couche
+        /// hôte (Skia) indépendamment de MainGameState, pour survivre à "Nouvelle partie".
+        /// </summary>
+        public PlayerLifetimeStats LifetimeStats { get; set; } = new();
+
+        /// <summary>
         /// Gets the player's civilization (always at index 0).
         /// </summary>
         public SettlersOfIdlestan.Model.Civilization.Civilization? PlayerCivilization 
@@ -313,7 +319,8 @@ namespace SettlersOfIdlestan.Controller
                 TaskRecordController.Initialize(gameRecord, WorldState.RunRecord, WorldState,
                     BuildingController, RoadController, CityBuilderController,
                     PrestigeMapController, ResearchController, MilitaryController, HarvestController,
-                    TradeController, WonderController, CorruptionSpireController);
+                    TradeController, WonderController, CorruptionSpireController,
+                    CurrentMainState!.GodState, LifetimeStats);
             }
         }
 

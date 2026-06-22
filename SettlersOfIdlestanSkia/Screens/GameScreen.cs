@@ -105,7 +105,8 @@ public sealed class GameScreen : IDisposable
         string? saveJson,
         bool allowDebugMode,
         bool demoMode = false,
-        StoreController? storeController = null)
+        StoreController? storeController = null,
+        string? statsJson = null)
     {
         _fileSystemService    = fileSystemService;
         _localizationService  = localizationService;
@@ -116,6 +117,10 @@ public sealed class GameScreen : IDisposable
         _renderService        = new RenderService();
         _cameraService        = new CameraService();
         _gameControllerService = new GameControllerService();
+
+        // Stats à vie chargées depuis un fichier dédié, indépendant de la sauvegarde de partie,
+        // pour qu'elles survivent à "Nouvelle partie" / hard reset.
+        _gameControllerService.MainGameController.LifetimeStats = ParseLifetimeStats(statsJson);
 
         bool isNewGame;
 
@@ -422,7 +427,17 @@ public sealed class GameScreen : IDisposable
                 _fileSystemService.SaveAuto(json);
                 _storeController?.SaveCloudFile(CloudSaveFileName, json);
             }
+
+            var statsJson = System.Text.Json.JsonSerializer.Serialize(_gameControllerService.MainGameController.LifetimeStats);
+            _fileSystemService.SaveStats(statsJson);
         }
+    }
+
+    private static PlayerLifetimeStats ParseLifetimeStats(string? json)
+    {
+        if (string.IsNullOrEmpty(json)) return new PlayerLifetimeStats();
+        try { return System.Text.Json.JsonSerializer.Deserialize<PlayerLifetimeStats>(json) ?? new PlayerLifetimeStats(); }
+        catch { return new PlayerLifetimeStats(); }
     }
 
     private (int cityCount, int roadCount) GetCityRoadCounts()
