@@ -39,6 +39,7 @@ namespace SettlersOfIdlestan.Controller
         public WonderController WonderController { get; private set; }
         public DeepestMineController DeepestMineController { get; private set; }
         public CorruptionSpireController CorruptionSpireController { get; private set; }
+        public AbyssGateController AbyssGateController { get; private set; }
         public Magic.MagicController MagicController { get; private set; }
         public AscensionController AscensionController { get; private set; }
         public NpcGameController NpcGameController { get; private set; }
@@ -83,6 +84,7 @@ namespace SettlersOfIdlestan.Controller
             WonderController = new WonderController();
             DeepestMineController = new DeepestMineController();
             CorruptionSpireController = new CorruptionSpireController();
+            AbyssGateController = new AbyssGateController();
             MagicController = new Magic.MagicController();
             AscensionController = new AscensionController();
             TaskRecordController = new TaskRecordController();
@@ -294,6 +296,7 @@ namespace SettlersOfIdlestan.Controller
                 WonderController.Initialize(WorldState, Clock);
                 DeepestMineController.Initialize(WorldState, Clock);
                 CorruptionSpireController.Initialize(WorldState, Clock);
+                AbyssGateController.Initialize(WorldState, Clock);
                 MagicController.Initialize(WorldState, Clock, CurrentMainState!.PRNG, CityBuilderController, BuildingController, HarvestController);
                 ResearchController.Initialize(WorldState, Clock, CurrentMainState?.PrestigeState, CurrentMainState?.Settings);
                 NpcGameController.Initialize(WorldState, Clock, MilitaryController, this);

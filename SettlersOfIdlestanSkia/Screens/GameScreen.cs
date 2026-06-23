@@ -253,7 +253,7 @@ public sealed class GameScreen : IDisposable
         _constructionInteractionService.AttachMonumentService(_monumentService);
         islandMainRenderer.ConnectMonumentService(_monumentService);
 
-        var selectedMonumentPanelRenderer = new SelectedMonumentPanelRenderer(_monumentService, _inputService, _localizationService, _resourceManager);
+        var selectedMonumentPanelRenderer = new SelectedMonumentPanelRenderer(_monumentService, _inputService, _localizationService, _resourceManager, _gameControllerService);
 
         var settingsPopupRenderer = new SettingsPopupRenderer(_gameControllerService.MainGameController, _localizationService, _fileSystemService, allowDebugMode);
         settingsPopupRenderer.FullscreenToggleRequested  += v => FullscreenToggleRequested?.Invoke(v);
@@ -925,6 +925,18 @@ public sealed class GameScreen : IDisposable
                 _localizationService.Get("event_raid_missing_barracks_title"),
                 _localizationService.Get("event_raid_missing_barracks_body"),
                 NotificationIcon.StoreFail),
+            GameEventType.AbyssGateEligible => (
+                _localizationService.Get("event_abyss_gate_eligible_title"),
+                _localizationService.Get("event_abyss_gate_eligible_body"),
+                NotificationIcon.Achievement),
+            GameEventType.AbyssGatePlaced => (
+                _localizationService.Get("event_abyss_gate_placed_title"),
+                _localizationService.Get("event_abyss_gate_placed_body"),
+                NotificationIcon.Info),
+            GameEventType.AbyssGateBuilt => (
+                _localizationService.Get("event_abyss_gate_built_title"),
+                _localizationService.Get("event_abyss_gate_built_body"),
+                NotificationIcon.Achievement),
             _ => (entry.Type.ToString(), entry.Message ?? string.Empty, NotificationIcon.Info)
         };
         _notificationToastRenderer.ShowNotification(title, message, icon);

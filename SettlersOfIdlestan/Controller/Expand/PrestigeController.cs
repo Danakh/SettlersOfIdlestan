@@ -111,8 +111,13 @@ namespace SettlersOfIdlestan.Controller.Expand
             return GetSeaportLevel4Count() * perSeaport;
         }
 
+        /// <summary>
+        /// True si la Spire de Corruption est bâtie, ou si elle a évolué en Faille des Abysses
+        /// (la Faille reprend pour l'instant le même bonus de prestige que la Spire).
+        /// </summary>
         public bool HasCorruptionSpireBuilt()
-            => _islandState?.Features.OfType<CorruptionSpire>().Any(f => f.Built) == true;
+            => _islandState?.Features.OfType<CorruptionSpire>().Any(f => f.Built) == true
+               || _islandState?.Features.OfType<AbyssGate>().Any(f => f.Built) == true;
 
         /// <summary>Multiplicateur de la Spire de Corruption : 2 × niveau de corruption courant si construite, sinon 1.</summary>
         public int GetCorruptionSpireMultiplier()

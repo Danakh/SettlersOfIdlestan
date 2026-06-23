@@ -173,11 +173,14 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
                         .OfType<Dominion>()
                         .GroupBy(f => f.Position)
                         .ToDictionary(g => g.Key, g => g.Max(d => d.Level));
+                    var uwAbyssGate = worldState.Features
+                        .OfType<AbyssGate>()
+                        .ToDictionary(f => f.Position, f => f.Built);
                     var uwFeaturesByPosition = worldState.Features
                         .Where(f => f.ShouldRenderIcon && (f.SvgIconResourceName != null || f.TextIcon != null))
                         .GroupBy(f => f.Position)
                         .ToDictionary(g => g.Key, g => (IEnumerable<IslandFeature>)g);
-                    DrawIslandMap(canvas, underworldMap, playerIdx, mainGameState.Clock.CurrentTick, null, null, null, null, uwFeaturesByPosition, uwCorruption, uwDominion);
+                    DrawIslandMap(canvas, underworldMap, playerIdx, mainGameState.Clock.CurrentTick, null, null, null, null, uwFeaturesByPosition, uwCorruption, uwDominion, uwAbyssGate, context.TotalTime);
 
                     var selectedInvestable = _monumentService?.SelectedInvestable;
                     if (selectedInvestable != null && selectedInvestable.Position.Z == LayerState.UnderworldZ && _selectedMonumentPaint != null)
@@ -222,7 +225,10 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
                         .OfType<Dominion>()
                         .GroupBy(f => f.Position)
                         .ToDictionary(g => g.Key, g => g.Max(d => d.Level));
-                    DrawIslandMap(canvas, mapToRender, playerIdx, mgs.Clock.CurrentTick, manualTimes, worldState.PlunderCooldownUntil, worldState.PlunderCooldownDuration, harvestBlockedPositions, featuresByPosition, corruptionByHex, dominionByHex);
+                    var abyssGateByHex = worldState.Features
+                        .OfType<AbyssGate>()
+                        .ToDictionary(f => f.Position, f => f.Built);
+                    DrawIslandMap(canvas, mapToRender, playerIdx, mgs.Clock.CurrentTick, manualTimes, worldState.PlunderCooldownUntil, worldState.PlunderCooldownDuration, harvestBlockedPositions, featuresByPosition, corruptionByHex, dominionByHex, abyssGateByHex, context.TotalTime);
 
                     var selectedInvestable = _monumentService?.SelectedInvestable;
                     if (selectedInvestable != null && _selectedMonumentPaint != null)
@@ -243,12 +249,14 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
         HashSet<HexCoord>? harvestBlockedPositions,
         Dictionary<HexCoord, IEnumerable<IslandFeature>>? featuresByPosition = null,
         Dictionary<HexCoord, int>? corruptionByHex = null,
-        Dictionary<HexCoord, int>? dominionByHex = null)
+        Dictionary<HexCoord, int>? dominionByHex = null,
+        Dictionary<HexCoord, bool>? abyssGateByHex = null,
+        float totalTime = 0f)
     {
         foreach (var (coord, tile) in map.Tiles)
         {
             var (x, y) = AxialToIsland(coord.Q, coord.R);
-            DrawHexagonTile(canvas, coord, x, y, tile, playerIdx, currentTick, manualTimes, plunderCooldownUntil, plunderCooldownDuration, harvestBlockedPositions, featuresByPosition, corruptionByHex, dominionByHex);
+            DrawHexagonTile(canvas, coord, x, y, tile, playerIdx, currentTick, manualTimes, plunderCooldownUntil, plunderCooldownDuration, harvestBlockedPositions, featuresByPosition, corruptionByHex, dominionByHex, abyssGateByHex, totalTime);
         }
     }
 
@@ -276,7 +284,9 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
         HashSet<HexCoord>? harvestBlockedPositions,
         Dictionary<HexCoord, IEnumerable<IslandFeature>>? featuresByPosition = null,
         Dictionary<HexCoord, int>? corruptionByHex = null,
-        Dictionary<HexCoord, int>? dominionByHex = null)
+        Dictionary<HexCoord, int>? dominionByHex = null,
+        Dictionary<HexCoord, bool>? abyssGateByHex = null,
+        float totalTime = 0f)
     {
         var path = GetOrCreateHexPath(coord, centerX, centerY);
 
@@ -297,6 +307,9 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
 
         if (dominionByHex?.TryGetValue(coord, out int dominionLevel) == true && dominionLevel > 0)
             DrawDominionCircle(canvas, centerX, centerY, dominionLevel);
+
+        if (abyssGateByHex?.TryGetValue(coord, out bool gateBuilt) == true)
+            DrawAbyssGatePortal(canvas, centerX, centerY, gateBuilt, totalTime);
 
         DrawHarvestIndicator(canvas, centerX, centerY, tile, playerIdx, currentTick, manualTimes, plunderCooldownUntil, plunderCooldownDuration, harvestBlockedPositions);
 
@@ -323,6 +336,56 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
         if (_dominionPaint == null) return;
         _dominionPaint.StrokeWidth = Math.Clamp(level, 1, 10);
         canvas.DrawCircle(cx, cy, HexSize * DominionCircleRadiusFactor, _dominionPaint);
+    }
+
+    /// <summary>
+    /// Portail tourbillonnant de la Faille des Abysses : deux dégradés circulaires (sweep gradient)
+    /// tournant à contre-sens, plus un cœur sombre pulsant. Tourne plus vite et plus intensément
+    /// une fois la Faille bâtie. Une seule instance existe jamais dans une partie — coût négligeable.
+    /// </summary>
+    private void DrawAbyssGatePortal(SKCanvas canvas, float cx, float cy, bool built, float totalTime)
+    {
+        float radius = HexSize * CorruptionCircleRadiusFactor * 0.85f;
+        float outerSpeed = built ? 70f : 35f;
+        float outerAngle = (totalTime * outerSpeed) % 360f;
+
+        using var outerShader = SKShader.CreateSweepGradient(
+            new SKPoint(cx, cy),
+            new[]
+            {
+                new SKColor(8, 4, 18, 255),
+                new SKColor(140, 50, 220, (byte)(built ? 235 : 190)),
+                new SKColor(8, 4, 18, 255),
+                new SKColor(90, 25, 170, (byte)(built ? 220 : 170)),
+                new SKColor(8, 4, 18, 255),
+            },
+            null);
+        using var outerPaint = new SKPaint { Shader = outerShader, IsAntialias = true };
+
+        canvas.Save();
+        canvas.RotateDegrees(outerAngle, cx, cy);
+        canvas.DrawCircle(cx, cy, radius, outerPaint);
+        canvas.Restore();
+
+        using var innerShader = SKShader.CreateSweepGradient(
+            new SKPoint(cx, cy),
+            new[]
+            {
+                new SKColor(200, 150, 255, (byte)(built ? 110 : 70)),
+                new SKColor(20, 8, 35, 0),
+                new SKColor(200, 150, 255, (byte)(built ? 110 : 70)),
+            },
+            null);
+        using var innerPaint = new SKPaint { Shader = innerShader, IsAntialias = true };
+
+        canvas.Save();
+        canvas.RotateDegrees(-outerAngle * 0.6f, cx, cy);
+        canvas.DrawCircle(cx, cy, radius * 0.7f, innerPaint);
+        canvas.Restore();
+
+        float pulse = 0.5f + 0.5f * (float)Math.Sin(totalTime * (built ? 4f : 2f));
+        using var corePaint = new SKPaint { Color = new SKColor(5, 0, 12, 255), IsAntialias = true };
+        canvas.DrawCircle(cx, cy, radius * (0.16f + 0.05f * pulse), corePaint);
     }
 
     private void DrawFeatureMarker(SKCanvas canvas, float cx, float cy, IslandFeature feature)

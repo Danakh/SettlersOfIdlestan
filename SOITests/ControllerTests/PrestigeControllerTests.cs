@@ -267,6 +267,19 @@ namespace SOITests.ControllerTests
         }
 
         [Fact]
+        public void CorruptionSpireMultiplier_AppliesWhenEvolvedToAbyssGate()
+        {
+            var state = IslandTestFactory.CreateSevenHexIslandState();
+            state.AddFeature(new SettlersOfIdlestan.Model.IslandFeatures.AbyssGate(new HexCoord(0, 0, SettlersOfIdlestan.Model.IslandMap.LayerState.UnderworldZ)) { Built = true });
+            var prestigeState = new SettlersOfIdlestan.Model.Prestige.PrestigeState { CurrentCorruptionLevel = 3 };
+            var controller = new PrestigeController();
+            controller.Initialize(state.Civilizations[0], state, prestigeState: prestigeState);
+
+            Assert.True(controller.HasCorruptionSpireBuilt());
+            Assert.Equal(6, controller.GetCorruptionSpireMultiplier()); // 2 × 3, même bonus que la Spire
+        }
+
+        [Fact]
         public void CalculatePrestigePoints_AppliesCorruptionSpireMultiplier()
         {
             var state = IslandTestFactory.CreateSevenHexIslandState();

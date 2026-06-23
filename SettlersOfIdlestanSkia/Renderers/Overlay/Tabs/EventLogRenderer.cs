@@ -228,6 +228,18 @@ public sealed class EventLogRenderer : IDisposable
             _warningCardPaint, _warningBorderPaint, _warningTextPaint,
             _localization.Get("event_raid_missing_barracks_title"),
             _localization.Get("event_raid_missing_barracks_body")),
+        GameEventType.AbyssGateEligible => (
+            _rewardCardPaint, _rewardBorderPaint, _rewardTextPaint,
+            _localization.Get("event_abyss_gate_eligible_title"),
+            _localization.Get("event_abyss_gate_eligible_body")),
+        GameEventType.AbyssGatePlaced => (
+            _discoveryCardPaint, _discoveryBorderPaint, _discoveryTextPaint,
+            _localization.Get("event_abyss_gate_placed_title"),
+            _localization.Get("event_abyss_gate_placed_body")),
+        GameEventType.AbyssGateBuilt => (
+            _successCardPaint, _successBorderPaint, _successTextPaint,
+            _localization.Get("event_abyss_gate_built_title"),
+            _localization.Get("event_abyss_gate_built_body")),
         _ => (_dangerCardPaint, _dangerBorderPaint, _bodyTextPaint, "?", entry.Message ?? "")
     };
 

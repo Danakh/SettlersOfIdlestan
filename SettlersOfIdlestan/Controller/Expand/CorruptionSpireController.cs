@@ -64,6 +64,12 @@ namespace SettlersOfIdlestan.Controller.Expand
             spire.InvestmentEnabled.Clear();
             _state.EventLog.Add(GameEventType.CorruptionSpireBuilt, toast: true);
             OnCorruptionSpireBuilt?.Invoke(this, EventArgs.Empty);
+
+            // Si la Spire repose sur une zone assez corrompue, prévient le joueur que l'évolution
+            // en Faille des Abysses est désormais disponible depuis le panneau de la Spire.
+            var corruption = _state.Features.OfType<Corruption>().FirstOrDefault(c => c.Position.Equals(spire.Position));
+            if (corruption != null && corruption.Level >= AbyssGate.RequiredCorruptionLevel)
+                _state.EventLog.Add(GameEventType.AbyssGateEligible, toast: true);
         }
 
         public bool HasCorruptionSpireUnlocked(Civilization playerCiv)

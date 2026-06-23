@@ -17,6 +17,7 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
     private readonly InputHandlingService _inputService;
     private readonly LocalizationService _localization;
     private readonly ResourceManager _resourceManager;
+    private readonly GameControllerService _gameControllerService;
     private readonly Dictionary<Resource, SKSvg?> _resourceIcons = new();
 
     private SKPaint? _dimTextPaint;
@@ -24,6 +25,7 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
     private SKPaint? _barFillPaint;
     private SKPaint? _closePaint;
     private SKPaint? _corruptedAvailablePaint;
+    private SKPaint? _evolveButtonPaint;
 
     private const float PanelWidth = 280;
     private const float RowHeight = 50;
@@ -31,23 +33,27 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
     private const float Padding = 10;
     private const float BarHeight = 10;
     private const float FooterHeight = 28;
+    private const float EvolveButtonHeight = 40;
 
     protected override SKTypeface Font15Typeface => SkiaFonts.Bold;
 
     public bool HasSelection => _monumentService.SelectedInvestable != null;
     private SKRect _closeRect = SKRect.Empty;
+    private SKRect _evolveButtonRect = SKRect.Empty;
     private readonly Dictionary<SKRect, Resource> _checkboxRects = new();
 
     public SelectedMonumentPanelRenderer(
         MonumentService monumentService,
         InputHandlingService inputService,
         LocalizationService localization,
-        ResourceManager resourceManager)
+        ResourceManager resourceManager,
+        GameControllerService gameControllerService)
     {
         _monumentService = monumentService;
         _inputService = inputService;
         _localization = localization;
         _resourceManager = resourceManager;
+        _gameControllerService = gameControllerService;
         _inputService.PointerPressed += HandlePointerPressed;
         _monumentService.SelectionChanged += (_, _) => Collapsed = false;
     }
@@ -60,6 +66,7 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
         _barFillPaint = new SKPaint { Color = new SKColor(180, 140, 30, 230),  Style = SKPaintStyle.Fill, IsAntialias = true };
         _closePaint   = new SKPaint { Color = new SKColor(200, 80, 80, 220),   Style = SKPaintStyle.Fill, IsAntialias = true };
         _corruptedAvailablePaint = new SKPaint { Color = new SKColor(190, 110, 230, 230), IsAntialias = true };
+        _evolveButtonPaint = new SKPaint { Color = new SKColor(125, 63, 209, 230), Style = SKPaintStyle.Fill, IsAntialias = true };
 
         foreach (Resource resource in Enum.GetValues(typeof(Resource)))
         {
@@ -77,6 +84,7 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
             PanelBounds = SKRect.Empty;
             CollapseTabRect = SKRect.Empty;
             _checkboxRects.Clear();
+            _evolveButtonRect = SKRect.Empty;
             return;
         }
 
@@ -109,7 +117,10 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
         }
 
         bool showCorruptedPrestigeAvailable = monument is CorruptionSpire { Built: true };
-        float footerHeight = showCorruptedPrestigeAvailable ? FooterHeight * s : 0f;
+        bool showEvolveButton = monument is CorruptionSpire { Built: true }
+            && _gameControllerService.MainGameController.AbyssGateController.IsAbyssGateEligible();
+        float footerHeight = (showCorruptedPrestigeAvailable ? FooterHeight * s : 0f)
+            + (showEvolveButton ? EvolveButtonHeight * s : 0f);
 
         float maxPanelHeight = Math.Max(0, CanvasSize.Height - panelY - 20 * s);
         int visibleResourceCount = Math.Min(resourceCount, Math.Max(0, (int)((maxPanelHeight - titleHeight - padding - footerHeight) / rowHeight)));
@@ -200,10 +211,26 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
 
         if (showCorruptedPrestigeAvailable)
         {
+            float rowH = FooterHeight * s;
             SkiaTextUtils.DrawText(canvas,
                 _localization.Get("corruption_spire_panel_corrupted_prestige_available"),
-                panelX + panelWidth / 2f, y + footerHeight / 2f + 5 * s,
+                panelX + panelWidth / 2f, y + rowH / 2f + 5 * s,
                 SKTextAlign.Center, Font12, _corruptedAvailablePaint);
+            y += rowH;
+        }
+
+        if (showEvolveButton)
+        {
+            float btnH = EvolveButtonHeight * s;
+            _evolveButtonRect = new SKRect(panelX + padding, y + 4 * s, panelX + panelWidth - padding, y + btnH - 4 * s);
+            canvas.DrawRoundRect(_evolveButtonRect, 6 * s, 6 * s, _evolveButtonPaint);
+            SkiaTextUtils.DrawText(canvas, _localization.Get("abyss_gate_evolve_button"),
+                _evolveButtonRect.MidX, _evolveButtonRect.MidY + 5 * s, SKTextAlign.Center, Font12, TextPaint);
+            y += btnH;
+        }
+        else
+        {
+            _evolveButtonRect = SKRect.Empty;
         }
 
         if (needsScrollbar)
@@ -232,6 +259,14 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
             return;
         }
 
+        if (!_evolveButtonRect.IsEmpty && _evolveButtonRect.Contains(e.Position.X, e.Position.Y))
+        {
+            var gate = _gameControllerService.MainGameController.AbyssGateController.PlaceAbyssGate();
+            if (gate != null)
+                _monumentService.SetSelectedInvestable(gate);
+            return;
+        }
+
         foreach (var (rect, resource) in _checkboxRects)
         {
             if (rect.Contains(e.Position.X, e.Position.Y))
@@ -249,6 +284,7 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
         ScrollOffset = 0;
         PanelBounds = SKRect.Empty;
         _closeRect = SKRect.Empty;
+        _evolveButtonRect = SKRect.Empty;
         CollapseTabRect = SKRect.Empty;
         _checkboxRects.Clear();
     }
@@ -261,6 +297,7 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
         _barFillPaint?.Dispose();
         _closePaint?.Dispose();
         _corruptedAvailablePaint?.Dispose();
+        _evolveButtonPaint?.Dispose();
         base.Dispose();
     }
 }
