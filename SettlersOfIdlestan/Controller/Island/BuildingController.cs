@@ -450,6 +450,10 @@ namespace SettlersOfIdlestan.Controller.Island
             basic += civ.ModifierAggregator.ApplyModifiers(ECategory.STORAGE_CAPACITY_BASIC, "", 0);
             advanced += civ.ModifierAggregator.ApplyModifiers(ECategory.STORAGE_CAPACITY_ADVANCED, "", 0);
 
+            double multiplier = civ.ModifierAggregator.ApplyModifiers(ECategory.STORAGE_CAPACITY_MULTIPLIER, "", 1.0);
+            basic = (int)(basic * multiplier);
+            advanced = (int)(advanced * multiplier);
+
             civ.SetStorageCapacityCache(basic, advanced);
         }
 

@@ -18,6 +18,9 @@ public static class AscensionPowerDefinitions
         new AscensionPowerDefinition(AscensionPowerId.HandOfGod,
             "ascension_power_handofgod_name", "ascension_power_handofgod_desc", column: 0),
 
+        new AscensionPowerDefinition(AscensionPowerId.DivineInventory,
+            "ascension_power_divineinventory_name", "ascension_power_divineinventory_desc", column: 0),
+
         new AscensionPowerDefinition(AscensionPowerId.EyeOfGod,
             "ascension_power_eyeofgod_name", "ascension_power_eyeofgod_desc", column: 1),
 

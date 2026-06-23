@@ -11,5 +11,8 @@ public enum AscensionPowerId
     HandOfGod,
     EyeOfGod,
     WalkOfGod,
-    ArmOfGod
+    ArmOfGod,
+    // Ajouté après les pouvoirs existants pour ne pas décaler leurs valeurs numériques
+    // (les sauvegardes sérialisent cet enum sous forme d'entier, sans JsonStringEnumConverter).
+    DivineInventory
 }

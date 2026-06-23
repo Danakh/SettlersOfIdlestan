@@ -132,6 +132,8 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             DOMINION_HARVEST_SPEED_PER_LEVEL,
             /// <summary>Flags que le Dominion est déverrouillé pour la civilisation (octroyé par le pouvoir divin Foi). Remplace l'ancien verrou générique RequiresGodPoint/HasEverHadGodPoint.</summary>
             UNLOCK_DOMINION,
+            /// <summary>Multiplicateur appliqué à la capacité totale de stockage (basique + avancée), après les bonus additifs. Base = 1.0; +10.0 = +1000%.</summary>
+            STORAGE_CAPACITY_MULTIPLIER,
         }
 
         public enum EType
