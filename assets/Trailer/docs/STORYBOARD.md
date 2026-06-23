@@ -23,7 +23,7 @@ d'idle games.
 | 2b | 0:08.5–0:10 | 1.5s | "PRESTIGE" (discret) | Ce que l'expansion débloque sur le long terme | Coupe vers l'onglet Carte de Prestige, quelques sommets déjà acquis | Zoom in léger sur l'arbre | x1 |
 | 3a | 0:10–0:13.5 | 3.5s | "EXPLOIT" | Exploitation des ressources | Autoplay Exploit : bâtiments de prod, récolte animée, entrepôts qui se remplissent | Zoom in sur 2–3 villes actives, coupes plus rapides | x3–4 |
 | 3b | 0:13.5–0:15 | 1.5s | "RESEARCH" (discret) | Ce que l'exploitation débloque sur le long terme | Coupe vers l'onglet Recherche, plusieurs technologies déjà obtenues | Zoom in léger sur l'arbre | x1 |
-| 4 | 0:15–0:19 | 4s | "EXTERMINATE" | Défense / combat | Autoplay Exterminate : palissades, casernes, attaque de monstre + animations de combat | Zoom dynamique sur l'affrontement | x1–2 (combat lisible) |
+| 4 | 0:15–0:19 | 4s | "EXTERMINATE" | Guerre contre une civilisation ennemie | Autoplay Exterminate : palissades, casernes construites près de la civ adverse, animations de combat | Zoom dynamique sur l'affrontement | x1–2 (combat lisible) |
 | 5 | 0:19–0:23 | 4s | "AT YOUR OWN PACE" | Argument idle | Retour à l'île principale, complète et prospère, UI TimeControl visible (vitesse) | Zoom out lent, stabilisation calme | x1 (retour calme) |
 | 6 | 0:23–0:28 | 5s | "THE UNDERWORLD AWAITS" puis, sur le visuel final de l'Abyss Gate : "Passerez-vous le portail des abysses ?" | Teaser Inframonde + reveal de la nouvelle feature | Plongée vers la couche Inframonde (changement de layer), puis plan final fixe sur l'Abyss Gate | Travelling vertical "descente", puis plan fixe qui tient sur le visuel final | x1–2 |
 | 7 | 0:28–0:30 | 2s | Logo + nom du jeu | Reveal du titre | Carton de fin, plan fixe | — | — |
@@ -79,26 +79,18 @@ Saves renommées selon leur beat (`assets/Trailer/saves/`), câblées dans `Trai
 | At Your Own Pace | `05_AtYourOwnPace.json` ☑ | Île avancée, prestige disponible, UI TimeControl à vitesse > x1 |
 | Underworld / Abyss Gate | `06_AbyssGate.json` ☑ | Abyss Gate construit (`Built: true`) sur la couche Inframonde (hex Q=3, R=-2) ; rendu portail confirmé en place |
 
-**Saves encore manquantes : Explore (ouverture) et Exterminate.** Tant qu'elles ne sont pas fournies, ces
-deux beats sont absents de `TrailerDefinition.json` (le trailer généré aujourd'hui couvre Expand → Abyss
-Gate, soit 19s sur les 30s visés ; le carton logo final, beat 7, est hors scope du générateur — voir
-question CTA ci-dessous).
+**Toutes les saves sont disponibles.** Le trailer complet (30s) est générable : Explore → Expand →
+Prestige insert → Exploit → Research insert → Exterminate → At Your Own Pace → Abyss Gate → Title Card.
+Le carton titre (beat 7) est rendu par le générateur via `IsTitleCard: true` (fond noir + titre doré centré,
+`TitleCardRenderer.Draw`) — pas de save nécessaire, pas de post-prod manuelle.
 
 ## Questions ouvertes
 
-- [ ] Musique : libre de droits ? Le tempo du montage ci-dessus est provisoire, à ajuster une fois choisie.
-- [ ] CTA final : lien store / "Wishlist now" / logo seul ?
-- [ ] Version FR/EN séparée, ou sous-titres bilingues ?
-- [ ] Inclut-on une séquence en layout mobile (`UILayoutService` forcé en mode mobile) dans ce premier
-  trailer, ou seulement desktop pour l'instant ?
-- [ ] Les inserts prestige/recherche (2b, 3b) coupent-ils vers l'onglet UI correspondant (carte de
-  prestige / recherche), ou un visuel dédié plus "cinématique" est-il préférable ? Pour l'instant on
-  part sur l'onglet UI réel (cohérent avec le reste du trailer qui montre le HUD).
-- [ ] Pour le beat Underworld (6), montre-t-on une vraie transition de layer (changement de carte) ou
-  une coupe directe sur une save Inframonde déjà chargée ? Impact technique à creuser dans `TECH_PLAN.md`.
-- [ ] **Bloquant** : quel visuel pour l'Abyss Gate au moment de tourner le plan final (beat 6) ? Attendre
-  l'implémentation in-game, ou produire un visuel dédié temporaire pour le trailer ? Voir section
-  "Abyss Gate — dépendance bloquante" ci-dessus.
+- [ ] Ajuster la caméra du beat Exterminate (`04_Exterminate.json`) : actuellement `FitMap`, à passer en
+  `Fixed` une fois qu'on a repéré où se déroule l'affrontement avec la civilisation ennemie dans la save.
+- [ ] Retravailler le beat Explore si un travelling caméra est souhaité (mode `Keyframes` avec deux points
+  de passage) — actuellement `FitMap` (plan large fixe).
+- [ ] Desktop uniquement pour ce premier trailer (mobile exclu).
 
 ## Journal des itérations
 
@@ -118,3 +110,7 @@ question CTA ci-dessous).
   `TrailerDefinition.json` (Expand → Abyss Gate, 19s sur les 30s visés). Restent à fournir : la save
   Explore (ouverture) et la save Exterminate ; le carton logo (beat 7) n'a pas de save et reste hors
   scope du générateur.
+- 2026-06-23 (révision 4) : Saves `01_Explore.json` et `04_Exterminate.json` fournies. Carton titre
+  (beat 7) implémenté dans le générateur via `IsTitleCard: true` (fond noir + titre doré, `TitleCardRenderer`
+  extrait de `GameScreen`) — plus de dépendance post-prod. Pas de musique, tout en anglais. Texte
+  AbyssGate traduit ("Will you pass through the Abyss Gate?"). Trailer 30s complet et générable en une passe.

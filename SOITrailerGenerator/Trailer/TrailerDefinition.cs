@@ -17,6 +17,9 @@ public class TrailerSequence
 {
     /// <summary>Nom de fichier dans assets/Trailer/saves/ (ex: "Island2_Cities10.json").</summary>
     public string Save { get; set; } = "";
+
+    /// <summary>Si true, ignore Save et rend un carton titre (fond noir + titre du jeu centré).</summary>
+    public bool IsTitleCard { get; set; } = false;
     public int DurationSeconds { get; set; } = 5;
 
     /// <summary>1 = temps de jeu réel ; plus grand pour accélérer le temps simulé dans la séquence.</summary>

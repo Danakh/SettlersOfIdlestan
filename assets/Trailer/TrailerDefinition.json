@@ -4,6 +4,15 @@
   "Fps": 30,
   "Sequences": [
     {
+      "Save": "01_Explore.json",
+      "DurationSeconds": 5,
+      "SimulationSpeedMultiplier": 1.5,
+      "Camera": { "Mode": "FitMap" },
+      "TextCues": [
+        { "Text": "EXPLORE", "StartSeconds": 1.3, "EndSeconds": 4.0, "FadeSeconds": 0.3, "Position": "Bottom", "FontSizePx": 64 }
+      ]
+    },
+    {
       "Save": "02_Expand.json",
       "DurationSeconds": 4,
       "SimulationSpeedMultiplier": 3.0,
@@ -44,6 +53,16 @@
       ]
     },
     {
+      "Save": "04_Exterminate.json",
+      "DurationSeconds": 4,
+      "SimulationSpeedMultiplier": 1.5,
+      "Camera": { "Mode": "FitMap" },
+      "AutoplayProfile": "Exterminate",
+      "TextCues": [
+        { "Text": "EXTERMINATE", "StartSeconds": 0.3, "EndSeconds": 2.0, "FadeSeconds": 0.3, "Position": "Bottom", "FontSizePx": 64 }
+      ]
+    },
+    {
       "Save": "05_AtYourOwnPace.json",
       "DurationSeconds": 4,
       "SimulationSpeedMultiplier": 2.0,
@@ -60,8 +79,12 @@
       "Camera": { "Mode": "Fixed", "X": 138.6, "Y": 120, "Zoom": 2.5 },
       "TextCues": [
         { "Text": "THE UNDERWORLD AWAITS", "StartSeconds": 0.3, "EndSeconds": 2.0, "FadeSeconds": 0.3, "Position": "Bottom", "FontSizePx": 64 },
-        { "Text": "Passerez-vous le portail des abysses ?", "StartSeconds": 2.5, "EndSeconds": 5.3, "FadeSeconds": 0.3, "Position": "Center", "FontSizePx": 56 }
+        { "Text": "Will you pass through the Abyss Gate?", "StartSeconds": 2.5, "EndSeconds": 5.3, "FadeSeconds": 0.3, "Position": "Center", "FontSizePx": 56 }
       ]
+    },
+    {
+      "IsTitleCard": true,
+      "DurationSeconds": 2
     }
   ]
 }

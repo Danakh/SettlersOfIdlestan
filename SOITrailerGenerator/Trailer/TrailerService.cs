@@ -10,6 +10,7 @@ using SettlersOfIdlestanSkia.Renderers.Overlay;
 using SettlersOfIdlestanSkia.Renderers.Overlay.Panels;
 using SettlersOfIdlestanSkia.Renderers.Overlay.Popup;
 using SettlersOfIdlestanSkia.Renderers.Overlay.Tabs;
+using SettlersOfIdlestanSkia.Screens;
 using SettlersOfIdlestanSkia.Services;
 using SettlersOfIdlestanSkia.Services.Localization;
 
@@ -57,10 +58,11 @@ public sealed class TrailerService
         for (int i = 0; i < definition.Sequences.Count; i++)
         {
             var sequence = definition.Sequences[i];
-            onLog?.Invoke($"Séquence {i + 1}/{definition.Sequences.Count} : {sequence.Save} ({sequence.DurationSeconds}s)");
+            onLog?.Invoke($"Séquence {i + 1}/{definition.Sequences.Count} : {(sequence.IsTitleCard ? "[Title Card]" : sequence.Save)} ({sequence.DurationSeconds}s)");
 
-            var savePath = Path.Combine(savesDirectory, sequence.Save);
-            int framesWritten = CaptureSequence(savePath, sequence, definition, canvasSize, framesDirectory, frameCursor, onLog);
+            int framesWritten = sequence.IsTitleCard
+                ? CaptureTitleCard(sequence, definition, canvasSize, framesDirectory, frameCursor)
+                : CaptureSequence(Path.Combine(savesDirectory, sequence.Save), sequence, definition, canvasSize, framesDirectory, frameCursor, onLog);
             frameCursor += framesWritten;
         }
 
@@ -280,6 +282,33 @@ public sealed class TrailerService
     {
         public ConstructionHoverState HoverState { get; } = new(
             Array.Empty<Vertex>(), Array.Empty<Edge>(), null, null, null, null, null, null, null);
+    }
+
+    private static int CaptureTitleCard(
+        TrailerSequence sequence,
+        TrailerDefinition definition,
+        SKSize canvasSize,
+        string framesDirectory,
+        int startFrameIndex)
+    {
+        int totalFrames = definition.Fps * sequence.DurationSeconds;
+
+        using var surface = SKSurface.Create(new SKImageInfo(
+            (int)canvasSize.Width, (int)canvasSize.Height, SKColorType.Rgba8888, SKAlphaType.Premul));
+        var canvas = surface.Canvas;
+
+        for (int frame = 0; frame < totalFrames; frame++)
+        {
+            canvas.Clear(SKColors.Black);
+            TitleCardRenderer.Draw(canvas, canvasSize);
+
+            using var image = surface.Snapshot();
+            using var data = image.Encode(SKEncodedImageFormat.Png, 100);
+            using var stream = File.Create(Path.Combine(framesDirectory, $"frame_{startFrameIndex + frame:D5}.png"));
+            data.SaveTo(stream);
+        }
+
+        return totalFrames;
     }
 
     private static void WithRetry(Action action, int maxAttempts = 10, int delayMs = 300, Action<IOException>? onRetry = null)

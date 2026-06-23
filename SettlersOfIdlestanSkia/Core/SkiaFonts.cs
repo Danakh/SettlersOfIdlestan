@@ -8,7 +8,7 @@ namespace SettlersOfIdlestanSkia.Core;
 /// (⚠ ⚔ 💰 🐉) render correctly on every platform including WebAssembly.
 /// On desktop, system fonts are used as primary lookup when embedded resources are absent.
 /// </summary>
-internal static class SkiaFonts
+public static class SkiaFonts
 {
     private static readonly Lazy<SKTypeface> _regular = new(() =>
         LoadEmbedded("NotoSans-Regular.ttf")
