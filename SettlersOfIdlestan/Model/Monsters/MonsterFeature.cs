@@ -22,7 +22,7 @@ public abstract class MonsterFeature : IslandFeature
     public override bool ShouldRenderIcon => false;
 
     // ── Mouvement (opt-in) ─────────────────────────────────────────────────
-    public virtual bool CanMove => false;
+    public override bool CanMove => false;
     public virtual long MovementIntervalTicks => long.MaxValue;
     /// <summary>Nombre d'hexes parcourus à chaque déplacement (1 = un seul pas).</summary>
     public virtual int MovementRangeInHexes => 1;

@@ -164,6 +164,7 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
                     : worldState.Visibility.GetForZ(LayerState.UnderworldZ).TryGetValue(playerIdx, out var uvm) ? uvm : null;
                 if (underworldMap != null)
                 {
+                    var harvestBlockers = new HashSet<IslandFeature>(worldState.Features.Where(f => f.BlocksHarvest));
                     var uwCorruption = worldState.Features
                         .OfType<Corruption>()
                         .GroupBy(f => f.Position)
@@ -179,7 +180,7 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
                         .Where(f => f.ShouldRenderIcon && (f.SvgIconResourceName != null || f.TextIcon != null))
                         .GroupBy(f => f.Position)
                         .ToDictionary(g => g.Key, g => (IEnumerable<IslandFeature>)g);
-                    DrawIslandMap(canvas, underworldMap, playerIdx, mainGameState.Clock.CurrentTick, null, null, null, null, uwFeaturesByPosition, uwCorruption, uwDominion, uwAbyssGate, context.TotalTime);
+                    DrawIslandMap(canvas, underworldMap, playerIdx, mainGameState.Clock.CurrentTick, null, null, null, harvestBlockers, uwFeaturesByPosition, uwCorruption, uwDominion, uwAbyssGate, context.TotalTime);
 
                     var selectedInvestable = _monumentService?.SelectedInvestable;
                     if (selectedInvestable != null && selectedInvestable.Position.Z == LayerState.UnderworldZ && _selectedMonumentPaint != null)
@@ -211,7 +212,7 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
                     var playerIdx = worldState.PlayerCivilization.Index;
                     worldState.HarvestLastTimesByCivilization.TryGetValue(playerIdx, out var manualTimes);
 
-                    var harvestBlockedPositions = new HashSet<HexCoord>(worldState.Features.Where(f => f.BlocksHarvest).Select(f => f.Position));
+                    var harvestBlockers = new HashSet<IslandFeature>(worldState.Features.Where(f => f.BlocksHarvest));
                     var featuresByPosition = worldState.Features
                         .Where(f => f.ShouldRenderIcon && (f.SvgIconResourceName != null || f.TextIcon != null))
                         .GroupBy(f => f.Position)
@@ -227,7 +228,7 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
                     var abyssGateByHex = worldState.Features
                         .OfType<AbyssGate>()
                         .ToDictionary(f => f.Position, f => f.Built);
-                    DrawIslandMap(canvas, mapToRender, playerIdx, mgs.Clock.CurrentTick, manualTimes, worldState.PlunderCooldownUntil, worldState.PlunderCooldownDuration, harvestBlockedPositions, featuresByPosition, corruptionByHex, dominionByHex, abyssGateByHex, context.TotalTime);
+                    DrawIslandMap(canvas, mapToRender, playerIdx, mgs.Clock.CurrentTick, manualTimes, worldState.PlunderCooldownUntil, worldState.PlunderCooldownDuration, harvestBlockers, featuresByPosition, corruptionByHex, dominionByHex, abyssGateByHex, context.TotalTime);
 
                     var selectedInvestable = _monumentService?.SelectedInvestable;
                     if (selectedInvestable != null && _selectedMonumentPaint != null)
@@ -245,7 +246,7 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
         Dictionary<HexCoord, long>? manualTimes,
         IReadOnlyDictionary<HexCoord, long>? plunderCooldownUntil,
         Dictionary<HexCoord, long>? plunderCooldownDuration,
-        HashSet<HexCoord>? harvestBlockedPositions,
+        HashSet<IslandFeature>? harvestBlockers,
         Dictionary<HexCoord, IEnumerable<IslandFeature>>? featuresByPosition = null,
         Dictionary<HexCoord, int>? corruptionByHex = null,
         Dictionary<HexCoord, int>? dominionByHex = null,
@@ -255,7 +256,7 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
         foreach (var (coord, tile) in map.Tiles)
         {
             var (x, y) = AxialToIsland(coord.Q, coord.R);
-            DrawHexagonTile(canvas, coord, x, y, tile, playerIdx, currentTick, manualTimes, plunderCooldownUntil, plunderCooldownDuration, harvestBlockedPositions, featuresByPosition, corruptionByHex, dominionByHex, abyssGateByHex, totalTime);
+            DrawHexagonTile(canvas, coord, x, y, tile, playerIdx, currentTick, manualTimes, plunderCooldownUntil, plunderCooldownDuration, harvestBlockers, featuresByPosition, corruptionByHex, dominionByHex, abyssGateByHex, totalTime);
         }
     }
 
@@ -280,7 +281,7 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
         Dictionary<HexCoord, long>? manualTimes,
         IReadOnlyDictionary<HexCoord, long>? plunderCooldownUntil,
         Dictionary<HexCoord, long>? plunderCooldownDuration,
-        HashSet<HexCoord>? harvestBlockedPositions,
+        HashSet<IslandFeature>? harvestBlockers,
         Dictionary<HexCoord, IEnumerable<IslandFeature>>? featuresByPosition = null,
         Dictionary<HexCoord, int>? corruptionByHex = null,
         Dictionary<HexCoord, int>? dominionByHex = null,
@@ -310,7 +311,7 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
         if (abyssGateByHex?.TryGetValue(coord, out bool gateBuilt) == true)
             DrawAbyssGatePortal(canvas, centerX, centerY, gateBuilt, totalTime);
 
-        DrawHarvestIndicator(canvas, centerX, centerY, tile, playerIdx, currentTick, manualTimes, plunderCooldownUntil, plunderCooldownDuration, harvestBlockedPositions);
+        DrawHarvestIndicator(canvas, centerX, centerY, tile, playerIdx, currentTick, manualTimes, plunderCooldownUntil, plunderCooldownDuration, harvestBlockers);
 
         if (featuresByPosition?.TryGetValue(coord, out var features) == true)
             foreach (var feature in features)
@@ -423,15 +424,17 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
         Dictionary<HexCoord, long>? manualTimes,
         IReadOnlyDictionary<HexCoord, long>? plunderCooldownUntil,
         Dictionary<HexCoord, long>? plunderCooldownDuration,
-        HashSet<HexCoord>? harvestBlockedPositions)
+        HashSet<IslandFeature>? harvestBlockers)
     {
         if (_ringBgPaint == null || _ringProgressPaint == null)
             return;
 
         // Anneau pillage (le plus externe)
-        if (harvestBlockedPositions?.Contains(tile.Coord) == true)
+        IslandFeature? f = harvestBlockers?.FirstOrDefault(f => f.Position.Equals(tile.Coord));
+        if (f != null)
         {
-            DrawPlunderCooldownRing(canvas, cx, cy, ratio: 1f);
+            if (f.CanMove)
+                DrawPlunderCooldownRing(canvas, cx, cy, ratio: 1f);
             return;
         }
         else if (plunderCooldownUntil != null

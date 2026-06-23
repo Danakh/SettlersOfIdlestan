@@ -39,6 +39,8 @@ public abstract class IslandFeature
     /// </summary>
     public virtual bool BlocksHarvest => false;
 
+    public virtual bool CanMove => false;
+
     /// <summary>
     /// True tant que la feature peut encore être découverte.
     /// Les sous-classes peuvent rajouter leurs conditions (ex. non réclamée).
