@@ -239,7 +239,7 @@ public sealed class TrailerService
         {
             LayoutService = uiLayoutService
         };
-        var selectedMonumentPanelRenderer = new SelectedMonumentPanelRenderer(monumentService, inputService, localizationService, resourceManager);
+        var selectedMonumentPanelRenderer = new SelectedMonumentPanelRenderer(monumentService, inputService, localizationService, resourceManager, gameControllerService);
 
         var settingsPopupRenderer = new SettingsPopupRenderer(gameControllerService.MainGameController, localizationService, fileSystemService);
         var settingsMenu = new SettingsMenu(
