@@ -1,7 +1,9 @@
 using System.Text.Json;
 using System.Threading;
 using SkiaSharp;
+using SettlersOfIdlestan.Controller;
 using SettlersOfIdlestan.Model.HexGrid;
+using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Renderers.Island;
 using SettlersOfIdlestanSkia.Renderers.Overlay;
@@ -63,7 +65,7 @@ public sealed class TrailerService
         }
 
         string ffmpegCommand =
-            $"ffmpeg -framerate {definition.Fps} -i \"{Path.Combine(framesDirectory, "frame_%05d.png")}\" " +
+            $"ffmpeg -y -framerate {definition.Fps} -i \"{Path.Combine(framesDirectory, "frame_%05d.png")}\" " +
             $"-c:v libx264 -pix_fmt yuv420p \"{outputVideoPath}\"";
         File.WriteAllText(Path.Combine(trailerRootDirectory, "ffmpeg_command.txt"), ffmpegCommand);
 
@@ -86,11 +88,19 @@ public sealed class TrailerService
         var gameControllerService = new GameControllerService();
         gameControllerService.ImportMainState(File.ReadAllText(savePath));
 
+        if (gameControllerService.CurrentWorldState is { } worldState)
+        {
+            worldState.CurrentViewedLayer = sequence.ViewedLayer == TrailerViewedLayer.Underworld
+                ? LayerState.UnderworldZ
+                : IslandMap.SurfaceLayer;
+        }
+
         var resourceManager = new ResourceManager();
         var localizationService = new LocalizationService();
         var inputService = new InputHandlingService();
         var uiLayoutService = new UILayoutService();
         uiLayoutService.UpdateCanvasSize(canvasSize);
+        uiLayoutService.SetForceMobile(sequence.DeviceProfile == TrailerDeviceProfile.Mobile);
 
         var tooltipRenderer = new TooltipRenderer(localizationService, gameControllerService, resourceManager);
         var hoverProvider = new EmptyConstructionHoverProvider();
@@ -127,7 +137,15 @@ public sealed class TrailerService
         var sceneRenderer = new CompositeGameRenderer(islandRenderer, overlayRenderer, tooltipRenderer);
         sceneRenderer.Initialize(canvasSize);
 
-        var camera = BuildCamera(sequence.Camera, gameControllerService, canvasSize);
+        switch (sequence.ForcedTab)
+        {
+            case TrailerForcedTab.Prestige: overlayRenderer.SwitchToPrestigeTab(); break;
+            case TrailerForcedTab.Research: overlayRenderer.SwitchToResearchTab(); break;
+            case TrailerForcedTab.Island: overlayRenderer.SwitchToIslandTab(); break;
+        }
+
+        var cameraAtTime = TrailerCameraTrack.Build(sequence.Camera, gameControllerService, canvasSize);
+        var autoplayTick = BuildAutoplayTick(sequence.AutoplayProfile, gameControllerService);
 
         var videoExportController = new VideoExportController(gameControllerService, sceneRenderer);
         int totalFrames = definition.Fps * sequence.DurationSeconds;
@@ -137,17 +155,64 @@ public sealed class TrailerService
             definition.Height,
             definition.Fps,
             sequence.DurationSeconds,
-            camera.Position,
-            camera.ZoomLevel,
+            cameraAtTime,
             sequence.SimulationSpeedMultiplier,
             onFrameCaptured: (frame, total) => onLog?.Invoke($"  frame {frame}/{total}"),
             startFrameIndex: startFrameIndex,
-            writeFfmpegCommand: false);
+            writeFfmpegCommand: false,
+            textCues: sequence.TextCues,
+            autoplayTick: autoplayTick);
 
         sceneRenderer.Dispose();
         resourceManager.Dispose();
 
         return totalFrames;
+    }
+
+    /// <summary>
+    /// Construit, si <paramref name="profile"/> n'est pas None, un CivilizationAutoplayer câblé sur les
+    /// contrôleurs de la save chargée, et renvoie l'action à appeler une fois par frame pendant la
+    /// capture pour que les constructions/combats du beat correspondant se produisent réellement
+    /// (cf. STORYBOARD.md — Expand/Exploit/Exterminate).
+    /// </summary>
+    private static Action? BuildAutoplayTick(TrailerAutoplayProfile profile, GameControllerService gameControllerService)
+    {
+        if (profile == TrailerAutoplayProfile.None)
+            return null;
+
+        var mainController = gameControllerService.MainGameController;
+        var civ = gameControllerService.PlayerCivilization
+            ?? throw new InvalidOperationException("Aucune civilisation joueur dans la save chargée.");
+        var worldState = gameControllerService.CurrentWorldState
+            ?? throw new InvalidOperationException("Aucun WorldState dans la save chargée.");
+        var surfaceMap = worldState.GetMapForZ(IslandMap.SurfaceLayer)
+            ?? throw new InvalidOperationException("Aucune carte de surface dans la save chargée.");
+
+        var autoplayer = new CivilizationAutoplayer(
+            civ, surfaceMap,
+            mainController.RoadController,
+            mainController.HarvestController,
+            mainController.BuildingController,
+            mainController.CityBuilderController,
+            mainController.TradeController,
+            mainController.ResearchController,
+            mainController.PrestigeController,
+            mainController.PrestigeMapController,
+            worldState,
+            gameControllerService.CurrentGameState?.PrestigeState,
+            mainController.PerformPrestige,
+            mainController.WonderController);
+
+        return profile switch
+        {
+            TrailerAutoplayProfile.Expand => () => autoplayer.TryStep0Once(),
+            TrailerAutoplayProfile.Exploit => () =>
+            {
+                if (!autoplayer.TryStep1Once()) autoplayer.TryStep2Once();
+            },
+            TrailerAutoplayProfile.Exterminate => () => autoplayer.TryMilitaryStepOnce(),
+            _ => null
+        };
     }
 
     /// <summary>
@@ -208,24 +273,6 @@ public sealed class TrailerService
         overlayRenderer.ConnectZoomCallbacks(() => { }, () => { });
 
         return overlayRenderer;
-    }
-
-    private static CameraService BuildCamera(TrailerCamera config, GameControllerService gameControllerService, SKSize canvasSize)
-    {
-        var camera = new CameraService();
-        camera.Initialize(canvasSize);
-
-        if (config.Mode == TrailerCameraMode.Fixed)
-        {
-            camera.SetZoom(config.Zoom, keepCenteredOnScreen: false);
-            camera.CenterOn(config.X, config.Y);
-            return camera;
-        }
-
-        var hexCoords = gameControllerService.CurrentWorldState?.CurrentViewedMap.Tiles.Keys
-            ?? Enumerable.Empty<HexCoord>();
-        camera.FitMapToView(hexCoords);
-        return camera;
     }
 
     /// <summary>Aucune construction en cours dans une bande-annonce : aucun élément n'est jamais survolé/sélectionné.</summary>

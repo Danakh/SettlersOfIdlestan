@@ -412,6 +412,7 @@ public sealed class OverlayRenderer : IGameRenderer
 
     public void SwitchToPrestigeTab() => _tabBar.SetActiveTab(TabBarRenderer.TabPrestige);
     public void SwitchToIslandTab() => _tabBar.SetActiveTab(TabBarRenderer.TabIsland);
+    public void SwitchToResearchTab() => _tabBar.SetActiveTab(TabBarRenderer.TabResearch);
 
     private void HandlePointerReleased(object? sender, PointerEventArgs e)
     {

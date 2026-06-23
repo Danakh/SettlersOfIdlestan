@@ -1,6 +1,8 @@
 using SkiaSharp;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Services;
+using System;
+using System.Collections.Generic;
 
 namespace SOITrailerGenerator.Trailer;
 
@@ -22,6 +24,7 @@ public sealed class VideoExportController
     }
 
     /// <param name="simulationSpeedMultiplier">1 = temps de jeu réel ; plus grand pour accélérer le temps simulé dans la vidéo.</param>
+    /// <param name="autoplayTick">Appelé une fois par frame après l'avancement de la simulation (ex: CivilizationAutoplayer.TryXxxOnce), pour que des actions de jeu réelles se produisent pendant la capture.</param>
     /// <param name="startFrameIndex">Index du premier fichier frame_XXXXX.png écrit ; permet d'enchaîner plusieurs appels dans le même dossier (ex: TrailerService) avec une numérotation continue.</param>
     /// <param name="writeFfmpegCommand">Si false, n'écrit pas ffmpeg_command.txt (utile quand l'appelant assemble lui-même la commande finale après plusieurs séquences).</param>
     /// <returns>La commande ffmpeg à exécuter pour assembler la séquence en .mp4 (aussi écrite dans le dossier de sortie si <paramref name="writeFfmpegCommand"/> est vrai).</returns>
@@ -31,12 +34,13 @@ public sealed class VideoExportController
         int heightPx,
         int fps,
         int durationSeconds,
-        SKPoint cameraPosition,
-        float zoomLevel,
+        Func<float, (SKPoint Position, float Zoom)> cameraAtTime,
         float simulationSpeedMultiplier = 1f,
         Action<int, int>? onFrameCaptured = null,
         int startFrameIndex = 0,
-        bool writeFfmpegCommand = true)
+        bool writeFfmpegCommand = true,
+        IReadOnlyList<TrailerTextCue>? textCues = null,
+        Action? autoplayTick = null)
     {
         var gameState = _gameControllerService.CurrentGameState
             ?? throw new InvalidOperationException("Aucune partie en cours à capturer.");
@@ -53,6 +57,10 @@ public sealed class VideoExportController
         for (int frame = 0; frame < totalFrames; frame++)
         {
             gameState.Clock.SimulateAdvance(ticksPerFrame);
+            autoplayTick?.Invoke();
+
+            float sequenceSeconds = frame / (float)fps;
+            var (cameraPosition, zoomLevel) = cameraAtTime(sequenceSeconds);
 
             canvas.Clear(SKColors.Black);
             var context = new GameRenderContext
@@ -60,12 +68,15 @@ public sealed class VideoExportController
                 GameState = gameState,
                 DeltaTime = ticksPerFrame / 100f,
                 CanvasSize = new SKSize(widthPx, heightPx),
-                TotalTime = frame / (float)fps,
+                TotalTime = sequenceSeconds,
                 CameraPosition = cameraPosition,
                 ZoomLevel = zoomLevel,
                 UiScale = 1f
             };
             _sceneRenderer.Render(canvas, context);
+
+            if (textCues is { Count: > 0 })
+                DrawTextCues(canvas, widthPx, heightPx, textCues, sequenceSeconds);
 
             using var image = surface.Snapshot();
             using var data = image.Encode(SKEncodedImageFormat.Png, 100);
@@ -76,12 +87,49 @@ public sealed class VideoExportController
         }
 
         string ffmpegCommand =
-            $"ffmpeg -framerate {fps} -i \"{Path.Combine(outputDirectory, "frame_%05d.png")}\" " +
+            $"ffmpeg -y -framerate {fps} -i \"{Path.Combine(outputDirectory, "frame_%05d.png")}\" " +
             $"-c:v libx264 -pix_fmt yuv420p \"{Path.Combine(outputDirectory, "trailer.mp4")}\"";
 
         if (writeFfmpegCommand)
             File.WriteAllText(Path.Combine(outputDirectory, "ffmpeg_command.txt"), ffmpegCommand);
 
         return ffmpegCommand;
+    }
+
+    private static void DrawTextCues(
+        SKCanvas canvas, int widthPx, int heightPx, IReadOnlyList<TrailerTextCue> cues, float sequenceSeconds)
+    {
+        foreach (var cue in cues)
+        {
+            float alpha = FadeAlpha(sequenceSeconds, cue.StartSeconds, cue.EndSeconds, cue.FadeSeconds);
+            if (alpha <= 0f) continue;
+
+            using var font = new SKFont(SkiaFonts.Bold, cue.FontSizePx);
+            using var paint = new SKPaint
+            {
+                Color = SKColors.White.WithAlpha((byte)(alpha * 255)),
+                IsAntialias = true
+            };
+
+            float y = cue.Position switch
+            {
+                TrailerTextPosition.Top => heightPx * 0.12f,
+                TrailerTextPosition.Center => heightPx * 0.5f,
+                _ => heightPx * 0.85f
+            };
+
+            SkiaTextUtils.DrawText(canvas, cue.Text, widthPx / 2f, y, SKTextAlign.Center, font, paint);
+        }
+    }
+
+    /// <summary>Alpha 0→1→0 avec fondu linéaire d'entrée/sortie de <paramref name="fadeSeconds"/> autour de [start, end].</summary>
+    private static float FadeAlpha(float t, float start, float end, float fadeSeconds)
+    {
+        if (t < start || t > end) return 0f;
+        if (fadeSeconds <= 0f) return 1f;
+
+        float fadeIn = Math.Clamp((t - start) / fadeSeconds, 0f, 1f);
+        float fadeOut = Math.Clamp((end - t) / fadeSeconds, 0f, 1f);
+        return Math.Min(fadeIn, fadeOut);
     }
 }
