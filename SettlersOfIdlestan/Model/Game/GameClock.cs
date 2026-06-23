@@ -28,9 +28,13 @@ namespace SettlersOfIdlestan.Model.Game
 
         // ── runtime (non sérialisé) ──────────────────────────────────────────
 
-        /// <summary>0 = pause, 1 = normal, accéléré = x3 à x10 selon la banque de temps disponible (voir <see cref="GetFastMultiplier"/>).</summary>
+        /// <summary>0 = pause, 1 = normal, accéléré = valeur de <see cref="FastMultiplier"/> (x3/x5/x10, cycle via <see cref="CycleFastMultiplier"/>).</summary>
         [JsonIgnore]
         public int SpeedMultiplier { get; private set; } = 1;
+
+        /// <summary>Multiplicateur appliqué par <see cref="SetFast"/>, choisi par le joueur en cyclant x3 → x5 → x10.</summary>
+        [JsonIgnore]
+        public int FastMultiplier { get; private set; } = 3;
 
         [JsonIgnore]
         private DateTimeOffset? _lastAdvanceTime;
@@ -78,22 +82,21 @@ namespace SettlersOfIdlestan.Model.Game
 
         public void SetFast()
         {
-            SpeedMultiplier = GetFastMultiplier();
+            SpeedMultiplier = FastMultiplier;
             _lastAdvanceTime = null;
             _tickAccumulator = 0;
         }
 
-        /// <summary>
-        /// Multiplicateur appliqué par <see cref="SetFast"/> : x3 par défaut, augmenté selon la banque de
-        /// temps disponible (x4 au-delà de 6h, x5 au-delà de 12h, x10 au-delà de 24h).
-        /// </summary>
-        public int GetFastMultiplier()
+        /// <summary>Fait cycler le multiplicateur rapide x3 → x5 → x10 → x3, choisi librement par le joueur.</summary>
+        public void CycleFastMultiplier()
         {
-            double bankHours = OfflineBankTicks / 100.0 / 3600.0;
-            if (bankHours > 24) return 10;
-            if (bankHours > 12) return 5;
-            if (bankHours > 6) return 4;
-            return 3;
+            FastMultiplier = FastMultiplier switch
+            {
+                3 => 5,
+                5 => 10,
+                _ => 3,
+            };
+            if (SpeedMultiplier > 1) SpeedMultiplier = FastMultiplier;
         }
 
         // ── hors-ligne ───────────────────────────────────────────────────────

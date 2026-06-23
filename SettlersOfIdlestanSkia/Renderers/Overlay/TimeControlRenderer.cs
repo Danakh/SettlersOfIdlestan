@@ -132,7 +132,7 @@ public class TimeControlRenderer : IDisposable
             pauseBg = _pauseFlickerPaint;
         }
         bool isFast = speed > 1;
-        int fastMultiplier = isFast ? speed : clock.GetFastMultiplier();
+        int fastMultiplier = clock.FastMultiplier;
 
         DrawButton(canvas, _pauseRect, "||", speed == 0, pauseBg);
         DrawButton(canvas, _playRect, ">", speed == 1, speed == 1 ? _activePaint : _inactivePaint);
@@ -148,7 +148,7 @@ public class TimeControlRenderer : IDisposable
             HoveredControl.Bank  => _localization.Get("timecontrol_bank_tooltip").Split('\n'),
             HoveredControl.Pause => new[] { _localization.Get("timecontrol_pause_tooltip") },
             HoveredControl.Play  => new[] { _localization.Get("timecontrol_play_tooltip") },
-            HoveredControl.Fast  => new[] { _localization.GetFormated("timecontrol_fast_tooltip", fastMultiplier) },
+            HoveredControl.Fast  => _localization.GetFormated("timecontrol_fast_tooltip", fastMultiplier).Split('\n'),
             _                    => null
         };
         if (lines == null) return;
@@ -197,12 +197,19 @@ public class TimeControlRenderer : IDisposable
 
     private void HandlePointerPressed(object? sender, PointerEventArgs e)
     {
-        if (_disposed || e.Button != PointerButton.Left) return;
+        if (_disposed) return;
 
         var clock = _gameControllerService.CurrentGameState?.Clock;
         if (clock == null) return;
 
         var pt = e.Position;
+
+        if (e.Button == PointerButton.Right)
+        {
+            if (_fastRect.Contains(pt.X, pt.Y)) clock.CycleFastMultiplier();
+            return;
+        }
+        if (e.Button != PointerButton.Left) return;
 
         if (_pauseRect.Contains(pt.X, pt.Y))
         {
