@@ -4,22 +4,64 @@
   "Fps": 30,
   "Sequences": [
     {
-      "Save": "Island2_Cities10.json",
-      "DurationSeconds": 5,
-      "SimulationSpeedMultiplier": 1.0,
-      "Camera": { "Mode": "FitMap" }
+      "Save": "02_Expand.json",
+      "DurationSeconds": 4,
+      "SimulationSpeedMultiplier": 3.0,
+      "Camera": { "Mode": "FitMap" },
+      "AutoplayProfile": "Expand",
+      "TextCues": [
+        { "Text": "EXPAND", "StartSeconds": 0.3, "EndSeconds": 2.0, "FadeSeconds": 0.3, "Position": "Bottom", "FontSizePx": 64 }
+      ]
     },
     {
-      "Save": "Island3_WonderPlaced.json",
-      "DurationSeconds": 5,
+      "Save": "02_Expand.json",
+      "DurationSeconds": 1,
       "SimulationSpeedMultiplier": 1.0,
-      "Camera": { "Mode": "FitMap" }
+      "Camera": { "Mode": "FitMap" },
+      "ForcedTab": "Prestige",
+      "TextCues": [
+        { "Text": "PRESTIGE", "StartSeconds": 0.1, "EndSeconds": 0.9, "FadeSeconds": 0.2, "Position": "Bottom", "FontSizePx": 40 }
+      ]
     },
     {
-      "Save": "Island4_PrestigeReady.json",
-      "DurationSeconds": 5,
+      "Save": "03_Exploit.json",
+      "DurationSeconds": 4,
+      "SimulationSpeedMultiplier": 4.0,
+      "Camera": { "Mode": "FitMap" },
+      "AutoplayProfile": "Exploit",
+      "TextCues": [
+        { "Text": "EXPLOIT", "StartSeconds": 0.3, "EndSeconds": 2.0, "FadeSeconds": 0.3, "Position": "Bottom", "FontSizePx": 64 }
+      ]
+    },
+    {
+      "Save": "03_Exploit.json",
+      "DurationSeconds": 1,
+      "SimulationSpeedMultiplier": 1.0,
+      "Camera": { "Mode": "FitMap" },
+      "ForcedTab": "Research",
+      "TextCues": [
+        { "Text": "RESEARCH", "StartSeconds": 0.1, "EndSeconds": 0.9, "FadeSeconds": 0.2, "Position": "Bottom", "FontSizePx": 40 }
+      ]
+    },
+    {
+      "Save": "05_AtYourOwnPace.json",
+      "DurationSeconds": 4,
       "SimulationSpeedMultiplier": 2.0,
-      "Camera": { "Mode": "FitMap" }
+      "Camera": { "Mode": "FitMap" },
+      "TextCues": [
+        { "Text": "AT YOUR OWN PACE", "StartSeconds": 0.3, "EndSeconds": 2.0, "FadeSeconds": 0.3, "Position": "Bottom", "FontSizePx": 64 }
+      ]
+    },
+    {
+      "Save": "06_AbyssGate.json",
+      "DurationSeconds": 5,
+      "SimulationSpeedMultiplier": 1.5,
+      "ViewedLayer": "Underworld",
+      "Camera": { "Mode": "Fixed", "X": 138.6, "Y": 120, "Zoom": 2.5 },
+      "TextCues": [
+        { "Text": "THE UNDERWORLD AWAITS", "StartSeconds": 0.3, "EndSeconds": 2.0, "FadeSeconds": 0.3, "Position": "Bottom", "FontSizePx": 64 },
+        { "Text": "Passerez-vous le portail des abysses ?", "StartSeconds": 2.5, "EndSeconds": 5.3, "FadeSeconds": 0.3, "Position": "Center", "FontSizePx": 56 }
+      ]
     }
   ]
 }

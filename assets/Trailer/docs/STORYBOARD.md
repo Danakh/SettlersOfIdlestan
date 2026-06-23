@@ -66,19 +66,23 @@ Options à trancher avant de pouvoir tourner ce plan final :
 
 ## Saves nécessaires par beat
 
-Les 3 saves actuelles (`Island2_Cities10.json`, `Island3_WonderPlaced.json`, `Island4_PrestigeReady.json`)
-sont des **données de test à remplacer**. Pour le découpage ci-dessus il faudra :
+Saves renommées selon leur beat (`assets/Trailer/saves/`), câblées dans `TrailerDefinition.json` :
 
 | Beat | Save à utiliser | Caractéristiques attendues |
 |---|---|---|
 | Ouverture + Explore | *(à créer)* | Île fraîchement générée, peu/pas de villes, espace inexploré visible |
-| Expand | `Island2_Cities10.json` (à valider) | Espace libre suffisant pour que l'autoplay construise routes/outposts de façon visible en 3.5s |
-| Prestige (insert 2b) | *(à créer ou réutiliser Expand)* | Quelques sommets de prestige déjà acquis et visibles à l'écran — ni vide, ni totalement rempli |
-| Exploit | `Island3_WonderPlaced.json` (à valider) | Plusieurs villes productives, entrepôts pas encore pleins (pour voir le remplissage) |
-| Recherche (insert 3b) | *(à créer ou réutiliser Exploit)* | Plusieurs technologies déjà débloquées, bien réparties dans l'arbre |
+| Expand | `02_Expand.json` ☑ | Espace libre suffisant pour que l'autoplay construise routes/outposts de façon visible en ~4s |
+| Prestige (insert 2b) | `02_Expand.json` (réutilisée, `ForcedTab: Prestige`) ☑ | Quelques sommets de prestige déjà acquis et visibles à l'écran — ni vide, ni totalement rempli |
+| Exploit | `03_Exploit.json` ☑ | Plusieurs villes productives, entrepôts pas encore pleins (pour voir le remplissage) |
+| Recherche (insert 3b) | `03_Exploit.json` (réutilisée, `ForcedTab: Research`) ☑ | Plusieurs technologies déjà débloquées, bien réparties dans l'arbre |
 | Exterminate | *(à créer)* | Monstre proche d'une ville ou attaque en cours, déclenchable dans une fenêtre de 4s |
-| At Your Own Pace | `Island4_PrestigeReady.json` (à valider) | Île avancée, prestige disponible, UI TimeControl à vitesse > x1 |
-| Underworld / Abyss Gate | *(à créer)* | Save avec l'Inframonde débloqué et au moins un avant-poste actif ; **+ visuel Abyss Gate, cf. dépendance bloquante ci-dessus** |
+| At Your Own Pace | `05_AtYourOwnPace.json` ☑ | Île avancée, prestige disponible, UI TimeControl à vitesse > x1 |
+| Underworld / Abyss Gate | `06_AbyssGate.json` ☑ | Abyss Gate construit (`Built: true`) sur la couche Inframonde (hex Q=3, R=-2) ; rendu portail confirmé en place |
+
+**Saves encore manquantes : Explore (ouverture) et Exterminate.** Tant qu'elles ne sont pas fournies, ces
+deux beats sont absents de `TrailerDefinition.json` (le trailer généré aujourd'hui couvre Expand → Abyss
+Gate, soit 19s sur les 30s visés ; le carton logo final, beat 7, est hors scope du générateur — voir
+question CTA ci-dessous).
 
 ## Questions ouvertes
 
@@ -108,3 +112,9 @@ sont des **données de test à remplacer**. Pour le découpage ci-dessus il faud
   se termine maintenant sur le visuel de l'Abyss Gate avec la question "Passerez-vous le portail des
   abysses ?", puis cut direct vers le titre (nouveau beat 7, séparé de l'argument idle). L'absence de
   visuel Abyss Gate devient une dépendance bloquante pour le plan final, plus un simple teaser optionnel.
+- 2026-06-23 (révision 3) : Visuel Abyss Gate confirmé en place côté jeu (rendu portail + save de test
+  `06_AbyssGate.json` avec la Faille construite sur l'Inframonde). Saves de test renommées par beat
+  (`02_Expand.json`, `03_Exploit.json`, `05_AtYourOwnPace.json`, `06_AbyssGate.json`) et câblées dans
+  `TrailerDefinition.json` (Expand → Abyss Gate, 19s sur les 30s visés). Restent à fournir : la save
+  Explore (ouverture) et la save Exterminate ; le carton logo (beat 7) n'a pas de save et reste hors
+  scope du générateur.
