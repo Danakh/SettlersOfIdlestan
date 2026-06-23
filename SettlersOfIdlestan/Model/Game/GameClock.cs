@@ -28,7 +28,7 @@ namespace SettlersOfIdlestan.Model.Game
 
         // ── runtime (non sérialisé) ──────────────────────────────────────────
 
-        /// <summary>0 = pause, 1 = normal, 3 = accéléré.</summary>
+        /// <summary>0 = pause, 1 = normal, accéléré = x3 à x10 selon la banque de temps disponible (voir <see cref="GetFastMultiplier"/>).</summary>
         [JsonIgnore]
         public int SpeedMultiplier { get; private set; } = 1;
 
@@ -78,9 +78,22 @@ namespace SettlersOfIdlestan.Model.Game
 
         public void SetFast()
         {
-            SpeedMultiplier = 3;
+            SpeedMultiplier = GetFastMultiplier();
             _lastAdvanceTime = null;
             _tickAccumulator = 0;
+        }
+
+        /// <summary>
+        /// Multiplicateur appliqué par <see cref="SetFast"/> : x3 par défaut, augmenté selon la banque de
+        /// temps disponible (x4 au-delà de 6h, x5 au-delà de 12h, x10 au-delà de 24h).
+        /// </summary>
+        public int GetFastMultiplier()
+        {
+            double bankHours = OfflineBankTicks / 100.0 / 3600.0;
+            if (bankHours > 24) return 10;
+            if (bankHours > 12) return 5;
+            if (bankHours > 6) return 4;
+            return 3;
         }
 
         // ── hors-ligne ───────────────────────────────────────────────────────

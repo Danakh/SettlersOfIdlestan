@@ -213,6 +213,8 @@ public sealed class OverlayRenderer : IGameRenderer
         if (isMobile)
             DrawMobileSecondRowBackground(canvas);
 
+        float timeControlScale = _uiLayout.UiScale;
+        _timeControlRenderer.Initialize(_canvasSize, _uiLayout.GearX - 8f * timeControlScale, _uiLayout.TimeControlRowTop, timeControlScale);
         _timeControlRenderer.Render(canvas, context);
 
         float gearX = _uiLayout.GearX;
@@ -227,7 +229,10 @@ public sealed class OverlayRenderer : IGameRenderer
         _mapSwitchButton.Render(canvas);
 
         if (activeTab == TabBarRenderer.TabIsland)
+        {
+            _zoomControl.Initialize(_canvasSize, _uiLayout.UiScale);
             _zoomControl.Render(canvas);
+        }
 
         CheckResourceBarTooltip();
     }
@@ -407,6 +412,7 @@ public sealed class OverlayRenderer : IGameRenderer
 
     public void SwitchToPrestigeTab() => _tabBar.SetActiveTab(TabBarRenderer.TabPrestige);
     public void SwitchToIslandTab() => _tabBar.SetActiveTab(TabBarRenderer.TabIsland);
+    public void SwitchToResearchTab() => _tabBar.SetActiveTab(TabBarRenderer.TabResearch);
 
     private void HandlePointerReleased(object? sender, PointerEventArgs e)
     {

@@ -282,7 +282,7 @@
   "timecontrol_bank_tooltip": "Offline time bank\nTime accumulated while offline or paused\nUsed for speeding up game.",
   "timecontrol_pause_tooltip": "Pause (×0)",
   "timecontrol_play_tooltip": "Normal speed (×1)",
-  "timecontrol_fast_tooltip": "Fast speed (×3)",
+  "timecontrol_fast_tooltip": "Fast speed (×{0})",
   "tooltip_harvest_header": "Harvest:",
   "tooltip_harvest_manual": "Manual:",
   "tooltip_harvest_auto": "Auto:",

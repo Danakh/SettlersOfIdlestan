@@ -33,6 +33,7 @@ public class UILayoutService
     public bool IsMobile => _forceMobile || IsAutoMobile;
 
     public void ToggleForceMode() => _forceMobile = !_forceMobile;
+    public void SetForceMobile(bool forceMobile) => _forceMobile = forceMobile;
     public bool IsForcedMobile => _forceMobile;
 
     // Computed layout values — valid after UpdateCanvasSize() and UiScale are set

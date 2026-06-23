@@ -39,9 +39,12 @@ public sealed class ZoomControlRenderer : IDisposable
     public void Initialize(SKSize canvasSize, float scale)
     {
         _canvasSize = canvasSize;
-        _scale      = scale;
-        _font.Dispose();
-        _font = new SKFont { Size = 16f * scale, Typeface = SkiaFonts.Bold };
+        if (Math.Abs(scale - _scale) > 0.001f)
+        {
+            _scale = scale;
+            _font.Dispose();
+            _font = new SKFont { Size = 16f * scale, Typeface = SkiaFonts.Bold };
+        }
         RecalcRects();
     }
 

@@ -83,15 +83,15 @@ namespace SettlersOfIdlestan.Controller.Island
                     ]
                 };
             }
-            // Île 4 : archipel + 2 civilisations NPC Medium/Cautious
+            // Île 4 : compact avec lac + 2 civilisations NPC Medium/Cautious
             if (WorldId == 4)
             {
                 var tileData = new List<(TerrainType terrainType, int tileCount)>
                 {
-                    (TerrainType.Forest, 12),
-                    (TerrainType.Hill, 12),
-                    (TerrainType.Plain, 12),
-                    (TerrainType.Mountain, 12),
+                    (TerrainType.Forest, 13),
+                    (TerrainType.Hill, 13),
+                    (TerrainType.Plain, 13),
+                    (TerrainType.Mountain, 13),
                     (TerrainType.Desert, 4),
                 };
                 var features = new List<IslandFeatureParameters>
@@ -101,7 +101,7 @@ namespace SettlersOfIdlestan.Controller.Island
                     new IslandFeatureParameters(IslandFeatureType.TreasureTrove, IslandFeaturePlacement.Random),
                     new IslandFeatureParameters(IslandFeatureType.BanditHideout, IslandFeaturePlacement.FarFromAllCivilization),
                 };
-                return new IslandParameters(WorldId, tileData, features, IslandShapeType.Archipelago)
+                return new IslandParameters(WorldId, tileData, features, IslandShapeType.Lake)
                 {
                     NpcCivilizations =
                     [
