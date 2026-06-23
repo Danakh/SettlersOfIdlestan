@@ -32,6 +32,7 @@ public sealed class PrestigeRenderer : PopupRendererBase
     private SKPoint _lastPointerPosition;
 
     private readonly List<(SKRect Rect, string Key)> _hoverRects = new();
+    private SKFont? _smallFont;
 
     private readonly SKPaint _buttonPaint         = new() { Color = new SKColor(46, 125, 50),      Style = SKPaintStyle.Fill,   IsAntialias = true };
     private readonly SKPaint _buttonDisabledPaint = new() { Color = new SKColor(70, 70, 70, 220),  Style = SKPaintStyle.Fill,   IsAntialias = true };
@@ -52,6 +53,12 @@ public sealed class PrestigeRenderer : PopupRendererBase
     }
 
     public override void Initialize(SKSize canvasSize) => base.Initialize(canvasSize);
+
+    protected override void OnFontsUpdated(float s)
+    {
+        _smallFont?.Dispose();
+        _smallFont = new SKFont { Size = 9 * s, Typeface = SkiaFonts.Regular };
+    }
 
     public void HandlePointerMoved(SKPoint position)
     {
@@ -168,12 +175,14 @@ public sealed class PrestigeRenderer : PopupRendererBase
         if (hasSpire)
         {
             const float gap  = 10;
-            const float btnW = 110;
+            const float btnW = 150;
             _prestigeButtonRect = new SKRect(popup.MidX - btnW - gap / 2, popup.Bottom - Padding - ButtonHeight, popup.MidX - gap / 2, popup.Bottom - Padding);
             _corruptedPrestigeButtonRect = new SKRect(popup.MidX + gap / 2, popup.Bottom - Padding - ButtonHeight, popup.MidX + gap / 2 + btnW, popup.Bottom - Padding);
 
             canvas.DrawRoundRect(_corruptedPrestigeButtonRect, 7, 7, canPrestige ? _corruptedButtonPaint : _buttonDisabledPaint);
-            SkiaTextUtils.DrawText(canvas, _localization.Get("prestige_corrupted_action"), _corruptedPrestigeButtonRect.MidX, _corruptedPrestigeButtonRect.MidY + 5, SKTextAlign.Center, BtnFont!, TextPaint);
+            SkiaTextUtils.DrawText(canvas, _localization.Get("prestige_corrupted_action"), _corruptedPrestigeButtonRect.MidX, _corruptedPrestigeButtonRect.MidY - 1, SKTextAlign.Center, BtnFont!, TextPaint);
+            int currentCorruptionLevel = controller.GetCorruptionLevel();
+            SkiaTextUtils.DrawText(canvas, $"{currentCorruptionLevel} -> {currentCorruptionLevel + 1}", _corruptedPrestigeButtonRect.MidX, _corruptedPrestigeButtonRect.MidY + 13, SKTextAlign.Center, _smallFont!, TextPaint);
 
             _hoverRects.Add((_corruptedPrestigeButtonRect, "prestige_tooltip_corrupted_action"));
         }
@@ -260,6 +269,7 @@ public sealed class PrestigeRenderer : PopupRendererBase
         _corruptedButtonPaint.Dispose();
         _warningTextPaint.Dispose();
         _separatorPaint.Dispose();
+        _smallFont?.Dispose();
         base.Dispose();
     }
 }

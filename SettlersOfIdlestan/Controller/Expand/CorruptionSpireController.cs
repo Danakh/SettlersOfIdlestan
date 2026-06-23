@@ -100,6 +100,7 @@ namespace SettlersOfIdlestan.Controller.Expand
 
                 var tile = _state.GetMapFor(hex)?.GetTile(hex);
                 if (tile == null) continue;
+                if (tile.TerrainType == TerrainType.Water) continue;
 
                 bool hasOtherFeature = _state.GetFeaturesAt(hex).Any(f => f is not Corruption);
                 if (hasOtherFeature) continue;

@@ -21,6 +21,7 @@ public sealed class MapSwitchButtonRenderer : IDisposable
     private readonly SKPaint _borderDisabledPaint = new() { Color = new SKColor(80, 80, 90), StrokeWidth = 1.5f, Style = SKPaintStyle.Stroke, IsAntialias = true };
     private readonly SKPaint _textDisabledPaint   = new() { Color = new SKColor(100, 100, 110), IsAntialias = true };
     private SKFont _font = new() { Size = 11, Typeface = SkiaFonts.Bold };
+    private SKFont _corruptionFont = new() { Size = 9, Typeface = SkiaFonts.Bold };
 
     private SKRect _buttonRect;
     private SKSize _canvasSize;
@@ -39,7 +40,9 @@ public sealed class MapSwitchButtonRenderer : IDisposable
     {
         _canvasSize = canvasSize;
         _font.Dispose();
+        _corruptionFont.Dispose();
         _font = new SKFont { Size = 11 * _uiLayout.UiScale, Typeface = SkiaFonts.Bold };
+        _corruptionFont = new SKFont { Size = 9 * _uiLayout.UiScale, Typeface = SkiaFonts.Bold };
     }
 
     public void Render(SKCanvas canvas)
@@ -48,7 +51,7 @@ public sealed class MapSwitchButtonRenderer : IDisposable
         if (worldState == null || !worldState.Layers.ContainsKey(LayerState.UnderworldZ)) return;
 
         float s = _uiLayout.UiScale;
-        float btnW = 180f * s, btnH = 22f * s;
+        float btnW = 220f * s, btnH = 34f * s;
         float btnX = (_canvasSize.Width - btnW) / 2f;
         float btnY = _uiLayout.ResourceBarBottom + 3f * s;
         _buttonRect = new SKRect(btnX, btnY, btnX + btnW, btnY + btnH);
@@ -64,7 +67,11 @@ public sealed class MapSwitchButtonRenderer : IDisposable
         string label = worldState.CurrentViewedLayer == LayerState.UnderworldZ
             ? _localization.Get("btn_map_surface")
             : _localization.Get("btn_map_underworld");
-        SkiaTextUtils.DrawText(canvas, label, _buttonRect.MidX, _buttonRect.MidY + 4f * s, SKTextAlign.Center, _font, textPaint);
+        SkiaTextUtils.DrawText(canvas, label, _buttonRect.MidX, _buttonRect.MidY - 1f * s, SKTextAlign.Center, _font, textPaint);
+
+        int corruptionLevel = _gameControllerService.MainGameController.PrestigeController.GetCorruptionLevel();
+        string corruptionLabel = _localization.GetFormated("map_switch_corruption_level", corruptionLevel);
+        SkiaTextUtils.DrawText(canvas, corruptionLabel, _buttonRect.MidX, _buttonRect.MidY + 13f * s, SKTextAlign.Center, _corruptionFont, textPaint);
     }
 
     /// Returns true if the click was consumed.
@@ -102,5 +109,6 @@ public sealed class MapSwitchButtonRenderer : IDisposable
         _borderDisabledPaint.Dispose();
         _textDisabledPaint.Dispose();
         _font.Dispose();
+        _corruptionFont.Dispose();
     }
 }

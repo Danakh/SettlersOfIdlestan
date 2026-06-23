@@ -12,7 +12,6 @@ using SettlersOfIdlestan.Controller.Island;
 using System.Linq;
 using SettlersOfIdlestanSkia.Renderers.Debug;
 using SettlersOfIdlestan.Model.IslandFeatures;
-using SettlersOfIdlestan.Model.Monsters;
 
 namespace SettlersOfIdlestanSkia.Renderers.Island;
 
@@ -212,7 +211,7 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
                     var playerIdx = worldState.PlayerCivilization.Index;
                     worldState.HarvestLastTimesByCivilization.TryGetValue(playerIdx, out var manualTimes);
 
-                    var harvestBlockedPositions = new HashSet<HexCoord>(worldState.Features.OfType<MonsterFeature>().Where(f => f.BlocksHarvest).Select(f => f.Position));
+                    var harvestBlockedPositions = new HashSet<HexCoord>(worldState.Features.Where(f => f.BlocksHarvest).Select(f => f.Position));
                     var featuresByPosition = worldState.Features
                         .Where(f => f.ShouldRenderIcon && (f.SvgIconResourceName != null || f.TextIcon != null))
                         .GroupBy(f => f.Position)

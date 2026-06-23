@@ -961,6 +961,7 @@
   "armorsmith_production_costs": "Coût : {0} Acier ► 1 Armure en Acier par cycle",
   "btn_map_surface": "▲ Remonter en Surface",
   "btn_map_underworld": "▼ Descendre dans l'Inframonde",
+  "map_switch_corruption_level": "Corruption niv. {0}",
   "game_over_title": "Défaite",
   "game_over_line1": "Toutes vos cités ont été détruites.",
   "game_over_line2": "Votre civilisation est tombée.",

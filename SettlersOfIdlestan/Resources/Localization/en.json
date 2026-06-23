@@ -961,6 +961,7 @@
   "armorsmith_production_costs": "Cost: {0} Steel ► 1 Steel Armor per cycle",
   "btn_map_surface": "▲ Return to Surface",
   "btn_map_underworld": "▼ Descend to Underworld",
+  "map_switch_corruption_level": "Corruption lvl. {0}",
   "game_over_title": "Defeat",
   "game_over_line1": "All your cities have been destroyed.",
   "game_over_line2": "Your civilization has fallen.",
