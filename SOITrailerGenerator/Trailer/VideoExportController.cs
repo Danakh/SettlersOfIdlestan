@@ -1,7 +1,8 @@
 using SkiaSharp;
 using SettlersOfIdlestanSkia.Core;
+using SettlersOfIdlestanSkia.Services;
 
-namespace SettlersOfIdlestanSkia.Services;
+namespace SOITrailerGenerator.Trailer;
 
 /// <summary>
 /// Capture une séquence d'images PNG d'une scène de jeu pour produire une vidéo (ex: bande-annonce)

@@ -57,7 +57,6 @@ public sealed class GameScreen : IDisposable
     private HardResetPopupRenderer? _hardResetPopup;
     private DebugPanelRenderer? _debugPanelRenderer;
     private DemoEndPopupRenderer? _demoEndPopup;
-    private VideoExportController? _videoExportController;
     private bool _prestigeTransitionPending;
     private bool _demoReplayPending;
     private bool _corruptedPrestigePending;
@@ -560,7 +559,6 @@ public sealed class GameScreen : IDisposable
         if (key == "F10" && allowDebugMode) DebugExportScreenshotWithInterface();
         if (key == "F11" && allowDebugMode) DebugExportScreenshotWithTitle();
         if (key == "F12" && allowDebugMode) DebugExportScreenshotRaw();
-        if (key == "F8"  && allowDebugMode) DebugExportVideoSequence();
     }
 
     private void TogglePause()
@@ -707,36 +705,6 @@ public sealed class GameScreen : IDisposable
 
             SaveExportPng(surface, "screenshot_raw.png");
         }
-    }
-
-    /// <summary>Outil de debug (F8) : capture une séquence de PNG (10s à 30fps, cadrage/zoom actuels)
-    /// pour assemblage ultérieur en vidéo via ffmpeg — utilisé pour produire des images de bande-annonce.</summary>
-    private void DebugExportVideoSequence()
-    {
-        if (_islandMainRenderer == null) return;
-        if (_gameControllerService.CurrentGameState == null) return;
-
-        _videoExportController ??= new VideoExportController(_gameControllerService, _islandMainRenderer);
-
-        var canvasSize = _cameraService.CanvasSize;
-        int width  = (int)MathF.Ceiling(canvasSize.Width);
-        int height = (int)MathF.Ceiling(canvasSize.Height);
-        if (width <= 0 || height <= 0) return;
-
-        string outputDir = Path.Combine(FindExportDirectory(), $"video_{DateTime.Now:yyyyMMdd_HHmmss}");
-
-        _videoExportController.CaptureSequence(
-            outputDir,
-            width, height,
-            fps: 30,
-            durationSeconds: 10,
-            cameraPosition: _cameraService.Position,
-            zoomLevel: _cameraService.ZoomLevel);
-
-        _notificationToastRenderer?.ShowNotification(
-            "Export vidéo terminé",
-            $"Frames + commande ffmpeg dans {outputDir}",
-            NotificationIcon.Info);
     }
 
     private static void DrawTitleOverlay(SKCanvas canvas, SKSize canvasSize, float s)

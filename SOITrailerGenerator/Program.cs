@@ -1,4 +1,4 @@
-using SettlersOfIdlestanSkia.Trailer;
+using SOITrailerGenerator.Trailer;
 
 namespace SOITrailerGenerator;
 

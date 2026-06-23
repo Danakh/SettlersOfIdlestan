@@ -11,7 +11,7 @@ using SettlersOfIdlestanSkia.Renderers.Overlay.Tabs;
 using SettlersOfIdlestanSkia.Services;
 using SettlersOfIdlestanSkia.Services.Localization;
 
-namespace SettlersOfIdlestanSkia.Trailer;
+namespace SOITrailerGenerator.Trailer;
 
 /// <summary>
 /// Lit une TrailerDefinition.json, rejoue chaque save listée (avancement de simulation headless via

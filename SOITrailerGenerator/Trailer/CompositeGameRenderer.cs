@@ -1,7 +1,7 @@
 using SkiaSharp;
 using SettlersOfIdlestanSkia.Core;
 
-namespace SettlersOfIdlestanSkia.Trailer;
+namespace SOITrailerGenerator.Trailer;
 
 /// <summary>
 /// Combine plusieurs IGameRenderer (île + overlay UI + tooltips) en un seul renderer, dans l'ordre

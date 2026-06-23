@@ -1,6 +1,6 @@
 using SettlersOfIdlestanSkia.Services;
 
-namespace SettlersOfIdlestanSkia.Trailer;
+namespace SOITrailerGenerator.Trailer;
 
 /// <summary>
 /// IFileSystemService qui ne lit/écrit jamais rien : la génération de bande-annonce rejoue des saves

@@ -1,4 +1,4 @@
-namespace SettlersOfIdlestanSkia.Trailer;
+namespace SOITrailerGenerator.Trailer;
 
 /// <summary>
 /// Description déclarative d'une bande-annonce : résolution/fps communs et liste de séquences,
