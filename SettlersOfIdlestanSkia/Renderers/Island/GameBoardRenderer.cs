@@ -347,7 +347,17 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
     {
         float radius = HexSize * CorruptionCircleRadiusFactor * 0.85f;
         float outerSpeed = built ? 70f : 35f;
-        float outerAngle = (totalTime * outerSpeed) % 360f;
+        float outerAngleRaw = totalTime * outerSpeed;
+        float outerAngle = outerAngleRaw % 360f;
+
+        // Épaisseur de l'anneau extérieur pulsant sinusoïdalement ; le bord extérieur reste fixe à `radius`,
+        // le bord intérieur respire pour donner l'effet d'anneau qui "ondule".
+        float ringThickness = radius * 0.45f + radius * 0.18f * (float)Math.Sin(totalTime * 1.4f);
+        float ringCenterRadius = radius - ringThickness / 2f;
+
+        // Disque de fond plein pour qu'aucun trou n'apparaisse sous l'anneau quand il s'amincit.
+        using var voidPaint = new SKPaint { Color = new SKColor(8, 4, 18, 255), IsAntialias = true };
+        canvas.DrawCircle(cx, cy, radius, voidPaint);
 
         using var outerShader = SKShader.CreateSweepGradient(
             new SKPoint(cx, cy),
@@ -360,11 +370,17 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
                 new SKColor(8, 4, 18, 255),
             },
             null);
-        using var outerPaint = new SKPaint { Shader = outerShader, IsAntialias = true };
+        using var outerPaint = new SKPaint
+        {
+            Shader = outerShader,
+            IsAntialias = true,
+            Style = SKPaintStyle.Stroke,
+            StrokeWidth = ringThickness,
+        };
 
         canvas.Save();
         canvas.RotateDegrees(outerAngle, cx, cy);
-        canvas.DrawCircle(cx, cy, radius, outerPaint);
+        canvas.DrawCircle(cx, cy, ringCenterRadius, outerPaint);
         canvas.Restore();
 
         using var innerShader = SKShader.CreateSweepGradient(
@@ -378,8 +394,12 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
             null);
         using var innerPaint = new SKPaint { Shader = innerShader, IsAntialias = true };
 
+        // L'angle est dérivé de l'angle brut (non wrappé) avant le modulo, pour que le bouclage
+        // à 360° reste un multiple exact du facteur 0.6 et ne produise aucun saut visuel.
+        float innerAngle = (-outerAngleRaw * 0.6f) % 360f;
+
         canvas.Save();
-        canvas.RotateDegrees(-outerAngle * 0.6f, cx, cy);
+        canvas.RotateDegrees(innerAngle, cx, cy);
         canvas.DrawCircle(cx, cy, radius * 0.7f, innerPaint);
         canvas.Restore();
 
