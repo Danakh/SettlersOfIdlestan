@@ -3,6 +3,15 @@ Le changelog n'est pas activement mis à jour pour le moment.
 
 ---
 
+v0.5
+• Volcan : nouvelle feature de carte sur les îles avancées, avec des éruptions périodiques endommageant les villes voisines
+• Corruption de surface : la corruption progresse par niveaux sur la couche de surface
+• Porte des Abysses : monument ultime issu de l'évolution de la Spire de Corruption
+• Extension de la carte de prestige
+• Contrôle de la vitesse du temps
+
+---
+
 v0.4
 • Finalisation de la carte de prestige pour les tests bêta
 • Nouveau monstre : le Démon Mineur

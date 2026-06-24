@@ -3,6 +3,15 @@ The changelog is not actively maintained at the moment.
 
 ---
 
+v0.5
+• Volcano: new map feature on advanced islands with periodic eruptions that damage nearby cities
+• Surface Corruption: corruption now spreads through levels on the surface layer
+• Abyss Gate: ultimate monument, an evolution of the Corruption Spire
+• Prestige map expansion
+• Time speed control
+
+---
+
 v0.4
 • Prestige map finalization for beta tests
 • New monster: the Minor Demon
