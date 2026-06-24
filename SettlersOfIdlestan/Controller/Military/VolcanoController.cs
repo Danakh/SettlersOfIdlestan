@@ -5,10 +5,17 @@ using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
+using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.IslandMap;
 
 namespace SettlersOfIdlestan.Controller.Military;
+
+public class VolcanoEruptionArgs(HexCoord volcanoPosition, Vertex targetCityVertex) : EventArgs
+{
+    public HexCoord VolcanoPosition { get; } = volcanoPosition;
+    public Vertex TargetCityVertex { get; } = targetCityVertex;
+}
 
 /// <summary>
 /// Gère les éruptions périodiques des VolcanoFeature :
@@ -16,6 +23,8 @@ namespace SettlersOfIdlestan.Controller.Military;
 /// </summary>
 public class VolcanoController
 {
+    /// <summary>Déclenché à chaque fois que l'éruption frappe une ville (pour les animations).</summary>
+    public event EventHandler<VolcanoEruptionArgs>? VolcanoHitCity;
     public const long EruptionIntervalTicks = 10_000L;
     public const int EruptionDamage = 10;
     public const int Ring1ChancePercent = 50;
@@ -102,12 +111,18 @@ public class VolcanoController
                 if (touchesVolcano)
                 {
                     if (_prng.Next(100) < Ring1ChancePercent)
+                    {
                         ApplyEruptionDamage(civ, city, EruptionDamage);
+                        VolcanoHitCity?.Invoke(this, new VolcanoEruptionArgs(volcanoHex, city.Position));
+                    }
                 }
                 else if (cityHexes.Any(h => neighborHexes.Contains(h)))
                 {
                     if (_prng.Next(100) < Ring2ChancePercent)
+                    {
                         ApplyEruptionDamage(civ, city, EruptionDamage);
+                        VolcanoHitCity?.Invoke(this, new VolcanoEruptionArgs(volcanoHex, city.Position));
+                    }
                 }
             }
         }

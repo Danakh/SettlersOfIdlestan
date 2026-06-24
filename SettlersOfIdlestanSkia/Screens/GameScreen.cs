@@ -243,6 +243,11 @@ public sealed class GameScreen : IDisposable
             _gameControllerService,
             () => _prestigeTransitionPending,
             () => _overlayRenderer?.IsIslandTabActive ?? true);
+        islandMainRenderer.ConnectVolcanoEvents(
+            _gameControllerService.MainGameController.VolcanoController,
+            _gameControllerService,
+            () => _prestigeTransitionPending,
+            () => _overlayRenderer?.IsIslandTabActive ?? true);
 
         var selectedCityPanelRenderer = new SelectedCityPanelRenderer(
             _gameControllerService.CityBuildingService!, _localizationService, _inputService, _resourceManager);

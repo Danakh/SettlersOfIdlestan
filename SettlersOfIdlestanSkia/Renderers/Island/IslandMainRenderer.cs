@@ -23,6 +23,7 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
     private readonly CityRenderer _cityRenderer;
     private readonly HarvestRenderer _harvestRenderer;
     private readonly MonsterRenderer _banditRenderer;
+    private readonly VolcanoRenderer _volcanoRenderer;
     private readonly MilitaryRenderer _militaryRenderer;
     private readonly HarvestParticleSystem _harvestParticleSystem;
     private readonly IConstructionHoverProvider _constructionHoverProvider;
@@ -45,6 +46,15 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
         _militaryRenderer.Connect(militaryController, gameControllerService, isPrestigeTransitionPending, isIslandTabActive);
     }
 
+    public void ConnectVolcanoEvents(
+        VolcanoController volcanoController,
+        GameControllerService gameControllerService,
+        Func<bool> isPrestigeTransitionPending,
+        Func<bool> isIslandTabActive)
+    {
+        _volcanoRenderer.Connect(volcanoController, gameControllerService, isPrestigeTransitionPending, isIslandTabActive);
+    }
+
     public void ConnectMilitaryInteractionService(MilitaryInteractionService service)
     {
         _militaryRenderer.ConnectInteractionService(service);
@@ -58,6 +68,7 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
         _harvestParticleSystem = new HarvestParticleSystem();
         _harvestRenderer = new HarvestRenderer(_harvestParticleSystem, resourceManager, currentLayer);
         _banditRenderer = new MonsterRenderer(resourceManager);
+        _volcanoRenderer = new VolcanoRenderer(resourceManager);
         _militaryRenderer = new MilitaryRenderer(tooltipRenderer, localizationService);
         _constructionHoverProvider = constructionHoverProvider;
         _tooltipRenderer = tooltipRenderer;
@@ -90,6 +101,7 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
         _cityRenderer.Initialize(canvasSize);
         _harvestRenderer.Initialize(canvasSize);
         _banditRenderer.Initialize(canvasSize);
+        _volcanoRenderer.Initialize(canvasSize);
         _militaryRenderer.Initialize(canvasSize);
         _fadePaint = new SKPaint { Style = SKPaintStyle.Fill };
     }
@@ -127,6 +139,7 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
         {
             _gameBoardRenderer.Render(canvas, context);
             _banditRenderer.Render(canvas, context);
+            _volcanoRenderer.Render(canvas, context);
             _roadRenderer.Render(canvas, context);
             bool skipCities = SuppressCities?.Invoke() == true;
             if (!skipCities)

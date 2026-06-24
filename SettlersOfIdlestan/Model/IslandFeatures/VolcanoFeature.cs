@@ -23,7 +23,8 @@ public class VolcanoFeature : IslandFeature
 
     public override bool BlocksHarvest => true;
 
-    public override string? TextIcon => "🌋";
+    public override string? SvgIconResourceName => "Resources.icons.features.volcano-eruption.svg";
+    public override float SvgIconSize => 32f;
     public override bool ShouldRenderIcon => Found;
 
     public override LocalizedEntry? GetTooltipEntry() => new("hex_tooltip_volcano_info");
