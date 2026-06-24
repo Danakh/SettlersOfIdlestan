@@ -145,6 +145,13 @@ public sealed class GameScreen : IDisposable
             }
 
             SetupRenderers(isNewGame, allowDebugMode);
+
+            if (!isNewGame)
+            {
+                var playerCiv = _gameControllerService.PlayerCivilization;
+                if (playerCiv != null && playerCiv.Cities.Count == 0)
+                    _gameOverPending = true;
+            }
         }
         catch
         {
