@@ -339,31 +339,35 @@ public class TaskRecordController
     private void HandleFeatureRemoved(object? sender, IslandFeature e)
     {
         if (_gameRecord == null || _runRecord == null) return;
-        if (e is Bandit)
+
+        // N'accorder les kills de monstres que si c'est le joueur qui a porté le coup fatal.
+        bool killedByPlayer = e is MonsterFeature m && m.KilledByCivilizationIndex == _playerCivIndex;
+
+        if (e is Bandit && killedByPlayer)
         {
             _gameRecord.TotalBanditsDefeated++;
             _runRecord.BanditsDefeated++;
             CheckTaskCompletions();
         }
-        else if (e is BanditHideout)
+        else if (e is BanditHideout && killedByPlayer)
         {
             _gameRecord.TotalHideoutsDestroyed++;
             _runRecord.HideoutsDestroyed++;
             CheckTaskCompletions();
         }
-        else if (e is Dragon)
+        else if (e is Dragon && killedByPlayer)
         {
             _gameRecord.TotalDragonsDefeated++;
             _runRecord.DragonsDefeated++;
             CheckTaskCompletions();
         }
-        else if (e is Troll)
+        else if (e is Troll && killedByPlayer)
         {
             _gameRecord.TotalTrollsDefeated++;
             _runRecord.TrollsDefeated++;
             CheckTaskCompletions();
         }
-        else if (e is Ogre)
+        else if (e is Ogre && killedByPlayer)
         {
             _gameRecord.TotalOgresDefeated++;
             _runRecord.OgresDefeated++;

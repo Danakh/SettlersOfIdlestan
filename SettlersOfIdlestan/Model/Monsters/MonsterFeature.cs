@@ -18,6 +18,10 @@ public abstract class MonsterFeature : IslandFeature
     /// <summary>Tick du dernier combat initié par les soldats ennemis.</summary>
     public long LastAttackedByMilitaryTick { get; set; } = 0;
 
+    /// <summary>Index de la civilisation qui a porté le coup fatal. -1 = inconnu / non tué par un joueur.</summary>
+    [JsonIgnore]
+    public int KilledByCivilizationIndex { get; set; } = -1;
+
     public override float SvgIconSize => 24f;
     public override bool ShouldRenderIcon => false;
 

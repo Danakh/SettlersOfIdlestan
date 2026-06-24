@@ -84,6 +84,7 @@ internal class MonsterCombatEngine
                     city.Soldiers--;
                 monster.Hp--;
                 if (hasSteelWeapon) monster.Hp--;
+                if (monster.Hp <= 0) monster.KilledByCivilizationIndex = civ.Index;
                 city.LastAttackTick = currentTick;
                 onSoldierAttackedMonster(new SoldierAttackEventArgs(city.Position, monster.Position));
                 didAttack = true;
@@ -168,7 +169,11 @@ internal class MonsterCombatEngine
                 city.LastAttackTick = currentTick;
                 onSoldierAttackedMonster(new SoldierAttackEventArgs(city.Position, monster.Position));
 
-                if (monster.Hp <= 0) deadMonsters.Add(monster);
+                if (monster.Hp <= 0)
+                {
+                    monster.KilledByCivilizationIndex = civ.Index;
+                    deadMonsters.Add(monster);
+                }
             }
         }
 

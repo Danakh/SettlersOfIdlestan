@@ -101,6 +101,9 @@ namespace SettlersOfIdlestan.Controller.Island
                     new IslandFeatureParameters(IslandFeatureType.TreasureTrove, IslandFeaturePlacement.Random),
                     new IslandFeatureParameters(IslandFeatureType.BanditHideout, IslandFeaturePlacement.FarFromAllCivilization),
                 };
+                // 50 % de chance qu'un volcan soit présent à partir de l'île 4
+                if (_prng!.Next(100) < 50)
+                    features.Add(new IslandFeatureParameters(IslandFeatureType.Volcano, IslandFeaturePlacement.FarFromPlayer));
                 return new IslandParameters(WorldId, tileData, features, IslandShapeType.Lake)
                 {
                     NpcCivilizations =
@@ -145,6 +148,9 @@ namespace SettlersOfIdlestan.Controller.Island
                 new IslandFeatureParameters(IslandFeatureType.BanditHideout, IslandFeaturePlacement.FarFromAllCivilization),
                 new IslandFeatureParameters(IslandFeatureType.Dragon,        IslandFeaturePlacement.FarFromPlayer),
             };
+            // 50 % de chance qu'un volcan soit présent à partir de l'île 4
+            if (_prng.Next(100) < 50)
+                features.Add(new IslandFeatureParameters(IslandFeatureType.Volcano, IslandFeaturePlacement.FarFromPlayer));
 
             int civCount = _prng.Next(4, 7); // 4-6 civilisations NPC
             var npcCivs = new List<NpcParameters>(civCount);

@@ -470,6 +470,12 @@ public class IslandMapGenerator
                 case IslandFeatureType.Rats:
                     WorldState.AddFeature(new Rats(hex));
                     break;
+                case IslandFeatureType.Volcano:
+                    WorldState.AddFeature(new VolcanoFeature(hex));
+                    // 10 % de chance qu'un Dragon soit aussi présent sur le même hex
+                    if (_prng.Next(100) < 10)
+                        WorldState.AddFeature(new Dragon(hex));
+                    break;
             }
         }
     }

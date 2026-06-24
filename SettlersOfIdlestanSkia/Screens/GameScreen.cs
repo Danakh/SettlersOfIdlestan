@@ -804,6 +804,10 @@ public sealed class GameScreen : IDisposable
                 _localizationService.Get("event_minor_demon_discovered_title"),
                 _localizationService.Get("event_minor_demon_discovered_body"),
                 NotificationIcon.StoreFail),
+            GameEventType.VolcanoDiscovered => (
+                _localizationService.Get("event_volcano_discovered_title"),
+                _localizationService.Get("event_volcano_discovered_body"),
+                NotificationIcon.StoreFail),
             GameEventType.RaidMissingBarracks => (
                 _localizationService.Get("event_raid_missing_barracks_title"),
                 _localizationService.Get("event_raid_missing_barracks_body"),

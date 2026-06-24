@@ -184,6 +184,10 @@ public sealed class EventLogRenderer : IDisposable
             _dangerCardPaint, _dangerBorderPaint, _dangerTextPaint,
             _localization.Get("event_minor_demon_discovered_title"),
             _localization.Get("event_minor_demon_discovered_body")),
+        GameEventType.VolcanoDiscovered => (
+            _dangerCardPaint, _dangerBorderPaint, _dangerTextPaint,
+            _localization.Get("event_volcano_discovered_title"),
+            _localization.Get("event_volcano_discovered_body")),
         GameEventType.MinorDemonDefeated => (
             _successCardPaint, _successBorderPaint, _successTextPaint,
             _localization.Get("event_minor_demon_defeated_title"),

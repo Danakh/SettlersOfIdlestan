@@ -51,6 +51,7 @@ namespace SettlersOfIdlestan.Controller
         public TaskRecordController TaskRecordController { get; private set; }
         public AchievementController AchievementController { get; private set; }
         public AutoExtendController AutoExtendController { get; private set; }
+        public VolcanoController VolcanoController { get; private set; }
 
         /// <summary>
         /// Statistiques cumulatives à vie (cross-sauvegarde) — chargées/sauvegardées par la couche
@@ -91,6 +92,7 @@ namespace SettlersOfIdlestan.Controller
             AchievementController = new AchievementController();
             AchievementController.Connect(TaskRecordController);
             AutoExtendController = new AutoExtendController();
+            VolcanoController = new VolcanoController();
             NpcGameController = new NpcGameController();
         }
 
@@ -288,6 +290,7 @@ namespace SettlersOfIdlestan.Controller
                 FeatureController.Initialize(WorldState, Clock);
                 MilitaryController.Initialize(WorldState, Clock, CityBuilderController, CurrentMainState!.PRNG);
                 MonsterFeatureController.Initialize(WorldState, Clock, CurrentMainState!.PRNG, CityBuilderController);
+                VolcanoController.Initialize(WorldState, Clock, CurrentMainState!.PRNG, CityBuilderController);
                 TradeController.Initialize(WorldState);
                 HarvestController.Initialize(WorldState, Clock, TradeController, MonsterFeatureController, CurrentMainState!.PRNG);
                 BuildingController.Initialize(WorldState, Clock);
