@@ -25,10 +25,10 @@ public class VolcanoController
 {
     /// <summary>Déclenché à chaque fois que l'éruption frappe une ville (pour les animations).</summary>
     public event EventHandler<VolcanoEruptionArgs>? VolcanoHitCity;
-    public const long EruptionIntervalTicks = 10_000L;
-    public const int EruptionDamage = 10;
-    public const int Ring1ChancePercent = 50;
-    public const int Ring2ChancePercent = 25;
+    public const long EruptionIntervalTicks = 4_000L;
+    public const int EruptionDamage = 30;
+    public const int Ring1ChancePercent = 100;
+    public const int Ring2ChancePercent = 50;
 
     private WorldState? _state;
     private GameClock? _clock;
@@ -132,23 +132,14 @@ public class VolcanoController
     {
         if (damage <= 0) return;
 
-        // 1. Soldats — Armures d'Acier peuvent sauver des soldats
-        int soldierDmg = Math.Min(damage, city.Soldiers);
-        if (soldierDmg > 0)
-        {
-            int saved = SteelArmorEngine.TrySaveSoldiers(civ, city, soldierDmg, _prng!);
-            city.Soldiers -= soldierDmg - saved;
-            damage -= soldierDmg;
-        }
+        // Les soldats ne peuvent pas bloquer une éruption volcanique.
+        // Cascade : défense d'abord, puis niveaux de Townhall.
 
-        // 2. Défense de la ville
-        if (damage > 0)
-        {
-            int defenseDmg = Math.Min(damage, city.CurrentDefense);
-            if (defenseDmg > 0) { city.CurrentDefense -= defenseDmg; damage -= defenseDmg; }
-        }
+        // 1. Défense de la ville
+        int defenseDmg = Math.Min(damage, city.CurrentDefense);
+        if (defenseDmg > 0) { city.CurrentDefense -= defenseDmg; damage -= defenseDmg; }
 
-        // 3. Niveaux de Townhall (1 dégât = 1 niveau)
+        // 2. Niveaux de Townhall (1 dégât = 1 niveau)
         if (damage > 0)
         {
             var townHall = city.Buildings.OfType<TownHall>().FirstOrDefault();
@@ -166,7 +157,7 @@ public class VolcanoController
             }
         }
 
-        // 4. Destruction si plus de Townhall
+        // 3. Destruction si plus de Townhall
         if (!city.Buildings.OfType<TownHall>().Any())
             _cityBuilderController?.DestroyCity(city, CityDestructionCause.Monster);
     }

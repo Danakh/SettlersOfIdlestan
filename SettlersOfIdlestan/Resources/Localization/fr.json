@@ -555,7 +555,7 @@
   "event_minor_demon_discovered_body": "Un démon mineur rôde aux confins de l'Inframonde. Aussi puissant qu'un dragon, mais bien plus rapide !",
   "event_minor_demon_defeated_title": "👿 Démon mineur vaincu !",
   "event_minor_demon_defeated_body": "Vos soldats ont vaincu le démon mineur.",
-  "hex_tooltip_volcano_info": "🌋 Volcan — récolte bloquée — éruptions périodiques (10 dégâts)",
+  "hex_tooltip_volcano_info": "🌋 Volcan — récolte bloquée — éruptions périodiques (30 dégâts)",
   "event_volcano_discovered_title": "🌋 Volcan découvert !",
   "event_volcano_discovered_body": "Un volcan actif menace vos villes proches. Il érupe périodiquement et inflige des dégâts en cascade. Gardez vos cités à distance !",
   "event_deepest_mine_placed_title": "⛏ Mine Profonde fondée !",
