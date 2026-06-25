@@ -25,12 +25,16 @@
     },
     {
       "Save": "02_Expand.json",
-      "DurationSeconds": 1,
+      "DurationSeconds": 3,
       "SimulationSpeedMultiplier": 1.0,
       "Camera": { "Mode": "FitMap" },
       "ForcedTab": "Prestige",
+      "AutoplayProfile": "PrestigePurchase",
+      "CheatPrestigePoints": 60,
+      "AutoplayIntervalSeconds": 1.0,
+      "AutoplayInitialDelaySeconds": 0.5,
       "TextCues": [
-        { "Text": "PRESTIGE", "StartSeconds": 0.1, "EndSeconds": 0.9, "FadeSeconds": 0.2, "Position": "Bottom", "FontSizePx": 40 }
+        { "Text": "PRESTIGE", "StartSeconds": 0.1, "EndSeconds": 2.9, "FadeSeconds": 0.3, "Position": "Bottom", "FontSizePx": 40 }
       ]
     },
     {
@@ -45,12 +49,16 @@
     },
     {
       "Save": "03_Exploit.json",
-      "DurationSeconds": 1,
-      "SimulationSpeedMultiplier": 1.0,
+      "DurationSeconds": 3,
+      "SimulationSpeedMultiplier": 10.0,
       "Camera": { "Mode": "FitMap" },
       "ForcedTab": "Research",
+      "AutoplayProfile": "ResearchPurchase",
+      "CheatResearchPoints": 9999,
+      "AutoplayIntervalSeconds": 0.3,
+      "AutoplayInitialDelaySeconds": 0.3,
       "TextCues": [
-        { "Text": "RESEARCH", "StartSeconds": 0.1, "EndSeconds": 0.9, "FadeSeconds": 0.2, "Position": "Bottom", "FontSizePx": 40 }
+        { "Text": "RESEARCH", "StartSeconds": 0.1, "EndSeconds": 2.9, "FadeSeconds": 0.3, "Position": "Bottom", "FontSizePx": 40 }
       ]
     },
     {

@@ -105,11 +105,6 @@ public sealed class VideoExportController
             if (alpha <= 0f) continue;
 
             using var font = new SKFont(SkiaFonts.Bold, cue.FontSizePx);
-            using var paint = new SKPaint
-            {
-                Color = SKColors.White.WithAlpha((byte)(alpha * 255)),
-                IsAntialias = true
-            };
 
             float y = cue.Position switch
             {
@@ -118,7 +113,25 @@ public sealed class VideoExportController
                 _ => heightPx * 0.85f
             };
 
-            SkiaTextUtils.DrawText(canvas, cue.Text, widthPx / 2f, y, SKTextAlign.Center, font, paint);
+            float cx = widthPx / 2f;
+
+            // Ombre portée pour garantir la lisibilité sur tout fond (blanc compris)
+            float shadowOffset = Math.Max(2f, cue.FontSizePx * 0.05f);
+            using var shadowPaint = new SKPaint
+            {
+                Color = SKColors.Black.WithAlpha((byte)(alpha * 180)),
+                IsAntialias = true
+            };
+            SkiaTextUtils.DrawText(canvas, cue.Text, cx + shadowOffset, y + shadowOffset,
+                SKTextAlign.Center, font, shadowPaint);
+
+            // Texte principal en blanc
+            using var paint = new SKPaint
+            {
+                Color = SKColors.White.WithAlpha((byte)(alpha * 255)),
+                IsAntialias = true
+            };
+            SkiaTextUtils.DrawText(canvas, cue.Text, cx, y, SKTextAlign.Center, font, paint);
         }
     }
 

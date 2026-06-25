@@ -41,6 +41,29 @@ public class TrailerSequence
 
     /// <summary>Pilote CivilizationAutoplayer pendant la séquence pour montrer de vraies constructions/combats.</summary>
     public TrailerAutoplayProfile AutoplayProfile { get; set; } = TrailerAutoplayProfile.None;
+
+    /// <summary>
+    /// Intervalle minimum entre deux appels successifs de l'autoplayer (en secondes).
+    /// 0.5 = une action de construction toutes les 500 ms — les constructions apparaissent
+    /// progressivement plutôt que toutes en une fraction de seconde.
+    /// La valeur 0 ou négative déclenche l'autoplayer à chaque frame.
+    /// </summary>
+    public float AutoplayIntervalSeconds { get; set; } = 0.5f;
+
+    /// <summary>
+    /// Délai avant le premier appel de l'autoplayer (en secondes). Par défaut 0 (premier appel à la frame 0).
+    /// Utile pour laisser le temps au spectateur de voir l'état initial avant la première action.
+    /// </summary>
+    public float AutoplayInitialDelaySeconds { get; set; } = 0f;
+
+    /// <summary>Points de prestige injectés dans la save au démarrage de la séquence (triche de présentation).</summary>
+    public int CheatPrestigePoints { get; set; } = 0;
+
+    /// <summary>
+    /// Points de recherche injectés dans la save au démarrage de la séquence (triche de présentation).
+    /// Si > 0 et que la recherche n'est pas encore débloquée, achète automatiquement le vertex Central.
+    /// </summary>
+    public int CheatResearchPoints { get; set; } = 0;
 }
 
 /// <summary>Mappe un beat du storyboard (cf. STORYBOARD.md) sur les méthodes atomiques de CivilizationAutoplayer.</summary>
@@ -49,7 +72,9 @@ public enum TrailerAutoplayProfile
     None,
     Expand,
     Exploit,
-    Exterminate
+    Exterminate,
+    PrestigePurchase,
+    ResearchPurchase
 }
 
 public enum TrailerDeviceProfile

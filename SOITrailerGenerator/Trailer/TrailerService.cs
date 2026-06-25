@@ -1,9 +1,12 @@
+using System.Linq;
 using System.Text.Json;
 using System.Threading;
 using SkiaSharp;
 using SettlersOfIdlestan.Controller;
+using SettlersOfIdlestan.Controller.Expand;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
+using SettlersOfIdlestan.Model.Prestige.PrestigeMap;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Renderers.Island;
 using SettlersOfIdlestanSkia.Renderers.Overlay;
@@ -90,6 +93,8 @@ public sealed class TrailerService
         var gameControllerService = new GameControllerService();
         gameControllerService.ImportMainState(File.ReadAllText(savePath));
 
+        ApplyCheats(sequence, gameControllerService);
+
         if (gameControllerService.CurrentWorldState is { } worldState)
         {
             worldState.CurrentViewedLayer = sequence.ViewedLayer == TrailerViewedLayer.Underworld
@@ -148,6 +153,7 @@ public sealed class TrailerService
 
         var cameraAtTime = TrailerCameraTrack.Build(sequence.Camera, gameControllerService, canvasSize);
         var autoplayTick = BuildAutoplayTick(sequence.AutoplayProfile, gameControllerService);
+        var timedAutoplayTick = WrapAutoplayWithInterval(autoplayTick, sequence.AutoplayIntervalSeconds, sequence.AutoplayInitialDelaySeconds, definition.Fps);
 
         var videoExportController = new VideoExportController(gameControllerService, sceneRenderer);
         int totalFrames = definition.Fps * sequence.DurationSeconds;
@@ -163,12 +169,34 @@ public sealed class TrailerService
             startFrameIndex: startFrameIndex,
             writeFfmpegCommand: false,
             textCues: sequence.TextCues,
-            autoplayTick: autoplayTick);
+            autoplayTick: timedAutoplayTick);
 
         sceneRenderer.Dispose();
         resourceManager.Dispose();
 
         return totalFrames;
+    }
+
+    /// <summary>
+    /// Enveloppe <paramref name="autoplayTick"/> pour ne l'appeler qu'une fois par intervalle de
+    /// <paramref name="intervalSeconds"/> secondes plutôt qu'à chaque frame. Avec <paramref name="initialDelaySeconds"/> > 0,
+    /// le premier appel est retardé d'autant (laisse le spectateur voir l'état initial avant la première action).
+    /// Retourne null si autoplayTick est null. Avec intervalSeconds ≤ 0, appel à chaque frame sans délai.
+    /// </summary>
+    private static Action? WrapAutoplayWithInterval(Action? autoplayTick, float intervalSeconds, float initialDelaySeconds, int fps)
+    {
+        if (autoplayTick == null) return null;
+        if (intervalSeconds <= 0f) return autoplayTick;
+
+        int intervalFrames = Math.Max(1, (int)Math.Round(intervalSeconds * fps));
+        int initialDelayFrames = Math.Max(0, (int)Math.Round(initialDelaySeconds * fps));
+        int frame = 0;
+        return () =>
+        {
+            if (frame >= initialDelayFrames && (frame - initialDelayFrames) % intervalFrames == 0)
+                autoplayTick();
+            frame++;
+        };
     }
 
     /// <summary>
@@ -212,7 +240,30 @@ public sealed class TrailerService
             {
                 if (!autoplayer.TryStep1Once()) autoplayer.TryStep2Once();
             },
-            TrailerAutoplayProfile.Exterminate => () => autoplayer.TryMilitaryStepOnce(),
+            TrailerAutoplayProfile.Exterminate => () =>
+            {
+                autoplayer.TryMilitaryStepOnce();
+                // Assigner les FlowTargets vers les villes ennemies à portée pour déclencher les combats
+                foreach (var city in civ.Cities)
+                {
+                    if (city.FlowTarget == null)
+                    {
+                        var enemy = mainController.MilitaryController.FindNearbyEnemyCity(city);
+                        if (enemy != null) mainController.MilitaryController.SetCityFlow(city, enemy.Position);
+                    }
+                }
+            },
+            TrailerAutoplayProfile.PrestigePurchase => () =>
+            {
+                var ps = gameControllerService.CurrentGameState?.PrestigeState;
+                if (ps == null) return;
+                var cheapest = PrestigeMapController.DefaultMap.Vertices
+                    .OrderBy(v => v.Cost)
+                    .FirstOrDefault(v => mainController.PrestigeMapController.CanPurchaseVertex(ps, v.Coord));
+                if (cheapest != null)
+                    mainController.PrestigeMapController.PurchaseVertex(ps, cheapest.Coord);
+            },
+            TrailerAutoplayProfile.ResearchPurchase => () => autoplayer.TryResearchOnce(),
             _ => null
         };
     }
@@ -309,6 +360,31 @@ public sealed class TrailerService
         }
 
         return totalFrames;
+    }
+
+    /// <summary>
+    /// Injecte des points de prestige et/ou de recherche dans la save avant le début de la séquence
+    /// (triche de présentation pour que les séquences Prestige/Research montrent un vrai achat).
+    /// Si CheatResearchPoints > 0 et que la recherche n'est pas encore débloquée, achète d'abord CentralVertex.
+    /// </summary>
+    private static void ApplyCheats(TrailerSequence sequence, GameControllerService gameControllerService)
+    {
+        var ps = gameControllerService.CurrentGameState?.PrestigeState;
+        if (ps == null) return;
+
+        if (sequence.CheatPrestigePoints > 0)
+            ps.PrestigePoints += sequence.CheatPrestigePoints;
+
+        if (sequence.CheatResearchPoints > 0)
+        {
+            if (!ps.PurchasedVertices.Any(v => v.Equals(PrestigeMap.CentralVertex)))
+            {
+                ps.PrestigePoints += 10;
+                gameControllerService.MainGameController.PrestigeMapController
+                    .PurchaseVertex(ps, PrestigeMap.CentralVertex);
+            }
+            ps.TechnologyTree.ResearchPoints += sequence.CheatResearchPoints;
+        }
     }
 
     private static void WithRetry(Action action, int maxAttempts = 10, int delayMs = 300, Action<IOException>? onRetry = null)
