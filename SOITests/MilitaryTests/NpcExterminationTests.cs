@@ -101,7 +101,7 @@ public class NpcExterminationTests
         int iterCount = runner.RunPriorityStrategyUntil(
             CivilizationAutoplayerPriorities.Unified(auto, mainController.BuildingController),
             () => npcCiv.Cities.Count == 0,
-            maxIterations: 150000);
+            maxIterations: 50000);
 
         // ── Assertions ────────────────────────────────────────────────────────
         int npcDist = npcTargetCity.Position.EdgeDistanceTo(playerStartCity.Position);

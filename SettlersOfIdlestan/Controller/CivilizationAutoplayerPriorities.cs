@@ -132,7 +132,6 @@ namespace SettlersOfIdlestan.Controller
             var hasVisibleThreats = new Func<bool>(() =>
             {
                 if (auto.WorldState == null) return false;
-                if (auto.WorldState.Features.OfType<MonsterFeature>().Any(m => m.Found)) return true;
                 var visMaps = auto.WorldState.Visibility.GetForZ(IslandMap.SurfaceLayer);
                 if (!visMaps.TryGetValue(auto.Civilization.Index, out var vm)) return false;
                 return auto.WorldState.Civilizations.Any(c => c.IsNpc && c.Cities.Count > 0 &&
@@ -163,6 +162,7 @@ namespace SettlersOfIdlestan.Controller
                 new ConditionalBuildingLevelObjective(() => hasStep2Cities() && hasOreProduction(), BObj(auto, bc, Step2TH2Buildings, 1)),
 
                 // Step 3 à partir de step3AtCities (Temple)
+                new ConditionalBuildingLevelObjective(() => hasStep3Cities() && hasOreProduction(), BObj(auto, bc, new[] { BuildingType.Barracks }, 1)),
                 new ConditionalBuildingLevelObjective(hasStep3Cities, BObj(auto, bc, new[] { BuildingType.Temple }, 1)),
 
                 // Expansion finie pour accumuler des points de prestige, puis Port Impérial
