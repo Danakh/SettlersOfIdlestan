@@ -483,11 +483,59 @@ namespace SOITests.IslandMapTests.StepIslandTest
             },
             Steps = new List<IslandStepDefinition>
             {
-                TwoCitiesStep("Island1_Cities2"),
-                Island1TwelveCitiesStep("Island1_Cities6"),
-                Island1TenCitiesStep("Island1_Cities10"),
-                Island1PrestigePointsStep("Island1_Points35", Island1RequiredPrestigePoints, maxIterations: 20000),
-                Island1PrestigeAvailableStep("Island1_PrestigeReady"),
+                new()
+                {
+                    SaveName = "Island1_Cities2",
+                    RunAction = (runner, cond) => runner.RunPriorityStrategyUntil(
+                        CivilizationAutoplayerPriorities.Unified(runner.Autoplayer, runner.BuildingController), cond, 15000),
+                    Condition = ctrl =>
+                    {
+                        var civ = ctrl.CurrentMainState!.CurrentWorldState!.Civilizations[0];
+                        return civ.Cities.Count >= 2
+                            && civ.Cities.All(c => c.Buildings.Any(b => b.Type == BuildingType.TownHall));
+                    },
+                    AssertFailMessage = ctrl =>
+                    {
+                        var civ = ctrl.CurrentMainState!.CurrentWorldState!.Civilizations[0];
+                        return $"Expected at least 2 cities with TownHall, got {civ.Cities.Count}";
+                    },
+                },
+                new()
+                {
+                    SaveName = "Island1_Cities6",
+                    RunAction = (runner, cond) => runner.RunPriorityStrategyUntil(
+                        CivilizationAutoplayerPriorities.Unified(runner.Autoplayer, runner.BuildingController), cond, 40000),
+                    Condition = ctrl => ctrl.CurrentMainState!.CurrentWorldState!.Civilizations.First().Cities.Count >= 12,
+                    AssertFailMessage = ctrl =>
+                        $"Expected at least 12 cities, got {ctrl.CurrentMainState!.CurrentWorldState!.Civilizations.First().Cities.Count}",
+                },
+                new()
+                {
+                    SaveName = "Island1_Cities10",
+                    RunAction = (runner, cond) => runner.RunPriorityStrategyUntil(
+                        CivilizationAutoplayerPriorities.Unified(runner.Autoplayer, runner.BuildingController), cond, 15000),
+                    Condition = ctrl => ctrl.CurrentMainState!.CurrentWorldState!.Civilizations.First().Cities.Count >= 10,
+                    AssertFailMessage = ctrl =>
+                        $"Expected at least 10 cities, got {ctrl.CurrentMainState!.CurrentWorldState!.Civilizations.First().Cities.Count}",
+                },
+                new()
+                {
+                    SaveName = "Island1_Points35",
+                    RunAction = (runner, cond) => runner.RunPriorityStrategyUntil(
+                        CivilizationAutoplayerPriorities.Unified(runner.Autoplayer, runner.BuildingController), cond, 15000),
+                    Condition = ctrl => ctrl.PrestigeController.CalculatePrestigePoints() >= Island1RequiredPrestigePoints,
+                    AssertFailMessage = ctrl =>
+                        $"Expected at least {Island1RequiredPrestigePoints} prestige points (has {ctrl.PrestigeController.CalculatePrestigePoints()})",
+                },
+                new()
+                {
+                    SaveName = "Island1_PrestigeReady",
+                    RunAction = (runner, cond) => runner.RunPriorityStrategyUntil(
+                        CivilizationAutoplayerPriorities.Unified(runner.Autoplayer, runner.BuildingController), cond, 30000),
+                    Condition = ctrl => ctrl.PrestigeController.PrestigeIsAvailable(),
+                    AssertFailMessage = ctrl =>
+                        $"Expected prestige to be available (has {ctrl.PrestigeController.CalculatePrestigePoints()} / {PrestigeController.PrestigeRequiredPoints})",
+                },
             },
         };
 

@@ -211,9 +211,9 @@ public class NpcCivilizationPlacer
 
     private static int TargetCityCount(NpcEvolutionLevel level) => level switch
     {
-        NpcEvolutionLevel.Low    => 3,
-        NpcEvolutionLevel.Medium => 4,
-        NpcEvolutionLevel.Strong => 5,
+        NpcEvolutionLevel.Low    => 2,
+        NpcEvolutionLevel.Medium => 3,
+        NpcEvolutionLevel.Strong => 4,
         _                        => 1,
     };
 

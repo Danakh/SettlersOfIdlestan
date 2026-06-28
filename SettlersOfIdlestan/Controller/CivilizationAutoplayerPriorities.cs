@@ -165,6 +165,61 @@ namespace SettlersOfIdlestan.Controller
         // ── Présets de scénario de test ──────────────────────────────────────────
 
         /// <summary>
+        /// Stratégie unifiée : une seule liste de priorités couvrant tous les cas de figure.
+        /// Production de base (Step 1) dans toutes les villes, Palissade si un bandit est repéré,
+        /// Caserne si monstres ou civilisations NPC ennemies présentes, Step 2 (Entrepôt → TH2 →
+        /// Forge/Bibliothèque → TH3 → Mine) à partir de <paramref name="step2AtCities"/> villes,
+        /// Temple (Step 3) à partir de <paramref name="step3AtCities"/> villes. Expansion jusqu'à
+        /// <paramref name="expansionTarget"/> villes pour accumuler les points de prestige, puis
+        /// Port Impérial pour débloquer le prestige, puis expansion illimitée.
+        /// </summary>
+        public static PriorityAutoplayStrategy Unified(
+            CivilizationAutoplayer auto,
+            BuildingController bc,
+            int step2AtCities  = 4,
+            int step3AtCities  = 10,
+            int expansionTarget = 12)
+        {
+            var banditSpotted = new Func<bool>(() =>
+                auto.WorldState != null && auto.WorldState.Features.OfType<Bandit>().Any(b => b.Found));
+
+            var hasVisibleThreats = new Func<bool>(() =>
+                auto.WorldState != null && (
+                    auto.WorldState.Features.OfType<MonsterFeature>().Any(m => m.Found) ||
+                    auto.WorldState.Civilizations.Any(c => c.IsNpc && c.Cities.Count > 0)));
+
+            var hasStep2Cities  = new Func<bool>(() => auto.Civilization.Cities.Count >= step2AtCities);
+            var hasStep3Cities  = new Func<bool>(() => auto.Civilization.Cities.Count >= step3AtCities);
+
+            return Make(new IAutoplayObjective[]
+            {
+                // Production de base dans toutes les villes
+                BObj(auto, bc, Step1Buildings, 1),
+
+                // Militaire conditionnel
+                new ConditionalBuildingLevelObjective(banditSpotted,     BObj(auto, bc, new[] { BuildingType.Palisade }, 1)),
+                new ConditionalBuildingLevelObjective(hasVisibleThreats, BObj(auto, bc, new[] { BuildingType.Barracks }, 1)),
+
+                // Step 2 à partir de step2AtCities (Entrepôt → Forge/Bibliothèque → TH2 → Mine → TH3)
+                new ConditionalBuildingLevelObjective(hasStep2Cities, BObj(auto, bc, new[] { BuildingType.Warehouse },   1)),
+                new ConditionalBuildingLevelObjective(hasStep2Cities, BObj(auto, bc, Step2TH2Buildings,                  1)),
+                new ConditionalBuildingLevelObjective(hasStep2Cities, BObj(auto, bc, new[] { BuildingType.TownHall },    2)),
+                new ConditionalBuildingLevelObjective(hasStep2Cities, BObj(auto, bc, Step2TH3Buildings,                  1)),
+                new ConditionalBuildingLevelObjective(hasStep2Cities, BObj(auto, bc, new[] { BuildingType.TownHall },    3)),
+
+                // Step 3 à partir de step3AtCities (Temple)
+                new ConditionalBuildingLevelObjective(hasStep3Cities, BObj(auto, bc, new[] { BuildingType.Temple }, 1)),
+
+                // Expansion finie pour accumuler des points de prestige, puis Port Impérial
+                new CityCountObjective(auto, expansionTarget),
+                new ImperialPortObjective(auto),
+
+                // Expansion illimitée après le prestige
+                new CityCountObjective(auto, int.MaxValue),
+            });
+        }
+
+        /// <summary>
         /// Stratégie pour exterminer les monstres de surface (île 2). TownHall 3 déverrouille
         /// la Mine (AvailableAtLevel = 3) nécessaire à la production de soldats. La Palissade
         /// est conditionnelle à l'apparition d'un Bandit (BanditHideout).
