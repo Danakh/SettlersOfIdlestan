@@ -81,6 +81,58 @@ namespace SOITests.IslandMapTests.StepIslandTest
                 $"Expected at least 10 cities, got {ctrl.CurrentMainState!.CurrentWorldState!.Civilizations.First().Cities.Count}",
         };
 
+        /// <summary>
+        /// Expands the civilization via Step2 as long as road slots are available. Stops as soon as
+        /// no more roads can be built (topologically or due to enemy territory blocking every frontier
+        /// edge), then exits. The step is considered complete when the road network is saturated —
+        /// the city count reached is whatever the map allows.
+        /// </summary>
+        private static IslandStepDefinition AllCitiesStep(string saveName) => new()
+        {
+            SaveName = saveName,
+            RunAction = (runner, cond) => runner.RunStepExpandWhileRoadsExistUntil(cond),
+            Condition = ctrl =>
+            {
+                var civ = ctrl.CurrentMainState!.CurrentWorldState!.Civilizations.First();
+                return !ctrl.RoadController.GetBuildableRoads(civ.Index).Any();
+            },
+            AssertFailMessage = ctrl =>
+            {
+                var civ = ctrl.CurrentMainState!.CurrentWorldState!.Civilizations.First();
+                int buildableRoads = ctrl.RoadController.GetBuildableRoads(civ.Index).Count;
+                int buildableVertices = ctrl.CityBuilderController.GetBuildableVertices(civ.Index).Count;
+                return $"Expected road network to be saturated (0 buildable roads); got {civ.Cities.Count} cities, {buildableRoads} buildable roads, {buildableVertices} buildable vertices";
+            },
+        };
+
+        /// <summary>
+        /// Mixed attack and rebuild loop: alternates between targeting the NPC civilization with the
+        /// fewest player-visible cities and expanding/rebuilding the player civilization back to
+        /// <paramref name="targetPlayerCityCount"/> with Barracks after each NPC city is destroyed.
+        /// Exits as soon as 12 cities are reached, or at 10 cities once the territory is fully
+        /// saturated (no buildable roads and no buildable vertices remaining).
+        /// </summary>
+        private static IslandStepDefinition AttackWeakestNpcAndRebuildStep(string saveName, int targetPlayerCityCount = 12, int maxIterations = 100000) => new()
+        {
+            SaveName = saveName,
+            RunAction = (runner, cond) => runner.RunStepAttackWeakestNpcAndRebuildUntil(cond, targetPlayerCityCount, maxIterations),
+            Condition = ctrl =>
+            {
+                var civ = ctrl.CurrentMainState!.CurrentWorldState!.Civilizations.First();
+                if (civ.Cities.Count >= 12) return true;
+                return civ.Cities.Count >= 10
+                    && !ctrl.RoadController.GetBuildableRoads(civ.Index).Any()
+                    && ctrl.CityBuilderController.GetBuildableVertices(civ.Index).Count == 0;
+            },
+            AssertFailMessage = ctrl =>
+            {
+                var civ = ctrl.CurrentMainState!.CurrentWorldState!.Civilizations.First();
+                int buildableRoads = ctrl.RoadController.GetBuildableRoads(civ.Index).Count;
+                int buildableVertices = ctrl.CityBuilderController.GetBuildableVertices(civ.Index).Count;
+                return $"Expected to reach 10+ cities with saturated territory (12 if possible); got {civ.Cities.Count} cities, {buildableRoads} buildable roads, {buildableVertices} buildable vertices";
+            },
+        };
+
         // ── Island 1-specific step definitions ──────────────────────────────────
         // Found via SOIStrategyTester (SOIStrategyTester/Data/Best/island1-step*.best.json) and used
         // only for Island1, whose later steps start from a fresh, research-less, un-prestiged game —
@@ -471,9 +523,9 @@ namespace SOITests.IslandMapTests.StepIslandTest
                 WonderPlacedStep("Island3_WonderPlaced"),
                 WonderLevelStep("Island3_Wonder1", targetLevel: 1),
                 // Pushed well past the default threshold, after the wonder's multiplier is already
-                // active: Island 4 (archipelago) needs the Watchtower (100) + MaritimeRoutes (400)
-                // chain bought deterministically at its own transition (see Island4's Prestige step), which
-                // requires a healthy banked surplus.
+                // active: Island 4 has 2 Medium/Cautious NPC civilizations on the same landmass (Lake
+                // shape), so a large prestige surplus lets the greedy distributor buy multiple useful
+                // vertices without having to reserve points for a specific unlock.
                 PrestigePointsStep("Island3_Points700", requiredPoints: 700, shouldExpand: true, maxIterations: 30000),
             },
         };
@@ -487,33 +539,26 @@ namespace SOITests.IslandMapTests.StepIslandTest
             IsInputAvailable = folder => SaveUtils.SaveExists(folder, "Island3_Points700"),
             Steps = new List<IslandStepDefinition>
             {
-                // Third prestige transition. Island 4 is an archipelago — Watchtower then
-                // MaritimeRoutes are purchased first (deterministically) so the player can build roads
-                // across water and reach the NPC civilizations on other landmasses; the remaining
-                // balance is then spent greedily as usual.
+                // Third prestige transition. Island 4 is Lake-shaped (compact with lake) — all
+                // civilizations share the same landmass. No maritime routes are needed; the greedy
+                // distributor spends the banked surplus on whatever is most cost-effective.
                 new()
                 {
                     SaveName = "Island4_Prestige",
-                    RunAction = (runner, cond) => runner.RunStepPrestige(cond, new[] { PrestigeMap.WatchtowerVertex, PrestigeMap.MaritimeRoutesVertex }),
+                    RunAction = (runner, cond) => runner.RunStepPrestige(cond),
                     Condition = ctrl => ctrl.CurrentMainState?.PrestigeState?.RunHistory.Count >= 3,
                     AssertFailMessage = _ => "Expected third prestige to have been performed (RunHistory.Count < 3)",
                 },
                 TwoCitiesStep("Island4_Cities2"),
                 SixCitiesStep("Island4_Cities6"),
-                TenCitiesStep("Island4_Cities10"),
+                AllCitiesStep("Island4_Cities10"),
                 BarracksLevel1Step("Island4_Barracks1"),
-                // Both budgets are pushed well past the usual default: with the extermination loop
-                // disabled above, the economy entering this step is much weaker (no incidental growth
-                // from a long-running combat/expansion loop), so reaching the Imperial Port's city-level-4
-                // requirement takes a lot more grinding than on Island 2/3.
+                AttackWeakestNpcAndRebuildStep("Island4_ExtermineAndRebuild"),
                 PrestigePointsStep("Island4_Points20", maxIterations: 100000),
                 PrestigeAvailableStep("Island4_PrestigeReady", maxIterations: 300000),
                 WonderPlacedStep("Island4_WonderPlaced"),
                 // One level further than Island 3's target (level 1) — the Wonder is a fresh,
                 // per-island feature, so Island 4 re-places it and pushes one level beyond.
-                // Weaker economy than usual entering this step (BarracksLevel1Step above skips the
-                // long incidental growth the extermination loop used to provide), so the wonder takes
-                // longer to fund — same reasoning as the budgets bumped on Island4_Points20/PrestigeReady.
                 WonderLevelStep("Island4_Wonder2", targetLevel: 2, maxIterations: 300000),
             },
         };

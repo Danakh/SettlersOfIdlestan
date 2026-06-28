@@ -186,9 +186,7 @@ public class NpcCivilizationPlacer
         city.InvalidateLevelCache();
         AddStep1ProductionBuildings(map, city);
         city.Buildings.Add(new Market());
-        city.Buildings.Add(new Warehouse { Level = 1 });
         civ.AddCity(city);
-        FillMaxResources(civ);
     }
 
     private static void AddStep1ProductionBuildings(IslandMap map, City city)
@@ -214,8 +212,8 @@ public class NpcCivilizationPlacer
     private static int TargetCityCount(NpcEvolutionLevel level) => level switch
     {
         NpcEvolutionLevel.Low    => 3,
-        NpcEvolutionLevel.Medium => 5,
-        NpcEvolutionLevel.Strong => 7,
+        NpcEvolutionLevel.Medium => 4,
+        NpcEvolutionLevel.Strong => 5,
         _                        => 1,
     };
 

@@ -1,0 +1,228 @@
+﻿=== BILAN TRAILER — SETTLERS OF IDLESTAN ===
+Généré le : 2026-06-26 20:01:55
+Paramètres simulation : 30 fps, 3 ticks/frame, intervalle autoplayer : 0,5s
+
+--- 1 — EXPLORE (01_Explore.json, 5s, 3 ticks/frame) ---
+  État initial :
+    Routes          : 0
+    Villes joueur   : 1
+    Bâtiments total : 6
+    Bâtiments milit.: 0
+    Soldats joueur  : 0
+    Villes ennemies : 0
+    Défense ennemie : 0
+    Points prestige : 0
+    Vertices achetés: 0
+    Points recherche: 0
+    Techs complétées: 0
+  État final :
+    Routes          : 5 (+5)
+    Villes joueur   : 3 (+2)
+    Bâtiments total : 6 (+0)
+    Bâtiments milit.: 0 (+0)
+    Soldats joueur  : 0 (+0)
+    Villes ennemies : 0 (+0)
+    Défense ennemie : 0 (+0)
+    Points prestige : 0 (+0)
+    Vertices achetés: 0 (+0)
+    Points recherche: 0 (+0)
+    Techs complétées: 0 (+0)
+    Ticks simulés   : 450
+  RÉSULTAT : OK
+
+--- 2 — EXPAND (02_Expand.json, 4s, 3 ticks/frame) ---
+  État initial :
+    Routes          : 23
+    Villes joueur   : 10
+    Bâtiments total : 37
+    Bâtiments milit.: 0
+    Soldats joueur  : 0
+    Villes ennemies : 0
+    Défense ennemie : 0
+    Points prestige : 1
+    Vertices achetés: 2
+    Points recherche: 0
+    Techs complétées: 0
+  État final :
+    Routes          : 25 (+2)
+    Villes joueur   : 10 (+0)
+    Bâtiments total : 37 (+0)
+    Bâtiments milit.: 0 (+0)
+    Soldats joueur  : 0 (+0)
+    Villes ennemies : 0 (+0)
+    Défense ennemie : 0 (+0)
+    Points prestige : 1 (+0)
+    Vertices achetés: 2 (+0)
+    Points recherche: 0 (+0)
+    Techs complétées: 0 (+0)
+    Ticks simulés   : 360
+  RÉSULTAT : OK
+
+--- 3 — PRESTIGE (insert) (02_Expand.json, 3s, 3 ticks/frame) ---
+  État initial :
+    Routes          : 23
+    Villes joueur   : 10
+    Bâtiments total : 37
+    Bâtiments milit.: 0
+    Soldats joueur  : 0
+    Villes ennemies : 0
+    Défense ennemie : 0
+    Points prestige : 61
+    Vertices achetés: 2
+    Points recherche: 0
+    Techs complétées: 0
+  État final :
+    Routes          : 23 (+0)
+    Villes joueur   : 10 (+0)
+    Bâtiments total : 37 (+0)
+    Bâtiments milit.: 0 (+0)
+    Soldats joueur  : 0 (+0)
+    Villes ennemies : 0 (+0)
+    Défense ennemie : 0 (+0)
+    Points prestige : 11 (-50)
+    Vertices achetés: 4 (+2)
+    Points recherche: 0 (+0)
+    Techs complétées: 0 (+0)
+    Ticks simulés   : 270
+  RÉSULTAT : OK
+
+--- 4 — EXPLOIT (03_Exploit.json, 4s, 3 ticks/frame) ---
+  État initial :
+    Routes          : 32
+    Villes joueur   : 13
+    Bâtiments total : 116
+    Bâtiments milit.: 3
+    Soldats joueur  : 9
+    Villes ennemies : 5
+    Défense ennemie : 120
+    Points prestige : 24
+    Vertices achetés: 4
+    Points recherche: 1494
+    Techs complétées: 3
+  État final :
+    Routes          : 35 (+3)
+    Villes joueur   : 14 (+1)
+    Bâtiments total : 119 (+3)
+    Bâtiments milit.: 3 (+0)
+    Soldats joueur  : 11 (+2)
+    Villes ennemies : 5 (+0)
+    Défense ennemie : 120 (+0)
+    Points prestige : 24 (+0)
+    Vertices achetés: 4 (+0)
+    Points recherche: 1497 (+3)
+    Techs complétées: 3 (+0)
+    Ticks simulés   : 360
+  RÉSULTAT : OK
+
+--- 5 — RESEARCH (insert) (03_Exploit.json, 3s, 33 ticks/frame) ---
+  État initial :
+    Routes          : 32
+    Villes joueur   : 13
+    Bâtiments total : 116
+    Bâtiments milit.: 3
+    Soldats joueur  : 9
+    Villes ennemies : 5
+    Défense ennemie : 120
+    Points prestige : 34
+    Vertices achetés: 4
+    Points recherche: 11493
+    Techs complétées: 3
+  État final :
+    Routes          : 32 (+0)
+    Villes joueur   : 13 (+0)
+    Bâtiments total : 116 (+0)
+    Bâtiments milit.: 3 (+0)
+    Soldats joueur  : 20 (+11)
+    Villes ennemies : 5 (+0)
+    Défense ennemie : 120 (+0)
+    Points prestige : 34 (+0)
+    Vertices achetés: 4 (+0)
+    Points recherche: 9776 (-1717)
+    Techs complétées: 6 (+3)
+    Ticks simulés   : 2970
+  RÉSULTAT : OK
+
+--- 6 — EXTERMINATE (04_Exterminate.json, 4s, 10 ticks/frame) ---
+  État initial :
+    Routes          : 145
+    Villes joueur   : 25
+    Bâtiments total : 254
+    Bâtiments milit.: 50
+    Soldats joueur  : 225
+    Villes ennemies : 12
+    Défense ennemie : 228
+    Points prestige : 1
+    Vertices achetés: 5
+    Points recherche: 543
+    Techs complétées: 15
+  État final :
+    Routes          : 145 (+0)
+    Villes joueur   : 25 (+0)
+    Bâtiments total : 254 (+0)
+    Bâtiments milit.: 50 (+0)
+    Soldats joueur  : 193 (-32)
+    Villes ennemies : 11 (-1)
+    Défense ennemie : 237 (+9)
+    Points prestige : 1 (+0)
+    Vertices achetés: 5 (+0)
+    Points recherche: 583 (+40)
+    Techs complétées: 15 (+0)
+    Ticks simulés   : 1200
+  RÉSULTAT : OK
+
+--- 7 — AT YOUR OWN PACE (05_AtYourOwnPace.json, 4s, 3 ticks/frame) ---
+  État initial :
+    Routes          : 22
+    Villes joueur   : 10
+    Bâtiments total : 81
+    Bâtiments milit.: 18
+    Soldats joueur  : 45
+    Villes ennemies : 25
+    Défense ennemie : 195
+    Points prestige : 65
+    Vertices achetés: 8
+    Points recherche: 0
+    Techs complétées: 18
+  État final :
+    Routes          : 22 (+0)
+    Villes joueur   : 10 (+0)
+    Bâtiments total : 81 (+0)
+    Bâtiments milit.: 18 (+0)
+    Soldats joueur  : 45 (+0)
+    Villes ennemies : 25 (+0)
+    Défense ennemie : 195 (+0)
+    Points prestige : 65 (+0)
+    Vertices achetés: 8 (+0)
+    Points recherche: 0 (+0)
+    Techs complétées: 18 (+0)
+    Ticks simulés   : 360
+  RÉSULTAT : OK
+
+--- 8 — ABYSS GATE (06_AbyssGate.json, 5s, 3 ticks/frame) ---
+  État initial :
+    Routes          : 410
+    Villes joueur   : 133
+    Bâtiments total : 1257
+    Bâtiments milit.: 266
+    Soldats joueur  : 3413
+    Villes ennemies : 8
+    Défense ennemie : 182
+    Points prestige : 15618
+    Vertices achetés: 45
+    Points recherche: 364562
+    Techs complétées: 52
+  État final :
+    Routes          : 410 (+0)
+    Villes joueur   : 133 (+0)
+    Bâtiments total : 1257 (+0)
+    Bâtiments milit.: 266 (+0)
+    Soldats joueur  : 3535 (+122)
+    Villes ennemies : 8 (+0)
+    Défense ennemie : 182 (+0)
+    Points prestige : 15618 (+0)
+    Vertices achetés: 45 (+0)
+    Points recherche: 364663 (+101)
+    Techs complétées: 52 (+0)
+    Ticks simulés   : 450
+  RÉSULTAT : OK
+

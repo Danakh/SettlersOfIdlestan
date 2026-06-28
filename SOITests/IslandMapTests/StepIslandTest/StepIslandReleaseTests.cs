@@ -119,13 +119,12 @@ namespace SOITests.IslandMapTests.StepIslandTest
         public void Release1_0_Island4_Cities10() =>
             IslandScenarioRunner.RunStep(StepIslandScenarios.Island4, 3, "release-1.0", saveFinal: false);
 
-        // Note: no Release1_0_Island4_Barracks1, PrestigeReady, WonderPlaced or Wonder2 facts — same
-        // reason as Island 2/3's extermination steps; Points20 below needs the Island4_Barracks1.json
-        // fixture checked into saves/release-1.0/ (under the new naming) or it fails outright
-        // (release-1.0 has no frozen saves past Island2 today, so this fails until that fixture exists).
+        // Note: no Release1_0_Island4_Barracks1, ExtermineAndRebuild, PrestigeReady, WonderPlaced or
+        // Wonder2 facts — same reason as Island 2/3's extermination steps; Points20 below needs the
+        // Island4_ExtermineAndRebuild.json fixture checked into saves/release-1.0/ or it fails outright
 
         [Fact]
         public void Release1_0_Island4_Points20() =>
-            IslandScenarioRunner.RunStep(StepIslandScenarios.Island4, 5, "release-1.0", saveFinal: false);
+            IslandScenarioRunner.RunStep(StepIslandScenarios.Island4, 6, "release-1.0", saveFinal: false);
     }
 }

@@ -308,4 +308,118 @@ public class CivilizationAutoplayerRunner
             Advance();
         }
     }
+
+    /// <summary>
+    /// Expands the civilization via Step2 until the city count has been stable for
+    /// <paramref name="stagnationWindow"/> consecutive iterations (no new city placed),
+    /// which signals that all reachable vertices are already occupied. Exits early if
+    /// <paramref name="condition"/> is met.
+    /// </summary>
+    public void RunStepExpandToStableUntil(Func<bool> condition, int stagnationWindow = 200, int maxIterations = 30000)
+    {
+        int lastCityCount = _civ.Cities.Count;
+        int stagnantIterations = 0;
+
+        for (int i = 0; i < maxIterations && !condition(); i++)
+        {
+            try { _autoplayer.TryStep2Once(shouldExpand: true); } catch { }
+            Advance();
+
+            int newCount = _civ.Cities.Count;
+            if (newCount > lastCityCount)
+            {
+                lastCityCount = newCount;
+                stagnantIterations = 0;
+            }
+            else if (++stagnantIterations >= stagnationWindow)
+                break;
+        }
+    }
+
+    /// <summary>
+    /// Expands the civilization via Step2 as long as there are road slots available in the
+    /// reachable network. Stops as soon as <see cref="RoadController.GetBuildableRoads"/> returns
+    /// empty — meaning no further expansion is topologically possible — or until
+    /// <paramref name="condition"/> is met.
+    /// </summary>
+    public void RunStepExpandWhileRoadsExistUntil(Func<bool> condition, int maxIterations = 30000)
+    {
+        for (int i = 0; i < maxIterations && !condition(); i++)
+        {
+            if (!_controller.RoadController.GetBuildableRoads(_civ.Index).Any())
+                break;
+
+            try { _autoplayer.TryStep2Once(shouldExpand: true); } catch { }
+            Advance();
+        }
+    }
+
+    /// <summary>
+    /// Alternates between attack and rebuild phases until all NPC civilizations are eliminated
+    /// (or <paramref name="condition"/> is met). Each iteration focuses player city attacks on the
+    /// NPC civilization with the fewest cities visible to the player. Whenever an NPC city is
+    /// destroyed, the runner switches to rebuild mode: it expands the player civilization back
+    /// up to <paramref name="targetPlayerCityCount"/> and builds Barracks in every city before
+    /// returning to the attack phase.
+    /// </summary>
+    public void RunStepAttackWeakestNpcAndRebuildUntil(Func<bool> condition, int targetPlayerCityCount = 12, int maxIterations = 100000)
+    {
+        var militaryController = _controller.MilitaryController;
+        var worldState = _controller.CurrentMainState!.CurrentWorldState!;
+        int prevNpcCityCount = worldState.Civilizations.Where(c => c.IsNpc).Sum(c => c.Cities.Count);
+        bool inRebuildPhase = _civ.Cities.Count < targetPlayerCityCount;
+
+        var barracksObjective = new BuildingLevelObjective(_autoplayer, _controller.BuildingController,
+            new[] { BuildingType.Barracks }, targetLevel: 1);
+
+        for (int i = 0; i < maxIterations && !condition(); i++)
+        {
+            try
+            {
+                int currentNpcCityCount = worldState.Civilizations.Where(c => c.IsNpc).Sum(c => c.Cities.Count);
+                if (currentNpcCityCount < prevNpcCityCount)
+                {
+                    prevNpcCityCount = currentNpcCityCount;
+                    inRebuildPhase = true;
+                }
+
+                if (inRebuildPhase)
+                {
+                    bool needsMoreCities = _civ.Cities.Count < targetPlayerCityCount;
+                    _autoplayer.TryStep2Once(shouldExpand: needsMoreCities);
+                    _autoplayer.TryMilitaryStepOnce();
+
+                    if (!needsMoreCities && barracksObjective.IsComplete())
+                        inRebuildPhase = false;
+                }
+                else
+                {
+                    var visibleMaps = worldState.Visibility.GetForZ(IslandMap.SurfaceLayer);
+                    visibleMaps.TryGetValue(_civ.Index, out var playerVisibleMap);
+
+                    var weakestNpc = worldState.Civilizations
+                        .Where(c => c.IsNpc && c.Cities.Count > 0)
+                        .OrderBy(c => playerVisibleMap == null
+                            ? c.Cities.Count
+                            : c.Cities.Count(city => city.Position.GetHexes().Any(h => playerVisibleMap.HasTile(h))))
+                        .FirstOrDefault();
+
+                    _autoplayer.TryMilitaryStepOnce();
+                    _autoplayer.TryStep2Once(shouldExpand: true);
+
+                    if (weakestNpc != null)
+                    {
+                        foreach (var city in _civ.Cities.ToList())
+                        {
+                            if (city.FlowTarget != null) continue;
+                            var enemy = militaryController.FindNearbyEnemyCity(city, new[] { weakestNpc.Index });
+                            if (enemy != null) militaryController.SetCityFlow(city, enemy.Position);
+                        }
+                    }
+                }
+            }
+            catch { }
+            Advance();
+        }
+    }
 }

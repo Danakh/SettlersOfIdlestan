@@ -158,7 +158,7 @@ namespace SettlersOfIdlestan.Controller.Island
             {
                 // Plus d'expansion => moins agressif (et vice-versa), avec léger bruit.
                 int expansionScore    = _prng.Next(0, 4);
-                int aggressivityScore = Math.Clamp(3 - expansionScore + _prng.Next(-1, 2), 0, 3);
+                int aggressivityScore = Math.Clamp(3 - expansionScore + _prng.Next(-1, 1), 0, 3);
                 npcCivs.Add(new NpcParameters
                 {
                     EvolutionLevel    = (NpcEvolutionLevel)expansionScore,

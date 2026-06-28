@@ -125,28 +125,29 @@ namespace SOITests.IslandMapTests.StepIslandTest
         public void Current_Island4_Cities10() =>
             IslandScenarioRunner.RunStep(StepIslandScenarios.Island4, 3, "current", saveFinal: true);
 
-        // Stands in for the full extermination step (too slow to run regularly) — just builds the
-        // Barracks to level 1 everywhere. Swap StepIslandScenarios.Island4's Steps[4] back to
-        // ExterminateCivilizationsStep to re-enable the real thing.
         [Fact]
         public void Current_Island4_Barracks1() =>
             IslandScenarioRunner.RunStep(StepIslandScenarios.Island4, 4, "current", saveFinal: true);
 
         [Fact]
-        public void Current_Island4_Points20() =>
+        public void Current_Island4_ExtermineAndRebuild() =>
             IslandScenarioRunner.RunStep(StepIslandScenarios.Island4, 5, "current", saveFinal: true);
 
         [Fact]
-        public void Current_Island4_PrestigeReady() =>
+        public void Current_Island4_Points20() =>
             IslandScenarioRunner.RunStep(StepIslandScenarios.Island4, 6, "current", saveFinal: true);
 
         [Fact]
-        public void Current_Island4_WonderPlaced() =>
+        public void Current_Island4_PrestigeReady() =>
             IslandScenarioRunner.RunStep(StepIslandScenarios.Island4, 7, "current", saveFinal: true);
 
         [Fact]
-        public void Current_Island4_Wonder2() =>
+        public void Current_Island4_WonderPlaced() =>
             IslandScenarioRunner.RunStep(StepIslandScenarios.Island4, 8, "current", saveFinal: true);
+
+        [Fact]
+        public void Current_Island4_Wonder2() =>
+            IslandScenarioRunner.RunStep(StepIslandScenarios.Island4, 9, "current", saveFinal: true);
 
         // ── Island 5 — current mode (start of the run only) ───────────────────
 

@@ -18,7 +18,7 @@ namespace SOITests.IslandMapTests.StepIslandTest
                 (StepIslandScenarios.Island1, 0), (StepIslandScenarios.Island1, 1), (StepIslandScenarios.Island1, 2), (StepIslandScenarios.Island1, 3), (StepIslandScenarios.Island1, 4),
                 (StepIslandScenarios.Island2, 0), (StepIslandScenarios.Island2, 1), (StepIslandScenarios.Island2, 2), (StepIslandScenarios.Island2, 3), (StepIslandScenarios.Island2, 4), (StepIslandScenarios.Island2, 5), (StepIslandScenarios.Island2, 6), (StepIslandScenarios.Island2, 7),
                 (StepIslandScenarios.Island3, 0), (StepIslandScenarios.Island3, 1), (StepIslandScenarios.Island3, 2), (StepIslandScenarios.Island3, 3), (StepIslandScenarios.Island3, 4), (StepIslandScenarios.Island3, 5), (StepIslandScenarios.Island3, 6), (StepIslandScenarios.Island3, 7), (StepIslandScenarios.Island3, 8), (StepIslandScenarios.Island3, 9),
-                (StepIslandScenarios.Island4, 0), (StepIslandScenarios.Island4, 1), (StepIslandScenarios.Island4, 2), (StepIslandScenarios.Island4, 3), (StepIslandScenarios.Island4, 4), (StepIslandScenarios.Island4, 5), (StepIslandScenarios.Island4, 6), (StepIslandScenarios.Island4, 7), (StepIslandScenarios.Island4, 8),
+                (StepIslandScenarios.Island4, 0), (StepIslandScenarios.Island4, 1), (StepIslandScenarios.Island4, 2), (StepIslandScenarios.Island4, 3), (StepIslandScenarios.Island4, 4), (StepIslandScenarios.Island4, 5), (StepIslandScenarios.Island4, 6), (StepIslandScenarios.Island4, 7), (StepIslandScenarios.Island4, 8), (StepIslandScenarios.Island4, 9),
                 (StepIslandScenarios.Island5, 0),
             ];
             foreach (var (scenario, stepIndex) in steps)
@@ -48,7 +48,7 @@ namespace SOITests.IslandMapTests.StepIslandTest
                 (StepIslandScenarios.Island1, 1), (StepIslandScenarios.Island1, 2), (StepIslandScenarios.Island1, 3), (StepIslandScenarios.Island1, 4),
                 (StepIslandScenarios.Island2, 0), (StepIslandScenarios.Island2, 1), (StepIslandScenarios.Island2, 2), (StepIslandScenarios.Island2, 3), (StepIslandScenarios.Island2, 4), (StepIslandScenarios.Island2, 6), (StepIslandScenarios.Island2, 7),
                 (StepIslandScenarios.Island3, 0), (StepIslandScenarios.Island3, 1), (StepIslandScenarios.Island3, 2), (StepIslandScenarios.Island3, 3), (StepIslandScenarios.Island3, 5), (StepIslandScenarios.Island3, 6), (StepIslandScenarios.Island3, 7), (StepIslandScenarios.Island3, 8),
-                (StepIslandScenarios.Island4, 0), (StepIslandScenarios.Island4, 1), (StepIslandScenarios.Island4, 2), (StepIslandScenarios.Island4, 3), (StepIslandScenarios.Island4, 5),
+                (StepIslandScenarios.Island4, 0), (StepIslandScenarios.Island4, 1), (StepIslandScenarios.Island4, 2), (StepIslandScenarios.Island4, 3), (StepIslandScenarios.Island4, 6),
             ];
             foreach (var (scenario, stepIndex) in steps)
                 IslandScenarioRunner.RunStep(scenario, stepIndex, "release-1.0", saveFinal: false);
