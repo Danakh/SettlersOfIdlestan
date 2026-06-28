@@ -84,6 +84,31 @@ namespace SOITests.IslandMapTests.StepIslandTest
         };
 
         /// <summary>
+        /// Expands the civilization via Step2 until it reaches at least 15 cities or the road network
+        /// is saturated (no more buildable roads). Used as a pre-war expansion step so that the player
+        /// has enough cities bordering NPC territory before the extermination phase begins — Medium NPC
+        /// cities start with Palisade + Barracks and regenerate soldiers, requiring a large enough
+        /// attacking force to overcome their resistance within the iteration budget.
+        /// </summary>
+        private static IslandStepDefinition FifteenCitiesOrSaturatedStep(string saveName) => new()
+        {
+            SaveName = saveName,
+            RunAction = (runner, cond) => runner.RunStepExpandWhileRoadsExistUntil(cond),
+            Condition = ctrl =>
+            {
+                var civ = ctrl.CurrentMainState!.CurrentWorldState!.Civilizations.First();
+                if (civ.Cities.Count >= 15) return true;
+                return !ctrl.RoadController.GetBuildableRoads(civ.Index).Any();
+            },
+            AssertFailMessage = ctrl =>
+            {
+                var civ = ctrl.CurrentMainState!.CurrentWorldState!.Civilizations.First();
+                int buildableRoads = ctrl.RoadController.GetBuildableRoads(civ.Index).Count;
+                return $"Expected at least 15 cities or a saturated road network; got {civ.Cities.Count} cities, {buildableRoads} buildable roads";
+            },
+        };
+
+        /// <summary>
         /// Expands the civilization via Step2 as long as road slots are available. Stops as soon as
         /// no more roads can be built (topologically or due to enemy territory blocking every frontier
         /// edge), then exits. The step is considered complete when the road network is saturated —
@@ -519,6 +544,7 @@ namespace SOITests.IslandMapTests.StepIslandTest
                 TwoCitiesStep("Island3_Cities2"),
                 SixCitiesStep("Island3_Cities6"),
                 TenCitiesStep("Island3_Cities10"),
+                FifteenCitiesOrSaturatedStep("Island3_Cities15"),
                 ExterminateCivilizationsStep("Island3_NoEnemies"),
                 PrestigePointsStep("Island3_Points20"),
                 PrestigeAvailableStep("Island3_PrestigeReady"),

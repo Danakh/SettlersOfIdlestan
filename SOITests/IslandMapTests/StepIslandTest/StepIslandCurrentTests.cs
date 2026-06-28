@@ -84,28 +84,32 @@ namespace SOITests.IslandMapTests.StepIslandTest
             IslandScenarioRunner.RunStep(StepIslandScenarios.Island3, 3, "current", saveFinal: true);
 
         [Fact]
-        public void Current_Island3_NoEnemies() =>
+        public void Current_Island3_Cities15() =>
             IslandScenarioRunner.RunStep(StepIslandScenarios.Island3, 4, "current", saveFinal: true);
 
         [Fact]
-        public void Current_Island3_Points20() =>
+        public void Current_Island3_NoEnemies() =>
             IslandScenarioRunner.RunStep(StepIslandScenarios.Island3, 5, "current", saveFinal: true);
 
         [Fact]
-        public void Current_Island3_PrestigeReady() =>
+        public void Current_Island3_Points20() =>
             IslandScenarioRunner.RunStep(StepIslandScenarios.Island3, 6, "current", saveFinal: true);
 
         [Fact]
-        public void Current_Island3_WonderPlaced() =>
+        public void Current_Island3_PrestigeReady() =>
             IslandScenarioRunner.RunStep(StepIslandScenarios.Island3, 7, "current", saveFinal: true);
 
         [Fact]
-        public void Current_Island3_Wonder1() =>
+        public void Current_Island3_WonderPlaced() =>
             IslandScenarioRunner.RunStep(StepIslandScenarios.Island3, 8, "current", saveFinal: true);
 
         [Fact]
-        public void Current_Island3_Points700() =>
+        public void Current_Island3_Wonder1() =>
             IslandScenarioRunner.RunStep(StepIslandScenarios.Island3, 9, "current", saveFinal: true);
+
+        [Fact]
+        public void Current_Island3_Points700() =>
+            IslandScenarioRunner.RunStep(StepIslandScenarios.Island3, 10, "current", saveFinal: true);
 
         // ── Island 4 — current mode ───────────────────────────────────────────
 

@@ -81,25 +81,26 @@ namespace SOITests.IslandMapTests.StepIslandTest
         public void Release1_0_Island3_Cities10() =>
             IslandScenarioRunner.RunStep(StepIslandScenarios.Island3, 3, "release-1.0", saveFinal: false);
 
-        // Note: no Release1_0_Island3_NoEnemies fact — same reason as Island 2's extermination step
-        // (see above); Points20 onward need the Island3_NoEnemies.json fixture checked into
-        // saves/release-1.0/ (under the new naming) or they fail outright.
+        // Note: no Release1_0_Island3_Cities15 or Release1_0_Island3_NoEnemies facts — Cities15 is a
+        // new step absent from the frozen release-1.0 lineage, and NoEnemies predates the Barracks
+        // prerequisite (same reason as Island 2's extermination step above). Points20 onward load
+        // directly from the Island3_NoEnemies.json fixture checked into saves/release-1.0/.
 
         [Fact]
         public void Release1_0_Island3_Points20() =>
-            IslandScenarioRunner.RunStep(StepIslandScenarios.Island3, 5, "release-1.0", saveFinal: false);
-
-        [Fact]
-        public void Release1_0_Island3_PrestigeReady() =>
             IslandScenarioRunner.RunStep(StepIslandScenarios.Island3, 6, "release-1.0", saveFinal: false);
 
         [Fact]
-        public void Release1_0_Island3_WonderPlaced() =>
+        public void Release1_0_Island3_PrestigeReady() =>
             IslandScenarioRunner.RunStep(StepIslandScenarios.Island3, 7, "release-1.0", saveFinal: false);
 
         [Fact]
-        public void Release1_0_Island3_Wonder1() =>
+        public void Release1_0_Island3_WonderPlaced() =>
             IslandScenarioRunner.RunStep(StepIslandScenarios.Island3, 8, "release-1.0", saveFinal: false);
+
+        [Fact]
+        public void Release1_0_Island3_Wonder1() =>
+            IslandScenarioRunner.RunStep(StepIslandScenarios.Island3, 9, "release-1.0", saveFinal: false);
 
         // ── Island 4 — from release-1.0 ──────────────────────────────────────
 
