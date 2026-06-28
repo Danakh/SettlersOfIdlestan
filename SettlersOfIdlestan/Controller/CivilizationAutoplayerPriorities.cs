@@ -188,6 +188,9 @@ namespace SettlersOfIdlestan.Controller
                     auto.WorldState.Features.OfType<MonsterFeature>().Any(m => m.Found) ||
                     auto.WorldState.Civilizations.Any(c => c.IsNpc && c.Cities.Count > 0)));
 
+            var hasOreProduction = new Func<bool>(() =>
+                auto.Civilization.Cities.Any(c => c.Buildings.Any(b => b.Type == BuildingType.Mine && b.Level > 0)));
+
             var hasStep2Cities  = new Func<bool>(() => auto.Civilization.Cities.Count >= step2AtCities);
             var hasStep3Cities  = new Func<bool>(() => auto.Civilization.Cities.Count >= step3AtCities);
 
@@ -197,8 +200,8 @@ namespace SettlersOfIdlestan.Controller
                 BObj(auto, bc, Step1Buildings, 1),
 
                 // Militaire conditionnel
-                new ConditionalBuildingLevelObjective(banditSpotted,     BObj(auto, bc, new[] { BuildingType.Palisade }, 1)),
-                new ConditionalBuildingLevelObjective(hasVisibleThreats, BObj(auto, bc, new[] { BuildingType.Barracks }, 1)),
+                new ConditionalBuildingLevelObjective(banditSpotted,                           BObj(auto, bc, new[] { BuildingType.Palisade }, 1)),
+                new ConditionalBuildingLevelObjective(() => hasVisibleThreats() && hasOreProduction(), BObj(auto, bc, new[] { BuildingType.Barracks }, 1)),
 
                 // Step 2 à partir de step2AtCities (Entrepôt → Forge/Bibliothèque → TH2 → Mine → TH3)
                 new ConditionalBuildingLevelObjective(hasStep2Cities, BObj(auto, bc, new[] { BuildingType.Warehouse },   1)),
