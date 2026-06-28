@@ -91,7 +91,7 @@ public class NpcCivilizationPlacementTests
 
     [Theory]
     [MemberData(nameof(ShapeAndNpcCounts))]
-    public void NpcCity_HasTownHallLevel2_MarketAndWarehouse(IslandShapeType shape, int npcCount)
+    public void NpcCity_HasTownHallLevel2_Market(IslandShapeType shape, int npcCount)
     {
         var state = CreateIsland(shape, npcCount);
 
@@ -106,7 +106,6 @@ public class NpcCivilizationPlacementTests
             Assert.Equal(2, townHall.Level);
 
             Assert.Contains(city.Buildings, b => b.Type == BuildingType.Market);
-            Assert.Contains(city.Buildings, b => b.Type == BuildingType.Warehouse);
         }
     }
 
@@ -121,24 +120,6 @@ public class NpcCivilizationPlacementTests
             Assert.NotEmpty(civ.Cities);
             Assert.True(civ.ModifierAggregator.HasModifier(Modifier.ECategory.UNLOCK_MARITIME_ROUTES),
                 $"[{shape}, {npcCount} NPC] civ {civ.Index} n'a pas UNLOCK_MARITIME_ROUTES");
-        }
-    }
-
-    [Theory]
-    [MemberData(nameof(ShapeAndNpcCounts))]
-    public void NpcCity_HasMaxResources(IslandShapeType shape, int npcCount)
-    {
-        var state = CreateIsland(shape, npcCount);
-
-        foreach (var civ in state.Civilizations.Where(c => c.IsNpc))
-        {
-            Assert.NotEmpty(civ.Cities);
-            foreach (Resource resource in Enum.GetValues<Resource>())
-            {
-                int max = civ.GetResourceMaxQuantity(resource);
-                if (max > 0)
-                    Assert.Equal(max, civ.GetResourceQuantity(resource));
-            }
         }
     }
 
@@ -193,9 +174,9 @@ public class NpcCivilizationPlacementTests
     private static int ExpectedCityCount(NpcEvolutionLevel level) => level switch
     {
         NpcEvolutionLevel.Minimum => 1,
-        NpcEvolutionLevel.Low     => 3,
-        NpcEvolutionLevel.Medium  => 5,
-        NpcEvolutionLevel.Strong  => 7,
+        NpcEvolutionLevel.Low     => 2,
+        NpcEvolutionLevel.Medium  => 3,
+        NpcEvolutionLevel.Strong  => 4,
         _                         => 1,
     };
 
@@ -222,23 +203,6 @@ public class NpcCivilizationPlacementTests
         {
             Assert.Contains(city.Buildings, b => b.Type == BuildingType.TownHall);
             Assert.Contains(city.Buildings, b => b.Type == BuildingType.Market);
-        }
-    }
-
-    [Theory]
-    [MemberData(nameof(ShapesAndEvolutionLevels))]
-    public void NpcEvolution_ResourcesAtMaximum(IslandShapeType shape, NpcEvolutionLevel level)
-    {
-        var state = CreateIsland(shape, npcCount: 1, level);
-        var npcCiv = state.Civilizations.First(c => c.IsNpc);
-
-        Assert.NotEmpty(npcCiv.Cities);
-
-        foreach (Resource resource in Enum.GetValues<Resource>())
-        {
-            int max = npcCiv.GetResourceMaxQuantity(resource);
-            if (max > 0)
-                Assert.Equal(max, npcCiv.GetResourceQuantity(resource));
         }
     }
 

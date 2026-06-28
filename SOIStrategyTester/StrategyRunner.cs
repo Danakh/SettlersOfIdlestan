@@ -81,16 +81,10 @@ public static class StrategyRunner
         switch (phase.Kind)
         {
             case PhaseKind.Step1:
-                return CivilizationAutoplayerPriorities.Step1(auto, bc, phase.ShouldExpand).TryStepOnce();
-
             case PhaseKind.Step2:
-                return CivilizationAutoplayerPriorities.Step2(auto, bc, phase.ShouldExpand).TryStepOnce();
-
             case PhaseKind.Step3:
-                return CivilizationAutoplayerPriorities.Step3(auto, bc, phase.ShouldExpand).TryStepOnce();
-
             case PhaseKind.Military:
-                return CivilizationAutoplayerPriorities.Military(auto, bc).TryStepOnce();
+                return CivilizationAutoplayerPriorities.Unified(auto, bc).TryStepOnce();
 
             case PhaseKind.ExterminateMonsters:
                 {

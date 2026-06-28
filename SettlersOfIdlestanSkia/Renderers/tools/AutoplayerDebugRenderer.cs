@@ -106,10 +106,10 @@ public class AutoplayerDebugRenderer : IGameRenderer
         {
             _strategy = _mode switch
             {
-                AutoplayerMode.Step1    => CivilizationAutoplayerPriorities.DebugStep1(_autoplayer!, mainController.BuildingController),
-                AutoplayerMode.Step2    => CivilizationAutoplayerPriorities.DebugStep2(_autoplayer!, mainController.BuildingController),
-                AutoplayerMode.Step3    => CivilizationAutoplayerPriorities.DebugStep3(_autoplayer!, mainController.BuildingController),
-                AutoplayerMode.Military => CivilizationAutoplayerPriorities.DebugMilitary(_autoplayer!, mainController.BuildingController),
+                AutoplayerMode.Step1    or
+                AutoplayerMode.Step2    or
+                AutoplayerMode.Step3    or
+                AutoplayerMode.Military => CivilizationAutoplayerPriorities.Unified(_autoplayer!, mainController.BuildingController),
                 _                       => null,
             };
             _lastBuiltMode = _mode;

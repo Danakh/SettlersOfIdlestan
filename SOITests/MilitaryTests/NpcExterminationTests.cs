@@ -104,38 +104,36 @@ public class NpcExterminationTests
             mainController.PerformPrestige);
         var runner = new CivilizationAutoplayerRunner(auto, playerCiv, mainController);
 
-        // Step 1 : atteindre 4 villes avec TownHall pour couvrir suffisamment l'île
-        // (le NPC Low s'étale sur 3 villes ; 4 villes joueur garantit la portée d'attaque)
+        // Phase économique : atteindre 4 villes, Warehouse et Mine via la stratégie unifiée.
         runner.RunPriorityStrategyUntil(
-            CivilizationAutoplayerPriorities.Step1(auto, mainController.BuildingController, expand: true),
+            CivilizationAutoplayerPriorities.Unified(auto, mainController.BuildingController),
             () => playerCiv.Cities.Count >= 4
                && playerCiv.Cities.All(c => c.Buildings.Any(b => b.Type == BuildingType.TownHall)),
             maxIterations: 5000);
         Assert.True(
             playerCiv.Cities.Count >= 4,
-            "Le joueur devrait avoir au moins 4 villes après Step 1.");
+            "Le joueur devrait avoir au moins 4 villes après la phase économique.");
 
-        // Step 2 : obtenir un Warehouse (stockage ≥ 65, suffisant pour Stone 50 de la Caserne)
         runner.RunPriorityStrategyUntil(
-            CivilizationAutoplayerPriorities.Step2(auto, mainController.BuildingController, expand: true),
+            CivilizationAutoplayerPriorities.Unified(auto, mainController.BuildingController),
             () => playerCiv.Cities.Any(c => c.Buildings.Any(b => b.Type == BuildingType.Warehouse)) &&
                   playerCiv.Cities.Any(c => c.Buildings.Any(b => b.Type == BuildingType.Mine)),
             maxIterations: 5000);
         Assert.True(
             playerCiv.Cities.Any(c => c.Buildings.Any(b => b.Type == BuildingType.Warehouse)),
-            "Le joueur devrait avoir un Warehouse pour atteindre le stockage requis.");
+            "Le joueur devrait avoir un Warehouse.");
         Assert.True(
             playerCiv.Cities.Any(c => c.Buildings.Any(b => b.Type == BuildingType.Mine)),
-            "Le joueur devrait avoir un Warehouse pour atteindre le stockage requis.");
+            "Le joueur devrait avoir une Mine.");
 
-        // Step militaire : construire la Caserne.
+        // Phase militaire : la Caserne est construite conditionnellement (menaces visibles + minerai).
         runner.RunPriorityStrategyUntil(
-            CivilizationAutoplayerPriorities.Military(auto, mainController.BuildingController),
+            CivilizationAutoplayerPriorities.Unified(auto, mainController.BuildingController),
             () => playerCiv.Cities.Count(c => c.Buildings.Any(b => b.Type == BuildingType.Barracks)) >= 5,
             maxIterations: 5000);
         Assert.True(
             playerCiv.Cities.Count(c => c.Buildings.Any(b => b.Type == BuildingType.Barracks)) >= 5,
-            "Le joueur devrait avoir construit la Caserne via le step militaire.");
+            "Le joueur devrait avoir construit la Caserne via la stratégie unifiée.");
 
         // Mets en place les Attack Flow
         foreach (var c in playerCiv.Cities)
@@ -143,9 +141,9 @@ public class NpcExterminationTests
             c.FlowTarget = npcTargetCity.Position;
         }
 
-        // ── Autoplay militaire : production de soldats + attaques ────────────────
+        // ── Autoplay : production de soldats + attaques ──────────────────────────
         runner.RunPriorityStrategyUntil(
-            CivilizationAutoplayerPriorities.Military(auto, mainController.BuildingController),
+            CivilizationAutoplayerPriorities.Unified(auto, mainController.BuildingController),
             () => npcCiv.Cities.Count == 0,
             maxIterations: 5000);
 
