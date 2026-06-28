@@ -45,23 +45,6 @@ namespace SettlersOfIdlestan.Controller
         private const long ClickCooldownTicks = 20L;
         private long _nextClickAllowedTick = long.MinValue;
 
-        private static readonly BuildingType[] Step1Buildings =
-        {
-            BuildingType.TownHall, BuildingType.Seaport, BuildingType.Market,
-            BuildingType.Sawmill, BuildingType.Brickworks, BuildingType.Quarry, BuildingType.Mill,
-        };
-
-        private static readonly BuildingType[] Step2Buildings =
-            Step1Buildings.Concat(new[] { BuildingType.Warehouse, BuildingType.Mine, BuildingType.Forge }).ToArray();
-
-        private static readonly BuildingType[] Step2WithLibraryBuildings =
-            Step2Buildings.Concat(new[] { BuildingType.Library }).ToArray();
-
-        private static readonly BuildingType[] Step3Buildings =
-            Step2Buildings.Concat(new[] { BuildingType.Temple }).ToArray();
-
-        private static readonly BuildingType[] MilitaryBuildings = { BuildingType.Palisade, BuildingType.Barracks };
-
         public Civilization Civilization => _civ;
         public WorldState? WorldState => _worldState;
 
@@ -157,11 +140,9 @@ namespace SettlersOfIdlestan.Controller
         }
 
         /// <summary>
-        /// Restricts which vertices TryStep0Once/TryStepOnce will ever build an outpost on or target
-        /// a road toward — both the immediate-outpost and the prospective-road-target paths consult
-        /// it. Pass null to clear. Used by callers with constraints the autoplayer itself doesn't know
-        /// about — e.g. NPC placement keeping new cities away from the player — so an invalid vertex
-        /// is never proposed in the first place, rather than built and then undone after the fact.
+        /// Restricts which vertices TryExpandOnce will ever build an outpost on or target a road
+        /// toward. Pass null to clear. Used by callers with constraints the autoplayer itself doesn't
+        /// know about — e.g. NPC placement keeping new cities away from the player.
         /// </summary>
         public void SetExpansionVertexFilter(Func<Vertex, bool>? filter) => _expansionVertexFilter = filter;
 
@@ -198,35 +179,6 @@ namespace SettlersOfIdlestan.Controller
             }
 
             return false;
-        }
-
-        // ── Step strategies ──────────────────────────────────────────────────────
-
-        /// <summary>Step 1: level-1 production buildings, roads and new cities.</summary>
-        public bool TryStep1Once(bool shouldExpand = true) => TryStepOnce(Step1Buildings, shouldExpand);
-
-        /// <summary>Step 2: step 1 + upgraded production, Warehouse and Forge.
-        /// Also builds Libraries once research is unlocked via prestige.</summary>
-        public bool TryStep2Once(bool shouldExpand = true)
-        {
-            var buildings = _researchController.IsResearchUnlocked()
-                ? Step2WithLibraryBuildings
-                : Step2Buildings;
-            return TryStepOnce(buildings, shouldExpand);
-        }
-
-        /// <summary>Step 3: step 2 + prestige-point buildings (Temple, TownHall upgrades) + unique buildings.
-        /// When prestige points are sufficient but ImperialPort is missing, focuses exclusively on the
-        /// first coastal city: Seaport 4, Warehouse 4, TownHall 4, then ImperialPort.</summary>
-        public bool TryStep3Once(bool shouldExpand = true)
-        {
-            bool readyForPort = _prestigeController.CalculatePrestigePoints() >= PrestigeController.PrestigeRequiredPoints
-                                && !_prestigeController.HasImperialPort();
-
-            if (readyForPort)
-                return TryBuildImperialPortOnce();
-            else
-                return TryStepOnce(Step3Buildings, shouldExpand);
         }
 
         /// <summary>
@@ -266,9 +218,9 @@ namespace SettlersOfIdlestan.Controller
             return didSomething;
         }
 
-        /// <summary>Step 0 : expansion seule — outpost si un vertex est disponible, sinon route vers un vertex prospectif.
+        /// <summary>Expansion seule : outpost si un vertex est disponible, sinon route vers un vertex prospectif.
         /// N'effectue aucune construction de bâtiments.</summary>
-        public bool TryStep0Once()
+        public bool TryExpandOnce()
         {
             bool didSomething = false;
 
@@ -306,26 +258,6 @@ namespace SettlersOfIdlestan.Controller
                     .FirstOrDefault();
                 if (nextRoad != null && TryBuildRoadOnce(nextRoad.Position, withGrind: true))
                     didSomething = true;
-            }
-
-            return didSomething;
-        }
-
-        /// <summary>Step militaire : construit Palissade et Caserne dans les villes proches d'une civilisation ennemie (&lt; 5 edges).</summary>
-        public bool TryMilitaryStepOnce()
-        {
-            if (_worldState == null) return false;
-
-            bool didSomething = false;
-            TryGrindOnce(null);
-
-            foreach (var city in _civ.Cities.ToList())
-            {
-                foreach (var bt in MilitaryBuildings)
-                {
-                    if (TryBuildBuildingOnce(city, bt, withGrind: false))
-                        didSomething = true;
-                }
             }
 
             return didSomething;
@@ -503,83 +435,6 @@ namespace SettlersOfIdlestan.Controller
                 if (queued != null && _researchController.SetQueuedResearch(queued.Id))
                     didSomething = true;
             }
-
-            return didSomething;
-        }
-
-        private bool TryStepOnce(BuildingType[] targetBuildings, bool shouldExpand)
-        {
-            bool didSomething = false;
-            bool hasGrindedThisStep = false;
-
-            if (TryResearchOnce())
-                didSomething = true;
-
-            Vertex? possibleConstructionVertex = null;
-
-            if (shouldExpand)
-            {
-                // Try outpost if a buildable vertex is accessible
-                possibleConstructionVertex = GetBuildableOutpostVertex();
-                if (possibleConstructionVertex != null)
-                {
-                    if (TryBuildOutpostOnce(possibleConstructionVertex, withGrind: !hasGrindedThisStep))
-                        didSomething = true;
-                    hasGrindedThisStep = true;
-                }
-
-            }
-
-            // Build production/support buildings (no per-building grind to avoid trade interference)
-            foreach (var city in _civ.Cities.ToList())
-            {
-                foreach (var bt in targetBuildings)
-                {
-                    var shouldGrind = !hasGrindedThisStep && !shouldExpand;
-                    if (TryBuildBuildingOnce(city, bt, withGrind: shouldGrind))
-                        didSomething = true;
-                    if (shouldGrind)
-                        hasGrindedThisStep = true;
-                }
-            }
-
-            if (shouldExpand && (possibleConstructionVertex == null)) // in case we don't have possible outpost vertex, build more roads !
-            {
-                bool buildableRoadFound = false;
-                var candidates = GetProspectiveVertices();
-                var expansionTarget = FindBestExpansionTarget(candidates);
-                if (expansionTarget != null)
-                {
-                    var (target, from) = expansionTarget.Value;
-                    var buildableRoads = _roadController.GetBuildableRoads(_civ.Index);
-                    var path = HexGridPathfinder.FindVertexPath(from, target);
-                    var shared = path[0].GetHexes().Intersect(path[1].GetHexes()).ToArray();
-                    Debug.Assert(shared.Length == 2);
-                    var edge = Edge.Create(shared[0], shared[1]);
-                    if (buildableRoads.Any(r => r.Position.Equals(edge))) // can fail if the path needs martime road
-                    {
-                        if (TryBuildRoadOnce(edge, withGrind: !hasGrindedThisStep))
-                        {
-                            didSomething = true;
-                        }
-                        buildableRoadFound = true;
-                        hasGrindedThisStep = true;
-                    }
-                }
-
-                if (!buildableRoadFound)
-                {
-                    // Fallback: push frontier outward when no prospective vertex is reachable
-                    var nextRoad = _roadController.GetBuildableRoads(_civ.Index)
-                        .OrderByDescending(r => r.DistanceToNearestCity)
-                        .FirstOrDefault();
-                    if (nextRoad != null && TryBuildRoadOnce(nextRoad.Position, withGrind: !hasGrindedThisStep))
-                        didSomething = true;
-                    hasGrindedThisStep = true;
-                }
-            }
-
-            Debug.Assert(hasGrindedThisStep);
 
             return didSomething;
         }

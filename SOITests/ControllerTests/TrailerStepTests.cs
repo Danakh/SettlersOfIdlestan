@@ -105,7 +105,7 @@ namespace SOITests.ControllerTests
             var (controller, autoplayer, civ) = LoadTrailerSave("01_Explore.json");
             int initialRoads = civ.Roads.Count;
 
-            SimulateSequence(controller, 5, () => autoplayer.TryStep0Once());
+            SimulateSequence(controller, 5, () => autoplayer.TryExpandOnce());
 
             int roadsBuilt = civ.Roads.Count - initialRoads;
             Assert.True(roadsBuilt >= 3,
@@ -119,7 +119,7 @@ namespace SOITests.ControllerTests
             var (controller, autoplayer, civ) = LoadTrailerSave("01_Explore.json");
             int initialCities = civ.Cities.Count;
 
-            SimulateSequence(controller, 5, () => autoplayer.TryStep0Once());
+            SimulateSequence(controller, 5, () => autoplayer.TryExpandOnce());
 
             Assert.True(civ.Cities.Count > initialCities,
                 $"Explore : attendu au moins un avant-poste construit, mais le nombre de villes " +
@@ -143,7 +143,7 @@ namespace SOITests.ControllerTests
             {
                 controller.Clock!.SimulateAdvance(TicksPerFrame);
                 if (frame % intervalFrames == 0)
-                    autoplayer.TryStep0Once();
+                    autoplayer.TryExpandOnce();
 
                 roadsBuiltSoFar = civ.Roads.Count;
 
@@ -177,7 +177,7 @@ namespace SOITests.ControllerTests
             int initialRoads = civ.Roads.Count;
             int initialCities = civ.Cities.Count;
 
-            SimulateSequence(controller, 4, () => autoplayer.TryStep0Once());
+            SimulateSequence(controller, 4, () => autoplayer.TryExpandOnce());
 
             bool expanded = civ.Roads.Count > initialRoads || civ.Cities.Count > initialCities;
             Assert.True(expanded,
@@ -194,9 +194,7 @@ namespace SOITests.ControllerTests
             int initialBuildings = civ.Cities.Sum(c => c.Buildings.Count);
 
             SimulateSequence(controller, 4, () =>
-            {
-                if (!autoplayer.TryStep1Once()) autoplayer.TryStep2Once();
-            });
+                CivilizationAutoplayerPriorities.Step2(autoplayer, controller.BuildingController).TryStepOnce());
 
             int finalBuildings = civ.Cities.Sum(c => c.Buildings.Count);
             Assert.True(finalBuildings > initialBuildings,
@@ -211,9 +209,7 @@ namespace SOITests.ControllerTests
 
             // La simulation doit se dérouler sans exception et laisser les ressources à ≥0
             SimulateSequence(controller, 4, () =>
-            {
-                if (!autoplayer.TryStep1Once()) autoplayer.TryStep2Once();
-            });
+                CivilizationAutoplayerPriorities.Step2(autoplayer, controller.BuildingController).TryStepOnce());
 
             foreach (Resource r in Enum.GetValues<Resource>())
             {
@@ -253,7 +249,7 @@ namespace SOITests.ControllerTests
                 b.Type == BuildingType.Palisade || b.Type == BuildingType.Barracks));
             int initialBuildings = civ.Cities.Sum(c => c.Buildings.Count);
 
-            SimulateSequence(controller, 4, () => autoplayer.TryMilitaryStepOnce());
+            SimulateSequence(controller, 4, () => CivilizationAutoplayerPriorities.Military(autoplayer, controller.BuildingController).TryStepOnce());
 
             int finalMilitary = civ.Cities.Sum(c => c.Buildings.Count(b =>
                 b.Type == BuildingType.Palisade || b.Type == BuildingType.Barracks));
@@ -284,7 +280,7 @@ namespace SOITests.ControllerTests
             // Même comportement que TrailerService.BuildAutoplayTick(Exterminate)
             void autoplayTick()
             {
-                autoplayer.TryMilitaryStepOnce();
+                CivilizationAutoplayerPriorities.Military(autoplayer, controller.BuildingController).TryStepOnce();
                 foreach (var city in civ.Cities)
                 {
                     if (city.FlowTarget == null)
@@ -406,8 +402,8 @@ namespace SOITests.ControllerTests
             sb.AppendLine($"Paramètres simulation : {Fps} fps, {TicksPerFrame} ticks/frame, intervalle autoplayer : {DefaultAutoplayIntervalSeconds}s");
             sb.AppendLine();
 
-            AppendSequenceBilan(sb, "1 — EXPLORE",           "01_Explore.json",         5, (a) => a.TryStep0Once());
-            AppendSequenceBilan(sb, "2 — EXPAND",            "02_Expand.json",          4, (a) => a.TryStep0Once());
+            AppendSequenceBilan(sb, "1 — EXPLORE",           "01_Explore.json",         5, (a) => a.TryExpandOnce());
+            AppendSequenceBilan(sb, "2 — EXPAND",            "02_Expand.json",          4, (a) => a.TryExpandOnce());
             // Prestige insert : +60 pts de prestige injectés, PrestigePurchase, intervalle 1s
             AppendSequenceBilan(sb, "3 — PRESTIGE (insert)", "02_Expand.json",          3,
                 autoplayAction: null,
@@ -422,7 +418,8 @@ namespace SOITests.ControllerTests
                     if (cheapest != null) ctrl.PrestigeMapController.PurchaseVertex(ps, cheapest.Coord);
                 },
                 autoplayIntervalSeconds: 1.0f);
-            AppendSequenceBilan(sb, "4 — EXPLOIT",           "03_Exploit.json",         4, (a) => { if (!a.TryStep1Once()) a.TryStep2Once(); });
+            AppendSequenceBilan(sb, "4 — EXPLOIT",           "03_Exploit.json",         4, null,
+                customAutoplay: (ctrl, a) => CivilizationAutoplayerPriorities.Step2(a, ctrl.BuildingController).TryStepOnce());
             // Research insert : CentralVertex + 999 pts injectés, speed×10 (33 ticks/frame), intervalle 0.3s
             AppendSequenceBilan(sb, "5 — RESEARCH (insert)", "03_Exploit.json",         3,
                 autoplayAction: null,
@@ -441,7 +438,7 @@ namespace SOITests.ControllerTests
                 ticksPerFrame: ResearchTicksPerFrame);
             // Exterminate : speed×3 (10 ticks/frame) + FlowTargets assignés comme dans TrailerService
             AppendSequenceBilan(sb, "6 — EXTERMINATE",       "04_Exterminate.json",     4,
-                autoplayAction: (a) => a.TryMilitaryStepOnce(),
+                autoplayAction: null,
                 extraSetup: (ctrl, c, ws) =>
                 {
                     foreach (var city in c.Cities)
@@ -453,6 +450,7 @@ namespace SOITests.ControllerTests
                         }
                     }
                 },
+                customAutoplay: (ctrl, a) => CivilizationAutoplayerPriorities.Military(a, ctrl.BuildingController).TryStepOnce(),
                 ticksPerFrame: ExterminateTicksPerFrame);
             AppendSequenceBilan(sb, "7 — AT YOUR OWN PACE",  "05_AtYourOwnPace.json",   4, null);
             AppendSequenceBilan(sb, "8 — ABYSS GATE",        "06_AbyssGate.json",       5, null);

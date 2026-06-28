@@ -106,7 +106,8 @@ public class NpcExterminationTests
 
         // Step 1 : atteindre 4 villes avec TownHall pour couvrir suffisamment l'île
         // (le NPC Low s'étale sur 3 villes ; 4 villes joueur garantit la portée d'attaque)
-        runner.RunStep1Until(
+        runner.RunPriorityStrategyUntil(
+            CivilizationAutoplayerPriorities.Step1(auto, mainController.BuildingController, expand: true),
             () => playerCiv.Cities.Count >= 4
                && playerCiv.Cities.All(c => c.Buildings.Any(b => b.Type == BuildingType.TownHall)),
             maxIterations: 5000);
@@ -115,7 +116,8 @@ public class NpcExterminationTests
             "Le joueur devrait avoir au moins 4 villes après Step 1.");
 
         // Step 2 : obtenir un Warehouse (stockage ≥ 65, suffisant pour Stone 50 de la Caserne)
-        runner.RunStep2Until(
+        runner.RunPriorityStrategyUntil(
+            CivilizationAutoplayerPriorities.Step2(auto, mainController.BuildingController, expand: true),
             () => playerCiv.Cities.Any(c => c.Buildings.Any(b => b.Type == BuildingType.Warehouse)) &&
                   playerCiv.Cities.Any(c => c.Buildings.Any(b => b.Type == BuildingType.Mine)),
             maxIterations: 5000);
@@ -127,7 +129,8 @@ public class NpcExterminationTests
             "Le joueur devrait avoir un Warehouse pour atteindre le stockage requis.");
 
         // Step militaire : construire la Caserne.
-        runner.RunStepMilitaryUntil(
+        runner.RunPriorityStrategyUntil(
+            CivilizationAutoplayerPriorities.Military(auto, mainController.BuildingController),
             () => playerCiv.Cities.Count(c => c.Buildings.Any(b => b.Type == BuildingType.Barracks)) >= 5,
             maxIterations: 5000);
         Assert.True(
@@ -141,7 +144,8 @@ public class NpcExterminationTests
         }
 
         // ── Autoplay militaire : production de soldats + attaques ────────────────
-        runner.RunStepMilitaryUntil(
+        runner.RunPriorityStrategyUntil(
+            CivilizationAutoplayerPriorities.Military(auto, mainController.BuildingController),
             () => npcCiv.Cities.Count == 0,
             maxIterations: 5000);
 

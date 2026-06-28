@@ -27,7 +27,9 @@ public class AutoplayerDebugRenderer : IGameRenderer
     private readonly SKRect[] _buttonRects = new SKRect[5];
 
     private CivilizationAutoplayer? _autoplayer;
+    private PriorityAutoplayStrategy? _strategy;
     private object? _lastCivRef;
+    private AutoplayerMode _lastBuiltMode = AutoplayerMode.Inactive;
 
     private readonly SKPaint _activePaint   = new() { Color = new SKColor(60, 180, 80),  Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _inactivePaint = new() { Color = new SKColor(35, 35, 50),   Style = SKPaintStyle.Fill, IsAntialias = true };
@@ -97,15 +99,23 @@ public class AutoplayerDebugRenderer : IGameRenderer
                 mainController.CurrentMainState?.PrestigeState,
                 mainController.PerformPrestige);
             _lastCivRef = playerCiv;
+            _lastBuiltMode = AutoplayerMode.Inactive;
         }
 
-        switch (_mode)
+        if (_mode != _lastBuiltMode)
         {
-            case AutoplayerMode.Step1:    _autoplayer!.TryStep1Once(); break;
-            case AutoplayerMode.Step2:    _autoplayer!.TryStep2Once(); break;
-            case AutoplayerMode.Step3:    _autoplayer!.TryStep3Once(); break;
-            case AutoplayerMode.Military: _autoplayer!.TryMilitaryStepOnce(); break;
+            _strategy = _mode switch
+            {
+                AutoplayerMode.Step1    => CivilizationAutoplayerPriorities.DebugStep1(_autoplayer!, mainController.BuildingController),
+                AutoplayerMode.Step2    => CivilizationAutoplayerPriorities.DebugStep2(_autoplayer!, mainController.BuildingController),
+                AutoplayerMode.Step3    => CivilizationAutoplayerPriorities.DebugStep3(_autoplayer!, mainController.BuildingController),
+                AutoplayerMode.Military => CivilizationAutoplayerPriorities.DebugMilitary(_autoplayer!, mainController.BuildingController),
+                _                       => null,
+            };
+            _lastBuiltMode = _mode;
         }
+
+        _strategy?.TryStepOnce();
     }
 
     private void DrawButton(SKCanvas canvas, SKRect rect, string label, bool isActive)

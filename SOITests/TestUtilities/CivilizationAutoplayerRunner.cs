@@ -103,6 +103,9 @@ public class CivilizationAutoplayerRunner
         _controller = controller ?? throw new ArgumentNullException(nameof(controller));
     }
 
+    public CivilizationAutoplayer Autoplayer => _autoplayer;
+    public BuildingController BuildingController => _controller.BuildingController;
+
     private void Advance() => _controller.Clock?.SimulateAdvance((long)(_timeStep * 100));
 
     // ── Primitive time-advancing wrappers ────────────────────────────────────
@@ -192,22 +195,33 @@ public class CivilizationAutoplayerRunner
     /// nearest enemy city within range (matching MilitaryController.FindNearbyEnemyCity — the same
     /// range/visibility rules the real attack resolution uses). Exits once the condition (e.g. all
     /// NPC civilizations eliminated) is met.
+    ///
+    /// Expansion is triggered only when no NPC city is currently in attack range of any player city:
+    /// as long as there is an attackable target, the civilization focuses on military and economy;
+    /// once the last reachable NPC is destroyed, it automatically expands until a new target comes
+    /// into range, then resumes attacking.
     /// </summary>
     public void RunStepExterminateCivilizationsUntil(Func<bool> condition, int maxIterations = 50000)
     {
+        var mc               = _controller.MilitaryController;
+        var militaryStrategy = CivilizationAutoplayerPriorities.Military(_autoplayer, _controller.BuildingController);
+        var buildingStrategy = CivilizationAutoplayerPriorities.Step2(_autoplayer, _controller.BuildingController, expand: false);
         for (int i = 0; i < maxIterations && !condition(); i++)
         {
             try
             {
-                _autoplayer.TryMilitaryStepOnce();
-                _autoplayer.TryStep2Once(shouldExpand: true);
+                militaryStrategy.TryStepOnce();
+                buildingStrategy.TryStepOnce();
 
-                var militaryController = _controller.MilitaryController;
+                bool hasTarget = _civ.Cities.Any(c => mc.FindNearbyEnemyCity(c) != null);
+                if (!hasTarget)
+                    _autoplayer.TryExpandOnce();
+
                 foreach (var city in _civ.Cities.ToList())
                 {
                     if (city.FlowTarget != null) continue;
-                    var enemy = militaryController.FindNearbyEnemyCity(city);
-                    if (enemy != null) militaryController.SetCityFlow(city, enemy.Position);
+                    var enemy = mc.FindNearbyEnemyCity(city);
+                    if (enemy != null) mc.SetCityFlow(city, enemy.Position);
                 }
             }
             catch { }
@@ -228,42 +242,6 @@ public class CivilizationAutoplayerRunner
             new[] { BuildingType.Barracks }, targetLevel: 1);
         var strategy = new PriorityAutoplayStrategy(new IAutoplayObjective[] { objective });
         RunPriorityStrategyUntil(strategy, condition, maxIterations);
-    }
-
-    public void RunStep1Until(Func<bool> condition, bool shouldExpand = true, int maxIterations = 10000)
-    {
-        for (int i = 0; i < maxIterations && !condition(); i++)
-        {
-            try { _autoplayer.TryStep1Once(shouldExpand); } catch { }
-            Advance();
-        }
-    }
-
-    public void RunStep2Until(Func<bool> condition, bool shouldExpand = true, int maxIterations = 10000)
-    {
-        for (int i = 0; i < maxIterations && !condition(); i++)
-        {
-            try { _autoplayer.TryStep2Once(shouldExpand); } catch { }
-            Advance();
-        }
-    }
-
-    public void RunStep3Until(Func<bool> condition, bool shouldExpand = true, int maxIterations = 10000)
-    {
-        for (int i = 0; i < maxIterations && !condition(); i++)
-        {
-            try { _autoplayer.TryStep3Once(shouldExpand); } catch { }
-            Advance();
-        }
-    }
-
-    public void RunStepMilitaryUntil(Func<bool> condition, bool shouldExpand = true, int maxIterations = 10000)
-    {
-        for (int i = 0; i < maxIterations && !condition(); i++)
-        {
-            try { _autoplayer.TryMilitaryStepOnce(); } catch { }
-            Advance();
-        }
     }
 
     /// <summary>
@@ -296,11 +274,12 @@ public class CivilizationAutoplayerRunner
     /// </summary>
     public void RunStepWonderUntil(Func<bool> condition, int maxIterations = 100000)
     {
+        var strategy = CivilizationAutoplayerPriorities.Step2(_autoplayer, _controller.BuildingController, expand: false);
         for (int i = 0; i < maxIterations && !condition(); i++)
         {
             try
             {
-                _autoplayer.TryStep2Once(shouldExpand: false);
+                strategy.TryStepOnce();
                 _autoplayer.TryWonderInvestmentOnce();
                 _autoplayer.TryTradeForResourceOnce(Resource.Gold);
             }
@@ -317,12 +296,13 @@ public class CivilizationAutoplayerRunner
     /// </summary>
     public void RunStepExpandToStableUntil(Func<bool> condition, int stagnationWindow = 200, int maxIterations = 30000)
     {
+        var strategy = CivilizationAutoplayerPriorities.Step2(_autoplayer, _controller.BuildingController, expand: true);
         int lastCityCount = _civ.Cities.Count;
         int stagnantIterations = 0;
 
         for (int i = 0; i < maxIterations && !condition(); i++)
         {
-            try { _autoplayer.TryStep2Once(shouldExpand: true); } catch { }
+            try { strategy.TryStepOnce(); } catch { }
             Advance();
 
             int newCount = _civ.Cities.Count;
@@ -344,12 +324,13 @@ public class CivilizationAutoplayerRunner
     /// </summary>
     public void RunStepExpandWhileRoadsExistUntil(Func<bool> condition, int maxIterations = 30000)
     {
+        var strategy = CivilizationAutoplayerPriorities.Step2(_autoplayer, _controller.BuildingController, expand: true);
         for (int i = 0; i < maxIterations && !condition(); i++)
         {
             if (!_controller.RoadController.GetBuildableRoads(_civ.Index).Any())
                 break;
 
-            try { _autoplayer.TryStep2Once(shouldExpand: true); } catch { }
+            try { strategy.TryStepOnce(); } catch { }
             Advance();
         }
     }
@@ -364,10 +345,12 @@ public class CivilizationAutoplayerRunner
     /// </summary>
     public void RunStepAttackWeakestNpcAndRebuildUntil(Func<bool> condition, int targetPlayerCityCount = 12, int maxIterations = 100000)
     {
-        var militaryController = _controller.MilitaryController;
-        var worldState = _controller.CurrentMainState!.CurrentWorldState!;
-        int prevNpcCityCount = worldState.Civilizations.Where(c => c.IsNpc).Sum(c => c.Cities.Count);
-        bool inRebuildPhase = _civ.Cities.Count < targetPlayerCityCount;
+        var militaryController   = _controller.MilitaryController;
+        var worldState           = _controller.CurrentMainState!.CurrentWorldState!;
+        var militaryStrategy     = CivilizationAutoplayerPriorities.Military(_autoplayer, _controller.BuildingController);
+        var noExpandStrategy     = CivilizationAutoplayerPriorities.Step2(_autoplayer, _controller.BuildingController, expand: false);
+        int prevNpcCityCount     = worldState.Civilizations.Where(c => c.IsNpc).Sum(c => c.Cities.Count);
+        bool inRebuildPhase      = _civ.Cities.Count < targetPlayerCityCount;
 
         var barracksObjective = new BuildingLevelObjective(_autoplayer, _controller.BuildingController,
             new[] { BuildingType.Barracks }, targetLevel: 1);
@@ -386,8 +369,11 @@ public class CivilizationAutoplayerRunner
                 if (inRebuildPhase)
                 {
                     bool needsMoreCities = _civ.Cities.Count < targetPlayerCityCount;
-                    _autoplayer.TryStep2Once(shouldExpand: needsMoreCities);
-                    _autoplayer.TryMilitaryStepOnce();
+                    // TryExpandOnce() directement pour débloquer l'expansion (non bloquée par les objectifs
+                    // de bâtiments d'une PriorityAutoplayStrategy séquentielle)
+                    if (needsMoreCities) _autoplayer.TryExpandOnce();
+                    noExpandStrategy.TryStepOnce();
+                    militaryStrategy.TryStepOnce();
 
                     if (!needsMoreCities && barracksObjective.IsComplete())
                         inRebuildPhase = false;
@@ -404,8 +390,15 @@ public class CivilizationAutoplayerRunner
                             : c.Cities.Count(city => city.Position.GetHexes().Any(h => playerVisibleMap.HasTile(h))))
                         .FirstOrDefault();
 
-                    _autoplayer.TryMilitaryStepOnce();
-                    _autoplayer.TryStep2Once(shouldExpand: true);
+                    militaryStrategy.TryStepOnce();
+                    noExpandStrategy.TryStepOnce();
+
+                    // Expand only when no NPC city is currently in attack range: once the last
+                    // reachable target is destroyed the civilization automatically pushes forward
+                    // until a new target comes into range, then resumes attacking.
+                    bool hasTarget = weakestNpc != null
+                        && _civ.Cities.Any(c => militaryController.FindNearbyEnemyCity(c, new[] { weakestNpc.Index }) != null);
+                    if (!hasTarget) _autoplayer.TryExpandOnce();
 
                     if (weakestNpc != null)
                     {

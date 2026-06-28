@@ -233,7 +233,7 @@ public class NpcCivilizationPlacer
             if (civ.Cities.Count >= target) break;
             FillMaxResources(civ);
 
-            autoplayer.Inner.TryStep0Once();
+            autoplayer.Inner.TryExpandOnce();
         }
 
         AddDefaultBuildingsForLevel(map, civ, level);

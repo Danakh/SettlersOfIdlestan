@@ -66,7 +66,8 @@ namespace SOITests.IslandMapTests.StepIslandTest
         private static IslandStepDefinition SixCitiesStep(string saveName) => new()
         {
             SaveName = saveName,
-            RunAction = (runner, cond) => runner.RunStep2Until(cond),
+            RunAction = (runner, cond) => runner.RunPriorityStrategyUntil(
+                CivilizationAutoplayerPriorities.Step2(runner.Autoplayer, runner.BuildingController), cond),
             Condition = ctrl => ctrl.CurrentMainState!.CurrentWorldState!.Civilizations.First().Cities.Count >= 6,
             AssertFailMessage = ctrl =>
                 $"Expected at least 6 cities, got {ctrl.CurrentMainState!.CurrentWorldState!.Civilizations.First().Cities.Count}",
@@ -75,7 +76,8 @@ namespace SOITests.IslandMapTests.StepIslandTest
         private static IslandStepDefinition TenCitiesStep(string saveName) => new()
         {
             SaveName = saveName,
-            RunAction = (runner, cond) => runner.RunStep2Until(cond),
+            RunAction = (runner, cond) => runner.RunPriorityStrategyUntil(
+                CivilizationAutoplayerPriorities.Step2(runner.Autoplayer, runner.BuildingController), cond),
             Condition = ctrl => ctrl.CurrentMainState!.CurrentWorldState!.Civilizations.First().Cities.Count >= 10,
             AssertFailMessage = ctrl =>
                 $"Expected at least 10 cities, got {ctrl.CurrentMainState!.CurrentWorldState!.Civilizations.First().Cities.Count}",
@@ -255,16 +257,27 @@ namespace SOITests.IslandMapTests.StepIslandTest
         private static IslandStepDefinition PrestigePointsStep(string saveName, int requiredPoints = PrestigeController.PrestigeRequiredPoints, bool shouldExpand = false, int maxIterations = 10000) => new()
         {
             SaveName = saveName,
-            RunAction = (runner, cond) => runner.RunStep3Until(cond, shouldExpand: shouldExpand, maxIterations: maxIterations),
+            RunAction = (runner, cond) => runner.RunPriorityStrategyUntil(
+                CivilizationAutoplayerPriorities.Step3(runner.Autoplayer, runner.BuildingController, shouldExpand), cond, maxIterations),
             Condition = ctrl => ctrl.PrestigeController.CalculatePrestigePoints() >= requiredPoints,
             AssertFailMessage = ctrl =>
                 $"Expected at least {requiredPoints} prestige points (has {ctrl.PrestigeController.CalculatePrestigePoints()})",
         };
 
+        // Step3 cannot be used here: its BuildingLevelObjective(Step3Buildings, 10) requires ALL
+        // buildings in ALL cities to be at their maximum level before ImperialPortObjective even
+        // starts — that takes thousands of iterations and the Imperial Port never gets built
+        // within the allowed budget. PrestigeReady uses Temple/1 + TownHall/3 as a safety net
+        // (PrestigeIsAvailable also requires >=20 points, which may not yet be met), then
+        // ImperialPortObjective which wraps TryBuildImperialPortOnce: it finds the first coastal
+        // city and focuses exclusively on it, bringing Seaport/Warehouse/TownHall to their maximum
+        // there before placing the unique Port — the "priorité complexe ciblant une ville unique"
+        // the user asked for, already built into TryBuildImperialPortOnce.
         private static IslandStepDefinition PrestigeAvailableStep(string saveName, int maxIterations = 10000) => new()
         {
             SaveName = saveName,
-            RunAction = (runner, cond) => runner.RunStep3Until(cond, shouldExpand: false, maxIterations),
+            RunAction = (runner, cond) => runner.RunPriorityStrategyUntil(
+                CivilizationAutoplayerPriorities.PrestigeReady(runner.Autoplayer, runner.BuildingController), cond, maxIterations),
             Condition = ctrl => ctrl.PrestigeController.PrestigeIsAvailable(),
             AssertFailMessage = ctrl =>
                 $"Expected prestige to be available (has {ctrl.PrestigeController.CalculatePrestigePoints()} / {PrestigeController.PrestigeRequiredPoints})",
@@ -308,20 +321,9 @@ namespace SOITests.IslandMapTests.StepIslandTest
         private static IslandStepDefinition ExterminateMonstersStep(string saveName) => new()
         {
             SaveName = saveName,
-            RunAction = (runner, cond) => runner.RunPriorityStrategyUntil(new[]
-            {
-                PriorityStage.Buildings(new[] { BuildingType.TownHall }, targetLevel: 3),
-                PriorityStage.BuildingsIfBanditSpotted(new[] { BuildingType.Palisade }, targetLevel: 1),
-                PriorityStage.Buildings(new[] { BuildingType.Sawmill }, targetLevel: 1),
-                PriorityStage.Buildings(new[] { BuildingType.Quarry }, targetLevel: 1),
-                PriorityStage.Buildings(new[] { BuildingType.Mill }, targetLevel: 1),
-                PriorityStage.Buildings(new[] { BuildingType.Market }, targetLevel: 1),
-                PriorityStage.Buildings(new[] { BuildingType.Seaport }, targetLevel: 1),
-                PriorityStage.Buildings(new[] { BuildingType.Warehouse }, targetLevel: 1),
-                PriorityStage.Buildings(new[] { BuildingType.Mine }, targetLevel: 1),
-                PriorityStage.Buildings(new[] { BuildingType.Barracks }, targetLevel: 1),
-                PriorityStage.Cities(30),
-            }, cond, maxIterations: 60000),
+            RunAction = (runner, cond) => runner.RunPriorityStrategyUntil(
+                CivilizationAutoplayerPriorities.ExterminateMonsters(runner.Autoplayer, runner.BuildingController),
+                cond, maxIterations: 60000),
             Condition = ctrl => !ctrl.PrestigeController.HasSurfaceMonsters(),
             AssertFailMessage = _ => "Expected all surface monsters to have been exterminated",
         };

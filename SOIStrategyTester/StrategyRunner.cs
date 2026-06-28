@@ -77,31 +77,32 @@ public static class StrategyRunner
 
     private static bool ExecutePhaseOnce(StrategyPhase phase, CivilizationAutoplayer auto, MainGameController controller, PriorityAutoplayStrategy? priorityStrategy)
     {
+        var bc = controller.BuildingController;
         switch (phase.Kind)
         {
             case PhaseKind.Step1:
-                return auto.TryStep1Once(phase.ShouldExpand);
+                return CivilizationAutoplayerPriorities.Step1(auto, bc, phase.ShouldExpand).TryStepOnce();
 
             case PhaseKind.Step2:
-                return auto.TryStep2Once(phase.ShouldExpand);
+                return CivilizationAutoplayerPriorities.Step2(auto, bc, phase.ShouldExpand).TryStepOnce();
 
             case PhaseKind.Step3:
-                return auto.TryStep3Once(phase.ShouldExpand);
+                return CivilizationAutoplayerPriorities.Step3(auto, bc, phase.ShouldExpand).TryStepOnce();
 
             case PhaseKind.Military:
-                return auto.TryMilitaryStepOnce();
+                return CivilizationAutoplayerPriorities.Military(auto, bc).TryStepOnce();
 
             case PhaseKind.ExterminateMonsters:
                 {
-                    bool did = auto.TryMilitaryStepOnce();
-                    did |= auto.TryStep2Once(shouldExpand: true);
+                    bool did = CivilizationAutoplayerPriorities.Military(auto, bc).TryStepOnce();
+                    did |= CivilizationAutoplayerPriorities.Step2(auto, bc, expand: true).TryStepOnce();
                     return did;
                 }
 
             case PhaseKind.ExterminateCivilizations:
                 {
-                    bool did = auto.TryMilitaryStepOnce();
-                    did |= auto.TryStep2Once(shouldExpand: true);
+                    bool did = CivilizationAutoplayerPriorities.Military(auto, bc).TryStepOnce();
+                    did |= CivilizationAutoplayerPriorities.Step2(auto, bc, expand: true).TryStepOnce();
                     foreach (var city in auto.Civilization.Cities.ToList())
                     {
                         if (city.FlowTarget != null) continue;
@@ -117,7 +118,7 @@ public static class StrategyRunner
 
             case PhaseKind.Wonder:
                 {
-                    bool did = auto.TryStep2Once(shouldExpand: false);
+                    bool did = CivilizationAutoplayerPriorities.Step2(auto, bc, expand: false).TryStepOnce();
                     did |= auto.TryWonderInvestmentOnce();
                     did |= auto.TryTradeForResourceOnce(Resource.Gold);
                     return did;

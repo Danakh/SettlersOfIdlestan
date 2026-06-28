@@ -114,7 +114,7 @@ namespace SettlersOfIdlestan.Controller
 
     /// <summary>
     /// Satisfied once the civilization owns at least the target number of cities. Advances by delegating
-    /// to <see cref="CivilizationAutoplayer.TryStep0Once"/> (pure expansion: an outpost when a buildable
+    /// to <see cref="CivilizationAutoplayer.TryExpandOnce"/> (pure expansion: an outpost when a buildable
     /// vertex exists, otherwise a road toward the nearest prospective vertex).
     /// </summary>
     public class CityCountObjective : IAutoplayObjective
@@ -130,7 +130,7 @@ namespace SettlersOfIdlestan.Controller
 
         public bool IsComplete() => _autoplayer.Civilization.Cities.Count >= _targetCount;
 
-        public bool TryAdvanceOnce() => _autoplayer.TryStep0Once();
+        public bool TryAdvanceOnce() => _autoplayer.TryExpandOnce();
     }
 
     /// <summary>

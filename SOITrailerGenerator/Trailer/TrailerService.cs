@@ -235,14 +235,14 @@ public sealed class TrailerService
 
         return profile switch
         {
-            TrailerAutoplayProfile.Expand => () => autoplayer.TryStep0Once(),
+            TrailerAutoplayProfile.Expand => () => autoplayer.TryExpandOnce(),
             TrailerAutoplayProfile.Exploit => () =>
             {
-                if (!autoplayer.TryStep1Once()) autoplayer.TryStep2Once();
+                CivilizationAutoplayerPriorities.Step2(autoplayer, mainController.BuildingController).TryStepOnce();
             },
             TrailerAutoplayProfile.Exterminate => () =>
             {
-                autoplayer.TryMilitaryStepOnce();
+                CivilizationAutoplayerPriorities.Military(autoplayer, mainController.BuildingController).TryStepOnce();
                 // Assigner les FlowTargets vers les villes ennemies à portée pour déclencher les combats
                 foreach (var city in civ.Cities)
                 {
