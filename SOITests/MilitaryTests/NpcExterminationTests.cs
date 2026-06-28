@@ -103,38 +103,12 @@ public class NpcExterminationTests
             () => npcCiv.Cities.Count == 0,
             maxIterations: 150000);
 
-        // ── Diagnostic ───────────────────────────────────────────────────────────
-        var buildable = mainController.CityBuilderController.GetBuildableVertices(playerCiv.Index);
-        string buildableStr = string.Join(", ", buildable.Select(v => $"[{string.Join(",", v.GetHexes().Select(h => $"({h.Q},{h.R})"))}]"));
-        string cityPositions = string.Join(", ", playerCiv.Cities.Select(c => $"[{string.Join(",", c.Position.GetHexes().Select(h => $"({h.Q},{h.R})"))}]"));
-        string npcPositions = string.Join(", ", npcCiv.Cities.Select(c => $"[{string.Join(",", c.Position.GetHexes().Select(h => $"({h.Q},{h.R})"))}]"));
-        string cityBuildings = string.Join(" | ", playerCiv.Cities.Select(c => $"[{string.Join(",", c.Buildings.Select(b => $"{b.Type}L{b.Level}"))}]"));
-        int roadCount = playerCiv.Roads.Count;
-
-        string resources = string.Join(", ", System.Enum.GetValues<Resource>()
-            .Select(r => $"{r}={playerCiv.GetResourceQuantity(r)}"));
-        string soldiersPerCity = string.Join(", ", playerCiv.Cities.Select(c => $"{c.Soldiers}"));
-        int storageAdv = playerCiv.StorageCapacityAdvanced;
-
-        // ── Export de la partie pour inspection ───────────────────────────────
-        var savesDir = Path.Combine(
-            SaveUtils.GetSolutionRootDirectory(Directory.GetCurrentDirectory()), "saves");
-        Directory.CreateDirectory(savesDir);
-        File.WriteAllText(
-            Path.Combine(savesDir, "NpcExtermination.json"),
-            mainController.ExportMainState());
-
         // ── Assertions ────────────────────────────────────────────────────────
         int npcDist = npcTargetCity.Position.EdgeDistanceTo(playerStartCity.Position);
         int playerSoldiers = playerCiv.Cities.Sum(c => c.Soldiers);
         int barracks = playerCiv.Cities.Count(c => c.Buildings.Any(b => b.Type == BuildingType.Barracks));
         Assert.True(npcCiv.Cities.Count == 0,
-            $"NPC devrait être éradiqué. iter={iterCount}, dist_npc={npcDist}, soldats={playerSoldiers}[{soldiersPerCity}], casernes={barracks}, villes={playerCiv.Cities.Count}, routes={roadCount}, storageAdv={storageAdv}\n" +
-            $"Villes joueur: {cityPositions}\n" +
-            $"Villes NPC: {npcPositions}\n" +
-            $"Buildable vertices ({buildable.Count}): {buildableStr}\n" +
-            $"Bâtiments: {cityBuildings}\n" +
-            $"Ressources: {resources}");
+            $"NPC devrait être éradiqué. iter={iterCount}, dist_npc={npcDist}, soldats={playerSoldiers}, casernes={barracks}, villes={playerCiv.Cities.Count}\n");
         Assert.Contains(PrestigeMap.BarracksVertex, prestige.PurchasedVertices);
     }
 }
