@@ -23,11 +23,19 @@ namespace SettlersOfIdlestan.Controller
             BuildingType.Sawmill, BuildingType.Brickworks, BuildingType.Quarry, BuildingType.Mill,
         };
 
+        // Step2 buildings regroupés par niveau de TownHall minimum requis (AvailableAtLevel).
+        // TH1 : Warehouse (AvailableAtLevel=1) rejoint les bâtiments Step1 (TH0/1).
+        // TH2 : Forge et Library (AvailableAtLevel=2).
+        // TH3 : Mine (AvailableAtLevel=3).
+        private static readonly BuildingType[] Step2TH1Buildings =
+            Step1Buildings.Concat(new[] { BuildingType.Warehouse }).ToArray();
+        private static readonly BuildingType[] Step2TH2Buildings =
+            { BuildingType.Forge, BuildingType.Library };
+        private static readonly BuildingType[] Step2TH3Buildings =
+            { BuildingType.Mine };
+
         public static readonly BuildingType[] Step2Buildings =
-            Step1Buildings.Concat(new[]
-            {
-                BuildingType.Warehouse, BuildingType.Mine, BuildingType.Forge, BuildingType.Library,
-            }).ToArray();
+            Step2TH1Buildings.Concat(Step2TH2Buildings).Concat(Step2TH3Buildings).ToArray();
 
         public static readonly BuildingType[] Step3Buildings =
             Step2Buildings.Concat(new[] { BuildingType.Temple }).ToArray();
@@ -54,10 +62,23 @@ namespace SettlersOfIdlestan.Controller
             return Make(objectives);
         }
 
-        /// <summary>Step 1 + Warehouse, Mine, Forge, Library (Library ignoré si non disponible).</summary>
+        /// <summary>
+        /// Step1 + Warehouse (TH1), puis Forge/Library (TH2), puis Mine (TH3), avec upgrades
+        /// TownHall intercalés entre chaque groupe. L'ordre est intentionnel : les bâtiments TH2
+        /// sont placés AVANT l'upgrade TH→2. Quand TH=1, ils sont indisponibles (null → IsDone=true),
+        /// la stratégie passe directement à TH→2 ; une fois upgradé, le rescan depuis le début les
+        /// rend actifs et la ville les construit avant de passer à la suivante. Idem pour Mine/TH→3.
+        /// </summary>
         public static PriorityAutoplayStrategy Step2(CivilizationAutoplayer auto, BuildingController bc, bool expand = true)
         {
-            var objectives = new List<IAutoplayObjective> { BObj(auto, bc, Step2Buildings, 1) };
+            var objectives = new List<IAutoplayObjective>
+            {
+                BObj(auto, bc, Step2TH1Buildings, 1),
+                BObj(auto, bc, Step2TH2Buildings, 1),
+                BObj(auto, bc, new[] { BuildingType.TownHall }, 2),
+                BObj(auto, bc, Step2TH3Buildings,  1),
+                BObj(auto, bc, new[] { BuildingType.TownHall }, 3),
+            };
             if (expand) objectives.Add(new CityCountObjective(auto, int.MaxValue));
             return Make(objectives);
         }
@@ -103,13 +124,17 @@ namespace SettlersOfIdlestan.Controller
         public static PriorityAutoplayStrategy NpcCautious(CivilizationAutoplayer auto, BuildingController bc, bool expand)
             => Step1(auto, bc, expand);
 
-        /// <summary>PNJ Expansionniste : Step 2 puis Militaire, expansion selon shouldExpand.</summary>
+        /// <summary>PNJ Expansionniste : Step 2 stagé (TH1→TH2→TH3) puis Militaire, expansion selon shouldExpand.</summary>
         public static PriorityAutoplayStrategy NpcExpansionist(CivilizationAutoplayer auto, BuildingController bc, bool expand)
         {
             var objectives = new List<IAutoplayObjective>
             {
-                BObj(auto, bc, Step2Buildings, 1),
-                BObj(auto, bc, MilitaryBuildings, 1),
+                BObj(auto, bc, Step2TH1Buildings, 1),
+                BObj(auto, bc, Step2TH2Buildings, 1),
+                BObj(auto, bc, new[] { BuildingType.TownHall }, 2),
+                BObj(auto, bc, Step2TH3Buildings,  1),
+                BObj(auto, bc, new[] { BuildingType.TownHall }, 3),
+                BObj(auto, bc, MilitaryBuildings,  1),
             };
             if (expand) objectives.Add(new CityCountObjective(auto, int.MaxValue));
             return Make(objectives);
