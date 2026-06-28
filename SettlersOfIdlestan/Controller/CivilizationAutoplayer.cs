@@ -9,6 +9,7 @@ using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.Prestige;
 using SettlersOfIdlestan.Controller.Expand;
 using SettlersOfIdlestan.Controller.Island;
+using SettlersOfIdlestan.Controller.Military;
 using System.Diagnostics;
 
 namespace SettlersOfIdlestan.Controller
@@ -35,6 +36,7 @@ namespace SettlersOfIdlestan.Controller
         private readonly PrestigeState? _prestigeState;
         private readonly Action? _performPrestige;
         private readonly WonderController? _wonderController;
+        private readonly MilitaryController? _militaryController;
 
         private VisibleIslandMap? _prospectiveVerticesCacheMap;
         private int _prospectiveVerticesCacheTotalCityCount = -1;
@@ -47,6 +49,13 @@ namespace SettlersOfIdlestan.Controller
 
         public Civilization Civilization => _civ;
         public WorldState? WorldState => _worldState;
+
+        /// <summary>
+        /// Civilisation ennemie à éliminer en priorité. Quand elle est définie et qu'un
+        /// MilitaryController a été fourni au constructeur, <see cref="TryUpdatePriorityTargetFlowsOnce"/>
+        /// oriente automatiquement les flux d'attaque et de renfort à chaque appel.
+        /// </summary>
+        public Civilization? PriorityTargetCivilization { get; set; }
 
         public CivilizationAutoplayer(
             Civilization civ,
@@ -62,7 +71,8 @@ namespace SettlersOfIdlestan.Controller
             WorldState? worldState,
             PrestigeState? prestigeState = null,
             Action? performPrestige = null,
-            WonderController? wonderController = null)
+            WonderController? wonderController = null,
+            MilitaryController? militaryController = null)
         {
             _civ = civ ?? throw new ArgumentNullException(nameof(civ));
             _map = map ?? throw new ArgumentNullException(nameof(map));
@@ -78,6 +88,94 @@ namespace SettlersOfIdlestan.Controller
             _prestigeState = prestigeState;
             _performPrestige = performPrestige;
             _wonderController = wonderController;
+            _militaryController = militaryController;
+        }
+
+        // ── Cible prioritaire ────────────────────────────────────────────────────
+
+        /// <summary>
+        /// Met à jour les flux militaires selon la <see cref="PriorityTargetCivilization"/> :
+        /// - villes à portée d'attaque de la cible → flux d'attaque vers la ville ennemie la plus proche
+        /// - autres villes → flux de renfort vers la ville alliée attaquante la plus proche dans la portée de renfort
+        /// No-op si PriorityTargetCivilization est null, si la cible n'a plus de villes, ou si
+        /// aucun MilitaryController n'a été fourni au constructeur.
+        /// </summary>
+        public bool TryUpdatePriorityTargetFlowsOnce()
+        {
+            if (_militaryController == null || PriorityTargetCivilization == null || _worldState == null) return false;
+            if (PriorityTargetCivilization.Cities.Count == 0) return false;
+
+            // La cible est définie explicitement par le joueur : on se base sur la distance pure,
+            // sans filtre de visibilité (contrairement à FindNearbyEnemyCity qui ne voit que les
+            // villes dans la carte visible). Cela évite que l'autoplayer reste bloqué si la cible
+            // n'est pas encore dans la zone visible alors que le joueur sait qu'elle existe.
+            int attackRange = _militaryController.CityAttackRange(_civ);
+            int z = _civ.Cities.FirstOrDefault()?.Position.Z ?? 0;
+
+            bool didSomething = false;
+
+            // Premier passage : villes à portée d'attaque de la cible → flux d'attaque
+            var frontlineCities = new List<City>();
+            foreach (var city in _civ.Cities)
+            {
+                if (city.Position.Z != z) continue;
+
+                City? nearest = null;
+                int nearestDist = int.MaxValue;
+                foreach (var targetCity in PriorityTargetCivilization.Cities)
+                {
+                    if (targetCity.Position.Z != z) continue;
+                    int d = city.Position.EdgeDistanceTo(targetCity.Position);
+                    if (d <= attackRange && d < nearestDist)
+                    {
+                        nearest = targetCity;
+                        nearestDist = d;
+                    }
+                }
+
+                if (nearest == null) continue;
+                frontlineCities.Add(city);
+
+                bool alreadyAttackingTarget = city.FlowTarget != null
+                    && PriorityTargetCivilization.Cities.Any(ec => ec.Position.Equals(city.FlowTarget));
+                if (alreadyAttackingTarget) continue;
+
+                _militaryController.SetCityFlow(city, nearest.Position);
+                didSomething = true;
+            }
+
+            // Deuxième passage : villes hors portée d'attaque → renfort vers la ville alliée
+            // attaquante la plus proche dans la portée de renfort.
+            // Si aucune ville frontline n'existe, on tente une expansion pour se rapprocher.
+            if (frontlineCities.Count > 0)
+            {
+                int reinforcementRange = _militaryController.ReinforcementRange(_civ);
+                var frontlinePositions = new HashSet<Vertex>(frontlineCities.Select(c => c.Position));
+
+                foreach (var city in _civ.Cities)
+                {
+                    if (city.Position.Z != z) continue;
+                    if (frontlinePositions.Contains(city.Position)) continue;
+                    if (city.FlowTarget != null && frontlinePositions.Contains(city.FlowTarget)) continue;
+
+                    City? nearest = null;
+                    int nearestDist = int.MaxValue;
+                    foreach (var frontline in frontlineCities)
+                    {
+                        int d = city.Position.EdgeDistanceTo(frontline.Position);
+                        if (d <= reinforcementRange && d < nearestDist)
+                        {
+                            nearest = frontline;
+                            nearestDist = d;
+                        }
+                    }
+
+                    if (nearest == null) continue;
+                    _militaryController.SetCityFlow(city, nearest.Position);
+                    didSomething = true;
+                }
+            }
+            return didSomething;
         }
 
         // ── Primitive utilities ──────────────────────────────────────────────────

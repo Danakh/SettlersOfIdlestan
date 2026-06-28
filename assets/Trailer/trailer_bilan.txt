@@ -1,5 +1,5 @@
 ﻿=== BILAN TRAILER — SETTLERS OF IDLESTAN ===
-Généré le : 2026-06-26 20:01:55
+Généré le : 2026-06-28 20:05:07
 Paramètres simulation : 30 fps, 3 ticks/frame, intervalle autoplayer : 0,5s
 
 --- 1 — EXPLORE (01_Explore.json, 5s, 3 ticks/frame) ---
@@ -100,9 +100,9 @@ Paramètres simulation : 30 fps, 3 ticks/frame, intervalle autoplayer : 0,5s
     Points recherche: 1494
     Techs complétées: 3
   État final :
-    Routes          : 35 (+3)
+    Routes          : 33 (+1)
     Villes joueur   : 14 (+1)
-    Bâtiments total : 119 (+3)
+    Bâtiments total : 122 (+6)
     Bâtiments milit.: 3 (+0)
     Soldats joueur  : 11 (+2)
     Villes ennemies : 5 (+0)
@@ -162,7 +162,7 @@ Paramètres simulation : 30 fps, 3 ticks/frame, intervalle autoplayer : 0,5s
     Bâtiments milit.: 50 (+0)
     Soldats joueur  : 193 (-32)
     Villes ennemies : 11 (-1)
-    Défense ennemie : 237 (+9)
+    Défense ennemie : 207 (-21)
     Points prestige : 1 (+0)
     Vertices achetés: 5 (+0)
     Points recherche: 583 (+40)

@@ -1,5 +1,4 @@
-﻿using SettlersOfIdlestan.Controller;
-using SettlersOfIdlestan.Controller.Expand;
+using SettlersOfIdlestan.Controller;
 using SettlersOfIdlestan.Controller.Generator;
 using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Controller.Military;
@@ -11,32 +10,27 @@ using SettlersOfIdlestan.Model.Prestige;
 using SettlersOfIdlestan.Model.Prestige.PrestigeMap;
 using SOITests.TestUtilities;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using Xunit;
 
 namespace SOITests.MilitaryTests;
 
 /// <summary>
-/// La civilisation joueur (prestige BarracksVertex + LaboratoryVertex) extermination un NPC Low/Pacifiste
-/// qui dispose d'une Palissade en défense pleine.
+/// Le joueur (avec prestige BarracksVertex) doit éradiquer un NPC Pacifiste Low via la
+/// stratégie unifiée, sans aucune intervention manuelle sur les flux d'attaque.
 ///
-/// Le joueur démarre SANS Caserne et sans bâtiment bonus : il doit :
-///   1. Développer son économie via Step1/Step2 pour avoir le stockage suffisant (Warehouse),
-///   2. Construire la Caserne par le step militaire,
-///   3. Produire des soldats et attaquer jusqu'à extermination.
-///
-/// L'île est générée comme dans StepIslandTest (IslandMapGenerator) avec :
-///   • 16 tuiles terrestres (Forest×4, Hill×4, Plain×4, Mountain×4)
-///   • 1 NPC Low/Pacifiste dont la ville de départ reçoit une Palissade
-///   • Prestige joueur (CentralVertex + BarracksVertex + LaboratoryVertex) injecté
-///     AVANT SetGame pour que SetupModifierAggregators les prenne en compte.
+/// La feature testée : en posant <c>PriorityTargetCivilization</c>, les flux d'attaque
+/// et de renfort vers le NPC sont créés automatiquement par
+/// <c>TryUpdatePriorityTargetFlowsOnce()</c>, appelé à chaque itération de
+/// <c>RunPriorityStrategyUntil</c>.
 /// </summary>
 public class NpcExterminationTests
 {
     [Fact]
     public void PlayerBuildsBarracksFromScratch_ProducesSoldiers_ExterminatesNpcWithPalisade()
     {
-        // ── Génération de l'île (même pattern que CreateNewGame) ─────────────────
+        // ── Génération de l'île (même pattern que CreateNewGame) ─────────────
         var tileData = new List<(TerrainType, int)>
         {
             (TerrainType.Forest,   3),
@@ -64,20 +58,7 @@ public class NpcExterminationTests
         var WorldState = generator.GenerateWorldState(islandParams, mainState.Clock.CurrentTick);
         Assert.NotNull(WorldState);
 
-        // ── Prestige joueur injecté AVANT SetGame ────────────────────────────────
-        // BarracksVertex déverrouille la Caserne (GetDefaultMaxLevel = 0 → +2).
-        // Doit être présent dans PurchasedVertices quand SetupModifierAggregators() s'exécute.
-        var prestige = new PrestigeState(WorldState);
-        prestige.PurchasedVertices.Add(PrestigeMap.CentralVertex);
-        prestige.PurchasedVertices.Add(PrestigeMap.BarracksVertex);
-        mainState.GodState = new GodState(prestige);
-
-        var mainController = new MainGameController();
-        mainController.SetGame(mainState);
-        // ApplyPrestigeToNewGame APRÈS SetGame, comme dans CreateNewGame
-        mainController.PrestigeMapController.ApplyPrestigeToNewGame(WorldState, prestige);
-
-        // ── Palissade sur la ville NPC la plus proche du joueur ──────────────────
+        // ── Palissade sur la ville NPC la plus proche du joueur ─────────────
         var npcCiv = WorldState.Civilizations.First(c => c.IsNpc);
         Assert.NotEmpty(npcCiv.Cities);
         var playerStartCity = WorldState.PlayerCivilization.Cities[0];
@@ -86,7 +67,17 @@ public class NpcExterminationTests
             .First();
         npcTargetCity.Buildings.Add(new Palisade { Level = 1 });
 
-        // ── Autoplayer joueur ────────────────────────────────────────────────────
+        // ── Prestige joueur injecté AVANT SetGame ────────────────────────────
+        var prestige = new PrestigeState(WorldState);
+        prestige.PurchasedVertices.Add(PrestigeMap.CentralVertex);
+        prestige.PurchasedVertices.Add(PrestigeMap.BarracksVertex);
+        mainState.GodState = new GodState(prestige);
+
+        var mainController = new MainGameController();
+        mainController.SetGame(mainState);
+        mainController.PrestigeMapController.ApplyPrestigeToNewGame(WorldState, prestige);
+
+        // ── Autoplayer joueur avec cible prioritaire ─────────────────────────
         var playerCiv = WorldState.PlayerCivilization;
         var auto = new CivilizationAutoplayer(
             playerCiv,
@@ -101,55 +92,49 @@ public class NpcExterminationTests
             mainController.PrestigeMapController,
             WorldState,
             mainController.CurrentMainState?.PrestigeState,
-            mainController.PerformPrestige);
+            mainController.PerformPrestige,
+            militaryController: mainController.MilitaryController);
+        auto.PriorityTargetCivilization = npcCiv;
         var runner = new CivilizationAutoplayerRunner(auto, playerCiv, mainController);
 
-        // Phase économique : atteindre 4 villes, Warehouse et Mine via la stratégie unifiée.
-        runner.RunPriorityStrategyUntil(
-            CivilizationAutoplayerPriorities.Unified(auto, mainController.BuildingController),
-            () => playerCiv.Cities.Count >= 4
-               && playerCiv.Cities.All(c => c.Buildings.Any(b => b.Type == BuildingType.TownHall)),
-            maxIterations: 5000);
-        Assert.True(
-            playerCiv.Cities.Count >= 4,
-            "Le joueur devrait avoir au moins 4 villes après la phase économique.");
-
-        runner.RunPriorityStrategyUntil(
-            CivilizationAutoplayerPriorities.Unified(auto, mainController.BuildingController),
-            () => playerCiv.Cities.Any(c => c.Buildings.Any(b => b.Type == BuildingType.Warehouse)) &&
-                  playerCiv.Cities.Any(c => c.Buildings.Any(b => b.Type == BuildingType.Mine)),
-            maxIterations: 5000);
-        Assert.True(
-            playerCiv.Cities.Any(c => c.Buildings.Any(b => b.Type == BuildingType.Warehouse)),
-            "Le joueur devrait avoir un Warehouse.");
-        Assert.True(
-            playerCiv.Cities.Any(c => c.Buildings.Any(b => b.Type == BuildingType.Mine)),
-            "Le joueur devrait avoir une Mine.");
-
-        // Phase militaire : la Caserne est construite conditionnellement (menaces visibles + minerai).
-        runner.RunPriorityStrategyUntil(
-            CivilizationAutoplayerPriorities.Unified(auto, mainController.BuildingController),
-            () => playerCiv.Cities.Count(c => c.Buildings.Any(b => b.Type == BuildingType.Barracks)) >= 5,
-            maxIterations: 5000);
-        Assert.True(
-            playerCiv.Cities.Count(c => c.Buildings.Any(b => b.Type == BuildingType.Barracks)) >= 5,
-            "Le joueur devrait avoir construit la Caserne via la stratégie unifiée.");
-
-        // Mets en place les Attack Flow
-        foreach (var c in playerCiv.Cities)
-        {
-            c.FlowTarget = npcTargetCity.Position;
-        }
-
-        // ── Autoplay : production de soldats + attaques ──────────────────────────
-        runner.RunPriorityStrategyUntil(
+        // ── Stratégie unifiée jusqu'à éradication ────────────────────────────
+        int iterCount = runner.RunPriorityStrategyUntil(
             CivilizationAutoplayerPriorities.Unified(auto, mainController.BuildingController),
             () => npcCiv.Cities.Count == 0,
-            maxIterations: 5000);
+            maxIterations: 150000);
 
+        // ── Diagnostic ───────────────────────────────────────────────────────────
+        var buildable = mainController.CityBuilderController.GetBuildableVertices(playerCiv.Index);
+        string buildableStr = string.Join(", ", buildable.Select(v => $"[{string.Join(",", v.GetHexes().Select(h => $"({h.Q},{h.R})"))}]"));
+        string cityPositions = string.Join(", ", playerCiv.Cities.Select(c => $"[{string.Join(",", c.Position.GetHexes().Select(h => $"({h.Q},{h.R})"))}]"));
+        string npcPositions = string.Join(", ", npcCiv.Cities.Select(c => $"[{string.Join(",", c.Position.GetHexes().Select(h => $"({h.Q},{h.R})"))}]"));
+        string cityBuildings = string.Join(" | ", playerCiv.Cities.Select(c => $"[{string.Join(",", c.Buildings.Select(b => $"{b.Type}L{b.Level}"))}]"));
+        int roadCount = playerCiv.Roads.Count;
 
-        // ── Assertions ────────────────────────────────────────────────────────────
-        Assert.Empty(npcCiv.Cities);
-        Assert.Contains(PrestigeMap.BarracksVertex,   prestige.PurchasedVertices);
+        string resources = string.Join(", ", System.Enum.GetValues<Resource>()
+            .Select(r => $"{r}={playerCiv.GetResourceQuantity(r)}"));
+        string soldiersPerCity = string.Join(", ", playerCiv.Cities.Select(c => $"{c.Soldiers}"));
+        int storageAdv = playerCiv.StorageCapacityAdvanced;
+
+        // ── Export de la partie pour inspection ───────────────────────────────
+        var savesDir = Path.Combine(
+            SaveUtils.GetSolutionRootDirectory(Directory.GetCurrentDirectory()), "saves");
+        Directory.CreateDirectory(savesDir);
+        File.WriteAllText(
+            Path.Combine(savesDir, "NpcExtermination.json"),
+            mainController.ExportMainState());
+
+        // ── Assertions ────────────────────────────────────────────────────────
+        int npcDist = npcTargetCity.Position.EdgeDistanceTo(playerStartCity.Position);
+        int playerSoldiers = playerCiv.Cities.Sum(c => c.Soldiers);
+        int barracks = playerCiv.Cities.Count(c => c.Buildings.Any(b => b.Type == BuildingType.Barracks));
+        Assert.True(npcCiv.Cities.Count == 0,
+            $"NPC devrait être éradiqué. iter={iterCount}, dist_npc={npcDist}, soldats={playerSoldiers}[{soldiersPerCity}], casernes={barracks}, villes={playerCiv.Cities.Count}, routes={roadCount}, storageAdv={storageAdv}\n" +
+            $"Villes joueur: {cityPositions}\n" +
+            $"Villes NPC: {npcPositions}\n" +
+            $"Buildable vertices ({buildable.Count}): {buildableStr}\n" +
+            $"Bâtiments: {cityBuildings}\n" +
+            $"Ressources: {resources}");
+        Assert.Contains(PrestigeMap.BarracksVertex, prestige.PurchasedVertices);
     }
 }

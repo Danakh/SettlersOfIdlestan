@@ -247,24 +247,33 @@ public class CivilizationAutoplayerRunner
     /// <summary>
     /// Drives a PriorityAutoplayStrategy until either the given condition or the strategy itself
     /// reports completion (all its objectives satisfied), advancing the clock between attempts.
+    /// Returns the number of iterations actually executed.
     /// </summary>
-    public void RunPriorityStrategyUntil(PriorityAutoplayStrategy strategy, Func<bool> condition, int maxIterations = 10000)
+    public int RunPriorityStrategyUntil(PriorityAutoplayStrategy strategy, Func<bool> condition, int maxIterations = 10000)
     {
-        for (int i = 0; i < maxIterations && !condition() && !strategy.IsComplete(); i++)
+        int i;
+        for (i = 0; i < maxIterations && !condition() && !strategy.IsComplete(); i++)
         {
-            try { strategy.TryStepOnce(); } catch { }
+            try
+            {
+                strategy.TryStepOnce();
+                _autoplayer.TryUpdatePriorityTargetFlowsOnce();
+            }
+            catch { }
             Advance();
         }
+        return i;
     }
 
     /// <summary>
     /// Builds a PriorityAutoplayStrategy from a hand-tuned stage sequence and drives it. See
     /// <see cref="PriorityStage"/> — the stages come from SOIStrategyTester experiments.
+    /// Returns the number of iterations actually executed.
     /// </summary>
-    public void RunPriorityStrategyUntil(IReadOnlyList<PriorityStage> stages, Func<bool> condition, int maxIterations = 10000)
+    public int RunPriorityStrategyUntil(IReadOnlyList<PriorityStage> stages, Func<bool> condition, int maxIterations = 10000)
     {
         var objectives = stages.Select(s => s.ToObjective(_autoplayer, _controller.BuildingController)).ToList();
-        RunPriorityStrategyUntil(new PriorityAutoplayStrategy(objectives), condition, maxIterations);
+        return RunPriorityStrategyUntil(new PriorityAutoplayStrategy(objectives), condition, maxIterations);
     }
     /// <summary>
     /// Grinds step-3 actions, places the Wonder if needed, keeps investment enabled for whichever

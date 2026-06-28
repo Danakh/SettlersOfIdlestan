@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Model.Buildings;
+using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Monsters;
 
 namespace SettlersOfIdlestan.Controller
@@ -129,9 +130,14 @@ namespace SettlersOfIdlestan.Controller
                 auto.WorldState != null && auto.WorldState.Features.OfType<Bandit>().Any(b => b.Found));
 
             var hasVisibleThreats = new Func<bool>(() =>
-                auto.WorldState != null && (
-                    auto.WorldState.Features.OfType<MonsterFeature>().Any(m => m.Found) ||
-                    auto.WorldState.Civilizations.Any(c => c.IsNpc && c.Cities.Count > 0)));
+            {
+                if (auto.WorldState == null) return false;
+                if (auto.WorldState.Features.OfType<MonsterFeature>().Any(m => m.Found)) return true;
+                var visMaps = auto.WorldState.Visibility.GetForZ(IslandMap.SurfaceLayer);
+                if (!visMaps.TryGetValue(auto.Civilization.Index, out var vm)) return false;
+                return auto.WorldState.Civilizations.Any(c => c.IsNpc && c.Cities.Count > 0 &&
+                    c.Cities.Any(city => city.Position.GetHexes().Any(h => vm.HasTile(h))));
+            });
 
             var hasOreProduction = new Func<bool>(() =>
                 auto.Civilization.Cities.Any(c => c.Buildings.Any(b => b.Type == BuildingType.Mine && b.Level > 0)));
@@ -148,12 +154,13 @@ namespace SettlersOfIdlestan.Controller
                 new ConditionalBuildingLevelObjective(banditSpotted,                           BObj(auto, bc, new[] { BuildingType.Palisade }, 1)),
                 new ConditionalBuildingLevelObjective(() => hasVisibleThreats() && hasOreProduction(), BObj(auto, bc, new[] { BuildingType.Barracks }, 1)),
 
-                // Step 2 à partir de step2AtCities (Entrepôt → Forge/Bibliothèque → TH2 → Mine → TH3)
+                // Step 2 à partir de step2AtCities (Entrepôt → TH2 → Mine → TH3 → Forge/Bibliothèque)
+                // Forge coûte de l'Ore : on la place après Mine pour éviter le deadlock (Mine→TH3→Ore→Forge).
                 new ConditionalBuildingLevelObjective(hasStep2Cities, BObj(auto, bc, new[] { BuildingType.Warehouse },   1)),
-                new ConditionalBuildingLevelObjective(hasStep2Cities, BObj(auto, bc, Step2TH2Buildings,                  1)),
                 new ConditionalBuildingLevelObjective(hasStep2Cities, BObj(auto, bc, new[] { BuildingType.TownHall },    2)),
                 new ConditionalBuildingLevelObjective(hasStep2Cities, BObj(auto, bc, Step2TH3Buildings,                  1)),
                 new ConditionalBuildingLevelObjective(hasStep2Cities, BObj(auto, bc, new[] { BuildingType.TownHall },    3)),
+                new ConditionalBuildingLevelObjective(() => hasStep2Cities() && hasOreProduction(), BObj(auto, bc, Step2TH2Buildings, 1)),
 
                 // Step 3 à partir de step3AtCities (Temple)
                 new ConditionalBuildingLevelObjective(hasStep3Cities, BObj(auto, bc, new[] { BuildingType.Temple }, 1)),

@@ -8,23 +8,23 @@ namespace SettlersOfIdlestanSkia.Renderers.Debug;
 
 public class AutoplayerDebugRenderer : IGameRenderer
 {
-    public enum AutoplayerMode { Inactive, Step1, Step2, Step3, Military }
+    public enum AutoplayerMode { Inactive, Active }
 
     private AutoplayerMode _mode = AutoplayerMode.Inactive;
 
-    private const float ButtonWidth = 58f;
+    private const float ButtonWidth = 80f;
     private const float ButtonHeight = 22f;
     private const float ButtonSpacing = 3f;
     private const float MarginLeft = 10f;
     private const float MarginBottom = 10f;
 
-    private static readonly string[] Labels = { "Inactif", "Step 1", "Step 2", "Step 3", "Armée" };
+    private static readonly string[] Labels = { "Inactif", "Stratégie" };
 
     private readonly GameControllerService _gameControllerService;
     private readonly InputHandlingService _inputService;
 
     private SKSize _canvasSize;
-    private readonly SKRect[] _buttonRects = new SKRect[5];
+    private readonly SKRect[] _buttonRects = new SKRect[2];
 
     private CivilizationAutoplayer? _autoplayer;
     private PriorityAutoplayStrategy? _strategy;
@@ -55,7 +55,7 @@ public class AutoplayerDebugRenderer : IGameRenderer
     private void RecalcRects()
     {
         float y = _canvasSize.Height - MarginBottom - ButtonHeight;
-        for (int i = 0; i < 5; i++)
+        for (int i = 0; i < 2; i++)
         {
             float x = MarginLeft + i * (ButtonWidth + ButtonSpacing);
             _buttonRects[i] = new SKRect(x, y, x + ButtonWidth, y + ButtonHeight);
@@ -69,7 +69,7 @@ public class AutoplayerDebugRenderer : IGameRenderer
 
         RunAutoplayerStep();
 
-        for (int i = 0; i < 5; i++)
+        for (int i = 0; i < 2; i++)
             DrawButton(canvas, _buttonRects[i], Labels[i], (int)_mode == i);
     }
 
@@ -104,14 +104,9 @@ public class AutoplayerDebugRenderer : IGameRenderer
 
         if (_mode != _lastBuiltMode)
         {
-            _strategy = _mode switch
-            {
-                AutoplayerMode.Step1    or
-                AutoplayerMode.Step2    or
-                AutoplayerMode.Step3    or
-                AutoplayerMode.Military => CivilizationAutoplayerPriorities.Unified(_autoplayer!, mainController.BuildingController),
-                _                       => null,
-            };
+            _strategy = _mode == AutoplayerMode.Active
+                ? CivilizationAutoplayerPriorities.Unified(_autoplayer!, mainController.BuildingController)
+                : null;
             _lastBuiltMode = _mode;
         }
 
@@ -131,7 +126,7 @@ public class AutoplayerDebugRenderer : IGameRenderer
         if (_disposed || !DebugSettings.ShowAutoplayerCommands || e.Button != PointerButton.Left)
             return;
 
-        for (int i = 0; i < 5; i++)
+        for (int i = 0; i < 2; i++)
         {
             if (_buttonRects[i].Contains(e.Position.X, e.Position.Y))
             {
