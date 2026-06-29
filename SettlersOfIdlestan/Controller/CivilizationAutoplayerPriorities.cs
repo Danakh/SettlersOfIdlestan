@@ -24,6 +24,11 @@ namespace SettlersOfIdlestan.Controller
             BuildingType.Sawmill, BuildingType.Brickworks, BuildingType.Quarry, BuildingType.Mill,
         };
 
+        public static readonly BuildingType[] ProductionBuildings =
+        {
+            BuildingType.Sawmill, BuildingType.Brickworks, BuildingType.Quarry, BuildingType.Mill, BuildingType.Mine
+        };
+
         // Step2 buildings regroupés par niveau de TownHall minimum requis (AvailableAtLevel).
         // TH1 : Warehouse (AvailableAtLevel=1) rejoint les bâtiments Step1 (TH0/1).
         // TH2 : Forge et Library (AvailableAtLevel=2).
@@ -155,13 +160,16 @@ namespace SettlersOfIdlestan.Controller
 
                 // Step 2 à partir de step2AtCities (Entrepôt → TH2 → Mine → TH3 → Forge/Bibliothèque)
                 // Forge coûte de l'Ore : on la place après Mine pour éviter le deadlock (Mine→TH3→Ore→Forge).
+                new ConditionalBuildingLevelObjective(() => hasStep2Cities() && hasOreProduction(), BObj(auto, bc, new[] { BuildingType.Forge },     1)),
                 new ConditionalBuildingLevelObjective(hasStep2Cities, BObj(auto, bc, new[] { BuildingType.Warehouse },   1)),
                 new ConditionalBuildingLevelObjective(hasStep2Cities, BObj(auto, bc, new[] { BuildingType.TownHall },    2)),
                 new ConditionalBuildingLevelObjective(hasStep2Cities, BObj(auto, bc, Step2TH3Buildings,                  1)),
                 new ConditionalBuildingLevelObjective(hasStep2Cities, BObj(auto, bc, new[] { BuildingType.TownHall },    3)),
-                new ConditionalBuildingLevelObjective(() => hasStep2Cities() && hasOreProduction(), BObj(auto, bc, Step2TH2Buildings, 1)),
+                new ConditionalBuildingLevelObjective(hasStep2Cities, BObj(auto, bc, new[] { BuildingType.Library },     1)),
 
-                // Step 3 à partir de step3AtCities (Temple)
+                // Step 3 à partir de step3AtCities (Plus de production, puis Caserne et Temple)
+                //new ConditionalBuildingLevelObjective(hasStep3Cities, BObj(auto, bc, ProductionBuildings, 2)),
+                //new ConditionalBuildingLevelObjective(hasStep3Cities, BObj(auto, bc, ProductionBuildings, 3)),
                 new ConditionalBuildingLevelObjective(() => hasStep3Cities() && hasOreProduction(), BObj(auto, bc, new[] { BuildingType.Barracks }, 1)),
                 new ConditionalBuildingLevelObjective(hasStep3Cities, BObj(auto, bc, new[] { BuildingType.Temple }, 1)),
 
