@@ -3,6 +3,13 @@ The changelog is not actively maintained at the moment.
 
 ---
 
+v0.6
+• Reworked enemy behavior
+• Enriched tooltips: resource production and consumption are now displayed
+• Improved statistics screen: completed researches (cross-prestige total) on the first row, cities / buildings / total levels / unique buildings on the second row, and an optional third row
+
+---
+
 v0.5
 • Volcano: new map feature on advanced islands with periodic eruptions that damage nearby cities
 • Surface Corruption: corruption now spreads through levels on the surface layer

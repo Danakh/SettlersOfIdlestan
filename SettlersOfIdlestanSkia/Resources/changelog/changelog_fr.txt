@@ -3,6 +3,13 @@ Le changelog n'est pas activement mis à jour pour le moment.
 
 ---
 
+v0.6
+• Refonte du comportement des ennemis
+• Tooltips enrichis : affichage de la production et de la consommation des ressources
+• Écran des statistiques amélioré : recherches complétées (total cross-prestige) en première ligne, villes / bâtiments / niveaux totaux / bâtiments uniques en deuxième ligne, et une troisième ligne optionnelle
+
+---
+
 v0.5
 • Volcan : nouvelle feature de carte sur les îles avancées, avec des éruptions périodiques endommageant les villes voisines
 • Corruption de surface : la corruption progresse par niveaux sur la couche de surface

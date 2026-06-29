@@ -87,8 +87,14 @@ public sealed class PrestigeHistoryRenderer : IDisposable
         int prestigePoints = controller.CalculatePrestigePoints();
         int WorldId = island?.WorldId ?? 0;
 
-        var row3Items = BuildRow3Current(island);
-        float cardHeight = CardPadding + RowHeight * 2 + (row3Items.Count > 0 ? RowHeight : 0) + CardPadding;
+        var wonder = island?.Features.OfType<Wonder>().FirstOrDefault();
+        int wonderLevel = wonder?.Level ?? 0;
+        bool hasDeepestMine = island?.Features.OfType<DeepestMine>().Any(m => m.Dug) == true;
+        bool hasCorruptionSpire = island?.Features.OfType<CorruptionSpire>().Any(s => s.Built) == true;
+        bool hasAbyssGate = island?.Features.OfType<AbyssGate>().Any(g => g.Built) == true;
+        bool hasRow3 = wonderLevel > 0 || hasDeepestMine || hasCorruptionSpire || hasAbyssGate;
+
+        float cardHeight = CardPadding + RowHeight * 2 + (hasRow3 ? RowHeight : 0) + CardPadding;
         var cardRect = new SKRect(x, y, x + width, y + cardHeight);
         canvas.DrawRoundRect(cardRect, CardRadius, CardRadius, _cardPaint);
         canvas.DrawRoundRect(cardRect, CardRadius, CardRadius, _currentCardBorderPaint);
@@ -106,8 +112,14 @@ public sealed class PrestigeHistoryRenderer : IDisposable
         DrawStatCell(canvas, x + width / 2, row2, _localization.Get("stats_total_levels"), totalLevels.ToString(), width / 4);
         DrawStatCell(canvas, x + width * 3 / 4, row2, _localization.Get("stats_unique_buildings"), uniqueBuildings.ToString(), width / 4);
 
-        if (row3Items.Count > 0)
-            DrawRow3(canvas, x, row2 + RowHeight, width, row3Items);
+        if (hasRow3)
+        {
+            float row3 = row2 + RowHeight;
+            if (wonderLevel > 0)      DrawStatCell(canvas, x + CardPadding,        row3, _localization.Get("stats_wonder"),           wonderLevel.ToString(), width / 4);
+            if (hasDeepestMine)       DrawStatCell(canvas, x + width / 4,           row3, _localization.Get("stats_deepest_mine"),     "✓",                    width / 4);
+            if (hasCorruptionSpire)   DrawStatCell(canvas, x + width / 2,           row3, _localization.Get("stats_corruption_spire"), "✓",                    width / 4);
+            if (hasAbyssGate)         DrawStatCell(canvas, x + width * 3 / 4,       row3, _localization.Get("stats_abyss_gate"),       "✓",                    width / 4);
+        }
 
         return y + cardHeight;
     }
@@ -128,8 +140,8 @@ public sealed class PrestigeHistoryRenderer : IDisposable
         for (int i = history.Count - 1; i >= 0; i--)
         {
             var run = history[i];
-            var runRow3 = BuildRow3History(run);
-            float cardHeight = CardPadding + RowHeight * 2 + (runRow3.Count > 0 ? RowHeight : 0) + CardPadding;
+            bool runHasRow3 = run.WonderLevel > 0 || run.HasDeepestMine || run.HasCorruptionSpire || run.HasAbyssGate;
+            float cardHeight = CardPadding + RowHeight * 2 + (runHasRow3 ? RowHeight : 0) + CardPadding;
 
             var cardRect = new SKRect(x, y, x + width, y + cardHeight);
             canvas.DrawRoundRect(cardRect, CardRadius, CardRadius, _cardPaint);
@@ -148,51 +160,20 @@ public sealed class PrestigeHistoryRenderer : IDisposable
             DrawStatCell(canvas, x + width / 2, row2, _localization.Get("stats_total_levels"), run.TotalBuildingLevels.ToString(), width / 4);
             DrawStatCell(canvas, x + width * 3 / 4, row2, _localization.Get("stats_unique_buildings"), run.UniqueBuildings.ToString(), width / 4);
 
-            if (runRow3.Count > 0)
-                DrawRow3(canvas, x, row2 + RowHeight, width, runRow3);
+            if (runHasRow3)
+            {
+                float row3 = row2 + RowHeight;
+                if (run.WonderLevel > 0)     DrawStatCell(canvas, x + CardPadding,  row3, _localization.Get("stats_wonder"),           run.WonderLevel.ToString(), width / 4);
+                if (run.HasDeepestMine)      DrawStatCell(canvas, x + width / 4,    row3, _localization.Get("stats_deepest_mine"),     "✓",                        width / 4);
+                if (run.HasCorruptionSpire)  DrawStatCell(canvas, x + width / 2,    row3, _localization.Get("stats_corruption_spire"), "✓",                        width / 4);
+                if (run.HasAbyssGate)        DrawStatCell(canvas, x + width * 3 / 4, row3, _localization.Get("stats_abyss_gate"),      "✓",                        width / 4);
+            }
 
             y += cardHeight + 8;
 
             if (y + cardHeight > _canvasSize.Height - 10)
                 break;
         }
-    }
-
-    private List<(string label, string value)> BuildRow3Current(SettlersOfIdlestan.Model.IslandMap.WorldState? island)
-    {
-        var items = new List<(string, string)>();
-        if (island == null) return items;
-        var wonder = island.Features.OfType<Wonder>().FirstOrDefault();
-        if (wonder?.Level > 0)
-            items.Add((_localization.Get("stats_wonder"), wonder.Level.ToString()));
-        if (island.Features.OfType<DeepestMine>().Any(m => m.Dug))
-            items.Add((_localization.Get("stats_deepest_mine"), "✓"));
-        if (island.Features.OfType<CorruptionSpire>().Any(s => s.Built))
-            items.Add((_localization.Get("stats_corruption_spire"), "✓"));
-        if (island.Features.OfType<AbyssGate>().Any(g => g.Built))
-            items.Add((_localization.Get("stats_abyss_gate"), "✓"));
-        return items;
-    }
-
-    private List<(string label, string value)> BuildRow3History(PrestigeRunStats run)
-    {
-        var items = new List<(string, string)>();
-        if (run.WonderLevel > 0)
-            items.Add((_localization.Get("stats_wonder"), run.WonderLevel.ToString()));
-        if (run.HasDeepestMine)
-            items.Add((_localization.Get("stats_deepest_mine"), "✓"));
-        if (run.HasCorruptionSpire)
-            items.Add((_localization.Get("stats_corruption_spire"), "✓"));
-        if (run.HasAbyssGate)
-            items.Add((_localization.Get("stats_abyss_gate"), "✓"));
-        return items;
-    }
-
-    private void DrawRow3(SKCanvas canvas, float x, float y, float width, List<(string label, string value)> items)
-    {
-        float cellWidth = (width - CardPadding) / items.Count;
-        for (int i = 0; i < items.Count; i++)
-            DrawStatCell(canvas, x + CardPadding + cellWidth * i, y, items[i].label, items[i].value, cellWidth);
     }
 
     private void DrawStatCell(SKCanvas canvas, float x, float y, string label, string value, float cellWidth)
