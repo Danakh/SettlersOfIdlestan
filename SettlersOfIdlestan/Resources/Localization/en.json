@@ -511,6 +511,8 @@
   "tech_military_mastery_name": "Military Mastery",
   "tech_military_mastery_desc": "+25% unit production speed, +1 city defense",
   "tab_events": "Events",
+  "tab_history": "History",
+  "history_empty": "No actions recorded yet.",
   "events_empty": "No events yet.",
   "event_bandit_title": "⚔ Bandit spotted!",
   "event_bandit_body": "This bandit blocks harvest on its hex and may steal your resources.",

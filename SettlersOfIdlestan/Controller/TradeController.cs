@@ -22,7 +22,7 @@ namespace SettlersOfIdlestan.Controller
         /// <summary>Or reçu pour 1 Acier vendu (recherche Aciers Spéciaux).</summary>
         public const int SteelSellGoldValue = 10;
 
-        public event Action<int>? GoldObtainedFromTrade;
+        public event Action<int, Resource>? GoldObtainedFromTrade;
 
         internal TradeController(WorldState? state = null)
         {
@@ -120,7 +120,7 @@ namespace SettlersOfIdlestan.Controller
 
             civ.RemoveResource(resource, totalOffer);
             civ.AddResource(Resource.Gold, totalGold);
-            GoldObtainedFromTrade?.Invoke(totalGold);
+            GoldObtainedFromTrade?.Invoke(totalGold, resource);
             return true;
         }
 

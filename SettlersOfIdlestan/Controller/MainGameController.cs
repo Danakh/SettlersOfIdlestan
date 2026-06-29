@@ -52,6 +52,7 @@ namespace SettlersOfIdlestan.Controller
         public AchievementController AchievementController { get; private set; }
         public AutoExtendController AutoExtendController { get; private set; }
         public VolcanoController VolcanoController { get; private set; }
+        public CivilizationHistoryController CivilizationHistoryController { get; private set; }
 
         /// <summary>
         /// Statistiques cumulatives à vie (cross-sauvegarde) — chargées/sauvegardées par la couche
@@ -94,6 +95,7 @@ namespace SettlersOfIdlestan.Controller
             AutoExtendController = new AutoExtendController();
             VolcanoController = new VolcanoController();
             NpcGameController = new NpcGameController();
+            CivilizationHistoryController = new CivilizationHistoryController();
         }
 
         /// <summary>
@@ -327,6 +329,10 @@ namespace SettlersOfIdlestan.Controller
                     PrestigeMapController, ResearchController, MilitaryController, HarvestController,
                     TradeController, WonderController, CorruptionSpireController,
                     CurrentMainState!.GodState, LifetimeStats);
+
+                CivilizationHistoryController.Initialize(
+                    WorldState, Clock,
+                    RoadController, CityBuilderController, BuildingController, TradeController);
             }
         }
 

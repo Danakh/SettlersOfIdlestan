@@ -23,6 +23,7 @@ public sealed class TabBarRenderer : IDisposable
     public const int TabAutomation = 5;
     public const int TabRituals    = 6;
     public const int TabAscension  = 7;
+    public const int TabHistory    = 8;
 
     private const float TabWidth      = 62;
     private const float TabHeight     = 28;
@@ -113,6 +114,7 @@ public sealed class TabBarRenderer : IDisposable
         if (!_hasAutomationTab && _activeTab == TabAutomation) _activeTab = TabIsland;
         if (!_hasRitualsTab    && _activeTab == TabRituals)    _activeTab = TabIsland;
         if (!_hasAscensionTab  && _activeTab == TabAscension)  _activeTab = TabIsland;
+        if (!_allowDebugMode   && _activeTab == TabHistory)    _activeTab = TabIsland;
 
         _activeTabs.Clear();
         _activeTabs.Add((TabIsland, default));
@@ -122,6 +124,7 @@ public sealed class TabBarRenderer : IDisposable
         if (showEventsTab)     _activeTabs.Add((TabEvents, default));
         if (_hasAutomationTab) _activeTabs.Add((TabAutomation, default));
         if (_hasAscensionTab)  _activeTabs.Add((TabAscension, default));
+        if (_allowDebugMode)   _activeTabs.Add((TabHistory, default));
 
         bool isMobile   = _uiLayout.IsMobile;
         float uiScale   = _uiLayout.UiScale;
@@ -219,6 +222,7 @@ public sealed class TabBarRenderer : IDisposable
         TabAutomation => _localization.Get("tab_automation"),
         TabRituals    => _localization.Get("tab_rituals"),
         TabAscension  => _localization.Get("tab_ascension"),
+        TabHistory    => _localization.Get("tab_history"),
         _             => "?"
     };
 

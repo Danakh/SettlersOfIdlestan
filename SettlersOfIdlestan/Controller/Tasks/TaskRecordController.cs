@@ -375,7 +375,7 @@ public class TaskRecordController
         }
     }
 
-    private void HandleGoldObtainedFromTrade(int amount)
+    private void HandleGoldObtainedFromTrade(int amount, Resource _)
     {
         if (_gameRecord == null) return;
         _gameRecord.TotalGoldObtainedFromTrade += amount;

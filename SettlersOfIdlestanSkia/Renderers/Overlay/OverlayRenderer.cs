@@ -32,6 +32,7 @@ public sealed class OverlayRenderer : IGameRenderer
     private readonly AscensionRenderer _ascensionRenderer;
     private readonly TooltipRenderer _tooltipRenderer;
     private readonly PlayerCivilizationPanelRenderer _playerCivPanel;
+    private readonly SettlersOfIdlestanSkia.Renderers.Debug.HistoryTabRenderer? _historyRenderer;
     private readonly TabBarRenderer _tabBar;
     private readonly MapSwitchButtonRenderer _mapSwitchButton;
     private readonly ZoomControlRenderer _zoomControl;
@@ -75,7 +76,8 @@ public sealed class OverlayRenderer : IGameRenderer
         AscensionRenderer ascensionRenderer,
         TooltipRenderer tooltipRenderer,
         UILayoutService uiLayout,
-        bool allowDebugMode = false)
+        bool allowDebugMode = false,
+        SettlersOfIdlestanSkia.Renderers.Debug.HistoryTabRenderer? historyRenderer = null)
     {
         _uiLayout                       = uiLayout;
         _inputService                   = inputService;
@@ -97,6 +99,7 @@ public sealed class OverlayRenderer : IGameRenderer
         _ritualsRenderer                = ritualsRenderer;
         _ascensionRenderer              = ascensionRenderer;
         _tooltipRenderer                = tooltipRenderer;
+        _historyRenderer                = historyRenderer;
 
         _tabBar          = new TabBarRenderer(localization, gameControllerService, uiLayout, allowDebugMode);
         _mapSwitchButton = new MapSwitchButtonRenderer(localization, uiLayout, gameControllerService);
@@ -138,6 +141,7 @@ public sealed class OverlayRenderer : IGameRenderer
         _automationRenderer.Initialize(canvasSize);
         _ritualsRenderer.Initialize(canvasSize);
         _ascensionRenderer.Initialize(canvasSize);
+        _historyRenderer?.Initialize(canvasSize);
         _playerCivPanel.Initialize(canvasSize);
         _tabBar.Initialize(canvasSize);
         _mapSwitchButton.Initialize(canvasSize);
@@ -202,6 +206,9 @@ public sealed class OverlayRenderer : IGameRenderer
                 break;
             case TabBarRenderer.TabAscension:
                 _ascensionRenderer.RenderAscensionPage(canvas, context);
+                break;
+            case TabBarRenderer.TabHistory:
+                _historyRenderer?.RenderHistory(canvas, context);
                 break;
             default:
                 _playerCivPanel.Render(canvas, context);
@@ -499,6 +506,7 @@ public sealed class OverlayRenderer : IGameRenderer
         _automationRenderer.Dispose();
         _ritualsRenderer.Dispose();
         _ascensionRenderer.Dispose();
+        _historyRenderer?.Dispose();
         _playerCivPanel.Dispose();
         _tabBar.Dispose();
         _mapSwitchButton.Dispose();

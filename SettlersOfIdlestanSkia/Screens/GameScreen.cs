@@ -307,13 +307,23 @@ public sealed class GameScreen : IDisposable
         var ritualsRenderer         = new RitualsRenderer(_gameControllerService, _localizationService, tooltipRenderer, _targetSelectionService);
         var ascensionRenderer       = new AscensionRenderer(_gameControllerService, _localizationService, tooltipRenderer);
 
+        HistoryTabRenderer? historyTabRenderer = null;
+        if (allowDebugMode)
+        {
+            historyTabRenderer = new HistoryTabRenderer(
+                _gameControllerService.MainGameController.CivilizationHistoryController,
+                _uiLayoutService,
+                _localizationService);
+        }
+
         _overlayRenderer = new OverlayRenderer(
             _inputService, _gameControllerService, _localizationService,
             _playerResourcesOverlayRenderer, settingsMenu, settingsPopupRenderer,
             selectedCityPanelRenderer, selectedMonumentPanelRenderer,
             tradeRenderer, prestigeRenderer, prestigeMapRenderer, prestigeHistoryRenderer,
             timeControlRenderer, researchRenderer, eventLogRenderer, automationRenderer,
-            ritualsRenderer, ascensionRenderer, tooltipRenderer, _uiLayoutService, allowDebugMode);
+            ritualsRenderer, ascensionRenderer, tooltipRenderer, _uiLayoutService, allowDebugMode,
+            historyTabRenderer);
         _overlayRenderer.ConnectTargetSelectionService(_targetSelectionService);
         _overlayRenderer.ConnectZoomCallbacks(
             () => _cameraService.SetZoom(_cameraService.ZoomLevel * ZoomStep),

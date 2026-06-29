@@ -168,8 +168,8 @@ namespace SettlersOfIdlestan.Controller
                 new ConditionalBuildingLevelObjective(hasStep2Cities, BObj(auto, bc, new[] { BuildingType.Library },     1)),
 
                 // Step 3 à partir de step3AtCities (Plus de production, puis Caserne et Temple)
-                //new ConditionalBuildingLevelObjective(hasStep3Cities, BObj(auto, bc, ProductionBuildings, 2)),
-                //new ConditionalBuildingLevelObjective(hasStep3Cities, BObj(auto, bc, ProductionBuildings, 3)),
+                new ConditionalBuildingLevelObjective(hasStep3Cities, BObj(auto, bc, ProductionBuildings, 2)),
+                new ConditionalBuildingLevelObjective(hasStep3Cities, BObj(auto, bc, ProductionBuildings, 3)),
                 new ConditionalBuildingLevelObjective(() => hasStep3Cities() && hasOreProduction(), BObj(auto, bc, new[] { BuildingType.Barracks }, 1)),
                 new ConditionalBuildingLevelObjective(hasStep3Cities, BObj(auto, bc, new[] { BuildingType.Temple }, 1)),
 
