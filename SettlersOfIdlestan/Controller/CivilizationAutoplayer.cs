@@ -180,7 +180,7 @@ namespace SettlersOfIdlestan.Controller
 
         // ── Primitive utilities ──────────────────────────────────────────────────
 
-        public void TryGrindOnce(ResourceSet? requiredResources)
+        public void TryGrindOnce(ResourceSet? requiredResources, ResourceSet? resourcesToKeep = null)
         {
             long now = _harvestController.CurrentTick;
             if (now >= _nextClickAllowedTick)
@@ -200,7 +200,20 @@ namespace SettlersOfIdlestan.Controller
 
             if (requiredResources != null && requiredResources.Any())
             {
-                if (_tradeController.TryAutoTradeForPurchase(_civ.Index, requiredResources))
+                ISet<Resource>? forbiddenSellSources = null;
+                if (resourcesToKeep != null && resourcesToKeep.Any())
+                {
+                    forbiddenSellSources = new HashSet<Resource>();
+                    foreach (var (resource, keepAmt) in resourcesToKeep)
+                    {
+                        int owned = _civ.GetResourceQuantity(resource);
+                        int maxCap = _civ.GetResourceMaxQuantity(resource);
+                        if (owned < 2 * keepAmt && owned < maxCap - 5)
+                            forbiddenSellSources.Add(resource);
+                    }
+                }
+
+                if (_tradeController.TryAutoTradeForPurchase(_civ.Index, requiredResources, forbiddenSellSources))
                     return;
             }
         }

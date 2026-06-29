@@ -257,7 +257,7 @@ namespace SettlersOfIdlestan.Controller
         /// First tries to buy the weakest required resource directly with gold;
         /// if insufficient gold, sells the most surplus basic resource for gold instead.
         /// </summary>
-        public bool TryAutoTradeForPurchase(int civilizationIndex, ResourceSet requiredCosts)
+        public bool TryAutoTradeForPurchase(int civilizationIndex, ResourceSet requiredCosts, ISet<Resource>? forbiddenSellSources = null)
         {
             if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
             if (requiredCosts == null) throw new ArgumentNullException(nameof(requiredCosts));
@@ -291,6 +291,7 @@ namespace SettlersOfIdlestan.Controller
                     if (!requiredCosts.Keys.Contains(kv.Key)) return true;
                     return kv.Value >= requiredCosts[kv.Key] + GetSellRate(civilizationIndex, kv.Key);
                 })
+                .Where(kv => forbiddenSellSources == null || !forbiddenSellSources.Contains(kv.Key))
                 .OrderByDescending(kv => kv.Value)
                 .Select(kv => kv.Key)
                 .ToList();

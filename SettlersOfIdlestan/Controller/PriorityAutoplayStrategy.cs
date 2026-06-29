@@ -50,17 +50,11 @@ namespace SettlersOfIdlestan.Controller
 
         public bool TryAdvanceOnce()
         {
-            foreach (var city in _autoplayer.Civilization.Cities.ToList())
+            // Protection globale calculée une fois : coût max de chaque bâtiment en attente dans
+            // toutes les villes. Évite qu'une ville trade une ressource dont une autre ville a besoin.
+            var globalProtect = new ResourceSet();
+            foreach (var city in _autoplayer.Civilization.Cities)
             {
-                // Grind once for the combined cost of every not-yet-done building in this stage, not just
-                // the one about to be attempted below — otherwise TryAutoTradeForPurchase, only seeing one
-                // building's cost at a time, can sell off a resource (e.g. Wood) that a *different* pending
-                // building in the same stage still needs (e.g. Seaport), churning the stockpile forever
-                // instead of ever accumulating enough for either. See PrestigeMapController.
-                // ApplyPrestigeToNewGame's starting-resource bonus for why this surfaced on Island3:
-                // enough banked Food to build Market (and unlock trade) before Brickworks/Seaport, with
-                // only one Hill hex's worth of Brick income, used to deadlock TwoCitiesStep entirely.
-                var reserve = new ResourceSet();
                 foreach (var bt in _buildingTypes)
                 {
                     if (IsDone(city, bt)) continue;
@@ -68,9 +62,26 @@ namespace SettlersOfIdlestan.Controller
                     if (building == null) continue;
                     var cost = building.Level == 0 ? building.GetBuildCost() : building.GetUpgradeCost(building.Level + 1);
                     foreach (var (resource, amount) in cost)
-                        reserve[resource] = Math.Max(reserve[resource], amount);
+                        globalProtect[resource] = Math.Max(globalProtect[resource], amount);
                 }
-                _autoplayer.TryGrindOnce(reserve);
+            }
+
+            foreach (var city in _autoplayer.Civilization.Cities.ToList())
+            {
+                // Réserve par ville : uniquement les bâtiments effectivement constructibles ici.
+                // On trade pour ce qu'on peut construire dans cette ville, mais on protège
+                // globalement pour ne pas brader ce que d'autres villes attendent encore.
+                var cityReserve = new ResourceSet();
+                foreach (var bt in _buildingTypes)
+                {
+                    if (IsDone(city, bt)) continue;
+                    var building = _buildingController.GetBuildingOrBuildable(city, bt);
+                    if (building == null) continue;
+                    var cost = building.Level == 0 ? building.GetBuildCost() : building.GetUpgradeCost(building.Level + 1);
+                    foreach (var (resource, amount) in cost)
+                        cityReserve[resource] = Math.Max(cityReserve[resource], amount);
+                }
+                _autoplayer.TryGrindOnce(cityReserve, resourcesToKeep: globalProtect);
 
                 foreach (var bt in _buildingTypes)
                     if (!IsDone(city, bt) && _autoplayer.TryBuildBuildingOnce(city, bt, withGrind: false))
