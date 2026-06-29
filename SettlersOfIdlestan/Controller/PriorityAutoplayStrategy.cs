@@ -281,6 +281,63 @@ namespace SettlersOfIdlestan.Controller
     }
 
     /// <summary>
+    /// Objective de maintenance qui active ou désactive les Casernes selon l'équilibre alimentaire.
+    /// Quand les soldats consomment plus de <see cref="FoodConsumptionThreshold"/> du gain de nourriture
+    /// par seconde, les Casernes sont désactivées (arrêt du recrutement). Quand la consommation
+    /// redescend sous le seuil, elles sont réactivées.
+    /// <see cref="IsComplete"/> retourne true dès que l'état actuel est déjà correct, ce qui garantit
+    /// que cet objectif ne bloque jamais la stratégie plus d'un tick.
+    /// </summary>
+    public class BarracksActivationObjective : IAutoplayObjective
+    {
+        private readonly CivilizationAutoplayer _autoplayer;
+        private const double FoodConsumptionThreshold = 0.5;
+
+        public BarracksActivationObjective(CivilizationAutoplayer autoplayer)
+        {
+            _autoplayer = autoplayer ?? throw new ArgumentNullException(nameof(autoplayer));
+        }
+
+        public bool IsComplete()
+        {
+            bool shouldBeActive = ShouldBarracksBeActive();
+            return _autoplayer.Civilization.Cities.All(city =>
+            {
+                var barracks = city.Buildings.OfType<Barracks>().FirstOrDefault();
+                if (barracks == null || barracks.Level == 0) return true;
+                return barracks.ActivationStatus == (shouldBeActive ? ActivationStatus.ACTIVE : ActivationStatus.INACTIVE);
+            });
+        }
+
+        public bool TryAdvanceOnce()
+        {
+            bool shouldBeActive = ShouldBarracksBeActive();
+            var targetStatus = shouldBeActive ? ActivationStatus.ACTIVE : ActivationStatus.INACTIVE;
+            bool didSomething = false;
+            foreach (var city in _autoplayer.Civilization.Cities)
+            {
+                var barracks = city.Buildings.OfType<Barracks>().FirstOrDefault();
+                if (barracks == null || barracks.Level == 0) continue;
+                if (barracks.ActivationStatus == targetStatus) continue;
+                barracks.ActivationStatus = targetStatus;
+                didSomething = true;
+            }
+            return didSomething;
+        }
+
+        private bool ShouldBarracksBeActive()
+        {
+            int civIndex = _autoplayer.Civilization.Index;
+            var production = _autoplayer.HarvestController.GetAverageProductionRatesPerSecond(civIndex);
+            var consumption = _autoplayer.HarvestController.GetAverageConsumptionRatesPerSecond(civIndex);
+            production.TryGetValue(Resource.Food, out double foodGain);
+            consumption.TryGetValue(Resource.Food, out double foodCost);
+            if (foodGain <= 0) return foodCost <= 0;
+            return foodCost <= foodGain * FoodConsumptionThreshold;
+        }
+    }
+
+    /// <summary>
     /// Drives a <see cref="CivilizationAutoplayer"/> through an ordered list of <see cref="IAutoplayObjective"/>s,
     /// never acting on objective N+1 while objective N still has actionable progress to make. Each call to
     /// <see cref="TryStepOnce"/> re-scans the list from the top, so an event that re-opens an earlier

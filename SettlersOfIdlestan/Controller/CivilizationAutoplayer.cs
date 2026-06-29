@@ -49,6 +49,7 @@ namespace SettlersOfIdlestan.Controller
 
         public Civilization Civilization => _civ;
         public WorldState? WorldState => _worldState;
+        public HarvestController HarvestController => _harvestController;
 
         /// <summary>
         /// Civilisation ennemie à éliminer en priorité. Quand elle est définie et qu'un

@@ -157,6 +157,9 @@ namespace SettlersOfIdlestan.Controller
                 // Accès aux 4 types de terrain de base (forêt/collines/plaine/montagne)
                 new ResourceCoverageObjective(auto),
 
+                // Activation/désactivation des Casernes selon l'équilibre alimentaire (>50% du gain → désactivation)
+                new BarracksActivationObjective(auto),
+
                 // Militaire conditionnel
                 new ConditionalBuildingLevelObjective(banditSpotted,                           BObj(auto, bc, new[] { BuildingType.Palisade }, 1)),
                 new ConditionalBuildingLevelObjective(() => hasVisibleThreats() && hasOreProduction(), BObj(auto, bc, new[] { BuildingType.Barracks }, 1)),
