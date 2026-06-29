@@ -474,6 +474,8 @@
   "stats_cities": "Cities",
   "stats_buildings": "Buildings",
   "stats_total_levels": "Total levels",
+  "stats_research": "Researches",
+  "stats_unique_buildings": "Unique buildings",
   "stats_prestige_points": "Prestige pts",
   "research_points_label": "Research points",
   "research_investment_label": "Investment",

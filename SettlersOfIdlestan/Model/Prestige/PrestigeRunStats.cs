@@ -11,4 +11,6 @@ public class PrestigeRunStats
     public int BuildingCount { get; set; }
     public int TotalBuildingLevels { get; set; }
     public int PrestigePoints { get; set; }
+    public int ResearchCompleted { get; set; }
+    public int UniqueBuildings { get; set; }
 }

@@ -229,6 +229,8 @@ namespace SettlersOfIdlestan.Controller.Expand
                     BuildingCount = allBuildings.Count,
                     TotalBuildingLevels = allBuildings.Sum(b => b.Level),
                     PrestigePoints = points,
+                    ResearchCompleted = currentIsland.RunRecord?.ResearchCompleted ?? 0,
+                    UniqueBuildings = allBuildings.Count(b => b.IsUnique),
                 };
                 mainGameState.PrestigeState.RunHistory.Add(stats);
                 while (mainGameState.PrestigeState.RunHistory.Count > 5)
