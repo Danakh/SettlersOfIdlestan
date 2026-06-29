@@ -520,6 +520,16 @@ public class SelectedCityPanelRenderer : PanelRendererBase
                         int nextBonus = Barracks.MaxSoldiersPerLevel * (barracks.Level + 1);
                         tooltipLines.Add(_localization.Get("tooltip_harvest_auto_next") + " " + _localization.GetFormated("barracks_max_soldiers_bonus", nextBonus));
                     }
+
+                    long prodInterval = _cityBuildingService.GetBarracksProductionIntervalTicks();
+                    double intervalSecs = prodInterval / 100.0;
+                    double orePerSec = 1.0 / intervalSecs;
+                    tooltipLines.Add(_localization.GetFormated("barracks_production_cost",
+                        orePerSec.ToString("G3"),
+                        intervalSecs.ToString("F1")));
+                    double feedSecs = MilitaryController.SoldierFeedIntervalTicks / 100.0;
+                    tooltipLines.Add(_localization.GetFormated("barracks_food_upkeep", feedSecs.ToString("F0")));
+
                     tooltipLines.Add("");
                 }
 

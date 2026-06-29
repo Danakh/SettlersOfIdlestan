@@ -190,6 +190,14 @@ public class CityBuildingService
         }
     }
 
+    /// <summary>Intervalle effectif de production d'un soldat par la Caserne de la civilisation sélectionnée (en ticks).</summary>
+    public long GetBarracksProductionIntervalTicks()
+    {
+        var civ = SelectedCivilization;
+        if (civ == null) return MilitaryController.SoldierProductionIntervalTicks;
+        return Math.Max(1L, (long)(MilitaryController.SoldierProductionIntervalTicks / civ.UnitProductionSpeed));
+    }
+
     /// <summary>Cooldown effectif du cycle de la Fonderie de la civilisation sélectionnée.</summary>
     public long GetSmelterEffectiveCooldown()
     {

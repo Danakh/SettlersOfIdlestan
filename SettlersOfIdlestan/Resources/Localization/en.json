@@ -210,6 +210,8 @@
   "barracks_soldiers": "Soldiers",
   "barracks_soldier_production": "Next soldier:",
   "barracks_max_soldiers_bonus": "+{0} max soldier capacity",
+  "barracks_production_cost": "Cost (ore): 1/soldier — {0}/s (every {1}s)",
+  "barracks_food_upkeep": "Upkeep (food): 1/{0}s/soldier",
   "footer_soldiers": "Sol.",
   "footer_defense": "Def.",
   "action_build": "Build",
