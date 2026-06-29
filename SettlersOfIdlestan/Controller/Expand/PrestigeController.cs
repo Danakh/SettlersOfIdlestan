@@ -231,6 +231,10 @@ namespace SettlersOfIdlestan.Controller.Expand
                     PrestigePoints = points,
                     ResearchCompleted = currentIsland.RunRecord?.ResearchCompleted ?? 0,
                     UniqueBuildings = allBuildings.Count(b => b.IsUnique),
+                    WonderLevel = currentIsland.Features.OfType<Wonder>().FirstOrDefault()?.Level ?? 0,
+                    HasDeepestMine = currentIsland.Features.OfType<SettlersOfIdlestan.Model.IslandFeatures.DeepestMine>().Any(m => m.Dug),
+                    HasCorruptionSpire = currentIsland.Features.OfType<CorruptionSpire>().Any(s => s.Built),
+                    HasAbyssGate = currentIsland.Features.OfType<AbyssGate>().Any(g => g.Built),
                 };
                 mainGameState.PrestigeState.RunHistory.Add(stats);
                 while (mainGameState.PrestigeState.RunHistory.Count > 5)

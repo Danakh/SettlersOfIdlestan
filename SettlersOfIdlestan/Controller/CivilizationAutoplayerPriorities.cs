@@ -40,8 +40,11 @@ namespace SettlersOfIdlestan.Controller
         private static readonly BuildingType[] Step2TH3Buildings =
             { BuildingType.Mine };
 
+        private static readonly BuildingType[] AllUtilityBuildings =
+            Step2TH1Buildings.Concat(Step2TH2Buildings).Concat(Step2TH3Buildings).ToArray();
+
         public static readonly BuildingType[] MilitaryBuildings =
-            { BuildingType.Palisade, BuildingType.Barracks };
+            { BuildingType.Palisade, BuildingType.Barracks, BuildingType.Watchtower };
 
         // ── Helpers internes ─────────────────────────────────────────────────────
 
@@ -176,7 +179,7 @@ namespace SettlersOfIdlestan.Controller
                 // Step 3 à partir de step3AtCities (Plus de production, puis Caserne et Temple)
                 new ConditionalBuildingLevelObjective(hasStep3Cities, BObj(auto, bc, ProductionBuildings, 2)),
                 new ConditionalBuildingLevelObjective(hasStep3Cities, BObj(auto, bc, ProductionBuildings, 3)),
-                new ConditionalBuildingLevelObjective(() => hasStep3Cities() && hasOreProduction(), BObj(auto, bc, new[] { BuildingType.Barracks }, 1)),
+                new ConditionalBuildingLevelObjective(() => hasStep3Cities() && hasOreProduction(), BObj(auto, bc, MilitaryBuildings, 1)),
                 new ConditionalBuildingLevelObjective(hasStep3Cities, BObj(auto, bc, new[] { BuildingType.Temple }, 1)),
 
                 // Expansion finie pour accumuler des points de prestige, puis Port Impérial
@@ -184,8 +187,10 @@ namespace SettlersOfIdlestan.Controller
                 new ImperialPortObjective(auto),
 
                 new ConditionalBuildingLevelObjective(hasStep3Cities, BObj(auto, bc, ProductionBuildings, 4)),
-                new ConditionalBuildingLevelObjective(hasStep3Cities, BObj(auto, bc, ProductionBuildings, 6)),
-                new ConditionalBuildingLevelObjective(hasStep3Cities, BObj(auto, bc, ProductionBuildings, 8)),
+                new ConditionalBuildingLevelObjective(hasStep3Cities, BObj(auto, bc, AllUtilityBuildings, 4)),
+                new ConditionalBuildingLevelObjective(hasStep3Cities, BObj(auto, bc, AllUtilityBuildings, 6)),
+                new ConditionalBuildingLevelObjective(hasStep3Cities, BObj(auto, bc, AllUtilityBuildings, 10)),
+                new ConditionalBuildingLevelObjective(() => hasStep3Cities() && hasOreProduction(), BObj(auto, bc, MilitaryBuildings, 10)),
 
                 // Expansion illimitée après le prestige
                 new CityCountObjective(auto, int.MaxValue),

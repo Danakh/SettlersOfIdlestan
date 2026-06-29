@@ -13,4 +13,8 @@ public class PrestigeRunStats
     public int PrestigePoints { get; set; }
     public int ResearchCompleted { get; set; }
     public int UniqueBuildings { get; set; }
+    public int WonderLevel { get; set; }
+    public bool HasDeepestMine { get; set; }
+    public bool HasCorruptionSpire { get; set; }
+    public bool HasAbyssGate { get; set; }
 }
