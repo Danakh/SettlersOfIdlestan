@@ -85,6 +85,25 @@ public static class SaveUtils
     // ── Internals ─────────────────────────────────────────────────────────────
 
     /// <summary>
+    /// Écrit l'état du contrôleur dans saves/{folder}/{name}.json sans vérification de round-trip.
+    /// Utile pour sauvegarder un état en cas d'échec de test, où l'assertion elle-même a déjà échoué.
+    /// </summary>
+    public static void SaveOnly(MainGameController controller, string folder, string name)
+    {
+        if (controller == null) throw new ArgumentNullException(nameof(controller));
+        if (string.IsNullOrWhiteSpace(folder)) throw new ArgumentException("folder cannot be empty", nameof(folder));
+        if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("name cannot be empty", nameof(name));
+        if (folder.StartsWith("release-", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException($"Cannot write to release folder '{folder}' — release saves are immutable.");
+
+        var filePath = ResolvePath(folder, name);
+        var exported = controller.ExportMainState();
+        var tempPath = filePath + ".tmp";
+        File.WriteAllText(tempPath, exported);
+        File.Move(tempPath, filePath, overwrite: true);
+    }
+
+    /// <summary>
     /// Supprime, dans saves/{folder}, les fichiers .json dont le nom (sans extension) n'est pas
     /// dans keepNames. A appeler après la régénération (pas avant) : les saves régénérées sont
     /// remplacées de façon atomique par WriteAndAssertEqual, donc seuls les fichiers vraiment

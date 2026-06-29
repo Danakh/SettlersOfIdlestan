@@ -39,7 +39,16 @@ public static class IslandScenarioRunner
             controller = SaveUtils.LoadSave(loadFolder, prevSaveName);
         }
 
-        RunSingleStep(controller, step);
+        try
+        {
+            RunSingleStep(controller, step);
+        }
+        catch
+        {
+            if (saveFinal)
+                SaveUtils.SaveOnly(controller, loadFolder, step.SaveName + "_failed");
+            throw;
+        }
 
         if (saveFinal)
             SaveUtils.SaveAndReloadAndAssertEqual(controller, loadFolder, step.SaveName);
