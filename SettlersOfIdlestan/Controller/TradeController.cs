@@ -22,7 +22,7 @@ namespace SettlersOfIdlestan.Controller
         /// <summary>Or reçu pour 1 Acier vendu (recherche Aciers Spéciaux).</summary>
         public const int SteelSellGoldValue = 10;
 
-        public event Action<int, Resource>? GoldObtainedFromTrade;
+        public event Action<int, Resource, int>? GoldObtainedFromTrade;
 
         internal TradeController(WorldState? state = null)
         {
@@ -120,7 +120,7 @@ namespace SettlersOfIdlestan.Controller
 
             civ.RemoveResource(resource, totalOffer);
             civ.AddResource(Resource.Gold, totalGold);
-            GoldObtainedFromTrade?.Invoke(totalGold, resource);
+            GoldObtainedFromTrade?.Invoke(totalGold, resource, civilizationIndex);
             return true;
         }
 
@@ -271,10 +271,12 @@ namespace SettlersOfIdlestan.Controller
             foreach (Resource r in Enum.GetValues(typeof(Resource)))
                 owned[r] = civ.GetResourceQuantity(r);
 
-            var requiredList = requiredCosts.Keys.ToList();
-            if (!requiredList.Any()) return false;
+            var stillNeeded = requiredCosts.Keys
+                .Where(r => (owned.TryGetValue(r, out var q) ? q : 0) < requiredCosts[r])
+                .ToList();
+            if (!stillNeeded.Any()) return false;
 
-            var weakestRequired = requiredList
+            var weakestRequired = stillNeeded
                 .OrderBy(r => owned.TryGetValue(r, out var q) ? q : 0)
                 .First();
 

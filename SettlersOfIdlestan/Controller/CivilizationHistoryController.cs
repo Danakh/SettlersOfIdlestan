@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.IslandMap;
@@ -27,6 +28,12 @@ namespace SettlersOfIdlestan.Controller
         private BuildingController?  _buildings;
         private TradeController?     _trade;
 
+        // Accumulation des trades consécutifs
+        private readonly Dictionary<Resource, int> _pendingTradeByResource = new();
+        private int  _pendingTradeCount = 0;
+        private long _pendingTradeTick  = 0;
+        private bool _hasPendingTrade   = false;
+
         public IEnumerable<CivHistoryEntry> Entries => _entries;
         public int Count => _entries.Count;
 
@@ -40,6 +47,9 @@ namespace SettlersOfIdlestan.Controller
         {
             Unsubscribe();
             _entries.Clear();
+            _hasPendingTrade = false;
+            _pendingTradeByResource.Clear();
+            _pendingTradeCount = 0;
             _state     = state;
             _clock     = clock;
             _roads     = roads;
@@ -54,7 +64,7 @@ namespace SettlersOfIdlestan.Controller
             if (_roads     != null) { _roads.OnRoadBuilt          += OnRoadBuilt;     _roads.OnAutoRoadBuilt += OnAutoRoadBuilt; }
             if (_cities    != null) { _cities.OnCityBuilt         += OnCityBuilt;     }
             if (_buildings != null) { _buildings.OnBuildingBuilt  += OnBuildingBuilt; }
-            if (_trade     != null) { _trade.GoldObtainedFromTrade += OnGoldObtained; }
+            if (_trade     != null) { _trade.GoldObtainedFromTrade += OnGoldObtained;  }
         }
 
         private void Unsubscribe()
@@ -69,6 +79,8 @@ namespace SettlersOfIdlestan.Controller
 
         private void Add(string label)
         {
+            // Toute action non-trade brise le groupe de trades en cours
+            _hasPendingTrade = false;
             _entries.AddFirst(new CivHistoryEntry { Tick = _clock?.CurrentTick ?? 0, Label = label });
             if (_entries.Count > MaxEntries)
                 _entries.RemoveLast();
@@ -99,9 +111,33 @@ namespace SettlersOfIdlestan.Controller
             Add($"{action}: {e.BuildingType} niv.{e.Level}");
         }
 
-        private void OnGoldObtained(int gold, Resource resource)
+        private void OnGoldObtained(int gold, Resource resource, int civilizationIndex)
         {
-            Add($"Échange: {resource} → +{gold}g");
+            if (civilizationIndex != PlayerIndex) return;
+            if (_hasPendingTrade && _entries.Count > 0)
+                _entries.RemoveFirst();  // Remplace l'entrée groupée précédente
+            else
+            {
+                _pendingTradeByResource.Clear();
+                _pendingTradeCount = 0;
+                _pendingTradeTick  = _clock?.CurrentTick ?? 0;
+                _hasPendingTrade   = true;
+            }
+
+            _pendingTradeByResource.TryGetValue(resource, out int existing);
+            _pendingTradeByResource[resource] = existing + gold;
+            _pendingTradeCount++;
+
+            _entries.AddFirst(new CivHistoryEntry { Tick = _pendingTradeTick, Label = BuildTradeLabel() });
+            if (_entries.Count > MaxEntries)
+                _entries.RemoveLast();
+        }
+
+        private string BuildTradeLabel()
+        {
+            string countSuffix = _pendingTradeCount > 1 ? $" ({_pendingTradeCount}x)" : "";
+            string parts = string.Join(", ", _pendingTradeByResource.Select(kv => $"{kv.Key} +{kv.Value}g"));
+            return $"Échange{countSuffix}: {parts}";
         }
     }
 }

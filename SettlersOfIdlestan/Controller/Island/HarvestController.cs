@@ -686,12 +686,14 @@ namespace SettlersOfIdlestan.Controller.Island
             var entries = GetOrBuildProductionCache(civilizationIndex);
             var hexAllowed = new System.Collections.Generic.Dictionary<HexCoord, bool>();
             var hexCorruptionRate = new System.Collections.Generic.Dictionary<HexCoord, int>();
+            long now = _clock?.CurrentTick ?? 0L;
 
             foreach (var (hex, city, building, resource) in entries)
             {
                 if (!hexAllowed.TryGetValue(hex, out bool allowed))
                 {
-                    allowed = !_state.GetFeaturesAt(hex).Any(f => f.BlocksHarvest);
+                    allowed = !_state.GetFeaturesAt(hex).Any(f => f.BlocksHarvest)
+                           && _monsterController?.HasDepartureCooldown(hex, now) != true;
                     hexAllowed[hex] = allowed;
                 }
                 if (!allowed) continue;
@@ -746,6 +748,28 @@ namespace SettlersOfIdlestan.Controller.Island
         private static void AddProductionRate(System.Collections.Generic.Dictionary<Resource, double> dict, Resource resource, double rate)
         {
             dict[resource] = (dict.TryGetValue(resource, out var v) ? v : 0.0) + rate;
+        }
+
+        /// <summary>
+        /// Calcule les pertes moyennes théoriques en ressources par seconde (upkeep soldats, etc.).
+        /// </summary>
+        public System.Collections.Generic.Dictionary<Resource, double> GetAverageConsumptionRatesPerSecond(int civilizationIndex)
+        {
+            var result = new System.Collections.Generic.Dictionary<Resource, double>();
+            if (_state == null) return result;
+
+            var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex);
+            if (civ == null) return result;
+
+            int freePerCity = (int)civ.ModifierAggregator.ApplyModifiers(ECategory.SOLDIER_FOOD_FREE_PER_CITY, "", 0.0);
+            int totalNeedingFood = 0;
+            foreach (var city in civ.Cities)
+                totalNeedingFood += Math.Max(0, city.Soldiers - freePerCity);
+
+            if (totalNeedingFood > 0)
+                result[Resource.Food] = totalNeedingFood / (MilitaryController.SoldierFeedIntervalTicks / 100.0);
+
+            return result;
         }
 
         /// <summary>Cristaux/seconde récoltés par les Tours de Mages sur des Grottes de Cristal, pour la civilisation donnée.</summary>

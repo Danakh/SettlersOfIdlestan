@@ -275,13 +275,33 @@ public sealed class OverlayRenderer : IGameRenderer
         if (worldState == null) return;
 
         string resourceName = _localization.Get($"resource_{hoveredResource.Value.ToString().ToLower()}");
-        var rates = _gameControllerService.MainGameController.HarvestController
-            .GetAverageProductionRatesPerSecond(worldState.PlayerCivilization.Index);
+        var controller = _gameControllerService.MainGameController;
+        int civIndex = worldState.PlayerCivilization.Index;
 
-        if (rates.TryGetValue(hoveredResource.Value, out double rate) && rate > 0.0001)
-            _tooltipRenderer.SetTooltipLines(new[] { resourceName, $"+{rate:F2}/s" }, _lastPointerPosition);
-        else
+        var gains = controller.HarvestController.GetAverageProductionRatesPerSecond(civIndex);
+        var losses = controller.HarvestController.GetAverageConsumptionRatesPerSecond(civIndex);
+
+        if (hoveredResource.Value == SettlersOfIdlestan.Model.IslandMap.Resource.Crystal)
+        {
+            double crystalUpkeep = controller.MagicController.GetCrystalRateBreakdown().RitualUpkeepPerSecond;
+            if (crystalUpkeep > 0.0001)
+                losses[SettlersOfIdlestan.Model.IslandMap.Resource.Crystal] =
+                    (losses.TryGetValue(SettlersOfIdlestan.Model.IslandMap.Resource.Crystal, out var prev) ? prev : 0.0) + crystalUpkeep;
+        }
+
+        bool hasGain = gains.TryGetValue(hoveredResource.Value, out double gain) && gain > 0.0001;
+        bool hasLoss = losses.TryGetValue(hoveredResource.Value, out double loss) && loss > 0.0001;
+
+        if (!hasGain && !hasLoss)
+        {
             _tooltipRenderer.SetTooltip(resourceName, _lastPointerPosition);
+            return;
+        }
+
+        var lines = new System.Collections.Generic.List<string> { resourceName };
+        if (hasGain) lines.Add($"+{gain:F2}/s");
+        if (hasLoss) lines.Add($"-{loss:F2}/s");
+        _tooltipRenderer.SetTooltipLines(lines.ToArray(), _lastPointerPosition);
     }
 
     public void ConnectTargetSelectionService(TargetSelectionService targetSelectionService)
