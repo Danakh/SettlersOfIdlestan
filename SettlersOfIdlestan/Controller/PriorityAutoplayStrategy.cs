@@ -4,6 +4,8 @@ using System.Linq;
 using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
+using SettlersOfIdlestan.Model.HexGrid;
+using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.IslandMap;
 
 namespace SettlersOfIdlestan.Controller
@@ -196,6 +198,85 @@ namespace SettlersOfIdlestan.Controller
                     didSomething = true;
             }
             return didSomething;
+        }
+    }
+
+    /// <summary>
+    /// Satisfied once every one of the four basic terrain types (Forest, Hill, Plain, Mountain) has at
+    /// least one city adjacent to a non-contested hex of that type on the surface layer. Reactivates
+    /// automatically if a terrain type later becomes fully contested (e.g. disputed zone). When a
+    /// terrain type is missing, tries to (1) build an outpost on a road-connected vertex adjacent to
+    /// that terrain, then (2) extend the road network toward unexplored hexes within edge distance 1–2
+    /// in hope of discovering it. Treats itself as complete (pass-through) when neither action is
+    /// possible, so it never blocks the rest of the strategy.
+    /// </summary>
+    public class ResourceCoverageObjective : IAutoplayObjective
+    {
+        private static readonly TerrainType[] ResourceTerrains =
+            { TerrainType.Forest, TerrainType.Hill, TerrainType.Plain, TerrainType.Mountain };
+
+        private static readonly HashSet<TerrainType> ResourceTerrainSet = new()
+            { TerrainType.Forest, TerrainType.Hill, TerrainType.Plain, TerrainType.Mountain };
+
+        private readonly CivilizationAutoplayer _autoplayer;
+
+        public ResourceCoverageObjective(CivilizationAutoplayer autoplayer)
+        {
+            _autoplayer = autoplayer ?? throw new ArgumentNullException(nameof(autoplayer));
+        }
+
+        public bool IsComplete()
+        {
+            var missing = GetMissingTerrains();
+            if (missing.Count == 0) return true;
+
+            foreach (var terrain in missing)
+                if (_autoplayer.GetBuildableVertexForTerrain(terrain) != null)
+                    return false;
+
+            return !_autoplayer.HasUnexploredHexesWithinTwoRoads();
+        }
+
+        public bool TryAdvanceOnce()
+        {
+            var missing = GetMissingTerrains();
+            if (missing.Count == 0) return false;
+
+            foreach (var terrain in missing)
+            {
+                var vertex = _autoplayer.GetBuildableVertexForTerrain(terrain);
+                if (vertex != null)
+                    return _autoplayer.TryBuildOutpostOnce(vertex, withGrind: true);
+            }
+
+            return _autoplayer.TryExtendRoadTowardUnexploredOnce();
+        }
+
+        private List<TerrainType> GetMissingTerrains()
+        {
+            var ws = _autoplayer.WorldState;
+            if (ws == null) return new List<TerrainType>();
+
+            var map = ws.GetMapForZ(IslandMap.SurfaceLayer);
+            if (map == null) return new List<TerrainType>();
+
+            var contestedHexes = new HashSet<HexCoord>(
+                ws.Features.OfType<ContestedTerritory>().Select(ct => ct.Position));
+
+            var covered = new HashSet<TerrainType>();
+            foreach (var city in _autoplayer.Civilization.Cities)
+            {
+                if (city.Position.Z != IslandMap.SurfaceLayer) continue;
+                foreach (var hex in city.Position.GetHexes())
+                {
+                    if (contestedHexes.Contains(hex)) continue;
+                    var terrain = map.GetTile(hex)?.TerrainType;
+                    if (terrain.HasValue && ResourceTerrainSet.Contains(terrain.Value))
+                        covered.Add(terrain.Value);
+                }
+            }
+
+            return ResourceTerrains.Where(t => !covered.Contains(t)).ToList();
         }
     }
 

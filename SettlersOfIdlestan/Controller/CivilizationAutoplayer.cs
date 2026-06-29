@@ -610,6 +610,121 @@ namespace SettlersOfIdlestan.Controller
             return result;
         }
 
+        // ── Resource coverage utilities ──────────────────────────────────────────
+
+        /// <summary>
+        /// Returns the first buildable vertex (road-connected, respecting distance rules) that is
+        /// adjacent to at least one non-contested hex of the given surface terrain type.
+        /// </summary>
+        public Vertex? GetBuildableVertexForTerrain(TerrainType terrain)
+        {
+            if (_worldState == null) return null;
+            var map = _worldState.GetMapForZ(IslandMap.SurfaceLayer);
+            if (map == null) return null;
+
+            var contestedHexes = new HashSet<HexCoord>(
+                _worldState.Features.OfType<ContestedTerritory>().Select(ct => ct.Position));
+
+            return _cityBuilderController.GetBuildableVertices(_civ.Index)
+                .FirstOrDefault(v => v.Z == IslandMap.SurfaceLayer && v.GetHexes().Any(h =>
+                    !contestedHexes.Contains(h) &&
+                    map.GetTile(h)?.TerrainType == terrain));
+        }
+
+        /// <summary>
+        /// Returns true if there is at least one unexplored island hex adjacent to a vertex at edge
+        /// distance 1 or 2 from the current road/city network (surface layer).
+        /// </summary>
+        public bool HasUnexploredHexesWithinTwoRoads()
+        {
+            if (_worldState == null) return false;
+            int z = IslandMap.SurfaceLayer;
+            var map = _worldState.GetMapForZ(z);
+            if (map == null) return false;
+
+            var visByLayer = _worldState.Visibility.GetForZ(z);
+            if (!visByLayer.TryGetValue(_civ.Index, out var visibleMap)) return false;
+
+            var networkVertices = GetSurfaceNetworkVertices();
+            if (networkVertices.Count == 0) return false;
+
+            var visibleHexes = new HashSet<HexCoord>(visibleMap.Tiles.Keys);
+            return FindUnexploredVertexNear(networkVertices, visibleHexes, map) != null;
+        }
+
+        /// <summary>
+        /// Builds one road toward the nearest vertex at edge distance 1–2 from the road/city
+        /// network that has at least one unexplored adjacent hex. Returns false if no such vertex
+        /// exists or the required road is not yet buildable.
+        /// </summary>
+        public bool TryExtendRoadTowardUnexploredOnce()
+        {
+            if (_worldState == null) return false;
+            int z = IslandMap.SurfaceLayer;
+            var map = _worldState.GetMapForZ(z);
+            if (map == null) return false;
+
+            var visByLayer = _worldState.Visibility.GetForZ(z);
+            if (!visByLayer.TryGetValue(_civ.Index, out var visibleMap)) return false;
+
+            var networkVertices = GetSurfaceNetworkVertices();
+            if (networkVertices.Count == 0) return false;
+
+            var visibleHexes = new HashSet<HexCoord>(visibleMap.Tiles.Keys);
+            var target = FindUnexploredVertexNear(networkVertices, visibleHexes, map);
+            if (target == null) return false;
+
+            Vertex? from = null;
+            int bestDist = int.MaxValue;
+            foreach (var nv in networkVertices)
+            {
+                int d = nv.EdgeDistanceTo(target);
+                if (d < bestDist) { bestDist = d; from = nv; }
+            }
+            if (from == null) return false;
+
+            var path = HexGridPathfinder.FindVertexPath(from, target);
+            if (path.Count < 2) return false;
+
+            var shared = path[0].GetHexes().Intersect(path[1].GetHexes()).ToArray();
+            if (shared.Length != 2) return false;
+
+            return TryBuildRoadOnce(Edge.Create(shared[0], shared[1]), withGrind: true);
+        }
+
+        private HashSet<Vertex> GetSurfaceNetworkVertices()
+        {
+            int z = IslandMap.SurfaceLayer;
+            var network = new HashSet<Vertex>(_civ.Cities
+                .Select(c => c.Position).Where(v => v.Z == z));
+            foreach (var road in _civ.Roads)
+                foreach (var v in road.Position.GetVertices())
+                    if (v.Z == z) network.Add(v);
+            return network;
+        }
+
+        private static Vertex? FindUnexploredVertexNear(
+            HashSet<Vertex> networkVertices, HashSet<HexCoord> visibleHexes, IslandMap map)
+        {
+            var d1 = new HashSet<Vertex>();
+            foreach (var nv in networkVertices)
+                foreach (var adj in nv.GetAdjacentVertices())
+                    if (!networkVertices.Contains(adj))
+                        d1.Add(adj);
+
+            var target = d1.FirstOrDefault(v =>
+                v.GetHexes().Any(h => map.GetTile(h) != null && !visibleHexes.Contains(h)));
+            if (target != null) return target;
+
+            foreach (var v1 in d1)
+                foreach (var adj in v1.GetAdjacentVertices())
+                    if (!networkVertices.Contains(adj) && !d1.Contains(adj))
+                        if (adj.GetHexes().Any(h => map.GetTile(h) != null && !visibleHexes.Contains(h)))
+                            return adj;
+
+            return null;
+        }
+
         /// <summary>
         /// Among prospective expansion vertices, finds the nearest one to our road/city network
         /// (proximity is always the primary criterion, exactly as before). When several candidates

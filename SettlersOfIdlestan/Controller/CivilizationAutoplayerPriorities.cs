@@ -154,6 +154,9 @@ namespace SettlersOfIdlestan.Controller
                 // Production de base dans toutes les villes
                 BObj(auto, bc, Step1Buildings, 1),
 
+                // Accès aux 4 types de terrain de base (forêt/collines/plaine/montagne)
+                new ResourceCoverageObjective(auto),
+
                 // Militaire conditionnel
                 new ConditionalBuildingLevelObjective(banditSpotted,                           BObj(auto, bc, new[] { BuildingType.Palisade }, 1)),
                 new ConditionalBuildingLevelObjective(() => hasVisibleThreats() && hasOreProduction(), BObj(auto, bc, new[] { BuildingType.Barracks }, 1)),
