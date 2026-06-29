@@ -177,6 +177,10 @@ namespace SettlersOfIdlestan.Controller
                 new CityCountObjective(auto, expansionTarget),
                 new ImperialPortObjective(auto),
 
+                new ConditionalBuildingLevelObjective(hasStep3Cities, BObj(auto, bc, ProductionBuildings, 4)),
+                new ConditionalBuildingLevelObjective(hasStep3Cities, BObj(auto, bc, ProductionBuildings, 6)),
+                new ConditionalBuildingLevelObjective(hasStep3Cities, BObj(auto, bc, ProductionBuildings, 8)),
+
                 // Expansion illimitée après le prestige
                 new CityCountObjective(auto, int.MaxValue),
             });

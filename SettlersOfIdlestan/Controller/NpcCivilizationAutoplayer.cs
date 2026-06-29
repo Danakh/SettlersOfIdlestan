@@ -31,7 +31,8 @@ public class NpcCivilizationAutoplayer
             mainController.ResearchController,
             mainController.PrestigeController,
             mainController.PrestigeMapController,
-            mainController.CurrentMainState?.CurrentWorldState);
+            mainController.CurrentMainState?.CurrentWorldState,
+            clickCooldownTicks: 100L);
         _aggressivity = aggressivity;
     }
 
@@ -42,14 +43,21 @@ public class NpcCivilizationAutoplayer
     public bool TryStepOnce(bool shouldExpand = true)
     {
         if (_inner.Civilization.Cities.Count == 0) return false;
-        var strategy = _aggressivity switch
+        // step2AtCities=0 : tous les PNJ passent immédiatement en développement avancé.
+        // step3AtCities / expansionTarget : plus agressif = s'étend plus vite avec moins de développement.
+        var (step3, target) = _aggressivity switch
         {
-            NpcAggressivityLevel.Pacifist     => CivilizationAutoplayerPriorities.NpcPacifist(_inner, _buildingController),
-            NpcAggressivityLevel.Cautious     => CivilizationAutoplayerPriorities.NpcCautious(_inner, _buildingController, shouldExpand),
-            NpcAggressivityLevel.Expansionist => CivilizationAutoplayerPriorities.NpcExpansionist(_inner, _buildingController, shouldExpand),
-            NpcAggressivityLevel.Warlike      => CivilizationAutoplayerPriorities.NpcWarlike(_inner, _buildingController, shouldExpand),
-            _                                 => CivilizationAutoplayerPriorities.NpcCautious(_inner, _buildingController, shouldExpand),
+            NpcAggressivityLevel.Pacifist     => (3, 6),
+            NpcAggressivityLevel.Cautious     => (4, 8),
+            NpcAggressivityLevel.Expansionist => (5, 10),
+            NpcAggressivityLevel.Warlike      => (6, 12),
+            _                                 => (5, 8),
         };
+        var strategy = CivilizationAutoplayerPriorities.Unified(
+            _inner, _buildingController,
+            step2AtCities: 0,
+            step3AtCities: step3,
+            expansionTarget: target);
         return strategy.TryStepOnce();
     }
 }

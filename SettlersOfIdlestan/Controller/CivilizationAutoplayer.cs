@@ -44,7 +44,7 @@ namespace SettlersOfIdlestan.Controller
         private Func<Vertex, bool>? _expansionVertexFilter;
 
         /// <summary>Simule le temps de réaction d'un joueur entre deux salves de clics de récolte manuelle.</summary>
-        private const long ClickCooldownTicks = 20L;
+        private readonly long _clickCooldownTicks;
         private long _nextClickAllowedTick = long.MinValue;
 
         public Civilization Civilization => _civ;
@@ -72,8 +72,10 @@ namespace SettlersOfIdlestan.Controller
             PrestigeState? prestigeState = null,
             Action? performPrestige = null,
             WonderController? wonderController = null,
-            MilitaryController? militaryController = null)
+            MilitaryController? militaryController = null,
+            long clickCooldownTicks = 20L)
         {
+            _clickCooldownTicks = clickCooldownTicks;
             _civ = civ ?? throw new ArgumentNullException(nameof(civ));
             _map = map ?? throw new ArgumentNullException(nameof(map));
             _roadController = roadController ?? throw new ArgumentNullException(nameof(roadController));
@@ -185,7 +187,7 @@ namespace SettlersOfIdlestan.Controller
             long now = _harvestController.CurrentTick;
             if (now >= _nextClickAllowedTick)
             {
-                _nextClickAllowedTick = now + ClickCooldownTicks;
+                _nextClickAllowedTick = now + _clickCooldownTicks;
 
                 var toHarvest = new HashSet<HexCoord>();
                 foreach (var city in _civ.Cities)
