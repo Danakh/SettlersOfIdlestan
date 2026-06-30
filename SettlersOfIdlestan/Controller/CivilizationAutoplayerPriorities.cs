@@ -82,40 +82,6 @@ namespace SettlersOfIdlestan.Controller
         public static PriorityAutoplayStrategy Military(CivilizationAutoplayer auto, BuildingController bc)
             => Make(new[] { BObj(auto, bc, MilitaryBuildings, 1) });
 
-        // ── Présets NPC ──────────────────────────────────────────────────────────
-
-        /// <summary>PNJ Pacifiste : bâtiments de production niveau 1 sans expansion.</summary>
-        public static PriorityAutoplayStrategy NpcPacifist(CivilizationAutoplayer auto, BuildingController bc)
-            => Make(new IAutoplayObjective[] { BObj(auto, bc, Step1Buildings, 1) });
-
-        /// <summary>PNJ Prudent : bâtiments de production niveau 1, expansion selon shouldExpand.</summary>
-        public static PriorityAutoplayStrategy NpcCautious(CivilizationAutoplayer auto, BuildingController bc, bool expand)
-        {
-            var objectives = new List<IAutoplayObjective> { BObj(auto, bc, Step1Buildings, 1) };
-            if (expand) objectives.Add(new CityCountObjective(auto, int.MaxValue));
-            return Make(objectives);
-        }
-
-        /// <summary>PNJ Expansionniste : Step 2 stagé (TH1→TH2→TH3) puis Militaire, expansion selon shouldExpand.</summary>
-        public static PriorityAutoplayStrategy NpcExpansionist(CivilizationAutoplayer auto, BuildingController bc, bool expand)
-        {
-            var objectives = new List<IAutoplayObjective>
-            {
-                BObj(auto, bc, Step2TH1Buildings, 1),
-                BObj(auto, bc, Step2TH2Buildings, 1),
-                BObj(auto, bc, new[] { BuildingType.TownHall }, 2),
-                BObj(auto, bc, Step2TH3Buildings,  1),
-                BObj(auto, bc, new[] { BuildingType.TownHall }, 3),
-                BObj(auto, bc, MilitaryBuildings,  1),
-            };
-            if (expand) objectives.Add(new CityCountObjective(auto, int.MaxValue));
-            return Make(objectives);
-        }
-
-        /// <summary>PNJ Belliqueux : identique à Expansionniste.</summary>
-        public static PriorityAutoplayStrategy NpcWarlike(CivilizationAutoplayer auto, BuildingController bc, bool expand)
-            => NpcExpansionist(auto, bc, expand);
-
         // ── Présets de scénario de test ──────────────────────────────────────────
 
         /// <summary>

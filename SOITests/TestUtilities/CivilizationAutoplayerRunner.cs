@@ -203,25 +203,50 @@ public class CivilizationAutoplayerRunner
     /// </summary>
     public void RunStepExterminateCivilizationsUntil(Func<bool> condition, int maxIterations = 50000)
     {
-        var mc               = _controller.MilitaryController;
-        var militaryStrategy = CivilizationAutoplayerPriorities.Military(_autoplayer, _controller.BuildingController);
-        var buildingStrategy = CivilizationAutoplayerPriorities.Step2(_autoplayer, _controller.BuildingController, expand: false);
+        var worldState = _controller.CurrentMainState!.CurrentWorldState!;
+        var mc = _controller.MilitaryController;
+        var strategy = CivilizationAutoplayerPriorities.Unified(_autoplayer, _controller.BuildingController);
         for (int i = 0; i < maxIterations && !condition(); i++)
         {
             try
             {
-                militaryStrategy.TryStepOnce();
-                buildingStrategy.TryStepOnce();
+                int attackRange = mc.CityAttackRange(_civ);
+                var visibleMaps = worldState.Visibility.GetForZ(IslandMap.SurfaceLayer);
+                visibleMaps.TryGetValue(_civ.Index, out var playerVisibleMap);
 
-                bool hasTarget = _civ.Cities.Any(c => mc.FindNearbyEnemyCity(c) != null);
-                if (!hasTarget)
-                    _autoplayer.TryExpandOnce();
+                // Priorité aux NPCs dont des villes sont à portée d'attaque, puis les plus faibles.
+                _autoplayer.PriorityTargetCivilization = worldState.Civilizations
+                    .Where(c => c.IsNpc && c.Cities.Count > 0)
+                    .OrderByDescending(c => _civ.Cities.Count(pc =>
+                        c.Cities.Any(ec => pc.Position.EdgeDistanceTo(ec.Position) <= attackRange)))
+                    .ThenBy(c => playerVisibleMap == null
+                        ? c.Cities.Count
+                        : c.Cities.Count(city => city.Position.GetHexes().Any(h => playerVisibleMap.HasTile(h))))
+                    .FirstOrDefault();
 
-                foreach (var city in _civ.Cities.ToList())
+                strategy.TryStepOnce();
+
+                // En mode d'extermination la production de soldats prime sur l'équilibre alimentaire :
+                // BarracksActivationObjective peut désactiver les casernes si la nourriture est serrée,
+                // ce qui bloquerait toute attaque. On force le réactivation ici.
+                foreach (var city in _civ.Cities)
                 {
-                    if (city.FlowTarget != null) continue;
-                    var enemy = mc.FindNearbyEnemyCity(city);
-                    if (enemy != null) mc.SetCityFlow(city, enemy.Position);
+                    var barracks = city.Buildings.OfType<Barracks>().FirstOrDefault();
+                    if (barracks != null && barracks.Level > 0)
+                        barracks.ActivationStatus = ActivationStatus.ACTIVE;
+                }
+
+                if (!_autoplayer.TryUpdatePriorityTargetFlowsOnce())
+                {
+                    // Fallback si la cible désignée est hors portée : attaque tout ennemi accessible.
+                    bool hasTarget = _civ.Cities.Any(c => mc.FindNearbyEnemyCity(c) != null);
+                    if (!hasTarget) _autoplayer.TryExpandOnce();
+                    foreach (var city in _civ.Cities.ToList())
+                    {
+                        if (city.FlowTarget != null) continue;
+                        var enemy = mc.FindNearbyEnemyCity(city);
+                        if (enemy != null) mc.SetCityFlow(city, enemy.Position);
+                    }
                 }
             }
             catch { }

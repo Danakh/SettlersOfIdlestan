@@ -72,49 +72,74 @@ public class NpcGameController
         var aggressivity = civ.NpcParameters?.AggressivityLevel ?? NpcAggressivityLevel.Cautious;
         if (aggressivity == NpcAggressivityLevel.Pacifist) return;
 
-        //FillNpcResources(civ);
-        UpdateNpcMilitaryFlows(civ, aggressivity);
 
         // Aggressive civs stop expanding once they can see an enemy.
         bool hasEncounteredEnemy = aggressivity >= NpcAggressivityLevel.Expansionist
             && HasEncounteredEnemy(civ);
 
-        var autoplayer = new NpcCivilizationAutoplayer(civ, _state.GetMapForZ(IslandMap.SurfaceLayer)!, _mainController, aggressivity);
+        var autoplayer = new NpcCivilizationAutoplayer(
+            civ, _state.GetMapForZ(IslandMap.SurfaceLayer)!, _mainController, aggressivity, _militaryController);
+        UpdateNpcMilitaryFlows(civ, aggressivity, autoplayer.Inner);
         autoplayer.TryStepOnce(shouldExpand: !hasEncounteredEnemy);
     }
 
     /// <summary>
-    /// Réévalue et assigne les flux militaires (attaque / renfort) de chaque cité NPC.
-    /// Les cités Warlike attaquent la ville ennemie la plus proche ; les autres renforcent
-    /// si elles ont l'excédent de soldats et aucun ennemi à portée.
+    /// Assigne les flux militaires (attaque / renfort) via PriorityTargetCivilization :
+    /// - Warlike avec war enemies → attaque l'ennemi qui a attaqué en premier
+    /// - Warlike sans war enemies → attaque le premier ennemi repéré (visibilité)
+    /// - Cautious / Expansionist → pas d'attaque tant qu'ils n'ont pas été attaqués
+    ///   (l'escalade vers Warlike dans OnCityAttacked prend le relais)
     /// </summary>
-    private void UpdateNpcMilitaryFlows(Civilization civ, NpcAggressivityLevel aggressivity)
+    private void UpdateNpcMilitaryFlows(Civilization civ, NpcAggressivityLevel aggressivity, CivilizationAutoplayer autoplayer)
     {
         if (_militaryController == null) return;
 
-        bool shouldAttack = aggressivity == NpcAggressivityLevel.Warlike;
+        var target = GetNpcPriorityTarget(civ, aggressivity);
+        autoplayer.PriorityTargetCivilization = target;
 
-        // Cibles restreintes aux civs qui ont attaqué ce NPC (si aucune, attaque globale).
-        var warEnemies = civ.NpcParameters?.WarEnemyCivIndices;
-
-        // Flux d'attaque : cités agressives avec soldats ciblent l'ennemi le plus proche.
-        // Les autres cités sont d'abord vidées pour que le renfort puisse les réévaluer.
-        foreach (var city in civ.Cities)
+        if (target != null)
         {
-            if (shouldAttack && city.Soldiers > 0)
-            {
-                var enemy = _militaryController.FindNearbyEnemyCity(city, warEnemies);
-                if (enemy != null)
-                {
-                    _militaryController.SetCityFlow(city, enemy.Position);
-                    continue;
-                }
-            }
-            _militaryController.SetCityFlow(city, null);
+            autoplayer.TryUpdatePriorityTargetFlowsOnce();
         }
+        else
+        {
+            foreach (var city in civ.Cities)
+                _militaryController.SetCityFlow(city, null);
+            _militaryController.UpdateCivilizationReinforcementFlows(civ);
+        }
+    }
 
-        // Flux de renfort : délégué à MilitaryController pour les cités sans flux d'attaque.
-        _militaryController.UpdateCivilizationReinforcementFlows(civ);
+    /// <summary>
+    /// Détermine la civ cible à attaquer pour un NPC Warlike.
+    /// Warlike avec war enemies → l'ennemi qui les a attaqués.
+    /// Warlike sans war enemies → l'ennemi le plus proche déjà repéré (HasEncounteredEnemy).
+    /// Toute autre aggressivité → null (Cautious/Expansionist n'attaquent qu'après escalade).
+    /// </summary>
+    private Civilization? GetNpcPriorityTarget(Civilization npcCiv, NpcAggressivityLevel aggressivity)
+    {
+        if (_state == null || aggressivity != NpcAggressivityLevel.Warlike) return null;
+
+        var warEnemies = npcCiv.NpcParameters?.WarEnemyCivIndices;
+        if (warEnemies != null && warEnemies.Count > 0)
+            return _state.Civilizations.FirstOrDefault(c => warEnemies.Contains(c.Index) && c.Cities.Count > 0);
+
+        return HasEncounteredEnemy(npcCiv) ? FindNearestVisibleEnemy(npcCiv) : null;
+    }
+
+    private Civilization? FindNearestVisibleEnemy(Civilization npcCiv)
+    {
+        if (_state == null) return null;
+        var z = npcCiv.Cities.FirstOrDefault()?.Position.Z ?? IslandMap.SurfaceLayer;
+        if (!_state.Visibility.GetForZ(z).TryGetValue(npcCiv.Index, out var visibleMap)) return null;
+
+        return _state.Civilizations
+            .Where(c => c.Index != npcCiv.Index && c.Cities.Count > 0)
+            .Where(c => c.Cities.Any(city =>
+                city.Position.Z == z &&
+                city.Position.GetHexes().Any(h => visibleMap.HasTile(h))))
+            .OrderBy(c => npcCiv.Cities.Min(nc =>
+                c.Cities.Min(ec => nc.Position.EdgeDistanceTo(ec.Position))))
+            .FirstOrDefault();
     }
 
     /// <summary>

@@ -1,4 +1,5 @@
 using SettlersOfIdlestan.Controller.Island;
+using SettlersOfIdlestan.Controller.Military;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.IslandMap;
 
@@ -18,7 +19,8 @@ public class NpcCivilizationAutoplayer
         Civilization civ,
         IslandMap map,
         MainGameController mainController,
-        NpcAggressivityLevel aggressivity)
+        NpcAggressivityLevel aggressivity,
+        MilitaryController? militaryController = null)
     {
         _buildingController = mainController.BuildingController;
         _inner = new CivilizationAutoplayer(
@@ -32,6 +34,7 @@ public class NpcCivilizationAutoplayer
             mainController.PrestigeController,
             mainController.PrestigeMapController,
             mainController.CurrentMainState?.CurrentWorldState,
+            militaryController: militaryController,
             clickCooldownTicks: 100L);
         _aggressivity = aggressivity;
     }
