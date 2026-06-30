@@ -21,6 +21,7 @@ mono_crash.*
 
 # Build results
 [Dd]ebug/
+!/SettlersOfIdlestanSkia/Renderers/Debug/
 [Dd]ebugPublic/
 [Rr]elease/
 [Rr]eleases/
