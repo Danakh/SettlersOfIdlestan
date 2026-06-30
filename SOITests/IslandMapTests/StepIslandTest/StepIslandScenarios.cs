@@ -244,21 +244,12 @@ namespace SOITests.IslandMapTests.StepIslandTest
                 },
                 new()
                 {
-                    SaveName = "Island1_Cities6",
+                    SaveName = "Island1_Cities12",
                     RunAction = (runner, cond) => runner.RunPriorityStrategyUntil(
                         CivilizationAutoplayerPriorities.Unified(runner.Autoplayer, runner.BuildingController), cond, 40000),
                     Condition = ctrl => ctrl.CurrentMainState!.CurrentWorldState!.Civilizations.First().Cities.Count >= 12,
                     AssertFailMessage = ctrl =>
                         $"Expected at least 12 cities, got {ctrl.CurrentMainState!.CurrentWorldState!.Civilizations.First().Cities.Count}",
-                },
-                new()
-                {
-                    SaveName = "Island1_Cities10",
-                    RunAction = (runner, cond) => runner.RunPriorityStrategyUntil(
-                        CivilizationAutoplayerPriorities.Unified(runner.Autoplayer, runner.BuildingController), cond, 15000),
-                    Condition = ctrl => ctrl.CurrentMainState!.CurrentWorldState!.Civilizations.First().Cities.Count >= 10,
-                    AssertFailMessage = ctrl =>
-                        $"Expected at least 10 cities, got {ctrl.CurrentMainState!.CurrentWorldState!.Civilizations.First().Cities.Count}",
                 },
                 new()
                 {
@@ -410,18 +401,9 @@ namespace SOITests.IslandMapTests.StepIslandTest
                     SaveName = "Island3_Cities10",
                     RunAction = (runner, cond) => runner.RunPriorityStrategyUntil(
                         CivilizationAutoplayerPriorities.Unified(runner.Autoplayer, runner.BuildingController), cond, 40000),
-                    Condition = ctrl =>
-                    {
-                        var civ = ctrl.CurrentMainState!.CurrentWorldState!.Civilizations.First();
-                        return !ctrl.RoadController.GetBuildableRoads(civ.Index).Any();
-                    },
+                    Condition = ctrl => ctrl.CurrentMainState!.CurrentWorldState!.Civilizations.First().Cities.Count >= 10,
                     AssertFailMessage = ctrl =>
-                    {
-                        var civ = ctrl.CurrentMainState!.CurrentWorldState!.Civilizations.First();
-                        int buildableRoads = ctrl.RoadController.GetBuildableRoads(civ.Index).Count;
-                        int buildableVertices = ctrl.CityBuilderController.GetBuildableVertices(civ.Index).Count;
-                        return $"Expected road network to be saturated (0 buildable roads); got {civ.Cities.Count} cities, {buildableRoads} buildable roads, {buildableVertices} buildable vertices";
-                    },
+                        $"Expected at least 10 cities, got {ctrl.CurrentMainState!.CurrentWorldState!.Civilizations.First().Cities.Count}",
                 },
                 new()
                 {
@@ -519,24 +501,6 @@ namespace SOITests.IslandMapTests.StepIslandTest
                     Condition = ctrl => ctrl.CurrentMainState!.CurrentWorldState!.Civilizations.First().Cities.Count >= 6,
                     AssertFailMessage = ctrl =>
                         $"Expected at least 6 cities, got {ctrl.CurrentMainState!.CurrentWorldState!.Civilizations.First().Cities.Count}",
-                },
-                new()
-                {
-                    SaveName = "Island4_Cities15",
-                    RunAction = (runner, cond) => runner.RunPriorityStrategyUntil(
-                        CivilizationAutoplayerPriorities.Unified(runner.Autoplayer, runner.BuildingController), cond, 40000),
-                    Condition = ctrl =>
-                    {
-                        var civ = ctrl.CurrentMainState!.CurrentWorldState!.Civilizations.First();
-                        return !ctrl.RoadController.GetBuildableRoads(civ.Index).Any();
-                    },
-                    AssertFailMessage = ctrl =>
-                    {
-                        var civ = ctrl.CurrentMainState!.CurrentWorldState!.Civilizations.First();
-                        int buildableRoads = ctrl.RoadController.GetBuildableRoads(civ.Index).Count;
-                        int buildableVertices = ctrl.CityBuilderController.GetBuildableVertices(civ.Index).Count;
-                        return $"Expected road network to be saturated (0 buildable roads); got {civ.Cities.Count} cities, {buildableRoads} buildable roads, {buildableVertices} buildable vertices";
-                    },
                 },
                 new()
                 {

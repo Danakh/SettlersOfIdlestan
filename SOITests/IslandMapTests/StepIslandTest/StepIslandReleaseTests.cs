@@ -13,20 +13,16 @@ namespace SOITests.IslandMapTests.StepIslandTest
         // ── Island 1 — from release-1.0 ──────────────────────────────────────
 
         [Fact]
-        public void Release1_0_Island1_Cities6() =>
+        public void Release1_0_Island1_Cities12() =>
             IslandScenarioRunner.RunStep(StepIslandScenarios.Island1, 1, "release-1.0", saveFinal: false);
 
         [Fact]
-        public void Release1_0_Island1_Cities10() =>
+        public void Release1_0_Island1_Points35() =>
             IslandScenarioRunner.RunStep(StepIslandScenarios.Island1, 2, "release-1.0", saveFinal: false);
 
         [Fact]
-        public void Release1_0_Island1_Points35() =>
-            IslandScenarioRunner.RunStep(StepIslandScenarios.Island1, 3, "release-1.0", saveFinal: false);
-
-        [Fact]
         public void Release1_0_Island1_PrestigeReady() =>
-            IslandScenarioRunner.RunStep(StepIslandScenarios.Island1, 4, "release-1.0", saveFinal: false);
+            IslandScenarioRunner.RunStep(StepIslandScenarios.Island1, 3, "release-1.0", saveFinal: false);
 
         // ── Island 2 — from release-1.0 ──────────────────────────────────────
 
@@ -118,17 +114,15 @@ namespace SOITests.IslandMapTests.StepIslandTest
             IslandScenarioRunner.RunStep(StepIslandScenarios.Island4, 2, "release-1.0", saveFinal: false);
 
         [Fact]
-        public void Release1_0_Island4_Cities15() =>
+        public void Release1_0_Island4_Cities10() =>
             IslandScenarioRunner.RunStep(StepIslandScenarios.Island4, 3, "release-1.0", saveFinal: false);
 
-        // Note: no Release1_0_Island4_Cities10 fact — Cities10 (AllCitiesStep) is now at index 4 and
-        // its predecessor Island4_Cities15 is not a frozen release-1.0 fixture.
         // No Release1_0_Island4_Barracks1, ExtermineAndRebuild, PrestigeReady, WonderPlaced or
         // Wonder2 facts — same reason as Island 2/3's extermination steps; Points20 below needs the
         // Island4_ExtermineAndRebuild.json fixture checked into saves/release-1.0/ or it fails outright
 
         [Fact]
         public void Release1_0_Island4_Points20() =>
-            IslandScenarioRunner.RunStep(StepIslandScenarios.Island4, 7, "release-1.0", saveFinal: false);
+            IslandScenarioRunner.RunStep(StepIslandScenarios.Island4, 6, "release-1.0", saveFinal: false);
     }
 }
