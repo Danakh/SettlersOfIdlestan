@@ -55,7 +55,7 @@ public sealed class ZoomControlRenderer : IDisposable
         float spacing = ButtonSpacing * s;
         float pad     = Padding * s;
 
-        float bottomPad = _uiLayout.IsMobile
+        float bottomPad = _uiLayout.TabsAtBottom
             ? (UILayoutService.MobileTabBarHeight + Padding) * s
             : pad;
 

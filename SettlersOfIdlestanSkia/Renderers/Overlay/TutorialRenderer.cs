@@ -12,7 +12,7 @@ public class TutorialRenderer : IGameRenderer
     private readonly LocalizationService _localization;
     private readonly InputHandlingService _inputService;
     public UILayoutService? LayoutService { get; set; }
-    private bool IsMobile => LayoutService?.IsMobile ?? false;
+    private bool TabsAtBottom => LayoutService?.TabsAtBottom ?? false;
 
     private SKSize _canvasSize;
     private readonly SKFont _titleFont    = new() { Size = 14, Typeface = SkiaFonts.Bold };
@@ -96,7 +96,7 @@ public class TutorialRenderer : IGameRenderer
         float secondaryLabelH = hasSecondary ? _optionalFont.Spacing + 2f * s : 0f;
         float secondaryTasksH = _step.SecondaryTasks.Count * (_taskFont.Spacing + 2f * s);
         float panelH          = panelPadding + titleH + descH + separatorH + primaryTasksH + secondaryGapH + secondaryLabelH + secondaryTasksH + panelPadding;
-        float bottomMargin    = IsMobile ? (UILayoutService.MobileTabBarHeight + 10f) * s : 10f * s;
+        float bottomMargin    = TabsAtBottom ? (UILayoutService.MobileTabBarHeight + 10f) * s : 10f * s;
         float panelTop        = _canvasSize.Height - panelH - bottomMargin;
 
         var panelRect = new SKRect(panelLeft, panelTop, panelLeft + panelWidth, panelTop + panelH);

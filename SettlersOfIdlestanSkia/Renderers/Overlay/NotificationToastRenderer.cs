@@ -95,7 +95,7 @@ public sealed class NotificationToastRenderer : IGameRenderer, IDisposable
         float margin = ToastMargin * s;
 
         // Position Y de base (bas de la zone de toasts)
-        float baseBottom = _layout.IsMobile
+        float baseBottom = _layout.TabsAtBottom
             ? _canvasSize.Height - (UILayoutService.MobileTabBarHeight * s + margin)
             : _canvasSize.Height - margin;
 

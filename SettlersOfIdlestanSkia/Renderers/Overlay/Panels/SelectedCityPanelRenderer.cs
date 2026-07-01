@@ -56,7 +56,7 @@ public class SelectedCityPanelRenderer : PanelRendererBase
 
     public float ReservedBottomHeight { get; set; }
     public UILayoutService? LayoutService { get; set; }
-    private bool IsMobile => LayoutService?.IsMobile ?? false;
+    private bool TabsAtBottom => LayoutService?.TabsAtBottom ?? false;
 
     public SelectedCityPanelRenderer(CityBuildingService cityBuildingService, LocalizationService localization, InputHandlingService inputService, ResourceManager resourceManager)
     {
@@ -127,7 +127,7 @@ public class SelectedCityPanelRenderer : PanelRendererBase
         float collapseTabW    = CollapseTabW * s;
         float collapseTabH    = CollapseTabH * s;
 
-        bool isMobile = IsMobile;
+        bool isMobile = TabsAtBottom;
         float panelX  = CanvasSize.Width - panelWidth - 10 * s;
         float panelY0 = (TopOverride > 0f ? TopOverride : PlayerResourcesOverlayRenderer.BarHeight * s) + 10 * s;
         float tabTop  = panelY0 + 8f * s;

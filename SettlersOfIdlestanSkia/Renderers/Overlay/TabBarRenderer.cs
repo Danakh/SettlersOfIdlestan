@@ -126,14 +126,16 @@ public sealed class TabBarRenderer : IDisposable
         if (_hasAscensionTab)  _activeTabs.Add((TabAscension, default));
         if (_allowDebugMode)   _activeTabs.Add((TabHistory, default));
 
-        bool isMobile   = _uiLayout.IsMobile;
-        float uiScale   = _uiLayout.UiScale;
-        bool showTabBar = isMobile || _activeTabs.Count > 1;
+        float uiScale = _uiLayout.UiScale;
+        _uiLayout.SetTabsInlineWidth(ComputeInlineWidth(uiScale));
+
+        bool tabsAtBottom = _uiLayout.TabsAtBottom;
+        bool showTabBar   = tabsAtBottom || _activeTabs.Count > 1;
         IsVisible = showTabBar;
 
         if (showTabBar)
         {
-            ComputeTabRects(isMobile, uiScale);
+            ComputeTabRects(tabsAtBottom, uiScale);
             UpdateEventNotification();
             UpdatePrestigeNotification();
             UpdateResearchNotification();
@@ -144,6 +146,12 @@ public sealed class TabBarRenderer : IDisposable
         }
     }
 
+    /// Largeur qu'occuperaient les tabs si affichés en ligne (indépendant du mode bas/inline choisi ensuite).
+    private float ComputeInlineWidth(float uiScale) =>
+        TabMarginLeft * uiScale * 2f
+        + _activeTabs.Count * TabWidth * uiScale
+        + Math.Max(0, _activeTabs.Count - 1) * TabSpacing * uiScale;
+
     /// Draw the tab buttons. Call after the resource bar has been rendered so tabs appear on top.
     public void Render(SKCanvas canvas)
     {
@@ -151,9 +159,9 @@ public sealed class TabBarRenderer : IDisposable
         DrawTabButtons(canvas);
     }
 
-    private void ComputeTabRects(bool isMobile, float uiScale)
+    private void ComputeTabRects(bool tabsAtBottom, float uiScale)
     {
-        if (isMobile)
+        if (tabsAtBottom)
         {
             float mobileTabH = MobileTabHeight * uiScale;
             float tabY = _canvasSize.Height - mobileTabH - 2;

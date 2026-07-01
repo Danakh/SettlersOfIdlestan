@@ -31,6 +31,7 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
     private SKPaint? _maxStockTextPaint;
     private SKPaint? _scrollTrackPaint;
     private SKPaint? _scrollThumbPaint;
+    private SKPaint? _arrowPaint;
 
     private readonly ConcurrentDictionary<Resource, long> _lowStockTimestamps = new();
     private const long LowStockFlickerDurationMs = 5000;
@@ -50,6 +51,8 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
     private const float RectangleWidth = 66;
     private const float RectangleHeight = 32;
     private const float ResourceIconSize = 22f;
+    private const float ItemSpacing = 16f;
+    private const float ArrowWidth = 18f;
     public const float Padding = 12;
 
     private static readonly SKColor ItemBackground = new SKColor(40, 40, 40, 210);
@@ -63,9 +66,32 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
 
     public float ResourceStartX { get; set; } = Padding;
     public bool ShowGearInBar { get; set; } = true;
+    public bool ShowScrollArrows { get; set; }
+    /// Largeur réservée à droite (déjà mise à l'échelle) pour le bloc temps+paramètres ou, à défaut, le padding simple.
+    public float RightReservedWidth { get; set; } = Padding;
     public float ScrollOffset { get; set; } = 0f;
     private float _totalResourcesContentWidth;
     public float TotalResourcesContentWidth => _totalResourcesContentWidth;
+    private float _visibleContentWidth;
+    private SKRect _leftArrowRect;
+    private SKRect _rightArrowRect;
+
+    private float PillStep => (RectangleWidth + ItemSpacing) * _uiScale;
+
+    /// Fait défiler la barre de ressources d'un delta (pixels), en garantissant qu'on ne dépasse jamais le contenu.
+    public void ScrollBy(float delta)
+    {
+        float maxScroll = Math.Max(0f, _totalResourcesContentWidth - _visibleContentWidth);
+        ScrollOffset = Math.Clamp(ScrollOffset + delta, 0f, maxScroll);
+    }
+
+    /// Retourne true si le point a touché une flèche de pagination (et a fait défiler d'un pill).
+    public bool HandleArrowClick(SKPoint point)
+    {
+        if (_leftArrowRect.Contains(point.X, point.Y)) { ScrollBy(-PillStep); return true; }
+        if (_rightArrowRect.Contains(point.X, point.Y)) { ScrollBy(PillStep); return true; }
+        return false;
+    }
 
     public bool Disposed => _disposed;
     public SKRect GearRect
@@ -135,6 +161,7 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
         _maxStockTextPaint = new SKPaint { Color = new SKColor(220, 60, 60), IsAntialias = true };
         _scrollTrackPaint = new SKPaint { Color = new SKColor(255, 255, 255, 25), Style = SKPaintStyle.Fill, IsAntialias = true };
         _scrollThumbPaint = new SKPaint { Color = new SKColor(255, 255, 255, 90), Style = SKPaintStyle.Fill, IsAntialias = true };
+        _arrowPaint = new SKPaint { Color = SKColors.Gold, Style = SKPaintStyle.Fill, IsAntialias = true };
 
         foreach (Resource resource in Enum.GetValues(typeof(Resource)))
         {
@@ -186,12 +213,14 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
     private void DrawResourcesBar(SKCanvas canvas, SettlersOfIdlestan.Model.Civilization.Civilization civilization, SettlersOfIdlestan.Model.Prestige.PrestigeState? prestigeState)
     {
         float s = _uiScale;
-        float itemSpacing = 16 * s;
+        float itemSpacing = ItemSpacing * s;
         float barH = BarHeight * s;
         float rectW = RectangleWidth * s;
         float rectH = RectangleHeight * s;
         float iconContainerSz = IconSize * s;
         float padding = Padding * s;
+        float arrowW = ArrowWidth * s;
+        bool showArrows = ShowScrollArrows;
 
         var map = PrestigeMapController.DefaultMap;
         var resourceTypes = Enum.GetValues(typeof(Resource)).Cast<Resource>()
@@ -206,10 +235,13 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
         float itemY = (barH - rectH) / 2;
         float scroll = ScrollOffset;
 
-        // Zone de clip : évite que les items débordent sur le gear ou hors de la barre
-        float clipRight = ShowGearInBar ? _canvasSize.Width - padding - iconContainerSz - 4f * s : _canvasSize.Width - padding;
+        // Zone de clip : évite que les items débordent sur le bloc temps+paramètres, les flèches ou hors de la barre
+        float clipLeft  = ResourceStartX + (showArrows ? arrowW : 0f);
+        float clipRight = _canvasSize.Width - RightReservedWidth - (showArrows ? arrowW : 0f);
+        _visibleContentWidth = Math.Max(0f, clipRight - clipLeft);
+
         canvas.Save();
-        canvas.ClipRect(new SKRect(ResourceStartX, 0, clipRight, barH));
+        canvas.ClipRect(new SKRect(clipLeft, 0, clipRight, barH));
         canvas.Translate(-scroll, 0);
 
         float currentX = ResourceStartX;
@@ -230,7 +262,15 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
         _totalResourcesContentWidth = currentX - ResourceStartX;
         canvas.Restore();
 
-        DrawScrollbarIndicator(canvas, barH, clipRight);
+        DrawScrollbarIndicator(canvas, barH, clipLeft, clipRight);
+
+        if (showArrows)
+            DrawScrollArrows(canvas, itemY, rectH, clipLeft, clipRight, arrowW);
+        else
+        {
+            _leftArrowRect = SKRect.Empty;
+            _rightArrowRect = SKRect.Empty;
+        }
 
         if (ShowGearInBar)
         {
@@ -239,23 +279,66 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
         }
     }
 
-    private void DrawScrollbarIndicator(SKCanvas canvas, float barH, float clipRight)
+    private void DrawScrollbarIndicator(SKCanvas canvas, float barH, float clipLeft, float clipRight)
     {
-        float trackW = clipRight - ResourceStartX;
+        float trackW = clipRight - clipLeft;
         if (_totalResourcesContentWidth <= trackW) return;
 
         const float scrollbarH = 3f;
         const float scrollbarRadius = 1.5f;
         float trackY = barH - scrollbarH - 2f;
 
-        var trackRect = new SKRect(ResourceStartX, trackY, clipRight, trackY + scrollbarH);
+        var trackRect = new SKRect(clipLeft, trackY, clipRight, trackY + scrollbarH);
         canvas.DrawRoundRect(trackRect, scrollbarRadius, scrollbarRadius, _scrollTrackPaint);
 
         float thumbW = trackW * (trackW / _totalResourcesContentWidth);
         float maxScroll = _totalResourcesContentWidth - trackW;
-        float thumbX = ResourceStartX + (ScrollOffset / maxScroll) * (trackW - thumbW);
+        float thumbX = clipLeft + (ScrollOffset / maxScroll) * (trackW - thumbW);
         var thumbRect = new SKRect(thumbX, trackY, thumbX + thumbW, trackY + scrollbarH);
         canvas.DrawRoundRect(thumbRect, scrollbarRadius, scrollbarRadius, _scrollThumbPaint);
+    }
+
+    private void DrawScrollArrows(SKCanvas canvas, float itemY, float rectH, float clipLeft, float clipRight, float arrowW)
+    {
+        if (_arrowPaint == null) return;
+
+        float maxScroll = Math.Max(0f, _totalResourcesContentWidth - _visibleContentWidth);
+        float midY = itemY + rectH / 2f;
+
+        _leftArrowRect  = new SKRect(clipLeft - arrowW, 0, clipLeft, BarHeight * _uiScale);
+        _rightArrowRect = new SKRect(clipRight, 0, clipRight + arrowW, BarHeight * _uiScale);
+
+        DrawArrowTriangle(canvas, _leftArrowRect, midY, pointingLeft: true, enabled: ScrollOffset > 0.01f);
+        DrawArrowTriangle(canvas, _rightArrowRect, midY, pointingLeft: false, enabled: ScrollOffset < maxScroll - 0.01f);
+    }
+
+    private void DrawArrowTriangle(SKCanvas canvas, SKRect rect, float midY, bool pointingLeft, bool enabled)
+    {
+        if (_arrowPaint == null) return;
+
+        float triW = rect.Width * 0.4f;
+        float triH = triW * 1.2f;
+        float cx = rect.MidX;
+
+        using var path = new SKPath();
+        if (pointingLeft)
+        {
+            path.MoveTo(cx + triW / 2f, midY - triH / 2f);
+            path.LineTo(cx - triW / 2f, midY);
+            path.LineTo(cx + triW / 2f, midY + triH / 2f);
+        }
+        else
+        {
+            path.MoveTo(cx - triW / 2f, midY - triH / 2f);
+            path.LineTo(cx + triW / 2f, midY);
+            path.LineTo(cx - triW / 2f, midY + triH / 2f);
+        }
+        path.Close();
+
+        byte previousAlpha = _arrowPaint.Color.Alpha;
+        _arrowPaint.Color = _arrowPaint.Color.WithAlpha(enabled ? (byte)255 : (byte)70);
+        canvas.DrawPath(path, _arrowPaint);
+        _arrowPaint.Color = _arrowPaint.Color.WithAlpha(previousAlpha);
     }
 
     public void DrawGearAt(SKCanvas canvas, float x, float y, float size)
@@ -451,6 +534,7 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
         _maxStockTextPaint?.Dispose();
         _scrollTrackPaint?.Dispose();
         _scrollThumbPaint?.Dispose();
+        _arrowPaint?.Dispose();
         _disposed = true;
     }
 }

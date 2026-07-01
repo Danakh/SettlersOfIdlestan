@@ -113,7 +113,7 @@ public sealed class OverlayRenderer : IGameRenderer
             prestigeRenderer,
             targetSelectionService: null,
             tooltipRenderer);
-        _playerCivPanel.OnExpanded = () => { if (_uiLayout.IsMobile) DeselectCityAndMonument(); };
+        _playerCivPanel.OnExpanded = () => { if (_uiLayout.TabsAtBottom) DeselectCityAndMonument(); };
 
         _inputService.PointerPressed  += HandlePointerPressed;
         _inputService.PointerMoved    += HandlePointerMoved;
@@ -147,7 +147,7 @@ public sealed class OverlayRenderer : IGameRenderer
         _mapSwitchButton.Initialize(canvasSize);
         _zoomControl.Initialize(canvasSize, _uiLayout.UiScale);
 
-        _playerResourcesOverlayRenderer.ShowGearInBar = !_uiLayout.IsMobile;
+        _playerResourcesOverlayRenderer.ShowGearInBar = !_uiLayout.TimeSettingsOnSecondRow;
 
         float scale = _uiLayout.UiScale;
         _timeControlRenderer.Initialize(canvasSize, _uiLayout.GearX - 8f * scale, _uiLayout.TimeControlRowTop, scale);
@@ -161,7 +161,6 @@ public sealed class OverlayRenderer : IGameRenderer
         _playerResourcesOverlayRenderer.ResourceStartX = _tabBar.ResourceStartX;
 
         int activeTab      = _tabBar.ActiveTab;
-        bool isMobile      = _uiLayout.IsMobile;
         bool panelsEnabled = activeTab == TabBarRenderer.TabIsland
                           && !_tradeRenderer.IsOpen && !_prestigeRenderer.IsOpen;
         _selectedCityPanelRenderer.IsInputEnabled  = panelsEnabled;
@@ -173,7 +172,7 @@ public sealed class OverlayRenderer : IGameRenderer
         _selectedMonumentPanelRenderer.TopOverride = panelTop;
         _selectedCityPanelRenderer.TopOverride   = panelTop;
 
-        if (isMobile)
+        if (_uiLayout.TabsAtBottom)
         {
             bool rightPanelOpen = _gameControllerService.CityBuildingService?.SelectedCity != null
                                || _selectedMonumentPanelRenderer.HasSelection;
@@ -181,8 +180,13 @@ public sealed class OverlayRenderer : IGameRenderer
                 _playerCivPanel.Collapse();
         }
 
+        _playerResourcesOverlayRenderer.RightReservedWidth = _uiLayout.TimeSettingsOnSecondRow
+            ? UILayoutService.BarPadding * _uiLayout.UiScale
+            : _uiLayout.TimeSettingsBlockWidth;
+        _playerResourcesOverlayRenderer.ShowScrollArrows = _uiLayout.ResourcesOverflow;
+
         _playerResourcesOverlayRenderer.Render(canvas, context);
-        _tabBar.Render(canvas);
+        _uiLayout.SetResourcesContentWidth(_playerResourcesOverlayRenderer.TotalResourcesContentWidth);
 
         switch (activeTab)
         {
@@ -217,7 +221,9 @@ public sealed class OverlayRenderer : IGameRenderer
                 break;
         }
 
-        if (isMobile)
+        _tabBar.Render(canvas);
+
+        if (_uiLayout.TimeSettingsOnSecondRow)
             DrawMobileSecondRowBackground(canvas);
 
         float timeControlScale = _uiLayout.UiScale;
@@ -225,7 +231,7 @@ public sealed class OverlayRenderer : IGameRenderer
         _timeControlRenderer.Render(canvas, context);
 
         float gearX = _uiLayout.GearX;
-        if (isMobile)
+        if (_uiLayout.TimeSettingsOnSecondRow)
             DrawMobileGearIcon(canvas, gearX);
         _settingsMenu.Draw(canvas, gearX, _uiLayout.SecondRowBottom);
 
@@ -319,7 +325,7 @@ public sealed class OverlayRenderer : IGameRenderer
         || _selectedMonumentPanelRenderer.ContainsPoint(point)
         || _playerCivPanel.ContainsPoint(point)
         || _zoomControl.ContainsPoint(point)
-        || (_uiLayout.IsMobile && point.Y < _uiLayout.ResourceBarBottom);
+        || (_uiLayout.ResourcesOverflow && point.Y < _uiLayout.ResourceBarBottom);
 
     public bool IsIslandTabActive => _tabBar.ActiveTab == TabBarRenderer.TabIsland;
 
@@ -331,10 +337,7 @@ public sealed class OverlayRenderer : IGameRenderer
         {
             float delta        = _resourceDragLastX - e.Position.X;
             _resourceDragLastX = e.Position.X;
-            float visibleW     = _canvasSize.Width - UILayoutService.BarPadding * _uiLayout.UiScale;
-            float maxScroll    = Math.Max(0f, _playerResourcesOverlayRenderer.TotalResourcesContentWidth - visibleW);
-            _playerResourcesOverlayRenderer.ScrollOffset =
-                Math.Clamp(_playerResourcesOverlayRenderer.ScrollOffset + delta, 0f, maxScroll);
+            _playerResourcesOverlayRenderer.ScrollBy(delta);
             return;
         }
 
@@ -362,16 +365,17 @@ public sealed class OverlayRenderer : IGameRenderer
         if (_tradeRenderer.HandlePointerPressed(e.Position, e.Button))         return;
         if (e.Button != PointerButton.Left) return;
 
-        bool isMobile = _uiLayout.IsMobile;
-
-        var gearRect = isMobile ? _mobileGearRect : _playerResourcesOverlayRenderer.GearRect;
+        var gearRect = _uiLayout.TimeSettingsOnSecondRow ? _mobileGearRect : _playerResourcesOverlayRenderer.GearRect;
         if (gearRect != default && gearRect.Contains(e.Position.X, e.Position.Y))
         {
             _settingsMenu.HandleGearClick();
             return;
         }
 
-        if (isMobile && e.Position.Y < _uiLayout.ResourceBarBottom)
+        if (_uiLayout.ResourcesOverflow && _playerResourcesOverlayRenderer.HandleArrowClick(e.Position))
+            return;
+
+        if (_uiLayout.ResourcesOverflow && e.Position.Y < _uiLayout.ResourceBarBottom)
         {
             _isDraggingResources = true;
             _resourceDragLastX   = e.Position.X;
