@@ -85,9 +85,9 @@ public sealed class NotificationToastRenderer : IGameRenderer, IDisposable
                 _toasts.RemoveAt(i);
         }
 
-        if (_toasts.Count == 0) return;
-
         _toastRects.Clear();
+
+        if (_toasts.Count == 0) return;
 
         float w  = ToastWidth  * s;
         float h  = ToastHeight * s;

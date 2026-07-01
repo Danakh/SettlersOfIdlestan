@@ -111,6 +111,10 @@ namespace SettlersOfIdlestan.Controller.Expand
             return result;
         }
 
+        /// <summary>Niveau de corruption de l'hex donné (0 si aucune feature Corruption présente).</summary>
+        public int GetCorruptionLevel(HexCoord hex)
+            => _state?.Features.OfType<Corruption>().FirstOrDefault(f => f.Position.Equals(hex))?.Level ?? 0;
+
         public CorruptionSpire? PlaceCorruptionSpire(HexCoord position)
         {
             if (_state == null) return null;

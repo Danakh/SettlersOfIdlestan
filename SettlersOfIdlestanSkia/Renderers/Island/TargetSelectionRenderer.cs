@@ -39,6 +39,8 @@ public sealed class TargetSelectionRenderer : HexBasedRenderer, IGameRenderer
     private SKFont? _cancelFont;
     private SKPaint? _titlePaint;
     private SKFont? _titleFont;
+    private SKPaint? _hexLabelPaint;
+    private SKFont? _hexLabelFont;
 
     private SKRect _cancelButtonRect = SKRect.Empty;
     private int _currentLayer = IslandMap.SurfaceLayer;
@@ -74,6 +76,26 @@ public sealed class TargetSelectionRenderer : HexBasedRenderer, IGameRenderer
         _cancelFont = new SKFont { Size = 14, Typeface = SkiaFonts.Bold };
         _titlePaint = new SKPaint { Color = SKColors.White, IsAntialias = true };
         _titleFont = new SKFont { Size = 16, Typeface = SkiaFonts.Bold };
+        _hexLabelPaint = new SKPaint { Color = SKColors.White, IsAntialias = true };
+        _hexLabelFont = new SKFont { Size = 10, Typeface = SkiaFonts.Bold };
+    }
+
+    /// <summary>Affiche un libellé d'hex sur deux lignes centrées (coupure au premier espace) pour tenir dans l'hexagone.</summary>
+    private void DrawHexLabel(SKCanvas canvas, string label, float cx, float cy)
+    {
+        int splitIndex = label.IndexOf(' ');
+        string line1 = splitIndex >= 0 ? label[..splitIndex] : label;
+        string line2 = splitIndex >= 0 ? label[(splitIndex + 1)..] : string.Empty;
+
+        float lineHeight = _hexLabelFont!.Size + 2f;
+        if (string.IsNullOrEmpty(line2))
+        {
+            SkiaTextUtils.DrawText(canvas, line1, cx, cy + lineHeight / 2f, SKTextAlign.Center, _hexLabelFont, _hexLabelPaint!);
+            return;
+        }
+
+        SkiaTextUtils.DrawText(canvas, line1, cx, cy, SKTextAlign.Center, _hexLabelFont, _hexLabelPaint!);
+        SkiaTextUtils.DrawText(canvas, line2, cx, cy + lineHeight, SKTextAlign.Center, _hexLabelFont, _hexLabelPaint!);
     }
 
     public void Render(SKCanvas canvas, GameRenderContext context)
@@ -113,6 +135,9 @@ public sealed class TargetSelectionRenderer : HexBasedRenderer, IGameRenderer
             bool isHovered = _selectionService.HoveredHex?.Equals(hex) == true;
             canvas.DrawPath(path, isHovered ? hoverFill : fill);
             canvas.DrawPath(path, border);
+
+            if (_selectionService.HexLabels?.TryGetValue(hex, out var label) == true)
+                DrawHexLabel(canvas, label, cx, cy);
         }
 
         canvas.Restore();
@@ -217,6 +242,8 @@ public sealed class TargetSelectionRenderer : HexBasedRenderer, IGameRenderer
         _cancelFont?.Dispose();
         _titlePaint?.Dispose();
         _titleFont?.Dispose();
+        _hexLabelPaint?.Dispose();
+        _hexLabelFont?.Dispose();
         _disposed = true;
     }
 }

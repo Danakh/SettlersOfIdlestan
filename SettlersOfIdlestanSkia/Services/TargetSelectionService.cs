@@ -36,6 +36,9 @@ public sealed class TargetSelectionService
     public Vertex? HoveredVertex { get; set; }
     public HexCoord? HoveredHex { get; set; }
 
+    /// <summary>Libellé optionnel affiché sur chaque hexagone ciblable (ex: niveau de corruption).</summary>
+    public IReadOnlyDictionary<HexCoord, string>? HexLabels { get; private set; }
+
     private Action<Vertex>? _onVertexConfirmed;
     private Action<HexCoord>? _onHexConfirmed;
 
@@ -64,7 +67,7 @@ public sealed class TargetSelectionService
     }
 
     public void EnterHexSelection(string titleKey, IReadOnlyList<HexCoord> targets, Action<HexCoord> onConfirmed,
-        TargetSelectionTheme theme = TargetSelectionTheme.Friendly)
+        TargetSelectionTheme theme = TargetSelectionTheme.Friendly, IReadOnlyDictionary<HexCoord, string>? hexLabels = null)
     {
         if (targets.Count == 0) return;
 
@@ -73,6 +76,7 @@ public sealed class TargetSelectionService
         TitleKey = titleKey;
         HexTargets = targets;
         VertexTargets = Array.Empty<Vertex>();
+        HexLabels = hexLabels;
         _onHexConfirmed = onConfirmed;
         _onVertexConfirmed = null;
         HoveredVertex = null;
@@ -135,6 +139,7 @@ public sealed class TargetSelectionService
         IsActive = false;
         HoveredVertex = null;
         HoveredHex = null;
+        HexLabels = null;
         _onVertexConfirmed = null;
         _onHexConfirmed = null;
     }

@@ -522,8 +522,11 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         {
             _closeAll();
             var spireController = _gameControllerService.MainGameController.CorruptionSpireController;
-            _targetSelectionService.EnterHexSelection("spire_select_hex", spireController.GetPlaceableHexes(),
-                hex => spireController.PlaceCorruptionSpire(hex), TargetSelectionTheme.Friendly);
+            var spireHexes = spireController.GetPlaceableHexes();
+            var spireHexLabels = spireHexes.ToDictionary(hex => hex,
+                hex => _localization.GetFormated("map_switch_corruption_level", spireController.GetCorruptionLevel(hex)));
+            _targetSelectionService.EnterHexSelection("spire_select_hex", spireHexes,
+                hex => spireController.PlaceCorruptionSpire(hex), TargetSelectionTheme.Friendly, spireHexLabels);
             return true;
         }
 
