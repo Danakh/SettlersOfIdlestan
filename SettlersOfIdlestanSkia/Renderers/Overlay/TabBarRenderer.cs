@@ -136,6 +136,7 @@ public sealed class TabBarRenderer : IDisposable
         if (showTabBar)
         {
             ComputeTabRects(tabsAtBottom, uiScale);
+            if (_uiLayout.ResourcesOnOwnRow) ResourceStartX = UILayoutService.BarPadding * uiScale;
             UpdateEventNotification();
             UpdatePrestigeNotification();
             UpdateResearchNotification();

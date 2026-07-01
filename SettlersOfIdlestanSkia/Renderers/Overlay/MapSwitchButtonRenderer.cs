@@ -53,7 +53,9 @@ public sealed class MapSwitchButtonRenderer : IDisposable
         float s = _uiLayout.UiScale;
         float btnW = 220f * s, btnH = 34f * s;
         float btnX = (_canvasSize.Width - btnW) / 2f;
-        float btnY = _uiLayout.ResourceBarBottom + 3f * s;
+        // Menu en haut avec ressources reléguées : la ligne juste sous la barre du haut leur est réservée,
+        // le bouton doit donc s'ancrer après toutes les lignes déjà utilisées.
+        float btnY = (_uiLayout.ResourcesOnOwnRow ? _uiLayout.SecondRowBottom : _uiLayout.ResourceBarBottom) + 3f * s;
         _buttonRect = new SKRect(btnX, btnY, btnX + btnW, btnY + btnH);
 
         bool accessible = IsUnderworldAccessible(worldState);

@@ -6,6 +6,7 @@
   "settings_harvest_particles": "Particules de récolte",
   "settings_show_military_stats": "Stats militaires des villes",
   "settings_fullscreen": "Plein écran",
+  "settings_force_menu_position": "Menu en bas",
   "settings_ui_scale": "Échelle de l'interface",
   "settings_debug_window_resolution": "Résolution fenêtre (debug)",
   "settings_debug_export_transparent_bg": "Export PNG fond transparent (debug)",

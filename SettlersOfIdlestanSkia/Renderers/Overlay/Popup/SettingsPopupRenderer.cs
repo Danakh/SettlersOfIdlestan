@@ -19,7 +19,7 @@ public sealed class SettingsPopupRenderer : PopupRendererBase
     private readonly MainGameController  _gameController;
     private readonly LocalizationService _localization;
     private readonly IFileSystemService  _fileSystemService;
-    private readonly SettingsContentPanel _contentPanel = new();
+    private readonly SettingsContentPanel _contentPanel;
     private readonly bool _allowDebugMode;
 
     public event Action<bool>? FullscreenToggleRequested;
@@ -29,12 +29,13 @@ public sealed class SettingsPopupRenderer : PopupRendererBase
     private SKRect _closeButtonRect = SKRect.Empty;
     private SKRect _popupRect       = SKRect.Empty;
 
-    public SettingsPopupRenderer(MainGameController gameController, LocalizationService localization, IFileSystemService fileSystemService, bool allowDebugMode = false)
+    public SettingsPopupRenderer(MainGameController gameController, LocalizationService localization, IFileSystemService fileSystemService, UILayoutService uiLayout, bool allowDebugMode = false)
     {
         _gameController    = gameController;
         _localization      = localization;
         _fileSystemService = fileSystemService;
         _allowDebugMode    = allowDebugMode;
+        _contentPanel      = new SettingsContentPanel(uiLayout);
         _contentPanel.FullscreenToggleRequested    += v => FullscreenToggleRequested?.Invoke(v);
         _contentPanel.UiScaleChanged                += v => UiScaleChanged?.Invoke(v);
         _contentPanel.DebugWindowResizeRequested    += (w, h) => DebugWindowResizeRequested?.Invoke(w, h);

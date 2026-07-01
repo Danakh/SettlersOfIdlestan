@@ -67,6 +67,9 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
     public float ResourceStartX { get; set; } = Padding;
     public bool ShowGearInBar { get; set; } = true;
     public bool ShowScrollArrows { get; set; }
+    /// Y à laquelle dessiner la barre : 0 quand elle est inline dans la barre du haut, ResourceBarBottom quand
+    /// elle a été reléguée sur sa propre ligne (menu en haut, ressources en débordement).
+    public float RowTop { get; set; } = 0f;
     /// Largeur réservée à droite (déjà mise à l'échelle) pour le bloc temps+paramètres ou, à défaut, le padding simple.
     public float RightReservedWidth { get; set; } = Padding;
     public float ScrollOffset { get; set; } = 0f;
@@ -202,10 +205,14 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
         DrawResourcesBar(canvas, currentCivilization, mainGameState.PrestigeState);
     }
 
+    /// Hauteur de la ligne courante : la ligne dédiée (menu en haut, ressources reléguées) est plus basse que la
+    /// barre principale, à l'image de ce que fait déjà TimeControlRenderer pour sa propre ligne secondaire.
+    private float CurrentRowHeight => (RowTop > 0f ? SecondRowHeight : BarHeight) * _uiScale;
+
     private void DrawBarBackground(SKCanvas canvas)
     {
         float cornerRadius = 8 * _uiScale;
-        var rect = new SKRect(0, 0, _canvasSize.Width, BarHeight * _uiScale);
+        var rect = new SKRect(0, RowTop, _canvasSize.Width, RowTop + CurrentRowHeight);
         canvas.DrawRoundRect(rect, cornerRadius, cornerRadius, _backgroundPaint);
         canvas.DrawRoundRect(rect, cornerRadius, cornerRadius, _borderPaint);
     }
@@ -214,7 +221,7 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
     {
         float s = _uiScale;
         float itemSpacing = ItemSpacing * s;
-        float barH = BarHeight * s;
+        float barH = CurrentRowHeight;
         float rectW = RectangleWidth * s;
         float rectH = RectangleHeight * s;
         float iconContainerSz = IconSize * s;
@@ -232,7 +239,7 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
 
         DrawBarBackground(canvas);
 
-        float itemY = (barH - rectH) / 2;
+        float itemY = RowTop + (barH - rectH) / 2;
         float scroll = ScrollOffset;
 
         // Zone de clip : évite que les items débordent sur le bloc temps+paramètres, les flèches ou hors de la barre
@@ -241,7 +248,7 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
         _visibleContentWidth = Math.Max(0f, clipRight - clipLeft);
 
         canvas.Save();
-        canvas.ClipRect(new SKRect(clipLeft, 0, clipRight, barH));
+        canvas.ClipRect(new SKRect(clipLeft, RowTop, clipRight, RowTop + barH));
         canvas.Translate(-scroll, 0);
 
         float currentX = ResourceStartX;
@@ -286,7 +293,7 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
 
         const float scrollbarH = 3f;
         const float scrollbarRadius = 1.5f;
-        float trackY = barH - scrollbarH - 2f;
+        float trackY = RowTop + barH - scrollbarH - 2f;
 
         var trackRect = new SKRect(clipLeft, trackY, clipRight, trackY + scrollbarH);
         canvas.DrawRoundRect(trackRect, scrollbarRadius, scrollbarRadius, _scrollTrackPaint);
@@ -305,8 +312,8 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
         float maxScroll = Math.Max(0f, _totalResourcesContentWidth - _visibleContentWidth);
         float midY = itemY + rectH / 2f;
 
-        _leftArrowRect  = new SKRect(clipLeft - arrowW, 0, clipLeft, BarHeight * _uiScale);
-        _rightArrowRect = new SKRect(clipRight, 0, clipRight + arrowW, BarHeight * _uiScale);
+        _leftArrowRect  = new SKRect(clipLeft - arrowW, RowTop, clipLeft, RowTop + CurrentRowHeight);
+        _rightArrowRect = new SKRect(clipRight, RowTop, clipRight + arrowW, RowTop + CurrentRowHeight);
 
         DrawArrowTriangle(canvas, _leftArrowRect, midY, pointingLeft: true, enabled: ScrollOffset > 0.01f);
         DrawArrowTriangle(canvas, _rightArrowRect, midY, pointingLeft: false, enabled: ScrollOffset < maxScroll - 0.01f);

@@ -3,6 +3,7 @@ using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.Localization;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Renderers.Debug;
+using SettlersOfIdlestanSkia.Services;
 using SettlersOfIdlestanSkia.Services.Localization;
 using SkiaSharp;
 
@@ -52,6 +53,7 @@ public sealed class SettingsContentPanel : IDisposable
     private SKRect _particlesToggleRect    = SKRect.Empty;
     private SKRect _militaryStatsToggleRect = SKRect.Empty;
     private SKRect _fullscreenToggleRect   = SKRect.Empty;
+    private SKRect _menuPositionToggleRect = SKRect.Empty;
     private SKRect _uiScaleSliderRect      = SKRect.Empty;
     private SKRect _debugResolutionFieldRect = SKRect.Empty;
     private SKRect _exportTransparentBgToggleRect = SKRect.Empty;
@@ -60,6 +62,7 @@ public sealed class SettingsContentPanel : IDisposable
     private bool _hoveredParticles;
     private bool _hoveredMilitaryStats;
     private bool _hoveredFullscreen;
+    private bool _hoveredMenuPosition;
     private bool _hoveredUiScaleSlider;
     private bool _hoveredExportTransparentBg;
     private bool _focusedUiScaleSlider;
@@ -67,12 +70,19 @@ public sealed class SettingsContentPanel : IDisposable
     private float? _pendingUiScaleValue;
     private bool _disposed;
 
+    private readonly UILayoutService _uiLayout;
+
     private string _debugResolutionText     = "";
     private bool   _debugResolutionFocused;
 
     public event Action<bool>? FullscreenToggleRequested;
     public event Action<float>? UiScaleChanged;
     public event Action<int, int>? DebugWindowResizeRequested;
+
+    public SettingsContentPanel(UILayoutService uiLayout)
+    {
+        _uiLayout = uiLayout;
+    }
 
     private void UpdateFonts(float s)
     {
@@ -119,45 +129,50 @@ public sealed class SettingsContentPanel : IDisposable
         _fullscreenToggleRect = DrawToggleRow(canvas, x, row4Y, rightEdge,
             localization.Get("settings_fullscreen"), settings.Fullscreen, _hoveredFullscreen, btnH, toggleW, toggleH, s);
 
-        // Row 3 — Pause after prestige
-        float row2Y = y + spacingY * 2f;
+        // Row 3 — Position du menu (tabs en haut ou en bas)
+        float rowMenuPositionY = y + spacingY * 2f;
+        _menuPositionToggleRect = DrawToggleRow(canvas, x, rowMenuPositionY, rightEdge,
+            localization.Get("settings_force_menu_position"), _uiLayout.MenuAtBottomSetting, _hoveredMenuPosition, btnH, toggleW, toggleH, s);
+
+        // Row 4 — Pause after prestige
+        float row2Y = y + spacingY * 3f;
         _pauseToggleRect = DrawToggleRow(canvas, x, row2Y, rightEdge,
             localization.Get("settings_pause_after_prestige"), settings.PauseAfterPrestige, _hoveredPause, btnH, toggleW, toggleH, s);
 
-        // Row 4 — Harvest particles
-        float row3Y = y + spacingY * 3f;
+        // Row 5 — Harvest particles
+        float row3Y = y + spacingY * 4f;
         _particlesToggleRect = DrawToggleRow(canvas, x, row3Y, rightEdge,
             localization.Get("settings_harvest_particles"), settings.ShowHarvestParticles, _hoveredParticles, btnH, toggleW, toggleH, s);
 
-        // Row 5 — Afficher les stats militaires des villes
-        float row6Y = y + spacingY * 4f;
+        // Row 6 — Afficher les stats militaires des villes
+        float row6Y = y + spacingY * 5f;
         _militaryStatsToggleRect = DrawToggleRow(canvas, x, row6Y, rightEdge,
             localization.Get("settings_show_military_stats"), settings.ShowCityMilitaryStats, _hoveredMilitaryStats, btnH, toggleW, toggleH, s);
 
-        // Row 6 — UI scale (affiche la valeur en cours de glissement si un drag est actif, sans encore l'appliquer)
-        float row5Y = y + spacingY * 5f;
+        // Row 7 — UI scale (affiche la valeur en cours de glissement si un drag est actif, sans encore l'appliquer)
+        float row5Y = y + spacingY * 6f;
         _uiScaleSliderRect = DrawSliderRow(canvas, x, row5Y, rightEdge,
             localization.Get("settings_ui_scale"), _pendingUiScaleValue ?? settings.UiScale, UiScaleMin, UiScaleMax, _hoveredUiScaleSlider, btnH, s);
 
         if (!allowDebugMode)
-            return spacingY * 5f + btnH;
+            return spacingY * 6f + btnH;
 
-        // Row 7 (debug uniquement) — Résolution de la fenêtre, appliquée à l'appui sur Entrée.
+        // Row 8 (debug uniquement) — Résolution de la fenêtre, appliquée à l'appui sur Entrée.
         // Tant que le champ n'a pas le focus, il reflète en continu la résolution actuelle de la fenêtre.
         if (!_debugResolutionFocused && currentResolution.Width > 0f && currentResolution.Height > 0f)
             _debugResolutionText = $"{(int)MathF.Round(currentResolution.Width)}x{(int)MathF.Round(currentResolution.Height)}";
 
-        float row7Y = y + spacingY * 6f;
+        float row7Y = y + spacingY * 7f;
         _debugResolutionFieldRect = DrawTextInputRow(canvas, x, row7Y, rightEdge,
             localization.Get("settings_debug_window_resolution"), _debugResolutionText, _debugResolutionFocused, btnH, s);
 
-        // Row 8 (debug uniquement) — Export PNG avec fond transparent plutôt que le fond opaque habituel.
-        float row8Y = y + spacingY * 7f;
+        // Row 9 (debug uniquement) — Export PNG avec fond transparent plutôt que le fond opaque habituel.
+        float row8Y = y + spacingY * 8f;
         _exportTransparentBgToggleRect = DrawToggleRow(canvas, x, row8Y, rightEdge,
             localization.Get("settings_debug_export_transparent_bg"), DebugSettings.ExportTransparentBackground,
             _hoveredExportTransparentBg, btnH, toggleW, toggleH, s);
 
-        return spacingY * 7f + btnH;
+        return spacingY * 8f + btnH;
     }
 
     private SKRect DrawTextInputRow(SKCanvas canvas, float rowX, float rowY, float rightEdge,
@@ -322,6 +337,16 @@ public sealed class SettingsContentPanel : IDisposable
             FullscreenToggleRequested?.Invoke(settings.Fullscreen);
             return true;
         }
+        if (!_menuPositionToggleRect.IsEmpty && _menuPositionToggleRect.Contains(pos.X, pos.Y))
+        {
+            _focusedUiScaleSlider   = false;
+            _debugResolutionFocused = false;
+            settings.ForceMenuPosition = _uiLayout.MenuAtBottomSetting ? MenuPosition.Top : MenuPosition.Bottom;
+            // Reflète le changement immédiatement : sur l'écran-titre rien d'autre ne resynchronise
+            // UILayoutService à chaque frame (contrairement à OverlayRenderer pendant une partie).
+            _uiLayout.SetMenuPosition(settings.ForceMenuPosition);
+            return true;
+        }
         if (!_uiScaleSliderRect.IsEmpty && _uiScaleSliderRect.Contains(pos.X, pos.Y))
         {
             // Démarre le drag mais ne change pas encore le réglage — appliqué au relâchement.
@@ -405,6 +430,7 @@ public sealed class SettingsContentPanel : IDisposable
         _hoveredParticles     = !_particlesToggleRect.IsEmpty  && _particlesToggleRect.Contains(pos.X, pos.Y);
         _hoveredMilitaryStats = !_militaryStatsToggleRect.IsEmpty && _militaryStatsToggleRect.Contains(pos.X, pos.Y);
         _hoveredFullscreen    = !_fullscreenToggleRect.IsEmpty && _fullscreenToggleRect.Contains(pos.X, pos.Y);
+        _hoveredMenuPosition  = !_menuPositionToggleRect.IsEmpty && _menuPositionToggleRect.Contains(pos.X, pos.Y);
         _hoveredUiScaleSlider = !_uiScaleSliderRect.IsEmpty    && _uiScaleSliderRect.Contains(pos.X, pos.Y);
         _hoveredExportTransparentBg = !_exportTransparentBgToggleRect.IsEmpty && _exportTransparentBgToggleRect.Contains(pos.X, pos.Y);
 

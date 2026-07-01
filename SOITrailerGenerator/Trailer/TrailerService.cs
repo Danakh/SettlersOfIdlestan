@@ -294,7 +294,7 @@ public sealed class TrailerService
         };
         var selectedMonumentPanelRenderer = new SelectedMonumentPanelRenderer(monumentService, inputService, localizationService, resourceManager, gameControllerService);
 
-        var settingsPopupRenderer = new SettingsPopupRenderer(gameControllerService.MainGameController, localizationService, fileSystemService);
+        var settingsPopupRenderer = new SettingsPopupRenderer(gameControllerService.MainGameController, localizationService, fileSystemService, uiLayoutService);
         var settingsMenu = new SettingsMenu(
             gameControllerService.MainGameController, inputService, localizationService,
             settingsPopupRenderer, fileSystemService, cityBuildingService,

@@ -11,4 +11,5 @@ public class GameSettings
     public bool Fullscreen { get; set; } = false;
     public bool DemoMode { get; set; } = false;
     public float UiScale { get; set; } = 1f;
+    public MenuPosition ForceMenuPosition { get; set; } = MenuPosition.Auto;
 }

@@ -42,8 +42,8 @@ public sealed class OverlayRenderer : IGameRenderer
     private SKPoint _lastPointerPosition;
     private TargetSelectionService? _targetSelectionService;
 
-    // Mobile second row (time controls + gear background)
-    private SKRect _mobileGearRect;
+    // Ligne dédiée (time controls + gear) quand ils ne sont pas inline avec la barre de ressources
+    private SKRect _wrappedGearRect;
     private readonly SKPaint _secondRowBgPaint     = new() { Color = new SKColor(0, 0, 0, 220), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _secondRowBorderPaint = new() { Color = SKColors.Gold, StrokeWidth = 1f, Style = SKPaintStyle.Stroke, IsAntialias = true };
 
@@ -147,7 +147,7 @@ public sealed class OverlayRenderer : IGameRenderer
         _mapSwitchButton.Initialize(canvasSize);
         _zoomControl.Initialize(canvasSize, _uiLayout.UiScale);
 
-        _playerResourcesOverlayRenderer.ShowGearInBar = !_uiLayout.TimeSettingsOnSecondRow;
+        _playerResourcesOverlayRenderer.ShowGearInBar = !_uiLayout.TimeSettingsOnSecondRow && !_uiLayout.ResourcesOnOwnRow;
 
         float scale = _uiLayout.UiScale;
         _timeControlRenderer.Initialize(canvasSize, _uiLayout.GearX - 8f * scale, _uiLayout.TimeControlRowTop, scale);
@@ -156,6 +156,9 @@ public sealed class OverlayRenderer : IGameRenderer
     public void Render(SKCanvas canvas, GameRenderContext context)
     {
         if (_disposed || !_isVisible) return;
+
+        if (context.GameState is MainGameState mgs)
+            _uiLayout.SetMenuPosition(mgs.Settings.ForceMenuPosition);
 
         _tabBar.Update(context);
         _playerResourcesOverlayRenderer.ResourceStartX = _tabBar.ResourceStartX;
@@ -180,10 +183,18 @@ public sealed class OverlayRenderer : IGameRenderer
                 _playerCivPanel.Collapse();
         }
 
-        _playerResourcesOverlayRenderer.RightReservedWidth = _uiLayout.TimeSettingsOnSecondRow
+        bool gearInline = !_uiLayout.TimeSettingsOnSecondRow && !_uiLayout.ResourcesOnOwnRow;
+        _playerResourcesOverlayRenderer.ShowGearInBar = gearInline;
+        _playerResourcesOverlayRenderer.RowTop = _uiLayout.ResourcesRowTop;
+        _playerResourcesOverlayRenderer.RightReservedWidth = (_uiLayout.TimeSettingsOnSecondRow || _uiLayout.ResourcesOnOwnRow)
             ? UILayoutService.BarPadding * _uiLayout.UiScale
             : _uiLayout.TimeSettingsBlockWidth;
         _playerResourcesOverlayRenderer.ShowScrollArrows = _uiLayout.ResourcesOverflow;
+
+        // Menu en haut, ressources en débordement : la barre de ressources a migré sur sa propre ligne,
+        // il faut donc fournir un fond pour la ligne du haut qui ne contient plus que les tabs (et le gear/temps).
+        if (_uiLayout.ResourcesOnOwnRow)
+            DrawRowBackground(canvas, 0f);
 
         _playerResourcesOverlayRenderer.Render(canvas, context);
         _uiLayout.SetResourcesContentWidth(_playerResourcesOverlayRenderer.TotalResourcesContentWidth);
@@ -224,15 +235,15 @@ public sealed class OverlayRenderer : IGameRenderer
         _tabBar.Render(canvas);
 
         if (_uiLayout.TimeSettingsOnSecondRow)
-            DrawMobileSecondRowBackground(canvas);
+            DrawRowBackground(canvas, _uiLayout.TimeControlRowTop);
 
         float timeControlScale = _uiLayout.UiScale;
         _timeControlRenderer.Initialize(_canvasSize, _uiLayout.GearX - 8f * timeControlScale, _uiLayout.TimeControlRowTop, timeControlScale);
         _timeControlRenderer.Render(canvas, context);
 
         float gearX = _uiLayout.GearX;
-        if (_uiLayout.TimeSettingsOnSecondRow)
-            DrawMobileGearIcon(canvas, gearX);
+        if (!gearInline)
+            DrawWrappedGearIcon(canvas, gearX, _uiLayout.TimeControlRowTop);
         _settingsMenu.Draw(canvas, gearX, _uiLayout.SecondRowBottom);
 
         _tradeRenderer.Render(canvas, _uiLayout.UiScale);
@@ -250,25 +261,28 @@ public sealed class OverlayRenderer : IGameRenderer
         CheckResourceBarTooltip();
     }
 
-    private void DrawMobileSecondRowBackground(SKCanvas canvas)
+    /// Fond générique pour toute ligne ne bénéficiant pas déjà du fond dessiné par la barre de ressources :
+    /// la ligne du haut (rowTop=0) quand les ressources en ont été reléguées ailleurs, ou une ligne secondaire
+    /// dédiée au bloc temps+paramètres (rowTop&gt;0, plus basse que la barre principale).
+    private void DrawRowBackground(SKCanvas canvas, float rowTop)
     {
-        float scale  = _uiLayout.UiScale;
-        float rowTop = _uiLayout.ResourceBarBottom;
-        float rowH   = UILayoutService.SecondRowHeight * scale;
-        float cr     = 4 * scale;
-        var rowRect  = new SKRect(0, rowTop, _canvasSize.Width, rowTop + rowH);
+        float scale = _uiLayout.UiScale;
+        float rowH  = (rowTop > 0f ? UILayoutService.SecondRowHeight : UILayoutService.TopBarHeight) * scale;
+        float cr    = 4 * scale;
+        var rowRect = new SKRect(0, rowTop, _canvasSize.Width, rowTop + rowH);
         canvas.DrawRoundRect(rowRect, cr, cr, _secondRowBgPaint);
         canvas.DrawRoundRect(rowRect, cr, cr, _secondRowBorderPaint);
     }
 
-    private void DrawMobileGearIcon(SKCanvas canvas, float gearX)
+    /// Dessine le gear seul quand il n'est pas inline dans la barre de ressources (voir DrawRowBackground pour
+    /// le fond de sa ligne).
+    private void DrawWrappedGearIcon(SKCanvas canvas, float gearX, float rowTop)
     {
         float scale    = _uiLayout.UiScale;
-        float rowTop   = _uiLayout.ResourceBarBottom;
-        float rowH     = UILayoutService.SecondRowHeight * scale;
+        float rowH     = (rowTop > 0f ? UILayoutService.SecondRowHeight : UILayoutService.TopBarHeight) * scale;
         float iconSize = UILayoutService.GearIconSize * scale;
         float gearY    = rowTop + (rowH - iconSize) / 2f;
-        _mobileGearRect = new SKRect(gearX, gearY, gearX + iconSize, gearY + iconSize);
+        _wrappedGearRect = new SKRect(gearX, gearY, gearX + iconSize, gearY + iconSize);
         _playerResourcesOverlayRenderer.DrawGearAt(canvas, gearX, gearY, iconSize);
     }
 
@@ -365,7 +379,8 @@ public sealed class OverlayRenderer : IGameRenderer
         if (_tradeRenderer.HandlePointerPressed(e.Position, e.Button))         return;
         if (e.Button != PointerButton.Left) return;
 
-        var gearRect = _uiLayout.TimeSettingsOnSecondRow ? _mobileGearRect : _playerResourcesOverlayRenderer.GearRect;
+        bool gearInline = !_uiLayout.TimeSettingsOnSecondRow && !_uiLayout.ResourcesOnOwnRow;
+        var gearRect = gearInline ? _playerResourcesOverlayRenderer.GearRect : _wrappedGearRect;
         if (gearRect != default && gearRect.Contains(e.Position.X, e.Position.Y))
         {
             _settingsMenu.HandleGearClick();

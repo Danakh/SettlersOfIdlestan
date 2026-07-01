@@ -109,13 +109,14 @@ public sealed class TitleScreen : IDisposable
         _settings          = settings ?? new GameSettings();
         _allowDebugMode    = allowDebugMode;
         _storeController   = storeController;
-        _settingsPanel     = new SettingsContentPanel();
+        _settingsPanel     = new SettingsContentPanel(_uiLayoutService);
         _settingsPanel.FullscreenToggleRequested += v => FullscreenToggleRequested?.Invoke(v);
         _settingsPanel.DebugWindowResizeRequested += (w, h) => DebugWindowResizeRequested?.Invoke(w, h);
         _settingsPanel.UiScaleChanged += v => _uiLayoutService.ManualUiScaleMultiplier =
             Math.Clamp(v, SettingsContentPanel.UiScaleMin, SettingsContentPanel.UiScaleMax);
         _uiLayoutService.ManualUiScaleMultiplier =
             Math.Clamp(_settings.UiScale, SettingsContentPanel.UiScaleMin, SettingsContentPanel.UiScaleMax);
+        _uiLayoutService.SetMenuPosition(_settings.ForceMenuPosition);
         _discordSvg        = resourceManager.LoadImage("Resources.icons.links.DiscordLink.svg");
 
         _hardResetPopup = new HardResetPopupRenderer(

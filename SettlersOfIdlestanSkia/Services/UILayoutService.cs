@@ -1,4 +1,5 @@
 using SkiaSharp;
+using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestanSkia.Renderers.Overlay;
 
 namespace SettlersOfIdlestanSkia.Services;
@@ -6,6 +7,7 @@ namespace SettlersOfIdlestanSkia.Services;
 public class UILayoutService
 {
     private bool _forceMobile;
+    private MenuPosition _menuPosition = MenuPosition.Auto;
     private SKSize _canvasSize;
     private float _tabsInlineWidth;
     private float _resourcesContentWidth;
@@ -46,36 +48,68 @@ public class UILayoutService
     public void SetForceMobile(bool forceMobile) => _forceMobile = forceMobile;
     public bool IsForcedMobile => _forceMobile;
 
+    /// Réglage utilisateur (Auto/Top/Bottom) piloté par GameSettings.ForceMenuPosition, poussé chaque frame.
+    public void SetMenuPosition(MenuPosition position) => _menuPosition = position;
+
     /// Largeur déjà mise à l'échelle du bloc temps+paramètres (banque, boutons, engrenage) tel qu'affiché inline.
     public float TimeSettingsBlockWidth => (BarPadding + GearIconSize + TimeControlRenderer.RequiredWidth) * UiScale;
 
-    /// Règle 4 : le bloc temps+paramètres passe sur sa propre ligne dès que l'écran est trop étroit pour 3x sa largeur.
-    public bool TimeSettingsOnSecondRow =>
-        IsCompactOverride || (_canvasSize.Width > 0 && _canvasSize.Width < 3f * TimeSettingsBlockWidth);
-
-    /// Règle 1 : les tabs basculent en bas dès que la somme des 3 largeurs déborde l'écran.
-    public bool TabsAtBottom
+    /// Position effective des tabs : pilotée par le réglage utilisateur (Auto se rabat sur la détection mobile),
+    /// le mode debug/trailer forçant toujours le bas quel que soit le réglage choisi.
+    public bool TabsAtBottom => _forceMobile || _menuPosition switch
     {
-        get
-        {
-            if (IsCompactOverride) return true;
-            if (_canvasSize.Width <= 0) return false;
-            float timeSettingsW = TimeSettingsOnSecondRow ? 0f : TimeSettingsBlockWidth;
-            return _tabsInlineWidth + _resourcesContentWidth + timeSettingsW > _canvasSize.Width;
-        }
-    }
+        MenuPosition.Bottom => true,
+        MenuPosition.Top    => false,
+        _                   => IsAutoMobile,
+    };
 
-    /// Règle 2 : le drag + les flèches de pagination des ressources s'activent dès qu'elles ne tiennent plus dans l'espace restant.
+    /// Valeur à afficher/éditer dans l'écran de réglages : le réglage utilisateur résolu (Auto se rabat sur la
+    /// détection mobile), sans tenir compte du mode debug/trailer qui ne doit pas polluer l'affichage.
+    public bool MenuAtBottomSetting => _menuPosition switch
+    {
+        MenuPosition.Bottom => true,
+        MenuPosition.Top    => false,
+        _                   => IsAutoMobile,
+    };
+
+    /// Menu en haut uniquement : les ressources débordent de la ligne du haut (tabs + ressources + temps) et
+    /// basculent sur leur propre ligne, sous les tabs.
+    public bool ResourcesOnOwnRow =>
+        !TabsAtBottom && _canvasSize.Width > 0 &&
+        _tabsInlineWidth + _resourcesContentWidth + TimeSettingsBlockWidth > _canvasSize.Width;
+
+    /// Le bloc temps+paramètres a besoin de sa propre ligne dédiée :
+    ///  - Menu en bas : heuristique de largeur inchangée (règle historique, tabs déjà hors de cette ligne).
+    ///  - Menu en haut : seulement une fois les ressources déjà reléguées sur leur propre ligne, si tabs+temps
+    ///    ne tiennent toujours pas ensemble (3e ligne).
+    public bool TimeSettingsOnSecondRow => TabsAtBottom
+        ? (IsCompactOverride || (_canvasSize.Width > 0 && _canvasSize.Width < 3f * TimeSettingsBlockWidth))
+        : (ResourcesOnOwnRow && _canvasSize.Width > 0 && _tabsInlineWidth + TimeSettingsBlockWidth > _canvasSize.Width);
+
+    /// Drag + flèches de pagination des ressources (menu en bas : dans la barre principale ; menu en haut :
+    /// sur leur ligne dédiée si elle ne suffit toujours pas). Le menu en haut ne les fait jamais défiler ailleurs :
+    /// il les relègue sur leur propre ligne à la place (voir ResourcesOnOwnRow).
     public bool ResourcesOverflow
     {
         get
         {
-            if (IsCompactOverride) return true;
             if (_canvasSize.Width <= 0) return false;
-            float tabsW = TabsAtBottom ? 0f : _tabsInlineWidth;
-            float timeSettingsW = TimeSettingsOnSecondRow ? 0f : TimeSettingsBlockWidth;
-            float available = _canvasSize.Width - tabsW - timeSettingsW - BarPadding * UiScale;
-            return _resourcesContentWidth > available;
+
+            if (TabsAtBottom)
+            {
+                if (IsCompactOverride) return true;
+                float timeSettingsW = TimeSettingsOnSecondRow ? 0f : TimeSettingsBlockWidth;
+                float available = _canvasSize.Width - timeSettingsW - BarPadding * UiScale;
+                return _resourcesContentWidth > available;
+            }
+
+            if (ResourcesOnOwnRow)
+            {
+                float available = _canvasSize.Width - 2f * BarPadding * UiScale;
+                return _resourcesContentWidth > available;
+            }
+
+            return false;
         }
     }
 
@@ -84,14 +118,24 @@ public class UILayoutService
     /// Bottom Y of the main resource bar (always TopBarHeight * UiScale).
     public float ResourceBarBottom => TopBarHeight * UiScale;
 
-    /// Bottom Y of the second control row: includes SecondRowHeight when the time+settings block wraps, equals ResourceBarBottom otherwise.
-    public float SecondRowBottom => TimeSettingsOnSecondRow ? (TopBarHeight + SecondRowHeight) * UiScale : ResourceBarBottom;
+    /// Nombre de lignes supplémentaires sous la barre principale (ressources et/ou temps+paramètres relégués).
+    private int ExtraRowCount => (ResourcesOnOwnRow ? 1 : 0) + (TimeSettingsOnSecondRow ? 1 : 0);
 
-    /// Top Y where side panels should start (accounts for the second row when present, adds 10px gap otherwise).
-    public float PanelTopY => TimeSettingsOnSecondRow ? SecondRowBottom : ResourceBarBottom + 10f * UiScale;
+    /// Bottom Y of the last wrapped row, or ResourceBarBottom when nothing wraps.
+    public float SecondRowBottom => ResourceBarBottom + ExtraRowCount * SecondRowHeight * UiScale;
 
-    /// Top Y of the row that hosts the time controls (second row when it wraps, inside top bar otherwise).
-    public float TimeControlRowTop => TimeSettingsOnSecondRow ? ResourceBarBottom : 0f;
+    /// Top Y where side panels should start (accounts for any wrapped row when present, adds 10px gap otherwise).
+    public float PanelTopY => ExtraRowCount > 0 ? SecondRowBottom : ResourceBarBottom + 10f * UiScale;
+
+    /// Top Y of the row that hosts the resource bar : 0 when inline in the top bar, ResourceBarBottom when it has
+    /// wrapped to its own row (Top menu only, see ResourcesOnOwnRow).
+    public float ResourcesRowTop => ResourcesOnOwnRow ? ResourceBarBottom : 0f;
+
+    /// Top Y of the row that hosts the time controls : inline (0) unless it needs its own row, in which case it
+    /// sits right after any row already claimed by the resources bar.
+    public float TimeControlRowTop => TimeSettingsOnSecondRow
+        ? ResourceBarBottom + (ResourcesOnOwnRow ? SecondRowHeight * UiScale : 0f)
+        : 0f;
 
     /// X position of the gear icon, flush against the right edge of the canvas.
     public float GearX => _canvasSize.Width - BarPadding * UiScale - GearIconSize * UiScale;

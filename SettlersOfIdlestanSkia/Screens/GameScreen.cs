@@ -143,6 +143,7 @@ public sealed class GameScreen : IDisposable
                 gs.Settings.DemoMode = demoMode;
                 gs.IsDemoSave = demoMode;
                 ApplyManualUiScale(gs.Settings.UiScale);
+                _uiLayoutService.SetMenuPosition(gs.Settings.ForceMenuPosition);
             }
 
             SetupRenderers(isNewGame, allowDebugMode);
@@ -267,7 +268,7 @@ public sealed class GameScreen : IDisposable
 
         var selectedMonumentPanelRenderer = new SelectedMonumentPanelRenderer(_monumentService, _inputService, _localizationService, _resourceManager, _gameControllerService);
 
-        var settingsPopupRenderer = new SettingsPopupRenderer(_gameControllerService.MainGameController, _localizationService, _fileSystemService, allowDebugMode);
+        var settingsPopupRenderer = new SettingsPopupRenderer(_gameControllerService.MainGameController, _localizationService, _fileSystemService, _uiLayoutService, allowDebugMode);
         settingsPopupRenderer.FullscreenToggleRequested  += v => FullscreenToggleRequested?.Invoke(v);
         settingsPopupRenderer.UiScaleChanged             += ApplyManualUiScale;
         settingsPopupRenderer.DebugWindowResizeRequested += (w, h) => DebugWindowResizeRequested?.Invoke(w, h);
