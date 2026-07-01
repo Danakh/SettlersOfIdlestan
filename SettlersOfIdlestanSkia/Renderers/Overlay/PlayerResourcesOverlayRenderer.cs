@@ -240,12 +240,18 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
         DrawBarBackground(canvas);
 
         float itemY = RowTop + (barH - rectH) / 2;
-        float scroll = ScrollOffset;
 
         // Zone de clip : évite que les items débordent sur le bloc temps+paramètres, les flèches ou hors de la barre
         float clipLeft  = ResourceStartX + (showArrows ? arrowW : 0f);
         float clipRight = _canvasSize.Width - RightReservedWidth - (showArrows ? arrowW : 0f);
         _visibleContentWidth = Math.Max(0f, clipRight - clipLeft);
+
+        // Recale le défilement dans les bornes actuelles : si la fenêtre a été agrandie (ou si les flèches ont
+        // disparu) après un défilement, l'ancien décalage doit être ramené à zéro, sinon les premières ressources
+        // restent cachées derrière les tabs/le gear sans plus aucun moyen de les faire réapparaître.
+        float maxScroll = Math.Max(0f, _totalResourcesContentWidth - _visibleContentWidth);
+        ScrollOffset = Math.Clamp(ScrollOffset, 0f, maxScroll);
+        float scroll = ScrollOffset;
 
         canvas.Save();
         canvas.ClipRect(new SKRect(clipLeft, RowTop, clipRight, RowTop + barH));
