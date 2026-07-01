@@ -66,6 +66,7 @@
         await JS.InvokeVoidAsync("gameInterop.registerVisibilityHandler", _dotNetRef);
         await JS.InvokeVoidAsync("gameInterop.registerTouchHandler", _dotNetRef);
         await JS.InvokeVoidAsync("gameInterop.registerFullscreenHandler", _dotNetRef);
+        await JS.InvokeVoidAsync("gameInterop.registerDprChangeHandler", _dotNetRef);
 
         double physPxPerCm = await JS.InvokeAsync<double>("gameInterop.getPhysicalPixelsPerCm");
         _runtime.SetUiScale(Math.Clamp((float)(physPxPerCm / 37.8), 1f, 4f));
@@ -158,6 +159,13 @@
     public void OnPageVisible(double hiddenSeconds) => _runtime?.NotifyPageVisible(hiddenSeconds);
 
     [JSInvokable]
+    public void OnDevicePixelRatioChanged(double dpr, double physPxPerCm)
+    {
+        _dpr = (float)dpr;
+        _runtime?.SetUiScale(Math.Clamp((float)(physPxPerCm / 37.8), 1f, 4f));
+    }
+
+    [JSInvokable]
     public async Task OnFullscreenChanged(bool isFullscreen)
     {
         if (_runtime != null)
@@ -190,6 +198,7 @@
         await JS.InvokeVoidAsync("gameInterop.unregisterVisibilityHandler");
         await JS.InvokeVoidAsync("gameInterop.unregisterTouchHandler");
         await JS.InvokeVoidAsync("gameInterop.unregisterFullscreenHandler");
+        await JS.InvokeVoidAsync("gameInterop.unregisterDprChangeHandler");
 
         _dotNetRef?.Dispose();
         _dotNetRef = null;

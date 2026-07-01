@@ -103,6 +103,36 @@ window.gameInterop = {
         console.error('[SOI]', message);
     },
 
+    _dprMediaQuery: null,
+    _dprHandler: null,
+
+    // devicePixelRatio ne déclenche ni 'resize' ni aucun événement natif :
+    // on utilise le "matchMedia re-arm trick" pour détecter les changements
+    // (ex: fenêtre déplacée vers un écran avec un DPI différent).
+    registerDprChangeHandler: function (dotNetRef) {
+        const listen = () => {
+            const dpr = window.devicePixelRatio || 1;
+            const mq = matchMedia(`(resolution: ${dpr}dppx)`);
+            const onChange = () => {
+                mq.removeEventListener('change', onChange);
+                dotNetRef.invokeMethodAsync('OnDevicePixelRatioChanged', window.devicePixelRatio || 1, this.getPhysicalPixelsPerCm());
+                listen();
+            };
+            mq.addEventListener('change', onChange);
+            this._dprMediaQuery = mq;
+            this._dprHandler = onChange;
+        };
+        listen();
+    },
+
+    unregisterDprChangeHandler: function () {
+        if (this._dprMediaQuery && this._dprHandler) {
+            this._dprMediaQuery.removeEventListener('change', this._dprHandler);
+        }
+        this._dprMediaQuery = null;
+        this._dprHandler = null;
+    },
+
     _touchState: null,
 
     registerTouchHandler: function (dotNetRef) {
