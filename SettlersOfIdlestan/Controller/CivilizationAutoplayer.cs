@@ -675,6 +675,18 @@ namespace SettlersOfIdlestan.Controller
             var target = FindUnexploredVertexNear(networkVertices, visibleHexes, map);
             if (target == null) return false;
 
+            var edge = FindApproachEdge(networkVertices, target);
+            if (edge == null) return false;
+
+            return TryBuildRoadOnce(edge, withGrind: true);
+        }
+
+        /// <summary>
+        /// Returns the road edge that would be built to extend the network toward <paramref name="target"/>:
+        /// the first step of the shortest vertex path from whichever network vertex is closest to it.
+        /// </summary>
+        private Edge? FindApproachEdge(HashSet<Vertex> networkVertices, Vertex target)
+        {
             Vertex? from = null;
             int bestDist = int.MaxValue;
             foreach (var nv in networkVertices)
@@ -682,15 +694,15 @@ namespace SettlersOfIdlestan.Controller
                 int d = nv.EdgeDistanceTo(target);
                 if (d < bestDist) { bestDist = d; from = nv; }
             }
-            if (from == null) return false;
+            if (from == null) return null;
 
             var path = HexGridPathfinder.FindVertexPath(from, target);
-            if (path.Count < 2) return false;
+            if (path.Count < 2) return null;
 
             var shared = path[0].GetHexes().Intersect(path[1].GetHexes()).ToArray();
-            if (shared.Length != 2) return false;
+            if (shared.Length != 2) return null;
 
-            return TryBuildRoadOnce(Edge.Create(shared[0], shared[1]), withGrind: true);
+            return Edge.Create(shared[0], shared[1]);
         }
 
         private HashSet<Vertex> GetSurfaceNetworkVertices()
@@ -704,9 +716,18 @@ namespace SettlersOfIdlestan.Controller
             return network;
         }
 
-        private static Vertex? FindUnexploredVertexNear(
+        private Vertex? FindUnexploredVertexNear(
             HashSet<Vertex> networkVertices, HashSet<HexCoord> visibleHexes, IslandMap map)
         {
+            var buildableEdges = new HashSet<Edge>(
+                _roadController.GetBuildableRoads(_civ.Index).Select(r => r.Position));
+
+            bool IsReachable(Vertex v)
+            {
+                var edge = FindApproachEdge(networkVertices, v);
+                return edge != null && buildableEdges.Contains(edge);
+            }
+
             var d1 = new HashSet<Vertex>();
             foreach (var nv in networkVertices)
                 foreach (var adj in nv.GetAdjacentVertices())
@@ -714,13 +735,13 @@ namespace SettlersOfIdlestan.Controller
                         d1.Add(adj);
 
             var target = d1.FirstOrDefault(v =>
-                v.GetHexes().Any(h => map.GetTile(h) != null && !visibleHexes.Contains(h)));
+                v.GetHexes().Any(h => map.GetTile(h) != null && !visibleHexes.Contains(h)) && IsReachable(v));
             if (target != null) return target;
 
             foreach (var v1 in d1)
                 foreach (var adj in v1.GetAdjacentVertices())
                     if (!networkVertices.Contains(adj) && !d1.Contains(adj))
-                        if (adj.GetHexes().Any(h => map.GetTile(h) != null && !visibleHexes.Contains(h)))
+                        if (adj.GetHexes().Any(h => map.GetTile(h) != null && !visibleHexes.Contains(h)) && IsReachable(adj))
                             return adj;
 
             return null;
