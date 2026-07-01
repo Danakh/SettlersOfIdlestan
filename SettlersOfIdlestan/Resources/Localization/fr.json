@@ -170,6 +170,7 @@
   "tooltip_requires_forge_level4": "⚠ Nécessite une Forge niveau 4 dans cette ville",
   "tooltip_requires_military_academy": "⚠ Nécessite une Académie militaire dans cette ville",
   "tooltip_requires_fairy_circle": "⚠ Doit être construite à côté d'un Cercle de Fées découvert",
+  "tooltip_requires_adjacent_city": "⚠ Nécessite une ville à côté du Monument pour investir",
   "building_militaryacademy_name": "Académie militaire",
   "building_militaryacademy_desc": "Augmente la capacité de soldats de +5 par niveau et la vitesse de production de soldats de +25% par niveau.",
   "militaryacademy_stats": "+{0} soldats max / +{1}% prod. troupes",

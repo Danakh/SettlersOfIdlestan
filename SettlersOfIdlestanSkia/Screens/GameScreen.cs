@@ -60,6 +60,7 @@ public sealed class GameScreen : IDisposable
     private bool _prestigeTransitionPending;
     private bool _demoReplayPending;
     private bool _corruptedPrestigePending;
+    private int _speedBeforeTargetSelection = 1;
 
     private bool _isDisposed;
     private bool _isCanvasInitialized;
@@ -904,21 +905,32 @@ public sealed class GameScreen : IDisposable
 
     private void OnTargetSelectionEntered(object? sender, EventArgs e)
     {
-        _gameControllerService.CurrentGameState?.Clock?.Pause();
+        var clock = _gameControllerService.CurrentGameState?.Clock;
+        _speedBeforeTargetSelection = clock?.SpeedMultiplier ?? 1;
+        clock?.Pause();
         _overlayRenderer?.SwitchToIslandTab();
         _overlayRenderer?.Hide();
     }
 
     private void OnTargetSelectionConfirmed(object? sender, EventArgs e)
     {
-        _gameControllerService.CurrentGameState?.Clock?.Resume();
+        RestoreSpeedAfterTargetSelection();
         _overlayRenderer?.Show(suppressNextPress: true);
     }
 
     private void OnTargetSelectionCancelled(object? sender, EventArgs e)
     {
-        _gameControllerService.CurrentGameState?.Clock?.Resume();
+        RestoreSpeedAfterTargetSelection();
         _overlayRenderer?.Show(suppressNextPress: true);
+    }
+
+    private void RestoreSpeedAfterTargetSelection()
+    {
+        var clock = _gameControllerService.CurrentGameState?.Clock;
+        if (clock == null) return;
+        if (_speedBeforeTargetSelection > 1) clock.SetFast();
+        else if (_speedBeforeTargetSelection == 0) clock.Pause();
+        else clock.Resume();
     }
 
     private void RequestPrestige(bool corrupted)

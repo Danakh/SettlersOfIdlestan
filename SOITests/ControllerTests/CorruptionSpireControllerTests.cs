@@ -37,6 +37,12 @@ namespace SOITests.ControllerTests
             state.AddLayer(LayerState.UnderworldZ, new LayerState(new IslandMap(tiles, LayerState.UnderworldZ)));
             state.AddFeature(new Corruption(UnderworldHex));
 
+            // Un avant-poste de l'Inframonde touchant UnderworldHex : requis pour investir
+            // (l'investissement d'un Monument n'est possible que ville adjacente).
+            var vertex = Vertex.Create(UnderworldHex, UnderworldHex.Neighbor(HexDirection.E), UnderworldHex.Neighbor(HexDirection.NE));
+            var outpost = new City(vertex) { CivilizationIndex = state.PlayerCivilization.Index };
+            state.PlayerCivilization.AddCity(outpost);
+
             var clock = new GameClock();
             clock.Start();
 

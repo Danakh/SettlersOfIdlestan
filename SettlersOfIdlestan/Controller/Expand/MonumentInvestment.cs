@@ -1,4 +1,5 @@
 using SettlersOfIdlestan.Model.Civilization;
+using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.IslandMap;
 using System;
@@ -25,6 +26,7 @@ namespace SettlersOfIdlestan.Controller.Expand
         public static bool ProcessTick(Monument monument, ResourceSet cost, Civilization playerCiv, long now)
         {
             if (now - monument.LastInvestmentTick < IntervalTicks) return false;
+            if (!HasAdjacentCity(monument.Position, playerCiv)) return false;
             monument.LastInvestmentTick = now;
 
             var toDeselect = new List<Resource>();
@@ -58,5 +60,12 @@ namespace SettlersOfIdlestan.Controller.Expand
 
             return cost.Keys.All(r => (monument.InvestedResources.TryGetValue(r, out var inv) ? inv : 0) >= cost[r]);
         }
+
+        /// <summary>
+        /// True si au moins une ville du joueur touche l'hex donné — condition requise pour
+        /// investir dans un Monument (Merveille, Mine Profonde, Spire de Corruption, Faille…).
+        /// </summary>
+        public static bool HasAdjacentCity(HexCoord position, Civilization playerCiv)
+            => playerCiv.Cities.Any(city => city.Position.GetHexes().Any(h => h.Equals(position)));
     }
 }

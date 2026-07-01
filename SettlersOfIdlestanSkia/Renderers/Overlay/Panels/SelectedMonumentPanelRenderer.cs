@@ -1,3 +1,4 @@
+using SettlersOfIdlestan.Controller.Expand;
 using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.IslandMap;
@@ -26,6 +27,7 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
     private SKPaint? _closePaint;
     private SKPaint? _corruptedAvailablePaint;
     private SKPaint? _evolveButtonPaint;
+    private SKPaint? _warningPaint;
 
     private const float PanelWidth = 280;
     private const float RowHeight = 50;
@@ -67,6 +69,7 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
         _closePaint   = new SKPaint { Color = new SKColor(200, 80, 80, 220),   Style = SKPaintStyle.Fill, IsAntialias = true };
         _corruptedAvailablePaint = new SKPaint { Color = new SKColor(190, 110, 230, 230), IsAntialias = true };
         _evolveButtonPaint = new SKPaint { Color = new SKColor(125, 63, 209, 230), Style = SKPaintStyle.Fill, IsAntialias = true };
+        _warningPaint = new SKPaint { Color = new SKColor(220, 90, 90, 230), IsAntialias = true };
 
         foreach (Resource resource in Enum.GetValues(typeof(Resource)))
         {
@@ -119,8 +122,10 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
         bool showCorruptedPrestigeAvailable = monument is CorruptionSpire { Built: true };
         bool showEvolveButton = monument is CorruptionSpire { Built: true }
             && _gameControllerService.MainGameController.AbyssGateController.IsAbyssGateEligible();
+        bool showNoCityWarning = !MonumentInvestment.HasAdjacentCity(monument.Position, playerCiv);
         float footerHeight = (showCorruptedPrestigeAvailable ? FooterHeight * s : 0f)
-            + (showEvolveButton ? EvolveButtonHeight * s : 0f);
+            + (showEvolveButton ? EvolveButtonHeight * s : 0f)
+            + (showNoCityWarning ? FooterHeight * s : 0f);
 
         float maxPanelHeight = Math.Max(0, CanvasSize.Height - panelY - 20 * s);
         int visibleResourceCount = Math.Min(resourceCount, Math.Max(0, (int)((maxPanelHeight - titleHeight - padding - footerHeight) / rowHeight)));
@@ -207,6 +212,16 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
                 canvas.DrawRoundRect(barX, barY, fillWidth, barH, 3 * s, 3 * s, _barFillPaint);
 
             y += rowHeight;
+        }
+
+        if (showNoCityWarning)
+        {
+            float rowH = FooterHeight * s;
+            SkiaTextUtils.DrawText(canvas,
+                _localization.Get("tooltip_requires_adjacent_city"),
+                panelX + panelWidth / 2f, y + rowH / 2f + 5 * s,
+                SKTextAlign.Center, Font12, _warningPaint);
+            y += rowH;
         }
 
         if (showCorruptedPrestigeAvailable)
@@ -298,6 +313,7 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
         _closePaint?.Dispose();
         _corruptedAvailablePaint?.Dispose();
         _evolveButtonPaint?.Dispose();
+        _warningPaint?.Dispose();
         base.Dispose();
     }
 }

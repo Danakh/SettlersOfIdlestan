@@ -110,6 +110,7 @@ namespace SOITests.ControllerTests
         public void Investment_ConsumesResourceAndInvests()
         {
             var (state, clock, controller) = CreateSetup();
+            AddMountainCity(state);
             var civ = state.PlayerCivilization;
             var mine = controller.PlaceDeepestMine(MountainHex)!;
 
@@ -127,6 +128,7 @@ namespace SOITests.ControllerTests
         public void Investment_CompletingAllResources_DigsAndOpensUnderworld()
         {
             var (state, clock, controller) = CreateSetup();
+            AddMountainCity(state);
             var mine = controller.PlaceDeepestMine(MountainHex)!;
             int citiesBefore = state.PlayerCivilization.Cities.Count;
 
@@ -164,6 +166,7 @@ namespace SOITests.ControllerTests
 
         private static DeepestMine DigMineAndOpenUnderworld(WorldState state, GameClock clock, DeepestMineController controller)
         {
+            AddMountainCity(state);
             var mine = controller.PlaceDeepestMine(MountainHex)!;
             var cost = DeepestMine.GetDigCost();
             foreach (var kvp in cost)
