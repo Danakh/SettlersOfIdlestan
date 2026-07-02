@@ -212,6 +212,7 @@ public sealed class TradePopupRenderer : PopupRendererBase
         int buyCount = ResourceUtils.BasicResources.Count(r => tc.CanTradeResource(civ, r))
             + Enum.GetValues<Resource>()
                 .Where(r => !ResourceUtils.BasicResources.Contains(r) && r != Resource.Gold)
+                .Where(r => !ResourceUtils.ConsumableResources.Contains(r))
                 .Where(r => !ResourceUtils.AdvancedResources.Contains(r)
                             || (prestigeState?.IsResourceDiscovered(r, map) ?? false))
                 .Count(r => tc.CanTradeResource(civ, r));
@@ -388,6 +389,7 @@ public sealed class TradePopupRenderer : PopupRendererBase
         var buyable = ResourceUtils.BasicResources
             .Concat(Enum.GetValues<Resource>()
                 .Where(r => !ResourceUtils.BasicResources.Contains(r) && r != Resource.Gold)
+                .Where(r => !ResourceUtils.ConsumableResources.Contains(r))
                 .Where(r => !ResourceUtils.AdvancedResources.Contains(r)
                             || (prestigeState?.IsResourceDiscovered(r, map) ?? false)))
             .Where(r => tc.CanTradeResource(civ, r))
