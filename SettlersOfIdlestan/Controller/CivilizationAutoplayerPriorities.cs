@@ -78,27 +78,26 @@ namespace SettlersOfIdlestan.Controller
             return Make(objectives);
         }
 
-        /// <summary>Palissade et Caserne dans toutes les villes.</summary>
-        public static PriorityAutoplayStrategy Military(CivilizationAutoplayer auto, BuildingController bc)
-            => Make(new[] { BObj(auto, bc, MilitaryBuildings, 1) });
-
         // ── Présets de scénario de test ──────────────────────────────────────────
 
         /// <summary>
         /// Stratégie unifiée : une seule liste de priorités couvrant tous les cas de figure.
         /// Production de base (Step 1) dans toutes les villes, Palissade si un bandit est repéré,
-        /// Caserne si monstres ou civilisations NPC ennemies présentes, Step 2 (Entrepôt → TH2 →
-        /// Forge/Bibliothèque → TH3 → Mine) à partir de <paramref name="step2AtCities"/> villes,
-        /// Temple (Step 3) à partir de <paramref name="step3AtCities"/> villes. Expansion jusqu'à
-        /// <paramref name="expansionTarget"/> villes pour accumuler les points de prestige, puis
-        /// Port Impérial pour débloquer le prestige, puis expansion illimitée.
+        /// Caserne si monstres ou civilisations NPC ennemies présentes, attaque des voisins à partir
+        /// de <paramref name="attackNeighborsAtCities"/> villes (désactivé par défaut), Step 2
+        /// (Entrepôt → TH2 → Forge/Bibliothèque → TH3 → Mine) à partir de
+        /// <paramref name="step2AtCities"/> villes, Temple (Step 3) à partir de
+        /// <paramref name="step3AtCities"/> villes. Expansion jusqu'à <paramref name="expansionTarget"/>
+        /// villes pour accumuler les points de prestige, puis Port Impérial pour débloquer le prestige,
+        /// puis expansion illimitée.
         /// </summary>
         public static PriorityAutoplayStrategy Unified(
             CivilizationAutoplayer auto,
             BuildingController bc,
             int step2AtCities  = 4,
             int step3AtCities  = 10,
-            int expansionTarget = 12)
+            int expansionTarget = 12,
+            int attackNeighborsAtCities = int.MaxValue)
         {
             var banditSpotted = new Func<bool>(() =>
                 auto.WorldState != null && auto.WorldState.Features.OfType<Bandit>().Any(b => b.Found));
@@ -117,6 +116,7 @@ namespace SettlersOfIdlestan.Controller
 
             var hasStep2Cities  = new Func<bool>(() => auto.Civilization.Cities.Count >= step2AtCities);
             var hasStep3Cities  = new Func<bool>(() => auto.Civilization.Cities.Count >= step3AtCities);
+            var hasEnoughCitiesToAttack = new Func<bool>(() => auto.Civilization.Cities.Count >= attackNeighborsAtCities);
 
             return Make(new IAutoplayObjective[]
             {
@@ -128,6 +128,11 @@ namespace SettlersOfIdlestan.Controller
 
                 // Activation/désactivation des Casernes selon l'équilibre alimentaire (>50% du gain → désactivation)
                 new BarracksActivationObjective(auto),
+
+                // Attaque des voisins à partir de attackNeighborsAtCities villes. Placé tôt dans les
+                // priorités mais jamais bloquant (voir AttackNeighborsObjective) : ne retarde donc
+                // jamais l'expansion ou les étapes suivantes en attendant la fin d'une guerre.
+                new AttackNeighborsObjective(auto, hasEnoughCitiesToAttack),
 
                 // Militaire conditionnel
                 new ConditionalBuildingLevelObjective(banditSpotted,                           BObj(auto, bc, new[] { BuildingType.Palisade }, 1)),

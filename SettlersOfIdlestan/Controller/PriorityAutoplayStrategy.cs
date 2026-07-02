@@ -338,6 +338,50 @@ namespace SettlersOfIdlestan.Controller
     }
 
     /// <summary>
+    /// Maintenance objective that keeps <see cref="CivilizationAutoplayer.PriorityTargetCivilization"/>
+    /// pointed at the nearest visible enemy civilization (via
+    /// <see cref="CivilizationAutoplayer.FindNearestVisibleEnemy"/>) and refreshes attack/reinforcement
+    /// flows through <see cref="CivilizationAutoplayer.TryUpdatePriorityTargetFlowsOnce"/>. Gated by
+    /// <paramref name="shouldAttack"/> so it stays a no-op until, e.g., a city-count threshold is
+    /// reached. <see cref="IsComplete"/> re-checks with <c>apply: false</c> on every call, so this only
+    /// ever blocks the strategy for the tick(s) needed to (re)point flows at the current target —
+    /// unlike <see cref="BuildingLevelObjective"/> it never waits for a whole war to be won, which is
+    /// what lets it sit early in a priority list without starving later objectives like expansion.
+    /// </summary>
+    public class AttackNeighborsObjective : IAutoplayObjective
+    {
+        private readonly CivilizationAutoplayer _autoplayer;
+        private readonly Func<bool> _shouldAttack;
+
+        public AttackNeighborsObjective(CivilizationAutoplayer autoplayer, Func<bool> shouldAttack)
+        {
+            _autoplayer = autoplayer ?? throw new ArgumentNullException(nameof(autoplayer));
+            _shouldAttack = shouldAttack ?? throw new ArgumentNullException(nameof(shouldAttack));
+        }
+
+        public bool IsComplete()
+        {
+            if (!_shouldAttack()) return true;
+            var target = SyncTarget();
+            return target == null || !_autoplayer.TryUpdatePriorityTargetFlowsOnce(apply: false);
+        }
+
+        public bool TryAdvanceOnce()
+        {
+            var target = SyncTarget();
+            if (target == null) return false;
+            return _autoplayer.TryUpdatePriorityTargetFlowsOnce();
+        }
+
+        private Civilization? SyncTarget()
+        {
+            var target = _autoplayer.FindNearestVisibleEnemy();
+            _autoplayer.PriorityTargetCivilization = target;
+            return target;
+        }
+    }
+
+    /// <summary>
     /// Drives a <see cref="CivilizationAutoplayer"/> through an ordered list of <see cref="IAutoplayObjective"/>s,
     /// never acting on objective N+1 while objective N still has actionable progress to make. Each call to
     /// <see cref="TryStepOnce"/> re-scans the list from the top, so an event that re-opens an earlier

@@ -381,7 +381,11 @@ public class CivilizationAutoplayerRunner
     {
         var militaryController   = _controller.MilitaryController;
         var worldState           = _controller.CurrentMainState!.CurrentWorldState!;
-        var militaryStrategy     = CivilizationAutoplayerPriorities.Military(_autoplayer, _controller.BuildingController);
+        // Palissade/Caserne uniquement : le ciblage (NPC le plus faible) est géré explicitement plus
+        // bas dans cette méthode, donc pas de CivilizationAutoplayerPriorities.Unified ici (son propre
+        // AttackNeighborsObjective/Step2/expansion feraient double emploi avec cette logique).
+        var militaryStrategy     = new PriorityAutoplayStrategy(new IAutoplayObjective[]
+            { new BuildingLevelObjective(_autoplayer, _controller.BuildingController, CivilizationAutoplayerPriorities.MilitaryBuildings, 1) });
         var noExpandStrategy     = CivilizationAutoplayerPriorities.Step2(_autoplayer, _controller.BuildingController, expand: false);
         int prevNpcCityCount     = worldState.Civilizations.Where(c => c.IsNpc).Sum(c => c.Cities.Count);
         bool inRebuildPhase      = _civ.Cities.Count < targetPlayerCityCount;

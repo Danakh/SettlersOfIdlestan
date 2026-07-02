@@ -88,14 +88,14 @@ public static class StrategyRunner
 
             case PhaseKind.ExterminateMonsters:
                 {
-                    bool did = CivilizationAutoplayerPriorities.Military(auto, bc).TryStepOnce();
+                    bool did = CivilizationAutoplayerPriorities.Unified(auto, bc).TryStepOnce();
                     did |= CivilizationAutoplayerPriorities.Step2(auto, bc, expand: true).TryStepOnce();
                     return did;
                 }
 
             case PhaseKind.ExterminateCivilizations:
                 {
-                    bool did = CivilizationAutoplayerPriorities.Military(auto, bc).TryStepOnce();
+                    bool did = CivilizationAutoplayerPriorities.Unified(auto, bc, attackNeighborsAtCities: 0).TryStepOnce();
                     did |= CivilizationAutoplayerPriorities.Step2(auto, bc, expand: true).TryStepOnce();
                     foreach (var city in auto.Civilization.Cities.ToList())
                     {

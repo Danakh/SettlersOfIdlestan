@@ -249,7 +249,7 @@ namespace SOITests.ControllerTests
                 b.Type == BuildingType.Palisade || b.Type == BuildingType.Barracks));
             int initialBuildings = civ.Cities.Sum(c => c.Buildings.Count);
 
-            SimulateSequence(controller, 4, () => CivilizationAutoplayerPriorities.Military(autoplayer, controller.BuildingController).TryStepOnce());
+            SimulateSequence(controller, 4, () => CivilizationAutoplayerPriorities.Unified(autoplayer, controller.BuildingController, attackNeighborsAtCities: 0).TryStepOnce());
 
             int finalMilitary = civ.Cities.Sum(c => c.Buildings.Count(b =>
                 b.Type == BuildingType.Palisade || b.Type == BuildingType.Barracks));
@@ -280,7 +280,7 @@ namespace SOITests.ControllerTests
             // Même comportement que TrailerService.BuildAutoplayTick(Exterminate)
             void autoplayTick()
             {
-                CivilizationAutoplayerPriorities.Military(autoplayer, controller.BuildingController).TryStepOnce();
+                CivilizationAutoplayerPriorities.Unified(autoplayer, controller.BuildingController, attackNeighborsAtCities: 0).TryStepOnce();
                 foreach (var city in civ.Cities)
                 {
                     if (city.FlowTarget == null)
@@ -450,7 +450,7 @@ namespace SOITests.ControllerTests
                         }
                     }
                 },
-                customAutoplay: (ctrl, a) => CivilizationAutoplayerPriorities.Military(a, ctrl.BuildingController).TryStepOnce(),
+                customAutoplay: (ctrl, a) => CivilizationAutoplayerPriorities.Unified(a, ctrl.BuildingController, attackNeighborsAtCities: 0).TryStepOnce(),
                 ticksPerFrame: ExterminateTicksPerFrame);
             AppendSequenceBilan(sb, "7 — AT YOUR OWN PACE",  "05_AtYourOwnPace.json",   4, null);
             AppendSequenceBilan(sb, "8 — ABYSS GATE",        "06_AbyssGate.json",       5, null);

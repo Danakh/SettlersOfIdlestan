@@ -242,7 +242,7 @@ public sealed class TrailerService
             },
             TrailerAutoplayProfile.Exterminate => () =>
             {
-                CivilizationAutoplayerPriorities.Military(autoplayer, mainController.BuildingController).TryStepOnce();
+                CivilizationAutoplayerPriorities.Unified(autoplayer, mainController.BuildingController, attackNeighborsAtCities: 0).TryStepOnce();
                 // Assigner les FlowTargets vers les villes ennemies à portée pour déclencher les combats
                 foreach (var city in civ.Cities)
                 {

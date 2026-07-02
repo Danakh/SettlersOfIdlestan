@@ -102,8 +102,11 @@ namespace SettlersOfIdlestan.Controller
         /// - autres villes → flux de renfort vers la ville alliée attaquante la plus proche dans la portée de renfort
         /// No-op si PriorityTargetCivilization est null, si la cible n'a plus de villes, ou si
         /// aucun MilitaryController n'a été fourni au constructeur.
+        /// Passer <paramref name="apply"/> à false calcule et renvoie s'il y aurait du travail à faire
+        /// sans toucher aux FlowTargets — utilisé par <see cref="AttackNeighborsObjective"/> pour savoir
+        /// si elle est déjà à jour sans jamais muter l'état militaire depuis IsComplete().
         /// </summary>
-        public bool TryUpdatePriorityTargetFlowsOnce()
+        public bool TryUpdatePriorityTargetFlowsOnce(bool apply = true)
         {
             if (_militaryController == null || PriorityTargetCivilization == null || _worldState == null) return false;
             if (PriorityTargetCivilization.Cities.Count == 0) return false;
@@ -143,7 +146,7 @@ namespace SettlersOfIdlestan.Controller
                     && PriorityTargetCivilization.Cities.Any(ec => ec.Position.Equals(city.FlowTarget));
                 if (alreadyAttackingTarget) continue;
 
-                _militaryController.SetCityFlow(city, nearest.Position);
+                if (apply) _militaryController.SetCityFlow(city, nearest.Position);
                 didSomething = true;
             }
 
@@ -174,11 +177,33 @@ namespace SettlersOfIdlestan.Controller
                     }
 
                     if (nearest == null) continue;
-                    _militaryController.SetCityFlow(city, nearest.Position);
+                    if (apply) _militaryController.SetCityFlow(city, nearest.Position);
                     didSomething = true;
                 }
             }
             return didSomething;
+        }
+
+        /// <summary>
+        /// Civilisation ennemie la plus proche ayant au moins une ville visible depuis la carte
+        /// visible de cette civilisation, sur le même Z que ses propres villes, ou null si aucune
+        /// n'a encore été repérée. Reprend le ciblage "premier ennemi repéré" que NpcGameController
+        /// utilise pour les NPC Warlike, mais côté joueur/autoplayer.
+        /// </summary>
+        public Civilization? FindNearestVisibleEnemy()
+        {
+            if (_worldState == null) return null;
+            int z = _civ.Cities.FirstOrDefault()?.Position.Z ?? IslandMap.SurfaceLayer;
+            if (!_worldState.Visibility.GetForZ(z).TryGetValue(_civ.Index, out var visibleMap)) return null;
+
+            return _worldState.Civilizations
+                .Where(c => c.Index != _civ.Index && c.Cities.Count > 0)
+                .Where(c => c.Cities.Any(city =>
+                    city.Position.Z == z &&
+                    city.Position.GetHexes().Any(h => visibleMap.HasTile(h))))
+                .OrderBy(c => _civ.Cities.Min(nc =>
+                    c.Cities.Min(ec => nc.Position.EdgeDistanceTo(ec.Position))))
+                .FirstOrDefault();
         }
 
         // ── Primitive utilities ──────────────────────────────────────────────────
