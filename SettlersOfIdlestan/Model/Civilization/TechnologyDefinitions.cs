@@ -316,14 +316,14 @@ public static class TechnologyDefinitions
                 new(ECategory.UNLOCK_STEEL_ARMOR, EType.ADDITIVE, 1),
                 new(ECategory.BUILDING_MAX_LEVEL, "ArmorSmith", EType.ADDITIVE, 2),
             },
-            tier: 6, line: 3),
+            tier: 6, line: 4),
 
         new(TechnologyId.TemperedSteel,
             "tech_tempered_steel_name", "tech_tempered_steel_desc",
             cost: 55000,
             prerequisites: new[] { TechnologyId.Siderurgie },
             modifiers: new Modifier[] { new(ECategory.BUILDING_PRODUCTION, "Smelter", EType.ADDITIVE, 1) },
-            tier: 6, line: 2),
+            tier: 6, line: 3),
 
         new(TechnologyId.RailLogistics,
             "tech_rail_logistics_name", "tech_rail_logistics_desc",
@@ -373,9 +373,9 @@ public static class TechnologyDefinitions
         new(TechnologyId.OutilsEnMithril,
             "tech_outils_en_mithril_name", "tech_outils_en_mithril_desc",
             cost: 120000,
-            prerequisites: new[] { TechnologyId.Speleologie },
+            prerequisites: new[] { TechnologyId.Speleologie, TechnologyId.TemperedSteel },
             modifiers: new Modifier[] { new(ECategory.HARVEST_SPEED, EType.ADDITIVE, 0.25) },
-            tier: 6, line: 1),
+            tier: 7, line: 1),
 
         // === Branche de la Magie (débloquée par le vertex de prestige Secret de la Magie) ===
         // Chaque recherche débloque un rituel à lancer depuis l'écran Rituels.
