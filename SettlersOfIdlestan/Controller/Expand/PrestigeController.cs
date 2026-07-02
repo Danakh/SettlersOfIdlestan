@@ -111,6 +111,13 @@ namespace SettlersOfIdlestan.Controller.Expand
             return GetSeaportLevel4Count() * perSeaport;
         }
 
+        public const double PrestigeGainPerCivilizationDestroyed = 0.2;
+
+        public int GetCivilizationsDestroyedCount() => _islandState?.RunRecord.CivilizationsDestroyed ?? 0;
+
+        /// <summary>+20% de points de prestige par civilisation ennemie entièrement éliminée ce run.</summary>
+        public double GetCivilizationsDestroyedBonus() => GetCivilizationsDestroyedCount() * PrestigeGainPerCivilizationDestroyed;
+
         /// <summary>
         /// True si la Spire de Corruption est bâtie, ou si elle a évolué en Faille des Abysses
         /// (la Faille reprend pour l'instant le même bonus de prestige que la Spire).
@@ -134,8 +141,9 @@ namespace SettlersOfIdlestan.Controller.Expand
                 result *= 1.2;
             double gainBonus = GetPrestigeGainBonus();
             double seaportBonus = GetSeaportPrestigeBonus();
-            if (gainBonus > 0 || seaportBonus > 0)
-                result *= (1 + gainBonus + seaportBonus);
+            double civDestroyedBonus = GetCivilizationsDestroyedBonus();
+            if (gainBonus > 0 || seaportBonus > 0 || civDestroyedBonus > 0)
+                result *= (1 + gainBonus + seaportBonus + civDestroyedBonus);
             result *= GetCorruptionSpireMultiplier();
             return (int)result;
         }

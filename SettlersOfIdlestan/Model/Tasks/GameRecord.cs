@@ -51,6 +51,9 @@ public class GameRecord
     /// <summary>Nombre de villes ennemies détruites par le joueur (cross-prestige).</summary>
     public int TotalEnemyCitiesDestroyed { get; set; }
 
+    /// <summary>Nombre de civilisations ennemies entièrement éliminées par le joueur (cross-prestige).</summary>
+    public int TotalCivilizationsDestroyed { get; set; }
+
     /// <summary>True si le joueur a placé une merveille sur la carte au moins une fois.</summary>
     public bool HasPlacedWonder { get; set; }
 

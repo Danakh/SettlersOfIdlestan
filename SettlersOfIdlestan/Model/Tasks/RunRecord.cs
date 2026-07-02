@@ -18,6 +18,7 @@ public class RunRecord
     public int TrollsDefeated { get; set; }
     public int OgresDefeated { get; set; }
     public int TreasuresTroveClaimed { get; set; }
+    public int CivilizationsDestroyed { get; set; }
 
     /// <summary>Nombre de fois que chaque type de bâtiment a été construit ce run (clé = BuildingType.ToString()).</summary>
     public Dictionary<string, int> BuildingCounts { get; set; } = new();

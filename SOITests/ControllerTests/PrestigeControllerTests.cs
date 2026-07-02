@@ -294,6 +294,101 @@ namespace SOITests.ControllerTests
             Assert.Equal(4, controller.CalculatePrestigePoints());
         }
 
+        // ── Civilizations destroyed prestige bonus ──────────────────────────
+
+        [Fact]
+        public void Prestige_CivilizationsDestroyedBonus_TwentyPercentPerCivilization()
+        {
+            var state = IslandTestFactory.CreateSevenHexIslandState();
+            state.RunRecord.CivilizationsDestroyed = 2;
+            var controller = new PrestigeController();
+            controller.Initialize(state.Civilizations[0], state);
+
+            Assert.Equal(0.4, controller.GetCivilizationsDestroyedBonus());
+        }
+
+        [Fact]
+        public void CalculatePrestigePoints_AppliesCivilizationsDestroyedBonus()
+        {
+            var state = IslandTestFactory.CreateSevenHexIslandState();
+            var civ = state.Civilizations[0];
+            civ.Cities[0].Buildings.Add(new Temple());
+            civ.Cities[0].Buildings.Add(new Temple());
+            civ.Cities[0].Buildings.Add(new Temple());
+            civ.Cities[0].Buildings.Add(new Temple());
+            civ.Cities[0].Buildings.Add(new Temple()); // subtotal = 5
+            state.RunRecord.CivilizationsDestroyed = 1;
+            var controller = new PrestigeController();
+            controller.Initialize(civ, state);
+
+            // (5 × 1.2 monster bonus) × (1 + 0.2 civ bonus) = 7.2 → (int) 7
+            Assert.Equal(7, controller.CalculatePrestigePoints());
+        }
+
+        private static (MainGameController controller, WorldState state, SettlersOfIdlestan.Model.Civilization.Civilization npcCiv)
+            SetupGameWithSingleCityNpc()
+        {
+            var tileData = new List<(TerrainType, int)>
+            {
+                (TerrainType.Forest,   3),
+                (TerrainType.Hill,     3),
+                (TerrainType.Plain,    3),
+                (TerrainType.Mountain, 3),
+            };
+            var islandParams = new SettlersOfIdlestan.Model.Game.IslandParameters(AtlasController.InvalidIslandId, tileData)
+            {
+                NpcCivilizations =
+                [
+                    new SettlersOfIdlestan.Model.Civilization.NpcParameters
+                    {
+                        EvolutionLevel        = SettlersOfIdlestan.Model.Civilization.NpcEvolutionLevel.Minimum,
+                        AggressivityLevel     = SettlersOfIdlestan.Model.Civilization.NpcAggressivityLevel.Pacifist,
+                        MinDistanceFromPlayer = 3,
+                    }
+                ]
+            };
+
+            var mainState = new SettlersOfIdlestan.Model.Game.MainGameState();
+            var generator = new SettlersOfIdlestan.Controller.Generator.IslandMapGenerator(mainState.PRNG);
+            var worldState = generator.GenerateWorldState(islandParams, mainState.Clock.CurrentTick);
+            Assert.NotNull(worldState);
+
+            var prestigeState = new SettlersOfIdlestan.Model.Prestige.PrestigeState(worldState);
+            mainState.GodState = new SettlersOfIdlestan.Model.Prestige.GodState(prestigeState);
+
+            var controller = new MainGameController();
+            controller.SetGame(mainState);
+
+            var npcCiv = worldState.Civilizations.Single(c => c.IsNpc);
+            Assert.Single(npcCiv.Cities);
+
+            return (controller, worldState, npcCiv);
+        }
+
+        [Fact]
+        public void CityBuilderController_DestroyingLastCityOfNpcCivilization_GrantsPrestigeBonus()
+        {
+            var (controller, state, npcCiv) = SetupGameWithSingleCityNpc();
+            var npcCity = npcCiv.Cities[0];
+
+            controller.CityBuilderController.DestroyCity(npcCity, CityDestructionCause.Combat);
+
+            Assert.Equal(1, state.RunRecord.CivilizationsDestroyed);
+            Assert.Equal(1, controller.CurrentMainState!.GameRecord.TotalCivilizationsDestroyed);
+            Assert.Equal(0.2, controller.PrestigeController.GetCivilizationsDestroyedBonus());
+        }
+
+        [Fact]
+        public void CityBuilderController_DestroyingCityByMonster_DoesNotGrantPrestigeBonus()
+        {
+            var (controller, state, npcCiv) = SetupGameWithSingleCityNpc();
+            var npcCity = npcCiv.Cities[0];
+
+            controller.CityBuilderController.DestroyCity(npcCity, CityDestructionCause.Monster);
+
+            Assert.Equal(0, state.RunRecord.CivilizationsDestroyed);
+        }
+
         [Fact]
         public void PerformPrestige_Corrupted_IncrementsCorruptionLevelOnlyWhenSpireBuilt()
         {

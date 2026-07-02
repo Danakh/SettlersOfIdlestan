@@ -263,6 +263,8 @@
   "prestige_tooltip_prestige_gain": "prestige gain",
   "prestige_seaport_bonus": "Level-4 Seaports ({0})",
   "prestige_tooltip_seaport_bonus": "Each Seaport at level 4 grants +5% prestige.",
+  "prestige_civilizations_destroyed_bonus": "Civilizations destroyed ({0})",
+  "prestige_tooltip_civilizations_destroyed_bonus": "Each enemy civilization fully wiped out this run grants +20% prestige.",
   "prestige_tooltip_unlocks_seaport_automation": "Automates Seaport construction (via Imperial Port building)",
   "prestige_tooltip_unlocks_auto_market_trade": "Automatically sells surplus resources in cities with a level 4+ Market",
   "prestige_tooltip_unlocks_auto_buy_trade": "Automatically buys the scarcest basic resource with surplus gold in cities with a level 4+ Market",

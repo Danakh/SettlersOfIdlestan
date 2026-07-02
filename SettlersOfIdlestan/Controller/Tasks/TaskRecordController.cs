@@ -300,6 +300,14 @@ public class TaskRecordController
         if (e.Cause == CityDestructionCause.Combat && e.CivilizationIndex != _playerCivIndex && e.CivilizationIndex >= 0)
         {
             _gameRecord.TotalEnemyCitiesDestroyed++;
+
+            var civ = _islandState?.Civilizations.FirstOrDefault(c => c.Index == e.CivilizationIndex);
+            if (civ != null && civ.IsNpc && civ.Cities.Count == 0 && _runRecord != null)
+            {
+                _runRecord.CivilizationsDestroyed++;
+                _gameRecord.TotalCivilizationsDestroyed++;
+            }
+
             CheckTaskCompletions();
         }
     }
