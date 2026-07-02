@@ -293,6 +293,7 @@ namespace SOITests.IslandMapTests.StepIslandTest
                     RunAction = (runner, cond) => runner.RunStepPrestige(cond, new[] { PrestigeMap.CentralVertex, PrestigeMap.BarracksVertex }),
                     Condition = ctrl => ctrl.CurrentMainState?.PrestigeState?.RunHistory.Count >= 1,
                     AssertFailMessage = _ => "Expected prestige to have been performed (RunHistory is empty)",
+                    IsPrestigeStep = true,
                 },
                 new()
                 {
@@ -369,6 +370,7 @@ namespace SOITests.IslandMapTests.StepIslandTest
                     RunAction = (runner, cond) => runner.RunStepPrestige(cond),
                     Condition = ctrl => ctrl.CurrentMainState?.PrestigeState?.RunHistory.Count >= 2,
                     AssertFailMessage = _ => "Expected second prestige to have been performed (RunHistory.Count < 2)",
+                    IsPrestigeStep = true,
                 },
                 new()
                 {
@@ -475,6 +477,7 @@ namespace SOITests.IslandMapTests.StepIslandTest
                     RunAction = (runner, cond) => runner.RunStepPrestige(cond),
                     Condition = ctrl => ctrl.CurrentMainState?.PrestigeState?.RunHistory.Count >= 3,
                     AssertFailMessage = _ => "Expected third prestige to have been performed (RunHistory.Count < 3)",
+                    IsPrestigeStep = true,
                 },
                 new()
                 {
@@ -564,6 +567,7 @@ namespace SOITests.IslandMapTests.StepIslandTest
                     RunAction = (runner, cond) => runner.RunStepPrestige(cond),
                     Condition = ctrl => ctrl.CurrentMainState?.PrestigeState?.RunHistory.Count >= 4,
                     AssertFailMessage = _ => "Expected fourth prestige to have been performed (RunHistory.Count < 4)",
+                    IsPrestigeStep = true,
                 },
             },
         };

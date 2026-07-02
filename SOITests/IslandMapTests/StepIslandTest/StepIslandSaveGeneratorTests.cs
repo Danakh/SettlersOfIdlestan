@@ -13,6 +13,8 @@ namespace SOITests.IslandMapTests.StepIslandTest
         [Fact]
         public void Rebuild_All_Current_Saves()
         {
+            RunSummaryReporter.Reset("current");
+
             (IslandScenario scenario, int stepIndex)[] steps =
             [
                 (StepIslandScenarios.Island1, 0), (StepIslandScenarios.Island1, 1), (StepIslandScenarios.Island1, 2), (StepIslandScenarios.Island1, 3),
@@ -22,7 +24,7 @@ namespace SOITests.IslandMapTests.StepIslandTest
                 (StepIslandScenarios.Island5, 0),
             ];
             foreach (var (scenario, stepIndex) in steps)
-                IslandScenarioRunner.RunStep(scenario, stepIndex, "current", saveFinal: true);
+                RunStepAndReport(scenario, stepIndex, "current", saveFinal: true);
 
             // Nettoie les fichiers obsolètes (ex: ancien format JSON non-chiffré) seulement après
             // la reconstruction : chaque save régénérée est remplacée de façon atomique pendant la
@@ -36,6 +38,8 @@ namespace SOITests.IslandMapTests.StepIslandTest
         [Fact]
         public void Rebuild_Release_Summary()
         {
+            RunSummaryReporter.Reset("release-1.0");
+
             // Mirrors the step indices exercised by StepIslandReleaseTests — release saves are
             // immutable frozen fixtures checked into saves/release-1.0/, so any step here whose
             // predecessor save isn't itself one of those checked-in fixtures now fails outright
@@ -51,7 +55,14 @@ namespace SOITests.IslandMapTests.StepIslandTest
                 (StepIslandScenarios.Island4, 0), (StepIslandScenarios.Island4, 1), (StepIslandScenarios.Island4, 2), (StepIslandScenarios.Island4, 3), (StepIslandScenarios.Island4, 6),
             ];
             foreach (var (scenario, stepIndex) in steps)
-                IslandScenarioRunner.RunStep(scenario, stepIndex, "release-1.0", saveFinal: false);
+                RunStepAndReport(scenario, stepIndex, "release-1.0", saveFinal: false);
+        }
+
+        private static void RunStepAndReport(IslandScenario scenario, int stepIndex, string loadFolder, bool saveFinal)
+        {
+            var controller = IslandScenarioRunner.RunStep(scenario, stepIndex, loadFolder, saveFinal);
+            if (scenario.Steps[stepIndex].IsPrestigeStep)
+                RunSummaryReporter.AppendRow(loadFolder, controller);
         }
     }
 }

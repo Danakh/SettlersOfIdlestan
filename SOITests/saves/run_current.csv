@@ -1,5 +1,5 @@
-Prestige,Ticks,CityCount,TotalBuildingLevels,PrestigePointsGenerated,PrestigeVerticesPurchased,ResearchCompleted,AchievementsUnlocked
-1,70050,12,85,36,2,0,2
-2,188550,24,242,70,4,0,3
-3,1440050,32,1291,768,8,16,4
-4,2943250,10,345,616,12,18,4
+Prestige,Ticks,CityCount,TotalBuildingLevels,UniqueBuildings,PrestigePointsGenerated,PrestigeVerticesPurchased,ResearchCompleted,AchievementsUnlocked
+1,179150,12,193,1,36,2,0,3
+2,713300,24,709,1,87,4,4,3
+3,1440050,32,1176,1,768,10,10,4
+4,1289200,16,689,1,633,12,23,4
