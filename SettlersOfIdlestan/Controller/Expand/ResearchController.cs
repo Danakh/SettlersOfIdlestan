@@ -125,7 +125,8 @@ namespace SettlersOfIdlestan.Controller.Expand
             var tech = TechnologyDefinitions.Get(techId);
             if (tech == null) { tree.ActiveResearch = null; return; }
 
-            int consumed = Math.Max(1, tree.ResearchPoints / 100);
+            double speed = _state.PlayerCivilization.ResearchSpeed;
+            int consumed = Math.Max(1, (int)(tree.ResearchPoints / 100.0 * speed));
             consumed = Math.Min(consumed, tree.ResearchPoints);
             tree.ResearchPoints -= consumed;
             tree.ActiveResearchConsumed += consumed;
@@ -246,7 +247,8 @@ namespace SettlersOfIdlestan.Controller.Expand
         public (double percent, double perSecond) GetResearchConsumptionInfo()
         {
             if (Tree?.ActiveResearch == null || ResearchPoints <= 0) return (0, 0);
-            int consumed = Math.Max(1, ResearchPoints / 100);
+            double speed = _state?.PlayerCivilization.ResearchSpeed ?? 1.0;
+            int consumed = Math.Max(1, (int)(ResearchPoints / 100.0 * speed));
             double perSecond = consumed * (100.0 / ResearchConsumptionCooldownTicks);
             double percent = consumed * 100.0 / ResearchPoints;
             return (percent, perSecond);
