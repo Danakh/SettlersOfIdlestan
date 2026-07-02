@@ -321,6 +321,8 @@ namespace SettlersOfIdlestan.Controller
                 RoadController.OnAutoRoadBuilt += OnRoadBuiltExtendMap;
                 FeatureController.OnFeatureDiscovered -= OnFeatureDiscovered;
                 FeatureController.OnFeatureDiscovered += OnFeatureDiscovered;
+                ResearchController.OnResearchCompleted -= OnResearchCompletedHandler;
+                ResearchController.OnResearchCompleted += OnResearchCompletedHandler;
                 prestigeState?.TechnologyTree.RebuildModifiers();
 
                 var gameRecord = CurrentMainState!.GameRecord;
@@ -350,6 +352,13 @@ namespace SettlersOfIdlestan.Controller
 
         private void OnRitualsChangedInvalidateHarvestCache(object? sender, EventArgs e)
             => HarvestController.InvalidateProductionCache();
+
+        private void OnResearchCompletedHandler(object? sender, TechnologyId techId)
+        {
+            if (techId != TechnologyId.ProspectionAvancee) return;
+            AutoExtendController.ConvertDesertToMithrilVeins();
+            HarvestController.InvalidateProductionCache();
+        }
 
 
         private void OnCityBuiltInvalidateHarvestCache(object? sender, OutpostAutoBuiltEventArgs e)

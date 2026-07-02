@@ -651,6 +651,8 @@
   "tech_cartographie_souterraine_desc": "+5% de chance de découvrir un trésor sur chaque nouvel hex de l'Inframonde.",
   "tech_outils_en_mithril_name": "Outils en Mithril",
   "tech_outils_en_mithril_desc": "Des outils légendaires : +25% de vitesse de récolte globale.",
+  "tech_prospection_avancee_name": "Prospection Avancée",
+  "tech_prospection_avancee_desc": "20% de chance qu'un hexagone Désert de l'Inframonde soit un Filon de Mithril.",
   "tech_magic_initiation_name": "Initiation à la Magie",
   "tech_magic_initiation_desc": "Débloque le rituel de Croissance (+10% de vitesse de récolte par puissance).",
   "tech_ardent_forge_ritual_name": "Forge Ardente",

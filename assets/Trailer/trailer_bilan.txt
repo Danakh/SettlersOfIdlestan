@@ -1,5 +1,5 @@
 ﻿=== BILAN TRAILER — SETTLERS OF IDLESTAN ===
-Généré le : 2026-07-02 19:46:42
+Généré le : 2026-07-02 22:34:44
 Paramètres simulation : 30 fps, 3 ticks/frame, intervalle autoplayer : 0,5s
 
 --- 1 — EXPLORE (01_Explore.json, 5s, 3 ticks/frame) ---
@@ -109,7 +109,7 @@ Paramètres simulation : 30 fps, 3 ticks/frame, intervalle autoplayer : 0,5s
     Défense ennemie : 120 (+0)
     Points prestige : 24 (+0)
     Vertices achetés: 4 (+0)
-    Points recherche: 1497 (+3)
+    Points recherche: 1480 (-14)
     Techs complétées: 3 (+0)
     Ticks simulés   : 360
   RÉSULTAT : OK
@@ -137,7 +137,7 @@ Paramètres simulation : 30 fps, 3 ticks/frame, intervalle autoplayer : 0,5s
     Défense ennemie : 120 (+0)
     Points prestige : 34 (+0)
     Vertices achetés: 4 (+0)
-    Points recherche: 9776 (-1717)
+    Points recherche: 9305 (-2188)
     Techs complétées: 6 (+3)
     Ticks simulés   : 2970
   RÉSULTAT : OK
@@ -165,7 +165,7 @@ Paramètres simulation : 30 fps, 3 ticks/frame, intervalle autoplayer : 0,5s
     Défense ennemie : 227 (-1)
     Points prestige : 1 (+0)
     Vertices achetés: 5 (+0)
-    Points recherche: 583 (+40)
+    Points recherche: 557 (+14)
     Techs complétées: 15 (+0)
     Ticks simulés   : 1200
   RÉSULTAT : OK
@@ -210,7 +210,7 @@ Paramètres simulation : 30 fps, 3 ticks/frame, intervalle autoplayer : 0,5s
     Points prestige : 15618
     Vertices achetés: 45
     Points recherche: 364562
-    Techs complétées: 52
+    Techs complétées: 51
   État final :
     Routes          : 405 (-5)
     Villes joueur   : 133 (+0)
@@ -222,7 +222,7 @@ Paramètres simulation : 30 fps, 3 ticks/frame, intervalle autoplayer : 0,5s
     Points prestige : 15618 (+0)
     Vertices achetés: 45 (+0)
     Points recherche: 364663 (+101)
-    Techs complétées: 52 (+0)
+    Techs complétées: 51 (+0)
     Ticks simulés   : 450
   RÉSULTAT : OK
 

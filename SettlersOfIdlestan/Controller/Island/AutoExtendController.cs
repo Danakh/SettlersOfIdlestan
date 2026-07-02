@@ -488,7 +488,37 @@ public class AutoExtendController
         }
     }
 
-    private TerrainType RollTerrain() => TerrainPool[_prng!.Next(TerrainPool.Length)];
+    // Prospection Avancée : chance qu'un hexagone Désert (existant ou nouvellement généré) soit un Filon de Mithril
+    private const int ProspectionAvanceeDesertToMithrilPercent = 20;
+
+    private bool HasProspectionAvancee() =>
+        _prestigeState?.TechnologyTree.CompletedTechnologies.Contains(TechnologyId.ProspectionAvancee) == true;
+
+    private TerrainType RollTerrain()
+    {
+        var terrain = TerrainPool[_prng!.Next(TerrainPool.Length)];
+        if (terrain == TerrainType.Desert && HasProspectionAvancee() && _prng.Next(100) < ProspectionAvanceeDesertToMithrilPercent)
+            return TerrainType.MithrilVein;
+        return terrain;
+    }
+
+    /// <summary>
+    /// Effet à la complétion de la recherche Prospection Avancée : convertit chaque hexagone
+    /// Désert déjà révélé de l'Inframonde en Filon de Mithril (même chance que pour les futurs
+    /// hexagones générés, voir <see cref="RollTerrain"/>).
+    /// </summary>
+    public void ConvertDesertToMithrilVeins()
+    {
+        if (_state == null || _prng == null) return;
+        if (!_state.Layers.TryGetValue(LayerState.UnderworldZ, out var layerState)) return;
+
+        foreach (var tile in layerState.Map.Tiles.Values)
+        {
+            if (tile.TerrainType != TerrainType.Desert) continue;
+            if (_prng.Next(100) < ProspectionAvanceeDesertToMithrilPercent)
+                tile.TerrainType = TerrainType.MithrilVein;
+        }
+    }
 
     // ── Génération de la rivière ──────────────────────────────────────────────
 

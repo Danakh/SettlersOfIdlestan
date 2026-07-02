@@ -651,6 +651,8 @@
   "tech_cartographie_souterraine_desc": "+5% chance to discover a treasure on each new Underworld hex.",
   "tech_outils_en_mithril_name": "Mithril Tools",
   "tech_outils_en_mithril_desc": "Legendary tools: +25% global harvest speed.",
+  "tech_prospection_avancee_name": "Advanced Prospecting",
+  "tech_prospection_avancee_desc": "20% chance for each Underworld Desert hex to be a Mithril Vein instead.",
   "tech_magic_initiation_name": "Magic Initiation",
   "tech_magic_initiation_desc": "Unlocks the Growth ritual (+10% harvest speed per power).",
   "tech_ardent_forge_ritual_name": "Ardent Forge",

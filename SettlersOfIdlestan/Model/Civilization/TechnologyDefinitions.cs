@@ -377,6 +377,16 @@ public static class TechnologyDefinitions
             modifiers: new Modifier[] { new(ECategory.HARVEST_SPEED, EType.ADDITIVE, 0.25) },
             tier: 7, line: 1),
 
+        // 20% de chance qu'un hexagone Désert de l'Inframonde soit un Filon de Mithril, à la fois
+        // pour les hexagones déjà révélés (conversion à la complétion) et pour les futurs
+        // (voir ResearchController/AutoExtendController).
+        new(TechnologyId.ProspectionAvancee,
+            "tech_prospection_avancee_name", "tech_prospection_avancee_desc",
+            cost: 200000,
+            prerequisites: new[] { TechnologyId.CartographieSouterraine, TechnologyId.OutilsEnMithril },
+            modifiers: Array.Empty<Modifier>(),
+            tier: 8, line: 2),
+
         // === Branche de la Magie (débloquée par le vertex de prestige Secret de la Magie) ===
         // Chaque recherche débloque un rituel à lancer depuis l'écran Rituels.
 
