@@ -83,10 +83,10 @@ namespace SettlersOfIdlestan.Controller
         /// <summary>
         /// Stratégie unifiée : une seule liste de priorités couvrant tous les cas de figure.
         /// Production de base (Step 1) dans toutes les villes, Palissade si un bandit est repéré,
-        /// Caserne si monstres ou civilisations NPC ennemies présentes, attaque des voisins à partir
-        /// de <paramref name="attackNeighborsAtCities"/> villes (désactivé par défaut), Step 2
-        /// (Entrepôt → TH2 → Forge/Bibliothèque → TH3 → Mine) à partir de
-        /// <paramref name="step2AtCities"/> villes, Temple (Step 3) à partir de
+        /// Caserne si monstres ou civilisations NPC ennemies présentes, Caserne niveau 1 garantie dans
+        /// toutes les villes puis attaque des voisins à partir de <paramref name="attackNeighborsAtCities"/>
+        /// villes (désactivé par défaut), Step 2 (Entrepôt → TH2 → Forge/Bibliothèque → TH3 → Mine) à
+        /// partir de <paramref name="step2AtCities"/> villes, Temple (Step 3) à partir de
         /// <paramref name="step3AtCities"/> villes. Expansion jusqu'à <paramref name="expansionTarget"/>
         /// villes pour accumuler les points de prestige, puis Port Impérial pour débloquer le prestige,
         /// puis expansion illimitée.
@@ -126,8 +126,20 @@ namespace SettlersOfIdlestan.Controller
                 // Accès aux 4 types de terrain de base (forêt/collines/plaine/montagne)
                 new ResourceCoverageObjective(auto),
 
-                // Activation/désactivation des Casernes selon l'équilibre alimentaire (>50% du gain → désactivation)
-                new BarracksActivationObjective(auto),
+                // Activation/désactivation des Casernes selon l'équilibre alimentaire (>50% du gain → désactivation),
+                // sauf en temps de guerre (attackNeighborsAtCities atteint + ennemi visible) où elles restent
+                // actives quel que soit ce ratio — sinon une expansion tardive qui alourdit la consommation de
+                // nourriture couperait le recrutement de soldats en pleine attaque (voir BarracksActivationObjective).
+                new BarracksActivationObjective(auto, forceActive: () => hasEnoughCitiesToAttack() && hasVisibleThreats()),
+
+                // Caserne garantie avant toute déclaration de guerre, à partir de attackNeighborsAtCities
+                // villes : bloque (elle est placée avant AttackNeighborsObjective) tant qu'il manque une
+                // Caserne niveau 1 quelque part, y compris pour les villes ajoutées après coup par
+                // l'expansion. Pas de garde sur hasOreProduction ici (contrairement au conditionnel
+                // défensif plus bas) : construire la Caserne elle-même ne consomme pas d'Ore (voir
+                // Barracks.GetBuildCost), seule la production de soldats en a besoin — donc pas de
+                // blocage à attendre la Mine.
+                new ConditionalBuildingLevelObjective(hasEnoughCitiesToAttack, BObj(auto, bc, new[] { BuildingType.Barracks }, 1)),
 
                 // Attaque des voisins à partir de attackNeighborsAtCities villes. Placé tôt dans les
                 // priorités mais jamais bloquant (voir AttackNeighborsObjective) : ne retarde donc

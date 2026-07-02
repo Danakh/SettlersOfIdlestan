@@ -23,34 +23,6 @@ namespace SOITests.IslandMapTests.StepIslandTest
         // ── Shared step conditions ────────────────────────────────────────────
 
         /// <summary>
-        /// Mixed attack and rebuild loop: alternates between targeting the NPC civilization with the
-        /// fewest player-visible cities and expanding/rebuilding the player civilization back to
-        /// <paramref name="targetPlayerCityCount"/> with Barracks after each NPC city is destroyed.
-        /// Exits as soon as 12 cities are reached, or at 10 cities once the territory is fully
-        /// saturated (no buildable roads and no buildable vertices remaining).
-        /// </summary>
-        private static IslandStepDefinition AttackWeakestNpcAndRebuildStep(string saveName, int targetPlayerCityCount = 12, int maxIterations = 100000) => new()
-        {
-            SaveName = saveName,
-            RunAction = (runner, cond) => runner.RunStepAttackWeakestNpcAndRebuildUntil(cond, targetPlayerCityCount, maxIterations),
-            Condition = ctrl =>
-            {
-                var civ = ctrl.CurrentMainState!.CurrentWorldState!.Civilizations.First();
-                if (civ.Cities.Count >= 12) return true;
-                return civ.Cities.Count >= 10
-                    && !ctrl.RoadController.GetBuildableRoads(civ.Index).Any()
-                    && ctrl.CityBuilderController.GetBuildableVertices(civ.Index).Count == 0;
-            },
-            AssertFailMessage = ctrl =>
-            {
-                var civ = ctrl.CurrentMainState!.CurrentWorldState!.Civilizations.First();
-                int buildableRoads = ctrl.RoadController.GetBuildableRoads(civ.Index).Count;
-                int buildableVertices = ctrl.CityBuilderController.GetBuildableVertices(civ.Index).Count;
-                return $"Expected to reach 10+ cities with saturated territory (12 if possible); got {civ.Cities.Count} cities, {buildableRoads} buildable roads, {buildableVertices} buildable vertices";
-            },
-        };
-
-        /// <summary>
         /// Keeps building Barracks/production buildings and growing the civilization until every surface
         /// monster (Rats, Bandit, BanditHideout, ...) has been destroyed. Requires the Barracks prestige
         /// vertex to already be purchased (see Island2's Prestige step priority-vertex purchase) — otherwise no
@@ -96,14 +68,20 @@ namespace SOITests.IslandMapTests.StepIslandTest
         };
 
         /// <summary>
-        /// Keeps building Barracks/Palisade and attacking the nearest enemy city until every NPC
-        /// civilization has lost all of its cities. Requires the Barracks prestige vertex to already
-        /// be purchased.
+        /// Drives the Unified strategy with neighbor-attacking enabled (see
+        /// <see cref="CivilizationAutoplayerPriorities.Unified"/>'s attackNeighborsAtCities parameter)
+        /// until every NPC civilization has lost all of its cities. Unified itself guarantees Barracks
+        /// level 1 in every city — including ones added later by its own expansion — before
+        /// AttackNeighborsObjective is allowed to point flows at an enemy, so no separate
+        /// Barracks-building step is needed ahead of this one anymore. Requires the Barracks prestige
+        /// vertex to already be purchased.
         /// </summary>
-        private static IslandStepDefinition ExterminateCivilizationsStep(string saveName, int maxIterations = 50000) => new()
+        private static IslandStepDefinition ExterminateCivilizationsStep(string saveName, int maxIterations = 60000) => new()
         {
             SaveName = saveName,
-            RunAction = (runner, cond) => runner.RunStepExterminateCivilizationsUntil(cond, maxIterations),
+            RunAction = (runner, cond) => runner.RunPriorityStrategyUntil(
+                CivilizationAutoplayerPriorities.Unified(runner.Autoplayer, runner.BuildingController, attackNeighborsAtCities: 1),
+                cond, maxIterations),
             Condition = ctrl => ctrl.CurrentMainState!.CurrentWorldState!.Civilizations.Where(c => c.IsNpc).All(c => c.Cities.Count == 0),
             AssertFailMessage = ctrl =>
             {
@@ -113,27 +91,33 @@ namespace SOITests.IslandMapTests.StepIslandTest
         };
 
         /// <summary>
-        /// Lightweight stand-in for <see cref="ExterminateCivilizationsStep"/>: builds the Barracks to
-        /// level 1 in every city without attacking anyone. Used for Island4_Barracks1 while the full
-        /// extermination loop is disabled there for being too slow (see Rebuild_All_Current_Saves and
-        /// StepIslandCurrentTests) — keeps the save chain intact so later steps still have their
-        /// expected predecessor save. Swap back to ExterminateCivilizationsStep to re-enable it.
-        /// Mirrors BuildingLevelObjective's own leniency: a city for which Barracks is unavailable
-        /// (city level too low, prerequisites unmet) counts as satisfied, since the autoplayer can't
-        /// do anything more about it — checking city.Buildings directly would never agree with that
-        /// and the run would stall forever waiting for an unreachable building.
+        /// Drives the Unified strategy with neighbor-attacking enabled until 12 cities are reached, or
+        /// 10 cities once the territory is fully saturated (no buildable roads and no buildable
+        /// vertices remaining). Unified's own CityCountObjective(expansionTarget: 12) handles rebuilding
+        /// towards that city count while AttackNeighborsObjective (guarded by the Barracks guarantee
+        /// ahead of it, see <see cref="CivilizationAutoplayerPriorities.Unified"/>) handles attacking —
+        /// no hand-rolled attack/rebuild alternation is needed here anymore.
         /// </summary>
-        private static IslandStepDefinition BarracksLevel1Step(string saveName, int maxIterations = 30000) => new()
+        private static IslandStepDefinition AttackNeighborsAndExpandStep(string saveName, int maxIterations = 60000) => new()
         {
             SaveName = saveName,
-            RunAction = (runner, cond) => runner.RunStepBuildBarracksUntil(cond, maxIterations),
-            Condition = ctrl => ctrl.CurrentMainState!.CurrentWorldState!.Civilizations.First().Cities
-                .All(c => IsBuildingAtLeastLevelForCity(ctrl, c, BuildingType.Barracks, targetLevel: 1)),
+            RunAction = (runner, cond) => runner.RunPriorityStrategyUntil(
+                CivilizationAutoplayerPriorities.Unified(runner.Autoplayer, runner.BuildingController, attackNeighborsAtCities: 1),
+                cond, maxIterations),
+            Condition = ctrl =>
+            {
+                var civ = ctrl.CurrentMainState!.CurrentWorldState!.Civilizations.First();
+                if (civ.Cities.Count >= 12) return true;
+                return civ.Cities.Count >= 10
+                    && !ctrl.RoadController.GetBuildableRoads(civ.Index).Any()
+                    && ctrl.CityBuilderController.GetBuildableVertices(civ.Index).Count == 0;
+            },
             AssertFailMessage = ctrl =>
             {
                 var civ = ctrl.CurrentMainState!.CurrentWorldState!.Civilizations.First();
-                var missing = civ.Cities.Count(c => !IsBuildingAtLeastLevelForCity(ctrl, c, BuildingType.Barracks, targetLevel: 1));
-                return $"Expected every city to have Barracks at level >= 1 (or be unable to build it), {missing} cities are missing it";
+                int buildableRoads = ctrl.RoadController.GetBuildableRoads(civ.Index).Count;
+                int buildableVertices = ctrl.CityBuilderController.GetBuildableVertices(civ.Index).Count;
+                return $"Expected to reach 10+ cities with saturated territory (12 if possible); got {civ.Cities.Count} cities, {buildableRoads} buildable roads, {buildableVertices} buildable vertices";
             },
         };
 
@@ -425,7 +409,6 @@ namespace SOITests.IslandMapTests.StepIslandTest
                         return $"Expected road network to be saturated (0 buildable roads); got {civ.Cities.Count} cities, {buildableRoads} buildable roads, {buildableVertices} buildable vertices";
                     },
                 },
-                BarracksLevel1Step("Island3_Barracks1"),
                 ExterminateCivilizationsStep("Island3_NoEnemies"),
                 new()
                 {
@@ -523,8 +506,7 @@ namespace SOITests.IslandMapTests.StepIslandTest
                         return $"Expected road network to be saturated (0 buildable roads); got {civ.Cities.Count} cities, {buildableRoads} buildable roads, {buildableVertices} buildable vertices";
                     },
                 },
-                BarracksLevel1Step("Island4_Barracks1"),
-                AttackWeakestNpcAndRebuildStep("Island4_ExtermineAndRebuild"),
+                AttackNeighborsAndExpandStep("Island4_ExtermineAndRebuild"),
                 new()
                 {
                     SaveName = "Island4_Points20",

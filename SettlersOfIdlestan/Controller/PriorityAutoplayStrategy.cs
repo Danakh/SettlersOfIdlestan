@@ -284,18 +284,24 @@ namespace SettlersOfIdlestan.Controller
     /// Objective de maintenance qui active ou désactive les Casernes selon l'équilibre alimentaire.
     /// Quand les soldats consomment plus de <see cref="FoodConsumptionThreshold"/> du gain de nourriture
     /// par seconde, les Casernes sont désactivées (arrêt du recrutement). Quand la consommation
-    /// redescend sous le seuil, elles sont réactivées.
+    /// redescend sous le seuil, elles sont réactivées. <paramref name="forceActive"/>, si fourni et vrai,
+    /// court-circuite ce calcul et force l'activation quel que soit l'équilibre alimentaire — utilisé en
+    /// temps de guerre (voir <see cref="CivilizationAutoplayerPriorities.Unified"/>) : une expansion
+    /// illimitée en fin de liste peut faire grimper la consommation de nourriture bien au-delà du seuil,
+    /// et désactiver les Casernes à ce moment-là couperait le recrutement de soldats en pleine attaque.
     /// <see cref="IsComplete"/> retourne true dès que l'état actuel est déjà correct, ce qui garantit
     /// que cet objectif ne bloque jamais la stratégie plus d'un tick.
     /// </summary>
     public class BarracksActivationObjective : IAutoplayObjective
     {
         private readonly CivilizationAutoplayer _autoplayer;
+        private readonly Func<bool>? _forceActive;
         private const double FoodConsumptionThreshold = 0.5;
 
-        public BarracksActivationObjective(CivilizationAutoplayer autoplayer)
+        public BarracksActivationObjective(CivilizationAutoplayer autoplayer, Func<bool>? forceActive = null)
         {
             _autoplayer = autoplayer ?? throw new ArgumentNullException(nameof(autoplayer));
+            _forceActive = forceActive;
         }
 
         public bool IsComplete()
@@ -327,6 +333,8 @@ namespace SettlersOfIdlestan.Controller
 
         private bool ShouldBarracksBeActive()
         {
+            if (_forceActive != null && _forceActive()) return true;
+
             int civIndex = _autoplayer.Civilization.Index;
             var production = _autoplayer.HarvestController.GetAverageProductionRatesPerSecond(civIndex);
             var consumption = _autoplayer.HarvestController.GetAverageConsumptionRatesPerSecond(civIndex);
