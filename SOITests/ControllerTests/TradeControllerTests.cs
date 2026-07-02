@@ -227,43 +227,30 @@ namespace SOITests.ControllerTests
         // ── Market specialization (SpecializedMarket research) ──────────────────
 
         [Fact]
-        public void CanEnhanceSeaportResource_ReturnsFalse_WithoutSpecializedMarketResearch()
+        public void GetSellRate_ReturnsDefault_WithoutSpecializedMarketResearch()
         {
             WorldState state = IslandTestFactory.CreateSevenHexIslandState();
             var civ = state.Civilizations[0];
-            civ.Cities[0].Buildings.Add(new Market { Level = 4 });
+            civ.Cities[0].Buildings.Add(new Market());
 
             var controller = new TradeController(state);
 
-            Assert.False(controller.CanEnhanceSeaportResource(0, Resource.Wood));
+            Assert.Equal(5, controller.GetSellRate(0, Resource.Wood));
         }
 
         [Fact]
-        public void CanEnhanceSeaportResource_ReturnsTrue_WithResearchAndMarketLevel4()
+        public void GetSellRate_ReturnsFourToOne_ForAllBasicResources_OnceResearchCompleted()
         {
             WorldState state = IslandTestFactory.CreateSevenHexIslandState();
             var civ = state.Civilizations[0];
-            civ.Cities[0].Buildings.Add(new Market { Level = 4 });
+            civ.Cities[0].Buildings.Add(new Market());
             civ.TechnologyTree.CompleteResearch(TechnologyId.StorageOptimization);
             civ.TechnologyTree.CompleteResearch(TechnologyId.SpecializedMarket);
 
             var controller = new TradeController(state);
 
-            Assert.True(controller.CanEnhanceSeaportResource(0, Resource.Wood));
-        }
-
-        [Fact]
-        public void CanEnhanceSeaportResource_ReturnsFalse_WithResearchButMarketBelowLevel4()
-        {
-            WorldState state = IslandTestFactory.CreateSevenHexIslandState();
-            var civ = state.Civilizations[0];
-            civ.Cities[0].Buildings.Add(new Market { Level = 2 });
-            civ.TechnologyTree.CompleteResearch(TechnologyId.StorageOptimization);
-            civ.TechnologyTree.CompleteResearch(TechnologyId.SpecializedMarket);
-
-            var controller = new TradeController(state);
-
-            Assert.False(controller.CanEnhanceSeaportResource(0, Resource.Wood));
+            foreach (var resource in ResourceUtils.BasicResources)
+                Assert.Equal(4, controller.GetSellRate(0, resource));
         }
 
         // ── Achat Automatique (auto-buy on gold overflow) ───────────────────────

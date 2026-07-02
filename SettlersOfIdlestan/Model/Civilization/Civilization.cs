@@ -375,22 +375,6 @@ public class Civilization
 
     public void AddUniqueBuilding(BuildingType type) => _uniqueBuildings.Add(type);
 
-    private List<Resource> _seaportEnhancedResources = new();
-
-    /// <summary>Resources for which a level-3 Seaport has unlocked a 4:1 trade rate (permanent).</summary>
-    [JsonIgnore]
-    public IReadOnlyList<Resource> SeaportEnhancedResources => _seaportEnhancedResources;
-
-    [JsonPropertyName("SeaportEnhancedResources")]
-    [JsonInclude]
-    public List<Resource> SeaportEnhancedResourcesSerialized
-    {
-        get => _seaportEnhancedResources;
-        private set => _seaportEnhancedResources = value ?? new();
-    }
-
-    public void AddSeaportEnhancedResource(Resource resource) => _seaportEnhancedResources.Add(resource);
-
     public event EventHandler<Resource>? LowStock;
 
     internal void RaiseLowStock(Resource resource) => LowStock?.Invoke(this, resource);

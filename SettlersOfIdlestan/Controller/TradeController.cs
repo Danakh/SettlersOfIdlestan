@@ -51,13 +51,12 @@ namespace SettlersOfIdlestan.Controller
 
         /// <summary>
         /// Number of basic resource units required to sell one pack (receive 1 gold).
-        /// Reduced to 4 if the resource has a seaport enhancement.
+        /// Reduced to 4 for all basic resources once the Specialized Market research is completed.
         /// </summary>
         public int GetSellRate(int civilizationIndex, Resource res)
         {
             if (res == Resource.Steel) return 1;
-            var civ = _state?.Civilizations.Find(c => c.Index == civilizationIndex);
-            if (civ != null && civ.SeaportEnhancedResources.Contains(res))
+            if (ResourceUtils.BasicResources.Contains(res) && IsMarketSpecializationUnlocked(civilizationIndex))
                 return DefaultSellRate - 1;
             return DefaultSellRate;
         }
@@ -187,18 +186,6 @@ namespace SettlersOfIdlestan.Controller
             return max;
         }
 
-        public int GetMaxMarketLevel(int civilizationIndex)
-        {
-            var civ = _state?.Civilizations.Find(c => c.Index == civilizationIndex);
-            if (civ == null) return 0;
-            int max = 0;
-            foreach (var city in civ.Cities)
-                foreach (var b in city.Buildings)
-                    if (b.Type == BuildingType.Market && b.Level > max)
-                        max = b.Level;
-            return max;
-        }
-
         private int GetMarketCountAtMinLevel(int civilizationIndex, int minLevel)
         {
             var civ = _state?.Civilizations.Find(c => c.Index == civilizationIndex);
@@ -216,25 +203,6 @@ namespace SettlersOfIdlestan.Controller
         {
             var civ = _state?.Civilizations.Find(c => c.Index == civilizationIndex);
             return civ?.ModifierAggregator.HasModifier(ECategory.UNLOCK_MARKET_SPECIALIZATION) ?? false;
-        }
-
-        public bool CanEnhanceSeaportResource(int civilizationIndex, Resource resource)
-        {
-            var civ = _state?.Civilizations.Find(c => c.Index == civilizationIndex);
-            if (civ == null) return false;
-            if (!IsMarketSpecializationUnlocked(civilizationIndex)) return false;
-            if (civ.SeaportEnhancedResources.Contains(resource)) return false;
-            return civ.SeaportEnhancedResources.Count < GetMarketCountAtMinLevel(civilizationIndex, 4);
-        }
-
-        public void SetSeaportEnhancedResource(int civilizationIndex, Resource resource)
-        {
-            if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
-            var civ = _state.Civilizations.Find(c => c.Index == civilizationIndex)
-                      ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
-            if (!CanEnhanceSeaportResource(civilizationIndex, resource))
-                throw new InvalidOperationException("Cannot enhance this resource: research not completed or no available level-4 Market slot.");
-            civ.AddSeaportEnhancedResource(resource);
         }
 
         public bool CanRecieveTrade(Civilization civ, Resource resource, int quantity = 1)

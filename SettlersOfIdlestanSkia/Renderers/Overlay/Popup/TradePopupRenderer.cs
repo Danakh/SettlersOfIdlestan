@@ -22,8 +22,6 @@ public sealed class TradePopupRenderer : PopupRendererBase
     private const float ColGap       = 16;
     private const float ColWidth     = (700 - 2 * Padding - ColGap) / 2; // 324
     private const float RowHeight    = 44;
-    private const float CheckboxSize = 16;
-    private const float CheckboxGap  = 4;
     private const float MultBtnW     = 42;
     private const float MultBtnH     = 24;
     private const float MultBtnGap   = 5;
@@ -37,8 +35,6 @@ public sealed class TradePopupRenderer : PopupRendererBase
     private readonly TooltipRenderer       _tooltipRenderer;
     private readonly Dictionary<Resource, SKSvg?> _resourceIcons = new();
 
-    private readonly Dictionary<SKRect, Resource> _seaportL3Rects    = [];
-    private readonly Dictionary<Resource, SKRect> _seaportL3AllRects = [];
     private readonly Dictionary<SKRect, Resource> _sellBtnRects      = [];
     private readonly Dictionary<SKRect, string>   _disabledSellRects = [];
     private readonly Dictionary<SKRect, Resource> _buyBtnRects       = [];
@@ -53,12 +49,6 @@ public sealed class TradePopupRenderer : PopupRendererBase
     private SKRect  _scrollTrackRect   = SKRect.Empty;
     private SKRect  _scrollThumbRect   = SKRect.Empty;
 
-    private Resource? _pendingEnhanceResource;
-    private SKRect    _confirmPopupRect = SKRect.Empty;
-    private SKRect    _confirmYesRect   = SKRect.Empty;
-    private SKRect    _confirmNoRect    = SKRect.Empty;
-
-    private Resource? _hoveredL3Checkbox;
     private int       _packMultiplier = 1;
     private int?      _temporaryMultiplier;
     private int       ActiveMultiplier => _temporaryMultiplier ?? _packMultiplier;
@@ -87,13 +77,6 @@ public sealed class TradePopupRenderer : PopupRendererBase
     private readonly SKPaint _multTempBorder      = new() { Color = new SKColor(220, 140, 30),        Style = SKPaintStyle.Stroke, StrokeWidth = 1.5f, IsAntialias = true };
     private readonly SKPaint _rowBorderPaint      = new() { Color = new SKColor(255, 255, 255, 100),  Style = SKPaintStyle.Stroke, StrokeWidth = 1,    IsAntialias = true };
     private readonly SKPaint _rowFillPaint        = new() { Color = new SKColor(55,  55,  65,  245),  Style = SKPaintStyle.Fill,   IsAntialias = true };
-    private readonly SKPaint _checkboxFillPaint   = new() { Style = SKPaintStyle.Fill,   IsAntialias = true };
-    private readonly SKPaint _checkboxBorderPaint = new() { Style = SKPaintStyle.Stroke, IsAntialias = true };
-    private readonly SKPaint _confirmDimPaint     = new() { Color = new SKColor(0, 0, 0, 160),        Style = SKPaintStyle.Fill };
-    private readonly SKPaint _confirmBgPaint      = new() { Color = new SKColor(30, 30, 38, 250),     Style = SKPaintStyle.Fill,   IsAntialias = true };
-    private readonly SKPaint _confirmBorderPaint  = new() { Style = SKPaintStyle.Stroke, StrokeWidth = 2, IsAntialias = true };
-    private readonly SKPaint _confirmYesPaint     = new() { Color = new SKColor(46,  125, 50),        Style = SKPaintStyle.Fill,   IsAntialias = true };
-    private readonly SKPaint _confirmNoPaint      = new() { Color = new SKColor(140, 50,  50),        Style = SKPaintStyle.Fill,   IsAntialias = true };
     private readonly SKPaint _scrollTrackPaint    = new() { Color = new SKColor(50,  50,  65,  200),  Style = SKPaintStyle.Fill,   IsAntialias = true };
     private readonly SKPaint _scrollThumbPaint    = new() { Color = new SKColor(130, 130, 165, 210),  Style = SKPaintStyle.Fill,   IsAntialias = true };
     private readonly SKPaint _maxStockPaint       = new() { Color = new SKColor(220, 60,  60),        IsAntialias = true };
@@ -118,17 +101,9 @@ public sealed class TradePopupRenderer : PopupRendererBase
 
     protected override void OnFontsUpdated(float s) => _smallFont.Size = 11 * s;
 
-    public override void Open()
-    {
-        _pendingEnhanceResource   = null;
-        base.Open();
-    }
-
     public override void Close()
     {
         base.Close();
-        _pendingEnhanceResource   = null;
-        _hoveredL3Checkbox        = null;
         _temporaryMultiplier      = null;
         _isDraggingScrollbar      = false;
         _scrollOffsetPx           = 0f;
@@ -169,8 +144,6 @@ public sealed class TradePopupRenderer : PopupRendererBase
         _currentS = s;
         UpdateFonts(s);
 
-        _seaportL3Rects.Clear();
-        _seaportL3AllRects.Clear();
         _sellBtnRects.Clear();
         _disabledSellRects.Clear();
         _buyBtnRects.Clear();
@@ -222,10 +195,7 @@ public sealed class TradePopupRenderer : PopupRendererBase
         if (needsScroll)
             DrawScrollbar(canvas, popup, headerH, viewportH, maxScroll, s);
 
-        if (_pendingEnhanceResource != null)
-            DrawConfirmationPopup(canvas, popup, _pendingEnhanceResource.Value, s);
-        else
-            SetTradeTooltip();
+        SetTradeTooltip();
     }
 
     // Returns total height of the scrollable content (max of both columns)
@@ -282,33 +252,11 @@ public sealed class TradePopupRenderer : PopupRendererBase
             _scrollOffsetPx = Math.Clamp(_scrollDragStartOffset + dy * scrollPerPx, 0, maxScroll);
             return;
         }
-
-        _hoveredL3Checkbox = null;
-        if (_viewportRect.Contains(position.X, position.Y))
-        {
-            var adj = new SKPoint(position.X, position.Y + _scrollOffsetPx);
-            foreach (var (res, rect) in _seaportL3AllRects)
-                if (rect.Contains(adj.X, adj.Y)) _hoveredL3Checkbox = res;
-        }
     }
 
     public bool HandlePointerPressed(SKPoint position, PointerButton button)
     {
         if (!IsOpen) return false;
-
-        if (_pendingEnhanceResource != null)
-        {
-            if (_confirmYesRect.Contains(position.X, position.Y))
-            {
-                var civ = _gameControllerService.PlayerCivilization;
-                if (civ != null)
-                    _gameControllerService.MainGameController.TradeController.SetSeaportEnhancedResource(civ.Index, _pendingEnhanceResource.Value);
-                _pendingEnhanceResource = null;
-            }
-            else if (_confirmNoRect.Contains(position.X, position.Y) || !_confirmPopupRect.Contains(position.X, position.Y))
-                _pendingEnhanceResource = null;
-            return true;
-        }
 
         if (_closeButtonRect.Contains(position.X, position.Y)) { Close(); return true; }
 
@@ -369,17 +317,6 @@ public sealed class TradePopupRenderer : PopupRendererBase
                     return true;
                 }
             }
-
-            foreach (var (rect, resource) in _seaportL3Rects)
-            {
-                if (rect.Contains(adj.X, adj.Y))
-                {
-                    var civ = _gameControllerService.PlayerCivilization;
-                    if (civ != null && !civ.SeaportEnhancedResources.Contains(resource))
-                        _pendingEnhanceResource = resource;
-                    return true;
-                }
-            }
         }
 
         if (!_popupRect.Contains(position.X, position.Y)) { Close(); return false; }
@@ -404,10 +341,6 @@ public sealed class TradePopupRenderer : PopupRendererBase
         if (civ == null) return;
         var tc = _gameControllerService.MainGameController.TradeController;
 
-        int   marketLevel    = tc.GetMaxMarketLevel(civ.Index);
-        bool  showL3         = marketLevel >= 4 && tc.IsMarketSpecializationUnlocked(civ.Index);
-        float checkboxOffset = showL3 ? (CheckboxSize + CheckboxGap * 2) * s : 0f;
-
         SkiaTextUtils.DrawText(canvas, _localization.Get("trade_give"), x + ColWidth * s / 2, y + 16 * s, SKTextAlign.Center, BtnFont!, TextPaint);
 
         float rowY = y + 26 * s;
@@ -423,10 +356,7 @@ public sealed class TradePopupRenderer : PopupRendererBase
             var row = new SKRect(x, rowY, x + ColWidth * s, rowY + RowHeight * s);
             DrawRowBackground(canvas, row, canSell, s);
 
-            bool isBasic = ResourceUtils.BasicResources.Contains(resource);
-            if (showL3 && isBasic) DrawSeaportL3Checkbox(canvas, row, resource, civ.SeaportEnhancedResources, civ, s);
-
-            float iconX = row.Left + 8 * s + checkboxOffset;
+            float iconX = row.Left + 8 * s;
             DrawIcon(canvas, resource, iconX, row.MidY, s);
 
             string sellName = _localization.Get($"resource_{resource.ToString().ToLower()}");
@@ -586,28 +516,6 @@ public sealed class TradePopupRenderer : PopupRendererBase
         canvas.Restore();
     }
 
-    // ── Seaport checkboxes ───────────────────────────────────────────────────────
-
-    private void DrawSeaportL3Checkbox(SKCanvas canvas, SKRect row, Resource resource, IReadOnlyList<Resource> enhanced, Civilization civ, float s)
-    {
-        float cx = row.Left + CheckboxGap * s;
-        float cy = row.MidY - CheckboxSize * s / 2;
-        var   cb = new SKRect(cx, cy, cx + CheckboxSize * s, cy + CheckboxSize * s);
-        _seaportL3AllRects[resource] = cb;
-
-        bool isOn    = enhanced.Contains(resource);
-        bool canOn   = _gameControllerService.MainGameController.TradeController.CanEnhanceSeaportResource(civ.Index, resource);
-        bool hovered = _hoveredL3Checkbox == resource;
-
-        _checkboxFillPaint.Color   = isOn ? new SKColor(180, 140, 0, 200) : (canOn && hovered) ? new SKColor(80, 70, 0, 180) : new SKColor(50, 50, 50, 150);
-        _checkboxBorderPaint.Color = isOn ? SKColors.Gold : canOn ? (hovered ? new SKColor(255, 230, 100) : new SKColor(200, 180, 80)) : new SKColor(100, 100, 100);
-        _checkboxBorderPaint.StrokeWidth = (hovered && canOn ? 2f : 1.5f) * s;
-        canvas.DrawRoundRect(cb, 3 * s, 3 * s, _checkboxFillPaint);
-        canvas.DrawRoundRect(cb, 3 * s, 3 * s, _checkboxBorderPaint);
-        if (isOn)           SkiaTextUtils.DrawText(canvas, "4",  cb.MidX, cb.MidY + 5 * s, SKTextAlign.Center, BodyFont!, TextPaint);
-        if (!isOn && canOn) _seaportL3Rects[cb] = resource;
-    }
-
     // ── Tooltip ──────────────────────────────────────────────────────────────────
 
     // Converts a natural-space Y to screen-space Y (accounting for scroll)
@@ -620,48 +528,11 @@ public sealed class TradePopupRenderer : PopupRendererBase
         // Scroll-adjust the pointer position for content hit tests
         var adj = new SKPoint(_lastPointerPosition.X, _lastPointerPosition.Y + _scrollOffsetPx);
 
-        if (_hoveredL3Checkbox != null && _seaportL3AllRects.TryGetValue(_hoveredL3Checkbox.Value, out var l3Rect))
-        {
-            bool isOn   = civ.SeaportEnhancedResources.Contains(_hoveredL3Checkbox.Value);
-            bool canOn  = _gameControllerService.MainGameController.TradeController.CanEnhanceSeaportResource(civ.Index, _hoveredL3Checkbox.Value);
-            string line1 = isOn ? _localization.Get("trade_tooltip_l3_active") : canOn ? _localization.Get("trade_tooltip_l3_available") : _localization.Get("trade_tooltip_l3_unavailable");
-            string[] lines = canOn && !isOn ? [line1, _localization.Get("trade_seaport_confirm_permanent")] : [line1];
-            _tooltipRenderer.SetTooltipLines(lines, new SKPoint(l3Rect.Right, ToScreenY(l3Rect.Top)));
-            return;
-        }
-
         foreach (var (rect, key) in _disabledSellRects)
             if (rect.Contains(adj.X, adj.Y)) { _tooltipRenderer.SetTooltip(_localization.Get(key), new SKPoint(rect.Right, ToScreenY(rect.Top))); return; }
 
         foreach (var (rect, key) in _disabledBuyRects)
             if (rect.Contains(adj.X, adj.Y)) { _tooltipRenderer.SetTooltip(_localization.Get(key), new SKPoint(rect.Right, ToScreenY(rect.Top))); return; }
-    }
-
-    // ── Confirmation popup ───────────────────────────────────────────────────────
-
-    private void DrawConfirmationPopup(SKCanvas canvas, SKRect parent, Resource resource, float s)
-    {
-        float w  = 440 * s, h = 140 * s;
-        float px = parent.MidX - w / 2;
-        float py = parent.MidY - h / 2;
-        _confirmPopupRect = new SKRect(px, py, px + w, py + h);
-
-        canvas.DrawRect(parent, _confirmDimPaint);
-        _confirmBorderPaint.Color = SKColors.Gold;
-        canvas.DrawRoundRect(_confirmPopupRect, 8 * s, 8 * s, _confirmBgPaint);
-        canvas.DrawRoundRect(_confirmPopupRect, 8 * s, 8 * s, _confirmBorderPaint);
-
-        string resourceName = _localization.Get($"resource_{resource.ToString().ToLower()}");
-        SkiaTextUtils.DrawText(canvas, string.Format(_localization.Get("trade_seaport_confirm"), resourceName), _confirmPopupRect.MidX, py + 42 * s, SKTextAlign.Center, BodyFont!, TextPaint);
-        SkiaTextUtils.DrawText(canvas, _localization.Get("trade_seaport_confirm_permanent"), _confirmPopupRect.MidX, py + 64 * s, SKTextAlign.Center, _smallFont, SubtlePaint);
-
-        float btnW = 100 * s, btnH = 32 * s, btnY = py + h - 16 * s - btnH;
-        _confirmYesRect = new SKRect(_confirmPopupRect.MidX - btnW - 8 * s, btnY, _confirmPopupRect.MidX - 8 * s,        btnY + btnH);
-        _confirmNoRect  = new SKRect(_confirmPopupRect.MidX + 8 * s,        btnY, _confirmPopupRect.MidX + 8 * s + btnW, btnY + btnH);
-        canvas.DrawRoundRect(_confirmYesRect, 6 * s, 6 * s, _confirmYesPaint);
-        canvas.DrawRoundRect(_confirmNoRect,  6 * s, 6 * s, _confirmNoPaint);
-        SkiaTextUtils.DrawText(canvas, _localization.Get("trade_seaport_confirm_yes"), _confirmYesRect.MidX, _confirmYesRect.MidY + 5 * s, SKTextAlign.Center, BtnFont!, TextPaint);
-        SkiaTextUtils.DrawText(canvas, _localization.Get("trade_seaport_confirm_no"),  _confirmNoRect.MidX,  _confirmNoRect.MidY  + 5 * s, SKTextAlign.Center, BtnFont!, TextPaint);
     }
 
     // ── Dispose ──────────────────────────────────────────────────────────────────
@@ -674,9 +545,6 @@ public sealed class TradePopupRenderer : PopupRendererBase
         _multActiveFill.Dispose();  _multInactiveFill.Dispose();  _multTempFill.Dispose();
         _multActiveBorder.Dispose(); _multInactiveBorder.Dispose(); _multTempBorder.Dispose();
         _rowBorderPaint.Dispose();  _rowFillPaint.Dispose();
-        _checkboxFillPaint.Dispose(); _checkboxBorderPaint.Dispose();
-        _confirmDimPaint.Dispose(); _confirmBgPaint.Dispose();    _confirmBorderPaint.Dispose();
-        _confirmYesPaint.Dispose(); _confirmNoPaint.Dispose();
         _scrollTrackPaint.Dispose(); _scrollThumbPaint.Dispose();
         _maxStockPaint.Dispose();
         base.Dispose();

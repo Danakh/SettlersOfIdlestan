@@ -74,7 +74,7 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             UNLOCK_STEEL_TRADE,
             /// <summary>Flags que la vente automatique du surplus est déverrouillée pour les villes possédant un Marché niv.4+.</summary>
             UNLOCK_AUTO_MARKET_TRADE,
-            /// <summary>Flags que la spécialisation des Marchés (taux de vente 4:1) est déverrouillée pour la civilisation.</summary>
+            /// <summary>Flags que toutes les ressources de base se vendent au taux de 4:1 pour la civilisation.</summary>
             UNLOCK_MARKET_SPECIALIZATION,
             /// <summary>Flags que l'achat automatique de la ressource de base la plus rare avec l'or excédentaire est déverrouillé pour les villes possédant un Marché niv.4+.</summary>
             UNLOCK_AUTO_BUY_TRADE,
