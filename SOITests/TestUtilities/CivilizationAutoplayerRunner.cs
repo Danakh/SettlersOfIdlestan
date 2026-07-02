@@ -110,43 +110,11 @@ public class CivilizationAutoplayerRunner
 
     // ── Primitive time-advancing wrappers ────────────────────────────────────
 
-    public void AutoGrind(ResourceSet? requiredResources, int maxIterations = 500)
-    {
-        for (int i = 0; i < maxIterations; i++)
-        {
-            try { _autoplayer.TryGrindOnce(requiredResources); } catch { }
-            Advance();
-        }
-    }
-
     public bool AutoBuildRoad(Edge edge, int maxIterations = 500)
     {
         for (int i = 0; i < maxIterations; i++)
         {
             if (_autoplayer.TryBuildRoadOnce(edge)) return true;
-            Advance();
-        }
-        return false;
-    }
-
-    public bool AutoBuildRoadToDistance(int distance, int maxIterations = 10)
-    {
-        if (distance <= 0) throw new ArgumentException("distance must be >= 1", nameof(distance));
-
-        var roadController = _controller.RoadController;
-        for (int i = 0; i < maxIterations; i++)
-        {
-            try
-            {
-                var candidates = roadController.GetBuildableRoadsAtDistance(_civ.Index, distance);
-                if (candidates != null && candidates.Any())
-                    if (AutoBuildRoad(candidates.First().Position)) return true;
-
-                var nearest = roadController.GetBuildableRoads(_civ.Index)
-                    .OrderBy(r => r.DistanceToNearestCity).FirstOrDefault();
-                if (nearest != null) AutoBuildRoad(nearest.Position);
-            }
-            catch { }
             Advance();
         }
         return false;
@@ -318,53 +286,6 @@ public class CivilizationAutoplayerRunner
                 _autoplayer.TryTradeForResourceOnce(Resource.Gold);
             }
             catch { }
-            Advance();
-        }
-    }
-
-    /// <summary>
-    /// Expands the civilization via Step2 until the city count has been stable for
-    /// <paramref name="stagnationWindow"/> consecutive iterations (no new city placed),
-    /// which signals that all reachable vertices are already occupied. Exits early if
-    /// <paramref name="condition"/> is met.
-    /// </summary>
-    public void RunStepExpandToStableUntil(Func<bool> condition, int stagnationWindow = 200, int maxIterations = 30000)
-    {
-        var strategy = CivilizationAutoplayerPriorities.Step2(_autoplayer, _controller.BuildingController, expand: true);
-        int lastCityCount = _civ.Cities.Count;
-        int stagnantIterations = 0;
-
-        for (int i = 0; i < maxIterations && !condition(); i++)
-        {
-            try { strategy.TryStepOnce(); } catch { }
-            Advance();
-
-            int newCount = _civ.Cities.Count;
-            if (newCount > lastCityCount)
-            {
-                lastCityCount = newCount;
-                stagnantIterations = 0;
-            }
-            else if (++stagnantIterations >= stagnationWindow)
-                break;
-        }
-    }
-
-    /// <summary>
-    /// Expands the civilization via Step2 as long as there are road slots available in the
-    /// reachable network. Stops as soon as <see cref="RoadController.GetBuildableRoads"/> returns
-    /// empty — meaning no further expansion is topologically possible — or until
-    /// <paramref name="condition"/> is met.
-    /// </summary>
-    public void RunStepExpandWhileRoadsExistUntil(Func<bool> condition, int maxIterations = 30000)
-    {
-        var strategy = CivilizationAutoplayerPriorities.Step2(_autoplayer, _controller.BuildingController, expand: true);
-        for (int i = 0; i < maxIterations && !condition(); i++)
-        {
-            if (!_controller.RoadController.GetBuildableRoads(_civ.Index).Any())
-                break;
-
-            try { strategy.TryStepOnce(); } catch { }
             Advance();
         }
     }
