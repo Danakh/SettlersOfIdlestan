@@ -368,14 +368,14 @@ public static class TechnologyDefinitions
             {
                 new(ECategory.UNDERWORLD_TREASURE_CHANCE_PERCENT, EType.ADDITIVE, 5),
             },
-            tier: 5, line: 2),
+            tier: 6, line: 1),
 
         new(TechnologyId.OutilsEnMithril,
             "tech_outils_en_mithril_name", "tech_outils_en_mithril_desc",
             cost: 120000,
             prerequisites: new[] { TechnologyId.Speleologie, TechnologyId.TemperedSteel },
             modifiers: new Modifier[] { new(ECategory.HARVEST_SPEED, EType.ADDITIVE, 0.25) },
-            tier: 7, line: 1),
+            tier: 7, line: 2),
 
         // 20% de chance qu'un hexagone Désert de l'Inframonde soit un Filon de Mithril, à la fois
         // pour les hexagones déjà révélés (conversion à la complétion) et pour les futurs
@@ -385,7 +385,7 @@ public static class TechnologyDefinitions
             cost: 200000,
             prerequisites: new[] { TechnologyId.CartographieSouterraine, TechnologyId.OutilsEnMithril },
             modifiers: Array.Empty<Modifier>(),
-            tier: 8, line: 2),
+            tier: 8, line: 1),
 
         // === Branche de la Magie (débloquée par le vertex de prestige Secret de la Magie) ===
         // Chaque recherche débloque un rituel à lancer depuis l'écran Rituels.
