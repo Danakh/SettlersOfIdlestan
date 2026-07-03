@@ -29,6 +29,7 @@ public class MonumentService
     public void ToggleInvestment(Resource resource)
     {
         if (SelectedInvestable == null) return;
+        if (SelectedInvestable is Wonder { IsMaxLevel: true }) return;
         if (SelectedInvestable.InvestmentEnabled.Contains(resource))
             SelectedInvestable.InvestmentEnabled.Remove(resource);
         else

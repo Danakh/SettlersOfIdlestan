@@ -853,6 +853,7 @@
   "wonder_panel_title": "Wonder — Level",
   "wonder_panel_invest": "Invest",
   "wonder_panel_progress": "Progress",
+  "wonder_max_level_reached": "⭐ Maximum level reached",
   "deepest_mine_action_short": "Deepest Mine",
   "deepest_mine_select_hex": "Choose a Mountain adjacent to one of your cities — must be far from enemy cities",
   "spire_action_short": "Build Spire",

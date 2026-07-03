@@ -47,7 +47,7 @@ namespace SettlersOfIdlestan.Controller.Island
         {
             if (_state == null || _clock == null) return;
             var wonder = _state.Features.OfType<Wonder>().FirstOrDefault();
-            if (wonder == null || wonder.InvestmentEnabled.Count == 0) return;
+            if (wonder == null || wonder.IsMaxLevel || wonder.InvestmentEnabled.Count == 0) return;
             if (_clock.CurrentTick - wonder.LastInvestmentTick < InvestmentIntervalTicks) return;
 
             var playerCiv = _state.PlayerCivilization;

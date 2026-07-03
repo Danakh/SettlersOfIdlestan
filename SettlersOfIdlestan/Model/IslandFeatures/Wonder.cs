@@ -16,6 +16,12 @@ public class Wonder : Monument
     public Wonder(HexCoord position) : base(position) { }
     public int Level { get; set; } = 0;
 
+    /// <summary>Niveau maximum — correspond au dernier icône disponible (wonder_4.svg) et à l'achievement WonderLevel4.</summary>
+    public const int MaxLevel = 4;
+
+    [JsonIgnore]
+    public bool IsMaxLevel => Level >= MaxLevel;
+
     /// <summary>Coût statique du level-up (non modifié à la création, modifié lors de l'appel à GetInvestmentCost)</summary>
     public static ResourceSet GetLevelCost(int level) => new ResourceSet
     {
@@ -44,7 +50,7 @@ public class Wonder : Monument
     public override string PanelTitleKey => "wonder_panel_title";
 
     [JsonIgnore]
-    public override string? PanelTitleSuffix => (Level + 1).ToString();
+    public override string? PanelTitleSuffix => IsMaxLevel ? Level.ToString() : (Level + 1).ToString();
 
     [JsonConstructor]
     public Wonder() : base() { }

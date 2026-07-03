@@ -157,6 +157,21 @@ namespace SOITests.ControllerTests
             Assert.DoesNotContain(Resource.Food, wonder.InvestmentEnabled);
         }
 
+        [Fact]
+        public void Wonder_Investment_StopsAtMaxLevel()
+        {
+            var (state, wonder, clock, _) = CreateSetup();
+            var civ = state.PlayerCivilization;
+            wonder.Level = Wonder.MaxLevel;
+            civ.AddResource(Resource.Food, 110);
+            wonder.InvestmentEnabled.Add(Resource.Food);
+
+            clock.SimulateAdvance(WonderController.InvestmentIntervalTicks);
+
+            Assert.Equal(110, civ.GetResourceQuantity(Resource.Food));
+            Assert.Equal(Wonder.MaxLevel, wonder.Level);
+        }
+
         // ── Pas de progression sans wonder ───────────────────────────────────
 
         [Fact]

@@ -103,9 +103,10 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
         float collapseTabW = CollapseTabW * s;
         float collapseTabH = CollapseTabH * s;
 
+        bool wonderMaxed = monument is Wonder { IsMaxLevel: true };
         var cost = monument.GetInvestmentCost(playerCiv);
-        int resourceCount = cost.Count;
-        var costList = cost.ToList();
+        int resourceCount = wonderMaxed ? 0 : cost.Count;
+        var costList = wonderMaxed ? new List<KeyValuePair<Resource, int>>() : cost.ToList();
 
         float panelX = CanvasSize.Width - panelWidth - 10 * s;
         float panelY = (TopOverride > 0f ? TopOverride : PlayerResourcesOverlayRenderer.BarHeight * s) + 10 * s;
@@ -122,8 +123,9 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
         bool showCorruptedPrestigeAvailable = monument is CorruptionSpire { Built: true };
         bool showEvolveButton = monument is CorruptionSpire { Built: true }
             && _gameControllerService.MainGameController.AbyssGateController.IsAbyssGateEligible();
-        bool showNoCityWarning = !MonumentInvestment.HasAdjacentCity(monument.Position, playerCiv);
-        float footerHeight = (showCorruptedPrestigeAvailable ? FooterHeight * s : 0f)
+        bool showNoCityWarning = !wonderMaxed && !MonumentInvestment.HasAdjacentCity(monument.Position, playerCiv);
+        float footerHeight = (wonderMaxed ? FooterHeight * s : 0f)
+            + (showCorruptedPrestigeAvailable ? FooterHeight * s : 0f)
             + (showEvolveButton ? EvolveButtonHeight * s : 0f)
             + (showNoCityWarning ? FooterHeight * s : 0f);
 
@@ -212,6 +214,16 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
                 canvas.DrawRoundRect(barX, barY, fillWidth, barH, 3 * s, 3 * s, _barFillPaint);
 
             y += rowHeight;
+        }
+
+        if (wonderMaxed)
+        {
+            float rowH = FooterHeight * s;
+            SkiaTextUtils.DrawText(canvas,
+                _localization.Get("wonder_max_level_reached"),
+                panelX + panelWidth / 2f, y + rowH / 2f + 5 * s,
+                SKTextAlign.Center, Font12, _dimTextPaint);
+            y += rowH;
         }
 
         if (showNoCityWarning)
