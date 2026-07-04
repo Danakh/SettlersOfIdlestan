@@ -56,8 +56,10 @@ public enum TechnologyId
     TemperedSteel,
     RailLogistics,
     OutilsEnMithril,
+    RempartsDeFer,
     // Tier 7
     ProspectionAvancee,
+    RempartsDeMithril,
     // [Legacy] Recherche "Aciers Spéciaux" supprimée — conservée uniquement pour la désérialisation des anciennes sauvegardes.
     SpecialSteels,
     // Branche de la Magie (débloquée par le vertex de prestige Secret de la Magie)

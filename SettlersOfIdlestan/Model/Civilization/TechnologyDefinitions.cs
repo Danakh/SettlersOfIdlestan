@@ -456,6 +456,22 @@ public static class TechnologyDefinitions
             modifiers: new Modifier[] { new(ECategory.UNLOCK_SPELL, "ArcaneEdification", EType.ADDITIVE, 1) },
             tier: 6, line: 12),
 
+        // === Amélioration de la Palissade (convergence Fortifications × métallurgie) ===
+
+        new(TechnologyId.RempartsDeFer,
+            "tech_remparts_de_fer_name", "tech_remparts_de_fer_desc",
+            cost: 60000,
+            prerequisites: new[] { TechnologyId.WatchtowerConstruction, TechnologyId.Siderurgie },
+            modifiers: new Modifier[] { new(ECategory.BUILDING_MAX_LEVEL, "Palisade", EType.ADDITIVE, 1) },
+            tier: 6, line: 7),
+
+        new(TechnologyId.RempartsDeMithril,
+            "tech_remparts_de_mithril_name", "tech_remparts_de_mithril_desc",
+            cost: 220000,
+            prerequisites: new[] { TechnologyId.RempartsDeFer, TechnologyId.OutilsEnMithril },
+            modifiers: new Modifier[] { new(ECategory.BUILDING_MAX_LEVEL, "Palisade", EType.ADDITIVE, 1) },
+            tier: 8, line: 7),
+
         // === Recherches de bonus de prestige (capstones de branches existantes) ===
 
         // Bifurque une ligne plus bas que la Tour de Guet (Scouting).

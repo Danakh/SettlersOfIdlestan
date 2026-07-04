@@ -86,6 +86,8 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             UNDERWORLD_TREASURE_CHANCE_PERCENT,
             /// <summary>Flags que la magie est déverrouillée (Tours de Mages, écran Rituels, branche de recherche).</summary>
             UNLOCK_MAGIC,
+            /// <summary>Flags cosmétique pour le tooltip du vertex Invocations (Tour de Mages, invocations, écran magique).</summary>
+            UNLOCK_INVOCATIONS,
             /// <summary>SubCategory = RitualId name. Signale que le rituel est connu (débloqué par recherche).</summary>
             UNLOCK_RITUAL,
             /// <summary>Rituels actifs simultanés supplémentaires (base = nombre de Tours de Mages).</summary>

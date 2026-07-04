@@ -313,6 +313,7 @@ public static class PrestigeMapFactory
                 cost: Cost(PrestigeMap.InvocationsVertex),
                 modifiers: new Modifier[]
                 {
+                    new(ECategory.UNLOCK_INVOCATIONS, EType.ADDITIVE, 1),
                     new(ECategory.BUILDING_MAX_LEVEL, "MageTower", EType.ADDITIVE, 2),
                     new(ECategory.UNLOCK_RESEARCH, "Invocation", EType.ADDITIVE, 1),
                 }

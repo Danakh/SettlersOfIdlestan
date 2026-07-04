@@ -126,8 +126,18 @@ public class SettingsMenu
             });
             _menuItems.Add(new MenuItem
             {
+                LabelKey = "menu_add_research",
+                Action = AddResearchPoints
+            });
+            _menuItems.Add(new MenuItem
+            {
                 LabelKey = "menu_add_prestige",
                 Action = AddPrestigePoints
+            });
+            _menuItems.Add(new MenuItem
+            {
+                LabelKey = "menu_add_divinity",
+                Action = AddDivinityPoints
             });
             _menuItems.Add(new MenuItem
             {
@@ -379,6 +389,17 @@ public class SettingsMenu
         }
     }
 
+    private void AddResearchPoints()
+    {
+        var mainState = _gameController.CurrentMainState;
+        if (mainState?.PrestigeState != null)
+        {
+            mainState.PrestigeState.TechnologyTree.ResearchPoints = Math.Min(
+                mainState.PrestigeState.TechnologyTree.ResearchPoints + 1000000,
+                ResearchController.MaxResearchPoints);
+        }
+    }
+
     private void AddPrestigePoints()
     {
         var mainState = _gameController.CurrentMainState;
@@ -386,9 +407,14 @@ public class SettingsMenu
         {
             mainState.PrestigeState.PrestigePoints += 100000;
             mainState.PrestigeState.TotalPrestigePointsEarned += 100000;
-            mainState.PrestigeState.TechnologyTree.ResearchPoints = Math.Min(
-                mainState.PrestigeState.TechnologyTree.ResearchPoints + 1000000,
-                ResearchController.MaxResearchPoints);
+        }
+    }
+
+    private void AddDivinityPoints()
+    {
+        var mainState = _gameController.CurrentMainState;
+        if (mainState?.GodState != null)
+        {
             mainState.GodState.GodPoints += 1000;
             mainState.GodState.TotalGodPointsEarned += 1000;
         }
