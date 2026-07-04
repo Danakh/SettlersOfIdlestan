@@ -1,8 +1,10 @@
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 using SettlersOfIdlestan.Model.GameplayModifier;
 
 namespace SettlersOfIdlestan.Model.Civilization;
 
+[JsonConverter(typeof(JsonStringEnumConverter<NpcEvolutionLevel>))]
 public enum NpcEvolutionLevel
 {
     Minimum,
@@ -11,6 +13,7 @@ public enum NpcEvolutionLevel
     Strong
 }
 
+[JsonConverter(typeof(JsonStringEnumConverter<NpcAggressivityLevel>))]
 public enum NpcAggressivityLevel
 {
     Pacifist,

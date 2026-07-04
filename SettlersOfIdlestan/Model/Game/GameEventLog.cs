@@ -1,5 +1,8 @@
+using System.Text.Json.Serialization;
+
 namespace SettlersOfIdlestan.Model.Game;
 
+[JsonConverter(typeof(JsonStringEnumConverter<GameEventType>))]
 public enum GameEventType
 {
     NoEvent,

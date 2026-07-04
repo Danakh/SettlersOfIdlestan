@@ -1,7 +1,11 @@
 using SettlersOfIdlestan.Model.GameplayModifier;
+using System.Text.Json.Serialization;
 
 namespace SettlersOfIdlestan.Model.Civilization;
 
+// Sérialisé par nom (et non par entier) afin que l'ajout ou la suppression d'une recherche
+// ne décale jamais les valeurs des autres recherches dans les sauvegardes existantes.
+[JsonConverter(typeof(JsonStringEnumConverter<TechnologyId>))]
 public enum TechnologyId
 {
     // Tier 0
@@ -25,6 +29,7 @@ public enum TechnologyId
     AdvancedArchitecture,
     ResearchMethods,
     Metallurgy,
+    // [Legacy] Recherche "Maîtrise Militaire" supprimée — conservée uniquement pour la désérialisation des anciennes sauvegardes.
     MilitaryMastery,
     SpecializedMarket,
     // Tier 3

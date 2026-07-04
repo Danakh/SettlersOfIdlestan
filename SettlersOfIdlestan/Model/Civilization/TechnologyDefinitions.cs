@@ -39,10 +39,10 @@ public static class TechnologyDefinitions
 
         new(TechnologyId.MilitaryDiscipline,
             "tech_military_discipline_name", "tech_military_discipline_desc",
-            cost: 120,
+            cost: 1600,
             prerequisites: Array.Empty<TechnologyId>(),
             modifiers: new Modifier[] { new(ECategory.UNIT_PRODUCTION_SPEED, EType.ADDITIVE, 0.1) },
-            tier: 0, line: 8),
+            tier: 2, line: 8),
 
         // === TIER 1 ===
         
@@ -90,10 +90,10 @@ public static class TechnologyDefinitions
 
         new(TechnologyId.MilitaryTactics,
             "tech_military_tactics_name", "tech_military_tactics_desc",
-            cost: 500,
+            cost: 5500,
             prerequisites: new[] { TechnologyId.MilitaryDiscipline },
             modifiers: new Modifier[] { new(ECategory.UNIT_PRODUCTION_SPEED, EType.ADDITIVE, 0.15) },
-            tier: 1, line: 8),
+            tier: 3, line: 8),
 
         // Débloquée par le vertex de prestige Tour de Guet
         new(TechnologyId.Scouting,
@@ -160,17 +160,6 @@ public static class TechnologyDefinitions
             prerequisites: new[] { TechnologyId.Archivage },
             modifiers: new Modifier[] { new(ECategory.RESEARCH_COST_REDUCTION, EType.ADDITIVE, 0.1) },
             tier: 2, line: 6),
-
-        new(TechnologyId.MilitaryMastery,
-            "tech_military_mastery_name", "tech_military_mastery_desc",
-            cost: 2085,
-            prerequisites: new[] { TechnologyId.MilitaryTactics },
-            modifiers: new Modifier[]
-            {
-                new(ECategory.UNIT_PRODUCTION_SPEED, EType.ADDITIVE, 0.25),
-                new(ECategory.CITY_DEFENSE, EType.ADDITIVE, 1),
-            },
-            tier: 2, line: 8),
 
         // === TIER 3 ===
 
@@ -247,7 +236,7 @@ public static class TechnologyDefinitions
         new(TechnologyId.AdvancedTactics,
             "tech_advanced_tactics_name", "tech_advanced_tactics_desc",
             cost: 17000,
-            prerequisites: new[] { TechnologyId.MilitaryMastery, TechnologyId.RapidConstruction },
+            prerequisites: new[] { TechnologyId.MilitaryTactics, TechnologyId.RapidConstruction },
             modifiers: new Modifier[] { new(ECategory.UNLOCK_AUTO_REINFORCEMENT, EType.ADDITIVE, 1) },
             tier: 4, line: 8),
 

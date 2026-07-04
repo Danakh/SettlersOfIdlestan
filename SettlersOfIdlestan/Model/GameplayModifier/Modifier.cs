@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Text.Json.Serialization;
 
 namespace SettlersOfIdlestan.Model.GameplayModifier
 {
     public class Modifier
     {
+        [JsonConverter(typeof(JsonStringEnumConverter<ECategory>))]
         public enum ECategory
         {
             BUILDING_MAX_LEVEL,
@@ -138,6 +140,7 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             STORAGE_CAPACITY_MULTIPLIER,
         }
 
+        [JsonConverter(typeof(JsonStringEnumConverter<EType>))]
         public enum EType
         {
             ADDITIVE,

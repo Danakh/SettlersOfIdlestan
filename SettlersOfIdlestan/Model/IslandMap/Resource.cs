@@ -1,8 +1,11 @@
+using System.Text.Json.Serialization;
+
 namespace SettlersOfIdlestan.Model.IslandMap;
 
 /// <summary>
 /// Represents the resources produced by land tiles.
 /// </summary>
+[JsonConverter(typeof(JsonStringEnumConverter<Resource>))]
 public enum Resource
 {
     Food,
