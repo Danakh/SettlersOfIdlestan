@@ -290,8 +290,8 @@ namespace SOITests.ControllerTests
             var controller = new PrestigeController();
             controller.Initialize(civ, state, prestigeState: prestigeState);
 
-            // (1 × 1.2) × (2 × 2) = 4.8 → (int) 4
-            Assert.Equal(4, controller.CalculatePrestigePoints());
+            // (1 × 1.2) × (1 + tier bonus 10%) × (2 × 2) = 5.28 → (int) 5
+            Assert.Equal(5, controller.CalculatePrestigePoints());
         }
 
         // ── Civilizations destroyed prestige bonus ──────────────────────────

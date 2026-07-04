@@ -12,7 +12,7 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay.Popup;
 public sealed class PrestigeRenderer : PopupRendererBase
 {
     protected override float PopupWidth    => 460;
-    protected override float PopupHeight   => 420;
+    protected override float PopupHeight   => 448;
     protected override float TitleFontSize => 20f;
     protected override float BodyFontSize  => 14f;
     protected override float BtnFontSize   => 14f;
@@ -85,14 +85,17 @@ public sealed class PrestigeRenderer : PopupRendererBase
         double gainBonus         = controller.GetPrestigeGainBonus();
         double seaportBonus      = controller.GetSeaportPrestigeBonus();
         double civDestroyedBonus = controller.GetCivilizationsDestroyedBonus();
+        int tier                 = controller.GetTier();
+        double tierBonus         = controller.GetTierBonus();
         bool showGainBonus       = gainBonus > 0;
         bool showSeaportBonus    = seaportBonus > 0;
         bool showCivBonus        = civDestroyedBonus > 0;
+        const float tierOffset   = 28f; // toujours affiché
         float gainOffset         = showGainBonus    ? 28f : 0f;
         float seaportOffset      = showSeaportBonus ? 28f : 0f;
         float civOffset          = showCivBonus     ? 28f : 0f;
         float spireOffset        = showSpireBonus   ? 28f : 0f;
-        float belowWonderOffset  = gainOffset + seaportOffset + civOffset + spireOffset;
+        float belowWonderOffset  = gainOffset + seaportOffset + civOffset + spireOffset + tierOffset;
         float y              = popup.Top + 68;
         float listBottom     = popup.Bottom - 152 - belowWonderOffset;
         int maxVisibleSources = Math.Max(0, (int)((listBottom - y) / SourceRowHeight));
@@ -137,7 +140,7 @@ public sealed class PrestigeRenderer : PopupRendererBase
         // Spire de Corruption (affichée quand construite)
         if (showSpireBonus)
         {
-            float spireRowOffset = gainOffset + seaportOffset + civOffset;
+            float spireRowOffset = gainOffset + seaportOffset + civOffset + tierOffset;
             canvas.DrawLine(popup.Left + Padding, popup.Bottom - 114 - spireRowOffset, popup.Right - Padding, popup.Bottom - 114 - spireRowOffset, _separatorPaint);
             string spireLabel = _localization.GetFormated("prestige_corruption_spire_bonus", controller.GetCorruptionLevel());
             SkiaTextUtils.DrawText(canvas, spireLabel, popup.Left + Padding, popup.Bottom - 100 - spireRowOffset, BodyFont!, SubtlePaint);
@@ -148,31 +151,39 @@ public sealed class PrestigeRenderer : PopupRendererBase
         // Bonus gain de prestige (affiché quand > 0)
         if (showGainBonus)
         {
-            canvas.DrawLine(popup.Left + Padding, popup.Bottom - 114 - seaportOffset - civOffset, popup.Right - Padding, popup.Bottom - 114 - seaportOffset - civOffset, _separatorPaint);
-            SkiaTextUtils.DrawText(canvas, _localization.Get("prestige_gain_bonus"), popup.Left + Padding, popup.Bottom - 100 - seaportOffset - civOffset, BodyFont!, SubtlePaint);
-            SkiaTextUtils.DrawText(canvas, $"×{1 + gainBonus:0.##}", popup.Right - Padding, popup.Bottom - 100 - seaportOffset - civOffset, SKTextAlign.Right, BtnFont!, SubtlePaint);
-            _hoverRects.Add((new SKRect(popup.Left, popup.Bottom - 114 - seaportOffset - civOffset, popup.Right, popup.Bottom - 86 - seaportOffset - civOffset), "prestige_tooltip_prestige_gain_bonus"));
+            float rowOffset = seaportOffset + civOffset + tierOffset;
+            canvas.DrawLine(popup.Left + Padding, popup.Bottom - 114 - rowOffset, popup.Right - Padding, popup.Bottom - 114 - rowOffset, _separatorPaint);
+            SkiaTextUtils.DrawText(canvas, _localization.Get("prestige_gain_bonus"), popup.Left + Padding, popup.Bottom - 100 - rowOffset, BodyFont!, SubtlePaint);
+            SkiaTextUtils.DrawText(canvas, $"×{1 + gainBonus:0.##}", popup.Right - Padding, popup.Bottom - 100 - rowOffset, SKTextAlign.Right, BtnFont!, SubtlePaint);
+            _hoverRects.Add((new SKRect(popup.Left, popup.Bottom - 114 - rowOffset, popup.Right, popup.Bottom - 86 - rowOffset), "prestige_tooltip_prestige_gain_bonus"));
         }
 
         // Bonus Ports niv. 4 (affiché quand > 0)
         if (showSeaportBonus)
         {
             int portCount = controller.GetSeaportLevel4Count();
-            canvas.DrawLine(popup.Left + Padding, popup.Bottom - 114 - civOffset, popup.Right - Padding, popup.Bottom - 114 - civOffset, _separatorPaint);
-            SkiaTextUtils.DrawText(canvas, _localization.GetFormated("prestige_seaport_bonus", portCount), popup.Left + Padding, popup.Bottom - 100 - civOffset, BodyFont!, SubtlePaint);
-            SkiaTextUtils.DrawText(canvas, $"+{seaportBonus * 100:0}%", popup.Right - Padding, popup.Bottom - 100 - civOffset, SKTextAlign.Right, BtnFont!, SubtlePaint);
-            _hoverRects.Add((new SKRect(popup.Left, popup.Bottom - 114 - civOffset, popup.Right, popup.Bottom - 86 - civOffset), "prestige_tooltip_seaport_bonus"));
+            float rowOffset = civOffset + tierOffset;
+            canvas.DrawLine(popup.Left + Padding, popup.Bottom - 114 - rowOffset, popup.Right - Padding, popup.Bottom - 114 - rowOffset, _separatorPaint);
+            SkiaTextUtils.DrawText(canvas, _localization.GetFormated("prestige_seaport_bonus", portCount), popup.Left + Padding, popup.Bottom - 100 - rowOffset, BodyFont!, SubtlePaint);
+            SkiaTextUtils.DrawText(canvas, $"+{seaportBonus * 100:0}%", popup.Right - Padding, popup.Bottom - 100 - rowOffset, SKTextAlign.Right, BtnFont!, SubtlePaint);
+            _hoverRects.Add((new SKRect(popup.Left, popup.Bottom - 114 - rowOffset, popup.Right, popup.Bottom - 86 - rowOffset), "prestige_tooltip_seaport_bonus"));
         }
 
         // Bonus civilisations détruites (affiché quand > 0)
         if (showCivBonus)
         {
             int civCount = controller.GetCivilizationsDestroyedCount();
-            canvas.DrawLine(popup.Left + Padding, popup.Bottom - 114, popup.Right - Padding, popup.Bottom - 114, _separatorPaint);
-            SkiaTextUtils.DrawText(canvas, _localization.GetFormated("prestige_civilizations_destroyed_bonus", civCount), popup.Left + Padding, popup.Bottom - 100, BodyFont!, SubtlePaint);
-            SkiaTextUtils.DrawText(canvas, $"+{civDestroyedBonus * 100:0}%", popup.Right - Padding, popup.Bottom - 100, SKTextAlign.Right, BtnFont!, SubtlePaint);
-            _hoverRects.Add((new SKRect(popup.Left, popup.Bottom - 114, popup.Right, popup.Bottom - 86), "prestige_tooltip_civilizations_destroyed_bonus"));
+            canvas.DrawLine(popup.Left + Padding, popup.Bottom - 114 - tierOffset, popup.Right - Padding, popup.Bottom - 114 - tierOffset, _separatorPaint);
+            SkiaTextUtils.DrawText(canvas, _localization.GetFormated("prestige_civilizations_destroyed_bonus", civCount), popup.Left + Padding, popup.Bottom - 100 - tierOffset, BodyFont!, SubtlePaint);
+            SkiaTextUtils.DrawText(canvas, $"+{civDestroyedBonus * 100:0}%", popup.Right - Padding, popup.Bottom - 100 - tierOffset, SKTextAlign.Right, BtnFont!, SubtlePaint);
+            _hoverRects.Add((new SKRect(popup.Left, popup.Bottom - 114 - tierOffset, popup.Right, popup.Bottom - 86 - tierOffset), "prestige_tooltip_civilizations_destroyed_bonus"));
         }
+
+        // Bonus de palier (Tier) — toujours affiché
+        canvas.DrawLine(popup.Left + Padding, popup.Bottom - 114, popup.Right - Padding, popup.Bottom - 114, _separatorPaint);
+        SkiaTextUtils.DrawText(canvas, _localization.GetFormated("prestige_tier_bonus", tier), popup.Left + Padding, popup.Bottom - 100, BodyFont!, SubtlePaint);
+        SkiaTextUtils.DrawText(canvas, $"+{tierBonus * 100:0}%", popup.Right - Padding, popup.Bottom - 100, SKTextAlign.Right, BtnFont!, SubtlePaint);
+        _hoverRects.Add((new SKRect(popup.Left, popup.Bottom - 114, popup.Right, popup.Bottom - 86), "prestige_tooltip_tier_bonus"));
 
         // Total
         canvas.DrawLine(popup.Left + Padding, popup.Bottom - 86, popup.Right - Padding, popup.Bottom - 86, _separatorPaint);

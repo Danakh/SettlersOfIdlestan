@@ -29,6 +29,29 @@ public class PrestigeState
     [System.Text.Json.Serialization.JsonIgnore]
     public int SurfaceCorruptionLevel => Math.Max(0, CurrentCorruptionLevel - 3);
 
+    private const int TierThresholdBase = 2500;
+
+    /// <summary>
+    /// Palier de progression des îles endgame. Commence à 1, augmente de 1 dès que
+    /// <see cref="TotalPrestigePointsEarned"/> dépasse 2500, puis un palier de plus à chaque
+    /// palier ×10 (25000, 250000, ...). Régule la force des civilisations NPC générées.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public int Tier
+    {
+        get
+        {
+            int tier = 1;
+            long threshold = TierThresholdBase;
+            while (TotalPrestigePointsEarned >= threshold)
+            {
+                tier++;
+                threshold *= 10;
+            }
+            return tier;
+        }
+    }
+
     public PrestigeState() { }
 
     public PrestigeState(WorldState worldState)

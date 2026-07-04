@@ -132,6 +132,11 @@ namespace SettlersOfIdlestan.Controller.Expand
 
         public int GetCorruptionLevel() => _prestigeState?.CurrentCorruptionLevel ?? 1;
 
+        public int GetTier() => _prestigeState?.Tier ?? 1;
+
+        /// <summary>+10% de gain de prestige par palier de progression (Tier) atteint.</summary>
+        public double GetTierBonus() => 0.1 * GetTier();
+
         public int CalculatePrestigePoints()
         {
             int subtotal = GetBuildingSubtotal() + GetDragonBonus();
@@ -142,8 +147,8 @@ namespace SettlersOfIdlestan.Controller.Expand
             double gainBonus = GetPrestigeGainBonus();
             double seaportBonus = GetSeaportPrestigeBonus();
             double civDestroyedBonus = GetCivilizationsDestroyedBonus();
-            if (gainBonus > 0 || seaportBonus > 0 || civDestroyedBonus > 0)
-                result *= (1 + gainBonus + seaportBonus + civDestroyedBonus);
+            double tierBonus = GetTierBonus();
+            result *= (1 + gainBonus + seaportBonus + civDestroyedBonus + tierBonus);
             result *= GetCorruptionSpireMultiplier();
             return (int)result;
         }
@@ -258,7 +263,8 @@ namespace SettlersOfIdlestan.Controller.Expand
                 nextIslandParameters,
                 mainGameState.Clock.CurrentTick,
                 startTick: mainGameState.Clock.CurrentTick,
-                surfaceCorruptionLevel: mainGameState.PrestigeState.SurfaceCorruptionLevel)
+                surfaceCorruptionLevel: mainGameState.PrestigeState.SurfaceCorruptionLevel,
+                tier: mainGameState.PrestigeState.Tier)
                 ?? throw new InvalidOperationException("Failed to generate next island.");
 
             mainGameState.PrestigeState.WorldState = nextWorldState;

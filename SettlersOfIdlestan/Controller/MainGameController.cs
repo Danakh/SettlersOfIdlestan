@@ -178,7 +178,8 @@ namespace SettlersOfIdlestan.Controller
                 parameters,
                 CurrentMainState.Clock.CurrentTick,
                 startTick: CurrentMainState.Clock.CurrentTick,
-                surfaceCorruptionLevel: CurrentMainState.PrestigeState.SurfaceCorruptionLevel)
+                surfaceCorruptionLevel: CurrentMainState.PrestigeState.SurfaceCorruptionLevel,
+                tier: CurrentMainState.PrestigeState.Tier)
                 ?? throw new InvalidOperationException("Failed to restart island.");
 
             CurrentMainState.PrestigeState.WorldState = newWorldState;
@@ -388,7 +389,8 @@ namespace SettlersOfIdlestan.Controller
             var prestigeState = CurrentMainState!.PrestigeState;
             var WorldState = prestigeState!.WorldState;
 
-            var npcModifiers = NpcModifierSetMaker.Create(maxTechTier: 3, maxPrestigeDistance: 2);
+            var tier = prestigeState.Tier;
+            var npcModifiers = NpcModifierSetMaker.Create(maxTechTier: tier + 1, maxPrestigeDistance: tier);
 
             foreach (var civ in WorldState!.Civilizations.Where(c => c.IsNpc))
             {

@@ -101,7 +101,7 @@ public class IslandMapGenerator
     /// gives each land hex (outside the player's starting city) a 10%-per-level chance of being
     /// corrupted, with the corruption level itself rolled the same way as in auto-expand layers.
     /// </summary>
-    public WorldState? GenerateWorldState(IslandParameters parameters, long currentTick, long startTick = 0, int surfaceCorruptionLevel = 0)
+    public WorldState? GenerateWorldState(IslandParameters parameters, long currentTick, long startTick = 0, int surfaceCorruptionLevel = 0, int tier = 1)
     {
         IslandShapeGenerator shapeGenerator = parameters.ShapeType switch
         {
@@ -128,7 +128,7 @@ public class IslandMapGenerator
         var WorldState = new WorldState(map, civs, parameters.WorldId) { StartTick = startTick };
 
         if (parameters.NpcCivilizations.Count > 0)
-            new NpcCivilizationPlacer().PlaceNpcCivilizations(WorldState, _prng);
+            new NpcCivilizationPlacer().PlaceNpcCivilizations(WorldState, _prng, tier);
 
         if (parameters.Features.Count > 0)
             PlaceFeatures(WorldState, parameters.Features, currentTick);

@@ -32,7 +32,7 @@ public class NpcCivilizationPlacer
     /// Garantit que toutes les villes NPC (initiales et expansion) sont à ≥ leur MinDistanceFromPlayer
     /// edges de la ville du joueur. Place autant de NPC que possible si la carte est trop petite.
     /// </summary>
-    public bool PlaceNpcCivilizations(WorldState state, GamePRNG prng)
+    public bool PlaceNpcCivilizations(WorldState state, GamePRNG prng, int tier = 1)
     {
         if (state.PlayerCivilization.Cities.Count == 0) return false;
 
@@ -42,7 +42,7 @@ public class NpcCivilizationPlacer
         var playerVertex = state.PlayerCivilization.Cities[0].Position;
         var allValidVertices = FindValidCityVertices(state.GetMapForZ(IslandMap.SurfaceLayer)!);
 
-        var npcModifiers = NpcModifierSetMaker.Create(maxTechTier: 3, maxPrestigeDistance: 2);
+        var npcModifiers = NpcModifierSetMaker.Create(maxTechTier: tier + 1, maxPrestigeDistance: tier);
         var maritimeModifier = new StaticModifierProvider(new[]
         {
             new Modifier(Modifier.ECategory.UNLOCK_MARITIME_ROUTES, Modifier.EType.ADDITIVE, 1),
@@ -70,10 +70,6 @@ public class NpcCivilizationPlacer
             civ.AddCustomAggregator(maritimeModifier);
             PopulateMinimumNpc(map, civ, bestPlacement[i]);
         }
-
-        bool needsExpansion = npcCivs.Take(bestPlacement.Count).Any(c =>
-            (c.NpcParameters?.EvolutionLevel ?? NpcEvolutionLevel.Minimum) != NpcEvolutionLevel.Minimum);
-        if (!needsExpansion) return true;
 
         var clock = new GameClock();
         clock.Start();
@@ -214,7 +210,7 @@ public class NpcCivilizationPlacer
         NpcEvolutionLevel.Low    => 2,
         NpcEvolutionLevel.Medium => 3,
         NpcEvolutionLevel.Strong => 4,
-        _                        => 1,
+        _                        => 2,
     };
 
     private static void ExpandNpcWithAutoplayer(

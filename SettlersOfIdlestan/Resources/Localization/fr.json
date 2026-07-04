@@ -260,6 +260,8 @@
   "prestige_tooltip_seaport_bonus": "Chaque Port maritime au niveau 4 ajoute +5% de prestige.",
   "prestige_civilizations_destroyed_bonus": "Civilisations détruites ({0})",
   "prestige_tooltip_civilizations_destroyed_bonus": "Chaque civilisation ennemie entièrement éliminée ce run ajoute +20% de prestige.",
+  "prestige_tier_bonus": "Palier {0}",
+  "prestige_tooltip_tier_bonus": "Plus votre civilisation progresse à travers les paliers, plus les civilisations adverses qu'elle affronte deviennent redoutables.",
   "prestige_tooltip_unlocks_seaport_automation": "Automatise la construction des Ports maritimes (via Port impérial)",
   "prestige_tooltip_unlocks_auto_market_trade": "Vend automatiquement le surplus de ressources dans les villes avec un Marché niv.4+",
   "prestige_tooltip_unlocks_auto_buy_trade": "Achète automatiquement la ressource de base la plus rare avec l'or excédentaire dans les villes avec un Marché niv.4+",
