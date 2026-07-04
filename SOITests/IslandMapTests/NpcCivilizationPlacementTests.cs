@@ -211,7 +211,7 @@ public class NpcCivilizationPlacementTests
     [InlineData(IslandShapeType.Crescent)]
     [InlineData(IslandShapeType.Archipelago)]
     [InlineData(IslandShapeType.Elongated)]
-    public void NpcMedium_HalfProductionBuildingsAreLevelThreeOrAbove(IslandShapeType shape)
+    public void NpcMedium_HalfProductionBuildingsAreLevelTwoOrAbove(IslandShapeType shape)
     {
         var state = CreateIsland(shape, npcCount: 1, NpcEvolutionLevel.Medium);
         var npcCiv = state.Civilizations.First(c => c.IsNpc);
@@ -225,10 +225,10 @@ public class NpcCivilizationPlacementTests
 
         Assert.NotEmpty(prodBuildings);
 
-        int level3Plus = prodBuildings.Count(b => b.Level >= 3);
+        int level3Plus = prodBuildings.Count(b => b.Level >= 2);
         int halfCount = (prodBuildings.Count + 1) / 2;
         Assert.True(level3Plus >= halfCount,
-            $"[{shape}] attendu ≥ {halfCount} bâtiments de production niveau 3+, reçu {level3Plus}/{prodBuildings.Count}");
+            $"[{shape}] attendu ≥ {halfCount} bâtiments de production niveau 2+, reçu {level3Plus}/{prodBuildings.Count}");
     }
 
     [Theory]

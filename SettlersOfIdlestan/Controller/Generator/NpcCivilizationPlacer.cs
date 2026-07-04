@@ -237,16 +237,7 @@ public class NpcCivilizationPlacer
         }
 
         AddDefaultBuildingsForLevel(map, civ, level);
-        FillMaxResources(civ);
     }
-
-    private static readonly BuildingType[] StrongNonUniqueBuildings =
-    {
-        BuildingType.TownHall, BuildingType.Market, BuildingType.Mine, BuildingType.Warehouse,
-        BuildingType.Forge, BuildingType.Library, BuildingType.Temple, BuildingType.BuildersGuild,
-        BuildingType.Laboratory, BuildingType.Barracks, BuildingType.Palisade, BuildingType.Watchtower,
-        BuildingType.Academy, BuildingType.MilitaryAcademy,
-    };
 
     private static void AddDefaultBuildingsForLevel(IslandMap map, Civilization civ, NpcEvolutionLevel level)
     {
@@ -264,16 +255,8 @@ public class NpcCivilizationPlacer
             var bt = GetProductionBuildingType(tile.TerrainType);
             if (bt == null) continue;
 
-            if (level == NpcEvolutionLevel.Strong)
-            {
-                var proto = BuildingController.CreateBuilding(bt.Value);
-                if (proto != null) EnsureBuilding(city, bt.Value, proto.GetDefaultMaxLevel());
-            }
-            else
-            {
-                int prodLevel = level == NpcEvolutionLevel.Medium ? 3 : 2;
-                EnsureBuilding(city, bt.Value, prodLevel);
-            }
+            int prodLevel = (level == NpcEvolutionLevel.Strong) ? 3 : (level == NpcEvolutionLevel.Medium) ? 2 : 1;
+            EnsureBuilding(city, bt.Value, prodLevel);
         }
 
         switch (level)
@@ -294,15 +277,15 @@ public class NpcCivilizationPlacer
                 EnsureBuilding(city, BuildingType.Market, 1);
                 EnsureBuilding(city, BuildingType.Warehouse, 3);
                 EnsureBuilding(city, BuildingType.Palisade);
-                EnsureBuilding(city, BuildingType.Barracks);
                 break;
 
             case NpcEvolutionLevel.Strong:
-                foreach (var bt in StrongNonUniqueBuildings)
-                {
-                    var proto = BuildingController.CreateBuilding(bt);
-                    if (proto != null) EnsureBuilding(city, bt, proto.GetDefaultMaxLevel());
-                }
+                EnsureBuilding(city, BuildingType.TownHall, 3);
+                EnsureBuilding(city, BuildingType.Market, 4);
+                EnsureBuilding(city, BuildingType.Warehouse, 3);
+                EnsureBuilding(city, BuildingType.Palisade);
+                EnsureBuilding(city, BuildingType.Forge, 2);
+                EnsureBuilding(city, BuildingType.Barracks);
                 break;
         }
     }
