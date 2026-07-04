@@ -456,6 +456,30 @@ public static class TechnologyDefinitions
             modifiers: new Modifier[] { new(ECategory.UNLOCK_SPELL, "ArcaneEdification", EType.ADDITIVE, 1) },
             tier: 6, line: 12),
 
+        // === Recherches de bonus de prestige (capstones de branches existantes) ===
+
+        // Bifurque une ligne plus bas que la Tour de Guet (Scouting).
+        new(TechnologyId.ChroniquesDuGuet,
+            "tech_chroniques_du_guet_name", "tech_chroniques_du_guet_desc",
+            cost: 1800,
+            prerequisites: new[] { TechnologyId.Scouting },
+            modifiers: new Modifier[] { new(ECategory.PRESTIGE_GAIN, EType.ADDITIVE, 0.15) },
+            tier: 2, line: 10),
+
+        new(TechnologyId.RenommeeCommerciale,
+            "tech_renommee_commerciale_name", "tech_renommee_commerciale_desc",
+            cost: 45000,
+            prerequisites: new[] { TechnologyId.AutomaticMarket },
+            modifiers: new Modifier[] { new(ECategory.PRESTIGE_GAIN, EType.ADDITIVE, 0.2) },
+            tier: 5, line: 4),
+
+        new(TechnologyId.SagesseSouterraine,
+            "tech_sagesse_souterraine_name", "tech_sagesse_souterraine_desc",
+            cost: 45000,
+            prerequisites: new[] { TechnologyId.CultureFongique },
+            modifiers: new Modifier[] { new(ECategory.PRESTIGE_GAIN, EType.ADDITIVE, 0.25) },
+            tier: 6, line: 0),
+
     };
 
     public static Technology? Get(TechnologyId id) => All.FirstOrDefault(t => t.Id == id);

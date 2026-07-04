@@ -71,6 +71,10 @@ public enum TechnologyId
     Invocation,
     TroopSummoning,
     ArcaneEdification,
+    // Recherches de bonus de prestige (capstones de branches existantes)
+    ChroniquesDuGuet,
+    RenommeeCommerciale,
+    SagesseSouterraine,
 }
 
 public enum TechnologyStatus

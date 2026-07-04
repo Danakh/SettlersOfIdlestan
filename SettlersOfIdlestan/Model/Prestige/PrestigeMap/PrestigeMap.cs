@@ -62,7 +62,6 @@ public class PrestigeMap
     public static readonly Vertex TraderGuildVertex          = Vertex.Create(new(-1, 1, 0), new(-1, 2, 0), new(-2, 2, 0));
     public static readonly Vertex WarehouseNewCitiesVertex   = Vertex.Create(new(0, 0, 0), new(-1, 0, 0), new(0, -1, 0));
 
-    // ── Placeholder vertices — fill all open corners around mapped hexes ──────
     // Around FortifiedOutpost (0,-1) / UnitProductionSpeed (1,-1) north edge
     public static readonly Vertex ReinforcedPalisadeVertex = Vertex.Create(new(0, -1, 0), new(1, -2, 0), new(1, -1, 0));
     public static readonly Vertex StrategicRationsVertex = Vertex.Create(new(0, -1, 0), new(0, -2, 0), new(1, -2, 0));

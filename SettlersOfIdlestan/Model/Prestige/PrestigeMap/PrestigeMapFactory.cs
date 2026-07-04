@@ -346,12 +346,11 @@ public static class PrestigeMapFactory
                     new(ECategory.PASSIVE_RESOURCE_GENERATION, "Crystal", EType.ADDITIVE, 1),
                 }
             ),
-            // ── Placeholder vertices (no bonuses) ────────────────────────────
             new(
                 PrestigeMap.ReinforcedPalisadeVertex,
                 "prestige_vertex_reinforced_palisade",
                 cost: Cost(PrestigeMap.ReinforcedPalisadeVertex),
-                modifiers: new Modifier[] { new(ECategory.BUILDING_MAX_LEVEL, "Palisade", EType.ADDITIVE, 1) }
+                modifiers: new Modifier[] { new(ECategory.BUILDING_MAX_LEVEL, "Palisade", EType.ADDITIVE, 2) }
             ),
             new(
                 PrestigeMap.RapidDeploymentVertex,

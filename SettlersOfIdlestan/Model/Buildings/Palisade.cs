@@ -9,22 +9,22 @@ public class Palisade : Building
         AvailableAtLevel = 1;
     }
 
-    public override int GetDefaultMaxLevel() => 1;
+    public override int GetDefaultMaxLevel() => 0;
 
     public override int GetDefenseBonus() => GetDefenseBonusAtLevel(Level);
 
-    public int GetDefenseBonusAtLevel(int level) => level switch
+    public int GetDefenseBonusAtLevel(int level)
     {
-        >= 3 => 30,
-        2    => 20,
-        _    => 10,
-    };
+        return 10 * level;
+    }
 
     public override double GetDefenseRegenBonus() => GetDefenseRegenBonusAtLevel(Level);
 
     public double GetDefenseRegenBonusAtLevel(int level) => level switch
     {
-        >= 3 => 0.4,
+        >= 5 => 1,
+        4    => 0.7,
+        3    => 0.4,
         2    => 0.2,
         _    => 0.0,
     };
@@ -39,6 +39,8 @@ public class Palisade : Building
     {
         2 => new ResourceSet { { Resource.Brick, 50 } },
         3 => new ResourceSet { { Resource.Stone, 200 } },
+        4 => new ResourceSet { { Resource.Ore, 300 } },
+        5 => new ResourceSet { { Resource.Mithril, 100 } },
         _ => new ResourceSet(),
     };
 }
