@@ -98,8 +98,7 @@ public class NpcCivilizationPlacementTests
         foreach (var civ in state.Civilizations.Where(c => c.IsNpc))
         {
             Assert.NotEmpty(civ.Cities); // toutes les civs NPC doivent avoir été placées
-            Assert.Single(civ.Cities);
-            var city = civ.Cities[0];
+            var city = civ.Cities[0]; // ville initiale, avant expansion
 
             var townHall = city.Buildings.FirstOrDefault(b => b.Type == BuildingType.TownHall);
             Assert.NotNull(townHall);
@@ -173,11 +172,11 @@ public class NpcCivilizationPlacementTests
 
     private static int ExpectedCityCount(NpcEvolutionLevel level) => level switch
     {
-        NpcEvolutionLevel.Minimum => 1,
+        NpcEvolutionLevel.Minimum => 2,
         NpcEvolutionLevel.Low     => 2,
         NpcEvolutionLevel.Medium  => 3,
         NpcEvolutionLevel.Strong  => 4,
-        _                         => 1,
+        _                         => 2,
     };
 
     [Theory]

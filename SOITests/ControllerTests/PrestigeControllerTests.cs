@@ -344,6 +344,7 @@ namespace SOITests.ControllerTests
                         EvolutionLevel        = SettlersOfIdlestan.Model.Civilization.NpcEvolutionLevel.Minimum,
                         AggressivityLevel     = SettlersOfIdlestan.Model.Civilization.NpcAggressivityLevel.Pacifist,
                         MinDistanceFromPlayer = 3,
+                        CityCount             = 1,
                     }
                 ]
             };

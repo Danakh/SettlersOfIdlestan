@@ -79,7 +79,6 @@ public class NpcCivilizationPlacer
         foreach (var civ in npcCivs.Take(bestPlacement.Count))
         {
             var level = civ.NpcParameters?.EvolutionLevel ?? NpcEvolutionLevel.Minimum;
-            if (level == NpcEvolutionLevel.Minimum) continue;
 
             var aggressivity = civ.NpcParameters?.AggressivityLevel ?? NpcAggressivityLevel.Cautious;
             var autoplayer = new NpcCivilizationAutoplayer(civ, map, mainController, aggressivity);
