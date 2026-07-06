@@ -3,6 +3,14 @@ The changelog is not actively maintained at the moment.
 
 ---
 
+v0.7
+• New endgame Tier system: generated NPC civilizations grow progressively stronger based on your total accumulated prestige points, with a matching prestige gain bonus
+• Destroying an enemy civilization now grants a prestige gain bonus
+• New researches, including several that boost prestige points earned
+• Market simplification: removed market specialization and manual resource buying
+
+---
+
 v0.6
 • Reworked enemy behavior
 • Enriched tooltips: resource production and consumption are now displayed
