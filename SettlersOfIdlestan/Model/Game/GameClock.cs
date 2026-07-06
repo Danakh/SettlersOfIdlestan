@@ -123,13 +123,30 @@ namespace SettlersOfIdlestan.Model.Game
         /// Avance directement le tick de simulation d'un nombre fixe de ticks.
         /// Utilisé pour les tests et l'autoplayer IA (simulation hors temps réel).
         /// </summary>
-        public void SimulateAdvance(long ticks)
+        /// <param name="ticks">Nombre total de ticks à avancer.</param>
+        /// <param name="chunkTicks">
+        /// Découpe l'avance en plusieurs déclenchements de <see cref="Advanced"/> d'au plus
+        /// <paramref name="chunkTicks"/> ticks chacun, au lieu d'un seul saut. Chaque comportement
+        /// périodique (mouvement/spawn/attaque des monstres, etc.) ne se déclenche qu'une fois par
+        /// événement <see cref="Advanced"/> — un seul grand saut ne lui donne donc qu'une seule
+        /// chance d'agir, quelle que soit sa taille. Par défaut (int.MaxValue), aucun découpage :
+        /// comportement historique inchangé pour tous les appelants existants.
+        /// </param>
+        public void SimulateAdvance(long ticks, long chunkTicks = 100)
         {
             if (ticks <= 0) return;
-            long previous = CurrentTick;
-            CurrentTick += ticks;
-            try { Advanced?.Invoke(this, new GameClockAdvancedEventArgs(previous, CurrentTick)); }
-            catch { }
+            if (chunkTicks <= 0) throw new ArgumentOutOfRangeException(nameof(chunkTicks));
+
+            long remaining = ticks;
+            while (remaining > 0)
+            {
+                long chunk = Math.Min(chunkTicks, remaining);
+                long previous = CurrentTick;
+                CurrentTick += chunk;
+                try { Advanced?.Invoke(this, new GameClockAdvancedEventArgs(previous, CurrentTick)); }
+                catch { }
+                remaining -= chunk;
+            }
         }
 
         /// <summary>

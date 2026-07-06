@@ -44,28 +44,17 @@ public class AtlasIsland5EnemyVisibilityTests
             if (i > 0)
                 controller.RestartIsland();
 
-            AdvanceTicksInChunks(controller, TicksToSimulateForMonsters);
+            controller.Clock!.SimulateAdvance(TicksToSimulateForMonsters, ChunkTicks);
 
             var visibleMaps = GetPlayerVisibleMaps(controller);
             AssertNoEnemiesInPlayerView(controller, visibleMaps, i);
             AssertNoOtherCivilizationInPlayerView(controller, visibleMaps, i);
 
             var additionalTicks = TicksToSimulateForOtherCivilizations - TicksToSimulateForMonsters;
-            AdvanceTicksInChunks(controller, additionalTicks);
+            controller.Clock!.SimulateAdvance(additionalTicks, ChunkTicks);
 
             visibleMaps = GetPlayerVisibleMaps(controller);
             AssertNoOtherCivilizationInPlayerView(controller, visibleMaps, i);
-        }
-    }
-
-    private static void AdvanceTicksInChunks(MainGameController controller, long totalTicks)
-    {
-        long remaining = totalTicks;
-        while (remaining > 0)
-        {
-            long chunk = System.Math.Min(ChunkTicks, remaining);
-            controller.Clock!.SimulateAdvance(chunk);
-            remaining -= chunk;
         }
     }
 
