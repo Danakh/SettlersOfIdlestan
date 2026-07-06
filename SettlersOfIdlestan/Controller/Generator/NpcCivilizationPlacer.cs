@@ -68,6 +68,9 @@ public class NpcCivilizationPlacer
             var civ = npcCivs[i];
             civ.AddCustomAggregator(npcModifiers);
             civ.AddCustomAggregator(maritimeModifier);
+            var aggressivityMalus = BuildAggressivityHarvestMalus(civ.NpcParameters?.AggressivityLevel ?? NpcAggressivityLevel.Cautious);
+            if (aggressivityMalus != null)
+                civ.AddCustomAggregator(aggressivityMalus);
             PopulateMinimumNpc(map, civ, bestPlacement[i]);
         }
 
@@ -86,6 +89,27 @@ public class NpcCivilizationPlacer
         }
 
         return true;
+    }
+
+    /// <summary>
+    /// Malus multiplicatif de vitesse de récolte selon l'agressivité : Pacifist -50%, Cautious -25%.
+    /// Expansionist/Warlike n'ont pas de malus. Appliqué en dernier dans l'agrégateur pour réduire
+    /// le total accumulé (techs/prestige NPC compris), pas seulement la base.
+    /// </summary>
+    private static IModifierProvider? BuildAggressivityHarvestMalus(NpcAggressivityLevel aggressivity)
+    {
+        double factor = aggressivity switch
+        {
+            NpcAggressivityLevel.Pacifist => 0.5,
+            NpcAggressivityLevel.Cautious => 0.75,
+            _                              => 1.0,
+        };
+        if (factor >= 1.0) return null;
+
+        return new StaticModifierProvider(new[]
+        {
+            new Modifier(Modifier.ECategory.HARVEST_SPEED, Modifier.EType.MULTIPLICATIVE, factor),
+        });
     }
 
     private static List<Vertex> PlaceVerticesGreedy(
@@ -209,7 +233,7 @@ public class NpcCivilizationPlacer
         NpcEvolutionLevel.Low    => 2,
         NpcEvolutionLevel.Medium => 3,
         NpcEvolutionLevel.Strong => 4,
-        _                        => 2,
+        _                        => 1,
     };
 
     private static void ExpandNpcWithAutoplayer(

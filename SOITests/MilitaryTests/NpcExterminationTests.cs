@@ -71,6 +71,9 @@ public class NpcExterminationTests
         var prestige = new PrestigeState(WorldState);
         prestige.PurchasedVertices.Add(PrestigeMap.CentralVertex);
         prestige.PurchasedVertices.Add(PrestigeMap.BarracksVertex);
+        prestige.TechnologyTree.CompleteResearch(TechnologyId.MilitaryDiscipline);
+        prestige.TechnologyTree.CompleteResearch(TechnologyId.MilitaryTactics);
+        prestige.TechnologyTree.CompleteResearch(TechnologyId.Scouting);
         mainState.GodState = new GodState(prestige);
 
         var mainController = new MainGameController();

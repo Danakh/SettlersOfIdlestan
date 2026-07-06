@@ -70,8 +70,6 @@ public class NpcGameController
         if (_state == null || _mainController == null) return;
 
         var aggressivity = civ.NpcParameters?.AggressivityLevel ?? NpcAggressivityLevel.Cautious;
-        if (aggressivity == NpcAggressivityLevel.Pacifist) return;
-
 
         // Aggressive civs stop expanding once they can see an enemy.
         bool hasEncounteredEnemy = aggressivity >= NpcAggressivityLevel.Expansionist
