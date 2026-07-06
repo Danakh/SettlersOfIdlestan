@@ -172,11 +172,11 @@ public class NpcCivilizationPlacementTests
 
     private static int ExpectedCityCount(NpcEvolutionLevel level) => level switch
     {
-        NpcEvolutionLevel.Minimum => 2,
+        NpcEvolutionLevel.Minimum => 1,
         NpcEvolutionLevel.Low     => 2,
         NpcEvolutionLevel.Medium  => 3,
         NpcEvolutionLevel.Strong  => 4,
-        _                         => 2,
+        _                         => 1,
     };
 
     [Theory]

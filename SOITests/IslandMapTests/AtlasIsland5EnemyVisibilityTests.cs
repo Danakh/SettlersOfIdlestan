@@ -17,8 +17,22 @@ namespace SOITests.IslandMapTests;
 [Collection(StepIslandTestCollection.Name)]
 public class AtlasIsland5EnemyVisibilityTests
 {
-    private const long TicksToSimulate = 6000;
+    private const long TicksToSimulateForMonsters = 6000;
+    private const long TicksToSimulateForOtherCivilizations = 30000;
     private const int Iterations = 10;
+
+    /// <summary>
+    /// GameClock.Advanced fires once per SimulateAdvance call, and every periodic monster behavior
+    /// (movement, spawns, attacks — see MonsterFeatureController.Update) is a single "has the interval
+    /// elapsed since last time?" check per firing, not a catch-up loop. A single
+    /// SimulateAdvance(300_000) therefore gives a movable monster exactly one chance to take one step,
+    /// identical to SimulateAdvance(6_000) — the size of the jump stops mattering past the first
+    /// interval. Real gameplay instead calls GameClock.Advance(now) many times per second, so it
+    /// fires that check repeatedly. Chunking here reproduces that: each chunk is small enough that a
+    /// monster crosses at most one interval per chunk, so N ticks give it roughly N / interval chances
+    /// to act, the same as it would get across N real ticks of play.
+    /// </summary>
+    private const long ChunkTicks = 100;
 
     [Fact]
     public void Island5_NoEnemiesInPlayerViewAfterTicksAdvance_AcrossRegenerations()
@@ -30,11 +44,28 @@ public class AtlasIsland5EnemyVisibilityTests
             if (i > 0)
                 controller.RestartIsland();
 
-            controller.Clock!.SimulateAdvance(TicksToSimulate);
+            AdvanceTicksInChunks(controller, TicksToSimulateForMonsters);
 
             var visibleMaps = GetPlayerVisibleMaps(controller);
             AssertNoEnemiesInPlayerView(controller, visibleMaps, i);
             AssertNoOtherCivilizationInPlayerView(controller, visibleMaps, i);
+
+            var additionalTicks = TicksToSimulateForOtherCivilizations - TicksToSimulateForMonsters;
+            AdvanceTicksInChunks(controller, additionalTicks);
+
+            visibleMaps = GetPlayerVisibleMaps(controller);
+            AssertNoOtherCivilizationInPlayerView(controller, visibleMaps, i);
+        }
+    }
+
+    private static void AdvanceTicksInChunks(MainGameController controller, long totalTicks)
+    {
+        long remaining = totalTicks;
+        while (remaining > 0)
+        {
+            long chunk = System.Math.Min(ChunkTicks, remaining);
+            controller.Clock!.SimulateAdvance(chunk);
+            remaining -= chunk;
         }
     }
 
