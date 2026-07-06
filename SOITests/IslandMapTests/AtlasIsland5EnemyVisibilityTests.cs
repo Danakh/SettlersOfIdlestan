@@ -1,0 +1,101 @@
+using System.Linq;
+using SettlersOfIdlestan.Controller;
+using SettlersOfIdlestan.Model.Monsters;
+using SOITests.IslandMapTests.StepIslandTest;
+using SOITests.TestUtilities;
+using Xunit;
+
+namespace SOITests.IslandMapTests;
+
+/// <summary>
+/// Sanity check on the Atlas generator (AtlasController.BuildHighEndIsland, WorldId 5+): right after
+/// loading/(re)generating Island5, letting 6000 ticks (60 simulated seconds) pass with no player action
+/// must not bring any hostile monster, nor any other civilization, into the player's current view.
+/// Regenerates the island (MainGameController.RestartIsland, same WorldId, fresh random Atlas
+/// parameters) and repeats, for a total of 10 independently generated Island5 variants.
+/// </summary>
+[Collection(StepIslandTestCollection.Name)]
+public class AtlasIsland5EnemyVisibilityTests
+{
+    private const long TicksToSimulate = 6000;
+    private const int Iterations = 10;
+
+    [Fact]
+    public void Island5_NoEnemiesInPlayerViewAfterTicksAdvance_AcrossRegenerations()
+    {
+        var controller = SaveUtils.LoadSave("current", "Island5_Prestige");
+
+        for (int i = 0; i < Iterations; i++)
+        {
+            if (i > 0)
+                controller.RestartIsland();
+
+            controller.Clock!.SimulateAdvance(TicksToSimulate);
+
+            var visibleMaps = GetPlayerVisibleMaps(controller);
+            AssertNoEnemiesInPlayerView(controller, visibleMaps, i);
+            AssertNoOtherCivilizationInPlayerView(controller, visibleMaps, i);
+        }
+    }
+
+    private static System.Collections.Generic.List<SettlersOfIdlestan.Model.IslandMap.VisibleIslandMap> GetPlayerVisibleMaps(MainGameController controller)
+    {
+        var worldState = controller.CurrentMainState!.CurrentWorldState!;
+        var playerIndex = worldState.PlayerCivilization.Index;
+
+        return worldState.GetMapsByZ()
+            .Select(kvp => worldState.Visibility.GetForZ(kvp.Key))
+            .Where(maps => maps.ContainsKey(playerIndex))
+            .Select(maps => maps[playerIndex])
+            .ToList();
+    }
+
+    private static void AssertNoEnemiesInPlayerView(
+        MainGameController controller,
+        System.Collections.Generic.List<SettlersOfIdlestan.Model.IslandMap.VisibleIslandMap> visibleMaps,
+        int iteration)
+    {
+        var worldState = controller.CurrentMainState!.CurrentWorldState!;
+
+        var visibleEnemies = worldState.Features
+            .OfType<MonsterFeature>()
+            .Where(m => !m.AttacksOtherMonsters) // exclut les monstres "amis" (ex: Aventurier)
+            .Where(m => visibleMaps.Any(vm => vm.IsOnSameLayer(m.Position) && vm.HasTile(m.Position)))
+            .ToList();
+
+        Assert.True(visibleEnemies.Count == 0,
+            $"[iteration {iteration}] Expected no enemies in player view, found {visibleEnemies.Count}: " +
+            string.Join(", ", visibleEnemies.Select(m => $"{m.GetType().Name}@{m.Position}")));
+    }
+
+    /// <summary>
+    /// Mirrors FeatureController.DiscoverCivilizations' own visibility check: an NPC civilization is
+    /// "in view" when one of its cities or roads touches a currently player-visible tile.
+    /// </summary>
+    private static void AssertNoOtherCivilizationInPlayerView(
+        MainGameController controller,
+        System.Collections.Generic.List<SettlersOfIdlestan.Model.IslandMap.VisibleIslandMap> visibleMaps,
+        int iteration)
+    {
+        var worldState = controller.CurrentMainState!.CurrentWorldState!;
+        var playerIndex = worldState.PlayerCivilization.Index;
+
+        var visibleCivs = worldState.Civilizations
+            .Where(civ => civ.Index != playerIndex)
+            .Where(civ =>
+                civ.Cities.Any(city =>
+                    visibleMaps.Any(vm => vm.IsOnSameLayer(city.Position) && city.Position.GetHexes().Any(vm.HasTile))) ||
+                civ.Roads.Any(road =>
+                    visibleMaps.Any(vm =>
+                    {
+                        if (!vm.IsOnSameLayer(road.Position)) return false;
+                        var (h1, h2) = road.Position.GetHexes();
+                        return vm.HasTile(h1) || vm.HasTile(h2);
+                    })))
+            .ToList();
+
+        Assert.True(visibleCivs.Count == 0,
+            $"[iteration {iteration}] Expected no other civilization in player view, found {visibleCivs.Count}: " +
+            string.Join(", ", visibleCivs.Select(c => $"civ {c.Index}")));
+    }
+}
