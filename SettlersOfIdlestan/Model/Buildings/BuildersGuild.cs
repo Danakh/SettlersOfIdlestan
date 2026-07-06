@@ -19,6 +19,9 @@ public class BuildersGuild : Building
     /// <summary>Maximum road distance that can be auto-constructed (capped at 3).</summary>
     public int MaxAutoRoadDistance => Math.Min(Level, 3);
 
+    /// <summary>Multiplier applied to the per-existing-city new-city cost surcharge (surface & underworld) once built (any level).</summary>
+    public const double NewCitySurchargeMultiplier = 0.5;
+
     public BuildersGuild() : base(BuildingType.BuildersGuild)
     {
         AvailableAtLevel = 4;

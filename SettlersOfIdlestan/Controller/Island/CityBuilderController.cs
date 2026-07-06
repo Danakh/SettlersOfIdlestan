@@ -370,15 +370,32 @@ namespace SettlersOfIdlestan.Controller.Island
         public ResourceSet NewCityBuildingCostFor(Vertex targetVertex, Civilization civ)
         {
             var cost = NewCityBuildingCost();
+            double surchargeFactor = HasActiveBuildersGuild(civ) ? BuildersGuild.NewCitySurchargeMultiplier : 1.0;
             if (targetVertex.Z == LayerState.UnderworldZ)
             {
                 int underworldCities = civ.Cities.Count(c => c.Position.Z == LayerState.UnderworldZ);
-                double multiplier = 1.0 + 0.5 * underworldCities;
+                double multiplier = 1.0 + 0.5 * surchargeFactor * underworldCities;
                 foreach (var resource in cost.Keys.ToList())
                     cost[resource] = (int)Math.Round(cost[resource] * multiplier);
                 cost[Resource.Gold] = 10;
             }
+            else if (targetVertex.Z == IslandMap.SurfaceLayer)
+            {
+                int surfaceCities = civ.Cities.Count(c => c.Position.Z == IslandMap.SurfaceLayer);
+                int extraCities = Math.Max(0, surfaceCities - 1);
+                double multiplier = 1.0 + 0.05 * surchargeFactor * extraCities;
+                foreach (var resource in cost.Keys.ToList())
+                    cost[resource] = (int)Math.Round(cost[resource] * multiplier);
+            }
             return cost;
+        }
+
+        private static bool HasActiveBuildersGuild(Civilization civ)
+        {
+            foreach (var city in civ.Cities)
+                if (city.Buildings.OfType<BuildersGuild>().Any(b => b.Level > 0))
+                    return true;
+            return false;
         }
 
         public int MinDistanceBetweenCities => 2;
