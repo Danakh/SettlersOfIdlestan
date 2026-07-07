@@ -52,6 +52,7 @@ public enum TechnologyId
     Speleologie,
     // Tier 5
     MasterResearch,
+    AdvancedTradingPosts,
     Siderurgie,
     CultureFongique,
     CartographieSouterraine,

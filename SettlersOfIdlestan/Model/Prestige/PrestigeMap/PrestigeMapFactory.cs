@@ -53,7 +53,11 @@ public static class PrestigeMapFactory
                 PrestigeMap.TraderGuildVertex,
                 "prestige_vertex_traders_guild",
                 cost: Cost(PrestigeMap.TraderGuildVertex),
-                modifiers: new Modifier[] { new(ECategory.BUILDING_MAX_LEVEL, "TraderGuild", EType.ADDITIVE, 1) }
+                modifiers: new Modifier[]
+                {
+                    new(ECategory.BUILDING_MAX_LEVEL, "TraderGuild", EType.ADDITIVE, 1),
+                    new(ECategory.UNLOCK_RESEARCH, "AdvancedTradingPosts", EType.ADDITIVE, 1),
+                }
             ),
             new(
                 PrestigeMap.WarehouseNewCitiesVertex,

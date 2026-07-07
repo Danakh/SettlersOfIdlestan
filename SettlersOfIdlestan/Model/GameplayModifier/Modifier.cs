@@ -138,6 +138,8 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             UNLOCK_DOMINION,
             /// <summary>Multiplicateur appliqué à la capacité totale de stockage (basique + avancée), après les bonus additifs. Base = 1.0; +10.0 = +1000%.</summary>
             STORAGE_CAPACITY_MULTIPLIER,
+            /// <summary>Flags que la vente de Minerai et de Verre au marché est déverrouillée (recherche Comptoirs Avancés), au prix de 1/5 du coût d'achat.</summary>
+            UNLOCK_ORE_GLASS_TRADE,
         }
 
         [JsonConverter(typeof(JsonStringEnumConverter<EType>))]

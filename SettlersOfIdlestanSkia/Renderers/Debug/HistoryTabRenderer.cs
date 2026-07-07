@@ -62,7 +62,7 @@ public sealed class HistoryTabRenderer : IDisposable
         if (_disposed) return;
 
         float s        = context.UiScale;
-        float topBarH  = UILayoutService.TopBarHeight * s;
+        float topBarH  = _uiLayout.SecondRowBottom;
         float pad      = Padding * s;
 
         canvas.DrawRect(new SKRect(0, topBarH, _canvasSize.Width, _canvasSize.Height), _bgPaint);

@@ -203,19 +203,9 @@ public sealed class TradePopupRenderer : PopupRendererBase
     {
         var civ = _gameControllerService.PlayerCivilization;
         if (civ == null) return 0;
-        var tc = _gameControllerService.MainGameController.TradeController;
 
         int sellCount = GetSellableResources(civ).Count;
-
-        var prestigeState = _gameControllerService.CurrentGameState?.PrestigeState;
-        var map = PrestigeMapController.DefaultMap;
-        int buyCount = ResourceUtils.BasicResources.Count(r => tc.CanTradeResource(civ, r))
-            + Enum.GetValues<Resource>()
-                .Where(r => !ResourceUtils.BasicResources.Contains(r) && r != Resource.Gold)
-                .Where(r => !ResourceUtils.ConsumableResources.Contains(r))
-                .Where(r => !ResourceUtils.AdvancedResources.Contains(r)
-                            || (prestigeState?.IsResourceDiscovered(r, map) ?? false))
-                .Count(r => tc.CanTradeResource(civ, r));
+        int buyCount  = GetBuyableResources(civ).Count;
 
         int maxRows = Math.Max(sellCount, buyCount);
         return (26 + maxRows * (RowHeight + 4)) * s;
@@ -326,14 +316,45 @@ public sealed class TradePopupRenderer : PopupRendererBase
 
     // ── Sell side ─────────────────────────────────────────────────────────────────
 
-    // Ressources de base vendables + Acier si la recherche Aciers Spéciaux est complétée
+    // Ressources de base vendables + Minerai/Verre/Acier si la recherche Comptoirs Avancés (vente) est
+    // complétée. Verre et Acier nécessitent en plus d'avoir été découverts dans la carte de prestige — sans
+    // quoi ils ne peuvent être ni achetés ni vendus (voir GetBuyableResources).
+    // Ordre = ordre de l'enum Resource, pour rester cohérent avec la colonne d'achat.
     private List<Resource> GetSellableResources(Civilization civ)
     {
         var tc = _gameControllerService.MainGameController.TradeController;
+        var prestigeState = _gameControllerService.CurrentGameState?.PrestigeState;
+        var map = PrestigeMapController.DefaultMap;
+        bool glassSteelDiscovered = prestigeState?.IsResourceDiscovered(Resource.Glass, map) ?? false;
+        bool steelDiscovered = prestigeState?.IsResourceDiscovered(Resource.Steel, map) ?? false;
+
         var sellable = ResourceUtils.BasicResources.Where(r => tc.CanTradeResource(civ, r)).ToList();
-        if (tc.IsSteelTradeUnlocked(civ.Index) && tc.CanTradeResource(civ, Resource.Steel))
+        if (tc.IsOreGlassTradeUnlocked(civ.Index))
+        {
+            if (tc.CanTradeResource(civ, Resource.Ore)) sellable.Add(Resource.Ore);
+            if (glassSteelDiscovered && tc.CanTradeResource(civ, Resource.Glass)) sellable.Add(Resource.Glass);
+        }
+        if (steelDiscovered && tc.IsSteelTradeUnlocked(civ.Index) && tc.CanTradeResource(civ, Resource.Steel))
             sellable.Add(Resource.Steel);
         return sellable;
+    }
+
+    // Ressources de base achetables + ressources avancées découvertes dans la carte de prestige (Verre,
+    // Acier, Cristal, Mithril). Contrairement à la vente, l'achat ne dépend pas de la recherche Comptoirs
+    // Avancés : seule la découverte de la ressource (et le stockage débloqué) conditionne son apparition.
+    private List<Resource> GetBuyableResources(Civilization civ)
+    {
+        var tc = _gameControllerService.MainGameController.TradeController;
+        var prestigeState = _gameControllerService.CurrentGameState?.PrestigeState;
+        var map = PrestigeMapController.DefaultMap;
+        return ResourceUtils.BasicResources
+            .Concat(Enum.GetValues<Resource>()
+                .Where(r => !ResourceUtils.BasicResources.Contains(r) && r != Resource.Gold)
+                .Where(r => !ResourceUtils.ConsumableResources.Contains(r))
+                .Where(r => !ResourceUtils.AdvancedResources.Contains(r)
+                            || (prestigeState?.IsResourceDiscovered(r, map) ?? false)))
+            .Where(r => tc.CanTradeResource(civ, r))
+            .ToList();
     }
 
     private void DrawSellSide(SKCanvas canvas, float x, float y, float s)
@@ -384,16 +405,7 @@ public sealed class TradePopupRenderer : PopupRendererBase
         if (civ == null) return;
         var tc = _gameControllerService.MainGameController.TradeController;
 
-        var prestigeState = _gameControllerService.CurrentGameState?.PrestigeState;
-        var map = PrestigeMapController.DefaultMap;
-        var buyable = ResourceUtils.BasicResources
-            .Concat(Enum.GetValues<Resource>()
-                .Where(r => !ResourceUtils.BasicResources.Contains(r) && r != Resource.Gold)
-                .Where(r => !ResourceUtils.ConsumableResources.Contains(r))
-                .Where(r => !ResourceUtils.AdvancedResources.Contains(r)
-                            || (prestigeState?.IsResourceDiscovered(r, map) ?? false)))
-            .Where(r => tc.CanTradeResource(civ, r))
-            .ToList();
+        var buyable = GetBuyableResources(civ);
 
         SkiaTextUtils.DrawText(canvas, _localization.Get("trade_advanced_title"), x + ColWidth * s / 2, y + 16 * s, SKTextAlign.Center, BtnFont!, TextPaint);
 

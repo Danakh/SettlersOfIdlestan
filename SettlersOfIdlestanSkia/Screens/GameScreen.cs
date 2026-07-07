@@ -300,14 +300,14 @@ public sealed class GameScreen : IDisposable
 
         var tradeRenderer           = new TradePopupRenderer(_gameControllerService, _localizationService, tooltipRenderer, _resourceManager);
         var prestigeRenderer        = new PrestigeRenderer(_gameControllerService, _localizationService, RequestPrestige, tooltipRenderer);
-        var prestigeMapRenderer     = new PrestigeMapRenderer(_gameControllerService, _localizationService, tooltipRenderer);
-        var prestigeHistoryRenderer = new PrestigeHistoryRenderer(_gameControllerService, _localizationService);
+        var prestigeMapRenderer     = new PrestigeMapRenderer(_gameControllerService, _localizationService, tooltipRenderer, _uiLayoutService);
+        var prestigeHistoryRenderer = new PrestigeHistoryRenderer(_gameControllerService, _localizationService, _uiLayoutService);
         var timeControlRenderer     = new TimeControlRenderer(_gameControllerService, _inputService, _localizationService);
-        var researchRenderer        = new ResearchRenderer(_gameControllerService, _localizationService, _inputService);
-        var eventLogRenderer        = new EventLogRenderer(_gameControllerService, _localizationService);
-        var automationRenderer      = new AutomationRenderer(_gameControllerService, _localizationService);
-        var ritualsRenderer         = new RitualsRenderer(_gameControllerService, _localizationService, tooltipRenderer, _targetSelectionService);
-        var ascensionRenderer       = new AscensionRenderer(_gameControllerService, _localizationService, tooltipRenderer);
+        var researchRenderer        = new ResearchRenderer(_gameControllerService, _localizationService, _inputService, _uiLayoutService);
+        var eventLogRenderer        = new EventLogRenderer(_gameControllerService, _localizationService, _uiLayoutService);
+        var automationRenderer      = new AutomationRenderer(_gameControllerService, _localizationService, _uiLayoutService);
+        var ritualsRenderer         = new RitualsRenderer(_gameControllerService, _localizationService, tooltipRenderer, _uiLayoutService, _targetSelectionService);
+        var ascensionRenderer       = new AscensionRenderer(_gameControllerService, _localizationService, tooltipRenderer, _uiLayoutService);
 
         HistoryTabRenderer? historyTabRenderer = null;
         if (allowDebugMode)

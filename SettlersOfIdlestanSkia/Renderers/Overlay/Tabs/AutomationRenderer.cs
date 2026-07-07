@@ -49,6 +49,7 @@ public sealed class AutomationRenderer : IDisposable
 
     private readonly GameControllerService _gameControllerService;
     private readonly LocalizationService _localization;
+    private readonly UILayoutService _uiLayout;
 
     private SKSize _canvasSize;
     private bool _disposed;
@@ -135,10 +136,11 @@ public sealed class AutomationRenderer : IDisposable
     private static readonly BuildingType[] SeaportTypes    = [BuildingType.Seaport];
     private static readonly BuildingType[] MilitaryTypes   = [BuildingType.Barracks, BuildingType.MilitaryAcademy, BuildingType.Arsenal, BuildingType.WeaponSmith, BuildingType.ArmorSmith];
 
-    public AutomationRenderer(GameControllerService gameControllerService, LocalizationService localization)
+    public AutomationRenderer(GameControllerService gameControllerService, LocalizationService localization, UILayoutService uiLayout)
     {
         _gameControllerService = gameControllerService;
         _localization = localization;
+        _uiLayout = uiLayout;
     }
 
     public void Initialize(SKSize canvasSize) => _canvasSize = canvasSize;
@@ -151,7 +153,7 @@ public sealed class AutomationRenderer : IDisposable
         _hoverableCards.Clear();
         _pinCheckboxes.Clear();
 
-        float topBar = PlayerResourcesOverlayRenderer.BarHeight * context.UiScale;
+        float topBar = _uiLayout.SecondRowBottom;
         canvas.DrawRect(new SKRect(0, topBar, _canvasSize.Width, _canvasSize.Height), _bgPaint);
 
         _viewportH = _canvasSize.Height - topBar;

@@ -305,14 +305,14 @@ public sealed class TrailerService
 
         var tradeRenderer = new TradePopupRenderer(gameControllerService, localizationService, tooltipRenderer, resourceManager);
         var prestigeRenderer = new PrestigeRenderer(gameControllerService, localizationService, _ => { }, tooltipRenderer);
-        var prestigeMapRenderer = new PrestigeMapRenderer(gameControllerService, localizationService, tooltipRenderer);
-        var prestigeHistoryRenderer = new PrestigeHistoryRenderer(gameControllerService, localizationService);
+        var prestigeMapRenderer = new PrestigeMapRenderer(gameControllerService, localizationService, tooltipRenderer, uiLayoutService);
+        var prestigeHistoryRenderer = new PrestigeHistoryRenderer(gameControllerService, localizationService, uiLayoutService);
         var timeControlRenderer = new TimeControlRenderer(gameControllerService, inputService, localizationService);
-        var researchRenderer = new ResearchRenderer(gameControllerService, localizationService, inputService);
-        var eventLogRenderer = new EventLogRenderer(gameControllerService, localizationService);
-        var automationRenderer = new AutomationRenderer(gameControllerService, localizationService);
-        var ritualsRenderer = new RitualsRenderer(gameControllerService, localizationService, tooltipRenderer, targetSelectionService);
-        var ascensionRenderer = new AscensionRenderer(gameControllerService, localizationService, tooltipRenderer);
+        var researchRenderer = new ResearchRenderer(gameControllerService, localizationService, inputService, uiLayoutService);
+        var eventLogRenderer = new EventLogRenderer(gameControllerService, localizationService, uiLayoutService);
+        var automationRenderer = new AutomationRenderer(gameControllerService, localizationService, uiLayoutService);
+        var ritualsRenderer = new RitualsRenderer(gameControllerService, localizationService, tooltipRenderer, uiLayoutService, targetSelectionService);
+        var ascensionRenderer = new AscensionRenderer(gameControllerService, localizationService, tooltipRenderer, uiLayoutService);
 
         var overlayRenderer = new OverlayRenderer(
             inputService, gameControllerService, localizationService,

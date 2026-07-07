@@ -19,8 +19,8 @@ namespace SettlersOfIdlestan.Controller
         private const int BuyRateCrystal = 100;
         private const int BuyRateMithril = 100;
 
-        /// <summary>Or reçu pour 1 Acier vendu (recherche Aciers Spéciaux).</summary>
-        public const int SteelSellGoldValue = 10;
+        /// <summary>Or reçu pour 1 Acier vendu (recherche Comptoirs Avancés) : 1/5 du prix d'achat.</summary>
+        public const int SteelSellGoldValue = BuyRateAdvanced / 5;
 
         public event Action<int, Resource, int>? GoldObtainedFromTrade;
 
@@ -52,26 +52,35 @@ namespace SettlersOfIdlestan.Controller
         /// <summary>
         /// Number of basic resource units required to sell one pack (receive 1 gold).
         /// Reduced to 4 for all basic resources once the Specialized Market research is completed.
+        /// Ore, Glass and Steel sell one unit at a time (see <see cref="GetSellGoldYield"/>).
         /// </summary>
         public int GetSellRate(int civilizationIndex, Resource res)
         {
-            if (res == Resource.Steel) return 1;
+            if (res == Resource.Steel || res == Resource.Glass || res == Resource.Ore) return 1;
             if (ResourceUtils.BasicResources.Contains(res) && IsMarketSpecializationUnlocked(civilizationIndex))
                 return DefaultSellRate - 1;
             return DefaultSellRate;
         }
 
-        /// <summary>Vrai si la vente d'Acier au marché est déverrouillée (recherche Aciers Spéciaux).</summary>
+        /// <summary>Vrai si la vente d'Acier au marché est déverrouillée (recherche Comptoirs Avancés).</summary>
         public bool IsSteelTradeUnlocked(int civilizationIndex)
         {
             var civ = _state?.Civilizations.Find(c => c.Index == civilizationIndex);
             return civ?.ModifierAggregator.HasModifier(ECategory.UNLOCK_STEEL_TRADE) ?? false;
         }
 
+        /// <summary>Vrai si la vente de Minerai et de Verre au marché est déverrouillée (recherche Comptoirs Avancés).</summary>
+        public bool IsOreGlassTradeUnlocked(int civilizationIndex)
+        {
+            var civ = _state?.Civilizations.Find(c => c.Index == civilizationIndex);
+            return civ?.ModifierAggregator.HasModifier(ECategory.UNLOCK_ORE_GLASS_TRADE) ?? false;
+        }
+
         /// <summary>Or total reçu pour la vente de <paramref name="quantity"/> paquets de la ressource.</summary>
         public int GetSellGoldYield(int civilizationIndex, Resource resource, int quantity)
         {
-            if (resource == Resource.Steel) return quantity * SteelSellGoldValue;
+            if (resource == Resource.Steel || resource == Resource.Glass || resource == Resource.Ore)
+                return quantity * (BuyRate(resource) / 5);
             var civ = _state?.Civilizations.Find(c => c.Index == civilizationIndex);
             int bulkBonus = civ?.ModifierAggregator.ApplyModifiers(ECategory.TRADE_BULK_GOLD_BONUS, "", 0) ?? 0;
             return quantity + (quantity / 10) * bulkBonus;
@@ -96,14 +105,16 @@ namespace SettlersOfIdlestan.Controller
         public bool SellResource(int civilizationIndex, Resource resource, int quantity = 1)
         {
             if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
-            if (!ResourceUtils.BasicResources.Contains(resource) && resource != Resource.Steel)
-                throw new ArgumentException("Only basic resources and steel can be sold.", nameof(resource));
+            if (!ResourceUtils.BasicResources.Contains(resource)
+                && resource != Resource.Steel && resource != Resource.Ore && resource != Resource.Glass)
+                throw new ArgumentException("Only basic resources, ore, glass and steel can be sold.", nameof(resource));
 
             var civ = _state.Civilizations.Find(c => c.Index == civilizationIndex)
                       ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
 
             if (!IsTradeAvailable(civilizationIndex)) return false;
             if (resource == Resource.Steel && !IsSteelTradeUnlocked(civilizationIndex)) return false;
+            if ((resource == Resource.Ore || resource == Resource.Glass) && !IsOreGlassTradeUnlocked(civilizationIndex)) return false;
 
             int offerPerPack = GetSellRate(civilizationIndex, resource);
             int totalOffer = offerPerPack * quantity;

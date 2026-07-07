@@ -23,15 +23,27 @@ public class Wonder : Monument
     public bool IsMaxLevel => Level >= MaxLevel;
 
     /// <summary>Coût statique du level-up (non modifié à la création, modifié lors de l'appel à GetInvestmentCost)</summary>
-    public static ResourceSet GetLevelCost(int level) => new ResourceSet
+    public static ResourceSet GetLevelCost(int level)
     {
-        { Resource.Food,  5000 * level * level },
-        { Resource.Wood,  5000 * level * level },
-        { Resource.Brick, 5000 * level * level },
-        { Resource.Stone, 5000 * level * level },
-        { Resource.Gold,  10000 * level * level },
-        { Resource.Ore,   2000 * level * level },
-    };
+        var cost = new ResourceSet
+        {
+            { Resource.Food,  5000 * level * level },
+            { Resource.Wood,  5000 * level * level },
+            { Resource.Brick, 5000 * level * level },
+            { Resource.Stone, 5000 * level * level },
+            { Resource.Gold,  10000 * level * level },
+            { Resource.Ore,   2000 * level * level },
+        };
+        if (level >= 3)
+        {
+            cost[Resource.Glass] = 500 * level * level;
+        }
+        if (level >= 4)
+        {
+            cost[Resource.Steel] = 300 * level * level;
+        }
+        return cost;
+    }
 
     /// <summary>Coût applique WonderCostReduction de la civilisation</summary>
     public override ResourceSet GetInvestmentCost(SettlersOfIdlestan.Model.Civilization.Civilization playerCiv)

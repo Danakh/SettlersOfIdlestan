@@ -31,11 +31,13 @@ public sealed class ResearchRenderer : IGameRenderer
     private readonly GameControllerService _gameControllerService;
     private readonly LocalizationService _localization;
     private readonly InputHandlingService _inputService;
+    private readonly UILayoutService _uiLayout;
 
     private SKSize _canvasSize;
     private readonly Dictionary<TechnologyId, SKRect> _nodeRects = new();
     private SKRect _contentBounds;
     private TechnologyId? _hoveredTechId;
+    private bool _isHoveringHeader;
     private SKPoint _lastPointerPosition;
     private bool _disposed;
     public bool IsActive { get; set; }
@@ -71,11 +73,12 @@ public sealed class ResearchRenderer : IGameRenderer
     private static readonly Dictionary<TechnologyId, (int col, int row)> Layout =
         TechnologyDefinitions.All.ToDictionary(t => t.Id, t => (t.Tier, t.Line));
 
-    public ResearchRenderer(GameControllerService gameControllerService, LocalizationService localization, InputHandlingService inputService)
+    public ResearchRenderer(GameControllerService gameControllerService, LocalizationService localization, InputHandlingService inputService, UILayoutService uiLayout)
     {
         _gameControllerService = gameControllerService;
         _localization = localization;
         _inputService = inputService;
+        _uiLayout = uiLayout;
         _inputService.PointerPressed += HandlePointerPressed;
         _inputService.PointerMoved += HandlePointerMoved;
         _inputService.PointerReleased += HandlePointerReleased;
@@ -143,7 +146,7 @@ public sealed class ResearchRenderer : IGameRenderer
 
         var ctrl = _gameControllerService.MainGameController.ResearchController;
 
-        float scaled = PlayerResourcesOverlayRenderer.BarHeight * context.UiScale + 8f;
+        float scaled = _uiLayout.SecondRowBottom + 8f;
         if (Math.Abs(scaled - _topOffset) > 0.5f)
         {
             _topOffset = scaled;
@@ -166,9 +169,10 @@ public sealed class ResearchRenderer : IGameRenderer
         if (_gameControllerService.PlayerCivilization != null)
         {
             double rps = ctrl.GetResearchPointsPerSecond();
+            string rpBase = $"{_localization.Get("research_points_label")}: {ctrl.ResearchPoints}/{ctrl.MaxResearchPoints}";
             string rpLabel = rps > 0
-                ? $"{_localization.Get("research_points_label")}: {ctrl.ResearchPoints} (+{rps.ToString("0.##")}/s)"
-                : $"{_localization.Get("research_points_label")}: {ctrl.ResearchPoints}";
+                ? $"{rpBase} (+{rps.ToString("0.##")}/s)"
+                : rpBase;
             var (investPct, investPs) = ctrl.GetResearchConsumptionInfo();
             if (investPs > 0)
                 rpLabel += $"  |  {_localization.Get("research_investment_label")} ({investPct.ToString("0")}%): {investPs.ToString("0.##")}/s";
@@ -184,6 +188,15 @@ public sealed class ResearchRenderer : IGameRenderer
                 string desc = _localization.Get(hoveredTech.DescKey);
                 TooltipRenderUtils.DrawTooltip(canvas, _canvasSize, _lastPointerPosition, new[] { desc }, _tooltipFont, uiScale: _lastUiScale);
             }
+        }
+        else if (_isHoveringHeader)
+        {
+            string tooltip = _localization.GetFormated(
+                "tooltip_research_max_points",
+                ResearchController.BaseMaxResearchPoints,
+                ctrl.TotalResearchPointsInvested,
+                ctrl.MaxResearchPoints);
+            TooltipRenderUtils.DrawTooltip(canvas, _canvasSize, _lastPointerPosition, new[] { tooltip }, _tooltipFont, uiScale: _lastUiScale);
         }
     }
 
@@ -297,7 +310,7 @@ public sealed class ResearchRenderer : IGameRenderer
 
     private void HandlePointerMoved(object? sender, PointerEventArgs e)
     {
-        if (!IsActive) { _hoveredTechId = null; return; }
+        if (!IsActive) { _hoveredTechId = null; _isHoveringHeader = false; return; }
         _lastPointerPosition = e.Position;
 
         if (_pointerDown)
@@ -315,11 +328,15 @@ public sealed class ResearchRenderer : IGameRenderer
                 ClampPan();
                 _lastPanMovePosition = e.Position;
                 _hoveredTechId = null;
+                _isHoveringHeader = false;
                 return;
             }
         }
 
         _hoveredTechId = null;
+        _isHoveringHeader = e.Position.Y >= _topOffset && e.Position.Y <= _topOffset + HeaderHeight;
+        if (_isHoveringHeader) return;
+
         var contentPos = ToContentSpace(e.Position);
         var ctrl = _gameControllerService.MainGameController.ResearchController;
         foreach (var (techId, rect) in _nodeRects)

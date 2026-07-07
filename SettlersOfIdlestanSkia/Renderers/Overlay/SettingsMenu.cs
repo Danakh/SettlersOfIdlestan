@@ -396,7 +396,7 @@ public class SettingsMenu
         {
             mainState.PrestigeState.TechnologyTree.ResearchPoints = Math.Min(
                 mainState.PrestigeState.TechnologyTree.ResearchPoints + 1000000,
-                ResearchController.MaxResearchPoints);
+                _gameController.ResearchController.MaxResearchPoints);
         }
     }
 

@@ -287,6 +287,18 @@ public static class TechnologyDefinitions
             modifiers: new Modifier[] { new(ECategory.RESEARCH_SPEED, EType.ADDITIVE, 0.3) },
             tier: 5, line: 6),
 
+        // Débloquée par le vertex de prestige Guilde des Marchands
+        new(TechnologyId.AdvancedTradingPosts,
+            "tech_advanced_trading_posts_name", "tech_advanced_trading_posts_desc",
+            cost: 48000,
+            prerequisites: new[] { TechnologyId.AutomaticMarket, TechnologyId.GrandArchitecture },
+            modifiers: new Modifier[]
+            {
+                new(ECategory.UNLOCK_STEEL_TRADE, EType.ADDITIVE, 1),
+                new(ECategory.UNLOCK_ORE_GLASS_TRADE, EType.ADDITIVE, 1),
+            },
+            tier: 5, line: 5),
+
         // === Branche de l'Acier (débloquée par les vertex de prestige du nord-est) ===
 
         new(TechnologyId.Siderurgie,

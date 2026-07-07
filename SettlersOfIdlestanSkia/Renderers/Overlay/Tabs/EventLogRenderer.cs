@@ -19,6 +19,7 @@ public sealed class EventLogRenderer : IDisposable
 
     private readonly GameControllerService _gameControllerService;
     private readonly LocalizationService _localization;
+    private readonly UILayoutService _uiLayout;
 
     private SKSize _canvasSize;
     private bool _disposed;
@@ -58,10 +59,11 @@ public sealed class EventLogRenderer : IDisposable
     private readonly SKFont _bodyFont = new() { Size = 12, Typeface = SkiaFonts.Regular };
     private readonly SKFont _headerFont = new() { Size = 17, Typeface = SkiaFonts.Bold };
 
-    public EventLogRenderer(GameControllerService gameControllerService, LocalizationService localization)
+    public EventLogRenderer(GameControllerService gameControllerService, LocalizationService localization, UILayoutService uiLayout)
     {
         _gameControllerService = gameControllerService;
         _localization = localization;
+        _uiLayout = uiLayout;
     }
 
     public void Initialize(SKSize canvasSize) => _canvasSize = canvasSize;
@@ -71,7 +73,7 @@ public sealed class EventLogRenderer : IDisposable
         if (_disposed) return;
         if (context.GameState is not MainGameState mainGameState) return;
 
-        float topBarHeight = PlayerResourcesOverlayRenderer.BarHeight * context.UiScale;
+        float topBarHeight = _uiLayout.SecondRowBottom;
         canvas.DrawRect(new SKRect(0, topBarHeight, _canvasSize.Width, _canvasSize.Height), _bgPaint);
 
         float contentWidth = Math.Min(720f, _canvasSize.Width - Padding * 2);

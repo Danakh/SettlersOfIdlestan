@@ -22,6 +22,7 @@ public sealed class PrestigeHistoryRenderer : IDisposable
 
     private readonly GameControllerService _gameControllerService;
     private readonly LocalizationService _localization;
+    private readonly UILayoutService _uiLayout;
 
     private SKSize _canvasSize;
     private bool _disposed;
@@ -39,10 +40,11 @@ public sealed class PrestigeHistoryRenderer : IDisposable
     private readonly SKFont _font = new() { Size = 13, Typeface = SkiaFonts.Regular };
     private readonly SKFont _smallFont = new() { Size = 11, Typeface = SkiaFonts.Regular };
 
-    public PrestigeHistoryRenderer(GameControllerService gameControllerService, LocalizationService localization)
+    public PrestigeHistoryRenderer(GameControllerService gameControllerService, LocalizationService localization, UILayoutService uiLayout)
     {
         _gameControllerService = gameControllerService;
         _localization = localization;
+        _uiLayout = uiLayout;
     }
 
     public void Initialize(SKSize canvasSize) => _canvasSize = canvasSize;
@@ -52,7 +54,7 @@ public sealed class PrestigeHistoryRenderer : IDisposable
         if (_disposed) return;
         if (context.GameState is not MainGameState mainGameState) return;
 
-        float topBarHeight = PlayerResourcesOverlayRenderer.BarHeight * context.UiScale;
+        float topBarHeight = _uiLayout.SecondRowBottom;
         var area = new SKRect(0, topBarHeight, _canvasSize.Width, _canvasSize.Height);
         canvas.DrawRect(area, _bgPaint);
 

@@ -43,6 +43,7 @@ public sealed class PrestigeMapRenderer : IGameRenderer
     private readonly GameControllerService _gameControllerService;
     private readonly LocalizationService _localization;
     private readonly TooltipRenderer _tooltipRenderer;
+    private readonly UILayoutService _uiLayout;
 
     private SKSize _canvasSize;
     private SKPoint _mapCenter;
@@ -121,11 +122,13 @@ public sealed class PrestigeMapRenderer : IGameRenderer
     public PrestigeMapRenderer(
         GameControllerService gameControllerService,
         LocalizationService localization,
-        TooltipRenderer tooltipRenderer)
+        TooltipRenderer tooltipRenderer,
+        UILayoutService uiLayout)
     {
         _gameControllerService = gameControllerService;
         _localization = localization;
         _tooltipRenderer = tooltipRenderer;
+        _uiLayout = uiLayout;
     }
 
     public void Initialize(SKSize canvasSize)
@@ -174,7 +177,7 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         if (prestigeState == null) return;
         var civ = mainState!.CurrentWorldState?.PlayerCivilization;
 
-        float newBarH = PlayerResourcesOverlayRenderer.BarHeight * context.UiScale;
+        float newBarH = _uiLayout.SecondRowBottom;
         if (Math.Abs(newBarH - _barH) > 0.5f)
         {
             _barH = newBarH;
@@ -756,6 +759,8 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         Modifier.ECategory.DOMINION_HARVEST_SPEED_PER_LEVEL  => $"+{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_harvest_speed")} {_localization.Get("prestige_tooltip_per_dominion_level")}",
         Modifier.ECategory.UNLOCK_DOMINION                   => _localization.Get("prestige_tooltip_unlocks_dominion"),
         Modifier.ECategory.STORAGE_CAPACITY_MULTIPLIER       => $"+{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_storage_multiplier")}",
+        Modifier.ECategory.UNLOCK_STEEL_TRADE                => _localization.Get("prestige_tooltip_unlocks_steel_trade"),
+        Modifier.ECategory.UNLOCK_ORE_GLASS_TRADE            => _localization.Get("prestige_tooltip_unlocks_ore_glass_trade"),
         _ => $"+{mod.Value}"
     };
 

@@ -29,6 +29,7 @@ public sealed class AscensionRenderer : IDisposable
     private readonly GameControllerService _gameControllerService;
     private readonly LocalizationService _localization;
     private readonly TooltipRenderer _tooltipRenderer;
+    private readonly UILayoutService _uiLayout;
 
     private SKSize _canvasSize;
     private bool _disposed;
@@ -62,11 +63,12 @@ public sealed class AscensionRenderer : IDisposable
     private readonly SKFont _descFont     = new() { Size = 11, Typeface = SkiaFonts.Regular };
     private readonly SKFont _buttonFont   = new() { Size = 11, Typeface = SkiaFonts.Bold };
 
-    public AscensionRenderer(GameControllerService gameControllerService, LocalizationService localization, TooltipRenderer tooltipRenderer)
+    public AscensionRenderer(GameControllerService gameControllerService, LocalizationService localization, TooltipRenderer tooltipRenderer, UILayoutService uiLayout)
     {
         _gameControllerService = gameControllerService;
         _localization = localization;
         _tooltipRenderer = tooltipRenderer;
+        _uiLayout = uiLayout;
     }
 
     public void Initialize(SKSize canvasSize) => _canvasSize = canvasSize;
@@ -80,7 +82,7 @@ public sealed class AscensionRenderer : IDisposable
         _hoveredLockedRect = SKRect.Empty;
         _hoveredLockedTooltip = null;
 
-        float topBar = PlayerResourcesOverlayRenderer.BarHeight * context.UiScale;
+        float topBar = _uiLayout.SecondRowBottom;
         canvas.DrawRect(new SKRect(0, topBar, _canvasSize.Width, _canvasSize.Height), _bgPaint);
 
         var ascension = _gameControllerService.MainGameController.AscensionController;

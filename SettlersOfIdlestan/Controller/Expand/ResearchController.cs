@@ -18,7 +18,14 @@ namespace SettlersOfIdlestan.Controller.Expand
         private GameSettings? _settings;
 
         public const long ResearchConsumptionCooldownTicks = 100L;
-        public const int MaxResearchPoints = 999999;
+
+        // Plafond dynamique : base fixe + un bonus proportionnel à la somme des coûts de BASE (non réduits)
+        // des recherches terminées. Calculé une fois au chargement (Initialize) puis mis à jour incrémentalement
+        // à chaque recherche terminée — jamais persisté, donc aucune migration de save n'est nécessaire.
+        public const int BaseMaxResearchPoints = 1000;
+        public const double MaxResearchPointsInvestedRate = 0.1;
+
+        private int _totalBaseResearchCostCompleted;
 
         public event EventHandler<TechnologyId>? OnResearchCompleted;
 
@@ -26,6 +33,8 @@ namespace SettlersOfIdlestan.Controller.Expand
         public int ResearchPoints => _prestigeState?.TechnologyTree.ResearchPoints ?? 0;
         public TechnologyId? ActiveResearch => _prestigeState?.TechnologyTree.ActiveResearch;
         public int ActiveResearchConsumed => _prestigeState?.TechnologyTree.ActiveResearchConsumed ?? 0;
+        public int TotalResearchPointsInvested => _totalBaseResearchCostCompleted;
+        public int MaxResearchPoints => BaseMaxResearchPoints + (int)(_totalBaseResearchCostCompleted * MaxResearchPointsInvestedRate);
 
         private TechnologyTree? Tree => _prestigeState?.TechnologyTree;
 
@@ -40,6 +49,11 @@ namespace SettlersOfIdlestan.Controller.Expand
             _clock = clock;
             _prestigeState = prestigeState;
             _settings = settings;
+
+            _totalBaseResearchCostCompleted = 0;
+            if (prestigeState != null)
+                foreach (var id in prestigeState.TechnologyTree.CompletedTechnologies)
+                    _totalBaseResearchCostCompleted += TechnologyDefinitions.Get(id)?.Cost ?? 0;
 
             if (_clock != null)
                 _clock.Advanced += OnClockAdvanced;
@@ -135,6 +149,9 @@ namespace SettlersOfIdlestan.Controller.Expand
             int effectiveCost = GetEffectiveCost(tech);
             if (tree.ActiveResearchConsumed >= effectiveCost)
             {
+                // Compte le coût de BASE (non réduit) de la recherche terminée, pas la progression en cours
+                // ni le coût réellement payé (voir commentaire sur _totalBaseResearchCostCompleted).
+                _totalBaseResearchCostCompleted += tech.Cost;
                 tree.CompleteResearch(techId);
                 OnResearchCompleted?.Invoke(this, techId);
 

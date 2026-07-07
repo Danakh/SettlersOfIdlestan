@@ -30,6 +30,7 @@ public sealed class RitualsRenderer : IDisposable
     private readonly LocalizationService _localization;
     private readonly TargetSelectionService? _targetSelectionService;
     private readonly TooltipRenderer _tooltipRenderer;
+    private readonly UILayoutService _uiLayout;
 
     private SKSize _canvasSize;
     private bool _disposed;
@@ -76,11 +77,12 @@ public sealed class RitualsRenderer : IDisposable
     private readonly SKFont _powerFont  = new() { Size = 14, Typeface = SkiaFonts.Bold };
 
     public RitualsRenderer(GameControllerService gameControllerService, LocalizationService localization,
-        TooltipRenderer tooltipRenderer, TargetSelectionService? targetSelectionService = null)
+        TooltipRenderer tooltipRenderer, UILayoutService uiLayout, TargetSelectionService? targetSelectionService = null)
     {
         _gameControllerService = gameControllerService;
         _localization = localization;
         _tooltipRenderer = tooltipRenderer;
+        _uiLayout = uiLayout;
         _targetSelectionService = targetSelectionService;
     }
 
@@ -94,7 +96,7 @@ public sealed class RitualsRenderer : IDisposable
         _buttonRects.Clear();
         _spellButtonRects.Clear();
 
-        float topBar = PlayerResourcesOverlayRenderer.BarHeight * context.UiScale;
+        float topBar = _uiLayout.SecondRowBottom;
         canvas.DrawRect(new SKRect(0, topBar, _canvasSize.Width, _canvasSize.Height), _bgPaint);
 
         _viewportH = _canvasSize.Height - topBar;
