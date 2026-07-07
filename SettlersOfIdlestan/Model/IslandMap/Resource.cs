@@ -37,9 +37,18 @@ public class ResourceUtils
     public static List<Resource> IntermediateResources = new List<Resource>
     {
         Resource.Ore,
-        Resource.Gold
+        Resource.Gold,
+        Resource.Glass,
+        Resource.Steel
     };
     public static List<Resource> AdvancedResources = new List<Resource>
+    {
+        Resource.Crystal,
+        Resource.Mithril
+    };
+    /// <summary>Ressources qui nécessitent d'être découvertes via un vertex de prestige (UNLOCK_RESOURCE)
+    /// avant d'être visibles/échangeables. Indépendant de la catégorisation Basic/Intermediate/Advanced.</summary>
+    public static List<Resource> DiscoverableResources = new List<Resource>
     {
         Resource.Glass,
         Resource.Crystal,

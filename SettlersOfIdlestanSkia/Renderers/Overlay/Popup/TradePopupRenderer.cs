@@ -316,30 +316,29 @@ public sealed class TradePopupRenderer : PopupRendererBase
 
     // ── Sell side ─────────────────────────────────────────────────────────────────
 
-    // Ressources de base vendables + Minerai/Verre/Acier si la recherche Comptoirs Avancés (vente) est
-    // complétée. Verre et Acier nécessitent en plus d'avoir été découverts dans la carte de prestige — sans
-    // quoi ils ne peuvent être ni achetés ni vendus (voir GetBuyableResources).
+    // Ressources de base vendables + Minerai/Verre/Acier si la recherche Comptoirs Avancés (vente des
+    // ressources intermédiaires) est complétée. Verre et Acier nécessitent en plus d'avoir été découverts
+    // dans la carte de prestige — sans quoi ils ne peuvent être ni achetés ni vendus (voir GetBuyableResources).
     // Ordre = ordre de l'enum Resource, pour rester cohérent avec la colonne d'achat.
     private List<Resource> GetSellableResources(Civilization civ)
     {
         var tc = _gameControllerService.MainGameController.TradeController;
         var prestigeState = _gameControllerService.CurrentGameState?.PrestigeState;
         var map = PrestigeMapController.DefaultMap;
-        bool glassSteelDiscovered = prestigeState?.IsResourceDiscovered(Resource.Glass, map) ?? false;
+        bool glassDiscovered = prestigeState?.IsResourceDiscovered(Resource.Glass, map) ?? false;
         bool steelDiscovered = prestigeState?.IsResourceDiscovered(Resource.Steel, map) ?? false;
 
         var sellable = ResourceUtils.BasicResources.Where(r => tc.CanTradeResource(civ, r)).ToList();
-        if (tc.IsOreGlassTradeUnlocked(civ.Index))
+        if (tc.IsIntermediateTradeUnlocked(civ.Index))
         {
             if (tc.CanTradeResource(civ, Resource.Ore)) sellable.Add(Resource.Ore);
-            if (glassSteelDiscovered && tc.CanTradeResource(civ, Resource.Glass)) sellable.Add(Resource.Glass);
+            if (glassDiscovered && tc.CanTradeResource(civ, Resource.Glass)) sellable.Add(Resource.Glass);
+            if (steelDiscovered && tc.CanTradeResource(civ, Resource.Steel)) sellable.Add(Resource.Steel);
         }
-        if (steelDiscovered && tc.IsSteelTradeUnlocked(civ.Index) && tc.CanTradeResource(civ, Resource.Steel))
-            sellable.Add(Resource.Steel);
         return sellable;
     }
 
-    // Ressources de base achetables + ressources avancées découvertes dans la carte de prestige (Verre,
+    // Ressources de base achetables + ressources découvrables découvertes dans la carte de prestige (Verre,
     // Acier, Cristal, Mithril). Contrairement à la vente, l'achat ne dépend pas de la recherche Comptoirs
     // Avancés : seule la découverte de la ressource (et le stockage débloqué) conditionne son apparition.
     private List<Resource> GetBuyableResources(Civilization civ)
@@ -351,7 +350,7 @@ public sealed class TradePopupRenderer : PopupRendererBase
             .Concat(Enum.GetValues<Resource>()
                 .Where(r => !ResourceUtils.BasicResources.Contains(r) && r != Resource.Gold)
                 .Where(r => !ResourceUtils.ConsumableResources.Contains(r))
-                .Where(r => !ResourceUtils.AdvancedResources.Contains(r)
+                .Where(r => !ResourceUtils.DiscoverableResources.Contains(r)
                             || (prestigeState?.IsResourceDiscovered(r, map) ?? false)))
             .Where(r => tc.CanTradeResource(civ, r))
             .ToList();

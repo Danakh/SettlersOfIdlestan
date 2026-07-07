@@ -759,8 +759,7 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         Modifier.ECategory.DOMINION_HARVEST_SPEED_PER_LEVEL  => $"+{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_harvest_speed")} {_localization.Get("prestige_tooltip_per_dominion_level")}",
         Modifier.ECategory.UNLOCK_DOMINION                   => _localization.Get("prestige_tooltip_unlocks_dominion"),
         Modifier.ECategory.STORAGE_CAPACITY_MULTIPLIER       => $"+{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_storage_multiplier")}",
-        Modifier.ECategory.UNLOCK_STEEL_TRADE                => _localization.Get("prestige_tooltip_unlocks_steel_trade"),
-        Modifier.ECategory.UNLOCK_ORE_GLASS_TRADE            => _localization.Get("prestige_tooltip_unlocks_ore_glass_trade"),
+        Modifier.ECategory.UNLOCK_INTERMEDIATE_TRADE         => _localization.Get("prestige_tooltip_unlocks_intermediate_trade"),
         _ => $"+{mod.Value}"
     };
 

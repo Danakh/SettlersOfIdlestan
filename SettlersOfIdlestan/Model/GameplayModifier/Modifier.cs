@@ -72,7 +72,7 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             STEEL_WEAPONS_SOLDIER_COUNT,
             /// <summary>Flags que les Forges peuvent produire des ArmureAcier (consommable) ; chaque armure consommée donne 50 % de chance de sauver un soldat.</summary>
             UNLOCK_STEEL_ARMOR,
-            /// <summary>Flags que la vente d'Acier au marché est déverrouillée (prix premium).</summary>
+            /// <summary>Obsolète — fusionné dans UNLOCK_INTERMEDIATE_TRADE. Conservé pour compatibilité des sauvegardes.</summary>
             UNLOCK_STEEL_TRADE,
             /// <summary>Flags que la vente automatique du surplus est déverrouillée pour les villes possédant un Marché niv.4+.</summary>
             UNLOCK_AUTO_MARKET_TRADE,
@@ -138,8 +138,10 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             UNLOCK_DOMINION,
             /// <summary>Multiplicateur appliqué à la capacité totale de stockage (basique + avancée), après les bonus additifs. Base = 1.0; +10.0 = +1000%.</summary>
             STORAGE_CAPACITY_MULTIPLIER,
-            /// <summary>Flags que la vente de Minerai et de Verre au marché est déverrouillée (recherche Comptoirs Avancés), au prix de 1/5 du coût d'achat.</summary>
+            /// <summary>Obsolète — fusionné dans UNLOCK_INTERMEDIATE_TRADE. Conservé pour compatibilité des sauvegardes.</summary>
             UNLOCK_ORE_GLASS_TRADE,
+            /// <summary>Flags que la vente des ressources intermédiaires (Minerai, Verre, Acier) au marché est déverrouillée (recherche Comptoirs Avancés), au prix de 1/5 du coût d'achat.</summary>
+            UNLOCK_INTERMEDIATE_TRADE,
         }
 
         [JsonConverter(typeof(JsonStringEnumConverter<EType>))]

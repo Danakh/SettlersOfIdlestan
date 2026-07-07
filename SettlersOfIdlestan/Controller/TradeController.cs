@@ -62,18 +62,11 @@ namespace SettlersOfIdlestan.Controller
             return DefaultSellRate;
         }
 
-        /// <summary>Vrai si la vente d'Acier au marché est déverrouillée (recherche Comptoirs Avancés).</summary>
-        public bool IsSteelTradeUnlocked(int civilizationIndex)
+        /// <summary>Vrai si la vente des ressources intermédiaires (Minerai, Verre, Acier) au marché est déverrouillée (recherche Comptoirs Avancés).</summary>
+        public bool IsIntermediateTradeUnlocked(int civilizationIndex)
         {
             var civ = _state?.Civilizations.Find(c => c.Index == civilizationIndex);
-            return civ?.ModifierAggregator.HasModifier(ECategory.UNLOCK_STEEL_TRADE) ?? false;
-        }
-
-        /// <summary>Vrai si la vente de Minerai et de Verre au marché est déverrouillée (recherche Comptoirs Avancés).</summary>
-        public bool IsOreGlassTradeUnlocked(int civilizationIndex)
-        {
-            var civ = _state?.Civilizations.Find(c => c.Index == civilizationIndex);
-            return civ?.ModifierAggregator.HasModifier(ECategory.UNLOCK_ORE_GLASS_TRADE) ?? false;
+            return civ?.ModifierAggregator.HasModifier(ECategory.UNLOCK_INTERMEDIATE_TRADE) ?? false;
         }
 
         /// <summary>Or total reçu pour la vente de <paramref name="quantity"/> paquets de la ressource.</summary>
@@ -113,8 +106,8 @@ namespace SettlersOfIdlestan.Controller
                       ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
 
             if (!IsTradeAvailable(civilizationIndex)) return false;
-            if (resource == Resource.Steel && !IsSteelTradeUnlocked(civilizationIndex)) return false;
-            if ((resource == Resource.Ore || resource == Resource.Glass) && !IsOreGlassTradeUnlocked(civilizationIndex)) return false;
+            if ((resource == Resource.Steel || resource == Resource.Ore || resource == Resource.Glass)
+                && !IsIntermediateTradeUnlocked(civilizationIndex)) return false;
 
             int offerPerPack = GetSellRate(civilizationIndex, resource);
             int totalOffer = offerPerPack * quantity;

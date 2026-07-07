@@ -294,8 +294,7 @@ public static class TechnologyDefinitions
             prerequisites: new[] { TechnologyId.AutomaticMarket, TechnologyId.GrandArchitecture },
             modifiers: new Modifier[]
             {
-                new(ECategory.UNLOCK_STEEL_TRADE, EType.ADDITIVE, 1),
-                new(ECategory.UNLOCK_ORE_GLASS_TRADE, EType.ADDITIVE, 1),
+                new(ECategory.UNLOCK_INTERMEDIATE_TRADE, EType.ADDITIVE, 1),
             },
             tier: 5, line: 5),
 

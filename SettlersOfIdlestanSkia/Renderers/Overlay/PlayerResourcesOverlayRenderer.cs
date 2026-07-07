@@ -231,7 +231,7 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
 
         var map = PrestigeMapController.DefaultMap;
         var resourceTypes = Enum.GetValues(typeof(Resource)).Cast<Resource>()
-            .Where(r => !ResourceUtils.AdvancedResources.Contains(r)
+            .Where(r => !ResourceUtils.DiscoverableResources.Contains(r)
                         || (prestigeState?.IsResourceDiscovered(r, map) ?? false))
             .Where(r => !ResourceUtils.ConsumableResources.Contains(r)
                         || IsConsumableUnlocked(r, civilization))

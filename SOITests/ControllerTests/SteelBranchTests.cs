@@ -292,7 +292,7 @@ namespace SOITests.ControllerTests
 
             var controller = new TradeController(state);
 
-            Assert.False(controller.IsSteelTradeUnlocked(0));
+            Assert.False(controller.IsIntermediateTradeUnlocked(0));
             Assert.False(controller.SellResource(0, Resource.Steel));
             Assert.Equal(5, civ.GetResourceQuantity(Resource.Steel));
         }
@@ -306,12 +306,12 @@ namespace SOITests.ControllerTests
             civ.Resources[Resource.Steel] = 5;
             civ.AddCustomAggregator(new StaticModifierProvider(new[]
             {
-                new Modifier(ECategory.UNLOCK_STEEL_TRADE, EType.ADDITIVE, 1),
+                new Modifier(ECategory.UNLOCK_INTERMEDIATE_TRADE, EType.ADDITIVE, 1),
             }));
 
             var controller = new TradeController(state);
 
-            Assert.True(controller.IsSteelTradeUnlocked(0));
+            Assert.True(controller.IsIntermediateTradeUnlocked(0));
             Assert.Equal(1, controller.GetSellRate(0, Resource.Steel));
             Assert.Equal(TradeController.SteelSellGoldValue, controller.GetSellGoldYield(0, Resource.Steel, 1));
 

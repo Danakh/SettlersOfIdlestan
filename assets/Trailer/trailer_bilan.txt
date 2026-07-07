@@ -1,5 +1,5 @@
 ﻿=== BILAN TRAILER — SETTLERS OF IDLESTAN ===
-Généré le : 2026-07-07 07:47:25
+Généré le : 2026-07-07 10:26:49
 Paramètres simulation : 30 fps, 3 ticks/frame, intervalle autoplayer : 0,5s
 
 --- 1 — EXPLORE (01_Explore.json, 5s, 3 ticks/frame) ---
