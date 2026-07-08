@@ -1,0 +1,23 @@
+"AppBuild"
+{
+    // Remplacer par votre App ID
+    "AppID" "TODO"
+
+    // Description du build (apparaît dans Steamworks)
+    "Desc" "Premier build"
+
+    // Dossier où SteamCMD stocke les informations du build
+    "BuildOutput" "..\output"
+
+    // Dossier contenant les fichiers du jeu
+    "ContentRoot" "..\win64"
+
+    // Branche de destination
+    "SetLive" ""
+
+    // Dépot(s) à construire
+    "Depots"
+    {
+        "TODO" "depot_build.vdf"
+    }
+}

@@ -15,7 +15,7 @@ call :build x64
 if errorlevel 1 goto error
 
 echo.
-echo [OK] Builds macOS generes dans install\
+echo [OK] Repertoires steamcmd generes dans install\steamcontent\
 echo.
 pause
 exit /b 0
@@ -23,7 +23,7 @@ exit /b 0
 :build
 set ARCH=%1
 set PUBLISH_DIR=SettlersOfIdlestanOpenTK\bin\Release\net10.0\osx-%ARCH%\publish
-set ZIP_PATH=install\SettlersOfIdlestan_OpenTK_macOS_%ARCH%.zip
+set CONTENT_DIR=install\steamcontent\osx_%ARCH%
 
 echo.
 echo --- osx-%ARCH% ---
@@ -36,12 +36,13 @@ if exist "%PUBLISH_DIR%" (
 dotnet publish SettlersOfIdlestanOpenTK -c Release -r osx-%ARCH% --self-contained true
 if errorlevel 1 exit /b 1
 
-if exist "%ZIP_PATH%" del "%ZIP_PATH%"
+if exist "%CONTENT_DIR%" rd /s /q "%CONTENT_DIR%"
+mkdir "%CONTENT_DIR%"
 
-powershell -NoProfile -Command "Compress-Archive -Path '%PUBLISH_DIR%\*' -DestinationPath '%ZIP_PATH%' -Force"
-if errorlevel 1 exit /b 1
+robocopy "%PUBLISH_DIR%" "%CONTENT_DIR%" /E /NFL /NDL /NJH /NJS
+if errorlevel 8 exit /b 1
 
-echo [OK] %ZIP_PATH%
+echo [OK] %CONTENT_DIR%
 exit /b 0
 
 :error

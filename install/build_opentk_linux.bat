@@ -8,7 +8,7 @@ echo  Build SettlersOfIdlestan OpenTK - Linux
 echo =============================================
 
 set PUBLISH_DIR=SettlersOfIdlestanOpenTK\bin\Release\net10.0\linux-x64\publish
-set ZIP_PATH=install\SettlersOfIdlestan_OpenTK_Linux.zip
+set CONTENT_DIR=install\steamcontent\linux64
 
 if exist "%PUBLISH_DIR%" (
     echo Nettoyage du dossier publish...
@@ -24,19 +24,20 @@ if errorlevel 1 (
 )
 
 echo.
-echo === Compression du build ===
+echo === Preparation du repertoire steamcmd ===
 
-if exist "%ZIP_PATH%" del "%ZIP_PATH%"
+if exist "%CONTENT_DIR%" rd /s /q "%CONTENT_DIR%"
+mkdir "%CONTENT_DIR%"
 
-powershell -NoProfile -Command "Compress-Archive -Path '%PUBLISH_DIR%\*' -DestinationPath '%ZIP_PATH%' -Force"
-if errorlevel 1 (
+robocopy "%PUBLISH_DIR%" "%CONTENT_DIR%" /E /NFL /NDL /NJH /NJS
+if errorlevel 8 (
     echo.
-    echo [ERREUR] La compression a echoue.
+    echo [ERREUR] La copie a echoue.
     pause
     exit /b 1
 )
 
 echo.
-echo [OK] Zip genere : %ZIP_PATH%
+echo [OK] Contenu steamcmd pret : %CONTENT_DIR%
 echo.
 pause

@@ -495,3 +495,8 @@ export
 assets/Trailer/Frames/
 assets/Trailer/trailer.mp4
 assets/Trailer/ffmpeg_command.txt
+/install/steamcontent/win64
+/install/steamcontent/output
+/install/steamcontent/scripts/app_build.vdf
+/install/steamcontent/scripts/depot_build.vdf
+/install/steamcontent/scripts/upload_win.bat

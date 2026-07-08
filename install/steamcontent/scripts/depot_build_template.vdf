@@ -1,0 +1,18 @@
+"DepotBuildConfig"
+{
+    // Remplacer par votre Depot ID
+    "DepotID" "TODO"
+
+    "ContentRoot" "..\win64"
+
+    "FileMapping"
+    {
+        "LocalPath" "*"
+        "DepotPath" "."
+        "recursive" "1"
+    }
+
+    "FileExclusion" "*.pdb"
+    "FileExclusion" "*.ipdb"
+    "FileExclusion" "*.iobj"
+}
