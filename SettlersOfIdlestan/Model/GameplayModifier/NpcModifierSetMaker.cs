@@ -17,13 +17,13 @@ public static class NpcModifierSetMaker
     {
         var modifiers = new List<Modifier>();
 
-        foreach (var tech in TechnologyDefinitions.All.Where(t => t.Tier <= maxTechTier))
+        foreach (var tech in TechnologyDefinitions.All.Where(t => t.Tier < maxTechTier))
             modifiers.AddRange(tech.Modifiers);
 
         var map = PrestigeMapFactory.CreateDefault();
 
         var includedCoords = map.Vertices
-            .Where(v => v.Coord.EdgeDistanceTo(PrestigeMap.CentralVertex) <= maxPrestigeDistance)
+            .Where(v => v.Coord.EdgeDistanceTo(PrestigeMap.CentralVertex) < maxPrestigeDistance)
             .Select(v => v.Coord)
             .ToHashSet();
 

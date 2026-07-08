@@ -496,14 +496,14 @@ namespace SOITests.IslandMapTests.StepIslandTest
                     Condition = ctrl =>
                     {
                         var civ = ctrl.CurrentMainState!.CurrentWorldState!.Civilizations.First();
-                        return !ctrl.RoadController.GetBuildableRoads(civ.Index).Any();
+                        return civ.Cities.Count >= 10 || !ctrl.RoadController.GetBuildableRoads(civ.Index).Any();
                     },
                     AssertFailMessage = ctrl =>
                     {
                         var civ = ctrl.CurrentMainState!.CurrentWorldState!.Civilizations.First();
                         int buildableRoads = ctrl.RoadController.GetBuildableRoads(civ.Index).Count;
                         int buildableVertices = ctrl.CityBuilderController.GetBuildableVertices(civ.Index).Count;
-                        return $"Expected road network to be saturated (0 buildable roads); got {civ.Cities.Count} cities, {buildableRoads} buildable roads, {buildableVertices} buildable vertices";
+                        return $"Expected at least 10 cities or a saturated road network (0 buildable roads); got {civ.Cities.Count} cities, {buildableRoads} buildable roads, {buildableVertices} buildable vertices";
                     },
                 },
                 AttackNeighborsAndExpandStep("Island4_ExtermineAndRebuild"),

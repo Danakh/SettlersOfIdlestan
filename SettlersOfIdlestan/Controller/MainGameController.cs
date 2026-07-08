@@ -396,7 +396,7 @@ namespace SettlersOfIdlestan.Controller
             var WorldState = prestigeState!.WorldState;
 
             var tier = prestigeState.Tier;
-            var npcModifiers = NpcModifierSetMaker.Create(maxTechTier: tier + 1, maxPrestigeDistance: tier);
+            var npcModifiers = NpcModifierSetMaker.Create(maxTechTier: tier, maxPrestigeDistance: tier);
 
             foreach (var civ in WorldState!.Civilizations.Where(c => c.IsNpc))
             {
