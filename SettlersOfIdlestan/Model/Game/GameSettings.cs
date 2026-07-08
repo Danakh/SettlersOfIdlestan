@@ -1,4 +1,5 @@
 using SettlersOfIdlestan.Model.Localization;
+using System.Collections.Generic;
 
 namespace SettlersOfIdlestan.Model.Game;
 
@@ -12,4 +13,10 @@ public class GameSettings
     public bool DemoMode { get; set; } = false;
     public float UiScale { get; set; } = 1f;
     public MenuPosition ForceMenuPosition { get; set; } = MenuPosition.Auto;
+
+    /// <summary>
+    /// Clés des contrôles d'automatisation épinglés au panel de civilisation. Persiste entre les
+    /// îles et les redémarrages du jeu (contrairement à AutomationSettings, réinitialisé à chaque île).
+    /// </summary>
+    public HashSet<string> PinnedCivPanelKeys { get; set; } = [];
 }

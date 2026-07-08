@@ -175,7 +175,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         bool hasAlchimistHuts = HasBuilt<AlchimistHut>(civ);
 
         var worldState = _gameControllerService.CurrentWorldState;
-        var pinned = worldState?.AutomationSettings.PinnedToCivPanel ?? (IReadOnlySet<string>)new HashSet<string>();
+        var pinned = _gameControllerService.CurrentGameState?.Settings.PinnedCivPanelKeys ?? (IReadOnlySet<string>)new HashSet<string>();
 
         bool showActions  = tradeVisible || prestigeVisible || wonderVisible || deepestMineVisible || spireVisible || raidVisible || relocationVisible || walkOfGodVisible;
         bool showControls = pinned.Any(k => IsKeyShowable(k, civ, worldState, hasBarracks, hasLabs, hasSmelters, hasArsenals, hasWeaponSmiths, hasArmorSmiths, hasAlchimistHuts));

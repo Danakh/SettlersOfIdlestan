@@ -207,7 +207,7 @@ public sealed class AutomationRenderer : IDisposable
         float startY = y;
 
         float rowH;
-        var pinned = WorldState.AutomationSettings.PinnedToCivPanel;
+        var pinned = _gameControllerService.CurrentGameState!.Settings.PinnedCivPanelKeys;
 
         // === Colonne gauche : constructions automatiques ===
         float leftY = startY;
@@ -657,7 +657,7 @@ public sealed class AutomationRenderer : IDisposable
         {
             if (rect.Contains(adj.X, adj.Y))
             {
-                var ps = state.AutomationSettings.PinnedToCivPanel;
+                var ps = _gameControllerService.CurrentGameState!.Settings.PinnedCivPanelKeys;
                 if (!ps.Remove(key)) ps.Add(key);
                 return true;
             }

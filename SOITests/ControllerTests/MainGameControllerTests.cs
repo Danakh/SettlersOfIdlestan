@@ -67,5 +67,45 @@ namespace SOITests.ControllerTests
             var civ = island.Civilizations[0];
             Assert.NotEmpty(civ.Cities);
         }
+
+        [Fact]
+        public void ExportMainState_RoundtripPreservesAutomationSettings()
+        {
+            var WorldState = IslandTestFactory.CreateSevenHexIslandState();
+            var clock = new GameClock();
+            var mainState = new MainGameState(WorldState, clock, new GamePRNG(42));
+            mainState.CurrentWorldState!.AutomationSettings.MilitaryReinforcementAutomationEnabled = true;
+            mainState.Settings.PinnedCivPanelKeys.Add("MilitaryReinforcement");
+
+            var json = JsonSerializer.Serialize(mainState, SaveController.SerializationOptions());
+
+            var controller = new MainGameController();
+            controller.ImportMainState(json);
+
+            var exported = controller.ExportMainState();
+
+            var controller2 = new MainGameController();
+            var round = controller2.ImportMainState(exported);
+
+            Assert.True(round.CurrentWorldState!.AutomationSettings.MilitaryReinforcementAutomationEnabled);
+            Assert.Contains("MilitaryReinforcement", round.Settings.PinnedCivPanelKeys);
+        }
+
+        [Fact]
+        public void ImportMainState_MigratesLegacyPerIslandPinsIntoPersistentSettings()
+        {
+            var WorldState = IslandTestFactory.CreateSevenHexIslandState();
+            var clock = new GameClock();
+            var mainState = new MainGameState(WorldState, clock, new GamePRNG(42));
+            // Ancien format (pré-migration) : les épingles étaient stockées par île.
+            mainState.CurrentWorldState!.AutomationSettings.PinnedToCivPanel.Add("MilitaryReinforcement");
+
+            var json = JsonSerializer.Serialize(mainState, SaveController.SerializationOptions());
+
+            var controller = new MainGameController();
+            var imported = controller.ImportMainState(json);
+
+            Assert.Contains("MilitaryReinforcement", imported.Settings.PinnedCivPanelKeys);
+        }
     }
 }

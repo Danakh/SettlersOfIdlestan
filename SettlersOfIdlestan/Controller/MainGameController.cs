@@ -269,6 +269,12 @@ namespace SettlersOfIdlestan.Controller
 
                 WorldState.Visibility.Recalculate();
 
+                // Migration : les anciennes sauvegardes stockaient les épingles du panel de
+                // civilisation par île (AutomationSettings.PinnedToCivPanel). On les reporte vers
+                // les settings persistants pour qu'elles survivent aux nouvelles îles/prestiges.
+                if (WorldState.AutomationSettings.PinnedToCivPanel.Count > 0)
+                    CurrentMainState!.Settings.PinnedCivPanelKeys.UnionWith(WorldState.AutomationSettings.PinnedToCivPanel);
+
                 // Initialisé avant SetupModifierAggregators() : ce contrôleur sert lui-même de
                 // IModifierProvider et doit avoir purgé ses anciens abonnés avant d'être ré-enregistré.
                 AscensionController.Initialize(WorldState, Clock, CurrentMainState!.PRNG, HarvestController, CurrentMainState!.GodState.AscensionState);

@@ -15,6 +15,10 @@ public class AutomationSettings
     public bool MilitaryReinforcementAutomationEnabled { get; set; } = false;
     public bool MilitaryAttackAutomationEnabled { get; set; } = false;
 
+    /// <summary>
+    /// Obsolète : remplacé par GameSettings.PinnedCivPanelKeys (persiste entre îles/redémarrages).
+    /// Conservé uniquement pour migrer les anciennes sauvegardes, voir MainGameController.InitializeControllersForCurrentIsland.
+    /// </summary>
     public HashSet<string> PinnedToCivPanel { get; set; } = [];
 
     /// <summary>Position de la ville ciblée par un raid actif. Null si aucun raid en cours ou si la cible est une MonsterFeature.</summary>
