@@ -11,7 +11,7 @@ namespace SOITests.IslandMapTests;
 
 /// <summary>
 /// Génère 20 îles de suite sur plusieurs seeds et vérifie que toutes les villes NPC
-/// respectent la distance minimale de 8 edges vis-à-vis de la ville de départ du joueur.
+/// respectent la distance minimale (edges) vis-à-vis de la ville de départ du joueur.
 /// </summary>
 public class IslandGenerationBatchTests
 {
@@ -54,7 +54,7 @@ public class IslandGenerationBatchTests
 
     [Theory]
     [MemberData(nameof(Seeds))]
-    public void Generate20Islands_NpcCitiesAlwaysAtLeast8EdgesFromPlayer(int baseSeed)
+    public void Generate20Islands_NpcCitiesAlwaysAtLeastMinDistanceEdgesFromPlayer(int baseSeed)
     {
         for (int i = 0; i < 20; i++)
         {
@@ -150,7 +150,7 @@ public class IslandGenerationAtlasTests
 
     [Theory]
     [MemberData(nameof(Seeds))]
-    public void Generate20Islands_NpcCitiesAlwaysAtLeast8EdgesFromPlayer(int seed)
+    public void Generate20Islands_NpcCitiesAlwaysAtLeastMinDistanceEdgesFromPlayer(int seed)
     {
         int worldId = new AtlasController().GetFirstWorldId();
         foreach (var state in GenerateCampaign(seed, islandCount: 20))

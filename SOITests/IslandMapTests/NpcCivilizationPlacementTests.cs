@@ -15,10 +15,10 @@ public class NpcCivilizationPlacementTests
 {
     private static readonly IEnumerable<(TerrainType, int)> TileData40 =
     [
-        (TerrainType.Forest,   10),
-        (TerrainType.Hill,     10),
-        (TerrainType.Plain,    10),
-        (TerrainType.Mountain, 10),
+        (TerrainType.Forest,   11),
+        (TerrainType.Hill,     11),
+        (TerrainType.Plain,    11),
+        (TerrainType.Mountain, 11),
     ];
 
     // Île grande pour les tests d'évolution avancée (Medium/Strong = 5-7 villes NPC).

@@ -22,7 +22,7 @@ public class NpcCivilizationPlacer
     private const int MaxExpandIterations = 500;
 
     /// <summary>Distance minimale par défaut (edges) entre toute ville NPC et la ville initiale du joueur.</summary>
-    public const int DefaultMinPlayerDistance = 8;
+    public const int DefaultMinPlayerDistance = 10;
 
     private const int MaxPlacementAttempts = 5;
 
