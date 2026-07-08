@@ -71,6 +71,9 @@ public class NpcCivilizationPlacer
             var aggressivityMalus = BuildAggressivityHarvestMalus(civ.NpcParameters?.AggressivityLevel ?? NpcAggressivityLevel.Cautious);
             if (aggressivityMalus != null)
                 civ.AddCustomAggregator(aggressivityMalus);
+            var tierMalus = BuildTierHarvestMalus(tier);
+            if (tierMalus != null)
+                civ.AddCustomAggregator(tierMalus);
             PopulateMinimumNpc(map, civ, bestPlacement[i]);
         }
 
@@ -103,6 +106,27 @@ public class NpcCivilizationPlacer
             NpcAggressivityLevel.Pacifist => 0.5,
             NpcAggressivityLevel.Cautious => 0.75,
             _                              => 1.0,
+        };
+        if (factor >= 1.0) return null;
+
+        return new StaticModifierProvider(new[]
+        {
+            new Modifier(Modifier.ECategory.HARVEST_SPEED, Modifier.EType.MULTIPLICATIVE, factor),
+        });
+    }
+
+    /// <summary>
+    /// Malus multiplicatif de vitesse de récolte selon le Tier de l'île (voir <see cref="Model.Prestige.PrestigeState.Tier"/>) :
+    /// Tier 1 (moins de 2500 prestige total) -50%, Tier 2 (moins de 25000) -25%, au-delà pas de malus.
+    /// Cumulatif (multiplicatif) avec <see cref="BuildAggressivityHarvestMalus"/>.
+    /// </summary>
+    private static IModifierProvider? BuildTierHarvestMalus(int tier)
+    {
+        double factor = tier switch
+        {
+            1 => 0.5,
+            2 => 0.75,
+            _ => 1.0,
         };
         if (factor >= 1.0) return null;
 
