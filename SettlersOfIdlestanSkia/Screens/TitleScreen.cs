@@ -327,8 +327,12 @@ public sealed class TitleScreen : IDisposable
         float boxX  = cx - boxW / 2f;
         float y     = ContentStartY * s + 16 * s;
 
+        // Même zone que le changelog : laisse la place aux boutons du bas.
+        float btnAreaTop = canvasSize.Height - 130 * s;
+        float maxHeight  = Math.Max(60 * s, btnAreaTop - y - 10 * s);
+
         // Panel width leaves a 24px right margin (même alignement que le popup)
-        _settingsPanel.Render(canvas, boxX, y, boxW - 24 * s, s, _settings, _localization, _allowDebugMode, canvasSize);
+        _settingsPanel.Render(canvas, boxX, y, boxW - 24 * s, s, _settings, _localization, _allowDebugMode, canvasSize, maxHeight);
     }
 
     // ── Bouton Discord ─────────────────────────────────────────────────────────
@@ -429,7 +433,9 @@ public sealed class TitleScreen : IDisposable
 
     public void HandleScroll(float delta)
     {
-        if (_disposed || _activeTab != 0) return;
+        if (_disposed) return;
+        if (_activeTab == 2) { _settingsPanel.HandleScroll(delta); return; }
+        if (_activeTab != 0) return;
         float step      = _bodyFont?.Spacing ?? 14f;
         float dir       = delta > 0 ? -1f : 1f;
         float maxScroll = Math.Max(0, _totalContentH - _viewportH);

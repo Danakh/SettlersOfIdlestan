@@ -42,6 +42,8 @@ public sealed class SettingsContentPanel : IDisposable
     private readonly SKPaint _sliderKnobPaint   = new() { Color = SKColors.White,             Style = SKPaintStyle.Fill,   IsAntialias = true };
     private readonly SKPaint _sliderKnobBorder  = new() { Color = new SKColor(100, 100, 120), StrokeWidth = 1.2f, Style = SKPaintStyle.Stroke, IsAntialias = true };
     private readonly SKPaint _sliderKnobHoverBorder = new() { Color = new SKColor(60, 100, 180), StrokeWidth = 1.6f, Style = SKPaintStyle.Stroke, IsAntialias = true };
+    private readonly SKPaint _scrollTrackPaint  = new() { Color = new SKColor(50, 50, 65, 200),    Style = SKPaintStyle.Fill, IsAntialias = true };
+    private readonly SKPaint _scrollThumbPaint  = new() { Color = new SKColor(130, 130, 165, 210), Style = SKPaintStyle.Fill, IsAntialias = true };
 
     private SKFont _labelFont = new() { Size = 13f, Typeface = SkiaFonts.Bold };
     private SKFont _btnFont   = new() { Size = 12f, Typeface = SkiaFonts.Bold };
@@ -69,6 +71,17 @@ public sealed class SettingsContentPanel : IDisposable
     private bool _draggingUiScaleSlider;
     private float? _pendingUiScaleValue;
     private bool _disposed;
+
+    private float  _scrollOffsetPx;
+    private float  _totalContentHeight;
+    private float  _viewportHeight;
+    private float  _viewportTop;
+    private bool   _needsScroll;
+    private bool   _isDraggingScrollbar;
+    private float  _scrollDragStartY;
+    private float  _scrollDragStartOffset;
+    private SKRect _scrollTrackRect = SKRect.Empty;
+    private SKRect _scrollThumbRect = SKRect.Empty;
 
     private readonly UILayoutService _uiLayout;
 
@@ -99,7 +112,8 @@ public sealed class SettingsContentPanel : IDisposable
     /// Returns the total height used by the content.
     /// </summary>
     public float Render(SKCanvas canvas, float x, float y, float width, float s,
-        GameSettings settings, LocalizationService localization, bool allowDebugMode = false, SKSize currentResolution = default)
+        GameSettings settings, LocalizationService localization, bool allowDebugMode = false, SKSize currentResolution = default,
+        float maxHeight = float.PositiveInfinity)
     {
         UpdateFonts(s);
 
@@ -113,6 +127,23 @@ public sealed class SettingsContentPanel : IDisposable
 
         float btn2Left = rightEdge - btnW;
         float btn1Left = btn2Left - btnGap - btnW;
+
+        int   rowCount      = allowDebugMode ? 8 : 6;
+        float contentHeight = spacingY * rowCount + btnH;
+
+        _needsScroll        = contentHeight > maxHeight;
+        _viewportTop        = y;
+        _viewportHeight     = _needsScroll ? maxHeight : contentHeight;
+        _totalContentHeight = contentHeight;
+        float maxScroll     = Math.Max(0f, contentHeight - _viewportHeight);
+        _scrollOffsetPx     = _needsScroll ? Math.Clamp(_scrollOffsetPx, 0f, maxScroll) : 0f;
+
+        if (_needsScroll)
+        {
+            canvas.Save();
+            canvas.ClipRect(new SKRect(x, y, rightEdge, y + _viewportHeight));
+            canvas.Translate(0, -_scrollOffsetPx);
+        }
 
         // Row 1 — Language (English first)
         float row1Y = y;
@@ -154,25 +185,49 @@ public sealed class SettingsContentPanel : IDisposable
         _uiScaleSliderRect = DrawSliderRow(canvas, x, row5Y, rightEdge,
             localization.Get("settings_ui_scale"), _pendingUiScaleValue ?? settings.UiScale, UiScaleMin, UiScaleMax, _hoveredUiScaleSlider, btnH, s);
 
-        if (!allowDebugMode)
-            return spacingY * 6f + btnH;
+        if (allowDebugMode)
+        {
+            // Row 8 (debug uniquement) — Résolution de la fenêtre, appliquée à l'appui sur Entrée.
+            // Tant que le champ n'a pas le focus, il reflète en continu la résolution actuelle de la fenêtre.
+            if (!_debugResolutionFocused && currentResolution.Width > 0f && currentResolution.Height > 0f)
+                _debugResolutionText = $"{(int)MathF.Round(currentResolution.Width)}x{(int)MathF.Round(currentResolution.Height)}";
 
-        // Row 8 (debug uniquement) — Résolution de la fenêtre, appliquée à l'appui sur Entrée.
-        // Tant que le champ n'a pas le focus, il reflète en continu la résolution actuelle de la fenêtre.
-        if (!_debugResolutionFocused && currentResolution.Width > 0f && currentResolution.Height > 0f)
-            _debugResolutionText = $"{(int)MathF.Round(currentResolution.Width)}x{(int)MathF.Round(currentResolution.Height)}";
+            float row7Y = y + spacingY * 7f;
+            _debugResolutionFieldRect = DrawTextInputRow(canvas, x, row7Y, rightEdge,
+                localization.Get("settings_debug_window_resolution"), _debugResolutionText, _debugResolutionFocused, btnH, s);
 
-        float row7Y = y + spacingY * 7f;
-        _debugResolutionFieldRect = DrawTextInputRow(canvas, x, row7Y, rightEdge,
-            localization.Get("settings_debug_window_resolution"), _debugResolutionText, _debugResolutionFocused, btnH, s);
+            // Row 9 (debug uniquement) — Export PNG avec fond transparent plutôt que le fond opaque habituel.
+            float row8Y = y + spacingY * 8f;
+            _exportTransparentBgToggleRect = DrawToggleRow(canvas, x, row8Y, rightEdge,
+                localization.Get("settings_debug_export_transparent_bg"), DebugSettings.ExportTransparentBackground,
+                _hoveredExportTransparentBg, btnH, toggleW, toggleH, s);
+        }
 
-        // Row 9 (debug uniquement) — Export PNG avec fond transparent plutôt que le fond opaque habituel.
-        float row8Y = y + spacingY * 8f;
-        _exportTransparentBgToggleRect = DrawToggleRow(canvas, x, row8Y, rightEdge,
-            localization.Get("settings_debug_export_transparent_bg"), DebugSettings.ExportTransparentBackground,
-            _hoveredExportTransparentBg, btnH, toggleW, toggleH, s);
+        if (_needsScroll)
+        {
+            canvas.Restore();
+            DrawScrollbar(canvas, rightEdge, y, _viewportHeight, s);
+        }
 
-        return spacingY * 8f + btnH;
+        return contentHeight;
+    }
+
+    // Piste + curseur du scrollbar, dessinés hors du clip (dans la marge droite réservée par l'appelant).
+    private void DrawScrollbar(SKCanvas canvas, float rightEdge, float top, float viewportHeight, float s)
+    {
+        float scrollW = 5f * s;
+        float trackX  = rightEdge + 6f * s;
+        var   trackRect = new SKRect(trackX, top, trackX + scrollW, top + viewportHeight);
+        canvas.DrawRoundRect(trackRect, scrollW / 2f, scrollW / 2f, _scrollTrackPaint);
+
+        float maxScroll  = Math.Max(1f, _totalContentHeight - viewportHeight);
+        float thumbRatio = viewportHeight / _totalContentHeight;
+        float thumbH     = Math.Max(16f * s, thumbRatio * viewportHeight);
+        float thumbTop   = top + (_scrollOffsetPx / maxScroll) * (viewportHeight - thumbH);
+
+        _scrollTrackRect = trackRect;
+        _scrollThumbRect = new SKRect(trackX, thumbTop, trackX + scrollW, thumbTop + thumbH);
+        canvas.DrawRoundRect(_scrollThumbRect, scrollW / 2f, scrollW / 2f, _scrollThumbPaint);
     }
 
     private SKRect DrawTextInputRow(SKCanvas canvas, float rowX, float rowY, float rightEdge,
@@ -292,7 +347,32 @@ public sealed class SettingsContentPanel : IDisposable
     /// <summary>Returns true if a setting was changed.</summary>
     public bool HandleClick(SKPoint pos, GameSettings settings, LocalizationService localization, bool allowDebugMode = false)
     {
-        if (_btnFrench.Contains(pos.X, pos.Y))
+        if (_needsScroll)
+        {
+            if (!_scrollThumbRect.IsEmpty && _scrollThumbRect.Contains(pos.X, pos.Y))
+            {
+                _isDraggingScrollbar   = true;
+                _scrollDragStartY      = pos.Y;
+                _scrollDragStartOffset = _scrollOffsetPx;
+                return false;
+            }
+            if (!_scrollTrackRect.IsEmpty && _scrollTrackRect.Contains(pos.X, pos.Y))
+            {
+                float maxScroll = Math.Max(0f, _totalContentHeight - _viewportHeight);
+                float ratio     = (pos.Y - _scrollTrackRect.Top) / _scrollTrackRect.Height;
+                _scrollOffsetPx = Math.Clamp(ratio * maxScroll, 0f, maxScroll);
+                return false;
+            }
+            // Clic hors du viewport visible (contenu masqué par le clip) — ignoré.
+            if (pos.Y < _viewportTop || pos.Y > _viewportTop + _viewportHeight)
+                return false;
+        }
+
+        // Convertit la position écran en coordonnées de contenu (les rects ci-dessous sont
+        // enregistrés tels que dessinés avant défilement — voir canvas.Translate dans Render).
+        float py = pos.Y + _scrollOffsetPx;
+
+        if (_btnFrench.Contains(pos.X, py))
         {
             _focusedUiScaleSlider   = false;
             _debugResolutionFocused = false;
@@ -300,7 +380,7 @@ public sealed class SettingsContentPanel : IDisposable
             settings.Language = Language.French;
             return true;
         }
-        if (_btnEnglish.Contains(pos.X, pos.Y))
+        if (_btnEnglish.Contains(pos.X, py))
         {
             _focusedUiScaleSlider   = false;
             _debugResolutionFocused = false;
@@ -308,28 +388,28 @@ public sealed class SettingsContentPanel : IDisposable
             settings.Language = Language.English;
             return true;
         }
-        if (!_pauseToggleRect.IsEmpty && _pauseToggleRect.Contains(pos.X, pos.Y))
+        if (!_pauseToggleRect.IsEmpty && _pauseToggleRect.Contains(pos.X, py))
         {
             _focusedUiScaleSlider   = false;
             _debugResolutionFocused = false;
             settings.PauseAfterPrestige = !settings.PauseAfterPrestige;
             return true;
         }
-        if (!_particlesToggleRect.IsEmpty && _particlesToggleRect.Contains(pos.X, pos.Y))
+        if (!_particlesToggleRect.IsEmpty && _particlesToggleRect.Contains(pos.X, py))
         {
             _focusedUiScaleSlider   = false;
             _debugResolutionFocused = false;
             settings.ShowHarvestParticles = !settings.ShowHarvestParticles;
             return true;
         }
-        if (!_militaryStatsToggleRect.IsEmpty && _militaryStatsToggleRect.Contains(pos.X, pos.Y))
+        if (!_militaryStatsToggleRect.IsEmpty && _militaryStatsToggleRect.Contains(pos.X, py))
         {
             _focusedUiScaleSlider   = false;
             _debugResolutionFocused = false;
             settings.ShowCityMilitaryStats = !settings.ShowCityMilitaryStats;
             return true;
         }
-        if (!_fullscreenToggleRect.IsEmpty && _fullscreenToggleRect.Contains(pos.X, pos.Y))
+        if (!_fullscreenToggleRect.IsEmpty && _fullscreenToggleRect.Contains(pos.X, py))
         {
             _focusedUiScaleSlider   = false;
             _debugResolutionFocused = false;
@@ -337,7 +417,7 @@ public sealed class SettingsContentPanel : IDisposable
             FullscreenToggleRequested?.Invoke(settings.Fullscreen);
             return true;
         }
-        if (!_menuPositionToggleRect.IsEmpty && _menuPositionToggleRect.Contains(pos.X, pos.Y))
+        if (!_menuPositionToggleRect.IsEmpty && _menuPositionToggleRect.Contains(pos.X, py))
         {
             _focusedUiScaleSlider   = false;
             _debugResolutionFocused = false;
@@ -347,7 +427,7 @@ public sealed class SettingsContentPanel : IDisposable
             _uiLayout.SetMenuPosition(settings.ForceMenuPosition);
             return true;
         }
-        if (!_uiScaleSliderRect.IsEmpty && _uiScaleSliderRect.Contains(pos.X, pos.Y))
+        if (!_uiScaleSliderRect.IsEmpty && _uiScaleSliderRect.Contains(pos.X, py))
         {
             // Démarre le drag mais ne change pas encore le réglage — appliqué au relâchement.
             // Le slider garde le focus clavier (flèches) même si la souris le quitte ensuite.
@@ -357,13 +437,13 @@ public sealed class SettingsContentPanel : IDisposable
             UpdatePendingUiScaleFromX(pos.X);
             return false;
         }
-        if (allowDebugMode && !_debugResolutionFieldRect.IsEmpty && _debugResolutionFieldRect.Contains(pos.X, pos.Y))
+        if (allowDebugMode && !_debugResolutionFieldRect.IsEmpty && _debugResolutionFieldRect.Contains(pos.X, py))
         {
             _focusedUiScaleSlider   = false;
             _debugResolutionFocused = true;
             return false;
         }
-        if (allowDebugMode && !_exportTransparentBgToggleRect.IsEmpty && _exportTransparentBgToggleRect.Contains(pos.X, pos.Y))
+        if (allowDebugMode && !_exportTransparentBgToggleRect.IsEmpty && _exportTransparentBgToggleRect.Contains(pos.X, py))
         {
             _focusedUiScaleSlider   = false;
             _debugResolutionFocused = false;
@@ -372,6 +452,17 @@ public sealed class SettingsContentPanel : IDisposable
         }
         _debugResolutionFocused = false;
         return false;
+    }
+
+    /// <summary>Ajuste le défilement au clavier/molette de souris. Retourne false si le contenu tient déjà entier.</summary>
+    public bool HandleScroll(float delta)
+    {
+        if (!_needsScroll) return false;
+        const float step = 60f;
+        float dir       = delta > 0 ? -1f : 1f;
+        float maxScroll = Math.Max(0f, _totalContentHeight - _viewportHeight);
+        _scrollOffsetPx = Math.Clamp(_scrollOffsetPx + dir * step, 0f, maxScroll);
+        return true;
     }
 
     /// <summary>Traite une touche tapée dans le champ de résolution de debug. Retourne true si la touche a été
@@ -420,19 +511,33 @@ public sealed class SettingsContentPanel : IDisposable
     {
         _focusedUiScaleSlider   = false;
         _debugResolutionFocused = false;
+        _isDraggingScrollbar    = false;
     }
 
     /// <summary>Met à jour le survol et la position visuelle du slider pendant un drag en cours
     /// (la valeur n'est pas encore appliquée — voir <see cref="HandlePointerReleased"/>).</summary>
     public void HandlePointerMoved(SKPoint pos, GameSettings settings)
     {
-        _hoveredPause         = !_pauseToggleRect.IsEmpty      && _pauseToggleRect.Contains(pos.X, pos.Y);
-        _hoveredParticles     = !_particlesToggleRect.IsEmpty  && _particlesToggleRect.Contains(pos.X, pos.Y);
-        _hoveredMilitaryStats = !_militaryStatsToggleRect.IsEmpty && _militaryStatsToggleRect.Contains(pos.X, pos.Y);
-        _hoveredFullscreen    = !_fullscreenToggleRect.IsEmpty && _fullscreenToggleRect.Contains(pos.X, pos.Y);
-        _hoveredMenuPosition  = !_menuPositionToggleRect.IsEmpty && _menuPositionToggleRect.Contains(pos.X, pos.Y);
-        _hoveredUiScaleSlider = !_uiScaleSliderRect.IsEmpty    && _uiScaleSliderRect.Contains(pos.X, pos.Y);
-        _hoveredExportTransparentBg = !_exportTransparentBgToggleRect.IsEmpty && _exportTransparentBgToggleRect.Contains(pos.X, pos.Y);
+        if (_isDraggingScrollbar)
+        {
+            float thumbRange  = _scrollTrackRect.Height - _scrollThumbRect.Height;
+            float maxScroll   = Math.Max(0f, _totalContentHeight - _viewportHeight);
+            float scrollPerPx = thumbRange > 0f ? maxScroll / thumbRange : 0f;
+            _scrollOffsetPx   = Math.Clamp(_scrollDragStartOffset + (pos.Y - _scrollDragStartY) * scrollPerPx, 0f, maxScroll);
+            return;
+        }
+
+        // Ignore le survol des lignes quand le pointeur est hors du viewport visible (contenu masqué par le clip).
+        bool inViewport = !_needsScroll || (pos.Y >= _viewportTop && pos.Y <= _viewportTop + _viewportHeight);
+        float py = inViewport ? pos.Y + _scrollOffsetPx : float.NegativeInfinity;
+
+        _hoveredPause         = !_pauseToggleRect.IsEmpty      && _pauseToggleRect.Contains(pos.X, py);
+        _hoveredParticles     = !_particlesToggleRect.IsEmpty  && _particlesToggleRect.Contains(pos.X, py);
+        _hoveredMilitaryStats = !_militaryStatsToggleRect.IsEmpty && _militaryStatsToggleRect.Contains(pos.X, py);
+        _hoveredFullscreen    = !_fullscreenToggleRect.IsEmpty && _fullscreenToggleRect.Contains(pos.X, py);
+        _hoveredMenuPosition  = !_menuPositionToggleRect.IsEmpty && _menuPositionToggleRect.Contains(pos.X, py);
+        _hoveredUiScaleSlider = !_uiScaleSliderRect.IsEmpty    && _uiScaleSliderRect.Contains(pos.X, py);
+        _hoveredExportTransparentBg = !_exportTransparentBgToggleRect.IsEmpty && _exportTransparentBgToggleRect.Contains(pos.X, py);
 
         if (_draggingUiScaleSlider)
             UpdatePendingUiScaleFromX(pos.X);
@@ -441,6 +546,8 @@ public sealed class SettingsContentPanel : IDisposable
     /// <summary>Applique la valeur du slider d'échelle si un drag était en cours, et indique s'il faut persister.</summary>
     public bool HandlePointerReleased(GameSettings settings)
     {
+        _isDraggingScrollbar = false;
+
         bool wasDragging = _draggingUiScaleSlider;
         _draggingUiScaleSlider = false;
 
@@ -469,6 +576,8 @@ public sealed class SettingsContentPanel : IDisposable
         _sliderKnobPaint.Dispose();
         _sliderKnobBorder.Dispose();
         _sliderKnobHoverBorder.Dispose();
+        _scrollTrackPaint.Dispose();
+        _scrollThumbPaint.Dispose();
         _labelFont.Dispose();
         _btnFont.Dispose();
     }

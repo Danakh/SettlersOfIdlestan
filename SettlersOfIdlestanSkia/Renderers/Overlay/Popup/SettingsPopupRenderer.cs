@@ -15,6 +15,7 @@ public sealed class SettingsPopupRenderer : PopupRendererBase
 
     private const float BtnRightMargin = 24;
     private const float FirstRowY      = 72;
+    private const float BottomMargin   = 16;
 
     private readonly MainGameController  _gameController;
     private readonly LocalizationService _localization;
@@ -66,7 +67,15 @@ public sealed class SettingsPopupRenderer : PopupRendererBase
         float  titleW = TitleFont!.MeasureText(title);
         SkiaTextUtils.DrawText(canvas, title, x + (popupW - titleW) / 2f, y + 34f * s, TitleFont, TextPaint);
 
-        _contentPanel.Render(canvas, x, y + FirstRowY * s, popupW - BtnRightMargin * s, s, settings, _localization, _allowDebugMode, CanvasSize);
+        float maxContentHeight = popupH - FirstRowY * s - BottomMargin * s;
+        _contentPanel.Render(canvas, x, y + FirstRowY * s, popupW - BtnRightMargin * s, s, settings, _localization, _allowDebugMode, CanvasSize, maxContentHeight);
+    }
+
+    /// <summary>Fait défiler le contenu des paramètres à la molette, s'il dépasse la hauteur du popup.</summary>
+    public bool HandleScroll(float delta)
+    {
+        if (!IsOpen || Disposed) return false;
+        return _contentPanel.HandleScroll(delta);
     }
 
     public bool HandlePointerPressed(SKPoint pos, PointerButton button)

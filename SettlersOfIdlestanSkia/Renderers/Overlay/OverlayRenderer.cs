@@ -477,6 +477,11 @@ public sealed class OverlayRenderer : IGameRenderer
     private void HandleZoomChanged(object? sender, ZoomEventArgs e)
     {
         if (!_isVisible) return;
+        if (_settingsPopupRenderer.IsOpen)
+        {
+            _settingsPopupRenderer.HandleScroll(e.ZoomDelta);
+            return;
+        }
         if (_tradeRenderer.IsOpen)
         {
             _tradeRenderer.HandleScroll(e.ZoomDelta);
