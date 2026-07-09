@@ -128,7 +128,7 @@ public sealed class TitleScreen : IDisposable
         _frameStopwatch.Start();
     }
 
-    private bool CanLoadFromCloud => _storeController?.IsConnected("Steam") == true;
+    private bool CanLoadFromCloud => _storeController?.HasCloudSave(CloudSaveFileName) == true;
 
     public void Render(SKCanvas canvas, SKSize canvasSize, float uiScale)
     {
@@ -332,7 +332,7 @@ public sealed class TitleScreen : IDisposable
         float maxHeight  = Math.Max(60 * s, btnAreaTop - y - 10 * s);
 
         // Panel width leaves a 24px right margin (même alignement que le popup)
-        _settingsPanel.Render(canvas, boxX, y, boxW - 24 * s, s, _settings, _localization, _allowDebugMode, canvasSize, maxHeight);
+        _settingsPanel.Render(canvas, boxX, y, boxW - 24 * s, s, _settings, _localization, _allowDebugMode, canvasSize, maxHeight, _storeController);
     }
 
     // ── Bouton Discord ─────────────────────────────────────────────────────────
@@ -488,7 +488,7 @@ public sealed class TitleScreen : IDisposable
         }
 
         // Paramètres
-        if (_activeTab == 2 && _settingsPanel.HandleClick(pos, _settings, _localization, _allowDebugMode))
+        if (_activeTab == 2 && _settingsPanel.HandleClick(pos, _settings, _localization, _allowDebugMode, _storeController))
             _ = _fileSystemService.SaveSettings(System.Text.Json.JsonSerializer.Serialize(_settings));
 
         // Boutons du bas

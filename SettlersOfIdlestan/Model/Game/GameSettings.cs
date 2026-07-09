@@ -11,6 +11,7 @@ public class GameSettings
     public bool ShowCityMilitaryStats { get; set; } = true;
     public bool Fullscreen { get; set; } = false;
     public bool DemoMode { get; set; } = false;
+    public bool CloudSaveEnabled { get; set; } = true;
     public float UiScale { get; set; } = 1f;
     public MenuPosition ForceMenuPosition { get; set; } = MenuPosition.Auto;
 

@@ -88,6 +88,12 @@ public class StoreServiceSteam : IStoreService
         return Encoding.UTF8.GetString(buffer, 0, read);
     }
 
+    public bool HasCloudFile(string fileName)
+    {
+        if (!IsAvailable) return false;
+        return SteamRemoteStorage.FileExists(fileName);
+    }
+
     public void Dispose()
     {
         if (IsAvailable) SteamAPI.Shutdown();

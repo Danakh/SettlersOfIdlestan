@@ -268,7 +268,7 @@ public sealed class GameScreen : IDisposable
 
         var selectedMonumentPanelRenderer = new SelectedMonumentPanelRenderer(_monumentService, _inputService, _localizationService, _resourceManager, _gameControllerService);
 
-        var settingsPopupRenderer = new SettingsPopupRenderer(_gameControllerService.MainGameController, _localizationService, _fileSystemService, _uiLayoutService, allowDebugMode);
+        var settingsPopupRenderer = new SettingsPopupRenderer(_gameControllerService.MainGameController, _localizationService, _fileSystemService, _uiLayoutService, allowDebugMode, _storeController);
         settingsPopupRenderer.FullscreenToggleRequested  += v => FullscreenToggleRequested?.Invoke(v);
         settingsPopupRenderer.UiScaleChanged             += ApplyManualUiScale;
         settingsPopupRenderer.DebugWindowResizeRequested += (w, h) => DebugWindowResizeRequested?.Invoke(w, h);
@@ -444,11 +444,12 @@ public sealed class GameScreen : IDisposable
         if (_autoSaveTimer >= AutoSaveInterval)
         {
             _autoSaveTimer = 0;
-            if (!_corruptSavePending && _gameControllerService.MainGameController.CurrentMainState != null)
+            if (!_corruptSavePending && _gameControllerService.MainGameController.CurrentMainState is { } mainState)
             {
                 var json = _gameControllerService.MainGameController.ExportMainState();
                 _fileSystemService.SaveAuto(json);
-                _storeController?.SaveCloudFile(CloudSaveFileName, json);
+                if (mainState.Settings.CloudSaveEnabled)
+                    _storeController?.SaveCloudFile(CloudSaveFileName, json);
             }
 
             var statsJson = System.Text.Json.JsonSerializer.Serialize(_gameControllerService.MainGameController.LifetimeStats);

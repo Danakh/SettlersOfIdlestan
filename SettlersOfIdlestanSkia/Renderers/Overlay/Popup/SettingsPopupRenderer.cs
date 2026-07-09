@@ -1,4 +1,5 @@
 using SettlersOfIdlestan.Controller;
+using SettlersOfIdlestan.Controller.Store;
 using SettlersOfIdlestanSkia.Services.Localization;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Services;
@@ -22,6 +23,7 @@ public sealed class SettingsPopupRenderer : PopupRendererBase
     private readonly IFileSystemService  _fileSystemService;
     private readonly SettingsContentPanel _contentPanel;
     private readonly bool _allowDebugMode;
+    private readonly StoreController? _storeController;
 
     public event Action<bool>? FullscreenToggleRequested;
     public event Action<float>? UiScaleChanged;
@@ -30,12 +32,13 @@ public sealed class SettingsPopupRenderer : PopupRendererBase
     private SKRect _closeButtonRect = SKRect.Empty;
     private SKRect _popupRect       = SKRect.Empty;
 
-    public SettingsPopupRenderer(MainGameController gameController, LocalizationService localization, IFileSystemService fileSystemService, UILayoutService uiLayout, bool allowDebugMode = false)
+    public SettingsPopupRenderer(MainGameController gameController, LocalizationService localization, IFileSystemService fileSystemService, UILayoutService uiLayout, bool allowDebugMode = false, StoreController? storeController = null)
     {
         _gameController    = gameController;
         _localization      = localization;
         _fileSystemService = fileSystemService;
         _allowDebugMode    = allowDebugMode;
+        _storeController   = storeController;
         _contentPanel      = new SettingsContentPanel(uiLayout);
         _contentPanel.FullscreenToggleRequested    += v => FullscreenToggleRequested?.Invoke(v);
         _contentPanel.UiScaleChanged                += v => UiScaleChanged?.Invoke(v);
@@ -68,7 +71,7 @@ public sealed class SettingsPopupRenderer : PopupRendererBase
         SkiaTextUtils.DrawText(canvas, title, x + (popupW - titleW) / 2f, y + 34f * s, TitleFont, TextPaint);
 
         float maxContentHeight = popupH - FirstRowY * s - BottomMargin * s;
-        _contentPanel.Render(canvas, x, y + FirstRowY * s, popupW - BtnRightMargin * s, s, settings, _localization, _allowDebugMode, CanvasSize, maxContentHeight);
+        _contentPanel.Render(canvas, x, y + FirstRowY * s, popupW - BtnRightMargin * s, s, settings, _localization, _allowDebugMode, CanvasSize, maxContentHeight, _storeController);
     }
 
     /// <summary>Fait défiler le contenu des paramètres à la molette, s'il dépasse la hauteur du popup.</summary>
@@ -86,7 +89,7 @@ public sealed class SettingsPopupRenderer : PopupRendererBase
         if (_closeButtonRect.Contains(pos.X, pos.Y)) { Close(); return true; }
 
         var settings = _gameController.CurrentMainState?.Settings;
-        if (settings != null && _contentPanel.HandleClick(pos, settings, _localization, _allowDebugMode))
+        if (settings != null && _contentPanel.HandleClick(pos, settings, _localization, _allowDebugMode, _storeController))
         {
             _ = _fileSystemService.SaveSettings(System.Text.Json.JsonSerializer.Serialize(settings));
             return true;

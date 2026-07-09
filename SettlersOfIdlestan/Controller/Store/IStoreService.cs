@@ -30,4 +30,10 @@ public interface IStoreService : IDisposable
     /// ou si le store ne supporte pas le cloud / est indisponible.
     /// </summary>
     string? LoadCloudFile(string fileName);
+
+    /// <summary>
+    /// Indique si un fichier existe dans le stockage cloud du store, sans en lire le contenu.
+    /// Retourne false si le store ne supporte pas le cloud / est indisponible.
+    /// </summary>
+    bool HasCloudFile(string fileName);
 }

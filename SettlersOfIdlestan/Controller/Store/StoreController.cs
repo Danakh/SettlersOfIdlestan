@@ -124,6 +124,17 @@ public class StoreController : IDisposable
     public bool IsConnected(string storeName) =>
         _activeServices.Any(s => s.Name == storeName);
 
+    /// <summary>
+    /// Indique si un fichier existe dans le stockage cloud d'au moins un store actif.
+    /// </summary>
+    public bool HasCloudSave(string fileName) =>
+        _activeServices.Any(s => s.HasCloudFile(fileName));
+
+    /// <summary>
+    /// Nom du premier store actif, ou null si aucun n'est connecté.
+    /// </summary>
+    public string? ConnectedStoreName => _activeServices.FirstOrDefault()?.Name;
+
     // ── Dispose ───────────────────────────────────────────────────────────────
 
     public void Dispose()

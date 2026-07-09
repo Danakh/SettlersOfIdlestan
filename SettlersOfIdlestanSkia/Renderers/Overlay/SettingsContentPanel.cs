@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using SettlersOfIdlestan.Controller.Store;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.Localization;
 using SettlersOfIdlestanSkia.Core;
@@ -57,6 +58,7 @@ public sealed class SettingsContentPanel : IDisposable
     private SKRect _fullscreenToggleRect   = SKRect.Empty;
     private SKRect _menuPositionToggleRect = SKRect.Empty;
     private SKRect _uiScaleSliderRect      = SKRect.Empty;
+    private SKRect _cloudSaveToggleRect    = SKRect.Empty;
     private SKRect _debugResolutionFieldRect = SKRect.Empty;
     private SKRect _exportTransparentBgToggleRect = SKRect.Empty;
 
@@ -66,6 +68,7 @@ public sealed class SettingsContentPanel : IDisposable
     private bool _hoveredFullscreen;
     private bool _hoveredMenuPosition;
     private bool _hoveredUiScaleSlider;
+    private bool _hoveredCloudSave;
     private bool _hoveredExportTransparentBg;
     private bool _focusedUiScaleSlider;
     private bool _draggingUiScaleSlider;
@@ -113,7 +116,7 @@ public sealed class SettingsContentPanel : IDisposable
     /// </summary>
     public float Render(SKCanvas canvas, float x, float y, float width, float s,
         GameSettings settings, LocalizationService localization, bool allowDebugMode = false, SKSize currentResolution = default,
-        float maxHeight = float.PositiveInfinity)
+        float maxHeight = float.PositiveInfinity, StoreController? storeController = null)
     {
         UpdateFonts(s);
 
@@ -128,7 +131,7 @@ public sealed class SettingsContentPanel : IDisposable
         float btn2Left = rightEdge - btnW;
         float btn1Left = btn2Left - btnGap - btnW;
 
-        int   rowCount      = allowDebugMode ? 8 : 6;
+        int   rowCount      = allowDebugMode ? 9 : 7;
         float contentHeight = spacingY * rowCount + btnH;
 
         _needsScroll        = contentHeight > maxHeight;
@@ -185,19 +188,29 @@ public sealed class SettingsContentPanel : IDisposable
         _uiScaleSliderRect = DrawSliderRow(canvas, x, row5Y, rightEdge,
             localization.Get("settings_ui_scale"), _pendingUiScaleValue ?? settings.UiScale, UiScaleMin, UiScaleMax, _hoveredUiScaleSlider, btnH, s);
 
+        // Row 8 — Sauvegarde Cloud. Désactivée (grisée) si aucun store cloud n'est connecté.
+        string? connectedStore = storeController?.ConnectedStoreName;
+        bool cloudAvailable    = connectedStore != null;
+        float row9Y = y + spacingY * 7f;
+        string cloudLabel = localization.Get("settings_cloud_save") + " " + (cloudAvailable
+            ? localization.GetFormated("settings_cloud_save_connected", connectedStore!)
+            : localization.Get("settings_cloud_save_not_connected"));
+        _cloudSaveToggleRect = DrawToggleRow(canvas, x, row9Y, rightEdge,
+            cloudLabel, settings.CloudSaveEnabled, _hoveredCloudSave, btnH, toggleW, toggleH, s, isDimmed: !cloudAvailable);
+
         if (allowDebugMode)
         {
-            // Row 8 (debug uniquement) — Résolution de la fenêtre, appliquée à l'appui sur Entrée.
+            // Row 9 (debug uniquement) — Résolution de la fenêtre, appliquée à l'appui sur Entrée.
             // Tant que le champ n'a pas le focus, il reflète en continu la résolution actuelle de la fenêtre.
             if (!_debugResolutionFocused && currentResolution.Width > 0f && currentResolution.Height > 0f)
                 _debugResolutionText = $"{(int)MathF.Round(currentResolution.Width)}x{(int)MathF.Round(currentResolution.Height)}";
 
-            float row7Y = y + spacingY * 7f;
+            float row7Y = y + spacingY * 8f;
             _debugResolutionFieldRect = DrawTextInputRow(canvas, x, row7Y, rightEdge,
                 localization.Get("settings_debug_window_resolution"), _debugResolutionText, _debugResolutionFocused, btnH, s);
 
-            // Row 9 (debug uniquement) — Export PNG avec fond transparent plutôt que le fond opaque habituel.
-            float row8Y = y + spacingY * 8f;
+            // Row 10 (debug uniquement) — Export PNG avec fond transparent plutôt que le fond opaque habituel.
+            float row8Y = y + spacingY * 9f;
             _exportTransparentBgToggleRect = DrawToggleRow(canvas, x, row8Y, rightEdge,
                 localization.Get("settings_debug_export_transparent_bg"), DebugSettings.ExportTransparentBackground,
                 _hoveredExportTransparentBg, btnH, toggleW, toggleH, s);
@@ -334,18 +347,18 @@ public sealed class SettingsContentPanel : IDisposable
     }
 
     private SKRect DrawToggleRow(SKCanvas canvas, float rowX, float rowY, float rightEdge,
-        string label, bool isOn, bool isHovered, float btnH, float toggleW, float toggleH, float s)
+        string label, bool isOn, bool isHovered, float btnH, float toggleW, float toggleH, float s, bool isDimmed = false)
     {
         SkiaTextUtils.DrawText(canvas, label + " :",
             rowX + 20f * s, rowY + btnH / 2f + _labelFont.Size / 2f, _labelFont, _labelPaint);
 
         var trackRect = new SKRect(rightEdge - toggleW, rowY + (btnH - toggleH) / 2f, rightEdge, rowY + (btnH + toggleH) / 2f);
-        SkiaToggleUtils.Draw(canvas, trackRect, isOn, isHovered);
+        SkiaToggleUtils.Draw(canvas, trackRect, isOn, !isDimmed && isHovered, isDimmed);
         return trackRect;
     }
 
     /// <summary>Returns true if a setting was changed.</summary>
-    public bool HandleClick(SKPoint pos, GameSettings settings, LocalizationService localization, bool allowDebugMode = false)
+    public bool HandleClick(SKPoint pos, GameSettings settings, LocalizationService localization, bool allowDebugMode = false, StoreController? storeController = null)
     {
         if (_needsScroll)
         {
@@ -425,6 +438,13 @@ public sealed class SettingsContentPanel : IDisposable
             // Reflète le changement immédiatement : sur l'écran-titre rien d'autre ne resynchronise
             // UILayoutService à chaque frame (contrairement à OverlayRenderer pendant une partie).
             _uiLayout.SetMenuPosition(settings.ForceMenuPosition);
+            return true;
+        }
+        if (!_cloudSaveToggleRect.IsEmpty && storeController?.ConnectedStoreName != null && _cloudSaveToggleRect.Contains(pos.X, py))
+        {
+            _focusedUiScaleSlider   = false;
+            _debugResolutionFocused = false;
+            settings.CloudSaveEnabled = !settings.CloudSaveEnabled;
             return true;
         }
         if (!_uiScaleSliderRect.IsEmpty && _uiScaleSliderRect.Contains(pos.X, py))
@@ -537,6 +557,7 @@ public sealed class SettingsContentPanel : IDisposable
         _hoveredFullscreen    = !_fullscreenToggleRect.IsEmpty && _fullscreenToggleRect.Contains(pos.X, py);
         _hoveredMenuPosition  = !_menuPositionToggleRect.IsEmpty && _menuPositionToggleRect.Contains(pos.X, py);
         _hoveredUiScaleSlider = !_uiScaleSliderRect.IsEmpty    && _uiScaleSliderRect.Contains(pos.X, py);
+        _hoveredCloudSave     = !_cloudSaveToggleRect.IsEmpty  && _cloudSaveToggleRect.Contains(pos.X, py);
         _hoveredExportTransparentBg = !_exportTransparentBgToggleRect.IsEmpty && _exportTransparentBgToggleRect.Contains(pos.X, py);
 
         if (_draggingUiScaleSlider)
