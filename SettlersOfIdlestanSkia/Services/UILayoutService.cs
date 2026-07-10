@@ -41,7 +41,7 @@ public class UILayoutService
         _canvasSize.Width > 0 &&
         (_canvasSize.Width < 600 || _canvasSize.Width < _canvasSize.Height);
 
-    /// Force toutes les ruptures ci-dessous en mode compact (debug + génération de trailer).
+    /// Force toutes les ruptures ci-dessous en mode compact (debug).
     private bool IsCompactOverride => _forceMobile || IsAutoMobile;
 
     public void ToggleForceMode() => _forceMobile = !_forceMobile;
@@ -55,7 +55,7 @@ public class UILayoutService
     public float TimeSettingsBlockWidth => (BarPadding + GearIconSize + TimeControlRenderer.RequiredWidth) * UiScale;
 
     /// Position effective des tabs : pilotée par le réglage utilisateur (Auto se rabat sur la détection mobile),
-    /// le mode debug/trailer forçant toujours le bas quel que soit le réglage choisi.
+    /// le mode debug forçant toujours le bas quel que soit le réglage choisi.
     public bool TabsAtBottom => _forceMobile || _menuPosition switch
     {
         MenuPosition.Bottom => true,
@@ -64,7 +64,7 @@ public class UILayoutService
     };
 
     /// Valeur à afficher/éditer dans l'écran de réglages : le réglage utilisateur résolu (Auto se rabat sur la
-    /// détection mobile), sans tenir compte du mode debug/trailer qui ne doit pas polluer l'affichage.
+    /// détection mobile), sans tenir compte du mode debug qui ne doit pas polluer l'affichage.
     public bool MenuAtBottomSetting => _menuPosition switch
     {
         MenuPosition.Bottom => true,

@@ -3,8 +3,8 @@ using SkiaSharp;
 namespace SettlersOfIdlestanSkia.Screens;
 
 /// <summary>
-/// Dessine le titre du jeu ("Settlers of Idlestan") centré sur un canvas — utilisé à la fois
-/// par l'écran de jeu (debug F11) et par le générateur de trailer (carton de fin, beat 7).
+/// Dessine le titre du jeu ("Settlers of Idlestan") centré sur un canvas — utilisé par
+/// l'écran de jeu (debug F11) et par d'autres générateurs d'images (ex. SOICapsuleGenerator).
 /// </summary>
 public static class TitleCardRenderer
 {
