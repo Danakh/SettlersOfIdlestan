@@ -21,7 +21,7 @@
     <PackageReference Include="OpenTK.Windowing.Desktop" Version="4.8.2" />
     <PackageReference Include="OpenTK.Graphics" Version="4.8.2" />
     <PackageReference Include="SkiaSharp" Version="3.119.2" />
-    <PackageReference Include="Steamworks.NET" Version="20.2.0" />
+    <PackageReference Include="Steamworks.NET" Version="2024.8.0" />
   </ItemGroup>
 
   <ItemGroup>
