@@ -121,7 +121,7 @@ public sealed class TitleScreen : IDisposable
 
         _hardResetPopup = new HardResetPopupRenderer(
             localization, fileSystemService,
-            onConfirm: () => { _hasSave = false; });
+            onConfirm: () => { _hasSave = false; NewGameRequested?.Invoke(); });
 
         _notificationToastRenderer = new NotificationToastRenderer(_uiLayoutService);
         StoreConnectionToastHelper.ShowConnectionToasts(_storeController, _notificationToastRenderer, _localization);
@@ -385,25 +385,25 @@ public sealed class TitleScreen : IDisposable
         DrawBtn(canvas, _primaryBtnRect, _primaryBtnPaint, _localization.Get(_hasSave ? "title_btn_continue" : "title_btn_new_game"), s);
         slot++;
 
-        if (_hasSave)
-        {
-            _hardResetBtnRect = new SKRect(startX + slot * (btnW + gap), btnY, startX + slot * (btnW + gap) + btnW, btnY + btnH);
-            DrawBtn(canvas, _hardResetBtnRect, _resetBtnPaint, _localization.Get("title_btn_hard_reset"), s);
-            slot++;
-        }
-        else
-        {
-            _hardResetBtnRect = SKRect.Empty;
-        }
-
         if (showCloud)
         {
             _loadCloudBtnRect = new SKRect(startX + slot * (btnW + gap), btnY, startX + slot * (btnW + gap) + btnW, btnY + btnH);
             DrawBtn(canvas, _loadCloudBtnRect, _loadCloudBtnPaint, _localization.Get("title_btn_load_cloud"), s);
+            slot++;
         }
         else
         {
             _loadCloudBtnRect = SKRect.Empty;
+        }
+
+        if (_hasSave)
+        {
+            _hardResetBtnRect = new SKRect(startX + slot * (btnW + gap), btnY, startX + slot * (btnW + gap) + btnW, btnY + btnH);
+            DrawBtn(canvas, _hardResetBtnRect, _resetBtnPaint, _localization.Get("title_btn_hard_reset"), s);
+        }
+        else
+        {
+            _hardResetBtnRect = SKRect.Empty;
         }
     }
 
@@ -503,11 +503,11 @@ public sealed class TitleScreen : IDisposable
         }
         else if (!_loadCloudBtnRect.IsEmpty && _loadCloudBtnRect.Contains(pos))
         {
-            LoadFromCloud();
+            _ = LoadFromCloud();
         }
     }
 
-    private void LoadFromCloud()
+    private async Task LoadFromCloud()
     {
         var json = _storeController?.LoadCloudFile(CloudSaveFileName);
         if (string.IsNullOrEmpty(json))
@@ -517,10 +517,11 @@ public sealed class TitleScreen : IDisposable
             return;
         }
 
-        _ = _fileSystemService.SaveAuto(json);
+        await _fileSystemService.SaveAuto(json);
         _hasSave = true;
         _notificationToastRenderer.ShowNotification(
             _localization.Get("notification_cloud_load_success"), string.Empty, NotificationIcon.StoreOk);
+        ContinueRequested?.Invoke();
     }
 
     public void HandlePointerMoved(float x, float y)
