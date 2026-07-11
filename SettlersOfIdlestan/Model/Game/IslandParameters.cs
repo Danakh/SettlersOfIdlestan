@@ -14,6 +14,12 @@ namespace SettlersOfIdlestan.Model.Game
         public List<NpcParameters> NpcCivilizations { get; set; } = new();
         public bool HasBonusIsland { get; set; }
 
+        /// <summary>
+        /// Île endgame (WorldId >= 5) : peut générer d'autres îles supplémentaires sur la même carte.
+        /// Voir <see cref="SettlersOfIdlestan.Controller.Generator.IslandMapGenerator.GenerateAdditionalIslands"/>.
+        /// </summary>
+        public bool IsEndgameIsland { get; set; }
+
         public IslandParameters(int worldId, IEnumerable<(TerrainType terrainType, int tileCount)> tileData, IEnumerable<IslandFeatureParameters>? features = null, IslandShapeType shapeType = IslandShapeType.Compact)
         {
             WorldId = worldId;

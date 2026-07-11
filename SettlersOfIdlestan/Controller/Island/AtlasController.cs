@@ -170,6 +170,7 @@ namespace SettlersOfIdlestan.Controller.Island
             {
                 NpcCivilizations = npcCivs,
                 HasBonusIsland = _prng.Next(100) < 50,
+                IsEndgameIsland = true,
             };
         }
 

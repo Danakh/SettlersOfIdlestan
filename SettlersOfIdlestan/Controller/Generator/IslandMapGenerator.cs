@@ -103,15 +103,7 @@ public class IslandMapGenerator
     /// </summary>
     public WorldState? GenerateWorldState(IslandParameters parameters, long currentTick, long startTick = 0, int surfaceCorruptionLevel = 0, int tier = 1)
     {
-        IslandShapeGenerator shapeGenerator = parameters.ShapeType switch
-        {
-            IslandShapeType.Crescent    => new IslandShapeGeneratorCrescent(),
-            IslandShapeType.Archipelago => new IslandShapeGeneratorArchipelago(_prng),
-            IslandShapeType.Elongated   => new IslandShapeGeneratorElongated(_prng),
-            IslandShapeType.Lake        => new IslandShapeGeneratorLake(_prng),
-            IslandShapeType.InlandSea   => new IslandShapeGeneratorInlandSea(_prng),
-            _                           => new IslandShapeGeneratorCompact(_prng)
-        };
+        var shapeGenerator = CreateShapeGenerator(parameters.ShapeType);
 
         var civs = new List<Civilization> { new Civilization { Index = 0 } };
         for (int i = 0; i < parameters.NpcCivilizations.Count; i++)
@@ -125,9 +117,12 @@ public class IslandMapGenerator
         var map = GenerateIsland(parameters.TileData, civs, shapeGenerator);
         if (map is null) return null;
 
+        if (parameters.IsEndgameIsland)
+            GenerateAdditionalIslands(map, civs, parameters.TileData.ToList(), parameters.NpcCivilizations.Count);
+
         var WorldState = new WorldState(map, civs, parameters.WorldId) { StartTick = startTick };
 
-        if (parameters.NpcCivilizations.Count > 0)
+        if (civs.Any(c => c.IsNpc))
             new NpcCivilizationPlacer().PlaceNpcCivilizations(WorldState, _prng, tier);
 
         if (parameters.Features.Count > 0)
@@ -140,6 +135,213 @@ public class IslandMapGenerator
             PlaceSurfaceCorruption(WorldState, surfaceCorruptionLevel);
 
         return WorldState;
+    }
+
+    private IslandShapeGenerator CreateShapeGenerator(IslandShapeType shapeType) => shapeType switch
+    {
+        IslandShapeType.Crescent    => new IslandShapeGeneratorCrescent(),
+        IslandShapeType.Archipelago => new IslandShapeGeneratorArchipelago(_prng),
+        IslandShapeType.Elongated   => new IslandShapeGeneratorElongated(_prng),
+        IslandShapeType.Lake        => new IslandShapeGeneratorLake(_prng),
+        IslandShapeType.InlandSea   => new IslandShapeGeneratorInlandSea(_prng),
+        _                           => new IslandShapeGeneratorCompact(_prng)
+    };
+
+    private const int MaxAdditionalIslands = 10;
+    private const int AdditionalIslandTargetDistance = 3;
+    private const int MaxAdditionalIslandPlacementSteps = 60;
+
+    /// <summary>
+    /// Génère 0+ îles supplémentaires en plus de l'île principale (îles endgame uniquement).
+    /// Soit n le nombre d'îles déjà générées (île principale comprise) : à chaque étape on a une
+    /// chance de 1/2^n de générer une île de plus, avec un nombre d'hexagones et de civilisations
+    /// NPC divisé par n (arrondi au supérieur). Chaque île est placée dans une direction hexagonale
+    /// principale aléatoire depuis le barycentre des îles déjà posées, à une distance exacte de 3
+    /// hexagones (terre à terre, soit deux hex d'eau entre les deux îles), puis le détroit entre
+    /// les deux îles les plus proches est élargi.
+    /// </summary>
+    public void GenerateAdditionalIslands(
+        IslandMap map, List<Civilization> civs, List<(TerrainType terrainType, int tileCount)> baseTileData, int baseNpcCount)
+    {
+        int baseHexCount = baseTileData.Sum(t => t.tileCount);
+        if (baseHexCount == 0) return;
+
+        for (int n = 1; n <= MaxAdditionalIslands && _prng.Next(1 << n) == 0; n++)
+        {
+            int hexCount = (int)Math.Ceiling(baseHexCount / (double)n);
+            int npcCount = (int)Math.Ceiling(baseNpcCount / (double)n);
+
+            var shapes = Enum.GetValues<IslandShapeType>();
+            var shapeGenerator = CreateShapeGenerator(shapes[_prng.Next(shapes.Length)]);
+            var localCoords = shapeGenerator.GenerateCoords(hexCount, map.Z);
+            if (localCoords.Count == 0) continue;
+
+            var (landCoords, bridgeA, bridgeB) = PlaceAdditionalIsland(map, localCoords);
+
+            var terrainList = Shuffle(ScaleTileData(baseTileData, landCoords.Count));
+            for (int i = 0; i < landCoords.Count; i++)
+                map.AddTile(new HexTile(landCoords[i], terrainList[i]));
+
+            AddWaterRing(map, landCoords);
+            WidenBridge(map, bridgeA, bridgeB);
+
+            for (int i = 0; i < npcCount; i++)
+            {
+                int expansionScore    = _prng.Next(0, 4);
+                int aggressivityScore = Math.Clamp(3 - expansionScore + _prng.Next(-1, 1), 0, 3);
+                civs.Add(new Civilization
+                {
+                    Index = civs.Count,
+                    IsNpc = true,
+                    NpcParameters = new NpcParameters
+                    {
+                        EvolutionLevel = (NpcEvolutionLevel)expansionScore,
+                        AggressivityLevel = (NpcAggressivityLevel)aggressivityScore,
+                    }
+                });
+            }
+        }
+    }
+
+    /// <summary>
+    /// Trouve la translation à appliquer à <paramref name="localCoords"/> (générées autour de
+    /// l'origine) pour poser la nouvelle île : on aligne d'abord son barycentre sur celui des îles
+    /// déjà posées, puis on la décale hex par hex le long d'une direction principale aléatoire
+    /// jusqu'à ce que la distance terre-terre la plus courte avec les îles existantes soit
+    /// exactement <see cref="AdditionalIslandTargetDistance"/>. La distance min ne peut varier que
+    /// de -1/0/+1 par pas (translation par un vecteur de norme 1), donc en avançant ou reculant
+    /// d'un cran selon le signe de l'écart courant, on finit toujours par tomber pile sur la cible.
+    /// </summary>
+    private (List<HexCoord> landCoords, HexCoord bridgeExisting, HexCoord bridgeAdded) PlaceAdditionalIsland(
+        IslandMap map, IReadOnlyList<HexCoord> localCoords)
+    {
+        int z = map.Z;
+        var existingLand = map.Tiles.Values
+            .Where(t => t.TerrainType != TerrainType.Water)
+            .Select(t => t.Coord)
+            .ToList();
+
+        var existingBary = Barycenter(existingLand);
+        var localBary = Barycenter(localCoords);
+
+        int offsetQ = (int)Math.Round(existingBary.q - localBary.q);
+        int offsetR = (int)Math.Round(existingBary.r - localBary.r);
+
+        var dir = HexDirectionUtils.AllHexDirections[_prng.Next(HexDirectionUtils.AllHexDirections.Length)];
+        var delta = new HexCoord(0, 0, z).Neighbor(dir);
+
+        List<HexCoord> Translate(int oq, int or_) =>
+            localCoords.Select(c => new HexCoord(c.Q + oq, c.R + or_, z)).ToList();
+
+        var current = Translate(offsetQ, offsetR);
+        var (dist, bridgeA, bridgeB) = MinDistancePair(existingLand, current);
+
+        int step = 0;
+        while (dist != AdditionalIslandTargetDistance && step < MaxAdditionalIslandPlacementSteps)
+        {
+            int sign = dist < AdditionalIslandTargetDistance ? 1 : -1;
+            offsetQ += sign * delta.Q;
+            offsetR += sign * delta.R;
+            current = Translate(offsetQ, offsetR);
+            (dist, bridgeA, bridgeB) = MinDistancePair(existingLand, current);
+            step++;
+        }
+
+        return (current, bridgeA, bridgeB);
+    }
+
+    private static (double q, double r) Barycenter(IReadOnlyList<HexCoord> coords) =>
+        (coords.Average(c => c.Q), coords.Average(c => c.R));
+
+    private static (int dist, HexCoord a, HexCoord b) MinDistancePair(IReadOnlyList<HexCoord> setA, IReadOnlyList<HexCoord> setB)
+    {
+        int best = int.MaxValue;
+        HexCoord bestA = setA[0], bestB = setB[0];
+        foreach (var a in setA)
+            foreach (var b in setB)
+            {
+                int d = a.DistanceTo(b);
+                if (d < best)
+                {
+                    best = d;
+                    bestA = a;
+                    bestB = b;
+                }
+            }
+        return (best, bestA, bestB);
+    }
+
+    /// <summary>
+    /// Ajoute de l'eau sur tous les hex voisins des hex de terre donnés qui ne portent encore
+    /// aucune tuile (ne touche jamais un hex déjà occupé, terre ou eau).
+    /// </summary>
+    private static void AddWaterRing(IslandMap map, IReadOnlyList<HexCoord> landCoords)
+    {
+        var landSet = new HashSet<HexCoord>(landCoords);
+        foreach (var coord in landCoords)
+            foreach (var dir in HexDirectionUtils.AllHexDirections)
+            {
+                var nb = coord.Neighbor(dir);
+                if (!landSet.Contains(nb) && !map.HasTile(nb))
+                    map.AddTile(new HexTile(nb, TerrainType.Water));
+            }
+    }
+
+    /// <summary>
+    /// Élargit le détroit entre les deux hex de terre les plus proches (une île existante et l'île
+    /// qu'on vient de poser) : prend tous leurs voisins d'eau, puis ajoute de l'eau autour de ces
+    /// hex d'eau partout où il n'y a encore aucune tuile.
+    /// </summary>
+    private static void WidenBridge(IslandMap map, HexCoord hexA, HexCoord hexB)
+    {
+        var waterNeighbors = new HashSet<HexCoord>();
+        foreach (var hex in new[] { hexA, hexB })
+            foreach (var dir in HexDirectionUtils.AllHexDirections)
+            {
+                var nb = hex.Neighbor(dir);
+                if (map.GetTile(nb)?.TerrainType == TerrainType.Water)
+                    waterNeighbors.Add(nb);
+            }
+
+        foreach (var waterHex in waterNeighbors)
+            foreach (var dir in HexDirectionUtils.AllHexDirections)
+            {
+                var nb = waterHex.Neighbor(dir);
+                if (!map.HasTile(nb))
+                    map.AddTile(new HexTile(nb, TerrainType.Water));
+            }
+    }
+
+    /// <summary>
+    /// Redistribue les proportions de <paramref name="baseTileData"/> sur un total de
+    /// <paramref name="targetHexCount"/> hexagones (méthode du plus grand reste).
+    /// </summary>
+    private static List<TerrainType> ScaleTileData(List<(TerrainType terrainType, int tileCount)> baseTileData, int targetHexCount)
+    {
+        int baseTotal = baseTileData.Sum(t => t.tileCount);
+        if (baseTotal == 0 || targetHexCount <= 0) return new List<TerrainType>();
+
+        var counts = new int[baseTileData.Count];
+        var remainders = new double[baseTileData.Count];
+        int assigned = 0;
+        for (int i = 0; i < baseTileData.Count; i++)
+        {
+            double exact = baseTileData[i].tileCount * targetHexCount / (double)baseTotal;
+            counts[i] = (int)Math.Floor(exact);
+            remainders[i] = exact - counts[i];
+            assigned += counts[i];
+        }
+
+        var byRemainder = Enumerable.Range(0, baseTileData.Count).OrderByDescending(i => remainders[i]).ToList();
+        int remaining = targetHexCount - assigned;
+        for (int k = 0; k < remaining; k++)
+            counts[byRemainder[k % byRemainder.Count]]++;
+
+        var result = new List<TerrainType>(targetHexCount);
+        for (int i = 0; i < baseTileData.Count; i++)
+            for (int j = 0; j < counts[i]; j++)
+                result.Add(baseTileData[i].terrainType);
+        return result;
     }
 
     private const int SurfaceCorruptionChancePerLevelPercent = 10;

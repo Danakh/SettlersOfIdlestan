@@ -10,7 +10,10 @@ public class Observatory : Monument
 {
     public override LocalizedEntry GetTooltipEntry() => new("hex_tooltip_observatory");
 
-    public override string? TextIcon => "🔭";
+    private static readonly string[] IconStages = { "01-fondation", "02-socle", "03-tour", "04-coupole" };
+
+    public override string? SvgIconResourceName => $"Resources.icons.features.observatoire-{IconStages[Math.Clamp(Level, 0, IconStages.Length - 1)]}.svg";
+    public override float SvgIconSize => 50f;
 
     public Observatory(HexCoord position) : base(position) { }
     public int Level { get; set; } = 0;
@@ -23,9 +26,9 @@ public class Observatory : Monument
     /// <summary>Coût statique du level-up — Verre/Minerai/Or, à l'échelle des derniers niveaux de la Merveille.</summary>
     public static ResourceSet GetLevelCost(int level) => new()
     {
-        { Resource.Glass, 1000 * level * level },
+        { Resource.Glass, 2000 * level * level },
         { Resource.Ore,   3000 * level * level },
-        { Resource.Gold, 20000 * level * level },
+        { Resource.Gold, 5000 * level * level },
     };
 
     public override ResourceSet GetInvestmentCost(SettlersOfIdlestan.Model.Civilization.Civilization playerCiv)
