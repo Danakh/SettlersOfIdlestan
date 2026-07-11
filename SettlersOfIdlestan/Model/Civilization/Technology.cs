@@ -26,6 +26,9 @@ public enum TechnologyId
     Fortifications,
     MilitaryBuildings,
     RapidConstruction,
+    // [Legacy] Recherche "Compagnonage" supprimée (fusionnée dans HarvestTools pour limiter le nombre
+    // de recherches de bâtiments de production) — conservée uniquement pour la désérialisation des anciennes sauvegardes.
+    Compagnonage,
     // Tier 2
     HarvestTools,
     AdvancedArchitecture,
@@ -44,7 +47,6 @@ public enum TechnologyId
     SteelWeapons,
     AdvancedTactics,
     EfficientTrading,
-    Compagnonage,
     Surveillance,
     // Tier 4
     // [Legacy] Recherche "Récolte épique" supprimée (fusionnée dans MasterHarvest/OutilsEnMithril pour limiter

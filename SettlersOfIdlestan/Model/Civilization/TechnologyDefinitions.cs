@@ -48,7 +48,7 @@ public static class TechnologyDefinitions
         
         new(TechnologyId.Agriculture,
             "tech_agriculture_name", "tech_agriculture_desc",
-            cost: 17800,
+            cost: 7500,
             prerequisites: new[] { TechnologyId.HarvestTools },
             modifiers: new Modifier[] { new(ECategory.HARVEST_PRODUCTION_BONUS, "Mill", EType.ADDITIVE, 50) },
             tier: 3, line: 0),
@@ -91,7 +91,7 @@ public static class TechnologyDefinitions
         // Débloquée par le vertex de prestige Tour de Guet
         new(TechnologyId.Scouting,
             "tech_scouting_name", "tech_scouting_desc",
-            cost: 950,
+            cost: 1400,
             prerequisites: Array.Empty<TechnologyId>(),
             modifiers: new Modifier[] { new(ECategory.CITY_ATTACK_RANGE, EType.ADDITIVE, 1) },
             tier: 2, line: 9),
@@ -160,7 +160,7 @@ public static class TechnologyDefinitions
 
         new(TechnologyId.MasterHarvest,
             "tech_master_harvest_name", "tech_master_harvest_desc",
-            cost: 46000,
+            cost: 105000,
             prerequisites: new[] { TechnologyId.HarvestTools },
             modifiers: new Modifier[] { new(ECategory.HARVEST_SPEED, EType.ADDITIVE, 0.25) },
             tier: 5, line: 2),
@@ -174,7 +174,7 @@ public static class TechnologyDefinitions
 
         new(TechnologyId.SteelWeapons,
             "tech_steel_weapons_name", "tech_steel_weapons_desc",
-            cost: 15000,
+            cost: 20000,
             prerequisites: new[] { TechnologyId.MaitriseDesAlliages },
             modifiers: new Modifier[]
             {
@@ -193,7 +193,7 @@ public static class TechnologyDefinitions
         // Continue la ligne de la Tour de Guet (Scouting) : permet d'attaquer les monstres à distance 2.
         new(TechnologyId.Surveillance,
             "tech_surveillance_name", "tech_surveillance_desc",
-            cost: 18000,
+            cost: 23000,
             prerequisites: new[] { TechnologyId.Scouting },
             modifiers: new Modifier[] { new(ECategory.UNLOCK_RANGED_MONSTER_ATTACK, EType.ADDITIVE, 1) },
             tier: 4, line: 9),
@@ -212,7 +212,7 @@ public static class TechnologyDefinitions
 
         new(TechnologyId.AdvancedTactics,
             "tech_advanced_tactics_name", "tech_advanced_tactics_desc",
-            cost: 17000,
+            cost: 22000,
             prerequisites: new[] { TechnologyId.MilitaryTactics, TechnologyId.RapidConstruction },
             modifiers: new Modifier[] { new(ECategory.UNLOCK_AUTO_REINFORCEMENT, EType.ADDITIVE, 1) },
             tier: 4, line: 8),
@@ -221,21 +221,21 @@ public static class TechnologyDefinitions
 
         new(TechnologyId.AutomaticMarket,
             "tech_automatic_market_name", "tech_automatic_market_desc",
-            cost: 15000,
+            cost: 20000,
             prerequisites: new[] { TechnologyId.EfficientTrading },
             modifiers: new Modifier[] { new(ECategory.UNLOCK_AUTO_MARKET_TRADE, EType.ADDITIVE, 1) },
             tier: 4, line: 4),
 
         new(TechnologyId.ImprovedResearch,
             "tech_improved_research_name", "tech_improved_research_desc",
-            cost: 17425,
+            cost: 22500,
             prerequisites: new[] { TechnologyId.ResearchMethods, TechnologyId.GrandArchitecture },
             modifiers: new Modifier[] { new(ECategory.RESEARCH_SPEED, EType.ADDITIVE, 0.2) },
             tier: 4, line: 6),
 
         new(TechnologyId.AdvancedStrategy,
             "tech_advanced_strategy_name", "tech_advanced_strategy_desc",
-            cost: 51000,
+            cost: 380000,
             prerequisites: new[] { TechnologyId.AdvancedTactics },
             modifiers: new Modifier[] { new(ECategory.UNLOCK_AUTO_ATTACK, EType.ADDITIVE, 1) },
             tier: 6, line: 8),
@@ -243,7 +243,7 @@ public static class TechnologyDefinitions
         // Prend la place de Rempart de Fer dans l'arbre : dépend désormais de lui (dépendance inversée).
         new(TechnologyId.WatchtowerConstruction,
             "tech_watchtower_construction_name", "tech_watchtower_construction_desc",
-            cost: 52000,
+            cost: 390000,
             prerequisites: new[] { TechnologyId.RempartsDeFer, TechnologyId.Surveillance },
             modifiers: new Modifier[] { new(ECategory.NEW_CITY_BUILDING, "Watchtower", EType.ADDITIVE, 1) },
             tier: 6, line: 7),
@@ -253,7 +253,7 @@ public static class TechnologyDefinitions
 
         new(TechnologyId.MasterResearch,
             "tech_master_research_name", "tech_master_research_desc",
-            cost: 140000,
+            cost: 1750000,
             prerequisites: new[] { TechnologyId.ImprovedResearch },
             modifiers: new Modifier[] { new(ECategory.RESEARCH_SPEED, EType.ADDITIVE, 0.3) },
             tier: 7, line: 6),
@@ -261,7 +261,7 @@ public static class TechnologyDefinitions
         // Débloquée par le vertex de prestige Guilde des Marchands
         new(TechnologyId.AdvancedTradingPosts,
             "tech_advanced_trading_posts_name", "tech_advanced_trading_posts_desc",
-            cost: 135000,
+            cost: 480000,
             prerequisites: new[] { TechnologyId.AutomaticMarket, TechnologyId.GrandArchitecture },
             modifiers: new Modifier[]
             {
@@ -273,14 +273,14 @@ public static class TechnologyDefinitions
 
         new(TechnologyId.Siderurgie,
             "tech_siderurgie_name", "tech_siderurgie_desc",
-            cost: 20000,
+            cost: 80000,
             prerequisites: new[] { TechnologyId.SteelWeapons },
             modifiers: new Modifier[] { new(ECategory.SMELTER_ORE_INPUT, EType.ADDITIVE, -2) },
             tier: 5, line: 3),
 
         new(TechnologyId.SteelArmor,
             "tech_steel_armor_name", "tech_steel_armor_desc",
-            cost: 210000,
+            cost: 2000000,
             prerequisites: new[] { TechnologyId.Siderurgie },
             modifiers: new Modifier[]
             {
@@ -291,14 +291,14 @@ public static class TechnologyDefinitions
 
         new(TechnologyId.TemperedSteel,
             "tech_tempered_steel_name", "tech_tempered_steel_desc",
-            cost: 55000,
+            cost: 410000,
             prerequisites: new[] { TechnologyId.Siderurgie },
             modifiers: new Modifier[] { new(ECategory.BUILDING_PRODUCTION, "Smelter", EType.ADDITIVE, 1) },
             tier: 6, line: 3),
 
         new(TechnologyId.RailLogistics,
             "tech_rail_logistics_name", "tech_rail_logistics_desc",
-            cost: 230000,
+            cost: 7200000,
             prerequisites: new[] { TechnologyId.AdvancedStrategy },
             modifiers: new Modifier[]
             {
@@ -311,7 +311,7 @@ public static class TechnologyDefinitions
 
         new(TechnologyId.Speleologie,
             "tech_speleologie_name", "tech_speleologie_desc",
-            cost: 18000,
+            cost: 23000,
             prerequisites: Array.Empty<TechnologyId>(),
             modifiers: new Modifier[]
             {
@@ -322,7 +322,7 @@ public static class TechnologyDefinitions
 
         new(TechnologyId.CultureFongique,
             "tech_culture_fongique_name", "tech_culture_fongique_desc",
-            cost: 35000,
+            cost: 95000,
             prerequisites: new[] { TechnologyId.Speleologie, TechnologyId.Agriculture },
             modifiers: new Modifier[]
             {
@@ -333,7 +333,7 @@ public static class TechnologyDefinitions
 
         new(TechnologyId.CartographieSouterraine,
             "tech_cartographie_souterraine_name", "tech_cartographie_souterraine_desc",
-            cost: 40000,
+            cost: 350000,
             prerequisites: new[] { TechnologyId.Speleologie },
             modifiers: new Modifier[]
             {
@@ -343,7 +343,7 @@ public static class TechnologyDefinitions
 
         new(TechnologyId.OutilsEnMithril,
             "tech_outils_en_mithril_name", "tech_outils_en_mithril_desc",
-            cost: 120000,
+            cost: 1600000,
             prerequisites: new[] { TechnologyId.Speleologie, TechnologyId.TemperedSteel },
             modifiers: new Modifier[] { new(ECategory.HARVEST_SPEED, EType.ADDITIVE, 0.25) },
             tier: 7, line: 2),
@@ -353,7 +353,7 @@ public static class TechnologyDefinitions
         // (voir ResearchController/AutoExtendController).
         new(TechnologyId.ProspectionAvancee,
             "tech_prospection_avancee_name", "tech_prospection_avancee_desc",
-            cost: 200000,
+            cost: 5800000,
             prerequisites: new[] { TechnologyId.CartographieSouterraine, TechnologyId.OutilsEnMithril },
             modifiers: Array.Empty<Modifier>(),
             tier: 8, line: 1),
@@ -363,42 +363,42 @@ public static class TechnologyDefinitions
 
         new(TechnologyId.MagicInitiation,
             "tech_magic_initiation_name", "tech_magic_initiation_desc",
-            cost: 20000,
+            cost: 80000,
             prerequisites: Array.Empty<TechnologyId>(),
             modifiers: new Modifier[] { new(ECategory.UNLOCK_RITUAL, "Growth", EType.ADDITIVE, 1) },
             tier: 5, line: 10),
 
         new(TechnologyId.ArdentForgeRitual,
             "tech_ardent_forge_ritual_name", "tech_ardent_forge_ritual_desc",
-            cost: 35000,
+            cost: 320000,
             prerequisites: new[] { TechnologyId.MagicInitiation },
             modifiers: new Modifier[] { new(ECategory.UNLOCK_RITUAL, "ArdentForge", EType.ADDITIVE, 1) },
             tier: 6, line: 9),
 
         new(TechnologyId.ClairvoyanceRitual,
             "tech_clairvoyance_ritual_name", "tech_clairvoyance_ritual_desc",
-            cost: 35000,
+            cost: 320000,
             prerequisites: new[] { TechnologyId.MagicInitiation },
             modifiers: new Modifier[] { new(ECategory.UNLOCK_RITUAL, "Clairvoyance", EType.ADDITIVE, 1) },
             tier: 6, line: 10),
 
         new(TechnologyId.MartialBlessingRitual,
             "tech_martial_blessing_ritual_name", "tech_martial_blessing_ritual_desc",
-            cost: 70000,
+            cost: 1400000,
             prerequisites: new[] { TechnologyId.ArdentForgeRitual },
             modifiers: new Modifier[] { new(ECategory.UNLOCK_RITUAL, "MartialBlessing", EType.ADDITIVE, 1) },
             tier: 7, line: 9),
 
         new(TechnologyId.ArcaneShieldRitual,
             "tech_arcane_shield_ritual_name", "tech_arcane_shield_ritual_desc",
-            cost: 145000,
+            cost: 5200000,
             prerequisites: new[] { TechnologyId.ClairvoyanceRitual },
             modifiers: new Modifier[] { new(ECategory.UNLOCK_RITUAL, "ArcaneShield", EType.ADDITIVE, 1) },
             tier: 8, line: 10),
 
         new(TechnologyId.DeepLightRitual,
             "tech_deep_light_ritual_name", "tech_deep_light_ritual_desc",
-            cost: 150000,
+            cost: 24000000,
             prerequisites: new[] { TechnologyId.MartialBlessingRitual, TechnologyId.Speleologie },
             modifiers: new Modifier[] { new(ECategory.UNLOCK_RITUAL, "DeepLight", EType.ADDITIVE, 1) },
             tier: 9, line: 9),
@@ -408,21 +408,21 @@ public static class TechnologyDefinitions
 
         new(TechnologyId.Invocation,
             "tech_invocation_name", "tech_invocation_desc",
-            cost: 20000,
+            cost: 80000,
             prerequisites: Array.Empty<TechnologyId>(),
             modifiers: new Modifier[] { new(ECategory.UNLOCK_SPELL, "Abundance", EType.ADDITIVE, 1) },
             tier: 5, line: 11),
 
         new(TechnologyId.TroopSummoning,
             "tech_troop_summoning_name", "tech_troop_summoning_desc",
-            cost: 60000,
+            cost: 1300000,
             prerequisites: new[] { TechnologyId.Invocation },
             modifiers: new Modifier[] { new(ECategory.UNLOCK_SPELL, "SummonTroops", EType.ADDITIVE, 1) },
             tier: 7, line: 11),
 
         new(TechnologyId.ArcaneEdification,
             "tech_arcane_edification_name", "tech_arcane_edification_desc",
-            cost: 215000,
+            cost: 6300000,
             prerequisites: new[] { TechnologyId.Invocation },
             modifiers: new Modifier[] { new(ECategory.UNLOCK_SPELL, "ArcaneEdification", EType.ADDITIVE, 1) },
             tier: 8, line: 12),
@@ -432,14 +432,14 @@ public static class TechnologyDefinitions
         // Prend la place de la Tour de Guet dans l'arbre : plus de prérequis Sidérurgie (Steelmaking).
         new(TechnologyId.RempartsDeFer,
             "tech_remparts_de_fer_name", "tech_remparts_de_fer_desc",
-            cost: 60000,
+            cost: 115000,
             prerequisites: new[] { TechnologyId.RapidConstruction },
             modifiers: new Modifier[] { new(ECategory.BUILDING_MAX_LEVEL, "Palisade", EType.ADDITIVE, 1) },
             tier: 5, line: 7),
 
         new(TechnologyId.RempartsDeMithril,
             "tech_remparts_de_mithril_name", "tech_remparts_de_mithril_desc",
-            cost: 220000,
+            cost: 6600000,
             prerequisites: new[] { TechnologyId.WatchtowerConstruction, TechnologyId.OutilsEnMithril },
             modifiers: new Modifier[] { new(ECategory.BUILDING_MAX_LEVEL, "Palisade", EType.ADDITIVE, 1) },
             tier: 8, line: 7),
@@ -449,21 +449,21 @@ public static class TechnologyDefinitions
         // Bifurque une ligne plus bas que la Tour de Guet (Scouting).
         new(TechnologyId.ChroniquesDuGuet,
             "tech_chroniques_du_guet_name", "tech_chroniques_du_guet_desc",
-            cost: 18500,
+            cost: 7800,
             prerequisites: new[] { TechnologyId.Scouting },
             modifiers: new Modifier[] { new(ECategory.PRESTIGE_GAIN, EType.ADDITIVE, 0.15) },
             tier: 3, line: 10),
 
         new(TechnologyId.RenommeeCommerciale,
             "tech_renommee_commerciale_name", "tech_renommee_commerciale_desc",
-            cost: 130000,
+            cost: 125000,
             prerequisites: new[] { TechnologyId.AutomaticMarket },
             modifiers: new Modifier[] { new(ECategory.PRESTIGE_GAIN, EType.ADDITIVE, 0.2) },
             tier: 5, line: 4),
 
         new(TechnologyId.SagesseSouterraine,
             "tech_sagesse_souterraine_name", "tech_sagesse_souterraine_desc",
-            cost: 205000,
+            cost: 6000000,
             prerequisites: new[] { TechnologyId.CultureFongique },
             modifiers: new Modifier[] { new(ECategory.PRESTIGE_GAIN, EType.ADDITIVE, 0.25) },
             tier: 8, line: 0),

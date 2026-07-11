@@ -174,9 +174,21 @@ public class TechnologyModifierTests
     }
 
     [Fact]
-    public void HarvestTools_QuarryMaxLevel_Plus1()
+    public void HarvestTools_MillMaxLevel_Plus1()
     {
         Assert.Equal(1, BuildAggregator(TechnologyId.HarvestTools).ApplyModifiers(ECategory.BUILDING_MAX_LEVEL, "Mill", 0));
+    }
+
+    [Fact]
+    public void HarvestTools_QuarryMaxLevel_Plus1()
+    {
+        Assert.Equal(1, BuildAggregator(TechnologyId.HarvestTools).ApplyModifiers(ECategory.BUILDING_MAX_LEVEL, "Quarry", 0));
+    }
+
+    [Fact]
+    public void HarvestTools_BrickworksMaxLevel_Plus1()
+    {
+        Assert.Equal(1, BuildAggregator(TechnologyId.HarvestTools).ApplyModifiers(ECategory.BUILDING_MAX_LEVEL, "Brickworks", 0));
     }
 
     [Fact]
@@ -227,20 +239,6 @@ public class TechnologyModifierTests
     public void AdvancedStrategy_NoCityDefenseModifier()
     {
         Assert.Equal(0, BuildAggregator(TechnologyId.AdvancedStrategy).ApplyModifiers(ECategory.CITY_DEFENSE, "", 0));
-    }
-
-    // ── BUILDING_MAX_LEVEL (Compagnonage) ─────────────────────────────────────
-
-    [Fact]
-    public void Compagnonage_MillMaxLevel_Plus1()
-    {
-        Assert.Equal(1, BuildAggregator(TechnologyId.Compagnonage).ApplyModifiers(ECategory.BUILDING_MAX_LEVEL, "Quarry", 0));
-    }
-
-    [Fact]
-    public void Compagnonage_BrickworksMaxLevel_Plus1()
-    {
-        Assert.Equal(1, BuildAggregator(TechnologyId.Compagnonage).ApplyModifiers(ECategory.BUILDING_MAX_LEVEL, "Brickworks", 0));
     }
 
     // ── Layout integrity (Tier/Line) ──────────────────────────────────────────
