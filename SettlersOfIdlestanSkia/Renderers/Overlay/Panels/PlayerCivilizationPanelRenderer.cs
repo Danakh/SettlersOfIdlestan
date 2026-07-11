@@ -188,6 +188,10 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         bool showActions  = tradeVisible || prestigeVisible || wonderVisible || observatoryVisible || maritimeBeaconVisible || deepestMineVisible || spireVisible || raidVisible || relocationVisible || walkOfGodVisible;
         bool showControls = pinned.Any(k => IsKeyShowable(k, civ, worldState, hasBarracks, hasLabs, hasSmelters, hasArsenals, hasWeaponSmiths, hasArmorSmiths, hasAlchimistHuts));
 
+        // Single source of truth for the action-button count — reused for both the
+        // panel height measurement and the button-grid layout so they can't drift apart.
+        int actionCount = (tradeVisible ? 1 : 0) + (prestigeVisible ? 1 : 0) + (wonderVisible ? 1 : 0) + (observatoryVisible ? 1 : 0) + (maritimeBeaconVisible ? 1 : 0) + (deepestMineVisible ? 1 : 0) + (spireVisible ? 1 : 0) + (raidVisible ? 1 : 0) + (relocationVisible ? 1 : 0) + (walkOfGodVisible ? 1 : 0);
+
         _tradeButtonRect = _prestigeButtonRect = _wonderButtonRect = _observatoryButtonRect = _maritimeBeaconButtonRect = _deepestMineButtonRect = _spireButtonRect = _raidButtonRect = _relocationButtonRect = _walkOfGodButtonRect = SKRect.Empty;
         _pinnedItemRects.Clear();
 
@@ -214,7 +218,6 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         float h = panelPadding;
         if (showActions)
         {
-            int actionCount = (tradeVisible ? 1 : 0) + (prestigeVisible ? 1 : 0) + (wonderVisible ? 1 : 0) + (observatoryVisible ? 1 : 0) + (maritimeBeaconVisible ? 1 : 0) + (deepestMineVisible ? 1 : 0) + (spireVisible ? 1 : 0) + (raidVisible ? 1 : 0) + (relocationVisible ? 1 : 0) + (walkOfGodVisible ? 1 : 0);
             int actionRows  = (actionCount + 1) / 2;
             h += titleHeight + actionRows * (btnHeight + btnSpacing);
         }
@@ -246,7 +249,6 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
 
             float colGap = 6f * s;
             float colW   = (contentW - colGap) / 2f;
-            int   actionCount = (tradeVisible ? 1 : 0) + (prestigeVisible ? 1 : 0) + (wonderVisible ? 1 : 0) + (maritimeBeaconVisible ? 1 : 0) + (deepestMineVisible ? 1 : 0) + (spireVisible ? 1 : 0) + (raidVisible ? 1 : 0) + (relocationVisible ? 1 : 0) + (walkOfGodVisible ? 1 : 0);
             float actionsY   = y;
             int   btnIdx     = 0;
 

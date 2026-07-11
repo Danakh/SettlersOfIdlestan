@@ -124,10 +124,19 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
         bool showEvolveButton = monument is CorruptionSpire { Built: true }
             && _gameControllerService.MainGameController.AbyssGateController.IsAbyssGateEligible();
         bool showNoCityWarning = !wonderMaxed && !MonumentInvestment.HasAdjacentCity(monument.Position, playerCiv);
+        var bonusLines = GetBonusLines(monument, playerCiv);
+        float bonusTextWidth = panelWidth - 2 * padding;
+        var bonusLineLayouts = bonusLines
+            .Select(b => (Lines: SkiaTextUtils.MeasureWrappedText(b.Text, bonusTextWidth, Font12!).Lines, b.Active))
+            .ToList();
+        float bonusLineHeight = Font12!.Spacing;
+        float bonusRowGap = 6f * s;
+        float bonusHeight = bonusLineLayouts.Sum(b => b.Lines.Count * bonusLineHeight + bonusRowGap);
         float footerHeight = (wonderMaxed ? FooterHeight * s : 0f)
             + (showCorruptedPrestigeAvailable ? FooterHeight * s : 0f)
             + (showEvolveButton ? EvolveButtonHeight * s : 0f)
-            + (showNoCityWarning ? FooterHeight * s : 0f);
+            + (showNoCityWarning ? FooterHeight * s : 0f)
+            + bonusHeight;
 
         float maxPanelHeight = Math.Max(0, CanvasSize.Height - panelY - 20 * s);
         int visibleResourceCount = Math.Min(resourceCount, Math.Max(0, (int)((maxPanelHeight - titleHeight - padding - footerHeight) / rowHeight)));
@@ -216,6 +225,17 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
             y += rowHeight;
         }
 
+        foreach (var (lines, active) in bonusLineLayouts)
+        {
+            var paint = active ? _barFillPaint : _dimTextPaint;
+            foreach (var line in lines)
+            {
+                y += bonusLineHeight;
+                SkiaTextUtils.DrawText(canvas, line, panelX + panelWidth / 2f, y, SKTextAlign.Center, Font12, paint);
+            }
+            y += bonusRowGap;
+        }
+
         if (wonderMaxed)
         {
             float rowH = FooterHeight * s;
@@ -271,6 +291,76 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
         float tabOverlap = 6f * s;
         CollapseTabRect = new SKRect(panelX - collapseTabW + tabOverlap, tabTop, panelX + tabOverlap, tabTop + collapseTabH);
         DrawCollapseTabRect(canvas, CollapseTabRect, true);
+    }
+
+    /// <summary>
+    /// Lignes de bonus affichées sous la liste de ressources : bonus actuel (doré), prochain bonus
+    /// et bonus secondaires déjà actifs (bronze/prestige combinés à d'autres branches) sont tous
+    /// rendus en doré ; seul le "prochain bonus" à venir est atténué.
+    /// </summary>
+    private List<(string Text, bool Active)> GetBonusLines(Monument monument, SettlersOfIdlestan.Model.Civilization.Civilization playerCiv)
+    {
+        var prestige = _gameControllerService.MainGameController.PrestigeController;
+        var lines = new List<(string Text, bool Active)>();
+
+        switch (monument)
+        {
+            case Wonder wonder:
+            {
+                int timeFactor = prestige.GetWonderBonusDetails().TimeFactor;
+                if (wonder.Level > 0)
+                    lines.Add((_localization.GetFormated("monument_bonus_wonder_current", wonder.Level, wonder.Level * timeFactor), true));
+                if (!wonder.IsMaxLevel)
+                    lines.Add((_localization.GetFormated("monument_bonus_wonder_next", wonder.Level + 1, (wonder.Level + 1) * timeFactor), false));
+                break;
+            }
+            case Observatory observatory:
+            {
+                if (observatory.Level > 0)
+                    lines.Add((_localization.GetFormated("monument_bonus_observatory_current", observatory.Level, observatory.Level * 10), true));
+                if (!observatory.IsMaxLevel)
+                    lines.Add((_localization.GetFormated("monument_bonus_observatory_next", observatory.Level + 1, (observatory.Level + 1) * 10), false));
+
+                bool watchtowerUnlocked = playerCiv.ModifierAggregator.ApplyModifiers(SettlersOfIdlestan.Model.GameplayModifier.Modifier.ECategory.BUILDING_MAX_LEVEL, "Watchtower", 0) > 0;
+                if (observatory.Level >= 1 && watchtowerUnlocked)
+                    lines.Add((_localization.Get("monument_bonus_observatory_watchtower_active"), true));
+
+                if (observatory.Level >= 2)
+                {
+                    bool maritimeRoutesUnlocked = playerCiv.ModifierAggregator.HasModifier(SettlersOfIdlestan.Model.GameplayModifier.Modifier.ECategory.UNLOCK_MARITIME_ROUTES);
+                    lines.Add((_localization.Get(maritimeRoutesUnlocked
+                        ? "monument_bonus_observatory_maritime_active"
+                        : "monument_bonus_observatory_maritime_beacon_active"), true));
+                }
+
+                if (observatory.Level >= 3)
+                    lines.Add((_localization.Get("monument_bonus_observatory_tier_picker_active"), true));
+                break;
+            }
+            case DeepestMine mine:
+                lines.Add(mine.Dug
+                    ? (_localization.Get("monument_bonus_deepest_mine_current"), true)
+                    : (_localization.Get("monument_bonus_deepest_mine_next"), false));
+                break;
+            case CorruptionSpire spire:
+            {
+                int multiplier = 2 * prestige.GetCorruptionLevel();
+                lines.Add(spire.Built
+                    ? (_localization.GetFormated("monument_bonus_corruption_spire_current", multiplier), true)
+                    : (_localization.GetFormated("monument_bonus_corruption_spire_next", multiplier), false));
+                break;
+            }
+            case AbyssGate gate:
+            {
+                int multiplier = 2 * prestige.GetCorruptionLevel();
+                lines.Add(gate.Built
+                    ? (_localization.GetFormated("monument_bonus_abyss_gate_current", multiplier), true)
+                    : (_localization.GetFormated("monument_bonus_abyss_gate_next", multiplier), false));
+                break;
+            }
+        }
+
+        return lines;
     }
 
     private void HandlePointerPressed(object? sender, PointerEventArgs e)

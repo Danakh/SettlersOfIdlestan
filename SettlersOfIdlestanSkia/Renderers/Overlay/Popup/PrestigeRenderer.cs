@@ -6,6 +6,7 @@ using SettlersOfIdlestanSkia.Renderers.Overlay;
 using SettlersOfIdlestanSkia.Services;
 using SkiaSharp;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace SettlersOfIdlestanSkia.Renderers.Overlay.Popup;
 
@@ -36,7 +37,7 @@ public sealed class PrestigeRenderer : PopupRendererBase
     private bool ShowTierPicker
         => _gameControllerService.MainGameController.PrestigeController.CanChooseNextIslandTier();
 
-    private readonly List<(SKRect Rect, string Key)> _hoverRects = new();
+    private readonly List<(SKRect Rect, string[] Keys)> _hoverRects = new();
     private SKFont? _smallFont;
 
     private readonly SKPaint _buttonPaint         = new() { Color = new SKColor(46, 125, 50),      Style = SKPaintStyle.Fill,   IsAntialias = true };
@@ -118,7 +119,7 @@ public sealed class PrestigeRenderer : PopupRendererBase
             SkiaTextUtils.DrawText(canvas, _localization.Get(source.LabelKey), popup.Left + Padding, y, BodyFont!, TextPaint);
             SkiaTextUtils.DrawText(canvas, source.Points.ToString(), popup.Right - Padding, y, SKTextAlign.Right, BtnFont!, TextPaint);
             if (source.TooltipKey != null)
-                _hoverRects.Add((new SKRect(popup.Left, y - BodyFont!.Size, popup.Right, y + 6), source.TooltipKey));
+                _hoverRects.Add((new SKRect(popup.Left, y - BodyFont!.Size, popup.Right, y + 6), new[] { source.TooltipKey }));
             y += SourceRowHeight;
         }
 
@@ -134,7 +135,7 @@ public sealed class PrestigeRenderer : PopupRendererBase
             SkiaTextUtils.DrawText(canvas, "×1",   popup.Right - Padding, contentBottom - 128 - belowWonderOffset, SKTextAlign.Right, BtnFont!, _warningTextPaint);
         else
             SkiaTextUtils.DrawText(canvas, "×1.2", popup.Right - Padding, contentBottom - 128 - belowWonderOffset, SKTextAlign.Right, BtnFont!, SubtlePaint);
-        _hoverRects.Add((new SKRect(popup.Left, contentBottom - 142 - belowWonderOffset, popup.Right, contentBottom - 114 - belowWonderOffset), "prestige_tooltip_monster_bonus"));
+        _hoverRects.Add((new SKRect(popup.Left, contentBottom - 142 - belowWonderOffset, popup.Right, contentBottom - 114 - belowWonderOffset), new[] { "prestige_tooltip_monster_bonus" }));
 
         // Wonder (affiché quand débloqué)
         if (wondersUnlocked)
@@ -145,7 +146,7 @@ public sealed class PrestigeRenderer : PopupRendererBase
             string wonderLabel = _localization.GetFormated("prestige_wonder_bonus", wonderLevel, timeFactor, duration);
             SkiaTextUtils.DrawText(canvas, wonderLabel, popup.Left + Padding, contentBottom - 100 - belowWonderOffset, BodyFont!, SubtlePaint);
             SkiaTextUtils.DrawText(canvas, $"×{Math.Max(1, wonderLevel * timeFactor)}", popup.Right - Padding, contentBottom - 100 - belowWonderOffset, SKTextAlign.Right, BtnFont!, SubtlePaint);
-            _hoverRects.Add((new SKRect(popup.Left, contentBottom - 114 - belowWonderOffset, popup.Right, contentBottom - 86 - belowWonderOffset), "prestige_tooltip_wonder_bonus"));
+            _hoverRects.Add((new SKRect(popup.Left, contentBottom - 114 - belowWonderOffset, popup.Right, contentBottom - 86 - belowWonderOffset), new[] { "prestige_tooltip_wonder_bonus" }));
         }
 
         // Observatoire (affiché quand niveau > 0)
@@ -153,10 +154,15 @@ public sealed class PrestigeRenderer : PopupRendererBase
         {
             float rowOffset = gainOffset + seaportOffset + civOffset + spireOffset + tierOffset;
             canvas.DrawLine(popup.Left + Padding, contentBottom - 114 - rowOffset, popup.Right - Padding, contentBottom - 114 - rowOffset, _separatorPaint);
-            string observatoryLabel = _localization.GetFormated("prestige_observatory_bonus", controller.GetObservatoryLevel());
+            int observatoryLevel = controller.GetObservatoryLevel();
+            string observatoryLabel = _localization.GetFormated("prestige_observatory_bonus", observatoryLevel);
             SkiaTextUtils.DrawText(canvas, observatoryLabel, popup.Left + Padding, contentBottom - 100 - rowOffset, BodyFont!, SubtlePaint);
             SkiaTextUtils.DrawText(canvas, $"+{observatoryBonus * 100:0}%", popup.Right - Padding, contentBottom - 100 - rowOffset, SKTextAlign.Right, BtnFont!, SubtlePaint);
-            _hoverRects.Add((new SKRect(popup.Left, contentBottom - 114 - rowOffset, popup.Right, contentBottom - 86 - rowOffset), "prestige_tooltip_observatory_bonus"));
+
+            var observatoryTooltipKeys = new List<string> { "prestige_tooltip_observatory_bonus" };
+            if (observatoryLevel >= 2) observatoryTooltipKeys.Add("prestige_tooltip_observatory_secondary_maritime");
+            if (observatoryLevel >= 3) observatoryTooltipKeys.Add("prestige_tooltip_observatory_secondary_tier_picker");
+            _hoverRects.Add((new SKRect(popup.Left, contentBottom - 114 - rowOffset, popup.Right, contentBottom - 86 - rowOffset), observatoryTooltipKeys.ToArray()));
         }
 
         // Spire de Corruption (affichée quand construite)
@@ -167,7 +173,7 @@ public sealed class PrestigeRenderer : PopupRendererBase
             string spireLabel = _localization.GetFormated("prestige_corruption_spire_bonus", controller.GetCorruptionLevel());
             SkiaTextUtils.DrawText(canvas, spireLabel, popup.Left + Padding, contentBottom - 100 - spireRowOffset, BodyFont!, SubtlePaint);
             SkiaTextUtils.DrawText(canvas, $"×{controller.GetCorruptionSpireMultiplier()}", popup.Right - Padding, contentBottom - 100 - spireRowOffset, SKTextAlign.Right, BtnFont!, SubtlePaint);
-            _hoverRects.Add((new SKRect(popup.Left, contentBottom - 114 - spireRowOffset, popup.Right, contentBottom - 86 - spireRowOffset), "prestige_tooltip_corruption_spire_bonus"));
+            _hoverRects.Add((new SKRect(popup.Left, contentBottom - 114 - spireRowOffset, popup.Right, contentBottom - 86 - spireRowOffset), new[] { "prestige_tooltip_corruption_spire_bonus" }));
         }
 
         // Bonus gain de prestige (affiché quand > 0)
@@ -177,7 +183,7 @@ public sealed class PrestigeRenderer : PopupRendererBase
             canvas.DrawLine(popup.Left + Padding, contentBottom - 114 - rowOffset, popup.Right - Padding, contentBottom - 114 - rowOffset, _separatorPaint);
             SkiaTextUtils.DrawText(canvas, _localization.Get("prestige_gain_bonus"), popup.Left + Padding, contentBottom - 100 - rowOffset, BodyFont!, SubtlePaint);
             SkiaTextUtils.DrawText(canvas, $"×{1 + gainBonus:0.##}", popup.Right - Padding, contentBottom - 100 - rowOffset, SKTextAlign.Right, BtnFont!, SubtlePaint);
-            _hoverRects.Add((new SKRect(popup.Left, contentBottom - 114 - rowOffset, popup.Right, contentBottom - 86 - rowOffset), "prestige_tooltip_prestige_gain_bonus"));
+            _hoverRects.Add((new SKRect(popup.Left, contentBottom - 114 - rowOffset, popup.Right, contentBottom - 86 - rowOffset), new[] { "prestige_tooltip_prestige_gain_bonus" }));
         }
 
         // Bonus Ports niv. 4 (affiché quand > 0)
@@ -188,7 +194,7 @@ public sealed class PrestigeRenderer : PopupRendererBase
             canvas.DrawLine(popup.Left + Padding, contentBottom - 114 - rowOffset, popup.Right - Padding, contentBottom - 114 - rowOffset, _separatorPaint);
             SkiaTextUtils.DrawText(canvas, _localization.GetFormated("prestige_seaport_bonus", portCount), popup.Left + Padding, contentBottom - 100 - rowOffset, BodyFont!, SubtlePaint);
             SkiaTextUtils.DrawText(canvas, $"+{seaportBonus * 100:0}%", popup.Right - Padding, contentBottom - 100 - rowOffset, SKTextAlign.Right, BtnFont!, SubtlePaint);
-            _hoverRects.Add((new SKRect(popup.Left, contentBottom - 114 - rowOffset, popup.Right, contentBottom - 86 - rowOffset), "prestige_tooltip_seaport_bonus"));
+            _hoverRects.Add((new SKRect(popup.Left, contentBottom - 114 - rowOffset, popup.Right, contentBottom - 86 - rowOffset), new[] { "prestige_tooltip_seaport_bonus" }));
         }
 
         // Bonus civilisations détruites (affiché quand > 0)
@@ -198,14 +204,14 @@ public sealed class PrestigeRenderer : PopupRendererBase
             canvas.DrawLine(popup.Left + Padding, contentBottom - 114 - tierOffset, popup.Right - Padding, contentBottom - 114 - tierOffset, _separatorPaint);
             SkiaTextUtils.DrawText(canvas, _localization.GetFormated("prestige_civilizations_destroyed_bonus", civCount), popup.Left + Padding, contentBottom - 100 - tierOffset, BodyFont!, SubtlePaint);
             SkiaTextUtils.DrawText(canvas, $"+{civDestroyedBonus * 100:0}%", popup.Right - Padding, contentBottom - 100 - tierOffset, SKTextAlign.Right, BtnFont!, SubtlePaint);
-            _hoverRects.Add((new SKRect(popup.Left, contentBottom - 114 - tierOffset, popup.Right, contentBottom - 86 - tierOffset), "prestige_tooltip_civilizations_destroyed_bonus"));
+            _hoverRects.Add((new SKRect(popup.Left, contentBottom - 114 - tierOffset, popup.Right, contentBottom - 86 - tierOffset), new[] { "prestige_tooltip_civilizations_destroyed_bonus" }));
         }
 
         // Bonus de palier (Tier) — toujours affiché
         canvas.DrawLine(popup.Left + Padding, contentBottom - 114, popup.Right - Padding, contentBottom - 114, _separatorPaint);
         SkiaTextUtils.DrawText(canvas, _localization.GetFormated("prestige_tier_bonus", tier), popup.Left + Padding, contentBottom - 100, BodyFont!, SubtlePaint);
         SkiaTextUtils.DrawText(canvas, $"+{tierBonus * 100:0}%", popup.Right - Padding, contentBottom - 100, SKTextAlign.Right, BtnFont!, SubtlePaint);
-        _hoverRects.Add((new SKRect(popup.Left, contentBottom - 114, popup.Right, contentBottom - 86), "prestige_tooltip_tier_bonus"));
+        _hoverRects.Add((new SKRect(popup.Left, contentBottom - 114, popup.Right, contentBottom - 86), new[] { "prestige_tooltip_tier_bonus" }));
 
         // Total
         canvas.DrawLine(popup.Left + Padding, contentBottom - 86, popup.Right - Padding, contentBottom - 86, _separatorPaint);
@@ -229,7 +235,7 @@ public sealed class PrestigeRenderer : PopupRendererBase
             SkiaTextUtils.DrawText(canvas, "+", _tierPlusButtonRect.MidX, _tierPlusButtonRect.MidY + 5, SKTextAlign.Center, BtnFont!, TextPaint);
             SkiaTextUtils.DrawText(canvas, _localization.GetFormated("prestige_next_island_tier_picker", chosenTier),
                 popup.MidX, rowY + btnSize / 2 + 5, SKTextAlign.Center, BodyFont!, TextPaint);
-            _hoverRects.Add((new SKRect(popup.Left, rowY - 4, popup.Right, rowY + btnSize + 4), "tooltip_prestige_next_island_tier_picker"));
+            _hoverRects.Add((new SKRect(popup.Left, rowY - 4, popup.Right, rowY + btnSize + 4), new[] { "tooltip_prestige_next_island_tier_picker" }));
         }
         else
         {
@@ -254,7 +260,7 @@ public sealed class PrestigeRenderer : PopupRendererBase
             int currentCorruptionLevel = controller.GetCorruptionLevel();
             SkiaTextUtils.DrawText(canvas, $"{currentCorruptionLevel} -> {currentCorruptionLevel + 1}", _corruptedPrestigeButtonRect.MidX, _corruptedPrestigeButtonRect.MidY + 13, SKTextAlign.Center, _smallFont!, TextPaint);
 
-            _hoverRects.Add((_corruptedPrestigeButtonRect, "prestige_tooltip_corrupted_action"));
+            _hoverRects.Add((_corruptedPrestigeButtonRect, new[] { "prestige_tooltip_corrupted_action" }));
         }
         else
         {
@@ -275,11 +281,11 @@ public sealed class PrestigeRenderer : PopupRendererBase
                 BodyFont!, SubtlePaint);
         }
 
-        foreach (var (rect, key) in _hoverRects)
+        foreach (var (rect, keys) in _hoverRects)
         {
             if (rect.Contains(_lastPointerPosition.X, _lastPointerPosition.Y))
             {
-                _tooltipRenderer.SetTooltip(_localization.Get(key), new SKPoint(rect.Right, rect.Top));
+                _tooltipRenderer.SetTooltipLines(keys.Select(_localization.Get).ToArray(), new SKPoint(rect.Right, rect.Top));
                 break;
             }
         }
