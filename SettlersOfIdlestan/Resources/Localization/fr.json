@@ -727,6 +727,7 @@
   "hex_tooltip_terrain_plain": "Plaines",
   "hex_tooltip_terrain_mountain": "Montagne",
   "hex_tooltip_terrain_water": "Eau",
+  "hex_tooltip_terrain_deepwater": "Eau profonde",
   "hex_tooltip_terrain_desert": "Désert",
   "hex_tooltip_terrain_mithrilvein": "Filon de Mithril",
   "hex_tooltip_terrain_crystalcave": "Grotte de Cristal",

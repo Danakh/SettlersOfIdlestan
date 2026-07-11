@@ -64,6 +64,7 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
         { TerrainType.Mountain, new SKColor(95, 90, 85) },
         { TerrainType.Desert,      new SKColor(238, 214, 175) },
         { TerrainType.Water,       new SKColor(30, 144, 255) },
+        { TerrainType.DeepWater,   new SKColor(8, 32, 74) },   // Bleu marine profond
         { TerrainType.MithrilVein, new SKColor(60, 90, 140) },   // Bleu-gris profond
         { TerrainType.CrystalCave, new SKColor(185, 130, 220) }, // Violet cristallin
         { TerrainType.MushroomCave, new SKColor(150, 105, 125) }, // Mauve fongique

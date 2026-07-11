@@ -16,5 +16,16 @@ public enum TerrainType
     Water,
     MithrilVein,
     CrystalCave,
-    MushroomCave
+    MushroomCave,
+    DeepWater
+}
+
+public static class TerrainTypeExtensions
+{
+    /// <summary>
+    /// Vrai pour <see cref="TerrainType.Water"/> et <see cref="TerrainType.DeepWater"/> : à utiliser
+    /// partout où "ceci n'est pas un hex de terre" est testé, pour que la bordure d'eau profonde
+    /// cosmétique ne soit jamais traitée comme un hex de terre valide.
+    /// </summary>
+    public static bool IsWater(this TerrainType terrain) => terrain is TerrainType.Water or TerrainType.DeepWater;
 }

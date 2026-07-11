@@ -134,7 +134,33 @@ public class IslandMapGenerator
         if (surfaceCorruptionLevel > 0)
             PlaceSurfaceCorruption(WorldState, surfaceCorruptionLevel);
 
+        AddDeepWaterBorder(WorldState);
+
         return WorldState;
+    }
+
+    /// <summary>
+    /// Dernière étape de la génération : ajoute un anneau d'eau profonde (cosmétique, jamais
+    /// traversable ni constructible — voir <see cref="TerrainTypeExtensions.IsWater"/>) tout
+    /// autour de chaque hex d'eau généré, pour que la carte ne s'arrête pas brutalement à son bord.
+    /// </summary>
+    private static void AddDeepWaterBorder(WorldState worldState)
+    {
+        var map = worldState.GetMapForZ(IslandMap.SurfaceLayer);
+        if (map == null) return;
+
+        var waterCoords = map.Tiles.Values
+            .Where(t => t.TerrainType == TerrainType.Water)
+            .Select(t => t.Coord)
+            .ToList();
+
+        foreach (var coord in waterCoords)
+            foreach (var dir in HexDirectionUtils.AllHexDirections)
+            {
+                var nb = coord.Neighbor(dir);
+                if (!map.HasTile(nb))
+                    map.AddTile(new HexTile(nb, TerrainType.DeepWater));
+            }
     }
 
     private IslandShapeGenerator CreateShapeGenerator(IslandShapeType shapeType) => shapeType switch

@@ -727,6 +727,7 @@
   "hex_tooltip_terrain_plain": "Plains",
   "hex_tooltip_terrain_mountain": "Mountain",
   "hex_tooltip_terrain_water": "Water",
+  "hex_tooltip_terrain_deepwater": "Deep water",
   "hex_tooltip_terrain_desert": "Desert",
   "hex_tooltip_terrain_mithrilvein": "Mithril Vein",
   "hex_tooltip_terrain_crystalcave": "Crystal Cave",

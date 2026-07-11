@@ -178,7 +178,7 @@ public class NpcCivilizationPlacer
 
         foreach (var tile in map.Tiles.Values)
         {
-            if (tile.TerrainType == TerrainType.Water) continue;
+            if (tile.TerrainType.IsWater()) continue;
 
             foreach (SecondaryHexDirection dir in Enum.GetValues<SecondaryHexDirection>())
             {
@@ -187,7 +187,7 @@ public class NpcCivilizationPlacer
 
                 var hexes = vertex.GetHexes();
                 var landCount = hexes.Count(h =>
-                    map.HasTile(h) && map.GetTile(h)!.TerrainType != TerrainType.Water);
+                    map.HasTile(h) && !map.GetTile(h)!.TerrainType.IsWater());
 
                 if (landCount >= 2)
                     vertices.Add(vertex);

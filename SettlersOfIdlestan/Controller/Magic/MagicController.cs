@@ -485,7 +485,7 @@ namespace SettlersOfIdlestan.Controller.Magic
 
             var occupied = new HashSet<HexCoord>(_state.Features.Select(f => f.Position));
             var candidates = map.Tiles.Values
-                .Where(t => t.TerrainType != TerrainType.Water && !occupied.Contains(t.Coord))
+                .Where(t => !t.TerrainType.IsWater() && !occupied.Contains(t.Coord))
                 .Select(t => t.Coord)
                 .ToList();
 

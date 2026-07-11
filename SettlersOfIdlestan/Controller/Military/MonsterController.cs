@@ -213,7 +213,7 @@ public class MonsterFeatureController
     {
         var map = _state!.GetMapFor(monster.Position)!;
         var neighbors = monster.Position.Neighbors()
-            .Where(n => map.HasTile(n) && map.GetTile(n)!.TerrainType != TerrainType.Water)
+            .Where(n => map.HasTile(n) && !map.GetTile(n)!.TerrainType.IsWater())
             .ToList();
 
         if (neighbors.Count == 0) return false;

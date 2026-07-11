@@ -625,7 +625,7 @@ namespace SettlersOfIdlestan.Controller
 
             var result = visibleVertices
                 .Where(v => !networkVertices.Contains(v))
-                .Where(v => v.GetHexes().Any(h => visibleMap.GetTile(h) is { TerrainType: not TerrainType.Water }))
+                .Where(v => v.GetHexes().Any(h => visibleMap.GetTile(h) is { } t && !t.TerrainType.IsWater()))
                 .Where(v => _civ.Cities.Where(c => c.Position.Z == v.Z).All(c => c.Position.EdgeDistanceTo(v) >= minOwn))
                 .Where(v => visibleEnemyCities.All(ec => ec.EdgeDistanceTo(v) >= minEnemy))
                 .ToList();
@@ -830,7 +830,7 @@ namespace SettlersOfIdlestan.Controller
                 foreach (var hex in city.Position.GetHexes())
                 {
                     var terrain = map.GetTile(hex)?.TerrainType;
-                    if (terrain == null || terrain == TerrainType.Water) continue;
+                    if (terrain == null || terrain.Value.IsWater()) continue;
                     terrainAvailability[terrain.Value] = terrainAvailability.GetValueOrDefault(terrain.Value) + 1;
                 }
 
@@ -840,7 +840,7 @@ namespace SettlersOfIdlestan.Controller
                 foreach (var hex in v.GetHexes())
                 {
                     var terrain = map.GetTile(hex)?.TerrainType;
-                    if (terrain == null || terrain == TerrainType.Water) continue;
+                    if (terrain == null || terrain.Value.IsWater()) continue;
                     min = Math.Min(min, terrainAvailability.GetValueOrDefault(terrain.Value));
                 }
                 return min == int.MaxValue ? 0 : min;
