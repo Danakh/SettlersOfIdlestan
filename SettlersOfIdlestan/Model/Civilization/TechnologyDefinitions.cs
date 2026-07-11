@@ -251,10 +251,19 @@ public static class TechnologyDefinitions
                 // === TIER 5 — Grandes convergences ===
         
 
+        // S'insère entre Recherche avancée et Maîtrise de la recherche : même tier que les Tours de
+        // Guet, débloque la construction de l'Observatoire (monument, Désert/Montagne).
+        new(TechnologyId.ObservatoryConstruction,
+            "tech_observatory_construction_name", "tech_observatory_construction_desc",
+            cost: 390000,
+            prerequisites: new[] { TechnologyId.ImprovedResearch, TechnologyId.GrandArchitecture },
+            modifiers: new Modifier[] { new(ECategory.UNLOCK_OBSERVATORY, EType.ADDITIVE, 1) },
+            tier: 6, line: 6),
+
         new(TechnologyId.MasterResearch,
             "tech_master_research_name", "tech_master_research_desc",
             cost: 1750000,
-            prerequisites: new[] { TechnologyId.ImprovedResearch },
+            prerequisites: new[] { TechnologyId.ObservatoryConstruction },
             modifiers: new Modifier[] { new(ECategory.RESEARCH_SPEED, EType.ADDITIVE, 0.3) },
             tier: 7, line: 6),
 

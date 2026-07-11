@@ -103,7 +103,7 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
         float collapseTabW = CollapseTabW * s;
         float collapseTabH = CollapseTabH * s;
 
-        bool wonderMaxed = monument is Wonder { IsMaxLevel: true };
+        bool wonderMaxed = (monument is Wonder { IsMaxLevel: true }) || (monument is Observatory { IsMaxLevel: true });
         var cost = monument.GetInvestmentCost(playerCiv);
         int resourceCount = wonderMaxed ? 0 : cost.Count;
         var costList = wonderMaxed ? new List<KeyValuePair<Resource, int>>() : cost.ToList();

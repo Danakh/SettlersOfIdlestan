@@ -48,6 +48,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
     private SKRect _tradeButtonRect    = SKRect.Empty;
     private SKRect _prestigeButtonRect = SKRect.Empty;
     private SKRect _wonderButtonRect   = SKRect.Empty;
+    private SKRect _observatoryButtonRect = SKRect.Empty;
     private SKRect _deepestMineButtonRect = SKRect.Empty;
     private SKRect _raidButtonRect     = SKRect.Empty;
     private SKRect _spireButtonRect    = SKRect.Empty;
@@ -56,8 +57,9 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
     private readonly List<(SKRect rect, string pinKey, string tooltipKey)> _pinnedItemRects = new();
     private int _hoveredPinnedIndex = -1;
 
-    private bool _hoveredTrade, _hoveredPrestige, _hoveredWonder, _hoveredDeepestMine, _hoveredRaid, _hoveredSpire, _hoveredRelocation, _hoveredWalkOfGod;
+    private bool _hoveredTrade, _hoveredPrestige, _hoveredWonder, _hoveredDeepestMine, _hoveredRaid, _hoveredSpire, _hoveredRelocation, _hoveredWalkOfGod, _hoveredObservatory;
     private bool _wonderEnabled;
+    private bool _observatoryEnabled;
     private bool _deepestMineEnabled;
     private bool _spireEnabled;
     private bool _relocationEnabled;
@@ -155,6 +157,8 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         int  prestigePoints  = prestigeVisible ? GetPrestigePoints() : 0;
         bool wonderVisible   = IsWonderVisible() && CanPlaceWonder();
         _wonderEnabled = wonderVisible && context.CurrentLayer == 0;
+        bool observatoryVisible = IsObservatoryVisible() && CanPlaceObservatory();
+        _observatoryEnabled = observatoryVisible && context.CurrentLayer == 0;
         bool deepestMineVisible = CanPlaceDeepestMine();
         _deepestMineEnabled = deepestMineVisible && context.CurrentLayer == 0;
         bool spireVisible   = CanPlaceSpire();
@@ -177,10 +181,10 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         var worldState = _gameControllerService.CurrentWorldState;
         var pinned = _gameControllerService.CurrentGameState?.Settings.PinnedCivPanelKeys ?? (IReadOnlySet<string>)new HashSet<string>();
 
-        bool showActions  = tradeVisible || prestigeVisible || wonderVisible || deepestMineVisible || spireVisible || raidVisible || relocationVisible || walkOfGodVisible;
+        bool showActions  = tradeVisible || prestigeVisible || wonderVisible || observatoryVisible || deepestMineVisible || spireVisible || raidVisible || relocationVisible || walkOfGodVisible;
         bool showControls = pinned.Any(k => IsKeyShowable(k, civ, worldState, hasBarracks, hasLabs, hasSmelters, hasArsenals, hasWeaponSmiths, hasArmorSmiths, hasAlchimistHuts));
 
-        _tradeButtonRect = _prestigeButtonRect = _wonderButtonRect = _deepestMineButtonRect = _spireButtonRect = _raidButtonRect = _relocationButtonRect = _walkOfGodButtonRect = SKRect.Empty;
+        _tradeButtonRect = _prestigeButtonRect = _wonderButtonRect = _observatoryButtonRect = _deepestMineButtonRect = _spireButtonRect = _raidButtonRect = _relocationButtonRect = _walkOfGodButtonRect = SKRect.Empty;
         _pinnedItemRects.Clear();
 
         if (!showActions && !showControls)
@@ -206,7 +210,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         float h = panelPadding;
         if (showActions)
         {
-            int actionCount = (tradeVisible ? 1 : 0) + (prestigeVisible ? 1 : 0) + (wonderVisible ? 1 : 0) + (deepestMineVisible ? 1 : 0) + (spireVisible ? 1 : 0) + (raidVisible ? 1 : 0) + (relocationVisible ? 1 : 0) + (walkOfGodVisible ? 1 : 0);
+            int actionCount = (tradeVisible ? 1 : 0) + (prestigeVisible ? 1 : 0) + (wonderVisible ? 1 : 0) + (observatoryVisible ? 1 : 0) + (deepestMineVisible ? 1 : 0) + (spireVisible ? 1 : 0) + (raidVisible ? 1 : 0) + (relocationVisible ? 1 : 0) + (walkOfGodVisible ? 1 : 0);
             int actionRows  = (actionCount + 1) / 2;
             h += titleHeight + actionRows * (btnHeight + btnSpacing);
         }
@@ -273,6 +277,13 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
                 _wonderButtonRect = BtnRect(btnIdx++);
                 canvas.DrawRoundRect(_wonderButtonRect, 6 * s, 6 * s, _wonderEnabled ? (_hoveredWonder ? _btnHoverPaint : _btnPaint) : _btnDisabledPaint);
                 SkiaTextUtils.DrawText(canvas, _localization.Get("wonder_action_short"), _wonderButtonRect.MidX, _wonderButtonRect.MidY + 4f * s, SKTextAlign.Center, _btnSmFont, _wonderEnabled ? TextPaint : _btnDisabledTxtPaint);
+            }
+
+            if (observatoryVisible)
+            {
+                _observatoryButtonRect = BtnRect(btnIdx++);
+                canvas.DrawRoundRect(_observatoryButtonRect, 6 * s, 6 * s, _observatoryEnabled ? (_hoveredObservatory ? _btnHoverPaint : _btnPaint) : _btnDisabledPaint);
+                SkiaTextUtils.DrawText(canvas, _localization.Get("observatory_action_short"), _observatoryButtonRect.MidX, _observatoryButtonRect.MidY + 4f * s, SKTextAlign.Center, _btnSmFont, _observatoryEnabled ? TextPaint : _btnDisabledTxtPaint);
             }
 
             if (deepestMineVisible)
@@ -405,6 +416,10 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             _tooltipRenderer.SetTooltip(_localization.Get("tooltip_wonder"), new SKPoint(_wonderButtonRect.Right, _wonderButtonRect.Top));
         else if (_hoveredWonder && !_wonderEnabled)
             _tooltipRenderer.SetTooltip(_localization.Get("tooltip_wonder_surface_only"), new SKPoint(_wonderButtonRect.Right, _wonderButtonRect.Top));
+        else if (_hoveredObservatory && _observatoryEnabled)
+            _tooltipRenderer.SetTooltip(_localization.Get("tooltip_observatory"), new SKPoint(_observatoryButtonRect.Right, _observatoryButtonRect.Top));
+        else if (_hoveredObservatory && !_observatoryEnabled)
+            _tooltipRenderer.SetTooltip(_localization.Get("tooltip_observatory_surface_only"), new SKPoint(_observatoryButtonRect.Right, _observatoryButtonRect.Top));
         else if (_hoveredDeepestMine && !_deepestMineEnabled)
             _tooltipRenderer.SetTooltip(_localization.Get("tooltip_deepest_mine_surface_only"), new SKPoint(_deepestMineButtonRect.Right, _deepestMineButtonRect.Top));
         else if (_hoveredDeepestMine)
@@ -458,6 +473,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         _hoveredTrade       = !_tradeButtonRect.IsEmpty       && _tradeButtonRect.Contains(pos.X, pos.Y);
         _hoveredPrestige    = !_prestigeButtonRect.IsEmpty    && _prestigeButtonRect.Contains(pos.X, pos.Y);
         _hoveredWonder      = !_wonderButtonRect.IsEmpty      && _wonderButtonRect.Contains(pos.X, pos.Y);
+        _hoveredObservatory = !_observatoryButtonRect.IsEmpty && _observatoryButtonRect.Contains(pos.X, pos.Y);
         _hoveredDeepestMine = !_deepestMineButtonRect.IsEmpty && _deepestMineButtonRect.Contains(pos.X, pos.Y);
         _hoveredSpire       = !_spireButtonRect.IsEmpty       && _spireButtonRect.Contains(pos.X, pos.Y);
         _hoveredRaid        = !_raidButtonRect.IsEmpty        && _raidButtonRect.Contains(pos.X, pos.Y);
@@ -506,6 +522,15 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             var wonderController = _gameControllerService.MainGameController.WonderController;
             _targetSelectionService.EnterHexSelection("wonder_select_hex", wonderController.GetPlaceableHexes(),
                 hex => wonderController.PlaceWonder(hex), TargetSelectionTheme.Friendly);
+            return true;
+        }
+
+        if (!_observatoryButtonRect.IsEmpty && _observatoryButtonRect.Contains(pos.X, pos.Y) && _observatoryEnabled && _targetSelectionService != null)
+        {
+            _closeAll();
+            var observatoryController = _gameControllerService.MainGameController.ObservatoryController;
+            _targetSelectionService.EnterHexSelection("observatory_select_hex", observatoryController.GetPlaceableHexes(),
+                hex => observatoryController.PlaceObservatory(hex), TargetSelectionTheme.Friendly);
             return true;
         }
 
@@ -721,6 +746,22 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         var civ = _gameControllerService.PlayerCivilization;
         if (civ == null) return false;
         try { return _gameControllerService.MainGameController.WonderController.CanPlaceWonder(civ); }
+        catch { return false; }
+    }
+
+    private bool IsObservatoryVisible()
+    {
+        var civ = _gameControllerService.PlayerCivilization;
+        if (civ == null) return false;
+        try { return _gameControllerService.MainGameController.ObservatoryController.HasObservatoryUnlocked(civ); }
+        catch { return false; }
+    }
+
+    private bool CanPlaceObservatory()
+    {
+        var civ = _gameControllerService.PlayerCivilization;
+        if (civ == null) return false;
+        try { return _gameControllerService.MainGameController.ObservatoryController.CanPlaceObservatory(civ); }
         catch { return false; }
     }
 

@@ -16,6 +16,8 @@ public enum GameEventType
     SoldierStarved,
     WonderPlaced,
     WonderLevelUp,
+    ObservatoryPlaced,
+    ObservatoryLevelUp,
     RuntimeError,
     DragonDiscovered,
     DragonDefeated,

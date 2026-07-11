@@ -52,6 +52,17 @@ public class PrestigeState
         }
     }
 
+    /// <summary>
+    /// Tier cible choisi par le joueur pour la prochaine île (Observatoire niveau 3). Null = pas de
+    /// choix actif ; le calcul de <see cref="Tier"/> reste alors utilisé tel quel. Quand une valeur
+    /// est présente, elle agit comme un minimum : <see cref="EffectiveNextIslandTier"/> ne peut
+    /// jamais descendre sous le Tier calculé.
+    /// </summary>
+    public int? SelectedNextIslandTier { get; set; }
+
+    [System.Text.Json.Serialization.JsonIgnore]
+    public int EffectiveNextIslandTier => Math.Max(SelectedNextIslandTier ?? Tier, Tier);
+
     public PrestigeState() { }
 
     public PrestigeState(WorldState worldState)

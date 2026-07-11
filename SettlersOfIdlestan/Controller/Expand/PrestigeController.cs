@@ -137,6 +137,47 @@ namespace SettlersOfIdlestan.Controller.Expand
         /// <summary>+10% de gain de prestige par palier de progression (Tier) atteint.</summary>
         public double GetTierBonus() => 0.1 * GetTier();
 
+        public int GetObservatoryLevel()
+            => _islandState?.Features.OfType<Observatory>().FirstOrDefault()?.Level ?? 0;
+
+        /// <summary>+10% de prestige par niveau de l'Observatoire.</summary>
+        public double GetObservatoryPrestigeBonus() => 0.1 * GetObservatoryLevel();
+
+        /// <summary>
+        /// Observatoire niveau 2 : doit ajouter +1 à la portée des routes maritimes une fois le vertex
+        /// de prestige Routes Maritimes débloqué (UNLOCK_MARITIME_ROUTES). Le bonus est exposé ici mais
+        /// n'est pas encore consommé par RoadController — routes maritimes de portée 2 à implémenter
+        /// séparément.
+        /// </summary>
+        public int GetMaritimeRouteRangeBonus(Civilization playerCiv)
+        {
+            if (GetObservatoryLevel() < 2) return 0;
+            bool maritimeRoutesUnlocked = playerCiv.ModifierAggregator.HasModifier(ECategory.UNLOCK_MARITIME_ROUTES);
+            return maritimeRoutesUnlocked ? 1 : 0;
+        }
+
+        /// <summary>
+        /// Observatoire niveau 3 : permet de choisir le Tier cible de la prochaine île au moment du
+        /// prestige (le Tier calculé à partir des points de prestige devient un minimum).
+        /// </summary>
+        public bool CanChooseNextIslandTier() => GetObservatoryLevel() >= 3;
+
+        public const int MaxNextIslandTierChoiceBonus = 10;
+
+        public int GetNextIslandTierChoice()
+        {
+            int minTier = GetTier();
+            int chosen = _prestigeState?.SelectedNextIslandTier ?? minTier;
+            return Math.Clamp(chosen, minTier, minTier + MaxNextIslandTierChoiceBonus);
+        }
+
+        public void SetNextIslandTierChoice(int tier)
+        {
+            if (_prestigeState == null || !CanChooseNextIslandTier()) return;
+            int minTier = GetTier();
+            _prestigeState.SelectedNextIslandTier = Math.Clamp(tier, minTier, minTier + MaxNextIslandTierChoiceBonus);
+        }
+
         public int CalculatePrestigePoints()
         {
             int subtotal = GetBuildingSubtotal() + GetDragonBonus();
@@ -148,7 +189,8 @@ namespace SettlersOfIdlestan.Controller.Expand
             double seaportBonus = GetSeaportPrestigeBonus();
             double civDestroyedBonus = GetCivilizationsDestroyedBonus();
             double tierBonus = GetTierBonus();
-            result *= (1 + gainBonus + seaportBonus + civDestroyedBonus + tierBonus);
+            double observatoryBonus = GetObservatoryPrestigeBonus();
+            result *= (1 + gainBonus + seaportBonus + civDestroyedBonus + tierBonus + observatoryBonus);
             result *= GetCorruptionSpireMultiplier();
             return (int)result;
         }
@@ -264,9 +306,10 @@ namespace SettlersOfIdlestan.Controller.Expand
                 mainGameState.Clock.CurrentTick,
                 startTick: mainGameState.Clock.CurrentTick,
                 surfaceCorruptionLevel: mainGameState.PrestigeState.SurfaceCorruptionLevel,
-                tier: mainGameState.PrestigeState.Tier)
+                tier: mainGameState.PrestigeState.EffectiveNextIslandTier)
                 ?? throw new InvalidOperationException("Failed to generate next island.");
 
+            mainGameState.PrestigeState.SelectedNextIslandTier = null;
             mainGameState.PrestigeState.WorldState = nextWorldState;
         }
     }

@@ -150,6 +150,14 @@ public sealed class EventLogRenderer : IDisposable
             _successCardPaint, _successBorderPaint, _successTextPaint,
             _localization.Get("event_wonder_levelup_title"),
             _localization.GetFormated("event_wonder_levelup_body", entry.Message ?? "?")),
+        GameEventType.ObservatoryPlaced => (
+            _discoveryCardPaint, _discoveryBorderPaint, _discoveryTextPaint,
+            _localization.Get("event_observatory_placed_title"),
+            _localization.Get("event_observatory_placed_body")),
+        GameEventType.ObservatoryLevelUp => (
+            _successCardPaint, _successBorderPaint, _successTextPaint,
+            _localization.Get("event_observatory_levelup_title"),
+            _localization.GetFormated("event_observatory_levelup_body", entry.Message ?? "?")),
         GameEventType.RatsDiscovered => (
             _dangerCardPaint, _dangerBorderPaint, _dangerTextPaint,
             _localization.Get("event_rats_title"),

@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64"><ellipse cx="32" cy="60" rx="27" ry="3" fill="#4a4136" opacity="0.14"></ellipse><path d="M8 58 L20 22 L28 58 Z" fill="#4a4136" opacity="0.24"></path>
+    <path d="M8 58 L20 22" fill="none" stroke="#4a4136" stroke-width="1.3" opacity="0.55" stroke-linecap="round"></path><rect x="8" y="46" width="48" height="12" fill="#cdbd9c"></rect>
+      <rect x="44" y="46" width="12" height="12" fill="#4a4136" opacity="0.16"></rect>
+      <rect x="8" y="46" width="48" height="12" fill="none" stroke="#4a4136" stroke-width="2"></rect>
+      <path d="M8 52 L56 52" stroke="#4a4136" stroke-width="1" opacity="0.35"></path><path d="M12 46 L12 22 L16 16 L20 22 L20 46 Z" fill="#cdbd9c"></path>
+        <path d="M12 46 L12 22 L16 16 L20 22 L20 46 Z" fill="none" stroke="#4a4136" stroke-width="1.8" stroke-linejoin="round"></path>
+        <path d="M16 16 L16 46" stroke="#4a4136" stroke-width="1" opacity="0.3"></path><path d="M46 46 L46 22 L50 16 L54 22 L54 46 Z" fill="#cdbd9c"></path>
+        <path d="M46 46 L46 22 L50 16 L54 22 L54 46 Z" fill="none" stroke="#4a4136" stroke-width="1.8" stroke-linejoin="round"></path>
+        <path d="M50 16 L50 46" stroke="#4a4136" stroke-width="1" opacity="0.3"></path><path d="M19 46 L21 34 L28 34 L30 46 Z" fill="#cdbd9c"></path>
+        <path d="M19 46 L21 34 L28 34 L30 46 Z" fill="none" stroke="#4a4136" stroke-width="1.6" stroke-linejoin="round"></path><path d="M34 46 L36 34 L43 34 L45 46 Z" fill="#cdbd9c"></path>
+        <path d="M34 46 L36 34 L43 34 L45 46 Z" fill="none" stroke="#4a4136" stroke-width="1.6" stroke-linejoin="round"></path><path d="M27 12 L37 12" stroke="#4a4136" stroke-width="2" opacity="0.8" stroke-linecap="round"></path><path d="M41.5 21 L41.5 58 M46.5 21 L46.5 58" stroke="#4a4136" stroke-width="1.2" opacity="0.7" stroke-linecap="round"></path>
+    <path d="M41.5 24 L46.5 24" stroke="#4a4136" stroke-width="1" opacity="0.65"></path><path d="M41.5 31 L46.5 31" stroke="#4a4136" stroke-width="1" opacity="0.65"></path><path d="M41.5 38 L46.5 38" stroke="#4a4136" stroke-width="1" opacity="0.65"></path><path d="M41.5 45 L46.5 45" stroke="#4a4136" stroke-width="1" opacity="0.65"></path><path d="M41.5 52 L46.5 52" stroke="#4a4136" stroke-width="1" opacity="0.65"></path>
+    <path d="M40 21 L47.5 21" stroke="#4a4136" stroke-width="2" opacity="0.75" stroke-linecap="round"></path></svg>
