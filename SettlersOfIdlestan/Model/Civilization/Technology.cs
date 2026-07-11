@@ -15,6 +15,8 @@ public enum TechnologyId
     Architecture,
     MilitaryDiscipline,
     // Tier 1
+    // [Legacy] Recherche "Récolte améliorée" supprimée (fusionnée dans HarvestEfficiency/MasterHarvest pour limiter
+    // le nombre de recherches de vitesse de récolte) — conservée uniquement pour la désérialisation des anciennes sauvegardes.
     ImprovedHarvest,
     StorageOptimization,
     Archivage,
@@ -35,6 +37,8 @@ public enum TechnologyId
     // Tier 3
     MasterHarvest,
     GrandArchitecture,
+    // [Legacy] Recherche "Académie des sciences" supprimée (fusionnée dans Archivage/ImprovedResearch pour limiter
+    // le nombre de recherches de vitesse de recherche) — conservée uniquement pour la désérialisation des anciennes sauvegardes.
     Scholarship,
     MaitriseDesAlliages,
     SteelWeapons,
@@ -43,6 +47,8 @@ public enum TechnologyId
     Compagnonage,
     Surveillance,
     // Tier 4
+    // [Legacy] Recherche "Récolte épique" supprimée (fusionnée dans MasterHarvest/OutilsEnMithril pour limiter
+    // le nombre de recherches de vitesse de récolte) — conservée uniquement pour la désérialisation des anciennes sauvegardes.
     EpicHarvest,
     // [Legacy] Recherche "Routes commerciales" supprimée — conservée uniquement pour la désérialisation des anciennes sauvegardes.
     TradeRoutes,

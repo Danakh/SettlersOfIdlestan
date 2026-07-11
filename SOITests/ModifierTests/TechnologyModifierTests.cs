@@ -1,3 +1,4 @@
+using System.Linq;
 using Xunit;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.GameplayModifier;
@@ -38,21 +39,9 @@ public class TechnologyModifierTests
     }
 
     [Fact]
-    public void ImprovedHarvest_HarvestSpeed_Plus0Point15()
-    {
-        Assert.Equal(0.15, BuildAggregator(TechnologyId.ImprovedHarvest).ApplyModifiers(ECategory.HARVEST_SPEED, "", 0.0), 5);
-    }
-
-    [Fact]
     public void MasterHarvest_HarvestSpeed_Plus0Point25()
     {
         Assert.Equal(0.25, BuildAggregator(TechnologyId.MasterHarvest).ApplyModifiers(ECategory.HARVEST_SPEED, "", 0.0), 5);
-    }
-
-    [Fact]
-    public void EpicHarvest_HarvestSpeed_Plus0Point35()
-    {
-        Assert.Equal(0.35, BuildAggregator(TechnologyId.EpicHarvest).ApplyModifiers(ECategory.HARVEST_SPEED, "", 0.0), 5);
     }
 
     // ── FORGE_DOUBLE_HARVEST_BONUS ────────────────────────────────────────────
@@ -139,12 +128,6 @@ public class TechnologyModifierTests
     public void Archivage_ResearchSpeed_Plus0Point15()
     {
         Assert.Equal(0.15, BuildAggregator(TechnologyId.Archivage).ApplyModifiers(ECategory.RESEARCH_SPEED, "", 0.0), 5);
-    }
-
-    [Fact]
-    public void Scholarship_ResearchSpeed_Plus0Point2()
-    {
-        Assert.Equal(0.2, BuildAggregator(TechnologyId.Scholarship).ApplyModifiers(ECategory.RESEARCH_SPEED, "", 0.0), 5);
     }
 
     [Fact]
@@ -258,5 +241,23 @@ public class TechnologyModifierTests
     public void Compagnonage_BrickworksMaxLevel_Plus1()
     {
         Assert.Equal(1, BuildAggregator(TechnologyId.Compagnonage).ApplyModifiers(ECategory.BUILDING_MAX_LEVEL, "Brickworks", 0));
+    }
+
+    // ── Layout integrity (Tier/Line) ──────────────────────────────────────────
+    // ResearchRenderer positions every technology on a (Tier, Line) grid cell
+    // (col, row) — two technologies sharing a cell would overlap on screen.
+    // This loops over TechnologyDefinitions.All so it also covers future technologies.
+
+    [Fact]
+    public void AllTechnologies_HaveUniqueTierLinePosition()
+    {
+        var duplicates = TechnologyDefinitions.All
+            .GroupBy(t => (t.Tier, t.Line))
+            .Where(g => g.Count() > 1)
+            .Select(g => $"(Tier {g.Key.Tier}, Line {g.Key.Line}): {string.Join(", ", g.Select(t => t.Id))}")
+            .ToList();
+
+        Assert.True(duplicates.Count == 0,
+            "Technologies sharing the same (Tier, Line) position: " + string.Join(" | ", duplicates));
     }
 }
