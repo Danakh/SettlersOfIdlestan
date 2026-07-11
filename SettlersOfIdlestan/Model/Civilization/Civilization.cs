@@ -87,6 +87,26 @@ public class Civilization
     public void RemoveRoad(Road road) => _roads.Remove(road);
     public void RemoveAllRoads(Predicate<Road> match) => _roads.RemoveAll(match);
 
+    private List<MaritimeBeacon> _maritimeBeacons = new();
+
+    /// <summary>
+    /// Liste des balises maritimes de la civilisation — lecture seule ; utiliser AddMaritimeBeacon /
+    /// RemoveMaritimeBeacon pour muter.
+    /// </summary>
+    [JsonIgnore]
+    public IReadOnlyList<MaritimeBeacon> MaritimeBeacons => _maritimeBeacons;
+
+    [JsonPropertyName("MaritimeBeacons")]
+    [JsonInclude]
+    public List<MaritimeBeacon> MaritimeBeaconsSerialized
+    {
+        get => _maritimeBeacons;
+        private set => _maritimeBeacons = value ?? new();
+    }
+
+    public void AddMaritimeBeacon(MaritimeBeacon beacon) => _maritimeBeacons.Add(beacon);
+    public void RemoveMaritimeBeacon(MaritimeBeacon beacon) => _maritimeBeacons.Remove(beacon);
+
     private TechnologyTree _technologyTree = new();
 
     /// <summary>

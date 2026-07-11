@@ -143,18 +143,8 @@ namespace SettlersOfIdlestan.Controller.Expand
         /// <summary>+10% de prestige par niveau de l'Observatoire.</summary>
         public double GetObservatoryPrestigeBonus() => 0.1 * GetObservatoryLevel();
 
-        /// <summary>
-        /// Observatoire niveau 2 : doit ajouter +1 à la portée des routes maritimes une fois le vertex
-        /// de prestige Routes Maritimes débloqué (UNLOCK_MARITIME_ROUTES). Le bonus est exposé ici mais
-        /// n'est pas encore consommé par RoadController — routes maritimes de portée 2 à implémenter
-        /// séparément.
-        /// </summary>
-        public int GetMaritimeRouteRangeBonus(Civilization playerCiv)
-        {
-            if (GetObservatoryLevel() < 2) return 0;
-            bool maritimeRoutesUnlocked = playerCiv.ModifierAggregator.HasModifier(ECategory.UNLOCK_MARITIME_ROUTES);
-            return maritimeRoutesUnlocked ? 1 : 0;
-        }
+        // Observatoire niveau 2 : débloque la construction de Balises Maritimes — voir
+        // ObservatoryController.AreMaritimeBeaconsUnlocked / MaritimeBeaconController.
 
         /// <summary>
         /// Observatoire niveau 3 : permet de choisir le Tier cible de la prochaine île au moment du

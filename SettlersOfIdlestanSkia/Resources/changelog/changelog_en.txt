@@ -8,6 +8,7 @@ v0.7
 • Destroying an enemy civilization now grants a prestige gain bonus
 • New researches, including several that boost prestige points earned
 • Market simplification: removed market specialization and manual resource buying
+• Maritime Beacons: Observatory level 2 unlocks building beacons out at sea, letting you extend maritime routes beyond the coast
 
 ---
 

@@ -28,6 +28,7 @@ namespace SettlersOfIdlestan.Controller
         public TradeController TradeController { get; private set; }
         public BuildingController BuildingController { get; private set; }
         public CityBuilderController CityBuilderController { get; private set; }
+        public MaritimeBeaconController MaritimeBeaconController { get; private set; }
         public PrestigeController PrestigeController { get; private set; }
         public PrestigeMapController PrestigeMapController { get; private set; }
         public ResearchController ResearchController { get; private set; }
@@ -77,6 +78,7 @@ namespace SettlersOfIdlestan.Controller
             TradeController = new TradeController();
             BuildingController = new BuildingController();
             CityBuilderController = new CityBuilderController();
+            MaritimeBeaconController = new MaritimeBeaconController();
             AtlasController = new AtlasController();
             PrestigeController = new PrestigeController();
             PrestigeMapController = new PrestigeMapController();
@@ -298,6 +300,7 @@ namespace SettlersOfIdlestan.Controller
                 // 8. Reste des controllers (BuildingController, etc.) — indépendants
                 RoadController.Initialize(WorldState, Clock, CurrentMainState!.PRNG);
                 CityBuilderController.Initialize(WorldState, Clock, CurrentMainState!.PRNG);
+                MaritimeBeaconController.Initialize(WorldState);
                 FeatureController.Initialize(WorldState, Clock);
                 MilitaryController.Initialize(WorldState, Clock, CityBuilderController, CurrentMainState!.PRNG);
                 MonsterFeatureController.Initialize(WorldState, Clock, CurrentMainState!.PRNG, CityBuilderController);

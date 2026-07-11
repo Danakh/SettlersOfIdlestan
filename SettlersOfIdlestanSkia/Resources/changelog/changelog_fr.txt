@@ -8,6 +8,7 @@ v0.7
 • Détruire une civilisation ennemie octroie désormais un bonus de gain de prestige
 • Nouvelles recherches, dont plusieurs augmentant les points de prestige gagnés
 • Simplification du marché : suppression de la spécialisation des marchés et de l'achat manuel de ressources
+• Balises Maritimes : l'Observatoire niveau 2 débloque la construction de balises en pleine mer, permettant de prolonger les routes maritimes au-delà de la côte
 
 ---
 

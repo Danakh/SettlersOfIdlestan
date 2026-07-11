@@ -69,6 +69,16 @@ namespace SettlersOfIdlestan.Controller.Island
         public bool HasObservatoryUnlocked(Civilization playerCiv)
             => playerCiv.ModifierAggregator.ApplyModifiers(ECategory.UNLOCK_OBSERVATORY, "", 0) > 0;
 
+        public int GetObservatoryLevel()
+            => _state?.Features.OfType<Observatory>().FirstOrDefault()?.Level ?? 0;
+
+        /// <summary>
+        /// Observatoire niveau 2 : débloque la construction de Balises Maritimes
+        /// (voir MaritimeBeaconController), qui servent d'ancrage côtier artificiel pour prolonger
+        /// les routes maritimes en pleine mer une fois routes maritimes débloquées (UNLOCK_MARITIME_ROUTES).
+        /// </summary>
+        public bool AreMaritimeBeaconsUnlocked() => GetObservatoryLevel() >= 2;
+
         public bool CanPlaceObservatory(Civilization playerCiv)
         {
             if (!HasObservatoryUnlocked(playerCiv)) return false;

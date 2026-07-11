@@ -21,6 +21,7 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
     private readonly GameBoardRenderer _gameBoardRenderer;
     private readonly RoadRenderer _roadRenderer;
     private readonly CityRenderer _cityRenderer;
+    private readonly MaritimeBeaconRenderer _maritimeBeaconRenderer;
     private readonly HarvestRenderer _harvestRenderer;
     private readonly MonsterRenderer _banditRenderer;
     private readonly VolcanoRenderer _volcanoRenderer;
@@ -65,6 +66,7 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
         _gameBoardRenderer = new GameBoardRenderer(harvestController, resourceManager);
         _roadRenderer = new RoadRenderer(tooltipRenderer);
         _cityRenderer = new CityRenderer(tooltipRenderer, resourceManager, militaryController);
+        _maritimeBeaconRenderer = new MaritimeBeaconRenderer();
         _harvestParticleSystem = new HarvestParticleSystem();
         _harvestRenderer = new HarvestRenderer(_harvestParticleSystem, resourceManager, currentLayer);
         _banditRenderer = new MonsterRenderer(resourceManager);
@@ -99,6 +101,7 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
         _gameBoardRenderer.Initialize(canvasSize);
         _roadRenderer.Initialize(canvasSize);
         _cityRenderer.Initialize(canvasSize);
+        _maritimeBeaconRenderer.Initialize(canvasSize);
         _harvestRenderer.Initialize(canvasSize);
         _banditRenderer.Initialize(canvasSize);
         _volcanoRenderer.Initialize(canvasSize);
@@ -143,7 +146,10 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
             _roadRenderer.Render(canvas, context);
             bool skipCities = SuppressCities?.Invoke() == true;
             if (!skipCities)
+            {
                 _cityRenderer.Render(canvas, context);
+                _maritimeBeaconRenderer.Render(canvas, context);
+            }
             _harvestRenderer.Render(canvas, context);
 
             _roadRenderer.RenderConstructionHighlights(canvas, state, context);
@@ -209,6 +215,7 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
         _gameBoardRenderer.Dispose();
         _roadRenderer.Dispose();
         _cityRenderer.Dispose();
+        _maritimeBeaconRenderer.Dispose();
         _harvestRenderer.Dispose();
         _banditRenderer.Dispose();
         _militaryRenderer.Dispose();

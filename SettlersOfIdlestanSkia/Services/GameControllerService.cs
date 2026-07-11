@@ -124,4 +124,23 @@ public class GameControllerService
 
         return _controller.RoadController.BuildRoad(playerIndex, edge);
     }
+
+    public bool AreMaritimeBeaconsUnlockedForPlayer()
+        => _controller.MaritimeBeaconController.AreMaritimeBeaconsUnlocked();
+
+    public List<Vertex> GetBuildableMaritimeBeaconVerticesForPlayer()
+    {
+        var playerIndex = PlayerCivilizationIndex
+            ?? throw new InvalidOperationException("La civilisation du joueur n'est pas disponible.");
+
+        return _controller.MaritimeBeaconController.GetBuildableVertices(playerIndex);
+    }
+
+    public MaritimeBeacon? TryBuildMaritimeBeaconForPlayer(Vertex vertex)
+    {
+        var playerIndex = PlayerCivilizationIndex
+            ?? throw new InvalidOperationException("La civilisation du joueur n'est pas disponible.");
+
+        return _controller.MaritimeBeaconController.BuildMaritimeBeacon(playerIndex, vertex);
+    }
 }

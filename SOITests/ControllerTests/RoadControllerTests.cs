@@ -588,4 +588,160 @@ public class RoadControllerTests
         // R2 ennemie doit être supprimée car désormais déconnectée
         Assert.Empty(enemyCiv.Roads);
     }
+
+    // ─── Deep Water (bordure cosmétique) ───────────────────────────────────────
+    //
+    // Reprend CoastalIsland() mais remplace le second hex de l'arête maritime par
+    // un véritable TerrainType.DeepWater — les deux vertex de l'arête touchent
+    // toujours la terre (land / land2), donc seule la présence de DeepWater doit
+    // bloquer la construction.
+
+    private static (WorldState state, Civilization civ) CoastalIslandWithDeepWaterEdgeHex()
+    {
+        var land  = new HexCoord(0, 0, IslandMap.SurfaceLayer);
+        var w1    = new HexCoord(1, 0, IslandMap.SurfaceLayer);
+        var deep  = new HexCoord(0, 1, IslandMap.SurfaceLayer);
+        var land2 = new HexCoord(1, 1, IslandMap.SurfaceLayer);
+        var map   = new IslandMap(new HexTile[]
+        {
+            new(land,  TerrainType.Plain),
+            new(w1,    TerrainType.Water),
+            new(deep,  TerrainType.DeepWater),
+            new(land2, TerrainType.Plain),
+        });
+        var civ  = new Civilization { Index = 0 };
+        civ.AddCity(new City(Vertex.Create(land, w1, deep)) { CivilizationIndex = 0 });
+        var state = new WorldState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
+        return (state, civ);
+    }
+
+    [Fact]
+    public void MaritimeRoutes_RealDeepWaterHex_ExcludedEvenWithModifier()
+    {
+        var (state, civ) = CoastalIslandWithDeepWaterEdgeHex();
+        EnableMaritimeRoutes(civ);
+        var roads = new RoadController(state).GetBuildableRoads(0);
+        Assert.DoesNotContain(roads, r => r.Position.Equals(MaritimeEdge()));
+    }
+
+    [Fact]
+    public void MaritimeRoutes_BuildRoad_RealDeepWaterHex_Throws()
+    {
+        var (state, civ) = CoastalIslandWithDeepWaterEdgeHex();
+        EnableMaritimeRoutes(civ);
+        civ.AddResource(Resource.Wood,  10);
+        civ.AddResource(Resource.Brick, 10);
+        civ.AddResource(Resource.Gold,   5);
+        Assert.Throws<InvalidOperationException>(() =>
+            new RoadController(state).BuildRoad(0, MaritimeEdge()));
+    }
+
+    // ─── Balises Maritimes (ancrage en pleine mer) ─────────────────────────────
+    //
+    // Island layout: land=(0,0) Plain ; w1=(1,0), w2=(0,1), w3=(1,1) Water.
+    // MaritimeEdge = Edge((1,0),(0,1)).
+    //   Vertex 1: (0,0),(1,0),(0,1) → touche la terre via (0,0).
+    //   Vertex 2: (1,0),(0,1),(1,1) → entièrement entouré d'eau (aucune terre) :
+    //             invalide sans balise, valide si le civ propriétaire y a une balise.
+
+    private static (WorldState state, Civilization civ, Vertex openSeaVertex) OpenSeaBeaconIsland()
+    {
+        var land = new HexCoord(0, 0, IslandMap.SurfaceLayer);
+        var w1   = new HexCoord(1, 0, IslandMap.SurfaceLayer);
+        var w2   = new HexCoord(0, 1, IslandMap.SurfaceLayer);
+        var w3   = new HexCoord(1, 1, IslandMap.SurfaceLayer);
+        var map  = new IslandMap(new HexTile[]
+        {
+            new(land, TerrainType.Plain),
+            new(w1,   TerrainType.Water),
+            new(w2,   TerrainType.Water),
+            new(w3,   TerrainType.Water),
+        });
+        var civ  = new Civilization { Index = 0 };
+        civ.AddCity(new City(Vertex.Create(land, w1, w2)) { CivilizationIndex = 0 });
+        var state = new WorldState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
+        var openSeaVertex = Vertex.Create(w1, w2, w3);
+        return (state, civ, openSeaVertex);
+    }
+
+    [Fact]
+    public void MaritimeRoutes_OpenSeaVertexWithoutBeacon_ExcludedEvenWithModifier()
+    {
+        var (state, civ, _) = OpenSeaBeaconIsland();
+        EnableMaritimeRoutes(civ);
+        var roads = new RoadController(state).GetBuildableRoads(0);
+        Assert.DoesNotContain(roads, r => r.Position.Equals(MaritimeEdge()));
+    }
+
+    [Fact]
+    public void MaritimeRoutes_OwnBeaconAtOpenSeaVertex_IncludedAndBuildable()
+    {
+        var (state, civ, openSeaVertex) = OpenSeaBeaconIsland();
+        EnableMaritimeRoutes(civ);
+        civ.AddMaritimeBeacon(new MaritimeBeacon(openSeaVertex) { CivilizationIndex = 0 });
+
+        var roads = new RoadController(state).GetBuildableRoads(0);
+        Assert.Contains(roads, r => r.Position.Equals(MaritimeEdge()));
+
+        civ.AddResource(Resource.Wood,  10);
+        civ.AddResource(Resource.Brick, 10);
+        civ.AddResource(Resource.Gold,   5);
+        var road = new RoadController(state).BuildRoad(0, MaritimeEdge());
+        Assert.NotNull(road);
+        Assert.Contains(civ.Roads, r => r.Position.Equals(MaritimeEdge()));
+    }
+
+    [Fact]
+    public void MaritimeRoutes_EnemyBeaconAtOpenSeaVertex_DoesNotCountAsAnchor()
+    {
+        var (state, civ, openSeaVertex) = OpenSeaBeaconIsland();
+        EnableMaritimeRoutes(civ);
+
+        var enemyCiv = new Civilization { Index = 1 };
+        state.Civilizations.Add(enemyCiv);
+        enemyCiv.AddMaritimeBeacon(new MaritimeBeacon(openSeaVertex) { CivilizationIndex = 1 });
+
+        var roads = new RoadController(state).GetBuildableRoads(0);
+        Assert.DoesNotContain(roads, r => r.Position.Equals(MaritimeEdge()));
+    }
+
+    [Fact]
+    public void MaritimeRoutes_BeaconToBeacon_ChainedEdgeBuildableOnceFirstEdgeConnected()
+    {
+        var land = new HexCoord(0, 0, IslandMap.SurfaceLayer);
+        var w1   = new HexCoord(1, 0, IslandMap.SurfaceLayer);
+        var w2   = new HexCoord(0, 1, IslandMap.SurfaceLayer);
+        var w3   = new HexCoord(1, 1, IslandMap.SurfaceLayer);
+        var w4   = new HexCoord(0, 2, IslandMap.SurfaceLayer);
+        var map  = new IslandMap(new HexTile[]
+        {
+            new(land, TerrainType.Plain),
+            new(w1,   TerrainType.Water),
+            new(w2,   TerrainType.Water),
+            new(w3,   TerrainType.Water),
+            new(w4,   TerrainType.Water),
+        });
+        var civ  = new Civilization { Index = 0 };
+        civ.AddCity(new City(Vertex.Create(land, w1, w2)) { CivilizationIndex = 0 });
+        var state = new WorldState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
+
+        var beaconVertexA = Vertex.Create(w1, w2, w3);
+        var beaconVertexB = Vertex.Create(w2, w3, w4);
+        civ.AddMaritimeBeacon(new MaritimeBeacon(beaconVertexA) { CivilizationIndex = 0 });
+        civ.AddMaritimeBeacon(new MaritimeBeacon(beaconVertexB) { CivilizationIndex = 0 });
+        EnableMaritimeRoutes(civ);
+
+        var controller = new RoadController(state);
+        var firstEdge = Edge.Create(w1, w2);
+        var secondEdge = Edge.Create(w2, w3);
+
+        civ.AddResource(Resource.Wood,  20);
+        civ.AddResource(Resource.Brick, 20);
+        civ.AddResource(Resource.Gold,   10);
+
+        Assert.NotNull(controller.BuildRoad(0, firstEdge));
+        Assert.Contains(controller.GetBuildableRoads(0), r => r.Position.Equals(secondEdge));
+        Assert.NotNull(controller.BuildRoad(0, secondEdge));
+        Assert.Contains(civ.Roads, r => r.Position.Equals(secondEdge));
+    }
 }

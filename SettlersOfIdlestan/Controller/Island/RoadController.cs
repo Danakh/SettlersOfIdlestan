@@ -173,8 +173,10 @@ namespace SettlersOfIdlestan.Controller.Island
                 if (enemyProtectedEdges.Contains(edge)) continue;
                 if (!IsEdgeOnLand(edge))
                 {
+                    if (EdgeTouchesDeepWater(edge))
+                        continue;
                     if (!civ.ModifierAggregator.HasModifier(Modifier.ECategory.UNLOCK_MARITIME_ROUTES)
-                        || !IsValidMaritimeEdge(edge))
+                        || !IsValidMaritimeEdge(edge, civ))
                         continue;
                 }
 
@@ -263,14 +265,15 @@ namespace SettlersOfIdlestan.Controller.Island
                 throw new ArgumentException("Edge not part of the map", nameof(edge));
 
             // V�rifier que l'ar�te n'est pas entre deux hexagones de type eau (sauf routes maritimes débloquées)
-            bool isMaritimePath = mapTiles[edge.Hex1].TerrainType == TerrainType.Water
-                && mapTiles[edge.Hex2].TerrainType == TerrainType.Water;
+            bool isMaritimePath = !IsEdgeOnLand(edge);
             if (isMaritimePath)
             {
+                if (EdgeTouchesDeepWater(edge))
+                    throw new InvalidOperationException("Cannot build a road through deep water");
                 if (!civ.ModifierAggregator.HasModifier(Modifier.ECategory.UNLOCK_MARITIME_ROUTES))
                     throw new InvalidOperationException("Cannot build a road on an edge between two water hexes");
-                if (!IsValidMaritimeEdge(edge))
-                    throw new InvalidOperationException("Maritime route must connect two coastal vertices");
+                if (!IsValidMaritimeEdge(edge, civ))
+                    throw new InvalidOperationException("Maritime route must connect two coastal vertices or maritime beacons");
             }
 
             // Seule notre propre civilisation peut bloquer la construction
@@ -500,7 +503,13 @@ namespace SettlersOfIdlestan.Controller.Island
             return verts.Any(v => v.Equals(vertex));
         }
 
-        private bool IsValidMaritimeEdge(Edge edge)
+        /// <summary>
+        /// Une arête maritime est constructible si chacun de ses deux vertex touche la terre ferme
+        /// (hex ni Water ni DeepWater), ou porte une Balise Maritime (<see cref="MaritimeBeacon"/>) de la
+        /// civilisation qui construit — ce qui permet de prolonger les routes maritimes en pleine mer
+        /// de balise en balise, ou de la côte à une balise.
+        /// </summary>
+        private bool IsValidMaritimeEdge(Edge edge, Civilization civ)
         {
             if (_state == null) return false;
             var mapTiles = _state.GetMapFor(edge)?.Tiles;
@@ -508,8 +517,9 @@ namespace SettlersOfIdlestan.Controller.Island
             foreach (var v in edge.GetVertices())
             {
                 bool touchesLand = v.GetHexes().Any(h =>
-                    mapTiles.TryGetValue(h, out var tile) && tile.TerrainType != TerrainType.Water);
-                if (!touchesLand) return false;
+                    mapTiles.TryGetValue(h, out var tile) && !tile.TerrainType.IsWater());
+                bool hasOwnBeacon = civ.MaritimeBeacons.Any(b => b.Position.Equals(v));
+                if (!touchesLand && !hasOwnBeacon) return false;
             }
             return true;
         }
@@ -520,9 +530,23 @@ namespace SettlersOfIdlestan.Controller.Island
 
             var mapTiles = _state.GetMapFor(edge)?.Tiles;
             if (mapTiles == null) return false;
-            bool hex1IsWaterOrAbsent = !mapTiles.TryGetValue(edge.Hex1, out var tile1) || tile1.TerrainType == TerrainType.Water;
-            bool hex2IsWaterOrAbsent = !mapTiles.TryGetValue(edge.Hex2, out var tile2) || tile2.TerrainType == TerrainType.Water;
+            bool hex1IsWaterOrAbsent = !mapTiles.TryGetValue(edge.Hex1, out var tile1) || tile1.TerrainType.IsWater();
+            bool hex2IsWaterOrAbsent = !mapTiles.TryGetValue(edge.Hex2, out var tile2) || tile2.TerrainType.IsWater();
             return !(hex1IsWaterOrAbsent && hex2IsWaterOrAbsent);
+        }
+
+        /// <summary>
+        /// Vrai si l'un des deux hexagones de l'arête est de l'eau profonde (bordure cosmétique,
+        /// jamais traversable ni constructible — voir <see cref="TerrainTypeExtensions.IsWater"/>).
+        /// </summary>
+        private bool EdgeTouchesDeepWater(Edge edge)
+        {
+            if (_state == null) return false;
+            var mapTiles = _state.GetMapFor(edge)?.Tiles;
+            if (mapTiles == null) return false;
+            bool hex1IsDeepWater = mapTiles.TryGetValue(edge.Hex1, out var tile1) && tile1.TerrainType == TerrainType.DeepWater;
+            bool hex2IsDeepWater = mapTiles.TryGetValue(edge.Hex2, out var tile2) && tile2.TerrainType == TerrainType.DeepWater;
+            return hex1IsDeepWater || hex2IsDeepWater;
         }
 
         private static Edge[] GetEdgesAtVertex(Vertex vertex)

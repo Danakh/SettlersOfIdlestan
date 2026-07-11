@@ -259,4 +259,14 @@ public class WorldState : IJsonOnDeserialized
     {
         return GetAllCities().FirstOrDefault(c => c.Position.Equals(vertex));
     }
+
+    public IEnumerable<MaritimeBeacon> GetAllMaritimeBeacons()
+    {
+        return Civilizations.SelectMany(c => c.MaritimeBeacons);
+    }
+
+    public MaritimeBeacon? FindMaritimeBeaconAt(Vertex vertex)
+    {
+        return GetAllMaritimeBeacons().FirstOrDefault(b => b.Position.Equals(vertex));
+    }
 }
