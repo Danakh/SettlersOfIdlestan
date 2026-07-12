@@ -401,6 +401,9 @@ namespace SettlersOfIdlestan.Controller
 
             FeatureController.RefreshContestedTerritories();
             DeepestMineController.OnCityDestroyed(e.CityVertex, e.CivilizationIndex);
+
+            if (civ != null && civ.IsNpc && civ.Cities.Count == 0)
+                worldState?.EventLog.Add(GameEventType.CivilizationDestroyed, toast: true);
         }
 
         private void SetupModifierAggregators()

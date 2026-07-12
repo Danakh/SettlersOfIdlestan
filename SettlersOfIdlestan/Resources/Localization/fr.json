@@ -637,6 +637,8 @@
   "event_abyss_gate_built_body": "La Faille remplace la Spire de Corruption et reprend son bonus de prestige.",
   "event_civilization_discovered_title": "🏛 Civilisation rencontrée !",
   "event_civilization_discovered_body": "Une nouvelle civilisation a été aperçue dans votre voisinage.",
+  "event_civilization_destroyed_title": "⚔ Civilisation anéantie !",
+  "event_civilization_destroyed_body": "Une civilisation a perdu sa dernière ville et a disparu.",
   "event_soldier_starved_title": "☠ Soldats morts de faim !",
   "event_soldier_starved_body": "Des soldats sont morts faute de nourriture. Augmentez vos stocks de nourriture.",
   "event_raid_missing_barracks_title": "⚠ Casernes manquantes !",

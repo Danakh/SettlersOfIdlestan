@@ -637,6 +637,8 @@
   "event_abyss_gate_built_body": "The Gate replaces the Corruption Spire and takes over its prestige bonus.",
   "event_civilization_discovered_title": "🏛 Civilization encountered!",
   "event_civilization_discovered_body": "A new civilization has been spotted in your vicinity.",
+  "event_civilization_destroyed_title": "⚔ Civilization destroyed!",
+  "event_civilization_destroyed_body": "A civilization lost its last city and has disappeared.",
   "event_soldier_starved_title": "☠ Soldiers starved!",
   "event_soldier_starved_body": "Some soldiers died from lack of food. Increase your food stockpile.",
   "event_raid_missing_barracks_title": "⚠ Missing barracks!",

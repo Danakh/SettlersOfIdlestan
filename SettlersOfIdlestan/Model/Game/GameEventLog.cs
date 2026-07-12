@@ -13,6 +13,7 @@ public enum GameEventType
     BanditHideoutDiscovered,
     BanditHideoutDestroyed,
     CivilizationDiscovered,
+    CivilizationDestroyed,
     SoldierStarved,
     WonderPlaced,
     WonderLevelUp,

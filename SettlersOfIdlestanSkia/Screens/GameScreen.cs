@@ -817,6 +817,10 @@ public sealed class GameScreen : IDisposable
                 _localizationService.Get("event_civilization_discovered_title"),
                 _localizationService.Get("event_civilization_discovered_body"),
                 NotificationIcon.Info),
+            GameEventType.CivilizationDestroyed => (
+                _localizationService.Get("event_civilization_destroyed_title"),
+                _localizationService.Get("event_civilization_destroyed_body"),
+                NotificationIcon.Achievement),
             GameEventType.BanditHideoutDiscovered => (
                 _localizationService.Get("event_bandit_hideout_title"),
                 _localizationService.Get("event_bandit_hideout_body"),
