@@ -134,6 +134,14 @@ public class Civilization
     [JsonIgnore]
     public IEnumerable<IMilitaryVertex> MilitaryVertices => Cities.Concat<IMilitaryVertex>(Fleets);
 
+    /// <summary>
+    /// Tous les emplacements construits par la civilisation (villes, flottes, balises) — voir
+    /// IBuildVertex. Utilisé pour vérifier de façon uniforme l'occupation d'un vertex.
+    /// </summary>
+    [JsonIgnore]
+    public IEnumerable<IBuildVertex> BuildVertices =>
+        Cities.Concat<IBuildVertex>(Fleets).Concat<IBuildVertex>(MaritimeBeacons);
+
     private TechnologyTree _technologyTree = new();
 
     /// <summary>

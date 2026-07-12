@@ -290,4 +290,15 @@ public class WorldState : IJsonOnDeserialized
     {
         return GetAllMilitaryVertices().FirstOrDefault(v => v.Position.Equals(vertex));
     }
+
+    /// <summary>Tous les emplacements construits (villes, flottes, balises) de toutes les civilisations — voir IBuildVertex.</summary>
+    public IEnumerable<IBuildVertex> GetAllBuildVertices()
+    {
+        return Civilizations.SelectMany(c => c.BuildVertices);
+    }
+
+    public IBuildVertex? FindBuildVertexAt(Vertex vertex)
+    {
+        return GetAllBuildVertices().FirstOrDefault(v => v.Position.Equals(vertex));
+    }
 }

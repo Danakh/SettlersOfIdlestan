@@ -39,7 +39,9 @@ namespace SettlersOfIdlestan.Controller.Island
 
         /// <summary>
         /// Retourne les vertex où la civilisation pourrait construire une flotte — un de ses propres balises
-        /// maritimes, non encore occupé par une ville ou une flotte — indépendamment du Port Impérial.
+        /// maritimes, non encore occupée par une flotte — indépendamment du Port Impérial. Une ville ne peut
+        /// jamais se trouver sur une balise (CityBuilderController et MaritimeBeaconController s'excluent
+        /// mutuellement), donc seules les flottes sont à exclure ici.
         /// Sert à afficher l'emplacement au survol même sans le prérequis, pour informer le joueur via une
         /// infobulle (voir GetMissingPrerequisiteKey-style pattern) plutôt que de le cacher silencieusement.
         /// </summary>
@@ -50,8 +52,7 @@ namespace SettlersOfIdlestan.Controller.Island
             var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex)
                       ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
 
-            var occupied = new HashSet<Vertex>(_state.GetAllCities().Select(c => c.Position));
-            occupied.UnionWith(_state.GetAllFleets().Select(f => f.Position));
+            var occupied = new HashSet<Vertex>(_state.GetAllFleets().Select(f => f.Position));
             return civ.MaritimeBeacons
                 .Select(b => b.Position)
                 .Where(v => !occupied.Contains(v))

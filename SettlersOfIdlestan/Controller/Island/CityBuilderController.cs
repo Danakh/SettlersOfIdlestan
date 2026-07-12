@@ -142,9 +142,8 @@ namespace SettlersOfIdlestan.Controller.Island
         /// <summary>
         /// Returns vertices where the civilization can build a city (outpost).
         /// Rules (simple):
-        /// - vertex not already occupied by any city, or carrying a Balise Maritime — see
-        ///   WarFleetController, which builds Flottes de Guerre on beacons instead of classic cities
-        ///   (a fleet always sits on a beacon, so excluding beacon vertices excludes fleet vertices too)
+        /// - vertex not already occupied by any IBuildVertex (city, Flotte de Guerre or Balise Maritime —
+        ///   see WarFleetController, which builds fleets on beacons instead of classic cities)
         /// - vertex touches at least one road of the civilization
         /// - no city of another civilization is at distance < 2 (at least 2 edges required between civs)
         /// - no existing city of the same civilization is at distance < 3
@@ -183,13 +182,11 @@ namespace SettlersOfIdlestan.Controller.Island
                 }
             }
 
-            var occupiedVertices = new HashSet<Vertex>(_state.GetAllCities().Select(c => c.Position));
-            var beaconVertices = new HashSet<Vertex>(_state.GetAllMaritimeBeacons().Select(b => b.Position));
+            var occupiedVertices = new HashSet<Vertex>(_state.GetAllBuildVertices().Select(v => v.Position));
 
             // now we filter vertices that aren't far enough from any city using MinDistanceBetweenCities and MinDistanceBetweenCivilizationCities
             vertices = vertices.Where(v =>
                 !occupiedVertices.Contains(v) &&
-                !beaconVertices.Contains(v) &&
                 !_state.Civilizations.Where(c => c.Index != civilizationIndex).Any(c => c.Cities
                     .Where(city => city.Position.Z == v.Z)
                     .Any(city => city.Position.EdgeDistanceTo(v) < MinDistanceBetweenCities)) &&

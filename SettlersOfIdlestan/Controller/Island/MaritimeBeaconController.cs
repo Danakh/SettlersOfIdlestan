@@ -48,8 +48,7 @@ namespace SettlersOfIdlestan.Controller.Island
             _ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex)
                 ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
 
-            var occupied = new HashSet<Vertex>(_state.GetAllCities().Select(c => c.Position));
-            occupied.UnionWith(_state.GetAllMaritimeBeacons().Select(b => b.Position));
+            var occupied = new HashSet<Vertex>(_state.GetAllBuildVertices().Select(v => v.Position));
 
             var result = new List<Vertex>();
             foreach (var layer in _state.Layers.Values)

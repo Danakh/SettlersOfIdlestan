@@ -67,15 +67,6 @@ public class WarFleetControllerTests
     }
 
     [Fact]
-    public void GetPotentialVertices_ExcludesVertexAlreadyOccupiedByCity()
-    {
-        var (state, civ, beaconVertex) = IslandWithOwnBeacon();
-        civ.AddCity(new City(beaconVertex) { CivilizationIndex = 0 });
-        var vertices = Controller(state).GetPotentialVertices(0);
-        Assert.DoesNotContain(vertices, v => v.Equals(beaconVertex));
-    }
-
-    [Fact]
     public void GetPotentialVertices_ExcludesVertexAlreadyOccupiedByFleet()
     {
         var (state, civ, beaconVertex) = IslandWithOwnBeacon();

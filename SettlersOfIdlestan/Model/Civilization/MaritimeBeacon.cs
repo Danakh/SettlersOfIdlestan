@@ -9,7 +9,7 @@ namespace SettlersOfIdlestan.Model.Civilization;
 /// prolonger en pleine mer au-delà de la côte.
 /// </summary>
 [Serializable]
-public class MaritimeBeacon
+public class MaritimeBeacon : IBuildVertex
 {
     /// <summary>
     /// Gets or sets the position of the beacon on the hex grid.

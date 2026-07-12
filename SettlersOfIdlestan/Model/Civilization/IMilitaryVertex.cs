@@ -9,11 +9,8 @@ namespace SettlersOfIdlestan.Model.Civilization;
 /// militaire (MilitaryController et ses moteurs internes) opère sur cette interface plutôt que
 /// directement sur City, afin de traiter les deux types de façon uniforme.
 /// </summary>
-public interface IMilitaryVertex
+public interface IMilitaryVertex : IBuildVertex
 {
-    Vertex Position { get; }
-    int CivilizationIndex { get; }
-
     /// <summary>Défense actuelle (dynamique). Se régénère jusqu'à MaxDefense.</summary>
     int CurrentDefense { get; set; }
 
