@@ -269,4 +269,25 @@ public class WorldState : IJsonOnDeserialized
     {
         return GetAllMaritimeBeacons().FirstOrDefault(b => b.Position.Equals(vertex));
     }
+
+    public IEnumerable<WarFleet> GetAllFleets()
+    {
+        return Civilizations.SelectMany(c => c.Fleets);
+    }
+
+    public WarFleet? FindFleetAt(Vertex vertex)
+    {
+        return GetAllFleets().FirstOrDefault(f => f.Position.Equals(vertex));
+    }
+
+    /// <summary>Tous les emplacements militaires (villes et flottes) de toutes les civilisations — voir IMilitaryVertex.</summary>
+    public IEnumerable<IMilitaryVertex> GetAllMilitaryVertices()
+    {
+        return Civilizations.SelectMany(c => c.MilitaryVertices);
+    }
+
+    public IMilitaryVertex? FindMilitaryVertexAt(Vertex vertex)
+    {
+        return GetAllMilitaryVertices().FirstOrDefault(v => v.Position.Equals(vertex));
+    }
 }

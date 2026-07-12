@@ -107,6 +107,33 @@ public class Civilization
     public void AddMaritimeBeacon(MaritimeBeacon beacon) => _maritimeBeacons.Add(beacon);
     public void RemoveMaritimeBeacon(MaritimeBeacon beacon) => _maritimeBeacons.Remove(beacon);
 
+    private List<WarFleet> _fleets = new();
+
+    /// <summary>
+    /// Liste des Flottes de Guerre de la civilisation — lecture seule ; utiliser AddFleet / RemoveFleet
+    /// pour muter.
+    /// </summary>
+    [JsonIgnore]
+    public IReadOnlyList<WarFleet> Fleets => _fleets;
+
+    [JsonPropertyName("Fleets")]
+    [JsonInclude]
+    public List<WarFleet> FleetsSerialized
+    {
+        get => _fleets;
+        private set => _fleets = value ?? new();
+    }
+
+    public void AddFleet(WarFleet fleet) => _fleets.Add(fleet);
+    public void RemoveFleet(WarFleet fleet) => _fleets.Remove(fleet);
+
+    /// <summary>
+    /// Tous les emplacements militaires de la civilisation (villes et flottes) — voir IMilitaryVertex.
+    /// Utilisé par le système militaire pour traiter les deux types de façon uniforme.
+    /// </summary>
+    [JsonIgnore]
+    public IEnumerable<IMilitaryVertex> MilitaryVertices => Cities.Concat<IMilitaryVertex>(Fleets);
+
     private TechnologyTree _technologyTree = new();
 
     /// <summary>

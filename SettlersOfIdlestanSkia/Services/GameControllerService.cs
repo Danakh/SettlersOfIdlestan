@@ -140,4 +140,26 @@ public class GameControllerService
 
         return _controller.MaritimeBeaconController.BuildMaritimeBeacon(playerIndex, vertex);
     }
+
+    public bool IsWarFleetUnlockedForPlayer()
+    {
+        var civ = PlayerCivilization;
+        return civ != null && _controller.WarFleetController.IsWarFleetUnlocked(civ);
+    }
+
+    public List<Vertex> GetPotentialWarFleetVerticesForPlayer()
+    {
+        var playerIndex = PlayerCivilizationIndex
+            ?? throw new InvalidOperationException("La civilisation du joueur n'est pas disponible.");
+
+        return _controller.WarFleetController.GetPotentialVertices(playerIndex);
+    }
+
+    public WarFleet? TryBuildWarFleetForPlayer(Vertex vertex)
+    {
+        var playerIndex = PlayerCivilizationIndex
+            ?? throw new InvalidOperationException("La civilisation du joueur n'est pas disponible.");
+
+        return _controller.WarFleetController.BuildWarFleet(playerIndex, vertex);
+    }
 }

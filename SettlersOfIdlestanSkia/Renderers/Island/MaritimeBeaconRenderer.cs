@@ -1,4 +1,5 @@
 using SkiaSharp;
+using SettlersOfIdlestan.Controller.Military;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.IslandMap;
@@ -11,18 +12,23 @@ using System.Linq;
 namespace SettlersOfIdlestanSkia.Renderers.Island;
 
 /// <summary>
-/// Renderer pour afficher les balises maritimes (MaritimeBeacon) sur la carte.
+/// Renderer pour afficher les balises maritimes (MaritimeBeacon) et les Flottes de Guerre (WarFleet)
+/// sur la carte — les deux vivent sur le même type de vertex marin.
 /// </summary>
 public class MaritimeBeaconRenderer : HexBasedRenderer, IGameRenderer
 {
     private bool _disposed;
 
     private const float BeaconRadius = 6f;
+    private const float FleetRadius = 9f;
 
     private readonly TooltipRenderer _tooltipRenderer;
+    private readonly MilitaryController _militaryController;
+    private readonly MilitaryScoreOverlay _militaryScoreOverlay;
 
     private SKPaint? _beaconPaint;
     private SKPaint? _borderPaint;
+    private SKPaint? _fleetPaint;
 
     private readonly SKPaint _buildableVertexPaint = new()
     {
@@ -36,10 +42,19 @@ public class MaritimeBeaconRenderer : HexBasedRenderer, IGameRenderer
         Style = SKPaintStyle.Fill,
         IsAntialias = true
     };
+    private readonly SKPaint _buildableFleetPaint = new()
+    {
+        Color = new SKColor(220, 50, 50, 120),
+        Style = SKPaintStyle.Stroke,
+        StrokeWidth = 2f,
+        IsAntialias = true
+    };
 
-    public MaritimeBeaconRenderer(TooltipRenderer tooltipRenderer)
+    public MaritimeBeaconRenderer(TooltipRenderer tooltipRenderer, MilitaryController militaryController, MilitaryScoreOverlay militaryScoreOverlay)
     {
         _tooltipRenderer = tooltipRenderer;
+        _militaryController = militaryController;
+        _militaryScoreOverlay = militaryScoreOverlay;
     }
 
     // Mêmes couleurs par civilisation que CityRenderer (noir réservé).
@@ -65,6 +80,7 @@ public class MaritimeBeaconRenderer : HexBasedRenderer, IGameRenderer
             StrokeWidth = 1.5f,
             IsAntialias = true,
         };
+        _fleetPaint = new SKPaint { Style = SKPaintStyle.Fill, IsAntialias = true };
     }
 
     public void Render(SKCanvas canvas, GameRenderContext context)
@@ -89,6 +105,7 @@ public class MaritimeBeaconRenderer : HexBasedRenderer, IGameRenderer
         {
             var color = CivilizationColors[civilization.Index % CivilizationColors.Length];
             _beaconPaint.Color = color;
+            _fleetPaint!.Color = color;
 
             foreach (var beacon in civilization.MaritimeBeacons)
             {
@@ -97,6 +114,18 @@ public class MaritimeBeaconRenderer : HexBasedRenderer, IGameRenderer
                 var pixelPos = VertexToIsland(beacon.Position);
                 DrawDiamond(canvas, pixelPos, BeaconRadius, _beaconPaint);
                 DrawDiamond(canvas, pixelPos, BeaconRadius, _borderPaint);
+            }
+
+            foreach (var fleet in civilization.Fleets)
+            {
+                if (!IsFleetVisible(fleet, mapForVisibility)) continue;
+
+                var pixelPos = VertexToIsland(fleet.Position);
+                canvas.DrawCircle(pixelPos, FleetRadius, _fleetPaint);
+                canvas.DrawCircle(pixelPos, FleetRadius, _borderPaint);
+
+                if (mainGameState.Settings.ShowCityMilitaryStats)
+                    _militaryScoreOverlay.Draw(canvas, fleet, _militaryController, pixelPos, FleetRadius);
             }
         }
     }
@@ -109,12 +138,35 @@ public class MaritimeBeaconRenderer : HexBasedRenderer, IGameRenderer
             DrawDiamond(canvas, pt, BeaconRadius, _buildableVertexPaint);
         }
 
+        foreach (var vertex in state.BuildableFleetVertices.Where(v => v.Z == context.CurrentLayer))
+        {
+            var pt = VertexToIsland(vertex);
+            DrawDiamond(canvas, pt, BeaconRadius + 4f, _buildableFleetPaint);
+        }
+
         if (state.HoveredBeaconVertex != null)
         {
             var pt = VertexToIsland(state.HoveredBeaconVertex);
             DrawDiamond(canvas, pt, BeaconRadius + 2f, _hoverVertexPaint);
 
             _tooltipRenderer.SetMaritimeBeaconConstructionTooltip(state.HoveredBeaconVertex);
+        }
+        else if (state.HoveredFleetVertex != null)
+        {
+            var pt = VertexToIsland(state.HoveredFleetVertex);
+            DrawDiamond(canvas, pt, BeaconRadius + 4f, _hoverVertexPaint);
+
+            _tooltipRenderer.SetWarFleetConstructionTooltip(state.HoveredFleetVertex);
+        }
+        else if (context.GameState is MainGameState mgs && mgs.CurrentWorldState != null)
+        {
+            var vertex = state.HoveredOwnFleetVertex ?? state.HoveredEnemyFleetVertex;
+            if (vertex != null)
+            {
+                var fleet = mgs.CurrentWorldState.FindFleetAt(vertex);
+                if (fleet != null)
+                    _tooltipRenderer.SetFleetTooltip(fleet, state.HoveredOwnFleetVertex != null, _militaryController);
+            }
         }
     }
 
@@ -134,13 +186,20 @@ public class MaritimeBeaconRenderer : HexBasedRenderer, IGameRenderer
         return beacon.Position.Z == visibleMap.Z && beacon.Position.GetHexes().Any(visibleMap.HasTile);
     }
 
+    private static bool IsFleetVisible(WarFleet fleet, IslandMap visibleMap)
+    {
+        return fleet.Position.Z == visibleMap.Z && fleet.Position.GetHexes().Any(visibleMap.HasTile);
+    }
+
     public void Dispose()
     {
         if (_disposed) return;
         _beaconPaint?.Dispose();
         _borderPaint?.Dispose();
+        _fleetPaint?.Dispose();
         _buildableVertexPaint.Dispose();
         _hoverVertexPaint.Dispose();
+        _buildableFleetPaint.Dispose();
         _disposed = true;
     }
 }

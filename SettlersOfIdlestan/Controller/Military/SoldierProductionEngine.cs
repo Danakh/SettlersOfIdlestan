@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
@@ -22,9 +23,13 @@ internal class SoldierProductionEngine
         _state = state;
     }
 
-    internal int GetMaximumSoldierCapacity(City city)
-        => city.MaxSoldiers + _state!.Civilizations[city.CivilizationIndex].CityMaxSoldiersBonus;
+    internal int GetMaximumSoldierCapacity(IMilitaryVertex vertex)
+        => vertex.MaxSoldiers + _state!.Civilizations[vertex.CivilizationIndex].CityMaxSoldiersBonus;
 
+    /// <summary>
+    /// Seules les villes produisent des soldats (Caserne requise) — une Flotte de Guerre n'a pas de
+    /// bâtiment (voir WarFleet) et ne peut donc en produire ; elle ne reçoit des soldats que par renfort.
+    /// </summary>
     internal void ProduceSoldiers(long currentTick)
     {
         if (_state == null) return;
@@ -60,6 +65,11 @@ internal class SoldierProductionEngine
             }
     }
 
+    /// <summary>
+    /// Consommation de nourriture par les soldats de tous les emplacements militaires (villes et
+    /// flottes — voir IMilitaryVertex) : un garnison de flotte affamée perd des soldats exactement
+    /// comme une ville.
+    /// </summary>
     internal void ResolveSoldierFeeding(long currentTick)
     {
         if (_state == null) return;
@@ -68,19 +78,20 @@ internal class SoldierProductionEngine
 
         foreach (var civ in _state.Civilizations)
         {
-            int totalSoldiers = civ.Cities.Sum(city => city.Soldiers);
+            var vertices = civ.MilitaryVertices.ToList();
+            int totalSoldiers = vertices.Sum(v => v.Soldiers);
             if (totalSoldiers == 0) continue;
 
             int freePerCity = (int)civ.ModifierAggregator.ApplyModifiers(ECategory.SOLDIER_FOOD_FREE_PER_CITY, "", 0.0);
 
-            // Le quota gratuit s'applique par ville individuellement.
+            // Le quota gratuit s'applique par emplacement individuellement.
             // Les soldats au-delà du quota sont les seuls à consommer de la nourriture.
-            int[] payingPerCity = new int[civ.Cities.Count];
+            int[] payingPerVertex = new int[vertices.Count];
             int totalNeedingFood = 0;
-            for (int i = 0; i < civ.Cities.Count; i++)
+            for (int i = 0; i < vertices.Count; i++)
             {
-                payingPerCity[i] = Math.Max(0, civ.Cities[i].Soldiers - freePerCity);
-                totalNeedingFood += payingPerCity[i];
+                payingPerVertex[i] = Math.Max(0, vertices[i].Soldiers - freePerCity);
+                totalNeedingFood += payingPerVertex[i];
             }
 
             int availableFood = civ.GetResourceQuantity(Resource.Food);
@@ -107,26 +118,26 @@ internal class SoldierProductionEngine
             if (starvedSoldiers > 0)
             {
                 // Distribution proportionnelle uniquement parmi les soldats payants
-                // (au-delà du quota gratuit), pour ne pas pénaliser les villes qui ont
+                // (au-delà du quota gratuit), pour ne pas pénaliser les emplacements qui ont
                 // exactement le quota ou moins.
                 int toKill = starvedSoldiers;
                 int payingLeft = totalNeedingFood;
-                for (int i = 0; i < civ.Cities.Count; i++)
+                for (int i = 0; i < vertices.Count; i++)
                 {
                     if (toKill <= 0) break;
-                    if (payingPerCity[i] == 0) continue;
-                    int kill = (int)Math.Round((double)toKill * payingPerCity[i] / payingLeft);
-                    kill = Math.Min(kill, Math.Min(civ.Cities[i].Soldiers, toKill));
-                    civ.Cities[i].Soldiers -= kill;
+                    if (payingPerVertex[i] == 0) continue;
+                    int kill = (int)Math.Round((double)toKill * payingPerVertex[i] / payingLeft);
+                    kill = Math.Min(kill, Math.Min(vertices[i].Soldiers, toKill));
+                    vertices[i].Soldiers -= kill;
                     toKill -= kill;
-                    payingLeft -= payingPerCity[i];
+                    payingLeft -= payingPerVertex[i];
                 }
                 // Reste éventuel dû aux arrondis : uniquement sur les soldats payants
-                for (int i = 0; i < civ.Cities.Count && toKill > 0; i++)
+                for (int i = 0; i < vertices.Count && toKill > 0; i++)
                 {
-                    if (civ.Cities[i].Soldiers > freePerCity)
+                    if (vertices[i].Soldiers > freePerCity)
                     {
-                        civ.Cities[i].Soldiers--;
+                        vertices[i].Soldiers--;
                         toKill--;
                     }
                 }

@@ -33,6 +33,7 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
     private List<Edge>?   _cachedBuildableEdges;
     private List<Edge>?   _cachedEnemyProtectedEdges;
     private List<Vertex>? _cachedBuildableBeaconVertices;
+    private List<Vertex>? _cachedPotentialFleetVertices;
     private int _cachedCityCount = -1;
     private int _cachedRoadCount = -1;
     private int _cachedBeaconCount = -1;
@@ -126,6 +127,13 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
                 return;
             }
 
+            if (HoverState.HoveredFleetVertex != null)
+            {
+                _gameControllerService.TryBuildWarFleetForPlayer(HoverState.HoveredFleetVertex);
+                RefreshHover(e.Position);
+                return;
+            }
+
             if (HoverState.HoveredEdge != null && _gameControllerService.TryBuildRoadForPlayer(HoverState.HoveredEdge) != null)
             {
                 RefreshHover(e.Position);
@@ -185,6 +193,7 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
         _cachedBuildableEdges          = _gameControllerService.GetBuildableRoadEdgesForPlayer();
         _cachedEnemyProtectedEdges     = _gameControllerService.GetEnemyProtectedRoadEdgesForPlayer();
         _cachedBuildableBeaconVertices = _gameControllerService.GetBuildableMaritimeBeaconVerticesForPlayer();
+        _cachedPotentialFleetVertices  = _gameControllerService.GetPotentialWarFleetVerticesForPlayer();
         _cachedCityCount = cityCount;
         _cachedRoadCount = roadCount;
         _cachedBeaconCount = beaconCount;
@@ -203,11 +212,14 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
         var buildableEdges     = _cachedBuildableEdges!;
         var enemyProtectedEdges = _cachedEnemyProtectedEdges!;
         var buildableBeaconVertices = _cachedBuildableBeaconVertices!;
+        var potentialFleetVertices = _cachedPotentialFleetVertices!;
 
         var islandPoint = _renderer.ScreenToIsland(screenPoint, _cameraService.CanvasSize, _cameraService.ZoomLevel, _cameraService.Position);
 
         var hoveredCityVertex = GetHoveredCityVertex(islandPoint);
         var hoveredEnemyCityVertex = hoveredCityVertex == null ? GetHoveredEnemyCityVertex(islandPoint) : null;
+        var hoveredOwnFleet = hoveredCityVertex == null && hoveredEnemyCityVertex == null ? GetHoveredOwnFleetVertex(islandPoint) : null;
+        var hoveredEnemyFleet = hoveredOwnFleet == null && hoveredCityVertex == null && hoveredEnemyCityVertex == null ? GetHoveredEnemyFleetVertex(islandPoint) : null;
 
         Vertex? hoveredVertex = null;
         var nearestVertex = _renderer.IslandToNearestVertex(islandPoint, currentZ);
@@ -231,6 +243,18 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
             }
         }
 
+        // Flottes de guerre : sur une balise déjà posée, uniquement en surface (voir WarFleetController).
+        // Toujours survolable même sans le Port Impérial, pour afficher l'infobulle du prérequis manquant.
+        Vertex? hoveredFleetVertex = null;
+        if (hoveredVertex == null && hoveredBeaconVertex == null && currentZ == IslandMap.SurfaceLayer && potentialFleetVertices.Any(v => v.Equals(nearestVertex)))
+        {
+            var dist = SKPoint.Distance(islandPoint, _renderer.VertexToIslandPoint(nearestVertex));
+            if (dist <= VertexHoverRadius)
+            {
+                hoveredFleetVertex = nearestVertex;
+            }
+        }
+
         Edge? hoveredEdge = null;
         Edge? hoveredEnemyProtectedEdge = null;
         var nearestEdge = _renderer.IslandToNearestEdge(islandPoint, currentZ);
@@ -244,7 +268,8 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
         }
 
         HexCoord? hoveredHex = null;
-        if (hoveredVertex == null && hoveredBeaconVertex == null && hoveredEdge == null && hoveredEnemyProtectedEdge == null && hoveredCityVertex == null && hoveredEnemyCityVertex == null)
+        if (hoveredVertex == null && hoveredBeaconVertex == null && hoveredFleetVertex == null && hoveredEdge == null && hoveredEnemyProtectedEdge == null
+            && hoveredCityVertex == null && hoveredEnemyCityVertex == null && hoveredOwnFleet == null && hoveredEnemyFleet == null)
         {
             var hexCoord = _renderer.IslandToHexCoord(islandPoint, currentZ);
             var (hx, hy) = _renderer.AxialToIsland(hexCoord.Q, hexCoord.R);
@@ -271,7 +296,11 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
             hoveredEnemyProtectedEdge,
             hoveredEnemyCityVertex,
             buildableBeaconVertices,
-            hoveredBeaconVertex
+            hoveredBeaconVertex,
+            potentialFleetVertices,
+            hoveredFleetVertex,
+            hoveredOwnFleet,
+            hoveredEnemyFleet
         );
     }
 
@@ -351,6 +380,60 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
         return bestDistance <= 12f ? best : null;
     }
 
+    private Vertex? GetHoveredOwnFleetVertex(SKPoint islandPoint)
+    {
+        if (_renderer == null) return null;
+
+        var worldState = _gameControllerService.CurrentWorldState;
+        if (worldState == null) return null;
+
+        var playerIndex = worldState.PlayerCivilization.Index;
+        Vertex? best = null;
+        var bestDistance = float.MaxValue;
+
+        foreach (var fleet in worldState.GetAllFleets())
+        {
+            if (fleet.CivilizationIndex != playerIndex) continue;
+
+            if (worldState.Visibility.GetForZ(worldState.CurrentViewedLayer).TryGetValue(playerIndex, out var visibleMap) &&
+                (fleet.Position.Z != visibleMap.Z || !fleet.Position.GetHexes().Any(visibleMap.HasTile)))
+                continue;
+
+            var pt = _renderer.VertexToIslandPoint(fleet.Position);
+            var dist = SKPoint.Distance(islandPoint, pt);
+            if (dist < bestDistance) { bestDistance = dist; best = fleet.Position; }
+        }
+
+        return bestDistance <= 12f ? best : null;
+    }
+
+    private Vertex? GetHoveredEnemyFleetVertex(SKPoint islandPoint)
+    {
+        if (_renderer == null) return null;
+
+        var worldState = _gameControllerService.CurrentWorldState;
+        if (worldState == null) return null;
+
+        var playerIndex = worldState.PlayerCivilization.Index;
+        Vertex? best = null;
+        var bestDistance = float.MaxValue;
+
+        if (!worldState.Visibility.GetForZ(worldState.CurrentViewedLayer).TryGetValue(playerIndex, out var visibleMap))
+            return null;
+
+        foreach (var fleet in worldState.GetAllFleets())
+        {
+            if (fleet.CivilizationIndex == playerIndex) continue;
+            if (fleet.Position.Z != visibleMap.Z || !fleet.Position.GetHexes().Any(visibleMap.HasTile)) continue;
+
+            var pt = _renderer.VertexToIslandPoint(fleet.Position);
+            var dist = SKPoint.Distance(islandPoint, pt);
+            if (dist < bestDistance) { bestDistance = dist; best = fleet.Position; }
+        }
+
+        return bestDistance <= 12f ? best : null;
+    }
+
     private void SetSelectedCity(Vertex selectedCityVertex)
     {
         _monumentService?.ClearSelectedInvestable();
@@ -370,6 +453,7 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
         HoverState = ConstructionHoverState.Empty;
         _cachedBuildableVertices = null;
         _cachedBuildableBeaconVertices = null;
+        _cachedPotentialFleetVertices = null;
     }
 }
 
@@ -384,9 +468,13 @@ public readonly record struct ConstructionHoverState(
     Edge? HoveredEnemyProtectedEdge,
     Vertex? HoveredEnemyCityVertex,
     IReadOnlyList<Vertex> BuildableBeaconVertices,
-    Vertex? HoveredBeaconVertex)
+    Vertex? HoveredBeaconVertex,
+    IReadOnlyList<Vertex> BuildableFleetVertices,
+    Vertex? HoveredFleetVertex,
+    Vertex? HoveredOwnFleetVertex,
+    Vertex? HoveredEnemyFleetVertex)
 {
     public static ConstructionHoverState Empty =>
-        new(Array.Empty<Vertex>(), Array.Empty<Edge>(), null, null, null, null, null, null, null, Array.Empty<Vertex>(), null);
+        new(Array.Empty<Vertex>(), Array.Empty<Edge>(), null, null, null, null, null, null, null, Array.Empty<Vertex>(), null, Array.Empty<Vertex>(), null, null, null);
 }
 

@@ -22,7 +22,7 @@ internal static class SteelArmorEngine
     /// Tente de sauver jusqu'à <paramref name="losses"/> soldats.
     /// Chaque sauvetage consomme 1 ArmureAcier ou 1 PotionDeSoin. Retourne le nombre de soldats sauvés.
     /// </summary>
-    internal static int TrySaveSoldiers(Civilization? civ, City city, int losses, GamePRNG prng)
+    internal static int TrySaveSoldiers(Civilization? civ, IMilitaryVertex vertex, int losses, GamePRNG prng)
     {
         if (civ == null || losses <= 0) return 0;
 
@@ -30,7 +30,8 @@ internal static class SteelArmorEngine
         bool hasHealingPotion = civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_HEALING_POTION);
         if (!hasSteelArmor && !hasHealingPotion) return 0;
 
-        int arsenalLevel = city.Buildings.OfType<Arsenal>().Sum(a => a.Level);
+        // Une Flotte de Guerre n'a pas de bâtiments (voir WarFleet) — pas de bonus d'Arsenal pour elle.
+        int arsenalLevel = vertex is City city ? city.Buildings.OfType<Arsenal>().Sum(a => a.Level) : 0;
         int steelArmorSaveChancePercent = Arsenal.ArmorSaveBasePercent + Arsenal.ArmorSavePercentPerLevel * arsenalLevel;
 
         int saved = 0;

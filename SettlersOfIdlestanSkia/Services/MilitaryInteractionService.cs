@@ -26,13 +26,13 @@ public sealed class MilitaryInteractionService
     private readonly CameraService _cameraService;
     private IslandMainRenderer? _renderer;
 
-    private City? _potentialDragCity;
+    private IMilitaryVertex? _potentialDragCity;
     private SKPoint _potentialDragStartScreen;
-    private City? _activeDragSourceCity;
+    private IMilitaryVertex? _activeDragSourceCity;
     private bool _wasDragging;
 
-    public City? DragSourceCity => _activeDragSourceCity;
-    public City? DragTargetCity { get; private set; }
+    public IMilitaryVertex? DragSourceCity => _activeDragSourceCity;
+    public IMilitaryVertex? DragTargetCity { get; private set; }
     public bool DragTargetIsInRange { get; private set; }
     public MonsterFeature? DragTargetMonster { get; private set; }
     public MonsterAttackAvailability DragTargetMonsterAvailability { get; private set; }
@@ -66,35 +66,35 @@ public sealed class MilitaryInteractionService
         screen.X / _cameraService.ZoomLevel + _cameraService.Position.X,
         screen.Y / _cameraService.ZoomLevel + _cameraService.Position.Y);
 
-    private City? FindPlayerCityNear(SKPoint islandPoint, int layer)
+    private IMilitaryVertex? FindPlayerCityNear(SKPoint islandPoint, int layer)
     {
         var WorldState = _gameControllerService.CurrentWorldState;
         if (WorldState == null || _renderer == null) return null;
 
-        City? best = null;
+        IMilitaryVertex? best = null;
         float bestDist = CitySnapRadius;
-        foreach (var city in WorldState.PlayerCivilization.Cities)
+        foreach (var vertex in WorldState.PlayerCivilization.MilitaryVertices)
         {
-            if (city.Position.Z != layer) continue;
-            float dist = SKPoint.Distance(islandPoint, _renderer.VertexToIslandPoint(city.Position));
-            if (dist < bestDist) { bestDist = dist; best = city; }
+            if (vertex.Position.Z != layer) continue;
+            float dist = SKPoint.Distance(islandPoint, _renderer.VertexToIslandPoint(vertex.Position));
+            if (dist < bestDist) { bestDist = dist; best = vertex; }
         }
         return best;
     }
 
-    private City? FindAnyCityNear(SKPoint islandPoint, int layer)
+    private IMilitaryVertex? FindAnyCityNear(SKPoint islandPoint, int layer)
     {
         var WorldState = _gameControllerService.CurrentWorldState;
         if (WorldState == null || _renderer == null) return null;
 
-        City? best = null;
+        IMilitaryVertex? best = null;
         float bestDist = CitySnapRadius;
         foreach (var civ in WorldState.Civilizations)
-            foreach (var city in civ.Cities)
+            foreach (var vertex in civ.MilitaryVertices)
             {
-                if (city.Position.Z != layer) continue;
-                float dist = SKPoint.Distance(islandPoint, _renderer.VertexToIslandPoint(city.Position));
-                if (dist < bestDist) { bestDist = dist; best = city; }
+                if (vertex.Position.Z != layer) continue;
+                float dist = SKPoint.Distance(islandPoint, _renderer.VertexToIslandPoint(vertex.Position));
+                if (dist < bestDist) { bestDist = dist; best = vertex; }
             }
         return best;
     }
@@ -116,13 +116,13 @@ public sealed class MilitaryInteractionService
         return best;
     }
 
-    private bool IsValidFlowTarget(City target)
+    private bool IsValidFlowTarget(IMilitaryVertex target)
     {
         var playerIndex = _gameControllerService.CurrentWorldState?.PlayerCivilization?.Index ?? -1;
         return target.CivilizationIndex != playerIndex || _militaryController.GetMaximumSoldierCapacity(target) > 0;
     }
 
-    private bool IsInRange(City source, City target)
+    private bool IsInRange(IMilitaryVertex source, IMilitaryVertex target)
     {
         var playerCiv = _gameControllerService.CurrentWorldState?.PlayerCivilization;
         if (playerCiv == null) return false;

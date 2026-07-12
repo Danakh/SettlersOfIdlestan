@@ -63,16 +63,16 @@ internal class MonsterCombatEngine
             if (monster.Hp <= 0) break;
             // Grâce après déplacement : la cible ne peut pas être attaquée juste après s'être déplacée.
             if (currentTick - monster.LastAttackedByMilitaryTick < EffectiveCombatInterval(civ)) continue;
-            foreach (var city in civ.Cities)
+            foreach (var vertex in civ.MilitaryVertices)
             {
                 if (monster.Hp <= 0) break;
-                if (city.Soldiers == 0) continue;
-                // Cooldown porté par la ville : commun aux attaques de ville et de monstre, pour qu'une même ville
-                // ne puisse pas frapper deux cibles différentes trop vite — mais plusieurs villes attaquent en simultané.
-                if (currentTick - city.LastAttackTick < EffectiveCombatInterval(civ)) continue;
+                if (vertex.Soldiers == 0) continue;
+                // Cooldown porté par l'emplacement : commun aux attaques de ville/flotte et de monstre, pour qu'un même
+                // emplacement ne puisse pas frapper deux cibles différentes trop vite — mais plusieurs peuvent attaquer en simultané.
+                if (currentTick - vertex.LastAttackTick < EffectiveCombatInterval(civ)) continue;
 
-                var cityHexes = city.Position.GetHexes();
-                if (!cityHexes.Any(h => h.Equals(monster.Position))) continue;
+                var hexes = vertex.Position.GetHexes();
+                if (!hexes.Any(h => h.Equals(monster.Position))) continue;
 
                 // Armes en Acier : consomme 1 ArmeAcier pour infliger 1 dégât supplémentaire
                 bool hasSteelWeapon = civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_STEEL_WEAPONS)
@@ -80,13 +80,13 @@ internal class MonsterCombatEngine
                 if (hasSteelWeapon) civ.RemoveResource(Resource.SteelWeapon, 1);
 
                 // Armures d'Acier : le soldat peut survivre à l'assaut en consommant 1 Acier
-                if (SteelArmorEngine.TrySaveSoldiers(civ, city, 1, _prng!) == 0)
-                    city.Soldiers--;
+                if (SteelArmorEngine.TrySaveSoldiers(civ, vertex, 1, _prng!) == 0)
+                    vertex.Soldiers--;
                 monster.Hp--;
                 if (hasSteelWeapon) monster.Hp--;
                 if (monster.Hp <= 0) monster.KilledByCivilizationIndex = civ.Index;
-                city.LastAttackTick = currentTick;
-                onSoldierAttackedMonster(new SoldierAttackEventArgs(city.Position, monster.Position));
+                vertex.LastAttackTick = currentTick;
+                onSoldierAttackedMonster(new SoldierAttackEventArgs(vertex.Position, monster.Position));
                 didAttack = true;
             }
         }
@@ -99,39 +99,40 @@ internal class MonsterCombatEngine
     private const int MaxRangedAttackDistance = 2;
 
     /// <summary>
-    /// Distance entre la ville et le monstre, au sens le plus strict : la distance depuis le hex
-    /// de ville le plus ÉLOIGNÉ du monstre. Utiliser le minimum sur les 3 hexes de la ville permettrait
-    /// d'attaquer 1 hex plus loin que prévu (les 3 hexes d'un vertex sont mutuellement adjacents, donc
-    /// le hex le plus proche peut être à 1 de moins que les deux autres) ; le maximum garantit que la
-    /// portée affichée au joueur (« distance 2 ») n'est jamais dépassée, quel que soit le coin de la
-    /// ville depuis lequel on compte.
+    /// Distance entre l'emplacement et le monstre, au sens le plus strict : la distance depuis le hex
+    /// le plus ÉLOIGNÉ du monstre. Utiliser le minimum sur les 3 hexes permettrait d'attaquer 1 hex plus
+    /// loin que prévu (les 3 hexes d'un vertex sont mutuellement adjacents, donc le hex le plus proche
+    /// peut être à 1 de moins que les deux autres) ; le maximum garantit que la portée affichée au joueur
+    /// (« distance 2 ») n'est jamais dépassée, quel que soit le coin depuis lequel on compte.
     /// </summary>
-    private static int DistanceTo(City city, MonsterFeature monster)
-        => city.Position.GetHexes().Max(h => h.DistanceTo(monster.Position));
+    private static int DistanceTo(IMilitaryVertex vertex, MonsterFeature monster)
+        => vertex.Position.GetHexes().Max(h => h.DistanceTo(monster.Position));
 
     /// <summary>
-    /// Détermine si une ville peut attaquer une MonsterFeature : toujours possible à distance ≤ 1
-    /// (corps-à-corps automatique), possible à distance 2 avec la techno Surveillance et une Tour de
-    /// guet active, sinon trop loin.
+    /// Détermine si un emplacement militaire peut attaquer une MonsterFeature : toujours possible à
+    /// distance ≤ 1 (corps-à-corps automatique), possible à distance 2 avec la techno Surveillance et
+    /// une Tour de guet active (uniquement pour une ville — une Flotte de Guerre n'a pas de bâtiments,
+    /// voir WarFleet), sinon trop loin.
     /// </summary>
-    internal MonsterAttackAvailability GetAttackAvailability(City city, MonsterFeature monster)
+    internal MonsterAttackAvailability GetAttackAvailability(IMilitaryVertex vertex, MonsterFeature monster)
     {
         if (monster.AttacksOtherMonsters) return MonsterAttackAvailability.TooFar; // monstres "amis" : jamais attaquables
 
-        int distance = DistanceTo(city, monster);
+        int distance = DistanceTo(vertex, monster);
         if (distance <= MeleeRange) return MonsterAttackAvailability.Available;
 
-        var civ = _state?.Civilizations.FirstOrDefault(c => c.Index == city.CivilizationIndex);
+        var civ = _state?.Civilizations.FirstOrDefault(c => c.Index == vertex.CivilizationIndex);
         bool hasSurveillance = civ != null && civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_RANGED_MONSTER_ATTACK);
         if (distance > MaxRangedAttackDistance || !hasSurveillance) return MonsterAttackAvailability.TooFar;
 
-        bool hasWatchtower = city.Buildings.OfType<Watchtower>().Any(b => b.Level > 0);
+        bool hasWatchtower = vertex is City city && city.Buildings.OfType<Watchtower>().Any(b => b.Level > 0);
         return hasWatchtower ? MonsterAttackAvailability.Available : MonsterAttackAvailability.RequiresWatchtower;
     }
 
     /// <summary>
-    /// Résout les attaques à distance (distance 2) initiées par un flux joueur sur <see cref="City.MonsterAttackTarget"/>.
-    /// Le corps-à-corps (distance ≤ 1) reste géré par <see cref="ResolveMonsterCombat"/>.
+    /// Résout les attaques à distance (distance 2) initiées par un flux joueur sur
+    /// <see cref="IMilitaryVertex.MonsterAttackTarget"/>. Le corps-à-corps (distance ≤ 1) reste géré
+    /// par <see cref="ResolveMonsterCombat"/>.
     /// </summary>
     internal void ResolveRangedAttacks(long currentTick, Action<SoldierAttackEventArgs> onSoldierAttackedMonster)
     {
@@ -140,34 +141,34 @@ internal class MonsterCombatEngine
         var deadMonsters = new List<MonsterFeature>();
         foreach (var civ in _state.Civilizations)
         {
-            foreach (var city in civ.Cities)
+            foreach (var vertex in civ.MilitaryVertices)
             {
-                if (city.MonsterAttackTarget == null) continue;
-                if (city.Soldiers == 0) continue;
+                if (vertex.MonsterAttackTarget == null) continue;
+                if (vertex.Soldiers == 0) continue;
 
-                var monster = _state.Features.OfType<MonsterFeature>().FirstOrDefault(m => m.Position.Equals(city.MonsterAttackTarget));
-                if (monster == null) { city.MonsterAttackTarget = null; continue; }
+                var monster = _state.Features.OfType<MonsterFeature>().FirstOrDefault(m => m.Position.Equals(vertex.MonsterAttackTarget));
+                if (monster == null) { vertex.MonsterAttackTarget = null; continue; }
                 if (monster.Hp <= 0) continue;
 
-                int distance = DistanceTo(city, monster);
+                int distance = DistanceTo(vertex, monster);
                 if (distance <= MeleeRange) continue; // déjà géré par le combat de corps-à-corps automatique
 
                 // Grâce après déplacement : la cible ne peut pas être attaquée juste après s'être déplacée.
                 if (currentTick - monster.LastAttackedByMilitaryTick < EffectiveCombatInterval(civ)) continue;
-                // Cooldown porté par la ville : commun aux attaques de ville et de monstre (cf. AttackMonsterWithSoldiers).
-                if (currentTick - city.LastAttackTick < EffectiveCombatInterval(civ)) continue;
-                if (GetAttackAvailability(city, monster) != MonsterAttackAvailability.Available) continue;
+                // Cooldown porté par l'emplacement : commun aux attaques de ville/flotte et de monstre (cf. AttackMonsterWithSoldiers).
+                if (currentTick - vertex.LastAttackTick < EffectiveCombatInterval(civ)) continue;
+                if (GetAttackAvailability(vertex, monster) != MonsterAttackAvailability.Available) continue;
 
                 bool hasSteelWeapon = civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_STEEL_WEAPONS)
                     && civ.GetResourceQuantity(Resource.SteelWeapon) >= 1;
                 if (hasSteelWeapon) civ.RemoveResource(Resource.SteelWeapon, 1);
 
-                if (SteelArmorEngine.TrySaveSoldiers(civ, city, 1, _prng!) == 0)
-                    city.Soldiers--;
+                if (SteelArmorEngine.TrySaveSoldiers(civ, vertex, 1, _prng!) == 0)
+                    vertex.Soldiers--;
                 monster.Hp--;
                 if (hasSteelWeapon) monster.Hp--;
-                city.LastAttackTick = currentTick;
-                onSoldierAttackedMonster(new SoldierAttackEventArgs(city.Position, monster.Position));
+                vertex.LastAttackTick = currentTick;
+                onSoldierAttackedMonster(new SoldierAttackEventArgs(vertex.Position, monster.Position));
 
                 if (monster.Hp <= 0)
                 {

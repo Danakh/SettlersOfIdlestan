@@ -12,9 +12,10 @@ using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
 namespace SettlersOfIdlestan.Controller.Military;
 
 /// <summary>
-/// Gère l'action Raid : redirige tous les flux de la civilisation du joueur vers une cible — une ville
-/// ennemie ou une MonsterFeature. Les villes à portée d'attaque attaquent directement; les autres renforcent
-/// l'alliée la plus proche de la cible.
+/// Gère l'action Raid : redirige tous les flux de la civilisation du joueur vers une cible — un
+/// emplacement militaire ennemi (ville ou Flotte de Guerre — voir IMilitaryVertex) ou une
+/// MonsterFeature. Les emplacements à portée d'attaque attaquent directement; les autres renforcent
+/// l'allié le plus proche de la cible.
 /// </summary>
 internal class RaidEngine
 {
@@ -54,10 +55,10 @@ internal class RaidEngine
         foreach (var civ in _state.Civilizations)
         {
             if (civ.Index == playerCiv.Index) continue;
-            foreach (var city in civ.Cities)
+            foreach (var vertex in civ.MilitaryVertices)
             {
-                if (city.Position.Z == currentLayer && IsCityVisibleTo(city, playerCiv))
-                    targets.Add(city.Position);
+                if (vertex.Position.Z == currentLayer && IsCityVisibleTo(vertex, playerCiv))
+                    targets.Add(vertex.Position);
             }
         }
         return targets;
@@ -73,11 +74,11 @@ internal class RaidEngine
             .ToList();
     }
 
-    private bool IsCityVisibleTo(City city, Civilization civ)
+    private bool IsCityVisibleTo(IMilitaryVertex vertex, Civilization civ)
     {
-        var visibleMaps = _state!.Visibility.GetForZ(city.Position.Z);
+        var visibleMaps = _state!.Visibility.GetForZ(vertex.Position.Z);
         if (!visibleMaps.TryGetValue(civ.Index, out var visibleMap)) return true;
-        return city.Position.GetHexes().Any(h => visibleMap.HasTile(h));
+        return vertex.Position.GetHexes().Any(h => visibleMap.HasTile(h));
     }
 
     private const int NearestCitiesCheckedForBarracks = 3;
@@ -110,7 +111,11 @@ internal class RaidEngine
         WarnIfMissingBarracksNearTarget(nearestCities);
     }
 
-    /// <summary>Avertit le joueur si une des villes les plus proches de la cible n'a pas de Barracks (vulnérable en cas de contre-attaque).</summary>
+    /// <summary>
+    /// Avertit le joueur si une des villes les plus proches de la cible n'a pas de Barracks (vulnérable
+    /// en cas de contre-attaque). Ne concerne que les villes — une Flotte de Guerre n'a jamais de
+    /// bâtiment (voir WarFleet) donc n'est pas prise en compte par cet avertissement.
+    /// </summary>
     private void WarnIfMissingBarracksNearTarget(IEnumerable<City> citiesOrderedByDistance)
     {
         if (_state == null) return;
@@ -133,18 +138,18 @@ internal class RaidEngine
         if (target != null)
         {
             int z = target.Z;
-            foreach (var city in civ.Cities)
-                if (city.Position.Z == z)
-                    _reinforcementEngine!.SetCityFlow(city, null);
+            foreach (var vertex in civ.MilitaryVertices)
+                if (vertex.Position.Z == z)
+                    _reinforcementEngine!.SetCityFlow(vertex, null);
         }
         else if (targetHex != null)
         {
             int z = targetHex.Z;
-            foreach (var city in civ.Cities)
+            foreach (var vertex in civ.MilitaryVertices)
             {
-                if (city.Position.Z != z) continue;
-                city.MonsterAttackTarget = null;
-                _reinforcementEngine!.SetCityFlow(city, null);
+                if (vertex.Position.Z != z) continue;
+                vertex.MonsterAttackTarget = null;
+                _reinforcementEngine!.SetCityFlow(vertex, null);
             }
         }
     }
@@ -163,14 +168,14 @@ internal class RaidEngine
 
         if (target != null)
         {
-            bool targetExists = _state.Civilizations.Any(c => c.Index != playerCiv.Index && c.Cities.Any(city => city.Position.Equals(target)));
+            bool targetExists = _state.Civilizations.Any(c => c.Index != playerCiv.Index && c.MilitaryVertices.Any(v => v.Position.Equals(target)));
             if (!targetExists)
             {
                 StopRaid(playerCiv);
                 return;
             }
 
-            bool hasAttackFlow = playerCiv.Cities.Any(c => c.FlowTarget != null && c.FlowTarget.Equals(target));
+            bool hasAttackFlow = playerCiv.MilitaryVertices.Any(v => v.FlowTarget != null && v.FlowTarget.Equals(target));
             if (!hasAttackFlow)
             {
                 StopRaid(playerCiv);
@@ -189,7 +194,7 @@ internal class RaidEngine
                 return;
             }
 
-            bool hasAttackFlow = playerCiv.Cities.Any(c => c.MonsterAttackTarget != null && c.MonsterAttackTarget.Equals(targetHex));
+            bool hasAttackFlow = playerCiv.MilitaryVertices.Any(v => v.MonsterAttackTarget != null && v.MonsterAttackTarget.Equals(targetHex));
             if (!hasAttackFlow)
             {
                 StopRaid(playerCiv);
@@ -222,32 +227,32 @@ internal class RaidEngine
         int attackRange = _cityAttackEngine.CityAttackRange(civ);
         int reinforcementRange = _reinforcementEngine.ReinforcementRange(civ);
         int targetZ = target.Z;
-        var citiesInLayer = civ.Cities.Where(c => c.Position.Z == targetZ).ToList();
+        var verticesInLayer = civ.MilitaryVertices.Where(v => v.Position.Z == targetZ).ToList();
 
-        foreach (var city in citiesInLayer)
+        foreach (var vertex in verticesInLayer)
         {
-            int distToTarget = city.Position.EdgeDistanceTo(target);
+            int distToTarget = vertex.Position.EdgeDistanceTo(target);
             if (distToTarget <= attackRange)
             {
-                _reinforcementEngine.SetCityFlow(city, target);
+                _reinforcementEngine.SetCityFlow(vertex, target);
             }
             else
             {
-                // Renforce l'alliée la plus proche de la cible qui est aussi à portée de renfort
-                var nearestAlly = citiesInLayer
-                    .Where(a => a != city
+                // Renforce l'allié le plus proche de la cible qui est aussi à portée de renfort
+                var nearestAlly = verticesInLayer
+                    .Where(a => a != vertex
                              && a.Position.EdgeDistanceTo(target) < distToTarget
-                             && city.Position.EdgeDistanceTo(a.Position) <= reinforcementRange)
+                             && vertex.Position.EdgeDistanceTo(a.Position) <= reinforcementRange)
                     .OrderBy(a => a.Position.EdgeDistanceTo(target))
                     .FirstOrDefault();
 
-                _reinforcementEngine.SetCityFlow(city, nearestAlly?.Position);
+                _reinforcementEngine.SetCityFlow(vertex, nearestAlly?.Position);
             }
         }
     }
 
-    private static int DistanceToMonster(City city, MonsterFeature monster)
-        => city.Position.GetHexes().Max(h => h.DistanceTo(monster.Position));
+    private static int DistanceToMonster(IMilitaryVertex vertex, MonsterFeature monster)
+        => vertex.Position.GetHexes().Max(h => h.DistanceTo(monster.Position));
 
     private void ApplyMonsterRaidFlows(Civilization civ, HexCoord targetHex)
     {
@@ -258,29 +263,29 @@ internal class RaidEngine
 
         int reinforcementRange = _reinforcementEngine.ReinforcementRange(civ);
         int targetZ = targetHex.Z;
-        var citiesInLayer = civ.Cities.Where(c => c.Position.Z == targetZ).ToList();
+        var verticesInLayer = civ.MilitaryVertices.Where(v => v.Position.Z == targetZ).ToList();
 
-        foreach (var city in citiesInLayer)
+        foreach (var vertex in verticesInLayer)
         {
-            bool canAttack = _monsterCombatEngine.GetAttackAvailability(city, monster) == MonsterAttackAvailability.Available;
+            bool canAttack = _monsterCombatEngine.GetAttackAvailability(vertex, monster) == MonsterAttackAvailability.Available;
             if (canAttack)
             {
-                city.MonsterAttackTarget = targetHex;
-                _reinforcementEngine.SetCityFlow(city, null);
+                vertex.MonsterAttackTarget = targetHex;
+                _reinforcementEngine.SetCityFlow(vertex, null);
             }
             else
             {
-                // Renforce l'alliée la plus proche du monstre qui est aussi à portée de renfort
-                int distToTarget = DistanceToMonster(city, monster);
-                var nearestAlly = citiesInLayer
-                    .Where(a => a != city
+                // Renforce l'allié le plus proche du monstre qui est aussi à portée de renfort
+                int distToTarget = DistanceToMonster(vertex, monster);
+                var nearestAlly = verticesInLayer
+                    .Where(a => a != vertex
                              && DistanceToMonster(a, monster) < distToTarget
-                             && city.Position.EdgeDistanceTo(a.Position) <= reinforcementRange)
+                             && vertex.Position.EdgeDistanceTo(a.Position) <= reinforcementRange)
                     .OrderBy(a => DistanceToMonster(a, monster))
                     .FirstOrDefault();
 
-                city.MonsterAttackTarget = null;
-                _reinforcementEngine.SetCityFlow(city, nearestAlly?.Position);
+                vertex.MonsterAttackTarget = null;
+                _reinforcementEngine.SetCityFlow(vertex, nearestAlly?.Position);
             }
         }
     }

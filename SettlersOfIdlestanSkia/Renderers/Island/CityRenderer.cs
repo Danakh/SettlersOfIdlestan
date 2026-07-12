@@ -1,5 +1,4 @@
 ﻿using SkiaSharp;
-using Svg.Skia;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestan.Controller.Military;
 using SettlersOfIdlestan.Model.Game;
@@ -21,17 +20,11 @@ public class CityRenderer : HexBasedRenderer, IGameRenderer
 
     private const float CityRadius = 8f;
     private const float SettlementRadius = 6f;
-    private const float MilitaryIconSize = 10f;
-    private const float MilitaryIconSvgSize = 64f;
 
     private readonly TooltipRenderer _tooltipRenderer;
     private readonly ResourceManager _resourceManager;
     private readonly MilitaryController _militaryController;
-    private SKSvg? _attackSvg;
-    private SKSvg? _defenseSvg;
-    private SKPaint? _militaryTextPaint;
-    private SKFont? _militaryTextFont;
-    private SKPaint? _iconColorPaint;
+    private readonly MilitaryScoreOverlay _militaryScoreOverlay;
 
     private SKPaint? _settlementPaint;
     private SKPaint? _cityPaint;
@@ -79,11 +72,12 @@ public class CityRenderer : HexBasedRenderer, IGameRenderer
         new SKColor(220, 100, 160), // Rose     - Civ 7
     };
 
-    public CityRenderer(TooltipRenderer tooltipRenderer, ResourceManager resourceManager, MilitaryController militaryController)
+    public CityRenderer(TooltipRenderer tooltipRenderer, ResourceManager resourceManager, MilitaryController militaryController, MilitaryScoreOverlay militaryScoreOverlay)
     {
         _tooltipRenderer = tooltipRenderer;
         _resourceManager = resourceManager;
         _militaryController = militaryController;
+        _militaryScoreOverlay = militaryScoreOverlay;
     }
 
     public void Initialize(SKSize canvasSize)
@@ -110,13 +104,6 @@ public class CityRenderer : HexBasedRenderer, IGameRenderer
 
         _cityLevelTextPaint = new SKPaint { Color = SKColors.White, IsAntialias = true };
         _cityLevelFont = new SKFont { Size = 10 };
-
-        _militaryTextPaint = new SKPaint { Color = SKColors.White, IsAntialias = true };
-        _militaryTextFont = new SKFont { Size = 8 };
-        _iconColorPaint = new SKPaint { IsAntialias = true };
-
-        _attackSvg = _resourceManager.LoadImage("Resources.icons.military.attack.svg");
-        _defenseSvg = _resourceManager.LoadImage("Resources.icons.military.defense.svg");
     }
 
     public void Render(SKCanvas canvas, GameRenderContext context)
@@ -260,62 +247,8 @@ public class CityRenderer : HexBasedRenderer, IGameRenderer
             }
 
             if (showMilitaryStats)
-                DrawMilitaryScores(canvas, city, civilization, pixelPos, radius);
+                _militaryScoreOverlay.Draw(canvas, city, _militaryController, pixelPos, radius);
         }
-    }
-
-    private void DrawMilitaryScores(SKCanvas canvas, City city, Civilization civilization, SKPoint cityPos, float cityRadius)
-    {
-        if (_militaryTextPaint == null || _militaryTextFont == null || _iconColorPaint == null)
-            return;
-
-        int attack = _militaryController.GetAttackScore(city);
-        int maxDefense = _militaryController.GetDefenseScore(city);
-        int currentDefense = city.CurrentDefense;
-
-        bool showAttack = attack > 0;
-        bool showDefense = maxDefense > 0;
-
-        if (!showAttack && !showDefense)
-            return;
-
-        float yBase = cityPos.Y + cityRadius + 3f + MilitaryIconSize;
-        float spacing = MilitaryIconSize + 16f;
-        float totalWidth = 0f;
-        if (showAttack) totalWidth += spacing;
-        if (showDefense) totalWidth += spacing;
-        float xStart = cityPos.X - totalWidth / 2f + spacing / 2f;
-
-        float x = xStart;
-        if (showAttack)
-        {
-            DrawMilitaryIcon(canvas, _attackSvg, new SKPoint(x, yBase), new SKColor(220, 80, 60));
-            SkiaTextUtils.DrawText(canvas, attack.ToString(), x + MilitaryIconSize / 2f + 2f, yBase + 3f, SKTextAlign.Left, _militaryTextFont, _militaryTextPaint);
-            x += spacing;
-        }
-        if (showDefense)
-        {
-            var defColor = currentDefense == 0 ? new SKColor(200, 60, 60) : new SKColor(80, 160, 220);
-            DrawMilitaryIcon(canvas, _defenseSvg, new SKPoint(x, yBase), defColor);
-            string defText = $"{currentDefense}/{maxDefense}";
-            SkiaTextUtils.DrawText(canvas, defText, x + MilitaryIconSize / 2f + 2f, yBase + 3f, SKTextAlign.Left, _militaryTextFont, _militaryTextPaint);
-        }
-    }
-
-    private void DrawMilitaryIcon(SKCanvas canvas, SKSvg? svg, SKPoint center, SKColor tint)
-    {
-        var picture = svg?.Picture;
-        if (picture == null || _iconColorPaint == null) return;
-
-        float scale = MilitaryIconSize / MilitaryIconSvgSize;
-        _iconColorPaint.ColorFilter = SKColorFilter.CreateBlendMode(tint, SKBlendMode.SrcIn);
-        canvas.Save();
-        canvas.Translate(center.X - MilitaryIconSize / 2f, center.Y - MilitaryIconSize / 2f);
-        canvas.Scale(scale);
-        canvas.SaveLayer(new SKRect(0, 0, MilitaryIconSvgSize, MilitaryIconSvgSize), _iconColorPaint);
-        canvas.DrawPicture(picture);
-        canvas.Restore();
-        canvas.Restore();
     }
 
     private static bool IsCityVisible(City city, IslandMap visibleMap)
@@ -337,9 +270,6 @@ public class CityRenderer : HexBasedRenderer, IGameRenderer
         _hoverVertexPaint.Dispose();
         _hoverCityPaint.Dispose();
         _selectedCityPaint.Dispose();
-        _militaryTextPaint?.Dispose();
-        _militaryTextFont?.Dispose();
-        _iconColorPaint?.Dispose();
 
         _disposed = true;
     }

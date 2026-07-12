@@ -54,7 +54,7 @@ namespace SettlersOfIdlestan.Controller.Island
         private WorldState? _state;
         private GameClock? _clock;
         private GamePRNG? _prng;
-        private readonly Dictionary<int, (int RoadCount, int TotalCityCount, List<Vertex> Vertices)> _buildableVerticesCache = new();
+        private readonly Dictionary<int, (int RoadCount, int TotalCityCount, int BeaconCount, List<Vertex> Vertices)> _buildableVerticesCache = new();
 
         // 10 s × 100 ticks/s
         public const long AutoOutpostBuildCooldownTicks = 1000L;
@@ -142,10 +142,14 @@ namespace SettlersOfIdlestan.Controller.Island
         /// <summary>
         /// Returns vertices where the civilization can build a city (outpost).
         /// Rules (simple):
-        /// - vertex not already occupied by any city
+        /// - vertex not already occupied by any city, or carrying a Balise Maritime — see
+        ///   WarFleetController, which builds Flottes de Guerre on beacons instead of classic cities
+        ///   (a fleet always sits on a beacon, so excluding beacon vertices excludes fleet vertices too)
         /// - vertex touches at least one road of the civilization
         /// - no city of another civilization is at distance < 2 (at least 2 edges required between civs)
         /// - no existing city of the same civilization is at distance < 3
+        /// Flottes de Guerre live outside <see cref="Civilization.Cities"/> (see IMilitaryVertex) so they
+        /// never enter these distance checks at all — no distance limit between a fleet and a city.
         /// </summary>
         /// <param name="excludingCity">If set, this city is ignored by the same-civilization distance check —
         /// used for relocation, to test constructibility as if the city had not been placed yet.</param>
@@ -156,14 +160,16 @@ namespace SettlersOfIdlestan.Controller.Island
             var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex)
                       ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
 
-            // Result only depends on this civ's roads and on every civ's cities (positions, via count
-            // as a cheap proxy — RelocateCity clears the cache explicitly since it changes a position
-            // without changing any count).
+            // Result only depends on this civ's roads and on every civ's cities/beacons (positions, via
+            // count as a cheap proxy — RelocateCity clears the cache explicitly since it changes a
+            // position without changing any count).
             int totalCityCount = _state.Civilizations.Sum(c => c.Cities.Count);
+            int totalBeaconCount = _state.Civilizations.Sum(c => c.MaritimeBeacons.Count);
             if (excludingCity == null &&
                 _buildableVerticesCache.TryGetValue(civilizationIndex, out var cached) &&
                 cached.RoadCount == civ.Roads.Count &&
-                cached.TotalCityCount == totalCityCount)
+                cached.TotalCityCount == totalCityCount &&
+                cached.BeaconCount == totalBeaconCount)
                 return cached.Vertices;
 
             // Build vertex → touching roads map directly from the civilization's roads
@@ -177,8 +183,13 @@ namespace SettlersOfIdlestan.Controller.Island
                 }
             }
 
+            var occupiedVertices = new HashSet<Vertex>(_state.GetAllCities().Select(c => c.Position));
+            var beaconVertices = new HashSet<Vertex>(_state.GetAllMaritimeBeacons().Select(b => b.Position));
+
             // now we filter vertices that aren't far enough from any city using MinDistanceBetweenCities and MinDistanceBetweenCivilizationCities
             vertices = vertices.Where(v =>
+                !occupiedVertices.Contains(v) &&
+                !beaconVertices.Contains(v) &&
                 !_state.Civilizations.Where(c => c.Index != civilizationIndex).Any(c => c.Cities
                     .Where(city => city.Position.Z == v.Z)
                     .Any(city => city.Position.EdgeDistanceTo(v) < MinDistanceBetweenCities)) &&
@@ -188,7 +199,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 .ToList();
 
             if (excludingCity == null)
-                _buildableVerticesCache[civilizationIndex] = (civ.Roads.Count, totalCityCount, vertices);
+                _buildableVerticesCache[civilizationIndex] = (civ.Roads.Count, totalCityCount, totalBeaconCount, vertices);
 
             return vertices;
         }

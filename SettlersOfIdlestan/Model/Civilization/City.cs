@@ -7,7 +7,7 @@ namespace SettlersOfIdlestan.Model.Civilization;
 /// Represents a city in the game.
 /// </summary>
 [Serializable]
-public class City : IBuildingContext
+public class City : IBuildingContext, IMilitaryVertex
 {
     /// <summary>
     /// Gets or sets the position of the city on the hex grid.

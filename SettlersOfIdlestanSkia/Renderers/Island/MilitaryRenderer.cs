@@ -182,45 +182,45 @@ public class MilitaryRenderer : HexBasedRenderer, IGameRenderer
         var playerCiv = _gameControllerService?.PlayerCivilization;
         if (worldState == null || playerCiv == null || _flowRedPaint == null || _flowGreenPaint == null || _arrowPaint == null) return;
 
-        var allCities = worldState.Civilizations.SelectMany(c => c.Cities).ToList();
+        var allVertices = worldState.Civilizations.SelectMany(c => c.MilitaryVertices).ToList();
 
         foreach (var civ in worldState.Civilizations)
         {
-            foreach (var sourceCity in civ.Cities)
+            foreach (var sourceVertex in civ.MilitaryVertices)
             {
-                if (sourceCity.FlowTarget == null) continue;
-                if (sourceCity.Position.Z != worldState.CurrentViewedLayer) continue;
+                if (sourceVertex.FlowTarget == null) continue;
+                if (sourceVertex.Position.Z != worldState.CurrentViewedLayer) continue;
 
-                var targetCity = allCities.FirstOrDefault(c => c.Position.Equals(sourceCity.FlowTarget));
-                if (targetCity == null) continue;
+                var targetVertex = allVertices.FirstOrDefault(v => v.Position.Equals(sourceVertex.FlowTarget));
+                if (targetVertex == null) continue;
 
-                bool sourceIsPlayer = sourceCity.CivilizationIndex == playerCiv.Index;
-                bool targetIsPlayer = targetCity.CivilizationIndex == playerCiv.Index;
+                bool sourceIsPlayer = sourceVertex.CivilizationIndex == playerCiv.Index;
+                bool targetIsPlayer = targetVertex.CivilizationIndex == playerCiv.Index;
 
-                // Affiche uniquement les flux impliquant au moins une cité du joueur
+                // Affiche uniquement les flux impliquant au moins un emplacement du joueur
                 if (!sourceIsPlayer && !targetIsPlayer) continue;
 
-                bool isReinforcement = targetCity.CivilizationIndex == sourceCity.CivilizationIndex;
+                bool isReinforcement = targetVertex.CivilizationIndex == sourceVertex.CivilizationIndex;
                 var linePaint = isReinforcement ? _flowGreenPaint : _flowRedPaint;
                 var arrowColor = isReinforcement ? new SKColor(50, 200, 80, 220) : new SKColor(220, 60, 60, 220);
 
-                var sourcePt = VertexToIsland(sourceCity.Position);
-                var targetPt = VertexToIsland(targetCity.Position);
+                var sourcePt = VertexToIsland(sourceVertex.Position);
+                var targetPt = VertexToIsland(targetVertex.Position);
                 canvas.DrawLine(sourcePt, targetPt, linePaint);
                 DrawArrowhead(canvas, sourcePt, targetPt, arrowColor);
             }
 
-            foreach (var sourceCity in civ.Cities)
+            foreach (var sourceVertex in civ.MilitaryVertices)
             {
-                if (sourceCity.MonsterAttackTarget == null) continue;
-                if (sourceCity.Position.Z != worldState.CurrentViewedLayer) continue;
+                if (sourceVertex.MonsterAttackTarget == null) continue;
+                if (sourceVertex.Position.Z != worldState.CurrentViewedLayer) continue;
                 if (civ.Index != playerCiv.Index) continue;
 
                 var monster = worldState.Features.OfType<MonsterFeature>()
-                    .FirstOrDefault(f => f.Position.Equals(sourceCity.MonsterAttackTarget));
+                    .FirstOrDefault(f => f.Position.Equals(sourceVertex.MonsterAttackTarget));
                 if (monster == null) continue;
 
-                var sourcePt = VertexToIsland(sourceCity.Position);
+                var sourcePt = VertexToIsland(sourceVertex.Position);
                 var targetPt = HexToIsland(monster.Position);
                 var arrowColor = new SKColor(220, 60, 60, 220);
                 canvas.DrawLine(sourcePt, targetPt, _flowRedPaint);

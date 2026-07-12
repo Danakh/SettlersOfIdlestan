@@ -138,6 +138,26 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay
             _tooltipScreenPosition = _islandRendererContext.IslandToScreen(islandPosition, _gameRenderContext.ZoomLevel, _gameRenderContext.CameraPosition);
         }
 
+        public void SetWarFleetConstructionTooltip(Vertex vertex)
+        {
+            if (_islandRendererContext == null || _gameRenderContext == null)
+                return;
+
+            if (_gameControllerService.IsWarFleetUnlockedForPlayer())
+            {
+                _tooltipTexts = new string[] { _localizationService.Get("war_fleet_construction") };
+                _tooltipCost = WarFleetController.GetBuildCost();
+            }
+            else
+            {
+                _tooltipTexts = new string[] { _localizationService.Get("tooltip_requires_imperial_port") };
+                _tooltipCost = null;
+            }
+
+            var islandPosition = _islandRendererContext.VertexToIslandPoint(vertex);
+            _tooltipScreenPosition = _islandRendererContext.IslandToScreen(islandPosition, _gameRenderContext.ZoomLevel, _gameRenderContext.CameraPosition);
+        }
+
         public void SetCityTooltip(City city, Civilization? civ, bool isPlayerCity, MilitaryController militaryController, Vertex vertex)
         {
             if (_islandRendererContext == null || _gameRenderContext == null) return;
@@ -200,6 +220,30 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay
             _tooltipTexts = lines.ToArray();
             _tooltipCost = null;
             var islandPos = _islandRendererContext.VertexToIslandPoint(vertex);
+            _tooltipScreenPosition = _islandRendererContext.IslandToScreen(islandPos, _gameRenderContext.ZoomLevel, _gameRenderContext.CameraPosition);
+        }
+
+        /// <summary>Infobulle affichée au survol d'une Flotte de Guerre déjà construite — voir <see cref="SetCityTooltip"/> pour son équivalent ville.</summary>
+        public void SetFleetTooltip(WarFleet fleet, bool isPlayerFleet, MilitaryController militaryController)
+        {
+            if (_islandRendererContext == null || _gameRenderContext == null) return;
+
+            var lines = new List<string>
+            {
+                isPlayerFleet ? _localizationService.Get("city_tooltip_own_fleet") : _localizationService.Get("city_tooltip_enemy_fleet")
+            };
+
+            int maxSoldiers = militaryController.GetMaximumSoldierCapacity(fleet);
+            if (maxSoldiers > 0)
+                lines.Add(_localizationService.GetFormated("city_tooltip_soldiers", fleet.Soldiers, maxSoldiers));
+
+            int maxDef = militaryController.GetDefenseScore(fleet);
+            if (maxDef > 0)
+                lines.Add(_localizationService.GetFormated("city_tooltip_defense", fleet.CurrentDefense, maxDef));
+
+            _tooltipTexts = lines.ToArray();
+            _tooltipCost = null;
+            var islandPos = _islandRendererContext.VertexToIslandPoint(fleet.Position);
             _tooltipScreenPosition = _islandRendererContext.IslandToScreen(islandPos, _gameRenderContext.ZoomLevel, _gameRenderContext.CameraPosition);
         }
 

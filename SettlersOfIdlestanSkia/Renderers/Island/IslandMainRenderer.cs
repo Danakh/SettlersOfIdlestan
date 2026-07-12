@@ -22,6 +22,7 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
     private readonly RoadRenderer _roadRenderer;
     private readonly CityRenderer _cityRenderer;
     private readonly MaritimeBeaconRenderer _maritimeBeaconRenderer;
+    private readonly MilitaryScoreOverlay _militaryScoreOverlay;
     private readonly HarvestRenderer _harvestRenderer;
     private readonly MonsterRenderer _banditRenderer;
     private readonly VolcanoRenderer _volcanoRenderer;
@@ -65,8 +66,9 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
     {
         _gameBoardRenderer = new GameBoardRenderer(harvestController, resourceManager);
         _roadRenderer = new RoadRenderer(tooltipRenderer);
-        _cityRenderer = new CityRenderer(tooltipRenderer, resourceManager, militaryController);
-        _maritimeBeaconRenderer = new MaritimeBeaconRenderer(tooltipRenderer);
+        _militaryScoreOverlay = new MilitaryScoreOverlay(resourceManager);
+        _cityRenderer = new CityRenderer(tooltipRenderer, resourceManager, militaryController, _militaryScoreOverlay);
+        _maritimeBeaconRenderer = new MaritimeBeaconRenderer(tooltipRenderer, militaryController, _militaryScoreOverlay);
         _harvestParticleSystem = new HarvestParticleSystem();
         _harvestRenderer = new HarvestRenderer(_harvestParticleSystem, resourceManager, currentLayer);
         _banditRenderer = new MonsterRenderer(resourceManager);
@@ -100,6 +102,7 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
     {
         _gameBoardRenderer.Initialize(canvasSize);
         _roadRenderer.Initialize(canvasSize);
+        _militaryScoreOverlay.Initialize();
         _cityRenderer.Initialize(canvasSize);
         _maritimeBeaconRenderer.Initialize(canvasSize);
         _harvestRenderer.Initialize(canvasSize);
@@ -217,6 +220,7 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
     {
         _gameBoardRenderer.Dispose();
         _roadRenderer.Dispose();
+        _militaryScoreOverlay.Dispose();
         _cityRenderer.Dispose();
         _maritimeBeaconRenderer.Dispose();
         _harvestRenderer.Dispose();

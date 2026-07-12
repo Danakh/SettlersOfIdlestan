@@ -35,8 +35,8 @@ public class ReinforcementEventArgs(Vertex sourceCity, Vertex targetCity, List<V
 }
 
 /// <summary>
-/// Résultat de <see cref="MilitaryController.GetMonsterAttackAvailability"/> : indique si une ville peut
-/// attaquer une MonsterFeature donnée, et pourquoi sinon.
+/// Résultat de <see cref="MilitaryController.GetMonsterAttackAvailability"/> : indique si un emplacement
+/// militaire peut attaquer une MonsterFeature donnée, et pourquoi sinon.
 /// </summary>
 public enum MonsterAttackAvailability
 {
@@ -49,7 +49,9 @@ public enum MonsterAttackAvailability
 }
 
 /// <summary>
-/// Coordinateur militaire : délègue la logique aux 4 moteurs internes.
+/// Coordinateur militaire : délègue la logique aux 4 moteurs internes. Opère sur
+/// <see cref="IMilitaryVertex"/> (villes et Flottes de Guerre) plutôt que directement sur City,
+/// afin de traiter les deux types de façon uniforme.
 /// </summary>
 public class MilitaryController
 {
@@ -94,19 +96,21 @@ public class MilitaryController
 
     // ── Méthodes publiques (query) ───────────────────────────────────────────
 
-    /// <summary>Nombre de soldats disponibles dans la ville.</summary>
-    public int GetAttackScore(City city) => city.Soldiers;
+    /// <summary>Nombre de soldats disponibles.</summary>
+    public int GetAttackScore(IMilitaryVertex vertex) => vertex.Soldiers;
 
-    /// <summary>Capacité maximale de soldats de la ville, tous bâtiments garnison confondus.</summary>
-    public int GetMaximumSoldierCapacity(City city)
-        => _productionEngine.GetMaximumSoldierCapacity(city);
+    /// <summary>Capacité maximale de soldats, tous bâtiments garnison confondus (ou bonus fixe pour une Flotte de Guerre).</summary>
+    public int GetMaximumSoldierCapacity(IMilitaryVertex vertex)
+        => _productionEngine.GetMaximumSoldierCapacity(vertex);
 
     /// <summary>
-    /// Soldats produits par seconde dans la ville (0 si pas de Caserne active au niveau minimum).
-    /// Tient compte du modificateur UnitProductionSpeed de la civilisation.
+    /// Soldats produits par seconde (0 si pas de Caserne active au niveau minimum — une Flotte de
+    /// Guerre n'a pas de bâtiment, voir WarFleet, donc toujours 0). Tient compte du modificateur
+    /// UnitProductionSpeed de la civilisation.
     /// </summary>
-    public double GetSoldierProductionRate(City city)
+    public double GetSoldierProductionRate(IMilitaryVertex vertex)
     {
+        if (vertex is not City city) return 0;
         var barracks = city.Buildings.OfType<Barracks>()
             .FirstOrDefault(b => b.ActivationStatus == ActivationStatus.ACTIVE && b.Level >= SoldierProductionEngine.SoldierProductionMinLevel);
         if (barracks == null) return 0;
@@ -117,21 +121,22 @@ public class MilitaryController
     }
 
     /// <summary>Points de défense régénérés par seconde (0 si aucune défense max).</summary>
-    public double GetDefenseRegenRate(City city)
+    public double GetDefenseRegenRate(IMilitaryVertex vertex)
     {
-        if (GetDefenseScore(city) <= 0) return 0;
-        var civ = _state?.Civilizations.FirstOrDefault(c => c.Index == city.CivilizationIndex);
+        if (GetDefenseScore(vertex) <= 0) return 0;
+        var civ = _state?.Civilizations.FirstOrDefault(c => c.Index == vertex.CivilizationIndex);
         if (civ == null) return 0;
         const double ticksPerSecond = 100.0;
-        double cityRegenSpeed = civ.CityDefenseRegenSpeed + city.Buildings.Sum(b => b.GetDefenseRegenBonus());
-        return cityRegenSpeed * ticksPerSecond / DefenseRegenIntervalTicks;
+        double buildingBonus = vertex is City city ? city.Buildings.Sum(b => b.GetDefenseRegenBonus()) : 0;
+        double regenSpeed = civ.CityDefenseRegenSpeed + buildingBonus;
+        return regenSpeed * ticksPerSecond / DefenseRegenIntervalTicks;
     }
 
-    /// <summary>Score de défense maximal de la ville (bâtiments + modificateurs de civilisation).</summary>
-    public int GetDefenseScore(City city)
+    /// <summary>Score de défense maximal (bâtiments/bonus fixe + modificateurs de civilisation).</summary>
+    public int GetDefenseScore(IMilitaryVertex vertex)
     {
-        int score = city.MaxDefense;
-        var civ = _state?.Civilizations.FirstOrDefault(c => c.Index == city.CivilizationIndex);
+        int score = vertex.MaxDefense;
+        var civ = _state?.Civilizations.FirstOrDefault(c => c.Index == vertex.CivilizationIndex);
         if (civ != null)
             score += civ.ModifierAggregator.ApplyModifiers(ECategory.CITY_DEFENSE, "", 0);
         return score;
@@ -147,7 +152,7 @@ public class MilitaryController
 
     // ── Initialisation ───────────────────────────────────────────────────────
 
-    internal void Initialize(WorldState? state, GameClock? clock, CityBuilderController? cityBuilderController = null, GamePRNG? prng = null)
+    internal void Initialize(WorldState? state, GameClock? clock, CityBuilderController? cityBuilderController = null, WarFleetController? warFleetController = null, GamePRNG? prng = null)
     {
         if (_clock != null)
             _clock.Advanced -= OnClockAdvanced;
@@ -157,7 +162,7 @@ public class MilitaryController
 
         _productionEngine.Initialize(state);
         _monsterCombatEngine.Initialize(state, prng);
-        _cityAttackEngine.Initialize(state, cityBuilderController, prng);
+        _cityAttackEngine.Initialize(state, cityBuilderController, warFleetController, prng);
         _reinforcementEngine.Initialize(state, _cityAttackEngine, _productionEngine);
         _raidEngine.Initialize(state, _cityAttackEngine, _reinforcementEngine, _monsterCombatEngine);
 
@@ -198,40 +203,41 @@ public class MilitaryController
     private void ResolveDefenseRegen(long currentTick)
     {
         foreach (var civ in _state!.Civilizations)
-            foreach (var city in civ.Cities)
+            foreach (var vertex in civ.MilitaryVertices)
             {
-                int maxDef = GetDefenseScore(city);
-                if (city.CurrentDefense >= maxDef) continue;
-                double cityRegenSpeed = civ.CityDefenseRegenSpeed + city.Buildings.Sum(b => b.GetDefenseRegenBonus());
-                long effectiveRegenInterval = (long)(DefenseRegenIntervalTicks / cityRegenSpeed);
-                if (currentTick - city.LastDefenseRegenTick < effectiveRegenInterval) continue;
+                int maxDef = GetDefenseScore(vertex);
+                if (vertex.CurrentDefense >= maxDef) continue;
+                double buildingBonus = vertex is City city ? city.Buildings.Sum(b => b.GetDefenseRegenBonus()) : 0;
+                double regenSpeed = civ.CityDefenseRegenSpeed + buildingBonus;
+                long effectiveRegenInterval = (long)(DefenseRegenIntervalTicks / regenSpeed);
+                if (currentTick - vertex.LastDefenseRegenTick < effectiveRegenInterval) continue;
                 if (civ.GetResourceQuantity(Resource.Wood) < 1 || civ.GetResourceQuantity(Resource.Stone) < 1) continue;
                 civ.RemoveResource(Resource.Wood, 1);
                 civ.RemoveResource(Resource.Stone, 1);
-                city.CurrentDefense++;
-                city.LastDefenseRegenTick = currentTick;
+                vertex.CurrentDefense++;
+                vertex.LastDefenseRegenTick = currentTick;
             }
     }
 
     // ── Méthodes publiques (commandes) ───────────────────────────────────────
 
-    /// <summary>Définit ou efface le flux militaire d'une cité. Annule un flux d'attaque de monstre actif.</summary>
-    public void SetCityFlow(City city, Vertex? target)
+    /// <summary>Définit ou efface le flux militaire d'un emplacement. Annule un flux d'attaque de monstre actif.</summary>
+    public void SetCityFlow(IMilitaryVertex vertex, Vertex? target)
     {
-        _reinforcementEngine.SetCityFlow(city, target);
-        if (target != null) city.MonsterAttackTarget = null;
+        _reinforcementEngine.SetCityFlow(vertex, target);
+        if (target != null) vertex.MonsterAttackTarget = null;
     }
 
-    /// <summary>Définit ou efface le flux d'attaque à distance d'une cité contre une MonsterFeature. Annule un flux de ville actif.</summary>
-    public void SetMonsterFlow(City city, HexCoord? target)
+    /// <summary>Définit ou efface le flux d'attaque à distance d'un emplacement contre une MonsterFeature. Annule un flux de ville actif.</summary>
+    public void SetMonsterFlow(IMilitaryVertex vertex, HexCoord? target)
     {
-        city.MonsterAttackTarget = target;
-        if (target != null) _reinforcementEngine.SetCityFlow(city, null);
+        vertex.MonsterAttackTarget = target;
+        if (target != null) _reinforcementEngine.SetCityFlow(vertex, null);
     }
 
-    /// <summary>Détermine si une ville peut attaquer une MonsterFeature donnée (portée, techno Surveillance, Tour de guet).</summary>
-    public MonsterAttackAvailability GetMonsterAttackAvailability(City city, MonsterFeature monster)
-        => _monsterCombatEngine.GetAttackAvailability(city, monster);
+    /// <summary>Détermine si un emplacement militaire peut attaquer une MonsterFeature donnée (portée, techno Surveillance, Tour de guet).</summary>
+    public MonsterAttackAvailability GetMonsterAttackAvailability(IMilitaryVertex vertex, MonsterFeature monster)
+        => _monsterCombatEngine.GetAttackAvailability(vertex, monster);
 
     /// <summary>Efface tous les flux de renfort (vers alliés) de la civilisation.</summary>
     public void ClearReinforcementFlows(Civilization civ) => _reinforcementEngine.ClearReinforcementFlows(civ);
@@ -240,14 +246,14 @@ public class MilitaryController
     public void ClearAttackFlows(Civilization civ) => _reinforcementEngine.ClearAttackFlows(civ);
 
     /// <summary>
-    /// Réévalue et assigne les flux de renfort pour chaque cité de la civilisation.
-    /// Les flux ciblant une ville ennemie (attaque manuelle) ne sont pas modifiés.
+    /// Réévalue et assigne les flux de renfort pour chaque emplacement de la civilisation.
+    /// Les flux ciblant un emplacement ennemi (attaque manuelle) ne sont pas modifiés.
     /// </summary>
     public void UpdateCivilizationReinforcementFlows(Civilization civ)
         => _reinforcementEngine.UpdateCivilizationReinforcementFlows(civ);
 
-    public City? FindNearbyEnemyCity(City attackerCity, IReadOnlyCollection<int>? targetCivIndices = null)
-        => _cityAttackEngine.FindNearbyEnemyCity(attackerCity, targetCivIndices);
+    public IMilitaryVertex? FindNearbyEnemyCity(IMilitaryVertex attackerVertex, IReadOnlyCollection<int>? targetCivIndices = null)
+        => _cityAttackEngine.FindNearbyEnemyCity(attackerVertex, targetCivIndices);
 
     // ── Raid ─────────────────────────────────────────────────────────────────
 

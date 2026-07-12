@@ -12,20 +12,23 @@ using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
 namespace SettlersOfIdlestan.Controller.Military;
 
 /// <summary>
-/// Gère les attaques militaires entre villes de civilisations adverses.
+/// Gère les attaques militaires entre emplacements militaires (villes et Flottes de Guerre — voir
+/// IMilitaryVertex) de civilisations adverses.
 /// </summary>
 internal class CityAttackEngine
 {
     private WorldState? _state;
     private CityBuilderController? _cityBuilderController;
+    private WarFleetController? _warFleetController;
     private GamePRNG? _prng;
 
     private const int DefaultCityAttackRange = 3;
 
-    internal void Initialize(WorldState? state, CityBuilderController? cityBuilderController, GamePRNG? prng = null)
+    internal void Initialize(WorldState? state, CityBuilderController? cityBuilderController, WarFleetController? warFleetController = null, GamePRNG? prng = null)
     {
         _state = state;
         _cityBuilderController = cityBuilderController;
+        _warFleetController = warFleetController;
         _prng = prng;
     }
 
@@ -36,26 +39,26 @@ internal class CityAttackEngine
         Action<CityAttackEventArgs> onSoldierAttackedCity,
         Action<CityBuildingDestroyedEventArgs> onCityBuildingDestroyed)
     {
-        var citiesToDestroy = new List<(Civilization civ, City city)>();
+        var toDestroy = new List<(Civilization civ, IMilitaryVertex vertex)>();
 
         foreach (var attackerCiv in _state!.Civilizations)
         {
-            foreach (var attackerCity in attackerCiv.Cities.ToList())
+            foreach (var attackerVertex in attackerCiv.MilitaryVertices.ToList())
             {
                 var raidTarget = _state!.AutomationSettings.RaidTargetVertex;
-                bool isRaidAttack = raidTarget != null && attackerCity.FlowTarget?.Equals(raidTarget) == true;
+                bool isRaidAttack = raidTarget != null && attackerVertex.FlowTarget?.Equals(raidTarget) == true;
                 long baseInterval = isRaidAttack
                     ? MilitaryController.CityAttackIntervalTicks / 2
                     : MilitaryController.CityAttackIntervalTicks;
                 double speed = attackerCiv.ModifierAggregator.ApplyModifiers(ECategory.ATTACK_SPEED, "", 1.0);
                 long effectiveInterval = Math.Max(1L, (long)(baseInterval / speed));
-                if (currentTick - attackerCity.LastAttackTick < effectiveInterval) continue;
-                if (attackerCity.Soldiers == 0) continue;
-                if (attackerCity.FlowTarget == null) continue;
+                if (currentTick - attackerVertex.LastAttackTick < effectiveInterval) continue;
+                if (attackerVertex.Soldiers == 0) continue;
+                if (attackerVertex.FlowTarget == null) continue;
 
-                var targetCity = FindEnemyCityAt(attackerCity.FlowTarget, attackerCiv);
-                if (targetCity == null) continue;
-                if (attackerCity.Position.EdgeDistanceTo(targetCity.Position) > CityAttackRange(attackerCiv)) continue;
+                var targetVertex = FindEnemyCityAt(attackerVertex.FlowTarget, attackerCiv);
+                if (targetVertex == null) continue;
+                if (attackerVertex.Position.EdgeDistanceTo(targetVertex.Position) > CityAttackRange(attackerCiv)) continue;
 
                 // Armes en Acier : consomme 1 ArmeAcier pour infliger 1 dégât supplémentaire
                 bool hasSteelWeapon = attackerCiv.ModifierAggregator.HasModifier(ECategory.UNLOCK_STEEL_WEAPONS)
@@ -63,39 +66,42 @@ internal class CityAttackEngine
                 if (hasSteelWeapon) attackerCiv.RemoveResource(Resource.SteelWeapon, 1);
 
                 // Armures d'Acier : le soldat envoyé peut survivre en consommant 1 ArmureAcier
-                if (SteelArmorEngine.TrySaveSoldiers(attackerCiv, attackerCity, 1, _prng!) == 0)
-                    attackerCity.Soldiers--;
-                attackerCity.LastAttackTick = currentTick;
+                if (SteelArmorEngine.TrySaveSoldiers(attackerCiv, attackerVertex, 1, _prng!) == 0)
+                    attackerVertex.Soldiers--;
+                attackerVertex.LastAttackTick = currentTick;
 
-                var path = HexGridPathfinder.FindVertexPath(attackerCity.Position, targetCity.Position);
-                onSoldierAttackedCity(new CityAttackEventArgs(attackerCity.Position, targetCity.Position, path));
+                var path = HexGridPathfinder.FindVertexPath(attackerVertex.Position, targetVertex.Position);
+                onSoldierAttackedCity(new CityAttackEventArgs(attackerVertex.Position, targetVertex.Position, path));
 
-                bool destroyed = ApplyAttackToCity(targetCity, onCityBuildingDestroyed);
+                bool destroyed = ApplyAttackToCity(targetVertex, onCityBuildingDestroyed);
                 if (!destroyed && hasSteelWeapon)
-                    destroyed = ApplyAttackToCity(targetCity, onCityBuildingDestroyed);
+                    destroyed = ApplyAttackToCity(targetVertex, onCityBuildingDestroyed);
                 if (destroyed)
                 {
-                    var ownerCiv = _state.Civilizations.FirstOrDefault(c => c.Index == targetCity.CivilizationIndex);
+                    var ownerCiv = _state.Civilizations.FirstOrDefault(c => c.Index == targetVertex.CivilizationIndex);
                     if (ownerCiv != null)
-                        citiesToDestroy.Add((ownerCiv, targetCity));
+                        toDestroy.Add((ownerCiv, targetVertex));
                 }
             }
         }
 
-        foreach (var (civ, city) in citiesToDestroy)
+        foreach (var (civ, vertex) in toDestroy)
         {
-            ClearFlowsTargeting(city.Position);
-            _cityBuilderController?.DestroyCity(city, CityDestructionCause.Combat);
+            ClearFlowsTargeting(vertex.Position);
+            if (vertex is City city)
+                _cityBuilderController?.DestroyCity(city, CityDestructionCause.Combat);
+            else if (vertex is WarFleet fleet)
+                _warFleetController?.DestroyFleet(fleet);
         }
     }
 
-    internal City? FindEnemyCityAt(Vertex target, Civilization attackerCiv)
+    internal IMilitaryVertex? FindEnemyCityAt(Vertex target, Civilization attackerCiv)
     {
         foreach (var civ in _state!.Civilizations)
         {
             if (civ.Index == attackerCiv.Index) continue;
-            var city = civ.Cities.FirstOrDefault(c => c.Position.Equals(target));
-            if (city != null) return city;
+            var vertex = civ.MilitaryVertices.FirstOrDefault(v => v.Position.Equals(target));
+            if (vertex != null) return vertex;
         }
         return null;
     }
@@ -103,31 +109,31 @@ internal class CityAttackEngine
     internal void ClearFlowsTargeting(Vertex position)
     {
         if (_state == null) return;
-        foreach (var city in _state.Civilizations.SelectMany(c => c.Cities))
-            if (city.FlowTarget != null && city.FlowTarget.Equals(position))
-                city.FlowTarget = null;
+        foreach (var vertex in _state.Civilizations.SelectMany(c => c.MilitaryVertices))
+            if (vertex.FlowTarget != null && vertex.FlowTarget.Equals(position))
+                vertex.FlowTarget = null;
     }
 
-    internal City? FindNearbyEnemyCity(City attackerCity, IReadOnlyCollection<int>? targetCivIndices = null)
+    internal IMilitaryVertex? FindNearbyEnemyCity(IMilitaryVertex attackerVertex, IReadOnlyCollection<int>? targetCivIndices = null)
     {
-        var attackerCiv = _state!.Civilizations.FirstOrDefault(c => c.Index == attackerCity.CivilizationIndex);
+        var attackerCiv = _state!.Civilizations.FirstOrDefault(c => c.Index == attackerVertex.CivilizationIndex);
         if (attackerCiv == null) return null;
         int range = CityAttackRange(attackerCiv);
-        City? closest = null;
+        IMilitaryVertex? closest = null;
         int closestDist = int.MaxValue;
 
         foreach (var defenderCiv in _state.Civilizations)
         {
             if (defenderCiv.Index == attackerCiv.Index) continue;
             if (targetCivIndices != null && targetCivIndices.Count > 0 && !targetCivIndices.Contains(defenderCiv.Index)) continue;
-            foreach (var defenderCity in defenderCiv.Cities)
+            foreach (var defenderVertex in defenderCiv.MilitaryVertices)
             {
-                if (defenderCity.Position.Z != attackerCity.Position.Z) continue;
-                if (!IsCityVisibleTo(defenderCity, attackerCiv)) continue;
-                int dist = attackerCity.Position.EdgeDistanceTo(defenderCity.Position);
+                if (defenderVertex.Position.Z != attackerVertex.Position.Z) continue;
+                if (!IsCityVisibleTo(defenderVertex, attackerCiv)) continue;
+                int dist = attackerVertex.Position.EdgeDistanceTo(defenderVertex.Position);
                 if (dist <= range && dist < closestDist)
                 {
-                    closest = defenderCity;
+                    closest = defenderVertex;
                     closestDist = dist;
                 }
             }
@@ -136,38 +142,43 @@ internal class CityAttackEngine
         return closest;
     }
 
-    private bool IsCityVisibleTo(City city, Civilization civ)
+    private bool IsCityVisibleTo(IMilitaryVertex vertex, Civilization civ)
     {
-        var visibleMaps = _state!.Visibility.GetForZ(city.Position.Z);
+        var visibleMaps = _state!.Visibility.GetForZ(vertex.Position.Z);
         if (!visibleMaps.TryGetValue(civ.Index, out var visibleMap)) return true;
-        return city.Position.GetHexes().Any(h => visibleMap.HasTile(h));
+        return vertex.Position.GetHexes().Any(h => visibleMap.HasTile(h));
     }
 
-    private bool ApplyAttackToCity(City targetCity, Action<CityBuildingDestroyedEventArgs> onCityBuildingDestroyed)
+    private bool ApplyAttackToCity(IMilitaryVertex targetVertex, Action<CityBuildingDestroyedEventArgs> onCityBuildingDestroyed)
     {
         // Les soldats défenseurs absorbent l'attaque : les deux soldats meurent, la défense est intacte.
-        if (targetCity.Soldiers > 0)
+        if (targetVertex.Soldiers > 0)
         {
-            var defenderCiv = _state!.Civilizations.FirstOrDefault(c => c.Index == targetCity.CivilizationIndex);
+            var defenderCiv = _state!.Civilizations.FirstOrDefault(c => c.Index == targetVertex.CivilizationIndex);
             // Barbacane : si la défense est > 20, perd 1 défense au lieu d'un soldat.
             if (defenderCiv != null
                 && defenderCiv.ModifierAggregator.HasModifier(ECategory.CITY_DEFENSE_PROTECTS_SOLDIERS)
-                && targetCity.CurrentDefense > 20)
+                && targetVertex.CurrentDefense > 20)
             {
-                targetCity.CurrentDefense--;
+                targetVertex.CurrentDefense--;
                 return false;
             }
             // Armures d'Acier : le défenseur peut survivre en consommant 1 Acier (l'attaque reste absorbée)
-            if (SteelArmorEngine.TrySaveSoldiers(defenderCiv, targetCity, 1, _prng!) == 0)
-                targetCity.Soldiers--;
+            if (SteelArmorEngine.TrySaveSoldiers(defenderCiv, targetVertex, 1, _prng!) == 0)
+                targetVertex.Soldiers--;
             return false;
         }
 
-        if (targetCity.CurrentDefense > 0)
+        if (targetVertex.CurrentDefense > 0)
         {
-            targetCity.CurrentDefense--;
+            targetVertex.CurrentDefense--;
             return false;
         }
+
+        // Une Flotte de Guerre n'a pas de bâtiments (voir WarFleet) : une fois soldats et défense
+        // épuisés, le coup suivant la détruit directement (pas d'étape "structurelle" façon TownHall).
+        if (targetVertex is not City targetCity)
+            return true;
 
         var townHall = targetCity.Buildings.OfType<TownHall>().FirstOrDefault();
         if (townHall != null)

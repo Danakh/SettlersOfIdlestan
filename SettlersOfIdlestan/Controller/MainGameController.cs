@@ -29,6 +29,7 @@ namespace SettlersOfIdlestan.Controller
         public BuildingController BuildingController { get; private set; }
         public CityBuilderController CityBuilderController { get; private set; }
         public MaritimeBeaconController MaritimeBeaconController { get; private set; }
+        public WarFleetController WarFleetController { get; private set; }
         public PrestigeController PrestigeController { get; private set; }
         public PrestigeMapController PrestigeMapController { get; private set; }
         public ResearchController ResearchController { get; private set; }
@@ -79,6 +80,7 @@ namespace SettlersOfIdlestan.Controller
             BuildingController = new BuildingController();
             CityBuilderController = new CityBuilderController();
             MaritimeBeaconController = new MaritimeBeaconController();
+            WarFleetController = new WarFleetController();
             AtlasController = new AtlasController();
             PrestigeController = new PrestigeController();
             PrestigeMapController = new PrestigeMapController();
@@ -301,8 +303,9 @@ namespace SettlersOfIdlestan.Controller
                 RoadController.Initialize(WorldState, Clock, CurrentMainState!.PRNG);
                 CityBuilderController.Initialize(WorldState, Clock, CurrentMainState!.PRNG);
                 MaritimeBeaconController.Initialize(WorldState);
+                WarFleetController.Initialize(WorldState);
                 FeatureController.Initialize(WorldState, Clock);
-                MilitaryController.Initialize(WorldState, Clock, CityBuilderController, CurrentMainState!.PRNG);
+                MilitaryController.Initialize(WorldState, Clock, CityBuilderController, WarFleetController, CurrentMainState!.PRNG);
                 MonsterFeatureController.Initialize(WorldState, Clock, CurrentMainState!.PRNG, CityBuilderController);
                 VolcanoController.Initialize(WorldState, Clock, CurrentMainState!.PRNG, CityBuilderController);
                 TradeController.Initialize(WorldState);
