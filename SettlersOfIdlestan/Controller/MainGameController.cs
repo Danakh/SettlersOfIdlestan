@@ -40,7 +40,7 @@ namespace SettlersOfIdlestan.Controller
         public MonsterFeatureController BanditController => MonsterFeatureController;
         public MilitaryController MilitaryController { get; private set; }
         public WonderController WonderController { get; private set; }
-        public ObservatoryController ObservatoryController { get; private set; }
+        public GreatLighthouseController GreatLighthouseController { get; private set; }
         public DeepestMineController DeepestMineController { get; private set; }
         public CorruptionSpireController CorruptionSpireController { get; private set; }
         public AbyssGateController AbyssGateController { get; private set; }
@@ -91,7 +91,7 @@ namespace SettlersOfIdlestan.Controller
             MonsterFeatureController = new MonsterFeatureController();
             MilitaryController = new MilitaryController();
             WonderController = new WonderController();
-            ObservatoryController = new ObservatoryController();
+            GreatLighthouseController = new GreatLighthouseController();
             DeepestMineController = new DeepestMineController();
             CorruptionSpireController = new CorruptionSpireController();
             AbyssGateController = new AbyssGateController();
@@ -317,7 +317,7 @@ namespace SettlersOfIdlestan.Controller
                 AtlasController.Initialize(CurrentMainState!.WorldPRNG);
                 PrestigeController.Initialize(WorldState.PlayerCivilization, WorldState, Clock, CurrentMainState?.PrestigeState);
                 WonderController.Initialize(WorldState, Clock);
-                ObservatoryController.Initialize(WorldState, Clock);
+                GreatLighthouseController.Initialize(WorldState, Clock);
                 DeepestMineController.Initialize(WorldState, Clock);
                 CorruptionSpireController.Initialize(WorldState, Clock);
                 AbyssGateController.Initialize(WorldState, Clock);

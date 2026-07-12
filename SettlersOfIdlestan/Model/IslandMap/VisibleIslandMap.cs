@@ -8,7 +8,7 @@ namespace SettlersOfIdlestan.Model.IslandMap;
 /// Island map filtered to the tiles visible to a civilization.
 /// A tile is visible when it touches one of the civilization's cities or roads.
 /// Cities with a Watchtower reveal hexes within a radius of 2 instead of 1 (3 with the
-/// Observatory's level 1 bonus).
+/// Great Lighthouse's level 1 bonus).
 /// For roads, tiles touching either endpoint vertex are visible too.
 /// </summary>
 public class VisibleIslandMap : IslandMap

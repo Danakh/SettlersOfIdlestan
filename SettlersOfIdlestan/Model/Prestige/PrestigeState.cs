@@ -53,7 +53,7 @@ public class PrestigeState
     }
 
     /// <summary>
-    /// Tier cible choisi par le joueur pour la prochaine île (Observatoire niveau 3). Null = pas de
+    /// Tier cible choisi par le joueur pour la prochaine île (Grand Phare niveau 3). Null = pas de
     /// choix actif ; le calcul de <see cref="Tier"/> reste alors utilisé tel quel. Quand une valeur
     /// est présente, elle agit comme un minimum : <see cref="EffectiveNextIslandTier"/> ne peut
     /// jamais descendre sous le Tier calculé.

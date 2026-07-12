@@ -20,9 +20,9 @@ public class WorldVisibility
         _world = world;
     }
 
-    /// <summary>Observatoire niveau 1+ : les Tours de Guet voient 1 hex plus loin (rayon 3 au lieu de 2).</summary>
+    /// <summary>Grand Phare niveau 1+ : les Tours de Guet voient 1 hex plus loin (rayon 3 au lieu de 2).</summary>
     private bool WatchtowerVisionBonus
-        => _world.Features.OfType<Observatory>().FirstOrDefault()?.Level >= 1;
+        => _world.Features.OfType<GreatLighthouse>().FirstOrDefault()?.Level >= 1;
 
     /// <summary>Rebuilds visibility for every civilization on every layer.</summary>
     public void Recalculate()

@@ -38,7 +38,7 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
     private int _cachedCityCount = -1;
     private int _cachedRoadCount = -1;
     private int _cachedBeaconCount = -1;
-    private int _cachedObservatoryLevel = -1;
+    private int _cachedGreatLighthouseLevel = -1;
     private int _cachedFleetAndCampCount = -1;
     private bool _cachedMobileCampUnlocked;
 
@@ -202,11 +202,11 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
         int cityCount = playerCiv?.Cities.Count ?? 0;
         int roadCount = playerCiv?.Roads.Count ?? 0;
         int beaconCount = playerCiv?.MaritimeBeacons.Count ?? 0;
-        int observatoryLevel = _gameControllerService.MainGameController.ObservatoryController.GetObservatoryLevel();
+        int greatLighthouseLevel = _gameControllerService.MainGameController.GreatLighthouseController.GetGreatLighthouseLevel();
         int fleetAndCampCount = (playerCiv?.Fleets.Count ?? 0) + (playerCiv?.MobileCamps.Count ?? 0);
         bool mobileCampUnlocked = _gameControllerService.IsMobileCampUnlockedForPlayer();
         if (_cachedBuildableVertices != null && cityCount == _cachedCityCount && roadCount == _cachedRoadCount
-            && beaconCount == _cachedBeaconCount && observatoryLevel == _cachedObservatoryLevel
+            && beaconCount == _cachedBeaconCount && greatLighthouseLevel == _cachedGreatLighthouseLevel
             && fleetAndCampCount == _cachedFleetAndCampCount && mobileCampUnlocked == _cachedMobileCampUnlocked)
             return;
         _cachedBuildableVertices       = _gameControllerService.GetBuildableCityVerticesForPlayer();
@@ -218,7 +218,7 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
         _cachedCityCount = cityCount;
         _cachedRoadCount = roadCount;
         _cachedBeaconCount = beaconCount;
-        _cachedObservatoryLevel = observatoryLevel;
+        _cachedGreatLighthouseLevel = greatLighthouseLevel;
         _cachedFleetAndCampCount = fleetAndCampCount;
         _cachedMobileCampUnlocked = mobileCampUnlocked;
     }

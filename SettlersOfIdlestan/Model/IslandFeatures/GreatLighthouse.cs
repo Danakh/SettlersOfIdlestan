@@ -6,16 +6,16 @@ using SettlersOfIdlestan.Model.Localization;
 
 namespace SettlersOfIdlestan.Model.IslandFeatures;
 
-public class Observatory : Monument
+public class GreatLighthouse : Monument
 {
-    public override LocalizedEntry GetTooltipEntry() => new("hex_tooltip_observatory", new object[] { Level });
+    public override LocalizedEntry GetTooltipEntry() => new("hex_tooltip_great_lighthouse", new object[] { Level });
 
-    private static readonly string[] IconStages = { "01-fondation", "02-socle", "03-tour", "04-coupole" };
+    private static readonly string[] IconStages = { "01-fondation", "02-fut", "03-galerie", "04-fanal" };
 
-    public override string? SvgIconResourceName => $"Resources.icons.features.observatoire-{IconStages[Math.Clamp(Level, 0, IconStages.Length - 1)]}.svg";
+    public override string? SvgIconResourceName => $"Resources.icons.features.grand-phare-{IconStages[Math.Clamp(Level, 0, IconStages.Length - 1)]}.svg";
     public override float SvgIconSize => 50f;
 
-    public Observatory(HexCoord position) : base(position) { }
+    public GreatLighthouse(HexCoord position) : base(position) { }
     public int Level { get; set; } = 0;
 
     public const int MaxLevel = 3;
@@ -35,11 +35,11 @@ public class Observatory : Monument
         => GetLevelCost(Level + 1);
 
     [JsonIgnore]
-    public override string PanelTitleKey => "observatory_panel_title";
+    public override string PanelTitleKey => "great_lighthouse_panel_title";
 
     [JsonIgnore]
     public override string? PanelTitleSuffix => IsMaxLevel ? Level.ToString() : (Level + 1).ToString();
 
     [JsonConstructor]
-    public Observatory() : base() { }
+    public GreatLighthouse() : base() { }
 }

@@ -103,7 +103,7 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
         float collapseTabW = CollapseTabW * s;
         float collapseTabH = CollapseTabH * s;
 
-        bool wonderMaxed = (monument is Wonder { IsMaxLevel: true }) || (monument is Observatory { IsMaxLevel: true });
+        bool wonderMaxed = (monument is Wonder { IsMaxLevel: true }) || (monument is GreatLighthouse { IsMaxLevel: true });
         var cost = monument.GetInvestmentCost(playerCiv);
         int resourceCount = wonderMaxed ? 0 : cost.Count;
         var costList = wonderMaxed ? new List<KeyValuePair<Resource, int>>() : cost.ToList();
@@ -314,27 +314,27 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
                     lines.Add((_localization.GetFormated("monument_bonus_wonder_next", wonder.Level + 1, (wonder.Level + 1) * timeFactor), false));
                 break;
             }
-            case Observatory observatory:
+            case GreatLighthouse greatLighthouse:
             {
-                if (observatory.Level > 0)
-                    lines.Add((_localization.GetFormated("monument_bonus_observatory_current", observatory.Level, observatory.Level * 10), true));
-                if (!observatory.IsMaxLevel)
-                    lines.Add((_localization.GetFormated("monument_bonus_observatory_next", observatory.Level + 1, (observatory.Level + 1) * 10), false));
+                if (greatLighthouse.Level > 0)
+                    lines.Add((_localization.GetFormated("monument_bonus_great_lighthouse_current", greatLighthouse.Level, greatLighthouse.Level * 10), true));
+                if (!greatLighthouse.IsMaxLevel)
+                    lines.Add((_localization.GetFormated("monument_bonus_great_lighthouse_next", greatLighthouse.Level + 1, (greatLighthouse.Level + 1) * 10), false));
 
                 bool watchtowerUnlocked = playerCiv.ModifierAggregator.ApplyModifiers(SettlersOfIdlestan.Model.GameplayModifier.Modifier.ECategory.BUILDING_MAX_LEVEL, "Watchtower", 0) > 0;
-                if (observatory.Level >= 1 && watchtowerUnlocked)
-                    lines.Add((_localization.Get("monument_bonus_observatory_watchtower_active"), true));
+                if (greatLighthouse.Level >= 1 && watchtowerUnlocked)
+                    lines.Add((_localization.Get("monument_bonus_great_lighthouse_watchtower_active"), true));
 
-                if (observatory.Level >= 2)
+                if (greatLighthouse.Level >= 2)
                 {
                     bool maritimeRoutesUnlocked = playerCiv.ModifierAggregator.HasModifier(SettlersOfIdlestan.Model.GameplayModifier.Modifier.ECategory.UNLOCK_MARITIME_ROUTES);
                     lines.Add((_localization.Get(maritimeRoutesUnlocked
-                        ? "monument_bonus_observatory_maritime_active"
-                        : "monument_bonus_observatory_maritime_beacon_active"), true));
+                        ? "monument_bonus_great_lighthouse_maritime_active"
+                        : "monument_bonus_great_lighthouse_maritime_beacon_active"), true));
                 }
 
-                if (observatory.Level >= 3)
-                    lines.Add((_localization.Get("monument_bonus_observatory_tier_picker_active"), true));
+                if (greatLighthouse.Level >= 3)
+                    lines.Add((_localization.Get("monument_bonus_great_lighthouse_tier_picker_active"), true));
                 break;
             }
             case DeepestMine mine:

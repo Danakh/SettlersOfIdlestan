@@ -142,8 +142,8 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             UNLOCK_ORE_GLASS_TRADE,
             /// <summary>Flags que la vente des ressources intermédiaires (Minerai, Verre, Acier) au marché est déverrouillée (recherche Comptoirs Avancés), au prix de 1/5 du coût d'achat.</summary>
             UNLOCK_INTERMEDIATE_TRADE,
-            /// <summary>Flags que la construction de l'Observatoire est déverrouillée pour la civilisation.</summary>
-            UNLOCK_OBSERVATORY,
+            /// <summary>Flags que la construction du Grand Phare est déverrouillée pour la civilisation.</summary>
+            UNLOCK_GREAT_LIGHTHOUSE,
             /// <summary>Flags que la récolte est possible sur les Territoires Contestés (à demi-vitesse, voir ContestedTerritory.GetHarvestTimeMultiplier).</summary>
             UNLOCK_CONTESTED_HARVEST,
             /// <summary>Bonus additif sur le taux de récupération des points investis lors de l'annulation d'une recherche. Base = 0.5 (50%); +0.125 = +12,5%.</summary>

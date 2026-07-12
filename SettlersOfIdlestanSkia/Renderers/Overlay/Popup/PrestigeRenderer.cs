@@ -93,18 +93,18 @@ public sealed class PrestigeRenderer : PopupRendererBase
         double civDestroyedBonus = controller.GetCivilizationsDestroyedBonus();
         int tier                 = controller.GetTier();
         double tierBonus         = controller.GetTierBonus();
-        double observatoryBonus  = controller.GetObservatoryPrestigeBonus();
+        double greatLighthouseBonus  = controller.GetGreatLighthousePrestigeBonus();
         bool showGainBonus       = gainBonus > 0;
         bool showSeaportBonus    = seaportBonus > 0;
         bool showCivBonus        = civDestroyedBonus > 0;
-        bool showObservatoryBonus = observatoryBonus > 0;
+        bool showGreatLighthouseBonus = greatLighthouseBonus > 0;
         const float tierOffset   = 28f; // toujours affiché
         float gainOffset         = showGainBonus    ? 28f : 0f;
         float seaportOffset      = showSeaportBonus ? 28f : 0f;
         float civOffset          = showCivBonus     ? 28f : 0f;
         float spireOffset        = showSpireBonus   ? 28f : 0f;
-        float observatoryOffset  = showObservatoryBonus ? 28f : 0f;
-        float belowWonderOffset  = gainOffset + seaportOffset + civOffset + spireOffset + tierOffset + observatoryOffset;
+        float greatLighthouseOffset  = showGreatLighthouseBonus ? 28f : 0f;
+        float belowWonderOffset  = gainOffset + seaportOffset + civOffset + spireOffset + tierOffset + greatLighthouseOffset;
         bool showTierPicker  = ShowTierPicker;
         float tierPickerOffset = showTierPicker ? 44f : 0f;
         float contentBottom  = popup.Bottom - tierPickerOffset;
@@ -149,20 +149,20 @@ public sealed class PrestigeRenderer : PopupRendererBase
             _hoverRects.Add((new SKRect(popup.Left, contentBottom - 114 - belowWonderOffset, popup.Right, contentBottom - 86 - belowWonderOffset), new[] { "prestige_tooltip_wonder_bonus" }));
         }
 
-        // Observatoire (affiché quand niveau > 0)
-        if (showObservatoryBonus)
+        // Grand Phare (affiché quand niveau > 0)
+        if (showGreatLighthouseBonus)
         {
             float rowOffset = gainOffset + seaportOffset + civOffset + spireOffset + tierOffset;
             canvas.DrawLine(popup.Left + Padding, contentBottom - 114 - rowOffset, popup.Right - Padding, contentBottom - 114 - rowOffset, _separatorPaint);
-            int observatoryLevel = controller.GetObservatoryLevel();
-            string observatoryLabel = _localization.GetFormated("prestige_observatory_bonus", observatoryLevel);
-            SkiaTextUtils.DrawText(canvas, observatoryLabel, popup.Left + Padding, contentBottom - 100 - rowOffset, BodyFont!, SubtlePaint);
-            SkiaTextUtils.DrawText(canvas, $"+{observatoryBonus * 100:0}%", popup.Right - Padding, contentBottom - 100 - rowOffset, SKTextAlign.Right, BtnFont!, SubtlePaint);
+            int greatLighthouseLevel = controller.GetGreatLighthouseLevel();
+            string greatLighthouseLabel = _localization.GetFormated("prestige_great_lighthouse_bonus", greatLighthouseLevel);
+            SkiaTextUtils.DrawText(canvas, greatLighthouseLabel, popup.Left + Padding, contentBottom - 100 - rowOffset, BodyFont!, SubtlePaint);
+            SkiaTextUtils.DrawText(canvas, $"+{greatLighthouseBonus * 100:0}%", popup.Right - Padding, contentBottom - 100 - rowOffset, SKTextAlign.Right, BtnFont!, SubtlePaint);
 
-            var observatoryTooltipKeys = new List<string> { "prestige_tooltip_observatory_bonus" };
-            if (observatoryLevel >= 2) observatoryTooltipKeys.Add("prestige_tooltip_observatory_secondary_maritime");
-            if (observatoryLevel >= 3) observatoryTooltipKeys.Add("prestige_tooltip_observatory_secondary_tier_picker");
-            _hoverRects.Add((new SKRect(popup.Left, contentBottom - 114 - rowOffset, popup.Right, contentBottom - 86 - rowOffset), observatoryTooltipKeys.ToArray()));
+            var greatLighthouseTooltipKeys = new List<string> { "prestige_tooltip_great_lighthouse_bonus" };
+            if (greatLighthouseLevel >= 2) greatLighthouseTooltipKeys.Add("prestige_tooltip_great_lighthouse_secondary_maritime");
+            if (greatLighthouseLevel >= 3) greatLighthouseTooltipKeys.Add("prestige_tooltip_great_lighthouse_secondary_tier_picker");
+            _hoverRects.Add((new SKRect(popup.Left, contentBottom - 114 - rowOffset, popup.Right, contentBottom - 86 - rowOffset), greatLighthouseTooltipKeys.ToArray()));
         }
 
         // Spire de Corruption (affichée quand construite)
@@ -219,7 +219,7 @@ public sealed class PrestigeRenderer : PopupRendererBase
         SkiaTextUtils.DrawText(canvas, _localization.Get("prestige_total"), popup.Left + Padding, contentBottom - 72, BtnFont!, TextPaint);
         SkiaTextUtils.DrawText(canvas, total.ToString(), popup.Right - Padding, contentBottom - 72, SKTextAlign.Right, BtnFont!, TextPaint);
 
-        // Tier de la prochaine île (Observatoire niveau 3) — dans l'espace réservé sous le Total
+        // Tier de la prochaine île (Grand Phare niveau 3) — dans l'espace réservé sous le Total
         if (showTierPicker)
         {
             int minTier = tier;

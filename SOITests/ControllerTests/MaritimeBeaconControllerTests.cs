@@ -13,7 +13,7 @@ namespace SOITests.ControllerTests;
 
 public class MaritimeBeaconControllerTests
 {
-    private static (WorldState state, Civilization civ, Vertex waterVertex) WaterTriangleIsland(int observatoryLevel)
+    private static (WorldState state, Civilization civ, Vertex waterVertex) WaterTriangleIsland(int greatLighthouseLevel)
     {
         var h1 = new HexCoord(0, 0, IslandMap.SurfaceLayer);
         var h2 = new HexCoord(1, 0, IslandMap.SurfaceLayer);
@@ -28,8 +28,8 @@ public class MaritimeBeaconControllerTests
 
         var civ = new Civilization { Index = 0 };
         var state = new WorldState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
-        if (observatoryLevel > 0)
-            state.Features.Add(new Observatory(h1) { Level = observatoryLevel });
+        if (greatLighthouseLevel > 0)
+            state.Features.Add(new GreatLighthouse(h1) { Level = greatLighthouseLevel });
 
         var vertex = Vertex.Create(h1, h2, h3);
         return (state, civ, vertex);
@@ -43,37 +43,37 @@ public class MaritimeBeaconControllerTests
     }
 
     [Fact]
-    public void AreMaritimeBeaconsUnlocked_FalseWithoutObservatory()
+    public void AreMaritimeBeaconsUnlocked_FalseWithoutGreatLighthouse()
     {
-        var (state, _, _) = WaterTriangleIsland(observatoryLevel: 0);
+        var (state, _, _) = WaterTriangleIsland(greatLighthouseLevel: 0);
         Assert.False(Controller(state).AreMaritimeBeaconsUnlocked());
     }
 
     [Fact]
-    public void AreMaritimeBeaconsUnlocked_FalseAtObservatoryLevel1()
+    public void AreMaritimeBeaconsUnlocked_FalseAtGreatLighthouseLevel1()
     {
-        var (state, _, _) = WaterTriangleIsland(observatoryLevel: 1);
+        var (state, _, _) = WaterTriangleIsland(greatLighthouseLevel: 1);
         Assert.False(Controller(state).AreMaritimeBeaconsUnlocked());
     }
 
     [Fact]
-    public void AreMaritimeBeaconsUnlocked_TrueAtObservatoryLevel2()
+    public void AreMaritimeBeaconsUnlocked_TrueAtGreatLighthouseLevel2()
     {
-        var (state, _, _) = WaterTriangleIsland(observatoryLevel: 2);
+        var (state, _, _) = WaterTriangleIsland(greatLighthouseLevel: 2);
         Assert.True(Controller(state).AreMaritimeBeaconsUnlocked());
     }
 
     [Fact]
-    public void GetBuildableVertices_EmptyWithoutObservatoryLevel2()
+    public void GetBuildableVertices_EmptyWithoutGreatLighthouseLevel2()
     {
-        var (state, _, _) = WaterTriangleIsland(observatoryLevel: 1);
+        var (state, _, _) = WaterTriangleIsland(greatLighthouseLevel: 1);
         Assert.Empty(Controller(state).GetBuildableVertices(0));
     }
 
     [Fact]
     public void GetBuildableVertices_IncludesAllWaterVertex()
     {
-        var (state, _, vertex) = WaterTriangleIsland(observatoryLevel: 2);
+        var (state, _, vertex) = WaterTriangleIsland(greatLighthouseLevel: 2);
         var vertices = Controller(state).GetBuildableVertices(0);
         Assert.Contains(vertices, v => v.Equals(vertex));
     }
@@ -81,7 +81,7 @@ public class MaritimeBeaconControllerTests
     [Fact]
     public void GetBuildableVertices_ExcludesVertexAlreadyOccupiedByCity()
     {
-        var (state, civ, vertex) = WaterTriangleIsland(observatoryLevel: 2);
+        var (state, civ, vertex) = WaterTriangleIsland(greatLighthouseLevel: 2);
         civ.AddCity(new City(vertex) { CivilizationIndex = 0 });
         var vertices = Controller(state).GetBuildableVertices(0);
         Assert.DoesNotContain(vertices, v => v.Equals(vertex));
@@ -90,7 +90,7 @@ public class MaritimeBeaconControllerTests
     [Fact]
     public void GetBuildableVertices_ExcludesVertexAlreadyOccupiedByAnotherCivilizationsBeacon()
     {
-        var (state, civ, vertex) = WaterTriangleIsland(observatoryLevel: 2);
+        var (state, civ, vertex) = WaterTriangleIsland(greatLighthouseLevel: 2);
         var otherCiv = new Civilization { Index = 1 };
         state.Civilizations.Add(otherCiv);
         otherCiv.AddMaritimeBeacon(new MaritimeBeacon(vertex) { CivilizationIndex = 1 });
@@ -102,7 +102,7 @@ public class MaritimeBeaconControllerTests
     [Fact]
     public void BuildMaritimeBeacon_PaysCostAndAddsBeacon()
     {
-        var (state, civ, vertex) = WaterTriangleIsland(observatoryLevel: 2);
+        var (state, civ, vertex) = WaterTriangleIsland(greatLighthouseLevel: 2);
 
         // Storage capacity is 0 with no city — give the civ a Warehouse so it can actually hold
         // the Glass (an advanced-storage resource) needed to pay the beacon's cost.
@@ -127,7 +127,7 @@ public class MaritimeBeaconControllerTests
     [Fact]
     public void BuildMaritimeBeacon_InsufficientResources_ReturnsNull()
     {
-        var (state, civ, vertex) = WaterTriangleIsland(observatoryLevel: 2);
+        var (state, civ, vertex) = WaterTriangleIsland(greatLighthouseLevel: 2);
 
         var beacon = Controller(state).BuildMaritimeBeacon(0, vertex);
 
@@ -138,7 +138,7 @@ public class MaritimeBeaconControllerTests
     [Fact]
     public void BuildMaritimeBeacon_VertexNotBuildable_Throws()
     {
-        var (state, civ, _) = WaterTriangleIsland(observatoryLevel: 0);
+        var (state, civ, _) = WaterTriangleIsland(greatLighthouseLevel: 0);
         civ.AddResource(Resource.Glass, 10);
         civ.AddResource(Resource.Wood, 10);
 

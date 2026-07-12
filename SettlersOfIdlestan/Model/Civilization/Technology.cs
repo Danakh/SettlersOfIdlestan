@@ -63,7 +63,7 @@ public enum TechnologyId
     Speleologie,
     // Tier 5
     MasterResearch,
-    ObservatoryConstruction,
+    GreatLighthouseConstruction,
     AdvancedTradingPosts,
     Siderurgie,
     CultureFongique,

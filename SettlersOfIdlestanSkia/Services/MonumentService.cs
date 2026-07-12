@@ -30,7 +30,7 @@ public class MonumentService
     {
         if (SelectedInvestable == null) return;
         if (SelectedInvestable is Wonder { IsMaxLevel: true }) return;
-        if (SelectedInvestable is Observatory { IsMaxLevel: true }) return;
+        if (SelectedInvestable is GreatLighthouse { IsMaxLevel: true }) return;
         if (SelectedInvestable.InvestmentEnabled.Contains(resource))
             SelectedInvestable.InvestmentEnabled.Remove(resource);
         else

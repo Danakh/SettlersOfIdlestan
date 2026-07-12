@@ -137,20 +137,20 @@ namespace SettlersOfIdlestan.Controller.Expand
         /// <summary>+10% de gain de prestige par palier de progression (Tier) atteint.</summary>
         public double GetTierBonus() => 0.1 * GetTier();
 
-        public int GetObservatoryLevel()
-            => _islandState?.Features.OfType<Observatory>().FirstOrDefault()?.Level ?? 0;
+        public int GetGreatLighthouseLevel()
+            => _islandState?.Features.OfType<GreatLighthouse>().FirstOrDefault()?.Level ?? 0;
 
-        /// <summary>+10% de prestige par niveau de l'Observatoire.</summary>
-        public double GetObservatoryPrestigeBonus() => 0.1 * GetObservatoryLevel();
+        /// <summary>+10% de prestige par niveau du Grand Phare.</summary>
+        public double GetGreatLighthousePrestigeBonus() => 0.1 * GetGreatLighthouseLevel();
 
-        // Observatoire niveau 2 : débloque la construction de Balises Maritimes — voir
-        // ObservatoryController.AreMaritimeBeaconsUnlocked / MaritimeBeaconController.
+        // Grand Phare niveau 2 : débloque la construction de Balises Maritimes — voir
+        // GreatLighthouseController.AreMaritimeBeaconsUnlocked / MaritimeBeaconController.
 
         /// <summary>
-        /// Observatoire niveau 3 : permet de choisir le Tier cible de la prochaine île au moment du
+        /// Grand Phare niveau 3 : permet de choisir le Tier cible de la prochaine île au moment du
         /// prestige (le Tier calculé à partir des points de prestige devient un minimum).
         /// </summary>
-        public bool CanChooseNextIslandTier() => GetObservatoryLevel() >= 3;
+        public bool CanChooseNextIslandTier() => GetGreatLighthouseLevel() >= 3;
 
         public const int MaxNextIslandTierChoiceBonus = 10;
 
@@ -179,8 +179,8 @@ namespace SettlersOfIdlestan.Controller.Expand
             double seaportBonus = GetSeaportPrestigeBonus();
             double civDestroyedBonus = GetCivilizationsDestroyedBonus();
             double tierBonus = GetTierBonus();
-            double observatoryBonus = GetObservatoryPrestigeBonus();
-            result *= (1 + gainBonus + seaportBonus + civDestroyedBonus + tierBonus + observatoryBonus);
+            double greatLighthouseBonus = GetGreatLighthousePrestigeBonus();
+            result *= (1 + gainBonus + seaportBonus + civDestroyedBonus + tierBonus + greatLighthouseBonus);
             result *= GetCorruptionSpireMultiplier();
             return (int)result;
         }

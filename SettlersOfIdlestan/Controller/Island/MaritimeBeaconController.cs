@@ -10,7 +10,7 @@ namespace SettlersOfIdlestan.Controller.Island
 {
     /// <summary>
     /// Contrôle la construction des Balises Maritimes : structures posées sur un vertex entouré de
-    /// 3 hexagones d'eau non profonde, débloquées par l'Observatoire niveau 2. Une fois construites,
+    /// 3 hexagones d'eau non profonde, débloquées par le Grand Phare niveau 2. Une fois construites,
     /// elles servent d'ancrage côtier artificiel pour RoadController (voir IsValidMaritimeEdge),
     /// permettant de prolonger les routes maritimes en pleine mer.
     /// </summary>
@@ -31,9 +31,9 @@ namespace SettlersOfIdlestan.Controller.Island
             { Resource.Wood, 10 },
         };
 
-        /// <summary>Débloqué par l'Observatoire niveau 2 (voir ObservatoryController.GetObservatoryLevel).</summary>
+        /// <summary>Débloqué par le Grand Phare niveau 2 (voir GreatLighthouseController.GetGreatLighthouseLevel).</summary>
         public bool AreMaritimeBeaconsUnlocked()
-            => (_state?.Features.OfType<Observatory>().FirstOrDefault()?.Level ?? 0) >= 2;
+            => (_state?.Features.OfType<GreatLighthouse>().FirstOrDefault()?.Level ?? 0) >= 2;
 
         /// <summary>
         /// Retourne les vertex constructibles pour la civilisation : entourés de 3 hexagones d'eau

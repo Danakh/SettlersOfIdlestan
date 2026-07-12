@@ -30,7 +30,7 @@ public class VisibleIslandMapTests
     }
 
     [Fact]
-    public void Constructor_WithWatchtowerAndObservatoryVisionBonus_ExposesRadius3()
+    public void Constructor_WithWatchtowerAndGreatLighthouseVisionBonus_ExposesRadius3()
     {
         var center = new HexCoord(0, 0, IslandMap.SurfaceLayer);
         var ne = new HexCoord(0, 1, IslandMap.SurfaceLayer);
