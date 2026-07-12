@@ -286,6 +286,12 @@ public class Civilization
     public double ResearchCostReduction => ModifierAggregator.ApplyModifiers(ECategory.RESEARCH_COST_REDUCTION, "", 0.0);
 
     /// <summary>
+    /// Additive bonus applied to the base 50% refund rate when canceling active research. 0.0 = no bonus.
+    /// </summary>
+    [JsonIgnore]
+    public double ResearchCancelRefundBonus => ModifierAggregator.ApplyModifiers(ECategory.RESEARCH_CANCEL_REFUND_BONUS, "", 0.0);
+
+    /// <summary>
     /// Wonder level-up cost reduction fraction (0.0 = no reduction, 0.1 = 10% cheaper). Applies only to the Wonder.
     /// </summary>
     [JsonIgnore]

@@ -78,10 +78,10 @@ public class PrestigeVertexModifierTests
     }
 
     [Fact]
-    public void HarvestGuildVertex_HarvestersGuildMaxLevel_Plus1()
+    public void HarvestGuildVertex_HarvestersGuildMaxLevel_Plus4()
     {
         var aggregator = BuildAggregator(PrestigeMap.HarvestGuildVertex);
-        Assert.Equal(1, aggregator.ApplyModifiers(ECategory.BUILDING_MAX_LEVEL, "HarvestersGuild", 0));
+        Assert.Equal(4, aggregator.ApplyModifiers(ECategory.BUILDING_MAX_LEVEL, "HarvestersGuild", 0));
     }
 
     [Fact]
@@ -99,10 +99,10 @@ public class PrestigeVertexModifierTests
     }
 
     [Fact]
-    public void AcademyVertex_AcademyMaxLevel_Plus1()
+    public void AcademyVertex_AcademyMaxLevel_Plus4()
     {
         var aggregator = BuildAggregator(PrestigeMap.AcademyVertex);
-        Assert.Equal(1, aggregator.ApplyModifiers(ECategory.BUILDING_MAX_LEVEL, "Academy", 0));
+        Assert.Equal(4, aggregator.ApplyModifiers(ECategory.BUILDING_MAX_LEVEL, "Academy", 0));
     }
 
     [Fact]

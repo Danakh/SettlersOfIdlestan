@@ -187,9 +187,17 @@ namespace SettlersOfIdlestan.Controller.Expand
             return true;
         }
 
-        /// <summary>Points qui seraient récupérés si la recherche en cours était annulée maintenant (moitié des points investis).</summary>
+        /// <summary>Taux de remboursement des points investis en cas d'annulation (base 50%, +bonus Académie, plafonné à 100%).</summary>
+        public double GetCancelRefundRate()
+            => Math.Min(1.0, 0.5 + (_state?.PlayerCivilization.ResearchCancelRefundBonus ?? 0.0));
+
+        /// <summary>Points qui seraient récupérés si la recherche en cours était annulée maintenant.</summary>
         public int GetCancelRefundAmount()
-            => ActiveResearchConsumed / 2;
+            => (int)(ActiveResearchConsumed * GetCancelRefundRate());
+
+        /// <summary>True si l'annulation entraînerait une perte de points (remboursement &lt; 100%).</summary>
+        public bool HasCancelLoss()
+            => GetCancelRefundAmount() < ActiveResearchConsumed;
 
         public bool CancelResearch()
         {
@@ -197,7 +205,7 @@ namespace SettlersOfIdlestan.Controller.Expand
             var tree = Tree;
             if (tree.ActiveResearch == null) return false;
 
-            int refund = tree.ActiveResearchConsumed / 2;
+            int refund = GetCancelRefundAmount();
             tree.ResearchPoints = Math.Min(tree.ResearchPoints + refund, MaxResearchPoints);
             tree.ActiveResearch = null;
             tree.ActiveResearchConsumed = 0;

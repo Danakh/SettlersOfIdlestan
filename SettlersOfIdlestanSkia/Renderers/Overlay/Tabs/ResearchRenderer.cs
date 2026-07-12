@@ -408,7 +408,10 @@ public sealed class ResearchRenderer : IGameRenderer
         if (_cancelButtonRect != SKRect.Empty && _cancelButtonRect.Contains(e.Position.X, e.Position.Y))
         {
             if (ctrl.ActiveResearch != null)
-                _cancelPopup.Open(ctrl.GetCancelRefundAmount());
+            {
+                if (ctrl.HasCancelLoss()) _cancelPopup.Open(ctrl.GetCancelRefundAmount());
+                else ctrl.CancelResearch();
+            }
             return;
         }
 
@@ -429,7 +432,8 @@ public sealed class ResearchRenderer : IGameRenderer
                 if (isDoubleClick)
                 {
                     _lastNodeClickTime = DateTime.MinValue;
-                    _cancelPopup.Open(ctrl.GetCancelRefundAmount());
+                    if (ctrl.HasCancelLoss()) _cancelPopup.Open(ctrl.GetCancelRefundAmount());
+                    else ctrl.CancelResearch();
                 }
                 return;
             }

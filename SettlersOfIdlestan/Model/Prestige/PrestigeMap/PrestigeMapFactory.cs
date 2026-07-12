@@ -95,7 +95,7 @@ public static class PrestigeMapFactory
                 PrestigeMap.HarvestGuildVertex,
                 "prestige_vertex_harvesters_guild",
                 cost: Cost(PrestigeMap.HarvestGuildVertex),
-                modifiers: new Modifier[] { new(ECategory.BUILDING_MAX_LEVEL, "HarvestersGuild", EType.ADDITIVE, 1) }
+                modifiers: new Modifier[] { new(ECategory.BUILDING_MAX_LEVEL, "HarvestersGuild", EType.ADDITIVE, 4) }
             ),
             new(
                 PrestigeMap.ArtisansGuildVertex,
@@ -144,7 +144,7 @@ public static class PrestigeMapFactory
                 PrestigeMap.AcademyVertex,
                 "prestige_vertex_academy",
                 cost: Cost(PrestigeMap.AcademyVertex),
-                modifiers: new Modifier[] { new(ECategory.BUILDING_MAX_LEVEL, "Academy", EType.ADDITIVE, 1) }
+                modifiers: new Modifier[] { new(ECategory.BUILDING_MAX_LEVEL, "Academy", EType.ADDITIVE, 4) }
             ),
             new(
                 PrestigeMap.SteelSecretVertex,

@@ -32,12 +32,20 @@ public class Academy : Building, IUniqueBuilding
         { Resource.Glass, 30 },
     };
 
-    public override ResourceSet GetUpgradeCost(int level) => new ResourceSet();
+    public override ResourceSet GetUpgradeCost(int level) => level switch
+    {
+        2 => new ResourceSet { { Resource.Brick, 200 }, { Resource.Stone, 100 }, { Resource.Glass, 60 } },
+        3 => new ResourceSet { { Resource.Brick, 350 }, { Resource.Stone, 175 }, { Resource.Glass, 100 } },
+        4 => new ResourceSet { { Resource.Brick, 550 }, { Resource.Stone, 275 }, { Resource.Glass, 160 } },
+        5 => new ResourceSet { { Resource.Brick, 800 }, { Resource.Stone, 400 }, { Resource.Glass, 240 } },
+        _ => new ResourceSet()
+    };
 
     public IEnumerable<Modifier> GetUniqueBuildingModifiers()
     {
         if (Level <= 0) yield break;
 
-        yield return new Modifier(ECategory.RESEARCH_SPEED, EType.ADDITIVE, 1.0 * Level);
+        yield return new Modifier(ECategory.RESEARCH_SPEED, EType.ADDITIVE, 0.25 * Level);
+        yield return new Modifier(ECategory.RESEARCH_CANCEL_REFUND_BONUS, EType.ADDITIVE, Math.Min(0.5, 0.125 * Level));
     }
 }
