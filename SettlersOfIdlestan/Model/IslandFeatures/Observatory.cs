@@ -8,7 +8,7 @@ namespace SettlersOfIdlestan.Model.IslandFeatures;
 
 public class Observatory : Monument
 {
-    public override LocalizedEntry GetTooltipEntry() => new("hex_tooltip_observatory");
+    public override LocalizedEntry GetTooltipEntry() => new("hex_tooltip_observatory", new object[] { Level });
 
     private static readonly string[] IconStages = { "01-fondation", "02-socle", "03-tour", "04-coupole" };
 

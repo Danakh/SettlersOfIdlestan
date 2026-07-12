@@ -8,7 +8,7 @@ namespace SettlersOfIdlestan.Model.IslandFeatures;
 
 public class Wonder : Monument
 {
-    public override LocalizedEntry GetTooltipEntry() => new("hex_tooltip_wonder");
+    public override LocalizedEntry GetTooltipEntry() => new("hex_tooltip_wonder", new object[] { Level });
 
     public override string? SvgIconResourceName => $"Resources.icons.features.wonder_{Level}.svg";
     public override float SvgIconSize => 50f;
