@@ -940,6 +940,8 @@
   "tooltip_trade": "Achetez et vendez des ressources contre de l'or",
   "tooltip_raid": "Lancez une attaque coordonnée contre une ville ennemie",
   "tooltip_raid_active": "Raid en cours — cliquez pour l'arrêter",
+  "raid_upkeep_cost": "Entretien : 10 or/s, +2 toutes les secondes",
+  "raid_upkeep_cost_current": "Entretien actuel : {0} or/s",
   "relocation_action_short": "Relocaliser",
   "relocation_select_city": "Choisissez une de vos villes à relocaliser",
   "relocation_select_destination": "Choisissez le nouvel emplacement (3 routes maximum)",

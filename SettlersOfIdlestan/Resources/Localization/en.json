@@ -940,6 +940,8 @@
   "tooltip_trade": "Buy and sell resources for gold",
   "tooltip_raid": "Launch a coordinated attack against an enemy city",
   "tooltip_raid_active": "Raid in progress — click to stop it",
+  "raid_upkeep_cost": "Upkeep: 10 gold/s, +2 every second",
+  "raid_upkeep_cost_current": "Current upkeep: {0} gold/s",
   "relocation_action_short": "Relocate",
   "relocation_select_city": "Choose one of your cities to relocate",
   "relocation_select_destination": "Choose the new location (3 roads maximum)",
