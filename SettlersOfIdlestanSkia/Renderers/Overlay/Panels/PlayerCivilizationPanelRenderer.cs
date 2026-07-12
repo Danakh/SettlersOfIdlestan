@@ -49,7 +49,6 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
     private SKRect _prestigeButtonRect = SKRect.Empty;
     private SKRect _wonderButtonRect   = SKRect.Empty;
     private SKRect _observatoryButtonRect = SKRect.Empty;
-    private SKRect _maritimeBeaconButtonRect = SKRect.Empty;
     private SKRect _deepestMineButtonRect = SKRect.Empty;
     private SKRect _raidButtonRect     = SKRect.Empty;
     private SKRect _spireButtonRect    = SKRect.Empty;
@@ -58,10 +57,9 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
     private readonly List<(SKRect rect, string pinKey, string tooltipKey)> _pinnedItemRects = new();
     private int _hoveredPinnedIndex = -1;
 
-    private bool _hoveredTrade, _hoveredPrestige, _hoveredWonder, _hoveredDeepestMine, _hoveredRaid, _hoveredSpire, _hoveredRelocation, _hoveredWalkOfGod, _hoveredObservatory, _hoveredMaritimeBeacon;
+    private bool _hoveredTrade, _hoveredPrestige, _hoveredWonder, _hoveredDeepestMine, _hoveredRaid, _hoveredSpire, _hoveredRelocation, _hoveredWalkOfGod, _hoveredObservatory;
     private bool _wonderEnabled;
     private bool _observatoryEnabled;
-    private bool _maritimeBeaconEnabled;
     private bool _deepestMineEnabled;
     private bool _spireEnabled;
     private bool _relocationEnabled;
@@ -161,8 +159,6 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         _wonderEnabled = wonderVisible && context.CurrentLayer == 0;
         bool observatoryVisible = IsObservatoryVisible() && CanPlaceObservatory();
         _observatoryEnabled = observatoryVisible && context.CurrentLayer == 0;
-        bool maritimeBeaconVisible = IsMaritimeBeaconVisible();
-        _maritimeBeaconEnabled = maritimeBeaconVisible && context.CurrentLayer == 0;
         bool deepestMineVisible = CanPlaceDeepestMine();
         _deepestMineEnabled = deepestMineVisible && context.CurrentLayer == 0;
         bool spireVisible   = CanPlaceSpire();
@@ -185,14 +181,14 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         var worldState = _gameControllerService.CurrentWorldState;
         var pinned = _gameControllerService.CurrentGameState?.Settings.PinnedCivPanelKeys ?? (IReadOnlySet<string>)new HashSet<string>();
 
-        bool showActions  = tradeVisible || prestigeVisible || wonderVisible || observatoryVisible || maritimeBeaconVisible || deepestMineVisible || spireVisible || raidVisible || relocationVisible || walkOfGodVisible;
+        bool showActions  = tradeVisible || prestigeVisible || wonderVisible || observatoryVisible || deepestMineVisible || spireVisible || raidVisible || relocationVisible || walkOfGodVisible;
         bool showControls = pinned.Any(k => IsKeyShowable(k, civ, worldState, hasBarracks, hasLabs, hasSmelters, hasArsenals, hasWeaponSmiths, hasArmorSmiths, hasAlchimistHuts));
 
         // Single source of truth for the action-button count — reused for both the
         // panel height measurement and the button-grid layout so they can't drift apart.
-        int actionCount = (tradeVisible ? 1 : 0) + (prestigeVisible ? 1 : 0) + (wonderVisible ? 1 : 0) + (observatoryVisible ? 1 : 0) + (maritimeBeaconVisible ? 1 : 0) + (deepestMineVisible ? 1 : 0) + (spireVisible ? 1 : 0) + (raidVisible ? 1 : 0) + (relocationVisible ? 1 : 0) + (walkOfGodVisible ? 1 : 0);
+        int actionCount = (tradeVisible ? 1 : 0) + (prestigeVisible ? 1 : 0) + (wonderVisible ? 1 : 0) + (observatoryVisible ? 1 : 0) + (deepestMineVisible ? 1 : 0) + (spireVisible ? 1 : 0) + (raidVisible ? 1 : 0) + (relocationVisible ? 1 : 0) + (walkOfGodVisible ? 1 : 0);
 
-        _tradeButtonRect = _prestigeButtonRect = _wonderButtonRect = _observatoryButtonRect = _maritimeBeaconButtonRect = _deepestMineButtonRect = _spireButtonRect = _raidButtonRect = _relocationButtonRect = _walkOfGodButtonRect = SKRect.Empty;
+        _tradeButtonRect = _prestigeButtonRect = _wonderButtonRect = _observatoryButtonRect = _deepestMineButtonRect = _spireButtonRect = _raidButtonRect = _relocationButtonRect = _walkOfGodButtonRect = SKRect.Empty;
         _pinnedItemRects.Clear();
 
         if (!showActions && !showControls)
@@ -290,13 +286,6 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
                 _observatoryButtonRect = BtnRect(btnIdx++);
                 canvas.DrawRoundRect(_observatoryButtonRect, 6 * s, 6 * s, _observatoryEnabled ? (_hoveredObservatory ? _btnHoverPaint : _btnPaint) : _btnDisabledPaint);
                 SkiaTextUtils.DrawText(canvas, _localization.Get("observatory_action_short"), _observatoryButtonRect.MidX, _observatoryButtonRect.MidY + 4f * s, SKTextAlign.Center, _btnSmFont, _observatoryEnabled ? TextPaint : _btnDisabledTxtPaint);
-            }
-
-            if (maritimeBeaconVisible)
-            {
-                _maritimeBeaconButtonRect = BtnRect(btnIdx++, allowFullWidth: false);
-                canvas.DrawRoundRect(_maritimeBeaconButtonRect, 6 * s, 6 * s, _maritimeBeaconEnabled ? (_hoveredMaritimeBeacon ? _btnHoverPaint : _btnPaint) : _btnDisabledPaint);
-                DrawWrappedButtonText(canvas, _maritimeBeaconButtonRect, _localization.Get("maritime_beacon_action_short"), _btnSmFont!, _maritimeBeaconEnabled ? TextPaint! : _btnDisabledTxtPaint!, s);
             }
 
             if (deepestMineVisible)
@@ -433,10 +422,6 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             _tooltipRenderer.SetTooltip(_localization.Get("tooltip_observatory"), new SKPoint(_observatoryButtonRect.Right, _observatoryButtonRect.Top));
         else if (_hoveredObservatory && !_observatoryEnabled)
             _tooltipRenderer.SetTooltip(_localization.Get("tooltip_observatory_surface_only"), new SKPoint(_observatoryButtonRect.Right, _observatoryButtonRect.Top));
-        else if (_hoveredMaritimeBeacon && _maritimeBeaconEnabled)
-            _tooltipRenderer.SetTooltip(_localization.Get("tooltip_maritime_beacon"), new SKPoint(_maritimeBeaconButtonRect.Right, _maritimeBeaconButtonRect.Top));
-        else if (_hoveredMaritimeBeacon && !_maritimeBeaconEnabled)
-            _tooltipRenderer.SetTooltip(_localization.Get("tooltip_maritime_beacon_surface_only"), new SKPoint(_maritimeBeaconButtonRect.Right, _maritimeBeaconButtonRect.Top));
         else if (_hoveredDeepestMine && !_deepestMineEnabled)
             _tooltipRenderer.SetTooltip(_localization.Get("tooltip_deepest_mine_surface_only"), new SKPoint(_deepestMineButtonRect.Right, _deepestMineButtonRect.Top));
         else if (_hoveredDeepestMine)
@@ -491,7 +476,6 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         _hoveredPrestige    = !_prestigeButtonRect.IsEmpty    && _prestigeButtonRect.Contains(pos.X, pos.Y);
         _hoveredWonder      = !_wonderButtonRect.IsEmpty      && _wonderButtonRect.Contains(pos.X, pos.Y);
         _hoveredObservatory = !_observatoryButtonRect.IsEmpty && _observatoryButtonRect.Contains(pos.X, pos.Y);
-        _hoveredMaritimeBeacon = !_maritimeBeaconButtonRect.IsEmpty && _maritimeBeaconButtonRect.Contains(pos.X, pos.Y);
         _hoveredDeepestMine = !_deepestMineButtonRect.IsEmpty && _deepestMineButtonRect.Contains(pos.X, pos.Y);
         _hoveredSpire       = !_spireButtonRect.IsEmpty       && _spireButtonRect.Contains(pos.X, pos.Y);
         _hoveredRaid        = !_raidButtonRect.IsEmpty        && _raidButtonRect.Contains(pos.X, pos.Y);
@@ -549,18 +533,6 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             var observatoryController = _gameControllerService.MainGameController.ObservatoryController;
             _targetSelectionService.EnterHexSelection("observatory_select_hex", observatoryController.GetPlaceableHexes(),
                 hex => observatoryController.PlaceObservatory(hex), TargetSelectionTheme.Friendly);
-            return true;
-        }
-
-        if (!_maritimeBeaconButtonRect.IsEmpty && _maritimeBeaconButtonRect.Contains(pos.X, pos.Y) && _maritimeBeaconEnabled && _targetSelectionService != null)
-        {
-            _closeAll();
-            var maritimeBeaconController = _gameControllerService.MainGameController.MaritimeBeaconController;
-            var playerIndex = _gameControllerService.PlayerCivilizationIndex;
-            if (playerIndex != null)
-                _targetSelectionService.EnterVertexSelection("maritime_beacon_select_vertex",
-                    maritimeBeaconController.GetBuildableVertices(playerIndex.Value),
-                    vertex => maritimeBeaconController.BuildMaritimeBeacon(playerIndex.Value, vertex), TargetSelectionTheme.Friendly);
             return true;
         }
 
@@ -792,12 +764,6 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         var civ = _gameControllerService.PlayerCivilization;
         if (civ == null) return false;
         try { return _gameControllerService.MainGameController.ObservatoryController.CanPlaceObservatory(civ); }
-        catch { return false; }
-    }
-
-    private bool IsMaritimeBeaconVisible()
-    {
-        try { return _gameControllerService.AreMaritimeBeaconsUnlockedForPlayer(); }
         catch { return false; }
     }
 

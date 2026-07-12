@@ -691,6 +691,28 @@ public class RoadControllerTests
         Assert.Contains(civ.Roads, r => r.Position.Equals(MaritimeEdge()));
     }
 
+    /// <summary>
+    /// Sur la même instance de RoadController (comme en jeu réel, où un seul contrôleur vit pour
+    /// toute la partie — voir GameControllerService), le cache interne de GetBuildableRoads ne doit
+    /// pas rester figé après la pose d'une balise : sinon la construction de route ancrée sur une
+    /// balise ne bénéficierait pas du même rafraîchissement que la construction de route classique.
+    /// </summary>
+    [Fact]
+    public void MaritimeRoutes_BeaconAddedAfterFirstQuery_SameControllerInstance_EdgeBecomesBuildable()
+    {
+        var (state, civ, openSeaVertex) = OpenSeaBeaconIsland();
+        EnableMaritimeRoutes(civ);
+
+        var controller = new RoadController(state);
+        var beforeBeacon = controller.GetBuildableRoads(0);
+        Assert.DoesNotContain(beforeBeacon, r => r.Position.Equals(MaritimeEdge()));
+
+        civ.AddMaritimeBeacon(new MaritimeBeacon(openSeaVertex) { CivilizationIndex = 0 });
+
+        var afterBeacon = controller.GetBuildableRoads(0);
+        Assert.Contains(afterBeacon, r => r.Position.Equals(MaritimeEdge()));
+    }
+
     [Fact]
     public void MaritimeRoutes_EnemyBeaconAtOpenSeaVertex_DoesNotCountAsAnchor()
     {

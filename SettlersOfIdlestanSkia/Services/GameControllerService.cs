@@ -125,9 +125,6 @@ public class GameControllerService
         return _controller.RoadController.BuildRoad(playerIndex, edge);
     }
 
-    public bool AreMaritimeBeaconsUnlockedForPlayer()
-        => _controller.MaritimeBeaconController.AreMaritimeBeaconsUnlocked();
-
     public List<Vertex> GetBuildableMaritimeBeaconVerticesForPlayer()
     {
         var playerIndex = PlayerCivilizationIndex

@@ -126,6 +126,18 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay
             _tooltipScreenPosition = _islandRendererContext.IslandToScreen(islandPosition, _gameRenderContext.ZoomLevel, _gameRenderContext.CameraPosition);
         }
 
+        public void SetMaritimeBeaconConstructionTooltip(Vertex beaconPosition)
+        {
+            if (_islandRendererContext == null || _gameRenderContext == null)
+                return;
+
+            _tooltipTexts = new string[] { _localizationService.Get("maritime_beacon_construction") };
+            _tooltipCost = MaritimeBeaconController.GetBuildCost();
+
+            var islandPosition = _islandRendererContext.VertexToIslandPoint(beaconPosition);
+            _tooltipScreenPosition = _islandRendererContext.IslandToScreen(islandPosition, _gameRenderContext.ZoomLevel, _gameRenderContext.CameraPosition);
+        }
+
         public void SetCityTooltip(City city, Civilization? civ, bool isPlayerCity, MilitaryController militaryController, Vertex vertex)
         {
             if (_islandRendererContext == null || _gameRenderContext == null) return;

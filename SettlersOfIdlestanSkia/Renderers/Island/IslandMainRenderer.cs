@@ -66,7 +66,7 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
         _gameBoardRenderer = new GameBoardRenderer(harvestController, resourceManager);
         _roadRenderer = new RoadRenderer(tooltipRenderer);
         _cityRenderer = new CityRenderer(tooltipRenderer, resourceManager, militaryController);
-        _maritimeBeaconRenderer = new MaritimeBeaconRenderer();
+        _maritimeBeaconRenderer = new MaritimeBeaconRenderer(tooltipRenderer);
         _harvestParticleSystem = new HarvestParticleSystem();
         _harvestRenderer = new HarvestRenderer(_harvestParticleSystem, resourceManager, currentLayer);
         _banditRenderer = new MonsterRenderer(resourceManager);
@@ -154,7 +154,10 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
 
             _roadRenderer.RenderConstructionHighlights(canvas, state, context);
             if (!skipCities)
+            {
                 _cityRenderer.RenderConstructionHighlights(canvas, state, context);
+                _maritimeBeaconRenderer.RenderConstructionHighlights(canvas, state, context);
+            }
             _militaryRenderer.Render(canvas, context);
         }
     }

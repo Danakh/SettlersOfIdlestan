@@ -32,8 +32,11 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
     private List<Vertex>? _cachedBuildableVertices;
     private List<Edge>?   _cachedBuildableEdges;
     private List<Edge>?   _cachedEnemyProtectedEdges;
+    private List<Vertex>? _cachedBuildableBeaconVertices;
     private int _cachedCityCount = -1;
     private int _cachedRoadCount = -1;
+    private int _cachedBeaconCount = -1;
+    private int _cachedObservatoryLevel = -1;
 
     public ConstructionHoverState HoverState { get; private set; } = ConstructionHoverState.Empty;
 
@@ -116,6 +119,13 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
                 return;
             }
 
+            if (HoverState.HoveredBeaconVertex != null)
+            {
+                _gameControllerService.TryBuildMaritimeBeaconForPlayer(HoverState.HoveredBeaconVertex);
+                RefreshHover(e.Position);
+                return;
+            }
+
             if (HoverState.HoveredEdge != null && _gameControllerService.TryBuildRoadForPlayer(HoverState.HoveredEdge) != null)
             {
                 RefreshHover(e.Position);
@@ -166,13 +176,19 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
         var playerCiv = _gameControllerService.CurrentWorldState?.PlayerCivilization;
         int cityCount = playerCiv?.Cities.Count ?? 0;
         int roadCount = playerCiv?.Roads.Count ?? 0;
-        if (_cachedBuildableVertices != null && cityCount == _cachedCityCount && roadCount == _cachedRoadCount)
+        int beaconCount = playerCiv?.MaritimeBeacons.Count ?? 0;
+        int observatoryLevel = _gameControllerService.MainGameController.ObservatoryController.GetObservatoryLevel();
+        if (_cachedBuildableVertices != null && cityCount == _cachedCityCount && roadCount == _cachedRoadCount
+            && beaconCount == _cachedBeaconCount && observatoryLevel == _cachedObservatoryLevel)
             return;
-        _cachedBuildableVertices   = _gameControllerService.GetBuildableCityVerticesForPlayer();
-        _cachedBuildableEdges      = _gameControllerService.GetBuildableRoadEdgesForPlayer();
-        _cachedEnemyProtectedEdges = _gameControllerService.GetEnemyProtectedRoadEdgesForPlayer();
+        _cachedBuildableVertices       = _gameControllerService.GetBuildableCityVerticesForPlayer();
+        _cachedBuildableEdges          = _gameControllerService.GetBuildableRoadEdgesForPlayer();
+        _cachedEnemyProtectedEdges     = _gameControllerService.GetEnemyProtectedRoadEdgesForPlayer();
+        _cachedBuildableBeaconVertices = _gameControllerService.GetBuildableMaritimeBeaconVerticesForPlayer();
         _cachedCityCount = cityCount;
         _cachedRoadCount = roadCount;
+        _cachedBeaconCount = beaconCount;
+        _cachedObservatoryLevel = observatoryLevel;
     }
 
     private void RefreshHover(SKPoint screenPoint)
@@ -186,6 +202,7 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
         var buildableVertices  = _cachedBuildableVertices!;
         var buildableEdges     = _cachedBuildableEdges!;
         var enemyProtectedEdges = _cachedEnemyProtectedEdges!;
+        var buildableBeaconVertices = _cachedBuildableBeaconVertices!;
 
         var islandPoint = _renderer.ScreenToIsland(screenPoint, _cameraService.CanvasSize, _cameraService.ZoomLevel, _cameraService.Position);
 
@@ -203,6 +220,17 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
             }
         }
 
+        // Balises maritimes : uniquement en surface (voir MaritimeBeaconController).
+        Vertex? hoveredBeaconVertex = null;
+        if (hoveredVertex == null && currentZ == IslandMap.SurfaceLayer && buildableBeaconVertices.Any(v => v.Equals(nearestVertex)))
+        {
+            var dist = SKPoint.Distance(islandPoint, _renderer.VertexToIslandPoint(nearestVertex));
+            if (dist <= VertexHoverRadius)
+            {
+                hoveredBeaconVertex = nearestVertex;
+            }
+        }
+
         Edge? hoveredEdge = null;
         Edge? hoveredEnemyProtectedEdge = null;
         var nearestEdge = _renderer.IslandToNearestEdge(islandPoint, currentZ);
@@ -216,7 +244,7 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
         }
 
         HexCoord? hoveredHex = null;
-        if (hoveredVertex == null && hoveredEdge == null && hoveredEnemyProtectedEdge == null && hoveredCityVertex == null && hoveredEnemyCityVertex == null)
+        if (hoveredVertex == null && hoveredBeaconVertex == null && hoveredEdge == null && hoveredEnemyProtectedEdge == null && hoveredCityVertex == null && hoveredEnemyCityVertex == null)
         {
             var hexCoord = _renderer.IslandToHexCoord(islandPoint, currentZ);
             var (hx, hy) = _renderer.AxialToIsland(hexCoord.Q, hexCoord.R);
@@ -241,7 +269,9 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
             _cityBuildingService.SelectedCity?.Position,
             hoveredHex,
             hoveredEnemyProtectedEdge,
-            hoveredEnemyCityVertex
+            hoveredEnemyCityVertex,
+            buildableBeaconVertices,
+            hoveredBeaconVertex
         );
     }
 
@@ -339,6 +369,7 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
     {
         HoverState = ConstructionHoverState.Empty;
         _cachedBuildableVertices = null;
+        _cachedBuildableBeaconVertices = null;
     }
 }
 
@@ -351,9 +382,11 @@ public readonly record struct ConstructionHoverState(
     Vertex? SelectedCityVertex,
     HexCoord? HoveredHex,
     Edge? HoveredEnemyProtectedEdge,
-    Vertex? HoveredEnemyCityVertex)
+    Vertex? HoveredEnemyCityVertex,
+    IReadOnlyList<Vertex> BuildableBeaconVertices,
+    Vertex? HoveredBeaconVertex)
 {
     public static ConstructionHoverState Empty =>
-        new(Array.Empty<Vertex>(), Array.Empty<Edge>(), null, null, null, null, null, null, null);
+        new(Array.Empty<Vertex>(), Array.Empty<Edge>(), null, null, null, null, null, null, null, Array.Empty<Vertex>(), null);
 }
 

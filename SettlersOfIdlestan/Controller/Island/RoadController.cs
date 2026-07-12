@@ -30,7 +30,7 @@ namespace SettlersOfIdlestan.Controller.Island
         private WorldState? _state;
         private GameClock? _clock;
         private GamePRNG? _prng;
-        private readonly Dictionary<int, (int CityCount, List<Road> Roads)> _buildableRoadsCache = new();
+        private readonly Dictionary<int, (int CityCount, int BeaconCount, List<Road> Roads)> _buildableRoadsCache = new();
 
         // 5 s × 100 ticks/s — same cadence as automatic harvests
         public const long AutoRoadBuildCooldownTicks = 500L;
@@ -133,7 +133,9 @@ namespace SettlersOfIdlestan.Controller.Island
             var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex)
                           ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
 
-            if (_buildableRoadsCache.TryGetValue(civilizationIndex, out var cached) && cached.CityCount == civ.Cities.Count)
+            if (_buildableRoadsCache.TryGetValue(civilizationIndex, out var cached)
+                && cached.CityCount == civ.Cities.Count
+                && cached.BeaconCount == civ.MaritimeBeacons.Count)
                 return cached.Roads;
 
             // Seules les routes de NOTRE civilisation bloquent la construction.
@@ -186,7 +188,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 result.Add(road);
             }
 
-            _buildableRoadsCache[civilizationIndex] = (civ.Cities.Count, result);
+            _buildableRoadsCache[civilizationIndex] = (civ.Cities.Count, civ.MaritimeBeacons.Count, result);
             return result;
         }
 

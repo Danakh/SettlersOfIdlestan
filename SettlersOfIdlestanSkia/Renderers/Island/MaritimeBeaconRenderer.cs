@@ -4,6 +4,9 @@ using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Renderers.Debug;
+using SettlersOfIdlestanSkia.Renderers.Overlay;
+using SettlersOfIdlestanSkia.Services;
+using System.Linq;
 
 namespace SettlersOfIdlestanSkia.Renderers.Island;
 
@@ -16,8 +19,28 @@ public class MaritimeBeaconRenderer : HexBasedRenderer, IGameRenderer
 
     private const float BeaconRadius = 6f;
 
+    private readonly TooltipRenderer _tooltipRenderer;
+
     private SKPaint? _beaconPaint;
     private SKPaint? _borderPaint;
+
+    private readonly SKPaint _buildableVertexPaint = new()
+    {
+        Color = new SKColor(60, 160, 255, 120),
+        Style = SKPaintStyle.Fill,
+        IsAntialias = true
+    };
+    private readonly SKPaint _hoverVertexPaint = new()
+    {
+        Color = new SKColor(255, 235, 59, 220),
+        Style = SKPaintStyle.Fill,
+        IsAntialias = true
+    };
+
+    public MaritimeBeaconRenderer(TooltipRenderer tooltipRenderer)
+    {
+        _tooltipRenderer = tooltipRenderer;
+    }
 
     // Mêmes couleurs par civilisation que CityRenderer (noir réservé).
     private static readonly SKColor[] CivilizationColors = new[]
@@ -78,6 +101,23 @@ public class MaritimeBeaconRenderer : HexBasedRenderer, IGameRenderer
         }
     }
 
+    internal void RenderConstructionHighlights(SKCanvas canvas, ConstructionHoverState state, GameRenderContext context)
+    {
+        foreach (var vertex in state.BuildableBeaconVertices.Where(v => v.Z == context.CurrentLayer))
+        {
+            var pt = VertexToIsland(vertex);
+            DrawDiamond(canvas, pt, BeaconRadius, _buildableVertexPaint);
+        }
+
+        if (state.HoveredBeaconVertex != null)
+        {
+            var pt = VertexToIsland(state.HoveredBeaconVertex);
+            DrawDiamond(canvas, pt, BeaconRadius + 2f, _hoverVertexPaint);
+
+            _tooltipRenderer.SetMaritimeBeaconConstructionTooltip(state.HoveredBeaconVertex);
+        }
+    }
+
     private static void DrawDiamond(SKCanvas canvas, SKPoint center, float radius, SKPaint paint)
     {
         using var path = new SKPath();
@@ -99,6 +139,8 @@ public class MaritimeBeaconRenderer : HexBasedRenderer, IGameRenderer
         if (_disposed) return;
         _beaconPaint?.Dispose();
         _borderPaint?.Dispose();
+        _buildableVertexPaint.Dispose();
+        _hoverVertexPaint.Dispose();
         _disposed = true;
     }
 }
