@@ -894,7 +894,7 @@
   "monument_bonus_wonder_next": "Next bonus (lvl {0}): × {1} prestige points",
   "monument_bonus_observatory_current": "Current bonus (lvl {0}): +{1}% prestige",
   "monument_bonus_observatory_next": "Next bonus (lvl {0}): +{1}% prestige",
-  "monument_bonus_observatory_watchtower_active": "Active bonus: Watchtowers, +1 ranged attack distance",
+  "monument_bonus_observatory_watchtower_active": "Active bonus: Watchtowers, +1 vision distance",
   "monument_bonus_observatory_maritime_beacon_active": "Active bonus: Maritime Beacons can be built",
   "monument_bonus_observatory_maritime_active": "Active bonus: Maritime Beacons extend sea routes into open water",
   "monument_bonus_observatory_tier_picker_active": "Active bonus: choose the next island's Tier",

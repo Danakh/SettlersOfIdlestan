@@ -5,7 +5,6 @@ using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
-using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Monsters;
 using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
@@ -100,20 +99,6 @@ internal class MonsterCombatEngine
     private const int MaxRangedAttackDistance = 2;
 
     /// <summary>
-    /// Portée d'attaque à distance effective : +1 si l'Observatoire (niveau 1+) est bâti et que les
-    /// Tours de Guet sont débloquées via le vertex de prestige (BUILDING_MAX_LEVEL "Watchtower" > 0
-    /// — seule source de ce modificateur actuellement).
-    /// </summary>
-    private int GetMaxRangedAttackDistance(Civilization? civ)
-    {
-        if (civ == null) return MaxRangedAttackDistance;
-        var observatory = _state?.Features.OfType<Observatory>().FirstOrDefault();
-        if (observatory == null || observatory.Level < 1) return MaxRangedAttackDistance;
-        bool watchtowerUnlocked = civ.ModifierAggregator.ApplyModifiers(ECategory.BUILDING_MAX_LEVEL, "Watchtower", 0) > 0;
-        return watchtowerUnlocked ? MaxRangedAttackDistance + 1 : MaxRangedAttackDistance;
-    }
-
-    /// <summary>
     /// Distance entre la ville et le monstre, au sens le plus strict : la distance depuis le hex
     /// de ville le plus ÉLOIGNÉ du monstre. Utiliser le minimum sur les 3 hexes de la ville permettrait
     /// d'attaquer 1 hex plus loin que prévu (les 3 hexes d'un vertex sont mutuellement adjacents, donc
@@ -138,7 +123,7 @@ internal class MonsterCombatEngine
 
         var civ = _state?.Civilizations.FirstOrDefault(c => c.Index == city.CivilizationIndex);
         bool hasSurveillance = civ != null && civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_RANGED_MONSTER_ATTACK);
-        if (distance > GetMaxRangedAttackDistance(civ) || !hasSurveillance) return MonsterAttackAvailability.TooFar;
+        if (distance > MaxRangedAttackDistance || !hasSurveillance) return MonsterAttackAvailability.TooFar;
 
         bool hasWatchtower = city.Buildings.OfType<Watchtower>().Any(b => b.Level > 0);
         return hasWatchtower ? MonsterAttackAvailability.Available : MonsterAttackAvailability.RequiresWatchtower;

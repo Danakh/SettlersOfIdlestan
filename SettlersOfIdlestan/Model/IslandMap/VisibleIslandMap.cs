@@ -7,17 +7,18 @@ namespace SettlersOfIdlestan.Model.IslandMap;
 /// <summary>
 /// Island map filtered to the tiles visible to a civilization.
 /// A tile is visible when it touches one of the civilization's cities or roads.
-/// Cities with a Watchtower reveal hexes within a radius of 2 instead of 1.
+/// Cities with a Watchtower reveal hexes within a radius of 2 instead of 1 (3 with the
+/// Observatory's level 1 bonus).
 /// For roads, tiles touching either endpoint vertex are visible too.
 /// </summary>
 public class VisibleIslandMap : IslandMap
 {
-    public VisibleIslandMap(IslandMap sourceMap, CivilizationModel civilization)
-        : base(GetVisibleTiles(sourceMap, civilization), sourceMap.Z)
+    public VisibleIslandMap(IslandMap sourceMap, CivilizationModel civilization, bool watchtowerVisionBonus = false)
+        : base(GetVisibleTiles(sourceMap, civilization, watchtowerVisionBonus), sourceMap.Z)
     {
     }
 
-    private static IEnumerable<HexTile> GetVisibleTiles(IslandMap sourceMap, CivilizationModel civilization)
+    private static IEnumerable<HexTile> GetVisibleTiles(IslandMap sourceMap, CivilizationModel civilization, bool watchtowerVisionBonus)
     {
         if (sourceMap == null) throw new ArgumentNullException(nameof(sourceMap));
         if (civilization == null) throw new ArgumentNullException(nameof(civilization));
@@ -29,7 +30,8 @@ public class VisibleIslandMap : IslandMap
             if (!sourceMap.IsOnSameLayer(city.Position))
                 continue;
 
-            int radius = city.Buildings.Any(b => b.Type == BuildingType.Watchtower && b.Level > 0) ? 2 : 1;
+            bool hasWatchtower = city.Buildings.Any(b => b.Type == BuildingType.Watchtower && b.Level > 0);
+            int radius = hasWatchtower ? (watchtowerVisionBonus ? 3 : 2) : 1;
             AddVertexHexesWithRadius(visibleHexes, city.Position, radius);
         }
 

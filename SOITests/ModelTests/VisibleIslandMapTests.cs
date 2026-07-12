@@ -1,4 +1,5 @@
 using System.Linq;
+using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
@@ -8,6 +9,44 @@ namespace SOITests.ModelTests;
 
 public class VisibleIslandMapTests
 {
+    [Fact]
+    public void Constructor_WithWatchtower_ExposesRadius2ButNotRadius3()
+    {
+        var center = new HexCoord(0, 0, IslandMap.SurfaceLayer);
+        var ne = new HexCoord(0, 1, IslandMap.SurfaceLayer);
+        var nw = new HexCoord(-1, 1, IslandMap.SurfaceLayer);
+        var distance2 = new HexCoord(0, 2, IslandMap.SurfaceLayer);
+        var distance3 = new HexCoord(0, 3, IslandMap.SurfaceLayer);
+        var map = CreateMap(center, ne, nw, distance2, distance3);
+        var civilization = new Civilization();
+        var city = new City(Vertex.Create(center, ne, nw));
+        city.Buildings.Add(new Watchtower { Level = 1 });
+        civilization.AddCity(city);
+
+        var visibleMap = new VisibleIslandMap(map, civilization, watchtowerVisionBonus: false);
+
+        Assert.True(visibleMap.HasTile(distance2));
+        Assert.False(visibleMap.HasTile(distance3));
+    }
+
+    [Fact]
+    public void Constructor_WithWatchtowerAndObservatoryVisionBonus_ExposesRadius3()
+    {
+        var center = new HexCoord(0, 0, IslandMap.SurfaceLayer);
+        var ne = new HexCoord(0, 1, IslandMap.SurfaceLayer);
+        var nw = new HexCoord(-1, 1, IslandMap.SurfaceLayer);
+        var distance3 = new HexCoord(0, 3, IslandMap.SurfaceLayer);
+        var map = CreateMap(center, ne, nw, distance3);
+        var civilization = new Civilization();
+        var city = new City(Vertex.Create(center, ne, nw));
+        city.Buildings.Add(new Watchtower { Level = 1 });
+        civilization.AddCity(city);
+
+        var visibleMap = new VisibleIslandMap(map, civilization, watchtowerVisionBonus: true);
+
+        Assert.True(visibleMap.HasTile(distance3));
+    }
+
     [Fact]
     public void Constructor_WithCity_ExposesHexesTouchingCity()
     {

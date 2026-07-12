@@ -894,7 +894,7 @@
   "monument_bonus_wonder_next": "Prochain bonus (niv. {0}) : × {1} points de prestige",
   "monument_bonus_observatory_current": "Bonus actuel (niv. {0}) : +{1}% de prestige",
   "monument_bonus_observatory_next": "Prochain bonus (niv. {0}) : +{1}% de prestige",
-  "monument_bonus_observatory_watchtower_active": "Bonus actif : Tours de Guet, +1 portée d'attaque à distance",
+  "monument_bonus_observatory_watchtower_active": "Bonus actif : Tours de Guet, +1 portée de vue",
   "monument_bonus_observatory_maritime_beacon_active": "Bonus actif : Balises Maritimes constructibles",
   "monument_bonus_observatory_maritime_active": "Bonus actif : Balises Maritimes, prolongent les routes maritimes en pleine mer",
   "monument_bonus_observatory_tier_picker_active": "Bonus actif : choix du Tier de la prochaine île",
