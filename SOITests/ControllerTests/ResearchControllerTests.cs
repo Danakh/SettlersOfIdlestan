@@ -92,4 +92,48 @@ public class ResearchControllerTests
         Assert.True(boostedConsumed > baselineConsumed,
             $"La consommation devrait augmenter avec +15% RESEARCH_SPEED (base={baselineConsumed}, boost={boostedConsumed}).");
     }
+
+    [Fact]
+    public void CancelResearch_RefundsHalfOfInvestedPoints_AndClearsActiveResearch()
+    {
+        var civ = new Civilization { Index = 0 };
+        var city = new City(CityVertex) { CivilizationIndex = 0 };
+        civ.AddCity(city);
+
+        var state = new WorldState(MinimalMap(), [civ], AtlasController.InvalidIslandId);
+        var prestigeState = new PrestigeState(state);
+
+        var clock = new GameClock();
+        clock.Start();
+        var ctrl = new ResearchController();
+        ctrl.Initialize(state, clock, prestigeState);
+
+        prestigeState.TechnologyTree.ActiveResearch = TechnologyId.MasterResearch;
+        prestigeState.TechnologyTree.ActiveResearchConsumed = 40;
+        prestigeState.TechnologyTree.ResearchPoints = 10;
+
+        Assert.True(ctrl.CancelResearch());
+
+        Assert.Null(ctrl.ActiveResearch);
+        Assert.Equal(0, ctrl.ActiveResearchConsumed);
+        Assert.Equal(30, ctrl.ResearchPoints); // 10 restants + moitié des 40 investis (20)
+    }
+
+    [Fact]
+    public void CancelResearch_ReturnsFalse_WhenNoActiveResearch()
+    {
+        var civ = new Civilization { Index = 0 };
+        var city = new City(CityVertex) { CivilizationIndex = 0 };
+        civ.AddCity(city);
+
+        var state = new WorldState(MinimalMap(), [civ], AtlasController.InvalidIslandId);
+        var prestigeState = new PrestigeState(state);
+
+        var clock = new GameClock();
+        clock.Start();
+        var ctrl = new ResearchController();
+        ctrl.Initialize(state, clock, prestigeState);
+
+        Assert.False(ctrl.CancelResearch());
+    }
 }

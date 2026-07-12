@@ -5,6 +5,7 @@ using SettlersOfIdlestanSkia.Services.Localization;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Renderers.Debug;
 using SettlersOfIdlestanSkia.Renderers.Overlay;
+using SettlersOfIdlestanSkia.Renderers.Overlay.Popup;
 using SettlersOfIdlestanSkia.Services;
 using SkiaSharp;
 using System.Collections.Generic;
@@ -28,6 +29,11 @@ public sealed class ResearchRenderer : IGameRenderer
     private const float PanThresholdSq = 16f;
     private const float PanClampMargin = 100f;
 
+    private const float CancelBtnWidth = 90f;
+    private const float CancelBtnHeight = 22f;
+    private const double DoubleClickMaxMs = 400.0;
+    private const float DoubleClickMaxDist = 20f;
+
     private readonly GameControllerService _gameControllerService;
     private readonly LocalizationService _localization;
     private readonly InputHandlingService _inputService;
@@ -38,9 +44,15 @@ public sealed class ResearchRenderer : IGameRenderer
     private SKRect _contentBounds;
     private TechnologyId? _hoveredTechId;
     private bool _isHoveringHeader;
+    private bool _isHoveringCancelButton;
     private SKPoint _lastPointerPosition;
     private bool _disposed;
     public bool IsActive { get; set; }
+
+    private readonly ResearchCancelPopupRenderer _cancelPopup;
+    private SKRect _cancelButtonRect = SKRect.Empty;
+    private DateTime _lastNodeClickTime = DateTime.MinValue;
+    private SKPoint _lastNodeClickPosition;
 
     private float _zoom = 1f;
     private SKPoint _panOffset;
@@ -64,6 +76,8 @@ public sealed class ResearchRenderer : IGameRenderer
     private readonly SKPaint _activeLinePaint = new() { Color = new SKColor(80, 160, 80), StrokeWidth = 2f, Style = SKPaintStyle.Stroke, IsAntialias = true };
     private readonly SKPaint _textPaint = new() { Color = SKColors.White, IsAntialias = true };
     private readonly SKPaint _dimTextPaint = new() { Color = new SKColor(150, 150, 160), IsAntialias = true };
+    private readonly SKPaint _cancelBtnBgPaint = new() { Color = new SKColor(90, 35, 35), Style = SKPaintStyle.Fill, IsAntialias = true };
+    private readonly SKPaint _cancelBtnBorderPaint = new() { Color = new SKColor(180, 80, 80), StrokeWidth = 1.5f, Style = SKPaintStyle.Stroke, IsAntialias = true };
     private readonly SKFont _nameFont = new() { Size = 12, Typeface = SkiaFonts.Bold };
     private readonly SKFont _smallFont = new() { Size = 10, Typeface = SkiaFonts.Regular };
     private float _lastUiScale = 0f;
@@ -79,6 +93,8 @@ public sealed class ResearchRenderer : IGameRenderer
         _localization = localization;
         _inputService = inputService;
         _uiLayout = uiLayout;
+        _cancelPopup = new ResearchCancelPopupRenderer(localization,
+            onConfirm: () => _gameControllerService.MainGameController.ResearchController.CancelResearch());
         _inputService.PointerPressed += HandlePointerPressed;
         _inputService.PointerMoved += HandlePointerMoved;
         _inputService.PointerReleased += HandlePointerReleased;
@@ -93,6 +109,7 @@ public sealed class ResearchRenderer : IGameRenderer
         _pointerDown = false;
         _isPanning = false;
         ComputeNodeRects(canvasSize);
+        _cancelPopup.Initialize(canvasSize);
     }
 
     private void ComputeNodeRects(SKSize canvasSize)
@@ -179,6 +196,21 @@ public sealed class ResearchRenderer : IGameRenderer
             SkiaTextUtils.DrawText(canvas, rpLabel, PanelPadding, _topOffset + 24f, _nameFont, _textPaint);
         }
 
+        if (ctrl.ActiveResearch != null)
+        {
+            float btnX = _canvasSize.Width - PanelPadding - CancelBtnWidth;
+            float btnY = _topOffset + (HeaderHeight - CancelBtnHeight) / 2f;
+            _cancelButtonRect = new SKRect(btnX, btnY, btnX + CancelBtnWidth, btnY + CancelBtnHeight);
+            canvas.DrawRoundRect(_cancelButtonRect, 4, 4, _cancelBtnBgPaint);
+            canvas.DrawRoundRect(_cancelButtonRect, 4, 4, _cancelBtnBorderPaint);
+            string cancelLabel = _localization.Get("research_cancel_button");
+            SkiaTextUtils.DrawText(canvas, cancelLabel, _cancelButtonRect.MidX, _cancelButtonRect.MidY + 4f, SKTextAlign.Center, _smallFont, _textPaint);
+        }
+        else
+        {
+            _cancelButtonRect = SKRect.Empty;
+        }
+
         // Tooltip
         if (_hoveredTechId.HasValue)
         {
@@ -189,6 +221,11 @@ public sealed class ResearchRenderer : IGameRenderer
                 TooltipRenderUtils.DrawTooltip(canvas, _canvasSize, _lastPointerPosition, new[] { desc }, _tooltipFont, uiScale: _lastUiScale);
             }
         }
+        else if (_isHoveringCancelButton)
+        {
+            string tooltip = _localization.Get("tooltip_research_cancel");
+            TooltipRenderUtils.DrawTooltip(canvas, _canvasSize, _lastPointerPosition, new[] { tooltip }, _tooltipFont, uiScale: _lastUiScale);
+        }
         else if (_isHoveringHeader)
         {
             string tooltip = _localization.GetFormated(
@@ -198,6 +235,8 @@ public sealed class ResearchRenderer : IGameRenderer
                 ctrl.MaxResearchPoints);
             TooltipRenderUtils.DrawTooltip(canvas, _canvasSize, _lastPointerPosition, new[] { tooltip }, _tooltipFont, uiScale: _lastUiScale);
         }
+
+        _cancelPopup.Render(canvas, _canvasSize, context.UiScale);
     }
 
     /// <summary>Debug "carte complète" ou pouvoir divin Oeil de Dieu : révèle tout l'arbre de recherche.</summary>
@@ -301,6 +340,7 @@ public sealed class ResearchRenderer : IGameRenderer
 
     private void HandlePointerPressed(object? sender, PointerEventArgs e)
     {
+        if (_cancelPopup.IsOpen) { _cancelPopup.HandlePointerPressed(e.Position, e.Button); return; }
         if (!IsActive || e.Button != PointerButton.Left) return;
         _pointerDown = true;
         _isPanning = false;
@@ -310,7 +350,8 @@ public sealed class ResearchRenderer : IGameRenderer
 
     private void HandlePointerMoved(object? sender, PointerEventArgs e)
     {
-        if (!IsActive) { _hoveredTechId = null; _isHoveringHeader = false; return; }
+        if (_cancelPopup.IsOpen) return;
+        if (!IsActive) { _hoveredTechId = null; _isHoveringHeader = false; _isHoveringCancelButton = false; return; }
         _lastPointerPosition = e.Position;
 
         if (_pointerDown)
@@ -334,6 +375,8 @@ public sealed class ResearchRenderer : IGameRenderer
         }
 
         _hoveredTechId = null;
+        _isHoveringCancelButton = _cancelButtonRect != SKRect.Empty && _cancelButtonRect.Contains(e.Position.X, e.Position.Y);
+        if (_isHoveringCancelButton) { _isHoveringHeader = false; return; }
         _isHoveringHeader = e.Position.Y >= _topOffset && e.Position.Y <= _topOffset + HeaderHeight;
         if (_isHoveringHeader) return;
 
@@ -352,6 +395,7 @@ public sealed class ResearchRenderer : IGameRenderer
 
     private void HandlePointerReleased(object? sender, PointerEventArgs e)
     {
+        if (_cancelPopup.IsOpen) { _pointerDown = false; _isPanning = false; return; }
         if (!IsActive) { _pointerDown = false; _isPanning = false; return; }
         bool wasPanning = _isPanning;
         _pointerDown = false;
@@ -360,6 +404,14 @@ public sealed class ResearchRenderer : IGameRenderer
         if (wasPanning || e.Button != PointerButton.Left) return;
 
         var ctrl = _gameControllerService.MainGameController.ResearchController;
+
+        if (_cancelButtonRect != SKRect.Empty && _cancelButtonRect.Contains(e.Position.X, e.Position.Y))
+        {
+            if (ctrl.ActiveResearch != null)
+                _cancelPopup.Open(ctrl.GetCancelRefundAmount());
+            return;
+        }
+
         var contentPos = ToContentSpace(e.Position);
         foreach (var (techId, rect) in _nodeRects)
         {
@@ -367,7 +419,20 @@ public sealed class ResearchRenderer : IGameRenderer
             if (!rect.Contains(contentPos.X, contentPos.Y)) continue;
 
             var status = ctrl.GetStatus(techId);
-            if (status == TechnologyStatus.InProgress) return;
+            if (status == TechnologyStatus.InProgress)
+            {
+                double elapsed = (e.Timestamp - _lastNodeClickTime).TotalMilliseconds;
+                float dist = SKPoint.Distance(e.Position, _lastNodeClickPosition);
+                bool isDoubleClick = elapsed <= DoubleClickMaxMs && dist <= DoubleClickMaxDist;
+                _lastNodeClickTime = e.Timestamp;
+                _lastNodeClickPosition = e.Position;
+                if (isDoubleClick)
+                {
+                    _lastNodeClickTime = DateTime.MinValue;
+                    _cancelPopup.Open(ctrl.GetCancelRefundAmount());
+                }
+                return;
+            }
 
             if (ctrl.ActiveResearch == null)
             {
@@ -444,9 +509,12 @@ public sealed class ResearchRenderer : IGameRenderer
         _activeLinePaint.Dispose();
         _textPaint.Dispose();
         _dimTextPaint.Dispose();
+        _cancelBtnBgPaint.Dispose();
+        _cancelBtnBorderPaint.Dispose();
         _nameFont.Dispose();
         _smallFont.Dispose();
         _tooltipFont.Dispose();
+        _cancelPopup.Dispose();
         _disposed = true;
     }
 }
