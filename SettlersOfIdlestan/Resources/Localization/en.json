@@ -177,7 +177,7 @@
   "tooltip_requires_military_academy": "⚠ Requires a Military Academy in this city",
   "tooltip_requires_fairy_circle": "⚠ Must be built next to a discovered Fairy Circle",
   "tooltip_requires_adjacent_city": "⚠ Requires a city next to the Monument to invest",
-  "building_militaryacademy_name": "Military Academy",
+  "building_militaryacademy_name": "Garrison",
   "building_militaryacademy_desc": "Increases soldier capacity by +5 per level and soldier production speed by +25% per level.",
   "militaryacademy_stats": "+{0} max soldiers / +{1}% troop prod.",
   "building_traderguild_name": "Traders Guild",

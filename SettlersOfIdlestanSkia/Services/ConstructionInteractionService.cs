@@ -40,6 +40,7 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
     private int _cachedBeaconCount = -1;
     private int _cachedObservatoryLevel = -1;
     private int _cachedFleetAndCampCount = -1;
+    private bool _cachedMobileCampUnlocked;
 
     public ConstructionHoverState HoverState { get; private set; } = ConstructionHoverState.Empty;
 
@@ -203,9 +204,10 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
         int beaconCount = playerCiv?.MaritimeBeacons.Count ?? 0;
         int observatoryLevel = _gameControllerService.MainGameController.ObservatoryController.GetObservatoryLevel();
         int fleetAndCampCount = (playerCiv?.Fleets.Count ?? 0) + (playerCiv?.MobileCamps.Count ?? 0);
+        bool mobileCampUnlocked = _gameControllerService.IsMobileCampUnlockedForPlayer();
         if (_cachedBuildableVertices != null && cityCount == _cachedCityCount && roadCount == _cachedRoadCount
             && beaconCount == _cachedBeaconCount && observatoryLevel == _cachedObservatoryLevel
-            && fleetAndCampCount == _cachedFleetAndCampCount)
+            && fleetAndCampCount == _cachedFleetAndCampCount && mobileCampUnlocked == _cachedMobileCampUnlocked)
             return;
         _cachedBuildableVertices       = _gameControllerService.GetBuildableCityVerticesForPlayer();
         _cachedBuildableEdges          = _gameControllerService.GetBuildableRoadEdgesForPlayer();
@@ -218,6 +220,7 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
         _cachedBeaconCount = beaconCount;
         _cachedObservatoryLevel = observatoryLevel;
         _cachedFleetAndCampCount = fleetAndCampCount;
+        _cachedMobileCampUnlocked = mobileCampUnlocked;
     }
 
     private void RefreshHover(SKPoint screenPoint)
@@ -280,8 +283,8 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
         }
 
         // Camps mobiles : sur le réseau routier, là où un avant-poste ne peut pas être bâti (voir
-        // MobileCampController). Toujours survolable même sans la recherche, pour afficher l'infobulle
-        // du prérequis manquant.
+        // MobileCampController). Non proposé tant que la recherche MobileCampConstruction n'est pas
+        // active (potentialMobileCampVertices est vide dans ce cas — voir GetPotentialMobileCampVerticesForPlayer).
         Vertex? hoveredMobileCampVertex = null;
         if (hoveredVertex == null && hoveredBeaconVertex == null && hoveredFleetVertex == null && potentialMobileCampVertices.Any(v => v.Equals(nearestVertex)))
         {

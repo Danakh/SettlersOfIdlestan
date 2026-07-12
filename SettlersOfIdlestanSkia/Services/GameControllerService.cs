@@ -171,6 +171,9 @@ public class GameControllerService
 
     public List<Vertex> GetPotentialMobileCampVerticesForPlayer()
     {
+        if (!IsMobileCampUnlockedForPlayer())
+            return new List<Vertex>();
+
         var playerIndex = PlayerCivilizationIndex
             ?? throw new InvalidOperationException("La civilisation du joueur n'est pas disponible.");
 
