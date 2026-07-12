@@ -342,6 +342,8 @@ namespace SettlersOfIdlestan.Controller.Island
                     }
                     if (currentTick - smelter.LastProductionTick < GetEffectiveSmelterCooldown(civ, smelter)) continue;
 
+                    if (civ.GetResourceQuantity(Resource.Steel) >= civ.GetResourceMaxQuantity(Resource.Steel)) continue;
+
                     int oreInput = GetSmelterOreInput(civ);
                     if (civ.GetResourceQuantity(Resource.Ore) < oreInput)
                     {

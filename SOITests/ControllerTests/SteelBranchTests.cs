@@ -80,6 +80,60 @@ namespace SOITests.ControllerTests
             return (state, clock, city);
         }
 
+        private static (WorldState state, GameClock clock, City city)
+            CreateSmelterSetup(int smelterLevel, int initialOre, int initialWood, int initialSteel, int steelStorageCapacity)
+        {
+            var tiles = new List<HexTile>
+            {
+                new(Center, TerrainType.Plain),
+                new(NE,     TerrainType.Plain),
+                new(East,   TerrainType.Plain),
+                new(NE11,   TerrainType.Plain),
+            };
+            var map = new IslandMap(tiles);
+            var civ = new Civilization { Index = 0 };
+            civ.Resources[Resource.Ore] = initialOre;
+            civ.Resources[Resource.Wood] = initialWood;
+            civ.Resources[Resource.Steel] = initialSteel;
+            var vertex = Vertex.Create(NE, East, NE11);
+            var city = new City(vertex) { CivilizationIndex = 0 };
+            city.Buildings.Add(new Smelter { Level = smelterLevel });
+            civ.AddCity(city);
+            civ.SetStorageCapacityCache(1000, steelStorageCapacity);
+            var state = new WorldState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
+            var clock = new GameClock();
+            clock.Start();
+            new HarvestController(state, clock);
+            return (state, clock, city);
+        }
+
+        [Fact]
+        public void Smelter_SteelStorageFull_DoesNotConsumeOreOrWood()
+        {
+            var (state, clock, city) = CreateSmelterSetup(smelterLevel: 1, initialOre: 999, initialWood: 999, initialSteel: 10, steelStorageCapacity: 10);
+            var civ = state.Civilizations[0];
+
+            clock.SimulateAdvance(Smelter.ProductionCooldownTicks * 2);
+
+            Assert.Equal(999, civ.GetResourceQuantity(Resource.Ore));
+            Assert.Equal(999, civ.GetResourceQuantity(Resource.Wood));
+            Assert.Equal(10, civ.GetResourceQuantity(Resource.Steel));
+        }
+
+        [Fact]
+        public void Smelter_SteelStorageNotFull_ProducesAndConsumesInputs()
+        {
+            var (state, clock, city) = CreateSmelterSetup(smelterLevel: 1, initialOre: 999, initialWood: 999, initialSteel: 0, steelStorageCapacity: 10);
+            var civ = state.Civilizations[0];
+
+            // First Advanced tick only primes LastProductionTick (Smelter skips its first cycle), so allow one extra chunk.
+            clock.SimulateAdvance(Smelter.ProductionCooldownTicks + 100);
+
+            Assert.Equal(999 - Smelter.OreInputPerCycle, civ.GetResourceQuantity(Resource.Ore));
+            Assert.Equal(999 - Smelter.WoodInputPerCycle, civ.GetResourceQuantity(Resource.Wood));
+            Assert.Equal(Smelter.SteelOutputPerCycle, civ.GetResourceQuantity(Resource.Steel));
+        }
+
         // ── Armes/Armures en Acier — production par la Forge d'Armes / d'Armures ──
 
         [Fact]
