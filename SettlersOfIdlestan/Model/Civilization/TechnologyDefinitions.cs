@@ -476,6 +476,14 @@ public static class TechnologyDefinitions
             modifiers: new Modifier[] { new(ECategory.PRESTIGE_GAIN, EType.ADDITIVE, 0.15) },
             tier: 3, line: 10),
 
+        // Un tier au-dessus des Chroniques du Guet, qui est son seul prérequis.
+        new(TechnologyId.Diplomatie,
+            "tech_diplomatie_name", "tech_diplomatie_desc",
+            cost: 20000,
+            prerequisites: new[] { TechnologyId.ChroniquesDuGuet },
+            modifiers: new Modifier[] { new(ECategory.UNLOCK_CONTESTED_HARVEST, EType.ADDITIVE, 1) },
+            tier: 4, line: 10),
+
         new(TechnologyId.RenommeeCommerciale,
             "tech_renommee_commerciale_name", "tech_renommee_commerciale_desc",
             cost: 125000,

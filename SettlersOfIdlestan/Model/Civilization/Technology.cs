@@ -95,6 +95,8 @@ public enum TechnologyId
     ChroniquesDuGuet,
     RenommeeCommerciale,
     SagesseSouterraine,
+    // Un tier au-dessus des Chroniques du Guet (seul prérequis)
+    Diplomatie,
 }
 
 public enum TechnologyStatus

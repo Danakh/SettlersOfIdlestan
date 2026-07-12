@@ -303,7 +303,7 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay
             var tile = WorldState.GetMapForZ(coord.Z)?.GetTile(coord);
             var featuresAtCoord = WorldState.Features.Where(f => f.Position.Equals(coord));
             var featureTooltipEntries = featuresAtCoord.Select(f => f.GetTooltipEntry()).Where(e => e != null);
-            bool harvestBlockedByFeature = featuresAtCoord.Any(f => f.BlocksHarvest);
+            bool harvestBlockedByFeature = featuresAtCoord.Any(f => f.BlocksHarvestFor(WorldState.PlayerCivilization));
             bool plunderCooldownActive = WorldState.PlunderCooldownUntil.TryGetValue(coord, out var plunderUntil)
                 && currentTick < plunderUntil;
 

@@ -2,6 +2,7 @@ using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.Monsters;
 using SettlersOfIdlestan.Model.Localization;
+using SettlersOfIdlestan.Model.Civilization;
 using System.Text.Json.Serialization;
 
 namespace SettlersOfIdlestan.Model.IslandFeatures;
@@ -40,6 +41,20 @@ public abstract class IslandFeature
     /// True si cette feature bloque la récolte sur son hex.
     /// </summary>
     public virtual bool BlocksHarvest => false;
+
+    /// <summary>
+    /// True si cette feature bloque la récolte sur son hex pour la civilisation donnée.
+    /// Par défaut identique à <see cref="BlocksHarvest"/> ; les sous-classes peuvent lever le blocage
+    /// selon les modificateurs débloqués par la civilisation (ex. ContestedTerritory + Diplomatie).
+    /// </summary>
+    public virtual bool BlocksHarvestFor(SettlersOfIdlestan.Model.Civilization.Civilization civ) => BlocksHarvest;
+
+    /// <summary>
+    /// Multiplicateur appliqué au temps de récolte effectif sur l'hex portant cette feature
+    /// (1.0 = neutre, &gt;1 ralentit, &lt;1 accélère). Le civ est fourni pour permettre l'accès aux
+    /// modificateurs de prestige/technologie (ex. Corruption, Dominion).
+    /// </summary>
+    public virtual double GetHarvestTimeMultiplier(SettlersOfIdlestan.Model.Civilization.Civilization civ) => 1.0;
 
     public virtual bool CanMove => false;
 

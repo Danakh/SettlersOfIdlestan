@@ -2,6 +2,7 @@ using System.Text.Json.Serialization;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.Localization;
+using SettlersOfIdlestan.Model.Civilization;
 
 namespace SettlersOfIdlestan.Model.IslandFeatures;
 
@@ -18,6 +19,9 @@ public class Corruption : IslandFeature
 
     public override LocalizedEntry? GetTooltipEntry() =>
         new("hex_tooltip_corruption_info", new object[] { Level, (int)Math.Pow(2, Level) });
+
+    /// <summary>Double le temps de récolte par niveau de corruption (niv. 1 = ×2, niv. 2 = ×4, …).</summary>
+    public override double GetHarvestTimeMultiplier(SettlersOfIdlestan.Model.Civilization.Civilization civ) => Math.Pow(2, Level);
 
     public Corruption() { }
 

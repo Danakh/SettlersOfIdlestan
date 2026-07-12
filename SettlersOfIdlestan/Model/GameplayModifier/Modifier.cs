@@ -144,6 +144,8 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             UNLOCK_INTERMEDIATE_TRADE,
             /// <summary>Flags que la construction de l'Observatoire est déverrouillée pour la civilisation.</summary>
             UNLOCK_OBSERVATORY,
+            /// <summary>Flags que la récolte est possible sur les Territoires Contestés (à demi-vitesse, voir ContestedTerritory.GetHarvestTimeMultiplier).</summary>
+            UNLOCK_CONTESTED_HARVEST,
         }
 
         [JsonConverter(typeof(JsonStringEnumConverter<EType>))]

@@ -126,13 +126,13 @@ namespace SettlersOfIdlestan.Controller.Island
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[HarvestController] {nameof(PerformAlchimistHutCrystalProductions)}: {ex}"); }
         }
 
-        /// <summary>Bonus additif de vitesse de récolte apporté par le Dominion présent sur l'hex de récolte (base 0 si aucun bonus de prestige Dominion n'est débloqué).</summary>
-        private double GetDominionHarvestSpeedBonus(Civilization civ, HexCoord hex)
+        /// <summary>Multiplicateur combiné de temps de récolte apporté par toutes les features présentes sur l'hex (Corruption, Dominion, Territoire contesté…).</summary>
+        private double GetHexHarvestTimeMultiplier(Civilization civ, HexCoord hex)
         {
-            double perLevel = civ.ModifierAggregator.ApplyModifiers(ECategory.DOMINION_HARVEST_SPEED_PER_LEVEL, "", 0.0);
-            if (perLevel <= 0) return 0.0;
-            int level = _state!.GetFeaturesAt(hex).OfType<Dominion>().FirstOrDefault()?.Level ?? 0;
-            return perLevel * level;
+            double multiplier = 1.0;
+            foreach (var feature in _state!.GetFeaturesAt(hex))
+                multiplier *= feature.GetHarvestTimeMultiplier(civ);
+            return multiplier;
         }
 
         private void PerformAutomaticProductionHarvests()
@@ -148,32 +148,29 @@ namespace SettlersOfIdlestan.Controller.Island
 
                 // Mémoïse les vérifications dynamiques par hex pour éviter de les répéter par bâtiment
                 var hexBlocked = new System.Collections.Generic.Dictionary<HexCoord, bool>();
-                var hexCorruption = new System.Collections.Generic.Dictionary<HexCoord, int>();
+                var hexMultiplier = new System.Collections.Generic.Dictionary<HexCoord, double>();
                 System.Collections.Generic.Dictionary<(HexCoord, City), ResourceSet>? harvested = null;
 
                 foreach (var (hex, city, building, resource) in entries)
                 {
                     if (!hexBlocked.TryGetValue(hex, out bool blocked))
                     {
-                        blocked = _state.GetFeaturesAt(hex).Any(f => f.BlocksHarvest)
+                        blocked = _state.GetFeaturesAt(hex).Any(f => f.BlocksHarvestFor(civ))
                             || _monsterController?.HasDepartureCooldown(hex, now) == true;
                         hexBlocked[hex] = blocked;
                     }
                     if (blocked) continue;
 
-                    if (!hexCorruption.TryGetValue(hex, out int corruptionLevel))
+                    if (!hexMultiplier.TryGetValue(hex, out double featureMultiplier))
                     {
-                        var corruption = _state.GetFeaturesAt(hex).OfType<Corruption>().FirstOrDefault();
-                        corruptionLevel = corruption?.Level ?? 0;
-                        hexCorruption[hex] = corruptionLevel;
+                        featureMultiplier = GetHexHarvestTimeMultiplier(civ, hex);
+                        hexMultiplier[hex] = featureMultiplier;
                     }
 
                     long raw = building.GetAutomaticHarvestCooldown(AutomaticHarvestCooldownTicks);
                     double speedMultiplier = civ.ModifierAggregator.ApplyModifiers(ECategory.HARVEST_SPEED, building.Type.ToString(), 1.0);
-                    speedMultiplier += GetDominionHarvestSpeedBonus(civ, hex);
                     long effective = Math.Max(1L, (long)(raw / speedMultiplier));
-                    if (corruptionLevel > 0)
-                        effective = Math.Max(1L, (long)(effective * Math.Pow(2, corruptionLevel)));
+                    effective = Math.Max(1L, (long)(effective * featureMultiplier));
 
                     if (building.AutoHarvestLastTicks.TryGetValue(hex, out var lastBuildingTick) && now - lastBuildingTick < effective)
                         continue;
@@ -627,8 +624,7 @@ namespace SettlersOfIdlestan.Controller.Island
             if (tile == null) return System.Array.Empty<(Vertex, BuildingType, Resource, long, long)>();
 
             var result = new System.Collections.Generic.List<(Vertex, BuildingType, Resource, long, long)>();
-            var corruptionOnHex = _state.GetFeaturesAt(hex).OfType<Corruption>().FirstOrDefault();
-            int hexCorruptLevel = corruptionOnHex?.Level ?? 0;
+            double featureMultiplier = GetHexHarvestTimeMultiplier(civ, hex);
             foreach (var city in civ.Cities.Where(c => c.Position.IsAdjacentTo(hex)))
                 foreach (var building in city.Buildings)
                 {
@@ -636,10 +632,8 @@ namespace SettlersOfIdlestan.Controller.Island
                     if (!resource.HasValue) continue;
                     long raw = building.GetAutomaticHarvestCooldown(AutomaticHarvestCooldownTicks);
                     double speedMultiplier = civ.ModifierAggregator.ApplyModifiers(ECategory.HARVEST_SPEED, building.Type.ToString(), 1.0);
-                    speedMultiplier += GetDominionHarvestSpeedBonus(civ, hex);
                     long effective = Math.Max(1L, (long)(raw / speedMultiplier));
-                    if (hexCorruptLevel > 0)
-                        effective = Math.Max(1L, (long)(effective * Math.Pow(2, hexCorruptLevel)));
+                    effective = Math.Max(1L, (long)(effective * featureMultiplier));
                     building.AutoHarvestLastTicks.TryGetValue(hex, out var lastTick);
                     result.Add((city.Position, building.Type, resource.Value, lastTick, effective));
                 }
@@ -687,32 +681,29 @@ namespace SettlersOfIdlestan.Controller.Island
 
             var entries = GetOrBuildProductionCache(civilizationIndex);
             var hexAllowed = new System.Collections.Generic.Dictionary<HexCoord, bool>();
-            var hexCorruptionRate = new System.Collections.Generic.Dictionary<HexCoord, int>();
+            var hexMultiplier = new System.Collections.Generic.Dictionary<HexCoord, double>();
             long now = _clock?.CurrentTick ?? 0L;
 
             foreach (var (hex, city, building, resource) in entries)
             {
                 if (!hexAllowed.TryGetValue(hex, out bool allowed))
                 {
-                    allowed = !_state.GetFeaturesAt(hex).Any(f => f.BlocksHarvest)
+                    allowed = !_state.GetFeaturesAt(hex).Any(f => f.BlocksHarvestFor(civ))
                            && _monsterController?.HasDepartureCooldown(hex, now) != true;
                     hexAllowed[hex] = allowed;
                 }
                 if (!allowed) continue;
 
-                if (!hexCorruptionRate.TryGetValue(hex, out int corruptionLvl))
+                if (!hexMultiplier.TryGetValue(hex, out double featureMultiplier))
                 {
-                    var corruption = _state.GetFeaturesAt(hex).OfType<Corruption>().FirstOrDefault();
-                    corruptionLvl = corruption?.Level ?? 0;
-                    hexCorruptionRate[hex] = corruptionLvl;
+                    featureMultiplier = GetHexHarvestTimeMultiplier(civ, hex);
+                    hexMultiplier[hex] = featureMultiplier;
                 }
 
                 long raw = building.GetAutomaticHarvestCooldown(AutomaticHarvestCooldownTicks);
                 double speedMultiplier = civ.ModifierAggregator.ApplyModifiers(ECategory.HARVEST_SPEED, building.Type.ToString(), 1.0);
-                speedMultiplier += GetDominionHarvestSpeedBonus(civ, hex);
                 long effective = Math.Max(1L, (long)(raw / speedMultiplier));
-                if (corruptionLvl > 0)
-                    effective = Math.Max(1L, (long)(effective * Math.Pow(2, corruptionLvl)));
+                effective = Math.Max(1L, (long)(effective * featureMultiplier));
 
                 var forge = city.Buildings.OfType<Forge>().FirstOrDefault();
                 int forgeChance = forge != null && forge.Level > 0 ? forge.DoubleProdChancePercent + civ.ForgeDoubleHarvestBonus * forge.Level : 0;
@@ -785,16 +776,12 @@ namespace SettlersOfIdlestan.Controller.Island
             foreach (var (hex, city, building, resource) in GetOrBuildProductionCache(civilizationIndex))
             {
                 if (building.Type != BuildingType.MageTower || resource != Resource.Crystal) continue;
-                if (_state.GetFeaturesAt(hex).Any(f => f.BlocksHarvest)) continue;
+                if (_state.GetFeaturesAt(hex).Any(f => f.BlocksHarvestFor(civ))) continue;
 
                 long raw = building.GetAutomaticHarvestCooldown(AutomaticHarvestCooldownTicks);
                 double speedMultiplier = civ.ModifierAggregator.ApplyModifiers(ECategory.HARVEST_SPEED, building.Type.ToString(), 1.0);
-                speedMultiplier += GetDominionHarvestSpeedBonus(civ, hex);
                 long effective = Math.Max(1L, (long)(raw / speedMultiplier));
-
-                int corruptionLvl = _state.GetFeaturesAt(hex).OfType<Corruption>().FirstOrDefault()?.Level ?? 0;
-                if (corruptionLvl > 0)
-                    effective = Math.Max(1L, (long)(effective * Math.Pow(2, corruptionLvl)));
+                effective = Math.Max(1L, (long)(effective * GetHexHarvestTimeMultiplier(civ, hex)));
 
                 var forge = city.Buildings.OfType<Forge>().FirstOrDefault();
                 int forgeChance = forge != null && forge.Level > 0 ? forge.DoubleProdChancePercent + civ.ForgeDoubleHarvestBonus * forge.Level : 0;
@@ -843,7 +830,7 @@ namespace SettlersOfIdlestan.Controller.Island
 
             long now = _clock.CurrentTick;
 
-            if (_state.GetFeaturesAt(hex).Any(f => f.BlocksHarvest))
+            if (_state.GetFeaturesAt(hex).Any(f => f.BlocksHarvestFor(civ)))
                 return false;
             if (_monsterController?.HasDepartureCooldown(hex, now) == true)
                 return false;

@@ -165,7 +165,7 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
                     : worldState.Visibility.GetForZ(LayerState.UnderworldZ).TryGetValue(playerIdx, out var uvm) ? uvm : null;
                 if (underworldMap != null)
                 {
-                    var harvestBlockers = new HashSet<IslandFeature>(worldState.Features.Where(f => f.BlocksHarvest));
+                    var harvestBlockers = new HashSet<IslandFeature>(worldState.Features.Where(f => f.BlocksHarvestFor(worldState.PlayerCivilization)));
                     var uwCorruption = worldState.Features
                         .OfType<Corruption>()
                         .GroupBy(f => f.Position)
@@ -213,7 +213,7 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
                     var playerIdx = worldState.PlayerCivilization.Index;
                     worldState.HarvestLastTimesByCivilization.TryGetValue(playerIdx, out var manualTimes);
 
-                    var harvestBlockers = new HashSet<IslandFeature>(worldState.Features.Where(f => f.BlocksHarvest));
+                    var harvestBlockers = new HashSet<IslandFeature>(worldState.Features.Where(f => f.BlocksHarvestFor(worldState.PlayerCivilization)));
                     var featuresByPosition = worldState.Features
                         .Where(f => f.ShouldRenderIcon && (f.SvgIconResourceName != null || f.TextIcon != null))
                         .GroupBy(f => f.Position)
