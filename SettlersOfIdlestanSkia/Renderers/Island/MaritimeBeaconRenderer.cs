@@ -57,18 +57,6 @@ public class MaritimeBeaconRenderer : HexBasedRenderer, IGameRenderer
         _militaryScoreOverlay = militaryScoreOverlay;
     }
 
-    // Mêmes couleurs par civilisation que CityRenderer (noir réservé).
-    private static readonly SKColor[] CivilizationColors = new[]
-    {
-        new SKColor(220, 50,  50),
-        new SKColor(60,  100, 220),
-        new SKColor(50,  180, 50),
-        new SKColor(230, 180, 0),
-        new SKColor(180, 60,  220),
-        new SKColor(220, 130, 40),
-        new SKColor(0,   190, 190),
-        new SKColor(220, 100, 160),
-    };
 
     public void Initialize(SKSize canvasSize)
     {
@@ -103,7 +91,7 @@ public class MaritimeBeaconRenderer : HexBasedRenderer, IGameRenderer
 
         foreach (var civilization in worldState.Civilizations)
         {
-            var color = CivilizationColors[civilization.Index % CivilizationColors.Length];
+            var color = CivilizationColorPalette.GetColor(civilization.Index);
             _beaconPaint.Color = color;
             _fleetPaint!.Color = color;
 

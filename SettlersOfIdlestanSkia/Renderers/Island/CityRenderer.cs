@@ -59,19 +59,6 @@ public class CityRenderer : HexBasedRenderer, IGameRenderer
         IsAntialias = true
     };
 
-    // Couleurs pour les civilisations (noir réservé)
-    private static readonly SKColor[] CivilizationColors = new[]
-    {
-        new SKColor(220, 50,  50),  // Rouge    - Civ 0
-        new SKColor(60,  100, 220), // Bleu     - Civ 1
-        new SKColor(50,  180, 50),  // Vert     - Civ 2
-        new SKColor(230, 180, 0),   // Jaune    - Civ 3
-        new SKColor(180, 60,  220), // Violet   - Civ 4
-        new SKColor(220, 130, 40),  // Orange   - Civ 5
-        new SKColor(0,   190, 190), // Cyan     - Civ 6
-        new SKColor(220, 100, 160), // Rose     - Civ 7
-    };
-
     public CityRenderer(TooltipRenderer tooltipRenderer, ResourceManager resourceManager, MilitaryController militaryController, MilitaryScoreOverlay militaryScoreOverlay)
     {
         _tooltipRenderer = tooltipRenderer;
@@ -218,7 +205,7 @@ public class CityRenderer : HexBasedRenderer, IGameRenderer
             return;
 
         // Sélectionne la couleur de la civilisation
-        var color = CivilizationColors[civilization.Index % CivilizationColors.Length];
+        var color = CivilizationColorPalette.GetColor(civilization.Index);
 
         foreach (var city in cities)
         {

@@ -45,19 +45,6 @@ public class MobileCampRenderer : HexBasedRenderer, IGameRenderer
         IsAntialias = true
     };
 
-    // Mêmes couleurs par civilisation que CityRenderer/MaritimeBeaconRenderer (noir réservé).
-    private static readonly SKColor[] CivilizationColors = new[]
-    {
-        new SKColor(220, 50,  50),
-        new SKColor(60,  100, 220),
-        new SKColor(50,  180, 50),
-        new SKColor(230, 180, 0),
-        new SKColor(180, 60,  220),
-        new SKColor(220, 130, 40),
-        new SKColor(0,   190, 190),
-        new SKColor(220, 100, 160),
-    };
-
     public MobileCampRenderer(TooltipRenderer tooltipRenderer, MilitaryController militaryController, MilitaryScoreOverlay militaryScoreOverlay)
     {
         _tooltipRenderer = tooltipRenderer;
@@ -115,7 +102,7 @@ public class MobileCampRenderer : HexBasedRenderer, IGameRenderer
     {
         if (_campPaint == null || _borderPaint == null) return;
 
-        var color = CivilizationColors[civilization.Index % CivilizationColors.Length];
+        var color = CivilizationColorPalette.GetColor(civilization.Index);
         _campPaint.Color = color;
 
         foreach (var camp in camps)
