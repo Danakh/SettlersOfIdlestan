@@ -94,6 +94,13 @@ public abstract class IslandFeature
     /// </summary>
     public virtual LocalizedEntry? GetTooltipEntry() => null;
 
+    /// <summary>
+    /// Variante de <see cref="GetTooltipEntry()"/> tenant compte de la civilisation (ex. ContestedTerritory,
+    /// dont le message dépend des modificateurs débloqués par le joueur). Par défaut, identique à la version
+    /// sans civ.
+    /// </summary>
+    public virtual LocalizedEntry? GetTooltipEntry(SettlersOfIdlestan.Model.Civilization.Civilization civ) => GetTooltipEntry();
+
     protected IslandFeature(HexCoord position) => Position = position;
 
     protected IslandFeature() => Position = new HexCoord(0, 0, 0);

@@ -610,6 +610,7 @@
   "event_ritual_collapsed_title": "🔮 Rituel effondré !",
   "event_ritual_collapsed_body": "Faute de cristaux ou de Tours de Mages, un de vos rituels s'est effondré.",
   "hex_tooltip_contested": "⚔ Territoire disputé — aucune production",
+  "hex_tooltip_contested_diplomacy": "⚔ Territoire disputé — production à 50%",
   "hex_tooltip_corruption_info": "☠ Corruption (niv. {0}) — production divisée par {1}",
   "hex_tooltip_dominion_info": "✨ Dominion (niv. {0}) — accroît la vitesse de récolte de cet hex",
   "hex_tooltip_corruption_spire": "🌑 Spire de Corruption — investissez des ressources pour la construire",

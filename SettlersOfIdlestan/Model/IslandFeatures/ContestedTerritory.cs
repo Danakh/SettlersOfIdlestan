@@ -26,6 +26,11 @@ public class ContestedTerritory : IslandFeature
 
     public override LocalizedEntry? GetTooltipEntry() => new("hex_tooltip_contested");
 
+    public override LocalizedEntry? GetTooltipEntry(SettlersOfIdlestan.Model.Civilization.Civilization civ) =>
+        civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_CONTESTED_HARVEST)
+            ? new("hex_tooltip_contested_diplomacy")
+            : GetTooltipEntry();
+
     // Non utilisés (IsDiscoverable = false → jamais appelés par FeatureController)
     public override GameEventType DiscoveredEventType => GameEventType.NoEvent;
     public override GameEventType RemovedEventType => GameEventType.NoEvent;

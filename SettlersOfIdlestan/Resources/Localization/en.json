@@ -610,6 +610,7 @@
   "event_ritual_collapsed_title": "🔮 Ritual collapsed!",
   "event_ritual_collapsed_body": "Lacking crystals or Mage Towers, one of your rituals has collapsed.",
   "hex_tooltip_contested": "⚔ Contested territory — no production",
+  "hex_tooltip_contested_diplomacy": "⚔ Contested territory — 50% production",
   "hex_tooltip_corruption_info": "☠ Corruption (lvl. {0}) — production divided by {1}",
   "hex_tooltip_dominion_info": "✨ Dominion (lvl. {0}) — boosts harvest speed on this hex",
   "hex_tooltip_corruption_spire": "🌑 Corruption Spire — invest resources to build it",
