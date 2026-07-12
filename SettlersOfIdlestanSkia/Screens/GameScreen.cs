@@ -813,6 +813,10 @@ public sealed class GameScreen : IDisposable
                 _localizationService.Get("event_wonder_levelup_title"),
                 _localizationService.GetFormated("event_wonder_levelup_body", entry.Message ?? "?"),
                 NotificationIcon.Achievement),
+            GameEventType.ObservatoryLevelUp => (
+                _localizationService.Get("event_observatory_levelup_title"),
+                _localizationService.GetFormated("event_observatory_levelup_body", entry.Message ?? "?"),
+                NotificationIcon.Achievement),
             GameEventType.CivilizationDiscovered => (
                 _localizationService.Get("event_civilization_discovered_title"),
                 _localizationService.Get("event_civilization_discovered_body"),
@@ -841,6 +845,10 @@ public sealed class GameScreen : IDisposable
                 _localizationService.Get("event_raid_missing_barracks_title"),
                 _localizationService.Get("event_raid_missing_barracks_body"),
                 NotificationIcon.StoreFail),
+            GameEventType.CorruptionSpireBuilt => (
+                _localizationService.Get("event_corruption_spire_built_title"),
+                _localizationService.Get("event_corruption_spire_built_body"),
+                NotificationIcon.Achievement),
             GameEventType.AbyssGateEligible => (
                 _localizationService.Get("event_abyss_gate_eligible_title"),
                 _localizationService.Get("event_abyss_gate_eligible_body"),
