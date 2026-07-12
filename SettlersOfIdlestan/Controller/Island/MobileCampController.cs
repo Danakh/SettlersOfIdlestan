@@ -16,9 +16,10 @@ namespace SettlersOfIdlestan.Controller.Island
     /// de tout autre <see cref="IMilitaryVertex"/> de la même civilisation ; aucune restriction
     /// vis-à-vis des civilisations adverses. Il n'est proposé à la construction que là où un
     /// avant-poste classique ne peut pas être bâti (voir CityBuilderController.GetBuildableVertices),
-    /// et est détruit automatiquement dès qu'une ville — alliée ou ennemie — est construite à distance
-    /// &lt;= <see cref="CityProximityDestroyDistance"/> (voir DestroyCampsNear, appelé depuis
-    /// MainGameController sur CityBuilderController.OnCityBuilt).
+    /// et est détruit automatiquement dès qu'une ville de la même civilisation (alliée) est construite à
+    /// distance &lt;= <see cref="CityProximityDestroyDistance"/> (voir DestroyCampsNear, appelé depuis
+    /// MainGameController sur CityBuilderController.OnCityBuilt). Les villes ennemies n'affectent pas
+    /// les camps mobiles.
     /// </summary>
     public class MobileCampController
     {
@@ -147,16 +148,19 @@ namespace SettlersOfIdlestan.Controller.Island
         }
 
         /// <summary>
-        /// Détruit automatiquement tout Camp Mobile (de n'importe quelle civilisation) à distance
-        /// &lt;= CityProximityDestroyDistance d'une ville nouvellement construite. Appelé depuis
-        /// MainGameController sur CityBuilderController.OnCityBuilt.
+        /// Détruit automatiquement tout Camp Mobile de la même civilisation que la ville nouvellement
+        /// construite, à distance &lt;= CityProximityDestroyDistance de celle-ci (les camps des autres
+        /// civilisations ne sont pas affectés). Appelé depuis MainGameController sur
+        /// CityBuilderController.OnCityBuilt.
         /// </summary>
-        public void DestroyCampsNear(Vertex cityPosition)
+        public void DestroyCampsNear(Vertex cityPosition, int civilizationIndex)
         {
             if (_state == null) return;
 
             var campsToDestroy = _state.GetAllMobileCamps()
-                .Where(c => c.Position.Z == cityPosition.Z && c.Position.EdgeDistanceTo(cityPosition) <= CityProximityDestroyDistance)
+                .Where(c => c.CivilizationIndex == civilizationIndex
+                    && c.Position.Z == cityPosition.Z
+                    && c.Position.EdgeDistanceTo(cityPosition) <= CityProximityDestroyDistance)
                 .ToList();
 
             foreach (var camp in campsToDestroy)

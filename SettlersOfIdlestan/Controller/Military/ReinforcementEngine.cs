@@ -174,9 +174,7 @@ internal class ReinforcementEngine
 
             Vertex? newFlow = null;
             int capacity = vertex.MaxSoldiers;
-            if (capacity > 0
-                && vertex.Soldiers * 4 >= capacity
-                && _cityAttackEngine!.FindNearbyEnemyCity(vertex) == null)
+            if (capacity > 0 && vertex.Soldiers * 4 >= capacity)
             {
                 int z = vertex.Position.Z;
                 var adj = GetAdjacency(civ, z);

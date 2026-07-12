@@ -9,7 +9,7 @@ namespace SettlersOfIdlestan.Model.Civilization;
 /// >= 2 (arêtes) de tout autre <see cref="IMilitaryVertex"/> de la même civilisation ; aucune
 /// restriction vis-à-vis des civilisations adverses. N'est proposé à la construction que là où un
 /// avant-poste classique ne peut pas être bâti, et est détruit automatiquement dès qu'une ville
-/// (alliée ou ennemie) est construite à distance &lt;= 1.
+/// alliée (même civilisation) est construite à distance &lt;= 1. Les villes ennemies n'ont pas cet effet.
 /// </summary>
 [Serializable]
 public class MobileCamp : IMilitaryVertex

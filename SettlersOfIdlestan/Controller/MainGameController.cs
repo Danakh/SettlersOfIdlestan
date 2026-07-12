@@ -384,7 +384,7 @@ namespace SettlersOfIdlestan.Controller
         {
             FeatureController.RefreshContestedTerritories();
             HarvestController.InvalidateProductionCache();
-            MobileCampController.DestroyCampsNear(e.Position);
+            MobileCampController.DestroyCampsNear(e.Position, e.CivilizationIndex);
         }
 
         /// <summary>

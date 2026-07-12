@@ -225,32 +225,46 @@ public class MobileCampControllerTests
     }
 
     [Fact]
-    public void DestroyCampsNear_DestroysOnlyCampsWithinDistanceOne_RegardlessOfCivilization()
+    public void DestroyCampsNear_DestroysOwnCampWithinDistanceOne_ButNotFartherOwnCamp()
     {
         var (state, civ, v1, vMiddle, v2) = RibbonIsland();
-        var enemyCiv = new Civilization { Index = 1 };
-        state.Civilizations.Add(enemyCiv);
-        // vMiddle (distance 1 from v1) belongs to the enemy — must be destroyed too, no ownership restriction.
-        enemyCiv.AddMobileCamp(new MobileCamp(vMiddle) { CivilizationIndex = 1 });
-        // v2 (distance 2 from v1) belongs to the player — far enough to survive.
-        civ.AddMobileCamp(new MobileCamp(v2) { CivilizationIndex = 0 });
+        // vMiddle (distance 1 from v1) belongs to the player — must be destroyed.
+        civ.AddMobileCamp(new MobileCamp(vMiddle) { CivilizationIndex = 0 });
         var (_, campController) = Controllers(state);
 
-        campController.DestroyCampsNear(v1);
+        campController.DestroyCampsNear(v1, civilizationIndex: 0);
 
-        Assert.Empty(enemyCiv.MobileCamps);
-        Assert.Single(civ.MobileCamps);
+        Assert.Empty(civ.MobileCamps);
     }
 
     [Fact]
-    public void CityBuilt_DestroysNearbyMobileCamp_ViaOnCityBuiltEvent()
+    public void DestroyCampsNear_DoesNotDestroyEnemyCamp()
+    {
+        var (state, civ, v1, vMiddle, _) = RibbonIsland();
+        var enemyCiv = new Civilization { Index = 1 };
+        state.Civilizations.Add(enemyCiv);
+        // vMiddle (distance 1 from v1) belongs to the enemy — an allied city being built must not
+        // affect enemy Mobile Camps, only the building civilization's own camps.
+        enemyCiv.AddMobileCamp(new MobileCamp(vMiddle) { CivilizationIndex = 1 });
+        var (_, campController) = Controllers(state);
+
+        campController.DestroyCampsNear(v1, civilizationIndex: 0);
+
+        Assert.Single(enemyCiv.MobileCamps);
+    }
+
+    [Fact]
+    public void CityBuilt_DestroysNearbyOwnMobileCamp_ButNotEnemyCamp_ViaOnCityBuiltEvent()
     {
         // Mirrors the wiring done in MainGameController: CityBuilderController.OnCityBuilt triggers
-        // MobileCampController.DestroyCampsNear.
+        // MobileCampController.DestroyCampsNear for the building civilization's own camps only.
         var (state, civ, v1, vMiddle, _) = RibbonIsland();
+        var enemyCiv = new Civilization { Index = 1 };
+        state.Civilizations.Add(enemyCiv);
         civ.AddMobileCamp(new MobileCamp(vMiddle) { CivilizationIndex = 0 });
+        enemyCiv.AddMobileCamp(new MobileCamp(vMiddle) { CivilizationIndex = 1 });
         var (cityController, campController) = Controllers(state);
-        cityController.OnCityBuilt += (_, e) => campController.DestroyCampsNear(e.Position);
+        cityController.OnCityBuilt += (_, e) => campController.DestroyCampsNear(e.Position, e.CivilizationIndex);
         civ.SetStorageCapacityCache(1000, 1000);
         civ.AddResource(Resource.Brick, 10);
         civ.AddResource(Resource.Wood, 10);
@@ -259,6 +273,7 @@ public class MobileCampControllerTests
         cityController.BuildCity(0, v1);
 
         Assert.Empty(civ.MobileCamps);
+        Assert.Single(enemyCiv.MobileCamps);
     }
 
     [Fact]
