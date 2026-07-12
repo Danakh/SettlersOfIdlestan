@@ -152,7 +152,7 @@ public class MilitaryController
 
     // ── Initialisation ───────────────────────────────────────────────────────
 
-    internal void Initialize(WorldState? state, GameClock? clock, CityBuilderController? cityBuilderController = null, WarFleetController? warFleetController = null, GamePRNG? prng = null)
+    internal void Initialize(WorldState? state, GameClock? clock, CityBuilderController? cityBuilderController = null, WarFleetController? warFleetController = null, MobileCampController? mobileCampController = null, GamePRNG? prng = null)
     {
         if (_clock != null)
             _clock.Advanced -= OnClockAdvanced;
@@ -162,7 +162,7 @@ public class MilitaryController
 
         _productionEngine.Initialize(state);
         _monsterCombatEngine.Initialize(state, prng);
-        _cityAttackEngine.Initialize(state, cityBuilderController, warFleetController, prng);
+        _cityAttackEngine.Initialize(state, cityBuilderController, warFleetController, mobileCampController, prng);
         _reinforcementEngine.Initialize(state, _cityAttackEngine, _productionEngine);
         _raidEngine.Initialize(state, _cityAttackEngine, _reinforcementEngine, _monsterCombatEngine);
 

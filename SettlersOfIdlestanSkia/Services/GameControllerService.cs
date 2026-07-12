@@ -162,4 +162,39 @@ public class GameControllerService
 
         return _controller.WarFleetController.BuildWarFleet(playerIndex, vertex);
     }
+
+    public bool IsMobileCampUnlockedForPlayer()
+    {
+        var civ = PlayerCivilization;
+        return civ != null && _controller.MobileCampController.IsMobileCampUnlocked(civ);
+    }
+
+    public List<Vertex> GetPotentialMobileCampVerticesForPlayer()
+    {
+        var playerIndex = PlayerCivilizationIndex
+            ?? throw new InvalidOperationException("La civilisation du joueur n'est pas disponible.");
+
+        return _controller.MobileCampController.GetPotentialVertices(playerIndex);
+    }
+
+    public MobileCamp? TryBuildMobileCampForPlayer(Vertex vertex)
+    {
+        var playerIndex = PlayerCivilizationIndex
+            ?? throw new InvalidOperationException("La civilisation du joueur n'est pas disponible.");
+
+        return _controller.MobileCampController.BuildMobileCamp(playerIndex, vertex);
+    }
+
+    /// <summary>Détruit un Camp Mobile du joueur au vertex donné (double-clic). Ne fait rien si aucun camp du joueur ne s'y trouve.</summary>
+    public bool TryDestroyMobileCampForPlayer(Vertex vertex)
+    {
+        var playerIndex = PlayerCivilizationIndex;
+        if (playerIndex == null) return false;
+
+        var camp = CurrentWorldState?.FindMobileCampAt(vertex);
+        if (camp == null || camp.CivilizationIndex != playerIndex) return false;
+
+        _controller.MobileCampController.DestroyMobileCamp(camp);
+        return true;
+    }
 }

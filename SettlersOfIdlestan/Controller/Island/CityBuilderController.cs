@@ -150,6 +150,30 @@ namespace SettlersOfIdlestan.Controller.Island
         /// Flottes de Guerre live outside <see cref="Civilization.Cities"/> (see IMilitaryVertex) so they
         /// never enter these distance checks at all — no distance limit between a fleet and a city.
         /// </summary>
+        /// <summary>
+        /// Retourne tous les vertex touchant au moins une route de la civilisation, sans aucun autre
+        /// filtre (occupation, distance...). Sert de bassin de candidats à GetBuildableVertices ci-dessous,
+        /// et à MobileCampController pour proposer un Camp Mobile là où un avant-poste ne peut pas être bâti.
+        /// </summary>
+        public List<Vertex> GetRoadTouchingVertices(int civilizationIndex)
+        {
+            if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
+
+            var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex)
+                      ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
+
+            var vertices = new List<Vertex>();
+            foreach (var road in civ.Roads)
+            {
+                foreach (var v in road.Position.GetVertices())
+                {
+                    if (!vertices.Any(vr => vr.Equals(v)))
+                        vertices.Add(v);
+                }
+            }
+            return vertices;
+        }
+
         /// <param name="excludingCity">If set, this city is ignored by the same-civilization distance check —
         /// used for relocation, to test constructibility as if the city had not been placed yet.</param>
         public List<Vertex> GetBuildableVertices(int civilizationIndex, City? excludingCity = null)
@@ -171,16 +195,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 cached.BeaconCount == totalBeaconCount)
                 return cached.Vertices;
 
-            // Build vertex → touching roads map directly from the civilization's roads
-            var vertices = new List<Vertex>();
-            foreach (var road in civ.Roads)
-            {
-                foreach (var v in road.Position.GetVertices())
-                {
-                    if (!vertices.Any(vr => vr.Equals(v)))
-                        vertices.Add(v);
-                }
-            }
+            var vertices = GetRoadTouchingVertices(civilizationIndex);
 
             var occupiedVertices = new HashSet<Vertex>(_state.GetAllBuildVertices().Select(v => v.Position));
 

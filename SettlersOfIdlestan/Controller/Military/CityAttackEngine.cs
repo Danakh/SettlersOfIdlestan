@@ -20,15 +20,17 @@ internal class CityAttackEngine
     private WorldState? _state;
     private CityBuilderController? _cityBuilderController;
     private WarFleetController? _warFleetController;
+    private MobileCampController? _mobileCampController;
     private GamePRNG? _prng;
 
     private const int DefaultCityAttackRange = 3;
 
-    internal void Initialize(WorldState? state, CityBuilderController? cityBuilderController, WarFleetController? warFleetController = null, GamePRNG? prng = null)
+    internal void Initialize(WorldState? state, CityBuilderController? cityBuilderController, WarFleetController? warFleetController = null, MobileCampController? mobileCampController = null, GamePRNG? prng = null)
     {
         _state = state;
         _cityBuilderController = cityBuilderController;
         _warFleetController = warFleetController;
+        _mobileCampController = mobileCampController;
         _prng = prng;
     }
 
@@ -92,6 +94,8 @@ internal class CityAttackEngine
                 _cityBuilderController?.DestroyCity(city, CityDestructionCause.Combat);
             else if (vertex is WarFleet fleet)
                 _warFleetController?.DestroyFleet(fleet);
+            else if (vertex is MobileCamp camp)
+                _mobileCampController?.DestroyMobileCamp(camp);
         }
     }
 

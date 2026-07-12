@@ -34,10 +34,12 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
     private List<Edge>?   _cachedEnemyProtectedEdges;
     private List<Vertex>? _cachedBuildableBeaconVertices;
     private List<Vertex>? _cachedPotentialFleetVertices;
+    private List<Vertex>? _cachedPotentialMobileCampVertices;
     private int _cachedCityCount = -1;
     private int _cachedRoadCount = -1;
     private int _cachedBeaconCount = -1;
     private int _cachedObservatoryLevel = -1;
+    private int _cachedFleetAndCampCount = -1;
 
     public ConstructionHoverState HoverState { get; private set; } = ConstructionHoverState.Empty;
 
@@ -134,6 +136,20 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
                 return;
             }
 
+            if (HoverState.HoveredMobileCampVertex != null)
+            {
+                _gameControllerService.TryBuildMobileCampForPlayer(HoverState.HoveredMobileCampVertex);
+                RefreshHover(e.Position);
+                return;
+            }
+
+            if (HoverState.HoveredOwnMobileCampVertex != null)
+            {
+                _gameControllerService.TryDestroyMobileCampForPlayer(HoverState.HoveredOwnMobileCampVertex);
+                RefreshHover(e.Position);
+                return;
+            }
+
             if (HoverState.HoveredEdge != null && _gameControllerService.TryBuildRoadForPlayer(HoverState.HoveredEdge) != null)
             {
                 RefreshHover(e.Position);
@@ -186,18 +202,22 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
         int roadCount = playerCiv?.Roads.Count ?? 0;
         int beaconCount = playerCiv?.MaritimeBeacons.Count ?? 0;
         int observatoryLevel = _gameControllerService.MainGameController.ObservatoryController.GetObservatoryLevel();
+        int fleetAndCampCount = (playerCiv?.Fleets.Count ?? 0) + (playerCiv?.MobileCamps.Count ?? 0);
         if (_cachedBuildableVertices != null && cityCount == _cachedCityCount && roadCount == _cachedRoadCount
-            && beaconCount == _cachedBeaconCount && observatoryLevel == _cachedObservatoryLevel)
+            && beaconCount == _cachedBeaconCount && observatoryLevel == _cachedObservatoryLevel
+            && fleetAndCampCount == _cachedFleetAndCampCount)
             return;
         _cachedBuildableVertices       = _gameControllerService.GetBuildableCityVerticesForPlayer();
         _cachedBuildableEdges          = _gameControllerService.GetBuildableRoadEdgesForPlayer();
         _cachedEnemyProtectedEdges     = _gameControllerService.GetEnemyProtectedRoadEdgesForPlayer();
         _cachedBuildableBeaconVertices = _gameControllerService.GetBuildableMaritimeBeaconVerticesForPlayer();
         _cachedPotentialFleetVertices  = _gameControllerService.GetPotentialWarFleetVerticesForPlayer();
+        _cachedPotentialMobileCampVertices = _gameControllerService.GetPotentialMobileCampVerticesForPlayer();
         _cachedCityCount = cityCount;
         _cachedRoadCount = roadCount;
         _cachedBeaconCount = beaconCount;
         _cachedObservatoryLevel = observatoryLevel;
+        _cachedFleetAndCampCount = fleetAndCampCount;
     }
 
     private void RefreshHover(SKPoint screenPoint)
@@ -213,6 +233,7 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
         var enemyProtectedEdges = _cachedEnemyProtectedEdges!;
         var buildableBeaconVertices = _cachedBuildableBeaconVertices!;
         var potentialFleetVertices = _cachedPotentialFleetVertices!;
+        var potentialMobileCampVertices = _cachedPotentialMobileCampVertices!;
 
         var islandPoint = _renderer.ScreenToIsland(screenPoint, _cameraService.CanvasSize, _cameraService.ZoomLevel, _cameraService.Position);
 
@@ -220,6 +241,9 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
         var hoveredEnemyCityVertex = hoveredCityVertex == null ? GetHoveredEnemyCityVertex(islandPoint) : null;
         var hoveredOwnFleet = hoveredCityVertex == null && hoveredEnemyCityVertex == null ? GetHoveredOwnFleetVertex(islandPoint) : null;
         var hoveredEnemyFleet = hoveredOwnFleet == null && hoveredCityVertex == null && hoveredEnemyCityVertex == null ? GetHoveredEnemyFleetVertex(islandPoint) : null;
+        bool noPriorMilitaryHover = hoveredCityVertex == null && hoveredEnemyCityVertex == null && hoveredOwnFleet == null && hoveredEnemyFleet == null;
+        var hoveredOwnMobileCamp = noPriorMilitaryHover ? GetHoveredOwnMobileCampVertex(islandPoint) : null;
+        var hoveredEnemyMobileCamp = noPriorMilitaryHover && hoveredOwnMobileCamp == null ? GetHoveredEnemyMobileCampVertex(islandPoint) : null;
 
         Vertex? hoveredVertex = null;
         var nearestVertex = _renderer.IslandToNearestVertex(islandPoint, currentZ);
@@ -255,6 +279,19 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
             }
         }
 
+        // Camps mobiles : sur le réseau routier, là où un avant-poste ne peut pas être bâti (voir
+        // MobileCampController). Toujours survolable même sans la recherche, pour afficher l'infobulle
+        // du prérequis manquant.
+        Vertex? hoveredMobileCampVertex = null;
+        if (hoveredVertex == null && hoveredBeaconVertex == null && hoveredFleetVertex == null && potentialMobileCampVertices.Any(v => v.Equals(nearestVertex)))
+        {
+            var dist = SKPoint.Distance(islandPoint, _renderer.VertexToIslandPoint(nearestVertex));
+            if (dist <= VertexHoverRadius)
+            {
+                hoveredMobileCampVertex = nearestVertex;
+            }
+        }
+
         Edge? hoveredEdge = null;
         Edge? hoveredEnemyProtectedEdge = null;
         var nearestEdge = _renderer.IslandToNearestEdge(islandPoint, currentZ);
@@ -268,8 +305,10 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
         }
 
         HexCoord? hoveredHex = null;
-        if (hoveredVertex == null && hoveredBeaconVertex == null && hoveredFleetVertex == null && hoveredEdge == null && hoveredEnemyProtectedEdge == null
-            && hoveredCityVertex == null && hoveredEnemyCityVertex == null && hoveredOwnFleet == null && hoveredEnemyFleet == null)
+        if (hoveredVertex == null && hoveredBeaconVertex == null && hoveredFleetVertex == null && hoveredMobileCampVertex == null
+            && hoveredEdge == null && hoveredEnemyProtectedEdge == null
+            && hoveredCityVertex == null && hoveredEnemyCityVertex == null && hoveredOwnFleet == null && hoveredEnemyFleet == null
+            && hoveredOwnMobileCamp == null && hoveredEnemyMobileCamp == null)
         {
             var hexCoord = _renderer.IslandToHexCoord(islandPoint, currentZ);
             var (hx, hy) = _renderer.AxialToIsland(hexCoord.Q, hexCoord.R);
@@ -300,7 +339,11 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
             potentialFleetVertices,
             hoveredFleetVertex,
             hoveredOwnFleet,
-            hoveredEnemyFleet
+            hoveredEnemyFleet,
+            potentialMobileCampVertices,
+            hoveredMobileCampVertex,
+            hoveredOwnMobileCamp,
+            hoveredEnemyMobileCamp
         );
     }
 
@@ -434,6 +477,60 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
         return bestDistance <= 12f ? best : null;
     }
 
+    private Vertex? GetHoveredOwnMobileCampVertex(SKPoint islandPoint)
+    {
+        if (_renderer == null) return null;
+
+        var worldState = _gameControllerService.CurrentWorldState;
+        if (worldState == null) return null;
+
+        var playerIndex = worldState.PlayerCivilization.Index;
+        Vertex? best = null;
+        var bestDistance = float.MaxValue;
+
+        foreach (var camp in worldState.GetAllMobileCamps())
+        {
+            if (camp.CivilizationIndex != playerIndex) continue;
+
+            if (worldState.Visibility.GetForZ(worldState.CurrentViewedLayer).TryGetValue(playerIndex, out var visibleMap) &&
+                (camp.Position.Z != visibleMap.Z || !camp.Position.GetHexes().Any(visibleMap.HasTile)))
+                continue;
+
+            var pt = _renderer.VertexToIslandPoint(camp.Position);
+            var dist = SKPoint.Distance(islandPoint, pt);
+            if (dist < bestDistance) { bestDistance = dist; best = camp.Position; }
+        }
+
+        return bestDistance <= 12f ? best : null;
+    }
+
+    private Vertex? GetHoveredEnemyMobileCampVertex(SKPoint islandPoint)
+    {
+        if (_renderer == null) return null;
+
+        var worldState = _gameControllerService.CurrentWorldState;
+        if (worldState == null) return null;
+
+        var playerIndex = worldState.PlayerCivilization.Index;
+        Vertex? best = null;
+        var bestDistance = float.MaxValue;
+
+        if (!worldState.Visibility.GetForZ(worldState.CurrentViewedLayer).TryGetValue(playerIndex, out var visibleMap))
+            return null;
+
+        foreach (var camp in worldState.GetAllMobileCamps())
+        {
+            if (camp.CivilizationIndex == playerIndex) continue;
+            if (camp.Position.Z != visibleMap.Z || !camp.Position.GetHexes().Any(visibleMap.HasTile)) continue;
+
+            var pt = _renderer.VertexToIslandPoint(camp.Position);
+            var dist = SKPoint.Distance(islandPoint, pt);
+            if (dist < bestDistance) { bestDistance = dist; best = camp.Position; }
+        }
+
+        return bestDistance <= 12f ? best : null;
+    }
+
     private void SetSelectedCity(Vertex selectedCityVertex)
     {
         _monumentService?.ClearSelectedInvestable();
@@ -454,6 +551,7 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
         _cachedBuildableVertices = null;
         _cachedBuildableBeaconVertices = null;
         _cachedPotentialFleetVertices = null;
+        _cachedPotentialMobileCampVertices = null;
     }
 }
 
@@ -472,9 +570,13 @@ public readonly record struct ConstructionHoverState(
     IReadOnlyList<Vertex> BuildableFleetVertices,
     Vertex? HoveredFleetVertex,
     Vertex? HoveredOwnFleetVertex,
-    Vertex? HoveredEnemyFleetVertex)
+    Vertex? HoveredEnemyFleetVertex,
+    IReadOnlyList<Vertex> BuildableMobileCampVertices,
+    Vertex? HoveredMobileCampVertex,
+    Vertex? HoveredOwnMobileCampVertex,
+    Vertex? HoveredEnemyMobileCampVertex)
 {
     public static ConstructionHoverState Empty =>
-        new(Array.Empty<Vertex>(), Array.Empty<Edge>(), null, null, null, null, null, null, null, Array.Empty<Vertex>(), null, Array.Empty<Vertex>(), null, null, null);
+        new(Array.Empty<Vertex>(), Array.Empty<Edge>(), null, null, null, null, null, null, null, Array.Empty<Vertex>(), null, Array.Empty<Vertex>(), null, null, null, Array.Empty<Vertex>(), null, null, null);
 }
 

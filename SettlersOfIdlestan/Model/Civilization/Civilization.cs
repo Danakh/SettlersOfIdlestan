@@ -127,20 +127,41 @@ public class Civilization
     public void AddFleet(WarFleet fleet) => _fleets.Add(fleet);
     public void RemoveFleet(WarFleet fleet) => _fleets.Remove(fleet);
 
-    /// <summary>
-    /// Tous les emplacements militaires de la civilisation (villes et flottes) — voir IMilitaryVertex.
-    /// Utilisé par le système militaire pour traiter les deux types de façon uniforme.
-    /// </summary>
-    [JsonIgnore]
-    public IEnumerable<IMilitaryVertex> MilitaryVertices => Cities.Concat<IMilitaryVertex>(Fleets);
+    private List<MobileCamp> _mobileCamps = new();
 
     /// <summary>
-    /// Tous les emplacements construits par la civilisation (villes, flottes, balises) — voir
-    /// IBuildVertex. Utilisé pour vérifier de façon uniforme l'occupation d'un vertex.
+    /// Liste des Camps Mobiles de la civilisation — lecture seule ; utiliser AddMobileCamp /
+    /// RemoveMobileCamp pour muter.
+    /// </summary>
+    [JsonIgnore]
+    public IReadOnlyList<MobileCamp> MobileCamps => _mobileCamps;
+
+    [JsonPropertyName("MobileCamps")]
+    [JsonInclude]
+    public List<MobileCamp> MobileCampsSerialized
+    {
+        get => _mobileCamps;
+        private set => _mobileCamps = value ?? new();
+    }
+
+    public void AddMobileCamp(MobileCamp camp) => _mobileCamps.Add(camp);
+    public void RemoveMobileCamp(MobileCamp camp) => _mobileCamps.Remove(camp);
+
+    /// <summary>
+    /// Tous les emplacements militaires de la civilisation (villes, flottes et camps mobiles) — voir
+    /// IMilitaryVertex. Utilisé par le système militaire pour traiter les trois types de façon uniforme.
+    /// </summary>
+    [JsonIgnore]
+    public IEnumerable<IMilitaryVertex> MilitaryVertices =>
+        Cities.Concat<IMilitaryVertex>(Fleets).Concat<IMilitaryVertex>(MobileCamps);
+
+    /// <summary>
+    /// Tous les emplacements construits par la civilisation (villes, flottes, balises, camps mobiles) —
+    /// voir IBuildVertex. Utilisé pour vérifier de façon uniforme l'occupation d'un vertex.
     /// </summary>
     [JsonIgnore]
     public IEnumerable<IBuildVertex> BuildVertices =>
-        Cities.Concat<IBuildVertex>(Fleets).Concat<IBuildVertex>(MaritimeBeacons);
+        Cities.Concat<IBuildVertex>(Fleets).Concat<IBuildVertex>(MaritimeBeacons).Concat<IBuildVertex>(MobileCamps);
 
     private TechnologyTree _technologyTree = new();
 

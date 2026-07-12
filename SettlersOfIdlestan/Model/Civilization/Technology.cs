@@ -56,6 +56,9 @@ public enum TechnologyId
     TradeRoutes,
     ImprovedResearch,
     AdvancedStrategy,
+    // Débloque la construction du Camp Mobile — prend la place de RailLogistics dans l'arbre (voir
+    // TechnologyDefinitions).
+    MobileCampConstruction,
     AutomaticMarket,
     Speleologie,
     // Tier 5

@@ -158,6 +158,50 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay
             _tooltipScreenPosition = _islandRendererContext.IslandToScreen(islandPosition, _gameRenderContext.ZoomLevel, _gameRenderContext.CameraPosition);
         }
 
+        public void SetMobileCampConstructionTooltip(Vertex vertex)
+        {
+            if (_islandRendererContext == null || _gameRenderContext == null)
+                return;
+
+            if (_gameControllerService.IsMobileCampUnlockedForPlayer())
+            {
+                _tooltipTexts = new string[] { _localizationService.Get("mobile_camp_construction") };
+                _tooltipCost = MobileCampController.GetBuildCost();
+            }
+            else
+            {
+                _tooltipTexts = new string[] { _localizationService.Get("tooltip_requires_mobile_camp_construction") };
+                _tooltipCost = null;
+            }
+
+            var islandPosition = _islandRendererContext.VertexToIslandPoint(vertex);
+            _tooltipScreenPosition = _islandRendererContext.IslandToScreen(islandPosition, _gameRenderContext.ZoomLevel, _gameRenderContext.CameraPosition);
+        }
+
+        /// <summary>Infobulle affichée au survol d'un Camp Mobile déjà construit — voir <see cref="SetFleetTooltip"/> pour son équivalent Flotte de Guerre.</summary>
+        public void SetMobileCampTooltip(MobileCamp camp, bool isPlayerCamp, MilitaryController militaryController)
+        {
+            if (_islandRendererContext == null || _gameRenderContext == null) return;
+
+            var lines = new List<string>
+            {
+                isPlayerCamp ? _localizationService.Get("city_tooltip_own_mobile_camp") : _localizationService.Get("city_tooltip_enemy_mobile_camp")
+            };
+
+            int maxSoldiers = militaryController.GetMaximumSoldierCapacity(camp);
+            if (maxSoldiers > 0)
+                lines.Add(_localizationService.GetFormated("city_tooltip_soldiers", camp.Soldiers, maxSoldiers));
+
+            int maxDef = militaryController.GetDefenseScore(camp);
+            if (maxDef > 0)
+                lines.Add(_localizationService.GetFormated("city_tooltip_defense", camp.CurrentDefense, maxDef));
+
+            _tooltipTexts = lines.ToArray();
+            _tooltipCost = null;
+            var islandPos = _islandRendererContext.VertexToIslandPoint(camp.Position);
+            _tooltipScreenPosition = _islandRendererContext.IslandToScreen(islandPos, _gameRenderContext.ZoomLevel, _gameRenderContext.CameraPosition);
+        }
+
         public void SetCityTooltip(City city, Civilization? civ, bool isPlayerCity, MilitaryController militaryController, Vertex vertex)
         {
             if (_islandRendererContext == null || _gameRenderContext == null) return;

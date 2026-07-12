@@ -233,11 +233,17 @@ public static class TechnologyDefinitions
             modifiers: new Modifier[] { new(ECategory.RESEARCH_SPEED, EType.ADDITIVE, 0.2) },
             tier: 4, line: 6),
 
-        new(TechnologyId.AdvancedStrategy,
-            "tech_advanced_strategy_name", "tech_advanced_strategy_desc",
+        // Prend la place d'AdvancedStrategy dans l'arbre (AdvancedStrategy est repoussée plus loin,
+        // voir plus bas, avec MobileCampConstruction comme prérequis).
+        new(TechnologyId.RailLogistics,
+            "tech_rail_logistics_name", "tech_rail_logistics_desc",
             cost: 380000,
             prerequisites: new[] { TechnologyId.AdvancedTactics },
-            modifiers: new Modifier[] { new(ECategory.UNLOCK_AUTO_ATTACK, EType.ADDITIVE, 1) },
+            modifiers: new Modifier[]
+            {
+                new(ECategory.REINFORCEMENT_SPEED, EType.ADDITIVE, 1.0),
+                new(ECategory.REINFORCEMENT_RANGE, EType.ADDITIVE, 1),
+            },
             tier: 6, line: 8),
 
         // Prend la place de Rempart de Fer dans l'arbre : dépend désormais de lui (dépendance inversée).
@@ -305,16 +311,23 @@ public static class TechnologyDefinitions
             modifiers: new Modifier[] { new(ECategory.BUILDING_PRODUCTION, "Smelter", EType.ADDITIVE, 1) },
             tier: 6, line: 3),
 
-        new(TechnologyId.RailLogistics,
-            "tech_rail_logistics_name", "tech_rail_logistics_desc",
+        // Prend la place de RailLogistics dans l'arbre (voir plus haut). Débloque la construction du
+        // Camp Mobile (voir MobileCampController) — l'accès est vérifié directement sur la recherche
+        // complétée, comme ProspectionAvancee, plutôt que via un modificateur dédié.
+        new(TechnologyId.MobileCampConstruction,
+            "tech_mobile_camp_construction_name", "tech_mobile_camp_construction_desc",
             cost: 7200000,
-            prerequisites: new[] { TechnologyId.AdvancedStrategy },
-            modifiers: new Modifier[]
-            {
-                new(ECategory.REINFORCEMENT_SPEED, EType.ADDITIVE, 1.0),
-                new(ECategory.REINFORCEMENT_RANGE, EType.ADDITIVE, 1),
-            },
+            prerequisites: new[] { TechnologyId.WatchtowerConstruction, TechnologyId.RailLogistics },
+            modifiers: Array.Empty<Modifier>(),
             tier: 8, line: 8),
+
+        // Repoussée deux tiers au-dessus du Camp Mobile, qui devient son seul prérequis.
+        new(TechnologyId.AdvancedStrategy,
+            "tech_advanced_strategy_name", "tech_advanced_strategy_desc",
+            cost: 100000000,
+            prerequisites: new[] { TechnologyId.MobileCampConstruction },
+            modifiers: new Modifier[] { new(ECategory.UNLOCK_AUTO_ATTACK, EType.ADDITIVE, 1) },
+            tier: 10, line: 8),
 
         // === Branche de l'Inframonde (débloquée par les vertex de prestige du nord-ouest) ===
 

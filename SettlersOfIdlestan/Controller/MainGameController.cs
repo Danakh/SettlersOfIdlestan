@@ -30,6 +30,7 @@ namespace SettlersOfIdlestan.Controller
         public CityBuilderController CityBuilderController { get; private set; }
         public MaritimeBeaconController MaritimeBeaconController { get; private set; }
         public WarFleetController WarFleetController { get; private set; }
+        public MobileCampController MobileCampController { get; private set; }
         public PrestigeController PrestigeController { get; private set; }
         public PrestigeMapController PrestigeMapController { get; private set; }
         public ResearchController ResearchController { get; private set; }
@@ -81,6 +82,7 @@ namespace SettlersOfIdlestan.Controller
             CityBuilderController = new CityBuilderController();
             MaritimeBeaconController = new MaritimeBeaconController();
             WarFleetController = new WarFleetController();
+            MobileCampController = new MobileCampController();
             AtlasController = new AtlasController();
             PrestigeController = new PrestigeController();
             PrestigeMapController = new PrestigeMapController();
@@ -304,8 +306,9 @@ namespace SettlersOfIdlestan.Controller
                 CityBuilderController.Initialize(WorldState, Clock, CurrentMainState!.PRNG);
                 MaritimeBeaconController.Initialize(WorldState);
                 WarFleetController.Initialize(WorldState);
+                MobileCampController.Initialize(WorldState, CityBuilderController);
                 FeatureController.Initialize(WorldState, Clock);
-                MilitaryController.Initialize(WorldState, Clock, CityBuilderController, WarFleetController, CurrentMainState!.PRNG);
+                MilitaryController.Initialize(WorldState, Clock, CityBuilderController, WarFleetController, MobileCampController, CurrentMainState!.PRNG);
                 MonsterFeatureController.Initialize(WorldState, Clock, CurrentMainState!.PRNG, CityBuilderController);
                 VolcanoController.Initialize(WorldState, Clock, CurrentMainState!.PRNG, CityBuilderController);
                 TradeController.Initialize(WorldState);
@@ -381,6 +384,7 @@ namespace SettlersOfIdlestan.Controller
         {
             FeatureController.RefreshContestedTerritories();
             HarvestController.InvalidateProductionCache();
+            MobileCampController.DestroyCampsNear(e.Position);
         }
 
         /// <summary>

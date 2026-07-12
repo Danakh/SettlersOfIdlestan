@@ -280,7 +280,17 @@ public class WorldState : IJsonOnDeserialized
         return GetAllFleets().FirstOrDefault(f => f.Position.Equals(vertex));
     }
 
-    /// <summary>Tous les emplacements militaires (villes et flottes) de toutes les civilisations — voir IMilitaryVertex.</summary>
+    public IEnumerable<MobileCamp> GetAllMobileCamps()
+    {
+        return Civilizations.SelectMany(c => c.MobileCamps);
+    }
+
+    public MobileCamp? FindMobileCampAt(Vertex vertex)
+    {
+        return GetAllMobileCamps().FirstOrDefault(c => c.Position.Equals(vertex));
+    }
+
+    /// <summary>Tous les emplacements militaires (villes, flottes et camps mobiles) de toutes les civilisations — voir IMilitaryVertex.</summary>
     public IEnumerable<IMilitaryVertex> GetAllMilitaryVertices()
     {
         return Civilizations.SelectMany(c => c.MilitaryVertices);
