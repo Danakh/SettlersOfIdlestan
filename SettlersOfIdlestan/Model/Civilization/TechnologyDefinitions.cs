@@ -315,19 +315,19 @@ public static class TechnologyDefinitions
 
         new(TechnologyId.Volcanologie,
             "tech_volcanologie_name", "tech_volcanologie_desc",
-            cost: 400000,
-            prerequisites: new[] { TechnologyId.Siderurgie },
+            cost: 1600000,
+            prerequisites: new[] { TechnologyId.CartographieSouterraine },
             modifiers: new Modifier[] { new(ECategory.HARVEST_PRODUCTION_BONUS, "Mine", EType.ADDITIVE, 15) },
-            tier: 6, line: 2),
+            tier: 7, line: 2),
 
         // Débloque la Forge Volcanique (bâtiment unique, niveau max 3), constructible uniquement à
         // côté d'un volcan découvert (voir VolcanicForge.HasBuildPrerequisites).
         new(TechnologyId.VolcanicMetallurgy,
             "tech_volcanic_metallurgy_name", "tech_volcanic_metallurgy_desc",
-            cost: 2000000,
+            cost: 25000000,
             prerequisites: new[] { TechnologyId.Volcanologie },
             modifiers: new Modifier[] { new(ECategory.BUILDING_MAX_LEVEL, "VolcanicForge", EType.ADDITIVE, 3) },
-            tier: 7, line: 2),
+            tier: 9, line: 2),
 
         // Prend la place de RailLogistics dans l'arbre (voir plus haut). Débloque la construction du
         // Camp Mobile (voir MobileCampController) — l'accès est vérifié directement sur la recherche
@@ -402,7 +402,7 @@ public static class TechnologyDefinitions
             cost: 1600000,
             prerequisites: new[] { TechnologyId.CartographieSouterraine },
             modifiers: new Modifier[] { new(ECategory.UNDERWORLD_MONSTER_SPAWN_INTERVAL, EType.ADDITIVE, 0.75) },
-            tier: 7, line: 1),
+            tier: 7, line: 0),
 
         new(TechnologyId.OutilsEnMithril,
             "tech_outils_en_mithril_name", "tech_outils_en_mithril_desc",
@@ -535,7 +535,7 @@ public static class TechnologyDefinitions
         new(TechnologyId.SagesseSouterraine,
             "tech_sagesse_souterraine_name", "tech_sagesse_souterraine_desc",
             cost: 6000000,
-            prerequisites: new[] { TechnologyId.CultureFongique },
+            prerequisites: new[] { TechnologyId.VeilleSouterraine },
             modifiers: new Modifier[] { new(ECategory.PRESTIGE_GAIN, EType.ADDITIVE, 0.25) },
             tier: 8, line: 0),
 
