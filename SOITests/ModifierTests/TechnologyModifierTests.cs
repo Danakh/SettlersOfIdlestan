@@ -122,24 +122,24 @@ public class TechnologyModifierTests
         Assert.Equal(20, BuildAggregator(TechnologyId.StorageOptimization).ApplyModifiers(ECategory.STORAGE_CAPACITY_BASIC, "", 0));
     }
 
-    // ── RESEARCH_SPEED ────────────────────────────────────────────────────────
+    // ── RESEARCH_PRODUCTION_SPEED ────────────────────────────────────────────
 
     [Fact]
-    public void Archivage_ResearchSpeed_Plus0Point15()
+    public void Archivage_ResearchProductionSpeed_Plus0Point15()
     {
-        Assert.Equal(0.15, BuildAggregator(TechnologyId.Archivage).ApplyModifiers(ECategory.RESEARCH_SPEED, "", 0.0), 5);
+        Assert.Equal(0.15, BuildAggregator(TechnologyId.Archivage).ApplyModifiers(ECategory.RESEARCH_PRODUCTION_SPEED, "", 0.0), 5);
     }
 
     [Fact]
-    public void ImprovedResearch_ResearchSpeed_Plus0Point2()
+    public void ImprovedResearch_ResearchProductionSpeed_Plus0Point2()
     {
-        Assert.Equal(0.2, BuildAggregator(TechnologyId.ImprovedResearch).ApplyModifiers(ECategory.RESEARCH_SPEED, "", 0.0), 5);
+        Assert.Equal(0.2, BuildAggregator(TechnologyId.ImprovedResearch).ApplyModifiers(ECategory.RESEARCH_PRODUCTION_SPEED, "", 0.0), 5);
     }
 
     [Fact]
-    public void MasterResearch_ResearchSpeed_Plus0Point3()
+    public void MasterResearch_ResearchProductionSpeed_Plus0Point3()
     {
-        Assert.Equal(0.3, BuildAggregator(TechnologyId.MasterResearch).ApplyModifiers(ECategory.RESEARCH_SPEED, "", 0.0), 5);
+        Assert.Equal(0.3, BuildAggregator(TechnologyId.MasterResearch).ApplyModifiers(ECategory.RESEARCH_PRODUCTION_SPEED, "", 0.0), 5);
     }
 
     // ── MINE_GOLD_CHANCE_PERCENT ──────────────────────────────────────────────

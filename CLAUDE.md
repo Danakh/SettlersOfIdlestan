@@ -96,7 +96,7 @@ new(TechnologyId.MyTechnology,
     }),
 ```
 
-**Modifier categories:** `HARVEST_SPEED`, `RESEARCH_SPEED`, `BUILDING_MAX_LEVEL` (SubCategory = BuildingType name), `BUILDING_PRODUCTION`, `STORAGE_CAPACITY_BASIC/ADVANCED`, `TRADE_GOLD_PACKAGES`, `FORGE_DOUBLE_PROD_BONUS`, `MINE_GOLD_CHANCE_PERCENT`, `STARTING_CITY_BUILDING` / `NEW_CITY_BUILDING` (SubCategory = BuildingType), `CITY_DEFENSE`, `RESEARCH_COST_REDUCTION`, `UNLOCK_RESEARCH` (SubCategory = TechnologyId name).  
+**Modifier categories:** `HARVEST_SPEED`, `RESEARCH_PRODUCTION_SPEED` (point generation), `RESEARCH_INVESTMENT_SPEED` (consumption into active research), `BUILDING_MAX_LEVEL` (SubCategory = BuildingType name), `BUILDING_PRODUCTION`, `STORAGE_CAPACITY_BASIC/ADVANCED`, `TRADE_GOLD_PACKAGES`, `FORGE_DOUBLE_PROD_BONUS`, `MINE_GOLD_CHANCE_PERCENT`, `STARTING_CITY_BUILDING` / `NEW_CITY_BUILDING` (SubCategory = BuildingType), `CITY_DEFENSE`, `RESEARCH_COST_REDUCTION`, `UNLOCK_RESEARCH` (SubCategory = TechnologyId name).  
 **Modifier types:** `ADDITIVE`, `MULTIPLICATIVE`, `REPLACER`.
 
 ### 3. Localization — `fr.json` + `en.json`

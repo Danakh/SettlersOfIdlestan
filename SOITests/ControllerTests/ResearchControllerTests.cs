@@ -1,7 +1,9 @@
 using SettlersOfIdlestan.Controller.Expand;
 using SettlersOfIdlestan.Controller.Island;
+using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
+using SettlersOfIdlestan.Model.GameplayModifier;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Prestige;
@@ -48,12 +50,11 @@ public class ResearchControllerTests
     }
 
     /// <summary>
-    /// RESEARCH_SPEED (Académie, technologies, rituels, hex de prestige) doit accélérer
-    /// la consommation du stock de PR par la recherche active, pas seulement apparaître
-    /// dans les tooltips sans effet.
+    /// RESEARCH_INVESTMENT_SPEED (Académie) doit accélérer la consommation du stock de PR
+    /// par la recherche active, pas seulement apparaître dans les tooltips sans effet.
     /// </summary>
     [Fact]
-    public void ResearchSpeedModifier_SpeedsUpActiveResearchConsumption()
+    public void ResearchInvestmentSpeedModifier_SpeedsUpActiveResearchConsumption()
     {
         var civ = new Civilization { Index = 0 };
         var city = new City(CityVertex) { CivilizationIndex = 0 };
@@ -83,14 +84,53 @@ public class ResearchControllerTests
         clock.SimulateAdvance(ResearchController.ResearchConsumptionCooldownTicks);
         int baselineConsumed = ctrl.ActiveResearchConsumed - beforeBaseline;
 
-        // Archivage : +15% RESEARCH_SPEED
-        prestigeState.TechnologyTree.CompleteResearch(TechnologyId.Archivage);
+        // Académie niv.1 : +100% RESEARCH_INVESTMENT_SPEED
+        var academy = new Academy { Level = 1 };
+        civ.AddCustomAggregator(new StaticModifierProvider(academy.GetUniqueBuildingModifiers()));
         int beforeBoost = ctrl.ActiveResearchConsumed;
         clock.SimulateAdvance(ResearchController.ResearchConsumptionCooldownTicks);
         int boostedConsumed = ctrl.ActiveResearchConsumed - beforeBoost;
 
         Assert.True(boostedConsumed > baselineConsumed,
-            $"La consommation devrait augmenter avec +15% RESEARCH_SPEED (base={baselineConsumed}, boost={boostedConsumed}).");
+            $"La consommation devrait augmenter avec +100% RESEARCH_INVESTMENT_SPEED (base={baselineConsumed}, boost={boostedConsumed}).");
+    }
+
+    /// <summary>
+    /// RESEARCH_PRODUCTION_SPEED (technologies, rituels, hex de prestige) doit accélérer
+    /// la génération de points de recherche par les Bibliothèques, pas seulement apparaître
+    /// dans les tooltips sans effet.
+    /// </summary>
+    [Fact]
+    public void ResearchProductionSpeedModifier_SpeedsUpResearchPointGeneration()
+    {
+        var civ = new Civilization { Index = 0 };
+        var city = new City(CityVertex) { CivilizationIndex = 0 };
+        var library = new Library { Level = 1 };
+        city.Buildings.Add(library);
+        civ.AddCity(city);
+
+        var state = new WorldState(MinimalMap(), [civ], AtlasController.InvalidIslandId);
+        var prestigeState = new PrestigeState(state);
+        civ.TechnologyTree = prestigeState.TechnologyTree; // relie l'arbre partagé, comme en production
+
+        var clock = new GameClock();
+        clock.Start();
+        var ctrl = new ResearchController();
+        ctrl.Initialize(state, clock, prestigeState);
+
+        long cooldown = library.GetResearchCooldownTicks(); // 1000 ticks au niveau 1
+
+        // chunkTicks = ticks à chaque appel : un seul déclenchement de Advanced, sinon
+        // SimulateAdvance découpe par défaut en tranches de 100 ticks (voir GameClock).
+        clock.SimulateAdvance(cooldown, cooldown); // premier tick : initialise LastResearchTick (sentinel)
+        clock.SimulateAdvance(cooldown - 100, cooldown - 100); // écoulé = cooldown-100 : pas encore dû sans boost
+        Assert.Equal(0, ctrl.ResearchPoints);
+
+        // Archivage : +15% RESEARCH_PRODUCTION_SPEED → seuil effectif = cooldown / 1.15 ≈ 869
+        prestigeState.TechnologyTree.CompleteResearch(TechnologyId.Archivage);
+        clock.SimulateAdvance(50, 50); // écoulé total = cooldown-50 = 950 ≥ seuil effectif → doit déclencher
+
+        Assert.Equal(1, ctrl.ResearchPoints);
     }
 
     [Fact]

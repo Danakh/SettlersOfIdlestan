@@ -45,7 +45,8 @@ public class Academy : Building, IUniqueBuilding
     {
         if (Level <= 0) yield break;
 
-        yield return new Modifier(ECategory.RESEARCH_SPEED, EType.ADDITIVE, 0.25 * Level);
+        yield return new Modifier(ECategory.RESEARCH_PRODUCTION_SPEED, EType.ADDITIVE, 0.1 * Level);
+        yield return new Modifier(ECategory.RESEARCH_INVESTMENT_SPEED, EType.ADDITIVE, 1.0);
         yield return new Modifier(ECategory.RESEARCH_CANCEL_REFUND_BONUS, EType.ADDITIVE, Math.Min(0.5, 0.125 * Level));
     }
 }

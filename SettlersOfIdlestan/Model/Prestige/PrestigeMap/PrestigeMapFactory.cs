@@ -485,7 +485,7 @@ public static class PrestigeMapFactory
                 PrestigeMap.ResearchSpeedCoord,
                 "prestige_hex_research_speed",
                 adjacentVertices: Adjacent(PrestigeMap.ResearchSpeedCoord),
-                perVertexModifiers: new Modifier[] { new(ECategory.RESEARCH_SPEED, EType.ADDITIVE, 0.1) },
+                perVertexModifiers: new Modifier[] { new(ECategory.RESEARCH_PRODUCTION_SPEED, EType.ADDITIVE, 0.1) },
                 domain: PrestigeHexDomain.Explore
             ),
             // ── Outer hexes (each adjacent to one outer vertex only) ─────────

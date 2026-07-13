@@ -46,7 +46,7 @@ public static class RitualDefinitions
             baseLaunchCost: 5, baseUpkeepCost: 1,
             modifiersPerPower: new Modifier[]
             {
-                new(ECategory.RESEARCH_SPEED, EType.ADDITIVE, 0.15),
+                new(ECategory.RESEARCH_PRODUCTION_SPEED, EType.ADDITIVE, 0.15),
             }),
 
         // Inframonde — récoltes souterraines et trésors

@@ -268,7 +268,7 @@ public class PrestigeMapControllerTests
     }
 
     [Fact]
-    public void Apply_ResearchSpeedHex_AddsResearchSpeedModifier()
+    public void Apply_ResearchSpeedHex_AddsResearchProductionSpeedModifier()
     {
         var island = IslandTestFactory.CreateSevenHexIslandState();
         var prestige = new PrestigeState(island);
@@ -277,7 +277,7 @@ public class PrestigeMapControllerTests
         WireAggregator(island, prestige);
 
         var civ = island.PlayerCivilization;
-        Assert.Equal(1.1, civ.ResearchSpeed, 5);
+        Assert.Equal(1.1, civ.ResearchProductionSpeed, 5);
     }
 
     // ─── MaritimeRoutesVertex ────────────────────────────────────────────────

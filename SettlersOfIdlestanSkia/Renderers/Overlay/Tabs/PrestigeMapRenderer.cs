@@ -662,7 +662,8 @@ public sealed class PrestigeMapRenderer : IGameRenderer
                     else
                     {
                         bool isPct = mod.Category is Modifier.ECategory.HARVEST_SPEED
-                            or Modifier.ECategory.RESEARCH_SPEED
+                            or Modifier.ECategory.RESEARCH_PRODUCTION_SPEED
+                            or Modifier.ECategory.RESEARCH_INVESTMENT_SPEED
                             or Modifier.ECategory.UNIT_PRODUCTION_SPEED
                             or Modifier.ECategory.RESEARCH_COST_REDUCTION
                             or Modifier.ECategory.MARKET_GOLD_SPEED
@@ -702,7 +703,8 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         Modifier.ECategory.HARVEST_SPEED            => string.IsNullOrEmpty(mod.SubCategory)
             ? $"+{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_harvest_speed")}"
             : $"+{(int)(mod.Value * 100)}% {_localization.Get($"building_{mod.SubCategory.ToLower()}_name")} {_localization.Get("prestige_tooltip_harvest_speed")}",
-        Modifier.ECategory.RESEARCH_SPEED           => $"+{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_research_speed")}",
+        Modifier.ECategory.RESEARCH_PRODUCTION_SPEED  => $"+{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_research_production_speed")}",
+        Modifier.ECategory.RESEARCH_INVESTMENT_SPEED  => $"+{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_research_investment_speed")}",
         Modifier.ECategory.UNIT_PRODUCTION_SPEED    => $"+{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_unit_speed")}",
         Modifier.ECategory.RESEARCH_COST_REDUCTION  => $"-{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_research_cost")}",
         Modifier.ECategory.STORAGE_CAPACITY_BASIC    => $"+{(int)mod.Value} {_localization.Get("prestige_tooltip_storage_basic")}",

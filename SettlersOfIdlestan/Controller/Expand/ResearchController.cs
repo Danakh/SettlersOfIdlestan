@@ -74,12 +74,13 @@ namespace SettlersOfIdlestan.Controller.Expand
             if (tree.ResearchPoints >= MaxResearchPoints) return;
 
             long now = _clock.CurrentTick;
+            double productionSpeed = _state.PlayerCivilization.ResearchProductionSpeed;
             foreach (var city in _state.PlayerCivilization.Cities)
             {
                 var library = city.Buildings.OfType<Library>().FirstOrDefault();
                 if (library == null || !library.CanProduceResearch) continue;
 
-                long cooldown = library.GetResearchCooldownTicks();
+                long cooldown = Math.Max(1L, (long)(library.GetResearchCooldownTicks() / productionSpeed));
                 if (library.LastResearchTick == 0)
                 {
                     library.LastResearchTick = now;
@@ -96,7 +97,7 @@ namespace SettlersOfIdlestan.Controller.Expand
                 var lab = city.Buildings.OfType<Laboratory>().FirstOrDefault();
                 if (lab == null || lab.Level < 1 || lab.ActivationStatus != ActivationStatus.ACTIVE) continue;
 
-                long cooldown = lab.GetResearchCooldownTicks();
+                long cooldown = Math.Max(1L, (long)(lab.GetResearchCooldownTicks() / productionSpeed));
                 if (lab.LastResearchTick == 0)
                 {
                     lab.LastResearchTick = now;
@@ -139,7 +140,7 @@ namespace SettlersOfIdlestan.Controller.Expand
             var tech = TechnologyDefinitions.Get(techId);
             if (tech == null) { tree.ActiveResearch = null; return; }
 
-            double speed = _state.PlayerCivilization.ResearchSpeed;
+            double speed = _state.PlayerCivilization.ResearchInvestmentSpeed;
             int consumed = Math.Max(1, (int)(tree.ResearchPoints / 100.0 * speed));
             consumed = Math.Min(consumed, tree.ResearchPoints);
             tree.ResearchPoints -= consumed;
@@ -290,7 +291,7 @@ namespace SettlersOfIdlestan.Controller.Expand
         public (double percent, double perSecond) GetResearchConsumptionInfo()
         {
             if (Tree?.ActiveResearch == null || ResearchPoints <= 0) return (0, 0);
-            double speed = _state?.PlayerCivilization.ResearchSpeed ?? 1.0;
+            double speed = _state?.PlayerCivilization.ResearchInvestmentSpeed ?? 1.0;
             int consumed = Math.Max(1, (int)(ResearchPoints / 100.0 * speed));
             double perSecond = consumed * (100.0 / ResearchConsumptionCooldownTicks);
             double percent = consumed * 100.0 / ResearchPoints;
@@ -300,18 +301,19 @@ namespace SettlersOfIdlestan.Controller.Expand
         public double GetResearchPointsPerSecond()
         {
             if (_state == null) return 0.0;
+            double productionSpeed = _state.PlayerCivilization.ResearchProductionSpeed;
             double total = 0.0;
             foreach (var city in _state.PlayerCivilization.Cities)
             {
                 var library = city.Buildings.OfType<Library>().FirstOrDefault();
                 if (library == null || !library.CanProduceResearch) continue;
                 long cooldown = library.GetResearchCooldownTicks();
-                total += 100.0 / cooldown;
+                total += 100.0 / cooldown * productionSpeed;
 
                 var lab = city.Buildings.OfType<Laboratory>().FirstOrDefault();
                 if (lab == null || lab.Level < 1 || lab.ActivationStatus != ActivationStatus.ACTIVE) continue;
                 long labCooldown = lab.GetResearchCooldownTicks();
-                total += Laboratory.ResearchPointsPerBatch * 100.0 / labCooldown;
+                total += Laboratory.ResearchPointsPerBatch * 100.0 / labCooldown * productionSpeed;
             }
             return total;
         }

@@ -71,7 +71,7 @@ public static class TechnologyDefinitions
             "tech_archivage_name", "tech_archivage_desc",
             cost: 330,
             prerequisites: new[] { TechnologyId.Architecture },
-            modifiers: new Modifier[] { new(ECategory.RESEARCH_SPEED, EType.ADDITIVE, 0.15) },
+            modifiers: new Modifier[] { new(ECategory.RESEARCH_PRODUCTION_SPEED, EType.ADDITIVE, 0.15) },
             tier: 1, line: 6),
 
         new(TechnologyId.MilitaryBuildings,
@@ -230,7 +230,7 @@ public static class TechnologyDefinitions
             "tech_improved_research_name", "tech_improved_research_desc",
             cost: 22500,
             prerequisites: new[] { TechnologyId.ResearchMethods, TechnologyId.GrandArchitecture },
-            modifiers: new Modifier[] { new(ECategory.RESEARCH_SPEED, EType.ADDITIVE, 0.2) },
+            modifiers: new Modifier[] { new(ECategory.RESEARCH_PRODUCTION_SPEED, EType.ADDITIVE, 0.2) },
             tier: 4, line: 6),
 
         // Prend la place d'AdvancedStrategy dans l'arbre (AdvancedStrategy est repoussée plus loin,
@@ -270,7 +270,7 @@ public static class TechnologyDefinitions
             "tech_master_research_name", "tech_master_research_desc",
             cost: 1750000,
             prerequisites: new[] { TechnologyId.GreatLighthouseConstruction },
-            modifiers: new Modifier[] { new(ECategory.RESEARCH_SPEED, EType.ADDITIVE, 0.3) },
+            modifiers: new Modifier[] { new(ECategory.RESEARCH_PRODUCTION_SPEED, EType.ADDITIVE, 0.3) },
             tier: 7, line: 6),
 
         // Débloquée par le vertex de prestige Guilde des Marchands

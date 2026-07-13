@@ -13,7 +13,10 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             BUILDING_MAX_LEVEL,
             BUILDING_PRODUCTION,
             HARVEST_SPEED,
-            RESEARCH_SPEED,
+            /// <summary>Multiplicateur de vitesse de génération des points de recherche (Bibliothèque, Laboratoire). Base = 1.0.</summary>
+            RESEARCH_PRODUCTION_SPEED,
+            /// <summary>Multiplicateur de vitesse d'investissement des points de recherche dans la recherche active. Base = 1.0.</summary>
+            RESEARCH_INVESTMENT_SPEED,
             UNIT_PRODUCTION_SPEED,
             RESEARCH_COST_REDUCTION,
             STORAGE_CAPACITY_BASIC,

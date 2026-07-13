@@ -72,14 +72,14 @@ public class PrestigeHexModifierTests
         Assert.Equal(0.2, aggregator.ApplyModifiers(ECategory.HARVEST_SPEED, "", 0.0), 5);
     }
 
-    // ── ResearchSpeedCoord (1,0) — RESEARCH_SPEED "" +0.1 ───────────────────
+    // ── ResearchSpeedCoord (1,0) — RESEARCH_PRODUCTION_SPEED "" +0.1 ────────
     // Adjacent: Central, Barracks, Laboratory, Academy, MilitaryStrategy, Conscription
 
     [Fact]
-    public void ResearchSpeedHex_CentralVertex_ResearchSpeedPlus0Point1()
+    public void ResearchSpeedHex_CentralVertex_ResearchProductionSpeedPlus0Point1()
     {
         var aggregator = BuildAggregator(PrestigeMap.CentralVertex);
-        Assert.Equal(0.1, aggregator.ApplyModifiers(ECategory.RESEARCH_SPEED, "", 0.0), 5);
+        Assert.Equal(0.1, aggregator.ApplyModifiers(ECategory.RESEARCH_PRODUCTION_SPEED, "", 0.0), 5);
     }
 
     // ── UnitProductionSpeedCoord (1,-1) — UNIT_PRODUCTION_SPEED "" +0.1 ─────

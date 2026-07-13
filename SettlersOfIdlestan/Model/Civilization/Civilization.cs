@@ -268,10 +268,16 @@ public class Civilization
     }
 
     /// <summary>
-    /// Research speed multiplier. 1.0 = normal speed.
+    /// Research point production speed multiplier (Library/Laboratory generation). 1.0 = normal speed.
     /// </summary>
     [JsonIgnore]
-    public double ResearchSpeed => ModifierAggregator.ApplyModifiers(ECategory.RESEARCH_SPEED, "", 1.0);
+    public double ResearchProductionSpeed => ModifierAggregator.ApplyModifiers(ECategory.RESEARCH_PRODUCTION_SPEED, "", 1.0);
+
+    /// <summary>
+    /// Research point investment speed multiplier (consumption of stored points into active research). 1.0 = normal speed.
+    /// </summary>
+    [JsonIgnore]
+    public double ResearchInvestmentSpeed => ModifierAggregator.ApplyModifiers(ECategory.RESEARCH_INVESTMENT_SPEED, "", 1.0);
 
     /// <summary>
     /// Unit production speed multiplier. 1.0 = normal speed.
