@@ -37,7 +37,7 @@ namespace SettlersOfIdlestanSkia.Core
             {
                 float cw = 2 * textPadding;
                 foreach (var kvp in cost)
-                    cw += costIconSize + 3f * uiScale + font.MeasureText(kvp.Value.ToString()) + 8f * uiScale;
+                    cw += costIconSize + 3f * uiScale + font.MeasureText(SkiaTextUtils.FormatNumber(kvp.Value)) + 8f * uiScale;
                 width = Math.Max(width, cw);
             }
 
@@ -132,7 +132,7 @@ namespace SettlersOfIdlestanSkia.Core
                     }
                     iconX += costIconSize + 3f * uiScale;
 
-                    string numText = kvp.Value.ToString();
+                    string numText = SkiaTextUtils.FormatNumber(kvp.Value);
                     bool canAfford = resourceStockProvider != null && resourceStockProvider(kvp.Key) >= kvp.Value;
                     var numPaint = canAfford ? _tooltipAffordableCostPaint : _tooltipTextPaint;
                     SkiaTextUtils.DrawText(canvas, numText, iconX, rowY + (costRowHeight + font.Size) / 2f, font, numPaint);

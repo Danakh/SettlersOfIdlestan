@@ -270,7 +270,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             {
                 _prestigeButtonRect = BtnRect(btnIdx++);
                 canvas.DrawRoundRect(_prestigeButtonRect, 6 * s, 6 * s, prestigeAvail ? (_hoveredPrestige ? _btnHoverPaint : _btnPaint) : _btnDisabledPaint);
-                string prestigeLabel = $"{_localization.Get("prestige_action")} (+{prestigePoints})";
+                string prestigeLabel = $"{_localization.Get("prestige_action")} (+{SkiaTextUtils.FormatNumber(prestigePoints)})";
                 SkiaTextUtils.DrawText(canvas, prestigeLabel, _prestigeButtonRect.MidX, _prestigeButtonRect.MidY + 4f * s, SKTextAlign.Center, _btnSmFont, prestigeAvail ? TextPaint : _btnDisabledTxtPaint);
             }
 
@@ -423,7 +423,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             if (!HasPrestigeImperialPort())
                 lines.Add(_localization.Get("tooltip_prestige_no_imperial_port"));
             if (prestigePoints < PrestigeController.PrestigeRequiredPoints)
-                lines.Add(_localization.GetFormated("tooltip_prestige_not_enough_points", prestigePoints, PrestigeController.PrestigeRequiredPoints));
+                lines.Add(_localization.GetFormated("tooltip_prestige_not_enough_points", SkiaTextUtils.FormatNumber(prestigePoints), SkiaTextUtils.FormatNumber(PrestigeController.PrestigeRequiredPoints)));
             lines.Add(_localization.Get("tooltip_prestige_next_island"));
             _tooltipRenderer.SetTooltipLines(lines.ToArray(), new SKPoint(_prestigeButtonRect.Right, _prestigeButtonRect.Top));
         }

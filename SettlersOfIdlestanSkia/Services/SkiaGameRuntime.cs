@@ -100,6 +100,7 @@ public sealed class SkiaGameRuntime : IDisposable
 
         if (_demoMode) _titleSettings.DemoMode = true;
         _localizationService.SetLanguage(_titleSettings.Language);
+        SkiaTextUtils.NumberFormat = _titleSettings.NumberFormat;
 
         bool hasSave = !string.IsNullOrEmpty(autoJson);
         ShowTitleScreen(hasSave);
@@ -185,6 +186,7 @@ public sealed class SkiaGameRuntime : IDisposable
         _statsJson       = await _fileSystemService.LoadStats();
         _titleSettings   = ParseSettings(settingsJson) ?? ExtractSettings(autoJson);
         _localizationService!.SetLanguage(_titleSettings.Language);
+        SkiaTextUtils.NumberFormat = _titleSettings.NumberFormat;
         ShowTitleScreen(autoJson != null);
     }
 

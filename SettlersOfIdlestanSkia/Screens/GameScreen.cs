@@ -196,9 +196,16 @@ public sealed class GameScreen : IDisposable
         if (gameSettings != null)
         {
             if (isNewGame)
+            {
                 gameSettings.Language = _localizationService.CurrentLanguage;
+                // Hérite du choix fait sur l'écran-titre (le state d'une nouvelle partie a des settings par défaut).
+                gameSettings.NumberFormat = SkiaTextUtils.NumberFormat;
+            }
             else
+            {
                 _localizationService.SetLanguage(gameSettings.Language);
+                SkiaTextUtils.NumberFormat = gameSettings.NumberFormat;
+            }
         }
 
         _harvestService = new HarvestService(_gameControllerService);

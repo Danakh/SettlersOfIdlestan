@@ -186,7 +186,7 @@ public sealed class ResearchRenderer : IGameRenderer
         if (_gameControllerService.PlayerCivilization != null)
         {
             double rps = ctrl.GetResearchPointsPerSecond();
-            string rpBase = $"{_localization.Get("research_points_label")}: {ctrl.ResearchPoints}/{ctrl.MaxResearchPoints}";
+            string rpBase = $"{_localization.Get("research_points_label")}: {SkiaTextUtils.FormatNumber(ctrl.ResearchPoints)}/{SkiaTextUtils.FormatNumber(ctrl.MaxResearchPoints)}";
             string rpLabel = rps > 0
                 ? $"{rpBase} (+{rps.ToString("0.##")}/s)"
                 : rpBase;
@@ -230,9 +230,9 @@ public sealed class ResearchRenderer : IGameRenderer
         {
             string tooltip = _localization.GetFormated(
                 "tooltip_research_max_points",
-                ResearchController.BaseMaxResearchPoints,
-                ctrl.TotalResearchPointsInvested,
-                ctrl.MaxResearchPoints);
+                SkiaTextUtils.FormatNumber(ResearchController.BaseMaxResearchPoints),
+                SkiaTextUtils.FormatNumber(ctrl.TotalResearchPointsInvested),
+                SkiaTextUtils.FormatNumber(ctrl.MaxResearchPoints));
             TooltipRenderUtils.DrawTooltip(canvas, _canvasSize, _lastPointerPosition, new[] { tooltip }, _tooltipFont, uiScale: _lastUiScale);
         }
 
@@ -319,7 +319,7 @@ public sealed class ResearchRenderer : IGameRenderer
         else if (status == TechnologyStatus.InProgress)
         {
             var (consumed, total) = ctrl.GetResearchProgress(tech.Id);
-            subText = $"{consumed}/{total} PR";
+            subText = $"{SkiaTextUtils.FormatNumber(consumed)}/{SkiaTextUtils.FormatNumber(total)} PR";
         }
         else if (isQueued)
         {
@@ -328,7 +328,7 @@ public sealed class ResearchRenderer : IGameRenderer
         else
         {
             var (_, total) = ctrl.GetResearchProgress(tech.Id);
-            subText = $"{total} PR";
+            subText = $"{SkiaTextUtils.FormatNumber(total)} PR";
         }
         SkiaTextUtils.DrawText(canvas, subText, rect.MidX, rect.Top + 36f, SKTextAlign.Center, _smallFont, isQueued ? _queuedTextPaint : textPaint);
     }

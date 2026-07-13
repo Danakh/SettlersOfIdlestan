@@ -368,7 +368,7 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
 
         if (_textFont == null || _textPaint == null) return;
 
-        string label = $"{_localization.Get("research_points_label")}: {researchPoints}";
+        string label = $"{_localization.Get("research_points_label")}: {SkiaTextUtils.FormatNumber(researchPoints)}";
         float textY = BarHeight * s / 2 + _textFont.Size / 2 - 2 * s;
         SkiaTextUtils.DrawText(canvas, label, ResourceStartX, textY, _textFont, _textPaint);
     }
@@ -385,7 +385,7 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
         if (_textFont == null || _textPaint == null)
             return;
 
-        string label = $"{_localization.Get("prestige_points_label")}: {prestigePoints}";
+        string label = $"{_localization.Get("prestige_points_label")}: {SkiaTextUtils.FormatNumber(prestigePoints)}";
         float textY = BarHeight * s / 2 + _textFont.Size / 2 - 2 * s;
         SkiaTextUtils.DrawText(canvas, label, ResourceStartX, textY, _textFont, _textPaint);
     }
@@ -450,8 +450,8 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
         if (maxQuantity > 1000)
         {
             // Deux lignes : stock en haut, max en bas
-            string quantityText = FormatCompact(quantity);
-            string maxText = $"/{FormatCompact(maxQuantity)}";
+            string quantityText = SkiaTextUtils.FormatNumber(quantity);
+            string maxText = $"/{SkiaTextUtils.FormatNumber(maxQuantity)}";
 
             float textH = _smallFont.Size;
             float totalH = textH * 2 + 2f * s;
@@ -473,13 +473,6 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
             float textWidth = _smallFont.MeasureText(resourceValueText);
             SkiaTextUtils.DrawText(canvas, resourceValueText, x + rectW - textWidth - 4f * s, textY, _smallFont, qtyPaint);
         }
-    }
-
-    private static string FormatCompact(int n)
-    {
-        if (n >= 10000) return $"{n / 1000}k";
-        if (n >= 1000) return $"{n / 1000.0:0.#}k";
-        return n.ToString();
     }
 
     public Resource? GetResourceAtPoint(SKPoint point)

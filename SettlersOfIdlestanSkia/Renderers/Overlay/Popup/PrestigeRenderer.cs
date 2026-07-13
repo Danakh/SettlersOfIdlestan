@@ -117,7 +117,7 @@ public sealed class PrestigeRenderer : PopupRendererBase
         foreach (var source in sources.Take(maxVisibleSources))
         {
             SkiaTextUtils.DrawText(canvas, _localization.Get(source.LabelKey), popup.Left + Padding, y, BodyFont!, TextPaint);
-            SkiaTextUtils.DrawText(canvas, source.Points.ToString(), popup.Right - Padding, y, SKTextAlign.Right, BtnFont!, TextPaint);
+            SkiaTextUtils.DrawText(canvas, SkiaTextUtils.FormatNumber(source.Points), popup.Right - Padding, y, SKTextAlign.Right, BtnFont!, TextPaint);
             if (source.TooltipKey != null)
                 _hoverRects.Add((new SKRect(popup.Left, y - BodyFont!.Size, popup.Right, y + 6), new[] { source.TooltipKey }));
             y += SourceRowHeight;
@@ -217,7 +217,7 @@ public sealed class PrestigeRenderer : PopupRendererBase
         canvas.DrawLine(popup.Left + Padding, contentBottom - 86, popup.Right - Padding, contentBottom - 86, _separatorPaint);
         var total = controller.CalculatePrestigePoints();
         SkiaTextUtils.DrawText(canvas, _localization.Get("prestige_total"), popup.Left + Padding, contentBottom - 72, BtnFont!, TextPaint);
-        SkiaTextUtils.DrawText(canvas, total.ToString(), popup.Right - Padding, contentBottom - 72, SKTextAlign.Right, BtnFont!, TextPaint);
+        SkiaTextUtils.DrawText(canvas, SkiaTextUtils.FormatNumber(total), popup.Right - Padding, contentBottom - 72, SKTextAlign.Right, BtnFont!, TextPaint);
 
         // Tier de la prochaine île (Grand Phare niveau 3) — dans l'espace réservé sous le Total
         if (showTierPicker)

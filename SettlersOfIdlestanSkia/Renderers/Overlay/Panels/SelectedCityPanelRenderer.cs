@@ -247,7 +247,7 @@ public class SelectedCityPanelRenderer : PanelRendererBase
                             canvas.Restore();
                         }
                         iconX += costIconSize + 2f * s;
-                        string numText = kvp.Value.ToString();
+                        string numText = SkiaTextUtils.FormatNumber(kvp.Value);
                         bool canAfford = _cityBuildingService.GetSelectedCivilizationResourceQuantity(kvp.Key) >= kvp.Value;
                         var numPaint = canAfford ? _costAffordableTextPaint : _costTextPaint;
                         SkiaTextUtils.DrawText(canvas, numText, iconX, centerY + Font10!.Size / 2f, Font10, numPaint);

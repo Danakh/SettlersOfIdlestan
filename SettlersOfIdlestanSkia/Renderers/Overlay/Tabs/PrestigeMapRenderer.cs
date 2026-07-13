@@ -195,7 +195,7 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         canvas.Restore();
 
         canvas.DrawRect(new SKRect(0, _barH, _canvasSize.Width, _barH + HeaderHeight), _headerBgPaint);
-        string ppLabel = $"{_localization.Get("prestige_points_label")}: {prestigeState.PrestigePoints}";
+        string ppLabel = $"{_localization.Get("prestige_points_label")}: {SkiaTextUtils.FormatNumber(prestigeState.PrestigePoints)}";
         SkiaTextUtils.DrawText(canvas, ppLabel, 16f, _barH + 24f, _headerFont, _textWhitePaint);
         DrawToggleButtons(canvas);
 
@@ -618,7 +618,7 @@ public sealed class PrestigeMapRenderer : IGameRenderer
             }
             else
             {
-                lines.Add($"{_localization.Get("prestige_tooltip_cost")}: {vertex.Cost} pts");
+                lines.Add($"{_localization.Get("prestige_tooltip_cost")}: {SkiaTextUtils.FormatNumber(vertex.Cost)} pts");
             }
         }
 

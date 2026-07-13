@@ -52,6 +52,9 @@ public sealed class SettingsContentPanel : IDisposable
 
     private SKRect _btnFrench              = SKRect.Empty;
     private SKRect _btnEnglish             = SKRect.Empty;
+    private SKRect _btnNumFormatClassic    = SKRect.Empty;
+    private SKRect _btnNumFormatScientific = SKRect.Empty;
+    private SKRect _btnNumFormatEngineer   = SKRect.Empty;
     private SKRect _pauseToggleRect        = SKRect.Empty;
     private SKRect _particlesToggleRect    = SKRect.Empty;
     private SKRect _militaryStatsToggleRect = SKRect.Empty;
@@ -131,7 +134,7 @@ public sealed class SettingsContentPanel : IDisposable
         float btn2Left = rightEdge - btnW;
         float btn1Left = btn2Left - btnGap - btnW;
 
-        int   rowCount      = allowDebugMode ? 9 : 7;
+        int   rowCount      = allowDebugMode ? 10 : 8;
         float contentHeight = spacingY * rowCount + btnH;
 
         _needsScroll        = contentHeight > maxHeight;
@@ -198,19 +201,34 @@ public sealed class SettingsContentPanel : IDisposable
         _cloudSaveToggleRect = DrawToggleRow(canvas, x, row9Y, rightEdge,
             cloudLabel, settings.CloudSaveEnabled, _hoveredCloudSave, btnH, toggleW, toggleH, s, isDimmed: !cloudAvailable);
 
+        // Row 9 — Format des grands nombres (classique / scientifique / ingénieur)
+        float rowNumFormatY = y + spacingY * 8f;
+        float btn3Left = rightEdge - btnW;
+        float btn2LeftNf = btn3Left - btnGap - btnW;
+        float btn1LeftNf = btn2LeftNf - btnGap - btnW;
+        _btnNumFormatClassic    = new SKRect(btn1LeftNf, rowNumFormatY, btn1LeftNf + btnW, rowNumFormatY + btnH);
+        _btnNumFormatScientific = new SKRect(btn2LeftNf, rowNumFormatY, btn2LeftNf + btnW, rowNumFormatY + btnH);
+        _btnNumFormatEngineer   = new SKRect(btn3Left,   rowNumFormatY, btn3Left + btnW,   rowNumFormatY + btnH);
+        DrawRow(canvas, x, rowNumFormatY, localization.Get("settings_number_format"), btnH, s,
+        [
+            (_btnNumFormatClassic,    localization.Get("settings_number_format_classic"),     settings.NumberFormat == NumberFormatMode.Classic),
+            (_btnNumFormatScientific, localization.Get("settings_number_format_scientific"),  settings.NumberFormat == NumberFormatMode.Scientific),
+            (_btnNumFormatEngineer,   localization.Get("settings_number_format_engineering"), settings.NumberFormat == NumberFormatMode.Engineering),
+        ]);
+
         if (allowDebugMode)
         {
-            // Row 9 (debug uniquement) — Résolution de la fenêtre, appliquée à l'appui sur Entrée.
+            // Row 10 (debug uniquement) — Résolution de la fenêtre, appliquée à l'appui sur Entrée.
             // Tant que le champ n'a pas le focus, il reflète en continu la résolution actuelle de la fenêtre.
             if (!_debugResolutionFocused && currentResolution.Width > 0f && currentResolution.Height > 0f)
                 _debugResolutionText = $"{(int)MathF.Round(currentResolution.Width)}x{(int)MathF.Round(currentResolution.Height)}";
 
-            float row7Y = y + spacingY * 8f;
+            float row7Y = y + spacingY * 9f;
             _debugResolutionFieldRect = DrawTextInputRow(canvas, x, row7Y, rightEdge,
                 localization.Get("settings_debug_window_resolution"), _debugResolutionText, _debugResolutionFocused, btnH, s);
 
-            // Row 10 (debug uniquement) — Export PNG avec fond transparent plutôt que le fond opaque habituel.
-            float row8Y = y + spacingY * 9f;
+            // Row 11 (debug uniquement) — Export PNG avec fond transparent plutôt que le fond opaque habituel.
+            float row8Y = y + spacingY * 10f;
             _exportTransparentBgToggleRect = DrawToggleRow(canvas, x, row8Y, rightEdge,
                 localization.Get("settings_debug_export_transparent_bg"), DebugSettings.ExportTransparentBackground,
                 _hoveredExportTransparentBg, btnH, toggleW, toggleH, s);
@@ -399,6 +417,30 @@ public sealed class SettingsContentPanel : IDisposable
             _debugResolutionFocused = false;
             localization.SetLanguage(Language.English);
             settings.Language = Language.English;
+            return true;
+        }
+        if (_btnNumFormatClassic.Contains(pos.X, py))
+        {
+            _focusedUiScaleSlider   = false;
+            _debugResolutionFocused = false;
+            settings.NumberFormat = NumberFormatMode.Classic;
+            SkiaTextUtils.NumberFormat = settings.NumberFormat;
+            return true;
+        }
+        if (_btnNumFormatScientific.Contains(pos.X, py))
+        {
+            _focusedUiScaleSlider   = false;
+            _debugResolutionFocused = false;
+            settings.NumberFormat = NumberFormatMode.Scientific;
+            SkiaTextUtils.NumberFormat = settings.NumberFormat;
+            return true;
+        }
+        if (_btnNumFormatEngineer.Contains(pos.X, py))
+        {
+            _focusedUiScaleSlider   = false;
+            _debugResolutionFocused = false;
+            settings.NumberFormat = NumberFormatMode.Engineering;
+            SkiaTextUtils.NumberFormat = settings.NumberFormat;
             return true;
         }
         if (!_pauseToggleRect.IsEmpty && _pauseToggleRect.Contains(pos.X, py))

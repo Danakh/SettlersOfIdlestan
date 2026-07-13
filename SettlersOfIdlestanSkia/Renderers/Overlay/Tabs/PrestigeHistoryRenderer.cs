@@ -107,7 +107,7 @@ public sealed class PrestigeHistoryRenderer : IDisposable
         DrawStatCell(canvas, x + CardPadding, row1, _localization.Get("stats_island"), $"#{WorldId}", width / 4);
         DrawStatCell(canvas, x + width / 4, row1, _localization.Get("stats_playtime"), FormatTicks(tickDuration), width / 4);
         DrawStatCell(canvas, x + width / 2, row1, _localization.Get("stats_research"), totalResearch.ToString(), width / 4);
-        DrawStatCell(canvas, x + width * 3 / 4, row1, _localization.Get("stats_prestige_points"), prestigePoints.ToString(), width / 4);
+        DrawStatCell(canvas, x + width * 3 / 4, row1, _localization.Get("stats_prestige_points"), SkiaTextUtils.FormatNumber(prestigePoints), width / 4);
 
         DrawStatCell(canvas, x + CardPadding, row2, _localization.Get("stats_cities"), cityCount.ToString(), width / 4);
         DrawStatCell(canvas, x + width / 4, row2, _localization.Get("stats_buildings"), buildingCount.ToString(), width / 4);
@@ -155,7 +155,7 @@ public sealed class PrestigeHistoryRenderer : IDisposable
             DrawStatCell(canvas, x + CardPadding, row1, _localization.Get("stats_island"), $"#{run.WorldId}", width / 4);
             DrawStatCell(canvas, x + width / 4, row1, _localization.Get("stats_playtime"), FormatTicks(run.TickDuration), width / 4);
             DrawStatCell(canvas, x + width / 2, row1, _localization.Get("stats_research"), run.ResearchCompleted.ToString(), width / 4);
-            DrawStatCell(canvas, x + width * 3 / 4, row1, _localization.Get("stats_prestige_points"), run.PrestigePoints.ToString(), width / 4);
+            DrawStatCell(canvas, x + width * 3 / 4, row1, _localization.Get("stats_prestige_points"), SkiaTextUtils.FormatNumber(run.PrestigePoints), width / 4);
 
             DrawStatCell(canvas, x + CardPadding, row2, _localization.Get("stats_cities"), run.CityCount.ToString(), width / 4);
             DrawStatCell(canvas, x + width / 4, row2, _localization.Get("stats_buildings"), run.BuildingCount.ToString(), width / 4);

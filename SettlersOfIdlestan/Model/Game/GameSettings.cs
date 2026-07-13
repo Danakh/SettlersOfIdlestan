@@ -14,6 +14,7 @@ public class GameSettings
     public bool CloudSaveEnabled { get; set; } = true;
     public float UiScale { get; set; } = 1f;
     public MenuPosition ForceMenuPosition { get; set; } = MenuPosition.Auto;
+    public NumberFormatMode NumberFormat { get; set; } = NumberFormatMode.Classic;
 
     /// <summary>
     /// Clés des contrôles d'automatisation épinglés au panel de civilisation. Persiste entre les

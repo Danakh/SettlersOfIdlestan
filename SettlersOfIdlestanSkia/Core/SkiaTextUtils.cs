@@ -28,6 +28,93 @@ namespace SettlersOfIdlestanSkia.Core
 
     public static class SkiaTextUtils
     {
+        /// <summary>
+        /// Mode d'affichage des grands nombres, câblé depuis GameSettings.NumberFormat
+        /// (au chargement d'une partie et à chaque changement dans le panneau de paramètres).
+        /// </summary>
+        public static SettlersOfIdlestan.Model.Game.NumberFormatMode NumberFormat { get; set; }
+            = SettlersOfIdlestan.Model.Game.NumberFormatMode.Classic;
+
+        private static readonly string[] ClassicSuffixes = { "k", "M", "B", "T", "Qa", "Qi", "Sx", "Sp" };
+
+        /// <summary>
+        /// Formate un nombre selon le réglage d'affichage des grands nombres :
+        /// classique (1.5k, 12M…), scientifique (1.23e4…) ou ingénieur (12.3e3…).
+        /// Les valeurs inférieures à 1000 sont affichées telles quelles.
+        /// </summary>
+        public static string FormatNumber(double value)
+        {
+            if (double.IsNaN(value) || double.IsInfinity(value))
+                return value.ToString();
+
+            bool negative = value < 0;
+            double abs = Math.Abs(value);
+
+            string result;
+            if (abs < 1000)
+            {
+                result = abs.ToString("0.##");
+            }
+            else
+            {
+                result = NumberFormat switch
+                {
+                    SettlersOfIdlestan.Model.Game.NumberFormatMode.Scientific => FormatScientific(abs),
+                    SettlersOfIdlestan.Model.Game.NumberFormatMode.Engineering => FormatEngineering(abs),
+                    _ => FormatClassic(abs),
+                };
+            }
+
+            return negative ? "-" + result : result;
+        }
+
+        // Mantisse à 3 chiffres significatifs maximum : 1.23, 12.3, 123.
+        private static string FormatMantissa(double m)
+            => m < 10 ? m.ToString("0.##") : m < 100 ? m.ToString("0.#") : m.ToString("0");
+
+        private static string FormatClassic(double abs)
+        {
+            int tier = 0;
+            while (abs >= 1000 && tier < ClassicSuffixes.Length)
+            {
+                abs /= 1000.0;
+                tier++;
+            }
+            // L'arrondi de la mantisse peut repasser la barre des 1000 (ex. 999 999 → "1000k") :
+            // on monte alors d'un palier.
+            if (Math.Round(abs, 2) >= 1000 && tier < ClassicSuffixes.Length)
+            {
+                abs /= 1000.0;
+                tier++;
+            }
+            return FormatMantissa(abs) + ClassicSuffixes[tier - 1];
+        }
+
+        private static string FormatScientific(double abs)
+        {
+            int exp = (int)Math.Floor(Math.Log10(abs));
+            double mantissa = abs / Math.Pow(10, exp);
+            if (Math.Round(mantissa, 2) >= 10)
+            {
+                mantissa /= 10.0;
+                exp++;
+            }
+            return mantissa.ToString("0.##") + "e" + exp;
+        }
+
+        private static string FormatEngineering(double abs)
+        {
+            int exp = (int)Math.Floor(Math.Log10(abs));
+            int exp3 = exp - exp % 3;
+            double mantissa = abs / Math.Pow(10, exp3);
+            if (Math.Round(mantissa, 2) >= 1000)
+            {
+                mantissa /= 1000.0;
+                exp3 += 3;
+            }
+            return FormatMantissa(mantissa) + "e" + exp3;
+        }
+
         public static WrappedTextLayout MeasureWrappedText(
             string text,
             float maxWidth,
@@ -240,7 +327,7 @@ namespace SettlersOfIdlestanSkia.Core
 
         public static string computeCostString(LocalizationService localizationService, ResourceSet cost)
         {
-            return string.Join(" | ", cost.Select(kvp => $"{localizationService.Get($"resource_{kvp.Key.ToString().ToLower()}_short")}: {kvp.Value}"));
+            return string.Join(" | ", cost.Select(kvp => $"{localizationService.Get($"resource_{kvp.Key.ToString().ToLower()}_short")}: {FormatNumber(kvp.Value)}"));
         }
     }
 }
