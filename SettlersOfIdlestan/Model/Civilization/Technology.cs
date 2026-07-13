@@ -104,6 +104,9 @@ public enum TechnologyId
     SagesseSouterraine,
     // Un tier au-dessus des Chroniques du Guet (seul prérequis)
     Diplomatie,
+    // Branche de la Volcanologie (convergence Sidérurgie × risque volcanique)
+    Volcanologie,
+    VolcanicMetallurgy,
 }
 
 public enum TechnologyStatus

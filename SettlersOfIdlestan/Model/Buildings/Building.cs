@@ -172,6 +172,12 @@ public enum BuildingType
     /// combat les monstres errants ; un autre prend sa place à sa mort.
     /// </summary>
     AdventurersGuild,
+    /// <summary>
+    /// Forge Volcanique - Bâtiment unique. Génère du Verre passivement et augmente la production
+    /// de Minerai, d'Acier et de Mithril de la civilisation. Ne peut être construite qu'à côté d'un
+    /// volcan découvert. Débloquée par la recherche Métallurgie Volcanique.
+    /// </summary>
+    VolcanicForge,
 }
 
 /// <summary>

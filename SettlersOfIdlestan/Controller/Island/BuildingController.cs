@@ -497,6 +497,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 BuildingType.WeaponSmith => new WeaponSmith(),
                 BuildingType.ArmorSmith => new ArmorSmith(),
                 BuildingType.AdventurersGuild => new AdventurersGuild(),
+                BuildingType.VolcanicForge => new VolcanicForge(),
                 _ => null,
             };
         }

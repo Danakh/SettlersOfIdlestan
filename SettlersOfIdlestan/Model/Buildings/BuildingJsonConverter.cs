@@ -74,6 +74,7 @@ namespace SettlersOfIdlestan.Model.Buildings
                 BuildingType.WeaponSmith => typeof(WeaponSmith),
                 BuildingType.ArmorSmith => typeof(ArmorSmith),
                 BuildingType.AdventurersGuild => typeof(AdventurersGuild),
+                BuildingType.VolcanicForge => typeof(VolcanicForge),
                 _ => throw new JsonException($"Unknown building type: {bType}")
             };
 
