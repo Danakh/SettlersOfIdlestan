@@ -183,6 +183,13 @@ public class TimeControlRenderer : IDisposable
         SkiaTextUtils.DrawText(canvas, label, rect.MidX, textY, SKTextAlign.Center, _font, _textPaint);
     }
 
+    /// True if the point is over the bank display or one of the pause/play/fast buttons.
+    public bool ContainsPoint(SKPoint point) =>
+        _bankRect.Contains(point.X, point.Y)
+        || _pauseRect.Contains(point.X, point.Y)
+        || _playRect.Contains(point.X, point.Y)
+        || _fastRect.Contains(point.X, point.Y);
+
     private void HandlePointerMoved(object? sender, PointerEventArgs e)
     {
         if (_disposed) return;

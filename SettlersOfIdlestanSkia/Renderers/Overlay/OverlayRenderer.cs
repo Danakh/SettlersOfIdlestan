@@ -335,13 +335,24 @@ public sealed class OverlayRenderer : IGameRenderer
 
     public bool IsPointBlockedByUI(SKPoint point) =>
         IsAnyOverlayOpen
+        || !IsIslandTabActive
         || _selectedCityPanelRenderer.ContainsPoint(point)
         || _selectedMonumentPanelRenderer.ContainsPoint(point)
         || _playerCivPanel.ContainsPoint(point)
         || _zoomControl.ContainsPoint(point)
+        || _tabBar.ContainsPoint(point)
+        || _mapSwitchButton.ContainsPoint(point)
+        || _timeControlRenderer.ContainsPoint(point)
+        || GetGearRect().Contains(point.X, point.Y)
         || (_uiLayout.ResourcesOverflow && point.Y < _uiLayout.ResourceBarBottom);
 
     public bool IsIslandTabActive => _tabBar.ActiveTab == TabBarRenderer.TabIsland;
+
+    private SKRect GetGearRect()
+    {
+        bool gearInline = !_uiLayout.TimeSettingsOnSecondRow && !_uiLayout.ResourcesOnOwnRow;
+        return gearInline ? _playerResourcesOverlayRenderer.GearRect : _wrappedGearRect;
+    }
 
     private void HandlePointerMoved(object? sender, PointerEventArgs e)
     {
@@ -379,8 +390,7 @@ public sealed class OverlayRenderer : IGameRenderer
         if (_tradeRenderer.HandlePointerPressed(e.Position, e.Button))         return;
         if (e.Button != PointerButton.Left) return;
 
-        bool gearInline = !_uiLayout.TimeSettingsOnSecondRow && !_uiLayout.ResourcesOnOwnRow;
-        var gearRect = gearInline ? _playerResourcesOverlayRenderer.GearRect : _wrappedGearRect;
+        var gearRect = GetGearRect();
         if (gearRect != default && gearRect.Contains(e.Position.X, e.Position.Y))
         {
             _settingsMenu.HandleGearClick();

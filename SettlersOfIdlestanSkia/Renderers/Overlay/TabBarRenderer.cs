@@ -265,6 +265,14 @@ public sealed class TabBarRenderer : IDisposable
         SkiaTextUtils.DrawText(canvas, label, rect.MidX, rect.MidY + 5 * _uiLayout.UiScale, SKTextAlign.Center, _tabFont, textPaint);
     }
 
+    /// True if the point is over one of the tab buttons.
+    public bool ContainsPoint(SKPoint point)
+    {
+        foreach (var (_, rect) in _activeTabs)
+            if (rect.Contains(point.X, point.Y)) return true;
+        return false;
+    }
+
     /// Returns true if the click was on a tab (and consumed).
     public bool HandlePointerPressed(SKPoint point)
     {

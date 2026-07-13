@@ -366,6 +366,7 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
     private void HandlePointerPressed(object? sender, PointerEventArgs e)
     {
         if (e.Button != PointerButton.Left) return;
+        if (ShouldSuppressInput?.Invoke() == true) return;
 
         if (HandleCollapseTabPress(e.Position)) return;
         if (!IsInputEnabled) return;

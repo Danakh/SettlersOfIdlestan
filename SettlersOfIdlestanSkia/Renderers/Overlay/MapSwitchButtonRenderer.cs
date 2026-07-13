@@ -76,6 +76,9 @@ public sealed class MapSwitchButtonRenderer : IDisposable
         SkiaTextUtils.DrawText(canvas, corruptionLabel, _buttonRect.MidX, _buttonRect.MidY + 13f * s, SKTextAlign.Center, _corruptionFont, textPaint);
     }
 
+    /// True if the point is over the button.
+    public bool ContainsPoint(SKPoint point) => _buttonRect != default && _buttonRect.Contains(point.X, point.Y);
+
     /// Returns true if the click was consumed.
     /// <paramref name="onSwitchedToUnderworld"/> is called when the layer switches to underworld.
     public bool HandlePointerPressed(SKPoint point, Action onSwitchedToUnderworld)

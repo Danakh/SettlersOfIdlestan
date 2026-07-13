@@ -44,6 +44,9 @@ public sealed class MilitaryInteractionService
     /// <summary>True pendant ou juste après un drag (pour suppression de la sélection de cité).</summary>
     public bool ShouldSuppressConstruction => _activeDragSourceCity != null || _wasDragging;
 
+    /// <summary>Prédicat externe (ex: clic sous un panneau UI) empêchant le déclenchement d'une interaction militaire.</summary>
+    public Func<SKPoint, bool>? ShouldSuppressInteraction { get; set; }
+
     public MilitaryInteractionService(
         GameControllerService gameControllerService,
         MilitaryController militaryController,
@@ -136,6 +139,7 @@ public sealed class MilitaryInteractionService
     private void OnPointerPressed(object? sender, PointerEventArgs e)
     {
         if (e.Button != PointerButton.Left) return;
+        if (ShouldSuppressInteraction?.Invoke(e.Position) == true) return;
         _wasDragging = false;
         DragCurrentScreenPoint = e.Position;
         DragTargetCity = null;

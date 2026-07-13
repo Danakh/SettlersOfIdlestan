@@ -337,6 +337,13 @@ public sealed class GameScreen : IDisposable
             || (_targetSelectionService.IsActive)
             || (_militaryInteractionService.ShouldSuppressConstruction);
 
+        _militaryInteractionService.ShouldSuppressInteraction = pos =>
+            (_overlayRenderer.IsPointBlockedByUI(pos))
+            || (_targetSelectionService.IsActive);
+
+        selectedCityPanelRenderer.ShouldSuppressInput    = () => _overlayRenderer.IsAnyOverlayOpen;
+        selectedMonumentPanelRenderer.ShouldSuppressInput = () => _overlayRenderer.IsAnyOverlayOpen;
+
         if (allowDebugMode)
         {
             _renderService.RegisterRenderer(new DebugOverlayRenderer(_inputService, _cameraService, islandMainRenderer, _localizationService));

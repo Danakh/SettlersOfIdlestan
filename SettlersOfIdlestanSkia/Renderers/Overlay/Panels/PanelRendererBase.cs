@@ -41,6 +41,10 @@ public abstract class PanelRendererBase : IGameRenderer
     public float TopOverride { get; set; }
     public bool IsInputEnabled { get; set; } = true;
 
+    /// Prédicat externe (ex: un dropdown/popup dessiné par-dessus ce panneau est ouvert) empêchant
+    /// ce panneau de traiter les clics/survols qui lui parviennent malgré tout via l'événement partagé.
+    public Func<bool>? ShouldSuppressInput { get; set; }
+
     public bool ContainsPoint(SKPoint point) =>
         (!PanelBounds.IsEmpty && PanelBounds.Contains(point.X, point.Y)) ||
         (!CollapseTabRect.IsEmpty && CollapseTabRect.Contains(point.X, point.Y));
