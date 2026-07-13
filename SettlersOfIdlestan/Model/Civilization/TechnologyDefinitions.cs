@@ -539,6 +539,109 @@ public static class TechnologyDefinitions
             modifiers: new Modifier[] { new(ECategory.PRESTIGE_GAIN, EType.ADDITIVE, 0.25) },
             tier: 8, line: 0),
 
+        // === Branche des Abysses (débloquée par le vertex de prestige Brèche Abyssale) ===
+        // Étude de la corruption elle-même : la branche accompagne la boucle Spire → Faille → prestige
+        // corrompu, sans jamais annuler la corruption (rôle réservé au Dominion, post-ascension).
+
+        new(TechnologyId.EtudeDesAbysses,
+            "tech_etude_des_abysses_name", "tech_etude_des_abysses_desc",
+            cost: 6500000,
+            prerequisites: Array.Empty<TechnologyId>(),
+            modifiers: new Modifier[]
+            {
+                new(ECategory.UNDERWORLD_TREASURE_CHANCE_PERCENT, EType.ADDITIVE, 5),
+                new(ECategory.PRESTIGE_GAIN, EType.ADDITIVE, 0.05),
+            },
+            tier: 8, line: 5),
+
+        new(TechnologyId.Demonologie,
+            "tech_demonologie_name", "tech_demonologie_desc",
+            cost: 26000000,
+            prerequisites: new[] { TechnologyId.EtudeDesAbysses },
+            modifiers: new Modifier[] { new(ECategory.UNDERWORLD_MONSTER_SPAWN_INTERVAL, EType.ADDITIVE, 0.5) },
+            tier: 9, line: 5),
+
+        // La corruption compte 1 niveau de moins pour le malus de récolte (plancher : niveau 1,
+        // voir Corruption.GetHarvestTimeMultiplier — seul le Dominion peut réellement la contrer).
+        new(TechnologyId.ResistanceALaCorruption,
+            "tech_resistance_a_la_corruption_name", "tech_resistance_a_la_corruption_desc",
+            cost: 105000000,
+            prerequisites: new[] { TechnologyId.Demonologie },
+            modifiers: new Modifier[] { new(ECategory.CORRUPTION_LEVEL_REDUCTION, EType.ADDITIVE, 1) },
+            tier: 10, line: 5),
+
+        new(TechnologyId.PacteAbyssal,
+            "tech_pacte_abyssal_name", "tech_pacte_abyssal_desc",
+            cost: 420000000,
+            prerequisites: new[] { TechnologyId.Demonologie },
+            modifiers: new Modifier[] { new(ECategory.PRESTIGE_GAIN, EType.ADDITIVE, 0.25) },
+            tier: 11, line: 6),
+
+        new(TechnologyId.SecretsDeLaFaille,
+            "tech_secrets_de_la_faille_name", "tech_secrets_de_la_faille_desc",
+            cost: 1700000000,
+            prerequisites: new[] { TechnologyId.ResistanceALaCorruption },
+            modifiers: new Modifier[] { new(ECategory.CORRUPTION_LEVEL_REDUCTION, EType.ADDITIVE, 1) },
+            tier: 12, line: 5),
+
+        new(TechnologyId.TheologieDeLAscension,
+            "tech_theologie_de_l_ascension_name", "tech_theologie_de_l_ascension_desc",
+            cost: 6700000000,
+            prerequisites: new[] { TechnologyId.SecretsDeLaFaille, TechnologyId.PacteAbyssal },
+            modifiers: new Modifier[] { new(ECategory.PRESTIGE_GAIN, EType.ADDITIVE, 0.5) },
+            tier: 13, line: 5),
+
+        // === Capstones des branches existantes (tiers 12-13) ===
+
+        // Débloquée par le vertex de prestige Brèche du Vide (porte de l'Acier des Abysses).
+        new(TechnologyId.AcierAbyssal,
+            "tech_acier_abyssal_name", "tech_acier_abyssal_desc",
+            cost: 1700000000,
+            prerequisites: new[] { TechnologyId.SteelArmor, TechnologyId.VolcanicMetallurgy },
+            modifiers: new Modifier[]
+            {
+                new(ECategory.FORGE_DOUBLE_HARVEST_BONUS, EType.ADDITIVE, 25),
+                new(ECategory.BUILDING_PRODUCTION, "Smelter", EType.ADDITIVE, 1),
+            },
+            tier: 12, line: 3),
+
+        // Débloquée par le vertex de prestige Sanctuaire Perdu (porte de la Magie des Abysses).
+        new(TechnologyId.MagieDuVide,
+            "tech_magie_du_vide_name", "tech_magie_du_vide_desc",
+            cost: 1700000000,
+            prerequisites: new[] { TechnologyId.DeepLightRitual, TechnologyId.ArcaneShieldRitual },
+            modifiers: new Modifier[]
+            {
+                new(ECategory.RITUAL_TOTAL_POWER, EType.ADDITIVE, 0.25),
+                new(ECategory.SPELL_COST_REDUCTION, EType.ADDITIVE, 0.1),
+            },
+            tier: 12, line: 10),
+
+        new(TechnologyId.CoeurDeLaTerre,
+            "tech_coeur_de_la_terre_name", "tech_coeur_de_la_terre_desc",
+            cost: 1700000000,
+            prerequisites: new[] { TechnologyId.ProspectionAvancee },
+            modifiers: new Modifier[] { new(ECategory.HARVEST_SPEED, "Mine", EType.ADDITIVE, 0.5) },
+            tier: 12, line: 1),
+
+        new(TechnologyId.Omniscience,
+            "tech_omniscience_name", "tech_omniscience_desc",
+            cost: 1700000000,
+            prerequisites: new[] { TechnologyId.MasterResearch },
+            modifiers: new Modifier[] { new(ECategory.RESEARCH_PRODUCTION_SPEED, EType.ADDITIVE, 0.5) },
+            tier: 12, line: 6),
+
+        new(TechnologyId.LegionEternelle,
+            "tech_legion_eternelle_name", "tech_legion_eternelle_desc",
+            cost: 6700000000,
+            prerequisites: new[] { TechnologyId.Vendetta },
+            modifiers: new Modifier[]
+            {
+                new(ECategory.UNIT_PRODUCTION_SPEED, EType.ADDITIVE, 0.25),
+                new(ECategory.CITY_MAX_SOLDIERS_BONUS, EType.ADDITIVE, 10),
+            },
+            tier: 13, line: 8),
+
     };
 
     public static Technology? Get(TechnologyId id) => All.FirstOrDefault(t => t.Id == id);

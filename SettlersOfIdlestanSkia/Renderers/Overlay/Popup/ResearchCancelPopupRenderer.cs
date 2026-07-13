@@ -23,7 +23,7 @@ public sealed class ResearchCancelPopupRenderer : PopupRendererBase
 
     private SKRect _cancelRect  = SKRect.Empty;
     private SKRect _confirmRect = SKRect.Empty;
-    private int    _refundAmount;
+    private long   _refundAmount;
 
     public ResearchCancelPopupRenderer(LocalizationService localization, Action onConfirm)
     {
@@ -31,7 +31,7 @@ public sealed class ResearchCancelPopupRenderer : PopupRendererBase
         _onConfirm    = onConfirm;
     }
 
-    public void Open(int refundAmount)
+    public void Open(long refundAmount)
     {
         _refundAmount = refundAmount;
         Open();

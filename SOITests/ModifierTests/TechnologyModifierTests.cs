@@ -241,6 +241,75 @@ public class TechnologyModifierTests
         Assert.Equal(0, BuildAggregator(TechnologyId.Patrol).ApplyModifiers(ECategory.CITY_DEFENSE, "", 0));
     }
 
+    // ── Branche des Abysses & capstones (tiers 8-13) ──────────────────────────
+
+    [Fact]
+    public void EtudeDesAbysses_UnderworldTreasureChance_Plus5()
+    {
+        Assert.Equal(5, BuildAggregator(TechnologyId.EtudeDesAbysses).ApplyModifiers(ECategory.UNDERWORLD_TREASURE_CHANCE_PERCENT, "", 0));
+    }
+
+    [Fact]
+    public void Demonologie_UnderworldMonsterSpawnInterval_Plus0Point5()
+    {
+        Assert.Equal(0.5, BuildAggregator(TechnologyId.Demonologie).ApplyModifiers(ECategory.UNDERWORLD_MONSTER_SPAWN_INTERVAL, "", 0.0), 5);
+    }
+
+    [Fact]
+    public void ResistanceALaCorruption_CorruptionLevelReduction_Plus1()
+    {
+        Assert.Equal(1, BuildAggregator(TechnologyId.ResistanceALaCorruption).ApplyModifiers(ECategory.CORRUPTION_LEVEL_REDUCTION, "", 0));
+    }
+
+    [Fact]
+    public void ResistanceALaCorruptionEtSecretsDeLaFaille_CorruptionLevelReduction_Cumulent2()
+    {
+        Assert.Equal(2, BuildAggregator(TechnologyId.ResistanceALaCorruption, TechnologyId.SecretsDeLaFaille)
+            .ApplyModifiers(ECategory.CORRUPTION_LEVEL_REDUCTION, "", 0));
+    }
+
+    [Fact]
+    public void TheologieDeLAscension_PrestigeGain_Plus0Point5()
+    {
+        Assert.Equal(0.5, BuildAggregator(TechnologyId.TheologieDeLAscension).ApplyModifiers(ECategory.PRESTIGE_GAIN, "", 0.0), 5);
+    }
+
+    [Fact]
+    public void AcierAbyssal_ForgeDoubleHarvestBonus_Plus25()
+    {
+        Assert.Equal(25, BuildAggregator(TechnologyId.AcierAbyssal).ApplyModifiers(ECategory.FORGE_DOUBLE_HARVEST_BONUS, "", 0));
+    }
+
+    [Fact]
+    public void AcierAbyssal_SmelterProduction_Plus1()
+    {
+        Assert.Equal(1, BuildAggregator(TechnologyId.AcierAbyssal).ApplyModifiers(ECategory.BUILDING_PRODUCTION, "Smelter", 0));
+    }
+
+    [Fact]
+    public void MagieDuVide_RitualTotalPower_Plus0Point25()
+    {
+        Assert.Equal(0.25, BuildAggregator(TechnologyId.MagieDuVide).ApplyModifiers(ECategory.RITUAL_TOTAL_POWER, "", 0.0), 5);
+    }
+
+    [Fact]
+    public void CoeurDeLaTerre_MineHarvestSpeed_Plus0Point5()
+    {
+        Assert.Equal(0.5, BuildAggregator(TechnologyId.CoeurDeLaTerre).ApplyModifiers(ECategory.HARVEST_SPEED, "Mine", 0.0), 5);
+    }
+
+    [Fact]
+    public void Omniscience_ResearchProductionSpeed_Plus0Point5()
+    {
+        Assert.Equal(0.5, BuildAggregator(TechnologyId.Omniscience).ApplyModifiers(ECategory.RESEARCH_PRODUCTION_SPEED, "", 0.0), 5);
+    }
+
+    [Fact]
+    public void LegionEternelle_CityMaxSoldiers_Plus10()
+    {
+        Assert.Equal(10, BuildAggregator(TechnologyId.LegionEternelle).ApplyModifiers(ECategory.CITY_MAX_SOLDIERS_BONUS, "", 0));
+    }
+
     // ── Layout integrity (Tier/Line) ──────────────────────────────────────────
     // ResearchRenderer positions every technology on a (Tier, Line) grid cell
     // (col, row) — two technologies sharing a cell would overlap on screen.

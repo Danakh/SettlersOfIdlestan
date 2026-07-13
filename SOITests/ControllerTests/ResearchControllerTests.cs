@@ -80,16 +80,16 @@ public class ResearchControllerTests
         // Le premier tick après StartResearch ne fait qu'initialiser l'horloge de consommation
         // (ActiveResearchLastConsumptionTick == 0 est un sentinel, voir AdvanceActiveResearch).
         clock.SimulateAdvance(ResearchController.ResearchConsumptionCooldownTicks);
-        int beforeBaseline = ctrl.ActiveResearchConsumed;
+        long beforeBaseline = ctrl.ActiveResearchConsumed;
         clock.SimulateAdvance(ResearchController.ResearchConsumptionCooldownTicks);
-        int baselineConsumed = ctrl.ActiveResearchConsumed - beforeBaseline;
+        long baselineConsumed = ctrl.ActiveResearchConsumed - beforeBaseline;
 
         // Académie niv.1 : +100% RESEARCH_INVESTMENT_SPEED
         var academy = new Academy { Level = 1 };
         civ.AddCustomAggregator(new StaticModifierProvider(academy.GetUniqueBuildingModifiers()));
-        int beforeBoost = ctrl.ActiveResearchConsumed;
+        long beforeBoost = ctrl.ActiveResearchConsumed;
         clock.SimulateAdvance(ResearchController.ResearchConsumptionCooldownTicks);
-        int boostedConsumed = ctrl.ActiveResearchConsumed - beforeBoost;
+        long boostedConsumed = ctrl.ActiveResearchConsumed - beforeBoost;
 
         Assert.True(boostedConsumed > baselineConsumed,
             $"La consommation devrait augmenter avec +100% RESEARCH_INVESTMENT_SPEED (base={baselineConsumed}, boost={boostedConsumed}).");

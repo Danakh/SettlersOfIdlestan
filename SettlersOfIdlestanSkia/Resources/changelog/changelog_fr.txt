@@ -4,6 +4,8 @@ Le changelog n'est pas activement mis à jour pour le moment.
 ---
 
 v0.7
+• Nouvelle branche de recherche des Abysses (tiers 8 à 13) : étude de la corruption, démonologie et pactes abyssaux, avec des capstones prolongeant les branches existantes (acier, magie, inframonde, militaire, science)
+• La branche des Abysses de la carte de prestige prend vie : les vertex des trois portes (Acier, Inframonde, Magie) reçoivent leurs pouvoirs, dont les déblocages des nouvelles recherches
 • Nouveau système de palier (Tier) endgame : la force des civilisations NPC générées augmente progressivement avec vos points de prestige totaux cumulés, avec un bonus de gain de prestige correspondant
 • Détruire une civilisation ennemie octroie désormais un bonus de gain de prestige
 • Nouvelles recherches, dont plusieurs augmentant les points de prestige gagnés

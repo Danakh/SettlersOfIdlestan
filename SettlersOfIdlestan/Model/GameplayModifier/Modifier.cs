@@ -155,6 +155,8 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             UNLOCK_VENDETTA,
             /// <summary>Multiplicateur additif sur l'intervalle entre deux tentatives d'apparition de monstre de bordure dans l'Inframonde. Base = 1.0; +0.75 = intervalle ×1,75 (apparitions plus rares).</summary>
             UNDERWORLD_MONSTER_SPAWN_INTERVAL,
+            /// <summary>Nombre de niveaux retranchés au niveau effectif de la Corruption pour le malus de récolte (plancher : niveau 1 — seule la présence du Dominion peut réellement contrer la corruption). Base = 0.</summary>
+            CORRUPTION_LEVEL_REDUCTION,
         }
 
         [JsonConverter(typeof(JsonStringEnumConverter<EType>))]

@@ -25,16 +25,17 @@ namespace SettlersOfIdlestan.Controller.Expand
         public const int BaseMaxResearchPoints = 1000;
         public const double MaxResearchPointsInvestedRate = 0.1;
 
-        private int _totalBaseResearchCostCompleted;
+        // long : la somme des coûts de base (et les coûts unitaires des tiers 13+) dépasse int.MaxValue.
+        private long _totalBaseResearchCostCompleted;
 
         public event EventHandler<TechnologyId>? OnResearchCompleted;
 
         // Convenience accessors for renderers — go through PrestigeState so the source is explicit.
-        public int ResearchPoints => _prestigeState?.TechnologyTree.ResearchPoints ?? 0;
+        public long ResearchPoints => _prestigeState?.TechnologyTree.ResearchPoints ?? 0;
         public TechnologyId? ActiveResearch => _prestigeState?.TechnologyTree.ActiveResearch;
-        public int ActiveResearchConsumed => _prestigeState?.TechnologyTree.ActiveResearchConsumed ?? 0;
-        public int TotalResearchPointsInvested => _totalBaseResearchCostCompleted;
-        public int MaxResearchPoints => BaseMaxResearchPoints + (int)(_totalBaseResearchCostCompleted * MaxResearchPointsInvestedRate);
+        public long ActiveResearchConsumed => _prestigeState?.TechnologyTree.ActiveResearchConsumed ?? 0;
+        public long TotalResearchPointsInvested => _totalBaseResearchCostCompleted;
+        public long MaxResearchPoints => BaseMaxResearchPoints + (long)(_totalBaseResearchCostCompleted * MaxResearchPointsInvestedRate);
 
         private TechnologyTree? Tree => _prestigeState?.TechnologyTree;
 
@@ -141,13 +142,13 @@ namespace SettlersOfIdlestan.Controller.Expand
             if (tech == null) { tree.ActiveResearch = null; return; }
 
             double speed = _state.PlayerCivilization.ResearchInvestmentSpeed;
-            int consumed = Math.Max(1, (int)(tree.ResearchPoints / 100.0 * speed));
+            long consumed = Math.Max(1L, (long)(tree.ResearchPoints / 100.0 * speed));
             consumed = Math.Min(consumed, tree.ResearchPoints);
             tree.ResearchPoints -= consumed;
             tree.ActiveResearchConsumed += consumed;
             tree.ActiveResearchLastConsumptionTick = now;
 
-            int effectiveCost = GetEffectiveCost(tech);
+            long effectiveCost = GetEffectiveCost(tech);
             if (tree.ActiveResearchConsumed >= effectiveCost)
             {
                 // Compte le coût de BASE (non réduit) de la recherche terminée, pas la progression en cours
@@ -193,8 +194,8 @@ namespace SettlersOfIdlestan.Controller.Expand
             => Math.Min(1.0, 0.5 + (_state?.PlayerCivilization.ResearchCancelRefundBonus ?? 0.0));
 
         /// <summary>Points qui seraient récupérés si la recherche en cours était annulée maintenant.</summary>
-        public int GetCancelRefundAmount()
-            => (int)(ActiveResearchConsumed * GetCancelRefundRate());
+        public long GetCancelRefundAmount()
+            => (long)(ActiveResearchConsumed * GetCancelRefundRate());
 
         /// <summary>True si l'annulation entraînerait une perte de points (remboursement &lt; 100%).</summary>
         public bool HasCancelLoss()
@@ -206,7 +207,7 @@ namespace SettlersOfIdlestan.Controller.Expand
             var tree = Tree;
             if (tree.ActiveResearch == null) return false;
 
-            int refund = GetCancelRefundAmount();
+            long refund = GetCancelRefundAmount();
             tree.ResearchPoints = Math.Min(tree.ResearchPoints + refund, MaxResearchPoints);
             tree.ActiveResearch = null;
             tree.ActiveResearchConsumed = 0;
@@ -273,14 +274,14 @@ namespace SettlersOfIdlestan.Controller.Expand
             return TechnologyStatus.Available;
         }
 
-        public (int consumed, int total) GetResearchProgress(TechnologyId id)
+        public (long consumed, long total) GetResearchProgress(TechnologyId id)
         {
             if (Tree == null) return (0, 1);
             var tree = Tree;
             var tech = TechnologyDefinitions.Get(id);
             if (tech == null) return (0, 1);
 
-            int cost = GetEffectiveCost(tech);
+            long cost = GetEffectiveCost(tech);
             if (tree.ActiveResearch == id)
                 return (tree.ActiveResearchConsumed, cost);
             if (tree.CompletedTechnologies.Contains(id))
@@ -292,7 +293,7 @@ namespace SettlersOfIdlestan.Controller.Expand
         {
             if (Tree?.ActiveResearch == null || ResearchPoints <= 0) return (0, 0);
             double speed = _state?.PlayerCivilization.ResearchInvestmentSpeed ?? 1.0;
-            int consumed = Math.Max(1, (int)(ResearchPoints / 100.0 * speed));
+            long consumed = Math.Max(1L, (long)(ResearchPoints / 100.0 * speed));
             double perSecond = consumed * (100.0 / ResearchConsumptionCooldownTicks);
             double percent = consumed * 100.0 / ResearchPoints;
             return (percent, perSecond);
@@ -370,10 +371,10 @@ namespace SettlersOfIdlestan.Controller.Expand
             return true;
         }
 
-        private int GetEffectiveCost(Technology tech)
+        private long GetEffectiveCost(Technology tech)
         {
             double reduction = _state?.PlayerCivilization.ResearchCostReduction ?? 0.0;
-            return Math.Max(1, (int)(tech.Cost * (1.0 - reduction)));
+            return Math.Max(1L, (long)(tech.Cost * (1.0 - reduction)));
         }
 
         private static bool ArePrerequisitesMet(TechnologyTree tree, Technology tech)

@@ -115,6 +115,28 @@ namespace SOITests.ControllerTests
         }
 
         [Fact]
+        public void CorruptionHarvestTimeMultiplier_ReducedByCorruptionLevelReduction_WithFloorAtLevel1()
+        {
+            var civ = new Civilization { Index = 0 };
+
+            // Sans modificateur : niv. 3 ⇒ ×8.
+            var corruption = new Corruption(new HexCoord(0, 0, IslandMap.SurfaceLayer), level: 3);
+            Assert.Equal(8.0, corruption.GetHarvestTimeMultiplier(civ), 5);
+
+            civ.AddCustomAggregator(new StaticModifierProvider(new[]
+            {
+                new Modifier(ECategory.CORRUPTION_LEVEL_REDUCTION, EType.ADDITIVE, 2),
+            }));
+
+            // Niveau effectif 3 - 2 = 1 ⇒ ×2.
+            Assert.Equal(2.0, corruption.GetHarvestTimeMultiplier(civ), 5);
+
+            // Plancher au niveau 1 : la corruption n'est jamais annulée par la recherche.
+            var lowCorruption = new Corruption(new HexCoord(1, 0, IslandMap.SurfaceLayer), level: 1);
+            Assert.Equal(2.0, lowCorruption.GetHarvestTimeMultiplier(civ), 5);
+        }
+
+        [Fact]
         public void MarketGoldGenerationCooldown_ReducesBy10PercentPerLevel()
         {
             var civ = new Civilization { Index = 0 };

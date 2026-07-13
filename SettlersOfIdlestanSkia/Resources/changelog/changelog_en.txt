@@ -4,6 +4,8 @@ The changelog is not actively maintained at the moment.
 ---
 
 v0.7
+• New Abyss research branch (tiers 8 to 13): corruption studies, demonology and abyssal pacts, plus capstones extending the existing branches (steel, magic, underworld, military, science)
+• The Abyss branch of the prestige map comes alive: the vertices of the three gates (Steel, Underworld, Magic) receive their powers, including the unlocks for the new researches
 • New endgame Tier system: generated NPC civilizations grow progressively stronger based on your total accumulated prestige points, with a matching prestige gain bonus
 • Destroying an enemy civilization now grants a prestige gain bonus
 • New researches, including several that boost prestige points earned

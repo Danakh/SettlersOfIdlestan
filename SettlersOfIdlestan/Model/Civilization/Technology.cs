@@ -110,6 +110,19 @@ public enum TechnologyId
     // Suite de la Cartographie Souterraine : les Tours de Guet étant interdites dans l'Outremonde,
     // cette recherche ralentit les apparitions de monstres de bordure sans bâtiment dédié.
     VeilleSouterraine,
+    // Branche des Abysses (débloquée par le vertex de prestige Brèche Abyssale)
+    EtudeDesAbysses,
+    Demonologie,
+    ResistanceALaCorruption,
+    PacteAbyssal,
+    SecretsDeLaFaille,
+    TheologieDeLAscension,
+    // Capstones des branches existantes (tiers 12-13)
+    AcierAbyssal,
+    MagieDuVide,
+    CoeurDeLaTerre,
+    Omniscience,
+    LegionEternelle,
 }
 
 public enum TechnologyStatus
@@ -125,7 +138,8 @@ public class Technology
     public TechnologyId Id { get; }
     public string NameKey { get; }
     public string DescKey { get; }
-    public int Cost { get; }
+    // long : les coûts des tiers 13+ (100 × 4^tier) dépassent int.MaxValue.
+    public long Cost { get; }
     public IReadOnlyList<TechnologyId> Prerequisites { get; }
     public IReadOnlyList<Modifier> Modifiers { get; }
     public int Tier { get; }
@@ -135,7 +149,7 @@ public class Technology
         TechnologyId id,
         string nameKey,
         string descKey,
-        int cost,
+        long cost,
         IReadOnlyList<TechnologyId> prerequisites,
         IReadOnlyList<Modifier> modifiers,
         int tier,

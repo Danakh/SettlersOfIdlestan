@@ -20,8 +20,19 @@ public class Corruption : IslandFeature
     public override LocalizedEntry? GetTooltipEntry() =>
         new("hex_tooltip_corruption_info", new object[] { Level, (int)Math.Pow(2, Level) });
 
-    /// <summary>Double le temps de récolte par niveau de corruption (niv. 1 = ×2, niv. 2 = ×4, …).</summary>
-    public override double GetHarvestTimeMultiplier(SettlersOfIdlestan.Model.Civilization.Civilization civ) => Math.Pow(2, Level);
+    /// <summary>
+    /// Double le temps de récolte par niveau de corruption (niv. 1 = ×2, niv. 2 = ×4, …).
+    /// Le modificateur CORRUPTION_LEVEL_REDUCTION (recherches de la branche des Abysses) retranche
+    /// des niveaux au calcul, avec un plancher au niveau 1 : la corruption ne peut jamais être
+    /// annulée par la recherche — seul le Dominion (post-ascension) la contre réellement.
+    /// </summary>
+    public override double GetHarvestTimeMultiplier(SettlersOfIdlestan.Model.Civilization.Civilization civ)
+    {
+        int reduction = (int)civ.ModifierAggregator.ApplyModifiers(
+            SettlersOfIdlestan.Model.GameplayModifier.Modifier.ECategory.CORRUPTION_LEVEL_REDUCTION, "", 0.0);
+        int effectiveLevel = Math.Max(1, Level - Math.Max(0, reduction));
+        return Math.Pow(2, effectiveLevel);
+    }
 
     public Corruption() { }
 

@@ -12,8 +12,10 @@ public class TechnologyTree : IModifierProvider
     public List<TechnologyId> CompletedTechnologies { get; set; } = new();
     public TechnologyId? ActiveResearch { get; set; }
     public TechnologyId? QueuedResearch { get; set; }
-    public int ActiveResearchConsumed { get; set; }
-    public int ResearchPoints { get; set; }
+    // long : les coûts des recherches de tier 13+ dépassent int.MaxValue (voir Technology.Cost) ;
+    // les anciennes sauvegardes int se désérialisent sans conversion.
+    public long ActiveResearchConsumed { get; set; }
+    public long ResearchPoints { get; set; }
     public long ActiveResearchLastConsumptionTick { get; set; }
 
     // Derived from CompletedTechnologies; rebuilt via RebuildModifiers().
