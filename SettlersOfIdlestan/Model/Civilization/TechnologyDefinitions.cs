@@ -318,7 +318,7 @@ public static class TechnologyDefinitions
             cost: 400000,
             prerequisites: new[] { TechnologyId.Siderurgie },
             modifiers: new Modifier[] { new(ECategory.HARVEST_PRODUCTION_BONUS, "Mine", EType.ADDITIVE, 15) },
-            tier: 6, line: 13),
+            tier: 6, line: 2),
 
         // Débloque la Forge Volcanique (bâtiment unique, niveau max 3), constructible uniquement à
         // côté d'un volcan découvert (voir VolcanicForge.HasBuildPrerequisites).
@@ -327,7 +327,7 @@ public static class TechnologyDefinitions
             cost: 2000000,
             prerequisites: new[] { TechnologyId.Volcanologie },
             modifiers: new Modifier[] { new(ECategory.BUILDING_MAX_LEVEL, "VolcanicForge", EType.ADDITIVE, 3) },
-            tier: 7, line: 13),
+            tier: 7, line: 2),
 
         // Prend la place de RailLogistics dans l'arbre (voir plus haut). Débloque la construction du
         // Camp Mobile (voir MobileCampController) — l'accès est vérifié directement sur la recherche
@@ -409,7 +409,7 @@ public static class TechnologyDefinitions
             cost: 1600000,
             prerequisites: new[] { TechnologyId.Speleologie, TechnologyId.TemperedSteel },
             modifiers: new Modifier[] { new(ECategory.HARVEST_SPEED, EType.ADDITIVE, 0.25) },
-            tier: 7, line: 2),
+            tier: 7, line: 3),
 
         // 20% de chance qu'un hexagone Désert de l'Inframonde soit un Filon de Mithril, à la fois
         // pour les hexagones déjà révélés (conversion à la complétion) et pour les futurs
