@@ -766,6 +766,7 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         Modifier.ECategory.RESEARCH_CANCEL_REFUND_BONUS      => $"+{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_research_cancel_refund_bonus")}",
         Modifier.ECategory.UNLOCK_PATROL                     => _localization.Get("prestige_tooltip_unlocks_patrol"),
         Modifier.ECategory.UNLOCK_VENDETTA                   => _localization.Get("prestige_tooltip_unlocks_vendetta"),
+        Modifier.ECategory.UNDERWORLD_MONSTER_SPAWN_INTERVAL => $"+{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_underworld_monster_spawn_interval")}",
         _ => $"+{mod.Value}"
     };
 

@@ -87,10 +87,12 @@ public class AutoExtendController
     }
 
     /// <summary>
-    /// Toutes les <see cref="BorderMonsterCheckIntervalTicks"/> ticks, sur chaque carte gérée par
-    /// AutoExtendController, tente de faire apparaître un monstre en bordure de la zone explorée
-    /// (<see cref="BorderMonsterSpawnChancePercent"/> de chance). Le type tiré dépend du niveau de
-    /// corruption de l'île : (niveau - 1)% de chance d'un démon mineur, sinon 65 % troll / 35 % ogre.
+    /// Toutes les <see cref="BorderMonsterCheckIntervalTicks"/> ticks (allongé dans l'Outremonde par
+    /// la recherche Veille Souterraine, voir <see cref="ECategory.UNDERWORLD_MONSTER_SPAWN_INTERVAL"/>),
+    /// sur chaque carte gérée par AutoExtendController, tente de faire apparaître un monstre en
+    /// bordure de la zone explorée (<see cref="BorderMonsterSpawnChancePercent"/> de chance). Le type
+    /// tiré dépend du niveau de corruption de l'île : (niveau - 1)% de chance d'un démon mineur,
+    /// sinon 65 % troll / 35 % ogre.
     /// </summary>
     private void TrySpawnBorderMonsters(long currentTick)
     {
@@ -99,7 +101,15 @@ public class AutoExtendController
         foreach (var layerState in _state.Layers.Values)
         {
             if (!layerState.AutoExtend || layerState.ArrivalVertex == null) continue;
-            if (currentTick - layerState.LastBorderMonsterSpawnTick < BorderMonsterCheckIntervalTicks) continue;
+
+            long interval = BorderMonsterCheckIntervalTicks;
+            if (layerState.Map.Z == LayerState.UnderworldZ)
+            {
+                double intervalMultiplier = _state.PlayerCivilization.ModifierAggregator
+                    .ApplyModifiers(ECategory.UNDERWORLD_MONSTER_SPAWN_INTERVAL, "", 1.0);
+                interval = (long)(interval * intervalMultiplier);
+            }
+            if (currentTick - layerState.LastBorderMonsterSpawnTick < interval) continue;
             layerState.LastBorderMonsterSpawnTick = currentTick;
 
             if (_prng.Next(100) >= BorderMonsterSpawnChancePercent) continue;

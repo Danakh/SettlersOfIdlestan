@@ -107,6 +107,9 @@ public enum TechnologyId
     // Branche de la Volcanologie (convergence Sidérurgie × risque volcanique)
     Volcanologie,
     VolcanicMetallurgy,
+    // Suite de la Cartographie Souterraine : les Tours de Guet étant interdites dans l'Outremonde,
+    // cette recherche ralentit les apparitions de monstres de bordure sans bâtiment dédié.
+    VeilleSouterraine,
 }
 
 public enum TechnologyStatus

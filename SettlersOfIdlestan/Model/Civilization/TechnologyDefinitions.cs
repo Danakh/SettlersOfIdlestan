@@ -393,6 +393,17 @@ public static class TechnologyDefinitions
             },
             tier: 6, line: 1),
 
+        // Les Tours de Guet étant interdites dans l'Outremonde (voir Watchtower.IsAvailableInLayer),
+        // cette recherche transpose l'idée de "ralentir les monstres" en effet civ-wide sans bâtiment
+        // dédié : allonge l'intervalle entre deux tentatives d'apparition de monstre de bordure
+        // (voir AutoExtendController.TrySpawnBorderMonsters).
+        new(TechnologyId.VeilleSouterraine,
+            "tech_veille_souterraine_name", "tech_veille_souterraine_desc",
+            cost: 1600000,
+            prerequisites: new[] { TechnologyId.CartographieSouterraine },
+            modifiers: new Modifier[] { new(ECategory.UNDERWORLD_MONSTER_SPAWN_INTERVAL, EType.ADDITIVE, 0.75) },
+            tier: 7, line: 1),
+
         new(TechnologyId.OutilsEnMithril,
             "tech_outils_en_mithril_name", "tech_outils_en_mithril_desc",
             cost: 1600000,

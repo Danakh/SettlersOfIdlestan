@@ -153,6 +153,8 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             RESEARCH_CANCEL_REFUND_BONUS,
             /// <summary>Flags que les raids automatiques sur une civilisation ciblée (Vendetta) sont déverrouillés pour la civilisation.</summary>
             UNLOCK_VENDETTA,
+            /// <summary>Multiplicateur additif sur l'intervalle entre deux tentatives d'apparition de monstre de bordure dans l'Inframonde. Base = 1.0; +0.75 = intervalle ×1,75 (apparitions plus rares).</summary>
+            UNDERWORLD_MONSTER_SPAWN_INTERVAL,
         }
 
         [JsonConverter(typeof(JsonStringEnumConverter<EType>))]
