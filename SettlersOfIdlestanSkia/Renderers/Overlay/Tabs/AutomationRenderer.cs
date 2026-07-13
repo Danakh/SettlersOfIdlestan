@@ -38,7 +38,8 @@ public sealed class AutomationRenderer : IDisposable
     internal const string PinKeySeaport        = "Seaport";
     internal const string PinKeyMilBuildings  = "MilitaryBuildings";
     internal const string PinKeyMilReinforce  = "MilitaryReinforcement";
-    internal const string PinKeyMilAttack     = "MilitaryAttack";
+    internal const string PinKeyMilPatrol     = "MilitaryPatrol";
+    internal const string PinKeyMilVendetta   = "MilitaryVendetta";
     internal const string PinKeyBarracks      = "Barracks";
     internal const string PinKeyLaboratory    = "Laboratory";
     internal const string PinKeySmelter       = "Smelter";
@@ -63,7 +64,8 @@ public sealed class AutomationRenderer : IDisposable
     private SKRect _seaportToggleRect = SKRect.Empty;
     private SKRect _militaryBuildingsToggleRect = SKRect.Empty;
     private SKRect _militaryReinforcementToggleRect = SKRect.Empty;
-    private SKRect _militaryAttackToggleRect = SKRect.Empty;
+    private SKRect _militaryPatrolToggleRect = SKRect.Empty;
+    private SKRect _militaryVendettaToggleRect = SKRect.Empty;
     private SKRect _barracksToggleRect     = SKRect.Empty;
     private SKRect _labToggleRect          = SKRect.Empty;
     private SKRect _smelterToggleRect      = SKRect.Empty;
@@ -80,7 +82,8 @@ public sealed class AutomationRenderer : IDisposable
     private bool _hoveredSeaportToggle;
     private bool _hoveredMilitaryBuildingsToggle;
     private bool _hoveredMilitaryReinforcementToggle;
-    private bool _hoveredMilitaryAttackToggle;
+    private bool _hoveredMilitaryPatrolToggle;
+    private bool _hoveredMilitaryVendettaToggle;
     private bool _hoveredBarracksToggle;
     private bool _hoveredLabToggle;
     private bool _hoveredSmelterToggle;
@@ -309,13 +312,23 @@ public sealed class AutomationRenderer : IDisposable
         }
         rightY += rowH + RowSpacing;
 
-        bool hasAdvancedStrategy = civ.TechnologyTree.CompletedTechnologies.Contains(TechId.AdvancedStrategy);
-        if (hasAdvancedStrategy)
-            (_militaryAttackToggleRect, rowH) = DrawAutomationRow(canvas, rightX, rightY, colWidth, WorldState.AutomationSettings.MilitaryAttackAutomationEnabled, _hoveredMilitaryAttackToggle, _localization.Get("automation_military_attack_name"), _localization.Get("automation_military_attack_desc"), _localization.Get("automation_military_attack_note"), pinKey: PinKeyMilAttack, isPinHovered: _hoveredPinKey == PinKeyMilAttack, isPinned: pinned.Contains(PinKeyMilAttack));
+        bool hasPatrol = civ.TechnologyTree.CompletedTechnologies.Contains(TechId.Patrol);
+        if (hasPatrol)
+            (_militaryPatrolToggleRect, rowH) = DrawAutomationRow(canvas, rightX, rightY, colWidth, WorldState.AutomationSettings.MilitaryPatrolAutomationEnabled, _hoveredMilitaryPatrolToggle, _localization.Get("automation_military_patrol_name"), _localization.Get("automation_military_patrol_desc"), _localization.Get("automation_military_patrol_note"), pinKey: PinKeyMilPatrol, isPinHovered: _hoveredPinKey == PinKeyMilPatrol, isPinned: pinned.Contains(PinKeyMilPatrol));
         else
         {
-            _militaryAttackToggleRect = SKRect.Empty;
-            rowH = DrawLockedRow(canvas, rightX, rightY, colWidth, _localization.Get("automation_military_attack_name"), _localization.Get("automation_military_attack_locked"));
+            _militaryPatrolToggleRect = SKRect.Empty;
+            rowH = DrawLockedRow(canvas, rightX, rightY, colWidth, _localization.Get("automation_military_patrol_name"), _localization.Get("automation_military_patrol_locked"));
+        }
+        rightY += rowH + RowSpacing;
+
+        bool hasVendetta = civ.TechnologyTree.CompletedTechnologies.Contains(TechId.Vendetta);
+        if (hasVendetta)
+            (_militaryVendettaToggleRect, rowH) = DrawAutomationRow(canvas, rightX, rightY, colWidth, WorldState.AutomationSettings.MilitaryVendettaAutomationEnabled, _hoveredMilitaryVendettaToggle, _localization.Get("automation_military_vendetta_name"), _localization.Get("automation_military_vendetta_desc"), _localization.Get("automation_military_vendetta_note"), pinKey: PinKeyMilVendetta, isPinHovered: _hoveredPinKey == PinKeyMilVendetta, isPinned: pinned.Contains(PinKeyMilVendetta));
+        else
+        {
+            _militaryVendettaToggleRect = SKRect.Empty;
+            rowH = DrawLockedRow(canvas, rightX, rightY, colWidth, _localization.Get("automation_military_vendetta_name"), _localization.Get("automation_military_vendetta_locked"));
         }
         rightY += rowH + RowSpacing;
 
@@ -608,7 +621,8 @@ public sealed class AutomationRenderer : IDisposable
         _hoveredSeaportToggle                = !_seaportToggleRect.IsEmpty                && _seaportToggleRect.Contains(adj.X, adj.Y);
         _hoveredMilitaryBuildingsToggle      = !_militaryBuildingsToggleRect.IsEmpty      && _militaryBuildingsToggleRect.Contains(adj.X, adj.Y);
         _hoveredMilitaryReinforcementToggle  = !_militaryReinforcementToggleRect.IsEmpty  && _militaryReinforcementToggleRect.Contains(adj.X, adj.Y);
-        _hoveredMilitaryAttackToggle         = !_militaryAttackToggleRect.IsEmpty         && _militaryAttackToggleRect.Contains(adj.X, adj.Y);
+        _hoveredMilitaryPatrolToggle         = !_militaryPatrolToggleRect.IsEmpty         && _militaryPatrolToggleRect.Contains(adj.X, adj.Y);
+        _hoveredMilitaryVendettaToggle       = !_militaryVendettaToggleRect.IsEmpty       && _militaryVendettaToggleRect.Contains(adj.X, adj.Y);
         _hoveredBarracksToggle      = !_barracksToggleRect.IsEmpty      && _barracksToggleRect.Contains(adj.X, adj.Y);
         _hoveredLabToggle           = !_labToggleRect.IsEmpty           && _labToggleRect.Contains(adj.X, adj.Y);
         _hoveredSmelterToggle       = !_smelterToggleRect.IsEmpty       && _smelterToggleRect.Contains(adj.X, adj.Y);
@@ -714,13 +728,18 @@ public sealed class AutomationRenderer : IDisposable
             }
             return true;
         }
-        if (!_militaryAttackToggleRect.IsEmpty && _militaryAttackToggleRect.Contains(adj.X, adj.Y))
+        if (!_militaryPatrolToggleRect.IsEmpty && _militaryPatrolToggleRect.Contains(adj.X, adj.Y))
         {
-            state.AutomationSettings.MilitaryAttackAutomationEnabled = !state.AutomationSettings.MilitaryAttackAutomationEnabled;
-            if (!state.AutomationSettings.MilitaryAttackAutomationEnabled)
+            state.AutomationSettings.MilitaryPatrolAutomationEnabled = !state.AutomationSettings.MilitaryPatrolAutomationEnabled;
+            return true;
+        }
+        if (!_militaryVendettaToggleRect.IsEmpty && _militaryVendettaToggleRect.Contains(adj.X, adj.Y))
+        {
+            state.AutomationSettings.MilitaryVendettaAutomationEnabled = !state.AutomationSettings.MilitaryVendettaAutomationEnabled;
+            if (!state.AutomationSettings.MilitaryVendettaAutomationEnabled)
             {
-                var civA = _gameControllerService.PlayerCivilization;
-                if (civA != null) _gameControllerService.MainGameController.MilitaryController.ClearAttackFlows(civA);
+                var civV = _gameControllerService.PlayerCivilization;
+                if (civV != null) _gameControllerService.MainGameController.MilitaryController.ClearAttackFlows(civV);
             }
             return true;
         }

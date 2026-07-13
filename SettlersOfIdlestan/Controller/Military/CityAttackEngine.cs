@@ -75,6 +75,15 @@ internal class CityAttackEngine
                 var path = HexGridPathfinder.FindVertexPath(attackerVertex.Position, targetVertex.Position);
                 onSoldierAttackedCity(new CityAttackEventArgs(attackerVertex.Position, targetVertex.Position, path));
 
+                // Vendetta : une civilisation qui attaque le joueur devient la cible des raids automatiques
+                // (voir ReinforcementEngine.ResolvePlayerAutoVendetta).
+                var playerCiv = _state.PlayerCivilization;
+                if (targetVertex.CivilizationIndex == playerCiv.Index && attackerCiv.Index != playerCiv.Index
+                    && playerCiv.ModifierAggregator.HasModifier(ECategory.UNLOCK_VENDETTA))
+                {
+                    _state.AutomationSettings.VendettaTargetCivIndex = attackerCiv.Index;
+                }
+
                 bool destroyed = ApplyAttackToCity(targetVertex, onCityBuildingDestroyed);
                 if (!destroyed && hasSteelWeapon)
                     destroyed = ApplyAttackToCity(targetVertex, onCityBuildingDestroyed);

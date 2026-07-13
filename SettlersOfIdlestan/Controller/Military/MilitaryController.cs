@@ -163,7 +163,7 @@ public class MilitaryController
         _productionEngine.Initialize(state);
         _monsterCombatEngine.Initialize(state, prng);
         _cityAttackEngine.Initialize(state, cityBuilderController, warFleetController, mobileCampController, prng);
-        _reinforcementEngine.Initialize(state, _cityAttackEngine, _productionEngine);
+        _reinforcementEngine.Initialize(state, _cityAttackEngine, _productionEngine, _monsterCombatEngine);
         _raidEngine.Initialize(state, _cityAttackEngine, _reinforcementEngine, _monsterCombatEngine);
 
         if (_clock != null)
@@ -193,7 +193,8 @@ public class MilitaryController
         _reinforcementEngine.ResolveReinforcements(currentTick,
             args => ReinforcementSent?.Invoke(this, args));
         _reinforcementEngine.ResolvePlayerAutoReinforcement(currentTick);
-        _reinforcementEngine.ResolvePlayerAutoAttack(currentTick);
+        _reinforcementEngine.ResolvePlayerAutoPatrol(currentTick);
+        _reinforcementEngine.ResolvePlayerAutoVendetta(currentTick);
         _raidEngine.Update(currentTick);
     }
 

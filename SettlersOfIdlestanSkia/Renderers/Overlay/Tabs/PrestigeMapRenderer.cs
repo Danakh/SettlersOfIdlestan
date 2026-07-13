@@ -762,6 +762,8 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         Modifier.ECategory.UNLOCK_INTERMEDIATE_TRADE         => _localization.Get("prestige_tooltip_unlocks_intermediate_trade"),
         Modifier.ECategory.UNLOCK_CONTESTED_HARVEST          => _localization.Get("prestige_tooltip_unlocks_contested_harvest"),
         Modifier.ECategory.RESEARCH_CANCEL_REFUND_BONUS      => $"+{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_research_cancel_refund_bonus")}",
+        Modifier.ECategory.UNLOCK_PATROL                     => _localization.Get("prestige_tooltip_unlocks_patrol"),
+        Modifier.ECategory.UNLOCK_VENDETTA                   => _localization.Get("prestige_tooltip_unlocks_vendetta"),
         _ => $"+{mod.Value}"
     };
 

@@ -322,12 +322,24 @@ public static class TechnologyDefinitions
             tier: 8, line: 8),
 
         // Repoussée deux tiers au-dessus du Camp Mobile, qui devient son seul prérequis.
-        new(TechnologyId.AdvancedStrategy,
-            "tech_advanced_strategy_name", "tech_advanced_strategy_desc",
+        // Prend la place d'AdvancedStrategy dans l'arbre (voir Technology.cs) : patrouille automatique
+        // qui raide via le système de Raid les monstres qui s'approchent d'une ville, plutôt que
+        // d'attaquer automatiquement les villes ennemies.
+        new(TechnologyId.Patrol,
+            "tech_patrol_name", "tech_patrol_desc",
             cost: 100000000,
             prerequisites: new[] { TechnologyId.MobileCampConstruction },
-            modifiers: new Modifier[] { new(ECategory.UNLOCK_AUTO_ATTACK, EType.ADDITIVE, 1) },
+            modifiers: new Modifier[] { new(ECategory.UNLOCK_PATROL, EType.ADDITIVE, 1) },
             tier: 10, line: 8),
+
+        // Un tier au-dessus de Patrol, qui devient son seul prérequis. Raids automatiques sur une
+        // civilisation : la cible se met à jour après un raid manuel du joueur ou une attaque subie.
+        new(TechnologyId.Vendetta,
+            "tech_vendetta_name", "tech_vendetta_desc",
+            cost: 400000000,
+            prerequisites: new[] { TechnologyId.Patrol },
+            modifiers: new Modifier[] { new(ECategory.UNLOCK_VENDETTA, EType.ADDITIVE, 1) },
+            tier: 11, line: 8),
 
         // === Branche de l'Inframonde (débloquée par les vertex de prestige du nord-ouest) ===
 

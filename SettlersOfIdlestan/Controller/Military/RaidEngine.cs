@@ -91,6 +91,15 @@ internal class RaidEngine
         _state.AutomationSettings.RaidCurrentUpkeep = 10;
         ApplyRaidFlows(civ, targetCityVertex);
 
+        // Vendetta : un raid manuel du joueur sur une ville ennemie met à jour la civilisation ciblée
+        // par les raids automatiques (voir ReinforcementEngine.ResolvePlayerAutoVendetta).
+        if (civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_VENDETTA))
+        {
+            var targetCiv = _state.Civilizations.FirstOrDefault(c => c.MilitaryVertices.Any(v => v.Position.Equals(targetCityVertex)));
+            if (targetCiv != null)
+                _state.AutomationSettings.VendettaTargetCivIndex = targetCiv.Index;
+        }
+
         var nearestCities = civ.Cities
             .Where(c => c.Position.Z == targetCityVertex.Z)
             .OrderBy(c => c.Position.EdgeDistanceTo(targetCityVertex));

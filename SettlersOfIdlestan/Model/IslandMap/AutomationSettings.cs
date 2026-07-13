@@ -13,7 +13,8 @@ public class AutomationSettings
     public bool SeaportBuildingAutomationEnabled { get; set; } = false;
     public bool MilitaryBuildingAutomationEnabled { get; set; } = false;
     public bool MilitaryReinforcementAutomationEnabled { get; set; } = false;
-    public bool MilitaryAttackAutomationEnabled { get; set; } = false;
+    public bool MilitaryPatrolAutomationEnabled { get; set; } = false;
+    public bool MilitaryVendettaAutomationEnabled { get; set; } = false;
 
     /// <summary>
     /// Obsolète : remplacé par GameSettings.PinnedCivPanelKeys (persiste entre îles/redémarrages).
@@ -29,4 +30,12 @@ public class AutomationSettings
 
     /// <summary>Coût en or par seconde du raid actif. 0 si aucun raid. Commence à 10, monte de 2 par seconde.</summary>
     public int RaidCurrentUpkeep { get; set; } = 0;
+
+    /// <summary>
+    /// Index de la civilisation actuellement ciblée par la recherche Vendetta (raids automatiques).
+    /// Une seule civilisation à la fois ; mis à jour après un raid manuel du joueur sur une ville
+    /// ennemie ou lorsqu'une civilisation attaque le joueur (voir RaidEngine.StartRaid et
+    /// CityAttackEngine.ResolveCityAttacks). Null si aucune cible valide.
+    /// </summary>
+    public int? VendettaTargetCivIndex { get; set; } = null;
 }

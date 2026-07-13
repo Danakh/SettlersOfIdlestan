@@ -56,8 +56,8 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             UNLOCK_RESEARCH_QUEUE,
             /// <summary>Flags que le renforcement automatique est déverrouillé pour la civilisation.</summary>
             UNLOCK_AUTO_REINFORCEMENT,
-            /// <summary>Flags que l'attaque automatique est déverrouillée pour la civilisation.</summary>
-            UNLOCK_AUTO_ATTACK,
+            /// <summary>Flags que la patrouille automatique (raid anti-monstres près des villes) est déverrouillée pour la civilisation.</summary>
+            UNLOCK_PATROL,
             /// <summary>Bonus fixe de génération de ressource par cycle (1 000 ticks). SubCategory = Resource enum name.</summary>
             PASSIVE_RESOURCE_GENERATION,
             /// <summary>Multiplicateur additif sur les points de prestige gagnés. Base = 0.0; +0.1 = +10%.</summary>
@@ -148,6 +148,8 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             UNLOCK_CONTESTED_HARVEST,
             /// <summary>Bonus additif sur le taux de récupération des points investis lors de l'annulation d'une recherche. Base = 0.5 (50%); +0.125 = +12,5%.</summary>
             RESEARCH_CANCEL_REFUND_BONUS,
+            /// <summary>Flags que les raids automatiques sur une civilisation ciblée (Vendetta) sont déverrouillés pour la civilisation.</summary>
+            UNLOCK_VENDETTA,
         }
 
         [JsonConverter(typeof(JsonStringEnumConverter<EType>))]

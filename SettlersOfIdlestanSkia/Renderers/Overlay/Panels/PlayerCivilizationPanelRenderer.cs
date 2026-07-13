@@ -667,11 +667,15 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
                         _gameControllerService.MainGameController.MilitaryController.ClearReinforcementFlows(civ);
                 }
                 break;
-            case AutomationRenderer.PinKeyMilAttack:
+            case AutomationRenderer.PinKeyMilPatrol:
+                if (settings != null)
+                    settings.MilitaryPatrolAutomationEnabled = !settings.MilitaryPatrolAutomationEnabled;
+                break;
+            case AutomationRenderer.PinKeyMilVendetta:
                 if (settings != null)
                 {
-                    settings.MilitaryAttackAutomationEnabled = !settings.MilitaryAttackAutomationEnabled;
-                    if (!settings.MilitaryAttackAutomationEnabled && civ != null)
+                    settings.MilitaryVendettaAutomationEnabled = !settings.MilitaryVendettaAutomationEnabled;
+                    if (!settings.MilitaryVendettaAutomationEnabled && civ != null)
                         _gameControllerService.MainGameController.MilitaryController.ClearAttackFlows(civ);
                 }
                 break;
@@ -710,7 +714,8 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             AutomationRenderer.PinKeyMarket       => (settings.MarketBuildingAutomationEnabled,            "automation_market_name"),
             AutomationRenderer.PinKeySeaport      => (settings.SeaportBuildingAutomationEnabled,           "automation_seaport_name"),
             AutomationRenderer.PinKeyMilReinforce => (settings.MilitaryReinforcementAutomationEnabled,     "automation_military_reinforcement_name"),
-            AutomationRenderer.PinKeyMilAttack    => (settings.MilitaryAttackAutomationEnabled,            "automation_military_attack_name"),
+            AutomationRenderer.PinKeyMilPatrol    => (settings.MilitaryPatrolAutomationEnabled,            "automation_military_patrol_name"),
+            AutomationRenderer.PinKeyMilVendetta  => (settings.MilitaryVendettaAutomationEnabled,          "automation_military_vendetta_name"),
             _                                     => (false, key),
         };
         return DrawToggleRow(canvas, x, y, (bool?)value, isHovered, _localization.Get(nameKey));

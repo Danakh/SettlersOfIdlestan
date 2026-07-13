@@ -130,6 +130,32 @@ internal class MonsterCombatEngine
     }
 
     /// <summary>
+    /// Cherche le monstre attaquable (voir <see cref="GetAttackAvailability"/>) le plus proche d'un
+    /// emplacement militaire — utilisé par la Patrouille automatique (voir ReinforcementEngine) pour
+    /// détecter les monstres qui s'approchent d'une ville.
+    /// </summary>
+    internal MonsterFeature? FindNearbyMonster(IMilitaryVertex vertex)
+    {
+        if (_state == null) return null;
+
+        MonsterFeature? closest = null;
+        int closestDist = int.MaxValue;
+        foreach (var monster in _state.Features.OfType<MonsterFeature>())
+        {
+            if (!monster.Found || monster.Position.Z != vertex.Position.Z) continue;
+            if (GetAttackAvailability(vertex, monster) != MonsterAttackAvailability.Available) continue;
+
+            int dist = DistanceTo(vertex, monster);
+            if (dist < closestDist)
+            {
+                closest = monster;
+                closestDist = dist;
+            }
+        }
+        return closest;
+    }
+
+    /// <summary>
     /// Résout les attaques à distance (distance 2) initiées par un flux joueur sur
     /// <see cref="IMilitaryVertex.MonsterAttackTarget"/>. Le corps-à-corps (distance ≤ 1) reste géré
     /// par <see cref="ResolveMonsterCombat"/>.

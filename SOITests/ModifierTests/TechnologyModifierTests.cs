@@ -236,9 +236,9 @@ public class TechnologyModifierTests
     // ── CITY_DEFENSE ──────────────────────────────────────────────────────────
 
     [Fact]
-    public void AdvancedStrategy_NoCityDefenseModifier()
+    public void Patrol_NoCityDefenseModifier()
     {
-        Assert.Equal(0, BuildAggregator(TechnologyId.AdvancedStrategy).ApplyModifiers(ECategory.CITY_DEFENSE, "", 0));
+        Assert.Equal(0, BuildAggregator(TechnologyId.Patrol).ApplyModifiers(ECategory.CITY_DEFENSE, "", 0));
     }
 
     // ── Layout integrity (Tier/Line) ──────────────────────────────────────────

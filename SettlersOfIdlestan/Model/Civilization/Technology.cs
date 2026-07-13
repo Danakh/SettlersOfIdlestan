@@ -55,10 +55,17 @@ public enum TechnologyId
     // [Legacy] Recherche "Routes commerciales" supprimée — conservée uniquement pour la désérialisation des anciennes sauvegardes.
     TradeRoutes,
     ImprovedResearch,
+    // [Legacy] Recherche "Stratégie avancée" (attaque auto. des villes ennemies) remplacée par Patrol
+    // (patrouille anti-monstres) — conservée uniquement pour la désérialisation des anciennes sauvegardes.
     AdvancedStrategy,
     // Débloque la construction du Camp Mobile — prend la place de RailLogistics dans l'arbre (voir
     // TechnologyDefinitions).
     MobileCampConstruction,
+    // Patrouille anti-monstres automatique — prend la place d'AdvancedStrategy dans l'arbre (voir
+    // TechnologyDefinitions).
+    Patrol,
+    // Un tier au-dessus de Patrol (seul prérequis) — raids automatiques sur une civilisation.
+    Vendetta,
     AutomaticMarket,
     Speleologie,
     // Tier 5

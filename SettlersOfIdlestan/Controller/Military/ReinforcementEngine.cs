@@ -21,9 +21,11 @@ internal class ReinforcementEngine
     private WorldState? _state;
     private CityAttackEngine? _cityAttackEngine;
     private SoldierProductionEngine? _productionEngine;
+    private MonsterCombatEngine? _monsterCombatEngine;
 
     private long _lastPlayerAutoReinforcementTick = 0;
-    private long _lastPlayerAutoAttackTick = 0;
+    private long _lastPlayerAutoPatrolTick = 0;
+    private long _lastPlayerAutoVendettaTick = 0;
 
     // Cache du graphe d'adjacence par (civIndex, z), invalidé dès que le nombre de routes change.
     private readonly Dictionary<(int civIndex, int z), (int roadCount, Dictionary<Vertex, List<Vertex>> adj)> _adjCache = new();
@@ -40,13 +42,15 @@ internal class ReinforcementEngine
 
     private const int DefaultReinforcementRange = 5;
     private const long AutoReinforcementIntervalTicks = 100L;
-    private const long AutoAttackIntervalTicks = 100L;
+    private const long AutoPatrolIntervalTicks = 100L;
+    private const long AutoVendettaIntervalTicks = 100L;
 
-    internal void Initialize(WorldState? state, CityAttackEngine cityAttackEngine, SoldierProductionEngine productionEngine)
+    internal void Initialize(WorldState? state, CityAttackEngine cityAttackEngine, SoldierProductionEngine productionEngine, MonsterCombatEngine monsterCombatEngine)
     {
         _state = state;
         _cityAttackEngine = cityAttackEngine;
         _productionEngine = productionEngine;
+        _monsterCombatEngine = monsterCombatEngine;
     }
 
     internal int ReinforcementRange(Civilization civ)
@@ -137,20 +141,61 @@ internal class ReinforcementEngine
         UpdateCivilizationReinforcementFlows(playerCiv);
     }
 
-    internal void ResolvePlayerAutoAttack(long currentTick)
+    /// <summary>
+    /// Recherche Patrouille : chaque emplacement militaire sans cible active raide automatiquement
+    /// (via <see cref="IMilitaryVertex.MonsterAttackTarget"/>) le monstre attaquable le plus proche,
+    /// sans coût d'upkeep (contrairement au Raid manuel).
+    /// </summary>
+    internal void ResolvePlayerAutoPatrol(long currentTick)
     {
         if (_state == null) return;
-        if (!_state.AutomationSettings.MilitaryAttackAutomationEnabled) return;
-        if (currentTick - _lastPlayerAutoAttackTick < AutoAttackIntervalTicks) return;
-        _lastPlayerAutoAttackTick = currentTick;
+        if (!_state.AutomationSettings.MilitaryPatrolAutomationEnabled) return;
+        if (currentTick - _lastPlayerAutoPatrolTick < AutoPatrolIntervalTicks) return;
+        _lastPlayerAutoPatrolTick = currentTick;
 
         var playerCiv = _state.PlayerCivilization;
-        if (!playerCiv.ModifierAggregator.HasModifier(ECategory.UNLOCK_AUTO_ATTACK)) return;
+        if (!playerCiv.ModifierAggregator.HasModifier(ECategory.UNLOCK_PATROL)) return;
 
         foreach (var vertex in playerCiv.MilitaryVertices)
         {
+            if (vertex.MonsterAttackTarget != null) continue;
+            var monster = _monsterCombatEngine!.FindNearbyMonster(vertex);
+            if (monster == null) continue;
+
+            SetCityFlow(vertex, null);
+            vertex.MonsterAttackTarget = monster.Position;
+        }
+    }
+
+    /// <summary>
+    /// Recherche Vendetta : tant qu'une civilisation est ciblée (voir <see cref="AutomationSettings.VendettaTargetCivIndex"/>,
+    /// mis à jour par RaidEngine.StartRaid et CityAttackEngine.ResolveCityAttacks), chaque emplacement
+    /// sans flux d'attaque actif se redirige automatiquement vers la ville la plus proche de cette
+    /// civilisation, comme un Raid manuel mais sans intervention du joueur.
+    /// </summary>
+    internal void ResolvePlayerAutoVendetta(long currentTick)
+    {
+        if (_state == null) return;
+        if (!_state.AutomationSettings.MilitaryVendettaAutomationEnabled) return;
+        if (currentTick - _lastPlayerAutoVendettaTick < AutoVendettaIntervalTicks) return;
+        _lastPlayerAutoVendettaTick = currentTick;
+
+        var playerCiv = _state.PlayerCivilization;
+        if (!playerCiv.ModifierAggregator.HasModifier(ECategory.UNLOCK_VENDETTA)) return;
+
+        int? targetCivIndex = _state.AutomationSettings.VendettaTargetCivIndex;
+        if (targetCivIndex == null) return;
+        if (!_state.Civilizations.Any(c => c.Index == targetCivIndex))
+        {
+            _state.AutomationSettings.VendettaTargetCivIndex = null;
+            return;
+        }
+
+        foreach (var vertex in playerCiv.MilitaryVertices)
+        {
+            if (vertex.MonsterAttackTarget != null) continue;
             if (vertex.FlowTarget != null && IsEnemyCityAt(vertex.FlowTarget, playerCiv)) continue;
-            var enemy = _cityAttackEngine!.FindNearbyEnemyCity(vertex);
+            var enemy = _cityAttackEngine!.FindNearbyEnemyCity(vertex, new[] { targetCivIndex.Value });
             if (enemy != null)
                 SetCityFlow(vertex, enemy.Position);
         }
