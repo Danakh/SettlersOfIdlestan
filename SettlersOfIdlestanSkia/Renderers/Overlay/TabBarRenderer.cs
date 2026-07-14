@@ -5,6 +5,7 @@ using SettlersOfIdlestan.Controller.Expand;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
+using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Renderers.Debug;
 using SettlersOfIdlestanSkia.Services;
@@ -24,6 +25,8 @@ public sealed class TabBarRenderer : IDisposable
     public const int TabRituals    = 6;
     public const int TabAscension  = 7;
     public const int TabHistory    = 8;
+    public const int TabUnderworld = 9;
+    public const int TabAbyss      = 10;
 
     private const float TabWidth      = 62;
     private const float TabHeight     = 28;
@@ -51,6 +54,8 @@ public sealed class TabBarRenderer : IDisposable
     private bool _hasAutomationTab;
     private bool _hasRitualsTab;
     private bool _hasAscensionTab;
+    private bool _hasUnderworldTab;
+    private bool _hasAbyssTab;
     private bool _hasNewEvent;
     private int? _seenEventCount;
     private bool _prestigeGlowing;
@@ -106,6 +111,8 @@ public sealed class TabBarRenderer : IDisposable
         _hasAutomationTab = HasAnyAutomation();
         _hasRitualsTab    = IsMagicUnlocked();
         _hasAscensionTab  = HasGodPoints(context);
+        _hasUnderworldTab = IsLayerAccessible(LayerState.UnderworldZ);
+        _hasAbyssTab      = IsLayerAccessible(LayerState.AbyssZ);
         bool showEventsTab = showPrestigeTabs || HasEventLogEntries();
 
         if (!_hasResearchTab   && _activeTab == TabResearch)   _activeTab = TabIsland;
@@ -115,9 +122,13 @@ public sealed class TabBarRenderer : IDisposable
         if (!_hasRitualsTab    && _activeTab == TabRituals)    _activeTab = TabIsland;
         if (!_hasAscensionTab  && _activeTab == TabAscension)  _activeTab = TabIsland;
         if (!_allowDebugMode   && _activeTab == TabHistory)    _activeTab = TabIsland;
+        if (!_hasUnderworldTab && _activeTab == TabUnderworld) _activeTab = TabIsland;
+        if (!_hasAbyssTab      && _activeTab == TabAbyss)      _activeTab = TabIsland;
 
         _activeTabs.Clear();
         _activeTabs.Add((TabIsland, default));
+        if (_hasUnderworldTab) _activeTabs.Add((TabUnderworld, default));
+        if (_hasAbyssTab)      _activeTabs.Add((TabAbyss, default));
         if (_hasResearchTab)   _activeTabs.Add((TabResearch, default));
         if (_hasRitualsTab)    _activeTabs.Add((TabRituals, default));
         if (showPrestigeTabs)  { _activeTabs.Add((TabPrestige, default)); _activeTabs.Add((TabStats, default)); }
@@ -232,6 +243,8 @@ public sealed class TabBarRenderer : IDisposable
         TabRituals    => _localization.Get("tab_rituals"),
         TabAscension  => _localization.Get("tab_ascension"),
         TabHistory    => _localization.Get("tab_history"),
+        TabUnderworld => _localization.Get("tab_underworld"),
+        TabAbyss      => _localization.Get("tab_abyss"),
         _             => "?"
     };
 
@@ -336,6 +349,17 @@ public sealed class TabBarRenderer : IDisposable
     private bool IsMagicUnlocked()
     {
         try { return _gameControllerService.MainGameController.MagicController.IsMagicUnlocked(); }
+        catch { return false; }
+    }
+
+    private bool IsLayerAccessible(int z)
+    {
+        try
+        {
+            var worldState = _gameControllerService.CurrentWorldState;
+            var map = worldState?.GetMapForZ(z);
+            return map != null && map.Tiles.Count > 0;
+        }
         catch { return false; }
     }
 

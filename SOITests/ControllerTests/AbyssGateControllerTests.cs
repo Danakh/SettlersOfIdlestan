@@ -138,6 +138,45 @@ namespace SOITests.ControllerTests
         }
 
         [Fact]
+        public void Investment_CompletingAllResources_OpensAbyss()
+        {
+            var (state, clock, spireController, gateController) = CreateSetup(corruptionLevel: AbyssGate.RequiredCorruptionLevel);
+            var spire = spireController.PlaceCorruptionSpire(UnderworldHex)!;
+            BuildSpireInstantly(state, spire);
+            var gate = gateController.PlaceAbyssGate()!;
+            int citiesBefore = state.PlayerCivilization.Cities.Count;
+
+            var cost = AbyssGate.GetGateCost();
+            foreach (var kvp in cost)
+            {
+                gate.InvestedResources[kvp.Key] = kvp.Value;
+                gate.InvestmentEnabled.Add(kvp.Key);
+            }
+
+            clock.SimulateAdvance(AbyssGateController.InvestmentIntervalTicks);
+
+            // L'Abysse s'ouvre dans la foulée de la Faille avec un avant-poste pour le joueur, entouré de Void
+            Assert.True(gate.Built);
+            Assert.True(state.Layers.ContainsKey(LayerState.AbyssZ));
+            Assert.Equal(citiesBefore + 1, state.PlayerCivilization.Cities.Count);
+            Assert.Contains(state.PlayerCivilization.Cities, c => c.Position.Z == LayerState.AbyssZ);
+            Assert.Contains(state.Layers[LayerState.AbyssZ].Map.Tiles.Values, t => t.TerrainType == TerrainType.Void);
+        }
+
+        [Fact]
+        public void Abyss_NotOpened_WhileGateNotBuilt()
+        {
+            var (state, clock, spireController, gateController) = CreateSetup(corruptionLevel: AbyssGate.RequiredCorruptionLevel);
+            var spire = spireController.PlaceCorruptionSpire(UnderworldHex)!;
+            BuildSpireInstantly(state, spire);
+            gateController.PlaceAbyssGate();
+
+            clock.SimulateAdvance(AbyssGateController.InvestmentIntervalTicks * 2);
+
+            Assert.False(state.Layers.ContainsKey(LayerState.AbyssZ));
+        }
+
+        [Fact]
         public void CorruptionSpireController_RaisesAbyssGateEligibleToast_WhenSpireFinishesOnHighCorruption()
         {
             var (state, clock, spireController, _) = CreateSetup(corruptionLevel: AbyssGate.RequiredCorruptionLevel);

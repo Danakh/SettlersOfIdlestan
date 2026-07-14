@@ -36,6 +36,7 @@ public class AutoExtendController
     private const int AggressiveCivSpawnChancePercent = 10;
     private const int ExtraHexCount = 10;
     private const int AggressiveCivCityCount = 3;
+    private const int AbyssIslandCivCityCount = 1;
     private const int MinHexDistanceFromArrival = 2;
 
     // Génération de la rivière (suite d'hex Water, longueur infinie dans les deux sens, jamais
@@ -89,15 +90,19 @@ public class AutoExtendController
     }
 
     /// <summary>
-    /// Génère dynamiquement une nouvelle île de l'Abysse dès qu'un hex de Void devient visible pour
-    /// une civilisation. N'a aucun effet tant que le layer Abysse n'existe pas encore dans
-    /// <see cref="WorldState.Layers"/> (pas de point d'entrée pour l'instant) ni pour les autres
-    /// couches (Surface, Outremonde).
+    /// Génère dynamiquement une nouvelle île de l'Abysse (avec sa propre civilisation NPC, voir
+    /// <see cref="SpawnAbyssIslandCivilization"/>) dès qu'un hex de Void devient visible pour le
+    /// joueur. Filtré aux révélations du joueur uniquement (comme <see cref="TryExtendMapAfterRoad"/>
+    /// pour l'Inframonde) pour éviter qu'une nouvelle civilisation NPC déclenche elle-même, via sa
+    /// propre vision, une réaction en chaîne de générations d'îles. N'a aucun effet tant que le layer
+    /// Abysse n'existe pas encore dans <see cref="WorldState.Layers"/> (pas de point d'entrée pour
+    /// l'instant) ni pour les autres couches (Surface, Outremonde).
     /// </summary>
     private void OnHexesRevealed(int z, int civIndex, IReadOnlyList<HexCoord> newHexes)
     {
         if (z != LayerState.AbyssZ) return;
         if (_state == null || _prng == null) return;
+        if (civIndex != _state.PlayerCivilization.Index) return;
         if (!_state.Layers.TryGetValue(z, out var layerState) || !layerState.AutoExtend) return;
 
         var map = layerState.Map;
@@ -106,8 +111,13 @@ public class AutoExtendController
             var tile = map.GetTile(hex);
             if (tile == null || tile.TerrainType != TerrainType.Void) continue;
 
-            foreach (var newTile in Generator.AbyssIslandGenerator.GenerateIslandBeyondVoid(map, hex, _prng))
+            var newTiles = Generator.AbyssIslandGenerator.GenerateIslandBeyondVoid(map, hex, _prng);
+            if (newTiles.Count == 0) continue;
+
+            foreach (var newTile in newTiles)
                 map.AddTile(newTile);
+
+            SpawnAbyssIslandCivilization(layerState, newTiles, z);
         }
     }
 
@@ -381,9 +391,80 @@ public class AutoExtendController
         var candidateVertices = FindCandidateCityVertices(extraHexes, map, playerVisibleHexesBefore, z);
         if (candidateVertices.Count == 0) return;
 
-        // Création de la civilisation agressive
-        int newCivIndex = _state.Civilizations.Max(c => c.Index) + 1;
-        var extraModifiers = BuildAggressiveModifiers();
+        // Base = stats d'une civilisation de surface de Tier+1, en plus des bonus fixes de l'Inframonde
+        var npcCiv = CreateAggressiveCivilizationShell(BuildLayerCivModifiers(tierOffset: 1, fixedBonusMultiplier: 1));
+
+        int citiesPlaced = PlaceAggressiveCities(npcCiv, candidateVertices, map, z, AggressiveCivCityCount);
+        if (citiesPlaced == 0) return;
+
+        // Remplissage des ressources initiales
+        FillMaxResources(npcCiv);
+
+        _state.Civilizations.Add(npcCiv);
+        // RecalculateFor (et non Recalculate) : ne recalcule que la nouvelle civ, pour ne pas
+        // re-diffuser la visibilité des autres civs (voir SpawnAbyssIslandCivilization).
+        _state.Visibility.RecalculateFor(npcCiv.Index);
+    }
+
+    /// <summary>
+    /// Place une nouvelle civilisation NPC sur une île de l'Abysse tout juste générée
+    /// (<see cref="Generator.AbyssIslandGenerator.GenerateIslandBeyondVoid"/>) : contrairement à
+    /// l'Inframonde (chance de <see cref="AggressiveCivSpawnChancePercent"/>), chaque île de
+    /// l'Abysse générée dynamiquement doit avoir sa propre civilisation. Base = stats d'une
+    /// civilisation de surface de Tier+2, plus 2× les bonus fixes de l'Inframonde.
+    /// </summary>
+    private void SpawnAbyssIslandCivilization(LayerState layerState, List<HexTile> newIslandTiles, int z)
+    {
+        if (_state == null) return;
+        if (_state.Civilizations.Count >= MaxTotalCivilizations) return;
+
+        var map = layerState.Map;
+        var islandHexes = newIslandTiles.Where(t => t.TerrainType != TerrainType.Void).Select(t => t.Coord).ToList();
+        if (islandHexes.Count == 0) return;
+
+        var playerVisible = GetPlayerVisibleHexCoords(layerState);
+        var candidateVertices = FindCandidateCityVertices(islandHexes, map, playerVisible, z);
+        if (candidateVertices.Count == 0) return;
+
+        var npcCiv = CreateAggressiveCivilizationShell(BuildLayerCivModifiers(tierOffset: 2, fixedBonusMultiplier: 2));
+
+        int citiesPlaced = PlaceAggressiveCities(npcCiv, candidateVertices, map, z, AbyssIslandCivCityCount);
+        if (citiesPlaced == 0) return;
+
+        FillMaxResources(npcCiv);
+
+        _state.Civilizations.Add(npcCiv);
+        // RecalculateFor (et non Recalculate) : ne recalcule que la nouvelle civ. Un Recalculate()
+        // complet re-diffuserait aussi la visibilité du joueur contre un instantané antérieur à
+        // l'ajout des tuiles de la nouvelle île — si certaines tombent dans son rayon de vision,
+        // cela les ferait apparaître comme "nouvellement visibles" et déclencherait une réaction en
+        // chaîne (génération d'une île supplémentaire par Void ainsi révélé) en un seul appel.
+        _state.Visibility.RecalculateFor(npcCiv.Index);
+    }
+
+    /// <summary>
+    /// Construit le paquet de modificateurs d'une civilisation NPC "de couche" (Inframonde/Abysse) :
+    /// les bonus économiques/techs d'une civilisation de surface de Tier <c>(_prestigeState.Tier + tierOffset)</c>
+    /// (voir <see cref="NpcCivilizationPlacer.PlaceNpcCivilizations"/> pour la même formule appliquée
+    /// en surface), plus <paramref name="fixedBonusMultiplier"/>× les bonus fixes de la couche
+    /// (<see cref="BuildAggressiveModifiers"/>). Aplati en une seule liste (plutôt que deux
+    /// aggregators séparés) car <see cref="MainGameController.SetupModifierAggregators"/> ne
+    /// reconstitue au chargement qu'un seul <see cref="StaticModifierProvider"/> à partir de
+    /// <see cref="NpcParameters.ExtraModifiers"/> — un second aggregator ne survivrait pas à une
+    /// sauvegarde/rechargement.
+    /// </summary>
+    internal List<Modifier> BuildLayerCivModifiers(int tierOffset, int fixedBonusMultiplier)
+    {
+        int baseline = (_prestigeState?.Tier ?? 1) + tierOffset;
+        var modifiers = NpcModifierSetMaker.Create(maxTechTier: baseline + 1, maxPrestigeDistance: baseline)
+            .GetModifiers().ToList();
+        modifiers.AddRange(BuildAggressiveModifiers(fixedBonusMultiplier));
+        return modifiers;
+    }
+
+    private Civilization CreateAggressiveCivilizationShell(List<Modifier> extraModifiers)
+    {
+        int newCivIndex = _state!.Civilizations.Max(c => c.Index) + 1;
 
         var npcCiv = new Civilization
         {
@@ -397,12 +478,18 @@ public class AutoExtendController
             },
         };
         npcCiv.AddCustomAggregator(new StaticModifierProvider(extraModifiers));
+        return npcCiv;
+    }
 
-        // Placement des villes (jusqu'à AggressiveCivCityCount)
+    /// <summary>Place jusqu'à <paramref name="maxCities"/> villes NPC parmi les vertex candidats, en respectant les distances minimales aux villes existantes. Retourne le nombre de villes effectivement placées.</summary>
+    private int PlaceAggressiveCities(Civilization npcCiv, List<Vertex> candidateVertices, IslandMap map, int z, int maxCities)
+    {
+        if (_state == null) return 0;
+
         int citiesPlaced = 0;
         foreach (var vertex in candidateVertices)
         {
-            if (citiesPlaced >= AggressiveCivCityCount) break;
+            if (citiesPlaced >= maxCities) break;
 
             // Distance avec les villes existantes (autres civs : ≥2, même civ : ≥3)
             bool tooCloseToOther = _state.GetAllCities()
@@ -413,20 +500,14 @@ public class AutoExtendController
                 .Any(c => c.Position.EdgeDistanceTo(vertex) < 3);
             if (tooCloseToOwn) continue;
 
-            var city = new City(vertex) { CivilizationIndex = newCivIndex };
+            var city = new City(vertex) { CivilizationIndex = npcCiv.Index };
             PopulateAggressiveCity(city, map);
             city.Soldiers = city.MaxSoldiers + npcCiv.CityMaxSoldiersBonus;
             npcCiv.AddCity(city);
             citiesPlaced++;
         }
 
-        if (citiesPlaced == 0) return;
-
-        // Remplissage des ressources initiales
-        FillMaxResources(npcCiv);
-
-        _state.Civilizations.Add(npcCiv);
-        _state.Visibility.Recalculate();
+        return citiesPlaced;
     }
 
     private List<Vertex> FindCandidateCityVertices(
@@ -496,16 +577,17 @@ public class AutoExtendController
         }
     }
 
-    private static List<Modifier> BuildAggressiveModifiers() =>
+    /// <summary>Bonus fixes de couche (Inframonde ×1, Abysse ×2 via <paramref name="multiplier"/>).</summary>
+    internal static List<Modifier> BuildAggressiveModifiers(int multiplier = 1) =>
     [
         // Grand stockage de ressources de base
-        new(ECategory.STORAGE_CAPACITY_BASIC, EType.ADDITIVE, 500),
+        new(ECategory.STORAGE_CAPACITY_BASIC, EType.ADDITIVE, 500 * multiplier),
         // Capacité 100 soldats par ville (Caserne niv.3 = 15, + 85 de bonus = 100)
-        new(ECategory.CITY_MAX_SOLDIERS_BONUS, EType.ADDITIVE, 85),
+        new(ECategory.CITY_MAX_SOLDIERS_BONUS, EType.ADDITIVE, 85 * multiplier),
         // Génération passive de nourriture : 20/s (100 ticks) pour couvrir 50 soldats × 3 villes + marge
-        new(ECategory.PASSIVE_RESOURCE_GENERATION, "Food", EType.ADDITIVE, 20),
+        new(ECategory.PASSIVE_RESOURCE_GENERATION, "Food", EType.ADDITIVE, 20 * multiplier),
         // Génération passive de minerai pour produire des soldats : 2/s
-        new(ECategory.PASSIVE_RESOURCE_GENERATION, "Ore", EType.ADDITIVE, 2),
+        new(ECategory.PASSIVE_RESOURCE_GENERATION, "Ore", EType.ADDITIVE, 2 * multiplier),
     ];
 
     private static void FillMaxResources(Civilization civ)

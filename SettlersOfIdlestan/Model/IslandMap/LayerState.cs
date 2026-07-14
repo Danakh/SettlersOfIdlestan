@@ -12,8 +12,8 @@ public class LayerState
     public const int UnderworldZ = 1;
 
     /// <summary>
-    /// Layer de l'Abysse. Pas encore accessible au joueur : aucun point d'entrée ne crée ce layer
-    /// pour l'instant (le futur déclencheur est AbyssGateController.OnAbyssGateBuilt).
+    /// Layer de l'Abysse. Point d'entrée : <see cref="SettlersOfIdlestan.Controller.Expand.AbyssGateController"/>,
+    /// une fois la Faille des Abysses bâtie (voir OnAbyssGateBuilt).
     /// </summary>
     public const int AbyssZ = 2;
 
@@ -60,25 +60,44 @@ public class LayerState
     }
 
     /// <summary>
-    /// Creates the default 3-hex underworld map with an outpost at the shared vertex.
-    /// Hexes (0,0), (1,0), (0,1) form a triangle sharing one vertex.
+    /// Creates the default 3-hex layer map (Inframonde ou Abysse) with an outpost at the shared vertex.
+    /// Hexes (0,0), (1,0), (0,1) form a triangle sharing one vertex, on layer <paramref name="z"/>.
     /// The returned City must be added to the owning civilization by the caller.
     /// </summary>
-    public static LayerState EstablishOupostInNewAutoExpandLayer(Civilization.Civilization playerCiv)
+    /// <param name="surroundWithVoid">
+    /// Abysse uniquement : entoure le triangle d'un anneau de <see cref="TerrainType.Void"/>, pour que
+    /// <see cref="SettlersOfIdlestan.Controller.Island.AutoExtendController"/> puisse faire pousser une
+    /// première île dès qu'un de ces hexes de Void devient visible (voir AbyssIslandGenerator).
+    /// </param>
+    public static LayerState EstablishOupostInNewAutoExpandLayer(
+        Civilization.Civilization playerCiv, int z = UnderworldZ, bool surroundWithVoid = false)
     {
-        var tiles = new[]
+        var h1 = new HexCoord(0, 0, z);
+        var h2 = new HexCoord(1, 0, z);
+        var h3 = new HexCoord(0, 1, z);
+
+        var tiles = new List<HexTile>
         {
-            new HexTile(new HexCoord(0, 0, UnderworldZ), TerrainType.Mountain),
-            new HexTile(new HexCoord(1, 0, UnderworldZ), TerrainType.Mountain),
-            new HexTile(new HexCoord(0, 1, UnderworldZ), TerrainType.Mountain),
+            new HexTile(h1, TerrainType.Mountain),
+            new HexTile(h2, TerrainType.Mountain),
+            new HexTile(h3, TerrainType.Mountain),
         };
 
-        var map = new IslandMap(tiles);
+        if (surroundWithVoid)
+        {
+            var islandSet = new HashSet<HexCoord> { h1, h2, h3 };
+            var ringHexes = new HashSet<HexCoord>();
+            foreach (var hex in islandSet)
+                foreach (var n in hex.Neighbors())
+                    if (!islandSet.Contains(n))
+                        ringHexes.Add(n);
 
-        var outpostVertex = Vertex.Create(
-            new HexCoord(0, 0, UnderworldZ),
-            new HexCoord(1, 0, UnderworldZ),
-            new HexCoord(0, 1, UnderworldZ));
+            foreach (var hex in ringHexes)
+                tiles.Add(new HexTile(hex, TerrainType.Void));
+        }
+
+        var map = new IslandMap(tiles);
+        var outpostVertex = Vertex.Create(h1, h2, h3);
 
         var outpost = new City(outpostVertex) { CivilizationIndex = playerCiv.Index };
         playerCiv.AddCity(outpost);

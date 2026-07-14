@@ -42,6 +42,8 @@ namespace SettlersOfIdlestan.Controller.Expand
         {
             try { ProcessInvestment(); }
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[AbyssGateController] {nameof(ProcessInvestment)}: {ex}"); }
+            try { TryInitializeAbyss(); }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[AbyssGateController] {nameof(TryInitializeAbyss)}: {ex}"); }
         }
 
         private void ProcessInvestment()
@@ -80,6 +82,27 @@ namespace SettlersOfIdlestan.Controller.Expand
 
         public bool HasAbyssGateBuilt()
             => _state?.Features.OfType<AbyssGate>().Any(f => f.Built) == true;
+
+        /// <summary>
+        /// Ouvre l'Abysse (comme <see cref="DeepestMineController.TryInitializeUnderworld"/> pour
+        /// l'Inframonde) une fois la Faille des Abysses bâtie : crée le premier avant-poste, entouré
+        /// de Void pour permettre à AutoExtendController de faire pousser des îles.
+        /// </summary>
+        private void TryInitializeAbyss()
+        {
+            if (_state == null) return;
+
+            var playerCiv = _state.PlayerCivilization;
+
+            // Déjà un avant-poste joueur dans l'Abysse → rien à faire
+            if (playerCiv.Cities.Any(c => c.Position.Z == LayerState.AbyssZ)) return;
+
+            if (!HasAbyssGateBuilt()) return;
+
+            var abyssLayer = LayerState.EstablishOupostInNewAutoExpandLayer(playerCiv, LayerState.AbyssZ, surroundWithVoid: true);
+            _state.AddLayer(LayerState.AbyssZ, abyssLayer);
+            _state.Visibility.RecalculateFor(playerCiv.Index);
+        }
 
         /// <summary>
         /// Remplace la Spire de Corruption éligible par une Faille des Abysses sur le même hex et

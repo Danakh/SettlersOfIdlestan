@@ -1,5 +1,6 @@
 using System;
 using SettlersOfIdlestan.Model.Game;
+using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestanSkia.Services.Localization;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Renderers.Overlay.Popup;
@@ -34,7 +35,6 @@ public sealed class OverlayRenderer : IGameRenderer
     private readonly PlayerCivilizationPanelRenderer _playerCivPanel;
     private readonly SettlersOfIdlestanSkia.Renderers.Debug.HistoryTabRenderer? _historyRenderer;
     private readonly TabBarRenderer _tabBar;
-    private readonly MapSwitchButtonRenderer _mapSwitchButton;
     private readonly ZoomControlRenderer _zoomControl;
 
     private readonly UILayoutService _uiLayout;
@@ -102,7 +102,6 @@ public sealed class OverlayRenderer : IGameRenderer
         _historyRenderer                = historyRenderer;
 
         _tabBar          = new TabBarRenderer(localization, gameControllerService, uiLayout, allowDebugMode);
-        _mapSwitchButton = new MapSwitchButtonRenderer(localization, uiLayout, gameControllerService);
         _zoomControl     = new ZoomControlRenderer(inputService, uiLayout);
 
         _playerCivPanel = new PlayerCivilizationPanelRenderer(
@@ -144,7 +143,6 @@ public sealed class OverlayRenderer : IGameRenderer
         _historyRenderer?.Initialize(canvasSize);
         _playerCivPanel.Initialize(canvasSize);
         _tabBar.Initialize(canvasSize);
-        _mapSwitchButton.Initialize(canvasSize);
         _zoomControl.Initialize(canvasSize, _uiLayout.UiScale);
 
         _playerResourcesOverlayRenderer.ShowGearInBar = !_uiLayout.TimeSettingsOnSecondRow && !_uiLayout.ResourcesOnOwnRow;
@@ -164,7 +162,7 @@ public sealed class OverlayRenderer : IGameRenderer
         _playerResourcesOverlayRenderer.ResourceStartX = _tabBar.ResourceStartX;
 
         int activeTab      = _tabBar.ActiveTab;
-        bool panelsEnabled = activeTab == TabBarRenderer.TabIsland
+        bool panelsEnabled = IsMapViewTab(activeTab)
                           && !_tradeRenderer.IsOpen && !_prestigeRenderer.IsOpen;
         _selectedCityPanelRenderer.IsInputEnabled  = panelsEnabled;
         _selectedMonumentPanelRenderer.IsInputEnabled = panelsEnabled;
@@ -250,9 +248,7 @@ public sealed class OverlayRenderer : IGameRenderer
         _prestigeRenderer.Render(canvas);
         _settingsPopupRenderer.Render(canvas, _uiLayout.UiScale);
 
-        _mapSwitchButton.Render(canvas);
-
-        if (activeTab == TabBarRenderer.TabIsland)
+        if (IsMapViewTab(activeTab))
         {
             _zoomControl.Initialize(_canvasSize, _uiLayout.UiScale);
             _zoomControl.Render(canvas);
@@ -341,12 +337,34 @@ public sealed class OverlayRenderer : IGameRenderer
         || _playerCivPanel.ContainsPoint(point)
         || _zoomControl.ContainsPoint(point)
         || _tabBar.ContainsPoint(point)
-        || _mapSwitchButton.ContainsPoint(point)
         || _timeControlRenderer.ContainsPoint(point)
         || GetGearRect().Contains(point.X, point.Y)
         || (_uiLayout.ResourcesOverflow && point.Y < _uiLayout.ResourceBarBottom);
 
-    public bool IsIslandTabActive => _tabBar.ActiveTab == TabBarRenderer.TabIsland;
+    public bool IsIslandTabActive => IsMapViewTab(_tabBar.ActiveTab);
+
+    /// True for the tabs that show the hex map (Island / Underworld / Abyss) rather than a full-screen panel.
+    private static bool IsMapViewTab(int tabId) =>
+        tabId is TabBarRenderer.TabIsland or TabBarRenderer.TabUnderworld or TabBarRenderer.TabAbyss;
+
+    /// Switches <see cref="WorldState.CurrentViewedLayer"/> to match a click on Island/Underworld/Abyss.
+    private void ApplyLayerForActiveTab()
+    {
+        var worldState = _gameControllerService.CurrentWorldState;
+        if (worldState == null) return;
+
+        int? targetLayer = _tabBar.ActiveTab switch
+        {
+            TabBarRenderer.TabIsland     => IslandMap.SurfaceLayer,
+            TabBarRenderer.TabUnderworld => LayerState.UnderworldZ,
+            TabBarRenderer.TabAbyss      => LayerState.AbyssZ,
+            _ => null,
+        };
+        if (targetLayer == null || worldState.CurrentViewedLayer == targetLayer.Value) return;
+
+        worldState.CurrentViewedLayer = targetLayer.Value;
+        DeselectCityAndMonument();
+    }
 
     private SKRect GetGearRect()
     {
@@ -375,7 +393,7 @@ public sealed class OverlayRenderer : IGameRenderer
         if (activeTab == TabBarRenderer.TabAutomation) _automationRenderer.HandlePointerMoved(e.Position);
         if (activeTab == TabBarRenderer.TabRituals)    _ritualsRenderer.HandlePointerMoved(e.Position);
         if (activeTab == TabBarRenderer.TabAscension)  _ascensionRenderer.HandlePointerMoved(e.Position);
-        if (activeTab == TabBarRenderer.TabIsland)     _playerCivPanel.HandlePointerMoved(e.Position);
+        if (IsMapViewTab(activeTab))                   _playerCivPanel.HandlePointerMoved(e.Position);
 
         _lastPointerPosition = e.Position;
     }
@@ -407,17 +425,11 @@ public sealed class OverlayRenderer : IGameRenderer
             return;
         }
 
-        if (_mapSwitchButton.HandlePointerPressed(e.Position, onSwitchedToUnderworld: () =>
+        if (_tabBar.HandlePointerPressed(e.Position))
         {
-            _tabBar.SetActiveTab(TabBarRenderer.TabIsland);
-            DeselectCityAndMonument();
-        }))
-        {
-            DeselectCityAndMonument();
+            ApplyLayerForActiveTab();
             return;
         }
-
-        if (_tabBar.HandlePointerPressed(e.Position)) return;
 
         int activeTab = _tabBar.ActiveTab;
         if (activeTab == TabBarRenderer.TabPrestige)   { _prestigeMapRenderer.HandlePointerPressed(e.Position); return; }
@@ -503,7 +515,7 @@ public sealed class OverlayRenderer : IGameRenderer
             _prestigeMapRenderer.HandleZoom(e);
             return;
         }
-        if (activeTab == TabBarRenderer.TabIsland)
+        if (IsMapViewTab(activeTab))
         {
             if (_selectedCityPanelRenderer.ContainsPoint(e.Center))
                 _selectedCityPanelRenderer.HandleScroll(e.ZoomDelta);
@@ -563,7 +575,6 @@ public sealed class OverlayRenderer : IGameRenderer
         _historyRenderer?.Dispose();
         _playerCivPanel.Dispose();
         _tabBar.Dispose();
-        _mapSwitchButton.Dispose();
         _zoomControl.Dispose();
         _secondRowBgPaint.Dispose();
         _secondRowBorderPaint.Dispose();

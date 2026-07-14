@@ -70,6 +70,10 @@ namespace SOITests.ControllerTests
 
             var beyondVoid = voidHex.Neighbors().Where(n => !ArrivalSet.Contains(n));
             Assert.Contains(beyondVoid, n => map.HasTile(n) && map.GetTile(n)!.TerrainType != TerrainType.Void);
+
+            // Chaque île générée doit avoir sa propre civilisation NPC (une seule ici).
+            var npcCiv = Assert.Single(state.Civilizations.Where(c => c.IsNpc));
+            Assert.Single(npcCiv.Cities);
         }
 
         [Fact]
