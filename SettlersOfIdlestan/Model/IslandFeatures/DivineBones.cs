@@ -10,11 +10,13 @@ namespace SettlersOfIdlestan.Model.IslandFeatures;
 /// Os Divins — Monument généré sur chaque île des Abysses créée après la première (voir
 /// AutoExtendController.OnHexesRevealed), révélé une fois la recherche Boussole du Vide acquise
 /// (ECategory.UNLOCK_DIVINE_BONES). Investissement "Purification" à coût double (Cristal + points
-/// de recherche), comme une Merveille de niveau 0 à objectif unique. Une fois purifié (essence
-/// octroyée ou non), ne peut plus être investi. La Purification n'a que <see cref="EssenceChancePercent"/>
-/// % de chance d'octroyer effectivement une essence divine (GodState), et le nombre d'essences
-/// détenues est plafonné par le niveau de corruption (voir <see cref="GetEssenceCap"/>) — au-delà,
-/// il faut prestige pour augmenter ce plafond.
+/// de recherche), comme une Merveille de niveau 0 à objectif unique. Une fois purifié, ne peut plus
+/// être investi. La Purification octroie toujours 1 os divin (WorldState.DivineBoneCount) ;
+/// <see cref="BonesPerEssence"/> os se convertissent automatiquement en 1 essence divine (GodState).
+/// Les os sont stockés sur l'île courante et donc perdus au prestige : il faut en réunir
+/// <see cref="BonesPerEssence"/> sur la même île. Le nombre d'essences détenues est plafonné par le
+/// niveau de corruption (voir <see cref="GetEssenceCap"/>) — au-delà, il faut prestige pour
+/// augmenter ce plafond.
 /// </summary>
 public class DivineBones : Monument
 {
@@ -31,7 +33,7 @@ public class DivineBones : Monument
     {
         if (Purified)
             return new(EssenceGranted ? "hex_tooltip_divine_bones_purified" : "hex_tooltip_divine_bones_purified_no_essence");
-        return new("hex_tooltip_divine_bones", new object[] { EssenceChancePercent, GetEssenceCap() });
+        return new("hex_tooltip_divine_bones", new object[] { BonesPerEssence, GetEssenceCap() });
     }
 
     /// <summary>Niveau de corruption de l'île au moment de la génération de cette feature (fige le coût de Purification).</summary>
@@ -40,7 +42,7 @@ public class DivineBones : Monument
     /// <summary>True une fois la Purification terminée (essence octroyée ou non), plus rien à investir.</summary>
     public bool Purified { get; set; } = false;
 
-    /// <summary>True si la Purification a effectivement octroyé une essence divine (tirage réussi, voir <see cref="EssenceChancePercent"/>).</summary>
+    /// <summary>True si l'os divin octroyé par cette Purification a complété une conversion de <see cref="BonesPerEssence"/> os en essence divine.</summary>
     public bool EssenceGranted { get; set; } = false;
 
     /// <summary>
@@ -60,11 +62,11 @@ public class DivineBones : Monument
     /// <summary>Tick du dernier cycle d'investissement en recherche (indépendant de LastInvestmentTick, dédié au Cristal).</summary>
     public long LastResearchInvestmentTick { get; set; } = 0;
 
-    public const long BaseCrystalCost = 1000;
-    public const long BaseResearchCost = 1_000_000;
+    public const long BaseCrystalCost = 500;
+    public const long BaseResearchCost = 500_000;
 
-    /// <summary>Chance qu'une Purification complétée octroie effectivement une essence divine.</summary>
-    public const int EssenceChancePercent = 50;
+    /// <summary>Nombre d'os divins (octroyés à 100% par chaque Purification) à réunir sur la même île pour obtenir 1 essence divine.</summary>
+    public const int BonesPerEssence = 4;
 
     /// <summary>Le plafond d'essences divines détenues démarre au niveau de corruption 4 (plafond de 1), voir <see cref="GetEssenceCap"/>.</summary>
     public const int EssenceCapCorruptionLevelOffset = 3;

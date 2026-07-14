@@ -432,6 +432,12 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
                     : (_localization.GetFormated("monument_bonus_abyss_gate_next", multiplier), false));
                 break;
             }
+            case DivineBones:
+            {
+                int boneCount = _gameControllerService.MainGameController.CurrentMainState?.CurrentWorldState?.DivineBoneCount ?? 0;
+                lines.Add((_localization.GetFormated("divine_bones_bone_count", boneCount, DivineBones.BonesPerEssence), boneCount > 0));
+                break;
+            }
         }
 
         return lines;

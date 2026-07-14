@@ -13,9 +13,11 @@ namespace SettlersOfIdlestan.Controller.Island
     /// Gère la Purification des Os Divins : investissement double (Cristal via le mécanisme
     /// Monument standard + points de recherche via un pool séparé, voir DivineBones.InvestedResearch),
     /// à coût croissant avec le nombre d'essences divines déjà collectées (cross-prestige, GodState).
-    /// Une Purification terminée n'octroie une essence divine (révélant l'onglet Ascension, voir
-    /// TabBarRenderer.HasGodPoints) qu'avec DivineBones.EssenceChancePercent % de chance, et seulement
-    /// si GodState.DivineEssence n'a pas déjà atteint le plafond de la feature (DivineBones.GetEssenceCap).
+    /// Une Purification terminée octroie toujours 1 os divin (WorldState.DivineBoneCount, perdu au
+    /// prestige) ; DivineBones.BonesPerEssence os réunis sur la même île se convertissent
+    /// automatiquement en 1 essence divine (révélant l'onglet Ascension, voir
+    /// TabBarRenderer.HasGodPoints), seulement si GodState.DivineEssence n'a pas déjà atteint le
+    /// plafond de la feature (DivineBones.GetEssenceCap).
     /// </summary>
     public class DivineBonesController
     {
@@ -75,15 +77,20 @@ namespace SettlersOfIdlestan.Controller.Island
                 bones.InvestmentEnabled.Clear();
                 bones.ResearchInvestmentEnabled = false;
 
-                // Même si l'investissement est complet, l'essence n'est octroyée qu'avec EssenceChancePercent
-                // de chance, et seulement si le plafond (une essence par niveau de corruption à partir du
-                // niveau 4) n'est pas déjà atteint — au-delà, il faut prestige pour relever ce plafond.
-                bool underCap = _godState.DivineEssence < bones.GetEssenceCap();
-                bones.EssenceGranted = underCap && _prng.Next(100) < DivineBones.EssenceChancePercent;
-                if (bones.EssenceGranted)
+                // Chaque Purification octroie 1 os divin, stocké sur l'île courante (donc perdu au
+                // prestige). BonesPerEssence os se convertissent en 1 essence divine, seulement si le
+                // plafond (une essence par niveau de corruption à partir du niveau 4) n'est pas déjà
+                // atteint — au-delà, il faut prestige pour relever ce plafond (les os en excédent
+                // restent sur l'île en attendant).
+                _state.DivineBoneCount++;
+                bones.EssenceGranted = false;
+                while (_state.DivineBoneCount >= DivineBones.BonesPerEssence
+                       && _godState.DivineEssence < bones.GetEssenceCap())
                 {
+                    _state.DivineBoneCount -= DivineBones.BonesPerEssence;
                     _godState.DivineEssence++;
                     _godState.TotalDivineEssenceEarned++;
+                    bones.EssenceGranted = true;
                 }
 
                 _state.EventLog.Add(bones.EssenceGranted ? GameEventType.DivineBonesPurified : GameEventType.DivineBonesPurifiedNoEssence, toast: true);

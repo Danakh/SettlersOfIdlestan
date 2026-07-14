@@ -40,6 +40,14 @@ public class WorldState : IJsonOnDeserialized
     public int WorldId { get; set; }
 
     /// <summary>
+    /// Os divins récupérés sur cette île (chaque Purification d'Os Divins en octroie 1, voir
+    /// DivineBonesController). DivineBones.BonesPerEssence os se convertissent automatiquement en
+    /// 1 essence divine. Volontairement stocké sur le WorldState et non le GodState : les os sont
+    /// perdus au prestige — il faut en réunir 4 sur la même île.
+    /// </summary>
+    public int DivineBoneCount { get; set; }
+
+    /// <summary>
     /// Tick de simulation au moment où ce monde a démarré (pour calculer la durée de jeu).
     /// </summary>
     public long StartTick { get; set; } = 0;
