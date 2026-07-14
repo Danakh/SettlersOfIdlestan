@@ -23,6 +23,13 @@ public class PrestigeState
     /// </summary>
     public int WalkOfGodUsesSinceLastPrestige { get; set; }
 
+    /// <summary>
+    /// Nombre d'utilisations de Présence de Dieu depuis le dernier prestige. Même modèle de coût
+    /// croissant que <see cref="WalkOfGodUsesSinceLastPrestige"/> (voir
+    /// AscensionController.GetPresenceOfGodCost) ; remis à zéro par PrestigeController.PerformPrestige.
+    /// </summary>
+    public int PresenceOfGodUsesSinceLastPrestige { get; set; }
+
     public List<Vertex> PurchasedVertices { get; set; } = new();
 
     public List<PrestigeRunStats> RunHistory { get; set; } = new();

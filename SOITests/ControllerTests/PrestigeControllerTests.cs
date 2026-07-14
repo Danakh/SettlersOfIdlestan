@@ -246,6 +246,22 @@ namespace SOITests.ControllerTests
             Assert.Equal(0, controller.CurrentMainState.PrestigeState!.WalkOfGodUsesSinceLastPrestige);
         }
 
+        [Fact]
+        public void MainGameController_PerformPrestige_ResetsPresenceOfGodUsesSinceLastPrestige()
+        {
+            var controller = new MainGameController();
+            controller.CreateNewGame();
+            var civ = controller.CurrentMainState!.CurrentWorldState!.PlayerCivilization;
+            for (int i = 0; i < 20; i++)
+                civ.Cities[0].Buildings.Add(new Temple());
+            civ.AddUniqueBuilding(BuildingType.ImperialPort);
+            controller.CurrentMainState.PrestigeState!.PresenceOfGodUsesSinceLastPrestige = 3;
+
+            controller.PerformPrestige();
+
+            Assert.Equal(0, controller.CurrentMainState.PrestigeState!.PresenceOfGodUsesSinceLastPrestige);
+        }
+
         // ── Spire de Corruption ──────────────────────────────────────────────
 
         [Fact]

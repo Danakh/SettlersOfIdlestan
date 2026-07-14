@@ -289,6 +289,7 @@ namespace SettlersOfIdlestan.Controller.Expand
             mainGameState.PrestigeState.PrestigePoints += points;
             mainGameState.PrestigeState.TotalPrestigePointsEarned += points;
             mainGameState.PrestigeState.WalkOfGodUsesSinceLastPrestige = 0;
+            mainGameState.PrestigeState.PresenceOfGodUsesSinceLastPrestige = 0;
             mainGameState.PrestigeState.WorldState = null;
 
             var generator = new IslandMapGenerator(mainGameState.WorldPRNG);

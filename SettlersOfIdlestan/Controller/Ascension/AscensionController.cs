@@ -8,6 +8,7 @@ using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.GameplayModifier;
 using SettlersOfIdlestan.Model.HexGrid;
+using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Prestige;
 
@@ -285,6 +286,92 @@ public class AscensionController : IModifierProvider
         prestigeState.WalkOfGodUsesSinceLastPrestige++;
 
         return true;
+    }
+
+    /// <summary>Points divins appliqués par Présence de Dieu sur l'hex visé.</summary>
+    public const int PresenceOfGodCenterPoints = 5;
+
+    /// <summary>Points divins appliqués par Présence de Dieu sur chacun des 6 hexs voisins.</summary>
+    public const int PresenceOfGodNeighborPoints = 3;
+
+    /// <summary>
+    /// Hexs ciblables par Présence de Dieu : les hexs terrestres de la carte de surface (jamais
+    /// l'eau — cohérent avec CorruptionController.IsValidLandHex, la Corruption et le Dominion
+    /// n'existant pas sur l'eau).
+    /// </summary>
+    public IReadOnlyList<HexCoord> GetPresenceOfGodTargetHexes()
+    {
+        if (_state == null) return Array.Empty<HexCoord>();
+
+        var map = _state.GetMapForZ(IslandMap.SurfaceLayer);
+        if (map == null) return Array.Empty<HexCoord>();
+
+        return map.Tiles.Values
+            .Where(t => t.TerrainType != TerrainType.Water)
+            .Select(t => t.Coord)
+            .ToList();
+    }
+
+    /// <summary>
+    /// Coût en points de prestige de la prochaine utilisation de Présence de Dieu : même modèle que
+    /// Marche de Dieu (1 à la première utilisation depuis le dernier prestige, 2 à la deuxième, etc.
+    /// — voir PrestigeState.PresenceOfGodUsesSinceLastPrestige, remis à zéro à chaque prestige).
+    /// </summary>
+    public int GetPresenceOfGodCost() => (_godState?.PrestigeState?.PresenceOfGodUsesSinceLastPrestige ?? 0) + 1;
+
+    /// <summary>Vrai si Présence de Dieu est débloquée et que le joueur a assez de points de prestige pour son prochain coût.</summary>
+    public bool CanUsePresenceOfGod()
+    {
+        var prestigeState = _godState?.PrestigeState;
+        return prestigeState != null && IsPowerUnlocked(AscensionPowerId.PresenceOfGod) && prestigeState.PrestigePoints >= GetPresenceOfGodCost();
+    }
+
+    /// <summary>
+    /// Manifeste la Présence de Dieu sur une zone : <see cref="PresenceOfGodCenterPoints"/> points
+    /// sur l'hex visé, <see cref="PresenceOfGodNeighborPoints"/> sur chacun de ses 6 voisins, contre
+    /// un coût en points de prestige croissant (voir <see cref="GetPresenceOfGodCost"/>). Sur chaque
+    /// hex, les points dissipent d'abord la Corruption niveau par niveau ; le reliquat pose ou
+    /// renforce le Dominion d'autant.
+    /// </summary>
+    public bool ApplyPresenceOfGod(HexCoord hex)
+    {
+        if (_state == null || !CanUsePresenceOfGod()) return false;
+
+        if (_state.GetMapFor(hex)?.GetTile(hex) is not { TerrainType: not TerrainType.Water }) return false;
+
+        ApplyPresencePoints(hex, PresenceOfGodCenterPoints);
+        foreach (var neighbor in hex.Neighbors())
+            ApplyPresencePoints(neighbor, PresenceOfGodNeighborPoints);
+
+        var prestigeState = _godState!.PrestigeState!;
+        prestigeState.PrestigePoints -= GetPresenceOfGodCost();
+        prestigeState.PresenceOfGodUsesSinceLastPrestige++;
+
+        return true;
+    }
+
+    private void ApplyPresencePoints(HexCoord hex, int points)
+    {
+        // Hexs hors carte ou aquatiques : la Présence n'y a pas d'effet (voisins en bord de carte).
+        if (_state!.GetMapFor(hex)?.GetTile(hex) is not { TerrainType: not TerrainType.Water }) return;
+
+        var corruption = _state.GetFeaturesAt(hex).OfType<Corruption>().FirstOrDefault();
+        if (corruption != null)
+        {
+            int dispelled = Math.Min(points, corruption.Level);
+            corruption.Level -= dispelled;
+            points -= dispelled;
+            if (corruption.Level <= 0)
+                _state.RemoveFeature(corruption);
+        }
+
+        if (points <= 0) return;
+
+        var dominion = _state.GetFeaturesAt(hex).OfType<Dominion>().FirstOrDefault();
+        if (dominion != null)
+            dominion.Level += points;
+        else
+            _state.AddFeature(new Dominion(hex, level: points));
     }
 
     private void OnClockAdvanced(object? sender, GameClockAdvancedEventArgs e)

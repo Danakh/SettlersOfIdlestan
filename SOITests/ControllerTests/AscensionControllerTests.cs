@@ -4,6 +4,8 @@ using SettlersOfIdlestan.Model.Ascension;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
+using SettlersOfIdlestan.Model.HexGrid;
+using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Prestige;
 using SOITests.TestUtilities;
@@ -44,6 +46,12 @@ public class AscensionControllerTests
     {
         Assert.True(ascension.PurchasePower(AscensionPowerId.Faith));
         Assert.True(ascension.PurchasePower(AscensionPowerId.WalkOfGod));
+    }
+
+    private static void UnlockPresenceOfGod(AscensionController ascension)
+    {
+        UnlockWalkOfGod(ascension);
+        Assert.True(ascension.PurchasePower(AscensionPowerId.PresenceOfGod));
     }
 
     [Fact]
@@ -360,5 +368,103 @@ public class AscensionControllerTests
         godState.PrestigeState!.WalkOfGodUsesSinceLastPrestige = 4;
 
         Assert.Equal(5, ascension.GetWalkOfGodCost());
+    }
+
+    [Fact]
+    public void PresenceOfGod_RequiresWalkOfGodFirstInColumn()
+    {
+        var (_, _, _, ascension, _) = CreateTestSetup(godPoints: 100);
+        Assert.True(ascension.PurchasePower(AscensionPowerId.Faith));
+
+        Assert.False(ascension.CanPurchasePower(AscensionPowerId.PresenceOfGod));
+
+        Assert.True(ascension.PurchasePower(AscensionPowerId.WalkOfGod));
+        Assert.True(ascension.CanPurchasePower(AscensionPowerId.PresenceOfGod));
+    }
+
+    [Fact]
+    public void ApplyPresenceOfGod_DispelsCorruptionThenSeedsDominionOnAreaAndCostsPrestige()
+    {
+        var (state, _, _, ascension, godState) = CreateTestSetup(godPoints: 100, prestigePoints: 10);
+        UnlockPresenceOfGod(ascension);
+
+        var center = new HexCoord(0, 0, SettlersOfIdlestan.Model.IslandMap.IslandMap.SurfaceLayer);
+        var east = new HexCoord(1, 0, SettlersOfIdlestan.Model.IslandMap.IslandMap.SurfaceLayer);
+        var west = new HexCoord(-1, 0, SettlersOfIdlestan.Model.IslandMap.IslandMap.SurfaceLayer);
+        state.AddFeature(new Corruption(center, level: 2));
+        state.AddFeature(new Corruption(east, level: 10));
+
+        Assert.True(ascension.ApplyPresenceOfGod(center));
+
+        // Hex visé (5 points) : corruption niveau 2 dissipée, reliquat 3 en Dominion.
+        Assert.Empty(state.GetFeaturesAt(center).OfType<Corruption>());
+        Assert.Equal(3, state.GetFeaturesAt(center).OfType<Dominion>().Single().Level);
+
+        // Voisin corrompu (3 points) : corruption 10 → 7, pas de Dominion.
+        Assert.Equal(7, state.GetFeaturesAt(east).OfType<Corruption>().Single().Level);
+        Assert.Empty(state.GetFeaturesAt(east).OfType<Dominion>());
+
+        // Voisin vide (3 points) : Dominion niveau 3.
+        Assert.Equal(3, state.GetFeaturesAt(west).OfType<Dominion>().Single().Level);
+
+        Assert.Equal(9, godState.PrestigeState!.PrestigePoints);
+        Assert.Equal(1, godState.PrestigeState!.PresenceOfGodUsesSinceLastPrestige);
+    }
+
+    [Fact]
+    public void GetPresenceOfGodCost_EscalatesByOneOnEachUse()
+    {
+        var (_, _, _, ascension, godState) = CreateTestSetup(godPoints: 100, prestigePoints: 10);
+        UnlockPresenceOfGod(ascension);
+        var hex = ascension.GetPresenceOfGodTargetHexes()[0];
+
+        Assert.Equal(1, ascension.GetPresenceOfGodCost());
+        Assert.True(ascension.ApplyPresenceOfGod(hex));
+        Assert.Equal(9, godState.PrestigeState!.PrestigePoints);
+
+        Assert.Equal(2, ascension.GetPresenceOfGodCost());
+        Assert.True(ascension.ApplyPresenceOfGod(hex));
+        Assert.Equal(7, godState.PrestigeState!.PrestigePoints);
+
+        Assert.Equal(3, ascension.GetPresenceOfGodCost());
+    }
+
+    [Fact]
+    public void ApplyPresenceOfGod_InsufficientPrestigePoints_FailsAndLeavesStateUntouched()
+    {
+        var (state, _, _, ascension, godState) = CreateTestSetup(godPoints: 100, prestigePoints: 0);
+        UnlockPresenceOfGod(ascension);
+        var hex = ascension.GetPresenceOfGodTargetHexes()[0];
+
+        Assert.False(ascension.ApplyPresenceOfGod(hex));
+
+        Assert.Equal(0, godState.PrestigeState!.PrestigePoints);
+        Assert.Equal(0, godState.PrestigeState!.PresenceOfGodUsesSinceLastPrestige);
+        Assert.Empty(state.Features.OfType<Dominion>());
+    }
+
+    [Fact]
+    public void GetPresenceOfGodCost_ReadsDirectlyFromPresenceOfGodUsesSinceLastPrestige()
+    {
+        var (_, _, _, ascension, godState) = CreateTestSetup(godPoints: 100, prestigePoints: 10);
+        UnlockPresenceOfGod(ascension);
+
+        godState.PrestigeState!.PresenceOfGodUsesSinceLastPrestige = 4;
+
+        Assert.Equal(5, ascension.GetPresenceOfGodCost());
+    }
+
+    [Fact]
+    public void GetPresenceOfGodTargetHexes_ExcludesWater()
+    {
+        var (state, _, _, ascension, _) = CreateTestSetup(godPoints: 100, prestigePoints: 10);
+        UnlockPresenceOfGod(ascension);
+
+        var west = new HexCoord(-1, 0, SettlersOfIdlestan.Model.IslandMap.IslandMap.SurfaceLayer);
+        state.GetMapFor(west)!.GetTile(west)!.TerrainType = SettlersOfIdlestan.Model.IslandMap.TerrainType.Water;
+
+        var targets = ascension.GetPresenceOfGodTargetHexes();
+        Assert.DoesNotContain(west, targets);
+        Assert.Equal(6, targets.Count);
     }
 }

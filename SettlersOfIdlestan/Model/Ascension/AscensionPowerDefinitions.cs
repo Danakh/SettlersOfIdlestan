@@ -27,6 +27,9 @@ public static class AscensionPowerDefinitions
         new AscensionPowerDefinition(AscensionPowerId.WalkOfGod,
             "ascension_power_walkofgod_name", "ascension_power_walkofgod_desc", column: 2, godPointCost: 3),
 
+        new AscensionPowerDefinition(AscensionPowerId.PresenceOfGod,
+            "ascension_power_presenceofgod_name", "ascension_power_presenceofgod_desc", column: 2, godPointCost: 6),
+
         new AscensionPowerDefinition(AscensionPowerId.ArmOfGod,
             "ascension_power_armofgod_name", "ascension_power_armofgod_desc", column: 3, godPointCost: 3),
     };

@@ -54,16 +54,18 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
     private SKRect _spireButtonRect    = SKRect.Empty;
     private SKRect _relocationButtonRect = SKRect.Empty;
     private SKRect _walkOfGodButtonRect = SKRect.Empty;
+    private SKRect _presenceOfGodButtonRect = SKRect.Empty;
     private readonly List<(SKRect rect, string pinKey, string tooltipKey)> _pinnedItemRects = new();
     private int _hoveredPinnedIndex = -1;
 
-    private bool _hoveredTrade, _hoveredPrestige, _hoveredWonder, _hoveredDeepestMine, _hoveredRaid, _hoveredSpire, _hoveredRelocation, _hoveredWalkOfGod, _hoveredGreatLighthouse;
+    private bool _hoveredTrade, _hoveredPrestige, _hoveredWonder, _hoveredDeepestMine, _hoveredRaid, _hoveredSpire, _hoveredRelocation, _hoveredWalkOfGod, _hoveredPresenceOfGod, _hoveredGreatLighthouse;
     private bool _wonderEnabled;
     private bool _greatLighthouseEnabled;
     private bool _deepestMineEnabled;
     private bool _spireEnabled;
     private bool _relocationEnabled;
     private bool _walkOfGodEnabled;
+    private bool _presenceOfGodEnabled;
     private bool _disposed;
     private SKPaint? _btnRaidActivePaint;
     private SKPaint? _btnRaidActiveHoverPaint;
@@ -170,6 +172,8 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         var ascensionController = _gameControllerService.MainGameController.AscensionController;
         bool walkOfGodVisible = ascensionController.IsPowerUnlocked(AscensionPowerId.WalkOfGod);
         _walkOfGodEnabled = walkOfGodVisible && context.CurrentLayer == 0 && ascensionController.GetWalkOfGodTargetHexes().Count > 0 && ascensionController.CanUseWalkOfGod();
+        bool presenceOfGodVisible = ascensionController.IsPowerUnlocked(AscensionPowerId.PresenceOfGod);
+        _presenceOfGodEnabled = presenceOfGodVisible && context.CurrentLayer == 0 && ascensionController.GetPresenceOfGodTargetHexes().Count > 0 && ascensionController.CanUsePresenceOfGod();
         bool hasBarracks     = HasBuilt<Barracks>(civ);
         bool hasLabs         = HasBuilt<Laboratory>(civ);
         bool hasSmelters     = HasBuilt<Smelter>(civ);
@@ -181,14 +185,14 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         var worldState = _gameControllerService.CurrentWorldState;
         var pinned = _gameControllerService.CurrentGameState?.Settings.PinnedCivPanelKeys ?? (IReadOnlySet<string>)new HashSet<string>();
 
-        bool showActions  = tradeVisible || prestigeVisible || wonderVisible || greatLighthouseVisible || deepestMineVisible || spireVisible || raidVisible || relocationVisible || walkOfGodVisible;
+        bool showActions  = tradeVisible || prestigeVisible || wonderVisible || greatLighthouseVisible || deepestMineVisible || spireVisible || raidVisible || relocationVisible || walkOfGodVisible || presenceOfGodVisible;
         bool showControls = pinned.Any(k => IsKeyShowable(k, civ, worldState, hasBarracks, hasLabs, hasSmelters, hasArsenals, hasWeaponSmiths, hasArmorSmiths, hasAlchimistHuts));
 
         // Single source of truth for the action-button count — reused for both the
         // panel height measurement and the button-grid layout so they can't drift apart.
-        int actionCount = (tradeVisible ? 1 : 0) + (prestigeVisible ? 1 : 0) + (wonderVisible ? 1 : 0) + (greatLighthouseVisible ? 1 : 0) + (deepestMineVisible ? 1 : 0) + (spireVisible ? 1 : 0) + (raidVisible ? 1 : 0) + (relocationVisible ? 1 : 0) + (walkOfGodVisible ? 1 : 0);
+        int actionCount = (tradeVisible ? 1 : 0) + (prestigeVisible ? 1 : 0) + (wonderVisible ? 1 : 0) + (greatLighthouseVisible ? 1 : 0) + (deepestMineVisible ? 1 : 0) + (spireVisible ? 1 : 0) + (raidVisible ? 1 : 0) + (relocationVisible ? 1 : 0) + (walkOfGodVisible ? 1 : 0) + (presenceOfGodVisible ? 1 : 0);
 
-        _tradeButtonRect = _prestigeButtonRect = _wonderButtonRect = _greatLighthouseButtonRect = _deepestMineButtonRect = _spireButtonRect = _raidButtonRect = _relocationButtonRect = _walkOfGodButtonRect = SKRect.Empty;
+        _tradeButtonRect = _prestigeButtonRect = _wonderButtonRect = _greatLighthouseButtonRect = _deepestMineButtonRect = _spireButtonRect = _raidButtonRect = _relocationButtonRect = _walkOfGodButtonRect = _presenceOfGodButtonRect = SKRect.Empty;
         _pinnedItemRects.Clear();
 
         if (!showActions && !showControls)
@@ -328,6 +332,14 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
                 SkiaTextUtils.DrawText(canvas, walkOfGodLabel, _walkOfGodButtonRect.MidX, _walkOfGodButtonRect.MidY + 4f * s, SKTextAlign.Center, _btnSmFont, _walkOfGodEnabled ? TextPaint : _btnDisabledTxtPaint);
             }
 
+            if (presenceOfGodVisible)
+            {
+                _presenceOfGodButtonRect = BtnRect(btnIdx++);
+                canvas.DrawRoundRect(_presenceOfGodButtonRect, 6 * s, 6 * s, _presenceOfGodEnabled ? (_hoveredPresenceOfGod ? _btnHoverPaint : _btnPaint) : _btnDisabledPaint);
+                string presenceOfGodLabel = $"{_localization.Get("presenceofgod_action_short")} ({ascensionController.GetPresenceOfGodCost()})";
+                SkiaTextUtils.DrawText(canvas, presenceOfGodLabel, _presenceOfGodButtonRect.MidX, _presenceOfGodButtonRect.MidY + 4f * s, SKTextAlign.Center, _btnSmFont, _presenceOfGodEnabled ? TextPaint : _btnDisabledTxtPaint);
+            }
+
             y = actionsY + ((btnIdx + 1) / 2) * (btnHeight + btnSpacing);
         }
 
@@ -457,6 +469,15 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
                 walkOfGodLines.Add(_localization.Get("tooltip_walkofgod_insufficient_prestige"));
             _tooltipRenderer.SetTooltipLines(walkOfGodLines.ToArray(), new SKPoint(_walkOfGodButtonRect.Right, _walkOfGodButtonRect.Top));
         }
+        else if (_hoveredPresenceOfGod)
+        {
+            var presenceOfGodLines = new System.Collections.Generic.List<string> { _localization.Get("tooltip_presenceofgod") };
+            int presenceOfGodCost = ascensionController.GetPresenceOfGodCost();
+            presenceOfGodLines.Add(_localization.GetFormated("tooltip_presenceofgod_cost", presenceOfGodCost));
+            if (!ascensionController.CanUsePresenceOfGod())
+                presenceOfGodLines.Add(_localization.Get("tooltip_presenceofgod_insufficient_prestige"));
+            _tooltipRenderer.SetTooltipLines(presenceOfGodLines.ToArray(), new SKPoint(_presenceOfGodButtonRect.Right, _presenceOfGodButtonRect.Top));
+        }
         else if (_hoveredPinnedIndex >= 0 && _hoveredPinnedIndex < _pinnedItemRects.Count)
         {
             var (rect, _, tooltipKey) = _pinnedItemRects[_hoveredPinnedIndex];
@@ -502,6 +523,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         _hoveredRaid        = !_raidButtonRect.IsEmpty        && _raidButtonRect.Contains(pos.X, pos.Y);
         _hoveredRelocation  = !_relocationButtonRect.IsEmpty  && _relocationButtonRect.Contains(pos.X, pos.Y);
         _hoveredWalkOfGod   = !_walkOfGodButtonRect.IsEmpty   && _walkOfGodButtonRect.Contains(pos.X, pos.Y);
+        _hoveredPresenceOfGod = !_presenceOfGodButtonRect.IsEmpty && _presenceOfGodButtonRect.Contains(pos.X, pos.Y);
 
         _hoveredPinnedIndex = -1;
         for (int i = 0; i < _pinnedItemRects.Count; i++)
@@ -631,6 +653,15 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             var ascensionController = _gameControllerService.MainGameController.AscensionController;
             _targetSelectionService.EnterHexSelection("walkofgod_select_hex", ascensionController.GetWalkOfGodTargetHexes(),
                 hex => ascensionController.ChangeTerrainRandomly(hex), TargetSelectionTheme.Friendly);
+            return true;
+        }
+
+        if (!_presenceOfGodButtonRect.IsEmpty && _presenceOfGodButtonRect.Contains(pos.X, pos.Y) && _presenceOfGodEnabled && _targetSelectionService != null)
+        {
+            _closeAll();
+            var ascensionControllerPresence = _gameControllerService.MainGameController.AscensionController;
+            _targetSelectionService.EnterHexSelection("presenceofgod_select_hex", ascensionControllerPresence.GetPresenceOfGodTargetHexes(),
+                hex => ascensionControllerPresence.ApplyPresenceOfGod(hex), TargetSelectionTheme.Friendly);
             return true;
         }
 
