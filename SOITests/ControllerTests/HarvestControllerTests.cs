@@ -91,11 +91,12 @@ namespace SOITests.ControllerTests
             var city = civ.Cities[0];
             city.Buildings.Add(new Sawmill());
 
-            // Dominion niveau 2 sur l'hex récolté + bonus de prestige de 0.5/niveau ⇒ vitesse ×2.
-            state.AddFeature(new Dominion(a, level: 2));
+            // Dominion niveau 5 (+20%/niveau = +100%) amplifié par 2 vertex de prestige (×1.2)
+            // ⇒ +120% de vitesse, cooldown effectif = 500 / 2.2 = 227 ticks.
+            state.AddFeature(new Dominion(a, level: 5));
             civ.AddCustomAggregator(new StaticModifierProvider(new[]
             {
-                new Modifier(ECategory.DOMINION_HARVEST_SPEED_PER_LEVEL, EType.ADDITIVE, 0.5),
+                new Modifier(ECategory.DOMINION_HARVEST_SPEED_PER_LEVEL, EType.ADDITIVE, 0.2),
             }));
 
             var clock = new GameClock();
@@ -105,7 +106,51 @@ namespace SOITests.ControllerTests
             clock.SimulateAdvance(10);
             Assert.Equal(1, civ.GetResourceQuantity(Resource.Wood));
 
-            // Cooldown effectif = 500 / 2 = 250 ticks : toujours rien à +100 ticks (110 écoulés).
+            // Cooldown effectif = 227 ticks : toujours rien à +190 ticks (200 écoulés).
+            clock.SimulateAdvance(190);
+            Assert.Equal(1, civ.GetResourceQuantity(Resource.Wood));
+
+            // 250 ticks écoulés depuis la première récolte ⩾ 227 ⇒ nouvelle récolte.
+            clock.SimulateAdvance(50);
+            Assert.Equal(2, civ.GetResourceQuantity(Resource.Wood));
+        }
+
+        [Fact]
+        public void AutomaticHarvest_WithDominionOnHex_IntrinsicBonusWithoutPrestigeModifier()
+        {
+            var a = new HexCoord(0, 0, IslandMap.SurfaceLayer);
+            var b = new HexCoord(1, 0, IslandMap.SurfaceLayer);
+            var c = new HexCoord(0, 1, IslandMap.SurfaceLayer);
+
+            var tiles = new[]
+            {
+                new HexTile(a, TerrainType.Forest),
+                new HexTile(b, TerrainType.Plain),
+                new HexTile(c, TerrainType.Plain),
+            };
+
+            var map = new IslandMap(tiles);
+            var civ = new Civilization { Index = 0 };
+            var civs = new List<Civilization> { civ };
+            var state = new WorldState(map, civs, AtlasController.InvalidIslandId);
+
+            var vertex = Vertex.Create(a, b, c);
+            IslandMapGenerator generator = new IslandMapGenerator(new GamePRNG(42));
+            generator.PopulatePlayerCivilization(map, civ, vertex);
+            var city = civ.Cities[0];
+            city.Buildings.Add(new Sawmill());
+
+            // Bonus intrinsèque seul : Dominion niveau 5 ⇒ +100% de vitesse, cooldown = 500 / 2 = 250 ticks.
+            state.AddFeature(new Dominion(a, level: 5));
+
+            var clock = new GameClock();
+            clock.Start();
+            new HarvestController(state, clock);
+
+            clock.SimulateAdvance(10);
+            Assert.Equal(1, civ.GetResourceQuantity(Resource.Wood));
+
+            // Toujours rien à +100 ticks (110 écoulés < 250).
             clock.SimulateAdvance(100);
             Assert.Equal(1, civ.GetResourceQuantity(Resource.Wood));
 

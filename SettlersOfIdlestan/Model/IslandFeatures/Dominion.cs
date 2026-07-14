@@ -18,15 +18,22 @@ public class Dominion : IslandFeature
     public override GameEventType DiscoveredEventType => GameEventType.NoEvent;
     public override GameEventType RemovedEventType => GameEventType.NoEvent;
 
-    public override LocalizedEntry? GetTooltipEntry() =>
-        new("hex_tooltip_dominion_info", new object[] { Level });
+    /// <summary>Bonus intrinsèque de vitesse de récolte : +20% par niveau de Dominion.</summary>
+    public const double IntrinsicHarvestBonusPerLevel = 0.20;
 
-    /// <summary>Accélère la récolte selon le bonus de prestige DOMINION_HARVEST_SPEED_PER_LEVEL et le niveau du Dominion.</summary>
+    public override LocalizedEntry? GetTooltipEntry() =>
+        new("hex_tooltip_dominion_info", new object[] { Level, (int)(IntrinsicHarvestBonusPerLevel * 100 * Level) });
+
+    /// <summary>
+    /// Accélère la récolte : +20% de vitesse par niveau de Dominion, amplifié par le bonus de
+    /// prestige DOMINION_HARVEST_SPEED_PER_LEVEL (+10% du bonus par vertex acheté autour de l'hex
+    /// de prestige). Ex. niveau 5 avec 2 vertex (0.2) : 100% × 1.2 = +120% ⇒ délai de récolte ÷ 2.2.
+    /// </summary>
     public override double GetHarvestTimeMultiplier(SettlersOfIdlestan.Model.Civilization.Civilization civ)
     {
-        double perLevel = civ.ModifierAggregator.ApplyModifiers(ECategory.DOMINION_HARVEST_SPEED_PER_LEVEL, "", 0.0);
-        if (perLevel <= 0) return 1.0;
-        return 1.0 / (1.0 + perLevel * Level);
+        double prestigeAmplifier = civ.ModifierAggregator.ApplyModifiers(ECategory.DOMINION_HARVEST_SPEED_PER_LEVEL, "", 0.0);
+        double bonus = IntrinsicHarvestBonusPerLevel * Level * (1.0 + prestigeAmplifier);
+        return 1.0 / (1.0 + bonus);
     }
 
     public Dominion() { }
