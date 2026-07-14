@@ -202,6 +202,14 @@ public sealed class EventLogRenderer : IDisposable
             _successCardPaint, _successBorderPaint, _successTextPaint,
             _localization.Get("event_minor_demon_defeated_title"),
             _localization.Get("event_minor_demon_defeated_body")),
+        GameEventType.MajorDemonDiscovered => (
+            _dangerCardPaint, _dangerBorderPaint, _dangerTextPaint,
+            _localization.Get("event_major_demon_discovered_title"),
+            _localization.Get("event_major_demon_discovered_body")),
+        GameEventType.MajorDemonDefeated => (
+            _successCardPaint, _successBorderPaint, _successTextPaint,
+            _localization.Get("event_major_demon_defeated_title"),
+            _localization.Get("event_major_demon_defeated_body")),
         GameEventType.DeepestMinePlaced => (
             _discoveryCardPaint, _discoveryBorderPaint, _discoveryTextPaint,
             _localization.Get("event_deepest_mine_placed_title"),

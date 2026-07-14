@@ -65,6 +65,11 @@ public class AutoExtendController
     private const int BorderMonsterSpawnChancePercent = 5;
     private const int BorderMonsterTrollChancePercent = 65;
 
+    // Démon majeur (Abysse uniquement) : chance à partir du niveau de corruption de l'hex, croissante ensuite.
+    private const int MajorDemonMinCorruptionLevel = 5;
+    private const int MajorDemonBaseChancePercent = 5;
+    private const int MajorDemonChancePerLevelPercent = 2;
+
     internal AutoExtendController() { }
 
     internal void Initialize(WorldState state, GamePRNG prng, GameClock? clock = null, PrestigeState? prestigeState = null)
@@ -171,8 +176,9 @@ public class AutoExtendController
     /// la recherche Veille Souterraine, voir <see cref="ECategory.UNDERWORLD_MONSTER_SPAWN_INTERVAL"/>),
     /// sur chaque carte gérée par AutoExtendController, tente de faire apparaître un monstre en
     /// bordure de la zone explorée (<see cref="BorderMonsterSpawnChancePercent"/> de chance). Le type
-    /// tiré dépend du niveau de corruption de l'île : (niveau - 1)% de chance d'un démon mineur,
-    /// sinon 65 % troll / 35 % ogre.
+    /// tiré dépend de la couche (voir <see cref="RollBorderMonster"/>) : dans l'Abysse, uniquement des
+    /// démons mineurs/majeurs (<see cref="RollAbyssDemon"/>) ; ailleurs, (niveau de corruption global -
+    /// 1)% de chance d'un démon mineur, sinon 65 % troll / 35 % ogre.
     /// </summary>
     private void TrySpawnBorderMonsters(long currentTick)
     {
@@ -198,11 +204,17 @@ public class AutoExtendController
             if (borderHexes.Count == 0) continue;
 
             var hex = borderHexes[_prng.Next(borderHexes.Count)];
-            _state.AddFeature(RollBorderMonster(hex));
+            _state.AddFeature(RollBorderMonster(hex, layerState.Map.Z));
         }
     }
 
-    /// <summary>Hexes occupés en bordure de la zone explorée : au moins un voisin hors carte, sans eau ni feature.</summary>
+    /// <summary>
+    /// Hexes occupés en bordure de la zone explorée : au moins un voisin hors carte, sans eau ni
+    /// feature bloquante. La Corruption est ignorée ici (contrairement à une feature quelconque) car
+    /// elle est systématiquement posée sur chaque hex de terre de l'Abysse (voir
+    /// <see cref="PlaceAbyssCorruption"/>) : l'exclure comme les autres features rendrait tout hex de
+    /// l'Abysse inéligible en permanence.
+    /// </summary>
     private List<HexCoord> GetBorderHexes(LayerState layerState)
     {
         var map = layerState.Map;
@@ -212,7 +224,7 @@ public class AutoExtendController
         foreach (var (hex, tile) in map.Tiles)
         {
             if (tile.TerrainType == TerrainType.Water) continue;
-            if (_state!.HasFeaturesAt(hex)) continue;
+            if (_state!.GetFeaturesAt(hex).Any(f => f is not Model.IslandFeatures.Corruption)) continue;
             if (MinDistanceToAny(hex, arrivalHexes) < MinHexDistanceFromArrival) continue;
             if (!hex.Neighbors().Any(n => !map.HasTile(n))) continue;
 
@@ -222,8 +234,16 @@ public class AutoExtendController
         return result;
     }
 
-    private Model.Monsters.MonsterFeature RollBorderMonster(HexCoord hex)
+    /// <summary>
+    /// Type de monstre tiré pour un spawn de bordure : dans l'Abysse, uniquement des démons (mineurs
+    /// ou majeurs, voir <see cref="RollAbyssDemon"/>) ; ailleurs, la logique historique Inframonde
+    /// (démon mineur selon le niveau de corruption global, sinon troll/ogre).
+    /// </summary>
+    private Model.Monsters.MonsterFeature RollBorderMonster(HexCoord hex, int z)
     {
+        if (z == LayerState.AbyssZ)
+            return RollAbyssDemon(hex);
+
         int corruptionLevel = _prestigeState?.CurrentCorruptionLevel ?? 1;
         int demonChancePercent = Math.Max(0, corruptionLevel - 1);
 
@@ -233,6 +253,31 @@ public class AutoExtendController
         return _prng.Next(100) < BorderMonsterTrollChancePercent
             ? new Model.Monsters.Troll(hex)
             : new Model.Monsters.Ogre(hex);
+    }
+
+    /// <summary>
+    /// Spawn de bordure réservé à l'Abysse : uniquement des démons mineurs et majeurs, jamais de
+    /// troll/ogre. Le démon majeur a <see cref="MajorDemonBaseChancePercent"/> % de chance de pop à
+    /// partir du niveau de corruption <see cref="MajorDemonMinCorruptionLevel"/> de l'hex tiré, puis
+    /// gagne <see cref="MajorDemonChancePerLevelPercent"/> % par niveau de corruption supplémentaire ;
+    /// le reste du tirage donne toujours un démon mineur. Utilise le niveau de corruption propre à
+    /// l'hex (feature Corruption déjà posée, voir <see cref="PlaceAbyssCorruption"/>) plutôt que le
+    /// niveau global de <see cref="PrestigeState.CurrentCorruptionLevel"/>, chaque hex de l'Abysse
+    /// ayant potentiellement un niveau différent.
+    /// </summary>
+    private Model.Monsters.MonsterFeature RollAbyssDemon(HexCoord hex)
+    {
+        int corruptionLevel = _state!.GetFeaturesAt(hex)
+            .OfType<Model.IslandFeatures.Corruption>()
+            .FirstOrDefault()?.Level ?? _prestigeState?.CurrentCorruptionLevel ?? 1;
+
+        int majorDemonChancePercent = corruptionLevel >= MajorDemonMinCorruptionLevel
+            ? MajorDemonBaseChancePercent + MajorDemonChancePerLevelPercent * (corruptionLevel - MajorDemonMinCorruptionLevel)
+            : 0;
+
+        return _prng!.Next(100) < majorDemonChancePercent
+            ? new Model.Monsters.MajorDemon(hex)
+            : new Model.Monsters.MinorDemon(hex);
     }
 
     /// <summary>
