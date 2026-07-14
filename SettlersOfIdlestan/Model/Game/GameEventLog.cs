@@ -49,6 +49,7 @@ public enum GameEventType
     RaidMissingBarracks,
     VolcanoDiscovered,
     DivineBonesPurified,
+    DivineBonesPurifiedNoEssence,
 }
 
 public record GameLogEntry(GameEventType Type, string? Message = null, bool Toast = false);

@@ -82,6 +82,12 @@ public class GameControllerService
         _cityBuildingService = new CityBuildingService(_controller);
     }
 
+    public void PerformAscension()
+    {
+        _controller.PerformAscension();
+        _cityBuildingService = new CityBuildingService(_controller);
+    }
+
     public List<Vertex> GetBuildableCityVerticesForPlayer()
     {
         var playerIndex = PlayerCivilizationIndex

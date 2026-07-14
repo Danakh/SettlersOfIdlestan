@@ -266,6 +266,10 @@ public sealed class EventLogRenderer : IDisposable
             _rewardCardPaint, _rewardBorderPaint, _rewardTextPaint,
             _localization.Get("event_divine_bones_purified_title"),
             _localization.Get("event_divine_bones_purified_body")),
+        GameEventType.DivineBonesPurifiedNoEssence => (
+            _discoveryCardPaint, _discoveryBorderPaint, _discoveryTextPaint,
+            _localization.Get("event_divine_bones_purified_no_essence_title"),
+            _localization.Get("event_divine_bones_purified_no_essence_body")),
         _ => (_dangerCardPaint, _dangerBorderPaint, _bodyTextPaint, "?", entry.Message ?? "")
     };
 

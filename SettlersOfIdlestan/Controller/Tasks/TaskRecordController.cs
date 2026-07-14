@@ -141,6 +141,20 @@ public class TaskRecordController
     }
 
     /// <summary>
+    /// Appelé par MainGameController.PerformAscension() avant la mutation de GodState (qui déclenche
+    /// ensuite une réinitialisation des controllers). Comme RecordPrestige, ceci doit s'exécuter
+    /// avant coup pour que le delta de points divins soit propagé vers PlayerLifetimeStats : sinon
+    /// TaskRecordController.Initialize() (appelé par InitializeControllersForCurrentIsland) recale
+    /// _lastSyncedGodPointsEarned sur la valeur déjà incrémentée, et le gain de cette Ascension ne
+    /// serait jamais synchronisé.
+    /// </summary>
+    internal void RecordAscension(int godPointsGained)
+    {
+        if (_lifetimeStats != null)
+            _lifetimeStats.TotalGodPointsEarned += godPointsGained;
+    }
+
+    /// <summary>
     /// Met à jour les statistiques à vie (PlayerLifetimeStats) à partir de l'état courant.
     /// Les points divins sont propagés par delta (GodState.TotalGodPointsEarned ne diminue jamais
     /// au sein d'une partie, mais est réinitialisé à chaque "Nouvelle partie").

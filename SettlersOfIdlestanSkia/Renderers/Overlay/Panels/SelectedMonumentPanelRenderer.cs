@@ -259,10 +259,11 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
         if (bonesPurified)
         {
             float rowH = FooterHeight * s;
+            bool essenceGranted = monument is DivineBones { EssenceGranted: true };
             SkiaTextUtils.DrawText(canvas,
-                _localization.Get("divine_bones_purified_message"),
+                _localization.Get(essenceGranted ? "divine_bones_purified_message" : "divine_bones_purified_no_essence_message"),
                 panelX + panelWidth / 2f, y + rowH / 2f + 5 * s,
-                SKTextAlign.Center, Font12, _barFillPaint);
+                SKTextAlign.Center, Font12, essenceGranted ? _barFillPaint : _dimTextPaint);
             y += rowH;
         }
 

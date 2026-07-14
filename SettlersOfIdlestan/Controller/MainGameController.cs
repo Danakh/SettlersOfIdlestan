@@ -230,6 +230,24 @@ namespace SettlersOfIdlestan.Controller
             PrestigeMapController.ApplyPrestigeToNewGame(CurrentMainState.CurrentWorldState!, CurrentMainState.PrestigeState);
         }
 
+        /// <summary>
+        /// Convertit l'essence divine accumulée en points divins et repart de zéro (voir
+        /// AscensionController.PerformAscension) : PrestigeState et l'île en cours sont remplacés,
+        /// seuls GodState.GodPoints/AscensionState (pouvoirs débloqués) survivent.
+        /// </summary>
+        public void PerformAscension()
+        {
+            if (CurrentMainState == null)
+                throw new InvalidOperationException("No main state available.");
+
+            var worldId = AtlasController.GetFirstWorldId();
+            var parameters = AtlasController.GetIslandParameters(worldId);
+            TaskRecordController.RecordAscension(CurrentMainState.GodState.DivineEssence);
+            AscensionController.PerformAscension(CurrentMainState, parameters);
+            InitializeControllersForCurrentIsland();
+            PrestigeMapController.ApplyPrestigeToNewGame(CurrentMainState.CurrentWorldState!, CurrentMainState.PrestigeState);
+        }
+
         public MainGameState? CreateNewGame()
         {
             int WorldId = AtlasController.GetFirstWorldId();
@@ -323,7 +341,7 @@ namespace SettlersOfIdlestan.Controller
                 DeepestMineController.Initialize(WorldState, Clock);
                 CorruptionSpireController.Initialize(WorldState, Clock);
                 AbyssGateController.Initialize(WorldState, Clock);
-                DivineBonesController.Initialize(WorldState, Clock, CurrentMainState!.GodState);
+                DivineBonesController.Initialize(WorldState, Clock, CurrentMainState!.GodState, CurrentMainState!.PRNG);
                 MagicController.Initialize(WorldState, Clock, CurrentMainState!.PRNG, CityBuilderController, BuildingController, HarvestController);
                 ResearchController.Initialize(WorldState, Clock, CurrentMainState?.PrestigeState, CurrentMainState?.Settings);
                 NpcGameController.Initialize(WorldState, Clock, MilitaryController, this);

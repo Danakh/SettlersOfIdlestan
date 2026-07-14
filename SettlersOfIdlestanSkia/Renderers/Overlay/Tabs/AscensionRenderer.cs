@@ -1,5 +1,7 @@
+using SettlersOfIdlestan.Controller.Ascension;
 using SettlersOfIdlestan.Model.Ascension;
 using SettlersOfIdlestan.Model.Game;
+using SettlersOfIdlestan.Model.Prestige;
 using SettlersOfIdlestanSkia.Services.Localization;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Services;
@@ -10,10 +12,14 @@ using System.Collections.Generic;
 namespace SettlersOfIdlestanSkia.Renderers.Overlay.Tabs;
 
 /// <summary>
-/// Écran Ascension : Foi est un grand bouton occupant toute la largeur en bas de l'écran ; les 4
-/// pouvoirs existants (Main/Oeil/Marche/Bras de Dieu) forment chacun leur propre colonne au-dessus
-/// de Foi (largeur cumulée des colonnes + espaces = largeur de Foi). Débloquer Foi déverrouille les
-/// 4 colonnes ; au sein d'une colonne, chaque pouvoir nécessite celui juste en dessous.
+/// Écran Ascension : un bouton d'Ascension (voir <see cref="AscensionController.PerformAscension"/>)
+/// convertit l'essence divine accumulée en points divins et efface la progression de la partie en
+/// cours. Tant qu'aucune Ascension n'a jamais été effectuée (GodState.TotalGodPointsEarned == 0),
+/// les pouvoirs restent invisibles. Une fois débloqués : Foi est un grand bouton occupant toute la
+/// largeur en bas de l'écran ; les 4 pouvoirs existants (Main/Oeil/Marche/Bras de Dieu) forment
+/// chacun leur propre colonne au-dessus de Foi (largeur cumulée des colonnes + espaces = largeur de
+/// Foi). Débloquer Foi déverrouille les 4 colonnes ; au sein d'une colonne, chaque pouvoir nécessite
+/// celui juste en dessous.
 /// </summary>
 public sealed class AscensionRenderer : IDisposable
 {
@@ -25,6 +31,8 @@ public sealed class AscensionRenderer : IDisposable
     private const float FaithHeight      = 110f;
     private const float ButtonHeight     = 26f;
     private const float ColumnButtonWidth = 100f;
+    private const float AscendButtonWidth  = 220f;
+    private const float AscendButtonHeight = 34f;
 
     private readonly GameControllerService _gameControllerService;
     private readonly LocalizationService _localization;
@@ -38,6 +46,11 @@ public sealed class AscensionRenderer : IDisposable
     private readonly List<(AscensionPowerId id, SKRect buttonRect)> _purchaseButtonRects = new();
     private SKRect _hoveredLockedRect = SKRect.Empty;
     private string? _hoveredLockedTooltip;
+
+    private bool _confirmingAscension;
+    private SKRect _ascendButtonRect  = SKRect.Empty;
+    private SKRect _ascendConfirmRect = SKRect.Empty;
+    private SKRect _ascendCancelRect  = SKRect.Empty;
 
     private readonly SKPaint _bgPaint           = new() { Color = new SKColor(18, 18, 24, 240), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _cardPaint         = new() { Color = new SKColor(30, 30, 40, 220), Style = SKPaintStyle.Fill, IsAntialias = true };
@@ -56,6 +69,10 @@ public sealed class AscensionRenderer : IDisposable
     private readonly SKPaint _descPaint         = new() { Color = new SKColor(150, 150, 165), IsAntialias = true };
     private readonly SKPaint _mutedPaint        = new() { Color = new SKColor(100, 100, 112), IsAntialias = true };
     private readonly SKPaint _accentPaint       = new() { Color = new SKColor(230, 190, 90), IsAntialias = true };
+    private readonly SKPaint _confirmPaint      = new() { Color = new SKColor(140, 40, 40), Style = SKPaintStyle.Fill, IsAntialias = true };
+    private readonly SKPaint _confirmHoverPaint = new() { Color = new SKColor(180, 50, 50), Style = SKPaintStyle.Fill, IsAntialias = true };
+    private readonly SKPaint _cancelBtnPaint    = new() { Color = new SKColor(55, 55, 65), Style = SKPaintStyle.Fill, IsAntialias = true };
+    private readonly SKPaint _warningTextPaint  = new() { Color = new SKColor(220, 70, 70), IsAntialias = true };
 
     private readonly SKFont _headerFont   = new() { Size = 17, Typeface = SkiaFonts.Bold };
     private readonly SKFont _nameFont     = new() { Size = 14, Typeface = SkiaFonts.Bold };
@@ -86,6 +103,7 @@ public sealed class AscensionRenderer : IDisposable
         canvas.DrawRect(new SKRect(0, topBar, _canvasSize.Width, _canvasSize.Height), _bgPaint);
 
         var ascension = _gameControllerService.MainGameController.AscensionController;
+        var godState = mgs.GodState;
 
         float contentWidth = Math.Min(720f, _canvasSize.Width - Padding * 2);
         float x = (_canvasSize.Width - contentWidth) / 2;
@@ -93,10 +111,28 @@ public sealed class AscensionRenderer : IDisposable
 
         SkiaTextUtils.DrawText(canvas, _localization.Get("tab_ascension"), x, y + 14, _headerFont, _accentPaint);
 
-        // Essence divine (gagnée en purifiant les Os Divins des Abysses, voir DivineBonesController) —
-        // sa conversion en points divins n'est pas encore implémentée, affichée ici en attendant.
-        string essenceText = _localization.GetFormated("ascension_divine_essence_label", mgs.GodState.DivineEssence);
-        SkiaTextUtils.DrawText(canvas, essenceText, x + contentWidth, y + 14, SKTextAlign.Right, _nameFont, _accentPaint);
+        // Essence divine (gagnée en purifiant les Os Divins des Abysses, voir DivineBonesController),
+        // convertie en points divins via une Ascension (voir DrawAscendSection ci-dessous).
+        string essenceText = _localization.GetFormated("ascension_divine_essence_label", godState.DivineEssence);
+        SkiaTextUtils.DrawText(canvas, essenceText, x + contentWidth, y + 2, SKTextAlign.Right, _nameFont, _accentPaint);
+        string pointsText = _localization.GetFormated("ascension_divine_points_label", godState.GodPoints);
+        SkiaTextUtils.DrawText(canvas, pointsText, x + contentWidth, y + 22, SKTextAlign.Right, _nameFont, _accentPaint);
+
+        float ascendSectionY = y + 40;
+        DrawAscendSection(canvas, x, ascendSectionY, contentWidth, godState, ascension);
+
+        // Tant qu'aucune Ascension n'a jamais été effectuée, aucun pouvoir n'est visible : seule la
+        // conversion essence -> points divins ci-dessus est accessible.
+        if (godState.TotalGodPointsEarned <= 0)
+        {
+            string message = _localization.Get("ascension_no_powers_yet");
+            var messageLayout = SkiaTextUtils.MeasureWrappedText(message, contentWidth - 40f, _descFont);
+            DrawCenteredTextLayout(canvas, messageLayout, x + contentWidth / 2f, ascendSectionY + AscendButtonHeight + 40f, _descFont, _mutedPaint);
+
+            if (_hoveredLockedTooltip != null)
+                _tooltipRenderer.SetTooltip(_hoveredLockedTooltip, new SKPoint(_hoveredLockedRect.Right, _hoveredLockedRect.Top));
+            return;
+        }
 
         // Foi : grand bouton occupant toute la largeur, ancré en bas de l'écran.
         float faithBottom = _canvasSize.Height - Padding;
@@ -127,6 +163,58 @@ public sealed class AscensionRenderer : IDisposable
 
         if (_hoveredLockedTooltip != null)
             _tooltipRenderer.SetTooltip(_hoveredLockedTooltip, new SKPoint(_hoveredLockedRect.Right, _hoveredLockedRect.Top));
+    }
+
+    private void DrawAscendSection(SKCanvas canvas, float x, float y, float width, GodState godState, AscensionController ascension)
+    {
+        bool canAscend = ascension.CanAscend(godState);
+        if (_confirmingAscension && !canAscend)
+            _confirmingAscension = false;
+
+        float btnX = x + width / 2f - AscendButtonWidth / 2f;
+
+        if (_confirmingAscension)
+        {
+            _ascendButtonRect = SKRect.Empty;
+
+            float halfWidth = (AscendButtonWidth - 8f) / 2f;
+            _ascendCancelRect  = new SKRect(btnX, y, btnX + halfWidth, y + AscendButtonHeight);
+            _ascendConfirmRect = new SKRect(btnX + halfWidth + 8f, y, btnX + halfWidth + 8f + halfWidth, y + AscendButtonHeight);
+
+            bool cancelHovered  = _ascendCancelRect.Contains(_hoverPosition.X, _hoverPosition.Y);
+            bool confirmHovered = _ascendConfirmRect.Contains(_hoverPosition.X, _hoverPosition.Y);
+
+            canvas.DrawRoundRect(_ascendCancelRect, 5, 5, cancelHovered ? _unlockHoverPaint : _cancelBtnPaint);
+            canvas.DrawRoundRect(_ascendCancelRect, 5, 5, _buttonBorderPaint);
+            SkiaTextUtils.DrawText(canvas, _localization.Get("ascension_cancel_button"), _ascendCancelRect.MidX, _ascendCancelRect.MidY + 4f, SKTextAlign.Center, _buttonFont, _buttonTextPaint);
+
+            canvas.DrawRoundRect(_ascendConfirmRect, 5, 5, confirmHovered ? _confirmHoverPaint : _confirmPaint);
+            canvas.DrawRoundRect(_ascendConfirmRect, 5, 5, _buttonBorderPaint);
+            SkiaTextUtils.DrawText(canvas, _localization.Get("ascension_confirm_button"), _ascendConfirmRect.MidX, _ascendConfirmRect.MidY + 4f, SKTextAlign.Center, _buttonFont, _buttonTextPaint);
+
+            var warnLayout = SkiaTextUtils.MeasureWrappedText(_localization.Get("ascension_confirm_warning"), width - 40f, _descFont);
+            DrawCenteredTextLayout(canvas, warnLayout, x + width / 2f, y + AscendButtonHeight + 16f, _descFont, _warningTextPaint);
+        }
+        else
+        {
+            _ascendCancelRect = SKRect.Empty;
+            _ascendConfirmRect = SKRect.Empty;
+
+            var rect = new SKRect(btnX, y, btnX + AscendButtonWidth, y + AscendButtonHeight);
+            _ascendButtonRect = rect;
+            bool hovered = rect.Contains(_hoverPosition.X, _hoverPosition.Y);
+
+            var bg = !canAscend ? _disabledPaint : (hovered ? _unlockHoverPaint : _unlockPaint);
+            canvas.DrawRoundRect(rect, 6, 6, bg);
+            canvas.DrawRoundRect(rect, 6, 6, _buttonBorderPaint);
+            SkiaTextUtils.DrawText(canvas, _localization.Get("ascension_action_button"), rect.MidX, rect.MidY + 5f, SKTextAlign.Center, _buttonFont, canAscend ? _buttonTextPaint : _mutedPaint);
+
+            if (!canAscend && hovered)
+            {
+                _hoveredLockedRect = rect;
+                _hoveredLockedTooltip = _localization.GetFormated("ascension_action_requires_essence_tooltip", AscensionController.MinDivineEssenceForAscension);
+            }
+        }
     }
 
     private void DrawFaithButton(SKCanvas canvas, SKRect rect, AscensionPowerDefinition def, SettlersOfIdlestan.Controller.Ascension.AscensionController ascension)
@@ -215,6 +303,30 @@ public sealed class AscensionRenderer : IDisposable
 
     public bool HandlePointerPressed(SKPoint position)
     {
+        if (_confirmingAscension)
+        {
+            if (_ascendCancelRect.Contains(position.X, position.Y))
+            {
+                _confirmingAscension = false;
+                return true;
+            }
+            if (_ascendConfirmRect.Contains(position.X, position.Y))
+            {
+                _confirmingAscension = false;
+                _gameControllerService.PerformAscension();
+                return true;
+            }
+            return false;
+        }
+
+        if (!_ascendButtonRect.IsEmpty && _ascendButtonRect.Contains(position.X, position.Y))
+        {
+            var godState = _gameControllerService.CurrentGameState?.GodState;
+            if (godState != null && _gameControllerService.MainGameController.AscensionController.CanAscend(godState))
+                _confirmingAscension = true;
+            return true;
+        }
+
         var ascension = _gameControllerService.MainGameController.AscensionController;
         foreach (var (id, rect) in _purchaseButtonRects)
         {
@@ -241,6 +353,10 @@ public sealed class AscensionRenderer : IDisposable
         _unlockHoverPaint.Dispose();
         _unlockedPaint.Dispose();
         _disabledPaint.Dispose();
+        _confirmPaint.Dispose();
+        _confirmHoverPaint.Dispose();
+        _cancelBtnPaint.Dispose();
+        _warningTextPaint.Dispose();
         _buttonBorderPaint.Dispose();
         _buttonTextPaint.Dispose();
         _namePaint.Dispose();

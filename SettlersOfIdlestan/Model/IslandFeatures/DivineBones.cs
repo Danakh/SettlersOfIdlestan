@@ -10,8 +10,11 @@ namespace SettlersOfIdlestan.Model.IslandFeatures;
 /// Os Divins — Monument généré sur chaque île des Abysses créée après la première (voir
 /// AutoExtendController.OnHexesRevealed), révélé une fois la recherche Boussole du Vide acquise
 /// (ECategory.UNLOCK_DIVINE_BONES). Investissement "Purification" à coût double (Cristal + points
-/// de recherche), comme une Merveille de niveau 0 à objectif unique. Une fois purifié, octroie une
-/// essence divine (GodState) et ne peut plus être investi.
+/// de recherche), comme une Merveille de niveau 0 à objectif unique. Une fois purifié (essence
+/// octroyée ou non), ne peut plus être investi. La Purification n'a que <see cref="EssenceChancePercent"/>
+/// % de chance d'octroyer effectivement une essence divine (GodState), et le nombre d'essences
+/// détenues est plafonné par le niveau de corruption (voir <see cref="GetEssenceCap"/>) — au-delà,
+/// il faut prestige pour augmenter ce plafond.
 /// </summary>
 public class DivineBones : Monument
 {
@@ -24,13 +27,21 @@ public class DivineBones : Monument
     public override bool ShouldRenderIconFor(SettlersOfIdlestan.Model.Civilization.Civilization civ) =>
         civ.ModifierAggregator.HasModifier(SettlersOfIdlestan.Model.GameplayModifier.Modifier.ECategory.UNLOCK_DIVINE_BONES);
 
-    public override LocalizedEntry GetTooltipEntry() => new(Purified ? "hex_tooltip_divine_bones_purified" : "hex_tooltip_divine_bones");
+    public override LocalizedEntry GetTooltipEntry()
+    {
+        if (Purified)
+            return new(EssenceGranted ? "hex_tooltip_divine_bones_purified" : "hex_tooltip_divine_bones_purified_no_essence");
+        return new("hex_tooltip_divine_bones", new object[] { EssenceChancePercent, GetEssenceCap() });
+    }
 
     /// <summary>Niveau de corruption de l'île au moment de la génération de cette feature (fige le coût de Purification).</summary>
     public int CorruptionLevel { get; set; } = 1;
 
-    /// <summary>True une fois la Purification terminée : l'essence divine a été octroyée, plus rien à investir.</summary>
+    /// <summary>True une fois la Purification terminée (essence octroyée ou non), plus rien à investir.</summary>
     public bool Purified { get; set; } = false;
+
+    /// <summary>True si la Purification a effectivement octroyé une essence divine (tirage réussi, voir <see cref="EssenceChancePercent"/>).</summary>
+    public bool EssenceGranted { get; set; } = false;
 
     /// <summary>
     /// Nombre total d'essences divines déjà collectées, resynchronisé à chaque tick par
@@ -51,6 +62,20 @@ public class DivineBones : Monument
 
     public const long BaseCrystalCost = 1000;
     public const long BaseResearchCost = 1_000_000;
+
+    /// <summary>Chance qu'une Purification complétée octroie effectivement une essence divine.</summary>
+    public const int EssenceChancePercent = 50;
+
+    /// <summary>Le plafond d'essences divines détenues démarre au niveau de corruption 4 (plafond de 1), voir <see cref="GetEssenceCap"/>.</summary>
+    public const int EssenceCapCorruptionLevelOffset = 3;
+
+    /// <summary>
+    /// Nombre maximum d'essences divines que le joueur peut détenir (GodState.DivineEssence) au
+    /// niveau de corruption de cette feature : une seule par niveau de corruption à partir du
+    /// niveau 4 (0 en dessous). Pour en obtenir davantage, il faut prestige afin d'augmenter le
+    /// niveau de corruption (voir PrestigeState.CurrentCorruptionLevel).
+    /// </summary>
+    public int GetEssenceCap() => Math.Max(0, CorruptionLevel - EssenceCapCorruptionLevelOffset);
 
     /// <summary>(niveau de corruption + 2) ^ N, N = nombre d'essences divines déjà collectées.</summary>
     public static long GetCostMultiplier(int corruptionLevel, int essenceAlreadyCollected)

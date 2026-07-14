@@ -13,14 +13,16 @@ namespace SettlersOfIdlestan.Controller.Island
     /// Gère la Purification des Os Divins : investissement double (Cristal via le mécanisme
     /// Monument standard + points de recherche via un pool séparé, voir DivineBones.InvestedResearch),
     /// à coût croissant avec le nombre d'essences divines déjà collectées (cross-prestige, GodState).
-    /// Une Purification terminée octroie une essence divine, ce qui révèle l'onglet Ascension
-    /// (voir TabBarRenderer.HasGodPoints).
+    /// Une Purification terminée n'octroie une essence divine (révélant l'onglet Ascension, voir
+    /// TabBarRenderer.HasGodPoints) qu'avec DivineBones.EssenceChancePercent % de chance, et seulement
+    /// si GodState.DivineEssence n'a pas déjà atteint le plafond de la feature (DivineBones.GetEssenceCap).
     /// </summary>
     public class DivineBonesController
     {
         private WorldState? _state;
         private GameClock? _clock;
         private GodState? _godState;
+        private GamePRNG? _prng;
 
         public const long InvestmentIntervalTicks = MonumentInvestment.IntervalTicks;
 
@@ -28,7 +30,7 @@ namespace SettlersOfIdlestan.Controller.Island
 
         internal DivineBonesController() { }
 
-        internal void Initialize(WorldState? state, GameClock? clock, GodState? godState)
+        internal void Initialize(WorldState? state, GameClock? clock, GodState? godState, GamePRNG? prng)
         {
             if (_clock != null)
                 _clock.Advanced -= OnClockAdvanced;
@@ -36,6 +38,7 @@ namespace SettlersOfIdlestan.Controller.Island
             _state = state;
             _clock = clock;
             _godState = godState;
+            _prng = prng;
 
             if (_clock != null)
                 _clock.Advanced += OnClockAdvanced;
@@ -49,7 +52,7 @@ namespace SettlersOfIdlestan.Controller.Island
 
         private void ProcessInvestment()
         {
-            if (_state == null || _clock == null || _godState == null) return;
+            if (_state == null || _clock == null || _godState == null || _prng == null) return;
 
             var playerCiv = _state.PlayerCivilization;
             long now = _clock.CurrentTick;
@@ -71,9 +74,19 @@ namespace SettlersOfIdlestan.Controller.Island
                 bones.Purified = true;
                 bones.InvestmentEnabled.Clear();
                 bones.ResearchInvestmentEnabled = false;
-                _godState.DivineEssence++;
-                _godState.TotalDivineEssenceEarned++;
-                _state.EventLog.Add(GameEventType.DivineBonesPurified, toast: true);
+
+                // Même si l'investissement est complet, l'essence n'est octroyée qu'avec EssenceChancePercent
+                // de chance, et seulement si le plafond (une essence par niveau de corruption à partir du
+                // niveau 4) n'est pas déjà atteint — au-delà, il faut prestige pour relever ce plafond.
+                bool underCap = _godState.DivineEssence < bones.GetEssenceCap();
+                bones.EssenceGranted = underCap && _prng.Next(100) < DivineBones.EssenceChancePercent;
+                if (bones.EssenceGranted)
+                {
+                    _godState.DivineEssence++;
+                    _godState.TotalDivineEssenceEarned++;
+                }
+
+                _state.EventLog.Add(bones.EssenceGranted ? GameEventType.DivineBonesPurified : GameEventType.DivineBonesPurifiedNoEssence, toast: true);
                 OnDivineBonesPurified?.Invoke(this, bones);
             }
         }

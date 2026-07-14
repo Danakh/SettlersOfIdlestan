@@ -1,12 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using SettlersOfIdlestan.Controller.Generator;
 using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Model.Ascension;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.GameplayModifier;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
+using SettlersOfIdlestan.Model.Prestige;
 
 namespace SettlersOfIdlestan.Controller.Ascension;
 
@@ -14,9 +16,14 @@ namespace SettlersOfIdlestan.Controller.Ascension;
 /// Gère les pouvoirs divins (GodState.AscensionState) : Foi est le pouvoir fondateur (toujours
 /// disponible), qui déverrouille les 4 colonnes indépendantes (Main/Oeil/Marche/Bras de Dieu) ;
 /// effets passifs (Main de Dieu, Oeil de Dieu, Bras de Dieu, Foi) et l'action ciblée Marche de Dieu.
+/// Gère aussi l'Ascension elle-même (voir <see cref="PerformAscension"/>) : convertit l'essence
+/// divine accumulée (DivineBonesController) en points divins et repart de zéro (île + prestige).
 /// </summary>
 public class AscensionController : IModifierProvider
 {
+    /// <summary>Nombre minimum d'essences divines requis pour pouvoir déclencher une Ascension.</summary>
+    public const int MinDivineEssenceForAscension = 4;
+
     private static readonly TerrainType[] RandomTerrainPool =
     {
         TerrainType.Forest, TerrainType.Hill, TerrainType.Plain, TerrainType.Mountain, TerrainType.Desert
@@ -79,6 +86,36 @@ public class AscensionController : IModifierProvider
         _ascensionState!.UnlockedPowers.Add(id);
         OnModifiersChanged?.Invoke();
         return true;
+    }
+
+    public bool CanAscend(GodState godState) => godState.DivineEssence >= MinDivineEssenceForAscension;
+
+    /// <summary>
+    /// Convertit toute l'essence divine accumulée en points divins (1 pour 1, cross-prestige), puis
+    /// efface la progression de la partie en cours : le PrestigeState (recherches, points de
+    /// prestige, niveau de corruption, historique...) est entièrement remplacé par un nouveau,
+    /// câblé sur une toute nouvelle première île. GodState.AscensionState (pouvoirs débloqués) et
+    /// les points divins survivent, seuls but de la manœuvre.
+    /// </summary>
+    public void PerformAscension(MainGameState mainGameState, IslandParameters firstIslandParameters)
+    {
+        var godState = mainGameState.GodState;
+        if (!CanAscend(godState))
+            throw new InvalidOperationException("Ascension is not available.");
+
+        int essenceGained = godState.DivineEssence;
+        godState.GodPoints += essenceGained;
+        godState.TotalGodPointsEarned += essenceGained;
+        godState.DivineEssence = 0;
+
+        var generator = new IslandMapGenerator(mainGameState.WorldPRNG);
+        var worldState = generator.GenerateWorldState(
+            firstIslandParameters,
+            mainGameState.Clock.CurrentTick,
+            startTick: mainGameState.Clock.CurrentTick)
+            ?? throw new InvalidOperationException("Failed to generate island for ascension.");
+
+        godState.PrestigeState = new PrestigeState(worldState);
     }
 
     public IEnumerable<Modifier> GetModifiers()
