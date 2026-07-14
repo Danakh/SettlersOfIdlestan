@@ -1046,6 +1046,8 @@
   "walkofgod_action_short": "Marche de Dieu",
   "walkofgod_select_hex": "Choisissez un hexagone dont le terrain sera transformé",
   "tooltip_walkofgod": "Transforme aléatoirement le terrain d'un hexagone visible",
+  "tooltip_walkofgod_cost": "Coût : {0} point(s) de prestige",
+  "tooltip_walkofgod_insufficient_prestige": "⚠ Points de prestige insuffisants",
   "hex_tooltip_deepest_mine": "⛏ Mine Profonde — investissez des ressources pour creuser",
   "hex_tooltip_deepest_mine_dug": "⛏ Mine Profonde — l'accès à l'Inframonde est ouvert",
   "building_deepestmine_name": "Mine Profonde",

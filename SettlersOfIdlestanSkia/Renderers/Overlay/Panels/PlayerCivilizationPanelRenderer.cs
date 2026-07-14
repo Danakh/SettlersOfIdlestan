@@ -169,7 +169,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         _relocationEnabled = relocationVisible && CanAffordRelocation();
         var ascensionController = _gameControllerService.MainGameController.AscensionController;
         bool walkOfGodVisible = ascensionController.IsPowerUnlocked(AscensionPowerId.WalkOfGod);
-        _walkOfGodEnabled = walkOfGodVisible && context.CurrentLayer == 0 && ascensionController.GetWalkOfGodTargetHexes().Count > 0;
+        _walkOfGodEnabled = walkOfGodVisible && context.CurrentLayer == 0 && ascensionController.GetWalkOfGodTargetHexes().Count > 0 && ascensionController.CanUseWalkOfGod();
         bool hasBarracks     = HasBuilt<Barracks>(civ);
         bool hasLabs         = HasBuilt<Laboratory>(civ);
         bool hasSmelters     = HasBuilt<Smelter>(civ);
@@ -324,7 +324,8 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             {
                 _walkOfGodButtonRect = BtnRect(btnIdx++);
                 canvas.DrawRoundRect(_walkOfGodButtonRect, 6 * s, 6 * s, _walkOfGodEnabled ? (_hoveredWalkOfGod ? _btnHoverPaint : _btnPaint) : _btnDisabledPaint);
-                SkiaTextUtils.DrawText(canvas, _localization.Get("walkofgod_action_short"), _walkOfGodButtonRect.MidX, _walkOfGodButtonRect.MidY + 4f * s, SKTextAlign.Center, _btnSmFont, _walkOfGodEnabled ? TextPaint : _btnDisabledTxtPaint);
+                string walkOfGodLabel = $"{_localization.Get("walkofgod_action_short")} ({ascensionController.GetWalkOfGodCost()})";
+                SkiaTextUtils.DrawText(canvas, walkOfGodLabel, _walkOfGodButtonRect.MidX, _walkOfGodButtonRect.MidY + 4f * s, SKTextAlign.Center, _btnSmFont, _walkOfGodEnabled ? TextPaint : _btnDisabledTxtPaint);
             }
 
             y = actionsY + ((btnIdx + 1) / 2) * (btnHeight + btnSpacing);
@@ -448,7 +449,14 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         else if (_hoveredRelocation && !_relocationEnabled)
             _tooltipRenderer.SetTooltip(_localization.Get("tooltip_relocation_insufficient_resources"), new SKPoint(_relocationButtonRect.Right, _relocationButtonRect.Top));
         else if (_hoveredWalkOfGod)
-            _tooltipRenderer.SetTooltip(_localization.Get("tooltip_walkofgod"), new SKPoint(_walkOfGodButtonRect.Right, _walkOfGodButtonRect.Top));
+        {
+            var walkOfGodLines = new System.Collections.Generic.List<string> { _localization.Get("tooltip_walkofgod") };
+            int walkOfGodCost = ascensionController.GetWalkOfGodCost();
+            walkOfGodLines.Add(_localization.GetFormated("tooltip_walkofgod_cost", walkOfGodCost));
+            if (!ascensionController.CanUseWalkOfGod())
+                walkOfGodLines.Add(_localization.Get("tooltip_walkofgod_insufficient_prestige"));
+            _tooltipRenderer.SetTooltipLines(walkOfGodLines.ToArray(), new SKPoint(_walkOfGodButtonRect.Right, _walkOfGodButtonRect.Top));
+        }
         else if (_hoveredPinnedIndex >= 0 && _hoveredPinnedIndex < _pinnedItemRects.Count)
         {
             var (rect, _, tooltipKey) = _pinnedItemRects[_hoveredPinnedIndex];

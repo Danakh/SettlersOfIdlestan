@@ -230,12 +230,27 @@ public class AscensionController : IModifierProvider
     }
 
     /// <summary>
-    /// Assigne un terrain aléatoire (différent de l'actuel si possible) à un hex de surface.
+    /// Coût en points de prestige de la prochaine utilisation de Marche de Dieu : 1 à la première
+    /// utilisation depuis le dernier prestige, 2 à la deuxième, etc. (voir
+    /// PrestigeState.WalkOfGodUsesSinceLastPrestige, remis à zéro à chaque prestige).
+    /// </summary>
+    public int GetWalkOfGodCost() => (_godState?.PrestigeState?.WalkOfGodUsesSinceLastPrestige ?? 0) + 1;
+
+    /// <summary>Vrai si Marche de Dieu est débloquée et que le joueur a assez de points de prestige pour son prochain coût.</summary>
+    public bool CanUseWalkOfGod()
+    {
+        var prestigeState = _godState?.PrestigeState;
+        return prestigeState != null && IsPowerUnlocked(AscensionPowerId.WalkOfGod) && prestigeState.PrestigePoints >= GetWalkOfGodCost();
+    }
+
+    /// <summary>
+    /// Assigne un terrain aléatoire (différent de l'actuel si possible) à un hex de surface, contre
+    /// un coût en points de prestige croissant (voir <see cref="GetWalkOfGodCost"/>).
     /// Si l'hex ciblé était de l'eau, les hexs voisins qui n'existaient pas encore sont créés en tant qu'eau.
     /// </summary>
     public bool ChangeTerrainRandomly(HexCoord hex)
     {
-        if (_state == null || _prng == null || !IsPowerUnlocked(AscensionPowerId.WalkOfGod)) return false;
+        if (_state == null || _prng == null || !CanUseWalkOfGod()) return false;
 
         var map = _state.GetMapFor(hex);
         var tile = map?.GetTile(hex);
@@ -264,6 +279,10 @@ public class AscensionController : IModifierProvider
             if (addedTiles)
                 _state.Visibility.RecalculateFor(_state.PlayerCivilization.Index);
         }
+
+        var prestigeState = _godState!.PrestigeState!;
+        prestigeState.PrestigePoints -= GetWalkOfGodCost();
+        prestigeState.WalkOfGodUsesSinceLastPrestige++;
 
         return true;
     }

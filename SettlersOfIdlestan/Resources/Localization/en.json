@@ -1046,6 +1046,8 @@
   "walkofgod_action_short": "Walk of God",
   "walkofgod_select_hex": "Choose a hex whose terrain will be transformed",
   "tooltip_walkofgod": "Randomly transforms the terrain of a visible hex",
+  "tooltip_walkofgod_cost": "Cost: {0} prestige point(s)",
+  "tooltip_walkofgod_insufficient_prestige": "⚠ Not enough prestige points",
   "hex_tooltip_deepest_mine": "⛏ Deepest Mine — invest resources to dig",
   "hex_tooltip_deepest_mine_dug": "⛏ Deepest Mine — the way to the Underworld is open",
   "building_deepestmine_name": "Deepest Mine",

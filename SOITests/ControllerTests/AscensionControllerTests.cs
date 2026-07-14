@@ -23,7 +23,7 @@ namespace SOITests.ControllerTests;
 public class AscensionControllerTests
 {
     private static (WorldState state, City city, Civilization civ, AscensionController ascension, GodState godState) CreateTestSetup(
-        int godPoints = 100, int ascensionsPerformed = 1)
+        int godPoints = 100, int ascensionsPerformed = 1, int? prestigePoints = null)
     {
         var state = IslandTestFactory.CreateSevenHexIslandState();
         var civ = state.Civilizations[0];
@@ -31,11 +31,19 @@ public class AscensionControllerTests
 
         var godState = new GodState { GodPoints = godPoints };
         godState.AscensionState.AscensionsPerformed = ascensionsPerformed;
+        if (prestigePoints.HasValue)
+            godState.PrestigeState = new PrestigeState(state) { PrestigePoints = prestigePoints.Value };
 
         var ascension = new AscensionController();
         ascension.Initialize(state, clock: null, new GamePRNG(1), new HarvestController(), godState);
 
         return (state, city, civ, ascension, godState);
+    }
+
+    private static void UnlockWalkOfGod(AscensionController ascension)
+    {
+        Assert.True(ascension.PurchasePower(AscensionPowerId.Faith));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.WalkOfGod));
     }
 
     [Fact]
@@ -297,5 +305,60 @@ public class AscensionControllerTests
         Assert.True(ascension.CanPurchasePower(AscensionPowerId.DivineInventory));
         Assert.True(ascension.PurchasePower(AscensionPowerId.DivineInventory));
         Assert.Equal(100 - 1 - 3 - 6, godState.GodPoints);
+    }
+
+    [Fact]
+    public void GetWalkOfGodCost_EscalatesByOneOnEachUse()
+    {
+        var (state, _, _, ascension, godState) = CreateTestSetup(godPoints: 100, prestigePoints: 10);
+        UnlockWalkOfGod(ascension);
+        var hex = ascension.GetWalkOfGodTargetHexes()[0];
+
+        Assert.Equal(1, ascension.GetWalkOfGodCost());
+        Assert.True(ascension.ChangeTerrainRandomly(hex));
+        Assert.Equal(9, godState.PrestigeState!.PrestigePoints);
+
+        Assert.Equal(2, ascension.GetWalkOfGodCost());
+        Assert.True(ascension.ChangeTerrainRandomly(hex));
+        Assert.Equal(7, godState.PrestigeState!.PrestigePoints);
+
+        Assert.Equal(3, ascension.GetWalkOfGodCost());
+    }
+
+    [Fact]
+    public void ChangeTerrainRandomly_InsufficientPrestigePoints_FailsAndLeavesStateUntouched()
+    {
+        var (state, _, _, ascension, godState) = CreateTestSetup(godPoints: 100, prestigePoints: 0);
+        UnlockWalkOfGod(ascension);
+        var hex = ascension.GetWalkOfGodTargetHexes()[0];
+        var terrainBefore = state.GetMapFor(hex)!.GetTile(hex)!.TerrainType;
+
+        var result = ascension.ChangeTerrainRandomly(hex);
+
+        Assert.False(result);
+        Assert.Equal(0, godState.PrestigeState!.PrestigePoints);
+        Assert.Equal(0, godState.PrestigeState!.WalkOfGodUsesSinceLastPrestige);
+        Assert.Equal(terrainBefore, state.GetMapFor(hex)!.GetTile(hex)!.TerrainType);
+    }
+
+    [Fact]
+    public void ChangeTerrainRandomly_NoPrestigeState_Fails()
+    {
+        var (_, _, _, ascension, _) = CreateTestSetup(godPoints: 100, prestigePoints: null);
+        UnlockWalkOfGod(ascension);
+        var hex = ascension.GetWalkOfGodTargetHexes()[0];
+
+        Assert.False(ascension.ChangeTerrainRandomly(hex));
+    }
+
+    [Fact]
+    public void GetWalkOfGodCost_ReadsDirectlyFromWalkOfGodUsesSinceLastPrestige()
+    {
+        var (_, _, _, ascension, godState) = CreateTestSetup(godPoints: 100, prestigePoints: 10);
+        UnlockWalkOfGod(ascension);
+
+        godState.PrestigeState!.WalkOfGodUsesSinceLastPrestige = 4;
+
+        Assert.Equal(5, ascension.GetWalkOfGodCost());
     }
 }
