@@ -119,6 +119,7 @@ public class AutoExtendController
 
             SpawnAbyssIslandCivilization(layerState, newTiles, z);
             PlaceDivineBones(newTiles);
+            PlaceAbyssCorruption(newTiles);
         }
     }
 
@@ -138,6 +139,31 @@ public class AutoExtendController
         var hex = landTiles[_prng.Next(landTiles.Count)].Coord;
         int corruptionLevel = _prestigeState?.CurrentCorruptionLevel ?? 1;
         _state.AddFeature(new Model.IslandFeatures.DivineBones(hex, corruptionLevel));
+    }
+
+    // Étendue aléatoire au-dessus du niveau de corruption max de l'Inframonde pour l'Abysse
+    private const int AbyssCorruptionLevelSpread = 2;
+
+    /// <summary>
+    /// Contrairement à l'Inframonde (chance de spawn par hexagone, voir <see cref="TrySpawnUnderworldDenizen"/>),
+    /// chaque hex de terre d'une île de l'Abysse nouvellement générée est systématiquement corrompu,
+    /// avec un niveau tiré aléatoirement entre le niveau de corruption maximum de l'Inframonde
+    /// (<see cref="PrestigeState.CurrentCorruptionLevel"/>) et ce niveau + <see cref="AbyssCorruptionLevelSpread"/>.
+    /// Placée indépendamment des autres features déjà présentes sur l'hex (Os Divins, civilisation…),
+    /// après <see cref="PlaceDivineBones"/> pour ne pas empêcher son placement (qui exige un hex libre).
+    /// Jamais sur les hex de Void — non pertinent pour un hex jamais rendu ni interactif.
+    /// </summary>
+    private void PlaceAbyssCorruption(List<HexTile> newTiles)
+    {
+        if (_state == null || _prng == null) return;
+
+        int minLevel = _prestigeState?.CurrentCorruptionLevel ?? 1;
+        foreach (var tile in newTiles)
+        {
+            if (tile.TerrainType == TerrainType.Void) continue;
+            int level = _prng.Next(minLevel, minLevel + AbyssCorruptionLevelSpread + 1);
+            _state.AddFeature(new Model.IslandFeatures.Corruption(tile.Coord, level));
+        }
     }
 
     /// <summary>
