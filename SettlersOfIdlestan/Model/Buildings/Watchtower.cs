@@ -17,7 +17,8 @@ public class Watchtower : Building
         { Resource.Wood, 10 },
     };
 
-    public override bool IsAvailableInLayer(int z) => z == IslandMap.IslandMap.SurfaceLayer;
+    public override bool IsAvailableInLayer(int z) =>
+        z == IslandMap.IslandMap.SurfaceLayer || z == LayerState.AbyssZ;
 
     public override bool IsBuildingAvailableForCity(IslandMap.IslandMap map, IBuildingContext city)
     {

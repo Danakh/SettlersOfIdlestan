@@ -70,6 +70,7 @@ public class AutoExtendController
     {
         if (_clock != null)
             _clock.Advanced -= OnClockAdvanced;
+        _state?.Visibility.HexesRevealed -= OnHexesRevealed;
 
         _state = state;
         _prng = prng;
@@ -78,12 +79,36 @@ public class AutoExtendController
 
         if (_clock != null)
             _clock.Advanced += OnClockAdvanced;
+        _state.Visibility.HexesRevealed += OnHexesRevealed;
     }
 
     private void OnClockAdvanced(object? sender, GameClockAdvancedEventArgs e)
     {
         try { TrySpawnBorderMonsters(e.CurrentTick); }
         catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[AutoExtendController] {nameof(TrySpawnBorderMonsters)}: {ex}"); }
+    }
+
+    /// <summary>
+    /// Génère dynamiquement une nouvelle île de l'Abysse dès qu'un hex de Void devient visible pour
+    /// une civilisation. N'a aucun effet tant que le layer Abysse n'existe pas encore dans
+    /// <see cref="WorldState.Layers"/> (pas de point d'entrée pour l'instant) ni pour les autres
+    /// couches (Surface, Outremonde).
+    /// </summary>
+    private void OnHexesRevealed(int z, int civIndex, IReadOnlyList<HexCoord> newHexes)
+    {
+        if (z != LayerState.AbyssZ) return;
+        if (_state == null || _prng == null) return;
+        if (!_state.Layers.TryGetValue(z, out var layerState) || !layerState.AutoExtend) return;
+
+        var map = layerState.Map;
+        foreach (var hex in newHexes)
+        {
+            var tile = map.GetTile(hex);
+            if (tile == null || tile.TerrainType != TerrainType.Void) continue;
+
+            foreach (var newTile in Generator.AbyssIslandGenerator.GenerateIslandBeyondVoid(map, hex, _prng))
+                map.AddTile(newTile);
+        }
     }
 
     /// <summary>

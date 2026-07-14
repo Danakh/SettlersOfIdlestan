@@ -289,6 +289,8 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
         Dictionary<HexCoord, bool>? abyssGateByHex = null,
         float totalTime = 0f)
     {
+        if (tile.TerrainType == TerrainType.Void) return;
+
         var path = GetOrCreateHexPath(coord, centerX, centerY);
 
         if (_hexFillPaint != null)

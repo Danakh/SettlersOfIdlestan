@@ -17,7 +17,13 @@ public enum TerrainType
     MithrilVein,
     CrystalCave,
     MushroomCave,
-    DeepWater
+    DeepWater,
+
+    /// <summary>
+    /// Hex vide de l'Abysse : jamais affiché (rendu identique à un hex manquant), mais bien
+    /// présent dans la carte pour marquer une frontière entre deux îles générées dynamiquement.
+    /// </summary>
+    Void
 }
 
 public static class TerrainTypeExtensions
@@ -28,4 +34,6 @@ public static class TerrainTypeExtensions
     /// cosmétique ne soit jamais traitée comme un hex de terre valide.
     /// </summary>
     public static bool IsWater(this TerrainType terrain) => terrain is TerrainType.Water or TerrainType.DeepWater;
+
+    public static bool IsVoid(this TerrainType terrain) => terrain == TerrainType.Void;
 }

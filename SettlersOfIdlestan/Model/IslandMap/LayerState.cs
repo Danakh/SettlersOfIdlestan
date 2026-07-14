@@ -11,6 +11,12 @@ public class LayerState
 {
     public const int UnderworldZ = 1;
 
+    /// <summary>
+    /// Layer de l'Abysse. Pas encore accessible au joueur : aucun point d'entrée ne crée ce layer
+    /// pour l'instant (le futur déclencheur est AbyssGateController.OnAbyssGateBuilt).
+    /// </summary>
+    public const int AbyssZ = 2;
+
     public IslandMap Map { get; set; }
 
     /// <summary>
