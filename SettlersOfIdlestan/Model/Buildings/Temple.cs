@@ -3,10 +3,15 @@ using SettlersOfIdlestan.Model.IslandMap;
 namespace SettlersOfIdlestan.Model.Buildings;
 
 /// <summary>
-/// Represents a Temple building.
+/// Represents a Temple building. Aux niveaux 2-4 (atteignables uniquement une fois le pouvoir divin
+/// Foi débloqué, voir AscensionController.GetModifiers — BUILDING_MAX_LEVEL "Temple" +3), génère du
+/// Dominion ou réduit la Corruption autour de sa ville (voir CorruptionController.ProcessTempleProduction).
 /// </summary>
 public class Temple : Building
 {
+    /// <summary>Dernier tick où ce Temple a agi sur la Corruption/le Dominion d'un hex voisin.</summary>
+    public long LastDominionProductionTick { get; set; } = 0;
+
     /// <summary>
     /// Initializes a new instance of the <see cref="Temple"/> class.
     /// </summary>

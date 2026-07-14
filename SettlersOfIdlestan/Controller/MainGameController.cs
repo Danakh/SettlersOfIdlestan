@@ -43,6 +43,7 @@ namespace SettlersOfIdlestan.Controller
         public GreatLighthouseController GreatLighthouseController { get; private set; }
         public DeepestMineController DeepestMineController { get; private set; }
         public CorruptionSpireController CorruptionSpireController { get; private set; }
+        public CorruptionController CorruptionController { get; private set; }
         public AbyssGateController AbyssGateController { get; private set; }
         public DivineBonesController DivineBonesController { get; private set; }
         public Magic.MagicController MagicController { get; private set; }
@@ -95,6 +96,7 @@ namespace SettlersOfIdlestan.Controller
             GreatLighthouseController = new GreatLighthouseController();
             DeepestMineController = new DeepestMineController();
             CorruptionSpireController = new CorruptionSpireController();
+            CorruptionController = new CorruptionController();
             AbyssGateController = new AbyssGateController();
             DivineBonesController = new DivineBonesController();
             MagicController = new Magic.MagicController();
@@ -341,6 +343,7 @@ namespace SettlersOfIdlestan.Controller
                 GreatLighthouseController.Initialize(WorldState, Clock);
                 DeepestMineController.Initialize(WorldState, Clock);
                 CorruptionSpireController.Initialize(WorldState, Clock);
+                CorruptionController.Initialize(WorldState, Clock, CurrentMainState!.PRNG);
                 AbyssGateController.Initialize(WorldState, Clock);
                 DivineBonesController.Initialize(WorldState, Clock, CurrentMainState!.GodState, CurrentMainState!.PRNG);
                 MagicController.Initialize(WorldState, Clock, CurrentMainState!.PRNG, CityBuilderController, BuildingController, HarvestController);
