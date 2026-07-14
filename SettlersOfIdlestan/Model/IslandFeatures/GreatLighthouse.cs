@@ -23,11 +23,12 @@ public class GreatLighthouse : Monument
     [JsonIgnore]
     public bool IsMaxLevel => Level >= MaxLevel;
 
-    /// <summary>Coût statique du level-up — Verre/Minerai/Or, à l'échelle des derniers niveaux de la Merveille.</summary>
+    /// <summary>Coût statique du level-up — Verre/Brique/Pierre/Or, à l'échelle des derniers niveaux de la Merveille.</summary>
     public static ResourceSet GetLevelCost(int level) => new()
     {
         { Resource.Glass, 2000 * level * level },
-        { Resource.Ore,   3000 * level * level },
+        { Resource.Brick, 5000 * level * level },
+        { Resource.Stone, 2000 * level * level },
         { Resource.Gold, 5000 * level * level },
     };
 

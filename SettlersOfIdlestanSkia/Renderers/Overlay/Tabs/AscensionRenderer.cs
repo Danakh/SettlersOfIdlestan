@@ -76,7 +76,7 @@ public sealed class AscensionRenderer : IDisposable
     public void RenderAscensionPage(SKCanvas canvas, GameRenderContext context)
     {
         if (_disposed) return;
-        if (context.GameState is not MainGameState) return;
+        if (context.GameState is not MainGameState mgs) return;
 
         _purchaseButtonRects.Clear();
         _hoveredLockedRect = SKRect.Empty;
@@ -92,6 +92,11 @@ public sealed class AscensionRenderer : IDisposable
         float y = topBar + Padding;
 
         SkiaTextUtils.DrawText(canvas, _localization.Get("tab_ascension"), x, y + 14, _headerFont, _accentPaint);
+
+        // Essence divine (gagnée en purifiant les Os Divins des Abysses, voir DivineBonesController) —
+        // sa conversion en points divins n'est pas encore implémentée, affichée ici en attendant.
+        string essenceText = _localization.GetFormated("ascension_divine_essence_label", mgs.GodState.DivineEssence);
+        SkiaTextUtils.DrawText(canvas, essenceText, x + contentWidth, y + 14, SKTextAlign.Right, _nameFont, _accentPaint);
 
         // Foi : grand bouton occupant toute la largeur, ancré en bas de l'écran.
         float faithBottom = _canvasSize.Height - Padding;

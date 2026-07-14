@@ -36,4 +36,11 @@ public class MonumentService
         else
             SelectedInvestable.InvestmentEnabled.Add(resource);
     }
+
+    /// <summary>Bascule l'investissement en points de recherche des Os Divins (pool séparé, voir DivineBones.InvestedResearch).</summary>
+    public void ToggleResearchInvestment()
+    {
+        if (SelectedInvestable is not DivineBones bones || bones.Purified) return;
+        bones.ResearchInvestmentEnabled = !bones.ResearchInvestmentEnabled;
+    }
 }

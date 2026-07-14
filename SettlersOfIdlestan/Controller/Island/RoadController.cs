@@ -7,6 +7,7 @@ using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.GameplayModifier;
+using SettlersOfIdlestan.Model.Prestige;
 
 namespace SettlersOfIdlestan.Controller.Island
 {
@@ -30,6 +31,7 @@ namespace SettlersOfIdlestan.Controller.Island
         private WorldState? _state;
         private GameClock? _clock;
         private GamePRNG? _prng;
+        private PrestigeState? _prestigeState;
         private readonly Dictionary<int, (int CityCount, int BeaconCount, List<Road> Roads)> _buildableRoadsCache = new();
 
         // 5 s × 100 ticks/s — same cadence as automatic harvests
@@ -46,7 +48,7 @@ namespace SettlersOfIdlestan.Controller.Island
         /// <summary>
         /// Initialize or update the WorldState for this controller.
         /// </summary>
-        internal void Initialize(WorldState state, GameClock? clock = null, GamePRNG? prng = null)
+        internal void Initialize(WorldState state, GameClock? clock = null, GamePRNG? prng = null, PrestigeState? prestigeState = null)
         {
             if (_clock != null)
                 _clock.Advanced -= OnClockAdvanced;
@@ -56,6 +58,7 @@ namespace SettlersOfIdlestan.Controller.Island
 
             _clock = clock;
             if (prng != null) _prng = prng;
+            _prestigeState = prestigeState;
 
             if (_clock != null)
                 _clock.Advanced += OnClockAdvanced;
@@ -173,7 +176,12 @@ namespace SettlersOfIdlestan.Controller.Island
             {
                 if (ownOccupied.Any(e => e.Equals(edge))) continue;
                 if (enemyProtectedEdges.Contains(edge)) continue;
-                if (!IsEdgeOnLand(edge))
+                if (IsEdgeBetweenVoidHexes(edge))
+                {
+                    if (!civ.ModifierAggregator.HasModifier(Modifier.ECategory.UNLOCK_VOID_ROUTES))
+                        continue;
+                }
+                else if (!IsEdgeOnLand(edge))
                 {
                     if (EdgeTouchesDeepWater(edge))
                         continue;
@@ -266,9 +274,16 @@ namespace SettlersOfIdlestan.Controller.Island
             if (!mapTiles.ContainsKey(edge.Hex1) || !mapTiles.ContainsKey(edge.Hex2))
                 throw new ArgumentException("Edge not part of the map", nameof(edge));
 
-            // V�rifier que l'ar�te n'est pas entre deux hexagones de type eau (sauf routes maritimes débloquées)
-            bool isMaritimePath = !IsEdgeOnLand(edge);
-            if (isMaritimePath)
+            // V�rifier que l'ar�te n'est pas entre deux hexagones de type eau ou de Vide
+            // (sauf routes maritimes/du Vide débloquées)
+            bool isVoidPath = IsEdgeBetweenVoidHexes(edge);
+            bool isMaritimePath = !isVoidPath && !IsEdgeOnLand(edge);
+            if (isVoidPath)
+            {
+                if (!civ.ModifierAggregator.HasModifier(Modifier.ECategory.UNLOCK_VOID_ROUTES))
+                    throw new InvalidOperationException("Cannot build a road on an edge between two void hexes");
+            }
+            else if (isMaritimePath)
             {
                 if (EdgeTouchesDeepWater(edge))
                     throw new InvalidOperationException("Cannot build a road through deep water");
@@ -301,7 +316,16 @@ namespace SettlersOfIdlestan.Controller.Island
             if (distance == int.MaxValue)
                 return null; // road must no longer be linked to a city
 
-            var cost = isMaritimePath ? GetMaritimeRoadCost() : GetRoadCost(distance, civ);
+            var cost = (isVoidPath || isMaritimePath) ? GetMaritimeRoadCost() : GetRoadCost(distance, civ);
+
+            long voidResearchCost = 0;
+            if (isVoidPath)
+            {
+                int alreadyBuilt = civ.Roads.Count(r => IsEdgeBetweenVoidHexes(r.Position));
+                voidResearchCost = GetVoidRouteResearchCost(alreadyBuilt);
+                if ((_prestigeState?.TechnologyTree.ResearchPoints ?? 0) < voidResearchCost)
+                    return null;
+            }
 
             if (!civ.CanPayResourceCost(cost))
                 return null;
@@ -311,6 +335,8 @@ namespace SettlersOfIdlestan.Controller.Island
 
             // consume resources
             civ.PayResourceCost(cost);
+            if (isVoidPath)
+                _prestigeState!.TechnologyTree.ResearchPoints -= voidResearchCost;
 
             var road = new Road(edge) { CivilizationIndex = civilizationIndex, DistanceToNearestCity = distance };
             civ.AddRoad(road);
@@ -538,6 +564,32 @@ namespace SettlersOfIdlestan.Controller.Island
         }
 
         /// <summary>
+        /// Vrai si les deux hexagones de l'arête sont du Vide — arête normalement infranchissable,
+        /// rendue constructible (comme une route maritime) par <see cref="Modifier.ECategory.UNLOCK_VOID_ROUTES"/>.
+        /// </summary>
+        private bool IsEdgeBetweenVoidHexes(Edge edge)
+        {
+            if (_state == null) return false;
+            var mapTiles = _state.GetMapFor(edge)?.Tiles;
+            if (mapTiles == null) return false;
+            bool hex1IsVoid = mapTiles.TryGetValue(edge.Hex1, out var tile1) && tile1.TerrainType == TerrainType.Void;
+            bool hex2IsVoid = mapTiles.TryGetValue(edge.Hex2, out var tile2) && tile2.TerrainType == TerrainType.Void;
+            return hex1IsVoid && hex2IsVoid;
+        }
+
+        /// <summary>
+        /// Coût en points de recherche d'une route du Vide supplémentaire : 1 000 000 × 4^n,
+        /// n étant le nombre de routes du Vide déjà construites par la civilisation.
+        /// </summary>
+        public static long GetVoidRouteResearchCost(int alreadyBuilt)
+        {
+            long cost = 1_000_000L;
+            for (int i = 0; i < alreadyBuilt; i++)
+                cost *= 4;
+            return cost;
+        }
+
+        /// <summary>
         /// Vrai si l'un des deux hexagones de l'arête est de l'eau profonde (bordure cosmétique,
         /// jamais traversable ni constructible — voir <see cref="TerrainTypeExtensions.IsWater"/>).
         /// </summary>
@@ -573,6 +625,15 @@ namespace SettlersOfIdlestan.Controller.Island
             return 0;
         }
 
+        /// <summary>Coût en points de recherche à afficher pour une route du Vide sur cette arête (null si l'arête n'en est pas une).</summary>
+        public long? GetPlayerVoidRoadResearchCost(Edge edge)
+        {
+            if (!IsEdgeBetweenVoidHexes(edge)) return null;
+            var civ = _state!.PlayerCivilization;
+            int alreadyBuilt = civ.Roads.Count(r => IsEdgeBetweenVoidHexes(r.Position));
+            return GetVoidRouteResearchCost(alreadyBuilt);
+        }
+
         public static ResourceSet GetMaritimeRoadCost() => new ResourceSet
         {
             { Resource.Wood, 10 },
@@ -595,7 +656,7 @@ namespace SettlersOfIdlestan.Controller.Island
 
         public ResourceSet GetPlayerRoadCost(Edge edge)
         {
-            if (!IsEdgeOnLand(edge))
+            if (IsEdgeBetweenVoidHexes(edge) || !IsEdgeOnLand(edge))
                 return GetMaritimeRoadCost();
             var civ = _state!.PlayerCivilization;
             var distance = GetDistanceForEdge(edge, civ);

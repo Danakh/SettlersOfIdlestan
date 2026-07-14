@@ -331,7 +331,10 @@ public sealed class TabBarRenderer : IDisposable
     private bool HasGodPoints(GameRenderContext context)
     {
         if (context.GameState is not MainGameState mgs) return false;
-        return mgs.GodState.TotalGodPointsEarned > 0;
+        // L'essence divine (Os Divins purifiés, voir DivineBonesController) révèle aussi l'onglet :
+        // sa conversion en points divins n'est pas encore implémentée, mais le joueur doit pouvoir
+        // voir la mécanique Ascension dès sa première essence gagnée.
+        return mgs.GodState.TotalGodPointsEarned > 0 || mgs.GodState.TotalDivineEssenceEarned > 0;
     }
 
     private bool HasEventLogEntries()

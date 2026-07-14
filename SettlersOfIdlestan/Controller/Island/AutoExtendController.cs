@@ -118,7 +118,26 @@ public class AutoExtendController
                 map.AddTile(newTile);
 
             SpawnAbyssIslandCivilization(layerState, newTiles, z);
+            PlaceDivineBones(newTiles);
         }
+    }
+
+    /// <summary>
+    /// Place des Os Divins sur un hex de terre de l'île de l'Abysse nouvellement générée (toujours
+    /// posés, révélés seulement une fois Boussole du Vide acquise — voir DivineBones.IsDiscoverable
+    /// et ShouldRenderIconFor). N'a jamais lieu sur la première île (l'avant-poste initial est créé
+    /// par AbyssGateController.TryInitializeAbyss, qui n'appelle pas ce chemin).
+    /// </summary>
+    private void PlaceDivineBones(List<HexTile> newTiles)
+    {
+        if (_state == null || _prng == null) return;
+
+        var landTiles = newTiles.Where(t => t.TerrainType != TerrainType.Void && !_state.HasFeaturesAt(t.Coord)).ToList();
+        if (landTiles.Count == 0) return;
+
+        var hex = landTiles[_prng.Next(landTiles.Count)].Coord;
+        int corruptionLevel = _prestigeState?.CurrentCorruptionLevel ?? 1;
+        _state.AddFeature(new Model.IslandFeatures.DivineBones(hex, corruptionLevel));
     }
 
     /// <summary>

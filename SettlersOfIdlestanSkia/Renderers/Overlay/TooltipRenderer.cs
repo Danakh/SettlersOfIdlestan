@@ -91,7 +91,14 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay
                 return;
 
             var cost = _roadController.GetPlayerRoadCost(roadPosition);
-            _tooltipTexts = new string[] { _localizationService.Get("road_construction") };
+            var voidResearchCost = _roadController.GetPlayerVoidRoadResearchCost(roadPosition);
+            _tooltipTexts = voidResearchCost.HasValue
+                ? new string[]
+                {
+                    _localizationService.Get("road_construction"),
+                    _localizationService.GetFormated("tooltip_void_route_research_cost", SkiaTextUtils.FormatNumber(voidResearchCost.Value))
+                }
+                : new string[] { _localizationService.Get("road_construction") };
             _tooltipCost = cost;
 
             var islandPosition = _islandRendererContext.EdgeToIslandPoint(roadPosition);

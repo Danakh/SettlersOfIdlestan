@@ -102,6 +102,12 @@ public enum TechnologyId
     ChroniquesDuGuet,
     RenommeeCommerciale,
     SagesseSouterraine,
+    // Deux tiers après Sagesse Souterraine ; débloquée avec la branche des Abysses.
+    // Permet de construire des routes entre deux hexagones de Vide (comme les routes maritimes entre
+    // deux hexagones d'eau), moyennant un coût croissant en points de recherche par route déjà bâtie.
+    VoidWalking,
+    // Suite de Void Walking : révèle la feature Os Divins sur les îles des Abysses générées après la première.
+    VoidCompass,
     // Un tier au-dessus des Chroniques du Guet (seul prérequis)
     Diplomatie,
     // Branche de la Volcanologie (convergence Sidérurgie × risque volcanique)

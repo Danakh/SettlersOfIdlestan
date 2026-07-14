@@ -43,6 +43,7 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
     private SKRect _closeRect = SKRect.Empty;
     private SKRect _evolveButtonRect = SKRect.Empty;
     private readonly Dictionary<SKRect, Resource> _checkboxRects = new();
+    private SKRect _researchCheckboxRect = SKRect.Empty;
 
     public SelectedMonumentPanelRenderer(
         MonumentService monumentService,
@@ -88,10 +89,12 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
             CollapseTabRect = SKRect.Empty;
             _checkboxRects.Clear();
             _evolveButtonRect = SKRect.Empty;
+            _researchCheckboxRect = SKRect.Empty;
             return;
         }
 
         _checkboxRects.Clear();
+        _researchCheckboxRect = SKRect.Empty;
         UpdateScale(context.UiScale);
         float s = LastUiScale;
 
@@ -104,6 +107,8 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
         float collapseTabH = CollapseTabH * s;
 
         bool wonderMaxed = (monument is Wonder { IsMaxLevel: true }) || (monument is GreatLighthouse { IsMaxLevel: true });
+        bool bonesPurified = monument is DivineBones { Purified: true };
+        bool showResearchRow = monument is DivineBones { Purified: false };
         var cost = monument.GetInvestmentCost(playerCiv);
         int resourceCount = wonderMaxed ? 0 : cost.Count;
         var costList = wonderMaxed ? new List<KeyValuePair<Resource, int>>() : cost.ToList();
@@ -133,9 +138,11 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
         float bonusRowGap = 6f * s;
         float bonusHeight = bonusLineLayouts.Sum(b => b.Lines.Count * bonusLineHeight + bonusRowGap);
         float footerHeight = (wonderMaxed ? FooterHeight * s : 0f)
+            + (bonesPurified ? FooterHeight * s : 0f)
             + (showCorruptedPrestigeAvailable ? FooterHeight * s : 0f)
             + (showEvolveButton ? EvolveButtonHeight * s : 0f)
             + (showNoCityWarning ? FooterHeight * s : 0f)
+            + (showResearchRow ? rowHeight : 0f)
             + bonusHeight;
 
         float maxPanelHeight = Math.Max(0, CanvasSize.Height - panelY - 20 * s);
@@ -225,6 +232,9 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
             y += rowHeight;
         }
 
+        if (showResearchRow && monument is DivineBones bonesRow)
+            y = DrawResearchInvestmentRow(canvas, bonesRow, panelX, panelWidth, padding, rowHeight, barH, y, s);
+
         foreach (var (lines, active) in bonusLineLayouts)
         {
             var paint = active ? _barFillPaint : _dimTextPaint;
@@ -243,6 +253,16 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
                 _localization.Get("wonder_max_level_reached"),
                 panelX + panelWidth / 2f, y + rowH / 2f + 5 * s,
                 SKTextAlign.Center, Font12, _dimTextPaint);
+            y += rowH;
+        }
+
+        if (bonesPurified)
+        {
+            float rowH = FooterHeight * s;
+            SkiaTextUtils.DrawText(canvas,
+                _localization.Get("divine_bones_purified_message"),
+                panelX + panelWidth / 2f, y + rowH / 2f + 5 * s,
+                SKTextAlign.Center, Font12, _barFillPaint);
             y += rowH;
         }
 
@@ -291,6 +311,59 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
         float tabOverlap = 6f * s;
         CollapseTabRect = new SKRect(panelX - collapseTabW + tabOverlap, tabTop, panelX + tabOverlap, tabTop + collapseTabH);
         DrawCollapseTabRect(canvas, CollapseTabRect, true);
+    }
+
+    /// <summary>
+    /// Dessine la ligne d'investissement en points de recherche des Os Divins — même présentation
+    /// que les lignes de ressource (checkbox/emoji/nom/montant/barre), mais pilotée par
+    /// DivineBones.InvestedResearch (pool séparé, hors ResourceSet) plutôt que par InvestedResources.
+    /// Retourne le nouveau y après la ligne.
+    /// </summary>
+    private float DrawResearchInvestmentRow(SKCanvas canvas, DivineBones bones, float panelX, float panelWidth, float padding, float rowHeight, float barH, float y, float s)
+    {
+        long required = bones.GetRequiredResearch();
+        long invested = bones.InvestedResearch;
+        bool enabled = bones.ResearchInvestmentEnabled;
+        bool done = invested >= required;
+
+        float rowCenterY = y + rowHeight / 2;
+
+        float cbSize = 14f * s;
+        float cbX = panelX + padding;
+        float cbY = rowCenterY - rowHeight / 4 - cbSize / 2;
+        var cbRect = new SKRect(cbX, cbY, cbX + cbSize, cbY + cbSize);
+        canvas.DrawRoundRect(cbRect, 3 * s, 3 * s, done || enabled ? CheckboxActivePaint : CheckboxInactivePaint);
+        canvas.DrawRoundRect(cbRect, 3 * s, 3 * s, CheckboxBorderPaint);
+        if (enabled || done)
+        {
+            using var checkPaint = new SKPaint { Color = SKColors.White, StrokeWidth = 2f * s, Style = SKPaintStyle.Stroke, IsAntialias = true, StrokeCap = SKStrokeCap.Round };
+            canvas.DrawLine(cbX + 2.5f * s, cbY + cbSize / 2f, cbX + cbSize / 2f - 1f * s, cbY + cbSize - 3f * s, checkPaint);
+            canvas.DrawLine(cbX + cbSize / 2f - 1f * s, cbY + cbSize - 3f * s, cbX + cbSize - 2f * s, cbY + 3f * s, checkPaint);
+        }
+        if (!done)
+            _researchCheckboxRect = new SKRect(cbX - 3 * s, cbY - 3 * s, cbX + cbSize + 3 * s, cbY + cbSize + 3 * s);
+
+        float iconSize = 16f * s;
+        float iconX = panelX + padding + cbSize + 4 * s;
+        SkiaTextUtils.DrawText(canvas, "📜", iconX, rowCenterY - rowHeight / 4 + 6 * s, Font12, TextPaint);
+
+        float textX = iconX + iconSize + 4 * s;
+        string resName = _localization.Get("research_points_label");
+        SkiaTextUtils.DrawText(canvas, resName, textX, rowCenterY - rowHeight / 4 + 5 * s, Font12, done ? _dimTextPaint : TextPaint);
+
+        string amountText = $"{invested}/{required}";
+        SkiaTextUtils.DrawText(canvas, amountText, panelX + panelWidth - padding, rowCenterY - rowHeight / 4 + 5 * s, SKTextAlign.Right, Font10, done ? _barFillPaint : _dimTextPaint);
+
+        float barX = panelX + padding;
+        float barY = y + rowHeight - barH - 8 * s;
+        float barWidth = panelWidth - 2 * padding;
+        float fillWidth = done ? barWidth : (required > 0 ? Math.Min(barWidth, (float)((double)invested / required * barWidth)) : 0);
+
+        canvas.DrawRoundRect(barX, barY, barWidth, barH, 3 * s, 3 * s, _barBgPaint);
+        if (fillWidth > 0)
+            canvas.DrawRoundRect(barX, barY, fillWidth, barH, 3 * s, 3 * s, _barFillPaint);
+
+        return y + rowHeight;
     }
 
     /// <summary>
@@ -393,6 +466,12 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
                 return;
             }
         }
+
+        if (!_researchCheckboxRect.IsEmpty && _researchCheckboxRect.Contains(e.Position.X, e.Position.Y))
+        {
+            _monumentService.ToggleResearchInvestment();
+            return;
+        }
     }
 
     public void Close()
@@ -405,6 +484,7 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
         _evolveButtonRect = SKRect.Empty;
         CollapseTabRect = SKRect.Empty;
         _checkboxRects.Clear();
+        _researchCheckboxRect = SKRect.Empty;
     }
 
     public override void Dispose()

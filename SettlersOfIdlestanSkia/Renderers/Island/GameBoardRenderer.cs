@@ -178,7 +178,7 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
                         .OfType<AbyssGate>()
                         .ToDictionary(f => f.Position, f => f.Built);
                     var uwFeaturesByPosition = worldState.Features
-                        .Where(f => f.ShouldRenderIcon && (f.SvgIconResourceName != null || f.TextIcon != null))
+                        .Where(f => f.ShouldRenderIconFor(worldState.PlayerCivilization) && (f.SvgIconResourceName != null || f.TextIcon != null))
                         .GroupBy(f => f.Position)
                         .ToDictionary(g => g.Key, g => (IEnumerable<IslandFeature>)g);
                     DrawIslandMap(canvas, underworldMap, playerIdx, mainGameState.Clock.CurrentTick, null, null, null, harvestBlockers, uwFeaturesByPosition, uwCorruption, uwDominion, uwAbyssGate, context.TotalTime);
@@ -215,7 +215,7 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
 
                     var harvestBlockers = new HashSet<IslandFeature>(worldState.Features.Where(f => f.BlocksHarvestFor(worldState.PlayerCivilization)));
                     var featuresByPosition = worldState.Features
-                        .Where(f => f.ShouldRenderIcon && (f.SvgIconResourceName != null || f.TextIcon != null))
+                        .Where(f => f.ShouldRenderIconFor(worldState.PlayerCivilization) && (f.SvgIconResourceName != null || f.TextIcon != null))
                         .GroupBy(f => f.Position)
                         .ToDictionary(g => g.Key, g => (IEnumerable<IslandFeature>)g);
                     var corruptionByHex = worldState.Features

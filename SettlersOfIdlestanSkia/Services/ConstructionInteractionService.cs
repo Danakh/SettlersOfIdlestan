@@ -179,7 +179,11 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
         var hexCoord = new HexCoord(hex.q, hex.r, currentZ);
         var playerIndex = WorldState?.PlayerCivilization.Index ?? 0;
 
-        var clickedMonument = WorldState?.Features.OfType<Monument>().FirstOrDefault(w => w.Position.Equals(hexCoord));
+        // Les Os Divins restent non sélectionnables tant que Boussole du Vide n'est pas acquise
+        // (ils sont générés dès la création de l'île mais révélés seulement par la recherche).
+        var clickedMonument = WorldState?.Features.OfType<Monument>()
+            .FirstOrDefault(w => w.Position.Equals(hexCoord)
+                && (w is not DivineBones db || db.ShouldRenderIconFor(WorldState.PlayerCivilization)));
         if (clickedMonument != null)
         {
             _cityBuildingService.ClearSelectedCity();

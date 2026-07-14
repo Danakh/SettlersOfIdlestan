@@ -31,6 +31,18 @@ namespace SettlersOfIdlestan.Model.Prestige
         public int TotalGodPointsEarned { get; set; }
 
         /// <summary>
+        /// Essences divines actuelles (cross-prestige), gagnées en purifiant des Os Divins dans les
+        /// Abysses. Se transformeront en GodPoints via une mécanique à venir.
+        /// </summary>
+        public int DivineEssence { get; set; }
+
+        /// <summary>
+        /// Total cumulé d'essences divines gagnées (cross-prestige, ne diminue jamais). Pilote
+        /// aussi le coût de Purification des Os Divins suivants (voir DivineBones.EssenceAlreadyCollected).
+        /// </summary>
+        public int TotalDivineEssenceEarned { get; set; }
+
+        /// <summary>
         /// Constructeur parameterless requis par certains sérialiseurs.
         /// </summary>
         public GodState() { }

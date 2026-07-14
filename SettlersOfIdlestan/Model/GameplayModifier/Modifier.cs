@@ -157,6 +157,10 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             UNDERWORLD_MONSTER_SPAWN_INTERVAL,
             /// <summary>Nombre de niveaux retranchés au niveau effectif de la Corruption pour le malus de récolte (plancher : niveau 1 — seule la présence du Dominion peut réellement contrer la corruption). Base = 0.</summary>
             CORRUPTION_LEVEL_REDUCTION,
+            /// <summary>Flags que les routes du Vide (arêtes entre deux hexagones de Vide) sont déverrouillées pour la civilisation, comme les routes maritimes pour l'eau.</summary>
+            UNLOCK_VOID_ROUTES,
+            /// <summary>Flags que la feature Os Divins (DivineBones) est révélée et investissable sur les îles des Abysses générées après la première.</summary>
+            UNLOCK_DIVINE_BONES,
         }
 
         [JsonConverter(typeof(JsonStringEnumConverter<EType>))]

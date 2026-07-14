@@ -539,6 +539,24 @@ public static class TechnologyDefinitions
             modifiers: new Modifier[] { new(ECategory.PRESTIGE_GAIN, EType.ADDITIVE, 0.25) },
             tier: 8, line: 0),
 
+        // Deux tiers après Sagesse Souterraine ; débloquée en même temps que la branche des Abysses
+        // (prérequis EtudeDesAbysses, qui l'accompagne).
+        new(TechnologyId.VoidWalking,
+            "tech_void_walking_name", "tech_void_walking_desc",
+            cost: 105000000,
+            prerequisites: new[] { TechnologyId.EtudeDesAbysses },
+            modifiers: new Modifier[] { new(ECategory.UNLOCK_VOID_ROUTES, EType.ADDITIVE, 1) },
+            tier: 10, line: 4),
+
+        // Suite de Void Walking : permet de rechercher les Os Divins qui apparaissent sur les îles
+        // des Abysses générées après la première (voir DivineBones/AbyssIslandGenerator).
+        new(TechnologyId.VoidCompass,
+            "tech_void_compass_name", "tech_void_compass_desc",
+            cost: 420000000,
+            prerequisites: new[] { TechnologyId.VoidWalking },
+            modifiers: new Modifier[] { new(ECategory.UNLOCK_DIVINE_BONES, EType.ADDITIVE, 1) },
+            tier: 11, line: 4),
+
         // === Branche des Abysses (débloquée par le vertex de prestige Brèche Abyssale) ===
         // Étude de la corruption elle-même : la branche accompagne la boucle Spire → Faille → prestige
         // corrompu, sans jamais annuler la corruption (rôle réservé au Dominion, post-ascension).

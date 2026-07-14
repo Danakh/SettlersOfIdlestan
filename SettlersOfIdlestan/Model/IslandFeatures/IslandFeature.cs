@@ -28,6 +28,7 @@ namespace SettlersOfIdlestan.Model.IslandFeatures;
 [JsonDerivedType(typeof(Dominion), "Dominion")]
 [JsonDerivedType(typeof(Adventurer), "Adventurer")]
 [JsonDerivedType(typeof(VolcanoFeature), "Volcano")]
+[JsonDerivedType(typeof(DivineBones), "DivineBones")]
 [Serializable]
 public abstract class IslandFeature
 {
@@ -87,6 +88,13 @@ public abstract class IslandFeature
 
     /// <summary>True si l'icône (SVG ou texte) doit être dessinée dans l'état actuel de la feature.</summary>
     public virtual bool ShouldRenderIcon => Found;
+
+    /// <summary>
+    /// Variante de <see cref="ShouldRenderIcon"/> tenant compte de la civilisation (ex. DivineBones,
+    /// dont l'icône ne doit apparaître qu'une fois la recherche qui la révèle acquise). Par défaut,
+    /// identique à la version sans civ.
+    /// </summary>
+    public virtual bool ShouldRenderIconFor(SettlersOfIdlestan.Model.Civilization.Civilization civ) => ShouldRenderIcon;
 
     /// <summary>
     /// Entrée de tooltip que cette feature contribue quand elle est présente sur un hex,

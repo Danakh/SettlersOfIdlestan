@@ -254,6 +254,10 @@ public sealed class EventLogRenderer : IDisposable
             _successCardPaint, _successBorderPaint, _successTextPaint,
             _localization.Get("event_abyss_gate_built_title"),
             _localization.Get("event_abyss_gate_built_body")),
+        GameEventType.DivineBonesPurified => (
+            _rewardCardPaint, _rewardBorderPaint, _rewardTextPaint,
+            _localization.Get("event_divine_bones_purified_title"),
+            _localization.Get("event_divine_bones_purified_body")),
         _ => (_dangerCardPaint, _dangerBorderPaint, _bodyTextPaint, "?", entry.Message ?? "")
     };
 

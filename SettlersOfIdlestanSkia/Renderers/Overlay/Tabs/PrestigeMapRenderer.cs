@@ -768,6 +768,8 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         Modifier.ECategory.UNLOCK_VENDETTA                   => _localization.Get("prestige_tooltip_unlocks_vendetta"),
         Modifier.ECategory.UNDERWORLD_MONSTER_SPAWN_INTERVAL => $"+{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_underworld_monster_spawn_interval")}",
         Modifier.ECategory.CORRUPTION_LEVEL_REDUCTION        => $"-{(int)mod.Value} {_localization.Get("prestige_tooltip_corruption_level_reduction")}",
+        Modifier.ECategory.UNLOCK_VOID_ROUTES                => _localization.Get("prestige_tooltip_unlocks_void_routes"),
+        Modifier.ECategory.UNLOCK_DIVINE_BONES               => _localization.Get("prestige_tooltip_unlocks_divine_bones"),
         _ => $"+{mod.Value}"
     };
 

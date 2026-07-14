@@ -44,6 +44,7 @@ namespace SettlersOfIdlestan.Controller
         public DeepestMineController DeepestMineController { get; private set; }
         public CorruptionSpireController CorruptionSpireController { get; private set; }
         public AbyssGateController AbyssGateController { get; private set; }
+        public DivineBonesController DivineBonesController { get; private set; }
         public Magic.MagicController MagicController { get; private set; }
         public AscensionController AscensionController { get; private set; }
         public NpcGameController NpcGameController { get; private set; }
@@ -95,6 +96,7 @@ namespace SettlersOfIdlestan.Controller
             DeepestMineController = new DeepestMineController();
             CorruptionSpireController = new CorruptionSpireController();
             AbyssGateController = new AbyssGateController();
+            DivineBonesController = new DivineBonesController();
             MagicController = new Magic.MagicController();
             AscensionController = new AscensionController();
             TaskRecordController = new TaskRecordController();
@@ -302,7 +304,7 @@ namespace SettlersOfIdlestan.Controller
                 // 6. TradeController — requis par HarvestController (auto-vente en cas de débordement)
                 // 7. HarvestController — dépend de TradeController et MonsterFeatureController
                 // 8. Reste des controllers (BuildingController, etc.) — indépendants
-                RoadController.Initialize(WorldState, Clock, CurrentMainState!.PRNG);
+                RoadController.Initialize(WorldState, Clock, CurrentMainState!.PRNG, CurrentMainState?.PrestigeState);
                 CityBuilderController.Initialize(WorldState, Clock, CurrentMainState!.PRNG);
                 MaritimeBeaconController.Initialize(WorldState);
                 WarFleetController.Initialize(WorldState);
@@ -321,6 +323,7 @@ namespace SettlersOfIdlestan.Controller
                 DeepestMineController.Initialize(WorldState, Clock);
                 CorruptionSpireController.Initialize(WorldState, Clock);
                 AbyssGateController.Initialize(WorldState, Clock);
+                DivineBonesController.Initialize(WorldState, Clock, CurrentMainState!.GodState);
                 MagicController.Initialize(WorldState, Clock, CurrentMainState!.PRNG, CityBuilderController, BuildingController, HarvestController);
                 ResearchController.Initialize(WorldState, Clock, CurrentMainState?.PrestigeState, CurrentMainState?.Settings);
                 NpcGameController.Initialize(WorldState, Clock, MilitaryController, this);
