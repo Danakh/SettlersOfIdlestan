@@ -4,6 +4,7 @@ using System.Linq;
 using SettlersOfIdlestan.Controller.Generator;
 using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Model.Ascension;
+using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.GameplayModifier;
 using SettlersOfIdlestan.Model.HexGrid;
@@ -23,6 +24,23 @@ public class AscensionController : IModifierProvider
 {
     /// <summary>Nombre minimum d'essences divines requis pour pouvoir déclencher une Ascension.</summary>
     public const int MinDivineEssenceForAscension = 4;
+
+    /// <summary>
+    /// Bâtiments uniques choisissables comme bâtiment permanent d'Ascension (voir
+    /// <see cref="SelectPermanentUniqueBuilding"/>) : uniquement des IUniqueBuilding dont l'intégralité
+    /// de l'effet est capturé par GetUniqueBuildingModifiers (pas d'automatisation liée à une
+    /// présence physique en ville, pas de comportement par tick propre à l'instance).
+    /// </summary>
+    public static readonly IReadOnlyList<BuildingType> PermanentUniqueBuildingChoices = new[]
+    {
+        BuildingType.Academy,
+        BuildingType.ArtisansGuild,
+        BuildingType.BlastFurnace,
+        BuildingType.HarvestersGuild,
+        BuildingType.TraderGuild,
+        BuildingType.VolcanicForge,
+        BuildingType.WarRoom,
+    };
 
     private static readonly TerrainType[] RandomTerrainPool =
     {
@@ -86,6 +104,35 @@ public class AscensionController : IModifierProvider
         _ascensionState!.UnlockedPowers.Add(id);
         OnModifiersChanged?.Invoke();
         return true;
+    }
+
+    /// <summary>Bâtiment unique permanent actuellement choisi (voir SelectPermanentUniqueBuilding), s'il y en a un.</summary>
+    public BuildingType? PermanentUniqueBuilding => _ascensionState?.PermanentUniqueBuilding;
+
+    /// <summary>
+    /// Choisit (ou change) le bâtiment unique permanent accordé par l'Ascension. Le choix est
+    /// mémorisé cross-prestige (AscensionState.PermanentUniqueBuilding) mais ne prend effet qu'au
+    /// prochain début d'île — voir <see cref="ApplyPermanentUniqueBuildingToCivilization"/>, appelé
+    /// par MainGameController.InitializeControllersForCurrentIsland.
+    /// </summary>
+    public bool SelectPermanentUniqueBuilding(BuildingType type)
+    {
+        if (_ascensionState == null || !PermanentUniqueBuildingChoices.Contains(type)) return false;
+
+        _ascensionState.PermanentUniqueBuilding = type;
+        return true;
+    }
+
+    /// <summary>
+    /// Applique à la civilisation du joueur de l'île courante le bâtiment unique permanent choisi
+    /// (voir SelectPermanentUniqueBuilding), s'il y en a un. À appeler à chaque début d'île (nouvelle
+    /// partie, prestige, ascension, redémarrage) — voir MainGameController.
+    /// InitializeControllersForCurrentIsland.
+    /// </summary>
+    public void ApplyPermanentUniqueBuildingToCivilization()
+    {
+        if (_state == null) return;
+        _state.PlayerCivilization.SetAscensionGrantedUniqueBuilding(_ascensionState?.PermanentUniqueBuilding);
     }
 
     public bool CanAscend(GodState godState) => godState.DivineEssence >= MinDivineEssenceForAscension;

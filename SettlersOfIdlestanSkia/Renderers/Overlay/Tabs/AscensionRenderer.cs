@@ -1,5 +1,6 @@
 using SettlersOfIdlestan.Controller.Ascension;
 using SettlersOfIdlestan.Model.Ascension;
+using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.Prestige;
 using SettlersOfIdlestanSkia.Services.Localization;
@@ -33,6 +34,10 @@ public sealed class AscensionRenderer : IDisposable
     private const float ColumnButtonWidth = 100f;
     private const float AscendButtonWidth  = 220f;
     private const float AscendButtonHeight = 34f;
+    private const float InnerTabHeight     = 28f;
+    private const float InnerTabWidth      = 160f;
+    private const int   BuildingCardColumns = 4;
+    private const float BuildingCardHeight  = 120f;
 
     private readonly GameControllerService _gameControllerService;
     private readonly LocalizationService _localization;
@@ -51,6 +56,11 @@ public sealed class AscensionRenderer : IDisposable
     private SKRect _ascendButtonRect  = SKRect.Empty;
     private SKRect _ascendConfirmRect = SKRect.Empty;
     private SKRect _ascendCancelRect  = SKRect.Empty;
+
+    private bool _showPermanentBuildingTab;
+    private SKRect _tabPowersRect            = SKRect.Empty;
+    private SKRect _tabPermanentBuildingRect = SKRect.Empty;
+    private readonly List<(BuildingType type, SKRect rect)> _permanentBuildingRects = new();
 
     private readonly SKPaint _bgPaint           = new() { Color = new SKColor(18, 18, 24, 240), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _cardPaint         = new() { Color = new SKColor(30, 30, 40, 220), Style = SKPaintStyle.Fill, IsAntialias = true };
@@ -96,6 +106,7 @@ public sealed class AscensionRenderer : IDisposable
         if (context.GameState is not MainGameState mgs) return;
 
         _purchaseButtonRects.Clear();
+        _permanentBuildingRects.Clear();
         _hoveredLockedRect = SKRect.Empty;
         _hoveredLockedTooltip = null;
 
@@ -121,8 +132,8 @@ public sealed class AscensionRenderer : IDisposable
         float ascendSectionY = y + 40;
         DrawAscendSection(canvas, x, ascendSectionY, contentWidth, godState, ascension);
 
-        // Tant qu'aucune Ascension n'a jamais été effectuée, aucun pouvoir n'est visible : seule la
-        // conversion essence -> points divins ci-dessus est accessible.
+        // Tant qu'aucune Ascension n'a jamais été effectuée, ni les pouvoirs ni le choix du bâtiment
+        // permanent ne sont visibles : seule la conversion essence -> points divins ci-dessus est accessible.
         if (godState.TotalGodPointsEarned <= 0)
         {
             string message = _localization.Get("ascension_no_powers_yet");
@@ -131,6 +142,15 @@ public sealed class AscensionRenderer : IDisposable
 
             if (_hoveredLockedTooltip != null)
                 _tooltipRenderer.SetTooltip(_hoveredLockedTooltip, new SKPoint(_hoveredLockedRect.Right, _hoveredLockedRect.Top));
+            return;
+        }
+
+        float tabY = ascendSectionY + AscendButtonHeight + 16f;
+        DrawInnerTabBar(canvas, x, tabY, contentWidth);
+
+        if (_showPermanentBuildingTab)
+        {
+            DrawPermanentBuildingTab(canvas, x, tabY + InnerTabHeight + Padding, contentWidth, ascension);
             return;
         }
 
@@ -163,6 +183,70 @@ public sealed class AscensionRenderer : IDisposable
 
         if (_hoveredLockedTooltip != null)
             _tooltipRenderer.SetTooltip(_hoveredLockedTooltip, new SKPoint(_hoveredLockedRect.Right, _hoveredLockedRect.Top));
+    }
+
+    private void DrawInnerTabBar(SKCanvas canvas, float x, float y, float contentWidth)
+    {
+        float centerX = x + contentWidth / 2f;
+        float gap = 8f;
+        _tabPowersRect            = new SKRect(centerX - InnerTabWidth - gap / 2f, y, centerX - gap / 2f, y + InnerTabHeight);
+        _tabPermanentBuildingRect = new SKRect(centerX + gap / 2f, y, centerX + gap / 2f + InnerTabWidth, y + InnerTabHeight);
+
+        canvas.DrawRoundRect(_tabPowersRect, 5, 5, _showPermanentBuildingTab ? _cardPaint : _cardActivePaint);
+        canvas.DrawRoundRect(_tabPermanentBuildingRect, 5, 5, _showPermanentBuildingTab ? _cardActivePaint : _cardPaint);
+        canvas.DrawRoundRect(_tabPowersRect, 5, 5, _showPermanentBuildingTab ? _cardBorderPaint : _cardActiveBorder);
+        canvas.DrawRoundRect(_tabPermanentBuildingRect, 5, 5, _showPermanentBuildingTab ? _cardActiveBorder : _cardBorderPaint);
+
+        SkiaTextUtils.DrawText(canvas, _localization.Get("ascension_tab_powers"), _tabPowersRect.MidX, _tabPowersRect.MidY + 4f, SKTextAlign.Center, _buttonFont, _buttonTextPaint);
+        SkiaTextUtils.DrawText(canvas, _localization.Get("ascension_tab_permanent_building"), _tabPermanentBuildingRect.MidX, _tabPermanentBuildingRect.MidY + 4f, SKTextAlign.Center, _buttonFont, _buttonTextPaint);
+    }
+
+    private void DrawPermanentBuildingTab(SKCanvas canvas, float x, float y, float contentWidth, AscensionController ascension)
+    {
+        var noteLayout = SkiaTextUtils.MeasureWrappedText(_localization.Get("ascension_permanent_building_note"), contentWidth, _descFont);
+        DrawCenteredTextLayout(canvas, noteLayout, x + contentWidth / 2f, y, _descFont, _mutedPaint);
+
+        float gridTop = y + noteLayout.Lines.Count * _descFont.Spacing + 14f;
+        float cardGap = 12f;
+        float cardWidth = (contentWidth - cardGap * (BuildingCardColumns - 1)) / BuildingCardColumns;
+
+        var chosen = ascension.PermanentUniqueBuilding;
+        var choices = AscensionController.PermanentUniqueBuildingChoices;
+        for (int i = 0; i < choices.Count; i++)
+        {
+            var type = choices[i];
+            int col = i % BuildingCardColumns;
+            int row = i / BuildingCardColumns;
+            float cardX = x + col * (cardWidth + cardGap);
+            float cardY = gridTop + row * (BuildingCardHeight + cardGap);
+
+            DrawPermanentBuildingCard(canvas, cardX, cardY, cardWidth, type, type == chosen);
+        }
+    }
+
+    private void DrawPermanentBuildingCard(SKCanvas canvas, float x, float y, float width, BuildingType type, bool selected)
+    {
+        var rect = new SKRect(x, y, x + width, y + BuildingCardHeight);
+        bool hovered = rect.Contains(_hoverPosition.X, _hoverPosition.Y);
+
+        canvas.DrawRoundRect(rect, 8, 8, selected ? _cardActivePaint : (hovered ? _cardPaint : _cardLockedPaint));
+        canvas.DrawRoundRect(rect, 8, 8, selected ? _cardActiveBorder : _cardBorderPaint);
+
+        float centerX = x + width / 2f;
+        string nameKey = $"building_{type.ToString().ToLowerInvariant()}_name";
+        string descKey = $"building_{type.ToString().ToLowerInvariant()}_desc";
+
+        SkiaTextUtils.DrawText(canvas, _localization.Get(nameKey), centerX, y + 20f, SKTextAlign.Center, _nameFont, selected ? _accentPaint : _namePaint);
+
+        var descLayout = SkiaTextUtils.MeasureWrappedText(_localization.Get(descKey), width - 16f, _descFont);
+        DrawCenteredTextLayout(canvas, descLayout, centerX, y + 38f, _descFont, _descPaint);
+
+        if (selected)
+        {
+            SkiaTextUtils.DrawText(canvas, _localization.Get("ascension_permanent_building_selected_label"), centerX, y + BuildingCardHeight - 10f, SKTextAlign.Center, _buttonFont, _accentPaint);
+        }
+
+        _permanentBuildingRects.Add((type, rect));
     }
 
     private void DrawAscendSection(SKCanvas canvas, float x, float y, float width, GodState godState, AscensionController ascension)
@@ -327,7 +411,28 @@ public sealed class AscensionRenderer : IDisposable
             return true;
         }
 
+        if (!_tabPowersRect.IsEmpty && _tabPowersRect.Contains(position.X, position.Y))
+        {
+            _showPermanentBuildingTab = false;
+            return true;
+        }
+        if (!_tabPermanentBuildingRect.IsEmpty && _tabPermanentBuildingRect.Contains(position.X, position.Y))
+        {
+            _showPermanentBuildingTab = true;
+            return true;
+        }
+
         var ascension = _gameControllerService.MainGameController.AscensionController;
+
+        foreach (var (type, rect) in _permanentBuildingRects)
+        {
+            if (rect.Contains(position.X, position.Y))
+            {
+                ascension.SelectPermanentUniqueBuilding(type);
+                return true;
+            }
+        }
+
         foreach (var (id, rect) in _purchaseButtonRects)
         {
             if (rect.Contains(position.X, position.Y))

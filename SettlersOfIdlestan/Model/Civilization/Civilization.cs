@@ -62,8 +62,8 @@ public class Civilization
     public void RemoveCity(City city)
     {
         _cities.Remove(city);
-        RebuildUniqueBuildingsModifiers();
         RebuildUniqueBuildingCache();
+        RebuildUniqueBuildingsModifiers();
         BuildingController.RecalculateStorageCapacity(this);
     }
 
@@ -222,8 +222,11 @@ public class Civilization
         => ModifierAggregator.Register(provider);
 
     /// <summary>
-    /// Reconstruit le cache des modifiers issus des bâtiments IUniqueBuilding de toutes les villes.
-    /// À appeler après construction/amélioration d'un IUniqueBuilding, ou après la perte d'une ville.
+    /// Reconstruit le cache des modifiers issus des bâtiments IUniqueBuilding de toutes les villes,
+    /// plus le bâtiment unique permanent accordé par l'Ascension le cas échéant (voir
+    /// <see cref="SetAscensionGrantedUniqueBuilding"/>) — celui-ci ne vit dans aucune ville, il faut
+    /// donc aller le chercher explicitement dans le cache. À appeler après construction/amélioration
+    /// d'un IUniqueBuilding, ou après la perte d'une ville.
     /// </summary>
     public void RebuildUniqueBuildingsModifiers()
     {
@@ -231,10 +234,26 @@ public class Civilization
             .SelectMany(c => c.Buildings)
             .OfType<IUniqueBuilding>()
             .SelectMany(b => b.GetUniqueBuildingModifiers());
+
+        if (_ascensionGrantedUniqueBuilding is BuildingType grantedType &&
+            GetUniqueBuilding(grantedType) is IUniqueBuilding grantedUnique)
+        {
+            modifiers = modifiers.Concat(grantedUnique.GetUniqueBuildingModifiers());
+        }
+
         UniqueBuildingsModifierProvider.Rebuild(modifiers);
     }
 
     private readonly Dictionary<BuildingType, Building> _uniqueBuildingCache = new();
+
+    /// <summary>
+    /// Type de bâtiment unique accordé en permanence par l'Ascension (voir AscensionState.
+    /// PermanentUniqueBuilding), s'il y en a un. Contrairement aux bâtiments uniques construits
+    /// normalement, celui-ci n'occupe jamais d'emplacement dans une ville — il vit uniquement dans
+    /// <see cref="_uniqueBuildingCache"/> (voir <see cref="RebuildUniqueBuildingCache"/>), ce qui le
+    /// rend increvable (aucune destruction de ville ne peut le faire disparaître).
+    /// </summary>
+    private BuildingType? _ascensionGrantedUniqueBuilding;
 
     /// <summary>
     /// Retourne l'instance du bâtiment unique de ce type construit dans une ville de la civilisation,
@@ -256,8 +275,23 @@ public class Civilization
     }
 
     /// <summary>
-    /// Reconstruit entièrement le cache des bâtiments uniques à partir des villes actuelles.
-    /// À appeler après la perte d'une ville (destruction) ou après chargement d'une sauvegarde.
+    /// Enregistre (ou efface, avec null) le bâtiment unique permanent accordé par l'Ascension pour
+    /// cette île — voir AscensionController.ApplyPermanentUniqueBuildingToCivilization, appelé à
+    /// chaque début d'île. Marque immédiatement le type comme "déjà construit" (bloque sa
+    /// construction manuelle, comme tout bâtiment unique) et fait apparaître ses bonus civ-wide.
+    /// </summary>
+    public void SetAscensionGrantedUniqueBuilding(BuildingType? type)
+    {
+        _ascensionGrantedUniqueBuilding = type;
+        RebuildUniqueBuildingCache();
+        RebuildUniqueBuildingsModifiers();
+    }
+
+    /// <summary>
+    /// Reconstruit entièrement le cache des bâtiments uniques à partir des villes actuelles, plus le
+    /// bâtiment unique permanent accordé par l'Ascension le cas échéant (voir
+    /// <see cref="SetAscensionGrantedUniqueBuilding"/>). À appeler après la perte d'une ville
+    /// (destruction) ou après chargement d'une sauvegarde.
     /// </summary>
     public void RebuildUniqueBuildingCache()
     {
@@ -265,6 +299,16 @@ public class Civilization
         foreach (var building in _cities.SelectMany(c => c.Buildings))
             if (building.IsUnique)
                 _uniqueBuildingCache[building.Type] = building;
+
+        if (_ascensionGrantedUniqueBuilding is BuildingType grantedType &&
+            !_uniqueBuildingCache.ContainsKey(grantedType) &&
+            BuildingController.CreateBuilding(grantedType) is { } granted)
+        {
+            granted.Level = 1;
+            _uniqueBuildingCache[grantedType] = granted;
+            if (!_uniqueBuildings.Contains(grantedType))
+                _uniqueBuildings.Add(grantedType);
+        }
     }
 
     /// <summary>
