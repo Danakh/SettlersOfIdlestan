@@ -5,6 +5,7 @@ using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.IslandMap;
+using SettlersOfIdlestan.Model.Prestige;
 using SOITests.TestUtilities;
 using System.Linq;
 using Xunit;
@@ -12,25 +13,29 @@ using Xunit;
 namespace SOITests.ControllerTests;
 
 /// <summary>
-/// Tests du bâtiment unique permanent d'Ascension (voir AscensionController.
-/// PermanentUniqueBuildingChoices / SelectPermanentUniqueBuilding / ApplyPermanentUniqueBuildingToCivilization) :
-/// choix, application à la civilisation sans occuper d'emplacement en ville, blocage de la
-/// construction manuelle, survie à la perte de toutes les villes, et cumul avec un bâtiment unique
-/// physiquement construit.
+/// Tests des pouvoirs divins et du bâtiment unique permanent d'Ascension (voir AscensionController.
+/// CanPurchasePower/PurchasePower, PermanentUniqueBuildingChoices/SelectPermanentUniqueBuilding/
+/// ApplyPermanentUniqueBuildingToCivilization) : coût en points divins, emplacements de bâtiment
+/// permanent (1 par Ascension effectuée), application à la civilisation sans occuper d'emplacement
+/// en ville, blocage de la construction manuelle, survie à la perte de toutes les villes, et cumul
+/// avec un bâtiment unique physiquement construit.
 /// </summary>
 public class AscensionControllerTests
 {
-    private static (WorldState state, City city, Civilization civ, AscensionController ascension, AscensionState ascensionState) CreateTestSetup()
+    private static (WorldState state, City city, Civilization civ, AscensionController ascension, GodState godState) CreateTestSetup(
+        int godPoints = 100, int ascensionsPerformed = 1)
     {
         var state = IslandTestFactory.CreateSevenHexIslandState();
         var civ = state.Civilizations[0];
         var city = civ.Cities[0];
 
-        var ascensionState = new AscensionState();
-        var ascension = new AscensionController();
-        ascension.Initialize(state, clock: null, new GamePRNG(1), new HarvestController(), ascensionState);
+        var godState = new GodState { GodPoints = godPoints };
+        godState.AscensionState.AscensionsPerformed = ascensionsPerformed;
 
-        return (state, city, civ, ascension, ascensionState);
+        var ascension = new AscensionController();
+        ascension.Initialize(state, clock: null, new GamePRNG(1), new HarvestController(), godState);
+
+        return (state, city, civ, ascension, godState);
     }
 
     [Fact]
@@ -57,39 +62,86 @@ public class AscensionControllerTests
     }
 
     [Fact]
-    public void SelectPermanentUniqueBuilding_ValidCandidate_ReturnsTrueAndPersistsToState()
+    public void PermanentUniqueBuildingSlots_EqualsAscensionsPerformed()
     {
-        var (_, _, _, ascension, ascensionState) = CreateTestSetup();
+        var (_, _, _, ascension, godState) = CreateTestSetup(ascensionsPerformed: 3);
+
+        Assert.Equal(3, ascension.PermanentUniqueBuildingSlots);
+        Assert.Equal(3, godState.AscensionState.AscensionsPerformed);
+    }
+
+    [Fact]
+    public void SelectPermanentUniqueBuilding_ValidCandidateWithSlotAvailable_ReturnsTrueAndPersistsToState()
+    {
+        var (_, _, _, ascension, godState) = CreateTestSetup(ascensionsPerformed: 1);
 
         var result = ascension.SelectPermanentUniqueBuilding(BuildingType.WarRoom);
 
         Assert.True(result);
-        Assert.Equal(BuildingType.WarRoom, ascension.PermanentUniqueBuilding);
-        Assert.Equal(BuildingType.WarRoom, ascensionState.PermanentUniqueBuilding);
+        Assert.Contains(BuildingType.WarRoom, ascension.PermanentUniqueBuildings);
+        Assert.Contains(BuildingType.WarRoom, godState.AscensionState.PermanentUniqueBuildings);
     }
 
     [Fact]
     public void SelectPermanentUniqueBuilding_NonCandidateType_ReturnsFalseAndLeavesStateUnset()
     {
-        var (_, _, _, ascension, ascensionState) = CreateTestSetup();
+        var (_, _, _, ascension, godState) = CreateTestSetup(ascensionsPerformed: 1);
 
         var result = ascension.SelectPermanentUniqueBuilding(BuildingType.TownHall);
 
         Assert.False(result);
-        Assert.Null(ascension.PermanentUniqueBuilding);
-        Assert.Null(ascensionState.PermanentUniqueBuilding);
+        Assert.Empty(ascension.PermanentUniqueBuildings);
+        Assert.Empty(godState.AscensionState.PermanentUniqueBuildings);
     }
 
     [Fact]
-    public void SelectPermanentUniqueBuilding_ChangingSelection_UpdatesToLatestChoice()
+    public void SelectPermanentUniqueBuilding_NoSlotsAvailable_ReturnsFalse()
     {
-        var (_, _, _, ascension, ascensionState) = CreateTestSetup();
+        var (_, _, _, ascension, _) = CreateTestSetup(ascensionsPerformed: 0);
+
+        var result = ascension.SelectPermanentUniqueBuilding(BuildingType.WarRoom);
+
+        Assert.False(result);
+        Assert.Empty(ascension.PermanentUniqueBuildings);
+    }
+
+    [Fact]
+    public void SelectPermanentUniqueBuilding_ExceedingSlotCount_ReturnsFalseAndLeavesFirstChoiceUnchanged()
+    {
+        var (_, _, _, ascension, _) = CreateTestSetup(ascensionsPerformed: 1);
         ascension.SelectPermanentUniqueBuilding(BuildingType.WarRoom);
 
-        ascension.SelectPermanentUniqueBuilding(BuildingType.Academy);
+        var result = ascension.SelectPermanentUniqueBuilding(BuildingType.Academy);
 
-        Assert.Equal(BuildingType.Academy, ascension.PermanentUniqueBuilding);
-        Assert.Equal(BuildingType.Academy, ascensionState.PermanentUniqueBuilding);
+        Assert.False(result);
+        Assert.Equal(new[] { BuildingType.WarRoom }, ascension.PermanentUniqueBuildings);
+    }
+
+    [Fact]
+    public void SelectPermanentUniqueBuilding_WithMultipleSlots_AllowsDistinctChoicesUpToLimit()
+    {
+        var (_, _, _, ascension, _) = CreateTestSetup(ascensionsPerformed: 2);
+
+        Assert.True(ascension.SelectPermanentUniqueBuilding(BuildingType.WarRoom));
+        Assert.True(ascension.SelectPermanentUniqueBuilding(BuildingType.Academy));
+
+        Assert.Equal(2, ascension.PermanentUniqueBuildings.Count);
+        Assert.Contains(BuildingType.WarRoom, ascension.PermanentUniqueBuildings);
+        Assert.Contains(BuildingType.Academy, ascension.PermanentUniqueBuildings);
+    }
+
+    [Fact]
+    public void DeselectPermanentUniqueBuilding_FreesSlotForAnotherChoice()
+    {
+        var (_, _, _, ascension, _) = CreateTestSetup(ascensionsPerformed: 1);
+        ascension.SelectPermanentUniqueBuilding(BuildingType.WarRoom);
+
+        var deselectResult = ascension.DeselectPermanentUniqueBuilding(BuildingType.WarRoom);
+        var selectResult = ascension.SelectPermanentUniqueBuilding(BuildingType.Academy);
+
+        Assert.True(deselectResult);
+        Assert.True(selectResult);
+        Assert.Equal(new[] { BuildingType.Academy }, ascension.PermanentUniqueBuildings);
     }
 
     [Fact]
@@ -105,7 +157,7 @@ public class AscensionControllerTests
     [Fact]
     public void ApplyPermanentUniqueBuildingToCivilization_RegistersBuildingAtLevelOneWithoutPhysicalInstance()
     {
-        var (_, city, civ, ascension, _) = CreateTestSetup();
+        var (_, city, civ, ascension, _) = CreateTestSetup(ascensionsPerformed: 1);
         ascension.SelectPermanentUniqueBuilding(BuildingType.WarRoom);
 
         ascension.ApplyPermanentUniqueBuildingToCivilization();
@@ -120,7 +172,7 @@ public class AscensionControllerTests
     [Fact]
     public void ApplyPermanentUniqueBuildingToCivilization_ContributesUniqueBuildingModifiers()
     {
-        var (_, _, civ, ascension, _) = CreateTestSetup();
+        var (_, _, civ, ascension, _) = CreateTestSetup(ascensionsPerformed: 1);
         ascension.SelectPermanentUniqueBuilding(BuildingType.WarRoom);
 
         ascension.ApplyPermanentUniqueBuildingToCivilization();
@@ -130,9 +182,24 @@ public class AscensionControllerTests
     }
 
     [Fact]
+    public void ApplyPermanentUniqueBuildingToCivilization_MultipleGrantedBuildings_BothContributeModifiers()
+    {
+        var (_, _, civ, ascension, _) = CreateTestSetup(ascensionsPerformed: 2);
+        ascension.SelectPermanentUniqueBuilding(BuildingType.WarRoom);
+        ascension.SelectPermanentUniqueBuilding(BuildingType.Academy);
+
+        ascension.ApplyPermanentUniqueBuildingToCivilization();
+
+        // WarRoom : UNIT_PRODUCTION_SPEED +0.5 (base 1.0). Academy niveau 1 (accordé) :
+        // RESEARCH_PRODUCTION_SPEED +0.1*1 = +0.1 (base 1.0). Les deux doivent s'appliquer.
+        Assert.Equal(1.5, civ.UnitProductionSpeed, precision: 5);
+        Assert.Equal(1.1, civ.ResearchProductionSpeed, precision: 5);
+    }
+
+    [Fact]
     public void ApplyPermanentUniqueBuildingToCivilization_BlocksManualConstruction()
     {
-        var (state, city, civ, ascension, _) = CreateTestSetup();
+        var (state, city, civ, ascension, _) = CreateTestSetup(ascensionsPerformed: 1);
         ascension.SelectPermanentUniqueBuilding(BuildingType.WarRoom);
         ascension.ApplyPermanentUniqueBuildingToCivilization();
 
@@ -150,7 +217,7 @@ public class AscensionControllerTests
     [Fact]
     public void ApplyPermanentUniqueBuildingToCivilization_SurvivesLossOfAllCities()
     {
-        var (_, city, civ, ascension, _) = CreateTestSetup();
+        var (_, city, civ, ascension, _) = CreateTestSetup(ascensionsPerformed: 1);
         ascension.SelectPermanentUniqueBuilding(BuildingType.WarRoom);
         ascension.ApplyPermanentUniqueBuildingToCivilization();
 
@@ -164,7 +231,7 @@ public class AscensionControllerTests
     [Fact]
     public void ApplyPermanentUniqueBuildingToCivilization_CombinesWithDifferentPhysicallyBuiltUniqueBuilding()
     {
-        var (_, city, civ, ascension, _) = CreateTestSetup();
+        var (_, city, civ, ascension, _) = CreateTestSetup(ascensionsPerformed: 1);
         ascension.SelectPermanentUniqueBuilding(BuildingType.WarRoom);
         ascension.ApplyPermanentUniqueBuildingToCivilization();
 
@@ -179,5 +246,56 @@ public class AscensionControllerTests
         // marcher dessus.
         Assert.Equal(1.5, civ.UnitProductionSpeed, precision: 5);
         Assert.Equal(1.2, civ.ResearchProductionSpeed, precision: 5);
+    }
+
+    [Fact]
+    public void CanPurchasePower_Faith_CostsOneGodPointAndRequiresEnoughPoints()
+    {
+        var (_, _, _, ascension, _) = CreateTestSetup(godPoints: 0);
+        Assert.False(ascension.CanPurchasePower(AscensionPowerId.Faith));
+
+        var (_, _, _, ascensionWithPoints, _) = CreateTestSetup(godPoints: 1);
+        Assert.True(ascensionWithPoints.CanPurchasePower(AscensionPowerId.Faith));
+    }
+
+    [Fact]
+    public void PurchasePower_DeductsGodPointCostOnSuccess()
+    {
+        var (_, _, _, ascension, godState) = CreateTestSetup(godPoints: 5);
+
+        var result = ascension.PurchasePower(AscensionPowerId.Faith);
+
+        Assert.True(result);
+        Assert.True(ascension.IsPowerUnlocked(AscensionPowerId.Faith));
+        Assert.Equal(4, godState.GodPoints);
+    }
+
+    [Fact]
+    public void PurchasePower_InsufficientGodPoints_FailsAndLeavesPointsUntouched()
+    {
+        var (_, _, _, ascension, godState) = CreateTestSetup(godPoints: 0);
+
+        var result = ascension.PurchasePower(AscensionPowerId.Faith);
+
+        Assert.False(result);
+        Assert.False(ascension.IsPowerUnlocked(AscensionPowerId.Faith));
+        Assert.Equal(0, godState.GodPoints);
+    }
+
+    [Fact]
+    public void PurchasePower_SecondTierColumnPower_RequiresFirstTierUnlockedRegardlessOfPoints()
+    {
+        var (_, _, _, ascension, godState) = CreateTestSetup(godPoints: 100);
+
+        // DivineInventory (colonne 0, coût 6) nécessite HandOfGod (colonne 0, coût 3) déjà débloqué,
+        // même avec largement assez de points divins.
+        Assert.False(ascension.CanPurchasePower(AscensionPowerId.DivineInventory));
+
+        ascension.PurchasePower(AscensionPowerId.Faith);
+        ascension.PurchasePower(AscensionPowerId.HandOfGod);
+
+        Assert.True(ascension.CanPurchasePower(AscensionPowerId.DivineInventory));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.DivineInventory));
+        Assert.Equal(100 - 1 - 3 - 6, godState.GodPoints);
     }
 }

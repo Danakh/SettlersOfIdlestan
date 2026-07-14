@@ -151,6 +151,8 @@ public sealed class AscensionRenderer : IDisposable
         if (_showPermanentBuildingTab)
         {
             DrawPermanentBuildingTab(canvas, x, tabY + InnerTabHeight + Padding, contentWidth, ascension);
+            if (_hoveredLockedTooltip != null)
+                _tooltipRenderer.SetTooltip(_hoveredLockedTooltip, new SKPoint(_hoveredLockedRect.Right, _hoveredLockedRect.Top));
             return;
         }
 
@@ -206,11 +208,16 @@ public sealed class AscensionRenderer : IDisposable
         var noteLayout = SkiaTextUtils.MeasureWrappedText(_localization.Get("ascension_permanent_building_note"), contentWidth, _descFont);
         DrawCenteredTextLayout(canvas, noteLayout, x + contentWidth / 2f, y, _descFont, _mutedPaint);
 
-        float gridTop = y + noteLayout.Lines.Count * _descFont.Spacing + 14f;
+        var chosen = ascension.PermanentUniqueBuildings;
+        int slots = ascension.PermanentUniqueBuildingSlots;
+        float slotsY = y + noteLayout.Lines.Count * _descFont.Spacing + 6f;
+        string slotsText = _localization.GetFormated("ascension_permanent_building_slots_label", chosen.Count, slots);
+        SkiaTextUtils.DrawText(canvas, slotsText, x + contentWidth / 2f, slotsY, SKTextAlign.Center, _nameFont, _accentPaint);
+
+        float gridTop = slotsY + 20f;
         float cardGap = 12f;
         float cardWidth = (contentWidth - cardGap * (BuildingCardColumns - 1)) / BuildingCardColumns;
 
-        var chosen = ascension.PermanentUniqueBuilding;
         var choices = AscensionController.PermanentUniqueBuildingChoices;
         for (int i = 0; i < choices.Count; i++)
         {
@@ -220,33 +227,42 @@ public sealed class AscensionRenderer : IDisposable
             float cardX = x + col * (cardWidth + cardGap);
             float cardY = gridTop + row * (BuildingCardHeight + cardGap);
 
-            DrawPermanentBuildingCard(canvas, cardX, cardY, cardWidth, type, type == chosen);
+            bool selected = chosen.Contains(type);
+            bool full = !selected && chosen.Count >= slots;
+            DrawPermanentBuildingCard(canvas, cardX, cardY, cardWidth, type, selected, full);
         }
     }
 
-    private void DrawPermanentBuildingCard(SKCanvas canvas, float x, float y, float width, BuildingType type, bool selected)
+    private void DrawPermanentBuildingCard(SKCanvas canvas, float x, float y, float width, BuildingType type, bool selected, bool full)
     {
         var rect = new SKRect(x, y, x + width, y + BuildingCardHeight);
         bool hovered = rect.Contains(_hoverPosition.X, _hoverPosition.Y);
 
-        canvas.DrawRoundRect(rect, 8, 8, selected ? _cardActivePaint : (hovered ? _cardPaint : _cardLockedPaint));
+        canvas.DrawRoundRect(rect, 8, 8, selected ? _cardActivePaint : (full ? _cardLockedPaint : (hovered ? _cardPaint : _cardLockedPaint)));
         canvas.DrawRoundRect(rect, 8, 8, selected ? _cardActiveBorder : _cardBorderPaint);
 
         float centerX = x + width / 2f;
         string nameKey = $"building_{type.ToString().ToLowerInvariant()}_name";
         string descKey = $"building_{type.ToString().ToLowerInvariant()}_desc";
 
-        SkiaTextUtils.DrawText(canvas, _localization.Get(nameKey), centerX, y + 20f, SKTextAlign.Center, _nameFont, selected ? _accentPaint : _namePaint);
+        var namePaint = selected ? _accentPaint : (full ? _mutedPaint : _namePaint);
+        SkiaTextUtils.DrawText(canvas, _localization.Get(nameKey), centerX, y + 20f, SKTextAlign.Center, _nameFont, namePaint);
 
         var descLayout = SkiaTextUtils.MeasureWrappedText(_localization.Get(descKey), width - 16f, _descFont);
-        DrawCenteredTextLayout(canvas, descLayout, centerX, y + 38f, _descFont, _descPaint);
+        DrawCenteredTextLayout(canvas, descLayout, centerX, y + 38f, _descFont, full ? _mutedPaint : _descPaint);
 
         if (selected)
         {
             SkiaTextUtils.DrawText(canvas, _localization.Get("ascension_permanent_building_selected_label"), centerX, y + BuildingCardHeight - 10f, SKTextAlign.Center, _buttonFont, _accentPaint);
         }
+        else if (full && hovered)
+        {
+            _hoveredLockedRect = rect;
+            _hoveredLockedTooltip = _localization.Get("ascension_permanent_building_no_slots_tooltip");
+        }
 
-        _permanentBuildingRects.Add((type, rect));
+        if (selected || !full)
+            _permanentBuildingRects.Add((type, rect));
     }
 
     private void DrawAscendSection(SKCanvas canvas, float x, float y, float width, GodState godState, AscensionController ascension)
@@ -316,6 +332,12 @@ public sealed class AscensionRenderer : IDisposable
         var descLayout = SkiaTextUtils.MeasureWrappedText(_localization.Get(def.DescKey), rect.Width - 60f, _descFont);
         DrawCenteredTextLayout(canvas, descLayout, rect.MidX, rect.Top + 48f, _descFont, _descPaint);
 
+        if (!unlocked)
+        {
+            string costText = _localization.GetFormated("ascension_power_cost_label", def.GodPointCost);
+            SkiaTextUtils.DrawText(canvas, costText, rect.MidX, rect.Bottom - 26f, SKTextAlign.Center, _descFont, _accentPaint);
+        }
+
         string statusLabel = unlocked
             ? _localization.Get("ascension_power_unlocked_label")
             : _localization.Get("ascension_power_unlock_button");
@@ -323,6 +345,11 @@ public sealed class AscensionRenderer : IDisposable
 
         if (canPurchase)
             _purchaseButtonRects.Add((def.Id, rect));
+        else if (!unlocked && hovered)
+        {
+            _hoveredLockedRect = rect;
+            _hoveredLockedTooltip = GetPowerLockedTooltip(ascension, def);
+        }
     }
 
     private void DrawColumnPowerCard(SKCanvas canvas, float x, float y, float width, AscensionPowerDefinition def, SettlersOfIdlestan.Controller.Ascension.AscensionController ascension)
@@ -342,6 +369,12 @@ public sealed class AscensionRenderer : IDisposable
 
         var descLayout = SkiaTextUtils.MeasureWrappedText(_localization.Get(def.DescKey), width - 16f, _descFont);
         DrawCenteredTextLayout(canvas, descLayout, centerX, y + 40f, _descFont, locked ? _mutedPaint : _descPaint);
+
+        if (!unlocked)
+        {
+            string costText = _localization.GetFormated("ascension_power_cost_label", def.GodPointCost);
+            SkiaTextUtils.DrawText(canvas, costText, centerX, y + ColumnCardHeight - ButtonHeight - 16f, SKTextAlign.Center, _descFont, locked ? _mutedPaint : _accentPaint);
+        }
 
         float buttonWidth = Math.Min(width - 16f, ColumnButtonWidth);
         float buttonX = centerX - buttonWidth / 2f;
@@ -364,12 +397,19 @@ public sealed class AscensionRenderer : IDisposable
 
             if (canPurchase)
                 _purchaseButtonRects.Add((def.Id, buttonRect));
-            else if (locked && hovered)
+            else if (hovered)
             {
                 _hoveredLockedRect = buttonRect;
-                _hoveredLockedTooltip = _localization.Get("ascension_power_locked_tooltip");
+                _hoveredLockedTooltip = GetPowerLockedTooltip(ascension, def);
             }
         }
+    }
+
+    private string GetPowerLockedTooltip(SettlersOfIdlestan.Controller.Ascension.AscensionController ascension, AscensionPowerDefinition def)
+    {
+        if (!ascension.ArePrerequisitesMet(def.Id))
+            return _localization.Get("ascension_power_locked_tooltip");
+        return _localization.GetFormated("ascension_power_insufficient_points_tooltip", def.GodPointCost);
     }
 
     private static void DrawCenteredTextLayout(SKCanvas canvas, WrappedTextLayout layout, float centerX, float y, SKFont font, SKPaint paint)
@@ -428,7 +468,10 @@ public sealed class AscensionRenderer : IDisposable
         {
             if (rect.Contains(position.X, position.Y))
             {
-                ascension.SelectPermanentUniqueBuilding(type);
+                if (ascension.PermanentUniqueBuildings.Contains(type))
+                    ascension.DeselectPermanentUniqueBuilding(type);
+                else
+                    ascension.SelectPermanentUniqueBuilding(type);
                 return true;
             }
         }

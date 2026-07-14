@@ -13,22 +13,22 @@ public static class AscensionPowerDefinitions
     public static IReadOnlyList<AscensionPowerDefinition> All { get; } = new[]
     {
         new AscensionPowerDefinition(AscensionPowerId.Faith,
-            "ascension_power_faith_name", "ascension_power_faith_desc", AscensionPowerDefinition.FoundationColumn),
+            "ascension_power_faith_name", "ascension_power_faith_desc", AscensionPowerDefinition.FoundationColumn, godPointCost: 1),
 
         new AscensionPowerDefinition(AscensionPowerId.HandOfGod,
-            "ascension_power_handofgod_name", "ascension_power_handofgod_desc", column: 0),
+            "ascension_power_handofgod_name", "ascension_power_handofgod_desc", column: 0, godPointCost: 3),
 
         new AscensionPowerDefinition(AscensionPowerId.DivineInventory,
-            "ascension_power_divineinventory_name", "ascension_power_divineinventory_desc", column: 0),
+            "ascension_power_divineinventory_name", "ascension_power_divineinventory_desc", column: 0, godPointCost: 6),
 
         new AscensionPowerDefinition(AscensionPowerId.EyeOfGod,
-            "ascension_power_eyeofgod_name", "ascension_power_eyeofgod_desc", column: 1),
+            "ascension_power_eyeofgod_name", "ascension_power_eyeofgod_desc", column: 1, godPointCost: 3),
 
         new AscensionPowerDefinition(AscensionPowerId.WalkOfGod,
-            "ascension_power_walkofgod_name", "ascension_power_walkofgod_desc", column: 2),
+            "ascension_power_walkofgod_name", "ascension_power_walkofgod_desc", column: 2, godPointCost: 3),
 
         new AscensionPowerDefinition(AscensionPowerId.ArmOfGod,
-            "ascension_power_armofgod_name", "ascension_power_armofgod_desc", column: 3),
+            "ascension_power_armofgod_name", "ascension_power_armofgod_desc", column: 3, godPointCost: 3),
     };
 
     public static AscensionPowerDefinition? Get(AscensionPowerId id)

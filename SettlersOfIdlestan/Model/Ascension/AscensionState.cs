@@ -15,10 +15,17 @@ public class AscensionState
     public bool IsEyeOfGodActive => UnlockedPowers.Contains(AscensionPowerId.EyeOfGod);
 
     /// <summary>
-    /// Bâtiment unique permanent choisi (droit acquis dès la première Ascension) — voir
-    /// AscensionController.PermanentUniqueBuildingChoices. Appliqué à chaque début d'île
+    /// Nombre total d'Ascensions effectuées (cross-prestige, ne diminue jamais). Pilote le nombre
+    /// d'emplacements de bâtiments uniques permanents (voir AscensionController.
+    /// PermanentUniqueBuildingSlots) : 1 emplacement supplémentaire gratuit par Ascension.
+    /// </summary>
+    public int AscensionsPerformed { get; set; }
+
+    /// <summary>
+    /// Bâtiments uniques permanents choisis (jusqu'à <see cref="AscensionsPerformed"/> emplacements)
+    /// — voir AscensionController.PermanentUniqueBuildingChoices. Appliqués à chaque début d'île
     /// (AscensionController.ApplyPermanentUniqueBuildingToCivilization), sans jamais occuper
     /// d'emplacement dans une ville.
     /// </summary>
-    public BuildingType? PermanentUniqueBuilding { get; set; }
+    public HashSet<BuildingType> PermanentUniqueBuildings { get; set; } = new();
 }

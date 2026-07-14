@@ -51,11 +51,12 @@ public class AscensionController : IModifierProvider
     private GameClock? _clock;
     private GamePRNG? _prng;
     private HarvestController? _harvestController;
+    private GodState? _godState;
     private AscensionState? _ascensionState;
 
     public event Action? OnModifiersChanged;
 
-    public void Initialize(WorldState state, GameClock? clock, GamePRNG prng, HarvestController harvestController, AscensionState ascensionState)
+    public void Initialize(WorldState state, GameClock? clock, GamePRNG prng, HarvestController harvestController, GodState godState)
     {
         if (_clock != null)
             _clock.Advanced -= OnClockAdvanced;
@@ -69,7 +70,8 @@ public class AscensionController : IModifierProvider
         _clock = clock;
         _prng = prng;
         _harvestController = harvestController;
-        _ascensionState = ascensionState;
+        _godState = godState;
+        _ascensionState = godState.AscensionState;
 
         if (_clock != null)
             _clock.Advanced += OnClockAdvanced;
@@ -77,10 +79,13 @@ public class AscensionController : IModifierProvider
 
     public bool IsPowerUnlocked(AscensionPowerId id) => _ascensionState?.UnlockedPowers.Contains(id) == true;
 
-    public bool CanPurchasePower(AscensionPowerId id)
+    /// <summary>
+    /// Vrai si l'ordre de déblocage (colonne/Foi) autorise l'achat de ce pouvoir, indépendamment du
+    /// coût en points divins — sert à l'UI pour distinguer "verrouillé par prérequis" de "points
+    /// divins insuffisants" (voir <see cref="CanPurchasePower"/>).
+    /// </summary>
+    public bool ArePrerequisitesMet(AscensionPowerId id)
     {
-        if (_ascensionState == null || IsPowerUnlocked(id)) return false;
-
         var def = AscensionPowerDefinitions.Get(id);
         if (def == null) return false;
 
@@ -97,42 +102,67 @@ public class AscensionController : IModifierProvider
         return IsPowerUnlocked(column[posInColumn - 1].Id);
     }
 
+    public bool CanPurchasePower(AscensionPowerId id)
+    {
+        if (_ascensionState == null || _godState == null || IsPowerUnlocked(id)) return false;
+
+        var def = AscensionPowerDefinitions.Get(id);
+        if (def == null) return false;
+
+        return _godState.GodPoints >= def.GodPointCost && ArePrerequisitesMet(id);
+    }
+
     public bool PurchasePower(AscensionPowerId id)
     {
         if (!CanPurchasePower(id)) return false;
 
+        var def = AscensionPowerDefinitions.Get(id)!;
+        _godState!.GodPoints -= def.GodPointCost;
         _ascensionState!.UnlockedPowers.Add(id);
         OnModifiersChanged?.Invoke();
         return true;
     }
 
-    /// <summary>Bâtiment unique permanent actuellement choisi (voir SelectPermanentUniqueBuilding), s'il y en a un.</summary>
-    public BuildingType? PermanentUniqueBuilding => _ascensionState?.PermanentUniqueBuilding;
+    /// <summary>Bâtiments uniques permanents actuellement choisis (voir SelectPermanentUniqueBuilding).</summary>
+    public IReadOnlyCollection<BuildingType> PermanentUniqueBuildings =>
+        (IReadOnlyCollection<BuildingType>?)_ascensionState?.PermanentUniqueBuildings ?? Array.Empty<BuildingType>();
 
     /// <summary>
-    /// Choisit (ou change) le bâtiment unique permanent accordé par l'Ascension. Le choix est
-    /// mémorisé cross-prestige (AscensionState.PermanentUniqueBuilding) mais ne prend effet qu'au
+    /// Nombre d'emplacements de bâtiments uniques permanents disponibles : 1 par Ascension déjà
+    /// effectuée (voir AscensionState.AscensionsPerformed) — 0 tant qu'aucune Ascension n'a eu lieu.
+    /// </summary>
+    public int PermanentUniqueBuildingSlots => _ascensionState?.AscensionsPerformed ?? 0;
+
+    /// <summary>
+    /// Choisit un bâtiment unique permanent supplémentaire accordé par l'Ascension, tant qu'un
+    /// emplacement libre reste disponible (voir <see cref="PermanentUniqueBuildingSlots"/>). Le choix
+    /// est mémorisé cross-prestige (AscensionState.PermanentUniqueBuildings) mais ne prend effet qu'au
     /// prochain début d'île — voir <see cref="ApplyPermanentUniqueBuildingToCivilization"/>, appelé
     /// par MainGameController.InitializeControllersForCurrentIsland.
     /// </summary>
     public bool SelectPermanentUniqueBuilding(BuildingType type)
     {
         if (_ascensionState == null || !PermanentUniqueBuildingChoices.Contains(type)) return false;
+        if (_ascensionState.PermanentUniqueBuildings.Contains(type)) return true;
+        if (_ascensionState.PermanentUniqueBuildings.Count >= PermanentUniqueBuildingSlots) return false;
 
-        _ascensionState.PermanentUniqueBuilding = type;
+        _ascensionState.PermanentUniqueBuildings.Add(type);
         return true;
     }
 
+    /// <summary>Retire un bâtiment unique permanent précédemment choisi, libérant son emplacement.</summary>
+    public bool DeselectPermanentUniqueBuilding(BuildingType type)
+        => _ascensionState?.PermanentUniqueBuildings.Remove(type) ?? false;
+
     /// <summary>
-    /// Applique à la civilisation du joueur de l'île courante le bâtiment unique permanent choisi
-    /// (voir SelectPermanentUniqueBuilding), s'il y en a un. À appeler à chaque début d'île (nouvelle
-    /// partie, prestige, ascension, redémarrage) — voir MainGameController.
-    /// InitializeControllersForCurrentIsland.
+    /// Applique à la civilisation du joueur de l'île courante les bâtiments uniques permanents
+    /// choisis (voir SelectPermanentUniqueBuilding). À appeler à chaque début d'île (nouvelle partie,
+    /// prestige, ascension, redémarrage) — voir MainGameController.InitializeControllersForCurrentIsland.
     /// </summary>
     public void ApplyPermanentUniqueBuildingToCivilization()
     {
         if (_state == null) return;
-        _state.PlayerCivilization.SetAscensionGrantedUniqueBuilding(_ascensionState?.PermanentUniqueBuilding);
+        _state.PlayerCivilization.SetAscensionGrantedUniqueBuildings(PermanentUniqueBuildings);
     }
 
     public bool CanAscend(GodState godState) => godState.DivineEssence >= MinDivineEssenceForAscension;
@@ -154,6 +184,7 @@ public class AscensionController : IModifierProvider
         godState.GodPoints += essenceGained;
         godState.TotalGodPointsEarned += essenceGained;
         godState.DivineEssence = 0;
+        godState.AscensionState.AscensionsPerformed++;
 
         var generator = new IslandMapGenerator(mainGameState.WorldPRNG);
         var worldState = generator.GenerateWorldState(

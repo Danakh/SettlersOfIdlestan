@@ -1,9 +1,7 @@
-using SettlersOfIdlestan.Model.IslandMap;
-
 namespace SettlersOfIdlestan.Model.Ascension;
 
 /// <summary>
-/// Définition statique d'un pouvoir divin : identité, textes de localisation et coût.
+/// Définition statique d'un pouvoir divin : identité, textes de localisation et coût en points divins.
 /// </summary>
 public class AscensionPowerDefinition
 {
@@ -14,15 +12,15 @@ public class AscensionPowerDefinition
     public AscensionPowerId Id { get; }
     public string NameKey { get; }
     public string DescKey { get; }
-    public ResourceSet Cost { get; }
+    public int GodPointCost { get; }
     public int Column { get; }
 
-    public AscensionPowerDefinition(AscensionPowerId id, string nameKey, string descKey, int column, ResourceSet? cost = null)
+    public AscensionPowerDefinition(AscensionPowerId id, string nameKey, string descKey, int column, int godPointCost)
     {
         Id = id;
         NameKey = nameKey;
         DescKey = descKey;
         Column = column;
-        Cost = cost ?? new ResourceSet();
+        GodPointCost = godPointCost;
     }
 }

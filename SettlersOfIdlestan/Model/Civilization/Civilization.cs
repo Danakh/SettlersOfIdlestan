@@ -224,7 +224,7 @@ public class Civilization
     /// <summary>
     /// Reconstruit le cache des modifiers issus des bâtiments IUniqueBuilding de toutes les villes,
     /// plus le bâtiment unique permanent accordé par l'Ascension le cas échéant (voir
-    /// <see cref="SetAscensionGrantedUniqueBuilding"/>) — celui-ci ne vit dans aucune ville, il faut
+    /// <see cref="SetAscensionGrantedUniqueBuildings"/>) — ceux-ci ne vivent dans aucune ville, il faut
     /// donc aller le chercher explicitement dans le cache. À appeler après construction/amélioration
     /// d'un IUniqueBuilding, ou après la perte d'une ville.
     /// </summary>
@@ -235,10 +235,10 @@ public class Civilization
             .OfType<IUniqueBuilding>()
             .SelectMany(b => b.GetUniqueBuildingModifiers());
 
-        if (_ascensionGrantedUniqueBuilding is BuildingType grantedType &&
-            GetUniqueBuilding(grantedType) is IUniqueBuilding grantedUnique)
+        foreach (var grantedType in _ascensionGrantedUniqueBuildings)
         {
-            modifiers = modifiers.Concat(grantedUnique.GetUniqueBuildingModifiers());
+            if (GetUniqueBuilding(grantedType) is IUniqueBuilding grantedUnique)
+                modifiers = modifiers.Concat(grantedUnique.GetUniqueBuildingModifiers());
         }
 
         UniqueBuildingsModifierProvider.Rebuild(modifiers);
@@ -247,13 +247,13 @@ public class Civilization
     private readonly Dictionary<BuildingType, Building> _uniqueBuildingCache = new();
 
     /// <summary>
-    /// Type de bâtiment unique accordé en permanence par l'Ascension (voir AscensionState.
-    /// PermanentUniqueBuilding), s'il y en a un. Contrairement aux bâtiments uniques construits
-    /// normalement, celui-ci n'occupe jamais d'emplacement dans une ville — il vit uniquement dans
-    /// <see cref="_uniqueBuildingCache"/> (voir <see cref="RebuildUniqueBuildingCache"/>), ce qui le
-    /// rend increvable (aucune destruction de ville ne peut le faire disparaître).
+    /// Types de bâtiments uniques accordés en permanence par l'Ascension (voir AscensionState.
+    /// PermanentUniqueBuildings), un par emplacement débloqué. Contrairement aux bâtiments uniques
+    /// construits normalement, ceux-ci n'occupent jamais d'emplacement dans une ville — ils vivent
+    /// uniquement dans <see cref="_uniqueBuildingCache"/> (voir <see cref="RebuildUniqueBuildingCache"/>),
+    /// ce qui les rend increvables (aucune destruction de ville ne peut les faire disparaître).
     /// </summary>
-    private BuildingType? _ascensionGrantedUniqueBuilding;
+    private readonly HashSet<BuildingType> _ascensionGrantedUniqueBuildings = new();
 
     /// <summary>
     /// Retourne l'instance du bâtiment unique de ce type construit dans une ville de la civilisation,
@@ -275,22 +275,23 @@ public class Civilization
     }
 
     /// <summary>
-    /// Enregistre (ou efface, avec null) le bâtiment unique permanent accordé par l'Ascension pour
-    /// cette île — voir AscensionController.ApplyPermanentUniqueBuildingToCivilization, appelé à
-    /// chaque début d'île. Marque immédiatement le type comme "déjà construit" (bloque sa
-    /// construction manuelle, comme tout bâtiment unique) et fait apparaître ses bonus civ-wide.
+    /// Enregistre les bâtiments uniques permanents accordés par l'Ascension pour cette île — voir
+    /// AscensionController.ApplyPermanentUniqueBuildingToCivilization, appelé à chaque début d'île.
+    /// Marque immédiatement chaque type comme "déjà construit" (bloque sa construction manuelle,
+    /// comme tout bâtiment unique) et fait apparaître ses bonus civ-wide.
     /// </summary>
-    public void SetAscensionGrantedUniqueBuilding(BuildingType? type)
+    public void SetAscensionGrantedUniqueBuildings(IEnumerable<BuildingType> types)
     {
-        _ascensionGrantedUniqueBuilding = type;
+        _ascensionGrantedUniqueBuildings.Clear();
+        _ascensionGrantedUniqueBuildings.UnionWith(types);
         RebuildUniqueBuildingCache();
         RebuildUniqueBuildingsModifiers();
     }
 
     /// <summary>
-    /// Reconstruit entièrement le cache des bâtiments uniques à partir des villes actuelles, plus le
-    /// bâtiment unique permanent accordé par l'Ascension le cas échéant (voir
-    /// <see cref="SetAscensionGrantedUniqueBuilding"/>). À appeler après la perte d'une ville
+    /// Reconstruit entièrement le cache des bâtiments uniques à partir des villes actuelles, plus les
+    /// bâtiments uniques permanents accordés par l'Ascension le cas échéant (voir
+    /// <see cref="SetAscensionGrantedUniqueBuildings"/>). À appeler après la perte d'une ville
     /// (destruction) ou après chargement d'une sauvegarde.
     /// </summary>
     public void RebuildUniqueBuildingCache()
@@ -300,10 +301,11 @@ public class Civilization
             if (building.IsUnique)
                 _uniqueBuildingCache[building.Type] = building;
 
-        if (_ascensionGrantedUniqueBuilding is BuildingType grantedType &&
-            !_uniqueBuildingCache.ContainsKey(grantedType) &&
-            BuildingController.CreateBuilding(grantedType) is { } granted)
+        foreach (var grantedType in _ascensionGrantedUniqueBuildings)
         {
+            if (_uniqueBuildingCache.ContainsKey(grantedType) || BuildingController.CreateBuilding(grantedType) is not { } granted)
+                continue;
+
             granted.Level = 1;
             _uniqueBuildingCache[grantedType] = granted;
             if (!_uniqueBuildings.Contains(grantedType))
