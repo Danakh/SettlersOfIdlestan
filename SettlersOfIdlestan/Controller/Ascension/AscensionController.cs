@@ -11,6 +11,7 @@ using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Prestige;
+using SettlersOfIdlestan.Model.Races;
 
 namespace SettlersOfIdlestan.Controller.Ascension;
 
@@ -27,12 +28,14 @@ public class AscensionController : IModifierProvider
     public const int MinDivineEssenceForAscension = 4;
 
     /// <summary>
-    /// Bâtiments uniques choisissables comme bâtiment permanent d'Ascension (voir
+    /// Bâtiments uniques toujours choisissables comme bâtiment permanent d'Ascension (voir
     /// <see cref="SelectPermanentUniqueBuilding"/>) : uniquement des IUniqueBuilding dont l'intégralité
     /// de l'effet est capturé par GetUniqueBuildingModifiers (pas d'automatisation liée à une
     /// présence physique en ville, pas de comportement par tick propre à l'instance).
+    /// S'y ajoutent les bâtiments raciaux des races ayant déjà ascensionné — voir
+    /// <see cref="PermanentUniqueBuildingChoices"/>.
     /// </summary>
-    public static readonly IReadOnlyList<BuildingType> PermanentUniqueBuildingChoices = new[]
+    private static readonly IReadOnlyList<BuildingType> BasePermanentUniqueBuildingChoices = new[]
     {
         BuildingType.Academy,
         BuildingType.ArtisansGuild,
@@ -42,6 +45,24 @@ public class AscensionController : IModifierProvider
         BuildingType.VolcanicForge,
         BuildingType.WarRoom,
     };
+
+    /// <summary>
+    /// Choix de bâtiment permanent actuels : la liste de base, plus le bâtiment racial de chaque
+    /// race avec laquelle une Ascension a été effectuée (AscensionState.AscendedRaces) — ces
+    /// bâtiments restent disponibles même en jouant une autre race.
+    /// </summary>
+    public IReadOnlyList<BuildingType> PermanentUniqueBuildingChoices
+    {
+        get
+        {
+            var choices = new List<BuildingType>(BasePermanentUniqueBuildingChoices);
+            if (_ascensionState != null)
+                foreach (var race in _ascensionState.AscendedRaces)
+                    if (RaceDefinitions.Get(race).RacialBuilding is { } building && !choices.Contains(building))
+                        choices.Add(building);
+            return choices;
+        }
+    }
 
     private static readonly TerrainType[] RandomTerrainPool =
     {
@@ -124,6 +145,52 @@ public class AscensionController : IModifierProvider
         return true;
     }
 
+    /// <summary>Race jouée pendant le cycle d'Ascension en cours (Humains par défaut).</summary>
+    public RaceId SelectedRace => _ascensionState?.SelectedRace ?? RaceId.Human;
+
+    /// <summary>Races avec lesquelles une Ascension a déjà été effectuée (voir AscensionState.AscendedRaces).</summary>
+    public IReadOnlyCollection<RaceId> AscendedRaces =>
+        (IReadOnlyCollection<RaceId>?)_ascensionState?.AscendedRaces ?? Array.Empty<RaceId>();
+
+    /// <summary>
+    /// Vrai si le choix de race est débloqué : toute la première rangée de pouvoirs divins achetée,
+    /// c'est-à-dire le premier pouvoir de chacune des 4 colonnes (Main/Oeil/Marche/Bras de Dieu).
+    /// </summary>
+    public bool IsRaceSelectionUnlocked =>
+        Enumerable.Range(0, 4).All(col =>
+        {
+            var column = AscensionPowerDefinitions.GetColumn(col);
+            return column.Count > 0 && IsPowerUnlocked(column[0].Id);
+        });
+
+    /// <summary>
+    /// Vrai si les races avancées (Sirènes, Elfes noirs) sont débloquées : toute la seconde rangée
+    /// de pouvoirs divins achetée (le deuxième pouvoir de chaque colonne qui en possède un).
+    /// </summary>
+    public bool AreAdvancedRacesUnlocked =>
+        IsRaceSelectionUnlocked &&
+        Enumerable.Range(0, 4).All(col =>
+        {
+            var column = AscensionPowerDefinitions.GetColumn(col);
+            return column.Count < 2 || IsPowerUnlocked(column[1].Id);
+        });
+
+    /// <summary>
+    /// Races choisissables à la prochaine Ascension : Humains toujours ; les races de base une fois
+    /// la première rangée de pouvoirs divins complète. Les races avancées (Sirènes, Elfes noirs) ne
+    /// sont pas encore implémentées et n'apparaissent jamais ici.
+    /// </summary>
+    public IReadOnlyList<RaceId> GetSelectableRaces()
+    {
+        if (!IsRaceSelectionUnlocked)
+            return new[] { RaceId.Human };
+
+        return RaceDefinitions.All
+            .Where(r => r.Tier == RaceTier.Base)
+            .Select(r => r.Id)
+            .ToList();
+    }
+
     /// <summary>Bâtiments uniques permanents actuellement choisis (voir SelectPermanentUniqueBuilding).</summary>
     public IReadOnlyCollection<BuildingType> PermanentUniqueBuildings =>
         (IReadOnlyCollection<BuildingType>?)_ascensionState?.PermanentUniqueBuildings ?? Array.Empty<BuildingType>();
@@ -178,16 +245,32 @@ public class AscensionController : IModifierProvider
     /// seuls but de la manœuvre.
     /// </summary>
     public void PerformAscension(MainGameState mainGameState, IslandParameters firstIslandParameters)
+        => PerformAscension(mainGameState, firstIslandParameters, SelectedRace);
+
+    /// <summary>
+    /// Comme <see cref="PerformAscension(MainGameState, IslandParameters)"/>, en choisissant la race
+    /// du prochain cycle : la race jouée jusqu'ici rejoint AscendedRaces (débloquant définitivement
+    /// son bâtiment racial dans les choix permanents), puis <paramref name="chosenRace"/> devient la
+    /// race active. Le choix doit figurer dans <see cref="GetSelectableRaces"/>.
+    /// </summary>
+    public void PerformAscension(MainGameState mainGameState, IslandParameters firstIslandParameters, RaceId chosenRace)
     {
         var godState = mainGameState.GodState;
         if (!CanAscend(godState))
             throw new InvalidOperationException("Ascension is not available.");
+        if (!GetSelectableRaces().Contains(chosenRace))
+            throw new InvalidOperationException($"Race {chosenRace} is not selectable.");
 
         int essenceGained = godState.DivineEssence;
         godState.GodPoints += essenceGained;
         godState.TotalGodPointsEarned += essenceGained;
         godState.DivineEssence = 0;
         godState.AscensionState.AscensionsPerformed++;
+
+        // La race qui accomplit l'Ascension marque l'histoire : son bâtiment racial devient un
+        // choix permanent pour tous les cycles futurs, quelle que soit la race jouée.
+        godState.AscensionState.AscendedRaces.Add(godState.AscensionState.SelectedRace);
+        godState.AscensionState.SelectedRace = chosenRace;
 
         var generator = new IslandMapGenerator(mainGameState.WorldPRNG);
         var worldState = generator.GenerateWorldState(
@@ -212,6 +295,10 @@ public class AscensionController : IModifierProvider
 
         if (IsPowerUnlocked(AscensionPowerId.ArmOfGod))
             yield return new Modifier(Modifier.ECategory.ATTACK_SPEED, Modifier.EType.ADDITIVE, 1.0);
+
+        // Bonus/malus de la race jouée pendant ce cycle (voir RaceDefinitions).
+        foreach (var modifier in RaceDefinitions.Get(SelectedRace).Modifiers)
+            yield return modifier;
     }
 
     /// <summary>Niveau de Dominion minimum requis sur l'hex visé pour utiliser Marche de Dieu.</summary>

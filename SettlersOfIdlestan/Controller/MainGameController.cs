@@ -11,6 +11,7 @@ using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Monsters;
 using SettlersOfIdlestan.Model.Prestige;
+using SettlersOfIdlestan.Model.Races;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -237,7 +238,14 @@ namespace SettlersOfIdlestan.Controller
         /// AscensionController.PerformAscension) : PrestigeState et l'île en cours sont remplacés,
         /// seuls GodState.GodPoints/AscensionState (pouvoirs débloqués) survivent.
         /// </summary>
-        public void PerformAscension()
+        public void PerformAscension() => PerformAscension(AscensionController.SelectedRace);
+
+        /// <summary>
+        /// Comme <see cref="PerformAscension()"/>, en choisissant la race du prochain cycle
+        /// (voir AscensionController.GetSelectableRaces — Humains tant que la première rangée de
+        /// pouvoirs divins n'est pas complète).
+        /// </summary>
+        public void PerformAscension(RaceId chosenRace)
         {
             if (CurrentMainState == null)
                 throw new InvalidOperationException("No main state available.");
@@ -245,7 +253,7 @@ namespace SettlersOfIdlestan.Controller
             var worldId = AtlasController.GetFirstWorldId();
             var parameters = AtlasController.GetIslandParameters(worldId);
             TaskRecordController.RecordAscension(CurrentMainState.GodState.DivineEssence);
-            AscensionController.PerformAscension(CurrentMainState, parameters);
+            AscensionController.PerformAscension(CurrentMainState, parameters, chosenRace);
             InitializeControllersForCurrentIsland();
             PrestigeMapController.ApplyPrestigeToNewGame(CurrentMainState.CurrentWorldState!, CurrentMainState.PrestigeState);
         }
@@ -354,11 +362,13 @@ namespace SettlersOfIdlestan.Controller
                 MagicController.OnRitualsChanged -= OnRitualsChangedInvalidateHarvestCache;
                 MagicController.OnRitualsChanged += OnRitualsChangedInvalidateHarvestCache;
                 BuildingController.OnBuildingBuilt -= OnBuildingChangedInvalidateHarvestCache;
+                BuildingController.OnBuildingBuilt -= OnBuildingBuiltZigguratTrigger;
                 CityBuilderController.OnCityBuilt -= OnCityBuiltInvalidateHarvestCache;
                 CityBuilderController.OnCityDestroyed -= OnCityDestroyedHandler;
                 RoadController.OnRoadBuilt -= OnRoadBuiltExtendMap;
                 RoadController.OnAutoRoadBuilt -= OnRoadBuiltExtendMap;
                 BuildingController.OnBuildingBuilt += OnBuildingChangedInvalidateHarvestCache;
+                BuildingController.OnBuildingBuilt += OnBuildingBuiltZigguratTrigger;
                 CityBuilderController.OnCityBuilt += OnCityBuiltInvalidateHarvestCache;
                 CityBuilderController.OnCityDestroyed += OnCityDestroyedHandler;
                 RoadController.OnRoadBuilt += OnRoadBuiltExtendMap;
@@ -393,6 +403,26 @@ namespace SettlersOfIdlestan.Controller
 
         private void OnBuildingChangedInvalidateHarvestCache(object? sender, BuildingBuiltEventArgs e)
             => HarvestController.InvalidateProductionCache();
+
+        /// <summary>
+        /// Effet de la Ziggourat (bâtiment racial des Humains, flag TEMPLE_INSTANT_DOMINION) :
+        /// chaque Temple du joueur construit ou amélioré produit instantanément du Dominion sur les
+        /// hexs de sa ville, jusqu'à Ziggurat.MaxTriggersPerCity fois par ville.
+        /// </summary>
+        private void OnBuildingBuiltZigguratTrigger(object? sender, BuildingBuiltEventArgs e)
+        {
+            if (e.BuildingType != Model.Buildings.BuildingType.Temple) return;
+
+            var worldState = CurrentMainState?.CurrentWorldState;
+            if (worldState == null || e.City.CivilizationIndex != worldState.PlayerCivilization.Index) return;
+
+            var civ = worldState.PlayerCivilization;
+            if (!civ.ModifierAggregator.HasModifier(Modifier.ECategory.TEMPLE_INSTANT_DOMINION)) return;
+            if (e.City.ZigguratTriggersUsed >= Model.Buildings.Ziggurat.MaxTriggersPerCity) return;
+
+            e.City.ZigguratTriggersUsed++;
+            CorruptionController.ApplyZigguratInstantProduction(e.City);
+        }
 
         private void OnRitualsChangedInvalidateHarvestCache(object? sender, EventArgs e)
             => HarvestController.InvalidateProductionCache();

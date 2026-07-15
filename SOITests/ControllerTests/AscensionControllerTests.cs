@@ -57,7 +57,7 @@ public class AscensionControllerTests
     [Fact]
     public void PermanentUniqueBuildingChoices_AreAllUniqueIUniqueBuildingTypes()
     {
-        foreach (var type in AscensionController.PermanentUniqueBuildingChoices)
+        foreach (var type in new AscensionController().PermanentUniqueBuildingChoices)
         {
             var prototype = BuildingController.CreateBuilding(type);
             Assert.NotNull(prototype);
@@ -71,10 +71,11 @@ public class AscensionControllerTests
     {
         // Bâtiments IsUnique dont l'effet dépend d'une présence physique en ville (automatisation par
         // tick, adjacence, comportement propre à l'instance) — volontairement exclus du choix.
-        Assert.DoesNotContain(BuildingType.ImperialPort, AscensionController.PermanentUniqueBuildingChoices);
-        Assert.DoesNotContain(BuildingType.BuildersGuild, AscensionController.PermanentUniqueBuildingChoices);
-        Assert.DoesNotContain(BuildingType.AdventurersGuild, AscensionController.PermanentUniqueBuildingChoices);
-        Assert.DoesNotContain(BuildingType.MilitaryAcademy, AscensionController.PermanentUniqueBuildingChoices);
+        var choices = new AscensionController().PermanentUniqueBuildingChoices;
+        Assert.DoesNotContain(BuildingType.ImperialPort, choices);
+        Assert.DoesNotContain(BuildingType.BuildersGuild, choices);
+        Assert.DoesNotContain(BuildingType.AdventurersGuild, choices);
+        Assert.DoesNotContain(BuildingType.MilitaryAcademy, choices);
     }
 
     [Fact]

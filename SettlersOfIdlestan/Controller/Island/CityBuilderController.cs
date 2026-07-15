@@ -183,12 +183,21 @@ namespace SettlersOfIdlestan.Controller.Island
             var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex)
                       ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
 
+            // Restrictions raciales (voir RaceDefinitions) : distance minimale entre villes propres
+            // éventuellement remplacée (Gobelins 2, Géants 4) et adjacence de terrain exigée en
+            // surface (Elfes → Forêt, Nains → Montagne).
+            var requiredTerrains = GetRequiredCityPlacementTerrains(civ);
+            int minOwnCityDistance = GetMinDistanceBetweenCivilizationCities(civ);
+
             // Result only depends on this civ's roads and on every civ's cities/beacons (positions, via
             // count as a cheap proxy — RelocateCity clears the cache explicitly since it changes a
-            // position without changing any count).
+            // position without changing any count). Avec une restriction de terrain, le résultat
+            // dépend aussi des terrains, que Marche de Dieu peut changer sans modifier aucun
+            // compteur : on n'utilise pas le cache dans ce cas.
+            bool cacheable = excludingCity == null && requiredTerrains.Count == 0;
             int totalCityCount = _state.Civilizations.Sum(c => c.Cities.Count);
             int totalBeaconCount = _state.Civilizations.Sum(c => c.MaritimeBeacons.Count);
-            if (excludingCity == null &&
+            if (cacheable &&
                 _buildableVerticesCache.TryGetValue(civilizationIndex, out var cached) &&
                 cached.RoadCount == civ.Roads.Count &&
                 cached.TotalCityCount == totalCityCount &&
@@ -207,13 +216,47 @@ namespace SettlersOfIdlestan.Controller.Island
                     .Any(city => city.Position.EdgeDistanceTo(v) < MinDistanceBetweenCities)) &&
                 !civ.Cities
                     .Where(city => city != excludingCity && city.Position.Z == v.Z)
-                    .Any(city => city.Position.EdgeDistanceTo(v) < MinDistanceBetweenCivilizationCities))
+                    .Any(city => city.Position.EdgeDistanceTo(v) < minOwnCityDistance) &&
+                SatisfiesCityTerrainRestriction(v, requiredTerrains))
                 .ToList();
 
-            if (excludingCity == null)
+            if (cacheable)
                 _buildableVerticesCache[civilizationIndex] = (civ.Roads.Count, totalCityCount, totalBeaconCount, vertices);
 
             return vertices;
+        }
+
+        /// <summary>
+        /// Terrains dont l'un au moins doit toucher tout nouveau vertex de ville en surface pour
+        /// cette civilisation (CITY_PLACEMENT_REQUIRES_TERRAIN, restriction raciale — vide pour les
+        /// PNJ et les races sans restriction).
+        /// </summary>
+        private static List<TerrainType> GetRequiredCityPlacementTerrains(Civilization civ)
+        {
+            var terrains = new List<TerrainType>();
+            foreach (var sub in civ.ModifierAggregator.GetActiveSubCategories(ECategory.CITY_PLACEMENT_REQUIRES_TERRAIN))
+                if (Enum.TryParse<TerrainType>(sub, out var terrain))
+                    terrains.Add(terrain);
+            return terrains;
+        }
+
+        /// <summary>
+        /// Vrai si le vertex respecte la restriction raciale de terrain. Seule la surface est
+        /// concernée : l'Inframonde et l'Abysse restent libres (leurs terrains propres rendraient
+        /// toute restriction de surface injouable).
+        /// </summary>
+        private bool SatisfiesCityTerrainRestriction(Vertex vertex, List<TerrainType> requiredTerrains)
+        {
+            if (requiredTerrains.Count == 0) return true;
+            if (vertex.Z != IslandMap.SurfaceLayer) return true;
+
+            var map = _state!.GetMapFor(vertex);
+            if (map == null) return false;
+
+            foreach (var terrain in requiredTerrains)
+                if (map.VertexHasTerrainType(vertex, terrain))
+                    return true;
+            return false;
         }
 
         /// <summary>
@@ -410,6 +453,13 @@ namespace SettlersOfIdlestan.Controller.Island
                 foreach (var resource in cost.Keys.ToList())
                     cost[resource] = (int)Math.Round(cost[resource] * multiplier);
             }
+
+            // Grand Terrier (Gobelins) : réduction fractionnaire du coût final (voir NEW_CITY_COST_REDUCTION).
+            double reduction = civ.ModifierAggregator.ApplyModifiers(ECategory.NEW_CITY_COST_REDUCTION, "", 0.0);
+            if (reduction > 0)
+                foreach (var resource in cost.Keys.ToList())
+                    cost[resource] = Math.Max(1, (int)Math.Round(cost[resource] * (1.0 - reduction)));
+
             return cost;
         }
 
@@ -423,5 +473,12 @@ namespace SettlersOfIdlestan.Controller.Island
 
         public int MinDistanceBetweenCities => 2;
         public int MinDistanceBetweenCivilizationCities => 3;
+
+        /// <summary>
+        /// Distance minimale effective entre deux villes de cette civilisation : la base (3),
+        /// éventuellement remplacée par la race jouée (CITY_MIN_DISTANCE — Gobelins 2, Géants 4).
+        /// </summary>
+        public int GetMinDistanceBetweenCivilizationCities(Civilization civ)
+            => civ.ModifierAggregator.ApplyModifiers(ECategory.CITY_MIN_DISTANCE, "", MinDistanceBetweenCivilizationCities);
     }
 }

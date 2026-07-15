@@ -89,6 +89,19 @@ public class ModifierAggregator
     }
 
     /// <summary>
+    /// Collecte les SubCategory (non vides) distincts des modifiers actifs de la catégorie donnée —
+    /// ex. les TerrainType exigés par CITY_PLACEMENT_REQUIRES_TERRAIN.
+    /// </summary>
+    public IReadOnlyList<string> GetActiveSubCategories(ECategory category)
+    {
+        var result = new HashSet<string>();
+        foreach (var modifier in GetCached(category))
+            if (modifier.IsActive && modifier.SubCategory != "")
+                result.Add(modifier.SubCategory);
+        return result.ToList();
+    }
+
+    /// <summary>
     /// Collects all distinct BuildingType values from modifiers of the given category
     /// (SubCategory holds the BuildingType enum name). Aggregates across all registered providers.
     /// </summary>

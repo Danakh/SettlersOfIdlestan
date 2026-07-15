@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using SettlersOfIdlestan.Model.Buildings;
+using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.GameplayModifier;
 using SettlersOfIdlestan.Model.HexGrid;
@@ -86,24 +87,53 @@ public class CorruptionController
                 if (hexes.Count == 0) continue;
 
                 var hex = hexes[_prng.Next(hexes.Count)];
-                var corruption = _state.GetFeaturesAt(hex).OfType<Corruption>().FirstOrDefault();
-                if (corruption != null)
-                {
-                    ReduceLevel(corruption);
-                    continue;
-                }
-
-                var dominion = _state.GetFeaturesAt(hex).OfType<Dominion>().FirstOrDefault();
-                // Dogme de l'Emprise (TEMPLE_DOMINION_CAP) relève le plafond par niveau de Temple.
-                int capPerLevel = TempleDominionCapPerLevel
-                    + civ.ModifierAggregator.ApplyModifiers(Modifier.ECategory.TEMPLE_DOMINION_CAP, "", 0);
-                int cap = capPerLevel * temple.Level;
-                if (dominion == null)
-                    _state.AddFeature(new Dominion(hex, level: 1));
-                else if (dominion.Level < cap)
-                    dominion.Level++;
+                ApplyTempleActionOnHex(civ, temple, hex);
             }
         }
+    }
+
+    /// <summary>
+    /// Action de Temple sur un hex : dissipe un point de Corruption si elle est présente, sinon
+    /// pose ou augmente le Dominion d'un point, plafonné par le niveau du Temple (voir
+    /// TempleDominionCapPerLevel + TEMPLE_DOMINION_CAP).
+    /// </summary>
+    private void ApplyTempleActionOnHex(Civilization civ, Temple temple, HexCoord hex)
+    {
+        var corruption = _state!.GetFeaturesAt(hex).OfType<Corruption>().FirstOrDefault();
+        if (corruption != null)
+        {
+            ReduceLevel(corruption);
+            return;
+        }
+
+        var dominion = _state.GetFeaturesAt(hex).OfType<Dominion>().FirstOrDefault();
+        // Dogme de l'Emprise (TEMPLE_DOMINION_CAP) relève le plafond par niveau de Temple.
+        int capPerLevel = TempleDominionCapPerLevel
+            + civ.ModifierAggregator.ApplyModifiers(Modifier.ECategory.TEMPLE_DOMINION_CAP, "", 0);
+        int cap = capPerLevel * temple.Level;
+        if (dominion == null)
+            _state.AddFeature(new Dominion(hex, level: 1));
+        else if (dominion.Level < cap)
+            dominion.Level++;
+    }
+
+    /// <summary>
+    /// Effet de la Ziggourat (TEMPLE_INSTANT_DOMINION) : à la construction ou l'amélioration d'un
+    /// Temple, applique instantanément l'action de Temple sur les 3 hexs de la ville, à 100 %
+    /// (contre 1 hex aléatoire toutes les 10 s en production normale). L'appelant
+    /// (MainGameController) vérifie le flag et consomme un déclenchement de
+    /// City.ZigguratTriggersUsed (max <see cref="Ziggurat.MaxTriggersPerCity"/> par ville).
+    /// </summary>
+    public void ApplyZigguratInstantProduction(City city)
+    {
+        if (_state == null) return;
+
+        var civ = _state.Civilizations.FirstOrDefault(c => c.Index == city.CivilizationIndex);
+        var temple = city.Buildings.OfType<Temple>().FirstOrDefault(t => t.Level >= 1);
+        if (civ == null || temple == null) return;
+
+        foreach (var hex in city.Position.GetHexes().Where(IsValidHex))
+            ApplyTempleActionOnHex(civ, temple, hex);
     }
 
     private void ProcessSpread(long currentTick)

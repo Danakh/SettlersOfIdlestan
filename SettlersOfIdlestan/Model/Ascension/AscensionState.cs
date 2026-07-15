@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using SettlersOfIdlestan.Model.Buildings;
+using SettlersOfIdlestan.Model.Races;
 
 namespace SettlersOfIdlestan.Model.Ascension;
 
@@ -28,4 +29,19 @@ public class AscensionState
     /// d'emplacement dans une ville.
     /// </summary>
     public HashSet<BuildingType> PermanentUniqueBuildings { get; set; } = new();
+
+    /// <summary>
+    /// Race jouée pendant le cycle d'Ascension en cours (toutes les îles jusqu'à la prochaine
+    /// Ascension). Choisie au moment de l'Ascension une fois la première rangée de pouvoirs divins
+    /// complète (voir AscensionController.IsRaceSelectionUnlocked) ; Humains par défaut, y compris
+    /// pour les anciennes sauvegardes.
+    /// </summary>
+    public RaceId SelectedRace { get; set; } = RaceId.Human;
+
+    /// <summary>
+    /// Races avec lesquelles au moins une Ascension a été effectuée. Chacune ajoute définitivement
+    /// son bâtiment racial aux choix de bâtiment permanent (voir
+    /// AscensionController.PermanentUniqueBuildingChoices), quelle que soit la race jouée ensuite.
+    /// </summary>
+    public HashSet<RaceId> AscendedRaces { get; set; } = new();
 }

@@ -88,6 +88,13 @@ public class GameControllerService
         _cityBuildingService = new CityBuildingService(_controller);
     }
 
+    /// <summary>Ascension avec choix de la race du prochain cycle (voir AscensionController.GetSelectableRaces).</summary>
+    public void PerformAscension(SettlersOfIdlestan.Model.Races.RaceId chosenRace)
+    {
+        _controller.PerformAscension(chosenRace);
+        _cityBuildingService = new CityBuildingService(_controller);
+    }
+
     public List<Vertex> GetBuildableCityVerticesForPlayer()
     {
         var playerIndex = PlayerCivilizationIndex

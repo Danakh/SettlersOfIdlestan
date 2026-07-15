@@ -3,6 +3,7 @@ using SettlersOfIdlestan.Model.Ascension;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.Prestige;
+using SettlersOfIdlestan.Model.Races;
 using SettlersOfIdlestanSkia.Services.Localization;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Services;
@@ -57,6 +58,12 @@ public sealed class AscensionRenderer : IDisposable
     private SKRect _ascendConfirmRect = SKRect.Empty;
     private SKRect _ascendCancelRect  = SKRect.Empty;
 
+    // Choix de race à l'Ascension (voir AscensionController.IsRaceSelectionUnlocked) : l'étape de
+    // confirmation devient un panneau modal listant les races sélectionnables.
+    private bool _raceOverlayVisible;
+    private RaceId _selectedRaceForAscension = RaceId.Human;
+    private readonly List<(RaceId id, SKRect rect, bool selectable)> _raceCardRects = new();
+
     private bool _showPermanentBuildingTab;
     private SKRect _tabPowersRect            = SKRect.Empty;
     private SKRect _tabPermanentBuildingRect = SKRect.Empty;
@@ -83,6 +90,8 @@ public sealed class AscensionRenderer : IDisposable
     private readonly SKPaint _confirmHoverPaint = new() { Color = new SKColor(180, 50, 50), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _cancelBtnPaint    = new() { Color = new SKColor(55, 55, 65), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _warningTextPaint  = new() { Color = new SKColor(220, 70, 70), IsAntialias = true };
+    private readonly SKPaint _overlayDimPaint   = new() { Color = new SKColor(0, 0, 0, 160), Style = SKPaintStyle.Fill, IsAntialias = true };
+    private readonly SKPaint _overlayPanelPaint = new() { Color = new SKColor(24, 24, 32, 250), Style = SKPaintStyle.Fill, IsAntialias = true };
 
     private readonly SKFont _headerFont   = new() { Size = 17, Typeface = SkiaFonts.Bold };
     private readonly SKFont _nameFont     = new() { Size = 14, Typeface = SkiaFonts.Bold };
@@ -107,6 +116,8 @@ public sealed class AscensionRenderer : IDisposable
 
         _purchaseButtonRects.Clear();
         _permanentBuildingRects.Clear();
+        _raceCardRects.Clear();
+        _raceOverlayVisible = false;
         _hoveredLockedRect = SKRect.Empty;
         _hoveredLockedTooltip = null;
 
@@ -128,6 +139,15 @@ public sealed class AscensionRenderer : IDisposable
         SkiaTextUtils.DrawText(canvas, essenceText, x + contentWidth, y + 2, SKTextAlign.Right, _nameFont, _accentPaint);
         string pointsText = _localization.GetFormated("ascension_divine_points_label", godState.GodPoints);
         SkiaTextUtils.DrawText(canvas, pointsText, x + contentWidth, y + 22, SKTextAlign.Right, _nameFont, _accentPaint);
+
+        // Race jouée pendant ce cycle — visible dès que le choix de race existe (ou si une race
+        // non-humaine est active, p.ex. après rechargement d'une sauvegarde).
+        if (ascension.IsRaceSelectionUnlocked || ascension.SelectedRace != RaceId.Human)
+        {
+            string raceName = _localization.Get(RaceDefinitions.Get(ascension.SelectedRace).NameKey);
+            string raceText = _localization.GetFormated("ascension_race_current_label", raceName);
+            SkiaTextUtils.DrawText(canvas, raceText, x + contentWidth, y + 42, SKTextAlign.Right, _nameFont, _accentPaint);
+        }
 
         float ascendSectionY = y + 40;
         DrawAscendSection(canvas, x, ascendSectionY, contentWidth, godState, ascension);
@@ -151,6 +171,7 @@ public sealed class AscensionRenderer : IDisposable
         if (_showPermanentBuildingTab)
         {
             DrawPermanentBuildingTab(canvas, x, tabY + InnerTabHeight + Padding, contentWidth, ascension);
+            DrawRaceSelectionOverlayIfNeeded(canvas, ascension);
             if (_hoveredLockedTooltip != null)
                 _tooltipRenderer.SetTooltip(_hoveredLockedTooltip, new SKPoint(_hoveredLockedRect.Right, _hoveredLockedRect.Top));
             return;
@@ -183,8 +204,112 @@ public sealed class AscensionRenderer : IDisposable
             }
         }
 
+        DrawRaceSelectionOverlayIfNeeded(canvas, ascension);
+
         if (_hoveredLockedTooltip != null)
             _tooltipRenderer.SetTooltip(_hoveredLockedTooltip, new SKPoint(_hoveredLockedRect.Right, _hoveredLockedRect.Top));
+    }
+
+    /// <summary>
+    /// Panneau modal de choix de race, affiché à la place de la confirmation d'Ascension classique
+    /// quand le choix de race est débloqué (première rangée de pouvoirs divins complète). Liste
+    /// toutes les races : sélectionnables (base), et avancées verrouillées en aperçu.
+    /// </summary>
+    private void DrawRaceSelectionOverlayIfNeeded(SKCanvas canvas, AscensionController ascension)
+    {
+        if (!_confirmingAscension || !ascension.IsRaceSelectionUnlocked) return;
+
+        _raceOverlayVisible = true;
+
+        float topBar = _uiLayout.SecondRowBottom;
+        canvas.DrawRect(new SKRect(0, topBar, _canvasSize.Width, _canvasSize.Height), _overlayDimPaint);
+
+        var selectable = ascension.GetSelectableRaces();
+        var races = RaceDefinitions.All;
+
+        int columns = 4;
+        float panelWidth = Math.Min(720f, _canvasSize.Width - Padding * 2);
+        float cardGap = 12f;
+        float cardWidth = (panelWidth - Padding * 2 - cardGap * (columns - 1)) / columns;
+        int rows = (races.Count + columns - 1) / columns;
+
+        float warningHeight = 3 * _descFont.Spacing + 10f;
+        float panelHeight = Padding + 24f                            // titre
+            + rows * (BuildingCardHeight + cardGap)
+            + warningHeight
+            + AscendButtonHeight + Padding;
+
+        float panelX = (_canvasSize.Width - panelWidth) / 2f;
+        float panelY = Math.Max(topBar + Padding, topBar + (_canvasSize.Height - topBar - panelHeight) / 2f);
+        var panelRect = new SKRect(panelX, panelY, panelX + panelWidth, panelY + panelHeight);
+
+        canvas.DrawRoundRect(panelRect, 10, 10, _overlayPanelPaint);
+        canvas.DrawRoundRect(panelRect, 10, 10, _cardActiveBorder);
+
+        SkiaTextUtils.DrawText(canvas, _localization.Get("ascension_race_choice_title"),
+            panelRect.MidX, panelY + Padding + 4f, SKTextAlign.Center, _headerFont, _accentPaint);
+
+        float gridTop = panelY + Padding + 24f;
+        for (int i = 0; i < races.Count; i++)
+        {
+            var race = races[i];
+            int col = i % columns;
+            int row = i / columns;
+            float cardX = panelX + Padding + col * (cardWidth + cardGap);
+            float cardY = gridTop + row * (BuildingCardHeight + cardGap);
+            DrawRaceCard(canvas, cardX, cardY, cardWidth, race, ascension, selectable.Contains(race.Id));
+        }
+
+        float warningY = gridTop + rows * (BuildingCardHeight + cardGap) + 4f;
+        var warnLayout = SkiaTextUtils.MeasureWrappedText(_localization.Get("ascension_confirm_warning"), panelWidth - Padding * 2, _descFont);
+        DrawCenteredTextLayout(canvas, warnLayout, panelRect.MidX, warningY, _descFont, _warningTextPaint);
+
+        float buttonsY = panelRect.Bottom - Padding - AscendButtonHeight;
+        float halfWidth = (AscendButtonWidth - 8f) / 2f;
+        float btnX = panelRect.MidX - AscendButtonWidth / 2f;
+        _ascendCancelRect  = new SKRect(btnX, buttonsY, btnX + halfWidth, buttonsY + AscendButtonHeight);
+        _ascendConfirmRect = new SKRect(btnX + halfWidth + 8f, buttonsY, btnX + halfWidth + 8f + halfWidth, buttonsY + AscendButtonHeight);
+
+        bool cancelHovered  = _ascendCancelRect.Contains(_hoverPosition.X, _hoverPosition.Y);
+        bool confirmHovered = _ascendConfirmRect.Contains(_hoverPosition.X, _hoverPosition.Y);
+
+        canvas.DrawRoundRect(_ascendCancelRect, 5, 5, cancelHovered ? _unlockHoverPaint : _cancelBtnPaint);
+        canvas.DrawRoundRect(_ascendCancelRect, 5, 5, _buttonBorderPaint);
+        SkiaTextUtils.DrawText(canvas, _localization.Get("ascension_cancel_button"), _ascendCancelRect.MidX, _ascendCancelRect.MidY + 4f, SKTextAlign.Center, _buttonFont, _buttonTextPaint);
+
+        canvas.DrawRoundRect(_ascendConfirmRect, 5, 5, confirmHovered ? _confirmHoverPaint : _confirmPaint);
+        canvas.DrawRoundRect(_ascendConfirmRect, 5, 5, _buttonBorderPaint);
+        SkiaTextUtils.DrawText(canvas, _localization.Get("ascension_confirm_button"), _ascendConfirmRect.MidX, _ascendConfirmRect.MidY + 4f, SKTextAlign.Center, _buttonFont, _buttonTextPaint);
+    }
+
+    private void DrawRaceCard(SKCanvas canvas, float x, float y, float width, RaceDefinition race, AscensionController ascension, bool selectable)
+    {
+        var rect = new SKRect(x, y, x + width, y + BuildingCardHeight);
+        bool hovered  = rect.Contains(_hoverPosition.X, _hoverPosition.Y);
+        bool selected = selectable && race.Id == _selectedRaceForAscension;
+
+        canvas.DrawRoundRect(rect, 8, 8, selected ? _cardActivePaint : (selectable && hovered ? _cardPaint : _cardLockedPaint));
+        canvas.DrawRoundRect(rect, 8, 8, selected ? _cardActiveBorder : _cardBorderPaint);
+
+        float centerX = x + width / 2f;
+        SkiaTextUtils.DrawText(canvas, _localization.Get(race.NameKey), centerX, y + 18f, SKTextAlign.Center, _nameFont,
+            selectable ? _namePaint : _mutedPaint);
+
+        var descLayout = SkiaTextUtils.MeasureWrappedText(_localization.Get(race.DescKey), width - 12f, _descFont);
+        DrawCenteredTextLayout(canvas, descLayout, centerX, y + 34f, _descFont, selectable ? _descPaint : _mutedPaint);
+
+        if (!selectable)
+        {
+            SkiaTextUtils.DrawText(canvas, _localization.Get("ascension_race_advanced_locked_label"),
+                centerX, y + BuildingCardHeight - 8f, SKTextAlign.Center, _buttonFont, _mutedPaint);
+        }
+        else if (ascension.AscendedRaces.Contains(race.Id))
+        {
+            SkiaTextUtils.DrawText(canvas, _localization.Get("ascension_race_ascended_label"),
+                centerX, y + BuildingCardHeight - 8f, SKTextAlign.Center, _buttonFont, _accentPaint);
+        }
+
+        _raceCardRects.Add((race.Id, rect, selectable));
     }
 
     private void DrawInnerTabBar(SKCanvas canvas, float x, float y, float contentWidth)
@@ -218,7 +343,7 @@ public sealed class AscensionRenderer : IDisposable
         float cardGap = 12f;
         float cardWidth = (contentWidth - cardGap * (BuildingCardColumns - 1)) / BuildingCardColumns;
 
-        var choices = AscensionController.PermanentUniqueBuildingChoices;
+        var choices = ascension.PermanentUniqueBuildingChoices;
         for (int i = 0; i < choices.Count; i++)
         {
             var type = choices[i];
@@ -276,6 +401,15 @@ public sealed class AscensionRenderer : IDisposable
         if (_confirmingAscension)
         {
             _ascendButtonRect = SKRect.Empty;
+
+            // Choix de race débloqué : la confirmation se fait dans le panneau modal de sélection
+            // de race (voir DrawRaceSelectionOverlayIfNeeded), pas ici.
+            if (ascension.IsRaceSelectionUnlocked)
+            {
+                _ascendCancelRect = SKRect.Empty;
+                _ascendConfirmRect = SKRect.Empty;
+                return;
+            }
 
             float halfWidth = (AscendButtonWidth - 8f) / 2f;
             _ascendCancelRect  = new SKRect(btnX, y, btnX + halfWidth, y + AscendButtonHeight);
@@ -437,7 +571,23 @@ public sealed class AscensionRenderer : IDisposable
             if (_ascendConfirmRect.Contains(position.X, position.Y))
             {
                 _confirmingAscension = false;
-                _gameControllerService.PerformAscension();
+                if (_raceOverlayVisible)
+                    _gameControllerService.PerformAscension(_selectedRaceForAscension);
+                else
+                    _gameControllerService.PerformAscension();
+                return true;
+            }
+            if (_raceOverlayVisible)
+            {
+                foreach (var (id, rect, selectable) in _raceCardRects)
+                {
+                    if (selectable && rect.Contains(position.X, position.Y))
+                    {
+                        _selectedRaceForAscension = id;
+                        return true;
+                    }
+                }
+                // Panneau modal : on avale tous les clics tant qu'il est ouvert.
                 return true;
             }
             return false;
@@ -446,8 +596,15 @@ public sealed class AscensionRenderer : IDisposable
         if (!_ascendButtonRect.IsEmpty && _ascendButtonRect.Contains(position.X, position.Y))
         {
             var godState = _gameControllerService.CurrentGameState?.GodState;
-            if (godState != null && _gameControllerService.MainGameController.AscensionController.CanAscend(godState))
+            var ascensionController = _gameControllerService.MainGameController.AscensionController;
+            if (godState != null && ascensionController.CanAscend(godState))
+            {
                 _confirmingAscension = true;
+                // Pré-sélectionne la race jouée actuellement (toujours sélectionnable).
+                _selectedRaceForAscension = ascensionController.GetSelectableRaces().Contains(ascensionController.SelectedRace)
+                    ? ascensionController.SelectedRace
+                    : RaceId.Human;
+            }
             return true;
         }
 
@@ -505,6 +662,8 @@ public sealed class AscensionRenderer : IDisposable
         _confirmHoverPaint.Dispose();
         _cancelBtnPaint.Dispose();
         _warningTextPaint.Dispose();
+        _overlayDimPaint.Dispose();
+        _overlayPanelPaint.Dispose();
         _buttonBorderPaint.Dispose();
         _buttonTextPaint.Dispose();
         _namePaint.Dispose();

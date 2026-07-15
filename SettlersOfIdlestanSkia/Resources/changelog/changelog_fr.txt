@@ -4,6 +4,7 @@ Le changelog n'est pas activement mis à jour pour le moment.
 ---
 
 v0.7
+• Système de races : une fois la première rangée de pouvoirs divins complète, chaque Ascension permet de choisir la race du prochain cycle — Humains (propagation du Dominion accélérée), Elfes (villes en forêt, recherche boostée), Nains (villes en montagne, forges et mines améliorées), Gobelins (villes à distance 2, bâtiments limités) ou Géants (villes à distance 4, bâtiments surélevés). Chaque race qui accomplit une Ascension ajoute définitivement son bâtiment unique racial (Ziggourat, Arbre-Cœur, Forge Runique, Grand Terrier, Atelier des Colosses) aux choix de bâtiment permanent
 • Nouvelles recherches endgame (tiers 12 à 15) : la ligne du Vide se prolonge (Reliquaire Sacré, Cartographie du Vide) et la branche de la Théocratie apparaît après la première Ascension — recherches du Dominion (Dogme de l'Emprise, Évangélisation, Terre Consacrée, Bastion Consacré) et Communion Abyssale
 • Nouvelle branche de recherche des Abysses (tiers 8 à 13) : étude de la corruption, démonologie et pactes abyssaux, avec des capstones prolongeant les branches existantes (acier, magie, inframonde, militaire, science)
 • La branche des Abysses de la carte de prestige prend vie : les vertex des trois portes (Acier, Inframonde, Magie) reçoivent leurs pouvoirs, dont les déblocages des nouvelles recherches

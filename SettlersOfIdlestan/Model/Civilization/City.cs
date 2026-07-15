@@ -84,6 +84,13 @@ public class City : IBuildingContext, IMilitaryVertex
     /// </summary>
     public HexCoord? MonsterAttackTarget { get; set; }
 
+    /// <summary>
+    /// Déclenchements Ziggourat déjà consommés par cette ville (production instantanée de Dominion
+    /// à la construction/amélioration d'un Temple, max Ziggurat.MaxTriggersPerCity — voir
+    /// CorruptionController.ApplyZigguratInstantProduction).
+    /// </summary>
+    public int ZigguratTriggersUsed { get; set; }
+
     [NonSerialized]
     private Building? _cachedTownHall;
     [NonSerialized]

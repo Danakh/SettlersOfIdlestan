@@ -1,0 +1,117 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using SettlersOfIdlestan.Controller.Island;
+using SettlersOfIdlestan.Model.Buildings;
+using SettlersOfIdlestan.Model.GameplayModifier;
+using SettlersOfIdlestan.Model.IslandMap;
+using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
+
+namespace SettlersOfIdlestan.Model.Races;
+
+/// <summary>
+/// Liste des races jouables (voir <see cref="RaceDefinition"/>). Les races Base deviennent
+/// sélectionnables à l'Ascension une fois la première rangée de pouvoirs divins complète ; les
+/// races Advanced (Sirènes, Elfes noirs) sont déclarées mais pas encore implémentées — elles
+/// n'apparaissent jamais dans AscensionController.GetSelectableRaces.
+/// </summary>
+public static class RaceDefinitions
+{
+    public static IReadOnlyList<RaceDefinition> All { get; } = new[]
+    {
+        // Humains : race religieuse — le Dominion se propage plus vite (base : 10 %/niveau,
+        // voir CorruptionController.ProcessSpread) et la Ziggourat amplifie les Temples.
+        new RaceDefinition(RaceId.Human, RaceTier.Base,
+            requiredAdjacentTerrain: null,
+            racialBuilding: BuildingType.Ziggurat,
+            modifiers: new[]
+            {
+                new Modifier(ECategory.DOMINION_SPREAD_CHANCE, EType.ADDITIVE, 2),
+                new Modifier(ECategory.BUILDING_MAX_LEVEL, nameof(BuildingType.Ziggurat), EType.ADDITIVE, 1),
+            }),
+
+        // Elfes : nouvelles villes uniquement adjacentes à une Forêt ; en échange, scieries et
+        // recherche accélérées.
+        new RaceDefinition(RaceId.Elf, RaceTier.Base,
+            requiredAdjacentTerrain: TerrainType.Forest,
+            racialBuilding: BuildingType.HeartTree,
+            modifiers: new[]
+            {
+                new Modifier(ECategory.CITY_PLACEMENT_REQUIRES_TERRAIN, nameof(TerrainType.Forest), EType.ADDITIVE, 1),
+                new Modifier(ECategory.HARVEST_SPEED, nameof(BuildingType.Sawmill), EType.ADDITIVE, 0.5),
+                new Modifier(ECategory.RESEARCH_PRODUCTION_SPEED, EType.ADDITIVE, 0.25),
+                new Modifier(ECategory.BUILDING_MAX_LEVEL, nameof(BuildingType.HeartTree), EType.ADDITIVE, 1),
+            }),
+
+        // Nains : nouvelles villes uniquement adjacentes à une Montagne ; maîtres de la forge et
+        // de la mine, et solides défenseurs.
+        new RaceDefinition(RaceId.Dwarf, RaceTier.Base,
+            requiredAdjacentTerrain: TerrainType.Mountain,
+            racialBuilding: BuildingType.RunicForge,
+            modifiers: new[]
+            {
+                new Modifier(ECategory.CITY_PLACEMENT_REQUIRES_TERRAIN, nameof(TerrainType.Mountain), EType.ADDITIVE, 1),
+                new Modifier(ECategory.FORGE_DOUBLE_HARVEST_BONUS, EType.ADDITIVE, 10),
+                new Modifier(ECategory.MINE_GOLD_CHANCE_PERCENT, EType.ADDITIVE, 10),
+                new Modifier(ECategory.CITY_DEFENSE, EType.ADDITIVE, 3),
+                new Modifier(ECategory.BUILDING_MAX_LEVEL, nameof(BuildingType.RunicForge), EType.ADDITIVE, 1),
+            }),
+
+        // Gobelins : villes à distance 2 au lieu de 3 (expansion dense), mais « quantité plutôt
+        // que qualité » — niveau max -1 sur les bâtiments standards et défense affaiblie.
+        new RaceDefinition(RaceId.Goblin, RaceTier.Base,
+            requiredAdjacentTerrain: null,
+            racialBuilding: BuildingType.GreatBurrow,
+            modifiers: BuildStandardMaxLevelModifiers(-1)
+                .Append(new Modifier(ECategory.CITY_MIN_DISTANCE, EType.REPLACER, 2))
+                .Append(new Modifier(ECategory.CITY_DEFENSE, EType.ADDITIVE, -3))
+                .Append(new Modifier(ECategory.BUILDING_MAX_LEVEL, nameof(BuildingType.GreatBurrow), EType.ADDITIVE, 1))
+                .ToArray()),
+
+        // Géants : l'inverse des gobelins — villes à distance 4 minimum (rares), mais bâtiments
+        // standards à niveau max +2 et récolte accélérée.
+        new RaceDefinition(RaceId.Giant, RaceTier.Base,
+            requiredAdjacentTerrain: null,
+            racialBuilding: BuildingType.ColossusWorkshop,
+            modifiers: BuildStandardMaxLevelModifiers(2)
+                .Append(new Modifier(ECategory.CITY_MIN_DISTANCE, EType.REPLACER, 4))
+                .Append(new Modifier(ECategory.HARVEST_SPEED, EType.ADDITIVE, 0.25))
+                .Append(new Modifier(ECategory.BUILDING_MAX_LEVEL, nameof(BuildingType.ColossusWorkshop), EType.ADDITIVE, 1))
+                .ToArray()),
+
+        // Sirènes / Elfes noirs : races avancées (seconde rangée de pouvoirs divins), non
+        // implémentées — déclarées pour l'UI (aperçu verrouillé) et la stabilité de la sérialisation.
+        new RaceDefinition(RaceId.Mermaid, RaceTier.Advanced,
+            requiredAdjacentTerrain: TerrainType.Water,
+            racialBuilding: null,
+            modifiers: Array.Empty<Modifier>()),
+
+        new RaceDefinition(RaceId.DarkElf, RaceTier.Advanced,
+            requiredAdjacentTerrain: null,
+            racialBuilding: null,
+            modifiers: Array.Empty<Modifier>()),
+    };
+
+    public static RaceDefinition Get(RaceId id)
+        => All.First(r => r.Id == id);
+
+    /// <summary>
+    /// Modifiers de niveau max (±delta) pour les bâtiments « standards » : non uniques, hors Hôtel
+    /// de Ville (son niveau pilote le niveau de ville et les seuils AvailableAtLevel) et hors
+    /// bâtiments dont le niveau max par défaut est 0 ou 1 (uniques de prestige partant de 0,
+    /// bâtiments à niveau unique) — un -1 les rendrait inconstructibles.
+    /// </summary>
+    private static IEnumerable<Modifier> BuildStandardMaxLevelModifiers(int delta)
+    {
+        foreach (BuildingType type in Enum.GetValues<BuildingType>())
+        {
+            if (type == BuildingType.TownHall) continue;
+
+            var prototype = BuildingController.CreateBuilding(type);
+            if (prototype == null || prototype.IsUnique) continue;
+            if (prototype.GetDefaultMaxLevel() < 2) continue;
+
+            yield return new Modifier(ECategory.BUILDING_MAX_LEVEL, type.ToString(), EType.ADDITIVE, delta);
+        }
+    }
+}

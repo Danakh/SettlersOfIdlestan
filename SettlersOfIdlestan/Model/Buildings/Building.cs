@@ -178,6 +178,31 @@ public enum BuildingType
     /// volcan découvert. Débloquée par la recherche Métallurgie Volcanique.
     /// </summary>
     VolcanicForge,
+    /// <summary>
+    /// Ziggourat - Bâtiment unique racial des Humains. Chaque Temple construit ou amélioré produit
+    /// instantanément du Dominion sur les hexs de sa ville (jusqu'à 4 fois par ville). Nécessite le
+    /// Dominion débloqué (pouvoir divin Foi).
+    /// </summary>
+    Ziggurat,
+    /// <summary>
+    /// Arbre-Cœur - Bâtiment unique racial des Elfes. Accélère la recherche et génère du Bois passivement.
+    /// </summary>
+    HeartTree,
+    /// <summary>
+    /// Forge Runique - Bâtiment unique racial des Nains. Améliore les Forges, les Fonderies et la
+    /// chance d'or des Mines.
+    /// </summary>
+    RunicForge,
+    /// <summary>
+    /// Grand Terrier - Bâtiment unique racial des Gobelins. Réduit le coût des nouvelles villes et
+    /// augmente le stockage de base.
+    /// </summary>
+    GreatBurrow,
+    /// <summary>
+    /// Atelier des Colosses - Bâtiment unique racial des Géants. Chance de doubler le rendement des
+    /// récoltes automatiques.
+    /// </summary>
+    ColossusWorkshop,
 }
 
 /// <summary>

@@ -498,6 +498,11 @@ namespace SettlersOfIdlestan.Controller.Island
                 BuildingType.ArmorSmith => new ArmorSmith(),
                 BuildingType.AdventurersGuild => new AdventurersGuild(),
                 BuildingType.VolcanicForge => new VolcanicForge(),
+                BuildingType.Ziggurat => new Ziggurat(),
+                BuildingType.HeartTree => new HeartTree(),
+                BuildingType.RunicForge => new RunicForge(),
+                BuildingType.GreatBurrow => new GreatBurrow(),
+                BuildingType.ColossusWorkshop => new ColossusWorkshop(),
                 _ => null,
             };
         }

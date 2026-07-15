@@ -175,6 +175,14 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             VOID_ROUTE_COST_REDUCTION,
             /// <summary>Flags que chaque Temple ajoute un bonus fixe de défense à sa ville selon son niveau (voir Temple.GetDefenseBonusForLevel).</summary>
             TEMPLE_DEFENSE_BONUS,
+            /// <summary>Distance minimale (en arêtes) entre deux villes de la même civilisation. Base = 3 (voir CityBuilderController) ; REPLACER 2 (Gobelins) ou 4 (Géants).</summary>
+            CITY_MIN_DISTANCE,
+            /// <summary>Restriction raciale de placement : tout nouveau vertex de ville en surface doit toucher au moins un hex du terrain indiqué. SubCategory = nom du TerrainType (voir CityBuilderController.GetBuildableVertices).</summary>
+            CITY_PLACEMENT_REQUIRES_TERRAIN,
+            /// <summary>Flags que chaque Temple construit ou amélioré produit instantanément du Dominion sur les 3 hexs de sa ville, jusqu'à Ziggurat.MaxTriggersPerCity fois par ville (Ziggourat — voir CorruptionController.ApplyZigguratInstantProduction).</summary>
+            TEMPLE_INSTANT_DOMINION,
+            /// <summary>Fraction de réduction du coût en ressources des nouvelles villes. Base = 0.0 ; 0.25 = -25% (voir CityBuilderController.NewCityBuildingCostFor).</summary>
+            NEW_CITY_COST_REDUCTION,
         }
 
         [JsonConverter(typeof(JsonStringEnumConverter<EType>))]
