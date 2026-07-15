@@ -75,6 +75,18 @@ public class WorldState : IJsonOnDeserialized
     [JsonIgnore]
     public GameEventLog EventLog { get; } = new();
 
+    /// <summary>
+    /// Compteur transient incrémenté à chaque changement de type de terrain (Marche de Dieu,
+    /// conversion des déserts en Filons de Mithril...) — voir <see cref="NotifyTerrainChanged"/>.
+    /// Sert de clé d'invalidation aux caches dépendant du terrain, comme celui de
+    /// CityBuilderController.GetBuildableVertices (restrictions raciales de placement). Non persisté.
+    /// </summary>
+    [JsonIgnore]
+    public int TerrainVersion { get; private set; }
+
+    /// <summary>À appeler après toute mutation de HexTile.TerrainType sur une carte de ce monde.</summary>
+    public void NotifyTerrainChanged() => TerrainVersion++;
+
     public WorldState(IslandMap map, List<SettlersOfIdlestan.Model.Civilization.Civilization> civilizations, int worldId)
     {
         Visibility = new WorldVisibility(this);

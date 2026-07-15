@@ -192,7 +192,8 @@ namespace SettlersOfIdlestan.Controller
                 CurrentMainState.Clock.CurrentTick,
                 startTick: CurrentMainState.Clock.CurrentTick,
                 surfaceCorruptionLevel: CurrentMainState.PrestigeState.SurfaceCorruptionLevel,
-                tier: CurrentMainState.PrestigeState.Tier)
+                tier: CurrentMainState.PrestigeState.Tier,
+                startVertexTerrain: RaceDefinitions.Get(CurrentMainState.GodState.AscensionState.SelectedRace).StartVertexTerrain)
                 ?? throw new InvalidOperationException("Failed to restart island.");
 
             CurrentMainState.PrestigeState.WorldState = newWorldState;

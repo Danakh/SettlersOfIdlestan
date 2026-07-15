@@ -719,12 +719,19 @@ public class AutoExtendController
         if (_state == null || _prng == null) return;
         if (!_state.Layers.TryGetValue(LayerState.UnderworldZ, out var layerState)) return;
 
+        bool changed = false;
         foreach (var tile in layerState.Map.Tiles.Values)
         {
             if (tile.TerrainType != TerrainType.Desert) continue;
             if (_prng.Next(100) < ProspectionAvanceeDesertToMithrilPercent)
+            {
                 tile.TerrainType = TerrainType.MithrilVein;
+                changed = true;
+            }
         }
+
+        if (changed)
+            _state.NotifyTerrainChanged();
     }
 
     // ── Génération de la rivière ──────────────────────────────────────────────

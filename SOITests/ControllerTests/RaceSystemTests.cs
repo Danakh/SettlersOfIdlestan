@@ -10,7 +10,9 @@ using SettlersOfIdlestan.Model.GameplayModifier;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.IslandMap;
+using SettlersOfIdlestan.Controller.Expand;
 using SettlersOfIdlestan.Model.Prestige;
+using SettlersOfIdlestan.Model.Prestige.PrestigeMap;
 using SettlersOfIdlestan.Model.Races;
 using SOITests.TestUtilities;
 using System;
@@ -186,6 +188,77 @@ public class RaceSystemTests
         Assert.Equal(RaceId.Human, godState.AscensionState.SelectedRace);
         Assert.Contains(RaceId.Human, godState.AscensionState.AscendedRaces);
         Assert.Equal(4, godState.GodPoints);
+        // Sans Foi débloquée, aucun vertex de prestige n'est offert.
+        Assert.Empty(controller.CurrentMainState.PrestigeState!.PurchasedVertices);
+    }
+
+    // ── Vertex de prestige offerts à l'Ascension ─────────────────────────────
+
+    [Fact]
+    public void PerformAscension_WithFaithOnly_GrantsCentralPrestigeVertexOnly()
+    {
+        var controller = new MainGameController();
+        controller.CreateNewGame();
+        var godState = controller.CurrentMainState!.GodState;
+        godState.GodPoints = 100;
+        godState.DivineEssence = 4;
+        Assert.True(controller.AscensionController.PurchasePower(AscensionPowerId.Faith));
+
+        controller.PerformAscension();
+
+        var purchased = controller.CurrentMainState.PrestigeState!.PurchasedVertices;
+        Assert.Contains(PrestigeMap.CentralVertex, purchased);
+        Assert.Single(purchased);
+    }
+
+    [Fact]
+    public void PerformAscension_WithRacesUnlocked_GrantsCentralVertexAndItsThreeNeighborsFree()
+    {
+        var controller = new MainGameController();
+        controller.CreateNewGame();
+        var godState = controller.CurrentMainState!.GodState;
+        godState.GodPoints = 100;
+        godState.DivineEssence = 4;
+        UnlockFirstRow(controller.AscensionController);
+
+        controller.PerformAscension(RaceId.Dwarf);
+
+        var prestigeState = controller.CurrentMainState.PrestigeState!;
+        var purchased = prestigeState.PurchasedVertices;
+        Assert.Contains(PrestigeMap.CentralVertex, purchased);
+        var neighbors = PrestigeMapController.DefaultMap.GetNeighbors(PrestigeMap.CentralVertex);
+        Assert.Equal(3, neighbors.Count);
+        foreach (var neighbor in neighbors)
+            Assert.Contains(neighbor.Coord, purchased);
+        Assert.Equal(4, purchased.Count);
+        // Gratuit = aucun point de prestige dépensé.
+        Assert.Equal(0, prestigeState.PrestigePoints);
+        // Le voisin Port & Marché garantit un Marché de départ : la civilisation peut acheter la
+        // ressource que son terrain de départ ne produit pas (ex. la brique des Nains).
+        var startingCity = controller.CurrentMainState.CurrentWorldState!.PlayerCivilization.Cities[0];
+        Assert.Contains(startingCity.Buildings, b => b.Type == BuildingType.Market);
+    }
+
+    [Fact]
+    public void PerformAscension_Dwarf_StartVertexTouchesMountainForestAndWater()
+    {
+        var controller = new MainGameController();
+        controller.CreateNewGame();
+        var godState = controller.CurrentMainState!.GodState;
+        godState.GodPoints = 100;
+        godState.DivineEssence = 4;
+        UnlockFirstRow(controller.AscensionController);
+
+        controller.PerformAscension(RaceId.Dwarf);
+
+        // Le générateur remplace la Colline par la Montagne dans la paire de départ : la capitale
+        // naine respecte sa propre restriction de placement.
+        var worldState = controller.CurrentMainState.CurrentWorldState!;
+        var startingCity = worldState.PlayerCivilization.Cities[0];
+        var map = worldState.GetMapFor(startingCity.Position)!;
+        Assert.True(map.VertexHasTerrainType(startingCity.Position, TerrainType.Mountain));
+        Assert.True(map.VertexHasTerrainType(startingCity.Position, TerrainType.Forest));
+        Assert.True(map.VertexHasTerrainType(startingCity.Position, TerrainType.Water));
     }
 
     // ── Restrictions de placement (CityBuilderController) ────────────────────
@@ -276,7 +349,7 @@ public class RaceSystemTests
     }
 
     [Fact]
-    public void GetBuildableVertices_TerrainRestriction_SeesTerrainChangesWithoutCacheStaleness()
+    public void GetBuildableVertices_TerrainRestriction_CacheInvalidatedByNotifyTerrainChanged()
     {
         var (state, civ, _, v2, _) = RibbonIsland();
         AddRaceModifiers(civ, new Modifier(ECategory.CITY_PLACEMENT_REQUIRES_TERRAIN, nameof(TerrainType.Mountain), EType.ADDITIVE, 1));
@@ -284,10 +357,12 @@ public class RaceSystemTests
 
         Assert.Empty(controller.GetBuildableVertices(0));
 
-        // Marche de Dieu peut transformer un terrain sans toucher aux compteurs de routes/villes :
-        // le résultat doit suivre immédiatement (pas de cache pour les races à restriction).
+        // Marche de Dieu transforme un terrain sans toucher aux compteurs de routes/villes : le
+        // cache de GetBuildableVertices est invalidé via WorldState.NotifyTerrainChanged
+        // (TerrainVersion), appelé par tous les mutateurs de terrain.
         var h5 = H(0, 2);
         state.GetMapFor(h5)!.GetTile(h5)!.TerrainType = TerrainType.Mountain;
+        state.NotifyTerrainChanged();
 
         Assert.Contains(controller.GetBuildableVertices(0), v => v.Equals(v2));
     }

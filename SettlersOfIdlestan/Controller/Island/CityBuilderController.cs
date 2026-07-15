@@ -54,7 +54,7 @@ namespace SettlersOfIdlestan.Controller.Island
         private WorldState? _state;
         private GameClock? _clock;
         private GamePRNG? _prng;
-        private readonly Dictionary<int, (int RoadCount, int TotalCityCount, int BeaconCount, List<Vertex> Vertices)> _buildableVerticesCache = new();
+        private readonly Dictionary<int, (int RoadCount, int TotalCityCount, int BeaconCount, int TerrainVersion, List<Vertex> Vertices)> _buildableVerticesCache = new();
 
         // 10 s × 100 ticks/s
         public const long AutoOutpostBuildCooldownTicks = 1000L;
@@ -191,17 +191,17 @@ namespace SettlersOfIdlestan.Controller.Island
 
             // Result only depends on this civ's roads and on every civ's cities/beacons (positions, via
             // count as a cheap proxy — RelocateCity clears the cache explicitly since it changes a
-            // position without changing any count). Avec une restriction de terrain, le résultat
-            // dépend aussi des terrains, que Marche de Dieu peut changer sans modifier aucun
-            // compteur : on n'utilise pas le cache dans ce cas.
-            bool cacheable = excludingCity == null && requiredTerrains.Count == 0;
+            // position without changing any count), plus les terrains via WorldState.TerrainVersion
+            // (les restrictions raciales filtrent sur le terrain, que Marche de Dieu peut transformer
+            // sans toucher à aucun compteur).
             int totalCityCount = _state.Civilizations.Sum(c => c.Cities.Count);
             int totalBeaconCount = _state.Civilizations.Sum(c => c.MaritimeBeacons.Count);
-            if (cacheable &&
+            if (excludingCity == null &&
                 _buildableVerticesCache.TryGetValue(civilizationIndex, out var cached) &&
                 cached.RoadCount == civ.Roads.Count &&
                 cached.TotalCityCount == totalCityCount &&
-                cached.BeaconCount == totalBeaconCount)
+                cached.BeaconCount == totalBeaconCount &&
+                cached.TerrainVersion == _state.TerrainVersion)
                 return cached.Vertices;
 
             var vertices = GetRoadTouchingVertices(civilizationIndex);
@@ -220,8 +220,8 @@ namespace SettlersOfIdlestan.Controller.Island
                 SatisfiesCityTerrainRestriction(v, requiredTerrains))
                 .ToList();
 
-            if (cacheable)
-                _buildableVerticesCache[civilizationIndex] = (civ.Roads.Count, totalCityCount, totalBeaconCount, vertices);
+            if (excludingCity == null)
+                _buildableVerticesCache[civilizationIndex] = (civ.Roads.Count, totalCityCount, totalBeaconCount, _state.TerrainVersion, vertices);
 
             return vertices;
         }

@@ -27,13 +27,16 @@ public class IslandMapGenerator
     /// <summary>
     /// Generates an island map for the given terrain data and civilization list.
     /// An optional shape generator controls the land footprint; defaults to compact spiral.
-    /// An optional preferred start hex biases the Hill/Forest/Water vertex placement.
+    /// An optional preferred start hex biases the start vertex placement.
+    /// <paramref name="startVertexTerrain"/> is the land terrain paired with Forest on the
+    /// starting vertex (Hill by default; Mountain for Dwarves — see RaceDefinition.StartVertexTerrain).
     /// </summary>
     public IslandMap? GenerateIsland(
         IEnumerable<(TerrainType terrainType, int tileCount)> tileData,
         List<Civilization> civilizations,
         IslandShapeGenerator? shapeGenerator = null,
-        HexCoord? preferredStartHex = null)
+        HexCoord? preferredStartHex = null,
+        TerrainType startVertexTerrain = TerrainType.Hill)
     {
         if (civilizations == null || civilizations.Count == 0)
             return null;
@@ -46,7 +49,11 @@ public class IslandMapGenerator
         if (tileList.Count == 0)
             return new IslandMap([]);
 
-        bool hasHill = tileList.Contains(TerrainType.Hill);
+        // Repli sur la Colline si le pool de terrains de l'île ne contient pas le terrain demandé.
+        if (!tileList.Contains(startVertexTerrain))
+            startVertexTerrain = TerrainType.Hill;
+
+        bool hasPrimary = tileList.Contains(startVertexTerrain);
         bool hasForest = tileList.Contains(TerrainType.Forest);
 
         shapeGenerator ??= new IslandShapeGeneratorCompact(_prng);
@@ -61,13 +68,13 @@ public class IslandMapGenerator
         for (int i = 0; i < coords.Count; i++)
             terrainDict[coords[i]] = shuffledTiles[i];
 
-        // Swap terrain to guarantee a Hill/Forest/Water vertex near the preferred start
-        HexCoord? startHex = preferredStartHex ?? (hasHill && hasForest
+        // Swap terrain to guarantee a startVertexTerrain/Forest/Water vertex near the preferred start
+        HexCoord? startHex = preferredStartHex ?? (hasPrimary && hasForest
             ? shapeGenerator.GetPreferredStartHex(coords)
             : null);
 
-        if (hasHill && hasForest)
-            EnsureHillForestNearEdge(terrainDict, coordSet, startHex);
+        if (hasPrimary && hasForest)
+            EnsureStartPairNearEdge(terrainDict, coordSet, startHex, startVertexTerrain);
 
         // Build land tiles
         var tiles = new List<HexTile>(terrainDict.Count);
@@ -87,7 +94,7 @@ public class IslandMapGenerator
             tiles.Add(new HexTile(wc, TerrainType.Water));
 
         var map = new IslandMap(tiles);
-        var vertex = hasHill && hasForest ? FindVertexAdjacentToHillForestWater(map) : null;
+        var vertex = hasPrimary && hasForest ? FindVertexAdjacentToHillForestWater(map, startVertexTerrain) : null;
 
         if (vertex != null)
             PopulatePlayerCivilization(map, civilizations[0], vertex);
@@ -100,8 +107,10 @@ public class IslandMapGenerator
     /// The shape generator is chosen from parameters.ShapeType. <paramref name="surfaceCorruptionLevel"/>
     /// gives each land hex (outside the player's starting city) a 10%-per-level chance of being
     /// corrupted, with the corruption level itself rolled the same way as in auto-expand layers.
+    /// <paramref name="startVertexTerrain"/> : terrain accompagnant la Forêt sur le vertex de départ
+    /// (Colline par défaut ; Montagne pour les Nains — voir RaceDefinition.StartVertexTerrain).
     /// </summary>
-    public WorldState? GenerateWorldState(IslandParameters parameters, long currentTick, long startTick = 0, int surfaceCorruptionLevel = 0, int tier = 1)
+    public WorldState? GenerateWorldState(IslandParameters parameters, long currentTick, long startTick = 0, int surfaceCorruptionLevel = 0, int tier = 1, TerrainType startVertexTerrain = TerrainType.Hill)
     {
         var shapeGenerator = CreateShapeGenerator(parameters.ShapeType);
 
@@ -114,7 +123,7 @@ public class IslandMapGenerator
                 NpcParameters = parameters.NpcCivilizations[i]
             });
 
-        var map = GenerateIsland(parameters.TileData, civs, shapeGenerator);
+        var map = GenerateIsland(parameters.TileData, civs, shapeGenerator, startVertexTerrain: startVertexTerrain);
         if (map is null) return null;
 
         if (parameters.IsEndgameIsland)
@@ -494,12 +503,14 @@ public class IslandMapGenerator
 
     /// <summary>
     /// Swaps terrain tiles in terrainDict so that an edge vertex adjacent to the preferred hex
-    /// (or any edge vertex if preferredHex is null) has exactly one Hill and one Forest land tile.
+    /// (or any edge vertex if preferredHex is null) has exactly one <paramref name="primary"/>
+    /// (Hill by default, Mountain for Dwarves) and one Forest land tile.
     /// </summary>
-    private static void EnsureHillForestNearEdge(
+    private static void EnsureStartPairNearEdge(
         Dictionary<HexCoord, TerrainType> terrainDict,
         HashSet<HexCoord> coordSet,
-        HexCoord? preferredHex)
+        HexCoord? preferredHex,
+        TerrainType primary)
     {
         // Find a suitable edge vertex: 2 land hexes + 1 future-water hex
         (HexCoord hexA, HexCoord hexB)? target = null;
@@ -522,27 +533,27 @@ public class IslandMapGenerator
         var tA = terrainDict[hexA];
         var tB = terrainDict[hexB];
 
-        bool alreadySatisfied = (tA == TerrainType.Hill || tB == TerrainType.Hill) &&
+        bool alreadySatisfied = (tA == primary || tB == primary) &&
                                  (tA == TerrainType.Forest || tB == TerrainType.Forest);
 
         if (!alreadySatisfied)
         {
-            // Ensure hexA holds Hill
-            if (tA != TerrainType.Hill && tB != TerrainType.Hill)
+            // Ensure hexA holds the primary terrain
+            if (tA != primary && tB != primary)
             {
-                // Bring a Hill tile to hexA
-                var hillCoord = terrainDict.Keys
-                    .FirstOrDefault(c => !c.Equals(hexA) && !c.Equals(hexB) && terrainDict[c] == TerrainType.Hill);
-                if (hillCoord is not null)
+                // Bring a primary tile to hexA
+                var primaryCoord = terrainDict.Keys
+                    .FirstOrDefault(c => !c.Equals(hexA) && !c.Equals(hexB) && terrainDict[c] == primary);
+                if (primaryCoord is not null)
                 {
-                    terrainDict[hillCoord] = tA;
-                    terrainDict[hexA] = TerrainType.Hill;
-                    tA = TerrainType.Hill;
+                    terrainDict[primaryCoord] = tA;
+                    terrainDict[hexA] = primary;
+                    tA = primary;
                 }
             }
-            else if (tB == TerrainType.Hill)
+            else if (tB == primary)
             {
-                // Put Hill in the hexA slot
+                // Put the primary terrain in the hexA slot
                 (hexA, hexB) = (hexB, hexA);
                 (tA, tB) = (tB, tA);
             }
@@ -560,14 +571,14 @@ public class IslandMapGenerator
                 }
             }
         }
-        else if (tB == TerrainType.Hill)
+        else if (tB == primary)
         {
-            // Normalize so hexA always ends up holding Hill, hexB holding Forest
+            // Normalize so hexA always ends up holding the primary terrain, hexB holding Forest
             (hexA, hexB) = (hexB, hexA);
             (tA, tB) = (tB, tA);
         }
 
-        if (tA == TerrainType.Hill && tB == TerrainType.Forest)
+        if (tA == primary && tB == TerrainType.Forest)
             EnsureMountainPlainNearStart(terrainDict, coordSet, hexA, hexB);
     }
 
@@ -738,15 +749,15 @@ public class IslandMapGenerator
     }
 
     /// <summary>
-    /// Finds a vertex adjacent to Hill, Forest, and Water tiles.
+    /// Finds a vertex adjacent to <paramref name="primary"/> (Hill by default), Forest, and Water tiles.
     /// </summary>
-    static public Vertex? FindVertexAdjacentToHillForestWater(IslandMap map)
+    static public Vertex? FindVertexAdjacentToHillForestWater(IslandMap map, TerrainType primary = TerrainType.Hill)
     {
         var coordToTerrain = map.Tiles.ToDictionary(t => t.Key, t => t.Value.TerrainType);
         foreach (var kvp in map.Tiles)
         {
             var a = kvp.Key;
-            if (kvp.Value.TerrainType != TerrainType.Hill) continue;
+            if (kvp.Value.TerrainType != primary) continue;
 
             foreach (var d in HexDirectionUtils.AllHexDirections)
             {

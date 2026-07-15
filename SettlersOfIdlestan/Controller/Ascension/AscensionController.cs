@@ -276,10 +276,33 @@ public class AscensionController : IModifierProvider
         var worldState = generator.GenerateWorldState(
             firstIslandParameters,
             mainGameState.Clock.CurrentTick,
-            startTick: mainGameState.Clock.CurrentTick)
+            startTick: mainGameState.Clock.CurrentTick,
+            startVertexTerrain: RaceDefinitions.Get(chosenRace).StartVertexTerrain)
             ?? throw new InvalidOperationException("Failed to generate island for ascension.");
 
         godState.PrestigeState = new PrestigeState(worldState);
+        GrantFreePrestigeVertices(godState.PrestigeState);
+    }
+
+    /// <summary>
+    /// Vertex de la carte de prestige offerts (ajoutés à PurchasedVertices sans coût) au début de
+    /// chaque cycle d'Ascension : le vertex central dès que Foi (le premier pouvoir divin) est
+    /// débloquée, plus ses 3 voisins (Caserne, Port &amp; Marché, Laboratoire) une fois le choix de
+    /// race débloqué — le Marché de départ ainsi garanti permet d'acheter la ressource que le
+    /// terrain de départ de la race ne produit pas (ex. la brique des Nains).
+    /// </summary>
+    private void GrantFreePrestigeVertices(PrestigeState prestigeState)
+    {
+        if (!IsPowerUnlocked(AscensionPowerId.Faith)) return;
+
+        if (!prestigeState.PurchasedVertices.Contains(Model.Prestige.PrestigeMap.PrestigeMap.CentralVertex))
+            prestigeState.PurchasedVertices.Add(Model.Prestige.PrestigeMap.PrestigeMap.CentralVertex);
+
+        if (!IsRaceSelectionUnlocked) return;
+
+        foreach (var neighbor in Expand.PrestigeMapController.DefaultMap.GetNeighbors(Model.Prestige.PrestigeMap.PrestigeMap.CentralVertex))
+            if (!prestigeState.PurchasedVertices.Contains(neighbor.Coord))
+                prestigeState.PurchasedVertices.Add(neighbor.Coord);
     }
 
     public IEnumerable<Modifier> GetModifiers()
@@ -366,6 +389,7 @@ public class AscensionController : IModifierProvider
         while (newType == tile.TerrainType);
 
         tile.TerrainType = newType;
+        _state.NotifyTerrainChanged();
 
         if (wasWater)
         {

@@ -7,6 +7,7 @@ using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Prestige;
 using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.Monsters;
+using SettlersOfIdlestan.Model.Races;
 using SettlersOfIdlestan.Controller.Generator;
 using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
 
@@ -298,7 +299,8 @@ namespace SettlersOfIdlestan.Controller.Expand
                 mainGameState.Clock.CurrentTick,
                 startTick: mainGameState.Clock.CurrentTick,
                 surfaceCorruptionLevel: mainGameState.PrestigeState.SurfaceCorruptionLevel,
-                tier: mainGameState.PrestigeState.EffectiveNextIslandTier)
+                tier: mainGameState.PrestigeState.EffectiveNextIslandTier,
+                startVertexTerrain: RaceDefinitions.Get(mainGameState.GodState.AscensionState.SelectedRace).StartVertexTerrain)
                 ?? throw new InvalidOperationException("Failed to generate next island.");
 
             mainGameState.PrestigeState.SelectedNextIslandTier = null;

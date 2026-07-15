@@ -19,10 +19,23 @@ public class RaceDefinition
 
     /// <summary>
     /// Terrain dont au moins un hex doit toucher tout nouveau vertex de ville en surface (null =
-    /// aucune restriction). Consommé via le modifier CITY_PLACEMENT_REQUIRES_TERRAIN — la ville de
-    /// départ (posée par le générateur) et les avant-postes de couche en sont exemptés.
+    /// aucune restriction). Consommé via le modifier CITY_PLACEMENT_REQUIRES_TERRAIN — les
+    /// avant-postes de couche en sont exemptés ; la ville de départ le respecte via
+    /// <see cref="StartVertexTerrain"/> (le générateur adapte les terrains initiaux).
     /// </summary>
     public TerrainType? RequiredAdjacentTerrain { get; }
+
+    /// <summary>
+    /// Terrain accompagnant la Forêt sur le vertex de départ garanti par le générateur (voir
+    /// IslandMapGenerator.EnsureStartPairNearEdge) : la Colline par défaut, remplacée par le
+    /// terrain requis de la race quand il y en a un (Montagne pour les Nains — le vertex de départ
+    /// devient Montagne/Forêt/Eau ; la brique manquante s'achète au Marché offert par le vertex
+    /// central de la carte de prestige). La Forêt et l'Eau restent inchangées (Elfes, Sirènes).
+    /// </summary>
+    public TerrainType StartVertexTerrain =>
+        RequiredAdjacentTerrain is { } terrain && terrain != TerrainType.Forest && terrain != TerrainType.Water
+            ? terrain
+            : TerrainType.Hill;
 
     /// <summary>
     /// Bâtiment unique racial, constructible uniquement en jouant cette race (la race fournit son
