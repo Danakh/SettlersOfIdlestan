@@ -310,6 +310,71 @@ public class TechnologyModifierTests
         Assert.Equal(10, BuildAggregator(TechnologyId.LegionEternelle).ApplyModifiers(ECategory.CITY_MAX_SOLDIERS_BONUS, "", 0));
     }
 
+    // ── Suite de la ligne du Vide & branche de la Théocratie (tiers 12-15) ────
+
+    [Fact]
+    public void ReliquaireSacre_DivineBonesCostReduction_Plus0Point15()
+    {
+        Assert.Equal(0.15, BuildAggregator(TechnologyId.ReliquaireSacre).ApplyModifiers(ECategory.DIVINE_BONES_COST_REDUCTION, "", 0.0), 5);
+    }
+
+    [Fact]
+    public void CartographieDuVide_UnlocksVoidRouteCostReduction()
+    {
+        Assert.True(BuildAggregator(TechnologyId.CartographieDuVide).HasModifier(ECategory.VOID_ROUTE_COST_REDUCTION));
+    }
+
+    [Fact]
+    public void DogmeDeLEmprise_TempleDominionCap_Plus1()
+    {
+        Assert.Equal(1, BuildAggregator(TechnologyId.DogmeDeLEmprise).ApplyModifiers(ECategory.TEMPLE_DOMINION_CAP, "", 0));
+    }
+
+    [Fact]
+    public void CommunionAbyssale_PrestigeGain_Plus1()
+    {
+        Assert.Equal(1.0, BuildAggregator(TechnologyId.CommunionAbyssale).ApplyModifiers(ECategory.PRESTIGE_GAIN, "", 0.0), 5);
+    }
+
+    [Fact]
+    public void Evangelisation_DominionSpreadChance_Plus5()
+    {
+        Assert.Equal(5, BuildAggregator(TechnologyId.Evangelisation).ApplyModifiers(ECategory.DOMINION_SPREAD_CHANCE, "", 0));
+    }
+
+    [Fact]
+    public void TerreConsacree_TempleDominionProtectionChance_Plus0Point5()
+    {
+        Assert.Equal(0.5, BuildAggregator(TechnologyId.TerreConsacree).ApplyModifiers(ECategory.TEMPLE_DOMINION_PROTECTION_CHANCE, "", 0.0), 5);
+    }
+
+    [Fact]
+    public void BastionConsacre_UnlocksTempleDefenseBonus()
+    {
+        Assert.True(BuildAggregator(TechnologyId.BastionConsacre).HasModifier(ECategory.TEMPLE_DEFENSE_BONUS));
+    }
+
+    // ── RequiresDominionUnlock ────────────────────────────────────────────────
+    // Les recherches du Dominion doivent rester verrouillées derrière le pouvoir divin Foi ;
+    // celles qui n'en dépendent pas ne doivent pas porter le flag par accident.
+
+    [Fact]
+    public void DominionTechnologies_RequireDominionUnlock()
+    {
+        var expected = new[]
+        {
+            TechnologyId.DogmeDeLEmprise,
+            TechnologyId.Evangelisation,
+            TechnologyId.TerreConsacree,
+            TechnologyId.BastionConsacre,
+        };
+        var actual = TechnologyDefinitions.All
+            .Where(t => t.RequiresDominionUnlock)
+            .Select(t => t.Id)
+            .ToList();
+        Assert.Equal(expected.OrderBy(x => x), actual.OrderBy(x => x));
+    }
+
     // ── Layout integrity (Tier/Line) ──────────────────────────────────────────
     // ResearchRenderer positions every technology on a (Tier, Line) grid cell
     // (col, row) — two technologies sharing a cell would overlap on screen.

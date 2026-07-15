@@ -165,6 +165,16 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             DIVINE_BONES_COST_REDUCTION,
             /// <summary>Bonus de vitesse de régénération de défense par point de Dominion sur les 3 hexs de l'emplacement. Base = 0.0; agrégé via PerVertexModifiers (valeur × vertex de prestige adjacents achetés), puis multiplié par la somme des niveaux de Dominion autour de la ville.</summary>
             DOMINION_DEFENSE_REGEN_PER_LEVEL,
+            /// <summary>Bonus additif au plafond de Dominion que la production d'un Temple peut atteindre, par niveau de Temple (base : 2/niveau, voir CorruptionController.ProcessTempleProduction). Base = 0.</summary>
+            TEMPLE_DOMINION_CAP,
+            /// <summary>Points de pourcentage de chance de débordement supplémentaires par niveau, pour le Dominion uniquement (base : 10%/niveau, voir CorruptionController.ProcessSpread). Base = 0.</summary>
+            DOMINION_SPREAD_CHANCE,
+            /// <summary>Probabilité (0-1) qu'un Dominion situé sur un hex d'une ville possédant un Temple ne perde pas de niveau lors d'une annulation mutuelle avec la Corruption (la Corruption, elle, perd toujours le sien). Base = 0.0.</summary>
+            TEMPLE_DOMINION_PROTECTION_CHANCE,
+            /// <summary>Flags que les routes du Vide déjà bâties ne comptent que pour moitié dans le coût exponentiel de la suivante (voir RoadController.GetVoidRouteResearchCost).</summary>
+            VOID_ROUTE_COST_REDUCTION,
+            /// <summary>Flags que chaque Temple ajoute un bonus fixe de défense à sa ville selon son niveau (voir Temple.GetDefenseBonusForLevel).</summary>
+            TEMPLE_DEFENSE_BONUS,
         }
 
         [JsonConverter(typeof(JsonStringEnumConverter<EType>))]

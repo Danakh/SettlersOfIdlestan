@@ -774,6 +774,11 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         Modifier.ECategory.CORRUPTION_LEVEL_REDUCTION        => $"-{(int)mod.Value} {_localization.Get("prestige_tooltip_corruption_level_reduction")}",
         Modifier.ECategory.UNLOCK_VOID_ROUTES                => _localization.Get("prestige_tooltip_unlocks_void_routes"),
         Modifier.ECategory.UNLOCK_DIVINE_BONES               => _localization.Get("prestige_tooltip_unlocks_divine_bones"),
+        Modifier.ECategory.TEMPLE_DOMINION_CAP               => $"+{(int)mod.Value} {_localization.Get("prestige_tooltip_temple_dominion_cap")}",
+        Modifier.ECategory.DOMINION_SPREAD_CHANCE            => $"+{(int)mod.Value}% {_localization.Get("prestige_tooltip_dominion_spread_chance")}",
+        Modifier.ECategory.TEMPLE_DOMINION_PROTECTION_CHANCE => $"{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_temple_dominion_protection")}",
+        Modifier.ECategory.VOID_ROUTE_COST_REDUCTION         => _localization.Get("prestige_tooltip_void_route_cost_reduction"),
+        Modifier.ECategory.TEMPLE_DEFENSE_BONUS              => _localization.Get("prestige_tooltip_temple_defense_bonus"),
         _ => $"+{mod.Value}"
     };
 

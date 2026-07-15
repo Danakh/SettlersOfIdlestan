@@ -2,6 +2,7 @@ using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
+using SettlersOfIdlestan.Model.GameplayModifier;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.IslandMap;
@@ -65,6 +66,14 @@ public class CorruptionControllerTests
         var controller = new CorruptionController();
         controller.Initialize(state, clock, new GamePRNG(seed));
         return controller;
+    }
+
+    /// <summary>Complète une recherche sur la civilisation du joueur (mêmes modificateurs qu'en jeu).</summary>
+    private static void CompleteResearch(WorldState state, TechnologyId id)
+    {
+        var tree = new TechnologyTree();
+        tree.CompleteResearch(id);
+        state.PlayerCivilization.AddCustomAggregator(tree);
     }
 
     // ── Production des Temples ──────────────────────────────────────────────
@@ -301,6 +310,123 @@ public class CorruptionControllerTests
             clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
 
         Assert.Empty(state.GetFeaturesAt(b).OfType<Dominion>());
+    }
+
+    // ── Recherches de la Théocratie (Dogme de l'Emprise, Évangélisation, Terre Consacrée) ──
+
+    [Fact]
+    public void TempleLevel2_WithDogmeDeLEmprise_CapRaisedToSix()
+    {
+        var (state, city, landHex) = CreateSingleLandHexCitySetup();
+        city.Buildings.Add(new Temple { Level = 2 });
+        state.AddFeature(new Dominion(landHex, level: 4)); // cap de base = 2*2 = 4, Dogme → 3*2 = 6
+        CompleteResearch(state, TechnologyId.DogmeDeLEmprise);
+
+        var clock = new GameClock();
+        clock.Start();
+        CreateController(state, clock);
+
+        clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
+
+        var dominion = state.GetFeaturesAt(landHex).OfType<Dominion>().Single();
+        Assert.Equal(5, dominion.Level);
+    }
+
+    [Fact]
+    public void Spread_DominionLevel2_WithoutEvangelisation_DoesNotTrigger()
+    {
+        var (state, a, b) = CreateTwoLandHexesSetup();
+        var dominion = new Dominion(a, level: 2); // 20% de déclenchement, tirage 29 → pas de débordement
+        var corruption = new Corruption(b, level: 1); // 10%, tirage 30 → pas de débordement
+        state.AddFeature(dominion);
+        state.AddFeature(corruption);
+
+        var clock = new GameClock();
+        clock.Start();
+        CreateController(state, clock);
+
+        clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
+
+        Assert.Equal(2, dominion.Level);
+        Assert.Equal(1, corruption.Level);
+    }
+
+    [Fact]
+    public void Spread_DominionLevel2_WithEvangelisation_TriggersAtFifteenPercentPerLevel()
+    {
+        var (state, a, b) = CreateTwoLandHexesSetup();
+        var dominion = new Dominion(a, level: 2); // 2 × (10+5) = 30% de déclenchement, tirage 29 → débordement
+        var corruption = new Corruption(b, level: 1);
+        state.AddFeature(dominion);
+        state.AddFeature(corruption);
+        CompleteResearch(state, TechnologyId.Evangelisation);
+
+        var clock = new GameClock();
+        clock.Start();
+        CreateController(state, clock);
+
+        clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
+
+        Assert.Equal(1, dominion.Level);
+        Assert.Empty(state.GetFeaturesAt(b).OfType<Corruption>());
+    }
+
+    [Fact]
+    public void Spread_MutualAnnulation_TempleProtection_DominionSpared()
+    {
+        var (state, a, b) = CreateTwoLandHexesSetup();
+        var corruption = new Corruption(a, level: 10); // 100% de déclenchement
+        var dominion = new Dominion(b, level: 4);
+        state.AddFeature(corruption);
+        state.AddFeature(dominion);
+
+        // Ville du joueur touchant b (mais pas a) avec un Temple niveau 1 (aucune production, donc
+        // aucune consommation du PRNG par ProcessTempleProduction) ; chance de protection forcée à
+        // 100% pour rendre le tirage de Terre Consacrée déterministe.
+        var city = new City(Vertex.Create(b, new HexCoord(0, 1, IslandMap.SurfaceLayer), new HexCoord(1, 1, IslandMap.SurfaceLayer)))
+        { CivilizationIndex = 0 };
+        city.Buildings.Add(new Temple { Level = 1 });
+        state.PlayerCivilization.AddCity(city);
+        state.PlayerCivilization.AddCustomAggregator(new StaticModifierProvider(new[]
+        {
+            new Modifier(Modifier.ECategory.TEMPLE_DOMINION_PROTECTION_CHANCE, Modifier.EType.ADDITIVE, 1.0),
+        }));
+
+        var clock = new GameClock();
+        clock.Start();
+        CreateController(state, clock);
+
+        clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
+
+        // Le Dominion protégé ne perd jamais de niveau ; la Corruption, elle, perd le sien à chaque
+        // annulation (1 ou 2 fois selon le tirage de débordement du Dominion lui-même).
+        Assert.Equal(4, dominion.Level);
+        Assert.True(corruption.Level < 10);
+    }
+
+    [Fact]
+    public void Spread_MutualAnnulation_ProtectionWithoutTemple_DominionStillReduced()
+    {
+        var (state, a, b) = CreateTwoLandHexesSetup();
+        var corruption = new Corruption(a, level: 10); // 100% de déclenchement
+        var dominion = new Dominion(b, level: 4);
+        state.AddFeature(corruption);
+        state.AddFeature(dominion);
+
+        // Chance de protection maximale mais aucune ville avec Temple : la protection ne s'applique pas.
+        state.PlayerCivilization.AddCustomAggregator(new StaticModifierProvider(new[]
+        {
+            new Modifier(Modifier.ECategory.TEMPLE_DOMINION_PROTECTION_CHANCE, Modifier.EType.ADDITIVE, 1.0),
+        }));
+
+        var clock = new GameClock();
+        clock.Start();
+        CreateController(state, clock);
+
+        clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
+
+        Assert.Equal(9, corruption.Level);
+        Assert.Equal(3, dominion.Level);
     }
 
     [Fact]

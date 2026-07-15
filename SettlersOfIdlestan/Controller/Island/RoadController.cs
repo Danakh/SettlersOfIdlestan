@@ -321,8 +321,7 @@ namespace SettlersOfIdlestan.Controller.Island
             long voidResearchCost = 0;
             if (isVoidPath)
             {
-                int alreadyBuilt = civ.Roads.Count(r => IsEdgeBetweenVoidHexes(r.Position));
-                voidResearchCost = GetVoidRouteResearchCost(alreadyBuilt);
+                voidResearchCost = GetVoidRouteResearchCostFor(civ);
                 if ((_prestigeState?.TechnologyTree.ResearchPoints ?? 0) < voidResearchCost)
                     return null;
             }
@@ -629,8 +628,19 @@ namespace SettlersOfIdlestan.Controller.Island
         public long? GetPlayerVoidRoadResearchCost(Edge edge)
         {
             if (!IsEdgeBetweenVoidHexes(edge)) return null;
-            var civ = _state!.PlayerCivilization;
+            return GetVoidRouteResearchCostFor(_state!.PlayerCivilization);
+        }
+
+        /// <summary>
+        /// Coût de la prochaine route du Vide pour cette civilisation. Avec Cartographie du Vide
+        /// (VOID_ROUTE_COST_REDUCTION), les routes déjà bâties ne comptent que pour moitié
+        /// (arrondi en faveur du joueur) dans l'exposant de <see cref="GetVoidRouteResearchCost"/>.
+        /// </summary>
+        private long GetVoidRouteResearchCostFor(Civilization civ)
+        {
             int alreadyBuilt = civ.Roads.Count(r => IsEdgeBetweenVoidHexes(r.Position));
+            if (civ.ModifierAggregator.HasModifier(Modifier.ECategory.VOID_ROUTE_COST_REDUCTION))
+                alreadyBuilt /= 2;
             return GetVoidRouteResearchCost(alreadyBuilt);
         }
 

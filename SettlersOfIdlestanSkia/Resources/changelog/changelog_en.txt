@@ -4,6 +4,7 @@ The changelog is not actively maintained at the moment.
 ---
 
 v0.7
+• New endgame researches (tiers 12 to 15): the Void line continues (Sacred Reliquary, Void Cartography) and the Theocracy branch appears after the first Ascension — Dominion researches (Dogma of Dominion, Evangelization, Consecrated Ground, Consecrated Bastion) plus Abyssal Communion
 • New Abyss research branch (tiers 8 to 13): corruption studies, demonology and abyssal pacts, plus capstones extending the existing branches (steel, magic, underworld, military, science)
 • The Abyss branch of the prestige map comes alive: the vertices of the three gates (Steel, Underworld, Magic) receive their powers, including the unlocks for the new researches
 • New endgame Tier system: generated NPC civilizations grow progressively stronger based on your total accumulated prestige points, with a matching prestige gain bonus

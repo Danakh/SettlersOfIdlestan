@@ -660,6 +660,75 @@ public static class TechnologyDefinitions
             },
             tier: 13, line: 8),
 
+        // === Suite de la ligne du Vide (VoidWalking → VoidCompass, tiers 12-13) ===
+        // Accélère la boucle d'Ascension : Purification des Os Divins moins chère, puis routes du
+        // Vide moins coûteuses pour atteindre les îles suivantes des Abysses.
+
+        new(TechnologyId.ReliquaireSacre,
+            "tech_reliquaire_sacre_name", "tech_reliquaire_sacre_desc",
+            cost: 1700000000,
+            prerequisites: new[] { TechnologyId.VoidCompass },
+            modifiers: new Modifier[] { new(ECategory.DIVINE_BONES_COST_REDUCTION, EType.ADDITIVE, 0.15) },
+            tier: 12, line: 4),
+
+        // Les routes du Vide déjà bâties ne comptent que pour moitié dans le coût exponentiel de la
+        // suivante : 1M × 4^n devient 1M × 4^(n/2) (voir RoadController.GetVoidRouteResearchCost).
+        new(TechnologyId.CartographieDuVide,
+            "tech_cartographie_du_vide_name", "tech_cartographie_du_vide_desc",
+            cost: 6700000000,
+            prerequisites: new[] { TechnologyId.ReliquaireSacre },
+            modifiers: new Modifier[] { new(ECategory.VOID_ROUTE_COST_REDUCTION, EType.ADDITIVE, 1) },
+            tier: 13, line: 4),
+
+        // === Branche de la Théocratie (tiers 14-15) ===
+        // Recherches du Dominion : cachées tant que le pouvoir divin Foi n'est pas débloqué
+        // (requiresDominionUnlock), donc accessibles uniquement après la première Ascension.
+
+        new(TechnologyId.DogmeDeLEmprise,
+            "tech_dogme_de_l_emprise_name", "tech_dogme_de_l_emprise_desc",
+            cost: 27000000000,
+            prerequisites: new[] { TechnologyId.TheologieDeLAscension },
+            modifiers: new Modifier[] { new(ECategory.TEMPLE_DOMINION_CAP, EType.ADDITIVE, 1) },
+            tier: 14, line: 5,
+            requiresDominionUnlock: true),
+
+        new(TechnologyId.CommunionAbyssale,
+            "tech_communion_abyssale_name", "tech_communion_abyssale_desc",
+            cost: 27000000000,
+            prerequisites: new[] { TechnologyId.TheologieDeLAscension },
+            modifiers: new Modifier[] { new(ECategory.PRESTIGE_GAIN, EType.ADDITIVE, 1.0) },
+            tier: 14, line: 6),
+
+        // Le Dominion déborde plus vite que la Corruption : +5 points de % de chance par niveau
+        // (10%/niveau → 15%/niveau, voir CorruptionController.ProcessSpread).
+        new(TechnologyId.Evangelisation,
+            "tech_evangelisation_name", "tech_evangelisation_desc",
+            cost: 107000000000,
+            prerequisites: new[] { TechnologyId.DogmeDeLEmprise },
+            modifiers: new Modifier[] { new(ECategory.DOMINION_SPREAD_CHANCE, EType.ADDITIVE, 5) },
+            tier: 15, line: 5,
+            requiresDominionUnlock: true),
+
+        // 50% de chance que le Dominion sur les hexs d'une ville avec Temple ne perde pas de niveau
+        // face à la Corruption (l'annulation reste totale pour la Corruption).
+        new(TechnologyId.TerreConsacree,
+            "tech_terre_consacree_name", "tech_terre_consacree_desc",
+            cost: 107000000000,
+            prerequisites: new[] { TechnologyId.DogmeDeLEmprise },
+            modifiers: new Modifier[] { new(ECategory.TEMPLE_DOMINION_PROTECTION_CHANCE, EType.ADDITIVE, 0.5) },
+            tier: 15, line: 6,
+            requiresDominionUnlock: true),
+
+        // Chaque Temple ajoute un bonus fixe de défense à sa ville selon son niveau (+1/3/6/10,
+        // voir Temple.GetDefenseBonusForLevel et MilitaryController.GetDefenseScore).
+        new(TechnologyId.BastionConsacre,
+            "tech_bastion_consacre_name", "tech_bastion_consacre_desc",
+            cost: 27000000000,
+            prerequisites: new[] { TechnologyId.LegionEternelle },
+            modifiers: new Modifier[] { new(ECategory.TEMPLE_DEFENSE_BONUS, EType.ADDITIVE, 1) },
+            tier: 14, line: 8,
+            requiresDominionUnlock: true),
+
     };
 
     public static Technology? Get(TechnologyId id) => All.FirstOrDefault(t => t.Id == id);

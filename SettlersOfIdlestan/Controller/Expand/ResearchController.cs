@@ -182,6 +182,7 @@ namespace SettlersOfIdlestan.Controller.Expand
             if (tech == null) return false;
             if (!ArePrerequisitesMet(tree, tech)) return false;
             if (!IsPrestigeRequirementMet(id)) return false;
+            if (!IsDominionRequirementMet(id)) return false;
 
             tree.ActiveResearch = id;
             tree.ActiveResearchConsumed = 0;
@@ -243,6 +244,7 @@ namespace SettlersOfIdlestan.Controller.Expand
             var tech = TechnologyDefinitions.Get(id);
             if (tech == null) return false;
             if (!IsPrestigeRequirementMet(id)) return false;
+            if (!IsDominionRequirementMet(id)) return false;
             return ArePrerequisitesMet(tree, tech) || WillBeAvailableAfterActiveResearch(tree, tech);
         }
 
@@ -269,7 +271,8 @@ namespace SettlersOfIdlestan.Controller.Expand
             if (tree.ActiveResearch == id) return TechnologyStatus.InProgress;
 
             var tech = TechnologyDefinitions.Get(id);
-            if (tech == null || !ArePrerequisitesMet(tree, tech) || !IsPrestigeRequirementMet(id)) return TechnologyStatus.Inactive;
+            if (tech == null || !ArePrerequisitesMet(tree, tech) || !IsPrestigeRequirementMet(id)
+                || !IsDominionRequirementMet(id)) return TechnologyStatus.Inactive;
 
             return TechnologyStatus.Available;
         }
@@ -336,6 +339,18 @@ namespace SettlersOfIdlestan.Controller.Expand
                 Modifier.ECategory.UNLOCK_RESEARCH, techKey) == true;
         }
 
+        /// <summary>
+        /// Vrai si la recherche n'exige pas le Dominion, ou si le pouvoir divin Foi est débloqué
+        /// (UNLOCK_DOMINION) — même verrou que les vertex/hexes de prestige du Dominion.
+        /// </summary>
+        private bool IsDominionRequirementMet(TechnologyId id)
+        {
+            var tech = TechnologyDefinitions.Get(id);
+            if (tech == null || !tech.RequiresDominionUnlock) return true;
+            return _state?.PlayerCivilization.ModifierAggregator.HasModifier(
+                Modifier.ECategory.UNLOCK_DOMINION) == true;
+        }
+
         public bool ShouldDisplay(TechnologyId id)
         {
             if (Tree == null) return false;
@@ -354,6 +369,7 @@ namespace SettlersOfIdlestan.Controller.Expand
             }
 
             if (!IsPrestigeRequirementMet(id)) return false;
+            if (!IsDominionRequirementMet(id)) return false;
 
             var techDef = TechnologyDefinitions.Get(id);
             if (techDef == null) return false;

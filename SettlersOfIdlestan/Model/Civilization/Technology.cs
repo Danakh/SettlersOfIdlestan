@@ -129,6 +129,16 @@ public enum TechnologyId
     CoeurDeLaTerre,
     Omniscience,
     LegionEternelle,
+    // Suite de la ligne du Vide (VoidWalking → VoidCompass) : boucle d'Ascension et routes du Vide.
+    ReliquaireSacre,
+    CartographieDuVide,
+    // Branche de la Théocratie (tiers 14-15) — recherches du Dominion, visibles uniquement une fois
+    // le pouvoir divin Foi débloqué (RequiresDominionUnlock, voir ResearchController).
+    DogmeDeLEmprise,
+    CommunionAbyssale,
+    Evangelisation,
+    TerreConsacree,
+    BastionConsacre,
 }
 
 public enum TechnologyStatus
@@ -151,6 +161,13 @@ public class Technology
     public int Tier { get; }
     public int Line { get; }
 
+    /// <summary>
+    /// Vraie si la recherche reste cachée et inaccessible tant que le pouvoir divin Foi n'a pas été
+    /// débloqué (modificateur UNLOCK_DOMINION) — même verrou que les vertex/hexes de prestige du
+    /// Dominion (voir PrestigeVertex.RequiresDominionUnlock et ResearchController).
+    /// </summary>
+    public bool RequiresDominionUnlock { get; }
+
     public Technology(
         TechnologyId id,
         string nameKey,
@@ -159,7 +176,8 @@ public class Technology
         IReadOnlyList<TechnologyId> prerequisites,
         IReadOnlyList<Modifier> modifiers,
         int tier,
-        int line)
+        int line,
+        bool requiresDominionUnlock = false)
     {
         Id = id;
         NameKey = nameKey;
@@ -169,5 +187,6 @@ public class Technology
         Modifiers = modifiers;
         Tier = tier;
         Line = line;
+        RequiresDominionUnlock = requiresDominionUnlock;
     }
 }

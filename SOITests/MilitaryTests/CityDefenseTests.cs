@@ -169,4 +169,49 @@ public class CityDefenseTests
 
         Assert.Equal(15, city.CurrentDefense);
     }
+
+    // ── Bastion Consacré (TEMPLE_DEFENSE_BONUS) ───────────────────────────
+
+    private static (MilitaryController ctrl, Civilization civ, City city) SetupWithCiv(params Building[] buildings)
+    {
+        var map = new IslandMap([
+            new(new HexCoord(0, 0, IslandMap.SurfaceLayer), TerrainType.Plain),
+            new(new HexCoord(0, 1, IslandMap.SurfaceLayer), TerrainType.Plain),
+            new(new HexCoord(1, 0, IslandMap.SurfaceLayer), TerrainType.Plain),
+        ]);
+
+        var civ = new Civilization { Index = 0 };
+        var city = new City(CityVertex) { CivilizationIndex = 0 };
+        foreach (var b in buildings) city.Buildings.Add(b);
+        civ.AddCity(city);
+
+        var state = new WorldState(map, [civ], AtlasController.InvalidIslandId);
+        var ctrl = new MilitaryController();
+        ctrl.Initialize(state, clock: null, prng: new GamePRNG());
+
+        return (ctrl, civ, city);
+    }
+
+    [Fact]
+    public void DefenseScore_TempleWithoutBastionConsacre_GivesNoDefense()
+    {
+        var (ctrl, _, city) = SetupWithCiv(new Temple { Level = 4 });
+        Assert.Equal(0, ctrl.GetDefenseScore(city));
+    }
+
+    [Theory]
+    [InlineData(1, 1)]
+    [InlineData(2, 3)]
+    [InlineData(3, 6)]
+    [InlineData(4, 10)]
+    public void DefenseScore_TempleWithBastionConsacre_GivesFixedBonusPerLevel(int templeLevel, int expectedBonus)
+    {
+        var (ctrl, civ, city) = SetupWithCiv(new Palisade { Level = 1 }, new Temple { Level = templeLevel });
+        civ.AddCustomAggregator(new StaticModifierProvider(new[]
+        {
+            new Modifier(ECategory.TEMPLE_DEFENSE_BONUS, EType.ADDITIVE, 1),
+        }));
+
+        Assert.Equal(10 + expectedBonus, ctrl.GetDefenseScore(city)); // Palissade = 10
+    }
 }

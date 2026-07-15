@@ -152,7 +152,13 @@ public class MilitaryController
         int score = vertex.MaxDefense;
         var civ = _state?.Civilizations.FirstOrDefault(c => c.Index == vertex.CivilizationIndex);
         if (civ != null)
+        {
             score += civ.ModifierAggregator.ApplyModifiers(ECategory.CITY_DEFENSE, "", 0);
+
+            // Bastion Consacré : chaque Temple ajoute un bonus fixe selon son niveau (+1/3/6/10).
+            if (vertex is City city && civ.ModifierAggregator.HasModifier(ECategory.TEMPLE_DEFENSE_BONUS))
+                score += city.Buildings.OfType<Temple>().Sum(t => Temple.GetDefenseBonusForLevel(t.Level));
+        }
         return score;
     }
 

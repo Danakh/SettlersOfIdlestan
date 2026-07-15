@@ -13,6 +13,19 @@ public class Temple : Building
     public long LastDominionProductionTick { get; set; } = 0;
 
     /// <summary>
+    /// Bonus fixe de défense de ville accordé par le Temple selon son niveau, uniquement une fois la
+    /// recherche Bastion Consacré complétée (TEMPLE_DEFENSE_BONUS, voir MilitaryController.GetDefenseScore).
+    /// </summary>
+    public static int GetDefenseBonusForLevel(int level) => level switch
+    {
+        <= 0 => 0,
+        1 => 1,
+        2 => 3,
+        3 => 6,
+        _ => 10,
+    };
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="Temple"/> class.
     /// </summary>
     public Temple() : base(BuildingType.Temple)

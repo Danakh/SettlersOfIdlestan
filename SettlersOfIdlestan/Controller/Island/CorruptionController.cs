@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Game;
+using SettlersOfIdlestan.Model.GameplayModifier;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.IslandMap;
@@ -93,7 +94,10 @@ public class CorruptionController
                 }
 
                 var dominion = _state.GetFeaturesAt(hex).OfType<Dominion>().FirstOrDefault();
-                int cap = TempleDominionCapPerLevel * temple.Level;
+                // Dogme de l'Emprise (TEMPLE_DOMINION_CAP) relève le plafond par niveau de Temple.
+                int capPerLevel = TempleDominionCapPerLevel
+                    + civ.ModifierAggregator.ApplyModifiers(Modifier.ECategory.TEMPLE_DOMINION_CAP, "", 0);
+                int cap = capPerLevel * temple.Level;
                 if (dominion == null)
                     _state.AddFeature(new Dominion(hex, level: 1));
                 else if (dominion.Level < cap)
@@ -115,14 +119,20 @@ public class CorruptionController
         {
             if (!_state.Features.Contains(source)) continue; // déjà supprimée plus tôt dans cette passe
 
+            bool sourceIsDominion = source is Dominion;
+
+            // Évangélisation (DOMINION_SPREAD_CHANCE) : le Dominion déborde plus souvent que la
+            // Corruption (points de % supplémentaires par niveau).
+            int chancePerLevel = SpreadChancePercentPerLevel
+                + (sourceIsDominion ? GetDominionSpreadChanceBonus() : 0);
+
             int level = GetLevel(source);
-            if (_prng.Next(100) >= level * SpreadChancePercentPerLevel) continue;
+            if (_prng.Next(100) >= level * chancePerLevel) continue;
 
             var candidates = source.Position.Neighbors().Where(IsValidHex).ToList();
             if (candidates.Count == 0) continue;
 
             var neighborHex = candidates[_prng.Next(candidates.Count)];
-            bool sourceIsDominion = source is Dominion;
 
             var opposite = sourceIsDominion
                 ? (IslandFeature?)_state.GetFeaturesAt(neighborHex).OfType<Corruption>().FirstOrDefault()
@@ -130,8 +140,13 @@ public class CorruptionController
 
             if (opposite != null)
             {
-                ReduceLevel(source);
-                ReduceLevel(opposite);
+                // Terre Consacrée : le Dominion des hexs d'une ville avec Temple a une chance de ne
+                // pas perdre de niveau dans l'annulation mutuelle — la Corruption perd toujours le sien.
+                var dominionSide = sourceIsDominion ? source : opposite;
+                var corruptionSide = sourceIsDominion ? opposite : source;
+                if (!IsDominionSpared(dominionSide.Position))
+                    ReduceLevel(dominionSide);
+                ReduceLevel(corruptionSide);
                 continue;
             }
 
@@ -152,6 +167,28 @@ public class CorruptionController
                     SeedFeature(sourceIsDominion, neighborHex);
             }
         }
+    }
+
+    /// <summary>Points de % de chance de débordement supplémentaires par niveau pour le Dominion (Évangélisation).</summary>
+    private int GetDominionSpreadChanceBonus()
+        => _state!.PlayerCivilization.ModifierAggregator.ApplyModifiers(Modifier.ECategory.DOMINION_SPREAD_CHANCE, "", 0);
+
+    /// <summary>
+    /// Vrai si le Dominion de cet hex échappe (tirage aléatoire) à la perte de niveau d'une annulation
+    /// mutuelle avec la Corruption : recherche Terre Consacrée (TEMPLE_DOMINION_PROTECTION_CHANCE) et
+    /// hex touchant une ville du joueur possédant un Temple.
+    /// </summary>
+    private bool IsDominionSpared(HexCoord hex)
+    {
+        double chance = _state!.PlayerCivilization.ModifierAggregator
+            .ApplyModifiers(Modifier.ECategory.TEMPLE_DOMINION_PROTECTION_CHANCE, "", 0.0);
+        if (chance <= 0) return false;
+
+        bool nearTemple = _state.PlayerCivilization.Cities.Any(c =>
+            c.Buildings.OfType<Temple>().Any() && c.Position.GetHexes().Contains(hex));
+        if (!nearTemple) return false;
+
+        return _prng!.Next(100) < (int)Math.Round(chance * 100);
     }
 
     private void SeedFeature(bool isDominion, HexCoord hex)
