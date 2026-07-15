@@ -87,12 +87,21 @@ public class DivineBones : Monument
         return (long)Math.Min(multiplier, 1e15);
     }
 
-    public long GetRequiredResearch() => BaseResearchCost * GetCostMultiplier(CorruptionLevel, EssenceAlreadyCollected);
+    /// <summary>Coût en points de recherche, après DivineBonesCostReduction de la civilisation (hex de prestige Ossuaire).</summary>
+    public long GetRequiredResearch(SettlersOfIdlestan.Model.Civilization.Civilization playerCiv) =>
+        ApplyCostReduction(BaseResearchCost * GetCostMultiplier(CorruptionLevel, EssenceAlreadyCollected), playerCiv);
 
+    /// <summary>Coût en Cristal, après DivineBonesCostReduction de la civilisation (hex de prestige Ossuaire).</summary>
     public override ResourceSet GetInvestmentCost(SettlersOfIdlestan.Model.Civilization.Civilization playerCiv) => new()
     {
-        { Resource.Crystal, (int)Math.Min(int.MaxValue, BaseCrystalCost * GetCostMultiplier(CorruptionLevel, EssenceAlreadyCollected)) },
+        { Resource.Crystal, (int)Math.Min(int.MaxValue, ApplyCostReduction(BaseCrystalCost * GetCostMultiplier(CorruptionLevel, EssenceAlreadyCollected), playerCiv)) },
     };
+
+    private static long ApplyCostReduction(long baseCost, SettlersOfIdlestan.Model.Civilization.Civilization playerCiv)
+    {
+        double reduction = playerCiv.DivineBonesCostReduction;
+        return reduction <= 0 ? baseCost : Math.Max(1, (long)(baseCost * (1.0 - reduction)));
+    }
 
     [JsonIgnore]
     public override string PanelTitleKey => "divine_bones_panel_title";

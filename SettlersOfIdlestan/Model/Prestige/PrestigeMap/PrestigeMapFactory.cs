@@ -519,7 +519,7 @@ public static class PrestigeMapFactory
                 cost: Cost(PrestigeMap.BottomlessPitVertex),
                 modifiers: new Modifier[] { new(ECategory.UNDERWORLD_TREASURE_CHANCE_PERCENT, EType.ADDITIVE, 5) }
             ),
-            // Porte de la Magie — autour de AbyssGrove / AbyssVoid
+            // Porte de la Magie — autour de Ossuary / AbyssVoid
             new(
                 PrestigeMap.VoidEdgeVertex,
                 "prestige_vertex_void_edge",
@@ -724,11 +724,13 @@ public static class PrestigeMapFactory
                 perVertexModifiers: new Modifier[] { new(ECategory.UNDERWORLD_TREASURE_CHANCE_PERCENT, EType.ADDITIVE, 2) },
                 domain: PrestigeHexDomain.Explore
             ),
+            // Ossuaire — hex d'ascension : accélère la boucle os → essence, donc volontairement
+            // visible avant la première Ascension (pas de requiresDominionUnlock).
             new(
-                PrestigeMap.AbyssGroveCoord,
-                "prestige_hex_abyss_grove",
-                adjacentVertices: Adjacent(PrestigeMap.AbyssGroveCoord),
-                perVertexModifiers: new Modifier[] { new(ECategory.RITUAL_TOTAL_POWER, EType.ADDITIVE, 0.05) },
+                PrestigeMap.OssuaryCoord,
+                "prestige_hex_ossuary",
+                adjacentVertices: Adjacent(PrestigeMap.OssuaryCoord),
+                perVertexModifiers: new Modifier[] { new(ECategory.DIVINE_BONES_COST_REDUCTION, EType.ADDITIVE, 0.05) },
                 domain: PrestigeHexDomain.Explore
             ),
             new(

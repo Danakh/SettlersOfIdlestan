@@ -31,7 +31,7 @@ public class PrestigeMap
     public static readonly HexCoord PlanarRuinsCoord  = new( 4, -1, 0);
     public static readonly HexCoord AbyssDepthsCoord  = new(-2, -1, 0);
     public static readonly HexCoord AbyssChasmCoord   = new(-1, -2, 0);
-    public static readonly HexCoord AbyssGroveCoord   = new(-1,  4, 0);
+    public static readonly HexCoord OssuaryCoord      = new(-1,  4, 0);
     public static readonly HexCoord AbyssVoidCoord    = new(-2,  4, 0);
 
     // ── Prestige vertices (HexGrid Vertex objects) ────────────────────────────
@@ -118,7 +118,7 @@ public class PrestigeMap
     public static readonly Vertex AdventurersGuildVertex = Vertex.Create(new(-1, -2, 0), new( 0, -2, 0), new( 0, -3, 0));
     public static readonly Vertex SunkenPathVertex      = Vertex.Create(new(-1, -2, 0), new( 0, -3, 0), new(-1, -3, 0));
     public static readonly Vertex BottomlessPitVertex   = Vertex.Create(new(-1, -2, 0), new(-1, -3, 0), new(-2, -2, 0));
-    // Porte de la Magie — autour de AbyssGrove (-1,4) / AbyssVoid (-2,4)
+    // Porte de la Magie — autour de Ossuary (-1,4) / AbyssVoid (-2,4)
     public static readonly Vertex VoidEdgeVertex        = Vertex.Create(new(-1,  4, 0), new(-2,  4, 0), new(-2,  5, 0));
     public static readonly Vertex FarShoreVertex        = Vertex.Create(new(-1,  4, 0), new(-2,  5, 0), new(-1,  5, 0));
     public static readonly Vertex LostSanctumVertex     = Vertex.Create(new(-1,  4, 0), new(-1,  5, 0), new( 0,  4, 0));

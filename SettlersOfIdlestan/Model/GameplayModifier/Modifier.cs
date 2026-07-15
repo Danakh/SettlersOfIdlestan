@@ -161,6 +161,8 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             UNLOCK_VOID_ROUTES,
             /// <summary>Flags que la feature Os Divins (DivineBones) est révélée et investissable sur les îles des Abysses générées après la première.</summary>
             UNLOCK_DIVINE_BONES,
+            /// <summary>Fraction de réduction du coût de Purification des Os Divins (Cristal et points de recherche). Base = 0.0; 0.05 = -5%.</summary>
+            DIVINE_BONES_COST_REDUCTION,
         }
 
         [JsonConverter(typeof(JsonStringEnumConverter<EType>))]

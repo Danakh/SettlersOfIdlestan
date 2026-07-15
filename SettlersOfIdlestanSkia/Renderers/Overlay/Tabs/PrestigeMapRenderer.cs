@@ -75,7 +75,7 @@ public sealed class PrestigeMapRenderer : IGameRenderer
     {
         PrestigeMap.VoidForgeCoord, PrestigeMap.PlanarRuinsCoord,
         PrestigeMap.AbyssDepthsCoord, PrestigeMap.AbyssChasmCoord,
-        PrestigeMap.AbyssGroveCoord, PrestigeMap.AbyssVoidCoord,
+        PrestigeMap.OssuaryCoord, PrestigeMap.AbyssVoidCoord,
     };
 
     private static bool IsAbyssFullyUnlocked(PrestigeState state) =>
@@ -667,7 +667,8 @@ public sealed class PrestigeMapRenderer : IGameRenderer
                             or Modifier.ECategory.UNIT_PRODUCTION_SPEED
                             or Modifier.ECategory.RESEARCH_COST_REDUCTION
                             or Modifier.ECategory.MARKET_GOLD_SPEED
-                            or Modifier.ECategory.DOMINION_HARVEST_SPEED_PER_LEVEL;
+                            or Modifier.ECategory.DOMINION_HARVEST_SPEED_PER_LEVEL
+                            or Modifier.ECategory.DIVINE_BONES_COST_REDUCTION;
                         bool isFloat = mod.Category is Modifier.ECategory.TRADE_GOLD_PACKAGES;
                         totalStr = isPct ? $"+{(int)(total * 100)}%" : isFloat ? $"{total:0.##}" : $"+{(int)total}";
                     }
@@ -759,6 +760,7 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         Modifier.ECategory.INVESTMENT_SPEED_HIGH_STOCK_BONUS => $"+{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_investment_speed_high_stock")}",
         Modifier.ECategory.UNLOCK_RELOCATION                 => _localization.Get("prestige_tooltip_unlocks_relocation"),
         Modifier.ECategory.DOMINION_HARVEST_SPEED_PER_LEVEL  => $"+{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_dominion_bonus")}",
+        Modifier.ECategory.DIVINE_BONES_COST_REDUCTION       => $"-{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_divine_bones_cost")}",
         Modifier.ECategory.UNLOCK_DOMINION                   => _localization.Get("prestige_tooltip_unlocks_dominion"),
         Modifier.ECategory.STORAGE_CAPACITY_MULTIPLIER       => $"+{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_storage_multiplier")}",
         Modifier.ECategory.UNLOCK_INTERMEDIATE_TRADE         => _localization.Get("prestige_tooltip_unlocks_intermediate_trade"),

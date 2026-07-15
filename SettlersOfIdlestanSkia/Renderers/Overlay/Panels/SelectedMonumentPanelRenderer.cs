@@ -1,5 +1,6 @@
 using SettlersOfIdlestan.Controller.Expand;
 using SettlersOfIdlestan.Controller.Island;
+using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestanSkia.Services.Localization;
@@ -233,7 +234,7 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
         }
 
         if (showResearchRow && monument is DivineBones bonesRow)
-            y = DrawResearchInvestmentRow(canvas, bonesRow, panelX, panelWidth, padding, rowHeight, barH, y, s);
+            y = DrawResearchInvestmentRow(canvas, bonesRow, playerCiv, panelX, panelWidth, padding, rowHeight, barH, y, s);
 
         foreach (var (lines, active) in bonusLineLayouts)
         {
@@ -320,9 +321,9 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
     /// DivineBones.InvestedResearch (pool séparé, hors ResourceSet) plutôt que par InvestedResources.
     /// Retourne le nouveau y après la ligne.
     /// </summary>
-    private float DrawResearchInvestmentRow(SKCanvas canvas, DivineBones bones, float panelX, float panelWidth, float padding, float rowHeight, float barH, float y, float s)
+    private float DrawResearchInvestmentRow(SKCanvas canvas, DivineBones bones, Civilization playerCiv, float panelX, float panelWidth, float padding, float rowHeight, float barH, float y, float s)
     {
-        long required = bones.GetRequiredResearch();
+        long required = bones.GetRequiredResearch(playerCiv);
         long invested = bones.InvestedResearch;
         bool enabled = bones.ResearchInvestmentEnabled;
         bool done = invested >= required;

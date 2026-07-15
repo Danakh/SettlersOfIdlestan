@@ -108,7 +108,7 @@ namespace SettlersOfIdlestan.Controller.Island
         /// </summary>
         private static bool ProcessResearchInvestment(DivineBones bones, Civilization playerCiv, long now)
         {
-            long required = bones.GetRequiredResearch();
+            long required = bones.GetRequiredResearch(playerCiv);
             if (bones.InvestedResearch >= required) return true;
             if (!bones.ResearchInvestmentEnabled) return false;
             if (now - bones.LastResearchInvestmentTick < InvestmentIntervalTicks) return false;
