@@ -212,11 +212,14 @@ public class AscensionController : IModifierProvider
             yield return new Modifier(Modifier.ECategory.ATTACK_SPEED, Modifier.EType.ADDITIVE, 1.0);
     }
 
+    /// <summary>Niveau de Dominion minimum requis sur l'hex visé pour utiliser Marche de Dieu.</summary>
+    public const int WalkOfGodMinDominionLevel = 2;
+
     /// <summary>
-    /// Hexs ciblables par Marche de Dieu : tous les hexs de la carte de surface (Eau incluse).
-    /// Marche de Dieu nécessite Oeil de Dieu (déblocage séquentiel), qui révèle déjà toute la carte
-    /// à l'affichage — on s'aligne donc sur la carte complète plutôt que sur la visibilité restreinte
-    /// villes/routes, qui ne correspondrait pas à ce que le joueur voit réellement à l'écran.
+    /// Hexs ciblables par Marche de Dieu : les hexs de la carte de surface (Eau incluse) portant un
+    /// Dominion de niveau <see cref="WalkOfGodMinDominionLevel"/> ou plus — Dieu ne marche que là où
+    /// son emprise est déjà établie. Le Dominion pouvant s'étendre sur l'eau, c'est ainsi qu'on
+    /// terraforme la mer : y faire croître le Dominion, puis y marcher.
     /// </summary>
     public IReadOnlyList<HexCoord> GetWalkOfGodTargetHexes()
     {
@@ -227,8 +230,13 @@ public class AscensionController : IModifierProvider
 
         return map.Tiles.Values
             .Select(t => t.Coord)
+            .Where(c => GetWalkOfGodDominion(c) != null)
             .ToList();
     }
+
+    /// <summary>Dominion de niveau suffisant (voir <see cref="WalkOfGodMinDominionLevel"/>) sur l'hex, ou null.</summary>
+    private Dominion? GetWalkOfGodDominion(HexCoord hex) =>
+        _state?.GetFeaturesAt(hex).OfType<Dominion>().FirstOrDefault(d => d.Level >= WalkOfGodMinDominionLevel);
 
     /// <summary>
     /// Coût en points de prestige de la prochaine utilisation de Marche de Dieu : 1 à la première
@@ -245,8 +253,10 @@ public class AscensionController : IModifierProvider
     }
 
     /// <summary>
-    /// Assigne un terrain aléatoire (différent de l'actuel si possible) à un hex de surface, contre
-    /// un coût en points de prestige croissant (voir <see cref="GetWalkOfGodCost"/>).
+    /// Assigne un terrain aléatoire (différent de l'actuel si possible) à un hex de surface portant
+    /// un Dominion de niveau <see cref="WalkOfGodMinDominionLevel"/> ou plus, contre un coût en
+    /// points de prestige croissant (voir <see cref="GetWalkOfGodCost"/>) plus 1 niveau du Dominion
+    /// de l'hex (jamais retiré : il reste au moins au niveau 1 après la marche).
     /// Si l'hex ciblé était de l'eau, les hexs voisins qui n'existaient pas encore sont créés en tant qu'eau.
     /// </summary>
     public bool ChangeTerrainRandomly(HexCoord hex)
@@ -256,6 +266,9 @@ public class AscensionController : IModifierProvider
         var map = _state.GetMapFor(hex);
         var tile = map?.GetTile(hex);
         if (tile == null) return false;
+
+        var dominion = GetWalkOfGodDominion(hex);
+        if (dominion == null) return false;
 
         bool wasWater = tile.TerrainType == TerrainType.Water;
 
@@ -281,6 +294,8 @@ public class AscensionController : IModifierProvider
                 _state.Visibility.RecalculateFor(_state.PlayerCivilization.Index);
         }
 
+        dominion.Level--;
+
         var prestigeState = _godState!.PrestigeState!;
         prestigeState.PrestigePoints -= GetWalkOfGodCost();
         prestigeState.WalkOfGodUsesSinceLastPrestige++;
@@ -295,9 +310,9 @@ public class AscensionController : IModifierProvider
     public const int PresenceOfGodNeighborPoints = 3;
 
     /// <summary>
-    /// Hexs ciblables par Présence de Dieu : les hexs terrestres de la carte de surface (jamais
-    /// l'eau — cohérent avec CorruptionController.IsValidLandHex, la Corruption et le Dominion
-    /// n'existant pas sur l'eau).
+    /// Hexs ciblables par Présence de Dieu : tous les hexs de la carte de surface, Eau incluse —
+    /// la Corruption et le Dominion peuvent exister sur l'eau (voir CorruptionController.IsValidHex),
+    /// et semer du Dominion en mer est le prélude à la terraformation par Marche de Dieu.
     /// </summary>
     public IReadOnlyList<HexCoord> GetPresenceOfGodTargetHexes()
     {
@@ -307,7 +322,6 @@ public class AscensionController : IModifierProvider
         if (map == null) return Array.Empty<HexCoord>();
 
         return map.Tiles.Values
-            .Where(t => t.TerrainType != TerrainType.Water)
             .Select(t => t.Coord)
             .ToList();
     }
@@ -337,7 +351,7 @@ public class AscensionController : IModifierProvider
     {
         if (_state == null || !CanUsePresenceOfGod()) return false;
 
-        if (_state.GetMapFor(hex)?.GetTile(hex) is not { TerrainType: not TerrainType.Water }) return false;
+        if (_state.GetMapFor(hex)?.GetTile(hex) == null) return false;
 
         ApplyPresencePoints(hex, PresenceOfGodCenterPoints);
         foreach (var neighbor in hex.Neighbors())
@@ -352,8 +366,8 @@ public class AscensionController : IModifierProvider
 
     private void ApplyPresencePoints(HexCoord hex, int points)
     {
-        // Hexs hors carte ou aquatiques : la Présence n'y a pas d'effet (voisins en bord de carte).
-        if (_state!.GetMapFor(hex)?.GetTile(hex) is not { TerrainType: not TerrainType.Water }) return;
+        // Hexs hors carte : la Présence n'y a pas d'effet (voisins en bord de carte).
+        if (_state!.GetMapFor(hex)?.GetTile(hex) == null) return;
 
         var corruption = _state.GetFeaturesAt(hex).OfType<Corruption>().FirstOrDefault();
         if (corruption != null)

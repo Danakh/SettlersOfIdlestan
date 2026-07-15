@@ -81,7 +81,7 @@ public class CorruptionController
                 if (currentTick - temple.LastDominionProductionTick < ProductionIntervalTicks) continue;
                 temple.LastDominionProductionTick = currentTick;
 
-                var hexes = city.Position.GetHexes().Where(IsValidLandHex).ToList();
+                var hexes = city.Position.GetHexes().Where(IsValidHex).ToList();
                 if (hexes.Count == 0) continue;
 
                 var hex = hexes[_prng.Next(hexes.Count)];
@@ -118,7 +118,7 @@ public class CorruptionController
             int level = GetLevel(source);
             if (_prng.Next(100) >= level * SpreadChancePercentPerLevel) continue;
 
-            var candidates = source.Position.Neighbors().Where(IsValidLandHex).ToList();
+            var candidates = source.Position.Neighbors().Where(IsValidHex).ToList();
             if (candidates.Count == 0) continue;
 
             var neighborHex = candidates[_prng.Next(candidates.Count)];
@@ -190,7 +190,12 @@ public class CorruptionController
             _state!.RemoveFeature(feature);
     }
 
-    /// <summary>Hors eau, cohérent avec le placement de Corruption existant (jamais sur l'eau — voir IslandMapGenerator.PlaceSurfaceCorruption).</summary>
-    private bool IsValidLandHex(HexCoord hex)
-        => _state!.GetMapFor(hex)?.GetTile(hex) is { TerrainType: not TerrainType.Water };
+    /// <summary>
+    /// Tout hex existant de la carte, eau incluse : la Corruption et le Dominion peuvent s'étendre
+    /// sur l'eau (le Dominion en mer est le prérequis de la terraformation par Marche de Dieu —
+    /// voir AscensionController.GetWalkOfGodTargetHexes). Seule la génération initiale sème encore
+    /// la Corruption sur la terre uniquement (voir IslandMapGenerator.PlaceSurfaceCorruption).
+    /// </summary>
+    private bool IsValidHex(HexCoord hex)
+        => _state!.GetMapFor(hex)?.GetTile(hex) != null;
 }

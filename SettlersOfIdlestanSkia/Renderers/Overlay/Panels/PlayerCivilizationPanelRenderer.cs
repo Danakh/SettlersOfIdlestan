@@ -467,6 +467,8 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             walkOfGodLines.Add(_localization.GetFormated("tooltip_walkofgod_cost", walkOfGodCost));
             if (!ascensionController.CanUseWalkOfGod())
                 walkOfGodLines.Add(_localization.Get("tooltip_walkofgod_insufficient_prestige"));
+            if (ascensionController.GetWalkOfGodTargetHexes().Count == 0)
+                walkOfGodLines.Add(_localization.Get("tooltip_walkofgod_no_dominion"));
             _tooltipRenderer.SetTooltipLines(walkOfGodLines.ToArray(), new SKPoint(_walkOfGodButtonRect.Right, _walkOfGodButtonRect.Top));
         }
         else if (_hoveredPresenceOfGod)

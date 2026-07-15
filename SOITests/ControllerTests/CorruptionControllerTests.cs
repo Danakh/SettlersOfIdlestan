@@ -14,14 +14,17 @@ namespace SOITests.ControllerTests;
 /// <summary>
 /// Tests de CorruptionController : production de Dominion / réduction de Corruption par les Temples
 /// de niveau 2-4 (ProcessTempleProduction), et débordement Corruption/Dominion entre hexes voisins
-/// (ProcessSpread). Les scénarios avec un seul hex de terre valide autour de la ville évitent toute
+/// (ProcessSpread). Les scénarios avec un seul hex existant autour de la ville évitent toute
 /// dépendance au tirage aléatoire du hex ciblé (GamePRNG.Next(1) ne consomme pas le générateur) ; les
 /// scénarios de débordement utilisent une mini-carte à 2 hexes (un seul voisin candidat) pour la même
 /// raison, avec la graine 1 dont la séquence (29, 30, …) a été vérifiée déterministe pour ces cas.
 /// </summary>
 public class CorruptionControllerTests
 {
-    /// <summary>Ville sur un vertex avec un seul hex de terre valide (les deux autres sont de l'eau) — cible du Temple garantie.</summary>
+    /// <summary>
+    /// Ville sur un vertex avec un seul hex existant sur la carte (les deux autres n'ont pas de
+    /// tuile — l'eau est désormais un hex valide pour la Corruption/le Dominion) — cible du Temple garantie.
+    /// </summary>
     private static (WorldState state, City city, HexCoord landHex) CreateSingleLandHexCitySetup()
     {
         var a = new HexCoord(0, 0, IslandMap.SurfaceLayer);
@@ -31,8 +34,6 @@ public class CorruptionControllerTests
         var tiles = new[]
         {
             new HexTile(a, TerrainType.Plain),
-            new HexTile(b, TerrainType.Water),
-            new HexTile(c, TerrainType.Water),
         };
 
         var map = new IslandMap(tiles);

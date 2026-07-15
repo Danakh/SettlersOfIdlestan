@@ -315,20 +315,32 @@ public class AscensionControllerTests
         Assert.Equal(100 - 1 - 3 - 6, godState.GodPoints);
     }
 
+    /// <summary>Pose un Dominion sur un hex de l'île de test — Marche de Dieu ne cible que les hexs sous Dominion de niveau 2+.</summary>
+    private static (HexCoord hex, Dominion dominion) SeedDominion(WorldState state, int level, int q = 0, int r = 0)
+    {
+        var hex = new HexCoord(q, r, SettlersOfIdlestan.Model.IslandMap.IslandMap.SurfaceLayer);
+        var dominion = new Dominion(hex, level);
+        state.AddFeature(dominion);
+        return (hex, dominion);
+    }
+
     [Fact]
     public void GetWalkOfGodCost_EscalatesByOneOnEachUse()
     {
         var (state, _, _, ascension, godState) = CreateTestSetup(godPoints: 100, prestigePoints: 10);
         UnlockWalkOfGod(ascension);
-        var hex = ascension.GetWalkOfGodTargetHexes()[0];
+        var (hex, dominion) = SeedDominion(state, level: 5);
+        Assert.Contains(hex, ascension.GetWalkOfGodTargetHexes());
 
         Assert.Equal(1, ascension.GetWalkOfGodCost());
         Assert.True(ascension.ChangeTerrainRandomly(hex));
         Assert.Equal(9, godState.PrestigeState!.PrestigePoints);
+        Assert.Equal(4, dominion.Level);
 
         Assert.Equal(2, ascension.GetWalkOfGodCost());
         Assert.True(ascension.ChangeTerrainRandomly(hex));
         Assert.Equal(7, godState.PrestigeState!.PrestigePoints);
+        Assert.Equal(3, dominion.Level);
 
         Assert.Equal(3, ascension.GetWalkOfGodCost());
     }
@@ -338,7 +350,7 @@ public class AscensionControllerTests
     {
         var (state, _, _, ascension, godState) = CreateTestSetup(godPoints: 100, prestigePoints: 0);
         UnlockWalkOfGod(ascension);
-        var hex = ascension.GetWalkOfGodTargetHexes()[0];
+        var (hex, dominion) = SeedDominion(state, level: 2);
         var terrainBefore = state.GetMapFor(hex)!.GetTile(hex)!.TerrainType;
 
         var result = ascension.ChangeTerrainRandomly(hex);
@@ -347,15 +359,64 @@ public class AscensionControllerTests
         Assert.Equal(0, godState.PrestigeState!.PrestigePoints);
         Assert.Equal(0, godState.PrestigeState!.WalkOfGodUsesSinceLastPrestige);
         Assert.Equal(terrainBefore, state.GetMapFor(hex)!.GetTile(hex)!.TerrainType);
+        Assert.Equal(2, dominion.Level);
     }
 
     [Fact]
     public void ChangeTerrainRandomly_NoPrestigeState_Fails()
     {
-        var (_, _, _, ascension, _) = CreateTestSetup(godPoints: 100, prestigePoints: null);
+        var (state, _, _, ascension, _) = CreateTestSetup(godPoints: 100, prestigePoints: null);
         UnlockWalkOfGod(ascension);
-        var hex = ascension.GetWalkOfGodTargetHexes()[0];
+        var (hex, _) = SeedDominion(state, level: 2);
 
+        Assert.False(ascension.ChangeTerrainRandomly(hex));
+    }
+
+    [Fact]
+    public void GetWalkOfGodTargetHexes_OnlyIncludesHexesWithDominionLevel2OrMore()
+    {
+        var (state, _, _, ascension, _) = CreateTestSetup(godPoints: 100, prestigePoints: 10);
+        UnlockWalkOfGod(ascension);
+
+        Assert.Empty(ascension.GetWalkOfGodTargetHexes());
+
+        var (weakHex, _) = SeedDominion(state, level: 1, q: 1, r: 0);
+        var (strongHex, _) = SeedDominion(state, level: 2, q: -1, r: 0);
+
+        var targets = ascension.GetWalkOfGodTargetHexes();
+        Assert.DoesNotContain(weakHex, targets);
+        Assert.Contains(strongHex, targets);
+        Assert.Single(targets);
+    }
+
+    [Fact]
+    public void ChangeTerrainRandomly_WithoutDominionLevel2_FailsAndCostsNothing()
+    {
+        var (state, _, _, ascension, godState) = CreateTestSetup(godPoints: 100, prestigePoints: 10);
+        UnlockWalkOfGod(ascension);
+        var (hex, _) = SeedDominion(state, level: 1);
+
+        Assert.False(ascension.ChangeTerrainRandomly(hex));
+        Assert.Equal(10, godState.PrestigeState!.PrestigePoints);
+        Assert.Equal(0, godState.PrestigeState!.WalkOfGodUsesSinceLastPrestige);
+    }
+
+    [Fact]
+    public void ChangeTerrainRandomly_OnWaterHexWithDominion_TransformsTerrainAndReducesDominion()
+    {
+        var (state, _, _, ascension, godState) = CreateTestSetup(godPoints: 100, prestigePoints: 10);
+        UnlockWalkOfGod(ascension);
+        var (hex, dominion) = SeedDominion(state, level: 2);
+        state.GetMapFor(hex)!.GetTile(hex)!.TerrainType = SettlersOfIdlestan.Model.IslandMap.TerrainType.Water;
+
+        Assert.True(ascension.ChangeTerrainRandomly(hex));
+
+        Assert.NotEqual(SettlersOfIdlestan.Model.IslandMap.TerrainType.Water, state.GetMapFor(hex)!.GetTile(hex)!.TerrainType);
+        Assert.Equal(1, dominion.Level);
+        Assert.Equal(9, godState.PrestigeState!.PrestigePoints);
+
+        // Retombé au niveau 1 : l'hex n'est plus ciblable tant que le Dominion n'a pas regagné du niveau.
+        Assert.DoesNotContain(hex, ascension.GetWalkOfGodTargetHexes());
         Assert.False(ascension.ChangeTerrainRandomly(hex));
     }
 
@@ -455,7 +516,22 @@ public class AscensionControllerTests
     }
 
     [Fact]
-    public void GetPresenceOfGodTargetHexes_ExcludesWater()
+    public void GetPresenceOfGodTargetHexes_IncludesWater()
+    {
+        var (state, _, _, ascension, _) = CreateTestSetup(godPoints: 100, prestigePoints: 10);
+        UnlockPresenceOfGod(ascension);
+
+        var west = new HexCoord(-1, 0, SettlersOfIdlestan.Model.IslandMap.IslandMap.SurfaceLayer);
+        state.GetMapFor(west)!.GetTile(west)!.TerrainType = SettlersOfIdlestan.Model.IslandMap.TerrainType.Water;
+        int tileCount = state.GetMapForZ(SettlersOfIdlestan.Model.IslandMap.IslandMap.SurfaceLayer)!.Tiles.Count;
+
+        var targets = ascension.GetPresenceOfGodTargetHexes();
+        Assert.Contains(west, targets);
+        Assert.Equal(tileCount, targets.Count);
+    }
+
+    [Fact]
+    public void ApplyPresenceOfGod_OnWaterHex_SeedsDominion()
     {
         var (state, _, _, ascension, _) = CreateTestSetup(godPoints: 100, prestigePoints: 10);
         UnlockPresenceOfGod(ascension);
@@ -463,8 +539,9 @@ public class AscensionControllerTests
         var west = new HexCoord(-1, 0, SettlersOfIdlestan.Model.IslandMap.IslandMap.SurfaceLayer);
         state.GetMapFor(west)!.GetTile(west)!.TerrainType = SettlersOfIdlestan.Model.IslandMap.TerrainType.Water;
 
-        var targets = ascension.GetPresenceOfGodTargetHexes();
-        Assert.DoesNotContain(west, targets);
-        Assert.Equal(6, targets.Count);
+        Assert.True(ascension.ApplyPresenceOfGod(west));
+
+        // L'eau est un hex valide : le Dominion y naît comme sur la terre (prélude à Marche de Dieu).
+        Assert.Equal(5, state.GetFeaturesAt(west).OfType<Dominion>().Single().Level);
     }
 }
