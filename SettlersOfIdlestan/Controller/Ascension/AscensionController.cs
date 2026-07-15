@@ -169,11 +169,13 @@ public class AscensionController : IModifierProvider
     public bool CanAscend(GodState godState) => godState.DivineEssence >= MinDivineEssenceForAscension;
 
     /// <summary>
-    /// Convertit toute l'essence divine accumulée en points divins (1 pour 1, cross-prestige), puis
-    /// efface la progression de la partie en cours : le PrestigeState (recherches, points de
-    /// prestige, niveau de corruption, historique...) est entièrement remplacé par un nouveau,
-    /// câblé sur une toute nouvelle première île. GodState.AscensionState (pouvoirs débloqués) et
-    /// les points divins survivent, seuls but de la manœuvre.
+    /// Convertit toute l'essence divine accumulée en points divins (1 pour 1, cross-prestige) —
+    /// remettant DivineEssence à zéro, ce qui réinitialise le coût de Purification des Os Divins
+    /// (voir DivineBones.EssenceAlreadyCollected) — puis efface la progression de la partie en
+    /// cours : le PrestigeState (recherches, points de prestige, niveau de corruption,
+    /// historique...) est entièrement remplacé par un nouveau, câblé sur une toute nouvelle
+    /// première île. GodState.AscensionState (pouvoirs débloqués) et les points divins survivent,
+    /// seuls but de la manœuvre.
     /// </summary>
     public void PerformAscension(MainGameState mainGameState, IslandParameters firstIslandParameters)
     {

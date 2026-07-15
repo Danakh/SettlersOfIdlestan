@@ -32,13 +32,14 @@ namespace SettlersOfIdlestan.Model.Prestige
 
         /// <summary>
         /// Essences divines actuelles (cross-prestige), gagnées en purifiant des Os Divins dans les
-        /// Abysses. Se transformeront en GodPoints via une mécanique à venir.
+        /// Abysses et converties en GodPoints à l'Ascension (qui les remet à zéro). Pilote le coût
+        /// de Purification des Os Divins suivants (voir DivineBones.EssenceAlreadyCollected) :
+        /// ascensionner réinitialise donc ce coût.
         /// </summary>
         public int DivineEssence { get; set; }
 
         /// <summary>
-        /// Total cumulé d'essences divines gagnées (cross-prestige, ne diminue jamais). Pilote
-        /// aussi le coût de Purification des Os Divins suivants (voir DivineBones.EssenceAlreadyCollected).
+        /// Total cumulé d'essences divines gagnées (cross-prestige, ne diminue jamais).
         /// </summary>
         public int TotalDivineEssenceEarned { get; set; }
 

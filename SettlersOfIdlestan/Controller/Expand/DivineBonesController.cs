@@ -12,7 +12,9 @@ namespace SettlersOfIdlestan.Controller.Island
     /// <summary>
     /// Gère la Purification des Os Divins : investissement double (Cristal via le mécanisme
     /// Monument standard + points de recherche via un pool séparé, voir DivineBones.InvestedResearch),
-    /// à coût croissant avec le nombre d'essences divines déjà collectées (cross-prestige, GodState).
+    /// à coût croissant avec le nombre d'essences divines détenues depuis la dernière Ascension
+    /// (GodState.DivineEssence) — l'Ascension, en convertissant les essences en points divins,
+    /// réinitialise donc le coût de Purification.
     /// Une Purification terminée octroie toujours 1 os divin (WorldState.DivineBoneCount, perdu au
     /// prestige) ; DivineBones.BonesPerEssence os réunis sur la même île se convertissent
     /// automatiquement en 1 essence divine (révélant l'onglet Ascension, voir
@@ -64,8 +66,9 @@ namespace SettlersOfIdlestan.Controller.Island
                 if (bones.Purified) continue;
 
                 // Toujours resynchronisé (indépendamment du cooldown d'investissement) pour que le
-                // panneau affiche un coût à jour dès qu'une autre Purification a fait progresser N.
-                bones.EssenceAlreadyCollected = _godState.TotalDivineEssenceEarned;
+                // panneau affiche un coût à jour dès qu'une autre Purification a fait progresser N
+                // — ou qu'une Ascension l'a remis à zéro.
+                bones.EssenceAlreadyCollected = _godState.DivineEssence;
 
                 var crystalCost = bones.GetInvestmentCost(playerCiv);
                 bool crystalDone = MonumentInvestment.ProcessTick(bones, crystalCost, playerCiv, now);

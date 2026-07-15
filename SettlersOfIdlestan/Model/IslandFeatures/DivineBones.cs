@@ -46,9 +46,10 @@ public class DivineBones : Monument
     public bool EssenceGranted { get; set; } = false;
 
     /// <summary>
-    /// Nombre total d'essences divines déjà collectées, resynchronisé à chaque tick par
-    /// DivineBonesController depuis GodState.TotalDivineEssenceEarned. Pilote le multiplicateur de
-    /// coût (N dans la formule) — stocké sur la feature car GetInvestmentCost n'a accès qu'à la
+    /// Nombre d'essences divines détenues depuis la dernière Ascension, resynchronisé à chaque tick
+    /// par DivineBonesController depuis GodState.DivineEssence. Pilote le multiplicateur de coût
+    /// (N dans la formule) — l'Ascension, en remettant DivineEssence à zéro, réinitialise donc le
+    /// coût de Purification. Stocké sur la feature car GetInvestmentCost n'a accès qu'à la
     /// civilisation, pas au GodState cross-prestige.
     /// </summary>
     public int EssenceAlreadyCollected { get; set; } = 0;
@@ -79,7 +80,7 @@ public class DivineBones : Monument
     /// </summary>
     public int GetEssenceCap() => Math.Max(0, CorruptionLevel - EssenceCapCorruptionLevelOffset);
 
-    /// <summary>(niveau de corruption + 2) ^ N, N = nombre d'essences divines déjà collectées.</summary>
+    /// <summary>(niveau de corruption + 2) ^ N, N = nombre d'essences divines détenues depuis la dernière Ascension.</summary>
     public static long GetCostMultiplier(int corruptionLevel, int essenceAlreadyCollected)
     {
         double multiplier = Math.Pow(corruptionLevel + 2, essenceAlreadyCollected);
