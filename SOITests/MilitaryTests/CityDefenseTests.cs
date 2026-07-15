@@ -3,10 +3,13 @@ using SettlersOfIdlestan.Controller.Military;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
+using SettlersOfIdlestan.Model.GameplayModifier;
 using SettlersOfIdlestan.Model.HexGrid;
+using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.IslandMap;
 using System.Collections.Generic;
 using Xunit;
+using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
 
 namespace SOITests.MilitaryTests;
 
@@ -109,6 +112,48 @@ public class CityDefenseTests
             clock.SimulateAdvance(MilitaryController.DefenseRegenIntervalTicks);
 
         Assert.Equal(max, city.CurrentDefense);
+    }
+
+    [Fact]
+    public void Defense_RegenAcceleratedByProtectiveFaith_PerDominionPointAroundCity()
+    {
+        var map = new IslandMap([
+            new(new HexCoord(0, 0, IslandMap.SurfaceLayer), TerrainType.Plain),
+            new(new HexCoord(0, 1, IslandMap.SurfaceLayer), TerrainType.Plain),
+            new(new HexCoord(1, 0, IslandMap.SurfaceLayer), TerrainType.Plain),
+        ]);
+
+        var civ = new Civilization { Index = 0 };
+        civ.Resources[Resource.Wood] = 9999;
+        civ.Resources[Resource.Stone] = 9999;
+        var city = new City(CityVertex) { CivilizationIndex = 0 };
+        city.Buildings.Add(new Palisade { Level = 1 });
+        civ.AddCity(city);
+
+        var state = new WorldState(map, [civ], AtlasController.InvalidIslandId);
+
+        // Dominion 2 + 3 + 4 = 9 points autour de la ville, avec 2 vertex Foi Protectrice
+        // achetés (2 × 0.02 = 0.04) ⇒ +36% de vitesse de régénération.
+        state.AddFeature(new Dominion(new HexCoord(0, 0, IslandMap.SurfaceLayer), level: 2));
+        state.AddFeature(new Dominion(new HexCoord(0, 1, IslandMap.SurfaceLayer), level: 3));
+        state.AddFeature(new Dominion(new HexCoord(1, 0, IslandMap.SurfaceLayer), level: 4));
+        civ.AddCustomAggregator(new StaticModifierProvider(new[]
+        {
+            new Modifier(ECategory.DOMINION_DEFENSE_REGEN_PER_LEVEL, EType.ADDITIVE, 0.04),
+        }));
+
+        var clock = new GameClock();
+        clock.Start();
+        var ctrl = new MilitaryController();
+        ctrl.Initialize(state, clock, prng: new GamePRNG());
+
+        // Vitesse 1.36 ⇒ intervalle effectif = 500 / 1.36 = 367 ticks (au lieu de 500).
+        Assert.Equal(1.36 * 100.0 / MilitaryController.DefenseRegenIntervalTicks, ctrl.GetDefenseRegenRate(city), 5);
+
+        clock.SimulateAdvance(360);
+        Assert.Equal(0, city.CurrentDefense);
+        clock.SimulateAdvance(10);
+        Assert.Equal(1, city.CurrentDefense);
     }
 
     [Fact]

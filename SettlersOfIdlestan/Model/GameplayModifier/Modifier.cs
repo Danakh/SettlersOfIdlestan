@@ -163,6 +163,8 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             UNLOCK_DIVINE_BONES,
             /// <summary>Fraction de réduction du coût de Purification des Os Divins (Cristal et points de recherche). Base = 0.0; 0.05 = -5%.</summary>
             DIVINE_BONES_COST_REDUCTION,
+            /// <summary>Bonus de vitesse de régénération de défense par point de Dominion sur les 3 hexs de l'emplacement. Base = 0.0; agrégé via PerVertexModifiers (valeur × vertex de prestige adjacents achetés), puis multiplié par la somme des niveaux de Dominion autour de la ville.</summary>
+            DOMINION_DEFENSE_REGEN_PER_LEVEL,
         }
 
         [JsonConverter(typeof(JsonStringEnumConverter<EType>))]

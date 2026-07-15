@@ -3,6 +3,7 @@ using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
+using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Monsters;
 using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
@@ -127,9 +128,22 @@ public class MilitaryController
         var civ = _state?.Civilizations.FirstOrDefault(c => c.Index == vertex.CivilizationIndex);
         if (civ == null) return 0;
         const double ticksPerSecond = 100.0;
+        return GetDefenseRegenSpeed(vertex, civ) * ticksPerSecond / DefenseRegenIntervalTicks;
+    }
+
+    /// <summary>
+    /// Vitesse de régénération de défense : modificateurs de civilisation + bonus de bâtiments,
+    /// amplifiés par Foi Protectrice (DOMINION_DEFENSE_REGEN_PER_LEVEL × somme des niveaux de
+    /// Dominion sur les 3 hexs de l'emplacement).
+    /// </summary>
+    private double GetDefenseRegenSpeed(IMilitaryVertex vertex, Civilization civ)
+    {
         double buildingBonus = vertex is City city ? city.Buildings.Sum(b => b.GetDefenseRegenBonus()) : 0;
-        double regenSpeed = civ.CityDefenseRegenSpeed + buildingBonus;
-        return regenSpeed * ticksPerSecond / DefenseRegenIntervalTicks;
+        double perDominionLevel = civ.ModifierAggregator.ApplyModifiers(ECategory.DOMINION_DEFENSE_REGEN_PER_LEVEL, "", 0.0);
+        double dominionBonus = perDominionLevel <= 0 ? 0.0
+            : perDominionLevel * vertex.Position.GetHexes()
+                .Sum(h => _state!.GetFeaturesAt(h).OfType<Dominion>().Sum(d => d.Level));
+        return (civ.CityDefenseRegenSpeed + buildingBonus) * (1.0 + dominionBonus);
     }
 
     /// <summary>Score de défense maximal (bâtiments/bonus fixe + modificateurs de civilisation).</summary>
@@ -208,8 +222,7 @@ public class MilitaryController
             {
                 int maxDef = GetDefenseScore(vertex);
                 if (vertex.CurrentDefense >= maxDef) continue;
-                double buildingBonus = vertex is City city ? city.Buildings.Sum(b => b.GetDefenseRegenBonus()) : 0;
-                double regenSpeed = civ.CityDefenseRegenSpeed + buildingBonus;
+                double regenSpeed = GetDefenseRegenSpeed(vertex, civ);
                 long effectiveRegenInterval = (long)(DefenseRegenIntervalTicks / regenSpeed);
                 if (currentTick - vertex.LastDefenseRegenTick < effectiveRegenInterval) continue;
                 if (civ.GetResourceQuantity(Resource.Wood) < 1 || civ.GetResourceQuantity(Resource.Stone) < 1) continue;

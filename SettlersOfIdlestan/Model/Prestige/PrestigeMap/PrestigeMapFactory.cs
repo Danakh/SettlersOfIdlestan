@@ -430,7 +430,7 @@ public static class PrestigeMapFactory
             // ── Branche des Abysses ──────────────────────────────────────────────
             // Chaque porte mêle 1-2 vertex clés (déblocage de recherche, pouvoir fort) et des
             // petits bonus thématiques.
-            // Porte de l'Acier — autour de VoidForge / PlanarRuins
+            // Porte de l'Acier — autour de Foi Protectrice / PlanarRuins
             new(
                 PrestigeMap.VoidBreachVertex,
                 "prestige_vertex_void_breach",
@@ -693,12 +693,16 @@ public static class PrestigeMapFactory
             ),
             // ── Hexes des Abysses — entourent les trois vertex de déblocage de la Faille des
             // Abysses (Porte Planaire / Faille des Abysses / Rituel de l'Éclipse Noire).
+            // Foi Protectrice — verrouillée en "???" tant que le pouvoir divin Foi n'est pas
+            // débloqué (UNLOCK_DOMINION), comme l'hex Dominion. Chaque vertex acheté accélère la
+            // régénération de défense de 2% par point de Dominion sur les 3 hexs de la ville.
             new(
-                PrestigeMap.VoidForgeCoord,
-                "prestige_hex_void_forge",
-                adjacentVertices: Adjacent(PrestigeMap.VoidForgeCoord),
-                perVertexModifiers: new Modifier[] { new(ECategory.SMELTER_SPEED, EType.ADDITIVE, 0.1) },
-                domain: PrestigeHexDomain.Exterminate
+                PrestigeMap.ProtectiveFaithCoord,
+                "prestige_hex_protective_faith",
+                adjacentVertices: Adjacent(PrestigeMap.ProtectiveFaithCoord),
+                perVertexModifiers: new Modifier[] { new(ECategory.DOMINION_DEFENSE_REGEN_PER_LEVEL, EType.ADDITIVE, 0.02) },
+                domain: PrestigeHexDomain.Exterminate,
+                requiresDominionUnlock: true
             ),
             new(
                 PrestigeMap.PlanarRuinsCoord,

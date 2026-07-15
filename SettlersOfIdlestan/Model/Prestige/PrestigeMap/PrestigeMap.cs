@@ -27,7 +27,7 @@ public class PrestigeMap
     public static readonly HexCoord LeyLinesCoord             = new(-1,  3, 0);
     // ── Branche des Abysses — deux hexs placeholder par porte d'entrée (Acier / Inframonde / Magie),
     // ajoutés une fois la Faille des Abysses débloquée, pour entourer entièrement chaque vertex de déblocage.
-    public static readonly HexCoord VoidForgeCoord    = new( 4, -2, 0);
+    public static readonly HexCoord ProtectiveFaithCoord = new( 4, -2, 0);
     public static readonly HexCoord PlanarRuinsCoord  = new( 4, -1, 0);
     public static readonly HexCoord AbyssDepthsCoord  = new(-2, -1, 0);
     public static readonly HexCoord AbyssChasmCoord   = new(-1, -2, 0);
@@ -102,7 +102,7 @@ public class PrestigeMap
 
     // ── Branche des Abysses — vertex placeholder autour des hexs ajoutés une fois la Faille
     // des Abysses débloquée. Aucun pouvoir, sauf AdventurersGuildVertex (proche du Mithril).
-    // Porte de l'Acier — autour de VoidForge (4,-2) / PlanarRuins (4,-1)
+    // Porte de l'Acier — autour de Foi Protectrice (4,-2) / PlanarRuins (4,-1)
     public static readonly Vertex VoidBreachVertex      = Vertex.Create(new( 4, -2, 0), new( 4, -1, 0), new( 5, -2, 0));
     public static readonly Vertex DeepVoidVertex        = Vertex.Create(new( 4, -2, 0), new( 5, -2, 0), new( 5, -3, 0));
     public static readonly Vertex ShatteredRealmVertex  = Vertex.Create(new( 4, -2, 0), new( 5, -3, 0), new( 4, -3, 0));
