@@ -171,12 +171,12 @@ public class MaritimeBeaconRenderer : HexBasedRenderer, IGameRenderer
 
     private static bool IsBeaconVisible(MaritimeBeacon beacon, IslandMap visibleMap)
     {
-        return beacon.Position.Z == visibleMap.Z && beacon.Position.GetHexes().Any(visibleMap.HasTile);
+        return visibleMap.IsVertexVisible(beacon.Position);
     }
 
     private static bool IsFleetVisible(WarFleet fleet, IslandMap visibleMap)
     {
-        return fleet.Position.Z == visibleMap.Z && fleet.Position.GetHexes().Any(visibleMap.HasTile);
+        return visibleMap.IsVertexVisible(fleet.Position);
     }
 
     public void Dispose()

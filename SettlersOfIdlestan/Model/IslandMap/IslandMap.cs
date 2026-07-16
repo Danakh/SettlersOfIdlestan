@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json.Serialization;
 using SettlersOfIdlestan.Model.HexGrid;
 
@@ -80,6 +81,20 @@ public class IslandMap
     public bool IsOnSameLayer(HexCoord coord) => coord.Z == Z;
     public bool IsOnSameLayer(Vertex vertex) => vertex.Z == Z;
     public bool IsOnSameLayer(Edge edge) => edge.Z == Z;
+
+    /// <summary>
+    /// Vrai si ce vertex est visible sur cette carte : au moins un de ses hexagones visibles n'est
+    /// pas de l'eau, ou (vertex entouré uniquement d'eau, ex. balise maritime) si ses 3 hexagones
+    /// sont tous visibles.
+    /// </summary>
+    public bool IsVertexVisible(Vertex vertex)
+    {
+        if (!IsOnSameLayer(vertex)) return false;
+        var hexes = vertex.GetHexes();
+        if (hexes.Any(h => GetTile(h) is { } tile && !tile.TerrainType.IsWater()))
+            return true;
+        return hexes.All(HasTile);
+    }
 
     /// <summary>
     /// Ajoute ou remplace une tuile sur cette carte (utilisé par l'AutoExtend).

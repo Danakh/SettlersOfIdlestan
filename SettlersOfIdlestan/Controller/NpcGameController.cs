@@ -132,9 +132,7 @@ public class NpcGameController
 
         return _state.Civilizations
             .Where(c => c.Index != npcCiv.Index && c.Cities.Count > 0)
-            .Where(c => c.Cities.Any(city =>
-                city.Position.Z == z &&
-                city.Position.GetHexes().Any(h => visibleMap.HasTile(h))))
+            .Where(c => c.Cities.Any(city => visibleMap.IsVertexVisible(city.Position)))
             .OrderBy(c => npcCiv.Cities.Min(nc =>
                 c.Cities.Min(ec => nc.Position.EdgeDistanceTo(ec.Position))))
             .FirstOrDefault();
@@ -153,8 +151,7 @@ public class NpcGameController
         return _state.Civilizations
             .Where(c => c.Index != npcCiv.Index)
             .SelectMany(c => c.Cities)
-            .Where(city => city.Position.Z == z)
-            .Any(city => city.Position.GetHexes().Any(h => visibleMap.HasTile(h)));
+            .Any(city => visibleMap.IsVertexVisible(city.Position));
     }
 
     /// <summary>

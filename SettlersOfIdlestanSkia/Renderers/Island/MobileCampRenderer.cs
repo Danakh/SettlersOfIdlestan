@@ -150,7 +150,7 @@ public class MobileCampRenderer : HexBasedRenderer, IGameRenderer
 
     private static bool IsCampVisible(MobileCamp camp, IslandMap visibleMap)
     {
-        return camp.Position.Z == visibleMap.Z && camp.Position.GetHexes().Any(visibleMap.HasTile);
+        return visibleMap.IsVertexVisible(camp.Position);
     }
 
     public void Dispose()

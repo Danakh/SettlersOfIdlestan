@@ -108,7 +108,7 @@ namespace SettlersOfIdlestan.Controller
                 var visMaps = auto.WorldState.Visibility.GetForZ(IslandMap.SurfaceLayer);
                 if (!visMaps.TryGetValue(auto.Civilization.Index, out var vm)) return false;
                 return auto.WorldState.Civilizations.Any(c => c.IsNpc && c.Cities.Count > 0 &&
-                    c.Cities.Any(city => (city.Position.Z == vm.Z) && city.Position.GetHexes().Any(h => vm.HasTile(h))));
+                    c.Cities.Any(city => vm.IsVertexVisible(city.Position)));
             });
 
             var hasOreProduction = new Func<bool>(() =>

@@ -133,9 +133,7 @@ public class FeatureController
 
             var isCivVisible =
                 visibleMaps.Any(visibleMap =>
-                    civ.Cities.Any(city =>
-                        visibleMap.IsOnSameLayer(city.Position) &&
-                        city.Position.GetHexes().Any(visibleMap.HasTile)) ||
+                    civ.Cities.Any(city => visibleMap.IsVertexVisible(city.Position)) ||
                     civ.Roads.Any(road =>
                     {
                         if (!visibleMap.IsOnSameLayer(road.Position))

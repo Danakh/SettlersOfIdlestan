@@ -198,9 +198,7 @@ namespace SettlersOfIdlestan.Controller
 
             return _worldState.Civilizations
                 .Where(c => c.Index != _civ.Index && c.Cities.Count > 0)
-                .Where(c => c.Cities.Any(city =>
-                    city.Position.Z == z &&
-                    city.Position.GetHexes().Any(h => visibleMap.HasTile(h))))
+                .Where(c => c.Cities.Any(city => visibleMap.IsVertexVisible(city.Position)))
                 .OrderBy(c => _civ.Cities.Min(nc =>
                     c.Cities.Min(ec => nc.Position.EdgeDistanceTo(ec.Position))))
                 .FirstOrDefault();

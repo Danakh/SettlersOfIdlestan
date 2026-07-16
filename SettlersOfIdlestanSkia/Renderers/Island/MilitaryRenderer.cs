@@ -334,8 +334,8 @@ public class MilitaryRenderer : HexBasedRenderer, IGameRenderer
 
             if (visibleMap != null)
             {
-                bool sourceVisible = p.SourceVertex != null && IsVertexVisible(p.SourceVertex, visibleMap);
-                bool targetVisible = p.TargetVertex != null && IsVertexVisible(p.TargetVertex, visibleMap);
+                bool sourceVisible = p.SourceVertex != null && visibleMap.IsVertexVisible(p.SourceVertex);
+                bool targetVisible = p.TargetVertex != null && visibleMap.IsVertexVisible(p.TargetVertex);
                 if (!sourceVisible && !targetVisible)
                 {
                     if (p.Progress >= 1f) particles.RemoveAt(i);
@@ -369,14 +369,6 @@ public class MilitaryRenderer : HexBasedRenderer, IGameRenderer
             if (p.Progress >= 1f)
                 particles.RemoveAt(i);
         }
-    }
-
-    private static bool IsVertexVisible(Vertex v, IslandMap visibleMap)
-    {
-        if (v.Z != visibleMap.Z) return false;
-        foreach (var hex in v.GetHexes())
-            if (visibleMap.HasTile(hex)) return true;
-        return false;
     }
 
     private static bool IsSegmentVisible(Vertex v1, Vertex v2, IslandMap visibleMap)

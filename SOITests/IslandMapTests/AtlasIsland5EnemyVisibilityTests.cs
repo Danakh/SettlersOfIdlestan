@@ -104,7 +104,7 @@ public class AtlasIsland5EnemyVisibilityTests
             .Where(civ => civ.Index != playerIndex)
             .Where(civ =>
                 civ.Cities.Any(city =>
-                    visibleMaps.Any(vm => vm.IsOnSameLayer(city.Position) && city.Position.GetHexes().Any(vm.HasTile))) ||
+                    visibleMaps.Any(vm => vm.IsVertexVisible(city.Position))) ||
                 civ.Roads.Any(road =>
                     visibleMaps.Any(vm =>
                     {

@@ -159,7 +159,7 @@ internal class CityAttackEngine
     {
         var visibleMaps = _state!.Visibility.GetForZ(vertex.Position.Z);
         if (!visibleMaps.TryGetValue(civ.Index, out var visibleMap)) return true;
-        return vertex.Position.GetHexes().Any(h => visibleMap.HasTile(h));
+        return visibleMap.IsVertexVisible(vertex.Position);
     }
 
     private bool ApplyAttackToCity(IMilitaryVertex targetVertex, Action<CityBuildingDestroyedEventArgs> onCityBuildingDestroyed)

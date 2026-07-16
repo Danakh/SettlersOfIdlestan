@@ -437,8 +437,7 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
                 continue;
 
             if (WorldState.Visibility.GetForZ(WorldState.CurrentViewedLayer).TryGetValue(playerIndex, out var visibleMap) &&
-                (city.Position.Z != visibleMap.Z ||
-                !city.Position.GetHexes().Any(visibleMap.HasTile)))
+                !visibleMap.IsVertexVisible(city.Position))
             {
                 continue;
             }
@@ -475,7 +474,7 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
         {
             if (city.CivilizationIndex == playerIndex)
                 continue;
-            if (city.Position.Z != visibleMap.Z || !city.Position.GetHexes().Any(visibleMap.HasTile))
+            if (!visibleMap.IsVertexVisible(city.Position))
                 continue;
 
             var pt = _renderer.VertexToIslandPoint(city.Position);
@@ -506,7 +505,7 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
             if (fleet.CivilizationIndex != playerIndex) continue;
 
             if (worldState.Visibility.GetForZ(worldState.CurrentViewedLayer).TryGetValue(playerIndex, out var visibleMap) &&
-                (fleet.Position.Z != visibleMap.Z || !fleet.Position.GetHexes().Any(visibleMap.HasTile)))
+                !visibleMap.IsVertexVisible(fleet.Position))
                 continue;
 
             var pt = _renderer.VertexToIslandPoint(fleet.Position);
@@ -534,7 +533,7 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
         foreach (var fleet in worldState.GetAllFleets())
         {
             if (fleet.CivilizationIndex == playerIndex) continue;
-            if (fleet.Position.Z != visibleMap.Z || !fleet.Position.GetHexes().Any(visibleMap.HasTile)) continue;
+            if (!visibleMap.IsVertexVisible(fleet.Position)) continue;
 
             var pt = _renderer.VertexToIslandPoint(fleet.Position);
             var dist = SKPoint.Distance(islandPoint, pt);
@@ -560,7 +559,7 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
             if (camp.CivilizationIndex != playerIndex) continue;
 
             if (worldState.Visibility.GetForZ(worldState.CurrentViewedLayer).TryGetValue(playerIndex, out var visibleMap) &&
-                (camp.Position.Z != visibleMap.Z || !camp.Position.GetHexes().Any(visibleMap.HasTile)))
+                !visibleMap.IsVertexVisible(camp.Position))
                 continue;
 
             var pt = _renderer.VertexToIslandPoint(camp.Position);
@@ -588,7 +587,7 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
         foreach (var camp in worldState.GetAllMobileCamps())
         {
             if (camp.CivilizationIndex == playerIndex) continue;
-            if (camp.Position.Z != visibleMap.Z || !camp.Position.GetHexes().Any(visibleMap.HasTile)) continue;
+            if (!visibleMap.IsVertexVisible(camp.Position)) continue;
 
             var pt = _renderer.VertexToIslandPoint(camp.Position);
             var dist = SKPoint.Distance(islandPoint, pt);

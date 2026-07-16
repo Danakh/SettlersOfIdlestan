@@ -240,7 +240,7 @@ public class CityRenderer : HexBasedRenderer, IGameRenderer
 
     private static bool IsCityVisible(City city, IslandMap visibleMap)
     {
-        return (city.Position.Z == visibleMap.Z) && city.Position.GetHexes().Any(visibleMap.HasTile);
+        return visibleMap.IsVertexVisible(city.Position);
     }
 
     public void Dispose()
