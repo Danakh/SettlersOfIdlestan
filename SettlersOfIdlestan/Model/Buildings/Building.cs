@@ -203,6 +203,11 @@ public enum BuildingType
     /// récoltes automatiques.
     /// </summary>
     ColossusWorkshop,
+    /// <summary>
+    /// Fosse aux Crânes - Bâtiment unique racial des Orcs. Offre la nourriture d'entretien de
+    /// quelques soldats par ville.
+    /// </summary>
+    SkullPit,
 }
 
 /// <summary>

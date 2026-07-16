@@ -15,6 +15,7 @@ public enum RaceId
     Dwarf,
     Goblin,
     Giant,
+    Orc,
     // Races avancées (RaceTier.Advanced) : déclarées pour l'UI et la sérialisation,
     // pas encore sélectionnables (voir RaceDefinitions / AscensionController.GetSelectableRaces).
     Mermaid,

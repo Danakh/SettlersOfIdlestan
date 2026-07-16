@@ -503,6 +503,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 BuildingType.RunicForge => new RunicForge(),
                 BuildingType.GreatBurrow => new GreatBurrow(),
                 BuildingType.ColossusWorkshop => new ColossusWorkshop(),
+                BuildingType.SkullPit => new SkullPit(),
                 _ => null,
             };
         }

@@ -80,6 +80,7 @@ namespace SettlersOfIdlestan.Model.Buildings
                 BuildingType.RunicForge => typeof(RunicForge),
                 BuildingType.GreatBurrow => typeof(GreatBurrow),
                 BuildingType.ColossusWorkshop => typeof(ColossusWorkshop),
+                BuildingType.SkullPit => typeof(SkullPit),
                 _ => throw new JsonException($"Unknown building type: {bType}")
             };
 
