@@ -41,6 +41,8 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
     private int _cachedGreatLighthouseLevel = -1;
     private int _cachedFleetAndCampCount = -1;
     private bool _cachedMobileCampUnlocked;
+    private int _cachedTotalCityCount = -1;
+    private int _cachedTotalBeaconCount = -1;
 
     public ConstructionHoverState HoverState { get; private set; } = ConstructionHoverState.Empty;
 
@@ -116,30 +118,61 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
 
             if (HoverState.HoveredVertex != null)
             {
-                var city = _gameControllerService.TryBuildCityForPlayer(HoverState.HoveredVertex);
-                if (city != null)
-                    SetSelectedCity(city.Position);
+                try
+                {
+                    var city = _gameControllerService.TryBuildCityForPlayer(HoverState.HoveredVertex);
+                    if (city != null)
+                        SetSelectedCity(city.Position);
+                }
+                catch (InvalidOperationException)
+                {
+                    // The vertex looked buildable from a stale hover cache (e.g. an NPC just built a
+                    // city nearby) — the controller re-validated and rejected it. Force a fresh
+                    // recompute below instead of crashing on the click.
+                    InvalidateBuildableCache();
+                }
                 RefreshHover(e.Position);
                 return;
             }
 
             if (HoverState.HoveredBeaconVertex != null)
             {
-                _gameControllerService.TryBuildMaritimeBeaconForPlayer(HoverState.HoveredBeaconVertex);
+                try
+                {
+                    _gameControllerService.TryBuildMaritimeBeaconForPlayer(HoverState.HoveredBeaconVertex);
+                }
+                catch (InvalidOperationException)
+                {
+                    InvalidateBuildableCache();
+                }
                 RefreshHover(e.Position);
                 return;
             }
 
             if (HoverState.HoveredFleetVertex != null)
             {
-                _gameControllerService.TryBuildWarFleetForPlayer(HoverState.HoveredFleetVertex);
+                try
+                {
+                    _gameControllerService.TryBuildWarFleetForPlayer(HoverState.HoveredFleetVertex);
+                }
+                catch (InvalidOperationException)
+                {
+                    InvalidateBuildableCache();
+                }
                 RefreshHover(e.Position);
                 return;
             }
 
             if (HoverState.HoveredMobileCampVertex != null)
             {
-                _gameControllerService.TryBuildMobileCampForPlayer(HoverState.HoveredMobileCampVertex);
+                try
+                {
+                    _gameControllerService.TryBuildMobileCampForPlayer(HoverState.HoveredMobileCampVertex);
+                }
+                catch (InvalidOperationException)
+                {
+                    InvalidateBuildableCache();
+                }
                 RefreshHover(e.Position);
                 return;
             }
@@ -151,7 +184,17 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
                 return;
             }
 
-            if (HoverState.HoveredEdge != null && _gameControllerService.TryBuildRoadForPlayer(HoverState.HoveredEdge) != null)
+            bool roadBuilt;
+            try
+            {
+                roadBuilt = HoverState.HoveredEdge != null && _gameControllerService.TryBuildRoadForPlayer(HoverState.HoveredEdge) != null;
+            }
+            catch (InvalidOperationException)
+            {
+                InvalidateBuildableCache();
+                roadBuilt = false;
+            }
+            if (roadBuilt)
             {
                 RefreshHover(e.Position);
                 return;
@@ -202,16 +245,24 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
 
     private void RefreshBuildableCache()
     {
-        var playerCiv = _gameControllerService.CurrentWorldState?.PlayerCivilization;
+        var worldState = _gameControllerService.CurrentWorldState;
+        var playerCiv = worldState?.PlayerCivilization;
         int cityCount = playerCiv?.Cities.Count ?? 0;
         int roadCount = playerCiv?.Roads.Count ?? 0;
         int beaconCount = playerCiv?.MaritimeBeacons.Count ?? 0;
         int greatLighthouseLevel = _gameControllerService.MainGameController.GreatLighthouseController.GetGreatLighthouseLevel();
         int fleetAndCampCount = (playerCiv?.Fleets.Count ?? 0) + (playerCiv?.MobileCamps.Count ?? 0);
         bool mobileCampUnlocked = _gameControllerService.IsMobileCampUnlockedForPlayer();
+        // Other civilizations (NPCs) can build cities/beacons near the player's would-be vertices and
+        // invalidate them (see CityBuilderController.GetBuildableVertices) — the cache must react to
+        // that too, not just to the player's own counters, or a stale-but-still-highlighted vertex can
+        // be double-clicked after an NPC just made it unbuildable.
+        int totalCityCount = worldState?.Civilizations.Sum(c => c.Cities.Count) ?? 0;
+        int totalBeaconCount = worldState?.Civilizations.Sum(c => c.MaritimeBeacons.Count) ?? 0;
         if (_cachedBuildableVertices != null && cityCount == _cachedCityCount && roadCount == _cachedRoadCount
             && beaconCount == _cachedBeaconCount && greatLighthouseLevel == _cachedGreatLighthouseLevel
-            && fleetAndCampCount == _cachedFleetAndCampCount && mobileCampUnlocked == _cachedMobileCampUnlocked)
+            && fleetAndCampCount == _cachedFleetAndCampCount && mobileCampUnlocked == _cachedMobileCampUnlocked
+            && totalCityCount == _cachedTotalCityCount && totalBeaconCount == _cachedTotalBeaconCount)
             return;
         _cachedBuildableVertices       = _gameControllerService.GetBuildableCityVerticesForPlayer();
         _cachedBuildableEdges          = _gameControllerService.GetBuildableRoadEdgesForPlayer();
@@ -225,6 +276,15 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
         _cachedGreatLighthouseLevel = greatLighthouseLevel;
         _cachedFleetAndCampCount = fleetAndCampCount;
         _cachedMobileCampUnlocked = mobileCampUnlocked;
+        _cachedTotalCityCount = totalCityCount;
+        _cachedTotalBeaconCount = totalBeaconCount;
+    }
+
+    /// <summary>Forces the next <see cref="RefreshBuildableCache"/> call to recompute, e.g. after a
+    /// build attempt was rejected as stale by the controller layer.</summary>
+    private void InvalidateBuildableCache()
+    {
+        _cachedBuildableVertices = null;
     }
 
     private void RefreshHover(SKPoint screenPoint)
