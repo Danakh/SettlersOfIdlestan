@@ -61,6 +61,9 @@ public enum TechnologyId
     // Débloque la construction du Camp Mobile — prend la place de RailLogistics dans l'arbre (voir
     // TechnologyDefinitions).
     MobileCampConstruction,
+    // Répétable à l'infini (comme MasterHarvest) : +5% UNIT_PRODUCTION_SPEED par complétion, coût
+    // doublé à chaque relance. Un tier au-dessus du Camp Mobile, son seul prérequis.
+    EntrainementIntensif,
     // Patrouille anti-monstres automatique — prend la place d'AdvancedStrategy dans l'arbre (voir
     // TechnologyDefinitions).
     Patrol,
@@ -168,6 +171,13 @@ public class Technology
     /// </summary>
     public bool RequiresDominionUnlock { get; }
 
+    /// <summary>
+    /// Vraie si la recherche peut être relancée indéfiniment une fois terminée. Chaque relance double
+    /// le coût (par rapport au coût de base, voir ResearchController.GetEffectiveCost) et ses modificateurs
+    /// s'accumulent une fois par complétion (voir TechnologyTree.RepeatCounts / RebuildModifiers).
+    /// </summary>
+    public bool Repeatable { get; }
+
     public Technology(
         TechnologyId id,
         string nameKey,
@@ -177,7 +187,8 @@ public class Technology
         IReadOnlyList<Modifier> modifiers,
         int tier,
         int line,
-        bool requiresDominionUnlock = false)
+        bool requiresDominionUnlock = false,
+        bool repeatable = false)
     {
         Id = id;
         NameKey = nameKey;
@@ -188,5 +199,6 @@ public class Technology
         Tier = tier;
         Line = line;
         RequiresDominionUnlock = requiresDominionUnlock;
+        Repeatable = repeatable;
     }
 }

@@ -54,7 +54,16 @@ namespace SettlersOfIdlestan.Controller.Expand
             _totalBaseResearchCostCompleted = 0;
             if (prestigeState != null)
                 foreach (var id in prestigeState.TechnologyTree.CompletedTechnologies)
-                    _totalBaseResearchCostCompleted += TechnologyDefinitions.Get(id)?.Cost ?? 0;
+                {
+                    var tech = TechnologyDefinitions.Get(id);
+                    if (tech == null) continue;
+                    // Une recherche répétable a pu être complétée plusieurs fois : chaque complétion
+                    // contribue son coût de base (voir l'incrément équivalent dans AdvanceActiveResearch).
+                    int repeats = tech.Repeatable
+                        ? (prestigeState.TechnologyTree.RepeatCounts.TryGetValue(id, out var c) ? c : 1)
+                        : 1;
+                    _totalBaseResearchCostCompleted += tech.Cost * repeats;
+                }
 
             if (_clock != null)
                 _clock.Advanced += OnClockAdvanced;
@@ -157,6 +166,13 @@ namespace SettlersOfIdlestan.Controller.Expand
                 tree.CompleteResearch(techId);
                 OnResearchCompleted?.Invoke(this, techId);
 
+                // Recherche répétable en boucle : se relance elle-même indéfiniment (reste sa propre "file")
+                if (tech.Repeatable && tree.LoopResearch == techId)
+                {
+                    StartResearch(techId);
+                    return;
+                }
+
                 // Auto-démarrer la recherche suivante si elle est en file d'attente
                 if (tree.QueuedResearch.HasValue)
                 {
@@ -175,11 +191,14 @@ namespace SettlersOfIdlestan.Controller.Expand
             if (_state == null || Tree == null) return false;
             if (IsDemoLocked(id)) return false;
             var tree = Tree;
-            if (tree.CompletedTechnologies.Contains(id)) return false;
-            if (tree.ActiveResearch == id) return false;
 
             var tech = TechnologyDefinitions.Get(id);
             if (tech == null) return false;
+
+            bool alreadyCompleted = tree.CompletedTechnologies.Contains(id);
+            if (alreadyCompleted && !tech.Repeatable) return false;
+            if (tree.ActiveResearch == id) return false;
+
             if (!ArePrerequisitesMet(tree, tech)) return false;
             if (!IsPrestigeRequirementMet(id)) return false;
             if (!IsDominionRequirementMet(id)) return false;
@@ -187,6 +206,26 @@ namespace SettlersOfIdlestan.Controller.Expand
             tree.ActiveResearch = id;
             tree.ActiveResearchConsumed = 0;
             tree.ActiveResearchLastConsumptionTick = _clock?.CurrentTick ?? 0;
+            return true;
+        }
+
+        /// <summary>Nombre de fois où cette recherche répétable a déjà été complétée (0 si jamais, ou non répétable).</summary>
+        public int GetRepeatCount(TechnologyId id)
+            => Tree?.RepeatCounts.TryGetValue(id, out var count) == true ? count : 0;
+
+        /// <summary>True si le bouton "loop" peut être proposé pour cette recherche (répétable + file débloquée).</summary>
+        public bool CanLoop(TechnologyId id)
+        {
+            if (Tree == null || !IsResearchQueueUnlocked()) return false;
+            return TechnologyDefinitions.Get(id)?.Repeatable == true;
+        }
+
+        public bool IsLoopEnabled(TechnologyId id) => Tree?.LoopResearch == id;
+
+        public bool ToggleLoopResearch(TechnologyId id)
+        {
+            if (Tree == null || !CanLoop(id)) return false;
+            Tree.LoopResearch = Tree.LoopResearch == id ? null : id;
             return true;
         }
 
@@ -210,6 +249,8 @@ namespace SettlersOfIdlestan.Controller.Expand
 
             long refund = GetCancelRefundAmount();
             tree.ResearchPoints = Math.Min(tree.ResearchPoints + refund, MaxResearchPoints);
+            if (tree.LoopResearch == tree.ActiveResearch)
+                tree.LoopResearch = null;
             tree.ActiveResearch = null;
             tree.ActiveResearchConsumed = 0;
             tree.ActiveResearchLastConsumptionTick = 0;
@@ -239,10 +280,10 @@ namespace SettlersOfIdlestan.Controller.Expand
             if (IsDemoLocked(id)) return false;
             if (!IsResearchQueueUnlocked()) return false;
             var tree = Tree;
-            if (tree.CompletedTechnologies.Contains(id)) return false;
-            if (tree.ActiveResearch == id) return false;
             var tech = TechnologyDefinitions.Get(id);
             if (tech == null) return false;
+            if (tree.CompletedTechnologies.Contains(id) && !tech.Repeatable) return false;
+            if (tree.ActiveResearch == id) return false;
             if (!IsPrestigeRequirementMet(id)) return false;
             if (!IsDominionRequirementMet(id)) return false;
             return ArePrerequisitesMet(tree, tech) || WillBeAvailableAfterActiveResearch(tree, tech);
@@ -267,8 +308,10 @@ namespace SettlersOfIdlestan.Controller.Expand
             if (IsDemoLocked(id)) return TechnologyStatus.Inactive;
             var tree = Tree;
 
-            if (tree.CompletedTechnologies.Contains(id)) return TechnologyStatus.Completed;
+            // Vérifie ActiveResearch en premier : une recherche répétable en cours de relance est à la fois
+            // "déjà complétée" (CompletedTechnologies) et "en cours" — c'est ce second état qui doit primer.
             if (tree.ActiveResearch == id) return TechnologyStatus.InProgress;
+            if (tree.CompletedTechnologies.Contains(id)) return TechnologyStatus.Completed;
 
             var tech = TechnologyDefinitions.Get(id);
             if (tech == null || !ArePrerequisitesMet(tree, tech) || !IsPrestigeRequirementMet(id)
@@ -390,7 +433,16 @@ namespace SettlersOfIdlestan.Controller.Expand
         private long GetEffectiveCost(Technology tech)
         {
             double reduction = _state?.PlayerCivilization.ResearchCostReduction ?? 0.0;
-            return Math.Max(1L, (long)(tech.Cost * (1.0 - reduction)));
+            double baseCost = tech.Cost;
+
+            if (tech.Repeatable && Tree != null)
+            {
+                int count = Tree.RepeatCounts.TryGetValue(tech.Id, out var c) ? c : 0;
+                baseCost *= Math.Pow(2, count);
+            }
+
+            double effective = baseCost * (1.0 - reduction);
+            return effective >= long.MaxValue ? long.MaxValue : Math.Max(1L, (long)effective);
         }
 
         private static bool ArePrerequisitesMet(TechnologyTree tree, Technology tech)

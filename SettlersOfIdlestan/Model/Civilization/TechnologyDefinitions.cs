@@ -162,8 +162,9 @@ public static class TechnologyDefinitions
             "tech_master_harvest_name", "tech_master_harvest_desc",
             cost: 105000,
             prerequisites: new[] { TechnologyId.HarvestTools },
-            modifiers: new Modifier[] { new(ECategory.HARVEST_SPEED, EType.ADDITIVE, 0.25) },
-            tier: 5, line: 2),
+            modifiers: new Modifier[] { new(ECategory.HARVEST_SPEED, EType.ADDITIVE, 0.05) },
+            tier: 5, line: 2,
+            repeatable: true),
 
         new(TechnologyId.MaitriseDesAlliages,
             "tech_maitrise_des_alliages_name", "tech_maitrise_des_alliages_desc",
@@ -339,16 +340,26 @@ public static class TechnologyDefinitions
             modifiers: Array.Empty<Modifier>(),
             tier: 8, line: 8),
 
-        // Repoussée deux tiers au-dessus du Camp Mobile, qui devient son seul prérequis.
-        // Prend la place d'AdvancedStrategy dans l'arbre (voir Technology.cs) : patrouille automatique
-        // qui raide via le système de Raid les monstres qui s'approchent d'une ville, plutôt que
-        // d'attaquer automatiquement les villes ennemies.
+        // Un tier au-dessus du Camp Mobile, qui devient son seul prérequis. Répétable à l'infini
+        // (comme MasterHarvest) : +5% UNIT_PRODUCTION_SPEED par complétion, coût doublé à chaque relance.
+        new(TechnologyId.EntrainementIntensif,
+            "tech_entrainement_intensif_name", "tech_entrainement_intensif_desc",
+            cost: 25000000,
+            prerequisites: new[] { TechnologyId.MobileCampConstruction },
+            modifiers: new Modifier[] { new(ECategory.UNIT_PRODUCTION_SPEED, EType.ADDITIVE, 0.05) },
+            tier: 9, line: 8,
+            repeatable: true),
+
+        // Remontée d'une ligne (voir CLAUDE.md) ; dépend désormais des Remparts de Mithril plutôt que
+        // du Camp Mobile. Prend la place d'AdvancedStrategy dans l'arbre (voir Technology.cs) :
+        // patrouille automatique qui raide via le système de Raid les monstres qui s'approchent d'une
+        // ville, plutôt que d'attaquer automatiquement les villes ennemies.
         new(TechnologyId.Patrol,
             "tech_patrol_name", "tech_patrol_desc",
             cost: 100000000,
-            prerequisites: new[] { TechnologyId.MobileCampConstruction },
+            prerequisites: new[] { TechnologyId.RempartsDeMithril },
             modifiers: new Modifier[] { new(ECategory.UNLOCK_PATROL, EType.ADDITIVE, 1) },
-            tier: 10, line: 8),
+            tier: 10, line: 7),
 
         // Un tier au-dessus de Patrol, qui devient son seul prérequis. Raids automatiques sur une
         // civilisation : la cible se met à jour après un raid manuel du joueur ou une attaque subie.
@@ -357,7 +368,7 @@ public static class TechnologyDefinitions
             cost: 400000000,
             prerequisites: new[] { TechnologyId.Patrol },
             modifiers: new Modifier[] { new(ECategory.UNLOCK_VENDETTA, EType.ADDITIVE, 1) },
-            tier: 11, line: 8),
+            tier: 11, line: 7),
 
         // === Branche de l'Inframonde (débloquée par les vertex de prestige du nord-ouest) ===
 
@@ -658,7 +669,7 @@ public static class TechnologyDefinitions
                 new(ECategory.UNIT_PRODUCTION_SPEED, EType.ADDITIVE, 0.25),
                 new(ECategory.CITY_MAX_SOLDIERS_BONUS, EType.ADDITIVE, 10),
             },
-            tier: 13, line: 8),
+            tier: 13, line: 7),
 
         // === Suite de la ligne du Vide (VoidWalking → VoidCompass, tiers 12-13) ===
         // Accélère la boucle d'Ascension : Purification des Os Divins moins chère, puis routes du
@@ -726,7 +737,7 @@ public static class TechnologyDefinitions
             cost: 27000000000,
             prerequisites: new[] { TechnologyId.LegionEternelle },
             modifiers: new Modifier[] { new(ECategory.TEMPLE_DEFENSE_BONUS, EType.ADDITIVE, 1) },
-            tier: 14, line: 8,
+            tier: 14, line: 7,
             requiresDominionUnlock: true),
 
     };

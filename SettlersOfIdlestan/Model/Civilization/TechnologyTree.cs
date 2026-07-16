@@ -18,6 +18,15 @@ public class TechnologyTree : IModifierProvider
     public long ResearchPoints { get; set; }
     public long ActiveResearchLastConsumptionTick { get; set; }
 
+    // Nombre de fois où chaque recherche répétable (Technology.Repeatable) a été complétée. Sert à la fois
+    // à déterminer le coût de la prochaine relance (double à chaque complétion, voir
+    // ResearchController.GetEffectiveCost) et le cumul de ses modificateurs (voir RebuildModifiers).
+    public Dictionary<TechnologyId, int> RepeatCounts { get; set; } = new();
+
+    // Recherche répétable actuellement configurée pour se relancer automatiquement dès qu'elle se termine
+    // (bouton "loop" affiché uniquement pendant qu'elle est ActiveResearch, voir ResearchController).
+    public TechnologyId? LoopResearch { get; set; }
+
     // Derived from CompletedTechnologies; rebuilt via RebuildModifiers().
     [JsonIgnore]
     public List<Modifier> Modifiers { get; private set; } = new();
@@ -33,21 +42,40 @@ public class TechnologyTree : IModifierProvider
         foreach (var techId in CompletedTechnologies)
         {
             var tech = TechnologyDefinitions.Get(techId);
-            if (tech != null)
+            if (tech == null) continue;
+
+            if (tech.Repeatable)
+            {
+                int count = RepeatCounts.TryGetValue(techId, out var c) ? c : 1;
+                for (int i = 0; i < count; i++)
+                    Modifiers.AddRange(tech.Modifiers);
+            }
+            else
+            {
                 Modifiers.AddRange(tech.Modifiers);
+            }
         }
         OnModifiersChanged?.Invoke();
     }
 
     public void CompleteResearch(TechnologyId id)
     {
-        if (!CompletedTechnologies.Contains(id))
+        var tech = TechnologyDefinitions.Get(id);
+        if (tech != null && tech.Repeatable)
+        {
+            RepeatCounts.TryGetValue(id, out int count);
+            RepeatCounts[id] = count + 1;
+            if (!CompletedTechnologies.Contains(id))
+                CompletedTechnologies.Add(id);
+            Modifiers.AddRange(tech.Modifiers);
+        }
+        else if (!CompletedTechnologies.Contains(id))
         {
             CompletedTechnologies.Add(id);
-            var tech = TechnologyDefinitions.Get(id);
             if (tech != null)
                 Modifiers.AddRange(tech.Modifiers);
         }
+
         if (ActiveResearch == id)
         {
             ActiveResearch = null;

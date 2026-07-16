@@ -176,4 +176,104 @@ public class ResearchControllerTests
 
         Assert.False(ctrl.CancelResearch());
     }
+
+    /// <summary>
+    /// MasterHarvest est répétable à l'infini : une fois complétée, elle reste relançable
+    /// (statut Completed + Repeatable == true), son coût double à chaque relance et son bonus
+    /// HARVEST_SPEED s'accumule (+5% par complétion) au lieu d'être plafonné à une seule valeur fixe.
+    /// </summary>
+    [Fact]
+    public void MasterHarvest_IsRepeatable_CostDoublesAndBonusAccumulatesPerCompletion()
+    {
+        var civ = new Civilization { Index = 0 };
+        var city = new City(CityVertex) { CivilizationIndex = 0 };
+        civ.AddCity(city);
+
+        var state = new WorldState(MinimalMap(), [civ], AtlasController.InvalidIslandId);
+        var prestigeState = new PrestigeState(state);
+        civ.TechnologyTree = prestigeState.TechnologyTree; // relie l'arbre partagé, comme en production
+
+        // Prérequis de MasterHarvest (HarvestTools -> HarvestEfficiency), nécessaires pour StartResearch.
+        prestigeState.TechnologyTree.CompleteResearch(TechnologyId.HarvestEfficiency);
+        prestigeState.TechnologyTree.CompleteResearch(TechnologyId.HarvestTools);
+
+        var clock = new GameClock();
+        clock.Start();
+        var ctrl = new ResearchController();
+        ctrl.Initialize(state, clock, prestigeState);
+
+        var tech = TechnologyDefinitions.Get(TechnologyId.MasterHarvest)!;
+        Assert.True(tech.Repeatable);
+        Assert.Equal(tech.Cost, ctrl.GetResearchProgress(TechnologyId.MasterHarvest).total);
+        Assert.Equal(0, ctrl.GetRepeatCount(TechnologyId.MasterHarvest));
+
+        prestigeState.TechnologyTree.CompleteResearch(TechnologyId.MasterHarvest);
+
+        Assert.Equal(TechnologyStatus.Completed, ctrl.GetStatus(TechnologyId.MasterHarvest));
+        Assert.Equal(1, ctrl.GetRepeatCount(TechnologyId.MasterHarvest));
+        Assert.Equal(tech.Cost * 2, ctrl.GetResearchProgress(TechnologyId.MasterHarvest).total);
+        // +0.1 (HarvestEfficiency, prérequis) + 0.05 (MasterHarvest, 1 complétion)
+        Assert.Equal(0.15, civ.ModifierAggregator.ApplyModifiers(Modifier.ECategory.HARVEST_SPEED, "", 0.0), 3);
+
+        // Relancer : coût doublé, toujours possible car Repeatable même si déjà "Completed"
+        Assert.True(ctrl.StartResearch(TechnologyId.MasterHarvest));
+        Assert.Equal(TechnologyStatus.InProgress, ctrl.GetStatus(TechnologyId.MasterHarvest));
+
+        prestigeState.TechnologyTree.CompleteResearch(TechnologyId.MasterHarvest);
+        Assert.Equal(2, ctrl.GetRepeatCount(TechnologyId.MasterHarvest));
+        Assert.Equal(tech.Cost * 4, ctrl.GetResearchProgress(TechnologyId.MasterHarvest).total);
+        // +0.1 (HarvestEfficiency) + 0.10 (MasterHarvest, 2 complétions)
+        Assert.Equal(0.20, civ.ModifierAggregator.ApplyModifiers(Modifier.ECategory.HARVEST_SPEED, "", 0.0), 3);
+    }
+
+    /// <summary>
+    /// Le bouton "loop" (déverrouillé avec la file de recherche) relance automatiquement une
+    /// recherche répétable dès qu'elle se termine, et reste actif après la relance (elle est sa
+    /// propre file — voir ResearchController.ToggleLoopResearch / AdvanceActiveResearch).
+    /// </summary>
+    [Fact]
+    public void LoopResearch_AutoRestartsRepeatableResearch_WhenItCompletes()
+    {
+        var civ = new Civilization { Index = 0 };
+        var city = new City(CityVertex) { CivilizationIndex = 0 };
+        civ.AddCity(city);
+        civ.AddCustomAggregator(new StaticModifierProvider(
+            new[] { new Modifier(Modifier.ECategory.UNLOCK_RESEARCH_QUEUE, Modifier.EType.ADDITIVE, 1) }));
+
+        var state = new WorldState(MinimalMap(), [civ], AtlasController.InvalidIslandId);
+        var prestigeState = new PrestigeState(state);
+        civ.TechnologyTree = prestigeState.TechnologyTree;
+
+        // Prérequis de MasterHarvest (HarvestTools -> HarvestEfficiency), nécessaires pour StartResearch.
+        prestigeState.TechnologyTree.CompleteResearch(TechnologyId.HarvestEfficiency);
+        prestigeState.TechnologyTree.CompleteResearch(TechnologyId.HarvestTools);
+
+        var clock = new GameClock();
+        clock.Start();
+        var ctrl = new ResearchController();
+        ctrl.Initialize(state, clock, prestigeState);
+
+        Assert.True(ctrl.CanLoop(TechnologyId.MasterHarvest));
+        Assert.False(ctrl.IsLoopEnabled(TechnologyId.MasterHarvest));
+        Assert.True(ctrl.ToggleLoopResearch(TechnologyId.MasterHarvest));
+        Assert.True(ctrl.IsLoopEnabled(TechnologyId.MasterHarvest));
+
+        Assert.True(ctrl.StartResearch(TechnologyId.MasterHarvest));
+
+        // Place la recherche juste au seuil de complétion, pour que le prochain tick de
+        // consommation (1 PR minimum) la termine.
+        long cost = ctrl.GetResearchProgress(TechnologyId.MasterHarvest).total;
+        prestigeState.TechnologyTree.ActiveResearchConsumed = cost;
+        prestigeState.TechnologyTree.ActiveResearchLastConsumptionTick = 0;
+        prestigeState.TechnologyTree.ResearchPoints = 1;
+
+        clock.SimulateAdvance(ResearchController.ResearchConsumptionCooldownTicks); // sentinel : initialise l'horloge
+        clock.SimulateAdvance(ResearchController.ResearchConsumptionCooldownTicks); // consomme 1 PR -> complète et relance
+
+        // La recherche s'est relancée toute seule : toujours "en cours", loop toujours actif,
+        // et le coût de la prochaine complétion a déjà doublé une deuxième fois.
+        Assert.Equal(1, ctrl.GetRepeatCount(TechnologyId.MasterHarvest));
+        Assert.Equal(TechnologyId.MasterHarvest, ctrl.ActiveResearch);
+        Assert.True(ctrl.IsLoopEnabled(TechnologyId.MasterHarvest));
+    }
 }

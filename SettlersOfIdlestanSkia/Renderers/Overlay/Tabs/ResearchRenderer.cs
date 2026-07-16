@@ -1,6 +1,7 @@
 ﻿using SettlersOfIdlestan.Controller.Expand;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
+using SettlersOfIdlestan.Model.GameplayModifier;
 using SettlersOfIdlestanSkia.Services.Localization;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Renderers.Debug;
@@ -34,6 +35,9 @@ public sealed class ResearchRenderer : IGameRenderer
     private const double DoubleClickMaxMs = 400.0;
     private const float DoubleClickMaxDist = 20f;
 
+    private const float LoopBtnWidth = 34f;
+    private const float LoopBtnHeight = 14f;
+
     private readonly GameControllerService _gameControllerService;
     private readonly LocalizationService _localization;
     private readonly InputHandlingService _inputService;
@@ -41,8 +45,10 @@ public sealed class ResearchRenderer : IGameRenderer
 
     private SKSize _canvasSize;
     private readonly Dictionary<TechnologyId, SKRect> _nodeRects = new();
+    private readonly Dictionary<TechnologyId, SKRect> _loopButtonRects = new();
     private SKRect _contentBounds;
     private TechnologyId? _hoveredTechId;
+    private TechnologyId? _hoveredLoopTechId;
     private bool _isHoveringHeader;
     private bool _isHoveringCancelButton;
     private SKPoint _lastPointerPosition;
@@ -71,6 +77,8 @@ public sealed class ResearchRenderer : IGameRenderer
     private readonly SKPaint _availableBorderPaint = new() { Color = SKColors.CornflowerBlue, StrokeWidth = 2f, Style = SKPaintStyle.Stroke, IsAntialias = true };
     private readonly SKPaint _completedBorderPaint = new() { Color = new SKColor(80, 200, 80), StrokeWidth = 1.5f, Style = SKPaintStyle.Stroke, IsAntialias = true };
     private readonly SKPaint _queuedBorderPaint = new() { Color = new SKColor(255, 200, 50), StrokeWidth = 2.5f, Style = SKPaintStyle.Stroke, IsAntialias = true };
+    private readonly SKPaint _repeatableBorderPaint = new() { Color = new SKColor(212, 175, 55), StrokeWidth = 3f, Style = SKPaintStyle.Stroke, IsAntialias = true };
+    private readonly SKPaint _rankBadgePaint = new() { Color = new SKColor(230, 195, 90), IsAntialias = true };
     private readonly SKPaint _queuedTextPaint = new() { Color = new SKColor(255, 220, 80), IsAntialias = true };
     private readonly SKPaint _linePaint = new() { Color = new SKColor(100, 100, 120), StrokeWidth = 1.5f, Style = SKPaintStyle.Stroke, IsAntialias = true };
     private readonly SKPaint _activeLinePaint = new() { Color = new SKColor(80, 160, 80), StrokeWidth = 2f, Style = SKPaintStyle.Stroke, IsAntialias = true };
@@ -78,6 +86,9 @@ public sealed class ResearchRenderer : IGameRenderer
     private readonly SKPaint _dimTextPaint = new() { Color = new SKColor(150, 150, 160), IsAntialias = true };
     private readonly SKPaint _cancelBtnBgPaint = new() { Color = new SKColor(90, 35, 35), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _cancelBtnBorderPaint = new() { Color = new SKColor(180, 80, 80), StrokeWidth = 1.5f, Style = SKPaintStyle.Stroke, IsAntialias = true };
+    private readonly SKPaint _loopBtnBgPaint = new() { Color = new SKColor(40, 70, 40), Style = SKPaintStyle.Fill, IsAntialias = true };
+    private readonly SKPaint _loopBtnActiveBgPaint = new() { Color = new SKColor(60, 150, 60), Style = SKPaintStyle.Fill, IsAntialias = true };
+    private readonly SKPaint _loopBtnBorderPaint = new() { Color = new SKColor(120, 200, 120), StrokeWidth = 1.2f, Style = SKPaintStyle.Stroke, IsAntialias = true };
     private readonly SKFont _nameFont = new() { Size = 12, Typeface = SkiaFonts.Bold };
     private readonly SKFont _smallFont = new() { Size = 10, Typeface = SkiaFonts.Regular };
     private float _lastUiScale = 0f;
@@ -217,13 +228,20 @@ public sealed class ResearchRenderer : IGameRenderer
             var hoveredTech = TechnologyDefinitions.All.FirstOrDefault(t => t.Id == _hoveredTechId.Value);
             if (hoveredTech != null)
             {
-                string desc = _localization.Get(hoveredTech.DescKey);
-                TooltipRenderUtils.DrawTooltip(canvas, _canvasSize, _lastPointerPosition, new[] { desc }, _tooltipFont, uiScale: _lastUiScale);
+                var lines = new List<string> { _localization.Get(hoveredTech.DescKey) };
+                string? bonusLine = FormatRepeatableBonusTooltip(hoveredTech, ctrl.GetRepeatCount(hoveredTech.Id));
+                if (bonusLine != null) lines.Add(bonusLine);
+                TooltipRenderUtils.DrawTooltip(canvas, _canvasSize, _lastPointerPosition, lines.ToArray(), _tooltipFont, uiScale: _lastUiScale);
             }
         }
         else if (_isHoveringCancelButton)
         {
             string tooltip = _localization.Get("tooltip_research_cancel");
+            TooltipRenderUtils.DrawTooltip(canvas, _canvasSize, _lastPointerPosition, new[] { tooltip }, _tooltipFont, uiScale: _lastUiScale);
+        }
+        else if (_hoveredLoopTechId.HasValue)
+        {
+            string tooltip = _localization.Get(ctrl.IsLoopEnabled(_hoveredLoopTechId.Value) ? "tooltip_research_loop_on" : "tooltip_research_loop_off");
             TooltipRenderUtils.DrawTooltip(canvas, _canvasSize, _lastPointerPosition, new[] { tooltip }, _tooltipFont, uiScale: _lastUiScale);
         }
         else if (_isHoveringHeader)
@@ -263,6 +281,7 @@ public sealed class ResearchRenderer : IGameRenderer
 
     private void DrawNodes(SKCanvas canvas, ResearchController ctrl)
     {
+        _loopButtonRects.Clear();
         foreach (var tech in TechnologyDefinitions.All)
         {
             if (!IsFullMapVisible() && !ctrl.ShouldDisplay(tech.Id)) continue;
@@ -284,7 +303,9 @@ public sealed class ResearchRenderer : IGameRenderer
             TechnologyStatus.Available => _availableNodePaint,
             _ => isQueued ? _availableNodePaint : _inactiveNodePaint,
         };
-        var borderPaint = isQueued ? _queuedBorderPaint : status switch
+        var borderPaint = isQueued ? _queuedBorderPaint
+            : tech.Repeatable ? _repeatableBorderPaint
+            : status switch
         {
             TechnologyStatus.Completed => _completedBorderPaint,
             TechnologyStatus.Available => _availableBorderPaint,
@@ -331,6 +352,44 @@ public sealed class ResearchRenderer : IGameRenderer
             subText = $"{SkiaTextUtils.FormatNumber(total)} PR";
         }
         SkiaTextUtils.DrawText(canvas, subText, rect.MidX, rect.Top + 36f, SKTextAlign.Center, _smallFont, isQueued ? _queuedTextPaint : textPaint);
+
+        if (tech.Repeatable)
+        {
+            int rank = ctrl.GetRepeatCount(tech.Id);
+            if (rank > 0)
+            {
+                string rankLabel = _localization.GetFormated("research_rank_badge", rank);
+                SkiaTextUtils.DrawText(canvas, rankLabel, rect.Right - 4f, rect.Top + 11f, SKTextAlign.Right, _smallFont, _rankBadgePaint);
+            }
+        }
+
+        if (status == TechnologyStatus.InProgress && ctrl.CanLoop(tech.Id))
+        {
+            var loopRect = new SKRect(rect.Left, rect.Bottom + 2f, rect.Left + LoopBtnWidth, rect.Bottom + 2f + LoopBtnHeight);
+            bool loopEnabled = ctrl.IsLoopEnabled(tech.Id);
+            canvas.DrawRoundRect(loopRect, 3, 3, loopEnabled ? _loopBtnActiveBgPaint : _loopBtnBgPaint);
+            canvas.DrawRoundRect(loopRect, 3, 3, _loopBtnBorderPaint);
+            string loopLabel = _localization.Get("research_loop_button");
+            SkiaTextUtils.DrawText(canvas, loopLabel, loopRect.MidX, loopRect.MidY + 3.5f, SKTextAlign.Center, _smallFont, _textPaint);
+            _loopButtonRects[tech.Id] = loopRect;
+        }
+    }
+
+    /// <summary>
+    /// Bonus total actuel d'une recherche répétable, déjà complétée au moins une fois (somme de ses
+    /// modificateurs ADDITIVE × rang — voir ResearchController/TechnologyTree.RebuildModifiers pour
+    /// la logique de cumul réelle). Retourne null si la recherche n'est pas répétable ou jamais complétée.
+    /// </summary>
+    private string? FormatRepeatableBonusTooltip(Technology tech, int rank)
+    {
+        if (!tech.Repeatable || rank <= 0) return null;
+
+        double total = 0.0;
+        foreach (var mod in tech.Modifiers)
+            total += mod.Type == Modifier.EType.ADDITIVE ? mod.Value * rank : mod.Value;
+
+        string percent = (total * 100).ToString("0.#");
+        return _localization.GetFormated("tooltip_research_repeatable_bonus", percent);
     }
 
     // ─── Input handling ──────────────────────────────────────────────────────
@@ -351,7 +410,7 @@ public sealed class ResearchRenderer : IGameRenderer
     private void HandlePointerMoved(object? sender, PointerEventArgs e)
     {
         if (_cancelPopup.IsOpen) return;
-        if (!IsActive) { _hoveredTechId = null; _isHoveringHeader = false; _isHoveringCancelButton = false; return; }
+        if (!IsActive) { _hoveredTechId = null; _hoveredLoopTechId = null; _isHoveringHeader = false; _isHoveringCancelButton = false; return; }
         _lastPointerPosition = e.Position;
 
         if (_pointerDown)
@@ -369,12 +428,14 @@ public sealed class ResearchRenderer : IGameRenderer
                 ClampPan();
                 _lastPanMovePosition = e.Position;
                 _hoveredTechId = null;
+                _hoveredLoopTechId = null;
                 _isHoveringHeader = false;
                 return;
             }
         }
 
         _hoveredTechId = null;
+        _hoveredLoopTechId = null;
         _isHoveringCancelButton = _cancelButtonRect != SKRect.Empty && _cancelButtonRect.Contains(e.Position.X, e.Position.Y);
         if (_isHoveringCancelButton) { _isHoveringHeader = false; return; }
         _isHoveringHeader = e.Position.Y >= _topOffset && e.Position.Y <= _topOffset + HeaderHeight;
@@ -382,6 +443,16 @@ public sealed class ResearchRenderer : IGameRenderer
 
         var contentPos = ToContentSpace(e.Position);
         var ctrl = _gameControllerService.MainGameController.ResearchController;
+
+        foreach (var (techId, loopRect) in _loopButtonRects)
+        {
+            if (loopRect.Contains(contentPos.X, contentPos.Y))
+            {
+                _hoveredLoopTechId = techId;
+                return;
+            }
+        }
+
         foreach (var (techId, rect) in _nodeRects)
         {
             if (!IsFullMapVisible() && !ctrl.ShouldDisplay(techId)) continue;
@@ -416,6 +487,16 @@ public sealed class ResearchRenderer : IGameRenderer
         }
 
         var contentPos = ToContentSpace(e.Position);
+
+        foreach (var (techId, loopRect) in _loopButtonRects)
+        {
+            if (loopRect.Contains(contentPos.X, contentPos.Y))
+            {
+                ctrl.ToggleLoopResearch(techId);
+                return;
+            }
+        }
+
         foreach (var (techId, rect) in _nodeRects)
         {
             if (!IsFullMapVisible() && !ctrl.ShouldDisplay(techId)) continue;
@@ -438,12 +519,15 @@ public sealed class ResearchRenderer : IGameRenderer
                 return;
             }
 
+            bool canRestartCompleted = status == TechnologyStatus.Completed
+                && (TechnologyDefinitions.Get(techId)?.Repeatable ?? false);
+
             if (ctrl.ActiveResearch == null)
             {
-                if (status == TechnologyStatus.Available)
+                if (status == TechnologyStatus.Available || canRestartCompleted)
                     ctrl.StartResearch(techId);
             }
-            else if (ctrl.ActiveResearchConsumed == 0 && status == TechnologyStatus.Available)
+            else if (ctrl.ActiveResearchConsumed == 0 && (status == TechnologyStatus.Available || canRestartCompleted))
             {
                 ctrl.StartResearch(techId);
             }
@@ -508,6 +592,8 @@ public sealed class ResearchRenderer : IGameRenderer
         _availableBorderPaint.Dispose();
         _completedBorderPaint.Dispose();
         _queuedBorderPaint.Dispose();
+        _repeatableBorderPaint.Dispose();
+        _rankBadgePaint.Dispose();
         _queuedTextPaint.Dispose();
         _linePaint.Dispose();
         _activeLinePaint.Dispose();
@@ -515,6 +601,9 @@ public sealed class ResearchRenderer : IGameRenderer
         _dimTextPaint.Dispose();
         _cancelBtnBgPaint.Dispose();
         _cancelBtnBorderPaint.Dispose();
+        _loopBtnBgPaint.Dispose();
+        _loopBtnActiveBgPaint.Dispose();
+        _loopBtnBorderPaint.Dispose();
         _nameFont.Dispose();
         _smallFont.Dispose();
         _tooltipFont.Dispose();

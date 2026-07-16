@@ -39,9 +39,17 @@ public class TechnologyModifierTests
     }
 
     [Fact]
-    public void MasterHarvest_HarvestSpeed_Plus0Point25()
+    public void MasterHarvest_HarvestSpeed_Plus0Point05PerCompletion()
     {
-        Assert.Equal(0.25, BuildAggregator(TechnologyId.MasterHarvest).ApplyModifiers(ECategory.HARVEST_SPEED, "", 0.0), 5);
+        // Répétable : +5% par complétion, pas une valeur fixe (voir CLAUDE.md / ResearchController).
+        Assert.Equal(0.05, BuildAggregator(TechnologyId.MasterHarvest).ApplyModifiers(ECategory.HARVEST_SPEED, "", 0.0), 5);
+
+        var tree = new TechnologyTree();
+        tree.CompleteResearch(TechnologyId.MasterHarvest);
+        tree.CompleteResearch(TechnologyId.MasterHarvest);
+        var aggregator = new ModifierAggregator();
+        aggregator.Register(tree);
+        Assert.Equal(0.10, aggregator.ApplyModifiers(ECategory.HARVEST_SPEED, "", 0.0), 5);
     }
 
     // ── FORGE_DOUBLE_HARVEST_BONUS ────────────────────────────────────────────
