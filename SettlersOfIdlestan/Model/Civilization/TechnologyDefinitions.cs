@@ -336,19 +336,19 @@ public static class TechnologyDefinitions
         // complétée, comme ProspectionAvancee, plutôt que via un modificateur dédié.
         new(TechnologyId.MobileCampConstruction,
             "tech_mobile_camp_construction_name", "tech_mobile_camp_construction_desc",
-            cost: 7200000,
+            cost: 1800000,
             prerequisites: new[] { TechnologyId.WatchtowerConstruction, TechnologyId.RailLogistics },
             modifiers: Array.Empty<Modifier>(),
-            tier: 8, line: 8),
+            tier: 7, line: 8),
 
         // Un tier au-dessus du Camp Mobile, qui devient son seul prérequis. Répétable à l'infini
         // (comme MasterHarvest) : +5% UNIT_PRODUCTION_SPEED par complétion, coût doublé à chaque relance.
         new(TechnologyId.EntrainementIntensif,
             "tech_entrainement_intensif_name", "tech_entrainement_intensif_desc",
-            cost: 25000000,
+            cost: 6600000,
             prerequisites: new[] { TechnologyId.MobileCampConstruction },
             modifiers: new Modifier[] { new(ECategory.UNIT_PRODUCTION_SPEED, EType.ADDITIVE, 0.05) },
-            tier: 9, line: 8,
+            tier: 8, line: 8,
             repeatable: true),
 
         // Remontée d'une ligne (voir CLAUDE.md) ; dépend désormais des Remparts de Mithril plutôt que
@@ -526,8 +526,9 @@ public static class TechnologyDefinitions
             "tech_chroniques_du_guet_name", "tech_chroniques_du_guet_desc",
             cost: 7800,
             prerequisites: new[] { TechnologyId.Scouting },
-            modifiers: new Modifier[] { new(ECategory.PRESTIGE_GAIN, EType.ADDITIVE, 0.15) },
-            tier: 3, line: 10),
+            modifiers: new Modifier[] { new(ECategory.PRESTIGE_GAIN, EType.ADDITIVE, 0.05) },
+            tier: 3, line: 10,
+            repeatable: true),
 
         // Un tier au-dessus des Chroniques du Guet, qui est son seul prérequis.
         new(TechnologyId.Diplomatie,
@@ -537,21 +538,15 @@ public static class TechnologyDefinitions
             modifiers: new Modifier[] { new(ECategory.UNLOCK_CONTESTED_HARVEST, EType.ADDITIVE, 1) },
             tier: 4, line: 10),
 
-        new(TechnologyId.RenommeeCommerciale,
-            "tech_renommee_commerciale_name", "tech_renommee_commerciale_desc",
-            cost: 125000,
-            prerequisites: new[] { TechnologyId.AutomaticMarket },
-            modifiers: new Modifier[] { new(ECategory.PRESTIGE_GAIN, EType.ADDITIVE, 0.2) },
-            tier: 5, line: 4),
-
         new(TechnologyId.SagesseSouterraine,
             "tech_sagesse_souterraine_name", "tech_sagesse_souterraine_desc",
-            cost: 6000000,
+            cost: 100000000,
             prerequisites: new[] { TechnologyId.VeilleSouterraine },
-            modifiers: new Modifier[] { new(ECategory.PRESTIGE_GAIN, EType.ADDITIVE, 0.25) },
-            tier: 8, line: 0),
+            modifiers: new Modifier[] { new(ECategory.PRESTIGE_GAIN, EType.ADDITIVE, 0.10) },
+            tier: 10, line: 0,
+            repeatable: true),
 
-        // Deux tiers après Sagesse Souterraine ; débloquée en même temps que la branche des Abysses
+        // Même tier que Sagesse Souterraine ; débloquée en même temps que la branche des Abysses
         // (prérequis EtudeDesAbysses, qui l'accompagne).
         new(TechnologyId.VoidWalking,
             "tech_void_walking_name", "tech_void_walking_desc",
