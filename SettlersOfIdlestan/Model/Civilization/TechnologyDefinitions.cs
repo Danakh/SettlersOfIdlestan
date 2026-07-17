@@ -278,11 +278,22 @@ public static class TechnologyDefinitions
         // Débloquée par le vertex de prestige Guilde des Marchands
         new(TechnologyId.AdvancedTradingPosts,
             "tech_advanced_trading_posts_name", "tech_advanced_trading_posts_desc",
-            cost: 480000,
+            cost: 120000,
             prerequisites: new[] { TechnologyId.AutomaticMarket, TechnologyId.GrandArchitecture },
             modifiers: new Modifier[]
             {
                 new(ECategory.UNLOCK_INTERMEDIATE_TRADE, EType.ADDITIVE, 1),
+            },
+            tier: 5, line: 5),
+
+        // Un tier au-dessus des Comptoirs Avancés (seul prérequis).
+        new(TechnologyId.AdvancedGuilds,
+            "tech_advanced_guilds_name", "tech_advanced_guilds_desc",
+            cost: 425000,
+            prerequisites: new[] { TechnologyId.AdvancedTradingPosts },
+            modifiers: new Modifier[]
+            {
+                new(ECategory.GUILD_AUTOMATION_SPEED_PER_CITY, EType.ADDITIVE, 0.1),
             },
             tier: 6, line: 5),
 

@@ -197,7 +197,10 @@ namespace SettlersOfIdlestan.Controller.Island
         {
             if (!enabled) { lastTick = now; return; }
             if (lastTick == 0) { lastTick = now; return; }
-            if (now - lastTick < cooldown) return;
+
+            double guildSpeedBonus = civ.ModifierAggregator.ApplyModifiers(ECategory.GUILD_AUTOMATION_SPEED_PER_CITY, "", 0.0) * civ.Cities.Count;
+            long effectiveCooldown = guildSpeedBonus > 0 ? (long)(cooldown / (1.0 + guildSpeedBonus)) : cooldown;
+            if (now - lastTick < effectiveCooldown) return;
 
             lastTick = now;
 

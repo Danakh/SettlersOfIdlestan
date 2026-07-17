@@ -85,6 +85,9 @@ public enum TechnologyId
     RailLogistics,
     OutilsEnMithril,
     RempartsDeFer,
+    // Un tier au-dessus des Comptoirs Avancés (seul prérequis) — accélère la construction automatique
+    // des bâtiments par les guildes, proportionnellement au nombre de villes de l'empire.
+    AdvancedGuilds,
     // Tier 7
     ProspectionAvancee,
     RempartsDeMithril,

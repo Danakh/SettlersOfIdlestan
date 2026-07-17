@@ -183,6 +183,8 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             TEMPLE_INSTANT_DOMINION,
             /// <summary>Fraction de réduction du coût en ressources des nouvelles villes. Base = 0.0 ; 0.25 = -25% (voir CityBuilderController.NewCityBuildingCostFor).</summary>
             NEW_CITY_COST_REDUCTION,
+            /// <summary>Bonus additif de vitesse de construction automatique des bâtiments par les guildes (Artisans, Récolteurs, Marchands, etc.), par ville possédée. Base = 0.0 ; agrégé puis multiplié par le nombre de villes de la civilisation (voir BuildingController.TickGuildAutomation). 0.1 = +10% par ville.</summary>
+            GUILD_AUTOMATION_SPEED_PER_CITY,
         }
 
         [JsonConverter(typeof(JsonStringEnumConverter<EType>))]
