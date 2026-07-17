@@ -42,8 +42,16 @@ internal class SoldierProductionEngine
                 if (currentTick - city.LastSoldierProductionTick < effectiveProductionInterval) continue;
 
                 var barracks = city.Buildings.OfType<Barracks>()
-                    .FirstOrDefault(b => b.ActivationStatus == ActivationStatus.ACTIVE && b.Level >= SoldierProductionMinLevel);
+                    .FirstOrDefault(b => b.Level >= SoldierProductionMinLevel);
                 if (barracks == null) continue;
+
+                if (barracks.ActivationStatus != ActivationStatus.ACTIVE)
+                {
+                    // Même désactivée, la Caserne continue à produire tant que la ville n'a pas
+                    // atteint son quota de soldats nourris gratuitement (SOLDIER_FOOD_FREE_PER_CITY).
+                    int freePerCity = (int)civ.ModifierAggregator.ApplyModifiers(ECategory.SOLDIER_FOOD_FREE_PER_CITY, "", 0.0);
+                    if (city.Soldiers >= freePerCity) continue;
+                }
 
                 if (civ.GetResourceQuantity(Resource.Ore) < 1)
                 {
