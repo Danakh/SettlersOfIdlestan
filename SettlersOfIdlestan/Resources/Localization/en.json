@@ -728,7 +728,7 @@
   "tech_harvest_tools_name": "Harvest Tools",
   "tech_harvest_tools_desc": "+1 max level Sawmill, Mill, Quarry and Brickworks",
   "tech_archivage_name": "Archivage",
-  "tech_archivage_desc": "+15% research point production speed",
+  "tech_archivage_desc": "+5% research point production speed per rank. Infinitely repeatable: cost doubles with every relaunch.",
   "tech_research_methods_name": "Research Methods",
   "tech_research_methods_desc": "-10% research cost",
   "tech_metallurgy_name": "Metallurgy",

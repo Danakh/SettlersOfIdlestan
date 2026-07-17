@@ -71,8 +71,9 @@ public static class TechnologyDefinitions
             "tech_archivage_name", "tech_archivage_desc",
             cost: 330,
             prerequisites: new[] { TechnologyId.Architecture },
-            modifiers: new Modifier[] { new(ECategory.RESEARCH_PRODUCTION_SPEED, EType.ADDITIVE, 0.15) },
-            tier: 1, line: 6),
+            modifiers: new Modifier[] { new(ECategory.RESEARCH_PRODUCTION_SPEED, EType.ADDITIVE, 0.05) },
+            tier: 1, line: 6,
+            repeatable: true),
 
         new(TechnologyId.MilitaryBuildings,
             "tech_military_buildings_name", "tech_military_buildings_desc",

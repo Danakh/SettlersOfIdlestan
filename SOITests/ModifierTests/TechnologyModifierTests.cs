@@ -133,9 +133,9 @@ public class TechnologyModifierTests
     // ── RESEARCH_PRODUCTION_SPEED ────────────────────────────────────────────
 
     [Fact]
-    public void Archivage_ResearchProductionSpeed_Plus0Point15()
+    public void Archivage_ResearchProductionSpeed_Plus0Point05()
     {
-        Assert.Equal(0.15, BuildAggregator(TechnologyId.Archivage).ApplyModifiers(ECategory.RESEARCH_PRODUCTION_SPEED, "", 0.0), 5);
+        Assert.Equal(0.05, BuildAggregator(TechnologyId.Archivage).ApplyModifiers(ECategory.RESEARCH_PRODUCTION_SPEED, "", 0.0), 5);
     }
 
     [Fact]

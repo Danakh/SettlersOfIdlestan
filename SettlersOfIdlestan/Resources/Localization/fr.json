@@ -728,7 +728,7 @@
   "tech_harvest_tools_name": "Outils de récolte",
   "tech_harvest_tools_desc": "+1 niveau max Scierie, Moulin, Carrière et Briquetterie",
   "tech_archivage_name": "Archivage",
-  "tech_archivage_desc": "+15% vitesse de génération des points de recherche",
+  "tech_archivage_desc": "+5% vitesse de génération des points de recherche par palier. Recherche répétable à l'infini : le coût double à chaque relance.",
   "tech_research_methods_name": "Méthodes de recherche",
   "tech_research_methods_desc": "-10% coût des recherches",
   "tech_metallurgy_name": "Métallurgie",

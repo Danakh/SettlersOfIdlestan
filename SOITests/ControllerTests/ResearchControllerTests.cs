@@ -126,9 +126,9 @@ public class ResearchControllerTests
         clock.SimulateAdvance(cooldown - 100, cooldown - 100); // écoulé = cooldown-100 : pas encore dû sans boost
         Assert.Equal(0, ctrl.ResearchPoints);
 
-        // Archivage : +15% RESEARCH_PRODUCTION_SPEED → seuil effectif = cooldown / 1.15 ≈ 869
+        // Archivage : +5% RESEARCH_PRODUCTION_SPEED → seuil effectif = cooldown / 1.05 ≈ 952
         prestigeState.TechnologyTree.CompleteResearch(TechnologyId.Archivage);
-        clock.SimulateAdvance(50, 50); // écoulé total = cooldown-50 = 950 ≥ seuil effectif → doit déclencher
+        clock.SimulateAdvance(60, 60); // écoulé total = cooldown-40 = 960 ≥ seuil effectif → doit déclencher
 
         Assert.Equal(1, ctrl.ResearchPoints);
     }
