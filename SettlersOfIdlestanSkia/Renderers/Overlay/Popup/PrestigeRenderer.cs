@@ -98,7 +98,8 @@ public sealed class PrestigeRenderer : PopupRendererBase
         bool showSeaportBonus    = seaportBonus > 0;
         bool showCivBonus        = civDestroyedBonus > 0;
         bool showGreatLighthouseBonus = greatLighthouseBonus > 0;
-        const float tierOffset   = 28f; // toujours affiché
+        bool showTierBonus       = tierBonus > 0;
+        float tierOffset         = showTierBonus ? 28f : 0f;
         float gainOffset         = showGainBonus    ? 28f : 0f;
         float seaportOffset      = showSeaportBonus ? 28f : 0f;
         float civOffset          = showCivBonus     ? 28f : 0f;
@@ -207,11 +208,14 @@ public sealed class PrestigeRenderer : PopupRendererBase
             _hoverRects.Add((new SKRect(popup.Left, contentBottom - 114 - tierOffset, popup.Right, contentBottom - 86 - tierOffset), new[] { "prestige_tooltip_civilizations_destroyed_bonus" }));
         }
 
-        // Bonus de palier (Tier) — toujours affiché
-        canvas.DrawLine(popup.Left + Padding, contentBottom - 114, popup.Right - Padding, contentBottom - 114, _separatorPaint);
-        SkiaTextUtils.DrawText(canvas, _localization.GetFormated("prestige_tier_bonus", tier), popup.Left + Padding, contentBottom - 100, BodyFont!, SubtlePaint);
-        SkiaTextUtils.DrawText(canvas, $"+{tierBonus * 100:0}%", popup.Right - Padding, contentBottom - 100, SKTextAlign.Right, BtnFont!, SubtlePaint);
-        _hoverRects.Add((new SKRect(popup.Left, contentBottom - 114, popup.Right, contentBottom - 86), new[] { "prestige_tooltip_tier_bonus" }));
+        // Bonus de palier (Tier) — affiché quand > 0
+        if (showTierBonus)
+        {
+            canvas.DrawLine(popup.Left + Padding, contentBottom - 114, popup.Right - Padding, contentBottom - 114, _separatorPaint);
+            SkiaTextUtils.DrawText(canvas, _localization.GetFormated("prestige_tier_bonus", tier), popup.Left + Padding, contentBottom - 100, BodyFont!, SubtlePaint);
+            SkiaTextUtils.DrawText(canvas, $"+{tierBonus * 100:0}%", popup.Right - Padding, contentBottom - 100, SKTextAlign.Right, BtnFont!, SubtlePaint);
+            _hoverRects.Add((new SKRect(popup.Left, contentBottom - 114, popup.Right, contentBottom - 86), new[] { "prestige_tooltip_tier_bonus" }));
+        }
 
         // Total
         canvas.DrawLine(popup.Left + Padding, contentBottom - 86, popup.Right - Padding, contentBottom - 86, _separatorPaint);

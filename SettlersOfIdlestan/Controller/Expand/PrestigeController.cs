@@ -135,8 +135,8 @@ namespace SettlersOfIdlestan.Controller.Expand
 
         public int GetTier() => _prestigeState?.Tier ?? 1;
 
-        /// <summary>+10% de gain de prestige par palier de progression (Tier) atteint.</summary>
-        public double GetTierBonus() => 0.1 * GetTier();
+        /// <summary>+20% de gain de prestige par palier de progression (Tier) au-delà du premier.</summary>
+        public double GetTierBonus() => 0.2 * (GetTier() - 1);
 
         public int GetGreatLighthouseLevel()
             => _islandState?.Features.OfType<GreatLighthouse>().FirstOrDefault()?.Level ?? 0;
