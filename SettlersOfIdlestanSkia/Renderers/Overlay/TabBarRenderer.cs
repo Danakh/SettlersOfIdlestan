@@ -62,6 +62,7 @@ public sealed class TabBarRenderer : IDisposable
     private bool _lastCanBuyPrestige;
     private bool _researchGlowing;
     private bool _lastResearchIdleWithPoints;
+    private bool _underworldGlowing;
     private SKSize _canvasSize;
 
     /// X offset from which the resource bar content should start (after the tabs).
@@ -112,6 +113,7 @@ public sealed class TabBarRenderer : IDisposable
         _hasRitualsTab    = IsMagicUnlocked();
         _hasAscensionTab  = HasGodPoints(context);
         _hasUnderworldTab = IsLayerAccessible(LayerState.UnderworldZ);
+        _underworldGlowing = _hasUnderworldTab && !(_gameControllerService.CurrentWorldState?.HasVisitedUnderworld ?? true);
         _hasAbyssTab      = IsLayerAccessible(LayerState.AbyssZ);
         bool showEventsTab = showPrestigeTabs || HasEventLogEntries();
 
@@ -226,9 +228,10 @@ public sealed class TabBarRenderer : IDisposable
 
         foreach (var (tabId, rect) in _activeTabs)
         {
-            bool blink = (_prestigeGlowing && tabId == TabPrestige)
-                      || (_researchGlowing  && tabId == TabResearch)
-                      || (_hasNewEvent      && tabId == TabEvents);
+            bool blink = (_prestigeGlowing   && tabId == TabPrestige)
+                      || (_researchGlowing    && tabId == TabResearch)
+                      || (_hasNewEvent        && tabId == TabEvents)
+                      || (_underworldGlowing  && tabId == TabUnderworld);
             DrawTab(canvas, rect, GetTabLabel(tabId), _activeTab == tabId, blink ? blinkT : -1f);
         }
     }

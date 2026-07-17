@@ -363,6 +363,7 @@ public sealed class OverlayRenderer : IGameRenderer
         if (targetLayer == null || worldState.CurrentViewedLayer == targetLayer.Value) return;
 
         worldState.CurrentViewedLayer = targetLayer.Value;
+        if (targetLayer.Value == LayerState.UnderworldZ) worldState.HasVisitedUnderworld = true;
         DeselectCityAndMonument();
     }
 

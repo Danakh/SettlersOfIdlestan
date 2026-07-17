@@ -40,6 +40,13 @@ public class WorldState : IJsonOnDeserialized
     public int WorldId { get; set; }
 
     /// <summary>
+    /// True une fois que le joueur a affiché la vue Inframonde au moins une fois sur cette île
+    /// (voir OverlayRenderer.ApplyLayerForActiveTab). Sert à faire clignoter l'onglet Inframonde
+    /// tant qu'il n'a pas encore été consulté après le creusement de la Mine Profonde.
+    /// </summary>
+    public bool HasVisitedUnderworld { get; set; }
+
+    /// <summary>
     /// Os divins récupérés sur cette île (chaque Purification d'Os Divins en octroie 1, voir
     /// DivineBonesController). DivineBones.BonesPerEssence os se convertissent automatiquement en
     /// 1 essence divine. Volontairement stocké sur le WorldState et non le GodState : les os sont
