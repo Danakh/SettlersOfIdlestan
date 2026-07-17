@@ -230,7 +230,7 @@ public static class TechnologyDefinitions
         new(TechnologyId.ImprovedResearch,
             "tech_improved_research_name", "tech_improved_research_desc",
             cost: 22500,
-            prerequisites: new[] { TechnologyId.ResearchMethods, TechnologyId.GrandArchitecture },
+            prerequisites: new[] { TechnologyId.ResearchMethods },
             modifiers: new Modifier[] { new(ECategory.RESEARCH_PRODUCTION_SPEED, EType.ADDITIVE, 0.2) },
             tier: 4, line: 6),
 
