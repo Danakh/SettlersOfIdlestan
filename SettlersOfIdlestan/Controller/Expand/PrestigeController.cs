@@ -285,6 +285,16 @@ namespace SettlersOfIdlestan.Controller.Expand
                 mainGameState.PrestigeState.RunHistory.Add(stats);
                 while (mainGameState.PrestigeState.RunHistory.Count > 5)
                     mainGameState.PrestigeState.RunHistory.RemoveAt(0);
+
+                var gameRecord = mainGameState.GameRecord;
+                gameRecord.MaxCitiesInSingleRun = Math.Max(gameRecord.MaxCitiesInSingleRun, stats.CityCount);
+                gameRecord.MaxBuildingsInSingleRun = Math.Max(gameRecord.MaxBuildingsInSingleRun, stats.BuildingCount);
+                gameRecord.MaxTotalBuildingLevelsInSingleRun = Math.Max(gameRecord.MaxTotalBuildingLevelsInSingleRun, stats.TotalBuildingLevels);
+                gameRecord.MaxUniqueBuildingsInSingleRun = Math.Max(gameRecord.MaxUniqueBuildingsInSingleRun, stats.UniqueBuildings);
+                gameRecord.MaxResearchInSingleRun = Math.Max(gameRecord.MaxResearchInSingleRun, stats.ResearchCompleted);
+                gameRecord.MaxPlaytimeInSingleRun = Math.Max(gameRecord.MaxPlaytimeInSingleRun, stats.TickDuration);
+                if (stats.HasDeepestMine) gameRecord.HasDugDeepestMine = true;
+                if (stats.HasAbyssGate) gameRecord.HasBuiltAbyssGate = true;
             }
 
             mainGameState.PrestigeState.PrestigePoints += points;

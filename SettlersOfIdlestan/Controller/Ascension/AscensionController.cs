@@ -272,6 +272,8 @@ public class AscensionController : IModifierProvider
         godState.AscensionState.AscendedRaces.Add(godState.AscensionState.SelectedRace);
         godState.AscensionState.SelectedRace = chosenRace;
 
+        RecordAscensionCycleStats(mainGameState, godState);
+
         var generator = new IslandMapGenerator(mainGameState.WorldPRNG);
         var worldState = generator.GenerateWorldState(
             firstIslandParameters,
@@ -282,6 +284,40 @@ public class AscensionController : IModifierProvider
 
         godState.PrestigeState = new PrestigeState(worldState);
         GrantFreePrestigeVertices(godState.PrestigeState);
+
+        godState.AscensionState.CycleStartTick = mainGameState.Clock.CurrentTick;
+        godState.AscensionState.CycleStartResearchCompleted = mainGameState.GameRecord.TotalResearchCompleted;
+    }
+
+    /// <summary>
+    /// Archive les statistiques du cycle d'Ascension qui vient de se terminer (voir onglet Stats /
+    /// Ascension) avant que PerformAscension ne remplace PrestigeState : historique plafonné à 5
+    /// entrées, plus mise à jour des records cross-ascension (AscensionState.Max*).
+    /// </summary>
+    private static void RecordAscensionCycleStats(MainGameState mainGameState, GodState godState)
+    {
+        var prestigeState = godState.PrestigeState;
+        if (prestigeState == null) return;
+
+        var ascensionState = godState.AscensionState;
+        var stats = new AscensionRunStats
+        {
+            MaxIslandTierReached = prestigeState.Tier,
+            MaxCorruptionReached = prestigeState.CurrentCorruptionLevel,
+            TickDuration = mainGameState.Clock.CurrentTick - ascensionState.CycleStartTick,
+            ResearchCompleted = mainGameState.GameRecord.TotalResearchCompleted - ascensionState.CycleStartResearchCompleted,
+            FinalPrestigePoints = prestigeState.TotalPrestigePointsEarned,
+        };
+
+        ascensionState.RunHistory.Add(stats);
+        while (ascensionState.RunHistory.Count > 5)
+            ascensionState.RunHistory.RemoveAt(0);
+
+        ascensionState.MaxIslandTierReached = Math.Max(ascensionState.MaxIslandTierReached, stats.MaxIslandTierReached);
+        ascensionState.MaxCorruptionReached = Math.Max(ascensionState.MaxCorruptionReached, stats.MaxCorruptionReached);
+        ascensionState.MaxPlaytimeInSingleAscension = Math.Max(ascensionState.MaxPlaytimeInSingleAscension, stats.TickDuration);
+        ascensionState.MaxResearchInSingleAscension = Math.Max(ascensionState.MaxResearchInSingleAscension, stats.ResearchCompleted);
+        ascensionState.MaxPrestigePointsInSingleAscension = Math.Max(ascensionState.MaxPrestigePointsInSingleAscension, stats.FinalPrestigePoints);
     }
 
     /// <summary>

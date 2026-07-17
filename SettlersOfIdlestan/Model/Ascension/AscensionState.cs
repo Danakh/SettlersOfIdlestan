@@ -44,4 +44,28 @@ public class AscensionState
     /// AscensionController.PermanentUniqueBuildingChoices), quelle que soit la race jouée ensuite.
     /// </summary>
     public HashSet<RaceId> AscendedRaces { get; set; } = new();
+
+    /// <summary>Tick (GameClock) auquel le cycle d'Ascension en cours a débuté — sert à calculer le temps de jeu du cycle.</summary>
+    public long CycleStartTick { get; set; }
+
+    /// <summary>Valeur de GameRecord.TotalResearchCompleted au début du cycle en cours — sert à isoler les recherches faites pendant ce cycle.</summary>
+    public int CycleStartResearchCompleted { get; set; }
+
+    /// <summary>Historique des 5 derniers cycles d'Ascension terminés (le plus récent en dernier), voir AscensionController.PerformAscension.</summary>
+    public List<AscensionRunStats> RunHistory { get; set; } = new();
+
+    /// <summary>Tier d'île maximum jamais atteint dans un cycle d'Ascension (cross-ascension, ne diminue jamais).</summary>
+    public int MaxIslandTierReached { get; set; }
+
+    /// <summary>Niveau de corruption maximum jamais atteint dans un cycle d'Ascension (cross-ascension, ne diminue jamais).</summary>
+    public int MaxCorruptionReached { get; set; }
+
+    /// <summary>Temps de jeu maximum (ticks) d'un seul cycle d'Ascension (cross-ascension, ne diminue jamais).</summary>
+    public long MaxPlaytimeInSingleAscension { get; set; }
+
+    /// <summary>Nombre maximum de recherches complétées en un seul cycle d'Ascension (cross-ascension, ne diminue jamais).</summary>
+    public int MaxResearchInSingleAscension { get; set; }
+
+    /// <summary>Points de prestige finaux maximum obtenus en un seul cycle d'Ascension (cross-ascension, ne diminue jamais).</summary>
+    public int MaxPrestigePointsInSingleAscension { get; set; }
 }

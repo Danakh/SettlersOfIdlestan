@@ -78,6 +78,30 @@ public class GameRecord
     /// <summary>Maximum de points de prestige gagnés en une seule partie (total gagné, pas le solde).</summary>
     public int MaxPrestigePointsInSingleRun { get; set; }
 
+    /// <summary>Nombre maximum de villes atteint sur une seule île avant prestige (cross-prestige, ne diminue jamais).</summary>
+    public int MaxCitiesInSingleRun { get; set; }
+
+    /// <summary>Nombre maximum de bâtiments atteint sur une seule île avant prestige (cross-prestige, ne diminue jamais).</summary>
+    public int MaxBuildingsInSingleRun { get; set; }
+
+    /// <summary>Somme maximale des niveaux de bâtiments atteinte sur une seule île avant prestige (cross-prestige, ne diminue jamais).</summary>
+    public int MaxTotalBuildingLevelsInSingleRun { get; set; }
+
+    /// <summary>Nombre maximum de bâtiments uniques atteint sur une seule île avant prestige (cross-prestige, ne diminue jamais).</summary>
+    public int MaxUniqueBuildingsInSingleRun { get; set; }
+
+    /// <summary>Nombre maximum de recherches complétées sur une seule île avant prestige (cross-prestige, ne diminue jamais).</summary>
+    public int MaxResearchInSingleRun { get; set; }
+
+    /// <summary>Temps de jeu maximum (ticks) d'une seule île avant prestige (cross-prestige, ne diminue jamais).</summary>
+    public long MaxPlaytimeInSingleRun { get; set; }
+
+    /// <summary>True si une Mine Profonde a été creusée au moins une fois (cross-prestige).</summary>
+    public bool HasDugDeepestMine { get; set; }
+
+    /// <summary>True si une Faille des Abysses a été construite au moins une fois (cross-prestige).</summary>
+    public bool HasBuiltAbyssGate { get; set; }
+
     /// <summary>IDs des tâches tutoriel complétées (clé = TutorialTaskId.ToString()).</summary>
     public HashSet<string> CompletedTasks { get; set; } = new();
 

@@ -436,7 +436,8 @@ public sealed class OverlayRenderer : IGameRenderer
         if (activeTab == TabBarRenderer.TabAutomation) { _automationRenderer.HandlePointerPressed(e.Position); return; }
         if (activeTab == TabBarRenderer.TabRituals)    { _ritualsRenderer.HandlePointerPressed(e.Position); return; }
         if (activeTab == TabBarRenderer.TabAscension)  { _ascensionRenderer.HandlePointerPressed(e.Position); return; }
-        if (activeTab is TabBarRenderer.TabStats or TabBarRenderer.TabResearch or TabBarRenderer.TabEvents) return;
+        if (activeTab == TabBarRenderer.TabStats)      { _prestigeHistoryRenderer.HandlePointerPressed(e.Position); return; }
+        if (activeTab is TabBarRenderer.TabResearch or TabBarRenderer.TabEvents) return;
 
         _playerCivPanel.HandlePointerPressed(e.Position);
     }
