@@ -3,11 +3,15 @@ The changelog is not actively maintained at the moment.
 
 ---
 
+v0.8
+• Race system: once the first row of divine powers is complete, each Ascension lets you choose the race of your next cycle, each with its own strengths, weaknesses and unique racial building.
+• Infinitely repeatable researches: some late-game researches that boost prestige points earned can now be relaunched indefinitely, with a cost that doubles each time
+• New Ascension statistics screen: history of recent ascensions, best game records (prestige, ascension), max island tier and corruption reached, total playtime and races played
+• Many new endgame researches, along with the matching vertices on the prestige map
+
+---
+
 v0.7
-• Race system: once the first row of divine powers is complete, each Ascension lets you choose the race of your next cycle — Humans (faster Dominion spread), Elves (forest cities, boosted research), Dwarves (mountain cities, improved forges and mines), Goblins (cities at distance 2, capped buildings) or Giants (cities at distance 4, taller buildings). Each race that completes an Ascension permanently adds its unique racial building (Ziggurat, Heart Tree, Runic Forge, Great Burrow, Colossus Workshop) to the permanent building choices
-• New endgame researches (tiers 12 to 15): the Void line continues (Sacred Reliquary, Void Cartography) and the Theocracy branch appears after the first Ascension — Dominion researches (Dogma of Dominion, Evangelization, Consecrated Ground, Consecrated Bastion) plus Abyssal Communion
-• New Abyss research branch (tiers 8 to 13): corruption studies, demonology and abyssal pacts, plus capstones extending the existing branches (steel, magic, underworld, military, science)
-• The Abyss branch of the prestige map comes alive: the vertices of the three gates (Steel, Underworld, Magic) receive their powers, including the unlocks for the new researches
 • New endgame Tier system: generated NPC civilizations grow progressively stronger based on your total accumulated prestige points, with a matching prestige gain bonus
 • Destroying an enemy civilization now grants a prestige gain bonus
 • New researches, including several that boost prestige points earned
