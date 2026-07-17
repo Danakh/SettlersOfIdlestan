@@ -41,3 +41,4 @@ echo.
 echo [OK] Contenu steamcmd pret : %CONTENT_DIR%
 echo.
 pause
+exit /b 0

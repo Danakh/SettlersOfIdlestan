@@ -63,3 +63,4 @@ if /I "%~2"=="win" (
 echo.
 echo Upload termine.
 pause
+exit /b 0
