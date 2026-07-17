@@ -28,13 +28,13 @@ namespace SettlersOfIdlestan.Model.Game
 
         // ── runtime (non sérialisé) ──────────────────────────────────────────
 
-        /// <summary>0 = pause, 1 = normal, accéléré = valeur de <see cref="FastMultiplier"/> (x3/x5/x10, cycle via <see cref="CycleFastMultiplier"/>).</summary>
+        /// <summary>0 = pause, sinon valeur de <see cref="ActiveSpeed"/> (x1/x3/x5/x10, choisie via <see cref="SetSpeed"/>).</summary>
         [JsonIgnore]
         public int SpeedMultiplier { get; private set; } = 1;
 
-        /// <summary>Multiplicateur appliqué par <see cref="SetFast"/>, choisi par le joueur en cyclant x3 → x5 → x10.</summary>
+        /// <summary>Dernière vitesse non-nulle choisie par le joueur (x1/x3/x5/x10), utilisée par <see cref="Resume"/> pour reprendre au bon rythme après une pause.</summary>
         [JsonIgnore]
-        public int FastMultiplier { get; private set; } = 3;
+        public int ActiveSpeed { get; private set; } = 1;
 
         [JsonIgnore]
         private DateTimeOffset? _lastAdvanceTime;
@@ -75,28 +75,18 @@ namespace SettlersOfIdlestan.Model.Game
 
         public void Resume()
         {
-            SpeedMultiplier = 1;
+            SpeedMultiplier = ActiveSpeed;
             _lastAdvanceTime = null;
             _tickAccumulator = 0;
         }
 
-        public void SetFast()
+        /// <summary>Choisit directement la vitesse d'écoulement du temps (x1/x3/x5/x10) et l'applique immédiatement, sortant de pause si besoin.</summary>
+        public void SetSpeed(int multiplier)
         {
-            SpeedMultiplier = FastMultiplier;
+            ActiveSpeed = multiplier;
+            SpeedMultiplier = multiplier;
             _lastAdvanceTime = null;
             _tickAccumulator = 0;
-        }
-
-        /// <summary>Fait cycler le multiplicateur rapide x3 → x5 → x10 → x3, choisi librement par le joueur.</summary>
-        public void CycleFastMultiplier()
-        {
-            FastMultiplier = FastMultiplier switch
-            {
-                3 => 5,
-                5 => 10,
-                _ => 3,
-            };
-            if (SpeedMultiplier > 1) SpeedMultiplier = FastMultiplier;
         }
 
         // ── hors-ligne ───────────────────────────────────────────────────────

@@ -1,4 +1,4 @@
-﻿using SettlersOfIdlestan.Model.Game;
+using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestanSkia.Services.Localization;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Services;
@@ -7,8 +7,8 @@ using SkiaSharp;
 namespace SettlersOfIdlestanSkia.Renderers.Overlay;
 
 /// <summary>
-/// Affiche la banque de temps et les boutons Pause / Play / Fast-forward dans la barre du haut.
-/// Doit être positionné à gauche de l'icône engrenage via la propriété RightEdge.
+/// Affiche la banque de temps, le toggle Pause/Lecture et le sélecteur de vitesse (x1/x3/x5/x10)
+/// dans la barre du haut. Doit être positionné à gauche de l'icône engrenage via la propriété RightEdge.
 /// </summary>
 public class TimeControlRenderer : IDisposable
 {
@@ -16,12 +16,14 @@ public class TimeControlRenderer : IDisposable
     private const float ButtonSpacing = 3f;
     private const float BankLabelWidth = 72f;
     private const float BankToButtonsGap = 5f;
-    private const float TotalWidth = BankLabelWidth + BankToButtonsGap + 3 * ButtonSize + 2 * ButtonSpacing;
+    private const float TotalWidth = BankLabelWidth + BankToButtonsGap + 2 * ButtonSize + ButtonSpacing;
 
     // Retrait depuis le bord droit de la zone réservée (juste à gauche du gear)
     public const float RequiredWidth = TotalWidth + 8f;
 
-    private enum HoveredControl { None, Bank, Pause, Play, Fast }
+    private static readonly int[] SpeedOptions = { 1, 3, 5, 10 };
+
+    private enum HoveredControl { None, Bank, Toggle, Speed }
 
     private readonly GameControllerService _gameControllerService;
     private readonly InputHandlingService _inputService;
@@ -35,13 +37,17 @@ public class TimeControlRenderer : IDisposable
     private float _rowTop;
     private float _scale = 1f;
 
-    private SKRect _pauseRect = SKRect.Empty;
-    private SKRect _playRect = SKRect.Empty;
-    private SKRect _fastRect = SKRect.Empty;
+    private bool _speedMenuOpen;
+    private int _hoveredSpeedOption = -1;
+
     private SKRect _bankRect = SKRect.Empty;
+    private SKRect _toggleRect = SKRect.Empty;
+    private SKRect _speedRect = SKRect.Empty;
+    private readonly SKRect[] _speedOptionRects = new SKRect[SpeedOptions.Length];
 
     private readonly SKPaint _activePaint = new() { Color = new SKColor(60, 140, 220), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _inactivePaint = new() { Color = new SKColor(35, 35, 50), Style = SKPaintStyle.Fill, IsAntialias = true };
+    private readonly SKPaint _hoverPaint = new() { Color = new SKColor(55, 55, 75), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _pauseFlickerPaint = new() { Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _borderPaint = new() { Color = new SKColor(100, 100, 130), StrokeWidth = 1f, Style = SKPaintStyle.Stroke, IsAntialias = true };
     private readonly SKPaint _textPaint = new() { Color = SKColors.White, IsAntialias = true };
@@ -88,23 +94,27 @@ public class TimeControlRenderer : IDisposable
         float bankW = BankLabelWidth * s;
         float gap = BankToButtonsGap * s;
         float spacing = ButtonSpacing * s;
-        float totalW = bankW + gap + 3 * buttonSz + 2 * spacing;
+        float totalW = bankW + gap + 2 * buttonSz + spacing;
 
         // Bank display (leftmost)
         float bankLeft = _rightEdge - totalW;
         _bankRect = new SKRect(bankLeft, buttonY, bankLeft + bankW, buttonY + buttonSz);
 
-        // Pause button
+        // Pause/Play toggle
         float p1x = bankLeft + bankW + gap;
-        _pauseRect = new SKRect(p1x, buttonY, p1x + buttonSz, buttonY + buttonSz);
+        _toggleRect = new SKRect(p1x, buttonY, p1x + buttonSz, buttonY + buttonSz);
 
-        // Play button
+        // Speed selector
         float p2x = p1x + buttonSz + spacing;
-        _playRect = new SKRect(p2x, buttonY, p2x + buttonSz, buttonY + buttonSz);
+        _speedRect = new SKRect(p2x, buttonY, p2x + buttonSz, buttonY + buttonSz);
 
-        // Fast-forward button
-        float p3x = p2x + buttonSz + spacing;
-        _fastRect = new SKRect(p3x, buttonY, p3x + buttonSz, buttonY + buttonSz);
+        // Dropdown options, empilées sous le sélecteur de vitesse
+        float optY = _speedRect.Bottom + spacing;
+        for (int i = 0; i < SpeedOptions.Length; i++)
+        {
+            _speedOptionRects[i] = new SKRect(_speedRect.Left, optY, _speedRect.Right, optY + buttonSz);
+            optY += buttonSz + spacing;
+        }
     }
 
     public void Render(SKCanvas canvas, GameRenderContext context)
@@ -114,42 +124,58 @@ public class TimeControlRenderer : IDisposable
         var clock = _gameControllerService.CurrentGameState?.Clock;
         if (clock == null) return;
 
-        int speed = clock.SpeedMultiplier;
+        bool isPaused = clock.SpeedMultiplier == 0;
         long bankTicks = clock.OfflineBankTicks;
 
         // Bank display
         DrawBankLabel(canvas, bankTicks);
 
-        // Buttons
-        SKPaint pauseBg = _inactivePaint;
-        if (speed == 0)
+        // Pause/Play toggle
+        SKPaint toggleBg;
+        if (isPaused)
         {
             float t = (float)(Math.Sin(Environment.TickCount64 / 500.0) * 0.5 + 0.5);
             _pauseFlickerPaint.Color = new SKColor(
                 (byte)(35 + (160 - 35) * t),
                 (byte)(35 + (100 - 35) * t),
                 (byte)MathF.Round(50 - 40 * t));
-            pauseBg = _pauseFlickerPaint;
+            toggleBg = _pauseFlickerPaint;
         }
-        bool isFast = speed > 1;
-        int fastMultiplier = clock.FastMultiplier;
+        else
+        {
+            toggleBg = _activePaint;
+        }
+        DrawButton(canvas, _toggleRect, isPaused ? "||" : ">", true, toggleBg);
 
-        DrawButton(canvas, _pauseRect, "||", speed == 0, pauseBg);
-        DrawButton(canvas, _playRect, ">", speed == 1, speed == 1 ? _activePaint : _inactivePaint);
-        DrawButton(canvas, _fastRect, $"x{fastMultiplier}", isFast, isFast ? _activePaint : _inactivePaint);
+        // Speed selector — affiche la vitesse choisie, en surbrillance quand elle est active (pas en pause)
+        DrawButton(canvas, _speedRect, $"x{clock.ActiveSpeed}", !isPaused, !isPaused ? _activePaint : _inactivePaint);
 
-        DrawHoverTooltip(canvas, fastMultiplier);
+        if (_speedMenuOpen) DrawSpeedMenu(canvas, clock.ActiveSpeed);
+
+        if (!_speedMenuOpen) DrawHoverTooltip(canvas, clock.ActiveSpeed, isPaused);
     }
 
-    private void DrawHoverTooltip(SKCanvas canvas, int fastMultiplier)
+    private void DrawSpeedMenu(SKCanvas canvas, int activeSpeed)
+    {
+        for (int i = 0; i < SpeedOptions.Length; i++)
+        {
+            int value = SpeedOptions[i];
+            bool isSelected = value == activeSpeed;
+            SKPaint bg = isSelected ? _activePaint : (i == _hoveredSpeedOption ? _hoverPaint : _inactivePaint);
+            DrawButton(canvas, _speedOptionRects[i], $"x{value}", isSelected, bg);
+        }
+    }
+
+    private void DrawHoverTooltip(SKCanvas canvas, int activeSpeed, bool isPaused)
     {
         string[]? lines = _hoveredControl switch
         {
-            HoveredControl.Bank  => _localization.Get("timecontrol_bank_tooltip").Split('\n'),
-            HoveredControl.Pause => new[] { _localization.Get("timecontrol_pause_tooltip") },
-            HoveredControl.Play  => new[] { _localization.Get("timecontrol_play_tooltip") },
-            HoveredControl.Fast  => _localization.GetFormated("timecontrol_fast_tooltip", fastMultiplier).Split('\n'),
-            _                    => null
+            HoveredControl.Bank   => _localization.Get("timecontrol_bank_tooltip").Split('\n'),
+            HoveredControl.Toggle => (isPaused
+                ? _localization.GetFormated("timecontrol_toggle_play_tooltip", activeSpeed)
+                : _localization.Get("timecontrol_toggle_pause_tooltip")).Split('\n'),
+            HoveredControl.Speed  => _localization.Get("timecontrol_speed_tooltip").Split('\n'),
+            _                     => null
         };
         if (lines == null) return;
         TooltipRenderUtils.DrawTooltip(canvas, _canvasSize, _lastPointerPosition, lines, _tooltipFont, null, new(), _scale);
@@ -183,23 +209,41 @@ public class TimeControlRenderer : IDisposable
         SkiaTextUtils.DrawText(canvas, label, rect.MidX, textY, SKTextAlign.Center, _font, _textPaint);
     }
 
-    /// True if the point is over the bank display or one of the pause/play/fast buttons.
-    public bool ContainsPoint(SKPoint point) =>
-        _bankRect.Contains(point.X, point.Y)
-        || _pauseRect.Contains(point.X, point.Y)
-        || _playRect.Contains(point.X, point.Y)
-        || _fastRect.Contains(point.X, point.Y);
+    /// True if the point is over the bank display, the toggle/speed buttons, or (while open) the speed dropdown.
+    public bool ContainsPoint(SKPoint point)
+    {
+        if (_bankRect.Contains(point.X, point.Y)
+            || _toggleRect.Contains(point.X, point.Y)
+            || _speedRect.Contains(point.X, point.Y))
+            return true;
+
+        if (_speedMenuOpen)
+        {
+            foreach (var rect in _speedOptionRects)
+                if (rect.Contains(point.X, point.Y)) return true;
+        }
+        return false;
+    }
 
     private void HandlePointerMoved(object? sender, PointerEventArgs e)
     {
         if (_disposed) return;
         _lastPointerPosition = e.Position;
         var pt = e.Position;
-        if (_bankRect.Contains(pt.X, pt.Y))       _hoveredControl = HoveredControl.Bank;
-        else if (_pauseRect.Contains(pt.X, pt.Y)) _hoveredControl = HoveredControl.Pause;
-        else if (_playRect.Contains(pt.X, pt.Y))  _hoveredControl = HoveredControl.Play;
-        else if (_fastRect.Contains(pt.X, pt.Y))  _hoveredControl = HoveredControl.Fast;
-        else                                       _hoveredControl = HoveredControl.None;
+
+        if (_speedMenuOpen)
+        {
+            _hoveredSpeedOption = -1;
+            for (int i = 0; i < _speedOptionRects.Length; i++)
+            {
+                if (_speedOptionRects[i].Contains(pt.X, pt.Y)) { _hoveredSpeedOption = i; break; }
+            }
+        }
+
+        if (_bankRect.Contains(pt.X, pt.Y))        _hoveredControl = HoveredControl.Bank;
+        else if (_toggleRect.Contains(pt.X, pt.Y)) _hoveredControl = HoveredControl.Toggle;
+        else if (_speedRect.Contains(pt.X, pt.Y))  _hoveredControl = HoveredControl.Speed;
+        else                                        _hoveredControl = HoveredControl.None;
     }
 
     private void HandlePointerPressed(object? sender, PointerEventArgs e)
@@ -209,28 +253,38 @@ public class TimeControlRenderer : IDisposable
         var clock = _gameControllerService.CurrentGameState?.Clock;
         if (clock == null) return;
 
+        if (e.Button != PointerButton.Left)
+        {
+            _speedMenuOpen = false;
+            return;
+        }
+
         var pt = e.Position;
 
-        if (e.Button == PointerButton.Right)
+        if (_speedMenuOpen)
         {
-            if (_fastRect.Contains(pt.X, pt.Y)) clock.CycleFastMultiplier();
+            for (int i = 0; i < _speedOptionRects.Length; i++)
+            {
+                if (_speedOptionRects[i].Contains(pt.X, pt.Y))
+                {
+                    clock.SetSpeed(SpeedOptions[i]);
+                    _speedMenuOpen = false;
+                    return;
+                }
+            }
+            _speedMenuOpen = false;
             return;
         }
-        if (e.Button != PointerButton.Left) return;
 
-        if (_pauseRect.Contains(pt.X, pt.Y))
+        if (_toggleRect.Contains(pt.X, pt.Y))
         {
-            clock.Pause();
+            if (clock.SpeedMultiplier == 0) clock.Resume();
+            else clock.Pause();
             return;
         }
-        if (_playRect.Contains(pt.X, pt.Y))
+        if (_speedRect.Contains(pt.X, pt.Y))
         {
-            clock.Resume();
-            return;
-        }
-        if (_fastRect.Contains(pt.X, pt.Y))
-        {
-            clock.SetFast();
+            _speedMenuOpen = true;
         }
     }
 
@@ -241,6 +295,7 @@ public class TimeControlRenderer : IDisposable
         _inputService.PointerMoved -= HandlePointerMoved;
         _activePaint.Dispose();
         _inactivePaint.Dispose();
+        _hoverPaint.Dispose();
         _pauseFlickerPaint.Dispose();
         _borderPaint.Dispose();
         _textPaint.Dispose();

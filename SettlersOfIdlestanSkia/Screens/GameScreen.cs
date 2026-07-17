@@ -960,9 +960,8 @@ public sealed class GameScreen : IDisposable
     {
         var clock = _gameControllerService.CurrentGameState?.Clock;
         if (clock == null) return;
-        if (_speedBeforeTargetSelection > 1) clock.SetFast();
-        else if (_speedBeforeTargetSelection == 0) clock.Pause();
-        else clock.Resume();
+        if (_speedBeforeTargetSelection > 0) clock.SetSpeed(_speedBeforeTargetSelection);
+        else clock.Pause();
     }
 
     private void RequestPrestige(bool corrupted)
