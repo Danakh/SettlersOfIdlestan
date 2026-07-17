@@ -295,7 +295,7 @@
   "prestige_tooltip_wonder_bonus": "Multiplicateur : niveau Merveille × (1 + heures jouées, arrondi supérieur)",
   "prestige_tooltip_corruption_spire_bonus": "Multiplicateur : 2 × le niveau de corruption de l'Inframonde",
   "tab_island": "Île",
-  "tab_underworld": "Inframonde",
+  "tab_underworld": "Infra\nmonde",
   "tab_abyss": "Abysses",
   "tab_prestige_map": "Prestige",
   "prestige_points_label": "Points de prestige",

@@ -295,7 +295,7 @@
   "prestige_tooltip_wonder_bonus": "Multiplier: Wonder level × (1 + hours played, rounded up)",
   "prestige_tooltip_corruption_spire_bonus": "Multiplier: 2 × the Underworld's corruption level",
   "tab_island": "Island",
-  "tab_underworld": "Underworld",
+  "tab_underworld": "Under\nworld",
   "tab_abyss": "Abyss",
   "tab_prestige_map": "Prestige",
   "prestige_points_label": "Prestige points",

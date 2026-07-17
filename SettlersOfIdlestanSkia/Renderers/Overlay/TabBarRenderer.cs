@@ -131,10 +131,11 @@ public sealed class TabBarRenderer : IDisposable
         if (_hasAbyssTab)      _activeTabs.Add((TabAbyss, default));
         if (_hasResearchTab)   _activeTabs.Add((TabResearch, default));
         if (_hasRitualsTab)    _activeTabs.Add((TabRituals, default));
-        if (showPrestigeTabs)  { _activeTabs.Add((TabPrestige, default)); _activeTabs.Add((TabStats, default)); }
+        if (showPrestigeTabs)  _activeTabs.Add((TabPrestige, default));
+        if (_hasAscensionTab)  _activeTabs.Add((TabAscension, default));
+        if (showPrestigeTabs)  _activeTabs.Add((TabStats, default));
         if (showEventsTab)     _activeTabs.Add((TabEvents, default));
         if (_hasAutomationTab) _activeTabs.Add((TabAutomation, default));
-        if (_hasAscensionTab)  _activeTabs.Add((TabAscension, default));
         if (_allowDebugMode)   _activeTabs.Add((TabHistory, default));
 
         float uiScale = _uiLayout.UiScale;
@@ -275,7 +276,18 @@ public sealed class TabBarRenderer : IDisposable
         if (isActive)
             canvas.DrawRoundRect(rect, cr, cr, _activeTabBorderPaint);
         var textPaint = isActive ? _buttonTextPaint : _disabledTextPaint;
-        SkiaTextUtils.DrawText(canvas, label, rect.MidX, rect.MidY + 5 * _uiLayout.UiScale, SKTextAlign.Center, _tabFont, textPaint);
+        string[] lines = label.Split('\n');
+        if (lines.Length == 1)
+        {
+            SkiaTextUtils.DrawText(canvas, label, rect.MidX, rect.MidY + 5 * _uiLayout.UiScale, SKTextAlign.Center, _tabFont, textPaint);
+        }
+        else
+        {
+            float lineSpacing = _tabFont.Spacing * 0.85f;
+            float firstBaselineY = rect.MidY + 5 * _uiLayout.UiScale - lineSpacing * (lines.Length - 1) / 2f;
+            for (int i = 0; i < lines.Length; i++)
+                SkiaTextUtils.DrawText(canvas, lines[i], rect.MidX, firstBaselineY + i * lineSpacing, SKTextAlign.Center, _tabFont, textPaint);
+        }
     }
 
     /// True if the point is over one of the tab buttons.
