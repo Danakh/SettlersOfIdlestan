@@ -489,7 +489,10 @@ saves
 /install/SettlersOfIdlestan_OpenTK_Win.zip
 export
 /install/steamcontent/win64
+/install/steamcontent/linux64
 /install/steamcontent/output
-/install/steamcontent/scripts/app_build.vdf
-/install/steamcontent/scripts/depot_build.vdf
-/install/steamcontent/scripts/upload_win.bat
+/install/steamcontent/scripts/app_build_linux.vdf
+/install/steamcontent/scripts/depot_build_linux.vdf
+/install/steamcontent/scripts/deploy.bat
+/install/steamcontent/scripts/app_build_win.vdf
+/install/steamcontent/scripts/depot_build_win.vdf
