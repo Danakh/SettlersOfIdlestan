@@ -30,8 +30,7 @@ public class Adventurer : MonsterFeature
     public override GameEventType DiscoveredEventType => GameEventType.AdventurerDiscovered;
     public override GameEventType RemovedEventType => GameEventType.AdventurerDefeated;
 
-    public override string? TextIcon => "🗡️";
-    public override float IconSizeFactor => 1.4f;
+    public override string? SvgIconResourceName => "Resources.icons.military.hero-armor.svg";
 
     public override LocalizedEntry GetTooltipEntry() => new("hex_tooltip_adventurer_info", [Hp, MaxHp]);
 
