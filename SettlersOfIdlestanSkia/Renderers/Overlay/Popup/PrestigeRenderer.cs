@@ -88,7 +88,7 @@ public sealed class PrestigeRenderer : PopupRendererBase
         var controller       = _gameControllerService.MainGameController.PrestigeController;
         var sources          = controller.GetPrestigePointSources();
         bool wondersUnlocked = controller.WondersUnlocked();
-        bool showSpireBonus      = controller.HasCorruptionSpireBuilt();
+        bool showSpireBonus      = controller.GetMaxCorruptionLevelCleared() > 0;
         double gainBonus         = controller.GetPrestigeGainBonus();
         double seaportBonus      = controller.GetSeaportPrestigeBonus();
         double civDestroyedBonus = controller.GetCivilizationsDestroyedBonus();
@@ -181,14 +181,14 @@ public sealed class PrestigeRenderer : PopupRendererBase
             _hoverRects.Add((new SKRect(popup.Left, contentBottom - 114 - rowOffset, popup.Right, contentBottom - 86 - rowOffset), greatLighthouseTooltipKeys.ToArray()));
         }
 
-        // Spire de Corruption (affichée quand construite)
+        // Bonus de nettoyage de la Corruption (affiché dès qu'une zone a été entièrement nettoyée)
         if (showSpireBonus)
         {
             float spireRowOffset = gainOffset + seaportOffset + civOffset + tierOffset;
             canvas.DrawLine(popup.Left + Padding, contentBottom - 114 - spireRowOffset, popup.Right - Padding, contentBottom - 114 - spireRowOffset, _separatorPaint);
-            string spireLabel = _localization.GetFormated("prestige_corruption_spire_bonus", controller.GetCorruptionLevel());
+            string spireLabel = _localization.GetFormated("prestige_corruption_spire_bonus", controller.GetMaxCorruptionLevelCleared());
             SkiaTextUtils.DrawText(canvas, spireLabel, popup.Left + Padding, contentBottom - 100 - spireRowOffset, BodyFont!, SubtlePaint);
-            SkiaTextUtils.DrawText(canvas, $"×{controller.GetCorruptionSpireMultiplier()}", popup.Right - Padding, contentBottom - 100 - spireRowOffset, SKTextAlign.Right, BtnFont!, SubtlePaint);
+            SkiaTextUtils.DrawText(canvas, $"×{controller.GetCorruptionClearBonusMultiplier()}", popup.Right - Padding, contentBottom - 100 - spireRowOffset, SKTextAlign.Right, BtnFont!, SubtlePaint);
             _hoverRects.Add((new SKRect(popup.Left, contentBottom - 114 - spireRowOffset, popup.Right, contentBottom - 86 - spireRowOffset), new[] { "prestige_tooltip_corruption_spire_bonus" }));
         }
 

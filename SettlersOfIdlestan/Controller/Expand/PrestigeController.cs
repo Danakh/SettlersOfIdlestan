@@ -151,9 +151,18 @@ namespace SettlersOfIdlestan.Controller.Expand
             => _islandState?.Features.OfType<CorruptionSpire>().Any(f => f.Built) == true
                || _islandState?.Features.OfType<AbyssGate>().Any(f => f.Built) == true;
 
-        /// <summary>Multiplicateur de la Spire de Corruption : 2 × niveau de corruption courant si construite, sinon 1.</summary>
-        public int GetCorruptionSpireMultiplier()
-            => HasCorruptionSpireBuilt() ? 2 * (_prestigeState?.CurrentCorruptionLevel ?? 1) : 1;
+        public int GetMaxCorruptionLevelCleared() => _prestigeState?.MaxCorruptionLevelCleared ?? 0;
+
+        /// <summary>
+        /// Bonus de prestige lié au nettoyage de la Corruption : 2 × le niveau de pointe le plus élevé
+        /// jamais entièrement nettoyé (voir PrestigeState.MaxCorruptionLevelCleared), au minimum ×1.
+        /// Remplace l'ancien multiplicateur de la Spire de Corruption, qui ne dépendait que d'être
+        /// construite : la Spire reste le meilleur outil pour garantir le nettoyage d'une zone de haut
+        /// niveau (voir CorruptionController.ProcessMonumentCorruptionDecay), mais le Dominion peut
+        /// produire le même bonus en nettoyant naturellement une zone de Corruption.
+        /// </summary>
+        public int GetCorruptionClearBonusMultiplier()
+            => Math.Max(1, 2 * GetMaxCorruptionLevelCleared());
 
         public int GetCorruptionLevel() => _prestigeState?.CurrentCorruptionLevel ?? 1;
 
@@ -206,7 +215,7 @@ namespace SettlersOfIdlestan.Controller.Expand
             double tierBonus = GetTierBonus();
             double greatLighthouseBonus = GetGreatLighthousePrestigeBonus();
             result *= (1 + gainBonus + seaportBonus + civDestroyedBonus + tierBonus + greatLighthouseBonus);
-            result *= GetCorruptionSpireMultiplier();
+            result *= GetCorruptionClearBonusMultiplier();
             return (int)result;
         }
 

@@ -352,7 +352,7 @@ namespace SettlersOfIdlestan.Controller
                 GreatLighthouseController.Initialize(WorldState, Clock);
                 DeepestMineController.Initialize(WorldState, Clock);
                 CorruptionSpireController.Initialize(WorldState, Clock);
-                CorruptionController.Initialize(WorldState, Clock, CurrentMainState!.PRNG);
+                CorruptionController.Initialize(WorldState, Clock, CurrentMainState!.PRNG, CurrentMainState?.PrestigeState);
                 AbyssGateController.Initialize(WorldState, Clock);
                 DivineBonesController.Initialize(WorldState, Clock, CurrentMainState!.GodState, CurrentMainState!.PRNG);
                 MagicController.Initialize(WorldState, Clock, CurrentMainState!.PRNG, CityBuilderController, BuildingController, HarvestController);

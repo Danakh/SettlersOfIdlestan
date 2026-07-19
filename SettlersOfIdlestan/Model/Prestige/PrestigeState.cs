@@ -39,6 +39,14 @@ public class PrestigeState
     /// <summary>Niveau de corruption de l'Inframonde. Augmente la sévérité et la chance des zones corrompues. Démarre à 1.</summary>
     public int CurrentCorruptionLevel { get; set; } = 1;
 
+    /// <summary>
+    /// Niveau de pointe le plus élevé jamais atteint par une zone de Corruption entièrement nettoyée
+    /// (Level ramené à 0), que ce soit par la Spire de Corruption/la Faille des Abysses ou par le
+    /// Dominion (Temple, débordement). Alimente PrestigeController.GetCorruptionClearBonusMultiplier —
+    /// voir CorruptionController.ReduceLevel pour la mise à jour. Démarre à 0 (aucun bonus).
+    /// </summary>
+    public int MaxCorruptionLevelCleared { get; set; } = 0;
+
     /// <summary>Niveau de corruption qui déborde en surface une fois <see cref="CurrentCorruptionLevel"/> au-delà de 3.</summary>
     [System.Text.Json.Serialization.JsonIgnore]
     public int SurfaceCorruptionLevel => Math.Max(0, CurrentCorruptionLevel - 3);

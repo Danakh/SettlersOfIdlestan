@@ -407,6 +407,13 @@ namespace SettlersOfIdlestan.Controller.Island
                 {
                     result.Add(existingInstance ?? prototype);
                 }
+                // Ziggourat : reste cachée tant que le pouvoir divin Foi (UNLOCK_DOMINION) n'est pas
+                // débloqué, même verrou que les recherches/vertex du Dominion (voir ResearchController.IsDominionRequirementMet).
+                else if (bt == BuildingType.Ziggurat &&
+                         !civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_DOMINION))
+                {
+                    continue;
+                }
                 else if (_state.GetMapFor(city.Position) is { } map2 &&
                          prototype.IsBuildingAvailableForCity(map2, city))
                 {

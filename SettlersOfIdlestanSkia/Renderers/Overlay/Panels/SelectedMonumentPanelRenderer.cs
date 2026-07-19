@@ -1,6 +1,7 @@
 using SettlersOfIdlestan.Controller.Expand;
 using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Model.Civilization;
+using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestanSkia.Services.Localization;
@@ -11,6 +12,7 @@ using SkiaSharp;
 using Svg.Skia;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace SettlersOfIdlestanSkia.Renderers.Overlay.Panels;
 
@@ -454,21 +456,11 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
                     : (_localization.Get("monument_bonus_deepest_mine_next"), false));
                 break;
             case CorruptionSpire spire:
-            {
-                int multiplier = 2 * prestige.GetCorruptionLevel();
-                lines.Add(spire.Built
-                    ? (_localization.GetFormated("monument_bonus_corruption_spire_current", multiplier), true)
-                    : (_localization.GetFormated("monument_bonus_corruption_spire_next", multiplier), false));
+                AddCorruptionMonumentBonusLines(lines, spire.Position);
                 break;
-            }
             case AbyssGate gate:
-            {
-                int multiplier = 2 * prestige.GetCorruptionLevel();
-                lines.Add(gate.Built
-                    ? (_localization.GetFormated("monument_bonus_abyss_gate_current", multiplier), true)
-                    : (_localization.GetFormated("monument_bonus_abyss_gate_next", multiplier), false));
+                AddCorruptionMonumentBonusLines(lines, gate.Position);
                 break;
-            }
             case DivineBones:
             {
                 int boneCount = _gameControllerService.MainGameController.CurrentMainState?.CurrentWorldState?.DivineBoneCount ?? 0;
@@ -478,6 +470,25 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
         }
 
         return lines;
+    }
+
+    /// <summary>
+    /// Lignes de bonus communes à la Spire de Corruption et à la Faille des Abysses : les deux
+    /// protègent totalement leur hex (voir CorruptionController.IsProtectedHex) et y réduisent la
+    /// Corruption d'un point garanti toutes les 10 secondes (ProcessMonumentCorruptionDecay). Le
+    /// bonus de prestige n'est plus lié à la construction elle-même : il dépend du pic de corruption
+    /// que ce nettoyage finira par atteindre (voir PrestigeController.GetCorruptionClearBonusMultiplier).
+    /// </summary>
+    private void AddCorruptionMonumentBonusLines(List<(string Text, bool Active)> lines, HexCoord position)
+    {
+        lines.Add((_localization.Get("monument_bonus_corruption_spire_protection"), true));
+        lines.Add((_localization.Get("monument_bonus_corruption_spire_decay"), true));
+
+        var corruption = _gameControllerService.MainGameController.CurrentMainState?.CurrentWorldState?.Features
+            .OfType<Corruption>()
+            .FirstOrDefault(c => c.Position.Equals(position));
+        if (corruption != null)
+            lines.Add((_localization.GetFormated("monument_bonus_corruption_spire_potential", 2 * corruption.PeakLevel), true));
     }
 
     private void HandlePointerMoved(object? sender, PointerEventArgs e)

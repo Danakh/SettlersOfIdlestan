@@ -10,6 +10,14 @@ public class Corruption : IslandFeature
 {
     public int Level { get; set; } = 1;
 
+    /// <summary>
+    /// Niveau le plus élevé jamais atteint par cette zone. Sert à mesurer "le niveau nettoyé" quand
+    /// elle est totalement dissipée (Level atteint 0) — voir PrestigeState.MaxCorruptionLevelCleared
+    /// et CorruptionController.ReduceLevel. Level ne redescend qu'un point à la fois, donc une zone
+    /// n'est jamais "nettoyée" qu'à partir du niveau 1 ; c'est le pic, pas le niveau final, qui compte.
+    /// </summary>
+    public int PeakLevel { get; set; } = 1;
+
     public override bool BlocksHarvest => false;
     public override bool IsDiscoverable => false;
     public override bool ShouldRenderIcon => false; // cercle violet rendu par le renderer, pas une icône
@@ -40,6 +48,7 @@ public class Corruption : IslandFeature
     public Corruption(HexCoord position, int level = 1) : base(position)
     {
         Level = level;
+        PeakLevel = level;
     }
 
     private const int LevelUpChancePercent = 50;

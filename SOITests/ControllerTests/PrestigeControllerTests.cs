@@ -262,68 +262,56 @@ namespace SOITests.ControllerTests
             Assert.Equal(0, controller.CurrentMainState.PrestigeState!.PresenceOfGodUsesSinceLastPrestige);
         }
 
-        // ── Spire de Corruption ──────────────────────────────────────────────
+        // ── Bonus de nettoyage de la Corruption (Spire de Corruption / Dominion) ─────
 
         [Fact]
-        public void CorruptionSpireMultiplier_OneWhenNotBuilt()
+        public void CorruptionClearBonusMultiplier_OneWhenNothingCleared()
         {
             var state = IslandTestFactory.CreateSevenHexIslandState();
             var controller = new PrestigeController();
             controller.Initialize(state.Civilizations[0], state);
 
-            Assert.Equal(1, controller.GetCorruptionSpireMultiplier());
+            Assert.Equal(1, controller.GetCorruptionClearBonusMultiplier());
         }
 
         [Fact]
-        public void CorruptionSpireMultiplier_TwiceCorruptionLevelWhenBuilt()
+        public void CorruptionClearBonusMultiplier_TwiceMaxLevelCleared()
         {
             var state = IslandTestFactory.CreateSevenHexIslandState();
-            state.AddFeature(new SettlersOfIdlestan.Model.IslandFeatures.CorruptionSpire(new HexCoord(0, 0, SettlersOfIdlestan.Model.IslandMap.LayerState.UnderworldZ)) { Built = true });
-            var prestigeState = new SettlersOfIdlestan.Model.Prestige.PrestigeState { CurrentCorruptionLevel = 3 };
+            var prestigeState = new SettlersOfIdlestan.Model.Prestige.PrestigeState { MaxCorruptionLevelCleared = 3 };
             var controller = new PrestigeController();
             controller.Initialize(state.Civilizations[0], state, prestigeState: prestigeState);
 
-            Assert.Equal(6, controller.GetCorruptionSpireMultiplier()); // 2 × 3
+            Assert.Equal(6, controller.GetCorruptionClearBonusMultiplier()); // 2 × 3
         }
 
         [Fact]
-        public void CorruptionSpireMultiplier_OneWhileUnderConstruction()
+        public void CorruptionClearBonusMultiplier_DoesNotRequireCorruptionSpireBuilt()
         {
+            // Le bonus vient désormais du record de nettoyage (Spire ou Dominion), pas de la
+            // construction de la Spire elle-même — voir HasCorruptionSpireBuilt (mécanique séparée
+            // gérant le Prestige Corrompu) qui reste false ici.
             var state = IslandTestFactory.CreateSevenHexIslandState();
-            state.AddFeature(new SettlersOfIdlestan.Model.IslandFeatures.CorruptionSpire(new HexCoord(0, 0, SettlersOfIdlestan.Model.IslandMap.LayerState.UnderworldZ)) { Built = false });
-            var prestigeState = new SettlersOfIdlestan.Model.Prestige.PrestigeState { CurrentCorruptionLevel = 3 };
+            var prestigeState = new SettlersOfIdlestan.Model.Prestige.PrestigeState { MaxCorruptionLevelCleared = 3 };
             var controller = new PrestigeController();
             controller.Initialize(state.Civilizations[0], state, prestigeState: prestigeState);
 
-            Assert.Equal(1, controller.GetCorruptionSpireMultiplier());
+            Assert.False(controller.HasCorruptionSpireBuilt());
+            Assert.Equal(6, controller.GetCorruptionClearBonusMultiplier());
         }
 
         [Fact]
-        public void CorruptionSpireMultiplier_AppliesWhenEvolvedToAbyssGate()
+        public void CalculatePrestigePoints_AppliesCorruptionClearBonusMultiplier()
         {
             var state = IslandTestFactory.CreateSevenHexIslandState();
-            state.AddFeature(new SettlersOfIdlestan.Model.IslandFeatures.AbyssGate(new HexCoord(0, 0, SettlersOfIdlestan.Model.IslandMap.LayerState.UnderworldZ)) { Built = true });
-            var prestigeState = new SettlersOfIdlestan.Model.Prestige.PrestigeState { CurrentCorruptionLevel = 3 };
-            var controller = new PrestigeController();
-            controller.Initialize(state.Civilizations[0], state, prestigeState: prestigeState);
-
-            Assert.True(controller.HasCorruptionSpireBuilt());
-            Assert.Equal(6, controller.GetCorruptionSpireMultiplier()); // 2 × 3, même bonus que la Spire
-        }
-
-        [Fact]
-        public void CalculatePrestigePoints_AppliesCorruptionSpireMultiplier()
-        {
-            var state = IslandTestFactory.CreateSevenHexIslandState();
-            state.AddFeature(new SettlersOfIdlestan.Model.IslandFeatures.CorruptionSpire(new HexCoord(0, 0, SettlersOfIdlestan.Model.IslandMap.LayerState.UnderworldZ)) { Built = true });
-            var prestigeState = new SettlersOfIdlestan.Model.Prestige.PrestigeState { CurrentCorruptionLevel = 2 };
+            var prestigeState = new SettlersOfIdlestan.Model.Prestige.PrestigeState { MaxCorruptionLevelCleared = 2 };
             var civ = state.Civilizations[0];
             civ.Cities[0].Buildings.Add(new Temple()); // subtotal = 1, monster bonus ×1.2 (pas de monstre)
             var controller = new PrestigeController();
             controller.Initialize(civ, state, prestigeState: prestigeState);
 
-            // (1 × 1.2) × (1 + tier bonus 10%) × (2 × 2) = 5.28 → (int) 5
-            Assert.Equal(5, controller.CalculatePrestigePoints());
+            // (1 × 1.2) × (2 × 2) = 4.8 → (int) 4
+            Assert.Equal(4, controller.CalculatePrestigePoints());
         }
 
         // ── Civilizations destroyed prestige bonus ──────────────────────────

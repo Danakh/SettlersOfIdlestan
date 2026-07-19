@@ -6,6 +6,7 @@ using SettlersOfIdlestan.Model.GameplayModifier;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.IslandMap;
+using SettlersOfIdlestan.Model.Prestige;
 using System.Collections.Generic;
 using System.Linq;
 using Xunit;
@@ -61,10 +62,10 @@ public class CorruptionControllerTests
         return (state, a, b);
     }
 
-    private static CorruptionController CreateController(WorldState state, GameClock clock, int seed = 1)
+    private static CorruptionController CreateController(WorldState state, GameClock clock, int seed = 1, PrestigeState? prestigeState = null)
     {
         var controller = new CorruptionController();
-        controller.Initialize(state, clock, new GamePRNG(seed));
+        controller.Initialize(state, clock, new GamePRNG(seed), prestigeState);
         return controller;
     }
 
@@ -441,5 +442,111 @@ public class CorruptionControllerTests
         clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
 
         Assert.Empty(state.Features);
+    }
+
+    // ── Spire de Corruption / Faille des Abysses : hex protégé + décroissance garantie ──
+
+    [Fact]
+    public void MonumentDecay_ReducesCorruptionOnSpireHex_Guaranteed()
+    {
+        var (state, _, landHex) = CreateSingleLandHexCitySetup();
+        state.AddFeature(new Corruption(landHex, level: 3));
+        state.AddFeature(new CorruptionSpire(landHex));
+
+        var clock = new GameClock();
+        clock.Start();
+        CreateController(state, clock);
+
+        clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
+
+        var corruption = state.GetFeaturesAt(landHex).OfType<Corruption>().Single();
+        Assert.Equal(2, corruption.Level);
+    }
+
+    [Fact]
+    public void MonumentDecay_ReducesCorruptionUnderAbyssGate_Guaranteed()
+    {
+        var (state, _, landHex) = CreateSingleLandHexCitySetup();
+        state.AddFeature(new Corruption(landHex, level: 3));
+        state.AddFeature(new AbyssGate(landHex));
+
+        var clock = new GameClock();
+        clock.Start();
+        CreateController(state, clock);
+
+        clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
+
+        var corruption = state.GetFeaturesAt(landHex).OfType<Corruption>().Single();
+        Assert.Equal(2, corruption.Level);
+    }
+
+    [Fact]
+    public void MonumentDecay_ClearingToZero_RecordsPeakLevelNotFinalLevel()
+    {
+        var (state, _, landHex) = CreateSingleLandHexCitySetup();
+        // Simule une zone qui a grimpé jusqu'au niveau 5 avant d'être ramenée à 1 par un autre biais :
+        // c'est le pic (5), pas le niveau final au moment du nettoyage (1), qui doit être enregistré.
+        state.AddFeature(new Corruption(landHex, level: 1) { PeakLevel = 5 });
+        state.AddFeature(new CorruptionSpire(landHex));
+
+        var prestigeState = new PrestigeState();
+        var clock = new GameClock();
+        clock.Start();
+        CreateController(state, clock, prestigeState: prestigeState);
+
+        clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
+
+        Assert.Empty(state.GetFeaturesAt(landHex).OfType<Corruption>());
+        Assert.Equal(5, prestigeState.MaxCorruptionLevelCleared);
+    }
+
+    [Fact]
+    public void SpireHex_TempleProduction_DoesNotCreateDominion()
+    {
+        var (state, city, landHex) = CreateSingleLandHexCitySetup();
+        city.Buildings.Add(new Temple { Level = 2 });
+        state.AddFeature(new CorruptionSpire(landHex));
+
+        var clock = new GameClock();
+        clock.Start();
+        CreateController(state, clock);
+
+        clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
+
+        Assert.Empty(state.GetFeaturesAt(landHex).OfType<Dominion>());
+    }
+
+    [Fact]
+    public void SpireHex_Spread_SourceProtected_NoSpreadOut()
+    {
+        var (state, a, b) = CreateTwoLandHexesSetup();
+        var corruption = new Corruption(a, level: 10); // 100% de déclenchement si non protégé
+        state.AddFeature(corruption);
+        state.AddFeature(new CorruptionSpire(a));
+
+        var clock = new GameClock();
+        clock.Start();
+        CreateController(state, clock);
+
+        clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
+
+        Assert.False(state.HasFeaturesAt(b)); // aucun débordement depuis l'hex protégé
+        Assert.Equal(9, corruption.Level); // seule la décroissance garantie du monument s'applique (-1)
+    }
+
+    [Fact]
+    public void SpireHex_Spread_TargetProtected_NoDominionSeeded()
+    {
+        var (state, a, b) = CreateTwoLandHexesSetup();
+        state.AddFeature(new Dominion(a, level: 10)); // 100% de déclenchement si non protégé
+        state.AddFeature(new CorruptionSpire(b));
+
+        var clock = new GameClock();
+        clock.Start();
+        CreateController(state, clock);
+
+        clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
+
+        Assert.Empty(state.GetFeaturesAt(b).OfType<Dominion>());
     }
 }
