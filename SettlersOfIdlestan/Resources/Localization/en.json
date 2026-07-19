@@ -1186,6 +1186,7 @@
   "building_skullpit_name": "Skull Pit",
   "building_skullpit_desc": "Orc racial building. Offers free upkeep food for 2 soldiers per city.",
   "tooltip_requires_dominion": "⚠ Requires the Dominion (Faith divine power)",
+  "tooltip_requires_temple_level4": "⚠ Requires a level 4 Temple in this city",
   "prestige_tooltip_city_min_distance": "Minimum distance between your cities",
   "prestige_tooltip_city_placement_terrain": "New cities only adjacent to:",
   "prestige_tooltip_temple_instant_dominion": "Temples built or upgraded instantly produce Dominion",

@@ -1186,6 +1186,7 @@
   "building_skullpit_name": "Fosse aux Crânes",
   "building_skullpit_desc": "Bâtiment racial des Orcs. Offre la nourriture d'entretien de 2 soldats par ville.",
   "tooltip_requires_dominion": "⚠ Nécessite le Dominion (pouvoir divin Foi)",
+  "tooltip_requires_temple_level4": "⚠ Nécessite un Temple niveau 4 dans cette ville",
   "prestige_tooltip_city_min_distance": "Distance minimale entre vos villes",
   "prestige_tooltip_city_placement_terrain": "Nouvelles villes uniquement adjacentes :",
   "prestige_tooltip_temple_instant_dominion": "Les Temples construits ou améliorés produisent du Dominion instantanément",

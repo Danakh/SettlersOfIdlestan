@@ -11,6 +11,8 @@ namespace SettlersOfIdlestan.Model.Buildings;
 /// City.ZigguratTriggersUsed et CorruptionController.ApplyZigguratInstantProduction).
 /// Niveau max par défaut 0 : constructible uniquement quand la race Humaine fournit son
 /// BUILDING_MAX_LEVEL +1 (même patron que les uniques débloqués par prestige).
+/// Prérequis de construction : Dominion débloqué (pouvoir divin Foi) ET un Temple niveau 4 dans
+/// la ville (voir HasBuildPrerequisites).
 /// </summary>
 public class Ziggurat : Building, IUniqueBuilding
 {
@@ -31,10 +33,17 @@ public class Ziggurat : Building, IUniqueBuilding
         => IsAvailableInLayer(map.Z) && base.IsBuildingAvailableForCity(map, city);
 
     public override bool HasBuildPrerequisites(IBuildingContext city, WorldState state)
-        => state.PlayerCivilization.ModifierAggregator.HasModifier(ECategory.UNLOCK_DOMINION);
+        => state.PlayerCivilization.ModifierAggregator.HasModifier(ECategory.UNLOCK_DOMINION)
+        && city.Buildings.Any(b => b.Type == BuildingType.Temple && b.Level >= 4);
 
     public override string? GetMissingPrerequisiteKey(IBuildingContext city, WorldState state)
-        => HasBuildPrerequisites(city, state) ? null : "tooltip_requires_dominion";
+    {
+        if (!state.PlayerCivilization.ModifierAggregator.HasModifier(ECategory.UNLOCK_DOMINION))
+            return "tooltip_requires_dominion";
+        if (!city.Buildings.Any(b => b.Type == BuildingType.Temple && b.Level >= 4))
+            return "tooltip_requires_temple_level4";
+        return null;
+    }
 
     public override ResourceSet GetBuildCost() => new ResourceSet
     {
