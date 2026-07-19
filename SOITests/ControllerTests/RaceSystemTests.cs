@@ -104,10 +104,12 @@ public class RaceSystemTests
         Assert.Contains(RaceId.Elf, races);
         Assert.Contains(RaceId.Dwarf, races);
         Assert.Contains(RaceId.Goblin, races);
-        Assert.Contains(RaceId.Giant, races);
+        Assert.Contains(RaceId.Orc, races);
         // Sirènes et Elfes noirs : races avancées non implémentées, jamais sélectionnables.
         Assert.DoesNotContain(RaceId.Mermaid, races);
         Assert.DoesNotContain(RaceId.DarkElf, races);
+        Assert.DoesNotContain(RaceId.Giant, races);
+        Assert.DoesNotContain(RaceId.Garuda, races);
     }
 
     [Fact]
