@@ -21,6 +21,14 @@ public class Mine : Building
         return null;
     }
 
+    // Ore production is 2x slower than the default automatic harvest rate
+    public override long GetAutomaticHarvestCooldown(long baseCooldownTicks, int? atLevel = null)
+    {
+        int level = atLevel ?? Level;
+        long levelsAbove = Math.Max(0, level - AutomaticHarvestUnlockLevel);
+        return Math.Max(1L, baseCooldownTicks * 2 - levelsAbove * 50);
+    }
+
     public override ResourceSet GetBuildCost() => new ResourceSet
     {
         { Resource.Stone, 40 },
