@@ -276,4 +276,55 @@ public class ResearchControllerTests
         Assert.Equal(TechnologyId.MasterHarvest, ctrl.ActiveResearch);
         Assert.True(ctrl.IsLoopEnabled(TechnologyId.MasterHarvest));
     }
+
+    /// <summary>
+    /// Le cumul TotalResearchPointsInvested (qui plafonne MaxResearchPoints) doit compter le coût de
+    /// CHAQUE palier d'une recherche répétable — lequel double à chaque relance (voir GetEffectiveCost) —
+    /// et non le coût de base du palier 1 à chaque fois. Sinon une répétable de haut niveau (ex: Chroniques
+    /// du Guet) coûte des centaines de milliers de PR mais ne fait presque pas grimper le plafond.
+    /// </summary>
+    [Fact]
+    public void RepeatableResearch_Completion_AddsPerTierDoubledCost_ToTotalInvested()
+    {
+        var civ = new Civilization { Index = 0 };
+        var city = new City(CityVertex) { CivilizationIndex = 0 };
+        civ.AddCity(city);
+
+        var state = new WorldState(MinimalMap(), [civ], AtlasController.InvalidIslandId);
+        var prestigeState = new PrestigeState(state);
+        civ.TechnologyTree = prestigeState.TechnologyTree;
+
+        prestigeState.TechnologyTree.CompleteResearch(TechnologyId.HarvestEfficiency);
+        prestigeState.TechnologyTree.CompleteResearch(TechnologyId.HarvestTools);
+
+        var clock = new GameClock();
+        clock.Start();
+        var ctrl = new ResearchController();
+        ctrl.Initialize(state, clock, prestigeState);
+
+        var tech = TechnologyDefinitions.Get(TechnologyId.MasterHarvest)!;
+        long investedBeforeFirstCompletion = ctrl.TotalResearchPointsInvested;
+
+        Assert.True(ctrl.StartResearch(TechnologyId.MasterHarvest));
+        prestigeState.TechnologyTree.ActiveResearchConsumed = tech.Cost;
+        prestigeState.TechnologyTree.ActiveResearchLastConsumptionTick = 0;
+        prestigeState.TechnologyTree.ResearchPoints = 1;
+        clock.SimulateAdvance(ResearchController.ResearchConsumptionCooldownTicks); // sentinel
+        clock.SimulateAdvance(ResearchController.ResearchConsumptionCooldownTicks); // complète le palier 1
+
+        Assert.Equal(1, ctrl.GetRepeatCount(TechnologyId.MasterHarvest));
+        Assert.Equal(investedBeforeFirstCompletion + tech.Cost, ctrl.TotalResearchPointsInvested);
+
+        // Palier 2 : coût doublé (2 * tech.Cost), l'incrément doit lui aussi doubler.
+        long investedBeforeSecondCompletion = ctrl.TotalResearchPointsInvested;
+        Assert.True(ctrl.StartResearch(TechnologyId.MasterHarvest));
+        prestigeState.TechnologyTree.ActiveResearchConsumed = tech.Cost * 2;
+        prestigeState.TechnologyTree.ActiveResearchLastConsumptionTick = 0;
+        prestigeState.TechnologyTree.ResearchPoints = 1;
+        clock.SimulateAdvance(ResearchController.ResearchConsumptionCooldownTicks); // sentinel
+        clock.SimulateAdvance(ResearchController.ResearchConsumptionCooldownTicks); // complète le palier 2
+
+        Assert.Equal(2, ctrl.GetRepeatCount(TechnologyId.MasterHarvest));
+        Assert.Equal(investedBeforeSecondCompletion + tech.Cost * 2, ctrl.TotalResearchPointsInvested);
+    }
 }

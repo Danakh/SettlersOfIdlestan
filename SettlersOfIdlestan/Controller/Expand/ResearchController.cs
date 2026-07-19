@@ -58,11 +58,18 @@ namespace SettlersOfIdlestan.Controller.Expand
                     var tech = TechnologyDefinitions.Get(id);
                     if (tech == null) continue;
                     // Une recherche répétable a pu être complétée plusieurs fois : chaque complétion
-                    // contribue son coût de base (voir l'incrément équivalent dans AdvanceActiveResearch).
-                    int repeats = tech.Repeatable
-                        ? (prestigeState.TechnologyTree.RepeatCounts.TryGetValue(id, out var c) ? c : 1)
-                        : 1;
-                    _totalBaseResearchCostCompleted += tech.Cost * repeats;
+                    // contribue son coût de base pour CE palier (double à chaque relance, voir GetEffectiveCost),
+                    // pas un simple multiple linéaire (voir l'incrément équivalent dans AdvanceActiveResearch).
+                    if (tech.Repeatable)
+                    {
+                        int repeats = prestigeState.TechnologyTree.RepeatCounts.TryGetValue(id, out var c) ? c : 1;
+                        for (int i = 0; i < repeats; i++)
+                            _totalBaseResearchCostCompleted += (long)(tech.Cost * Math.Pow(2, i));
+                    }
+                    else
+                    {
+                        _totalBaseResearchCostCompleted += tech.Cost;
+                    }
                 }
 
             if (_clock != null)
@@ -161,8 +168,16 @@ namespace SettlersOfIdlestan.Controller.Expand
             if (tree.ActiveResearchConsumed >= effectiveCost)
             {
                 // Compte le coût de BASE (non réduit) de la recherche terminée, pas la progression en cours
-                // ni le coût réellement payé (voir commentaire sur _totalBaseResearchCostCompleted).
-                _totalBaseResearchCostCompleted += tech.Cost;
+                // ni le coût réellement payé (voir commentaire sur _totalBaseResearchCostCompleted). Pour une
+                // recherche répétable, ce coût de base double à chaque relance (voir GetEffectiveCost) : il
+                // faut donc le coût du palier qui vient d'être complété, pas le coût de base du palier 1.
+                long baseCostCompleted = tech.Cost;
+                if (tech.Repeatable)
+                {
+                    int repeatCount = tree.RepeatCounts.TryGetValue(techId, out var rc) ? rc : 0;
+                    baseCostCompleted = (long)(tech.Cost * Math.Pow(2, repeatCount));
+                }
+                _totalBaseResearchCostCompleted += baseCostCompleted;
                 tree.CompleteResearch(techId);
                 OnResearchCompleted?.Invoke(this, techId);
 
