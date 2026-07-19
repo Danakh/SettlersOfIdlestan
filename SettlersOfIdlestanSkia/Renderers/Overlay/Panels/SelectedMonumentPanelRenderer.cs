@@ -143,7 +143,7 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
         bool showCorruptedPrestigeAvailable = monument is CorruptionSpire { Built: true };
         bool showEvolveButton = monument is CorruptionSpire { Built: true }
             && _gameControllerService.MainGameController.AbyssGateController.IsAbyssGateEligible();
-        bool showWonderSkipButton = monument is Wonder;
+        bool showWonderSkipButton = monument is Wonder { Level: >= 1 };
         bool showNoCityWarning = !wonderMaxed && !MonumentInvestment.HasAdjacentCity(monument.Position, playerCiv);
         var bonusLines = GetBonusLines(monument, playerCiv);
         float bonusTextWidth = panelWidth - 2 * padding;
