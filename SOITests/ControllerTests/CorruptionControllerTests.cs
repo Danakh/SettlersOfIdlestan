@@ -444,7 +444,7 @@ public class CorruptionControllerTests
         Assert.Empty(state.Features);
     }
 
-    // ── Spire de Corruption / Faille des Abysses : hex protégé + décroissance garantie ──
+    // ── Spire de Corruption / Faille des Abysses : aucune protection, décroissance garantie ──
 
     [Fact]
     public void MonumentDecay_ReducesCorruptionOnSpireHex_Guaranteed()
@@ -501,8 +501,9 @@ public class CorruptionControllerTests
     }
 
     [Fact]
-    public void SpireHex_TempleProduction_DoesNotCreateDominion()
+    public void SpireHex_TempleProduction_CanStillCreateDominion()
     {
+        // La Spire de Corruption ne protège plus son hex : un Temple peut toujours y poser du Dominion.
         var (state, city, landHex) = CreateSingleLandHexCitySetup();
         city.Buildings.Add(new Temple { Level = 2 });
         state.AddFeature(new CorruptionSpire(landHex));
@@ -513,16 +514,19 @@ public class CorruptionControllerTests
 
         clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
 
-        Assert.Empty(state.GetFeaturesAt(landHex).OfType<Dominion>());
+        Assert.Single(state.GetFeaturesAt(landHex).OfType<Dominion>());
     }
 
     [Fact]
-    public void SpireHex_Spread_SourceProtected_NoSpreadOut()
+    public void SpireHex_Spread_SourceNotProtected_CanSpreadOut()
     {
+        // La Spire de Corruption ne protège plus son hex : le débordement peut s'y produire normalement.
+        // Rayon mis à 0 pour isoler ce mécanisme de la décroissance garantie (qui, à rayon ≥ 1,
+        // effacerait immédiatement la Corruption fraîchement débordée sur le voisin b).
         var (state, a, b) = CreateTwoLandHexesSetup();
         var corruption = new Corruption(a, level: 10); // 100% de déclenchement si non protégé
         state.AddFeature(corruption);
-        state.AddFeature(new CorruptionSpire(a));
+        state.AddFeature(new CorruptionSpire(a) { Radius = 0 });
 
         var clock = new GameClock();
         clock.Start();
@@ -530,13 +534,13 @@ public class CorruptionControllerTests
 
         clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
 
-        Assert.False(state.HasFeaturesAt(b)); // aucun débordement depuis l'hex protégé
-        Assert.Equal(9, corruption.Level); // seule la décroissance garantie du monument s'applique (-1)
+        Assert.True(state.HasFeaturesAt(b)); // débordement possible depuis l'hex de la Spire
     }
 
     [Fact]
-    public void SpireHex_Spread_TargetProtected_NoDominionSeeded()
+    public void SpireHex_Spread_TargetNotProtected_DominionCanBeSeeded()
     {
+        // La Spire de Corruption ne protège plus son hex : elle peut recevoir du Dominion débordé.
         var (state, a, b) = CreateTwoLandHexesSetup();
         state.AddFeature(new Dominion(a, level: 10)); // 100% de déclenchement si non protégé
         state.AddFeature(new CorruptionSpire(b));
@@ -547,6 +551,100 @@ public class CorruptionControllerTests
 
         clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
 
-        Assert.Empty(state.GetFeaturesAt(b).OfType<Dominion>());
+        Assert.Single(state.GetFeaturesAt(b).OfType<Dominion>());
+    }
+
+    [Fact]
+    public void AbyssGateHex_TempleProduction_CanStillCreateDominion()
+    {
+        // La Faille des Abysses ne protège plus son hex non plus : un Temple peut toujours y poser du Dominion.
+        var (state, city, landHex) = CreateSingleLandHexCitySetup();
+        city.Buildings.Add(new Temple { Level = 2 });
+        state.AddFeature(new AbyssGate(landHex));
+
+        var clock = new GameClock();
+        clock.Start();
+        CreateController(state, clock);
+
+        clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
+
+        Assert.Single(state.GetFeaturesAt(landHex).OfType<Dominion>());
+    }
+
+    [Fact]
+    public void AbyssGateHex_Spread_SourceNotProtected_CanSpreadOut()
+    {
+        var (state, a, b) = CreateTwoLandHexesSetup();
+        state.AddFeature(new Corruption(a, level: 10)); // 100% de déclenchement
+        state.AddFeature(new AbyssGate(a));
+
+        var clock = new GameClock();
+        clock.Start();
+        CreateController(state, clock);
+
+        clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
+
+        Assert.True(state.HasFeaturesAt(b)); // débordement possible depuis l'hex de la Faille
+    }
+
+    [Fact]
+    public void AbyssGateHex_Spread_TargetNotProtected_DominionCanBeSeeded()
+    {
+        var (state, a, b) = CreateTwoLandHexesSetup();
+        state.AddFeature(new Dominion(a, level: 10)); // 100% de déclenchement
+        state.AddFeature(new AbyssGate(b));
+
+        var clock = new GameClock();
+        clock.Start();
+        CreateController(state, clock);
+
+        clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
+
+        Assert.Single(state.GetFeaturesAt(b).OfType<Dominion>());
+    }
+
+    [Fact]
+    public void MonumentDecay_ReducesCorruptionOnSpireNeighbor_WithinRadius()
+    {
+        var (state, a, b) = CreateTwoLandHexesSetup();
+        // Niveau 2 : 20% de déclenchement du débordement, tirage 29 (graine 1) → pas de débordement
+        // ce tick, ce qui isole la décroissance garantie de la Spire de tout autre effet.
+        state.AddFeature(new Corruption(b, level: 2)); // sur le voisin de la Spire, pas sur son propre hex
+        state.AddFeature(new CorruptionSpire(a) { Radius = 1 });
+
+        var clock = new GameClock();
+        clock.Start();
+        CreateController(state, clock);
+
+        clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
+
+        var corruption = state.GetFeaturesAt(b).OfType<Corruption>().Single();
+        Assert.Equal(1, corruption.Level); // rayon 1 : le voisin immédiat est couvert
+    }
+
+    [Fact]
+    public void MonumentDecay_DoesNotReachHexesBeyondRadius()
+    {
+        var a = new HexCoord(0, 0, IslandMap.SurfaceLayer);
+        var b = new HexCoord(1, 0, IslandMap.SurfaceLayer);
+        var farHex = new HexCoord(2, 0, IslandMap.SurfaceLayer); // à distance 2 de a
+        var tiles = new[] { new HexTile(a, TerrainType.Plain), new HexTile(b, TerrainType.Plain), new HexTile(farHex, TerrainType.Plain) };
+        var map = new IslandMap(tiles);
+        var civ = new Civilization { Index = 0 };
+        var state = new WorldState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
+
+        // Niveau 2 : 20% de déclenchement du débordement, tirage 29 (graine 1) → pas de débordement
+        // ce tick, ce qui isole la décroissance garantie de la Spire de tout autre effet.
+        state.AddFeature(new Corruption(farHex, level: 2));
+        state.AddFeature(new CorruptionSpire(a) { Radius = 1 }); // rayon 1 : n'atteint pas farHex (distance 2)
+
+        var clock = new GameClock();
+        clock.Start();
+        CreateController(state, clock);
+
+        clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
+
+        var corruption = state.GetFeaturesAt(farHex).OfType<Corruption>().Single();
+        Assert.Equal(2, corruption.Level); // hors rayon : aucune décroissance garantie
     }
 }

@@ -41,6 +41,7 @@ public enum GameEventType
     RitualCollapsed,
     CorruptionSpirePlaced,
     CorruptionSpireBuilt,
+    CorruptionSpireRadiusUpgraded,
     AbyssGateEligible,
     AbyssGatePlaced,
     AbyssGateBuilt,

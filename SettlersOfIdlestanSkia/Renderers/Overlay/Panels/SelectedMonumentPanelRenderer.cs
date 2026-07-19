@@ -456,10 +456,12 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
                     : (_localization.Get("monument_bonus_deepest_mine_next"), false));
                 break;
             case CorruptionSpire spire:
-                AddCorruptionMonumentBonusLines(lines, spire.Position);
+                lines.Add((_localization.GetFormated("monument_bonus_corruption_spire_decay_radius", spire.Radius), true));
+                AddCorruptionClearPotentialLine(lines, spire.Position);
                 break;
             case AbyssGate gate:
-                AddCorruptionMonumentBonusLines(lines, gate.Position);
+                lines.Add((_localization.Get("monument_bonus_corruption_spire_decay"), true));
+                AddCorruptionClearPotentialLine(lines, gate.Position);
                 break;
             case DivineBones:
             {
@@ -473,17 +475,13 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
     }
 
     /// <summary>
-    /// Lignes de bonus communes à la Spire de Corruption et à la Faille des Abysses : les deux
-    /// protègent totalement leur hex (voir CorruptionController.IsProtectedHex) et y réduisent la
-    /// Corruption d'un point garanti toutes les 10 secondes (ProcessMonumentCorruptionDecay). Le
-    /// bonus de prestige n'est plus lié à la construction elle-même : il dépend du pic de corruption
-    /// que ce nettoyage finira par atteindre (voir PrestigeController.GetCorruptionClearBonusMultiplier).
+    /// Ligne de bonus commune à la Spire de Corruption et à la Faille des Abysses : le bonus de
+    /// prestige n'est pas lié à la construction elle-même, il dépend du pic de corruption que le
+    /// nettoyage garanti (ProcessMonumentCorruptionDecay) finira par atteindre sur cet hex (voir
+    /// PrestigeController.GetCorruptionClearBonusMultiplier).
     /// </summary>
-    private void AddCorruptionMonumentBonusLines(List<(string Text, bool Active)> lines, HexCoord position)
+    private void AddCorruptionClearPotentialLine(List<(string Text, bool Active)> lines, HexCoord position)
     {
-        lines.Add((_localization.Get("monument_bonus_corruption_spire_protection"), true));
-        lines.Add((_localization.Get("monument_bonus_corruption_spire_decay"), true));
-
         var corruption = _gameControllerService.MainGameController.CurrentMainState?.CurrentWorldState?.Features
             .OfType<Corruption>()
             .FirstOrDefault(c => c.Position.Equals(position));

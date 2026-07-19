@@ -238,6 +238,10 @@ public sealed class EventLogRenderer : IDisposable
             _successCardPaint, _successBorderPaint, _successTextPaint,
             _localization.Get("event_corruption_spire_built_title"),
             _localization.Get("event_corruption_spire_built_body")),
+        GameEventType.CorruptionSpireRadiusUpgraded => (
+            _successCardPaint, _successBorderPaint, _successTextPaint,
+            _localization.Get("event_corruption_spire_radius_upgraded_title"),
+            _localization.GetFormated("event_corruption_spire_radius_upgraded_body", entry.Message ?? "?")),
         GameEventType.AdventurerDiscovered => (
             _discoveryCardPaint, _discoveryBorderPaint, _discoveryTextPaint,
             _localization.Get("event_adventurer_title"),

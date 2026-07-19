@@ -14,7 +14,8 @@ namespace SettlersOfIdlestan.Controller.Expand
     /// Gère la Spire de Corruption : Monument de l'Inframonde, plaçable uniquement sur une zone
     /// corrompue, débloquée une fois la Faille des Abysses entièrement ouverte (3/3 : Faille des
     /// Abysses + Porte Planaire + Rituel de l'Éclipse Noire). Construite par investissement
-    /// progressif comme tout Monument.
+    /// progressif comme tout Monument ; une fois bâtie, son rayon de décroissance (CorruptionSpire.Radius)
+    /// reste améliorable indéfiniment par le même mécanisme d'investissement.
     /// </summary>
     public class CorruptionSpireController
     {
@@ -26,6 +27,7 @@ namespace SettlersOfIdlestan.Controller.Expand
 
         public event EventHandler? OnCorruptionSpirePlaced;
         public event EventHandler? OnCorruptionSpireBuilt;
+        public event EventHandler<int>? OnCorruptionSpireRadiusUpgraded;
 
         internal CorruptionSpireController() { }
 
@@ -47,29 +49,43 @@ namespace SettlersOfIdlestan.Controller.Expand
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[CorruptionSpireController] {nameof(ProcessInvestment)}: {ex}"); }
         }
 
+        /// <summary>
+        /// Investissement progressif de la Spire : d'abord la construction initiale (Built = false),
+        /// puis, une fois bâtie, l'amélioration indéfinie de son rayon de décroissance (Radius),
+        /// chaque niveau coûtant 50% de plus que le précédent (voir CorruptionSpire.GetRadiusUpgradeCost).
+        /// </summary>
         private void ProcessInvestment()
         {
             if (_state == null || _clock == null) return;
             var spire = _state.Features.OfType<CorruptionSpire>().FirstOrDefault();
-            if (spire == null || spire.Built || spire.InvestmentEnabled.Count == 0) return;
+            if (spire == null || spire.InvestmentEnabled.Count == 0) return;
             if (_clock.CurrentTick - spire.LastInvestmentTick < InvestmentIntervalTicks) return;
 
             var playerCiv = _state.PlayerCivilization;
             var cost = spire.GetInvestmentCost(playerCiv);
             if (!MonumentInvestment.ProcessTick(spire, cost, playerCiv, _clock.CurrentTick)) return;
 
-            // Laisse InvestedResources au maximum (comme les autres Monuments déjà complétés) :
-            // la Spire ne se monte plus une fois construite, le panneau d'investissement reste à 100%.
-            spire.Built = true;
+            spire.InvestedResources.Clear();
             spire.InvestmentEnabled.Clear();
-            _state.EventLog.Add(GameEventType.CorruptionSpireBuilt, toast: true);
-            OnCorruptionSpireBuilt?.Invoke(this, EventArgs.Empty);
 
-            // Si la Spire repose sur une zone assez corrompue, prévient le joueur que l'évolution
-            // en Faille des Abysses est désormais disponible depuis le panneau de la Spire.
-            var corruption = _state.Features.OfType<Corruption>().FirstOrDefault(c => c.Position.Equals(spire.Position));
-            if (corruption != null && corruption.Level >= AbyssGate.RequiredCorruptionLevel)
-                _state.EventLog.Add(GameEventType.AbyssGateEligible, toast: true);
+            if (!spire.Built)
+            {
+                spire.Built = true;
+                _state.EventLog.Add(GameEventType.CorruptionSpireBuilt, toast: true);
+                OnCorruptionSpireBuilt?.Invoke(this, EventArgs.Empty);
+
+                // Si la Spire repose sur une zone assez corrompue, prévient le joueur que l'évolution
+                // en Faille des Abysses est désormais disponible depuis le panneau de la Spire.
+                var corruption = _state.Features.OfType<Corruption>().FirstOrDefault(c => c.Position.Equals(spire.Position));
+                if (corruption != null && corruption.Level >= AbyssGate.RequiredCorruptionLevel)
+                    _state.EventLog.Add(GameEventType.AbyssGateEligible, toast: true);
+            }
+            else
+            {
+                spire.Radius++;
+                _state.EventLog.Add(GameEventType.CorruptionSpireRadiusUpgraded, spire.Radius.ToString(), toast: true);
+                OnCorruptionSpireRadiusUpgraded?.Invoke(this, spire.Radius);
+            }
         }
 
         public bool HasCorruptionSpireUnlocked(Civilization playerCiv)

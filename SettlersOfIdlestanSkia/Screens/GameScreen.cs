@@ -867,6 +867,10 @@ public sealed class GameScreen : IDisposable
                 _localizationService.Get("event_corruption_spire_built_title"),
                 _localizationService.Get("event_corruption_spire_built_body"),
                 NotificationIcon.Achievement),
+            GameEventType.CorruptionSpireRadiusUpgraded => (
+                _localizationService.Get("event_corruption_spire_radius_upgraded_title"),
+                _localizationService.GetFormated("event_corruption_spire_radius_upgraded_body", entry.Message ?? "?"),
+                NotificationIcon.Achievement),
             GameEventType.AbyssGateEligible => (
                 _localizationService.Get("event_abyss_gate_eligible_title"),
                 _localizationService.Get("event_abyss_gate_eligible_body"),

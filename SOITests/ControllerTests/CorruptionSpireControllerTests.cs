@@ -8,6 +8,7 @@ using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.IslandMap;
 using SOITests.TestUtilities;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Xunit;
@@ -153,35 +154,45 @@ namespace SOITests.ControllerTests
             Assert.True(spire.Built);
             Assert.Contains(state.EventLog.Entries, e => e.Type == GameEventType.CorruptionSpireBuilt);
             Assert.True(controller.HasCorruptionSpireBuilt());
+            Assert.Equal(1, spire.Radius);
 
-            // Les ressources investies restent au maximum (comme la Mine Profonde) — la Spire
-            // ne se monte plus, le panneau d'investissement doit rester affiché à 100%.
-            foreach (var kvp in cost)
-                Assert.Equal(kvp.Value, spire.InvestedResources[kvp.Key]);
+            // Investissement de construction réinitialisé — le panneau bascule désormais sur le
+            // coût d'amélioration du rayon (Radius + 1).
+            Assert.Empty(spire.InvestedResources);
             Assert.Empty(spire.InvestmentEnabled);
         }
 
         [Fact]
-        public void Investment_StopsOnceBuilt_EvenIfReEnabled()
+        public void Investment_ContinuesAfterBuilt_UpgradesRadiusIndefinitely()
         {
             var (state, clock, controller) = CreateSetup();
             var civ = state.PlayerCivilization;
             var spire = controller.PlaceCorruptionSpire(UnderworldHex)!;
 
-            var cost = CorruptionSpire.GetSpireCost();
-            foreach (var kvp in cost)
+            var buildCost = CorruptionSpire.GetSpireCost();
+            foreach (var kvp in buildCost)
                 spire.InvestedResources[kvp.Key] = kvp.Value;
             spire.InvestmentEnabled.Add(Resource.Stone);
             clock.SimulateAdvance(CorruptionSpireController.InvestmentIntervalTicks);
             Assert.True(spire.Built);
+            Assert.Equal(1, spire.Radius);
 
-            // Re-cocher une ressource après construction ne doit plus rien consommer
-            civ.AddResource(Resource.Stone, 50);
+            // Une fois bâtie, l'investissement reprend pour améliorer le rayon : le coût du premier
+            // niveau (rayon 2) est celui de base, chaque niveau suivant coûtant 50% de plus.
+            var radius2Cost = CorruptionSpire.GetRadiusUpgradeCost(2);
+            var radius3Cost = CorruptionSpire.GetRadiusUpgradeCost(3);
+            Assert.Equal(buildCost[Resource.Stone], radius2Cost[Resource.Stone]);
+            Assert.Equal((int)Math.Round(radius2Cost[Resource.Stone] * 1.5), radius3Cost[Resource.Stone]);
+
+            foreach (var kvp in radius2Cost)
+                spire.InvestedResources[kvp.Key] = kvp.Value;
             spire.InvestmentEnabled.Add(Resource.Stone);
             clock.SimulateAdvance(CorruptionSpireController.InvestmentIntervalTicks);
 
-            Assert.Equal(50, civ.GetResourceQuantity(Resource.Stone));
-            Assert.Equal(cost[Resource.Stone], spire.InvestedResources[Resource.Stone]);
+            Assert.Equal(2, spire.Radius);
+            Assert.Contains(state.EventLog.Entries, e => e.Type == GameEventType.CorruptionSpireRadiusUpgraded);
+            Assert.Empty(spire.InvestedResources);
+            Assert.Empty(spire.InvestmentEnabled);
         }
 
         [Fact]

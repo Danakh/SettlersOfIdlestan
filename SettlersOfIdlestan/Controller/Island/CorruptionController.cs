@@ -27,10 +27,12 @@ namespace SettlersOfIdlestan.Controller.Island;
 ///    Un voisin vide peut donc se voir semer une nouvelle poche à niveau 1 si la source est assez forte
 ///    (niveau &gt; 2), ce qui permet à terme au Dominion d'un Temple de gagner du terrain à distance,
 ///    au-delà des hexes directement produits, et à plusieurs Temples de voir leurs poches se rejoindre.
-/// 3. <see cref="ProcessMonumentCorruptionDecay"/> — l'hex d'une Spire de Corruption ou d'une Faille des
-///    Abysses est totalement protégé des deux mécaniques ci-dessus (<see cref="IsProtectedHex"/>) : ni
-///    Temple ni débordement ne peuvent plus y modifier Corruption/Dominion. Seul ce process, garanti
-///    (contrairement au ciblage aléatoire du Temple), y réduit la Corruption d'un point par intervalle.
+/// 3. <see cref="ProcessMonumentCorruptionDecay"/> — ni la Faille des Abysses ni la Spire de Corruption
+///    ne protègent leur hex des deux mécaniques ci-dessus (Temple et débordement peuvent y agir
+///    normalement) ; ce process leur ajoute simplement une réduction garantie (contrairement au ciblage
+///    aléatoire du Temple) d'un point de Corruption par intervalle sur leur propre hex (Faille), ou sur
+///    tous les hexes dans un rayon de <see cref="IslandFeatures.CorruptionSpire.Radius"/> autour d'elle
+///    (Spire, rayon améliorable indéfiniment par investissement — voir CorruptionSpireController).
 /// </summary>
 public class CorruptionController
 {
@@ -111,8 +113,6 @@ public class CorruptionController
     /// </summary>
     private void ApplyTempleActionOnHex(Civilization civ, Temple temple, HexCoord hex)
     {
-        if (IsProtectedHex(hex)) return;
-
         var corruption = _state!.GetFeaturesAt(hex).OfType<Corruption>().FirstOrDefault();
         if (corruption != null)
         {
@@ -162,7 +162,6 @@ public class CorruptionController
         foreach (var source in sources)
         {
             if (!_state.Features.Contains(source)) continue; // déjà supprimée plus tôt dans cette passe
-            if (IsProtectedHex(source.Position)) continue; // hex de Spire/Faille : immunisé, y compris comme source
 
             bool sourceIsDominion = source is Dominion;
 
@@ -178,7 +177,6 @@ public class CorruptionController
             if (candidates.Count == 0) continue;
 
             var neighborHex = candidates[_prng.Next(candidates.Count)];
-            if (IsProtectedHex(neighborHex)) continue; // hex de Spire/Faille : immunisé, y compris comme cible
 
             var opposite = sourceIsDominion
                 ? (IslandFeature?)_state.GetFeaturesAt(neighborHex).OfType<Corruption>().FirstOrDefault()
@@ -284,21 +282,14 @@ public class CorruptionController
     }
 
     /// <summary>
-    /// True si l'hex porte une Spire de Corruption ou une Faille des Abysses : 100% de résistance à
-    /// la corruption sur cet hex — aucune augmentation, création ni diminution de Corruption/Dominion
-    /// par Temple (<see cref="ApplyTempleActionOnHex"/>) ou débordement (<see cref="ProcessSpread"/>),
-    /// que l'hex soit source ou cible. Seul <see cref="ProcessMonumentCorruptionDecay"/> peut encore y
-    /// réduire la Corruption.
-    /// </summary>
-    private bool IsProtectedHex(HexCoord hex)
-        => _state!.GetFeaturesAt(hex).Any(f => f is CorruptionSpire or AbyssGate);
-
-    /// <summary>
-    /// Sur l'hex d'une Spire de Corruption ou d'une Faille des Abysses (protégé de tout le reste par
-    /// <see cref="IsProtectedHex"/>), réduit la Corruption d'un point à chaque intervalle, de façon
-    /// garantie (contrairement à la production de Temple, qui cible un hex aléatoire parmi 3). Utilise
-    /// <see cref="ReduceLevel"/> comme les autres mécaniques : la suppression à 0 enregistre le pic
-    /// atteint dans <see cref="PrestigeState.MaxCorruptionLevelCleared"/>.
+    /// Réduit la Corruption d'un point à chaque intervalle, de façon garantie (contrairement à la
+    /// production de Temple, qui cible un hex aléatoire parmi 3) : sur l'hex d'une Faille des Abysses,
+    /// et sur tous les hexes dans un rayon de <see cref="CorruptionSpire.Radius"/> autour de chaque
+    /// Spire de Corruption (rayon 1 de base, incluant donc l'hex de la Spire elle-même et ses voisins
+    /// immédiats). Aucun de ces hexes n'est protégé du reste : Temple et débordement peuvent toujours
+    /// y agir normalement (voir <see cref="ApplyTempleActionOnHex"/>, <see cref="ProcessSpread"/>).
+    /// Utilise <see cref="ReduceLevel"/> comme les autres mécaniques : la suppression à 0 enregistre le
+    /// pic atteint dans <see cref="PrestigeState.MaxCorruptionLevelCleared"/>.
     /// </summary>
     private void ProcessMonumentCorruptionDecay(long currentTick)
     {
@@ -306,12 +297,43 @@ public class CorruptionController
         if (currentTick - _lastMonumentDecayTick < ProductionIntervalTicks) return;
         _lastMonumentDecayTick = currentTick;
 
-        var monumentHexes = _state.Features.Where(f => f is CorruptionSpire or AbyssGate).Select(f => f.Position).ToList();
-        foreach (var hex in monumentHexes)
+        var decayHexes = new HashSet<HexCoord>();
+        foreach (var gate in _state.Features.OfType<AbyssGate>())
+            decayHexes.Add(gate.Position);
+        foreach (var spire in _state.Features.OfType<CorruptionSpire>())
+            foreach (var hex in GetHexesInRadius(spire.Position, spire.Radius))
+                decayHexes.Add(hex);
+
+        foreach (var hex in decayHexes)
         {
             var corruption = _state.GetFeaturesAt(hex).OfType<Corruption>().FirstOrDefault();
             if (corruption != null)
                 ReduceLevel(corruption);
+        }
+    }
+
+    /// <summary>Le centre puis, anneau par anneau, tous les hexes à distance ≤ radius de center (BFS via les 6 directions).</summary>
+    private static IEnumerable<HexCoord> GetHexesInRadius(HexCoord center, int radius)
+    {
+        var visited = new HashSet<HexCoord> { center };
+        yield return center;
+
+        var frontier = new List<HexCoord> { center };
+        for (int i = 0; i < radius; i++)
+        {
+            var next = new List<HexCoord>();
+            foreach (var hex in frontier)
+            {
+                foreach (HexDirection dir in Enum.GetValues<HexDirection>())
+                {
+                    var neighbor = hex.Neighbor(dir);
+                    if (visited.Add(neighbor))
+                        next.Add(neighbor);
+                }
+            }
+            foreach (var hex in next)
+                yield return hex;
+            frontier = next;
         }
     }
 
