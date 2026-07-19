@@ -119,6 +119,7 @@ public class MonsterRenderer : HexBasedRenderer, IGameRenderer
             worldState.Visibility.GetForZ(worldState.CurrentViewedLayer).TryGetValue(worldState.PlayerCivilization.Index, out visibleMap);
 
         float dt = context.DeltaTime;
+        float speedFactor = mgs.Clock.SpeedMultiplier > 0 ? mgs.Clock.SpeedMultiplier : 1;
 
         var monsters = worldState.Features.OfType<MonsterFeature>().ToList();
         SyncMonsterVisuals(monsters);
@@ -138,7 +139,7 @@ public class MonsterRenderer : HexBasedRenderer, IGameRenderer
                 v.ModelPosition = monster.Position;
             }
             if (v.MoveProgress < 1f)
-                v.MoveProgress = Math.Min(1f, v.MoveProgress + dt / AnimationDuration);
+                v.MoveProgress = Math.Min(1f, v.MoveProgress + dt * speedFactor / AnimationDuration);
 
             var normalPos = Lerp(v.From, v.To, Smoothstep(v.MoveProgress));
 
