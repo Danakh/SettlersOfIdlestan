@@ -260,7 +260,6 @@ public static class PrestigeMapFactory
                 modifiers: new Modifier[]
                 {
                     new(ECategory.UNDERWORLD_TREASURE_CHANCE_PERCENT, EType.ADDITIVE, 5),
-                    new(ECategory.UNLOCK_RESEARCH, "CartographieSouterraine", EType.ADDITIVE, 1),
                 }
             ),
             new(

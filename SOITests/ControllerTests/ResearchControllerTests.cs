@@ -278,6 +278,119 @@ public class ResearchControllerTests
     }
 
     /// <summary>
+    /// La répétition et la file d'attente sont mutuellement exclusives : mettre une recherche
+    /// en file désactive la répétition en cours (voir ResearchController.SetQueuedResearch).
+    /// </summary>
+    [Fact]
+    public void SetQueuedResearch_DisablesActiveLoop()
+    {
+        var civ = new Civilization { Index = 0 };
+        var city = new City(CityVertex) { CivilizationIndex = 0 };
+        civ.AddCity(city);
+        civ.AddCustomAggregator(new StaticModifierProvider(
+            new[] { new Modifier(Modifier.ECategory.UNLOCK_RESEARCH_QUEUE, Modifier.EType.ADDITIVE, 1) }));
+
+        var state = new WorldState(MinimalMap(), [civ], AtlasController.InvalidIslandId);
+        var prestigeState = new PrestigeState(state);
+        civ.TechnologyTree = prestigeState.TechnologyTree;
+
+        prestigeState.TechnologyTree.CompleteResearch(TechnologyId.HarvestEfficiency);
+        prestigeState.TechnologyTree.CompleteResearch(TechnologyId.HarvestTools);
+        prestigeState.TechnologyTree.CompleteResearch(TechnologyId.Architecture);
+
+        var clock = new GameClock();
+        clock.Start();
+        var ctrl = new ResearchController();
+        ctrl.Initialize(state, clock, prestigeState);
+
+        Assert.True(ctrl.ToggleLoopResearch(TechnologyId.MasterHarvest));
+        Assert.True(ctrl.IsLoopEnabled(TechnologyId.MasterHarvest));
+
+        Assert.True(ctrl.SetQueuedResearch(TechnologyId.StorageOptimization));
+
+        Assert.Equal(TechnologyId.StorageOptimization, ctrl.GetQueuedResearch());
+        Assert.False(ctrl.IsLoopEnabled(TechnologyId.MasterHarvest));
+    }
+
+    /// <summary>
+    /// Symétrique du test précédent : activer la répétition désactive la file d'attente en cours
+    /// (voir ResearchController.ToggleLoopResearch).
+    /// </summary>
+    [Fact]
+    public void ToggleLoopResearch_DisablesActiveQueue()
+    {
+        var civ = new Civilization { Index = 0 };
+        var city = new City(CityVertex) { CivilizationIndex = 0 };
+        civ.AddCity(city);
+        civ.AddCustomAggregator(new StaticModifierProvider(
+            new[] { new Modifier(Modifier.ECategory.UNLOCK_RESEARCH_QUEUE, Modifier.EType.ADDITIVE, 1) }));
+
+        var state = new WorldState(MinimalMap(), [civ], AtlasController.InvalidIslandId);
+        var prestigeState = new PrestigeState(state);
+        civ.TechnologyTree = prestigeState.TechnologyTree;
+
+        prestigeState.TechnologyTree.CompleteResearch(TechnologyId.HarvestEfficiency);
+        prestigeState.TechnologyTree.CompleteResearch(TechnologyId.HarvestTools);
+        prestigeState.TechnologyTree.CompleteResearch(TechnologyId.Architecture);
+
+        var clock = new GameClock();
+        clock.Start();
+        var ctrl = new ResearchController();
+        ctrl.Initialize(state, clock, prestigeState);
+
+        Assert.True(ctrl.SetQueuedResearch(TechnologyId.StorageOptimization));
+        Assert.Equal(TechnologyId.StorageOptimization, ctrl.GetQueuedResearch());
+
+        Assert.True(ctrl.ToggleLoopResearch(TechnologyId.MasterHarvest));
+
+        Assert.True(ctrl.IsLoopEnabled(TechnologyId.MasterHarvest));
+        Assert.Null(ctrl.GetQueuedResearch());
+    }
+
+    /// <summary>
+    /// Quand une recherche répétable est placée en file d'attente et que la recherche active se
+    /// termine, la répétable prend le relais ET la répétition s'active automatiquement pour elle
+    /// (comportement par défaut attendu — voir ResearchController.AdvanceActiveResearch).
+    /// </summary>
+    [Fact]
+    public void QueuedRepeatableResearch_AutoEnablesLoop_WhenItBecomesActive()
+    {
+        var civ = new Civilization { Index = 0 };
+        var city = new City(CityVertex) { CivilizationIndex = 0 };
+        civ.AddCity(city);
+        civ.AddCustomAggregator(new StaticModifierProvider(
+            new[] { new Modifier(Modifier.ECategory.UNLOCK_RESEARCH_QUEUE, Modifier.EType.ADDITIVE, 1) }));
+
+        var state = new WorldState(MinimalMap(), [civ], AtlasController.InvalidIslandId);
+        var prestigeState = new PrestigeState(state);
+        civ.TechnologyTree = prestigeState.TechnologyTree;
+
+        prestigeState.TechnologyTree.CompleteResearch(TechnologyId.HarvestEfficiency);
+        prestigeState.TechnologyTree.CompleteResearch(TechnologyId.HarvestTools);
+        prestigeState.TechnologyTree.CompleteResearch(TechnologyId.Architecture);
+
+        var clock = new GameClock();
+        clock.Start();
+        var ctrl = new ResearchController();
+        ctrl.Initialize(state, clock, prestigeState);
+
+        Assert.True(ctrl.StartResearch(TechnologyId.StorageOptimization));
+        Assert.True(ctrl.SetQueuedResearch(TechnologyId.MasterHarvest));
+
+        long cost = ctrl.GetResearchProgress(TechnologyId.StorageOptimization).total;
+        prestigeState.TechnologyTree.ActiveResearchConsumed = cost;
+        prestigeState.TechnologyTree.ActiveResearchLastConsumptionTick = 0;
+        prestigeState.TechnologyTree.ResearchPoints = 1;
+
+        clock.SimulateAdvance(ResearchController.ResearchConsumptionCooldownTicks); // sentinel
+        clock.SimulateAdvance(ResearchController.ResearchConsumptionCooldownTicks); // complète StorageOptimization
+
+        Assert.Equal(TechnologyId.MasterHarvest, ctrl.ActiveResearch);
+        Assert.Null(ctrl.GetQueuedResearch());
+        Assert.True(ctrl.IsLoopEnabled(TechnologyId.MasterHarvest));
+    }
+
+    /// <summary>
     /// Le cumul TotalResearchPointsInvested (qui plafonne MaxResearchPoints) doit compter le coût de
     /// CHAQUE palier d'une recherche répétable — lequel double à chaque relance (voir GetEffectiveCost) —
     /// et non le coût de base du palier 1 à chaque fois. Sinon une répétable de haut niveau (ex: Chroniques

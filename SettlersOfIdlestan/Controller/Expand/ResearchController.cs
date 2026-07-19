@@ -194,6 +194,13 @@ namespace SettlersOfIdlestan.Controller.Expand
                     var queued = tree.QueuedResearch.Value;
                     tree.QueuedResearch = null;
                     StartResearch(queued);
+
+                    // Si la recherche qui prend le relais est répétable, elle devient la nouvelle
+                    // répétition par défaut (comportement attendu : file et répétition ne coexistent
+                    // jamais, donc la file "se transforme" en répétition une fois lancée).
+                    var queuedTech = TechnologyDefinitions.Get(queued);
+                    if (queuedTech?.Repeatable == true)
+                        tree.LoopResearch = queued;
                 }
             }
         }
@@ -240,7 +247,16 @@ namespace SettlersOfIdlestan.Controller.Expand
         public bool ToggleLoopResearch(TechnologyId id)
         {
             if (Tree == null || !CanLoop(id)) return false;
-            Tree.LoopResearch = Tree.LoopResearch == id ? null : id;
+            if (Tree.LoopResearch == id)
+            {
+                Tree.LoopResearch = null;
+            }
+            else
+            {
+                // Activer la répétition désactive la file : les deux sont mutuellement exclusives.
+                Tree.LoopResearch = id;
+                Tree.QueuedResearch = null;
+            }
             return true;
         }
 
@@ -286,6 +302,8 @@ namespace SettlersOfIdlestan.Controller.Expand
             }
             if (!CanBeQueued(id.Value)) return false;
             tree.QueuedResearch = id.Value;
+            // Mettre une recherche en file désactive la répétition en cours : les deux sont mutuellement exclusives.
+            tree.LoopResearch = null;
             return true;
         }
 
