@@ -279,7 +279,12 @@ public sealed class PrestigeRenderer : PopupRendererBase
             int currentCorruptionLevel = controller.GetCorruptionLevel();
             SkiaTextUtils.DrawText(canvas, $"{currentCorruptionLevel} -> {currentCorruptionLevel + 1}", _corruptedPrestigeButtonRect.MidX, _corruptedPrestigeButtonRect.MidY + 13, SKTextAlign.Center, _smallFont!, TextPaint);
 
-            _hoverRects.Add((_corruptedPrestigeButtonRect, new[] { "prestige_tooltip_corrupted_action" }));
+            _hoverRects.Add((_corruptedPrestigeButtonRect, new[]
+            {
+                "prestige_tooltip_corrupted_action",
+                "prestige_tooltip_corrupted_action_risk",
+                "prestige_tooltip_corrupted_action_reward",
+            }));
         }
         else
         {
@@ -289,6 +294,7 @@ public sealed class PrestigeRenderer : PopupRendererBase
 
         canvas.DrawRoundRect(_prestigeButtonRect, 7, 7, canPrestige ? _buttonPaint : _buttonDisabledPaint);
         SkiaTextUtils.DrawText(canvas, _localization.Get("prestige_action"), _prestigeButtonRect.MidX, _prestigeButtonRect.MidY + 5, SKTextAlign.Center, BtnFont!, TextPaint);
+        _hoverRects.Add((_prestigeButtonRect, new[] { "prestige_tooltip_action" }));
 
         if (hasEnoughPoints && !hasImperialPort)
         {
