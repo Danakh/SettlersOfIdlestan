@@ -756,7 +756,7 @@
   "tech_efficient_trading_name": "Commerce efficace",
   "tech_efficient_trading_desc": "+1 or bonus par tranche de 10 unités vendues d'un coup",
   "tech_automatic_market_name": "Marché automatique",
-  "tech_automatic_market_desc": "Vend automatiquement le surplus de ressources de base dans les villes possédant un Marché niv.4+",
+  "tech_automatic_market_desc": "Vend automatiquement le surplus de ressources de base (et Minerai, Verre, Acier une fois les Comptoirs Avancés recherchés) dans les villes possédant un Marché niv.4+",
   "tech_advanced_trading_posts_name": "Comptoirs Avancés",
   "tech_advanced_trading_posts_desc": "Débloque la vente de Minerai, de Verre et d'Acier au marché, au prix de 1/5 de leur coût d'achat",
   "tech_advanced_guilds_name": "Guildes Avancées",

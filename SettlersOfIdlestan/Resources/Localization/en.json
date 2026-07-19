@@ -756,7 +756,7 @@
   "tech_efficient_trading_name": "Efficient Trading",
   "tech_efficient_trading_desc": "+1 bonus gold per 10 units sold at once",
   "tech_automatic_market_name": "Automatic Market",
-  "tech_automatic_market_desc": "Automatically sells surplus basic resources in cities with a level 4+ Market",
+  "tech_automatic_market_desc": "Automatically sells surplus basic resources (and Ore, Glass, Steel once Advanced Trading Posts is researched) in cities with a level 4+ Market",
   "tech_advanced_trading_posts_name": "Advanced Trading Posts",
   "tech_advanced_trading_posts_desc": "Unlocks selling Ore, Glass and Steel at the market, at 1/5 of their purchase price",
   "tech_advanced_guilds_name": "Advanced Guilds",

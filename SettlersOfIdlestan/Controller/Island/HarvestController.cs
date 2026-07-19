@@ -339,7 +339,8 @@ namespace SettlersOfIdlestan.Controller.Island
                     }
                     if (currentTick - smelter.LastProductionTick < GetEffectiveSmelterCooldown(civ, smelter)) continue;
 
-                    if (civ.GetResourceQuantity(Resource.Steel) >= civ.GetResourceMaxQuantity(Resource.Steel)) continue;
+                    bool steelFull = civ.GetResourceQuantity(Resource.Steel) >= civ.GetResourceMaxQuantity(Resource.Steel);
+                    if (steelFull && !IsAutoMarketTradeUnlocked(civ, city, Resource.Steel)) continue;
 
                     int oreInput = GetSmelterOreInput(civ);
                     if (civ.GetResourceQuantity(Resource.Ore) < oreInput)
@@ -355,7 +356,12 @@ namespace SettlersOfIdlestan.Controller.Island
 
                     civ.RemoveResource(Resource.Ore,  oreInput);
                     civ.RemoveResource(Resource.Wood, Smelter.WoodInputPerCycle);
-                    civ.AddResource(Resource.Steel, GetSmelterSteelOutput(civ));
+                    int steelOutput = GetSmelterSteelOutput(civ);
+                    for (int i = 0; i < steelOutput; i++)
+                    {
+                        TryAutoTradeOnOverflow(civ, city, Resource.Steel);
+                        civ.AddResource(Resource.Steel, 1);
+                    }
                     smelter.LastProductionTick = currentTick;
                 }
             }
@@ -641,15 +647,29 @@ namespace SettlersOfIdlestan.Controller.Island
         }
 
         /// <summary>
-        /// Vend automatiquement le surplus d'une ressource de base dès lors que la recherche Marché Automatique
-        /// est complétée et que la ville productrice possède un Marché niv.4+.
+        /// Vrai si la vente automatique du surplus est déverrouillée pour cette ressource (recherche Marché
+        /// Automatique, plus Comptoirs Avancés pour Minerai/Verre/Acier) et que la ville productrice possède
+        /// un Marché niv.4+.
+        /// </summary>
+        private static bool IsAutoMarketTradeUnlocked(Civilization civ, City city, Resource res)
+        {
+            bool isBasic = ResourceUtils.BasicResources.Contains(res);
+            bool isSellableIntermediate = res == Resource.Ore || res == Resource.Glass || res == Resource.Steel;
+            if (!isBasic && !isSellableIntermediate) return false;
+
+            if (!civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_AUTO_MARKET_TRADE)) return false;
+            if (isSellableIntermediate && !civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_INTERMEDIATE_TRADE)) return false;
+            return city.Buildings.OfType<Market>().Any(m => m.Level >= 4);
+        }
+
+        /// <summary>
+        /// Vend automatiquement le surplus d'une ressource de base ou intermédiaire dès lors que la recherche
+        /// correspondante est complétée et que la ville productrice possède un Marché niv.4+.
         /// </summary>
         private void TryAutoTradeOnOverflow(Civilization civ, City city, Resource res)
         {
             if (_tradeController == null) return;
-            if (!ResourceUtils.BasicResources.Contains(res)) return;
-            if (!civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_AUTO_MARKET_TRADE)) return;
-            if (!city.Buildings.OfType<Market>().Any(m => m.Level >= 4)) return;
+            if (!IsAutoMarketTradeUnlocked(civ, city, res)) return;
             if (civ.GetResourceQuantity(res) + 1 <= civ.GetResourceMaxQuantity(res)) return;
 
             _tradeController.SellResource(civ.Index, res);
