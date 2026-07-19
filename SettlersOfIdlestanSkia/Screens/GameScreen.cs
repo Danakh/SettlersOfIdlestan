@@ -273,7 +273,7 @@ public sealed class GameScreen : IDisposable
         _constructionInteractionService.AttachMonumentService(_monumentService);
         islandMainRenderer.ConnectMonumentService(_monumentService);
 
-        var selectedMonumentPanelRenderer = new SelectedMonumentPanelRenderer(_monumentService, _inputService, _localizationService, _resourceManager, _gameControllerService);
+        var selectedMonumentPanelRenderer = new SelectedMonumentPanelRenderer(_monumentService, _inputService, _localizationService, _resourceManager, _gameControllerService, tooltipRenderer);
 
         var settingsPopupRenderer = new SettingsPopupRenderer(_gameControllerService.MainGameController, _localizationService, _fileSystemService, _uiLayoutService, allowDebugMode, _storeController);
         settingsPopupRenderer.FullscreenToggleRequested  += v => FullscreenToggleRequested?.Invoke(v);

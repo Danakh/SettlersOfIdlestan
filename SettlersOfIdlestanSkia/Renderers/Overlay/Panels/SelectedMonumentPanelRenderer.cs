@@ -6,6 +6,7 @@ using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestanSkia.Services.Localization;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Services;
+using SettlersOfIdlestanSkia.Renderers.Overlay;
 using SkiaSharp;
 using Svg.Skia;
 using System;
@@ -20,6 +21,7 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
     private readonly LocalizationService _localization;
     private readonly ResourceManager _resourceManager;
     private readonly GameControllerService _gameControllerService;
+    private readonly TooltipRenderer _tooltipRenderer;
     private readonly Dictionary<Resource, SKSvg?> _resourceIcons = new();
 
     private SKPaint? _dimTextPaint;
@@ -29,6 +31,8 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
     private SKPaint? _corruptedAvailablePaint;
     private SKPaint? _evolveButtonPaint;
     private SKPaint? _warningPaint;
+    private SKPaint? _skipTimeButtonPaint;
+    private SKPaint? _skipTimeButtonDisabledPaint;
 
     private const float PanelWidth = 280;
     private const float RowHeight = 50;
@@ -43,22 +47,27 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
     public bool HasSelection => _monumentService.SelectedInvestable != null;
     private SKRect _closeRect = SKRect.Empty;
     private SKRect _evolveButtonRect = SKRect.Empty;
+    private SKRect _wonderSkipButtonRect = SKRect.Empty;
     private readonly Dictionary<SKRect, Resource> _checkboxRects = new();
     private SKRect _researchCheckboxRect = SKRect.Empty;
+    private SKPoint _lastPointerPosition;
 
     public SelectedMonumentPanelRenderer(
         MonumentService monumentService,
         InputHandlingService inputService,
         LocalizationService localization,
         ResourceManager resourceManager,
-        GameControllerService gameControllerService)
+        GameControllerService gameControllerService,
+        TooltipRenderer tooltipRenderer)
     {
         _monumentService = monumentService;
         _inputService = inputService;
         _localization = localization;
         _resourceManager = resourceManager;
         _gameControllerService = gameControllerService;
+        _tooltipRenderer = tooltipRenderer;
         _inputService.PointerPressed += HandlePointerPressed;
+        _inputService.PointerMoved += HandlePointerMoved;
         _monumentService.SelectionChanged += (_, _) => Collapsed = false;
     }
 
@@ -72,6 +81,8 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
         _corruptedAvailablePaint = new SKPaint { Color = new SKColor(190, 110, 230, 230), IsAntialias = true };
         _evolveButtonPaint = new SKPaint { Color = new SKColor(125, 63, 209, 230), Style = SKPaintStyle.Fill, IsAntialias = true };
         _warningPaint = new SKPaint { Color = new SKColor(220, 90, 90, 230), IsAntialias = true };
+        _skipTimeButtonPaint = new SKPaint { Color = new SKColor(60, 140, 220, 230), Style = SKPaintStyle.Fill, IsAntialias = true };
+        _skipTimeButtonDisabledPaint = new SKPaint { Color = new SKColor(60, 60, 75, 200), Style = SKPaintStyle.Fill, IsAntialias = true };
 
         foreach (Resource resource in Enum.GetValues(typeof(Resource)))
         {
@@ -90,6 +101,7 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
             CollapseTabRect = SKRect.Empty;
             _checkboxRects.Clear();
             _evolveButtonRect = SKRect.Empty;
+            _wonderSkipButtonRect = SKRect.Empty;
             _researchCheckboxRect = SKRect.Empty;
             return;
         }
@@ -129,6 +141,7 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
         bool showCorruptedPrestigeAvailable = monument is CorruptionSpire { Built: true };
         bool showEvolveButton = monument is CorruptionSpire { Built: true }
             && _gameControllerService.MainGameController.AbyssGateController.IsAbyssGateEligible();
+        bool showWonderSkipButton = monument is Wonder;
         bool showNoCityWarning = !wonderMaxed && !MonumentInvestment.HasAdjacentCity(monument.Position, playerCiv);
         var bonusLines = GetBonusLines(monument, playerCiv);
         float bonusTextWidth = panelWidth - 2 * padding;
@@ -142,6 +155,7 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
             + (bonesPurified ? FooterHeight * s : 0f)
             + (showCorruptedPrestigeAvailable ? FooterHeight * s : 0f)
             + (showEvolveButton ? EvolveButtonHeight * s : 0f)
+            + (showWonderSkipButton ? EvolveButtonHeight * s : 0f)
             + (showNoCityWarning ? FooterHeight * s : 0f)
             + (showResearchRow ? rowHeight : 0f)
             + bonusHeight;
@@ -302,6 +316,28 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
             _evolveButtonRect = SKRect.Empty;
         }
 
+        if (showWonderSkipButton)
+        {
+            bool canSkip = _gameControllerService.MainGameController.PrestigeController.CanSkipToNextWonderMultiplier();
+            float btnH = EvolveButtonHeight * s;
+            _wonderSkipButtonRect = new SKRect(panelX + padding, y + 4 * s, panelX + panelWidth - padding, y + btnH - 4 * s);
+            canvas.DrawRoundRect(_wonderSkipButtonRect, 6 * s, 6 * s, canSkip ? _skipTimeButtonPaint : _skipTimeButtonDisabledPaint);
+            SkiaTextUtils.DrawText(canvas, _localization.Get("wonder_skip_time_button"),
+                _wonderSkipButtonRect.MidX, _wonderSkipButtonRect.MidY + 5 * s, SKTextAlign.Center, Font12, TextPaint);
+            y += btnH;
+
+            if (_wonderSkipButtonRect.Contains(_lastPointerPosition.X, _lastPointerPosition.Y))
+            {
+                var skipTooltipLines = new List<string> { _localization.Get("tooltip_wonder_skip_time") };
+                if (!canSkip) skipTooltipLines.Add(_localization.Get("tooltip_wonder_skip_time_disabled"));
+                _tooltipRenderer.SetTooltipLines(skipTooltipLines.ToArray(), new SKPoint(_wonderSkipButtonRect.Right, _wonderSkipButtonRect.Top));
+            }
+        }
+        else
+        {
+            _wonderSkipButtonRect = SKRect.Empty;
+        }
+
         if (needsScrollbar)
         {
             float scrollW = 5f * s;
@@ -444,6 +480,11 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
         return lines;
     }
 
+    private void HandlePointerMoved(object? sender, PointerEventArgs e)
+    {
+        _lastPointerPosition = e.Position;
+    }
+
     private void HandlePointerPressed(object? sender, PointerEventArgs e)
     {
         if (e.Button != PointerButton.Left) return;
@@ -463,6 +504,12 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
             var gate = _gameControllerService.MainGameController.AbyssGateController.PlaceAbyssGate();
             if (gate != null)
                 _monumentService.SetSelectedInvestable(gate);
+            return;
+        }
+
+        if (!_wonderSkipButtonRect.IsEmpty && _wonderSkipButtonRect.Contains(e.Position.X, e.Position.Y))
+        {
+            _gameControllerService.MainGameController.PrestigeController.SkipToNextWonderMultiplier();
             return;
         }
 
@@ -490,6 +537,7 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
         PanelBounds = SKRect.Empty;
         _closeRect = SKRect.Empty;
         _evolveButtonRect = SKRect.Empty;
+        _wonderSkipButtonRect = SKRect.Empty;
         CollapseTabRect = SKRect.Empty;
         _checkboxRects.Clear();
         _researchCheckboxRect = SKRect.Empty;
@@ -498,6 +546,7 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
     public override void Dispose()
     {
         _inputService.PointerPressed -= HandlePointerPressed;
+        _inputService.PointerMoved -= HandlePointerMoved;
         _dimTextPaint?.Dispose();
         _barBgPaint?.Dispose();
         _barFillPaint?.Dispose();
@@ -505,6 +554,8 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
         _corruptedAvailablePaint?.Dispose();
         _evolveButtonPaint?.Dispose();
         _warningPaint?.Dispose();
+        _skipTimeButtonPaint?.Dispose();
+        _skipTimeButtonDisabledPaint?.Dispose();
         base.Dispose();
     }
 }

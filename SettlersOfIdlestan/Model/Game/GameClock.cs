@@ -140,6 +140,19 @@ namespace SettlersOfIdlestan.Model.Game
         }
 
         /// <summary>
+        /// Avance instantanément l'horloge de <paramref name="ticks"/> en les prélevant sur la
+        /// banque hors-ligne (<see cref="OfflineBankTicks"/>). Retourne false sans effet si la
+        /// banque ne contient pas assez de ticks.
+        /// </summary>
+        public bool AdvanceFromBank(long ticks)
+        {
+            if (ticks <= 0 || OfflineBankTicks < ticks) return false;
+            OfflineBankTicks -= ticks;
+            SimulateAdvance(ticks);
+            return true;
+        }
+
+        /// <summary>
         /// Fait avancer l'horloge. À appeler à chaque frame avec l'heure courante.
         /// </summary>
         public void Advance(DateTimeOffset now)

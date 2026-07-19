@@ -29,6 +29,7 @@ public sealed class PrestigeRenderer : PopupRendererBase
 
     private SKRect  _prestigeButtonRect          = SKRect.Empty;
     private SKRect  _corruptedPrestigeButtonRect = SKRect.Empty;
+    private SKRect  _wonderSkipButtonRect = SKRect.Empty;
     private SKRect  _closeButtonRect     = SKRect.Empty;
     private SKRect  _tierMinusButtonRect = SKRect.Empty;
     private SKRect  _tierPlusButtonRect  = SKRect.Empty;
@@ -145,9 +146,23 @@ public sealed class PrestigeRenderer : PopupRendererBase
             var (wonderLevel, timeFactor, runTicks) = controller.GetWonderBonusDetails();
             string duration    = FormatRunDuration(runTicks);
             string wonderLabel = _localization.GetFormated("prestige_wonder_bonus", wonderLevel, timeFactor, duration);
-            SkiaTextUtils.DrawText(canvas, wonderLabel, popup.Left + Padding, contentBottom - 100 - belowWonderOffset, BodyFont!, SubtlePaint);
-            SkiaTextUtils.DrawText(canvas, $"×{Math.Max(1, wonderLevel * timeFactor)}", popup.Right - Padding, contentBottom - 100 - belowWonderOffset, SKTextAlign.Right, BtnFont!, SubtlePaint);
-            _hoverRects.Add((new SKRect(popup.Left, contentBottom - 114 - belowWonderOffset, popup.Right, contentBottom - 86 - belowWonderOffset), new[] { "prestige_tooltip_wonder_bonus" }));
+            float wonderRowY = contentBottom - 100 - belowWonderOffset;
+
+            bool canSkipWonderTime = controller.CanSkipToNextWonderMultiplier();
+            const float skipBtnSize = 20f;
+            const float skipBtnGap  = 6f;
+            _wonderSkipButtonRect = new SKRect(popup.Right - Padding - skipBtnSize, wonderRowY - skipBtnSize + 4, popup.Right - Padding, wonderRowY + 4);
+            canvas.DrawRoundRect(_wonderSkipButtonRect, 4, 4, canSkipWonderTime ? _buttonPaint : _buttonDisabledPaint);
+            SkiaTextUtils.DrawText(canvas, "⏩", _wonderSkipButtonRect.MidX, _wonderSkipButtonRect.MidY + 5, SKTextAlign.Center, BtnFont!, TextPaint);
+
+            SkiaTextUtils.DrawText(canvas, wonderLabel, popup.Left + Padding, wonderRowY, BodyFont!, SubtlePaint);
+            SkiaTextUtils.DrawText(canvas, $"×{Math.Max(1, wonderLevel * timeFactor)}", _wonderSkipButtonRect.Left - skipBtnGap, wonderRowY, SKTextAlign.Right, BtnFont!, SubtlePaint);
+            _hoverRects.Add((_wonderSkipButtonRect, new[] { canSkipWonderTime ? "tooltip_wonder_skip_time" : "tooltip_wonder_skip_time_disabled" }));
+            _hoverRects.Add((new SKRect(popup.Left, contentBottom - 114 - belowWonderOffset, _wonderSkipButtonRect.Left - skipBtnGap, contentBottom - 86 - belowWonderOffset), new[] { "prestige_tooltip_wonder_bonus" }));
+        }
+        else
+        {
+            _wonderSkipButtonRect = SKRect.Empty;
         }
 
         // Grand Phare (affiché quand niveau > 0)
@@ -315,6 +330,12 @@ public sealed class PrestigeRenderer : PopupRendererBase
         if (!_tierPlusButtonRect.IsEmpty && _tierPlusButtonRect.Contains(position.X, position.Y))
         {
             prestigeController.SetNextIslandTierChoice(prestigeController.GetNextIslandTierChoice() + 1);
+            return true;
+        }
+
+        if (!_wonderSkipButtonRect.IsEmpty && _wonderSkipButtonRect.Contains(position.X, position.Y))
+        {
+            prestigeController.SkipToNextWonderMultiplier();
             return true;
         }
 

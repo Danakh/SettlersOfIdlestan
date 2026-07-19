@@ -141,6 +141,11 @@ public class SettingsMenu
             });
             _menuItems.Add(new MenuItem
             {
+                LabelKey = "menu_add_offline_time",
+                Action = AddOfflineTime
+            });
+            _menuItems.Add(new MenuItem
+            {
                 LabelKey = "menu_goto_debug_map",
                 Action = GoToDebugMap
             });
@@ -405,8 +410,18 @@ public class SettingsMenu
         var mainState = _gameController.CurrentMainState;
         if (mainState?.PrestigeState != null)
         {
-            mainState.PrestigeState.PrestigePoints += 100000;
-            mainState.PrestigeState.TotalPrestigePointsEarned += 100000;
+            int amount = Math.Max(100000, mainState.PrestigeState.TotalPrestigePointsEarned);
+            mainState.PrestigeState.PrestigePoints += amount;
+            mainState.PrestigeState.TotalPrestigePointsEarned += amount;
+        }
+    }
+
+    private void AddOfflineTime()
+    {
+        var mainState = _gameController.CurrentMainState;
+        if (mainState?.Clock != null)
+        {
+            mainState.Clock.OfflineBankTicks += 24L * 3600L * 100L;
         }
     }
 

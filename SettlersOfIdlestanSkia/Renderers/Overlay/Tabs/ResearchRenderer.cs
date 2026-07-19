@@ -78,7 +78,6 @@ public sealed class ResearchRenderer : IGameRenderer
     private readonly SKPaint _completedBorderPaint = new() { Color = new SKColor(80, 200, 80), StrokeWidth = 1.5f, Style = SKPaintStyle.Stroke, IsAntialias = true };
     private readonly SKPaint _queuedBorderPaint = new() { Color = new SKColor(255, 200, 50), StrokeWidth = 2.5f, Style = SKPaintStyle.Stroke, IsAntialias = true };
     private readonly SKPaint _repeatableBorderPaint = new() { Color = new SKColor(212, 175, 55), StrokeWidth = 3f, Style = SKPaintStyle.Stroke, IsAntialias = true };
-    private readonly SKPaint _rankBadgePaint = new() { Color = new SKColor(230, 195, 90), IsAntialias = true };
     private readonly SKPaint _queuedTextPaint = new() { Color = new SKColor(255, 220, 80), IsAntialias = true };
     private readonly SKPaint _linePaint = new() { Color = new SKColor(100, 100, 120), StrokeWidth = 1.5f, Style = SKPaintStyle.Stroke, IsAntialias = true };
     private readonly SKPaint _activeLinePaint = new() { Color = new SKColor(80, 160, 80), StrokeWidth = 2f, Style = SKPaintStyle.Stroke, IsAntialias = true };
@@ -335,7 +334,16 @@ public sealed class ResearchRenderer : IGameRenderer
         }
         else if (status == TechnologyStatus.Completed)
         {
-            subText = "✓";
+            int completedRank = ctrl.GetRepeatCount(tech.Id);
+            if (tech.Repeatable && completedRank > 0)
+            {
+                var (_, nextCost) = ctrl.GetResearchProgress(tech.Id);
+                subText = $"R{completedRank} Next:{SkiaTextUtils.FormatNumber(nextCost)}";
+            }
+            else
+            {
+                subText = "✓";
+            }
         }
         else if (status == TechnologyStatus.InProgress)
         {
@@ -352,16 +360,6 @@ public sealed class ResearchRenderer : IGameRenderer
             subText = $"{SkiaTextUtils.FormatNumber(total)} PR";
         }
         SkiaTextUtils.DrawText(canvas, subText, rect.MidX, rect.Top + 36f, SKTextAlign.Center, _smallFont, isQueued ? _queuedTextPaint : textPaint);
-
-        if (tech.Repeatable)
-        {
-            int rank = ctrl.GetRepeatCount(tech.Id);
-            if (rank > 0)
-            {
-                string rankLabel = _localization.GetFormated("research_rank_badge", rank);
-                SkiaTextUtils.DrawText(canvas, rankLabel, rect.Right - 4f, rect.Top + 11f, SKTextAlign.Right, _smallFont, _rankBadgePaint);
-            }
-        }
 
         if (status == TechnologyStatus.InProgress && ctrl.CanLoop(tech.Id))
         {
@@ -593,7 +591,6 @@ public sealed class ResearchRenderer : IGameRenderer
         _completedBorderPaint.Dispose();
         _queuedBorderPaint.Dispose();
         _repeatableBorderPaint.Dispose();
-        _rankBadgePaint.Dispose();
         _queuedTextPaint.Dispose();
         _linePaint.Dispose();
         _activeLinePaint.Dispose();

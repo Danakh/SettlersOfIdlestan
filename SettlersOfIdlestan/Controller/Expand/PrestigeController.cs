@@ -71,6 +71,30 @@ namespace SettlersOfIdlestan.Controller.Expand
             return level * timeFactor;
         }
 
+        /// <summary>Ticks nécessaires pour atteindre le prochain incrément du multiplicateur de temps de la Merveille (arrondi supérieur des heures jouées).</summary>
+        public long GetTicksUntilNextWonderMultiplier()
+        {
+            var (_, _, runTicks) = GetWonderBonusDetails();
+            long hoursPlayed = (long)Math.Ceiling(runTicks / 360000.0);
+            long nextThreshold = hoursPlayed * 360000 + 1;
+            return Math.Max(0, nextThreshold - runTicks);
+        }
+
+        public bool CanSkipToNextWonderMultiplier()
+        {
+            if (_clock == null) return false;
+            long needed = GetTicksUntilNextWonderMultiplier();
+            return needed > 0 && _clock.OfflineBankTicks >= needed;
+        }
+
+        /// <summary>Consomme la banque de temps hors ligne pour faire avancer l'horloge jusqu'au prochain multiplicateur de temps de la Merveille.</summary>
+        public bool SkipToNextWonderMultiplier()
+        {
+            if (_clock == null) return false;
+            long needed = GetTicksUntilNextWonderMultiplier();
+            return needed > 0 && _clock.AdvanceFromBank(needed);
+        }
+
         private bool HasNoSurfaceMonsters() => !HasSurfaceMonsters();
 
         public bool HasSurfaceMonsters() =>

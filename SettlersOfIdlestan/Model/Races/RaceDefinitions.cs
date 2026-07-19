@@ -68,17 +68,6 @@ public static class RaceDefinitions
                 .Append(new Modifier(ECategory.BUILDING_MAX_LEVEL, nameof(BuildingType.GreatBurrow), EType.ADDITIVE, 1))
                 .ToArray()),
 
-        // Géants : l'inverse des gobelins — villes à distance 4 minimum (rares), mais bâtiments
-        // standards à niveau max +2 et récolte accélérée.
-        new RaceDefinition(RaceId.Giant, RaceTier.Base,
-            requiredAdjacentTerrain: null,
-            racialBuilding: BuildingType.ColossusWorkshop,
-            modifiers: BuildStandardMaxLevelModifiers(2)
-                .Append(new Modifier(ECategory.CITY_MIN_DISTANCE, EType.REPLACER, 4))
-                .Append(new Modifier(ECategory.HARVEST_SPEED, EType.ADDITIVE, 0.25))
-                .Append(new Modifier(ECategory.BUILDING_MAX_LEVEL, nameof(BuildingType.ColossusWorkshop), EType.ADDITIVE, 1))
-                .ToArray()),
-
         // Orcs : pillards sans terrain de prédilection — tout misé sur l'attaque et le raid plutôt
         // que sur l'économie ou la recherche. UNLOCK_RAID offert gratuitement (normalement un vertex
         // de prestige mi-parcours) ; en échange, recherche ralentie et Bibliothèque/Laboratoire
@@ -98,6 +87,17 @@ public static class RaceDefinitions
                 new Modifier(ECategory.BUILDING_MAX_LEVEL, nameof(BuildingType.Laboratory), EType.ADDITIVE, -1),
                 new Modifier(ECategory.BUILDING_MAX_LEVEL, nameof(BuildingType.SkullPit), EType.ADDITIVE, 1),
             }),
+        
+        // Géants : l'inverse des gobelins — villes à distance 4 minimum (rares), mais bâtiments
+        // standards à niveau max +2 et récolte accélérée.
+        new RaceDefinition(RaceId.Giant, RaceTier.Advanced,
+            requiredAdjacentTerrain: null,
+            racialBuilding: BuildingType.ColossusWorkshop,
+            modifiers: BuildStandardMaxLevelModifiers(2)
+                .Append(new Modifier(ECategory.CITY_MIN_DISTANCE, EType.REPLACER, 4))
+                .Append(new Modifier(ECategory.HARVEST_SPEED, EType.ADDITIVE, 0.25))
+                .Append(new Modifier(ECategory.BUILDING_MAX_LEVEL, nameof(BuildingType.ColossusWorkshop), EType.ADDITIVE, 1))
+                .ToArray()),
 
         // Sirènes / Elfes noirs : races avancées (seconde rangée de pouvoirs divins), non
         // implémentées — déclarées pour l'UI (aperçu verrouillé) et la stabilité de la sérialisation.
