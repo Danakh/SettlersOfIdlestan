@@ -3,6 +3,10 @@ Le changelog n'est pas activement mis à jour pour le moment.
 
 ---
 
+v0.10
+
+---
+
 v0.9
 • Races avancées : la seconde rangée de pouvoirs divins débloque désormais les Géants et les Garudas. Les Garudas, seigneurs du vent, fondent leurs villes en volant — sans route, jusqu'à 3 arêtes d'une de leurs villes, même par-dessus la mer.
 • Nouvelle race avancée : les Sirènes, peuple des flots qui essaime densément le long du littoral — villes fondées jusqu'à 2 arêtes de la côte, mais celles qui ne touchent pas l'Eau plafonnent à l'Hôtel de Ville niveau 2.
