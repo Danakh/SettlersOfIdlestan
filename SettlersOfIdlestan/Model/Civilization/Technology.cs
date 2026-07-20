@@ -106,6 +106,8 @@ public enum TechnologyId
     ArcaneEdification,
     // Recherches de bonus de prestige (capstones de branches existantes)
     ChroniquesDuGuet,
+    // [Legacy] Recherche "Renommée Commerciale" supprimée — conservée uniquement pour la désérialisation des anciennes sauvegardes.
+    RenommeeCommerciale,
     SagesseSouterraine,
     // Deux tiers après Sagesse Souterraine ; débloquée avec la branche des Abysses.
     // Permet de construire des routes entre deux hexagones de Vide (comme les routes maritimes entre
