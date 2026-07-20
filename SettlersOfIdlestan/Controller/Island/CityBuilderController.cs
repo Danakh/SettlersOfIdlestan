@@ -184,10 +184,11 @@ namespace SettlersOfIdlestan.Controller.Island
                       ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
 
             // Restrictions raciales (voir RaceDefinitions) : distance minimale entre villes propres
-            // éventuellement remplacée (Gobelins 2, Géants 4) et adjacence de terrain exigée en
-            // surface (Elfes → Forêt, Nains → Montagne).
+            // éventuellement remplacée (Gobelins 2, Géants 4), adjacence de terrain exigée en
+            // surface (Elfes → Forêt, Nains → Montagne) et portée de Vol (Garudas).
             var requiredTerrains = GetRequiredCityPlacementTerrains(civ);
             int minOwnCityDistance = GetMinDistanceBetweenCivilizationCities(civ);
+            int flightRange = civ.ModifierAggregator.ApplyModifiers(ECategory.CITY_PLACEMENT_FLYING, "", 0);
 
             // Result only depends on this civ's roads and on every civ's cities/beacons (positions, via
             // count as a cheap proxy — RelocateCity clears the cache explicitly since it changes a
@@ -205,6 +206,9 @@ namespace SettlersOfIdlestan.Controller.Island
                 return cached.Vertices;
 
             var vertices = GetRoadTouchingVertices(civilizationIndex);
+
+            if (flightRange > 0)
+                AddFlightCandidateVertices(vertices, civ, flightRange, excludingCity);
 
             var occupiedVertices = new HashSet<Vertex>(_state.GetAllBuildVertices().Select(v => v.Position));
 
@@ -225,6 +229,53 @@ namespace SettlersOfIdlestan.Controller.Island
 
             return vertices;
         }
+
+        /// <summary>
+        /// Vol (CITY_PLACEMENT_FLYING, Garudas) : ajoute au bassin de candidats les vertex de
+        /// surface atteignables en volant, c'est-à-dire à au plus <paramref name="flightRange"/>
+        /// arêtes d'une ville de surface de la civilisation, sans exiger de route. Le survol de
+        /// l'eau est permis (le parcours traverse les vertex tout-eau) mais on ne se pose que sur
+        /// un vertex touchant au moins un hex terrestre. Strictement limité à la surface : les
+        /// villes d'Inframonde/Abysse ne génèrent aucun candidat (le BFS ne part que des villes de
+        /// surface et reste sur leur couche — les vertex adjacents partagent le Z). Les filtres
+        /// avals (occupation, distances, terrain racial) s'appliquent ensuite normalement.
+        /// BFS à ordre stable (Queue + List) : le résultat alimente le choix PRNG des avant-postes
+        /// automatiques, l'ordre doit être déterministe.
+        /// </summary>
+        private void AddFlightCandidateVertices(List<Vertex> vertices, Civilization civ, int flightRange, City? excludingCity)
+        {
+            var map = _state!.GetMapForZ(IslandMap.SurfaceLayer);
+            if (map == null) return;
+
+            var known = new HashSet<Vertex>(vertices);
+            var visited = new HashSet<Vertex>();
+            var queue = new Queue<(Vertex Vertex, int Depth)>();
+
+            foreach (var city in civ.Cities)
+            {
+                if (city == excludingCity || city.Position.Z != IslandMap.SurfaceLayer) continue;
+                if (visited.Add(city.Position))
+                    queue.Enqueue((city.Position, 0));
+            }
+
+            while (queue.Count > 0)
+            {
+                var (vertex, depth) = queue.Dequeue();
+                if (depth >= flightRange) continue;
+                foreach (var neighbor in vertex.GetAdjacentVertices())
+                {
+                    if (!visited.Add(neighbor)) continue;
+                    queue.Enqueue((neighbor, depth + 1));
+                    if (TouchesLand(map, neighbor) && known.Add(neighbor))
+                        vertices.Add(neighbor);
+                }
+            }
+        }
+
+        /// <summary>Vrai si le vertex touche au moins un hex existant ni eau ni Vide.</summary>
+        private static bool TouchesLand(IslandMap map, Vertex vertex)
+            => vertex.GetHexes().Any(h => map.GetTile(h) is { } tile
+                && !tile.TerrainType.IsWater() && !tile.TerrainType.IsVoid());
 
         /// <summary>
         /// Terrains dont l'un au moins doit toucher tout nouveau vertex de ville en surface pour

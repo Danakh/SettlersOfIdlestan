@@ -164,7 +164,7 @@ public class AscensionController : IModifierProvider
         });
 
     /// <summary>
-    /// Vrai si les races avancées (Sirènes, Elfes noirs) sont débloquées : toute la seconde rangée
+    /// Vrai si les races avancées (Géants, Garudas) sont débloquées : toute la seconde rangée
     /// de pouvoirs divins achetée (le deuxième pouvoir de chaque colonne qui en possède un).
     /// </summary>
     public bool AreAdvancedRacesUnlocked =>
@@ -177,16 +177,18 @@ public class AscensionController : IModifierProvider
 
     /// <summary>
     /// Races choisissables à la prochaine Ascension : Humains toujours ; les races de base une fois
-    /// la première rangée de pouvoirs divins complète. Les races avancées (Sirènes, Elfes noirs) ne
-    /// sont pas encore implémentées et n'apparaissent jamais ici.
+    /// la première rangée de pouvoirs divins complète ; les races avancées implémentées (Géants,
+    /// Garudas) une fois la seconde rangée complète. Les stubs non implémentés (Sirènes, Elfes
+    /// noirs) n'apparaissent jamais ici.
     /// </summary>
     public IReadOnlyList<RaceId> GetSelectableRaces()
     {
         if (!IsRaceSelectionUnlocked)
             return new[] { RaceId.Human };
 
+        bool advancedUnlocked = AreAdvancedRacesUnlocked;
         return RaceDefinitions.All
-            .Where(r => r.Tier == RaceTier.Base)
+            .Where(r => r.IsImplemented && (r.Tier == RaceTier.Base || advancedUnlocked))
             .Select(r => r.Id)
             .ToList();
     }

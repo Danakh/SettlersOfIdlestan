@@ -208,6 +208,11 @@ public enum BuildingType
     /// quelques soldats par ville.
     /// </summary>
     SkullPit,
+    /// <summary>
+    /// Trône des Vents - Bâtiment unique racial des Garudas. +3 de défense des villes et génère
+    /// de l'Or passivement.
+    /// </summary>
+    ThroneOfWinds,
 }
 
 /// <summary>

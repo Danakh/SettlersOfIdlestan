@@ -514,6 +514,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 BuildingType.GreatBurrow => new GreatBurrow(),
                 BuildingType.ColossusWorkshop => new ColossusWorkshop(),
                 BuildingType.SkullPit => new SkullPit(),
+                BuildingType.ThroneOfWinds => new ThroneOfWinds(),
                 _ => null,
             };
         }

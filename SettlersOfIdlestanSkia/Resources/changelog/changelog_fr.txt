@@ -3,6 +3,11 @@ Le changelog n'est pas activement mis à jour pour le moment.
 
 ---
 
+v0.9
+• Races avancées : la seconde rangée de pouvoirs divins débloque désormais les Géants et les Garudas. Les Garudas, seigneurs du vent, fondent leurs villes en volant — sans route, jusqu'à 3 arêtes d'une de leurs villes, même par-dessus la mer.
+
+---
+
 v0.8
 • Système de races : une fois la première rangée de pouvoirs divins complète, chaque Ascension permet de choisir la race du prochain cycle, chacune avec ses forces, ses faiblesses et son bâtiment racial unique.
 • Recherches infiniment répétables : certaines recherches de fin de jeu augmentant les points de prestige peuvent désormais être relancées indéfiniment, à un coût qui double à chaque relance

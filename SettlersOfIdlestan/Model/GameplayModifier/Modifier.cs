@@ -185,6 +185,8 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             NEW_CITY_COST_REDUCTION,
             /// <summary>Bonus additif de vitesse de construction automatique des bâtiments par les guildes (Artisans, Récolteurs, Marchands, etc.), par ville possédée. Base = 0.0 ; agrégé puis multiplié par le nombre de villes de la civilisation (voir BuildingController.TickGuildAutomation). 0.1 = +10% par ville.</summary>
             GUILD_AUTOMATION_SPEED_PER_CITY,
+            /// <summary>Vol (Garudas) : autorise la fondation de villes en surface sans connexion routière, jusqu'à Value arêtes d'une ville de la civilisation ; le vertex doit toucher au moins un hex terrestre (le survol de l'eau est permis, pas l'atterrissage en pleine mer). Les autres règles (occupation, distances, terrain) s'appliquent normalement, et l'Inframonde/l'Abysse sont exclus (voir CityBuilderController.AddFlightCandidateVertices). Base = 0 (pas de vol).</summary>
+            CITY_PLACEMENT_FLYING,
         }
 
         [JsonConverter(typeof(JsonStringEnumConverter<EType>))]

@@ -12,8 +12,9 @@ namespace SettlersOfIdlestan.Model.Races;
 /// <summary>
 /// Liste des races jouables (voir <see cref="RaceDefinition"/>). Les races Base deviennent
 /// sélectionnables à l'Ascension une fois la première rangée de pouvoirs divins complète ; les
-/// races Advanced (Sirènes, Elfes noirs) sont déclarées mais pas encore implémentées — elles
-/// n'apparaissent jamais dans AscensionController.GetSelectableRaces.
+/// races Advanced implémentées (Géants, Garudas) une fois la seconde rangée complète. Les stubs
+/// (Sirènes, Elfes noirs — <see cref="RaceDefinition.IsImplemented"/> faux) sont déclarés pour
+/// l'UI et la sérialisation mais n'apparaissent jamais dans AscensionController.GetSelectableRaces.
 /// </summary>
 public static class RaceDefinitions
 {
@@ -97,6 +98,21 @@ public static class RaceDefinitions
                 .Append(new Modifier(ECategory.CITY_MIN_DISTANCE, EType.REPLACER, 4))
                 .Append(new Modifier(ECategory.HARVEST_SPEED, EType.ADDITIVE, 0.25))
                 .Append(new Modifier(ECategory.BUILDING_MAX_LEVEL, nameof(BuildingType.ColossusWorkshop), EType.ADDITIVE, 1))
+                .ToArray()),
+
+        // Garudas : seigneurs du vent — le Vol fonde des villes sans route (jusqu'à 3 arêtes d'une
+        // ville, voir CityBuilderController.AddFlightCandidateVertices) et à distance 2 comme les
+        // Gobelins ; portée d'attaque +1. En échange : bâtiments standards -1 et défense -3
+        // (compensée par le Trône des Vents).
+        new RaceDefinition(RaceId.Garuda, RaceTier.Advanced,
+            requiredAdjacentTerrain: null,
+            racialBuilding: BuildingType.ThroneOfWinds,
+            modifiers: BuildStandardMaxLevelModifiers(-1)
+                .Append(new Modifier(ECategory.CITY_MIN_DISTANCE, EType.REPLACER, 2))
+                .Append(new Modifier(ECategory.CITY_PLACEMENT_FLYING, EType.ADDITIVE, 3))
+                .Append(new Modifier(ECategory.CITY_ATTACK_RANGE, EType.ADDITIVE, 1))
+                .Append(new Modifier(ECategory.CITY_DEFENSE, EType.ADDITIVE, -3))
+                .Append(new Modifier(ECategory.BUILDING_MAX_LEVEL, nameof(BuildingType.ThroneOfWinds), EType.ADDITIVE, 1))
                 .ToArray()),
 
         // Sirènes / Elfes noirs : races avancées (seconde rangée de pouvoirs divins), non

@@ -300,7 +300,10 @@ public sealed class AscensionRenderer : IDisposable
 
         if (!selectable)
         {
-            SkiaTextUtils.DrawText(canvas, _localization.Get("ascension_race_advanced_locked_label"),
+            // Races avancées implémentées : verrouillées tant que la seconde rangée de pouvoirs
+            // n'est pas complète ; stubs (Sirènes, Elfes noirs) : simple aperçu.
+            string lockKey = race.IsImplemented ? "ascension_race_advanced_locked_label" : "ascension_race_coming_soon_label";
+            SkiaTextUtils.DrawText(canvas, _localization.Get(lockKey),
                 centerX, y + BuildingCardHeight - 8f, SKTextAlign.Center, _buttonFont, _mutedPaint);
         }
         else if (ascension.AscendedRaces.Contains(race.Id))

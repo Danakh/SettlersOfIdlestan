@@ -45,6 +45,13 @@ public class RaceDefinition
 
     public IReadOnlyList<Modifier> Modifiers { get; }
 
+    /// <summary>
+    /// Vrai si la race est jouable. Les races déclarées en aperçu (Sirènes, Elfes noirs) n'ont
+    /// volontairement pas de bâtiment racial et restent non sélectionnables
+    /// (voir AscensionController.GetSelectableRaces).
+    /// </summary>
+    public bool IsImplemented => RacialBuilding != null;
+
     public RaceDefinition(
         RaceId id,
         RaceTier tier,

@@ -27,8 +27,9 @@ namespace SOITests.ControllerTests;
 /// Système de races (choix à l'Ascension) : déblocage par rangées de pouvoirs divins
 /// (AscensionController.IsRaceSelectionUnlocked / AreAdvancedRacesUnlocked / GetSelectableRaces),
 /// enregistrement des races ayant ascensionné et bâtiments raciaux permanents, restrictions de
-/// placement (CITY_MIN_DISTANCE, CITY_PLACEMENT_REQUIRES_TERRAIN), réduction de coût de ville
-/// (NEW_CITY_COST_REDUCTION) et effet Ziggourat (production instantanée de Dominion des Temples).
+/// placement (CITY_MIN_DISTANCE, CITY_PLACEMENT_REQUIRES_TERRAIN, CITY_PLACEMENT_FLYING),
+/// réduction de coût de ville (NEW_CITY_COST_REDUCTION) et effet Ziggourat (production
+/// instantanée de Dominion des Temples).
 /// </summary>
 public class RaceSystemTests
 {
@@ -93,7 +94,7 @@ public class RaceSystemTests
     }
 
     [Fact]
-    public void GetSelectableRaces_UnlockedReturnsBaseRacesButNeverAdvancedOnes()
+    public void GetSelectableRaces_FirstRowOnly_ExcludesAdvancedRaces()
     {
         var ascension = CreateAscension(out _);
         UnlockFirstRow(ascension);
@@ -105,11 +106,29 @@ public class RaceSystemTests
         Assert.Contains(RaceId.Dwarf, races);
         Assert.Contains(RaceId.Goblin, races);
         Assert.Contains(RaceId.Orc, races);
-        // Sirènes et Elfes noirs : races avancées non implémentées, jamais sélectionnables.
+        // Géants et Garudas : races avancées, verrouillées tant que la seconde rangée de pouvoirs
+        // n'est pas complète ; Sirènes et Elfes noirs : stubs non implémentés, jamais sélectionnables.
         Assert.DoesNotContain(RaceId.Mermaid, races);
         Assert.DoesNotContain(RaceId.DarkElf, races);
         Assert.DoesNotContain(RaceId.Giant, races);
         Assert.DoesNotContain(RaceId.Garuda, races);
+    }
+
+    [Fact]
+    public void GetSelectableRaces_SecondRowComplete_AddsImplementedAdvancedRaces()
+    {
+        var ascension = CreateAscension(out _);
+        UnlockFirstRow(ascension);
+        Assert.True(ascension.PurchasePower(AscensionPowerId.DivineInventory));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.PresenceOfGod));
+
+        var races = ascension.GetSelectableRaces();
+
+        Assert.Contains(RaceId.Giant, races);
+        Assert.Contains(RaceId.Garuda, races);
+        // Les stubs restent non sélectionnables même seconde rangée complète.
+        Assert.DoesNotContain(RaceId.Mermaid, races);
+        Assert.DoesNotContain(RaceId.DarkElf, races);
     }
 
     [Fact]
@@ -125,6 +144,23 @@ public class RaceSystemTests
     }
 
     [Fact]
+    public void GetModifiers_Garuda_EmitsFlightMinDistanceAndAttackRange()
+    {
+        var ascension = CreateAscension(out var godState);
+        godState.AscensionState.SelectedRace = RaceId.Garuda;
+
+        var modifiers = ascension.GetModifiers().ToList();
+
+        Assert.Contains(modifiers, m => m.Category == ECategory.CITY_PLACEMENT_FLYING && m.Type == EType.ADDITIVE && (int)m.Value == 3);
+        Assert.Contains(modifiers, m => m.Category == ECategory.CITY_MIN_DISTANCE && m.Type == EType.REPLACER && (int)m.Value == 2);
+        Assert.Contains(modifiers, m => m.Category == ECategory.CITY_ATTACK_RANGE && (int)m.Value == 1);
+        Assert.Contains(modifiers, m => m.Category == ECategory.CITY_DEFENSE && (int)m.Value == -3);
+        // Constructions légères : même malus standard que les Gobelins.
+        Assert.Contains(modifiers, m => m.Category == ECategory.BUILDING_MAX_LEVEL && m.SubCategory == nameof(BuildingType.Sawmill) && (int)m.Value == -1);
+        Assert.Contains(modifiers, m => m.Category == ECategory.BUILDING_MAX_LEVEL && m.SubCategory == nameof(BuildingType.ThroneOfWinds) && (int)m.Value == 1);
+    }
+
+    [Fact]
     public void PermanentUniqueBuildingChoices_IncludesRacialBuildingsOfAscendedRaces()
     {
         var ascension = CreateAscension(out var godState);
@@ -133,10 +169,12 @@ public class RaceSystemTests
 
         godState.AscensionState.AscendedRaces.Add(RaceId.Human);
         godState.AscensionState.AscendedRaces.Add(RaceId.Elf);
+        godState.AscensionState.AscendedRaces.Add(RaceId.Garuda);
 
         var choices = ascension.PermanentUniqueBuildingChoices;
         Assert.Contains(BuildingType.Ziggurat, choices);
         Assert.Contains(BuildingType.HeartTree, choices);
+        Assert.Contains(BuildingType.ThroneOfWinds, choices);
         Assert.DoesNotContain(BuildingType.RunicForge, choices);
     }
 
@@ -385,6 +423,131 @@ public class RaceSystemTests
         Assert.Equal(8, reducedCost[Resource.Brick]);
         Assert.Equal(8, reducedCost[Resource.Wood]);
         Assert.Equal(11, reducedCost[Resource.Food]);
+    }
+
+    // ── Vol (CITY_PLACEMENT_FLYING, Garudas) ─────────────────────────────────
+    //
+    // Ruban sans aucune route : seul le Vol peut fournir des candidats. Prolongé d'un hex
+    // h7(0,3) pour obtenir v4 à distance 4 de v1 (hors portée de vol 3).
+
+    private static (WorldState state, Civilization civ, Vertex v1, Vertex vMiddle, Vertex v2, Vertex v3, Vertex v4)
+        RoadlessRibbonIsland(bool waterStrait = false)
+    {
+        var h1 = H(0, 0);
+        var h2 = H(1, 0);
+        var h3 = H(0, 1);
+        var h4 = H(1, 1);
+        var h5 = H(0, 2);
+        var h6 = H(1, 2);
+        var h7 = H(0, 3);
+
+        // waterStrait : h3/h4/h5 en Eau — v2(h3,h4,h5) devient un vertex tout-eau, v3 reste
+        // terrestre de l'autre côté du bras de mer.
+        var strait = waterStrait ? TerrainType.Water : TerrainType.Plain;
+        var map = new IslandMap(new HexTile[]
+        {
+            new(h1, TerrainType.Plain),
+            new(h2, TerrainType.Plain),
+            new(h3, strait),
+            new(h4, strait),
+            new(h5, strait),
+            new(h6, TerrainType.Plain),
+            new(h7, TerrainType.Plain),
+        });
+
+        var civ = new Civilization { Index = 0 };
+        var state = new WorldState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
+
+        return (state, civ,
+            Vertex.Create(h1, h2, h3),
+            Vertex.Create(h2, h3, h4),
+            Vertex.Create(h3, h4, h5),
+            Vertex.Create(h4, h5, h6),
+            Vertex.Create(h5, h6, h7));
+    }
+
+    private static void AddGarudaPlacementModifiers(Civilization civ)
+        => AddRaceModifiers(civ,
+            new Modifier(ECategory.CITY_PLACEMENT_FLYING, EType.ADDITIVE, 3),
+            new Modifier(ECategory.CITY_MIN_DISTANCE, EType.REPLACER, 2));
+
+    [Fact]
+    public void GetBuildableVertices_Flight_AllowsRoadlessVerticesWithinRange()
+    {
+        var (state, civ, v1, _, v2, v3, _) = RoadlessRibbonIsland();
+        civ.AddCity(new City(v1) { CivilizationIndex = 0 });
+
+        // Sans Vol : aucune route, aucun candidat.
+        Assert.Empty(Controller(state).GetBuildableVertices(0));
+
+        AddGarudaPlacementModifiers(civ);
+        var vertices = Controller(state).GetBuildableVertices(0);
+        Assert.Contains(vertices, v => v.Equals(v2));
+        Assert.Contains(vertices, v => v.Equals(v3));
+    }
+
+    [Fact]
+    public void GetBuildableVertices_Flight_RespectsMinDistanceAndRange()
+    {
+        var (state, civ, v1, vMiddle, _, _, v4) = RoadlessRibbonIsland();
+        civ.AddCity(new City(v1) { CivilizationIndex = 0 });
+        AddGarudaPlacementModifiers(civ);
+
+        var vertices = Controller(state).GetBuildableVertices(0);
+
+        // Distance 1 < distance minimale 2 : trop proche même en volant.
+        Assert.DoesNotContain(vertices, v => v.Equals(vMiddle));
+        // Distance 4 > portée de vol 3 : hors d'atteinte.
+        Assert.DoesNotContain(vertices, v => v.Equals(v4));
+    }
+
+    [Fact]
+    public void GetBuildableVertices_Flight_FliesOverWaterButNeverLandsOnAllWaterVertex()
+    {
+        var (state, civ, v1, _, v2, v3, _) = RoadlessRibbonIsland(waterStrait: true);
+        civ.AddCity(new City(v1) { CivilizationIndex = 0 });
+        AddGarudaPlacementModifiers(civ);
+
+        var vertices = Controller(state).GetBuildableVertices(0);
+
+        // v2 ne touche que de l'Eau : pas d'atterrissage en pleine mer.
+        Assert.DoesNotContain(vertices, v => v.Equals(v2));
+        // v3, terrestre de l'autre côté du bras de mer, est atteint en le survolant.
+        Assert.Contains(vertices, v => v.Equals(v3));
+    }
+
+    [Fact]
+    public void GetBuildableVertices_Flight_SurfaceOnly()
+    {
+        var (state, civ, _, _, _, _, _) = RoadlessRibbonIsland();
+
+        // Ville d'Inframonde : le Vol ne part que des villes de surface — aucun candidat.
+        var hu1 = new HexCoord(0, 0, LayerState.UnderworldZ);
+        var hu2 = new HexCoord(1, 0, LayerState.UnderworldZ);
+        var hu3 = new HexCoord(0, 1, LayerState.UnderworldZ);
+        civ.AddCity(new City(Vertex.Create(hu1, hu2, hu3)) { CivilizationIndex = 0 });
+        AddGarudaPlacementModifiers(civ);
+
+        Assert.Empty(Controller(state).GetBuildableVertices(0));
+    }
+
+    [Fact]
+    public void PerformAscension_Garuda_AfterSecondRow_AppliesFlightToPlayerCivilization()
+    {
+        var controller = new MainGameController();
+        controller.CreateNewGame();
+        var godState = controller.CurrentMainState!.GodState;
+        godState.GodPoints = 100;
+        godState.DivineEssence = 4;
+        UnlockFirstRow(controller.AscensionController);
+        Assert.True(controller.AscensionController.PurchasePower(AscensionPowerId.DivineInventory));
+        Assert.True(controller.AscensionController.PurchasePower(AscensionPowerId.PresenceOfGod));
+
+        controller.PerformAscension(RaceId.Garuda);
+
+        Assert.Equal(RaceId.Garuda, godState.AscensionState.SelectedRace);
+        var playerCiv = controller.CurrentMainState.CurrentWorldState!.PlayerCivilization;
+        Assert.True(playerCiv.ModifierAggregator.HasModifier(ECategory.CITY_PLACEMENT_FLYING));
     }
 
     // ── Définitions des races ────────────────────────────────────────────────

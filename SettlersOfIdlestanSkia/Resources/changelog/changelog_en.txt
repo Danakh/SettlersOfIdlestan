@@ -3,6 +3,11 @@ The changelog is not actively maintained at the moment.
 
 ---
 
+v0.9
+• Advanced races: the second row of divine powers now unlocks the Giants and the Garudas. The Garudas, lords of the wind, found their cities by flight — no road needed, up to 3 edges from one of their cities, even across the sea.
+
+---
+
 v0.8
 • Race system: once the first row of divine powers is complete, each Ascension lets you choose the race of your next cycle, each with its own strengths, weaknesses and unique racial building.
 • Infinitely repeatable researches: some late-game researches that boost prestige points earned can now be relaunched indefinitely, with a cost that doubles each time
