@@ -1171,7 +1171,7 @@
   "race_dwarf_name": "Nains",
   "race_dwarf_desc": "Nouvelles villes uniquement adjacentes à une Montagne. Forges et Mines améliorées, défense +3. Bâtiment racial : la Forge Runique.",
   "race_goblin_name": "Gobelins",
-  "race_goblin_desc": "Villes à distance 2 au lieu de 3, mais niveau max -1 sur les bâtiments standards et défense -3. Bâtiment racial : le Grand Terrier.",
+  "race_goblin_desc": "Villes à distance 2 au lieu de 3, mais niveau max -1 sur les bâtiments standards, défense -3 et points de prestige -25%. Bâtiment racial : le Grand Terrier.",
   "race_giant_name": "Géants",
   "race_giant_desc": "Villes à distance 4 minimum, mais niveau max +2 sur les bâtiments standards et récolte +25%. Bâtiment racial : l'Atelier des Colosses.",
   "race_orc_name": "Orcs",

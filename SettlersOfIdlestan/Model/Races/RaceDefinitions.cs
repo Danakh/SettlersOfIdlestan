@@ -59,13 +59,15 @@ public static class RaceDefinitions
             }),
 
         // Gobelins : villes à distance 2 au lieu de 3 (expansion dense), mais « quantité plutôt
-        // que qualité » — niveau max -1 sur les bâtiments standards et défense affaiblie.
+        // que qualité » — niveau max -1 sur les bâtiments standards, défense affaiblie et points
+        // de prestige réduits de 25 %.
         new RaceDefinition(RaceId.Goblin, RaceTier.Base,
             requiredAdjacentTerrain: null,
             racialBuilding: BuildingType.GreatBurrow,
             modifiers: BuildStandardMaxLevelModifiers(-1)
                 .Append(new Modifier(ECategory.CITY_MIN_DISTANCE, EType.REPLACER, 2))
                 .Append(new Modifier(ECategory.CITY_DEFENSE, EType.ADDITIVE, -3))
+                .Append(new Modifier(ECategory.PRESTIGE_GAIN, EType.ADDITIVE, -0.25))
                 .Append(new Modifier(ECategory.BUILDING_MAX_LEVEL, nameof(BuildingType.GreatBurrow), EType.ADDITIVE, 1))
                 .ToArray()),
 

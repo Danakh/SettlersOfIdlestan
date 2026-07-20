@@ -1171,7 +1171,7 @@
   "race_dwarf_name": "Dwarves",
   "race_dwarf_desc": "New cities must be adjacent to a Mountain. Improved Forges and Mines, defense +3. Racial building: the Runic Forge.",
   "race_goblin_name": "Goblins",
-  "race_goblin_desc": "Cities at distance 2 instead of 3, but standard buildings max level -1 and defense -3. Racial building: the Great Burrow.",
+  "race_goblin_desc": "Cities at distance 2 instead of 3, but standard buildings max level -1, defense -3, and prestige points -25%. Racial building: the Great Burrow.",
   "race_giant_name": "Giants",
   "race_giant_desc": "Cities at distance 4 minimum, but standard buildings max level +2 and harvest +25%. Racial building: the Colossus Workshop.",
   "race_orc_name": "Orcs",
