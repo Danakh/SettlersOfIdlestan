@@ -106,8 +106,8 @@ public class RaceSystemTests
         Assert.Contains(RaceId.Dwarf, races);
         Assert.Contains(RaceId.Goblin, races);
         Assert.Contains(RaceId.Orc, races);
-        // Géants et Garudas : races avancées, verrouillées tant que la seconde rangée de pouvoirs
-        // n'est pas complète ; Sirènes et Elfes noirs : stubs non implémentés, jamais sélectionnables.
+        // Géants, Garudas et Sirènes : races avancées, verrouillées tant que la seconde rangée de
+        // pouvoirs n'est pas complète ; Elfes noirs : stub non implémenté, jamais sélectionnable.
         Assert.DoesNotContain(RaceId.Mermaid, races);
         Assert.DoesNotContain(RaceId.DarkElf, races);
         Assert.DoesNotContain(RaceId.Giant, races);
@@ -126,8 +126,8 @@ public class RaceSystemTests
 
         Assert.Contains(RaceId.Giant, races);
         Assert.Contains(RaceId.Garuda, races);
-        // Les stubs restent non sélectionnables même seconde rangée complète.
-        Assert.DoesNotContain(RaceId.Mermaid, races);
+        Assert.Contains(RaceId.Mermaid, races);
+        // Le stub restant (Elfes noirs) n'est jamais sélectionnable, même seconde rangée complète.
         Assert.DoesNotContain(RaceId.DarkElf, races);
     }
 
@@ -548,6 +548,147 @@ public class RaceSystemTests
         Assert.Equal(RaceId.Garuda, godState.AscensionState.SelectedRace);
         var playerCiv = controller.CurrentMainState.CurrentWorldState!.PlayerCivilization;
         Assert.True(playerCiv.ModifierAggregator.HasModifier(ECategory.CITY_PLACEMENT_FLYING));
+    }
+
+    // ── Portée de terrain / plafond par ville (Sirènes) ─────────────────────
+    //
+    // Sur RibbonIsland (h1 muté en Eau) : v1(h1,h2,h3) touche l'Eau directement (distance 0) ;
+    // v2(h3,h4,h5) est à distance 2 de v1 ; v3(h4,h5,h6) est à distance 3 de v1 (mêmes distances
+    // que celles déjà exploitées par les tests CITY_MIN_DISTANCE ci-dessus).
+
+    [Fact]
+    public void GetBuildableVertices_MermaidTerrainRange2_AllowsUpTo2EdgesFromWater()
+    {
+        var (state, civ, v1, v2, v3) = RibbonIsland();
+        var h1 = H(0, 0);
+        state.GetMapFor(h1)!.GetTile(h1)!.TerrainType = TerrainType.Water;
+        state.NotifyTerrainChanged();
+
+        AddRaceModifiers(civ, new Modifier(ECategory.CITY_PLACEMENT_TERRAIN_RANGE, nameof(TerrainType.Water), EType.ADDITIVE, 2));
+
+        var vertices = Controller(state).GetBuildableVertices(0);
+
+        Assert.Contains(vertices, v => v.Equals(v1)); // touche l'Eau directement (portée 0)
+        Assert.Contains(vertices, v => v.Equals(v2)); // à 2 arêtes de l'Eau : dans la portée
+        Assert.DoesNotContain(vertices, v => v.Equals(v3)); // à 3 arêtes : hors portée
+    }
+
+    [Fact]
+    public void GetBuildableVertices_TerrainRange_CacheInvalidatedByNotifyTerrainChanged()
+    {
+        var (state, civ, v1, _, _) = RibbonIsland();
+        AddRaceModifiers(civ, new Modifier(ECategory.CITY_PLACEMENT_TERRAIN_RANGE, nameof(TerrainType.Water), EType.ADDITIVE, 2));
+        var controller = Controller(state);
+
+        // Aucune Eau sur la carte : aucun candidat ne peut satisfaire la restriction.
+        Assert.Empty(controller.GetBuildableVertices(0));
+
+        var h1 = H(0, 0);
+        state.GetMapFor(h1)!.GetTile(h1)!.TerrainType = TerrainType.Water;
+        state.NotifyTerrainChanged();
+
+        Assert.Contains(controller.GetBuildableVertices(0), v => v.Equals(v1));
+    }
+
+    [Fact]
+    public void PerformAscension_Mermaid_AfterSecondRow_AppliesModifiersToPlayerCivilization()
+    {
+        var controller = new MainGameController();
+        controller.CreateNewGame();
+        var godState = controller.CurrentMainState!.GodState;
+        godState.GodPoints = 100;
+        godState.DivineEssence = 4;
+        UnlockFirstRow(controller.AscensionController);
+        Assert.True(controller.AscensionController.PurchasePower(AscensionPowerId.DivineInventory));
+        Assert.True(controller.AscensionController.PurchasePower(AscensionPowerId.PresenceOfGod));
+
+        controller.PerformAscension(RaceId.Mermaid);
+
+        Assert.Equal(RaceId.Mermaid, godState.AscensionState.SelectedRace);
+        var playerCiv = controller.CurrentMainState.CurrentWorldState!.PlayerCivilization;
+        Assert.True(playerCiv.ModifierAggregator.HasModifier(ECategory.CITY_PLACEMENT_TERRAIN_RANGE, nameof(TerrainType.Water)));
+        Assert.True(playerCiv.ModifierAggregator.HasModifier(ECategory.INLAND_CITY_LEVEL_CAP, nameof(TerrainType.Water)));
+    }
+
+    // ── Plafond de l'Hôtel de Ville par ville (INLAND_CITY_LEVEL_CAP, Sirènes) ──
+    //
+    // v1(h1,h2,h3) touche l'Eau (h1 muté) : ville côtière, aucun plafond. v3(h4,h5,h6) ne touche
+    // jamais l'Eau : ville en retrait, plafonnée. h6 est en plus muté en Montagne pour que la Mine
+    // y soit constructible côté terrain (seul le niveau doit alors l'en empêcher).
+
+    private static (WorldState state, Civilization civ, City coastalCity, City inlandCity) MermaidCitiesSetup()
+    {
+        var (state, civ, v1, _, v3) = RibbonIsland();
+        var h1 = H(0, 0);
+        var h6 = H(1, 2);
+        state.GetMapFor(h1)!.GetTile(h1)!.TerrainType = TerrainType.Water;
+        state.GetMapFor(h6)!.GetTile(h6)!.TerrainType = TerrainType.Mountain;
+        state.NotifyTerrainChanged();
+
+        AddRaceModifiers(civ, new Modifier(ECategory.INLAND_CITY_LEVEL_CAP, nameof(TerrainType.Water), EType.ADDITIVE, 2));
+
+        var coastalCity = new City(v1) { CivilizationIndex = 0 };
+        var inlandCity = new City(v3) { CivilizationIndex = 0 };
+        coastalCity.Buildings.Add(new TownHall { Level = 1 });
+        inlandCity.Buildings.Add(new TownHall { Level = 1 });
+        civ.AddCity(coastalCity);
+        civ.AddCity(inlandCity);
+
+        return (state, civ, coastalCity, inlandCity);
+    }
+
+    [Fact]
+    public void GetMaxLevel_InlandCityLevelCap_CapsOnlyCitiesNotTouchingRequiredTerrain()
+    {
+        var (state, civ, coastalCity, inlandCity) = MermaidCitiesSetup();
+        var controller = new BuildingController(state);
+
+        var coastalTownHall = coastalCity.Buildings.OfType<TownHall>().Single();
+        var inlandTownHall = inlandCity.Buildings.OfType<TownHall>().Single();
+
+        // Côtière : aucun plafond, garde le maximum normal de l'Hôtel de Ville (4).
+        Assert.Equal(4, controller.GetMaxLevel(coastalTownHall, civ, coastalCity));
+        // En retrait : plafonnée à 2 par INLAND_CITY_LEVEL_CAP.
+        Assert.Equal(2, controller.GetMaxLevel(inlandTownHall, civ, inlandCity));
+    }
+
+    [Fact]
+    public void GetMaxLevel_InlandCityLevelCap_ExcludesMineAtCappedLevelButAllowsBeyondIt()
+    {
+        var (state, _, _, inlandCity) = MermaidCitiesSetup();
+        var mine = new Mine();
+        var inlandMap = state.GetMapFor(inlandCity.Position)!;
+        var inlandTownHall = inlandCity.Buildings.OfType<TownHall>().Single();
+
+        // Touche la Montagne (h6) : côté terrain la Mine serait constructible, seul le niveau
+        // (AvailableAtLevel = 3) doit encore bloquer.
+        inlandTownHall.Level = 2; // maximum atteignable pour cette ville d'après INLAND_CITY_LEVEL_CAP
+        inlandCity.InvalidateLevelCache();
+        Assert.False(mine.IsBuildingAvailableForCity(inlandMap, inlandCity));
+
+        // Preuve différentielle : sans le plafond (simulé ici en dépassant volontairement la
+        // valeur qu'INLAND_CITY_LEVEL_CAP autoriserait), la Mine deviendrait disponible — c'est
+        // donc bien le plafond, pas le terrain, qui l'exclut ci-dessus.
+        inlandTownHall.Level = 3;
+        inlandCity.InvalidateLevelCache();
+        Assert.True(mine.IsBuildingAvailableForCity(inlandMap, inlandCity));
+    }
+
+    [Fact]
+    public void GetMaxLevel_WithCityOverload_MatchesCivWideOverload_ForRacesWithoutInlandCap()
+    {
+        // Non-régression : sans INLAND_CITY_LEVEL_CAP (toute race autre que Sirènes), le surcharge
+        // à 3 arguments doit rendre exactement le même résultat que la version civ-wide existante.
+        var (state, civ, v1, _, _) = RibbonIsland();
+        var city = new City(v1) { CivilizationIndex = 0 };
+        city.Buildings.Add(new TownHall { Level = 1 });
+        civ.AddCity(city);
+        AddRaceModifiers(civ, new Modifier(ECategory.CITY_MIN_DISTANCE, EType.REPLACER, 2)); // ex. Gobelins
+
+        var controller = new BuildingController(state);
+        var townHall = city.Buildings.OfType<TownHall>().Single();
+
+        Assert.Equal(controller.GetMaxLevel(townHall, civ), controller.GetMaxLevel(townHall, civ, city));
     }
 
     // ── Définitions des races ────────────────────────────────────────────────

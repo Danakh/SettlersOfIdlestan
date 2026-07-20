@@ -187,6 +187,10 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             GUILD_AUTOMATION_SPEED_PER_CITY,
             /// <summary>Vol (Garudas) : autorise la fondation de villes en surface sans connexion routière, jusqu'à Value arêtes d'une ville de la civilisation ; le vertex doit toucher au moins un hex terrestre (le survol de l'eau est permis, pas l'atterrissage en pleine mer). Les autres règles (occupation, distances, terrain) s'appliquent normalement, et l'Inframonde/l'Abysse sont exclus (voir CityBuilderController.AddFlightCandidateVertices). Base = 0 (pas de vol).</summary>
             CITY_PLACEMENT_FLYING,
+            /// <summary>Restriction raciale de placement (Sirènes) : tout nouveau vertex de ville en surface doit être à au plus Value arêtes d'un vertex touchant directement le terrain indiqué. SubCategory = nom du TerrainType. Cumulable en OR avec CITY_PLACEMENT_REQUIRES_TERRAIN (voir CityBuilderController.GetRequiredCityPlacementTerrainRanges).</summary>
+            CITY_PLACEMENT_TERRAIN_RANGE,
+            /// <summary>Restriction raciale par ville (Sirènes) : plafonne le niveau de l'Hôtel de Ville à Value pour toute ville de surface qui ne touche PAS directement le terrain indiqué (SubCategory = nom du TerrainType). Sans effet sur les villes qui le touchent — mécanique par ville, pas civ-wide (voir BuildingController.GetMaxLevel(Building, Civilization, City)).</summary>
+            INLAND_CITY_LEVEL_CAP,
         }
 
         [JsonConverter(typeof(JsonStringEnumConverter<EType>))]

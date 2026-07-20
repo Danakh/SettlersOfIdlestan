@@ -113,4 +113,18 @@ public class ModifierAggregator
                 result.Add(bt);
         return result.ToList();
     }
+
+    /// <summary>
+    /// Retourne les modifiers actifs bruts d'une catégorie (SubCategory + Value inclus) — pour les
+    /// catégories où la seule présence/SubCategory ne suffit pas (ex. CITY_PLACEMENT_TERRAIN_RANGE,
+    /// INLAND_CITY_LEVEL_CAP : la portée/le plafond varie selon Value).
+    /// </summary>
+    public IReadOnlyList<Modifier> GetActiveModifiers(ECategory category)
+    {
+        var result = new List<Modifier>();
+        foreach (var modifier in GetCached(category))
+            if (modifier.IsActive)
+                result.Add(modifier);
+        return result;
+    }
 }

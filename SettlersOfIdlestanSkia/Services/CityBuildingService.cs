@@ -260,12 +260,16 @@ public class CityBuildingService
     public bool IsAtMaxLevel(Building building)
     {
         if (SelectedCivilization == null) return false;
-        return building.Level >= BuildingController.GetMaxLevel(building, SelectedCivilization);
+        return building.Level >= GetMaxLevel(building);
     }
 
     public int GetMaxLevel(Building building)
     {
         if (SelectedCivilization == null) return building.GetDefaultMaxLevel();
+        // Le plafond de l'Hôtel de Ville (Sirènes — INLAND_CITY_LEVEL_CAP) dépend de la ville
+        // précise, pas seulement de la civilisation : passer SelectedCity quand disponible.
+        if (SelectedCity != null)
+            return BuildingController.GetMaxLevel(building, SelectedCivilization, SelectedCity);
         return BuildingController.GetMaxLevel(building, SelectedCivilization);
     }
 

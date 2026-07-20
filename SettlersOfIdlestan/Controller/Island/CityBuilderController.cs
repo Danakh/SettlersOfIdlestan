@@ -55,6 +55,7 @@ namespace SettlersOfIdlestan.Controller.Island
         private GameClock? _clock;
         private GamePRNG? _prng;
         private readonly Dictionary<int, (int RoadCount, int TotalCityCount, int BeaconCount, int TerrainVersion, List<Vertex> Vertices)> _buildableVerticesCache = new();
+        private readonly Dictionary<(TerrainType Terrain, int Range), (int TerrainVersion, HashSet<Vertex> Vertices)> _terrainRangeVerticesCache = new();
 
         // 10 s × 100 ticks/s
         public const long AutoOutpostBuildCooldownTicks = 1000L;
@@ -185,8 +186,10 @@ namespace SettlersOfIdlestan.Controller.Island
 
             // Restrictions raciales (voir RaceDefinitions) : distance minimale entre villes propres
             // éventuellement remplacée (Gobelins 2, Géants 4), adjacence de terrain exigée en
-            // surface (Elfes → Forêt, Nains → Montagne) et portée de Vol (Garudas).
+            // surface (Elfes → Forêt, Nains → Montagne), portée de terrain (Sirènes → jusqu'à 2
+            // arêtes de l'Eau) et portée de Vol (Garudas).
             var requiredTerrains = GetRequiredCityPlacementTerrains(civ);
+            var requiredTerrainRanges = GetRequiredCityPlacementTerrainRanges(civ);
             int minOwnCityDistance = GetMinDistanceBetweenCivilizationCities(civ);
             int flightRange = civ.ModifierAggregator.ApplyModifiers(ECategory.CITY_PLACEMENT_FLYING, "", 0);
 
@@ -221,7 +224,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 !civ.Cities
                     .Where(city => city != excludingCity && city.Position.Z == v.Z)
                     .Any(city => city.Position.EdgeDistanceTo(v) < minOwnCityDistance) &&
-                SatisfiesCityTerrainRestriction(v, requiredTerrains))
+                SatisfiesCityTerrainRestriction(v, requiredTerrains, requiredTerrainRanges))
                 .ToList();
 
             if (excludingCity == null)
@@ -292,13 +295,14 @@ namespace SettlersOfIdlestan.Controller.Island
         }
 
         /// <summary>
-        /// Vrai si le vertex respecte la restriction raciale de terrain. Seule la surface est
-        /// concernée : l'Inframonde et l'Abysse restent libres (leurs terrains propres rendraient
-        /// toute restriction de surface injouable).
+        /// Vrai si le vertex respecte la restriction raciale de terrain (adjacence stricte OU
+        /// portée). Seule la surface est concernée : l'Inframonde et l'Abysse restent libres (leurs
+        /// terrains propres rendraient toute restriction de surface injouable).
         /// </summary>
-        private bool SatisfiesCityTerrainRestriction(Vertex vertex, List<TerrainType> requiredTerrains)
+        private bool SatisfiesCityTerrainRestriction(Vertex vertex, List<TerrainType> requiredTerrains,
+            List<(TerrainType Terrain, int Range)> requiredTerrainRanges)
         {
-            if (requiredTerrains.Count == 0) return true;
+            if (requiredTerrains.Count == 0 && requiredTerrainRanges.Count == 0) return true;
             if (vertex.Z != IslandMap.SurfaceLayer) return true;
 
             var map = _state!.GetMapFor(vertex);
@@ -307,7 +311,67 @@ namespace SettlersOfIdlestan.Controller.Island
             foreach (var terrain in requiredTerrains)
                 if (map.VertexHasTerrainType(vertex, terrain))
                     return true;
+
+            foreach (var (terrain, range) in requiredTerrainRanges)
+                if (GetVerticesWithinRangeOfTerrain(map, terrain, range).Contains(vertex))
+                    return true;
+
             return false;
+        }
+
+        /// <summary>
+        /// Portées de terrain (CITY_PLACEMENT_TERRAIN_RANGE, Sirènes) : un nouveau vertex de ville
+        /// en surface est valide s'il est à au plus la portée indiquée (en arêtes) d'un vertex
+        /// touchant directement le terrain. Cumulable en OR avec GetRequiredCityPlacementTerrains
+        /// (adjacence stricte).
+        /// </summary>
+        private static List<(TerrainType Terrain, int Range)> GetRequiredCityPlacementTerrainRanges(Civilization civ)
+        {
+            var result = new List<(TerrainType, int)>();
+            foreach (var modifier in civ.ModifierAggregator.GetActiveModifiers(ECategory.CITY_PLACEMENT_TERRAIN_RANGE))
+                if (Enum.TryParse<TerrainType>(modifier.SubCategory, out var terrain))
+                    result.Add((terrain, (int)modifier.Value));
+            return result;
+        }
+
+        /// <summary>
+        /// BFS par arêtes (ordre stable, comme AddFlightCandidateVertices) : ensemble de tous les
+        /// vertex de la carte à au plus <paramref name="range"/> arêtes d'un vertex touchant
+        /// directement <paramref name="terrain"/> (portée 0 = adjacence stricte incluse). Mis en
+        /// cache par (terrain, range), invalidé sur TerrainVersion (la Marche de Dieu peut changer
+        /// le terrain sans toucher aux compteurs de routes/villes).
+        /// </summary>
+        private HashSet<Vertex> GetVerticesWithinRangeOfTerrain(IslandMap map, TerrainType terrain, int range)
+        {
+            var key = (terrain, range);
+            if (_terrainRangeVerticesCache.TryGetValue(key, out var cached) && cached.TerrainVersion == _state!.TerrainVersion)
+                return cached.Vertices;
+
+            var visited = new HashSet<Vertex>();
+            var queue = new Queue<(Vertex Vertex, int Depth)>();
+
+            foreach (var (coord, tile) in map.Tiles)
+            {
+                if (tile.TerrainType != terrain) continue;
+                foreach (var dir in SecondaryHexDirectionUtils.AllSecondaryDirections)
+                {
+                    var seed = coord.Vertex(dir);
+                    if (visited.Add(seed))
+                        queue.Enqueue((seed, 0));
+                }
+            }
+
+            while (queue.Count > 0)
+            {
+                var (vertex, depth) = queue.Dequeue();
+                if (depth >= range) continue;
+                foreach (var neighbor in vertex.GetAdjacentVertices())
+                    if (visited.Add(neighbor))
+                        queue.Enqueue((neighbor, depth + 1));
+            }
+
+            _terrainRangeVerticesCache[key] = (_state!.TerrainVersion, visited);
+            return visited;
         }
 
         /// <summary>

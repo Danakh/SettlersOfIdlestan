@@ -319,7 +319,7 @@ namespace SettlersOfIdlestan.Controller.Island
             }
             else
             {
-                if (existing.Level >= GetMaxLevel(existing, civ))
+                if (existing.Level >= GetMaxLevel(existing, civ, city))
                     return false;
 
                 cost = existing.GetUpgradeCost(existing.Level + 1);
@@ -439,6 +439,30 @@ namespace SettlersOfIdlestan.Controller.Island
         }
 
         /// <summary>
+        /// Niveau max pour un bâtiment d'une ville précise. Identique à <see cref="GetMaxLevel(Building, Civilization)"/>
+        /// (civ-wide, caché) pour tout bâtiment autre que l'Hôtel de Ville. Pour l'Hôtel de Ville,
+        /// applique en plus INLAND_CITY_LEVEL_CAP (Sirènes) : plafonne le résultat si la ville ne
+        /// touche pas directement le terrain requis — mécanique par ville, donc non cachée au niveau
+        /// civ (un seul lookup de terrain, chemin non chaud : amélioration/affichage de Mairie).
+        /// </summary>
+        public int GetMaxLevel(Building building, Civilization civ, City city)
+        {
+            int result = GetMaxLevel(building, civ);
+            if (building.Type != BuildingType.TownHall) return result;
+            if (city.Position.Z != IslandMap.SurfaceLayer) return result;
+
+            var map = _state?.GetMapFor(city.Position);
+            if (map == null) return result;
+
+            foreach (var modifier in civ.ModifierAggregator.GetActiveModifiers(ECategory.INLAND_CITY_LEVEL_CAP))
+                if (Enum.TryParse<TerrainType>(modifier.SubCategory, out var terrain) &&
+                    !map.VertexHasTerrainType(city.Position, terrain))
+                    result = Math.Min(result, (int)modifier.Value);
+
+            return result;
+        }
+
+        /// <summary>
         /// Recalcule intégralement la capacité de stockage (ressources de base / avancées) de la
         /// civilisation et met à jour son cache. À appeler après toute construction/amélioration/
         /// destruction de bâtiment, ajout/retrait de ville, ou changement de l'agrégateur de modificateurs.
@@ -515,6 +539,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 BuildingType.ColossusWorkshop => new ColossusWorkshop(),
                 BuildingType.SkullPit => new SkullPit(),
                 BuildingType.ThroneOfWinds => new ThroneOfWinds(),
+                BuildingType.PearlGrotto => new PearlGrotto(),
                 _ => null,
             };
         }

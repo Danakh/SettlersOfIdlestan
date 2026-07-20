@@ -785,6 +785,8 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         Modifier.ECategory.NEW_CITY_COST_REDUCTION           => $"-{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_new_city_cost")}",
         Modifier.ECategory.GUILD_AUTOMATION_SPEED_PER_CITY   => $"+{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_guild_automation_speed_per_city")}",
         Modifier.ECategory.CITY_PLACEMENT_FLYING             => _localization.GetFormated("prestige_tooltip_city_placement_flying", (int)mod.Value),
+        Modifier.ECategory.CITY_PLACEMENT_TERRAIN_RANGE      => _localization.GetFormated("prestige_tooltip_city_placement_terrain_range", (int)mod.Value, _localization.Get($"hex_tooltip_terrain_{mod.SubCategory.ToLower()}")),
+        Modifier.ECategory.INLAND_CITY_LEVEL_CAP             => _localization.GetFormated("prestige_tooltip_inland_city_level_cap", (int)mod.Value, _localization.Get($"hex_tooltip_terrain_{mod.SubCategory.ToLower()}")),
         _ => $"+{mod.Value}"
     };
 

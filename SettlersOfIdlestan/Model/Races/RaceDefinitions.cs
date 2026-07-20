@@ -115,13 +115,30 @@ public static class RaceDefinitions
                 .Append(new Modifier(ECategory.BUILDING_MAX_LEVEL, nameof(BuildingType.ThroneOfWinds), EType.ADDITIVE, 1))
                 .ToArray()),
 
-        // Sirènes / Elfes noirs : races avancées (seconde rangée de pouvoirs divins), non
-        // implémentées — déclarées pour l'UI (aperçu verrouillé) et la stabilité de la sérialisation.
+        // Sirènes : peuple des flots — essaime densément le long du littoral (villes à distance 2
+        // les unes des autres, jusqu'à 2 arêtes de la côte au lieu du contact direct). Seules les
+        // villes posées directement sur l'Eau atteignent le plein développement ; les villes en
+        // retrait plafonnent à l'Hôtel de Ville niveau 2 (INLAND_CITY_LEVEL_CAP — city.Level est
+        // directement TownHall.Level, sans décalage, voir City.Level), ce qui exclut la Mine et tout
+        // bâtiment de palier 3-4 (Académie, Laboratoire, Arsenal, Fonderie, Forge Volcanique,
+        // guildes, bâtiments raciaux…) pour elles. Voir
+        // BuildingController.GetMaxLevel(Building, Civilization, City) et
+        // CityBuilderController.GetVerticesWithinRangeOfTerrain.
         new RaceDefinition(RaceId.Mermaid, RaceTier.Advanced,
             requiredAdjacentTerrain: TerrainType.Water,
-            racialBuilding: null,
-            modifiers: Array.Empty<Modifier>()),
+            racialBuilding: BuildingType.PearlGrotto,
+            modifiers: new[]
+            {
+                new Modifier(ECategory.CITY_PLACEMENT_TERRAIN_RANGE, nameof(TerrainType.Water), EType.ADDITIVE, 2),
+                new Modifier(ECategory.CITY_MIN_DISTANCE, EType.REPLACER, 2),
+                new Modifier(ECategory.NEW_CITY_COST_REDUCTION, EType.ADDITIVE, 0.25),
+                new Modifier(ECategory.UNLOCK_MARITIME_ROUTES, EType.ADDITIVE, 1),
+                new Modifier(ECategory.INLAND_CITY_LEVEL_CAP, nameof(TerrainType.Water), EType.ADDITIVE, 2),
+                new Modifier(ECategory.BUILDING_MAX_LEVEL, nameof(BuildingType.PearlGrotto), EType.ADDITIVE, 1),
+            }),
 
+        // Elfes noirs : race avancée (seconde rangée de pouvoirs divins), non implémentée —
+        // déclarée pour l'UI (aperçu verrouillé) et la stabilité de la sérialisation.
         new RaceDefinition(RaceId.DarkElf, RaceTier.Advanced,
             requiredAdjacentTerrain: null,
             racialBuilding: null,

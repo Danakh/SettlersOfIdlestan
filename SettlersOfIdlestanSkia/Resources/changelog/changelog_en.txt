@@ -5,6 +5,7 @@ The changelog is not actively maintained at the moment.
 
 v0.9
 • Advanced races: the second row of divine powers now unlocks the Giants and the Garudas. The Garudas, lords of the wind, found their cities by flight — no road needed, up to 3 edges from one of their cities, even across the sea.
+• New advanced race: the Mermaids, people of the waves who swarm densely along the coastline — cities can be founded up to 2 edges from the coast, but those not touching Water cap at Town Hall level 2.
 
 ---
 

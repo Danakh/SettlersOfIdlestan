@@ -97,10 +97,9 @@ public class City : IBuildingContext, IMilitaryVertex
     private bool _townHallCacheValid;
 
     /// <summary>
-    /// Gets the effective level of the city.
-    /// Level 1 is the base level (outpost) when no TownHall is built.
-    /// When a TownHall is present the city level is TownHall.Level + 1.
-    /// Levels map as: 1=outpost, 2=colony, 3=town, 4=metropolis, 5=capital.
+    /// Gets the effective level of the city, i.e. the TownHall's own Level (0 if no TownHall is
+    /// built yet). AvailableAtLevel checks on every other building type compare directly against
+    /// this value — no offset.
     /// </summary>
     public int Level
     {

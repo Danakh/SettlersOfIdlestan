@@ -213,6 +213,11 @@ public enum BuildingType
     /// de l'Or passivement.
     /// </summary>
     ThroneOfWinds,
+    /// <summary>
+    /// Grotte aux Perles - Bâtiment unique racial des Sirènes. +3 de défense des villes et génère
+    /// de la Nourriture passivement.
+    /// </summary>
+    PearlGrotto,
 }
 
 /// <summary>
