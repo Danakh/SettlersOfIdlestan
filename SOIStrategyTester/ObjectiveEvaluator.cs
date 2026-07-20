@@ -71,6 +71,10 @@ public static class ObjectiveEvaluator
                     });
                 }
 
+            case ObjectiveKind.AbyssGateUnlocked:
+                return worldState.Features.OfType<AbyssGate>().Any(g => g.Built)
+                    || (controller.CurrentMainState?.GameRecord.HasBuiltAbyssGate ?? false);
+
             default:
                 throw new NotSupportedException($"Unknown objective kind: {spec.Kind}");
         }

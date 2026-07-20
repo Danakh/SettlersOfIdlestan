@@ -75,7 +75,17 @@ public static class StrategyRunner
             "All phases completed without reaching the global objective.");
     }
 
-    private static bool ExecutePhaseOnce(StrategyPhase phase, CivilizationAutoplayer auto, MainGameController controller, PriorityAutoplayStrategy? priorityStrategy)
+    /// <summary>
+    /// Drives the phase's own action, plus (unconditionally, every call) background progress that no
+    /// phase kind otherwise triggers — see TryAdvanceBackgroundSystemsOnce.
+    /// </summary>
+    internal static bool ExecutePhaseOnce(StrategyPhase phase, CivilizationAutoplayer auto, MainGameController controller, PriorityAutoplayStrategy? priorityStrategy)
+    {
+        bool didBackground = TryAdvanceBackgroundSystemsOnce(auto);
+        return ExecutePhaseCore(phase, auto, controller, priorityStrategy) || didBackground;
+    }
+
+    private static bool ExecutePhaseCore(StrategyPhase phase, CivilizationAutoplayer auto, MainGameController controller, PriorityAutoplayStrategy? priorityStrategy)
     {
         var bc = controller.BuildingController;
         switch (phase.Kind)
@@ -136,7 +146,30 @@ public static class StrategyRunner
         }
     }
 
-    private static CivilizationAutoplayer BuildAutoplayer(MainGameController controller)
+    /// <summary>
+    /// Background progress that no PhaseKind otherwise drives, tried once per iteration regardless of
+    /// the active phase's own kind:
+    /// - Deepest Mine → Corruption Spire → Abyss Gate chain — exactly like the passive investment
+    ///   controllers (DeepestMineController/CorruptionSpireController/AbyssGateController) tick every
+    ///   clock Advanced independently of whatever the player is doing. Each Try*InvestmentOnce is a
+    ///   no-op until its prestige-vertex unlock is purchased.
+    /// - Research (CivilizationAutoplayer.TryResearchOnce) — no PhaseKind calls this at all otherwise,
+    ///   so without it research (and everything it gates: higher building-level caps, UNLOCK_WONDERS,
+    ///   the abyss chain's own UNLOCK_DEEPEST_MINE/UNLOCK_ABYSS prestige vertices, ...) would never
+    ///   progress under any strategy built purely from Priority phases. No-op once nothing is
+    ///   researchable or something is already in progress.
+    /// Each of these is a no-op until unlocked, so calling them unconditionally from every phase is safe.
+    /// </summary>
+    private static bool TryAdvanceBackgroundSystemsOnce(CivilizationAutoplayer auto)
+    {
+        bool did = auto.TryDeepestMineInvestmentOnce();
+        did |= auto.TryCorruptionSpireInvestmentOnce();
+        did |= auto.TryAbyssGateInvestmentOnce();
+        did |= auto.TryResearchOnce();
+        return did;
+    }
+
+    internal static CivilizationAutoplayer BuildAutoplayer(MainGameController controller)
     {
         var worldState = controller.CurrentMainState?.CurrentWorldState
             ?? throw new InvalidOperationException("Controller has no current world state.");
@@ -156,10 +189,13 @@ public static class StrategyRunner
             worldState,
             controller.CurrentMainState!.PrestigeState,
             controller.PerformPrestige,
-            controller.WonderController);
+            controller.WonderController,
+            deepestMineController: controller.DeepestMineController,
+            corruptionSpireController: controller.CorruptionSpireController,
+            abyssGateController: controller.AbyssGateController);
     }
 
-    private static PriorityAutoplayStrategy BuildPriorityStrategy(CivilizationAutoplayer auto, BuildingController buildingController, List<PriorityObjectiveSpec> specs)
+    internal static PriorityAutoplayStrategy BuildPriorityStrategy(CivilizationAutoplayer auto, BuildingController buildingController, List<PriorityObjectiveSpec> specs)
     {
         var objectives = new List<IAutoplayObjective>(specs.Count);
         foreach (var spec in specs)

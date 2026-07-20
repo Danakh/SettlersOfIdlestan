@@ -37,6 +37,9 @@ namespace SettlersOfIdlestan.Controller
         private readonly Action? _performPrestige;
         private readonly WonderController? _wonderController;
         private readonly MilitaryController? _militaryController;
+        private readonly DeepestMineController? _deepestMineController;
+        private readonly CorruptionSpireController? _corruptionSpireController;
+        private readonly AbyssGateController? _abyssGateController;
 
         private VisibleIslandMap? _prospectiveVerticesCacheMap;
         private int _prospectiveVerticesCacheTotalCityCount = -1;
@@ -74,6 +77,9 @@ namespace SettlersOfIdlestan.Controller
             Action? performPrestige = null,
             WonderController? wonderController = null,
             MilitaryController? militaryController = null,
+            DeepestMineController? deepestMineController = null,
+            CorruptionSpireController? corruptionSpireController = null,
+            AbyssGateController? abyssGateController = null,
             long clickCooldownTicks = 20L)
         {
             _clickCooldownTicks = clickCooldownTicks;
@@ -92,6 +98,9 @@ namespace SettlersOfIdlestan.Controller
             _performPrestige = performPrestige;
             _wonderController = wonderController;
             _militaryController = militaryController;
+            _deepestMineController = deepestMineController;
+            _corruptionSpireController = corruptionSpireController;
+            _abyssGateController = abyssGateController;
         }
 
         // ── Cible prioritaire ────────────────────────────────────────────────────
@@ -430,6 +439,103 @@ namespace SettlersOfIdlestan.Controller
                 didSomething = true;
             }
 
+            return didSomething;
+        }
+
+        /// <summary>
+        /// Places the Deepest Mine if unlocked and not yet placed (first placeable Mountain hex),
+        /// then keeps investment enabled for the resources its dig cost needs. Mirrors
+        /// TryWonderInvestmentOnce. No-ops if the DeepestMineController dependency was not supplied,
+        /// the perk isn't unlocked yet, or the mine is already dug.
+        /// </summary>
+        public bool TryDeepestMineInvestmentOnce()
+        {
+            if (_deepestMineController == null || _worldState == null) return false;
+
+            var mine = _worldState.Features.OfType<SettlersOfIdlestan.Model.IslandFeatures.DeepestMine>().FirstOrDefault();
+            if (mine == null)
+            {
+                if (!_deepestMineController.CanPlaceDeepestMine(_civ)) return false;
+                var hexes = _deepestMineController.GetPlaceableHexes();
+                if (hexes.Count == 0) return false;
+                mine = _deepestMineController.PlaceDeepestMine(hexes[0]);
+                if (mine == null) return false;
+            }
+            if (mine.Dug) return false;
+
+            bool didSomething = false;
+            var cost = mine.GetInvestmentCost(_civ);
+            foreach (var resource in cost.Keys)
+            {
+                if (mine.InvestmentEnabled.Contains(resource)) continue;
+                mine.InvestmentEnabled.Add(resource);
+                didSomething = true;
+            }
+            return didSomething;
+        }
+
+        /// <summary>
+        /// Places the Corruption Spire if unlocked (3 UNLOCK_ABYSS prestige vertices) and not yet
+        /// placed, preferring the most-corrupted placeable hex — the best chance of the hex reaching
+        /// AbyssGate.RequiredCorruptionLevel while the Spire's own decay (CorruptionController.
+        /// ProcessMonumentCorruptionDecay) works against it. Keeps investment enabled only for the
+        /// initial build (stops once Built, to avoid endlessly funding Radius upgrades, which only
+        /// widen the decay area around the Spire). No-ops if the CorruptionSpireController dependency
+        /// was not supplied.
+        /// </summary>
+        public bool TryCorruptionSpireInvestmentOnce()
+        {
+            if (_corruptionSpireController == null || _worldState == null) return false;
+
+            var spire = _worldState.Features.OfType<CorruptionSpire>().FirstOrDefault();
+            if (spire == null)
+            {
+                if (!_corruptionSpireController.CanPlaceCorruptionSpire(_civ)) return false;
+                var hexes = _corruptionSpireController.GetPlaceableHexes();
+                if (hexes.Count == 0) return false;
+                var best = hexes.OrderByDescending(h => _corruptionSpireController.GetCorruptionLevel(h)).First();
+                spire = _corruptionSpireController.PlaceCorruptionSpire(best);
+                if (spire == null) return false;
+            }
+            if (spire.Built) return false;
+
+            bool didSomething = false;
+            var cost = spire.GetInvestmentCost(_civ);
+            foreach (var resource in cost.Keys)
+            {
+                if (spire.InvestmentEnabled.Contains(resource)) continue;
+                spire.InvestmentEnabled.Add(resource);
+                didSomething = true;
+            }
+            return didSomething;
+        }
+
+        /// <summary>
+        /// Evolves the built Corruption Spire into the Abyss Gate once eligible (AbyssGateController.
+        /// IsAbyssGateEligible — the Spire's hex reached the required corruption level), then keeps
+        /// investment enabled until it's built. No-ops if the AbyssGateController dependency was not
+        /// supplied, the Spire isn't eligible yet, or the Gate is already built.
+        /// </summary>
+        public bool TryAbyssGateInvestmentOnce()
+        {
+            if (_abyssGateController == null || _worldState == null) return false;
+
+            var gate = _worldState.Features.OfType<AbyssGate>().FirstOrDefault();
+            if (gate == null)
+            {
+                gate = _abyssGateController.PlaceAbyssGate();
+                if (gate == null) return false;
+            }
+            if (gate.Built) return false;
+
+            bool didSomething = false;
+            var cost = gate.GetInvestmentCost(_civ);
+            foreach (var resource in cost.Keys)
+            {
+                if (gate.InvestmentEnabled.Contains(resource)) continue;
+                gate.InvestmentEnabled.Add(resource);
+                didSomething = true;
+            }
             return didSomething;
         }
 

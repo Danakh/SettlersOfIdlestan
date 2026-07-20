@@ -49,6 +49,79 @@ CLI arguments (see `Program.cs` / `--help`):
 --time-step <seconds>          Simulated seconds advanced per iteration (default: 0.5)
 ```
 
+### Endless mode
+
+`--endless` drives a single strategy (the first one in `--strategies`, if the file has several) across
+**many prestige cycles**, until the run's global `--objective` is met. Unlike normal mode, `EndlessRunner`
+(not the strategy JSON) decides *when* to prestige each island — the strategy must contain **no `Prestige`
+phase** (it errors out if it finds one); it should only describe how to build an island up. Each cycle,
+`EndlessRunner` re-enters the strategy's phases from phase 0 as many times as needed (a "pass") until
+this cycle's prestige trigger fires, then prestiges (greedy vertex purchase, like `TryPrestigeOnce()`
+with no priority list) and moves to the next cycle. See `Data/Strategies/endless-abyss-gate.json`.
+
+```bash
+dotnet run --project SOIStrategyTester -- --new-game --seed 42 --endless \
+  --objective Data/Objectives/abyss-gate-unlocked.json \
+  --strategies Data/Strategies/endless-abyss-gate.json \
+  --csv-output run_current.csv --checkpoint-hours 1
+```
+
+Or just double-click `SOIStrategyTester/Endless.bat` — it `cd`s into the project, runs the command
+above with sane defaults, and `pause`s at the end so the summary stays on screen.
+
+```
+--endless                     Loop the first strategy in --strategies instead of racing every strategy once
+--csv-output <path>           Where to continuously append progress rows (default: run_current.csv)
+--checkpoint-hours <n>        Simulated-hours interval between checkpoint rows/console lines (default: 1)
+--max-cycles <n>              Safety cap on the number of prestige cycles (default: 100000)
+--prestige-point-targets <a,b,c,...>
+                               Comma-separated prestige-point target for the 1st, 2nd, 3rd... prestige
+                               (default: 35,80,500,1000). Past the list, each island's target instead
+                               doubles the previous island's *actual* points at prestige time.
+--max-island-hours <n>        Once past --prestige-point-targets, each island prestiges as soon as it
+                               reaches its doubled target OR this many simulated hours pass, whichever
+                               comes first (default: 24). The fixed targets have no time cap — see below.
+```
+
+**Per-cycle prestige trigger.** Every iteration, regardless of which phase is active, `EndlessRunner`
+checks `PrestigeController.CalculatePrestigePoints() >= pointsTarget` (and, once past the fixed target
+list, `island age >= --max-island-hours`) — the moment either is true *and* `PrestigeIsAvailable()`
+(points ≥ 20 **and** an Imperial Port built — not just points), it prestiges immediately, wherever the
+strategy currently is. `pointsTarget` for cycle N is `--prestige-point-targets[N-1]` while N is within
+the list, else `2 × <actual points the previous prestige had>`.
+
+**Stagnation safety valve — the fixed targets are not a guarantee.** A cycle *can* plateau below its
+fixed target (all reachable building levels maxed, no Wonder/Imperial-Port headroom yet, map exhausted)
+— `CivilizationAutoplayer.TryExpandOnce()` in particular can keep returning `true` forever building roads
+that never resolve into a new city, so "the phase is still doing something" is not a reliable progress
+signal. `EndlessRunner` tracks `CalculatePrestigePoints()` pass over pass (a "pass" = one full loop
+through every phase) and, once it's been flat for `StagnantPassLimit` (8) consecutive passes, force-
+prestiges with whatever points it has rather than hang — logged as `gave up — N pts hasn't moved in 8
+passes`. If `PrestigeIsAvailable()` is *still* false at that point (no Imperial Port at all), the whole
+endless run aborts — grinding harder won't fix that. A phase's own non-null `until` that's never reached
+gets the same "warn and move on to the next phase" treatment as the stall-tolerance below (not a hard
+abort — the outer pass loop retries the whole sequence).
+
+**Background systems run automatically, every iteration, regardless of phase kind or mode**
+(`StrategyRunner.ExecutePhaseOnce` calls `CivilizationAutoplayer.TryDeepestMineInvestmentOnce` /
+`TryCorruptionSpireInvestmentOnce` / `TryAbyssGateInvestmentOnce` / `TryResearchOnce` unconditionally
+alongside whatever the phase itself does). Each is a no-op until unlocked — `TryResearchOnce` needs
+`ResearchController.IsResearchUnlocked()`, the abyss-chain methods need their prestige-vertex unlocks
+(`UNLOCK_DEEPEST_MINE`, `UNLOCK_ABYSS` ×3), which the greedy vertex-buying in `TryPrestigeOnce` handles
+on its own over enough cycles — so this is safe in every mode, not just `--endless`. Note `TryResearchOnce`
+was previously dead code: no `PhaseKind` called it, so no strategy built purely from `Priority` phases
+ever actually researched anything, including whatever tech unlocks higher building-level caps and
+`UNLOCK_WONDERS` — a likely contributor to points plateauing well below 500-1000 on early islands (see
+`PrestigeController.CalculatePrestigePoints` — the Wonder gives a *multiplier*, `level × (1 + hours
+played on this island)`, by far the strongest lever for high targets, but it's gated behind unlocking it
+first). Reaching the Abyss Gate is still fundamentally slow on top of that: it needs the Underworld
+unlocked (Deepest Mine dug), then a Corruption Spire built on the most-corrupted reachable Underworld
+hex, then that hex's corruption to reach `AbyssGate.RequiredCorruptionLevel` (a probabilistic tug-of-war
+between `CorruptionController.ProcessSpread` growing it and `ProcessMonumentCorruptionDecay` shrinking
+it right back once the Spire is built) before the Gate itself can be placed and invested in — expect
+many prestige cycles, and treat the default `endless-abyss-gate.json` strategy as a starting point to
+tune (per the workflow above), not a finished answer.
+
 All strategies in one run start from an **identical** fresh copy of the starting state (a new
 `MainGameController` is built per strategy), so ticks-to-objective are directly comparable.
 
@@ -91,6 +164,7 @@ One object, `kind` plus the fields it needs. These mirror the `Condition` lambda
 | `WonderPlaced` | — | `WonderPlacedStep` |
 | `WonderLevelAtLeast` | `level` | `WonderLevelStep` |
 | `PrestigeRunCountAtLeast` | `count` | the `IsPrestigeStep` steps (RunHistory.Count) |
+| `AbyssGateUnlocked` | — | live `AbyssGate.Built` on the current island, or cross-prestige `GameRecord.HasBuiltAbyssGate` |
 
 ### StrategyDefinition (`Data/Strategies/*.json` — an array of these)
 
@@ -208,3 +282,13 @@ that city — it never blocks the objective forever.
   for precedent) — use the phase-level `maxIterations` override rather than inflating the global default.
 - Comparisons are only fair when every strategy in a run starts from the *same* state — always pass
   the same `--seed`/`--save` for an entire comparison, never mix.
+- **`TryResearchOnce` only starts/queues research — it never builds the Library that produces the
+  research points research actually needs to progress.** `ResearchController.ProduceResearchPoints`
+  only ticks up `ResearchPoints` from a built `Library` (or `Laboratory`) in a city; without one in the
+  strategy's own `BuildingLevel` lists, research starts (visible as `InProgress`) but never advances —
+  `ResearchCompleted` stays 0 forever even across dozens of prestige cycles. `Library` needs `TownHall`
+  level 2 and its own max-level unlock (the first prestige vertex, which also grants
+  `UNLOCK_RESEARCH_SYSTEM`) before it's buildable, so it's a safe no-op to list early. Any hand-written
+  `Priority` strategy meant to run long enough for research/Wonder to matter (not just
+  `CivilizationAutoplayerPriorities.Unified`, which already includes `Library`) must list `Library` in
+  a `BuildingLevel` objective itself — see `endless-abyss-gate.json`.

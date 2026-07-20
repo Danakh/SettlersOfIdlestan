@@ -36,6 +36,11 @@ public enum ObjectiveKind
     /// already used for the Library checkpoint). Useful as a Priority phase's "Until" when priming a
     /// normal (non-unique) BuildingLevel objective, e.g. Warehouse, before switching to another phase.</summary>
     AllCitiesBuildingAtLeast,
+    /// <summary>The Abyss Gate has been built — either right now on the live island (AbyssGate.Built)
+    /// or ever, cross-prestige (GameRecord.HasBuiltAbyssGate, which is only stamped at the next
+    /// prestige after building it). The live check makes this trigger the moment the Gate finishes,
+    /// without waiting for the run to prestige again.</summary>
+    AbyssGateUnlocked,
 }
 
 public class ObjectiveSpec

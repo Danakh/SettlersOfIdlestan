@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
@@ -53,6 +54,24 @@ public static class Program
             DefaultMaxIterationsPerPhase = options.MaxIterationsPerPhase,
             TimeStep = options.TimeStep,
         };
+
+        if (options.Endless)
+        {
+            if (strategies.Count > 1)
+                Console.WriteLine($"Warning: --endless only drives one strategy — using the first ('{strategies[0].Name}') and ignoring the other {strategies.Count - 1}.");
+
+            var endlessController = BuildController(options);
+            var endlessOptions = new EndlessRunOptions
+            {
+                CsvPath = options.CsvOutputPath,
+                CheckpointIntervalHours = options.CheckpointHours,
+                MaxCycles = options.MaxCycles,
+                PrestigePointTargets = options.PrestigePointTargets,
+                MaxIslandHoursAfterFixedTargets = options.MaxIslandHours,
+            };
+            EndlessRunner.Run(endlessController, strategies[0], globalObjective, runOptions, endlessOptions);
+            return 0;
+        }
 
         var results = new List<StrategyRunResult>();
         foreach (var strategy in strategies)
@@ -126,6 +145,25 @@ public static class Program
               --max-iterations <n>     Default max iterations per phase (default: 20000).
               --time-step <seconds>    Simulated seconds advanced per iteration (default: 0.5).
               --help                   Show this message.
+
+            Endless mode — loops a single strategy across prestige cycles until its objective is met
+            (e.g. Data/Objectives/abyss-gate-unlocked.json) instead of racing several strategies once:
+              --endless                 Drive --strategies' first strategy on a loop instead of racing
+                                         every strategy in the file once. Cycles back to phase 0 whenever
+                                         the strategy runs out of phases and the global objective still
+                                         isn't met — pair with a strategy whose last phase is Prestige.
+              --csv-output <path>       Where to continuously append progress rows (default: run_current.csv).
+              --checkpoint-hours <n>    Simulated-hours interval between checkpoint rows/console lines
+                                         (default: 1).
+              --max-cycles <n>          Safety cap on the number of phase-loop cycles (default: 100000).
+              --prestige-point-targets <a,b,c,...>
+                                         Comma-separated prestige-point target for the 1st, 2nd, 3rd...
+                                         prestige (default: 35,80,500,1000). Once past the list, each
+                                         island's target instead doubles the previous island's actual
+                                         points.
+              --max-island-hours <n>    Once past --prestige-point-targets, each island prestiges as soon
+                                         as it reaches its doubled target OR this many simulated hours have
+                                         passed, whichever comes first (default: 24).
             """);
     }
 }
@@ -149,6 +187,12 @@ internal class CliOptions
     public string? BestOutputPath { get; set; }
     public int MaxIterationsPerPhase { get; set; } = 20000;
     public double TimeStep { get; set; } = 0.5;
+    public bool Endless { get; set; }
+    public string CsvOutputPath { get; set; } = "run_current.csv";
+    public double CheckpointHours { get; set; } = 1.0;
+    public long MaxCycles { get; set; } = 100_000;
+    public List<int> PrestigePointTargets { get; set; } = new() { 35, 80, 500, 1000 };
+    public double MaxIslandHours { get; set; } = 24.0;
 
     public static CliOptions Parse(string[] args)
     {
@@ -188,7 +232,28 @@ internal class CliOptions
                     options.MaxIterationsPerPhase = int.Parse(RequireValue(args, ref i));
                     break;
                 case "--time-step":
-                    options.TimeStep = double.Parse(RequireValue(args, ref i));
+                    options.TimeStep = double.Parse(RequireValue(args, ref i), CultureInfo.InvariantCulture);
+                    break;
+                case "--endless":
+                    options.Endless = true;
+                    break;
+                case "--csv-output":
+                    options.CsvOutputPath = RequireValue(args, ref i);
+                    break;
+                case "--checkpoint-hours":
+                    options.CheckpointHours = double.Parse(RequireValue(args, ref i), CultureInfo.InvariantCulture);
+                    break;
+                case "--max-cycles":
+                    options.MaxCycles = long.Parse(RequireValue(args, ref i));
+                    break;
+                case "--prestige-point-targets":
+                    options.PrestigePointTargets = RequireValue(args, ref i)
+                        .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                        .Select(int.Parse)
+                        .ToList();
+                    break;
+                case "--max-island-hours":
+                    options.MaxIslandHours = double.Parse(RequireValue(args, ref i), CultureInfo.InvariantCulture);
                     break;
                 default:
                     throw new ArgumentException($"Unknown argument: {args[i]}");
