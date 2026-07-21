@@ -155,7 +155,7 @@ public class MilitaryRenderer : HexBasedRenderer, IGameRenderer
 
     public void Render(SKCanvas canvas, GameRenderContext context)
     {
-        DrawFlowLines(canvas);
+        DrawFlowLines(canvas, context);
         DrawDragInteraction(canvas, context);
 
         float dt = context.DeltaTime;
@@ -176,7 +176,10 @@ public class MilitaryRenderer : HexBasedRenderer, IGameRenderer
         AdvanceParticles(canvas, _reinforceParticles, dt, reinforce: true, visibleMap: visibleMap);
     }
 
-    private void DrawFlowLines(SKCanvas canvas)
+    private static readonly SKColor BlockedFlowColor = new(150, 150, 150, 220);
+    private static readonly SKColor ReinforcementFlowColor = new(50, 200, 80, 220);
+
+    private void DrawFlowLines(SKCanvas canvas, GameRenderContext context)
     {
         var worldState = _gameControllerService?.CurrentWorldState;
         var playerCiv = _gameControllerService?.PlayerCivilization;
@@ -186,6 +189,8 @@ public class MilitaryRenderer : HexBasedRenderer, IGameRenderer
 
         foreach (var civ in worldState.Civilizations)
         {
+            var roadAdjacency = RoadPathfinder.BuildAdjacency(civ.Roads, worldState.CurrentViewedLayer);
+
             foreach (var sourceVertex in civ.MilitaryVertices)
             {
                 if (sourceVertex.FlowTarget == null) continue;
@@ -201,8 +206,21 @@ public class MilitaryRenderer : HexBasedRenderer, IGameRenderer
                 if (!sourceIsPlayer && !targetIsPlayer) continue;
 
                 bool isReinforcement = targetVertex.CivilizationIndex == sourceVertex.CivilizationIndex;
-                var linePaint = isReinforcement ? _flowGreenPaint : _flowRedPaint;
-                var arrowColor = isReinforcement ? new SKColor(50, 200, 80, 220) : new SKColor(220, 60, 60, 220);
+
+                SKPaint linePaint;
+                SKColor arrowColor;
+                if (isReinforcement)
+                {
+                    bool hasRoute = RoadPathfinder.FindPathInGraph(roadAdjacency, sourceVertex.Position, targetVertex.Position) != null;
+                    arrowColor = hasRoute ? ReinforcementFlowColor : PulseBlockedColor(context.TotalTime);
+                    _flowGreenPaint.Color = arrowColor;
+                    linePaint = _flowGreenPaint;
+                }
+                else
+                {
+                    linePaint = _flowRedPaint;
+                    arrowColor = new SKColor(220, 60, 60, 220);
+                }
 
                 var sourcePt = VertexToIsland(sourceVertex.Position);
                 var targetPt = VertexToIsland(targetVertex.Position);
@@ -290,6 +308,17 @@ public class MilitaryRenderer : HexBasedRenderer, IGameRenderer
             if (reasonKey != null)
                 _tooltipRenderer.SetTooltip(_localizationService.Get(reasonKey), screen);
         }
+    }
+
+    /// <summary>Oscille entre gris et vert pour signaler un flux de renfort sans route disponible.</summary>
+    private static SKColor PulseBlockedColor(float totalTime)
+    {
+        float t = 0.5f + 0.5f * MathF.Sin(totalTime * 4f);
+        byte r = (byte)(BlockedFlowColor.Red + (ReinforcementFlowColor.Red - BlockedFlowColor.Red) * t);
+        byte g = (byte)(BlockedFlowColor.Green + (ReinforcementFlowColor.Green - BlockedFlowColor.Green) * t);
+        byte b = (byte)(BlockedFlowColor.Blue + (ReinforcementFlowColor.Blue - BlockedFlowColor.Blue) * t);
+        byte a = (byte)(BlockedFlowColor.Alpha + (ReinforcementFlowColor.Alpha - BlockedFlowColor.Alpha) * t);
+        return new SKColor(r, g, b, a);
     }
 
     /// <summary>Dessine une tête de flèche remplie à l'extrémité d'un segment.</summary>
