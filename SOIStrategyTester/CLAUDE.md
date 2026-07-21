@@ -57,7 +57,16 @@ CLI arguments (see `Program.cs` / `--help`):
 phase** (it errors out if it finds one); it should only describe how to build an island up. Each cycle,
 `EndlessRunner` re-enters the strategy's phases from phase 0 as many times as needed (a "pass") until
 this cycle's prestige trigger fires, then prestiges (greedy vertex purchase, like `TryPrestigeOnce()`
-with no priority list) and moves to the next cycle. See `Data/Strategies/endless-abyss-gate.json`.
+with no priority list) and moves to the next cycle. See `Data/Strategies/endless-abyss-gate.json`, a
+single `UnifiedAggressive` phase (build/expand/research, attacking as soon as expansion is blocked while
+an enemy is visible, then pivoting onto the Wonder only once every NPC civilization is gone — see
+`CivilizationAutoplayerPriorities.Unified`'s `aggressive` parameter and `WonderInvestmentObjective`).
+It's a single non-terminating phase (no `until`) deliberately: an `until: NoEnemyCivilizations` phase
+boundary is a trap here — on a map with zero NPCs to begin with (e.g. island 1), that objective is
+trivially true before a single tick runs, so the phase would end on iteration 0 without ever laying down
+an economy. `Unified`'s own priority ordering handles the pivot instead, so early objectives (production,
+expansion, research) always get first refusal every call, and the Wonder only takes a turn once nothing
+higher up the list is actionable.
 
 ```bash
 dotnet run --project SOIStrategyTester -- --new-game --seed 42 --endless \
@@ -179,7 +188,7 @@ One object, `kind` plus the fields it needs. These mirror the `Condition` lambda
 
 ```json
 {
-  "kind": "Step1 | Step2 | Step3 | Military | ExterminateMonsters | ExterminateCivilizations | Wonder | Prestige | Priority",
+  "kind": "Step1 | Step2 | Step3 | Military | UnifiedAggressive | ExterminateMonsters | ExterminateCivilizations | Wonder | Prestige | Priority",
   "shouldExpand": true,                  // Step1/Step2/Step3 only
   "prestigePriorityVertexNames": [...],  // Prestige only — names of public static Vertex fields on
                                           // SettlersOfIdlestan.Model.Prestige.PrestigeMap.PrestigeMap,

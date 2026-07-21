@@ -1,60 +1,9 @@
 [
   {
-    "name": "Endless-Island1Loop-UntilAbyssGate",
+    "name": "Endless-UnifiedAggressive-UntilAbyssGate",
     "phases": [
       {
-        "kind": "Priority",
-        "priorityObjectives": [
-          { "kind": "BuildingLevel", "buildings": ["TownHall", "Sawmill", "Brickworks", "Mill", "Seaport", "Market"], "targetLevel": 1 },
-          { "kind": "CityCount", "targetCityCount": 2 }
-        ],
-        "until": { "kind": "CityCountWithBuilding", "cityCount": 2, "requiredBuilding": "TownHall" }
-      },
-      {
-        "kind": "Priority",
-        "priorityObjectives": [
-          { "kind": "BuildingLevel", "buildings": ["TownHall"], "targetLevel": 1 },
-          { "kind": "BuildingLevel", "buildings": ["Sawmill"], "targetLevel": 1 },
-          { "kind": "CityCount", "targetCityCount": 12 }
-        ],
-        "until": { "kind": "CityCount", "cityCount": 12 }
-      },
-      {
-        "kind": "Priority",
-        "priorityObjectives": [
-          { "kind": "CityCount", "targetCityCount": 10 }
-        ],
-        "until": { "kind": "CityCount", "cityCount": 10 }
-      },
-      {
-        "kind": "Priority",
-        "priorityObjectives": [
-          { "kind": "BuildingLevel", "buildings": ["Seaport"], "targetLevel": 2 },
-          { "kind": "BuildingLevel", "buildings": ["Temple"], "targetLevel": 1 },
-          { "kind": "BuildingLevel", "buildings": ["TownHall"], "targetLevel": 3 },
-          { "kind": "BuildingLevel", "buildings": ["Library"], "targetLevel": 1 },
-          { "kind": "CityCount", "targetCityCount": 30 }
-        ],
-        "until": { "kind": "PrestigePointsAtLeast", "points": 35 },
-        "maxIterations": 20000
-      },
-      {
-        "kind": "Priority",
-        "priorityObjectives": [
-          { "kind": "ImperialPort" },
-          { "kind": "BuildingLevel", "buildings": ["Temple"], "targetLevel": 999 },
-          { "kind": "BuildingLevel", "buildings": ["TownHall"], "targetLevel": 999 },
-          { "kind": "BuildingLevel", "buildings": ["Seaport"], "targetLevel": 999 },
-          { "kind": "BuildingLevel", "buildings": ["Warehouse"], "targetLevel": 999 },
-          { "kind": "BuildingLevel", "buildings": ["Market"], "targetLevel": 999 },
-          { "kind": "BuildingLevel", "buildings": ["Mine"], "targetLevel": 999 },
-          { "kind": "BuildingLevel", "buildings": ["Library"], "targetLevel": 999 },
-          { "kind": "CityCount", "targetCityCount": 30 }
-        ],
-        "maxIterations": 20000
-      },
-      {
-        "kind": "WonderInvestOnly",
+        "kind": "UnifiedAggressive",
         "maxIterations": 20000
       }
     ]

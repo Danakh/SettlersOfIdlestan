@@ -370,9 +370,10 @@ namespace SettlersOfIdlestan.Controller
 
     /// <summary>
     /// Maintenance objective that keeps <see cref="CivilizationAutoplayer.PriorityTargetCivilization"/>
-    /// pointed at the nearest visible enemy civilization (via
-    /// <see cref="CivilizationAutoplayer.FindNearestVisibleEnemy"/>) and refreshes attack/reinforcement
-    /// flows through <see cref="CivilizationAutoplayer.TryUpdatePriorityTargetFlowsOnce"/>. Gated by
+    /// pointed at the highest-priority visible enemy civilization (via
+    /// <see cref="CivilizationAutoplayer.FindPriorityAttackTarget"/> — already-at-war first, then fewest
+    /// visible cities, then weakest visible cities) and refreshes attack/reinforcement flows through
+    /// <see cref="CivilizationAutoplayer.TryUpdatePriorityTargetFlowsOnce"/>. Gated by
     /// <paramref name="shouldAttack"/> so it stays a no-op until, e.g., a city-count threshold is
     /// reached. <see cref="IsComplete"/> re-checks with <c>apply: false</c> on every call, so this only
     /// ever blocks the strategy for the tick(s) needed to (re)point flows at the current target —
@@ -406,9 +407,42 @@ namespace SettlersOfIdlestan.Controller
 
         private Civilization? SyncTarget()
         {
-            var target = _autoplayer.FindNearestVisibleEnemy();
+            var target = _autoplayer.FindPriorityAttackTarget();
             _autoplayer.PriorityTargetCivilization = target;
             return target;
+        }
+    }
+
+    /// <summary>
+    /// Invests in the Wonder (<see cref="CivilizationAutoplayer.TryWonderInvestmentOnce"/>, plus
+    /// <see cref="CivilizationAutoplayer.TryTradeForResourceOnce"/> for Gold to help fund it) while
+    /// <paramref name="shouldInvest"/> is true — used by
+    /// <see cref="CivilizationAutoplayerPriorities.Unified"/>'s aggressive mode to only pivot onto the
+    /// Wonder once every enemy civilization is gone, instead of racing it while enemies (and the
+    /// cities/production they still hold) are on the board. A no-op (<see cref="IsComplete"/> true) while
+    /// the predicate is false, exactly like <see cref="ConditionalBuildingLevelObjective"/>; once true,
+    /// never reports complete again (there is no "done" state for Wonder investment), so it must be
+    /// placed ahead of any open-ended fallback objective (e.g. an unbounded
+    /// <see cref="CityCountObjective"/>) that should stop competing for turns once the pivot happens.
+    /// </summary>
+    public class WonderInvestmentObjective : IAutoplayObjective
+    {
+        private readonly CivilizationAutoplayer _autoplayer;
+        private readonly Func<bool> _shouldInvest;
+
+        public WonderInvestmentObjective(CivilizationAutoplayer autoplayer, Func<bool> shouldInvest)
+        {
+            _autoplayer = autoplayer ?? throw new ArgumentNullException(nameof(autoplayer));
+            _shouldInvest = shouldInvest ?? throw new ArgumentNullException(nameof(shouldInvest));
+        }
+
+        public bool IsComplete() => !_shouldInvest();
+
+        public bool TryAdvanceOnce()
+        {
+            bool did = _autoplayer.TryWonderInvestmentOnce();
+            did |= _autoplayer.TryTradeForResourceOnce(Resource.Gold);
+            return did;
         }
     }
 

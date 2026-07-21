@@ -18,6 +18,12 @@ public enum PhaseKind
     Step3,
     /// <summary>auto.TryMilitaryStepOnce().</summary>
     Military,
+    /// <summary>CivilizationAutoplayerPriorities.Unified(auto, bc, aggressive: true).TryStepOnce() — the
+    /// full unified priority list (research, production, expansion, Step2/Step3, Imperial Port, ...)
+    /// with AttackNeighborsObjective's aggressive trigger enabled: attacks as soon as expansion is
+    /// blocked (no buildable vertex/road left) while an enemy civilization is visible, regardless of
+    /// city count.</summary>
+    UnifiedAggressive,
     /// <summary>auto.TryMilitaryStepOnce() + auto.TryStep2Once(true) — the high-level autoplayer loop
     /// StepIslandScenarios' ExterminateMonstersStep used before being replaced by a Priority phase
     /// (see SOIStrategyTester/Data/Best/island2-step2ter.best.json). Kept here for comparison baselines.</summary>

@@ -86,11 +86,18 @@ namespace SettlersOfIdlestan.Controller
         /// villes, Palissade si un bandit est repéré,
         /// Caserne si monstres ou civilisations NPC ennemies présentes, Caserne niveau 1 garantie dans
         /// toutes les villes puis attaque des voisins à partir de <paramref name="attackNeighborsAtCities"/>
-        /// villes (désactivé par défaut), Step 2 (Entrepôt → TH2 → Forge/Bibliothèque → TH3 → Mine) à
+        /// villes (désactivé par défaut) — ou, si <paramref name="aggressive"/> est vrai, dès que
+        /// l'expansion devient impossible tant qu'un ennemi reste visible, quel que soit le nombre de
+        /// villes. Le ciblage (voir <see cref="AttackNeighborsObjective"/>) privilégie alors la
+        /// civilisation déjà en guerre avec nous, puis celle avec le moins de villes visibles, puis
+        /// celle dont les villes visibles sont les plus faibles. Step 2 (Entrepôt → TH2 →
+        /// Forge/Bibliothèque → TH3 → Mine) à
         /// partir de <paramref name="step2AtCities"/> villes, Temple (Step 3) à partir de
         /// <paramref name="step3AtCities"/> villes. Expansion jusqu'à <paramref name="expansionTarget"/>
         /// villes pour accumuler les points de prestige, puis Port Impérial pour débloquer le prestige,
-        /// puis expansion illimitée.
+        /// puis expansion illimitée — sauf en mode <paramref name="aggressive"/> une fois tous les NPC
+        /// éliminés (<see cref="WonderInvestmentObjective"/>), où l'expansion illimitée est remplacée par
+        /// l'investissement dans la Merveille.
         /// </summary>
         public static PriorityAutoplayStrategy Unified(
             CivilizationAutoplayer auto,
@@ -98,7 +105,8 @@ namespace SettlersOfIdlestan.Controller
             int step2AtCities  = 4,
             int step3AtCities  = 10,
             int expansionTarget = 12,
-            int attackNeighborsAtCities = int.MaxValue)
+            int attackNeighborsAtCities = int.MaxValue,
+            bool aggressive = false)
         {
             var banditSpotted = new Func<bool>(() =>
                 auto.WorldState != null && auto.WorldState.Features.OfType<Bandit>().Any(b => b.Found));
@@ -117,7 +125,20 @@ namespace SettlersOfIdlestan.Controller
 
             var hasStep2Cities  = new Func<bool>(() => auto.Civilization.Cities.Count >= step2AtCities);
             var hasStep3Cities  = new Func<bool>(() => auto.Civilization.Cities.Count >= step3AtCities);
-            var hasEnoughCitiesToAttack = new Func<bool>(() => auto.Civilization.Cities.Count >= attackNeighborsAtCities);
+
+            // En mode agressif, l'expansion bloquée (plus aucun vertex/route constructible) tant qu'un
+            // ennemi reste visible vaut comme déclencheur d'attaque à elle seule, en plus (jamais à la
+            // place) du seuil de villes explicite — sinon une île sans plus aucune place pour s'étendre
+            // resterait à ne rien faire indéfiniment au lieu de basculer sur la guerre.
+            var hasEnoughCitiesToAttack = new Func<bool>(() =>
+                auto.Civilization.Cities.Count >= attackNeighborsAtCities ||
+                (aggressive && hasVisibleThreats() && !auto.HasBuildableExpansion()));
+
+            // Toutes les civilisations NPC ont 0 ville (y compris celles jamais rencontrées) — plus fort
+            // que hasVisibleThreats, qui ne regarde que les ennemis actuellement visibles et laisserait
+            // passer un NPC existant mais hors champ de vision.
+            var allNpcsEliminated = new Func<bool>(() =>
+                auto.WorldState != null && auto.WorldState.Civilizations.Where(c => c.IsNpc).All(c => c.Cities.Count == 0));
 
             return Make(new IAutoplayObjective[]
             {
@@ -180,6 +201,12 @@ namespace SettlersOfIdlestan.Controller
                 new ConditionalBuildingLevelObjective(hasStep3Cities, BObj(auto, bc, AllUtilityBuildings, 6)),
                 new ConditionalBuildingLevelObjective(hasStep3Cities, BObj(auto, bc, AllUtilityBuildings, 10)),
                 new ConditionalBuildingLevelObjective(() => hasStep3Cities() && hasOreProduction(), BObj(auto, bc, MilitaryBuildings, 10)),
+
+                // Mode agressif uniquement : une fois tous les NPC éliminés, bascule sur l'investissement
+                // dans la Merveille plutôt que de continuer l'expansion à l'infini juste en dessous —
+                // placé avant elle pour lui couper l'herbe sous le pied une fois le déclencheur actif
+                // (voir WonderInvestmentObjective, qui ne redevient jamais "complete" une fois actif).
+                new WonderInvestmentObjective(auto, () => aggressive && allNpcsEliminated()),
 
                 // Expansion illimitée après le prestige
                 new CityCountObjective(auto, int.MaxValue),

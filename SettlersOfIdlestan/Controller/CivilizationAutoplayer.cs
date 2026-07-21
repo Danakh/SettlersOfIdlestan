@@ -194,12 +194,14 @@ namespace SettlersOfIdlestan.Controller
         }
 
         /// <summary>
-        /// Civilisation ennemie la plus proche ayant au moins une ville visible depuis la carte
-        /// visible de cette civilisation, sur le même Z que ses propres villes, ou null si aucune
-        /// n'a encore été repérée. Reprend le ciblage "premier ennemi repéré" que NpcGameController
-        /// utilise pour les NPC Warlike, mais côté joueur/autoplayer.
+        /// Picks which visible enemy civilization to focus attacks on, in priority order: (1) a
+        /// civilization already in <see cref="Model.Civilization.Civilization.WarEnemyCivIndices"/> (one
+        /// that has already attacked us — finishing an existing war before opening a new front), (2)
+        /// among the rest, the one with the fewest visible cities (fastest to eliminate), (3) among ties,
+        /// the one whose visible cities have the lowest total <see cref="City.CurrentDefense"/> (weakest
+        /// to break through). Returns null if no enemy civilization has a visible city.
         /// </summary>
-        public Civilization? FindNearestVisibleEnemy()
+        public Civilization? FindPriorityAttackTarget()
         {
             if (_worldState == null) return null;
             int z = _civ.Cities.FirstOrDefault()?.Position.Z ?? IslandMap.SurfaceLayer;
@@ -207,10 +209,27 @@ namespace SettlersOfIdlestan.Controller
 
             return _worldState.Civilizations
                 .Where(c => c.Index != _civ.Index && c.Cities.Count > 0)
-                .Where(c => c.Cities.Any(city => visibleMap.IsVertexVisible(city.Position)))
-                .OrderBy(c => _civ.Cities.Min(nc =>
-                    c.Cities.Min(ec => nc.Position.EdgeDistanceTo(ec.Position))))
+                .Select(c => (Civ: c, VisibleCities: c.Cities.Where(city => visibleMap.IsVertexVisible(city.Position)).ToList()))
+                .Where(x => x.VisibleCities.Count > 0)
+                .OrderByDescending(x => _civ.WarEnemyCivIndices.Contains(x.Civ.Index))
+                .ThenBy(x => x.VisibleCities.Count)
+                .ThenBy(x => x.VisibleCities.Sum(c => c.CurrentDefense))
+                .Select(x => x.Civ)
                 .FirstOrDefault();
+        }
+
+        /// <summary>
+        /// True if <see cref="TryExpandOnce"/> currently has any actionable move — a directly buildable
+        /// outpost vertex, a buildable road toward a prospective expansion target, or (fallback) any
+        /// buildable road at all. False means expansion is genuinely stuck (no reachable vertex left to
+        /// grow into) — used by <see cref="CivilizationAutoplayerPriorities.Unified"/>'s aggressive mode
+        /// to know when to pivot to war instead of waiting on expansion forever.
+        /// </summary>
+        public bool HasBuildableExpansion()
+        {
+            if (GetBuildableOutpostVertex() != null) return true;
+            if (FindBestExpansionTarget(GetProspectiveVertices()) != null) return true;
+            return _roadController.GetBuildableRoads(_civ.Index).Any();
         }
 
         // ── Primitive utilities ──────────────────────────────────────────────────

@@ -96,6 +96,9 @@ public static class StrategyRunner
             case PhaseKind.Military:
                 return CivilizationAutoplayerPriorities.Unified(auto, bc).TryStepOnce();
 
+            case PhaseKind.UnifiedAggressive:
+                return CivilizationAutoplayerPriorities.Unified(auto, bc, aggressive: true).TryStepOnce();
+
             case PhaseKind.ExterminateMonsters:
                 {
                     bool did = CivilizationAutoplayerPriorities.Unified(auto, bc).TryStepOnce();
