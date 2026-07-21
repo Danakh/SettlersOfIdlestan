@@ -647,6 +647,29 @@ namespace SettlersOfIdlestan.Controller
         }
 
         /// <summary>
+        /// Dry-run check mirroring <see cref="TryResearchOnce"/>'s conditions without mutating any
+        /// state: true if starting a research or setting the queued research would actually do
+        /// something. Used by <see cref="ResearchObjective.IsComplete"/> so the strategy only blocks
+        /// on research for the tick(s) needed to (re)start it, never for the whole research duration.
+        /// </summary>
+        public bool HasResearchActionAvailable()
+        {
+            if (!_researchController.IsResearchUnlocked()) return false;
+
+            bool isAnyInProgress = TechnologyDefinitions.All
+                .Any(t => _researchController.GetStatus(t.Id) == TechnologyStatus.InProgress);
+            if (!isAnyInProgress &&
+                TechnologyDefinitions.All.Any(t => _researchController.GetStatus(t.Id) == TechnologyStatus.Available))
+                return true;
+
+            if (_researchController.IsResearchQueueUnlocked() && _researchController.GetQueuedResearch() == null &&
+                TechnologyDefinitions.All.Any(t => _researchController.CanBeQueued(t.Id)))
+                return true;
+
+            return false;
+        }
+
+        /// <summary>
         /// Starts the cheapest available research if none is active, and queues the next cheapest
         /// if the research queue prestige perk is unlocked. No-ops when research is not unlocked.
         /// </summary>

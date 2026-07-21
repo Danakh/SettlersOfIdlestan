@@ -202,6 +202,29 @@ namespace SettlersOfIdlestan.Controller
     }
 
     /// <summary>
+    /// Maintenance objective that keeps research flowing: starts the cheapest available research
+    /// whenever none is in progress, and sets the cheapest queueable research whenever the queue slot
+    /// is empty (once the research-queue prestige perk is unlocked). No-ops entirely until research is
+    /// unlocked. <see cref="IsComplete"/> delegates to <see cref="CivilizationAutoplayer.HasResearchActionAvailable"/>,
+    /// a side-effect-free check, so — like <see cref="BarracksActivationObjective"/> — this only ever
+    /// blocks the strategy for the tick(s) needed to (re)start research, never for the whole research
+    /// duration, which is what lets it sit early in a priority list without starving building progress.
+    /// </summary>
+    public class ResearchObjective : IAutoplayObjective
+    {
+        private readonly CivilizationAutoplayer _autoplayer;
+
+        public ResearchObjective(CivilizationAutoplayer autoplayer)
+        {
+            _autoplayer = autoplayer ?? throw new ArgumentNullException(nameof(autoplayer));
+        }
+
+        public bool IsComplete() => !_autoplayer.HasResearchActionAvailable();
+
+        public bool TryAdvanceOnce() => _autoplayer.TryResearchOnce();
+    }
+
+    /// <summary>
     /// Satisfied once every one of the four basic terrain types (Forest, Hill, Plain, Mountain) has at
     /// least one city adjacent to a non-contested hex of that type on the surface layer. Reactivates
     /// automatically if a terrain type later becomes fully contested (e.g. disputed zone). When a

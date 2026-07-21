@@ -82,7 +82,8 @@ namespace SettlersOfIdlestan.Controller
 
         /// <summary>
         /// Stratégie unifiée : une seule liste de priorités couvrant tous les cas de figure.
-        /// Production de base (Step 1) dans toutes les villes, Palissade si un bandit est repéré,
+        /// Recherche en continu dès qu'elle est débloquée, production de base (Step 1) dans toutes les
+        /// villes, Palissade si un bandit est repéré,
         /// Caserne si monstres ou civilisations NPC ennemies présentes, Caserne niveau 1 garantie dans
         /// toutes les villes puis attaque des voisins à partir de <paramref name="attackNeighborsAtCities"/>
         /// villes (désactivé par défaut), Step 2 (Entrepôt → TH2 → Forge/Bibliothèque → TH3 → Mine) à
@@ -120,6 +121,11 @@ namespace SettlersOfIdlestan.Controller
 
             return Make(new IAutoplayObjective[]
             {
+                // Recherche : démarre/enchaîne les recherches disponibles dès que le système est
+                // débloqué. Ne coûte aucune ressource (seul l'investissement en points l'alimente),
+                // donc placée en tout premier pour ne jamais laisser un slot de recherche vide.
+                new ResearchObjective(auto),
+
                 // Production de base dans toutes les villes
                 BObj(auto, bc, Step1Buildings, 1),
 
