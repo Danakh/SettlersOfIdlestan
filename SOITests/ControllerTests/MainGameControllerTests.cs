@@ -4,6 +4,7 @@ using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Prestige;
 using SOITests.TestUtilities;
+using System.Linq;
 using System.Text.Json;
 using Xunit;
 
@@ -106,6 +107,42 @@ namespace SOITests.ControllerTests
             var imported = controller.ImportMainState(json);
 
             Assert.Contains("MilitaryReinforcement", imported.Settings.PinnedCivPanelKeys);
+        }
+
+        [Fact]
+        public void ExportMainState_RoundtripPreservesNpcAggressivityEscalation()
+        {
+            var WorldState = IslandTestFactory.CreateSevenHexIslandState();
+            var clock = new GameClock();
+            var mainState = new MainGameState(WorldState, clock, new GamePRNG(42));
+
+            var npcCiv = new SettlersOfIdlestan.Model.Civilization.Civilization
+            {
+                Index = mainState.CurrentWorldState!.Civilizations.Max(c => c.Index) + 1,
+                IsNpc = true,
+                NpcParameters = new SettlersOfIdlestan.Model.Civilization.NpcParameters
+                {
+                    // État tel que laissé par NpcGameController.OnCityAttacked après une attaque du joueur.
+                    AggressivityLevel = SettlersOfIdlestan.Model.Civilization.NpcAggressivityLevel.Warlike,
+                },
+                WarEnemyCivIndices = { 0 },
+            };
+            mainState.CurrentWorldState.Civilizations.Add(npcCiv);
+
+            var json = JsonSerializer.Serialize(mainState, SaveController.SerializationOptions());
+
+            var controller = new MainGameController();
+            controller.ImportMainState(json);
+
+            var exported = controller.ExportMainState();
+
+            var controller2 = new MainGameController();
+            var round = controller2.ImportMainState(exported);
+
+            var roundNpc = round.CurrentWorldState!.Civilizations.Single(c => c.IsNpc);
+            Assert.NotNull(roundNpc.NpcParameters);
+            Assert.Equal(SettlersOfIdlestan.Model.Civilization.NpcAggressivityLevel.Warlike, roundNpc.NpcParameters!.AggressivityLevel);
+            Assert.Contains(0, roundNpc.WarEnemyCivIndices);
         }
     }
 }

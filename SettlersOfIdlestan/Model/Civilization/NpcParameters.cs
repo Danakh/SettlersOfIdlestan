@@ -28,12 +28,6 @@ public class NpcParameters
     public NpcAggressivityLevel AggressivityLevel { get; set; } = NpcAggressivityLevel.Cautious;
 
     /// <summary>
-    /// Indices des civilisations qui ont attaqué ce NPC. Quand non-vide, les attaques
-    /// sont limitées à ces civilisations (agressivité ciblée plutôt que globale).
-    /// </summary>
-    public List<int> WarEnemyCivIndices { get; set; } = new();
-
-    /// <summary>
     /// Modificateurs persistants spécifiques à ce NPC (ex: civilisations agressives underworld).
     /// Quand non-null, remplace les modificateurs NPC standard lors du SetupModifierAggregator.
     /// </summary>

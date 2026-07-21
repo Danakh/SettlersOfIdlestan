@@ -117,8 +117,8 @@ public class NpcGameController
     {
         if (_state == null || aggressivity != NpcAggressivityLevel.Warlike) return null;
 
-        var warEnemies = npcCiv.NpcParameters?.WarEnemyCivIndices;
-        if (warEnemies != null && warEnemies.Count > 0)
+        var warEnemies = npcCiv.WarEnemyCivIndices;
+        if (warEnemies.Count > 0)
             return _state.Civilizations.FirstOrDefault(c => warEnemies.Contains(c.Index) && c.Cities.Count > 0);
 
         return HasEncounteredEnemy(npcCiv) ? FindNearestVisibleEnemy(npcCiv) : null;
@@ -155,8 +155,10 @@ public class NpcGameController
     }
 
     /// <summary>
-    /// When a city belonging to an NPC is attacked, escalate that NPC's
-    /// aggressivity to Warlike (unless it is Pacifist).
+    /// When a city is attacked: escalates a non-Pacifist NPC's aggressivity to Warlike, and records
+    /// the attacker in the target's <see cref="Civilization.WarEnemyCivIndices"/> — including for the
+    /// player, so their autoplayer can see who to retaliate against. Pacifist NPCs never retaliate,
+    /// so they don't record war enemies either.
     /// </summary>
     private void OnCityAttacked(object? sender, CityAttackEventArgs e)
     {
@@ -164,20 +166,19 @@ public class NpcGameController
 
         var targetCiv = _state.Civilizations.FirstOrDefault(c =>
             c.Cities.Any(city => city.Position.Equals(e.TargetCity)));
+        if (targetCiv == null) return;
 
-        if (targetCiv == null || !targetCiv.IsNpc) return;
-
-        var npcParams = targetCiv.NpcParameters;
-        if (npcParams == null) return;
-
-        if (npcParams.AggressivityLevel == NpcAggressivityLevel.Pacifist) return;
-
-        npcParams.AggressivityLevel = NpcAggressivityLevel.Warlike;
+        if (targetCiv.IsNpc)
+        {
+            var npcParams = targetCiv.NpcParameters;
+            if (npcParams == null || npcParams.AggressivityLevel == NpcAggressivityLevel.Pacifist) return;
+            npcParams.AggressivityLevel = NpcAggressivityLevel.Warlike;
+        }
 
         var attackerCiv = _state.Civilizations.FirstOrDefault(c =>
             c.Cities.Any(city => city.Position.Equals(e.SourceCity)));
-        if (attackerCiv != null && !npcParams.WarEnemyCivIndices.Contains(attackerCiv.Index))
-            npcParams.WarEnemyCivIndices.Add(attackerCiv.Index);
+        if (attackerCiv != null && !targetCiv.WarEnemyCivIndices.Contains(attackerCiv.Index))
+            targetCiv.WarEnemyCivIndices.Add(attackerCiv.Index);
     }
 
     private static void FillNpcResources(Civilization civ)

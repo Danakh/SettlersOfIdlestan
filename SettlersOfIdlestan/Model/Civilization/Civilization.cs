@@ -36,6 +36,14 @@ public class Civilization
     /// </summary>
     public NpcParameters? NpcParameters { get; set; }
 
+    /// <summary>
+    /// Indices des civilisations qui ont attaqué cette civilisation. Sur la civilisation du joueur,
+    /// alimenté quand elle est attaquée pendant l'autoplayer, pour lui permettre de riposter.
+    /// Sur un NPC non-Pacifiste, quand non-vide, limite ses attaques à ces civilisations (agressivité
+    /// ciblée plutôt que globale) — voir <see cref="Controller.NpcGameController"/>.
+    /// </summary>
+    public List<int> WarEnemyCivIndices { get; set; } = new();
+
     private List<City> _cities = new();
 
     /// <summary>
