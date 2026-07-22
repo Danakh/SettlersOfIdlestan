@@ -266,6 +266,7 @@ namespace SettlersOfIdlestan.Controller
                     return kv.Value >= requiredCosts[kv.Key] + GetSellRate(civilizationIndex, kv.Key);
                 })
                 .Where(kv => forbiddenSellSources == null || !forbiddenSellSources.Contains(kv.Key))
+                .Where(kv => WouldKeepMinimumStockAfterSell(civ, kv.Key, kv.Value))
                 .OrderByDescending(kv => kv.Value)
                 .Select(kv => kv.Key)
                 .ToList();
@@ -280,6 +281,20 @@ namespace SettlersOfIdlestan.Controller
                 BuyResource(civilizationIndex, weakestRequired);
 
             return true;
+        }
+
+        /// <summary>
+        /// Empêche l'autoplay de vendre une ressource s'il en resterait moins de 5% du stock max après la vente.
+        /// </summary>
+        private const double MinStockRatioAfterAutoSell = 0.05;
+
+        internal bool WouldKeepMinimumStockAfterSell(Civilization civ, Resource resource, int currentQuantity, int sellQuantityPacks = 1)
+        {
+            int maxQty = civ.GetResourceMaxQuantity(resource);
+            if (maxQty <= 0) return true;
+
+            int remaining = currentQuantity - GetSellRate(civ.Index, resource) * sellQuantityPacks;
+            return remaining >= maxQty * MinStockRatioAfterAutoSell;
         }
     }
 }

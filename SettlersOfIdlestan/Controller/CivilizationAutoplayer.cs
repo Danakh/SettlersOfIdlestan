@@ -607,7 +607,7 @@ namespace SettlersOfIdlestan.Controller
                 {
                     var rate = _tradeController.GetSellRate(_civ.Index, r);
                     var qty = _civ.GetResourceQuantity(r);
-                    if (qty >= rate && qty > bestQty)
+                    if (qty >= rate && qty > bestQty && _tradeController.WouldKeepMinimumStockAfterSell(_civ, r, qty))
                     {
                         bestSource = r;
                         bestQty = qty;

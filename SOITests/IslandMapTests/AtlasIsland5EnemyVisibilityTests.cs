@@ -90,7 +90,8 @@ public class AtlasIsland5EnemyVisibilityTests
 
     /// <summary>
     /// Mirrors FeatureController.DiscoverCivilizations' own visibility check: an NPC civilization is
-    /// "in view" when one of its cities or roads touches a currently player-visible tile.
+    /// "in view" when one of its cities touches a currently player-visible tile (roads alone don't
+    /// count — the discovery message must only fire once an actual city is visible).
     /// </summary>
     private static void AssertNoOtherCivilizationInPlayerView(
         MainGameController controller,
@@ -104,14 +105,7 @@ public class AtlasIsland5EnemyVisibilityTests
             .Where(civ => civ.Index != playerIndex)
             .Where(civ =>
                 civ.Cities.Any(city =>
-                    visibleMaps.Any(vm => vm.IsVertexVisible(city.Position))) ||
-                civ.Roads.Any(road =>
-                    visibleMaps.Any(vm =>
-                    {
-                        if (!vm.IsOnSameLayer(road.Position)) return false;
-                        var (h1, h2) = road.Position.GetHexes();
-                        return vm.HasTile(h1) || vm.HasTile(h2);
-                    })))
+                    visibleMaps.Any(vm => vm.IsVertexVisible(city.Position))))
             .ToList();
 
         Assert.True(visibleCivs.Count == 0,
