@@ -142,6 +142,10 @@ public sealed class EventLogRenderer : IDisposable
             _discoveryCardPaint, _discoveryBorderPaint, _discoveryTextPaint,
             _localization.Get("event_civilization_discovered_title"),
             _localization.Get("event_civilization_discovered_body")),
+        GameEventType.CivilizationDestroyed => (
+            _successCardPaint, _successBorderPaint, _successTextPaint,
+            _localization.Get("event_civilization_destroyed_title"),
+            _localization.Get("event_civilization_destroyed_body")),
         GameEventType.WonderPlaced => (
             _discoveryCardPaint, _discoveryBorderPaint, _discoveryTextPaint,
             _localization.Get("event_wonder_placed_title"),
