@@ -700,6 +700,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             case AutomationRenderer.PinKeyLibrary:       if (settings != null) settings.LibraryBuildingAutomationEnabled = !settings.LibraryBuildingAutomationEnabled;     break;
             case AutomationRenderer.PinKeyMarket:        if (settings != null) settings.MarketBuildingAutomationEnabled = !settings.MarketBuildingAutomationEnabled;       break;
             case AutomationRenderer.PinKeySeaport:       if (settings != null) settings.SeaportBuildingAutomationEnabled = !settings.SeaportBuildingAutomationEnabled;     break;
+            case AutomationRenderer.PinKeyMilBuildings:  if (settings != null) settings.MilitaryBuildingAutomationEnabled = !settings.MilitaryBuildingAutomationEnabled;   break;
             case AutomationRenderer.PinKeyMilReinforce:
                 if (settings != null)
                 {
@@ -754,6 +755,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             AutomationRenderer.PinKeyLibrary      => (settings.LibraryBuildingAutomationEnabled,           "automation_library_name"),
             AutomationRenderer.PinKeyMarket       => (settings.MarketBuildingAutomationEnabled,            "automation_market_name"),
             AutomationRenderer.PinKeySeaport      => (settings.SeaportBuildingAutomationEnabled,           "automation_seaport_name"),
+            AutomationRenderer.PinKeyMilBuildings => (settings.MilitaryBuildingAutomationEnabled,          "automation_military_buildings_name"),
             AutomationRenderer.PinKeyMilReinforce => (settings.MilitaryReinforcementAutomationEnabled,     "automation_military_reinforcement_name"),
             AutomationRenderer.PinKeyMilPatrol    => (settings.MilitaryPatrolAutomationEnabled,            "automation_military_patrol_name"),
             AutomationRenderer.PinKeyMilVendetta  => (settings.MilitaryVendettaAutomationEnabled,          "automation_military_vendetta_name"),
