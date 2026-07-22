@@ -1,6 +1,8 @@
 using SettlersOfIdlestan.Controller.Generator;
 using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Model.Civilization;
+using SettlersOfIdlestan.Model.Game;
+using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.HexGrid;
 using System.Collections.Generic;
@@ -138,5 +140,30 @@ public class CityBuilderControllerTests
         var vertices = Controller(state).GetBuildableVertices(0);
 
         Assert.DoesNotContain(vertices, v => v.Equals(v2));
+    }
+
+    [Fact]
+    public void RelocateCity_OntoHexWithTreasureTrove_ClaimsTheTreasure()
+    {
+        var (state, civ, v1, vMiddle, _) = RibbonIsland();
+        var city = new City(v1) { CivilizationIndex = 0 };
+        civ.AddCity(city);
+        civ.SetStorageCapacityCache(1000, 1000);
+        civ.AddResource(Resource.Gold, CityBuilderController.RelocationCost()[Resource.Gold]);
+        civ.AddResource(Resource.Food, CityBuilderController.RelocationCost()[Resource.Food]);
+
+        // h4 is only adjacent to vMiddle (and v2) on this ribbon, not v1 — so the trove is unclaimed
+        // until the city relocates onto a vertex touching h4.
+        var trove = new TreasureTrove(H(1, 1));
+        state.AddFeature(trove);
+
+        var goldBefore = civ.GetResourceQuantity(Resource.Gold);
+
+        var relocated = Controller(state).RelocateCity(city, vMiddle);
+
+        Assert.True(relocated);
+        Assert.DoesNotContain(state.GetFeaturesAt(H(1, 1)), f => f is TreasureTrove);
+        Assert.Equal(goldBefore - CityBuilderController.RelocationCost()[Resource.Gold] + 100, civ.GetResourceQuantity(Resource.Gold));
+        Assert.Equal(1, state.RunRecord.TreasuresTroveClaimed);
     }
 }

@@ -416,6 +416,7 @@ namespace SettlersOfIdlestan.Controller.Island
             // otherwise notice, so clear it explicitly.
             _buildableVerticesCache.Clear();
             _state.Visibility.RecalculateFor(city.CivilizationIndex);
+            ClaimTreasureTrovesAt(city, civ);
             return true;
         }
 
@@ -498,20 +499,30 @@ namespace SettlersOfIdlestan.Controller.Island
 
             _state.Visibility.RecalculateFor(civilizationIndex);
 
+            ClaimTreasureTrovesAt(city, civ);
+
+            OnCityBuilt?.Invoke(this, new OutpostAutoBuiltEventArgs(civilizationIndex, vertex));
+            return city;
+        }
+
+        /// <summary>
+        /// Claims every TreasureTrove on a hex touched by the city's current position — called whenever
+        /// a city ends up on a new vertex, whether founded there (<see cref="CreateCityAt"/>) or moved
+        /// there (<see cref="RelocateCity"/>).
+        /// </summary>
+        private void ClaimTreasureTrovesAt(City city, Civilization civ)
+        {
             var cityHexSet = new HashSet<HexCoord>(city.Position.GetHexes());
-            var claimedTroves = cityHexSet.SelectMany(h => _state.GetFeaturesAt(h))
+            var claimedTroves = cityHexSet.SelectMany(h => _state!.GetFeaturesAt(h))
                 .OfType<TreasureTrove>()
                 .ToList();
             foreach (var trove in claimedTroves)
             {
-                _state.EventLog.Add(trove.RemovedEventType);
+                _state!.EventLog.Add(trove.RemovedEventType);
                 _state.RemoveFeature(trove);
                 civ.AddResource(Resource.Gold, 100);
                 _state.RunRecord.TreasuresTroveClaimed++;
             }
-
-            OnCityBuilt?.Invoke(this, new OutpostAutoBuiltEventArgs(civilizationIndex, vertex));
-            return city;
         }
 
         /// <summary>
