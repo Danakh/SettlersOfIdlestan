@@ -344,6 +344,19 @@ namespace SettlersOfIdlestan.Controller.Island
             if (existing == null)
             {
                 resultBuilding.Level = 1;
+
+                // Si le joueur a désactivé la production de ce type de bâtiment partout (tous
+                // désactivés), les nouveaux bâtiments construits doivent suivre ce réglage global
+                // plutôt que de démarrer actifs par défaut (voir ActivationStatus, ToggleAll/AreAllActiveNullable).
+                if (resultBuilding.ActivationStatus != ActivationStatus.NON_ACTIVABLE)
+                {
+                    var sameTypeExisting = civ.Cities.SelectMany(c => c.Buildings)
+                        .Where(b => b.Type == type && b.Level >= 1)
+                        .ToList();
+                    if (sameTypeExisting.Count > 0 && sameTypeExisting.All(b => b.ActivationStatus == ActivationStatus.INACTIVE))
+                        resultBuilding.ActivationStatus = ActivationStatus.INACTIVE;
+                }
+
                 city.Buildings.Add(resultBuilding);
                 if (type == BuildingType.TownHall) city.InvalidateLevelCache();
                 int defBonus = resultBuilding.GetDefenseBonus();
