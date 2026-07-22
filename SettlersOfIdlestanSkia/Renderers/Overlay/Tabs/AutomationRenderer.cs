@@ -40,6 +40,7 @@ public sealed class AutomationRenderer : IDisposable
     internal const string PinKeyMilReinforce  = "MilitaryReinforcement";
     internal const string PinKeyMilPatrol     = "MilitaryPatrol";
     internal const string PinKeyMilVendetta   = "MilitaryVendetta";
+    internal const string PinKeyMonumentInvestment = "MonumentInvestment";
     internal const string PinKeyBarracks      = "Barracks";
     internal const string PinKeyLaboratory    = "Laboratory";
     internal const string PinKeySmelter       = "Smelter";
@@ -66,6 +67,7 @@ public sealed class AutomationRenderer : IDisposable
     private SKRect _militaryReinforcementToggleRect = SKRect.Empty;
     private SKRect _militaryPatrolToggleRect = SKRect.Empty;
     private SKRect _militaryVendettaToggleRect = SKRect.Empty;
+    private SKRect _monumentInvestmentToggleRect = SKRect.Empty;
     private SKRect _barracksToggleRect     = SKRect.Empty;
     private SKRect _labToggleRect          = SKRect.Empty;
     private SKRect _smelterToggleRect      = SKRect.Empty;
@@ -84,6 +86,7 @@ public sealed class AutomationRenderer : IDisposable
     private bool _hoveredMilitaryReinforcementToggle;
     private bool _hoveredMilitaryPatrolToggle;
     private bool _hoveredMilitaryVendettaToggle;
+    private bool _hoveredMonumentInvestmentToggle;
     private bool _hoveredBarracksToggle;
     private bool _hoveredLabToggle;
     private bool _hoveredSmelterToggle;
@@ -330,6 +333,9 @@ public sealed class AutomationRenderer : IDisposable
             _militaryVendettaToggleRect = SKRect.Empty;
             rowH = DrawLockedRow(canvas, rightX, rightY, colWidth, _localization.Get("automation_military_vendetta_name"), _localization.Get("automation_military_vendetta_locked"));
         }
+        rightY += rowH + RowSpacing;
+
+        (_monumentInvestmentToggleRect, rowH) = DrawAutomationRow(canvas, rightX, rightY, colWidth, WorldState.AutomationSettings.MonumentInvestmentAutomationEnabled, _hoveredMonumentInvestmentToggle, _localization.Get("automation_monument_investment_name"), _localization.Get("automation_monument_investment_desc"), _localization.Get("automation_monument_investment_note"), pinKey: PinKeyMonumentInvestment, isPinHovered: _hoveredPinKey == PinKeyMonumentInvestment, isPinned: pinned.Contains(PinKeyMonumentInvestment));
         rightY += rowH + RowSpacing;
 
         // --- Contrôles bâtiments ---
@@ -623,6 +629,7 @@ public sealed class AutomationRenderer : IDisposable
         _hoveredMilitaryReinforcementToggle  = !_militaryReinforcementToggleRect.IsEmpty  && _militaryReinforcementToggleRect.Contains(adj.X, adj.Y);
         _hoveredMilitaryPatrolToggle         = !_militaryPatrolToggleRect.IsEmpty         && _militaryPatrolToggleRect.Contains(adj.X, adj.Y);
         _hoveredMilitaryVendettaToggle       = !_militaryVendettaToggleRect.IsEmpty       && _militaryVendettaToggleRect.Contains(adj.X, adj.Y);
+        _hoveredMonumentInvestmentToggle     = !_monumentInvestmentToggleRect.IsEmpty     && _monumentInvestmentToggleRect.Contains(adj.X, adj.Y);
         _hoveredBarracksToggle      = !_barracksToggleRect.IsEmpty      && _barracksToggleRect.Contains(adj.X, adj.Y);
         _hoveredLabToggle           = !_labToggleRect.IsEmpty           && _labToggleRect.Contains(adj.X, adj.Y);
         _hoveredSmelterToggle       = !_smelterToggleRect.IsEmpty       && _smelterToggleRect.Contains(adj.X, adj.Y);
@@ -741,6 +748,11 @@ public sealed class AutomationRenderer : IDisposable
                 var civV = _gameControllerService.PlayerCivilization;
                 if (civV != null) _gameControllerService.MainGameController.MilitaryController.ClearAttackFlows(civV);
             }
+            return true;
+        }
+        if (!_monumentInvestmentToggleRect.IsEmpty && _monumentInvestmentToggleRect.Contains(adj.X, adj.Y))
+        {
+            state.AutomationSettings.MonumentInvestmentAutomationEnabled = !state.AutomationSettings.MonumentInvestmentAutomationEnabled;
             return true;
         }
 

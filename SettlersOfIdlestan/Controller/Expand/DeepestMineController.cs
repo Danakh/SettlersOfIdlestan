@@ -20,6 +20,7 @@ namespace SettlersOfIdlestan.Controller.Island
     {
         private WorldState? _state;
         private GameClock? _clock;
+        private HarvestController? _harvestController;
 
         public const long InvestmentIntervalTicks = MonumentInvestment.IntervalTicks;
 
@@ -28,13 +29,14 @@ namespace SettlersOfIdlestan.Controller.Island
 
         internal DeepestMineController() { }
 
-        internal void Initialize(WorldState? state, GameClock? clock = null)
+        internal void Initialize(WorldState? state, GameClock? clock = null, HarvestController? harvestController = null)
         {
             if (_clock != null)
                 _clock.Advanced -= OnClockAdvanced;
 
             _state = state;
             _clock = clock;
+            _harvestController = harvestController;
 
             if (_clock != null)
                 _clock.Advanced += OnClockAdvanced;
@@ -146,6 +148,8 @@ namespace SettlersOfIdlestan.Controller.Island
             var cost = mine.GetInvestmentCost(_state.PlayerCivilization);
             foreach (var kvp in cost)
                 mine.InvestedResources[kvp.Key] = kvp.Value / 2;
+            if (_harvestController != null)
+                MonumentInvestment.TryAutoStartInvestment(mine, cost, _state.PlayerCivilization, _harvestController, _state);
 
             _state.EventLog.Add(GameEventType.UnderworldLost);
             _state.Visibility.Recalculate();
@@ -207,6 +211,8 @@ namespace SettlersOfIdlestan.Controller.Island
             var mine = new DeepestMine(position);
             _state.AddFeature(mine);
             _state.EventLog.Add(GameEventType.DeepestMinePlaced);
+            if (_harvestController != null)
+                MonumentInvestment.TryAutoStartInvestment(mine, mine.GetInvestmentCost(_state.PlayerCivilization), _state.PlayerCivilization, _harvestController, _state);
             OnDeepestMinePlaced?.Invoke(this, EventArgs.Empty);
             return mine;
         }

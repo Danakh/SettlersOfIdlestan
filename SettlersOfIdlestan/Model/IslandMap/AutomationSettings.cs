@@ -17,6 +17,14 @@ public class AutomationSettings
     public bool MilitaryVendettaAutomationEnabled { get; set; } = false;
 
     /// <summary>
+    /// Démarre automatiquement (et relance après chaque palier franchi) l'investissement des
+    /// Monuments (Merveille, Mine Profonde, Spire de Corruption, Faille des Abysses, Grand Phare)
+    /// sur toutes les ressources de leur coût courant — mais seulement si la civilisation dispose
+    /// d'un moyen de production pour chacune d'entre elles (voir MonumentInvestment.TryAutoStartInvestment).
+    /// </summary>
+    public bool MonumentInvestmentAutomationEnabled { get; set; } = false;
+
+    /// <summary>
     /// Obsolète : remplacé par GameSettings.PinnedCivPanelKeys (persiste entre îles/redémarrages).
     /// Conservé uniquement pour migrer les anciennes sauvegardes, voir MainGameController.InitializeControllersForCurrentIsland.
     /// </summary>

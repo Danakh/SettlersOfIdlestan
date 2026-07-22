@@ -1,3 +1,4 @@
+using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
@@ -18,6 +19,7 @@ namespace SettlersOfIdlestan.Controller.Expand
     {
         private WorldState? _state;
         private GameClock? _clock;
+        private HarvestController? _harvestController;
 
         public const long InvestmentIntervalTicks = MonumentInvestment.IntervalTicks;
 
@@ -26,13 +28,14 @@ namespace SettlersOfIdlestan.Controller.Expand
 
         internal AbyssGateController() { }
 
-        internal void Initialize(WorldState? state, GameClock? clock = null)
+        internal void Initialize(WorldState? state, GameClock? clock = null, HarvestController? harvestController = null)
         {
             if (_clock != null)
                 _clock.Advanced -= OnClockAdvanced;
 
             _state = state;
             _clock = clock;
+            _harvestController = harvestController;
 
             if (_clock != null)
                 _clock.Advanced += OnClockAdvanced;
@@ -119,6 +122,8 @@ namespace SettlersOfIdlestan.Controller.Expand
             var gate = new AbyssGate(position);
             _state.AddFeature(gate);
             _state.EventLog.Add(GameEventType.AbyssGatePlaced);
+            if (_harvestController != null)
+                MonumentInvestment.TryAutoStartInvestment(gate, gate.GetInvestmentCost(_state.PlayerCivilization), _state.PlayerCivilization, _harvestController, _state);
             OnAbyssGatePlaced?.Invoke(this, EventArgs.Empty);
             return gate;
         }

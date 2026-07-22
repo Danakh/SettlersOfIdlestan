@@ -15,6 +15,7 @@ namespace SettlersOfIdlestan.Controller.Island
     {
         private WorldState? _state;
         private GameClock? _clock;
+        private HarvestController? _harvestController;
 
         public const long InvestmentIntervalTicks = MonumentInvestment.IntervalTicks;
 
@@ -23,13 +24,14 @@ namespace SettlersOfIdlestan.Controller.Island
 
         internal WonderController() { }
 
-        internal void Initialize(WorldState? state, GameClock? clock = null)
+        internal void Initialize(WorldState? state, GameClock? clock = null, HarvestController? harvestController = null)
         {
             if (_clock != null)
                 _clock.Advanced -= OnClockAdvanced;
 
             _state = state;
             _clock = clock;
+            _harvestController = harvestController;
 
             if (_clock != null)
                 _clock.Advanced += OnClockAdvanced;
@@ -58,6 +60,8 @@ namespace SettlersOfIdlestan.Controller.Island
             wonder.InvestedResources.Clear();
             wonder.InvestmentEnabled.Clear();
             _state.EventLog.Add(GameEventType.WonderLevelUp, wonder.Level.ToString(), toast: true);
+            if (_harvestController != null && !wonder.IsMaxLevel)
+                MonumentInvestment.TryAutoStartInvestment(wonder, wonder.GetInvestmentCost(playerCiv), playerCiv, _harvestController, _state);
             OnWonderLevelUp?.Invoke(this, wonder.Level);
         }
 
@@ -118,6 +122,8 @@ namespace SettlersOfIdlestan.Controller.Island
             var wonder = new Wonder(position);
             _state.AddFeature(wonder);
             _state.EventLog.Add(GameEventType.WonderPlaced);
+            if (_harvestController != null)
+                MonumentInvestment.TryAutoStartInvestment(wonder, wonder.GetInvestmentCost(_state.PlayerCivilization), _state.PlayerCivilization, _harvestController, _state);
             OnWonderPlaced?.Invoke(this, EventArgs.Empty);
             return wonder;
         }

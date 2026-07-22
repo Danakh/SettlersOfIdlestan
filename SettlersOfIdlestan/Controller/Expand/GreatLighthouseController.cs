@@ -21,6 +21,7 @@ namespace SettlersOfIdlestan.Controller.Island
     {
         private WorldState? _state;
         private GameClock? _clock;
+        private HarvestController? _harvestController;
 
         public const long InvestmentIntervalTicks = MonumentInvestment.IntervalTicks;
 
@@ -29,13 +30,14 @@ namespace SettlersOfIdlestan.Controller.Island
 
         internal GreatLighthouseController() { }
 
-        internal void Initialize(WorldState? state, GameClock? clock = null)
+        internal void Initialize(WorldState? state, GameClock? clock = null, HarvestController? harvestController = null)
         {
             if (_clock != null)
                 _clock.Advanced -= OnClockAdvanced;
 
             _state = state;
             _clock = clock;
+            _harvestController = harvestController;
 
             if (_clock != null)
                 _clock.Advanced += OnClockAdvanced;
@@ -64,6 +66,8 @@ namespace SettlersOfIdlestan.Controller.Island
             greatLighthouse.InvestedResources.Clear();
             greatLighthouse.InvestmentEnabled.Clear();
             _state.EventLog.Add(GameEventType.GreatLighthouseLevelUp, greatLighthouse.Level.ToString(), toast: true);
+            if (_harvestController != null && !greatLighthouse.IsMaxLevel)
+                MonumentInvestment.TryAutoStartInvestment(greatLighthouse, greatLighthouse.GetInvestmentCost(playerCiv), playerCiv, _harvestController, _state);
             OnGreatLighthouseLevelUp?.Invoke(this, greatLighthouse.Level);
         }
 
@@ -136,6 +140,8 @@ namespace SettlersOfIdlestan.Controller.Island
             var greatLighthouse = new GreatLighthouse(position);
             _state.AddFeature(greatLighthouse);
             _state.EventLog.Add(GameEventType.GreatLighthousePlaced);
+            if (_harvestController != null)
+                MonumentInvestment.TryAutoStartInvestment(greatLighthouse, greatLighthouse.GetInvestmentCost(_state.PlayerCivilization), _state.PlayerCivilization, _harvestController, _state);
             OnGreatLighthousePlaced?.Invoke(this, EventArgs.Empty);
             return greatLighthouse;
         }

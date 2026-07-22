@@ -1,3 +1,4 @@
+using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
@@ -21,6 +22,7 @@ namespace SettlersOfIdlestan.Controller.Expand
     {
         private WorldState? _state;
         private GameClock? _clock;
+        private HarvestController? _harvestController;
 
         public const int AbyssUnlockThreshold = 3;
         public const long InvestmentIntervalTicks = MonumentInvestment.IntervalTicks;
@@ -31,13 +33,14 @@ namespace SettlersOfIdlestan.Controller.Expand
 
         internal CorruptionSpireController() { }
 
-        internal void Initialize(WorldState? state, GameClock? clock = null)
+        internal void Initialize(WorldState? state, GameClock? clock = null, HarvestController? harvestController = null)
         {
             if (_clock != null)
                 _clock.Advanced -= OnClockAdvanced;
 
             _state = state;
             _clock = clock;
+            _harvestController = harvestController;
 
             if (_clock != null)
                 _clock.Advanced += OnClockAdvanced;
@@ -86,6 +89,9 @@ namespace SettlersOfIdlestan.Controller.Expand
                 _state.EventLog.Add(GameEventType.CorruptionSpireRadiusUpgraded, spire.Radius.ToString(), toast: true);
                 OnCorruptionSpireRadiusUpgraded?.Invoke(this, spire.Radius);
             }
+
+            if (_harvestController != null)
+                MonumentInvestment.TryAutoStartInvestment(spire, spire.GetInvestmentCost(playerCiv), playerCiv, _harvestController, _state);
         }
 
         public bool HasCorruptionSpireUnlocked(Civilization playerCiv)
@@ -137,6 +143,8 @@ namespace SettlersOfIdlestan.Controller.Expand
             var spire = new CorruptionSpire(position);
             _state.AddFeature(spire);
             _state.EventLog.Add(GameEventType.CorruptionSpirePlaced);
+            if (_harvestController != null)
+                MonumentInvestment.TryAutoStartInvestment(spire, spire.GetInvestmentCost(_state.PlayerCivilization), _state.PlayerCivilization, _harvestController, _state);
             OnCorruptionSpirePlaced?.Invoke(this, EventArgs.Empty);
             return spire;
         }
