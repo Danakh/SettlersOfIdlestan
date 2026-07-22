@@ -78,7 +78,7 @@ namespace SettlersOfIdlestan.Controller.Island
             foreach (var civ in _state.Civilizations)
             {
                 BuildersGuild? guild = null;
-                foreach (var city in civ.Cities.Where(c => c.Position.Z == IslandMap.SurfaceLayer))
+                foreach (var city in civ.Cities)
                 {
                     guild = city.Buildings.OfType<BuildersGuild>().FirstOrDefault();
                     if (guild != null) break;
@@ -88,7 +88,10 @@ namespace SettlersOfIdlestan.Controller.Island
 
                 // Keep timer running when disabled to avoid burst on re-enable (player only)
                 bool isPlayerCiv = civ.Index == _state.PlayerCivilization.Index;
-                if (isPlayerCiv && !_state.AutomationSettings.RoadAutomationEnabled)
+                bool underworldUnlocked = civ.ModifierAggregator.HasModifier(Modifier.ECategory.UNLOCK_BUILDERS_GUILD_UNDERWORLD);
+                bool surfaceEnabled = !isPlayerCiv || _state.AutomationSettings.RoadAutomationEnabled;
+                bool underworldEnabled = underworldUnlocked && (!isPlayerCiv || _state.AutomationSettings.RoadAutomationEnabledUnderworld);
+                if (!surfaceEnabled && !underworldEnabled)
                 {
                     guild.LastRoadBuildTick = now;
                     continue;
@@ -104,8 +107,11 @@ namespace SettlersOfIdlestan.Controller.Island
 
                 var candidates = new List<Road>();
                 for (int d = 1; d <= guild.MaxAutoRoadDistance; d++)
-                    candidates.AddRange(GetBuildableRoadsAtDistance(civ.Index, d)
-                        .Where(r => r.Position.Z == IslandMap.SurfaceLayer));
+                {
+                    var atDistance = GetBuildableRoadsAtDistance(civ.Index, d);
+                    if (surfaceEnabled) candidates.AddRange(atDistance.Where(r => r.Position.Z == IslandMap.SurfaceLayer));
+                    if (underworldEnabled) candidates.AddRange(atDistance.Where(r => r.Position.Z == LayerState.UnderworldZ));
+                }
 
                 guild.LastRoadBuildTick = now;
 

@@ -413,6 +413,7 @@ public static class TechnologyDefinitions
             modifiers: new Modifier[]
             {
                 new(ECategory.UNDERWORLD_TREASURE_CHANCE_PERCENT, EType.ADDITIVE, 5),
+                new(ECategory.UNLOCK_BUILDERS_GUILD_UNDERWORLD, EType.ADDITIVE, 1),
             },
             tier: 6, line: 1),
 

@@ -176,6 +176,42 @@ public class BuildingControllerTests
     }
 
     [Fact]
+    public void BuildBuilding_UniqueBuildingRebuiltAfterCityLost_Succeeds()
+    {
+        var (state, controller, city) = CreateTestSetup();
+        var civ = state.Civilizations[0];
+        var cityVertex = city.Position;
+
+        var townHall = new TownHall { Level = 4 };
+        city.Buildings.Add(townHall);
+        civ.SetStorageCapacityCache(1000, 1000); // bypass the default (10 * city count) basic-storage cap
+        civ.AddResource(Resource.Wood, 100);
+        civ.AddResource(Resource.Brick, 50);
+        civ.AddResource(Resource.Stone, 50);
+
+        Assert.True(controller.BuildBuilding(city, BuildingType.BuildersGuild));
+        Assert.NotNull(civ.GetUniqueBuilding(BuildingType.BuildersGuild));
+
+        // Losing the city that held the guild must free the unique building slot again — the
+        // civ.UniqueBuildings "ever built" flag is never cleared, only the live cache is.
+        civ.RemoveCity(city);
+        Assert.Null(civ.GetUniqueBuilding(BuildingType.BuildersGuild));
+
+        var newCity = new City(cityVertex) { CivilizationIndex = civ.Index };
+        newCity.Buildings.Add(new TownHall { Level = 4 });
+        civ.AddCity(newCity);
+        civ.SetStorageCapacityCache(1000, 1000); // BuildBuilding/RemoveCity/AddCity recompute this cache down again
+        civ.AddResource(Resource.Wood, 100);
+        civ.AddResource(Resource.Brick, 50);
+        civ.AddResource(Resource.Stone, 50);
+
+        var result = controller.BuildBuilding(newCity, BuildingType.BuildersGuild);
+
+        Assert.True(result);
+        Assert.Contains(newCity.Buildings, b => b.Type == BuildingType.BuildersGuild);
+    }
+
+    [Fact]
     public void GetMaxLevel_WithTechTreeModifier_IncreasesLibraryMaxLevel()
     {
         var (state, controller, cityVertex) = CreateTestSetup();

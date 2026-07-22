@@ -100,7 +100,7 @@ namespace SettlersOfIdlestan.Controller.Island
             var civ = _state.PlayerCivilization;
 
             BuildersGuild? guild = null;
-            foreach (var city in civ.Cities.Where(c => c.Position.Z == IslandMap.SurfaceLayer))
+            foreach (var city in civ.Cities)
             {
                 guild = city.Buildings.OfType<BuildersGuild>().FirstOrDefault();
                 if (guild != null) break;
@@ -108,8 +108,12 @@ namespace SettlersOfIdlestan.Controller.Island
 
             if (guild == null || guild.Level < 4) return;
 
+            bool underworldUnlocked = civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_BUILDERS_GUILD_UNDERWORLD);
+            bool surfaceEnabled = _state.AutomationSettings.OutpostAutomationEnabled;
+            bool underworldEnabled = underworldUnlocked && _state.AutomationSettings.OutpostAutomationEnabledUnderworld;
+
             // Keep timer running even when disabled to avoid burst on re-enable
-            if (!_state.AutomationSettings.OutpostAutomationEnabled)
+            if (!surfaceEnabled && !underworldEnabled)
             {
                 guild.LastOutpostBuildTick = now;
                 return;
@@ -125,8 +129,10 @@ namespace SettlersOfIdlestan.Controller.Island
 
             guild.LastOutpostBuildTick = now;
 
-            var buildable = GetBuildableVertices(civ.Index)
-                .Where(v => v.Z == IslandMap.SurfaceLayer).ToList();
+            var allBuildable = GetBuildableVertices(civ.Index);
+            var buildable = new List<Vertex>();
+            if (surfaceEnabled) buildable.AddRange(allBuildable.Where(v => v.Z == IslandMap.SurfaceLayer));
+            if (underworldEnabled) buildable.AddRange(allBuildable.Where(v => v.Z == LayerState.UnderworldZ));
             if (buildable.Count == 0) return;
 
             var chosen = buildable[_prng!.Next(buildable.Count)];

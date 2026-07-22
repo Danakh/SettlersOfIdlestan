@@ -31,6 +31,8 @@ public sealed class AutomationRenderer : IDisposable
     // Clés de pin pour PinnedToCivPanel
     internal const string PinKeyRoad          = "Road";
     internal const string PinKeyOutpost       = "Outpost";
+    internal const string PinKeyRoadUnderworld    = "RoadUnderworld";
+    internal const string PinKeyOutpostUnderworld = "OutpostUnderworld";
     internal const string PinKeyProduction    = "Production";
     internal const string PinKeyArtisan       = "Artisan";
     internal const string PinKeyLibrary       = "Library";
@@ -58,6 +60,8 @@ public sealed class AutomationRenderer : IDisposable
 
     private SKRect _roadToggleRect = SKRect.Empty;
     private SKRect _outpostToggleRect = SKRect.Empty;
+    private SKRect _roadUnderworldToggleRect = SKRect.Empty;
+    private SKRect _outpostUnderworldToggleRect = SKRect.Empty;
     private SKRect _productionToggleRect = SKRect.Empty;
     private SKRect _artisanToggleRect = SKRect.Empty;
     private SKRect _libraryToggleRect = SKRect.Empty;
@@ -77,6 +81,8 @@ public sealed class AutomationRenderer : IDisposable
     private SKRect _alchimistHutToggleRect = SKRect.Empty;
     private bool _hoveredRoadToggle;
     private bool _hoveredOutpostToggle;
+    private bool _hoveredRoadUnderworldToggle;
+    private bool _hoveredOutpostUnderworldToggle;
     private bool _hoveredProductionToggle;
     private bool _hoveredArtisanToggle;
     private bool _hoveredLibraryToggle;
@@ -205,6 +211,7 @@ public sealed class AutomationRenderer : IDisposable
             if (buildersGuild != null && harvestersGuild != null && artisansGuild != null && academy != null && traderGuild != null && imperialPort != null && warRoom != null) break;
         }
         bool hasSeaportAutomation = civ.ModifierAggregator.HasModifier(Modifier.ECategory.UNLOCK_SEAPORT_AUTOMATION);
+        bool hasBuildersGuildUnderworld = civ.ModifierAggregator.HasModifier(Modifier.ECategory.UNLOCK_BUILDERS_GUILD_UNDERWORLD);
 
         const float ColGap = 12f;
         float colWidth = (contentWidth - ColGap) / 2f;
@@ -230,6 +237,16 @@ public sealed class AutomationRenderer : IDisposable
         }
         leftY += rowH + RowSpacing;
 
+        bool roadUnderworldUnlocked = roadUnlocked && hasBuildersGuildUnderworld;
+        if (roadUnderworldUnlocked)
+            (_roadUnderworldToggleRect, rowH) = DrawAutomationRow(canvas, leftX, leftY, colWidth, WorldState.AutomationSettings.RoadAutomationEnabledUnderworld, _hoveredRoadUnderworldToggle, _localization.Get("automation_road_underworld_name"), _localization.Get("automation_road_underworld_desc"), _localization.Get("automation_road_underworld_note"), pinKey: PinKeyRoadUnderworld, isPinHovered: _hoveredPinKey == PinKeyRoadUnderworld, isPinned: pinned.Contains(PinKeyRoadUnderworld));
+        else
+        {
+            _roadUnderworldToggleRect = SKRect.Empty;
+            rowH = DrawLockedRow(canvas, leftX, leftY, colWidth, _localization.Get("automation_road_underworld_name"), _localization.Get("automation_road_underworld_locked"));
+        }
+        leftY += rowH + RowSpacing;
+
         bool outpostUnlocked = buildersGuild != null && buildersGuild.Level >= 4;
         if (outpostUnlocked)
             (_outpostToggleRect, rowH) = DrawAutomationRow(canvas, leftX, leftY, colWidth, WorldState.AutomationSettings.OutpostAutomationEnabled, _hoveredOutpostToggle, _localization.Get("automation_outpost_name"), _localization.Get("automation_outpost_desc"), _localization.Get("automation_outpost_note"), pinKey: PinKeyOutpost, isPinHovered: _hoveredPinKey == PinKeyOutpost, isPinned: pinned.Contains(PinKeyOutpost));
@@ -237,6 +254,16 @@ public sealed class AutomationRenderer : IDisposable
         {
             _outpostToggleRect = SKRect.Empty;
             rowH = DrawLockedRow(canvas, leftX, leftY, colWidth, _localization.Get("automation_outpost_name"), _localization.Get("automation_outpost_locked"));
+        }
+        leftY += rowH + RowSpacing;
+
+        bool outpostUnderworldUnlocked = outpostUnlocked && hasBuildersGuildUnderworld;
+        if (outpostUnderworldUnlocked)
+            (_outpostUnderworldToggleRect, rowH) = DrawAutomationRow(canvas, leftX, leftY, colWidth, WorldState.AutomationSettings.OutpostAutomationEnabledUnderworld, _hoveredOutpostUnderworldToggle, _localization.Get("automation_outpost_underworld_name"), _localization.Get("automation_outpost_underworld_desc"), _localization.Get("automation_outpost_underworld_note"), pinKey: PinKeyOutpostUnderworld, isPinHovered: _hoveredPinKey == PinKeyOutpostUnderworld, isPinned: pinned.Contains(PinKeyOutpostUnderworld));
+        else
+        {
+            _outpostUnderworldToggleRect = SKRect.Empty;
+            rowH = DrawLockedRow(canvas, leftX, leftY, colWidth, _localization.Get("automation_outpost_underworld_name"), _localization.Get("automation_outpost_underworld_locked"));
         }
         leftY += rowH + RowSpacing;
 
@@ -550,15 +577,19 @@ public sealed class AutomationRenderer : IDisposable
 
     private float DrawLockedRow(SKCanvas canvas, float x, float y, float width, string name, string lockDesc)
     {
-        var cardRect = new SKRect(x, y, x + width, y + RowMinHeight);
+        float textX = x + 12f;
+        float descMaxWidth = width - 24f;
+        var descLayout = SkiaTextUtils.MeasureWrappedText(lockDesc, descMaxWidth, _descFont);
+        float contentHeight = Math.Max(RowMinHeight, 18f + _nameFont.Spacing + 2f + descLayout.Size.Height + 10f);
+
+        var cardRect = new SKRect(x, y, x + width, y + contentHeight);
         canvas.DrawRoundRect(cardRect, 6, 6, _cardPaint);
         canvas.DrawRoundRect(cardRect, 6, 6, _cardBorderPaint);
 
-        float textX = x + 12f;
         SkiaTextUtils.DrawText(canvas, name, textX, y + 18, _nameFont, _mutedPaint);
-        SkiaTextUtils.DrawText(canvas, lockDesc, textX, y + 36, _descFont, _mutedPaint);
+        SkiaTextUtils.DrawWrappedText(canvas, lockDesc, textX, y + 18f + _nameFont.Spacing + 2f, descMaxWidth, _descFont, _mutedPaint);
 
-        return RowMinHeight;
+        return contentHeight;
     }
 
     private void DrawBuildingSummary(SKCanvas canvas, float x, float y, IEnumerable<City> cities, BuildingType[] types)
@@ -620,6 +651,8 @@ public sealed class AutomationRenderer : IDisposable
         var adj = new SKPoint(position.X, position.Y + _scrollOffsetPx);
         _hoveredRoadToggle                   = !_roadToggleRect.IsEmpty                   && _roadToggleRect.Contains(adj.X, adj.Y);
         _hoveredOutpostToggle                = !_outpostToggleRect.IsEmpty                && _outpostToggleRect.Contains(adj.X, adj.Y);
+        _hoveredRoadUnderworldToggle         = !_roadUnderworldToggleRect.IsEmpty         && _roadUnderworldToggleRect.Contains(adj.X, adj.Y);
+        _hoveredOutpostUnderworldToggle      = !_outpostUnderworldToggleRect.IsEmpty      && _outpostUnderworldToggleRect.Contains(adj.X, adj.Y);
         _hoveredProductionToggle             = !_productionToggleRect.IsEmpty             && _productionToggleRect.Contains(adj.X, adj.Y);
         _hoveredArtisanToggle                = !_artisanToggleRect.IsEmpty                && _artisanToggleRect.Contains(adj.X, adj.Y);
         _hoveredLibraryToggle                = !_libraryToggleRect.IsEmpty                && _libraryToggleRect.Contains(adj.X, adj.Y);
@@ -693,6 +726,16 @@ public sealed class AutomationRenderer : IDisposable
         if (!_outpostToggleRect.IsEmpty && _outpostToggleRect.Contains(adj.X, adj.Y))
         {
             state.AutomationSettings.OutpostAutomationEnabled = !state.AutomationSettings.OutpostAutomationEnabled;
+            return true;
+        }
+        if (!_roadUnderworldToggleRect.IsEmpty && _roadUnderworldToggleRect.Contains(adj.X, adj.Y))
+        {
+            state.AutomationSettings.RoadAutomationEnabledUnderworld = !state.AutomationSettings.RoadAutomationEnabledUnderworld;
+            return true;
+        }
+        if (!_outpostUnderworldToggleRect.IsEmpty && _outpostUnderworldToggleRect.Contains(adj.X, adj.Y))
+        {
+            state.AutomationSettings.OutpostAutomationEnabledUnderworld = !state.AutomationSettings.OutpostAutomationEnabledUnderworld;
             return true;
         }
         if (!_productionToggleRect.IsEmpty && _productionToggleRect.Contains(adj.X, adj.Y))

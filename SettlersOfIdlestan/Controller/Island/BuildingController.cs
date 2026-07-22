@@ -307,8 +307,11 @@ namespace SettlersOfIdlestan.Controller.Island
                     !prototype.IsBuildingAvailableForCity(map1, city))
                     return false;
 
-                if (prototype.IsUnique &&
-                    (civ.UniqueBuildings.Contains(type) || civ.GetUniqueBuilding(type) != null))
+                // civ.UniqueBuildings is a permanent "ever built" flag (never cleared on city loss,
+                // used e.g. by PrestigeController.HasImperialPort) — checking it here would block
+                // rebuilding forever once the city holding it is destroyed. The cache is the live source
+                // of truth and is correctly refreshed by Civilization.RemoveCity.
+                if (prototype.IsUnique && civ.GetUniqueBuilding(type) != null)
                     return false;
 
                 if (prototype.IsUnique && city.Buildings.Any(b => b.IsUnique))
@@ -413,12 +416,13 @@ namespace SettlersOfIdlestan.Controller.Island
                 if (prototype == null || !prototype.IsUnique || GetMaxLevel(prototype, civ) <= 0)
                     continue;
 
+                // Same live-cache reasoning as BuildBuilding(): civ.UniqueBuildings never clears on
+                // city loss, so it must not be treated as "currently built" here either.
                 var existingInstance = civ.GetUniqueBuilding(bt);
-                bool isBuilt = civ.UniqueBuildings.Contains(bt) || existingInstance != null;
 
-                if (isBuilt)
+                if (existingInstance != null)
                 {
-                    result.Add(existingInstance ?? prototype);
+                    result.Add(existingInstance);
                 }
                 // Ziggourat : reste cachée tant que le pouvoir divin Foi (UNLOCK_DOMINION) n'est pas
                 // débloqué, même verrou que les recherches/vertex du Dominion (voir ResearchController.IsDominionRequirementMet).

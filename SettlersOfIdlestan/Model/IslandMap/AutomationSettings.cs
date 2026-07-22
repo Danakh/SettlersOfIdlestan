@@ -6,6 +6,12 @@ public class AutomationSettings
 {
     public bool RoadAutomationEnabled { get; set; } = true;
     public bool OutpostAutomationEnabled { get; set; } = false;
+
+    /// <summary>Comme RoadAutomationEnabled, mais pour l'automatisation des routes dans l'Inframonde (nécessite la recherche Cartographie Souterraine, voir RoadController.PerformBuildersGuildConstruction).</summary>
+    public bool RoadAutomationEnabledUnderworld { get; set; } = true;
+
+    /// <summary>Comme OutpostAutomationEnabled, mais pour l'automatisation des avant-postes dans l'Inframonde (nécessite la recherche Cartographie Souterraine, voir CityBuilderController.PerformBuildersGuildOutpostConstruction).</summary>
+    public bool OutpostAutomationEnabledUnderworld { get; set; } = false;
     public bool ProductionBuildingAutomationEnabled { get; set; } = false;
     public bool ArtisanBuildingAutomationEnabled { get; set; } = false;
     public bool LibraryBuildingAutomationEnabled { get; set; } = false;

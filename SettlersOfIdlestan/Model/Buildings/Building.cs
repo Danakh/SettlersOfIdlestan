@@ -78,6 +78,7 @@ public enum BuildingType
     Temple,
     /// <summary>
     /// Guilde des batisseurs - Permet l'automatisation de constructions. Disponible au niveau Capitale (4).
+    /// Automatisation surface uniquement par défaut ; étendue à l'Inframonde par la recherche Cartographie Souterraine.
     /// </summary>
     BuildersGuild,
     /// <summary>

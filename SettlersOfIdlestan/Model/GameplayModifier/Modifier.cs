@@ -191,6 +191,8 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             CITY_PLACEMENT_TERRAIN_RANGE,
             /// <summary>Restriction raciale par ville (Sirènes) : plafonne le niveau de l'Hôtel de Ville à Value pour toute ville de surface qui ne touche PAS directement le terrain indiqué (SubCategory = nom du TerrainType). Sans effet sur les villes qui le touchent — mécanique par ville, pas civ-wide (voir BuildingController.GetMaxLevel(Building, Civilization, City)).</summary>
             INLAND_CITY_LEVEL_CAP,
+            /// <summary>Flags que la Guilde des bâtisseurs peut aussi automatiser routes et avant-postes dans l'Inframonde (SubCategory unused, voir RoadController.PerformBuildersGuildConstruction et CityBuilderController.PerformBuildersGuildOutpostConstruction).</summary>
+            UNLOCK_BUILDERS_GUILD_UNDERWORLD,
         }
 
         [JsonConverter(typeof(JsonStringEnumConverter<EType>))]
