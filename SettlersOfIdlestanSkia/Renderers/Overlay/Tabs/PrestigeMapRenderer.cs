@@ -202,7 +202,7 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         if (_hoveredVertex != null)
             BuildVertexTooltip(_hoveredVertex, prestigeState, civ);
         else if (_hoveredHex != null)
-            BuildHexTooltip(_hoveredHex, prestigeState, civ);
+            BuildHexTooltip(_hoveredHex.Value, prestigeState, civ);
     }
 
     /// <summary>Debug "carte complète" ou pouvoir divin Oeil de Dieu : révèle toute la carte de prestige.</summary>

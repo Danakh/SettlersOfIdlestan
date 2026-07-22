@@ -68,7 +68,6 @@ public class FeatureController
             foreach (var city in civ.Cities)
                 foreach (var hex in city.Position.GetHexes())
                 {
-                    if (hex == null) continue;
                     if (!hexCivs.TryGetValue(hex, out var civSet))
                         hexCivs[hex] = civSet = new HashSet<int>();
                     civSet.Add(civ.Index);

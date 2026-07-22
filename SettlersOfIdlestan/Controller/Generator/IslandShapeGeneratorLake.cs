@@ -36,7 +36,7 @@ public class IslandShapeGeneratorLake : IslandShapeGenerator
             var seed = PickInteriorHex(grown, landSet);
             if (seed == null) break;
 
-            var chain = WaterPocketCarver.CarveChain(_prng, seed, lakeSize, landSet);
+            var chain = WaterPocketCarver.CarveChain(_prng, seed.Value, lakeSize, landSet);
             if (chain == null || !IsFullyEnclosed(chain, landSet)) continue;
 
             var chainSet = new HashSet<HexCoord>(chain);

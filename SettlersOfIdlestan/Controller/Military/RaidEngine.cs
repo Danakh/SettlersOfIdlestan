@@ -153,7 +153,7 @@ internal class RaidEngine
         }
         else if (targetHex != null)
         {
-            int z = targetHex.Z;
+            int z = targetHex.Value.Z;
             foreach (var vertex in civ.MilitaryVertices)
             {
                 if (vertex.Position.Z != z) continue;
@@ -211,7 +211,7 @@ internal class RaidEngine
             }
 
             if (!PayUpkeep(playerCiv)) return;
-            ApplyMonsterRaidFlows(playerCiv, targetHex!);
+            ApplyMonsterRaidFlows(playerCiv, targetHex!.Value);
         }
     }
 

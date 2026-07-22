@@ -133,12 +133,12 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
         _tooltipRenderer.SetIslandRenderContext(this, context);
 
         if (state.HoveredHex != null &&
-            state.HoveredHex.Z == context.CurrentLayer &&
+            state.HoveredHex.Value.Z == context.CurrentLayer &&
             context.GameState is MainGameState mgs &&
             mgs.CurrentWorldState != null)
         {
             _tooltipRenderer.SetHexHarvestTooltip(
-                state.HoveredHex,
+                state.HoveredHex.Value,
                 _harvestController,
                 mgs.CurrentWorldState,
                 mgs.Clock.CurrentTick);

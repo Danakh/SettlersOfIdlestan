@@ -543,10 +543,12 @@ public class IslandMapGenerator
             {
                 // Bring a primary tile to hexA
                 var primaryCoord = terrainDict.Keys
-                    .FirstOrDefault(c => !c.Equals(hexA) && !c.Equals(hexB) && terrainDict[c] == primary);
+                    .Where(c => !c.Equals(hexA) && !c.Equals(hexB) && terrainDict[c] == primary)
+                    .Select(c => (HexCoord?)c)
+                    .FirstOrDefault();
                 if (primaryCoord is not null)
                 {
-                    terrainDict[primaryCoord] = tA;
+                    terrainDict[primaryCoord.Value] = tA;
                     terrainDict[hexA] = primary;
                     tA = primary;
                 }
@@ -562,10 +564,12 @@ public class IslandMapGenerator
             if (tB != TerrainType.Forest)
             {
                 var forestCoord = terrainDict.Keys
-                    .FirstOrDefault(c => !c.Equals(hexA) && !c.Equals(hexB) && terrainDict[c] == TerrainType.Forest);
+                    .Where(c => !c.Equals(hexA) && !c.Equals(hexB) && terrainDict[c] == TerrainType.Forest)
+                    .Select(c => (HexCoord?)c)
+                    .FirstOrDefault();
                 if (forestCoord is not null)
                 {
-                    terrainDict[forestCoord] = tB;
+                    terrainDict[forestCoord.Value] = tB;
                     terrainDict[hexB] = TerrainType.Forest;
                     tB = TerrainType.Forest;
                 }
@@ -621,14 +625,16 @@ public class IslandMapGenerator
         if (candidates.Any(c => terrainDict[c] == terrain)) return;
 
         var sourceCoord = terrainDict.Keys
-            .FirstOrDefault(c => !excludedFromSource.Contains(c) && terrainDict[c] == terrain);
+            .Where(c => !excludedFromSource.Contains(c) && terrainDict[c] == terrain)
+            .Select(c => (HexCoord?)c)
+            .FirstOrDefault();
         if (sourceCoord is null) return;
 
         // Avoid overwriting a candidate that already holds the other guaranteed terrain (Mountain/Plain)
         var targetCoord = candidates.FirstOrDefault(c =>
-            terrainDict[c] != TerrainType.Mountain && terrainDict[c] != TerrainType.Plain) ?? candidates[0];
+            terrainDict[c] != TerrainType.Mountain && terrainDict[c] != TerrainType.Plain, candidates[0]);
 
-        terrainDict[sourceCoord] = terrainDict[targetCoord];
+        terrainDict[sourceCoord.Value] = terrainDict[targetCoord];
         terrainDict[targetCoord] = terrain;
     }
 

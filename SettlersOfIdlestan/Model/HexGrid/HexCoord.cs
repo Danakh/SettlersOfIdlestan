@@ -16,7 +16,7 @@ namespace SettlersOfIdlestan.Model.HexGrid;
 /// </summary>
 [Serializable]
 [JsonConverter(typeof(HexCoordJsonConverter))]
-public class HexCoord
+public readonly struct HexCoord : IEquatable<HexCoord>
 {
     public HexCoord(int q, int r, int z)
     {
@@ -128,10 +128,21 @@ public class HexCoord
     /// <summary>
     /// Vérifie l'égalité avec un autre HexCoord.
     /// </summary>
+    public bool Equals(HexCoord other)
+    {
+        return Q == other.Q && R == other.R && Z == other.Z;
+    }
+
+    /// <summary>
+    /// Vérifie l'égalité avec un autre HexCoord.
+    /// </summary>
     public override bool Equals(object? obj)
     {
-        return obj is HexCoord other && Q == other.Q && R == other.R && Z == other.Z;
+        return obj is HexCoord other && Equals(other);
     }
+
+    public static bool operator ==(HexCoord left, HexCoord right) => left.Equals(right);
+    public static bool operator !=(HexCoord left, HexCoord right) => !left.Equals(right);
 
     /// <summary>
     /// Retourne une représentation en chaîne pour le débogage.

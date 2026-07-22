@@ -320,7 +320,7 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
             foreach (var feature in features)
                 DrawFeatureMarker(canvas, centerX, centerY, feature);
 
-        if (DebugSettings.ShowHexCoords && _textPaint != null && tile.Coord != null)
+        if (DebugSettings.ShowHexCoords && _textPaint != null)
         {
             _textPaint.Color = SKColors.Black;
             SkiaTextUtils.DrawText(canvas, $"{tile.Coord.Q},{tile.Coord.R}", centerX, centerY + HexSize / 2.5f, SKTextAlign.Center, _textFont, _textPaint);

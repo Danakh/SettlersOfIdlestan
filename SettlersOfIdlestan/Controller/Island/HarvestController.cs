@@ -244,7 +244,7 @@ namespace SettlersOfIdlestan.Controller.Island
                     {
                         foreach (var hex in city.Position.GetHexes())
                         {
-                            if (hex == null || !visitedHexes.Add(hex)) continue;
+                            if (!visitedHexes.Add(hex)) continue;
                             var tile = _state.GetMapFor(hex)?.GetTile(hex);
                             if (tile == null) continue;
                             foreach (var adjacentCity in civ.Cities.Where(c => c.Position.IsAdjacentTo(hex)))

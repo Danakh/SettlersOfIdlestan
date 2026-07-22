@@ -245,7 +245,7 @@ namespace SettlersOfIdlestan.Controller
                 foreach (var city in _civ.Cities)
                 {
                     foreach (var h in city.Position.GetHexes())
-                        if (h != null) toHarvest.Add(h);
+                        toHarvest.Add(h);
                 }
 
                 foreach (var hex in toHarvest)

@@ -84,8 +84,8 @@ public class IslandShapeGeneratorCompact : IslandShapeGenerator
 
             if (replacement != null)
             {
-                island[tipIdx] = replacement;
-                allLand.Add(replacement);
+                island[tipIdx] = replacement.Value;
+                allLand.Add(replacement.Value);
             }
             else
             {

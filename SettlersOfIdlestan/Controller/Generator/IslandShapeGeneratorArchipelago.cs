@@ -145,7 +145,7 @@ public class IslandShapeGeneratorArchipelago : IslandShapeGenerator
                 if (W3 == null) continue;
 
                 // M1 : voisin commun de W1 et W2, != L, libre, non adjacent à allLand
-                var (d1, d2) = GetCommonNeighbors(W1, W2cand);
+                var (d1, d2) = GetCommonNeighbors(W1.Value, W2cand);
                 HexCoord? M1 = null;
                 foreach (var c in new[] { d1, d2 })
                     if (!c.Equals(L) && !allLand.Contains(c) && !usedWater.Contains(c)
@@ -154,7 +154,7 @@ public class IslandShapeGeneratorArchipelago : IslandShapeGenerator
                 if (M1 == null) continue;
 
                 // M2 : voisin commun de W3 et W2, != Lp, libre, non adjacent à allLand
-                var (e1, e2) = GetCommonNeighbors(W3, W2cand);
+                var (e1, e2) = GetCommonNeighbors(W3.Value, W2cand);
                 HexCoord? M2 = null;
                 foreach (var c in new[] { e1, e2 })
                     if (!c.Equals(Lp) && !allLand.Contains(c) && !usedWater.Contains(c)
@@ -164,7 +164,7 @@ public class IslandShapeGeneratorArchipelago : IslandShapeGenerator
 
                 // M1 et M2 ne doivent pas être adjacents l'un à l'autre via la terre
                 // (ils seront dans la même île, pas de problème de connectivité)
-                w1 = W1; w2 = W2cand; w3 = W3; m1 = M1; m2 = M2;
+                w1 = W1.Value; w2 = W2cand; w3 = W3.Value; m1 = M1.Value; m2 = M2.Value;
                 return true;
             }
         }

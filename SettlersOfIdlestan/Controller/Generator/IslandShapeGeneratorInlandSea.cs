@@ -42,8 +42,8 @@ public class IslandShapeGeneratorInlandSea : IslandShapeGenerator
             var seed = PickSingleMouthCoastalHex(grown, landSet);
             if (seed == null) break;
 
-            var allowed = new HashSet<HexCoord>(interiorOnly) { seed };
-            var chain = WaterPocketCarver.CarveChain(_prng, seed, seaSize, allowed);
+            var allowed = new HashSet<HexCoord>(interiorOnly) { seed.Value };
+            var chain = WaterPocketCarver.CarveChain(_prng, seed.Value, seaSize, allowed);
             if (chain == null) continue;
 
             var chainSet = new HashSet<HexCoord>(chain);
