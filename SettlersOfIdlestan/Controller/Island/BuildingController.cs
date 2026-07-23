@@ -157,7 +157,7 @@ namespace SettlersOfIdlestan.Controller.Island
         {
             if (_state == null || _clock == null) return;
             long now = _clock.CurrentTick;
-            BuildingType[] targets = [BuildingType.Barracks, BuildingType.MilitaryAcademy, BuildingType.Arsenal, BuildingType.WeaponSmith, BuildingType.ArmorSmith];
+            BuildingType[] targets = [BuildingType.Barracks, BuildingType.Garrison, BuildingType.Arsenal, BuildingType.WeaponSmith, BuildingType.ArmorSmith];
 
             foreach (var civ in _state.Civilizations)
             {
@@ -535,7 +535,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 BuildingType.Watchtower => new Watchtower(),
                 BuildingType.Academy => new Academy(),
                 BuildingType.TraderGuild => new TraderGuild(),
-                BuildingType.MilitaryAcademy => new MilitaryAcademy(),
+                BuildingType.Garrison => new Garrison(),
                 // BuildingType.DeepestMine : legacy — la Mine Profonde est désormais une IslandFeature
                 BuildingType.Smelter => new Smelter(),
                 BuildingType.BlastFurnace => new BlastFurnace(),

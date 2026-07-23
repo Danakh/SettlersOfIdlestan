@@ -125,10 +125,10 @@ public static class PrestigeMapFactory
                 }
             ),
             new(
-                PrestigeMap.MilitaryAcademyVertex,
-                "prestige_vertex_military_academy",
-                cost: Cost(PrestigeMap.MilitaryAcademyVertex),
-                modifiers: new Modifier[] { new(ECategory.BUILDING_MAX_LEVEL, "MilitaryAcademy", EType.ADDITIVE, 4) }
+                PrestigeMap.GarrisonVertex,
+                "prestige_vertex_garrison",
+                cost: Cost(PrestigeMap.GarrisonVertex),
+                modifiers: new Modifier[] { new(ECategory.BUILDING_MAX_LEVEL, "Garrison", EType.ADDITIVE, 4) }
             ),
             new(
                 PrestigeMap.KnowledgeMasteryVertex,

@@ -92,10 +92,10 @@ public class PrestigeVertexModifierTests
     }
 
     [Fact]
-    public void MilitaryAcademyVertex_MilitaryAcademyMaxLevel_Plus4()
+    public void GarrisonVertex_GarrisonMaxLevel_Plus4()
     {
-        var aggregator = BuildAggregator(PrestigeMap.MilitaryAcademyVertex);
-        Assert.Equal(4, aggregator.ApplyModifiers(ECategory.BUILDING_MAX_LEVEL, "MilitaryAcademy", 0));
+        var aggregator = BuildAggregator(PrestigeMap.GarrisonVertex);
+        Assert.Equal(4, aggregator.ApplyModifiers(ECategory.BUILDING_MAX_LEVEL, "Garrison", 0));
     }
 
     [Fact]

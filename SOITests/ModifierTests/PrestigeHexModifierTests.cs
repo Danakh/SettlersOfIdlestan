@@ -27,7 +27,7 @@ namespace SOITests.ModifierTests;
 ///   ArtisansGuildVertex    (-1,2),(0,1),(0,2)
 ///   MilitaryStrategyVertex (1,0),(2,0),(2,-1)
 ///   ConscriptionVertex     (1,0),(1,-1),(2,-1)
-///   MilitaryAcademyVertex  (2,0),(2,-1),(3,-1)
+///   GarrisonVertex         (2,0),(2,-1),(3,-1)
 ///   KnowledgeMasteryVertex (1,1),(0,2),(1,2)
 ///   WatchtowerVertex       (0,0),(-1,0),(-1,1)
 ///   WarehouseNewCitiesVertex (0,0),(-1,0),(0,-1)
@@ -185,7 +185,7 @@ public class PrestigeHexModifierTests
     }
 
     // ── ExperimentalScienceCoord (2,0) — BUILDING_PRODUCTION "Laboratory" +1 ─
-    // Adjacent: Academy, MilitaryStrategy, MilitaryAcademy
+    // Adjacent: Academy, MilitaryStrategy, Garrison
 
     [Fact]
     public void ExperimentalScienceHex_AcademyVertex_LaboratoryProductionPlus1()
@@ -195,7 +195,7 @@ public class PrestigeHexModifierTests
     }
 
     // ── DefenseRegenCoord (2,-1) — CITY_DEFENSE_REGEN_SPEED "" +0.1 ─────────
-    // Adjacent: MilitaryStrategy, Conscription, MilitaryAcademy
+    // Adjacent: MilitaryStrategy, Conscription, Garrison
 
     [Fact]
     public void DefenseRegenHex_MilitaryStrategyVertex_CityDefenseRegenSpeedPlus0Point1()

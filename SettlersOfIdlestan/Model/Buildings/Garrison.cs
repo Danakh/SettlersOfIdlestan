@@ -4,16 +4,16 @@ using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
 
 namespace SettlersOfIdlestan.Model.Buildings;
 
-public class MilitaryAcademy : Building, IUniqueBuilding
+public class Garrison : Building, IUniqueBuilding
 {
     public const int MaxSoldiersPerLevel = 5;
 
-    public MilitaryAcademy() : base(BuildingType.MilitaryAcademy)
+    public Garrison() : base(BuildingType.Garrison)
     {
         AvailableAtLevel = 2;
     }
 
-    // Locked by default; unlocked by the Military Academy prestige vertex (+4 max level)
+    // Locked by default; unlocked by the Garrison prestige vertex (+4 max level)
     public override int GetDefaultMaxLevel() => 0;
     public override int GetMaxSoldiersBonus() => MaxSoldiersPerLevel * Level;
 

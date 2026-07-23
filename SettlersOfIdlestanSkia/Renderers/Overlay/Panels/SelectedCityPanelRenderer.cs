@@ -688,16 +688,16 @@ public class SelectedCityPanelRenderer : PanelRendererBase
                     tooltipLines.Add("");
                 }
 
-                if (hoveredBuilding is MilitaryAcademy militaryAcademy && militaryAcademy.Level > 0)
+                if (hoveredBuilding is Garrison garrison && garrison.Level > 0)
                 {
-                    int soldierBonus = militaryAcademy.GetMaxSoldiersBonus();
-                    int prodBonus = (int)Math.Round(militaryAcademy.Level * 25.0);
-                    tooltipLines.Add(_localization.GetFormated("militaryacademy_stats", soldierBonus, prodBonus));
-                    if (!_cityBuildingService.IsAtMaxLevel(militaryAcademy))
+                    int soldierBonus = garrison.GetMaxSoldiersBonus();
+                    int prodBonus = (int)Math.Round(garrison.Level * 25.0);
+                    tooltipLines.Add(_localization.GetFormated("garrison_stats", soldierBonus, prodBonus));
+                    if (!_cityBuildingService.IsAtMaxLevel(garrison))
                     {
-                        int nextSoldier = (militaryAcademy.Level + 1) * MilitaryAcademy.MaxSoldiersPerLevel;
-                        int nextProd = (militaryAcademy.Level + 1) * 25;
-                        tooltipLines.Add(_localization.Get("tooltip_harvest_auto_next") + " " + _localization.GetFormated("militaryacademy_stats", nextSoldier, nextProd));
+                        int nextSoldier = (garrison.Level + 1) * Garrison.MaxSoldiersPerLevel;
+                        int nextProd = (garrison.Level + 1) * 25;
+                        tooltipLines.Add(_localization.Get("tooltip_harvest_auto_next") + " " + _localization.GetFormated("garrison_stats", nextSoldier, nextProd));
                     }
                     tooltipLines.Add("");
                 }

@@ -75,7 +75,7 @@ public class AscensionControllerTests
         Assert.DoesNotContain(BuildingType.ImperialPort, choices);
         Assert.DoesNotContain(BuildingType.BuildersGuild, choices);
         Assert.DoesNotContain(BuildingType.AdventurersGuild, choices);
-        Assert.DoesNotContain(BuildingType.MilitaryAcademy, choices);
+        Assert.DoesNotContain(BuildingType.Garrison, choices);
     }
 
     [Fact]

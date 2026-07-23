@@ -48,7 +48,7 @@ public class PrestigeMap
     public static readonly Vertex ArtisansGuildVertex    = Vertex.Create(new(-1, 2, 0), new(0, 1, 0), new(0, 2, 0));
     public static readonly Vertex MilitaryStrategyVertex  = Vertex.Create(new(1, 0, 0), new(2,  0, 0), new(2, -1, 0));
     public static readonly Vertex ConscriptionVertex      = Vertex.Create(new(1, 0, 0), new(1, -1, 0), new(2, -1, 0));
-    public static readonly Vertex MilitaryAcademyVertex   = Vertex.Create(new(1,  1, 0), new(2,  0, 0), new(2,  1, 0));
+    public static readonly Vertex GarrisonVertex   = Vertex.Create(new(1,  1, 0), new(2,  0, 0), new(2,  1, 0));
     public static readonly Vertex SteelSecretVertex       = Vertex.Create(new(2,  0, 0), new(2, -1, 0), new(3, -1, 0));
     // Branche de l'Acier (nord-est) — autour de l'hex Forges (3,-1)
     public static readonly Vertex BlastFurnaceVertex          = Vertex.Create(new(2, -1, 0), new(3, -2, 0), new(3, -1, 0));
@@ -72,7 +72,7 @@ public class PrestigeMap
     public static readonly Vertex BarbacaneVertex      = Vertex.Create(new(2, -1, 0), new(2, -2, 0), new(3, -2, 0));
     // Outer NE — east corner of ExperimentalScience (2,0)
     public static readonly Vertex OuterScienceVertex   = Vertex.Create(new(2,  0, 0), new(3,  0, 0), new(2,  1, 0));
-    // Sud de MilitaryAcademy — partage les hexes (1,1) et (2,1) avec MilitaryAcademyVertex
+    // Sud de Garrison — partage les hexes (1,1) et (2,1) avec GarrisonVertex
     public static readonly Vertex WarRoomVertex        = Vertex.Create(new(1,  1, 0), new(2,  1, 0), new(1,  2, 0));
     // Outer W connecting WarehouseMaxLevel → new NW hex (-2,0)
     public static readonly Vertex ImperialPortVertex   = Vertex.Create(new(-1,  0, 0), new(-2,  1, 0), new(-2,  0, 0));

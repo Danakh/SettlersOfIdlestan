@@ -120,9 +120,9 @@ public enum BuildingType
     /// </summary>
     TraderGuild,
     /// <summary>
-    /// Académie militaire - Augmente la capacité de soldats et la vitesse de production. Débloqué par le prestige.
+    /// Garnison - Augmente la capacité de soldats et la vitesse de production. Débloqué par le prestige.
     /// </summary>
-    MilitaryAcademy,
+    Garrison,
     /// <summary>
     /// Mine Profonde - [Legacy] Conservé uniquement pour la désérialisation des anciennes sauvegardes.
     /// La Mine Profonde est désormais une IslandFeature placée comme un Monument.
