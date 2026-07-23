@@ -2,12 +2,14 @@ using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
+using SettlersOfIdlestan.Model.GameplayModifier;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
 using SOITests.TestUtilities;
 using System.Collections.Generic;
 using System.Linq;
 using Xunit;
+using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
 
 namespace SOITests.ControllerTests;
 
@@ -290,5 +292,66 @@ public class BuildersGuildAutomationTests
         // Cooldown (1000 ticks) elapsed → auto-upgrade fires
         clock.SimulateAdvance(1100);
         Assert.Equal(2, city.Level);
+    }
+
+    // =========================================================================
+    // Test 4 — Guild automation must keep upgrading past level 5
+    // (regression: TickGuildAutomation used to search only levels 1..5)
+    // =========================================================================
+
+    [Fact]
+    public void AutoProduction_KeepsUpgrading_PastLevelFive()
+    {
+        // All-Forest map: Sawmill is the only HarvestersGuild target buildable here
+        // (Brickworks needs Hill, Quarry needs Mountain, Mill needs Plain, MushroomFarm
+        // needs MushroomCave), so the "new builds first" phase can never compete with
+        // the upgrade phase once the Sawmill exists.
+        var tiles = new List<HexTile>
+        {
+            new(C,     TerrainType.Forest),
+            new(R1_E,  TerrainType.Forest),
+            new(R1_NE, TerrainType.Forest),
+        };
+        var map = new IslandMap(tiles);
+        var civ = new Civilization { Index = 0 };
+        var city = new City(Vertex.Create(C, R1_E, R1_NE)) { CivilizationIndex = civ.Index };
+        civ.AddCity(city);
+        var state = new WorldState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
+
+        city.Buildings.Add(new TownHall { Level = 1 });
+        city.Buildings.Add(new HarvestersGuild { Level = 1 });
+
+        // Sawmill's default max level is 4; push it to 8 so the test can exercise
+        // levels above the old hard-coded search range of 1..5, and grant enough
+        // storage that resources never bottleneck the automation.
+        civ.AddCustomAggregator(new StaticModifierProvider(new[]
+        {
+            new Modifier(ECategory.BUILDING_MAX_LEVEL, nameof(BuildingType.Sawmill), EType.ADDITIVE, 4),
+            new Modifier(ECategory.STORAGE_CAPACITY_BASIC, EType.ADDITIVE, 100_000),
+        }));
+        BuildingController.RecalculateStorageCapacity(civ);
+
+        civ.AddResource(Resource.Wood,  100_000);
+        civ.AddResource(Resource.Brick, 100_000);
+
+        state.AutomationSettings.ProductionBuildingAutomationEnabled = true;
+
+        var clock = new GameClock();
+        clock.Start();
+
+        var buildingController = new BuildingController();
+        buildingController.Initialize(state, clock);
+
+        clock.SimulateAdvance(10); // first-fire guard
+
+        clock.SimulateAdvance(1100); // builds the new Sawmill (level 0 -> 1)
+        var sawmill = city.Buildings.First(b => b.Type == BuildingType.Sawmill);
+        Assert.Equal(1, sawmill.Level);
+
+        for (int expectedLevel = 2; expectedLevel <= 8; expectedLevel++)
+        {
+            clock.SimulateAdvance(1100);
+            Assert.Equal(expectedLevel, sawmill.Level);
+        }
     }
 }

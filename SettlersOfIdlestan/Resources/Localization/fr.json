@@ -161,7 +161,7 @@
   "automation_seaport_desc": "Construit/améliore les Ports maritimes automatiquement",
   "automation_seaport_locked": "Nécessite le vertex Prestige Port Impérial + un Port impérial",
   "automation_military_buildings_name": "Bâtiments militaires",
-  "automation_military_buildings_desc": "Construit/améliore les Casernes, Académies militaires, Arsenaux, Forges d'Armes et Forges d'Armures automatiquement",
+  "automation_military_buildings_desc": "Construit/améliore les Casernes, Garnisons, Arsenaux, Forges d'Armes, Forges d'Armures et Palissades automatiquement",
   "automation_military_buildings_note": "L'ordre des bâtiments améliorés est aléatoire.",
   "automation_military_buildings_locked": "Nécessite la Salle de Guerre",
   "automation_military_reinforcement_name": "Renfort",

@@ -159,7 +159,7 @@ namespace SettlersOfIdlestan.Controller.Island
         {
             if (_state == null || _clock == null) return;
             long now = _clock.CurrentTick;
-            BuildingType[] targets = [BuildingType.Barracks, BuildingType.Garrison, BuildingType.Arsenal, BuildingType.WeaponSmith, BuildingType.ArmorSmith];
+            BuildingType[] targets = [BuildingType.Barracks, BuildingType.Garrison, BuildingType.Arsenal, BuildingType.WeaponSmith, BuildingType.ArmorSmith, BuildingType.Palisade];
 
             foreach (var civ in _state.Civilizations)
             {
@@ -230,11 +230,15 @@ namespace SettlersOfIdlestan.Controller.Island
                     if (!city.Buildings.Any(b => b.Type == type) && BuildBuilding(city, type))
                         return;
 
-            foreach (int level in new[] { 1, 2, 3, 4, 5 })
-                foreach (var city in civ.Cities)
-                    foreach (var type in targets)
-                        if (city.Buildings.Any(b => b.Type == type && b.Level == level) && BuildBuilding(city, type))
-                            return;
+            var lowestLevelFirst = civ.Cities
+                .SelectMany(city => city.Buildings
+                    .Where(b => targets.Contains(b.Type))
+                    .Select(b => (city, b.Type, b.Level)))
+                .OrderBy(x => x.Level);
+
+            foreach (var (city, type, _) in lowestLevelFirst)
+                if (BuildBuilding(city, type))
+                    return;
         }
 
         /// <summary>
