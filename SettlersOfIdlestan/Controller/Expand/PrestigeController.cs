@@ -186,7 +186,7 @@ namespace SettlersOfIdlestan.Controller.Expand
         /// </summary>
         public bool CanChooseNextIslandTier() => GetGreatLighthouseLevel() >= 3;
 
-        public const int MaxNextIslandTierChoiceBonus = 10;
+        public const int MaxNextIslandTierChoiceBonus = 1;
 
         public int GetNextIslandTierChoice()
         {
