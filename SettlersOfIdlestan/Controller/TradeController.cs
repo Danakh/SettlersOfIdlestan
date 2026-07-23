@@ -24,6 +24,9 @@ namespace SettlersOfIdlestan.Controller
 
         public event Action<int, Resource, int>? GoldObtainedFromTrade;
 
+        /// <summary>Émis pour chaque vente ou achat exécuté (direction, ressource, quantité, or échangé, index civ).</summary>
+        public event Action<TradeDirection, Resource, int, int, int>? TradeExecuted;
+
         internal TradeController(WorldState? state = null)
         {
             _state = state;
@@ -124,6 +127,7 @@ namespace SettlersOfIdlestan.Controller
             civ.RemoveResource(resource, totalOffer);
             civ.AddResource(Resource.Gold, totalGold);
             GoldObtainedFromTrade?.Invoke(totalGold, resource, civilizationIndex);
+            TradeExecuted?.Invoke(TradeDirection.Sell, resource, totalOffer, totalGold, civilizationIndex);
             return true;
         }
 
@@ -146,8 +150,10 @@ namespace SettlersOfIdlestan.Controller
             if (!CanBuyResource(civIndex, resource, quantity)) return;
 
             var civ = _state.Civilizations.Find(c => c.Index == civIndex)!;
-            civ.RemoveResource(Resource.Gold, BuyRate(resource) * quantity);
+            int cost = BuyRate(resource) * quantity;
+            civ.RemoveResource(Resource.Gold, cost);
             civ.AddResource(resource, quantity);
+            TradeExecuted?.Invoke(TradeDirection.Buy, resource, quantity, cost, civIndex);
         }
 
         /// <summary>Vrai si le vertex de prestige Achat Automatique est débloqué et qu'au moins un Marché niv.4+ existe.</summary>

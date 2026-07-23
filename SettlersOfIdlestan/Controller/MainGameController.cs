@@ -60,6 +60,7 @@ namespace SettlersOfIdlestan.Controller
         public AutoExtendController AutoExtendController { get; private set; }
         public VolcanoController VolcanoController { get; private set; }
         public CivilizationHistoryController CivilizationHistoryController { get; private set; }
+        public TradeHistoryController TradeHistoryController { get; private set; }
 
         /// <summary>
         /// Statistiques cumulatives à vie (cross-sauvegarde) — chargées/sauvegardées par la couche
@@ -109,6 +110,7 @@ namespace SettlersOfIdlestan.Controller
             VolcanoController = new VolcanoController();
             NpcGameController = new NpcGameController();
             CivilizationHistoryController = new CivilizationHistoryController();
+            TradeHistoryController = new TradeHistoryController();
         }
 
         /// <summary>
@@ -390,6 +392,8 @@ namespace SettlersOfIdlestan.Controller
                 CivilizationHistoryController.Initialize(
                     WorldState, Clock,
                     RoadController, CityBuilderController, BuildingController, TradeController);
+
+                TradeHistoryController.Initialize(WorldState, Clock, TradeController);
             }
         }
 

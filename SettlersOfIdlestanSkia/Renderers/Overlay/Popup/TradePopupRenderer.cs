@@ -30,6 +30,14 @@ public sealed class TradePopupRenderer : PopupRendererBase
     private const float IconSize     = 18f;
     private const float GoldCapsuleW = 150;
 
+    private const float TabBtnWidth     = 130;
+    private const float TabBtnHeight    = 26;
+    private const float TabBtnGap       = 8;
+    private const float TabRowGap       = 8;
+    private const float HistoryRowHeight = 40;
+
+    private enum SubTab { Trade, History }
+
     private readonly GameControllerService _gameControllerService;
     private readonly LocalizationService   _localization;
     private readonly TooltipRenderer       _tooltipRenderer;
@@ -53,6 +61,9 @@ public sealed class TradePopupRenderer : PopupRendererBase
     private int?      _temporaryMultiplier;
     private int       ActiveMultiplier => _temporaryMultiplier ?? _packMultiplier;
     private SKPoint   _lastPointerPosition;
+
+    private SubTab _activeSubTab = SubTab.Trade;
+    private readonly List<(SubTab tab, SKRect rect)> _innerTabs = new();
 
     // Scroll state
     private float _currentS              = 1f;
@@ -80,6 +91,8 @@ public sealed class TradePopupRenderer : PopupRendererBase
     private readonly SKPaint _scrollTrackPaint    = new() { Color = new SKColor(50,  50,  65,  200),  Style = SKPaintStyle.Fill,   IsAntialias = true };
     private readonly SKPaint _scrollThumbPaint    = new() { Color = new SKColor(130, 130, 165, 210),  Style = SKPaintStyle.Fill,   IsAntialias = true };
     private readonly SKPaint _maxStockPaint       = new() { Color = new SKColor(220, 60,  60),        IsAntialias = true };
+    private readonly SKPaint _historyGainPaint    = new() { Color = new SKColor(90,  200, 90),        IsAntialias = true };
+    private readonly SKPaint _historyLossPaint    = new() { Color = new SKColor(220, 130, 90),        IsAntialias = true };
 
     public TradePopupRenderer(
         GameControllerService gameControllerService,
@@ -107,6 +120,7 @@ public sealed class TradePopupRenderer : PopupRendererBase
         _temporaryMultiplier      = null;
         _isDraggingScrollbar      = false;
         _scrollOffsetPx           = 0f;
+        _activeSubTab             = SubTab.Trade;
     }
 
     public void HandleKeyDown(string key)
@@ -159,7 +173,8 @@ public sealed class TradePopupRenderer : PopupRendererBase
         var   popup      = new SKRect(px, py, px + popupW, py + popupH);
         _popupRect = popup;
 
-        float headerH  = (HeaderHeight + Padding) * s;
+        float titleAreaH = (HeaderHeight + Padding) * s;
+        float headerH    = titleAreaH + (TabBtnHeight + TabRowGap) * s;
         float footerH  = (Padding + MultBtnH) * s;
         float viewportH = popupH - headerH - footerH;
         _viewportH = viewportH;
@@ -175,17 +190,25 @@ public sealed class TradePopupRenderer : PopupRendererBase
         _closeButtonRect = GetCloseRect(popup, s);
         DrawCloseButton(canvas, _closeButtonRect, s);
 
+        DrawInnerTabBar(canvas, popup, popup.Top + titleAreaH, s);
+
         // Scrollable content area
         _viewportRect = new SKRect(popup.Left, popup.Top + headerH, popup.Right, popup.Bottom - footerH);
         float contentTop = popup.Top + headerH;
         float leftX      = popup.Left + Padding * s;
         float rightX     = leftX + (ColWidth + ColGap) * s;
+        float fullWidth  = (ColWidth * 2 + ColGap) * s;
 
         canvas.Save();
         canvas.ClipRect(_viewportRect);
         canvas.Translate(0, -_scrollOffsetPx);
-        DrawSellSide(canvas, leftX, contentTop, s);
-        DrawBuySide(canvas, rightX, contentTop, s);
+        if (_activeSubTab == SubTab.History)
+            DrawHistoryTab(canvas, leftX, contentTop, fullWidth, s);
+        else
+        {
+            DrawSellSide(canvas, leftX, contentTop, s);
+            DrawBuySide(canvas, rightX, contentTop, s);
+        }
         canvas.Restore();
 
         // Fixed footer
@@ -198,9 +221,15 @@ public sealed class TradePopupRenderer : PopupRendererBase
         SetTradeTooltip();
     }
 
-    // Returns total height of the scrollable content (max of both columns)
+    // Returns total height of the scrollable content (max of both columns, or the history list)
     private float ComputeContentHeight(float s)
     {
+        if (_activeSubTab == SubTab.History)
+        {
+            int count = _gameControllerService.MainGameController.TradeHistoryController.Count;
+            return count == 0 ? 40 * s : (8 + count * (HistoryRowHeight + 4)) * s;
+        }
+
         var civ = _gameControllerService.PlayerCivilization;
         if (civ == null) return 0;
 
@@ -209,6 +238,82 @@ public sealed class TradePopupRenderer : PopupRendererBase
 
         int maxRows = Math.Max(sellCount, buyCount);
         return (26 + maxRows * (RowHeight + 4)) * s;
+    }
+
+    // ── Inner tabs (Échanger / Historique) ──────────────────────────────────────
+
+    private void DrawInnerTabBar(SKCanvas canvas, SKRect popup, float y, float s)
+    {
+        (SubTab tab, string labelKey)[] tabs =
+        {
+            (SubTab.Trade,   "trade_tab_main"),
+            (SubTab.History, "trade_tab_history"),
+        };
+
+        _innerTabs.Clear();
+        float totalWidth = (tabs.Length * TabBtnWidth + (tabs.Length - 1) * TabBtnGap) * s;
+        float tabX = popup.MidX - totalWidth / 2f;
+
+        foreach (var (tab, labelKey) in tabs)
+        {
+            var rect = new SKRect(tabX, y, tabX + TabBtnWidth * s, y + TabBtnHeight * s);
+            _innerTabs.Add((tab, rect));
+
+            bool active = _activeSubTab == tab;
+            canvas.DrawRoundRect(rect, 5 * s, 5 * s, active ? _multActiveFill : _multInactiveFill);
+            canvas.DrawRoundRect(rect, 5 * s, 5 * s, active ? _multActiveBorder : _multInactiveBorder);
+            SkiaTextUtils.DrawText(canvas, _localization.Get(labelKey), rect.MidX, rect.MidY + 5 * s, SKTextAlign.Center, BodyFont!, active ? TextPaint : SubtlePaint);
+
+            tabX += (TabBtnWidth + TabBtnGap) * s;
+        }
+    }
+
+    // ── History tab ──────────────────────────────────────────────────────────────
+
+    private void DrawHistoryTab(SKCanvas canvas, float x, float y, float width, float s)
+    {
+        var entries = _gameControllerService.MainGameController.TradeHistoryController.Entries;
+
+        float rowY = y + 4 * s;
+        bool any = false;
+        foreach (var entry in entries)
+        {
+            any = true;
+            var row = new SKRect(x, rowY, x + width, rowY + HistoryRowHeight * s);
+            DrawRowBackground(canvas, row, true, s);
+
+            float iconX = row.Left + 8 * s;
+            DrawIcon(canvas, entry.Resource, iconX, row.MidY, s);
+
+            string resName = _localization.Get($"resource_{entry.Resource.ToString().ToLower()}");
+            string entryKey = entry.Direction == TradeDirection.Sell ? "trade_history_sell_entry" : "trade_history_buy_entry";
+            string label = _localization.GetFormated(entryKey, entry.Quantity, resName);
+            SkiaTextUtils.DrawText(canvas, label, iconX + (IconSize + 5) * s, row.MidY - 3 * s, BodyFont!, TextPaint);
+
+            string goldKey = entry.Direction == TradeDirection.Sell ? "trade_history_gain" : "trade_history_loss";
+            var goldPaint = entry.Direction == TradeDirection.Sell ? _historyGainPaint : _historyLossPaint;
+            string goldText = _localization.GetFormated(goldKey, entry.Gold);
+            SkiaTextUtils.DrawText(canvas, goldText, row.Right - 10 * s, row.MidY - 3 * s, SKTextAlign.Right, _smallFont, goldPaint);
+
+            string timeText = FormatTick(entry.Tick);
+            SkiaTextUtils.DrawText(canvas, timeText, row.Right - 10 * s, row.MidY + 13 * s, SKTextAlign.Right, _smallFont, SubtlePaint);
+
+            rowY += (HistoryRowHeight + 4) * s;
+        }
+
+        if (!any)
+            SkiaTextUtils.DrawText(canvas, _localization.Get("trade_history_empty"), x + 4 * s, y + 16 * s, BodyFont!, SubtlePaint);
+    }
+
+    private static string FormatTick(long tick)
+    {
+        long totalSec = tick / 100;
+        long hours    = totalSec / 3600;
+        long minutes  = (totalSec % 3600) / 60;
+        long seconds  = totalSec % 60;
+        return hours > 0
+            ? $"{hours}h{minutes:D2}m{seconds:D2}s"
+            : $"{minutes}m{seconds:D2}s";
     }
 
     private void DrawScrollbar(SKCanvas canvas, SKRect popup, float headerH, float viewportH, float maxScroll, float s)
@@ -251,6 +356,19 @@ public sealed class TradePopupRenderer : PopupRendererBase
 
         if (_closeButtonRect.Contains(position.X, position.Y)) { Close(); return true; }
 
+        foreach (var (tab, rect) in _innerTabs)
+        {
+            if (rect.Contains(position.X, position.Y))
+            {
+                if (_activeSubTab != tab)
+                {
+                    _activeSubTab   = tab;
+                    _scrollOffsetPx = 0f;
+                }
+                return true;
+            }
+        }
+
         // Scrollbar
         if (!_scrollThumbRect.IsEmpty && _scrollThumbRect.Contains(position.X, position.Y))
         {
@@ -267,9 +385,12 @@ public sealed class TradePopupRenderer : PopupRendererBase
             return true;
         }
 
-        if (_multButton1Rect.Contains(position.X, position.Y))   { _packMultiplier = 1;   return true; }
-        if (_multButton10Rect.Contains(position.X, position.Y))  { _packMultiplier = 10;  return true; }
-        if (_multButton100Rect.Contains(position.X, position.Y)) { _packMultiplier = 100; return true; }
+        if (_activeSubTab == SubTab.Trade)
+        {
+            if (_multButton1Rect.Contains(position.X, position.Y))   { _packMultiplier = 1;   return true; }
+            if (_multButton10Rect.Contains(position.X, position.Y))  { _packMultiplier = 10;  return true; }
+            if (_multButton100Rect.Contains(position.X, position.Y)) { _packMultiplier = 100; return true; }
+        }
 
         // Content-area interactions require scroll adjustment
         if (_viewportRect.Contains(position.X, position.Y))
@@ -494,6 +615,8 @@ public sealed class TradePopupRenderer : PopupRendererBase
             SkiaTextUtils.DrawText(canvas, qtyText, iconX + goldIconSize + 5 * s, capsule.MidY + 4 * s, _smallFont, goldAtMax ? _maxStockPaint : TextPaint);
         }
 
+        if (_activeSubTab == SubTab.History) return;
+
         float totalW = (MultBtnW * 3 + MultBtnGap * 2) * s;
         float startX = popup.Right - Padding * s - totalW;
         _multButton1Rect   = new SKRect(startX,                                        barY, startX + MultBtnW * s,                    barY + MultBtnH * s);
@@ -560,6 +683,7 @@ public sealed class TradePopupRenderer : PopupRendererBase
         _rowBorderPaint.Dispose();  _rowFillPaint.Dispose();
         _scrollTrackPaint.Dispose(); _scrollThumbPaint.Dispose();
         _maxStockPaint.Dispose();
+        _historyGainPaint.Dispose(); _historyLossPaint.Dispose();
         base.Dispose();
     }
 }

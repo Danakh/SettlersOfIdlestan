@@ -339,11 +339,6 @@ public class Building
     protected readonly List<string> _actions = new();
 
     /// <summary>
-    /// Gets the list of actions associated with the building.
-    /// </summary>
-    public IReadOnlyList<string> Actions => _actions;
-
-    /// <summary>
     /// Initializes a new instance of the <see cref="Building"/> class.
     /// </summary>
     /// <param name="type">The type of the building.</param>

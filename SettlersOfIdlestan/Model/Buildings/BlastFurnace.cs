@@ -37,13 +37,13 @@ public class BlastFurnace : Building, IUniqueBuilding
 
     public override bool HasBuildPrerequisites(IBuildingContext city)
     {
-        return city.Buildings.Any(b => b.Type == BuildingType.Smelter && b.Level >= 5);
+        return city.Buildings.Any(b => b.Type == BuildingType.Smelter && b.Level >= 4);
     }
 
     public override string? GetMissingPrerequisiteKey(IBuildingContext city)
     {
         if (!HasBuildPrerequisites(city))
-            return "tooltip_requires_smelter_5";
+            return "tooltip_requires_smelter_4";
         return null;
     }
 

@@ -441,12 +441,12 @@ namespace SettlersOfIdlestan.Controller.Island
             var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex)
                       ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
 
-            EnsureVertexBuildable(civilizationIndex, vertex);
-
             var cost = NewCityBuildingCostFor(vertex, civ);
 
             if (!civ.CanPayResourceCost(cost))
                 return null;
+
+            EnsureVertexBuildable(civilizationIndex, vertex);
 
             civ.PayResourceCost(cost);
 
