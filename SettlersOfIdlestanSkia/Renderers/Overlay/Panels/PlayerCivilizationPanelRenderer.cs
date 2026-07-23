@@ -646,7 +646,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
                 var militaryController = _gameControllerService.MainGameController.MilitaryController;
                 var allyTargets = militaryController.GetWarHeraldTargets(playerCiv);
                 if (allyTargets.Count > 0)
-                    _targetSelectionService.EnterVertexSelection("warherald_select_city", allyTargets,
+                    _targetSelectionService.EnterVertexSelection("warherald_select_target", allyTargets,
                         target => militaryController.StartWarHeraldRaid(playerCiv, target),
                         TargetSelectionTheme.Friendly);
             }

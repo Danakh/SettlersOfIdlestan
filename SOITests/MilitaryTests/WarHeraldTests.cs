@@ -11,9 +11,11 @@ using Xunit;
 namespace SOITests.MilitaryTests;
 
 /// <summary>
-/// War Herald : raid gratuit et instantané sur une ville alliée, qui redirige le flux de chaque
-/// emplacement militaire de la civilisation vers la cible, sauf ceux ayant un flux d'attaque actif
-/// (ville ennemie ou monstre).
+/// War Herald : raid gratuit et instantané sur un emplacement militaire allié (ville, Flotte de
+/// Guerre ou Camp Mobile), qui redirige le flux de chaque emplacement militaire de la civilisation
+/// vers la cible si elle est à portée de renfort, sinon vers l'allié le plus proche de la cible qui
+/// est lui-même à portée de renfort (même logique de relais que le Raid classique) — sauf ceux ayant
+/// un flux d'attaque actif (ville ennemie ou monstre).
 ///
 /// Géométrie (civ 0) :
 ///   Target          — Vertex(0,0 / 0,1 / 1,0)
@@ -112,6 +114,71 @@ public class WarHeraldTests
     }
 
     [Fact]
+    public void StartWarHeraldRaid_CancelsTargetsOwnReinforcementFlow()
+    {
+        var (ctrl, civ, target, allyNoFlow, _, _) = Setup();
+        target.FlowTarget = allyNoFlow.Position;
+
+        ctrl.StartWarHeraldRaid(civ, target.Position);
+
+        Assert.Null(target.FlowTarget);
+    }
+
+    [Fact]
+    public void StartWarHeraldRaid_KeepsTargetsOwnActiveAttackFlow()
+    {
+        var (ctrl, civ, target, _, _, _) = Setup();
+        target.FlowTarget = EnemyCity;
+
+        ctrl.StartWarHeraldRaid(civ, target.Position);
+
+        Assert.Equal(EnemyCity, target.FlowTarget);
+    }
+
+    [Fact]
+    public void StartWarHeraldRaid_RelaysThroughNearestAllyWhenTargetOutOfReinforcementRange()
+    {
+        // Chaîne de vertex adjacents (même bande hexagonale que Setup()) : Relay est à distance 3 du
+        // Target (dans la portée de renfort par défaut de 5), Far est à distance 7 du Target (hors
+        // portée) mais à distance 4 de Relay (dans la portée) — Far doit donc relayer via Relay plutôt
+        // que de cibler Target directement.
+        var relayVertex = Vertex.Create(new(1, 1, IslandMap.SurfaceLayer), new(2, 0, IslandMap.SurfaceLayer), new(2, 1, IslandMap.SurfaceLayer));
+        var farVertex = Vertex.Create(new(3, 1, IslandMap.SurfaceLayer), new(4, 0, IslandMap.SurfaceLayer), new(4, 1, IslandMap.SurfaceLayer));
+
+        var civ = new Civilization { Index = 0 };
+        var target = new City(Target) { CivilizationIndex = 0 };
+        target.Buildings.Add(new Barracks { Level = 1 });
+        var relay = new City(relayVertex) { CivilizationIndex = 0 };
+        relay.Buildings.Add(new Barracks { Level = 1 });
+        var far = new City(farVertex) { CivilizationIndex = 0 };
+        civ.AddCity(target);
+        civ.AddCity(relay);
+        civ.AddCity(far);
+
+        var map = new IslandMap([
+            new HexTile(new HexCoord(0, 0, IslandMap.SurfaceLayer), TerrainType.Plain),
+            new HexTile(new HexCoord(0, 1, IslandMap.SurfaceLayer), TerrainType.Plain),
+            new HexTile(new HexCoord(1, 0, IslandMap.SurfaceLayer), TerrainType.Plain),
+            new HexTile(new HexCoord(1, 1, IslandMap.SurfaceLayer), TerrainType.Plain),
+            new HexTile(new HexCoord(2, 0, IslandMap.SurfaceLayer), TerrainType.Plain),
+            new HexTile(new HexCoord(2, 1, IslandMap.SurfaceLayer), TerrainType.Plain),
+            new HexTile(new HexCoord(3, 1, IslandMap.SurfaceLayer), TerrainType.Plain),
+            new HexTile(new HexCoord(4, 0, IslandMap.SurfaceLayer), TerrainType.Plain),
+            new HexTile(new HexCoord(4, 1, IslandMap.SurfaceLayer), TerrainType.Plain),
+        ]);
+        var state = new WorldState(map, [civ], AtlasController.InvalidIslandId);
+        var clock = new GameClock();
+        clock.Start();
+        var ctrl = new MilitaryController();
+        ctrl.Initialize(state, clock);
+
+        ctrl.StartWarHeraldRaid(civ, target.Position);
+
+        Assert.Equal(target.Position, relay.FlowTarget);
+        Assert.Equal(relay.Position, far.FlowTarget);
+    }
+
+    [Fact]
     public void GetWarHeraldTargets_ReturnsOnlyOwnCities()
     {
         var (ctrl, civ, target, allyNoFlow, allyAttacking, allyPatrolling) = Setup();
@@ -124,6 +191,54 @@ public class WarHeraldTests
         Assert.Contains(allyAttacking.Position, targets);
         Assert.Contains(allyPatrolling.Position, targets);
         Assert.DoesNotContain(EnemyCity, targets);
+    }
+
+    [Fact]
+    public void GetWarHeraldTargets_IncludesFleetsAndMobileCamps()
+    {
+        var civ = new Civilization { Index = 0 };
+        var city = new City(Target) { CivilizationIndex = 0 };
+        var fleet = new WarFleet(AllyNoFlow) { CivilizationIndex = 0 };
+        var camp = new MobileCamp(AllyAttacking) { CivilizationIndex = 0 };
+        civ.AddCity(city);
+        civ.AddFleet(fleet);
+        civ.AddMobileCamp(camp);
+
+        var state = new WorldState(BuildMap(), [civ], AtlasController.InvalidIslandId);
+        var clock = new GameClock();
+        clock.Start();
+        var ctrl = new MilitaryController();
+        ctrl.Initialize(state, clock);
+
+        var targets = ctrl.GetWarHeraldTargets(civ);
+
+        Assert.Equal(3, targets.Count);
+        Assert.Contains(city.Position, targets);
+        Assert.Contains(fleet.Position, targets);
+        Assert.Contains(camp.Position, targets);
+    }
+
+    [Fact]
+    public void StartWarHeraldRaid_CanTargetAFleetOrMobileCamp()
+    {
+        var civ = new Civilization { Index = 0 };
+        var city = new City(Target) { CivilizationIndex = 0 };
+        var fleet = new WarFleet(AllyNoFlow) { CivilizationIndex = 0 };
+        var camp = new MobileCamp(AllyAttacking) { CivilizationIndex = 0 };
+        civ.AddCity(city);
+        civ.AddFleet(fleet);
+        civ.AddMobileCamp(camp);
+
+        var state = new WorldState(BuildMap(), [civ], AtlasController.InvalidIslandId);
+        var clock = new GameClock();
+        clock.Start();
+        var ctrl = new MilitaryController();
+        ctrl.Initialize(state, clock);
+
+        ctrl.StartWarHeraldRaid(civ, fleet.Position);
+
+        Assert.Equal(fleet.Position, city.FlowTarget);
+        Assert.Equal(fleet.Position, camp.FlowTarget);
     }
 
     [Fact]

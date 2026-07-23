@@ -67,9 +67,9 @@ internal class RaidEngine
         return targets;
     }
 
-    /// <summary>Villes de la civilisation elle-même, ciblables par War Herald.</summary>
+    /// <summary>Emplacements militaires de la civilisation elle-même (villes, flottes, camps mobiles), ciblables par War Herald.</summary>
     internal List<Vertex> GetSelectableAlliedTargets(Civilization civ)
-        => civ.Cities.Select(c => c.Position).ToList();
+        => civ.MilitaryVertices.Select(v => v.Position).ToList();
 
     internal List<HexCoord> GetSelectableMonsterTargets()
     {
@@ -128,26 +128,53 @@ internal class RaidEngine
     }
 
     /// <summary>
-    /// War Herald : raid gratuit et instantané sur une ville alliée (de la civilisation elle-même).
-    /// Redirige le flux de chaque emplacement militaire de la civilisation (sur le même layer que la
-    /// cible) vers la ville ciblée, sauf ceux ayant un flux d'attaque actif (ville ennemie ou
-    /// monstre) — contrairement au Raid classique, aucun upkeep et aucun suivi dans le temps.
+    /// War Herald : raid gratuit et instantané sur un emplacement militaire allié (ville, Flotte de
+    /// Guerre ou Camp Mobile de la civilisation elle-même). Redirige le flux de chaque emplacement
+    /// militaire de la civilisation (sur le même layer que la cible) vers la cible si elle est à
+    /// portée de renfort, sinon vers l'allié le plus proche de la cible qui est lui-même à portée de
+    /// renfort — même logique de relais que le Raid classique (voir ApplyRaidFlows). Les emplacements
+    /// ayant un flux d'attaque actif (ville ennemie ou monstre) ne sont pas redirigés — contrairement
+    /// au Raid classique, aucun upkeep et aucun suivi dans le temps. La cible elle-même annule son
+    /// propre flux de renfort (mais garde un flux d'attaque actif s'il y en a un) : elle ne doit pas
+    /// continuer à s'écouler vers un autre allié pendant qu'elle est renforcée.
     /// </summary>
     internal void StartWarHeraldRaid(Civilization civ, Vertex target)
     {
         if (_reinforcementEngine == null) return;
         int targetZ = target.Z;
+        int reinforcementRange = _reinforcementEngine.ReinforcementRange(civ);
+        var verticesInLayer = civ.MilitaryVertices.Where(v => v.Position.Z == targetZ).ToList();
 
-        foreach (var vertex in civ.MilitaryVertices)
+        foreach (var vertex in verticesInLayer)
         {
-            if (vertex.Position.Z != targetZ) continue;
-            if (vertex.Position.Equals(target)) continue;
-
             bool hasActiveAttackFlow = vertex.MonsterAttackTarget != null
                 || (vertex.FlowTarget != null && _reinforcementEngine.IsEnemyCityAt(vertex.FlowTarget, civ));
             if (hasActiveAttackFlow) continue;
 
-            _reinforcementEngine.SetCityFlow(vertex, target);
+            if (vertex.Position.Equals(target))
+            {
+                if (vertex.FlowTarget != null)
+                    _reinforcementEngine.SetCityFlow(vertex, null);
+                continue;
+            }
+
+            int distToTarget = vertex.Position.EdgeDistanceTo(target);
+            if (distToTarget <= reinforcementRange)
+            {
+                _reinforcementEngine.SetCityFlow(vertex, target);
+            }
+            else
+            {
+                // Renforce l'allié le plus proche de la cible qui est aussi à portée de renfort
+                var nearestAlly = verticesInLayer
+                    .Where(a => a != vertex
+                             && a.Position.EdgeDistanceTo(target) < distToTarget
+                             && vertex.Position.EdgeDistanceTo(a.Position) <= reinforcementRange)
+                    .OrderBy(a => a.Position.EdgeDistanceTo(target))
+                    .FirstOrDefault();
+
+                _reinforcementEngine.SetCityFlow(vertex, nearestAlly?.Position);
+            }
         }
     }
 
