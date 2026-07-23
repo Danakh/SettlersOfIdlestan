@@ -286,4 +286,10 @@ public class MilitaryController
     public void StartRaid(Civilization civ, Vertex target) => _raidEngine.StartRaid(civ, target);
     public void StartMonsterRaid(Civilization civ, HexCoord target) => _raidEngine.StartMonsterRaid(civ, target);
     public void StopRaid(Civilization civ) => _raidEngine.StopRaid(civ);
+
+    // ── War Herald ───────────────────────────────────────────────────────────
+
+    public bool IsWarHeraldUnlocked(Civilization civ) => _raidEngine.IsWarHeraldUnlocked(civ);
+    public List<Vertex> GetWarHeraldTargets(Civilization civ) => _raidEngine.GetSelectableAlliedTargets(civ);
+    public void StartWarHeraldRaid(Civilization civ, Vertex target) => _raidEngine.StartWarHeraldRaid(civ, target);
 }

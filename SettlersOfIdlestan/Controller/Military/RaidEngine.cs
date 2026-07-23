@@ -38,6 +38,9 @@ internal class RaidEngine
     internal bool IsRaidUnlocked(Civilization civ)
         => civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_RAID);
 
+    internal bool IsWarHeraldUnlocked(Civilization civ)
+        => civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_WAR_HERALD);
+
     internal bool IsRaidActive()
         => _state?.AutomationSettings.RaidTargetVertex != null || _state?.AutomationSettings.RaidTargetHex != null;
 
@@ -63,6 +66,10 @@ internal class RaidEngine
         }
         return targets;
     }
+
+    /// <summary>Villes de la civilisation elle-même, ciblables par War Herald.</summary>
+    internal List<Vertex> GetSelectableAlliedTargets(Civilization civ)
+        => civ.Cities.Select(c => c.Position).ToList();
 
     internal List<HexCoord> GetSelectableMonsterTargets()
     {
@@ -118,6 +125,30 @@ internal class RaidEngine
             .Where(c => c.Position.Z == targetHex.Z)
             .OrderBy(c => c.Position.GetHexes().Max(h => h.DistanceTo(targetHex)));
         WarnIfMissingBarracksNearTarget(nearestCities);
+    }
+
+    /// <summary>
+    /// War Herald : raid gratuit et instantané sur une ville alliée (de la civilisation elle-même).
+    /// Redirige le flux de chaque emplacement militaire de la civilisation (sur le même layer que la
+    /// cible) vers la ville ciblée, sauf ceux ayant un flux d'attaque actif (ville ennemie ou
+    /// monstre) — contrairement au Raid classique, aucun upkeep et aucun suivi dans le temps.
+    /// </summary>
+    internal void StartWarHeraldRaid(Civilization civ, Vertex target)
+    {
+        if (_reinforcementEngine == null) return;
+        int targetZ = target.Z;
+
+        foreach (var vertex in civ.MilitaryVertices)
+        {
+            if (vertex.Position.Z != targetZ) continue;
+            if (vertex.Position.Equals(target)) continue;
+
+            bool hasActiveAttackFlow = vertex.MonsterAttackTarget != null
+                || (vertex.FlowTarget != null && _reinforcementEngine.IsEnemyCityAt(vertex.FlowTarget, civ));
+            if (hasActiveAttackFlow) continue;
+
+            _reinforcementEngine.SetCityFlow(vertex, target);
+        }
     }
 
     /// <summary>

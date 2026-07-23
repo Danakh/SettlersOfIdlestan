@@ -51,6 +51,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
     private SKRect _greatLighthouseButtonRect = SKRect.Empty;
     private SKRect _deepestMineButtonRect = SKRect.Empty;
     private SKRect _raidButtonRect     = SKRect.Empty;
+    private SKRect _warHeraldButtonRect = SKRect.Empty;
     private SKRect _spireButtonRect    = SKRect.Empty;
     private SKRect _relocationButtonRect = SKRect.Empty;
     private SKRect _walkOfGodButtonRect = SKRect.Empty;
@@ -58,7 +59,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
     private readonly List<(SKRect rect, string pinKey, string tooltipKey)> _pinnedItemRects = new();
     private int _hoveredPinnedIndex = -1;
 
-    private bool _hoveredTrade, _hoveredPrestige, _hoveredWonder, _hoveredDeepestMine, _hoveredRaid, _hoveredSpire, _hoveredRelocation, _hoveredWalkOfGod, _hoveredPresenceOfGod, _hoveredGreatLighthouse;
+    private bool _hoveredTrade, _hoveredPrestige, _hoveredWonder, _hoveredDeepestMine, _hoveredRaid, _hoveredWarHerald, _hoveredSpire, _hoveredRelocation, _hoveredWalkOfGod, _hoveredPresenceOfGod, _hoveredGreatLighthouse;
     private bool _wonderEnabled;
     private bool _greatLighthouseEnabled;
     private bool _deepestMineEnabled;
@@ -167,6 +168,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         _spireEnabled = spireVisible && context.CurrentLayer == LayerState.UnderworldZ;
         bool raidVisible   = IsRaidVisible();
         bool raidActive    = raidVisible && IsRaidActive();
+        bool warHeraldVisible = IsWarHeraldVisible();
         bool relocationVisible = IsRelocationVisible();
         _relocationEnabled = relocationVisible && CanAffordRelocation();
         var ascensionController = _gameControllerService.MainGameController.AscensionController;
@@ -185,14 +187,14 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         var worldState = _gameControllerService.CurrentWorldState;
         var pinned = _gameControllerService.CurrentGameState?.Settings.PinnedCivPanelKeys ?? (IReadOnlySet<string>)new HashSet<string>();
 
-        bool showActions  = tradeVisible || prestigeVisible || wonderVisible || greatLighthouseVisible || deepestMineVisible || spireVisible || raidVisible || relocationVisible || walkOfGodVisible || presenceOfGodVisible;
+        bool showActions  = tradeVisible || prestigeVisible || wonderVisible || greatLighthouseVisible || deepestMineVisible || spireVisible || raidVisible || warHeraldVisible || relocationVisible || walkOfGodVisible || presenceOfGodVisible;
         bool showControls = pinned.Any(k => IsKeyShowable(k, civ, worldState, hasBarracks, hasLabs, hasSmelters, hasArsenals, hasWeaponSmiths, hasArmorSmiths, hasAlchimistHuts));
 
         // Single source of truth for the action-button count — reused for both the
         // panel height measurement and the button-grid layout so they can't drift apart.
-        int actionCount = (tradeVisible ? 1 : 0) + (prestigeVisible ? 1 : 0) + (wonderVisible ? 1 : 0) + (greatLighthouseVisible ? 1 : 0) + (deepestMineVisible ? 1 : 0) + (spireVisible ? 1 : 0) + (raidVisible ? 1 : 0) + (relocationVisible ? 1 : 0) + (walkOfGodVisible ? 1 : 0) + (presenceOfGodVisible ? 1 : 0);
+        int actionCount = (tradeVisible ? 1 : 0) + (prestigeVisible ? 1 : 0) + (wonderVisible ? 1 : 0) + (greatLighthouseVisible ? 1 : 0) + (deepestMineVisible ? 1 : 0) + (spireVisible ? 1 : 0) + (raidVisible ? 1 : 0) + (warHeraldVisible ? 1 : 0) + (relocationVisible ? 1 : 0) + (walkOfGodVisible ? 1 : 0) + (presenceOfGodVisible ? 1 : 0);
 
-        _tradeButtonRect = _prestigeButtonRect = _wonderButtonRect = _greatLighthouseButtonRect = _deepestMineButtonRect = _spireButtonRect = _raidButtonRect = _relocationButtonRect = _walkOfGodButtonRect = _presenceOfGodButtonRect = SKRect.Empty;
+        _tradeButtonRect = _prestigeButtonRect = _wonderButtonRect = _greatLighthouseButtonRect = _deepestMineButtonRect = _spireButtonRect = _raidButtonRect = _warHeraldButtonRect = _relocationButtonRect = _walkOfGodButtonRect = _presenceOfGodButtonRect = SKRect.Empty;
         _pinnedItemRects.Clear();
 
         if (!showActions && !showControls)
@@ -317,6 +319,13 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
                 SkiaTextUtils.DrawText(canvas, raidLabel, _raidButtonRect.MidX, _raidButtonRect.MidY + 4f * s, SKTextAlign.Center, _btnSmFont, TextPaint);
             }
 
+            if (warHeraldVisible)
+            {
+                _warHeraldButtonRect = BtnRect(btnIdx++);
+                canvas.DrawRoundRect(_warHeraldButtonRect, 6 * s, 6 * s, _hoveredWarHerald ? _btnHoverPaint : _btnPaint);
+                SkiaTextUtils.DrawText(canvas, _localization.Get("warherald_action_short"), _warHeraldButtonRect.MidX, _warHeraldButtonRect.MidY + 4f * s, SKTextAlign.Center, _btnSmFont, TextPaint);
+            }
+
             if (relocationVisible)
             {
                 _relocationButtonRect = BtnRect(btnIdx++);
@@ -426,6 +435,8 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
                 _localization.Get("raid_upkeep_cost")
             }, new SKPoint(_raidButtonRect.Right, _raidButtonRect.Top));
         }
+        else if (_hoveredWarHerald)
+            _tooltipRenderer.SetTooltip(_localization.Get("tooltip_warherald"), new SKPoint(_warHeraldButtonRect.Right, _warHeraldButtonRect.Top));
         else if (_hoveredPrestige && prestigeAvail && prestigeVisible)
         {
             _tooltipRenderer.SetTooltip(_localization.Get("tooltip_prestige_next_island"), new SKPoint(_prestigeButtonRect.Right, _prestigeButtonRect.Top));
@@ -523,6 +534,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         _hoveredDeepestMine = !_deepestMineButtonRect.IsEmpty && _deepestMineButtonRect.Contains(pos.X, pos.Y);
         _hoveredSpire       = !_spireButtonRect.IsEmpty       && _spireButtonRect.Contains(pos.X, pos.Y);
         _hoveredRaid        = !_raidButtonRect.IsEmpty        && _raidButtonRect.Contains(pos.X, pos.Y);
+        _hoveredWarHerald   = !_warHeraldButtonRect.IsEmpty   && _warHeraldButtonRect.Contains(pos.X, pos.Y);
         _hoveredRelocation  = !_relocationButtonRect.IsEmpty  && _relocationButtonRect.Contains(pos.X, pos.Y);
         _hoveredWalkOfGod   = !_walkOfGodButtonRect.IsEmpty   && _walkOfGodButtonRect.Contains(pos.X, pos.Y);
         _hoveredPresenceOfGod = !_presenceOfGodButtonRect.IsEmpty && _presenceOfGodButtonRect.Contains(pos.X, pos.Y);
@@ -621,6 +633,22 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
                         cityTargets, target => militaryController.StartRaid(playerCiv, target),
                         monsterTargets, target => militaryController.StartMonsterRaid(playerCiv, target),
                         TargetSelectionTheme.Hostile);
+            }
+            return true;
+        }
+
+        if (!_warHeraldButtonRect.IsEmpty && _warHeraldButtonRect.Contains(pos.X, pos.Y) && _targetSelectionService != null)
+        {
+            var playerCiv = _gameControllerService.PlayerCivilization;
+            if (playerCiv != null)
+            {
+                _closeAll();
+                var militaryController = _gameControllerService.MainGameController.MilitaryController;
+                var allyTargets = militaryController.GetWarHeraldTargets(playerCiv);
+                if (allyTargets.Count > 0)
+                    _targetSelectionService.EnterVertexSelection("warherald_select_city", allyTargets,
+                        target => militaryController.StartWarHeraldRaid(playerCiv, target),
+                        TargetSelectionTheme.Friendly);
             }
             return true;
         }
@@ -859,6 +887,14 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
     private bool IsRaidActive()
     {
         try { return _gameControllerService.MainGameController.MilitaryController.IsRaidActive(); }
+        catch { return false; }
+    }
+
+    private bool IsWarHeraldVisible()
+    {
+        var civ = _gameControllerService.PlayerCivilization;
+        if (civ == null) return false;
+        try { return _gameControllerService.MainGameController.MilitaryController.IsWarHeraldUnlocked(civ); }
         catch { return false; }
     }
 

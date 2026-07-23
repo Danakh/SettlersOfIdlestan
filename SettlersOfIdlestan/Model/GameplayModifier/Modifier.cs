@@ -193,6 +193,8 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             INLAND_CITY_LEVEL_CAP,
             /// <summary>Flags que la Guilde des bâtisseurs peut aussi automatiser routes et avant-postes dans l'Inframonde (SubCategory unused, voir RoadController.PerformBuildersGuildConstruction et CityBuilderController.PerformBuildersGuildOutpostConstruction).</summary>
             UNLOCK_BUILDERS_GUILD_UNDERWORLD,
+            /// <summary>Flags que l'action War Herald (raid gratuit sur une ville alliée, redirigeant les flux de renfort) est déverrouillée pour la civilisation du joueur.</summary>
+            UNLOCK_WAR_HERALD,
         }
 
         [JsonConverter(typeof(JsonStringEnumConverter<EType>))]

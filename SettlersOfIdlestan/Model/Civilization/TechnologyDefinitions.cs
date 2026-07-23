@@ -362,6 +362,17 @@ public static class TechnologyDefinitions
             tier: 8, line: 8,
             repeatable: true),
 
+        // Un tier au-dessus d'EntrainementIntensif, qui devient son seul prérequis — également
+        // débloquée par le vertex de prestige Raids (voir PrestigeMapFactory, SiegeTrainingVertex).
+        // Raid gratuit sur une ville alliée : redirige tous les flux de renfort vers la cible, sauf
+        // les emplacements ayant un flux d'attaque actif (voir RaidEngine.StartWarHeraldRaid).
+        new(TechnologyId.WarHerald,
+            "tech_war_herald_name", "tech_war_herald_desc",
+            cost: 30000000,
+            prerequisites: new[] { TechnologyId.EntrainementIntensif },
+            modifiers: new Modifier[] { new(ECategory.UNLOCK_WAR_HERALD, EType.ADDITIVE, 1) },
+            tier: 9, line: 8),
+
         // Remontée d'une ligne (voir CLAUDE.md) ; dépend désormais des Remparts de Mithril plutôt que
         // du Camp Mobile. Prend la place d'AdvancedStrategy dans l'arbre (voir Technology.cs) :
         // patrouille automatique qui raide via le système de Raid les monstres qui s'approchent d'une
@@ -373,12 +384,13 @@ public static class TechnologyDefinitions
             modifiers: new Modifier[] { new(ECategory.UNLOCK_PATROL, EType.ADDITIVE, 1) },
             tier: 10, line: 7),
 
-        // Un tier au-dessus de Patrol, qui devient son seul prérequis. Raids automatiques sur une
-        // civilisation : la cible se met à jour après un raid manuel du joueur ou une attaque subie.
+        // Un tier au-dessus de Patrol. Raids automatiques sur une civilisation : la cible se met à
+        // jour après un raid manuel du joueur ou une attaque subie. Prérequis supplémentaire :
+        // WarHerald (voir Technology.cs).
         new(TechnologyId.Vendetta,
             "tech_vendetta_name", "tech_vendetta_desc",
             cost: 400000000,
-            prerequisites: new[] { TechnologyId.Patrol },
+            prerequisites: new[] { TechnologyId.Patrol, TechnologyId.WarHerald },
             modifiers: new Modifier[] { new(ECategory.UNLOCK_VENDETTA, EType.ADDITIVE, 1) },
             tier: 11, line: 7),
 

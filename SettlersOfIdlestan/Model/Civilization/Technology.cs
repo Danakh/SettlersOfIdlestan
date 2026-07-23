@@ -64,10 +64,15 @@ public enum TechnologyId
     // Répétable à l'infini (comme MasterHarvest) : +5% UNIT_PRODUCTION_SPEED par complétion, coût
     // doublé à chaque relance. Un tier au-dessus du Camp Mobile, son seul prérequis.
     EntrainementIntensif,
+    // Un tier au-dessus d'EntrainementIntensif (seul prérequis), également débloquée par le vertex
+    // de prestige Raids. Raid gratuit sur une ville alliée : redirige tous les flux de renfort vers
+    // la cible, sauf les emplacements ayant un flux d'attaque actif.
+    WarHerald,
     // Patrouille anti-monstres automatique — prend la place d'AdvancedStrategy dans l'arbre (voir
     // TechnologyDefinitions).
     Patrol,
-    // Un tier au-dessus de Patrol (seul prérequis) — raids automatiques sur une civilisation.
+    // Un tier au-dessus de Patrol — raids automatiques sur une civilisation. Prérequis
+    // supplémentaire : WarHerald.
     Vendetta,
     AutomaticMarket,
     Speleologie,

@@ -372,7 +372,11 @@ public static class PrestigeMapFactory
                 PrestigeMap.SiegeTrainingVertex,
                 "prestige_vertex_raid_action",
                 cost: Cost(PrestigeMap.SiegeTrainingVertex),
-                modifiers: new Modifier[] { new(ECategory.UNLOCK_RAID, EType.ADDITIVE, 1) }
+                modifiers: new Modifier[]
+                {
+                    new(ECategory.UNLOCK_RAID, EType.ADDITIVE, 1),
+                    new(ECategory.UNLOCK_RESEARCH, "WarHerald", EType.ADDITIVE, 1),
+                }
             ),
             new(
                 PrestigeMap.OuterScienceVertex,
