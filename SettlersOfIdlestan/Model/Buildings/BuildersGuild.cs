@@ -6,6 +6,9 @@ public class BuildersGuild : Building
 {
     public long LastRoadBuildTick { get; set; }
     public long LastOutpostBuildTick { get; set; }
+    public long LastTownHallBuildTick { get; set; }
+
+    public long GetAutoTownHallCooldownTicks() => 1000L;
 
     /// <summary>Flat reduction (Wood and Brick) applied to road build costs.</summary>
     public int RoadCostReduction => Level switch

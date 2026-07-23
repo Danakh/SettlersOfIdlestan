@@ -254,4 +254,41 @@ public class BuildersGuildAutomationTests
         Assert.Empty(roadController.GetBuildableRoadsAtDistance(0, 1));
         Assert.Equal(roadsAtSaturation + 2, civ.Roads.Count);
     }
+
+    // =========================================================================
+    // Test 3 — BuildersGuild auto-upgrades the TownHall as soon as guild level 1
+    // =========================================================================
+
+    [Fact]
+    public void AutoTownHall_UpgradesTownHall_AssoonAsGuildLevelOne()
+    {
+        var state = IslandTestFactory.CreateSevenHexIslandState();
+        var civ   = state.Civilizations[0];
+        var city  = civ.Cities[0];
+
+        city.Buildings.Add(new TownHall { Level = 1 });
+        city.Buildings.Add(new BuildersGuild { Level = 1 });
+        BuildingController.RecalculateStorageCapacity(civ);
+
+        civ.AddResource(Resource.Food,  10);
+        civ.AddResource(Resource.Wood,  10);
+        civ.AddResource(Resource.Brick, 10);
+        civ.AddResource(Resource.Stone, 10);
+
+        state.AutomationSettings.TownHallAutomationEnabled = true;
+
+        var clock = new GameClock();
+        clock.Start();
+
+        var buildingController = new BuildingController();
+        buildingController.Initialize(state, clock);
+
+        // First tick just initialises the timer (first-fire guard)
+        clock.SimulateAdvance(10);
+        Assert.Equal(1, city.Level);
+
+        // Cooldown (1000 ticks) elapsed → auto-upgrade fires
+        clock.SimulateAdvance(1100);
+        Assert.Equal(2, city.Level);
+    }
 }

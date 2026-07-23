@@ -79,6 +79,8 @@ namespace SettlersOfIdlestan.Controller.Island
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[BuildingController] {nameof(PerformImperialPortSeaportAutomation)}: {ex}"); }
             try { PerformWarRoomAutomation(); }
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[BuildingController] {nameof(PerformWarRoomAutomation)}: {ex}"); }
+            try { PerformTownHallGuildAutomation(); }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[BuildingController] {nameof(PerformTownHallGuildAutomation)}: {ex}"); }
         }
 
         private void PerformHarvestersGuildProductionAutomation()
@@ -168,6 +170,24 @@ namespace SettlersOfIdlestan.Controller.Island
                 long tick = warRoom.LastMilitaryBuildTick;
                 TickGuildAutomation(civ, ref tick, warRoom.GetAutoMilitaryCooldownTicks(), enabled, targets, now);
                 warRoom.LastMilitaryBuildTick = tick;
+            }
+        }
+
+        private void PerformTownHallGuildAutomation()
+        {
+            if (_state == null || _clock == null) return;
+            long now = _clock.CurrentTick;
+            BuildingType[] targets = [BuildingType.TownHall];
+
+            foreach (var civ in _state.Civilizations)
+            {
+                if (civ.GetUniqueBuilding(BuildingType.BuildersGuild) is not BuildersGuild guild || guild.Level == 0) continue;
+
+                bool isPlayer = civ.Index == _state.PlayerCivilization.Index;
+                bool enabled = !isPlayer || _state.AutomationSettings.TownHallAutomationEnabled;
+                long tick = guild.LastTownHallBuildTick;
+                TickGuildAutomation(civ, ref tick, guild.GetAutoTownHallCooldownTicks(), enabled, targets, now);
+                guild.LastTownHallBuildTick = tick;
             }
         }
 

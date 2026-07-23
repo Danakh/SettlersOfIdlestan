@@ -7,6 +7,9 @@ public class AutomationSettings
     public bool RoadAutomationEnabled { get; set; } = true;
     public bool OutpostAutomationEnabled { get; set; } = false;
 
+    /// <summary>Automatisation de l'amélioration de l'Hôtel de Ville par la Guilde des bâtisseurs (dès niveau 1), voir BuildingController.PerformTownHallGuildAutomation.</summary>
+    public bool TownHallAutomationEnabled { get; set; } = false;
+
     /// <summary>Comme RoadAutomationEnabled, mais pour l'automatisation des routes dans l'Inframonde (nécessite la recherche Cartographie Souterraine, voir RoadController.PerformBuildersGuildConstruction).</summary>
     public bool RoadAutomationEnabledUnderworld { get; set; } = true;
 

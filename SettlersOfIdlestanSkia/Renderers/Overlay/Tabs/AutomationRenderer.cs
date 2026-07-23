@@ -33,6 +33,7 @@ public sealed class AutomationRenderer : IDisposable
     internal const string PinKeyOutpost       = "Outpost";
     internal const string PinKeyRoadUnderworld    = "RoadUnderworld";
     internal const string PinKeyOutpostUnderworld = "OutpostUnderworld";
+    internal const string PinKeyTownHall      = "TownHall";
     internal const string PinKeyProduction    = "Production";
     internal const string PinKeyArtisan       = "Artisan";
     internal const string PinKeyLibrary       = "Library";
@@ -62,6 +63,7 @@ public sealed class AutomationRenderer : IDisposable
     private SKRect _outpostToggleRect = SKRect.Empty;
     private SKRect _roadUnderworldToggleRect = SKRect.Empty;
     private SKRect _outpostUnderworldToggleRect = SKRect.Empty;
+    private SKRect _townHallToggleRect = SKRect.Empty;
     private SKRect _productionToggleRect = SKRect.Empty;
     private SKRect _artisanToggleRect = SKRect.Empty;
     private SKRect _libraryToggleRect = SKRect.Empty;
@@ -83,6 +85,7 @@ public sealed class AutomationRenderer : IDisposable
     private bool _hoveredOutpostToggle;
     private bool _hoveredRoadUnderworldToggle;
     private bool _hoveredOutpostUnderworldToggle;
+    private bool _hoveredTownHallToggle;
     private bool _hoveredProductionToggle;
     private bool _hoveredArtisanToggle;
     private bool _hoveredLibraryToggle;
@@ -141,6 +144,7 @@ public sealed class AutomationRenderer : IDisposable
     private readonly SKFont _descFont    = new() { Size = 11, Typeface = SkiaFonts.Regular };
     private readonly SKFont _summaryFont = new() { Size = 10, Typeface = SkiaFonts.Regular };
 
+    private static readonly BuildingType[] TownHallTypes   = [BuildingType.TownHall];
     private static readonly BuildingType[] ProductionTypes = [BuildingType.Sawmill, BuildingType.Brickworks, BuildingType.Quarry, BuildingType.Mill, BuildingType.MushroomFarm];
     private static readonly BuildingType[] ArtisanTypes    = [BuildingType.Forge, BuildingType.Warehouse, BuildingType.GlassWorks, BuildingType.Smelter];
     private static readonly BuildingType[] LibraryTypes    = [BuildingType.Library, BuildingType.Laboratory];
@@ -264,6 +268,16 @@ public sealed class AutomationRenderer : IDisposable
         {
             _outpostUnderworldToggleRect = SKRect.Empty;
             rowH = DrawLockedRow(canvas, leftX, leftY, colWidth, _localization.Get("automation_outpost_underworld_name"), _localization.Get("automation_outpost_underworld_locked"));
+        }
+        leftY += rowH + RowSpacing;
+
+        bool townHallUnlocked = buildersGuild != null && buildersGuild.Level >= 1;
+        if (townHallUnlocked)
+            (_townHallToggleRect, rowH) = DrawAutomationRow(canvas, leftX, leftY, colWidth, WorldState.AutomationSettings.TownHallAutomationEnabled, _hoveredTownHallToggle, _localization.Get("automation_townhall_name"), _localization.Get("automation_townhall_desc"), _localization.Get("automation_townhall_note"), civ.Cities, TownHallTypes, PinKeyTownHall, _hoveredPinKey == PinKeyTownHall, pinned.Contains(PinKeyTownHall));
+        else
+        {
+            _townHallToggleRect = SKRect.Empty;
+            rowH = DrawLockedRow(canvas, leftX, leftY, colWidth, _localization.Get("automation_townhall_name"), _localization.Get("automation_townhall_locked"));
         }
         leftY += rowH + RowSpacing;
 
@@ -653,6 +667,7 @@ public sealed class AutomationRenderer : IDisposable
         _hoveredOutpostToggle                = !_outpostToggleRect.IsEmpty                && _outpostToggleRect.Contains(adj.X, adj.Y);
         _hoveredRoadUnderworldToggle         = !_roadUnderworldToggleRect.IsEmpty         && _roadUnderworldToggleRect.Contains(adj.X, adj.Y);
         _hoveredOutpostUnderworldToggle      = !_outpostUnderworldToggleRect.IsEmpty      && _outpostUnderworldToggleRect.Contains(adj.X, adj.Y);
+        _hoveredTownHallToggle               = !_townHallToggleRect.IsEmpty               && _townHallToggleRect.Contains(adj.X, adj.Y);
         _hoveredProductionToggle             = !_productionToggleRect.IsEmpty             && _productionToggleRect.Contains(adj.X, adj.Y);
         _hoveredArtisanToggle                = !_artisanToggleRect.IsEmpty                && _artisanToggleRect.Contains(adj.X, adj.Y);
         _hoveredLibraryToggle                = !_libraryToggleRect.IsEmpty                && _libraryToggleRect.Contains(adj.X, adj.Y);
@@ -736,6 +751,11 @@ public sealed class AutomationRenderer : IDisposable
         if (!_outpostUnderworldToggleRect.IsEmpty && _outpostUnderworldToggleRect.Contains(adj.X, adj.Y))
         {
             state.AutomationSettings.OutpostAutomationEnabledUnderworld = !state.AutomationSettings.OutpostAutomationEnabledUnderworld;
+            return true;
+        }
+        if (!_townHallToggleRect.IsEmpty && _townHallToggleRect.Contains(adj.X, adj.Y))
+        {
+            state.AutomationSettings.TownHallAutomationEnabled = !state.AutomationSettings.TownHallAutomationEnabled;
             return true;
         }
         if (!_productionToggleRect.IsEmpty && _productionToggleRect.Contains(adj.X, adj.Y))
