@@ -3,15 +3,12 @@ The changelog is not actively maintained at the moment.
 
 ---
 
-v0.11
-
----
-
 v0.10
 • Sales History: new tab in the Market window tracking your recent purchases and sales
 • War Herald: new high-tier military research unlocking a free raid on one of your own cities, redirecting all reinforcements toward it
 • Extended Builders Guild automation: automatic Town Hall upgrades, Palisade construction, and (with the Underground Cartography research) automatic roads and outposts in the Underworld
 • New automation setting: automatic investment in Monuments (Wonder, etc.)
+• Resource tooltips: production and consumption breakdown by source
 
 ---
 
