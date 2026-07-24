@@ -785,6 +785,185 @@ namespace SettlersOfIdlestan.Controller.Island
             return result;
         }
 
+        /// <summary>Clé de localisation "building_{type}_name" utilisée comme identifiant de source dans les tooltips.</summary>
+        private static string BuildingSourceKey(BuildingType type) => $"building_{type.ToString().ToLowerInvariant()}_name";
+
+        /// <summary>Clé de source pour la génération passive de ressources (Grotte aux Perles, Arbre-Cœur, vertex de prestige, etc.).</summary>
+        public const string PassiveGenerationSourceKey = "tooltip_source_passive_generation";
+
+        /// <summary>Clé de source pour l'entretien en nourriture des soldats.</summary>
+        public const string SoldierUpkeepSourceKey = "tooltip_source_soldier_upkeep";
+
+        private static void AddSourceRate(System.Collections.Generic.Dictionary<Resource, System.Collections.Generic.List<(string SourceKey, double Rate)>> dict, Resource resource, string sourceKey, double rate)
+        {
+            if (rate <= 0.0001) return;
+            if (!dict.TryGetValue(resource, out var list))
+                dict[resource] = list = new System.Collections.Generic.List<(string, double)>();
+            for (int i = 0; i < list.Count; i++)
+            {
+                if (list[i].SourceKey == sourceKey)
+                {
+                    list[i] = (sourceKey, list[i].Rate + rate);
+                    return;
+                }
+            }
+            list.Add((sourceKey, rate));
+        }
+
+        /// <summary>
+        /// Comme <see cref="GetAverageProductionRatesPerSecond"/>, mais détaille chaque source de production
+        /// (bâtiment, génération passive...) séparément, pour affichage détaillé en tooltip.
+        /// </summary>
+        public System.Collections.Generic.Dictionary<Resource, System.Collections.Generic.List<(string SourceKey, double Rate)>> GetProductionRatesBySource(int civilizationIndex)
+        {
+            var result = new System.Collections.Generic.Dictionary<Resource, System.Collections.Generic.List<(string SourceKey, double Rate)>>();
+            if (_state == null) return result;
+
+            var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex);
+            if (civ == null) return result;
+
+            var entries = GetOrBuildProductionCache(civilizationIndex);
+            var hexAllowed = new System.Collections.Generic.Dictionary<HexCoord, bool>();
+            var hexMultiplier = new System.Collections.Generic.Dictionary<HexCoord, double>();
+            long now = _clock?.CurrentTick ?? 0L;
+
+            foreach (var (hex, city, building, resource) in entries)
+            {
+                if (!hexAllowed.TryGetValue(hex, out bool allowed))
+                {
+                    allowed = !_state.GetFeaturesAt(hex).Any(f => f.BlocksHarvestFor(civ))
+                           && _monsterController?.HasDepartureCooldown(hex, now) != true;
+                    hexAllowed[hex] = allowed;
+                }
+                if (!allowed) continue;
+
+                if (!hexMultiplier.TryGetValue(hex, out double featureMultiplier))
+                {
+                    featureMultiplier = GetHexHarvestTimeMultiplier(civ, hex);
+                    hexMultiplier[hex] = featureMultiplier;
+                }
+
+                long raw = building.GetAutomaticHarvestCooldown(AutomaticHarvestCooldownTicks);
+                double speedMultiplier = civ.ModifierAggregator.ApplyModifiers(ECategory.HARVEST_SPEED, building.Type.ToString(), 1.0);
+                long effective = Math.Max(1L, (long)(raw / speedMultiplier));
+                effective = Math.Max(1L, (long)(effective * featureMultiplier));
+
+                var forge = city.Buildings.OfType<Forge>().FirstOrDefault();
+                int forgeChance = forge != null && forge.Level > 0 ? forge.DoubleProdChancePercent + civ.ForgeDoubleHarvestBonus * forge.Level : 0;
+                int harvestProductionChance = civ.GetHarvestProductionBonus(building.Type.ToString());
+                double expectedMultiplier = (1 + forgeChance / 100.0) * (1 + harvestProductionChance / 100.0);
+                double ratePerSecond = 100.0 / effective * expectedMultiplier;
+
+                string sourceKey = BuildingSourceKey(building.Type);
+                AddSourceRate(result, resource, sourceKey, ratePerSecond);
+                if (building is Mine && resource == Resource.Ore && civ.MineGoldChancePercent > 0)
+                {
+                    double goldChance = civ.MineGoldChancePercent / 100.0;
+                    AddSourceRate(result, Resource.Gold, sourceKey, ratePerSecond * goldChance);
+                }
+            }
+
+            foreach (var city in civ.Cities)
+            {
+                var seaport = city.Buildings.OfType<Seaport>().FirstOrDefault();
+                if (seaport != null && seaport.Level >= 3)
+                {
+                    long effectiveCooldown = GetEffectiveSeaportGenerationCooldown(seaport);
+                    double seaportRate = 100.0 / effectiveCooldown;
+                    string seaportKey = BuildingSourceKey(BuildingType.Seaport);
+                    foreach (var basicResource in ResourceUtils.BasicResources)
+                        AddSourceRate(result, basicResource, seaportKey, seaportRate / ResourceUtils.BasicResources.Count);
+                }
+
+                var market = city.Buildings.OfType<Market>().FirstOrDefault();
+                if (market != null && market.Level > 0)
+                    AddSourceRate(result, Resource.Gold, BuildingSourceKey(BuildingType.Market), 100.0 / GetEffectiveMarketGoldGenerationCooldown(civ, market.Level));
+
+                var smelter = city.Buildings.OfType<Smelter>().FirstOrDefault();
+                if (smelter != null && smelter.Level >= 1 && smelter.ActivationStatus == ActivationStatus.ACTIVE)
+                {
+                    double cyclesPerSecond = 100.0 / GetEffectiveSmelterCooldown(civ, smelter);
+                    AddSourceRate(result, Resource.Steel, BuildingSourceKey(BuildingType.Smelter), GetSmelterSteelOutput(civ) * cyclesPerSecond);
+                }
+
+                var weaponSmith = city.Buildings.OfType<WeaponSmith>().FirstOrDefault();
+                if (weaponSmith != null && weaponSmith.Level >= 1 && weaponSmith.ActivationStatus == ActivationStatus.ACTIVE)
+                    AddSourceRate(result, Resource.SteelWeapon, BuildingSourceKey(BuildingType.WeaponSmith), 100.0 / GetWeaponSmithInterval(weaponSmith.Level));
+
+                var armorSmith = city.Buildings.OfType<ArmorSmith>().FirstOrDefault();
+                if (armorSmith != null && armorSmith.Level >= 1 && armorSmith.ActivationStatus == ActivationStatus.ACTIVE)
+                    AddSourceRate(result, Resource.SteelArmor, BuildingSourceKey(BuildingType.ArmorSmith), 100.0 / GetArmorSmithInterval(armorSmith.Level));
+
+                var hut = city.Buildings.OfType<AlchimistHut>().FirstOrDefault(h => h.Level >= 1);
+                if (hut != null && civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_HEALING_POTION) && hut.ActivationStatus == ActivationStatus.ACTIVE)
+                    AddSourceRate(result, Resource.HealingPotion, BuildingSourceKey(BuildingType.AlchimistHut), 100.0 / GetAlchimistHutPotionInterval(hut.Level));
+            }
+
+            double alchimistHutCrystalRate = GetAlchimistHutCrystalRatePerSecond(civilizationIndex);
+            if (alchimistHutCrystalRate > 0.0001)
+                AddSourceRate(result, Resource.Crystal, BuildingSourceKey(BuildingType.AlchimistHut), alchimistHutCrystalRate);
+
+            foreach (Resource resource in Enum.GetValues<Resource>())
+            {
+                double amount = civ.ModifierAggregator.ApplyModifiers(ECategory.PASSIVE_RESOURCE_GENERATION, resource.ToString(), 0);
+                if (amount > 0)
+                    AddSourceRate(result, resource, PassiveGenerationSourceKey, amount);
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Comme <see cref="GetAverageConsumptionRatesPerSecond"/>, mais détaille chaque source de consommation
+        /// (entretien soldats, intrants de bâtiments de transformation...) séparément, pour affichage en tooltip.
+        /// </summary>
+        public System.Collections.Generic.Dictionary<Resource, System.Collections.Generic.List<(string SourceKey, double Rate)>> GetConsumptionRatesBySource(int civilizationIndex)
+        {
+            var result = new System.Collections.Generic.Dictionary<Resource, System.Collections.Generic.List<(string SourceKey, double Rate)>>();
+            if (_state == null) return result;
+
+            var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex);
+            if (civ == null) return result;
+
+            int freePerCity = (int)civ.ModifierAggregator.ApplyModifiers(ECategory.SOLDIER_FOOD_FREE_PER_CITY, "", 0.0);
+            int totalNeedingFood = 0;
+            foreach (var city in civ.Cities)
+                totalNeedingFood += Math.Max(0, city.Soldiers - freePerCity);
+            if (totalNeedingFood > 0)
+                AddSourceRate(result, Resource.Food, SoldierUpkeepSourceKey, totalNeedingFood / (MilitaryController.SoldierFeedIntervalTicks / 100.0));
+
+            foreach (var city in civ.Cities)
+            {
+                var smelter = city.Buildings.OfType<Smelter>().FirstOrDefault();
+                if (smelter != null && smelter.Level >= 1 && smelter.ActivationStatus == ActivationStatus.ACTIVE)
+                {
+                    double cyclesPerSecond = 100.0 / GetEffectiveSmelterCooldown(civ, smelter);
+                    string smelterKey = BuildingSourceKey(BuildingType.Smelter);
+                    AddSourceRate(result, Resource.Ore, smelterKey, GetSmelterOreInput(civ) * cyclesPerSecond);
+                    AddSourceRate(result, Resource.Wood, smelterKey, Smelter.WoodInputPerCycle * cyclesPerSecond);
+                }
+
+                var weaponSmith = city.Buildings.OfType<WeaponSmith>().FirstOrDefault();
+                if (weaponSmith != null && weaponSmith.Level >= 1 && weaponSmith.ActivationStatus == ActivationStatus.ACTIVE)
+                    AddSourceRate(result, Resource.Steel, BuildingSourceKey(BuildingType.WeaponSmith), WeaponSmith.SteelInputPerWeapon * 100.0 / GetWeaponSmithInterval(weaponSmith.Level));
+
+                var armorSmith = city.Buildings.OfType<ArmorSmith>().FirstOrDefault();
+                if (armorSmith != null && armorSmith.Level >= 1 && armorSmith.ActivationStatus == ActivationStatus.ACTIVE)
+                    AddSourceRate(result, Resource.Steel, BuildingSourceKey(BuildingType.ArmorSmith), ArmorSmith.SteelInputPerArmor * 100.0 / GetArmorSmithInterval(armorSmith.Level));
+
+                var hut = city.Buildings.OfType<AlchimistHut>().FirstOrDefault(h => h.Level >= 1);
+                if (hut != null && civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_HEALING_POTION) && hut.ActivationStatus == ActivationStatus.ACTIVE)
+                {
+                    double cyclesPerSecond = 100.0 / GetAlchimistHutPotionInterval(hut.Level);
+                    string hutKey = BuildingSourceKey(BuildingType.AlchimistHut);
+                    AddSourceRate(result, Resource.Glass, hutKey, AlchimistHut.GlassInputPerPotion * cyclesPerSecond);
+                    AddSourceRate(result, Resource.Crystal, hutKey, AlchimistHut.CrystalInputPerPotion * cyclesPerSecond);
+                }
+            }
+
+            return result;
+        }
+
         /// <summary>Cristaux/seconde récoltés par les Tours de Mages sur des Grottes de Cristal, pour la civilisation donnée.</summary>
         public double GetMageTowerCrystalRatePerSecond(int civilizationIndex)
         {

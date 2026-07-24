@@ -138,6 +138,9 @@ namespace SettlersOfIdlestan.Controller.Magic
         /// <summary>Puissance actuellement consommée par les rituels actifs.</summary>
         public int UsedPower => _state?.Magic.ActiveRituals.Sum(r => r.Power) ?? 0;
 
+        /// <summary>Clé de source pour l'entretien en cristaux des rituels actifs.</summary>
+        public const string RitualUpkeepSourceKey = "tooltip_source_ritual_upkeep";
+
         /// <summary>Décomposition du débit net de cristaux par source, pour affichage (tooltip).</summary>
         public readonly record struct CrystalRateBreakdown(
             double AlchimistHutPerSecond,

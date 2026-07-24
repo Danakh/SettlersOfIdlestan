@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestanSkia.Services.Localization;
@@ -294,29 +295,36 @@ public sealed class OverlayRenderer : IGameRenderer
         var controller = _gameControllerService.MainGameController;
         int civIndex = worldState.PlayerCivilization.Index;
 
-        var gains = controller.HarvestController.GetAverageProductionRatesPerSecond(civIndex);
-        var losses = controller.HarvestController.GetAverageConsumptionRatesPerSecond(civIndex);
+        var gainsBySource = controller.HarvestController.GetProductionRatesBySource(civIndex);
+        var lossesBySource = controller.HarvestController.GetConsumptionRatesBySource(civIndex);
 
         if (hoveredResource.Value == SettlersOfIdlestan.Model.IslandMap.Resource.Crystal)
         {
             double crystalUpkeep = controller.MagicController.GetCrystalRateBreakdown().RitualUpkeepPerSecond;
             if (crystalUpkeep > 0.0001)
-                losses[SettlersOfIdlestan.Model.IslandMap.Resource.Crystal] =
-                    (losses.TryGetValue(SettlersOfIdlestan.Model.IslandMap.Resource.Crystal, out var prev) ? prev : 0.0) + crystalUpkeep;
+            {
+                if (!lossesBySource.TryGetValue(SettlersOfIdlestan.Model.IslandMap.Resource.Crystal, out var crystalLosses))
+                    lossesBySource[SettlersOfIdlestan.Model.IslandMap.Resource.Crystal] = crystalLosses = new System.Collections.Generic.List<(string SourceKey, double Rate)>();
+                crystalLosses.Add((SettlersOfIdlestan.Controller.Magic.MagicController.RitualUpkeepSourceKey, crystalUpkeep));
+            }
         }
 
-        bool hasGain = gains.TryGetValue(hoveredResource.Value, out double gain) && gain > 0.0001;
-        bool hasLoss = losses.TryGetValue(hoveredResource.Value, out double loss) && loss > 0.0001;
+        gainsBySource.TryGetValue(hoveredResource.Value, out var gains);
+        lossesBySource.TryGetValue(hoveredResource.Value, out var losses);
+        gains ??= new System.Collections.Generic.List<(string SourceKey, double Rate)>();
+        losses ??= new System.Collections.Generic.List<(string SourceKey, double Rate)>();
 
-        if (!hasGain && !hasLoss)
+        if (gains.Count == 0 && losses.Count == 0)
         {
             _tooltipRenderer.SetTooltip(resourceName, _lastPointerPosition);
             return;
         }
 
         var lines = new System.Collections.Generic.List<string> { resourceName };
-        if (hasGain) lines.Add($"+{gain:F2}/s");
-        if (hasLoss) lines.Add($"-{loss:F2}/s");
+        foreach (var (sourceKey, rate) in gains.OrderByDescending(g => g.Rate))
+            lines.Add($"{_localization.Get(sourceKey)} : +{rate:F2}/s");
+        foreach (var (sourceKey, rate) in losses.OrderByDescending(l => l.Rate))
+            lines.Add($"{_localization.Get(sourceKey)} : -{rate:F2}/s");
         _tooltipRenderer.SetTooltipLines(lines.ToArray(), _lastPointerPosition);
     }
 
