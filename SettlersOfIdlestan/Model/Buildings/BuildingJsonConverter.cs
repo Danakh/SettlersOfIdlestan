@@ -27,6 +27,13 @@ namespace SettlersOfIdlestan.Model.Buildings
             else if (typeProp.ValueKind == JsonValueKind.String)
             {
                 var s = typeProp.GetString();
+
+                // Chaque remap ci-dessous doit porter un commentaire précisant la version qui a
+                // introduit le besoin (renommage/suppression du type), pour la traçabilité des
+                // anciennes sauvegardes.
+                // [Legacy remap v0.11] "MilitaryAcademy" renommé en "Garrison".
+                if (s == "MilitaryAcademy") s = "Garrison";
+
                 if (!Enum.TryParse<BuildingType>(s, out bType))
                     throw new JsonException($"Unknown building type: {s}");
             }

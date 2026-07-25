@@ -3,6 +3,10 @@ Le changelog n'est pas activement mis à jour pour le moment.
 
 ---
 
+v0.11
+
+---
+
 v0.10
 • Historique des ventes : nouvel onglet dans la fenêtre de Marché retraçant vos achats et ventes récents
 • Héraut de Guerre : nouvelle recherche militaire de haut niveau débloquant un raid gratuit sur une de vos villes, redirigeant tous les renforts vers elle
