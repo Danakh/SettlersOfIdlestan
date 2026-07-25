@@ -3,11 +3,13 @@ using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.GameplayModifier;
 using SettlersOfIdlestan.Model.HexGrid;
+using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.IslandMap;
 using SOITests.TestUtilities;
 using System.Collections.Generic;
 using System.Linq;
 using Xunit;
+using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
 
 namespace SOITests.ControllerTests;
 
@@ -243,5 +245,79 @@ public class BuildingControllerTests
         // Check max level after modifier (should be 3: 0 + 3)
         int maxLevelAfter = controller.GetMaxLevel(library, civ);
         Assert.Equal(3, maxLevelAfter);
+    }
+
+    private static void UnlockAlchimistHut(Civilization civ)
+    {
+        civ.TechnologyTree.Modifiers.Add(new Modifier(
+            ECategory.BUILDING_MAX_LEVEL, BuildingType.AlchimistHut.ToString(), EType.ADDITIVE, 3));
+        civ.TechnologyTree.NotifyModifiersChanged();
+    }
+
+    [Fact]
+    public void BuildBuilding_AlchimistHutWithoutFairyCircle_ReturnsFalseAndKeepsResources()
+    {
+        var (state, controller, city) = CreateTestSetup();
+        var civ = state.Civilizations[0];
+        city.Buildings.Add(new TownHall { Level = 1 });
+        UnlockAlchimistHut(civ);
+        civ.SetStorageCapacityCache(1000, 1000);
+
+        civ.AddResource(Resource.Stone, 100);
+        civ.AddResource(Resource.Glass, 100);
+        civ.AddResource(Resource.Gold, 100);
+
+        var result = controller.BuildBuilding(city, BuildingType.AlchimistHut);
+
+        Assert.False(result);
+        Assert.DoesNotContain(city.Buildings, b => b.Type == BuildingType.AlchimistHut);
+        Assert.Equal(100, civ.GetResourceQuantity(Resource.Stone));
+    }
+
+    [Fact]
+    public void BuildBuilding_AlchimistHutAdjacentToFoundFairyCircle_Succeeds()
+    {
+        var (state, controller, city) = CreateTestSetup();
+        var civ = state.Civilizations[0];
+        city.Buildings.Add(new TownHall { Level = 1 });
+        UnlockAlchimistHut(civ);
+        civ.SetStorageCapacityCache(1000, 1000);
+        state.AddFeature(new FairyCircle(new HexCoord(0, 0, IslandMap.SurfaceLayer)) { Found = true });
+
+        civ.AddResource(Resource.Stone, 100);
+        civ.AddResource(Resource.Glass, 100);
+        civ.AddResource(Resource.Gold, 100);
+
+        var result = controller.BuildBuilding(city, BuildingType.AlchimistHut);
+
+        Assert.True(result);
+        Assert.Contains(city.Buildings, b => b.Type == BuildingType.AlchimistHut);
+    }
+
+    [Fact]
+    public void GetBuildingsAndBuildables_AlchimistHutWithoutFairyCircle_IsHiddenFromList()
+    {
+        var (state, controller, city) = CreateTestSetup();
+        var civ = state.Civilizations[0];
+        city.Buildings.Add(new TownHall { Level = 1 });
+        UnlockAlchimistHut(civ);
+
+        var buildings = controller.GetBuildingsAndBuildables(city);
+
+        Assert.DoesNotContain(buildings, b => b.Type == BuildingType.AlchimistHut);
+    }
+
+    [Fact]
+    public void GetBuildingsAndBuildables_AlchimistHutAdjacentToFoundFairyCircle_AppearsInList()
+    {
+        var (state, controller, city) = CreateTestSetup();
+        var civ = state.Civilizations[0];
+        city.Buildings.Add(new TownHall { Level = 1 });
+        UnlockAlchimistHut(civ);
+        state.AddFeature(new FairyCircle(new HexCoord(0, 0, IslandMap.SurfaceLayer)) { Found = true });
+
+        var buildings = controller.GetBuildingsAndBuildables(city);
+
+        Assert.Contains(buildings, b => b.Type == BuildingType.AlchimistHut);
     }
 }
