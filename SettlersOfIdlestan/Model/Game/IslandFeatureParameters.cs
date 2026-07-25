@@ -1,5 +1,8 @@
+using System.Text.Json.Serialization;
+
 namespace SettlersOfIdlestan.Model.Game
 {
+    [JsonConverter(typeof(JsonStringEnumConverter<IslandFeatureType>))]
     public enum IslandFeatureType
     {
         Bandit,
@@ -10,6 +13,7 @@ namespace SettlersOfIdlestan.Model.Game
         Volcano,
     }
 
+    [JsonConverter(typeof(JsonStringEnumConverter<IslandFeaturePlacement>))]
     public enum IslandFeaturePlacement
     {
         CloseToPlayer,

@@ -1,5 +1,8 @@
+using System.Text.Json.Serialization;
+
 namespace SettlersOfIdlestan.Model.Achievements;
 
+[JsonConverter(typeof(JsonStringEnumConverter<AchievementId>))]
 public enum AchievementId
 {
     FirstPrestige,

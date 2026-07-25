@@ -1,8 +1,11 @@
+using System.Text.Json.Serialization;
+
 namespace SettlersOfIdlestan.Model.Magic;
 
 /// <summary>
 /// Identifiant d'un sort instantané.
 /// </summary>
+[JsonConverter(typeof(JsonStringEnumConverter<SpellId>))]
 public enum SpellId
 {
     /// <summary>Abondance — consomme des cristaux pour produire de l'or immédiatement.</summary>
@@ -18,6 +21,7 @@ public enum SpellId
 /// <see cref="AllyCity"/> : le joueur doit désigner une de ses propres villes.
 /// <see cref="BuildableVertex"/> : le joueur doit désigner un vertex où il peut fonder une ville.
 /// </summary>
+[JsonConverter(typeof(JsonStringEnumConverter<SpellTargetKind>))]
 public enum SpellTargetKind
 {
     None,

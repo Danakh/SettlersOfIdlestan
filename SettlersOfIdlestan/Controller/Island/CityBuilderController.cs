@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Serialization;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
@@ -26,6 +27,7 @@ namespace SettlersOfIdlestan.Controller.Island
 
     /// <summary>What caused a city to be destroyed — lets subscribers of <see cref="CityBuilderController.OnCityDestroyed"/>
     /// distinguish military conquest from monster attacks where that matters (e.g. task/achievement tracking).</summary>
+    [JsonConverter(typeof(JsonStringEnumConverter<CityDestructionCause>))]
     public enum CityDestructionCause
     {
         Combat,

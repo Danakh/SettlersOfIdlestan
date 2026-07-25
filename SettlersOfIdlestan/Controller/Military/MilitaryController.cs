@@ -6,6 +6,7 @@ using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Monsters;
+using System.Text.Json.Serialization;
 using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
 
 namespace SettlersOfIdlestan.Controller.Military;
@@ -39,6 +40,7 @@ public class ReinforcementEventArgs(Vertex sourceCity, Vertex targetCity, List<V
 /// Résultat de <see cref="MilitaryController.GetMonsterAttackAvailability"/> : indique si un emplacement
 /// militaire peut attaquer une MonsterFeature donnée, et pourquoi sinon.
 /// </summary>
+[JsonConverter(typeof(JsonStringEnumConverter<MonsterAttackAvailability>))]
 public enum MonsterAttackAvailability
 {
     /// <summary>Attaque possible (corps-à-corps à distance ≤ 1, ou distance 2 avec Surveillance + Tour de guet).</summary>

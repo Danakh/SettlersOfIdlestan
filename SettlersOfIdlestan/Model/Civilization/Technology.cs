@@ -153,6 +153,7 @@ public enum TechnologyId
     BastionConsacre,
 }
 
+[JsonConverter(typeof(JsonStringEnumConverter<TechnologyStatus>))]
 public enum TechnologyStatus
 {
     Inactive,
