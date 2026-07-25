@@ -40,7 +40,9 @@ public class BonusIslandTests
             var state = generator.GenerateWorldState(MakeParameters(hasBonusIsland: false, IslandShapeType.Compact), currentTick: 0);
 
             Assert.NotNull(state);
-            Assert.Empty(state!.Features);
+            // Seuls des Cercles de Fées invisibles (pré-placés par masse continentale, voir
+            // IslandMapGenerator.PlaceInvisibleFairyCircles) peuvent être présents sans île bonus.
+            Assert.All(state!.Features, f => Assert.True(f is FairyCircle { IsVisible: false }));
         }
     }
 
@@ -61,13 +63,16 @@ public class BonusIslandTests
             var state = generator.GenerateWorldState(MakeParameters(hasBonusIsland: true, shape), currentTick: 0);
             Assert.NotNull(state);
 
-            if (state!.Features.Count == 0)
+            // Les Cercles de Fées invisibles pré-placés par masse continentale (voir
+            // IslandMapGenerator.PlaceInvisibleFairyCircles) ne comptent pas comme la feature bonus.
+            var visibleFeatures = state!.Features.Where(f => f is not FairyCircle circle || circle.IsVisible).ToList();
+            if (visibleFeatures.Count == 0)
                 continue; // tirage 50% raté pour ce seed — acceptable
 
             foundAtLeastOneBonusIsland = true;
 
-            Assert.Single(state.Features);
-            var feature = state.Features[0];
+            Assert.Single(visibleFeatures);
+            var feature = visibleFeatures[0];
             Assert.True(feature is TreasureTrove || feature is FairyCircle || feature is Dragon);
 
             var map = state.GetMapForZ(IslandMap.SurfaceLayer)!;

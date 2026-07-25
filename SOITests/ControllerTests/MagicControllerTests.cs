@@ -276,10 +276,21 @@ namespace SOITests.ControllerTests
 
         // ── Cercles de Fées ───────────────────────────────────────────────────
 
+        private static void AddInvisibleCircles(WorldState state, int landmassIndex, int count)
+        {
+            for (int i = 0; i < count; i++)
+                state.AddFeature(new FairyCircle(new HexCoord(100 + landmassIndex * 10 + i, 0, IslandMap.SurfaceLayer))
+                {
+                    IsVisible = false,
+                    LandmassIndex = landmassIndex,
+                });
+        }
+
         [Fact]
-        public void EnsureMagicFeatures_SpawnsFeaturesFromModifiers()
+        public void EnsureMagicFeatures_RevealsInvisibleCirclesUpToQuota()
         {
             var (state, _, controller) = CreateSetup();
+            AddInvisibleCircles(state, landmassIndex: 0, count: 3);
             state.PlayerCivilization.AddCustomAggregator(new StaticModifierProvider(new List<Modifier>
             {
                 new(ECategory.MAGIC_FEATURE_COUNT, "FairyCircle", EType.ADDITIVE, 2),
@@ -287,11 +298,57 @@ namespace SOITests.ControllerTests
 
             controller.EnsureMagicFeatures();
 
-            Assert.Equal(2, state.Features.OfType<FairyCircle>().Count());
+            var circles = state.Features.OfType<FairyCircle>().ToList();
+            Assert.Equal(3, circles.Count);
+            Assert.Equal(2, circles.Count(f => f.IsVisible));
 
-            // Idempotent : pas de doublons au second appel
+            // Idempotent : pas de création/suppression, toujours 2 visibles au second appel
             controller.EnsureMagicFeatures();
-            Assert.Equal(2, state.Features.OfType<FairyCircle>().Count());
+            Assert.Equal(3, state.Features.OfType<FairyCircle>().Count());
+            Assert.Equal(2, state.Features.OfType<FairyCircle>().Count(f => f.IsVisible));
+        }
+
+        [Fact]
+        public void EnsureMagicFeatures_EachLandmassRevealsIndependently()
+        {
+            var (state, _, controller) = CreateSetup();
+            AddInvisibleCircles(state, landmassIndex: 0, count: 3);
+            AddInvisibleCircles(state, landmassIndex: 1, count: 3);
+            state.PlayerCivilization.AddCustomAggregator(new StaticModifierProvider(new List<Modifier>
+            {
+                new(ECategory.MAGIC_FEATURE_COUNT, "FairyCircle", EType.ADDITIVE, 2),
+            }));
+
+            controller.EnsureMagicFeatures();
+
+            var circles = state.Features.OfType<FairyCircle>().ToList();
+            Assert.Equal(2, circles.Count(f => f.LandmassIndex == 0 && f.IsVisible));
+            Assert.Equal(2, circles.Count(f => f.LandmassIndex == 1 && f.IsVisible));
+        }
+
+        [Fact]
+        public void EnsureMagicFeatures_NoModifier_RevealsNothing()
+        {
+            var (state, _, controller) = CreateSetup();
+            AddInvisibleCircles(state, landmassIndex: 0, count: 2);
+
+            controller.EnsureMagicFeatures();
+
+            Assert.Equal(0, state.Features.OfType<FairyCircle>().Count(f => f.IsVisible));
+        }
+
+        [Fact]
+        public void IsDiscoverable_FalseWhenInvisible()
+        {
+            var circle = new FairyCircle(new HexCoord(0, 0, IslandMap.SurfaceLayer)) { IsVisible = false };
+            Assert.False(circle.IsDiscoverable);
+        }
+
+        [Fact]
+        public void IsDiscoverable_TrueWhenVisibleAndNotFound()
+        {
+            var circle = new FairyCircle(new HexCoord(0, 0, IslandMap.SurfaceLayer));
+            Assert.True(circle.IsDiscoverable);
         }
 
         [Fact]

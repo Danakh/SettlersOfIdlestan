@@ -468,36 +468,28 @@ namespace SettlersOfIdlestan.Controller.Magic
         }
 
         /// <summary>
-        /// Fait apparaître les Cercles de Fées manquants sur la surface,
-        /// selon le modificateur MAGIC_FEATURE_COUNT (vertex de prestige).
+        /// Révèle les Cercles de Fées débloqués par les vertex de prestige (MAGIC_FEATURE_COUNT), masse
+        /// continentale par masse continentale : chacune atteint indépendamment le même quota, au lieu de
+        /// se le partager globalement. Les Cercles sont tous pré-placés (invisibles) dès la génération de
+        /// la carte par IslandMapGenerator.PlaceInvisibleFairyCircles ; cette méthode ne fait que basculer
+        /// IsVisible sur les cercles manquants de chaque masse (FairyCircle.LandmassIndex), sans jamais en
+        /// créer ni en retirer — aucun calcul de géométrie ni tirage aléatoire à l'exécution.
         /// </summary>
         public void EnsureMagicFeatures()
         {
             if (_state == null || _state.Civilizations.Count == 0) return;
 
-            var aggregator = _state.PlayerCivilization.ModifierAggregator;
-            int targetCircles = aggregator.ApplyModifiers(ECategory.MAGIC_FEATURE_COUNT, nameof(FairyCircle), 0);
+            int targetPerLandmass = _state.PlayerCivilization.ModifierAggregator
+                .ApplyModifiers(ECategory.MAGIC_FEATURE_COUNT, nameof(FairyCircle), 0);
+            if (targetPerLandmass <= 0) return;
 
-            SpawnMissingFeatures(targetCircles - _state.Features.OfType<FairyCircle>().Count(), pos => new FairyCircle(pos));
-        }
-
-        private void SpawnMissingFeatures(int missing, Func<HexCoord, IslandFeature> factory)
-        {
-            if (missing <= 0 || _state == null) return;
-            if (!_state.TryGetMapForZ(IslandMap.SurfaceLayer, out var map)) return;
-
-            var occupied = new HashSet<HexCoord>(_state.Features.Select(f => f.Position));
-            var candidates = map.Tiles.Values
-                .Where(t => !t.TerrainType.IsWater() && !occupied.Contains(t.Coord))
-                .Select(t => t.Coord)
-                .ToList();
-
-            for (int i = 0; i < missing && candidates.Count > 0; i++)
+            foreach (var landmassCircles in _state.Features.OfType<FairyCircle>().GroupBy(f => f.LandmassIndex))
             {
-                int index = _prng!.Next(candidates.Count);
-                var position = candidates[index];
-                candidates.RemoveAt(index);
-                _state.AddFeature(factory(position));
+                int toReveal = targetPerLandmass - landmassCircles.Count(f => f.IsVisible);
+                if (toReveal <= 0) continue;
+
+                foreach (var circle in landmassCircles.Where(f => !f.IsVisible).Take(toReveal))
+                    circle.IsVisible = true;
             }
         }
 

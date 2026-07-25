@@ -36,6 +36,15 @@ public abstract class IslandFeature
     public HexCoord Position { get; set; }
     public bool Found { get; set; } = false;
 
+    /// <summary>
+    /// False tant que cette feature n'a pas été explicitement révélée (ex. Cercle de Fées pré-placé
+    /// à la génération, invisible jusqu'à l'achat du vertex de prestige correspondant — voir
+    /// MagicController.EnsureMagicFeatures). Une feature invisible ne peut jamais être marquée Found
+    /// par le brouillard de guerre (voir IsDiscoverable) : elle ne compte donc pour aucun des usages
+    /// basés sur Found (rendu, prérequis de construction, récolte...). True par défaut.
+    /// </summary>
+    public bool IsVisible { get; set; } = true;
+
     public abstract GameEventType DiscoveredEventType { get; }
     public abstract GameEventType RemovedEventType { get; }
 
@@ -64,7 +73,7 @@ public abstract class IslandFeature
     /// True tant que la feature peut encore être découverte.
     /// Les sous-classes peuvent rajouter leurs conditions (ex. non réclamée).
     /// </summary>
-    public virtual bool IsDiscoverable => !Found;
+    public virtual bool IsDiscoverable => !Found && IsVisible;
 
     /// <summary>
     /// Nom de la ressource SVG à afficher sur la carte (ex. "Resources.icons.features.chest.svg").

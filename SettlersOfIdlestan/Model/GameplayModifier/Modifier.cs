@@ -101,7 +101,11 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             RITUAL_TOTAL_POWER,
             /// <summary>Fraction de réduction du coût d'entretien des rituels (0.2 = -20%).</summary>
             RITUAL_UPKEEP_REDUCTION,
-            /// <summary>Nombre de features magiques présentes sur l'île. SubCategory = "FairyCircle".</summary>
+            /// <summary>
+            /// Nombre de Cercles de Fées révélés sur CHAQUE masse continentale de la carte, indépendamment
+            /// les unes des autres (voir MagicController.EnsureMagicFeatures et FairyCircle.MaxPerLandmass).
+            /// SubCategory = "FairyCircle".
+            /// </summary>
             MAGIC_FEATURE_COUNT,
             /// <summary>Multiplicateur additif de vitesse de génération d'or des marchés. Base = 1.0; +0.1 = +10%.</summary>
             MARKET_GOLD_SPEED,

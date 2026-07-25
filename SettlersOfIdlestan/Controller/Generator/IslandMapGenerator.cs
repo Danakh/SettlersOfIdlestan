@@ -126,8 +126,13 @@ public class IslandMapGenerator
         var map = GenerateIsland(parameters.TileData, civs, shapeGenerator, startVertexTerrain: startVertexTerrain);
         if (map is null) return null;
 
+        var landmasses = new List<List<HexCoord>>
+        {
+            map.Tiles.Values.Where(t => !t.TerrainType.IsWater()).Select(t => t.Coord).ToList()
+        };
+
         if (parameters.IsEndgameIsland)
-            GenerateAdditionalIslands(map, civs, parameters.TileData.ToList(), parameters.NpcCivilizations.Count);
+            landmasses.AddRange(GenerateAdditionalIslands(map, civs, parameters.TileData.ToList(), parameters.NpcCivilizations.Count));
 
         var WorldState = new WorldState(map, civs, parameters.WorldId) { StartTick = startTick };
 
@@ -143,9 +148,38 @@ public class IslandMapGenerator
         if (surfaceCorruptionLevel > 0)
             PlaceSurfaceCorruption(WorldState, surfaceCorruptionLevel);
 
+        PlaceInvisibleFairyCircles(WorldState, landmasses);
+
         AddDeepWaterBorder(WorldState);
 
         return WorldState;
+    }
+
+    /// <summary>
+    /// Pré-place, sur chaque masse continentale, jusqu'à FairyCircle.MaxPerLandmass Cercles de Fées
+    /// invisibles (IsVisible = false) — le maximum atteignable toutes sources de MAGIC_FEATURE_COUNT
+    /// confondues. Une île bonus reliée par isthme (voir TryAddBonusIsland) fait partie de la masse
+    /// principale (aucune eau entre les deux) ; seules les îles endgame supplémentaires
+    /// (GenerateAdditionalIslands, séparées par 2 hex d'eau) forment des masses distinctes. Chaque
+    /// Cercle est tagué avec l'index de sa masse (FairyCircle.LandmassIndex) pour que
+    /// MagicController.EnsureMagicFeatures puisse ensuite les révéler par lots indépendants, sans
+    /// jamais recalculer les masses continentales ni tirer au hasard à l'exécution.
+    /// </summary>
+    private void PlaceInvisibleFairyCircles(WorldState worldState, List<List<HexCoord>> landmasses)
+    {
+        for (int landmassIndex = 0; landmassIndex < landmasses.Count; landmassIndex++)
+        {
+            var candidates = landmasses[landmassIndex].Where(h => !worldState.HasFeaturesAt(h)).ToList();
+            int count = Math.Min(FairyCircle.MaxPerLandmass, candidates.Count);
+
+            for (int i = 0; i < count; i++)
+            {
+                int index = _prng.Next(candidates.Count);
+                var position = candidates[index];
+                candidates.RemoveAt(index);
+                worldState.AddFeature(new FairyCircle(position) { IsVisible = false, LandmassIndex = landmassIndex });
+            }
+        }
     }
 
     /// <summary>
@@ -195,11 +229,13 @@ public class IslandMapGenerator
     /// hexagones (terre à terre, soit deux hex d'eau entre les deux îles), puis le détroit entre
     /// les deux îles les plus proches est élargi.
     /// </summary>
-    public void GenerateAdditionalIslands(
+    public List<List<HexCoord>> GenerateAdditionalIslands(
         IslandMap map, List<Civilization> civs, List<(TerrainType terrainType, int tileCount)> baseTileData, int baseNpcCount)
     {
+        var additionalLandmasses = new List<List<HexCoord>>();
+
         int baseHexCount = baseTileData.Sum(t => t.tileCount);
-        if (baseHexCount == 0) return;
+        if (baseHexCount == 0) return additionalLandmasses;
 
         for (int n = 1; n <= MaxAdditionalIslands && _prng.Next(1 << n) == 0; n++)
         {
@@ -212,6 +248,7 @@ public class IslandMapGenerator
             if (localCoords.Count == 0) continue;
 
             var (landCoords, bridgeA, bridgeB) = PlaceAdditionalIsland(map, localCoords);
+            additionalLandmasses.Add(landCoords);
 
             var terrainList = Shuffle(ScaleTileData(baseTileData, landCoords.Count));
             for (int i = 0; i < landCoords.Count; i++)
@@ -236,6 +273,8 @@ public class IslandMapGenerator
                 });
             }
         }
+
+        return additionalLandmasses;
     }
 
     /// <summary>
