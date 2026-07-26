@@ -26,7 +26,7 @@ public class AutoExtendController
     {
         TerrainType.Mountain, TerrainType.Mountain, TerrainType.Mountain, TerrainType.Mountain, TerrainType.Mountain,
         TerrainType.Mountain, TerrainType.Mountain, TerrainType.Mountain, TerrainType.Mountain, TerrainType.Mountain,
-        TerrainType.Desert,   TerrainType.Desert,   TerrainType.Desert,   TerrainType.Desert,
+        TerrainType.Desert,   TerrainType.Desert,   TerrainType.Hill,     TerrainType.Hill,
         TerrainType.MushroomCave, TerrainType.MushroomCave, TerrainType.MushroomCave, TerrainType.MushroomCave,
         TerrainType.MithrilVein,
         TerrainType.CrystalCave,

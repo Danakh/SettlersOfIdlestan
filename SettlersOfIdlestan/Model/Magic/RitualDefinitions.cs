@@ -9,7 +9,7 @@ public static class RitualDefinitions
     {
         // Production — premier rituel, débloqué par Initiation à la Magie
         new(RitualId.Growth,
-            baseLaunchCost: 5, baseUpkeepCost: 1,
+            baseLaunchCost: 10, baseUpkeepCost: 2,
             modifiersPerPower: new Modifier[]
             {
                 new(ECategory.HARVEST_SPEED, EType.ADDITIVE, 0.10),
@@ -17,7 +17,7 @@ public static class RitualDefinitions
 
         // Production — chance de doubler les récoltes automatiques
         new(RitualId.ArdentForge,
-            baseLaunchCost: 5, baseUpkeepCost: 1,
+            baseLaunchCost: 10, baseUpkeepCost: 2,
             modifiersPerPower: new Modifier[]
             {
                 new(ECategory.HARVEST_PRODUCTION_BONUS, EType.ADDITIVE, 10),
@@ -25,7 +25,7 @@ public static class RitualDefinitions
 
         // Militaire — capacité de soldats et vitesse de production
         new(RitualId.MartialBlessing,
-            baseLaunchCost: 8, baseUpkeepCost: 2,
+            baseLaunchCost: 16, baseUpkeepCost: 4,
             modifiersPerPower: new Modifier[]
             {
                 new(ECategory.CITY_MAX_SOLDIERS_BONUS, EType.ADDITIVE, 3),
@@ -34,7 +34,7 @@ public static class RitualDefinitions
 
         // Militaire — défense des villes et régénération
         new(RitualId.ArcaneShield,
-            baseLaunchCost: 8, baseUpkeepCost: 2,
+            baseLaunchCost: 16, baseUpkeepCost: 4,
             modifiersPerPower: new Modifier[]
             {
                 new(ECategory.CITY_DEFENSE, EType.ADDITIVE, 2),
@@ -43,7 +43,7 @@ public static class RitualDefinitions
 
         // Utilitaire — vitesse de recherche
         new(RitualId.Clairvoyance,
-            baseLaunchCost: 5, baseUpkeepCost: 1,
+            baseLaunchCost: 10, baseUpkeepCost: 2,
             modifiersPerPower: new Modifier[]
             {
                 new(ECategory.RESEARCH_PRODUCTION_SPEED, EType.ADDITIVE, 0.15),
@@ -51,7 +51,7 @@ public static class RitualDefinitions
 
         // Inframonde — récoltes souterraines et trésors
         new(RitualId.DeepLight,
-            baseLaunchCost: 10, baseUpkeepCost: 2,
+            baseLaunchCost: 20, baseUpkeepCost: 4,
             modifiersPerPower: new Modifier[]
             {
                 new(ECategory.HARVEST_SPEED, "MushroomFarm", EType.ADDITIVE, 0.15),

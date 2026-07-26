@@ -327,7 +327,7 @@ public sealed class RitualsRenderer : IDisposable
 
             canvas.DrawRoundRect(minusRect, 5, 5, minusHover ? _stopHoverPaint : _stopPaint);
             canvas.DrawRoundRect(minusRect, 5, 5, _buttonBorderPaint);
-            SkiaTextUtils.DrawText(canvas, "−", minusRect.MidX, minusRect.MidY + 5, SKTextAlign.Center, _powerFont, _buttonTextPaint);
+            SkiaTextUtils.DrawText(canvas, "-", minusRect.MidX, minusRect.MidY + 5, SKTextAlign.Center, _powerFont, _buttonTextPaint);
 
             canvas.DrawRoundRect(plusRect, 5, 5, canPlus ? (plusHover ? _launchHoverPaint : _launchPaint) : _disabledPaint);
             canvas.DrawRoundRect(plusRect, 5, 5, _buttonBorderPaint);
