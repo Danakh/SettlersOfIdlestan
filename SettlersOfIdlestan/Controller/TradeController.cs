@@ -156,13 +156,16 @@ namespace SettlersOfIdlestan.Controller
             TradeExecuted?.Invoke(TradeDirection.Buy, resource, quantity, cost, civIndex);
         }
 
-        /// <summary>Vrai si le vertex de prestige Achat Automatique est débloqué et qu'au moins un Marché niv.4+ existe.</summary>
+        /// <summary>
+        /// Vrai si le vertex de prestige Achat Automatique est débloqué et qu'au moins un Marché niv.4+ existe.
+        /// Mis en cache sur la civilisation (voir <see cref="Civilization.AutoBuyUnlockedCache"/>) : appelé sur
+        /// le chemin chaud de la vente de ressources en autoplay, recalculé uniquement à la construction/
+        /// amélioration/destruction d'un bâtiment ou au changement des modificateurs.
+        /// </summary>
         public bool IsAutoBuyUnlocked(int civilizationIndex)
         {
             var civ = _state?.Civilizations.Find(c => c.Index == civilizationIndex);
-            if (civ == null) return false;
-            if (!civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_AUTO_BUY_TRADE)) return false;
-            return GetMarketCountAtMinLevel(civilizationIndex, 4) > 0;
+            return civ?.AutoBuyUnlockedCache ?? false;
         }
 
         /// <summary>
@@ -194,18 +197,6 @@ namespace SettlersOfIdlestan.Controller
                     if (b.Type == BuildingType.Seaport && b.Level > max)
                         max = b.Level;
             return max;
-        }
-
-        private int GetMarketCountAtMinLevel(int civilizationIndex, int minLevel)
-        {
-            var civ = _state?.Civilizations.Find(c => c.Index == civilizationIndex);
-            if (civ == null) return 0;
-            int count = 0;
-            foreach (var city in civ.Cities)
-                foreach (var b in city.Buildings)
-                    if (b.Type == BuildingType.Market && b.Level >= minLevel)
-                        count++;
-            return count;
         }
 
         /// <summary>Vrai si la recherche Marché Spécialisé est complétée pour la civilisation.</summary>

@@ -526,10 +526,14 @@ namespace SettlersOfIdlestan.Controller.Island
         /// civilisation et met à jour son cache. À appeler après toute construction/amélioration/
         /// destruction de bâtiment, ajout/retrait de ville, ou changement de l'agrégateur de modificateurs.
         /// </summary>
+        /// <summary>Niveau minimum de Marché requis pour débloquer l'Achat Automatique (voir <see cref="TradeController.IsAutoBuyUnlocked"/>).</summary>
+        private const int AutoBuyMinMarketLevel = 4;
+
         public static void RecalculateStorageCapacity(Model.Civilization.Civilization civ)
         {
             int basic = 10 * civ.Cities.Count;
             int advanced = 0;
+            bool hasHighLevelMarket = false;
 
             foreach (var city in civ.Cities)
             {
@@ -537,6 +541,8 @@ namespace SettlersOfIdlestan.Controller.Island
                 {
                     basic += building.GetStorageCapacityBonusBasic();
                     advanced += building.GetStorageCapacityBonusAdvanced();
+                    if (building.Type == BuildingType.Market && building.Level >= AutoBuyMinMarketLevel)
+                        hasHighLevelMarket = true;
                 }
             }
 
@@ -548,6 +554,7 @@ namespace SettlersOfIdlestan.Controller.Island
             advanced = (int)(advanced * multiplier);
 
             civ.SetStorageCapacityCache(basic, advanced);
+            civ.SetAutoBuyUnlockedCache(hasHighLevelMarket && civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_AUTO_BUY_TRADE));
         }
 
         public static Building? CreateBuilding(BuildingType type)

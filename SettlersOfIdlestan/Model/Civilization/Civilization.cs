@@ -479,6 +479,17 @@ public class Civilization
     public int StorageCapacityAdvanced { get; private set; }
 
     /// <summary>
+    /// Cache d'Achat Automatique (vertex de prestige Achat Automatique + au moins un Marché niv.4+),
+    /// recalculé par <see cref="BuildingController.RecalculateStorageCapacity"/> aux mêmes points de
+    /// mutation que <see cref="StorageCapacityBasic"/> (TradeController.IsAutoBuyUnlocked est sur le
+    /// chemin chaud de la vente de ressources en autoplay).
+    /// </summary>
+    [JsonIgnore]
+    public bool AutoBuyUnlockedCache { get; private set; }
+
+    public void SetAutoBuyUnlockedCache(bool value) => AutoBuyUnlockedCache = value;
+
+    /// <summary>
     /// Appelé uniquement par BuildingController après recalcul complet de la capacité de stockage.
     /// </summary>
     public void SetStorageCapacityCache(int basic, int advanced)
