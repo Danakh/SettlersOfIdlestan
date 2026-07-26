@@ -298,6 +298,13 @@ public sealed class OverlayRenderer : IGameRenderer
         var gainsBySource = controller.HarvestController.GetProductionRatesBySource(civIndex);
         var lossesBySource = controller.HarvestController.GetConsumptionRatesBySource(civIndex);
 
+        foreach (var (resource, monumentLosses) in SettlersOfIdlestan.Controller.Expand.MonumentInvestment.GetInvestmentRatesBySource(worldState, worldState.PlayerCivilization))
+        {
+            if (!lossesBySource.TryGetValue(resource, out var list))
+                lossesBySource[resource] = list = new System.Collections.Generic.List<(string SourceKey, double Rate)>();
+            list.AddRange(monumentLosses);
+        }
+
         if (hoveredResource.Value == SettlersOfIdlestan.Model.IslandMap.Resource.Crystal)
         {
             double crystalUpkeep = controller.MagicController.GetCrystalRateBreakdown().RitualUpkeepPerSecond;

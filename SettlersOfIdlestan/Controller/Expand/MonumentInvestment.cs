@@ -72,6 +72,64 @@ namespace SettlersOfIdlestan.Controller.Expand
             => playerCiv.Cities.Any(city => city.Position.GetHexes().Any(h => h.Equals(position)));
 
         /// <summary>
+        /// Détaille, pour chaque ressource actuellement investie dans un Monument (toutes couches
+        /// confondues), le taux de perte par seconde projeté au prochain cycle — pour affichage en
+        /// tooltip de la barre de ressources (voir <see cref="GetConsumptionRatesBySource"/> pour les
+        /// autres sources de consommation). L'intervalle d'investissement valant 1 seconde
+        /// (<see cref="IntervalTicks"/> = 100 ticks), le montant prélevé par cycle est déjà un taux par seconde.
+        /// </summary>
+        public static Dictionary<Resource, List<(string SourceKey, double Rate)>> GetInvestmentRatesBySource(WorldState state, Civilization playerCiv)
+        {
+            var result = new Dictionary<Resource, List<(string SourceKey, double Rate)>>();
+
+            foreach (var monument in state.Features.OfType<Monument>())
+            {
+                if (monument.InvestmentEnabled.Count == 0) continue;
+                if (!HasAdjacentCity(monument.Position, playerCiv)) continue;
+
+                var cost = monument.GetInvestmentCost(playerCiv);
+                foreach (var resource in monument.InvestmentEnabled)
+                {
+                    if (!cost.Contains(resource)) continue;
+                    long invested = monument.InvestedResources.TryGetValue(resource, out var inv) ? inv : 0;
+                    long required = cost[resource];
+                    if (invested >= required) continue;
+
+                    int stock = playerCiv.GetResourceQuantity(resource);
+                    if (stock < 1) continue;
+                    double amount = Math.Max(1.0, stock / 100.0);
+
+                    int maxStock = playerCiv.GetResourceMaxQuantity(resource);
+                    if (maxStock > 0 && stock > maxStock * 0.5)
+                        amount *= playerCiv.InvestmentSpeedHighStockBonus;
+
+                    long remaining = required - invested;
+                    if (amount > remaining) amount = remaining;
+                    if (amount <= 0) continue;
+
+                    AddSourceRate(result, resource, monument.PanelTitleKey, amount);
+                }
+            }
+
+            return result;
+        }
+
+        private static void AddSourceRate(Dictionary<Resource, List<(string SourceKey, double Rate)>> dict, Resource resource, string sourceKey, double rate)
+        {
+            if (!dict.TryGetValue(resource, out var list))
+                dict[resource] = list = new List<(string, double)>();
+            for (int i = 0; i < list.Count; i++)
+            {
+                if (list[i].SourceKey == sourceKey)
+                {
+                    list[i] = (sourceKey, list[i].Rate + rate);
+                    return;
+                }
+            }
+            list.Add((sourceKey, rate));
+        }
+
+        /// <summary>
         /// Si le comportement "Automatiser les Monuments" est actif, active l'investissement sur
         /// toutes les ressources du coût donné — mais seulement si la civilisation dispose d'un
         /// moyen de production pour CHACUNE d'entre elles ; sinon rien n'est activé (aucune ressource
