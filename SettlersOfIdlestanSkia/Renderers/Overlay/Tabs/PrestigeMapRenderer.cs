@@ -789,6 +789,7 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         Modifier.ECategory.INLAND_CITY_LEVEL_CAP             => _localization.GetFormated("prestige_tooltip_inland_city_level_cap", (int)mod.Value, _localization.Get($"hex_tooltip_terrain_{mod.SubCategory.ToLower()}")),
         Modifier.ECategory.UNLOCK_BUILDERS_GUILD_UNDERWORLD  => _localization.Get("prestige_tooltip_unlocks_builders_guild_underworld"),
         Modifier.ECategory.UNLOCK_WAR_HERALD                 => _localization.Get("prestige_tooltip_unlocks_war_herald"),
+        Modifier.ECategory.VOLCANO_DAMAGE_REDUCTION          => $"-{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_volcano_damage_reduction")}",
         _ => $"+{mod.Value}"
     };
 

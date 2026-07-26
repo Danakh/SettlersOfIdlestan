@@ -350,16 +350,18 @@ public sealed class ResearchRenderer : IGameRenderer
             var (consumed, total) = ctrl.GetResearchProgress(tech.Id);
             subText = $"{SkiaTextUtils.FormatNumber(consumed)}/{SkiaTextUtils.FormatNumber(total)} PR";
         }
-        else if (isQueued)
-        {
-            subText = _localization.Get("research_next_label");
-        }
         else
         {
             var (_, total) = ctrl.GetResearchProgress(tech.Id);
             subText = $"{SkiaTextUtils.FormatNumber(total)} PR";
         }
         SkiaTextUtils.DrawText(canvas, subText, rect.MidX, rect.Top + 36f, SKTextAlign.Center, _smallFont, isQueued ? _queuedTextPaint : textPaint);
+
+        if (isQueued)
+        {
+            string nextLabel = _localization.Get("research_next_label");
+            SkiaTextUtils.DrawText(canvas, nextLabel, rect.MidX, rect.Top + 51f, SKTextAlign.Center, _smallFont, _queuedTextPaint);
+        }
 
         if (status == TechnologyStatus.InProgress && ctrl.CanLoop(tech.Id))
         {

@@ -132,6 +132,10 @@ public class VolcanoController
     {
         if (damage <= 0) return;
 
+        double reduction = civ.VolcanoDamageReduction;
+        if (reduction > 0) damage = (int)Math.Round(damage * (1.0 - Math.Min(1.0, reduction)));
+        if (damage <= 0) return;
+
         // Les soldats ne peuvent pas bloquer une éruption volcanique.
         // Cascade : défense d'abord, puis niveaux de Townhall.
 

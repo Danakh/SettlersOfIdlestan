@@ -199,6 +199,8 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             UNLOCK_BUILDERS_GUILD_UNDERWORLD,
             /// <summary>Flags que l'action War Herald (raid gratuit sur une ville alliée, redirigeant les flux de renfort) est déverrouillée pour la civilisation du joueur.</summary>
             UNLOCK_WAR_HERALD,
+            /// <summary>Fraction de réduction des dégâts d'éruption volcanique subis par les villes de la civilisation. Base = 0.0 ; 0.5 = -50%.</summary>
+            VOLCANO_DAMAGE_REDUCTION,
         }
 
         [JsonConverter(typeof(JsonStringEnumConverter<EType>))]

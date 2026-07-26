@@ -365,6 +365,12 @@ public class Civilization
     public double DivineBonesCostReduction => ModifierAggregator.ApplyModifiers(ECategory.DIVINE_BONES_COST_REDUCTION, "", 0.0);
 
     /// <summary>
+    /// Volcanic eruption damage reduction fraction (0.0 = no reduction, 0.5 = 50% less damage to cities).
+    /// </summary>
+    [JsonIgnore]
+    public double VolcanoDamageReduction => ModifierAggregator.ApplyModifiers(ECategory.VOLCANO_DAMAGE_REDUCTION, "", 0.0);
+
+    /// <summary>
     /// Investment speed multiplier (base 1.0) applied to a resource's investment amount when its stock
     /// exceeds 50% of its max capacity. Affects the Wonder, the Deepest Mine and the Corruption Spire.
     /// </summary>

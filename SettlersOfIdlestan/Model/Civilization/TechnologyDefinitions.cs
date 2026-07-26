@@ -330,7 +330,11 @@ public static class TechnologyDefinitions
             "tech_volcanologie_name", "tech_volcanologie_desc",
             cost: 1600000,
             prerequisites: new[] { TechnologyId.CartographieSouterraine },
-            modifiers: new Modifier[] { new(ECategory.HARVEST_PRODUCTION_BONUS, "Mine", EType.ADDITIVE, 15) },
+            modifiers: new Modifier[]
+            {
+                new(ECategory.HARVEST_PRODUCTION_BONUS, "Mine", EType.ADDITIVE, 15),
+                new(ECategory.VOLCANO_DAMAGE_REDUCTION, EType.ADDITIVE, 0.5),
+            },
             tier: 7, line: 2),
 
         // Débloque la Forge Volcanique (bâtiment unique, niveau max 3), constructible uniquement à
