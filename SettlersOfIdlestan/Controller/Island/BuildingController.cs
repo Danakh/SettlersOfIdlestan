@@ -298,6 +298,13 @@ namespace SettlersOfIdlestan.Controller.Island
             if (prototype == null || prototype.IsUnique)
                 return null;
 
+            // Alchimist Hut : prérequis lié à une feature de carte (Cercle de Fées) découverte,
+            // pas à un autre bâtiment construisible — reste masquée tant que la feature n'est
+            // pas trouvée, plutôt qu'affichée grisée avec tooltip (voir GetUniqueBuildingsAndBuildables
+            // pour le même traitement des bâtiments uniques équivalents comme la Forge Volcanique).
+            if (bt == BuildingType.AlchimistHut && _state != null && !prototype.HasBuildPrerequisites(city, _state))
+                return null;
+
             if (GetMaxLevel(prototype, city.CivilizationIndex) > 0 &&
                 map != null &&
                 prototype.IsBuildingAvailableForCity(map, city))
@@ -329,6 +336,9 @@ namespace SettlersOfIdlestan.Controller.Island
 
                 if (_state.GetMapFor(city.Position) is not { } map1 ||
                     !prototype.IsBuildingAvailableForCity(map1, city))
+                    return false;
+
+                if (!prototype.HasBuildPrerequisites(city, _state))
                     return false;
 
                 // civ.UniqueBuildings is a permanent "ever built" flag (never cleared on city loss,
@@ -452,6 +462,14 @@ namespace SettlersOfIdlestan.Controller.Island
                 // débloqué, même verrou que les recherches/vertex du Dominion (voir ResearchController.IsDominionRequirementMet).
                 else if (bt == BuildingType.Ziggurat &&
                          !civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_DOMINION))
+                {
+                    continue;
+                }
+                // Alchimist Hut / Volcanic Forge : prérequis lié à une feature de carte (Cercle de
+                // Fées / Volcan) découverte, pas à un autre bâtiment construisible — reste masqué
+                // tant que la feature n'est pas trouvée, plutôt qu'affiché grisé avec tooltip.
+                else if ((bt == BuildingType.AlchimistHut || bt == BuildingType.VolcanicForge) &&
+                         !prototype.HasBuildPrerequisites(city, _state))
                 {
                     continue;
                 }

@@ -1,5 +1,8 @@
+using System.Text.Json.Serialization;
+
 namespace SettlersOfIdlestan.Model.Tasks;
 
+[JsonConverter(typeof(JsonStringEnumConverter<TutorialTaskId>))]
 public enum TutorialTaskId
 {
     Harvest5Wood,

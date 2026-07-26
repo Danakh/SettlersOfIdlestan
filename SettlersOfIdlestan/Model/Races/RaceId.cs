@@ -28,6 +28,7 @@ public enum RaceId
 /// Advanced = seconde rangée complète (voir AscensionController.IsRaceSelectionUnlocked /
 /// AreAdvancedRacesUnlocked).
 /// </summary>
+[JsonConverter(typeof(JsonStringEnumConverter<RaceTier>))]
 public enum RaceTier
 {
     Base,

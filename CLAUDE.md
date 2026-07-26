@@ -207,6 +207,7 @@ Both files must always be kept in sync.
 - **Rendering**: new renderers must be registered in `RenderService`; render order matters for layering.
 - **Hex coordinates**: axial (q, r) system; cubic `s = -q - r` computed on demand.
 - **Modifier tooltips**: toute nouvelle `ECategory` nécessite obligatoirement (1) un cas dans `FormatModifier()` dans `PrestigeMapRenderer.cs`, (2) les clés de localisation correspondantes dans `fr.json` et `en.json`.
+- **Enum serialization**: tout enum du projet `SettlersOfIdlestan` (modèle/contrôleurs, potentiellement persisté dans `MainGameState`) doit être décoré de `[JsonConverter(typeof(JsonStringEnumConverter<T>))]` — jamais sérialisé par entier. Un enum encodé en int se décale silencieusement si une valeur est insérée/retirée ailleurs qu'en fin de liste, corrompant les sauvegardes existantes sans erreur. La sérialisation par nom échoue de façon explicite (`JsonException`) si une valeur est renommée/supprimée, ce qui reste corrigeable. Correction du décodage pour les anciennes valeurs supprimées ou renommées : dans le converter concerné (`BuildingJsonConverter`, etc.) pour les enums avec converter dédié, ou via un remap de la chaîne lue avant `Enum.TryParse` sinon — chaque remap doit porter un commentaire indiquant la version qui a introduit le besoin (ex. `[Legacy remap v0.11]`).
 
 ## Testing
 

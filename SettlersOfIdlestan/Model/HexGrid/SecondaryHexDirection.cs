@@ -1,5 +1,7 @@
 using System;
 
+using System.Text.Json.Serialization;
+
 namespace SettlersOfIdlestan.Model.HexGrid;
 
 /// <summary>
@@ -15,6 +17,7 @@ namespace SettlersOfIdlestan.Model.HexGrid;
 /// - WS (Ouest-Sud) : 7h
 /// - WN (Ouest-Nord) : 10h
 /// </summary>
+[JsonConverter(typeof(JsonStringEnumConverter<SecondaryHexDirection>))]
 public enum SecondaryHexDirection
 {
     /// <summary> Nord </summary>

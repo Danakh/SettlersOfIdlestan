@@ -1,12 +1,13 @@
 using System;
+using System.Text.Json.Serialization;
 
 namespace SettlersOfIdlestan.Model.HexGrid;
 
 /// <summary>
-/// Représente les six directions principales dans une grille hexagonale.
+/// Reprï¿½sente les six directions principales dans une grille hexagonale.
 /// Ces directions permettent d'explorer le voisinage des hexagones.
 /// 
-/// Les déplacements en coordonnées (q, r) :
+/// Les dï¿½placements en coordonnï¿½es (q, r) :
 /// - W (Ouest) : (-1, 0)
 /// - E (Est) : (+1, 0)
 /// - NE (Nord-Est) : (0, +1)
@@ -14,6 +15,7 @@ namespace SettlersOfIdlestan.Model.HexGrid;
 /// - NW (Nord-Ouest) : (-1, +1)
 /// - SW (Sud-Ouest) : (0, -1)
 /// </summary>
+[JsonConverter(typeof(JsonStringEnumConverter<HexDirection>))]
 public enum HexDirection
 {
     /// <summary> Ouest </summary>
@@ -74,7 +76,7 @@ public static class HexDirectionUtils
     }
 
     /// <summary>
-    /// Retourne la direction précédante dans le sens horaire.
+    /// Retourne la direction prï¿½cï¿½dante dans le sens horaire.
     /// </summary>
     public static HexDirection Previous(this HexDirection direction)
     {

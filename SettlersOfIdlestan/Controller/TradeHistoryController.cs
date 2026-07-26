@@ -1,9 +1,11 @@
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.IslandMap;
 
 namespace SettlersOfIdlestan.Controller
 {
+    [JsonConverter(typeof(JsonStringEnumConverter<TradeDirection>))]
     public enum TradeDirection { Sell, Buy }
 
     public readonly struct TradeLogEntry

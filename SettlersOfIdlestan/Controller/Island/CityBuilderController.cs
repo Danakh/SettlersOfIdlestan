@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Serialization;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
@@ -26,6 +27,7 @@ namespace SettlersOfIdlestan.Controller.Island
 
     /// <summary>What caused a city to be destroyed — lets subscribers of <see cref="CityBuilderController.OnCityDestroyed"/>
     /// distinguish military conquest from monster attacks where that matters (e.g. task/achievement tracking).</summary>
+    [JsonConverter(typeof(JsonStringEnumConverter<CityDestructionCause>))]
     public enum CityDestructionCause
     {
         Combat,
@@ -569,22 +571,32 @@ namespace SettlersOfIdlestan.Controller.Island
         {
             var cost = NewCityBuildingCost();
             double surchargeFactor = HasActiveBuildersGuild(civ) ? BuildersGuild.NewCitySurchargeMultiplier : 1.0;
-            if (targetVertex.Z == LayerState.UnderworldZ)
+
+            int surfaceCities = civ.Cities.Count(c => c.Position.Z == IslandMap.SurfaceLayer);
+            int underworldCities = civ.Cities.Count(c => c.Position.Z == LayerState.UnderworldZ);
+            int abyssCities = civ.Cities.Count(c => c.Position.Z == LayerState.AbyssZ);
+            // La ville de départ (toujours en surface) ne compte pas comme "ville supplémentaire".
+            int surchargeableSurfaceCities = Math.Max(0, surfaceCities - 1);
+
+            double multiplier;
+            if (targetVertex.Z == LayerState.AbyssZ)
             {
-                int underworldCities = civ.Cities.Count(c => c.Position.Z == LayerState.UnderworldZ);
-                double multiplier = 1.0 + 0.5 * surchargeFactor * underworldCities;
-                foreach (var resource in cost.Keys.ToList())
-                    cost[resource] = (int)Math.Round(cost[resource] * multiplier);
                 cost[Resource.Gold] = 10;
+                cost[Resource.Crystal] = 5;
+                multiplier = 1.0 + 1.0 * surchargeFactor * (surchargeableSurfaceCities + underworldCities + abyssCities);
             }
-            else if (targetVertex.Z == IslandMap.SurfaceLayer)
+            else if (targetVertex.Z == LayerState.UnderworldZ)
             {
-                int surfaceCities = civ.Cities.Count(c => c.Position.Z == IslandMap.SurfaceLayer);
-                int extraCities = Math.Max(0, surfaceCities - 1);
-                double multiplier = 1.0 + 0.05 * surchargeFactor * extraCities;
-                foreach (var resource in cost.Keys.ToList())
-                    cost[resource] = (int)Math.Round(cost[resource] * multiplier);
+                cost[Resource.Gold] = 10;
+                multiplier = 1.0 + 0.5 * surchargeFactor * (surchargeableSurfaceCities + underworldCities);
             }
+            else
+            {
+                multiplier = 1.0 + 0.05 * surchargeFactor * surchargeableSurfaceCities;
+            }
+
+            foreach (var resource in cost.Keys.ToList())
+                cost[resource] = (int)Math.Round(cost[resource] * multiplier);
 
             // Grand Terrier (Gobelins) : réduction fractionnaire du coût final (voir NEW_CITY_COST_REDUCTION).
             double reduction = civ.ModifierAggregator.ApplyModifiers(ECategory.NEW_CITY_COST_REDUCTION, "", 0.0);
