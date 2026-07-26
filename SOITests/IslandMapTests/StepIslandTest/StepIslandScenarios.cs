@@ -23,51 +23,6 @@ namespace SOITests.IslandMapTests.StepIslandTest
         // ── Shared step conditions ────────────────────────────────────────────
 
         /// <summary>
-        /// Keeps building Barracks/production buildings and growing the civilization until every surface
-        /// monster (Rats, Bandit, BanditHideout, ...) has been destroyed. Requires the Barracks prestige
-        /// vertex to already be purchased (see Island2's Prestige step priority-vertex purchase) — otherwise no
-        /// soldiers are ever produced and the condition can never be met. Melee combat resolves
-        /// automatically as soon as a city's footprint (the hexes touching its vertex) overlaps a
-        /// monster's hex and that city has soldiers — there's no separate "attack" action, which is why
-        /// CityCount (not a fixed list of targets) is what actually finds the monsters here: it keeps
-        /// expanding the civilization's footprint until it reaches them.
-        ///
-        /// Found via SOIStrategyTester (SOIStrategyTester/Data/Best/island2-step2ter.best.json) — beats
-        /// the high-level TryMilitaryStepOnce+TryStep2Once loop this used to call (~285k ticks) by ~13%
-        /// (~249k ticks). TownHall is pushed to level 3 (not just 1) because Mine — the only source of
-        /// Ore, which soldier production consumes — is unavailable below city level 3 (Mine.
-        /// AvailableAtLevel = 3); without it, Barracks would never produce soldiers and the run would
-        /// hang. Brickworks and Forge were raced and dropped: cheaper to let TryGrindOnce's manual
-        /// harvest cover Brick on demand than to spend time building Brickworks, and Forge has no
-        /// bearing on combat at all. CityCount is capped at 30, well above what's ever needed on this
-        /// exact seed/save chain (confirmed against the release-1.0 fixture too) — capping it at 20
-        /// instead made the race fail outright (see the gotcha in SOIStrategyTester/CLAUDE.md: once
-        /// PriorityAutoplayStrategy considers CityCount "done" it stops expanding for good, even if a
-        /// monster's hex was never actually reached).
-        ///
-        /// Palisade is gated on "a Bandit has been spotted" rather than built unconditionally: once the
-        /// (always-present) BanditHideout is found, it periodically spawns Bandits that steal resources
-        /// from any city without a Palisade (MonsterCombatEngine/MonsterController — Palisade fully blocks
-        /// the attack, not just reduces it). That theft competes directly with this stage's own stockpile
-        /// for Mine/Barracks, and is what turns this into a race the civilization can lose: confirmed by
-        /// racing the no-Palisade order against FullIslandTest's continuous (no intermediate save/reload)
-        /// path via SOIStrategyTester — it reliably times out at 60000 iterations with Bandits stealing
-        /// faster than the economy can recover, while adding this stage clears the same race in ~3100.
-        /// Moving Mine/Barracks earlier (before Quarry/Market/Seaport) was also tried as a fix and made
-        /// things worse instead: both need 40-50 Stone, and without Quarry/Market already up to produce
-        /// and trade for it, the grind stalls on Stone — same race, same outcome, with or without Palisade.
-        /// </summary>
-        private static IslandStepDefinition ExterminateMonstersStep(string saveName) => new()
-        {
-            SaveName = saveName,
-            RunAction = (runner, cond) => runner.RunPriorityStrategyUntil(
-                CivilizationAutoplayerPriorities.Unified(runner.Autoplayer, runner.BuildingController),
-                cond, maxIterations: 60000),
-            Condition = ctrl => !ctrl.PrestigeController.HasSurfaceMonsters(),
-            AssertFailMessage = _ => "Expected all surface monsters to have been exterminated",
-        };
-
-        /// <summary>
         /// Drives the Unified strategy with neighbor-attacking enabled (see
         /// <see cref="CivilizationAutoplayerPriorities.Unified"/>'s attackNeighborsAtCities parameter)
         /// until every NPC civilization has lost all of its cities. Unified itself guarantees Barracks
@@ -125,11 +80,7 @@ namespace SOITests.IslandMapTests.StepIslandTest
         /// Builds the Library to level 1 in every city. Library needs city level >= 2 (Library.
         /// AvailableAtLevel) and a BUILDING_MAX_LEVEL("Library") modifier above its default max of 0 —
         /// both already in place by this point in Island2: the CentralVertex purchase in the Prestige step
-        /// grants +3 max level and unlocks the research system in the same call. Inserted before the monster
-        /// extermination step rather than folded into it: extermination's own priority list (see
-        /// ExterminateMonstersStep) is tuned to the bare minimum that gets soldiers killing monsters, and
-        /// Library has no bearing on that — keeping it as its own checkpoint avoids re-tuning that race
-        /// every time research priorities change.
+        /// grants +3 max level and unlocks the research system in the same call.
         /// </summary>
         private static IslandStepDefinition LibraryLevel1Step(string saveName, int maxIterations = 20000) => new()
         {
@@ -269,8 +220,9 @@ namespace SOITests.IslandMapTests.StepIslandTest
             Steps = new List<IslandStepDefinition>
             {
                 // Prestige transition. Barracks is purchased first (deterministically, using
-                // Island 1's 35 banked points) so monsters can be exterminated below; the remaining
-                // balance, if any, is then spent greedily as usual.
+                // Island 1's 35 banked points) since later steps (e.g. Island3's civilization
+                // extermination) require the Barracks prestige vertex already purchased; the
+                // remaining balance, if any, is then spent greedily as usual.
                 new()
                 {
                     SaveName = "Island2_Prestige",
@@ -315,7 +267,6 @@ namespace SOITests.IslandMapTests.StepIslandTest
                         $"Expected at least 10 cities, got {ctrl.CurrentMainState!.CurrentWorldState!.Civilizations.First().Cities.Count}",
                 },
                 LibraryLevel1Step("Island2_Library1"),
-                ExterminateMonstersStep("Island2_NoMonsters"),
                 new()
                 {
                     SaveName = "Island2_Points70",

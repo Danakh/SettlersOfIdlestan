@@ -10,7 +10,7 @@ namespace SOITests.IslandMapTests.FullIslandTest
     /// <summary>
     /// One continuous, in-memory run per prestige cycle — no per-checkpoint save/reload/assert in
     /// between, unlike StepIslandTest's StepIslandScenarios (whose narrowly-scoped per-stage Facts
-    /// (Cities2, Cities6, NoMonsters, ...) invite tuning each stage in isolation rather than the actual
+    /// (Cities2, Cities6, Library1, ...) invite tuning each stage in isolation rather than the actual
     /// long-horizon goal: reaching the next prestige).
     ///
     /// Reuses StepIslandScenarios' own step definitions (already proven to converge — see

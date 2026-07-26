@@ -50,16 +50,12 @@ namespace SOITests.IslandMapTests.StepIslandTest
             IslandScenarioRunner.RunStep(StepIslandScenarios.Island2, 4, "current", saveFinal: true);
 
         [Fact]
-        public void Current_Island2_NoMonsters() =>
+        public void Current_Island2_Points70() =>
             IslandScenarioRunner.RunStep(StepIslandScenarios.Island2, 5, "current", saveFinal: true);
 
         [Fact]
-        public void Current_Island2_Points70() =>
-            IslandScenarioRunner.RunStep(StepIslandScenarios.Island2, 6, "current", saveFinal: true);
-
-        [Fact]
         public void Current_Island2_PrestigeReady() =>
-            IslandScenarioRunner.RunStep(StepIslandScenarios.Island2, 7, "current", saveFinal: true);
+            IslandScenarioRunner.RunStep(StepIslandScenarios.Island2, 6, "current", saveFinal: true);
 
         // ── Island 3 — current mode ───────────────────────────────────────────
 

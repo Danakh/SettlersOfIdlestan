@@ -46,18 +46,15 @@ namespace SOITests.IslandMapTests.StepIslandTest
         public void Release1_0_Island2_Library1() =>
             IslandScenarioRunner.RunStep(StepIslandScenarios.Island2, 4, "release-1.0", saveFinal: false);
 
-        // Note: no Release1_0_Island2_NoMonsters fact — the frozen release-1.0 lineage predates the
-        // Barracks-priority-purchase logic, so Barracks is never unlocked there and the extermination
-        // condition could never be met. Points70/PrestigeReady below need the Island2_NoMonsters.json
-        // fixture checked into saves/release-1.0/ (under the new naming) or they fail outright.
-
+        // Points70 needs the Island2_Library1.json fixture checked into saves/release-1.0/ or it fails
+        // outright (IslandScenarioRunner.RunStep no longer skips silently).
         [Fact]
         public void Release1_0_Island2_Points70() =>
-            IslandScenarioRunner.RunStep(StepIslandScenarios.Island2, 6, "release-1.0", saveFinal: false);
+            IslandScenarioRunner.RunStep(StepIslandScenarios.Island2, 5, "release-1.0", saveFinal: false);
 
         [Fact]
         public void Release1_0_Island2_PrestigeReady() =>
-            IslandScenarioRunner.RunStep(StepIslandScenarios.Island2, 7, "release-1.0", saveFinal: false);
+            IslandScenarioRunner.RunStep(StepIslandScenarios.Island2, 6, "release-1.0", saveFinal: false);
 
         // ── Island 3 — from release-1.0 ──────────────────────────────────────
 

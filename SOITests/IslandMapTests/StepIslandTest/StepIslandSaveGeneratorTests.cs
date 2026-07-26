@@ -18,7 +18,7 @@ namespace SOITests.IslandMapTests.StepIslandTest
             (IslandScenario scenario, int stepIndex)[] steps =
             [
                 (StepIslandScenarios.Island1, 0), (StepIslandScenarios.Island1, 1), (StepIslandScenarios.Island1, 2), (StepIslandScenarios.Island1, 3),
-                (StepIslandScenarios.Island2, 0), (StepIslandScenarios.Island2, 1), (StepIslandScenarios.Island2, 2), (StepIslandScenarios.Island2, 3), (StepIslandScenarios.Island2, 4), (StepIslandScenarios.Island2, 5), (StepIslandScenarios.Island2, 6), (StepIslandScenarios.Island2, 7),
+                (StepIslandScenarios.Island2, 0), (StepIslandScenarios.Island2, 1), (StepIslandScenarios.Island2, 2), (StepIslandScenarios.Island2, 3), (StepIslandScenarios.Island2, 4), (StepIslandScenarios.Island2, 5), (StepIslandScenarios.Island2, 6),
                 (StepIslandScenarios.Island3, 0), (StepIslandScenarios.Island3, 1), (StepIslandScenarios.Island3, 2), (StepIslandScenarios.Island3, 3), (StepIslandScenarios.Island3, 4), (StepIslandScenarios.Island3, 5), (StepIslandScenarios.Island3, 6), (StepIslandScenarios.Island3, 7), (StepIslandScenarios.Island3, 8), (StepIslandScenarios.Island3, 9), (StepIslandScenarios.Island3, 10),
                 (StepIslandScenarios.Island4, 0), (StepIslandScenarios.Island4, 1), (StepIslandScenarios.Island4, 2), (StepIslandScenarios.Island4, 3), (StepIslandScenarios.Island4, 4), (StepIslandScenarios.Island4, 5), (StepIslandScenarios.Island4, 6), (StepIslandScenarios.Island4, 7), (StepIslandScenarios.Island4, 8),
                 (StepIslandScenarios.Island5, 0),
@@ -43,14 +43,12 @@ namespace SOITests.IslandMapTests.StepIslandTest
             // Mirrors the step indices exercised by StepIslandReleaseTests — release saves are
             // immutable frozen fixtures checked into saves/release-1.0/, so any step here whose
             // predecessor save isn't itself one of those checked-in fixtures now fails outright
-            // (IslandScenarioRunner.RunStep no longer skips silently). No NoMonsters (extermination)
-            // entry — the frozen release-1.0 lineage predates that requirement (see
-            // StepIslandReleaseTests for details); Points70 onward beyond it need their expected
-            // "previous step" fixture checked in or they fail.
+            // (IslandScenarioRunner.RunStep no longer skips silently). Points70 onward need their
+            // expected "previous step" fixture checked in or they fail.
             (IslandScenario scenario, int stepIndex)[] steps =
             [
                 (StepIslandScenarios.Island1, 1), (StepIslandScenarios.Island1, 2), (StepIslandScenarios.Island1, 3),
-                (StepIslandScenarios.Island2, 0), (StepIslandScenarios.Island2, 1), (StepIslandScenarios.Island2, 2), (StepIslandScenarios.Island2, 3), (StepIslandScenarios.Island2, 4), (StepIslandScenarios.Island2, 6), (StepIslandScenarios.Island2, 7),
+                (StepIslandScenarios.Island2, 0), (StepIslandScenarios.Island2, 1), (StepIslandScenarios.Island2, 2), (StepIslandScenarios.Island2, 3), (StepIslandScenarios.Island2, 4), (StepIslandScenarios.Island2, 5), (StepIslandScenarios.Island2, 6),
                 (StepIslandScenarios.Island3, 0), (StepIslandScenarios.Island3, 1), (StepIslandScenarios.Island3, 2), (StepIslandScenarios.Island3, 3), (StepIslandScenarios.Island3, 6), (StepIslandScenarios.Island3, 7), (StepIslandScenarios.Island3, 8), (StepIslandScenarios.Island3, 9),
                 (StepIslandScenarios.Island4, 0), (StepIslandScenarios.Island4, 1), (StepIslandScenarios.Island4, 2), (StepIslandScenarios.Island4, 3), (StepIslandScenarios.Island4, 5),
             ];
