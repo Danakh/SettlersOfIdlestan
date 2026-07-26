@@ -491,9 +491,7 @@ public class Civilization
     {
         if (ResourceUtils.ConsumableResources.Contains(resource))
         {
-            int totalArsenalLevel = Cities.Sum(city =>
-                city.Buildings.OfType<Arsenal>().Sum(a => a.Level));
-            return 5 * Cities.Count + 5 * totalArsenalLevel;
+            return StorageCapacityAdvanced / 2;
         }
 
         bool isBasic = ResourceUtils.BasicResources.Contains(resource);

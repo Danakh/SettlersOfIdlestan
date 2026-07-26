@@ -73,6 +73,8 @@ namespace SOITests.ControllerTests
             if (weaponSmithLevel > 0) city.Buildings.Add(new WeaponSmith { Level = weaponSmithLevel });
             if (armorSmithLevel > 0) city.Buildings.Add(new ArmorSmith { Level = armorSmithLevel });
             civ.AddCity(city);
+            // Stockage avancé suffisant pour que la capacité des consommables (moitié du stockage avancé) ne plafonne pas la production dans ces tests.
+            civ.SetStorageCapacityCache(1000, 1000);
             var state = new WorldState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
             var clock = new GameClock();
             clock.Start();
@@ -209,15 +211,14 @@ namespace SOITests.ControllerTests
         }
 
         [Fact]
-        public void ForgeConsumable_StorageCap_Is5PerCityPlus5PerArsenalLevel()
+        public void ForgeConsumable_StorageCap_IsHalfOfAdvancedStorageCapacity()
         {
             var civ = new Civilization { Index = 0 };
             var vertex = Vertex.Create(NE, East, NE11);
             var city = new City(vertex) { CivilizationIndex = 0 };
-            city.Buildings.Add(new Arsenal { Level = 2 });
             civ.AddCity(city);
+            civ.SetStorageCapacityCache(basic: 100, advanced: 30);
 
-            // 5 * 1 city + 5 * 2 arsenal levels = 15
             Assert.Equal(15, civ.GetResourceMaxQuantity(Resource.SteelWeapon));
             Assert.Equal(15, civ.GetResourceMaxQuantity(Resource.SteelArmor));
         }
