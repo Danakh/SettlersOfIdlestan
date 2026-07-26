@@ -53,6 +53,7 @@ public sealed class TargetSelectionService
     {
         if (targets.Count == 0) return;
 
+        bool wasActive = IsActive;
         Shape = TargetSelectionShape.Vertex;
         Theme = theme;
         TitleKey = titleKey;
@@ -63,7 +64,7 @@ public sealed class TargetSelectionService
         HoveredVertex = null;
         HoveredHex = null;
         IsActive = true;
-        Entered?.Invoke(this, EventArgs.Empty);
+        if (!wasActive) Entered?.Invoke(this, EventArgs.Empty);
     }
 
     public void EnterHexSelection(string titleKey, IReadOnlyList<HexCoord> targets, Action<HexCoord> onConfirmed,
@@ -71,6 +72,7 @@ public sealed class TargetSelectionService
     {
         if (targets.Count == 0) return;
 
+        bool wasActive = IsActive;
         Shape = TargetSelectionShape.Hex;
         Theme = theme;
         TitleKey = titleKey;
@@ -82,7 +84,7 @@ public sealed class TargetSelectionService
         HoveredVertex = null;
         HoveredHex = null;
         IsActive = true;
-        Entered?.Invoke(this, EventArgs.Empty);
+        if (!wasActive) Entered?.Invoke(this, EventArgs.Empty);
     }
 
     /// <summary>
@@ -96,6 +98,7 @@ public sealed class TargetSelectionService
     {
         if (vertexTargets.Count == 0 && hexTargets.Count == 0) return;
 
+        bool wasActive = IsActive;
         Shape = TargetSelectionShape.Mixed;
         Theme = theme;
         TitleKey = titleKey;
@@ -106,25 +109,41 @@ public sealed class TargetSelectionService
         HoveredVertex = null;
         HoveredHex = null;
         IsActive = true;
-        Entered?.Invoke(this, EventArgs.Empty);
+        if (!wasActive) Entered?.Invoke(this, EventArgs.Empty);
     }
 
+    /// <summary>
+    /// Confirme la cible et exécute le callback. Le callback peut lui-même ré-entrer en mode ciblage
+    /// (ex: relocalisation — sélection de la ville puis de la destination) : dans ce cas IsActive reste
+    /// vrai après l'appel et on ne déclenche pas Confirmed, pour ne pas signaler la fin d'une session
+    /// qui en réalité continue (voir OnTargetSelectionEntered/Confirmed dans GameScreen).
+    /// </summary>
     public void ConfirmVertex(Vertex target)
     {
         if (!IsActive || Shape == TargetSelectionShape.Hex) return;
         var callback = _onVertexConfirmed;
-        Reset();
+        _onVertexConfirmed = null;
+        _onHexConfirmed = null;
         callback?.Invoke(target);
-        Confirmed?.Invoke(this, EventArgs.Empty);
+        if (_onVertexConfirmed == null && _onHexConfirmed == null)
+        {
+            Reset();
+            Confirmed?.Invoke(this, EventArgs.Empty);
+        }
     }
 
     public void ConfirmHex(HexCoord target)
     {
         if (!IsActive || Shape == TargetSelectionShape.Vertex) return;
         var callback = _onHexConfirmed;
-        Reset();
+        _onVertexConfirmed = null;
+        _onHexConfirmed = null;
         callback?.Invoke(target);
-        Confirmed?.Invoke(this, EventArgs.Empty);
+        if (_onVertexConfirmed == null && _onHexConfirmed == null)
+        {
+            Reset();
+            Confirmed?.Invoke(this, EventArgs.Empty);
+        }
     }
 
     public void Cancel()
