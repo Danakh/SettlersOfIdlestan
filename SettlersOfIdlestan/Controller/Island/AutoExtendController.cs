@@ -844,7 +844,7 @@ public class AutoExtendController
     /// on compare ses coordonnées locales (une fois ce décalage retiré) à celles du motif. Une
     /// vérification finale de distance protège contre tout cas limite.
     /// </summary>
-    private static bool IsRiverHex(HexCoord hex, LayerState layerState)
+    internal static bool IsRiverHex(HexCoord hex, LayerState layerState)
     {
         if (layerState.RiverCycleHexes.Count == 0 || layerState.ArrivalVertex == null) return false;
 

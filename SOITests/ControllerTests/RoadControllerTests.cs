@@ -322,6 +322,106 @@ public class RoadControllerTests
         Assert.Equal(5,  cost[Resource.Gold]);
     }
 
+    // ─── Maritime Routes — traversée de rivière dans l'Inframonde ───────────────
+    //
+    // La carte de l'Inframonde se révèle au fur et à mesure (LayerState.AutoExtend) : les hexagones
+    // ne sont générés que lorsqu'une route les touche. Pour une rivière large d'un seul hexagone, la
+    // traversée passe par exactement une arête eau-eau (entre deux hexagones consécutifs de la
+    // rivière) dont les deux vertex touchent chacun une rive différente. La toute première fois
+    // qu'on tente de construire cette arête, la rive opposée n'a encore jamais été touchée par une
+    // route et n'existe donc pas encore sur la carte — voir RoadController.IsLandOrUnrevealedLand.
+    //
+    //   North=(1,-1)=Plain (ville ici)   Ri=(0,0)=Water   Ri+1=(1,0)=Water   South=(0,1) absent
+    //   Arête de traversée = Edge.Create(Ri, Ri+1)
+    //     Vertex 1: (Ri, Ri+1, North) → North=Plain → touche la terre ✓
+    //     Vertex 2: (Ri, Ri+1, South) → South absent de la carte (pas encore révélé)
+
+    private static (WorldState state, Civilization civ) UnderworldRiverCrossing()
+    {
+        var z = LayerState.UnderworldZ;
+        var ri     = new HexCoord(0, 0, z);
+        var riPlus1 = new HexCoord(1, 0, z);
+        var north  = new HexCoord(1, -1, z);
+        // "south" (l'autre rive) n'est volontairement pas ajouté à la carte : il n'a encore
+        // jamais été touché par une route de l'Inframonde.
+
+        var underworldMap = new IslandMap(new HexTile[]
+        {
+            new(north, TerrainType.Plain),
+            new(ri,    TerrainType.Water),
+            new(riPlus1, TerrainType.Water),
+        });
+
+        // Point d'arrivée très éloigné : garantit que ri/riPlus1 restent au-delà de la distance
+        // minimale de rivière (IsRiverHex) sans influencer la géométrie testée ici.
+        var arrivalVertex = Vertex.Create(
+            new HexCoord(100, 100, z), new HexCoord(101, 100, z), new HexCoord(100, 101, z));
+
+        var layer = new LayerState(underworldMap)
+        {
+            AutoExtend = true,
+            ArrivalVertex = arrivalVertex,
+            RiverCycleHexes = new List<HexCoord> { ri, riPlus1 },
+            RiverCycleDisplacementQ = 0,
+            RiverCycleDisplacementR = 0,
+        };
+
+        var surfaceMap = new IslandMap(new HexTile[]
+        {
+            new(new HexCoord(0, 0, IslandMap.SurfaceLayer), TerrainType.Plain),
+        });
+        var civ = new Civilization { Index = 0 };
+        var state = new WorldState(surfaceMap, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
+        state.AddLayer(z, layer);
+
+        civ.AddCity(new City(Vertex.Create(ri, riPlus1, north)) { CivilizationIndex = 0 });
+
+        return (state, civ);
+    }
+
+    private static Edge UnderworldRiverCrossingEdge() => Edge.Create(
+        new HexCoord(0, 0, LayerState.UnderworldZ), new HexCoord(1, 0, LayerState.UnderworldZ));
+
+    [Fact]
+    public void MaritimeRoutes_UnderworldRiverCrossing_BuildableEvenWithUnrevealedFarBank()
+    {
+        var (state, civ) = UnderworldRiverCrossing();
+        EnableMaritimeRoutes(civ);
+
+        var roads = new RoadController(state).GetBuildableRoads(0);
+
+        Assert.Contains(roads, r => r.Position.Equals(UnderworldRiverCrossingEdge()));
+    }
+
+    [Fact]
+    public void MaritimeRoutes_UnderworldRiverCrossing_WithoutModifier_NotBuildable()
+    {
+        var (state, _) = UnderworldRiverCrossing();
+
+        var roads = new RoadController(state).GetBuildableRoads(0);
+
+        Assert.DoesNotContain(roads, r => r.Position.Equals(UnderworldRiverCrossingEdge()));
+    }
+
+    [Fact]
+    public void MaritimeRoutes_UnderworldRiverCrossing_BuildRoad_ConsumesFixedCostAndCreatesRoad()
+    {
+        var (state, civ) = UnderworldRiverCrossing();
+        EnableMaritimeRoutes(civ);
+        civ.AddResource(Resource.Wood,  10);
+        civ.AddResource(Resource.Brick, 10);
+        civ.AddResource(Resource.Gold,   5);
+
+        var edge = UnderworldRiverCrossingEdge();
+        var road = new RoadController(state).BuildRoad(0, edge)!;
+
+        Assert.NotNull(road);
+        Assert.Contains(civ.Roads, r => r.Position.Equals(edge));
+        Assert.Equal(0, civ.GetResourceQuantity(Resource.Wood));
+        Assert.Equal(0, civ.GetResourceQuantity(Resource.Brick));
+        Assert.Equal(0, civ.GetResourceQuantity(Resource.Gold));
+    }
+
     // ─────────────────────────────────────────────────────────────────────────
 
     [Fact]

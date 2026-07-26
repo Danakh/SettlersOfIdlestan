@@ -547,14 +547,33 @@ namespace SettlersOfIdlestan.Controller.Island
             if (_state == null) return false;
             var mapTiles = _state.GetMapFor(edge)?.Tiles;
             if (mapTiles == null) return false;
+            _state.Layers.TryGetValue(edge.Z, out var layerState);
             foreach (var v in edge.GetVertices())
             {
-                bool touchesLand = v.GetHexes().Any(h =>
-                    mapTiles.TryGetValue(h, out var tile) && !tile.TerrainType.IsWater());
+                bool touchesLand = v.GetHexes().Any(h => IsLandOrUnrevealedLand(h, mapTiles, layerState));
                 bool hasOwnBeacon = civ.MaritimeBeacons.Any(b => b.Position.Equals(v));
                 if (!touchesLand && !hasOwnBeacon) return false;
             }
             return true;
+        }
+
+        /// <summary>
+        /// Vrai si l'hexagone est de la terre ferme, ou n'est pas encore généré sur une carte
+        /// AutoExtend (Inframonde/Abysse) mais ne fait pas partie du tracé de rivière planifié —
+        /// il deviendra donc de la terre ferme dès qu'il sera révélé. Sans ce cas, la toute première
+        /// traversée de rivière serait impossible à construire : la rive opposée n'existe pas encore
+        /// sur la carte tant qu'aucune route n'a été construite jusqu'à elle (voir
+        /// AutoExtendController.TryExtendMapAfterRoad), or on ne peut construire cette route que si
+        /// elle est déjà jugée valide.
+        /// Sur une carte figée (île de surface), un hexagone absent reste traité comme de l'eau : il
+        /// s'agit alors du bord de la carte (pleine mer), pas d'un futur hexagone à révéler.
+        /// </summary>
+        private static bool IsLandOrUnrevealedLand(HexCoord h, IReadOnlyDictionary<HexCoord, HexTile> mapTiles, LayerState? layerState)
+        {
+            if (mapTiles.TryGetValue(h, out var tile))
+                return !tile.TerrainType.IsWater();
+            if (layerState == null || !layerState.AutoExtend) return false;
+            return !AutoExtendController.IsRiverHex(h, layerState);
         }
 
         private bool IsEdgeOnLand(Edge edge)
