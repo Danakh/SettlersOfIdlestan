@@ -32,6 +32,11 @@ public class MaritimeBeaconControllerTests
             state.Features.Add(new GreatLighthouse(h1) { Level = greatLighthouseLevel });
 
         var vertex = Vertex.Create(h1, h2, h3);
+
+        // A road touching the vertex directly (distance 0) so it satisfies the "within 1 edge of a
+        // civilization road" rule tested by GetBuildableVertices_* below.
+        civ.AddRoad(new Road(Edge.Create(h1, h2)) { CivilizationIndex = 0 });
+
         return (state, civ, vertex);
     }
 
@@ -76,6 +81,73 @@ public class MaritimeBeaconControllerTests
         var (state, _, vertex) = WaterTriangleIsland(greatLighthouseLevel: 2);
         var vertices = Controller(state).GetBuildableVertices(0);
         Assert.Contains(vertices, v => v.Equals(vertex));
+    }
+
+    [Fact]
+    public void GetBuildableVertices_ExcludesVertexFartherThanOneEdgeFromAnyRoad()
+    {
+        var h1 = new HexCoord(0, 0, IslandMap.SurfaceLayer);
+        var h2 = new HexCoord(1, 0, IslandMap.SurfaceLayer);
+        var h3 = new HexCoord(0, 1, IslandMap.SurfaceLayer);
+        var h4 = new HexCoord(1, 1, IslandMap.SurfaceLayer);
+        var h5 = new HexCoord(2, 0, IslandMap.SurfaceLayer);
+        var h6 = new HexCoord(2, -1, IslandMap.SurfaceLayer);
+
+        var map = new IslandMap(new HexTile[]
+        {
+            new(h1, TerrainType.Water),
+            new(h2, TerrainType.Water),
+            new(h3, TerrainType.Water),
+            new(h4, TerrainType.Water),
+            new(h5, TerrainType.Water),
+            new(h6, TerrainType.Water),
+        });
+
+        var civ = new Civilization { Index = 0 };
+        var state = new WorldState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
+        state.Features.Add(new GreatLighthouse(h1) { Level = 2 });
+
+        var nearVertex = Vertex.Create(h1, h2, h3); // touches the road directly (distance 0)
+        var farVertex = Vertex.Create(h5, h6, h2);  // more than 1 edge away from the road
+
+        civ.AddRoad(new Road(Edge.Create(h1, h2)) { CivilizationIndex = 0 });
+
+        var controller = Controller(state);
+        var vertices = controller.GetBuildableVertices(0);
+
+        Assert.Contains(vertices, v => v.Equals(nearVertex));
+        Assert.DoesNotContain(vertices, v => v.Equals(farVertex));
+    }
+
+    [Fact]
+    public void GetBuildableVertices_CachesResultUntilRoadsChange()
+    {
+        var h1 = new HexCoord(0, 0, IslandMap.SurfaceLayer);
+        var h2 = new HexCoord(1, 0, IslandMap.SurfaceLayer);
+        var h3 = new HexCoord(0, 1, IslandMap.SurfaceLayer);
+        var h4 = new HexCoord(1, 1, IslandMap.SurfaceLayer);
+
+        var map = new IslandMap(new HexTile[]
+        {
+            new(h1, TerrainType.Water),
+            new(h2, TerrainType.Water),
+            new(h3, TerrainType.Water),
+            new(h4, TerrainType.Water),
+        });
+
+        var civ = new Civilization { Index = 0 };
+        var state = new WorldState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
+        state.Features.Add(new GreatLighthouse(h1) { Level = 2 });
+
+        var farVertex = Vertex.Create(h2, h3, h4);
+        var controller = Controller(state);
+
+        // No road yet: nothing is buildable, and this empty result gets cached.
+        Assert.DoesNotContain(controller.GetBuildableVertices(0), v => v.Equals(farVertex));
+
+        // Adding a road that brings farVertex within range must invalidate the cache.
+        civ.AddRoad(new Road(Edge.Create(h2, h3)) { CivilizationIndex = 0 });
+        Assert.Contains(controller.GetBuildableVertices(0), v => v.Equals(farVertex));
     }
 
     [Fact]
