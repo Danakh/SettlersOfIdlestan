@@ -27,8 +27,8 @@ public class GreatLighthouse : Monument
     public static ResourceSet GetLevelCost(int level) => new()
     {
         { Resource.Glass, 2000 * level * level },
-        { Resource.Brick, 5000 * level * level },
-        { Resource.Stone, 2000 * level * level },
+        { Resource.Brick, 2000 * level * level },
+        { Resource.Stone, 5000 * level * level },
         { Resource.Gold, 5000 * level * level },
     };
 

@@ -285,6 +285,20 @@ namespace SettlersOfIdlestan.Controller.Expand
             tree.ActiveResearch = null;
             tree.ActiveResearchConsumed = 0;
             tree.ActiveResearchLastConsumptionTick = 0;
+
+            // Si une recherche différente était en file d'attente, elle démarre immédiatement
+            // au lieu de laisser le slot actif vide (même logique qu'à la complétion normale,
+            // voir AdvanceActiveResearch).
+            if (tree.QueuedResearch.HasValue)
+            {
+                var queued = tree.QueuedResearch.Value;
+                tree.QueuedResearch = null;
+                StartResearch(queued);
+
+                var queuedTech = TechnologyDefinitions.Get(queued);
+                if (queuedTech?.Repeatable == true)
+                    tree.LoopResearch = queued;
+            }
             return true;
         }
 
