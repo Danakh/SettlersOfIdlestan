@@ -47,7 +47,6 @@ public sealed class AutomationRenderer : IDisposable
     internal const string PinKeyBarracks      = "Barracks";
     internal const string PinKeyLaboratory    = "Laboratory";
     internal const string PinKeySmelter       = "Smelter";
-    internal const string PinKeyArsenal       = "Arsenal";
     internal const string PinKeyWeaponSmith   = "WeaponSmith";
     internal const string PinKeyArmorSmith    = "ArmorSmith";
     internal const string PinKeyAlchimistHut  = "AlchimistHut";
@@ -77,7 +76,6 @@ public sealed class AutomationRenderer : IDisposable
     private SKRect _barracksToggleRect     = SKRect.Empty;
     private SKRect _labToggleRect          = SKRect.Empty;
     private SKRect _smelterToggleRect      = SKRect.Empty;
-    private SKRect _arsenalToggleRect      = SKRect.Empty;
     private SKRect _weaponSmithToggleRect  = SKRect.Empty;
     private SKRect _armorSmithToggleRect   = SKRect.Empty;
     private SKRect _alchimistHutToggleRect = SKRect.Empty;
@@ -99,7 +97,6 @@ public sealed class AutomationRenderer : IDisposable
     private bool _hoveredBarracksToggle;
     private bool _hoveredLabToggle;
     private bool _hoveredSmelterToggle;
-    private bool _hoveredArsenalToggle;
     private bool _hoveredWeaponSmithToggle;
     private bool _hoveredArmorSmithToggle;
     private bool _hoveredAlchimistHutToggle;
@@ -383,11 +380,10 @@ public sealed class AutomationRenderer : IDisposable
         bool hasBarracks      = BuildingExists<Barracks>(civ);
         bool hasLabs          = BuildingExists<Laboratory>(civ);
         bool hasSmelters      = BuildingExists<Smelter>(civ);
-        bool hasArsenals      = BuildingExists<Arsenal>(civ);
         bool hasWeaponSmiths  = BuildingExists<WeaponSmith>(civ);
         bool hasArmorSmiths   = BuildingExists<ArmorSmith>(civ);
         bool hasAlchimistHuts = BuildingExists<AlchimistHut>(civ);
-        bool anyBuildingControls = hasBarracks || hasLabs || hasSmelters || hasArsenals
+        bool anyBuildingControls = hasBarracks || hasLabs || hasSmelters
             || hasWeaponSmiths || hasArmorSmiths || hasAlchimistHuts;
 
         if (anyBuildingControls)
@@ -420,14 +416,6 @@ public sealed class AutomationRenderer : IDisposable
             }
             else _smelterToggleRect = SKRect.Empty;
 
-            if (hasArsenals)
-            {
-                bool? allArsenalsOn = AreAllActiveNullable<Arsenal>(civ);
-                (_arsenalToggleRect, rowH) = DrawBuildingControlRow(canvas, rightX, rightY, colWidth, allArsenalsOn, _hoveredArsenalToggle, _localization.Get("building_arsenal_name"), _localization.Get("tooltip_toggle_arsenal"), PinKeyArsenal, _hoveredPinKey == PinKeyArsenal, pinned.Contains(PinKeyArsenal));
-                rightY += rowH + RowSpacing;
-            }
-            else _arsenalToggleRect = SKRect.Empty;
-
             if (hasWeaponSmiths)
             {
                 bool? allWeaponSmithsOn = AreAllActiveNullable<WeaponSmith>(civ);
@@ -454,7 +442,7 @@ public sealed class AutomationRenderer : IDisposable
         }
         else
         {
-            _barracksToggleRect = _labToggleRect = _smelterToggleRect = _arsenalToggleRect = SKRect.Empty;
+            _barracksToggleRect = _labToggleRect = _smelterToggleRect = SKRect.Empty;
             _weaponSmithToggleRect = _armorSmithToggleRect = _alchimistHutToggleRect = SKRect.Empty;
         }
 
@@ -681,7 +669,6 @@ public sealed class AutomationRenderer : IDisposable
         _hoveredBarracksToggle      = !_barracksToggleRect.IsEmpty      && _barracksToggleRect.Contains(adj.X, adj.Y);
         _hoveredLabToggle           = !_labToggleRect.IsEmpty           && _labToggleRect.Contains(adj.X, adj.Y);
         _hoveredSmelterToggle       = !_smelterToggleRect.IsEmpty       && _smelterToggleRect.Contains(adj.X, adj.Y);
-        _hoveredArsenalToggle       = !_arsenalToggleRect.IsEmpty       && _arsenalToggleRect.Contains(adj.X, adj.Y);
         _hoveredWeaponSmithToggle   = !_weaponSmithToggleRect.IsEmpty   && _weaponSmithToggleRect.Contains(adj.X, adj.Y);
         _hoveredArmorSmithToggle    = !_armorSmithToggleRect.IsEmpty    && _armorSmithToggleRect.Contains(adj.X, adj.Y);
         _hoveredAlchimistHutToggle  = !_alchimistHutToggleRect.IsEmpty  && _alchimistHutToggleRect.Contains(adj.X, adj.Y);
@@ -834,10 +821,6 @@ public sealed class AutomationRenderer : IDisposable
             if (!_smelterToggleRect.IsEmpty && _smelterToggleRect.Contains(adj.X, adj.Y))
             {
                 ToggleAll<Smelter>(civ); return true;
-            }
-            if (!_arsenalToggleRect.IsEmpty && _arsenalToggleRect.Contains(adj.X, adj.Y))
-            {
-                ToggleAll<Arsenal>(civ); return true;
             }
             if (!_weaponSmithToggleRect.IsEmpty && _weaponSmithToggleRect.Contains(adj.X, adj.Y))
             {

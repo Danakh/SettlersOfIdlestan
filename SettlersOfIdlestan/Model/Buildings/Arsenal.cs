@@ -15,7 +15,7 @@ public class Arsenal : Building
     public Arsenal() : base(BuildingType.Arsenal)
     {
         AvailableAtLevel = 3;
-        ActivationStatus = ActivationStatus.ACTIVE;
+        ActivationStatus = ActivationStatus.NON_ACTIVABLE;
     }
 
     // Verrouillé par défaut ; débloqué par le vertex de prestige Génie Militaire (+3 niveaux max)

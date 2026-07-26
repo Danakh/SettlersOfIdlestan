@@ -179,7 +179,6 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         bool hasBarracks     = HasBuilt<Barracks>(civ);
         bool hasLabs         = HasBuilt<Laboratory>(civ);
         bool hasSmelters     = HasBuilt<Smelter>(civ);
-        bool hasArsenals     = HasBuilt<Arsenal>(civ);
         bool hasWeaponSmiths  = HasBuilt<WeaponSmith>(civ);
         bool hasArmorSmiths   = HasBuilt<ArmorSmith>(civ);
         bool hasAlchimistHuts = HasBuilt<AlchimistHut>(civ);
@@ -188,7 +187,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         var pinned = _gameControllerService.CurrentGameState?.Settings.PinnedCivPanelKeys ?? (IReadOnlySet<string>)new HashSet<string>();
 
         bool showActions  = tradeVisible || prestigeVisible || wonderVisible || greatLighthouseVisible || deepestMineVisible || spireVisible || raidVisible || warHeraldVisible || relocationVisible || walkOfGodVisible || presenceOfGodVisible;
-        bool showControls = pinned.Any(k => IsKeyShowable(k, civ, worldState, hasBarracks, hasLabs, hasSmelters, hasArsenals, hasWeaponSmiths, hasArmorSmiths, hasAlchimistHuts));
+        bool showControls = pinned.Any(k => IsKeyShowable(k, civ, worldState, hasBarracks, hasLabs, hasSmelters, hasWeaponSmiths, hasArmorSmiths, hasAlchimistHuts));
 
         // Single source of truth for the action-button count — reused for both the
         // panel height measurement and the button-grid layout so they can't drift apart.
@@ -228,7 +227,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         {
             h += titleHeight;
             foreach (var k in pinned)
-                if (IsKeyShowable(k, civ, worldState, hasBarracks, hasLabs, hasSmelters, hasArsenals, hasWeaponSmiths, hasArmorSmiths, hasAlchimistHuts))
+                if (IsKeyShowable(k, civ, worldState, hasBarracks, hasLabs, hasSmelters, hasWeaponSmiths, hasArmorSmiths, hasAlchimistHuts))
                     h += rowHeight;
         }
         h += panelPadding;
@@ -366,7 +365,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
 
             foreach (var key in pinned)
             {
-                if (!IsKeyShowable(key, civ, worldState, hasBarracks, hasLabs, hasSmelters, hasArsenals, hasWeaponSmiths, hasArmorSmiths, hasAlchimistHuts))
+                if (!IsKeyShowable(key, civ, worldState, hasBarracks, hasLabs, hasSmelters, hasWeaponSmiths, hasArmorSmiths, hasAlchimistHuts))
                     continue;
 
                 int idx = _pinnedItemRects.Count;
@@ -388,10 +387,6 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
                     case AutomationRenderer.PinKeySmelter:
                         toggleRect = DrawToggleRow(canvas, x, y, AreAllActiveNullable<Smelter>(civ), isHovered, _localization.Get("building_smelter_name"));
                         tooltipKey = "tooltip_toggle_smelter";
-                        break;
-                    case AutomationRenderer.PinKeyArsenal:
-                        toggleRect = DrawToggleRow(canvas, x, y, AreAllActiveNullable<Arsenal>(civ), isHovered, _localization.Get("building_arsenal_name"));
-                        tooltipKey = "tooltip_toggle_arsenal";
                         break;
                     case AutomationRenderer.PinKeyWeaponSmith:
                         toggleRect = DrawToggleRow(canvas, x, y, AreAllActiveNullable<WeaponSmith>(civ), isHovered, _localization.Get("building_weaponsmith_name"));
@@ -717,7 +712,6 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             case AutomationRenderer.PinKeyBarracks:      if (civ != null) ToggleAll<Barracks>(civ);    break;
             case AutomationRenderer.PinKeyLaboratory:    if (civ != null) ToggleAll<Laboratory>(civ);  break;
             case AutomationRenderer.PinKeySmelter:       if (civ != null) ToggleAll<Smelter>(civ);     break;
-            case AutomationRenderer.PinKeyArsenal:       if (civ != null) ToggleAll<Arsenal>(civ);     break;
             case AutomationRenderer.PinKeyWeaponSmith:   if (civ != null) ToggleAll<WeaponSmith>(civ); break;
             case AutomationRenderer.PinKeyArmorSmith:    if (civ != null) ToggleAll<ArmorSmith>(civ);  break;
             case AutomationRenderer.PinKeyAlchimistHut:  if (civ != null) ToggleAll<AlchimistHut>(civ); break;
@@ -756,7 +750,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
 
     private static bool IsKeyShowable(string key, Civilization civ,
         SettlersOfIdlestan.Model.IslandMap.WorldState? worldState,
-        bool hasBarracks, bool hasLabs, bool hasSmelters, bool hasArsenals,
+        bool hasBarracks, bool hasLabs, bool hasSmelters,
         bool hasWeaponSmiths, bool hasArmorSmiths, bool hasAlchimistHuts)
     {
         return key switch
@@ -764,7 +758,6 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             AutomationRenderer.PinKeyBarracks     => hasBarracks,
             AutomationRenderer.PinKeyLaboratory   => hasLabs,
             AutomationRenderer.PinKeySmelter      => hasSmelters,
-            AutomationRenderer.PinKeyArsenal      => hasArsenals,
             AutomationRenderer.PinKeyWeaponSmith  => hasWeaponSmiths,
             AutomationRenderer.PinKeyArmorSmith   => hasArmorSmiths,
             AutomationRenderer.PinKeyAlchimistHut => hasAlchimistHuts,
