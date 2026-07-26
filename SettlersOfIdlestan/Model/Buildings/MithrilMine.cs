@@ -10,7 +10,7 @@ public class MithrilMine : Building
 {
     public MithrilMine() : base(BuildingType.MithrilMine)
     {
-        AvailableAtLevel = 2;
+        AvailableAtLevel = 4;
     }
 
     // Verrouillé par défaut ; débloqué par le vertex de prestige Le Mithril (+2 niveaux max)
