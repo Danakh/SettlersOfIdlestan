@@ -26,7 +26,12 @@ public class VertexTests
         var hex1 = new HexCoord(0, 0, IslandMap.SurfaceLayer);
         var hex2 = new HexCoord(1, 0, IslandMap.SurfaceLayer);
         var hex3 = new HexCoord(2, 0, IslandMap.SurfaceLayer); // Not adjacent to both
+#if DEBUG
         Assert.Throws<ArgumentException>(() => Vertex.Create(hex1, hex2, hex3));
+#else
+        // Validation dÃ©sactivÃ©e hors DEBUG pour la performance : ne doit pas lever.
+        Vertex.Create(hex1, hex2, hex3);
+#endif
     }
 
     [Fact]
@@ -35,7 +40,12 @@ public class VertexTests
         var hex1 = new HexCoord(0, 0, IslandMap.SurfaceLayer);
         var hex2 = new HexCoord(1, 0, IslandMap.SurfaceLayer);
         var hex3 = new HexCoord(0, 1, LayerState.UnderworldZ);
+#if DEBUG
         Assert.Throws<ArgumentException>(() => Vertex.Create(hex1, hex2, hex3));
+#else
+        // Validation dÃ©sactivÃ©e hors DEBUG pour la performance : ne doit pas lever.
+        Vertex.Create(hex1, hex2, hex3);
+#endif
     }
 
     [Fact]
@@ -126,7 +136,12 @@ public class VertexTests
             new HexCoord(1, 0, LayerState.UnderworldZ),
             new HexCoord(0, 1, LayerState.UnderworldZ));
 
+#if DEBUG
         Assert.Throws<ArgumentException>(() => surface.EdgeDistanceTo(underworld));
+#else
+        // Validation dÃ©sactivÃ©e hors DEBUG pour la performance : ne doit pas lever.
+        surface.EdgeDistanceTo(underworld);
+#endif
     }
 
     [Fact]

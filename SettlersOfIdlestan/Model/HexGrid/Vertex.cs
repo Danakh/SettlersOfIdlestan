@@ -20,6 +20,19 @@ public class Vertex
 {
     private Vertex(HexCoord hex1, HexCoord hex2, HexCoord hex3)
     {
+        ValidateConstruction(hex1, hex2, hex3);
+
+        Hex1 = hex1;
+        Hex2 = hex2;
+        Hex3 = hex3;
+    }
+
+    /// <summary>
+    /// Validations de construction coÃ»teuses, dÃ©sactivÃ©es hors DEBUG.
+    /// </summary>
+    [System.Diagnostics.Conditional("DEBUG")]
+    private static void ValidateConstruction(HexCoord hex1, HexCoord hex2, HexCoord hex3)
+    {
         EnsureSameZ(hex1, hex2, hex3, "create a vertex");
 
         // Validation: les hexagones doivent former un triangle valide
@@ -27,10 +40,6 @@ public class Vertex
         {
             throw new ArgumentException("Triangle invalide");
         }
-
-        Hex1 = hex1;
-        Hex2 = hex2;
-        Hex3 = hex3;
     }
 
     public HexCoord Hex1 { get; private set; }
@@ -133,6 +142,7 @@ public class Vertex
         return Z == other.Z;
     }
 
+    [System.Diagnostics.Conditional("DEBUG")]
     public void EnsureSameZ(Vertex other, string operation)
     {
         if (!HasSameZ(other))
@@ -281,6 +291,7 @@ public class Vertex
         );
     }
 
+    [System.Diagnostics.Conditional("DEBUG")]
     private static void EnsureSameZ(HexCoord hex1, HexCoord hex2, HexCoord hex3, string operation)
     {
         hex1.EnsureSameZ(hex2, operation);

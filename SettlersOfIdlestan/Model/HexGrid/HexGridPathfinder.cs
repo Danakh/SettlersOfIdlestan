@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 namespace SettlersOfIdlestan.Model.HexGrid;
@@ -15,7 +16,13 @@ public static class HexGridPathfinder
     /// </summary>
     public static List<Vertex> FindVertexPath(Vertex from, Vertex to)
     {
-        from.EnsureSameZ(to, nameof(FindVertexPath));
+        // VÃ©rification non conditionnelle (contrairement Ã  Vertex.EnsureSameZ, dÃ©sactivÃ©e hors DEBUG) :
+        // sans elle, from et to sur des Z diffÃ©rents ne se rejoignent jamais et l'algorithme boucle Ã  l'infini.
+        if (from.Z != to.Z)
+        {
+            throw new ArgumentException(
+                $"Cannot {nameof(FindVertexPath)} across different map layers: {from} and {to}");
+        }
 
         if (from.Equals(to)) return new List<Vertex> { from };
 
