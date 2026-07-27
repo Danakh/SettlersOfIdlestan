@@ -120,8 +120,8 @@ namespace SOITests.ControllerTests
 
             Assert.True(controller.LaunchRitual(RitualId.Growth));
 
-            // Coût de lancement : base 5 × 1² = 5 cristaux
-            Assert.Equal(45, civ.GetResourceQuantity(Resource.Crystal));
+            // Coût de lancement : base 10 × 1² = 10 cristaux
+            Assert.Equal(40, civ.GetResourceQuantity(Resource.Crystal));
             Assert.NotNull(controller.GetActiveRitual(RitualId.Growth));
 
             // Effet : +10% de vitesse de récolte par puissance
@@ -171,12 +171,12 @@ namespace SOITests.ControllerTests
             AddMageTower(state, level: 10); // budget de puissance = floor(1 + 10×10%) = 2
             civ.AddResource(Resource.Crystal, 50);
 
-            controller.LaunchRitual(RitualId.Growth); // 5 cristaux (p1)
+            controller.LaunchRitual(RitualId.Growth); // 10 cristaux (p1)
 
-            // Passage p1 → p2 : 5×2² − 5×1² = 15 cristaux
-            Assert.Equal(15, controller.GetPowerIncreaseCost(RitualId.Growth));
+            // Passage p1 → p2 : 10×2² − 10×1² = 30 cristaux
+            Assert.Equal(30, controller.GetPowerIncreaseCost(RitualId.Growth));
             Assert.True(controller.IncreaseRitualPower(RitualId.Growth));
-            Assert.Equal(30, civ.GetResourceQuantity(Resource.Crystal));
+            Assert.Equal(10, civ.GetResourceQuantity(Resource.Crystal));
 
             // Effet linéaire : +10% × 2 = +20%
             double harvestSpeed = civ.ModifierAggregator.ApplyModifiers(ECategory.HARVEST_SPEED, "", 1.0);
@@ -207,12 +207,12 @@ namespace SOITests.ControllerTests
             AddMageTower(state);
             civ.AddResource(Resource.Crystal, 50);
 
-            controller.LaunchRitual(RitualId.Growth); // reste 45
+            controller.LaunchRitual(RitualId.Growth); // reste 40
 
             clock.SimulateAdvance(MagicController.UpkeepIntervalTicks);
 
-            // Entretien : base 1 × 1² = 1 cristal par cycle
-            Assert.Equal(44, civ.GetResourceQuantity(Resource.Crystal));
+            // Entretien : base 2 × 1² = 2 cristaux par cycle
+            Assert.Equal(38, civ.GetResourceQuantity(Resource.Crystal));
             Assert.NotNull(controller.GetActiveRitual(RitualId.Growth));
         }
 
@@ -223,7 +223,7 @@ namespace SOITests.ControllerTests
             var civ = state.PlayerCivilization;
             UnlockMagic(civ, RitualId.Growth);
             AddMageTower(state);
-            civ.AddResource(Resource.Crystal, 5); // juste le coût de lancement
+            civ.AddResource(Resource.Crystal, 10); // juste le coût de lancement
 
             controller.LaunchRitual(RitualId.Growth); // reste 0
 
@@ -270,8 +270,8 @@ namespace SOITests.ControllerTests
             AddMageTower(state);
 
             var def = RitualDefinitions.Get(RitualId.MartialBlessing)!;
-            // Base 2 × 1² × (1 − 0.5) = 1
-            Assert.Equal(1, controller.GetUpkeepCost(def, 1));
+            // Base 4 × 1² × (1 − 0.5) = 2
+            Assert.Equal(2, controller.GetUpkeepCost(def, 1));
         }
 
         // ── Cercles de Fées ───────────────────────────────────────────────────
