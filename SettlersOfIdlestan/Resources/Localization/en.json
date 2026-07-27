@@ -201,6 +201,7 @@
   "tooltip_requires_forge_level4": "⚠ Requires a level 4 Forge in this city",
   "tooltip_requires_garrison": "⚠ Requires a Garrison in this city",
   "tooltip_requires_fairy_circle": "⚠ Must be built next to a discovered Fairy Circle",
+  "tooltip_requires_crystal_cave_or_fairy_circle": "⚠ Must be built next to a discovered Crystal Cave or Fairy Circle",
   "tooltip_requires_volcano": "⚠ Must be built next to a discovered volcano",
   "tooltip_requires_adjacent_city": "⚠ Requires a city next to the Monument to invest",
   "building_garrison_name": "Garrison",

@@ -201,6 +201,7 @@
   "tooltip_requires_forge_level4": "⚠ Nécessite une Forge niveau 4 dans cette ville",
   "tooltip_requires_garrison": "⚠ Nécessite une Garnison dans cette ville",
   "tooltip_requires_fairy_circle": "⚠ Doit être construite à côté d'un Cercle de Fées découvert",
+  "tooltip_requires_crystal_cave_or_fairy_circle": "⚠ Doit être construite à côté d'une Grotte de Cristal ou d'un Cercle de Fées découvert",
   "tooltip_requires_volcano": "⚠ Doit être construite à côté d'un volcan découvert",
   "tooltip_requires_adjacent_city": "⚠ Nécessite une ville à côté du Monument pour investir",
   "building_garrison_name": "Garnison",

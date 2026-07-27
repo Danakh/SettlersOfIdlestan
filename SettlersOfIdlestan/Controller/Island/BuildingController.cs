@@ -298,11 +298,13 @@ namespace SettlersOfIdlestan.Controller.Island
             if (prototype == null || prototype.IsUnique)
                 return null;
 
-            // Alchimist Hut : prérequis lié à une feature de carte (Cercle de Fées) découverte,
-            // pas à un autre bâtiment construisible — reste masquée tant que la feature n'est
-            // pas trouvée, plutôt qu'affichée grisée avec tooltip (voir GetUniqueBuildingsAndBuildables
-            // pour le même traitement des bâtiments uniques équivalents comme la Forge Volcanique).
-            if (bt == BuildingType.AlchimistHut && _state != null && !prototype.HasBuildPrerequisites(city, _state))
+            // Alchimist Hut / Mage Tower : prérequis lié à une feature de carte (Cercle de Fées) ou
+            // à un terrain (Grotte de Cristal) découvert, pas à un autre bâtiment construisible —
+            // reste masquée tant que le prérequis n'est pas rempli, plutôt qu'affichée grisée avec
+            // tooltip (voir GetUniqueBuildingsAndBuildables pour le même traitement des bâtiments
+            // uniques équivalents comme la Forge Volcanique).
+            if ((bt == BuildingType.AlchimistHut || bt == BuildingType.MageTower) &&
+                _state != null && !prototype.HasBuildPrerequisites(city, _state))
                 return null;
 
             if (GetMaxLevel(prototype, city.CivilizationIndex) > 0 && map != null)

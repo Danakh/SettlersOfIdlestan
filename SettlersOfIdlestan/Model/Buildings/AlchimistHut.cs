@@ -6,15 +6,15 @@ namespace SettlersOfIdlestan.Model.Buildings;
 
 /// <summary>
 /// Hutte d'Alchimie — récolte automatiquement les cristaux des Cercles de Fées adjacents
-/// (comportement aligné sur les bâtiments de production : cooldown de base 60s, réduit avec le
+/// (comportement aligné sur les bâtiments de production : cooldown de base 20s, réduit avec le
 /// niveau, modificateur HARVEST_SPEED applicable) et produit des Potions de Soin (consommable).
 /// Ne peut être construite qu'adjacente à un Cercle de Fées découvert.
 /// Verrouillée par défaut ; débloquée par le vertex de prestige Hutte d'Alchimie.
 /// </summary>
 public class AlchimistHut : Building
 {
-    /// <summary>Cooldown de base (en ticks) de la récolte automatique de cristaux : 60s, réduit avec le niveau.</summary>
-    public const long CrystalHarvestBaseCooldownTicks = 6000L;
+    /// <summary>Cooldown de base (en ticks) de la récolte automatique de cristaux : 20s, réduit avec le niveau.</summary>
+    public const long CrystalHarvestBaseCooldownTicks = 2000L;
 
     /// <summary>Dernier tick où la hutte a récolté des cristaux des Cercles de Fées adjacents.</summary>
     public long LastCrystalProductionTick { get; set; } = 0;
