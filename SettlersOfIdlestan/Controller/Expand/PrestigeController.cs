@@ -92,7 +92,7 @@ namespace SettlersOfIdlestan.Controller.Expand
         {
             if (_clock == null) return false;
             long needed = GetTicksUntilNextWonderMultiplier();
-            return needed > 0 && _clock.AdvanceFromBank(needed);
+            return needed > 0 && _clock.AdvanceFromBank(needed, 10000);
         }
 
         private bool HasNoSurfaceMonsters() => !HasSurfaceMonsters();

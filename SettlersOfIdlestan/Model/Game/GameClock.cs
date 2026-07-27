@@ -144,11 +144,11 @@ namespace SettlersOfIdlestan.Model.Game
         /// banque hors-ligne (<see cref="OfflineBankTicks"/>). Retourne false sans effet si la
         /// banque ne contient pas assez de ticks.
         /// </summary>
-        public bool AdvanceFromBank(long ticks)
+        public bool AdvanceFromBank(long ticks, long chunkTicks = 100)
         {
             if (ticks <= 0 || OfflineBankTicks < ticks) return false;
             OfflineBankTicks -= ticks;
-            SimulateAdvance(ticks);
+            SimulateAdvance(ticks, chunkTicks);
             return true;
         }
 
