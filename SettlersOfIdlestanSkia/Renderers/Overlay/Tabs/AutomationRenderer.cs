@@ -127,6 +127,7 @@ public sealed class AutomationRenderer : IDisposable
     private readonly SKPaint _tooltipBorderPaint   = new() { Color = new SKColor(80, 120, 100), StrokeWidth = 1f, Style = SKPaintStyle.Stroke, IsAntialias = true };
     private readonly SKPaint _mutedPaint           = new() { Color = new SKColor(110, 110, 125), IsAntialias = true };
     private readonly SKPaint _accentPaint          = new() { Color = new SKColor(255, 215, 0), IsAntialias = true };
+    private readonly SKPaint _warningPaint         = new() { Color = new SKColor(220, 160, 60), IsAntialias = true };
     private readonly SKPaint _summaryBuiltPaint    = new() { Color = new SKColor(120, 175, 120), IsAntialias = true };
     private readonly SKPaint _summaryEmptyPaint    = new() { Color = new SKColor(95, 95, 108), IsAntialias = true };
     private readonly SKPaint _summaryDividerPaint  = new() { Color = new SKColor(70, 70, 88), StrokeWidth = 1f, Style = SKPaintStyle.Stroke, IsAntialias = true };
@@ -184,6 +185,16 @@ public sealed class AutomationRenderer : IDisposable
 
         SkiaTextUtils.DrawText(canvas, _localization.Get("automation_title"), x, y + 14, _headerFont, _accentPaint);
         y += 32f;
+
+        // Les réglages individuels ci-dessous restent affichés tels que stockés (voir
+        // AutomationSettings.RoadAutomationEnabled etc.) même si l'interrupteur global est coupé —
+        // seul ce bandeau indique que rien ne s'exécute réellement tant qu'il est désactivé
+        // (voir AutomationSettings.Bind/Active pour la logique de combinaison).
+        if (_gameControllerService.CurrentGameState?.Settings.AutomationsEnabled == false)
+        {
+            SkiaTextUtils.DrawText(canvas, _localization.Get("automation_globally_disabled_banner"), x, y + 12, _descFont, _warningPaint);
+            y += 22f;
+        }
 
         var civ = _gameControllerService.PlayerCivilization;
         var WorldState = _gameControllerService.CurrentWorldState;
@@ -901,6 +912,7 @@ public sealed class AutomationRenderer : IDisposable
         _tooltipBorderPaint.Dispose();
         _mutedPaint.Dispose();
         _accentPaint.Dispose();
+        _warningPaint.Dispose();
         _summaryBuiltPaint.Dispose();
         _summaryEmptyPaint.Dispose();
         _summaryDividerPaint.Dispose();

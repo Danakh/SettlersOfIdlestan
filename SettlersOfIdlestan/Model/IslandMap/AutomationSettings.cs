@@ -1,29 +1,70 @@
+using System.Text.Json.Serialization;
+using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
 
 namespace SettlersOfIdlestan.Model.IslandMap;
 
 public class AutomationSettings
 {
+    /// <summary>
+    /// Référence vers les settings globaux, utilisée uniquement pour appliquer l'interrupteur
+    /// GameSettings.AutomationsEnabled aux propriétés IsXActive ci-dessous. Câblée une fois via
+    /// Bind (voir MainGameController.InitializeControllersForCurrentIsland), jamais sérialisée.
+    /// </summary>
+    [JsonIgnore]
+    private GameSettings? _globalSettings;
+
+    public void Bind(GameSettings settings) => _globalSettings = settings;
+
+    /// <summary>Combine un flag d'automatisation individuel avec l'interrupteur global. Point d'entrée
+    /// unique du "kill switch" : le reste du code doit lire les propriétés IsXActive, jamais les
+    /// champs XEnabled bruts (réservés à la persistance et à l'UI de configuration par flag).</summary>
+    private bool Active(bool flag) => flag && (_globalSettings?.AutomationsEnabled ?? true);
+
     public bool RoadAutomationEnabled { get; set; } = true;
+    [JsonIgnore] public bool IsRoadAutomationActive => Active(RoadAutomationEnabled);
+
     public bool OutpostAutomationEnabled { get; set; } = false;
+    [JsonIgnore] public bool IsOutpostAutomationActive => Active(OutpostAutomationEnabled);
 
     /// <summary>Automatisation de l'amélioration de l'Hôtel de Ville par la Guilde des bâtisseurs (dès niveau 1), voir BuildingController.PerformTownHallGuildAutomation.</summary>
     public bool TownHallAutomationEnabled { get; set; } = false;
+    [JsonIgnore] public bool IsTownHallAutomationActive => Active(TownHallAutomationEnabled);
 
     /// <summary>Comme RoadAutomationEnabled, mais pour l'automatisation des routes dans l'Inframonde (nécessite la recherche Cartographie Souterraine, voir RoadController.PerformBuildersGuildConstruction).</summary>
     public bool RoadAutomationEnabledUnderworld { get; set; } = true;
+    [JsonIgnore] public bool IsRoadAutomationActiveUnderworld => Active(RoadAutomationEnabledUnderworld);
 
     /// <summary>Comme OutpostAutomationEnabled, mais pour l'automatisation des avant-postes dans l'Inframonde (nécessite la recherche Cartographie Souterraine, voir CityBuilderController.PerformBuildersGuildOutpostConstruction).</summary>
     public bool OutpostAutomationEnabledUnderworld { get; set; } = false;
+    [JsonIgnore] public bool IsOutpostAutomationActiveUnderworld => Active(OutpostAutomationEnabledUnderworld);
+
     public bool ProductionBuildingAutomationEnabled { get; set; } = false;
+    [JsonIgnore] public bool IsProductionBuildingAutomationActive => Active(ProductionBuildingAutomationEnabled);
+
     public bool ArtisanBuildingAutomationEnabled { get; set; } = false;
+    [JsonIgnore] public bool IsArtisanBuildingAutomationActive => Active(ArtisanBuildingAutomationEnabled);
+
     public bool LibraryBuildingAutomationEnabled { get; set; } = false;
+    [JsonIgnore] public bool IsLibraryBuildingAutomationActive => Active(LibraryBuildingAutomationEnabled);
+
     public bool MarketBuildingAutomationEnabled { get; set; } = false;
+    [JsonIgnore] public bool IsMarketBuildingAutomationActive => Active(MarketBuildingAutomationEnabled);
+
     public bool SeaportBuildingAutomationEnabled { get; set; } = false;
+    [JsonIgnore] public bool IsSeaportBuildingAutomationActive => Active(SeaportBuildingAutomationEnabled);
+
     public bool MilitaryBuildingAutomationEnabled { get; set; } = false;
+    [JsonIgnore] public bool IsMilitaryBuildingAutomationActive => Active(MilitaryBuildingAutomationEnabled);
+
     public bool MilitaryReinforcementAutomationEnabled { get; set; } = false;
+    [JsonIgnore] public bool IsMilitaryReinforcementAutomationActive => Active(MilitaryReinforcementAutomationEnabled);
+
     public bool MilitaryPatrolAutomationEnabled { get; set; } = false;
+    [JsonIgnore] public bool IsMilitaryPatrolAutomationActive => Active(MilitaryPatrolAutomationEnabled);
+
     public bool MilitaryVendettaAutomationEnabled { get; set; } = false;
+    [JsonIgnore] public bool IsMilitaryVendettaAutomationActive => Active(MilitaryVendettaAutomationEnabled);
 
     /// <summary>
     /// Démarre automatiquement (et relance après chaque palier franchi) l'investissement des
@@ -32,6 +73,7 @@ public class AutomationSettings
     /// d'un moyen de production pour chacune d'entre elles (voir MonumentInvestment.TryAutoStartInvestment).
     /// </summary>
     public bool MonumentInvestmentAutomationEnabled { get; set; } = false;
+    [JsonIgnore] public bool IsMonumentInvestmentAutomationActive => Active(MonumentInvestmentAutomationEnabled);
 
     /// <summary>
     /// Obsolète : remplacé par GameSettings.PinnedCivPanelKeys (persiste entre îles/redémarrages).

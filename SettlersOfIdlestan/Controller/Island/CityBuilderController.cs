@@ -111,8 +111,8 @@ namespace SettlersOfIdlestan.Controller.Island
             if (guild == null || guild.Level < 4) return;
 
             bool underworldUnlocked = civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_BUILDERS_GUILD_UNDERWORLD);
-            bool surfaceEnabled = _state.AutomationSettings.OutpostAutomationEnabled;
-            bool underworldEnabled = underworldUnlocked && _state.AutomationSettings.OutpostAutomationEnabledUnderworld;
+            bool surfaceEnabled = _state.AutomationSettings.IsOutpostAutomationActive;
+            bool underworldEnabled = underworldUnlocked && _state.AutomationSettings.IsOutpostAutomationActiveUnderworld;
 
             // Keep timer running even when disabled to avoid burst on re-enable
             if (!surfaceEnabled && !underworldEnabled)

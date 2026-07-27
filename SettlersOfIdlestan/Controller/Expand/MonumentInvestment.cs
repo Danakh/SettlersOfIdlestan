@@ -139,7 +139,7 @@ namespace SettlersOfIdlestan.Controller.Expand
         /// </summary>
         public static void TryAutoStartInvestment(Monument monument, ResourceSet cost, Civilization playerCiv, HarvestController harvestController, WorldState state)
         {
-            if (!state.AutomationSettings.MonumentInvestmentAutomationEnabled) return;
+            if (!state.AutomationSettings.IsMonumentInvestmentAutomationActive) return;
             if (monument.InvestmentEnabled.Count > 0) return;
 
             var rates = harvestController.GetAverageProductionRatesPerSecond(playerCiv.Index);

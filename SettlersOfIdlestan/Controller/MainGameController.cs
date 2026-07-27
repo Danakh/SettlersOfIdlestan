@@ -316,6 +316,12 @@ namespace SettlersOfIdlestan.Controller
                 if (WorldState.AutomationSettings.PinnedToCivPanel.Count > 0)
                     CurrentMainState!.Settings.PinnedCivPanelKeys.UnionWith(WorldState.AutomationSettings.PinnedToCivPanel);
 
+                // Câble l'interrupteur global GameSettings.AutomationsEnabled sur les IsXActive de
+                // AutomationSettings (voir AutomationSettings.Bind) — seul point de branchement du
+                // kill switch, à refaire à chaque île/prestige/chargement puisque AutomationSettings
+                // est recréé avec le WorldState.
+                WorldState.AutomationSettings.Bind(CurrentMainState!.Settings);
+
                 // Initialisé avant SetupModifierAggregators() : ce contrôleur sert lui-même de
                 // IModifierProvider et doit avoir purgé ses anciens abonnés avant d'être ré-enregistré.
                 AscensionController.Initialize(WorldState, Clock, CurrentMainState!.PRNG, HarvestController, CurrentMainState!.GodState);

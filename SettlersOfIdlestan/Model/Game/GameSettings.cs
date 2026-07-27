@@ -12,6 +12,14 @@ public class GameSettings
     public bool Fullscreen { get; set; } = false;
     public bool DemoMode { get; set; } = false;
     public bool CloudSaveEnabled { get; set; } = true;
+
+    /// <summary>
+    /// Interrupteur global de toutes les automatisations (routes, bâtiments, monuments, militaire —
+    /// voir AutomationSettings). Persiste entre les îles/prestiges, contrairement aux réglages
+    /// individuels par automatisation. Désactiver ceci ne modifie pas les préférences individuelles :
+    /// elles restent en mémoire et reprennent effet dès la réactivation (voir AutomationSettings.Bind).
+    /// </summary>
+    public bool AutomationsEnabled { get; set; } = true;
     public float UiScale { get; set; } = 1f;
     public MenuPosition ForceMenuPosition { get; set; } = MenuPosition.Auto;
     public NumberFormatMode NumberFormat { get; set; } = NumberFormatMode.Classic;

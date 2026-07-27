@@ -94,7 +94,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 if (civ.GetUniqueBuilding(BuildingType.HarvestersGuild) is not HarvestersGuild guild || guild.Level == 0) continue;
 
                 bool isPlayer = civ.Index == _state.PlayerCivilization.Index;
-                bool enabled = !isPlayer || _state.AutomationSettings.ProductionBuildingAutomationEnabled;
+                bool enabled = !isPlayer || _state.AutomationSettings.IsProductionBuildingAutomationActive;
                 long tick = guild.LastProductionBuildTick;
                 TickGuildAutomation(civ, ref tick, guild.GetAutoProductionCooldownTicks(), enabled, targets, now);
                 guild.LastProductionBuildTick = tick;
@@ -112,7 +112,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 if (civ.GetUniqueBuilding(BuildingType.ArtisansGuild) is not ArtisansGuild guild || guild.Level == 0) continue;
 
                 bool isPlayer = civ.Index == _state.PlayerCivilization.Index;
-                bool enabled = !isPlayer || _state.AutomationSettings.ArtisanBuildingAutomationEnabled;
+                bool enabled = !isPlayer || _state.AutomationSettings.IsArtisanBuildingAutomationActive;
                 long tick = guild.LastArtisanBuildTick;
                 TickGuildAutomation(civ, ref tick, guild.GetAutoArtisanCooldownTicks(), enabled, targets, now);
                 guild.LastArtisanBuildTick = tick;
@@ -130,7 +130,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 if (civ.GetUniqueBuilding(BuildingType.Academy) is not Academy academy || academy.Level == 0) continue;
 
                 bool isPlayer = civ.Index == _state.PlayerCivilization.Index;
-                bool enabled = !isPlayer || _state.AutomationSettings.LibraryBuildingAutomationEnabled;
+                bool enabled = !isPlayer || _state.AutomationSettings.IsLibraryBuildingAutomationActive;
                 long tick = academy.LastLibraryBuildTick;
                 TickGuildAutomation(civ, ref tick, academy.GetAutoLibraryCooldownTicks(), enabled, targets, now);
                 academy.LastLibraryBuildTick = tick;
@@ -148,7 +148,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 if (civ.GetUniqueBuilding(BuildingType.TraderGuild) is not TraderGuild guild || guild.Level == 0) continue;
 
                 bool isPlayer = civ.Index == _state.PlayerCivilization.Index;
-                bool enabled = !isPlayer || _state.AutomationSettings.MarketBuildingAutomationEnabled;
+                bool enabled = !isPlayer || _state.AutomationSettings.IsMarketBuildingAutomationActive;
                 long tick = guild.LastMarketBuildTick;
                 TickGuildAutomation(civ, ref tick, guild.GetAutoMarketCooldownTicks(), enabled, targets, now);
                 guild.LastMarketBuildTick = tick;
@@ -166,7 +166,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 if (civ.GetUniqueBuilding(BuildingType.WarRoom) is not WarRoom warRoom || warRoom.Level == 0) continue;
 
                 bool isPlayer = civ.Index == _state.PlayerCivilization.Index;
-                bool enabled = !isPlayer || _state.AutomationSettings.MilitaryBuildingAutomationEnabled;
+                bool enabled = !isPlayer || _state.AutomationSettings.IsMilitaryBuildingAutomationActive;
                 long tick = warRoom.LastMilitaryBuildTick;
                 TickGuildAutomation(civ, ref tick, warRoom.GetAutoMilitaryCooldownTicks(), enabled, targets, now);
                 warRoom.LastMilitaryBuildTick = tick;
@@ -184,7 +184,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 if (civ.GetUniqueBuilding(BuildingType.BuildersGuild) is not BuildersGuild guild || guild.Level == 0) continue;
 
                 bool isPlayer = civ.Index == _state.PlayerCivilization.Index;
-                bool enabled = !isPlayer || _state.AutomationSettings.TownHallAutomationEnabled;
+                bool enabled = !isPlayer || _state.AutomationSettings.IsTownHallAutomationActive;
                 long tick = guild.LastTownHallBuildTick;
                 TickGuildAutomation(civ, ref tick, guild.GetAutoTownHallCooldownTicks(), enabled, targets, now);
                 guild.LastTownHallBuildTick = tick;
@@ -201,7 +201,7 @@ namespace SettlersOfIdlestan.Controller.Island
 
             if (civ.GetUniqueBuilding(BuildingType.ImperialPort) is not ImperialPort imperialPort) return;
 
-            bool enabled = _state.AutomationSettings.SeaportBuildingAutomationEnabled;
+            bool enabled = _state.AutomationSettings.IsSeaportBuildingAutomationActive;
             long tick = imperialPort.LastSeaportBuildTick;
             TickGuildAutomation(civ, ref tick, imperialPort.GetAutoSeaportCooldownTicks(), enabled, [BuildingType.Seaport], now);
             imperialPort.LastSeaportBuildTick = tick;

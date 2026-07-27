@@ -89,8 +89,8 @@ namespace SettlersOfIdlestan.Controller.Island
                 // Keep timer running when disabled to avoid burst on re-enable (player only)
                 bool isPlayerCiv = civ.Index == _state.PlayerCivilization.Index;
                 bool underworldUnlocked = civ.ModifierAggregator.HasModifier(Modifier.ECategory.UNLOCK_BUILDERS_GUILD_UNDERWORLD);
-                bool surfaceEnabled = !isPlayerCiv || _state.AutomationSettings.RoadAutomationEnabled;
-                bool underworldEnabled = underworldUnlocked && (!isPlayerCiv || _state.AutomationSettings.RoadAutomationEnabledUnderworld);
+                bool surfaceEnabled = !isPlayerCiv || _state.AutomationSettings.IsRoadAutomationActive;
+                bool underworldEnabled = underworldUnlocked && (!isPlayerCiv || _state.AutomationSettings.IsRoadAutomationActiveUnderworld);
                 if (!surfaceEnabled && !underworldEnabled)
                 {
                     guild.LastRoadBuildTick = now;

@@ -131,7 +131,7 @@ internal class ReinforcementEngine
     internal void ResolvePlayerAutoReinforcement(long currentTick)
     {
         if (_state == null) return;
-        if (!_state.AutomationSettings.MilitaryReinforcementAutomationEnabled) return;
+        if (!_state.AutomationSettings.IsMilitaryReinforcementAutomationActive) return;
         if (currentTick - _lastPlayerAutoReinforcementTick < AutoReinforcementIntervalTicks) return;
         _lastPlayerAutoReinforcementTick = currentTick;
 
@@ -149,7 +149,7 @@ internal class ReinforcementEngine
     internal void ResolvePlayerAutoPatrol(long currentTick)
     {
         if (_state == null) return;
-        if (!_state.AutomationSettings.MilitaryPatrolAutomationEnabled) return;
+        if (!_state.AutomationSettings.IsMilitaryPatrolAutomationActive) return;
         if (currentTick - _lastPlayerAutoPatrolTick < AutoPatrolIntervalTicks) return;
         _lastPlayerAutoPatrolTick = currentTick;
 
@@ -176,7 +176,7 @@ internal class ReinforcementEngine
     internal void ResolvePlayerAutoVendetta(long currentTick)
     {
         if (_state == null) return;
-        if (!_state.AutomationSettings.MilitaryVendettaAutomationEnabled) return;
+        if (!_state.AutomationSettings.IsMilitaryVendettaAutomationActive) return;
         if (currentTick - _lastPlayerAutoVendettaTick < AutoVendettaIntervalTicks) return;
         _lastPlayerAutoVendettaTick = currentTick;
 
