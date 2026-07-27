@@ -390,7 +390,7 @@ namespace SettlersOfIdlestan.Controller.Island
         {
             var origin = city.Position;
             return GetBuildableVertices(city.CivilizationIndex, excludingCity: city)
-                .Where(v => !v.Equals(origin) && origin.EdgeDistanceTo(v) <= maxEdgeDistance)
+                .Where(v => v.Z == origin.Z && !v.Equals(origin) && origin.EdgeDistanceTo(v) <= maxEdgeDistance)
                 .ToList();
         }
 

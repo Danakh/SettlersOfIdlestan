@@ -143,6 +143,33 @@ public class CityBuilderControllerTests
     }
 
     [Fact]
+    public void GetRelocationTargets_CivilizationHasCitiesOnAnotherLayer_DoesNotThrow()
+    {
+        // Reproduit un crash observé en jeu : une civilisation avec des villes en Inframonde (Z différent)
+        // fait remonter des vertex de Z différent dans le bassin de candidats de GetBuildableVertices
+        // (les routes de toutes les couches sont mélangées dans GetRoadTouchingVertices). GetRelocationTargets
+        // comparait alors origin.EdgeDistanceTo(v) sans filtrer sur Z, et EdgeDistanceTo lève une
+        // ArgumentException via EnsureSameZ dès que Z diffère.
+        var (state, civ, v1, _, _) = RibbonIsland();
+        var city = new City(v1) { CivilizationIndex = 0 };
+        civ.AddCity(city);
+
+        var underworldLayer = LayerState.EstablishOupostInNewAutoExpandLayer(civ);
+        state.AddLayer(LayerState.UnderworldZ, underworldLayer);
+
+        // Route loin de l'avant-poste (0,0)-(1,0)-(0,1) pour que le vertex généré ne soit pas
+        // exclu par la distance minimale entre villes propres — on veut que la couche Inframonde
+        // contribue bien un vertex candidat, pas qu'il soit filtré pour une autre raison.
+        var h1u = new HexCoord(10, 10, LayerState.UnderworldZ);
+        var h2u = new HexCoord(11, 10, LayerState.UnderworldZ);
+        civ.AddRoad(new Road(Edge.Create(h1u, h2u)) { CivilizationIndex = 0 });
+
+        var targets = Controller(state).GetRelocationTargets(city);
+
+        Assert.All(targets, v => Assert.Equal(v1.Z, v.Z));
+    }
+
+    [Fact]
     public void RelocateCity_OntoHexWithTreasureTrove_ClaimsTheTreasure()
     {
         var (state, civ, v1, vMiddle, _) = RibbonIsland();
