@@ -305,11 +305,14 @@ namespace SettlersOfIdlestan.Controller.Island
             if (bt == BuildingType.AlchimistHut && _state != null && !prototype.HasBuildPrerequisites(city, _state))
                 return null;
 
-            if (GetMaxLevel(prototype, city.CivilizationIndex) > 0 &&
-                map != null &&
-                prototype.IsBuildingAvailableForCity(map, city))
+            if (GetMaxLevel(prototype, city.CivilizationIndex) > 0 && map != null)
             {
-                return prototype;
+                var civ = _state?.Civilizations.FirstOrDefault(c => c.Index == city.CivilizationIndex);
+                bool available = civ != null
+                    ? prototype.IsBuildingAvailableForCity(map, city, civ)
+                    : prototype.IsBuildingAvailableForCity(map, city);
+                if (available)
+                    return prototype;
             }
 
             return null;
@@ -335,7 +338,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 var prototype = CreateBuilding(type) ?? throw new ArgumentException("Unknown building type", nameof(type));
 
                 if (_state.GetMapFor(city.Position) is not { } map1 ||
-                    !prototype.IsBuildingAvailableForCity(map1, city))
+                    !prototype.IsBuildingAvailableForCity(map1, city, civ))
                     return false;
 
                 if (!prototype.HasBuildPrerequisites(city, _state))

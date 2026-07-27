@@ -379,6 +379,15 @@ public class Building
     }
 
     /// <summary>
+    /// Overload of <see cref="IsBuildingAvailableForCity(IslandMap.IslandMap, IBuildingContext)"/> with access
+    /// to the civilization, for placement rules gated by a research (e.g. Sawmill next to a Caverne aux
+    /// Champignons, unlocked by Bois de Champignon). Default implementation ignores civ and falls back to the
+    /// simple overload.
+    /// </summary>
+    public virtual bool IsBuildingAvailableForCity(IslandMap.IslandMap map, IBuildingContext city, SettlersOfIdlestan.Model.Civilization.Civilization civ)
+        => IsBuildingAvailableForCity(map, city);
+
+    /// <summary>
     /// Determines if this building type can exist on the given map layer (e.g. surface vs. underworld).
     /// Used both for normal construction checks and for prestige-granted free buildings,
     /// which otherwise bypass <see cref="IsBuildingAvailableForCity"/>.

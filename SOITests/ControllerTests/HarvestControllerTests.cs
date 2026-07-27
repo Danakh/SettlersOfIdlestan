@@ -237,6 +237,40 @@ namespace SOITests.ControllerTests
         }
 
         [Fact]
+        public void Sawmill_IsBuildingAvailableForCity_NextToMushroomCave_RequiresBoisDeChampignonResearch()
+        {
+            var a = new HexCoord(0, 0, IslandMap.SurfaceLayer);
+            var b = new HexCoord(1, 0, IslandMap.SurfaceLayer);
+            var c = new HexCoord(0, 1, IslandMap.SurfaceLayer);
+
+            var tiles = new[]
+            {
+                new HexTile(a, TerrainType.MushroomCave),
+                new HexTile(b, TerrainType.Plain),
+                new HexTile(c, TerrainType.Plain),
+            };
+
+            var map = new IslandMap(tiles);
+            var civ = new Civilization { Index = 0 };
+            var civs = new List<Civilization> { civ };
+            var state = new WorldState(map, civs, AtlasController.InvalidIslandId);
+
+            var vertex = Vertex.Create(a, b, c);
+            IslandMapGenerator generator = new IslandMapGenerator(new GamePRNG(42));
+            generator.PopulatePlayerCivilization(map, civ, vertex);
+            var city = civ.Cities[0];
+
+            var sawmill = new Sawmill();
+
+            // Pas de Forêt adjacente et recherche non complétée : non constructible.
+            Assert.False(sawmill.IsBuildingAvailableForCity(map, city, civ));
+
+            // La recherche Bois de Champignon la rend constructible à côté d'une Caverne aux Champignons.
+            civ.TechnologyTree.CompleteResearch(TechnologyId.BoisDeChampignon);
+            Assert.True(sawmill.IsBuildingAvailableForCity(map, city, civ));
+        }
+
+        [Fact]
         public void CorruptionHarvestTimeMultiplier_ReducedByCorruptionLevelReduction_WithFloorAtLevel1()
         {
             var civ = new Civilization { Index = 0 };

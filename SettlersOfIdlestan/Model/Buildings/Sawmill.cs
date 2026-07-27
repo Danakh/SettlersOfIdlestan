@@ -66,4 +66,18 @@ public class Sawmill : Building
             return false;
         return map.VertexHasTerrainType(city.Position, TerrainType.Forest);
     }
+
+    /// <summary>
+    /// Aussi constructible à côté d'une Caverne aux Champignons une fois la recherche Bois de Champignon
+    /// complétée (voir Modifier.ECategory.UNLOCK_SAWMILL_MUSHROOM_HARVEST).
+    /// </summary>
+    public override bool IsBuildingAvailableForCity(IslandMap.IslandMap map, IBuildingContext city, SettlersOfIdlestan.Model.Civilization.Civilization civ)
+    {
+        if (IsBuildingAvailableForCity(map, city))
+            return true;
+        if (city.Level < AvailableAtLevel)
+            return false;
+        return civ.ModifierAggregator.HasModifier(Modifier.ECategory.UNLOCK_SAWMILL_MUSHROOM_HARVEST)
+            && map.VertexHasTerrainType(city.Position, TerrainType.MushroomCave);
+    }
 }
