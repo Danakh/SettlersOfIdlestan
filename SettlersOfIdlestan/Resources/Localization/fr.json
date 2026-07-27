@@ -825,6 +825,8 @@
   "tech_speleologie_desc": "+25% vitesse des Mines et +10 stockage des ressources avancées.",
   "tech_culture_fongique_name": "Culture Fongique",
   "tech_culture_fongique_desc": "+25% vitesse des Fermes fongiques et 25% de chance de doubler leur récolte.",
+  "tech_bois_de_champignon_name": "Bois de Champignon",
+  "tech_bois_de_champignon_desc": "Permet aux Scieries de récolter du Bois sur les Cavernes aux Champignons, à moitié vitesse par rapport aux forêts.",
   "tech_sagesse_souterraine_name": "Sagesse Souterraine",
   "tech_sagesse_souterraine_desc": "Les savoirs tirés des profondeurs enrichissent votre civilisation. +10% de points de prestige gagnés par palier. Recherche répétable à l'infini : le coût double à chaque relance.",
   "tech_void_walking_name": "Marche dans le Vide",

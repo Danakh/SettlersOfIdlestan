@@ -201,6 +201,8 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             UNLOCK_WAR_HERALD,
             /// <summary>Fraction de réduction des dégâts d'éruption volcanique subis par les villes de la civilisation. Base = 0.0 ; 0.5 = -50%.</summary>
             VOLCANO_DAMAGE_REDUCTION,
+            /// <summary>Flags que les Scieries peuvent récolter du Bois sur les Cavernes aux Champignons adjacentes (à vitesse réduite, voir Sawmill.GetAutomaticHarvestTerrainSpeedMultiplier). SubCategory unused.</summary>
+            UNLOCK_SAWMILL_MUSHROOM_HARVEST,
         }
 
         [JsonConverter(typeof(JsonStringEnumConverter<EType>))]

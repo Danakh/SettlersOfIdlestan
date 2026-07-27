@@ -4,6 +4,7 @@ Le changelog n'est pas activement mis à jour pour le moment.
 ---
 
 v0.11
+• Bois de Champignon : nouvelle recherche (suite de Culture Fongique) permettant aux Scieries de récolter du Bois sur les Cavernes aux Champignons, à moitié vitesse par rapport aux forêts
 
 ---
 

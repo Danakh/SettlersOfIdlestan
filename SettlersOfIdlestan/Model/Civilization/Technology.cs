@@ -82,6 +82,9 @@ public enum TechnologyId
     AdvancedTradingPosts,
     Siderurgie,
     CultureFongique,
+    // Suite de CultureFongique : permet aux Scieries de récolter du Bois sur les Cavernes aux
+    // Champignons (Inframonde), à moitié vitesse par rapport aux forêts.
+    BoisDeChampignon,
     CartographieSouterraine,
     WatchtowerConstruction,
     // Tier 6

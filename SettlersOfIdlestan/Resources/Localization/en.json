@@ -825,6 +825,8 @@
   "tech_speleologie_desc": "+25% Mine speed and +10 advanced resource storage.",
   "tech_culture_fongique_name": "Fungal Cultivation",
   "tech_culture_fongique_desc": "+25% Mushroom Farm speed and 25% chance to double their harvest.",
+  "tech_bois_de_champignon_name": "Mushroom Wood",
+  "tech_bois_de_champignon_desc": "Allows Sawmills to harvest Wood from Mushroom Caves, at half speed compared to forests.",
   "tech_sagesse_souterraine_name": "Underground Wisdom",
   "tech_sagesse_souterraine_desc": "Knowledge drawn from the depths enriches your civilization. +10% prestige points earned per rank. Infinitely repeatable: cost doubles with every relaunch.",
   "tech_void_walking_name": "Void Walking",

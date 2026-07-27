@@ -1,3 +1,4 @@
+using SettlersOfIdlestan.Model.GameplayModifier;
 using SettlersOfIdlestan.Model.IslandMap;
 
 namespace SettlersOfIdlestan.Model.Buildings;
@@ -31,6 +32,21 @@ public class Sawmill : Building
             return Resource.Wood;
         return null;
     }
+
+    /// <summary>
+    /// Sur les Cavernes aux Champignons, la récolte de Bois n'est possible qu'une fois la recherche
+    /// Bois de Champignon complétée (voir Modifier.ECategory.UNLOCK_SAWMILL_MUSHROOM_HARVEST).
+    /// </summary>
+    public override Resource? AutomaticHarvestCapability(TerrainType terrain, SettlersOfIdlestan.Model.Civilization.Civilization civ)
+    {
+        if (terrain == TerrainType.MushroomCave && civ.ModifierAggregator.HasModifier(Modifier.ECategory.UNLOCK_SAWMILL_MUSHROOM_HARVEST))
+            return Resource.Wood;
+        return AutomaticHarvestCapability(terrain);
+    }
+
+    /// <summary>À moitié vitesse sur les Cavernes aux Champignons par rapport aux forêts (voir tech Bois de Champignon).</summary>
+    public override double GetAutomaticHarvestTerrainSpeedMultiplier(TerrainType terrain)
+        => terrain == TerrainType.MushroomCave ? 0.5 : 1.0;
 
     public override ResourceSet GetBuildCost() => new ResourceSet
     {

@@ -265,6 +265,20 @@ public class Building
     public virtual Resource? AutomaticHarvestCapability(TerrainType terrain) => null;
 
     /// <summary>
+    /// Overload of <see cref="AutomaticHarvestCapability(TerrainType)"/> with access to the civilization,
+    /// for terrain capabilities gated by a research (e.g. Sawmill on Cavernes aux Champignons, unlocked by
+    /// Bois de Champignon). Default implementation ignores civ and falls back to the simple overload.
+    /// </summary>
+    public virtual Resource? AutomaticHarvestCapability(TerrainType terrain, SettlersOfIdlestan.Model.Civilization.Civilization civ) => AutomaticHarvestCapability(terrain);
+
+    /// <summary>
+    /// Multiplier applied to the automatic harvest cooldown for a given terrain, on top of the base
+    /// building cooldown and civ-wide HARVEST_SPEED modifiers. Base = 1.0 (no change); 0.5 = twice
+    /// slower (half speed).
+    /// </summary>
+    public virtual double GetAutomaticHarvestTerrainSpeedMultiplier(TerrainType terrain) => 1.0;
+
+    /// <summary>
     /// Building level at which automatic harvest is unlocked. Override in subclasses.
     /// </summary>
     public virtual int AutomaticHarvestUnlockLevel => int.MaxValue;

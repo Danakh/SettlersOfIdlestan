@@ -422,6 +422,16 @@ public static class TechnologyDefinitions
             },
             tier: 5, line: 0),
 
+        // Suite de Culture Fongique : débloque la récolte de Bois par les Scieries sur les Cavernes
+        // aux Champignons adjacentes, à moitié vitesse par rapport aux forêts
+        // (voir Sawmill.GetAutomaticHarvestTerrainSpeedMultiplier).
+        new(TechnologyId.BoisDeChampignon,
+            "tech_bois_de_champignon_name", "tech_bois_de_champignon_desc",
+            cost: 380000,
+            prerequisites: new[] { TechnologyId.CultureFongique },
+            modifiers: new Modifier[] { new(ECategory.UNLOCK_SAWMILL_MUSHROOM_HARVEST, EType.ADDITIVE, 1) },
+            tier: 6, line: 0),
+
         new(TechnologyId.CartographieSouterraine,
             "tech_cartographie_souterraine_name", "tech_cartographie_souterraine_desc",
             cost: 350000,

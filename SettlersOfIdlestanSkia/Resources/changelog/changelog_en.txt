@@ -4,6 +4,7 @@ The changelog is not actively maintained at the moment.
 ---
 
 v0.11
+• Mushroom Wood: new research (follow-up to Fungal Cultivation) allowing Sawmills to harvest Wood from Mushroom Caves, at half speed compared to forests
 
 ---
 

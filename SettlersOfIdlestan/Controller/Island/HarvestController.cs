@@ -77,7 +77,7 @@ namespace SettlersOfIdlestan.Controller.Island
         private GamePRNG? _prng;
         private long _lastPassiveGenTick = 0;
 
-        private readonly record struct ProductionEntry(HexCoord Hex, City City, Building Building, Resource Resource);
+        private readonly record struct ProductionEntry(HexCoord Hex, City City, Building Building, Resource Resource, TerrainType Terrain);
         private readonly System.Collections.Generic.Dictionary<int, System.Collections.Generic.List<ProductionEntry>> _productionCache = new();
 
         public event EventHandler<HarvestCompletedEventArgs>? OnHarvestCompleted;
@@ -151,7 +151,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 var hexMultiplier = new System.Collections.Generic.Dictionary<HexCoord, double>();
                 System.Collections.Generic.Dictionary<(HexCoord, City), ResourceSet>? harvested = null;
 
-                foreach (var (hex, city, building, resource) in entries)
+                foreach (var (hex, city, building, resource, terrain) in entries)
                 {
                     if (!hexBlocked.TryGetValue(hex, out bool blocked))
                     {
@@ -169,7 +169,8 @@ namespace SettlersOfIdlestan.Controller.Island
 
                     long raw = building.GetAutomaticHarvestCooldown(AutomaticHarvestCooldownTicks);
                     double speedMultiplier = civ.ModifierAggregator.ApplyModifiers(ECategory.HARVEST_SPEED, building.Type.ToString(), 1.0);
-                    long effective = Math.Max(1L, (long)(raw / speedMultiplier));
+                    double terrainSpeedMultiplier = building.GetAutomaticHarvestTerrainSpeedMultiplier(terrain);
+                    long effective = Math.Max(1L, (long)(raw / speedMultiplier / terrainSpeedMultiplier));
                     effective = Math.Max(1L, (long)(effective * featureMultiplier));
 
                     if (building.AutoHarvestLastTicks.TryGetValue(hex, out var lastBuildingTick) && now - lastBuildingTick < effective)
@@ -250,9 +251,9 @@ namespace SettlersOfIdlestan.Controller.Island
                             foreach (var adjacentCity in civ.Cities.Where(c => c.Position.IsAdjacentTo(hex)))
                                 foreach (var building in adjacentCity.Buildings)
                                 {
-                                    var res = building.AutomaticHarvestCapability(tile.TerrainType);
+                                    var res = building.AutomaticHarvestCapability(tile.TerrainType, civ);
                                     if (res.HasValue)
-                                        entries.Add(new ProductionEntry(hex, adjacentCity, building, res.Value));
+                                        entries.Add(new ProductionEntry(hex, adjacentCity, building, res.Value, tile.TerrainType));
                                 }
                         }
                     }
@@ -605,7 +606,7 @@ namespace SettlersOfIdlestan.Controller.Island
             foreach (var city in civ.Cities.Where(c => c.Position.IsAdjacentTo(hex)))
                 foreach (var building in city.Buildings)
                 {
-                    var res = building.AutomaticHarvestCapability(tile.TerrainType);
+                    var res = building.AutomaticHarvestCapability(tile.TerrainType, civ);
                     if (res.HasValue) resources.Add(res.Value);
                 }
             return resources.ToList();
@@ -634,11 +635,12 @@ namespace SettlersOfIdlestan.Controller.Island
             foreach (var city in civ.Cities.Where(c => c.Position.IsAdjacentTo(hex)))
                 foreach (var building in city.Buildings)
                 {
-                    var resource = building.AutomaticHarvestCapability(tile.TerrainType);
+                    var resource = building.AutomaticHarvestCapability(tile.TerrainType, civ);
                     if (!resource.HasValue) continue;
                     long raw = building.GetAutomaticHarvestCooldown(AutomaticHarvestCooldownTicks);
                     double speedMultiplier = civ.ModifierAggregator.ApplyModifiers(ECategory.HARVEST_SPEED, building.Type.ToString(), 1.0);
-                    long effective = Math.Max(1L, (long)(raw / speedMultiplier));
+                    double terrainSpeedMultiplier = building.GetAutomaticHarvestTerrainSpeedMultiplier(tile.TerrainType);
+                    long effective = Math.Max(1L, (long)(raw / speedMultiplier / terrainSpeedMultiplier));
                     effective = Math.Max(1L, (long)(effective * featureMultiplier));
                     building.AutoHarvestLastTicks.TryGetValue(hex, out var lastTick);
                     result.Add((city.Position, building.Type, resource.Value, lastTick, effective));
@@ -704,7 +706,7 @@ namespace SettlersOfIdlestan.Controller.Island
             var hexMultiplier = new System.Collections.Generic.Dictionary<HexCoord, double>();
             long now = _clock?.CurrentTick ?? 0L;
 
-            foreach (var (hex, city, building, resource) in entries)
+            foreach (var (hex, city, building, resource, terrain) in entries)
             {
                 if (!hexAllowed.TryGetValue(hex, out bool allowed))
                 {
@@ -722,7 +724,8 @@ namespace SettlersOfIdlestan.Controller.Island
 
                 long raw = building.GetAutomaticHarvestCooldown(AutomaticHarvestCooldownTicks);
                 double speedMultiplier = civ.ModifierAggregator.ApplyModifiers(ECategory.HARVEST_SPEED, building.Type.ToString(), 1.0);
-                long effective = Math.Max(1L, (long)(raw / speedMultiplier));
+                double terrainSpeedMultiplier = building.GetAutomaticHarvestTerrainSpeedMultiplier(terrain);
+                long effective = Math.Max(1L, (long)(raw / speedMultiplier / terrainSpeedMultiplier));
                 effective = Math.Max(1L, (long)(effective * featureMultiplier));
 
                 var forge = city.Buildings.OfType<Forge>().FirstOrDefault();
@@ -827,7 +830,7 @@ namespace SettlersOfIdlestan.Controller.Island
             var hexMultiplier = new System.Collections.Generic.Dictionary<HexCoord, double>();
             long now = _clock?.CurrentTick ?? 0L;
 
-            foreach (var (hex, city, building, resource) in entries)
+            foreach (var (hex, city, building, resource, terrain) in entries)
             {
                 if (!hexAllowed.TryGetValue(hex, out bool allowed))
                 {
@@ -845,7 +848,8 @@ namespace SettlersOfIdlestan.Controller.Island
 
                 long raw = building.GetAutomaticHarvestCooldown(AutomaticHarvestCooldownTicks);
                 double speedMultiplier = civ.ModifierAggregator.ApplyModifiers(ECategory.HARVEST_SPEED, building.Type.ToString(), 1.0);
-                long effective = Math.Max(1L, (long)(raw / speedMultiplier));
+                double terrainSpeedMultiplier = building.GetAutomaticHarvestTerrainSpeedMultiplier(terrain);
+                long effective = Math.Max(1L, (long)(raw / speedMultiplier / terrainSpeedMultiplier));
                 effective = Math.Max(1L, (long)(effective * featureMultiplier));
 
                 var forge = city.Buildings.OfType<Forge>().FirstOrDefault();
@@ -972,7 +976,7 @@ namespace SettlersOfIdlestan.Controller.Island
             if (civ == null) return 0.0;
 
             double total = 0.0;
-            foreach (var (hex, city, building, resource) in GetOrBuildProductionCache(civilizationIndex))
+            foreach (var (hex, city, building, resource, _) in GetOrBuildProductionCache(civilizationIndex))
             {
                 if (building.Type != BuildingType.MageTower || resource != Resource.Crystal) continue;
                 if (_state.GetFeaturesAt(hex).Any(f => f.BlocksHarvestFor(civ))) continue;

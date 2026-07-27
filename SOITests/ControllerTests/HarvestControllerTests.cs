@@ -160,6 +160,83 @@ namespace SOITests.ControllerTests
         }
 
         [Fact]
+        public void AutomaticHarvest_Sawmill_DoesNotHarvestWoodOnMushroomCave_WithoutResearch()
+        {
+            var a = new HexCoord(0, 0, IslandMap.SurfaceLayer);
+            var b = new HexCoord(1, 0, IslandMap.SurfaceLayer);
+            var c = new HexCoord(0, 1, IslandMap.SurfaceLayer);
+
+            var tiles = new[]
+            {
+                new HexTile(a, TerrainType.MushroomCave),
+                new HexTile(b, TerrainType.Plain),
+                new HexTile(c, TerrainType.Plain),
+            };
+
+            var map = new IslandMap(tiles);
+            var civ = new Civilization { Index = 0 };
+            var civs = new List<Civilization> { civ };
+            var state = new WorldState(map, civs, AtlasController.InvalidIslandId);
+
+            var vertex = Vertex.Create(a, b, c);
+            IslandMapGenerator generator = new IslandMapGenerator(new GamePRNG(42));
+            generator.PopulatePlayerCivilization(map, civ, vertex);
+            var city = civ.Cities[0];
+            city.Buildings.Add(new Sawmill());
+
+            var clock = new GameClock();
+            clock.Start();
+            new HarvestController(state, clock);
+
+            clock.SimulateAdvance(500);
+            Assert.Equal(0, civ.GetResourceQuantity(Resource.Wood));
+        }
+
+        [Fact]
+        public void AutomaticHarvest_Sawmill_HarvestsWoodOnMushroomCaveAtHalfSpeed_WithResearch()
+        {
+            var a = new HexCoord(0, 0, IslandMap.SurfaceLayer);
+            var b = new HexCoord(1, 0, IslandMap.SurfaceLayer);
+            var c = new HexCoord(0, 1, IslandMap.SurfaceLayer);
+
+            var tiles = new[]
+            {
+                new HexTile(a, TerrainType.MushroomCave),
+                new HexTile(b, TerrainType.Plain),
+                new HexTile(c, TerrainType.Plain),
+            };
+
+            var map = new IslandMap(tiles);
+            var civ = new Civilization { Index = 0 };
+            var civs = new List<Civilization> { civ };
+            var state = new WorldState(map, civs, AtlasController.InvalidIslandId);
+
+            var vertex = Vertex.Create(a, b, c);
+            IslandMapGenerator generator = new IslandMapGenerator(new GamePRNG(42));
+            generator.PopulatePlayerCivilization(map, civ, vertex);
+            var city = civ.Cities[0];
+            city.Buildings.Add(new Sawmill());
+
+            civ.TechnologyTree.CompleteResearch(TechnologyId.BoisDeChampignon);
+
+            var clock = new GameClock();
+            clock.Start();
+            new HarvestController(state, clock);
+
+            // First harvest is immediate.
+            clock.SimulateAdvance(10);
+            Assert.Equal(1, civ.GetResourceQuantity(Resource.Wood));
+
+            // Cooldown is doubled on Mushroom Cave (1000 ticks instead of 500) : still nothing at 910 ticks elapsed.
+            clock.SimulateAdvance(900);
+            Assert.Equal(1, civ.GetResourceQuantity(Resource.Wood));
+
+            // 1010 ticks elapsed since the first harvest >= 1000 -> new harvest.
+            clock.SimulateAdvance(100);
+            Assert.Equal(2, civ.GetResourceQuantity(Resource.Wood));
+        }
+
+        [Fact]
         public void CorruptionHarvestTimeMultiplier_ReducedByCorruptionLevelReduction_WithFloorAtLevel1()
         {
             var civ = new Civilization { Index = 0 };
