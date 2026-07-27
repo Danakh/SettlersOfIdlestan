@@ -122,7 +122,6 @@
   "buildersguild_next_outpost": "Prochain avant-poste auto :",
   "tab_automation": "Automat.",
   "automation_title": "Automatisation",
-  "automation_globally_disabled_banner": "⚠ Toutes les automatisations sont désactivées (voir Paramètres). Les réglages ci-dessous sont conservés mais inactifs.",
   "automation_road_name": "Routes (Surface)",
   "automation_road_desc": "Construit une route en surface (distance max = niveau) toutes les 5s",
   "automation_road_note": "Les routes construites automatiquement sont gratuites.",

@@ -122,7 +122,6 @@
   "buildersguild_next_outpost": "Next auto-outpost:",
   "tab_automation": "Automat.",
   "automation_title": "Automation",
-  "automation_globally_disabled_banner": "⚠ All automations are disabled (see Settings). The toggles below are kept but inactive.",
   "automation_road_name": "Roads (Surface)",
   "automation_road_desc": "Auto-builds a road on the surface (max distance = level) every 5s",
   "automation_road_note": "Roads built this way are free.",

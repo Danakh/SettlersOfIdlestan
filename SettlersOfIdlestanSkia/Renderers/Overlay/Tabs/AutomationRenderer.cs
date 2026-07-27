@@ -79,6 +79,8 @@ public sealed class AutomationRenderer : IDisposable
     private SKRect _weaponSmithToggleRect  = SKRect.Empty;
     private SKRect _armorSmithToggleRect   = SKRect.Empty;
     private SKRect _alchimistHutToggleRect = SKRect.Empty;
+    private SKRect _globalAutomationsToggleRect = SKRect.Empty;
+    private bool _hoveredGlobalAutomationsToggle;
     private bool _hoveredRoadToggle;
     private bool _hoveredOutpostToggle;
     private bool _hoveredRoadUnderworldToggle;
@@ -127,7 +129,6 @@ public sealed class AutomationRenderer : IDisposable
     private readonly SKPaint _tooltipBorderPaint   = new() { Color = new SKColor(80, 120, 100), StrokeWidth = 1f, Style = SKPaintStyle.Stroke, IsAntialias = true };
     private readonly SKPaint _mutedPaint           = new() { Color = new SKColor(110, 110, 125), IsAntialias = true };
     private readonly SKPaint _accentPaint          = new() { Color = new SKColor(255, 215, 0), IsAntialias = true };
-    private readonly SKPaint _warningPaint         = new() { Color = new SKColor(220, 160, 60), IsAntialias = true };
     private readonly SKPaint _summaryBuiltPaint    = new() { Color = new SKColor(120, 175, 120), IsAntialias = true };
     private readonly SKPaint _summaryEmptyPaint    = new() { Color = new SKColor(95, 95, 108), IsAntialias = true };
     private readonly SKPaint _summaryDividerPaint  = new() { Color = new SKColor(70, 70, 88), StrokeWidth = 1f, Style = SKPaintStyle.Stroke, IsAntialias = true };
@@ -184,17 +185,17 @@ public sealed class AutomationRenderer : IDisposable
         float y = topBar + Padding;
 
         SkiaTextUtils.DrawText(canvas, _localization.Get("automation_title"), x, y + 14, _headerFont, _accentPaint);
-        y += 32f;
 
-        // Les réglages individuels ci-dessous restent affichés tels que stockés (voir
-        // AutomationSettings.RoadAutomationEnabled etc.) même si l'interrupteur global est coupé —
-        // seul ce bandeau indique que rien ne s'exécute réellement tant qu'il est désactivé
-        // (voir AutomationSettings.Bind/Active pour la logique de combinaison).
-        if (_gameControllerService.CurrentGameState?.Settings.AutomationsEnabled == false)
-        {
-            SkiaTextUtils.DrawText(canvas, _localization.Get("automation_globally_disabled_banner"), x, y + 12, _descFont, _warningPaint);
-            y += 22f;
-        }
+        // Interrupteur global (voir GameSettings.AutomationsEnabled / AutomationSettings.Bind) —
+        // les réglages individuels ci-dessous restent affichés tels que stockés même quand il est
+        // coupé, ils reprennent effet dès sa réactivation sans perdre les préférences par ligne.
+        bool automationsGloballyEnabled = _gameControllerService.CurrentGameState?.Settings.AutomationsEnabled ?? true;
+        const float headerRowH = 32f;
+        float globalToggleY = y + (headerRowH - ToggleHeight) / 2f;
+        _globalAutomationsToggleRect = new SKRect(x + contentWidth - ToggleWidth, globalToggleY, x + contentWidth, globalToggleY + ToggleHeight);
+        SkiaToggleUtils.Draw(canvas, _globalAutomationsToggleRect, automationsGloballyEnabled, _hoveredGlobalAutomationsToggle);
+        _hoverableCards.Add((_globalAutomationsToggleRect, _localization.Get("settings_automations_enabled")));
+        y += headerRowH;
 
         var civ = _gameControllerService.PlayerCivilization;
         var WorldState = _gameControllerService.CurrentWorldState;
@@ -662,6 +663,7 @@ public sealed class AutomationRenderer : IDisposable
         }
 
         var adj = new SKPoint(position.X, position.Y + _scrollOffsetPx);
+        _hoveredGlobalAutomationsToggle       = !_globalAutomationsToggleRect.IsEmpty       && _globalAutomationsToggleRect.Contains(adj.X, adj.Y);
         _hoveredRoadToggle                   = !_roadToggleRect.IsEmpty                   && _roadToggleRect.Contains(adj.X, adj.Y);
         _hoveredOutpostToggle                = !_outpostToggleRect.IsEmpty                && _outpostToggleRect.Contains(adj.X, adj.Y);
         _hoveredRoadUnderworldToggle         = !_roadUnderworldToggleRect.IsEmpty         && _roadUnderworldToggleRect.Contains(adj.X, adj.Y);
@@ -728,6 +730,14 @@ public sealed class AutomationRenderer : IDisposable
                 if (!ps.Remove(key)) ps.Add(key);
                 return true;
             }
+        }
+
+        // Interrupteur global (voir GameSettings.AutomationsEnabled)
+        if (!_globalAutomationsToggleRect.IsEmpty && _globalAutomationsToggleRect.Contains(adj.X, adj.Y))
+        {
+            var gameSettings = _gameControllerService.CurrentGameState!.Settings;
+            gameSettings.AutomationsEnabled = !gameSettings.AutomationsEnabled;
+            return true;
         }
 
         // Toggles d'automatisme
@@ -912,7 +922,6 @@ public sealed class AutomationRenderer : IDisposable
         _tooltipBorderPaint.Dispose();
         _mutedPaint.Dispose();
         _accentPaint.Dispose();
-        _warningPaint.Dispose();
         _summaryBuiltPaint.Dispose();
         _summaryEmptyPaint.Dispose();
         _summaryDividerPaint.Dispose();

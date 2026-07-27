@@ -62,7 +62,6 @@ public sealed class SettingsContentPanel : IDisposable
     private SKRect _menuPositionToggleRect = SKRect.Empty;
     private SKRect _uiScaleSliderRect      = SKRect.Empty;
     private SKRect _cloudSaveToggleRect    = SKRect.Empty;
-    private SKRect _automationsToggleRect  = SKRect.Empty;
     private SKRect _debugResolutionFieldRect = SKRect.Empty;
     private SKRect _exportTransparentBgToggleRect = SKRect.Empty;
 
@@ -73,7 +72,6 @@ public sealed class SettingsContentPanel : IDisposable
     private bool _hoveredMenuPosition;
     private bool _hoveredUiScaleSlider;
     private bool _hoveredCloudSave;
-    private bool _hoveredAutomations;
     private bool _hoveredExportTransparentBg;
     private bool _focusedUiScaleSlider;
     private bool _draggingUiScaleSlider;
@@ -136,7 +134,7 @@ public sealed class SettingsContentPanel : IDisposable
         float btn2Left = rightEdge - btnW;
         float btn1Left = btn2Left - btnGap - btnW;
 
-        int   rowCount      = allowDebugMode ? 11 : 9;
+        int   rowCount      = allowDebugMode ? 10 : 8;
         float contentHeight = spacingY * rowCount + btnH;
 
         _needsScroll        = contentHeight > maxHeight;
@@ -218,24 +216,19 @@ public sealed class SettingsContentPanel : IDisposable
             (_btnNumFormatEngineer,   localization.Get("settings_number_format_engineering"), settings.NumberFormat == NumberFormatMode.Engineering),
         ]);
 
-        // Row 10 — Automatisations (interrupteur global, voir GameSettings.AutomationsEnabled)
-        float rowAutomationsY = y + spacingY * 9f;
-        _automationsToggleRect = DrawToggleRow(canvas, x, rowAutomationsY, rightEdge,
-            localization.Get("settings_automations_enabled"), settings.AutomationsEnabled, _hoveredAutomations, btnH, toggleW, toggleH, s);
-
         if (allowDebugMode)
         {
-            // Row 11 (debug uniquement) — Résolution de la fenêtre, appliquée à l'appui sur Entrée.
+            // Row 10 (debug uniquement) — Résolution de la fenêtre, appliquée à l'appui sur Entrée.
             // Tant que le champ n'a pas le focus, il reflète en continu la résolution actuelle de la fenêtre.
             if (!_debugResolutionFocused && currentResolution.Width > 0f && currentResolution.Height > 0f)
                 _debugResolutionText = $"{(int)MathF.Round(currentResolution.Width)}x{(int)MathF.Round(currentResolution.Height)}";
 
-            float row7Y = y + spacingY * 10f;
+            float row7Y = y + spacingY * 9f;
             _debugResolutionFieldRect = DrawTextInputRow(canvas, x, row7Y, rightEdge,
                 localization.Get("settings_debug_window_resolution"), _debugResolutionText, _debugResolutionFocused, btnH, s);
 
-            // Row 12 (debug uniquement) — Export PNG avec fond transparent plutôt que le fond opaque habituel.
-            float row8Y = y + spacingY * 11f;
+            // Row 11 (debug uniquement) — Export PNG avec fond transparent plutôt que le fond opaque habituel.
+            float row8Y = y + spacingY * 10f;
             _exportTransparentBgToggleRect = DrawToggleRow(canvas, x, row8Y, rightEdge,
                 localization.Get("settings_debug_export_transparent_bg"), DebugSettings.ExportTransparentBackground,
                 _hoveredExportTransparentBg, btnH, toggleW, toggleH, s);
@@ -496,13 +489,6 @@ public sealed class SettingsContentPanel : IDisposable
             settings.CloudSaveEnabled = !settings.CloudSaveEnabled;
             return true;
         }
-        if (!_automationsToggleRect.IsEmpty && _automationsToggleRect.Contains(pos.X, py))
-        {
-            _focusedUiScaleSlider   = false;
-            _debugResolutionFocused = false;
-            settings.AutomationsEnabled = !settings.AutomationsEnabled;
-            return true;
-        }
         if (!_uiScaleSliderRect.IsEmpty && _uiScaleSliderRect.Contains(pos.X, py))
         {
             // Démarre le drag mais ne change pas encore le réglage — appliqué au relâchement.
@@ -614,7 +600,6 @@ public sealed class SettingsContentPanel : IDisposable
         _hoveredMenuPosition  = !_menuPositionToggleRect.IsEmpty && _menuPositionToggleRect.Contains(pos.X, py);
         _hoveredUiScaleSlider = !_uiScaleSliderRect.IsEmpty    && _uiScaleSliderRect.Contains(pos.X, py);
         _hoveredCloudSave     = !_cloudSaveToggleRect.IsEmpty  && _cloudSaveToggleRect.Contains(pos.X, py);
-        _hoveredAutomations   = !_automationsToggleRect.IsEmpty && _automationsToggleRect.Contains(pos.X, py);
         _hoveredExportTransparentBg = !_exportTransparentBgToggleRect.IsEmpty && _exportTransparentBgToggleRect.Contains(pos.X, py);
 
         if (_draggingUiScaleSlider)
