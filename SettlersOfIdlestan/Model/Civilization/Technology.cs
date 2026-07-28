@@ -96,6 +96,9 @@ public enum TechnologyId
     // Un tier au-dessus des Comptoirs Avancés (seul prérequis) — accélère la construction automatique
     // des bâtiments par les guildes, proportionnellement au nombre de villes de l'empire.
     AdvancedGuilds,
+    // Deux tiers au-dessus des Guildes Avancées (seul prérequis) — débloque le Grand Temple, bâtiment
+    // unique qui automatise la construction des Temples.
+    GrandTempleConstruction,
     // Tier 7
     ProspectionAvancee,
     RempartsDeMithril,

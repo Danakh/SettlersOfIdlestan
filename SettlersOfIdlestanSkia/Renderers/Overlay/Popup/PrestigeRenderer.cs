@@ -91,22 +91,25 @@ public sealed class PrestigeRenderer : PopupRendererBase
         bool showSpireBonus      = controller.GetMaxCorruptionLevelCleared() > 0;
         double gainBonus         = controller.GetPrestigeGainBonus();
         double seaportBonus      = controller.GetSeaportPrestigeBonus();
+        double templeBonus       = controller.GetTemplePrestigeBonus();
         double civDestroyedBonus = controller.GetCivilizationsDestroyedBonus();
         int tier                 = controller.GetTier();
         double tierBonus         = controller.GetTierBonus();
         double greatLighthouseBonus  = controller.GetGreatLighthousePrestigeBonus();
         bool showGainBonus       = gainBonus > 0;
         bool showSeaportBonus    = seaportBonus > 0;
+        bool showTempleBonus     = templeBonus > 0;
         bool showCivBonus        = civDestroyedBonus > 0;
         bool showGreatLighthouseBonus = greatLighthouseBonus > 0;
         bool showTierBonus       = tierBonus > 0;
         float tierOffset         = showTierBonus ? 28f : 0f;
         float gainOffset         = showGainBonus    ? 28f : 0f;
         float seaportOffset      = showSeaportBonus ? 28f : 0f;
+        float templeOffset       = showTempleBonus  ? 28f : 0f;
         float civOffset          = showCivBonus     ? 28f : 0f;
         float spireOffset        = showSpireBonus   ? 28f : 0f;
         float greatLighthouseOffset  = showGreatLighthouseBonus ? 28f : 0f;
-        float belowWonderOffset  = gainOffset + seaportOffset + civOffset + spireOffset + tierOffset + greatLighthouseOffset;
+        float belowWonderOffset  = gainOffset + seaportOffset + templeOffset + civOffset + spireOffset + tierOffset + greatLighthouseOffset;
         bool showTierPicker  = ShowTierPicker;
         float tierPickerOffset = showTierPicker ? 44f : 0f;
         float contentBottom  = popup.Bottom - tierPickerOffset;
@@ -168,7 +171,7 @@ public sealed class PrestigeRenderer : PopupRendererBase
         // Grand Phare (affiché quand niveau > 0)
         if (showGreatLighthouseBonus)
         {
-            float rowOffset = gainOffset + seaportOffset + civOffset + spireOffset + tierOffset;
+            float rowOffset = gainOffset + seaportOffset + templeOffset + civOffset + spireOffset + tierOffset;
             canvas.DrawLine(popup.Left + Padding, contentBottom - 114 - rowOffset, popup.Right - Padding, contentBottom - 114 - rowOffset, _separatorPaint);
             int greatLighthouseLevel = controller.GetGreatLighthouseLevel();
             string greatLighthouseLabel = _localization.GetFormated("prestige_great_lighthouse_bonus", greatLighthouseLevel);
@@ -184,7 +187,7 @@ public sealed class PrestigeRenderer : PopupRendererBase
         // Bonus de nettoyage de la Corruption (affiché dès qu'une zone a été entièrement nettoyée)
         if (showSpireBonus)
         {
-            float spireRowOffset = gainOffset + seaportOffset + civOffset + tierOffset;
+            float spireRowOffset = gainOffset + seaportOffset + templeOffset + civOffset + tierOffset;
             canvas.DrawLine(popup.Left + Padding, contentBottom - 114 - spireRowOffset, popup.Right - Padding, contentBottom - 114 - spireRowOffset, _separatorPaint);
             string spireLabel = _localization.GetFormated("prestige_corruption_spire_bonus", controller.GetMaxCorruptionLevelCleared());
             SkiaTextUtils.DrawText(canvas, spireLabel, popup.Left + Padding, contentBottom - 100 - spireRowOffset, BodyFont!, SubtlePaint);
@@ -195,11 +198,22 @@ public sealed class PrestigeRenderer : PopupRendererBase
         // Bonus gain de prestige (affiché quand > 0)
         if (showGainBonus)
         {
-            float rowOffset = seaportOffset + civOffset + tierOffset;
+            float rowOffset = seaportOffset + templeOffset + civOffset + tierOffset;
             canvas.DrawLine(popup.Left + Padding, contentBottom - 114 - rowOffset, popup.Right - Padding, contentBottom - 114 - rowOffset, _separatorPaint);
             SkiaTextUtils.DrawText(canvas, _localization.Get("prestige_gain_bonus"), popup.Left + Padding, contentBottom - 100 - rowOffset, BodyFont!, SubtlePaint);
             SkiaTextUtils.DrawText(canvas, $"×{1 + gainBonus:0.##}", popup.Right - Padding, contentBottom - 100 - rowOffset, SKTextAlign.Right, BtnFont!, SubtlePaint);
             _hoverRects.Add((new SKRect(popup.Left, contentBottom - 114 - rowOffset, popup.Right, contentBottom - 86 - rowOffset), new[] { "prestige_tooltip_prestige_gain_bonus" }));
+        }
+
+        // Bonus Grand Temple (affiché quand > 0)
+        if (showTempleBonus)
+        {
+            int templeCount = controller.GetTempleCount();
+            float rowOffset = seaportOffset + civOffset + tierOffset;
+            canvas.DrawLine(popup.Left + Padding, contentBottom - 114 - rowOffset, popup.Right - Padding, contentBottom - 114 - rowOffset, _separatorPaint);
+            SkiaTextUtils.DrawText(canvas, _localization.GetFormated("prestige_temple_bonus", templeCount), popup.Left + Padding, contentBottom - 100 - rowOffset, BodyFont!, SubtlePaint);
+            SkiaTextUtils.DrawText(canvas, $"+{templeBonus * 100:0.#}%", popup.Right - Padding, contentBottom - 100 - rowOffset, SKTextAlign.Right, BtnFont!, SubtlePaint);
+            _hoverRects.Add((new SKRect(popup.Left, contentBottom - 114 - rowOffset, popup.Right, contentBottom - 86 - rowOffset), new[] { "prestige_tooltip_temple_bonus" }));
         }
 
         // Bonus Ports niv. 4 (affiché quand > 0)

@@ -40,6 +40,7 @@ public sealed class AutomationRenderer : IDisposable
     internal const string PinKeyMarket        = "Market";
     internal const string PinKeySeaport        = "Seaport";
     internal const string PinKeyMilBuildings  = "MilitaryBuildings";
+    internal const string PinKeyGrandTemple   = "GrandTemple";
     internal const string PinKeyMilReinforce  = "MilitaryReinforcement";
     internal const string PinKeyMilPatrol     = "MilitaryPatrol";
     internal const string PinKeyMilVendetta   = "MilitaryVendetta";
@@ -69,6 +70,7 @@ public sealed class AutomationRenderer : IDisposable
     private SKRect _marketToggleRect = SKRect.Empty;
     private SKRect _seaportToggleRect = SKRect.Empty;
     private SKRect _militaryBuildingsToggleRect = SKRect.Empty;
+    private SKRect _grandTempleToggleRect = SKRect.Empty;
     private SKRect _militaryReinforcementToggleRect = SKRect.Empty;
     private SKRect _militaryPatrolToggleRect = SKRect.Empty;
     private SKRect _militaryVendettaToggleRect = SKRect.Empty;
@@ -92,6 +94,7 @@ public sealed class AutomationRenderer : IDisposable
     private bool _hoveredMarketToggle;
     private bool _hoveredSeaportToggle;
     private bool _hoveredMilitaryBuildingsToggle;
+    private bool _hoveredGrandTempleToggle;
     private bool _hoveredMilitaryReinforcementToggle;
     private bool _hoveredMilitaryPatrolToggle;
     private bool _hoveredMilitaryVendettaToggle;
@@ -150,6 +153,7 @@ public sealed class AutomationRenderer : IDisposable
     private static readonly BuildingType[] MarketTypes     = [BuildingType.Market];
     private static readonly BuildingType[] SeaportTypes    = [BuildingType.Seaport];
     private static readonly BuildingType[] MilitaryTypes   = [BuildingType.Barracks, BuildingType.Garrison, BuildingType.Arsenal, BuildingType.WeaponSmith, BuildingType.ArmorSmith, BuildingType.Palisade];
+    private static readonly BuildingType[] GrandTempleTypes = [BuildingType.Temple];
 
     public AutomationRenderer(GameControllerService gameControllerService, LocalizationService localization, UILayoutService uiLayout)
     {
@@ -212,6 +216,7 @@ public sealed class AutomationRenderer : IDisposable
         TraderGuild? traderGuild = null;
         ImperialPort? imperialPort = null;
         WarRoom? warRoom = null;
+        GrandTemple? grandTemple = null;
         foreach (var city in civ.Cities)
         {
             buildersGuild ??= city.Buildings.OfType<BuildersGuild>().FirstOrDefault();
@@ -221,7 +226,8 @@ public sealed class AutomationRenderer : IDisposable
             traderGuild ??= city.Buildings.OfType<TraderGuild>().FirstOrDefault();
             imperialPort ??= city.Buildings.OfType<ImperialPort>().FirstOrDefault();
             warRoom ??= city.Buildings.OfType<WarRoom>().FirstOrDefault();
-            if (buildersGuild != null && harvestersGuild != null && artisansGuild != null && academy != null && traderGuild != null && imperialPort != null && warRoom != null) break;
+            grandTemple ??= city.Buildings.OfType<GrandTemple>().FirstOrDefault();
+            if (buildersGuild != null && harvestersGuild != null && artisansGuild != null && academy != null && traderGuild != null && imperialPort != null && warRoom != null && grandTemple != null) break;
         }
         bool hasSeaportAutomation = civ.ModifierAggregator.HasModifier(Modifier.ECategory.UNLOCK_SEAPORT_AUTOMATION);
         bool hasBuildersGuildUnderworld = civ.ModifierAggregator.HasModifier(Modifier.ECategory.UNLOCK_BUILDERS_GUILD_UNDERWORLD);
@@ -346,6 +352,16 @@ public sealed class AutomationRenderer : IDisposable
         {
             _militaryBuildingsToggleRect = SKRect.Empty;
             rowH = DrawLockedRow(canvas, leftX, leftY, colWidth, _localization.Get("automation_military_buildings_name"), _localization.Get("automation_military_buildings_locked"));
+        }
+        leftY += rowH + RowSpacing;
+
+        bool grandTempleUnlocked = grandTemple != null && grandTemple.Level >= 1;
+        if (grandTempleUnlocked)
+            (_grandTempleToggleRect, rowH) = DrawAutomationRow(canvas, leftX, leftY, colWidth, WorldState.AutomationSettings.TempleAutomationEnabled, _hoveredGrandTempleToggle, _localization.Get("automation_grandtemple_name"), _localization.Get("automation_grandtemple_desc"), _localization.Get("automation_grandtemple_note"), civ.Cities, GrandTempleTypes, PinKeyGrandTemple, _hoveredPinKey == PinKeyGrandTemple, pinned.Contains(PinKeyGrandTemple));
+        else
+        {
+            _grandTempleToggleRect = SKRect.Empty;
+            rowH = DrawLockedRow(canvas, leftX, leftY, colWidth, _localization.Get("automation_grandtemple_name"), _localization.Get("automation_grandtemple_locked"));
         }
 
         float leftBottom = leftY + rowH;
@@ -675,6 +691,7 @@ public sealed class AutomationRenderer : IDisposable
         _hoveredMarketToggle                 = !_marketToggleRect.IsEmpty                 && _marketToggleRect.Contains(adj.X, adj.Y);
         _hoveredSeaportToggle                = !_seaportToggleRect.IsEmpty                && _seaportToggleRect.Contains(adj.X, adj.Y);
         _hoveredMilitaryBuildingsToggle      = !_militaryBuildingsToggleRect.IsEmpty      && _militaryBuildingsToggleRect.Contains(adj.X, adj.Y);
+        _hoveredGrandTempleToggle             = !_grandTempleToggleRect.IsEmpty            && _grandTempleToggleRect.Contains(adj.X, adj.Y);
         _hoveredMilitaryReinforcementToggle  = !_militaryReinforcementToggleRect.IsEmpty  && _militaryReinforcementToggleRect.Contains(adj.X, adj.Y);
         _hoveredMilitaryPatrolToggle         = !_militaryPatrolToggleRect.IsEmpty         && _militaryPatrolToggleRect.Contains(adj.X, adj.Y);
         _hoveredMilitaryVendettaToggle       = !_militaryVendettaToggleRect.IsEmpty       && _militaryVendettaToggleRect.Contains(adj.X, adj.Y);
@@ -794,6 +811,11 @@ public sealed class AutomationRenderer : IDisposable
         if (!_militaryBuildingsToggleRect.IsEmpty && _militaryBuildingsToggleRect.Contains(adj.X, adj.Y))
         {
             state.AutomationSettings.MilitaryBuildingAutomationEnabled = !state.AutomationSettings.MilitaryBuildingAutomationEnabled;
+            return true;
+        }
+        if (!_grandTempleToggleRect.IsEmpty && _grandTempleToggleRect.Contains(adj.X, adj.Y))
+        {
+            state.AutomationSettings.TempleAutomationEnabled = !state.AutomationSettings.TempleAutomationEnabled;
             return true;
         }
         if (!_militaryReinforcementToggleRect.IsEmpty && _militaryReinforcementToggleRect.Contains(adj.X, adj.Y))

@@ -297,6 +297,16 @@ public static class TechnologyDefinitions
             },
             tier: 6, line: 5),
 
+        // Deux tiers au-dessus des Guildes Avancées (seul prérequis). Débloque le Grand Temple
+        // (bâtiment unique, niveau max 1) : automatise la construction des Temples et ajoute
+        // PRESTIGE_GAIN_PER_TEMPLE, cumulable avec PRESTIGE_GAIN.
+        new(TechnologyId.GrandTempleConstruction,
+            "tech_grand_temple_construction_name", "tech_grand_temple_construction_desc",
+            cost: 6000000,
+            prerequisites: new[] { TechnologyId.AdvancedGuilds },
+            modifiers: new Modifier[] { new(ECategory.BUILDING_MAX_LEVEL, "GrandTemple", EType.ADDITIVE, 1) },
+            tier: 8, line: 6),
+
         // === Branche de l'Acier (débloquée par les vertex de prestige du nord-est) ===
 
         new(TechnologyId.Siderurgie,

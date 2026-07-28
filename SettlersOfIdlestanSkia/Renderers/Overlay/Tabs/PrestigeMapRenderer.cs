@@ -745,6 +745,7 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         Modifier.ECategory.CITY_DEFENSE_PROTECTS_SOLDIERS => _localization.Get("prestige_tooltip_city_defense_protects_soldiers"),
         Modifier.ECategory.UNLOCK_SEAPORT_AUTOMATION  => _localization.Get("prestige_tooltip_unlocks_seaport_automation"),
         Modifier.ECategory.PRESTIGE_GAIN_PER_SEAPORT_LEVEL4 => $"+{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_prestige_per_seaport")}",
+        Modifier.ECategory.PRESTIGE_GAIN_PER_TEMPLE          => $"+{mod.Value * 100:0.#}% {_localization.Get("prestige_tooltip_prestige_per_temple")}",
         Modifier.ECategory.UNDERWORLD_ROAD_BASE_REDUCTION   => _localization.Get("prestige_tooltip_underworld_road_reduction"),
         Modifier.ECategory.UNLOCK_RAID                      => _localization.Get("prestige_tooltip_unlocks_raid"),
         Modifier.ECategory.SOLDIER_FOOD_FREE_PER_CITY       => $"{(int)mod.Value} {_localization.Get("prestige_tooltip_soldier_food_free_per_city")}",

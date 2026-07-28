@@ -81,6 +81,8 @@ namespace SettlersOfIdlestan.Controller.Island
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[BuildingController] {nameof(PerformWarRoomAutomation)}: {ex}"); }
             try { PerformTownHallGuildAutomation(); }
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[BuildingController] {nameof(PerformTownHallGuildAutomation)}: {ex}"); }
+            try { PerformGrandTempleAutomation(); }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[BuildingController] {nameof(PerformGrandTempleAutomation)}: {ex}"); }
         }
 
         private void PerformHarvestersGuildProductionAutomation()
@@ -188,6 +190,24 @@ namespace SettlersOfIdlestan.Controller.Island
                 long tick = guild.LastTownHallBuildTick;
                 TickGuildAutomation(civ, ref tick, guild.GetAutoTownHallCooldownTicks(), enabled, targets, now);
                 guild.LastTownHallBuildTick = tick;
+            }
+        }
+
+        private void PerformGrandTempleAutomation()
+        {
+            if (_state == null || _clock == null) return;
+            long now = _clock.CurrentTick;
+            BuildingType[] targets = [BuildingType.Temple];
+
+            foreach (var civ in _state.Civilizations)
+            {
+                if (civ.GetUniqueBuilding(BuildingType.GrandTemple) is not GrandTemple grandTemple || grandTemple.Level == 0) continue;
+
+                bool isPlayer = civ.Index == _state.PlayerCivilization.Index;
+                bool enabled = !isPlayer || _state.AutomationSettings.IsTempleAutomationActive;
+                long tick = grandTemple.LastTempleBuildTick;
+                TickGuildAutomation(civ, ref tick, grandTemple.GetAutoTempleCooldownTicks(), enabled, targets, now);
+                grandTemple.LastTempleBuildTick = tick;
             }
         }
 
@@ -611,6 +631,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 BuildingType.SkullPit => new SkullPit(),
                 BuildingType.ThroneOfWinds => new ThroneOfWinds(),
                 BuildingType.PearlGrotto => new PearlGrotto(),
+                BuildingType.GrandTemple => new GrandTemple(),
                 _ => null,
             };
         }

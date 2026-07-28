@@ -219,6 +219,13 @@ public enum BuildingType
     /// de la Nourriture passivement.
     /// </summary>
     PearlGrotto,
+    /// <summary>
+    /// Grand Temple - Bâtiment unique. Automatise la construction des Temples et ajoute un bonus de
+    /// prestige additif par Temple construit dans la civilisation (cumulable avec les bonus de
+    /// recherche). Disponible au niveau Capitale (4). Nécessite un Temple niveau 1 dans la ville et
+    /// au moins 10 Temples construits dans la civilisation. Débloqué par la recherche Grand Temple.
+    /// </summary>
+    GrandTemple,
 }
 
 /// <summary>

@@ -136,6 +136,19 @@ namespace SettlersOfIdlestan.Controller.Expand
             return GetSeaportLevel4Count() * perSeaport;
         }
 
+        public int GetTempleCount()
+            => _playerCivilization?.Cities.SelectMany(c => c.Buildings)
+                .Count(b => b.Type == BuildingType.Temple) ?? 0;
+
+        /// <summary>Bonus de prestige additif accordé par le Grand Temple : PRESTIGE_GAIN_PER_TEMPLE × nombre de Temples construits dans la civilisation.</summary>
+        public double GetTemplePrestigeBonus()
+        {
+            if (_playerCivilization == null) return 0.0;
+            double perTemple = _playerCivilization.ModifierAggregator.ApplyModifiers(ECategory.PRESTIGE_GAIN_PER_TEMPLE, "", 0.0);
+            if (perTemple <= 0) return 0.0;
+            return GetTempleCount() * perTemple;
+        }
+
         public const double PrestigeGainPerCivilizationDestroyed = 0.2;
 
         public int GetCivilizationsDestroyedCount() => _islandState?.RunRecord.CivilizationsDestroyed ?? 0;
@@ -211,10 +224,11 @@ namespace SettlersOfIdlestan.Controller.Expand
                 result *= 1.2;
             double gainBonus = GetPrestigeGainBonus();
             double seaportBonus = GetSeaportPrestigeBonus();
+            double templeBonus = GetTemplePrestigeBonus();
             double civDestroyedBonus = GetCivilizationsDestroyedBonus();
             double tierBonus = GetTierBonus();
             double greatLighthouseBonus = GetGreatLighthousePrestigeBonus();
-            result *= (1 + gainBonus + seaportBonus + civDestroyedBonus + tierBonus + greatLighthouseBonus);
+            result *= (1 + gainBonus + seaportBonus + templeBonus + civDestroyedBonus + tierBonus + greatLighthouseBonus);
             result *= GetCorruptionClearBonusMultiplier();
             return (int)result;
         }

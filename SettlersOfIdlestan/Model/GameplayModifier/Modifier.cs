@@ -117,6 +117,8 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             UNLOCK_SEAPORT_AUTOMATION,
             /// <summary>Bonus additif de prestige par Port maritime au niveau max. Base = 0.0 ; +0.05 = +5% par port niv. 4.</summary>
             PRESTIGE_GAIN_PER_SEAPORT_LEVEL4,
+            /// <summary>Bonus additif de prestige par Temple construit dans la civilisation (tous niveaux confondus). Base = 0.0 ; +0.005 = +0.5% par Temple. Accordé par le Grand Temple.</summary>
+            PRESTIGE_GAIN_PER_TEMPLE,
             /// <summary>Réduction du coût de route de base de l'Inframonde. Chaque point réduit la pierre de base de 1 et le minerai de base de 0,5 (arrondi inférieur), avant multiplication par arrivalDist.</summary>
             UNDERWORLD_ROAD_BASE_REDUCTION,
             /// <summary>Flags que l'action Raid est déverrouillée pour la civilisation du joueur.</summary>

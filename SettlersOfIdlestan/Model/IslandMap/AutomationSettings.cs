@@ -57,6 +57,10 @@ public class AutomationSettings
     public bool MilitaryBuildingAutomationEnabled { get; set; } = false;
     [JsonIgnore] public bool IsMilitaryBuildingAutomationActive => Active(MilitaryBuildingAutomationEnabled);
 
+    /// <summary>Automatisation de la construction/amélioration des Temples par le Grand Temple, voir BuildingController.PerformGrandTempleAutomation.</summary>
+    public bool TempleAutomationEnabled { get; set; } = false;
+    [JsonIgnore] public bool IsTempleAutomationActive => Active(TempleAutomationEnabled);
+
     public bool MilitaryReinforcementAutomationEnabled { get; set; } = false;
     [JsonIgnore] public bool IsMilitaryReinforcementAutomationActive => Active(MilitaryReinforcementAutomationEnabled);
 
