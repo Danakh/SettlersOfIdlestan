@@ -205,6 +205,8 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             VOLCANO_DAMAGE_REDUCTION,
             /// <summary>Flags que les Scieries peuvent récolter du Bois sur les Cavernes aux Champignons adjacentes (à vitesse réduite, voir Sawmill.GetAutomaticHarvestTerrainSpeedMultiplier). SubCategory unused.</summary>
             UNLOCK_SAWMILL_MUSHROOM_HARVEST,
+            /// <summary>Bonus (ou malus) additif de prestige propre à la race choisie à l'Ascension, distinct de PRESTIGE_GAIN (recherches + arbre de Prestige). Base = 0.0 ; -0.25 = -25% (Gobelins).</summary>
+            PRESTIGE_GAIN_RACE,
         }
 
         [JsonConverter(typeof(JsonStringEnumConverter<EType>))]

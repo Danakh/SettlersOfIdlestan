@@ -124,6 +124,10 @@ namespace SettlersOfIdlestan.Controller.Expand
         public double GetPrestigeGainBonus()
             => _playerCivilization?.ModifierAggregator.ApplyModifiers(ECategory.PRESTIGE_GAIN, "", 0.0) ?? 0.0;
 
+        /// <summary>Bonus (ou malus) additif de prestige propre à la race choisie à l'Ascension (ex : -25% pour les Gobelins), distinct du bonus Prestige/Recherche.</summary>
+        public double GetRaceGainBonus()
+            => _playerCivilization?.ModifierAggregator.ApplyModifiers(ECategory.PRESTIGE_GAIN_RACE, "", 0.0) ?? 0.0;
+
         public int GetSeaportLevel4Count()
             => _playerCivilization?.Cities.SelectMany(c => c.Buildings)
                 .Count(b => b.Type == BuildingType.Seaport && b.Level >= 4) ?? 0;
@@ -223,12 +227,13 @@ namespace SettlersOfIdlestan.Controller.Expand
             if (HasNoSurfaceMonsters())
                 result *= 1.2;
             double gainBonus = GetPrestigeGainBonus();
+            double raceBonus = GetRaceGainBonus();
             double seaportBonus = GetSeaportPrestigeBonus();
             double templeBonus = GetTemplePrestigeBonus();
             double civDestroyedBonus = GetCivilizationsDestroyedBonus();
             double tierBonus = GetTierBonus();
             double greatLighthouseBonus = GetGreatLighthousePrestigeBonus();
-            result *= (1 + gainBonus + seaportBonus + templeBonus + civDestroyedBonus + tierBonus + greatLighthouseBonus);
+            result *= (1 + gainBonus + raceBonus + seaportBonus + templeBonus + civDestroyedBonus + tierBonus + greatLighthouseBonus);
             result *= GetCorruptionClearBonusMultiplier();
             return (int)result;
         }

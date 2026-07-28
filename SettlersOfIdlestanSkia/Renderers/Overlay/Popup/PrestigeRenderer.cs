@@ -90,6 +90,7 @@ public sealed class PrestigeRenderer : PopupRendererBase
         bool wondersUnlocked = controller.WondersUnlocked();
         bool showSpireBonus      = controller.GetMaxCorruptionLevelCleared() > 0;
         double gainBonus         = controller.GetPrestigeGainBonus();
+        double raceBonus         = controller.GetRaceGainBonus();
         double seaportBonus      = controller.GetSeaportPrestigeBonus();
         double templeBonus       = controller.GetTemplePrestigeBonus();
         double civDestroyedBonus = controller.GetCivilizationsDestroyedBonus();
@@ -97,24 +98,39 @@ public sealed class PrestigeRenderer : PopupRendererBase
         double tierBonus         = controller.GetTierBonus();
         double greatLighthouseBonus  = controller.GetGreatLighthousePrestigeBonus();
         bool showGainBonus       = gainBonus > 0;
+        bool showRaceBonus       = raceBonus != 0;
         bool showSeaportBonus    = seaportBonus > 0;
         bool showTempleBonus     = templeBonus > 0;
         bool showCivBonus        = civDestroyedBonus > 0;
         bool showGreatLighthouseBonus = greatLighthouseBonus > 0;
         bool showTierBonus       = tierBonus > 0;
-        float tierOffset         = showTierBonus ? 28f : 0f;
-        float gainOffset         = showGainBonus    ? 28f : 0f;
-        float seaportOffset      = showSeaportBonus ? 28f : 0f;
-        float templeOffset       = showTempleBonus  ? 28f : 0f;
-        float civOffset          = showCivBonus     ? 28f : 0f;
-        float spireOffset        = showSpireBonus   ? 28f : 0f;
-        float greatLighthouseOffset  = showGreatLighthouseBonus ? 28f : 0f;
-        float belowWonderOffset  = gainOffset + seaportOffset + templeOffset + civOffset + spireOffset + tierOffset + greatLighthouseOffset;
+
+        // Le bonus de Merveille est toujours affiché en dernier (juste au-dessus du Total) ;
+        // les offsets ci-dessous sont calculés du bas vers le haut pour respecter cet ordre.
+        float wonderRowOffset          = 0f;
+        float wonderRowHeight          = wondersUnlocked ? 28f : 0f;
+        float tierOffset               = wonderRowOffset + wonderRowHeight;
+        float tierRowHeight            = showTierBonus ? 28f : 0f;
+        float civOffset                = tierOffset + tierRowHeight;
+        float civRowHeight             = showCivBonus ? 28f : 0f;
+        float seaportOffset            = civOffset + civRowHeight;
+        float seaportRowHeight         = showSeaportBonus ? 28f : 0f;
+        float templeOffset             = seaportOffset + seaportRowHeight;
+        float templeRowHeight          = showTempleBonus ? 28f : 0f;
+        float gainOffset               = templeOffset + templeRowHeight;
+        float gainRowHeight            = showGainBonus ? 28f : 0f;
+        float raceOffset               = gainOffset + gainRowHeight;
+        float raceRowHeight            = showRaceBonus ? 28f : 0f;
+        float spireOffset              = raceOffset + raceRowHeight;
+        float spireRowHeight           = showSpireBonus ? 28f : 0f;
+        float greatLighthouseOffset    = spireOffset + spireRowHeight;
+        float greatLighthouseRowHeight = showGreatLighthouseBonus ? 28f : 0f;
+        float belowMonsterOffset       = greatLighthouseOffset + greatLighthouseRowHeight;
         bool showTierPicker  = ShowTierPicker;
         float tierPickerOffset = showTierPicker ? 44f : 0f;
         float contentBottom  = popup.Bottom - tierPickerOffset;
         float y              = popup.Top + 68;
-        float listBottom     = contentBottom - 152 - belowWonderOffset;
+        float listBottom     = contentBottom - 152 - belowMonsterOffset;
         int maxVisibleSources = Math.Max(0, (int)((listBottom - y) / SourceRowHeight));
 
         _hoverRects.Clear();
@@ -134,44 +150,18 @@ public sealed class PrestigeRenderer : PopupRendererBase
 
         // Monstres
         bool hasMonstersLeft = controller.HasSurfaceMonsters();
-        canvas.DrawLine(popup.Left + Padding, contentBottom - 142 - belowWonderOffset, popup.Right - Padding, contentBottom - 142 - belowWonderOffset, _separatorPaint);
-        SkiaTextUtils.DrawText(canvas, _localization.Get("prestige_monster_bonus"), popup.Left + Padding, contentBottom - 128 - belowWonderOffset, BodyFont!, SubtlePaint);
+        canvas.DrawLine(popup.Left + Padding, contentBottom - 142 - belowMonsterOffset, popup.Right - Padding, contentBottom - 142 - belowMonsterOffset, _separatorPaint);
+        SkiaTextUtils.DrawText(canvas, _localization.Get("prestige_monster_bonus"), popup.Left + Padding, contentBottom - 128 - belowMonsterOffset, BodyFont!, SubtlePaint);
         if (hasMonstersLeft)
-            SkiaTextUtils.DrawText(canvas, "×1",   popup.Right - Padding, contentBottom - 128 - belowWonderOffset, SKTextAlign.Right, BtnFont!, _warningTextPaint);
+            SkiaTextUtils.DrawText(canvas, "+0%",  popup.Right - Padding, contentBottom - 128 - belowMonsterOffset, SKTextAlign.Right, BtnFont!, _warningTextPaint);
         else
-            SkiaTextUtils.DrawText(canvas, "×1.2", popup.Right - Padding, contentBottom - 128 - belowWonderOffset, SKTextAlign.Right, BtnFont!, SubtlePaint);
-        _hoverRects.Add((new SKRect(popup.Left, contentBottom - 142 - belowWonderOffset, popup.Right, contentBottom - 114 - belowWonderOffset), new[] { "prestige_tooltip_monster_bonus" }));
-
-        // Wonder (affiché quand débloqué)
-        if (wondersUnlocked)
-        {
-            canvas.DrawLine(popup.Left + Padding, contentBottom - 114 - belowWonderOffset, popup.Right - Padding, contentBottom - 114 - belowWonderOffset, _separatorPaint);
-            var (wonderLevel, timeFactor, runTicks) = controller.GetWonderBonusDetails();
-            string duration    = FormatRunDuration(runTicks);
-            string wonderLabel = _localization.GetFormated("prestige_wonder_bonus", wonderLevel, timeFactor, duration);
-            float wonderRowY = contentBottom - 100 - belowWonderOffset;
-
-            bool canSkipWonderTime = controller.CanSkipToNextWonderMultiplier();
-            const float skipBtnSize = 20f;
-            const float skipBtnGap  = 6f;
-            _wonderSkipButtonRect = new SKRect(popup.Right - Padding - skipBtnSize, wonderRowY - skipBtnSize + 4, popup.Right - Padding, wonderRowY + 4);
-            canvas.DrawRoundRect(_wonderSkipButtonRect, 4, 4, canSkipWonderTime ? _buttonPaint : _buttonDisabledPaint);
-            SkiaTextUtils.DrawText(canvas, "⏩", _wonderSkipButtonRect.MidX, _wonderSkipButtonRect.MidY + 5, SKTextAlign.Center, BtnFont!, TextPaint);
-
-            SkiaTextUtils.DrawText(canvas, wonderLabel, popup.Left + Padding, wonderRowY, BodyFont!, SubtlePaint);
-            SkiaTextUtils.DrawText(canvas, $"×{Math.Max(1, wonderLevel * timeFactor)}", _wonderSkipButtonRect.Left - skipBtnGap, wonderRowY, SKTextAlign.Right, BtnFont!, SubtlePaint);
-            _hoverRects.Add((_wonderSkipButtonRect, new[] { canSkipWonderTime ? "tooltip_wonder_skip_time" : "tooltip_wonder_skip_time_disabled" }));
-            _hoverRects.Add((new SKRect(popup.Left, contentBottom - 114 - belowWonderOffset, _wonderSkipButtonRect.Left - skipBtnGap, contentBottom - 86 - belowWonderOffset), new[] { "prestige_tooltip_wonder_bonus" }));
-        }
-        else
-        {
-            _wonderSkipButtonRect = SKRect.Empty;
-        }
+            SkiaTextUtils.DrawText(canvas, "+20%", popup.Right - Padding, contentBottom - 128 - belowMonsterOffset, SKTextAlign.Right, BtnFont!, SubtlePaint);
+        _hoverRects.Add((new SKRect(popup.Left, contentBottom - 142 - belowMonsterOffset, popup.Right, contentBottom - 114 - belowMonsterOffset), new[] { "prestige_tooltip_monster_bonus" }));
 
         // Grand Phare (affiché quand niveau > 0)
         if (showGreatLighthouseBonus)
         {
-            float rowOffset = gainOffset + seaportOffset + templeOffset + civOffset + spireOffset + tierOffset;
+            float rowOffset = greatLighthouseOffset;
             canvas.DrawLine(popup.Left + Padding, contentBottom - 114 - rowOffset, popup.Right - Padding, contentBottom - 114 - rowOffset, _separatorPaint);
             int greatLighthouseLevel = controller.GetGreatLighthouseLevel();
             string greatLighthouseLabel = _localization.GetFormated("prestige_great_lighthouse_bonus", greatLighthouseLevel);
@@ -187,29 +177,40 @@ public sealed class PrestigeRenderer : PopupRendererBase
         // Bonus de nettoyage de la Corruption (affiché dès qu'une zone a été entièrement nettoyée)
         if (showSpireBonus)
         {
-            float spireRowOffset = gainOffset + seaportOffset + templeOffset + civOffset + tierOffset;
-            canvas.DrawLine(popup.Left + Padding, contentBottom - 114 - spireRowOffset, popup.Right - Padding, contentBottom - 114 - spireRowOffset, _separatorPaint);
+            float rowOffset = spireOffset;
+            canvas.DrawLine(popup.Left + Padding, contentBottom - 114 - rowOffset, popup.Right - Padding, contentBottom - 114 - rowOffset, _separatorPaint);
             string spireLabel = _localization.GetFormated("prestige_corruption_spire_bonus", controller.GetMaxCorruptionLevelCleared());
-            SkiaTextUtils.DrawText(canvas, spireLabel, popup.Left + Padding, contentBottom - 100 - spireRowOffset, BodyFont!, SubtlePaint);
-            SkiaTextUtils.DrawText(canvas, $"×{controller.GetCorruptionClearBonusMultiplier()}", popup.Right - Padding, contentBottom - 100 - spireRowOffset, SKTextAlign.Right, BtnFont!, SubtlePaint);
-            _hoverRects.Add((new SKRect(popup.Left, contentBottom - 114 - spireRowOffset, popup.Right, contentBottom - 86 - spireRowOffset), new[] { "prestige_tooltip_corruption_spire_bonus" }));
+            SkiaTextUtils.DrawText(canvas, spireLabel, popup.Left + Padding, contentBottom - 100 - rowOffset, BodyFont!, SubtlePaint);
+            SkiaTextUtils.DrawText(canvas, $"×{controller.GetCorruptionClearBonusMultiplier()}", popup.Right - Padding, contentBottom - 100 - rowOffset, SKTextAlign.Right, BtnFont!, SubtlePaint);
+            _hoverRects.Add((new SKRect(popup.Left, contentBottom - 114 - rowOffset, popup.Right, contentBottom - 86 - rowOffset), new[] { "prestige_tooltip_corruption_spire_bonus" }));
         }
 
-        // Bonus gain de prestige (affiché quand > 0)
+        // Bonus Prestige/Recherche (affiché quand > 0)
         if (showGainBonus)
         {
-            float rowOffset = seaportOffset + templeOffset + civOffset + tierOffset;
+            float rowOffset = gainOffset;
             canvas.DrawLine(popup.Left + Padding, contentBottom - 114 - rowOffset, popup.Right - Padding, contentBottom - 114 - rowOffset, _separatorPaint);
             SkiaTextUtils.DrawText(canvas, _localization.Get("prestige_gain_bonus"), popup.Left + Padding, contentBottom - 100 - rowOffset, BodyFont!, SubtlePaint);
-            SkiaTextUtils.DrawText(canvas, $"×{1 + gainBonus:0.##}", popup.Right - Padding, contentBottom - 100 - rowOffset, SKTextAlign.Right, BtnFont!, SubtlePaint);
+            SkiaTextUtils.DrawText(canvas, $"+{gainBonus * 100:0.#}%", popup.Right - Padding, contentBottom - 100 - rowOffset, SKTextAlign.Right, BtnFont!, SubtlePaint);
             _hoverRects.Add((new SKRect(popup.Left, contentBottom - 114 - rowOffset, popup.Right, contentBottom - 86 - rowOffset), new[] { "prestige_tooltip_prestige_gain_bonus" }));
+        }
+
+        // Bonus/malus de prestige propre à la race (ex : Gobelins -25%), distinct du Bonus Prestige/Recherche
+        if (showRaceBonus)
+        {
+            float rowOffset = raceOffset;
+            canvas.DrawLine(popup.Left + Padding, contentBottom - 114 - rowOffset, popup.Right - Padding, contentBottom - 114 - rowOffset, _separatorPaint);
+            SkiaTextUtils.DrawText(canvas, _localization.Get("prestige_race_bonus"), popup.Left + Padding, contentBottom - 100 - rowOffset, BodyFont!, SubtlePaint);
+            var raceBonusPaint = raceBonus < 0 ? _warningTextPaint : SubtlePaint;
+            SkiaTextUtils.DrawText(canvas, $"{(raceBonus >= 0 ? "+" : "")}{raceBonus * 100:0.#}%", popup.Right - Padding, contentBottom - 100 - rowOffset, SKTextAlign.Right, BtnFont!, raceBonusPaint);
+            _hoverRects.Add((new SKRect(popup.Left, contentBottom - 114 - rowOffset, popup.Right, contentBottom - 86 - rowOffset), new[] { "prestige_tooltip_race_bonus" }));
         }
 
         // Bonus Grand Temple (affiché quand > 0)
         if (showTempleBonus)
         {
             int templeCount = controller.GetTempleCount();
-            float rowOffset = seaportOffset + civOffset + tierOffset;
+            float rowOffset = templeOffset;
             canvas.DrawLine(popup.Left + Padding, contentBottom - 114 - rowOffset, popup.Right - Padding, contentBottom - 114 - rowOffset, _separatorPaint);
             SkiaTextUtils.DrawText(canvas, _localization.GetFormated("prestige_temple_bonus", templeCount), popup.Left + Padding, contentBottom - 100 - rowOffset, BodyFont!, SubtlePaint);
             SkiaTextUtils.DrawText(canvas, $"+{templeBonus * 100:0.#}%", popup.Right - Padding, contentBottom - 100 - rowOffset, SKTextAlign.Right, BtnFont!, SubtlePaint);
@@ -220,7 +221,7 @@ public sealed class PrestigeRenderer : PopupRendererBase
         if (showSeaportBonus)
         {
             int portCount = controller.GetSeaportLevel4Count();
-            float rowOffset = civOffset + tierOffset;
+            float rowOffset = seaportOffset;
             canvas.DrawLine(popup.Left + Padding, contentBottom - 114 - rowOffset, popup.Right - Padding, contentBottom - 114 - rowOffset, _separatorPaint);
             SkiaTextUtils.DrawText(canvas, _localization.GetFormated("prestige_seaport_bonus", portCount), popup.Left + Padding, contentBottom - 100 - rowOffset, BodyFont!, SubtlePaint);
             SkiaTextUtils.DrawText(canvas, $"+{seaportBonus * 100:0}%", popup.Right - Padding, contentBottom - 100 - rowOffset, SKTextAlign.Right, BtnFont!, SubtlePaint);
@@ -231,19 +232,46 @@ public sealed class PrestigeRenderer : PopupRendererBase
         if (showCivBonus)
         {
             int civCount = controller.GetCivilizationsDestroyedCount();
-            canvas.DrawLine(popup.Left + Padding, contentBottom - 114 - tierOffset, popup.Right - Padding, contentBottom - 114 - tierOffset, _separatorPaint);
-            SkiaTextUtils.DrawText(canvas, _localization.GetFormated("prestige_civilizations_destroyed_bonus", civCount), popup.Left + Padding, contentBottom - 100 - tierOffset, BodyFont!, SubtlePaint);
-            SkiaTextUtils.DrawText(canvas, $"+{civDestroyedBonus * 100:0}%", popup.Right - Padding, contentBottom - 100 - tierOffset, SKTextAlign.Right, BtnFont!, SubtlePaint);
-            _hoverRects.Add((new SKRect(popup.Left, contentBottom - 114 - tierOffset, popup.Right, contentBottom - 86 - tierOffset), new[] { "prestige_tooltip_civilizations_destroyed_bonus" }));
+            canvas.DrawLine(popup.Left + Padding, contentBottom - 114 - civOffset, popup.Right - Padding, contentBottom - 114 - civOffset, _separatorPaint);
+            SkiaTextUtils.DrawText(canvas, _localization.GetFormated("prestige_civilizations_destroyed_bonus", civCount), popup.Left + Padding, contentBottom - 100 - civOffset, BodyFont!, SubtlePaint);
+            SkiaTextUtils.DrawText(canvas, $"+{civDestroyedBonus * 100:0}%", popup.Right - Padding, contentBottom - 100 - civOffset, SKTextAlign.Right, BtnFont!, SubtlePaint);
+            _hoverRects.Add((new SKRect(popup.Left, contentBottom - 114 - civOffset, popup.Right, contentBottom - 86 - civOffset), new[] { "prestige_tooltip_civilizations_destroyed_bonus" }));
         }
 
         // Bonus de palier (Tier) — affiché quand > 0
         if (showTierBonus)
         {
+            canvas.DrawLine(popup.Left + Padding, contentBottom - 114 - tierOffset, popup.Right - Padding, contentBottom - 114 - tierOffset, _separatorPaint);
+            SkiaTextUtils.DrawText(canvas, _localization.GetFormated("prestige_tier_bonus", tier), popup.Left + Padding, contentBottom - 100 - tierOffset, BodyFont!, SubtlePaint);
+            SkiaTextUtils.DrawText(canvas, $"+{tierBonus * 100:0}%", popup.Right - Padding, contentBottom - 100 - tierOffset, SKTextAlign.Right, BtnFont!, SubtlePaint);
+            _hoverRects.Add((new SKRect(popup.Left, contentBottom - 114 - tierOffset, popup.Right, contentBottom - 86 - tierOffset), new[] { "prestige_tooltip_tier_bonus" }));
+        }
+
+        // Merveille (affichée quand débloquée) — toujours en dernier, juste au-dessus du Total,
+        // et seul bonus affiché sous forme de multiplicateur (×N) plutôt qu'en pourcentage.
+        if (wondersUnlocked)
+        {
             canvas.DrawLine(popup.Left + Padding, contentBottom - 114, popup.Right - Padding, contentBottom - 114, _separatorPaint);
-            SkiaTextUtils.DrawText(canvas, _localization.GetFormated("prestige_tier_bonus", tier), popup.Left + Padding, contentBottom - 100, BodyFont!, SubtlePaint);
-            SkiaTextUtils.DrawText(canvas, $"+{tierBonus * 100:0}%", popup.Right - Padding, contentBottom - 100, SKTextAlign.Right, BtnFont!, SubtlePaint);
-            _hoverRects.Add((new SKRect(popup.Left, contentBottom - 114, popup.Right, contentBottom - 86), new[] { "prestige_tooltip_tier_bonus" }));
+            var (wonderLevel, timeFactor, runTicks) = controller.GetWonderBonusDetails();
+            string duration    = FormatRunDuration(runTicks);
+            string wonderLabel = _localization.GetFormated("prestige_wonder_bonus", wonderLevel, timeFactor, duration);
+            float wonderRowY = contentBottom - 100;
+
+            bool canSkipWonderTime = controller.CanSkipToNextWonderMultiplier();
+            const float skipBtnSize = 20f;
+            const float skipBtnGap  = 6f;
+            _wonderSkipButtonRect = new SKRect(popup.Right - Padding - skipBtnSize, wonderRowY - skipBtnSize + 4, popup.Right - Padding, wonderRowY + 4);
+            canvas.DrawRoundRect(_wonderSkipButtonRect, 4, 4, canSkipWonderTime ? _buttonPaint : _buttonDisabledPaint);
+            SkiaTextUtils.DrawText(canvas, "⏩", _wonderSkipButtonRect.MidX, _wonderSkipButtonRect.MidY + 5, SKTextAlign.Center, BtnFont!, TextPaint);
+
+            SkiaTextUtils.DrawText(canvas, wonderLabel, popup.Left + Padding, wonderRowY, BodyFont!, SubtlePaint);
+            SkiaTextUtils.DrawText(canvas, $"×{Math.Max(1, wonderLevel * timeFactor)}", _wonderSkipButtonRect.Left - skipBtnGap, wonderRowY, SKTextAlign.Right, BtnFont!, SubtlePaint);
+            _hoverRects.Add((_wonderSkipButtonRect, new[] { canSkipWonderTime ? "tooltip_wonder_skip_time" : "tooltip_wonder_skip_time_disabled" }));
+            _hoverRects.Add((new SKRect(popup.Left, contentBottom - 114, _wonderSkipButtonRect.Left - skipBtnGap, contentBottom - 86), new[] { "prestige_tooltip_wonder_bonus" }));
+        }
+        else
+        {
+            _wonderSkipButtonRect = SKRect.Empty;
         }
 
         // Total

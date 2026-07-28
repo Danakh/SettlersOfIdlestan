@@ -724,6 +724,7 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         Modifier.ECategory.UNLOCK_RESEARCH_QUEUE     => _localization.Get("prestige_tooltip_unlocks_research_queue"),
         Modifier.ECategory.UNLOCK_RESOURCE            => $"{_localization.Get("prestige_tooltip_unlocks_resource")} {_localization.Get($"resource_{mod.SubCategory.ToLower()}")}",
         Modifier.ECategory.PRESTIGE_GAIN              => $"+{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_prestige_gain")}",
+        Modifier.ECategory.PRESTIGE_GAIN_RACE         => $"{(mod.Value >= 0 ? "+" : "")}{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_prestige_gain_race")}",
         Modifier.ECategory.SMELTER_SPEED              => $"+{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_smelter_speed")}",
         Modifier.ECategory.CITY_ATTACK_RANGE          => $"+{(int)mod.Value} {_localization.Get("prestige_tooltip_city_attack_range")}",
         Modifier.ECategory.REINFORCEMENT_RANGE        => $"+{(int)mod.Value} {_localization.Get("prestige_tooltip_reinforcement_range")}",

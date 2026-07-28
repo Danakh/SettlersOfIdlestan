@@ -67,7 +67,7 @@ public static class RaceDefinitions
             modifiers: BuildStandardMaxLevelModifiers(-1)
                 .Append(new Modifier(ECategory.CITY_MIN_DISTANCE, EType.REPLACER, 2))
                 .Append(new Modifier(ECategory.CITY_DEFENSE, EType.ADDITIVE, -3))
-                .Append(new Modifier(ECategory.PRESTIGE_GAIN, EType.ADDITIVE, -0.25))
+                .Append(new Modifier(ECategory.PRESTIGE_GAIN_RACE, EType.ADDITIVE, -0.25))
                 .Append(new Modifier(ECategory.BUILDING_MAX_LEVEL, nameof(BuildingType.GreatBurrow), EType.ADDITIVE, 1))
                 .ToArray()),
 
