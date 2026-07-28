@@ -505,6 +505,7 @@ public sealed class OverlayRenderer : IGameRenderer
         if (!_isVisible) return;
         if (_settingsPopupRenderer.IsOpen) _settingsPopupRenderer.HandlePointerReleased(e.Position);
         if (_tradeRenderer.IsOpen) _tradeRenderer.HandlePointerReleased(e.Position);
+        if (_prestigeRenderer.IsOpen) _prestigeRenderer.HandlePointerReleased(e.Position);
         if (_tabBar.ActiveTab == TabBarRenderer.TabPrestige)
             _prestigeMapRenderer.HandlePointerReleased(e.Position);
         if (_tabBar.ActiveTab == TabBarRenderer.TabAutomation)
@@ -524,6 +525,11 @@ public sealed class OverlayRenderer : IGameRenderer
         if (_tradeRenderer.IsOpen)
         {
             _tradeRenderer.HandleScroll(e.ZoomDelta);
+            return;
+        }
+        if (_prestigeRenderer.IsOpen)
+        {
+            _prestigeRenderer.HandleScroll(e.ZoomDelta);
             return;
         }
         int activeTab = _tabBar.ActiveTab;

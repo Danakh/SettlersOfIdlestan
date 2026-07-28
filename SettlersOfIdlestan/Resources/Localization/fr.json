@@ -313,7 +313,7 @@
   "prestige_tooltip_prestige_gain": "gain de prestige",
   "prestige_seaport_bonus": "Ports niv. 4 ({0})",
   "prestige_tooltip_seaport_bonus": "Chaque Port maritime au niveau 4 ajoute +5% de prestige.",
-  "prestige_temple_bonus": "Temples ({0})",
+  "prestige_temple_bonus": "Grand Temple ({0})",
   "prestige_tooltip_temple_bonus": "Grand Temple : chaque Temple construit ajoute +0,5% de prestige.",
   "prestige_tooltip_prestige_per_temple": "prestige par Temple construit",
   "prestige_great_lighthouse_bonus": "Grand Phare (niv. {0})",

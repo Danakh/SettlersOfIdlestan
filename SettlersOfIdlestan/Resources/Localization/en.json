@@ -313,7 +313,7 @@
   "prestige_tooltip_prestige_gain": "prestige gain",
   "prestige_seaport_bonus": "Level-4 Seaports ({0})",
   "prestige_tooltip_seaport_bonus": "Each Seaport at level 4 grants +5% prestige.",
-  "prestige_temple_bonus": "Temples ({0})",
+  "prestige_temple_bonus": "Grand Temple ({0})",
   "prestige_tooltip_temple_bonus": "Grand Temple: each Temple built grants +0.5% prestige.",
   "prestige_tooltip_prestige_per_temple": "prestige per Temple built",
   "prestige_great_lighthouse_bonus": "Great Lighthouse (lvl. {0})",

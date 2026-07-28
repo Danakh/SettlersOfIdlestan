@@ -275,9 +275,17 @@ namespace SettlersOfIdlestan.Controller.Expand
 
             return sources
                 .Select(source => new PrestigePointSource(source.Key, source.Value, tooltipKeys.GetValueOrDefault(source.Key)))
-                .OrderBy(source => source.LabelKey)
+                .OrderBy(source => SourceSortKey(source.LabelKey))
                 .ToList();
         }
+
+        // Hôtel de ville avant Temple dans l'affichage ; les autres sources gardent l'ordre alphabétique.
+        private static string SourceSortKey(string labelKey) => labelKey switch
+        {
+            "building_townhall_name" => "building_0",
+            "building_temple_name"   => "building_1",
+            _ => labelKey
+        };
 
         public int GetBuildingPrestigePoints(Building building)
         {
