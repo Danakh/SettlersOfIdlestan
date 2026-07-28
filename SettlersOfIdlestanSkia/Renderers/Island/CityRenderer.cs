@@ -143,7 +143,7 @@ public class CityRenderer : HexBasedRenderer, IGameRenderer
         foreach (var vertex in state.BuildableVertices.Where(v => v.Z == context.CurrentLayer))
         {
             var pt = VertexToIsland(vertex);
-            canvas.DrawCircle(pt, 5f, _buildableVertexPaint);
+            canvas.DrawCircle(pt, 6f, _buildableVertexPaint);
         }
 
         if (state.HoveredVertex != null)

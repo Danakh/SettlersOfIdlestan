@@ -202,7 +202,10 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
             float cbX = panelX + padding;
             float cbY = rowCenterY - rowHeight / 4 - cbSize / 2;
             var cbRect = new SKRect(cbX, cbY, cbX + cbSize, cbY + cbSize);
-            canvas.DrawRoundRect(cbRect, 3 * s, 3 * s, done || enabled ? CheckboxActivePaint : CheckboxInactivePaint);
+            // "Complétée" (done) est un état verrouillé (plus rien à investir, la case n'est plus
+            // cliquable — voir plus bas) : distinct visuellement de "active" (encore décochable) pour
+            // ne pas laisser croire que la case reste bloquée cochée sans raison.
+            canvas.DrawRoundRect(cbRect, 3 * s, 3 * s, done ? _barFillPaint : (enabled ? CheckboxActivePaint : CheckboxInactivePaint));
             canvas.DrawRoundRect(cbRect, 3 * s, 3 * s, CheckboxBorderPaint);
             if (enabled || done)
             {
@@ -372,7 +375,7 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
         float cbX = panelX + padding;
         float cbY = rowCenterY - rowHeight / 4 - cbSize / 2;
         var cbRect = new SKRect(cbX, cbY, cbX + cbSize, cbY + cbSize);
-        canvas.DrawRoundRect(cbRect, 3 * s, 3 * s, done || enabled ? CheckboxActivePaint : CheckboxInactivePaint);
+        canvas.DrawRoundRect(cbRect, 3 * s, 3 * s, done ? _barFillPaint : (enabled ? CheckboxActivePaint : CheckboxInactivePaint));
         canvas.DrawRoundRect(cbRect, 3 * s, 3 * s, CheckboxBorderPaint);
         if (enabled || done)
         {

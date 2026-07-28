@@ -22,6 +22,7 @@ public class MobileCampRenderer : HexBasedRenderer, IGameRenderer
     private bool _disposed;
 
     private const float CampRadius = 8f;
+    private const float ConstructionSquareRadius = CampRadius * 0.8f * 0.8f;
 
     private readonly TooltipRenderer _tooltipRenderer;
     private readonly MilitaryController _militaryController;
@@ -124,14 +125,14 @@ public class MobileCampRenderer : HexBasedRenderer, IGameRenderer
         foreach (var vertex in state.BuildableMobileCampVertices.Where(v => v.Z == context.CurrentLayer))
         {
             var pt = VertexToIsland(vertex);
-            var rect = SKRect.Create(pt.X - CampRadius, pt.Y - CampRadius, CampRadius * 2, CampRadius * 2);
+            var rect = SKRect.Create(pt.X - ConstructionSquareRadius, pt.Y - ConstructionSquareRadius, ConstructionSquareRadius * 2, ConstructionSquareRadius * 2);
             canvas.DrawRect(rect, _buildableVertexPaint);
         }
 
         if (state.HoveredMobileCampVertex != null)
         {
             var pt = VertexToIsland(state.HoveredMobileCampVertex);
-            var rect = SKRect.Create(pt.X - CampRadius - 2, pt.Y - CampRadius - 2, (CampRadius + 2) * 2, (CampRadius + 2) * 2);
+            var rect = SKRect.Create(pt.X - ConstructionSquareRadius - 2, pt.Y - ConstructionSquareRadius - 2, (ConstructionSquareRadius + 2) * 2, (ConstructionSquareRadius + 2) * 2);
             canvas.DrawRect(rect, _hoverVertexPaint);
 
             _tooltipRenderer.SetMobileCampConstructionTooltip(state.HoveredMobileCampVertex);
