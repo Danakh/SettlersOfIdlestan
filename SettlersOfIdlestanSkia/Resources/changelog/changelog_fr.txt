@@ -5,6 +5,8 @@ Le changelog n'est pas activement mis à jour pour le moment.
 
 v0.11
 • Bois de Champignon : nouvelle recherche (suite de Culture Fongique) permettant aux Scieries de récolter du Bois sur les Cavernes aux Champignons, à moitié vitesse par rapport aux forêts
+• Grand Temple : nouveau bâtiment unique débloqué par recherche, qui automatise la construction des Temples et ajoute un bonus de prestige cumulable par Temple construit dans la civilisation
+• Nouveau réglage dans l'écran Automatisation : un interrupteur global pour désactiver toutes les automatisations en un clic, sans perdre vos réglages individuels
 
 ---
 
