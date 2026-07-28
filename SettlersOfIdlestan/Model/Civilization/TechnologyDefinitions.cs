@@ -448,7 +448,7 @@ public static class TechnologyDefinitions
             prerequisites: new[] { TechnologyId.Speleologie },
             modifiers: new Modifier[]
             {
-                new(ECategory.UNDERWORLD_TREASURE_CHANCE_PERCENT, EType.ADDITIVE, 5),
+                new(ECategory.UNDERWORLD_TREASURE_CHANCE_PERCENT, EType.ADDITIVE, 3),
                 new(ECategory.UNLOCK_BUILDERS_GUILD_UNDERWORLD, EType.ADDITIVE, 1),
             },
             tier: 6, line: 1),
@@ -622,7 +622,7 @@ public static class TechnologyDefinitions
             prerequisites: Array.Empty<TechnologyId>(),
             modifiers: new Modifier[]
             {
-                new(ECategory.UNDERWORLD_TREASURE_CHANCE_PERCENT, EType.ADDITIVE, 5),
+                new(ECategory.UNDERWORLD_TREASURE_CHANCE_PERCENT, EType.ADDITIVE, 3),
                 new(ECategory.PRESTIGE_GAIN, EType.ADDITIVE, 0.05),
             },
             tier: 8, line: 5),

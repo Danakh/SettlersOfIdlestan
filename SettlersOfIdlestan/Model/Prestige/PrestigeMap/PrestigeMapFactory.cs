@@ -259,7 +259,7 @@ public static class PrestigeMapFactory
                 cost: Cost(PrestigeMap.TreasureHuntersVertex),
                 modifiers: new Modifier[]
                 {
-                    new(ECategory.UNDERWORLD_TREASURE_CHANCE_PERCENT, EType.ADDITIVE, 5),
+                    new(ECategory.UNDERWORLD_TREASURE_CHANCE_PERCENT, EType.ADDITIVE, 3),
                 }
             ),
             new(
@@ -520,7 +520,7 @@ public static class PrestigeMapFactory
                 PrestigeMap.BottomlessPitVertex,
                 "prestige_vertex_bottomless_pit",
                 cost: Cost(PrestigeMap.BottomlessPitVertex),
-                modifiers: new Modifier[] { new(ECategory.UNDERWORLD_TREASURE_CHANCE_PERCENT, EType.ADDITIVE, 5) }
+                modifiers: new Modifier[] { new(ECategory.UNDERWORLD_TREASURE_CHANCE_PERCENT, EType.ADDITIVE, 3) }
             ),
             // Porte de la Magie — autour de Ossuary / AbyssVoid
             new(
@@ -728,7 +728,7 @@ public static class PrestigeMapFactory
                 PrestigeMap.AbyssChasmCoord,
                 "prestige_hex_abyss_chasm",
                 adjacentVertices: Adjacent(PrestigeMap.AbyssChasmCoord),
-                perVertexModifiers: new Modifier[] { new(ECategory.UNDERWORLD_TREASURE_CHANCE_PERCENT, EType.ADDITIVE, 2) },
+                perVertexModifiers: new Modifier[] { new(ECategory.UNDERWORLD_TREASURE_CHANCE_PERCENT, EType.ADDITIVE, 1) },
                 domain: PrestigeHexDomain.Explore
             ),
             // Ossuaire — hex d'ascension : accélère la boucle os → essence, donc volontairement
