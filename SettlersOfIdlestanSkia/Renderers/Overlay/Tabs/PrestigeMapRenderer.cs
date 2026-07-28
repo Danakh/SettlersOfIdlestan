@@ -742,7 +742,7 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         Modifier.ECategory.RITUAL_TOTAL_POWER         => $"+{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_ritual_total_power")}",
         Modifier.ECategory.RITUAL_UPKEEP_REDUCTION    => $"-{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_ritual_upkeep")}",
         Modifier.ECategory.MAGIC_FEATURE_COUNT        => mod.SubCategory == "FairyCircle"
-            ? _localization.GetFormated("prestige_tooltip_magic_feature_fairycircle", (int)mod.Value)
+            ? _localization.Get("prestige_tooltip_magic_feature_fairycircle")
             : $"+{(int)mod.Value} {_localization.Get($"prestige_tooltip_magic_feature_{mod.SubCategory.ToLower()}")}",
         Modifier.ECategory.MARKET_GOLD_SPEED               => $"+{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_market_gold_speed")}",
         Modifier.ECategory.CITY_DEFENSE_PROTECTS_SOLDIERS => _localization.Get("prestige_tooltip_city_defense_protects_soldiers"),

@@ -65,6 +65,10 @@ public class AutomationSettings
     public bool MithrilMineBuildingAutomationEnabled { get; set; } = false;
     [JsonIgnore] public bool IsMithrilMineBuildingAutomationActive => Active(MithrilMineBuildingAutomationEnabled);
 
+    /// <summary>Automatisation de la construction/amélioration des Tours de Mages et Huttes d'Alchimie par la Tour des Arcanes, voir BuildingController.PerformArcaneTowerAutomation.</summary>
+    public bool ArcaneTowerBuildingAutomationEnabled { get; set; } = false;
+    [JsonIgnore] public bool IsArcaneTowerBuildingAutomationActive => Active(ArcaneTowerBuildingAutomationEnabled);
+
     public bool MilitaryReinforcementAutomationEnabled { get; set; } = false;
     [JsonIgnore] public bool IsMilitaryReinforcementAutomationActive => Active(MilitaryReinforcementAutomationEnabled);
 

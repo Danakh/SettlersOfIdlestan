@@ -4,6 +4,7 @@ The changelog is not actively maintained at the moment.
 ---
 
 v0.12
+• Arcane Tower: new unique building unlocked on the prestige map (replaces the Withered Grove), which automates construction of Mage Towers and Alchemist Huts, and reduces ritual upkeep cost by 25%
 
 ---
 

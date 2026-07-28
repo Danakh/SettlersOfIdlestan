@@ -91,6 +91,7 @@ namespace SettlersOfIdlestan.Model.Buildings
                 BuildingType.ThroneOfWinds => typeof(ThroneOfWinds),
                 BuildingType.PearlGrotto => typeof(PearlGrotto),
                 BuildingType.GrandTemple => typeof(GrandTemple),
+                BuildingType.ArcaneTower => typeof(ArcaneTower),
                 _ => throw new JsonException($"Unknown building type: {bType}")
             };
 

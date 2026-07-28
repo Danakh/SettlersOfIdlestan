@@ -122,7 +122,7 @@ public class PrestigeMap
     public static readonly Vertex VoidEdgeVertex        = Vertex.Create(new(-1,  4, 0), new(-2,  4, 0), new(-2,  5, 0));
     public static readonly Vertex FarShoreVertex        = Vertex.Create(new(-1,  4, 0), new(-2,  5, 0), new(-1,  5, 0));
     public static readonly Vertex LostSanctumVertex     = Vertex.Create(new(-1,  4, 0), new(-1,  5, 0), new( 0,  4, 0));
-    public static readonly Vertex WitheredGroveVertex   = Vertex.Create(new(-1,  4, 0), new( 0,  4, 0), new( 0,  3, 0));
+    public static readonly Vertex ArcaneTowerVertex     = Vertex.Create(new(-1,  4, 0), new( 0,  4, 0), new( 0,  3, 0));
     public static readonly Vertex ForgottenAltarVertex  = Vertex.Create(new(-2,  4, 0), new(-3,  4, 0), new(-3,  5, 0));
     public static readonly Vertex PaleMistVertex        = Vertex.Create(new(-2,  4, 0), new(-3,  5, 0), new(-2,  5, 0));
     public static readonly Vertex SilentHollowVertex    = Vertex.Create(new(-2,  4, 0), new(-2,  3, 0), new(-3,  4, 0));

@@ -227,6 +227,13 @@ public enum BuildingType
     /// au moins 10 Temples construits dans la civilisation. Débloqué par la recherche Grand Temple.
     /// </summary>
     GrandTemple,
+    /// <summary>
+    /// Tour des Arcanes - Bâtiment unique. Automatise la construction/amélioration des Tours de Mages
+    /// et des Huttes d'Alchimie, et réduit de 25% le coût d'entretien des rituels. Disponible au
+    /// niveau Capitale (4). Nécessite une Tour de Mages niveau 1 dans la ville. Débloquée par le
+    /// vertex de prestige Tour des Arcanes.
+    /// </summary>
+    ArcaneTower,
 }
 
 /// <summary>

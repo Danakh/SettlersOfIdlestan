@@ -283,7 +283,7 @@ public static class PrestigeMapFactory
                 cost: Cost(PrestigeMap.AlchimistHutVertex),
                 modifiers: new Modifier[]
                 {
-                    new(ECategory.MAGIC_FEATURE_COUNT, "FairyCircle", EType.ADDITIVE, 2),
+                    new(ECategory.MAGIC_FEATURE_COUNT, "FairyCircle", EType.ADDITIVE, 3),
                     new(ECategory.UNLOCK_RESOURCE, "Crystal", EType.ADDITIVE, 1),
                     new(ECategory.BUILDING_MAX_LEVEL, "AlchimistHut", EType.ADDITIVE, 3),
                     new(ECategory.UNLOCK_HEALING_POTION, EType.ADDITIVE, 1),
@@ -542,10 +542,10 @@ public static class PrestigeMapFactory
                 modifiers: new Modifier[] { new(ECategory.UNLOCK_RESEARCH, "MagieDuVide", EType.ADDITIVE, 1) }
             ),
             new(
-                PrestigeMap.WitheredGroveVertex,
-                "prestige_vertex_withered_grove",
-                cost: Cost(PrestigeMap.WitheredGroveVertex),
-                modifiers: new Modifier[] { new(ECategory.MAGIC_FEATURE_COUNT, "FairyCircle", EType.ADDITIVE, 1) }
+                PrestigeMap.ArcaneTowerVertex,
+                "prestige_vertex_arcane_tower",
+                cost: Cost(PrestigeMap.ArcaneTowerVertex),
+                modifiers: new Modifier[] { new(ECategory.BUILDING_MAX_LEVEL, "ArcaneTower", EType.ADDITIVE, 1) }
             ),
             new(
                 PrestigeMap.ForgottenAltarVertex,

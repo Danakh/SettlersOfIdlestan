@@ -85,6 +85,8 @@ namespace SettlersOfIdlestan.Controller.Island
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[BuildingController] {nameof(PerformGrandTempleAutomation)}: {ex}"); }
             try { PerformVolcanicForgeAutomation(); }
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[BuildingController] {nameof(PerformVolcanicForgeAutomation)}: {ex}"); }
+            try { PerformArcaneTowerAutomation(); }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[BuildingController] {nameof(PerformArcaneTowerAutomation)}: {ex}"); }
         }
 
         private void PerformHarvestersGuildProductionAutomation()
@@ -228,6 +230,24 @@ namespace SettlersOfIdlestan.Controller.Island
                 long tick = forge.LastMithrilMineBuildTick;
                 TickGuildAutomation(civ, ref tick, forge.GetAutoMithrilMineCooldownTicks(), enabled, targets, now);
                 forge.LastMithrilMineBuildTick = tick;
+            }
+        }
+
+        private void PerformArcaneTowerAutomation()
+        {
+            if (_state == null || _clock == null) return;
+            long now = _clock.CurrentTick;
+            BuildingType[] targets = [BuildingType.MageTower, BuildingType.AlchimistHut];
+
+            foreach (var civ in _state.Civilizations)
+            {
+                if (civ.GetUniqueBuilding(BuildingType.ArcaneTower) is not ArcaneTower arcaneTower || arcaneTower.Level == 0) continue;
+
+                bool isPlayer = civ.Index == _state.PlayerCivilization.Index;
+                bool enabled = !isPlayer || _state.AutomationSettings.IsArcaneTowerBuildingAutomationActive;
+                long tick = arcaneTower.LastMagicBuildTick;
+                TickGuildAutomation(civ, ref tick, arcaneTower.GetAutoMagicCooldownTicks(), enabled, targets, now);
+                arcaneTower.LastMagicBuildTick = tick;
             }
         }
 
@@ -652,6 +672,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 BuildingType.ThroneOfWinds => new ThroneOfWinds(),
                 BuildingType.PearlGrotto => new PearlGrotto(),
                 BuildingType.GrandTemple => new GrandTemple(),
+                BuildingType.ArcaneTower => new ArcaneTower(),
                 _ => null,
             };
         }

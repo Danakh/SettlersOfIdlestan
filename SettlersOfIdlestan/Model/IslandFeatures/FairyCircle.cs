@@ -16,8 +16,8 @@ namespace SettlersOfIdlestan.Model.IslandFeatures
 
         /// <summary>Nombre maximal de Cercles de Fées invisibles pré-placés par masse continentale à la
         /// génération (voir IslandMapGenerator.PlaceInvisibleFairyCircles), toutes sources de
-        /// MAGIC_FEATURE_COUNT confondues (actuellement : vertex Cercles de Fées +2, vertex Bosquet
-        /// Flétri +1). À incrémenter si une nouvelle source de MAGIC_FEATURE_COUNT est ajoutée.</summary>
+        /// MAGIC_FEATURE_COUNT confondues (actuellement : vertex Hutte d'Alchimie +3). À incrémenter
+        /// si une nouvelle source de MAGIC_FEATURE_COUNT est ajoutée.</summary>
         public const int MaxPerLandmass = 3;
 
         /// <summary>Index de la masse continentale (île séparée des autres par de l'eau) sur laquelle ce
