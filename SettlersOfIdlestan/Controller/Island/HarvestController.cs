@@ -67,6 +67,9 @@ namespace SettlersOfIdlestan.Controller.Island
         public const long MarketGoldGenerationCooldownTicks = 6000L;
         // 1 s × 100 ticks/s
         public const long PassiveResourceGenerationIntervalTicks = 100L;
+        // 5 s × 100 ticks/s — cadence des cristaux (Archimage, Néant des Abysses) : plus lente pour éviter
+        // un gain fractionnaire par tick (arrondi vers 0 sur les valeurs < 1).
+        public const long PassiveCrystalGenerationIntervalTicks = 500L;
         // 10 s × 100 ticks/s — intervalle de base de production de la Forge d'Armes (niv. 1)
         public const long WeaponSmithBaseIntervalTicks = 1000L;
         // 10 s × 100 ticks/s — intervalle de base de production de la Forge d'Armures (niv. 1)
@@ -76,6 +79,7 @@ namespace SettlersOfIdlestan.Controller.Island
 
         private GamePRNG? _prng;
         private long _lastPassiveGenTick = 0;
+        private long _lastPassiveCrystalGenTick = 0;
 
         private readonly record struct ProductionEntry(HexCoord Hex, City City, Building Building, Resource Resource, TerrainType Terrain);
         private readonly System.Collections.Generic.Dictionary<int, System.Collections.Generic.List<ProductionEntry>> _productionCache = new();
@@ -371,13 +375,20 @@ namespace SettlersOfIdlestan.Controller.Island
         private void PerformPassiveResourceGenerations(long currentTick)
         {
             if (_state == null) return;
-            if (currentTick - _lastPassiveGenTick < PassiveResourceGenerationIntervalTicks) return;
-            _lastPassiveGenTick = currentTick;
+
+            bool generalDue = currentTick - _lastPassiveGenTick >= PassiveResourceGenerationIntervalTicks;
+            bool crystalDue = currentTick - _lastPassiveCrystalGenTick >= PassiveCrystalGenerationIntervalTicks;
+            if (!generalDue && !crystalDue) return;
+            if (generalDue) _lastPassiveGenTick = currentTick;
+            if (crystalDue) _lastPassiveCrystalGenTick = currentTick;
 
             foreach (var civ in _state.Civilizations)
             {
                 foreach (Resource resource in Enum.GetValues<Resource>())
                 {
+                    bool due = resource == Resource.Crystal ? crystalDue : generalDue;
+                    if (!due) continue;
+
                     int amount = civ.ModifierAggregator.ApplyModifiers(
                         ECategory.PASSIVE_RESOURCE_GENERATION, resource.ToString(), 0);
                     if (amount > 0)
@@ -911,7 +922,10 @@ namespace SettlersOfIdlestan.Controller.Island
             {
                 double amount = civ.ModifierAggregator.ApplyModifiers(ECategory.PASSIVE_RESOURCE_GENERATION, resource.ToString(), 0);
                 if (amount > 0)
-                    AddSourceRate(result, resource, PassiveGenerationSourceKey, amount);
+                {
+                    long intervalTicks = resource == Resource.Crystal ? PassiveCrystalGenerationIntervalTicks : PassiveResourceGenerationIntervalTicks;
+                    AddSourceRate(result, resource, PassiveGenerationSourceKey, amount / (intervalTicks / 100.0));
+                }
             }
 
             return result;

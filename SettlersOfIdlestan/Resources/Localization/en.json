@@ -512,6 +512,7 @@
   "prestige_tooltip_reinforcement_range": "reinforcement range",
   "prestige_tooltip_city_attack_range": "city attack range",
   "prestige_tooltip_passive_generation": " per second (passive generation)",
+  "prestige_tooltip_passive_generation_interval": " every {0} seconds (passive generation)",
   "prestige_vertex_deepest_mine": "Deepest Mine",
   "prestige_vertex_mushroom_culture": "Fungal Cultures",
   "prestige_vertex_underworld_watch": "Watchers of the Deep",

@@ -512,6 +512,7 @@
   "prestige_tooltip_reinforcement_range": "portée de renfort",
   "prestige_tooltip_city_attack_range": "portée d'attaque",
   "prestige_tooltip_passive_generation": " par seconde (génération passive)",
+  "prestige_tooltip_passive_generation_interval": " toutes les {0} secondes (génération passive)",
   "prestige_vertex_deepest_mine": "Mine Profonde",
   "prestige_vertex_mushroom_culture": "Cultures Fongiques",
   "prestige_vertex_underworld_watch": "Vigies des Profondeurs",

@@ -728,7 +728,9 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         Modifier.ECategory.SMELTER_SPEED              => $"+{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_smelter_speed")}",
         Modifier.ECategory.CITY_ATTACK_RANGE          => $"+{(int)mod.Value} {_localization.Get("prestige_tooltip_city_attack_range")}",
         Modifier.ECategory.REINFORCEMENT_RANGE        => $"+{(int)mod.Value} {_localization.Get("prestige_tooltip_reinforcement_range")}",
-        Modifier.ECategory.PASSIVE_RESOURCE_GENERATION => $"+{(int)mod.Value} {_localization.Get($"resource_{mod.SubCategory.ToLower()}")}{_localization.Get("prestige_tooltip_passive_generation")}",
+        Modifier.ECategory.PASSIVE_RESOURCE_GENERATION => mod.SubCategory == "Crystal"
+            ? $"+{(int)mod.Value} {_localization.Get($"resource_{mod.SubCategory.ToLower()}")}{_localization.GetFormated("prestige_tooltip_passive_generation_interval", (int)(SettlersOfIdlestan.Controller.Island.HarvestController.PassiveCrystalGenerationIntervalTicks / 100))}"
+            : $"+{(int)mod.Value} {_localization.Get($"resource_{mod.SubCategory.ToLower()}")}{_localization.Get("prestige_tooltip_passive_generation")}",
         Modifier.ECategory.UNLOCK_DEEPEST_MINE        => _localization.Get("prestige_tooltip_unlocks_deepest_mine"),
         Modifier.ECategory.UNDERWORLD_TREASURE_CHANCE_PERCENT => $"+{(int)mod.Value}% {_localization.Get("prestige_tooltip_underworld_treasure")}",
         Modifier.ECategory.MINE_GOLD_CHANCE_PERCENT   => $"+{(int)mod.Value}% {_localization.Get("prestige_tooltip_mine_gold_chance")}",
