@@ -223,23 +223,36 @@ internal class ReinforcementEngine
             {
                 int z = vertex.Position.Z;
                 var adj = GetAdjacency(civ, z);
-                IMilitaryVertex? target = null;
-                int fewestSoldiers = vertex.Soldiers;
 
-                foreach (var friendly in civ.MilitaryVertices)
+                bool IsEligibleTarget(IMilitaryVertex friendly)
                 {
-                    if (friendly == vertex) continue;
-                    if (friendly.Position.Z != z) continue;
+                    if (friendly == vertex) return false;
+                    if (friendly.Position.Z != z) return false;
 
                     int tCap = friendly.MaxSoldiers;
                     int effectiveFriendly = friendly.Soldiers + friendly.IncomingSoldiers.Count;
-                    if (tCap == 0 || effectiveFriendly * 2 > tCap) continue;
-                    if (friendly.Soldiers + 2 >= vertex.Soldiers) continue;
+                    if (tCap == 0 || effectiveFriendly * 2 > tCap) return false;
+                    if (friendly.Soldiers + 2 >= vertex.Soldiers) return false;
 
-                    if (friendly.Position.EdgeDistanceTo(vertex.Position) > range) continue;
+                    if (friendly.Position.EdgeDistanceTo(vertex.Position) > range) return false;
 
                     var roadPath = RoadPathfinder.FindPathInGraph(adj, vertex.Position, friendly.Position);
-                    if (roadPath == null || roadPath.Count - 1 > range) continue;
+                    return roadPath != null && roadPath.Count - 1 <= range;
+                }
+
+                // On ne quitte la cible actuelle que pour une cible strictement moins garnie —
+                // évite qu'une ville change de cible de renfort tant que la sienne reste valide.
+                IMilitaryVertex? currentTarget = vertex.FlowTarget != null
+                    ? civ.MilitaryVertices.FirstOrDefault(v => v.Position.Equals(vertex.FlowTarget))
+                    : null;
+
+                IMilitaryVertex? target = currentTarget != null && IsEligibleTarget(currentTarget) ? currentTarget : null;
+                int fewestSoldiers = target?.Soldiers ?? vertex.Soldiers;
+
+                foreach (var friendly in civ.MilitaryVertices)
+                {
+                    if (friendly == target) continue;
+                    if (!IsEligibleTarget(friendly)) continue;
 
                     if (friendly.Soldiers < fewestSoldiers)
                     {
