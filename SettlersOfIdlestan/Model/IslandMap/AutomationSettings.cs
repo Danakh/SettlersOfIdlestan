@@ -61,6 +61,10 @@ public class AutomationSettings
     public bool TempleAutomationEnabled { get; set; } = false;
     [JsonIgnore] public bool IsTempleAutomationActive => Active(TempleAutomationEnabled);
 
+    /// <summary>Automatisation de la construction/amélioration des Mines de Mithril par la Forge Volcanique, voir BuildingController.PerformVolcanicForgeAutomation.</summary>
+    public bool MithrilMineBuildingAutomationEnabled { get; set; } = false;
+    [JsonIgnore] public bool IsMithrilMineBuildingAutomationActive => Active(MithrilMineBuildingAutomationEnabled);
+
     public bool MilitaryReinforcementAutomationEnabled { get; set; } = false;
     [JsonIgnore] public bool IsMilitaryReinforcementAutomationActive => Active(MilitaryReinforcementAutomationEnabled);
 
@@ -93,6 +97,13 @@ public class AutomationSettings
 
     /// <summary>Coût en or par seconde du raid actif. 0 si aucun raid. Commence à 10, monte de 2 par seconde.</summary>
     public int RaidCurrentUpkeep { get; set; } = 0;
+
+    /// <summary>
+    /// Dernière cible du War Herald (voir RaidEngine.StartWarHeraldRaid). Permet de détecter une
+    /// réactivation sur la même cible pour désactiver tous les flux de renfort au lieu de les
+    /// rediriger à nouveau. Null si le War Herald n'a jamais été activé ou vient d'être désactivé.
+    /// </summary>
+    public Vertex? WarHeraldTargetVertex { get; set; } = null;
 
     /// <summary>
     /// Index de la civilisation actuellement ciblée par la recherche Vendetta (raids automatiques).

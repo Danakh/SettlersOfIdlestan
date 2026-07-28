@@ -83,6 +83,8 @@ namespace SettlersOfIdlestan.Controller.Island
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[BuildingController] {nameof(PerformTownHallGuildAutomation)}: {ex}"); }
             try { PerformGrandTempleAutomation(); }
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[BuildingController] {nameof(PerformGrandTempleAutomation)}: {ex}"); }
+            try { PerformVolcanicForgeAutomation(); }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[BuildingController] {nameof(PerformVolcanicForgeAutomation)}: {ex}"); }
         }
 
         private void PerformHarvestersGuildProductionAutomation()
@@ -208,6 +210,24 @@ namespace SettlersOfIdlestan.Controller.Island
                 long tick = grandTemple.LastTempleBuildTick;
                 TickGuildAutomation(civ, ref tick, grandTemple.GetAutoTempleCooldownTicks(), enabled, targets, now);
                 grandTemple.LastTempleBuildTick = tick;
+            }
+        }
+
+        private void PerformVolcanicForgeAutomation()
+        {
+            if (_state == null || _clock == null) return;
+            long now = _clock.CurrentTick;
+            BuildingType[] targets = [BuildingType.MithrilMine];
+
+            foreach (var civ in _state.Civilizations)
+            {
+                if (civ.GetUniqueBuilding(BuildingType.VolcanicForge) is not VolcanicForge forge || forge.Level == 0) continue;
+
+                bool isPlayer = civ.Index == _state.PlayerCivilization.Index;
+                bool enabled = !isPlayer || _state.AutomationSettings.IsMithrilMineBuildingAutomationActive;
+                long tick = forge.LastMithrilMineBuildTick;
+                TickGuildAutomation(civ, ref tick, forge.GetAutoMithrilMineCooldownTicks(), enabled, targets, now);
+                forge.LastMithrilMineBuildTick = tick;
             }
         }
 

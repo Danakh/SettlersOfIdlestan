@@ -8,10 +8,11 @@ namespace SettlersOfIdlestan.Model.Buildings;
 
 /// <summary>
 /// Forge Volcanique — bâtiment unique exploitant la chaleur d'un volcan adjacent : génère du Verre
-/// passivement (obsidienne) et augmente la production civ-wide de Minerai (Mine), d'Acier (Fonderie)
-/// et de Mithril (Mine de Mithril), au prorata du niveau. Ne peut être construite qu'à côté d'un
-/// volcan découvert. Verrouillée par défaut ; débloquée par la recherche Métallurgie Volcanique
-/// (+3 niveaux max).
+/// passivement (obsidienne), augmente la production civ-wide de Minerai (Mine), d'Acier (Fonderie)
+/// et de Mithril (Mine de Mithril) au prorata du niveau, et automatise la construction/amélioration
+/// des Mines de Mithril (voir BuildingController.PerformVolcanicForgeAutomation), même patron que
+/// les autres guildes uniques (voir ArtisansGuild). Ne peut être construite qu'à côté d'un volcan
+/// découvert. Verrouillée par défaut ; débloquée par la recherche Métallurgie Volcanique (+3 niveaux max).
 /// </summary>
 public class VolcanicForge : Building, IUniqueBuilding
 {
@@ -27,12 +28,18 @@ public class VolcanicForge : Building, IUniqueBuilding
     /// <summary>Chance (en %) supplémentaire de doubler la récolte automatique de Mithril, par niveau.</summary>
     public const int MithrilHarvestBonusPerLevel = 10;
 
+    /// <summary>Tick de la dernière construction/amélioration automatique d'une Mine de Mithril.</summary>
+    public long LastMithrilMineBuildTick { get; set; }
+
     public VolcanicForge() : base(BuildingType.VolcanicForge)
     {
         AvailableAtLevel = 3;
     }
 
     public override bool IsUnique => true;
+    public override bool ProvidesAutomation => true;
+
+    public long GetAutoMithrilMineCooldownTicks() => 1000L;
 
     // Verrouillée par défaut ; débloquée par la recherche Métallurgie Volcanique (+3 niveaux max)
     public override int GetDefaultMaxLevel() => 0;

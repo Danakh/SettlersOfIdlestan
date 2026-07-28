@@ -248,4 +248,35 @@ public class WarHeraldTests
 
         Assert.False(ctrl.IsWarHeraldUnlocked(civ));
     }
+
+    [Fact]
+    public void StartWarHeraldRaid_ReactivatedOnSameTarget_ClearsAllReinforcementFlows()
+    {
+        var (ctrl, civ, target, allyNoFlow, allyAttacking, allyPatrolling) = Setup();
+
+        ctrl.StartWarHeraldRaid(civ, target.Position);
+        Assert.Equal(target.Position, allyNoFlow.FlowTarget);
+
+        ctrl.StartWarHeraldRaid(civ, target.Position);
+
+        Assert.Null(allyNoFlow.FlowTarget);
+        Assert.Null(target.FlowTarget);
+        Assert.Equal(EnemyCity, allyAttacking.FlowTarget);
+        Assert.Null(allyPatrolling.FlowTarget);
+        Assert.Equal(allyPatrolling.MonsterAttackTarget, new HexCoord(9, 9, IslandMap.SurfaceLayer));
+    }
+
+    [Fact]
+    public void StartWarHeraldRaid_ThirdActivationOnSameTarget_RedirectsAgainAfterPriorClear()
+    {
+        var (ctrl, civ, target, allyNoFlow, _, _) = Setup();
+
+        ctrl.StartWarHeraldRaid(civ, target.Position); // redirects
+        ctrl.StartWarHeraldRaid(civ, target.Position); // clears (toggle off)
+        Assert.Null(allyNoFlow.FlowTarget);
+
+        ctrl.StartWarHeraldRaid(civ, target.Position); // redirects again
+
+        Assert.Equal(target.Position, allyNoFlow.FlowTarget);
+    }
 }

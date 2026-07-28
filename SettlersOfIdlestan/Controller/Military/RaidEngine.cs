@@ -137,10 +137,21 @@ internal class RaidEngine
     /// au Raid classique, aucun upkeep et aucun suivi dans le temps. La cible elle-même annule son
     /// propre flux de renfort (mais garde un flux d'attaque actif s'il y en a un) : elle ne doit pas
     /// continuer à s'écouler vers un autre allié pendant qu'elle est renforcée.
+    /// Réactiver le War Herald sur la cible déjà visée (voir AutomationSettings.WarHeraldTargetVertex)
+    /// désactive tous les flux de renfort au lieu de les rediriger, en guise d'interrupteur.
     /// </summary>
     internal void StartWarHeraldRaid(Civilization civ, Vertex target)
     {
         if (_reinforcementEngine == null) return;
+
+        if (_state != null && target.Equals(_state.AutomationSettings.WarHeraldTargetVertex))
+        {
+            _state.AutomationSettings.WarHeraldTargetVertex = null;
+            _reinforcementEngine.ClearReinforcementFlows(civ);
+            return;
+        }
+        if (_state != null) _state.AutomationSettings.WarHeraldTargetVertex = target;
+
         int targetZ = target.Z;
         int reinforcementRange = _reinforcementEngine.ReinforcementRange(civ);
         var verticesInLayer = civ.MilitaryVertices.Where(v => v.Position.Z == targetZ).ToList();
