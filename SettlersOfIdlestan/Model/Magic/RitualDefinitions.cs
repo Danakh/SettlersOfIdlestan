@@ -49,14 +49,14 @@ public static class RitualDefinitions
                 new(ECategory.RESEARCH_PRODUCTION_SPEED, EType.ADDITIVE, 0.15),
             }),
 
-        // Inframonde — récoltes souterraines et trésors
+        // Inframonde — récoltes souterraines et dégâts aux monstres autour des Temples
         new(RitualId.DeepLight,
             baseLaunchCost: 20, baseUpkeepCost: 4,
             modifiersPerPower: new Modifier[]
             {
                 new(ECategory.HARVEST_SPEED, "MushroomFarm", EType.ADDITIVE, 0.15),
                 new(ECategory.HARVEST_SPEED, "MithrilMine",  EType.ADDITIVE, 0.15),
-                new(ECategory.UNDERWORLD_TREASURE_CHANCE_PERCENT, EType.ADDITIVE, 2),
+                new(ECategory.TEMPLE_MONSTER_DAMAGE_PER_SECOND, EType.ADDITIVE, 1),
             }),
     };
 

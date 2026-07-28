@@ -6,6 +6,7 @@ using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Magic;
+using SettlersOfIdlestan.Model.Monsters;
 using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
 using System;
 using System.Collections.Generic;
@@ -27,6 +28,9 @@ namespace SettlersOfIdlestan.Controller.Magic
         /// <summary>Durée d'un cycle d'entretien des rituels (1000 ticks = 10 s).</summary>
         public const long UpkeepIntervalTicks = 1000L;
 
+        /// <summary>Intervalle entre deux applications des dégâts du rituel Lumière des Profondeurs (100 ticks = 1 s).</summary>
+        public const long TempleMonsterDamageIntervalTicks = 100L;
+
         /// <summary>Bonus additif de puissance maximale par niveau cumulé de Tour de Mages (10 %).</summary>
         public const double MageTowerPowerBonusPerLevel = 0.10;
 
@@ -35,6 +39,7 @@ namespace SettlersOfIdlestan.Controller.Magic
         private GamePRNG? _prng;
         private MagicModifierProvider? _provider;
         private long _lastPassiveTick;
+        private long _lastTempleDamageTick;
         private CityBuilderController? _cityBuilder;
         private BuildingController? _buildingController;
         private HarvestController? _harvestController;
@@ -58,6 +63,7 @@ namespace SettlersOfIdlestan.Controller.Magic
             _buildingController = buildingController;
             _harvestController = harvestController;
             _lastPassiveTick = 0;
+            _lastTempleDamageTick = 0;
 
             if (_state != null && _state.Civilizations.Count > 0)
             {
@@ -76,6 +82,8 @@ namespace SettlersOfIdlestan.Controller.Magic
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[MagicController] {nameof(ProcessUpkeep)}: {ex}"); }
             try { ProcessPassiveCycle(); }
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[MagicController] {nameof(ProcessPassiveCycle)}: {ex}"); }
+            try { ProcessTempleMonsterDamage(e.CurrentTick); }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[MagicController] {nameof(ProcessTempleMonsterDamage)}: {ex}"); }
         }
 
         // ── État général ──────────────────────────────────────────────────────
@@ -492,6 +500,55 @@ namespace SettlersOfIdlestan.Controller.Magic
                     circle.IsVisible = true;
             }
         }
+
+        // ── Lumière des Profondeurs — dégâts aux monstres autour des Temples ────
+
+        /// <summary>
+        /// Rituel Lumière des Profondeurs (TEMPLE_MONSTER_DAMAGE_PER_SECOND) : chaque seconde, inflige
+        /// les dégâts agrégés à tout monstre présent sur l'un des 3 hexes adjacents à une ville du joueur
+        /// possédant un Temple (niveau ≥ 1). Sans effet si le rituel n'est pas actif (valeur agrégée = 0).
+        /// </summary>
+        private void ProcessTempleMonsterDamage(long currentTick)
+        {
+            if (_state == null || _state.Civilizations.Count == 0) return;
+            if (currentTick - _lastTempleDamageTick < TempleMonsterDamageIntervalTicks) return;
+            _lastTempleDamageTick = currentTick;
+
+            var civ = _state.PlayerCivilization;
+            int damage = civ.ModifierAggregator.ApplyModifiers(ECategory.TEMPLE_MONSTER_DAMAGE_PER_SECOND, "", 0);
+            if (damage <= 0) return;
+
+            var templeHexes = new HashSet<HexCoord>();
+            foreach (var city in civ.Cities)
+            {
+                if (!city.Buildings.OfType<Temple>().Any(t => t.Level >= 1)) continue;
+                foreach (var hex in city.Position.GetHexes().Where(IsValidHex))
+                    templeHexes.Add(hex);
+            }
+            if (templeHexes.Count == 0) return;
+
+            var deadMonsters = new List<MonsterFeature>();
+            foreach (var monster in _state.Features.OfType<MonsterFeature>())
+            {
+                if (monster.AttacksOtherMonsters) continue; // monstres "amis" : jamais ciblés
+                if (!templeHexes.Contains(monster.Position)) continue;
+
+                monster.Hp -= damage;
+                if (monster.Hp <= 0)
+                {
+                    monster.KilledByCivilizationIndex = civ.Index;
+                    deadMonsters.Add(monster);
+                }
+            }
+
+            foreach (var m in deadMonsters)
+            {
+                _state.RemoveFeature(m);
+                _state.EventLog.Add(m.RemovedEventType);
+            }
+        }
+
+        private bool IsValidHex(HexCoord hex) => _state!.GetMapFor(hex)?.GetTile(hex) != null;
 
         private void NotifyRitualsChanged()
         {

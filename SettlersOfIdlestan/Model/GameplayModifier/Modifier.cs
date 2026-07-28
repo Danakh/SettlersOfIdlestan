@@ -207,6 +207,8 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             UNLOCK_SAWMILL_MUSHROOM_HARVEST,
             /// <summary>Bonus (ou malus) additif de prestige propre à la race choisie à l'Ascension, distinct de PRESTIGE_GAIN (recherches + arbre de Prestige). Base = 0.0 ; -0.25 = -25% (Gobelins).</summary>
             PRESTIGE_GAIN_RACE,
+            /// <summary>Dégâts par seconde infligés automatiquement à tout monstre présent sur l'un des 3 hexes adjacents à une ville possédant un Temple (niveau ≥ 1). Base = 0. Accordé par le rituel Lumière des Profondeurs.</summary>
+            TEMPLE_MONSTER_DAMAGE_PER_SECOND,
         }
 
         [JsonConverter(typeof(JsonStringEnumConverter<EType>))]
