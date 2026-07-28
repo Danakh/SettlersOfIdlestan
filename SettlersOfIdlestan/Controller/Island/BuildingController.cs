@@ -87,7 +87,7 @@ namespace SettlersOfIdlestan.Controller.Island
         {
             if (_state == null || _clock == null) return;
             long now = _clock.CurrentTick;
-            BuildingType[] targets = [BuildingType.Sawmill, BuildingType.Brickworks, BuildingType.Quarry, BuildingType.Mill, BuildingType.MushroomFarm];
+            BuildingType[] targets = [BuildingType.Sawmill, BuildingType.Brickworks, BuildingType.Quarry, BuildingType.Mill, BuildingType.MushroomFarm, BuildingType.Mine];
 
             foreach (var civ in _state.Civilizations)
             {
