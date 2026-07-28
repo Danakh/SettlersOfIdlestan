@@ -3,6 +3,10 @@ The changelog is not actively maintained at the moment.
 
 ---
 
+v0.12
+
+---
+
 v0.11
 • Mushroom Wood: new research (follow-up to Fungal Cultivation) allowing Sawmills to harvest Wood from Mushroom Caves, at half speed compared to forests
 • Grand Temple: new unique building unlocked by research, which automates Temple construction and grants a stacking prestige bonus per Temple built in the civilization
