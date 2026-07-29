@@ -19,7 +19,10 @@ namespace SOITests.ControllerTests;
 /// (ProcessSpread). Les scénarios avec un seul hex existant autour de la ville évitent toute
 /// dépendance au tirage aléatoire du hex ciblé (GamePRNG.Next(1) ne consomme pas le générateur) ; les
 /// scénarios de débordement utilisent une mini-carte à 2 hexes (un seul voisin candidat) pour la même
-/// raison, avec la graine 1 dont la séquence (29, 30, …) a été vérifiée déterministe pour ces cas.
+/// raison. Le PRNG (Lehmer/Park-Miller) donne un tout premier tirage quasi nul pour toute petite
+/// graine (1, 2, 3, …) — sans effet sur les scénarios "100% de déclenchement" (0 déclenche toujours),
+/// mais rend une graine minuscule impropre à démontrer un NON-déclenchement sur le premier tirage :
+/// ces scénarios précis utilisent une graine plus grande (voir commentaire au cas par cas).
 /// </summary>
 public class CorruptionControllerTests
 {
@@ -208,7 +211,10 @@ public class CorruptionControllerTests
 
         var clock = new GameClock();
         clock.Start();
-        CreateController(state, clock); // seed 1 : séquence vérifiée déterministe pour ce scénario
+        // Graine 3 : après l'annulation (dominion 4→3), le dominion (niveau 3, 30% de déclenchement)
+        // tire lui-même une deuxième annulation à son propre tour — la graine 3 est vérifiée pour NE
+        // PAS re-déclencher ce second tour (tirage 39 ≥ 30), ce qui isole une seule annulation.
+        CreateController(state, clock, seed: 3);
 
         clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
 
@@ -227,7 +233,10 @@ public class CorruptionControllerTests
 
         var clock = new GameClock();
         clock.Start();
-        CreateController(state, clock);
+        // Graine 2 : après le gain (weak 1→2), weak (niveau 2, 20% de déclenchement) tire lui-même un
+        // second débordement vers strong à son propre tour — la graine 2 est vérifiée pour NE PAS
+        // re-déclencher ce second tour (tirage 26 ≥ 20), ce qui isole un seul débordement.
+        CreateController(state, clock, seed: 2);
 
         clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
 
@@ -337,14 +346,17 @@ public class CorruptionControllerTests
     public void Spread_DominionLevel2_WithoutEvangelisation_DoesNotTrigger()
     {
         var (state, a, b) = CreateTwoLandHexesSetup();
-        var dominion = new Dominion(a, level: 2); // 20% de déclenchement, tirage 29 → pas de débordement
-        var corruption = new Corruption(b, level: 1); // 10%, tirage 30 → pas de débordement
+        var dominion = new Dominion(a, level: 2); // 20% de déclenchement, tirage 20 (graine 25555) → pas de débordement
+        var corruption = new Corruption(b, level: 1); // 10%, tirage 44 → pas de débordement
         state.AddFeature(dominion);
         state.AddFeature(corruption);
 
         var clock = new GameClock();
         clock.Start();
-        CreateController(state, clock);
+        // Une petite graine (1, 2, 3, …) donne toujours un premier tirage quasi nul avec ce PRNG
+        // (Lehmer/Park-Miller) — impropre à démontrer un non-déclenchement. 25555 est la plus petite
+        // graine vérifiée à donner tirage ≥ 20 puis ≥ 10 (les deux seuils de ce scénario).
+        CreateController(state, clock, seed: 25555);
 
         clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
 
@@ -353,10 +365,10 @@ public class CorruptionControllerTests
     }
 
     [Fact]
-    public void Spread_DominionLevel2_WithEvangelisation_TriggersAtFifteenPercentPerLevel()
+    public void Spread_DominionLevel3_WithEvangelisation_TriggersAtFifteenPercentPerLevel()
     {
         var (state, a, b) = CreateTwoLandHexesSetup();
-        var dominion = new Dominion(a, level: 2); // 2 × (10+5) = 30% de déclenchement, tirage 29 → débordement
+        var dominion = new Dominion(a, level: 3); // 3 × (10+5) = 45% de déclenchement, tirage 31 (graine 1) → débordement
         var corruption = new Corruption(b, level: 1);
         state.AddFeature(dominion);
         state.AddFeature(corruption);
@@ -368,7 +380,7 @@ public class CorruptionControllerTests
 
         clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
 
-        Assert.Equal(1, dominion.Level);
+        Assert.Equal(2, dominion.Level);
         Assert.Empty(state.GetFeaturesAt(b).OfType<Corruption>());
     }
 
@@ -422,7 +434,9 @@ public class CorruptionControllerTests
 
         var clock = new GameClock();
         clock.Start();
-        CreateController(state, clock);
+        // Graine 3 : même raisonnement que Spread_OppositeStatusNeighbor_BothReduceByOne — isole une
+        // seule annulation (le second tour du dominion, niveau 3, ne re-déclenche pas : tirage 39 ≥ 30).
+        CreateController(state, clock, seed: 3);
 
         clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
 
@@ -607,7 +621,7 @@ public class CorruptionControllerTests
     public void MonumentDecay_ReducesCorruptionOnSpireNeighbor_WithinRadius()
     {
         var (state, a, b) = CreateTwoLandHexesSetup();
-        // Niveau 2 : 20% de déclenchement du débordement, tirage 29 (graine 1) → pas de débordement
+        // Niveau 2 : 20% de déclenchement du débordement, tirage 31 (graine 1) → pas de débordement
         // ce tick, ce qui isole la décroissance garantie de la Spire de tout autre effet.
         state.AddFeature(new Corruption(b, level: 2)); // sur le voisin de la Spire, pas sur son propre hex
         state.AddFeature(new CorruptionSpire(a) { Radius = 1 });
@@ -633,7 +647,7 @@ public class CorruptionControllerTests
         var civ = new Civilization { Index = 0 };
         var state = new WorldState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
 
-        // Niveau 2 : 20% de déclenchement du débordement, tirage 29 (graine 1) → pas de débordement
+        // Niveau 2 : 20% de déclenchement du débordement, tirage 31 (graine 1) → pas de débordement
         // ce tick, ce qui isole la décroissance garantie de la Spire de tout autre effet.
         state.AddFeature(new Corruption(farHex, level: 2));
         state.AddFeature(new CorruptionSpire(a) { Radius = 1 }); // rayon 1 : n'atteint pas farHex (distance 2)
