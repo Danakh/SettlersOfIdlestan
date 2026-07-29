@@ -44,6 +44,13 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
     public bool IsCollapsed  => Collapsed;
     public void Collapse()   => Collapsed = true;
     public Action? OnExpanded { get; set; }
+    public UILayoutService? LayoutService { get; set; }
+    private bool TabsAtBottom => LayoutService?.TabsAtBottom ?? false;
+
+    private float _scrollOffsetPx;
+    private float _totalContentHeight;
+    private float _viewportHeight;
+    private bool  _needsScroll;
 
     private SKRect _tradeButtonRect    = SKRect.Empty;
     private SKRect _prestigeButtonRect = SKRect.Empty;
@@ -122,6 +129,16 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
 
     public void ConnectTargetSelectionService(TargetSelectionService service)
         => _targetSelectionService = service;
+
+    /// <summary>Défilement au clavier/molette de souris quand le contenu du panneau dépasse la hauteur disponible.</summary>
+    public new void HandleScroll(float delta)
+    {
+        if (Collapsed || !_needsScroll) return;
+        const float step = 60f;
+        float dir       = delta > 0 ? -1f : 1f;
+        float maxScroll = Math.Max(0f, _totalContentHeight - _viewportHeight);
+        _scrollOffsetPx = Math.Clamp(_scrollOffsetPx + dir * step, 0f, maxScroll);
+    }
 
     public override void Render(SKCanvas canvas, GameRenderContext context)
     {
@@ -232,13 +249,30 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         }
         h += panelPadding;
 
-        PanelBounds = new SKRect(panelLeft, panelTop, panelLeft + panelWidth, panelTop + h);
-        DrawPanelChrome(canvas, panelLeft, panelTop, panelWidth, h, cornerRadius: 8f);
+        // Global elevator when the panel is taller than the available vertical space.
+        float maxPanelHeight = TabsAtBottom
+            ? Math.Max(0f, CanvasSize.Height - panelTop - UILayoutService.MobileTabBarHeight - 8f * s)
+            : Math.Max(0f, CanvasSize.Height - panelTop - 10f * s);
+        _needsScroll = h > maxPanelHeight;
+        float panelHeight = _needsScroll ? maxPanelHeight : h;
+        _totalContentHeight = h;
+        _viewportHeight     = panelHeight;
+        _scrollOffsetPx = Math.Clamp(_scrollOffsetPx, 0f, Math.Max(0f, h - panelHeight));
+
+        PanelBounds = new SKRect(panelLeft, panelTop, panelLeft + panelWidth, panelTop + panelHeight);
+        DrawPanelChrome(canvas, panelLeft, panelTop, panelWidth, panelHeight, cornerRadius: 8f);
 
         // Collapse handle — shifted left to slightly overlap the panel
         float tabOverlap = 6f * s;
         CollapseTabRect = new SKRect(panelLeft + panelWidth - tabOverlap, tabTop, panelLeft + panelWidth - tabOverlap + collapseTabW, tabTop + collapseTabH);
         DrawCollapseTabRect(canvas, CollapseTabRect, false);
+
+        if (_needsScroll)
+        {
+            canvas.Save();
+            canvas.ClipRect(new SKRect(panelLeft, panelTop, panelLeft + panelWidth, panelTop + panelHeight));
+            canvas.Translate(0, -_scrollOffsetPx);
+        }
 
         float x = panelLeft + panelPadding;
         float y = panelTop + panelPadding;
@@ -410,9 +444,20 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             }
         }
 
+        if (_needsScroll)
+        {
+            canvas.Restore();
+            float scrollW  = 5f * s;
+            float trackX   = panelLeft + panelWidth - scrollW - 2f * s;
+            float trackTop = panelTop + 4f * s;
+            float trackH   = panelHeight - 8f * s;
+            DrawScrollbar(canvas, trackX, trackTop, trackH, (int)MathF.Ceiling(h), (int)MathF.Ceiling(panelHeight), (int)_scrollOffsetPx);
+        }
+
         // Tooltips — set each frame so they persist while hovering
+        float TipY(float contentY) => _needsScroll ? contentY - _scrollOffsetPx : contentY;
         if (_hoveredTrade)
-            _tooltipRenderer.SetTooltip(_localization.Get("tooltip_trade"), new SKPoint(_tradeButtonRect.Right, _tradeButtonRect.Top));
+            _tooltipRenderer.SetTooltip(_localization.Get("tooltip_trade"), new SKPoint(_tradeButtonRect.Right, TipY(_tradeButtonRect.Top)));
         else if (_hoveredRaid && raidActive)
         {
             int currentUpkeep = worldState?.AutomationSettings.RaidCurrentUpkeep ?? 0;
@@ -420,7 +465,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             {
                 _localization.Get("tooltip_raid_active"),
                 _localization.GetFormated("raid_upkeep_cost_current", currentUpkeep)
-            }, new SKPoint(_raidButtonRect.Right, _raidButtonRect.Top));
+            }, new SKPoint(_raidButtonRect.Right, TipY(_raidButtonRect.Top)));
         }
         else if (_hoveredRaid)
         {
@@ -428,13 +473,13 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             {
                 _localization.Get("tooltip_raid"),
                 _localization.Get("raid_upkeep_cost")
-            }, new SKPoint(_raidButtonRect.Right, _raidButtonRect.Top));
+            }, new SKPoint(_raidButtonRect.Right, TipY(_raidButtonRect.Top)));
         }
         else if (_hoveredWarHerald)
-            _tooltipRenderer.SetTooltip(_localization.Get("tooltip_warherald"), new SKPoint(_warHeraldButtonRect.Right, _warHeraldButtonRect.Top));
+            _tooltipRenderer.SetTooltip(_localization.Get("tooltip_warherald"), new SKPoint(_warHeraldButtonRect.Right, TipY(_warHeraldButtonRect.Top)));
         else if (_hoveredPrestige && prestigeAvail && prestigeVisible)
         {
-            _tooltipRenderer.SetTooltip(_localization.Get("tooltip_prestige_next_island"), new SKPoint(_prestigeButtonRect.Right, _prestigeButtonRect.Top));
+            _tooltipRenderer.SetTooltip(_localization.Get("tooltip_prestige_next_island"), new SKPoint(_prestigeButtonRect.Right, TipY(_prestigeButtonRect.Top)));
         }
         else if (_hoveredPrestige && !prestigeAvail && prestigeVisible)
         {
@@ -444,28 +489,28 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             if (prestigePoints < PrestigeController.PrestigeRequiredPoints)
                 lines.Add(_localization.GetFormated("tooltip_prestige_not_enough_points", SkiaTextUtils.FormatNumber(prestigePoints), SkiaTextUtils.FormatNumber(PrestigeController.PrestigeRequiredPoints)));
             lines.Add(_localization.Get("tooltip_prestige_next_island"));
-            _tooltipRenderer.SetTooltipLines(lines.ToArray(), new SKPoint(_prestigeButtonRect.Right, _prestigeButtonRect.Top));
+            _tooltipRenderer.SetTooltipLines(lines.ToArray(), new SKPoint(_prestigeButtonRect.Right, TipY(_prestigeButtonRect.Top)));
         }
         else if (_hoveredWonder && _wonderEnabled)
-            _tooltipRenderer.SetTooltip(_localization.Get("tooltip_wonder"), new SKPoint(_wonderButtonRect.Right, _wonderButtonRect.Top));
+            _tooltipRenderer.SetTooltip(_localization.Get("tooltip_wonder"), new SKPoint(_wonderButtonRect.Right, TipY(_wonderButtonRect.Top)));
         else if (_hoveredWonder && !_wonderEnabled)
-            _tooltipRenderer.SetTooltip(_localization.Get("tooltip_wonder_surface_only"), new SKPoint(_wonderButtonRect.Right, _wonderButtonRect.Top));
+            _tooltipRenderer.SetTooltip(_localization.Get("tooltip_wonder_surface_only"), new SKPoint(_wonderButtonRect.Right, TipY(_wonderButtonRect.Top)));
         else if (_hoveredGreatLighthouse && _greatLighthouseEnabled)
-            _tooltipRenderer.SetTooltip(_localization.Get("tooltip_great_lighthouse"), new SKPoint(_greatLighthouseButtonRect.Right, _greatLighthouseButtonRect.Top));
+            _tooltipRenderer.SetTooltip(_localization.Get("tooltip_great_lighthouse"), new SKPoint(_greatLighthouseButtonRect.Right, TipY(_greatLighthouseButtonRect.Top)));
         else if (_hoveredGreatLighthouse && !_greatLighthouseEnabled)
-            _tooltipRenderer.SetTooltip(_localization.Get("tooltip_great_lighthouse_surface_only"), new SKPoint(_greatLighthouseButtonRect.Right, _greatLighthouseButtonRect.Top));
+            _tooltipRenderer.SetTooltip(_localization.Get("tooltip_great_lighthouse_surface_only"), new SKPoint(_greatLighthouseButtonRect.Right, TipY(_greatLighthouseButtonRect.Top)));
         else if (_hoveredDeepestMine && !_deepestMineEnabled)
-            _tooltipRenderer.SetTooltip(_localization.Get("tooltip_deepest_mine_surface_only"), new SKPoint(_deepestMineButtonRect.Right, _deepestMineButtonRect.Top));
+            _tooltipRenderer.SetTooltip(_localization.Get("tooltip_deepest_mine_surface_only"), new SKPoint(_deepestMineButtonRect.Right, TipY(_deepestMineButtonRect.Top)));
         else if (_hoveredDeepestMine)
-            _tooltipRenderer.SetTooltip(_localization.Get("tooltip_deepest_mine"), new SKPoint(_deepestMineButtonRect.Right, _deepestMineButtonRect.Top));
+            _tooltipRenderer.SetTooltip(_localization.Get("tooltip_deepest_mine"), new SKPoint(_deepestMineButtonRect.Right, TipY(_deepestMineButtonRect.Top)));
         else if (_hoveredSpire && !_spireEnabled)
-            _tooltipRenderer.SetTooltip(_localization.Get("tooltip_spire_underworld_only"), new SKPoint(_spireButtonRect.Right, _spireButtonRect.Top));
+            _tooltipRenderer.SetTooltip(_localization.Get("tooltip_spire_underworld_only"), new SKPoint(_spireButtonRect.Right, TipY(_spireButtonRect.Top)));
         else if (_hoveredSpire)
-            _tooltipRenderer.SetTooltip(_localization.Get("tooltip_spire"), new SKPoint(_spireButtonRect.Right, _spireButtonRect.Top));
+            _tooltipRenderer.SetTooltip(_localization.Get("tooltip_spire"), new SKPoint(_spireButtonRect.Right, TipY(_spireButtonRect.Top)));
         else if (_hoveredRelocation && _relocationEnabled)
-            _tooltipRenderer.SetTooltip(_localization.Get("tooltip_relocation"), new SKPoint(_relocationButtonRect.Right, _relocationButtonRect.Top));
+            _tooltipRenderer.SetTooltip(_localization.Get("tooltip_relocation"), new SKPoint(_relocationButtonRect.Right, TipY(_relocationButtonRect.Top)));
         else if (_hoveredRelocation && !_relocationEnabled)
-            _tooltipRenderer.SetTooltip(_localization.Get("tooltip_relocation_insufficient_resources"), new SKPoint(_relocationButtonRect.Right, _relocationButtonRect.Top));
+            _tooltipRenderer.SetTooltip(_localization.Get("tooltip_relocation_insufficient_resources"), new SKPoint(_relocationButtonRect.Right, TipY(_relocationButtonRect.Top)));
         else if (_hoveredWalkOfGod)
         {
             var walkOfGodLines = new System.Collections.Generic.List<string> { _localization.Get("tooltip_walkofgod") };
@@ -475,7 +520,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
                 walkOfGodLines.Add(_localization.Get("tooltip_walkofgod_insufficient_prestige"));
             if (ascensionController.GetWalkOfGodTargetHexes().Count == 0)
                 walkOfGodLines.Add(_localization.Get("tooltip_walkofgod_no_dominion"));
-            _tooltipRenderer.SetTooltipLines(walkOfGodLines.ToArray(), new SKPoint(_walkOfGodButtonRect.Right, _walkOfGodButtonRect.Top));
+            _tooltipRenderer.SetTooltipLines(walkOfGodLines.ToArray(), new SKPoint(_walkOfGodButtonRect.Right, TipY(_walkOfGodButtonRect.Top)));
         }
         else if (_hoveredPresenceOfGod)
         {
@@ -484,12 +529,12 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             presenceOfGodLines.Add(_localization.GetFormated("tooltip_presenceofgod_cost", presenceOfGodCost));
             if (!ascensionController.CanUsePresenceOfGod())
                 presenceOfGodLines.Add(_localization.Get("tooltip_presenceofgod_insufficient_prestige"));
-            _tooltipRenderer.SetTooltipLines(presenceOfGodLines.ToArray(), new SKPoint(_presenceOfGodButtonRect.Right, _presenceOfGodButtonRect.Top));
+            _tooltipRenderer.SetTooltipLines(presenceOfGodLines.ToArray(), new SKPoint(_presenceOfGodButtonRect.Right, TipY(_presenceOfGodButtonRect.Top)));
         }
         else if (_hoveredPinnedIndex >= 0 && _hoveredPinnedIndex < _pinnedItemRects.Count)
         {
             var (rect, _, tooltipKey) = _pinnedItemRects[_hoveredPinnedIndex];
-            _tooltipRenderer.SetTooltip(_localization.Get(tooltipKey), new SKPoint(rect.Right, rect.Top));
+            _tooltipRenderer.SetTooltip(_localization.Get(tooltipKey), new SKPoint(rect.Right, TipY(rect.Top)));
         }
     }
 
@@ -522,22 +567,29 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
     public void HandlePointerMoved(SKPoint pos)
     {
         if (_disposed) return;
-        _hoveredTrade       = !_tradeButtonRect.IsEmpty       && _tradeButtonRect.Contains(pos.X, pos.Y);
-        _hoveredPrestige    = !_prestigeButtonRect.IsEmpty    && _prestigeButtonRect.Contains(pos.X, pos.Y);
-        _hoveredWonder      = !_wonderButtonRect.IsEmpty      && _wonderButtonRect.Contains(pos.X, pos.Y);
-        _hoveredGreatLighthouse = !_greatLighthouseButtonRect.IsEmpty && _greatLighthouseButtonRect.Contains(pos.X, pos.Y);
-        _hoveredDeepestMine = !_deepestMineButtonRect.IsEmpty && _deepestMineButtonRect.Contains(pos.X, pos.Y);
-        _hoveredSpire       = !_spireButtonRect.IsEmpty       && _spireButtonRect.Contains(pos.X, pos.Y);
-        _hoveredRaid        = !_raidButtonRect.IsEmpty        && _raidButtonRect.Contains(pos.X, pos.Y);
-        _hoveredWarHerald   = !_warHeraldButtonRect.IsEmpty   && _warHeraldButtonRect.Contains(pos.X, pos.Y);
-        _hoveredRelocation  = !_relocationButtonRect.IsEmpty  && _relocationButtonRect.Contains(pos.X, pos.Y);
-        _hoveredWalkOfGod   = !_walkOfGodButtonRect.IsEmpty   && _walkOfGodButtonRect.Contains(pos.X, pos.Y);
-        _hoveredPresenceOfGod = !_presenceOfGodButtonRect.IsEmpty && _presenceOfGodButtonRect.Contains(pos.X, pos.Y);
+
+        // Rects are stored in unscrolled content coordinates (as drawn before the canvas
+        // translate applied while scrolling) — convert the pointer into that same space,
+        // and only while it's actually over the visible (clipped) part of the panel.
+        bool inViewport = !_needsScroll || (pos.Y >= PanelBounds.Top && pos.Y <= PanelBounds.Bottom);
+        float py = inViewport ? pos.Y + _scrollOffsetPx : float.NegativeInfinity;
+
+        _hoveredTrade       = !_tradeButtonRect.IsEmpty       && _tradeButtonRect.Contains(pos.X, py);
+        _hoveredPrestige    = !_prestigeButtonRect.IsEmpty    && _prestigeButtonRect.Contains(pos.X, py);
+        _hoveredWonder      = !_wonderButtonRect.IsEmpty      && _wonderButtonRect.Contains(pos.X, py);
+        _hoveredGreatLighthouse = !_greatLighthouseButtonRect.IsEmpty && _greatLighthouseButtonRect.Contains(pos.X, py);
+        _hoveredDeepestMine = !_deepestMineButtonRect.IsEmpty && _deepestMineButtonRect.Contains(pos.X, py);
+        _hoveredSpire       = !_spireButtonRect.IsEmpty       && _spireButtonRect.Contains(pos.X, py);
+        _hoveredRaid        = !_raidButtonRect.IsEmpty        && _raidButtonRect.Contains(pos.X, py);
+        _hoveredWarHerald   = !_warHeraldButtonRect.IsEmpty   && _warHeraldButtonRect.Contains(pos.X, py);
+        _hoveredRelocation  = !_relocationButtonRect.IsEmpty  && _relocationButtonRect.Contains(pos.X, py);
+        _hoveredWalkOfGod   = !_walkOfGodButtonRect.IsEmpty   && _walkOfGodButtonRect.Contains(pos.X, py);
+        _hoveredPresenceOfGod = !_presenceOfGodButtonRect.IsEmpty && _presenceOfGodButtonRect.Contains(pos.X, py);
 
         _hoveredPinnedIndex = -1;
         for (int i = 0; i < _pinnedItemRects.Count; i++)
         {
-            if (_pinnedItemRects[i].rect.Contains(pos.X, pos.Y)) { _hoveredPinnedIndex = i; break; }
+            if (_pinnedItemRects[i].rect.Contains(pos.X, py)) { _hoveredPinnedIndex = i; break; }
         }
     }
 
@@ -556,21 +608,25 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
 
         if (!PanelBounds.Contains(pos.X, pos.Y)) return false;
 
-        if (!_tradeButtonRect.IsEmpty && _tradeButtonRect.Contains(pos.X, pos.Y))
+        // Rects are stored in unscrolled content coordinates — convert the (already
+        // viewport-clamped, thanks to the PanelBounds check above) pointer into that space.
+        float py = _needsScroll ? pos.Y + _scrollOffsetPx : pos.Y;
+
+        if (!_tradeButtonRect.IsEmpty && _tradeButtonRect.Contains(pos.X, py))
         {
             _closeAll();
             _tradeRenderer.Open();
             return true;
         }
 
-        if (!_prestigeButtonRect.IsEmpty && _prestigeButtonRect.Contains(pos.X, pos.Y) && IsPrestigeAvailable())
+        if (!_prestigeButtonRect.IsEmpty && _prestigeButtonRect.Contains(pos.X, py) && IsPrestigeAvailable())
         {
             _closeAll();
             _prestigeRenderer.Open();
             return true;
         }
 
-        if (!_wonderButtonRect.IsEmpty && _wonderButtonRect.Contains(pos.X, pos.Y) && _wonderEnabled && _targetSelectionService != null)
+        if (!_wonderButtonRect.IsEmpty && _wonderButtonRect.Contains(pos.X, py) && _wonderEnabled && _targetSelectionService != null)
         {
             _closeAll();
             var wonderController = _gameControllerService.MainGameController.WonderController;
@@ -579,7 +635,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             return true;
         }
 
-        if (!_greatLighthouseButtonRect.IsEmpty && _greatLighthouseButtonRect.Contains(pos.X, pos.Y) && _greatLighthouseEnabled && _targetSelectionService != null)
+        if (!_greatLighthouseButtonRect.IsEmpty && _greatLighthouseButtonRect.Contains(pos.X, py) && _greatLighthouseEnabled && _targetSelectionService != null)
         {
             _closeAll();
             var greatLighthouseController = _gameControllerService.MainGameController.GreatLighthouseController;
@@ -588,7 +644,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             return true;
         }
 
-        if (!_deepestMineButtonRect.IsEmpty && _deepestMineButtonRect.Contains(pos.X, pos.Y) && _deepestMineEnabled && _targetSelectionService != null)
+        if (!_deepestMineButtonRect.IsEmpty && _deepestMineButtonRect.Contains(pos.X, py) && _deepestMineEnabled && _targetSelectionService != null)
         {
             _closeAll();
             var deepestMineController = _gameControllerService.MainGameController.DeepestMineController;
@@ -597,7 +653,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             return true;
         }
 
-        if (!_spireButtonRect.IsEmpty && _spireButtonRect.Contains(pos.X, pos.Y) && _spireEnabled && _targetSelectionService != null)
+        if (!_spireButtonRect.IsEmpty && _spireButtonRect.Contains(pos.X, py) && _spireEnabled && _targetSelectionService != null)
         {
             _closeAll();
             var spireController = _gameControllerService.MainGameController.CorruptionSpireController;
@@ -609,7 +665,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             return true;
         }
 
-        if (!_raidButtonRect.IsEmpty && _raidButtonRect.Contains(pos.X, pos.Y))
+        if (!_raidButtonRect.IsEmpty && _raidButtonRect.Contains(pos.X, py))
         {
             var playerCiv = _gameControllerService.PlayerCivilization;
             if (IsRaidActive())
@@ -632,7 +688,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             return true;
         }
 
-        if (!_warHeraldButtonRect.IsEmpty && _warHeraldButtonRect.Contains(pos.X, pos.Y) && _targetSelectionService != null)
+        if (!_warHeraldButtonRect.IsEmpty && _warHeraldButtonRect.Contains(pos.X, py) && _targetSelectionService != null)
         {
             var playerCiv = _gameControllerService.PlayerCivilization;
             if (playerCiv != null)
@@ -648,7 +704,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             return true;
         }
 
-        if (!_relocationButtonRect.IsEmpty && _relocationButtonRect.Contains(pos.X, pos.Y) && _relocationEnabled && _targetSelectionService != null)
+        if (!_relocationButtonRect.IsEmpty && _relocationButtonRect.Contains(pos.X, py) && _relocationEnabled && _targetSelectionService != null)
         {
             var playerCiv = _gameControllerService.PlayerCivilization;
             if (playerCiv != null)
@@ -672,7 +728,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             return true;
         }
 
-        if (!_walkOfGodButtonRect.IsEmpty && _walkOfGodButtonRect.Contains(pos.X, pos.Y) && _walkOfGodEnabled && _targetSelectionService != null)
+        if (!_walkOfGodButtonRect.IsEmpty && _walkOfGodButtonRect.Contains(pos.X, py) && _walkOfGodEnabled && _targetSelectionService != null)
         {
             _closeAll();
             var ascensionController = _gameControllerService.MainGameController.AscensionController;
@@ -681,7 +737,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             return true;
         }
 
-        if (!_presenceOfGodButtonRect.IsEmpty && _presenceOfGodButtonRect.Contains(pos.X, pos.Y) && _presenceOfGodEnabled && _targetSelectionService != null)
+        if (!_presenceOfGodButtonRect.IsEmpty && _presenceOfGodButtonRect.Contains(pos.X, py) && _presenceOfGodEnabled && _targetSelectionService != null)
         {
             _closeAll();
             var ascensionControllerPresence = _gameControllerService.MainGameController.AscensionController;
@@ -695,7 +751,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
 
         for (int i = 0; i < _pinnedItemRects.Count; i++)
         {
-            if (!_pinnedItemRects[i].rect.Contains(pos.X, pos.Y)) continue;
+            if (!_pinnedItemRects[i].rect.Contains(pos.X, py)) continue;
             string key = _pinnedItemRects[i].pinKey;
             HandlePinnedToggle(key, civ, worldState);
             return true;

@@ -114,6 +114,7 @@ public sealed class OverlayRenderer : IGameRenderer
             targetSelectionService: null,
             tooltipRenderer);
         _playerCivPanel.OnExpanded = () => { if (_uiLayout.TabsAtBottom) DeselectCityAndMonument(); };
+        _playerCivPanel.LayoutService = uiLayout;
 
         _inputService.PointerPressed  += HandlePointerPressed;
         _inputService.PointerMoved    += HandlePointerMoved;
@@ -544,6 +545,8 @@ public sealed class OverlayRenderer : IGameRenderer
                 _selectedCityPanelRenderer.HandleScroll(e.ZoomDelta);
             else if (_selectedMonumentPanelRenderer.ContainsPoint(e.Center))
                 _selectedMonumentPanelRenderer.HandleScroll(e.ZoomDelta);
+            else if (_playerCivPanel.ContainsPoint(e.Center))
+                _playerCivPanel.HandleScroll(e.ZoomDelta);
         }
         if (activeTab == TabBarRenderer.TabAutomation)
             _automationRenderer.HandleScroll(e.ZoomDelta);
