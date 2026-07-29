@@ -261,4 +261,47 @@ public class CityVsCityAttackTests
         clock.SimulateAdvance(MilitaryController.CityAttackIntervalTicks);
         Assert.Empty(state.Civilizations[1].Cities); // ville détruite
     }
+
+    // ── Perte de visibilité de la cible ───────────────────────────────────
+
+    /// <summary>
+    /// VertexC est à portée d'attaque (EdgeDistance = 3, la limite par défaut) mais ne partage
+    /// aucun hexagone avec VertexA : sans Tour de Guet, il n'est donc jamais visible pour la civ A.
+    /// </summary>
+    private static readonly Vertex VertexC = Vertex.Create(new(1, 1, IslandMap.SurfaceLayer), new(2, 0, IslandMap.SurfaceLayer), new(2, 1, IslandMap.SurfaceLayer));
+
+    [Fact]
+    public void Attack_CancelsFlow_WhenTargetCityIsNotVisible()
+    {
+        var civA = new Civilization { Index = 0 };
+        var cityA = new City(VertexA) { CivilizationIndex = 0, Soldiers = 5, FlowTarget = VertexC };
+        cityA.Buildings.Add(new Barracks { Level = 2 });
+        civA.AddCity(cityA);
+
+        var civB = new Civilization { Index = 1 };
+        var cityC = new City(VertexC) { CivilizationIndex = 1 };
+        civB.AddCity(cityC);
+
+        var map = new IslandMap([
+            new HexTile(new HexCoord(0, 0, IslandMap.SurfaceLayer), TerrainType.Plain),
+            new HexTile(new HexCoord(0, 1, IslandMap.SurfaceLayer), TerrainType.Plain),
+            new HexTile(new HexCoord(1, 0, IslandMap.SurfaceLayer), TerrainType.Plain),
+            new HexTile(new HexCoord(1, 1, IslandMap.SurfaceLayer), TerrainType.Plain),
+            new HexTile(new HexCoord(2, 0, IslandMap.SurfaceLayer), TerrainType.Plain),
+            new HexTile(new HexCoord(2, 1, IslandMap.SurfaceLayer), TerrainType.Plain),
+        ]);
+        var state = new WorldState(map, [civA, civB], AtlasController.InvalidIslandId);
+        var clock = new GameClock();
+        clock.Start();
+        var cityBuilder = new CityBuilderController();
+        cityBuilder.Initialize(state, clock, new GamePRNG());
+        var ctrl = new MilitaryController();
+        ctrl.Initialize(state, clock, cityBuilder, prng: new GamePRNG());
+
+        clock.SimulateAdvance(MilitaryController.CityAttackIntervalTicks);
+
+        Assert.Null(cityA.FlowTarget);
+        Assert.Equal(5, cityA.Soldiers); // aucun soldat consommé, l'attaque n'a pas eu lieu
+        Assert.Single(state.Civilizations[1].Cities); // cityC intacte
+    }
 }

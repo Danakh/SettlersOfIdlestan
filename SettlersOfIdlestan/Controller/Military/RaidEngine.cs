@@ -246,8 +246,12 @@ internal class RaidEngine
 
         if (target != null)
         {
-            bool targetExists = _state.Civilizations.Any(c => c.Index != playerCiv.Index && c.MilitaryVertices.Any(v => v.Position.Equals(target)));
-            if (!targetExists)
+            var targetVertex = _state.Civilizations
+                .Where(c => c.Index != playerCiv.Index)
+                .SelectMany(c => c.MilitaryVertices)
+                .FirstOrDefault(v => v.Position.Equals(target));
+            // La cible doit exister et rester visible : hors de vue (brouillard de guerre), le raid est annulé.
+            if (targetVertex == null || !IsCityVisibleTo(targetVertex, playerCiv))
             {
                 StopRaid(playerCiv);
                 return;

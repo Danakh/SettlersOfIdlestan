@@ -60,6 +60,13 @@ internal class CityAttackEngine
 
                 var targetVertex = FindEnemyCityAt(attackerVertex.FlowTarget, attackerCiv);
                 if (targetVertex == null) continue;
+                // La cible doit rester visible pour l'attaquant : hors de vue (brouillard de guerre),
+                // le flux d'attaque est annulé au lieu d'attendre indéfiniment.
+                if (!IsCityVisibleTo(targetVertex, attackerCiv))
+                {
+                    attackerVertex.FlowTarget = null;
+                    continue;
+                }
                 if (attackerVertex.Position.EdgeDistanceTo(targetVertex.Position) > CityAttackRange(attackerCiv)) continue;
 
                 // Armes en Acier : consomme 1 ArmeAcier pour infliger 1 dégât supplémentaire
