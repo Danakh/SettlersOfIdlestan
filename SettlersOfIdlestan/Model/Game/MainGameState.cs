@@ -2,6 +2,7 @@ using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Prestige;
 using SettlersOfIdlestan.Model.Tasks;
 using System;
+using System.Text.Json.Serialization;
 
 namespace SettlersOfIdlestan.Model.Game
 {
@@ -13,7 +14,18 @@ namespace SettlersOfIdlestan.Model.Game
     public class MainGameState
     {
         public GodState GodState { get; set; }
+
+        /// <summary>
+        /// Simple raccourci vers GodState.PrestigeState : ignoré en JSON pour ne pas dupliquer
+        /// tout l'arbre WorldState dans la sauvegarde (System.Text.Json sérialise les propriétés
+        /// get-only par défaut). Le doublon gonflait les sauvegardes avancées de façon significative,
+        /// au point de dépasser le quota localStorage sur la version web (le desktop, en écriture
+        /// fichier, ne montrait pas le problème).
+        /// </summary>
+        [JsonIgnore]
         public PrestigeState? PrestigeState => GodState.PrestigeState;
+
+        [JsonIgnore]
         public WorldState? CurrentWorldState => PrestigeState?.WorldState;
         public GameClock Clock { get; set; }
 
