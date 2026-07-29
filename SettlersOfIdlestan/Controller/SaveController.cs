@@ -10,8 +10,10 @@ namespace SettlersOfIdlestan.Controller
 {
     /// <summary>
     /// Gère la sérialisation/désérialisation du MainGameState avec brouillage XOR.
-    /// Pipeline export : JSON → Base64 → XOR brouillé (Base64).
-    /// Pipeline import : débrouillage → Base64 → JSON, avec fallback JSON brut pour les anciennes sauvegardes.
+    /// Pipeline export (v2) : JSON → XOR brouillé → Base64 (un seul encodage Base64).
+    /// Pipeline import : tente le format v2 (XOR direct sur le JSON), puis retombe sur l'ancien
+    /// format v1 (qui appliquait le XOR sur la représentation Base64 du JSON, donc un encodage
+    /// Base64 redondant), puis sur du JSON brut pour les sauvegardes antérieures au chiffrement.
     /// </summary>
     public class SaveController
     {
@@ -30,7 +32,9 @@ namespace SettlersOfIdlestan.Controller
 
         private static JsonSerializerOptions MakeSerializationOptions()
         {
-            var options = new JsonSerializerOptions { WriteIndented = true };
+            // WriteIndented=false : cette sortie n'est jamais lue par un humain (elle passe ensuite
+            // par XOR+Base64), l'indentation ne fait que doubler la taille de la sauvegarde pour rien.
+            var options = new JsonSerializerOptions { WriteIndented = false };
             options.Converters.Add(new HexCoordJsonConverter());
             options.Converters.Add(new EdgeJsonConverter());
             options.Converters.Add(new BuildingJsonConverter());
@@ -44,38 +48,58 @@ namespace SettlersOfIdlestan.Controller
             state.Clock.LastSaveTime = DateTimeOffset.UtcNow;
             state.Clock.WasPausedAtSave = state.Clock.SpeedMultiplier == 0;
             var json = JsonSerializer.Serialize(state, _serializationOptions);
-            var base64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(json));
-            return Encrypt(base64);
+            return Encrypt(json);
         }
 
         public MainGameState Import(string data)
         {
-            string json;
+            return DeserializeJson(DecodeToJson(data));
+        }
+
+        /// <summary>
+        /// Débrouille une sauvegarde en JSON en essayant successivement le format v2 (actuel), le
+        /// format v1 (avec son encodage Base64 redondant hérité), puis un fallback JSON brut. Le XOR
+        /// étant appliqué au même endroit (juste après le décodage Base64 externe) dans les deux
+        /// formats, un seul débrouillage suffit : seule l'interprétation du résultat diffère (JSON
+        /// direct en v2, chaîne Base64 à décoder une seconde fois en v1).
+        /// </summary>
+        private static string DecodeToJson(string data)
+        {
+            byte[] unXored;
             try
             {
-                var base64 = Decrypt(data);
-                json = Encoding.UTF8.GetString(Convert.FromBase64String(base64));
+                unXored = XorCycle(Convert.FromBase64String(data), _key);
             }
             catch
             {
-                // Fallback pour les sauvegardes en JSON brut (avant chiffrement)
-                json = data;
+                // Pas du Base64 valide du tout — sauvegarde en JSON brut (avant chiffrement).
+                return data;
             }
-            return DeserializeJson(json);
+
+            var candidate = Encoding.UTF8.GetString(unXored);
+            if (LooksLikeJson(candidate)) return candidate; // v2
+
+            try
+            {
+                return Encoding.UTF8.GetString(Convert.FromBase64String(candidate)); // v1
+            }
+            catch
+            {
+                return data; // Fallback JSON brut
+            }
         }
 
-        private static string Encrypt(string plaintext)
+        private static bool LooksLikeJson(string s)
         {
-            var data = Encoding.UTF8.GetBytes(plaintext);
+            var trimmed = s.TrimStart();
+            return trimmed.Length > 0 && trimmed[0] == '{';
+        }
+
+        private static string Encrypt(string json)
+        {
+            var data = Encoding.UTF8.GetBytes(json);
             var xored = XorCycle(data, _key);
             return Convert.ToBase64String(xored);
-        }
-
-        private static string Decrypt(string encrypted)
-        {
-            var data = Convert.FromBase64String(encrypted);
-            var xored = XorCycle(data, _key);
-            return Encoding.UTF8.GetString(xored);
         }
 
         private static byte[] XorCycle(byte[] data, byte[] key)
