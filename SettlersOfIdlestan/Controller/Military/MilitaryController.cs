@@ -221,7 +221,6 @@ public class MilitaryController
     }
 
     // ── Régénération de défense ──────────────────────────────────────────────
-    // Coûte 1 bois + 1 pierre par point régénéré. Non désactivable.
 
     private void ResolveDefenseRegen(long currentTick)
     {
@@ -233,9 +232,6 @@ public class MilitaryController
                 double regenSpeed = GetDefenseRegenSpeed(vertex, civ);
                 long effectiveRegenInterval = (long)(DefenseRegenIntervalTicks / regenSpeed);
                 if (currentTick - vertex.LastDefenseRegenTick < effectiveRegenInterval) continue;
-                if (civ.GetResourceQuantity(Resource.Wood) < 1 || civ.GetResourceQuantity(Resource.Stone) < 1) continue;
-                civ.RemoveResource(Resource.Wood, 1);
-                civ.RemoveResource(Resource.Stone, 1);
                 vertex.CurrentDefense++;
                 vertex.LastDefenseRegenTick = currentTick;
             }
