@@ -65,8 +65,11 @@ public class WorldState : IJsonOnDeserialized
     public List<SettlersOfIdlestan.Model.Civilization.Civilization> Civilizations { get; set; }
 
     /// <summary>
-    /// Gets the player's civilization (always at index 0).
+    /// Gets the player's civilization (always at index 0). Ignoré en JSON : c'est un raccourci vers
+    /// Civilizations[0], pas une donnée distincte — le sérialiser dupliquait toute la civilisation
+    /// du joueur dans la sauvegarde (cf. MainGameState.PrestigeState/CurrentWorldState, même bug).
     /// </summary>
+    [JsonIgnore]
     public SettlersOfIdlestan.Model.Civilization.Civilization PlayerCivilization => Civilizations[0];
 
     [JsonIgnore]
