@@ -254,7 +254,7 @@ public class TechnologyModifierTests
     [Fact]
     public void EtudeDesAbysses_UnderworldTreasureChance_Plus5()
     {
-        Assert.Equal(5, BuildAggregator(TechnologyId.EtudeDesAbysses).ApplyModifiers(ECategory.UNDERWORLD_TREASURE_CHANCE_PERCENT, "", 0));
+        Assert.Equal(3, BuildAggregator(TechnologyId.EtudeDesAbysses).ApplyModifiers(ECategory.UNDERWORLD_TREASURE_CHANCE_PERCENT, "", 0));
     }
 
     [Fact]

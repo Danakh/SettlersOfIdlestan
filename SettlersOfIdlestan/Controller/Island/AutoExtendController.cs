@@ -32,6 +32,11 @@ public class AutoExtendController
         TerrainType.CrystalCave,
     };
 
+    // Cap appliqué indépendamment à chaque couche auto-étendue (Inframonde, Abysse — voir
+    // CountCivilizationsOnLayer), pas au total toutes couches confondues : l'Abysse génère une
+    // civilisation à chaque île (déterministe), bien plus vite que le tirage à 10% par hexagone de
+    // l'Inframonde, donc un cap partagé avec les civs de surface + les deux couches vidait le
+    // budget de l'Inframonde dès l'ouverture de l'Abysse, empêchant toute apparition ultérieure.
     private const int MaxTotalCivilizations = 8;
     private const int AggressiveCivSpawnChancePercent = 10;
     private const int ExtraHexCount = 10;
@@ -398,6 +403,14 @@ public class AutoExtendController
 
     // ── Spawn civilisation agressive ─────────────────────────────────────────
 
+    /// <summary>
+    /// Nombre de civilisations (NPC ou joueur) ayant au moins une ville sur la couche <paramref name="z"/>.
+    /// Utilisé pour appliquer <see cref="MaxTotalCivilizations"/> couche par couche plutôt que sur
+    /// <see cref="WorldState.Civilizations"/> dans son ensemble (voir le commentaire de la constante).
+    /// </summary>
+    private int CountCivilizationsOnLayer(int z) =>
+        _state!.Civilizations.Count(c => c.Cities.Any(city => city.Position.Z == z));
+
     private void TrySpawnAggressiveCivilization(
         HexCoord newHex,
         LayerState layerState,
@@ -406,8 +419,8 @@ public class AutoExtendController
     {
         if (_state == null) return;
 
-        // Cap total civilisations
-        if (_state.Civilizations.Count >= MaxTotalCivilizations) return;
+        // Cap de civilisations, propre à cette couche (voir CountCivilizationsOnLayer)
+        if (CountCivilizationsOnLayer(z) >= MaxTotalCivilizations) return;
 
         // Distance minimale depuis le vertex d'arrivée
         var arrivalHexes = layerState.ArrivalVertex!.GetHexes();
@@ -506,7 +519,7 @@ public class AutoExtendController
     private void SpawnAbyssIslandCivilization(LayerState layerState, List<HexTile> newIslandTiles, int z)
     {
         if (_state == null) return;
-        if (_state.Civilizations.Count >= MaxTotalCivilizations) return;
+        if (CountCivilizationsOnLayer(z) >= MaxTotalCivilizations) return;
 
         var map = layerState.Map;
         var islandHexes = newIslandTiles.Where(t => t.TerrainType != TerrainType.Void).Select(t => t.Coord).ToList();
