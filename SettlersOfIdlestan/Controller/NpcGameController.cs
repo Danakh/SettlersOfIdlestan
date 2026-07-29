@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
@@ -25,7 +26,14 @@ public class NpcGameController
     /// <summary>Interval between NPC autoplayer turns (100 ticks = 1 s at normal speed).</summary>
     public const long NpcStepIntervalTicks = 100L;
 
-    private long _lastStepTick = 0;
+    /// <summary>
+    /// Décalage appliqué au tick de réflexion de chaque NPC (civ.Index * ce décalage), pour que
+    /// toutes les civilisations NPC ne recalculent pas leur étape d'autoplay sur la même frame —
+    /// répartit le coût de calcul (expansion notamment) sur plusieurs frames consécutives.
+    /// </summary>
+    public const long NpcStepStaggerTicks = 10L;
+
+    private readonly Dictionary<int, long> _nextStepTickByCivIndex = new();
 
     public void Initialize(
         WorldState state,
@@ -42,7 +50,7 @@ public class NpcGameController
         _clock = clock;
         _militaryController = militaryController;
         _mainController = mainController;
-        _lastStepTick = 0;
+        _nextStepTickByCivIndex.Clear();
 
         if (_clock != null)
             _clock.Advanced += OnClockAdvanced;
@@ -58,11 +66,19 @@ public class NpcGameController
     private void Update(long currentTick)
     {
         if (_state == null || _mainController == null) return;
-        if (currentTick - _lastStepTick < NpcStepIntervalTicks) return;
-        _lastStepTick = currentTick;
 
         foreach (var civ in _state.Civilizations.Where(c => c.IsNpc).ToList())
+        {
+            // Décale le premier tick de réflexion de chaque civ selon son index, pour que toutes les
+            // civs NPC ne recalculent pas leur étape (expansion incluse) sur la même frame.
+            if (!_nextStepTickByCivIndex.TryGetValue(civ.Index, out var nextStepTick))
+                nextStepTick = civ.Index * NpcStepStaggerTicks;
+
+            if (currentTick < nextStepTick) continue;
+
+            _nextStepTickByCivIndex[civ.Index] = currentTick + NpcStepIntervalTicks;
             RunNpcStep(civ);
+        }
     }
 
     private void RunNpcStep(Civilization civ)
@@ -76,7 +92,8 @@ public class NpcGameController
             && HasEncounteredEnemy(civ);
 
         var autoplayer = new NpcCivilizationAutoplayer(
-            civ, _state.GetMapForZ(IslandMap.SurfaceLayer)!, _mainController, aggressivity, _militaryController);
+            civ, _state.GetMapForZ(IslandMap.SurfaceLayer)!, _mainController, aggressivity, _militaryController,
+            expandCooldownTicks: NpcStepIntervalTicks);
         UpdateNpcMilitaryFlows(civ, aggressivity, autoplayer.Inner);
         autoplayer.TryStepOnce(shouldExpand: !hasEncounteredEnemy);
     }

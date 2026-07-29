@@ -50,6 +50,13 @@ namespace SettlersOfIdlestan.Controller
         private readonly long _clickCooldownTicks;
         private long _nextClickAllowedTick = long.MinValue;
 
+        /// <summary>Cooldown minimal entre deux tentatives d'expansion (TryExpandOnce) — 0 désactive le
+        /// cooldown. L'expansion est une décision coûteuse (recherche de vertex/route candidats,
+        /// pathfinding) : les NPC lui appliquent un cooldown dédié, indépendant de la cadence générale
+        /// de réflexion, via <see cref="NpcCivilizationAutoplayer"/>.</summary>
+        private readonly long _expandCooldownTicks;
+        private long _nextExpandAllowedTick = long.MinValue;
+
         public Civilization Civilization => _civ;
         public WorldState? WorldState => _worldState;
         public HarvestController HarvestController => _harvestController;
@@ -80,9 +87,11 @@ namespace SettlersOfIdlestan.Controller
             DeepestMineController? deepestMineController = null,
             CorruptionSpireController? corruptionSpireController = null,
             AbyssGateController? abyssGateController = null,
-            long clickCooldownTicks = 20L)
+            long clickCooldownTicks = 20L,
+            long expandCooldownTicks = 0L)
         {
             _clickCooldownTicks = clickCooldownTicks;
+            _expandCooldownTicks = expandCooldownTicks;
             _civ = civ ?? throw new ArgumentNullException(nameof(civ));
             _map = map ?? throw new ArgumentNullException(nameof(map));
             _roadController = roadController ?? throw new ArgumentNullException(nameof(roadController));
@@ -387,6 +396,13 @@ namespace SettlersOfIdlestan.Controller
         /// N'effectue aucune construction de bâtiments.</summary>
         public bool TryExpandOnce()
         {
+            if (_expandCooldownTicks > 0)
+            {
+                long now = _harvestController.CurrentTick;
+                if (now < _nextExpandAllowedTick) return false;
+                _nextExpandAllowedTick = now + _expandCooldownTicks;
+            }
+
             bool didSomething = false;
 
             var possibleConstructionVertex = GetBuildableOutpostVertex();

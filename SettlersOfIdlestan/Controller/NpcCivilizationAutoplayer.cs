@@ -15,12 +15,20 @@ public class NpcCivilizationAutoplayer
     private readonly BuildingController _buildingController;
     private readonly NpcAggressivityLevel _aggressivity;
 
+    /// <param name="expandCooldownTicks">
+    /// Cooldown minimal entre deux tentatives d'expansion (0 = pas de cooldown). Laissé à 0 par défaut
+    /// pour <see cref="Generator.NpcCivilizationPlacer"/>, qui boucle des centaines de fois sur
+    /// TryExpandOnce sans jamais avancer l'horloge lors du placement initial. NpcGameController passe
+    /// 100 en jeu réel, où l'horloge avance normalement, pour éviter que l'expansion — décision coûteuse
+    /// (recherche de vertex/route candidats, pathfinding) — soit retentée trop souvent.
+    /// </param>
     public NpcCivilizationAutoplayer(
         Civilization civ,
         IslandMap map,
         MainGameController mainController,
         NpcAggressivityLevel aggressivity,
-        MilitaryController? militaryController = null)
+        MilitaryController? militaryController = null,
+        long expandCooldownTicks = 0L)
     {
         _buildingController = mainController.BuildingController;
         _inner = new CivilizationAutoplayer(
@@ -35,7 +43,8 @@ public class NpcCivilizationAutoplayer
             mainController.PrestigeMapController,
             mainController.CurrentMainState?.CurrentWorldState,
             militaryController: militaryController,
-            clickCooldownTicks: 100L);
+            clickCooldownTicks: 100L,
+            expandCooldownTicks: expandCooldownTicks);
         _aggressivity = aggressivity;
     }
 
