@@ -1,5 +1,6 @@
 using SettlersOfIdlestan.Controller.Generator;
 using SettlersOfIdlestan.Controller.Island;
+using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.IslandFeatures;
@@ -192,5 +193,101 @@ public class CityBuilderControllerTests
         Assert.DoesNotContain(state.GetFeaturesAt(H(1, 1)), f => f is TreasureTrove);
         Assert.Equal(goldBefore - CityBuilderController.RelocationCost()[Resource.Gold] + 100, civ.GetResourceQuantity(Resource.Gold));
         Assert.Equal(1, state.RunRecord.TreasuresTroveClaimed);
+    }
+
+    // ── NewCityBuildingCostFor : surcharge par nombre de villes existantes ──
+
+    [Fact]
+    public void NewCityBuildingCostFor_ExtraSurfaceCities_ScalesLinearly()
+    {
+        var (state, civ, v1, vMiddle, v2) = RibbonIsland();
+        civ.AddCity(new City(v1) { CivilizationIndex = 0 });
+        civ.AddCity(new City(vMiddle) { CivilizationIndex = 0 });
+        civ.AddCity(new City(v2) { CivilizationIndex = 0 });
+
+        // 3 villes de surface -> 2 "supplémentaires" (la ville de départ ne compte pas) ->
+        // multiplicateur 1 + 0.1 * 2 = 1.2.
+        var cost = Controller(state).NewCityBuildingCostFor(v1, civ);
+
+        Assert.Equal(12, cost[Resource.Brick]);
+        Assert.Equal(12, cost[Resource.Wood]);
+        Assert.Equal(18, cost[Resource.Food]);
+    }
+
+    [Fact]
+    public void NewCityBuildingCostFor_UnderworldCities_ScalesSuperLinearly()
+    {
+        var (state, civ, v1, _, _) = RibbonIsland();
+        civ.AddCity(new City(v1) { CivilizationIndex = 0 });
+
+        var hu1 = new HexCoord(0, 0, LayerState.UnderworldZ);
+        var hu2 = new HexCoord(1, 0, LayerState.UnderworldZ);
+        var hu3 = new HexCoord(0, 1, LayerState.UnderworldZ);
+        var hu4 = new HexCoord(1, 1, LayerState.UnderworldZ);
+        var hu5 = new HexCoord(0, 2, LayerState.UnderworldZ);
+        var underworldTarget = Vertex.Create(hu1, hu2, hu3);
+        civ.AddCity(new City(underworldTarget) { CivilizationIndex = 0 });
+        civ.AddCity(new City(Vertex.Create(hu3, hu4, hu5)) { CivilizationIndex = 0 });
+
+        // 2 villes d'Inframonde -> surcharge en Math.Pow(2, 1.5) ≈ 2.828 ->
+        // multiplicateur 1 + 0.5 * 2.828 ≈ 2.414.
+        var cost = Controller(state).NewCityBuildingCostFor(underworldTarget, civ);
+
+        Assert.Equal(24, cost[Resource.Gold]);
+        Assert.Equal(24, cost[Resource.Brick]);
+        Assert.Equal(24, cost[Resource.Wood]);
+        Assert.Equal(36, cost[Resource.Food]);
+    }
+
+    [Fact]
+    public void NewCityBuildingCostFor_AbyssCities_ScalesQuadratically()
+    {
+        var (state, civ, v1, _, _) = RibbonIsland();
+        civ.AddCity(new City(v1) { CivilizationIndex = 0 });
+
+        var ha1 = new HexCoord(0, 0, LayerState.AbyssZ);
+        var ha2 = new HexCoord(1, 0, LayerState.AbyssZ);
+        var ha3 = new HexCoord(0, 1, LayerState.AbyssZ);
+        var ha4 = new HexCoord(1, 1, LayerState.AbyssZ);
+        var ha5 = new HexCoord(0, 2, LayerState.AbyssZ);
+        var abyssTarget = Vertex.Create(ha1, ha2, ha3);
+        civ.AddCity(new City(abyssTarget) { CivilizationIndex = 0 });
+        civ.AddCity(new City(Vertex.Create(ha3, ha4, ha5)) { CivilizationIndex = 0 });
+
+        // 2 villes d'Abysses -> surcharge en Math.Pow(2, 2) = 4 -> multiplicateur 1 + 1.0 * 4 = 5.
+        var cost = Controller(state).NewCityBuildingCostFor(abyssTarget, civ);
+
+        Assert.Equal(50, cost[Resource.Gold]);
+        Assert.Equal(25, cost[Resource.Crystal]);
+        Assert.Equal(50, cost[Resource.Brick]);
+        Assert.Equal(50, cost[Resource.Wood]);
+        Assert.Equal(75, cost[Resource.Food]);
+    }
+
+    [Fact]
+    public void NewCityBuildingCostFor_BuildersGuild_HalvesUnderworldSurcharge()
+    {
+        var (state, civ, v1, _, _) = RibbonIsland();
+        var startingCity = new City(v1) { CivilizationIndex = 0 };
+        startingCity.Buildings.Add(new BuildersGuild { Level = 1 });
+        civ.AddCity(startingCity);
+
+        var hu1 = new HexCoord(0, 0, LayerState.UnderworldZ);
+        var hu2 = new HexCoord(1, 0, LayerState.UnderworldZ);
+        var hu3 = new HexCoord(0, 1, LayerState.UnderworldZ);
+        var hu4 = new HexCoord(1, 1, LayerState.UnderworldZ);
+        var hu5 = new HexCoord(0, 2, LayerState.UnderworldZ);
+        var underworldTarget = Vertex.Create(hu1, hu2, hu3);
+        civ.AddCity(new City(underworldTarget) { CivilizationIndex = 0 });
+        civ.AddCity(new City(Vertex.Create(hu3, hu4, hu5)) { CivilizationIndex = 0 });
+
+        // Avec la Guilde des Bâtisseurs (facteur 0.5), la surcharge de 2 villes d'Inframonde devient
+        // Math.Pow(0.5 * 2, 1.5) = 1 -> multiplicateur 1 + 0.5 * 1 = 1.5, contre 2.414 sans la guilde.
+        var cost = Controller(state).NewCityBuildingCostFor(underworldTarget, civ);
+
+        Assert.Equal(15, cost[Resource.Gold]);
+        Assert.Equal(15, cost[Resource.Brick]);
+        Assert.Equal(15, cost[Resource.Wood]);
+        Assert.Equal(22, cost[Resource.Food]); // 22.5 arrondi au pair le plus proche (Math.Round par défaut).
     }
 }

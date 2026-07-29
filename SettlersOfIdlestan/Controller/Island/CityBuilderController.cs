@@ -575,24 +575,29 @@ namespace SettlersOfIdlestan.Controller.Island
             int surfaceCities = civ.Cities.Count(c => c.Position.Z == IslandMap.SurfaceLayer);
             int underworldCities = civ.Cities.Count(c => c.Position.Z == LayerState.UnderworldZ);
             int abyssCities = civ.Cities.Count(c => c.Position.Z == LayerState.AbyssZ);
+
             // La ville de départ (toujours en surface) ne compte pas comme "ville supplémentaire".
             int surchargeableSurfaceCities = Math.Max(0, surfaceCities - 1);
+
+            double effectiveSurfaceOverCost = surchargeFactor * surchargeableSurfaceCities;
+            double effectiveUnderworldOverCost = Math.Pow(surchargeFactor * underworldCities, 1.5);
+            double effectiveAbyssOverCost = Math.Pow(surchargeFactor * abyssCities, 2);
 
             double multiplier;
             if (targetVertex.Z == LayerState.AbyssZ)
             {
                 cost[Resource.Gold] = 10;
                 cost[Resource.Crystal] = 5;
-                multiplier = 1.0 + 1.0 * surchargeFactor * (surchargeableSurfaceCities + underworldCities + abyssCities);
+                multiplier = 1.0 + 1.0 * (effectiveSurfaceOverCost + effectiveUnderworldOverCost + effectiveAbyssOverCost);
             }
             else if (targetVertex.Z == LayerState.UnderworldZ)
             {
                 cost[Resource.Gold] = 10;
-                multiplier = 1.0 + 0.5 * surchargeFactor * (surchargeableSurfaceCities + underworldCities);
+                multiplier = 1.0 + 0.5 * (effectiveSurfaceOverCost + effectiveUnderworldOverCost);
             }
             else
             {
-                multiplier = 1.0 + 0.05 * surchargeFactor * surchargeableSurfaceCities;
+                multiplier = 1.0 + 0.1 * (surchargeFactor * surchargeableSurfaceCities);
             }
 
             foreach (var resource in cost.Keys.ToList())
