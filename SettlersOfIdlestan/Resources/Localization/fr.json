@@ -1171,6 +1171,8 @@
   "warherald_action_short": "War Herald",
   "warherald_select_target": "Choisissez un de vos emplacements militaires (ville, flotte de guerre ou camp mobile) à renforcer",
   "tooltip_warherald": "Raid gratuit sur un emplacement militaire allié : redirige tous les flux de renfort vers la cible (ou l'allié le plus proche à portée de renfort), sauf les emplacements ayant un flux d'attaque actif",
+  "locate_hero_action": "Localiser le héros",
+  "tooltip_locate_hero": "Centre la caméra sur l'Aventurier de votre Guilde des Aventuriers (ou sur la guilde s'il est mort et en attente de réapparition)",
   "walkofgod_action_short": "Marche de Dieu",
   "walkofgod_select_hex": "Choisissez un hexagone sous Dominion (niveau 2 minimum) dont le terrain sera transformé",
   "tooltip_walkofgod": "Transforme aléatoirement le terrain d'un hexagone sous Dominion de niveau 2 ou plus (fonctionne aussi sur l'eau)",

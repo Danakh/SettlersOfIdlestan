@@ -1171,6 +1171,8 @@
   "warherald_action_short": "War Herald",
   "warherald_select_target": "Choose one of your military locations (city, war fleet or mobile camp) to reinforce",
   "tooltip_warherald": "Free raid on an allied military location: redirects all reinforcement flows toward the target (or the nearest ally within reinforcement range), except locations with an active attack flow",
+  "locate_hero_action": "Locate hero",
+  "tooltip_locate_hero": "Centers the camera on your Adventurers Guild's Adventurer (or on the guild if he's dead and awaiting respawn)",
   "walkofgod_action_short": "Walk of God",
   "walkofgod_select_hex": "Choose a hex under Dominion (level 2 or higher) whose terrain will be transformed",
   "tooltip_walkofgod": "Randomly transforms the terrain of a hex under Dominion of level 2 or higher (works on water too)",

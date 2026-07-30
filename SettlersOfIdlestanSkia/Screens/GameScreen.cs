@@ -331,8 +331,8 @@ public sealed class GameScreen : IDisposable
             selectedCityPanelRenderer, selectedMonumentPanelRenderer,
             tradeRenderer, prestigeRenderer, prestigeMapRenderer, prestigeHistoryRenderer,
             timeControlRenderer, researchRenderer, eventLogRenderer, automationRenderer,
-            ritualsRenderer, ascensionRenderer, tooltipRenderer, _uiLayoutService, allowDebugMode,
-            historyTabRenderer);
+            ritualsRenderer, ascensionRenderer, tooltipRenderer, _cameraService, _resourceManager,
+            _uiLayoutService, allowDebugMode, historyTabRenderer);
         _overlayRenderer.ConnectTargetSelectionService(_targetSelectionService);
         _overlayRenderer.ConnectZoomCallbacks(
             () => _cameraService.SetZoom(_cameraService.ZoomLevel * ZoomStep),

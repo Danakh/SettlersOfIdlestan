@@ -8,12 +8,14 @@ using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
+using SettlersOfIdlestan.Model.Monsters;
 using SettlersOfIdlestanSkia.Services.Localization;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Renderers.Overlay.Popup;
 using SettlersOfIdlestanSkia.Renderers.Overlay.Tabs;
 using SettlersOfIdlestanSkia.Services;
 using SkiaSharp;
+using Svg.Skia;
 using System;
 using System.Linq;
 
@@ -32,6 +34,9 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
     private const float ToggleHeight = 24f;
     private const float RowHeight    = 36f;
     private const float SepSpacing   = 8f;
+    private const float IconBtnSize  = 18f;
+    private const float IconBtnGap   = 4f;
+    private const float IconSvgSize  = 64f;
 
     private readonly GameControllerService _gameControllerService;
     private readonly LocalizationService _localization;
@@ -40,6 +45,8 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
     private readonly PrestigeRenderer _prestigeRenderer;
     private TargetSelectionService? _targetSelectionService;
     private readonly TooltipRenderer _tooltipRenderer;
+    private readonly ResourceManager _resourceManager;
+    private readonly Action<int, float, float> _centerCameraOnMapPosition;
 
     public bool IsCollapsed  => Collapsed;
     public void Collapse()   => Collapsed = true;
@@ -59,6 +66,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
     private SKRect _deepestMineButtonRect = SKRect.Empty;
     private SKRect _raidButtonRect     = SKRect.Empty;
     private SKRect _warHeraldButtonRect = SKRect.Empty;
+    private SKRect _locateHeroButtonRect = SKRect.Empty;
     private SKRect _spireButtonRect    = SKRect.Empty;
     private SKRect _relocationButtonRect = SKRect.Empty;
     private SKRect _walkOfGodButtonRect = SKRect.Empty;
@@ -66,7 +74,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
     private readonly List<(SKRect rect, string pinKey, string tooltipKey)> _pinnedItemRects = new();
     private int _hoveredPinnedIndex = -1;
 
-    private bool _hoveredTrade, _hoveredPrestige, _hoveredWonder, _hoveredDeepestMine, _hoveredRaid, _hoveredWarHerald, _hoveredSpire, _hoveredRelocation, _hoveredWalkOfGod, _hoveredPresenceOfGod, _hoveredGreatLighthouse;
+    private bool _hoveredTrade, _hoveredPrestige, _hoveredWonder, _hoveredDeepestMine, _hoveredRaid, _hoveredWarHerald, _hoveredLocateHero, _hoveredSpire, _hoveredRelocation, _hoveredWalkOfGod, _hoveredPresenceOfGod, _hoveredGreatLighthouse;
     private bool _wonderEnabled;
     private bool _greatLighthouseEnabled;
     private bool _deepestMineEnabled;
@@ -77,6 +85,10 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
     private bool _disposed;
     private SKPaint? _btnRaidActivePaint;
     private SKPaint? _btnRaidActiveHoverPaint;
+    private SKPaint? _iconTintPaint;
+    private SKSvg? _attackIconSvg;
+    private SKSvg? _defenseIconSvg;
+    private SKSvg? _heroIconSvg;
 
     // CivPanel-specific paints
     private SKPaint? _sectionTitlePaint;
@@ -101,7 +113,9 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         TradePopupRenderer tradeRenderer,
         PrestigeRenderer prestigeRenderer,
         TargetSelectionService? targetSelectionService,
-        TooltipRenderer tooltipRenderer)
+        TooltipRenderer tooltipRenderer,
+        ResourceManager resourceManager,
+        Action<int, float, float> centerCameraOnMapPosition)
     {
         _gameControllerService = gameControllerService;
         _localization = localization;
@@ -110,6 +124,8 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         _prestigeRenderer = prestigeRenderer;
         _targetSelectionService = targetSelectionService;
         _tooltipRenderer = tooltipRenderer;
+        _resourceManager = resourceManager;
+        _centerCameraOnMapPosition = centerCameraOnMapPosition;
     }
 
     public override void Initialize(SKSize canvasSize)
@@ -125,6 +141,10 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         _btnDisabledTxtPaint  = new SKPaint { Color = new SKColor(160, 160, 165),      IsAntialias = true };
         _rowLabelPaint        = new SKPaint { Color = new SKColor(215, 215, 225),      IsAntialias = true };
         _rowLabelDimPaint     = new SKPaint { Color = new SKColor(140, 140, 150, 160), IsAntialias = true };
+        _iconTintPaint        = new SKPaint { IsAntialias = true };
+        _attackIconSvg  = _resourceManager.LoadImage("Resources.icons.military.attack.svg");
+        _defenseIconSvg = _resourceManager.LoadImage("Resources.icons.military.defense.svg");
+        _heroIconSvg    = _resourceManager.LoadImage("Resources.icons.military.hero-armor.svg");
     }
 
     public void ConnectTargetSelectionService(TargetSelectionService service)
@@ -186,6 +206,8 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         bool raidVisible   = IsRaidVisible();
         bool raidActive    = raidVisible && IsRaidActive();
         bool warHeraldVisible = IsWarHeraldVisible();
+        var adventurersGuildCity = GetAdventurersGuildCity(civ);
+        bool locateHeroVisible = adventurersGuildCity != null;
         bool relocationVisible = IsRelocationVisible();
         _relocationEnabled = relocationVisible && CanAffordRelocation();
         var ascensionController = _gameControllerService.MainGameController.AscensionController;
@@ -203,14 +225,15 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         var worldState = _gameControllerService.CurrentWorldState;
         var pinned = _gameControllerService.CurrentGameState?.Settings.PinnedCivPanelKeys ?? (IReadOnlySet<string>)new HashSet<string>();
 
-        bool showActions  = tradeVisible || prestigeVisible || wonderVisible || greatLighthouseVisible || deepestMineVisible || spireVisible || raidVisible || warHeraldVisible || relocationVisible || walkOfGodVisible || presenceOfGodVisible;
+        bool showActions  = tradeVisible || prestigeVisible || wonderVisible || greatLighthouseVisible || deepestMineVisible || spireVisible || raidVisible || warHeraldVisible || locateHeroVisible || relocationVisible || walkOfGodVisible || presenceOfGodVisible;
         bool showControls = pinned.Any(k => IsKeyShowable(k, civ, worldState, hasBarracks, hasLabs, hasSmelters, hasWeaponSmiths, hasArmorSmiths, hasAlchimistHuts));
 
         // Single source of truth for the action-button count — reused for both the
         // panel height measurement and the button-grid layout so they can't drift apart.
-        int actionCount = (tradeVisible ? 1 : 0) + (prestigeVisible ? 1 : 0) + (wonderVisible ? 1 : 0) + (greatLighthouseVisible ? 1 : 0) + (deepestMineVisible ? 1 : 0) + (spireVisible ? 1 : 0) + (raidVisible ? 1 : 0) + (warHeraldVisible ? 1 : 0) + (relocationVisible ? 1 : 0) + (walkOfGodVisible ? 1 : 0) + (presenceOfGodVisible ? 1 : 0);
+        // Raid / War Herald / Locate Hero are drawn as small icon buttons on the title row, not in this grid.
+        int actionCount = (tradeVisible ? 1 : 0) + (prestigeVisible ? 1 : 0) + (wonderVisible ? 1 : 0) + (greatLighthouseVisible ? 1 : 0) + (deepestMineVisible ? 1 : 0) + (spireVisible ? 1 : 0) + (relocationVisible ? 1 : 0) + (walkOfGodVisible ? 1 : 0) + (presenceOfGodVisible ? 1 : 0);
 
-        _tradeButtonRect = _prestigeButtonRect = _wonderButtonRect = _greatLighthouseButtonRect = _deepestMineButtonRect = _spireButtonRect = _raidButtonRect = _warHeraldButtonRect = _relocationButtonRect = _walkOfGodButtonRect = _presenceOfGodButtonRect = SKRect.Empty;
+        _tradeButtonRect = _prestigeButtonRect = _wonderButtonRect = _greatLighthouseButtonRect = _deepestMineButtonRect = _spireButtonRect = _raidButtonRect = _warHeraldButtonRect = _locateHeroButtonRect = _relocationButtonRect = _walkOfGodButtonRect = _presenceOfGodButtonRect = SKRect.Empty;
         _pinnedItemRects.Clear();
 
         if (!showActions && !showControls)
@@ -280,6 +303,35 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         if (showActions)
         {
             SkiaTextUtils.DrawText(canvas, _localization.Get("panel_civ_actions"), x, y + titleSize, _sectionFont, _sectionTitlePaint);
+
+            // Small icon buttons (locate hero / war herald / raid), right-aligned on the Actions title row.
+            float iconBtnSize = IconBtnSize * s;
+            float iconGap     = IconBtnGap * s;
+            float iconY       = y + (titleHeight - iconBtnSize) / 2f;
+            float iconRight   = x + contentW;
+
+            if (locateHeroVisible)
+            {
+                _locateHeroButtonRect = new SKRect(iconRight - iconBtnSize, iconY, iconRight, iconY + iconBtnSize);
+                DrawIconButton(canvas, _locateHeroButtonRect, _heroIconSvg, _hoveredLocateHero ? _btnHoverPaint! : _btnPaint!, s);
+                iconRight -= iconBtnSize + iconGap;
+            }
+            if (warHeraldVisible)
+            {
+                _warHeraldButtonRect = new SKRect(iconRight - iconBtnSize, iconY, iconRight, iconY + iconBtnSize);
+                DrawIconButton(canvas, _warHeraldButtonRect, _defenseIconSvg, _hoveredWarHerald ? _btnHoverPaint! : _btnPaint!, s);
+                iconRight -= iconBtnSize + iconGap;
+            }
+            if (raidVisible)
+            {
+                _raidButtonRect = new SKRect(iconRight - iconBtnSize, iconY, iconRight, iconY + iconBtnSize);
+                SKPaint raidIconBg = raidActive
+                    ? (_hoveredRaid ? _btnRaidActiveHoverPaint! : _btnRaidActivePaint!)
+                    : (_hoveredRaid ? _btnHoverPaint! : _btnPaint!);
+                DrawIconButton(canvas, _raidButtonRect, _attackIconSvg, raidIconBg, s);
+                iconRight -= iconBtnSize + iconGap;
+            }
+
             y += titleHeight;
 
             float colGap = 6f * s;
@@ -339,24 +391,6 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
                 _spireButtonRect = BtnRect(btnIdx++, allowFullWidth: false);
                 canvas.DrawRoundRect(_spireButtonRect, 6 * s, 6 * s, _spireEnabled ? (_hoveredSpire ? _btnHoverPaint : _btnPaint) : _btnDisabledPaint);
                 DrawWrappedButtonText(canvas, _spireButtonRect, _localization.Get("spire_action_short"), _btnSmFont!, _spireEnabled ? TextPaint! : _btnDisabledTxtPaint!, s);
-            }
-
-            if (raidVisible)
-            {
-                _raidButtonRect = BtnRect(btnIdx++);
-                SKPaint raidBg = raidActive
-                    ? (_hoveredRaid ? _btnRaidActiveHoverPaint! : _btnRaidActivePaint!)
-                    : (_hoveredRaid ? _btnHoverPaint! : _btnPaint!);
-                canvas.DrawRoundRect(_raidButtonRect, 6 * s, 6 * s, raidBg);
-                string raidLabel = raidActive ? _localization.Get("raid_action_stop") : _localization.Get("raid_action");
-                SkiaTextUtils.DrawText(canvas, raidLabel, _raidButtonRect.MidX, _raidButtonRect.MidY + 4f * s, SKTextAlign.Center, _btnSmFont, TextPaint);
-            }
-
-            if (warHeraldVisible)
-            {
-                _warHeraldButtonRect = BtnRect(btnIdx++);
-                canvas.DrawRoundRect(_warHeraldButtonRect, 6 * s, 6 * s, _hoveredWarHerald ? _btnHoverPaint : _btnPaint);
-                SkiaTextUtils.DrawText(canvas, _localization.Get("warherald_action_short"), _warHeraldButtonRect.MidX, _warHeraldButtonRect.MidY + 4f * s, SKTextAlign.Center, _btnSmFont, TextPaint);
             }
 
             if (relocationVisible)
@@ -463,6 +497,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             int currentUpkeep = worldState?.AutomationSettings.RaidCurrentUpkeep ?? 0;
             _tooltipRenderer.SetTooltipLines(new[]
             {
+                _localization.Get("raid_action_stop"),
                 _localization.Get("tooltip_raid_active"),
                 _localization.GetFormated("raid_upkeep_cost_current", currentUpkeep)
             }, new SKPoint(_raidButtonRect.Right, TipY(_raidButtonRect.Top)));
@@ -471,12 +506,27 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         {
             _tooltipRenderer.SetTooltipLines(new[]
             {
+                _localization.Get("raid_action"),
                 _localization.Get("tooltip_raid"),
                 _localization.Get("raid_upkeep_cost")
             }, new SKPoint(_raidButtonRect.Right, TipY(_raidButtonRect.Top)));
         }
         else if (_hoveredWarHerald)
-            _tooltipRenderer.SetTooltip(_localization.Get("tooltip_warherald"), new SKPoint(_warHeraldButtonRect.Right, TipY(_warHeraldButtonRect.Top)));
+        {
+            _tooltipRenderer.SetTooltipLines(new[]
+            {
+                _localization.Get("warherald_action_short"),
+                _localization.Get("tooltip_warherald")
+            }, new SKPoint(_warHeraldButtonRect.Right, TipY(_warHeraldButtonRect.Top)));
+        }
+        else if (_hoveredLocateHero)
+        {
+            _tooltipRenderer.SetTooltipLines(new[]
+            {
+                _localization.Get("locate_hero_action"),
+                _localization.Get("tooltip_locate_hero")
+            }, new SKPoint(_locateHeroButtonRect.Right, TipY(_locateHeroButtonRect.Top)));
+        }
         else if (_hoveredPrestige && prestigeAvail && prestigeVisible)
         {
             _tooltipRenderer.SetTooltip(_localization.Get("tooltip_prestige_next_island"), new SKPoint(_prestigeButtonRect.Right, TipY(_prestigeButtonRect.Top)));
@@ -582,6 +632,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         _hoveredSpire       = !_spireButtonRect.IsEmpty       && _spireButtonRect.Contains(pos.X, py);
         _hoveredRaid        = !_raidButtonRect.IsEmpty        && _raidButtonRect.Contains(pos.X, py);
         _hoveredWarHerald   = !_warHeraldButtonRect.IsEmpty   && _warHeraldButtonRect.Contains(pos.X, py);
+        _hoveredLocateHero  = !_locateHeroButtonRect.IsEmpty  && _locateHeroButtonRect.Contains(pos.X, py);
         _hoveredRelocation  = !_relocationButtonRect.IsEmpty  && _relocationButtonRect.Contains(pos.X, py);
         _hoveredWalkOfGod   = !_walkOfGodButtonRect.IsEmpty   && _walkOfGodButtonRect.Contains(pos.X, py);
         _hoveredPresenceOfGod = !_presenceOfGodButtonRect.IsEmpty && _presenceOfGodButtonRect.Contains(pos.X, py);
@@ -700,6 +751,27 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
                     _targetSelectionService.EnterVertexSelection("warherald_select_target", allyTargets,
                         target => militaryController.StartWarHeraldRaid(playerCiv, target),
                         TargetSelectionTheme.Friendly);
+            }
+            return true;
+        }
+
+        if (!_locateHeroButtonRect.IsEmpty && _locateHeroButtonRect.Contains(pos.X, py))
+        {
+            var playerCiv = _gameControllerService.PlayerCivilization;
+            var guildCity = playerCiv != null ? GetAdventurersGuildCity(playerCiv) : null;
+            if (guildCity != null)
+            {
+                var activeAdventurer = _gameControllerService.CityBuildingService?.GetActiveAdventurer();
+                if (activeAdventurer != null)
+                {
+                    var (wx, wy) = HexToWorld(activeAdventurer.Position);
+                    _centerCameraOnMapPosition(activeAdventurer.Position.Z, wx, wy);
+                }
+                else
+                {
+                    var (wx, wy) = VertexToWorld(guildCity.Position);
+                    _centerCameraOnMapPosition(guildCity.Position.Z, wx, wy);
+                }
             }
             return true;
         }
@@ -947,6 +1019,43 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         catch { return false; }
     }
 
+    private static City? GetAdventurersGuildCity(Civilization civ)
+        => civ.Cities.FirstOrDefault(c => c.Buildings.OfType<AdventurersGuild>().Any(b => b.Level > 0));
+
+    private static (float x, float y) HexToWorld(HexCoord hex)
+    {
+        float sqrt3 = MathF.Sqrt(3f);
+        float x = GameConstants.HexSize * sqrt3 * (hex.Q + hex.R / 2f);
+        float y = GameConstants.HexSize * -3f / 2f * hex.R;
+        return (x, y);
+    }
+
+    private static (float x, float y) VertexToWorld(Vertex v)
+    {
+        var (x1, y1) = HexToWorld(v.Hex1);
+        var (x2, y2) = HexToWorld(v.Hex2);
+        var (x3, y3) = HexToWorld(v.Hex3);
+        return ((x1 + x2 + x3) / 3f, (y1 + y2 + y3) / 3f);
+    }
+
+    private void DrawIconButton(SKCanvas canvas, SKRect rect, SKSvg? svg, SKPaint bgPaint, float s)
+    {
+        canvas.DrawRoundRect(rect, 5f * s, 5f * s, bgPaint);
+        var picture = svg?.Picture;
+        if (picture == null || _iconTintPaint == null) return;
+
+        float iconSize = rect.Width * 0.6f;
+        float scale    = iconSize / IconSvgSize;
+        _iconTintPaint.ColorFilter = SKColorFilter.CreateBlendMode(SKColors.White, SKBlendMode.SrcIn);
+        canvas.Save();
+        canvas.Translate(rect.MidX - iconSize / 2f, rect.MidY - iconSize / 2f);
+        canvas.Scale(scale);
+        canvas.SaveLayer(new SKRect(0, 0, IconSvgSize, IconSvgSize), _iconTintPaint);
+        canvas.DrawPicture(picture);
+        canvas.Restore();
+        canvas.Restore();
+    }
+
     private bool IsRelocationVisible()
     {
         var civ = _gameControllerService.PlayerCivilization;
@@ -997,6 +1106,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         _rowLabelDimPaint?.Dispose();
         _btnRaidActivePaint?.Dispose();
         _btnRaidActiveHoverPaint?.Dispose();
+        _iconTintPaint?.Dispose();
         _sectionFont?.Dispose();
         _btnFont?.Dispose();
         _btnSmFont?.Dispose();

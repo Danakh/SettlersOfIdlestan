@@ -33,6 +33,7 @@ public sealed class OverlayRenderer : IGameRenderer
     private readonly RitualsRenderer _ritualsRenderer;
     private readonly AscensionRenderer _ascensionRenderer;
     private readonly TooltipRenderer _tooltipRenderer;
+    private readonly CameraService _cameraService;
     private readonly PlayerCivilizationPanelRenderer _playerCivPanel;
     private readonly SettlersOfIdlestanSkia.Renderers.Debug.HistoryTabRenderer? _historyRenderer;
     private readonly TabBarRenderer _tabBar;
@@ -76,6 +77,8 @@ public sealed class OverlayRenderer : IGameRenderer
         RitualsRenderer ritualsRenderer,
         AscensionRenderer ascensionRenderer,
         TooltipRenderer tooltipRenderer,
+        CameraService cameraService,
+        ResourceManager resourceManager,
         UILayoutService uiLayout,
         bool allowDebugMode = false,
         SettlersOfIdlestanSkia.Renderers.Debug.HistoryTabRenderer? historyRenderer = null)
@@ -100,6 +103,7 @@ public sealed class OverlayRenderer : IGameRenderer
         _ritualsRenderer                = ritualsRenderer;
         _ascensionRenderer              = ascensionRenderer;
         _tooltipRenderer                = tooltipRenderer;
+        _cameraService                  = cameraService;
         _historyRenderer                = historyRenderer;
 
         _tabBar          = new TabBarRenderer(localization, gameControllerService, uiLayout, allowDebugMode);
@@ -112,7 +116,9 @@ public sealed class OverlayRenderer : IGameRenderer
             tradeRenderer,
             prestigeRenderer,
             targetSelectionService: null,
-            tooltipRenderer);
+            tooltipRenderer,
+            resourceManager,
+            centerCameraOnMapPosition: CenterCameraOnMapPosition);
         _playerCivPanel.OnExpanded = () => { if (_uiLayout.TabsAtBottom) DeselectCityAndMonument(); };
         _playerCivPanel.LayoutService = uiLayout;
 
@@ -404,6 +410,21 @@ public sealed class OverlayRenderer : IGameRenderer
         worldState.CurrentViewedLayer = targetLayer.Value;
         if (targetLayer.Value == LayerState.UnderworldZ) worldState.HasVisitedUnderworld = true;
         DeselectCityAndMonument();
+    }
+
+    /// Switches to the tab matching layer <paramref name="z"/> and centers the camera on a world position within it.
+    private void CenterCameraOnMapPosition(int z, float worldX, float worldY)
+    {
+        int? tab = z switch
+        {
+            IslandMap.SurfaceLayer => TabBarRenderer.TabIsland,
+            LayerState.UnderworldZ => TabBarRenderer.TabUnderworld,
+            LayerState.AbyssZ      => TabBarRenderer.TabAbyss,
+            _ => null,
+        };
+        if (tab != null) _tabBar.SetActiveTab(tab.Value);
+        ApplyLayerForActiveTab();
+        _cameraService.CenterOn(worldX, worldY);
     }
 
     private SKRect GetGearRect()
