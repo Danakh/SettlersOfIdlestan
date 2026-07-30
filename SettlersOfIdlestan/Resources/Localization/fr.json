@@ -173,7 +173,7 @@
   "automation_mithrilmine_desc": "Construit/améliore les Mines de Mithril automatiquement toutes les 10s",
   "automation_mithrilmine_note": "L'ordre des villes améliorées est aléatoire.",
   "automation_mithrilmine_locked": "Nécessite la Forge Volcanique",
-  "automation_arcanetower_name": "Tours de Mages & Huttes d'Alchimie",
+  "automation_arcanetower_name": "Bâtiments magiques",
   "automation_arcanetower_desc": "Construit/améliore les Tours de Mages et les Huttes d'Alchimie automatiquement toutes les 10s",
   "automation_arcanetower_note": "L'ordre des villes améliorées est aléatoire.",
   "automation_arcanetower_locked": "Nécessite la Tour des Arcanes",

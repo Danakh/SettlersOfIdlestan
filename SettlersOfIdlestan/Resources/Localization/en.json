@@ -173,7 +173,7 @@
   "automation_mithrilmine_desc": "Auto-builds/upgrades Mithril Mines every 10s",
   "automation_mithrilmine_note": "The order of upgraded cities is random.",
   "automation_mithrilmine_locked": "Requires the Volcanic Forge",
-  "automation_arcanetower_name": "Mage Towers & Alchemist Huts",
+  "automation_arcanetower_name": "Magic Buildings",
   "automation_arcanetower_desc": "Auto-builds/upgrades Mage Towers and Alchemist Huts every 10s",
   "automation_arcanetower_note": "The order of upgraded cities is random.",
   "automation_arcanetower_locked": "Requires the Arcane Tower",
