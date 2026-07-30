@@ -48,6 +48,7 @@ public enum GameEventType
     AdventurerDiscovered,
     AdventurerDefeated,
     RaidMissingBarracks,
+    WarHeraldAutoReinforcementConflict,
     VolcanoDiscovered,
     DivineBonesPurified,
     DivineBonesPurifiedNoEssence,
