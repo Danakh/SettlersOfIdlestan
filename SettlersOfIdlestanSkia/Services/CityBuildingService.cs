@@ -198,6 +198,10 @@ public class CityBuildingService
         return Math.Max(1L, (long)(MilitaryController.SoldierProductionIntervalTicks / civ.UnitProductionSpeed));
     }
 
+    /// <summary>Aventurier actuellement en vie (Guilde des Aventuriers), toutes civilisations confondues (bâtiment unique), ou null si aucun.</summary>
+    public SettlersOfIdlestan.Model.Monsters.Adventurer? GetActiveAdventurer() =>
+        State.Features.OfType<SettlersOfIdlestan.Model.Monsters.Adventurer>().FirstOrDefault();
+
     /// <summary>Cooldown effectif du cycle de la Fonderie de la civilisation sélectionnée.</summary>
     public long GetSmelterEffectiveCooldown()
     {

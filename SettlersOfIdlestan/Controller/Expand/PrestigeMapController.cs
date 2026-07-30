@@ -96,6 +96,11 @@ public class PrestigeMapController
         foreach (var city in civ.Cities)
             foreach (var bt in civ.ModifierAggregator.GetGrantedBuildingTypes(ECategory.NEW_CITY_BUILDING))
                 GrantBuildingToCity(WorldState, city, bt);
+
+        // InitializeControllersForCurrentIsland() computes the initial visibility cache before this
+        // method grants buildings (e.g. a free Watchtower) to the starting city — refresh it here so
+        // the extended vision radius takes effect immediately instead of staying stuck at radius 1.
+        WorldState.Visibility.RecalculateFor(civ.Index);
     }
 
     private static void GrantBuildingToCity(WorldState worldState, City city, BuildingType bt)

@@ -479,6 +479,24 @@ public class SelectedCityPanelRenderer : PanelRendererBase
                     tooltipLines.Add("");
                 }
 
+                if (hoveredBuilding is AdventurersGuild adventurersGuild && adventurersGuild.Level > 0)
+                {
+                    var activeAdventurer = _cityBuildingService.GetActiveAdventurer();
+                    if (activeAdventurer != null)
+                    {
+                        tooltipLines.Add(_localization.GetFormated("adventurersguild_current_hp",
+                            activeAdventurer.Hp, SettlersOfIdlestan.Model.Monsters.Adventurer.AdventurerMaxHp));
+                    }
+                    else
+                    {
+                        long currentTick = _cityBuildingService.GetCurrentTick();
+                        long elapsed = adventurersGuild.LastAdventurerSpawnTick == 0 ? long.MaxValue : currentTick - adventurersGuild.LastAdventurerSpawnTick;
+                        long remaining = Math.Max(0, AdventurersGuild.AdventurerRespawnCooldownTicks - elapsed);
+                        tooltipLines.Add(_localization.Get("adventurersguild_respawn_cooldown") + $" {remaining / 100.0:0.0}s");
+                    }
+                    tooltipLines.Add("");
+                }
+
                 if (hoveredBuilding is Mine && hoveredBuilding.Level > 0)
                 {
                     int goldChance = _cityBuildingService.GetSelectedCivilizationMineGoldChancePercent();

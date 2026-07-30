@@ -1204,6 +1204,8 @@
   "volcanicforge_mithril_bonus": "+{0}% récolte de Mithril (Mines de Mithril)",
   "building_adventurersguild_name": "Guilde des Aventuriers",
   "building_adventurersguild_desc": "Bâtiment unique de l'Inframonde. Fait apparaître un Aventurier qui combat les monstres errants (jamais les villes) ; un autre prend sa place à sa mort.",
+  "adventurersguild_current_hp": "Aventurier actuel : {0}/{1} PV",
+  "adventurersguild_respawn_cooldown": "Prochain aventurier :",
   "alchimisthut_potion_cooldown": "Prochaine potion :",
   "alchimisthut_potion_costs": "Coût : {0} Verre + {1} Cristal ► 1 Potion de Soin par cycle",
   "tab_rituals": "Rituels",

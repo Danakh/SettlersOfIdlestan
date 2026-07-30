@@ -1204,6 +1204,8 @@
   "volcanicforge_mithril_bonus": "+{0}% Mithril harvest (Mithril Mines)",
   "building_adventurersguild_name": "Adventurers' Guild",
   "building_adventurersguild_desc": "Unique Underworld building. Sends out an Adventurer who fights wandering monsters (never cities); another takes their place when they die.",
+  "adventurersguild_current_hp": "Current Adventurer: {0}/{1} HP",
+  "adventurersguild_respawn_cooldown": "Next Adventurer:",
   "alchimisthut_potion_cooldown": "Next potion:",
   "alchimisthut_potion_costs": "Cost: {0} Glass + {1} Crystal ► 1 Healing Potion per cycle",
   "tab_rituals": "Rituals",
