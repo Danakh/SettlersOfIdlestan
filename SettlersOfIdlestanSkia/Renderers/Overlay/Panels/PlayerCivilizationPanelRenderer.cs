@@ -89,7 +89,6 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
     private SKSvg? _attackIconSvg;
     private SKSvg? _defenseIconSvg;
     private SKSvg? _heroIconSvg;
-    private SKSvg? _tradeIconSvg;
 
     // CivPanel-specific paints
     private SKPaint? _sectionTitlePaint;
@@ -146,7 +145,6 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         _attackIconSvg  = _resourceManager.LoadImage("Resources.icons.military.attack.svg");
         _defenseIconSvg = _resourceManager.LoadImage("Resources.icons.military.defense.svg");
         _heroIconSvg    = _resourceManager.LoadImage("Resources.icons.military.hero-armor.svg");
-        _tradeIconSvg   = _resourceManager.LoadImage("Resources.icons.military.tradeship.svg");
     }
 
     public void ConnectTargetSelectionService(TargetSelectionService service)
@@ -336,7 +334,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             if (tradeVisible)
             {
                 _tradeButtonRect = new SKRect(iconRight - iconBtnSize, iconY, iconRight, iconY + iconBtnSize);
-                DrawIconButton(canvas, _tradeButtonRect, _tradeIconSvg, _hoveredTrade ? _btnHoverPaint! : _btnPaint!, s);
+                DrawIconButtonChar(canvas, _tradeButtonRect, "💰", _hoveredTrade ? _btnHoverPaint! : _btnPaint!, s);
                 iconRight -= iconBtnSize + iconGap;
             }
 
@@ -1061,6 +1059,13 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         canvas.DrawPicture(picture);
         canvas.Restore();
         canvas.Restore();
+    }
+
+    private void DrawIconButtonChar(SKCanvas canvas, SKRect rect, string glyph, SKPaint bgPaint, float s)
+    {
+        canvas.DrawRoundRect(rect, 5f * s, 5f * s, bgPaint);
+        using var font = new SKFont { Size = rect.Height * 0.6f, Typeface = SkiaFonts.Emoji };
+        SkiaTextUtils.DrawText(canvas, glyph, rect.MidX, rect.MidY + font.Size * 0.35f, SKTextAlign.Center, font, TextPaint);
     }
 
     private bool IsRelocationVisible()

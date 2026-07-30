@@ -23,7 +23,7 @@ public class ArcaneTower : Building, IUniqueBuilding
     public long GetAutoMagicCooldownTicks() => 1000L;
 
     public override bool HasBuildPrerequisites(IBuildingContext city) =>
-        city.Buildings.Any(b => b.Type == BuildingType.MageTower && b.Level >= 1);
+        city.Buildings.Any(b => b.Type == BuildingType.MageTower && b.Level >= 4);
 
     public override string? GetMissingPrerequisiteKey(IBuildingContext city) =>
         HasBuildPrerequisites(city) ? null : "tooltip_requires_mage_tower";

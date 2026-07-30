@@ -238,7 +238,7 @@
   "building_arcanetower_desc": "Bâtiment unique. Automatise la construction/amélioration des Tours de Mages et des Huttes d'Alchimie, et réduit de 25% le coût d'entretien des rituels. Nécessite une Tour de Mages niveau 1 dans la ville.",
   "building_arcanetower_desc_1": "Construit/améliore les Tours de Mages et Huttes d'Alchimie automatiquement toutes les 10s. -25% de coût d'entretien des rituels.",
   "tooltip_requires_temple_level1": "⚠ Nécessite un Temple niveau 1 dans cette ville",
-  "tooltip_requires_mage_tower": "⚠ Nécessite une Tour de Mages niveau 1 dans cette ville",
+  "tooltip_requires_mage_tower": "⚠ Nécessite une Tour de Mages niveau 4 dans cette ville",
   "tooltip_requires_10_temples": "⚠ Nécessite au moins 10 Temples construits dans la civilisation",
   "building_academy_name": "Académie",
   "building_academy_desc": "Bâtiment unique. Automatise la construction des bâtiments scientifiques, augmente la vitesse de génération des points de recherche de 10% par niveau, double la vitesse d'investissement des points de recherche (+100%) et améliore de 12,5% par niveau la récupération de points lors de l'annulation d'une recherche.",

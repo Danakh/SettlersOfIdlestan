@@ -238,7 +238,7 @@
   "building_arcanetower_desc": "Unique building. Automates construction/upgrades of Mage Towers and Alchemist Huts, and reduces ritual upkeep cost by 25%. Requires a level 1 Mage Tower in the city.",
   "building_arcanetower_desc_1": "Auto-builds/upgrades Mage Towers and Alchemist Huts every 10s. -25% ritual upkeep cost.",
   "tooltip_requires_temple_level1": "⚠ Requires a level 1 Temple in this city",
-  "tooltip_requires_mage_tower": "⚠ Requires a level 1 Mage Tower in this city",
+  "tooltip_requires_mage_tower": "⚠ Requires a level 4 Mage Tower in this city",
   "tooltip_requires_10_temples": "⚠ Requires at least 10 Temples built in the civilization",
   "building_academy_name": "Academy",
   "building_academy_desc": "Unique building. Automates scientific building construction, increases research point production speed by 10% per level, doubles research investment speed (+100%), and improves the research cancel refund rate by 12.5% per level.",
