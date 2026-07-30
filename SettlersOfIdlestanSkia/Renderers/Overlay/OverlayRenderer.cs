@@ -317,6 +317,29 @@ public sealed class OverlayRenderer : IGameRenderer
             }
         }
 
+        // Le minerai consommé par la production de soldats (Casernes) est calculé par le MilitaryController
+        // (source de vérité pour tout ce qui touche aux Casernes) plutôt que par le HarvestController. On
+        // affiche toujours cette ligne dès qu'une Caserne existe, même à 0/s (ville au plafond de soldats) —
+        // sinon la ligne apparaît/disparaît sans arrêt dans l'infobulle au fil des cycles de production.
+        if (hoveredResource.Value == SettlersOfIdlestan.Model.IslandMap.Resource.Ore
+            && controller.MilitaryController.HasAnySoldierProductionBuilding(civIndex))
+        {
+            double soldierOreRate = controller.MilitaryController.GetSoldierProductionOreRate(civIndex);
+            if (!lossesBySource.TryGetValue(SettlersOfIdlestan.Model.IslandMap.Resource.Ore, out var oreLosses))
+                lossesBySource[SettlersOfIdlestan.Model.IslandMap.Resource.Ore] = oreLosses = new System.Collections.Generic.List<(string SourceKey, double Rate)>();
+            oreLosses.Add((SettlersOfIdlestan.Controller.Military.MilitaryController.SoldierProductionOreSourceKey, soldierOreRate));
+        }
+
+        // Même logique pour l'Acier consommé par la production de soldats des Arsenaux actifs.
+        if (hoveredResource.Value == SettlersOfIdlestan.Model.IslandMap.Resource.Steel
+            && controller.MilitaryController.HasAnyArsenalProductionBuilding(civIndex))
+        {
+            double arsenalSteelRate = controller.MilitaryController.GetArsenalProductionSteelRate(civIndex);
+            if (!lossesBySource.TryGetValue(SettlersOfIdlestan.Model.IslandMap.Resource.Steel, out var steelLosses))
+                lossesBySource[SettlersOfIdlestan.Model.IslandMap.Resource.Steel] = steelLosses = new System.Collections.Generic.List<(string SourceKey, double Rate)>();
+            steelLosses.Add((SettlersOfIdlestan.Controller.Military.MilitaryController.ArsenalProductionSteelSourceKey, arsenalSteelRate));
+        }
+
         gainsBySource.TryGetValue(hoveredResource.Value, out var gains);
         lossesBySource.TryGetValue(hoveredResource.Value, out var losses);
         gains ??= new System.Collections.Generic.List<(string SourceKey, double Rate)>();

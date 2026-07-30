@@ -74,6 +74,53 @@ internal class SoldierProductionEngine
     }
 
     /// <summary>
+    /// Production de soldats par les Arsenaux actifs — voir <see cref="Modifier.ECategory.UNLOCK_ARSENAL_PRODUCTION"/>
+    /// (vertex de prestige Production Accélérée) : 2 soldats pour 1 Acier consommé par cycle. Contrairement
+    /// aux Casernes (<see cref="ProduceSoldiers"/>), un Arsenal désactivé ne produit jamais, même sous le
+    /// quota gratuit (SOLDIER_FOOD_FREE_PER_CITY) — l'activation est un choix explicite du joueur vu le
+    /// coût en Acier, une ressource par ailleurs utilisée pour les Armures/Armes d'Acier.
+    /// </summary>
+    internal void ProduceArsenalSoldiers(long currentTick)
+    {
+        if (_state == null) return;
+
+        foreach (var civ in _state.Civilizations)
+        {
+            if (!civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_ARSENAL_PRODUCTION)) continue;
+
+            foreach (var city in civ.Cities)
+            {
+                int room = GetMaximumSoldierCapacity(city) - city.Soldiers - city.IncomingSoldiers.Count;
+                if (room <= 0) continue;
+
+                long effectiveProductionInterval = (long)(MilitaryController.SoldierProductionIntervalTicks / civ.UnitProductionSpeed);
+                if (currentTick - city.LastArsenalProductionTick < effectiveProductionInterval) continue;
+
+                var arsenal = city.Buildings.OfType<Arsenal>().FirstOrDefault(a => a.Level >= 1);
+                if (arsenal == null || arsenal.ActivationStatus != ActivationStatus.ACTIVE) continue;
+
+                if (civ.GetResourceQuantity(Resource.Steel) < Arsenal.SteelInputPerCycle)
+                {
+                    civ.RaiseLowStock(Resource.Steel);
+                    continue;
+                }
+
+                civ.RemoveResource(Resource.Steel, Arsenal.SteelInputPerCycle);
+                city.Soldiers += Math.Min(Arsenal.SoldiersProducedPerCycle, room);
+                city.LastArsenalProductionTick = currentTick;
+
+                if (civ.Index == _state.PlayerCivilization.Index)
+                {
+                    int steelQty = civ.GetResourceQuantity(Resource.Steel);
+                    int steelMax = civ.GetResourceMaxQuantity(Resource.Steel);
+                    if (steelMax > 0 && steelQty * 10 <= steelMax)
+                        civ.RaiseLowStock(Resource.Steel);
+                }
+            }
+        }
+    }
+
+    /// <summary>
     /// Consommation de nourriture par les soldats de tous les emplacements militaires (villes et
     /// flottes — voir IMilitaryVertex) : un garnison de flotte affamée perd des soldats exactement
     /// comme une ville.

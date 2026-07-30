@@ -12,10 +12,19 @@ public class Arsenal : Building
     /// <summary>Chance (en %) additionnelle par niveau d'Arsenal de sauver un soldat perdu dans cette ville.</summary>
     public const int ArmorSavePercentPerLevel = 5;
 
+    /// <summary>Soldats produits par cycle par un Arsenal actif, pour <see cref="SteelInputPerCycle"/> Acier consommé — voir SoldierProductionEngine.ProduceArsenalSoldiers. Nécessite le vertex de prestige Production Accélérée (UNLOCK_ARSENAL_PRODUCTION).</summary>
+    public const int SoldiersProducedPerCycle = 2;
+
+    /// <summary>Acier consommé par cycle de production de soldats.</summary>
+    public const int SteelInputPerCycle = 1;
+
     public Arsenal() : base(BuildingType.Arsenal)
     {
         AvailableAtLevel = 3;
-        ActivationStatus = ActivationStatus.NON_ACTIVABLE;
+        // Activable comme les autres bâtiments de production (Caserne, Fonderie, ...) ; la production
+        // elle-même reste gatée par le vertex de prestige Production Accélérée (UNLOCK_ARSENAL_PRODUCTION),
+        // voir SoldierProductionEngine.ProduceArsenalSoldiers.
+        ActivationStatus = ActivationStatus.ACTIVE;
     }
 
     // Verrouillé par défaut ; débloqué par le vertex de prestige Génie Militaire (+3 niveaux max)

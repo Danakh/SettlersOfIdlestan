@@ -462,7 +462,7 @@ public static class PrestigeMapFactory
                 PrestigeMap.OuterRuinsVertex,
                 "prestige_vertex_outer_ruins",
                 cost: Cost(PrestigeMap.OuterRuinsVertex),
-                modifiers: new Modifier[] { new(ECategory.UNIT_PRODUCTION_SPEED, EType.ADDITIVE, 0.1) }
+                modifiers: new Modifier[] { new(ECategory.UNLOCK_ARSENAL_PRODUCTION, EType.ADDITIVE, 1) }
             ),
             new(
                 PrestigeMap.CollapsedWallVertex,

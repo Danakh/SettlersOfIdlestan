@@ -52,6 +52,11 @@ public class City : IBuildingContext, IMilitaryVertex
     public long LastSoldierProductionTick { get; set; }
 
     /// <summary>
+    /// Tick de la dernière production de soldats par l'Arsenal de cette ville (voir SoldierProductionEngine.ProduceArsenalSoldiers).
+    /// </summary>
+    public long LastArsenalProductionTick { get; set; }
+
+    /// <summary>
     /// Tick du dernier point de régénération de défense.
     /// </summary>
     public long LastDefenseRegenTick { get; set; }

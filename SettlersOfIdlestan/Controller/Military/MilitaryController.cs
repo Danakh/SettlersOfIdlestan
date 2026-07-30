@@ -107,20 +107,120 @@ public class MilitaryController
         => _productionEngine.GetMaximumSoldierCapacity(vertex);
 
     /// <summary>
-    /// Soldats produits par seconde (0 si pas de Caserne active au niveau minimum — une Flotte de
-    /// Guerre n'a pas de bâtiment, voir WarFleet, donc toujours 0). Tient compte du modificateur
-    /// UnitProductionSpeed de la civilisation.
+    /// Soldats produits par seconde par les Casernes et Arsenaux actifs de la ville (0 pour une Flotte
+    /// de Guerre, voir WarFleet, qui n'a pas de bâtiment). Tient compte du modificateur UnitProductionSpeed
+    /// de la civilisation ; l'Arsenal produit <see cref="Arsenal.SoldiersProducedPerCycle"/> soldats par
+    /// cycle (au lieu de 1) et nécessite le vertex de prestige Production Accélérée (UNLOCK_ARSENAL_PRODUCTION).
     /// </summary>
     public double GetSoldierProductionRate(IMilitaryVertex vertex)
     {
         if (vertex is not City city) return 0;
-        var barracks = city.Buildings.OfType<Barracks>()
-            .FirstOrDefault(b => b.ActivationStatus == ActivationStatus.ACTIVE && b.Level >= SoldierProductionEngine.SoldierProductionMinLevel);
-        if (barracks == null) return 0;
         var civ = _state?.Civilizations.FirstOrDefault(c => c.Index == city.CivilizationIndex);
         if (civ == null) return 0;
+
         const double ticksPerSecond = 100.0;
-        return civ.UnitProductionSpeed * ticksPerSecond / SoldierProductionIntervalTicks;
+        double perCycleRate = civ.UnitProductionSpeed * ticksPerSecond / SoldierProductionIntervalTicks;
+
+        double rate = 0;
+        var barracks = city.Buildings.OfType<Barracks>()
+            .FirstOrDefault(b => b.ActivationStatus == ActivationStatus.ACTIVE && b.Level >= SoldierProductionEngine.SoldierProductionMinLevel);
+        if (barracks != null) rate += perCycleRate;
+
+        var arsenal = city.Buildings.OfType<Arsenal>().FirstOrDefault(a => a.Level >= 1);
+        if (arsenal != null && arsenal.ActivationStatus == ActivationStatus.ACTIVE
+            && civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_ARSENAL_PRODUCTION))
+            rate += perCycleRate * Arsenal.SoldiersProducedPerCycle;
+
+        return rate;
+    }
+
+    /// <summary>Clé de source pour le minerai consommé par la production de soldats (Caserne), pour l'infobulle de ressource.</summary>
+    public const string SoldierProductionOreSourceKey = "tooltip_source_soldier_production";
+
+    /// <summary>
+    /// Minerai/seconde consommé par la production automatique de soldats (Casernes), toutes villes de
+    /// la civilisation confondues. Reflète les mêmes conditions que <see cref="SoldierProductionEngine.ProduceSoldiers"/> —
+    /// une ville au plafond de soldats (elle et ses renforts en transit compris), ou sans Caserne active
+    /// (hors quota gratuit sous <see cref="ECategory.SOLDIER_FOOD_FREE_PER_CITY"/>), ne compte pas : la
+    /// consommation est basée sur le fait que chaque Caserne éligible est en train de tourner son cooldown
+    /// de production (et va donc consommer 1 minerai à la fin de celui-ci), pas sur une prédiction de
+    /// disponibilité future du minerai lui-même.
+    /// </summary>
+    public double GetSoldierProductionOreRate(int civilizationIndex)
+    {
+        var civ = _state?.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex);
+        if (civ == null) return 0;
+
+        int freePerCity = (int)civ.ModifierAggregator.ApplyModifiers(ECategory.SOLDIER_FOOD_FREE_PER_CITY, "", 0.0);
+        const double ticksPerSecond = 100.0;
+        double total = 0;
+
+        foreach (var city in civ.Cities)
+        {
+            if (city.Soldiers + city.IncomingSoldiers.Count >= GetMaximumSoldierCapacity(city)) continue;
+
+            var barracks = city.Buildings.OfType<Barracks>()
+                .FirstOrDefault(b => b.Level >= SoldierProductionEngine.SoldierProductionMinLevel);
+            if (barracks == null) continue;
+            if (barracks.ActivationStatus != ActivationStatus.ACTIVE && city.Soldiers >= freePerCity) continue;
+
+            total += civ.UnitProductionSpeed * ticksPerSecond / SoldierProductionIntervalTicks;
+        }
+
+        return total;
+    }
+
+    /// <summary>
+    /// Vrai si la civilisation possède au moins une Caserne construite au niveau minimum de production,
+    /// active ou non. Sert à afficher la ligne de consommation de minerai des Casernes même à 0/s (une
+    /// ville au plafond de soldats ne doit pas faire disparaître la ligne de l'infobulle).
+    /// </summary>
+    public bool HasAnySoldierProductionBuilding(int civilizationIndex)
+    {
+        var civ = _state?.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex);
+        if (civ == null) return false;
+        return civ.Cities.Any(c => c.Buildings.OfType<Barracks>().Any(b => b.Level >= SoldierProductionEngine.SoldierProductionMinLevel));
+    }
+
+    /// <summary>Clé de source pour l'Acier consommé par la production de soldats (Arsenal), pour l'infobulle de ressource.</summary>
+    public const string ArsenalProductionSteelSourceKey = "tooltip_source_arsenal_production";
+
+    /// <summary>
+    /// Acier/seconde consommé par la production automatique de soldats des Arsenaux actifs, toutes villes
+    /// de la civilisation confondues. Reflète les mêmes conditions que <see cref="SoldierProductionEngine.ProduceArsenalSoldiers"/> —
+    /// contrairement aux Casernes, un Arsenal désactivé ne compte jamais (pas d'exception sous le quota gratuit).
+    /// </summary>
+    public double GetArsenalProductionSteelRate(int civilizationIndex)
+    {
+        var civ = _state?.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex);
+        if (civ == null || !civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_ARSENAL_PRODUCTION)) return 0;
+
+        const double ticksPerSecond = 100.0;
+        double total = 0;
+
+        foreach (var city in civ.Cities)
+        {
+            if (city.Soldiers + city.IncomingSoldiers.Count >= GetMaximumSoldierCapacity(city)) continue;
+
+            var arsenal = city.Buildings.OfType<Arsenal>().FirstOrDefault(a => a.Level >= 1);
+            if (arsenal == null || arsenal.ActivationStatus != ActivationStatus.ACTIVE) continue;
+
+            total += Arsenal.SteelInputPerCycle * civ.UnitProductionSpeed * ticksPerSecond / SoldierProductionIntervalTicks;
+        }
+
+        return total;
+    }
+
+    /// <summary>
+    /// Vrai si la civilisation possède au moins un Arsenal construit et actif, et que la production
+    /// d'Arsenal est déverrouillée (vertex de prestige Production Accélérée). Sert à afficher la ligne
+    /// de consommation d'Acier des Arsenaux même à 0/s (une ville au plafond de soldats).
+    /// </summary>
+    public bool HasAnyArsenalProductionBuilding(int civilizationIndex)
+    {
+        var civ = _state?.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex);
+        if (civ == null || !civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_ARSENAL_PRODUCTION)) return false;
+        return civ.Cities.Any(c => c.Buildings.OfType<Arsenal>().Any(a => a.Level >= 1 && a.ActivationStatus == ActivationStatus.ACTIVE));
     }
 
     /// <summary>Points de défense régénérés par seconde (0 si aucune défense max).</summary>
@@ -203,6 +303,7 @@ public class MilitaryController
         if (_state == null) return;
         _reinforcementEngine.ResolveArrivals(currentTick);
         _productionEngine.ProduceSoldiers(currentTick);
+        _productionEngine.ProduceArsenalSoldiers(currentTick);
         _productionEngine.ResolveSoldierFeeding(currentTick);
         _monsterCombatEngine.ResolveMonsterCombat(currentTick,
             args => SoldierAttackedMonster?.Invoke(this, args));

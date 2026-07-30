@@ -209,6 +209,8 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             PRESTIGE_GAIN_RACE,
             /// <summary>Dégâts par seconde infligés automatiquement à tout monstre présent sur l'un des 3 hexes adjacents à une ville possédant un Temple (niveau ≥ 1). Base = 0. Accordé par le rituel Lumière des Profondeurs.</summary>
             TEMPLE_MONSTER_DAMAGE_PER_SECOND,
+            /// <summary>Flags que les Arsenaux peuvent être activés/désactivés et, une fois actifs, produisent 2 soldats pour 1 Acier consommé par cycle (voir SoldierProductionEngine.ProduceArsenalSoldiers). Contrairement aux Casernes, aucune production n'a lieu si l'Arsenal est désactivé, même sous le quota gratuit (SOLDIER_FOOD_FREE_PER_CITY).</summary>
+            UNLOCK_ARSENAL_PRODUCTION,
         }
 
         [JsonConverter(typeof(JsonStringEnumConverter<EType>))]
