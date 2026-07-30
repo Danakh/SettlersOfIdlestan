@@ -345,7 +345,12 @@ namespace SettlersOfIdlestan.Controller.Island
                     if (currentTick - smelter.LastProductionTick < GetEffectiveSmelterCooldown(civ, smelter)) continue;
 
                     bool steelFull = civ.GetResourceQuantity(Resource.Steel) >= civ.GetResourceMaxQuantity(Resource.Steel);
-                    if (steelFull && !IsAutoMarketTradeUnlocked(civ, city, Resource.Steel)) continue;
+                    if (steelFull)
+                    {
+                        if (!IsAutoMarketTradeUnlocked(civ, city, Resource.Steel)) continue;
+                        TryAutoTradeOnOverflow(civ, city, Resource.Steel);
+                        if (civ.GetResourceQuantity(Resource.Steel) >= civ.GetResourceMaxQuantity(Resource.Steel)) continue;
+                    }
 
                     int oreInput = GetSmelterOreInput(civ);
                     if (civ.GetResourceQuantity(Resource.Ore) < oreInput)
