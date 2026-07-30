@@ -89,6 +89,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
     private SKSvg? _attackIconSvg;
     private SKSvg? _defenseIconSvg;
     private SKSvg? _heroIconSvg;
+    private SKSvg? _tradeIconSvg;
 
     // CivPanel-specific paints
     private SKPaint? _sectionTitlePaint;
@@ -145,6 +146,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         _attackIconSvg  = _resourceManager.LoadImage("Resources.icons.military.attack.svg");
         _defenseIconSvg = _resourceManager.LoadImage("Resources.icons.military.defense.svg");
         _heroIconSvg    = _resourceManager.LoadImage("Resources.icons.military.hero-armor.svg");
+        _tradeIconSvg   = _resourceManager.LoadImage("Resources.icons.military.tradeship.svg");
     }
 
     public void ConnectTargetSelectionService(TargetSelectionService service)
@@ -230,8 +232,8 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
 
         // Single source of truth for the action-button count — reused for both the
         // panel height measurement and the button-grid layout so they can't drift apart.
-        // Raid / War Herald / Locate Hero are drawn as small icon buttons on the title row, not in this grid.
-        int actionCount = (tradeVisible ? 1 : 0) + (prestigeVisible ? 1 : 0) + (wonderVisible ? 1 : 0) + (greatLighthouseVisible ? 1 : 0) + (deepestMineVisible ? 1 : 0) + (spireVisible ? 1 : 0) + (relocationVisible ? 1 : 0) + (walkOfGodVisible ? 1 : 0) + (presenceOfGodVisible ? 1 : 0);
+        // Trade / Raid / War Herald / Locate Hero are drawn as small icon buttons on the title row, not in this grid.
+        int actionCount = (prestigeVisible ? 1 : 0) + (wonderVisible ? 1 : 0) + (greatLighthouseVisible ? 1 : 0) + (deepestMineVisible ? 1 : 0) + (spireVisible ? 1 : 0) + (relocationVisible ? 1 : 0) + (walkOfGodVisible ? 1 : 0) + (presenceOfGodVisible ? 1 : 0);
 
         _tradeButtonRect = _prestigeButtonRect = _wonderButtonRect = _greatLighthouseButtonRect = _deepestMineButtonRect = _spireButtonRect = _raidButtonRect = _warHeraldButtonRect = _locateHeroButtonRect = _relocationButtonRect = _walkOfGodButtonRect = _presenceOfGodButtonRect = SKRect.Empty;
         _pinnedItemRects.Clear();
@@ -331,6 +333,12 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
                 DrawIconButton(canvas, _raidButtonRect, _attackIconSvg, raidIconBg, s);
                 iconRight -= iconBtnSize + iconGap;
             }
+            if (tradeVisible)
+            {
+                _tradeButtonRect = new SKRect(iconRight - iconBtnSize, iconY, iconRight, iconY + iconBtnSize);
+                DrawIconButton(canvas, _tradeButtonRect, _tradeIconSvg, _hoveredTrade ? _btnHoverPaint! : _btnPaint!, s);
+                iconRight -= iconBtnSize + iconGap;
+            }
 
             y += titleHeight;
 
@@ -348,13 +356,6 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
                 float bx      = x + col * (colW + colGap);
                 float by      = actionsY + row * (btnHeight + btnSpacing);
                 return new SKRect(bx, by, bx + bw, by + btnHeight);
-            }
-
-            if (tradeVisible)
-            {
-                _tradeButtonRect = BtnRect(btnIdx++);
-                canvas.DrawRoundRect(_tradeButtonRect, 6 * s, 6 * s, _hoveredTrade ? _btnHoverPaint : _btnPaint);
-                SkiaTextUtils.DrawText(canvas, _localization.Get("trade_action"), _tradeButtonRect.MidX, _tradeButtonRect.MidY + 4f * s, SKTextAlign.Center, _btnSmFont, TextPaint);
             }
 
             if (prestigeVisible)
@@ -491,7 +492,13 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         // Tooltips — set each frame so they persist while hovering
         float TipY(float contentY) => _needsScroll ? contentY - _scrollOffsetPx : contentY;
         if (_hoveredTrade)
-            _tooltipRenderer.SetTooltip(_localization.Get("tooltip_trade"), new SKPoint(_tradeButtonRect.Right, TipY(_tradeButtonRect.Top)));
+        {
+            _tooltipRenderer.SetTooltipLines(new[]
+            {
+                _localization.Get("trade_action"),
+                _localization.Get("tooltip_trade")
+            }, new SKPoint(_tradeButtonRect.Right, TipY(_tradeButtonRect.Top)));
+        }
         else if (_hoveredRaid && raidActive)
         {
             int currentUpkeep = worldState?.AutomationSettings.RaidCurrentUpkeep ?? 0;
