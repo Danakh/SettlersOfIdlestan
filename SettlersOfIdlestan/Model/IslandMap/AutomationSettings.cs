@@ -88,6 +88,19 @@ public class AutomationSettings
     [JsonIgnore] public bool IsMonumentInvestmentAutomationActive => Active(MonumentInvestmentAutomationEnabled);
 
     /// <summary>
+    /// Restreint la production des Casernes du layer indexé (Z de LayerState — 0 = surface,
+    /// LayerState.UnderworldZ, LayerState.AbyssZ) au quota de soldats nourris gratuitement
+    /// (Modifier.ECategory.SOLDIER_FOOD_FREE_PER_CITY), même quand elles sont actives — voir
+    /// SoldierProductionEngine.ProduceSoldiers. Un layer non présent dans le dictionnaire équivaut
+    /// à false. Réglage par layer non épinglable à l'écran de civilisation (pas de clé PinKeyXxx,
+    /// voir AutomationRenderer / PlayerCivilizationPanelRenderer).
+    /// </summary>
+    public Dictionary<int, bool> RestrictBarracksToFreeSoldiersByLayer { get; set; } = new();
+
+    public bool IsRestrictBarracksToFreeSoldiersActive(int layerZ)
+        => Active(RestrictBarracksToFreeSoldiersByLayer.TryGetValue(layerZ, out var v) && v);
+
+    /// <summary>
     /// Obsolète : remplacé par GameSettings.PinnedCivPanelKeys (persiste entre îles/redémarrages).
     /// Conservé uniquement pour migrer les anciennes sauvegardes, voir MainGameController.InitializeControllersForCurrentIsland.
     /// </summary>

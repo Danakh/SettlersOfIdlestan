@@ -45,10 +45,14 @@ internal class SoldierProductionEngine
                     .FirstOrDefault(b => b.Level >= SoldierProductionMinLevel);
                 if (barracks == null) continue;
 
-                if (barracks.ActivationStatus != ActivationStatus.ACTIVE)
+                bool restrictedToFreeSoldiers = civ.Index == _state.PlayerCivilization.Index
+                    && _state.AutomationSettings.IsRestrictBarracksToFreeSoldiersActive(city.Position.Z);
+
+                if (barracks.ActivationStatus != ActivationStatus.ACTIVE || restrictedToFreeSoldiers)
                 {
-                    // Même désactivée, la Caserne continue à produire tant que la ville n'a pas
-                    // atteint son quota de soldats nourris gratuitement (SOLDIER_FOOD_FREE_PER_CITY).
+                    // Même désactivée (ou restreinte via AutomationSettings.RestrictBarracksToFreeSoldiersByLayer),
+                    // la Caserne continue à produire tant que la ville n'a pas atteint son quota de
+                    // soldats nourris gratuitement (SOLDIER_FOOD_FREE_PER_CITY).
                     int freePerCity = (int)civ.ModifierAggregator.ApplyModifiers(ECategory.SOLDIER_FOOD_FREE_PER_CITY, "", 0.0);
                     if (city.Soldiers >= freePerCity) continue;
                 }

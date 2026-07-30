@@ -440,6 +440,28 @@ public class SelectedCityPanelRenderer : PanelRendererBase
                     tooltipLines.Add("");
                 }
 
+                if (hoveredBuilding is VolcanicForge volcanicForge && volcanicForge.Level > 0)
+                {
+                    int glassBonus   = VolcanicForge.GlassGenerationPerLevel * volcanicForge.Level;
+                    int oreBonus     = VolcanicForge.OreHarvestBonusPerLevel * volcanicForge.Level;
+                    int steelBonus   = VolcanicForge.SteelBonusPerLevel * volcanicForge.Level;
+                    int mithrilBonus = VolcanicForge.MithrilHarvestBonusPerLevel * volcanicForge.Level;
+                    tooltipLines.Add(_localization.GetFormated("volcanicforge_glass_bonus", glassBonus));
+                    tooltipLines.Add(_localization.GetFormated("volcanicforge_ore_bonus", oreBonus));
+                    tooltipLines.Add(_localization.GetFormated("volcanicforge_steel_bonus", steelBonus));
+                    tooltipLines.Add(_localization.GetFormated("volcanicforge_mithril_bonus", mithrilBonus));
+                    if (!_cityBuildingService.IsAtMaxLevel(volcanicForge))
+                    {
+                        int nextLevel = volcanicForge.Level + 1;
+                        tooltipLines.Add(_localization.Get("tooltip_harvest_auto_next")
+                            + $" +{VolcanicForge.GlassGenerationPerLevel * nextLevel} " + _localization.Get("resource_glass")
+                            + $", +{VolcanicForge.OreHarvestBonusPerLevel * nextLevel}% " + _localization.Get("resource_ore")
+                            + $", +{VolcanicForge.SteelBonusPerLevel * nextLevel} " + _localization.Get("resource_steel")
+                            + $", +{VolcanicForge.MithrilHarvestBonusPerLevel * nextLevel}% " + _localization.Get("resource_mithril"));
+                    }
+                    tooltipLines.Add("");
+                }
+
                 if (hoveredBuilding is Forge forge && forge.Level > 0)
                 {
                     int forgeBonus  = _cityBuildingService.GetSelectedCivilizationForgeBonus(forge);
