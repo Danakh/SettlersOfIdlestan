@@ -235,8 +235,6 @@ internal class RaidEngine
     internal void Update(long currentTick)
     {
         if (_state == null) return;
-        if (currentTick - _lastRaidCheckTick < RaidCheckIntervalTicks) return;
-        _lastRaidCheckTick = currentTick;
 
         var target = _state.AutomationSettings.RaidTargetVertex;
         var targetHex = _state.AutomationSettings.RaidTargetHex;
@@ -244,6 +242,10 @@ internal class RaidEngine
 
         var playerCiv = _state.PlayerCivilization;
 
+        // La validité de la cible (existence, visibilité, flux d'attaque toujours actif) est vérifiée
+        // à chaque tick pour que le raid s'arrête dès que sa cible disparaît, au lieu d'attendre le
+        // prochain cycle de facturation d'upkeep — seuls le débit d'upkeep et la ré-application des
+        // flux restent limités à RaidCheckIntervalTicks.
         if (target != null)
         {
             var targetVertex = _state.Civilizations
@@ -264,6 +266,9 @@ internal class RaidEngine
                 return;
             }
 
+            if (currentTick - _lastRaidCheckTick < RaidCheckIntervalTicks) return;
+            _lastRaidCheckTick = currentTick;
+
             if (!PayUpkeep(playerCiv)) return;
             ApplyRaidFlows(playerCiv, target);
         }
@@ -282,6 +287,9 @@ internal class RaidEngine
                 StopRaid(playerCiv);
                 return;
             }
+
+            if (currentTick - _lastRaidCheckTick < RaidCheckIntervalTicks) return;
+            _lastRaidCheckTick = currentTick;
 
             if (!PayUpkeep(playerCiv)) return;
             ApplyMonsterRaidFlows(playerCiv, targetHex!.Value);
