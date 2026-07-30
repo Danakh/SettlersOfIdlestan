@@ -863,6 +863,10 @@ public sealed class GameScreen : IDisposable
                 _localizationService.Get("event_raid_missing_barracks_title"),
                 _localizationService.Get("event_raid_missing_barracks_body"),
                 NotificationIcon.StoreFail),
+            GameEventType.WarHeraldAutoReinforcementConflict => (
+                _localizationService.Get("event_war_herald_auto_reinforcement_conflict_title"),
+                _localizationService.Get("event_war_herald_auto_reinforcement_conflict_body"),
+                NotificationIcon.StoreFail),
             GameEventType.CorruptionSpireBuilt => (
                 _localizationService.Get("event_corruption_spire_built_title"),
                 _localizationService.Get("event_corruption_spire_built_body"),

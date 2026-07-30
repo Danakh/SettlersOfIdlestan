@@ -152,6 +152,17 @@ internal class RaidEngine
         }
         if (_state != null) _state.AutomationSettings.WarHeraldTargetVertex = target;
 
+        // L'auto-renfort (UpdateCivilizationReinforcementFlows, voir ReinforcementEngine.ResolvePlayerAutoReinforcement)
+        // tourne toutes les AutoReinforcementIntervalTicks (~1s) et redirige tout emplacement dont le
+        // flux actuel n'est plus une cible éligible — ce qui annule quasi immédiatement la redirection
+        // du War Herald tant que les deux automatisations sont actives en même temps.
+        if (_state != null
+            && _state.AutomationSettings.IsMilitaryReinforcementAutomationActive
+            && civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_AUTO_REINFORCEMENT))
+        {
+            _state.EventLog.Add(GameEventType.WarHeraldAutoReinforcementConflict, toast: true);
+        }
+
         int targetZ = target.Z;
         int reinforcementRange = _reinforcementEngine.ReinforcementRange(civ);
         var verticesInLayer = civ.MilitaryVertices.Where(v => v.Position.Z == targetZ).ToList();

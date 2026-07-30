@@ -258,6 +258,10 @@ public sealed class EventLogRenderer : IDisposable
             _warningCardPaint, _warningBorderPaint, _warningTextPaint,
             _localization.Get("event_raid_missing_barracks_title"),
             _localization.Get("event_raid_missing_barracks_body")),
+        GameEventType.WarHeraldAutoReinforcementConflict => (
+            _warningCardPaint, _warningBorderPaint, _warningTextPaint,
+            _localization.Get("event_war_herald_auto_reinforcement_conflict_title"),
+            _localization.Get("event_war_herald_auto_reinforcement_conflict_body")),
         GameEventType.AbyssGateEligible => (
             _rewardCardPaint, _rewardBorderPaint, _rewardTextPaint,
             _localization.Get("event_abyss_gate_eligible_title"),
