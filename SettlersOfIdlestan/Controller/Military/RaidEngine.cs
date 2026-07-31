@@ -76,7 +76,7 @@ internal class RaidEngine
         if (_state == null) return new List<HexCoord>();
         int currentLayer = _state.CurrentViewedLayer;
         return _state.Features.OfType<MonsterFeature>()
-            .Where(m => m.Found && m.Position.Z == currentLayer)
+            .Where(m => m.Found && m.Position.Z == currentLayer && m is not Adventurer)
             .Select(m => m.Position)
             .ToList();
     }

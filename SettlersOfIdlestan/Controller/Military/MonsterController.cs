@@ -100,8 +100,15 @@ public class MonsterFeatureController
 
             RegenHp(monster, currentTick);
 
+            // Un chasseur (Aventurier) déjà à portée d'une proie reste sur place pour combattre au
+            // lieu de se redéplacer : sinon, avec un intervalle de mouvement plus court que
+            // l'intervalle d'attaque, le mouvement se déclenche systématiquement avant l'attaque et
+            // celle-ci ne se produit jamais (le chasseur tourne autour de sa cible sans l'atteindre).
+            bool preyInRange = monster.AttacksOtherMonsters && monster.AttackRangeInHexes > 0 &&
+                HasPreyInRange(monster);
+
             bool moved = false;
-            if (monster.CanMove && currentTick - monster.LastMovedTick >= monster.MovementIntervalTicks)
+            if (!preyInRange && monster.CanMove && currentTick - monster.LastMovedTick >= monster.MovementIntervalTicks)
             {
                 MoveMonster(monster, currentTick);
                 moved = true;
@@ -145,16 +152,21 @@ public class MonsterFeatureController
             {
                 var guild = city.Buildings.OfType<AdventurersGuild>().FirstOrDefault(b => b.Level > 0);
                 if (guild == null) continue;
-                if (currentTick - guild.LastAdventurerSpawnTick < AdventurersGuild.AdventurerRespawnCooldownTicks) continue;
+                if (currentTick - guild.LastAdventurerDeathTick < AdventurersGuild.AdventurerRespawnCooldownTicks) continue;
 
-                guild.LastAdventurerSpawnTick = currentTick;
-                _state.AddFeature(new Adventurer(city.Position.GetHexes().First()));
+                _state.AddFeature(new Adventurer(city.Position.GetHexes().First()) { SpawnCityPosition = city.Position });
                 return;
             }
         }
     }
 
     // ── Combat contre les autres monstres (Aventurier) ───────────────────────
+
+    /// <summary>True si une proie valide (monstre errant vivant, hors autres chasseurs) est déjà à portée d'attaque.</summary>
+    private bool HasPreyInRange(MonsterFeature hunter) => _monsters.Any(m =>
+        m != hunter && !m.AttacksOtherMonsters && m.Hp > 0 &&
+        m.Position.HasSameZ(hunter.Position) &&
+        m.Position.DistanceTo(hunter.Position) <= hunter.AttackRangeInHexes);
 
     private void AttackNearbyMonster(MonsterFeature monster, long currentTick)
     {
@@ -163,9 +175,16 @@ public class MonsterFeatureController
         monster.LastAttackTick = currentTick;
 
         var target = _monsters.FirstOrDefault(m =>
-            m != monster && !m.AttacksOtherMonsters && m.Found && m.Hp > 0 &&
+            m != monster && !m.AttacksOtherMonsters && m.Hp > 0 &&
+            m.Position.HasSameZ(monster.Position) &&
             m.Position.DistanceTo(monster.Position) <= monster.AttackRangeInHexes);
-        if (target == null) return;
+        if (target == null)
+        {
+            monster.LastAttackTargetHex = null;
+            return;
+        }
+
+        monster.LastAttackTargetHex = target.Position;
 
         target.Hp -= MonsterFeature.ApplyArmorReduction(monster.AttackDamage, target.Armor, _prng!);
         monster.Hp -= MonsterFeature.ApplyArmorReduction(target.AttackDamage, monster.Armor, _prng!);
@@ -179,7 +198,22 @@ public class MonsterFeatureController
         {
             _state.RemoveFeature(monster);
             _state.EventLog.Add(monster.RemovedEventType);
+            if (monster is Adventurer deadAdventurer)
+                StartAdventurerRespawnCooldown(deadAdventurer, currentTick);
         }
+    }
+
+    /// <summary>Démarre le cooldown de réapparition de la Guilde des Aventuriers ayant invoqué cet Aventurier, à sa mort.</summary>
+    private void StartAdventurerRespawnCooldown(Adventurer deadAdventurer, long currentTick)
+    {
+        if (_state == null || deadAdventurer.SpawnCityPosition == null) return;
+
+        var city = _state.Civilizations
+            .SelectMany(c => c.Cities)
+            .FirstOrDefault(c => c.Position.Equals(deadAdventurer.SpawnCityPosition));
+        var guild = city?.Buildings.OfType<AdventurersGuild>().FirstOrDefault();
+        if (guild != null)
+            guild.LastAdventurerDeathTick = currentTick;
     }
 
     // ── Régénération de PV ───────────────────────────────────────────────────
@@ -230,6 +264,14 @@ public class MonsterFeatureController
             .Where(n => map.HasTile(n) && !map.GetTile(n)!.TerrainType.IsWater())
             .ToList();
 
+        // L'Aventurier (monstre ami) reste cantonné au territoire déjà exploré par le joueur : il ne
+        // s'aventure jamais dans le brouillard de guerre.
+        if (monster.AttacksOtherMonsters &&
+            _state.Visibility.GetForZ(monster.Position.Z).TryGetValue(_state.PlayerCivilization.Index, out var visibleMap))
+        {
+            neighbors = neighbors.Where(n => visibleMap.HasTile(n)).ToList();
+        }
+
         if (neighbors.Count == 0) return false;
 
         var noBlockingNoCooldown = neighbors
@@ -245,8 +287,10 @@ public class MonsterFeatureController
                        : noBlocking.Count > 0 ? noBlocking
                        : neighbors;
 
+        var chosen = ChooseDestination(monster, candidates);
+
         var oldPosition = monster.Position;
-        _state.MoveFeature(monster, candidates[_prng!.Next(candidates.Count)]);
+        _state.MoveFeature(monster, chosen);
 
         if (!oldPosition.Equals(monster.Position) && monster.DepartureCooldownTicks > 0)
         {
@@ -255,6 +299,45 @@ public class MonsterFeatureController
         }
 
         return true;
+    }
+
+    /// <summary>
+    /// Choisit l'hex de destination parmi les candidats. Un monstre chassant d'autres monstres
+    /// (Aventurier) se dirige vers le monstre errant vivant le plus proche ; sinon, choix aléatoire.
+    /// </summary>
+    private HexCoord ChooseDestination(MonsterFeature monster, List<HexCoord> candidates)
+    {
+        if (monster.AttacksOtherMonsters)
+        {
+            var prey = FindNearestPrey(monster);
+            if (prey != null)
+            {
+                int bestDistance = candidates.Min(c => c.DistanceTo(prey.Position));
+                var closest = candidates.Where(c => c.DistanceTo(prey.Position) == bestDistance).ToList();
+                return closest[_prng!.Next(closest.Count)];
+            }
+        }
+
+        return candidates[_prng!.Next(candidates.Count)];
+    }
+
+    /// <summary>Monstre errant vivant le plus proche (cible de chasse), en excluant les autres chasseurs.</summary>
+    private MonsterFeature? FindNearestPrey(MonsterFeature hunter)
+    {
+        MonsterFeature? nearest = null;
+        int bestDistance = int.MaxValue;
+        foreach (var candidate in _monsters)
+        {
+            if (candidate == hunter || candidate.AttacksOtherMonsters || candidate.Hp <= 0) continue;
+            if (!candidate.Position.HasSameZ(hunter.Position)) continue;
+            int distance = candidate.Position.DistanceTo(hunter.Position);
+            if (distance < bestDistance)
+            {
+                bestDistance = distance;
+                nearest = candidate;
+            }
+        }
+        return nearest;
     }
 
     // ── Attaque des villes ───────────────────────────────────────────────────

@@ -490,7 +490,7 @@ public class SelectedCityPanelRenderer : PanelRendererBase
                     else
                     {
                         long currentTick = _cityBuildingService.GetCurrentTick();
-                        long elapsed = adventurersGuild.LastAdventurerSpawnTick == 0 ? long.MaxValue : currentTick - adventurersGuild.LastAdventurerSpawnTick;
+                        long elapsed = adventurersGuild.LastAdventurerDeathTick == 0 ? long.MaxValue : currentTick - adventurersGuild.LastAdventurerDeathTick;
                         long remaining = Math.Max(0, AdventurersGuild.AdventurerRespawnCooldownTicks - elapsed);
                         tooltipLines.Add(_localization.Get("adventurersguild_respawn_cooldown") + $" {remaining / 100.0:0.0}s");
                     }

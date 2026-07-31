@@ -9,10 +9,10 @@ namespace SettlersOfIdlestan.Model.Buildings;
 /// </summary>
 public class AdventurersGuild : Building
 {
-    public const long AdventurerRespawnCooldownTicks = 500L;
+    public const long AdventurerRespawnCooldownTicks = 2_000L;
 
-    /// <summary>Tick de la dernière invocation d'un Aventurier, pour le délai de réapparition.</summary>
-    public long LastAdventurerSpawnTick { get; set; }
+    /// <summary>Tick de la mort du dernier Aventurier invoqué par cette Guilde, pour le délai de réapparition.</summary>
+    public long LastAdventurerDeathTick { get; set; }
 
     public AdventurersGuild() : base(BuildingType.AdventurersGuild)
     {

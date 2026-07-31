@@ -147,12 +147,14 @@ public class MonsterRenderer : HexBasedRenderer, IGameRenderer
             if (monster.LastAttackTick > 0
                 && monster.LastAttackTick != v.KnownLastAttackTick
                 && monster.LastAttackTick != monster.LastMovedTick
-                && monster.LastAttackTargetVertex != null)
+                && (monster.LastAttackTargetVertex != null || monster.LastAttackTargetHex != null))
             {
                 v.KnownLastAttackTick = monster.LastAttackTick;
                 v.AttackAnimProgress = 0f;
                 v.HomePos = normalPos;
-                v.TargetPos = VertexToIsland(monster.LastAttackTargetVertex);
+                v.TargetPos = monster.LastAttackTargetVertex != null
+                    ? VertexToIsland(monster.LastAttackTargetVertex)
+                    : HexToPoint(monster.LastAttackTargetHex!.Value);
                 v.FlyingResource = null;
                 if (monster.LastAttackResourcesString != null)
                 {

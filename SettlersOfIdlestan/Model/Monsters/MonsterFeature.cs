@@ -89,6 +89,8 @@ public abstract class MonsterFeature : IslandFeature
     public virtual int AttackResources => 0;
     public long LastAttackTick { get; set; } = 0;
     public Vertex? LastAttackTargetVertex { get; set; } = null;
+    /// <summary>Hex cible de la dernière attaque contre un autre monstre (Aventurier), pour l'animation.</summary>
+    public HexCoord? LastAttackTargetHex { get; set; } = null;
     /// <summary>Noms des ressources volées lors de la dernière attaque (séparés par virgule), pour l'animation.</summary>
     public string? LastAttackResourcesString { get; set; } = null;
 
