@@ -9,6 +9,7 @@ using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Monsters;
+using SettlersOfIdlestan.Model.Prestige;
 
 namespace SettlersOfIdlestan.Controller.Military;
 
@@ -18,13 +19,14 @@ public class MonsterFeatureController
     private GameClock? _clock;
     private GamePRNG? _prng;
     private CityBuilderController? _cityBuilderController;
+    private PrestigeState? _prestigeState;
 
     private List<MonsterFeature> _monsters = new();
 
     /// <summary>Intervalle de déplacement par défaut (3 000 ticks = 30 s à vitesse normale).</summary>
     public const long MovementIntervalTicks = 3_000L;
 
-    internal void Initialize(WorldState? state, GameClock? clock, GamePRNG? prng = null, CityBuilderController? cityBuilderController = null)
+    internal void Initialize(WorldState? state, GameClock? clock, GamePRNG? prng = null, CityBuilderController? cityBuilderController = null, PrestigeState? prestigeState = null)
     {
         if (_clock != null)
             _clock.Advanced -= OnClockAdvanced;
@@ -39,6 +41,7 @@ public class MonsterFeatureController
         _clock = clock;
         if (prng != null) _prng = prng;
         _cityBuilderController = cityBuilderController;
+        _prestigeState = prestigeState;
 
         RebuildCache();
 
@@ -115,9 +118,10 @@ public class MonsterFeatureController
 
     private void UpdateSpawns(long currentTick)
     {
+        int level = MonsterLeveling.LevelForTier(_prestigeState?.Tier ?? 1);
         foreach (var monster in _monsters.ToList())
         {
-            var spawn = monster.TrySpawn(_monsters, currentTick);
+            var spawn = monster.TrySpawn(_monsters, currentTick, level);
             if (spawn != null)
                 _state!.AddFeature(spawn);
         }
@@ -181,8 +185,15 @@ public class MonsterFeatureController
     {
         if (monster.HpRegenAmount <= 0) return;
         if (currentTick - monster.LastHpRegenTick < monster.HpRegenIntervalTicks) return;
-        monster.Hp = Math.Min(monster.MaxHp, monster.Hp + monster.HpRegenAmount);
         monster.LastHpRegenTick = currentTick;
+
+        // HpRegenAmount peut être fractionnaire (bonus de +0.5/niveau) : le reste est accumulé dans
+        // HpRegenCarry jusqu'à totaliser au moins 1 PV entier.
+        monster.HpRegenCarry += monster.HpRegenAmount;
+        int wholeHp = (int)monster.HpRegenCarry;
+        if (wholeHp <= 0) return;
+        monster.HpRegenCarry -= wholeHp;
+        monster.Hp = Math.Min(monster.MaxHp, monster.Hp + wholeHp);
     }
 
     // ── Déplacement ──────────────────────────────────────────────────────────

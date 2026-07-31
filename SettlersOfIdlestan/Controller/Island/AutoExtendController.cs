@@ -251,13 +251,14 @@ public class AutoExtendController
 
         int corruptionLevel = _prestigeState?.CurrentCorruptionLevel ?? 1;
         int demonChancePercent = Math.Max(0, corruptionLevel - 1);
+        int level = Model.Monsters.MonsterLeveling.UndergroundLevel(_prestigeState?.Tier ?? 1, corruptionLevel);
 
         if (_prng!.Next(100) < demonChancePercent)
-            return new Model.Monsters.MinorDemon(hex);
+            return new Model.Monsters.MinorDemon(hex, level);
 
         return _prng.Next(100) < BorderMonsterTrollChancePercent
-            ? new Model.Monsters.Troll(hex)
-            : new Model.Monsters.Ogre(hex);
+            ? new Model.Monsters.Troll(hex, level)
+            : new Model.Monsters.Ogre(hex, level);
     }
 
     /// <summary>
@@ -272,17 +273,19 @@ public class AutoExtendController
     /// </summary>
     private Model.Monsters.MonsterFeature RollAbyssDemon(HexCoord hex)
     {
-        int corruptionLevel = _state!.GetFeaturesAt(hex)
+        int hexCorruptionLevel = _state!.GetFeaturesAt(hex)
             .OfType<Model.IslandFeatures.Corruption>()
             .FirstOrDefault()?.Level ?? _prestigeState?.CurrentCorruptionLevel ?? 1;
 
-        int majorDemonChancePercent = corruptionLevel >= MajorDemonMinCorruptionLevel
-            ? MajorDemonBaseChancePercent + MajorDemonChancePerLevelPercent * (corruptionLevel - MajorDemonMinCorruptionLevel)
+        int majorDemonChancePercent = hexCorruptionLevel >= MajorDemonMinCorruptionLevel
+            ? MajorDemonBaseChancePercent + MajorDemonChancePerLevelPercent * (hexCorruptionLevel - MajorDemonMinCorruptionLevel)
             : 0;
 
+        int level = Model.Monsters.MonsterLeveling.UndergroundLevel(_prestigeState?.Tier ?? 1, _prestigeState?.CurrentCorruptionLevel ?? 1);
+
         return _prng!.Next(100) < majorDemonChancePercent
-            ? new Model.Monsters.MajorDemon(hex)
-            : new Model.Monsters.MinorDemon(hex);
+            ? new Model.Monsters.MajorDemon(hex, level)
+            : new Model.Monsters.MinorDemon(hex, level);
     }
 
     /// <summary>
@@ -364,11 +367,12 @@ public class AutoExtendController
             int treasureChance = BaseTreasureChancePercent + _state.PlayerCivilization.ModifierAggregator
                 .ApplyModifiers(Modifier.ECategory.UNDERWORLD_TREASURE_CHANCE_PERCENT, "", 0);
             int treasureThreshold = ogreThreshold + treasureChance;
+            int level = Model.Monsters.MonsterLeveling.UndergroundLevel(_prestigeState?.Tier ?? 1, _prestigeState?.CurrentCorruptionLevel ?? 1);
 
             if (roll < trollThreshold)
-                _state.AddFeature(new Model.Monsters.Troll(newHex));
+                _state.AddFeature(new Model.Monsters.Troll(newHex, level));
             else if (roll < ogreThreshold)
-                _state.AddFeature(new Model.Monsters.Ogre(newHex));
+                _state.AddFeature(new Model.Monsters.Ogre(newHex, level));
             else if (roll < treasureThreshold)
                 _state.AddFeature(new Model.IslandFeatures.TreasureTrove(newHex));
         }

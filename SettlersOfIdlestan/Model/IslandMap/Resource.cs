@@ -1,3 +1,4 @@
+using System;
 using System.Text.Json.Serialization;
 
 namespace SettlersOfIdlestan.Model.IslandMap;
@@ -63,4 +64,11 @@ public class ResourceUtils
         Resource.MithrilArmor,
         Resource.HealingPotion,
     };
+
+    /// <summary>Marge (en unités) sous la capacité max à partir de laquelle l'autovente/achat automatique
+    /// se déclenche : le plus grand entre 1 unité et 0.1% de la capacité max.</summary>
+    public static int GetOverflowBuffer(int maxQuantity)
+    {
+        return Math.Max(1, (int)(maxQuantity * 0.001));
+    }
 }

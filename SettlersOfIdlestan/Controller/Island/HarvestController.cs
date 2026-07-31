@@ -688,7 +688,9 @@ namespace SettlersOfIdlestan.Controller.Island
         {
             if (_tradeController == null) return;
             if (!IsAutoMarketTradeUnlocked(civ, city, res)) return;
-            if (civ.GetResourceQuantity(res) + 1 <= civ.GetResourceMaxQuantity(res)) return;
+
+            int maxQty = civ.GetResourceMaxQuantity(res);
+            if (civ.GetResourceQuantity(res) < maxQty - ResourceUtils.GetOverflowBuffer(maxQty)) return;
 
             _tradeController.SellResource(civ.Index, res);
         }

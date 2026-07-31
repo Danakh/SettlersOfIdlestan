@@ -178,7 +178,9 @@ namespace SettlersOfIdlestan.Controller
             if (_state == null || incomingGold <= 0) return false;
             var civ = _state.Civilizations.Find(c => c.Index == civilizationIndex);
             if (civ == null) return false;
-            if (civ.GetResourceQuantity(Resource.Gold) + incomingGold <= civ.GetResourceMaxQuantity(Resource.Gold)) return false;
+
+            int maxGold = civ.GetResourceMaxQuantity(Resource.Gold);
+            if (civ.GetResourceQuantity(Resource.Gold) + incomingGold <= maxGold - ResourceUtils.GetOverflowBuffer(maxGold)) return false;
 
             var resource = ResourceUtils.BasicResources.OrderBy(r => civ.GetResourceQuantity(r)).First();
             if (!CanBuyResource(civilizationIndex, resource)) return false;

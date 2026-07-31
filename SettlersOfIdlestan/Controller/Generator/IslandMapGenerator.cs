@@ -140,10 +140,10 @@ public class IslandMapGenerator
             new NpcCivilizationPlacer().PlaceNpcCivilizations(WorldState, _prng, tier);
 
         if (parameters.Features.Count > 0)
-            PlaceFeatures(WorldState, parameters.Features, currentTick);
+            PlaceFeatures(WorldState, parameters.Features, currentTick, tier);
 
         if (parameters.HasBonusIsland)
-            TryAddBonusIsland(WorldState);
+            TryAddBonusIsland(WorldState, tier);
 
         if (surfaceCorruptionLevel > 0)
             PlaceSurfaceCorruption(WorldState, surfaceCorruptionLevel);
@@ -466,7 +466,7 @@ public class IslandMapGenerator
     /// poser un nouvel hex terrestre sur <c>b</c> crée alors un isthme complet (arête a-b flanquée
     /// d'eau des deux côtés), sans nécessiter qu'un tel isthme existe déjà sur la carte.
     /// </summary>
-    private void TryAddBonusIsland(WorldState worldState)
+    private void TryAddBonusIsland(WorldState worldState, int tier = 1)
     {
         var map = worldState.GetMapForZ(IslandMap.SurfaceLayer);
         if (map == null) return;
@@ -525,7 +525,7 @@ public class IslandMapGenerator
             ? new TreasureTrove(featureHex)
             : roll < BonusIslandTreasureChancePercent + BonusIslandFairyCircleChancePercent
                 ? new FairyCircle(featureHex)
-                : new Dragon(featureHex);
+                : new Dragon(featureHex, MonsterLeveling.LevelForTier(tier));
 
         worldState.AddFeature(feature);
     }
@@ -710,8 +710,10 @@ public class IslandMapGenerator
     /// <summary>
     /// Places island features (bandits, treasure troves) into the island state.
     /// </summary>
-    public void PlaceFeatures(WorldState WorldState, IEnumerable<IslandFeatureParameters> features, long currentTick)
+    public void PlaceFeatures(WorldState WorldState, IEnumerable<IslandFeatureParameters> features, long currentTick, int tier = 1)
     {
+        int level = MonsterLeveling.LevelForTier(tier);
+
         var landHexes = WorldState.GetMapForZ(IslandMap.SurfaceLayer)!.Tiles.Values
             .Where(t => t.TerrainType != TerrainType.Water)
             .Select(t => t.Coord)
@@ -740,7 +742,7 @@ public class IslandMapGenerator
             switch (feature.Type)
             {
                 case IslandFeatureType.Bandit:
-                    WorldState.AddFeature(new Bandit(hex, currentTick));
+                    WorldState.AddFeature(new Bandit(hex, currentTick, level));
                     break;
                 case IslandFeatureType.TreasureTrove:
                     WorldState.AddFeature(new TreasureTrove(hex));
@@ -749,16 +751,16 @@ public class IslandMapGenerator
                     WorldState.AddFeature(new BanditHideout(hex));
                     break;
                 case IslandFeatureType.Dragon:
-                    WorldState.AddFeature(new Dragon(hex));
+                    WorldState.AddFeature(new Dragon(hex, level));
                     break;
                 case IslandFeatureType.Rats:
-                    WorldState.AddFeature(new Rats(hex));
+                    WorldState.AddFeature(new Rats(hex, level));
                     break;
                 case IslandFeatureType.Volcano:
                     WorldState.AddFeature(new VolcanoFeature(hex));
                     // 10 % de chance qu'un Dragon soit aussi présent sur le même hex
                     if (_prng.Next(100) < 10)
-                        WorldState.AddFeature(new Dragon(hex));
+                        WorldState.AddFeature(new Dragon(hex, level));
                     break;
             }
         }

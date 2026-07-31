@@ -14,24 +14,27 @@ namespace SettlersOfIdlestan.Model.Monsters;
 public class MinorDemon : MonsterFeature
 {
     public const int MinorDemonMaxHp = Dragon.DragonMaxHp;
+    public const int MinorDemonMaxHpPerLevel = 20;
+    public const int MinorDemonAttackDamagePerLevel = 2;
+    public const double MinorDemonHpRegenPerLevel = 0.5;
     public const long MinorDemonMovementIntervalTicks = 1_000L;
     public const int MinorDemonMovementRangeInHexes = 2;
     public const long MinorDemonAttackIntervalTicks = 2_000L;
 
-    public override int MaxHp => MinorDemonMaxHp;
+    public override int MaxHp => MinorDemonMaxHp + MinorDemonMaxHpPerLevel * (Level - 1);
     public override bool BlocksHarvest => true;
 
     public override bool CanMove => true;
     public override long MovementIntervalTicks => MinorDemonMovementIntervalTicks;
     public override int MovementRangeInHexes => MinorDemonMovementRangeInHexes;
 
-    public override int HpRegenAmount => 1;
+    public override double HpRegenAmount => 1 + MinorDemonHpRegenPerLevel * (Level - 1);
     public override long HpRegenIntervalTicks => Dragon.DragonHpRegenIntervalTicks;
 
     public override int AttackRangeInHexes => 2;
     public override long AttackIntervalTicks => MinorDemonAttackIntervalTicks;
     public override bool IgnoresPalisade => true;
-    public override int AttackDamage => 2;
+    public override int AttackDamage => 2 + MinorDemonAttackDamagePerLevel * (Level - 1);
     public override int AttackResources => 5;
 
     public override GameEventType DiscoveredEventType => GameEventType.MinorDemonDiscovered;
@@ -40,10 +43,12 @@ public class MinorDemon : MonsterFeature
     public override string? SvgIconResourceName => "Resources.icons.military.monster-demon.svg";
     public override float IconSizeFactor => 1.8f;
 
-    public override LocalizedEntry GetTooltipEntry() => new("hex_tooltip_minor_demon_info", [Hp, MaxHp]);
+    public override LocalizedEntry GetTooltipEntry() => Level > 1
+        ? new("hex_tooltip_minor_demon_info_leveled", [Hp, MaxHp, Level])
+        : new("hex_tooltip_minor_demon_info", [Hp, MaxHp]);
 
-    public MinorDemon(HexCoord position) : base(position) { Hp = MinorDemonMaxHp; }
+    public MinorDemon(HexCoord position, int level = 1) : base(position) { Level = level; Hp = MaxHp; }
 
     [JsonConstructor]
-    public MinorDemon() : base() { Hp = MinorDemonMaxHp; }
+    public MinorDemon() : base() { Hp = MaxHp; }
 }

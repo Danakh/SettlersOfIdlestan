@@ -25,13 +25,13 @@ public class BanditHideout : MonsterFeature
     public override LocalizedEntry? GetTooltipEntry() =>
         Found ? new("hex_tooltip_bandit_hideout_info", [Hp, MaxHp]) : null;
 
-    public override MonsterFeature? TrySpawn(IReadOnlyList<MonsterFeature> existingMonsters, long tick)
+    public override MonsterFeature? TrySpawn(IReadOnlyList<MonsterFeature> existingMonsters, long tick, int level = 1)
     {
         if (!Found) return null;
         if (tick - LastSpawnTick < SpawnIntervalTicks) return null;
         if (existingMonsters.Count(m => m is Bandit) >= MaxBanditsOnIsland) return null;
         LastSpawnTick = tick;
-        return new Bandit(Position, tick);
+        return new Bandit(Position, tick, level);
     }
 
     public BanditHideout(HexCoord position) : base(position) { Hp = MaxHp; }

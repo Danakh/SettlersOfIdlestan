@@ -15,6 +15,9 @@ public abstract class MonsterFeature : IslandFeature
     public int Hp { get; set; }
     public abstract int MaxHp { get; }
 
+    /// <summary>Niveau du monstre (1 = stats de base). Voir MonsterLeveling pour le calcul au spawn.</summary>
+    public int Level { get; set; } = 1;
+
     /// <summary>Tick du dernier combat initié par les soldats ennemis.</summary>
     public long LastAttackedByMilitaryTick { get; set; } = 0;
 
@@ -36,9 +39,12 @@ public abstract class MonsterFeature : IslandFeature
     public long LastMovedTick { get; set; } = 0;
 
     // ── Régénération de PV (opt-in) ────────────────────────────────────────
-    public virtual int HpRegenAmount => 0;
+    /// <summary>Peut être fractionnaire (bonus de +0.5/niveau) — voir MonsterFeatureController.RegenHp pour l'accumulation.</summary>
+    public virtual double HpRegenAmount => 0;
     public virtual long HpRegenIntervalTicks => long.MaxValue;
     public long LastHpRegenTick { get; set; } = 0;
+    /// <summary>Reste fractionnaire accumulé entre deux régénérations, pour appliquer correctement un HpRegenAmount non entier.</summary>
+    public double HpRegenCarry { get; set; } = 0;
 
     // ── Attaque des villes (opt-in) ────────────────────────────────────────
     /// <summary>Portée en hexes : 0 = n'attaque pas, 1 = hex propre, 2 = hex propre + voisins.</summary>
@@ -67,7 +73,7 @@ public abstract class MonsterFeature : IslandFeature
 
     // ── Invocation de nouvelles créatures (opt-in) ─────────────────────────
     /// <summary>Tente de générer une nouvelle MonsterFeature. Retourne null si aucune invocation n'a lieu.</summary>
-    public virtual MonsterFeature? TrySpawn(IReadOnlyList<MonsterFeature> existingMonsters, long tick) => null;
+    public virtual MonsterFeature? TrySpawn(IReadOnlyList<MonsterFeature> existingMonsters, long tick, int level = 1) => null;
     public long LastSpawnTick { get; set; } = 0;
 
     protected MonsterFeature(HexCoord position) : base(position) { }
