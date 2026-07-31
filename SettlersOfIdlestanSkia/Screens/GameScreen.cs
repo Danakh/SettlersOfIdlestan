@@ -256,6 +256,7 @@ public sealed class GameScreen : IDisposable
             () => _gameControllerService.MainGameController.CurrentMainState?.Settings.ShowHarvestParticles ?? true);
         islandMainRenderer.ConnectMilitaryEvents(
             _gameControllerService.MainGameController.MilitaryController,
+            _gameControllerService.MainGameController.MonsterFeatureController,
             _gameControllerService,
             () => _prestigeTransitionPending,
             () => _overlayRenderer?.IsIslandTabActive ?? true);

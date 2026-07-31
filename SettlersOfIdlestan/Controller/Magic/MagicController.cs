@@ -533,7 +533,7 @@ namespace SettlersOfIdlestan.Controller.Magic
                 if (monster.AttacksOtherMonsters) continue; // monstres "amis" : jamais ciblés
                 if (!templeHexes.Contains(monster.Position)) continue;
 
-                monster.Hp -= damage;
+                monster.Hp -= MonsterFeature.ApplyArmorReduction(damage, monster.Armor, _prng!);
                 if (monster.Hp <= 0)
                 {
                     monster.KilledByCivilizationIndex = civ.Index;

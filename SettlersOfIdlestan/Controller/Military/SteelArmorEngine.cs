@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
@@ -21,8 +22,11 @@ internal static class SteelArmorEngine
     /// <summary>
     /// Tente de sauver jusqu'à <paramref name="losses"/> soldats.
     /// Chaque sauvetage consomme 1 ArmureAcier ou 1 PotionDeSoin. Retourne le nombre de soldats sauvés.
+    /// <paramref name="onConsumableConsumed"/> est appelé pour chaque consommable réellement détruit
+    /// (armure ou potion), afin de permettre l'affichage d'une particule côté rendu.
     /// </summary>
-    internal static int TrySaveSoldiers(Civilization? civ, IMilitaryVertex vertex, int losses, GamePRNG prng)
+    internal static int TrySaveSoldiers(Civilization? civ, IMilitaryVertex vertex, int losses, GamePRNG prng,
+        Action<Resource>? onConsumableConsumed = null)
     {
         if (civ == null || losses <= 0) return 0;
 
@@ -48,11 +52,13 @@ internal static class SteelArmorEngine
             if (roll < steelArmorChance)
             {
                 civ.RemoveResource(Resource.SteelArmor, 1);
+                onConsumableConsumed?.Invoke(Resource.SteelArmor);
                 saved++;
             }
             else if (roll < steelArmorChance + healingPotionChance)
             {
                 civ.RemoveResource(Resource.HealingPotion, 1);
+                onConsumableConsumed?.Invoke(Resource.HealingPotion);
                 saved++;
             }
         }

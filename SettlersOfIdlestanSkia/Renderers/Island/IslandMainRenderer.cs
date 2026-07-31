@@ -41,12 +41,13 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
 
     public void ConnectMilitaryEvents(
         MilitaryController militaryController,
+        MonsterFeatureController monsterFeatureController,
         GameControllerService gameControllerService,
         Func<bool> isPrestigeTransitionPending,
         Func<bool> isIslandTabActive)
     {
         _banditRenderer.Connect(militaryController, gameControllerService, isPrestigeTransitionPending, isIslandTabActive);
-        _militaryRenderer.Connect(militaryController, gameControllerService, isPrestigeTransitionPending, isIslandTabActive);
+        _militaryRenderer.Connect(militaryController, monsterFeatureController, gameControllerService, isPrestigeTransitionPending, isIslandTabActive);
     }
 
     public void ConnectVolcanoEvents(
@@ -75,7 +76,7 @@ public class IslandMainRenderer : HexBasedRenderer, IGameRenderer
         _harvestRenderer = new HarvestRenderer(_harvestParticleSystem, resourceManager, currentLayer);
         _banditRenderer = new MonsterRenderer(resourceManager);
         _volcanoRenderer = new VolcanoRenderer(resourceManager);
-        _militaryRenderer = new MilitaryRenderer(tooltipRenderer, localizationService);
+        _militaryRenderer = new MilitaryRenderer(tooltipRenderer, localizationService, resourceManager);
         _constructionHoverProvider = constructionHoverProvider;
         _tooltipRenderer = tooltipRenderer;
         _harvestController = harvestController;

@@ -17,6 +17,7 @@ public class Dragon : MonsterFeature
 
     public override int MaxHp => DragonMaxHp + DragonMaxHpPerLevel * (Level - 1);
     public override bool BlocksHarvest => true;
+    public override double Armor => Level;
 
     public override double HpRegenAmount => 1 + DragonHpRegenPerLevel * (Level - 1);
     public override long HpRegenIntervalTicks => DragonHpRegenIntervalTicks;

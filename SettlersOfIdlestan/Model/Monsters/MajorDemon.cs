@@ -23,6 +23,7 @@ public class MajorDemon : MonsterFeature
 
     public override int MaxHp => MajorDemonMaxHp + MajorDemonMaxHpPerLevel * (Level - 1);
     public override bool BlocksHarvest => true;
+    public override double Armor => Level;
 
     public override bool CanMove => true;
     public override long MovementIntervalTicks => MajorDemonMovementIntervalTicks;

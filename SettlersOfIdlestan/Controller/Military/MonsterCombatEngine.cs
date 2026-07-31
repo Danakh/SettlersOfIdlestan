@@ -33,14 +33,15 @@ internal class MonsterCombatEngine
     }
 
     internal void ResolveMonsterCombat(long currentTick,
-        Action<SoldierAttackEventArgs> onSoldierAttackedMonster)
+        Action<SoldierAttackEventArgs> onSoldierAttackedMonster,
+        Action<ConsumableConsumedEventArgs> onConsumableConsumed)
     {
         if (_state == null) return;
 
         var deadMonsters = new List<MonsterFeature>();
         foreach (var monster in _state.Features.OfType<MonsterFeature>())
         {
-            if (AttackMonsterWithSoldiers(monster, currentTick, onSoldierAttackedMonster) && monster.Hp <= 0)
+            if (AttackMonsterWithSoldiers(monster, currentTick, onSoldierAttackedMonster, onConsumableConsumed) && monster.Hp <= 0)
                 deadMonsters.Add(monster);
         }
 
@@ -52,7 +53,8 @@ internal class MonsterCombatEngine
     }
 
     internal bool AttackMonsterWithSoldiers(MonsterFeature monster, long currentTick,
-        Action<SoldierAttackEventArgs> onSoldierAttackedMonster)
+        Action<SoldierAttackEventArgs> onSoldierAttackedMonster,
+        Action<ConsumableConsumedEventArgs> onConsumableConsumed)
     {
         if (_state == null) return false;
         if (monster.AttacksOtherMonsters) return false; // monstres "amis" (ex. Aventurier) : jamais ciblés par les soldats
@@ -80,10 +82,11 @@ internal class MonsterCombatEngine
                 if (hasSteelWeapon) civ.RemoveResource(Resource.SteelWeapon, 1);
 
                 // Armures d'Acier : le soldat peut survivre à l'assaut en consommant 1 Acier
-                if (SteelArmorEngine.TrySaveSoldiers(civ, vertex, 1, _prng!) == 0)
+                if (SteelArmorEngine.TrySaveSoldiers(civ, vertex, 1, _prng!,
+                        res => onConsumableConsumed(new ConsumableConsumedEventArgs(vertex.Position, res))) == 0)
                     vertex.Soldiers--;
-                monster.Hp--;
-                if (hasSteelWeapon) monster.Hp--;
+                int rawDamage = hasSteelWeapon ? 2 : 1;
+                monster.Hp -= MonsterFeature.ApplyArmorReduction(rawDamage, monster.Armor, _prng!);
                 if (monster.Hp <= 0) monster.KilledByCivilizationIndex = civ.Index;
                 vertex.LastAttackTick = currentTick;
                 onSoldierAttackedMonster(new SoldierAttackEventArgs(vertex.Position, monster.Position));
@@ -160,7 +163,9 @@ internal class MonsterCombatEngine
     /// <see cref="IMilitaryVertex.MonsterAttackTarget"/>. Le corps-à-corps (distance ≤ 1) reste géré
     /// par <see cref="ResolveMonsterCombat"/>.
     /// </summary>
-    internal void ResolveRangedAttacks(long currentTick, Action<SoldierAttackEventArgs> onSoldierAttackedMonster)
+    internal void ResolveRangedAttacks(long currentTick,
+        Action<SoldierAttackEventArgs> onSoldierAttackedMonster,
+        Action<ConsumableConsumedEventArgs> onConsumableConsumed)
     {
         if (_state == null) return;
 
@@ -189,10 +194,11 @@ internal class MonsterCombatEngine
                     && civ.GetResourceQuantity(Resource.SteelWeapon) >= 1;
                 if (hasSteelWeapon) civ.RemoveResource(Resource.SteelWeapon, 1);
 
-                if (SteelArmorEngine.TrySaveSoldiers(civ, vertex, 1, _prng!) == 0)
+                if (SteelArmorEngine.TrySaveSoldiers(civ, vertex, 1, _prng!,
+                        res => onConsumableConsumed(new ConsumableConsumedEventArgs(vertex.Position, res))) == 0)
                     vertex.Soldiers--;
-                monster.Hp--;
-                if (hasSteelWeapon) monster.Hp--;
+                int rawDamage = hasSteelWeapon ? 2 : 1;
+                monster.Hp -= MonsterFeature.ApplyArmorReduction(rawDamage, monster.Armor, _prng!);
                 vertex.LastAttackTick = currentTick;
                 onSoldierAttackedMonster(new SoldierAttackEventArgs(vertex.Position, monster.Position));
 

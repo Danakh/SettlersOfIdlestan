@@ -252,6 +252,48 @@ namespace SOITests.ControllerTests
         }
 
         [Fact]
+        public void SteelArmor_WhenConsumed_RaisesConsumableConsumedEvent()
+        {
+            // Vérifie que MilitaryController.ConsumableConsumed est bien déclenché avec la bonne
+            // ressource et la bonne position quand une Armure d'Acier sauve un soldat au combat
+            // (utilisé par le rendu pour afficher une particule — voir MilitaryRenderer).
+            var tiles = new List<HexTile>
+            {
+                new(Center, TerrainType.Plain),
+                new(NE,     TerrainType.Plain),
+                new(East,   TerrainType.Plain),
+                new(NE11,   TerrainType.Plain),
+            };
+            var map = new IslandMap(tiles);
+            var civ = new Civilization { Index = 0 };
+            civ.Resources[Resource.SteelArmor] = 100;
+            UnlockSteelArmor(civ);
+            var vertex = Vertex.Create(NE, East, NE11);
+            var city = new City(vertex) { CivilizationIndex = 0, Soldiers = 1 };
+            city.Buildings.Add(new Barracks { Level = 4 });
+            civ.AddCity(city);
+
+            var state = new WorldState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
+            state.AddFeature(new Bandit(NE, 0));
+
+            var clock = new GameClock();
+            clock.Start();
+            var controller = new MilitaryController();
+            controller.Initialize(state, clock, prng: new GamePRNG());
+
+            var raised = new List<Resource>();
+            controller.ConsumableConsumed += (_, args) =>
+            {
+                Assert.Equal(city.Position, args.Position);
+                raised.Add(args.Resource);
+            };
+
+            clock.SimulateAdvance(MilitaryController.CombatIntervalTicks);
+
+            Assert.Contains(Resource.SteelArmor, raised);
+        }
+
+        [Fact]
         public void SteelArmor_WithoutArmorInStock_SoldierDies()
         {
             var (state, clock, city) = CreateMilitarySetup(initialSoldiers: 3);

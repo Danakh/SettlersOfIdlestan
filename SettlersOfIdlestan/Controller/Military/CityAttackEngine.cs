@@ -39,7 +39,8 @@ internal class CityAttackEngine
 
     internal void ResolveCityAttacks(long currentTick,
         Action<CityAttackEventArgs> onSoldierAttackedCity,
-        Action<CityBuildingDestroyedEventArgs> onCityBuildingDestroyed)
+        Action<CityBuildingDestroyedEventArgs> onCityBuildingDestroyed,
+        Action<ConsumableConsumedEventArgs> onConsumableConsumed)
     {
         var toDestroy = new List<(Civilization civ, IMilitaryVertex vertex)>();
 
@@ -75,7 +76,8 @@ internal class CityAttackEngine
                 if (hasSteelWeapon) attackerCiv.RemoveResource(Resource.SteelWeapon, 1);
 
                 // Armures d'Acier : le soldat envoyé peut survivre en consommant 1 ArmureAcier
-                if (SteelArmorEngine.TrySaveSoldiers(attackerCiv, attackerVertex, 1, _prng!) == 0)
+                if (SteelArmorEngine.TrySaveSoldiers(attackerCiv, attackerVertex, 1, _prng!,
+                        res => onConsumableConsumed(new ConsumableConsumedEventArgs(attackerVertex.Position, res))) == 0)
                     attackerVertex.Soldiers--;
                 attackerVertex.LastAttackTick = currentTick;
 
@@ -91,9 +93,9 @@ internal class CityAttackEngine
                     _state.AutomationSettings.VendettaTargetCivIndex = attackerCiv.Index;
                 }
 
-                bool destroyed = ApplyAttackToCity(targetVertex, onCityBuildingDestroyed);
+                bool destroyed = ApplyAttackToCity(targetVertex, onCityBuildingDestroyed, onConsumableConsumed);
                 if (!destroyed && hasSteelWeapon)
-                    destroyed = ApplyAttackToCity(targetVertex, onCityBuildingDestroyed);
+                    destroyed = ApplyAttackToCity(targetVertex, onCityBuildingDestroyed, onConsumableConsumed);
                 if (destroyed)
                 {
                     var ownerCiv = _state.Civilizations.FirstOrDefault(c => c.Index == targetVertex.CivilizationIndex);
@@ -169,7 +171,8 @@ internal class CityAttackEngine
         return visibleMap.IsVertexVisible(vertex.Position);
     }
 
-    private bool ApplyAttackToCity(IMilitaryVertex targetVertex, Action<CityBuildingDestroyedEventArgs> onCityBuildingDestroyed)
+    private bool ApplyAttackToCity(IMilitaryVertex targetVertex, Action<CityBuildingDestroyedEventArgs> onCityBuildingDestroyed,
+        Action<ConsumableConsumedEventArgs> onConsumableConsumed)
     {
         // Les soldats défenseurs absorbent l'attaque : les deux soldats meurent, la défense est intacte.
         if (targetVertex.Soldiers > 0)
@@ -184,7 +187,8 @@ internal class CityAttackEngine
                 return false;
             }
             // Armures d'Acier : le défenseur peut survivre en consommant 1 Acier (l'attaque reste absorbée)
-            if (SteelArmorEngine.TrySaveSoldiers(defenderCiv, targetVertex, 1, _prng!) == 0)
+            if (SteelArmorEngine.TrySaveSoldiers(defenderCiv, targetVertex, 1, _prng!,
+                    res => onConsumableConsumed(new ConsumableConsumedEventArgs(targetVertex.Position, res))) == 0)
                 targetVertex.Soldiers--;
             return false;
         }

@@ -1,5 +1,7 @@
+using System;
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
+using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandFeatures;
 
@@ -17,6 +19,33 @@ public abstract class MonsterFeature : IslandFeature
 
     /// <summary>Niveau du monstre (1 = stats de base). Voir MonsterLeveling pour le calcul au spawn.</summary>
     public int Level { get; set; } = 1;
+
+    /// <summary>
+    /// Réduit les dégâts subis (soldats, Aventurier, rituels) : voir <see cref="ApplyArmorReduction"/>
+    /// pour la formule. 0 = aucune réduction (valeur par défaut).
+    /// </summary>
+    public virtual double Armor => 0;
+
+    /// <summary>
+    /// Applique la réduction d'armure à un dégât entrant : réduction = Armor / 2, arrondie à l'entier
+    /// inférieur, avec une chance supplémentaire — proportionnelle au reste fractionnaire — d'arrondir
+    /// au supérieur. Pour une Armure paire, la réduction est déterministe (ex. Armure 2 → -1 toujours).
+    /// Pour une Armure impaire (ou une valeur à mi-palier, comme le 0.5×niveau du Troll/Ogre), le
+    /// reste fractionnaire (0.5, 0.25...) devient une probabilité, pour que la réduction moyenne sur
+    /// la durée reste exactement égale à Armor / 2 malgré des PV entiers.
+    /// </summary>
+    public static int ApplyArmorReduction(int rawDamage, double armor, GamePRNG prng)
+    {
+        if (armor <= 0 || rawDamage <= 0) return rawDamage;
+
+        double half = armor / 2.0;
+        int reduction = (int)Math.Floor(half);
+        double fractional = half - reduction;
+        if (fractional > 0 && prng.Next(1000) < (int)Math.Round(fractional * 1000))
+            reduction++;
+
+        return Math.Max(0, rawDamage - reduction);
+    }
 
     /// <summary>Tick du dernier combat initié par les soldats ennemis.</summary>
     public long LastAttackedByMilitaryTick { get; set; } = 0;

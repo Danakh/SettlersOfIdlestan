@@ -37,6 +37,17 @@ public class ReinforcementEventArgs(Vertex sourceCity, Vertex targetCity, List<V
 }
 
 /// <summary>
+/// Un consommable (Armure d'Acier, Potion de Soin) a été détruit pour sauver un soldat lors d'un
+/// combat — attaque de joueur/NPC (CityAttackEngine, MonsterCombatEngine) ou de monstre
+/// (MonsterFeatureController). Utilisé pour afficher une particule côté rendu.
+/// </summary>
+public class ConsumableConsumedEventArgs(Vertex position, Resource resource) : EventArgs
+{
+    public Vertex Position { get; } = position;
+    public Resource Resource { get; } = resource;
+}
+
+/// <summary>
 /// Résultat de <see cref="MilitaryController.GetMonsterAttackAvailability"/> : indique si un emplacement
 /// militaire peut attaquer une MonsterFeature donnée, et pourquoi sinon.
 /// </summary>
@@ -96,6 +107,7 @@ public class MilitaryController
     public event EventHandler<CityAttackEventArgs>? SoldierAttackedCity;
     public event EventHandler<CityBuildingDestroyedEventArgs>? CityBuildingDestroyed;
     public event EventHandler<ReinforcementEventArgs>? ReinforcementSent;
+    public event EventHandler<ConsumableConsumedEventArgs>? ConsumableConsumed;
 
     // ── Méthodes publiques (query) ───────────────────────────────────────────
 
@@ -306,13 +318,16 @@ public class MilitaryController
         _productionEngine.ProduceArsenalSoldiers(currentTick);
         _productionEngine.ResolveSoldierFeeding(currentTick);
         _monsterCombatEngine.ResolveMonsterCombat(currentTick,
-            args => SoldierAttackedMonster?.Invoke(this, args));
+            args => SoldierAttackedMonster?.Invoke(this, args),
+            args => ConsumableConsumed?.Invoke(this, args));
         _monsterCombatEngine.ResolveRangedAttacks(currentTick,
-            args => SoldierAttackedMonster?.Invoke(this, args));
+            args => SoldierAttackedMonster?.Invoke(this, args),
+            args => ConsumableConsumed?.Invoke(this, args));
         ResolveDefenseRegen(currentTick);
         _cityAttackEngine.ResolveCityAttacks(currentTick,
             args => SoldierAttackedCity?.Invoke(this, args),
-            args => CityBuildingDestroyed?.Invoke(this, args));
+            args => CityBuildingDestroyed?.Invoke(this, args),
+            args => ConsumableConsumed?.Invoke(this, args));
         _reinforcementEngine.ResolveReinforcements(currentTick,
             args => ReinforcementSent?.Invoke(this, args));
         _reinforcementEngine.ResolvePlayerAutoReinforcement(currentTick);

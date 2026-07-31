@@ -26,6 +26,9 @@ public class MonsterFeatureController
     /// <summary>Intervalle de déplacement par défaut (3 000 ticks = 30 s à vitesse normale).</summary>
     public const long MovementIntervalTicks = 3_000L;
 
+    /// <summary>Un consommable (Armure d'Acier, Potion de Soin) a été détruit pour sauver un soldat lors d'une attaque de monstre.</summary>
+    public event EventHandler<ConsumableConsumedEventArgs>? ConsumableConsumed;
+
     internal void Initialize(WorldState? state, GameClock? clock, GamePRNG? prng = null, CityBuilderController? cityBuilderController = null, PrestigeState? prestigeState = null)
     {
         if (_clock != null)
@@ -164,8 +167,8 @@ public class MonsterFeatureController
             m.Position.DistanceTo(monster.Position) <= monster.AttackRangeInHexes);
         if (target == null) return;
 
-        target.Hp -= monster.AttackDamage;
-        monster.Hp -= target.AttackDamage;
+        target.Hp -= MonsterFeature.ApplyArmorReduction(monster.AttackDamage, target.Armor, _prng!);
+        monster.Hp -= MonsterFeature.ApplyArmorReduction(target.AttackDamage, monster.Armor, _prng!);
 
         if (target.Hp <= 0)
         {
@@ -322,7 +325,8 @@ public class MonsterFeatureController
             int soldierDmg = Math.Min(damage, city.Soldiers);
             if (soldierDmg > 0)
             {
-                int saved = SteelArmorEngine.TrySaveSoldiers(civ, city, soldierDmg, _prng!);
+                int saved = SteelArmorEngine.TrySaveSoldiers(civ, city, soldierDmg, _prng!,
+                    res => ConsumableConsumed?.Invoke(this, new ConsumableConsumedEventArgs(city.Position, res)));
                 city.Soldiers -= soldierDmg - saved;
                 damage -= soldierDmg;
                 didSomething = true;

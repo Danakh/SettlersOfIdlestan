@@ -22,6 +22,11 @@ public class MilitaryRenderer : HexBasedRenderer, IGameRenderer
     private const float SvgNativeSize = 64f;
     private const float ArrowSize = 9f;
     private const float ArrowTipOffset = 18f;
+    private const float ConsumableParticleDuration = 0.9f;
+    private const float ConsumableIconSize = 16f;
+    private const float ConsumableArcDistanceMin = 14f;
+    private const float ConsumableArcDistanceMax = 26f;
+    private const float ConsumableArcHeight = 16f;
 
     private sealed class MilitaryParticle
     {
@@ -32,8 +37,26 @@ public class MilitaryRenderer : HexBasedRenderer, IGameRenderer
         public float Progress;
     }
 
+    private sealed class ConsumableParticle
+    {
+        public SKPoint Position;
+        public Resource Resource;
+        public float Progress;
+        /// <summary>-1 = part vers la gauche, +1 = part vers la droite.</summary>
+        public float SideSign;
+        public float Distance;
+    }
+
     private readonly List<MilitaryParticle> _particles = new();
     private readonly List<MilitaryParticle> _reinforceParticles = new();
+    private readonly List<ConsumableParticle> _consumableParticles = new();
+    private readonly Dictionary<Resource, SKSvg?> _consumableIcons = new();
+    private readonly Random _consumableParticleRandom = new();
+    /// <summary>
+    /// Alterne à chaque particule émise pour répartir gauche/droite : sur une perte multiple
+    /// (plusieurs consommables détruits par la même attaque), la moitié part de chaque côté.
+    /// </summary>
+    private bool _nextConsumableGoesRight = true;
     private SKSvg? _attackSvg;
     private SKPaint? _paint;
     private SKPaint? _reinforcePaint;
@@ -42,17 +65,20 @@ public class MilitaryRenderer : HexBasedRenderer, IGameRenderer
     private SKPaint? _arrowPaint;
     private SKPaint? _dragLinePaint;
     private SKPaint? _dragCirclePaint;
+    private SKPaint? _consumablePaint;
     private MilitaryController? _militaryController;
     private GameControllerService? _gameControllerService;
     private MilitaryInteractionService? _interactionService;
     private readonly TooltipRenderer _tooltipRenderer;
     private readonly LocalizationService _localizationService;
+    private readonly ResourceManager _resourceManager;
     private bool _disposed;
 
-    public MilitaryRenderer(TooltipRenderer tooltipRenderer, LocalizationService localizationService)
+    public MilitaryRenderer(TooltipRenderer tooltipRenderer, LocalizationService localizationService, ResourceManager resourceManager)
     {
         _tooltipRenderer = tooltipRenderer;
         _localizationService = localizationService;
+        _resourceManager = resourceManager;
     }
 
     public void Initialize(SKSize canvasSize)
@@ -85,6 +111,7 @@ public class MilitaryRenderer : HexBasedRenderer, IGameRenderer
             PathEffect = SKPathEffect.CreateDash(new float[] { 10f, 6f }, 0f),
         };
         _dragCirclePaint = new SKPaint { IsAntialias = true, Style = SKPaintStyle.Stroke, StrokeWidth = 3f };
+        _consumablePaint = new SKPaint { IsAntialias = true };
 
         var assembly = Assembly.GetExecutingAssembly();
         using var stream = assembly.GetManifestResourceStream(
@@ -94,10 +121,14 @@ public class MilitaryRenderer : HexBasedRenderer, IGameRenderer
             _attackSvg = new SKSvg();
             _attackSvg.Load(stream);
         }
+
+        _consumableIcons[Resource.SteelArmor] = _resourceManager.LoadImage("Resources.icons.consumable_sprites.steelarmor.svg");
+        _consumableIcons[Resource.HealingPotion] = _resourceManager.LoadImage("Resources.icons.consumable_sprites.healingpotion.svg");
     }
 
     public void Connect(
         MilitaryController militaryController,
+        MonsterFeatureController monsterFeatureController,
         GameControllerService gameControllerService,
         Func<bool> isPrestigeTransitionPending,
         Func<bool> isIslandTabActive)
@@ -118,6 +149,20 @@ public class MilitaryRenderer : HexBasedRenderer, IGameRenderer
             if (args.TargetCity.Z != gameControllerService.CurrentWorldState?.CurrentViewedLayer) return;
             EmitReinforceParticle(args.Path);
         };
+        militaryController.ConsumableConsumed += (_, args) =>
+        {
+            if (isPrestigeTransitionPending()) return;
+            if (!isIslandTabActive()) return;
+            if (args.Position.Z != gameControllerService.CurrentWorldState?.CurrentViewedLayer) return;
+            EmitConsumableParticle(args.Position, args.Resource);
+        };
+        monsterFeatureController.ConsumableConsumed += (_, args) =>
+        {
+            if (isPrestigeTransitionPending()) return;
+            if (!isIslandTabActive()) return;
+            if (args.Position.Z != gameControllerService.CurrentWorldState?.CurrentViewedLayer) return;
+            EmitConsumableParticle(args.Position, args.Resource);
+        };
     }
 
     public void ConnectInteractionService(MilitaryInteractionService service)
@@ -136,6 +181,23 @@ public class MilitaryRenderer : HexBasedRenderer, IGameRenderer
             SourceVertex = vertexPath[0],
             TargetVertex = vertexPath[^1],
             Progress = 0f,
+        });
+    }
+
+    private void EmitConsumableParticle(Vertex position, Resource resource)
+    {
+        float side = _nextConsumableGoesRight ? 1f : -1f;
+        _nextConsumableGoesRight = !_nextConsumableGoesRight;
+        float distance = ConsumableArcDistanceMin
+            + (float)_consumableParticleRandom.NextDouble() * (ConsumableArcDistanceMax - ConsumableArcDistanceMin);
+
+        _consumableParticles.Add(new ConsumableParticle
+        {
+            Position = VertexToIsland(position),
+            Resource = resource,
+            Progress = 0f,
+            SideSign = side,
+            Distance = distance,
         });
     }
 
@@ -174,6 +236,7 @@ public class MilitaryRenderer : HexBasedRenderer, IGameRenderer
 
         AdvanceParticles(canvas, _particles, dt, reinforce: false, visibleMap: visibleMap);
         AdvanceParticles(canvas, _reinforceParticles, dt, reinforce: true, visibleMap: visibleMap);
+        AdvanceConsumableParticles(canvas, dt);
     }
 
     private static readonly SKColor BlockedFlowColor = new(150, 150, 150, 220);
@@ -416,6 +479,50 @@ public class MilitaryRenderer : HexBasedRenderer, IGameRenderer
         return sharedCount > 0;
     }
 
+    /// <summary>
+    /// Fait partir l'icône du consommable détruit (Armure d'Acier, Potion de Soin) en arc vers la
+    /// gauche ou la droite (alterné par <see cref="EmitConsumableParticle"/>), puis disparaître —
+    /// à l'opposé d'un gain de ressource qui monte tout droit vers le haut.
+    /// </summary>
+    private void AdvanceConsumableParticles(SKCanvas canvas, float dt)
+    {
+        for (int i = _consumableParticles.Count - 1; i >= 0; i--)
+        {
+            var p = _consumableParticles[i];
+            p.Progress = Math.Min(1f, p.Progress + dt / ConsumableParticleDuration);
+
+            float t = p.Progress;
+            float arc = 4f * ConsumableArcHeight * t * (1f - t); // parabole : 0 en t=0/1, pic en t=0.5
+            var pos = new SKPoint(
+                p.Position.X + p.SideSign * p.Distance * Smoothstep(t),
+                p.Position.Y - arc);
+            float alpha = p.Progress > 0.6f ? (1f - p.Progress) / 0.4f : 1f;
+            DrawConsumableIcon(canvas, pos, p.Resource, alpha);
+
+            if (p.Progress >= 1f)
+                _consumableParticles.RemoveAt(i);
+        }
+    }
+
+    private void DrawConsumableIcon(SKCanvas canvas, SKPoint center, Resource resource, float alpha)
+    {
+        if (!_consumableIcons.TryGetValue(resource, out var svg) || svg?.Picture == null) return;
+        if (_consumablePaint == null) return;
+
+        byte a = (byte)(Math.Clamp(alpha, 0f, 1f) * 255);
+        _consumablePaint.Color = SKColors.White.WithAlpha(a);
+
+        const float size = ConsumableIconSize;
+        float scale = size / SvgNativeSize;
+        canvas.Save();
+        canvas.Translate(center.X - size / 2f, center.Y - size / 2f);
+        canvas.Scale(scale);
+        canvas.SaveLayer(new SKRect(0, 0, SvgNativeSize, SvgNativeSize), _consumablePaint);
+        canvas.DrawPicture(svg.Picture);
+        canvas.Restore();
+        canvas.Restore();
+    }
+
     private void DrawIcon(SKCanvas canvas, SKPoint center, float alpha)
         => DrawSvgIcon(canvas, center, alpha, new SKColor(220, 60, 60), _paint);
 
@@ -462,6 +569,8 @@ public class MilitaryRenderer : HexBasedRenderer, IGameRenderer
         _dragLinePaint = null;
         _dragCirclePaint?.Dispose();
         _dragCirclePaint = null;
+        _consumablePaint?.Dispose();
+        _consumablePaint = null;
         _disposed = true;
     }
 }
