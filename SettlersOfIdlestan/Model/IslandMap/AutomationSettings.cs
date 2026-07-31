@@ -88,17 +88,22 @@ public class AutomationSettings
     [JsonIgnore] public bool IsMonumentInvestmentAutomationActive => Active(MonumentInvestmentAutomationEnabled);
 
     /// <summary>
-    /// Restreint la production des Casernes du layer indexé (Z de LayerState — 0 = surface,
-    /// LayerState.UnderworldZ, LayerState.AbyssZ) au quota de soldats nourris gratuitement
-    /// (Modifier.ECategory.SOLDIER_FOOD_FREE_PER_CITY), même quand elles sont actives — voir
-    /// SoldierProductionEngine.ProduceSoldiers. Un layer non présent dans le dictionnaire équivaut
-    /// à false. Réglage par layer non épinglable à l'écran de civilisation (pas de clé PinKeyXxx,
-    /// voir AutomationRenderer / PlayerCivilizationPanelRenderer).
+    /// Restreint la production de soldats (Casernes ET Arsenaux) du layer indexé (Z de LayerState —
+    /// 0 = surface, LayerState.UnderworldZ, LayerState.AbyssZ) au quota de soldats nourris gratuitement
+    /// (Modifier.ECategory.SOLDIER_FOOD_FREE_PER_CITY), même quand ils sont actifs — voir
+    /// SoldierProductionEngine.ProduceSoldiers et ProduceArsenalSoldiers. Un Arsenal désactivé reste
+    /// une exception à part : il ne produit jamais, restriction ou non (voir ProduceArsenalSoldiers).
+    /// Un layer non présent dans le dictionnaire équivaut à false. Réglage par layer non épinglable à
+    /// l'écran de civilisation (pas de clé PinKeyXxx, voir AutomationRenderer / PlayerCivilizationPanelRenderer).
+    /// Nom JSON conservé (RestrictBarracksToFreeSoldiersByLayer) pour la compatibilité des sauvegardes
+    /// existantes malgré le renommage du membre C# — la restriction ne concernait que les Casernes à
+    /// l'origine.
     /// </summary>
-    public Dictionary<int, bool> RestrictBarracksToFreeSoldiersByLayer { get; set; } = new();
+    [JsonPropertyName("RestrictBarracksToFreeSoldiersByLayer")]
+    public Dictionary<int, bool> RestrictSoldierProductionToFreeSoldiersByLayer { get; set; } = new();
 
-    public bool IsRestrictBarracksToFreeSoldiersActive(int layerZ)
-        => Active(RestrictBarracksToFreeSoldiersByLayer.TryGetValue(layerZ, out var v) && v);
+    public bool IsRestrictSoldierProductionToFreeSoldiersActive(int layerZ)
+        => Active(RestrictSoldierProductionToFreeSoldiersByLayer.TryGetValue(layerZ, out var v) && v);
 
     /// <summary>
     /// Obsolète : remplacé par GameSettings.PinnedCivPanelKeys (persiste entre îles/redémarrages).

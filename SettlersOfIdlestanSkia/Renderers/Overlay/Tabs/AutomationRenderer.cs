@@ -48,12 +48,16 @@ public sealed class AutomationRenderer : IDisposable
     internal const string PinKeyMilVendetta   = "MilitaryVendetta";
     internal const string PinKeyMonumentInvestment = "MonumentInvestment";
     internal const string PinKeyBarracks      = "Barracks";
+    internal const string PinKeyArsenal       = "Arsenal";
     internal const string PinKeyLaboratory    = "Laboratory";
     internal const string PinKeySmelter       = "Smelter";
     internal const string PinKeyWeaponSmith   = "WeaponSmith";
     internal const string PinKeyArmorSmith    = "ArmorSmith";
     internal const string PinKeyAlchimistHut  = "AlchimistHut";
     internal const string PinKeyArcaneTower   = "ArcaneTower";
+    internal const string PinKeyRestrictSoldierProduction           = "RestrictSoldierProduction";
+    internal const string PinKeyRestrictSoldierProductionUnderworld = "RestrictSoldierProductionUnderworld";
+    internal const string PinKeyRestrictSoldierProductionAbyss      = "RestrictSoldierProductionAbyss";
 
     private readonly GameControllerService _gameControllerService;
     private readonly LocalizationService _localization;
@@ -81,9 +85,10 @@ public sealed class AutomationRenderer : IDisposable
     private SKRect _militaryVendettaToggleRect = SKRect.Empty;
     private SKRect _monumentInvestmentToggleRect = SKRect.Empty;
     private SKRect _barracksToggleRect     = SKRect.Empty;
-    // Une ligne par layer connu (WorldState.Layers.Keys) — voir AutomationSettings.RestrictBarracksToFreeSoldiersByLayer.
-    private readonly Dictionary<int, SKRect> _restrictBarracksToggleRects = new();
-    private int? _hoveredRestrictBarracksLayer;
+    private SKRect _arsenalToggleRect      = SKRect.Empty;
+    // Une ligne par layer connu (WorldState.Layers.Keys) — voir AutomationSettings.RestrictSoldierProductionToFreeSoldiersByLayer.
+    private readonly Dictionary<int, SKRect> _restrictSoldierProductionToggleRects = new();
+    private int? _hoveredRestrictSoldierProductionLayer;
     private SKRect _labToggleRect          = SKRect.Empty;
     private SKRect _smelterToggleRect      = SKRect.Empty;
     private SKRect _weaponSmithToggleRect  = SKRect.Empty;
@@ -110,6 +115,7 @@ public sealed class AutomationRenderer : IDisposable
     private bool _hoveredMilitaryVendettaToggle;
     private bool _hoveredMonumentInvestmentToggle;
     private bool _hoveredBarracksToggle;
+    private bool _hoveredArsenalToggle;
     private bool _hoveredLabToggle;
     private bool _hoveredSmelterToggle;
     private bool _hoveredWeaponSmithToggle;
@@ -442,12 +448,13 @@ public sealed class AutomationRenderer : IDisposable
 
         // --- Contrôles bâtiments ---
         bool hasBarracks      = BuildingExists<Barracks>(civ);
+        bool hasArsenal       = BuildingExists<Arsenal>(civ);
         bool hasLabs          = BuildingExists<Laboratory>(civ);
         bool hasSmelters      = BuildingExists<Smelter>(civ);
         bool hasWeaponSmiths  = BuildingExists<WeaponSmith>(civ);
         bool hasArmorSmiths   = BuildingExists<ArmorSmith>(civ);
         bool hasAlchimistHuts = BuildingExists<AlchimistHut>(civ);
-        bool anyBuildingControls = hasBarracks || hasLabs || hasSmelters
+        bool anyBuildingControls = hasBarracks || hasArsenal || hasLabs || hasSmelters
             || hasWeaponSmiths || hasArmorSmiths || hasAlchimistHuts;
 
         if (anyBuildingControls)
@@ -461,24 +468,38 @@ public sealed class AutomationRenderer : IDisposable
                 bool? allBarracksOn = AreAllActiveNullable<Barracks>(civ);
                 (_barracksToggleRect, rowH) = DrawBuildingControlRow(canvas, rightX, rightY, colWidth, allBarracksOn, _hoveredBarracksToggle, _localization.Get("building_barracks_name"), _localization.Get("tooltip_toggle_barracks"), PinKeyBarracks, _hoveredPinKey == PinKeyBarracks, pinned.Contains(PinKeyBarracks));
                 rightY += rowH + RowSpacing;
+            }
+            else _barracksToggleRect = SKRect.Empty;
 
-                // Une ligne par layer connu — réglage non épinglable (pas de pinKey), voir
-                // AutomationSettings.RestrictBarracksToFreeSoldiersByLayer.
-                _restrictBarracksToggleRects.Clear();
+            if (hasArsenal)
+            {
+                bool? allArsenalsOn = AreAllActiveNullable<Arsenal>(civ);
+                (_arsenalToggleRect, rowH) = DrawBuildingControlRow(canvas, rightX, rightY, colWidth, allArsenalsOn, _hoveredArsenalToggle, _localization.Get("building_arsenal_name"), _localization.Get("tooltip_toggle_arsenal"), PinKeyArsenal, _hoveredPinKey == PinKeyArsenal, pinned.Contains(PinKeyArsenal));
+                rightY += rowH + RowSpacing;
+            }
+            else _arsenalToggleRect = SKRect.Empty;
+
+            if (hasBarracks || hasArsenal)
+            {
+                // Une ligne par layer connu, épinglable — voir
+                // AutomationSettings.RestrictSoldierProductionToFreeSoldiersByLayer (s'applique aux Casernes ET
+                // aux Arsenaux de ce layer, voir SoldierProductionEngine.ProduceSoldiers/ProduceArsenalSoldiers).
+                _restrictSoldierProductionToggleRects.Clear();
                 foreach (var layerZ in WorldState.Layers.Keys.OrderBy(z => z))
                 {
-                    string keyPrefix = RestrictBarracksKeyPrefix(layerZ);
-                    bool isRestricted = WorldState.AutomationSettings.RestrictBarracksToFreeSoldiersByLayer.TryGetValue(layerZ, out var v) && v;
-                    (SKRect restrictRect, rowH) = DrawAutomationRow(canvas, rightX, rightY, colWidth, isRestricted, _hoveredRestrictBarracksLayer == layerZ,
-                        _localization.Get($"{keyPrefix}_name"), _localization.Get($"{keyPrefix}_desc"));
-                    _restrictBarracksToggleRects[layerZ] = restrictRect;
+                    string keyPrefix = RestrictSoldierProductionKeyPrefix(layerZ);
+                    string restrictPinKey = RestrictSoldierProductionPinKey(layerZ);
+                    bool isRestricted = WorldState.AutomationSettings.RestrictSoldierProductionToFreeSoldiersByLayer.TryGetValue(layerZ, out var v) && v;
+                    (SKRect restrictRect, rowH) = DrawAutomationRow(canvas, rightX, rightY, colWidth, isRestricted, _hoveredRestrictSoldierProductionLayer == layerZ,
+                        _localization.Get($"{keyPrefix}_name"), _localization.Get($"{keyPrefix}_desc"),
+                        pinKey: restrictPinKey, isPinHovered: _hoveredPinKey == restrictPinKey, isPinned: pinned.Contains(restrictPinKey));
+                    _restrictSoldierProductionToggleRects[layerZ] = restrictRect;
                     rightY += rowH + RowSpacing;
                 }
             }
             else
             {
-                _barracksToggleRect = SKRect.Empty;
-                _restrictBarracksToggleRects.Clear();
+                _restrictSoldierProductionToggleRects.Clear();
             }
 
             if (hasLabs)
@@ -523,9 +544,9 @@ public sealed class AutomationRenderer : IDisposable
         }
         else
         {
-            _barracksToggleRect = _labToggleRect = _smelterToggleRect = SKRect.Empty;
+            _barracksToggleRect = _arsenalToggleRect = _labToggleRect = _smelterToggleRect = SKRect.Empty;
             _weaponSmithToggleRect = _armorSmithToggleRect = _alchimistHutToggleRect = SKRect.Empty;
-            _restrictBarracksToggleRects.Clear();
+            _restrictSoldierProductionToggleRects.Clear();
         }
 
         float rightBottom = rightY;
@@ -753,10 +774,11 @@ public sealed class AutomationRenderer : IDisposable
         _hoveredMilitaryVendettaToggle       = !_militaryVendettaToggleRect.IsEmpty       && _militaryVendettaToggleRect.Contains(adj.X, adj.Y);
         _hoveredMonumentInvestmentToggle     = !_monumentInvestmentToggleRect.IsEmpty     && _monumentInvestmentToggleRect.Contains(adj.X, adj.Y);
         _hoveredBarracksToggle      = !_barracksToggleRect.IsEmpty      && _barracksToggleRect.Contains(adj.X, adj.Y);
-        _hoveredRestrictBarracksLayer = null;
-        foreach (var (layerZ, rect) in _restrictBarracksToggleRects)
+        _hoveredArsenalToggle       = !_arsenalToggleRect.IsEmpty       && _arsenalToggleRect.Contains(adj.X, adj.Y);
+        _hoveredRestrictSoldierProductionLayer = null;
+        foreach (var (layerZ, rect) in _restrictSoldierProductionToggleRects)
         {
-            if (!rect.IsEmpty && rect.Contains(adj.X, adj.Y)) { _hoveredRestrictBarracksLayer = layerZ; break; }
+            if (!rect.IsEmpty && rect.Contains(adj.X, adj.Y)) { _hoveredRestrictSoldierProductionLayer = layerZ; break; }
         }
         _hoveredLabToggle           = !_labToggleRect.IsEmpty           && _labToggleRect.Contains(adj.X, adj.Y);
         _hoveredSmelterToggle       = !_smelterToggleRect.IsEmpty       && _smelterToggleRect.Contains(adj.X, adj.Y);
@@ -920,10 +942,10 @@ public sealed class AutomationRenderer : IDisposable
             return true;
         }
 
-        foreach (var (layerZ, rect) in _restrictBarracksToggleRects)
+        foreach (var (layerZ, rect) in _restrictSoldierProductionToggleRects)
         {
             if (rect.IsEmpty || !rect.Contains(adj.X, adj.Y)) continue;
-            var byLayer = state.AutomationSettings.RestrictBarracksToFreeSoldiersByLayer;
+            var byLayer = state.AutomationSettings.RestrictSoldierProductionToFreeSoldiersByLayer;
             bool current = byLayer.TryGetValue(layerZ, out var v) && v;
             byLayer[layerZ] = !current;
             return true;
@@ -936,6 +958,10 @@ public sealed class AutomationRenderer : IDisposable
             if (!_barracksToggleRect.IsEmpty && _barracksToggleRect.Contains(adj.X, adj.Y))
             {
                 ToggleAll<Barracks>(civ); return true;
+            }
+            if (!_arsenalToggleRect.IsEmpty && _arsenalToggleRect.Contains(adj.X, adj.Y))
+            {
+                ToggleAll<Arsenal>(civ); return true;
             }
             if (!_labToggleRect.IsEmpty && _labToggleRect.Contains(adj.X, adj.Y))
             {
@@ -979,11 +1005,19 @@ public sealed class AutomationRenderer : IDisposable
         => civ.Cities.Any(c => c.Buildings.OfType<T>().Any(b => b.Level >= 1));
 
     /// <summary>Préfixe de clé de localisation pour la ligne "restreindre aux soldats gratuits" d'un layer donné.</summary>
-    private static string RestrictBarracksKeyPrefix(int layerZ) => layerZ switch
+    private static string RestrictSoldierProductionKeyPrefix(int layerZ) => layerZ switch
     {
-        LayerState.UnderworldZ => "automation_restrict_barracks_underworld",
-        LayerState.AbyssZ      => "automation_restrict_barracks_abyss",
-        _                      => "automation_restrict_barracks",
+        LayerState.UnderworldZ => "automation_restrict_soldier_production_underworld",
+        LayerState.AbyssZ      => "automation_restrict_soldier_production_abyss",
+        _                      => "automation_restrict_soldier_production",
+    };
+
+    /// <summary>Clé de pin (PinnedCivPanelKeys) pour la ligne "restreindre aux soldats gratuits" d'un layer donné.</summary>
+    private static string RestrictSoldierProductionPinKey(int layerZ) => layerZ switch
+    {
+        LayerState.UnderworldZ => PinKeyRestrictSoldierProductionUnderworld,
+        LayerState.AbyssZ      => PinKeyRestrictSoldierProductionAbyss,
+        _                      => PinKeyRestrictSoldierProduction,
     };
 
     private static bool? AreAllActiveNullable<T>(Civilization civ) where T : Building

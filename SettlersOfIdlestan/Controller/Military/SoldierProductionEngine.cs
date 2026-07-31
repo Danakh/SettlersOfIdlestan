@@ -46,11 +46,11 @@ internal class SoldierProductionEngine
                 if (barracks == null) continue;
 
                 bool restrictedToFreeSoldiers = civ.Index == _state.PlayerCivilization.Index
-                    && _state.AutomationSettings.IsRestrictBarracksToFreeSoldiersActive(city.Position.Z);
+                    && _state.AutomationSettings.IsRestrictSoldierProductionToFreeSoldiersActive(city.Position.Z);
 
                 if (barracks.ActivationStatus != ActivationStatus.ACTIVE || restrictedToFreeSoldiers)
                 {
-                    // Même désactivée (ou restreinte via AutomationSettings.RestrictBarracksToFreeSoldiersByLayer),
+                    // Même désactivée (ou restreinte via AutomationSettings.RestrictSoldierProductionToFreeSoldiersByLayer),
                     // la Caserne continue à produire tant que la ville n'a pas atteint son quota de
                     // soldats nourris gratuitement (SOLDIER_FOOD_FREE_PER_CITY).
                     int freePerCity = (int)civ.ModifierAggregator.ApplyModifiers(ECategory.SOLDIER_FOOD_FREE_PER_CITY, "", 0.0);
@@ -79,10 +79,12 @@ internal class SoldierProductionEngine
 
     /// <summary>
     /// Production de soldats par les Arsenaux actifs — voir <see cref="Modifier.ECategory.UNLOCK_ARSENAL_PRODUCTION"/>
-    /// (vertex de prestige Production Accélérée) : 2 soldats pour 1 Acier consommé par cycle. Contrairement
-    /// aux Casernes (<see cref="ProduceSoldiers"/>), un Arsenal désactivé ne produit jamais, même sous le
-    /// quota gratuit (SOLDIER_FOOD_FREE_PER_CITY) — l'activation est un choix explicite du joueur vu le
-    /// coût en Acier, une ressource par ailleurs utilisée pour les Armures/Armes d'Acier.
+    /// (vertex de prestige Production Accélérée) : 2 soldats pour 1 Acier consommé par cycle. Un Arsenal
+    /// désactivé ne produit jamais, même sous le quota gratuit (SOLDIER_FOOD_FREE_PER_CITY) — l'activation
+    /// est un choix explicite du joueur vu le coût en Acier, une ressource par ailleurs utilisée pour les
+    /// Armures/Armes d'Acier. En revanche, comme les Casernes (<see cref="ProduceSoldiers"/>), un Arsenal
+    /// actif reste plafonné au quota gratuit tant que la restriction par layer
+    /// (AutomationSettings.RestrictSoldierProductionToFreeSoldiersByLayer) est active pour la ville.
     /// </summary>
     internal void ProduceArsenalSoldiers(long currentTick)
     {
@@ -102,6 +104,15 @@ internal class SoldierProductionEngine
 
                 var arsenal = city.Buildings.OfType<Arsenal>().FirstOrDefault(a => a.Level >= 1);
                 if (arsenal == null || arsenal.ActivationStatus != ActivationStatus.ACTIVE) continue;
+
+                bool restrictedToFreeSoldiers = civ.Index == _state.PlayerCivilization.Index
+                    && _state.AutomationSettings.IsRestrictSoldierProductionToFreeSoldiersActive(city.Position.Z);
+                if (restrictedToFreeSoldiers)
+                {
+                    int freePerCity = (int)civ.ModifierAggregator.ApplyModifiers(ECategory.SOLDIER_FOOD_FREE_PER_CITY, "", 0.0);
+                    if (city.Soldiers >= freePerCity) continue;
+                    room = Math.Min(room, freePerCity - city.Soldiers);
+                }
 
                 if (civ.GetResourceQuantity(Resource.Steel) < Arsenal.SteelInputPerCycle)
                 {

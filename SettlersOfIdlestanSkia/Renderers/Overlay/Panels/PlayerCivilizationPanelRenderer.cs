@@ -216,6 +216,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         bool presenceOfGodVisible = ascensionController.IsPowerUnlocked(AscensionPowerId.PresenceOfGod);
         _presenceOfGodEnabled = presenceOfGodVisible && context.CurrentLayer == 0 && ascensionController.GetPresenceOfGodTargetHexes().Count > 0 && ascensionController.CanUsePresenceOfGod();
         bool hasBarracks     = HasBuilt<Barracks>(civ);
+        bool hasArsenal      = HasBuilt<Arsenal>(civ);
         bool hasLabs         = HasBuilt<Laboratory>(civ);
         bool hasSmelters     = HasBuilt<Smelter>(civ);
         bool hasWeaponSmiths  = HasBuilt<WeaponSmith>(civ);
@@ -226,7 +227,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         var pinned = _gameControllerService.CurrentGameState?.Settings.PinnedCivPanelKeys ?? (IReadOnlySet<string>)new HashSet<string>();
 
         bool showActions  = tradeVisible || prestigeVisible || wonderVisible || greatLighthouseVisible || deepestMineVisible || spireVisible || raidVisible || warHeraldVisible || locateHeroVisible || relocationVisible || walkOfGodVisible || presenceOfGodVisible;
-        bool showControls = pinned.Any(k => IsKeyShowable(k, civ, worldState, hasBarracks, hasLabs, hasSmelters, hasWeaponSmiths, hasArmorSmiths, hasAlchimistHuts));
+        bool showControls = pinned.Any(k => IsKeyShowable(k, civ, worldState, hasBarracks, hasArsenal, hasLabs, hasSmelters, hasWeaponSmiths, hasArmorSmiths, hasAlchimistHuts));
 
         // Single source of truth for the action-button count — reused for both the
         // panel height measurement and the button-grid layout so they can't drift apart.
@@ -267,7 +268,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         {
             h += titleHeight;
             foreach (var k in pinned)
-                if (IsKeyShowable(k, civ, worldState, hasBarracks, hasLabs, hasSmelters, hasWeaponSmiths, hasArmorSmiths, hasAlchimistHuts))
+                if (IsKeyShowable(k, civ, worldState, hasBarracks, hasArsenal, hasLabs, hasSmelters, hasWeaponSmiths, hasArmorSmiths, hasAlchimistHuts))
                     h += rowHeight;
         }
         h += panelPadding;
@@ -432,7 +433,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
 
             foreach (var key in pinned)
             {
-                if (!IsKeyShowable(key, civ, worldState, hasBarracks, hasLabs, hasSmelters, hasWeaponSmiths, hasArmorSmiths, hasAlchimistHuts))
+                if (!IsKeyShowable(key, civ, worldState, hasBarracks, hasArsenal, hasLabs, hasSmelters, hasWeaponSmiths, hasArmorSmiths, hasAlchimistHuts))
                     continue;
 
                 int idx = _pinnedItemRects.Count;
@@ -446,6 +447,10 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
                     case AutomationRenderer.PinKeyBarracks:
                         toggleRect = DrawToggleRow(canvas, x, y, AreAllActiveNullable<Barracks>(civ), isHovered, _localization.Get("building_barracks_name"));
                         tooltipKey = "tooltip_toggle_barracks";
+                        break;
+                    case AutomationRenderer.PinKeyArsenal:
+                        toggleRect = DrawToggleRow(canvas, x, y, AreAllActiveNullable<Arsenal>(civ), isHovered, _localization.Get("building_arsenal_name"));
+                        tooltipKey = "tooltip_toggle_arsenal";
                         break;
                     case AutomationRenderer.PinKeyLaboratory:
                         toggleRect = DrawToggleRow(canvas, x, y, AreAllActiveNullable<Laboratory>(civ), isHovered, _localization.Get("building_laboratory_name"));
@@ -469,7 +474,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
                         break;
                     default:
                         toggleRect = DrawAutomationToggleRow(canvas, x, y, key, worldState!, isHovered, contentW);
-                        tooltipKey = "tooltip_pin_to_civ_panel";
+                        tooltipKey = GetAutomationPinDescKey(key);
                         break;
                 }
                 _pinnedItemRects.Add((toggleRect, key, tooltipKey));
@@ -843,6 +848,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         switch (key)
         {
             case AutomationRenderer.PinKeyBarracks:      if (civ != null) ToggleAll<Barracks>(civ);    break;
+            case AutomationRenderer.PinKeyArsenal:       if (civ != null) ToggleAll<Arsenal>(civ);     break;
             case AutomationRenderer.PinKeyLaboratory:    if (civ != null) ToggleAll<Laboratory>(civ);  break;
             case AutomationRenderer.PinKeySmelter:       if (civ != null) ToggleAll<Smelter>(civ);     break;
             case AutomationRenderer.PinKeyWeaponSmith:   if (civ != null) ToggleAll<WeaponSmith>(civ); break;
@@ -878,17 +884,38 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
                         _gameControllerService.MainGameController.MilitaryController.ClearAttackFlows(civ);
                 }
                 break;
+            case AutomationRenderer.PinKeyRestrictSoldierProduction:
+                ToggleRestrictSoldierProductionByLayer(settings, IslandMap.SurfaceLayer);
+                break;
+            case AutomationRenderer.PinKeyRestrictSoldierProductionUnderworld:
+                ToggleRestrictSoldierProductionByLayer(settings, LayerState.UnderworldZ);
+                break;
+            case AutomationRenderer.PinKeyRestrictSoldierProductionAbyss:
+                ToggleRestrictSoldierProductionByLayer(settings, LayerState.AbyssZ);
+                break;
         }
     }
 
+    private static void ToggleRestrictSoldierProductionByLayer(AutomationSettings? settings, int layerZ)
+    {
+        if (settings == null) return;
+        var byLayer = settings.RestrictSoldierProductionToFreeSoldiersByLayer;
+        bool current = byLayer.TryGetValue(layerZ, out var v) && v;
+        byLayer[layerZ] = !current;
+    }
+
+    private static bool IsRestrictSoldierProductionByLayer(AutomationSettings settings, int layerZ)
+        => settings.RestrictSoldierProductionToFreeSoldiersByLayer.TryGetValue(layerZ, out var v) && v;
+
     private static bool IsKeyShowable(string key, Civilization civ,
         SettlersOfIdlestan.Model.IslandMap.WorldState? worldState,
-        bool hasBarracks, bool hasLabs, bool hasSmelters,
+        bool hasBarracks, bool hasArsenal, bool hasLabs, bool hasSmelters,
         bool hasWeaponSmiths, bool hasArmorSmiths, bool hasAlchimistHuts)
     {
         return key switch
         {
             AutomationRenderer.PinKeyBarracks     => hasBarracks,
+            AutomationRenderer.PinKeyArsenal      => hasArsenal,
             AutomationRenderer.PinKeyLaboratory   => hasLabs,
             AutomationRenderer.PinKeySmelter      => hasSmelters,
             AutomationRenderer.PinKeyWeaponSmith  => hasWeaponSmiths,
@@ -917,10 +944,43 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             AutomationRenderer.PinKeyMilReinforce => (settings.MilitaryReinforcementAutomationEnabled,     "automation_military_reinforcement_name"),
             AutomationRenderer.PinKeyMilPatrol    => (settings.MilitaryPatrolAutomationEnabled,            "automation_military_patrol_name"),
             AutomationRenderer.PinKeyMilVendetta  => (settings.MilitaryVendettaAutomationEnabled,          "automation_military_vendetta_name"),
+            AutomationRenderer.PinKeyRestrictSoldierProduction =>
+                (IsRestrictSoldierProductionByLayer(settings, IslandMap.SurfaceLayer), "automation_restrict_soldier_production_name"),
+            AutomationRenderer.PinKeyRestrictSoldierProductionUnderworld =>
+                (IsRestrictSoldierProductionByLayer(settings, LayerState.UnderworldZ), "automation_restrict_soldier_production_underworld_name"),
+            AutomationRenderer.PinKeyRestrictSoldierProductionAbyss =>
+                (IsRestrictSoldierProductionByLayer(settings, LayerState.AbyssZ), "automation_restrict_soldier_production_abyss_name"),
             _                                     => (false, key),
         };
         return DrawToggleRow(canvas, x, y, (bool?)value, isHovered, _localization.Get(nameKey));
     }
+
+    /// <summary>
+    /// Clé de localisation de la description (au lieu du générique "tooltip_pin_to_civ_panel", qui
+    /// n'a de sens que sur la case à cocher de la pin — pas une fois l'élément déjà épinglé) pour un
+    /// pin d'automatisme générique affiché via <see cref="DrawAutomationToggleRow"/>. Miroir de son
+    /// switch nameKey (suffixe "_desc" au lieu de "_name").
+    /// </summary>
+    private static string GetAutomationPinDescKey(string key) => key switch
+    {
+        AutomationRenderer.PinKeyRoad         => "automation_road_desc",
+        AutomationRenderer.PinKeyOutpost      => "automation_outpost_desc",
+        AutomationRenderer.PinKeyRoadUnderworld    => "automation_road_underworld_desc",
+        AutomationRenderer.PinKeyOutpostUnderworld => "automation_outpost_underworld_desc",
+        AutomationRenderer.PinKeyProduction   => "automation_production_desc",
+        AutomationRenderer.PinKeyArtisan      => "automation_artisan_desc",
+        AutomationRenderer.PinKeyLibrary      => "automation_library_desc",
+        AutomationRenderer.PinKeyMarket       => "automation_market_desc",
+        AutomationRenderer.PinKeySeaport      => "automation_seaport_desc",
+        AutomationRenderer.PinKeyMilBuildings => "automation_military_buildings_desc",
+        AutomationRenderer.PinKeyMilReinforce => "automation_military_reinforcement_desc",
+        AutomationRenderer.PinKeyMilPatrol    => "automation_military_patrol_desc",
+        AutomationRenderer.PinKeyMilVendetta  => "automation_military_vendetta_desc",
+        AutomationRenderer.PinKeyRestrictSoldierProduction           => "automation_restrict_soldier_production_desc",
+        AutomationRenderer.PinKeyRestrictSoldierProductionUnderworld => "automation_restrict_soldier_production_underworld_desc",
+        AutomationRenderer.PinKeyRestrictSoldierProductionAbyss      => "automation_restrict_soldier_production_abyss_desc",
+        _ => "tooltip_pin_to_civ_panel",
+    };
 
     private bool IsTradeVisible()
     {

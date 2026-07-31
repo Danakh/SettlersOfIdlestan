@@ -152,11 +152,12 @@ public class MilitaryController
     /// <summary>
     /// Minerai/seconde consommé par la production automatique de soldats (Casernes), toutes villes de
     /// la civilisation confondues. Reflète les mêmes conditions que <see cref="SoldierProductionEngine.ProduceSoldiers"/> —
-    /// une ville au plafond de soldats (elle et ses renforts en transit compris), ou sans Caserne active
-    /// (hors quota gratuit sous <see cref="ECategory.SOLDIER_FOOD_FREE_PER_CITY"/>), ne compte pas : la
-    /// consommation est basée sur le fait que chaque Caserne éligible est en train de tourner son cooldown
-    /// de production (et va donc consommer 1 minerai à la fin de celui-ci), pas sur une prédiction de
-    /// disponibilité future du minerai lui-même.
+    /// une ville au plafond de soldats (elle et ses renforts en transit compris), sans Caserne active
+    /// (hors quota gratuit sous <see cref="ECategory.SOLDIER_FOOD_FREE_PER_CITY"/>), ou dont le layer est
+    /// restreint au quota gratuit (AutomationSettings.RestrictSoldierProductionToFreeSoldiersByLayer) et déjà au
+    /// quota, ne compte pas : la consommation est basée sur le fait que chaque Caserne éligible est en
+    /// train de tourner son cooldown de production (et va donc consommer 1 minerai à la fin de celui-ci),
+    /// pas sur une prédiction de disponibilité future du minerai lui-même.
     /// </summary>
     public double GetSoldierProductionOreRate(int civilizationIndex)
     {
@@ -174,7 +175,10 @@ public class MilitaryController
             var barracks = city.Buildings.OfType<Barracks>()
                 .FirstOrDefault(b => b.Level >= SoldierProductionEngine.SoldierProductionMinLevel);
             if (barracks == null) continue;
-            if (barracks.ActivationStatus != ActivationStatus.ACTIVE && city.Soldiers >= freePerCity) continue;
+
+            bool restrictedToFreeSoldiers = civ.Index == _state!.PlayerCivilization.Index
+                && _state.AutomationSettings.IsRestrictSoldierProductionToFreeSoldiersActive(city.Position.Z);
+            if ((barracks.ActivationStatus != ActivationStatus.ACTIVE || restrictedToFreeSoldiers) && city.Soldiers >= freePerCity) continue;
 
             total += civ.UnitProductionSpeed * ticksPerSecond / SoldierProductionIntervalTicks;
         }
@@ -200,13 +204,16 @@ public class MilitaryController
     /// <summary>
     /// Acier/seconde consommé par la production automatique de soldats des Arsenaux actifs, toutes villes
     /// de la civilisation confondues. Reflète les mêmes conditions que <see cref="SoldierProductionEngine.ProduceArsenalSoldiers"/> —
-    /// contrairement aux Casernes, un Arsenal désactivé ne compte jamais (pas d'exception sous le quota gratuit).
+    /// un Arsenal désactivé ne compte jamais (pas d'exception sous le quota gratuit), et un Arsenal actif
+    /// dont le layer est restreint au quota gratuit (AutomationSettings.RestrictSoldierProductionToFreeSoldiersByLayer)
+    /// et déjà au quota ne compte pas non plus.
     /// </summary>
     public double GetArsenalProductionSteelRate(int civilizationIndex)
     {
         var civ = _state?.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex);
         if (civ == null || !civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_ARSENAL_PRODUCTION)) return 0;
 
+        int freePerCity = (int)civ.ModifierAggregator.ApplyModifiers(ECategory.SOLDIER_FOOD_FREE_PER_CITY, "", 0.0);
         const double ticksPerSecond = 100.0;
         double total = 0;
 
@@ -216,6 +223,10 @@ public class MilitaryController
 
             var arsenal = city.Buildings.OfType<Arsenal>().FirstOrDefault(a => a.Level >= 1);
             if (arsenal == null || arsenal.ActivationStatus != ActivationStatus.ACTIVE) continue;
+
+            bool restrictedToFreeSoldiers = civ.Index == _state!.PlayerCivilization.Index
+                && _state.AutomationSettings.IsRestrictSoldierProductionToFreeSoldiersActive(city.Position.Z);
+            if (restrictedToFreeSoldiers && city.Soldiers >= freePerCity) continue;
 
             total += Arsenal.SteelInputPerCycle * civ.UnitProductionSpeed * ticksPerSecond / SoldierProductionIntervalTicks;
         }
