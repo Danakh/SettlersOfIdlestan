@@ -80,6 +80,9 @@ namespace SettlersOfIdlestan.Controller.Island
         private GamePRNG? _prng;
         private long _lastPassiveGenTick = 0;
         private long _lastPassiveCrystalGenTick = 0;
+        // Reste fractionnaire de cristaux non encore distribué par CRYSTAL_GENERATION_PER_LABORATORY, par civilisation
+        // (valeur < 1 : perLab × nb labos n'est presque jamais un entier — voir PerformLaboratoryCrystalGeneration).
+        private readonly System.Collections.Generic.Dictionary<int, double> _laboratoryCrystalCarry = new();
 
         private readonly record struct ProductionEntry(HexCoord Hex, City City, Building Building, Resource Resource, TerrainType Terrain);
         private readonly System.Collections.Generic.Dictionary<int, System.Collections.Generic.List<ProductionEntry>> _productionCache = new();
@@ -402,7 +405,35 @@ namespace SettlersOfIdlestan.Controller.Island
                         catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[HarvestController] AddResource {resource}: {ex.Message}"); }
                     }
                 }
+
+                if (crystalDue)
+                    PerformLaboratoryCrystalGeneration(civ);
             }
+        }
+
+        /// <summary>
+        /// Applique CRYSTAL_GENERATION_PER_LABORATORY (ex. vertex de prestige Distillation Magique) : valeur agrégée
+        /// (typiquement &lt; 1) × nombre de Laboratoires construits (niveau ≥ 1). Le reste fractionnaire est reporté
+        /// au cycle suivant par civilisation, pour ne jamais perdre de production même avec peu de Laboratoires.
+        /// </summary>
+        private void PerformLaboratoryCrystalGeneration(Civilization civ)
+        {
+            double perLaboratory = civ.ModifierAggregator.ApplyModifiers(ECategory.CRYSTAL_GENERATION_PER_LABORATORY, "", 0.0);
+            if (perLaboratory <= 0) return;
+
+            int laboratoryCount = civ.Cities.Sum(c => c.Buildings.Count(b => b.Type == BuildingType.Laboratory && b.Level >= 1));
+            if (laboratoryCount == 0) return;
+
+            _laboratoryCrystalCarry.TryGetValue(civ.Index, out double carry);
+            carry += perLaboratory * laboratoryCount;
+            int whole = (int)carry;
+            if (whole > 0)
+            {
+                try { civ.AddResource(Resource.Crystal, whole); }
+                catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[HarvestController] AddResource Crystal (laboratory): {ex.Message}"); }
+                carry -= whole;
+            }
+            _laboratoryCrystalCarry[civ.Index] = carry;
         }
 
         public static long GetEffectiveSeaportGenerationCooldown(Seaport seaport)
@@ -933,6 +964,14 @@ namespace SettlersOfIdlestan.Controller.Island
                     long intervalTicks = resource == Resource.Crystal ? PassiveCrystalGenerationIntervalTicks : PassiveResourceGenerationIntervalTicks;
                     AddSourceRate(result, resource, PassiveGenerationSourceKey, amount / (intervalTicks / 100.0));
                 }
+            }
+
+            double perLaboratory = civ.ModifierAggregator.ApplyModifiers(ECategory.CRYSTAL_GENERATION_PER_LABORATORY, "", 0.0);
+            if (perLaboratory > 0)
+            {
+                int laboratoryCount = civ.Cities.Sum(c => c.Buildings.Count(b => b.Type == BuildingType.Laboratory && b.Level >= 1));
+                if (laboratoryCount > 0)
+                    AddSourceRate(result, Resource.Crystal, BuildingSourceKey(BuildingType.Laboratory), perLaboratory * laboratoryCount / (PassiveCrystalGenerationIntervalTicks / 100.0));
             }
 
             return result;

@@ -323,9 +323,21 @@ public class Civilization
 
     /// <summary>
     /// Research point production speed multiplier (Library/Laboratory generation). 1.0 = normal speed.
+    /// Inclut le bonus par Tour de Mages (RESEARCH_SPEED_PER_MAGE_TOWER, ex. Distillation Magique), agrégé
+    /// puis multiplié par le nombre de Tours de Mages construites (niveau ≥ 1), avant les autres modificateurs.
     /// </summary>
     [JsonIgnore]
-    public double ResearchProductionSpeed => ModifierAggregator.ApplyModifiers(ECategory.RESEARCH_PRODUCTION_SPEED, "", 1.0);
+    public double ResearchProductionSpeed
+    {
+        get
+        {
+            double perMageTower = ModifierAggregator.ApplyModifiers(ECategory.RESEARCH_SPEED_PER_MAGE_TOWER, "", 0.0);
+            int mageTowerCount = perMageTower > 0
+                ? _cities.Sum(c => c.Buildings.Count(b => b.Type == BuildingType.MageTower && b.Level >= 1))
+                : 0;
+            return ModifierAggregator.ApplyModifiers(ECategory.RESEARCH_PRODUCTION_SPEED, "", 1.0 + perMageTower * mageTowerCount);
+        }
+    }
 
     /// <summary>
     /// Research point investment speed multiplier (consumption of stored points into active research). 1.0 = normal speed.

@@ -533,7 +533,11 @@ public static class PrestigeMapFactory
                 PrestigeMap.FarShoreVertex,
                 "prestige_vertex_far_shore",
                 cost: Cost(PrestigeMap.FarShoreVertex),
-                modifiers: new Modifier[] { new(ECategory.PASSIVE_RESOURCE_GENERATION, "Crystal", EType.ADDITIVE, 1) }
+                modifiers: new Modifier[]
+                {
+                    new(ECategory.RESEARCH_SPEED_PER_MAGE_TOWER, EType.ADDITIVE, 0.05),
+                    new(ECategory.CRYSTAL_GENERATION_PER_LABORATORY, EType.ADDITIVE, 0.1),
+                }
             ),
             new(
                 PrestigeMap.LostSanctumVertex,

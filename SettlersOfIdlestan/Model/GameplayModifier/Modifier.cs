@@ -211,6 +211,10 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             TEMPLE_MONSTER_DAMAGE_PER_SECOND,
             /// <summary>Flags que les Arsenaux peuvent être activés/désactivés et, une fois actifs, produisent 2 soldats pour 1 Acier consommé par cycle (voir SoldierProductionEngine.ProduceArsenalSoldiers). Contrairement aux Casernes, aucune production n'a lieu si l'Arsenal est désactivé, même sous le quota gratuit (SOLDIER_FOOD_FREE_PER_CITY).</summary>
             UNLOCK_ARSENAL_PRODUCTION,
+            /// <summary>Bonus additif de vitesse de recherche par Tour de Mages construite (niveau ≥ 1) dans la civilisation. Base = 0.0 ; agrégé puis multiplié par le nombre de Tours de Mages (voir Civilization.ResearchProductionSpeed). 0.05 = +5% par tour.</summary>
+            RESEARCH_SPEED_PER_MAGE_TOWER,
+            /// <summary>Génération passive de Cristal par cycle (voir HarvestController.PassiveCrystalGenerationIntervalTicks), par Laboratoire construit (niveau ≥ 1) dans la civilisation. Base = 0.0 ; agrégé puis multiplié par le nombre de Laboratoires, avec report du reste fractionnaire d'un cycle à l'autre (voir HarvestController.PerformLaboratoryCrystalGeneration). 0.1 = +0.1 cristal par cycle et par laboratoire.</summary>
+            CRYSTAL_GENERATION_PER_LABORATORY,
         }
 
         [JsonConverter(typeof(JsonStringEnumConverter<EType>))]

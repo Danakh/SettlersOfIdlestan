@@ -795,6 +795,8 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         Modifier.ECategory.VOLCANO_DAMAGE_REDUCTION          => $"-{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_volcano_damage_reduction")}",
         Modifier.ECategory.TEMPLE_MONSTER_DAMAGE_PER_SECOND  => $"+{(int)mod.Value} {_localization.Get("prestige_tooltip_temple_monster_damage")}",
         Modifier.ECategory.UNLOCK_ARSENAL_PRODUCTION         => _localization.Get("prestige_tooltip_unlocks_arsenal_production"),
+        Modifier.ECategory.RESEARCH_SPEED_PER_MAGE_TOWER     => $"+{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_research_speed_per_mage_tower")}",
+        Modifier.ECategory.CRYSTAL_GENERATION_PER_LABORATORY => $"+{mod.Value:0.#} {_localization.Get("prestige_tooltip_crystal_generation_per_laboratory")}",
         _ => $"+{mod.Value}"
     };
 
