@@ -215,6 +215,7 @@
   "building_harvestersguild_desc_3": "Auto-upgrades production buildings every 5s.\n► Lvl.4: every 2.5s (maximum speed)",
   "building_harvestersguild_desc_4": "Auto-upgrades production buildings every 2.5s. Maximum speed.",
   "harvestersguild_next_production": "Next auto-build:",
+  "tooltip_resource_total": "(Total: {0}/s)",
   "tooltip_requires_3_production_level4": "⚠ Requires 3 production buildings (Sawmill, Brickworks, Quarry or Mill) at level 4 in this city",
   "tooltip_requires_forge_level4": "⚠ Requires a level 4 Forge in this city",
   "tooltip_requires_garrison": "⚠ Requires a Garrison in this city",

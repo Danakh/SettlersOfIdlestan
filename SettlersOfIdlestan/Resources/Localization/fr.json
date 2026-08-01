@@ -215,6 +215,7 @@
   "building_harvestersguild_desc_3": "Améliore les bâtiments de production toutes les 5s.\n► Niv.4 : toutes les 2,5s (vitesse maximale)",
   "building_harvestersguild_desc_4": "Améliore les bâtiments de production toutes les 2,5s. Vitesse maximale.",
   "harvestersguild_next_production": "Prochain bâtiment auto :",
+  "tooltip_resource_total": "(Total : {0}/s)",
   "tooltip_requires_3_production_level4": "⚠ Nécessite 3 bâtiments de production (Scierie, Briqueterie, Carrière ou Moulin) niveau 4 dans cette ville",
   "tooltip_requires_forge_level4": "⚠ Nécessite une Forge niveau 4 dans cette ville",
   "tooltip_requires_garrison": "⚠ Nécessite une Garnison dans cette ville",

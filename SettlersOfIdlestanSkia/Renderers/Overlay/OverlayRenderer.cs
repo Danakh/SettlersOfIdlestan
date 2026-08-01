@@ -357,7 +357,11 @@ public sealed class OverlayRenderer : IGameRenderer
             return;
         }
 
-        var lines = new System.Collections.Generic.List<string> { resourceName };
+        double totalRate = gains.Sum(g => g.Rate) - losses.Sum(l => l.Rate);
+        var lines = new System.Collections.Generic.List<string>
+        {
+            $"{resourceName} {_localization.GetFormated("tooltip_resource_total", totalRate.ToString("F2"))}"
+        };
         foreach (var (sourceKey, rate) in gains.OrderByDescending(g => g.Rate))
             lines.Add($"{_localization.Get(sourceKey)} : +{rate:F2}/s");
         foreach (var (sourceKey, rate) in losses.OrderByDescending(l => l.Rate))
