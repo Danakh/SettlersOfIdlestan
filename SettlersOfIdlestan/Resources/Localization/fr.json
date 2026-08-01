@@ -766,7 +766,7 @@
   "hex_tooltip_contested_diplomacy": "⚔ Territoire disputé — production à 50%",
   "hex_tooltip_corruption_info": "☠ Corruption (niv. {0}) — production divisée par {1}",
   "hex_tooltip_dominion_info": "✨ Dominion (niv. {0}) — +{1}% de vitesse de récolte sur cet hex (avant bonus de prestige)",
-  "hex_tooltip_corruption_spire": "🌑 Spire de Corruption — réduit déjà la corruption dans un rayon de {0} hex(s) de 1 niveau/10s ; investissez des ressources pour l'achever",
+  "hex_tooltip_corruption_spire": "🌑 Spire de Corruption — en construction, ne réduit pas encore la corruption ; investissez des ressources pour l'achever",
   "hex_tooltip_corruption_spire_built": "🌑 Spire de Corruption — construite, réduit la corruption dans un rayon de {0} hex(s) de 1 niveau toutes les 10s ; améliorable indéfiniment",
   "event_corruption_spire_placed_title": "🌑 Construction de la Spire de Corruption commencée",
   "event_corruption_spire_placed_body": "Dès à présent, la Spire réduit la corruption dans un rayon de 1 hex de 1 niveau toutes les 10 secondes (contrairement à la Faille des Abysses, elle ne protège pas son hex des autres évolutions de corruption ou de dominion). Investissez des ressources pour achever sa construction.",

@@ -766,7 +766,7 @@
   "hex_tooltip_contested_diplomacy": "⚔ Contested territory — 50% production",
   "hex_tooltip_corruption_info": "☠ Corruption (lvl. {0}) — production divided by {1}",
   "hex_tooltip_dominion_info": "✨ Dominion (lvl. {0}) — +{1}% harvest speed on this hex (before prestige bonus)",
-  "hex_tooltip_corruption_spire": "🌑 Corruption Spire — already reduces corruption within a radius of {0} hex(es) by 1 level/10s; invest resources to complete it",
+  "hex_tooltip_corruption_spire": "🌑 Corruption Spire — under construction, does not reduce corruption yet; invest resources to complete it",
   "hex_tooltip_corruption_spire_built": "🌑 Corruption Spire — built, reduces corruption within a radius of {0} hex(es) by 1 level every 10s; can be upgraded indefinitely",
   "event_corruption_spire_placed_title": "🌑 Corruption Spire construction started",
   "event_corruption_spire_placed_body": "The Spire already reduces corruption within a radius of 1 hex by 1 level every 10 seconds (unlike the Abyss Gate, it does not protect its hex from other corruption or dominion changes). Invest resources to complete its construction.",

@@ -32,7 +32,9 @@ namespace SettlersOfIdlestan.Controller.Island;
 ///    normalement) ; ce process leur ajoute simplement une réduction garantie (contrairement au ciblage
 ///    aléatoire du Temple) d'un point de Corruption par intervalle sur leur propre hex (Faille), ou sur
 ///    tous les hexes dans un rayon de <see cref="IslandFeatures.CorruptionSpire.Radius"/> autour d'elle
-///    (Spire, rayon améliorable indéfiniment par investissement — voir CorruptionSpireController).
+///    (Spire, rayon améliorable indéfiniment par investissement — voir CorruptionSpireController). La
+///    Spire n'agit qu'une fois <see cref="IslandFeatures.CorruptionSpire.Built"/> : pendant sa
+///    construction, aucune décroissance n'est appliquée sur son hex.
 /// </summary>
 public class CorruptionController
 {
@@ -285,11 +287,13 @@ public class CorruptionController
     /// Réduit la Corruption d'un point à chaque intervalle, de façon garantie (contrairement à la
     /// production de Temple, qui cible un hex aléatoire parmi 3) : sur l'hex d'une Faille des Abysses,
     /// et sur tous les hexes dans un rayon de <see cref="CorruptionSpire.Radius"/> autour de chaque
-    /// Spire de Corruption (rayon 1 de base, incluant donc l'hex de la Spire elle-même et ses voisins
-    /// immédiats). Aucun de ces hexes n'est protégé du reste : Temple et débordement peuvent toujours
-    /// y agir normalement (voir <see cref="ApplyTempleActionOnHex"/>, <see cref="ProcessSpread"/>).
-    /// Utilise <see cref="ReduceLevel"/> comme les autres mécaniques : la suppression à 0 enregistre le
-    /// pic atteint dans <see cref="PrestigeState.MaxCorruptionLevelCleared"/>.
+    /// Spire de Corruption déjà construite (<see cref="CorruptionSpire.Built"/> ; rayon 1 de base,
+    /// incluant donc l'hex de la Spire elle-même et ses voisins immédiats). Une Spire en cours de
+    /// construction ne réduit pas encore la corruption, y compris sur son propre hex. Aucun de ces
+    /// hexes n'est protégé du reste : Temple et débordement peuvent toujours y agir normalement (voir
+    /// <see cref="ApplyTempleActionOnHex"/>, <see cref="ProcessSpread"/>). Utilise
+    /// <see cref="ReduceLevel"/> comme les autres mécaniques : la suppression à 0 enregistre le pic
+    /// atteint dans <see cref="PrestigeState.MaxCorruptionLevelCleared"/>.
     /// </summary>
     private void ProcessMonumentCorruptionDecay(long currentTick)
     {
@@ -300,7 +304,7 @@ public class CorruptionController
         var decayHexes = new HashSet<HexCoord>();
         foreach (var gate in _state.Features.OfType<AbyssGate>())
             decayHexes.Add(gate.Position);
-        foreach (var spire in _state.Features.OfType<CorruptionSpire>())
+        foreach (var spire in _state.Features.OfType<CorruptionSpire>().Where(s => s.Built))
             foreach (var hex in GetHexesInRadius(spire.Position, spire.Radius))
                 decayHexes.Add(hex);
 

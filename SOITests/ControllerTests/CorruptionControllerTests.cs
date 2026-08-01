@@ -465,7 +465,7 @@ public class CorruptionControllerTests
     {
         var (state, _, landHex) = CreateSingleLandHexCitySetup();
         state.AddFeature(new Corruption(landHex, level: 3));
-        state.AddFeature(new CorruptionSpire(landHex));
+        state.AddFeature(new CorruptionSpire(landHex) { Built = true });
 
         var clock = new GameClock();
         clock.Start();
@@ -475,6 +475,25 @@ public class CorruptionControllerTests
 
         var corruption = state.GetFeaturesAt(landHex).OfType<Corruption>().Single();
         Assert.Equal(2, corruption.Level);
+    }
+
+    [Fact]
+    public void MonumentDecay_DoesNotReduceCorruptionOnSpireHex_WhileUnderConstruction()
+    {
+        // Tant que la Spire n'est pas achevée (Built = false), elle ne réduit pas encore la corruption,
+        // y compris sur son propre hex.
+        var (state, _, landHex) = CreateSingleLandHexCitySetup();
+        state.AddFeature(new Corruption(landHex, level: 3));
+        state.AddFeature(new CorruptionSpire(landHex));
+
+        var clock = new GameClock();
+        clock.Start();
+        CreateController(state, clock);
+
+        clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
+
+        var corruption = state.GetFeaturesAt(landHex).OfType<Corruption>().Single();
+        Assert.Equal(3, corruption.Level);
     }
 
     [Fact]
@@ -501,7 +520,7 @@ public class CorruptionControllerTests
         // Simule une zone qui a grimpé jusqu'au niveau 5 avant d'être ramenée à 1 par un autre biais :
         // c'est le pic (5), pas le niveau final au moment du nettoyage (1), qui doit être enregistré.
         state.AddFeature(new Corruption(landHex, level: 1) { PeakLevel = 5 });
-        state.AddFeature(new CorruptionSpire(landHex));
+        state.AddFeature(new CorruptionSpire(landHex) { Built = true });
 
         var prestigeState = new PrestigeState();
         var clock = new GameClock();
@@ -624,7 +643,7 @@ public class CorruptionControllerTests
         // Niveau 2 : 20% de déclenchement du débordement, tirage 31 (graine 1) → pas de débordement
         // ce tick, ce qui isole la décroissance garantie de la Spire de tout autre effet.
         state.AddFeature(new Corruption(b, level: 2)); // sur le voisin de la Spire, pas sur son propre hex
-        state.AddFeature(new CorruptionSpire(a) { Radius = 1 });
+        state.AddFeature(new CorruptionSpire(a) { Radius = 1, Built = true });
 
         var clock = new GameClock();
         clock.Start();
@@ -650,7 +669,7 @@ public class CorruptionControllerTests
         // Niveau 2 : 20% de déclenchement du débordement, tirage 31 (graine 1) → pas de débordement
         // ce tick, ce qui isole la décroissance garantie de la Spire de tout autre effet.
         state.AddFeature(new Corruption(farHex, level: 2));
-        state.AddFeature(new CorruptionSpire(a) { Radius = 1 }); // rayon 1 : n'atteint pas farHex (distance 2)
+        state.AddFeature(new CorruptionSpire(a) { Radius = 1, Built = true }); // rayon 1 : n'atteint pas farHex (distance 2)
 
         var clock = new GameClock();
         clock.Start();
