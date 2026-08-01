@@ -106,7 +106,8 @@ namespace SettlersOfIdlestan.Controller
             int step3AtCities  = 10,
             int expansionTarget = 12,
             int attackNeighborsAtCities = int.MaxValue,
-            bool aggressive = false)
+            bool aggressive = false,
+            bool includeResearch = true)
         {
             var banditSpotted = new Func<bool>(() =>
                 auto.WorldState != null && auto.WorldState.Features.OfType<Bandit>().Any(b => b.Found));
@@ -140,13 +141,19 @@ namespace SettlersOfIdlestan.Controller
             var allNpcsEliminated = new Func<bool>(() =>
                 auto.WorldState != null && auto.WorldState.Civilizations.Where(c => c.IsNpc).All(c => c.Cities.Count == 0));
 
-            return Make(new IAutoplayObjective[]
-            {
-                // Recherche : démarre/enchaîne les recherches disponibles dès que le système est
-                // débloqué. Ne coûte aucune ressource (seul l'investissement en points l'alimente),
-                // donc placée en tout premier pour ne jamais laisser un slot de recherche vide.
-                new ResearchObjective(auto),
+            var objectives = new List<IAutoplayObjective>();
 
+            // Recherche : démarre/enchaîne les recherches disponibles dès que le système est débloqué.
+            // Ne coûte aucune ressource (seul l'investissement en points l'alimente), donc placée en tout
+            // premier pour ne jamais laisser un slot de recherche vide. Exclue pour les civs NPC
+            // (includeResearch=false) : ResearchController est une instance unique liée au joueur (une
+            // seule PrestigeState/TechnologyTree dans le jeu), donc un NPC qui appellerait cet objectif
+            // manipulerait la recherche du joueur au lieu de la sienne.
+            if (includeResearch)
+                objectives.Add(new ResearchObjective(auto));
+
+            objectives.AddRange(new IAutoplayObjective[]
+            {
                 // Production de base dans toutes les villes
                 BObj(auto, bc, Step1Buildings, 1),
 
@@ -211,6 +218,8 @@ namespace SettlersOfIdlestan.Controller
                 // Expansion illimitée après le prestige
                 new CityCountObjective(auto, int.MaxValue),
             });
+
+            return Make(objectives);
         }
 
     }

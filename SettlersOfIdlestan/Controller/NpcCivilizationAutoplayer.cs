@@ -65,11 +65,16 @@ public class NpcCivilizationAutoplayer
             NpcAggressivityLevel.Warlike      => (6, 12),
             _                                 => (5, 8),
         };
+        // includeResearch=false : ResearchController est l'instance unique liée au joueur (une seule
+        // PrestigeState/TechnologyTree dans le jeu, pas une par civ) — un NPC qui lancerait l'objectif
+        // de recherche manipulerait la file/recherche active du joueur au lieu de la sienne (voir
+        // ResearchController.Initialize appelé une fois avec CurrentMainState.PrestigeState).
         var strategy = CivilizationAutoplayerPriorities.Unified(
             _inner, _buildingController,
             step2AtCities: 0,
             step3AtCities: step3,
-            expansionTarget: target);
+            expansionTarget: target,
+            includeResearch: false);
         return strategy.TryStepOnce();
     }
 }
