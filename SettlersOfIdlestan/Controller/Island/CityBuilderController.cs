@@ -134,7 +134,11 @@ namespace SettlersOfIdlestan.Controller.Island
             var allBuildable = GetBuildableVertices(civ.Index);
             var buildable = new List<Vertex>();
             if (surfaceEnabled) buildable.AddRange(allBuildable.Where(v => v.Z == IslandMap.SurfaceLayer));
-            if (underworldEnabled) buildable.AddRange(allBuildable.Where(v => v.Z == LayerState.UnderworldZ));
+
+            // La guilde priorise la surface : l'Inframonde n'est considéré que si aucun avant-poste
+            // de surface n'est disponible ce tick.
+            if (buildable.Count == 0 && underworldEnabled)
+                buildable.AddRange(allBuildable.Where(v => v.Z == LayerState.UnderworldZ));
             if (buildable.Count == 0) return;
 
             var chosen = buildable[_prng!.Next(buildable.Count)];

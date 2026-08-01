@@ -39,6 +39,18 @@ namespace SettlersOfIdlestan.Controller.Island
         // milliers de routes cumulées sur plusieurs layers) à chaque route posée dans un seul layer.
         private readonly Dictionary<(int CivilizationIndex, int Layer), (int CityCount, int BeaconCount, List<Road> Roads)> _buildableRoadsCache = new();
 
+        /// <summary>
+        /// Invalide le cache de routes constructibles de TOUTES les civilisations pour un layer donné.
+        /// Nécessaire car le calcul d'une civilisation dépend aussi des routes/villes des AUTRES
+        /// civilisations (enemyProtectedEdges, HasEnemyCityAt) : un changement de routes/ville chez une
+        /// seule civilisation peut donc rendre le cache d'une autre civilisation obsolète sur ce layer.
+        /// </summary>
+        private void InvalidateBuildableRoadsCacheForLayer(int layer)
+        {
+            foreach (var key in _buildableRoadsCache.Keys.Where(k => k.Layer == layer).ToList())
+                _buildableRoadsCache.Remove(key);
+        }
+
         // 5 s × 100 ticks/s — same cadence as automatic harvests
         public const long AutoRoadBuildCooldownTicks = 500L;
 
@@ -111,12 +123,15 @@ namespace SettlersOfIdlestan.Controller.Island
                 if (now - guild.LastRoadBuildTick < AutoRoadBuildCooldownTicks) continue;
 
                 var candidates = new List<Road>();
-                for (int d = 1; d <= guild.MaxAutoRoadDistance; d++)
-                {
-                    var atDistance = GetBuildableRoadsAtDistance(civ.Index, d);
-                    if (surfaceEnabled) candidates.AddRange(atDistance.Where(r => r.Position.Z == IslandMap.SurfaceLayer));
-                    if (underworldEnabled) candidates.AddRange(atDistance.Where(r => r.Position.Z == LayerState.UnderworldZ));
-                }
+                if (surfaceEnabled)
+                    for (int d = 1; d <= guild.MaxAutoRoadDistance; d++)
+                        candidates.AddRange(GetBuildableRoadsAtDistance(civ.Index, d).Where(r => r.Position.Z == IslandMap.SurfaceLayer));
+
+                // La guilde priorise la surface : l'Inframonde n'est considéré que si aucune route
+                // de surface n'est disponible ce tick.
+                if (candidates.Count == 0 && underworldEnabled)
+                    for (int d = 1; d <= guild.MaxAutoRoadDistance; d++)
+                        candidates.AddRange(GetBuildableRoadsAtDistance(civ.Index, d).Where(r => r.Position.Z == LayerState.UnderworldZ));
 
                 guild.LastRoadBuildTick = now;
 
@@ -127,7 +142,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 var road = new Road(chosen.Position) { CivilizationIndex = civ.Index, DistanceToNearestCity = chosen.DistanceToNearestCity };
                 civ.AddRoad(road);
                 ComputeRoadDistancesForCivilization(civ, chosen.Position.Z);
-                _buildableRoadsCache.Remove((civ.Index, chosen.Position.Z));
+                InvalidateBuildableRoadsCacheForLayer(chosen.Position.Z);
                 _state.Visibility.RecalculateFor(civ.Index);
 
                 OnAutoRoadBuilt?.Invoke(this, new RoadAutoBuiltEventArgs(civ.Index, chosen.Position));
@@ -381,7 +396,7 @@ namespace SettlersOfIdlestan.Controller.Island
             civ.AddRoad(road);
 
             ComputeRoadDistancesForCivilization(civ, edge.Z);
-            _buildableRoadsCache.Remove((civilizationIndex, edge.Z));
+            InvalidateBuildableRoadsCacheForLayer(edge.Z);
             _state.Visibility.RecalculateFor(civilizationIndex);
 
             OnRoadBuilt?.Invoke(this, new RoadAutoBuiltEventArgs(civilizationIndex, edge));
@@ -399,7 +414,7 @@ namespace SettlersOfIdlestan.Controller.Island
                     otherCiv.RemoveRoad(enemyRoad);
                     ComputeRoadDistancesForCivilization(otherCiv, edge.Z);
                     RemoveDisconnectedRoads(otherCiv);
-                    _buildableRoadsCache.Remove((otherCiv.Index, edge.Z));
+                    InvalidateBuildableRoadsCacheForLayer(edge.Z);
                     return;
                 }
             }
@@ -418,7 +433,7 @@ namespace SettlersOfIdlestan.Controller.Island
             ComputeRoadDistancesForCivilization(civ, cityVertex.Z);
             RemoveDisconnectedRoads(civ);
 
-            _buildableRoadsCache.Remove((civ.Index, cityVertex.Z));
+            InvalidateBuildableRoadsCacheForLayer(cityVertex.Z);
             _state?.Visibility.RecalculateFor(civ.Index);
         }
 
