@@ -40,6 +40,9 @@ public class MonsterFeatureController
             _state.FeatureRemoved -= OnFeatureRemoved;
         }
 
+        if (_cityBuilderController != null)
+            _cityBuilderController.OnCityDestroyed -= OnCityDestroyed;
+
         _state = state;
         _clock = clock;
         if (prng != null) _prng = prng;
@@ -56,6 +59,30 @@ public class MonsterFeatureController
 
         if (_clock != null)
             _clock.Advanced += OnClockAdvanced;
+
+        if (_cityBuilderController != null)
+            _cityBuilderController.OnCityDestroyed += OnCityDestroyed;
+    }
+
+    /// <summary>
+    /// La Guilde des Aventuriers ne survit jamais à la destruction de sa ville : l'Aventurier
+    /// qu'elle a invoqué meurt donc instantanément avec elle, au lieu d'errer indéfiniment sans
+    /// guilde à laquelle rentrer ou attendre un respawn qui ne sera jamais programmé (le cooldown
+    /// de réapparition vit sur la Guilde elle-même, détruite avec la ville).
+    /// </summary>
+    private void OnCityDestroyed(object? sender, CityDestroyedEventArgs e)
+    {
+        if (_state == null) return;
+
+        var orphaned = _monsters.OfType<Adventurer>()
+            .Where(a => e.CityVertex.Equals(a.SpawnCityPosition))
+            .ToList();
+
+        foreach (var adventurer in orphaned)
+        {
+            _state.RemoveFeature(adventurer);
+            _state.EventLog.Add(adventurer.RemovedEventType);
+        }
     }
 
     private void RebuildCache()
@@ -92,13 +119,34 @@ public class MonsterFeatureController
             {
                 if (monster.CanMove)
                 {
-                    monster.LastMovedTick = currentTick;
+                    // Un chasseur (Aventurier) jamais « découvert » (jamais passé par une case
+                    // visible depuis son apparition, p. ex. si la ville qui l'a invoqué a été
+                    // détruite avant le prochain passage de FeatureController.DiscoverFeatures)
+                    // doit activement rentrer vers une ville au lieu de rester bloqué à attendre
+                    // une découverte qui ne viendra jamais : contrairement aux monstres errants,
+                    // qui restent volontairement cachés tant que le joueur n'explore pas.
+                    if (monster.AttacksOtherMonsters && currentTick - monster.LastMovedTick >= monster.MovementIntervalTicks)
+                        ReturnToVisibleTerritory(monster, currentTick);
+                    else
+                        monster.LastMovedTick = currentTick;
+
                     monster.LastAttackTick = currentTick;
                 }
                 continue;
             }
 
             RegenHp(monster, currentTick);
+
+            // Un chasseur (Aventurier) qui se retrouve hors du territoire visible du joueur (ex. la
+            // ville qui le bordait vient d'être détruite, rétrécissant le brouillard de guerre) cesse
+            // immédiatement le combat et rentre vers la ville la plus proche au lieu de rester bloqué :
+            // le filtre de voisins visibles de TryMoveOneHex l'empêcherait sinon de bouger du tout.
+            if (monster.AttacksOtherMonsters && !IsVisibleToPlayer(monster.Position))
+            {
+                if (monster.CanMove && currentTick - monster.LastMovedTick >= monster.MovementIntervalTicks)
+                    ReturnToVisibleTerritory(monster, currentTick);
+                continue;
+            }
 
             // Un chasseur (Aventurier) déjà à portée d'une proie reste sur place pour combattre au
             // lieu de se redéplacer : sinon, avec un intervalle de mouvement plus court que
@@ -162,11 +210,12 @@ public class MonsterFeatureController
 
     // ── Combat contre les autres monstres (Aventurier) ───────────────────────
 
-    /// <summary>True si une proie valide (monstre errant vivant, hors autres chasseurs) est déjà à portée d'attaque.</summary>
+    /// <summary>True si une proie valide (monstre errant vivant, hors autres chasseurs, visible du joueur) est déjà à portée d'attaque.</summary>
     private bool HasPreyInRange(MonsterFeature hunter) => _monsters.Any(m =>
         m != hunter && !m.AttacksOtherMonsters && m.Hp > 0 &&
         m.Position.HasSameZ(hunter.Position) &&
-        m.Position.DistanceTo(hunter.Position) <= hunter.AttackRangeInHexes);
+        m.Position.DistanceTo(hunter.Position) <= hunter.AttackRangeInHexes &&
+        IsVisibleToPlayer(m.Position));
 
     private void AttackNearbyMonster(MonsterFeature monster, long currentTick)
     {
@@ -174,10 +223,12 @@ public class MonsterFeatureController
         if (currentTick - monster.LastAttackTick < monster.AttackIntervalTicks) return;
         monster.LastAttackTick = currentTick;
 
+        // Un chasseur ne doit jamais engager un monstre que le joueur ne voit pas (brouillard de guerre).
         var target = _monsters.FirstOrDefault(m =>
             m != monster && !m.AttacksOtherMonsters && m.Hp > 0 &&
             m.Position.HasSameZ(monster.Position) &&
-            m.Position.DistanceTo(monster.Position) <= monster.AttackRangeInHexes);
+            m.Position.DistanceTo(monster.Position) <= monster.AttackRangeInHexes &&
+            IsVisibleToPlayer(m.Position));
         if (target == null)
         {
             monster.LastAttackTargetHex = null;
@@ -234,6 +285,48 @@ public class MonsterFeatureController
     }
 
     // ── Déplacement ──────────────────────────────────────────────────────────
+
+    /// <summary>True si le hex est actuellement visible pour la civilisation du joueur.</summary>
+    private bool IsVisibleToPlayer(HexCoord position)
+    {
+        if (_state == null) return true;
+        return _state.Visibility.GetForZ(position.Z).TryGetValue(_state.PlayerCivilization.Index, out var visibleMap)
+            && visibleMap.HasTile(position);
+    }
+
+    /// <summary>
+    /// Ramène vers la ville la plus proche un chasseur (Aventurier) qui s'est retrouvé hors du
+    /// territoire visible du joueur — typiquement parce que la ville qui l'y maintenait vient d'être
+    /// détruite, rétrécissant le brouillard de guerre sous ses pieds. Le déplacement ignore ici le
+    /// filtre habituel « voisin déjà visible » de TryMoveOneHex, sans quoi le chasseur resterait
+    /// bloqué : aucun de ses voisins immédiats n'est nécessairement visible non plus.
+    /// </summary>
+    private void ReturnToVisibleTerritory(MonsterFeature monster, long currentTick)
+    {
+        if (_state == null) return;
+
+        var map = _state.GetMapFor(monster.Position);
+        if (map == null) return;
+
+        var neighbors = monster.Position.Neighbors()
+            .Where(n => map.HasTile(n) && !map.GetTile(n)!.TerrainType.IsWater())
+            .Where(n => !_state.GetFeaturesAt(n).Any(f => f.BlocksHarvest))
+            .ToList();
+        if (neighbors.Count == 0) return;
+
+        var nearestCity = _state.PlayerCivilization.Cities
+            .Where(c => c.Position.Z == monster.Position.Z)
+            .OrderBy(c => DistanceToCity(monster.Position, c.Position))
+            .FirstOrDefault();
+        if (nearestCity == null) return;
+
+        var chosen = neighbors.OrderBy(n => DistanceToCity(n, nearestCity.Position)).First();
+        _state.MoveFeature(monster, chosen);
+        monster.LastMovedTick = currentTick;
+    }
+
+    private static int DistanceToCity(HexCoord hex, Vertex city) =>
+        Math.Min(city.Hex1.DistanceTo(hex), Math.Min(city.Hex2.DistanceTo(hex), city.Hex3.DistanceTo(hex)));
 
     private void MoveMonster(MonsterFeature monster, long currentTick)
     {
@@ -330,6 +423,7 @@ public class MonsterFeatureController
         {
             if (candidate == hunter || candidate.AttacksOtherMonsters || candidate.Hp <= 0) continue;
             if (!candidate.Position.HasSameZ(hunter.Position)) continue;
+            if (!IsVisibleToPlayer(candidate.Position)) continue;
             int distance = candidate.Position.DistanceTo(hunter.Position);
             if (distance < bestDistance)
             {

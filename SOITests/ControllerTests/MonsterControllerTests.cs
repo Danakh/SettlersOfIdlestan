@@ -358,5 +358,178 @@ namespace SOITests.ControllerTests
                 AssertCityCountsConsistent();
             }
         }
+
+        // ── Aventurier hors de la carte visible ──────────────────────────────
+
+        [Fact]
+        public void Adventurer_StrandedOutsideVisibleMap_StopsFightingAndReturnsToCity()
+        {
+            // City vertex covers exactly {Center, NE, NW} (radius 1, no watchtower).
+            // SE is adjacent to Center but is never visible on its own — the Adventurer starts
+            // there, stranded next to a Bandit it must not engage since the Bandit isn't visible.
+            var tiles = new List<HexTile>
+            {
+                new(Center, TerrainType.Desert),
+                new(NE,     TerrainType.Plain),
+                new(NW,     TerrainType.Plain),
+                new(SE,     TerrainType.Plain),
+            };
+
+            var map = new IslandMap(tiles);
+            var civ = new Civilization { Index = 0 };
+            var city = new City(Vertex.Create(Center, NE, NW)) { CivilizationIndex = 0 };
+            civ.AddCity(city);
+
+            var state = new WorldState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
+            var adventurer = new Adventurer(SE) { Found = true };
+            var bandit = new Bandit(SE) { Found = true };
+            state.AddFeature(adventurer);
+            state.AddFeature(bandit);
+
+            var clock = new GameClock();
+            clock.Start();
+            var controller = new MonsterFeatureController();
+            controller.Initialize(state, clock, new GamePRNG());
+
+            // First tick: the Adventurer is outside the visible map (SE) → it must retreat toward
+            // the city instead of fighting the co-located Bandit.
+            clock.SimulateAdvance(100);
+
+            Assert.Equal(Center, adventurer.Position);
+            Assert.Equal(bandit.MaxHp, bandit.Hp);
+
+            // Further ticks: the Adventurer is now inside the visible map, but the Bandit sits on
+            // SE, which stays out of sight forever here — still off-limits to the Adventurer.
+            for (int i = 0; i < 10; i++)
+                clock.SimulateAdvance(300);
+
+            Assert.Equal(bandit.MaxHp, bandit.Hp);
+            Assert.Contains(bandit, state.Features);
+        }
+
+        [Fact]
+        public void Adventurer_NeverDiscovered_StillReturnsToCityInsteadOfFreezing()
+        {
+            // Reproduces a real save: an Adventurer can end up with Found == false (never
+            // discovered — e.g. its guild's city was destroyed before FeatureController's next
+            // discovery pass) while sitting right outside the visible map. Before the fix, the
+            // very first check in Update() ("if (!monster.Found) { ...; continue; }") returned
+            // immediately for every tick, so the Adventurer never moved — the "locate hero" camera
+            // action always centered on the same frozen, invisible hex.
+            var tiles = new List<HexTile>
+            {
+                new(Center, TerrainType.Desert),
+                new(NE,     TerrainType.Plain),
+                new(NW,     TerrainType.Plain),
+                new(SE,     TerrainType.Plain),
+            };
+
+            var map = new IslandMap(tiles);
+            var civ = new Civilization { Index = 0 };
+            var city = new City(Vertex.Create(Center, NE, NW)) { CivilizationIndex = 0 };
+            civ.AddCity(city);
+
+            var state = new WorldState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
+            var adventurer = new Adventurer(SE) { Found = false };
+            state.AddFeature(adventurer);
+
+            var clock = new GameClock();
+            clock.Start();
+            var controller = new MonsterFeatureController();
+            controller.Initialize(state, clock, new GamePRNG());
+
+            clock.SimulateAdvance(100);
+
+            Assert.Equal(Center, adventurer.Position);
+        }
+
+        // ── Guilde des Aventuriers perdue ─────────────────────────────────────
+
+        [Fact]
+        public void Adventurer_GuildCityDestroyed_DiesInstantly()
+        {
+            var tiles = new List<HexTile>
+            {
+                new(Center, TerrainType.Desert),
+                new(NE,     TerrainType.Plain),
+                new(NW,     TerrainType.Plain),
+            };
+
+            var map = new IslandMap(tiles);
+            var civ = new Civilization { Index = 0 };
+            var guildVertex = Vertex.Create(Center, NE, NW);
+            var city = new City(guildVertex) { CivilizationIndex = 0 };
+            city.Buildings.Add(new TownHall { Level = 1 });
+            city.Buildings.Add(new AdventurersGuild { Level = 1 });
+            civ.AddCity(city);
+
+            var state = new WorldState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
+            var adventurer = new Adventurer(Center) { Found = true, SpawnCityPosition = guildVertex };
+            state.AddFeature(adventurer);
+
+            var clock = new GameClock();
+            clock.Start();
+            var cityBuilder = new CityBuilderController();
+            cityBuilder.Initialize(state, clock, new GamePRNG());
+            var controller = new MonsterFeatureController();
+            controller.Initialize(state, clock, new GamePRNG(), cityBuilder);
+
+            // Whatever destroys the guild's city (conquest or a monster attack, both funnel
+            // through CityBuilderController.DestroyCity) must kill the Adventurer it spawned
+            // instantly — the guild is gone, so there's nothing left for it to return to or
+            // respawn from.
+            cityBuilder.DestroyCity(city, CityDestructionCause.Monster);
+
+            Assert.Empty(state.Features.OfType<Adventurer>());
+        }
+
+        [Fact]
+        public void Adventurer_OtherCityDestroyed_SurvivesWhenItsOwnGuildStillStands()
+        {
+            // A second, unrelated city on the same layer is destroyed — the Adventurer's own
+            // guild city is untouched, so it must NOT die.
+            var far = new HexCoord(20, 0, IslandMap.SurfaceLayer);
+            var farNE = new HexCoord(20, 1, IslandMap.SurfaceLayer);
+            var farNW = new HexCoord(19, 1, IslandMap.SurfaceLayer);
+
+            var tiles = new List<HexTile>
+            {
+                new(Center, TerrainType.Desert),
+                new(NE,     TerrainType.Plain),
+                new(NW,     TerrainType.Plain),
+                new(far,    TerrainType.Plain),
+                new(farNE,  TerrainType.Plain),
+                new(farNW,  TerrainType.Plain),
+            };
+
+            var map = new IslandMap(tiles);
+            var civ = new Civilization { Index = 0 };
+            var guildVertex = Vertex.Create(Center, NE, NW);
+            var guildCity = new City(guildVertex) { CivilizationIndex = 0 };
+            guildCity.Buildings.Add(new TownHall { Level = 1 });
+            guildCity.Buildings.Add(new AdventurersGuild { Level = 1 });
+
+            var otherVertex = Vertex.Create(far, farNE, farNW);
+            var otherCity = new City(otherVertex) { CivilizationIndex = 0 };
+            otherCity.Buildings.Add(new TownHall { Level = 1 });
+
+            civ.AddCity(guildCity);
+            civ.AddCity(otherCity);
+
+            var state = new WorldState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
+            var adventurer = new Adventurer(Center) { Found = true, SpawnCityPosition = guildVertex };
+            state.AddFeature(adventurer);
+
+            var clock = new GameClock();
+            clock.Start();
+            var cityBuilder = new CityBuilderController();
+            cityBuilder.Initialize(state, clock, new GamePRNG());
+            var controller = new MonsterFeatureController();
+            controller.Initialize(state, clock, new GamePRNG(), cityBuilder);
+
+            cityBuilder.DestroyCity(otherCity, CityDestructionCause.Monster);
+
+            Assert.Single(state.Features.OfType<Adventurer>());
+        }
     }
 }
