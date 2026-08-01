@@ -32,7 +32,12 @@ namespace SettlersOfIdlestan.Controller.Island
         private GameClock? _clock;
         private GamePRNG? _prng;
         private PrestigeState? _prestigeState;
-        private readonly Dictionary<int, (int CityCount, int BeaconCount, List<Road> Roads)> _buildableRoadsCache = new();
+        // Clé (CivilizationIndex, Layer) — un layer (surface/inframonde/abysse) forme un graphe de
+        // vertex/edge totalement indépendant des autres (voir Vertex.Z / Edge.Z). Construire une route
+        // dans un layer ne peut donc jamais changer les routes constructibles d'un autre layer : mettre
+        // en cache par layer évite de tout recalculer pour toute la civilisation (potentiellement des
+        // milliers de routes cumulées sur plusieurs layers) à chaque route posée dans un seul layer.
+        private readonly Dictionary<(int CivilizationIndex, int Layer), (int CityCount, int BeaconCount, List<Road> Roads)> _buildableRoadsCache = new();
 
         // 5 s × 100 ticks/s — same cadence as automatic harvests
         public const long AutoRoadBuildCooldownTicks = 500L;
@@ -121,8 +126,8 @@ namespace SettlersOfIdlestan.Controller.Island
                 TryRemoveEnemyRoadAt(chosen.Position, civ.Index);
                 var road = new Road(chosen.Position) { CivilizationIndex = civ.Index, DistanceToNearestCity = chosen.DistanceToNearestCity };
                 civ.AddRoad(road);
-                ComputeRoadDistancesForCivilization(civ);
-                _buildableRoadsCache.Clear();
+                ComputeRoadDistancesForCivilization(civ, chosen.Position.Z);
+                _buildableRoadsCache.Remove((civ.Index, chosen.Position.Z));
                 _state.Visibility.RecalculateFor(civ.Index);
 
                 OnAutoRoadBuilt?.Invoke(this, new RoadAutoBuiltEventArgs(civ.Index, chosen.Position));
@@ -142,24 +147,53 @@ namespace SettlersOfIdlestan.Controller.Island
             var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex)
                           ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
 
-            if (_buildableRoadsCache.TryGetValue(civilizationIndex, out var cached)
-                && cached.CityCount == civ.Cities.Count
-                && cached.BeaconCount == civ.MaritimeBeacons.Count)
+            var layers = new HashSet<int>();
+            foreach (var city in civ.Cities) layers.Add(city.Position.Z);
+            foreach (var road in civ.Roads) layers.Add(road.Position.Z);
+
+            if (layers.Count == 0) return new List<Road>();
+            if (layers.Count == 1) return GetBuildableRoadsForLayer(civ, layers.First());
+
+            var result = new List<Road>();
+            foreach (var layer in layers)
+                result.AddRange(GetBuildableRoadsForLayer(civ, layer));
+            return result;
+        }
+
+        /// <summary>
+        /// Calcule (ou renvoie depuis le cache) les routes constructibles pour un seul layer de la
+        /// civilisation. Un layer (surface/inframonde/abysse) est un graphe de vertex/edge totalement
+        /// indépendant des autres, donc ce calcul n'a besoin de considérer que les villes/routes/balises
+        /// de ce layer.
+        /// </summary>
+        private List<Road> GetBuildableRoadsForLayer(Civilization civ, int layer)
+        {
+            int civilizationIndex = civ.Index;
+            int cityCount = civ.Cities.Count(c => c.Position.Z == layer);
+            int beaconCount = civ.MaritimeBeacons.Count(b => b.Position.Z == layer);
+            var cacheKey = (civilizationIndex, layer);
+
+            if (_buildableRoadsCache.TryGetValue(cacheKey, out var cached)
+                && cached.CityCount == cityCount
+                && cached.BeaconCount == beaconCount)
                 return cached.Roads;
+
+            var citiesInLayer = civ.Cities.Where(c => c.Position.Z == layer).ToList();
+            var roadsInLayer = civ.Roads.Where(r => r.Position.Z == layer).ToList();
 
             // Seules les routes de NOTRE civilisation bloquent la construction.
             // Les routes ennemies sont conquérables (elles seront détruites à la construction).
-            var ownOccupied = new HashSet<Edge>(civ.Roads.Select(r => r.Position));
+            var ownOccupied = new HashSet<Edge>(roadsInLayer.Select(r => r.Position));
 
-            // Collecte les ar�tes candidates depuis les vertices des villes
-            // et les ar�tes voisines des routes existantes
+            // Collecte les arêtes candidates depuis les vertices des villes
+            // et les arêtes voisines des routes existantes
             var candidates = new HashSet<Edge>();
-            foreach (var city in civ.Cities)
+            foreach (var city in citiesInLayer)
             {
                 foreach (var edge in GetEdgesAtVertex(city.Position))
                     candidates.Add(edge);
             }
-            foreach (var road in civ.Roads)
+            foreach (var road in roadsInLayer)
             {
                 foreach (var vertex in road.Position.GetVertices())
                 {
@@ -171,16 +205,16 @@ namespace SettlersOfIdlestan.Controller.Island
             }
 
             var enemyProtectedEdges = new HashSet<Edge>(
-                _state.Civilizations
+                _state!.Civilizations
                     .Where(c => c.Index != civilizationIndex)
                     .SelectMany(c => c.Roads)
-                    .Where(r => r.DistanceToNearestCity <= 2)
+                    .Where(r => r.Position.Z == layer && r.DistanceToNearestCity <= 2)
                     .Select(r => r.Position));
 
             var result = new List<Road>();
             foreach (var edge in candidates)
             {
-                if (ownOccupied.Any(e => e.Equals(edge))) continue;
+                if (ownOccupied.Contains(edge)) continue;
                 if (enemyProtectedEdges.Contains(edge)) continue;
                 if (IsEdgeBetweenVoidHexes(edge))
                 {
@@ -202,7 +236,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 result.Add(road);
             }
 
-            _buildableRoadsCache[civilizationIndex] = (civ.Cities.Count, civ.MaritimeBeacons.Count, result);
+            _buildableRoadsCache[cacheKey] = (cityCount, beaconCount, result);
             return result;
         }
 
@@ -315,8 +349,8 @@ namespace SettlersOfIdlestan.Controller.Island
             if (!IsEdgeBuildableByCivilization(edge, civ))
                 throw new InvalidOperationException("Edge not buildable by this civilization");
 
-            // Recompute distances for existing roads
-            ComputeRoadDistancesForCivilization(civ);
+            // Recompute distances for existing roads (only this layer — see ComputeRoadDistancesForCivilization)
+            ComputeRoadDistancesForCivilization(civ, edge.Z);
 
             var distance = GetDistanceForEdge(edge, civ);
             if (distance == int.MaxValue)
@@ -346,8 +380,8 @@ namespace SettlersOfIdlestan.Controller.Island
             var road = new Road(edge) { CivilizationIndex = civilizationIndex, DistanceToNearestCity = distance };
             civ.AddRoad(road);
 
-            ComputeRoadDistancesForCivilization(civ);
-            _buildableRoadsCache.Clear();
+            ComputeRoadDistancesForCivilization(civ, edge.Z);
+            _buildableRoadsCache.Remove((civilizationIndex, edge.Z));
             _state.Visibility.RecalculateFor(civilizationIndex);
 
             OnRoadBuilt?.Invoke(this, new RoadAutoBuiltEventArgs(civilizationIndex, edge));
@@ -363,8 +397,9 @@ namespace SettlersOfIdlestan.Controller.Island
                 if (enemyRoad != null)
                 {
                     otherCiv.RemoveRoad(enemyRoad);
-                    ComputeRoadDistancesForCivilization(otherCiv);
+                    ComputeRoadDistancesForCivilization(otherCiv, edge.Z);
                     RemoveDisconnectedRoads(otherCiv);
+                    _buildableRoadsCache.Remove((otherCiv.Index, edge.Z));
                     return;
                 }
             }
@@ -380,10 +415,10 @@ namespace SettlersOfIdlestan.Controller.Island
             foreach (var road in toRemove)
                 civ.RemoveRoad(road);
 
-            ComputeRoadDistancesForCivilization(civ);
+            ComputeRoadDistancesForCivilization(civ, cityVertex.Z);
             RemoveDisconnectedRoads(civ);
 
-            _buildableRoadsCache.Clear();
+            _buildableRoadsCache.Remove((civ.Index, cityVertex.Z));
             _state?.Visibility.RecalculateFor(civ.Index);
         }
 
@@ -454,16 +489,24 @@ namespace SettlersOfIdlestan.Controller.Island
             return _state.Civilizations.Any(c => c.Index != civ.Index && c.Cities.Any(city => city.Position.Equals(vertex)));
         }
 
-        private void ComputeRoadDistancesForCivilization(Civilization civ)
+        /// <summary>
+        /// Recalcule les distances à la ville la plus proche pour les routes d'un seul layer de la
+        /// civilisation. Un layer forme un graphe de vertex/edge totalement indépendant des autres
+        /// (voir Vertex.Z / Edge.Z) : poser une route dans un layer ne peut jamais affecter les distances
+        /// d'un autre layer, donc restreindre le recalcul au layer concerné évite de reparcourir toutes
+        /// les routes cumulées de la civilisation sur tous les layers à chaque route posée.
+        /// </summary>
+        private void ComputeRoadDistancesForCivilization(Civilization civ, int layer)
         {
-            foreach (var r in civ.Roads)
+            var roads = civ.Roads.Where(r => r.Position.Z == layer).ToList();
+            foreach (var r in roads)
                 r.DistanceToNearestCity = int.MaxValue;
 
-            var vertexToRoads = BuildVertexIndex(civ.Roads);
-            var cityVertices = new HashSet<Vertex>(civ.Cities.Select(c => c.Position));
+            var vertexToRoads = BuildVertexIndex(roads);
+            var cityVertices = new HashSet<Vertex>(civ.Cities.Where(c => c.Position.Z == layer).Select(c => c.Position));
             var queue = new Queue<Road>();
 
-            foreach (var r in civ.Roads)
+            foreach (var r in roads)
             {
                 var verts = r.Position.GetVertices();
                 if (verts.Any(v => cityVertices.Contains(v)))
