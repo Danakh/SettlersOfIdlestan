@@ -13,12 +13,12 @@ using Xunit;
 namespace SOITests.ControllerTests
 {
     /// <summary>
-    /// Apparition périodique de monstres en bordure de carte (toutes les 6 000 ticks, 5 % de
-    /// chance) sur les couches gérées par AutoExtendController. Sur l'Inframonde, le type tiré
-    /// dépend du niveau de corruption global de l'île : (niveau - 1)% de chance d'un démon mineur,
-    /// sinon 65 % troll / 35 % ogre. Sur l'Abysse, uniquement des démons mineurs/majeurs : le démon
-    /// majeur a 5% de chance à partir du niveau de corruption 5 de l'hex tiré, +2%/niveau au-delà ;
-    /// le reste est toujours démon mineur.
+    /// Apparition périodique de monstres en bordure de carte (toutes les 3 000 / niveau de
+    /// corruption global ticks, 5 % de chance) sur les couches gérées par AutoExtendController.
+    /// Sur l'Inframonde, le type tiré dépend du niveau de corruption global de l'île : (niveau - 1)%
+    /// de chance d'un démon mineur, sinon 65 % troll / 35 % ogre. Sur l'Abysse, uniquement des
+    /// démons mineurs/majeurs : le démon majeur a 5% de chance à partir du niveau de corruption 5 de
+    /// l'hex tiré, +2%/niveau au-delà ; le reste est toujours démon mineur.
     ///
     /// Carte de test : triangle d'arrivée (0,0)/(1,0)/(0,1) + un unique hexagone supplémentaire à
     /// distance 2 de l'arrivée, qui est donc le seul hexagone "en bordure" éligible (les hexagones
@@ -103,11 +103,13 @@ namespace SOITests.ControllerTests
         [Fact]
         public void NoMonster_BeforeCheckIntervalElapses()
         {
-            // Graine garantissant un tirage d'apparition réussi (<5%) au prochain check à 6 000 ticks.
+            // Corruption par défaut = 1 → intervalle = 3 000 ticks. Graine garantissant un tirage
+            // d'apparition réussi (<5%) au prochain check, pour vérifier qu'il ne se produit pas
+            // avant que l'intervalle ne soit écoulé.
             int seed = FindSeed(rng => rng.Next(100) < 5);
             var (state, clock, _) = CreateSetup(new GamePRNG(seed));
 
-            clock.SimulateAdvance(3_000);
+            clock.SimulateAdvance(2_900);
 
             Assert.Empty(state.Features.OfType<MonsterFeature>());
         }

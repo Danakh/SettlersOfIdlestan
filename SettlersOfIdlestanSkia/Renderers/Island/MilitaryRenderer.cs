@@ -40,6 +40,7 @@ public class MilitaryRenderer : HexBasedRenderer, IGameRenderer
     private sealed class ConsumableParticle
     {
         public SKPoint Position;
+        public Vertex SourceVertex;
         public Resource Resource;
         public float Progress;
         /// <summary>-1 = part vers la gauche, +1 = part vers la droite.</summary>
@@ -194,6 +195,7 @@ public class MilitaryRenderer : HexBasedRenderer, IGameRenderer
         _consumableParticles.Add(new ConsumableParticle
         {
             Position = VertexToIsland(position),
+            SourceVertex = position,
             Resource = resource,
             Progress = 0f,
             SideSign = side,
@@ -236,7 +238,7 @@ public class MilitaryRenderer : HexBasedRenderer, IGameRenderer
 
         AdvanceParticles(canvas, _particles, dt, reinforce: false, visibleMap: visibleMap);
         AdvanceParticles(canvas, _reinforceParticles, dt, reinforce: true, visibleMap: visibleMap);
-        AdvanceConsumableParticles(canvas, dt);
+        AdvanceConsumableParticles(canvas, dt, visibleMap);
     }
 
     private static readonly SKColor BlockedFlowColor = new(150, 150, 150, 220);
@@ -484,12 +486,18 @@ public class MilitaryRenderer : HexBasedRenderer, IGameRenderer
     /// gauche ou la droite (alterné par <see cref="EmitConsumableParticle"/>), puis disparaître —
     /// à l'opposé d'un gain de ressource qui monte tout droit vers le haut.
     /// </summary>
-    private void AdvanceConsumableParticles(SKCanvas canvas, float dt)
+    private void AdvanceConsumableParticles(SKCanvas canvas, float dt, IslandMap? visibleMap)
     {
         for (int i = _consumableParticles.Count - 1; i >= 0; i--)
         {
             var p = _consumableParticles[i];
             p.Progress = Math.Min(1f, p.Progress + dt / ConsumableParticleDuration);
+
+            if (visibleMap != null && !visibleMap.IsVertexVisible(p.SourceVertex))
+            {
+                if (p.Progress >= 1f) _consumableParticles.RemoveAt(i);
+                continue;
+            }
 
             float t = p.Progress;
             float arc = 4f * ConsumableArcHeight * t * (1f - t); // parabole : 0 en t=0/1, pic en t=0.5

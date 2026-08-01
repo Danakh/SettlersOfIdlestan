@@ -66,7 +66,10 @@ public class AutoExtendController
 
     // Monstre de bordure : tente une apparition à intervalle régulier sur les cartes auto-étendues,
     // en bordure de la zone déjà explorée (pas seulement lors de la génération de nouveaux hexes).
-    private const long BorderMonsterCheckIntervalTicks = 6_000L;
+    // L'intervalle décroît avec le niveau de corruption global (BorderMonsterCheckBaseIntervalTicks /
+    // corruptionLevel) : deux fois plus fréquent dès le niveau 1 (3000 vs l'ancien palier fixe de
+    // 6000), puis toujours plus fréquent à mesure que la corruption augmente.
+    private const long BorderMonsterCheckBaseIntervalTicks = 3_000L;
     private const int BorderMonsterSpawnChancePercent = 5;
     private const int BorderMonsterTrollChancePercent = 65;
 
@@ -177,28 +180,31 @@ public class AutoExtendController
     }
 
     /// <summary>
-    /// Toutes les <see cref="BorderMonsterCheckIntervalTicks"/> ticks (allongé dans l'Outremonde par
-    /// la recherche Veille Souterraine, voir <see cref="ECategory.UNDERWORLD_MONSTER_SPAWN_INTERVAL"/>),
-    /// sur chaque carte gérée par AutoExtendController, tente de faire apparaître un monstre en
-    /// bordure de la zone explorée (<see cref="BorderMonsterSpawnChancePercent"/> de chance). Le type
-    /// tiré dépend de la couche (voir <see cref="RollBorderMonster"/>) : dans l'Abysse, uniquement des
-    /// démons mineurs/majeurs (<see cref="RollAbyssDemon"/>) ; ailleurs, (niveau de corruption global -
-    /// 1)% de chance d'un démon mineur, sinon 65 % troll / 35 % ogre.
+    /// Toutes les <see cref="BorderMonsterCheckBaseIntervalTicks"/> / (niveau de corruption global)
+    /// ticks (allongé dans l'Outremonde par la recherche Veille Souterraine, voir
+    /// <see cref="ECategory.UNDERWORLD_MONSTER_SPAWN_INTERVAL"/>), sur chaque carte gérée par
+    /// AutoExtendController, tente de faire apparaître un monstre en bordure de la zone explorée
+    /// (<see cref="BorderMonsterSpawnChancePercent"/> de chance). Le type tiré dépend de la couche
+    /// (voir <see cref="RollBorderMonster"/>) : dans l'Abysse, uniquement des démons mineurs/majeurs
+    /// (<see cref="RollAbyssDemon"/>) ; ailleurs, (niveau de corruption global - 1)% de chance d'un
+    /// démon mineur, sinon 65 % troll / 35 % ogre.
     /// </summary>
     private void TrySpawnBorderMonsters(long currentTick)
     {
         if (_state == null || _prng == null) return;
 
+        int corruptionLevel = Math.Max(1, _prestigeState?.CurrentCorruptionLevel ?? 1);
+
         foreach (var layerState in _state.Layers.Values)
         {
             if (!layerState.AutoExtend || layerState.ArrivalVertex == null) continue;
 
-            long interval = BorderMonsterCheckIntervalTicks;
+            long interval = Math.Max(1L, BorderMonsterCheckBaseIntervalTicks / corruptionLevel);
             if (layerState.Map.Z == LayerState.UnderworldZ)
             {
                 double intervalMultiplier = _state.PlayerCivilization.ModifierAggregator
                     .ApplyModifiers(ECategory.UNDERWORLD_MONSTER_SPAWN_INTERVAL, "", 1.0);
-                interval = (long)(interval * intervalMultiplier);
+                interval = Math.Max(1L, (long)(interval * intervalMultiplier));
             }
             if (currentTick - layerState.LastBorderMonsterSpawnTick < interval) continue;
             layerState.LastBorderMonsterSpawnTick = currentTick;
