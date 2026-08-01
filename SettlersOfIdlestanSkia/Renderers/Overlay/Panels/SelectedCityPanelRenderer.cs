@@ -485,7 +485,7 @@ public class SelectedCityPanelRenderer : PanelRendererBase
                     if (activeAdventurer != null)
                     {
                         tooltipLines.Add(_localization.GetFormated("adventurersguild_current_hp",
-                            activeAdventurer.Hp, SettlersOfIdlestan.Model.Monsters.Adventurer.AdventurerMaxHp));
+                            activeAdventurer.Hp, activeAdventurer.MaxHp));
                     }
                     else
                     {

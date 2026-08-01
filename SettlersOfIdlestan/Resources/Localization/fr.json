@@ -725,6 +725,7 @@
   "event_troll_defeated_title": "👹 Troll vaincu !",
   "event_troll_defeated_body": "Vos soldats ont eu raison du troll malgré sa régénération.",
   "hex_tooltip_adventurer_info": "🗡️ Aventurier ({0}/{1} PV) — combat les monstres errants",
+  "hex_tooltip_adventurer_info_leveled": "🗡️ Aventurier Niveau {2} ({0}/{1} PV) — combat les monstres errants",
   "event_adventurer_title": "🗡️ Un Aventurier se met en route !",
   "event_adventurer_body": "Un Aventurier quitte la Guilde pour traquer les monstres de l'Inframonde.",
   "event_adventurer_defeated_title": "🗡️ L'Aventurier est tombé...",

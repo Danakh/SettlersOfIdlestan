@@ -725,6 +725,7 @@
   "event_troll_defeated_title": "👹 Troll defeated!",
   "event_troll_defeated_body": "Your soldiers overcame the troll despite its regeneration.",
   "hex_tooltip_adventurer_info": "🗡️ Adventurer ({0}/{1} HP) — fights wandering monsters",
+  "hex_tooltip_adventurer_info_leveled": "🗡️ Adventurer Level {2} ({0}/{1} HP) — fights wandering monsters",
   "event_adventurer_title": "🗡️ An Adventurer sets out!",
   "event_adventurer_body": "An Adventurer leaves the Guild to hunt monsters in the Underworld.",
   "event_adventurer_defeated_title": "🗡️ The Adventurer has fallen...",

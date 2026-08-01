@@ -503,12 +503,12 @@ public static class PrestigeMapFactory
                 cost: Cost(PrestigeMap.ForsakenTunnelVertex),
                 modifiers: new Modifier[] { new(ECategory.HARVEST_SPEED, "Mine", EType.ADDITIVE, 0.15) }
             ),
-            // Seul vertex doté d'un pouvoir : débloque la Guilde des Aventuriers (max niveau 0 → 1).
+            // Seul vertex doté d'un pouvoir : débloque la Guilde des Aventuriers (max niveau 0 → 4).
             new(
                 PrestigeMap.AdventurersGuildVertex,
                 "prestige_vertex_adventurers_guild",
                 cost: Cost(PrestigeMap.AdventurersGuildVertex),
-                modifiers: new Modifier[] { new(ECategory.BUILDING_MAX_LEVEL, "AdventurersGuild", EType.ADDITIVE, 1) }
+                modifiers: new Modifier[] { new(ECategory.BUILDING_MAX_LEVEL, "AdventurersGuild", EType.ADDITIVE, 4) }
             ),
             new(
                 PrestigeMap.SunkenPathVertex,

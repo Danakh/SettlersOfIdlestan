@@ -31,7 +31,16 @@ public class AdventurersGuild : Building
     public override ResourceSet GetBuildCost() => new ResourceSet
     {
         { Resource.Mithril, 100 },
+        { Resource.Stone, 200 },
+        { Resource.Steel, 100 },
+        { Resource.Food, 100 },
     };
 
-    public override ResourceSet GetUpgradeCost(int level) => new ResourceSet();
+    public override ResourceSet GetUpgradeCost(int level) => new ResourceSet
+    {
+        { Resource.Mithril, 100 * level },
+        { Resource.Stone, 200 * level },
+        { Resource.Steel, 100 * level },
+        { Resource.Food, 100 * level },
+    };
 }

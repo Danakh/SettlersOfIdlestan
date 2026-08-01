@@ -13,18 +13,28 @@ namespace SettlersOfIdlestan.Model.Monsters;
 [Serializable]
 public class Adventurer : MonsterFeature
 {
-    public const int AdventurerMaxHp = 40;
+    public const int AdventurerMaxHpBase = 80;
+    public const int AdventurerMaxHpPerLevel = 20;
+    public const int AdventurerAttackDamageBase = 7;
+    public const int AdventurerAttackDamagePerLevel = 3;
+    public const double AdventurerHpRegenBase = 2;
+    public const double AdventurerHpRegenPerLevel = 0.5;
+    public const long AdventurerHpRegenIntervalTicks = 100L;
 
-    public override int MaxHp => AdventurerMaxHp;
+    public override int MaxHp => AdventurerMaxHpBase + AdventurerMaxHpPerLevel * Level;
     public override bool BlocksHarvest => false;
+    public override double Armor => Level - 1;
 
     public override bool CanMove => true;
     public override long MovementIntervalTicks => 100L;
     public override long DepartureCooldownTicks => 1_000L;
 
+    public override double HpRegenAmount => AdventurerHpRegenBase + AdventurerHpRegenPerLevel * Level;
+    public override long HpRegenIntervalTicks => AdventurerHpRegenIntervalTicks;
+
     public override int AttackRangeInHexes => 1;
     public override long AttackIntervalTicks => 200L;
-    public override int AttackDamage => 3;
+    public override int AttackDamage => AdventurerAttackDamageBase + AdventurerAttackDamagePerLevel * Level;
     public override bool AttacksOtherMonsters => true;
 
     public override GameEventType DiscoveredEventType => GameEventType.AdventurerDiscovered;
@@ -32,13 +42,15 @@ public class Adventurer : MonsterFeature
 
     public override string? SvgIconResourceName => "Resources.icons.military.hero-armor.svg";
 
-    public override LocalizedEntry GetTooltipEntry() => new("hex_tooltip_adventurer_info", [Hp, MaxHp]);
+    public override LocalizedEntry GetTooltipEntry() => Level > 1
+        ? new("hex_tooltip_adventurer_info_leveled", [Hp, MaxHp, Level])
+        : new("hex_tooltip_adventurer_info", [Hp, MaxHp]);
 
     /// <summary>Position de la ville dont la Guilde a invoqué cet Aventurier, pour réinitialiser le cooldown de réapparition de la bonne Guilde à sa mort.</summary>
     public Vertex? SpawnCityPosition { get; set; }
 
-    public Adventurer(HexCoord position) : base(position) { Hp = AdventurerMaxHp; }
+    public Adventurer(HexCoord position, int level = 1) : base(position) { Level = level; Hp = MaxHp; }
 
     [JsonConstructor]
-    public Adventurer() : base() { Hp = AdventurerMaxHp; }
+    public Adventurer() : base() { Hp = MaxHp; }
 }

@@ -154,7 +154,7 @@ public class MonsterFeatureController
                 if (guild == null) continue;
                 if (currentTick - guild.LastAdventurerDeathTick < AdventurersGuild.AdventurerRespawnCooldownTicks) continue;
 
-                _state.AddFeature(new Adventurer(city.Position.GetHexes().First()) { SpawnCityPosition = city.Position });
+                _state.AddFeature(new Adventurer(city.Position.GetHexes().First(), guild.Level) { SpawnCityPosition = city.Position });
                 return;
             }
         }
