@@ -4,7 +4,7 @@ namespace SettlersOfIdlestan.Model.Buildings;
 
 public class Smelter : Building
 {
-    public const long ProductionCooldownTicks = 1000L; // 10 s
+    public const long ProductionCooldownTicks = 2000L; // 20 s
     public const int OreInputPerCycle  = 5;
     public const int WoodInputPerCycle = 2;
     public const int SteelOutputPerCycle = 1;

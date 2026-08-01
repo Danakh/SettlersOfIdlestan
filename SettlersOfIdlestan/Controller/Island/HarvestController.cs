@@ -70,12 +70,12 @@ namespace SettlersOfIdlestan.Controller.Island
         // 5 s × 100 ticks/s — cadence des cristaux (Archimage, Néant des Abysses) : plus lente pour éviter
         // un gain fractionnaire par tick (arrondi vers 0 sur les valeurs < 1).
         public const long PassiveCrystalGenerationIntervalTicks = 500L;
-        // 10 s × 100 ticks/s — intervalle de base de production de la Forge d'Armes (niv. 1)
-        public const long WeaponSmithBaseIntervalTicks = 1000L;
-        // 10 s × 100 ticks/s — intervalle de base de production de la Forge d'Armures (niv. 1)
-        public const long ArmorSmithBaseIntervalTicks = 1000L;
-        // 10 s × 100 ticks/s — intervalle de base de production de Potions de Soin par la Hutte d'Alchimie (niv. 1)
-        public const long AlchimistHutPotionBaseIntervalTicks = 1000L;
+        // 20 s × 100 ticks/s — intervalle de base de production de la Forge d'Armes (niv. 1)
+        public const long WeaponSmithBaseIntervalTicks = 2000L;
+        // 20 s × 100 ticks/s — intervalle de base de production de la Forge d'Armures (niv. 1)
+        public const long ArmorSmithBaseIntervalTicks = 2000L;
+        // 20 s × 100 ticks/s — intervalle de base de production de Potions de Soin par la Hutte d'Alchimie (niv. 1)
+        public const long AlchimistHutPotionBaseIntervalTicks = 2000L;
 
         private GamePRNG? _prng;
         private long _lastPassiveGenTick = 0;
