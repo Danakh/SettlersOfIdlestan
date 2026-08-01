@@ -989,34 +989,6 @@ namespace SettlersOfIdlestan.Controller.Island
             return result;
         }
 
-        /// <summary>Cristaux/seconde récoltés par les Tours de Mages sur des Grottes de Cristal, pour la civilisation donnée.</summary>
-        public double GetMageTowerCrystalRatePerSecond(int civilizationIndex)
-        {
-            if (_state == null) return 0.0;
-            var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex);
-            if (civ == null) return 0.0;
-
-            double total = 0.0;
-            foreach (var (hex, city, building, resource, _) in GetOrBuildProductionCache(civilizationIndex))
-            {
-                if (building.Type != BuildingType.MageTower || resource != Resource.Crystal) continue;
-                if (_state.GetFeaturesAt(hex).Any(f => f.BlocksHarvestFor(civ))) continue;
-
-                long raw = building.GetAutomaticHarvestCooldown(AutomaticHarvestCooldownTicks);
-                double speedMultiplier = civ.ModifierAggregator.ApplyModifiers(ECategory.HARVEST_SPEED, building.Type.ToString(), 1.0);
-                long effective = Math.Max(1L, (long)(raw / speedMultiplier));
-                effective = Math.Max(1L, (long)(effective * GetHexHarvestTimeMultiplier(civ, hex)));
-
-                var forge = city.Buildings.OfType<Forge>().FirstOrDefault();
-                int forgeChance = forge != null && forge.Level > 0 ? forge.DoubleProdChancePercent + civ.ForgeDoubleHarvestBonus * forge.Level : 0;
-                int harvestProductionChance = civ.GetHarvestProductionBonus(building.Type.ToString());
-                double expectedMultiplier = (1 + forgeChance / 100.0) * (1 + harvestProductionChance / 100.0);
-
-                total += 100.0 / effective * expectedMultiplier;
-            }
-            return total;
-        }
-
         /// <summary>Cristaux/seconde récoltés par les Huttes d'Alchimie sur les Cercles de Fées adjacents, pour la civilisation donnée.</summary>
         public double GetAlchimistHutCrystalRatePerSecond(int civilizationIndex)
         {

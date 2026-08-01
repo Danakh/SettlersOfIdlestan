@@ -149,36 +149,50 @@ namespace SettlersOfIdlestan.Controller.Magic
         /// <summary>Clé de source pour l'entretien en cristaux des rituels actifs.</summary>
         public const string RitualUpkeepSourceKey = "tooltip_source_ritual_upkeep";
 
-        /// <summary>Décomposition du débit net de cristaux par source, pour affichage (tooltip).</summary>
-        public readonly record struct CrystalRateBreakdown(
-            double AlchimistHutPerSecond,
-            double MageTowerPerSecond,
-            double PassivePerSecond,
-            double RitualUpkeepPerSecond)
+        /// <summary>Cristaux/seconde consommés par l'entretien des rituels actuellement actifs.</summary>
+        public double GetRitualUpkeepPerSecond()
         {
-            public double NetPerSecond
-                => AlchimistHutPerSecond + MageTowerPerSecond + PassivePerSecond - RitualUpkeepPerSecond;
-        }
-
-        public CrystalRateBreakdown GetCrystalRateBreakdown()
-        {
-            var civ = GetPlayerCiv();
-            if (civ == null || _state == null) return default;
-
-            double alchimistHut = _harvestController?.GetAlchimistHutCrystalRatePerSecond(civ.Index) ?? 0.0;
-            double mageTower = _harvestController?.GetMageTowerCrystalRatePerSecond(civ.Index) ?? 0.0;
-            double cycleSeconds = UpkeepIntervalTicks / 100.0;
-            double passive = civ.ModifierAggregator.ApplyModifiers(ECategory.PASSIVE_RESOURCE_GENERATION, nameof(Resource.Crystal), 0);
-
+            if (_state == null) return 0.0;
             double upkeep = 0;
             foreach (var active in _state.Magic.ActiveRituals)
             {
                 var def = RitualDefinitions.Get(active.Id);
                 if (def != null) upkeep += GetUpkeepCost(def, active.Power);
             }
-            upkeep /= cycleSeconds;
+            return upkeep / (UpkeepIntervalTicks / 100.0);
+        }
 
-            return new CrystalRateBreakdown(alchimistHut, mageTower, passive, upkeep);
+        /// <summary>
+        /// Détaille toutes les sources de gain et de perte de cristaux/seconde (récolte automatique,
+        /// génération passive, entretien des Huttes d'Alchimie, investissement en Monuments, entretien
+        /// des rituels). Réutilise exactement les mêmes listes que l'infobulle de la barre de ressources
+        /// (<see cref="HarvestController.GetProductionRatesBySource"/> / <c>GetConsumptionRatesBySource</c> /
+        /// <see cref="Controller.Expand.MonumentInvestment.GetInvestmentRatesBySource"/>), pour garantir un
+        /// total identique entre la page Rituels et cette infobulle.
+        /// </summary>
+        public (List<(string SourceKey, double Rate)> Gains, List<(string SourceKey, double Rate)> Losses) GetCrystalGainsAndLosses()
+        {
+            var gains = new List<(string SourceKey, double Rate)>();
+            var losses = new List<(string SourceKey, double Rate)>();
+
+            var civ = GetPlayerCiv();
+            if (civ == null || _state == null) return (gains, losses);
+
+            if (_harvestController != null)
+            {
+                if (_harvestController.GetProductionRatesBySource(civ.Index).TryGetValue(Resource.Crystal, out var prod))
+                    gains.AddRange(prod);
+                if (_harvestController.GetConsumptionRatesBySource(civ.Index).TryGetValue(Resource.Crystal, out var cons))
+                    losses.AddRange(cons);
+            }
+
+            if (Controller.Expand.MonumentInvestment.GetInvestmentRatesBySource(_state, civ).TryGetValue(Resource.Crystal, out var monument))
+                losses.AddRange(monument);
+
+            double ritualUpkeep = GetRitualUpkeepPerSecond();
+            if (ritualUpkeep > 0.0001) losses.Add((RitualUpkeepSourceKey, ritualUpkeep));
+
+            return (gains, losses);
         }
 
         // ── Coûts ─────────────────────────────────────────────────────────────

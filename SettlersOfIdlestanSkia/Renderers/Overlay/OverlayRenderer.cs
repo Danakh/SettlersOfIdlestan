@@ -302,52 +302,54 @@ public sealed class OverlayRenderer : IGameRenderer
         var controller = _gameControllerService.MainGameController;
         int civIndex = worldState.PlayerCivilization.Index;
 
-        var gainsBySource = controller.HarvestController.GetProductionRatesBySource(civIndex);
-        var lossesBySource = controller.HarvestController.GetConsumptionRatesBySource(civIndex);
+        System.Collections.Generic.List<(string SourceKey, double Rate)>? gains;
+        System.Collections.Generic.List<(string SourceKey, double Rate)>? losses;
 
-        foreach (var (resource, monumentLosses) in SettlersOfIdlestan.Controller.Expand.MonumentInvestment.GetInvestmentRatesBySource(worldState, worldState.PlayerCivilization))
-        {
-            if (!lossesBySource.TryGetValue(resource, out var list))
-                lossesBySource[resource] = list = new System.Collections.Generic.List<(string SourceKey, double Rate)>();
-            list.AddRange(monumentLosses);
-        }
-
+        // Le Cristal a des sources/pertes propres à la Magie (rituels, Huttes d'Alchimie, Monuments) : on
+        // délègue à MagicController.GetCrystalGainsAndLosses(), seule source de vérité pour ce total —
+        // c'est la même méthode qu'utilise la page Rituels, ce qui garantit des chiffres identiques.
         if (hoveredResource.Value == SettlersOfIdlestan.Model.IslandMap.Resource.Crystal)
         {
-            double crystalUpkeep = controller.MagicController.GetCrystalRateBreakdown().RitualUpkeepPerSecond;
-            if (crystalUpkeep > 0.0001)
+            (gains, losses) = controller.MagicController.GetCrystalGainsAndLosses();
+        }
+        else
+        {
+            var gainsBySource = controller.HarvestController.GetProductionRatesBySource(civIndex);
+            var lossesBySource = controller.HarvestController.GetConsumptionRatesBySource(civIndex);
+
+            foreach (var (resource, monumentLosses) in SettlersOfIdlestan.Controller.Expand.MonumentInvestment.GetInvestmentRatesBySource(worldState, worldState.PlayerCivilization))
             {
-                if (!lossesBySource.TryGetValue(SettlersOfIdlestan.Model.IslandMap.Resource.Crystal, out var crystalLosses))
-                    lossesBySource[SettlersOfIdlestan.Model.IslandMap.Resource.Crystal] = crystalLosses = new System.Collections.Generic.List<(string SourceKey, double Rate)>();
-                crystalLosses.Add((SettlersOfIdlestan.Controller.Magic.MagicController.RitualUpkeepSourceKey, crystalUpkeep));
+                if (!lossesBySource.TryGetValue(resource, out var list))
+                    lossesBySource[resource] = list = new System.Collections.Generic.List<(string SourceKey, double Rate)>();
+                list.AddRange(monumentLosses);
             }
-        }
 
-        // Le minerai consommé par la production de soldats (Casernes) est calculé par le MilitaryController
-        // (source de vérité pour tout ce qui touche aux Casernes) plutôt que par le HarvestController. On
-        // affiche toujours cette ligne dès qu'une Caserne existe, même à 0/s (ville au plafond de soldats) —
-        // sinon la ligne apparaît/disparaît sans arrêt dans l'infobulle au fil des cycles de production.
-        if (hoveredResource.Value == SettlersOfIdlestan.Model.IslandMap.Resource.Ore
-            && controller.MilitaryController.HasAnySoldierProductionBuilding(civIndex))
-        {
-            double soldierOreRate = controller.MilitaryController.GetSoldierProductionOreRate(civIndex);
-            if (!lossesBySource.TryGetValue(SettlersOfIdlestan.Model.IslandMap.Resource.Ore, out var oreLosses))
-                lossesBySource[SettlersOfIdlestan.Model.IslandMap.Resource.Ore] = oreLosses = new System.Collections.Generic.List<(string SourceKey, double Rate)>();
-            oreLosses.Add((SettlersOfIdlestan.Controller.Military.MilitaryController.SoldierProductionOreSourceKey, soldierOreRate));
-        }
+            // Le minerai consommé par la production de soldats (Casernes) est calculé par le MilitaryController
+            // (source de vérité pour tout ce qui touche aux Casernes) plutôt que par le HarvestController. On
+            // affiche toujours cette ligne dès qu'une Caserne existe, même à 0/s (ville au plafond de soldats) —
+            // sinon la ligne apparaît/disparaît sans arrêt dans l'infobulle au fil des cycles de production.
+            if (hoveredResource.Value == SettlersOfIdlestan.Model.IslandMap.Resource.Ore
+                && controller.MilitaryController.HasAnySoldierProductionBuilding(civIndex))
+            {
+                double soldierOreRate = controller.MilitaryController.GetSoldierProductionOreRate(civIndex);
+                if (!lossesBySource.TryGetValue(SettlersOfIdlestan.Model.IslandMap.Resource.Ore, out var oreLosses))
+                    lossesBySource[SettlersOfIdlestan.Model.IslandMap.Resource.Ore] = oreLosses = new System.Collections.Generic.List<(string SourceKey, double Rate)>();
+                oreLosses.Add((SettlersOfIdlestan.Controller.Military.MilitaryController.SoldierProductionOreSourceKey, soldierOreRate));
+            }
 
-        // Même logique pour l'Acier consommé par la production de soldats des Arsenaux actifs.
-        if (hoveredResource.Value == SettlersOfIdlestan.Model.IslandMap.Resource.Steel
-            && controller.MilitaryController.HasAnyArsenalProductionBuilding(civIndex))
-        {
-            double arsenalSteelRate = controller.MilitaryController.GetArsenalProductionSteelRate(civIndex);
-            if (!lossesBySource.TryGetValue(SettlersOfIdlestan.Model.IslandMap.Resource.Steel, out var steelLosses))
-                lossesBySource[SettlersOfIdlestan.Model.IslandMap.Resource.Steel] = steelLosses = new System.Collections.Generic.List<(string SourceKey, double Rate)>();
-            steelLosses.Add((SettlersOfIdlestan.Controller.Military.MilitaryController.ArsenalProductionSteelSourceKey, arsenalSteelRate));
-        }
+            // Même logique pour l'Acier consommé par la production de soldats des Arsenaux actifs.
+            if (hoveredResource.Value == SettlersOfIdlestan.Model.IslandMap.Resource.Steel
+                && controller.MilitaryController.HasAnyArsenalProductionBuilding(civIndex))
+            {
+                double arsenalSteelRate = controller.MilitaryController.GetArsenalProductionSteelRate(civIndex);
+                if (!lossesBySource.TryGetValue(SettlersOfIdlestan.Model.IslandMap.Resource.Steel, out var steelLosses))
+                    lossesBySource[SettlersOfIdlestan.Model.IslandMap.Resource.Steel] = steelLosses = new System.Collections.Generic.List<(string SourceKey, double Rate)>();
+                steelLosses.Add((SettlersOfIdlestan.Controller.Military.MilitaryController.ArsenalProductionSteelSourceKey, arsenalSteelRate));
+            }
 
-        gainsBySource.TryGetValue(hoveredResource.Value, out var gains);
-        lossesBySource.TryGetValue(hoveredResource.Value, out var losses);
+            gainsBySource.TryGetValue(hoveredResource.Value, out gains);
+            lossesBySource.TryGetValue(hoveredResource.Value, out losses);
+        }
         gains ??= new System.Collections.Generic.List<(string SourceKey, double Rate)>();
         losses ??= new System.Collections.Generic.List<(string SourceKey, double Rate)>();
 

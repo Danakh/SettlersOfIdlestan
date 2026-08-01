@@ -8,6 +8,7 @@ using SettlersOfIdlestanSkia.Services;
 using SkiaSharp;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace SettlersOfIdlestanSkia.Renderers.Overlay.Tabs;
 
@@ -171,8 +172,8 @@ public sealed class RitualsRenderer : IDisposable
         SkiaTextUtils.DrawText(canvas, powerLabel, x, y + 14, _descFont, _summaryPaint);
 
         int crystals = civ.GetResourceQuantity(Resource.Crystal);
-        var rateBreakdown = magic.GetCrystalRateBreakdown();
-        double net = rateBreakdown.NetPerSecond;
+        var (crystalGains, crystalLosses) = magic.GetCrystalGainsAndLosses();
+        double net = crystalGains.Sum(g => g.Rate) - crystalLosses.Sum(l => l.Rate);
         string ratePart = $"{(net >= 0 ? "+" : "")}{net:0.#}";
         string crystalsLabel = _localization.GetFormated("rituals_crystals_label", crystals, ratePart);
         float crystalsWidth = _descFont.MeasureText(crystalsLabel);
@@ -187,7 +188,7 @@ public sealed class RitualsRenderer : IDisposable
         }
         else if (crystalsRect.Contains(_hoverPosition.X, _hoverPosition.Y))
         {
-            var lines = BuildCrystalTooltipLines(rateBreakdown);
+            var lines = BuildCrystalTooltipLines(crystalGains, crystalLosses);
             _tooltipRenderer.SetTooltipLines(lines, new SKPoint(crystalsRect.Left, crystalsRect.Bottom - _scrollOffsetPx));
         }
     }
@@ -208,17 +209,20 @@ public sealed class RitualsRenderer : IDisposable
         return lines.ToArray();
     }
 
-    private string[] BuildCrystalTooltipLines(SettlersOfIdlestan.Controller.Magic.MagicController.CrystalRateBreakdown breakdown)
+    /// <summary>
+    /// Construit les lignes d'infobulle à partir des mêmes listes de sources (clé, taux) que l'infobulle
+    /// de la barre de ressources — même format d'affichage, mêmes clés de localisation par source, pour
+    /// garantir que les deux infobulles restent cohérentes entre elles par construction.
+    /// </summary>
+    private string[] BuildCrystalTooltipLines(
+        System.Collections.Generic.List<(string SourceKey, double Rate)> gains,
+        System.Collections.Generic.List<(string SourceKey, double Rate)> losses)
     {
         var lines = new List<string>();
-        if (breakdown.AlchimistHutPerSecond > 0.001)
-            lines.Add(_localization.GetFormated("rituals_crystals_tooltip_alchimist", $"{breakdown.AlchimistHutPerSecond:0.#}"));
-        if (breakdown.MageTowerPerSecond > 0.001)
-            lines.Add(_localization.GetFormated("rituals_crystals_tooltip_magetower", $"{breakdown.MageTowerPerSecond:0.#}"));
-        if (breakdown.PassivePerSecond > 0.001)
-            lines.Add(_localization.GetFormated("rituals_crystals_tooltip_passive", $"{breakdown.PassivePerSecond:0.#}"));
-        if (breakdown.RitualUpkeepPerSecond > 0.001)
-            lines.Add(_localization.GetFormated("rituals_crystals_tooltip_upkeep", $"{breakdown.RitualUpkeepPerSecond:0.#}"));
+        foreach (var (sourceKey, rate) in gains.OrderByDescending(g => g.Rate))
+            lines.Add($"{_localization.Get(sourceKey)} : +{rate:0.#}/s");
+        foreach (var (sourceKey, rate) in losses.OrderByDescending(l => l.Rate))
+            lines.Add($"{_localization.Get(sourceKey)} : -{rate:0.#}/s");
         if (lines.Count == 0)
             lines.Add(_localization.Get("rituals_crystals_tooltip_none"));
         return lines.ToArray();
