@@ -872,10 +872,6 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
                         _gameControllerService.MainGameController.MilitaryController.ClearReinforcementFlows(civ);
                 }
                 break;
-            case AutomationRenderer.PinKeyMilPatrol:
-                if (settings != null)
-                    settings.MilitaryPatrolAutomationEnabled = !settings.MilitaryPatrolAutomationEnabled;
-                break;
             case AutomationRenderer.PinKeyMilVendetta:
                 if (settings != null)
                 {
@@ -942,7 +938,6 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             AutomationRenderer.PinKeySeaport      => (settings.SeaportBuildingAutomationEnabled,           "automation_seaport_name"),
             AutomationRenderer.PinKeyMilBuildings => (settings.MilitaryBuildingAutomationEnabled,          "automation_military_buildings_name"),
             AutomationRenderer.PinKeyMilReinforce => (settings.MilitaryReinforcementAutomationEnabled,     "automation_military_reinforcement_name"),
-            AutomationRenderer.PinKeyMilPatrol    => (settings.MilitaryPatrolAutomationEnabled,            "automation_military_patrol_name"),
             AutomationRenderer.PinKeyMilVendetta  => (settings.MilitaryVendettaAutomationEnabled,          "automation_military_vendetta_name"),
             AutomationRenderer.PinKeyRestrictSoldierProduction =>
                 (IsRestrictSoldierProductionByLayer(settings, IslandMap.SurfaceLayer), "automation_restrict_soldier_production_name"),
@@ -974,7 +969,6 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         AutomationRenderer.PinKeySeaport      => "automation_seaport_desc",
         AutomationRenderer.PinKeyMilBuildings => "automation_military_buildings_desc",
         AutomationRenderer.PinKeyMilReinforce => "automation_military_reinforcement_desc",
-        AutomationRenderer.PinKeyMilPatrol    => "automation_military_patrol_desc",
         AutomationRenderer.PinKeyMilVendetta  => "automation_military_vendetta_desc",
         AutomationRenderer.PinKeyRestrictSoldierProduction           => "automation_restrict_soldier_production_desc",
         AutomationRenderer.PinKeyRestrictSoldierProductionUnderworld => "automation_restrict_soldier_production_underworld_desc",

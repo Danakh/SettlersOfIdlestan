@@ -21,10 +21,8 @@ internal class ReinforcementEngine
     private WorldState? _state;
     private CityAttackEngine? _cityAttackEngine;
     private SoldierProductionEngine? _productionEngine;
-    private MonsterCombatEngine? _monsterCombatEngine;
 
     private long _lastPlayerAutoReinforcementTick = 0;
-    private long _lastPlayerAutoPatrolTick = 0;
     private long _lastPlayerAutoVendettaTick = 0;
 
     // Cache du graphe d'adjacence par (civIndex, z), invalidé dès que le nombre de routes change.
@@ -42,15 +40,13 @@ internal class ReinforcementEngine
 
     private const int DefaultReinforcementRange = 5;
     private const long AutoReinforcementIntervalTicks = 100L;
-    private const long AutoPatrolIntervalTicks = 100L;
     private const long AutoVendettaIntervalTicks = 100L;
 
-    internal void Initialize(WorldState? state, CityAttackEngine cityAttackEngine, SoldierProductionEngine productionEngine, MonsterCombatEngine monsterCombatEngine)
+    internal void Initialize(WorldState? state, CityAttackEngine cityAttackEngine, SoldierProductionEngine productionEngine)
     {
         _state = state;
         _cityAttackEngine = cityAttackEngine;
         _productionEngine = productionEngine;
-        _monsterCombatEngine = monsterCombatEngine;
     }
 
     internal int ReinforcementRange(Civilization civ)
@@ -139,32 +135,6 @@ internal class ReinforcementEngine
         if (!playerCiv.ModifierAggregator.HasModifier(ECategory.UNLOCK_AUTO_REINFORCEMENT)) return;
 
         UpdateCivilizationReinforcementFlows(playerCiv);
-    }
-
-    /// <summary>
-    /// Recherche Patrouille : chaque emplacement militaire sans cible active raide automatiquement
-    /// (via <see cref="IMilitaryVertex.MonsterAttackTarget"/>) le monstre attaquable le plus proche,
-    /// sans coût d'upkeep (contrairement au Raid manuel).
-    /// </summary>
-    internal void ResolvePlayerAutoPatrol(long currentTick)
-    {
-        if (_state == null) return;
-        if (!_state.AutomationSettings.IsMilitaryPatrolAutomationActive) return;
-        if (currentTick - _lastPlayerAutoPatrolTick < AutoPatrolIntervalTicks) return;
-        _lastPlayerAutoPatrolTick = currentTick;
-
-        var playerCiv = _state.PlayerCivilization;
-        if (!playerCiv.ModifierAggregator.HasModifier(ECategory.UNLOCK_PATROL)) return;
-
-        foreach (var vertex in playerCiv.MilitaryVertices)
-        {
-            if (vertex.MonsterAttackTarget != null) continue;
-            var monster = _monsterCombatEngine!.FindNearbyMonster(vertex);
-            if (monster == null) continue;
-
-            SetCityFlow(vertex, null);
-            vertex.MonsterAttackTarget = monster.Position;
-        }
     }
 
     /// <summary>

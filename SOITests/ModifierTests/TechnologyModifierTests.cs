@@ -241,14 +241,6 @@ public class TechnologyModifierTests
         Assert.Equal(1, BuildAggregator(TechnologyId.GrandArchitecture).ApplyModifiers(ECategory.BUILDING_MAX_LEVEL, "Barracks", 0));
     }
 
-    // ── CITY_DEFENSE ──────────────────────────────────────────────────────────
-
-    [Fact]
-    public void Patrol_NoCityDefenseModifier()
-    {
-        Assert.Equal(0, BuildAggregator(TechnologyId.Patrol).ApplyModifiers(ECategory.CITY_DEFENSE, "", 0));
-    }
-
     // ── Branche des Abysses & capstones (tiers 8-13) ──────────────────────────
 
     [Fact]

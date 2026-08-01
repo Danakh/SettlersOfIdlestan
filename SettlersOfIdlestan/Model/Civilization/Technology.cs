@@ -68,11 +68,11 @@ public enum TechnologyId
     // de prestige Raids. Raid gratuit sur une ville alliée : redirige tous les flux de renfort vers
     // la cible, sauf les emplacements ayant un flux d'attaque actif.
     WarHerald,
-    // Patrouille anti-monstres automatique — prend la place d'AdvancedStrategy dans l'arbre (voir
-    // TechnologyDefinitions).
+    // [Legacy] Recherche "Patrouille" (raid anti-monstres automatique) supprimée — conservée
+    // uniquement pour la désérialisation des anciennes sauvegardes.
     Patrol,
-    // Un tier au-dessus de Patrol — raids automatiques sur une civilisation. Prérequis
-    // supplémentaire : WarHerald.
+    // Même ligne que WarHerald, son seul prérequis désormais (Patrol supprimée). Raids
+    // automatiques sur une civilisation.
     Vendetta,
     AutomaticMarket,
     Speleologie,

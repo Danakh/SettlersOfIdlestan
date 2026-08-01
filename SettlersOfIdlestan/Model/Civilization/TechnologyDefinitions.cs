@@ -387,26 +387,15 @@ public static class TechnologyDefinitions
             modifiers: new Modifier[] { new(ECategory.UNLOCK_WAR_HERALD, EType.ADDITIVE, 1) },
             tier: 9, line: 8),
 
-        // Remontée d'une ligne (voir CLAUDE.md) ; dépend désormais des Remparts de Mithril plutôt que
-        // du Camp Mobile. Prend la place d'AdvancedStrategy dans l'arbre (voir Technology.cs) :
-        // patrouille automatique qui raide via le système de Raid les monstres qui s'approchent d'une
-        // ville, plutôt que d'attaquer automatiquement les villes ennemies.
-        new(TechnologyId.Patrol,
-            "tech_patrol_name", "tech_patrol_desc",
-            cost: 100000000,
-            prerequisites: new[] { TechnologyId.RempartsDeMithril },
-            modifiers: new Modifier[] { new(ECategory.UNLOCK_PATROL, EType.ADDITIVE, 1) },
-            tier: 10, line: 7),
-
-        // Un tier au-dessus de Patrol. Raids automatiques sur une civilisation : la cible se met à
-        // jour après un raid manuel du joueur ou une attaque subie. Prérequis supplémentaire :
-        // WarHerald (voir Technology.cs).
+        // Même ligne que WarHerald (voir Technology.cs), son seul prérequis désormais que Patrol a
+        // été supprimée de l'arbre. Raids automatiques sur une civilisation : la cible se met à jour
+        // après un raid manuel du joueur ou une attaque subie.
         new(TechnologyId.Vendetta,
             "tech_vendetta_name", "tech_vendetta_desc",
-            cost: 400000000,
-            prerequisites: new[] { TechnologyId.Patrol, TechnologyId.WarHerald },
+            cost: 100000000,
+            prerequisites: new[] { TechnologyId.WarHerald },
             modifiers: new Modifier[] { new(ECategory.UNLOCK_VENDETTA, EType.ADDITIVE, 1) },
-            tier: 11, line: 7),
+            tier: 10, line: 8),
 
         // === Branche de l'Inframonde (débloquée par les vertex de prestige du nord-ouest) ===
 
@@ -713,7 +702,7 @@ public static class TechnologyDefinitions
                 new(ECategory.UNIT_PRODUCTION_SPEED, EType.ADDITIVE, 0.25),
                 new(ECategory.CITY_MAX_SOLDIERS_BONUS, EType.ADDITIVE, 10),
             },
-            tier: 13, line: 7),
+            tier: 13, line: 8),
 
         // === Suite de la ligne du Vide (VoidWalking → VoidCompass, tiers 12-13) ===
         // Accélère la boucle d'Ascension : Purification des Os Divins moins chère, puis routes du

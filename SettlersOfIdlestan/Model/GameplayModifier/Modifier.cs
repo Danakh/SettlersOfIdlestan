@@ -59,7 +59,7 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             UNLOCK_RESEARCH_QUEUE,
             /// <summary>Flags que le renforcement automatique est déverrouillé pour la civilisation.</summary>
             UNLOCK_AUTO_REINFORCEMENT,
-            /// <summary>Flags que la patrouille automatique (raid anti-monstres près des villes) est déverrouillée pour la civilisation.</summary>
+            /// <summary>Obsolète — la patrouille automatique (raid anti-monstres près des villes) a été supprimée. Conservé pour compatibilité des sauvegardes.</summary>
             UNLOCK_PATROL,
             /// <summary>Bonus fixe de génération de ressource par cycle (1 000 ticks). SubCategory = Resource enum name.</summary>
             PASSIVE_RESOURCE_GENERATION,

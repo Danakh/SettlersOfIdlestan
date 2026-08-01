@@ -391,7 +391,7 @@ public sealed class TabBarRenderer : IDisposable
                 foreach (var b in city.Buildings)
                     if (b.Level > 0 && (b.ProvidesAutomation || b.ActivationStatus != ActivationStatus.NON_ACTIVABLE)) return true;
             var completed = civ.TechnologyTree.CompletedTechnologies;
-            return completed.Contains(TechnologyId.AdvancedTactics) || completed.Contains(TechnologyId.Patrol);
+            return completed.Contains(TechnologyId.AdvancedTactics);
         }
         catch { return false; }
     }

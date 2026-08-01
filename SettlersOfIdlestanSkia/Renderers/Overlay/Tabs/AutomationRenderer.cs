@@ -44,7 +44,6 @@ public sealed class AutomationRenderer : IDisposable
     internal const string PinKeyGrandTemple   = "GrandTemple";
     internal const string PinKeyMithrilMine   = "MithrilMine";
     internal const string PinKeyMilReinforce  = "MilitaryReinforcement";
-    internal const string PinKeyMilPatrol     = "MilitaryPatrol";
     internal const string PinKeyMilVendetta   = "MilitaryVendetta";
     internal const string PinKeyMonumentInvestment = "MonumentInvestment";
     internal const string PinKeyBarracks      = "Barracks";
@@ -81,7 +80,6 @@ public sealed class AutomationRenderer : IDisposable
     private SKRect _mithrilMineToggleRect = SKRect.Empty;
     private SKRect _arcaneTowerToggleRect = SKRect.Empty;
     private SKRect _militaryReinforcementToggleRect = SKRect.Empty;
-    private SKRect _militaryPatrolToggleRect = SKRect.Empty;
     private SKRect _militaryVendettaToggleRect = SKRect.Empty;
     private SKRect _monumentInvestmentToggleRect = SKRect.Empty;
     private SKRect _barracksToggleRect     = SKRect.Empty;
@@ -111,7 +109,6 @@ public sealed class AutomationRenderer : IDisposable
     private bool _hoveredMithrilMineToggle;
     private bool _hoveredArcaneTowerToggle;
     private bool _hoveredMilitaryReinforcementToggle;
-    private bool _hoveredMilitaryPatrolToggle;
     private bool _hoveredMilitaryVendettaToggle;
     private bool _hoveredMonumentInvestmentToggle;
     private bool _hoveredBarracksToggle;
@@ -420,16 +417,6 @@ public sealed class AutomationRenderer : IDisposable
         {
             _militaryReinforcementToggleRect = SKRect.Empty;
             rowH = DrawLockedRow(canvas, rightX, rightY, colWidth, _localization.Get("automation_military_reinforcement_name"), _localization.Get("automation_military_reinforcement_locked"));
-        }
-        rightY += rowH + RowSpacing;
-
-        bool hasPatrol = civ.TechnologyTree.CompletedTechnologies.Contains(TechId.Patrol);
-        if (hasPatrol)
-            (_militaryPatrolToggleRect, rowH) = DrawAutomationRow(canvas, rightX, rightY, colWidth, WorldState.AutomationSettings.MilitaryPatrolAutomationEnabled, _hoveredMilitaryPatrolToggle, _localization.Get("automation_military_patrol_name"), _localization.Get("automation_military_patrol_desc"), _localization.Get("automation_military_patrol_note"), pinKey: PinKeyMilPatrol, isPinHovered: _hoveredPinKey == PinKeyMilPatrol, isPinned: pinned.Contains(PinKeyMilPatrol));
-        else
-        {
-            _militaryPatrolToggleRect = SKRect.Empty;
-            rowH = DrawLockedRow(canvas, rightX, rightY, colWidth, _localization.Get("automation_military_patrol_name"), _localization.Get("automation_military_patrol_locked"));
         }
         rightY += rowH + RowSpacing;
 
@@ -770,7 +757,6 @@ public sealed class AutomationRenderer : IDisposable
         _hoveredMithrilMineToggle             = !_mithrilMineToggleRect.IsEmpty            && _mithrilMineToggleRect.Contains(adj.X, adj.Y);
         _hoveredArcaneTowerToggle              = !_arcaneTowerToggleRect.IsEmpty            && _arcaneTowerToggleRect.Contains(adj.X, adj.Y);
         _hoveredMilitaryReinforcementToggle  = !_militaryReinforcementToggleRect.IsEmpty  && _militaryReinforcementToggleRect.Contains(adj.X, adj.Y);
-        _hoveredMilitaryPatrolToggle         = !_militaryPatrolToggleRect.IsEmpty         && _militaryPatrolToggleRect.Contains(adj.X, adj.Y);
         _hoveredMilitaryVendettaToggle       = !_militaryVendettaToggleRect.IsEmpty       && _militaryVendettaToggleRect.Contains(adj.X, adj.Y);
         _hoveredMonumentInvestmentToggle     = !_monumentInvestmentToggleRect.IsEmpty     && _monumentInvestmentToggleRect.Contains(adj.X, adj.Y);
         _hoveredBarracksToggle      = !_barracksToggleRect.IsEmpty      && _barracksToggleRect.Contains(adj.X, adj.Y);
@@ -919,11 +905,6 @@ public sealed class AutomationRenderer : IDisposable
                 var civR = _gameControllerService.PlayerCivilization;
                 if (civR != null) _gameControllerService.MainGameController.MilitaryController.ClearReinforcementFlows(civR);
             }
-            return true;
-        }
-        if (!_militaryPatrolToggleRect.IsEmpty && _militaryPatrolToggleRect.Contains(adj.X, adj.Y))
-        {
-            state.AutomationSettings.MilitaryPatrolAutomationEnabled = !state.AutomationSettings.MilitaryPatrolAutomationEnabled;
             return true;
         }
         if (!_militaryVendettaToggleRect.IsEmpty && _militaryVendettaToggleRect.Contains(adj.X, adj.Y))

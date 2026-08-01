@@ -72,9 +72,6 @@ public class AutomationSettings
     public bool MilitaryReinforcementAutomationEnabled { get; set; } = false;
     [JsonIgnore] public bool IsMilitaryReinforcementAutomationActive => Active(MilitaryReinforcementAutomationEnabled);
 
-    public bool MilitaryPatrolAutomationEnabled { get; set; } = false;
-    [JsonIgnore] public bool IsMilitaryPatrolAutomationActive => Active(MilitaryPatrolAutomationEnabled);
-
     public bool MilitaryVendettaAutomationEnabled { get; set; } = false;
     [JsonIgnore] public bool IsMilitaryVendettaAutomationActive => Active(MilitaryVendettaAutomationEnabled);
 
