@@ -1312,6 +1312,8 @@
   "ritual_upkeep_cost": "Upkeep: {0} crystals / 10 s",
   "ritual_button_launch": "Launch",
   "ritual_button_stop": "Stop",
+  "ritual_bonus_current": "Current bonus: {0}",
+  "ritual_tooltip_double_chance": "chance to double automatic harvests",
   "rituals_spells_header": "Spells",
   "spell_cast_cost": "Cost: {0} crystals ➔ +{1} gold",
   "spell_cast_cost_troops": "Cost: {0} crystals ➔ +{1} troops",

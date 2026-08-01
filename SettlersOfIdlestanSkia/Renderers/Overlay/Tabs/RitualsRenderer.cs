@@ -1,4 +1,5 @@
 using SettlersOfIdlestan.Model.Game;
+using SettlersOfIdlestan.Model.GameplayModifier;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Magic;
 using SettlersOfIdlestanSkia.Services.Localization;
@@ -67,6 +68,7 @@ public sealed class RitualsRenderer : IDisposable
     private readonly SKPaint _accentPaint       = new() { Color = new SKColor(190, 150, 255), IsAntialias = true };
     private readonly SKPaint _summaryPaint      = new() { Color = new SKColor(200, 200, 215), IsAntialias = true };
     private readonly SKPaint _warningPaint      = new() { Color = new SKColor(210, 140, 90), IsAntialias = true };
+    private readonly SKPaint _bonusPaint        = new() { Color = new SKColor(120, 200, 140), IsAntialias = true };
     private readonly SKPaint _scrollTrackPaint  = new() { Color = new SKColor(50, 50, 65, 200), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _scrollThumbPaint  = new() { Color = new SKColor(130, 130, 165, 210), Style = SKPaintStyle.Fill, IsAntialias = true };
 
@@ -247,7 +249,8 @@ public sealed class RitualsRenderer : IDisposable
     }
 
     private void DrawCardText(SKCanvas canvas, float textX, float y,
-        WrappedTextLayout nameLayout, WrappedTextLayout descLayout, WrappedTextLayout costLayout, WrappedTextLayout? warningLayout)
+        WrappedTextLayout nameLayout, WrappedTextLayout descLayout, WrappedTextLayout costLayout, WrappedTextLayout? warningLayout,
+        SKPaint? warningPaint = null)
     {
         float curY = y + 19f;
         SkiaTextUtils.DrawTextLayout(canvas, nameLayout, textX, curY, _nameFont, _namePaint);
@@ -258,8 +261,36 @@ public sealed class RitualsRenderer : IDisposable
         if (warningLayout != null)
         {
             curY += costLayout.Size.Height + 6f;
-            SkiaTextUtils.DrawTextLayout(canvas, warningLayout, textX, curY, _descFont, _warningPaint);
+            SkiaTextUtils.DrawTextLayout(canvas, warningLayout, textX, curY, _descFont, warningPaint ?? _warningPaint);
         }
+    }
+
+    /// <summary>
+    /// Formate le bonus total (Value × puissance) de chaque modificateur d'un rituel actif,
+    /// joint par ", " — à distinguer du texte de description qui décrit le bonus par point de puissance.
+    /// </summary>
+    private string FormatRitualTotalBonus(RitualDefinition def, int power)
+    {
+        var parts = new List<string>();
+        foreach (var mod in def.ModifiersPerPower)
+        {
+            double total = mod.Value * power;
+            parts.Add(mod.Category switch
+            {
+                Modifier.ECategory.HARVEST_SPEED => string.IsNullOrEmpty(mod.SubCategory)
+                    ? $"+{(int)(total * 100)}% {_localization.Get("prestige_tooltip_harvest_speed")}"
+                    : $"+{(int)(total * 100)}% {_localization.Get($"building_{mod.SubCategory.ToLower()}_name")} {_localization.Get("prestige_tooltip_harvest_speed")}",
+                Modifier.ECategory.HARVEST_PRODUCTION_BONUS => $"+{(int)total}% {_localization.Get("ritual_tooltip_double_chance")}",
+                Modifier.ECategory.CITY_MAX_SOLDIERS_BONUS => $"+{(int)total} {_localization.Get("prestige_tooltip_city_max_soldiers")}",
+                Modifier.ECategory.UNIT_PRODUCTION_SPEED => $"+{(int)(total * 100)}% {_localization.Get("prestige_tooltip_unit_speed")}",
+                Modifier.ECategory.CITY_DEFENSE => $"+{(int)total} {_localization.Get("prestige_tooltip_city_defense")}",
+                Modifier.ECategory.CITY_DEFENSE_REGEN_SPEED => $"+{(int)(total * 100)}% {_localization.Get("prestige_tooltip_city_defense_regen")}",
+                Modifier.ECategory.RESEARCH_PRODUCTION_SPEED => $"+{(int)(total * 100)}% {_localization.Get("prestige_tooltip_research_production_speed")}",
+                Modifier.ECategory.TEMPLE_MONSTER_DAMAGE_PER_SECOND => $"+{(int)total} {_localization.Get("prestige_tooltip_temple_monster_damage")}",
+                _ => $"+{total:0.#} {mod.Category}",
+            });
+        }
+        return string.Join(", ", parts);
     }
 
     private float DrawRitualRow(SKCanvas canvas, float x, float y, float width,
@@ -274,15 +305,19 @@ public sealed class RitualsRenderer : IDisposable
             : _localization.GetFormated("ritual_launch_cost",
                 SettlersOfIdlestan.Controller.Magic.MagicController.GetLaunchCost(def, 1));
 
-        var (nameLayout, descLayout, costLayout, warningLayout, cardHeight) = MeasureCardText(
-            _localization.Get(def.NameKey), _localization.Get(def.DescKey), costText, null, width);
+        string? bonusText = isActive
+            ? _localization.GetFormated("ritual_bonus_current", FormatRitualTotalBonus(def, active!.Power))
+            : null;
+
+        var (nameLayout, descLayout, costLayout, bonusLayout, cardHeight) = MeasureCardText(
+            _localization.Get(def.NameKey), _localization.Get(def.DescKey), costText, bonusText, width);
 
         var cardRect = new SKRect(x, y, x + width, y + cardHeight);
         canvas.DrawRoundRect(cardRect, 6, 6, isActive ? _cardActivePaint : _cardPaint);
         canvas.DrawRoundRect(cardRect, 6, 6, isActive ? _cardActiveBorder : _cardBorderPaint);
 
         float textX = x + TextLeftPad;
-        DrawCardText(canvas, textX, y, nameLayout, descLayout, costLayout, warningLayout);
+        DrawCardText(canvas, textX, y, nameLayout, descLayout, costLayout, bonusLayout, _bonusPaint);
 
         // ── Bouton Lancer / Arrêter ────────────────────────────────────────────
         float buttonX = x + width - ButtonWidth - 14f;
@@ -523,6 +558,7 @@ public sealed class RitualsRenderer : IDisposable
         _accentPaint.Dispose();
         _summaryPaint.Dispose();
         _warningPaint.Dispose();
+        _bonusPaint.Dispose();
         _scrollTrackPaint.Dispose();
         _scrollThumbPaint.Dispose();
         _headerFont.Dispose();

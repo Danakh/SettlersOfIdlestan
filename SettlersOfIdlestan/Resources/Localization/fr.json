@@ -1312,6 +1312,8 @@
   "ritual_upkeep_cost": "Entretien : {0} cristaux / 10 s",
   "ritual_button_launch": "Lancer",
   "ritual_button_stop": "Arrêter",
+  "ritual_bonus_current": "Bonus actuel : {0}",
+  "ritual_tooltip_double_chance": "chance de doubler les récoltes automatiques",
   "rituals_spells_header": "Sorts",
   "spell_cast_cost": "Coût : {0} cristaux ➔ +{1} or",
   "spell_cast_cost_troops": "Coût : {0} cristaux ➔ +{1} troupes",
