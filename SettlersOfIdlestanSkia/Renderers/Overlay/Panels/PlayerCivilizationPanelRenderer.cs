@@ -876,8 +876,8 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
                 if (settings != null)
                 {
                     settings.MilitaryVendettaAutomationEnabled = !settings.MilitaryVendettaAutomationEnabled;
-                    if (!settings.MilitaryVendettaAutomationEnabled && civ != null)
-                        _gameControllerService.MainGameController.MilitaryController.ClearAttackFlows(civ);
+                    if (civ != null)
+                        _gameControllerService.MainGameController.MilitaryController.StopRaid(civ);
                 }
                 break;
             case AutomationRenderer.PinKeyRestrictSoldierProduction:

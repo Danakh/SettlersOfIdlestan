@@ -910,10 +910,9 @@ public sealed class AutomationRenderer : IDisposable
         if (!_militaryVendettaToggleRect.IsEmpty && _militaryVendettaToggleRect.Contains(adj.X, adj.Y))
         {
             state.AutomationSettings.MilitaryVendettaAutomationEnabled = !state.AutomationSettings.MilitaryVendettaAutomationEnabled;
-            if (!state.AutomationSettings.MilitaryVendettaAutomationEnabled)
             {
                 var civV = _gameControllerService.PlayerCivilization;
-                if (civV != null) _gameControllerService.MainGameController.MilitaryController.ClearAttackFlows(civV);
+                if (civV != null) _gameControllerService.MainGameController.MilitaryController.StopRaid(civV);
             }
             return true;
         }

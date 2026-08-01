@@ -308,7 +308,7 @@ public class MilitaryController
         _productionEngine.Initialize(state);
         _monsterCombatEngine.Initialize(state, prng);
         _cityAttackEngine.Initialize(state, cityBuilderController, warFleetController, mobileCampController, prng);
-        _reinforcementEngine.Initialize(state, _cityAttackEngine, _productionEngine);
+        _reinforcementEngine.Initialize(state, _productionEngine);
         _raidEngine.Initialize(state, _cityAttackEngine, _reinforcementEngine, _monsterCombatEngine);
 
         if (_clock != null)
@@ -342,7 +342,7 @@ public class MilitaryController
         _reinforcementEngine.ResolveReinforcements(currentTick,
             args => ReinforcementSent?.Invoke(this, args));
         _reinforcementEngine.ResolvePlayerAutoReinforcement(currentTick);
-        _reinforcementEngine.ResolvePlayerAutoVendetta(currentTick);
+        _raidEngine.ResolvePlayerAutoVendetta(currentTick);
         _raidEngine.Update(currentTick);
     }
 
@@ -409,7 +409,7 @@ public class MilitaryController
     public List<HexCoord> GetSelectableMonsterTargets() => _raidEngine.GetSelectableMonsterTargets();
     public void StartRaid(Civilization civ, Vertex target) => _raidEngine.StartRaid(civ, target);
     public void StartMonsterRaid(Civilization civ, HexCoord target) => _raidEngine.StartMonsterRaid(civ, target);
-    public void StopRaid(Civilization civ) => _raidEngine.StopRaid(civ);
+    public void StopRaid(Civilization civ) => _raidEngine.CancelRaid(civ);
 
     // ── War Herald ───────────────────────────────────────────────────────────
 
