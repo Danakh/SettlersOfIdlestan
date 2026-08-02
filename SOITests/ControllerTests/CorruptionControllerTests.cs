@@ -1,3 +1,4 @@
+using SettlersOfIdlestan.Controller.Expand;
 using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
@@ -63,6 +64,32 @@ public class CorruptionControllerTests
         var state = new WorldState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
 
         return (state, a, b);
+    }
+
+    /// <summary>
+    /// Centre + anneau de 6 voisins immédiats + second anneau de 12 hexes (aucun autre hex sur la
+    /// carte) — permet de vérifier qu'un débordement ne dépasse jamais le premier anneau.
+    /// </summary>
+    private static (WorldState state, HexCoord center, List<HexCoord> ring1, List<HexCoord> ring2) CreateTwoRingHexGridSetup()
+    {
+        var center = new HexCoord(0, 0, IslandMap.SurfaceLayer);
+        var ring1 = center.Neighbors().ToList();
+        var ring2 = ring1
+            .SelectMany(h => h.Neighbors())
+            .Where(h => !h.Equals(center) && !ring1.Contains(h))
+            .Distinct()
+            .ToList();
+
+        var allHexes = new List<HexCoord> { center };
+        allHexes.AddRange(ring1);
+        allHexes.AddRange(ring2);
+
+        var tiles = allHexes.Select(h => new HexTile(h, TerrainType.Plain)).ToArray();
+        var map = new IslandMap(tiles);
+        var civ = new Civilization { Index = 0 };
+        var state = new WorldState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
+
+        return (state, center, ring1, ring2);
     }
 
     private static CorruptionController CreateController(WorldState state, GameClock clock, int seed = 1, PrestigeState? prestigeState = null)
@@ -223,7 +250,7 @@ public class CorruptionControllerTests
     }
 
     [Fact]
-    public void Spread_SameStatusLargeLevelGap_SourceLosesNeighborGains()
+    public void Spread_SameStatusLargeLevelGap_NeighborGainsSourceUnchanged()
     {
         var (state, a, b) = CreateTwoLandHexesSetup();
         var strong = new Dominion(a, level: 10); // 100% de déclenchement
@@ -240,7 +267,7 @@ public class CorruptionControllerTests
 
         clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
 
-        Assert.Equal(9, strong.Level);
+        Assert.Equal(10, strong.Level);
         Assert.Equal(2, weak.Level);
     }
 
@@ -276,7 +303,7 @@ public class CorruptionControllerTests
 
         clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
 
-        Assert.Equal(9, strong.Level);
+        Assert.Equal(10, strong.Level);
         var seeded = state.GetFeaturesAt(b).OfType<Dominion>().SingleOrDefault();
         Assert.NotNull(seeded);
         Assert.Equal(1, seeded!.Level);
@@ -295,7 +322,7 @@ public class CorruptionControllerTests
 
         clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
 
-        Assert.Equal(9, strong.Level);
+        Assert.Equal(10, strong.Level);
         var seeded = state.GetFeaturesAt(b).OfType<Corruption>().SingleOrDefault();
         Assert.NotNull(seeded);
         Assert.Equal(1, seeded!.Level);
@@ -320,6 +347,43 @@ public class CorruptionControllerTests
             clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
 
         Assert.Empty(state.GetFeaturesAt(b).OfType<Dominion>());
+    }
+
+    [Fact]
+    public void Spread_LevelFourSourceSurroundedByRing_StabilizesAtGapOfTwo_SourceNeverIncreases()
+    {
+        // Régression du bug corrigé dans ProcessSpread : la comparaison utilisait Math.Abs(niveau
+        // source - niveau voisin), si bien qu'un voisin FAIBLE, à son propre tour de débordement,
+        // pouvait quand même faire grandir un voisin déjà PLUS FORT que lui (le centre) dès que
+        // l'écart dépassait SpreadSameStatusLevelGap — permettant au centre de grimper sans plafond.
+        // La comparaison doit être directionnelle : seule la source la plus forte fait grandir
+        // l'autre. Ici le centre (niveau 4) doit s'entourer d'un anneau au niveau 2 (4 - 2, le
+        // plafond) et s'arrêter là : le centre ne bouge jamais, et aucun hex du second anneau n'est
+        // atteint (écart de 2 avec l'anneau au niveau 2, jamais > 2).
+        var (state, center, ring1, ring2) = CreateTwoRingHexGridSetup();
+        var source = new Dominion(center, level: 4);
+        state.AddFeature(source);
+
+        var clock = new GameClock();
+        clock.Start();
+        CreateController(state, clock, seed: 1);
+
+        for (int i = 0; i < 3000; i++)
+            clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
+
+        Assert.Equal(4, source.Level);
+
+        foreach (var hex in ring1)
+        {
+            var dominion = state.GetFeaturesAt(hex).OfType<Dominion>().SingleOrDefault();
+            Assert.NotNull(dominion);
+            Assert.Equal(2, dominion!.Level);
+        }
+
+        foreach (var hex in ring2)
+            Assert.False(state.HasFeaturesAt(hex));
+
+        Assert.All(state.Features.OfType<Dominion>(), d => Assert.True(d.Level <= 4));
     }
 
     // ── Recherches de la Théocratie (Dogme de l'Emprise, Évangélisation, Terre Consacrée) ──
@@ -679,5 +743,43 @@ public class CorruptionControllerTests
 
         var corruption = state.GetFeaturesAt(farHex).OfType<Corruption>().Single();
         Assert.Equal(2, corruption.Level); // hors rayon : aucune décroissance garantie
+    }
+
+    // ── Éligibilité de la Faille des Abysses : basée sur le nettoyage, n'importe où ────────
+
+    [Fact]
+    public void ReduceLevel_ClearingCorruptionViaDominionAnnulation_MakesAbyssGateEligible_OnUnrelatedHex()
+    {
+        // AbyssGateController.IsAbyssGateEligible se base sur PrestigeState.MaxCorruptionLevelCleared,
+        // mis à jour ici par annulation mutuelle avec le Dominion (pas par Temple ni par la décroissance
+        // de la Spire) et sur un hex qui n'a AUCUN rapport avec celui de la Spire — l'éligibilité doit
+        // être vraie quel que soit l'hex nettoyé et quel que soit le mécanisme de nettoyage.
+        var (state, a, b) = CreateTwoLandHexesSetup();
+        var corruption = new Corruption(a, level: AbyssGate.RequiredCorruptionLevel);
+        var dominion = new Dominion(b, level: 20); // 200% de déclenchement : annule toujours son tour
+        state.AddFeature(corruption);
+        state.AddFeature(dominion);
+
+        // Spire déjà bâtie sur un tout autre hex, sans lien avec l'annulation ci-dessus.
+        var spireHex = new HexCoord(50, 50, IslandMap.SurfaceLayer);
+        state.AddFeature(new CorruptionSpire(spireHex) { Built = true });
+
+        var prestigeState = new PrestigeState();
+        var clock = new GameClock();
+        clock.Start();
+        CreateController(state, clock, seed: 1, prestigeState: prestigeState);
+
+        // Le Dominion (niveau 20) annule à coup sûr chaque intervalle : largement assez pour ramener
+        // la Corruption (niveau initial = seuil requis) à 0.
+        for (int i = 0; i < 8; i++)
+            clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
+
+        Assert.Empty(state.GetFeaturesAt(a).OfType<Corruption>());
+        Assert.True(prestigeState.MaxCorruptionLevelCleared >= AbyssGate.RequiredCorruptionLevel);
+        Assert.Contains(state.EventLog.Entries, e => e.Type == GameEventType.AbyssGateEligible && e.Toast);
+
+        var gateController = new AbyssGateController();
+        gateController.Initialize(state, clock, prestigeState: prestigeState);
+        Assert.True(gateController.IsAbyssGateEligible());
     }
 }

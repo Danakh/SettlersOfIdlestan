@@ -4,6 +4,7 @@ using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.IslandMap;
+using SettlersOfIdlestan.Model.Prestige;
 using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
 using System;
 using System.Collections.Generic;
@@ -23,6 +24,7 @@ namespace SettlersOfIdlestan.Controller.Expand
         private WorldState? _state;
         private GameClock? _clock;
         private HarvestController? _harvestController;
+        private PrestigeState? _prestigeState;
 
         public const int AbyssUnlockThreshold = 3;
         public const long InvestmentIntervalTicks = MonumentInvestment.IntervalTicks;
@@ -33,7 +35,7 @@ namespace SettlersOfIdlestan.Controller.Expand
 
         internal CorruptionSpireController() { }
 
-        internal void Initialize(WorldState? state, GameClock? clock = null, HarvestController? harvestController = null)
+        internal void Initialize(WorldState? state, GameClock? clock = null, HarvestController? harvestController = null, PrestigeState? prestigeState = null)
         {
             if (_clock != null)
                 _clock.Advanced -= OnClockAdvanced;
@@ -41,6 +43,7 @@ namespace SettlersOfIdlestan.Controller.Expand
             _state = state;
             _clock = clock;
             _harvestController = harvestController;
+            _prestigeState = prestigeState;
 
             if (_clock != null)
                 _clock.Advanced += OnClockAdvanced;
@@ -77,10 +80,11 @@ namespace SettlersOfIdlestan.Controller.Expand
                 _state.EventLog.Add(GameEventType.CorruptionSpireBuilt, toast: true);
                 OnCorruptionSpireBuilt?.Invoke(this, EventArgs.Empty);
 
-                // Si la Spire repose sur une zone assez corrompue, prévient le joueur que l'évolution
-                // en Faille des Abysses est désormais disponible depuis le panneau de la Spire.
-                var corruption = _state.Features.OfType<Corruption>().FirstOrDefault(c => c.Position.Equals(spire.Position));
-                if (corruption != null && corruption.Level >= AbyssGate.RequiredCorruptionLevel)
+                // Si le meilleur nettoyage de Corruption jamais réalisé (n'importe où, y compris par
+                // annulation avec le Dominion — voir CorruptionController.ReduceLevel) a déjà atteint
+                // le seuil requis, prévient le joueur que l'évolution en Faille des Abysses est
+                // désormais disponible depuis le panneau de la Spire (voir AbyssGateController.IsAbyssGateEligible).
+                if ((_prestigeState?.MaxCorruptionLevelCleared ?? 0) >= AbyssGate.RequiredCorruptionLevel)
                     _state.EventLog.Add(GameEventType.AbyssGateEligible, toast: true);
             }
             else

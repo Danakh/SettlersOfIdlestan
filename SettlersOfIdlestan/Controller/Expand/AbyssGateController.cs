@@ -4,22 +4,27 @@ using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.IslandMap;
+using SettlersOfIdlestan.Model.Prestige;
 using System;
 using System.Linq;
 
 namespace SettlersOfIdlestan.Controller.Expand
 {
     /// <summary>
-    /// Gère la Faille des Abysses : évolution de la Spire de Corruption, débloquée une fois une
-    /// Spire bâtie sur une zone de corruption de niveau <see cref="AbyssGate.RequiredCorruptionLevel"/>
-    /// ou plus. N'est pas une action de civilisation — l'évolution remplace la Spire sur son hex
-    /// et se construit par investissement progressif comme tout Monument.
+    /// Gère la Faille des Abysses : évolution de la Spire de Corruption, débloquée une fois une Spire
+    /// bâtie et le pic de corruption jamais nettoyé (<see cref="PrestigeState.MaxCorruptionLevelCleared"/>,
+    /// voir <see cref="IsAbyssGateEligible"/>) ayant atteint <see cref="AbyssGate.RequiredCorruptionLevel"/>
+    /// ou plus. Ce record est global à la partie — n'importe quel hex compte, nettoyé par n'importe
+    /// quel mécanisme (Temple, débordement, annulation par le Dominion, décroissance de monument), pas
+    /// seulement l'hex de la Spire elle-même. N'est pas une action de civilisation — l'évolution
+    /// remplace la Spire sur son hex et se construit par investissement progressif comme tout Monument.
     /// </summary>
     public class AbyssGateController
     {
         private WorldState? _state;
         private GameClock? _clock;
         private HarvestController? _harvestController;
+        private PrestigeState? _prestigeState;
 
         public const long InvestmentIntervalTicks = MonumentInvestment.IntervalTicks;
 
@@ -28,7 +33,7 @@ namespace SettlersOfIdlestan.Controller.Expand
 
         internal AbyssGateController() { }
 
-        internal void Initialize(WorldState? state, GameClock? clock = null, HarvestController? harvestController = null)
+        internal void Initialize(WorldState? state, GameClock? clock = null, HarvestController? harvestController = null, PrestigeState? prestigeState = null)
         {
             if (_clock != null)
                 _clock.Advanced -= OnClockAdvanced;
@@ -36,6 +41,7 @@ namespace SettlersOfIdlestan.Controller.Expand
             _state = state;
             _clock = clock;
             _harvestController = harvestController;
+            _prestigeState = prestigeState;
 
             if (_clock != null)
                 _clock.Advanced += OnClockAdvanced;
@@ -68,19 +74,25 @@ namespace SettlersOfIdlestan.Controller.Expand
         }
 
         /// <summary>
-        /// True si une Spire de Corruption bâtie repose sur une zone de corruption suffisamment
-        /// puissante pour évoluer, et qu'aucune Faille des Abysses n'existe déjà.
+        /// True si une Spire de Corruption est bâtie, qu'aucune Faille des Abysses n'existe déjà, et
+        /// que <see cref="PrestigeState.MaxCorruptionLevelCleared"/> a atteint
+        /// <see cref="AbyssGate.RequiredCorruptionLevel"/> ou plus. Ce record est mis à jour par
+        /// <see cref="Controller.Island.CorruptionController.ReduceLevel"/> à chaque zone de Corruption
+        /// entièrement dissipée, n'importe où sur la carte et par n'importe quel mécanisme (Temple,
+        /// débordement — y compris annulation par le Dominion — ou décroissance de monument) : ce n'est
+        /// pas la corruption courante (ni même le pic) du seul hex de la Spire qui compte, mais le
+        /// meilleur nettoyage jamais réalisé par la civilisation. Se base sur ce record plutôt que sur
+        /// une corruption "en cours" précisément parce que la Spire bâtie réduit systématiquement la
+        /// corruption sur son propre hex (voir CorruptionController.ProcessMonumentCorruptionDecay) —
+        /// une condition sur le niveau courant de cet hex précis se démentirait presque aussitôt vérifiée.
         /// </summary>
         public bool IsAbyssGateEligible()
         {
             if (_state == null) return false;
             if (_state.Features.OfType<AbyssGate>().Any()) return false;
+            if (!_state.Features.OfType<CorruptionSpire>().Any(s => s.Built)) return false;
 
-            var spire = _state.Features.OfType<CorruptionSpire>().FirstOrDefault(s => s.Built);
-            if (spire == null) return false;
-
-            var corruption = _state.Features.OfType<Corruption>().FirstOrDefault(c => c.Position.Equals(spire.Position));
-            return corruption != null && corruption.Level >= AbyssGate.RequiredCorruptionLevel;
+            return (_prestigeState?.MaxCorruptionLevelCleared ?? 0) >= AbyssGate.RequiredCorruptionLevel;
         }
 
         public bool HasAbyssGateBuilt()

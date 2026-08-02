@@ -22,10 +22,10 @@ namespace SettlersOfIdlestan.Controller.Island;
 ///    <see cref="TempleDominionCapPerLevel"/> × niveau du Temple).
 /// 2. <see cref="ProcessSpread"/> — chaque hex de Corruption ou de Dominion (toutes couches confondues)
 ///    a niveau×10% de chance de déborder sur un voisin aléatoire : annulation mutuelle (-1/-1) si ce
-///    voisin porte le statut opposé, propagation (-1 source / +1 voisin) si le voisin partage le même
-///    statut (un voisin vide compte comme statut identique de niveau 0) avec un écart de niveau &gt; 2.
-///    Un voisin vide peut donc se voir semer une nouvelle poche à niveau 1 si la source est assez forte
-///    (niveau &gt; 2), ce qui permet à terme au Dominion d'un Temple de gagner du terrain à distance,
+///    voisin porte le statut opposé, propagation (+1 voisin, source inchangée) si le voisin partage le
+///    même statut (un voisin vide compte comme statut identique de niveau 0) avec un écart de niveau
+///    &gt; 2. Un voisin vide peut donc se voir semer une nouvelle poche à niveau 1 si la source est assez
+///    forte (niveau &gt; 2), ce qui permet à terme au Dominion d'un Temple de gagner du terrain à distance,
 ///    au-delà des hexes directement produits, et à plusieurs Temples de voir leurs poches se rejoindre.
 /// 3. <see cref="ProcessMonumentCorruptionDecay"/> — ni la Faille des Abysses ni la Spire de Corruption
 ///    ne protègent leur hex des deux mécaniques ci-dessus (Temple et débordement peuvent y agir
@@ -203,10 +203,12 @@ public class CorruptionController
             // Un voisin vide compte comme un "même statut" de niveau 0 : une source suffisamment
             // forte (écart > SpreadSameStatusLevelGap) sème une nouvelle poche à niveau 1, ce qui
             // permet au Dominion/à la Corruption de progresser au-delà des poches déjà existantes.
+            // Comparaison directionnelle (pas Math.Abs) : seule la source la PLUS FORTE des deux fait
+            // grandir l'autre. Un voisin plus faible ne doit jamais faire grandir un voisin déjà plus
+            // fort que lui à son propre tour de débordement, sous peine de croissance sans plafond.
             int sameLevel = same != null ? GetLevel(same) : 0;
-            if (Math.Abs(sameLevel - level) > SpreadSameStatusLevelGap)
+            if (level - sameLevel > SpreadSameStatusLevelGap)
             {
-                ReduceLevel(source);
                 if (same != null)
                     IncreaseLevel(same);
                 else
@@ -274,13 +276,33 @@ public class CorruptionController
 
         if (GetLevel(feature) <= 0)
         {
-            // Zone de Corruption entièrement nettoyée (par Temple, débordement ou décroissance de
-            // monument) : enregistre son pic comme record global si c'est le meilleur jamais atteint.
-            if (feature is Corruption cleared && _prestigeState != null && cleared.PeakLevel > _prestigeState.MaxCorruptionLevelCleared)
-                _prestigeState.MaxCorruptionLevelCleared = cleared.PeakLevel;
+            // Zone de Corruption entièrement nettoyée — par Temple, débordement (y compris annulation
+            // mutuelle avec le Dominion, voir ProcessSpread) ou décroissance de monument : enregistre
+            // son pic comme record global si c'est le meilleur jamais atteint, peu importe quel hex ni
+            // quel mécanisme l'a nettoyée. Si ce nettoyage vient de faire franchir à ce record le seuil
+            // requis pour la Faille des Abysses, prévient le joueur qu'une Spire déjà bâtie peut
+            // désormais évoluer (voir AbyssGateController.IsAbyssGateEligible, qui se base sur ce même
+            // record plutôt que sur la corruption courante d'un hex précis).
+            if (feature is Corruption cleared && _prestigeState != null)
+            {
+                bool wasEligibleBefore = _prestigeState.MaxCorruptionLevelCleared >= AbyssGate.RequiredCorruptionLevel;
+                if (cleared.PeakLevel > _prestigeState.MaxCorruptionLevelCleared)
+                    _prestigeState.MaxCorruptionLevelCleared = cleared.PeakLevel;
+
+                if (!wasEligibleBefore && _prestigeState.MaxCorruptionLevelCleared >= AbyssGate.RequiredCorruptionLevel)
+                    RaiseAbyssGateEligibleToastIfApplicable();
+            }
 
             _state!.RemoveFeature(feature);
         }
+    }
+
+    /// <summary>Prévient le joueur, au franchissement du seuil de nettoyage requis, qu'une Spire déjà bâtie peut évoluer en Faille des Abysses.</summary>
+    private void RaiseAbyssGateEligibleToastIfApplicable()
+    {
+        if (_state!.Features.OfType<AbyssGate>().Any()) return;
+        if (!_state.Features.OfType<CorruptionSpire>().Any(s => s.Built)) return;
+        _state.EventLog.Add(GameEventType.AbyssGateEligible, toast: true);
     }
 
     /// <summary>
