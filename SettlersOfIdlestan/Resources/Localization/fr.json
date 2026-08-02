@@ -629,6 +629,8 @@
   "stats_corruption_spire": "Spire Corruption",
   "stats_abyss_gate": "Faille des Abysses",
   "stats_prestige_points": "Points prestige",
+  "stats_tier": "Tier",
+  "stats_corruption": "Corruption",
   "stats_tab_prestige": "Prestige",
   "stats_tab_ascension": "Ascension",
   "stats_tab_run": "Partie",

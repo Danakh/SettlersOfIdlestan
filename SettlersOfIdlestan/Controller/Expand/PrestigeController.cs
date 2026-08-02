@@ -341,6 +341,8 @@ namespace SettlersOfIdlestan.Controller.Expand
                     HasDeepestMine = currentIsland.Features.OfType<SettlersOfIdlestan.Model.IslandFeatures.DeepestMine>().Any(m => m.Dug),
                     HasCorruptionSpire = currentIsland.Features.OfType<CorruptionSpire>().Any(s => s.Built),
                     HasAbyssGate = currentIsland.Features.OfType<AbyssGate>().Any(g => g.Built),
+                    Tier = mainGameState.PrestigeState.Tier,
+                    Corruption = mainGameState.PrestigeState.CurrentCorruptionLevel,
                 };
                 mainGameState.PrestigeState.RunHistory.Add(stats);
                 while (mainGameState.PrestigeState.RunHistory.Count > 5)

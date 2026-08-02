@@ -461,6 +461,7 @@ public sealed class OverlayRenderer : IGameRenderer
         if (activeTab == TabBarRenderer.TabAutomation) _automationRenderer.HandlePointerMoved(e.Position);
         if (activeTab == TabBarRenderer.TabRituals)    _ritualsRenderer.HandlePointerMoved(e.Position);
         if (activeTab == TabBarRenderer.TabAscension)  _ascensionRenderer.HandlePointerMoved(e.Position);
+        if (activeTab == TabBarRenderer.TabStats)      _prestigeHistoryRenderer.HandlePointerMoved(e.Position);
         if (IsMapViewTab(activeTab))                   _playerCivPanel.HandlePointerMoved(e.Position);
 
         _lastPointerPosition = e.Position;
@@ -564,6 +565,8 @@ public sealed class OverlayRenderer : IGameRenderer
             _automationRenderer.HandlePointerReleased(e.Position);
         if (_tabBar.ActiveTab == TabBarRenderer.TabRituals)
             _ritualsRenderer.HandlePointerReleased(e.Position);
+        if (_tabBar.ActiveTab == TabBarRenderer.TabStats)
+            _prestigeHistoryRenderer.HandlePointerReleased(e.Position);
     }
 
     private void HandleZoomChanged(object? sender, ZoomEventArgs e)
@@ -603,6 +606,8 @@ public sealed class OverlayRenderer : IGameRenderer
             _automationRenderer.HandleScroll(e.ZoomDelta);
         if (activeTab == TabBarRenderer.TabRituals)
             _ritualsRenderer.HandleScroll(e.ZoomDelta);
+        if (activeTab == TabBarRenderer.TabStats)
+            _prestigeHistoryRenderer.HandleScroll(e.ZoomDelta);
     }
 
     private void HandleKeyInput(object? sender, KeyEventArgs e)

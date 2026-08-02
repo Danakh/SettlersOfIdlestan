@@ -17,4 +17,10 @@ public class PrestigeRunStats
     public bool HasDeepestMine { get; set; }
     public bool HasCorruptionSpire { get; set; }
     public bool HasAbyssGate { get; set; }
+
+    /// <summary>Tier d'île (PrestigeState.Tier) au moment du prestige. 0 pour les entrées d'historique antérieures à l'ajout de ce champ.</summary>
+    public int Tier { get; set; }
+
+    /// <summary>Niveau de corruption (PrestigeState.CurrentCorruptionLevel) au moment du prestige. 0 pour les entrées d'historique antérieures à l'ajout de ce champ.</summary>
+    public int Corruption { get; set; }
 }

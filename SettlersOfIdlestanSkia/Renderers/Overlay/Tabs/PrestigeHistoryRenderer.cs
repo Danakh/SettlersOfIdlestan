@@ -35,11 +35,22 @@ public sealed class PrestigeHistoryRenderer : IDisposable
     private SubTab _activeSubTab = SubTab.Prestige;
     private readonly List<(SubTab tab, SKRect rect)> _innerTabs = new();
 
+    private float _scrollOffsetPx = 0f;
+    private float _viewportH = 0f;
+    private float _totalContentH = 0f;
+    private bool _isDraggingScrollbar = false;
+    private float _scrollDragStartY = 0f;
+    private float _scrollDragStartOffset = 0f;
+    private SKRect _scrollTrackRect = SKRect.Empty;
+    private SKRect _scrollThumbRect = SKRect.Empty;
+
     private readonly SKPaint _bgPaint = new() { Color = new SKColor(18, 18, 24, 240), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _cardPaint = new() { Color = new SKColor(30, 30, 40, 220), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _cardBorderPaint = new() { Color = new SKColor(80, 80, 100), StrokeWidth = 1, Style = SKPaintStyle.Stroke, IsAntialias = true };
     private readonly SKPaint _currentCardBorderPaint = new() { Color = SKColors.Gold, StrokeWidth = 1.5f, Style = SKPaintStyle.Stroke, IsAntialias = true };
     private readonly SKPaint _innerTabActivePaint = new() { Color = new SKColor(60, 100, 160), Style = SKPaintStyle.Fill, IsAntialias = true };
+    private readonly SKPaint _scrollTrackPaint = new() { Color = new SKColor(50, 50, 65, 200), Style = SKPaintStyle.Fill, IsAntialias = true };
+    private readonly SKPaint _scrollThumbPaint = new() { Color = new SKColor(130, 130, 165, 210), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _textPaint = new() { Color = SKColors.White, IsAntialias = true };
     private readonly SKPaint _mutedPaint = new() { Color = new SKColor(180, 180, 190), IsAntialias = true };
     private readonly SKPaint _accentPaint = new() { Color = new SKColor(255, 215, 0), IsAntialias = true };
@@ -77,20 +88,37 @@ public sealed class PrestigeHistoryRenderer : IDisposable
         y = DrawInnerTabBar(canvas, x, y, contentWidth, hasAscensionTab);
         y += 10;
 
+        float contentTop = y;
+        _viewportH = _canvasSize.Height - contentTop;
+        float maxScroll = Math.Max(0, _totalContentH - _viewportH);
+        _scrollOffsetPx = Math.Clamp(_scrollOffsetPx, 0, maxScroll);
+        bool needsScroll = _totalContentH > _viewportH + 1f;
+
+        canvas.Save();
+        canvas.ClipRect(new SKRect(0, contentTop, _canvasSize.Width, _canvasSize.Height));
+        canvas.Translate(0, -_scrollOffsetPx);
+
         switch (_activeSubTab)
         {
             case SubTab.Ascension when hasAscensionTab:
-                DrawAscensionTab(canvas, mainGameState, x, y, contentWidth);
+                y = DrawAscensionTab(canvas, mainGameState, x, y, contentWidth);
                 break;
             case SubTab.Partie:
-                DrawPartieTab(canvas, mainGameState, x, y, contentWidth);
+                y = DrawPartieTab(canvas, mainGameState, x, y, contentWidth);
                 break;
             default:
                 y = DrawCurrentRun(canvas, mainGameState, x, y, contentWidth);
                 y += SectionSpacing;
-                DrawHistory(canvas, mainGameState, x, y, contentWidth);
+                y = DrawHistory(canvas, mainGameState, x, y, contentWidth);
                 break;
         }
+
+        canvas.Restore();
+
+        _totalContentH = y + Padding - contentTop;
+
+        if (needsScroll)
+            DrawScrollbar(canvas, contentTop, _viewportH);
     }
 
     private static bool HasGodPoints(MainGameState mainGameState) =>
@@ -122,18 +150,75 @@ public sealed class PrestigeHistoryRenderer : IDisposable
         return y + InnerTabHeight;
     }
 
-    /// Returns true if the click was on one of the inner sub-tabs (and consumed).
+    /// Returns true if the click was on one of the inner sub-tabs or the scrollbar (and consumed).
     public bool HandlePointerPressed(SKPoint position)
     {
         foreach (var (tab, rect) in _innerTabs)
         {
             if (rect.Contains(position.X, position.Y))
             {
+                if (_activeSubTab != tab) _scrollOffsetPx = 0f;
                 _activeSubTab = tab;
                 return true;
             }
         }
+
+        if (!_scrollThumbRect.IsEmpty && _scrollThumbRect.Contains(position.X, position.Y))
+        {
+            _isDraggingScrollbar = true;
+            _scrollDragStartY = position.Y;
+            _scrollDragStartOffset = _scrollOffsetPx;
+            return true;
+        }
+        if (!_scrollTrackRect.IsEmpty && _scrollTrackRect.Contains(position.X, position.Y))
+        {
+            float relY = position.Y - _scrollTrackRect.Top;
+            float maxScroll = Math.Max(0, _totalContentH - _viewportH);
+            _scrollOffsetPx = Math.Clamp(relY / _scrollTrackRect.Height * maxScroll, 0, maxScroll);
+            return true;
+        }
+
         return false;
+    }
+
+    public void HandlePointerMoved(SKPoint position)
+    {
+        if (!_isDraggingScrollbar) return;
+        float dy = position.Y - _scrollDragStartY;
+        float thumbRange = _scrollTrackRect.Height - _scrollThumbRect.Height;
+        float maxScroll = Math.Max(0, _totalContentH - _viewportH);
+        float scrollPerPx = thumbRange > 0 ? maxScroll / thumbRange : 0;
+        _scrollOffsetPx = Math.Clamp(_scrollDragStartOffset + dy * scrollPerPx, 0, maxScroll);
+    }
+
+    public void HandlePointerReleased(SKPoint position)
+    {
+        _isDraggingScrollbar = false;
+    }
+
+    public void HandleScroll(float delta)
+    {
+        const float step = 60f;
+        float dir = delta > 0 ? -1f : 1f;
+        float maxScroll = Math.Max(0, _totalContentH - _viewportH);
+        _scrollOffsetPx = Math.Clamp(_scrollOffsetPx + dir * step, 0, maxScroll);
+    }
+
+    private void DrawScrollbar(SKCanvas canvas, float trackTop, float trackH)
+    {
+        const float scrollW = 6f;
+        const float scrollMargin = 4f;
+        float trackX = _canvasSize.Width - scrollW - scrollMargin;
+
+        _scrollTrackRect = new SKRect(trackX, trackTop, trackX + scrollW, trackTop + trackH);
+        canvas.DrawRoundRect(_scrollTrackRect, 3, 3, _scrollTrackPaint);
+
+        float thumbRatio = _viewportH / _totalContentH;
+        float thumbH = Math.Max(24f, thumbRatio * trackH);
+        float maxScroll = Math.Max(1, _totalContentH - _viewportH);
+        float thumbTop = trackTop + (_scrollOffsetPx / maxScroll) * (trackH - thumbH);
+        _scrollThumbRect = new SKRect(trackX, thumbTop, trackX + scrollW, thumbTop + thumbH);
+        canvas.DrawRoundRect(_scrollThumbRect, 3, 3, _scrollThumbPaint);
     }
 
     private float DrawCurrentRun(SKCanvas canvas, MainGameState mainGameState, float x, float y, float width)
@@ -162,7 +247,10 @@ public sealed class PrestigeHistoryRenderer : IDisposable
         bool hasAbyssGate = island?.Features.OfType<AbyssGate>().Any(g => g.Built) == true;
         bool hasRow3 = wonderLevel > 0 || hasDeepestMine || hasCorruptionSpire || hasAbyssGate;
 
-        float cardHeight = CardPadding + RowHeight * 2 + (hasRow3 ? RowHeight : 0) + CardPadding;
+        int tier = mainGameState.PrestigeState?.Tier ?? 1;
+        int corruption = mainGameState.PrestigeState?.CurrentCorruptionLevel ?? 0;
+
+        float cardHeight = CardPadding + RowHeight * 3 + (hasRow3 ? RowHeight : 0) + CardPadding;
         var cardRect = new SKRect(x, y, x + width, y + cardHeight);
         canvas.DrawRoundRect(cardRect, CardRadius, CardRadius, _cardPaint);
         canvas.DrawRoundRect(cardRect, CardRadius, CardRadius, _currentCardBorderPaint);
@@ -189,16 +277,20 @@ public sealed class PrestigeHistoryRenderer : IDisposable
             if (hasAbyssGate)         DrawStatCell(canvas, x + width * 3 / 4,       row3, _localization.Get("stats_abyss_gate"),       "✓",                    width / 4);
         }
 
+        float tierRow = row2 + (hasRow3 ? RowHeight * 2 : RowHeight);
+        DrawStatCell(canvas, x + CardPadding, tierRow, _localization.Get("stats_tier"), tier.ToString(), width / 4);
+        if (corruption > 0) DrawStatCell(canvas, x + width / 4, tierRow, _localization.Get("stats_corruption"), corruption.ToString(), width / 4);
+
         return y + cardHeight;
     }
 
-    private void DrawHistory(SKCanvas canvas, MainGameState mainGameState, float x, float y, float width)
+    private float DrawHistory(SKCanvas canvas, MainGameState mainGameState, float x, float y, float width)
     {
         var history = mainGameState.PrestigeState?.RunHistory;
         if (history == null || history.Count == 0)
         {
             SkiaTextUtils.DrawText(canvas, _localization.Get("stats_no_history"), x, y + 14, _font, _mutedPaint);
-            return;
+            return y + 24;
         }
 
         string title = _localization.Get("stats_past_runs");
@@ -209,7 +301,8 @@ public sealed class PrestigeHistoryRenderer : IDisposable
         {
             var run = history[i];
             bool runHasRow3 = run.WonderLevel > 0 || run.HasDeepestMine || run.HasCorruptionSpire || run.HasAbyssGate;
-            float cardHeight = CardPadding + RowHeight * 2 + (runHasRow3 ? RowHeight : 0) + CardPadding;
+            bool runHasTierRow = run.Tier > 0;
+            float cardHeight = CardPadding + RowHeight * 2 + (runHasRow3 ? RowHeight : 0) + (runHasTierRow ? RowHeight : 0) + CardPadding;
 
             var cardRect = new SKRect(x, y, x + width, y + cardHeight);
             canvas.DrawRoundRect(cardRect, CardRadius, CardRadius, _cardPaint);
@@ -237,14 +330,20 @@ public sealed class PrestigeHistoryRenderer : IDisposable
                 if (run.HasAbyssGate)        DrawStatCell(canvas, x + width * 3 / 4, row3, _localization.Get("stats_abyss_gate"),      "✓",                        width / 4);
             }
 
-            y += cardHeight + 8;
+            if (runHasTierRow)
+            {
+                float tierRow = row2 + (runHasRow3 ? RowHeight * 2 : RowHeight);
+                DrawStatCell(canvas, x + CardPadding, tierRow, _localization.Get("stats_tier"), run.Tier.ToString(), width / 4);
+                if (run.Corruption > 0) DrawStatCell(canvas, x + width / 4, tierRow, _localization.Get("stats_corruption"), run.Corruption.ToString(), width / 4);
+            }
 
-            if (y + cardHeight > _canvasSize.Height - 10)
-                break;
+            y += cardHeight + 8;
         }
+
+        return y;
     }
 
-    private void DrawAscensionTab(SKCanvas canvas, MainGameState mainGameState, float x, float y, float width)
+    private float DrawAscensionTab(SKCanvas canvas, MainGameState mainGameState, float x, float y, float width)
     {
         var ascensionState = mainGameState.GodState.AscensionState;
         var prestigeState = mainGameState.PrestigeState;
@@ -280,7 +379,7 @@ public sealed class PrestigeHistoryRenderer : IDisposable
         if (history.Count == 0)
         {
             SkiaTextUtils.DrawText(canvas, _localization.Get("stats_no_ascension_history"), x, y + 14, _font, _mutedPaint);
-            return;
+            return y + 24;
         }
 
         SkiaTextUtils.DrawText(canvas, _localization.Get("stats_ascension_history"), x, y + 14, _titleFont, _textPaint);
@@ -305,11 +404,12 @@ public sealed class PrestigeHistoryRenderer : IDisposable
             DrawStatCell(canvas, x + col, r2, _localization.Get("stats_prestige_points"), SkiaTextUtils.FormatNumber(run.FinalPrestigePoints), col);
 
             y += cardHeight + 8;
-            if (y + cardHeight > _canvasSize.Height - 10) break;
         }
+
+        return y;
     }
 
-    private void DrawPartieTab(SKCanvas canvas, MainGameState mainGameState, float x, float y, float width)
+    private float DrawPartieTab(SKCanvas canvas, MainGameState mainGameState, float x, float y, float width)
     {
         var gameRecord = mainGameState.GameRecord;
         var ascensionState = mainGameState.GodState.AscensionState;
@@ -359,7 +459,7 @@ public sealed class PrestigeHistoryRenderer : IDisposable
 
         y += prestigeCardHeight + SectionSpacing;
 
-        if (ascensionState.AscensionsPerformed <= 0) return;
+        if (ascensionState.AscensionsPerformed <= 0) return y;
 
         SkiaTextUtils.DrawText(canvas, _localization.Get("stats_partie_ascension_records"), x, y + 14, _titleFont, _textPaint);
         y += 24;
@@ -398,6 +498,8 @@ public sealed class PrestigeHistoryRenderer : IDisposable
             SkiaTextUtils.DrawText(canvas, raceName, x + CardPadding, raceY, _font, _textPaint);
             raceY += raceRowHeight;
         }
+
+        return y + raceCardHeight;
     }
 
     private void DrawStatCell(SKCanvas canvas, float x, float y, string label, string value, float cellWidth)
@@ -425,6 +527,8 @@ public sealed class PrestigeHistoryRenderer : IDisposable
         _cardBorderPaint.Dispose();
         _currentCardBorderPaint.Dispose();
         _innerTabActivePaint.Dispose();
+        _scrollTrackPaint.Dispose();
+        _scrollThumbPaint.Dispose();
         _textPaint.Dispose();
         _mutedPaint.Dispose();
         _accentPaint.Dispose();

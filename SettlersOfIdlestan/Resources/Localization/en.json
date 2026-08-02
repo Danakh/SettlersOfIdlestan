@@ -629,6 +629,8 @@
   "stats_corruption_spire": "Corruption Spire",
   "stats_abyss_gate": "Abyss Gate",
   "stats_prestige_points": "Prestige pts",
+  "stats_tier": "Tier",
+  "stats_corruption": "Corruption",
   "stats_tab_prestige": "Prestige",
   "stats_tab_ascension": "Ascension",
   "stats_tab_run": "Game",
