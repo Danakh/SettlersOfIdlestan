@@ -17,7 +17,7 @@ public static class AbyssIslandGenerator
 
     private static readonly TerrainType[] TerrainPool =
     {
-        TerrainType.Forest, TerrainType.Hill, TerrainType.Mountain, TerrainType.Plain, TerrainType.Water,
+        TerrainType.Forest, TerrainType.Hill, TerrainType.Mountain, TerrainType.Plain,
     };
 
     /// <summary>

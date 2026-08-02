@@ -84,14 +84,14 @@ public class IslandMap
 
     /// <summary>
     /// Vrai si ce vertex est visible sur cette carte : au moins un de ses hexagones visibles n'est
-    /// pas de l'eau, ou (vertex entouré uniquement d'eau, ex. balise maritime) si ses 3 hexagones
-    /// sont tous visibles.
+    /// ni de l'eau ni du Vide, ou (vertex entouré uniquement d'eau et/ou de Vide, ex. balise
+    /// maritime ou bord de carte proche de l'Abysse) si ses 3 hexagones sont tous visibles.
     /// </summary>
     public bool IsVertexVisible(Vertex vertex)
     {
         if (!IsOnSameLayer(vertex)) return false;
         var hexes = vertex.GetHexes();
-        if (hexes.Any(h => GetTile(h) is { } tile && !tile.TerrainType.IsWater()))
+        if (hexes.Any(h => GetTile(h) is { } tile && !tile.TerrainType.IsWater() && !tile.TerrainType.IsVoid()))
             return true;
         return hexes.All(HasTile);
     }

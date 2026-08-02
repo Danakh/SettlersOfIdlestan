@@ -9,14 +9,14 @@ using Xunit;
 namespace SOITests.IslandMapTests
 {
     /// <summary>
-    /// Génération d'îles de l'Abysse : 3 à 5 hexes de terrain (Forest/Hill/Mountain/Plain/Water)
+    /// Génération d'îles de l'Abysse : 3 à 5 hexes de terrain (Forest/Hill/Mountain/Plain)
     /// entourés d'un anneau de Void, générés au-delà d'un hex de Void donné.
     /// </summary>
     public class AbyssIslandGeneratorTests
     {
         private static readonly HashSet<TerrainType> AllowedTerrains = new()
         {
-            TerrainType.Forest, TerrainType.Hill, TerrainType.Mountain, TerrainType.Plain, TerrainType.Water,
+            TerrainType.Forest, TerrainType.Hill, TerrainType.Mountain, TerrainType.Plain,
         };
 
         private static (IslandMap map, HexCoord voidHex) CreateMapWithVoidHex()
