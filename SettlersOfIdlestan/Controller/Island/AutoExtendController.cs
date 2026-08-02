@@ -676,6 +676,7 @@ public class AutoExtendController
 
             var building = BuildingController.CreateBuilding(type);
             if (building == null) continue;
+            if (building.IsUnique) continue;
             if (!building.IsBuildingAvailableForCity(map, city)) continue;
 
             int maxLevel = building.GetDefaultMaxLevel() > 0
