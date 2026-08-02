@@ -503,7 +503,7 @@ public static class PrestigeMapFactory
                 PrestigeMap.AbyssalBreachVertex,
                 "prestige_vertex_abyssal_breach",
                 cost: Cost(PrestigeMap.AbyssalBreachVertex),
-                modifiers: new Modifier[] { new(ECategory.UNLOCK_RESEARCH, "EtudeDesAbysses", EType.ADDITIVE, 1) }
+                modifiers: new Modifier[] { new(ECategory.UNLOCK_RESEARCH, "VoidWalking", EType.ADDITIVE, 1) }
             ),
             new(
                 PrestigeMap.ForsakenTunnelVertex,

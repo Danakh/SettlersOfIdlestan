@@ -244,12 +244,6 @@ public class TechnologyModifierTests
     // ── Branche des Abysses & capstones (tiers 8-13) ──────────────────────────
 
     [Fact]
-    public void EtudeDesAbysses_UnderworldTreasureChance_Plus5()
-    {
-        Assert.Equal(3, BuildAggregator(TechnologyId.EtudeDesAbysses).ApplyModifiers(ECategory.UNDERWORLD_TREASURE_CHANCE_PERCENT, "", 0));
-    }
-
-    [Fact]
     public void Demonologie_UnderworldMonsterSpawnInterval_Plus0Point5()
     {
         Assert.Equal(0.5, BuildAggregator(TechnologyId.Demonologie).ApplyModifiers(ECategory.UNDERWORLD_MONSTER_SPAWN_INTERVAL, "", 0.0), 5);

@@ -583,43 +583,32 @@ public static class TechnologyDefinitions
             tier: 10, line: 0,
             repeatable: true),
 
-        // Même tier que Sagesse Souterraine ; débloquée en même temps que la branche des Abysses
-        // (prérequis EtudeDesAbysses, qui l'accompagne).
+        // Racine de la branche des Abysses : débloquée directement par le vertex de prestige
+        // Brèche Abyssale, sans prérequis.
         new(TechnologyId.VoidWalking,
             "tech_void_walking_name", "tech_void_walking_desc",
-            cost: 105000000,
-            prerequisites: new[] { TechnologyId.EtudeDesAbysses },
-            modifiers: new Modifier[] { new(ECategory.UNLOCK_VOID_ROUTES, EType.ADDITIVE, 1) },
-            tier: 10, line: 4),
-
-        // Suite de Void Walking : permet de rechercher les Os Divins qui apparaissent sur les îles
-        // des Abysses générées après la première (voir DivineBones/AbyssIslandGenerator).
-        new(TechnologyId.VoidCompass,
-            "tech_void_compass_name", "tech_void_compass_desc",
-            cost: 420000000,
-            prerequisites: new[] { TechnologyId.VoidWalking },
-            modifiers: new Modifier[] { new(ECategory.UNLOCK_DIVINE_BONES, EType.ADDITIVE, 1) },
-            tier: 11, line: 4),
-
-        // === Branche des Abysses (débloquée par le vertex de prestige Brèche Abyssale) ===
-        // Étude de la corruption elle-même : la branche accompagne la boucle Spire → Faille → prestige
-        // corrompu, sans jamais annuler la corruption (rôle réservé au Dominion, post-ascension).
-
-        new(TechnologyId.EtudeDesAbysses,
-            "tech_etude_des_abysses_name", "tech_etude_des_abysses_desc",
             cost: 6500000,
             prerequisites: Array.Empty<TechnologyId>(),
-            modifiers: new Modifier[]
-            {
-                new(ECategory.UNDERWORLD_TREASURE_CHANCE_PERCENT, EType.ADDITIVE, 3),
-                new(ECategory.PRESTIGE_GAIN, EType.ADDITIVE, 0.05),
-            },
+            modifiers: new Modifier[] { new(ECategory.UNLOCK_VOID_ROUTES, EType.ADDITIVE, 1) },
             tier: 8, line: 5),
+
+        // === Branche des Abysses (débloquée par le vertex de prestige Brèche Abyssale, via VoidWalking) ===
+
+        // Reprend la place de l'ancienne Étude des Abysses (supprimée) : tier -1 et coût / 4 par
+        // rapport à son ancienne position (tier 11, 420M), prérequis désormais Void Walking.
+        // Permet de rechercher les Os Divins qui apparaissent sur les îles des Abysses générées
+        // après la première (voir DivineBones/AbyssIslandGenerator).
+        new(TechnologyId.VoidCompass,
+            "tech_void_compass_name", "tech_void_compass_desc",
+            cost: 105000000,
+            prerequisites: new[] { TechnologyId.VoidWalking },
+            modifiers: new Modifier[] { new(ECategory.UNLOCK_DIVINE_BONES, EType.ADDITIVE, 1) },
+            tier: 10, line: 4),
 
         new(TechnologyId.Demonologie,
             "tech_demonologie_name", "tech_demonologie_desc",
             cost: 26000000,
-            prerequisites: new[] { TechnologyId.EtudeDesAbysses },
+            prerequisites: new[] { TechnologyId.VoidWalking },
             modifiers: new Modifier[] { new(ECategory.UNDERWORLD_MONSTER_SPAWN_INTERVAL, EType.ADDITIVE, 0.5) },
             tier: 9, line: 5),
 
@@ -688,10 +677,10 @@ public static class TechnologyDefinitions
 
         new(TechnologyId.Omniscience,
             "tech_omniscience_name", "tech_omniscience_desc",
-            cost: 1700000000,
+            cost: 106250000,
             prerequisites: new[] { TechnologyId.MasterResearch },
             modifiers: new Modifier[] { new(ECategory.RESEARCH_PRODUCTION_SPEED, EType.ADDITIVE, 0.5) },
-            tier: 12, line: 6),
+            tier: 10, line: 6),
 
         new(TechnologyId.LegionEternelle,
             "tech_legion_eternelle_name", "tech_legion_eternelle_desc",

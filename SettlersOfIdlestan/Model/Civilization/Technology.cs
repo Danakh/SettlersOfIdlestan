@@ -120,11 +120,13 @@ public enum TechnologyId
     // [Legacy] Recherche "Renommée Commerciale" supprimée — conservée uniquement pour la désérialisation des anciennes sauvegardes.
     RenommeeCommerciale,
     SagesseSouterraine,
-    // Deux tiers après Sagesse Souterraine ; débloquée avec la branche des Abysses.
-    // Permet de construire des routes entre deux hexagones de Vide (comme les routes maritimes entre
-    // deux hexagones d'eau), moyennant un coût croissant en points de recherche par route déjà bâtie.
+    // Racine de la branche des Abysses (débloquée par le vertex de prestige Brèche Abyssale, sans
+    // prérequis). Permet de construire des routes entre deux hexagones de Vide (comme les routes
+    // maritimes entre deux hexagones d'eau), moyennant un coût croissant en points de recherche par
+    // route déjà bâtie.
     VoidWalking,
-    // Suite de Void Walking : révèle la feature Os Divins sur les îles des Abysses générées après la première.
+    // Suite de VoidWalking : révèle la feature Os Divins sur les îles des Abysses générées après la
+    // première. Reprend la place de l'ancienne EtudeDesAbysses (supprimée) : tier -1, coût / 4.
     VoidCompass,
     // Un tier au-dessus des Chroniques du Guet (seul prérequis)
     Diplomatie,
@@ -134,7 +136,8 @@ public enum TechnologyId
     // Suite de la Cartographie Souterraine : les Tours de Guet étant interdites dans l'Outremonde,
     // cette recherche ralentit les apparitions de monstres de bordure sans bâtiment dédié.
     VeilleSouterraine,
-    // Branche des Abysses (débloquée par le vertex de prestige Brèche Abyssale)
+    // [Legacy] Recherche "Étude des Abysses" supprimée (remplacée par VoidCompass) — conservée
+    // uniquement pour la désérialisation des anciennes sauvegardes.
     EtudeDesAbysses,
     Demonologie,
     ResistanceALaCorruption,
@@ -145,6 +148,7 @@ public enum TechnologyId
     AcierAbyssal,
     MagieDuVide,
     CoeurDeLaTerre,
+    // Baissée de 2 tiers (tier 10, coût / 16) pour la rendre accessible plus tôt.
     Omniscience,
     LegionEternelle,
     // Suite de la ligne du Vide (VoidWalking → VoidCompass) : boucle d'Ascension et routes du Vide.
