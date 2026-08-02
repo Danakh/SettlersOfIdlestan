@@ -132,7 +132,7 @@ public class IslandMapGenerator
         };
 
         if (parameters.IsEndgameIsland)
-            landmasses.AddRange(GenerateAdditionalIslands(map, civs, parameters.TileData.ToList(), parameters.NpcCivilizations.Count));
+            landmasses.AddRange(GenerateAdditionalIslands(map, civs, parameters.TileData.ToList(), parameters.NpcCivilizations.Count, tier));
 
         var WorldState = new WorldState(map, civs, parameters.WorldId) { StartTick = startTick };
 
@@ -216,28 +216,36 @@ public class IslandMapGenerator
         _                           => new IslandShapeGeneratorCompact(_prng)
     };
 
-    private const int MaxAdditionalIslands = 10;
     private const int AdditionalIslandTargetDistance = 3;
     private const int MaxAdditionalIslandPlacementSteps = 60;
 
     /// <summary>
-    /// Génère 0+ îles supplémentaires en plus de l'île principale (îles endgame uniquement).
-    /// Soit n le nombre d'îles déjà générées (île principale comprise) : à chaque étape on a une
-    /// chance de 1/2^n de générer une île de plus, avec un nombre d'hexagones et de civilisations
-    /// NPC divisé par n (arrondi au supérieur). Chaque île est placée dans une direction hexagonale
-    /// principale aléatoire depuis le barycentre des îles déjà posées, à une distance exacte de 3
-    /// hexagones (terre à terre, soit deux hex d'eau entre les deux îles), puis le détroit entre
-    /// les deux îles les plus proches est élargi.
+    /// Palier de <see cref="PrestigeState.Tier"/> à partir duquel les îles endgame passent de 2 à
+    /// 3 îles principales au total.
+    /// </summary>
+    private const int HighTierThreshold = 5;
+
+    /// <summary>
+    /// Génère les îles supplémentaires en plus de l'île principale (îles endgame uniquement) :
+    /// systématiquement 1 île de plus (2 îles au total) tant que <paramref name="tier"/> &lt;
+    /// <see cref="HighTierThreshold"/>, 2 îles de plus (3 au total) à partir de ce palier. Soit n le
+    /// nombre d'îles déjà générées (île principale comprise) : l'île générée à l'étape n a un nombre
+    /// d'hexagones et de civilisations NPC divisé par n (arrondi au supérieur). Chaque île est
+    /// placée dans une direction hexagonale principale aléatoire depuis le barycentre des îles déjà
+    /// posées, à une distance exacte de 3 hexagones (terre à terre, soit deux hex d'eau entre les
+    /// deux îles), puis le détroit entre les deux îles les plus proches est élargi.
     /// </summary>
     public List<List<HexCoord>> GenerateAdditionalIslands(
-        IslandMap map, List<Civilization> civs, List<(TerrainType terrainType, int tileCount)> baseTileData, int baseNpcCount)
+        IslandMap map, List<Civilization> civs, List<(TerrainType terrainType, int tileCount)> baseTileData, int baseNpcCount, int tier)
     {
         var additionalLandmasses = new List<List<HexCoord>>();
 
         int baseHexCount = baseTileData.Sum(t => t.tileCount);
         if (baseHexCount == 0) return additionalLandmasses;
 
-        for (int n = 1; n <= MaxAdditionalIslands && _prng.Next(1 << n) == 0; n++)
+        int additionalIslandCount = tier < HighTierThreshold ? 1 : 2;
+
+        for (int n = 1; n <= additionalIslandCount; n++)
         {
             int hexCount = (int)Math.Ceiling(baseHexCount / (double)n);
             int npcCount = (int)Math.Ceiling(baseNpcCount / (double)n);
