@@ -130,6 +130,26 @@ namespace SettlersOfIdlestan.Controller.Island
         }
 
         /// <summary>
+        /// Place un Camp Mobile gratuitement, sans passer par les vérifications habituelles (route,
+        /// distance aux autres emplacements militaires, recherche MobileCampConstruction, coût) — utilisé
+        /// pour la récompense de conquête AUTO_CAMP_ON_CONQUEST (voir CityAttackEngine.ResolveCityAttacks),
+        /// qui construit le camp sur l'emplacement d'une ville adverse tout juste détruite.
+        /// </summary>
+        public MobileCamp PlaceFreeMobileCamp(int civilizationIndex, Vertex vertex)
+        {
+            if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
+            if (vertex == null) throw new ArgumentNullException(nameof(vertex));
+
+            var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex)
+                      ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
+
+            var camp = new MobileCamp(vertex) { CivilizationIndex = civilizationIndex };
+            civ.AddMobileCamp(camp);
+            _state.Visibility.RecalculateFor(civilizationIndex);
+            return camp;
+        }
+
+        /// <summary>
         /// Retire un camp mobile, qu'il ait été détruit au combat ou par la construction d'une ville
         /// voisine. Point d'entrée unique de suppression, à l'image de
         /// <see cref="CityBuilderController.DestroyCity"/> / <see cref="WarFleetController.DestroyFleet"/>.

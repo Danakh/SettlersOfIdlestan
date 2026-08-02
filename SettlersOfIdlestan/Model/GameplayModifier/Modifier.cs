@@ -217,6 +217,8 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             CRYSTAL_GENERATION_PER_LABORATORY,
             /// <summary>Chance (en %) de produire une Arme ou une Armure en Acier supplémentaire lorsque la Forge d'Armes/d'Armures en produit une (voir HarvestController.PerformWeaponSmithProductions / PerformArmorSmithProductions). Base = 0. SubCategory unused.</summary>
             SMITH_DOUBLE_PROD_CHANCE_PERCENT,
+            /// <summary>Flags que la destruction d'une ville adverse par la civilisation du joueur construit automatiquement, gratuitement et sans prérequis, un Camp Mobile à l'emplacement de la ville détruite (voir CityAttackEngine.ResolveCityAttacks et MobileCampController.PlaceFreeMobileCamp). SubCategory unused.</summary>
+            AUTO_CAMP_ON_CONQUEST,
         }
 
         [JsonConverter(typeof(JsonStringEnumConverter<EType>))]

@@ -42,7 +42,7 @@ internal class CityAttackEngine
         Action<CityBuildingDestroyedEventArgs> onCityBuildingDestroyed,
         Action<ConsumableConsumedEventArgs> onConsumableConsumed)
     {
-        var toDestroy = new List<(Civilization civ, IMilitaryVertex vertex)>();
+        var toDestroy = new List<(Civilization civ, IMilitaryVertex vertex, Civilization attackerCiv)>();
 
         foreach (var attackerCiv in _state!.Civilizations)
         {
@@ -100,16 +100,27 @@ internal class CityAttackEngine
                 {
                     var ownerCiv = _state.Civilizations.FirstOrDefault(c => c.Index == targetVertex.CivilizationIndex);
                     if (ownerCiv != null)
-                        toDestroy.Add((ownerCiv, targetVertex));
+                        toDestroy.Add((ownerCiv, targetVertex, attackerCiv));
                 }
             }
         }
 
-        foreach (var (civ, vertex) in toDestroy)
+        foreach (var (civ, vertex, attackerCiv) in toDestroy)
         {
             ClearFlowsTargeting(vertex.Position);
             if (vertex is City city)
+            {
+                var position = city.Position;
                 _cityBuilderController?.DestroyCity(city, CityDestructionCause.Combat);
+
+                // Architecte de Guerre : la conquête d'une ville adverse par le joueur construit
+                // automatiquement un Camp Mobile gratuit sur son emplacement.
+                if (attackerCiv.Index == _state.PlayerCivilization.Index
+                    && attackerCiv.ModifierAggregator.HasModifier(ECategory.AUTO_CAMP_ON_CONQUEST))
+                {
+                    _mobileCampController?.PlaceFreeMobileCamp(attackerCiv.Index, position);
+                }
+            }
             else if (vertex is WarFleet fleet)
                 _warFleetController?.DestroyFleet(fleet);
             else if (vertex is MobileCamp camp)

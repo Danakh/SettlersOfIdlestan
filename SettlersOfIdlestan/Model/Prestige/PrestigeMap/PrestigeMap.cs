@@ -104,11 +104,11 @@ public class PrestigeMap
     // des Abysses débloquée. Aucun pouvoir, sauf AdventurersGuildVertex (proche du Mithril).
     // Porte de l'Acier — autour de Foi Protectrice (4,-2) / Défense Abyssale (4,-1)
     public static readonly Vertex VoidBreachVertex      = Vertex.Create(new( 4, -1, 0), new( 5, -1, 0), new( 5, -2, 0));
-    public static readonly Vertex DeepVoidVertex        = Vertex.Create(new( 4, -2, 0), new( 5, -2, 0), new( 5, -3, 0));
-    public static readonly Vertex ShatteredRealmVertex  = Vertex.Create(new( 4, -2, 0), new( 5, -3, 0), new( 4, -3, 0));
+    public static readonly Vertex AbyssalFoundryVertex  = Vertex.Create(new( 4, -2, 0), new( 5, -2, 0), new( 5, -3, 0));
+    public static readonly Vertex GrandMobilizationVertex = Vertex.Create(new( 4, -2, 0), new( 5, -3, 0), new( 4, -3, 0));
     public static readonly Vertex ProductionLineVertex   = Vertex.Create(new( 4, -2, 0), new( 4, -3, 0), new( 3, -2, 0));
     public static readonly Vertex OuterRuinsVertex      = Vertex.Create(new( 4, -1, 0), new( 3,  0, 0), new( 4,  0, 0));
-    public static readonly Vertex CollapsedWallVertex   = Vertex.Create(new( 4, -1, 0), new( 4,  0, 0), new( 5, -1, 0));
+    public static readonly Vertex WarArchitectVertex    = Vertex.Create(new( 4, -1, 0), new( 4,  0, 0), new( 5, -1, 0));
     public static readonly Vertex RuinedBastionVertex   = Vertex.Create(new( 4, -2, 0), new( 4, -1, 0), new( 5, -2, 0));
     // Porte de l'Inframonde — autour de AbyssDepths (-2,-1) / AbyssChasm (-1,-2)
     public static readonly Vertex OuterDepthsVertex     = Vertex.Create(new(-2, -1, 0), new(-3, -1, 0), new(-3,  0, 0));

@@ -441,16 +441,24 @@ public static class PrestigeMapFactory
                 modifiers: new Modifier[] { new(ECategory.UNLOCK_RESEARCH, "AcierAbyssal", EType.ADDITIVE, 1) }
             ),
             new(
-                PrestigeMap.DeepVoidVertex,
-                "prestige_vertex_deep_void",
-                cost: Cost(PrestigeMap.DeepVoidVertex),
-                modifiers: new Modifier[] { new(ECategory.SMELTER_SPEED, EType.ADDITIVE, 0.15) }
+                PrestigeMap.AbyssalFoundryVertex,
+                "prestige_vertex_abyssal_foundry",
+                cost: Cost(PrestigeMap.AbyssalFoundryVertex),
+                modifiers: new Modifier[]
+                {
+                    new(ECategory.SMELTER_SPEED, EType.ADDITIVE, 0.25),
+                    new(ECategory.SMELTER_ORE_INPUT, EType.ADDITIVE, -1),
+                }
             ),
             new(
-                PrestigeMap.ShatteredRealmVertex,
-                "prestige_vertex_shattered_realm",
-                cost: Cost(PrestigeMap.ShatteredRealmVertex),
-                modifiers: new Modifier[] { new(ECategory.CITY_MAX_SOLDIERS_BONUS, EType.ADDITIVE, 5) }
+                PrestigeMap.GrandMobilizationVertex,
+                "prestige_vertex_grand_mobilization",
+                cost: Cost(PrestigeMap.GrandMobilizationVertex),
+                modifiers: new Modifier[]
+                {
+                    new(ECategory.CITY_MAX_SOLDIERS_BONUS, EType.ADDITIVE, 8),
+                    new(ECategory.UNIT_PRODUCTION_SPEED, EType.ADDITIVE, 0.15),
+                }
             ),
             new(
                 PrestigeMap.ProductionLineVertex,
@@ -465,10 +473,10 @@ public static class PrestigeMapFactory
                 modifiers: new Modifier[] { new(ECategory.UNLOCK_ARSENAL_PRODUCTION, EType.ADDITIVE, 1) }
             ),
             new(
-                PrestigeMap.CollapsedWallVertex,
-                "prestige_vertex_collapsed_wall",
-                cost: Cost(PrestigeMap.CollapsedWallVertex),
-                modifiers: new Modifier[] { new(ECategory.SOLDIER_FOOD_FREE_PER_CITY, EType.ADDITIVE, 5) }
+                PrestigeMap.WarArchitectVertex,
+                "prestige_vertex_war_architect",
+                cost: Cost(PrestigeMap.WarArchitectVertex),
+                modifiers: new Modifier[] { new(ECategory.AUTO_CAMP_ON_CONQUEST, EType.ADDITIVE, 1) }
             ),
             new(
                 PrestigeMap.RuinedBastionVertex,

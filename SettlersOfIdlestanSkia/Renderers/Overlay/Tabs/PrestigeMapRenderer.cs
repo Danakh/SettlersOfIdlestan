@@ -726,6 +726,7 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         Modifier.ECategory.PRESTIGE_GAIN              => $"+{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_prestige_gain")}",
         Modifier.ECategory.PRESTIGE_GAIN_RACE         => $"{(mod.Value >= 0 ? "+" : "")}{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_prestige_gain_race")}",
         Modifier.ECategory.SMELTER_SPEED              => $"+{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_smelter_speed")}",
+        Modifier.ECategory.SMELTER_ORE_INPUT          => $"{(int)mod.Value} {_localization.Get("prestige_tooltip_smelter_ore_input")}",
         Modifier.ECategory.CITY_ATTACK_RANGE          => $"+{(int)mod.Value} {_localization.Get("prestige_tooltip_city_attack_range")}",
         Modifier.ECategory.REINFORCEMENT_RANGE        => $"+{(int)mod.Value} {_localization.Get("prestige_tooltip_reinforcement_range")}",
         Modifier.ECategory.PASSIVE_RESOURCE_GENERATION => mod.SubCategory == "Crystal"
@@ -746,6 +747,7 @@ public sealed class PrestigeMapRenderer : IGameRenderer
             : $"+{(int)mod.Value} {_localization.Get($"prestige_tooltip_magic_feature_{mod.SubCategory.ToLower()}")}",
         Modifier.ECategory.MARKET_GOLD_SPEED               => $"+{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_market_gold_speed")}",
         Modifier.ECategory.CITY_DEFENSE_PROTECTS_SOLDIERS => _localization.Get("prestige_tooltip_city_defense_protects_soldiers"),
+        Modifier.ECategory.BUILDING_DEFENSE_ON_CONSTRUCT  => _localization.Get("prestige_tooltip_building_defense_on_construct"),
         Modifier.ECategory.UNLOCK_SEAPORT_AUTOMATION  => _localization.Get("prestige_tooltip_unlocks_seaport_automation"),
         Modifier.ECategory.PRESTIGE_GAIN_PER_SEAPORT_LEVEL4 => $"+{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_prestige_per_seaport")}",
         Modifier.ECategory.PRESTIGE_GAIN_PER_TEMPLE          => $"+{mod.Value * 100:0.#}% {_localization.Get("prestige_tooltip_prestige_per_temple")}",
@@ -798,6 +800,7 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         Modifier.ECategory.RESEARCH_SPEED_PER_MAGE_TOWER     => $"+{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_research_speed_per_mage_tower")}",
         Modifier.ECategory.CRYSTAL_GENERATION_PER_LABORATORY => $"+{mod.Value:0.#} {_localization.Get("prestige_tooltip_crystal_generation_per_laboratory")}",
         Modifier.ECategory.SMITH_DOUBLE_PROD_CHANCE_PERCENT  => $"+{(int)mod.Value}% {_localization.Get("prestige_tooltip_smith_double_prod_chance")}",
+        Modifier.ECategory.AUTO_CAMP_ON_CONQUEST             => _localization.Get("prestige_tooltip_auto_camp_on_conquest"),
         _ => $"+{mod.Value}"
     };
 
