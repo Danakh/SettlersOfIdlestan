@@ -41,8 +41,13 @@ public class BonusIslandTests
 
             Assert.NotNull(state);
             // Seuls des Cercles de Fées invisibles (pré-placés par masse continentale, voir
-            // IslandMapGenerator.PlaceInvisibleFairyCircles) peuvent être présents sans île bonus.
-            Assert.All(state!.Features, f => Assert.True(f is FairyCircle { IsVisible: false }));
+            // IslandMapGenerator.PlaceInvisibleFairyCircles) et des Volcans (garantis à partir de
+            // l'île 4/5, voir IslandMapGenerator.PlaceVolcanoes — indépendants de l'île bonus) et
+            // leur Dragon co-localisé éventuel peuvent être présents sans île bonus.
+            var volcanoHexes = state!.Features.OfType<VolcanoFeature>().Select(f => f.Position).ToHashSet();
+            Assert.All(state.Features, f => Assert.True(
+                f is FairyCircle { IsVisible: false } or VolcanoFeature ||
+                (f is Dragon && volcanoHexes.Contains(f.Position))));
         }
     }
 
@@ -64,8 +69,15 @@ public class BonusIslandTests
             Assert.NotNull(state);
 
             // Les Cercles de Fées invisibles pré-placés par masse continentale (voir
-            // IslandMapGenerator.PlaceInvisibleFairyCircles) ne comptent pas comme la feature bonus.
-            var visibleFeatures = state!.Features.Where(f => f is not FairyCircle circle || circle.IsVisible).ToList();
+            // IslandMapGenerator.PlaceInvisibleFairyCircles) ne comptent pas comme la feature bonus,
+            // ni les Volcans (garantis à partir de l'île 4/5, indépendants de l'île bonus — voir
+            // IslandMapGenerator.PlaceVolcanoes) ni leur Dragon co-localisé éventuel.
+            var volcanoHexes = state!.Features.OfType<VolcanoFeature>().Select(f => f.Position).ToHashSet();
+            var visibleFeatures = state.Features
+                .Where(f => f is not FairyCircle circle || circle.IsVisible)
+                .Where(f => f is not VolcanoFeature)
+                .Where(f => !(f is Dragon && volcanoHexes.Contains(f.Position)))
+                .ToList();
             if (visibleFeatures.Count == 0)
                 continue; // tirage 50% raté pour ce seed — acceptable
 
