@@ -473,6 +473,8 @@ namespace SettlersOfIdlestan.Controller.Island
 
                     civ.RemoveResource(Resource.Steel, WeaponSmith.SteelInputPerWeapon);
                     civ.AddResource(Resource.SteelWeapon, 1);
+                    if (_prng!.Next(100) < civ.SmithDoubleProdChancePercent)
+                        civ.AddResource(Resource.SteelWeapon, 1);
                     smith.LastProductionTick = currentTick;
                 }
             }
@@ -505,6 +507,8 @@ namespace SettlersOfIdlestan.Controller.Island
 
                     civ.RemoveResource(Resource.Steel, ArmorSmith.SteelInputPerArmor);
                     civ.AddResource(Resource.SteelArmor, 1);
+                    if (_prng!.Next(100) < civ.SmithDoubleProdChancePercent)
+                        civ.AddResource(Resource.SteelArmor, 1);
                     smith.LastProductionTick = currentTick;
                 }
             }

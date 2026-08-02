@@ -73,7 +73,7 @@ public sealed class PrestigeMapRenderer : IGameRenderer
     /// (Porte Planaire, Faille des Abysses, Rituel de l'Éclipse Noire) soient tous achetés.</summary>
     private static readonly HashSet<HexCoord> AbyssHexes = new()
     {
-        PrestigeMap.ProtectiveFaithCoord, PrestigeMap.PlanarRuinsCoord,
+        PrestigeMap.ProtectiveFaithCoord, PrestigeMap.AbyssalDefenseCoord,
         PrestigeMap.AbyssDepthsCoord, PrestigeMap.AbyssChasmCoord,
         PrestigeMap.OssuaryCoord, PrestigeMap.AbyssVoidCoord,
     };
@@ -797,6 +797,7 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         Modifier.ECategory.UNLOCK_ARSENAL_PRODUCTION         => _localization.Get("prestige_tooltip_unlocks_arsenal_production"),
         Modifier.ECategory.RESEARCH_SPEED_PER_MAGE_TOWER     => $"+{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_research_speed_per_mage_tower")}",
         Modifier.ECategory.CRYSTAL_GENERATION_PER_LABORATORY => $"+{mod.Value:0.#} {_localization.Get("prestige_tooltip_crystal_generation_per_laboratory")}",
+        Modifier.ECategory.SMITH_DOUBLE_PROD_CHANCE_PERCENT  => $"+{(int)mod.Value}% {_localization.Get("prestige_tooltip_smith_double_prod_chance")}",
         _ => $"+{mod.Value}"
     };
 

@@ -215,6 +215,8 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             RESEARCH_SPEED_PER_MAGE_TOWER,
             /// <summary>Génération passive de Cristal par cycle (voir HarvestController.PassiveCrystalGenerationIntervalTicks), par Laboratoire construit (niveau ≥ 1) dans la civilisation. Base = 0.0 ; agrégé puis multiplié par le nombre de Laboratoires, avec report du reste fractionnaire d'un cycle à l'autre (voir HarvestController.PerformLaboratoryCrystalGeneration). 0.1 = +0.1 cristal par cycle et par laboratoire.</summary>
             CRYSTAL_GENERATION_PER_LABORATORY,
+            /// <summary>Chance (en %) de produire une Arme ou une Armure en Acier supplémentaire lorsque la Forge d'Armes/d'Armures en produit une (voir HarvestController.PerformWeaponSmithProductions / PerformArmorSmithProductions). Base = 0. SubCategory unused.</summary>
+            SMITH_DOUBLE_PROD_CHANCE_PERCENT,
         }
 
         [JsonConverter(typeof(JsonStringEnumConverter<EType>))]

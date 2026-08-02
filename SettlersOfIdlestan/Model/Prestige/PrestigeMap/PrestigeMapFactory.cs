@@ -433,7 +433,7 @@ public static class PrestigeMapFactory
             // ── Branche des Abysses ──────────────────────────────────────────────
             // Chaque porte mêle 1-2 vertex clés (déblocage de recherche, pouvoir fort) et des
             // petits bonus thématiques.
-            // Porte de l'Acier — autour de Foi Protectrice / PlanarRuins
+            // Porte de l'Acier — autour de Foi Protectrice / Défense Abyssale
             new(
                 PrestigeMap.VoidBreachVertex,
                 "prestige_vertex_void_breach",
@@ -453,10 +453,10 @@ public static class PrestigeMapFactory
                 modifiers: new Modifier[] { new(ECategory.CITY_MAX_SOLDIERS_BONUS, EType.ADDITIVE, 5) }
             ),
             new(
-                PrestigeMap.FractureLineVertex,
-                "prestige_vertex_fracture_line",
-                cost: Cost(PrestigeMap.FractureLineVertex),
-                modifiers: new Modifier[] { new(ECategory.CITY_DEFENSE, EType.ADDITIVE, 3) }
+                PrestigeMap.ProductionLineVertex,
+                "prestige_vertex_production_line",
+                cost: Cost(PrestigeMap.ProductionLineVertex),
+                modifiers: new Modifier[] { new(ECategory.SMITH_DOUBLE_PROD_CHANCE_PERCENT, EType.ADDITIVE, 25) }
             ),
             new(
                 PrestigeMap.OuterRuinsVertex,
@@ -474,7 +474,7 @@ public static class PrestigeMapFactory
                 PrestigeMap.RuinedBastionVertex,
                 "prestige_vertex_ruined_bastion",
                 cost: Cost(PrestigeMap.RuinedBastionVertex),
-                modifiers: new Modifier[] { new(ECategory.ATTACK_SPEED, EType.ADDITIVE, 0.5) }
+                modifiers: new Modifier[] { new(ECategory.ATTACK_SPEED, EType.ADDITIVE, 0.25) }
             ),
             // Porte de l'Inframonde — autour de AbyssDepths / AbyssChasm. Les vertex adjacents à
             // l'hex Dominion (AbyssDepths) alimenteront aussi ses perVertexModifiers une fois le
@@ -527,7 +527,7 @@ public static class PrestigeMapFactory
                 PrestigeMap.VoidEdgeVertex,
                 "prestige_vertex_void_edge",
                 cost: Cost(PrestigeMap.VoidEdgeVertex),
-                modifiers: new Modifier[] { new(ECategory.RITUAL_TOTAL_POWER, EType.ADDITIVE, 0.1) }
+                modifiers: new Modifier[] { new(ECategory.RITUAL_TOTAL_POWER, EType.ADDITIVE, 0.2) }
             ),
             new(
                 PrestigeMap.FarShoreVertex,
@@ -555,13 +555,13 @@ public static class PrestigeMapFactory
                 PrestigeMap.ForgottenAltarVertex,
                 "prestige_vertex_forgotten_altar",
                 cost: Cost(PrestigeMap.ForgottenAltarVertex),
-                modifiers: new Modifier[] { new(ECategory.SPELL_COST_REDUCTION, EType.ADDITIVE, 0.1) }
+                modifiers: new Modifier[] { new(ECategory.SPELL_COST_REDUCTION, EType.ADDITIVE, 0.2) }
             ),
             new(
                 PrestigeMap.PaleMistVertex,
                 "prestige_vertex_pale_mist",
                 cost: Cost(PrestigeMap.PaleMistVertex),
-                modifiers: new Modifier[] { new(ECategory.RITUAL_UPKEEP_REDUCTION, EType.ADDITIVE, 0.1) }
+                modifiers: new Modifier[] { new(ECategory.RITUAL_UPKEEP_REDUCTION, EType.ADDITIVE, 0.2) }
             ),
             new(
                 PrestigeMap.SilentHollowVertex,
@@ -712,10 +712,10 @@ public static class PrestigeMapFactory
                 requiresDominionUnlock: true
             ),
             new(
-                PrestigeMap.PlanarRuinsCoord,
-                "prestige_hex_planar_ruins",
-                adjacentVertices: Adjacent(PrestigeMap.PlanarRuinsCoord),
-                perVertexModifiers: new Modifier[] { new(ECategory.CITY_DEFENSE, EType.ADDITIVE, 2) },
+                PrestigeMap.AbyssalDefenseCoord,
+                "prestige_hex_abyssal_defense",
+                adjacentVertices: Adjacent(PrestigeMap.AbyssalDefenseCoord),
+                perVertexModifiers: new Modifier[] { new(ECategory.CITY_DEFENSE, EType.ADDITIVE, 3) },
                 domain: PrestigeHexDomain.Exterminate
             ),
             // Dominion — à l'ouest de l'Inframonde. Caché derrière la Faille des Abysses (AbyssHexes)

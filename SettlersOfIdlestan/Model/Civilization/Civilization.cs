@@ -401,6 +401,10 @@ public class Civilization
     [JsonIgnore]
     public int MineGoldChancePercent => ModifierAggregator.ApplyModifiers(ECategory.MINE_GOLD_CHANCE_PERCENT, "", 0);
 
+    /// <summary>Chance (en %) de produire une Arme/Armure en Acier supplémentaire lors d'une production de Forge d'Armes/d'Armures.</summary>
+    [JsonIgnore]
+    public int SmithDoubleProdChancePercent => ModifierAggregator.ApplyModifiers(ECategory.SMITH_DOUBLE_PROD_CHANCE_PERCENT, "", 0);
+
     [JsonIgnore]
     public int LaboratoryResearchBonus => ModifierAggregator.ApplyModifiers(ECategory.BUILDING_PRODUCTION, "Laboratory", 0);
 

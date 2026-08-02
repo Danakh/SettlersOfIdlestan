@@ -28,7 +28,7 @@ public class PrestigeMap
     // ── Branche des Abysses — deux hexs placeholder par porte d'entrée (Acier / Inframonde / Magie),
     // ajoutés une fois la Faille des Abysses débloquée, pour entourer entièrement chaque vertex de déblocage.
     public static readonly HexCoord ProtectiveFaithCoord = new( 4, -2, 0);
-    public static readonly HexCoord PlanarRuinsCoord  = new( 4, -1, 0);
+    public static readonly HexCoord AbyssalDefenseCoord = new( 4, -1, 0);
     public static readonly HexCoord AbyssDepthsCoord  = new(-2, -1, 0);
     public static readonly HexCoord AbyssChasmCoord   = new(-1, -2, 0);
     public static readonly HexCoord OssuaryCoord      = new(-1,  4, 0);
@@ -102,14 +102,14 @@ public class PrestigeMap
 
     // ── Branche des Abysses — vertex placeholder autour des hexs ajoutés une fois la Faille
     // des Abysses débloquée. Aucun pouvoir, sauf AdventurersGuildVertex (proche du Mithril).
-    // Porte de l'Acier — autour de Foi Protectrice (4,-2) / PlanarRuins (4,-1)
-    public static readonly Vertex VoidBreachVertex      = Vertex.Create(new( 4, -2, 0), new( 4, -1, 0), new( 5, -2, 0));
+    // Porte de l'Acier — autour de Foi Protectrice (4,-2) / Défense Abyssale (4,-1)
+    public static readonly Vertex VoidBreachVertex      = Vertex.Create(new( 4, -1, 0), new( 5, -1, 0), new( 5, -2, 0));
     public static readonly Vertex DeepVoidVertex        = Vertex.Create(new( 4, -2, 0), new( 5, -2, 0), new( 5, -3, 0));
     public static readonly Vertex ShatteredRealmVertex  = Vertex.Create(new( 4, -2, 0), new( 5, -3, 0), new( 4, -3, 0));
-    public static readonly Vertex FractureLineVertex    = Vertex.Create(new( 4, -2, 0), new( 4, -3, 0), new( 3, -2, 0));
+    public static readonly Vertex ProductionLineVertex   = Vertex.Create(new( 4, -2, 0), new( 4, -3, 0), new( 3, -2, 0));
     public static readonly Vertex OuterRuinsVertex      = Vertex.Create(new( 4, -1, 0), new( 3,  0, 0), new( 4,  0, 0));
     public static readonly Vertex CollapsedWallVertex   = Vertex.Create(new( 4, -1, 0), new( 4,  0, 0), new( 5, -1, 0));
-    public static readonly Vertex RuinedBastionVertex   = Vertex.Create(new( 4, -1, 0), new( 5, -1, 0), new( 5, -2, 0));
+    public static readonly Vertex RuinedBastionVertex   = Vertex.Create(new( 4, -2, 0), new( 4, -1, 0), new( 5, -2, 0));
     // Porte de l'Inframonde — autour de AbyssDepths (-2,-1) / AbyssChasm (-1,-2)
     public static readonly Vertex OuterDepthsVertex     = Vertex.Create(new(-2, -1, 0), new(-3, -1, 0), new(-3,  0, 0));
     public static readonly Vertex HollowVeinVertex      = Vertex.Create(new(-2, -1, 0), new(-3,  0, 0), new(-2,  0, 0));
@@ -119,8 +119,8 @@ public class PrestigeMap
     public static readonly Vertex SunkenPathVertex      = Vertex.Create(new(-1, -2, 0), new( 0, -3, 0), new(-1, -3, 0));
     public static readonly Vertex BottomlessPitVertex   = Vertex.Create(new(-1, -2, 0), new(-1, -3, 0), new(-2, -2, 0));
     // Porte de la Magie — autour de Ossuary (-1,4) / AbyssVoid (-2,4)
-    public static readonly Vertex VoidEdgeVertex        = Vertex.Create(new(-1,  4, 0), new(-2,  4, 0), new(-2,  5, 0));
-    public static readonly Vertex FarShoreVertex        = Vertex.Create(new(-1,  4, 0), new(-2,  5, 0), new(-1,  5, 0));
+    public static readonly Vertex VoidEdgeVertex        = Vertex.Create(new(-1,  4, 0), new(-2,  5, 0), new(-1,  5, 0));
+    public static readonly Vertex FarShoreVertex        = Vertex.Create(new(-1,  4, 0), new(-2,  4, 0), new(-2,  5, 0));
     public static readonly Vertex LostSanctumVertex     = Vertex.Create(new(-1,  4, 0), new(-1,  5, 0), new( 0,  4, 0));
     public static readonly Vertex ArcaneTowerVertex     = Vertex.Create(new(-1,  4, 0), new( 0,  4, 0), new( 0,  3, 0));
     public static readonly Vertex ForgottenAltarVertex  = Vertex.Create(new(-2,  4, 0), new(-3,  4, 0), new(-3,  5, 0));
