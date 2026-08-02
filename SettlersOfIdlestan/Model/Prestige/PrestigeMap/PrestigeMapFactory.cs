@@ -491,7 +491,7 @@ public static class PrestigeMapFactory
                 PrestigeMap.OuterDepthsVertex,
                 "prestige_vertex_outer_depths",
                 cost: Cost(PrestigeMap.OuterDepthsVertex),
-                modifiers: new Modifier[] { new(ECategory.STORAGE_CAPACITY_ADVANCED, EType.ADDITIVE, 15) }
+                modifiers: new Modifier[] { new(ECategory.BUILDING_MAX_LEVEL, "Laboratory", EType.ADDITIVE, 2) }
             ),
             new(
                 PrestigeMap.HollowVeinVertex,
@@ -756,7 +756,7 @@ public static class PrestigeMapFactory
                 PrestigeMap.AbyssVoidCoord,
                 "prestige_hex_abyss_void",
                 adjacentVertices: Adjacent(PrestigeMap.AbyssVoidCoord),
-                perVertexModifiers: new Modifier[] { new(ECategory.PASSIVE_RESOURCE_GENERATION, "Crystal", EType.ADDITIVE, 1) },
+                perVertexModifiers: new Modifier[] { new(ECategory.RESEARCH_PRODUCTION_SPEED, EType.ADDITIVE, 0.1) },
                 domain: PrestigeHexDomain.Exploit
             ),
         };
