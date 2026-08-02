@@ -1,5 +1,6 @@
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
+using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestanSkia.Services.Localization;
 using SettlersOfIdlestanSkia.Core;
@@ -42,6 +43,7 @@ public class SelectedCityPanelRenderer : PanelRendererBase
     private Dictionary<SKRect, BuildingType> _btnRects = new Dictionary<SKRect, BuildingType>();
     private Dictionary<SKRect, BuildingType> _hoverRects = new Dictionary<SKRect, BuildingType>();
     private Dictionary<SKRect, BuildingType> _checkboxRects = new Dictionary<SKRect, BuildingType>();
+    private Dictionary<SKRect, BuildingType> _gotoOtherCityRects = new Dictionary<SKRect, BuildingType>();
     private bool _showUniqueBuildings = false;
     private SKRect _tabRegularRect = SKRect.Empty;
     private SKRect _tabUniqueRect = SKRect.Empty;
@@ -56,6 +58,7 @@ public class SelectedCityPanelRenderer : PanelRendererBase
 
     public float ReservedBottomHeight { get; set; }
     public UILayoutService? LayoutService { get; set; }
+    public Action<int, float, float>? CenterCameraOnMapPosition { get; set; }
     private bool TabsAtBottom => LayoutService?.TabsAtBottom ?? false;
 
     public SelectedCityPanelRenderer(CityBuildingService cityBuildingService, LocalizationService localization, InputHandlingService inputService, ResourceManager resourceManager)
@@ -100,7 +103,7 @@ public class SelectedCityPanelRenderer : PanelRendererBase
         _btnRects.Clear();
         _hoverRects.Clear();
         _checkboxRects.Clear();
-        _showUniqueBuildings = false;
+        _gotoOtherCityRects.Clear();
         _lastSelectedCity = null;
         PanelBounds = SKRect.Empty;
         CollapseTabRect = SKRect.Empty;
@@ -143,12 +146,12 @@ public class SelectedCityPanelRenderer : PanelRendererBase
         _btnRects.Clear();
         _hoverRects.Clear();
         _checkboxRects.Clear();
+        _gotoOtherCityRects.Clear();
         _tabRegularRect = SKRect.Empty;
         _tabUniqueRect = SKRect.Empty;
 
         if (_cityBuildingService.SelectedCity != _lastSelectedCity)
         {
-            _showUniqueBuildings = false;
             _lastSelectedCity = _cityBuildingService.SelectedCity;
             ScrollOffset = 0;
         }
@@ -156,7 +159,12 @@ public class SelectedCityPanelRenderer : PanelRendererBase
         bool hasUnique = _cityBuildingService.HasUniqueBuildingsUnlocked();
         float tabArea = hasUnique ? tabHeight + padding : 0f;
 
-        var buildings = (_showUniqueBuildings
+        // Le choix Bâtiments/Unique est conservé d'une ville à l'autre, mais ne s'applique que
+        // si la ville sélectionnée a bien débloqué l'onglet Unique (sinon l'onglet serait affiché
+        // sans les tabs pour en sortir).
+        bool showUnique = _showUniqueBuildings && hasUnique;
+
+        var buildings = (showUnique
             ? _cityBuildingService.SelectedCityUniqueBuildingsAndBuildables()
             : _cityBuildingService.SelectedCityBuildingsAndBuildables()).ToList();
 
@@ -269,7 +277,14 @@ public class SelectedCityPanelRenderer : PanelRendererBase
 
                 if (isBuiltInOtherCity)
                 {
-                    // hidden — unique building already built in another city
+                    float smallBtnSize = btnHeight;
+                    float smallBtnX = panelX + panelWidth - smallBtnSize - padding;
+                    float smallBtnCenterX = smallBtnX + smallBtnSize / 2;
+                    canvas.DrawRoundRect(smallBtnX, btnY, smallBtnSize, btnHeight, 7 * s, 7 * s, _btnOtherCityPaint);
+                    SkiaTextUtils.DrawText(canvas, "➤", smallBtnCenterX, btnCenterY, SKTextAlign.Center, Font15, TextPaint);
+
+                    var gotoRect = new SKRect(smallBtnX, btnY, smallBtnX + smallBtnSize, btnY + btnHeight);
+                    _gotoOtherCityRects[gotoRect] = building.Type;
                 }
                 else if (isBuiltInThisCity || !building.IsUnique || canBuildOrUpgrade || canBuildIgnoringResources)
                 {
@@ -302,8 +317,8 @@ public class SelectedCityPanelRenderer : PanelRendererBase
             _tabRegularRect = new SKRect(panelX + padding, tabY, panelX + padding + tabW, tabY + tabHeight);
             _tabUniqueRect  = new SKRect(panelX + padding + tabW + gap, tabY, panelX + panelWidth - padding, tabY + tabHeight);
 
-            canvas.DrawRoundRect(_tabRegularRect, 5 * s, 5 * s, _showUniqueBuildings ? _tabInactivePaint : _tabActivePaint);
-            canvas.DrawRoundRect(_tabUniqueRect,  5 * s, 5 * s, _showUniqueBuildings ? _tabActivePaint   : _tabInactivePaint);
+            canvas.DrawRoundRect(_tabRegularRect, 5 * s, 5 * s, showUnique ? _tabInactivePaint : _tabActivePaint);
+            canvas.DrawRoundRect(_tabUniqueRect,  5 * s, 5 * s, showUnique ? _tabActivePaint   : _tabInactivePaint);
             canvas.DrawRoundRect(_tabRegularRect, 5 * s, 5 * s, BorderPaint);
             canvas.DrawRoundRect(_tabUniqueRect,  5 * s, 5 * s, BorderPaint);
 
@@ -861,6 +876,15 @@ public class SelectedCityPanelRenderer : PanelRendererBase
             }
         }
 
+        foreach (var (rect, buildingType) in _gotoOtherCityRects)
+        {
+            if (rect.Contains(e.Position.X, e.Position.Y))
+            {
+                GoToOtherCityWithBuilding(buildingType);
+                return;
+            }
+        }
+
         foreach (var (rect, buildingType) in _hoverRects)
         {
             if (rect.Contains(e.Position.X, e.Position.Y))
@@ -869,6 +893,32 @@ public class SelectedCityPanelRenderer : PanelRendererBase
                 break;
             }
         }
+    }
+
+    private void GoToOtherCityWithBuilding(BuildingType type)
+    {
+        var city = _cityBuildingService.FindOtherCityWithBuilding(type);
+        if (city == null) return;
+
+        var (wx, wy) = VertexToWorld(city.Position);
+        CenterCameraOnMapPosition?.Invoke(city.Position.Z, wx, wy);
+        _cityBuildingService.SetSelectedCity(city.Position);
+    }
+
+    private static (float x, float y) HexToWorld(HexCoord hex)
+    {
+        float sqrt3 = MathF.Sqrt(3f);
+        float x = GameConstants.HexSize * sqrt3 * (hex.Q + hex.R / 2f);
+        float y = GameConstants.HexSize * -3f / 2f * hex.R;
+        return (x, y);
+    }
+
+    private static (float x, float y) VertexToWorld(Vertex v)
+    {
+        var (x1, y1) = HexToWorld(v.Hex1);
+        var (x2, y2) = HexToWorld(v.Hex2);
+        var (x3, y3) = HexToWorld(v.Hex3);
+        return ((x1 + x2 + x3) / 3f, (y1 + y2 + y3) / 3f);
     }
 
     public override void Dispose()

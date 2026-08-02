@@ -77,6 +77,23 @@ public class CityBuildingService
         return SelectedCity != null && SelectedCity.Buildings.Any(b => b.IsUnique);
     }
 
+    /// <summary>
+    /// Trouve la ville de la civilisation courante (autre que la ville sélectionnée) qui possède
+    /// le bâtiment unique du type donné, s'il existe.
+    /// </summary>
+    public City? FindOtherCityWithBuilding(BuildingType type)
+    {
+        if (SelectedCity == null)
+            return null;
+
+        var worldState = State;
+        if (worldState == null || SelectedCity.CivilizationIndex >= worldState.Civilizations.Count)
+            return null;
+
+        var civilization = worldState.Civilizations[SelectedCity.CivilizationIndex];
+        return civilization.Cities.FirstOrDefault(c => c != SelectedCity && c.Buildings.Any(b => b.Type == type));
+    }
+
     public void TryExecuteSelectedCityBuildingAction(BuildingType buildingType)
     {
         if (SelectedCity != null)

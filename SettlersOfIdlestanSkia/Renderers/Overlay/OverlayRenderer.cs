@@ -91,6 +91,7 @@ public sealed class OverlayRenderer : IGameRenderer
         _settingsMenu                   = settingsMenu;
         _settingsPopupRenderer          = settingsPopupRenderer;
         _selectedCityPanelRenderer      = selectedCityPanelRenderer;
+        _selectedCityPanelRenderer.CenterCameraOnMapPosition = CenterCameraOnMapPosition;
         _selectedMonumentPanelRenderer    = selectedMonumentPanelRenderer;
         _tradeRenderer                  = tradeRenderer;
         _prestigeRenderer               = prestigeRenderer;
