@@ -27,6 +27,8 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             /// <summary>Flat bonus (in %) added to the Forge's double-harvest chance.</summary>
             FORGE_DOUBLE_HARVEST_BONUS,
             MINE_GOLD_CHANCE_PERCENT,
+            /// <summary>Multiplicateur appliqué à la quantité d'or gagnée à chaque déclenchement de MineGoldChancePercent. Base = 1.0; +1.0 = quantité doublée.</summary>
+            MINE_GOLD_PRODUCTION_MULTIPLIER,
             /// <summary>SubCategory = BuildingType name. Granted to the initial city at run start.</summary>
             STARTING_CITY_BUILDING,
             /// <summary>SubCategory = BuildingType name. Granted to every new outpost, including the initial city.</summary>

@@ -50,9 +50,10 @@ public sealed class TradePopupRenderer : PopupRendererBase
 
     private SKRect  _popupRect         = SKRect.Empty;
     private SKRect  _closeButtonRect   = SKRect.Empty;
-    private SKRect  _multButton1Rect   = SKRect.Empty;
-    private SKRect  _multButton10Rect  = SKRect.Empty;
-    private SKRect  _multButton100Rect = SKRect.Empty;
+    private SKRect  _multButton1Rect    = SKRect.Empty;
+    private SKRect  _multButton10Rect   = SKRect.Empty;
+    private SKRect  _multButton100Rect  = SKRect.Empty;
+    private SKRect  _multButton1000Rect = SKRect.Empty;
     private SKRect  _viewportRect      = SKRect.Empty;
     private SKRect  _scrollTrackRect   = SKRect.Empty;
     private SKRect  _scrollThumbRect   = SKRect.Empty;
@@ -61,6 +62,8 @@ public sealed class TradePopupRenderer : PopupRendererBase
     private int?      _temporaryMultiplier;
     private int       ActiveMultiplier => _temporaryMultiplier ?? _packMultiplier;
     private SKPoint   _lastPointerPosition;
+    private bool      _ctrlDown;
+    private bool      _shiftDown;
 
     private SubTab _activeSubTab = SubTab.Trade;
     private readonly List<(SubTab tab, SKRect rect)> _innerTabs = new();
@@ -118,6 +121,8 @@ public sealed class TradePopupRenderer : PopupRendererBase
     {
         base.Close();
         _temporaryMultiplier      = null;
+        _ctrlDown                 = false;
+        _shiftDown                = false;
         _isDraggingScrollbar      = false;
         _scrollOffsetPx           = 0f;
         _activeSubTab             = SubTab.Trade;
@@ -125,13 +130,27 @@ public sealed class TradePopupRenderer : PopupRendererBase
 
     public void HandleKeyDown(string key)
     {
-        if (key == "Control") _temporaryMultiplier = 10;
-        else if (key == "Shift") _temporaryMultiplier = 100;
+        if (key == "Control") _ctrlDown = true;
+        else if (key == "Shift") _shiftDown = true;
+        UpdateTemporaryMultiplier();
     }
 
     public void HandleKeyUp(string key)
     {
-        if (key is "Control" or "Shift") _temporaryMultiplier = null;
+        if (key == "Control") _ctrlDown = false;
+        else if (key == "Shift") _shiftDown = false;
+        UpdateTemporaryMultiplier();
+    }
+
+    private void UpdateTemporaryMultiplier()
+    {
+        _temporaryMultiplier = (_ctrlDown, _shiftDown) switch
+        {
+            (true, true)  => 1000,
+            (false, true) => 100,
+            (true, false) => 10,
+            _             => null,
+        };
     }
 
     public void HandleScroll(float delta)
@@ -387,9 +406,10 @@ public sealed class TradePopupRenderer : PopupRendererBase
 
         if (_activeSubTab == SubTab.Trade)
         {
-            if (_multButton1Rect.Contains(position.X, position.Y))   { _packMultiplier = 1;   return true; }
-            if (_multButton10Rect.Contains(position.X, position.Y))  { _packMultiplier = 10;  return true; }
-            if (_multButton100Rect.Contains(position.X, position.Y)) { _packMultiplier = 100; return true; }
+            if (_multButton1Rect.Contains(position.X, position.Y))    { _packMultiplier = 1;    return true; }
+            if (_multButton10Rect.Contains(position.X, position.Y))   { _packMultiplier = 10;   return true; }
+            if (_multButton100Rect.Contains(position.X, position.Y))  { _packMultiplier = 100;  return true; }
+            if (_multButton1000Rect.Contains(position.X, position.Y)) { _packMultiplier = 1000; return true; }
         }
 
         // Content-area interactions require scroll adjustment
@@ -617,17 +637,19 @@ public sealed class TradePopupRenderer : PopupRendererBase
 
         if (_activeSubTab == SubTab.History) return;
 
-        float totalW = (MultBtnW * 3 + MultBtnGap * 2) * s;
+        float totalW = (MultBtnW * 4 + MultBtnGap * 3) * s;
         float startX = popup.Right - Padding * s - totalW;
-        _multButton1Rect   = new SKRect(startX,                                        barY, startX + MultBtnW * s,                    barY + MultBtnH * s);
-        _multButton10Rect  = new SKRect(startX + (MultBtnW + MultBtnGap) * s,          barY, startX + (MultBtnW * 2 + MultBtnGap) * s, barY + MultBtnH * s);
-        _multButton100Rect = new SKRect(startX + (MultBtnW * 2 + MultBtnGap * 2) * s, barY, startX + totalW,                          barY + MultBtnH * s);
+        _multButton1Rect    = new SKRect(startX,                                        barY, startX + MultBtnW * s,                    barY + MultBtnH * s);
+        _multButton10Rect   = new SKRect(startX + (MultBtnW + MultBtnGap) * s,          barY, startX + (MultBtnW * 2 + MultBtnGap) * s, barY + MultBtnH * s);
+        _multButton100Rect  = new SKRect(startX + (MultBtnW * 2 + MultBtnGap * 2) * s, barY, startX + (MultBtnW * 3 + MultBtnGap * 2) * s, barY + MultBtnH * s);
+        _multButton1000Rect = new SKRect(startX + (MultBtnW * 3 + MultBtnGap * 3) * s, barY, startX + totalW,                          barY + MultBtnH * s);
 
         int  active = ActiveMultiplier;
         bool isTemp = _temporaryMultiplier.HasValue;
-        DrawMultButton(canvas, _multButton1Rect,   "×1",   _packMultiplier == 1,   isTemp && active == 1,   s);
-        DrawMultButton(canvas, _multButton10Rect,  "×10",  _packMultiplier == 10,  isTemp && active == 10,  s);
-        DrawMultButton(canvas, _multButton100Rect, "×100", _packMultiplier == 100, isTemp && active == 100, s);
+        DrawMultButton(canvas, _multButton1Rect,    "×1",    _packMultiplier == 1,    isTemp && active == 1,    s);
+        DrawMultButton(canvas, _multButton10Rect,   "×10",   _packMultiplier == 10,   isTemp && active == 10,   s);
+        DrawMultButton(canvas, _multButton100Rect,  "×100",  _packMultiplier == 100,  isTemp && active == 100,  s);
+        DrawMultButton(canvas, _multButton1000Rect, "×1000", _packMultiplier == 1000, isTemp && active == 1000, s);
     }
 
     private void DrawMultButton(SKCanvas canvas, SKRect rect, string label, bool isActive, bool isTemporary, float s)

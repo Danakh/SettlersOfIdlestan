@@ -509,7 +509,7 @@ public static class PrestigeMapFactory
                 PrestigeMap.ForsakenTunnelVertex,
                 "prestige_vertex_forsaken_tunnel",
                 cost: Cost(PrestigeMap.ForsakenTunnelVertex),
-                modifiers: new Modifier[] { new(ECategory.HARVEST_SPEED, "Mine", EType.ADDITIVE, 0.15) }
+                modifiers: new Modifier[] { new(ECategory.MINE_GOLD_PRODUCTION_MULTIPLIER, EType.ADDITIVE, 1.0) }
             ),
             // Seul vertex doté d'un pouvoir : débloque la Guilde des Aventuriers (max niveau 0 → 4).
             new(
@@ -528,7 +528,7 @@ public static class PrestigeMapFactory
                 PrestigeMap.BottomlessPitVertex,
                 "prestige_vertex_bottomless_pit",
                 cost: Cost(PrestigeMap.BottomlessPitVertex),
-                modifiers: new Modifier[] { new(ECategory.UNDERWORLD_TREASURE_CHANCE_PERCENT, EType.ADDITIVE, 3) }
+                modifiers: new Modifier[] { new(ECategory.STORAGE_CAPACITY_MULTIPLIER, EType.ADDITIVE, 0.5) }
             ),
             // Porte de la Magie — autour de Ossuary / AbyssVoid
             new(

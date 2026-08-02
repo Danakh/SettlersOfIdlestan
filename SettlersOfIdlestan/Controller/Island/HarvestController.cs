@@ -188,6 +188,7 @@ namespace SettlersOfIdlestan.Controller.Island
                     bool goldBonus = building is Mine && resource == Resource.Ore
                         && civ.MineGoldChancePercent > 0
                         && _prng!.Next(100) < civ.MineGoldChancePercent;
+                    int goldAmount = Math.Max(1, (int)Math.Round(civ.MineGoldProductionMultiplier));
 
                     TryAutoTradeOnOverflow(civ, city, resource);
                     civ.AddResource(resource, 1);
@@ -201,8 +202,8 @@ namespace SettlersOfIdlestan.Controller.Island
                     if (goldBonus)
                     {
                         TryAutoBuyOnGoldOverflow(civ, city);
-                        civ.AddResource(Resource.Gold, 1);
-                        rs[Resource.Gold] += 1;
+                        civ.AddResource(Resource.Gold, goldAmount);
+                        rs[Resource.Gold] += goldAmount;
                     }
 
                     var forge = city.Buildings.OfType<Forge>().FirstOrDefault();
@@ -221,8 +222,8 @@ namespace SettlersOfIdlestan.Controller.Island
                         if (goldBonus)
                         {
                             TryAutoTradeOnOverflow(civ, city, Resource.Gold);
-                            civ.AddResource(Resource.Gold, 1);
-                            rs[Resource.Gold] += 1;
+                            civ.AddResource(Resource.Gold, goldAmount);
+                            rs[Resource.Gold] += goldAmount;
                         }
                     }
                 }
@@ -791,7 +792,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 if (building is Mine && resource == Resource.Ore && civ.MineGoldChancePercent > 0)
                 {
                     double goldChance = civ.MineGoldChancePercent / 100.0;
-                    AddProductionRate(result, Resource.Gold, ratePerSecond * goldChance);
+                    AddProductionRate(result, Resource.Gold, ratePerSecond * goldChance * civ.MineGoldProductionMultiplier);
                 }
             }
 
@@ -916,7 +917,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 if (building is Mine && resource == Resource.Ore && civ.MineGoldChancePercent > 0)
                 {
                     double goldChance = civ.MineGoldChancePercent / 100.0;
-                    AddSourceRate(result, Resource.Gold, sourceKey, ratePerSecond * goldChance);
+                    AddSourceRate(result, Resource.Gold, sourceKey, ratePerSecond * goldChance * civ.MineGoldProductionMultiplier);
                 }
             }
 

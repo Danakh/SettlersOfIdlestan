@@ -735,6 +735,7 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         Modifier.ECategory.UNLOCK_DEEPEST_MINE        => _localization.Get("prestige_tooltip_unlocks_deepest_mine"),
         Modifier.ECategory.UNDERWORLD_TREASURE_CHANCE_PERCENT => $"+{(int)mod.Value}% {_localization.Get("prestige_tooltip_underworld_treasure")}",
         Modifier.ECategory.MINE_GOLD_CHANCE_PERCENT   => $"+{(int)mod.Value}% {_localization.Get("prestige_tooltip_mine_gold_chance")}",
+        Modifier.ECategory.MINE_GOLD_PRODUCTION_MULTIPLIER => $"+{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_mine_gold_production_multiplier")}",
         Modifier.ECategory.NEW_CITY_BUILDING          => $"{_localization.Get("prestige_tooltip_new_city_building")} {_localization.Get($"building_{mod.SubCategory.ToLower()}_name")}",
         Modifier.ECategory.UNLOCK_MAGIC               => _localization.Get("prestige_tooltip_unlocks_magic"),
         Modifier.ECategory.UNLOCK_INVOCATIONS         => _localization.Get("prestige_tooltip_unlocks_invocations"),
