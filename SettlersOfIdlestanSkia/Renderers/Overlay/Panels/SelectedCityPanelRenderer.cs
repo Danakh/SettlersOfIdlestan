@@ -48,6 +48,7 @@ public class SelectedCityPanelRenderer : PanelRendererBase
     private SKRect _tabRegularRect = SKRect.Empty;
     private SKRect _tabUniqueRect = SKRect.Empty;
     private City? _lastSelectedCity = null;
+    private bool _lastHasUnique = false;
     private SKPaint? _tabActivePaint;
     private SKPaint? _tabInactivePaint;
     private SKPaint? _dimTextPaint;
@@ -150,13 +151,22 @@ public class SelectedCityPanelRenderer : PanelRendererBase
         _tabRegularRect = SKRect.Empty;
         _tabUniqueRect = SKRect.Empty;
 
+        bool hasUnique = _cityBuildingService.HasUniqueBuildingsUnlocked();
+
         if (_cityBuildingService.SelectedCity != _lastSelectedCity)
         {
             _lastSelectedCity = _cityBuildingService.SelectedCity;
             ScrollOffset = 0;
+            _lastHasUnique = hasUnique;
         }
+        else if (hasUnique && !_lastHasUnique)
+        {
+            // Le townhall vient d'atteindre le niveau 4 pendant que cette ville était sélectionnée :
+            // on ne bascule pas automatiquement sur l'onglet Unique, l'utilisateur doit le choisir.
+            _showUniqueBuildings = false;
+        }
+        _lastHasUnique = hasUnique;
 
-        bool hasUnique = _cityBuildingService.HasUniqueBuildingsUnlocked();
         float tabArea = hasUnique ? tabHeight + padding : 0f;
 
         // Le choix Bâtiments/Unique est conservé d'une ville à l'autre, mais ne s'applique que
