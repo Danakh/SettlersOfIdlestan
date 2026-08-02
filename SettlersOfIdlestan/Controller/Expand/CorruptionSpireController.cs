@@ -108,17 +108,21 @@ namespace SettlersOfIdlestan.Controller.Expand
             => _state?.Features.OfType<CorruptionSpire>().Any(f => f.Built) == true;
 
         /// <summary>
-        /// Hexes de l'Inframonde portant la feature Corruption, libres de toute autre feature.
+        /// Hexes de l'Inframonde portant la feature Corruption, libres de toute autre feature,
+        /// et actuellement visibles par le joueur (dévoilés par une ville ou une route).
         /// </summary>
         public List<HexCoord> GetPlaceableHexes()
         {
             if (_state == null) return new List<HexCoord>();
+
+            _state.Visibility.GetForZ(LayerState.UnderworldZ).TryGetValue(_state.PlayerCivilization.Index, out var visibleMap);
 
             var result = new List<HexCoord>();
             foreach (var feature in _state.Features.OfType<Corruption>())
             {
                 var hex = feature.Position;
                 if (hex.Z != LayerState.UnderworldZ) continue;
+                if (visibleMap?.GetTile(hex) == null) continue;
 
                 var tile = _state.GetMapFor(hex)?.GetTile(hex);
                 if (tile == null) continue;
