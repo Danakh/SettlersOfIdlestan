@@ -374,12 +374,14 @@ namespace SettlersOfIdlestan.Controller
                 BuildingController.OnBuildingBuilt -= OnBuildingBuiltZigguratTrigger;
                 CityBuilderController.OnCityBuilt -= OnCityBuiltInvalidateHarvestCache;
                 CityBuilderController.OnCityDestroyed -= OnCityDestroyedHandler;
+                CityBuilderController.OnCityRelocated -= OnCityRelocatedDestroyNearbyCamps;
                 RoadController.OnRoadBuilt -= OnRoadBuiltExtendMap;
                 RoadController.OnAutoRoadBuilt -= OnRoadBuiltExtendMap;
                 BuildingController.OnBuildingBuilt += OnBuildingChangedInvalidateHarvestCache;
                 BuildingController.OnBuildingBuilt += OnBuildingBuiltZigguratTrigger;
                 CityBuilderController.OnCityBuilt += OnCityBuiltInvalidateHarvestCache;
                 CityBuilderController.OnCityDestroyed += OnCityDestroyedHandler;
+                CityBuilderController.OnCityRelocated += OnCityRelocatedDestroyNearbyCamps;
                 RoadController.OnRoadBuilt += OnRoadBuiltExtendMap;
                 RoadController.OnAutoRoadBuilt += OnRoadBuiltExtendMap;
                 FeatureController.OnFeatureDiscovered -= OnFeatureDiscovered;
@@ -450,6 +452,14 @@ namespace SettlersOfIdlestan.Controller
         {
             FeatureController.RefreshContestedTerritories();
             HarvestController.InvalidateProductionCache();
+            MobileCampController.DestroyCampsNear(e.Position, e.CivilizationIndex);
+        }
+
+        /// <summary>Relocating a city onto (or near) a Camp Mobile of the same civilization must destroy
+        /// it, exactly like founding a new city there — see CityBuilderController.RelocateCity and
+        /// MobileCampController.DestroyCampsNear.</summary>
+        private void OnCityRelocatedDestroyNearbyCamps(object? sender, OutpostAutoBuiltEventArgs e)
+        {
             MobileCampController.DestroyCampsNear(e.Position, e.CivilizationIndex);
         }
 

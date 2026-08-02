@@ -277,6 +277,35 @@ public class MobileCampControllerTests
     }
 
     [Fact]
+    public void CityRelocated_DestroysNearbyOwnMobileCamp_ButNotEnemyCamp_ViaOnCityRelocatedEvent()
+    {
+        // Mirrors CityBuilt_DestroysNearbyOwnMobileCamp_ButNotEnemyCamp_ViaOnCityBuiltEvent above, but for
+        // relocation: MainGameController also wires CityBuilderController.OnCityRelocated to
+        // MobileCampController.DestroyCampsNear, so relocating a city must clear nearby own camps the
+        // same way founding one does.
+        var (state, civ, v1, vMiddle, v2) = RibbonIsland();
+        var enemyCiv = new Civilization { Index = 1 };
+        state.Civilizations.Add(enemyCiv);
+        var city = new City(v1) { CivilizationIndex = 0 };
+        civ.AddCity(city);
+        civ.AddMobileCamp(new MobileCamp(v2) { CivilizationIndex = 0 });
+        enemyCiv.AddMobileCamp(new MobileCamp(v2) { CivilizationIndex = 1 });
+        var (cityController, campController) = Controllers(state);
+        cityController.OnCityRelocated += (_, e) => campController.DestroyCampsNear(e.Position, e.CivilizationIndex);
+        civ.SetStorageCapacityCache(1000, 1000);
+        civ.AddResource(Resource.Gold, CityBuilderController.RelocationCost()[Resource.Gold]);
+        civ.AddResource(Resource.Food, CityBuilderController.RelocationCost()[Resource.Food]);
+
+        // v2 hosts both camps and stays untouched by the move itself — vMiddle is the relocation
+        // target, one edge away from v2, i.e. within MobileCampController.CityProximityDestroyDistance.
+        var relocated = cityController.RelocateCity(city, vMiddle);
+
+        Assert.True(relocated);
+        Assert.Empty(civ.MobileCamps);
+        Assert.Single(enemyCiv.MobileCamps);
+    }
+
+    [Fact]
     public void GetBuildCost_ReturnsFixedValues()
     {
         var cost = MobileCampController.GetBuildCost();

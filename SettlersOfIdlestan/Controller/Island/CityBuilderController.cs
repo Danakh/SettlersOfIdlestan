@@ -66,6 +66,12 @@ namespace SettlersOfIdlestan.Controller.Island
         public event EventHandler<OutpostAutoBuiltEventArgs>? OnCityBuilt;
         public event EventHandler<CityDestroyedEventArgs>? OnCityDestroyed;
 
+        /// <summary>Fired after <see cref="RelocateCity"/> moves a city to its new vertex — distinct from
+        /// <see cref="OnCityBuilt"/> so subscribers that count/log new-city creation (tasks, history) don't
+        /// mistake a relocation for one. MainGameController still uses it to destroy any Camp Mobile now
+        /// sitting under the city, same as MobileCampController.DestroyCampsNear on OnCityBuilt.</summary>
+        public event EventHandler<OutpostAutoBuiltEventArgs>? OnCityRelocated;
+
         internal CityBuilderController(WorldState? state = null)
         {
             _state = state;
@@ -156,7 +162,12 @@ namespace SettlersOfIdlestan.Controller.Island
         /// Returns vertices where the civilization can build a city (outpost).
         /// Rules (simple):
         /// - vertex not already occupied by any IBuildVertex (city, Flotte de Guerre or Balise Maritime —
-        ///   see WarFleetController, which builds fleets on beacons instead of classic cities)
+        ///   see WarFleetController, which builds fleets on beacons instead of classic cities), except
+        ///   a Camp Mobile belonging to this same civilization, which does not block city construction
+        ///   at its vertex (see MobileCampController.DestroyCampsNear, triggered by OnCityBuilt, which
+        ///   removes it once the city is created — the UI is expected to still require destroying it
+        ///   manually first, this model-level allowance only exists so a coincident city build isn't
+        ///   rejected outright)
         /// - vertex touches at least one road of the civilization
         /// - no city of another civilization is at distance < 2 (at least 2 edges required between civs)
         /// - no existing city of the same civilization is at distance < 3
@@ -225,7 +236,12 @@ namespace SettlersOfIdlestan.Controller.Island
             if (flightRange > 0)
                 AddFlightCandidateVertices(vertices, civ, flightRange, excludingCity);
 
-            var occupiedVertices = new HashSet<Vertex>(_state.GetAllBuildVertices().Select(v => v.Position));
+            // Un Camp Mobile de cette même civilisation n'empêche pas d'y bâtir une ville par-dessus
+            // (voir doc de GetBuildableVertices) — seuls les IBuildVertex d'autres civilisations, ou
+            // les propres villes/flottes/balises, comptent comme occupation ici.
+            var occupiedVertices = new HashSet<Vertex>(_state.GetAllBuildVertices()
+                .Where(bv => !(bv is MobileCamp camp && camp.CivilizationIndex == civilizationIndex))
+                .Select(v => v.Position));
 
             // now we filter vertices that aren't far enough from any city using MinDistanceBetweenCities and MinDistanceBetweenCivilizationCities
             vertices = vertices.Where(v =>
@@ -429,6 +445,7 @@ namespace SettlersOfIdlestan.Controller.Island
             _buildableVerticesCache.Clear();
             _state.Visibility.RecalculateFor(city.CivilizationIndex);
             ClaimTreasureTrovesAt(city, civ);
+            OnCityRelocated?.Invoke(this, new OutpostAutoBuiltEventArgs(city.CivilizationIndex, destination));
             return true;
         }
 

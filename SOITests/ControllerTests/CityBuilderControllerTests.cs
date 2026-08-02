@@ -88,6 +88,50 @@ public class CityBuilderControllerTests
     }
 
     [Fact]
+    public void GetBuildableVertices_IncludesExactVertexOfOwnMobileCamp()
+    {
+        // Unlike a fleet or a beacon, a Camp Mobile of this same civilization must not block city
+        // construction at its own vertex — the UI is expected to still require destroying it manually
+        // first (see ConstructionInteractionService), but the model itself must allow it so the
+        // Builder's Guild automation can replace a camp with an outpost.
+        var (state, civ, _, vMiddle, _) = RibbonIsland();
+        civ.AddMobileCamp(new MobileCamp(vMiddle) { CivilizationIndex = 0 });
+
+        var vertices = Controller(state).GetBuildableVertices(0);
+
+        Assert.Contains(vertices, v => v.Equals(vMiddle));
+    }
+
+    [Fact]
+    public void GetBuildableVertices_ExcludesExactVertexOfEnemyMobileCamp()
+    {
+        var (state, civ, _, vMiddle, _) = RibbonIsland();
+        var enemyCiv = new Civilization { Index = 1 };
+        state.Civilizations.Add(enemyCiv);
+        enemyCiv.AddMobileCamp(new MobileCamp(vMiddle) { CivilizationIndex = 1 });
+
+        var vertices = Controller(state).GetBuildableVertices(0);
+
+        Assert.DoesNotContain(vertices, v => v.Equals(vMiddle));
+    }
+
+    [Fact]
+    public void BuildCity_SucceedsOnTopOfOwnMobileCamp()
+    {
+        var (state, civ, _, vMiddle, _) = RibbonIsland();
+        civ.AddMobileCamp(new MobileCamp(vMiddle) { CivilizationIndex = 0 });
+        civ.SetStorageCapacityCache(1000, 1000);
+        civ.AddResource(Resource.Brick, 10);
+        civ.AddResource(Resource.Wood, 10);
+        civ.AddResource(Resource.Food, 15);
+
+        var city = Controller(state).BuildCity(0, vMiddle);
+
+        Assert.NotNull(city);
+        Assert.Equal(vMiddle, city!.Position);
+    }
+
+    [Fact]
     public void GetBuildableVertices_SameCivilizationFleet_DoesNotBlockNearbyCity()
     {
         var (state, civ, _, vMiddle, v2) = RibbonIsland();
