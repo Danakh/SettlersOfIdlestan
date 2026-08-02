@@ -600,8 +600,17 @@ namespace SettlersOfIdlestan.Controller.Island
             // La ville de départ (toujours en surface) ne compte pas comme "ville supplémentaire".
             int surchargeableSurfaceCities = Math.Max(0, surfaceCities - 1);
 
+            // Les couches plus profondes (Inframonde, Abysse) plafonnent le nombre de villes des
+            // couches au-dessus qu'elles prennent en compte, pour éviter une explosion du coût
+            // quand la surface/l'Inframonde comptent énormément de villes.
+            const int MaxCitiesFromShallowerLayers = 20;
+            int cappedSurchargeableSurfaceCities = Math.Min(surchargeableSurfaceCities, MaxCitiesFromShallowerLayers);
+            int cappedUnderworldCities = Math.Min(underworldCities, MaxCitiesFromShallowerLayers);
+
             double effectiveSurfaceOverCost = surchargeFactor * surchargeableSurfaceCities;
+            double effectiveSurfaceOverCostCapped = surchargeFactor * cappedSurchargeableSurfaceCities;
             double effectiveUnderworldOverCost = Math.Pow(surchargeFactor * underworldCities, 1.5);
+            double effectiveUnderworldOverCostCapped = Math.Pow(surchargeFactor * cappedUnderworldCities, 1.5);
             double effectiveAbyssOverCost = Math.Pow(surchargeFactor * abyssCities, 2);
 
             double multiplier;
@@ -609,12 +618,12 @@ namespace SettlersOfIdlestan.Controller.Island
             {
                 cost[Resource.Gold] = 10;
                 cost[Resource.Crystal] = 5;
-                multiplier = 1.0 + 1.0 * (effectiveSurfaceOverCost + effectiveUnderworldOverCost + effectiveAbyssOverCost);
+                multiplier = 1.0 + 1.0 * (effectiveSurfaceOverCostCapped + effectiveUnderworldOverCostCapped + effectiveAbyssOverCost);
             }
             else if (targetVertex.Z == LayerState.UnderworldZ)
             {
                 cost[Resource.Gold] = 10;
-                multiplier = 1.0 + 0.5 * (effectiveSurfaceOverCost + effectiveUnderworldOverCost);
+                multiplier = 1.0 + 0.5 * (effectiveSurfaceOverCostCapped + effectiveUnderworldOverCost);
             }
             else
             {
