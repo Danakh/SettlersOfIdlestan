@@ -34,9 +34,10 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
     private const float ToggleHeight = 24f;
     private const float RowHeight    = 36f;
     private const float SepSpacing   = 8f;
-    private const float IconBtnSize  = 18f;
-    private const float IconBtnGap   = 4f;
+    private const float IconBtnSize  = 24f;
+    private const float IconBtnGap   = 6f;
     private const float IconSvgSize  = 64f;
+    private const float ActionsHeaderHeight = 30f;
 
     private readonly GameControllerService _gameControllerService;
     private readonly LocalizationService _localization;
@@ -58,6 +59,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
     private float _totalContentHeight;
     private float _viewportHeight;
     private bool  _needsScroll;
+    private float _scrollRegionTop;
 
     private SKRect _tradeButtonRect    = SKRect.Empty;
     private SKRect _prestigeButtonRect = SKRect.Empty;
@@ -256,22 +258,29 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             return;
         }
 
-        // Measure total panel height
-        float h = panelPadding;
+        float actionsHeaderHeight = ActionsHeaderHeight * s;
+
+        // Measure total panel height. The Actions header (title + trade/raid/war herald/locate
+        // hero icon buttons) is pinned above the scrollable area, so it's tracked separately
+        // from the rest of the content, which can scroll under it.
+        float fixedHeaderHeight = panelPadding + (showActions ? actionsHeaderHeight : 0f);
+        float scrollableHeight  = 0f;
         if (showActions)
         {
             int actionRows  = (actionCount + 1) / 2;
-            h += titleHeight + actionRows * (btnHeight + btnSpacing);
+            scrollableHeight += actionRows * (btnHeight + btnSpacing);
         }
-        if (showActions && showControls) h += sepSpacing * 2 + 1f;
+        if (showActions && showControls) scrollableHeight += sepSpacing * 2 + 1f;
         if (showControls)
         {
-            h += titleHeight;
+            scrollableHeight += titleHeight;
             foreach (var k in pinned)
                 if (IsKeyShowable(k, civ, worldState, hasBarracks, hasArsenal, hasLabs, hasSmelters, hasWeaponSmiths, hasArmorSmiths, hasAlchimistHuts))
-                    h += rowHeight;
+                    scrollableHeight += rowHeight;
         }
-        h += panelPadding;
+        scrollableHeight += panelPadding;
+
+        float h = fixedHeaderHeight + scrollableHeight;
 
         // Global elevator when the panel is taller than the available vertical space.
         float maxPanelHeight = TabsAtBottom
@@ -279,9 +288,10 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             : Math.Max(0f, CanvasSize.Height - panelTop - 10f * s);
         _needsScroll = h > maxPanelHeight;
         float panelHeight = _needsScroll ? maxPanelHeight : h;
-        _totalContentHeight = h;
-        _viewportHeight     = panelHeight;
-        _scrollOffsetPx = Math.Clamp(_scrollOffsetPx, 0f, Math.Max(0f, h - panelHeight));
+        float scrollViewportHeight = Math.Max(0f, panelHeight - fixedHeaderHeight);
+        _totalContentHeight = scrollableHeight;
+        _viewportHeight     = scrollViewportHeight;
+        _scrollOffsetPx = Math.Clamp(_scrollOffsetPx, 0f, Math.Max(0f, scrollableHeight - scrollViewportHeight));
 
         PanelBounds = new SKRect(panelLeft, panelTop, panelLeft + panelWidth, panelTop + panelHeight);
         DrawPanelChrome(canvas, panelLeft, panelTop, panelWidth, panelHeight, cornerRadius: 8f);
@@ -291,24 +301,20 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         CollapseTabRect = new SKRect(panelLeft + panelWidth - tabOverlap, tabTop, panelLeft + panelWidth - tabOverlap + collapseTabW, tabTop + collapseTabH);
         DrawCollapseTabRect(canvas, CollapseTabRect, false);
 
-        if (_needsScroll)
-        {
-            canvas.Save();
-            canvas.ClipRect(new SKRect(panelLeft, panelTop, panelLeft + panelWidth, panelTop + panelHeight));
-            canvas.Translate(0, -_scrollOffsetPx);
-        }
-
         float x = panelLeft + panelPadding;
         float y = panelTop + panelPadding;
 
+        // Actions header (title + trade/raid/war herald/locate hero icon buttons) is drawn
+        // before the scroll clip/translate below, so it stays pinned above the elevator and
+        // remains reachable even when the pinned-controls list pushes the panel to scroll.
         if (showActions)
         {
             SkiaTextUtils.DrawText(canvas, _localization.Get("panel_civ_actions"), x, y + titleSize, _sectionFont, _sectionTitlePaint);
 
-            // Small icon buttons (locate hero / war herald / raid), right-aligned on the Actions title row.
+            // Small icon buttons (locate hero / war herald / raid / trade), right-aligned on the Actions title row.
             float iconBtnSize = IconBtnSize * s;
             float iconGap     = IconBtnGap * s;
-            float iconY       = y + (titleHeight - iconBtnSize) / 2f;
+            float iconY       = y + (actionsHeaderHeight - iconBtnSize) / 2f;
             float iconRight   = x + contentW;
 
             if (locateHeroVisible)
@@ -339,8 +345,20 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
                 iconRight -= iconBtnSize + iconGap;
             }
 
-            y += titleHeight;
+            y += actionsHeaderHeight;
+        }
 
+        _scrollRegionTop = y;
+
+        if (_needsScroll)
+        {
+            canvas.Save();
+            canvas.ClipRect(new SKRect(panelLeft, _scrollRegionTop, panelLeft + panelWidth, panelTop + panelHeight));
+            canvas.Translate(0, -_scrollOffsetPx);
+        }
+
+        if (showActions)
+        {
             float colGap = 6f * s;
             float colW   = (contentW - colGap) / 2f;
             float actionsY   = y;
@@ -487,12 +505,15 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             canvas.Restore();
             float scrollW  = 5f * s;
             float trackX   = panelLeft + panelWidth - scrollW - 2f * s;
-            float trackTop = panelTop + 4f * s;
-            float trackH   = panelHeight - 8f * s;
-            DrawScrollbar(canvas, trackX, trackTop, trackH, (int)MathF.Ceiling(h), (int)MathF.Ceiling(panelHeight), (int)_scrollOffsetPx);
+            float trackTop = _scrollRegionTop + 4f * s;
+            float trackH   = scrollViewportHeight - 8f * s;
+            DrawScrollbar(canvas, trackX, trackTop, trackH, (int)MathF.Ceiling(scrollableHeight), (int)MathF.Ceiling(scrollViewportHeight), (int)_scrollOffsetPx);
         }
 
         // Tooltips — set each frame so they persist while hovering
+        // The Actions header icon buttons (trade/raid/war herald/locate hero) sit above the
+        // scroll clip/translate, so their rects are already in screen space; everything else
+        // was drawn inside the scrolled block and needs the offset added back.
         float TipY(float contentY) => _needsScroll ? contentY - _scrollOffsetPx : contentY;
         if (_hoveredTrade)
         {
@@ -500,7 +521,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             {
                 _localization.Get("trade_action"),
                 _localization.Get("tooltip_trade")
-            }, new SKPoint(_tradeButtonRect.Right, TipY(_tradeButtonRect.Top)));
+            }, new SKPoint(_tradeButtonRect.Right, _tradeButtonRect.Top));
         }
         else if (_hoveredRaid && raidActive)
         {
@@ -510,7 +531,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
                 _localization.Get("raid_action_stop"),
                 _localization.Get("tooltip_raid_active"),
                 _localization.GetFormated("raid_upkeep_cost_current", currentUpkeep)
-            }, new SKPoint(_raidButtonRect.Right, TipY(_raidButtonRect.Top)));
+            }, new SKPoint(_raidButtonRect.Right, _raidButtonRect.Top));
         }
         else if (_hoveredRaid)
         {
@@ -519,7 +540,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
                 _localization.Get("raid_action"),
                 _localization.Get("tooltip_raid"),
                 _localization.Get("raid_upkeep_cost")
-            }, new SKPoint(_raidButtonRect.Right, TipY(_raidButtonRect.Top)));
+            }, new SKPoint(_raidButtonRect.Right, _raidButtonRect.Top));
         }
         else if (_hoveredWarHerald)
         {
@@ -527,7 +548,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             {
                 _localization.Get("warherald_action_short"),
                 _localization.Get("tooltip_warherald")
-            }, new SKPoint(_warHeraldButtonRect.Right, TipY(_warHeraldButtonRect.Top)));
+            }, new SKPoint(_warHeraldButtonRect.Right, _warHeraldButtonRect.Top));
         }
         else if (_hoveredLocateHero)
         {
@@ -535,7 +556,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             {
                 _localization.Get("locate_hero_action"),
                 _localization.Get("tooltip_locate_hero")
-            }, new SKPoint(_locateHeroButtonRect.Right, TipY(_locateHeroButtonRect.Top)));
+            }, new SKPoint(_locateHeroButtonRect.Right, _locateHeroButtonRect.Top));
         }
         else if (_hoveredPrestige && prestigeAvail && prestigeVisible)
         {
@@ -628,21 +649,24 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
     {
         if (_disposed) return;
 
-        // Rects are stored in unscrolled content coordinates (as drawn before the canvas
-        // translate applied while scrolling) — convert the pointer into that same space,
-        // and only while it's actually over the visible (clipped) part of the panel.
-        bool inViewport = !_needsScroll || (pos.Y >= PanelBounds.Top && pos.Y <= PanelBounds.Bottom);
+        // The Actions header icon buttons (trade/raid/war herald/locate hero) are pinned above
+        // the scroll clip/translate, so their rects are in plain screen space.
+        _hoveredTrade       = !_tradeButtonRect.IsEmpty       && _tradeButtonRect.Contains(pos.X, pos.Y);
+        _hoveredRaid        = !_raidButtonRect.IsEmpty        && _raidButtonRect.Contains(pos.X, pos.Y);
+        _hoveredWarHerald   = !_warHeraldButtonRect.IsEmpty   && _warHeraldButtonRect.Contains(pos.X, pos.Y);
+        _hoveredLocateHero  = !_locateHeroButtonRect.IsEmpty  && _locateHeroButtonRect.Contains(pos.X, pos.Y);
+
+        // Everything else is stored in unscrolled content coordinates (as drawn before the
+        // canvas translate applied while scrolling) — convert the pointer into that same space,
+        // and only while it's actually over the visible (clipped) scrollable part of the panel.
+        bool inViewport = !_needsScroll || (pos.Y >= _scrollRegionTop && pos.Y <= PanelBounds.Bottom);
         float py = inViewport ? pos.Y + _scrollOffsetPx : float.NegativeInfinity;
 
-        _hoveredTrade       = !_tradeButtonRect.IsEmpty       && _tradeButtonRect.Contains(pos.X, py);
         _hoveredPrestige    = !_prestigeButtonRect.IsEmpty    && _prestigeButtonRect.Contains(pos.X, py);
         _hoveredWonder      = !_wonderButtonRect.IsEmpty      && _wonderButtonRect.Contains(pos.X, py);
         _hoveredGreatLighthouse = !_greatLighthouseButtonRect.IsEmpty && _greatLighthouseButtonRect.Contains(pos.X, py);
         _hoveredDeepestMine = !_deepestMineButtonRect.IsEmpty && _deepestMineButtonRect.Contains(pos.X, py);
         _hoveredSpire       = !_spireButtonRect.IsEmpty       && _spireButtonRect.Contains(pos.X, py);
-        _hoveredRaid        = !_raidButtonRect.IsEmpty        && _raidButtonRect.Contains(pos.X, py);
-        _hoveredWarHerald   = !_warHeraldButtonRect.IsEmpty   && _warHeraldButtonRect.Contains(pos.X, py);
-        _hoveredLocateHero  = !_locateHeroButtonRect.IsEmpty  && _locateHeroButtonRect.Contains(pos.X, py);
         _hoveredRelocation  = !_relocationButtonRect.IsEmpty  && _relocationButtonRect.Contains(pos.X, py);
         _hoveredWalkOfGod   = !_walkOfGodButtonRect.IsEmpty   && _walkOfGodButtonRect.Contains(pos.X, py);
         _hoveredPresenceOfGod = !_presenceOfGodButtonRect.IsEmpty && _presenceOfGodButtonRect.Contains(pos.X, py);
@@ -669,16 +693,18 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
 
         if (!PanelBounds.Contains(pos.X, pos.Y)) return false;
 
-        // Rects are stored in unscrolled content coordinates — convert the (already
-        // viewport-clamped, thanks to the PanelBounds check above) pointer into that space.
-        float py = _needsScroll ? pos.Y + _scrollOffsetPx : pos.Y;
-
-        if (!_tradeButtonRect.IsEmpty && _tradeButtonRect.Contains(pos.X, py))
+        // The Actions header icon buttons (trade/raid/war herald/locate hero) are pinned above
+        // the scroll clip/translate, so they're hit-tested against the raw pointer position.
+        if (!_tradeButtonRect.IsEmpty && _tradeButtonRect.Contains(pos.X, pos.Y))
         {
             _closeAll();
             _tradeRenderer.Open();
             return true;
         }
+
+        // Everything else below is stored in unscrolled content coordinates — convert the
+        // (already viewport-clamped, thanks to the PanelBounds check above) pointer into that space.
+        float py = _needsScroll ? pos.Y + _scrollOffsetPx : pos.Y;
 
         if (!_prestigeButtonRect.IsEmpty && _prestigeButtonRect.Contains(pos.X, py) && IsPrestigeAvailable())
         {
@@ -726,7 +752,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             return true;
         }
 
-        if (!_raidButtonRect.IsEmpty && _raidButtonRect.Contains(pos.X, py))
+        if (!_raidButtonRect.IsEmpty && _raidButtonRect.Contains(pos.X, pos.Y))
         {
             var playerCiv = _gameControllerService.PlayerCivilization;
             if (IsRaidActive())
@@ -749,7 +775,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             return true;
         }
 
-        if (!_warHeraldButtonRect.IsEmpty && _warHeraldButtonRect.Contains(pos.X, py) && _targetSelectionService != null)
+        if (!_warHeraldButtonRect.IsEmpty && _warHeraldButtonRect.Contains(pos.X, pos.Y) && _targetSelectionService != null)
         {
             var playerCiv = _gameControllerService.PlayerCivilization;
             if (playerCiv != null)
@@ -765,7 +791,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             return true;
         }
 
-        if (!_locateHeroButtonRect.IsEmpty && _locateHeroButtonRect.Contains(pos.X, py))
+        if (!_locateHeroButtonRect.IsEmpty && _locateHeroButtonRect.Contains(pos.X, pos.Y))
         {
             var playerCiv = _gameControllerService.PlayerCivilization;
             var guildCity = playerCiv != null ? GetAdventurersGuildCity(playerCiv) : null;
