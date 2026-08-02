@@ -31,13 +31,13 @@ public class MajorDemon : MonsterFeature
     public override bool CanCrossWater => true;
     public override bool CanCrossVoid => true;
 
-    public override double HpRegenAmount => 2 + MajorDemonHpRegenPerLevel * (Level - 1);
+    public override double HpRegenAmount => 3 + MajorDemonHpRegenPerLevel * (Level - 1);
     public override long HpRegenIntervalTicks => Dragon.DragonHpRegenIntervalTicks;
 
     public override int AttackRangeInHexes => 2;
     public override long AttackIntervalTicks => MajorDemonAttackIntervalTicks;
     public override bool IgnoresPalisade => true;
-    public override int AttackDamage => 4 + MajorDemonAttackDamagePerLevel * (Level - 1);
+    public override int AttackDamage => 7 + MajorDemonAttackDamagePerLevel * (Level - 1);
     public override int AttackResources => 10;
 
     public override GameEventType DiscoveredEventType => GameEventType.MajorDemonDiscovered;

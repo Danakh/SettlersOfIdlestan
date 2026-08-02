@@ -22,7 +22,7 @@ namespace SOITests.ControllerTests
             Assert.Equal(Dragon.DragonMaxHp, demon.MaxHp);
             Assert.Equal(2, demon.AttackRangeInHexes);
             Assert.True(demon.IgnoresPalisade);
-            Assert.Equal(2, demon.AttackDamage);
+            Assert.Equal(5, demon.AttackDamage);
             Assert.Equal(5, demon.AttackResources);
 
             // Mais beaucoup plus mobile, avec un intervalle d'attaque court en conséquence :
@@ -31,7 +31,7 @@ namespace SOITests.ControllerTests
             Assert.True(demon.CanMove);
             Assert.Equal(1_000L, demon.MovementIntervalTicks);
             Assert.Equal(2, demon.MovementRangeInHexes);
-            Assert.Equal(200L, demon.AttackIntervalTicks);
+            Assert.Equal(150L, demon.AttackIntervalTicks);
         }
 
         /// <summary>

@@ -21,7 +21,7 @@ public class MinorDemon : MonsterFeature
     public const double MinorDemonHpRegenPerLevel = 0.5;
     public const long MinorDemonMovementIntervalTicks = 1_000L;
     public const int MinorDemonMovementRangeInHexes = 2;
-    public const long MinorDemonAttackIntervalTicks = 200L;
+    public const long MinorDemonAttackIntervalTicks = 150L;
 
     public override int MaxHp => MinorDemonMaxHp + MinorDemonMaxHpPerLevel * (Level - 1);
     public override bool BlocksHarvest => true;
@@ -33,13 +33,13 @@ public class MinorDemon : MonsterFeature
     public override bool CanCrossWater => true;
     public override bool CanCrossVoid => true;
 
-    public override double HpRegenAmount => 1 + MinorDemonHpRegenPerLevel * (Level - 1);
+    public override double HpRegenAmount => 2 + MinorDemonHpRegenPerLevel * (Level - 1);
     public override long HpRegenIntervalTicks => Dragon.DragonHpRegenIntervalTicks;
 
     public override int AttackRangeInHexes => 2;
     public override long AttackIntervalTicks => MinorDemonAttackIntervalTicks;
     public override bool IgnoresPalisade => true;
-    public override int AttackDamage => 2 + MinorDemonAttackDamagePerLevel * (Level - 1);
+    public override int AttackDamage => 5 + MinorDemonAttackDamagePerLevel * (Level - 1);
     public override int AttackResources => 5;
 
     public override GameEventType DiscoveredEventType => GameEventType.MinorDemonDiscovered;
