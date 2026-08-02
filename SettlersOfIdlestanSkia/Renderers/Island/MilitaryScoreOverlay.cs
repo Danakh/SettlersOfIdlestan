@@ -57,25 +57,30 @@ public sealed class MilitaryScoreOverlay
             return;
 
         float yBase = markerPos.Y + markerRadius + 3f + IconSize;
-        float spacing = IconSize + 16f;
-        float totalWidth = 0f;
-        if (showAttack) totalWidth += spacing;
-        if (showDefense) totalWidth += spacing;
-        float xStart = markerPos.X - totalWidth / 2f + spacing / 2f;
+        const float textGap = 2f;
+        const float blockGap = 10f;
 
-        float x = xStart;
+        string attackText = attack.ToString();
+        string defenseText = $"{currentDefense}/{maxDefense}";
+
+        float attackBlockWidth = showAttack ? IconSize + textGap + _textFont.MeasureText(attackText) : 0f;
+        float defenseBlockWidth = showDefense ? IconSize + textGap + _textFont.MeasureText(defenseText) : 0f;
+
+        float totalWidth = attackBlockWidth + defenseBlockWidth;
+        if (showAttack && showDefense) totalWidth += blockGap;
+
+        float x = markerPos.X - totalWidth / 2f;
         if (showAttack)
         {
-            DrawIcon(canvas, _attackSvg, new SKPoint(x, yBase), new SKColor(220, 80, 60));
-            SkiaTextUtils.DrawText(canvas, attack.ToString(), x + IconSize / 2f + 2f, yBase + 3f, SKTextAlign.Left, _textFont, _textPaint);
-            x += spacing;
+            DrawIcon(canvas, _attackSvg, new SKPoint(x + IconSize / 2f, yBase), new SKColor(220, 80, 60));
+            SkiaTextUtils.DrawText(canvas, attackText, x + IconSize + textGap, yBase + 3f, SKTextAlign.Left, _textFont, _textPaint);
+            x += attackBlockWidth + blockGap;
         }
         if (showDefense)
         {
             var defColor = currentDefense == 0 ? new SKColor(200, 60, 60) : new SKColor(80, 160, 220);
-            DrawIcon(canvas, _defenseSvg, new SKPoint(x, yBase), defColor);
-            string defText = $"{currentDefense}/{maxDefense}";
-            SkiaTextUtils.DrawText(canvas, defText, x + IconSize / 2f + 2f, yBase + 3f, SKTextAlign.Left, _textFont, _textPaint);
+            DrawIcon(canvas, _defenseSvg, new SKPoint(x + IconSize / 2f, yBase), defColor);
+            SkiaTextUtils.DrawText(canvas, defenseText, x + IconSize + textGap, yBase + 3f, SKTextAlign.Left, _textFont, _textPaint);
         }
     }
 
