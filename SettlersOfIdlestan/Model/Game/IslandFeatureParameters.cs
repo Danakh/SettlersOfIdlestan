@@ -10,7 +10,6 @@ namespace SettlersOfIdlestan.Model.Game
         BanditHideout,
         Dragon,
         Rats,
-        Volcano,
     }
 
     [JsonConverter(typeof(JsonStringEnumConverter<IslandFeaturePlacement>))]

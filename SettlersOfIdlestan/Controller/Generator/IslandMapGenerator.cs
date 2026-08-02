@@ -142,6 +142,8 @@ public class IslandMapGenerator
         if (parameters.Features.Count > 0)
             PlaceFeatures(WorldState, parameters.Features, currentTick, tier);
 
+        PlaceVolcanoes(WorldState, landmasses, parameters.WorldId, tier);
+
         if (parameters.HasBonusIsland)
             TryAddBonusIsland(WorldState, tier);
 
@@ -715,6 +717,47 @@ public class IslandMapGenerator
         }
     }
 
+    private const int VolcanoChancePercent = 50;
+
+    /// <summary>
+    /// Place les volcans : île 4 (masse continentale unique, non endgame) garantie à 100 %. À
+    /// partir de l'île endgame (WorldId ≥ 5, 2-3 masses continentales dans <paramref name="landmasses"/>,
+    /// voir GenerateAdditionalIslands), jet indépendant de VolcanoChancePercent par masse ; si aucune
+    /// des masses précédentes n'a reçu de volcan, la dernière masse est garantie à 100 % (sinon jet
+    /// normal). Reprend le jet de 10 % de Dragon co-localisé sur chaque volcan posé (comportement
+    /// inchangé).
+    /// </summary>
+    private void PlaceVolcanoes(WorldState worldState, List<List<HexCoord>> landmasses, int worldId, int tier)
+    {
+        if (worldId < 4 || landmasses.Count == 0) return;
+
+        int level = MonsterLeveling.LevelForTier(tier);
+        HexCoord[]? cityHexes = worldState.PlayerCivilization.Cities.Count > 0
+            ? worldState.PlayerCivilization.Cities[0].Position.GetHexes()
+            : null;
+
+        bool anyVolcanoPlaced = false;
+        for (int i = 0; i < landmasses.Count; i++)
+        {
+            bool isLast = i == landmasses.Count - 1;
+            bool guaranteed = worldId == 4 || (isLast && !anyVolcanoPlaced);
+            if (!guaranteed && _prng.Next(100) >= VolcanoChancePercent) continue;
+
+            var landHexes = new List<HexCoord>(landmasses[i]);
+            if (cityHexes != null)
+                landHexes.RemoveAll(cityHexes.Contains);
+            if (landHexes.Count == 0) continue;
+
+            var hex = PickHex(landHexes, cityHexes, Array.Empty<HexCoord>(), IslandFeaturePlacement.FarFromPlayer);
+            worldState.AddFeature(new VolcanoFeature(hex));
+            anyVolcanoPlaced = true;
+
+            // 10 % de chance qu'un Dragon soit aussi présent sur le même hex.
+            if (_prng.Next(100) < 10)
+                worldState.AddFeature(new Dragon(hex, level));
+        }
+    }
+
     /// <summary>
     /// Places island features (bandits, treasure troves) into the island state.
     /// </summary>
@@ -763,12 +806,6 @@ public class IslandMapGenerator
                     break;
                 case IslandFeatureType.Rats:
                     WorldState.AddFeature(new Rats(hex, level));
-                    break;
-                case IslandFeatureType.Volcano:
-                    WorldState.AddFeature(new VolcanoFeature(hex));
-                    // 10 % de chance qu'un Dragon soit aussi présent sur le même hex
-                    if (_prng.Next(100) < 10)
-                        WorldState.AddFeature(new Dragon(hex, level));
                     break;
             }
         }
