@@ -28,6 +28,8 @@ public class MinorDemon : MonsterFeature
     public override bool CanMove => true;
     public override long MovementIntervalTicks => MinorDemonMovementIntervalTicks;
     public override int MovementRangeInHexes => MinorDemonMovementRangeInHexes;
+    public override bool CanCrossWater => true;
+    public override bool CanCrossVoid => true;
 
     public override double HpRegenAmount => 1 + MinorDemonHpRegenPerLevel * (Level - 1);
     public override long HpRegenIntervalTicks => Dragon.DragonHpRegenIntervalTicks;

@@ -309,7 +309,7 @@ public class MonsterFeatureController
         if (map == null) return;
 
         var neighbors = monster.Position.Neighbors()
-            .Where(n => map.HasTile(n) && !map.GetTile(n)!.TerrainType.IsWater())
+            .Where(n => map.HasTile(n) && CanEnterTerrain(monster, map.GetTile(n)!.TerrainType))
             .Where(n => !_state.GetFeaturesAt(n).Any(f => f.BlocksHarvest))
             .ToList();
         if (neighbors.Count == 0) return;
@@ -327,6 +327,10 @@ public class MonsterFeatureController
 
     private static int DistanceToCity(HexCoord hex, Vertex city) =>
         Math.Min(city.Hex1.DistanceTo(hex), Math.Min(city.Hex2.DistanceTo(hex), city.Hex3.DistanceTo(hex)));
+
+    /// <summary>Vrai si ce monstre peut franchir ce terrain (Eau/Void normalement infranchissables, sauf capacité opt-in).</summary>
+    private static bool CanEnterTerrain(MonsterFeature monster, TerrainType terrain) =>
+        (!terrain.IsWater() || monster.CanCrossWater) && (!terrain.IsVoid() || monster.CanCrossVoid);
 
     private void MoveMonster(MonsterFeature monster, long currentTick)
     {
@@ -354,7 +358,7 @@ public class MonsterFeatureController
     {
         var map = _state!.GetMapFor(monster.Position)!;
         var neighbors = monster.Position.Neighbors()
-            .Where(n => map.HasTile(n) && !map.GetTile(n)!.TerrainType.IsWater())
+            .Where(n => map.HasTile(n) && CanEnterTerrain(monster, map.GetTile(n)!.TerrainType))
             .ToList();
 
         // L'Aventurier (monstre ami) reste cantonné au territoire déjà exploré par le joueur : il ne

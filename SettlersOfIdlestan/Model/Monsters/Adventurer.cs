@@ -20,6 +20,7 @@ public class Adventurer : MonsterFeature
     public const double AdventurerHpRegenBase = 2;
     public const double AdventurerHpRegenPerLevel = 0.5;
     public const long AdventurerHpRegenIntervalTicks = 100L;
+    public const int AdventurerWaterCrossingMinLevel = 4;
 
     public override int MaxHp => AdventurerMaxHpBase + AdventurerMaxHpPerLevel * Level;
     public override bool BlocksHarvest => false;
@@ -28,6 +29,7 @@ public class Adventurer : MonsterFeature
     public override bool CanMove => true;
     public override long MovementIntervalTicks => 100L;
     public override long DepartureCooldownTicks => 1_000L;
+    public override bool CanCrossWater => Level >= AdventurerWaterCrossingMinLevel;
 
     public override double HpRegenAmount => AdventurerHpRegenBase + AdventurerHpRegenPerLevel * Level;
     public override long HpRegenIntervalTicks => AdventurerHpRegenIntervalTicks;
@@ -42,9 +44,11 @@ public class Adventurer : MonsterFeature
 
     public override string? SvgIconResourceName => "Resources.icons.military.hero-armor.svg";
 
-    public override LocalizedEntry GetTooltipEntry() => Level > 1
-        ? new("hex_tooltip_adventurer_info_leveled", [Hp, MaxHp, Level])
-        : new("hex_tooltip_adventurer_info", [Hp, MaxHp]);
+    public override LocalizedEntry GetTooltipEntry() => Level >= AdventurerWaterCrossingMinLevel
+        ? new("hex_tooltip_adventurer_info_leveled_water", [Hp, MaxHp, Level])
+        : Level > 1
+            ? new("hex_tooltip_adventurer_info_leveled", [Hp, MaxHp, Level])
+            : new("hex_tooltip_adventurer_info", [Hp, MaxHp]);
 
     /// <summary>Position de la ville dont la Guilde a invoqué cet Aventurier, pour réinitialiser le cooldown de réapparition de la bonne Guilde à sa mort.</summary>
     public Vertex? SpawnCityPosition { get; set; }

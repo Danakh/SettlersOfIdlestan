@@ -28,6 +28,8 @@ public class MajorDemon : MonsterFeature
     public override bool CanMove => true;
     public override long MovementIntervalTicks => MajorDemonMovementIntervalTicks;
     public override int MovementRangeInHexes => MajorDemonMovementRangeInHexes;
+    public override bool CanCrossWater => true;
+    public override bool CanCrossVoid => true;
 
     public override double HpRegenAmount => 2 + MajorDemonHpRegenPerLevel * (Level - 1);
     public override long HpRegenIntervalTicks => Dragon.DragonHpRegenIntervalTicks;

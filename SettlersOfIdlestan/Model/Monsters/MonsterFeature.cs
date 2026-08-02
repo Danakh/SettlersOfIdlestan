@@ -66,6 +66,10 @@ public abstract class MonsterFeature : IslandFeature
     public virtual long DepartureCooldownTicks => 0L;
     /// <summary>Tick du dernier déplacement (utilisé pour la grâce après mouvement).</summary>
     public long LastMovedTick { get; set; } = 0;
+    /// <summary>Peut se déplacer sur les hex d'Eau/Eau profonde, normalement infranchissables.</summary>
+    public virtual bool CanCrossWater => false;
+    /// <summary>Peut se déplacer sur les hex de Void (bordure de l'Abysse), normalement infranchissables.</summary>
+    public virtual bool CanCrossVoid => false;
 
     // ── Régénération de PV (opt-in) ────────────────────────────────────────
     /// <summary>Peut être fractionnaire (bonus de +0.5/niveau) — voir MonsterFeatureController.RegenHp pour l'accumulation.</summary>
