@@ -8,7 +8,9 @@ namespace SettlersOfIdlestan.Model.Monsters;
 /// <summary>
 /// Démon mineur — monstre errant de l'Inframonde lié à la corruption de l'île.
 /// Aussi puissant qu'un Dragon (PV, dégâts, vol de ressources), mais beaucoup plus mobile :
-/// il se déplace souvent et de plusieurs hexes à la fois, au prix d'un cooldown de pillage allongé.
+/// il se déplace souvent et de plusieurs hexes à la fois. Son intervalle d'attaque est court
+/// (200t) pour compenser son intervalle de mouvement tout aussi court (1000t) : sans cela il ne
+/// reste jamais assez longtemps à portée d'une ville pour l'attaquer avant de repartir.
 /// </summary>
 [Serializable]
 public class MinorDemon : MonsterFeature
@@ -19,7 +21,7 @@ public class MinorDemon : MonsterFeature
     public const double MinorDemonHpRegenPerLevel = 0.5;
     public const long MinorDemonMovementIntervalTicks = 1_000L;
     public const int MinorDemonMovementRangeInHexes = 2;
-    public const long MinorDemonAttackIntervalTicks = 2_000L;
+    public const long MinorDemonAttackIntervalTicks = 200L;
 
     public override int MaxHp => MinorDemonMaxHp + MinorDemonMaxHpPerLevel * (Level - 1);
     public override bool BlocksHarvest => true;

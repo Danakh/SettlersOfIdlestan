@@ -14,7 +14,7 @@ namespace SOITests.ControllerTests
     public class MinorDemonTests
     {
         [Fact]
-        public void MinorDemon_HasDragonPowerButFasterMovementAndLongerPillageCooldown()
+        public void MinorDemon_HasDragonPowerButFasterMovementAndShorterAttackCooldown()
         {
             var demon = new MinorDemon(new HexCoord(0, 0, IslandMap.SurfaceLayer));
 
@@ -25,11 +25,13 @@ namespace SOITests.ControllerTests
             Assert.Equal(2, demon.AttackDamage);
             Assert.Equal(5, demon.AttackResources);
 
-            // Mais beaucoup plus mobile, avec un cooldown de pillage allongé en conséquence.
+            // Mais beaucoup plus mobile, avec un intervalle d'attaque court en conséquence :
+            // sans cela (attaque plus lente que le mouvement) le démon ne resterait jamais assez
+            // longtemps à portée d'une ville pour l'attaquer avant de repartir.
             Assert.True(demon.CanMove);
             Assert.Equal(1_000L, demon.MovementIntervalTicks);
             Assert.Equal(2, demon.MovementRangeInHexes);
-            Assert.Equal(2_000L, demon.AttackIntervalTicks);
+            Assert.Equal(200L, demon.AttackIntervalTicks);
         }
 
         /// <summary>
