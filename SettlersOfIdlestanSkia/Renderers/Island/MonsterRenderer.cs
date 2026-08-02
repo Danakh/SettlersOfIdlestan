@@ -180,7 +180,14 @@ public class MonsterRenderer : HexBasedRenderer, IGameRenderer
             {
                 bool destVisible = visibleMap.HasTile(monster.Position);
                 bool fromVisible = v.MoveProgress < 1f && visibleMap.HasTile(v.FromHex);
-                if (!destVisible && !fromVisible) continue;
+                // Un monstre à portée 2 peut frapper une ville depuis un hex voisin non
+                // découvert (le brouillard de guerre ne s'étend en général qu'aux hexes de la
+                // ville elle-même, sans anneau de rayon 1 sans Tour de Guet) : sans cette
+                // exception, l'attaque entière (élan du monstre + particules de perte) restait
+                // invisible bien que les dégâts soient réellement appliqués.
+                bool attackTargetVisible = v.AttackAnimProgress < 1f && monster.LastAttackTargetVertex != null
+                    && visibleMap.IsVertexVisible(monster.LastAttackTargetVertex);
+                if (!destVisible && !fromVisible && !attackTargetVisible) continue;
             }
 
             var svgName = monster.SvgIconResourceName;
