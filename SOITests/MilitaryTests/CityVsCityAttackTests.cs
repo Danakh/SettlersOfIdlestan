@@ -3,11 +3,13 @@ using SettlersOfIdlestan.Controller.Military;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
+using SettlersOfIdlestan.Model.GameplayModifier;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
 using System.Collections.Generic;
 using System.Linq;
 using Xunit;
+using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
 
 namespace SOITests.MilitaryTests;
 
@@ -303,5 +305,95 @@ public class CityVsCityAttackTests
         Assert.Null(cityA.FlowTarget);
         Assert.Equal(5, cityA.Soldiers); // aucun soldat consommé, l'attaque n'a pas eu lieu
         Assert.Single(state.Civilizations[1].Cities); // cityC intacte
+    }
+
+    // ── Validité du chemin — eau et Vide ─────────────────────────────────
+    //
+    // VertexA et VertexB partagent les hexes (0,1) et (1,0) : c'est justement l'arête traversée
+    // par le chemin direct entre les deux villes. En rendant ces deux hexes partagés Water (resp.
+    // Void), l'attaque doit être bloquée sans le déblocage correspondant, et autorisée avec.
+
+    private static (WorldState state, GameClock clock, MilitaryController ctrl, City cityA, City cityB)
+        SetupWithSharedEdgeTerrain(TerrainType sharedEdgeTerrain, ECategory? unlockCategory)
+    {
+        var civA = new Civilization { Index = 0 };
+        var cityA = new City(VertexA) { CivilizationIndex = 0, Soldiers = 5, FlowTarget = VertexB };
+        cityA.Buildings.Add(new Barracks { Level = 2 });
+        civA.AddCity(cityA);
+        if (unlockCategory != null)
+            civA.AddCustomAggregator(new StaticModifierProvider(new[]
+            {
+                new Modifier(unlockCategory.Value, EType.ADDITIVE, 1),
+            }));
+
+        var civB = new Civilization { Index = 1 };
+        var cityB = new City(VertexB) { CivilizationIndex = 1 };
+        civB.AddCity(cityB);
+
+        var map = new IslandMap([
+            new HexTile(new HexCoord(0, 0, IslandMap.SurfaceLayer), TerrainType.Plain),
+            new HexTile(new HexCoord(0, 1, IslandMap.SurfaceLayer), sharedEdgeTerrain),
+            new HexTile(new HexCoord(1, 0, IslandMap.SurfaceLayer), sharedEdgeTerrain),
+            new HexTile(new HexCoord(1, 1, IslandMap.SurfaceLayer), TerrainType.Plain),
+        ]);
+        var state = new WorldState(map, [civA, civB], AtlasController.InvalidIslandId);
+        var clock = new GameClock();
+        clock.Start();
+        var cityBuilder = new CityBuilderController();
+        cityBuilder.Initialize(state, clock, new GamePRNG());
+        var ctrl = new MilitaryController();
+        ctrl.Initialize(state, clock, cityBuilder, prng: new GamePRNG());
+
+        return (state, clock, ctrl, cityA, cityB);
+    }
+
+    [Fact]
+    public void Attack_CancelsFlow_WhenPathCrossesWaterWithoutMaritimeRoutes()
+    {
+        var (state, clock, _, cityA, _) = SetupWithSharedEdgeTerrain(TerrainType.Water, unlockCategory: null);
+
+        clock.SimulateAdvance(MilitaryController.CityAttackIntervalTicks);
+
+        Assert.Null(cityA.FlowTarget);
+        Assert.Equal(5, cityA.Soldiers);
+        Assert.Single(state.Civilizations[1].Cities);
+    }
+
+    [Fact]
+    public void Attack_Fires_WhenPathCrossesWaterWithMaritimeRoutesUnlocked()
+    {
+        var (_, clock, ctrl, cityA, _) = SetupWithSharedEdgeTerrain(TerrainType.Water, ECategory.UNLOCK_MARITIME_ROUTES);
+
+        CityAttackEventArgs? args = null;
+        ctrl.SoldierAttackedCity += (_, a) => args = a;
+        clock.SimulateAdvance(MilitaryController.CityAttackIntervalTicks);
+
+        Assert.NotNull(args);
+        Assert.Equal(4, cityA.Soldiers);
+    }
+
+    [Fact]
+    public void Attack_CancelsFlow_WhenPathCrossesVoidWithoutVoidRoutes()
+    {
+        var (state, clock, _, cityA, _) = SetupWithSharedEdgeTerrain(TerrainType.Void, unlockCategory: null);
+
+        clock.SimulateAdvance(MilitaryController.CityAttackIntervalTicks);
+
+        Assert.Null(cityA.FlowTarget);
+        Assert.Equal(5, cityA.Soldiers);
+        Assert.Single(state.Civilizations[1].Cities);
+    }
+
+    [Fact]
+    public void Attack_Fires_WhenPathCrossesVoidWithVoidRoutesUnlocked()
+    {
+        var (_, clock, ctrl, cityA, _) = SetupWithSharedEdgeTerrain(TerrainType.Void, ECategory.UNLOCK_VOID_ROUTES);
+
+        CityAttackEventArgs? args = null;
+        ctrl.SoldierAttackedCity += (_, a) => args = a;
+        clock.SimulateAdvance(MilitaryController.CityAttackIntervalTicks);
+
+        Assert.NotNull(args);
+        Assert.Equal(4, cityA.Soldiers);
     }
 }

@@ -172,6 +172,17 @@ public class Edge
     }
 
     /// <summary>
+    /// Retourne l'arête reliant deux vertex adjacents (ceux-ci doivent partager exactement 2
+    /// de leurs 3 hexagones). Retourne null si les vertex ne sont pas adjacents.
+    /// </summary>
+    public static Edge? Between(Vertex a, Vertex b)
+    {
+        var shared = a.GetHexes().Where(h => b.GetHexes().Any(h2 => h2.Equals(h))).ToArray();
+        if (shared.Length != 2) return null;
+        return Create(shared[0], shared[1]);
+    }
+
+    /// <summary>
     /// Retourne les 4 arêtes voisines, c'est-à-dire les arêtes qui partagent exactement
     /// un vertex avec cette arête.
     /// Chaque vertex de l'arête est commun à un troisième hexagone (en plus de Hex1 et Hex2) ;

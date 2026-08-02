@@ -70,6 +70,16 @@ internal class CityAttackEngine
                 }
                 if (attackerVertex.Position.EdgeDistanceTo(targetVertex.Position) > CityAttackRange(attackerCiv)) continue;
 
+                // Le chemin le plus direct ne doit pas traverser une arête interdite (deux hex d'eau
+                // sans routes maritimes, ou deux hex de Vide sans marche dans le Vide) : sinon l'attaque
+                // n'est pas possible et le flux est annulé, comme pour une cible qui sort du brouillard.
+                var path = HexGridPathfinder.FindVertexPath(attackerVertex.Position, targetVertex.Position);
+                if (!IsAttackPathValid(attackerCiv, path))
+                {
+                    attackerVertex.FlowTarget = null;
+                    continue;
+                }
+
                 // Armes en Acier : consomme 1 ArmeAcier pour infliger 1 dégât supplémentaire
                 bool hasSteelWeapon = attackerCiv.ModifierAggregator.HasModifier(ECategory.UNLOCK_STEEL_WEAPONS)
                     && attackerCiv.GetResourceQuantity(Resource.SteelWeapon) >= 1;
@@ -81,7 +91,6 @@ internal class CityAttackEngine
                     attackerVertex.Soldiers--;
                 attackerVertex.LastAttackTick = currentTick;
 
-                var path = HexGridPathfinder.FindVertexPath(attackerVertex.Position, targetVertex.Position);
                 onSoldierAttackedCity(new CityAttackEventArgs(attackerVertex.Position, targetVertex.Position, path));
 
                 // Vendetta : une civilisation qui attaque le joueur devient la cible des raids automatiques
@@ -180,6 +189,51 @@ internal class CityAttackEngine
         var visibleMaps = _state!.Visibility.GetForZ(vertex.Position.Z);
         if (!visibleMaps.TryGetValue(civ.Index, out var visibleMap)) return true;
         return visibleMap.IsVertexVisible(vertex.Position);
+    }
+
+    /// <summary>
+    /// Vérifie que le chemin le plus direct entre l'attaquant et sa cible ne traverse aucune arête
+    /// interdite : deux hex d'eau sans <see cref="ECategory.UNLOCK_MARITIME_ROUTES"/>, ou deux hex de
+    /// Vide sans <see cref="ECategory.UNLOCK_VOID_ROUTES"/>. Même logique que RoadController pour la
+    /// constructibilité des routes, mais appliquée au chemin d'attaque plutôt qu'à une arête bâtie.
+    /// </summary>
+    private bool IsAttackPathValid(Civilization attackerCiv, List<Vertex> path)
+    {
+        for (int i = 0; i < path.Count - 1; i++)
+        {
+            var edge = Edge.Between(path[i], path[i + 1]);
+            if (edge == null) continue;
+
+            if (IsEdgeBetweenVoidHexes(edge))
+            {
+                if (!attackerCiv.ModifierAggregator.HasModifier(ECategory.UNLOCK_VOID_ROUTES))
+                    return false;
+            }
+            else if (!IsEdgeOnLand(edge))
+            {
+                if (!attackerCiv.ModifierAggregator.HasModifier(ECategory.UNLOCK_MARITIME_ROUTES))
+                    return false;
+            }
+        }
+        return true;
+    }
+
+    private bool IsEdgeOnLand(Edge edge)
+    {
+        var mapTiles = _state!.GetMapFor(edge)?.Tiles;
+        if (mapTiles == null) return false;
+        bool hex1IsWaterOrAbsent = !mapTiles.TryGetValue(edge.Hex1, out var tile1) || tile1.TerrainType.IsWater();
+        bool hex2IsWaterOrAbsent = !mapTiles.TryGetValue(edge.Hex2, out var tile2) || tile2.TerrainType.IsWater();
+        return !(hex1IsWaterOrAbsent && hex2IsWaterOrAbsent);
+    }
+
+    private bool IsEdgeBetweenVoidHexes(Edge edge)
+    {
+        var mapTiles = _state!.GetMapFor(edge)?.Tiles;
+        if (mapTiles == null) return false;
+        bool hex1IsVoid = mapTiles.TryGetValue(edge.Hex1, out var tile1) && tile1.TerrainType == TerrainType.Void;
+        bool hex2IsVoid = mapTiles.TryGetValue(edge.Hex2, out var tile2) && tile2.TerrainType == TerrainType.Void;
+        return hex1IsVoid && hex2IsVoid;
     }
 
     private bool ApplyAttackToCity(IMilitaryVertex targetVertex, Action<CityBuildingDestroyedEventArgs> onCityBuildingDestroyed,
