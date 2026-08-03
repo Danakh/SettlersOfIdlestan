@@ -642,7 +642,7 @@ public static class TechnologyDefinitions
             cost: 418750000,
             prerequisites: new[] { TechnologyId.PacteAbyssal },
             modifiers: new Modifier[] { new(ECategory.PRESTIGE_GAIN, EType.ADDITIVE, 0.5) },
-            tier: 11, line: 5),
+            tier: 11, line: 6),
 
         // === Capstones des branches existantes (tiers 10-11 depuis la baisse de 2 tiers) ===
 
@@ -709,8 +709,21 @@ public static class TechnologyDefinitions
             "tech_reliquaire_sacre_name", "tech_reliquaire_sacre_desc",
             cost: 106250000,
             prerequisites: new[] { TechnologyId.VoidCompass },
-            modifiers: new Modifier[] { new(ECategory.DIVINE_BONES_COST_REDUCTION, EType.ADDITIVE, 0.15) },
+            modifiers: new Modifier[]
+            {
+                new(ECategory.DIVINE_BONES_COST_REDUCTION, EType.ADDITIVE, 0.15),
+                new(ECategory.DIVINE_BONES_KEPT_ON_PRESTIGE, EType.ADDITIVE, 1),
+            },
             tier: 10, line: 4),
+
+        // Un tier au-dessus de Reliquaire Sacré, dont elle dépend (avec Acier Abyssal) : conserve un
+        // second Os Divin lors du prestige.
+        new(TechnologyId.ReliquaireRenforce,
+            "tech_reliquaire_renforce_name", "tech_reliquaire_renforce_desc",
+            cost: 418750000,
+            prerequisites: new[] { TechnologyId.ReliquaireSacre, TechnologyId.AcierAbyssal },
+            modifiers: new Modifier[] { new(ECategory.DIVINE_BONES_KEPT_ON_PRESTIGE, EType.ADDITIVE, 1) },
+            tier: 11, line: 3),
 
         // Les routes du Vide déjà bâties ne comptent que pour moitié dans le coût exponentiel de la
         // suivante : 1M × 4^n devient 1M × 4^(n/2) (voir RoadController.GetVoidRouteResearchCost).

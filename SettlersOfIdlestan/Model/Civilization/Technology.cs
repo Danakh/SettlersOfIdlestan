@@ -158,6 +158,9 @@ public enum TechnologyId
     // Suite de la ligne du Vide (VoidWalking → VoidCompass) : boucle d'Ascension et routes du Vide.
     ReliquaireSacre,
     CartographieDuVide,
+    // Un tier au-dessus de ReliquaireSacre, prérequis ReliquaireSacre + AcierAbyssal : conserve un
+    // second Os Divin lors du prestige (voir ECategory.DIVINE_BONES_KEPT_ON_PRESTIGE).
+    ReliquaireRenforce,
     // Branche de la Théocratie (tiers 14-15) — recherches du Dominion, visibles uniquement une fois
     // le pouvoir divin Foi débloqué (RequiresDominionUnlock, voir ResearchController).
     DogmeDeLEmprise,

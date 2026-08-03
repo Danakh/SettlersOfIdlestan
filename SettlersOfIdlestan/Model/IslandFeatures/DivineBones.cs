@@ -13,8 +13,10 @@ namespace SettlersOfIdlestan.Model.IslandFeatures;
 /// de recherche), comme une Merveille de niveau 0 à objectif unique. Une fois purifié, ne peut plus
 /// être investi. La Purification octroie toujours 1 os divin (WorldState.DivineBoneCount) ;
 /// <see cref="BonesPerEssence"/> os se convertissent automatiquement en 1 essence divine (GodState).
-/// Les os sont stockés sur l'île courante et donc perdus au prestige : il faut en réunir
-/// <see cref="BonesPerEssence"/> sur la même île. Le nombre d'essences détenues est plafonné par le
+/// Les os sont stockés sur l'île courante et donc normalement perdus au prestige (sauf un nombre
+/// limité conservé par ECategory.DIVINE_BONES_KEPT_ON_PRESTIGE — voir Reliquaire Sacré/Renforcé et
+/// PrestigeController.PerformPrestige) : il faut en réunir <see cref="BonesPerEssence"/> sur la même île.
+/// Le nombre d'essences détenues est plafonné par le
 /// niveau de corruption (voir <see cref="GetEssenceCap"/>) — au-delà, il faut prestige pour
 /// augmenter ce plafond.
 /// </summary>

@@ -359,6 +359,12 @@ namespace SettlersOfIdlestan.Controller.Expand
                 if (stats.HasAbyssGate) gameRecord.HasBuiltAbyssGate = true;
             }
 
+            // Reliquaire Sacré / Reliquaire Renforcé (DIVINE_BONES_KEPT_ON_PRESTIGE) : jusqu'à N Os
+            // Divins survivent au prestige au lieu d'être perdus avec l'ancienne île (voir DivineBones).
+            int keptDivineBones = currentIsland != null
+                ? Math.Min(currentIsland.DivineBoneCount, _playerCivilization?.DivineBonesKeptOnPrestige ?? 0)
+                : 0;
+
             mainGameState.PrestigeState.PrestigePoints += points;
             mainGameState.PrestigeState.TotalPrestigePointsEarned += points;
             mainGameState.PrestigeState.WalkOfGodUsesSinceLastPrestige = 0;
@@ -374,6 +380,8 @@ namespace SettlersOfIdlestan.Controller.Expand
                 tier: mainGameState.PrestigeState.EffectiveNextIslandTier,
                 startVertexTerrain: RaceDefinitions.Get(mainGameState.GodState.AscensionState.SelectedRace).StartVertexTerrain)
                 ?? throw new InvalidOperationException("Failed to generate next island.");
+
+            nextWorldState.DivineBoneCount = keptDivineBones;
 
             mainGameState.PrestigeState.SelectedNextIslandTier = null;
             mainGameState.PrestigeState.WorldState = nextWorldState;

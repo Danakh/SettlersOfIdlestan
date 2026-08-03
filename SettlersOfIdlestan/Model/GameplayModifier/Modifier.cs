@@ -171,6 +171,8 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             UNLOCK_DIVINE_BONES,
             /// <summary>Fraction de réduction du coût de Purification des Os Divins (Cristal et points de recherche). Base = 0.0; 0.05 = -5%.</summary>
             DIVINE_BONES_COST_REDUCTION,
+            /// <summary>Nombre d'Os Divins (WorldState.DivineBoneCount) conservés lors d'un prestige (normalement remis à zéro avec la nouvelle île). Base = 0.</summary>
+            DIVINE_BONES_KEPT_ON_PRESTIGE,
             /// <summary>Bonus de vitesse de régénération de défense par point de Dominion sur les 3 hexs de l'emplacement. Base = 0.0; agrégé via PerVertexModifiers (valeur × vertex de prestige adjacents achetés), puis multiplié par la somme des niveaux de Dominion autour de la ville.</summary>
             DOMINION_DEFENSE_REGEN_PER_LEVEL,
             /// <summary>Bonus additif au plafond de Dominion que la production d'un Temple peut atteindre, par niveau de Temple (base : 2/niveau, voir CorruptionController.ProcessTempleProduction). Base = 0.</summary>

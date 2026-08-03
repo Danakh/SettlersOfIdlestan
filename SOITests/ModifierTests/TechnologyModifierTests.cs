@@ -306,6 +306,19 @@ public class TechnologyModifierTests
     }
 
     [Fact]
+    public void ReliquaireSacre_DivineBonesKeptOnPrestige_Plus1()
+    {
+        Assert.Equal(1, BuildAggregator(TechnologyId.ReliquaireSacre).ApplyModifiers(ECategory.DIVINE_BONES_KEPT_ON_PRESTIGE, "", 0));
+    }
+
+    [Fact]
+    public void ReliquaireRenforce_DivineBonesKeptOnPrestige_Plus2WithReliquaireSacre()
+    {
+        Assert.Equal(2, BuildAggregator(TechnologyId.ReliquaireSacre, TechnologyId.ReliquaireRenforce)
+            .ApplyModifiers(ECategory.DIVINE_BONES_KEPT_ON_PRESTIGE, "", 0));
+    }
+
+    [Fact]
     public void CartographieDuVide_UnlocksVoidRouteCostReduction()
     {
         Assert.True(BuildAggregator(TechnologyId.CartographieDuVide).HasModifier(ECategory.VOID_ROUTE_COST_REDUCTION));
