@@ -27,7 +27,8 @@ namespace SettlersOfIdlestanSkia.Core
             SKFont font,
             ResourceSet? cost,
             Dictionary<Resource, SKSvg?>? resourceIcons,
-            float uiScale)
+            float uiScale,
+            string? researchRowText = null)
         {
             float textPadding = TextPadding * uiScale;
             float costIconSize = CostIconSize * uiScale;
@@ -40,6 +41,9 @@ namespace SettlersOfIdlestanSkia.Core
                     cw += costIconSize + 3f * uiScale + font.MeasureText(SkiaTextUtils.FormatNumber(kvp.Value)) + 8f * uiScale;
                 width = Math.Max(width, cw);
             }
+
+            if (!string.IsNullOrEmpty(researchRowText))
+                width = Math.Max(width, font.MeasureText(researchRowText) + 2 * textPadding);
 
             var probe = SkiaTextUtils.MeasureWrappedText(texts, width - 2 * textPadding, font);
             if (probe.Lines.Count >= 3)
@@ -67,7 +71,10 @@ namespace SettlersOfIdlestanSkia.Core
             ResourceSet? cost = null,
             Dictionary<Resource, SKSvg?>? resourceIcons = null,
             float uiScale = 1f,
-            Func<Resource, int>? resourceStockProvider = null)
+            Func<Resource, int>? resourceStockProvider = null,
+            long? researchCost = null,
+            long currentResearchPoints = 0,
+            string? researchLabel = null)
         {
             float textPadding = TextPadding * uiScale;
             float verticalPadding = VerticalPadding * uiScale;
@@ -75,14 +82,24 @@ namespace SettlersOfIdlestanSkia.Core
             float costRowHeight = CostRowHeight * uiScale;
 
             bool hasCost = cost != null && cost.Count > 0;
+            bool hasResearchCost = researchCost.HasValue;
+            bool canAffordResearch = hasResearchCost && currentResearchPoints >= researchCost!.Value;
+            string? researchRowText = hasResearchCost
+                ? $"{researchLabel}: " + (canAffordResearch
+                    ? SkiaTextUtils.FormatNumber(researchCost!.Value)
+                    : $"{SkiaTextUtils.FormatNumber(currentResearchPoints)}/{SkiaTextUtils.FormatNumber(researchCost!.Value)}")
+                : null;
 
-            float tooltipWidth = ComputeTooltipWidth(texts, font, cost, resourceIcons, uiScale);
+            float tooltipWidth = ComputeTooltipWidth(texts, font, cost, resourceIcons, uiScale, researchRowText);
 
             var textLayout = SkiaTextUtils.MeasureWrappedText(texts, tooltipWidth - 2 * textPadding, font);
 
             float textBlockHeight = textLayout.Size.Height + font.Spacing / 2;
             float tooltipHeight = textBlockHeight + 2 * verticalPadding;
-            if (hasCost) tooltipHeight += 4f * uiScale + costRowHeight + verticalPadding;
+            bool hasExtraRows = hasCost || hasResearchCost;
+            if (hasExtraRows) tooltipHeight += 4f * uiScale + verticalPadding;
+            if (hasCost) tooltipHeight += costRowHeight;
+            if (hasResearchCost) tooltipHeight += costRowHeight;
 
             float tooltipX = pointerPosition.X + 15 * uiScale;
             float tooltipY = pointerPosition.Y + 15 * uiScale;
@@ -109,34 +126,46 @@ namespace SettlersOfIdlestanSkia.Core
 
             SkiaTextUtils.DrawTextLayout(canvas, textLayout, tooltipX + textPadding, tooltipY + verticalPadding + font.Spacing, font, _tooltipTextPaint);
 
-            if (hasCost && resourceIcons != null)
+            if (hasExtraRows)
             {
                 float separatorY = tooltipY + verticalPadding + textBlockHeight + 2f * uiScale;
                 canvas.DrawLine(tooltipX + 4 * uiScale, separatorY, tooltipX + tooltipWidth - 4 * uiScale, separatorY, _tooltipBorderPaint);
 
                 float rowY = separatorY + 2f * uiScale;
-                float iconX = tooltipX + textPadding;
 
-                foreach (var kvp in cost!)
+                if (hasCost && resourceIcons != null)
                 {
-                    resourceIcons.TryGetValue(kvp.Key, out var svg);
-                    var picture = svg?.Picture;
-                    if (picture != null)
-                    {
-                        float scale = costIconSize / 32f;
-                        canvas.Save();
-                        canvas.Translate(iconX, rowY + (costRowHeight - costIconSize) / 2f);
-                        canvas.Scale(scale);
-                        canvas.DrawPicture(picture);
-                        canvas.Restore();
-                    }
-                    iconX += costIconSize + 3f * uiScale;
+                    float iconX = tooltipX + textPadding;
 
-                    string numText = SkiaTextUtils.FormatNumber(kvp.Value);
-                    bool canAfford = resourceStockProvider != null && resourceStockProvider(kvp.Key) >= kvp.Value;
-                    var numPaint = canAfford ? _tooltipAffordableCostPaint : _tooltipTextPaint;
-                    SkiaTextUtils.DrawText(canvas, numText, iconX, rowY + (costRowHeight + font.Size) / 2f, font, numPaint);
-                    iconX += font.MeasureText(numText) + 8f * uiScale;
+                    foreach (var kvp in cost!)
+                    {
+                        resourceIcons.TryGetValue(kvp.Key, out var svg);
+                        var picture = svg?.Picture;
+                        if (picture != null)
+                        {
+                            float scale = costIconSize / 32f;
+                            canvas.Save();
+                            canvas.Translate(iconX, rowY + (costRowHeight - costIconSize) / 2f);
+                            canvas.Scale(scale);
+                            canvas.DrawPicture(picture);
+                            canvas.Restore();
+                        }
+                        iconX += costIconSize + 3f * uiScale;
+
+                        string numText = SkiaTextUtils.FormatNumber(kvp.Value);
+                        bool canAfford = resourceStockProvider != null && resourceStockProvider(kvp.Key) >= kvp.Value;
+                        var numPaint = canAfford ? _tooltipAffordableCostPaint : _tooltipTextPaint;
+                        SkiaTextUtils.DrawText(canvas, numText, iconX, rowY + (costRowHeight + font.Size) / 2f, font, numPaint);
+                        iconX += font.MeasureText(numText) + 8f * uiScale;
+                    }
+
+                    rowY += costRowHeight;
+                }
+
+                if (hasResearchCost && researchRowText != null)
+                {
+                    var researchPaint = canAffordResearch ? _tooltipAffordableCostPaint : _tooltipTextPaint;
+                    SkiaTextUtils.DrawText(canvas, researchRowText, tooltipX + textPadding, rowY + (costRowHeight + font.Size) / 2f, font, researchPaint);
                 }
             }
         }

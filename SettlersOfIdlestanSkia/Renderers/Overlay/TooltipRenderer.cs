@@ -20,6 +20,7 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay
     {
         private string[] _tooltipTexts = new string[0];
         private ResourceSet? _tooltipCost;
+        private long? _tooltipResearchCost;
         private SKPoint _tooltipScreenPosition = SKPoint.Empty;
         private SKSize _canvasSize;
         private float _lastUiScale = 0f;
@@ -57,7 +58,7 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay
         public void ClearTooltip()
         {
             _tooltipTexts = new string[0];
-            _tooltipCost = null;
+            _tooltipCost = null; _tooltipResearchCost = null;
         }
 
         public void SetIslandRenderContext(IslandMainRenderer? islandRenderer, GameRenderContext? context)
@@ -70,14 +71,14 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay
         {
             _tooltipTexts = new string[] { text };
             _tooltipScreenPosition = screenPosition;
-            _tooltipCost = null;
+            _tooltipCost = null; _tooltipResearchCost = null;
         }
 
         public void SetTooltipLines(string[] lines, SKPoint screenPosition)
         {
             _tooltipTexts = lines;
             _tooltipScreenPosition = screenPosition;
-            _tooltipCost = null;
+            _tooltipCost = null; _tooltipResearchCost = null;
         }
 
         public bool HasTooltip()
@@ -92,14 +93,9 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay
 
             var cost = _roadController.GetPlayerRoadCost(roadPosition);
             var voidResearchCost = _roadController.GetPlayerVoidRoadResearchCost(roadPosition);
-            _tooltipTexts = voidResearchCost.HasValue
-                ? new string[]
-                {
-                    _localizationService.Get("road_construction"),
-                    _localizationService.GetFormated("tooltip_void_route_research_cost", SkiaTextUtils.FormatNumber(voidResearchCost.Value))
-                }
-                : new string[] { _localizationService.Get("road_construction") };
+            _tooltipTexts = new string[] { _localizationService.Get("road_construction") };
             _tooltipCost = cost;
+            _tooltipResearchCost = voidResearchCost;
 
             var islandPosition = _islandRendererContext.EdgeToIslandPoint(roadPosition);
             _tooltipScreenPosition = _islandRendererContext.IslandToScreen(islandPosition, _gameRenderContext.ZoomLevel, _gameRenderContext.CameraPosition);
@@ -111,7 +107,7 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay
                 return;
 
             _tooltipTexts = new string[] { _localizationService.Get("road_enemy_protected") };
-            _tooltipCost = null;
+            _tooltipCost = null; _tooltipResearchCost = null;
 
             var islandPosition = _islandRendererContext.EdgeToIslandPoint(roadPosition);
             _tooltipScreenPosition = _islandRendererContext.IslandToScreen(islandPosition, _gameRenderContext.ZoomLevel, _gameRenderContext.CameraPosition);
@@ -128,6 +124,7 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay
                 : _cityController.NewCityBuildingCost();
             _tooltipTexts = new string[] { _localizationService.Get("outpost_construction") };
             _tooltipCost = cost;
+            _tooltipResearchCost = null;
 
             var islandPosition = _islandRendererContext.VertexToIslandPoint(cityPosition);
             _tooltipScreenPosition = _islandRendererContext.IslandToScreen(islandPosition, _gameRenderContext.ZoomLevel, _gameRenderContext.CameraPosition);
@@ -140,6 +137,7 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay
 
             _tooltipTexts = new string[] { _localizationService.Get("maritime_beacon_construction") };
             _tooltipCost = MaritimeBeaconController.GetBuildCost();
+            _tooltipResearchCost = null;
 
             var islandPosition = _islandRendererContext.VertexToIslandPoint(beaconPosition);
             _tooltipScreenPosition = _islandRendererContext.IslandToScreen(islandPosition, _gameRenderContext.ZoomLevel, _gameRenderContext.CameraPosition);
@@ -154,11 +152,12 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay
             {
                 _tooltipTexts = new string[] { _localizationService.Get("war_fleet_construction") };
                 _tooltipCost = WarFleetController.GetBuildCost();
+                _tooltipResearchCost = null;
             }
             else
             {
                 _tooltipTexts = new string[] { _localizationService.Get("tooltip_requires_imperial_port") };
-                _tooltipCost = null;
+                _tooltipCost = null; _tooltipResearchCost = null;
             }
 
             var islandPosition = _islandRendererContext.VertexToIslandPoint(vertex);
@@ -174,11 +173,12 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay
             {
                 _tooltipTexts = new string[] { _localizationService.Get("mobile_camp_construction") };
                 _tooltipCost = MobileCampController.GetBuildCost();
+                _tooltipResearchCost = null;
             }
             else
             {
                 _tooltipTexts = new string[] { _localizationService.Get("tooltip_requires_mobile_camp_construction") };
-                _tooltipCost = null;
+                _tooltipCost = null; _tooltipResearchCost = null;
             }
 
             var islandPosition = _islandRendererContext.VertexToIslandPoint(vertex);
@@ -204,7 +204,7 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay
                 lines.Add(_localizationService.GetFormated("city_tooltip_defense", camp.CurrentDefense, maxDef));
 
             _tooltipTexts = lines.ToArray();
-            _tooltipCost = null;
+            _tooltipCost = null; _tooltipResearchCost = null;
             var islandPos = _islandRendererContext.VertexToIslandPoint(camp.Position);
             _tooltipScreenPosition = _islandRendererContext.IslandToScreen(islandPos, _gameRenderContext.ZoomLevel, _gameRenderContext.CameraPosition);
         }
@@ -269,7 +269,7 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay
             }
 
             _tooltipTexts = lines.ToArray();
-            _tooltipCost = null;
+            _tooltipCost = null; _tooltipResearchCost = null;
             var islandPos = _islandRendererContext.VertexToIslandPoint(vertex);
             _tooltipScreenPosition = _islandRendererContext.IslandToScreen(islandPos, _gameRenderContext.ZoomLevel, _gameRenderContext.CameraPosition);
         }
@@ -293,7 +293,7 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay
                 lines.Add(_localizationService.GetFormated("city_tooltip_defense", fleet.CurrentDefense, maxDef));
 
             _tooltipTexts = lines.ToArray();
-            _tooltipCost = null;
+            _tooltipCost = null; _tooltipResearchCost = null;
             var islandPos = _islandRendererContext.VertexToIslandPoint(fleet.Position);
             _tooltipScreenPosition = _islandRendererContext.IslandToScreen(islandPos, _gameRenderContext.ZoomLevel, _gameRenderContext.CameraPosition);
         }
@@ -324,7 +324,7 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay
                 if (!harvestBlockedByFeature)
                     AppendManualHarvestHintLines(earlyLines, tile.TerrainType);
                 _tooltipTexts = earlyLines.ToArray();
-                _tooltipCost = null;
+                _tooltipCost = null; _tooltipResearchCost = null;
                 var terrainIslandPos = _islandRendererContext.HexCoordToIslandPoint(coord);
                 _tooltipScreenPosition = _islandRendererContext.IslandToScreen(terrainIslandPos, _gameRenderContext.ZoomLevel, _gameRenderContext.CameraPosition);
                 return;
@@ -386,7 +386,7 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay
             }
 
             _tooltipTexts = lines.ToArray();
-            _tooltipCost = null;
+            _tooltipCost = null; _tooltipResearchCost = null;
             var islandPos = _islandRendererContext.HexCoordToIslandPoint(coord);
             _tooltipScreenPosition = _islandRendererContext.IslandToScreen(islandPos, _gameRenderContext.ZoomLevel, _gameRenderContext.CameraPosition);
         }
@@ -434,9 +434,12 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay
             {
                 var playerCiv = _gameControllerService.PlayerCivilization;
                 TooltipRenderUtils.DrawTooltip(canvas, _canvasSize, _tooltipScreenPosition, _tooltipTexts, _font10, _tooltipCost, _resourceIcons, _lastUiScale,
-                    playerCiv != null ? playerCiv.GetResourceQuantity : null);
+                    playerCiv != null ? playerCiv.GetResourceQuantity : null,
+                    _tooltipResearchCost, _gameControllerService.MainGameController.ResearchController.ResearchPoints,
+                    _localizationService.Get("research_points_label"));
                 _tooltipTexts = new string[0];
                 _tooltipCost = null;
+                _tooltipResearchCost = null; _tooltipResearchCost = null;
             }
         }
 

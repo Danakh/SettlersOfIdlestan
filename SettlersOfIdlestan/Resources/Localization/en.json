@@ -430,7 +430,6 @@
   "mobile_camp_construction": "Mobile Camp Construction\nDouble-click to build\nDestroyed if one of your cities is built nearby\nDouble-click an existing camp to destroy it",
   "tooltip_requires_mobile_camp_construction": "⚠ Requires the Mobile Camp research",
   "road_construction": "Road Construction\nDouble-click to build",
-  "tooltip_void_route_research_cost": "+ {0} research points",
   "road_enemy_protected": "⚠ Enemy influence zone\nDestroy the enemy city to build here",
   "city_tooltip_own_outpost": "Our outpost",
   "city_tooltip_own": "Our city — lvl. {0}",

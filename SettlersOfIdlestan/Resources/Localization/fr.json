@@ -430,7 +430,6 @@
   "mobile_camp_construction": "Construction d'un Camp Mobile\nDouble-clic pour construire\nDétruit si une de vos villes est bâtie à proximité\nDouble-clic sur un camp existant pour le détruire",
   "tooltip_requires_mobile_camp_construction": "⚠ Nécessite la recherche Camp Mobile",
   "road_construction": "Construction d'une route\nDouble-clic pour construire",
-  "tooltip_void_route_research_cost": "+ {0} points de recherche",
   "road_enemy_protected": "⚠ Zone d'influence ennemie\nDétruisez la ville adverse pour construire ici",
   "city_tooltip_own_outpost": "Notre avant-poste",
   "city_tooltip_own": "Notre ville — niv. {0}",
