@@ -16,8 +16,12 @@ namespace SettlersOfIdlestan.Model.HexGrid;
 /// </summary>
 [Serializable]
 [System.Text.Json.Serialization.JsonConverter(typeof(VertexJsonConverter))]
-public class Vertex
+public class Vertex : IEquatable<Vertex>
 {
+    // Hash pré-calculé : un Vertex est immuable, et il sert massivement de clé de dictionnaire
+    // (graphes de routes, pathfinding). Le recalculer à chaque lookup coûtait 3 hash de HexCoord.
+    private readonly int _hashCode;
+
     private Vertex(HexCoord hex1, HexCoord hex2, HexCoord hex3)
     {
         ValidateConstruction(hex1, hex2, hex3);
@@ -25,6 +29,11 @@ public class Vertex
         Hex1 = hex1;
         Hex2 = hex2;
         Hex3 = hex3;
+
+        unchecked
+        {
+            _hashCode = (hex1.GetHashCode() * 31 + hex2.GetHashCode()) * 31 + hex3.GetHashCode();
+        }
     }
 
     /// <summary>
@@ -93,14 +102,19 @@ public class Vertex
     /// <summary>
     /// VÃ©rifie si ce sommet est Ã©gal Ã  un autre.
     /// </summary>
-    public override bool Equals(object? obj)
+    public bool Equals(Vertex? other)
     {
-        if (obj is not Vertex other) return false;
+        if (ReferenceEquals(this, other)) return true;
+        if (other is null) return false;
 
-        return Hex1.Equals(other.Hex1) &&
+        // Rejet rapide : deux Vertex égaux ont forcément le même hash (pré-calculé).
+        return _hashCode == other._hashCode &&
+               Hex1.Equals(other.Hex1) &&
                Hex2.Equals(other.Hex2) &&
                Hex3.Equals(other.Hex3);
     }
+
+    public override bool Equals(object? obj) => Equals(obj as Vertex);
 
     /// <summary>
     /// Retourne les trois hexagones de ce sommet.
@@ -163,13 +177,7 @@ public class Vertex
     /// <summary>
     /// GÃ©nÃ¨re un hash pour utiliser comme clÃ© dans des Maps/Sets.
     /// </summary>
-    public override int GetHashCode()
-    {
-        unchecked
-        {
-            return (Hex1.GetHashCode() * 31 + Hex2.GetHashCode()) * 31 + Hex3.GetHashCode();
-        }
-    }
+    public override int GetHashCode() => _hashCode;
 
     /// <summary>
     /// Retourne l'hexagone prÃ©sent dans cette direction, s'il existe.
@@ -217,35 +225,41 @@ public class Vertex
 
         var thisCubeSum = CubeSum();
         var otherCubeSum = other.CubeSum();
-        var delta = (
-            X: otherCubeSum.X - thisCubeSum.X,
-            Y: otherCubeSum.Y - thisCubeSum.Y,
-            Z: otherCubeSum.Z - thisCubeSum.Z
-        );
+        int dx = otherCubeSum.X - thisCubeSum.X;
+        int dy = otherCubeSum.Y - thisCubeSum.Y;
+        int dz = otherCubeSum.Z - thisCubeSum.Z;
 
         var thisResidue = PositiveModulo(thisCubeSum.X, 3);
         var otherResidue = PositiveModulo(otherCubeSum.X, 3);
 
         if (thisResidue == otherResidue)
         {
-            return 2 * CubeDistance(DivideByThree(delta));
+            return 2 * ThirdCubeDistance(dx, dy, dz);
         }
 
-        var stepSign = thisResidue == 2 ? 1 : -1;
-        var possibleFirstSteps = new[]
-        {
-            (X: 2, Y: -1, Z: -1),
-            (X: -1, Y: 2, Z: -1),
-            (X: -1, Y: -1, Z: 2),
-        };
+        // Les deux sommets appartiennent à des sous-réseaux différents : un premier pas est
+        // obligatoire. On déroule les trois pas possibles — l'ancienne version passait par un
+        // tableau + LINQ, ce qui allouait à chaque appel alors que la méthode est appelée en boucle.
+        int stepSign = thisResidue == 2 ? 1 : -1;
 
-        return 1 + 2 * possibleFirstSteps
-            .Select(step => CubeDistance(DivideByThree((
-                X: delta.X - stepSign * step.X,
-                Y: delta.Y - stepSign * step.Y,
-                Z: delta.Z - stepSign * step.Z
-            ))))
-            .Min();
+        int best = ThirdCubeDistance(dx - 2 * stepSign, dy + stepSign, dz + stepSign);
+        int alt = ThirdCubeDistance(dx + stepSign, dy - 2 * stepSign, dz + stepSign);
+        if (alt < best) best = alt;
+        alt = ThirdCubeDistance(dx + stepSign, dy + stepSign, dz - 2 * stepSign);
+        if (alt < best) best = alt;
+
+        return 1 + 2 * best;
+    }
+
+    /// <summary>
+    /// Distance cubique du tiers du delta fourni (le delta est toujours un multiple de 3 ici).
+    /// </summary>
+    private static int ThirdCubeDistance(int x, int y, int z)
+    {
+        x /= 3;
+        y /= 3;
+        z /= 3;
+        return (Math.Abs(x) + Math.Abs(y) + Math.Abs(z)) / 2;
     }
 
     private (int X, int Y, int Z) CubeSum()
@@ -254,16 +268,6 @@ public class Vertex
         var z = Hex1.R + Hex2.R + Hex3.R;
         var y = -x - z;
         return (x, y, z);
-    }
-
-    private static (int X, int Y, int Z) DivideByThree((int X, int Y, int Z) cube)
-    {
-        return (cube.X / 3, cube.Y / 3, cube.Z / 3);
-    }
-
-    private static int CubeDistance((int X, int Y, int Z) cube)
-    {
-        return (Math.Abs(cube.X) + Math.Abs(cube.Y) + Math.Abs(cube.Z)) / 2;
     }
 
     private static int PositiveModulo(int value, int modulo)

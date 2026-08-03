@@ -248,13 +248,16 @@ public class MilitaryRenderer : HexBasedRenderer, IGameRenderer
     {
         var worldState = _gameControllerService?.CurrentWorldState;
         var playerCiv = _gameControllerService?.PlayerCivilization;
-        if (worldState == null || playerCiv == null || _flowRedPaint == null || _flowGreenPaint == null || _arrowPaint == null) return;
+        if (worldState == null || playerCiv == null || _militaryController == null || _flowRedPaint == null || _flowGreenPaint == null || _arrowPaint == null) return;
 
         var allVertices = worldState.Civilizations.SelectMany(c => c.MilitaryVertices).ToList();
 
         foreach (var civ in worldState.Civilizations)
         {
-            var roadAdjacency = RoadPathfinder.BuildAdjacency(civ.Roads, worldState.CurrentViewedLayer);
+            // Le graphe des routes ne sert qu'aux flux de renfort réellement affichés : on ne le
+            // construit qu'à la première utilisation, la plupart des civilisations n'en ayant aucun.
+            Dictionary<Vertex, List<Vertex>>? roadAdjacency = null;
+            int reinforcementRange = 0;
 
             foreach (var sourceVertex in civ.MilitaryVertices)
             {
@@ -276,7 +279,16 @@ public class MilitaryRenderer : HexBasedRenderer, IGameRenderer
                 SKColor arrowColor;
                 if (isReinforcement)
                 {
-                    bool hasRoute = RoadPathfinder.FindPathInGraph(roadAdjacency, sourceVertex.Position, targetVertex.Position) != null;
+                    if (roadAdjacency == null)
+                    {
+                        roadAdjacency = RoadPathfinder.BuildAdjacency(civ.Roads, worldState.CurrentViewedLayer);
+                        // Même portée que ReinforcementEngine : une cible hors de portée par la route
+                        // s'affiche comme bloquée — c'est bien ce que fera le moteur — et la recherche
+                        // s'arrête beaucoup plus tôt.
+                        reinforcementRange = _militaryController.ReinforcementRange(civ);
+                    }
+
+                    bool hasRoute = RoadPathfinder.HasPathInGraph(roadAdjacency, sourceVertex.Position, targetVertex.Position, reinforcementRange);
                     arrowColor = hasRoute ? ReinforcementFlowColor : PulseBlockedColor(context.TotalTime);
                     _flowGreenPaint.Color = arrowColor;
                     linePaint = _flowGreenPaint;

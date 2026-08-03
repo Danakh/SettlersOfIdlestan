@@ -99,11 +99,10 @@ internal class ReinforcementEngine
                 if (!vertexByPos.TryGetValue(sourceVertex.FlowTarget, out var targetVertex) || targetVertex == sourceVertex) continue;
 
                 var adj = GetAdjacency(civ, sourceVertex.Position.Z);
-                var roadPath = RoadPathfinder.FindPathInGraph(adj, sourceVertex.Position, targetVertex.Position);
+                var roadPath = RoadPathfinder.FindPathInGraph(adj, sourceVertex.Position, targetVertex.Position, range);
                 if (roadPath == null) continue;
 
                 int roadSegments = roadPath.Count - 1;
-                if (roadSegments > range) continue;
 
                 // Le slot est réservé immédiatement : garnison + en-transit ne doit pas dépasser la capacité max
                 int effectiveTarget = targetVertex.Soldiers + targetVertex.IncomingSoldiers.Count;
@@ -156,6 +155,10 @@ internal class ReinforcementEngine
                 int z = vertex.Position.Z;
                 var adj = GetAdjacency(civ, z);
 
+                // Un seul parcours depuis cet emplacement : toutes les cibles candidates partagent
+                // la même origine et la même portée, inutile de relancer un pathfinding par candidat.
+                var reachable = RoadPathfinder.ReachableWithin(adj, vertex.Position, range);
+
                 bool IsEligibleTarget(IMilitaryVertex friendly)
                 {
                     if (friendly == vertex) return false;
@@ -168,8 +171,7 @@ internal class ReinforcementEngine
 
                     if (friendly.Position.EdgeDistanceTo(vertex.Position) > range) return false;
 
-                    var roadPath = RoadPathfinder.FindPathInGraph(adj, vertex.Position, friendly.Position);
-                    return roadPath != null && roadPath.Count - 1 <= range;
+                    return reachable.Contains(friendly.Position);
                 }
 
                 // On ne quitte la cible actuelle que pour une cible strictement moins garnie —
