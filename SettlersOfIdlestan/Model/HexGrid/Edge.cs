@@ -104,6 +104,16 @@ public class Edge
     }
 
     /// <summary>
+    /// Vérifie si cette arête touche un vertex donné (i.e. le vertex fait partie des deux vertex
+    /// de l'arête), sans matérialiser ces vertex : il suffit que les deux hexagones de l'arête
+    /// fassent partie des trois hexagones du vertex. 0 allocation.
+    /// </summary>
+    public bool TouchesVertex(Vertex vertex)
+    {
+        return vertex.IsAdjacentTo(Hex1) && vertex.IsAdjacentTo(Hex2);
+    }
+
+    /// <summary>
     /// Retourne l'autre vertex de l'arête donné un vertex.
     /// </summary>
     public Vertex OtherVertex(Vertex vertex)

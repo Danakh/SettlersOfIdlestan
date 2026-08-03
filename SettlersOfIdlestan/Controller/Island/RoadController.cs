@@ -590,8 +590,7 @@ namespace SettlersOfIdlestan.Controller.Island
 
         private static bool RoadTouchesVertex(Road road, Vertex vertex)
         {
-            var verts = road.Position.GetVertices();
-            return verts.Any(v => v.Equals(vertex));
+            return road.Position.TouchesVertex(vertex);
         }
 
         /// <summary>
