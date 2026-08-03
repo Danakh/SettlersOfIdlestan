@@ -210,7 +210,7 @@ public class IslandMapGenerator
 
     private IslandShapeGenerator CreateShapeGenerator(IslandShapeType shapeType) => shapeType switch
     {
-        IslandShapeType.Crescent    => new IslandShapeGeneratorCrescent(),
+        IslandShapeType.Crescent    => new IslandShapeGeneratorCrescent(_prng),
         IslandShapeType.Archipelago => new IslandShapeGeneratorArchipelago(_prng),
         IslandShapeType.Elongated   => new IslandShapeGeneratorElongated(_prng),
         IslandShapeType.Lake        => new IslandShapeGeneratorLake(_prng),

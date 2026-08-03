@@ -1,18 +1,26 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
 
 namespace SettlersOfIdlestan.Controller.Generator;
 
 /// <summary>
-/// Generates a crescent-shaped island. The crescent opens toward the East: a large outer arc
-/// minus an inner bite on the East side. Tile order is outer-arc-first via a BFS priority queue,
-/// guaranteeing connectivity.
+/// Generates a crescent-shaped island: a large outer arc minus an inner bite, opening toward
+/// one of the 6 hex directions (picked randomly at construction). Tile order is outer-arc-first
+/// via a BFS priority queue, guaranteeing connectivity.
 /// </summary>
 public class IslandShapeGeneratorCrescent : IslandShapeGenerator
 {
+    private readonly HexDirection _openingDirection;
+
+    public IslandShapeGeneratorCrescent(GamePRNG prng)
+    {
+        _openingDirection = HexDirectionUtils.AllHexDirections[prng.Next(HexDirectionUtils.AllHexDirections.Length)];
+    }
+
     public override IReadOnlyList<HexCoord> GenerateCoords(int count, int layer = IslandMap.SurfaceLayer)
     {
         if (count <= 0) return [];
@@ -21,11 +29,13 @@ public class IslandShapeGeneratorCrescent : IslandShapeGenerator
         int R = 2;
         while (3 * R * R + 3 * R + 1 < count * 2) R++;
 
-        // Bite: offset to the East, radius ≈ 55% of R
-        int biteQ = (R + 1) / 2;
+        // Bite: offset toward the opening direction, radius ≈ 55% of R
+        int biteDist = (R + 1) / 2;
         int biteRadius = Math.Max(1, (int)Math.Round(R * 0.55));
-        var biteCenter = new HexCoord(biteQ, 0, layer);
         var origin = new HexCoord(0, 0, layer);
+        var biteCenter = origin;
+        for (int i = 0; i < biteDist; i++)
+            biteCenter = biteCenter.Neighbor(_openingDirection);
 
         // Collect all hexes inside the outer disc that are outside the bite
         var validHexes = new HashSet<HexCoord>();
@@ -41,10 +51,12 @@ public class IslandShapeGeneratorCrescent : IslandShapeGenerator
             }
         }
 
-        // Start from the westernmost hex (natural tip of the crescent)
+        // Start from the hex farthest from the bite center (natural tip of the crescent,
+        // opposite the opening direction)
         var startCoord = validHexes
-            .OrderBy(h => h.Q)
-            .ThenBy(h => Math.Abs(h.R))
+            .OrderByDescending(h => h.DistanceTo(biteCenter))
+            .ThenBy(h => h.Q)
+            .ThenBy(h => h.R)
             .First();
 
         // BFS with outer-first priority: (negDist, q, r) — Min gives highest dist from origin
@@ -73,7 +85,7 @@ public class IslandShapeGeneratorCrescent : IslandShapeGenerator
         return result;
     }
 
-    // The first generated hex is the crescent tip (westernmost outer-arc hex)
+    // The first generated hex is the crescent tip, opposite the opening direction
     public override HexCoord? GetPreferredStartHex(IReadOnlyList<HexCoord> coords)
         => coords.Count > 0 ? coords[0] : null;
 }
