@@ -6,10 +6,10 @@ using Xunit;
 namespace SOITests.ControllerTests
 {
     /// <summary>
-    /// Tests de l'armure des monstres : Dragon/MinorDemon/MajorDemon ont Armor = Level,
-    /// Troll/Ogre ont Armor = 0.5×Level (les autres monstres n'ont pas d'armure). La réduction
-    /// de dégâts qui en découle (MonsterFeature.ApplyArmorReduction) vaut Armor/2, arrondi de façon
-    /// probabiliste sur le reste fractionnaire pour que la moyenne sur la durée reste exacte.
+    /// Tests de l'armure des monstres : Dragon/MinorDemon/MajorDemon ont Armor = 1 fixe,
+    /// tous les autres monstres n'ont pas d'armure. La réduction de dégâts qui en découle
+    /// (MonsterFeature.ApplyArmorReduction) vaut Armor/2, arrondi de façon probabiliste sur
+    /// le reste fractionnaire pour que la moyenne sur la durée reste exacte.
     /// </summary>
     public class MonsterArmorTests
     {
@@ -18,24 +18,25 @@ namespace SOITests.ControllerTests
         // ── Valeur de l'armure par type de monstre ──────────────────────────────
 
         [Theory]
-        [InlineData(1, 1)]
-        [InlineData(2, 2)]
-        [InlineData(5, 5)]
-        public void Dragon_MinorDemon_MajorDemon_ArmorEqualsLevel(int level, int expectedArmor)
+        [InlineData(1)]
+        [InlineData(2)]
+        [InlineData(5)]
+        public void Dragon_MinorDemon_MajorDemon_ArmorIsFixedAtOne(int level)
         {
-            Assert.Equal(expectedArmor, new Dragon(Origin, level).Armor);
-            Assert.Equal(expectedArmor, new MinorDemon(Origin, level).Armor);
-            Assert.Equal(expectedArmor, new MajorDemon(Origin, level).Armor);
+            Assert.Equal(1, new Dragon(Origin, level).Armor);
+            Assert.Equal(1, new MinorDemon(Origin, level).Armor);
+            Assert.Equal(1, new MajorDemon(Origin, level).Armor);
         }
 
         [Theory]
-        [InlineData(1, 0.5)]
-        [InlineData(2, 1.0)]
-        [InlineData(5, 2.5)]
-        public void Troll_Ogre_ArmorEqualsHalfLevel(int level, double expectedArmor)
+        [InlineData(1)]
+        [InlineData(2)]
+        [InlineData(5)]
+        public void Troll_Ogre_Adventurer_HaveNoArmor(int level)
         {
-            Assert.Equal(expectedArmor, new Troll(Origin, level).Armor);
-            Assert.Equal(expectedArmor, new Ogre(Origin, level).Armor);
+            Assert.Equal(0, new Troll(Origin, level).Armor);
+            Assert.Equal(0, new Ogre(Origin, level).Armor);
+            Assert.Equal(0, new Adventurer(Origin, level).Armor);
         }
 
         [Fact]

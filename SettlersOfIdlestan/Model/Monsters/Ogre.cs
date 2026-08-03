@@ -20,7 +20,6 @@ public class Ogre : MonsterFeature
 
     public override int MaxHp => OgreMaxHp + OgreMaxHpPerLevel * (Level - 1);
     public override bool BlocksHarvest => true;
-    public override double Armor => 0.5 * Level;
 
     public override bool CanMove => true;
     public override long MovementIntervalTicks => 6_000L;
