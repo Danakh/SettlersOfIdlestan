@@ -4,8 +4,12 @@
   <Project Path="SettlersOfIdlestanSkia/SettlersOfIdlestanSkia.csproj" Id="543bfa41-33ea-4bbc-b08b-6df3220306d1" />
   <Project Path="SettlersOfIdlestanOpenTK/SettlersOfIdlestanOpenTK.csproj" />
   <Project Path="SettlersOfIdlestanWeb/SettlersOfIdlestanWeb.csproj" />
+  <Project Path="SettlersOfIdlestanUI/SettlersOfIdlestanUI.csproj" />
   <Project Path="SOITests/SOITests.csproj">
     <BuildDependency Project="SettlersOfIdlestan/SettlersOfIdlestanCore.csproj" />
+  </Project>
+  <Project Path="SOIUITests/SOIUITests.csproj">
+    <BuildDependency Project="SettlersOfIdlestanUI/SettlersOfIdlestanUI.csproj" />
   </Project>
   <Project Path="SOIStrategyTester/SOIStrategyTester.csproj">
     <BuildDependency Project="SettlersOfIdlestan/SettlersOfIdlestanCore.csproj" />
