@@ -1,0 +1,49 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <OutputType>WinExe</OutputType>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <ApplicationIcon>Resources\appicon.ico</ApplicationIcon>
+    <!--
+      Doit rester identique au head OpenTK : DesktopFileSystemService range les sauvegardes
+      dans AppContext.BaseDirectory/saves. Un renommage de l'executable ou un changement de
+      dossier d'installation ferait perdre leur partie aux joueurs Steam existants.
+    -->
+    <AssemblyName>SettlersOfIdlestan</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="12.1.1" />
+    <PackageReference Include="Avalonia.Desktop" Version="12.1.1" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.1" />
+    <PackageReference Include="Steamworks.NET" Version="2024.8.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SettlersOfIdlestanUI\SettlersOfIdlestanUI.csproj" />
+  </ItemGroup>
+
+  <!--
+    Services partages avec le head OpenTK par lien plutot que par copie : dupliquer
+    DesktopFileSystemService ferait diverger les chemins de sauvegarde entre les deux heads.
+    A deplacer physiquement ici lorsque le projet OpenTK sera supprime (phase 8).
+  -->
+  <ItemGroup>
+    <Compile Include="..\SettlersOfIdlestanOpenTK\Services\DesktopFileSystemService.cs" Link="Services\DesktopFileSystemService.cs" />
+    <Compile Include="..\SettlersOfIdlestanOpenTK\Services\Store\StoreServiceSteam.cs" Link="Services\Store\StoreServiceSteam.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Resources\appicon.ico" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <Target Name="DeletePdbsAfterPublish" AfterTargets="Publish">
+    <ItemGroup>
+      <_PdbToDelete Include="$(PublishDir)**\*.pdb" />
+    </ItemGroup>
+    <Delete Files="@(_PdbToDelete)" />
+  </Target>
+
+</Project>

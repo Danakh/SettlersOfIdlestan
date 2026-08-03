@@ -5,6 +5,7 @@
   <Project Path="SettlersOfIdlestanOpenTK/SettlersOfIdlestanOpenTK.csproj" />
   <Project Path="SettlersOfIdlestanWeb/SettlersOfIdlestanWeb.csproj" />
   <Project Path="SettlersOfIdlestanUI/SettlersOfIdlestanUI.csproj" />
+  <Project Path="SettlersOfIdlestanAvalonia.Desktop/SettlersOfIdlestanAvalonia.Desktop.csproj" />
   <Project Path="SOITests/SOITests.csproj">
     <BuildDependency Project="SettlersOfIdlestan/SettlersOfIdlestanCore.csproj" />
   </Project>
