@@ -515,7 +515,7 @@ public static class TechnologyDefinitions
         new(TechnologyId.DeepLightRitual,
             "tech_deep_light_ritual_name", "tech_deep_light_ritual_desc",
             cost: 24000000,
-            prerequisites: new[] { TechnologyId.MartialBlessingRitual, TechnologyId.Speleologie },
+            prerequisites: new[] { TechnologyId.MartialBlessingRitual },
             modifiers: new Modifier[] { new(ECategory.UNLOCK_RITUAL, "DeepLight", EType.ADDITIVE, 1) },
             tier: 9, line: 9),
 
@@ -627,145 +627,153 @@ public static class TechnologyDefinitions
             modifiers: new Modifier[] { new(ECategory.CORRUPTION_LEVEL_REDUCTION, EType.ADDITIVE, 1) },
             tier: 10, line: 5),
 
+        // Baissée d'un tier (coût / 4).
         new(TechnologyId.PacteAbyssal,
             "tech_pacte_abyssal_name", "tech_pacte_abyssal_desc",
-            cost: 420000000,
+            cost: 105000000,
             prerequisites: new[] { TechnologyId.Demonologie },
             modifiers: new Modifier[] { new(ECategory.PRESTIGE_GAIN, EType.ADDITIVE, 0.25) },
-            tier: 11, line: 6),
+            tier: 10, line: 6),
 
-        new(TechnologyId.SecretsDeLaFaille,
-            "tech_secrets_de_la_faille_name", "tech_secrets_de_la_faille_desc",
-            cost: 1700000000,
-            prerequisites: new[] { TechnologyId.ResistanceALaCorruption },
-            modifiers: new Modifier[] { new(ECategory.CORRUPTION_LEVEL_REDUCTION, EType.ADDITIVE, 1) },
-            tier: 12, line: 5),
-
+        // Baissée de 2 tiers (coût / 16). Ne dépend plus que de PacteAbyssal, Secrets of the Rift
+        // (SecretsDeLaFaille) ayant été supprimée.
         new(TechnologyId.TheologieDeLAscension,
             "tech_theologie_de_l_ascension_name", "tech_theologie_de_l_ascension_desc",
-            cost: 6700000000,
-            prerequisites: new[] { TechnologyId.SecretsDeLaFaille, TechnologyId.PacteAbyssal },
+            cost: 418750000,
+            prerequisites: new[] { TechnologyId.PacteAbyssal },
             modifiers: new Modifier[] { new(ECategory.PRESTIGE_GAIN, EType.ADDITIVE, 0.5) },
-            tier: 13, line: 5),
+            tier: 11, line: 5),
 
-        // === Capstones des branches existantes (tiers 12-13) ===
+        // === Capstones des branches existantes (tiers 10-11 depuis la baisse de 2 tiers) ===
 
         // Débloquée par le vertex de prestige Brèche du Vide (porte de l'Acier des Abysses).
+        // Baissée de 2 tiers (coût / 16).
         new(TechnologyId.AcierAbyssal,
             "tech_acier_abyssal_name", "tech_acier_abyssal_desc",
-            cost: 1700000000,
+            cost: 106250000,
             prerequisites: new[] { TechnologyId.SteelArmor, TechnologyId.VolcanicMetallurgy },
             modifiers: new Modifier[]
             {
                 new(ECategory.FORGE_DOUBLE_HARVEST_BONUS, EType.ADDITIVE, 25),
                 new(ECategory.BUILDING_PRODUCTION, "Smelter", EType.ADDITIVE, 1),
             },
-            tier: 12, line: 3),
+            tier: 10, line: 3),
 
         // Débloquée par le vertex de prestige Sanctuaire Perdu (porte de la Magie des Abysses).
+        // Baissée de 2 tiers (coût / 16).
         new(TechnologyId.MagieDuVide,
             "tech_magie_du_vide_name", "tech_magie_du_vide_desc",
-            cost: 1700000000,
+            cost: 106250000,
             prerequisites: new[] { TechnologyId.DeepLightRitual, TechnologyId.ArcaneShieldRitual },
             modifiers: new Modifier[]
             {
                 new(ECategory.RITUAL_TOTAL_POWER, EType.ADDITIVE, 0.25),
                 new(ECategory.SPELL_COST_REDUCTION, EType.ADDITIVE, 0.1),
             },
-            tier: 12, line: 10),
+            tier: 10, line: 10),
 
+        // Baissée de 2 tiers (coût / 16).
         new(TechnologyId.CoeurDeLaTerre,
             "tech_coeur_de_la_terre_name", "tech_coeur_de_la_terre_desc",
-            cost: 1700000000,
+            cost: 106250000,
             prerequisites: new[] { TechnologyId.ProspectionAvancee },
             modifiers: new Modifier[] { new(ECategory.HARVEST_SPEED, "Mine", EType.ADDITIVE, 0.5) },
-            tier: 12, line: 1),
+            tier: 10, line: 1),
 
+        // Baissée d'un tier (coût / 4).
         new(TechnologyId.Omniscience,
             "tech_omniscience_name", "tech_omniscience_desc",
-            cost: 106250000,
+            cost: 26562500,
             prerequisites: new[] { TechnologyId.MasterResearch },
             modifiers: new Modifier[] { new(ECategory.RESEARCH_PRODUCTION_SPEED, EType.ADDITIVE, 0.5) },
-            tier: 10, line: 6),
+            tier: 9, line: 6),
 
+        // Baissée de 2 tiers (coût / 16).
         new(TechnologyId.LegionEternelle,
             "tech_legion_eternelle_name", "tech_legion_eternelle_desc",
-            cost: 6700000000,
+            cost: 418750000,
             prerequisites: new[] { TechnologyId.Vendetta },
             modifiers: new Modifier[]
             {
                 new(ECategory.UNIT_PRODUCTION_SPEED, EType.ADDITIVE, 0.25),
                 new(ECategory.CITY_MAX_SOLDIERS_BONUS, EType.ADDITIVE, 10),
             },
-            tier: 13, line: 8),
+            tier: 11, line: 8),
 
-        // === Suite de la ligne du Vide (VoidWalking → VoidCompass, tiers 12-13) ===
+        // === Suite de la ligne du Vide (VoidWalking → VoidCompass, tiers 10-11 depuis la baisse de 2 tiers) ===
         // Accélère la boucle d'Ascension : Purification des Os Divins moins chère, puis routes du
         // Vide moins coûteuses pour atteindre les îles suivantes des Abysses.
 
+        // Baissée de 2 tiers (coût / 16).
         new(TechnologyId.ReliquaireSacre,
             "tech_reliquaire_sacre_name", "tech_reliquaire_sacre_desc",
-            cost: 1700000000,
+            cost: 106250000,
             prerequisites: new[] { TechnologyId.VoidCompass },
             modifiers: new Modifier[] { new(ECategory.DIVINE_BONES_COST_REDUCTION, EType.ADDITIVE, 0.15) },
-            tier: 12, line: 4),
+            tier: 10, line: 4),
 
         // Les routes du Vide déjà bâties ne comptent que pour moitié dans le coût exponentiel de la
         // suivante : 1M × 4^n devient 1M × 4^(n/2) (voir RoadController.GetVoidRouteResearchCost).
+        // Baissée de 2 tiers (coût / 16).
         new(TechnologyId.CartographieDuVide,
             "tech_cartographie_du_vide_name", "tech_cartographie_du_vide_desc",
-            cost: 6700000000,
+            cost: 418750000,
             prerequisites: new[] { TechnologyId.ReliquaireSacre },
             modifiers: new Modifier[] { new(ECategory.VOID_ROUTE_COST_REDUCTION, EType.ADDITIVE, 1) },
-            tier: 13, line: 4),
+            tier: 11, line: 4),
 
-        // === Branche de la Théocratie (tiers 14-15) ===
+        // === Branche de la Théocratie (tiers 12-13 depuis la baisse de 2 tiers) ===
         // Recherches du Dominion : cachées tant que le pouvoir divin Foi n'est pas débloqué
         // (requiresDominionUnlock), donc accessibles uniquement après la première Ascension.
 
+        // Baissée de 2 tiers (coût / 16).
         new(TechnologyId.DogmeDeLEmprise,
             "tech_dogme_de_l_emprise_name", "tech_dogme_de_l_emprise_desc",
-            cost: 27000000000,
+            cost: 1687500000,
             prerequisites: new[] { TechnologyId.TheologieDeLAscension },
             modifiers: new Modifier[] { new(ECategory.TEMPLE_DOMINION_CAP, EType.ADDITIVE, 1) },
-            tier: 14, line: 5,
+            tier: 12, line: 5,
             requiresDominionUnlock: true),
 
+        // Baissée de 2 tiers (coût / 16).
         new(TechnologyId.CommunionAbyssale,
             "tech_communion_abyssale_name", "tech_communion_abyssale_desc",
-            cost: 27000000000,
+            cost: 1687500000,
             prerequisites: new[] { TechnologyId.TheologieDeLAscension },
             modifiers: new Modifier[] { new(ECategory.PRESTIGE_GAIN, EType.ADDITIVE, 1.0) },
-            tier: 14, line: 6),
+            tier: 12, line: 6),
 
         // Le Dominion déborde plus vite que la Corruption : +5 points de % de chance par niveau
         // (10%/niveau → 15%/niveau, voir CorruptionController.ProcessSpread).
+        // Baissée de 2 tiers (coût / 16).
         new(TechnologyId.Evangelisation,
             "tech_evangelisation_name", "tech_evangelisation_desc",
-            cost: 107000000000,
+            cost: 6687500000,
             prerequisites: new[] { TechnologyId.DogmeDeLEmprise },
             modifiers: new Modifier[] { new(ECategory.DOMINION_SPREAD_CHANCE, EType.ADDITIVE, 5) },
-            tier: 15, line: 5,
+            tier: 13, line: 5,
             requiresDominionUnlock: true),
 
         // 50% de chance que le Dominion sur les hexs d'une ville avec Temple ne perde pas de niveau
         // face à la Corruption (l'annulation reste totale pour la Corruption).
+        // Baissée de 2 tiers (coût / 16).
         new(TechnologyId.TerreConsacree,
             "tech_terre_consacree_name", "tech_terre_consacree_desc",
-            cost: 107000000000,
+            cost: 6687500000,
             prerequisites: new[] { TechnologyId.DogmeDeLEmprise },
             modifiers: new Modifier[] { new(ECategory.TEMPLE_DOMINION_PROTECTION_CHANCE, EType.ADDITIVE, 0.5) },
-            tier: 15, line: 6,
+            tier: 13, line: 6,
             requiresDominionUnlock: true),
 
         // Chaque Temple ajoute un bonus fixe de défense à sa ville selon son niveau (+1/3/6/10,
         // voir Temple.GetDefenseBonusForLevel et MilitaryController.GetDefenseScore).
+        // Baissée de 2 tiers (coût / 16).
         new(TechnologyId.BastionConsacre,
             "tech_bastion_consacre_name", "tech_bastion_consacre_desc",
-            cost: 27000000000,
+            cost: 1687500000,
             prerequisites: new[] { TechnologyId.LegionEternelle },
             modifiers: new Modifier[] { new(ECategory.TEMPLE_DEFENSE_BONUS, EType.ADDITIVE, 1) },
-            tier: 14, line: 7,
+            tier: 12, line: 7,
             requiresDominionUnlock: true),
 
     };

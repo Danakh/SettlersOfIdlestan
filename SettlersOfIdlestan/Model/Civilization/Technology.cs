@@ -143,13 +143,16 @@ public enum TechnologyId
     Demonologie,
     ResistanceALaCorruption,
     PacteAbyssal,
+    // [Legacy] Recherche "Secrets of the Rift" supprimée (Théologie de l'Ascension ne dépend plus
+    // que de PacteAbyssal) — conservée uniquement pour la désérialisation des anciennes sauvegardes.
     SecretsDeLaFaille,
     TheologieDeLAscension,
     // Capstones des branches existantes (tiers 12-13)
     AcierAbyssal,
     MagieDuVide,
     CoeurDeLaTerre,
-    // Baissée de 2 tiers (tier 10, coût / 16) pour la rendre accessible plus tôt.
+    // Baissée de 2 tiers (coût / 16) puis d'un tier supplémentaire (coût / 4), tier 9, pour la rendre
+    // accessible plus tôt.
     Omniscience,
     LegionEternelle,
     // Suite de la ligne du Vide (VoidWalking → VoidCompass) : boucle d'Ascension et routes du Vide.

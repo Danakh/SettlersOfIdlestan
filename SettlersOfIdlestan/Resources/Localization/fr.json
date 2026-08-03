@@ -900,8 +900,6 @@
   "tech_resistance_a_la_corruption_desc": "Vos récolteurs s'endurcissent face aux miasmes : la Corruption compte 1 niveau de moins pour le malus de récolte (minimum niveau 1).",
   "tech_pacte_abyssal_name": "Pacte Abyssal",
   "tech_pacte_abyssal_desc": "Un marché sombre conclu avec ce qui murmure au fond de la Faille. +25% de points de prestige gagnés.",
-  "tech_secrets_de_la_faille_name": "Secrets de la Faille",
-  "tech_secrets_de_la_faille_desc": "Les mystères du seuil se dévoilent : la Corruption compte 1 niveau de moins supplémentaire pour le malus de récolte (minimum niveau 1).",
   "tech_theologie_de_l_ascension_name": "Théologie de l'Ascension",
   "tech_theologie_de_l_ascension_desc": "L'étude ultime : ce qui attend au-delà de la Faille. +50% de points de prestige gagnés.",
   "tech_acier_abyssal_name": "Acier Abyssal",

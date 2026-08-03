@@ -256,13 +256,6 @@ public class TechnologyModifierTests
     }
 
     [Fact]
-    public void ResistanceALaCorruptionEtSecretsDeLaFaille_CorruptionLevelReduction_Cumulent2()
-    {
-        Assert.Equal(2, BuildAggregator(TechnologyId.ResistanceALaCorruption, TechnologyId.SecretsDeLaFaille)
-            .ApplyModifiers(ECategory.CORRUPTION_LEVEL_REDUCTION, "", 0));
-    }
-
-    [Fact]
     public void TheologieDeLAscension_PrestigeGain_Plus0Point5()
     {
         Assert.Equal(0.5, BuildAggregator(TechnologyId.TheologieDeLAscension).ApplyModifiers(ECategory.PRESTIGE_GAIN, "", 0.0), 5);
