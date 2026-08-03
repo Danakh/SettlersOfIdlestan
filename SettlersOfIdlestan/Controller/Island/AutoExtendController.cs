@@ -181,8 +181,8 @@ public class AutoExtendController
 
     /// <summary>
     /// Toutes les <see cref="BorderMonsterCheckBaseIntervalTicks"/> / (niveau de corruption global)
-    /// ticks (allongé dans l'Outremonde par la recherche Veille Souterraine, voir
-    /// <see cref="ECategory.UNDERWORLD_MONSTER_SPAWN_INTERVAL"/>), sur chaque carte gérée par
+    /// ticks (allongé dans l'Outremonde et l'Abysse par les recherches Veille Souterraine et
+    /// Démonologie, voir <see cref="ECategory.UNDERWORLD_MONSTER_SPAWN_INTERVAL"/>), sur chaque carte gérée par
     /// AutoExtendController, tente de faire apparaître un monstre en bordure de la zone explorée
     /// (<see cref="BorderMonsterSpawnChancePercent"/> de chance). Le type tiré dépend de la couche
     /// (voir <see cref="RollBorderMonster"/>) : dans l'Abysse, uniquement des démons mineurs/majeurs
@@ -200,7 +200,7 @@ public class AutoExtendController
             if (!layerState.AutoExtend || layerState.ArrivalVertex == null) continue;
 
             long interval = Math.Max(1L, BorderMonsterCheckBaseIntervalTicks / corruptionLevel);
-            if (layerState.Map.Z == LayerState.UnderworldZ)
+            if (layerState.Map.Z == LayerState.UnderworldZ || layerState.Map.Z == LayerState.AbyssZ)
             {
                 double intervalMultiplier = _state.PlayerCivilization.ModifierAggregator
                     .ApplyModifiers(ECategory.UNDERWORLD_MONSTER_SPAWN_INTERVAL, "", 1.0);

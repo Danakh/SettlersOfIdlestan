@@ -896,7 +896,7 @@
   "tech_veille_souterraine_name": "Underground Vigil",
   "tech_veille_souterraine_desc": "Discreet sentinels watch the tunnels and deter incursions: +75% interval between border monster spawn attempts in the Underworld.",
   "tech_demonologie_name": "Demonology",
-  "tech_demonologie_desc": "To know demons is to learn how to ward them off: +50% interval between border monster spawn attempts in the Underworld.",
+  "tech_demonologie_desc": "+50% interval between border monster spawn attempts in the Underworld and the Abyss.",
   "tech_resistance_a_la_corruption_name": "Corruption Resistance",
   "tech_resistance_a_la_corruption_desc": "Your harvesters harden against the miasma: Corruption counts as 1 level lower for the harvest penalty (minimum level 1).",
   "tech_pacte_abyssal_name": "Abyssal Pact",
