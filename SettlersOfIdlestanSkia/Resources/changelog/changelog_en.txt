@@ -4,6 +4,7 @@ The changelog is not actively maintained at the moment.
 ---
 
 v0.13
+• Endgame polish: numerous adjustments to research and the prestige map
 
 ---
 

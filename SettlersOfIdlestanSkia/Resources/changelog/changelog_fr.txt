@@ -4,6 +4,7 @@ Le changelog n'est pas activement mis à jour pour le moment.
 ---
 
 v0.13
+• Polish de fin de partie : nombreux ajustements des recherches et de la carte de prestige
 
 ---
 
