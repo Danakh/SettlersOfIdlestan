@@ -64,6 +64,8 @@ public enum TechnologyId
     // Répétable à l'infini (comme MasterHarvest) : +5% UNIT_PRODUCTION_SPEED par complétion, coût
     // doublé à chaque relance. Prérequis : Rail Logistics (et non plus le Camp Mobile).
     EntrainementIntensif,
+    // Même tier que WarHerald, une ligne au-dessus. Prérequis : EntrainementIntensif. +25% ATTACK_SPEED.
+    DeploiementRapide,
     // Un tier au-dessus d'EntrainementIntensif (seul prérequis), également débloquée par le vertex
     // de prestige Raids. Raid gratuit sur une ville alliée : redirige tous les flux de renfort vers
     // la cible, sauf les emplacements ayant un flux d'attaque actif.

@@ -882,6 +882,8 @@
   "tech_mobile_camp_construction_desc": "Débloque la construction du Camp Mobile, un avant-poste militaire. Il doit être à distance min 2 de vos autres emplacements militaires. Il est détruit automatiquement si une de vos villes est bâtie à distance max 1 (sans effet pour les villes ennemies), et s'autodétruit dans tous les cas après 300 secondes.",
   "tech_entrainement_intensif_name": "Entraînement Intensif",
   "tech_entrainement_intensif_desc": "+5% vitesse de production des unités par palier. Recherche répétable à l'infini : le coût double à chaque relance.",
+  "tech_deploiement_rapide_name": "Déploiement Rapide",
+  "tech_deploiement_rapide_desc": "+25% vitesse d'attaque.",
   "tech_war_herald_name": "Héraut de Guerre",
   "tech_war_herald_desc": "Débloque des renforts coordonnés vers une ville alliée : redirige tous les flux de renfort vers la cible, sauf les emplacements ayant un flux d'attaque actif.",
   "tech_speleologie_name": "Spéléologie",

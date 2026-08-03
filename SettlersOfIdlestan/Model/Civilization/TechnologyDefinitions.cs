@@ -380,6 +380,14 @@ public static class TechnologyDefinitions
             tier: 7, line: 8,
             repeatable: true),
 
+        // Même tier que WarHerald, une ligne au-dessus. Prérequis : EntrainementIntensif.
+        new(TechnologyId.DeploiementRapide,
+            "tech_deploiement_rapide_name", "tech_deploiement_rapide_desc",
+            cost: 30000000,
+            prerequisites: new[] { TechnologyId.EntrainementIntensif },
+            modifiers: new Modifier[] { new(ECategory.ATTACK_SPEED, EType.ADDITIVE, 0.25) },
+            tier: 9, line: 7),
+
         // Un tier au-dessus d'EntrainementIntensif, qui devient son seul prérequis — également
         // débloquée par le vertex de prestige Raids (voir PrestigeMapFactory, SiegeTrainingVertex).
         // Raid gratuit sur une ville alliée : redirige tous les flux de renfort vers la cible, sauf

@@ -456,7 +456,7 @@ public static class PrestigeMapFactory
                 cost: Cost(PrestigeMap.GrandMobilizationVertex),
                 modifiers: new Modifier[]
                 {
-                    new(ECategory.CITY_MAX_SOLDIERS_BONUS, EType.ADDITIVE, 8),
+                    new(ECategory.ATTACK_SPEED, EType.ADDITIVE, 0.15),
                     new(ECategory.UNIT_PRODUCTION_SPEED, EType.ADDITIVE, 0.15),
                 }
             ),
