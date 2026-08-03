@@ -238,6 +238,53 @@ public class ReinforcementCapacityTests
         Assert.Empty(target.IncomingSoldiers);
     }
 
+    [Fact]
+    public void Reinforcement_BecomesValid_AfterRoadIsBuilt()
+    {
+        // Aucune route au départ : le flux est invalide, aucun transfert ne doit avoir lieu.
+        var civ = new Civilization { Index = 0 };
+        civ.Resources[Resource.Ore] = 999;
+        civ.Resources[Resource.Food] = 999;
+
+        var source = new City(VertexSource) { CivilizationIndex = 0, Soldiers = 5 };
+        source.Buildings.Add(new Barracks { Level = 2 });
+
+        var target = new City(VertexTarget) { CivilizationIndex = 0, Soldiers = 0 };
+        target.Buildings.Add(new Barracks { Level = 1 });
+
+        civ.AddCity(source);
+        civ.AddCity(target);
+        // Pas de route ajoutée
+        source.FlowTarget = VertexTarget;
+
+        var state = new WorldState(BuildMap(), [civ], AtlasController.InvalidIslandId);
+        var clock = new GameClock();
+        clock.Start();
+
+        var ctrl = new MilitaryController();
+        ctrl.Initialize(state, clock);
+
+        clock.SimulateAdvance(MilitaryController.ReinforcementIntervalTicks);
+
+        Assert.Equal(5, source.Soldiers);
+        Assert.Equal(0, target.Soldiers);
+        Assert.Empty(target.IncomingSoldiers);
+
+        // Construction de la route reliant les deux villes (1 segment) — le flux redevient valide.
+        var roadEdge = Edge.Create(new HexCoord(0, 1, IslandMap.SurfaceLayer), new HexCoord(1, 0, IslandMap.SurfaceLayer));
+        civ.AddRoad(new Road(roadEdge) { CivilizationIndex = 0, DistanceToNearestCity = 1 });
+
+        clock.SimulateAdvance(MilitaryController.ReinforcementIntervalTicks);
+        Assert.Equal(4, source.Soldiers);
+        Assert.Equal(0, target.Soldiers);
+        Assert.Single(target.IncomingSoldiers);
+
+        clock.SimulateAdvance(MilitaryController.ReinforcementTicksPerRoadSegment);
+        Assert.Equal(4, source.Soldiers);
+        Assert.Equal(1, target.Soldiers);
+        Assert.Empty(target.IncomingSoldiers);
+    }
+
     // ── Cas source vide ───────────────────────────────────────────────────────
 
     [Fact]
