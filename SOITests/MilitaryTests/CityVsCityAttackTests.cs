@@ -319,6 +319,10 @@ public class CityVsCityAttackTests
         var civA = new Civilization { Index = 0 };
         var cityA = new City(VertexA) { CivilizationIndex = 0, Soldiers = 5, FlowTarget = VertexB };
         cityA.Buildings.Add(new Barracks { Level = 2 });
+        // Tour de Guet : sans elle, la visibilité (rayon 1) ne couvre que les 2 hexes partagés
+        // (justement ceux mis en Eau/Vide par ce test) et pas le 3e hex de VertexB, qui est le seul
+        // hex de terre — la ville B serait alors invisible avant même le test de traversée du chemin.
+        cityA.Buildings.Add(new Watchtower { Level = 1 });
         civA.AddCity(cityA);
         if (unlockCategory != null)
             civA.AddCustomAggregator(new StaticModifierProvider(new[]
