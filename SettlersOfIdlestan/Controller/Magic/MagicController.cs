@@ -414,6 +414,7 @@ namespace SettlersOfIdlestan.Controller.Magic
                 building.Level = Math.Max(building.Level, ArcaneEdificationBuildingLevel);
             }
 
+            city.InvalidateMaxSoldiersCache();
             city.CurrentDefense = city.MaxDefense;
             city.Soldiers = city.MaxSoldiers;
 

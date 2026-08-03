@@ -354,10 +354,12 @@ public class NpcCivilizationPlacer
             building.Level = targetLevel;
             city.Buildings.Add(building);
             if (type == BuildingType.TownHall) city.InvalidateLevelCache();
+            city.InvalidateMaxSoldiersCache();
         }
         else if (existing.Level < targetLevel)
         {
             existing.Level = targetLevel;
+            city.InvalidateMaxSoldiersCache();
         }
     }
 

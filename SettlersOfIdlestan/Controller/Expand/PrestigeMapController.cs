@@ -114,6 +114,7 @@ public class PrestigeMapController
             building.Level = 1;
             city.Buildings.Add(building);
             if (bt == BuildingType.TownHall) city.InvalidateLevelCache();
+            city.InvalidateMaxSoldiersCache();
         }
     }
 }

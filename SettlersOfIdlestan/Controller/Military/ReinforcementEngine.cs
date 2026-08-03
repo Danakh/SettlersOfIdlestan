@@ -184,13 +184,11 @@ internal class ReinforcementEngine
                 foreach (var friendly in civ.MilitaryVertices)
                 {
                     if (friendly == target) continue;
+                    if (friendly.Soldiers > fewestSoldiers) continue;
                     if (!IsEligibleTarget(friendly)) continue;
 
-                    if (friendly.Soldiers < fewestSoldiers)
-                    {
-                        target = friendly;
-                        fewestSoldiers = friendly.Soldiers;
-                    }
+                    target = friendly;
+                    fewestSoldiers = friendly.Soldiers;
                 }
 
                 if (target != null)

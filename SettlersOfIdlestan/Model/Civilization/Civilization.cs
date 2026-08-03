@@ -203,7 +203,20 @@ public class Civilization
         {
             BuildingController.RecalculateStorageCapacity(this);
             _maxLevelCache.Clear();
+            InvalidateAllCityMaxSoldiersCaches();
         };
+    }
+
+    /// <summary>
+    /// Invalide le cache <see cref="City.MaxSoldiers"/> de toutes les villes de la civilisation.
+    /// Appelé automatiquement via <see cref="ModifierAggregator"/>.Changed dès qu'un provider de
+    /// modificateurs change (recherche complétée, vertex de prestige acheté, bâtiments uniques…) —
+    /// nécessaire au cas où un futur modifier affecterait GetMaxSoldiersBonus par bâtiment.
+    /// </summary>
+    public void InvalidateAllCityMaxSoldiersCaches()
+    {
+        foreach (var city in _cities)
+            city.InvalidateMaxSoldiersCache();
     }
 
     private readonly Dictionary<BuildingType, int> _maxLevelCache = new();

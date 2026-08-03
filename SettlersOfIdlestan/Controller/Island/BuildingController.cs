@@ -487,6 +487,7 @@ namespace SettlersOfIdlestan.Controller.Island
             if (type == BuildingType.Watchtower)
                 _state.Visibility.RecalculateFor(city.CivilizationIndex);
 
+            city.InvalidateMaxSoldiersCache();
             RecalculateStorageCapacity(civ);
 
             OnBuildingBuilt?.Invoke(this, new BuildingBuiltEventArgs(

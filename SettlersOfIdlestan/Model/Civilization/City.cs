@@ -41,10 +41,39 @@ public class City : IBuildingContext, IMilitaryVertex
     /// </summary>
     public int Soldiers { get; set; }
 
+    [NonSerialized]
+    private int _cachedMaxSoldiers;
+    [NonSerialized]
+    private bool _maxSoldiersCacheValid;
+
     /// <summary>
-    /// Capacité maximale de soldats calculée depuis les bâtiments.
+    /// Capacité maximale de soldats calculée depuis les bâtiments (Caserne, Garnison, Arsenal…).
+    /// Caché car lu sur le chemin chaud (production/renfort de soldats, combats). Invalidé
+    /// explicitement à chaque changement de bâtiment (voir <see cref="InvalidateMaxSoldiersCache"/>)
+    /// et, plus largement, à chaque gain de prestige ou de recherche via
+    /// <see cref="Civilization.InvalidateAllCityMaxSoldiersCaches"/>.
     /// </summary>
-    public int MaxSoldiers => Buildings.Sum(b => b.GetMaxSoldiersBonus());
+    public int MaxSoldiers
+    {
+        get
+        {
+            if (!_maxSoldiersCacheValid)
+            {
+                _cachedMaxSoldiers = Buildings.Sum(b => b.GetMaxSoldiersBonus());
+                _maxSoldiersCacheValid = true;
+            }
+            return _cachedMaxSoldiers;
+        }
+    }
+
+    /// <summary>
+    /// Invalide le cache de <see cref="MaxSoldiers"/>. À appeler après toute construction/amélioration
+    /// de bâtiment pouvant affecter la capacité de garnison (Caserne, Garnison, Arsenal).
+    /// </summary>
+    internal void InvalidateMaxSoldiersCache()
+    {
+        _maxSoldiersCacheValid = false;
+    }
 
     /// <summary>
     /// Tick de la dernière production de soldat pour cette ville.
