@@ -384,6 +384,19 @@ public sealed class GameScreen : IDisposable
         _gameControllerService.MainGameController.CityBuilderController.OnCityDestroyed += OnCityDestroyedCheckGameOver;
     }
 
+    /// <summary>Déclare qu'une partie de l'overlay est désormais rendue par l'hôte Avalonia.</summary>
+    public void MarkOverlayMigratedToHost(HostedOverlayPart parts) =>
+        _overlayRenderer?.MarkMigratedToHost(parts);
+
+    /// <summary>Zoom avant, pour un contrôle de zoom porté par l'hôte plutôt que par l'overlay Skia.</summary>
+    public void ZoomIn() => _cameraService.SetZoom(_cameraService.ZoomLevel * ZoomStep);
+
+    /// <summary>Zoom arrière, pour un contrôle de zoom porté par l'hôte plutôt que par l'overlay Skia.</summary>
+    public void ZoomOut() => _cameraService.SetZoom(_cameraService.ZoomLevel / ZoomStep);
+
+    /// <summary>Vrai quand la vue courante est une carte hex (île/inframonde/abysse).</summary>
+    public bool IsMapViewActive => _overlayRenderer?.IsIslandTabActive ?? false;
+
     /// <summary>Définit l'échelle UI automatique détectée par la plateforme hôte (densité d'écran, grande résolution…).</summary>
     public void SetUiScale(float scale)
     {

@@ -257,7 +257,7 @@ public sealed class OverlayRenderer : IGameRenderer
         _prestigeRenderer.Render(canvas);
         _settingsPopupRenderer.Render(canvas, _uiLayout.UiScale);
 
-        if (IsMapViewTab(activeTab))
+        if (IsMapViewTab(activeTab) && !IsMigratedToHost(HostedOverlayPart.ZoomControl))
         {
             _zoomControl.Initialize(_canvasSize, _uiLayout.UiScale);
             _zoomControl.Render(canvas);
@@ -381,13 +381,20 @@ public sealed class OverlayRenderer : IGameRenderer
     public bool IsAnyOverlayOpen => _tradeRenderer.IsOpen || _prestigeRenderer.IsOpen
                                  || _settingsMenu.IsOpen  || _settingsPopupRenderer.IsOpen;
 
+    private HostedOverlayPart _hostedParts = HostedOverlayPart.None;
+
+    /// Declare qu'une partie de l'overlay est desormais rendue par l'hote Avalonia.
+    public void MarkMigratedToHost(HostedOverlayPart parts) => _hostedParts |= parts;
+
+    private bool IsMigratedToHost(HostedOverlayPart part) => _hostedParts.HasFlag(part);
+
     public bool IsPointBlockedByUI(SKPoint point) =>
         IsAnyOverlayOpen
         || !IsIslandTabActive
         || _selectedCityPanelRenderer.ContainsPoint(point)
         || _selectedMonumentPanelRenderer.ContainsPoint(point)
         || _playerCivPanel.ContainsPoint(point)
-        || _zoomControl.ContainsPoint(point)
+        || (!IsMigratedToHost(HostedOverlayPart.ZoomControl) && _zoomControl.ContainsPoint(point))
         || _tabBar.ContainsPoint(point)
         || _timeControlRenderer.ContainsPoint(point)
         || GetGearRect().Contains(point.X, point.Y)

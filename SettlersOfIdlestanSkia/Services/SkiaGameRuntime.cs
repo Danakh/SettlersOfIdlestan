@@ -2,6 +2,7 @@ using SkiaSharp;
 using SettlersOfIdlestan.Controller.Store;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestanSkia.Core;
+using SettlersOfIdlestanSkia.Renderers.Overlay;
 using SettlersOfIdlestanSkia.Services.Localization;
 using SettlersOfIdlestanSkia.Services;
 using SettlersOfIdlestanSkia.Screens;
@@ -142,6 +143,9 @@ public sealed class SkiaGameRuntime : IDisposable
         _gameScreen.QuitRequested              += () => QuitRequested?.Invoke();
         _gameScreen.FullscreenToggleRequested  += v => FullscreenStateChanged?.Invoke(v);
         _gameScreen.DebugWindowResizeRequested += (w, h) => DebugWindowResizeRequested?.Invoke(w, h);
+        // Le GameScreen est recree a chaque partie : l'hote declare ses parties d'overlay une
+        // seule fois, c'est le runtime qui les reapplique ici.
+        _gameScreen.MarkOverlayMigratedToHost(_hostedOverlayParts);
 
         if (_isCanvasInitialized)
             _gameScreen.EnsureCanvasInitialized(_lastCanvasSize);
@@ -171,6 +175,9 @@ public sealed class SkiaGameRuntime : IDisposable
         _gameScreen.QuitRequested              += () => QuitRequested?.Invoke();
         _gameScreen.FullscreenToggleRequested  += v => FullscreenStateChanged?.Invoke(v);
         _gameScreen.DebugWindowResizeRequested += (w, h) => DebugWindowResizeRequested?.Invoke(w, h);
+        // Le GameScreen est recree a chaque partie : l'hote declare ses parties d'overlay une
+        // seule fois, c'est le runtime qui les reapplique ici.
+        _gameScreen.MarkOverlayMigratedToHost(_hostedOverlayParts);
 
         if (_isCanvasInitialized)
             _gameScreen.EnsureCanvasInitialized(_lastCanvasSize);
@@ -216,6 +223,21 @@ public sealed class SkiaGameRuntime : IDisposable
     // ── API publique (inchangée pour les shells Desktop/Web) ─────────────────
 
     private bool _isCanvasInitialized;
+
+    private HostedOverlayPart _hostedOverlayParts = HostedOverlayPart.None;
+
+    /// <summary>Déclare qu'une partie de l'overlay est désormais rendue par des contrôles de l'hôte.</summary>
+    public void MarkOverlayMigratedToHost(HostedOverlayPart parts)
+    {
+        _hostedOverlayParts |= parts;
+        _gameScreen?.MarkOverlayMigratedToHost(parts);
+    }
+
+    /// <summary>Vrai quand une partie est en cours et affiche une carte hex (pas l'écran titre ni un onglet plein écran).</summary>
+    public bool IsMapViewActive => !_onTitleScreen && (_gameScreen?.IsMapViewActive ?? false);
+
+    public void ZoomIn()  => _gameScreen?.ZoomIn();
+    public void ZoomOut() => _gameScreen?.ZoomOut();
 
     /// <summary>Définit l'échelle UI automatique détectée par la plateforme hôte (densité d'écran, grande résolution…).</summary>
     public void SetUiScale(float scale)

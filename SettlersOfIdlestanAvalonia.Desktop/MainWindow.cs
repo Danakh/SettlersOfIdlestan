@@ -7,7 +7,7 @@ using SettlersOfIdlestan.Controller.Store;
 using SettlersOfIdlestanOpenTK.Services;
 using SettlersOfIdlestanOpenTK.Services.Store;
 using SettlersOfIdlestanSkia.Services;
-using SettlersOfIdlestanUI.Controls;
+using SettlersOfIdlestanUI.Views;
 
 namespace SettlersOfIdlestanAvalonia.Desktop;
 
@@ -41,7 +41,7 @@ public sealed class MainWindow : Window
         _storeController = new StoreController([new StoreServiceSteam()]);
         _runtime.Initialize(new DesktopFileSystemService(), allowDebug, demoMode, _storeController);
 
-        Content = new GameRuntimeControl(_runtime);
+        Content = new GameView(_runtime);
 
         if (_runtime.IsFullscreenEnabled) ApplyFullscreen(true);
     }
