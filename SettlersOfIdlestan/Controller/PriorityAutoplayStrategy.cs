@@ -126,6 +126,28 @@ namespace SettlersOfIdlestan.Controller
     }
 
     /// <summary>
+    /// Same gating behavior as <see cref="ConditionalBuildingLevelObjective"/> but wraps any
+    /// <see cref="IAutoplayObjective"/> instead of only <see cref="BuildingLevelObjective"/> — e.g. used
+    /// by <see cref="CivilizationAutoplayerPriorities.Unified"/> to give territorial expansion
+    /// (<see cref="CityCountObjective"/>) priority over the attack objective specifically while there's
+    /// a visible enemy but no target currently in range.
+    /// </summary>
+    public class ConditionalObjective : IAutoplayObjective
+    {
+        private readonly Func<bool> _predicate;
+        private readonly IAutoplayObjective _inner;
+
+        public ConditionalObjective(Func<bool> predicate, IAutoplayObjective inner)
+        {
+            _predicate = predicate ?? throw new ArgumentNullException(nameof(predicate));
+            _inner = inner ?? throw new ArgumentNullException(nameof(inner));
+        }
+
+        public bool IsComplete() => !_predicate() || _inner.IsComplete();
+        public bool TryAdvanceOnce() => _inner.TryAdvanceOnce();
+    }
+
+    /// <summary>
     /// Satisfied once the civilization owns at least the target number of cities. Advances by delegating
     /// to <see cref="CivilizationAutoplayer.TryExpandOnce"/> (pure expansion: an outpost when a buildable
     /// vertex exists, otherwise a road toward the nearest prospective vertex).

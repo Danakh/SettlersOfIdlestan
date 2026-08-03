@@ -135,12 +135,19 @@ namespace SettlersOfIdlestan.Controller
             if (_militaryController == null || PriorityTargetCivilization == null || _worldState == null) return false;
             if (PriorityTargetCivilization.Cities.Count == 0) return false;
 
-            // La cible est définie explicitement par le joueur : on se base sur la distance pure,
-            // sans filtre de visibilité (contrairement à FindNearbyEnemyCity qui ne voit que les
-            // villes dans la carte visible). Cela évite que l'autoplayer reste bloqué si la cible
-            // n'est pas encore dans la zone visible alors que le joueur sait qu'elle existe.
             int attackRange = _militaryController.CityAttackRange(_civ);
             int z = _civ.Cities.FirstOrDefault()?.Position.Z ?? 0;
+
+            // CityAttackEngine.ResolveCityAttacks refuses to fire on a target that isn't currently
+            // visible (it clears the FlowTarget every attack tick instead — see IsCityVisibleTo there).
+            // A closer-but-invisible target city can therefore never actually be attacked no matter
+            // what it's assigned — so it must not be preferred over a farther, currently-visible one
+            // when picking "nearest": doing so would waste a frontline city's whole assignment on a
+            // guaranteed no-op forever (the visible target — if in range — never gets a chance), and
+            // would make HasAttackableTargetInRange() report a target as attackable when it never can
+            // be, silently defeating the war-footing/expansion-fallback modulation that depends on it.
+            _worldState.Visibility.GetForZ(z).TryGetValue(_civ.Index, out var visibleMap);
+            bool IsTargetCityVisible(City c) => visibleMap != null && visibleMap.IsVertexVisible(c.Position);
 
             bool didSomething = false;
 
@@ -155,6 +162,7 @@ namespace SettlersOfIdlestan.Controller
                 foreach (var targetCity in PriorityTargetCivilization.Cities)
                 {
                     if (targetCity.Position.Z != z) continue;
+                    if (!IsTargetCityVisible(targetCity)) continue;
                     int d = city.Position.EdgeDistanceTo(targetCity.Position);
                     if (d <= attackRange && d < nearestDist)
                     {
@@ -247,6 +255,43 @@ namespace SettlersOfIdlestan.Controller
                 .ThenBy(x => x.VisibleCities.Sum(c => c.CurrentDefense))
                 .Select(x => x.Civ)
                 .FirstOrDefault();
+        }
+
+        /// <summary>
+        /// True if at least one of our cities is within <see cref="MilitaryController.CityAttackRange"/>
+        /// of at least one city belonging to <see cref="PriorityTargetCivilization"/>. Unlike
+        /// <c>hasVisibleThreats</c> (visibility only) in <see cref="CivilizationAutoplayerPriorities.Unified"/>,
+        /// this also accounts for range — a visible enemy city can still be unreachable if it sits
+        /// beyond attack range. Used to modulate the "war footing" (forced Barracks activation, and
+        /// giving territorial expansion priority over a currently-pointless attack objective) so the
+        /// autoplayer doesn't keep burning food producing soldiers for a target it cannot currently
+        /// reach — it expands toward the enemy instead until a target comes back into range.
+        /// </summary>
+        public bool HasAttackableTargetInRange()
+        {
+            if (_militaryController == null || PriorityTargetCivilization == null || _worldState == null) return false;
+            if (PriorityTargetCivilization.Cities.Count == 0) return false;
+
+            int attackRange = _militaryController.CityAttackRange(_civ);
+            int z = _civ.Cities.FirstOrDefault()?.Position.Z ?? 0;
+
+            // A target city must also be visible: CityAttackEngine refuses to fire on one that isn't
+            // (see the matching check in TryUpdatePriorityTargetFlowsOnce) — an invisible-but-in-range
+            // city can never actually be attacked, so it must not count as "attackable" here either.
+            _worldState.Visibility.GetForZ(z).TryGetValue(_civ.Index, out var visibleMap);
+            if (visibleMap == null) return false;
+
+            foreach (var city in _civ.Cities)
+            {
+                if (city.Position.Z != z) continue;
+                foreach (var targetCity in PriorityTargetCivilization.Cities)
+                {
+                    if (targetCity.Position.Z != z) continue;
+                    if (!visibleMap.IsVertexVisible(targetCity.Position)) continue;
+                    if (city.Position.EdgeDistanceTo(targetCity.Position) <= attackRange) return true;
+                }
+            }
+            return false;
         }
 
         /// <summary>
@@ -456,9 +501,27 @@ namespace SettlersOfIdlestan.Controller
 
             if (!buildableRoadFound)
             {
-                var nextRoad = _roadController.GetBuildableRoads(_civ.Index)
-                    .OrderByDescending(r => r.DistanceToNearestCity)
-                    .FirstOrDefault();
+                var buildableRoads = _roadController.GetBuildableRoads(_civ.Index);
+                Road? nextRoad;
+                if (expansionTarget != null)
+                {
+                    // The direct edge toward the target wasn't buildable (e.g. it crosses an enemy's
+                    // protected road network, see RoadController.GetBuildableRoadsForLayer) — rather
+                    // than growing outward in an arbitrary direction, pick whichever currently-buildable
+                    // edge brings the network closest to that same target. Re-evaluated on every call,
+                    // this routes the network around the obstruction one segment at a time instead of
+                    // abandoning the target the moment its direct path is blocked.
+                    var target = expansionTarget.Value.target;
+                    nextRoad = buildableRoads
+                        .OrderBy(r => r.Position.GetVertices().Min(v => v.EdgeDistanceTo(target)))
+                        .FirstOrDefault();
+                }
+                else
+                {
+                    nextRoad = buildableRoads
+                        .OrderByDescending(r => r.DistanceToNearestCity)
+                        .FirstOrDefault();
+                }
                 if (nextRoad != null && TryBuildRoadOnce(nextRoad.Position, withGrind: true))
                     didSomething = true;
             }

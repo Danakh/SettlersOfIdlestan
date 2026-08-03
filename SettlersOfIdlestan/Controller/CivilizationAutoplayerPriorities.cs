@@ -124,6 +124,13 @@ namespace SettlersOfIdlestan.Controller
             var hasOreProduction = new Func<bool>(() =>
                 auto.Civilization.Cities.Any(c => c.Buildings.Any(b => b.Type == BuildingType.Mine && b.Level > 0)));
 
+            // Contrairement à hasVisibleThreats (simple visibilité), tient compte de la portée
+            // d'attaque : un ennemi visible mais hors de portée ne compte pas comme une cible
+            // exploitable. Sert à moduler l'effort de guerre (voir forceActive plus bas et l'expansion
+            // de repli sous AttackNeighborsObjective) : pas de cible à portée → pas d'intérêt à
+            // maintenir la production de soldats, l'expansion territoriale reprend la main.
+            var hasTargetInRange = new Func<bool>(() => auto.HasAttackableTargetInRange());
+
             var hasStep2Cities  = new Func<bool>(() => auto.Civilization.Cities.Count >= step2AtCities);
             var hasStep3Cities  = new Func<bool>(() => auto.Civilization.Cities.Count >= step3AtCities);
 
@@ -161,10 +168,13 @@ namespace SettlersOfIdlestan.Controller
                 new ResourceCoverageObjective(auto),
 
                 // Activation/désactivation des Casernes selon l'équilibre alimentaire (>50% du gain → désactivation),
-                // sauf en temps de guerre (attackNeighborsAtCities atteint + ennemi visible) où elles restent
+                // sauf en temps de guerre (attackNeighborsAtCities atteint + cible à portée) où elles restent
                 // actives quel que soit ce ratio — sinon une expansion tardive qui alourdit la consommation de
                 // nourriture couperait le recrutement de soldats en pleine attaque (voir BarracksActivationObjective).
-                new BarracksActivationObjective(auto, forceActive: () => hasEnoughCitiesToAttack() && hasVisibleThreats()),
+                // Basé sur hasTargetInRange (pas seulement hasVisibleThreats) : un ennemi visible mais hors de
+                // portée ne justifie pas de continuer à sacrifier la nourriture pour produire des soldats
+                // inutilisables — l'expansion territoriale reprend alors la main (voir plus bas).
+                new BarracksActivationObjective(auto, forceActive: () => hasEnoughCitiesToAttack() && hasTargetInRange()),
 
                 // Caserne garantie avant toute déclaration de guerre, à partir de attackNeighborsAtCities
                 // villes : bloque (elle est placée avant AttackNeighborsObjective) tant qu'il manque une
@@ -179,6 +189,18 @@ namespace SettlersOfIdlestan.Controller
                 // priorités mais jamais bloquant (voir AttackNeighborsObjective) : ne retarde donc
                 // jamais l'expansion ou les étapes suivantes en attendant la fin d'une guerre.
                 new AttackNeighborsObjective(auto, hasEnoughCitiesToAttack),
+
+                // Repli sur l'expansion territoriale quand on est censé être en guerre
+                // (hasEnoughCitiesToAttack) et qu'une menace est visible, mais qu'aucune cible n'est à
+                // portée d'attaque : plutôt que de laisser AttackNeighborsObjective tourner à vide en
+                // attendant qu'une cible hors de portée le redevienne, on priorise le rapprochement du
+                // front par expansion. Sans effet une fois qu'une cible redevient à portée (le prédicat
+                // redevient faux, AttackNeighborsObjective reprend la main) ni quand l'expansion est déjà
+                // épuisée (TryExpandOnce échoue silencieusement, comme le CityCountObjective illimité en
+                // fin de liste).
+                new ConditionalObjective(
+                    () => hasEnoughCitiesToAttack() && hasVisibleThreats() && !hasTargetInRange(),
+                    new CityCountObjective(auto, int.MaxValue)),
 
                 // Militaire conditionnel
                 new ConditionalBuildingLevelObjective(banditSpotted,                           BObj(auto, bc, new[] { BuildingType.Palisade }, 1)),
