@@ -1,3 +1,4 @@
+using SettlersOfIdlestan.Controller;
 using SettlersOfIdlestanSkia.Services;
 
 namespace SettlersOfIdlestanOpenTK.Services;
@@ -48,25 +49,25 @@ public class DesktopFileSystemService : IFileSystemService
 
     public Task SaveSettings(string content)
     {
-        File.WriteAllText(SettingsPath(), content);
+        File.WriteAllText(SettingsPath(), SaveController.Encrypt(content));
         return Task.CompletedTask;
     }
 
     public Task<string?> LoadSettings()
     {
         var p = SettingsPath();
-        return Task.FromResult<string?>(File.Exists(p) ? File.ReadAllText(p) : null);
+        return Task.FromResult<string?>(File.Exists(p) ? SaveController.DecodeToJson(File.ReadAllText(p)) : null);
     }
 
     public Task SaveStats(string content)
     {
-        File.WriteAllText(StatsPath(), content);
+        File.WriteAllText(StatsPath(), SaveController.Encrypt(content));
         return Task.CompletedTask;
     }
 
     public Task<string?> LoadStats()
     {
         var p = StatsPath();
-        return Task.FromResult<string?>(File.Exists(p) ? File.ReadAllText(p) : null);
+        return Task.FromResult<string?>(File.Exists(p) ? SaveController.DecodeToJson(File.ReadAllText(p)) : null);
     }
 }

@@ -1,3 +1,4 @@
+using SettlersOfIdlestan.Controller;
 using SettlersOfIdlestanSkia.Services;
 using Microsoft.Maui.Storage;
 #if WINDOWS
@@ -99,23 +100,23 @@ public class DesktopFileSystemService : IFileSystemService
 
     public async Task SaveSettings(string content)
     {
-        File.WriteAllText(GetSettingsPath(), content);
+        File.WriteAllText(GetSettingsPath(), SaveController.Encrypt(content));
     }
 
     public async Task<string?> LoadSettings()
     {
         var path = GetSettingsPath();
-        return File.Exists(path) ? File.ReadAllText(path) : null;
+        return File.Exists(path) ? SaveController.DecodeToJson(File.ReadAllText(path)) : null;
     }
 
     public async Task SaveStats(string content)
     {
-        File.WriteAllText(GetStatsPath(), content);
+        File.WriteAllText(GetStatsPath(), SaveController.Encrypt(content));
     }
 
     public async Task<string?> LoadStats()
     {
         var path = GetStatsPath();
-        return File.Exists(path) ? File.ReadAllText(path) : null;
+        return File.Exists(path) ? SaveController.DecodeToJson(File.ReadAllText(path)) : null;
     }
 }

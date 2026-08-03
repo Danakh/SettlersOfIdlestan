@@ -1,4 +1,5 @@
 using Microsoft.JSInterop;
+using SettlersOfIdlestan.Controller;
 using SettlersOfIdlestanSkia.Services;
 
 namespace SettlersOfIdlestanWeb.Services;
@@ -28,14 +29,20 @@ public class WebFileSystemService : IFileSystemService
         => await _js.InvokeVoidAsync("localStorage.removeItem", AutoSaveKey);
 
     public async Task SaveSettings(string content)
-        => await _js.InvokeVoidAsync("localStorage.setItem", SettingsKey, content);
+        => await _js.InvokeVoidAsync("localStorage.setItem", SettingsKey, SaveController.Encrypt(content));
 
     public async Task<string?> LoadSettings()
-        => await _js.InvokeAsync<string?>("localStorage.getItem", SettingsKey);
+    {
+        var raw = await _js.InvokeAsync<string?>("localStorage.getItem", SettingsKey);
+        return raw != null ? SaveController.DecodeToJson(raw) : null;
+    }
 
     public async Task SaveStats(string content)
-        => await _js.InvokeVoidAsync("localStorage.setItem", StatsKey, content);
+        => await _js.InvokeVoidAsync("localStorage.setItem", StatsKey, SaveController.Encrypt(content));
 
     public async Task<string?> LoadStats()
-        => await _js.InvokeAsync<string?>("localStorage.getItem", StatsKey);
+    {
+        var raw = await _js.InvokeAsync<string?>("localStorage.getItem", StatsKey);
+        return raw != null ? SaveController.DecodeToJson(raw) : null;
+    }
 }

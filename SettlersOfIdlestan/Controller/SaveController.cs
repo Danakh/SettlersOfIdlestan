@@ -14,6 +14,13 @@ namespace SettlersOfIdlestan.Controller
     /// Pipeline import : tente le format v2 (XOR direct sur le JSON), puis retombe sur l'ancien
     /// format v1 (qui appliquait le XOR sur la représentation Base64 du JSON, donc un encodage
     /// Base64 redondant), puis sur du JSON brut pour les sauvegardes antérieures au chiffrement.
+    /// <para>
+    /// <see cref="Encrypt"/> et <see cref="DecodeToJson"/> sont génériques (aucune dépendance à
+    /// MainGameState) et sont réutilisés tels quels par les fichiers settings.json et
+    /// playerstats.json dans les implémentations d'IFileSystemService, pour leur appliquer le
+    /// même brouillage. DecodeToJson retombe sur le texte brut si le contenu n'est pas du Base64
+    /// XOR valide, ce qui permet de lire sans erreur les fichiers écrits avant ce chiffrement.
+    /// </para>
     /// </summary>
     public class SaveController
     {
@@ -63,7 +70,7 @@ namespace SettlersOfIdlestan.Controller
         /// formats, un seul débrouillage suffit : seule l'interprétation du résultat diffère (JSON
         /// direct en v2, chaîne Base64 à décoder une seconde fois en v1).
         /// </summary>
-        private static string DecodeToJson(string data)
+        public static string DecodeToJson(string data)
         {
             byte[] unXored;
             try
@@ -95,7 +102,7 @@ namespace SettlersOfIdlestan.Controller
             return trimmed.Length > 0 && trimmed[0] == '{';
         }
 
-        private static string Encrypt(string json)
+        public static string Encrypt(string json)
         {
             var data = Encoding.UTF8.GetBytes(json);
             var xored = XorCycle(data, _key);
