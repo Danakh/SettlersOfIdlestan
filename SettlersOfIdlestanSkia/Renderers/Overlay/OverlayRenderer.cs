@@ -615,6 +615,7 @@ public sealed class OverlayRenderer : IGameRenderer
         if (!_isVisible) return;
         if (_tradeRenderer.IsOpen)
         {
+            if (e.Key == "Escape") { _tradeRenderer.Close(); return; }
             _tradeRenderer.HandleKeyDown(e.Key);
             return;
         }
