@@ -56,6 +56,12 @@ public class VisibleIslandMap : IslandMap
     private static void AddVertexHexesWithRadius(HashSet<HexCoord> visibleHexes, Vertex vertex, int radius)
     {
         var frontier = new HashSet<HexCoord>(vertex.GetHexes());
+        // "visited" est propre à cette source : si on réutilisait directement visibleHexes pour couper
+        // la frontière BFS, un hex déjà rendu visible par une AUTRE source proche (route, ville sans
+        // Tour de Guet...) bloquerait la propagation de cette source-ci vers son propre anneau suivant,
+        // faisant disparaître des hexs pourtant à portée (typiquement l'anneau 2 d'une Tour de Guet
+        // boostée par le Grand Phare, quand une autre ville/route est adjacente).
+        var visited = new HashSet<HexCoord>(frontier);
         foreach (var hex in frontier)
             visibleHexes.Add(hex);
 
@@ -64,10 +70,13 @@ public class VisibleIslandMap : IslandMap
             var next = new HashSet<HexCoord>();
             foreach (var hex in frontier)
                 foreach (var neighbor in hex.Neighbors())
-                    if (!visibleHexes.Contains(neighbor))
+                    if (!visited.Contains(neighbor))
                         next.Add(neighbor);
             foreach (var hex in next)
+            {
+                visited.Add(hex);
                 visibleHexes.Add(hex);
+            }
             frontier = next;
         }
     }

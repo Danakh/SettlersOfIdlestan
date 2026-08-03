@@ -65,6 +65,11 @@ namespace SettlersOfIdlestan.Controller.Island
             greatLighthouse.Level++;
             greatLighthouse.InvestedResources.Clear();
             greatLighthouse.InvestmentEnabled.Clear();
+            // Niveau 1 active le bonus de portée des Tours de Guet (WorldVisibility.WatchtowerVisionBonus),
+            // qui s'applique à toutes les civilisations : il faut donc un Recalculate() global, pas
+            // seulement RecalculateFor(playerCiv). Sans cet appel, le cache de visibilité reste figé
+            // à l'ancien rayon jusqu'à la prochaine mutation route/ville/bâtiment.
+            _state.Visibility.Recalculate();
             _state.EventLog.Add(GameEventType.GreatLighthouseLevelUp, greatLighthouse.Level.ToString(), toast: true);
             if (_harvestController != null && !greatLighthouse.IsMaxLevel)
                 MonumentInvestment.TryAutoStartInvestment(greatLighthouse, greatLighthouse.GetInvestmentCost(playerCiv), playerCiv, _harvestController, _state);

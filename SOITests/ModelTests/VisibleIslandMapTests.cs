@@ -48,6 +48,34 @@ public class VisibleIslandMapTests
     }
 
     [Fact]
+    public void Constructor_WithWatchtowerNearAnotherCity_StillExposesRadius3ThroughSharedHex()
+    {
+        // Repro d'un bug où le hex partagé (0,2), déjà rendu visible par la ville B (sans Tour de
+        // Guet, traitée en premier), coupait la propagation BFS de la ville A vers son propre anneau 2,
+        // empêchant de révéler (0,3) alors qu'il est bien à portée 3 de la Tour de Guet + Grand Phare.
+        var center = new HexCoord(0, 0, IslandMap.SurfaceLayer);
+        var ne = new HexCoord(0, 1, IslandMap.SurfaceLayer);
+        var nw = new HexCoord(-1, 1, IslandMap.SurfaceLayer);
+        var shared = new HexCoord(0, 2, IslandMap.SurfaceLayer);
+        var distance3 = new HexCoord(0, 3, IslandMap.SurfaceLayer);
+        var otherCityHex1 = new HexCoord(1, 1, IslandMap.SurfaceLayer);
+        var otherCityHex2 = new HexCoord(1, 2, IslandMap.SurfaceLayer);
+        var map = CreateMap(center, ne, nw, shared, distance3, otherCityHex1, otherCityHex2);
+        var civilization = new Civilization();
+
+        var cityB = new City(Vertex.Create(shared, otherCityHex1, otherCityHex2));
+        civilization.AddCity(cityB);
+
+        var cityA = new City(Vertex.Create(center, ne, nw));
+        cityA.Buildings.Add(new Watchtower { Level = 1 });
+        civilization.AddCity(cityA);
+
+        var visibleMap = new VisibleIslandMap(map, civilization, watchtowerVisionBonus: true);
+
+        Assert.True(visibleMap.HasTile(distance3));
+    }
+
+    [Fact]
     public void Constructor_WithCity_ExposesHexesTouchingCity()
     {
         var a = new HexCoord(0, 0, IslandMap.SurfaceLayer);
