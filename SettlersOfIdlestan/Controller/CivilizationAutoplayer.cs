@@ -117,7 +117,13 @@ namespace SettlersOfIdlestan.Controller
         /// <summary>
         /// Met à jour les flux militaires selon la <see cref="PriorityTargetCivilization"/> :
         /// - villes à portée d'attaque de la cible → flux d'attaque vers la ville ennemie la plus proche
-        /// - autres villes → flux de renfort vers la ville alliée attaquante la plus proche dans la portée de renfort
+        /// - toutes les autres villes → renfort par vagues successives vers la ligne de front : une
+        ///   ville à portée de renfort d'une frontline (ou d'une ville déjà affectée lors d'une vague
+        ///   précédente) relaie vers celle-ci, et devient à son tour un relais pour la vague suivante.
+        ///   Ça fait progresser les soldats de proche en proche depuis n'importe quelle ville du
+        ///   territoire jusqu'à la frontline, au lieu de limiter le renfort aux seules villes à portée
+        ///   directe d'une frontline (les autres restant alors bloquées avec leurs soldats stockés sans
+        ///   jamais les envoyer).
         /// No-op si PriorityTargetCivilization est null, si la cible n'a plus de villes, ou si
         /// aucun MilitaryController n'a été fourni au constructeur.
         /// Passer <paramref name="apply"/> à false calcule et renvoie s'il y aurait du travail à faire
@@ -168,37 +174,53 @@ namespace SettlersOfIdlestan.Controller
                 didSomething = true;
             }
 
-            // Deuxième passage : villes hors portée d'attaque → renfort vers la ville alliée
-            // attaquante la plus proche dans la portée de renfort.
-            // Si aucune ville frontline n'existe, on tente une expansion pour se rapprocher.
+            // Renfort par vagues successives : la vague 0 est la frontline, chaque vague suivante
+            // relaie vers la vague précédente (à portée de renfort), et devient à son tour un point
+            // de relais pour la vague d'après. Une ville qui n'est pas directement à portée de la
+            // frontline peut ainsi quand même y acheminer ses soldats via une ou plusieurs villes
+            // intermédiaires, au lieu de rester bloquée si elle n'est pas elle-même à portée directe.
             if (frontlineCities.Count > 0)
             {
                 int reinforcementRange = _militaryController.ReinforcementRange(_civ);
-                var frontlinePositions = new HashSet<Vertex>(frontlineCities.Select(c => c.Position));
+                var assigned = new HashSet<Vertex>(frontlineCities.Select(c => c.Position));
+                var currentWave = frontlineCities;
 
-                foreach (var city in _civ.Cities)
+                while (currentWave.Count > 0)
                 {
-                    if (city.Position.Z != z) continue;
-                    if (frontlinePositions.Contains(city.Position)) continue;
-                    if (city.FlowTarget != null && frontlinePositions.Contains(city.FlowTarget)) continue;
-
-                    City? nearest = null;
-                    int nearestDist = int.MaxValue;
-                    foreach (var frontline in frontlineCities)
+                    var nextWave = new List<City>();
+                    foreach (var city in _civ.Cities)
                     {
-                        int d = city.Position.EdgeDistanceTo(frontline.Position);
-                        if (d <= reinforcementRange && d < nearestDist)
-                        {
-                            nearest = frontline;
-                            nearestDist = d;
-                        }
-                    }
+                        if (city.Position.Z != z) continue;
+                        if (assigned.Contains(city.Position)) continue;
 
-                    if (nearest == null) continue;
-                    if (apply) _militaryController.SetCityFlow(city, nearest.Position);
-                    didSomething = true;
+                        City? nearest = null;
+                        int nearestDist = int.MaxValue;
+                        foreach (var relayTarget in currentWave)
+                        {
+                            int d = city.Position.EdgeDistanceTo(relayTarget.Position);
+                            if (d <= reinforcementRange && d < nearestDist)
+                            {
+                                nearest = relayTarget;
+                                nearestDist = d;
+                            }
+                        }
+
+                        if (nearest == null) continue;
+
+                        bool alreadyCorrect = city.FlowTarget != null && city.FlowTarget.Equals(nearest.Position);
+                        if (!alreadyCorrect)
+                        {
+                            if (apply) _militaryController.SetCityFlow(city, nearest.Position);
+                            didSomething = true;
+                        }
+
+                        assigned.Add(city.Position);
+                        nextWave.Add(city);
+                    }
+                    currentWave = nextWave;
                 }
             }
+
             return didSomething;
         }
 
