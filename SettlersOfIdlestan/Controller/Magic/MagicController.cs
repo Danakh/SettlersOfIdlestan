@@ -361,7 +361,8 @@ namespace SettlersOfIdlestan.Controller.Magic
             if (city == null || city.CivilizationIndex != civ.Index) return false;
 
             civ.RemoveResource(Resource.Crystal, GetSpellCost(def));
-            city.Soldiers = Math.Min(city.MaxSoldiers, city.Soldiers + def.TroopReward);
+            int effectiveMaxSoldiers = city.MaxSoldiers + civ.CityMaxSoldiersBonus;
+            city.Soldiers = Math.Min(effectiveMaxSoldiers, city.Soldiers + def.TroopReward);
             return true;
         }
 
@@ -403,7 +404,8 @@ namespace SettlersOfIdlestan.Controller.Magic
                 townHall = BuildingController.CreateBuilding(BuildingType.TownHall)!;
                 city.Buildings.Add(townHall);
             }
-            townHall.Level = Math.Max(townHall.Level, ArcaneEdificationTownHallLevel);
+            int townHallMaxLevel = _buildingController.GetMaxLevel(townHall, civ, city);
+            townHall.Level = Math.Clamp(Math.Max(townHall.Level, ArcaneEdificationTownHallLevel), 0, townHallMaxLevel);
             city.InvalidateLevelCache();
 
             foreach (var building in _buildingController.GetBuildingsAndBuildables(city))
@@ -411,7 +413,8 @@ namespace SettlersOfIdlestan.Controller.Magic
                 if (building.Type == BuildingType.TownHall) continue;
                 if (!city.Buildings.Contains(building))
                     city.Buildings.Add(building);
-                building.Level = Math.Max(building.Level, ArcaneEdificationBuildingLevel);
+                int maxLevel = _buildingController.GetMaxLevel(building, civ, city);
+                building.Level = Math.Clamp(Math.Max(building.Level, ArcaneEdificationBuildingLevel), 0, maxLevel);
             }
 
             city.InvalidateMaxSoldiersCache();

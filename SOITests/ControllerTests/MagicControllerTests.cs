@@ -9,6 +9,7 @@ using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Magic;
 using SOITests.TestUtilities;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Xunit;
@@ -394,13 +395,14 @@ namespace SOITests.ControllerTests
             civ.AddCustomAggregator(new StaticModifierProvider(new List<Modifier>
             {
                 new(ECategory.STORAGE_CAPACITY_BASIC, EType.ADDITIVE, 2000),
+                new(ECategory.STORAGE_CAPACITY_ADVANCED, EType.ADDITIVE, 200),
             }));
-            civ.AddResource(Resource.Crystal, 20);
+            civ.AddResource(Resource.Crystal, 100);
 
             Assert.True(controller.CastSpell(SpellId.Abundance));
 
-            // Coût : 10 cristaux → récompense : 1000 or
-            Assert.Equal(10, civ.GetResourceQuantity(Resource.Crystal));
+            // Coût : 50 cristaux → récompense : 1000 or
+            Assert.Equal(50, civ.GetResourceQuantity(Resource.Crystal));
             Assert.Equal(1000, civ.GetResourceQuantity(Resource.Gold));
         }
 
@@ -456,13 +458,13 @@ namespace SOITests.ControllerTests
             civ.Cities[0].Buildings.Add(new Barracks { Level = 30 });
             civ.AddCustomAggregator(new StaticModifierProvider(new List<Modifier>
             {
-                new(ECategory.STORAGE_CAPACITY_ADVANCED, EType.ADDITIVE, 200),
+                new(ECategory.STORAGE_CAPACITY_ADVANCED, EType.ADDITIVE, 400),
             }));
-            civ.AddResource(Resource.Crystal, 200);
+            civ.AddResource(Resource.Crystal, 400);
 
             Assert.True(controller.CastSpellOnCity(SpellId.SummonTroops, civ.Cities[0].Position));
 
-            Assert.Equal(100, civ.GetResourceQuantity(Resource.Crystal));
+            Assert.Equal(200, civ.GetResourceQuantity(Resource.Crystal));
             Assert.Equal(100, civ.Cities[0].Soldiers);
         }
 
@@ -475,17 +477,17 @@ namespace SOITests.ControllerTests
             civ.Cities[0].Buildings.Add(new Barracks { Level = 30 });
             civ.AddCustomAggregator(new StaticModifierProvider(new List<Modifier>
             {
-                new(ECategory.STORAGE_CAPACITY_ADVANCED, EType.ADDITIVE, 200),
+                new(ECategory.STORAGE_CAPACITY_ADVANCED, EType.ADDITIVE, 400),
                 new(ECategory.SPELL_COST_REDUCTION, "SummonTroops", EType.ADDITIVE, 0.25),
             }));
-            civ.AddResource(Resource.Crystal, 200);
+            civ.AddResource(Resource.Crystal, 400);
 
-            // Coût de base 100 cristaux, réduit de 25% (Cercle d'Invocation) → 75
+            // Coût de base 200 cristaux, réduit de 25% (Cercle d'Invocation) → 150
             var def = SpellDefinitions.Get(SpellId.SummonTroops)!;
-            Assert.Equal(75, controller.GetSpellCost(def));
+            Assert.Equal(150, controller.GetSpellCost(def));
 
             Assert.True(controller.CastSpellOnCity(SpellId.SummonTroops, civ.Cities[0].Position));
-            Assert.Equal(125, civ.GetResourceQuantity(Resource.Crystal));
+            Assert.Equal(250, civ.GetResourceQuantity(Resource.Crystal));
         }
 
         [Fact]
@@ -504,6 +506,28 @@ namespace SOITests.ControllerTests
             Assert.True(controller.CastSpellOnCity(SpellId.SummonTroops, civ.Cities[0].Position));
 
             Assert.Equal(5, civ.Cities[0].Soldiers);
+        }
+
+        [Fact]
+        public void CastSpellOnCity_CapsAtEffectiveMaxSoldiersIncludingPassiveBonus()
+        {
+            // Barracks niveau 1 → MaxSoldiers (bâtiments) = 5, mais un bonus passif civ-wide
+            // (CITY_MAX_SOLDIERS_BONUS) porte la vraie capacité de garnison à 28 : le sort doit
+            // remplir jusqu'à cette capacité effective, pas seulement celle des bâtiments.
+            var (state, _, controller) = CreateSetup();
+            var civ = state.PlayerCivilization;
+            UnlockSpells(civ, SpellId.SummonTroops);
+            civ.Cities[0].Buildings.Add(new Barracks { Level = 1 }); // MaxSoldiers = 5
+            civ.AddCustomAggregator(new StaticModifierProvider(new List<Modifier>
+            {
+                new(ECategory.STORAGE_CAPACITY_ADVANCED, EType.ADDITIVE, 200),
+                new(ECategory.CITY_MAX_SOLDIERS_BONUS, EType.ADDITIVE, 23),
+            }));
+            civ.AddResource(Resource.Crystal, 200);
+
+            Assert.True(controller.CastSpellOnCity(SpellId.SummonTroops, civ.Cities[0].Position));
+
+            Assert.Equal(28, civ.Cities[0].Soldiers);
         }
 
         [Fact]
@@ -542,8 +566,8 @@ namespace SOITests.ControllerTests
             var (state, _, controller) = CreateSetup();
             var civ = state.PlayerCivilization;
             UnlockSpells(civ, SpellId.ArcaneEdification);
-            GrantCrystalStorage(civ, 1000);
-            civ.AddResource(Resource.Crystal, 1000);
+            GrantCrystalStorage(civ, 2000);
+            civ.AddResource(Resource.Crystal, 2000);
 
             Assert.False(controller.CastSpell(SpellId.ArcaneEdification));
         }
@@ -554,8 +578,8 @@ namespace SOITests.ControllerTests
             var (state, _, controller) = CreateSetup();
             var civ = state.PlayerCivilization;
             UnlockSpells(civ, SpellId.ArcaneEdification);
-            GrantCrystalStorage(civ, 1000);
-            civ.AddResource(Resource.Crystal, 1000);
+            GrantCrystalStorage(civ, 2000);
+            civ.AddResource(Resource.Crystal, 2000);
 
             var unreachableVertex = Vertex.Create(
                 new HexCoord(50, 0, IslandMap.SurfaceLayer),
@@ -563,7 +587,7 @@ namespace SOITests.ControllerTests
                 new HexCoord(50, 1, IslandMap.SurfaceLayer));
 
             Assert.False(controller.CastSpellOnVertex(SpellId.ArcaneEdification, unreachableVertex));
-            Assert.Equal(1000, civ.GetResourceQuantity(Resource.Crystal));
+            Assert.Equal(2000, civ.GetResourceQuantity(Resource.Crystal));
         }
 
         [Fact]
@@ -572,23 +596,34 @@ namespace SOITests.ControllerTests
             var (state, _, controller) = CreateSetup();
             var civ = state.PlayerCivilization;
             UnlockSpells(civ, SpellId.ArcaneEdification);
-            GrantCrystalStorage(civ, 1000);
-            civ.AddResource(Resource.Crystal, 1000);
+            GrantCrystalStorage(civ, 2000);
+            civ.AddResource(Resource.Crystal, 2000);
 
             var targetVertex = AddFarBuildableVertex(civ);
 
             Assert.True(controller.CastSpellOnVertex(SpellId.ArcaneEdification, targetVertex));
 
-            // Coût : 500 cristaux, sans récompense en or/troupes
-            Assert.Equal(500, civ.GetResourceQuantity(Resource.Crystal));
+            // Coût : 2000 cristaux, sans récompense en or/troupes
+            Assert.Equal(0, civ.GetResourceQuantity(Resource.Crystal));
 
             var city = civ.Cities.Single(c => c.Position.Equals(targetVertex));
             var townHall = city.Buildings.Single(b => b.Type == BuildingType.TownHall);
             Assert.Equal(MagicController.ArcaneEdificationTownHallLevel, townHall.Level);
 
+            // Chaque bâtiment atteint le niveau de l'édification (2), sauf s'il a un niveau max par
+            // défaut plus bas (ex. Temple, Market : 1, avant déblocage de "Foi" ou autre modificateur) —
+            // aucun bâtiment ne doit jamais être poussé au-delà de son niveau max.
+            var buildingController = new BuildingController(state);
             var otherBuildings = city.Buildings.Where(b => b.Type != BuildingType.TownHall).ToList();
             Assert.NotEmpty(otherBuildings);
-            Assert.All(otherBuildings, b => Assert.Equal(MagicController.ArcaneEdificationBuildingLevel, b.Level));
+            Assert.All(otherBuildings, b =>
+            {
+                int expectedLevel = Math.Min(MagicController.ArcaneEdificationBuildingLevel, buildingController.GetMaxLevel(b, civ, city));
+                Assert.Equal(expectedLevel, b.Level);
+            });
+
+            var temple = city.Buildings.Single(b => b.Type == BuildingType.Temple);
+            Assert.Equal(1, temple.Level);
 
             // Défense et garnison fournies au maximum, sans coût supplémentaire
             Assert.Equal(city.MaxDefense, city.CurrentDefense);
@@ -596,11 +631,56 @@ namespace SOITests.ControllerTests
         }
 
         [Fact]
+        public void CastSpellOnVertex_DoesNotExceedBuildingMaxLevel()
+        {
+            // Sans la recherche "Foi" (UNLOCK_DOMINION), le Temple a un niveau max de 1 : l'édification
+            // arcanique ne doit jamais le faire dépasser ce plafond, même si son niveau cible (2) est
+            // supérieur.
+            var (state, _, controller) = CreateSetup();
+            var civ = state.PlayerCivilization;
+            UnlockSpells(civ, SpellId.ArcaneEdification);
+            GrantCrystalStorage(civ, 2000);
+            civ.AddResource(Resource.Crystal, 2000);
+
+            var targetVertex = AddFarBuildableVertex(civ);
+
+            Assert.True(controller.CastSpellOnVertex(SpellId.ArcaneEdification, targetVertex));
+
+            var city = civ.Cities.Single(c => c.Position.Equals(targetVertex));
+            var temple = city.Buildings.Single(b => b.Type == BuildingType.Temple);
+            Assert.Equal(1, temple.Level);
+        }
+
+        [Fact]
+        public void CastSpellOnVertex_ReachesTargetLevelWhenMaxLevelAllowsIt()
+        {
+            // Une fois "Foi" débloqué (BUILDING_MAX_LEVEL Temple +3, donc max = 4), le Temple peut
+            // atteindre normalement le niveau cible de l'édification arcanique (2).
+            var (state, _, controller) = CreateSetup();
+            var civ = state.PlayerCivilization;
+            UnlockSpells(civ, SpellId.ArcaneEdification);
+            GrantCrystalStorage(civ, 2000);
+            civ.AddResource(Resource.Crystal, 2000);
+            civ.AddCustomAggregator(new StaticModifierProvider(new List<Modifier>
+            {
+                new(ECategory.BUILDING_MAX_LEVEL, "Temple", EType.ADDITIVE, 3),
+            }));
+
+            var targetVertex = AddFarBuildableVertex(civ);
+
+            Assert.True(controller.CastSpellOnVertex(SpellId.ArcaneEdification, targetVertex));
+
+            var city = civ.Cities.Single(c => c.Position.Equals(targetVertex));
+            var temple = city.Buildings.Single(b => b.Type == BuildingType.Temple);
+            Assert.Equal(MagicController.ArcaneEdificationBuildingLevel, temple.Level);
+        }
+
+        [Fact]
         public void CastSpellOnVertex_FailsWithoutMagicUnlock()
         {
             var (state, _, controller) = CreateSetup();
             var civ = state.PlayerCivilization;
-            civ.AddResource(Resource.Crystal, 1000);
+            civ.AddResource(Resource.Crystal, 2000);
             var targetVertex = AddFarBuildableVertex(civ);
 
             Assert.False(controller.CastSpellOnVertex(SpellId.ArcaneEdification, targetVertex));
@@ -615,8 +695,8 @@ namespace SOITests.ControllerTests
             var (state, _, controller) = CreateSetup();
             var civ = state.PlayerCivilization;
             UnlockSpells(civ, SpellId.ArcaneEdification);
-            GrantCrystalStorage(civ, 1000);
-            civ.AddResource(Resource.Crystal, 1000);
+            GrantCrystalStorage(civ, 2000);
+            civ.AddResource(Resource.Crystal, 2000);
 
             // Aucune route n'a été ajoutée : pas de vertex constructible.
             Assert.False(controller.CanCastSpell(SpellId.ArcaneEdification));
@@ -654,8 +734,8 @@ namespace SOITests.ControllerTests
             var (state, _, controller) = CreateSetup();
             var civ = state.PlayerCivilization;
             UnlockSpells(civ, SpellId.ArcaneEdification);
-            GrantCrystalStorage(civ, 1000);
-            civ.AddResource(Resource.Crystal, 1000);
+            GrantCrystalStorage(civ, 2000);
+            civ.AddResource(Resource.Crystal, 2000);
             AddFarBuildableVertex(civ);
 
             Assert.True(controller.CanCastSpell(SpellId.ArcaneEdification));
