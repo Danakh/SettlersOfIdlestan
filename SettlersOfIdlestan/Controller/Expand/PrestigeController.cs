@@ -307,6 +307,10 @@ namespace SettlersOfIdlestan.Controller.Expand
             };
         }
 
+        /// <summary>Nombre d'essences divines qui seraient perdues par un prestige immédiat (voir clamp appliqué dans PerformPrestige).</summary>
+        public int GetDivineEssenceLoss(GodState godState)
+            => Math.Max(0, godState.DivineEssence - (_playerCivilization?.DivineEssenceKeptOnPrestige ?? 0));
+
         public void PerformPrestige(MainGameState mainGameState, IslandParameters nextIslandParameters)
             => PerformPrestige(mainGameState, nextIslandParameters, corrupted: false);
 

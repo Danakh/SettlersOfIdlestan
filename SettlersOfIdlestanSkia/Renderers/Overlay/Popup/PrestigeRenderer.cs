@@ -27,6 +27,7 @@ public sealed class PrestigeRenderer : PopupRendererBase
     private readonly LocalizationService   _localization;
     private readonly TooltipRenderer       _tooltipRenderer;
     private readonly Action<bool>          _prestigeRequested;
+    private readonly PrestigeEssenceLossPopupRenderer _essenceLossPopup;
 
     private SKRect  _prestigeButtonRect          = SKRect.Empty;
     private SKRect  _corruptedPrestigeButtonRect = SKRect.Empty;
@@ -74,9 +75,15 @@ public sealed class PrestigeRenderer : PopupRendererBase
         _localization          = localization;
         _prestigeRequested     = prestigeRequested;
         _tooltipRenderer       = tooltipRenderer;
+        _essenceLossPopup      = new PrestigeEssenceLossPopupRenderer(localization,
+            onConfirm: corrupted => _prestigeRequested(corrupted));
     }
 
-    public override void Initialize(SKSize canvasSize) => base.Initialize(canvasSize);
+    public override void Initialize(SKSize canvasSize)
+    {
+        base.Initialize(canvasSize);
+        _essenceLossPopup.Initialize(canvasSize);
+    }
 
     protected override void OnFontsUpdated(float s)
     {
@@ -89,12 +96,14 @@ public sealed class PrestigeRenderer : PopupRendererBase
         base.Close();
         _scrollOffsetPx      = 0f;
         _isDraggingScrollbar = false;
+        _essenceLossPopup.Close();
     }
 
     public void HandlePointerMoved(SKPoint position)
     {
         if (!IsOpen) return;
         _lastPointerPosition = position;
+        if (_essenceLossPopup.IsOpen) return;
 
         if (_isDraggingScrollbar)
         {
@@ -113,7 +122,7 @@ public sealed class PrestigeRenderer : PopupRendererBase
 
     public void HandleScroll(float delta)
     {
-        if (!IsOpen) return;
+        if (!IsOpen || _essenceLossPopup.IsOpen) return;
         float step      = RowHeight + 4;
         float dir        = delta > 0 ? -1f : 1f;
         float maxScroll  = Math.Max(0, _contentH - _viewportH);
@@ -399,6 +408,23 @@ public sealed class PrestigeRenderer : PopupRendererBase
                 }
             }
         }
+
+        _essenceLossPopup.Render(canvas, CanvasSize);
+    }
+
+    // Ouvre une confirmation si le prestige entraînerait la perte d'essences divines
+    // (au-delà de ce que le Reliquaire Sacré/Renforcé permet de conserver), sinon prestige immédiat.
+    private void TryPrestige(bool corrupted)
+    {
+        var godState = _gameControllerService.MainGameController.CurrentMainState?.GodState;
+        int essenceLoss = godState != null
+            ? _gameControllerService.MainGameController.PrestigeController.GetDivineEssenceLoss(godState)
+            : 0;
+
+        if (essenceLoss > 0)
+            _essenceLossPopup.Open(essenceLoss, corrupted);
+        else
+            _prestigeRequested(corrupted);
     }
 
     // Dessine une ligne de bonus standard (séparateur + libellé + valeur, 28px de haut) dans la zone défilante
@@ -434,6 +460,12 @@ public sealed class PrestigeRenderer : PopupRendererBase
     public bool HandlePointerPressed(SKPoint position, PointerButton button)
     {
         if (!IsOpen) return false;
+
+        if (_essenceLossPopup.IsOpen)
+        {
+            _essenceLossPopup.HandlePointerPressed(position, button);
+            return true;
+        }
 
         if (button != PointerButton.Left)
             return GetPopupRect().Contains(position.X, position.Y);
@@ -478,14 +510,14 @@ public sealed class PrestigeRenderer : PopupRendererBase
         if (_prestigeButtonRect.Contains(position.X, position.Y)
             && _gameControllerService.MainGameController.PrestigeController.PrestigeIsAvailable())
         {
-            _prestigeRequested(false);
+            TryPrestige(corrupted: false);
             return true;
         }
 
         if (!_corruptedPrestigeButtonRect.IsEmpty && _corruptedPrestigeButtonRect.Contains(position.X, position.Y)
             && _gameControllerService.MainGameController.PrestigeController.PrestigeIsAvailable())
         {
-            _prestigeRequested(true);
+            TryPrestige(corrupted: true);
             return true;
         }
 
@@ -523,6 +555,7 @@ public sealed class PrestigeRenderer : PopupRendererBase
         _scrollTrackPaint.Dispose();
         _scrollThumbPaint.Dispose();
         _smallFont?.Dispose();
+        _essenceLossPopup.Dispose();
         base.Dispose();
     }
 }

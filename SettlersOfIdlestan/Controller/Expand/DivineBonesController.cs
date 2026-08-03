@@ -44,6 +44,12 @@ namespace SettlersOfIdlestan.Controller.Island
 
             if (_clock != null)
                 _clock.Advanced += OnClockAdvanced;
+
+            // Nettoyage rétrocompatible : les sauvegardes antérieures à la suppression automatique
+            // des Os Divins purifiés (voir ProcessInvestment) peuvent encore en contenir sur la carte.
+            if (_state != null)
+                foreach (var bones in _state.Features.OfType<DivineBones>().Where(b => b.Purified).ToList())
+                    _state.RemoveFeature(bones);
         }
 
         private void OnClockAdvanced(object? sender, GameClockAdvancedEventArgs e)
@@ -59,7 +65,9 @@ namespace SettlersOfIdlestan.Controller.Island
             var playerCiv = _state.PlayerCivilization;
             long now = _clock.CurrentTick;
 
-            foreach (var bones in _state.Features.OfType<DivineBones>())
+            // Copie défensive : une Purification retire sa DivineBones de _state.Features en cours
+            // de boucle (voir plus bas), ce qui invaliderait l'énumération directe.
+            foreach (var bones in _state.Features.OfType<DivineBones>().ToList())
             {
                 if (bones.Purified) continue;
 
@@ -91,6 +99,9 @@ namespace SettlersOfIdlestan.Controller.Island
 
                 _state.EventLog.Add(bones.EssenceGranted ? GameEventType.DivineBonesPurified : GameEventType.DivineBonesPurifiedNoEssence, toast: true);
                 OnDivineBonesPurified?.Invoke(this, bones);
+
+                // Une fois purifiés, les Os Divins n'ont plus rien à offrir : ils disparaissent de la carte.
+                _state.RemoveFeature(bones);
             }
         }
 

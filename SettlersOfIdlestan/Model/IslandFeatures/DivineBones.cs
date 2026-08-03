@@ -10,8 +10,10 @@ namespace SettlersOfIdlestan.Model.IslandFeatures;
 /// Os Divins — Monument généré sur chaque île des Abysses créée après la première (voir
 /// AutoExtendController.OnHexesRevealed), révélé une fois la recherche Boussole du Vide acquise
 /// (ECategory.UNLOCK_DIVINE_BONES). Investissement "Purification" à coût double (Cristal + points
-/// de recherche), comme une Merveille de niveau 0 à objectif unique. Une fois purifié, ne peut plus
-/// être investi. La Purification octroie directement 1 essence divine (GodState.DivineEssence),
+/// de recherche), comme une Merveille de niveau 0 à objectif unique. Une fois purifié, la feature est
+/// retirée de la carte (voir DivineBonesController.ProcessInvestment) — Purified/EssenceGranted ne
+/// sont donc observables que de manière transitoire, avant suppression. La Purification octroie
+/// directement 1 essence divine (GodState.DivineEssence),
 /// sauf si le plafond de la feature (voir <see cref="GetEssenceCap"/>, lié au niveau de corruption)
 /// est déjà atteint — auquel cas la Purification a quand même lieu, mais n'accorde aucune essence.
 /// Les essences divines sont normalement perdues au prestige (sauf un nombre limité conservé par
