@@ -1,5 +1,6 @@
 using SettlersOfIdlestan.Controller.Generator;
 using SettlersOfIdlestan.Controller.Island;
+using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.IslandMap;
@@ -304,6 +305,50 @@ public class MobileCampControllerTests
         Assert.True(relocated);
         Assert.Empty(civ.MobileCamps);
         Assert.Single(enemyCiv.MobileCamps);
+    }
+
+    [Fact]
+    public void CityBuilt_OnOwnCampExactPosition_TransfersSoldiersAndGrantsFreeBarracks()
+    {
+        // Building an outpost exactly on top of one's own Mobile Camp (distance 0, unlike the
+        // vMiddle/distance-1 case in CityBuilt_DestroysNearbyOwnMobileCamp...) absorbs the camp instead
+        // of just destroying it: its soldiers move into the new city and a free Barracks is granted.
+        var (state, civ, v1, _, _) = RibbonIsland();
+        civ.AddMobileCamp(new MobileCamp(v1) { CivilizationIndex = 0, Soldiers = 3 });
+        var (cityController, campController) = Controllers(state);
+        cityController.OnCityBuilt += (_, e) => campController.DestroyCampsNear(e.Position, e.CivilizationIndex);
+        civ.SetStorageCapacityCache(1000, 1000);
+        civ.AddResource(Resource.Brick, 10);
+        civ.AddResource(Resource.Wood, 10);
+        civ.AddResource(Resource.Food, 15);
+
+        var city = cityController.BuildCity(0, v1);
+
+        Assert.NotNull(city);
+        Assert.Empty(civ.MobileCamps);
+        Assert.Contains(city!.Buildings, b => b.Type == BuildingType.Barracks);
+        Assert.Equal(3, city.Soldiers);
+    }
+
+    [Fact]
+    public void CityBuilt_OnOwnCampExactPosition_CapsTransferredSoldiersAtGarrisonCapacity()
+    {
+        // The free Barracks (level 1) is the city's only source of garrison capacity at this point
+        // (5 soldiers), so a camp with more soldiers than that must not overflow the city's capacity.
+        var (state, civ, v1, _, _) = RibbonIsland();
+        civ.AddMobileCamp(new MobileCamp(v1) { CivilizationIndex = 0, Soldiers = 12 });
+        var (cityController, campController) = Controllers(state);
+        cityController.OnCityBuilt += (_, e) => campController.DestroyCampsNear(e.Position, e.CivilizationIndex);
+        civ.SetStorageCapacityCache(1000, 1000);
+        civ.AddResource(Resource.Brick, 10);
+        civ.AddResource(Resource.Wood, 10);
+        civ.AddResource(Resource.Food, 15);
+
+        var city = cityController.BuildCity(0, v1);
+
+        Assert.NotNull(city);
+        Assert.Equal(city!.MaxSoldiers, city.Soldiers);
+        Assert.Equal(5, city.Soldiers);
     }
 
     [Fact]

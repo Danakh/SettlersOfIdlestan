@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
@@ -207,7 +208,9 @@ namespace SettlersOfIdlestan.Controller.Island
         /// Détruit automatiquement tout Camp Mobile de la même civilisation que la ville nouvellement
         /// construite, à distance &lt;= CityProximityDestroyDistance de celle-ci (les camps des autres
         /// civilisations ne sont pas affectés). Appelé depuis MainGameController sur
-        /// CityBuilderController.OnCityBuilt.
+        /// CityBuilderController.OnCityBuilt. Le camp exactement sous la ville (distance 0) est absorbé
+        /// (voir <see cref="AbsorbCamp"/>) plutôt que simplement détruit ; les camps voisins (distance 1)
+        /// sont détruits sans transfert.
         /// </summary>
         public void DestroyCampsNear(Vertex cityPosition, int civilizationIndex)
         {
@@ -220,7 +223,45 @@ namespace SettlersOfIdlestan.Controller.Island
                 .ToList();
 
             foreach (var camp in campsToDestroy)
-                DestroyMobileCamp(camp);
+            {
+                if (camp.Position.EdgeDistanceTo(cityPosition) == 0)
+                    AbsorbCamp(camp, cityPosition, civilizationIndex);
+                else
+                    DestroyMobileCamp(camp);
+            }
+        }
+
+        /// <summary>
+        /// Absorbe un Camp Mobile situé exactement sur l'emplacement du nouvel avant-poste : ses soldats
+        /// sont transférés instantanément dans la ville (plafonnés à sa capacité de garnison) et une
+        /// Caserne gratuite y est construite si elle n'en a pas déjà une (même contournement du verrou de
+        /// prestige que NEW_CITY_BUILDING/STARTING_CITY_BUILDING — voir
+        /// PrestigeMapController.GrantBuildingToCity), avant que le camp ne soit détruit.
+        /// </summary>
+        private void AbsorbCamp(MobileCamp camp, Vertex cityPosition, int civilizationIndex)
+        {
+            var civ = _state!.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex);
+            var city = civ?.Cities.FirstOrDefault(c => c.Position.Equals(cityPosition));
+            if (civ != null && city != null)
+            {
+                GrantFreeBarracks(city);
+                int capacity = city.MaxSoldiers + civ.CityMaxSoldiersBonus;
+                city.Soldiers = Math.Min(city.Soldiers + camp.Soldiers, capacity);
+            }
+
+            DestroyMobileCamp(camp);
+        }
+
+        private static void GrantFreeBarracks(City city)
+        {
+            if (city.Buildings.Any(b => b.Type == BuildingType.Barracks)) return;
+
+            var barracks = BuildingController.CreateBuilding(BuildingType.Barracks);
+            if (barracks == null) return;
+
+            barracks.Level = 1;
+            city.Buildings.Add(barracks);
+            city.InvalidateMaxSoldiersCache();
         }
     }
 }
