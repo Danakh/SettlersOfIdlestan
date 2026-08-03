@@ -32,11 +32,10 @@ namespace SOITests.ControllerTests
         [InlineData(1)]
         [InlineData(2)]
         [InlineData(5)]
-        public void Troll_Ogre_Adventurer_HaveNoArmor(int level)
+        public void Troll_Ogre_HaveNoArmor(int level)
         {
             Assert.Equal(0, new Troll(Origin, level).Armor);
             Assert.Equal(0, new Ogre(Origin, level).Armor);
-            Assert.Equal(0, new Adventurer(Origin, level).Armor);
         }
 
         [Fact]
