@@ -712,17 +712,17 @@ public static class TechnologyDefinitions
             modifiers: new Modifier[]
             {
                 new(ECategory.DIVINE_BONES_COST_REDUCTION, EType.ADDITIVE, 0.15),
-                new(ECategory.DIVINE_BONES_KEPT_ON_PRESTIGE, EType.ADDITIVE, 1),
+                new(ECategory.DIVINE_ESSENCE_KEPT_ON_PRESTIGE, EType.ADDITIVE, 1),
             },
             tier: 10, line: 4),
 
-        // Un tier au-dessus de Reliquaire Sacré, dont elle dépend (avec Acier Abyssal) : conserve un
-        // second Os Divin lors du prestige.
+        // Un tier au-dessus de Reliquaire Sacré, dont elle dépend (avec Acier Abyssal) : conserve une
+        // seconde essence divine lors du prestige.
         new(TechnologyId.ReliquaireRenforce,
             "tech_reliquaire_renforce_name", "tech_reliquaire_renforce_desc",
             cost: 418750000,
             prerequisites: new[] { TechnologyId.ReliquaireSacre, TechnologyId.AcierAbyssal },
-            modifiers: new Modifier[] { new(ECategory.DIVINE_BONES_KEPT_ON_PRESTIGE, EType.ADDITIVE, 1) },
+            modifiers: new Modifier[] { new(ECategory.DIVINE_ESSENCE_KEPT_ON_PRESTIGE, EType.ADDITIVE, 1) },
             tier: 11, line: 3),
 
         // Les routes du Vide déjà bâties ne comptent que pour moitié dans le coût exponentiel de la

@@ -567,6 +567,8 @@ public sealed class OverlayRenderer : IGameRenderer
             _ritualsRenderer.HandlePointerReleased(e.Position);
         if (_tabBar.ActiveTab == TabBarRenderer.TabStats)
             _prestigeHistoryRenderer.HandlePointerReleased(e.Position);
+        if (_tabBar.ActiveTab == TabBarRenderer.TabAscension)
+            _ascensionRenderer.HandlePointerReleased(e.Position);
     }
 
     private void HandleZoomChanged(object? sender, ZoomEventArgs e)
@@ -608,6 +610,8 @@ public sealed class OverlayRenderer : IGameRenderer
             _ritualsRenderer.HandleScroll(e.ZoomDelta);
         if (activeTab == TabBarRenderer.TabStats)
             _prestigeHistoryRenderer.HandleScroll(e.ZoomDelta);
+        if (activeTab == TabBarRenderer.TabAscension)
+            _ascensionRenderer.HandleScroll(e.ZoomDelta);
     }
 
     private void HandleKeyInput(object? sender, KeyEventArgs e)

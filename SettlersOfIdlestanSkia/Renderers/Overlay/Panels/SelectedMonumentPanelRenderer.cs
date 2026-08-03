@@ -466,10 +466,12 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
                 lines.Add((_localization.Get("monument_bonus_corruption_spire_decay"), true));
                 AddCorruptionClearPotentialLine(lines, gate.Position);
                 break;
-            case DivineBones:
+            case DivineBones bones:
             {
-                int boneCount = _gameControllerService.MainGameController.CurrentMainState?.CurrentWorldState?.DivineBoneCount ?? 0;
-                lines.Add((_localization.GetFormated("divine_bones_bone_count", boneCount, DivineBones.BonesPerEssence), boneCount > 0));
+                var godState = _gameControllerService.MainGameController.CurrentMainState?.GodState;
+                int essence = godState?.DivineEssence ?? 0;
+                int cap = bones.GetEssenceCap();
+                lines.Add((_localization.GetFormated("divine_bones_essence_status", essence, cap), essence < cap));
                 break;
             }
         }

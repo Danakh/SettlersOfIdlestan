@@ -15,11 +15,9 @@ namespace SettlersOfIdlestan.Controller.Island
     /// à coût croissant avec le nombre d'essences divines détenues depuis la dernière Ascension
     /// (GodState.DivineEssence) — l'Ascension, en convertissant les essences en points divins,
     /// réinitialise donc le coût de Purification.
-    /// Une Purification terminée octroie toujours 1 os divin (WorldState.DivineBoneCount, perdu au
-    /// prestige) ; DivineBones.BonesPerEssence os réunis sur la même île se convertissent
-    /// automatiquement en 1 essence divine (révélant l'onglet Ascension, voir
-    /// TabBarRenderer.HasGodPoints), seulement si GodState.DivineEssence n'a pas déjà atteint le
-    /// plafond de la feature (DivineBones.GetEssenceCap).
+    /// Une Purification terminée octroie directement 1 essence divine (GodState.DivineEssence),
+    /// seulement si le plafond de la feature (DivineBones.GetEssenceCap) n'est pas déjà atteint —
+    /// au-delà, la Purification a toujours lieu mais n'accorde aucune essence.
     /// </summary>
     public class DivineBonesController
     {
@@ -80,20 +78,15 @@ namespace SettlersOfIdlestan.Controller.Island
                 bones.InvestmentEnabled.Clear();
                 bones.ResearchInvestmentEnabled = false;
 
-                // Chaque Purification octroie 1 os divin, stocké sur l'île courante (donc perdu au
-                // prestige). BonesPerEssence os se convertissent en 1 essence divine, seulement si le
-                // plafond (une essence par niveau de corruption à partir du niveau 4) n'est pas déjà
-                // atteint — au-delà, il faut prestige pour relever ce plafond (les os en excédent
-                // restent sur l'île en attendant).
-                _state.DivineBoneCount++;
-                bones.EssenceGranted = false;
-                while (_state.DivineBoneCount >= DivineBones.BonesPerEssence
-                       && _godState.DivineEssence < bones.GetEssenceCap())
+                // Chaque Purification octroie directement 1 essence divine, seulement si le plafond
+                // (une essence par niveau de corruption à partir du niveau 4) n'est pas déjà atteint —
+                // au-delà, il faut prestige pour relever ce plafond (la Purification a quand même
+                // lieu, mais n'accorde aucune essence).
+                bones.EssenceGranted = _godState.DivineEssence < bones.GetEssenceCap();
+                if (bones.EssenceGranted)
                 {
-                    _state.DivineBoneCount -= DivineBones.BonesPerEssence;
                     _godState.DivineEssence++;
                     _godState.TotalDivineEssenceEarned++;
-                    bones.EssenceGranted = true;
                 }
 
                 _state.EventLog.Add(bones.EssenceGranted ? GameEventType.DivineBonesPurified : GameEventType.DivineBonesPurifiedNoEssence, toast: true);

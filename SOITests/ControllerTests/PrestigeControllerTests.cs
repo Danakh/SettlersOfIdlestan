@@ -262,10 +262,10 @@ namespace SOITests.ControllerTests
             Assert.Equal(0, controller.CurrentMainState.PrestigeState!.PresenceOfGodUsesSinceLastPrestige);
         }
 
-        // ── Os Divins conservés au prestige (Reliquaire Sacré / Renforcé) ────────────
+        // ── Essences divines conservées au prestige (Reliquaire Sacré / Renforcé) ────
 
         [Fact]
-        public void MainGameController_PerformPrestige_WithoutReliquary_LosesAllDivineBones()
+        public void MainGameController_PerformPrestige_WithoutReliquary_LosesAllDivineEssence()
         {
             var controller = new MainGameController();
             controller.CreateNewGame();
@@ -273,32 +273,15 @@ namespace SOITests.ControllerTests
             for (int i = 0; i < 20; i++)
                 civ.Cities[0].Buildings.Add(new Temple());
             civ.AddUniqueBuilding(BuildingType.ImperialPort);
-            controller.CurrentMainState.CurrentWorldState!.DivineBoneCount = 3;
+            controller.CurrentMainState.GodState.DivineEssence = 3;
 
             controller.PerformPrestige();
 
-            Assert.Equal(0, controller.CurrentMainState.CurrentWorldState!.DivineBoneCount);
+            Assert.Equal(0, controller.CurrentMainState.GodState.DivineEssence);
         }
 
         [Fact]
-        public void MainGameController_PerformPrestige_WithReliquaireSacre_KeepsOneDivineBone()
-        {
-            var controller = new MainGameController();
-            controller.CreateNewGame();
-            var civ = controller.CurrentMainState!.CurrentWorldState!.PlayerCivilization;
-            for (int i = 0; i < 20; i++)
-                civ.Cities[0].Buildings.Add(new Temple());
-            civ.AddUniqueBuilding(BuildingType.ImperialPort);
-            civ.TechnologyTree.CompleteResearch(SettlersOfIdlestan.Model.Civilization.TechnologyId.ReliquaireSacre);
-            controller.CurrentMainState.CurrentWorldState!.DivineBoneCount = 3;
-
-            controller.PerformPrestige();
-
-            Assert.Equal(1, controller.CurrentMainState.CurrentWorldState!.DivineBoneCount);
-        }
-
-        [Fact]
-        public void MainGameController_PerformPrestige_WithBothReliquaries_KeepsTwoDivineBones()
+        public void MainGameController_PerformPrestige_WithReliquaireSacre_KeepsOneDivineEssence()
         {
             var controller = new MainGameController();
             controller.CreateNewGame();
@@ -307,16 +290,15 @@ namespace SOITests.ControllerTests
                 civ.Cities[0].Buildings.Add(new Temple());
             civ.AddUniqueBuilding(BuildingType.ImperialPort);
             civ.TechnologyTree.CompleteResearch(SettlersOfIdlestan.Model.Civilization.TechnologyId.ReliquaireSacre);
-            civ.TechnologyTree.CompleteResearch(SettlersOfIdlestan.Model.Civilization.TechnologyId.ReliquaireRenforce);
-            controller.CurrentMainState.CurrentWorldState!.DivineBoneCount = 3;
+            controller.CurrentMainState.GodState.DivineEssence = 3;
 
             controller.PerformPrestige();
 
-            Assert.Equal(2, controller.CurrentMainState.CurrentWorldState!.DivineBoneCount);
+            Assert.Equal(1, controller.CurrentMainState.GodState.DivineEssence);
         }
 
         [Fact]
-        public void MainGameController_PerformPrestige_WithReliquaries_CapsAtAvailableDivineBones()
+        public void MainGameController_PerformPrestige_WithBothReliquaries_KeepsTwoDivineEssence()
         {
             var controller = new MainGameController();
             controller.CreateNewGame();
@@ -326,11 +308,29 @@ namespace SOITests.ControllerTests
             civ.AddUniqueBuilding(BuildingType.ImperialPort);
             civ.TechnologyTree.CompleteResearch(SettlersOfIdlestan.Model.Civilization.TechnologyId.ReliquaireSacre);
             civ.TechnologyTree.CompleteResearch(SettlersOfIdlestan.Model.Civilization.TechnologyId.ReliquaireRenforce);
-            controller.CurrentMainState.CurrentWorldState!.DivineBoneCount = 1;
+            controller.CurrentMainState.GodState.DivineEssence = 3;
 
             controller.PerformPrestige();
 
-            Assert.Equal(1, controller.CurrentMainState.CurrentWorldState!.DivineBoneCount);
+            Assert.Equal(2, controller.CurrentMainState.GodState.DivineEssence);
+        }
+
+        [Fact]
+        public void MainGameController_PerformPrestige_WithReliquaries_CapsAtAvailableDivineEssence()
+        {
+            var controller = new MainGameController();
+            controller.CreateNewGame();
+            var civ = controller.CurrentMainState!.CurrentWorldState!.PlayerCivilization;
+            for (int i = 0; i < 20; i++)
+                civ.Cities[0].Buildings.Add(new Temple());
+            civ.AddUniqueBuilding(BuildingType.ImperialPort);
+            civ.TechnologyTree.CompleteResearch(SettlersOfIdlestan.Model.Civilization.TechnologyId.ReliquaireSacre);
+            civ.TechnologyTree.CompleteResearch(SettlersOfIdlestan.Model.Civilization.TechnologyId.ReliquaireRenforce);
+            controller.CurrentMainState.GodState.DivineEssence = 1;
+
+            controller.PerformPrestige();
+
+            Assert.Equal(1, controller.CurrentMainState.GodState.DivineEssence);
         }
 
         // ── Bonus de nettoyage de la Corruption (Spire de Corruption / Dominion) ─────

@@ -770,7 +770,7 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         Modifier.ECategory.DOMINION_HARVEST_SPEED_PER_LEVEL  => $"+{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_dominion_bonus")}",
         Modifier.ECategory.DOMINION_DEFENSE_REGEN_PER_LEVEL  => $"+{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_dominion_defense_regen")}",
         Modifier.ECategory.DIVINE_BONES_COST_REDUCTION       => $"-{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_divine_bones_cost")}",
-        Modifier.ECategory.DIVINE_BONES_KEPT_ON_PRESTIGE     => $"+{(int)mod.Value} {_localization.Get("prestige_tooltip_divine_bones_kept")}",
+        Modifier.ECategory.DIVINE_ESSENCE_KEPT_ON_PRESTIGE   => $"+{(int)mod.Value} {_localization.Get("prestige_tooltip_divine_essence_kept")}",
         Modifier.ECategory.UNLOCK_DOMINION                   => _localization.Get("prestige_tooltip_unlocks_dominion"),
         Modifier.ECategory.STORAGE_CAPACITY_MULTIPLIER       => $"+{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_storage_multiplier")}",
         Modifier.ECategory.UNLOCK_INTERMEDIATE_TRADE         => _localization.Get("prestige_tooltip_unlocks_intermediate_trade"),

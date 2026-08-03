@@ -390,11 +390,11 @@ public class Civilization
     public double DivineBonesCostReduction => ModifierAggregator.ApplyModifiers(ECategory.DIVINE_BONES_COST_REDUCTION, "", 0.0);
 
     /// <summary>
-    /// Nombre d'Os Divins (WorldState.DivineBoneCount) conservés lors d'un prestige, au lieu d'être
-    /// remis à zéro avec la nouvelle île (voir PrestigeController.PerformPrestige).
+    /// Nombre d'essences divines (GodState.DivineEssence) conservées lors d'un prestige, au lieu
+    /// d'être remises à zéro (voir PrestigeController.PerformPrestige).
     /// </summary>
     [JsonIgnore]
-    public int DivineBonesKeptOnPrestige => ModifierAggregator.ApplyModifiers(ECategory.DIVINE_BONES_KEPT_ON_PRESTIGE, "", 0);
+    public int DivineEssenceKeptOnPrestige => ModifierAggregator.ApplyModifiers(ECategory.DIVINE_ESSENCE_KEPT_ON_PRESTIGE, "", 0);
 
     /// <summary>
     /// Volcanic eruption damage reduction fraction (0.0 = no reduction, 0.5 = 50% less damage to cities).

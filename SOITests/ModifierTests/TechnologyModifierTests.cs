@@ -306,16 +306,16 @@ public class TechnologyModifierTests
     }
 
     [Fact]
-    public void ReliquaireSacre_DivineBonesKeptOnPrestige_Plus1()
+    public void ReliquaireSacre_DivineEssenceKeptOnPrestige_Plus1()
     {
-        Assert.Equal(1, BuildAggregator(TechnologyId.ReliquaireSacre).ApplyModifiers(ECategory.DIVINE_BONES_KEPT_ON_PRESTIGE, "", 0));
+        Assert.Equal(1, BuildAggregator(TechnologyId.ReliquaireSacre).ApplyModifiers(ECategory.DIVINE_ESSENCE_KEPT_ON_PRESTIGE, "", 0));
     }
 
     [Fact]
-    public void ReliquaireRenforce_DivineBonesKeptOnPrestige_Plus2WithReliquaireSacre()
+    public void ReliquaireRenforce_DivineEssenceKeptOnPrestige_Plus2WithReliquaireSacre()
     {
         Assert.Equal(2, BuildAggregator(TechnologyId.ReliquaireSacre, TechnologyId.ReliquaireRenforce)
-            .ApplyModifiers(ECategory.DIVINE_BONES_KEPT_ON_PRESTIGE, "", 0));
+            .ApplyModifiers(ECategory.DIVINE_ESSENCE_KEPT_ON_PRESTIGE, "", 0));
     }
 
     [Fact]

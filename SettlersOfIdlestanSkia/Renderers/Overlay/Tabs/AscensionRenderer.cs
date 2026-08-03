@@ -10,6 +10,7 @@ using SettlersOfIdlestanSkia.Services;
 using SkiaSharp;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace SettlersOfIdlestanSkia.Renderers.Overlay.Tabs;
 
@@ -58,6 +59,18 @@ public sealed class AscensionRenderer : IDisposable
     private SKRect _ascendConfirmRect = SKRect.Empty;
     private SKRect _ascendCancelRect  = SKRect.Empty;
 
+    // Ascenseur pour la zone des colonnes de pouvoirs (entre les onglets internes et Foi), utilisé
+    // seulement si le nombre de pouvoirs révélés (voir ArePrerequisitesMet) dépasse l'espace
+    // disponible — Foi elle-même reste toujours ancrée en bas, hors de cette zone défilante.
+    private float _powersScrollOffsetPx = 0f;
+    private float _powersContentH       = 0f;
+    private float _powersViewportH      = 0f;
+    private bool  _isDraggingPowersScrollbar = false;
+    private float _powersScrollDragStartY      = 0f;
+    private float _powersScrollDragStartOffset = 0f;
+    private SKRect _powersScrollTrackRect = SKRect.Empty;
+    private SKRect _powersScrollThumbRect = SKRect.Empty;
+
     // Choix de race à l'Ascension (voir AscensionController.IsRaceSelectionUnlocked) : l'étape de
     // confirmation devient un panneau modal listant les races sélectionnables.
     private bool _raceOverlayVisible;
@@ -92,6 +105,8 @@ public sealed class AscensionRenderer : IDisposable
     private readonly SKPaint _warningTextPaint  = new() { Color = new SKColor(220, 70, 70), IsAntialias = true };
     private readonly SKPaint _overlayDimPaint   = new() { Color = new SKColor(0, 0, 0, 160), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _overlayPanelPaint = new() { Color = new SKColor(24, 24, 32, 250), Style = SKPaintStyle.Fill, IsAntialias = true };
+    private readonly SKPaint _scrollTrackPaint  = new() { Color = new SKColor(50, 50, 65, 200), Style = SKPaintStyle.Fill, IsAntialias = true };
+    private readonly SKPaint _scrollThumbPaint  = new() { Color = new SKColor(130, 130, 165, 210), Style = SKPaintStyle.Fill, IsAntialias = true };
 
     private readonly SKFont _headerFont   = new() { Size = 17, Typeface = SkiaFonts.Bold };
     private readonly SKFont _nameFont     = new() { Size = 14, Typeface = SkiaFonts.Bold };
@@ -120,6 +135,8 @@ public sealed class AscensionRenderer : IDisposable
         _raceOverlayVisible = false;
         _hoveredLockedRect = SKRect.Empty;
         _hoveredLockedTooltip = null;
+        _powersScrollTrackRect = SKRect.Empty;
+        _powersScrollThumbRect = SKRect.Empty;
 
         float topBar = _uiLayout.SecondRowBottom;
         canvas.DrawRect(new SKRect(0, topBar, _canvasSize.Width, _canvasSize.Height), _bgPaint);
@@ -177,22 +194,49 @@ public sealed class AscensionRenderer : IDisposable
             return;
         }
 
-        // Foi : grand bouton occupant toute la largeur, ancré en bas de l'écran.
+        // Foi : grand bouton occupant toute la largeur, ancré en bas de l'écran (jamais concerné
+        // par l'ascenseur des colonnes ci-dessous).
         float faithBottom = _canvasSize.Height - Padding;
         float faithTop = faithBottom - FaithHeight;
         var faithRect = new SKRect(x, faithTop, x + contentWidth, faithBottom);
         var faithDef = AscensionPowerDefinitions.Get(AscensionPowerId.Faith)!;
         DrawFaithButton(canvas, faithRect, faithDef, ascension);
 
-        // Les 4 colonnes existantes montent au-dessus de Foi.
+        // Les 4 colonnes existantes montent au-dessus de Foi, mais seuls les pouvoirs dont le
+        // prérequis est déjà rempli (Foi acquise, puis pouvoir précédent de la colonne) sont
+        // affichés — un pouvoir plus loin dans sa colonne reste invisible tant qu'il n'est pas
+        // atteignable, plutôt que grisé indéfiniment.
         float columnWidth = (contentWidth - ColumnGap * (Columns - 1)) / Columns;
+        float columnsTop = tabY + InnerTabHeight + Padding;
+        float columnsBottom = faithTop;
+
+        var visibleByColumn = new List<AscensionPowerDefinition>[Columns];
+        float maxColumnContentH = 0f;
+        for (int col = 0; col < Columns; col++)
+        {
+            var visible = AscensionPowerDefinitions.GetColumn(col).Where(d => ascension.ArePrerequisitesMet(d.Id)).ToList();
+            visibleByColumn[col] = visible;
+            maxColumnContentH = Math.Max(maxColumnContentH, visible.Count * (ColumnCardHeight + CardSpacing));
+        }
+
+        _powersContentH = maxColumnContentH;
+        _powersViewportH = Math.Max(0f, columnsBottom - columnsTop);
+        float maxScroll = Math.Max(0f, _powersContentH - _powersViewportH);
+        _powersScrollOffsetPx = Math.Clamp(_powersScrollOffsetPx, 0f, maxScroll);
+        bool needsScroll = _powersContentH > _powersViewportH + 1f;
+
+        canvas.Save();
+        canvas.ClipRect(new SKRect(x, columnsTop, x + contentWidth, columnsBottom));
+
         for (int col = 0; col < Columns; col++)
         {
             float colX = x + col * (columnWidth + ColumnGap);
             float lineX = colX + columnWidth / 2f;
-            float cardBottom = faithTop;
+            // Décalé vers le bas de l'offset de défilement : à 0, la pile touche Foi comme avant ;
+            // au maximum, son sommet remonte jusqu'au haut de la zone visible.
+            float cardBottom = columnsBottom + _powersScrollOffsetPx;
 
-            foreach (var def in AscensionPowerDefinitions.GetColumn(col))
+            foreach (var def in visibleByColumn[col])
             {
                 float gapTop = cardBottom - CardSpacing;
                 canvas.DrawLine(lineX, gapTop, lineX, cardBottom, _connectorPaint);
@@ -203,6 +247,11 @@ public sealed class AscensionRenderer : IDisposable
                 cardBottom = cardTop;
             }
         }
+
+        canvas.Restore();
+
+        if (needsScroll)
+            DrawPowersScrollbar(canvas, x, contentWidth, columnsTop, _powersViewportH);
 
         DrawRaceSelectionOverlayIfNeeded(canvas, ascension);
 
@@ -444,7 +493,13 @@ public sealed class AscensionRenderer : IDisposable
             var bg = !canAscend ? _disabledPaint : (hovered ? _unlockHoverPaint : _unlockPaint);
             canvas.DrawRoundRect(rect, 6, 6, bg);
             canvas.DrawRoundRect(rect, 6, 6, _buttonBorderPaint);
-            SkiaTextUtils.DrawText(canvas, _localization.Get("ascension_action_button"), rect.MidX, rect.MidY + 5f, SKTextAlign.Center, _buttonFont, canAscend ? _buttonTextPaint : _mutedPaint);
+
+            // Tant que l'essence n'atteint pas le seuil, le bouton affiche la progression plutôt que
+            // son libellé habituel — retour visuel immédiat sur ce qu'il manque pour ascensionner.
+            string label = godState.DivineEssence < AscensionController.MinDivineEssenceForAscension
+                ? _localization.GetFormated("ascension_action_button_progress", godState.DivineEssence, AscensionController.MinDivineEssenceForAscension)
+                : _localization.Get("ascension_action_button");
+            SkiaTextUtils.DrawText(canvas, label, rect.MidX, rect.MidY + 5f, SKTextAlign.Center, _buttonFont, canAscend ? _buttonTextPaint : _mutedPaint);
 
             if (!canAscend && hovered)
             {
@@ -560,10 +615,62 @@ public sealed class AscensionRenderer : IDisposable
         }
     }
 
-    public void HandlePointerMoved(SKPoint position) => _hoverPosition = position;
+    public void HandlePointerMoved(SKPoint position)
+    {
+        _hoverPosition = position;
+        if (_isDraggingPowersScrollbar)
+        {
+            float dy         = position.Y - _powersScrollDragStartY;
+            float thumbRange = _powersScrollTrackRect.Height - _powersScrollThumbRect.Height;
+            float maxScroll  = Math.Max(0, _powersContentH - _powersViewportH);
+            float scrollPerPx = thumbRange > 0 ? maxScroll / thumbRange : 0;
+            _powersScrollOffsetPx = Math.Clamp(_powersScrollDragStartOffset + dy * scrollPerPx, 0, maxScroll);
+        }
+    }
+
+    public void HandlePointerReleased(SKPoint position) => _isDraggingPowersScrollbar = false;
+
+    public void HandleScroll(float delta)
+    {
+        const float step = 60f;
+        float dir = delta > 0 ? -1f : 1f;
+        float maxScroll = Math.Max(0, _powersContentH - _powersViewportH);
+        _powersScrollOffsetPx = Math.Clamp(_powersScrollOffsetPx + dir * step, 0, maxScroll);
+    }
+
+    private void DrawPowersScrollbar(SKCanvas canvas, float contentX, float contentWidth, float trackTop, float trackH)
+    {
+        const float scrollW = 6f;
+        float trackX = contentX + contentWidth - scrollW;
+
+        _powersScrollTrackRect = new SKRect(trackX, trackTop, trackX + scrollW, trackTop + trackH);
+        canvas.DrawRoundRect(_powersScrollTrackRect, 3, 3, _scrollTrackPaint);
+
+        float thumbRatio = _powersViewportH / _powersContentH;
+        float thumbH     = Math.Max(24f, thumbRatio * trackH);
+        float maxScroll  = Math.Max(1f, _powersContentH - _powersViewportH);
+        float thumbTop   = trackTop + (_powersScrollOffsetPx / maxScroll) * (trackH - thumbH);
+        _powersScrollThumbRect = new SKRect(trackX, thumbTop, trackX + scrollW, thumbTop + thumbH);
+        canvas.DrawRoundRect(_powersScrollThumbRect, 3, 3, _scrollThumbPaint);
+    }
 
     public bool HandlePointerPressed(SKPoint position)
     {
+        if (!_powersScrollThumbRect.IsEmpty && _powersScrollThumbRect.Contains(position.X, position.Y))
+        {
+            _isDraggingPowersScrollbar   = true;
+            _powersScrollDragStartY      = position.Y;
+            _powersScrollDragStartOffset = _powersScrollOffsetPx;
+            return true;
+        }
+        if (!_powersScrollTrackRect.IsEmpty && _powersScrollTrackRect.Contains(position.X, position.Y))
+        {
+            float relY      = position.Y - _powersScrollTrackRect.Top;
+            float maxScroll = Math.Max(0, _powersContentH - _powersViewportH);
+            _powersScrollOffsetPx = Math.Clamp(relY / _powersScrollTrackRect.Height * maxScroll, 0, maxScroll);
+            return true;
+        }
+
         if (_confirmingAscension)
         {
             if (_ascendCancelRect.Contains(position.X, position.Y))
@@ -667,6 +774,8 @@ public sealed class AscensionRenderer : IDisposable
         _warningTextPaint.Dispose();
         _overlayDimPaint.Dispose();
         _overlayPanelPaint.Dispose();
+        _scrollTrackPaint.Dispose();
+        _scrollThumbPaint.Dispose();
         _buttonBorderPaint.Dispose();
         _buttonTextPaint.Dispose();
         _namePaint.Dispose();
