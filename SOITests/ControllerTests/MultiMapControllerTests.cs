@@ -21,8 +21,13 @@ public class MultiMapControllerTests
         var b = new HexCoord(1, 0, LayerState.UnderworldZ);
         var edge = Edge.Create(a, b);
 
+        // Underworld roads also cost Ore/Stone on top of Wood/Brick (see RoadController.ApplyUnderworldRoadCostAdjustments).
+        // Ore is an "advanced" resource: grant enough basic/advanced storage capacity to hold it.
+        civ.SetStorageCapacityCache(50, 50);
         civ.AddResource(Resource.Wood, 2);
         civ.AddResource(Resource.Brick, 2);
+        civ.AddResource(Resource.Ore, 5);
+        civ.AddResource(Resource.Stone, 10);
 
         var controller = new RoadController(state);
         var road = controller.BuildRoad(civ.Index, edge);
@@ -32,6 +37,8 @@ public class MultiMapControllerTests
         Assert.Contains(civ.Roads, r => r.Position.Equals(edge));
         Assert.Equal(0, civ.GetResourceQuantity(Resource.Wood));
         Assert.Equal(0, civ.GetResourceQuantity(Resource.Brick));
+        Assert.Equal(0, civ.GetResourceQuantity(Resource.Ore));
+        Assert.Equal(0, civ.GetResourceQuantity(Resource.Stone));
     }
 
     [Fact]

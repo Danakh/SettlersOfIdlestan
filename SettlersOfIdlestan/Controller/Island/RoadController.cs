@@ -371,7 +371,7 @@ namespace SettlersOfIdlestan.Controller.Island
             if (distance == int.MaxValue)
                 return null; // road must no longer be linked to a city
 
-            var cost = (isVoidPath || isMaritimePath) ? GetMaritimeRoadCost() : GetRoadCost(distance, civ);
+            var cost = (isVoidPath || isMaritimePath) ? GetMaritimeRoadCost() : ApplyUnderworldRoadCostAdjustments(GetRoadCost(distance, civ), edge, civ);
 
             long voidResearchCost = 0;
             if (isVoidPath)
@@ -753,6 +753,18 @@ namespace SettlersOfIdlestan.Controller.Island
             var civ = _state!.PlayerCivilization;
             var distance = GetDistanceForEdge(edge, civ);
             var cost = GetRoadCost(distance, civ);
+            return ApplyUnderworldRoadCostAdjustments(cost, edge, civ);
+        }
+
+        /// <summary>
+        /// Applique au coût de base d'une route terrestre les majorations propres à l'Inframonde :
+        /// surcoût fixe en Minerai/Pierre (réduit par UNDERWORLD_ROAD_BASE_REDUCTION), puis
+        /// multiplication par la distance au vertex d'arrivée (élevée à la puissance 1.5). Utilisé à
+        /// la fois par <see cref="GetPlayerRoadCost"/> (affichage tooltip) et par <see cref="BuildRoad"/>
+        /// (coût réellement débité) afin que les deux restent cohérents.
+        /// </summary>
+        private ResourceSet ApplyUnderworldRoadCostAdjustments(ResourceSet cost, Edge edge, Civilization civ)
+        {
             if (edge.Z == LayerState.UnderworldZ)
             {
                 int reduction = civ.ModifierAggregator.ApplyModifiers(Modifier.ECategory.UNDERWORLD_ROAD_BASE_REDUCTION, "", 0);
