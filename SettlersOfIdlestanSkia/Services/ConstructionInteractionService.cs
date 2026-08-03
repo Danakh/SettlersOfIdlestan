@@ -117,16 +117,9 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
             _lastClickTime = DateTime.MinValue;
 
             // Un Camp Mobile propre peut désormais se trouver sur un vertex par ailleurs constructible
-            // en ville (voir CityBuilderController.GetBuildableVertices) — la destruction doit rester
-            // une action manuelle explicite, donc ce cas est prioritaire sur la construction de ville :
-            // un premier double-clic détruit le camp, un second construit la ville.
-            if (HoverState.HoveredOwnMobileCampVertex != null && HoverState.HoveredOwnMobileCampVertex.Equals(HoverState.HoveredVertex))
-            {
-                _gameControllerService.TryDestroyMobileCampForPlayer(HoverState.HoveredOwnMobileCampVertex);
-                RefreshHover(e.Position);
-                return;
-            }
-
+            // en ville (voir CityBuilderController.GetBuildableVertices) — la construction de ville est
+            // prioritaire sur ce cas : un double-clic construit directement la ville (ce qui détruit le
+            // camp au passage, voir MobileCampController.DestroyCampsNear déclenché par OnCityBuilt).
             if (HoverState.HoveredVertex != null)
             {
                 try
@@ -184,13 +177,6 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
                 {
                     InvalidateBuildableCache();
                 }
-                RefreshHover(e.Position);
-                return;
-            }
-
-            if (HoverState.HoveredOwnMobileCampVertex != null)
-            {
-                _gameControllerService.TryDestroyMobileCampForPlayer(HoverState.HoveredOwnMobileCampVertex);
                 RefreshHover(e.Position);
                 return;
             }

@@ -144,7 +144,11 @@ public class MobileCampRenderer : HexBasedRenderer, IGameRenderer
             {
                 var camp = mgs.CurrentWorldState.FindMobileCampAt(vertex);
                 if (camp != null)
-                    _tooltipRenderer.SetMobileCampTooltip(camp, state.HoveredOwnMobileCampVertex != null, _militaryController);
+                {
+                    bool isOwnCamp = state.HoveredOwnMobileCampVertex != null;
+                    bool cityBuildableHere = isOwnCamp && state.BuildableVertices.Any(v => v.Equals(vertex));
+                    _tooltipRenderer.SetMobileCampTooltip(camp, isOwnCamp, _militaryController, cityBuildableHere);
+                }
             }
         }
     }

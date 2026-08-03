@@ -1,6 +1,7 @@
 using SettlersOfIdlestan.Controller.Generator;
 using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Model.Civilization;
+using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.HexGrid;
 using System.Collections.Generic;
@@ -51,12 +52,12 @@ public class MobileCampControllerTests
         return (state, civ, v1, vMiddle, v2);
     }
 
-    private static (CityBuilderController city, MobileCampController camp) Controllers(WorldState state)
+    private static (CityBuilderController city, MobileCampController camp) Controllers(WorldState state, GameClock? clock = null)
     {
         var cityController = new CityBuilderController();
         cityController.Initialize(state);
         var campController = new MobileCampController();
-        campController.Initialize(state, cityController);
+        campController.Initialize(state, cityController, clock);
         return (cityController, campController);
     }
 
@@ -314,5 +315,93 @@ public class MobileCampControllerTests
         Assert.Equal(100, cost[Resource.Ore]);
         Assert.Equal(200, cost[Resource.Food]);
         Assert.Equal(200, cost[Resource.Gold]);
+    }
+
+    private static void FundMobileCampCost(Civilization civ)
+    {
+        civ.SetStorageCapacityCache(1000, 1000);
+        civ.AddResource(Resource.Stone, 100);
+        civ.AddResource(Resource.Brick, 100);
+        civ.AddResource(Resource.Ore, 100);
+        civ.AddResource(Resource.Food, 200);
+        civ.AddResource(Resource.Gold, 200);
+    }
+
+    [Fact]
+    public void BuildMobileCamp_SetsCreatedTickToCurrentClockTick()
+    {
+        var (state, civ, v1, _, v2) = RibbonIsland();
+        civ.AddCity(new City(v1) { CivilizationIndex = 0 });
+        GrantTech(civ);
+        FundMobileCampCost(civ);
+
+        var clock = new GameClock();
+        clock.Start();
+        var (_, campController) = Controllers(state, clock);
+        clock.SimulateAdvance(1200);
+
+        var camp = campController.BuildMobileCamp(0, v2);
+
+        Assert.NotNull(camp);
+        Assert.Equal(clock.CurrentTick, camp!.CreatedTick);
+    }
+
+    [Fact]
+    public void SelfDestruct_DoesNotDestroyCampBeforeIntervalElapsed()
+    {
+        // A Camp Mobile is no longer manually destructible (see ConstructionInteractionService) — it
+        // only disappears via DestroyCampsNear (nearby allied city) or, now, this self-destruct timer.
+        var (state, civ, v1, _, v2) = RibbonIsland();
+        civ.AddCity(new City(v1) { CivilizationIndex = 0 });
+        GrantTech(civ);
+        FundMobileCampCost(civ);
+
+        var clock = new GameClock();
+        clock.Start();
+        var (_, campController) = Controllers(state, clock);
+        var camp = campController.BuildMobileCamp(0, v2);
+        Assert.NotNull(camp);
+
+        clock.SimulateAdvance(MobileCampController.SelfDestructIntervalTicks - 100);
+
+        Assert.Contains(civ.MobileCamps, c => c == camp);
+    }
+
+    [Fact]
+    public void SelfDestruct_DestroysCampAfterIntervalElapsed()
+    {
+        var (state, civ, v1, _, v2) = RibbonIsland();
+        civ.AddCity(new City(v1) { CivilizationIndex = 0 });
+        GrantTech(civ);
+        FundMobileCampCost(civ);
+
+        var clock = new GameClock();
+        clock.Start();
+        var (_, campController) = Controllers(state, clock);
+        var camp = campController.BuildMobileCamp(0, v2);
+        Assert.NotNull(camp);
+
+        clock.SimulateAdvance(MobileCampController.SelfDestructIntervalTicks + 100);
+
+        Assert.DoesNotContain(civ.MobileCamps, c => c == camp);
+    }
+
+    [Fact]
+    public void GetRemainingSelfDestructTicks_CountsDownFromCreation()
+    {
+        var (state, civ, v1, _, v2) = RibbonIsland();
+        civ.AddCity(new City(v1) { CivilizationIndex = 0 });
+        GrantTech(civ);
+        FundMobileCampCost(civ);
+
+        var clock = new GameClock();
+        clock.Start();
+        var (_, campController) = Controllers(state, clock);
+        var camp = campController.BuildMobileCamp(0, v2)!;
+
+        clock.SimulateAdvance(5000);
+
+        Assert.Equal(MobileCampController.SelfDestructIntervalTicks - 5000,
+            campController.GetRemainingSelfDestructTicks(camp, clock.CurrentTick));
     }
 }

@@ -346,7 +346,7 @@ namespace SettlersOfIdlestan.Controller
                 CityBuilderController.Initialize(WorldState, Clock, CurrentMainState!.PRNG);
                 MaritimeBeaconController.Initialize(WorldState);
                 WarFleetController.Initialize(WorldState);
-                MobileCampController.Initialize(WorldState, CityBuilderController);
+                MobileCampController.Initialize(WorldState, CityBuilderController, Clock);
                 FeatureController.Initialize(WorldState, Clock);
                 MilitaryController.Initialize(WorldState, Clock, CityBuilderController, WarFleetController, MobileCampController, CurrentMainState!.PRNG);
                 MonsterFeatureController.Initialize(WorldState, Clock, CurrentMainState!.PRNG, CityBuilderController, CurrentMainState?.PrestigeState);

@@ -185,8 +185,16 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay
             _tooltipScreenPosition = _islandRendererContext.IslandToScreen(islandPosition, _gameRenderContext.ZoomLevel, _gameRenderContext.CameraPosition);
         }
 
-        /// <summary>Infobulle affichée au survol d'un Camp Mobile déjà construit — voir <see cref="SetFleetTooltip"/> pour son équivalent Flotte de Guerre.</summary>
-        public void SetMobileCampTooltip(MobileCamp camp, bool isPlayerCamp, MilitaryController militaryController)
+        /// <summary>
+        /// Infobulle affichée au survol d'un Camp Mobile déjà construit — voir <see cref="SetFleetTooltip"/>
+        /// pour son équivalent Flotte de Guerre. Le camp n'est plus destructible manuellement : l'infobulle
+        /// affiche le temps restant avant autodestruction (voir MobileCampController.SelfDestructIntervalTicks).
+        /// Si une ville est constructible sur ce vertex (camp du joueur uniquement — voir
+        /// CityBuilderController.GetBuildableVertices, qui autorise un avant-poste sur son propre camp),
+        /// l'infobulle propose aussi la construction de l'avant-poste avec son coût, puisqu'un double-clic
+        /// y construit directement la ville (voir ConstructionInteractionService).
+        /// </summary>
+        public void SetMobileCampTooltip(MobileCamp camp, bool isPlayerCamp, MilitaryController militaryController, bool cityBuildableHere)
         {
             if (_islandRendererContext == null || _gameRenderContext == null) return;
 
@@ -203,8 +211,25 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay
             if (maxDef > 0)
                 lines.Add(_localizationService.GetFormated("city_tooltip_defense", camp.CurrentDefense, maxDef));
 
+            ResourceSet? outpostCost = null;
+            if (isPlayerCamp)
+            {
+                long currentTick = _gameControllerService.MainGameController.Clock?.CurrentTick ?? 0;
+                long remainingTicks = _gameControllerService.MainGameController.MobileCampController.GetRemainingSelfDestructTicks(camp, currentTick);
+                lines.Add(_localizationService.GetFormated("city_tooltip_mobile_camp_self_destruct", $"{remainingTicks / 100.0:F1}s"));
+
+                if (cityBuildableHere)
+                {
+                    var civ = _gameControllerService.PlayerCivilization;
+                    outpostCost = civ != null
+                        ? _cityController.NewCityBuildingCostFor(camp.Position, civ)
+                        : _cityController.NewCityBuildingCost();
+                    lines.Add(_localizationService.Get("outpost_construction"));
+                }
+            }
+
             _tooltipTexts = lines.ToArray();
-            _tooltipCost = null; _tooltipResearchCost = null;
+            _tooltipCost = outpostCost; _tooltipResearchCost = null;
             var islandPos = _islandRendererContext.VertexToIslandPoint(camp.Position);
             _tooltipScreenPosition = _islandRendererContext.IslandToScreen(islandPos, _gameRenderContext.ZoomLevel, _gameRenderContext.CameraPosition);
         }

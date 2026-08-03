@@ -91,9 +91,10 @@ public class CityBuilderControllerTests
     public void GetBuildableVertices_IncludesExactVertexOfOwnMobileCamp()
     {
         // Unlike a fleet or a beacon, a Camp Mobile of this same civilization must not block city
-        // construction at its own vertex — the UI is expected to still require destroying it manually
-        // first (see ConstructionInteractionService), but the model itself must allow it so the
-        // Builder's Guild automation can replace a camp with an outpost.
+        // construction at its own vertex — building the city directly replaces the camp (see
+        // ConstructionInteractionService, which now prioritizes city construction on a double-click
+        // over manual camp destruction), and the Builder's Guild automation relies on the same model
+        // behavior to replace a camp with an outpost.
         var (state, civ, _, vMiddle, _) = RibbonIsland();
         civ.AddMobileCamp(new MobileCamp(vMiddle) { CivilizationIndex = 0 });
 

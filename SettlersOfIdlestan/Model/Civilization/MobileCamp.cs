@@ -10,6 +10,9 @@ namespace SettlersOfIdlestan.Model.Civilization;
 /// restriction vis-à-vis des civilisations adverses. N'est proposé à la construction que là où un
 /// avant-poste classique ne peut pas être bâti, et est détruit automatiquement dès qu'une ville
 /// alliée (même civilisation) est construite à distance &lt;= 1. Les villes ennemies n'ont pas cet effet.
+/// N'est pas destructible manuellement : s'autodétruit après
+/// <see cref="SettlersOfIdlestan.Controller.Island.MobileCampController.SelfDestructIntervalTicks"/>
+/// (voir MobileCampController.ResolveSelfDestruct).
 /// </summary>
 [Serializable]
 public class MobileCamp : IMilitaryVertex
@@ -23,6 +26,10 @@ public class MobileCamp : IMilitaryVertex
     public Vertex Position { get; set; }
 
     public int CivilizationIndex { get; set; }
+
+    /// <summary>Tick de création, utilisé pour calculer l'autodestruction (voir
+    /// <see cref="SettlersOfIdlestan.Controller.Island.MobileCampController.SelfDestructIntervalTicks"/>).</summary>
+    public long CreatedTick { get; set; }
 
     /// <summary>Défense actuelle (dynamique). Se régénère jusqu'à MaxDefense.</summary>
     public int CurrentDefense { get; set; }

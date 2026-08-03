@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using SettlersOfIdlestan.Model.Civilization;
+using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
 
@@ -19,12 +20,14 @@ namespace SettlersOfIdlestan.Controller.Island
     /// et est détruit automatiquement dès qu'une ville de la même civilisation (alliée) est construite à
     /// distance &lt;= <see cref="CityProximityDestroyDistance"/> (voir DestroyCampsNear, appelé depuis
     /// MainGameController sur CityBuilderController.OnCityBuilt). Les villes ennemies n'affectent pas
-    /// les camps mobiles.
+    /// les camps mobiles. N'est pas destructible manuellement par le joueur : s'autodétruit après
+    /// <see cref="SelfDestructIntervalTicks"/> (voir ResolveSelfDestruct).
     /// </summary>
     public class MobileCampController
     {
         private WorldState? _state;
         private CityBuilderController? _cityBuilderController;
+        private GameClock? _clock;
 
         /// <summary>Distance minimale (arêtes) entre un Camp Mobile et tout autre emplacement militaire de la même civilisation.</summary>
         public const int MinDistanceBetweenMilitaryVertices = 2;
@@ -32,13 +35,46 @@ namespace SettlersOfIdlestan.Controller.Island
         /// <summary>Distance (arêtes) à laquelle la construction d'une ville détruit automatiquement un Camp Mobile voisin.</summary>
         public const int CityProximityDestroyDistance = 1;
 
+        /// <summary>Durée de vie d'un Camp Mobile avant autodestruction (300 s réelles = 30 000 ticks, voir GameClock : 1 tick = 0.01 s).</summary>
+        public const long SelfDestructIntervalTicks = 30_000L;
+
         internal MobileCampController() { }
 
-        internal void Initialize(WorldState state, CityBuilderController cityBuilderController)
+        internal void Initialize(WorldState state, CityBuilderController cityBuilderController, GameClock? clock = null)
         {
+            if (_clock != null)
+                _clock.Advanced -= OnClockAdvanced;
+
             _state = state ?? throw new ArgumentNullException(nameof(state));
             _cityBuilderController = cityBuilderController ?? throw new ArgumentNullException(nameof(cityBuilderController));
+            _clock = clock;
+
+            if (_clock != null)
+                _clock.Advanced += OnClockAdvanced;
         }
+
+        private void OnClockAdvanced(object? sender, GameClockAdvancedEventArgs e)
+        {
+            try { ResolveSelfDestruct(e.CurrentTick); }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[MobileCampController] {nameof(ResolveSelfDestruct)}: {ex}"); }
+        }
+
+        /// <summary>Détruit tout Camp Mobile (toute civilisation) dont la durée de vie dépasse <see cref="SelfDestructIntervalTicks"/>.</summary>
+        private void ResolveSelfDestruct(long currentTick)
+        {
+            if (_state == null) return;
+
+            var expiredCamps = _state.GetAllMobileCamps()
+                .Where(c => currentTick - c.CreatedTick >= SelfDestructIntervalTicks)
+                .ToList();
+
+            foreach (var camp in expiredCamps)
+                DestroyMobileCamp(camp);
+        }
+
+        /// <summary>Temps restant (en ticks) avant l'autodestruction du camp, jamais négatif — sert à l'infobulle.</summary>
+        public long GetRemainingSelfDestructTicks(MobileCamp camp, long currentTick)
+            => Math.Max(0L, SelfDestructIntervalTicks - (currentTick - camp.CreatedTick));
 
         /// <summary>Coût identique à celui d'une Flotte de Guerre, sauf que le bois est remplacé par pierre + brique.</summary>
         public static ResourceSet GetBuildCost() => new()
@@ -123,7 +159,7 @@ namespace SettlersOfIdlestan.Controller.Island
 
             civ.PayResourceCost(cost);
 
-            var camp = new MobileCamp(vertex) { CivilizationIndex = civilizationIndex };
+            var camp = new MobileCamp(vertex) { CivilizationIndex = civilizationIndex, CreatedTick = _clock?.CurrentTick ?? 0 };
             civ.AddMobileCamp(camp);
             _state.Visibility.RecalculateFor(civilizationIndex);
             return camp;
@@ -143,15 +179,15 @@ namespace SettlersOfIdlestan.Controller.Island
             var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex)
                       ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
 
-            var camp = new MobileCamp(vertex) { CivilizationIndex = civilizationIndex };
+            var camp = new MobileCamp(vertex) { CivilizationIndex = civilizationIndex, CreatedTick = _clock?.CurrentTick ?? 0 };
             civ.AddMobileCamp(camp);
             _state.Visibility.RecalculateFor(civilizationIndex);
             return camp;
         }
 
         /// <summary>
-        /// Retire un camp mobile, qu'il ait été détruit au combat ou par la construction d'une ville
-        /// voisine. Point d'entrée unique de suppression, à l'image de
+        /// Retire un camp mobile, qu'il ait été détruit au combat, par la construction d'une ville
+        /// voisine, ou par autodestruction (voir ResolveSelfDestruct). Point d'entrée unique de suppression, à l'image de
         /// <see cref="CityBuilderController.DestroyCity"/> / <see cref="WarFleetController.DestroyFleet"/>.
         /// </summary>
         public void DestroyMobileCamp(MobileCamp camp)
