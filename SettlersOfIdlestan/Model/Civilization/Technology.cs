@@ -58,11 +58,11 @@ public enum TechnologyId
     // [Legacy] Recherche "Stratégie avancée" (attaque auto. des villes ennemies) remplacée par Patrol
     // (patrouille anti-monstres) — conservée uniquement pour la désérialisation des anciennes sauvegardes.
     AdvancedStrategy,
-    // Débloque la construction du Camp Mobile — prend la place de RailLogistics dans l'arbre (voir
-    // TechnologyDefinitions).
+    // Débloque la construction du Camp Mobile. Rapprochée de la racine de l'arbre (tier -2, coût /16) :
+    // Watchtower et Rail Logistics en dépendent désormais, plutôt que l'inverse (voir TechnologyDefinitions).
     MobileCampConstruction,
     // Répétable à l'infini (comme MasterHarvest) : +5% UNIT_PRODUCTION_SPEED par complétion, coût
-    // doublé à chaque relance. Un tier au-dessus du Camp Mobile, son seul prérequis.
+    // doublé à chaque relance. Prérequis : Rail Logistics (et non plus le Camp Mobile).
     EntrainementIntensif,
     // Un tier au-dessus d'EntrainementIntensif (seul prérequis), également débloquée par le vertex
     // de prestige Raids. Raid gratuit sur une ville alliée : redirige tous les flux de renfort vers

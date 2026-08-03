@@ -236,11 +236,12 @@ public static class TechnologyDefinitions
             tier: 4, line: 6),
 
         // Prend la place d'AdvancedStrategy dans l'arbre (AdvancedStrategy est repoussée plus loin,
-        // voir plus bas, avec MobileCampConstruction comme prérequis).
+        // voir plus bas). Prérequis désormais Mobile Camp (au lieu d'Advanced Tactics), Mobile Camp
+        // ayant été rapproché de la racine de l'arbre.
         new(TechnologyId.RailLogistics,
             "tech_rail_logistics_name", "tech_rail_logistics_desc",
             cost: 380000,
-            prerequisites: new[] { TechnologyId.AdvancedTactics },
+            prerequisites: new[] { TechnologyId.MobileCampConstruction },
             modifiers: new Modifier[]
             {
                 new(ECategory.REINFORCEMENT_SPEED, EType.ADDITIVE, 1.0),
@@ -249,10 +250,11 @@ public static class TechnologyDefinitions
             tier: 6, line: 8),
 
         // Prend la place de Rempart de Fer dans l'arbre : dépend désormais de lui (dépendance inversée).
+        // Prérequis Surveillance remplacé par Mobile Camp, rapproché de la racine de l'arbre.
         new(TechnologyId.WatchtowerConstruction,
             "tech_watchtower_construction_name", "tech_watchtower_construction_desc",
             cost: 390000,
-            prerequisites: new[] { TechnologyId.RempartsDeFer, TechnologyId.Surveillance },
+            prerequisites: new[] { TechnologyId.RempartsDeFer, TechnologyId.MobileCampConstruction },
             modifiers: new Modifier[] { new(ECategory.NEW_CITY_BUILDING, "Watchtower", EType.ADDITIVE, 1) },
             tier: 6, line: 7),
 
@@ -356,24 +358,26 @@ public static class TechnologyDefinitions
             modifiers: new Modifier[] { new(ECategory.BUILDING_MAX_LEVEL, "VolcanicForge", EType.ADDITIVE, 3) },
             tier: 9, line: 2),
 
-        // Prend la place de RailLogistics dans l'arbre (voir plus haut). Débloque la construction du
-        // Camp Mobile (voir MobileCampController) — l'accès est vérifié directement sur la recherche
-        // complétée, comme ProspectionAvancee, plutôt que via un modificateur dédié.
+        // Rapprochée de la racine de l'arbre (tier -2, coût /16) pour la rendre accessible plus tôt :
+        // Watchtower et Rail Logistics dépendent désormais d'elle plutôt que l'inverse. Débloque la
+        // construction du Camp Mobile (voir MobileCampController) — l'accès est vérifié directement
+        // sur la recherche complétée, comme ProspectionAvancee, plutôt que via un modificateur dédié.
         new(TechnologyId.MobileCampConstruction,
             "tech_mobile_camp_construction_name", "tech_mobile_camp_construction_desc",
-            cost: 1800000,
-            prerequisites: new[] { TechnologyId.WatchtowerConstruction, TechnologyId.RailLogistics },
+            cost: 112500,
+            prerequisites: new[] { TechnologyId.AdvancedTactics, TechnologyId.Surveillance },
             modifiers: Array.Empty<Modifier>(),
-            tier: 7, line: 8),
+            tier: 5, line: 8),
 
-        // Un tier au-dessus du Camp Mobile, qui devient son seul prérequis. Répétable à l'infini
-        // (comme MasterHarvest) : +5% UNIT_PRODUCTION_SPEED par complétion, coût doublé à chaque relance.
+        // Baissée d'un tier (coût / 4) ; prérequis désormais Rail Logistics (au lieu du Camp Mobile,
+        // rapproché de la racine de l'arbre). Répétable à l'infini (comme MasterHarvest) : +5%
+        // UNIT_PRODUCTION_SPEED par complétion, coût doublé à chaque relance.
         new(TechnologyId.EntrainementIntensif,
             "tech_entrainement_intensif_name", "tech_entrainement_intensif_desc",
-            cost: 6600000,
-            prerequisites: new[] { TechnologyId.MobileCampConstruction },
+            cost: 1650000,
+            prerequisites: new[] { TechnologyId.RailLogistics },
             modifiers: new Modifier[] { new(ECategory.UNIT_PRODUCTION_SPEED, EType.ADDITIVE, 0.05) },
-            tier: 8, line: 8,
+            tier: 7, line: 8,
             repeatable: true),
 
         // Un tier au-dessus d'EntrainementIntensif, qui devient son seul prérequis — également
@@ -575,12 +579,13 @@ public static class TechnologyDefinitions
             modifiers: new Modifier[] { new(ECategory.UNLOCK_CONTESTED_HARVEST, EType.ADDITIVE, 1) },
             tier: 4, line: 10),
 
+        // Baissée d'un tier (coût / 4) pour la rendre accessible plus tôt.
         new(TechnologyId.SagesseSouterraine,
             "tech_sagesse_souterraine_name", "tech_sagesse_souterraine_desc",
-            cost: 100000000,
+            cost: 25000000,
             prerequisites: new[] { TechnologyId.VeilleSouterraine },
             modifiers: new Modifier[] { new(ECategory.PRESTIGE_GAIN, EType.ADDITIVE, 0.10) },
-            tier: 10, line: 0,
+            tier: 9, line: 0,
             repeatable: true),
 
         // Racine de la branche des Abysses : débloquée directement par le vertex de prestige
