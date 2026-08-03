@@ -53,7 +53,13 @@ public class NpcExterminationTests
             ]
         };
 
-        var mainState = new MainGameState();
+        var mainState = new MainGameState
+        {
+            // Le constructeur sans paramètre seede WorldPRNG sur Environment.TickCount (compat
+            // vieilles sauvegardes) : ça rendrait les spawns périodiques de AutoExtendController
+            // (monstres de bordure, etc.) non déterministes et ce test flaky. On fixe une seed.
+            WorldPRNG = new GamePRNG(42)
+        };
         var generator = new IslandMapGenerator(mainState.PRNG);
         var WorldState = generator.GenerateWorldState(islandParams, mainState.Clock.CurrentTick);
         Assert.NotNull(WorldState);
