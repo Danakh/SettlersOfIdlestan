@@ -186,12 +186,27 @@ namespace SettlersOfIdlestan.Controller.Island
             var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex)
                       ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
 
-            var vertices = new List<Vertex>();
+            return CollectRoadTouchingVertices(civ, out _);
+        }
+
+        /// <summary>
+        /// Coeur de <see cref="GetRoadTouchingVertices"/>, qui expose en plus le HashSet de
+        /// déduplication : GetBuildableVertices le réutilise tel quel comme ensemble « déjà connu »
+        /// du BFS de Vol, au lieu de le reconstruire. La déduplication passe par ce HashSet et non
+        /// par un scan linéaire de la liste — le nombre de routes se compte en milliers en fin de
+        /// partie, et le scan rendait la collecte quadratique. L'ordre d'insertion est conservé
+        /// (le résultat alimente un choix PRNG, il doit rester déterministe).
+        /// </summary>
+        private static List<Vertex> CollectRoadTouchingVertices(Civilization civ, out HashSet<Vertex> unique)
+        {
+            int capacity = civ.Roads.Count * 2;
+            var vertices = new List<Vertex>(capacity);
+            unique = new HashSet<Vertex>(capacity);
             foreach (var road in civ.Roads)
             {
                 foreach (var v in road.Position.GetVertices())
                 {
-                    if (!vertices.Any(vr => vr.Equals(v)))
+                    if (unique.Add(v))
                         vertices.Add(v);
                 }
             }
@@ -231,28 +246,41 @@ namespace SettlersOfIdlestan.Controller.Island
                 cached.TerrainVersion == _state.TerrainVersion)
                 return cached.Vertices;
 
-            var vertices = GetRoadTouchingVertices(civilizationIndex);
+            var vertices = CollectRoadTouchingVertices(civ, out var knownVertices);
 
             if (flightRange > 0)
-                AddFlightCandidateVertices(vertices, civ, flightRange, excludingCity);
+                AddFlightCandidateVertices(vertices, knownVertices, civ, flightRange, excludingCity);
 
             // Un Camp Mobile de cette même civilisation n'empêche pas d'y bâtir une ville par-dessus
             // (voir doc de GetBuildableVertices) — seuls les IBuildVertex d'autres civilisations, ou
             // les propres villes/flottes/balises, comptent comme occupation ici.
-            var occupiedVertices = new HashSet<Vertex>(_state.GetAllBuildVertices()
-                .Where(bv => !(bv is MobileCamp camp && camp.CivilizationIndex == civilizationIndex))
-                .Select(v => v.Position));
+            var occupiedVertices = new HashSet<Vertex>();
+            foreach (var bv in _state.GetAllBuildVertices())
+                if (!(bv is MobileCamp camp && camp.CivilizationIndex == civilizationIndex))
+                    occupiedVertices.Add(bv.Position);
 
-            // now we filter vertices that aren't far enough from any city using MinDistanceBetweenCities and MinDistanceBetweenCivilizationCities
+            // Contraintes de distance : plutôt que de mesurer chaque candidat contre chaque ville
+            // (produit cartésien candidats × villes, les deux se comptant en centaines/milliers en
+            // fin de partie), on projette une fois pour toutes le voisinage interdit autour des
+            // villes. Le rayon interdit vaut distanceMin - 1 arêtes, et le BFS reste naturellement
+            // sur la couche de chaque ville (les vertex voisins partagent le Z), ce qui reproduit
+            // le filtre par Z de l'ancienne version.
+            var blockedVertices = new HashSet<Vertex>();
+            AddVerticesWithinRadius(blockedVertices,
+                _state.Civilizations.Where(c => c.Index != civilizationIndex).SelectMany(c => c.Cities).Select(city => city.Position),
+                MinDistanceBetweenCities - 1);
+            AddVerticesWithinRadius(blockedVertices,
+                civ.Cities.Where(city => city != excludingCity).Select(city => city.Position),
+                minOwnCityDistance - 1);
+
+            // Restrictions raciales de terrain : les ensembles de portée ne dépendent que du terrain,
+            // on les résout une fois ici au lieu d'un lookup de cache par candidat.
+            var terrainRangeSets = BuildTerrainRangeSets(requiredTerrainRanges);
+
             vertices = vertices.Where(v =>
                 !occupiedVertices.Contains(v) &&
-                !_state.Civilizations.Where(c => c.Index != civilizationIndex).Any(c => c.Cities
-                    .Where(city => city.Position.Z == v.Z)
-                    .Any(city => city.Position.EdgeDistanceTo(v) < MinDistanceBetweenCities)) &&
-                !civ.Cities
-                    .Where(city => city != excludingCity && city.Position.Z == v.Z)
-                    .Any(city => city.Position.EdgeDistanceTo(v) < minOwnCityDistance) &&
-                SatisfiesCityTerrainRestriction(v, requiredTerrains, requiredTerrainRanges))
+                !blockedVertices.Contains(v) &&
+                SatisfiesCityTerrainRestriction(v, requiredTerrains, terrainRangeSets))
                 .ToList();
 
             if (excludingCity == null)
@@ -273,12 +301,11 @@ namespace SettlersOfIdlestan.Controller.Island
         /// BFS à ordre stable (Queue + List) : le résultat alimente le choix PRNG des avant-postes
         /// automatiques, l'ordre doit être déterministe.
         /// </summary>
-        private void AddFlightCandidateVertices(List<Vertex> vertices, Civilization civ, int flightRange, City? excludingCity)
+        private void AddFlightCandidateVertices(List<Vertex> vertices, HashSet<Vertex> known, Civilization civ, int flightRange, City? excludingCity)
         {
             var map = _state!.GetMapForZ(IslandMap.SurfaceLayer);
             if (map == null) return;
 
-            var known = new HashSet<Vertex>(vertices);
             var visited = new HashSet<Vertex>();
             var queue = new Queue<(Vertex Vertex, int Depth)>();
 
@@ -300,6 +327,40 @@ namespace SettlersOfIdlestan.Controller.Island
                     if (TouchesLand(map, neighbor) && known.Add(neighbor))
                         vertices.Add(neighbor);
                 }
+            }
+        }
+
+        /// <summary>
+        /// BFS multi-sources sur les arêtes : ajoute à <paramref name="result"/> toutes les origines
+        /// et tout vertex à au plus <paramref name="radius"/> arêtes de l'une d'elles. Un rayon
+        /// négatif n'ajoute rien (distance minimale nulle = aucun blocage). Les origines de couches
+        /// différentes peuvent être mélangées : deux vertex de Z différents ne sont jamais égaux,
+        /// donc chaque branche du BFS reste sur sa couche.
+        /// </summary>
+        private static void AddVerticesWithinRadius(HashSet<Vertex> result, IEnumerable<Vertex> origins, int radius)
+        {
+            if (radius < 0) return;
+
+            var frontier = new List<Vertex>();
+            var visited = new HashSet<Vertex>();
+            foreach (var origin in origins)
+                if (visited.Add(origin))
+                {
+                    result.Add(origin);
+                    frontier.Add(origin);
+                }
+
+            for (int depth = 0; depth < radius && frontier.Count > 0; depth++)
+            {
+                var next = new List<Vertex>();
+                foreach (var vertex in frontier)
+                    foreach (var neighbor in vertex.GetAdjacentVertices())
+                        if (visited.Add(neighbor))
+                        {
+                            result.Add(neighbor);
+                            next.Add(neighbor);
+                        }
+                frontier = next;
             }
         }
 
@@ -327,10 +388,12 @@ namespace SettlersOfIdlestan.Controller.Island
         /// portée). Seule la surface est concernée : l'Inframonde et l'Abysse restent libres (leurs
         /// terrains propres rendraient toute restriction de surface injouable).
         /// </summary>
+        /// <param name="terrainRangeSets">Ensembles pré-calculés par <see cref="BuildTerrainRangeSets"/>,
+        /// ou <c>null</c> si aucune portée de terrain n'est exigée.</param>
         private bool SatisfiesCityTerrainRestriction(Vertex vertex, List<TerrainType> requiredTerrains,
-            List<(TerrainType Terrain, int Range)> requiredTerrainRanges)
+            List<HashSet<Vertex>>? terrainRangeSets)
         {
-            if (requiredTerrains.Count == 0 && requiredTerrainRanges.Count == 0) return true;
+            if (requiredTerrains.Count == 0 && terrainRangeSets == null) return true;
             if (vertex.Z != IslandMap.SurfaceLayer) return true;
 
             var map = _state!.GetMapFor(vertex);
@@ -340,11 +403,30 @@ namespace SettlersOfIdlestan.Controller.Island
                 if (map.VertexHasTerrainType(vertex, terrain))
                     return true;
 
-            foreach (var (terrain, range) in requiredTerrainRanges)
-                if (GetVerticesWithinRangeOfTerrain(map, terrain, range).Contains(vertex))
-                    return true;
+            if (terrainRangeSets != null)
+                foreach (var set in terrainRangeSets)
+                    if (set.Contains(vertex))
+                        return true;
 
             return false;
+        }
+
+        /// <summary>
+        /// Résout les ensembles de vertex de chaque portée de terrain exigée. Retourne <c>null</c>
+        /// si aucune portée n'est exigée. Les restrictions ne s'appliquant qu'en surface, la carte
+        /// utilisée est toujours celle de la surface.
+        /// </summary>
+        private List<HashSet<Vertex>>? BuildTerrainRangeSets(List<(TerrainType Terrain, int Range)> requiredTerrainRanges)
+        {
+            if (requiredTerrainRanges.Count == 0) return null;
+
+            var sets = new List<HashSet<Vertex>>(requiredTerrainRanges.Count);
+            var map = _state!.GetMapForZ(IslandMap.SurfaceLayer);
+            if (map == null) return sets;
+
+            foreach (var (terrain, range) in requiredTerrainRanges)
+                sets.Add(GetVerticesWithinRangeOfTerrain(map, terrain, range));
+            return sets;
         }
 
         /// <summary>
