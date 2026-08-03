@@ -127,6 +127,7 @@ public enum TechnologyId
     VoidWalking,
     // Suite de VoidWalking : révèle la feature Os Divins sur les îles des Abysses générées après la
     // première. Reprend la place de l'ancienne EtudeDesAbysses (supprimée) : tier -1, coût / 4.
+    // Baissée d'un tier supplémentaire (coût / 4) pour la rendre accessible plus tôt.
     VoidCompass,
     // Un tier au-dessus des Chroniques du Guet (seul prérequis)
     Diplomatie,

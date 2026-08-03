@@ -595,15 +595,16 @@ public static class TechnologyDefinitions
         // === Branche des Abysses (débloquée par le vertex de prestige Brèche Abyssale, via VoidWalking) ===
 
         // Reprend la place de l'ancienne Étude des Abysses (supprimée) : tier -1 et coût / 4 par
-        // rapport à son ancienne position (tier 11, 420M), prérequis désormais Void Walking.
+        // rapport à son ancienne position (tier 11, 420M), prérequis désormais Void Walking. Baissée
+        // d'un tier supplémentaire (coût / 4) pour la rendre accessible plus tôt.
         // Permet de rechercher les Os Divins qui apparaissent sur les îles des Abysses générées
         // après la première (voir DivineBones/AbyssIslandGenerator).
         new(TechnologyId.VoidCompass,
             "tech_void_compass_name", "tech_void_compass_desc",
-            cost: 105000000,
+            cost: 26250000,
             prerequisites: new[] { TechnologyId.VoidWalking },
             modifiers: new Modifier[] { new(ECategory.UNLOCK_DIVINE_BONES, EType.ADDITIVE, 1) },
-            tier: 10, line: 4),
+            tier: 9, line: 4),
 
         new(TechnologyId.Demonologie,
             "tech_demonologie_name", "tech_demonologie_desc",
