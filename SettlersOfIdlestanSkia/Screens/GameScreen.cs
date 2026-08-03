@@ -72,7 +72,7 @@ public sealed class GameScreen : IDisposable
     private long _activePanPointerId;
     private SKPoint _lastPanPoint;
     private SKPoint _panStartPoint;
-    private const float PanStartThresholdSquared = 16f;
+    private const float PanStartThresholdSquared = 100f;
     private const float ZoomStep = 1.12f;
 
     private readonly System.Diagnostics.Stopwatch _tickStopwatch = new();
