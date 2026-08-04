@@ -239,6 +239,22 @@ public sealed class SkiaGameRuntime : IDisposable
     public void ZoomIn()  => _gameScreen?.ZoomIn();
     public void ZoomOut() => _gameScreen?.ZoomOut();
 
+    /// <summary>Instantané de l'état du temps pour un contrôle de temps porté par l'hôte.</summary>
+    public TimeControlSnapshot GetTimeControlSnapshot() =>
+        _onTitleScreen ? TimeControlSnapshot.Unavailable
+                       : _gameScreen?.GetTimeControlSnapshot() ?? TimeControlSnapshot.Unavailable;
+
+    /// <summary>Traduction pour les contrôles d'overlay portés par l'hôte.</summary>
+    public string Localize(string key) => _localizationService?.Get(key) ?? key;
+
+    /// <summary>Traduction formatée pour les contrôles d'overlay portés par l'hôte.</summary>
+    public string LocalizeFormat(string key, params object[] args) =>
+        _localizationService?.GetFormated(key, args) ?? key;
+
+    public void TogglePause() => _gameScreen?.ToggledPauseFromHost();
+
+    public void SetGameSpeed(int multiplier) => _gameScreen?.SetGameSpeedFromHost(multiplier);
+
     /// <summary>Définit l'échelle UI automatique détectée par la plateforme hôte (densité d'écran, grande résolution…).</summary>
     public void SetUiScale(float scale)
     {

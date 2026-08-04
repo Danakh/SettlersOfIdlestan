@@ -388,6 +388,32 @@ public sealed class GameScreen : IDisposable
     public void MarkOverlayMigratedToHost(HostedOverlayPart parts) =>
         _overlayRenderer?.MarkMigratedToHost(parts);
 
+    /// <summary>Instantané de l'état du temps pour un contrôle porté par l'hôte.</summary>
+    public TimeControlSnapshot GetTimeControlSnapshot()
+    {
+        var clock = _gameControllerService.CurrentGameState?.Clock;
+        if (clock == null) return TimeControlSnapshot.Unavailable;
+
+        return new TimeControlSnapshot(
+            IsAvailable: true,
+            IsPaused: clock.SpeedMultiplier == 0,
+            ActiveSpeed: clock.ActiveSpeed,
+            OfflineBankTicks: clock.OfflineBankTicks);
+    }
+
+    /// <summary>Bascule pause/lecture, pour un contrôle de temps porté par l'hôte.</summary>
+    public void ToggledPauseFromHost()
+    {
+        var clock = _gameControllerService.CurrentGameState?.Clock;
+        if (clock == null) return;
+        if (clock.SpeedMultiplier == 0) clock.Resume();
+        else clock.Pause();
+    }
+
+    /// <summary>Change la vitesse de jeu, pour un contrôle de temps porté par l'hôte.</summary>
+    public void SetGameSpeedFromHost(int multiplier) =>
+        _gameControllerService.CurrentGameState?.Clock?.SetSpeed(multiplier);
+
     /// <summary>Zoom avant, pour un contrôle de zoom porté par l'hôte plutôt que par l'overlay Skia.</summary>
     public void ZoomIn() => _cameraService.SetZoom(_cameraService.ZoomLevel * ZoomStep);
 

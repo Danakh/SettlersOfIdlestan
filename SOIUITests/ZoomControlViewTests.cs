@@ -42,7 +42,8 @@ public class ZoomControlViewTests
 
     private static Button ButtonWithContent(ZoomControlView zoom, string label) =>
         Assert.Single(
-            ((StackPanel)zoom.Content!).Children.OfType<Button>().Where(b => (string?)b.Content == label));
+            ((StackPanel)zoom.Content!).Children.OfType<Button>(),
+            b => (string?)b.Content == label);
 
     [AvaloniaFact]
     public void Le_bouton_plus_zoome_sans_transmettre_le_clic_a_la_carte()

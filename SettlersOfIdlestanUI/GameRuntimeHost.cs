@@ -101,6 +101,18 @@ public sealed class GameRuntimeHost : IDisposable
     public void MarkOverlayMigratedToHost(HostedOverlayPart parts) =>
         Invoke(r => r.MarkOverlayMigratedToHost(parts));
 
+    public SkiaLayer.TimeControlSnapshot GetTimeControlSnapshot() =>
+        Read(r => r.GetTimeControlSnapshot()) ?? SkiaLayer.TimeControlSnapshot.Unavailable;
+
+    public string Localize(string key) => Read(r => r.Localize(key)) ?? key;
+
+    public string LocalizeFormat(string key, params object[] args) =>
+        Read(r => r.LocalizeFormat(key, args)) ?? key;
+
+    public void TogglePause() => Invoke(r => r.TogglePause());
+
+    public void SetGameSpeed(int multiplier) => Invoke(r => r.SetGameSpeed(multiplier));
+
     public void Dispose()
     {
         lock (_gate)
