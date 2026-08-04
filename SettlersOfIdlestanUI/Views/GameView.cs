@@ -24,6 +24,7 @@ public sealed class GameView : Panel, IDisposable
     private readonly CivPanelView _civPanel;
     private readonly ModalPopupView _modalPopup;
     private readonly ToastStackView _toasts;
+    private readonly EventLogView _eventLog;
 
     private readonly TabBarViewModel _tabs;
     private readonly ResourceBarViewModel _resources;
@@ -33,6 +34,7 @@ public sealed class GameView : Panel, IDisposable
     private readonly CivPanelViewModel _civ;
     private readonly ModalPopupViewModel _modal;
     private readonly ToastViewModel _toast;
+    private readonly EventLogViewModel _events;
 
     private IDisposable? _stateSync;
 
@@ -53,6 +55,7 @@ public sealed class GameView : Panel, IDisposable
         _civ = new CivPanelViewModel(host);
         _modal = new ModalPopupViewModel(host);
         _toast = new ToastViewModel(host);
+        _events = new EventLogViewModel(host);
 
         _zoomControl = new ZoomControlView(host.ZoomIn, host.ZoomOut) { IsVisible = false };
         _topBar = new TopBarView(
@@ -84,7 +87,19 @@ public sealed class GameView : Panel, IDisposable
         _modalPopup = new ModalPopupView(_modal);
         _toasts = new ToastStackView(_toast);
 
+        // Ancre sous la barre du haut, qu'il ne doit pas recouvrir : un onglet plein ecran
+        // remplace la carte, pas la navigation.
+        _eventLog = new EventLogView(_events)
+        {
+            Margin = new Avalonia.Thickness(0, TopBarView.BarHeight, 0, 0),
+        };
+
         Children.Add(new GameRuntimeControl(host));
+
+        // Avant les panneaux et la barre du haut : l'onglet plein ecran couvre la carte, mais
+        // reste sous le reste de l'overlay.
+        Children.Add(_eventLog);
+
         Children.Add(_zoomControl);
         Children.Add(_topBar);
         Children.Add(_civPanel);
@@ -100,7 +115,7 @@ public sealed class GameView : Panel, IDisposable
             HostedOverlayPart.ZoomControl | HostedOverlayPart.TopBar
             | HostedOverlayPart.MonumentPanel | HostedOverlayPart.CityPanel
             | HostedOverlayPart.CivPanel | HostedOverlayPart.ModalPopup
-            | HostedOverlayPart.Toasts);
+            | HostedOverlayPart.Toasts | HostedOverlayPart.EventLogTab);
     }
 
     protected override void OnAttachedToVisualTree(Avalonia.VisualTreeAttachmentEventArgs e)
@@ -152,6 +167,7 @@ public sealed class GameView : Panel, IDisposable
         _civ.Refresh();
         _modal.Refresh();
         _toast.Refresh();
+        _events.Refresh();
 
         // Les boutons de zoom n'ont de sens que sur une vue carte : ni sur l'ecran titre,
         // ni sur les onglets plein ecran (recherche, prestige...).

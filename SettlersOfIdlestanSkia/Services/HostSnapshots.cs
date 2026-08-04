@@ -135,6 +135,40 @@ public sealed record CityPanelSnapshot(
 }
 
 /// <summary>
+/// Registre visuel d'une entree du journal. Regroupe des dizaines de types d'evenement en cinq
+/// intentions, seule chose dont l'affichage a besoin : le type exact reste au modele.
+/// </summary>
+public enum EventLogTone
+{
+    /// Menace : monstre ou repaire decouvert, inframonde perdu, erreur d'execution.
+    Danger,
+    /// Perte subie sans gravite : soldat affame, rituel effondre.
+    Warning,
+    /// Victoire ou aboutissement.
+    Success,
+    /// Gain : tresor decouvert, cercle de fees, os divins purifies.
+    Reward,
+    /// Decouverte ou pose d'un monument, sans issue encore connue.
+    Discovery,
+}
+
+/// <summary>Une entree du journal des evenements, deja localisee.</summary>
+public sealed record EventLogEntrySnapshot(string Title, string Body, EventLogTone Tone);
+
+/// <summary>
+/// Onglet plein ecran du journal. La liste vient du modele, deja bornee a 50 entrees et triee
+/// de la plus recente a la plus ancienne.
+/// </summary>
+public sealed record EventLogSnapshot(
+    bool IsVisible,
+    string Title,
+    string EmptyMessage,
+    IReadOnlyList<EventLogEntrySnapshot> Entries)
+{
+    public static readonly EventLogSnapshot Hidden = new(false, "", "", []);
+}
+
+/// <summary>
 /// Un toast de notification. L'identifiant est stable pour la duree de vie du toast : il permet
 /// a la vue de mettre a jour la liste en place plutot que de la reconstruire, et de router la
 /// fermeture au clic.

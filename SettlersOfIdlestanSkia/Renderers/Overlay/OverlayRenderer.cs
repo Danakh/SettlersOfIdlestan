@@ -225,7 +225,8 @@ public sealed class OverlayRenderer : IGameRenderer
                 _prestigeHistoryRenderer.RenderHistory(canvas, context);
                 break;
             case TabBarRenderer.TabEvents:
-                _eventLogRenderer.RenderEvents(canvas, context);
+                if (!IsMigratedToHost(HostedOverlayPart.EventLogTab))
+                    _eventLogRenderer.RenderEvents(canvas, context);
                 break;
             case TabBarRenderer.TabAutomation:
                 _automationRenderer.RenderAutomationPage(canvas, context);
@@ -421,8 +422,17 @@ public sealed class OverlayRenderer : IGameRenderer
     /// <summary>Instantané de la barre d'onglets pour une vue portée par l'hôte.</summary>
     public TabBarSnapshot GetTabBarSnapshot() => _tabBar.GetSnapshot();
 
+    /// <summary>
+    /// Les panneaux latéraux n'existent que sur les onglets carte : c'est la branche
+    /// <c>default</c> du switch de <see cref="Render"/> qui les dessine. Leurs instantanés
+    /// doivent donc porter la même condition, sinon ils resteraient affichés par-dessus un
+    /// onglet plein écran, qui ne les recouvre pas — l'overlay de l'hôte est au-dessus du canevas.
+    /// </summary>
+    private bool SidePanelsVisible => IsMapViewTab(_tabBar.ActiveTab);
+
     /// <summary>Instantané du panneau ville pour une vue portée par l'hôte.</summary>
-    public CityPanelSnapshot GetCityPanelSnapshot() => _selectedCityPanelRenderer.GetSnapshot();
+    public CityPanelSnapshot GetCityPanelSnapshot() =>
+        SidePanelsVisible ? _selectedCityPanelRenderer.GetSnapshot() : CityPanelSnapshot.Hidden;
 
     public void CloseCityPanelFromHost() => _selectedCityPanelRenderer.Close();
     public void SetCityShowUniqueFromHost(bool showUnique) => _selectedCityPanelRenderer.SetShowUniqueFromHost(showUnique);
@@ -432,8 +442,16 @@ public sealed class OverlayRenderer : IGameRenderer
     public void SetHoveredCityBuildingFromHost(string? key, float x, float y) => _selectedCityPanelRenderer.SetHoveredBuildingFromHost(key, x, y);
     
 
+    /// <summary>
+    /// Instantané de l'onglet Journal pour une vue portée par l'hôte. La visibilité est décidée
+    /// ici : c'est cet objet qui détient l'onglet courant.
+    /// </summary>
+    public EventLogSnapshot GetEventLogSnapshot() =>
+        _eventLogRenderer.GetSnapshot(_tabBar.ActiveTab == TabBarRenderer.TabEvents);
+
     /// <summary>Instantané du panneau civilisation pour une vue portée par l'hôte.</summary>
-    public CivPanelSnapshot GetCivPanelSnapshot() => _playerCivPanel.GetSnapshot();
+    public CivPanelSnapshot GetCivPanelSnapshot() =>
+        SidePanelsVisible ? _playerCivPanel.GetSnapshot() : CivPanelSnapshot.Hidden;
 
     public void ExecuteCivActionFromHost(string key) => _playerCivPanel.ExecuteActionFromHost(key);
     public void ToggleCivPinnedFromHost(string key) => _playerCivPanel.ToggleFromHost(key);
@@ -441,7 +459,7 @@ public sealed class OverlayRenderer : IGameRenderer
 
     /// <summary>Instantané du panneau monument pour une vue portée par l'hôte.</summary>
     public MonumentPanelSnapshot GetMonumentPanelSnapshot() =>
-        _selectedMonumentPanelRenderer.GetSnapshot();
+        SidePanelsVisible ? _selectedMonumentPanelRenderer.GetSnapshot() : MonumentPanelSnapshot.Hidden;
 
     public void CloseMonumentPanelFromHost() => _selectedMonumentPanelRenderer.CloseFromHost();
     public void ToggleMonumentInvestmentFromHost(string rowKey) =>

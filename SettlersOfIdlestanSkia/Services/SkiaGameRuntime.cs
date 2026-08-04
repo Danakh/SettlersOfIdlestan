@@ -258,6 +258,11 @@ public sealed class SkiaGameRuntime : IDisposable
     public void GoToOtherCity(string k) => _gameScreen?.GoToOtherCityFromHost(k);
     public void SetHoveredCityBuilding(string? k, float x, float y) => _gameScreen?.SetHoveredCityBuildingFromHost(k, x, y);
 
+    /// <summary>Instantané de l'onglet Journal pour une vue portée par l'hôte.</summary>
+    public EventLogSnapshot GetEventLogSnapshot() =>
+        _onTitleScreen ? EventLogSnapshot.Hidden
+                       : _gameScreen?.GetEventLogSnapshot() ?? EventLogSnapshot.Hidden;
+
     /// <summary>Instantané des toasts pour une vue portée par l'hôte.</summary>
     public ToastListSnapshot GetToastSnapshot() =>
         _onTitleScreen ? ToastListSnapshot.Empty

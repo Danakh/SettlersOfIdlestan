@@ -44,6 +44,11 @@ public enum HostedOverlayPart
     /// de jeu quand ce drapeau est leve : sinon, plus rien ne les ferait expirer.
     Toasts = 1 << 9,
 
+    /// Onglet plein ecran du journal des evenements. Les onglets plein ecran basculent un par
+    /// un : chacun couvre toute la surface sous la barre du haut, sans interaction avec les
+    /// autres.
+    EventLogTab = 1 << 10,
+
     /// <summary>
     /// Les elements de la barre du haut partagent un meme layout (UILayoutService reserve la
     /// place de chacun pour les autres, et leurs regles de repli sont interdependantes) :

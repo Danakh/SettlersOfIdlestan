@@ -450,6 +450,10 @@ public sealed class GameScreen : IDisposable
     public void GoToOtherCityFromHost(string k) => _overlayRenderer?.GoToOtherCityFromHost(k);
     public void SetHoveredCityBuildingFromHost(string? k, float x, float y) => _overlayRenderer?.SetHoveredCityBuildingFromHost(k, x, y);
 
+    /// <summary>Instantané de l'onglet Journal pour une vue portée par l'hôte.</summary>
+    public EventLogSnapshot GetEventLogSnapshot() =>
+        _overlayRenderer?.GetEventLogSnapshot() ?? EventLogSnapshot.Hidden;
+
     /// <summary>Instantané du panneau civilisation pour une vue portée par l'hôte.</summary>
     public CivPanelSnapshot GetCivPanelSnapshot() =>
         _overlayRenderer?.GetCivPanelSnapshot() ?? CivPanelSnapshot.Hidden;

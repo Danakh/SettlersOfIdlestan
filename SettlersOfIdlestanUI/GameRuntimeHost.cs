@@ -118,6 +118,9 @@ public sealed class GameRuntimeHost : IDisposable
     public void GoToOtherCity(string k) => Invoke(r => r.GoToOtherCity(k));
     public void SetHoveredCityBuilding(string? k, float x, float y) => Invoke(r => r.SetHoveredCityBuilding(k, x, y));
 
+    public SkiaLayer.EventLogSnapshot GetEventLogSnapshot() =>
+        Read(r => r.GetEventLogSnapshot()) ?? SkiaLayer.EventLogSnapshot.Hidden;
+
     public SkiaLayer.ToastListSnapshot GetToastSnapshot() =>
         Read(r => r.GetToastSnapshot()) ?? SkiaLayer.ToastListSnapshot.Empty;
 
