@@ -296,6 +296,17 @@ public sealed class SkiaGameRuntime : IDisposable
     public void InvokeSettingsMenuItem(string key) => _gameScreen?.InvokeSettingsMenuItemFromHost(key);
     public void CloseSettingsMenu() => _gameScreen?.CloseSettingsMenuFromHost();
 
+    /// <summary>Instantané du popup de commerce pour une vue portée par l'hôte.</summary>
+    public TradePopupSnapshot GetTradePopupSnapshot() =>
+        _onTitleScreen ? TradePopupSnapshot.Closed
+                       : _gameScreen?.GetTradePopupSnapshot() ?? TradePopupSnapshot.Closed;
+
+    public void TradeSell(string key) => _gameScreen?.TradeSellFromHost(key);
+    public void TradeBuy(string key) => _gameScreen?.TradeBuyFromHost(key);
+    public void TradeSetMultiplier(int m) => _gameScreen?.TradeSetMultiplierFromHost(m);
+    public void TradeSetHistoryTab(bool h) => _gameScreen?.TradeSetHistoryTabFromHost(h);
+    public void CloseTradePopup() => _gameScreen?.CloseTradePopupFromHost();
+
     /// <summary>Instantané des toasts pour une vue portée par l'hôte.</summary>
     public ToastListSnapshot GetToastSnapshot() =>
         _onTitleScreen ? ToastListSnapshot.Empty

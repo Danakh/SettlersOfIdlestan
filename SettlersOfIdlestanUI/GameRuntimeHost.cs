@@ -146,6 +146,15 @@ public sealed class GameRuntimeHost : IDisposable
     public void InvokeSettingsMenuItem(string key) => Invoke(r => r.InvokeSettingsMenuItem(key));
     public void CloseSettingsMenu() => Invoke(r => r.CloseSettingsMenu());
 
+    public SkiaLayer.TradePopupSnapshot GetTradePopupSnapshot() =>
+        Read(r => r.GetTradePopupSnapshot()) ?? SkiaLayer.TradePopupSnapshot.Closed;
+
+    public void TradeSell(string key) => Invoke(r => r.TradeSell(key));
+    public void TradeBuy(string key) => Invoke(r => r.TradeBuy(key));
+    public void TradeSetMultiplier(int m) => Invoke(r => r.TradeSetMultiplier(m));
+    public void TradeSetHistoryTab(bool h) => Invoke(r => r.TradeSetHistoryTab(h));
+    public void CloseTradePopup() => Invoke(r => r.CloseTradePopup());
+
     public SkiaLayer.ToastListSnapshot GetToastSnapshot() =>
         Read(r => r.GetToastSnapshot()) ?? SkiaLayer.ToastListSnapshot.Empty;
 

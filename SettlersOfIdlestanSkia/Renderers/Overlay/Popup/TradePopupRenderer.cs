@@ -169,6 +169,7 @@ public sealed class TradePopupRenderer : PopupRendererBase
 
     public void Render(SKCanvas canvas, float scale = 1f)
     {
+        if (_hostedByAvalonia) return;
         if (!IsOpen || Disposed) return;
 
         // Scale is constrained by width only — height is handled via scrolling
@@ -324,6 +325,159 @@ public sealed class TradePopupRenderer : PopupRendererBase
             SkiaTextUtils.DrawText(canvas, _localization.Get("trade_history_empty"), x + 4 * s, y + 16 * s, BodyFont!, SubtlePaint);
     }
 
+    // ── Pont vers l'hote Avalonia ─────────────────────────────────────────────
+
+    private bool _hostedByAvalonia;
+
+    /// <summary>
+    /// Declare que ce popup est affiche par l'hote Avalonia : il cesse de se dessiner et de
+    /// hit-tester. Les touches Ctrl/Maj continuent d'arriver par le service d'entree, le
+    /// multiplicateur temporaire restant un etat de ce renderer.
+    /// </summary>
+    public void MigrateToHost() => _hostedByAvalonia = true;
+
+    /// <summary>
+    /// Instantane du popup pour une vue portee par l'hote. Reutilise GetSellableResources /
+    /// GetBuyableResources et les memes appels au TradeController que le rendu Skia : les regles
+    /// de deblocage, de taux et de solvabilite n'existent qu'a un seul endroit.
+    /// </summary>
+    public TradePopupSnapshot GetSnapshot()
+    {
+        if (!IsOpen || Disposed) return TradePopupSnapshot.Closed;
+
+        var civ = _gameControllerService.PlayerCivilization;
+        if (civ == null) return TradePopupSnapshot.Closed;
+
+        var tc = _gameControllerService.MainGameController.TradeController;
+        int multiplier = ActiveMultiplier;
+
+        var sellRows = new List<TradeRowSnapshot>();
+        foreach (var resource in GetSellableResources(civ))
+        {
+            int units = tc.GetSellRate(civ.Index, resource) * multiplier;
+            int goldYield = tc.GetSellGoldYield(civ.Index, resource, multiplier);
+            int available = civ.GetResourceQuantity(resource);
+            int maxQty = civ.GetResourceMaxQuantity(resource);
+            bool canSell = available >= units && tc.CanRecieveTrade(civ, Resource.Gold, goldYield);
+
+            sellRows.Add(new TradeRowSnapshot(
+                Key: resource.ToString(),
+                IconName: resource.ToString(),
+                Name: _localization.Get($"resource_{resource.ToString().ToLower()}"),
+                StockLabel: $"{available}/{maxQty}",
+                IsAtMax: available >= maxQty,
+                ButtonLabel: string.Format(_localization.Get("trade_sell_button"), units, goldYield),
+                IsEnabled: canSell,
+                DisabledTooltip: canSell ? null
+                    : _localization.Get(available < units ? "trade_tooltip_no_offers" : "trade_tooltip_storage_full")));
+        }
+
+        var buyRows = new List<TradeRowSnapshot>();
+        foreach (var resource in GetBuyableResources(civ))
+        {
+            int cost = tc.BuyRate(resource) * multiplier;
+            bool canBuy = tc.CanBuyResource(civ.Index, resource, multiplier);
+            int qty = civ.GetResourceQuantity(resource);
+            int maxQty = civ.GetResourceMaxQuantity(resource);
+
+            buyRows.Add(new TradeRowSnapshot(
+                Key: resource.ToString(),
+                IconName: resource.ToString(),
+                Name: _localization.Get($"resource_{resource.ToString().ToLower()}"),
+                StockLabel: $"{qty}/{maxQty}",
+                IsAtMax: qty >= maxQty,
+                ButtonLabel: string.Format(_localization.Get("trade_buy_button"), cost, multiplier),
+                IsEnabled: canBuy,
+                DisabledTooltip: canBuy ? null
+                    : _localization.Get(civ.GetResourceQuantity(Resource.Gold) < cost
+                        ? "trade_tooltip_no_gold" : "trade_tooltip_storage_full")));
+        }
+
+        var multipliers = new List<TradeMultiplierSnapshot>();
+        foreach (int value in new[] { 1, 10, 100, 1000 })
+            multipliers.Add(new TradeMultiplierSnapshot(
+                Value: value,
+                Label: $"x{value}",
+                IsActive: ActiveMultiplier == value,
+                // Multiplicateur impose par Ctrl/Maj : distingue du choix permanent, car il
+                // retombe des que la touche est relachee.
+                IsTemporary: _temporaryMultiplier == value));
+
+        var historyEntries = new List<TradeHistoryEntrySnapshot>();
+        foreach (var entry in _gameControllerService.MainGameController.TradeHistoryController.Entries)
+        {
+            bool isGain = entry.Direction == TradeDirection.Sell;
+            string resName = _localization.Get($"resource_{entry.Resource.ToString().ToLower()}");
+            historyEntries.Add(new TradeHistoryEntrySnapshot(
+                IconName: entry.Resource.ToString(),
+                Label: _localization.GetFormated(
+                    isGain ? "trade_history_sell_entry" : "trade_history_buy_entry", entry.Quantity, resName),
+                GoldText: _localization.GetFormated(isGain ? "trade_history_gain" : "trade_history_loss", entry.Gold),
+                IsGain: isGain,
+                TimeText: FormatTick(entry.Tick)));
+        }
+
+        int goldQty = civ.GetResourceQuantity(Resource.Gold);
+        int goldMax = civ.GetResourceMaxQuantity(Resource.Gold);
+
+        return new TradePopupSnapshot(
+            IsOpen: true,
+            Title: _localization.Get("trade_title"),
+            TradeTabLabel: _localization.Get("trade_tab_main"),
+            HistoryTabLabel: _localization.Get("trade_tab_history"),
+            ShowingHistory: _activeSubTab == SubTab.History,
+            SellHeader: _localization.Get("trade_give"),
+            BuyHeader: _localization.Get("trade_advanced_title"),
+            SellRows: sellRows,
+            BuyRows: buyRows,
+            GoldLabel: $"{goldQty}/{goldMax}",
+            Multipliers: multipliers,
+            HistoryEmptyMessage: historyEntries.Count == 0 ? _localization.Get("trade_history_empty") : null,
+            HistoryEntries: historyEntries);
+    }
+
+    /// <summary>
+    /// Vend une ressource depuis une vue portee par l'hote. La garde vit ici, pas chez
+    /// l'appelant : l'action est declenchee par deux chemins et une garde dupliquee divergerait.
+    /// </summary>
+    public void SellFromHost(string key)
+    {
+        if (!IsOpen || !Enum.TryParse<Resource>(key, out var resource)) return;
+        var civ = _gameControllerService.PlayerCivilization;
+        if (civ == null) return;
+
+        var tc = _gameControllerService.MainGameController.TradeController;
+        int units = tc.GetSellRate(civ.Index, resource) * ActiveMultiplier;
+        int goldYield = tc.GetSellGoldYield(civ.Index, resource, ActiveMultiplier);
+
+        if (civ.GetResourceQuantity(resource) >= units && tc.CanRecieveTrade(civ, Resource.Gold, goldYield))
+            tc.SellResource(civ.Index, resource, ActiveMultiplier);
+    }
+
+    /// <summary>Achete une ressource depuis une vue portee par l'hote.</summary>
+    public void BuyFromHost(string key)
+    {
+        if (!IsOpen || !Enum.TryParse<Resource>(key, out var resource)) return;
+        var civ = _gameControllerService.PlayerCivilization;
+        if (civ == null) return;
+
+        var tc = _gameControllerService.MainGameController.TradeController;
+        if (tc.CanBuyResource(civ.Index, resource, ActiveMultiplier))
+            tc.BuyResource(civ.Index, resource, ActiveMultiplier);
+    }
+
+    /// <summary>Choisit le multiplicateur permanent depuis une vue portee par l'hote.</summary>
+    public void SetMultiplierFromHost(int multiplier) => _packMultiplier = multiplier;
+
+    /// <summary>Bascule entre l'onglet d'echange et l'historique, depuis la vue de l'hote.</summary>
+    public void SetHistoryTabFromHost(bool showHistory)
+    {
+        var target = showHistory ? SubTab.History : SubTab.Trade;
+        if (_activeSubTab == target) return;
+        _activeSubTab = target;
+        _scrollOffsetPx = 0f;
+    }
+
     private static string FormatTick(long tick)
     {
         long totalSec = tick / 100;
@@ -371,6 +525,7 @@ public sealed class TradePopupRenderer : PopupRendererBase
 
     public bool HandlePointerPressed(SKPoint position, PointerButton button)
     {
+        if (_hostedByAvalonia) return IsOpen;
         if (!IsOpen) return false;
 
         if (_closeButtonRect.Contains(position.X, position.Y)) { Close(); return true; }

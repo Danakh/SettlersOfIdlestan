@@ -62,6 +62,9 @@ public enum HostedOverlayPart
     /// lui-meme qui bascule, et avec lui le dernier morceau Skia de la barre du haut.
     SettingsMenu = 1 << 14,
 
+    /// Popup de commerce.
+    TradePopup = 1 << 15,
+
     /// <summary>
     /// Les elements de la barre du haut partagent un meme layout (UILayoutService reserve la
     /// place de chacun pour les autres, et leurs regles de repli sont interdependantes) :

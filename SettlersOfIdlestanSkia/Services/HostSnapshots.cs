@@ -134,6 +134,57 @@ public sealed record CityPanelSnapshot(
         new(false, false, false, "", "", [], "");
 }
 
+/// <summary>Une ligne d'echange : une ressource a vendre ou a acheter.</summary>
+/// <param name="Key">Nom d'enum de la ressource : identifiant stable et routage.</param>
+/// <param name="StockLabel">Stock courant sur maximum, deja formate.</param>
+/// <param name="IsAtMax">Stock plein : la quantite passe en rouge.</param>
+/// <param name="DisabledTooltip">Raison du blocage, deja localisee ; null si l'echange est
+/// possible.</param>
+public sealed record TradeRowSnapshot(
+    string Key,
+    string IconName,
+    string Name,
+    string StockLabel,
+    bool IsAtMax,
+    string ButtonLabel,
+    bool IsEnabled,
+    string? DisabledTooltip);
+
+/// <param name="IsGain">Vente : le montant s'affiche en vert, sinon en orange.</param>
+public sealed record TradeHistoryEntrySnapshot(
+    string IconName,
+    string Label,
+    string GoldText,
+    bool IsGain,
+    string TimeText);
+
+/// <param name="IsTemporary">Multiplicateur impose par Ctrl/Maj : il retombe des que la touche
+/// est relachee, contrairement au choix permanent.</param>
+public sealed record TradeMultiplierSnapshot(int Value, string Label, bool IsActive, bool IsTemporary);
+
+/// <summary>
+/// Popup de commerce : deux colonnes vendre/acheter, un historique, et un multiplicateur de
+/// paquet. Les regles de deblocage, les taux et la solvabilite restent dans TradeController.
+/// </summary>
+public sealed record TradePopupSnapshot(
+    bool IsOpen,
+    string Title,
+    string TradeTabLabel,
+    string HistoryTabLabel,
+    bool ShowingHistory,
+    string SellHeader,
+    string BuyHeader,
+    IReadOnlyList<TradeRowSnapshot> SellRows,
+    IReadOnlyList<TradeRowSnapshot> BuyRows,
+    string GoldLabel,
+    IReadOnlyList<TradeMultiplierSnapshot> Multipliers,
+    string? HistoryEmptyMessage,
+    IReadOnlyList<TradeHistoryEntrySnapshot> HistoryEntries)
+{
+    public static readonly TradePopupSnapshot Closed =
+        new(false, "", "", "", false, "", "", [], [], "", [], null, []);
+}
+
 /// <summary>
 /// Un item du menu deroulant de l'engrenage.
 /// </summary>

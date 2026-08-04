@@ -419,6 +419,7 @@ public sealed class OverlayRenderer : IGameRenderer
         // Le menu se dessine et s'ecoute lui-meme : il faut le lui dire, sinon chaque clic
         // serait traite deux fois.
         if (IsMigratedToHost(HostedOverlayPart.SettingsMenu)) _settingsMenu.MigrateToHost();
+        if (IsMigratedToHost(HostedOverlayPart.TradePopup)) _tradeRenderer.MigrateToHost();
     }
 
     private bool IsMigratedToHost(HostedOverlayPart part) => _hostedParts.HasFlag(part);
@@ -486,6 +487,15 @@ public sealed class OverlayRenderer : IGameRenderer
 
     public void InvokeSettingsMenuItemFromHost(string key) => _settingsMenu.InvokeItemFromHost(key);
     public void CloseSettingsMenuFromHost() => _settingsMenu.Close();
+
+    /// <summary>Instantané du popup de commerce pour une vue portée par l'hôte.</summary>
+    public TradePopupSnapshot GetTradePopupSnapshot() => _tradeRenderer.GetSnapshot();
+
+    public void TradeSellFromHost(string key) => _tradeRenderer.SellFromHost(key);
+    public void TradeBuyFromHost(string key) => _tradeRenderer.BuyFromHost(key);
+    public void TradeSetMultiplierFromHost(int m) => _tradeRenderer.SetMultiplierFromHost(m);
+    public void TradeSetHistoryTabFromHost(bool h) => _tradeRenderer.SetHistoryTabFromHost(h);
+    public void CloseTradePopupFromHost() => _tradeRenderer.Close();
 
     /// <summary>Instantané du panneau civilisation pour une vue portée par l'hôte.</summary>
     public CivPanelSnapshot GetCivPanelSnapshot() =>

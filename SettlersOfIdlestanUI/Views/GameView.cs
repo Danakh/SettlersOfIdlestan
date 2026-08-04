@@ -29,6 +29,7 @@ public sealed class GameView : Panel, IDisposable
     private readonly RitualsView _rituals;
     private readonly AutomationView _automation;
     private readonly SettingsMenuView _settingsMenu;
+    private readonly TradePopupView _tradePopup;
 
     private readonly TabBarViewModel _tabs;
     private readonly ResourceBarViewModel _resources;
@@ -43,6 +44,7 @@ public sealed class GameView : Panel, IDisposable
     private readonly RitualsViewModel _ritualsModel;
     private readonly AutomationViewModel _automationModel;
     private readonly SettingsMenuViewModel _settingsMenuModel;
+    private readonly TradePopupViewModel _tradeModel;
 
     private IDisposable? _stateSync;
 
@@ -68,6 +70,7 @@ public sealed class GameView : Panel, IDisposable
         _ritualsModel = new RitualsViewModel(host);
         _automationModel = new AutomationViewModel(host);
         _settingsMenuModel = new SettingsMenuViewModel(host);
+        _tradeModel = new TradePopupViewModel(host);
 
         _zoomControl = new ZoomControlView(host.ZoomIn, host.ZoomOut) { IsVisible = false };
         _topBar = new TopBarView(
@@ -118,6 +121,7 @@ public sealed class GameView : Panel, IDisposable
             Margin = new Avalonia.Thickness(0, TopBarView.BarHeight, 0, 0),
         };
         _settingsMenu = new SettingsMenuView(_settingsMenuModel, TopBarView.BarHeight + 5);
+        _tradePopup = new TradePopupView(_tradeModel, _icons);
 
         Children.Add(new GameRuntimeControl(host));
 
@@ -140,6 +144,10 @@ public sealed class GameView : Panel, IDisposable
 
         Children.Add(_toasts);
 
+        // Le popup de commerce est bloquant lui aussi : au-dessus des panneaux, mais sous les
+        // modales, qui priment sur tout.
+        Children.Add(_tradePopup);
+
         // En dernier : une modale bloquante doit couvrir tout le reste de l'overlay.
         Children.Add(_modalPopup);
 
@@ -148,7 +156,7 @@ public sealed class GameView : Panel, IDisposable
             | HostedOverlayPart.MonumentPanel | HostedOverlayPart.CityPanel
             | HostedOverlayPart.CivPanel | HostedOverlayPart.ModalPopup
             | HostedOverlayPart.Toasts | HostedOverlayPart.EventLogTab
-            | HostedOverlayPart.StatsTab | HostedOverlayPart.RitualsTab | HostedOverlayPart.AutomationTab | HostedOverlayPart.SettingsMenu);
+            | HostedOverlayPart.StatsTab | HostedOverlayPart.RitualsTab | HostedOverlayPart.AutomationTab | HostedOverlayPart.SettingsMenu | HostedOverlayPart.TradePopup);
     }
 
     protected override void OnAttachedToVisualTree(Avalonia.VisualTreeAttachmentEventArgs e)
@@ -205,6 +213,7 @@ public sealed class GameView : Panel, IDisposable
         _ritualsModel.Refresh();
         _automationModel.Refresh();
         _settingsMenuModel.Refresh();
+        _tradeModel.Refresh();
 
         // Les boutons de zoom n'ont de sens que sur une vue carte : ni sur l'ecran titre,
         // ni sur les onglets plein ecran (recherche, prestige...).

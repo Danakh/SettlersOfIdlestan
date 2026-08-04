@@ -483,6 +483,16 @@ public sealed class GameScreen : IDisposable
     public void InvokeSettingsMenuItemFromHost(string key) => _overlayRenderer?.InvokeSettingsMenuItemFromHost(key);
     public void CloseSettingsMenuFromHost() => _overlayRenderer?.CloseSettingsMenuFromHost();
 
+    /// <summary>Instantané du popup de commerce pour une vue portée par l'hôte.</summary>
+    public TradePopupSnapshot GetTradePopupSnapshot() =>
+        _overlayRenderer?.GetTradePopupSnapshot() ?? TradePopupSnapshot.Closed;
+
+    public void TradeSellFromHost(string key) => _overlayRenderer?.TradeSellFromHost(key);
+    public void TradeBuyFromHost(string key) => _overlayRenderer?.TradeBuyFromHost(key);
+    public void TradeSetMultiplierFromHost(int m) => _overlayRenderer?.TradeSetMultiplierFromHost(m);
+    public void TradeSetHistoryTabFromHost(bool h) => _overlayRenderer?.TradeSetHistoryTabFromHost(h);
+    public void CloseTradePopupFromHost() => _overlayRenderer?.CloseTradePopupFromHost();
+
     /// <summary>Instantané du panneau civilisation pour une vue portée par l'hôte.</summary>
     public CivPanelSnapshot GetCivPanelSnapshot() =>
         _overlayRenderer?.GetCivPanelSnapshot() ?? CivPanelSnapshot.Hidden;
