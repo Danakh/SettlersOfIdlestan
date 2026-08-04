@@ -897,6 +897,11 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             case AutomationRenderer.PinKeyWeaponSmith:   if (civ != null) ToggleAll<WeaponSmith>(civ); break;
             case AutomationRenderer.PinKeyArmorSmith:    if (civ != null) ToggleAll<ArmorSmith>(civ);  break;
             case AutomationRenderer.PinKeyAlchimistHut:  if (civ != null) ToggleAll<AlchimistHut>(civ); break;
+            case AutomationRenderer.PinKeyTownHall:      if (settings != null) settings.TownHallAutomationEnabled = !settings.TownHallAutomationEnabled;                   break;
+            case AutomationRenderer.PinKeyGrandTemple:   if (settings != null) settings.TempleAutomationEnabled = !settings.TempleAutomationEnabled;                       break;
+            case AutomationRenderer.PinKeyMithrilMine:   if (settings != null) settings.MithrilMineBuildingAutomationEnabled = !settings.MithrilMineBuildingAutomationEnabled;   break;
+            case AutomationRenderer.PinKeyArcaneTower:   if (settings != null) settings.ArcaneTowerBuildingAutomationEnabled = !settings.ArcaneTowerBuildingAutomationEnabled;   break;
+            case AutomationRenderer.PinKeyMonumentInvestment: if (settings != null) settings.MonumentInvestmentAutomationEnabled = !settings.MonumentInvestmentAutomationEnabled; break;
             case AutomationRenderer.PinKeyRoad:          if (settings != null) settings.RoadAutomationEnabled = !settings.RoadAutomationEnabled;                           break;
             case AutomationRenderer.PinKeyOutpost:       if (settings != null) settings.OutpostAutomationEnabled = !settings.OutpostAutomationEnabled;                     break;
             case AutomationRenderer.PinKeyRoadUnderworld:    if (settings != null) settings.RoadAutomationEnabledUnderworld = !settings.RoadAutomationEnabledUnderworld;       break;
@@ -986,56 +991,84 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         var settings = worldState?.AutomationSettings;
         if (settings == null) return (false, key, GetAutomationPinDescKey(key));
 
-        (bool value, string nameKey) = key switch
+        // Seule la valeur depend d'un switch : le libelle vient de la table des racines, pour
+        // qu'un automatisme ne puisse pas etre bascule ici sans y etre nomme.
+        bool value = key switch
         {
-            AutomationRenderer.PinKeyRoad         => (settings.RoadAutomationEnabled,                      "automation_road_name"),
-            AutomationRenderer.PinKeyOutpost      => (settings.OutpostAutomationEnabled,                   "automation_outpost_name"),
-            AutomationRenderer.PinKeyRoadUnderworld    => (settings.RoadAutomationEnabledUnderworld,        "automation_road_underworld_name"),
-            AutomationRenderer.PinKeyOutpostUnderworld => (settings.OutpostAutomationEnabledUnderworld,     "automation_outpost_underworld_name"),
-            AutomationRenderer.PinKeyProduction   => (settings.ProductionBuildingAutomationEnabled,        "automation_production_name"),
-            AutomationRenderer.PinKeyArtisan      => (settings.ArtisanBuildingAutomationEnabled,           "automation_artisan_name"),
-            AutomationRenderer.PinKeyLibrary      => (settings.LibraryBuildingAutomationEnabled,           "automation_library_name"),
-            AutomationRenderer.PinKeyMarket       => (settings.MarketBuildingAutomationEnabled,            "automation_market_name"),
-            AutomationRenderer.PinKeySeaport      => (settings.SeaportBuildingAutomationEnabled,           "automation_seaport_name"),
-            AutomationRenderer.PinKeyMilBuildings => (settings.MilitaryBuildingAutomationEnabled,          "automation_military_buildings_name"),
-            AutomationRenderer.PinKeyMilReinforce => (settings.MilitaryReinforcementAutomationEnabled,     "automation_military_reinforcement_name"),
-            AutomationRenderer.PinKeyMilVendetta  => (settings.MilitaryVendettaAutomationEnabled,          "automation_military_vendetta_name"),
+            AutomationRenderer.PinKeyTownHall     => settings.TownHallAutomationEnabled,
+            AutomationRenderer.PinKeyGrandTemple  => settings.TempleAutomationEnabled,
+            AutomationRenderer.PinKeyMithrilMine  => settings.MithrilMineBuildingAutomationEnabled,
+            AutomationRenderer.PinKeyArcaneTower  => settings.ArcaneTowerBuildingAutomationEnabled,
+            AutomationRenderer.PinKeyMonumentInvestment => settings.MonumentInvestmentAutomationEnabled,
+            AutomationRenderer.PinKeyRoad         => settings.RoadAutomationEnabled,
+            AutomationRenderer.PinKeyOutpost      => settings.OutpostAutomationEnabled,
+            AutomationRenderer.PinKeyRoadUnderworld    => settings.RoadAutomationEnabledUnderworld,
+            AutomationRenderer.PinKeyOutpostUnderworld => settings.OutpostAutomationEnabledUnderworld,
+            AutomationRenderer.PinKeyProduction   => settings.ProductionBuildingAutomationEnabled,
+            AutomationRenderer.PinKeyArtisan      => settings.ArtisanBuildingAutomationEnabled,
+            AutomationRenderer.PinKeyLibrary      => settings.LibraryBuildingAutomationEnabled,
+            AutomationRenderer.PinKeyMarket       => settings.MarketBuildingAutomationEnabled,
+            AutomationRenderer.PinKeySeaport      => settings.SeaportBuildingAutomationEnabled,
+            AutomationRenderer.PinKeyMilBuildings => settings.MilitaryBuildingAutomationEnabled,
+            AutomationRenderer.PinKeyMilReinforce => settings.MilitaryReinforcementAutomationEnabled,
+            AutomationRenderer.PinKeyMilVendetta  => settings.MilitaryVendettaAutomationEnabled,
             AutomationRenderer.PinKeyRestrictSoldierProduction =>
-                (IsRestrictSoldierProductionByLayer(settings, IslandMap.SurfaceLayer), "automation_restrict_soldier_production_name"),
+                IsRestrictSoldierProductionByLayer(settings, IslandMap.SurfaceLayer),
             AutomationRenderer.PinKeyRestrictSoldierProductionUnderworld =>
-                (IsRestrictSoldierProductionByLayer(settings, LayerState.UnderworldZ), "automation_restrict_soldier_production_underworld_name"),
+                IsRestrictSoldierProductionByLayer(settings, LayerState.UnderworldZ),
             AutomationRenderer.PinKeyRestrictSoldierProductionAbyss =>
-                (IsRestrictSoldierProductionByLayer(settings, LayerState.AbyssZ), "automation_restrict_soldier_production_abyss_name"),
-            _                                     => (false, key),
+                IsRestrictSoldierProductionByLayer(settings, LayerState.AbyssZ),
+            _ => false,
         };
+
+        string nameKey = AutomationPinLocalizationRoots.TryGetValue(key, out var root) ? $"{root}_name" : key;
+
         return (value, nameKey, GetAutomationPinDescKey(key));
     }
 
     /// <summary>
-    /// Clé de localisation de la description (au lieu du générique "tooltip_pin_to_civ_panel", qui
-    /// n'a de sens que sur la case à cocher de la pin — pas une fois l'élément déjà épinglé) pour un
-    /// pin d'automatisme générique affiché via <see cref="DrawAutomationToggleRow"/>. Miroir de son
-    /// switch nameKey (suffixe "_desc" au lieu de "_name").
+    /// Racine de clé de localisation de chaque automatisme épinglable : le libellé est
+    /// <c>{racine}_name</c> et la description <c>{racine}_desc</c>.
+    ///
+    /// Une seule table plutôt que deux switch en miroir — ils divergeaient déjà, et c'est ainsi
+    /// que cinq automatismes (hôtel de ville, grand temple, mine de mithril, tour des arcanes,
+    /// investissement monument) se retrouvaient épinglables mais sans libellé ici.
+    ///
+    /// Toute case à cocher d'épinglage ajoutée dans <see cref="AutomationRenderer"/> doit y
+    /// figurer, sinon le panneau afficherait la clé brute. Un test le vérifie.
     /// </summary>
-    private static string GetAutomationPinDescKey(string key) => key switch
-    {
-        AutomationRenderer.PinKeyRoad         => "automation_road_desc",
-        AutomationRenderer.PinKeyOutpost      => "automation_outpost_desc",
-        AutomationRenderer.PinKeyRoadUnderworld    => "automation_road_underworld_desc",
-        AutomationRenderer.PinKeyOutpostUnderworld => "automation_outpost_underworld_desc",
-        AutomationRenderer.PinKeyProduction   => "automation_production_desc",
-        AutomationRenderer.PinKeyArtisan      => "automation_artisan_desc",
-        AutomationRenderer.PinKeyLibrary      => "automation_library_desc",
-        AutomationRenderer.PinKeyMarket       => "automation_market_desc",
-        AutomationRenderer.PinKeySeaport      => "automation_seaport_desc",
-        AutomationRenderer.PinKeyMilBuildings => "automation_military_buildings_desc",
-        AutomationRenderer.PinKeyMilReinforce => "automation_military_reinforcement_desc",
-        AutomationRenderer.PinKeyMilVendetta  => "automation_military_vendetta_desc",
-        AutomationRenderer.PinKeyRestrictSoldierProduction           => "automation_restrict_soldier_production_desc",
-        AutomationRenderer.PinKeyRestrictSoldierProductionUnderworld => "automation_restrict_soldier_production_underworld_desc",
-        AutomationRenderer.PinKeyRestrictSoldierProductionAbyss      => "automation_restrict_soldier_production_abyss_desc",
-        _ => "tooltip_pin_to_civ_panel",
-    };
+    public static readonly IReadOnlyDictionary<string, string> AutomationPinLocalizationRoots =
+        new Dictionary<string, string>
+        {
+            [AutomationRenderer.PinKeyTownHall]           = "automation_townhall",
+            [AutomationRenderer.PinKeyGrandTemple]        = "automation_grandtemple",
+            [AutomationRenderer.PinKeyMithrilMine]        = "automation_mithrilmine",
+            [AutomationRenderer.PinKeyArcaneTower]        = "automation_arcanetower",
+            [AutomationRenderer.PinKeyMonumentInvestment] = "automation_monument_investment",
+            [AutomationRenderer.PinKeyRoad]               = "automation_road",
+            [AutomationRenderer.PinKeyOutpost]            = "automation_outpost",
+            [AutomationRenderer.PinKeyRoadUnderworld]     = "automation_road_underworld",
+            [AutomationRenderer.PinKeyOutpostUnderworld]  = "automation_outpost_underworld",
+            [AutomationRenderer.PinKeyProduction]         = "automation_production",
+            [AutomationRenderer.PinKeyArtisan]            = "automation_artisan",
+            [AutomationRenderer.PinKeyLibrary]            = "automation_library",
+            [AutomationRenderer.PinKeyMarket]             = "automation_market",
+            [AutomationRenderer.PinKeySeaport]            = "automation_seaport",
+            [AutomationRenderer.PinKeyMilBuildings]       = "automation_military_buildings",
+            [AutomationRenderer.PinKeyMilReinforce]       = "automation_military_reinforcement",
+            [AutomationRenderer.PinKeyMilVendetta]        = "automation_military_vendetta",
+            [AutomationRenderer.PinKeyRestrictSoldierProduction]           = "automation_restrict_soldier_production",
+            [AutomationRenderer.PinKeyRestrictSoldierProductionUnderworld] = "automation_restrict_soldier_production_underworld",
+            [AutomationRenderer.PinKeyRestrictSoldierProductionAbyss]      = "automation_restrict_soldier_production_abyss",
+        };
+
+    /// <summary>
+    /// Clé de description d'un automatisme épinglé — et non le générique
+    /// "tooltip_pin_to_civ_panel", qui n'a de sens que sur la case à cocher de l'épinglage,
+    /// pas une fois l'élément déjà épinglé.
+    /// </summary>
+    private static string GetAutomationPinDescKey(string key) =>
+        AutomationPinLocalizationRoots.TryGetValue(key, out var root) ? $"{root}_desc" : "tooltip_pin_to_civ_panel";
 
     private bool IsTradeVisible()
     {
