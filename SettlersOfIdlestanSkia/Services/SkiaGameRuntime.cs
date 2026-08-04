@@ -307,6 +307,16 @@ public sealed class SkiaGameRuntime : IDisposable
     public void TradeSetHistoryTab(bool h) => _gameScreen?.TradeSetHistoryTabFromHost(h);
     public void CloseTradePopup() => _gameScreen?.CloseTradePopupFromHost();
 
+    /// <summary>Instantané du popup de prestige pour une vue portée par l'hôte.</summary>
+    public PrestigePopupSnapshot GetPrestigePopupSnapshot() =>
+        _onTitleScreen ? PrestigePopupSnapshot.Closed
+                       : _gameScreen?.GetPrestigePopupSnapshot() ?? PrestigePopupSnapshot.Closed;
+
+    public void InvokePrestigeAction(string key) => _gameScreen?.InvokePrestigeActionFromHost(key);
+    public void PrestigeSkipWonderTime() => _gameScreen?.PrestigeSkipWonderTimeFromHost();
+    public void PrestigeChangeTier(bool increase) => _gameScreen?.PrestigeChangeTierFromHost(increase);
+    public void ClosePrestigePopup() => _gameScreen?.ClosePrestigePopupFromHost();
+
     /// <summary>Instantané des toasts pour une vue portée par l'hôte.</summary>
     public ToastListSnapshot GetToastSnapshot() =>
         _onTitleScreen ? ToastListSnapshot.Empty

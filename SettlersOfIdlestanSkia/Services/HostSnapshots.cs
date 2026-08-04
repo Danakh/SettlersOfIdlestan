@@ -134,6 +134,60 @@ public sealed record CityPanelSnapshot(
         new(false, false, false, "", "", [], "");
 }
 
+/// <summary>
+/// Une ligne du decompte de prestige : une source de points, ou un bonus multiplicatif.
+/// </summary>
+/// <param name="IsWarning">Valeur defavorable (malus de race, monstres restants) : elle passe
+/// en orange.</param>
+public sealed record PrestigeRowSnapshot(
+    string Label,
+    string Value,
+    bool IsWarning,
+    IReadOnlyList<string> Tooltip);
+
+/// <param name="Key">Identifiant de l'action : prestige normal ou corrompu.</param>
+/// <param name="SubLabel">Seconde ligne du bouton (niveau de corruption vise) ; null sinon.</param>
+public sealed record PrestigeActionSnapshot(
+    string Key,
+    string Label,
+    string? SubLabel,
+    bool IsEnabled,
+    bool IsCorrupted,
+    IReadOnlyList<string> Tooltip);
+
+/// <summary>
+/// Popup de prestige : le detail des points gagnes, le total, et l'action de prestige. Les
+/// regles de calcul et de disponibilite restent dans PrestigeController.
+/// </summary>
+/// <param name="WonderRow">Bonus de merveille, affiche hors de la zone defilante ; null si les
+/// merveilles ne sont pas debloquees.</param>
+/// <param name="TierPickerLabel">Choix du palier de la prochaine ile (Grand Phare niveau 3) ;
+/// null si le choix n'est pas debloque.</param>
+/// <param name="ImperialPortWarning">Rappel affiche quand les points suffisent mais qu'il manque
+/// le Port Imperial ; null sinon.</param>
+public sealed record PrestigePopupSnapshot(
+    bool IsOpen,
+    string Title,
+    IReadOnlyList<PrestigeRowSnapshot> Rows,
+    PrestigeRowSnapshot? WonderRow,
+    bool CanSkipWonderTime,
+    IReadOnlyList<string> WonderSkipTooltip,
+    string TotalLabel,
+    string TotalValue,
+    string? TierPickerLabel,
+    bool CanDecreaseTier,
+    bool CanIncreaseTier,
+    IReadOnlyList<string> TierPickerTooltip,
+    IReadOnlyList<PrestigeActionSnapshot> Actions,
+    string? ImperialPortWarning)
+{
+    public static readonly PrestigePopupSnapshot Closed =
+        new(false, "", [], null, false, [], "", "", null, false, false, [], [], null);
+
+    public const string ActionNormal    = "prestige";
+    public const string ActionCorrupted = "corruptedPrestige";
+}
+
 /// <summary>Une ligne d'echange : une ressource a vendre ou a acheter.</summary>
 /// <param name="Key">Nom d'enum de la ressource : identifiant stable et routage.</param>
 /// <param name="StockLabel">Stock courant sur maximum, deja formate.</param>
@@ -443,6 +497,10 @@ public sealed record ModalPopupSnapshot(
     public const string IdCorruptSave = "corruptSave";
     public const string IdGameOver    = "gameOver";
     public const string IdDemoEnd     = "demoEnd";
+
+    /// Confirmation de perte d'essences divines avant un prestige. Portee par le popup Prestige
+    /// et non par GameScreen, mais de meme forme : elle emprunte cette vue.
+    public const string IdPrestigeEssenceLoss = "prestigeEssenceLoss";
 
     /// Cle conventionnelle de la croix de fermeture, commune a toutes les modales.
     public const string KeyClose = "__close__";

@@ -155,6 +155,14 @@ public sealed class GameRuntimeHost : IDisposable
     public void TradeSetHistoryTab(bool h) => Invoke(r => r.TradeSetHistoryTab(h));
     public void CloseTradePopup() => Invoke(r => r.CloseTradePopup());
 
+    public SkiaLayer.PrestigePopupSnapshot GetPrestigePopupSnapshot() =>
+        Read(r => r.GetPrestigePopupSnapshot()) ?? SkiaLayer.PrestigePopupSnapshot.Closed;
+
+    public void InvokePrestigeAction(string key) => Invoke(r => r.InvokePrestigeAction(key));
+    public void PrestigeSkipWonderTime() => Invoke(r => r.PrestigeSkipWonderTime());
+    public void PrestigeChangeTier(bool increase) => Invoke(r => r.PrestigeChangeTier(increase));
+    public void ClosePrestigePopup() => Invoke(r => r.ClosePrestigePopup());
+
     public SkiaLayer.ToastListSnapshot GetToastSnapshot() =>
         Read(r => r.GetToastSnapshot()) ?? SkiaLayer.ToastListSnapshot.Empty;
 

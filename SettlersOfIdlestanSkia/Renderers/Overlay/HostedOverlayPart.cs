@@ -65,6 +65,9 @@ public enum HostedOverlayPart
     /// Popup de commerce.
     TradePopup = 1 << 15,
 
+    /// Popup de prestige, sa confirmation de perte d'essences comprise.
+    PrestigePopup = 1 << 16,
+
     /// <summary>
     /// Les elements de la barre du haut partagent un meme layout (UILayoutService reserve la
     /// place de chacun pour les autres, et leurs regles de repli sont interdependantes) :

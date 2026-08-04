@@ -420,6 +420,7 @@ public sealed class OverlayRenderer : IGameRenderer
         // serait traite deux fois.
         if (IsMigratedToHost(HostedOverlayPart.SettingsMenu)) _settingsMenu.MigrateToHost();
         if (IsMigratedToHost(HostedOverlayPart.TradePopup)) _tradeRenderer.MigrateToHost();
+        if (IsMigratedToHost(HostedOverlayPart.PrestigePopup)) _prestigeRenderer.MigrateToHost();
     }
 
     private bool IsMigratedToHost(HostedOverlayPart part) => _hostedParts.HasFlag(part);
@@ -496,6 +497,21 @@ public sealed class OverlayRenderer : IGameRenderer
     public void TradeSetMultiplierFromHost(int m) => _tradeRenderer.SetMultiplierFromHost(m);
     public void TradeSetHistoryTabFromHost(bool h) => _tradeRenderer.SetHistoryTabFromHost(h);
     public void CloseTradePopupFromHost() => _tradeRenderer.Close();
+
+    /// <summary>Instantané du popup de prestige pour une vue portée par l'hôte.</summary>
+    public PrestigePopupSnapshot GetPrestigePopupSnapshot() => _prestigeRenderer.GetSnapshot();
+
+    /// <summary>
+    /// Modale portée par l'overlay plutôt que par GameScreen : la confirmation de perte
+    /// d'essences du popup de prestige. Même forme, donc même vue.
+    /// </summary>
+    public ModalPopupSnapshot GetOverlayModalSnapshot() => _prestigeRenderer.GetEssenceLossSnapshot();
+
+    public void InvokeOverlayModalButtonFromHost(string key) => _prestigeRenderer.InvokeEssenceLossButtonFromHost(key);
+    public void InvokePrestigeActionFromHost(string key) => _prestigeRenderer.InvokeActionFromHost(key);
+    public void PrestigeSkipWonderTimeFromHost() => _prestigeRenderer.SkipWonderTimeFromHost();
+    public void PrestigeChangeTierFromHost(bool increase) => _prestigeRenderer.ChangeTierChoiceFromHost(increase);
+    public void ClosePrestigePopupFromHost() => _prestigeRenderer.Close();
 
     /// <summary>Instantané du panneau civilisation pour une vue portée par l'hôte.</summary>
     public CivPanelSnapshot GetCivPanelSnapshot() =>

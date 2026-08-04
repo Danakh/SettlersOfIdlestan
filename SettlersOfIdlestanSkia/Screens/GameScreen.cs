@@ -417,7 +417,10 @@ public sealed class GameScreen : IDisposable
         if (_corruptSavePopup?.IsOpen == true) return _corruptSavePopup.GetSnapshot();
         if (_gameOverPopup?.IsOpen    == true) return _gameOverPopup.GetSnapshot();
         if (_demoEndPopup?.IsOpen     == true) return _demoEndPopup.GetSnapshot();
-        return ModalPopupSnapshot.None;
+
+        // Puis les modales portées par l'overlay (confirmation de perte d'essences) : même
+        // forme, même vue, donc même chaîne.
+        return _overlayRenderer?.GetOverlayModalSnapshot() ?? ModalPopupSnapshot.None;
     }
 
     /// <summary>Déclenche un bouton de modale depuis une vue portée par l'hôte.</summary>
@@ -429,6 +432,9 @@ public sealed class GameScreen : IDisposable
             case ModalPopupSnapshot.IdCorruptSave: _corruptSavePopup?.InvokeButton(buttonKey); break;
             case ModalPopupSnapshot.IdGameOver:    _gameOverPopup?.InvokeButton(buttonKey);    break;
             case ModalPopupSnapshot.IdDemoEnd:     _demoEndPopup?.InvokeButton(buttonKey);     break;
+            case ModalPopupSnapshot.IdPrestigeEssenceLoss:
+                _overlayRenderer?.InvokeOverlayModalButtonFromHost(buttonKey);
+                break;
         }
     }
 
@@ -492,6 +498,15 @@ public sealed class GameScreen : IDisposable
     public void TradeSetMultiplierFromHost(int m) => _overlayRenderer?.TradeSetMultiplierFromHost(m);
     public void TradeSetHistoryTabFromHost(bool h) => _overlayRenderer?.TradeSetHistoryTabFromHost(h);
     public void CloseTradePopupFromHost() => _overlayRenderer?.CloseTradePopupFromHost();
+
+    /// <summary>Instantané du popup de prestige pour une vue portée par l'hôte.</summary>
+    public PrestigePopupSnapshot GetPrestigePopupSnapshot() =>
+        _overlayRenderer?.GetPrestigePopupSnapshot() ?? PrestigePopupSnapshot.Closed;
+
+    public void InvokePrestigeActionFromHost(string key) => _overlayRenderer?.InvokePrestigeActionFromHost(key);
+    public void PrestigeSkipWonderTimeFromHost() => _overlayRenderer?.PrestigeSkipWonderTimeFromHost();
+    public void PrestigeChangeTierFromHost(bool increase) => _overlayRenderer?.PrestigeChangeTierFromHost(increase);
+    public void ClosePrestigePopupFromHost() => _overlayRenderer?.ClosePrestigePopupFromHost();
 
     /// <summary>Instantané du panneau civilisation pour une vue portée par l'hôte.</summary>
     public CivPanelSnapshot GetCivPanelSnapshot() =>
