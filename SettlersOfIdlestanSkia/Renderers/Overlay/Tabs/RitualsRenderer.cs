@@ -515,6 +515,113 @@ public sealed class RitualsRenderer : IDisposable
         canvas.DrawRoundRect(_scrollThumbRect, 3, 3, _scrollThumbPaint);
     }
 
+    // ── Pont vers l'hôte Avalonia ─────────────────────────────────────────────
+
+    /// <summary>
+    /// Instantané de l'onglet pour une vue portée par l'hôte. Reprend les mêmes appels au
+    /// <c>MagicController</c> que <see cref="RenderRitualsPage"/> — coûts, bonus courant, raisons
+    /// de blocage — de sorte que les deux affichages ne puissent pas diverger.
+    /// </summary>
+    /// <param name="isVisible">L'onglet Rituels est-il actif ? La règle appartient à
+    /// <c>OverlayRenderer</c>, qui détient l'onglet courant.</param>
+    public RitualsSnapshot GetSnapshot(bool isVisible)
+    {
+        if (_disposed || !isVisible) return RitualsSnapshot.Hidden;
+
+        var civ = _gameControllerService.PlayerCivilization;
+        if (civ == null) return RitualsSnapshot.Hidden;
+
+        var magic = _gameControllerService.MainGameController.MagicController;
+
+        int crystals = civ.GetResourceQuantity(Resource.Crystal);
+        var (crystalGains, crystalLosses) = magic.GetCrystalGainsAndLosses();
+        double net = crystalGains.Sum(g => g.Rate) - crystalLosses.Sum(l => l.Rate);
+        string ratePart = $"{(net >= 0 ? "+" : "")}{net:0.#}";
+
+        var rituals = new List<RitualRowSnapshot>();
+        foreach (var def in magic.GetKnownRituals())
+        {
+            var active = magic.GetActiveRitual(def.Id);
+            bool isActive = active != null;
+
+            rituals.Add(new RitualRowSnapshot(
+                Key: def.Id.ToString(),
+                Name: _localization.Get(def.NameKey),
+                Description: _localization.Get(def.DescKey),
+                CostText: isActive
+                    ? _localization.GetFormated("ritual_upkeep_cost", magic.GetUpkeepCost(def, active!.Power))
+                    : _localization.GetFormated("ritual_launch_cost",
+                        SettlersOfIdlestan.Controller.Magic.MagicController.GetLaunchCost(def, 1)),
+                BonusText: isActive
+                    ? _localization.GetFormated("ritual_bonus_current", FormatRitualTotalBonus(def, active!.Power))
+                    : null,
+                IsActive: isActive,
+                ButtonLabel: _localization.Get(isActive ? "ritual_button_stop" : "ritual_button_launch"),
+                IsButtonEnabled: isActive || magic.CanLaunchRitual(def.Id),
+                Power: active?.Power ?? 0,
+                CanIncreasePower: isActive && magic.CanIncreaseRitualPower(def.Id)));
+        }
+
+        var spells = new List<SpellRowSnapshot>();
+        foreach (var def in magic.GetKnownSpells())
+        {
+            int spellCost = magic.GetSpellCost(def);
+            bool canCast = magic.CanCastSpell(def.Id);
+            string? blockedReasonKey = canCast ? null : magic.GetSpellBlockedReasonKey(def.Id);
+
+            spells.Add(new SpellRowSnapshot(
+                Key: def.Id.ToString(),
+                Name: _localization.Get(def.NameKey),
+                Description: _localization.Get(def.DescKey),
+                CostText: def.TargetKind switch
+                {
+                    SpellTargetKind.AllyCity => _localization.GetFormated("spell_cast_cost_troops", spellCost, def.TroopReward),
+                    SpellTargetKind.BuildableVertex => _localization.GetFormated("spell_cast_cost_city", spellCost),
+                    _ => _localization.GetFormated("spell_cast_cost", spellCost, def.GoldReward),
+                },
+                WarningText: blockedReasonKey != null ? _localization.Get(blockedReasonKey) : null,
+                ButtonLabel: _localization.Get("spell_button_cast"),
+                CanCast: canCast));
+        }
+
+        return new RitualsSnapshot(
+            IsVisible: true,
+            Title: _localization.Get("tab_rituals"),
+            PowerLabel: _localization.GetFormated("rituals_power_max_label", magic.TotalPowerBudget),
+            PowerTooltip: BuildPowerTooltipLines(magic),
+            CrystalsLabel: _localization.GetFormated("rituals_crystals_label", crystals, ratePart),
+            CrystalsTooltip: BuildCrystalTooltipLines(crystalGains, crystalLosses),
+            NoRitualsMessage: rituals.Count == 0 ? _localization.Get("rituals_none_known") : null,
+            Rituals: rituals,
+            SpellsHeader: _localization.Get("rituals_spells_header"),
+            Spells: spells);
+    }
+
+    /// <summary>Lance ou arrête un rituel depuis une vue portée par l'hôte.</summary>
+    public void ToggleRitualFromHost(string key)
+    {
+        if (!Enum.TryParse<RitualId>(key, out var id)) return;
+        var magic = _gameControllerService.MainGameController.MagicController;
+        if (magic.GetActiveRitual(id) != null) magic.StopRitual(id);
+        else magic.LaunchRitual(id);
+    }
+
+    /// <summary>Ajuste la puissance d'un rituel depuis une vue portée par l'hôte.</summary>
+    public void ChangeRitualPowerFromHost(string key, bool increase)
+    {
+        if (!Enum.TryParse<RitualId>(key, out var id)) return;
+        var magic = _gameControllerService.MainGameController.MagicController;
+        if (increase) magic.IncreaseRitualPower(id);
+        else magic.DecreaseRitualPower(id);
+    }
+
+    /// <summary>Lance un sort, ou entre en sélection de cible, depuis une vue portée par l'hôte.</summary>
+    public void CastSpellFromHost(string key)
+    {
+        if (!Enum.TryParse<SpellId>(key, out var id)) return;
+        CastOrTargetSpell(id, _gameControllerService.MainGameController.MagicController);
+    }
+
     private void CastOrTargetSpell(SpellId id, SettlersOfIdlestan.Controller.Magic.MagicController magic)
     {
         var def = SpellDefinitions.Get(id);

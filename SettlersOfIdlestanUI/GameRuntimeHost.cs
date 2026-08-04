@@ -126,6 +126,13 @@ public sealed class GameRuntimeHost : IDisposable
 
     public void SetStatsSubTab(string key) => Invoke(r => r.SetStatsSubTab(key));
 
+    public SkiaLayer.RitualsSnapshot GetRitualsSnapshot() =>
+        Read(r => r.GetRitualsSnapshot()) ?? SkiaLayer.RitualsSnapshot.Hidden;
+
+    public void ToggleRitual(string key) => Invoke(r => r.ToggleRitual(key));
+    public void ChangeRitualPower(string key, bool increase) => Invoke(r => r.ChangeRitualPower(key, increase));
+    public void CastSpell(string key) => Invoke(r => r.CastSpell(key));
+
     public SkiaLayer.ToastListSnapshot GetToastSnapshot() =>
         Read(r => r.GetToastSnapshot()) ?? SkiaLayer.ToastListSnapshot.Empty;
 

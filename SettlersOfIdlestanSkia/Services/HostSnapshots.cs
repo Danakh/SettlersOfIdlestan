@@ -134,6 +134,58 @@ public sealed record CityPanelSnapshot(
         new(false, false, false, "", "", [], "");
 }
 
+/// <summary>
+/// Un rituel connu. Les couts, le bonus courant et la disponibilite sont deja calcules par
+/// MagicController : la vue ne fait que les afficher.
+/// </summary>
+/// <param name="Key">Nom d'enum du RitualId : identifiant stable, et routage des commandes.</param>
+/// <param name="BonusText">Bonus total au niveau de puissance courant ; null si le rituel est
+/// inactif, auquel cas il n'y a pas de bonus a annoncer.</param>
+/// <param name="IsButtonEnabled">Faux quand le rituel ne peut pas etre lance (cristaux ou
+/// puissance insuffisants). Le bouton reste cliquable : c'est le controleur qui refuse, comme
+/// dans le rendu Skia.</param>
+public sealed record RitualRowSnapshot(
+    string Key,
+    string Name,
+    string Description,
+    string CostText,
+    string? BonusText,
+    bool IsActive,
+    string ButtonLabel,
+    bool IsButtonEnabled,
+    int Power,
+    bool CanIncreasePower);
+
+/// <param name="WarningText">Raison du blocage, deja localisee ; null si le sort est lancable.</param>
+public sealed record SpellRowSnapshot(
+    string Key,
+    string Name,
+    string Description,
+    string CostText,
+    string? WarningText,
+    string ButtonLabel,
+    bool CanCast);
+
+/// <summary>
+/// Onglet plein ecran des rituels : puissance disponible, cristaux, rituels connus et sorts
+/// instantanes. Les regles de magie restent dans MagicController.
+/// </summary>
+public sealed record RitualsSnapshot(
+    bool IsVisible,
+    string Title,
+    string PowerLabel,
+    IReadOnlyList<string> PowerTooltip,
+    string CrystalsLabel,
+    IReadOnlyList<string> CrystalsTooltip,
+    string? NoRitualsMessage,
+    IReadOnlyList<RitualRowSnapshot> Rituals,
+    string SpellsHeader,
+    IReadOnlyList<SpellRowSnapshot> Spells)
+{
+    public static readonly RitualsSnapshot Hidden =
+        new(false, "", "", [], "", [], null, [], "", []);
+}
+
 /// <summary>Une statistique : un libelle et sa valeur, deja formatee.</summary>
 public sealed record StatCellSnapshot(string Label, string Value);
 

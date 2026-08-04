@@ -270,6 +270,15 @@ public sealed class SkiaGameRuntime : IDisposable
 
     public void SetStatsSubTab(string key) => _gameScreen?.SetStatsSubTabFromHost(key);
 
+    /// <summary>Instantané de l'onglet Rituels pour une vue portée par l'hôte.</summary>
+    public RitualsSnapshot GetRitualsSnapshot() =>
+        _onTitleScreen ? RitualsSnapshot.Hidden
+                       : _gameScreen?.GetRitualsSnapshot() ?? RitualsSnapshot.Hidden;
+
+    public void ToggleRitual(string key) => _gameScreen?.ToggleRitualFromHost(key);
+    public void ChangeRitualPower(string key, bool increase) => _gameScreen?.ChangeRitualPowerFromHost(key, increase);
+    public void CastSpell(string key) => _gameScreen?.CastSpellFromHost(key);
+
     /// <summary>Instantané des toasts pour une vue portée par l'hôte.</summary>
     public ToastListSnapshot GetToastSnapshot() =>
         _onTitleScreen ? ToastListSnapshot.Empty

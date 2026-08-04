@@ -52,6 +52,9 @@ public enum HostedOverlayPart
     /// Onglet plein ecran des statistiques (prestige, ascension, partie).
     StatsTab = 1 << 11,
 
+    /// Onglet plein ecran des rituels et sorts.
+    RitualsTab = 1 << 12,
+
     /// <summary>
     /// Les elements de la barre du haut partagent un meme layout (UILayoutService reserve la
     /// place de chacun pour les autres, et leurs regles de repli sont interdependantes) :

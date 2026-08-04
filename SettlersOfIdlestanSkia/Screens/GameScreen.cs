@@ -460,6 +460,14 @@ public sealed class GameScreen : IDisposable
 
     public void SetStatsSubTabFromHost(string key) => _overlayRenderer?.SetStatsSubTabFromHost(key);
 
+    /// <summary>Instantané de l'onglet Rituels pour une vue portée par l'hôte.</summary>
+    public RitualsSnapshot GetRitualsSnapshot() =>
+        _overlayRenderer?.GetRitualsSnapshot() ?? RitualsSnapshot.Hidden;
+
+    public void ToggleRitualFromHost(string key) => _overlayRenderer?.ToggleRitualFromHost(key);
+    public void ChangeRitualPowerFromHost(string key, bool increase) => _overlayRenderer?.ChangeRitualPowerFromHost(key, increase);
+    public void CastSpellFromHost(string key) => _overlayRenderer?.CastSpellFromHost(key);
+
     /// <summary>Instantané du panneau civilisation pour une vue portée par l'hôte.</summary>
     public CivPanelSnapshot GetCivPanelSnapshot() =>
         _overlayRenderer?.GetCivPanelSnapshot() ?? CivPanelSnapshot.Hidden;
