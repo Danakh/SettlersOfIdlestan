@@ -58,6 +58,10 @@ public enum HostedOverlayPart
     /// Onglet plein ecran de l'automatisation.
     AutomationTab = 1 << 13,
 
+    /// Menu deroulant de l'engrenage. L'icone etait deja portee par l'hote : c'est le menu
+    /// lui-meme qui bascule, et avec lui le dernier morceau Skia de la barre du haut.
+    SettingsMenu = 1 << 14,
+
     /// <summary>
     /// Les elements de la barre du haut partagent un meme layout (UILayoutService reserve la
     /// place de chacun pour les autres, et leurs regles de repli sont interdependantes) :

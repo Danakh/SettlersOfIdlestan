@@ -28,6 +28,7 @@ public sealed class GameView : Panel, IDisposable
     private readonly StatsView _stats;
     private readonly RitualsView _rituals;
     private readonly AutomationView _automation;
+    private readonly SettingsMenuView _settingsMenu;
 
     private readonly TabBarViewModel _tabs;
     private readonly ResourceBarViewModel _resources;
@@ -41,6 +42,7 @@ public sealed class GameView : Panel, IDisposable
     private readonly StatsViewModel _statsModel;
     private readonly RitualsViewModel _ritualsModel;
     private readonly AutomationViewModel _automationModel;
+    private readonly SettingsMenuViewModel _settingsMenuModel;
 
     private IDisposable? _stateSync;
 
@@ -65,6 +67,7 @@ public sealed class GameView : Panel, IDisposable
         _statsModel = new StatsViewModel(host);
         _ritualsModel = new RitualsViewModel(host);
         _automationModel = new AutomationViewModel(host);
+        _settingsMenuModel = new SettingsMenuViewModel(host);
 
         _zoomControl = new ZoomControlView(host.ZoomIn, host.ZoomOut) { IsVisible = false };
         _topBar = new TopBarView(
@@ -114,6 +117,7 @@ public sealed class GameView : Panel, IDisposable
         {
             Margin = new Avalonia.Thickness(0, TopBarView.BarHeight, 0, 0),
         };
+        _settingsMenu = new SettingsMenuView(_settingsMenuModel, TopBarView.BarHeight + 5);
 
         Children.Add(new GameRuntimeControl(host));
 
@@ -123,6 +127,10 @@ public sealed class GameView : Panel, IDisposable
         Children.Add(_stats);
         Children.Add(_rituals);
         Children.Add(_automation);
+
+        // Avant la barre du haut : le capteur de fermeture ne doit pas voler son clic a
+        // l'engrenage, qui referme le menu en le rebasculant.
+        Children.Add(_settingsMenu);
 
         Children.Add(_zoomControl);
         Children.Add(_topBar);
@@ -140,7 +148,7 @@ public sealed class GameView : Panel, IDisposable
             | HostedOverlayPart.MonumentPanel | HostedOverlayPart.CityPanel
             | HostedOverlayPart.CivPanel | HostedOverlayPart.ModalPopup
             | HostedOverlayPart.Toasts | HostedOverlayPart.EventLogTab
-            | HostedOverlayPart.StatsTab | HostedOverlayPart.RitualsTab | HostedOverlayPart.AutomationTab);
+            | HostedOverlayPart.StatsTab | HostedOverlayPart.RitualsTab | HostedOverlayPart.AutomationTab | HostedOverlayPart.SettingsMenu);
     }
 
     protected override void OnAttachedToVisualTree(Avalonia.VisualTreeAttachmentEventArgs e)
@@ -196,6 +204,7 @@ public sealed class GameView : Panel, IDisposable
         _statsModel.Refresh();
         _ritualsModel.Refresh();
         _automationModel.Refresh();
+        _settingsMenuModel.Refresh();
 
         // Les boutons de zoom n'ont de sens que sur une vue carte : ni sur l'ecran titre,
         // ni sur les onglets plein ecran (recherche, prestige...).

@@ -134,6 +134,23 @@ public sealed record CityPanelSnapshot(
         new(false, false, false, "", "", [], "");
 }
 
+/// <summary>
+/// Un item du menu deroulant de l'engrenage.
+/// </summary>
+/// <param name="Key">Cle de localisation de l'item, qui lui sert aussi d'identifiant stable :
+/// la position ne convient pas, la section de debogage n'existant pas dans toutes les parties.</param>
+/// <param name="IsSeparator">Intercalaire non cliquable entre deux groupes d'items.</param>
+public sealed record SettingsMenuItemSnapshot(string Key, string Label, bool IsSeparator);
+
+/// <summary>
+/// Menu deroulant de l'engrenage. La composition (dont la presence de la section de debogage)
+/// et l'effet de chaque item restent dans SettingsMenu.
+/// </summary>
+public sealed record SettingsMenuSnapshot(bool IsOpen, IReadOnlyList<SettingsMenuItemSnapshot> Items)
+{
+    public static readonly SettingsMenuSnapshot Closed = new(false, []);
+}
+
 /// <summary>Une ligne de la page Automatisation.</summary>
 /// <param name="Key">Cle d'epinglage, qui sert aussi d'identifiant et de routage.</param>
 /// <param name="IsOn">Null pour un etat mixte (certains batiments du type actifs, d'autres non),

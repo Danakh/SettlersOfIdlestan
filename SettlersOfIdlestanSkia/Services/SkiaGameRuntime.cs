@@ -288,6 +288,14 @@ public sealed class SkiaGameRuntime : IDisposable
     public void ToggleAutomationPin(string key) => _gameScreen?.ToggleAutomationPinFromHost(key);
     public void ToggleAutomationsGlobally() => _gameScreen?.ToggleAutomationsGloballyFromHost();
 
+    /// <summary>Instantané du menu de l'engrenage pour une vue portée par l'hôte.</summary>
+    public SettingsMenuSnapshot GetSettingsMenuSnapshot() =>
+        _onTitleScreen ? SettingsMenuSnapshot.Closed
+                       : _gameScreen?.GetSettingsMenuSnapshot() ?? SettingsMenuSnapshot.Closed;
+
+    public void InvokeSettingsMenuItem(string key) => _gameScreen?.InvokeSettingsMenuItemFromHost(key);
+    public void CloseSettingsMenu() => _gameScreen?.CloseSettingsMenuFromHost();
+
     /// <summary>Instantané des toasts pour une vue portée par l'hôte.</summary>
     public ToastListSnapshot GetToastSnapshot() =>
         _onTitleScreen ? ToastListSnapshot.Empty

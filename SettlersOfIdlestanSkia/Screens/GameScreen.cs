@@ -476,6 +476,13 @@ public sealed class GameScreen : IDisposable
     public void ToggleAutomationPinFromHost(string key) => _overlayRenderer?.ToggleAutomationPinFromHost(key);
     public void ToggleAutomationsGloballyFromHost() => _overlayRenderer?.ToggleAutomationsGloballyFromHost();
 
+    /// <summary>Instantané du menu de l'engrenage pour une vue portée par l'hôte.</summary>
+    public SettingsMenuSnapshot GetSettingsMenuSnapshot() =>
+        _overlayRenderer?.GetSettingsMenuSnapshot() ?? SettingsMenuSnapshot.Closed;
+
+    public void InvokeSettingsMenuItemFromHost(string key) => _overlayRenderer?.InvokeSettingsMenuItemFromHost(key);
+    public void CloseSettingsMenuFromHost() => _overlayRenderer?.CloseSettingsMenuFromHost();
+
     /// <summary>Instantané du panneau civilisation pour une vue portée par l'hôte.</summary>
     public CivPanelSnapshot GetCivPanelSnapshot() =>
         _overlayRenderer?.GetCivPanelSnapshot() ?? CivPanelSnapshot.Hidden;

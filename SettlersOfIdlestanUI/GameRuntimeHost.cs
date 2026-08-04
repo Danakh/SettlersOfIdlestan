@@ -140,6 +140,12 @@ public sealed class GameRuntimeHost : IDisposable
     public void ToggleAutomationPin(string key) => Invoke(r => r.ToggleAutomationPin(key));
     public void ToggleAutomationsGlobally() => Invoke(r => r.ToggleAutomationsGlobally());
 
+    public SkiaLayer.SettingsMenuSnapshot GetSettingsMenuSnapshot() =>
+        Read(r => r.GetSettingsMenuSnapshot()) ?? SkiaLayer.SettingsMenuSnapshot.Closed;
+
+    public void InvokeSettingsMenuItem(string key) => Invoke(r => r.InvokeSettingsMenuItem(key));
+    public void CloseSettingsMenu() => Invoke(r => r.CloseSettingsMenu());
+
     public SkiaLayer.ToastListSnapshot GetToastSnapshot() =>
         Read(r => r.GetToastSnapshot()) ?? SkiaLayer.ToastListSnapshot.Empty;
 
