@@ -19,10 +19,12 @@ public sealed class GameView : Panel, IDisposable
 
     private readonly ZoomControlView _zoomControl;
     private readonly TopBarView _topBar;
+    private readonly MonumentPanelView _monumentPanel;
 
     private readonly TabBarViewModel _tabs;
     private readonly ResourceBarViewModel _resources;
     private readonly TimeControlViewModel _time;
+    private readonly MonumentPanelViewModel _monument;
 
     private IDisposable? _stateSync;
 
@@ -38,6 +40,7 @@ public sealed class GameView : Panel, IDisposable
         _tabs = new TabBarViewModel(host);
         _resources = new ResourceBarViewModel(host);
         _time = new TimeControlViewModel(host);
+        _monument = new MonumentPanelViewModel(host);
 
         _zoomControl = new ZoomControlView(host.ZoomIn, host.ZoomOut) { IsVisible = false };
         _topBar = new TopBarView(
@@ -49,11 +52,19 @@ public sealed class GameView : Panel, IDisposable
             IsVisible = false,
         };
 
+        _monumentPanel = new MonumentPanelView(_monument, _icons)
+        {
+            // Sous la barre du haut, comme le panneau Skia qu'il remplace.
+            Margin = new Avalonia.Thickness(0, TopBarView.BarHeight + 10, 10, 0),
+        };
+
         Children.Add(new GameRuntimeControl(host));
         Children.Add(_zoomControl);
         Children.Add(_topBar);
+        Children.Add(_monumentPanel);
 
-        host.MarkOverlayMigratedToHost(HostedOverlayPart.ZoomControl | HostedOverlayPart.TopBar);
+        host.MarkOverlayMigratedToHost(
+            HostedOverlayPart.ZoomControl | HostedOverlayPart.TopBar | HostedOverlayPart.MonumentPanel);
     }
 
     protected override void OnAttachedToVisualTree(Avalonia.VisualTreeAttachmentEventArgs e)
@@ -75,6 +86,7 @@ public sealed class GameView : Panel, IDisposable
         _tabs.Refresh();
         _resources.Refresh();
         _time.Refresh();
+        _monument.Refresh();
 
         // Les boutons de zoom n'ont de sens que sur une vue carte : ni sur l'ecran titre,
         // ni sur les onglets plein ecran (recherche, prestige...).

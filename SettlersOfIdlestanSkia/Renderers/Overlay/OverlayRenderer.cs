@@ -242,7 +242,8 @@ public sealed class OverlayRenderer : IGameRenderer
             default:
                 _playerCivPanel.Render(canvas, context);
                 _selectedCityPanelRenderer.Render(canvas, context);
-                _selectedMonumentPanelRenderer.Render(canvas, context);
+                if (!IsMigratedToHost(HostedOverlayPart.MonumentPanel))
+                    _selectedMonumentPanelRenderer.Render(canvas, context);
                 break;
         }
 
@@ -412,6 +413,16 @@ public sealed class OverlayRenderer : IGameRenderer
     /// <summary>Instantané de la barre d'onglets pour une vue portée par l'hôte.</summary>
     public TabBarSnapshot GetTabBarSnapshot() => _tabBar.GetSnapshot();
 
+    /// <summary>Instantané du panneau monument pour une vue portée par l'hôte.</summary>
+    public MonumentPanelSnapshot GetMonumentPanelSnapshot() =>
+        _selectedMonumentPanelRenderer.GetSnapshot();
+
+    public void CloseMonumentPanelFromHost() => _selectedMonumentPanelRenderer.CloseFromHost();
+    public void ToggleMonumentInvestmentFromHost(string rowKey) =>
+        _selectedMonumentPanelRenderer.ToggleInvestmentFromHost(rowKey);
+    public void EvolveMonumentFromHost() => _selectedMonumentPanelRenderer.EvolveFromHost();
+    public void SkipWonderFromHost() => _selectedMonumentPanelRenderer.SkipWonderFromHost();
+
     /// <summary>Instantané de la barre de ressources pour une vue portée par l'hôte.</summary>
     public ResourceBarSnapshot GetResourceBarSnapshot() =>
         _playerResourcesOverlayRenderer.GetSnapshot(
@@ -432,7 +443,7 @@ public sealed class OverlayRenderer : IGameRenderer
         IsAnyOverlayOpen
         || !IsIslandTabActive
         || _selectedCityPanelRenderer.ContainsPoint(point)
-        || _selectedMonumentPanelRenderer.ContainsPoint(point)
+        || (!IsMigratedToHost(HostedOverlayPart.MonumentPanel) && _selectedMonumentPanelRenderer.ContainsPoint(point))
         || _playerCivPanel.ContainsPoint(point)
         || (!IsMigratedToHost(HostedOverlayPart.ZoomControl) && _zoomControl.ContainsPoint(point))
         || (!IsMigratedToHost(HostedOverlayPart.TabBar) && _tabBar.ContainsPoint(point))

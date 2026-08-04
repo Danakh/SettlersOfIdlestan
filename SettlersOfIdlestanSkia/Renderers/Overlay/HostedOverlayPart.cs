@@ -21,6 +21,10 @@ public enum HostedOverlayPart
     TimeControl = 1 << 3,
     GearIcon    = 1 << 4,
 
+    /// Panneau lateral du monument selectionne. Independant du layout de la barre du haut :
+    /// il bascule seul.
+    MonumentPanel = 1 << 5,
+
     /// <summary>
     /// Les elements de la barre du haut partagent un meme layout (UILayoutService reserve la
     /// place de chacun pour les autres, et leurs regles de repli sont interdependantes) :

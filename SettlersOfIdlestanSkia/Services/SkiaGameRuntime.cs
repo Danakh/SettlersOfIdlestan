@@ -246,6 +246,16 @@ public sealed class SkiaGameRuntime : IDisposable
 
     public void SetActiveTab(int tabId) => _gameScreen?.SetActiveTabFromHost(tabId);
 
+    /// <summary>Instantané du panneau monument pour une vue portée par l'hôte.</summary>
+    public MonumentPanelSnapshot GetMonumentPanelSnapshot() =>
+        _onTitleScreen ? MonumentPanelSnapshot.Hidden
+                       : _gameScreen?.GetMonumentPanelSnapshot() ?? MonumentPanelSnapshot.Hidden;
+
+    public void CloseMonumentPanel() => _gameScreen?.CloseMonumentPanelFromHost();
+    public void ToggleMonumentInvestment(string rowKey) => _gameScreen?.ToggleMonumentInvestmentFromHost(rowKey);
+    public void EvolveMonument() => _gameScreen?.EvolveMonumentFromHost();
+    public void SkipWonder() => _gameScreen?.SkipWonderFromHost();
+
     /// <summary>Ouvre/ferme le menu paramètres depuis une icône portée par l'hôte.</summary>
     public void ToggleSettingsMenu() => _gameScreen?.ToggleSettingsMenuFromHost();
 

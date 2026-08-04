@@ -395,6 +395,16 @@ public sealed class GameScreen : IDisposable
     /// <summary>Sélectionne un onglet depuis l'hôte (et applique la couche correspondante).</summary>
     public void SetActiveTabFromHost(int tabId) => _overlayRenderer?.SetActiveTabFromHost(tabId);
 
+    /// <summary>Instantané du panneau monument pour une vue portée par l'hôte.</summary>
+    public MonumentPanelSnapshot GetMonumentPanelSnapshot() =>
+        _overlayRenderer?.GetMonumentPanelSnapshot() ?? MonumentPanelSnapshot.Hidden;
+
+    public void CloseMonumentPanelFromHost() => _overlayRenderer?.CloseMonumentPanelFromHost();
+    public void ToggleMonumentInvestmentFromHost(string rowKey) =>
+        _overlayRenderer?.ToggleMonumentInvestmentFromHost(rowKey);
+    public void EvolveMonumentFromHost() => _overlayRenderer?.EvolveMonumentFromHost();
+    public void SkipWonderFromHost() => _overlayRenderer?.SkipWonderFromHost();
+
     /// <summary>Ouvre/ferme le menu paramètres depuis une icône portée par l'hôte.</summary>
     public void ToggleSettingsMenuFromHost() => _overlayRenderer?.ToggleSettingsMenuFromHost();
 
