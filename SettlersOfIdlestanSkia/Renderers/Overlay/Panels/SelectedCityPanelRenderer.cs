@@ -366,7 +366,17 @@ public class SelectedCityPanelRenderer : PanelRendererBase
         CollapseTabRect = new SKRect(panelX - collapseTabW + tabOverlap, tabTop, panelX + tabOverlap, tabTop + collapseTabH);
         DrawCollapseTabRect(canvas, CollapseTabRect, true);
 
-        // Hover tooltips
+        DrawHoverTooltip(canvas, visibleBuildings);
+    }
+
+    /// <summary>
+    /// Dessine le tooltip de survol (bâtiment ou case d'activation).
+    /// Extrait de <see cref="Render"/> pour rester appelable quand le panneau lui-même est
+    /// rendu par l'hôte : le tooltip se dessine par-dessus la carte, hors du panneau, et peut
+    /// donc continuer d'être produit en Skia pendant que la vue passe à Avalonia.
+    /// </summary>
+    private void DrawHoverTooltip(SKCanvas canvas, List<Building> visibleBuildings)
+    {
         if (_hoveredBuildingType.HasValue)
         {
             var hoveredBuilding = visibleBuildings.FirstOrDefault(b => b.Type == _hoveredBuildingType.Value);
