@@ -454,6 +454,12 @@ public sealed class GameScreen : IDisposable
     public EventLogSnapshot GetEventLogSnapshot() =>
         _overlayRenderer?.GetEventLogSnapshot() ?? EventLogSnapshot.Hidden;
 
+    /// <summary>Instantané de l'onglet Stats pour une vue portée par l'hôte.</summary>
+    public StatsSnapshot GetStatsSnapshot() =>
+        _overlayRenderer?.GetStatsSnapshot() ?? StatsSnapshot.Hidden;
+
+    public void SetStatsSubTabFromHost(string key) => _overlayRenderer?.SetStatsSubTabFromHost(key);
+
     /// <summary>Instantané du panneau civilisation pour une vue portée par l'hôte.</summary>
     public CivPanelSnapshot GetCivPanelSnapshot() =>
         _overlayRenderer?.GetCivPanelSnapshot() ?? CivPanelSnapshot.Hidden;

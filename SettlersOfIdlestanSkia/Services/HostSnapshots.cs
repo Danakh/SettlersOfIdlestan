@@ -134,6 +134,49 @@ public sealed record CityPanelSnapshot(
         new(false, false, false, "", "", [], "");
 }
 
+/// <summary>Une statistique : un libelle et sa valeur, deja formatee.</summary>
+public sealed record StatCellSnapshot(string Label, string Value);
+
+/// <summary>
+/// Une carte de statistiques. Les cellules sont deja filtrees : une statistique sans objet
+/// (merveille jamais posee, corruption nulle) est absente, elle n'est pas affichee a zero.
+/// </summary>
+/// <param name="Columns">Nombre de colonnes de la grille — 3 ou 4 selon la carte.</param>
+/// <param name="IsCurrent">Carte de la partie en cours : bordure doree plutot que grise.</param>
+/// <param name="TextRows">Lignes de texte simple, sans libelle (liste des races jouees).</param>
+public sealed record StatCardSnapshot(
+    IReadOnlyList<StatCellSnapshot> Cells,
+    int Columns,
+    bool IsCurrent,
+    IReadOnlyList<string> TextRows);
+
+/// <param name="IsAccent">Titre en or : section principale du sous-onglet.</param>
+/// <param name="EmptyMessage">Affiche a la place des cartes quand il n'y en a aucune.</param>
+public sealed record StatSectionSnapshot(
+    string Title,
+    bool IsAccent,
+    string? EmptyMessage,
+    IReadOnlyList<StatCardSnapshot> Cards);
+
+/// <summary>Un sous-onglet de la page Stats.</summary>
+public sealed record StatsSubTabSnapshot(string Key, string Label, bool IsActive);
+
+/// <summary>
+/// Onglet plein ecran des statistiques. Le sous-onglet actif et les regles de visibilite
+/// (l'onglet Ascension n'apparait qu'une fois des points divins gagnes) restent cote renderer.
+/// </summary>
+public sealed record StatsSnapshot(
+    bool IsVisible,
+    IReadOnlyList<StatsSubTabSnapshot> SubTabs,
+    IReadOnlyList<StatSectionSnapshot> Sections)
+{
+    public static readonly StatsSnapshot Hidden = new(false, [], []);
+
+    public const string SubTabPrestige  = "prestige";
+    public const string SubTabAscension = "ascension";
+    public const string SubTabRun       = "run";
+}
+
 /// <summary>
 /// Registre visuel d'une entree du journal. Regroupe des dizaines de types d'evenement en cinq
 /// intentions, seule chose dont l'affichage a besoin : le type exact reste au modele.

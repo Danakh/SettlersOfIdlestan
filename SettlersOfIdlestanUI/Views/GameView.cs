@@ -25,6 +25,7 @@ public sealed class GameView : Panel, IDisposable
     private readonly ModalPopupView _modalPopup;
     private readonly ToastStackView _toasts;
     private readonly EventLogView _eventLog;
+    private readonly StatsView _stats;
 
     private readonly TabBarViewModel _tabs;
     private readonly ResourceBarViewModel _resources;
@@ -35,6 +36,7 @@ public sealed class GameView : Panel, IDisposable
     private readonly ModalPopupViewModel _modal;
     private readonly ToastViewModel _toast;
     private readonly EventLogViewModel _events;
+    private readonly StatsViewModel _statsModel;
 
     private IDisposable? _stateSync;
 
@@ -56,6 +58,7 @@ public sealed class GameView : Panel, IDisposable
         _modal = new ModalPopupViewModel(host);
         _toast = new ToastViewModel(host);
         _events = new EventLogViewModel(host);
+        _statsModel = new StatsViewModel(host);
 
         _zoomControl = new ZoomControlView(host.ZoomIn, host.ZoomOut) { IsVisible = false };
         _topBar = new TopBarView(
@@ -93,12 +96,17 @@ public sealed class GameView : Panel, IDisposable
         {
             Margin = new Avalonia.Thickness(0, TopBarView.BarHeight, 0, 0),
         };
+        _stats = new StatsView(_statsModel)
+        {
+            Margin = new Avalonia.Thickness(0, TopBarView.BarHeight, 0, 0),
+        };
 
         Children.Add(new GameRuntimeControl(host));
 
         // Avant les panneaux et la barre du haut : l'onglet plein ecran couvre la carte, mais
         // reste sous le reste de l'overlay.
         Children.Add(_eventLog);
+        Children.Add(_stats);
 
         Children.Add(_zoomControl);
         Children.Add(_topBar);
@@ -115,7 +123,8 @@ public sealed class GameView : Panel, IDisposable
             HostedOverlayPart.ZoomControl | HostedOverlayPart.TopBar
             | HostedOverlayPart.MonumentPanel | HostedOverlayPart.CityPanel
             | HostedOverlayPart.CivPanel | HostedOverlayPart.ModalPopup
-            | HostedOverlayPart.Toasts | HostedOverlayPart.EventLogTab);
+            | HostedOverlayPart.Toasts | HostedOverlayPart.EventLogTab
+            | HostedOverlayPart.StatsTab);
     }
 
     protected override void OnAttachedToVisualTree(Avalonia.VisualTreeAttachmentEventArgs e)
@@ -168,6 +177,7 @@ public sealed class GameView : Panel, IDisposable
         _modal.Refresh();
         _toast.Refresh();
         _events.Refresh();
+        _statsModel.Refresh();
 
         // Les boutons de zoom n'ont de sens que sur une vue carte : ni sur l'ecran titre,
         // ni sur les onglets plein ecran (recherche, prestige...).

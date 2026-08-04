@@ -222,7 +222,8 @@ public sealed class OverlayRenderer : IGameRenderer
                 _prestigeMapRenderer.RenderPrestigeMap(canvas, context);
                 break;
             case TabBarRenderer.TabStats:
-                _prestigeHistoryRenderer.RenderHistory(canvas, context);
+                if (!IsMigratedToHost(HostedOverlayPart.StatsTab))
+                    _prestigeHistoryRenderer.RenderHistory(canvas, context);
                 break;
             case TabBarRenderer.TabEvents:
                 if (!IsMigratedToHost(HostedOverlayPart.EventLogTab))
@@ -448,6 +449,12 @@ public sealed class OverlayRenderer : IGameRenderer
     /// </summary>
     public EventLogSnapshot GetEventLogSnapshot() =>
         _eventLogRenderer.GetSnapshot(_tabBar.ActiveTab == TabBarRenderer.TabEvents);
+
+    /// <summary>Instantané de l'onglet Stats pour une vue portée par l'hôte.</summary>
+    public StatsSnapshot GetStatsSnapshot() =>
+        _prestigeHistoryRenderer.GetSnapshot(_tabBar.ActiveTab == TabBarRenderer.TabStats);
+
+    public void SetStatsSubTabFromHost(string key) => _prestigeHistoryRenderer.SetSubTabFromHost(key);
 
     /// <summary>Instantané du panneau civilisation pour une vue portée par l'hôte.</summary>
     public CivPanelSnapshot GetCivPanelSnapshot() =>

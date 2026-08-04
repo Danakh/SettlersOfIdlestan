@@ -263,6 +263,13 @@ public sealed class SkiaGameRuntime : IDisposable
         _onTitleScreen ? EventLogSnapshot.Hidden
                        : _gameScreen?.GetEventLogSnapshot() ?? EventLogSnapshot.Hidden;
 
+    /// <summary>Instantané de l'onglet Stats pour une vue portée par l'hôte.</summary>
+    public StatsSnapshot GetStatsSnapshot() =>
+        _onTitleScreen ? StatsSnapshot.Hidden
+                       : _gameScreen?.GetStatsSnapshot() ?? StatsSnapshot.Hidden;
+
+    public void SetStatsSubTab(string key) => _gameScreen?.SetStatsSubTabFromHost(key);
+
     /// <summary>Instantané des toasts pour une vue portée par l'hôte.</summary>
     public ToastListSnapshot GetToastSnapshot() =>
         _onTitleScreen ? ToastListSnapshot.Empty
