@@ -9,6 +9,7 @@ public enum NotificationIcon { Info, Achievement, StoreOk, StoreFail }
 public sealed class NotificationToastRenderer : IGameRenderer, IDisposable
 {
     private sealed record ActiveToast(
+        long Id,
         string Title,
         string Message,
         NotificationIcon Icon,
@@ -16,6 +17,8 @@ public sealed class NotificationToastRenderer : IGameRenderer, IDisposable
     {
         public float TimeLeft { get; set; } = TotalDuration;
     }
+
+    private long _nextToastId;
 
     private readonly UILayoutService _layout;
     private readonly List<ActiveToast> _toasts = [];
@@ -43,6 +46,8 @@ public sealed class NotificationToastRenderer : IGameRenderer, IDisposable
     private readonly SKFont _iconFont    = new() { Size = 18f, Typeface = SkiaFonts.Bold };
 
     private bool _disposed;
+    private bool _agedByGameLoop;
+    private bool _hostedByAvalonia;
 
     // Rects des toasts actuellement rendus, pour détecter les clics (index 0 = le plus bas)
     private readonly List<SKRect> _toastRects = [];
@@ -58,10 +63,85 @@ public sealed class NotificationToastRenderer : IGameRenderer, IDisposable
         if (_toasts.Count >= MaxToasts)
             _toasts.RemoveAt(0);
 
-        _toasts.Add(new ActiveToast(title, message, icon, ToastDuration));
+        _toasts.Add(new ActiveToast(_nextToastId++, title, message, icon, ToastDuration));
+    }
+
+    /// <summary>
+    /// Instantané pour une vue portée par l'hôte. Reprend le calcul d'opacité de
+    /// <see cref="DrawToast"/> — même fondu d'entrée et de sortie.
+    /// </summary>
+    public ToastListSnapshot GetSnapshot()
+    {
+        if (_disposed || _toasts.Count == 0) return ToastListSnapshot.Empty;
+
+        var toasts = new List<ToastSnapshot>(_toasts.Count);
+
+        // Ordre inverse de la liste : le rendu Skia empile le plus ancien en bas et les plus
+        // récents au-dessus. Une pile Avalonia ancrée en bas se remplit de haut en bas, il faut
+        // donc lui donner le plus récent en premier pour retrouver le même ordre à l'écran.
+        for (int i = _toasts.Count - 1; i >= 0; i--)
+        {
+            var toast = _toasts[i];
+            toasts.Add(new ToastSnapshot(toast.Id, toast.Title, toast.Message, toast.Icon, ComputeOpacity(toast)));
+        }
+
+        return new ToastListSnapshot(toasts, _layout.TabsAtBottom);
+    }
+
+    private static double ComputeOpacity(ActiveToast toast)
+    {
+        float elapsed = toast.TotalDuration - toast.TimeLeft;
+        if (elapsed < SlideInTime) return elapsed / SlideInTime;
+        if (toast.TimeLeft < FadeOutTime) return toast.TimeLeft / FadeOutTime;
+        return 1d;
+    }
+
+    /// <summary>Ferme un toast depuis une vue portée par l'hôte.</summary>
+    public void Dismiss(long id)
+    {
+        int index = _toasts.FindIndex(t => t.Id == id);
+        if (index < 0) return;
+        _toasts.RemoveAt(index);
+        if (index < _toastRects.Count) _toastRects.RemoveAt(index);
+    }
+
+    /// <summary>
+    /// Déclare que cette instance est désormais affichée par l'hôte Avalonia : elle cesse de
+    /// dessiner, et la boucle de jeu prend en charge le vieillissement via <see cref="Advance"/>.
+    ///
+    /// Les deux vont ensemble : cesser de dessiner sans déplacer le décompte figerait les toasts
+    /// à l'écran pour toujours, et déplacer le décompte sans cesser de dessiner les ferait
+    /// vieillir deux fois plus vite.
+    ///
+    /// N'affecte que l'instance concernée : l'écran-titre a la sienne, qu'il continue de dessiner.
+    /// </summary>
+    public void MigrateToHost()
+    {
+        _agedByGameLoop = true;
+        _hostedByAvalonia = true;
     }
 
     public void Initialize(SKSize canvasSize) => _canvasSize = canvasSize;
+
+    /// <summary>
+    /// Fait vieillir les toasts et retire ceux qui ont expiré.
+    ///
+    /// Séparé du rendu à dessein : une fois les toasts portés par l'hôte Avalonia, ce renderer
+    /// ne dessine plus, et un décompte logé dans <see cref="Render"/> ne s'exécuterait donc
+    /// jamais — les toasts resteraient affichés indéfiniment. Ce renderer reste la machine à
+    /// états, la boucle de jeu l'avance.
+    /// </summary>
+    public void Advance(float deltaTime)
+    {
+        if (_disposed) return;
+
+        for (int i = _toasts.Count - 1; i >= 0; i--)
+        {
+            _toasts[i].TimeLeft -= deltaTime;
+            if (_toasts[i].TimeLeft <= 0f)
+                _toasts.RemoveAt(i);
+        }
+    }
 
     public void Render(SKCanvas canvas, GameRenderContext context) =>
         Render(canvas, context.CanvasSize, context.DeltaTime, context.UiScale);
@@ -69,21 +149,16 @@ public sealed class NotificationToastRenderer : IGameRenderer, IDisposable
     /// <summary>
     /// Variante de rendu sans GameRenderContext, pour les écrans sans MainGameState (ex: TitleScreen).
     /// </summary>
+    /// <param name="deltaTime">Ignoré quand la boucle de jeu appelle déjà <see cref="Advance"/> ;
+    /// l'écran-titre, lui, n'a pas de boucle de jeu et s'en remet à ce paramètre.</param>
     public void Render(SKCanvas canvas, SKSize canvasSize, float deltaTime, float uiScale)
     {
-        if (_disposed || _toasts.Count == 0) return;
+        if (_disposed || _hostedByAvalonia || _toasts.Count == 0) return;
 
         _canvasSize = canvasSize;
-        float dt = deltaTime;
         float s  = uiScale;
 
-        // Avancer les timers et supprimer les toasts expirés
-        for (int i = _toasts.Count - 1; i >= 0; i--)
-        {
-            _toasts[i].TimeLeft -= dt;
-            if (_toasts[i].TimeLeft <= 0f)
-                _toasts.RemoveAt(i);
-        }
+        if (!_agedByGameLoop) Advance(deltaTime);
 
         _toastRects.Clear();
 

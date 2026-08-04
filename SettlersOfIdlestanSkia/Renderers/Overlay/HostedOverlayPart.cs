@@ -40,6 +40,10 @@ public enum HostedOverlayPart
     /// d'ouverture etant le meme des deux cotes.
     ModalPopup = 1 << 8,
 
+    /// Toasts de notification, en bas a droite. Leur vieillissement passe de Render a la boucle
+    /// de jeu quand ce drapeau est leve : sinon, plus rien ne les ferait expirer.
+    Toasts = 1 << 9,
+
     /// <summary>
     /// Les elements de la barre du haut partagent un meme layout (UILayoutService reserve la
     /// place de chacun pour les autres, et leurs regles de repli sont interdependantes) :

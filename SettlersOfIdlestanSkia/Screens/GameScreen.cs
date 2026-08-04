@@ -391,7 +391,16 @@ public sealed class GameScreen : IDisposable
         // GameScreen retienne le drapeau lui aussi, sans quoi elles seraient dessinées en double.
         _hostedParts |= parts;
         _overlayRenderer?.MarkMigratedToHost(parts);
+
+        if (IsMigratedToHost(HostedOverlayPart.Toasts))
+            _notificationToastRenderer?.MigrateToHost();
     }
+
+    /// <summary>Instantané des toasts pour une vue portée par l'hôte.</summary>
+    public ToastListSnapshot GetToastSnapshot() =>
+        _notificationToastRenderer?.GetSnapshot() ?? ToastListSnapshot.Empty;
+
+    public void DismissToastFromHost(long id) => _notificationToastRenderer?.Dismiss(id);
 
     private HostedOverlayPart _hostedParts = HostedOverlayPart.None;
 
@@ -551,6 +560,11 @@ public sealed class GameScreen : IDisposable
 
         _gameControllerService.Update(deltaTime);
         DrainEventToasts();
+
+        // Sans effet tant que les toasts sont dessinés en Skia : leur Render fait alors lui-même
+        // le décompte, et Advance ne s'applique qu'une fois la bascule vers l'hôte déclarée.
+        if (IsMigratedToHost(HostedOverlayPart.Toasts))
+            _notificationToastRenderer?.Advance(deltaTime);
 
         bool introActive = _introRenderer?.IsActive == true;
         if (introActive)       _gameControllerService.CurrentGameState?.Clock?.Pause();

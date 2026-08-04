@@ -134,6 +134,27 @@ public sealed record CityPanelSnapshot(
         new(false, false, false, "", "", [], "");
 }
 
+/// <summary>
+/// Un toast de notification. L'identifiant est stable pour la duree de vie du toast : il permet
+/// a la vue de mettre a jour la liste en place plutot que de la reconstruire, et de router la
+/// fermeture au clic.
+/// </summary>
+/// <param name="Opacity">Fondu d'entree et de sortie, calcule par le renderer pour rester le
+/// meme des deux cotes.</param>
+public sealed record ToastSnapshot(
+    long Id,
+    string Title,
+    string Message,
+    SettlersOfIdlestanSkia.Renderers.Overlay.NotificationIcon Icon,
+    double Opacity);
+
+/// <param name="TabsAtBottom">Disposition mobile : les toasts remontent au-dessus de la barre
+/// d'onglets du bas, comme dans le rendu Skia.</param>
+public sealed record ToastListSnapshot(IReadOnlyList<ToastSnapshot> Toasts, bool TabsAtBottom)
+{
+    public static readonly ToastListSnapshot Empty = new([], false);
+}
+
 /// <summary>Ton du titre d'une modale : dicte sa couleur, pas son contenu.</summary>
 public enum ModalPopupTone
 {

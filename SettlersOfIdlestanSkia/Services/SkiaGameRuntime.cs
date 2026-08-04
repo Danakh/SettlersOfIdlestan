@@ -258,6 +258,13 @@ public sealed class SkiaGameRuntime : IDisposable
     public void GoToOtherCity(string k) => _gameScreen?.GoToOtherCityFromHost(k);
     public void SetHoveredCityBuilding(string? k, float x, float y) => _gameScreen?.SetHoveredCityBuildingFromHost(k, x, y);
 
+    /// <summary>Instantané des toasts pour une vue portée par l'hôte.</summary>
+    public ToastListSnapshot GetToastSnapshot() =>
+        _onTitleScreen ? ToastListSnapshot.Empty
+                       : _gameScreen?.GetToastSnapshot() ?? ToastListSnapshot.Empty;
+
+    public void DismissToast(long id) => _gameScreen?.DismissToastFromHost(id);
+
     /// <summary>Instantané de la modale bloquante ouverte, pour une vue portée par l'hôte.</summary>
     public ModalPopupSnapshot GetModalPopupSnapshot() =>
         _onTitleScreen ? ModalPopupSnapshot.None

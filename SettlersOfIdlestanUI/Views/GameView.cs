@@ -23,6 +23,7 @@ public sealed class GameView : Panel, IDisposable
     private readonly CityPanelView _cityPanel;
     private readonly CivPanelView _civPanel;
     private readonly ModalPopupView _modalPopup;
+    private readonly ToastStackView _toasts;
 
     private readonly TabBarViewModel _tabs;
     private readonly ResourceBarViewModel _resources;
@@ -31,6 +32,7 @@ public sealed class GameView : Panel, IDisposable
     private readonly CityPanelViewModel _city;
     private readonly CivPanelViewModel _civ;
     private readonly ModalPopupViewModel _modal;
+    private readonly ToastViewModel _toast;
 
     private IDisposable? _stateSync;
 
@@ -50,6 +52,7 @@ public sealed class GameView : Panel, IDisposable
         _city = new CityPanelViewModel(host);
         _civ = new CivPanelViewModel(host);
         _modal = new ModalPopupViewModel(host);
+        _toast = new ToastViewModel(host);
 
         _zoomControl = new ZoomControlView(host.ZoomIn, host.ZoomOut) { IsVisible = false };
         _topBar = new TopBarView(
@@ -79,6 +82,7 @@ public sealed class GameView : Panel, IDisposable
         };
 
         _modalPopup = new ModalPopupView(_modal);
+        _toasts = new ToastStackView(_toast);
 
         Children.Add(new GameRuntimeControl(host));
         Children.Add(_zoomControl);
@@ -87,13 +91,16 @@ public sealed class GameView : Panel, IDisposable
         Children.Add(_cityPanel);
         Children.Add(_monumentPanel);
 
+        Children.Add(_toasts);
+
         // En dernier : une modale bloquante doit couvrir tout le reste de l'overlay.
         Children.Add(_modalPopup);
 
         host.MarkOverlayMigratedToHost(
             HostedOverlayPart.ZoomControl | HostedOverlayPart.TopBar
             | HostedOverlayPart.MonumentPanel | HostedOverlayPart.CityPanel
-            | HostedOverlayPart.CivPanel | HostedOverlayPart.ModalPopup);
+            | HostedOverlayPart.CivPanel | HostedOverlayPart.ModalPopup
+            | HostedOverlayPart.Toasts);
     }
 
     protected override void OnAttachedToVisualTree(Avalonia.VisualTreeAttachmentEventArgs e)
@@ -144,6 +151,7 @@ public sealed class GameView : Panel, IDisposable
         _city.Refresh();
         _civ.Refresh();
         _modal.Refresh();
+        _toast.Refresh();
 
         // Les boutons de zoom n'ont de sens que sur une vue carte : ni sur l'ecran titre,
         // ni sur les onglets plein ecran (recherche, prestige...).
