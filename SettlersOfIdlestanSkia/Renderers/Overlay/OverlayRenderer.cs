@@ -239,7 +239,10 @@ public sealed class OverlayRenderer : IGameRenderer
                 break;
         }
 
-        _tabBar.Render(canvas);
+        // Update() continue de tourner plus haut même une fois migré : TabBarRenderer reste la
+        // machine à états (déblocage, notifications, repli), seul son dessin passe côté hôte.
+        if (!IsMigratedToHost(HostedOverlayPart.TabBar))
+            _tabBar.Render(canvas);
 
         if (_uiLayout.TimeSettingsOnSecondRow)
             DrawRowBackground(canvas, _uiLayout.TimeControlRowTop);
@@ -388,6 +391,25 @@ public sealed class OverlayRenderer : IGameRenderer
 
     private bool IsMigratedToHost(HostedOverlayPart part) => _hostedParts.HasFlag(part);
 
+    /// <summary>Instantané de la barre d'onglets pour une vue portée par l'hôte.</summary>
+    public TabBarSnapshot GetTabBarSnapshot() => _tabBar.GetSnapshot();
+
+    /// <summary>Instantané de la barre de ressources pour une vue portée par l'hôte.</summary>
+    public ResourceBarSnapshot GetResourceBarSnapshot() =>
+        _playerResourcesOverlayRenderer.GetSnapshot(
+            _gameControllerService.PlayerCivilization,
+            _gameControllerService.CurrentGameState?.PrestigeState);
+
+    /// <summary>
+    /// Sélectionne un onglet depuis l'hôte. Applique aussi le changement de couche
+    /// (île/inframonde/abysse), sans quoi cliquer sur ces onglets n'afficherait pas la bonne carte.
+    /// </summary>
+    public void SetActiveTabFromHost(int tabId)
+    {
+        _tabBar.SetActiveTab(tabId);
+        ApplyLayerForActiveTab();
+    }
+
     public bool IsPointBlockedByUI(SKPoint point) =>
         IsAnyOverlayOpen
         || !IsIslandTabActive
@@ -395,7 +417,7 @@ public sealed class OverlayRenderer : IGameRenderer
         || _selectedMonumentPanelRenderer.ContainsPoint(point)
         || _playerCivPanel.ContainsPoint(point)
         || (!IsMigratedToHost(HostedOverlayPart.ZoomControl) && _zoomControl.ContainsPoint(point))
-        || _tabBar.ContainsPoint(point)
+        || (!IsMigratedToHost(HostedOverlayPart.TabBar) && _tabBar.ContainsPoint(point))
         || _timeControlRenderer.ContainsPoint(point)
         || GetGearRect().Contains(point.X, point.Y)
         || (_uiLayout.ResourcesOverflow && point.Y < _uiLayout.ResourceBarBottom);
@@ -501,7 +523,7 @@ public sealed class OverlayRenderer : IGameRenderer
             return;
         }
 
-        if (_tabBar.HandlePointerPressed(e.Position))
+        if (!IsMigratedToHost(HostedOverlayPart.TabBar) && _tabBar.HandlePointerPressed(e.Position))
         {
             ApplyLayerForActiveTab();
             return;

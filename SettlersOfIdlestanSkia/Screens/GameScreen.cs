@@ -388,6 +388,17 @@ public sealed class GameScreen : IDisposable
     public void MarkOverlayMigratedToHost(HostedOverlayPart parts) =>
         _overlayRenderer?.MarkMigratedToHost(parts);
 
+    /// <summary>Instantané de la barre d'onglets pour une vue portée par l'hôte.</summary>
+    public TabBarSnapshot GetTabBarSnapshot() =>
+        _overlayRenderer?.GetTabBarSnapshot() ?? TabBarSnapshot.Unavailable;
+
+    /// <summary>Sélectionne un onglet depuis l'hôte (et applique la couche correspondante).</summary>
+    public void SetActiveTabFromHost(int tabId) => _overlayRenderer?.SetActiveTabFromHost(tabId);
+
+    /// <summary>Instantané de la barre de ressources pour une vue portée par l'hôte.</summary>
+    public ResourceBarSnapshot GetResourceBarSnapshot() =>
+        _overlayRenderer?.GetResourceBarSnapshot() ?? ResourceBarSnapshot.Unavailable;
+
     /// <summary>Instantané de l'état du temps pour un contrôle porté par l'hôte.</summary>
     public TimeControlSnapshot GetTimeControlSnapshot()
     {

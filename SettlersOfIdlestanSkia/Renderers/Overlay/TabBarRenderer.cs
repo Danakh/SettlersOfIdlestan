@@ -337,6 +337,26 @@ public sealed class TabBarRenderer : IDisposable
 
     public void SetActiveTab(int tabId) => _activeTab = tabId;
 
+    /// <summary>
+    /// Instantané pour une barre d'onglets portée par l'hôte. Les règles de déblocage, de
+    /// notification et de repli restent ici : seul le dessin passe côté Avalonia.
+    /// </summary>
+    public TabBarSnapshot GetSnapshot()
+    {
+        var tabs = new List<TabSnapshot>(_activeTabs.Count);
+        foreach (var (tabId, _) in _activeTabs)
+        {
+            bool glowing = (_prestigeGlowing  && tabId == TabPrestige)
+                        || (_researchGlowing  && tabId == TabResearch)
+                        || (_hasNewEvent      && tabId == TabEvents)
+                        || (_underworldGlowing && tabId == TabUnderworld);
+
+            tabs.Add(new TabSnapshot(tabId, GetTabLabel(tabId), tabId == _activeTab, glowing));
+        }
+
+        return new TabBarSnapshot(IsVisible, _uiLayout.TabsAtBottom, tabs);
+    }
+
     private bool HasPrestigePoints(GameRenderContext context)
     {
         if (context.GameState is not MainGameState mgs) return false;

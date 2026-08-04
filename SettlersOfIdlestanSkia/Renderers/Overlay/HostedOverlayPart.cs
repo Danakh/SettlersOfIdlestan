@@ -16,4 +16,13 @@ public enum HostedOverlayPart
 {
     None        = 0,
     ZoomControl = 1 << 0,
+    TabBar      = 1 << 1,
+
+    /// <summary>
+    /// Les elements de la barre du haut partagent un meme layout (UILayoutService reserve la
+    /// place de chacun pour les autres, et leurs regles de repli sont interdependantes) :
+    /// migrer l'un sans les autres laisserait un trou dont la position devrait etre repliquee
+    /// a la main. Ils basculent donc ensemble.
+    /// </summary>
+    TopBar = TabBar,
 }

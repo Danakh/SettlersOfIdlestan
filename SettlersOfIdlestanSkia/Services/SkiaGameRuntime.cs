@@ -239,6 +239,18 @@ public sealed class SkiaGameRuntime : IDisposable
     public void ZoomIn()  => _gameScreen?.ZoomIn();
     public void ZoomOut() => _gameScreen?.ZoomOut();
 
+    /// <summary>Instantané de la barre d'onglets pour une vue portée par l'hôte.</summary>
+    public TabBarSnapshot GetTabBarSnapshot() =>
+        _onTitleScreen ? TabBarSnapshot.Unavailable
+                       : _gameScreen?.GetTabBarSnapshot() ?? TabBarSnapshot.Unavailable;
+
+    public void SetActiveTab(int tabId) => _gameScreen?.SetActiveTabFromHost(tabId);
+
+    /// <summary>Instantané de la barre de ressources pour une vue portée par l'hôte.</summary>
+    public ResourceBarSnapshot GetResourceBarSnapshot() =>
+        _onTitleScreen ? ResourceBarSnapshot.Unavailable
+                       : _gameScreen?.GetResourceBarSnapshot() ?? ResourceBarSnapshot.Unavailable;
+
     /// <summary>Instantané de l'état du temps pour un contrôle de temps porté par l'hôte.</summary>
     public TimeControlSnapshot GetTimeControlSnapshot() =>
         _onTitleScreen ? TimeControlSnapshot.Unavailable

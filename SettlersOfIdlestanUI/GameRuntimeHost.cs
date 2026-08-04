@@ -101,6 +101,14 @@ public sealed class GameRuntimeHost : IDisposable
     public void MarkOverlayMigratedToHost(HostedOverlayPart parts) =>
         Invoke(r => r.MarkOverlayMigratedToHost(parts));
 
+    public SkiaLayer.TabBarSnapshot GetTabBarSnapshot() =>
+        Read(r => r.GetTabBarSnapshot()) ?? SkiaLayer.TabBarSnapshot.Unavailable;
+
+    public void SetActiveTab(int tabId) => Invoke(r => r.SetActiveTab(tabId));
+
+    public SkiaLayer.ResourceBarSnapshot GetResourceBarSnapshot() =>
+        Read(r => r.GetResourceBarSnapshot()) ?? SkiaLayer.ResourceBarSnapshot.Unavailable;
+
     public SkiaLayer.TimeControlSnapshot GetTimeControlSnapshot() =>
         Read(r => r.GetTimeControlSnapshot()) ?? SkiaLayer.TimeControlSnapshot.Unavailable;
 
