@@ -163,6 +163,15 @@ public sealed class GameRuntimeHost : IDisposable
     public void PrestigeChangeTier(bool increase) => Invoke(r => r.PrestigeChangeTier(increase));
     public void ClosePrestigePopup() => Invoke(r => r.ClosePrestigePopup());
 
+    public SkiaLayer.SettingsPopupSnapshot GetSettingsPopupSnapshot() =>
+        Read(r => r.GetSettingsPopupSnapshot()) ?? SkiaLayer.SettingsPopupSnapshot.Closed;
+
+    public void ToggleSetting(string k) => Invoke(r => r.ToggleSetting(k));
+    public void SetSettingChoice(string k, string c) => Invoke(r => r.SetSettingChoice(k, c));
+    public void SetSettingSlider(string k, double v) => Invoke(r => r.SetSettingSlider(k, v));
+    public void SetSettingText(string k, string v) => Invoke(r => r.SetSettingText(k, v));
+    public void CloseSettingsPopup() => Invoke(r => r.CloseSettingsPopup());
+
     public SkiaLayer.ToastListSnapshot GetToastSnapshot() =>
         Read(r => r.GetToastSnapshot()) ?? SkiaLayer.ToastListSnapshot.Empty;
 

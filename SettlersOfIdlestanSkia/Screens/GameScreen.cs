@@ -508,6 +508,16 @@ public sealed class GameScreen : IDisposable
     public void PrestigeChangeTierFromHost(bool increase) => _overlayRenderer?.PrestigeChangeTierFromHost(increase);
     public void ClosePrestigePopupFromHost() => _overlayRenderer?.ClosePrestigePopupFromHost();
 
+    /// <summary>Instantané du popup de réglages pour une vue portée par l'hôte.</summary>
+    public SettingsPopupSnapshot GetSettingsPopupSnapshot() =>
+        _overlayRenderer?.GetSettingsPopupSnapshot() ?? SettingsPopupSnapshot.Closed;
+
+    public void ToggleSettingFromHost(string k) => _overlayRenderer?.ToggleSettingFromHost(k);
+    public void SetSettingChoiceFromHost(string k, string c) => _overlayRenderer?.SetSettingChoiceFromHost(k, c);
+    public void SetSettingSliderFromHost(string k, double v) => _overlayRenderer?.SetSettingSliderFromHost(k, v);
+    public void SetSettingTextFromHost(string k, string v) => _overlayRenderer?.SetSettingTextFromHost(k, v);
+    public void CloseSettingsPopupFromHost() => _overlayRenderer?.CloseSettingsPopupFromHost();
+
     /// <summary>Instantané du panneau civilisation pour une vue portée par l'hôte.</summary>
     public CivPanelSnapshot GetCivPanelSnapshot() =>
         _overlayRenderer?.GetCivPanelSnapshot() ?? CivPanelSnapshot.Hidden;

@@ -317,6 +317,17 @@ public sealed class SkiaGameRuntime : IDisposable
     public void PrestigeChangeTier(bool increase) => _gameScreen?.PrestigeChangeTierFromHost(increase);
     public void ClosePrestigePopup() => _gameScreen?.ClosePrestigePopupFromHost();
 
+    /// <summary>Instantané du popup de réglages pour une vue portée par l'hôte.</summary>
+    public SettingsPopupSnapshot GetSettingsPopupSnapshot() =>
+        _onTitleScreen ? SettingsPopupSnapshot.Closed
+                       : _gameScreen?.GetSettingsPopupSnapshot() ?? SettingsPopupSnapshot.Closed;
+
+    public void ToggleSetting(string k) => _gameScreen?.ToggleSettingFromHost(k);
+    public void SetSettingChoice(string k, string c) => _gameScreen?.SetSettingChoiceFromHost(k, c);
+    public void SetSettingSlider(string k, double v) => _gameScreen?.SetSettingSliderFromHost(k, v);
+    public void SetSettingText(string k, string v) => _gameScreen?.SetSettingTextFromHost(k, v);
+    public void CloseSettingsPopup() => _gameScreen?.CloseSettingsPopupFromHost();
+
     /// <summary>Instantané des toasts pour une vue portée par l'hôte.</summary>
     public ToastListSnapshot GetToastSnapshot() =>
         _onTitleScreen ? ToastListSnapshot.Empty

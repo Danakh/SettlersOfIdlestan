@@ -68,6 +68,9 @@ public enum HostedOverlayPart
     /// Popup de prestige, sa confirmation de perte d'essences comprise.
     PrestigePopup = 1 << 16,
 
+    /// Popup de reglages en jeu. Le meme panneau sert a l'ecran-titre.
+    SettingsPopup = 1 << 17,
+
     /// <summary>
     /// Les elements de la barre du haut partagent un meme layout (UILayoutService reserve la
     /// place de chacun pour les autres, et leurs regles de repli sont interdependantes) :

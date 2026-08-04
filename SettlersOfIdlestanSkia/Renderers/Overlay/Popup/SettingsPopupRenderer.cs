@@ -45,8 +45,49 @@ public sealed class SettingsPopupRenderer : PopupRendererBase
         _contentPanel.DebugWindowResizeRequested    += (w, h) => DebugWindowResizeRequested?.Invoke(w, h);
     }
 
+    private bool _hostedByAvalonia;
+
+    /// <summary>
+    /// Declare que ce popup est affiche par l'hote Avalonia : il cesse de se dessiner et de
+    /// hit-tester, son panneau de reglages compris.
+    /// </summary>
+    public void MigrateToHost() => _hostedByAvalonia = true;
+
+    /// <summary>Instantane du popup pour une vue portee par l'hote.</summary>
+    public SettingsPopupSnapshot GetSnapshot()
+    {
+        var settings = _gameController.CurrentMainState?.Settings;
+        if (!IsOpen || Disposed || settings == null) return SettingsPopupSnapshot.Closed;
+
+        return new SettingsPopupSnapshot(
+            IsOpen: true,
+            Title: _localization.Get("settings_title"),
+            Panel: _contentPanel.GetSnapshot(settings, _localization, _allowDebugMode, CanvasSize, _storeController));
+    }
+
+    public void ToggleSettingFromHost(string key)
+    {
+        var settings = _gameController.CurrentMainState?.Settings;
+        if (settings != null) _contentPanel.ToggleFromHost(key, settings, _storeController);
+    }
+
+    public void SetSettingChoiceFromHost(string key, string choiceKey)
+    {
+        var settings = _gameController.CurrentMainState?.Settings;
+        if (settings != null) _contentPanel.SetChoiceFromHost(key, choiceKey, settings, _localization);
+    }
+
+    public void SetSettingSliderFromHost(string key, double value)
+    {
+        var settings = _gameController.CurrentMainState?.Settings;
+        if (settings != null) _contentPanel.SetSliderFromHost(key, value, settings);
+    }
+
+    public void SetSettingTextFromHost(string key, string value) => _contentPanel.SetTextFromHost(key, value);
+
     public void Render(SKCanvas canvas, float scale = 1f)
     {
+        if (_hostedByAvalonia) return;
         if (!IsOpen || Disposed) return;
 
         var settings = _gameController.CurrentMainState?.Settings;

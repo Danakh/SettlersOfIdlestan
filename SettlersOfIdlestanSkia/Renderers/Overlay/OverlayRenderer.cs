@@ -421,6 +421,7 @@ public sealed class OverlayRenderer : IGameRenderer
         if (IsMigratedToHost(HostedOverlayPart.SettingsMenu)) _settingsMenu.MigrateToHost();
         if (IsMigratedToHost(HostedOverlayPart.TradePopup)) _tradeRenderer.MigrateToHost();
         if (IsMigratedToHost(HostedOverlayPart.PrestigePopup)) _prestigeRenderer.MigrateToHost();
+        if (IsMigratedToHost(HostedOverlayPart.SettingsPopup)) _settingsPopupRenderer.MigrateToHost();
     }
 
     private bool IsMigratedToHost(HostedOverlayPart part) => _hostedParts.HasFlag(part);
@@ -512,6 +513,15 @@ public sealed class OverlayRenderer : IGameRenderer
     public void PrestigeSkipWonderTimeFromHost() => _prestigeRenderer.SkipWonderTimeFromHost();
     public void PrestigeChangeTierFromHost(bool increase) => _prestigeRenderer.ChangeTierChoiceFromHost(increase);
     public void ClosePrestigePopupFromHost() => _prestigeRenderer.Close();
+
+    /// <summary>Instantané du popup de réglages pour une vue portée par l'hôte.</summary>
+    public SettingsPopupSnapshot GetSettingsPopupSnapshot() => _settingsPopupRenderer.GetSnapshot();
+
+    public void ToggleSettingFromHost(string k) => _settingsPopupRenderer.ToggleSettingFromHost(k);
+    public void SetSettingChoiceFromHost(string k, string c) => _settingsPopupRenderer.SetSettingChoiceFromHost(k, c);
+    public void SetSettingSliderFromHost(string k, double v) => _settingsPopupRenderer.SetSettingSliderFromHost(k, v);
+    public void SetSettingTextFromHost(string k, string v) => _settingsPopupRenderer.SetSettingTextFromHost(k, v);
+    public void CloseSettingsPopupFromHost() => _settingsPopupRenderer.Close();
 
     /// <summary>Instantané du panneau civilisation pour une vue portée par l'hôte.</summary>
     public CivPanelSnapshot GetCivPanelSnapshot() =>

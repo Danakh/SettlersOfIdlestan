@@ -134,6 +134,66 @@ public sealed record CityPanelSnapshot(
         new(false, false, false, "", "", [], "");
 }
 
+/// <summary>Nature d'un reglage, qui dicte le controle a afficher.</summary>
+public enum SettingRowKind
+{
+    Toggle,
+    /// Choix exclusif entre plusieurs boutons (langue, format des nombres).
+    Choice,
+    Slider,
+    TextInput,
+}
+
+/// <summary>Une option d'un reglage a choix exclusif.</summary>
+public sealed record SettingChoiceSnapshot(string Key, string Label, bool IsSelected);
+
+/// <summary>
+/// Un reglage. Les champs sans objet pour la nature de la ligne sont laisses a leur valeur par
+/// defaut : une bascule n'a pas de bornes de curseur.
+/// </summary>
+/// <param name="Key">Identifiant stable du reglage : sert au routage de la commande.</param>
+/// <param name="IsEnabled">Faux quand le reglage est sans objet (sauvegarde cloud sans store
+/// connecte) : la ligne s'affiche en grise et n'agit pas.</param>
+public sealed record SettingRowSnapshot(
+    string Key,
+    string Label,
+    SettingRowKind Kind,
+    bool IsEnabled,
+    bool ToggleValue,
+    IReadOnlyList<SettingChoiceSnapshot> Choices,
+    double SliderValue,
+    double SliderMin,
+    double SliderMax,
+    string SliderText,
+    string TextValue);
+
+/// <summary>
+/// Panneau de reglages, partage par le popup en jeu et l'ecran-titre. La composition (dont les
+/// lignes de debogage) et l'effet de chaque reglage restent dans SettingsContentPanel.
+/// </summary>
+public sealed record SettingsPanelSnapshot(IReadOnlyList<SettingRowSnapshot> Rows)
+{
+    public static readonly SettingsPanelSnapshot Empty = new([]);
+
+    public const string KeyLanguage            = "language";
+    public const string KeyFullscreen          = "fullscreen";
+    public const string KeyMenuPosition        = "menuPosition";
+    public const string KeyPauseAfterPrestige  = "pauseAfterPrestige";
+    public const string KeyHarvestParticles    = "harvestParticles";
+    public const string KeyMilitaryStats       = "militaryStats";
+    public const string KeyUiScale             = "uiScale";
+    public const string KeyCloudSave           = "cloudSave";
+    public const string KeyNumberFormat        = "numberFormat";
+    public const string KeyDebugResolution     = "debugResolution";
+    public const string KeyExportTransparentBg = "exportTransparentBg";
+}
+
+/// <summary>Popup de reglages en jeu : un simple chrome autour du panneau partage.</summary>
+public sealed record SettingsPopupSnapshot(bool IsOpen, string Title, SettingsPanelSnapshot Panel)
+{
+    public static readonly SettingsPopupSnapshot Closed = new(false, "", SettingsPanelSnapshot.Empty);
+}
+
 /// <summary>
 /// Une ligne du decompte de prestige : une source de points, ou un bonus multiplicatif.
 /// </summary>
