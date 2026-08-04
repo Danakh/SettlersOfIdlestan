@@ -2,7 +2,6 @@ using Avalonia.Controls;
 using Avalonia.Threading;
 using SettlersOfIdlestanSkia.Renderers.Overlay;
 using SettlersOfIdlestanUI.Controls;
-using SkiaLayer = SettlersOfIdlestanSkia.Services;
 
 namespace SettlersOfIdlestanUI.Views;
 
@@ -14,7 +13,7 @@ namespace SettlersOfIdlestanUI.Views;
 /// </summary>
 public sealed class GameView : Panel
 {
-    private readonly SkiaLayer.SkiaGameRuntime _runtime;
+    private readonly GameRuntimeHost _host;
     private readonly ZoomControlView _zoomControl;
     private IDisposable? _stateSync;
 
@@ -23,16 +22,16 @@ public sealed class GameView : Panel
     /// en continu pour des valeurs qui ne bougent que quelques fois par seconde.
     private static readonly TimeSpan StateSyncInterval = TimeSpan.FromMilliseconds(100);
 
-    public GameView(SkiaLayer.SkiaGameRuntime runtime)
+    public GameView(GameRuntimeHost host)
     {
-        _runtime = runtime;
+        _host = host;
 
-        _zoomControl = new ZoomControlView(runtime.ZoomIn, runtime.ZoomOut) { IsVisible = false };
+        _zoomControl = new ZoomControlView(host.ZoomIn, host.ZoomOut) { IsVisible = false };
 
-        Children.Add(new GameRuntimeControl(runtime));
+        Children.Add(new GameRuntimeControl(host));
         Children.Add(_zoomControl);
 
-        runtime.MarkOverlayMigratedToHost(HostedOverlayPart.ZoomControl);
+        host.MarkOverlayMigratedToHost(HostedOverlayPart.ZoomControl);
     }
 
     protected override void OnAttachedToVisualTree(Avalonia.VisualTreeAttachmentEventArgs e)
@@ -50,9 +49,10 @@ public sealed class GameView : Panel
 
     private bool SyncFromGameState()
     {
+        // Lecture sous verrou : on est sur le thread UI pendant que le thread de rendu dessine.
         // Les boutons de zoom n'ont de sens que sur une vue carte : ni sur l'ecran titre,
         // ni sur les onglets plein ecran (recherche, prestige...).
-        _zoomControl.IsVisible = _runtime.IsMapViewActive;
+        _zoomControl.IsVisible = _host.IsMapViewActive;
         return true;
     }
 }

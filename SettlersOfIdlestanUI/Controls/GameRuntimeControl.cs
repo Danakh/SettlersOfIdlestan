@@ -11,20 +11,20 @@ using SkiaInput = SettlersOfIdlestanSkia.Services;
 namespace SettlersOfIdlestanUI.Controls;
 
 /// <summary>
-/// Hote Avalonia du <see cref="SkiaInput.SkiaGameRuntime"/>.
+/// Hote Avalonia du runtime de jeu.
 ///
 /// Etape intermediaire assumee de la migration : ce controle porte encore l'integralite du
 /// runtime Skia (carte ET overlay legacy), ce qui rend le jeu jouable sous Avalonia des la
-/// phase 2. Les phases suivantes extraient l'overlay vers de vrais controles Avalonia poses
-/// au-dessus ; ce controle se reduira alors a la seule carte hex.
+/// phase 2. Les phases suivantes extraient l'overlay panneau par panneau vers de vrais
+/// controles Avalonia ; ce controle se reduira alors a la seule carte hex.
 ///
-/// Tant que l'overlay legacy vit ici, l'arbitrage carte/UI reste celui d'avant : les clics
-/// sont tous transmis au runtime. Le gain sur les clics arrive au fur et a mesure que chaque
-/// panneau sort d'ici.
+/// Tout passe par <see cref="GameRuntimeHost"/> : le rendu s'execute sur le thread de rendu
+/// d'Avalonia alors que la boucle de jeu et l'input vivent sur le thread UI, ce que le
+/// runtime mono-thread ne supporte pas sans serialisation.
 /// </summary>
 public class GameRuntimeControl : SkiaCanvasControl
 {
-    private readonly SkiaInput.SkiaGameRuntime _runtime;
+    private readonly GameRuntimeHost _host;
     private IDisposable? _loop;
     private SKSize _lastCanvasSize;
 
@@ -32,9 +32,9 @@ public class GameRuntimeControl : SkiaCanvasControl
     /// on pilote le Tick + l'invalidation avec un timer a priorite Render.
     private static readonly TimeSpan FrameInterval = TimeSpan.FromMilliseconds(16);
 
-    public GameRuntimeControl(SkiaInput.SkiaGameRuntime runtime)
+    public GameRuntimeControl(GameRuntimeHost host)
     {
-        _runtime = runtime;
+        _host = host;
         Focusable = true;
     }
 
@@ -45,7 +45,7 @@ public class GameRuntimeControl : SkiaCanvasControl
         // L'echelle UI automatique reste a 1 : Avalonia exprime deja tout en unites logiques et
         // applique le facteur DPI lui-meme. Reporter RenderScaling dans AutoUiScale appliquerait
         // le zoom une seconde fois et doublerait la taille de l'UI sur les ecrans HiDPI.
-        _runtime.SetUiScale(1f);
+        _host.SetUiScale(1f);
 
         _loop = DispatcherTimer.Run(OnFrame, FrameInterval, DispatcherPriority.Render);
         Focus();
@@ -62,7 +62,7 @@ public class GameRuntimeControl : SkiaCanvasControl
     {
         // Le Tick tourne meme quand rien n'est dessine (fenetre masquee) pour que le temps de
         // jeu ne derive pas — meme contrat que la boucle OpenTK d'origine.
-        _runtime.Tick();
+        _host.Tick();
         InvalidateVisual();
         return true;
     }
@@ -70,15 +70,7 @@ public class GameRuntimeControl : SkiaCanvasControl
     protected override void OnRenderSkia(SKCanvas canvas, SKSize size)
     {
         if (size.Width <= 0 || size.Height <= 0) return;
-
-        if (size != _lastCanvasSize)
-        {
-            _lastCanvasSize = size;
-            _runtime.EnsureCanvasInitialized(size);
-        }
-
-        canvas.Clear(SKColors.Black);
-        _runtime.Render(canvas);
+        _host.Render(canvas, size, ref _lastCanvasSize);
     }
 
     // ── Input ─────────────────────────────────────────────────────────────────
@@ -97,7 +89,7 @@ public class GameRuntimeControl : SkiaCanvasControl
         // depuis une ville) s'interrompt des que le pointeur passe au-dessus d'un panneau.
         e.Pointer.Capture(this);
 
-        _runtime.HandlePointerPressed((float)p.X, (float)p.Y, 0, MapButton(props));
+        _host.PointerPressed((float)p.X, (float)p.Y, 0, MapButton(props));
         e.Handled = true;
     }
 
@@ -105,7 +97,7 @@ public class GameRuntimeControl : SkiaCanvasControl
     {
         base.OnPointerMoved(e);
         var p = e.GetPosition(this);
-        _runtime.HandlePointerMoved((float)p.X, (float)p.Y, 0);
+        _host.PointerMoved((float)p.X, (float)p.Y, 0);
     }
 
     protected override void OnPointerReleased(PointerReleasedEventArgs e)
@@ -113,7 +105,7 @@ public class GameRuntimeControl : SkiaCanvasControl
         base.OnPointerReleased(e);
         var p = e.GetPosition(this);
 
-        _runtime.HandlePointerReleased((float)p.X, (float)p.Y, 0, MapButton(e.InitialPressMouseButton));
+        _host.PointerReleased((float)p.X, (float)p.Y, 0, MapButton(e.InitialPressMouseButton));
         e.Pointer.Capture(null);
         e.Handled = true;
     }
@@ -124,20 +116,20 @@ public class GameRuntimeControl : SkiaCanvasControl
         var p = e.GetPosition(this);
 
         // Avalonia compte en crans (~1.0) ; le runtime attend un WheelDelta facon Win32 (120/cran).
-        _runtime.HandleZoom((float)e.Delta.Y * 120f, (float)p.X, (float)p.Y);
+        _host.Zoom((float)e.Delta.Y * 120f, (float)p.X, (float)p.Y);
         e.Handled = true;
     }
 
     protected override void OnKeyDown(KeyEventArgs e)
     {
         base.OnKeyDown(e);
-        if (MapKey(e.Key) is { } key) _runtime.HandleKeyPressed(key);
+        if (MapKey(e.Key) is { } key) _host.KeyPressed(key);
     }
 
     protected override void OnKeyUp(KeyEventArgs e)
     {
         base.OnKeyUp(e);
-        if (MapKey(e.Key) is { } key) _runtime.HandleKeyReleased(key);
+        if (MapKey(e.Key) is { } key) _host.KeyReleased(key);
     }
 
     private static SkiaInput.PointerButton MapButton(PointerPointProperties props) =>

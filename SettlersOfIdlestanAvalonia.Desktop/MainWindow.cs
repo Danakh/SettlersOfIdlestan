@@ -7,6 +7,7 @@ using SettlersOfIdlestan.Controller.Store;
 using SettlersOfIdlestanOpenTK.Services;
 using SettlersOfIdlestanOpenTK.Services.Store;
 using SettlersOfIdlestanSkia.Services;
+using SettlersOfIdlestanUI;
 using SettlersOfIdlestanUI.Views;
 
 namespace SettlersOfIdlestanAvalonia.Desktop;
@@ -18,6 +19,7 @@ namespace SettlersOfIdlestanAvalonia.Desktop;
 public sealed class MainWindow : Window
 {
     private readonly SkiaGameRuntime _runtime = new();
+    private readonly GameRuntimeHost _host;
     private readonly StoreController? _storeController;
 
     public MainWindow()
@@ -41,7 +43,8 @@ public sealed class MainWindow : Window
         _storeController = new StoreController([new StoreServiceSteam()]);
         _runtime.Initialize(new DesktopFileSystemService(), allowDebug, demoMode, _storeController);
 
-        Content = new GameView(_runtime);
+        _host = new GameRuntimeHost(_runtime);
+        Content = new GameView(_host);
 
         if (_runtime.IsFullscreenEnabled) ApplyFullscreen(true);
     }
@@ -64,7 +67,9 @@ public sealed class MainWindow : Window
     protected override void OnClosed(EventArgs e)
     {
         base.OnClosed(e);
-        _runtime.Dispose();
+        // Passe par l'hote : la fermeture peut survenir alors qu'un frame est en cours
+        // de rendu sur le thread de rendu.
+        _host.Dispose();
         _storeController?.Dispose();
     }
 }
