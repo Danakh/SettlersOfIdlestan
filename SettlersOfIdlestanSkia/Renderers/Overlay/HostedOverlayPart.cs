@@ -29,6 +29,11 @@ public enum HostedOverlayPart
     /// par-dessus la carte : seul le panneau bascule.
     CityPanel = 1 << 6,
 
+    /// Panneau lateral de la civilisation du joueur (actions et bascules epinglees), ancre a
+    /// gauche. Ses infobulles sont du texte simple : elles passent en ToolTip Avalonia natif,
+    /// contrairement a celle du panneau ville.
+    CivPanel = 1 << 7,
+
     /// <summary>
     /// Les elements de la barre du haut partagent un meme layout (UILayoutService reserve la
     /// place de chacun pour les autres, et leurs regles de repli sont interdependantes) :

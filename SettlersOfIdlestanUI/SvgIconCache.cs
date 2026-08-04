@@ -22,21 +22,24 @@ namespace SettlersOfIdlestanUI;
 public sealed class SvgIconCache : IDisposable
 {
     private readonly ResourceManager _resources = new();
-    private readonly Dictionary<(string Name, int Size), Bitmap?> _cache = new();
+    private readonly Dictionary<(string Name, int Size, uint Tint), Bitmap?> _cache = new();
     private bool _disposed;
 
     /// <summary>
     /// Rasterise une icone a <paramref name="size"/> pixels de cote.
     /// Renvoie null si la ressource n'existe pas, pour que l'appelant degrade sans planter.
     /// </summary>
-    public Bitmap? Get(string resourceName, int size)
+    /// <param name="tint">Remplace toutes les couleurs de l'icone par celle-ci, en preservant
+    /// l'alpha. Les icones monochromes du jeu (militaire) sont dessinees ainsi, faute de quoi
+    /// leur couleur d'origine se perdrait sur le fond colore d'un bouton.</param>
+    public Bitmap? Get(string resourceName, int size, SKColor? tint = null)
     {
         if (_disposed || size <= 0) return null;
 
-        var key = (resourceName, size);
+        var key = (resourceName, size, tint.HasValue ? (uint)tint.Value : 0u);
         if (_cache.TryGetValue(key, out var cached)) return cached;
 
-        var bitmap = Rasterize(resourceName, size);
+        var bitmap = Rasterize(resourceName, size, tint);
         _cache[key] = bitmap;
         return bitmap;
     }
@@ -45,7 +48,7 @@ public sealed class SvgIconCache : IDisposable
     public Bitmap? GetResourceIcon(string resourceEnumName, int size) =>
         Get($"Resources.icons.resources.{resourceEnumName.ToLowerInvariant()}.svg", size);
 
-    private Bitmap? Rasterize(string resourceName, int size)
+    private Bitmap? Rasterize(string resourceName, int size, SKColor? tint)
     {
         var svg = _resources.LoadImage(resourceName);
         var picture = svg?.Picture;
@@ -78,7 +81,24 @@ public sealed class SvgIconCache : IDisposable
             canvas.Scale(scale);
             canvas.Translate(-cull.Left, -cull.Top);
 
-            canvas.DrawPicture(picture);
+            if (tint == null)
+            {
+                canvas.DrawPicture(picture);
+            }
+            else
+            {
+                // SrcIn sur un calque : la couleur remplace celle de l'icone la ou elle est
+                // opaque, et laisse le reste transparent. Meme rendu que la couche Skia.
+                using var paint = new SKPaint
+                {
+                    IsAntialias = true,
+                    ColorFilter = SKColorFilter.CreateBlendMode(tint.Value, SKBlendMode.SrcIn),
+                };
+                canvas.SaveLayer(paint);
+                canvas.DrawPicture(picture);
+                canvas.Restore();
+            }
+
             canvas.Flush();
         }
 

@@ -7,6 +7,16 @@ using Avalonia.Media;
 
 namespace SettlersOfIdlestanUI.Controls;
 
+/// <summary>Bord de la fenetre auquel un panneau lateral est ancre.</summary>
+public enum GamePanelSide
+{
+    /// Panneaux contextuels (ville, monument) : l'onglet de repli est sur leur bord gauche.
+    Right,
+
+    /// Panneau civilisation : l'onglet de repli est sur son bord droit.
+    Left,
+}
+
 /// <summary>
 /// Chrome commun des panneaux lateraux : fond, bordure, titre, bouton de fermeture, onglet de
 /// repli et defilement. Equivalent Avalonia de PanelRendererBase.
@@ -24,10 +34,10 @@ public sealed class GamePanelView : ContentControl
     private readonly Border _body;
 
     /// <param name="onClose">Null pour un panneau sans bouton de fermeture.</param>
-    public GamePanelView(string title, Action? onClose)
+    public GamePanelView(string title, Action? onClose, GamePanelSide side = GamePanelSide.Right)
     {
         Width = DefaultWidth + CollapseTabWidth;
-        HorizontalAlignment = HorizontalAlignment.Right;
+        HorizontalAlignment = side == GamePanelSide.Left ? HorizontalAlignment.Left : HorizontalAlignment.Right;
         VerticalAlignment = VerticalAlignment.Top;
 
         TitleBlock = new TextBlock
@@ -39,7 +49,8 @@ public sealed class GamePanelView : ContentControl
             VerticalAlignment = VerticalAlignment.Center,
         };
 
-        var header = new DockPanel { LastChildFill = true, Height = 32, Margin = new Thickness(10, 0) };
+        HeaderHost = new DockPanel { LastChildFill = true, Height = 32, Margin = new Thickness(10, 0) };
+        var header = HeaderHost;
 
         if (onClose != null)
         {
@@ -107,11 +118,17 @@ public sealed class GamePanelView : ContentControl
             BorderThickness = new Thickness(2),
             CornerRadius = new CornerRadius(4),
         };
-        _collapseTab.IsCheckedChanged += (_, _) => ApplyCollapsed();
+        _collapseTab.IsCheckedChanged += (_, _) =>
+        {
+            ApplyCollapsed();
+            CollapsedChanged?.Invoke(IsCollapsed);
+        };
         ApplyCollapsed();
 
+        // L'onglet se place du cote interieur du panneau : a sa gauche quand il est ancre a
+        // droite, a sa droite quand il est ancre a gauche.
         var layout = new DockPanel { LastChildFill = true };
-        DockPanel.SetDock(_collapseTab, Dock.Left);
+        DockPanel.SetDock(_collapseTab, side == GamePanelSide.Left ? Dock.Right : Dock.Left);
         layout.Children.Add(_collapseTab);
         layout.Children.Add(_body);
 
@@ -122,6 +139,22 @@ public sealed class GamePanelView : ContentControl
 
     /// Titre du panneau, mis a jour par la vue qui l'utilise.
     public TextBlock TitleBlock { get; }
+
+    /// Barre de titre, ouverte aux vues qui y ajoutent leurs propres commandes.
+    public DockPanel HeaderHost { get; }
+
+    /// <summary>
+    /// Notifie le repli declenche par l'utilisateur. Ne se declenche pas sur un
+    /// <see cref="SetCollapsed"/> de meme valeur : l'etat n'a alors pas change.
+    /// </summary>
+    public Action<bool>? CollapsedChanged { get; set; }
+
+    /// <summary>
+    /// Impose l'etat de repli depuis l'exterieur, quand il est detenu ailleurs que dans la vue —
+    /// le panneau civilisation se replie tout seul en disposition mobile quand un panneau
+    /// lateral droit s'ouvre.
+    /// </summary>
+    public void SetCollapsed(bool collapsed) => _collapseTab.IsChecked = collapsed;
 
     /// Zone defilante ou la vue place son contenu.
     public ScrollViewer ContentHost { get; }

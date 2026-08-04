@@ -258,6 +258,15 @@ public sealed class SkiaGameRuntime : IDisposable
     public void GoToOtherCity(string k) => _gameScreen?.GoToOtherCityFromHost(k);
     public void SetHoveredCityBuilding(string? k, float x, float y) => _gameScreen?.SetHoveredCityBuildingFromHost(k, x, y);
 
+    /// <summary>Instantané du panneau civilisation pour une vue portée par l'hôte.</summary>
+    public CivPanelSnapshot GetCivPanelSnapshot() =>
+        _onTitleScreen ? CivPanelSnapshot.Hidden
+                       : _gameScreen?.GetCivPanelSnapshot() ?? CivPanelSnapshot.Hidden;
+
+    public void ExecuteCivAction(string k) => _gameScreen?.ExecuteCivActionFromHost(k);
+    public void ToggleCivPinned(string k) => _gameScreen?.ToggleCivPinnedFromHost(k);
+    public void SetCivPanelCollapsed(bool c) => _gameScreen?.SetCivPanelCollapsedFromHost(c);
+
     /// <summary>Instantané du panneau monument pour une vue portée par l'hôte.</summary>
     public MonumentPanelSnapshot GetMonumentPanelSnapshot() =>
         _onTitleScreen ? MonumentPanelSnapshot.Hidden

@@ -21,12 +21,14 @@ public sealed class GameView : Panel, IDisposable
     private readonly TopBarView _topBar;
     private readonly MonumentPanelView _monumentPanel;
     private readonly CityPanelView _cityPanel;
+    private readonly CivPanelView _civPanel;
 
     private readonly TabBarViewModel _tabs;
     private readonly ResourceBarViewModel _resources;
     private readonly TimeControlViewModel _time;
     private readonly MonumentPanelViewModel _monument;
     private readonly CityPanelViewModel _city;
+    private readonly CivPanelViewModel _civ;
 
     private IDisposable? _stateSync;
 
@@ -44,6 +46,7 @@ public sealed class GameView : Panel, IDisposable
         _time = new TimeControlViewModel(host);
         _monument = new MonumentPanelViewModel(host);
         _city = new CityPanelViewModel(host);
+        _civ = new CivPanelViewModel(host);
 
         _zoomControl = new ZoomControlView(host.ZoomIn, host.ZoomOut) { IsVisible = false };
         _topBar = new TopBarView(
@@ -66,15 +69,23 @@ public sealed class GameView : Panel, IDisposable
             Margin = new Avalonia.Thickness(0, TopBarView.BarHeight + 10, 10, 0),
         };
 
+        // Ancre a gauche, sous la barre du haut, comme le panneau Skia qu'il remplace.
+        _civPanel = new CivPanelView(_civ, _icons)
+        {
+            Margin = new Avalonia.Thickness(10, TopBarView.BarHeight + 10, 0, 0),
+        };
+
         Children.Add(new GameRuntimeControl(host));
         Children.Add(_zoomControl);
         Children.Add(_topBar);
+        Children.Add(_civPanel);
         Children.Add(_cityPanel);
         Children.Add(_monumentPanel);
 
         host.MarkOverlayMigratedToHost(
             HostedOverlayPart.ZoomControl | HostedOverlayPart.TopBar
-            | HostedOverlayPart.MonumentPanel | HostedOverlayPart.CityPanel);
+            | HostedOverlayPart.MonumentPanel | HostedOverlayPart.CityPanel
+            | HostedOverlayPart.CivPanel);
     }
 
     protected override void OnAttachedToVisualTree(Avalonia.VisualTreeAttachmentEventArgs e)
@@ -97,6 +108,7 @@ public sealed class GameView : Panel, IDisposable
             double available = availableSize.Height - TopBarView.BarHeight - PanelBottomMargin - PanelChromeHeight;
             _cityPanel.SetMaxContentHeight(available);
             _monumentPanel.SetMaxContentHeight(available);
+            _civPanel.SetMaxContentHeight(available);
         }
 
         return base.MeasureOverride(availableSize);
@@ -122,6 +134,7 @@ public sealed class GameView : Panel, IDisposable
         _time.Refresh();
         _monument.Refresh();
         _city.Refresh();
+        _civ.Refresh();
 
         // Les boutons de zoom n'ont de sens que sur une vue carte : ni sur l'ecran titre,
         // ni sur les onglets plein ecran (recherche, prestige...).

@@ -135,6 +135,68 @@ public sealed record CityPanelSnapshot(
 }
 
 /// <summary>
+/// Une action du panneau civilisation : bouton de la grille, ou petit bouton icone de l'en-tete.
+///
+/// Les regles de visibilite et d'activation restent dans PlayerCivilizationPanelRenderer ; une
+/// action absente de la liste ne doit pas etre affichee.
+/// </summary>
+/// <param name="Key">Identifiant stable (voir les constantes de <see cref="CivPanelSnapshot"/>) :
+/// sert au routage du clic vers le renderer.</param>
+/// <param name="IconName">Ressource SVG de l'icone, pour les boutons de l'en-tete ; null sinon.</param>
+/// <param name="Glyph">Glyphe affiche a la place d'une icone SVG (commerce) ; null sinon.</param>
+/// <param name="IsHighlighted">Etat "en cours" signale par une couleur distincte : le pillage
+/// actif, dont le bouton devient rouge et arrete le raid au lieu d'en lancer un.</param>
+/// <param name="TooltipLines">Deja localisees et deja filtrees selon l'etat (raison du blocage
+/// quand l'action est indisponible). Vide = pas d'infobulle.</param>
+public sealed record CivActionSnapshot(
+    string Key,
+    string Label,
+    bool IsEnabled,
+    bool IsHighlighted,
+    string? IconName,
+    string? Glyph,
+    IReadOnlyList<string> TooltipLines);
+
+/// <summary>
+/// Une bascule epinglee dans la section Controles.
+/// </summary>
+/// <param name="IsOn">Trois etats : tous actifs, tous inactifs, ou null pour un etat mixte
+/// (certains batiments du type actifs, d'autres non).</param>
+public sealed record CivToggleSnapshot(string Key, string Label, bool? IsOn, string Tooltip);
+
+/// <summary>
+/// Panneau lateral de la civilisation du joueur : actions disponibles et bascules epinglees
+/// depuis la page Automatisation.
+/// </summary>
+/// <param name="IsCollapsed">Le repli reste pilote par le renderer : en disposition mobile,
+/// l'ouverture d'un panneau lateral droit replie celui-ci automatiquement.</param>
+public sealed record CivPanelSnapshot(
+    bool IsVisible,
+    bool IsCollapsed,
+    string ActionsTitle,
+    string ControlsTitle,
+    IReadOnlyList<CivActionSnapshot> IconActions,
+    IReadOnlyList<CivActionSnapshot> Actions,
+    IReadOnlyList<CivToggleSnapshot> Toggles)
+{
+    public static readonly CivPanelSnapshot Hidden = new(false, false, "", "", [], [], []);
+
+    // Identifiants d'action — partages entre le renderer (routage) et la vue (aucun).
+    public const string KeyTrade           = "trade";
+    public const string KeyPrestige        = "prestige";
+    public const string KeyWonder          = "wonder";
+    public const string KeyGreatLighthouse = "greatLighthouse";
+    public const string KeyDeepestMine     = "deepestMine";
+    public const string KeySpire           = "spire";
+    public const string KeyRaid            = "raid";
+    public const string KeyWarHerald       = "warHerald";
+    public const string KeyLocateHero      = "locateHero";
+    public const string KeyRelocation      = "relocation";
+    public const string KeyWalkOfGod       = "walkOfGod";
+    public const string KeyPresenceOfGod   = "presenceOfGod";
+}
+
+/// <summary>
 /// Panneau du monument selectionne. Les regles polymorphes (Merveille, Grand Phare, Os Divins,
 /// Faille des Abysses) restent dans SelectedMonumentPanelRenderer : l'instantane n'expose que
 /// le resultat, pour que la vue n'ait aucune connaissance du modele.

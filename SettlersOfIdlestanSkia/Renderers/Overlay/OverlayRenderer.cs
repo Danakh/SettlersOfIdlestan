@@ -240,7 +240,9 @@ public sealed class OverlayRenderer : IGameRenderer
                 _historyRenderer?.RenderHistory(canvas, context);
                 break;
             default:
-                _playerCivPanel.Render(canvas, context);
+                if (!IsMigratedToHost(HostedOverlayPart.CivPanel))
+                    _playerCivPanel.Render(canvas, context);
+
                 if (IsMigratedToHost(HostedOverlayPart.CityPanel))
                     // Le panneau est rendu par l'hote, mais son tooltip de survol se dessine
                     // par-dessus la carte : il reste produit ici.
@@ -430,6 +432,13 @@ public sealed class OverlayRenderer : IGameRenderer
     public void SetHoveredCityBuildingFromHost(string? key, float x, float y) => _selectedCityPanelRenderer.SetHoveredBuildingFromHost(key, x, y);
     
 
+    /// <summary>Instantané du panneau civilisation pour une vue portée par l'hôte.</summary>
+    public CivPanelSnapshot GetCivPanelSnapshot() => _playerCivPanel.GetSnapshot();
+
+    public void ExecuteCivActionFromHost(string key) => _playerCivPanel.ExecuteActionFromHost(key);
+    public void ToggleCivPinnedFromHost(string key) => _playerCivPanel.ToggleFromHost(key);
+    public void SetCivPanelCollapsedFromHost(bool collapsed) => _playerCivPanel.SetCollapsedFromHost(collapsed);
+
     /// <summary>Instantané du panneau monument pour une vue portée par l'hôte.</summary>
     public MonumentPanelSnapshot GetMonumentPanelSnapshot() =>
         _selectedMonumentPanelRenderer.GetSnapshot();
@@ -461,7 +470,7 @@ public sealed class OverlayRenderer : IGameRenderer
         || !IsIslandTabActive
         || (!IsMigratedToHost(HostedOverlayPart.CityPanel) && _selectedCityPanelRenderer.ContainsPoint(point))
         || (!IsMigratedToHost(HostedOverlayPart.MonumentPanel) && _selectedMonumentPanelRenderer.ContainsPoint(point))
-        || _playerCivPanel.ContainsPoint(point)
+        || (!IsMigratedToHost(HostedOverlayPart.CivPanel) && _playerCivPanel.ContainsPoint(point))
         || (!IsMigratedToHost(HostedOverlayPart.ZoomControl) && _zoomControl.ContainsPoint(point))
         || (!IsMigratedToHost(HostedOverlayPart.TabBar) && _tabBar.ContainsPoint(point))
         || (!IsMigratedToHost(HostedOverlayPart.TimeControl) && _timeControlRenderer.ContainsPoint(point))
@@ -537,7 +546,8 @@ public sealed class OverlayRenderer : IGameRenderer
         if (activeTab == TabBarRenderer.TabRituals)    _ritualsRenderer.HandlePointerMoved(e.Position);
         if (activeTab == TabBarRenderer.TabAscension)  _ascensionRenderer.HandlePointerMoved(e.Position);
         if (activeTab == TabBarRenderer.TabStats)      _prestigeHistoryRenderer.HandlePointerMoved(e.Position);
-        if (IsMapViewTab(activeTab))                   _playerCivPanel.HandlePointerMoved(e.Position);
+        if (IsMapViewTab(activeTab) && !IsMigratedToHost(HostedOverlayPart.CivPanel))
+            _playerCivPanel.HandlePointerMoved(e.Position);
 
         _lastPointerPosition = e.Position;
     }
@@ -583,7 +593,8 @@ public sealed class OverlayRenderer : IGameRenderer
         if (activeTab == TabBarRenderer.TabStats)      { _prestigeHistoryRenderer.HandlePointerPressed(e.Position); return; }
         if (activeTab is TabBarRenderer.TabResearch or TabBarRenderer.TabEvents) return;
 
-        _playerCivPanel.HandlePointerPressed(e.Position);
+        if (!IsMigratedToHost(HostedOverlayPart.CivPanel))
+            _playerCivPanel.HandlePointerPressed(e.Position);
     }
 
     private void DeselectCityAndMonument()
@@ -676,7 +687,7 @@ public sealed class OverlayRenderer : IGameRenderer
                 _selectedCityPanelRenderer.HandleScroll(e.ZoomDelta);
             else if (_selectedMonumentPanelRenderer.ContainsPoint(e.Center))
                 _selectedMonumentPanelRenderer.HandleScroll(e.ZoomDelta);
-            else if (_playerCivPanel.ContainsPoint(e.Center))
+            else if (!IsMigratedToHost(HostedOverlayPart.CivPanel) && _playerCivPanel.ContainsPoint(e.Center))
                 _playerCivPanel.HandleScroll(e.ZoomDelta);
         }
         if (activeTab == TabBarRenderer.TabAutomation)
