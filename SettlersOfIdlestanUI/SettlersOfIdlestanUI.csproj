@@ -13,6 +13,13 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Les controles internes (TabButton, ResourcePill) sont testes pour garantir qu'ils
+         recoivent bien un template : un controle derive qui n'en a pas occupe zero pixel
+         sans lever d'erreur. -->
+    <InternalsVisibleTo Include="SOIUITests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Avalonia" Version="12.1.1" />
     <PackageReference Include="Avalonia.Skia" Version="12.1.1" />
     <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.1" />

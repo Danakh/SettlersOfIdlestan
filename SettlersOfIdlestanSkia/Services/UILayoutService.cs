@@ -72,9 +72,20 @@ public class UILayoutService
         _                   => IsAutoMobile,
     };
 
+    /// <summary>
+    /// Vrai quand la barre du haut est rendue par l'hôte (Avalonia) et non plus par l'overlay Skia.
+    ///
+    /// L'hôte gère lui-même son débordement (défilement horizontal natif) et tient une barre
+    /// d'une seule ligne de <see cref="TopBarHeight"/>. Les règles de repli ci-dessous doivent
+    /// donc être neutralisées : sinon <see cref="SecondRowBottom"/> et <see cref="PanelTopY"/>
+    /// compteraient des lignes supplémentaires inexistantes, et le menu paramètres comme les
+    /// panneaux latéraux — toujours dessinés en Skia — s'ancreraient trop bas.
+    /// </summary>
+    public bool HostOwnsTopBar { get; set; }
+
     /// Menu en haut uniquement : les ressources débordent de la ligne du haut (tabs + ressources + temps) et
     /// basculent sur leur propre ligne, sous les tabs.
-    public bool ResourcesOnOwnRow =>
+    public bool ResourcesOnOwnRow => !HostOwnsTopBar &&
         !TabsAtBottom && _canvasSize.Width > 0 &&
         _tabsInlineWidth + _resourcesContentWidth + TimeSettingsBlockWidth > _canvasSize.Width;
 
@@ -82,9 +93,9 @@ public class UILayoutService
     ///  - Menu en bas : heuristique de largeur inchangée (règle historique, tabs déjà hors de cette ligne).
     ///  - Menu en haut : seulement une fois les ressources déjà reléguées sur leur propre ligne, si tabs+temps
     ///    ne tiennent toujours pas ensemble (3e ligne).
-    public bool TimeSettingsOnSecondRow => TabsAtBottom
+    public bool TimeSettingsOnSecondRow => !HostOwnsTopBar && (TabsAtBottom
         ? (IsCompactOverride || (_canvasSize.Width > 0 && _canvasSize.Width < 3f * TimeSettingsBlockWidth))
-        : (ResourcesOnOwnRow && _canvasSize.Width > 0 && _tabsInlineWidth + TimeSettingsBlockWidth > _canvasSize.Width);
+        : (ResourcesOnOwnRow && _canvasSize.Width > 0 && _tabsInlineWidth + TimeSettingsBlockWidth > _canvasSize.Width));
 
     /// Drag + flèches de pagination des ressources (menu en bas : dans la barre principale ; menu en haut :
     /// sur leur ligne dédiée si elle ne suffit toujours pas). Le menu en haut ne les fait jamais défiler ailleurs :
@@ -93,7 +104,7 @@ public class UILayoutService
     {
         get
         {
-            if (_canvasSize.Width <= 0) return false;
+            if (HostOwnsTopBar || _canvasSize.Width <= 0) return false;
 
             if (TabsAtBottom)
             {

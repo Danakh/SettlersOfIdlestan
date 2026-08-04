@@ -395,6 +395,9 @@ public sealed class GameScreen : IDisposable
     /// <summary>Sélectionne un onglet depuis l'hôte (et applique la couche correspondante).</summary>
     public void SetActiveTabFromHost(int tabId) => _overlayRenderer?.SetActiveTabFromHost(tabId);
 
+    /// <summary>Ouvre/ferme le menu paramètres depuis une icône portée par l'hôte.</summary>
+    public void ToggleSettingsMenuFromHost() => _overlayRenderer?.ToggleSettingsMenuFromHost();
+
     /// <summary>Instantané de la barre de ressources pour une vue portée par l'hôte.</summary>
     public ResourceBarSnapshot GetResourceBarSnapshot() =>
         _overlayRenderer?.GetResourceBarSnapshot() ?? ResourceBarSnapshot.Unavailable;

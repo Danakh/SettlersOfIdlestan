@@ -17,6 +17,9 @@ public enum HostedOverlayPart
     None        = 0,
     ZoomControl = 1 << 0,
     TabBar      = 1 << 1,
+    ResourceBar = 1 << 2,
+    TimeControl = 1 << 3,
+    GearIcon    = 1 << 4,
 
     /// <summary>
     /// Les elements de la barre du haut partagent un meme layout (UILayoutService reserve la
@@ -24,5 +27,5 @@ public enum HostedOverlayPart
     /// migrer l'un sans les autres laisserait un trou dont la position devrait etre repliquee
     /// a la main. Ils basculent donc ensemble.
     /// </summary>
-    TopBar = TabBar,
+    TopBar = TabBar | ResourceBar | TimeControl | GearIcon,
 }

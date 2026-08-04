@@ -106,6 +106,8 @@ public sealed class GameRuntimeHost : IDisposable
 
     public void SetActiveTab(int tabId) => Invoke(r => r.SetActiveTab(tabId));
 
+    public void ToggleSettingsMenu() => Invoke(r => r.ToggleSettingsMenu());
+
     public SkiaLayer.ResourceBarSnapshot GetResourceBarSnapshot() =>
         Read(r => r.GetResourceBarSnapshot()) ?? SkiaLayer.ResourceBarSnapshot.Unavailable;
 

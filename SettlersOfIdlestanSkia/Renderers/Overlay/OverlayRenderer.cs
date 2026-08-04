@@ -200,11 +200,18 @@ public sealed class OverlayRenderer : IGameRenderer
 
         // Menu en haut, ressources en débordement : la barre de ressources a migré sur sa propre ligne,
         // il faut donc fournir un fond pour la ligne du haut qui ne contient plus que les tabs (et le gear/temps).
-        if (_uiLayout.ResourcesOnOwnRow)
-            DrawRowBackground(canvas, 0f);
+        // L'hote dessine sa propre barre (fond compris) : le renderer legacy ne doit plus rien
+        // peindre, sous peine de doubler le fond et les pastilles de ressources.
+        _uiLayout.HostOwnsTopBar = IsMigratedToHost(HostedOverlayPart.ResourceBar);
 
-        _playerResourcesOverlayRenderer.Render(canvas, context);
-        _uiLayout.SetResourcesContentWidth(_playerResourcesOverlayRenderer.TotalResourcesContentWidth);
+        if (!IsMigratedToHost(HostedOverlayPart.ResourceBar))
+        {
+            if (_uiLayout.ResourcesOnOwnRow)
+                DrawRowBackground(canvas, 0f);
+
+            _playerResourcesOverlayRenderer.Render(canvas, context);
+            _uiLayout.SetResourcesContentWidth(_playerResourcesOverlayRenderer.TotalResourcesContentWidth);
+        }
 
         switch (activeTab)
         {
@@ -244,15 +251,20 @@ public sealed class OverlayRenderer : IGameRenderer
         if (!IsMigratedToHost(HostedOverlayPart.TabBar))
             _tabBar.Render(canvas);
 
-        if (_uiLayout.TimeSettingsOnSecondRow)
-            DrawRowBackground(canvas, _uiLayout.TimeControlRowTop);
+        if (!IsMigratedToHost(HostedOverlayPart.TimeControl))
+        {
+            if (_uiLayout.TimeSettingsOnSecondRow)
+                DrawRowBackground(canvas, _uiLayout.TimeControlRowTop);
 
-        float timeControlScale = _uiLayout.UiScale;
-        _timeControlRenderer.Initialize(_canvasSize, _uiLayout.GearX - 8f * timeControlScale, _uiLayout.TimeControlRowTop, timeControlScale);
-        _timeControlRenderer.Render(canvas, context);
+            float timeControlScale = _uiLayout.UiScale;
+            _timeControlRenderer.Initialize(_canvasSize, _uiLayout.GearX - 8f * timeControlScale, _uiLayout.TimeControlRowTop, timeControlScale);
+            _timeControlRenderer.Render(canvas, context);
+        }
 
         float gearX = _uiLayout.GearX;
-        if (!gearInline)
+        // Le menu paramètres reste dessiné en Skia et s'ancre sous l'engrenage : seule l'icône
+        // passe côté hôte.
+        if (!gearInline && !IsMigratedToHost(HostedOverlayPart.GearIcon))
             DrawWrappedGearIcon(canvas, gearX, _uiLayout.TimeControlRowTop);
         _settingsMenu.Draw(canvas, gearX, _uiLayout.SecondRowBottom);
 
@@ -391,6 +403,12 @@ public sealed class OverlayRenderer : IGameRenderer
 
     private bool IsMigratedToHost(HostedOverlayPart part) => _hostedParts.HasFlag(part);
 
+    /// <summary>
+    /// Ouvre/ferme le menu paramètres depuis une icône d'engrenage portée par l'hôte.
+    /// Le menu lui-même reste dessiné par l'overlay Skia, ancré sous la barre du haut.
+    /// </summary>
+    public void ToggleSettingsMenuFromHost() => _settingsMenu.HandleGearClick();
+
     /// <summary>Instantané de la barre d'onglets pour une vue portée par l'hôte.</summary>
     public TabBarSnapshot GetTabBarSnapshot() => _tabBar.GetSnapshot();
 
@@ -418,8 +436,8 @@ public sealed class OverlayRenderer : IGameRenderer
         || _playerCivPanel.ContainsPoint(point)
         || (!IsMigratedToHost(HostedOverlayPart.ZoomControl) && _zoomControl.ContainsPoint(point))
         || (!IsMigratedToHost(HostedOverlayPart.TabBar) && _tabBar.ContainsPoint(point))
-        || _timeControlRenderer.ContainsPoint(point)
-        || GetGearRect().Contains(point.X, point.Y)
+        || (!IsMigratedToHost(HostedOverlayPart.TimeControl) && _timeControlRenderer.ContainsPoint(point))
+        || (!IsMigratedToHost(HostedOverlayPart.GearIcon) && GetGearRect().Contains(point.X, point.Y))
         || (_uiLayout.ResourcesOverflow && point.Y < _uiLayout.ResourceBarBottom);
 
     public bool IsIslandTabActive => IsMapViewTab(_tabBar.ActiveTab);

@@ -20,6 +20,14 @@ namespace SettlersOfIdlestanUI.Controls;
 /// </summary>
 public sealed class TabBarView : ItemsControl
 {
+    /// <summary>
+    /// Obligatoire. Les ControlTheme d'Avalonia sont indexes sur le type EXACT : une classe
+    /// derivee ne recoit pas le template de sa classe de base. Sans cette redirection,
+    /// Presenter reste null, aucun onglet n'est instancie, et la barre disparait — sans lever
+    /// la moindre erreur. C'est ce qui avait fait disparaitre toute la barre d'onglets.
+    /// </summary>
+    protected override Type StyleKeyOverride => typeof(ItemsControl);
+
     public TabBarView(TabBarViewModel viewModel)
     {
         DataContext = viewModel;
@@ -64,6 +72,8 @@ internal sealed class TabButton : Button
         },
     };
 
+    /// <summary>Meme raison que <see cref="TabBarView"/> : sans redirection, pas de template.</summary>
+
     private readonly TabBarViewModel _owner;
     private readonly TextBlock _label;
     private TabItemViewModel? _tab;
@@ -76,6 +86,9 @@ internal sealed class TabButton : Button
         _label = new TextBlock
         {
             FontSize = 12,
+            // Les libelles sur deux lignes ("Infra\nmonde") doivent tenir dans les 28 px de
+            // hauteur : sans interligne resserre, la seconde ligne est rognee.
+            LineHeight = 12,
             FontWeight = FontWeight.Bold,
             TextAlignment = TextAlignment.Center,
             HorizontalAlignment = HorizontalAlignment.Center,

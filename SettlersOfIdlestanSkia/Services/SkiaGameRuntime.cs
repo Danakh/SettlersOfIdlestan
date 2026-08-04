@@ -246,6 +246,9 @@ public sealed class SkiaGameRuntime : IDisposable
 
     public void SetActiveTab(int tabId) => _gameScreen?.SetActiveTabFromHost(tabId);
 
+    /// <summary>Ouvre/ferme le menu paramètres depuis une icône portée par l'hôte.</summary>
+    public void ToggleSettingsMenu() => _gameScreen?.ToggleSettingsMenuFromHost();
+
     /// <summary>Instantané de la barre de ressources pour une vue portée par l'hôte.</summary>
     public ResourceBarSnapshot GetResourceBarSnapshot() =>
         _onTitleScreen ? ResourceBarSnapshot.Unavailable
