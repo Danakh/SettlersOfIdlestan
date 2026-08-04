@@ -241,7 +241,13 @@ public sealed class OverlayRenderer : IGameRenderer
                 break;
             default:
                 _playerCivPanel.Render(canvas, context);
-                _selectedCityPanelRenderer.Render(canvas, context);
+                if (IsMigratedToHost(HostedOverlayPart.CityPanel))
+                    // Le panneau est rendu par l'hote, mais son tooltip de survol se dessine
+                    // par-dessus la carte : il reste produit ici.
+                    _selectedCityPanelRenderer.RenderHostTooltipOnly(canvas, context);
+                else
+                    _selectedCityPanelRenderer.Render(canvas, context);
+
                 if (!IsMigratedToHost(HostedOverlayPart.MonumentPanel))
                     _selectedMonumentPanelRenderer.Render(canvas, context);
                 break;
@@ -421,7 +427,8 @@ public sealed class OverlayRenderer : IGameRenderer
     public void ToggleCityBuildingActivationFromHost(string key) => _selectedCityPanelRenderer.ToggleActivationFromHost(key);
     public void ExecuteCityBuildingActionFromHost(string key) => _selectedCityPanelRenderer.ExecuteActionFromHost(key);
     public void GoToOtherCityFromHost(string key) => _selectedCityPanelRenderer.GoToOtherCityFromHost(key);
-    public void SetHoveredCityBuildingFromHost(string? key) => _selectedCityPanelRenderer.SetHoveredBuildingFromHost(key);
+    public void SetHoveredCityBuildingFromHost(string? key, float x, float y) => _selectedCityPanelRenderer.SetHoveredBuildingFromHost(key, x, y);
+    
 
     /// <summary>Instantané du panneau monument pour une vue portée par l'hôte.</summary>
     public MonumentPanelSnapshot GetMonumentPanelSnapshot() =>
@@ -452,7 +459,7 @@ public sealed class OverlayRenderer : IGameRenderer
     public bool IsPointBlockedByUI(SKPoint point) =>
         IsAnyOverlayOpen
         || !IsIslandTabActive
-        || _selectedCityPanelRenderer.ContainsPoint(point)
+        || (!IsMigratedToHost(HostedOverlayPart.CityPanel) && _selectedCityPanelRenderer.ContainsPoint(point))
         || (!IsMigratedToHost(HostedOverlayPart.MonumentPanel) && _selectedMonumentPanelRenderer.ContainsPoint(point))
         || _playerCivPanel.ContainsPoint(point)
         || (!IsMigratedToHost(HostedOverlayPart.ZoomControl) && _zoomControl.ContainsPoint(point))

@@ -256,7 +256,7 @@ public sealed class SkiaGameRuntime : IDisposable
     public void ToggleCityBuildingActivation(string k) => _gameScreen?.ToggleCityBuildingActivationFromHost(k);
     public void ExecuteCityBuildingAction(string k) => _gameScreen?.ExecuteCityBuildingActionFromHost(k);
     public void GoToOtherCity(string k) => _gameScreen?.GoToOtherCityFromHost(k);
-    public void SetHoveredCityBuilding(string? k) => _gameScreen?.SetHoveredCityBuildingFromHost(k);
+    public void SetHoveredCityBuilding(string? k, float x, float y) => _gameScreen?.SetHoveredCityBuildingFromHost(k, x, y);
 
     /// <summary>Instantané du panneau monument pour une vue portée par l'hôte.</summary>
     public MonumentPanelSnapshot GetMonumentPanelSnapshot() =>

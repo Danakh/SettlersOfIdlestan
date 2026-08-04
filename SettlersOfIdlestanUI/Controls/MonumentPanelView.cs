@@ -78,8 +78,14 @@ public sealed class MonumentPanelView : UserControl
             enabledPath: nameof(MonumentPanelViewModel.CanSkipWonder)));
 
         panel.Content = content;
+        _panel = panel;
         Content = panel;
     }
+
+    private readonly GamePanelView _panel;
+
+    /// <summary>Borne la hauteur défilante du panneau (cf. GamePanelView.SetMaxContentHeight).</summary>
+    public void SetMaxContentHeight(double height) => _panel.SetMaxContentHeight(height);
 
     /// Message de pied de panneau, masque tant que le texte est null.
     private static TextBlock Message(string path, IBrush brush) => new()

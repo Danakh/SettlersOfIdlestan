@@ -966,6 +966,28 @@ public class SelectedCityPanelRenderer : PanelRendererBase
                           + $"{_localization.Get("footer_defense")}: {defense}/{maxDefense}");
     }
 
+    /// <summary>
+    /// Dessine uniquement le tooltip de survol, sans le panneau. Utilisé quand le panneau est
+    /// rendu par l'hôte : le tooltip s'affiche par-dessus la carte, hors du panneau, et reste
+    /// donc produit en Skia — ce qui évite de réécrire ses centaines de lignes de règles.
+    /// </summary>
+    public void RenderHostTooltipOnly(SKCanvas canvas, GameRenderContext context)
+    {
+        if (_cityBuildingService.SelectedCity == null) return;
+        if (_hoveredBuildingType == null && _hoveredActivationCheckbox == null) return;
+
+        UpdateScale(context.UiScale);
+
+        // La vue de l'hôte affiche toutes les lignes (défilement natif) : le survol peut donc
+        // porter sur n'importe quel bâtiment, pas seulement sur une fenêtre défilée.
+        bool showUnique = _showUniqueBuildings && _cityBuildingService.HasUniqueBuildingsUnlocked();
+        var buildings = (showUnique
+            ? _cityBuildingService.SelectedCityUniqueBuildingsAndBuildables()
+            : _cityBuildingService.SelectedCityBuildingsAndBuildables()).ToList();
+
+        DrawHoverTooltip(canvas, buildings);
+    }
+
     /// <summary>Bascule l'onglet Bâtiments / Uniques depuis une vue portée par l'hôte.</summary>
     public void SetShowUniqueFromHost(bool showUnique)
     {
@@ -999,11 +1021,16 @@ public class SelectedCityPanelRenderer : PanelRendererBase
     /// Renseigne le bâtiment survolé depuis une vue portée par l'hôte. Le tooltip continue
     /// d'être dessiné en Skia par-dessus la carte (cf. <see cref="DrawHoverTooltip"/>).
     /// </summary>
-    public void SetHoveredBuildingFromHost(string? buildingKey)
+    /// <param name="pointerX">Position du pointeur, en unités logiques. Indispensable : une
+    /// fois le panneau porté par l'hôte, Avalonia consomme le survol et
+    /// <c>_lastPointerPosition</c> n'est plus alimenté par le service d'entrée Skia — le
+    /// tooltip s'afficherait alors à la dernière position connue sur la carte.</param>
+    public void SetHoveredBuildingFromHost(string? buildingKey, float pointerX, float pointerY)
     {
         _hoveredBuildingType = buildingKey != null && Enum.TryParse<BuildingType>(buildingKey, out var type)
             ? type
             : null;
+        _lastPointerPosition = new SKPoint(pointerX, pointerY);
     }
 
     private void HandlePointerPressed(object? sender, PointerEventArgs e)

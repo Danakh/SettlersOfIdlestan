@@ -116,7 +116,7 @@ public sealed class GameRuntimeHost : IDisposable
     public void ToggleCityBuildingActivation(string k) => Invoke(r => r.ToggleCityBuildingActivation(k));
     public void ExecuteCityBuildingAction(string k) => Invoke(r => r.ExecuteCityBuildingAction(k));
     public void GoToOtherCity(string k) => Invoke(r => r.GoToOtherCity(k));
-    public void SetHoveredCityBuilding(string? k) => Invoke(r => r.SetHoveredCityBuilding(k));
+    public void SetHoveredCityBuilding(string? k, float x, float y) => Invoke(r => r.SetHoveredCityBuilding(k, x, y));
 
     public SkiaLayer.MonumentPanelSnapshot GetMonumentPanelSnapshot() =>
         Read(r => r.GetMonumentPanelSnapshot()) ?? SkiaLayer.MonumentPanelSnapshot.Hidden;

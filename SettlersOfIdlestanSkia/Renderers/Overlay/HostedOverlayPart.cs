@@ -25,6 +25,10 @@ public enum HostedOverlayPart
     /// il bascule seul.
     MonumentPanel = 1 << 5,
 
+    /// Panneau lateral de la ville selectionnee. Le tooltip de survol reste dessine en Skia
+    /// par-dessus la carte : seul le panneau bascule.
+    CityPanel = 1 << 6,
+
     /// <summary>
     /// Les elements de la barre du haut partagent un meme layout (UILayoutService reserve la
     /// place de chacun pour les autres, et leurs regles de repli sont interdependantes) :

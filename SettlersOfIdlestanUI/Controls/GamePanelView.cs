@@ -73,9 +73,15 @@ public sealed class GamePanelView : ContentControl
             VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto,
         };
 
+        // Zone ancree en bas du panneau, hors du defilement : onglets, totaux... Dans le
+        // ScrollViewer ils defileraient avec la liste et sortiraient de l'ecran.
+        FooterHost = new StackPanel { Orientation = Orientation.Vertical };
+
         var stack = new DockPanel { LastChildFill = true };
         DockPanel.SetDock(header, Dock.Top);
+        DockPanel.SetDock(FooterHost, Dock.Bottom);
         stack.Children.Add(header);
+        stack.Children.Add(FooterHost);
         stack.Children.Add(ContentHost);
 
         _body = new Border
@@ -119,6 +125,19 @@ public sealed class GamePanelView : ContentControl
 
     /// Zone defilante ou la vue place son contenu.
     public ScrollViewer ContentHost { get; }
+
+    /// Zone fixe en bas du panneau, hors defilement.
+    public StackPanel FooterHost { get; }
+
+    /// <summary>
+    /// Borne la hauteur de la zone defilante. A poser sur le ScrollViewer lui-meme : une
+    /// contrainte placee plus haut dans l'arbre laisse le contenu s'etirer et deborder au lieu
+    /// de declencher le defilement.
+    /// </summary>
+    public void SetMaxContentHeight(double height)
+    {
+        if (height > 0) ContentHost.MaxHeight = height;
+    }
 
     /// <summary>Contenu du panneau — redirige vers la zone defilante, pas vers le chrome.</summary>
     public new object? Content

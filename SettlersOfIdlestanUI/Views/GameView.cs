@@ -20,11 +20,13 @@ public sealed class GameView : Panel, IDisposable
     private readonly ZoomControlView _zoomControl;
     private readonly TopBarView _topBar;
     private readonly MonumentPanelView _monumentPanel;
+    private readonly CityPanelView _cityPanel;
 
     private readonly TabBarViewModel _tabs;
     private readonly ResourceBarViewModel _resources;
     private readonly TimeControlViewModel _time;
     private readonly MonumentPanelViewModel _monument;
+    private readonly CityPanelViewModel _city;
 
     private IDisposable? _stateSync;
 
@@ -41,6 +43,7 @@ public sealed class GameView : Panel, IDisposable
         _resources = new ResourceBarViewModel(host);
         _time = new TimeControlViewModel(host);
         _monument = new MonumentPanelViewModel(host);
+        _city = new CityPanelViewModel(host);
 
         _zoomControl = new ZoomControlView(host.ZoomIn, host.ZoomOut) { IsVisible = false };
         _topBar = new TopBarView(
@@ -58,13 +61,20 @@ public sealed class GameView : Panel, IDisposable
             Margin = new Avalonia.Thickness(0, TopBarView.BarHeight + 10, 10, 0),
         };
 
+        _cityPanel = new CityPanelView(_city, _icons)
+        {
+            Margin = new Avalonia.Thickness(0, TopBarView.BarHeight + 10, 10, 0),
+        };
+
         Children.Add(new GameRuntimeControl(host));
         Children.Add(_zoomControl);
         Children.Add(_topBar);
+        Children.Add(_cityPanel);
         Children.Add(_monumentPanel);
 
         host.MarkOverlayMigratedToHost(
-            HostedOverlayPart.ZoomControl | HostedOverlayPart.TopBar | HostedOverlayPart.MonumentPanel);
+            HostedOverlayPart.ZoomControl | HostedOverlayPart.TopBar
+            | HostedOverlayPart.MonumentPanel | HostedOverlayPart.CityPanel);
     }
 
     protected override void OnAttachedToVisualTree(Avalonia.VisualTreeAttachmentEventArgs e)
@@ -72,6 +82,30 @@ public sealed class GameView : Panel, IDisposable
         base.OnAttachedToVisualTree(e);
         _stateSync = DispatcherTimer.Run(SyncFromGameState, StateSyncInterval, DispatcherPriority.Normal);
     }
+
+    protected override Avalonia.Size MeasureOverride(Avalonia.Size availableSize)
+    {
+        // Les panneaux latéraux s'ajustent à leur contenu : sans borne ils débordent sous la
+        // fenêtre dès qu'une ville a beaucoup de bâtiments, emportant hors écran les onglets et
+        // le pied de panneau. L'ancien rendu Skia calculait un nombre de lignes visibles ; ici
+        // on borne la hauteur et le ScrollViewer interne prend le relais.
+        //
+        // À poser pendant la mesure, pas pendant l'arrangement : modifier MaxHeight après la
+        // mesure n'a plus d'effet, les enfants ayant déjà été mesurés en hauteur infinie.
+        if (!double.IsInfinity(availableSize.Height))
+        {
+            double available = availableSize.Height - TopBarView.BarHeight - PanelBottomMargin - PanelChromeHeight;
+            _cityPanel.SetMaxContentHeight(available);
+            _monumentPanel.SetMaxContentHeight(available);
+        }
+
+        return base.MeasureOverride(availableSize);
+    }
+
+    private const double PanelBottomMargin = 30;
+
+    /// En-tete du panneau (titre + fermeture) et marges internes, hors zone defilante.
+    private const double PanelChromeHeight = 50;
 
     protected override void OnDetachedFromVisualTree(Avalonia.VisualTreeAttachmentEventArgs e)
     {
@@ -87,6 +121,7 @@ public sealed class GameView : Panel, IDisposable
         _resources.Refresh();
         _time.Refresh();
         _monument.Refresh();
+        _city.Refresh();
 
         // Les boutons de zoom n'ont de sens que sur une vue carte : ni sur l'ecran titre,
         // ni sur les onglets plein ecran (recherche, prestige...).

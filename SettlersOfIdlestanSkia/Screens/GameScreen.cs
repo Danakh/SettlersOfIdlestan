@@ -404,7 +404,7 @@ public sealed class GameScreen : IDisposable
     public void ToggleCityBuildingActivationFromHost(string k) => _overlayRenderer?.ToggleCityBuildingActivationFromHost(k);
     public void ExecuteCityBuildingActionFromHost(string k) => _overlayRenderer?.ExecuteCityBuildingActionFromHost(k);
     public void GoToOtherCityFromHost(string k) => _overlayRenderer?.GoToOtherCityFromHost(k);
-    public void SetHoveredCityBuildingFromHost(string? k) => _overlayRenderer?.SetHoveredCityBuildingFromHost(k);
+    public void SetHoveredCityBuildingFromHost(string? k, float x, float y) => _overlayRenderer?.SetHoveredCityBuildingFromHost(k, x, y);
 
     /// <summary>Instantané du panneau monument pour une vue portée par l'hôte.</summary>
     public MonumentPanelSnapshot GetMonumentPanelSnapshot() =>
