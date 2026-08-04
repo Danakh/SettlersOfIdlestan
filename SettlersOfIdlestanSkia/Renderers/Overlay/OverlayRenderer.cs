@@ -413,6 +413,16 @@ public sealed class OverlayRenderer : IGameRenderer
     /// <summary>Instantané de la barre d'onglets pour une vue portée par l'hôte.</summary>
     public TabBarSnapshot GetTabBarSnapshot() => _tabBar.GetSnapshot();
 
+    /// <summary>Instantané du panneau ville pour une vue portée par l'hôte.</summary>
+    public CityPanelSnapshot GetCityPanelSnapshot() => _selectedCityPanelRenderer.GetSnapshot();
+
+    public void CloseCityPanelFromHost() => _selectedCityPanelRenderer.Close();
+    public void SetCityShowUniqueFromHost(bool showUnique) => _selectedCityPanelRenderer.SetShowUniqueFromHost(showUnique);
+    public void ToggleCityBuildingActivationFromHost(string key) => _selectedCityPanelRenderer.ToggleActivationFromHost(key);
+    public void ExecuteCityBuildingActionFromHost(string key) => _selectedCityPanelRenderer.ExecuteActionFromHost(key);
+    public void GoToOtherCityFromHost(string key) => _selectedCityPanelRenderer.GoToOtherCityFromHost(key);
+    public void SetHoveredCityBuildingFromHost(string? key) => _selectedCityPanelRenderer.SetHoveredBuildingFromHost(key);
+
     /// <summary>Instantané du panneau monument pour une vue portée par l'hôte.</summary>
     public MonumentPanelSnapshot GetMonumentPanelSnapshot() =>
         _selectedMonumentPanelRenderer.GetSnapshot();

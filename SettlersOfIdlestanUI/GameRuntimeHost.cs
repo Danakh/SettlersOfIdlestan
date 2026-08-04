@@ -108,6 +108,16 @@ public sealed class GameRuntimeHost : IDisposable
 
     public void ToggleSettingsMenu() => Invoke(r => r.ToggleSettingsMenu());
 
+    public SkiaLayer.CityPanelSnapshot GetCityPanelSnapshot() =>
+        Read(r => r.GetCityPanelSnapshot()) ?? SkiaLayer.CityPanelSnapshot.Hidden;
+
+    public void CloseCityPanel() => Invoke(r => r.CloseCityPanel());
+    public void SetCityShowUnique(bool v) => Invoke(r => r.SetCityShowUnique(v));
+    public void ToggleCityBuildingActivation(string k) => Invoke(r => r.ToggleCityBuildingActivation(k));
+    public void ExecuteCityBuildingAction(string k) => Invoke(r => r.ExecuteCityBuildingAction(k));
+    public void GoToOtherCity(string k) => Invoke(r => r.GoToOtherCity(k));
+    public void SetHoveredCityBuilding(string? k) => Invoke(r => r.SetHoveredCityBuilding(k));
+
     public SkiaLayer.MonumentPanelSnapshot GetMonumentPanelSnapshot() =>
         Read(r => r.GetMonumentPanelSnapshot()) ?? SkiaLayer.MonumentPanelSnapshot.Hidden;
 

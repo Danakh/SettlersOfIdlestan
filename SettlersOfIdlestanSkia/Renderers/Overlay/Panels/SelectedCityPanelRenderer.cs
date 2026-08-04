@@ -864,6 +864,148 @@ public class SelectedCityPanelRenderer : PanelRendererBase
         }
     }
 
+    /// <summary>
+    /// Instantané du panneau pour une vue portée par l'hôte. Reprend exactement les règles de
+    /// <see cref="Render"/> (bâti ici / ailleurs, niveau max, solvabilité, visibilité du bouton
+    /// pour les uniques) afin que les deux affichages ne puissent pas diverger.
+    /// </summary>
+    public CityPanelSnapshot GetSnapshot()
+    {
+        if (_cityBuildingService.SelectedCity == null) return CityPanelSnapshot.Hidden;
+
+        bool hasUnique = _cityBuildingService.HasUniqueBuildingsUnlocked();
+        bool showUnique = _showUniqueBuildings && hasUnique;
+
+        var buildings = (showUnique
+            ? _cityBuildingService.SelectedCityUniqueBuildingsAndBuildables()
+            : _cityBuildingService.SelectedCityBuildingsAndBuildables()).ToList();
+
+        var rows = new List<CityBuildingRowSnapshot>(buildings.Count);
+        foreach (var building in buildings)
+        {
+            bool isBuilt = building.Level > 0;
+            bool builtHere = isBuilt && _cityBuildingService.IsBuiltInSelectedCity(building);
+            bool builtElsewhere = isBuilt && !builtHere;
+            bool canBuildOrUpgrade = !builtElsewhere && _cityBuildingService.CanBuildOrUpgrade(building);
+            bool atMaxLevel = builtHere && _cityBuildingService.IsAtMaxLevel(building);
+
+            var activation = builtHere && building.ActivationStatus != ActivationStatus.NON_ACTIVABLE
+                ? (building.ActivationStatus == ActivationStatus.ACTIVE
+                    ? BuildingActivationState.Active
+                    : BuildingActivationState.Inactive)
+                : BuildingActivationState.None;
+
+            var cost = new List<CostItemSnapshot>();
+            if (!builtElsewhere && !atMaxLevel)
+            {
+                var costSet = builtHere ? building.GetUpgradeCost(building.Level + 1) : building.GetBuildCost();
+                foreach (var kvp in costSet)
+                {
+                    cost.Add(new CostItemSnapshot(
+                        IconName: kvp.Key.ToString(),
+                        Amount: SkiaTextUtils.FormatNumber(kvp.Value),
+                        CanAfford: _cityBuildingService.GetSelectedCivilizationResourceQuantity(kvp.Key) >= kvp.Value));
+                }
+            }
+
+            CityBuildingAction action;
+            string actionLabel;
+            bool actionEnabled;
+
+            if (builtElsewhere)
+            {
+                action = CityBuildingAction.GoToOtherCity;
+                actionLabel = "➤";
+                actionEnabled = true;
+            }
+            // Même condition que le rendu : un bâtiment unique non constructible ici et jamais
+            // bâti n'affiche aucun bouton.
+            else if (builtHere || !building.IsUnique || canBuildOrUpgrade
+                     || _cityBuildingService.CanBuildOrUpgradeIgnoringResources(building))
+            {
+                action = atMaxLevel ? CityBuildingAction.MaxLevel
+                       : builtHere ? CityBuildingAction.Upgrade
+                       : CityBuildingAction.Build;
+                actionLabel = _localization.Get(action switch
+                {
+                    CityBuildingAction.MaxLevel => "action_maxlevel",
+                    CityBuildingAction.Upgrade  => "action_upgrade",
+                    _                           => "action_build",
+                });
+                actionEnabled = !atMaxLevel && canBuildOrUpgrade;
+            }
+            else
+            {
+                action = CityBuildingAction.None;
+                actionLabel = "";
+                actionEnabled = false;
+            }
+
+            rows.Add(new CityBuildingRowSnapshot(
+                Key: building.Type.ToString(),
+                Label: _localization.Get(building.NameKey) + (isBuilt ? $" (Niv {building.Level})" : ""),
+                Activation: activation,
+                Cost: cost,
+                Action: action,
+                ActionLabel: actionLabel,
+                IsActionEnabled: actionEnabled,
+                IsBuiltElsewhere: builtElsewhere));
+        }
+
+        var (soldiers, maxSoldiers) = _cityBuildingService.GetSelectedCitySoldiers();
+        var (defense, maxDefense) = _cityBuildingService.GetSelectedCityDefense();
+
+        return new CityPanelSnapshot(
+            IsVisible: true,
+            HasUniqueTab: hasUnique,
+            ShowingUnique: showUnique,
+            RegularTabLabel: _localization.Get("tab_buildings_classic"),
+            UniqueTabLabel: _localization.Get("tab_buildings_unique"),
+            Rows: rows,
+            MilitaryFooter: $"{_localization.Get("footer_soldiers")}: {soldiers}/{maxSoldiers}    "
+                          + $"{_localization.Get("footer_defense")}: {defense}/{maxDefense}");
+    }
+
+    /// <summary>Bascule l'onglet Bâtiments / Uniques depuis une vue portée par l'hôte.</summary>
+    public void SetShowUniqueFromHost(bool showUnique)
+    {
+        _showUniqueBuildings = showUnique;
+        _hoveredBuildingType = null;
+        ScrollOffset = 0;
+    }
+
+    /// <summary>Bascule l'activation d'un bâtiment depuis une vue portée par l'hôte.</summary>
+    public void ToggleActivationFromHost(string buildingKey)
+    {
+        if (Enum.TryParse<BuildingType>(buildingKey, out var type))
+            _cityBuildingService.ToggleBuildingActivation(type);
+    }
+
+    /// <summary>Exécute l'action (construire/améliorer) depuis une vue portée par l'hôte.</summary>
+    public void ExecuteActionFromHost(string buildingKey)
+    {
+        if (Enum.TryParse<BuildingType>(buildingKey, out var type))
+            _cityBuildingService.TryExecuteSelectedCityBuildingAction(type);
+    }
+
+    /// <summary>Recentre sur l'autre ville possédant ce bâtiment, depuis une vue portée par l'hôte.</summary>
+    public void GoToOtherCityFromHost(string buildingKey)
+    {
+        if (Enum.TryParse<BuildingType>(buildingKey, out var type))
+            GoToOtherCityWithBuilding(type);
+    }
+
+    /// <summary>
+    /// Renseigne le bâtiment survolé depuis une vue portée par l'hôte. Le tooltip continue
+    /// d'être dessiné en Skia par-dessus la carte (cf. <see cref="DrawHoverTooltip"/>).
+    /// </summary>
+    public void SetHoveredBuildingFromHost(string? buildingKey)
+    {
+        _hoveredBuildingType = buildingKey != null && Enum.TryParse<BuildingType>(buildingKey, out var type)
+            ? type
+            : null;
+    }
+
     private void HandlePointerPressed(object? sender, PointerEventArgs e)
     {
         if (e.Button != PointerButton.Left) return;

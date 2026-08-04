@@ -395,6 +395,17 @@ public sealed class GameScreen : IDisposable
     /// <summary>Sélectionne un onglet depuis l'hôte (et applique la couche correspondante).</summary>
     public void SetActiveTabFromHost(int tabId) => _overlayRenderer?.SetActiveTabFromHost(tabId);
 
+    /// <summary>Instantané du panneau ville pour une vue portée par l'hôte.</summary>
+    public CityPanelSnapshot GetCityPanelSnapshot() =>
+        _overlayRenderer?.GetCityPanelSnapshot() ?? CityPanelSnapshot.Hidden;
+
+    public void CloseCityPanelFromHost() => _overlayRenderer?.CloseCityPanelFromHost();
+    public void SetCityShowUniqueFromHost(bool v) => _overlayRenderer?.SetCityShowUniqueFromHost(v);
+    public void ToggleCityBuildingActivationFromHost(string k) => _overlayRenderer?.ToggleCityBuildingActivationFromHost(k);
+    public void ExecuteCityBuildingActionFromHost(string k) => _overlayRenderer?.ExecuteCityBuildingActionFromHost(k);
+    public void GoToOtherCityFromHost(string k) => _overlayRenderer?.GoToOtherCityFromHost(k);
+    public void SetHoveredCityBuildingFromHost(string? k) => _overlayRenderer?.SetHoveredCityBuildingFromHost(k);
+
     /// <summary>Instantané du panneau monument pour une vue portée par l'hôte.</summary>
     public MonumentPanelSnapshot GetMonumentPanelSnapshot() =>
         _overlayRenderer?.GetMonumentPanelSnapshot() ?? MonumentPanelSnapshot.Hidden;

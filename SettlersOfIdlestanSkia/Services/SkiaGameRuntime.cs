@@ -246,6 +246,18 @@ public sealed class SkiaGameRuntime : IDisposable
 
     public void SetActiveTab(int tabId) => _gameScreen?.SetActiveTabFromHost(tabId);
 
+    /// <summary>Instantané du panneau ville pour une vue portée par l'hôte.</summary>
+    public CityPanelSnapshot GetCityPanelSnapshot() =>
+        _onTitleScreen ? CityPanelSnapshot.Hidden
+                       : _gameScreen?.GetCityPanelSnapshot() ?? CityPanelSnapshot.Hidden;
+
+    public void CloseCityPanel() => _gameScreen?.CloseCityPanelFromHost();
+    public void SetCityShowUnique(bool v) => _gameScreen?.SetCityShowUniqueFromHost(v);
+    public void ToggleCityBuildingActivation(string k) => _gameScreen?.ToggleCityBuildingActivationFromHost(k);
+    public void ExecuteCityBuildingAction(string k) => _gameScreen?.ExecuteCityBuildingActionFromHost(k);
+    public void GoToOtherCity(string k) => _gameScreen?.GoToOtherCityFromHost(k);
+    public void SetHoveredCityBuilding(string? k) => _gameScreen?.SetHoveredCityBuildingFromHost(k);
+
     /// <summary>Instantané du panneau monument pour une vue portée par l'hôte.</summary>
     public MonumentPanelSnapshot GetMonumentPanelSnapshot() =>
         _onTitleScreen ? MonumentPanelSnapshot.Hidden

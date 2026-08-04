@@ -80,6 +80,60 @@ public sealed record InvestmentRowSnapshot(
 /// <summary>Une ligne de bonus affichee sous les investissements.</summary>
 public sealed record BonusLineSnapshot(string Text, bool IsActive);
 
+/// <summary>Action proposee sur une ligne de batiment du panneau ville.</summary>
+public enum CityBuildingAction
+{
+    /// Aucun bouton : batiment unique non constructible ici et pas encore bati ailleurs.
+    None,
+    Build,
+    Upgrade,
+    /// Niveau maximum atteint : bouton affiche mais inactif.
+    MaxLevel,
+    /// Deja bati dans une autre ville : le bouton y recentre la camera.
+    GoToOtherCity,
+}
+
+/// <summary>Etat de la case d'activation d'un batiment.</summary>
+public enum BuildingActivationState
+{
+    /// Batiment non activable, ou pas encore bati dans cette ville : pas de case.
+    None,
+    Active,
+    Inactive,
+}
+
+/// <summary>Un element de cout : icone de ressource, quantite, et solvabilite du joueur.</summary>
+public sealed record CostItemSnapshot(string IconName, string Amount, bool CanAfford);
+
+/// <summary>Une ligne de batiment du panneau ville.</summary>
+/// <param name="Key">Nom d'enum du BuildingType : identifiant stable, et routage des clics.</param>
+public sealed record CityBuildingRowSnapshot(
+    string Key,
+    string Label,
+    BuildingActivationState Activation,
+    IReadOnlyList<CostItemSnapshot> Cost,
+    CityBuildingAction Action,
+    string ActionLabel,
+    bool IsActionEnabled,
+    bool IsBuiltElsewhere);
+
+/// <summary>
+/// Panneau de la ville selectionnee. Le filtrage des batiments, les regles de construction et
+/// d'amelioration restent dans SelectedCityPanelRenderer / CityBuildingService.
+/// </summary>
+public sealed record CityPanelSnapshot(
+    bool IsVisible,
+    bool HasUniqueTab,
+    bool ShowingUnique,
+    string RegularTabLabel,
+    string UniqueTabLabel,
+    IReadOnlyList<CityBuildingRowSnapshot> Rows,
+    string MilitaryFooter)
+{
+    public static readonly CityPanelSnapshot Hidden =
+        new(false, false, false, "", "", [], "");
+}
+
 /// <summary>
 /// Panneau du monument selectionne. Les regles polymorphes (Merveille, Grand Phare, Os Divins,
 /// Faille des Abysses) restent dans SelectedMonumentPanelRenderer : l'instantane n'expose que

@@ -78,6 +78,21 @@ public class GameRuntimeHostTests
         Assert.False(host.Read(_ => true));
     }
 
+    /// Chaque instantane traverse quatre couches (renderer, GameScreen, runtime, hote) et
+    /// chacune peut court-circuiter sur un null. Sans partie en cours, tous doivent renvoyer
+    /// leur valeur neutre plutot que de lever.
+    [Fact]
+    public void Sans_partie_en_cours_tous_les_instantanes_renvoient_leur_valeur_neutre()
+    {
+        using var host = new GameRuntimeHost(new SkiaLayer.SkiaGameRuntime());
+
+        Assert.False(host.GetTabBarSnapshot().IsVisible);
+        Assert.False(host.GetResourceBarSnapshot().IsAvailable);
+        Assert.False(host.GetTimeControlSnapshot().IsAvailable);
+        Assert.False(host.GetMonumentPanelSnapshot().IsVisible);
+        Assert.False(host.GetCityPanelSnapshot().IsVisible);
+    }
+
     [Fact]
     public void Dispose_est_idempotent()
     {
