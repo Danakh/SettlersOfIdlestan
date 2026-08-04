@@ -230,7 +230,8 @@ public sealed class OverlayRenderer : IGameRenderer
                     _eventLogRenderer.RenderEvents(canvas, context);
                 break;
             case TabBarRenderer.TabAutomation:
-                _automationRenderer.RenderAutomationPage(canvas, context);
+                if (!IsMigratedToHost(HostedOverlayPart.AutomationTab))
+                    _automationRenderer.RenderAutomationPage(canvas, context);
                 break;
             case TabBarRenderer.TabRituals:
                 if (!IsMigratedToHost(HostedOverlayPart.RitualsTab))
@@ -464,6 +465,14 @@ public sealed class OverlayRenderer : IGameRenderer
     public void ToggleRitualFromHost(string key) => _ritualsRenderer.ToggleRitualFromHost(key);
     public void ChangeRitualPowerFromHost(string key, bool increase) => _ritualsRenderer.ChangeRitualPowerFromHost(key, increase);
     public void CastSpellFromHost(string key) => _ritualsRenderer.CastSpellFromHost(key);
+
+    /// <summary>Instantané de l'onglet Automatisation pour une vue portée par l'hôte.</summary>
+    public AutomationSnapshot GetAutomationSnapshot() =>
+        _automationRenderer.GetSnapshot(_tabBar.ActiveTab == TabBarRenderer.TabAutomation);
+
+    public void ToggleAutomationFromHost(string key) => _automationRenderer.ToggleByKey(key);
+    public void ToggleAutomationPinFromHost(string key) => _automationRenderer.TogglePinFromHost(key);
+    public void ToggleAutomationsGloballyFromHost() => _automationRenderer.ToggleGlobalFromHost();
 
     /// <summary>Instantané du panneau civilisation pour une vue portée par l'hôte.</summary>
     public CivPanelSnapshot GetCivPanelSnapshot() =>

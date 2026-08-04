@@ -134,6 +134,44 @@ public sealed record CityPanelSnapshot(
         new(false, false, false, "", "", [], "");
 }
 
+/// <summary>Une ligne de la page Automatisation.</summary>
+/// <param name="Key">Cle d'epinglage, qui sert aussi d'identifiant et de routage.</param>
+/// <param name="IsOn">Null pour un etat mixte (certains batiments du type actifs, d'autres non),
+/// ou pour une ligne verrouillee.</param>
+/// <param name="IsLocked">Automatisme pas encore debloque : pas de bascule, la description
+/// porte la condition de deblocage.</param>
+/// <param name="Note">Precision affichee en infobulle au survol de la carte ; null si absente.</param>
+/// <param name="SummaryLines">Etat de construction par type de batiment concerne, deja formate.</param>
+public sealed record AutomationRowSnapshot(
+    string Key,
+    string Name,
+    string Description,
+    string? Note,
+    bool? IsOn,
+    bool IsLocked,
+    bool CanPin,
+    bool IsPinned,
+    IReadOnlyList<string> SummaryLines);
+
+public sealed record AutomationSectionSnapshot(string Header, IReadOnlyList<AutomationRowSnapshot> Rows);
+
+/// <summary>
+/// Onglet plein ecran de l'automatisation, en deux colonnes. Les conditions de deblocage et
+/// l'effet de chaque bascule restent dans AutomationRenderer.
+/// </summary>
+/// <param name="PinTooltip">Infobulle commune aux cases a cocher d'epinglage.</param>
+public sealed record AutomationSnapshot(
+    bool IsVisible,
+    string Title,
+    string GlobalToggleLabel,
+    bool GlobalToggleOn,
+    string PinTooltip,
+    IReadOnlyList<AutomationSectionSnapshot> LeftColumn,
+    IReadOnlyList<AutomationSectionSnapshot> RightColumn)
+{
+    public static readonly AutomationSnapshot Hidden = new(false, "", "", false, "", [], []);
+}
+
 /// <summary>
 /// Un rituel connu. Les couts, le bonus courant et la disponibilite sont deja calcules par
 /// MagicController : la vue ne fait que les afficher.

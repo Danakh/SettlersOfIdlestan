@@ -468,6 +468,14 @@ public sealed class GameScreen : IDisposable
     public void ChangeRitualPowerFromHost(string key, bool increase) => _overlayRenderer?.ChangeRitualPowerFromHost(key, increase);
     public void CastSpellFromHost(string key) => _overlayRenderer?.CastSpellFromHost(key);
 
+    /// <summary>Instantané de l'onglet Automatisation pour une vue portée par l'hôte.</summary>
+    public AutomationSnapshot GetAutomationSnapshot() =>
+        _overlayRenderer?.GetAutomationSnapshot() ?? AutomationSnapshot.Hidden;
+
+    public void ToggleAutomationFromHost(string key) => _overlayRenderer?.ToggleAutomationFromHost(key);
+    public void ToggleAutomationPinFromHost(string key) => _overlayRenderer?.ToggleAutomationPinFromHost(key);
+    public void ToggleAutomationsGloballyFromHost() => _overlayRenderer?.ToggleAutomationsGloballyFromHost();
+
     /// <summary>Instantané du panneau civilisation pour une vue portée par l'hôte.</summary>
     public CivPanelSnapshot GetCivPanelSnapshot() =>
         _overlayRenderer?.GetCivPanelSnapshot() ?? CivPanelSnapshot.Hidden;

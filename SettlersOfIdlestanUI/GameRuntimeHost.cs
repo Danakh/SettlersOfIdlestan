@@ -133,6 +133,13 @@ public sealed class GameRuntimeHost : IDisposable
     public void ChangeRitualPower(string key, bool increase) => Invoke(r => r.ChangeRitualPower(key, increase));
     public void CastSpell(string key) => Invoke(r => r.CastSpell(key));
 
+    public SkiaLayer.AutomationSnapshot GetAutomationSnapshot() =>
+        Read(r => r.GetAutomationSnapshot()) ?? SkiaLayer.AutomationSnapshot.Hidden;
+
+    public void ToggleAutomation(string key) => Invoke(r => r.ToggleAutomation(key));
+    public void ToggleAutomationPin(string key) => Invoke(r => r.ToggleAutomationPin(key));
+    public void ToggleAutomationsGlobally() => Invoke(r => r.ToggleAutomationsGlobally());
+
     public SkiaLayer.ToastListSnapshot GetToastSnapshot() =>
         Read(r => r.GetToastSnapshot()) ?? SkiaLayer.ToastListSnapshot.Empty;
 

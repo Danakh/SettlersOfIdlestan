@@ -279,6 +279,15 @@ public sealed class SkiaGameRuntime : IDisposable
     public void ChangeRitualPower(string key, bool increase) => _gameScreen?.ChangeRitualPowerFromHost(key, increase);
     public void CastSpell(string key) => _gameScreen?.CastSpellFromHost(key);
 
+    /// <summary>Instantané de l'onglet Automatisation pour une vue portée par l'hôte.</summary>
+    public AutomationSnapshot GetAutomationSnapshot() =>
+        _onTitleScreen ? AutomationSnapshot.Hidden
+                       : _gameScreen?.GetAutomationSnapshot() ?? AutomationSnapshot.Hidden;
+
+    public void ToggleAutomation(string key) => _gameScreen?.ToggleAutomationFromHost(key);
+    public void ToggleAutomationPin(string key) => _gameScreen?.ToggleAutomationPinFromHost(key);
+    public void ToggleAutomationsGlobally() => _gameScreen?.ToggleAutomationsGloballyFromHost();
+
     /// <summary>Instantané des toasts pour une vue portée par l'hôte.</summary>
     public ToastListSnapshot GetToastSnapshot() =>
         _onTitleScreen ? ToastListSnapshot.Empty

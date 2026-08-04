@@ -1,0 +1,220 @@
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
+using Avalonia.Controls.Templates;
+using Avalonia.Data;
+using Avalonia.Data.Converters;
+using Avalonia.Layout;
+using Avalonia.Media;
+using SettlersOfIdlestanUI.ViewModels;
+
+namespace SettlersOfIdlestanUI.Controls;
+
+/// <summary>
+/// Onglet plein ecran de l'automatisation : deux colonnes de cartes, chacune avec sa bascule, sa
+/// description, une note en infobulle et une case a cocher qui l'epingle au panneau civilisation.
+///
+/// Une ligne verrouillee n'a pas de bascule : sa description porte la condition de deblocage.
+/// </summary>
+public sealed class AutomationView : UserControl
+{
+    private static readonly SolidColorBrush Background = new(Color.FromArgb(240, 18, 18, 24));
+    private static readonly SolidColorBrush Card = new(Color.FromArgb(220, 30, 30, 40));
+    private static readonly SolidColorBrush CardBorder = new(Color.FromRgb(60, 60, 80));
+    private static readonly SolidColorBrush Accent = new(Color.FromRgb(255, 215, 0));
+    private static readonly SolidColorBrush NameText = new(Color.FromRgb(230, 230, 240));
+    private static readonly SolidColorBrush Desc = new(Color.FromRgb(150, 150, 165));
+    private static readonly SolidColorBrush Muted = new(Color.FromRgb(110, 110, 125));
+    private static readonly SolidColorBrush Summary = new(Color.FromRgb(120, 175, 120));
+
+    public AutomationView(AutomationViewModel viewModel)
+    {
+        DataContext = viewModel;
+        this[!IsVisibleProperty] = new Binding(nameof(AutomationViewModel.IsVisible));
+
+        HorizontalAlignment = HorizontalAlignment.Stretch;
+        VerticalAlignment = VerticalAlignment.Stretch;
+
+        var title = new TextBlock
+        {
+            FontSize = 17,
+            FontWeight = FontWeight.Bold,
+            Foreground = Accent,
+            VerticalAlignment = VerticalAlignment.Center,
+            [!TextBlock.TextProperty] = new Binding(nameof(AutomationViewModel.Title)),
+        };
+
+        // Interrupteur global : les reglages par ligne restent stockes tels quels et reprennent
+        // effet des sa reactivation.
+        var globalToggle = new CheckBox
+        {
+            VerticalAlignment = VerticalAlignment.Center,
+            [!ToggleButton.IsCheckedProperty] = new Binding(nameof(AutomationViewModel.GlobalToggleOn)),
+            [!ContentProperty] = new Binding(nameof(AutomationViewModel.GlobalToggleLabel)),
+        };
+        globalToggle.Click += (_, _) => viewModel.ToggleGlobal();
+
+        var header = new DockPanel { LastChildFill = false, Margin = new Thickness(0, 0, 0, 14) };
+        DockPanel.SetDock(title, Dock.Left);
+        DockPanel.SetDock(globalToggle, Dock.Right);
+        header.Children.Add(title);
+        header.Children.Add(globalToggle);
+
+        var columns = new Grid { ColumnDefinitions = new ColumnDefinitions("*,12,*") };
+        var left = BuildColumn(viewModel, nameof(AutomationViewModel.LeftColumn));
+        var right = BuildColumn(viewModel, nameof(AutomationViewModel.RightColumn));
+        Grid.SetColumn(left, 0);
+        Grid.SetColumn(right, 2);
+        columns.Children.Add(left);
+        columns.Children.Add(right);
+
+        var stack = new StackPanel { Orientation = Orientation.Vertical };
+        stack.Children.Add(header);
+        stack.Children.Add(columns);
+
+        Content = new Border
+        {
+            Background = Background,
+            Child = new ScrollViewer
+            {
+                HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
+                VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+                Padding = new Thickness(20),
+                Content = new Border { MaxWidth = 660, HorizontalAlignment = HorizontalAlignment.Center, Child = stack },
+            },
+        };
+    }
+
+    private static Control BuildColumn(AutomationViewModel viewModel, string path) => new ItemsControl
+    {
+        [!ItemsControl.ItemsSourceProperty] = new Binding(path),
+        ItemsPanel = new FuncTemplate<Panel?>(() => new StackPanel { Spacing = 12 }),
+        ItemTemplate = new FuncDataTemplate<AutomationSectionViewModel>(
+            (_, _) => BuildSection(viewModel), supportsRecycling: true),
+    };
+
+    private static Control BuildSection(AutomationViewModel viewModel)
+    {
+        var header = new TextBlock
+        {
+            FontSize = 13,
+            FontWeight = FontWeight.Bold,
+            Foreground = Accent,
+            Margin = new Thickness(0, 0, 0, 8),
+            [!TextBlock.TextProperty] = new Binding(nameof(AutomationSectionViewModel.Header)),
+        };
+
+        var rows = new ItemsControl
+        {
+            [!ItemsControl.ItemsSourceProperty] = new Binding(nameof(AutomationSectionViewModel.Rows)),
+            ItemsPanel = new FuncTemplate<Panel?>(() => new StackPanel { Spacing = 8 }),
+            ItemTemplate = new FuncDataTemplate<AutomationRowViewModel>(
+                (_, _) => new AutomationCard(viewModel), supportsRecycling: true),
+        };
+
+        var stack = new StackPanel { Orientation = Orientation.Vertical };
+        stack.Children.Add(header);
+        stack.Children.Add(rows);
+        return stack;
+    }
+
+    /// <summary>Une carte : bascule, nom, description, resume de construction, case d'epinglage.</summary>
+    private sealed class AutomationCard : Border
+    {
+        private readonly AutomationViewModel _owner;
+        private AutomationRowViewModel? _row;
+
+        public AutomationCard(AutomationViewModel owner)
+        {
+            _owner = owner;
+
+            Padding = new Thickness(12, 10);
+            CornerRadius = new CornerRadius(6);
+            BorderThickness = new Thickness(1);
+            Background = Card;
+            BorderBrush = CardBorder;
+            // La note s'affiche au survol de toute la carte, comme dans le rendu Skia.
+            this[!ToolTip.TipProperty] = new Binding(nameof(AutomationRowViewModel.Note));
+
+            var toggle = new CheckBox
+            {
+                IsThreeState = true,
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(0, 0, 10, 0),
+                [!IsVisibleProperty] = new Binding(nameof(AutomationRowViewModel.HasToggle)),
+                [!ToggleButton.IsCheckedProperty] = new Binding(nameof(AutomationRowViewModel.IsOn)),
+            };
+            toggle.Click += (_, _) => { if (_row != null) _owner.Toggle(_row); };
+
+            var pin = new CheckBox
+            {
+                VerticalAlignment = VerticalAlignment.Top,
+                Margin = new Thickness(6, 0, 0, 0),
+                [!IsVisibleProperty] = new Binding(nameof(AutomationRowViewModel.CanPin)),
+                [!ToggleButton.IsCheckedProperty] = new Binding(nameof(AutomationRowViewModel.IsPinned)),
+                [!ToolTip.TipProperty] = new Binding(nameof(AutomationViewModel.PinTooltip))
+                {
+                    Source = owner,
+                },
+            };
+            pin.Click += (_, _) => { if (_row != null) _owner.TogglePin(_row); };
+
+            var name = new TextBlock
+            {
+                FontSize = 13,
+                FontWeight = FontWeight.Bold,
+                TextWrapping = TextWrapping.Wrap,
+                [!TextBlock.TextProperty] = new Binding(nameof(AutomationRowViewModel.Name)),
+                [!TextBlock.ForegroundProperty] = new Binding(nameof(AutomationRowViewModel.IsLocked))
+                {
+                    Converter = new FuncValueConverter<bool, IBrush>(l => l ? Muted : NameText),
+                },
+            };
+
+            var desc = new TextBlock
+            {
+                FontSize = 11,
+                TextWrapping = TextWrapping.Wrap,
+                Margin = new Thickness(0, 3, 0, 0),
+                [!TextBlock.TextProperty] = new Binding(nameof(AutomationRowViewModel.Description)),
+                [!TextBlock.ForegroundProperty] = new Binding(nameof(AutomationRowViewModel.IsLocked))
+                {
+                    Converter = new FuncValueConverter<bool, IBrush>(l => l ? Muted : Desc),
+                },
+            };
+
+            // Etat de construction par type concerne, sous un filet separateur.
+            var summary = new ItemsControl
+            {
+                Margin = new Thickness(0, 8, 0, 0),
+                [!ItemsControl.ItemsSourceProperty] = new Binding(nameof(AutomationRowViewModel.SummaryLines)),
+                ItemTemplate = new FuncDataTemplate<string>((_, _) => new TextBlock
+                {
+                    FontSize = 10,
+                    Foreground = Summary,
+                    [!TextBlock.TextProperty] = new Binding(),
+                }, supportsRecycling: true),
+            };
+
+            var text = new StackPanel { Orientation = Orientation.Vertical, VerticalAlignment = VerticalAlignment.Center };
+            text.Children.Add(name);
+            text.Children.Add(desc);
+            text.Children.Add(summary);
+
+            var layout = new DockPanel { LastChildFill = true };
+            DockPanel.SetDock(toggle, Dock.Left);
+            DockPanel.SetDock(pin, Dock.Right);
+            layout.Children.Add(toggle);
+            layout.Children.Add(pin);
+            layout.Children.Add(text);
+
+            Child = layout;
+        }
+
+        protected override void OnDataContextChanged(EventArgs e)
+        {
+            base.OnDataContextChanged(e);
+            _row = DataContext as AutomationRowViewModel;
+        }
+    }
+}
