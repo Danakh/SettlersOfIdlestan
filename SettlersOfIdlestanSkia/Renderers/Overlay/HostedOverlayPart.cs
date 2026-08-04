@@ -71,6 +71,10 @@ public enum HostedOverlayPart
     /// Popup de reglages en jeu. Le meme panneau sert a l'ecran-titre.
     SettingsPopup = 1 << 17,
 
+    /// Ecran-titre. Contrairement aux autres, cette partie ne vit que **hors** partie :
+    /// son instantane est le seul a repondre quand _onTitleScreen est vrai.
+    TitleScreen = 1 << 18,
+
     /// <summary>
     /// Les elements de la barre du haut partagent un meme layout (UILayoutService reserve la
     /// place de chacun pour les autres, et leurs regles de repli sont interdependantes) :

@@ -134,6 +134,51 @@ public sealed record CityPanelSnapshot(
         new(false, false, false, "", "", [], "");
 }
 
+/// <summary>Un onglet de l'ecran-titre.</summary>
+public sealed record TitleTabSnapshot(string Key, string Label, bool IsActive);
+
+/// <summary>Intention d'un bouton de l'ecran-titre : dicte sa couleur.</summary>
+public enum TitleActionTone
+{
+    /// Continuer ou commencer : l'action attendue.
+    Primary,
+    /// Charger depuis le cloud.
+    Cloud,
+    /// Effacer la sauvegarde.
+    Danger,
+}
+
+public sealed record TitleActionSnapshot(string Key, string Label, TitleActionTone Tone);
+
+/// <summary>
+/// Ecran-titre. Sa disponibilite (presence d'une sauvegarde, sauvegarde cloud) et le contenu du
+/// changelog restent dans TitleScreen.
+/// </summary>
+/// <param name="Settings">Le meme panneau que le popup de reglages en jeu.</param>
+public sealed record TitleScreenSnapshot(
+    bool IsVisible,
+    string Title,
+    IReadOnlyList<TitleTabSnapshot> Tabs,
+    string ChangelogText,
+    string CreditsStudio,
+    string CreditsDev,
+    SettingsPanelSnapshot Settings,
+    IReadOnlyList<TitleActionSnapshot> Actions,
+    string DiscordUrl)
+{
+    public static readonly TitleScreenSnapshot Hidden =
+        new(false, "", [], "", "", "", SettingsPanelSnapshot.Empty, [], "");
+
+    public const string TabChangelog = "changelog";
+    public const string TabCredits   = "credits";
+    public const string TabSettings  = "settings";
+
+    public const string ActionPrimary   = "primary";
+    public const string ActionLoadCloud = "loadCloud";
+    public const string ActionHardReset = "hardReset";
+    public const string ActionDiscord   = "discord";
+}
+
 /// <summary>Nature d'un reglage, qui dicte le controle a afficher.</summary>
 public enum SettingRowKind
 {

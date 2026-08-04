@@ -120,6 +120,11 @@ public sealed class SkiaGameRuntime : IDisposable
         _titleScreen.DiscordLinkClicked        += url => DiscordLinkClicked?.Invoke(url);
         _titleScreen.FullscreenToggleRequested += v => FullscreenStateChanged?.Invoke(v);
         _titleScreen.DebugWindowResizeRequested += (w, h) => DebugWindowResizeRequested?.Invoke(w, h);
+
+        // L'ecran-titre est recree a chaque retour au menu : le drapeau de migration, lui, a ete
+        // pose une fois pour toutes au demarrage et doit lui etre reapplique.
+        if (_hostedOverlayParts.HasFlag(HostedOverlayPart.TitleScreen)) _titleScreen.MigrateToHost();
+
         _onTitleScreen = true;
     }
 
@@ -231,6 +236,7 @@ public sealed class SkiaGameRuntime : IDisposable
     {
         _hostedOverlayParts |= parts;
         _gameScreen?.MarkOverlayMigratedToHost(parts);
+        if (_hostedOverlayParts.HasFlag(HostedOverlayPart.TitleScreen)) _titleScreen?.MigrateToHost();
     }
 
     /// <summary>Vrai quand une partie est en cours et affiche une carte hex (pas l'écran titre ni un onglet plein écran).</summary>
@@ -328,20 +334,44 @@ public sealed class SkiaGameRuntime : IDisposable
     public void SetSettingText(string k, string v) => _gameScreen?.SetSettingTextFromHost(k, v);
     public void CloseSettingsPopup() => _gameScreen?.CloseSettingsPopupFromHost();
 
+    // ── Ecran-titre ───────────────────────────────────────────────────────────
+    //
+    // Seul bloc d'instantanés gaté à l'inverse des autres : il ne répond que **sur** l'écran-titre.
+
+    public TitleScreenSnapshot GetTitleScreenSnapshot() =>
+        _onTitleScreen ? _titleScreen?.GetSnapshot() ?? TitleScreenSnapshot.Hidden
+                       : TitleScreenSnapshot.Hidden;
+
+    public void SetTitleTab(string key) { if (_onTitleScreen) _titleScreen?.SetTabFromHost(key); }
+    public void InvokeTitleAction(string key) { if (_onTitleScreen) _titleScreen?.InvokeActionFromHost(key); }
+    public void SetTitleSettingToggle(string k) { if (_onTitleScreen) _titleScreen?.ToggleSettingFromHost(k); }
+    public void SetTitleSettingChoice(string k, string c) { if (_onTitleScreen) _titleScreen?.SetSettingChoiceFromHost(k, c); }
+    public void SetTitleSettingSlider(string k, double v) { if (_onTitleScreen) _titleScreen?.SetSettingSliderFromHost(k, v); }
+    public void SetTitleSettingText(string k, string v) { if (_onTitleScreen) _titleScreen?.SetSettingTextFromHost(k, v); }
+
     /// <summary>Instantané des toasts pour une vue portée par l'hôte.</summary>
     public ToastListSnapshot GetToastSnapshot() =>
-        _onTitleScreen ? ToastListSnapshot.Empty
+        // L'écran-titre a ses propres toasts (connexion au store).
+        _onTitleScreen ? _titleScreen?.GetToastSnapshot() ?? ToastListSnapshot.Empty
                        : _gameScreen?.GetToastSnapshot() ?? ToastListSnapshot.Empty;
 
-    public void DismissToast(long id) => _gameScreen?.DismissToastFromHost(id);
+    public void DismissToast(long id)
+    {
+        if (_onTitleScreen) _titleScreen?.DismissToastFromHost(id);
+        else _gameScreen?.DismissToastFromHost(id);
+    }
 
     /// <summary>Instantané de la modale bloquante ouverte, pour une vue portée par l'hôte.</summary>
     public ModalPopupSnapshot GetModalPopupSnapshot() =>
-        _onTitleScreen ? ModalPopupSnapshot.None
+        // L'écran-titre a sa propre confirmation de remise à zéro, de même forme : même vue.
+        _onTitleScreen ? _titleScreen?.GetModalSnapshot() ?? ModalPopupSnapshot.None
                        : _gameScreen?.GetModalPopupSnapshot() ?? ModalPopupSnapshot.None;
 
-    public void InvokeModalPopupButton(string popupId, string buttonKey) =>
-        _gameScreen?.InvokeModalPopupButtonFromHost(popupId, buttonKey);
+    public void InvokeModalPopupButton(string popupId, string buttonKey)
+    {
+        if (_onTitleScreen) _titleScreen?.InvokeModalButtonFromHost(buttonKey);
+        else _gameScreen?.InvokeModalPopupButtonFromHost(popupId, buttonKey);
+    }
 
     /// <summary>Instantané du panneau civilisation pour une vue portée par l'hôte.</summary>
     public CivPanelSnapshot GetCivPanelSnapshot() =>
@@ -408,6 +438,10 @@ public sealed class SkiaGameRuntime : IDisposable
     {
         if (_isDisposed || !_isInitialized) return;
         _gameScreen?.Tick();
+
+        // L ecran-titre n a pas de boucle de jeu : ses toasts vieillissent ici une fois qu il ne
+        // se dessine plus lui-meme.
+        if (_onTitleScreen) _titleScreen?.AdvanceToasts();
     }
 
     public void Render(SKCanvas canvas)

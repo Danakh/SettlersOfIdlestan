@@ -130,9 +130,129 @@ public sealed class TitleScreen : IDisposable
 
     private bool CanLoadFromCloud => _storeController?.HasCloudSave(CloudSaveFileName) == true;
 
+    // ── Pont vers l'hote Avalonia ─────────────────────────────────────────────
+
+    private bool _hostedByAvalonia;
+
+    /// <summary>
+    /// Declare que cet ecran est affiche par l'hote Avalonia : il cesse de se dessiner et de
+    /// hit-tester, son popup de remise a zero et ses toasts compris.
+    /// </summary>
+    public void MigrateToHost()
+    {
+        _hostedByAvalonia = true;
+        _notificationToastRenderer.MigrateToHost();
+    }
+
+    /// <summary>Fait vieillir les toasts, le rendu ne s'en chargeant plus une fois migre.</summary>
+    public void AdvanceToasts()
+    {
+        if (!_hostedByAvalonia) return;
+        float dt = (float)_frameStopwatch.Elapsed.TotalSeconds;
+        _frameStopwatch.Restart();
+        _notificationToastRenderer.Advance(dt);
+    }
+
+    public ToastListSnapshot GetToastSnapshot() => _notificationToastRenderer.GetSnapshot();
+    public void DismissToastFromHost(long id) => _notificationToastRenderer.Dismiss(id);
+
+    /// <summary>
+    /// Popup de remise a zero de l'ecran-titre. Meme forme que les modales bloquantes du jeu :
+    /// il emprunte leur instantane et leur vue.
+    /// </summary>
+    public ModalPopupSnapshot GetModalSnapshot() => _hardResetPopup?.GetSnapshot() ?? ModalPopupSnapshot.None;
+
+    public void InvokeModalButtonFromHost(string key) => _hardResetPopup?.InvokeButton(key);
+
+    /// <summary>
+    /// Instantane de l'ecran pour une vue portee par l'hote. Reprend les memes conditions que
+    /// Render : le bouton principal dit « Continuer » ou « Nouvelle partie » selon la presence
+    /// d'une sauvegarde, le chargement cloud n'apparait qu'avec une sauvegarde cloud, et la
+    /// remise a zero qu'avec une sauvegarde locale.
+    /// </summary>
+    public TitleScreenSnapshot GetSnapshot()
+    {
+        if (_disposed) return TitleScreenSnapshot.Hidden;
+
+        var tabs = new List<TitleTabSnapshot>
+        {
+            new(TitleScreenSnapshot.TabChangelog, _localization.Get("title_tab_changelog"), _activeTab == 0),
+            new(TitleScreenSnapshot.TabCredits,   _localization.Get("title_tab_credits"),   _activeTab == 1),
+            new(TitleScreenSnapshot.TabSettings,  _localization.Get("title_tab_settings"),  _activeTab == 2),
+        };
+
+        var actions = new List<TitleActionSnapshot>
+        {
+            new(TitleScreenSnapshot.ActionPrimary,
+                _localization.Get(_hasSave ? "title_btn_continue" : "title_btn_new_game"),
+                TitleActionTone.Primary),
+        };
+        if (CanLoadFromCloud)
+            actions.Add(new(TitleScreenSnapshot.ActionLoadCloud, _localization.Get("title_btn_load_cloud"), TitleActionTone.Cloud));
+        if (_hasSave)
+            actions.Add(new(TitleScreenSnapshot.ActionHardReset, _localization.Get("title_btn_hard_reset"), TitleActionTone.Danger));
+
+        return new TitleScreenSnapshot(
+            IsVisible: true,
+            Title: "Settlers of Idlestan",
+            Tabs: tabs,
+            ChangelogText: GetChangelogContent(),
+            CreditsStudio: _localization.Get("credits_studio"),
+            CreditsDev: _localization.Get("credits_dev"),
+            Settings: _settingsPanel.GetSnapshot(_settings, _localization, _allowDebugMode, _canvasSize, _storeController),
+            Actions: actions,
+            DiscordUrl: DiscordUrl);
+    }
+
+    /// <summary>Selectionne un onglet depuis une vue portee par l'hote.</summary>
+    public void SetTabFromHost(string key)
+    {
+        int target = key switch
+        {
+            TitleScreenSnapshot.TabCredits  => 1,
+            TitleScreenSnapshot.TabSettings => 2,
+            _                               => 0,
+        };
+        if (_activeTab == target) return;
+        // Quitter l'onglet des reglages abandonne le focus d'un champ en cours de saisie.
+        if (target != 2) _settingsPanel.ClearFocus();
+        _activeTab = target;
+    }
+
+    /// <summary>
+    /// Declenche un bouton depuis une vue portee par l'hote. Les gardes vivent ici : l'action est
+    /// declenchee par deux chemins et une garde dupliquee finirait par diverger.
+    /// </summary>
+    public void InvokeActionFromHost(string key)
+    {
+        switch (key)
+        {
+            case TitleScreenSnapshot.ActionPrimary:
+                if (_hasSave) ContinueRequested?.Invoke();
+                else NewGameRequested?.Invoke();
+                break;
+            case TitleScreenSnapshot.ActionLoadCloud:
+                if (CanLoadFromCloud) _ = LoadFromCloud();
+                break;
+            // La remise a zero passe par une confirmation : c'est elle qui efface, pas ce clic.
+            case TitleScreenSnapshot.ActionHardReset:
+                if (_hasSave) _hardResetPopup?.Open();
+                break;
+            case TitleScreenSnapshot.ActionDiscord:
+                DiscordLinkClicked?.Invoke(DiscordUrl);
+                break;
+        }
+    }
+
+    // Commandes de reglages : l'ecran-titre a ses propres settings, distincts de ceux d'une partie.
+    public void ToggleSettingFromHost(string key) => _settingsPanel.ToggleFromHost(key, _settings, _storeController);
+    public void SetSettingChoiceFromHost(string key, string choiceKey) => _settingsPanel.SetChoiceFromHost(key, choiceKey, _settings, _localization);
+    public void SetSettingSliderFromHost(string key, double value) => _settingsPanel.SetSliderFromHost(key, value, _settings);
+    public void SetSettingTextFromHost(string key, string value) => _settingsPanel.SetTextFromHost(key, value);
+
     public void Render(SKCanvas canvas, SKSize canvasSize, float uiScale)
     {
-        if (_disposed) return;
+        if (_disposed || _hostedByAvalonia) return;
         _canvasSize = canvasSize;
 
         float s = uiScale;

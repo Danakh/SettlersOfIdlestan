@@ -32,6 +32,7 @@ public sealed class GameView : Panel, IDisposable
     private readonly TradePopupView _tradePopup;
     private readonly PrestigePopupView _prestigePopup;
     private readonly SettingsPopupView _settingsPopup;
+    private readonly TitleScreenView _titleScreen;
 
     private readonly TabBarViewModel _tabs;
     private readonly ResourceBarViewModel _resources;
@@ -49,6 +50,7 @@ public sealed class GameView : Panel, IDisposable
     private readonly TradePopupViewModel _tradeModel;
     private readonly PrestigePopupViewModel _prestigeModel;
     private readonly SettingsPopupViewModel _settingsModel;
+    private readonly TitleScreenViewModel _titleModel;
 
     private IDisposable? _stateSync;
 
@@ -77,6 +79,7 @@ public sealed class GameView : Panel, IDisposable
         _tradeModel = new TradePopupViewModel(host);
         _prestigeModel = new PrestigePopupViewModel(host);
         _settingsModel = new SettingsPopupViewModel(host);
+        _titleModel = new TitleScreenViewModel(host);
 
         _zoomControl = new ZoomControlView(host.ZoomIn, host.ZoomOut) { IsVisible = false };
         _topBar = new TopBarView(
@@ -130,6 +133,7 @@ public sealed class GameView : Panel, IDisposable
         _tradePopup = new TradePopupView(_tradeModel, _icons);
         _prestigePopup = new PrestigePopupView(_prestigeModel);
         _settingsPopup = new SettingsPopupView(_settingsModel);
+        _titleScreen = new TitleScreenView(_titleModel);
 
         Children.Add(new GameRuntimeControl(host));
 
@@ -158,6 +162,10 @@ public sealed class GameView : Panel, IDisposable
         Children.Add(_prestigePopup);
         Children.Add(_settingsPopup);
 
+        // L'ecran-titre couvre tout le jeu : il passe avant les modales, qui restent au-dessus
+        // (sa confirmation de remise a zero emprunte la meme vue).
+        Children.Add(_titleScreen);
+
         // En dernier : une modale bloquante doit couvrir tout le reste de l'overlay.
         Children.Add(_modalPopup);
 
@@ -166,7 +174,7 @@ public sealed class GameView : Panel, IDisposable
             | HostedOverlayPart.MonumentPanel | HostedOverlayPart.CityPanel
             | HostedOverlayPart.CivPanel | HostedOverlayPart.ModalPopup
             | HostedOverlayPart.Toasts | HostedOverlayPart.EventLogTab
-            | HostedOverlayPart.StatsTab | HostedOverlayPart.RitualsTab | HostedOverlayPart.AutomationTab | HostedOverlayPart.SettingsMenu | HostedOverlayPart.TradePopup | HostedOverlayPart.PrestigePopup | HostedOverlayPart.SettingsPopup);
+            | HostedOverlayPart.StatsTab | HostedOverlayPart.RitualsTab | HostedOverlayPart.AutomationTab | HostedOverlayPart.SettingsMenu | HostedOverlayPart.TradePopup | HostedOverlayPart.PrestigePopup | HostedOverlayPart.SettingsPopup | HostedOverlayPart.TitleScreen);
     }
 
     protected override void OnAttachedToVisualTree(Avalonia.VisualTreeAttachmentEventArgs e)
@@ -226,6 +234,7 @@ public sealed class GameView : Panel, IDisposable
         _tradeModel.Refresh();
         _prestigeModel.Refresh();
         _settingsModel.Refresh();
+        _titleModel.Refresh();
 
         // Les boutons de zoom n'ont de sens que sur une vue carte : ni sur l'ecran titre,
         // ni sur les onglets plein ecran (recherche, prestige...).

@@ -172,6 +172,16 @@ public sealed class GameRuntimeHost : IDisposable
     public void SetSettingText(string k, string v) => Invoke(r => r.SetSettingText(k, v));
     public void CloseSettingsPopup() => Invoke(r => r.CloseSettingsPopup());
 
+    public SkiaLayer.TitleScreenSnapshot GetTitleScreenSnapshot() =>
+        Read(r => r.GetTitleScreenSnapshot()) ?? SkiaLayer.TitleScreenSnapshot.Hidden;
+
+    public void SetTitleTab(string key) => Invoke(r => r.SetTitleTab(key));
+    public void InvokeTitleAction(string key) => Invoke(r => r.InvokeTitleAction(key));
+    public void SetTitleSettingToggle(string k) => Invoke(r => r.SetTitleSettingToggle(k));
+    public void SetTitleSettingChoice(string k, string c) => Invoke(r => r.SetTitleSettingChoice(k, c));
+    public void SetTitleSettingSlider(string k, double v) => Invoke(r => r.SetTitleSettingSlider(k, v));
+    public void SetTitleSettingText(string k, string v) => Invoke(r => r.SetTitleSettingText(k, v));
+
     public SkiaLayer.ToastListSnapshot GetToastSnapshot() =>
         Read(r => r.GetToastSnapshot()) ?? SkiaLayer.ToastListSnapshot.Empty;
 
