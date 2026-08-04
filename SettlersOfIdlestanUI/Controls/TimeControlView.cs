@@ -96,19 +96,25 @@ public sealed class TimeControlView : UserControl
         return flyout;
     }
 
-    private static Button CreateSquareButton() => new()
+    private static Button CreateSquareButton()
     {
-        Width = 26,
-        Height = 26,
-        Padding = new Thickness(0),
-        FontSize = 13,
-        FontWeight = FontWeight.Bold,
-        HorizontalContentAlignment = HorizontalAlignment.Center,
-        VerticalContentAlignment = VerticalAlignment.Center,
-        Foreground = Brushes.White,
-        Background = new SolidColorBrush(Color.FromRgb(60, 140, 220)),
-        BorderBrush = new SolidColorBrush(Color.FromRgb(100, 100, 130)),
-        BorderThickness = new Thickness(1),
-        CornerRadius = new CornerRadius(4),
-    };
+        var button = new Button
+        {
+            Width = 26,
+            Height = 26,
+            Padding = new Thickness(0),
+            FontSize = 13,
+            FontWeight = FontWeight.Bold,
+            HorizontalContentAlignment = HorizontalAlignment.Center,
+            VerticalContentAlignment = VerticalAlignment.Center,
+            Foreground = Brushes.White,
+            Background = new SolidColorBrush(Color.FromRgb(60, 140, 220)),
+            BorderBrush = new SolidColorBrush(Color.FromRgb(100, 100, 130)),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(4),
+        };
+        // Pause et vitesse signalent leur etat par leur fond.
+        button.Classes.Add(GameControlStyles.ToneButton);
+        return button;
+    }
 }

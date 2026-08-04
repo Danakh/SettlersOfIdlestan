@@ -6,7 +6,13 @@ namespace SettlersOfIdlestanAvalonia.Desktop;
 
 public sealed class App : Application
 {
-    public override void Initialize() => Styles.Add(new FluentTheme());
+    public override void Initialize()
+    {
+        Styles.Add(new FluentTheme());
+
+        // Apres le theme : ces styles corrigent ce que Fluent impose aux boutons du jeu.
+        Styles.Add(SettlersOfIdlestanUI.GameControlStyles.Create());
+    }
 
     public override void OnFrameworkInitializationCompleted()
     {

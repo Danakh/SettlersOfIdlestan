@@ -122,6 +122,7 @@ public sealed class MonumentPanelView : UserControl
                 Converter = new FuncValueConverter<string?, bool>(t => !string.IsNullOrEmpty(t)),
             },
         };
+        button.Classes.Add(GameControlStyles.ToneButton);
 
         if (enabledPath != null) button[!IsEnabledProperty] = new Binding(enabledPath);
         button.Click += (_, _) => onClick();

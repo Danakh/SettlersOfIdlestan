@@ -105,6 +105,8 @@ public sealed class CityPanelView : UserControl
             CornerRadius = new CornerRadius(5),
             [!ContentProperty] = new Binding(labelPath),
         };
+        // L'onglet selectionne ne se distingue que par son fond.
+        button.Classes.Add(GameControlStyles.ToneButton);
         button.Click += (_, _) => onClick();
         return button;
     }
@@ -191,6 +193,9 @@ public sealed class CityPanelView : UserControl
                     }),
                 },
             };
+            // Les quatre etats du bouton se distinguent par leur couleur : sans cela, le survol
+            // la remplacerait par celle du theme.
+            action.Classes.Add(GameControlStyles.ToneButton);
             action.Click += (_, _) => { if (_row != null) _owner.ExecuteAction(_row); };
 
             var left = new StackPanel { Orientation = Orientation.Vertical, VerticalAlignment = VerticalAlignment.Center };

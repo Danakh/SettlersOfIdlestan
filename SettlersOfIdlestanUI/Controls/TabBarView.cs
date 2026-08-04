@@ -83,6 +83,10 @@ internal sealed class TabButton : Button
     {
         _owner = owner;
 
+        // L'onglet actif se distingue par son fond, et un onglet qui reclame l'attention par
+        // son orange : sans cela le survol les remplacerait par la couleur du theme.
+        Classes.Add(GameControlStyles.ToneButton);
+
         _label = new TextBlock
         {
             FontSize = 12,
