@@ -789,7 +789,7 @@
   "abyss_gate_panel_title": "Abyss Gate — Construction",
   "abyss_gate_evolve_button": "Open the Abyss Gate",
   "event_abyss_gate_eligible_title": "🌌 The Spire trembles...",
-  "event_abyss_gate_eligible_body": "Your Corruption Spire sits on a zone corrupted enough to evolve into an Abyss Gate. Go check on it!",
+  "event_abyss_gate_eligible_body": "You have fully cleansed a corruption zone of level 4 or higher on this island: your Corruption Spire can now evolve into an Abyss Gate. Go check on it!",
   "event_abyss_gate_placed_title": "🌌 Abyss Gate opening begins",
   "event_abyss_gate_placed_body": "The Corruption Spire is evolving. Invest resources to complete the Abyss Gate.",
   "event_abyss_gate_built_title": "🌌 Abyss Gate opened!",

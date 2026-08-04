@@ -125,11 +125,12 @@ ever actually researched anything, including whatever tech unlocks higher buildi
 played on this island)`, by far the strongest lever for high targets, but it's gated behind unlocking it
 first). Reaching the Abyss Gate is still fundamentally slow on top of that: it needs the Underworld
 unlocked (Deepest Mine dug), then a Corruption Spire built on the most-corrupted reachable Underworld
-hex, then that hex's corruption to reach `AbyssGate.RequiredCorruptionLevel` (a probabilistic tug-of-war
-between `CorruptionController.ProcessSpread` growing it and `ProcessMonumentCorruptionDecay` shrinking
-it right back once the Spire is built) before the Gate itself can be placed and invested in — expect
-many prestige cycles, and treat the default `endless-abyss-gate.json` strategy as a starting point to
-tune (per the workflow above), not a finished answer.
+hex, then a Corruption zone of `AbyssGate.RequiredCorruptionLevel` or higher to be *fully cleared* on
+the current island (anywhere on the map, by any mechanism — Spire decay, Temple, Dominion annulation;
+tracked in `RunRecord.MaxCorruptionLevelCleared`, which resets at every prestige, so the condition must
+be met again on each island even after a Gate was opened in a previous run) before the Gate itself can
+be placed and invested in — expect many prestige cycles, and treat the default `endless-abyss-gate.json`
+strategy as a starting point to tune (per the workflow above), not a finished answer.
 
 All strategies in one run start from an **identical** fresh copy of the starting state (a new
 `MainGameController` is built per strategy), so ticks-to-objective are directly comparable.

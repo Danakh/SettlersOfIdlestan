@@ -750,10 +750,12 @@ public class CorruptionControllerTests
     [Fact]
     public void ReduceLevel_ClearingCorruptionViaDominionAnnulation_MakesAbyssGateEligible_OnUnrelatedHex()
     {
-        // AbyssGateController.IsAbyssGateEligible se base sur PrestigeState.MaxCorruptionLevelCleared,
-        // mis à jour ici par annulation mutuelle avec le Dominion (pas par Temple ni par la décroissance
-        // de la Spire) et sur un hex qui n'a AUCUN rapport avec celui de la Spire — l'éligibilité doit
-        // être vraie quel que soit l'hex nettoyé et quel que soit le mécanisme de nettoyage.
+        // AbyssGateController.IsAbyssGateEligible se base sur RunRecord.MaxCorruptionLevelCleared
+        // (le record global PrestigeState.MaxCorruptionLevelCleared, mis à jour en parallèle, ne sert
+        // qu'au bonus de prestige), ici alimenté par annulation mutuelle avec le Dominion (pas par
+        // Temple ni par la décroissance de la Spire) et sur un hex qui n'a AUCUN rapport avec celui de
+        // la Spire — l'éligibilité doit être vraie quel que soit l'hex nettoyé et quel que soit le
+        // mécanisme de nettoyage.
         var (state, a, b) = CreateTwoLandHexesSetup();
         var corruption = new Corruption(a, level: AbyssGate.RequiredCorruptionLevel);
         var dominion = new Dominion(b, level: 20); // 200% de déclenchement : annule toujours son tour
@@ -775,11 +777,12 @@ public class CorruptionControllerTests
             clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
 
         Assert.Empty(state.GetFeaturesAt(a).OfType<Corruption>());
+        Assert.True(state.RunRecord.MaxCorruptionLevelCleared >= AbyssGate.RequiredCorruptionLevel);
         Assert.True(prestigeState.MaxCorruptionLevelCleared >= AbyssGate.RequiredCorruptionLevel);
         Assert.Contains(state.EventLog.Entries, e => e.Type == GameEventType.AbyssGateEligible && e.Toast);
 
         var gateController = new AbyssGateController();
-        gateController.Initialize(state, clock, prestigeState: prestigeState);
+        gateController.Initialize(state, clock);
         Assert.True(gateController.IsAbyssGateEligible());
     }
 }

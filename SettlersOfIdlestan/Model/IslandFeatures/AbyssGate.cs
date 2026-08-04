@@ -6,16 +6,17 @@ using SettlersOfIdlestan.Model.Localization;
 namespace SettlersOfIdlestan.Model.IslandFeatures;
 
 /// <summary>
-/// Faille des Abysses — évolution de la Spire de Corruption. Débloquée quand une Spire bâtie a vu
-/// la corruption sur son hex atteindre <see cref="RequiredCorruptionLevel"/> ou plus à un moment
-/// donné (voir AbyssGateController.IsAbyssGateEligible — basé sur le pic de corruption jamais
-/// atteint, pas le niveau courant, puisque la Spire bâtie nettoie systématiquement son propre hex) ;
-/// remplace alors la Spire sur son hex. Construite par investissement progressif comme tout
+/// Faille des Abysses — évolution de la Spire de Corruption. Débloquée quand une Spire est bâtie et
+/// qu'une zone de Corruption de niveau <see cref="RequiredCorruptionLevel"/> ou plus a été entièrement
+/// nettoyée sur l'île courante (voir AbyssGateController.IsAbyssGateEligible — basé sur le pic
+/// nettoyé enregistré dans RunRecord.MaxCorruptionLevelCleared, remis à zéro à chaque prestige, et
+/// non sur le niveau courant d'un hex, puisque la Spire bâtie nettoie systématiquement son propre
+/// hex) ; remplace alors la Spire sur son hex. Construite par investissement progressif comme tout
 /// Monument. Reprend pour l'instant le même bonus de prestige que la Spire de Corruption.
 /// </summary>
 public class AbyssGate : Monument
 {
-    /// <summary>Pic de corruption minimum jamais atteint sur le hex de la Spire pour débloquer l'évolution.</summary>
+    /// <summary>Niveau de pointe minimum d'une zone de Corruption nettoyée sur l'île courante pour débloquer l'évolution.</summary>
     public const int RequiredCorruptionLevel = 4;
 
     // Pas d'icône SVG statique : rendue comme un portail tourbillonnant procédural

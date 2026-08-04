@@ -278,18 +278,24 @@ public class CorruptionController
         {
             // Zone de Corruption entièrement nettoyée — par Temple, débordement (y compris annulation
             // mutuelle avec le Dominion, voir ProcessSpread) ou décroissance de monument : enregistre
-            // son pic comme record global si c'est le meilleur jamais atteint, peu importe quel hex ni
-            // quel mécanisme l'a nettoyée. Si ce nettoyage vient de faire franchir à ce record le seuil
-            // requis pour la Faille des Abysses, prévient le joueur qu'une Spire déjà bâtie peut
-            // désormais évoluer (voir AbyssGateController.IsAbyssGateEligible, qui se base sur ce même
-            // record plutôt que sur la corruption courante d'un hex précis).
-            if (feature is Corruption cleared && _prestigeState != null)
+            // son pic dans les deux records, peu importe quel hex ni quel mécanisme l'a nettoyée.
+            // - PrestigeState.MaxCorruptionLevelCleared : record global de la partie, jamais remis à
+            //   zéro, qui pilote le bonus de prestige (PrestigeController.GetCorruptionClearBonusMultiplier).
+            // - RunRecord.MaxCorruptionLevelCleared : record de l'île courante, reparti de zéro à
+            //   chaque prestige, qui seul conditionne l'ouverture de la Faille des Abysses (voir
+            //   AbyssGateController.IsAbyssGateEligible). Si ce nettoyage vient de faire franchir au
+            //   record du run le seuil requis, prévient le joueur qu'une Spire déjà bâtie peut évoluer.
+            if (feature is Corruption cleared)
             {
-                bool wasEligibleBefore = _prestigeState.MaxCorruptionLevelCleared >= AbyssGate.RequiredCorruptionLevel;
-                if (cleared.PeakLevel > _prestigeState.MaxCorruptionLevelCleared)
+                if (_prestigeState != null && cleared.PeakLevel > _prestigeState.MaxCorruptionLevelCleared)
                     _prestigeState.MaxCorruptionLevelCleared = cleared.PeakLevel;
 
-                if (!wasEligibleBefore && _prestigeState.MaxCorruptionLevelCleared >= AbyssGate.RequiredCorruptionLevel)
+                var runRecord = _state!.RunRecord;
+                bool wasEligibleBefore = runRecord.MaxCorruptionLevelCleared >= AbyssGate.RequiredCorruptionLevel;
+                if (cleared.PeakLevel > runRecord.MaxCorruptionLevelCleared)
+                    runRecord.MaxCorruptionLevelCleared = cleared.PeakLevel;
+
+                if (!wasEligibleBefore && runRecord.MaxCorruptionLevelCleared >= AbyssGate.RequiredCorruptionLevel)
                     RaiseAbyssGateEligibleToastIfApplicable();
             }
 
@@ -315,7 +321,8 @@ public class CorruptionController
     /// hexes n'est protégé du reste : Temple et débordement peuvent toujours y agir normalement (voir
     /// <see cref="ApplyTempleActionOnHex"/>, <see cref="ProcessSpread"/>). Utilise
     /// <see cref="ReduceLevel"/> comme les autres mécaniques : la suppression à 0 enregistre le pic
-    /// atteint dans <see cref="PrestigeState.MaxCorruptionLevelCleared"/>.
+    /// atteint dans <see cref="PrestigeState.MaxCorruptionLevelCleared"/> et dans
+    /// <see cref="Model.Tasks.RunRecord.MaxCorruptionLevelCleared"/>.
     /// </summary>
     private void ProcessMonumentCorruptionDecay(long currentTick)
     {

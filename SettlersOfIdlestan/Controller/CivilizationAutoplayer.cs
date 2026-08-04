@@ -632,7 +632,8 @@ namespace SettlersOfIdlestan.Controller
 
         /// <summary>
         /// Evolves the built Corruption Spire into the Abyss Gate once eligible (AbyssGateController.
-        /// IsAbyssGateEligible — the Spire's hex reached the required corruption level), then keeps
+        /// IsAbyssGateEligible — a corruption zone of the required level was fully cleared on the
+        /// current island, anywhere on the map and by any mechanism), then keeps
         /// investment enabled until it's built. No-ops if the AbyssGateController dependency was not
         /// supplied, the Spire isn't eligible yet, or the Gate is already built.
         /// </summary>
