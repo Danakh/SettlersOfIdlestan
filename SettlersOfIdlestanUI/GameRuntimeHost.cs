@@ -118,6 +118,12 @@ public sealed class GameRuntimeHost : IDisposable
     public void GoToOtherCity(string k) => Invoke(r => r.GoToOtherCity(k));
     public void SetHoveredCityBuilding(string? k, float x, float y) => Invoke(r => r.SetHoveredCityBuilding(k, x, y));
 
+    public SkiaLayer.ModalPopupSnapshot GetModalPopupSnapshot() =>
+        Read(r => r.GetModalPopupSnapshot()) ?? SkiaLayer.ModalPopupSnapshot.None;
+
+    public void InvokeModalPopupButton(string popupId, string buttonKey) =>
+        Invoke(r => r.InvokeModalPopupButton(popupId, buttonKey));
+
     public SkiaLayer.CivPanelSnapshot GetCivPanelSnapshot() =>
         Read(r => r.GetCivPanelSnapshot()) ?? SkiaLayer.CivPanelSnapshot.Hidden;
 

@@ -170,6 +170,7 @@ public sealed class CivPanelView : UserControl
             content.Children.Add(_glyph);
             Content = content;
 
+            Classes.Add(GameControlStyles.ToneButton);
             this[!BackgroundProperty] = new Binding(nameof(CivActionViewModel.Visual))
             {
                 Converter = new FuncValueConverter<CivActionVisual, IBrush>(BackgroundFor),
@@ -227,6 +228,7 @@ public sealed class CivPanelView : UserControl
             };
             Content = label;
 
+            Classes.Add(GameControlStyles.ToneButton);
             this[!BackgroundProperty] = new Binding(nameof(CivActionViewModel.Visual))
             {
                 Converter = new FuncValueConverter<CivActionVisual, IBrush>(BackgroundFor),

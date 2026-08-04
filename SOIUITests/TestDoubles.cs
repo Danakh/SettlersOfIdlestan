@@ -27,6 +27,33 @@ public sealed class ProbeMapControl : SkiaCanvasControl
     }
 }
 
+/// <summary>Systeme de fichiers factice : retient ce qui a ete ecrit ou supprime.</summary>
+public sealed class FakeFileSystemService : SettlersOfIdlestanSkia.Services.IFileSystemService
+{
+    public List<string> SavedFiles { get; } = [];
+    public bool AutoDeleted { get; private set; }
+
+    public Task SaveText(string fileName, string content)
+    {
+        SavedFiles.Add(fileName);
+        return Task.CompletedTask;
+    }
+
+    public Task DeleteAuto()
+    {
+        AutoDeleted = true;
+        return Task.CompletedTask;
+    }
+
+    public Task<string?> LoadText(string fileName) => Task.FromResult<string?>(null);
+    public Task SaveAuto(string content) => Task.CompletedTask;
+    public Task<string?> LoadAuto() => Task.FromResult<string?>(null);
+    public Task SaveSettings(string content) => Task.CompletedTask;
+    public Task<string?> LoadSettings() => Task.FromResult<string?>(null);
+    public Task SaveStats(string content) => Task.CompletedTask;
+    public Task<string?> LoadStats() => Task.FromResult<string?>(null);
+}
+
 /// <summary>
 /// Reproduit la superposition reelle du jeu : la carte occupe tout l'espace,
 /// un panneau d'overlay opaque a l'input est pose par-dessus.

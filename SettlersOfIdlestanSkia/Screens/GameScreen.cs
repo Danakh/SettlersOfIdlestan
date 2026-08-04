@@ -385,8 +385,43 @@ public sealed class GameScreen : IDisposable
     }
 
     /// <summary>Déclare qu'une partie de l'overlay est désormais rendue par l'hôte Avalonia.</summary>
-    public void MarkOverlayMigratedToHost(HostedOverlayPart parts) =>
+    public void MarkOverlayMigratedToHost(HostedOverlayPart parts)
+    {
+        // Les modales sont dessinées par cet écran, pas par l'overlay : il faut donc que
+        // GameScreen retienne le drapeau lui aussi, sans quoi elles seraient dessinées en double.
+        _hostedParts |= parts;
         _overlayRenderer?.MarkMigratedToHost(parts);
+    }
+
+    private HostedOverlayPart _hostedParts = HostedOverlayPart.None;
+
+    private bool IsMigratedToHost(HostedOverlayPart part) => _hostedParts.HasFlag(part);
+
+    /// <summary>
+    /// Instantané de la modale bloquante ouverte, pour une vue portée par l'hôte.
+    /// Même ordre de priorité que le dispatch de <see cref="HandlePointerPressed"/> : ces modales
+    /// s'excluent, mais rien n'interdit à deux d'entre elles d'être ouvertes simultanément.
+    /// </summary>
+    public ModalPopupSnapshot GetModalPopupSnapshot()
+    {
+        if (_hardResetPopup?.IsOpen   == true) return _hardResetPopup.GetSnapshot();
+        if (_corruptSavePopup?.IsOpen == true) return _corruptSavePopup.GetSnapshot();
+        if (_gameOverPopup?.IsOpen    == true) return _gameOverPopup.GetSnapshot();
+        if (_demoEndPopup?.IsOpen     == true) return _demoEndPopup.GetSnapshot();
+        return ModalPopupSnapshot.None;
+    }
+
+    /// <summary>Déclenche un bouton de modale depuis une vue portée par l'hôte.</summary>
+    public void InvokeModalPopupButtonFromHost(string popupId, string buttonKey)
+    {
+        switch (popupId)
+        {
+            case ModalPopupSnapshot.IdHardReset:   _hardResetPopup?.InvokeButton(buttonKey);   break;
+            case ModalPopupSnapshot.IdCorruptSave: _corruptSavePopup?.InvokeButton(buttonKey); break;
+            case ModalPopupSnapshot.IdGameOver:    _gameOverPopup?.InvokeButton(buttonKey);    break;
+            case ModalPopupSnapshot.IdDemoEnd:     _demoEndPopup?.InvokeButton(buttonKey);     break;
+        }
+    }
 
     /// <summary>Instantané de la barre d'onglets pour une vue portée par l'hôte.</summary>
     public TabBarSnapshot GetTabBarSnapshot() =>
@@ -581,10 +616,14 @@ public sealed class GameScreen : IDisposable
 
         float uiScale = _uiLayoutService.UiScale;
         _debugPanelRenderer?.Render(canvas, _lastCanvasSize, uiScale);
-        _corruptSavePopup?.Render(canvas, _lastCanvasSize, uiScale);
-        _gameOverPopup?.Render(canvas, _lastCanvasSize, uiScale);
-        _hardResetPopup?.Render(canvas, _lastCanvasSize, uiScale);
-        _demoEndPopup?.Render(canvas, _lastCanvasSize, uiScale);
+
+        if (!IsMigratedToHost(HostedOverlayPart.ModalPopup))
+        {
+            _corruptSavePopup?.Render(canvas, _lastCanvasSize, uiScale);
+            _gameOverPopup?.Render(canvas, _lastCanvasSize, uiScale);
+            _hardResetPopup?.Render(canvas, _lastCanvasSize, uiScale);
+            _demoEndPopup?.Render(canvas, _lastCanvasSize, uiScale);
+        }
     }
 
     public void HandlePointerPressed(float x, float y, int pointerId, PointerButton button)

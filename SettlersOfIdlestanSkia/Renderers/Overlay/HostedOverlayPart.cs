@@ -34,6 +34,12 @@ public enum HostedOverlayPart
     /// contrairement a celle du panneau ville.
     CivPanel = 1 << 7,
 
+    /// Modales bloquantes portees par GameScreen (partie terminee, sauvegarde corrompue, remise
+    /// a zero, fin de demo). Elles s'excluent mutuellement et basculent donc ensemble.
+    /// Seul leur dessin bascule : les gardes d'entree de GameScreen restent en place, l'etat
+    /// d'ouverture etant le meme des deux cotes.
+    ModalPopup = 1 << 8,
+
     /// <summary>
     /// Les elements de la barre du haut partagent un meme layout (UILayoutService reserve la
     /// place de chacun pour les autres, et leurs regles de repli sont interdependantes) :

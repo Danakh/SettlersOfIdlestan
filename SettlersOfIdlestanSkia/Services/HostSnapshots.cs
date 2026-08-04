@@ -134,6 +134,64 @@ public sealed record CityPanelSnapshot(
         new(false, false, false, "", "", [], "");
 }
 
+/// <summary>Ton du titre d'une modale : dicte sa couleur, pas son contenu.</summary>
+public enum ModalPopupTone
+{
+    /// Perte ou destruction : partie terminee, sauvegarde corrompue, remise a zero.
+    Danger,
+
+    /// Fin de contenu, sans perte : fin de la demo.
+    Highlight,
+}
+
+/// <summary>Intention d'un bouton de modale : dicte sa couleur.</summary>
+public enum ModalPopupButtonTone
+{
+    /// Repli : annuler, quitter.
+    Neutral,
+    Primary,
+    /// Action destructrice, confirmee sciemment.
+    Danger,
+    Confirm,
+}
+
+/// <param name="Key">Identifiant stable du bouton dans sa modale : sert au routage du clic.</param>
+public sealed record ModalPopupButtonSnapshot(string Key, string Label, ModalPopupButtonTone Tone);
+
+/// <summary>
+/// Modale bloquante portee par <c>GameScreen</c> (partie terminee, sauvegarde corrompue, remise
+/// a zero, fin de demo). Ces quatre modales ont la meme forme — titre, lignes, boutons — et se
+/// partagent donc un seul instantane et une seule vue.
+///
+/// Elles s'excluent mutuellement : l'instantane decrit celle qui est ouverte, s'il y en a une.
+/// </summary>
+/// <param name="Id">Quelle modale est ouverte : sert a router le clic vers le bon renderer.</param>
+/// <param name="HasCloseButton">Modale renoncable par une croix. Absente des modales dont
+/// l'etat du jeu impose de traiter le choix (sauvegarde corrompue, partie terminee).</param>
+/// <param name="ButtonsSideBySide">Deux boutons cote a cote (choix binaire) plutot qu'empiles.</param>
+public sealed record ModalPopupSnapshot(
+    bool IsOpen,
+    string Id,
+    string Title,
+    ModalPopupTone Tone,
+    IReadOnlyList<string> Lines,
+    IReadOnlyList<ModalPopupButtonSnapshot> Buttons,
+    bool HasCloseButton,
+    bool ButtonsSideBySide)
+{
+    public static readonly ModalPopupSnapshot None =
+        new(false, "", "", ModalPopupTone.Danger, [], [], false, false);
+
+    // Identifiants de modale — partages entre GameScreen (routage) et les renderers.
+    public const string IdHardReset   = "hardReset";
+    public const string IdCorruptSave = "corruptSave";
+    public const string IdGameOver    = "gameOver";
+    public const string IdDemoEnd     = "demoEnd";
+
+    /// Cle conventionnelle de la croix de fermeture, commune a toutes les modales.
+    public const string KeyClose = "__close__";
+}
+
 /// <summary>
 /// Une action du panneau civilisation : bouton de la grille, ou petit bouton icone de l'en-tete.
 ///

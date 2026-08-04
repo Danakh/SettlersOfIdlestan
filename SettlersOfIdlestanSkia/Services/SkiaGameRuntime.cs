@@ -258,6 +258,14 @@ public sealed class SkiaGameRuntime : IDisposable
     public void GoToOtherCity(string k) => _gameScreen?.GoToOtherCityFromHost(k);
     public void SetHoveredCityBuilding(string? k, float x, float y) => _gameScreen?.SetHoveredCityBuildingFromHost(k, x, y);
 
+    /// <summary>Instantané de la modale bloquante ouverte, pour une vue portée par l'hôte.</summary>
+    public ModalPopupSnapshot GetModalPopupSnapshot() =>
+        _onTitleScreen ? ModalPopupSnapshot.None
+                       : _gameScreen?.GetModalPopupSnapshot() ?? ModalPopupSnapshot.None;
+
+    public void InvokeModalPopupButton(string popupId, string buttonKey) =>
+        _gameScreen?.InvokeModalPopupButtonFromHost(popupId, buttonKey);
+
     /// <summary>Instantané du panneau civilisation pour une vue portée par l'hôte.</summary>
     public CivPanelSnapshot GetCivPanelSnapshot() =>
         _onTitleScreen ? CivPanelSnapshot.Hidden

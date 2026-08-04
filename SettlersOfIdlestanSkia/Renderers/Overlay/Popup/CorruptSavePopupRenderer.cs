@@ -91,13 +91,56 @@ public sealed class CorruptSavePopupRenderer : PopupRendererBase
         if (!IsOpen || Disposed) return;
         if (JustOpened) { JustOpened = false; return; }
 
-        if (_exportRect.Contains(pos.X, pos.Y))
+        if (_exportRect.Contains(pos.X, pos.Y))  { InvokeButton(KeyExport);  return; }
+        if (_newGameRect.Contains(pos.X, pos.Y)) { InvokeButton(KeyNewGame); return; }
+        if (_quitRect.Contains(pos.X, pos.Y))    { InvokeButton(KeyQuit); }
+    }
+
+    private const string KeyExport  = "export";
+    private const string KeyNewGame = "newGame";
+    private const string KeyQuit    = "quit";
+
+    /// <summary>Instantané pour une vue portée par l'hôte. Reprend les clés de <see cref="Render"/>.</summary>
+    public ModalPopupSnapshot GetSnapshot()
+    {
+        if (!IsOpen || Disposed) return ModalPopupSnapshot.None;
+
+        return new ModalPopupSnapshot(
+            IsOpen: true,
+            Id: ModalPopupSnapshot.IdCorruptSave,
+            Title: _localization.Get("corrupt_save_title"),
+            Tone: ModalPopupTone.Danger,
+            Lines: [_localization.Get("corrupt_save_line1"), _localization.Get("corrupt_save_line2")],
+            Buttons:
+            [
+                new(KeyExport,  _localization.Get("corrupt_save_btn_export"),   ModalPopupButtonTone.Primary),
+                new(KeyNewGame, _localization.Get("corrupt_save_btn_new_game"), ModalPopupButtonTone.Danger),
+                new(KeyQuit,    _localization.Get("corrupt_save_btn_quit"),     ModalPopupButtonTone.Neutral),
+            ],
+            // Aucune partie chargeable derriere : renoncer sans choisir laisserait le jeu vide.
+            HasCloseButton: false,
+            ButtonsSideBySide: false);
+    }
+
+    /// <summary>Déclenche un bouton, depuis le hit-testing Skia comme depuis la vue de l'hôte.</summary>
+    public void InvokeButton(string key)
+    {
+        if (!IsOpen || Disposed) return;
+
+        switch (key)
         {
-            _ = _fileSystemService.SaveText("sauvegarde_corrompue.json", _corruptJson);
-            return;
+            // Exporter ne ferme pas : le joueur doit encore choisir entre repartir et quitter.
+            case KeyExport:
+                _ = _fileSystemService.SaveText("sauvegarde_corrompue.json", _corruptJson);
+                break;
+            case KeyNewGame:
+                IsOpen = false;
+                _onStartFresh();
+                break;
+            case KeyQuit:
+                _onQuit();
+                break;
         }
-        if (_newGameRect.Contains(pos.X, pos.Y)) { IsOpen = false; _onStartFresh(); return; }
-        if (_quitRect.Contains(pos.X, pos.Y))    { _onQuit(); }
     }
 
     public override void Dispose()
