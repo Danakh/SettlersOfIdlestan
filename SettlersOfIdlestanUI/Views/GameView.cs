@@ -7,10 +7,10 @@ using SettlersOfIdlestanUI.ViewModels;
 namespace SettlersOfIdlestanUI.Views;
 
 /// <summary>
-/// Vue racine du jeu : la carte Skia au fond, les elements d'overlay deja migres par-dessus.
+/// Vue racine du jeu : la carte Skia au fond, tout l'overlay par-dessus.
 ///
-/// Chaque element ajoute ici doit etre declare via <see cref="HostedOverlayPart"/>, sinon
-/// il sera dessine deux fois — une fois par l'overlay Skia legacy, une fois par Avalonia.
+/// L'ordre d'ajout dans <c>Children</c> fait foi — c'est lui qui decide ce qui recouvre quoi
+/// et, du meme coup, quel controle intercepte un clic donne.
 /// </summary>
 public sealed class GameView : Panel, IDisposable
 {
@@ -168,13 +168,6 @@ public sealed class GameView : Panel, IDisposable
 
         // En dernier : une modale bloquante doit couvrir tout le reste de l'overlay.
         Children.Add(_modalPopup);
-
-        host.MarkOverlayMigratedToHost(
-            HostedOverlayPart.ZoomControl | HostedOverlayPart.TopBar
-            | HostedOverlayPart.MonumentPanel | HostedOverlayPart.CityPanel
-            | HostedOverlayPart.CivPanel | HostedOverlayPart.ModalPopup
-            | HostedOverlayPart.Toasts | HostedOverlayPart.EventLogTab
-            | HostedOverlayPart.StatsTab | HostedOverlayPart.RitualsTab | HostedOverlayPart.AutomationTab | HostedOverlayPart.SettingsMenu | HostedOverlayPart.TradePopup | HostedOverlayPart.PrestigePopup | HostedOverlayPart.SettingsPopup | HostedOverlayPart.TitleScreen);
     }
 
     protected override void OnAttachedToVisualTree(Avalonia.VisualTreeAttachmentEventArgs e)

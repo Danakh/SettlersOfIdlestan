@@ -1,4 +1,4 @@
-using SkiaSharp;
+﻿using SkiaSharp;
 using SettlersOfIdlestan.Controller.Store;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestanSkia.Core;
@@ -121,10 +121,6 @@ public sealed class SkiaGameRuntime : IDisposable
         _titleScreen.FullscreenToggleRequested += v => FullscreenStateChanged?.Invoke(v);
         _titleScreen.DebugWindowResizeRequested += (w, h) => DebugWindowResizeRequested?.Invoke(w, h);
 
-        // L'ecran-titre est recree a chaque retour au menu : le drapeau de migration, lui, a ete
-        // pose une fois pour toutes au demarrage et doit lui etre reapplique.
-        if (_hostedOverlayParts.HasFlag(HostedOverlayPart.TitleScreen)) _titleScreen.MigrateToHost();
-
         _onTitleScreen = true;
     }
 
@@ -148,9 +144,6 @@ public sealed class SkiaGameRuntime : IDisposable
         _gameScreen.QuitRequested              += () => QuitRequested?.Invoke();
         _gameScreen.FullscreenToggleRequested  += v => FullscreenStateChanged?.Invoke(v);
         _gameScreen.DebugWindowResizeRequested += (w, h) => DebugWindowResizeRequested?.Invoke(w, h);
-        // Le GameScreen est recree a chaque partie : l'hote declare ses parties d'overlay une
-        // seule fois, c'est le runtime qui les reapplique ici.
-        _gameScreen.MarkOverlayMigratedToHost(_hostedOverlayParts);
 
         if (_isCanvasInitialized)
             _gameScreen.EnsureCanvasInitialized(_lastCanvasSize);
@@ -180,9 +173,6 @@ public sealed class SkiaGameRuntime : IDisposable
         _gameScreen.QuitRequested              += () => QuitRequested?.Invoke();
         _gameScreen.FullscreenToggleRequested  += v => FullscreenStateChanged?.Invoke(v);
         _gameScreen.DebugWindowResizeRequested += (w, h) => DebugWindowResizeRequested?.Invoke(w, h);
-        // Le GameScreen est recree a chaque partie : l'hote declare ses parties d'overlay une
-        // seule fois, c'est le runtime qui les reapplique ici.
-        _gameScreen.MarkOverlayMigratedToHost(_hostedOverlayParts);
 
         if (_isCanvasInitialized)
             _gameScreen.EnsureCanvasInitialized(_lastCanvasSize);
@@ -225,19 +215,9 @@ public sealed class SkiaGameRuntime : IDisposable
         return new GameSettings();
     }
 
-    // ── API publique (inchangée pour les shells Desktop/Web) ─────────────────
+    // ── API publique ─────────────────────────────────────────────────────────
 
     private bool _isCanvasInitialized;
-
-    private HostedOverlayPart _hostedOverlayParts = HostedOverlayPart.None;
-
-    /// <summary>Déclare qu'une partie de l'overlay est désormais rendue par des contrôles de l'hôte.</summary>
-    public void MarkOverlayMigratedToHost(HostedOverlayPart parts)
-    {
-        _hostedOverlayParts |= parts;
-        _gameScreen?.MarkOverlayMigratedToHost(parts);
-        if (_hostedOverlayParts.HasFlag(HostedOverlayPart.TitleScreen)) _titleScreen?.MigrateToHost();
-    }
 
     /// <summary>Vrai quand une partie est en cours et affiche une carte hex (pas l'écran titre ni un onglet plein écran).</summary>
     public bool IsMapViewActive => !_onTitleScreen && (_gameScreen?.IsMapViewActive ?? false);
@@ -432,6 +412,7 @@ public sealed class SkiaGameRuntime : IDisposable
         _isCanvasInitialized = true;
 
         _gameScreen?.EnsureCanvasInitialized(canvasSize);
+        _titleScreen?.SetCanvasSize(canvasSize);
     }
 
     public void Tick()
@@ -444,40 +425,37 @@ public sealed class SkiaGameRuntime : IDisposable
         if (_onTitleScreen) _titleScreen?.AdvanceToasts();
     }
 
+    /// <summary>
+    /// L'écran-titre n'a rien à dessiner : il est entièrement fait de contrôles Avalonia, et
+    /// le canevas reste noir derrière eux.
+    /// </summary>
     public void Render(SKCanvas canvas)
     {
         if (_isDisposed || !_isInitialized) return;
-
-        float uiScale = _uiLayoutService?.UiScale ?? 1f;
-
-        if (_onTitleScreen)
-            _titleScreen?.Render(canvas, _lastCanvasSize, uiScale);
-        else
-            _gameScreen?.Render(canvas);
+        if (!_onTitleScreen) _gameScreen?.Render(canvas);
     }
+
+    // L'input ne concerne plus que la partie : l'écran-titre reçoit le sien par l'arbre visuel
+    // d'Avalonia, sans passer par ici.
 
     public void HandlePointerPressed(float x, float y, int pointerId = 0, PointerButton button = PointerButton.Left)
     {
-        if (_onTitleScreen) _titleScreen?.HandlePointerPressed(x, y, button);
-        else                _gameScreen?.HandlePointerPressed(x, y, pointerId, button);
+        if (!_onTitleScreen) _gameScreen?.HandlePointerPressed(x, y, pointerId, button);
     }
 
     public void HandlePointerMoved(float x, float y, int pointerId = 0)
     {
-        if (_onTitleScreen) _titleScreen?.HandlePointerMoved(x, y);
-        else                _gameScreen?.HandlePointerMoved(x, y, pointerId);
+        if (!_onTitleScreen) _gameScreen?.HandlePointerMoved(x, y, pointerId);
     }
 
     public void HandlePointerReleased(float x, float y, int pointerId = 0, PointerButton button = PointerButton.Left)
     {
-        if (_onTitleScreen) _titleScreen?.HandlePointerReleased(x, y, button);
-        else                _gameScreen?.HandlePointerReleased(x, y, pointerId, button);
+        if (!_onTitleScreen) _gameScreen?.HandlePointerReleased(x, y, pointerId, button);
     }
 
     public void HandleZoom(float wheelDelta, float x, float y)
     {
-        if (_onTitleScreen) _titleScreen?.HandleScroll(wheelDelta);
-        else                _gameScreen?.HandleZoom(wheelDelta, x, y);
+        if (!_onTitleScreen) _gameScreen?.HandleZoom(wheelDelta, x, y);
     }
 
     public void HandlePinch(float scaleRatio, float x, float y, float panDeltaX = 0f, float panDeltaY = 0f)
@@ -492,8 +470,7 @@ public sealed class SkiaGameRuntime : IDisposable
 
     public void HandleKeyPressed(string key)
     {
-        if (_onTitleScreen) _titleScreen?.HandleKeyPressed(key);
-        else                _gameScreen?.HandleKeyPressed(key, _allowDebugMode);
+        if (!_onTitleScreen) _gameScreen?.HandleKeyPressed(key, _allowDebugMode);
     }
 
     public void NotifyPageVisible(double hiddenSeconds)

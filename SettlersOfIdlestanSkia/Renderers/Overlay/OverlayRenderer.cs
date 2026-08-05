@@ -44,15 +44,6 @@ public sealed class OverlayRenderer : IGameRenderer
     private SKPoint _lastPointerPosition;
     private TargetSelectionService? _targetSelectionService;
 
-    // Ligne dédiée (time controls + gear) quand ils ne sont pas inline avec la barre de ressources
-    private SKRect _wrappedGearRect;
-    private readonly SKPaint _secondRowBgPaint     = new() { Color = new SKColor(0, 0, 0, 220), Style = SKPaintStyle.Fill, IsAntialias = true };
-    private readonly SKPaint _secondRowBorderPaint = new() { Color = SKColors.Gold, StrokeWidth = 1f, Style = SKPaintStyle.Stroke, IsAntialias = true };
-
-    // Horizontal resource bar drag (mobile)
-    private bool _isDraggingResources;
-    private float _resourceDragLastX;
-
     private bool _disposed;
     private bool _isVisible = true;
     private bool _suppressNextPress;
@@ -128,7 +119,6 @@ public sealed class OverlayRenderer : IGameRenderer
         _inputService.PointerReleased += HandlePointerReleased;
         _inputService.ZoomChanged     += HandleZoomChanged;
         _inputService.KeyPressed      += HandleKeyInput;
-        _inputService.KeyReleased     += HandleKeyRelease;
     }
 
     public void Initialize(SKSize canvasSize)
@@ -154,10 +144,8 @@ public sealed class OverlayRenderer : IGameRenderer
         _tabBar.Initialize(canvasSize);
         _zoomControl.Initialize(canvasSize, _uiLayout.UiScale);
 
-        _playerResourcesOverlayRenderer.ShowGearInBar = !_uiLayout.TimeSettingsOnSecondRow && !_uiLayout.ResourcesOnOwnRow;
-
         float scale = _uiLayout.UiScale;
-        _timeControlRenderer.Initialize(canvasSize, _uiLayout.GearX - 8f * scale, _uiLayout.TimeControlRowTop, scale);
+        _timeControlRenderer.Initialize(canvasSize, _uiLayout.GearX - 8f * scale, rowTop: 0f, scale);
     }
 
     public void Render(SKCanvas canvas, GameRenderContext context)
@@ -190,29 +178,9 @@ public sealed class OverlayRenderer : IGameRenderer
                 _playerCivPanel.Collapse();
         }
 
-        bool gearInline = !_uiLayout.TimeSettingsOnSecondRow && !_uiLayout.ResourcesOnOwnRow;
-        _playerResourcesOverlayRenderer.ShowGearInBar = gearInline;
-        _playerResourcesOverlayRenderer.RowTop = _uiLayout.ResourcesRowTop;
-        _playerResourcesOverlayRenderer.RightReservedWidth = (_uiLayout.TimeSettingsOnSecondRow || _uiLayout.ResourcesOnOwnRow)
-            ? UILayoutService.BarPadding * _uiLayout.UiScale
-            : _uiLayout.TimeSettingsBlockWidth;
-        _playerResourcesOverlayRenderer.ShowScrollArrows = _uiLayout.ResourcesOverflow;
-
-        // Menu en haut, ressources en débordement : la barre de ressources a migré sur sa propre ligne,
-        // il faut donc fournir un fond pour la ligne du haut qui ne contient plus que les tabs (et le gear/temps).
-        // L'hote dessine sa propre barre (fond compris) : le renderer legacy ne doit plus rien
-        // peindre, sous peine de doubler le fond et les pastilles de ressources.
-        _uiLayout.HostOwnsTopBar = IsMigratedToHost(HostedOverlayPart.ResourceBar);
-
-        if (!IsMigratedToHost(HostedOverlayPart.ResourceBar))
-        {
-            if (_uiLayout.ResourcesOnOwnRow)
-                DrawRowBackground(canvas, 0f);
-
-            _playerResourcesOverlayRenderer.Render(canvas, context);
-            _uiLayout.SetResourcesContentWidth(_playerResourcesOverlayRenderer.TotalResourcesContentWidth);
-        }
-
+        // Les onglets encore dessinés en Skia sont ceux dont le contenu est une vue canvas :
+        // graphe de recherche, carte de prestige, ascension, historique. Tous les autres sont
+        // des contrôles Avalonia posés au-dessus du canevas.
         switch (activeTab)
         {
             case TabBarRenderer.TabResearch:
@@ -221,22 +189,6 @@ public sealed class OverlayRenderer : IGameRenderer
             case TabBarRenderer.TabPrestige:
                 _prestigeMapRenderer.RenderPrestigeMap(canvas, context);
                 break;
-            case TabBarRenderer.TabStats:
-                if (!IsMigratedToHost(HostedOverlayPart.StatsTab))
-                    _prestigeHistoryRenderer.RenderHistory(canvas, context);
-                break;
-            case TabBarRenderer.TabEvents:
-                if (!IsMigratedToHost(HostedOverlayPart.EventLogTab))
-                    _eventLogRenderer.RenderEvents(canvas, context);
-                break;
-            case TabBarRenderer.TabAutomation:
-                if (!IsMigratedToHost(HostedOverlayPart.AutomationTab))
-                    _automationRenderer.RenderAutomationPage(canvas, context);
-                break;
-            case TabBarRenderer.TabRituals:
-                if (!IsMigratedToHost(HostedOverlayPart.RitualsTab))
-                    _ritualsRenderer.RenderRitualsPage(canvas, context);
-                break;
             case TabBarRenderer.TabAscension:
                 _ascensionRenderer.RenderAscensionPage(canvas, context);
                 break;
@@ -244,79 +196,14 @@ public sealed class OverlayRenderer : IGameRenderer
                 _historyRenderer?.RenderHistory(canvas, context);
                 break;
             default:
-                if (!IsMigratedToHost(HostedOverlayPart.CivPanel))
-                    _playerCivPanel.Render(canvas, context);
-
-                if (IsMigratedToHost(HostedOverlayPart.CityPanel))
-                    // Le panneau est rendu par l'hote, mais son tooltip de survol se dessine
-                    // par-dessus la carte : il reste produit ici.
-                    _selectedCityPanelRenderer.RenderHostTooltipOnly(canvas, context);
-                else
-                    _selectedCityPanelRenderer.Render(canvas, context);
-
-                if (!IsMigratedToHost(HostedOverlayPart.MonumentPanel))
-                    _selectedMonumentPanelRenderer.Render(canvas, context);
+                // Le panneau ville est rendu par l'hôte, mais son infobulle de survol se dessine
+                // par-dessus la carte : elle reste produite ici, faute d'équivalent Avalonia
+                // pour ses ~450 lignes de règles.
+                _selectedCityPanelRenderer.RenderHostTooltipOnly(canvas, context);
                 break;
         }
 
-        // Update() continue de tourner plus haut même une fois migré : TabBarRenderer reste la
-        // machine à états (déblocage, notifications, repli), seul son dessin passe côté hôte.
-        if (!IsMigratedToHost(HostedOverlayPart.TabBar))
-            _tabBar.Render(canvas);
-
-        if (!IsMigratedToHost(HostedOverlayPart.TimeControl))
-        {
-            if (_uiLayout.TimeSettingsOnSecondRow)
-                DrawRowBackground(canvas, _uiLayout.TimeControlRowTop);
-
-            float timeControlScale = _uiLayout.UiScale;
-            _timeControlRenderer.Initialize(_canvasSize, _uiLayout.GearX - 8f * timeControlScale, _uiLayout.TimeControlRowTop, timeControlScale);
-            _timeControlRenderer.Render(canvas, context);
-        }
-
-        float gearX = _uiLayout.GearX;
-        // Le menu paramètres reste dessiné en Skia et s'ancre sous l'engrenage : seule l'icône
-        // passe côté hôte.
-        if (!gearInline && !IsMigratedToHost(HostedOverlayPart.GearIcon))
-            DrawWrappedGearIcon(canvas, gearX, _uiLayout.TimeControlRowTop);
-        _settingsMenu.Draw(canvas, gearX, _uiLayout.SecondRowBottom);
-
-        _tradeRenderer.Render(canvas, _uiLayout.UiScale);
-        _prestigeRenderer.Render(canvas);
-        _settingsPopupRenderer.Render(canvas, _uiLayout.UiScale);
-
-        if (IsMapViewTab(activeTab) && !IsMigratedToHost(HostedOverlayPart.ZoomControl))
-        {
-            _zoomControl.Initialize(_canvasSize, _uiLayout.UiScale);
-            _zoomControl.Render(canvas);
-        }
-
         CheckResourceBarTooltip();
-    }
-
-    /// Fond générique pour toute ligne ne bénéficiant pas déjà du fond dessiné par la barre de ressources :
-    /// la ligne du haut (rowTop=0) quand les ressources en ont été reléguées ailleurs, ou une ligne secondaire
-    /// dédiée au bloc temps+paramètres (rowTop&gt;0, plus basse que la barre principale).
-    private void DrawRowBackground(SKCanvas canvas, float rowTop)
-    {
-        float scale = _uiLayout.UiScale;
-        float rowH  = (rowTop > 0f ? UILayoutService.SecondRowHeight : UILayoutService.TopBarHeight) * scale;
-        float cr    = 4 * scale;
-        var rowRect = new SKRect(0, rowTop, _canvasSize.Width, rowTop + rowH);
-        canvas.DrawRoundRect(rowRect, cr, cr, _secondRowBgPaint);
-        canvas.DrawRoundRect(rowRect, cr, cr, _secondRowBorderPaint);
-    }
-
-    /// Dessine le gear seul quand il n'est pas inline dans la barre de ressources (voir DrawRowBackground pour
-    /// le fond de sa ligne).
-    private void DrawWrappedGearIcon(SKCanvas canvas, float gearX, float rowTop)
-    {
-        float scale    = _uiLayout.UiScale;
-        float rowH     = (rowTop > 0f ? UILayoutService.SecondRowHeight : UILayoutService.TopBarHeight) * scale;
-        float iconSize = UILayoutService.GearIconSize * scale;
-        float gearY    = rowTop + (rowH - iconSize) / 2f;
-        _wrappedGearRect = new SKRect(gearX, gearY, gearX + iconSize, gearY + iconSize);
-        _playerResourcesOverlayRenderer.DrawGearAt(canvas, gearX, gearY, iconSize);
     }
 
     private void CheckResourceBarTooltip()
@@ -409,27 +296,7 @@ public sealed class OverlayRenderer : IGameRenderer
     public bool IsAnyOverlayOpen => _tradeRenderer.IsOpen || _prestigeRenderer.IsOpen
                                  || _settingsMenu.IsOpen  || _settingsPopupRenderer.IsOpen;
 
-    private HostedOverlayPart _hostedParts = HostedOverlayPart.None;
-
-    /// Declare qu'une partie de l'overlay est desormais rendue par l'hote Avalonia.
-    public void MarkMigratedToHost(HostedOverlayPart parts)
-    {
-        _hostedParts |= parts;
-
-        // Le menu se dessine et s'ecoute lui-meme : il faut le lui dire, sinon chaque clic
-        // serait traite deux fois.
-        if (IsMigratedToHost(HostedOverlayPart.SettingsMenu)) _settingsMenu.MigrateToHost();
-        if (IsMigratedToHost(HostedOverlayPart.TradePopup)) _tradeRenderer.MigrateToHost();
-        if (IsMigratedToHost(HostedOverlayPart.PrestigePopup)) _prestigeRenderer.MigrateToHost();
-        if (IsMigratedToHost(HostedOverlayPart.SettingsPopup)) _settingsPopupRenderer.MigrateToHost();
-    }
-
-    private bool IsMigratedToHost(HostedOverlayPart part) => _hostedParts.HasFlag(part);
-
-    /// <summary>
-    /// Ouvre/ferme le menu paramètres depuis une icône d'engrenage portée par l'hôte.
-    /// Le menu lui-même reste dessiné par l'overlay Skia, ancré sous la barre du haut.
-    /// </summary>
+    /// <summary>Ouvre/ferme le menu paramètres depuis l'icône d'engrenage de l'hôte.</summary>
     public void ToggleSettingsMenuFromHost() => _settingsMenu.HandleGearClick();
 
     /// <summary>Instantané de la barre d'onglets pour une vue portée par l'hôte.</summary>
@@ -557,17 +424,16 @@ public sealed class OverlayRenderer : IGameRenderer
         ApplyLayerForActiveTab();
     }
 
-    public bool IsPointBlockedByUI(SKPoint point) =>
-        IsAnyOverlayOpen
-        || !IsIslandTabActive
-        || (!IsMigratedToHost(HostedOverlayPart.CityPanel) && _selectedCityPanelRenderer.ContainsPoint(point))
-        || (!IsMigratedToHost(HostedOverlayPart.MonumentPanel) && _selectedMonumentPanelRenderer.ContainsPoint(point))
-        || (!IsMigratedToHost(HostedOverlayPart.CivPanel) && _playerCivPanel.ContainsPoint(point))
-        || (!IsMigratedToHost(HostedOverlayPart.ZoomControl) && _zoomControl.ContainsPoint(point))
-        || (!IsMigratedToHost(HostedOverlayPart.TabBar) && _tabBar.ContainsPoint(point))
-        || (!IsMigratedToHost(HostedOverlayPart.TimeControl) && _timeControlRenderer.ContainsPoint(point))
-        || (!IsMigratedToHost(HostedOverlayPart.GearIcon) && GetGearRect().Contains(point.X, point.Y))
-        || (_uiLayout.ResourcesOverflow && point.Y < _uiLayout.ResourceBarBottom);
+    /// <summary>
+    /// Ce qui reste de l'ancien arbitrage manuel des clics. Il énumérait autrefois chaque
+    /// composant de l'overlay Skia, une liste maintenue à la main dont l'oubli d'un élément
+    /// laissait passer les clics jusqu'à la carte. L'arbre visuel d'Avalonia s'en charge
+    /// désormais : un clic sur un panneau n'atteint tout simplement pas le contrôle carte.
+    ///
+    /// Ne subsistent que les deux conditions qu'Avalonia ne couvre pas, la molette pouvant
+    /// arriver sur le canevas alors que le jeu n'est pas censé y répondre.
+    /// </summary>
+    public bool IsPointBlockedByUI(SKPoint point) => IsAnyOverlayOpen || !IsIslandTabActive;
 
     public bool IsIslandTabActive => IsMapViewTab(_tabBar.ActiveTab);
 
@@ -610,36 +476,18 @@ public sealed class OverlayRenderer : IGameRenderer
         _cameraService.CenterOn(worldX, worldY);
     }
 
-    private SKRect GetGearRect()
-    {
-        bool gearInline = !_uiLayout.TimeSettingsOnSecondRow && !_uiLayout.ResourcesOnOwnRow;
-        return gearInline ? _playerResourcesOverlayRenderer.GearRect : _wrappedGearRect;
-    }
+    // ── Input ─────────────────────────────────────────────────────────────────
+    // Ne reste ici que ce qui est encore dessiné en Skia : les onglets dont le contenu est une
+    // vue canvas. Tout le reste de l'overlay est fait de contrôles Avalonia, qui reçoivent
+    // leurs propres événements sans passer par ce dispatch.
 
     private void HandlePointerMoved(object? sender, PointerEventArgs e)
     {
         if (!_isVisible) return;
 
-        if (_isDraggingResources)
-        {
-            float delta        = _resourceDragLastX - e.Position.X;
-            _resourceDragLastX = e.Position.X;
-            _playerResourcesOverlayRenderer.ScrollBy(delta);
-            return;
-        }
-
-        if (_settingsPopupRenderer.IsOpen) _settingsPopupRenderer.HandlePointerMoved(e.Position);
-        if (_tradeRenderer.IsOpen)         _tradeRenderer.HandlePointerMoved(e.Position);
-        if (_prestigeRenderer.IsOpen)      _prestigeRenderer.HandlePointerMoved(e.Position);
-
         int activeTab = _tabBar.ActiveTab;
-        if (activeTab == TabBarRenderer.TabPrestige)   _prestigeMapRenderer.HandlePointerMoved(e.Position);
-        if (activeTab == TabBarRenderer.TabAutomation) _automationRenderer.HandlePointerMoved(e.Position);
-        if (activeTab == TabBarRenderer.TabRituals)    _ritualsRenderer.HandlePointerMoved(e.Position);
-        if (activeTab == TabBarRenderer.TabAscension)  _ascensionRenderer.HandlePointerMoved(e.Position);
-        if (activeTab == TabBarRenderer.TabStats)      _prestigeHistoryRenderer.HandlePointerMoved(e.Position);
-        if (IsMapViewTab(activeTab) && !IsMigratedToHost(HostedOverlayPart.CivPanel))
-            _playerCivPanel.HandlePointerMoved(e.Position);
+        if (activeTab == TabBarRenderer.TabPrestige)  _prestigeMapRenderer.HandlePointerMoved(e.Position);
+        if (activeTab == TabBarRenderer.TabAscension) _ascensionRenderer.HandlePointerMoved(e.Position);
 
         _lastPointerPosition = e.Position;
     }
@@ -648,45 +496,11 @@ public sealed class OverlayRenderer : IGameRenderer
     {
         if (!_isVisible) return;
         if (_suppressNextPress) { _suppressNextPress = false; return; }
-
-        if (_settingsPopupRenderer.HandlePointerPressed(e.Position, e.Button)) return;
-        if (_prestigeRenderer.HandlePointerPressed(e.Position, e.Button))      return;
-        if (_tradeRenderer.HandlePointerPressed(e.Position, e.Button))         return;
         if (e.Button != PointerButton.Left) return;
 
-        var gearRect = GetGearRect();
-        if (gearRect != default && gearRect.Contains(e.Position.X, e.Position.Y))
-        {
-            _settingsMenu.HandleGearClick();
-            return;
-        }
-
-        if (_uiLayout.ResourcesOverflow && _playerResourcesOverlayRenderer.HandleArrowClick(e.Position))
-            return;
-
-        if (_uiLayout.ResourcesOverflow && e.Position.Y < _uiLayout.ResourceBarBottom)
-        {
-            _isDraggingResources = true;
-            _resourceDragLastX   = e.Position.X;
-            return;
-        }
-
-        if (!IsMigratedToHost(HostedOverlayPart.TabBar) && _tabBar.HandlePointerPressed(e.Position))
-        {
-            ApplyLayerForActiveTab();
-            return;
-        }
-
         int activeTab = _tabBar.ActiveTab;
-        if (activeTab == TabBarRenderer.TabPrestige)   { _prestigeMapRenderer.HandlePointerPressed(e.Position); return; }
-        if (activeTab == TabBarRenderer.TabAutomation) { _automationRenderer.HandlePointerPressed(e.Position); return; }
-        if (activeTab == TabBarRenderer.TabRituals)    { _ritualsRenderer.HandlePointerPressed(e.Position); return; }
-        if (activeTab == TabBarRenderer.TabAscension)  { _ascensionRenderer.HandlePointerPressed(e.Position); return; }
-        if (activeTab == TabBarRenderer.TabStats)      { _prestigeHistoryRenderer.HandlePointerPressed(e.Position); return; }
-        if (activeTab is TabBarRenderer.TabResearch or TabBarRenderer.TabEvents) return;
-
-        if (!IsMigratedToHost(HostedOverlayPart.CivPanel))
-            _playerCivPanel.HandlePointerPressed(e.Position);
+        if (activeTab == TabBarRenderer.TabPrestige)  _prestigeMapRenderer.HandlePointerPressed(e.Position);
+        if (activeTab == TabBarRenderer.TabAscension) _ascensionRenderer.HandlePointerPressed(e.Position);
     }
 
     private void DeselectCityAndMonument()
@@ -726,90 +540,30 @@ public sealed class OverlayRenderer : IGameRenderer
         _zoomControl.OnZoomOut = zoomOut;
     }
 
-    public void SwitchToPrestigeTab() => _tabBar.SetActiveTab(TabBarRenderer.TabPrestige);
     public void SwitchToIslandTab() => _tabBar.SetActiveTab(TabBarRenderer.TabIsland);
-    public void SwitchToResearchTab() => _tabBar.SetActiveTab(TabBarRenderer.TabResearch);
 
     private void HandlePointerReleased(object? sender, PointerEventArgs e)
     {
-        _isDraggingResources = false;
         if (!_isVisible) return;
-        if (_settingsPopupRenderer.IsOpen) _settingsPopupRenderer.HandlePointerReleased(e.Position);
-        if (_tradeRenderer.IsOpen) _tradeRenderer.HandlePointerReleased(e.Position);
-        if (_prestigeRenderer.IsOpen) _prestigeRenderer.HandlePointerReleased(e.Position);
-        if (_tabBar.ActiveTab == TabBarRenderer.TabPrestige)
-            _prestigeMapRenderer.HandlePointerReleased(e.Position);
-        if (_tabBar.ActiveTab == TabBarRenderer.TabAutomation)
-            _automationRenderer.HandlePointerReleased(e.Position);
-        if (_tabBar.ActiveTab == TabBarRenderer.TabRituals)
-            _ritualsRenderer.HandlePointerReleased(e.Position);
-        if (_tabBar.ActiveTab == TabBarRenderer.TabStats)
-            _prestigeHistoryRenderer.HandlePointerReleased(e.Position);
-        if (_tabBar.ActiveTab == TabBarRenderer.TabAscension)
-            _ascensionRenderer.HandlePointerReleased(e.Position);
+
+        int activeTab = _tabBar.ActiveTab;
+        if (activeTab == TabBarRenderer.TabPrestige)  _prestigeMapRenderer.HandlePointerReleased(e.Position);
+        if (activeTab == TabBarRenderer.TabAscension) _ascensionRenderer.HandlePointerReleased(e.Position);
     }
 
     private void HandleZoomChanged(object? sender, ZoomEventArgs e)
     {
         if (!_isVisible) return;
-        if (_settingsPopupRenderer.IsOpen)
-        {
-            _settingsPopupRenderer.HandleScroll(e.ZoomDelta);
-            return;
-        }
-        if (_tradeRenderer.IsOpen)
-        {
-            _tradeRenderer.HandleScroll(e.ZoomDelta);
-            return;
-        }
-        if (_prestigeRenderer.IsOpen)
-        {
-            _prestigeRenderer.HandleScroll(e.ZoomDelta);
-            return;
-        }
+
         int activeTab = _tabBar.ActiveTab;
-        if (activeTab == TabBarRenderer.TabPrestige)
-        {
-            _prestigeMapRenderer.HandleZoom(e);
-            return;
-        }
-        if (IsMapViewTab(activeTab))
-        {
-            if (_selectedCityPanelRenderer.ContainsPoint(e.Center))
-                _selectedCityPanelRenderer.HandleScroll(e.ZoomDelta);
-            else if (_selectedMonumentPanelRenderer.ContainsPoint(e.Center))
-                _selectedMonumentPanelRenderer.HandleScroll(e.ZoomDelta);
-            else if (!IsMigratedToHost(HostedOverlayPart.CivPanel) && _playerCivPanel.ContainsPoint(e.Center))
-                _playerCivPanel.HandleScroll(e.ZoomDelta);
-        }
-        if (activeTab == TabBarRenderer.TabAutomation)
-            _automationRenderer.HandleScroll(e.ZoomDelta);
-        if (activeTab == TabBarRenderer.TabRituals)
-            _ritualsRenderer.HandleScroll(e.ZoomDelta);
-        if (activeTab == TabBarRenderer.TabStats)
-            _prestigeHistoryRenderer.HandleScroll(e.ZoomDelta);
-        if (activeTab == TabBarRenderer.TabAscension)
-            _ascensionRenderer.HandleScroll(e.ZoomDelta);
+        if (activeTab == TabBarRenderer.TabPrestige)  _prestigeMapRenderer.HandleZoom(e);
+        if (activeTab == TabBarRenderer.TabAscension) _ascensionRenderer.HandleScroll(e.ZoomDelta);
     }
 
     private void HandleKeyInput(object? sender, KeyEventArgs e)
     {
         if (!_isVisible) return;
-        if (_tradeRenderer.IsOpen)
-        {
-            if (e.Key == "Escape") { _tradeRenderer.Close(); return; }
-            _tradeRenderer.HandleKeyDown(e.Key);
-            return;
-        }
-        if (_settingsPopupRenderer.IsOpen && _settingsPopupRenderer.HandleKeyPressed(e.Key)) return;
         _tabBar.HandleKeyInput(e.Key);
-    }
-
-    private void HandleKeyRelease(object? sender, KeyEventArgs e)
-    {
-        if (!_isVisible) return;
-        if (_tradeRenderer.IsOpen)
-            _tradeRenderer.HandleKeyUp(e.Key);
     }
 
     public void Dispose()
@@ -821,7 +575,6 @@ public sealed class OverlayRenderer : IGameRenderer
         _inputService.PointerReleased -= HandlePointerReleased;
         _inputService.ZoomChanged     -= HandleZoomChanged;
         _inputService.KeyPressed      -= HandleKeyInput;
-        _inputService.KeyReleased     -= HandleKeyRelease;
 
         _playerResourcesOverlayRenderer.Dispose();
         _selectedCityPanelRenderer.Dispose();
@@ -841,8 +594,6 @@ public sealed class OverlayRenderer : IGameRenderer
         _playerCivPanel.Dispose();
         _tabBar.Dispose();
         _zoomControl.Dispose();
-        _secondRowBgPaint.Dispose();
-        _secondRowBorderPaint.Dispose();
 
         _disposed = true;
     }

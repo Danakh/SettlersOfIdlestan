@@ -349,9 +349,6 @@ public sealed class GameScreen : IDisposable
             (_overlayRenderer.IsPointBlockedByUI(pos))
             || (_targetSelectionService.IsActive);
 
-        selectedCityPanelRenderer.ShouldSuppressInput    = () => _overlayRenderer.IsAnyOverlayOpen;
-        selectedMonumentPanelRenderer.ShouldSuppressInput = () => _overlayRenderer.IsAnyOverlayOpen;
-
         if (allowDebugMode)
         {
             _renderService.RegisterRenderer(new DebugOverlayRenderer(_inputService, _cameraService, islandMainRenderer, _localizationService));
@@ -370,8 +367,9 @@ public sealed class GameScreen : IDisposable
             else           _tutorialService.InitializeForLoadedGame(tutorialState);
         }
 
+        // Pas de RegisterRenderer : ce renderer ne dessine plus, la pile de toasts est une vue
+        // Avalonia. Il reste la machine à états, avancée depuis Tick.
         _notificationToastRenderer = new NotificationToastRenderer(_uiLayoutService);
-        _renderService.RegisterRenderer(_notificationToastRenderer);
 
         _gameControllerService.MainGameController.AchievementController.OnAchievementUnlocked += OnAchievementUnlocked;
 
@@ -384,27 +382,11 @@ public sealed class GameScreen : IDisposable
         _gameControllerService.MainGameController.CityBuilderController.OnCityDestroyed += OnCityDestroyedCheckGameOver;
     }
 
-    /// <summary>Déclare qu'une partie de l'overlay est désormais rendue par l'hôte Avalonia.</summary>
-    public void MarkOverlayMigratedToHost(HostedOverlayPart parts)
-    {
-        // Les modales sont dessinées par cet écran, pas par l'overlay : il faut donc que
-        // GameScreen retienne le drapeau lui aussi, sans quoi elles seraient dessinées en double.
-        _hostedParts |= parts;
-        _overlayRenderer?.MarkMigratedToHost(parts);
-
-        if (IsMigratedToHost(HostedOverlayPart.Toasts))
-            _notificationToastRenderer?.MigrateToHost();
-    }
-
     /// <summary>Instantané des toasts pour une vue portée par l'hôte.</summary>
     public ToastListSnapshot GetToastSnapshot() =>
         _notificationToastRenderer?.GetSnapshot() ?? ToastListSnapshot.Empty;
 
     public void DismissToastFromHost(long id) => _notificationToastRenderer?.Dismiss(id);
-
-    private HostedOverlayPart _hostedParts = HostedOverlayPart.None;
-
-    private bool IsMigratedToHost(HostedOverlayPart part) => _hostedParts.HasFlag(part);
 
     /// <summary>
     /// Instantané de la modale bloquante ouverte, pour une vue portée par l'hôte.
@@ -629,10 +611,9 @@ public sealed class GameScreen : IDisposable
         _gameControllerService.Update(deltaTime);
         DrainEventToasts();
 
-        // Sans effet tant que les toasts sont dessinés en Skia : leur Render fait alors lui-même
-        // le décompte, et Advance ne s'applique qu'une fois la bascule vers l'hôte déclarée.
-        if (IsMigratedToHost(HostedOverlayPart.Toasts))
-            _notificationToastRenderer?.Advance(deltaTime);
+        // Les toasts sont dessinés par l'hôte : leur Render ne tourne plus, c'est donc la boucle
+        // de jeu qui doit les faire vieillir — sinon plus rien ne les ferait expirer.
+        _notificationToastRenderer?.Advance(deltaTime);
 
         bool introActive = _introRenderer?.IsActive == true;
         if (introActive)       _gameControllerService.CurrentGameState?.Clock?.Pause();
@@ -696,26 +677,19 @@ public sealed class GameScreen : IDisposable
 
         _renderService.RenderFrame(canvas, gameState, _cameraService);
 
-        float uiScale = _uiLayoutService.UiScale;
-        _debugPanelRenderer?.Render(canvas, _lastCanvasSize, uiScale);
-
-        if (!IsMigratedToHost(HostedOverlayPart.ModalPopup))
-        {
-            _corruptSavePopup?.Render(canvas, _lastCanvasSize, uiScale);
-            _gameOverPopup?.Render(canvas, _lastCanvasSize, uiScale);
-            _hardResetPopup?.Render(canvas, _lastCanvasSize, uiScale);
-            _demoEndPopup?.Render(canvas, _lastCanvasSize, uiScale);
-        }
+        // Les modales sont rendues par l'hôte ; ne reste ici que le panneau de debug.
+        _debugPanelRenderer?.Render(canvas, _lastCanvasSize, _uiLayoutService.UiScale);
     }
 
     public void HandlePointerPressed(float x, float y, int pointerId, PointerButton button)
     {
-        if (_hardResetPopup?.IsOpen == true)  { _hardResetPopup.HandlePointerPressed(new SKPoint(x, y), button);  return; }
-        if (_corruptSavePopup?.IsOpen == true) { _corruptSavePopup.HandlePointerPressed(new SKPoint(x, y), button); return; }
-        if (_gameOverPopup?.IsOpen == true)    { _gameOverPopup.HandlePointerPressed(new SKPoint(x, y), button);   return; }
-        if (_demoEndPopup?.IsOpen == true)     { _demoEndPopup.HandlePointerPressed(new SKPoint(x, y), button);    return; }
-        if (_introRenderer?.IsActive == true)  return;
-        if (_notificationToastRenderer?.HandlePointerPressed(new SKPoint(x, y)) == true) return;
+        // Une modale ouverte est bloquante : elle est dessinée par l'hôte, qui intercepte déjà
+        // les clics, mais la garde reste ici — c'est le renderer qui détient l'état d'ouverture.
+        if (_hardResetPopup?.IsOpen    == true) return;
+        if (_corruptSavePopup?.IsOpen  == true) return;
+        if (_gameOverPopup?.IsOpen     == true) return;
+        if (_demoEndPopup?.IsOpen      == true) return;
+        if (_introRenderer?.IsActive   == true) return;
 
         _isPointerDown        = true;
         _isPanning            = false;

@@ -119,9 +119,6 @@ public sealed class GameRuntimeHost : IDisposable
 
     public void ZoomOut() => Invoke(r => r.ZoomOut());
 
-    public void MarkOverlayMigratedToHost(HostedOverlayPart parts) =>
-        Invoke(r => r.MarkOverlayMigratedToHost(parts));
-
     public SkiaLayer.TabBarSnapshot GetTabBarSnapshot() =>
         Read(r => r.GetTabBarSnapshot()) ?? SkiaLayer.TabBarSnapshot.Unavailable;
 

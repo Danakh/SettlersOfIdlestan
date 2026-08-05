@@ -141,7 +141,6 @@ public sealed class TabBarRenderer : IDisposable
         if (_allowDebugMode)   _activeTabs.Add((TabHistory, default));
 
         float uiScale = _uiLayout.UiScale;
-        _uiLayout.SetTabsInlineWidth(ComputeInlineWidth(uiScale));
 
         bool tabsAtBottom = _uiLayout.TabsAtBottom;
         bool showTabBar   = tabsAtBottom || _activeTabs.Count > 1;
@@ -150,7 +149,6 @@ public sealed class TabBarRenderer : IDisposable
         if (showTabBar)
         {
             ComputeTabRects(tabsAtBottom, uiScale);
-            if (_uiLayout.ResourcesOnOwnRow) ResourceStartX = UILayoutService.BarPadding * uiScale;
             UpdateEventNotification();
             UpdatePrestigeNotification();
             UpdateResearchNotification();

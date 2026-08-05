@@ -834,7 +834,7 @@ public class SelectedCityPanelRenderer : PanelRendererBase
 
     private void HandlePointerMoved(object? sender, PointerEventArgs e)
     {
-        if (!IsInputEnabled || ShouldSuppressInput?.Invoke() == true)
+        if (!IsInputEnabled)
         {
             _hoveredBuildingType = null;
             _hoveredActivationCheckbox = null;
@@ -1036,8 +1036,6 @@ public class SelectedCityPanelRenderer : PanelRendererBase
     private void HandlePointerPressed(object? sender, PointerEventArgs e)
     {
         if (e.Button != PointerButton.Left) return;
-        if (ShouldSuppressInput?.Invoke() == true) return;
-
         if (HandleCollapseTabPress(e.Position)) return;
         if (!IsInputEnabled) return;
 

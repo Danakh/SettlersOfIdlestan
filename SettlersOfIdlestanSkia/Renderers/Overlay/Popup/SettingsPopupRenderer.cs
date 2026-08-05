@@ -29,9 +29,6 @@ public sealed class SettingsPopupRenderer : PopupRendererBase
     public event Action<float>? UiScaleChanged;
     public event Action<int, int>? DebugWindowResizeRequested;
 
-    private SKRect _closeButtonRect = SKRect.Empty;
-    private SKRect _popupRect       = SKRect.Empty;
-
     public SettingsPopupRenderer(MainGameController gameController, LocalizationService localization, IFileSystemService fileSystemService, UILayoutService uiLayout, bool allowDebugMode = false, StoreController? storeController = null)
     {
         _gameController    = gameController;
@@ -44,14 +41,6 @@ public sealed class SettingsPopupRenderer : PopupRendererBase
         _contentPanel.UiScaleChanged                += v => UiScaleChanged?.Invoke(v);
         _contentPanel.DebugWindowResizeRequested    += (w, h) => DebugWindowResizeRequested?.Invoke(w, h);
     }
-
-    private bool _hostedByAvalonia;
-
-    /// <summary>
-    /// Declare que ce popup est affiche par l'hote Avalonia : il cesse de se dessiner et de
-    /// hit-tester, son panneau de reglages compris.
-    /// </summary>
-    public void MigrateToHost() => _hostedByAvalonia = true;
 
     /// <summary>Instantane du popup pour une vue portee par l'hote.</summary>
     public SettingsPopupSnapshot GetSnapshot()
@@ -84,91 +73,6 @@ public sealed class SettingsPopupRenderer : PopupRendererBase
     }
 
     public void SetSettingTextFromHost(string key, string value) => _contentPanel.SetTextFromHost(key, value);
-
-    public void Render(SKCanvas canvas, float scale = 1f)
-    {
-        if (_hostedByAvalonia) return;
-        if (!IsOpen || Disposed) return;
-
-        var settings = _gameController.CurrentMainState?.Settings;
-        if (settings == null) return;
-
-        float s      = ComputeScale(scale);
-        UpdateFonts(s);
-
-        float popupW = PopupWidth  * s;
-        float popupH = PopupHeight * s;
-        float x      = (CanvasSize.Width  - popupW) / 2;
-        float y      = (CanvasSize.Height - popupH) / 2;
-        _popupRect   = new SKRect(x, y, x + popupW, y + popupH);
-
-        DrawBackground(canvas, _popupRect, s);
-
-        _closeButtonRect = GetCloseRect(_popupRect, s);
-        DrawCloseButton(canvas, _closeButtonRect, s);
-
-        string title  = _localization.Get("settings_title");
-        float  titleW = TitleFont!.MeasureText(title);
-        SkiaTextUtils.DrawText(canvas, title, x + (popupW - titleW) / 2f, y + 34f * s, TitleFont, TextPaint);
-
-        float maxContentHeight = popupH - FirstRowY * s - BottomMargin * s;
-        _contentPanel.Render(canvas, x, y + FirstRowY * s, popupW - BtnRightMargin * s, s, settings, _localization, _allowDebugMode, CanvasSize, maxContentHeight, _storeController);
-    }
-
-    /// <summary>Fait défiler le contenu des paramètres à la molette, s'il dépasse la hauteur du popup.</summary>
-    public bool HandleScroll(float delta)
-    {
-        if (!IsOpen || Disposed) return false;
-        return _contentPanel.HandleScroll(delta);
-    }
-
-    public bool HandlePointerPressed(SKPoint pos, PointerButton button)
-    {
-        if (!IsOpen) return false;
-        if (JustOpened) { JustOpened = false; return true; }
-
-        if (_closeButtonRect.Contains(pos.X, pos.Y)) { Close(); return true; }
-
-        var settings = _gameController.CurrentMainState?.Settings;
-        if (settings != null && _contentPanel.HandleClick(pos, settings, _localization, _allowDebugMode, _storeController))
-        {
-            _ = _fileSystemService.SaveSettings(System.Text.Json.JsonSerializer.Serialize(settings));
-            return true;
-        }
-
-        if (!_popupRect.Contains(pos.X, pos.Y)) { Close(); return false; }
-        return true;
-    }
-
-    public void HandlePointerMoved(SKPoint pos)
-    {
-        if (!IsOpen || Disposed) return;
-        var settings = _gameController.CurrentMainState?.Settings;
-        if (settings != null) _contentPanel.HandlePointerMoved(pos, settings);
-    }
-
-    public void HandlePointerReleased(SKPoint pos)
-    {
-        if (!IsOpen || Disposed) return;
-        var settings = _gameController.CurrentMainState?.Settings;
-        if (settings == null) return;
-        if (!_contentPanel.HandlePointerReleased(settings)) return;
-
-        _ = _fileSystemService.SaveSettings(System.Text.Json.JsonSerializer.Serialize(settings));
-    }
-
-    /// <summary>Flèches gauche/droite pour ajuster le slider d'échelle UI quand il est survolé.</summary>
-    public bool HandleKeyPressed(string key)
-    {
-        if (!IsOpen || Disposed) return false;
-        if (_contentPanel.HandleTextKey(key)) return true;
-
-        var settings = _gameController.CurrentMainState?.Settings;
-        if (settings == null || !_contentPanel.HandleArrowKey(key, settings)) return false;
-
-        _ = _fileSystemService.SaveSettings(System.Text.Json.JsonSerializer.Serialize(settings));
-        return true;
-    }
 
     public override void Close()
     {

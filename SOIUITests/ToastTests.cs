@@ -28,15 +28,14 @@ public class NotificationToastRendererTests
     }
 
     /// <summary>
-    /// Le decompte vivait dans Render. Une fois les toasts portes par l'hote, ce Render ne
-    /// s'execute plus : sans Advance dans la boucle de jeu, ils resteraient affiches pour
-    /// toujours. Ce test echoue si le decompte retourne dans le rendu.
+    /// Le decompte vivait autrefois dans Render. Ce renderer ne dessine plus rien : sans Advance
+    /// appele par la boucle de jeu, les toasts resteraient affiches pour toujours. Ce test
+    /// echoue si le decompte repart vers un chemin de rendu.
     /// </summary>
     [Fact]
     public void Les_toasts_expirent_sans_qu_aucun_rendu_n_ait_lieu()
     {
         using var renderer = Renderer();
-        renderer.MigrateToHost();
         renderer.ShowNotification("Titre", "Message");
 
         Assert.Single(renderer.GetSnapshot().Toasts);
@@ -91,7 +90,6 @@ public class NotificationToastRendererTests
     public void Le_fondu_d_entree_puis_de_sortie_borne_l_opacite()
     {
         using var renderer = Renderer();
-        renderer.MigrateToHost();
         renderer.ShowNotification("Titre", "Message");
 
         // A peine apparu : le fondu d'entree n'est pas termine.
