@@ -1,0 +1,62 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0-browser</TargetFramework>
+    <RuntimeIdentifier>browser-wasm</RuntimeIdentifier>
+    <OutputType>Exe</OutputType>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <!-- Bootstrapper du runtime WASM : c'est lui qui importe dotnet.js et lance Main. -->
+    <WasmMainJSPath>wwwroot\main.js</WasmMainJSPath>
+    <!-- Requis par [JSImport] : sans cela le generateur de source d'interop ne tourne pas. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+
+    <!--
+      Le SDK WASM desactive par defaut la serialisation JSON par reflexion. Or MainGameState,
+      les reglages et les statistiques passent tous par JsonSerializer sans source generator :
+      sans cette ligne, l'initialisation echoue sur JsonSerializerIsReflectionDisabled et la
+      page reste noire. Passer au source generator serait la vraie solution, mais elle touche
+      tout le modele — a traiter separement de la migration.
+    -->
+    <JsonSerializerIsReflectionEnabledByDefault>true</JsonSerializerIsReflectionEnabledByDefault>
+
+    <!--
+      Meme raison : le trimming supprimerait les types que seule la reflexion de System.Text.Json
+      atteint, et la sauvegarde se rechargerait incomplete sans la moindre erreur.
+    -->
+    <PublishTrimmed>false</PublishTrimmed>
+  </PropertyGroup>
+
+  <!--
+    Declare l'hote de `dotnet run` : sans cette entree, WasmAppHost s'arrete sur
+    "no perHostConfigs found" au lieu de servir le bundle et d'ouvrir le navigateur.
+  -->
+  <ItemGroup>
+    <HostConfig Include="browser" host="browser" IsDefault="true" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <DefaultWasmHostConfig>browser</DefaultWasmHostConfig>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="12.1.1" />
+    <PackageReference Include="Avalonia.Browser" Version="12.1.1" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SettlersOfIdlestanUI\SettlersOfIdlestanUI.csproj" />
+  </ItemGroup>
+
+  <!--
+    Page, module d'interop et icone. Le SDK WASM aplatit vers la racine du bundle en l'absence
+    de %(TargetPath) ; on le rend explicite pour qu'un futur sous-dossier de wwwroot conserve
+    sa hierarchie. main.js est exclu : WasmMainJSPath le deploie deja.
+  -->
+  <ItemGroup>
+    <WasmExtraFilesToDeploy Include="wwwroot\**" Exclude="wwwroot\main.js"
+                            TargetPath="%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
+
+</Project>

@@ -92,6 +92,19 @@ public sealed class GameRuntimeHost : IDisposable
 
     public void SetUiScale(float scale) => Invoke(r => r.SetUiScale(scale));
 
+    /// <summary>
+    /// Signale le retour au premier plan apres <paramref name="hiddenSeconds"/> secondes
+    /// masquees. Utilise par le head navigateur, ou le navigateur bride les timers d'un onglet
+    /// en arriere-plan : sans cela le temps de jeu derive.
+    /// </summary>
+    public void NotifyPageVisible(double hiddenSeconds) => Invoke(r => r.NotifyPageVisible(hiddenSeconds));
+
+    /// <summary>
+    /// Aligne le reglage de plein ecran sur l'etat reel de l'hote, quand celui-ci peut changer
+    /// sans passer par le jeu (Echap ou F11 dans un navigateur).
+    /// </summary>
+    public void SyncFullscreenSetting(bool fullscreen) => Invoke(r => _ = r.SyncFullscreenSetting(fullscreen));
+
     public bool IsMapViewActive => Read(r => r.IsMapViewActive);
 
     public void ZoomIn() => Invoke(r => r.ZoomIn());
