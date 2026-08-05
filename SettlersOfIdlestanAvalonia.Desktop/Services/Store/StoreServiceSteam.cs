@@ -3,7 +3,7 @@ using SettlersOfIdlestan.Controller.Store;
 using SettlersOfIdlestan.Model.Localization;
 using Steamworks;
 
-namespace SettlersOfIdlestanOpenTK.Services.Store;
+namespace SettlersOfIdlestanAvalonia.Desktop.Services.Store;
 
 /// <summary>
 /// Intégration Steam via Steamworks.NET.

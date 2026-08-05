@@ -4,7 +4,7 @@ setlocal
 cd /d "%~dp0.."
 
 echo =============================================
-echo  Build SettlersOfIdlestan OpenTK - macOS
+echo  Build SettlersOfIdlestan Desktop - macOS
 echo  (arm64 = Apple Silicon, x64 = Intel)
 echo =============================================
 
@@ -22,7 +22,7 @@ exit /b 0
 
 :build
 set ARCH=%1
-set PUBLISH_DIR=SettlersOfIdlestanOpenTK\bin\Release\net10.0\osx-%ARCH%\publish
+set PUBLISH_DIR=SettlersOfIdlestanAvalonia.Desktop\bin\Release\net10.0\osx-%ARCH%\publish
 set CONTENT_DIR=install\steamcontent\osx_%ARCH%
 
 echo.
@@ -33,7 +33,7 @@ if exist "%PUBLISH_DIR%" (
     rd /s /q "%PUBLISH_DIR%"
 )
 
-dotnet publish SettlersOfIdlestanOpenTK -c Release -r osx-%ARCH% --self-contained true
+dotnet publish SettlersOfIdlestanAvalonia.Desktop -c Release -r osx-%ARCH% --self-contained true
 if errorlevel 1 exit /b 1
 
 if exist "%CONTENT_DIR%" rd /s /q "%CONTENT_DIR%"

@@ -14,6 +14,11 @@ concurrency:
   group: pages
   cancel-in-progress: false
 
+env:
+  # Le runtime .NET WASM sert le jeu depuis _framework/ ; le prefixe souligne est aussi
+  # la raison du .nojekyll ci-dessous, Jekyll ignorant ces dossiers.
+  APP_BUNDLE: SettlersOfIdlestanAvalonia.Browser/bin/Release/net10.0-browser/browser-wasm/AppBundle
+
 jobs:
   deploy:
     environment:
@@ -32,14 +37,17 @@ jobs:
       - name: Install WASM workload
         run: dotnet workload install wasm-tools
 
+      # Pas de -o : le SDK WASM y aplatit tout le contenu intermediaire. Le bundle
+      # deployable est AppBundle, produit a un emplacement fixe.
       - name: Publish
-        run: dotnet publish SettlersOfIdlestanWeb/SettlersOfIdlestanWeb.csproj -c Release -o publish
+        run: dotnet publish SettlersOfIdlestanAvalonia.Browser/SettlersOfIdlestanAvalonia.Browser.csproj -c Release
 
-      - name: Fix base href for GitHub Pages
-        run: sed -i 's|<base href="/" />|<base href="/SettlersOfIdlestan/" />|g' publish/wwwroot/index.html
+      # Plus de reecriture de <base href> : contrairement au head Blazor, la page
+      # d'Avalonia n'utilise que des chemins relatifs et fonctionne telle quelle
+      # dans le sous-dossier de GitHub Pages.
 
       - name: Add .nojekyll
-        run: touch publish/wwwroot/.nojekyll
+        run: touch $APP_BUNDLE/.nojekyll
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
@@ -47,7 +55,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v4
         with:
-          path: publish/wwwroot
+          path: ${{ env.APP_BUNDLE }}
 
       - name: Deploy to GitHub Pages
         id: deployment

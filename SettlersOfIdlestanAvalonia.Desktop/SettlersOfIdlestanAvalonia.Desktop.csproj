@@ -7,9 +7,10 @@
     <Nullable>enable</Nullable>
     <ApplicationIcon>Resources\appicon.ico</ApplicationIcon>
     <!--
-      Doit rester identique au head OpenTK : DesktopFileSystemService range les sauvegardes
-      dans AppContext.BaseDirectory/saves. Un renommage de l'executable ou un changement de
-      dossier d'installation ferait perdre leur partie aux joueurs Steam existants.
+      Doit rester identique au nom de l'executable deja distribue : DesktopFileSystemService
+      range les sauvegardes dans AppContext.BaseDirectory/saves. Un renommage de l'executable
+      ou un changement de dossier d'installation ferait perdre leur partie aux joueurs Steam
+      existants.
     -->
     <AssemblyName>SettlersOfIdlestan</AssemblyName>
   </PropertyGroup>
@@ -23,16 +24,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\SettlersOfIdlestanUI\SettlersOfIdlestanUI.csproj" />
-  </ItemGroup>
-
-  <!--
-    Services partages avec le head OpenTK par lien plutot que par copie : dupliquer
-    DesktopFileSystemService ferait diverger les chemins de sauvegarde entre les deux heads.
-    A deplacer physiquement ici lorsque le projet OpenTK sera supprime (phase 8).
-  -->
-  <ItemGroup>
-    <Compile Include="..\SettlersOfIdlestanOpenTK\Services\DesktopFileSystemService.cs" Link="Services\DesktopFileSystemService.cs" />
-    <Compile Include="..\SettlersOfIdlestanOpenTK\Services\Store\StoreServiceSteam.cs" Link="Services\Store\StoreServiceSteam.cs" />
   </ItemGroup>
 
   <ItemGroup>

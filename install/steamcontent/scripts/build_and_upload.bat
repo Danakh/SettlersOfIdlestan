@@ -20,13 +20,13 @@ for %%P in (win linux) do (
 
     echo.
     echo === Nettoyage des repertoires temporaires ===
-    if exist "%ROOT_DIR%\SettlersOfIdlestanOpenTK\bin" rd /s /q "%ROOT_DIR%\SettlersOfIdlestanOpenTK\bin"
-    if exist "%ROOT_DIR%\SettlersOfIdlestanOpenTK\obj" rd /s /q "%ROOT_DIR%\SettlersOfIdlestanOpenTK\obj"
+    if exist "%ROOT_DIR%\SettlersOfIdlestanAvalonia.Desktop\bin" rd /s /q "%ROOT_DIR%\SettlersOfIdlestanAvalonia.Desktop\bin"
+    if exist "%ROOT_DIR%\SettlersOfIdlestanAvalonia.Desktop\obj" rd /s /q "%ROOT_DIR%\SettlersOfIdlestanAvalonia.Desktop\obj"
     if exist "%SCRIPT_DIR%..\output" rd /s /q "%SCRIPT_DIR%..\output"
 
     echo.
     echo === Generation de la version %%P ===
-    call "%ROOT_DIR%\install\build_opentk_%%P.bat"
+    call "%ROOT_DIR%\install\build_desktop_%%P.bat"
     if errorlevel 1 (
         echo.
         echo [ERREUR] La generation de la version %%P a echoue.

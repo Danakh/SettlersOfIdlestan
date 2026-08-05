@@ -1,8 +1,15 @@
 using SettlersOfIdlestan.Controller;
 using SettlersOfIdlestanSkia.Services;
 
-namespace SettlersOfIdlestanOpenTK.Services;
+namespace SettlersOfIdlestanAvalonia.Desktop.Services;
 
+/// <summary>
+/// Persistance de bureau : tout vit dans un dossier <c>saves</c> a cote de l'executable.
+///
+/// Ce chemin est un contrat avec les joueurs Steam existants — le head OpenTK ecrivait au meme
+/// endroit, et l'executable porte le meme nom pour cette raison. Le deplacer ferait perdre
+/// leur partie a l'installation suivante.
+/// </summary>
 public class DesktopFileSystemService : IFileSystemService
 {
     private static string GetSavesDirectory()

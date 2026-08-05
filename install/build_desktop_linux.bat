@@ -4,18 +4,18 @@ setlocal
 cd /d "%~dp0.."
 
 echo =============================================
-echo  Build SettlersOfIdlestan OpenTK - Windows
+echo  Build SettlersOfIdlestan Desktop - Linux
 echo =============================================
 
-set PUBLISH_DIR=SettlersOfIdlestanOpenTK\bin\Release\net10.0\win-x64\publish
-set CONTENT_DIR=install\steamcontent\win64
+set PUBLISH_DIR=SettlersOfIdlestanAvalonia.Desktop\bin\Release\net10.0\linux-x64\publish
+set CONTENT_DIR=install\steamcontent\linux64
 
 if exist "%PUBLISH_DIR%" (
     echo Nettoyage du dossier publish...
     rd /s /q "%PUBLISH_DIR%"
 )
 
-dotnet publish SettlersOfIdlestanOpenTK -c Release -r win-x64 --self-contained true
+dotnet publish SettlersOfIdlestanAvalonia.Desktop -c Release -r linux-x64 --self-contained true
 if errorlevel 1 (
     echo.
     echo [ERREUR] Le build a echoue.

@@ -2,10 +2,8 @@ using System.Diagnostics;
 using Avalonia.Controls;
 using Avalonia.Media;
 using SettlersOfIdlestan.Controller.Store;
-// Les services desktop sont partages par lien avec le head OpenTK et conservent
-// donc son namespace tant que ce projet existe (cf. csproj).
-using SettlersOfIdlestanOpenTK.Services;
-using SettlersOfIdlestanOpenTK.Services.Store;
+using SettlersOfIdlestanAvalonia.Desktop.Services;
+using SettlersOfIdlestanAvalonia.Desktop.Services.Store;
 using SettlersOfIdlestanSkia.Services;
 using SettlersOfIdlestanUI;
 using SettlersOfIdlestanUI.Views;
