@@ -28,6 +28,12 @@ public class GameRuntimeControl : SkiaCanvasControl
     private IDisposable? _loop;
     private SKSize _lastCanvasSize;
 
+    private readonly PinchTracker _pinch = new();
+
+    /// Pointeurs encore enfonces, pour pouvoir les relacher cote jeu quand le recognizer de
+    /// pincement les capture : leur PointerReleased ne nous parviendra plus.
+    private readonly HashSet<int> _pressedPointerIds = [];
+
     /// Cadence de la boucle de jeu. Avalonia 12 n'expose pas de RequestAnimationFrame :
     /// on pilote le Tick + l'invalidation avec un timer a priorite Render.
     private static readonly TimeSpan FrameInterval = TimeSpan.FromMilliseconds(16);
@@ -36,6 +42,12 @@ public class GameRuntimeControl : SkiaCanvasControl
     {
         _host = host;
         Focusable = true;
+
+        // Zoom a deux doigts sur les heads tactiles (iOS). Avalonia mesure lui-meme la distance
+        // entre les contacts, la ou le head MAUI devait reconstituer le geste a la main.
+        GestureRecognizers.Add(new PinchGestureRecognizer());
+        Pinch += OnPinch;
+        PinchEnded += OnPinchEnded;
     }
 
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
@@ -89,7 +101,10 @@ public class GameRuntimeControl : SkiaCanvasControl
         // depuis une ville) s'interrompt des que le pointeur passe au-dessus d'un panneau.
         e.Pointer.Capture(this);
 
-        _host.PointerPressed((float)p.X, (float)p.Y, 0, MapButton(props));
+        // L'identifiant reel du pointeur, et non 0 : c'est lui qui permet au jeu de savoir
+        // quel doigt fait defiler la carte quand plusieurs sont poses (heads tactiles).
+        _pressedPointerIds.Add(e.Pointer.Id);
+        _host.PointerPressed((float)p.X, (float)p.Y, e.Pointer.Id, MapButton(props));
         e.Handled = true;
     }
 
@@ -97,7 +112,7 @@ public class GameRuntimeControl : SkiaCanvasControl
     {
         base.OnPointerMoved(e);
         var p = e.GetPosition(this);
-        _host.PointerMoved((float)p.X, (float)p.Y, 0);
+        _host.PointerMoved((float)p.X, (float)p.Y, e.Pointer.Id);
     }
 
     protected override void OnPointerReleased(PointerReleasedEventArgs e)
@@ -105,7 +120,8 @@ public class GameRuntimeControl : SkiaCanvasControl
         base.OnPointerReleased(e);
         var p = e.GetPosition(this);
 
-        _host.PointerReleased((float)p.X, (float)p.Y, 0, MapButton(e.InitialPressMouseButton));
+        _pressedPointerIds.Remove(e.Pointer.Id);
+        _host.PointerReleased((float)p.X, (float)p.Y, e.Pointer.Id, MapButton(e.InitialPressMouseButton));
         e.Pointer.Capture(null);
         e.Handled = true;
     }
@@ -118,6 +134,39 @@ public class GameRuntimeControl : SkiaCanvasControl
         // Avalonia compte en crans (~1.0) ; le runtime attend un WheelDelta facon Win32 (120/cran).
         _host.Zoom((float)e.Delta.Y * 120f, (float)p.X, (float)p.Y);
         e.Handled = true;
+    }
+
+    /// <summary>
+    /// Pincement a deux doigts : zoom sur le centre du geste, plus le deplacement de ce centre
+    /// comme panoramique.
+    /// </summary>
+    private void OnPinch(object? sender, PinchEventArgs e)
+    {
+        var origin = e.ScaleOrigin;
+
+        if (_pinch.Update(e.Scale, origin, out var ratio, out var panDx, out var panDy))
+            _host.Pinch(ratio, (float)origin.X, (float)origin.Y, panDx, panDy);
+        else
+            // Premier evenement du geste : le premier doigt avait deja lance un panoramique, et
+            // le recognizer vient de capturer les pointeurs — leur relachement ne nous reviendra
+            // jamais. Sans cette annulation, la carte reste accrochee au doigt.
+            ReleasePressedPointers((float)origin.X, (float)origin.Y);
+
+        e.Handled = true;
+    }
+
+    private void OnPinchEnded(object? sender, PinchEndedEventArgs e)
+    {
+        _pinch.End();
+        _pressedPointerIds.Clear();
+        e.Handled = true;
+    }
+
+    private void ReleasePressedPointers(float x, float y)
+    {
+        foreach (var id in _pressedPointerIds)
+            _host.PointerReleased(x, y, id, SkiaInput.PointerButton.Left);
+        _pressedPointerIds.Clear();
     }
 
     protected override void OnKeyDown(KeyEventArgs e)

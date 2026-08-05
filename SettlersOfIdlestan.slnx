@@ -7,6 +7,7 @@
   <Project Path="SettlersOfIdlestanUI/SettlersOfIdlestanUI.csproj" />
   <Project Path="SettlersOfIdlestanAvalonia.Desktop/SettlersOfIdlestanAvalonia.Desktop.csproj" />
   <Project Path="SettlersOfIdlestanAvalonia.Browser/SettlersOfIdlestanAvalonia.Browser.csproj" />
+  <Project Path="SettlersOfIdlestanAvalonia.iOS/SettlersOfIdlestanAvalonia.iOS.csproj" />
   <Project Path="SOITests/SOITests.csproj">
     <BuildDependency Project="SettlersOfIdlestan/SettlersOfIdlestanCore.csproj" />
   </Project>

@@ -84,6 +84,14 @@ public sealed class GameRuntimeHost : IDisposable
     public void Zoom(float wheelDelta, float x, float y) =>
         Invoke(r => r.HandleZoom(wheelDelta, x, y));
 
+    /// <summary>
+    /// Pincement a deux doigts. <paramref name="scaleRatio"/> est relatif a l'evenement
+    /// precedent (et non cumulatif depuis le debut du geste), et le deplacement du centre du
+    /// geste sert de panoramique.
+    /// </summary>
+    public void Pinch(float scaleRatio, float x, float y, float panDeltaX, float panDeltaY) =>
+        Invoke(r => r.HandlePinch(scaleRatio, x, y, panDeltaX, panDeltaY));
+
     public void KeyPressed(string key) => Invoke(r => r.HandleKeyPressed(key));
 
     public void KeyReleased(string key) => Invoke(r => r.HandleKeyReleased(key));
