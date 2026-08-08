@@ -15,7 +15,7 @@ namespace SettlersOfIdlestan.Model.Races;
 /// <summary>
 /// Liste des races jouables (voir <see cref="RaceDefinition"/>). Les races Base deviennent
 /// sélectionnables à l'Ascension une fois la première rangée de pouvoirs divins complète ; les
-/// races Advanced implémentées une fois la seconde rangée complète. Les stubs éventuels
+/// races Advanced une fois la seconde rangée complète. Les stubs éventuels
 /// (<see cref="RaceDefinition.IsImplemented"/> faux) sont déclarés pour l'UI et la sérialisation
 /// mais n'apparaissent jamais dans AscensionController.GetSelectableRaces.
 /// </summary>

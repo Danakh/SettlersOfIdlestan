@@ -15,8 +15,8 @@ public enum RaceId
     Dwarf,
     Goblin,
     Orc,
-    // Races avancées (RaceTier.Advanced) : déclarées pour l'UI et la sérialisation,
-    // pas encore sélectionnables (voir RaceDefinitions / AscensionController.GetSelectableRaces).
+    // Races avancées (RaceTier.Advanced) : sélectionnables une fois la seconde rangée de pouvoirs
+    // divins complète (voir RaceDefinitions / AscensionController.GetSelectableRaces).
     Mermaid,
     DarkElf,
     Giant,
