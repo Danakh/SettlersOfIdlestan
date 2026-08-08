@@ -52,6 +52,9 @@ public enum GameEventType
     VolcanoDiscovered,
     DivineBonesPurified,
     DivineBonesPurifiedNoEssence,
+    SurfaceBreachPlaced,
+    SurfaceBreachDug,
+    SurfaceLost,
 }
 
 public record GameLogEntry(GameEventType Type, string? Message = null, bool Toast = false);

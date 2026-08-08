@@ -56,7 +56,7 @@ namespace SettlersOfIdlestan.Controller.Island
         private WorldState? _state;
         private GameClock? _clock;
         private GamePRNG? _prng;
-        private readonly Dictionary<int, (int RoadCount, int TotalCityCount, int BeaconCount, int TerrainVersion, List<Vertex> Vertices)> _buildableVerticesCache = new();
+        private readonly Dictionary<int, (int RoadCount, int TotalCityCount, int BeaconCount, int LandingSiteCount, int TerrainVersion, List<Vertex> Vertices)> _buildableVerticesCache = new();
         private readonly Dictionary<(TerrainType Terrain, int Range), (int TerrainVersion, HashSet<Vertex> Vertices)> _terrainRangeVerticesCache = new();
 
         // 10 s × 100 ticks/s
@@ -238,11 +238,13 @@ namespace SettlersOfIdlestan.Controller.Island
             // sans toucher à aucun compteur).
             int totalCityCount = _state.Civilizations.Sum(c => c.Cities.Count);
             int totalBeaconCount = _state.Civilizations.Sum(c => c.MaritimeBeacons.Count);
+            int totalLandingSiteCount = _state.Civilizations.Sum(c => c.LandingSites.Count);
             if (excludingCity == null &&
                 _buildableVerticesCache.TryGetValue(civilizationIndex, out var cached) &&
                 cached.RoadCount == civ.Roads.Count &&
                 cached.TotalCityCount == totalCityCount &&
                 cached.BeaconCount == totalBeaconCount &&
+                cached.LandingSiteCount == totalLandingSiteCount &&
                 cached.TerrainVersion == _state.TerrainVersion)
                 return cached.Vertices;
 
@@ -265,12 +267,17 @@ namespace SettlersOfIdlestan.Controller.Island
             // villes. Le rayon interdit vaut distanceMin - 1 arêtes, et le BFS reste naturellement
             // sur la couche de chaque ville (les vertex voisins partagent le Z), ce qui reproduit
             // le filtre par Z de l'ancienne version.
+            // Les Sites d'Arrivée (LandingSite) comptent comme des villes dans ces rayons : ils
+            // réservent la place de la future ville de surface d'une race démarrant sous terre, et
+            // doivent donc repousser les voisins exactement comme le ferait la ville elle-même.
             var blockedVertices = new HashSet<Vertex>();
             AddVerticesWithinRadius(blockedVertices,
-                _state.Civilizations.Where(c => c.Index != civilizationIndex).SelectMany(c => c.Cities).Select(city => city.Position),
+                _state.Civilizations.Where(c => c.Index != civilizationIndex)
+                    .SelectMany(c => c.Cities.Select(city => city.Position).Concat(c.LandingSites.Select(s => s.Position))),
                 MinDistanceBetweenCities - 1);
             AddVerticesWithinRadius(blockedVertices,
-                civ.Cities.Where(city => city != excludingCity).Select(city => city.Position),
+                civ.Cities.Where(city => city != excludingCity).Select(city => city.Position)
+                    .Concat(civ.LandingSites.Select(s => s.Position)),
                 minOwnCityDistance - 1);
 
             // Restrictions raciales de terrain : les ensembles de portée ne dépendent que du terrain,
@@ -284,7 +291,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 .ToList();
 
             if (excludingCity == null)
-                _buildableVerticesCache[civilizationIndex] = (civ.Roads.Count, totalCityCount, totalBeaconCount, _state.TerrainVersion, vertices);
+                _buildableVerticesCache[civilizationIndex] = (civ.Roads.Count, totalCityCount, totalBeaconCount, totalLandingSiteCount, _state.TerrainVersion, vertices);
 
             return vertices;
         }

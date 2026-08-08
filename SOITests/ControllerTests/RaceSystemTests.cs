@@ -106,8 +106,7 @@ public class RaceSystemTests
         Assert.Contains(RaceId.Dwarf, races);
         Assert.Contains(RaceId.Goblin, races);
         Assert.Contains(RaceId.Orc, races);
-        // Géants, Garudas et Sirènes : races avancées, verrouillées tant que la seconde rangée de
-        // pouvoirs n'est pas complète ; Elfes noirs : stub non implémenté, jamais sélectionnable.
+        // Races avancées : verrouillées tant que la seconde rangée de pouvoirs n'est pas complète.
         Assert.DoesNotContain(RaceId.Mermaid, races);
         Assert.DoesNotContain(RaceId.DarkElf, races);
         Assert.DoesNotContain(RaceId.Giant, races);
@@ -127,8 +126,7 @@ public class RaceSystemTests
         Assert.Contains(RaceId.Giant, races);
         Assert.Contains(RaceId.Garuda, races);
         Assert.Contains(RaceId.Mermaid, races);
-        // Le stub restant (Elfes noirs) n'est jamais sélectionnable, même seconde rangée complète.
-        Assert.DoesNotContain(RaceId.DarkElf, races);
+        Assert.Contains(RaceId.DarkElf, races);
     }
 
     [Fact]

@@ -166,6 +166,7 @@ public static class StrategyRunner
     private static bool TryAdvanceBackgroundSystemsOnce(CivilizationAutoplayer auto)
     {
         bool did = auto.TryDeepestMineInvestmentOnce();
+        did |= auto.TrySurfaceBreachInvestmentOnce();
         did |= auto.TryCorruptionSpireInvestmentOnce();
         did |= auto.TryAbyssGateInvestmentOnce();
         did |= auto.TryResearchOnce();
@@ -194,6 +195,7 @@ public static class StrategyRunner
             controller.PerformPrestige,
             controller.WonderController,
             deepestMineController: controller.DeepestMineController,
+            surfaceBreachController: controller.SurfaceBreachController,
             corruptionSpireController: controller.CorruptionSpireController,
             abyssGateController: controller.AbyssGateController);
     }

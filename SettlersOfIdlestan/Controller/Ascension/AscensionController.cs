@@ -281,11 +281,11 @@ public class AscensionController : IModifierProvider
             firstIslandParameters,
             mainGameState.Clock.CurrentTick,
             startTick: mainGameState.Clock.CurrentTick,
-            startVertexTerrain: RaceDefinitions.Get(chosenRace).StartVertexTerrain)
+            race: RaceDefinitions.Get(chosenRace))
             ?? throw new InvalidOperationException("Failed to generate island for ascension.");
 
         godState.PrestigeState = new PrestigeState(worldState);
-        GrantFreePrestigeVertices(godState.PrestigeState);
+        GrantFreePrestigeVertices(godState.PrestigeState, chosenRace);
 
         godState.AscensionState.CycleStartTick = mainGameState.Clock.CurrentTick;
         godState.AscensionState.CycleStartResearchCompleted = mainGameState.GameRecord.TotalResearchCompleted;
@@ -327,9 +327,12 @@ public class AscensionController : IModifierProvider
     /// chaque cycle d'Ascension : le vertex central dès que Foi (le premier pouvoir divin) est
     /// débloquée, plus ses 3 voisins (Caserne, Port &amp; Marché, Laboratoire) une fois le choix de
     /// race débloqué — le Marché de départ ainsi garanti permet d'acheter la ressource que le
-    /// terrain de départ de la race ne produit pas (ex. la brique des Nains).
+    /// terrain de départ de la race ne produit pas (ex. la brique des Nains). S'y ajoutent les
+    /// vertex propres à la race choisie (RaceDefinition.FreePrestigeVertices), eux aussi sans
+    /// contrainte de contiguïté : les Elfes noirs partent ainsi avec Culture Fongique, seule source
+    /// de nourriture viable pour un départ souterrain.
     /// </summary>
-    private void GrantFreePrestigeVertices(PrestigeState prestigeState)
+    private void GrantFreePrestigeVertices(PrestigeState prestigeState, RaceId race)
     {
         if (!IsPowerUnlocked(AscensionPowerId.Faith)) return;
 
@@ -341,6 +344,10 @@ public class AscensionController : IModifierProvider
         foreach (var neighbor in Expand.PrestigeMapController.DefaultMap.GetNeighbors(Model.Prestige.PrestigeMap.PrestigeMap.CentralVertex))
             if (!prestigeState.PurchasedVertices.Contains(neighbor.Coord))
                 prestigeState.PurchasedVertices.Add(neighbor.Coord);
+
+        foreach (var vertex in RaceDefinitions.Get(race).FreePrestigeVertices)
+            if (!prestigeState.PurchasedVertices.Contains(vertex))
+                prestigeState.PurchasedVertices.Add(vertex);
     }
 
     public IEnumerable<Modifier> GetModifiers()

@@ -32,14 +32,23 @@ public class NpcCivilizationPlacer
     /// Garantit que toutes les villes NPC (initiales et expansion) sont à ≥ leur MinDistanceFromPlayer
     /// edges de la ville du joueur. Place autant de NPC que possible si la carte est trop petite.
     /// </summary>
-    public bool PlaceNpcCivilizations(WorldState state, GamePRNG prng, int tier = 1)
+    /// <param name="playerAnchorVertex">
+    /// Vertex servant de référence de distance quand le joueur n'a pas (encore) de ville en surface —
+    /// le cas des races démarrant dans l'Inframonde, dont le vertex d'arrivée de surface est déjà
+    /// mémorisé (voir LayerState.ArrivalVertex). Null = la ville du joueur doit exister.
+    /// </param>
+    public bool PlaceNpcCivilizations(WorldState state, GamePRNG prng, int tier = 1, Vertex? playerAnchorVertex = null)
     {
-        if (state.PlayerCivilization.Cities.Count == 0) return false;
+        var anchor = state.PlayerCivilization.Cities.Count > 0
+            ? state.PlayerCivilization.Cities[0].Position
+            : playerAnchorVertex;
+        if (anchor == null) return false;
 
         var npcCivs = state.Civilizations.Where(c => c.IsNpc).ToList();
         if (npcCivs.Count == 0) return true;
 
-        var playerVertex = state.PlayerCivilization.Cities[0].Position;
+        var playerVertex = anchor;
+
         var allValidVertices = FindValidCityVertices(state.GetMapForZ(IslandMap.SurfaceLayer)!);
 
         var npcModifiers = NpcModifierSetMaker.Create(maxTechTier: tier + 1, maxPrestigeDistance: tier);

@@ -43,6 +43,7 @@ namespace SettlersOfIdlestan.Controller
         public WonderController WonderController { get; private set; }
         public GreatLighthouseController GreatLighthouseController { get; private set; }
         public DeepestMineController DeepestMineController { get; private set; }
+        public SurfaceBreachController SurfaceBreachController { get; private set; }
         public CorruptionSpireController CorruptionSpireController { get; private set; }
         public CorruptionController CorruptionController { get; private set; }
         public AbyssGateController AbyssGateController { get; private set; }
@@ -97,6 +98,7 @@ namespace SettlersOfIdlestan.Controller
             WonderController = new WonderController();
             GreatLighthouseController = new GreatLighthouseController();
             DeepestMineController = new DeepestMineController();
+            SurfaceBreachController = new SurfaceBreachController();
             CorruptionSpireController = new CorruptionSpireController();
             CorruptionController = new CorruptionController();
             AbyssGateController = new AbyssGateController();
@@ -195,7 +197,7 @@ namespace SettlersOfIdlestan.Controller
                 startTick: CurrentMainState.Clock.CurrentTick,
                 surfaceCorruptionLevel: CurrentMainState.PrestigeState.SurfaceCorruptionLevel,
                 tier: CurrentMainState.PrestigeState.Tier,
-                startVertexTerrain: RaceDefinitions.Get(CurrentMainState.GodState.AscensionState.SelectedRace).StartVertexTerrain)
+                race: RaceDefinitions.Get(CurrentMainState.GodState.AscensionState.SelectedRace))
                 ?? throw new InvalidOperationException("Failed to restart island.");
 
             CurrentMainState.PrestigeState.WorldState = newWorldState;
@@ -359,6 +361,7 @@ namespace SettlersOfIdlestan.Controller
                 WonderController.Initialize(WorldState, Clock, HarvestController);
                 GreatLighthouseController.Initialize(WorldState, Clock, HarvestController);
                 DeepestMineController.Initialize(WorldState, Clock, HarvestController);
+                SurfaceBreachController.Initialize(WorldState, Clock, HarvestController);
                 CorruptionSpireController.Initialize(WorldState, Clock, HarvestController);
                 CorruptionController.Initialize(WorldState, Clock, CurrentMainState!.PRNG, CurrentMainState?.PrestigeState);
                 AbyssGateController.Initialize(WorldState, Clock, HarvestController);
@@ -477,6 +480,7 @@ namespace SettlersOfIdlestan.Controller
 
             FeatureController.RefreshContestedTerritories();
             DeepestMineController.OnCityDestroyed(e.CityVertex, e.CivilizationIndex);
+            SurfaceBreachController.OnCityDestroyed(e.CityVertex, e.CivilizationIndex);
             HarvestController.InvalidateProductionCache();
 
             if (civ != null && civ.IsNpc && civ.Cities.Count == 0)

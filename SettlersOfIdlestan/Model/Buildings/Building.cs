@@ -234,6 +234,12 @@ public enum BuildingType
     /// vertex de prestige Tour des Arcanes.
     /// </summary>
     ArcaneTower,
+    /// <summary>
+    /// Sanctuaire de l'Araignée - Bâtiment unique racial des Elfes noirs, constructible dans
+    /// l'Inframonde uniquement. Étend le Pacte des Profondeurs aux Rats et aux Démons mineurs, qui
+    /// cessent eux aussi d'attaquer les villes.
+    /// </summary>
+    SpiderShrine,
 }
 
 /// <summary>

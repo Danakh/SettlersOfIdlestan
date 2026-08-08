@@ -38,6 +38,7 @@ namespace SettlersOfIdlestan.Controller
         private readonly WonderController? _wonderController;
         private readonly MilitaryController? _militaryController;
         private readonly DeepestMineController? _deepestMineController;
+        private readonly SurfaceBreachController? _surfaceBreachController;
         private readonly CorruptionSpireController? _corruptionSpireController;
         private readonly AbyssGateController? _abyssGateController;
 
@@ -85,6 +86,7 @@ namespace SettlersOfIdlestan.Controller
             WonderController? wonderController = null,
             MilitaryController? militaryController = null,
             DeepestMineController? deepestMineController = null,
+            SurfaceBreachController? surfaceBreachController = null,
             CorruptionSpireController? corruptionSpireController = null,
             AbyssGateController? abyssGateController = null,
             long clickCooldownTicks = 20L,
@@ -108,6 +110,7 @@ namespace SettlersOfIdlestan.Controller
             _wonderController = wonderController;
             _militaryController = militaryController;
             _deepestMineController = deepestMineController;
+            _surfaceBreachController = surfaceBreachController;
             _corruptionSpireController = corruptionSpireController;
             _abyssGateController = abyssGateController;
         }
@@ -589,6 +592,39 @@ namespace SettlersOfIdlestan.Controller
             {
                 if (mine.InvestmentEnabled.Contains(resource)) continue;
                 mine.InvestmentEnabled.Add(resource);
+                didSomething = true;
+            }
+            return didSomething;
+        }
+
+        /// <summary>
+        /// Miroir de <see cref="TryDeepestMineInvestmentOnce"/> pour la Percée de Surface : place le
+        /// Monument sur la première Montagne souterraine disponible puis maintient l'investissement
+        /// actif. Sans cela, un run automatisé d'Elfes noirs resterait enfermé sous terre
+        /// indéfiniment. No-op si la dépendance n'a pas été fournie, si le joueur a déjà une ville de
+        /// surface, ou si la Percée est déjà ouverte.
+        /// </summary>
+        public bool TrySurfaceBreachInvestmentOnce()
+        {
+            if (_surfaceBreachController == null || _worldState == null) return false;
+
+            var breach = _worldState.Features.OfType<SettlersOfIdlestan.Model.IslandFeatures.SurfaceBreach>().FirstOrDefault();
+            if (breach == null)
+            {
+                if (!_surfaceBreachController.CanPlaceSurfaceBreach(_civ)) return false;
+                var hexes = _surfaceBreachController.GetPlaceableHexes();
+                if (hexes.Count == 0) return false;
+                breach = _surfaceBreachController.PlaceSurfaceBreach(hexes[0]);
+                if (breach == null) return false;
+            }
+            if (breach.Dug) return false;
+
+            bool didSomething = false;
+            var breachCost = breach.GetInvestmentCost(_civ);
+            foreach (var resource in breachCost.Keys)
+            {
+                if (breach.InvestmentEnabled.Contains(resource)) continue;
+                breach.InvestmentEnabled.Add(resource);
                 didSomething = true;
             }
             return didSomething;

@@ -155,21 +155,44 @@ public class Civilization
     public void AddMobileCamp(MobileCamp camp) => _mobileCamps.Add(camp);
     public void RemoveMobileCamp(MobileCamp camp) => _mobileCamps.Remove(camp);
 
+    private List<LandingSite> _landingSites = new();
+
+    /// <summary>
+    /// Sites d'Arrivée réservés par la civilisation (voir <see cref="LandingSite"/>) — lecture seule ;
+    /// utiliser AddLandingSite / RemoveLandingSite pour muter.
+    /// </summary>
+    [JsonIgnore]
+    public IReadOnlyList<LandingSite> LandingSites => _landingSites;
+
+    [JsonPropertyName("LandingSites")]
+    [JsonInclude]
+    public List<LandingSite> LandingSitesSerialized
+    {
+        get => _landingSites;
+        private set => _landingSites = value ?? new();
+    }
+
+    public void AddLandingSite(LandingSite site) => _landingSites.Add(site);
+    public void RemoveLandingSite(LandingSite site) => _landingSites.Remove(site);
+
     /// <summary>
     /// Tous les emplacements militaires de la civilisation (villes, flottes et camps mobiles) — voir
     /// IMilitaryVertex. Utilisé par le système militaire pour traiter les trois types de façon uniforme.
+    /// Les Sites d'Arrivée en sont volontairement absents : ils ne sont jamais une cible.
     /// </summary>
     [JsonIgnore]
     public IEnumerable<IMilitaryVertex> MilitaryVertices =>
         Cities.Concat<IMilitaryVertex>(Fleets).Concat<IMilitaryVertex>(MobileCamps);
 
     /// <summary>
-    /// Tous les emplacements construits par la civilisation (villes, flottes, balises, camps mobiles) —
-    /// voir IBuildVertex. Utilisé pour vérifier de façon uniforme l'occupation d'un vertex.
+    /// Tous les emplacements construits par la civilisation (villes, flottes, balises, camps mobiles,
+    /// sites d'arrivée) — voir IBuildVertex. Utilisé pour vérifier de façon uniforme l'occupation
+    /// d'un vertex.
     /// </summary>
     [JsonIgnore]
     public IEnumerable<IBuildVertex> BuildVertices =>
-        Cities.Concat<IBuildVertex>(Fleets).Concat<IBuildVertex>(MaritimeBeacons).Concat<IBuildVertex>(MobileCamps);
+        Cities.Concat<IBuildVertex>(Fleets).Concat<IBuildVertex>(MaritimeBeacons)
+              .Concat<IBuildVertex>(MobileCamps).Concat<IBuildVertex>(LandingSites);
 
     private TechnologyTree _technologyTree = new();
 

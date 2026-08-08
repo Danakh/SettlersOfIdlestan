@@ -674,6 +674,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 BuildingType.PearlGrotto => new PearlGrotto(),
                 BuildingType.GrandTemple => new GrandTemple(),
                 BuildingType.ArcaneTower => new ArcaneTower(),
+                BuildingType.SpiderShrine => new SpiderShrine(),
                 _ => null,
             };
         }

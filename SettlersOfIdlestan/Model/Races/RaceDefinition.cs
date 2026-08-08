@@ -1,5 +1,8 @@
+using System;
+using System.Collections.Generic;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.GameplayModifier;
+using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
 
 namespace SettlersOfIdlestan.Model.Races;
@@ -43,6 +46,29 @@ public class RaceDefinition
     /// </summary>
     public BuildingType? RacialBuilding { get; }
 
+    /// <summary>
+    /// Vrai si la race commence sa partie dans l'Inframonde au lieu de la surface (Elfes noirs) :
+    /// le générateur ne pose aucune ville de surface, mémorise le vertex de départ de surface dans
+    /// LayerState.ArrivalVertex de la couche 0 et ouvre à la place un avant-poste sur un triangle
+    /// souterrain (voir IslandMapGenerator.GenerateWorldState et
+    /// LayerState.EstablishOupostInNewAutoExpandLayer). La surface reste générée mais inaccessible
+    /// jusqu'à la construction de la Percée de Surface (SurfaceBreachController).
+    /// </summary>
+    public bool StartsInUnderworld { get; }
+
+    /// <summary>
+    /// Terrains des 3 hexes du triangle de départ souterrain, quand <see cref="StartsInUnderworld"/>
+    /// est vrai. Vide sinon. Le trio doit couvrir toute l'économie de base : le pool de terrains de
+    /// l'Inframonde (AutoExtendController) ne contient ni Forêt, ni Plaine, ni Eau.
+    /// </summary>
+    public IReadOnlyList<TerrainType> UnderworldStartTerrains { get; }
+
+    /// <summary>
+    /// Vertex de la carte de prestige offerts à la race à chaque début de cycle d'Ascension, sans
+    /// coût ni contrainte de contiguïté (voir AscensionController.GrantFreePrestigeVertices).
+    /// </summary>
+    public IReadOnlyList<Vertex> FreePrestigeVertices { get; }
+
     public IReadOnlyList<Modifier> Modifiers { get; }
 
     /// <summary>
@@ -57,13 +83,19 @@ public class RaceDefinition
         RaceTier tier,
         TerrainType? requiredAdjacentTerrain,
         BuildingType? racialBuilding,
-        Modifier[] modifiers)
+        Modifier[] modifiers,
+        bool startsInUnderworld = false,
+        TerrainType[]? underworldStartTerrains = null,
+        Vertex[]? freePrestigeVertices = null)
     {
         Id = id;
         Tier = tier;
         RequiredAdjacentTerrain = requiredAdjacentTerrain;
         RacialBuilding = racialBuilding;
         Modifiers = modifiers;
+        StartsInUnderworld = startsInUnderworld;
+        UnderworldStartTerrains = underworldStartTerrains ?? Array.Empty<TerrainType>();
+        FreePrestigeVertices = freePrestigeVertices ?? Array.Empty<Vertex>();
         NameKey = $"race_{id.ToString().ToLowerInvariant()}_name";
         DescKey = $"race_{id.ToString().ToLowerInvariant()}_desc";
     }

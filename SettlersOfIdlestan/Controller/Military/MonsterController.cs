@@ -10,6 +10,7 @@ using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Monsters;
 using SettlersOfIdlestan.Model.Prestige;
+using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
 
 namespace SettlersOfIdlestan.Controller.Military;
 
@@ -462,9 +463,12 @@ public class MonsterFeatureController
     {
         // Priorité : villes dont un hex coïncide avec la position du monstre
         foreach (var civ in _state!.Civilizations)
+        {
+            if (IsImmuneTo(civ, monster)) continue;
             foreach (var city in civ.Cities)
                 if (city.Position.GetHexes().Any(h => h.Equals(monster.Position)))
                     return city;
+        }
 
         if (monster.AttackRangeInHexes < 2) return null;
 
@@ -475,12 +479,25 @@ public class MonsterFeatureController
             .ToHashSet();
 
         foreach (var civ in _state.Civilizations)
+        {
+            if (IsImmuneTo(civ, monster)) continue;
             foreach (var city in civ.Cities)
                 if (city.Position.GetHexes().Any(h => neighborSet.Contains(h)))
                     return city;
+        }
 
         return null;
     }
+
+    /// <summary>
+    /// Pacte des Profondeurs (Elfes noirs, MONSTER_ATTACK_IMMUNITY) : les monstres du type indiqué
+    /// ne retiennent jamais les villes de cette civilisation comme cible. Le filtrage a lieu ici
+    /// plutôt que dans ApplyMonsterAttack pour que le monstre n'affiche pas un
+    /// LastAttackTargetVertex fantôme sur une ville qu'il n'attaquera jamais. L'immunité ne touche
+    /// que l'attaque : le monstre continue d'occuper son hex et d'y bloquer la récolte.
+    /// </summary>
+    private static bool IsImmuneTo(Civilization civ, MonsterFeature monster)
+        => civ.ModifierAggregator.HasModifier(ECategory.MONSTER_ATTACK_IMMUNITY, monster.GetType().Name);
 
     private void ApplyMonsterAttack(MonsterFeature monster, City city, long tick)
     {
