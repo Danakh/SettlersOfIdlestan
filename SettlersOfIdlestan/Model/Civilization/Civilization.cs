@@ -668,7 +668,59 @@ public class Civilization
     /// de bâtiments et à tout ajout/retrait de ville ; à appeler manuellement après un changement de
     /// <c>Building.Level</c>, que la liste des bâtiments ne reflète pas.
     /// </summary>
-    public void InvalidateBuildingDerivedCaches() => _hasMarket = null;
+    public void InvalidateBuildingDerivedCaches()
+    {
+        _hasMarket = null;
+        _citiesByBuildingType = null;
+    }
+
+    [JsonIgnore]
+    private Dictionary<BuildingType, List<City>>? _citiesByBuildingType;
+
+    private static readonly List<City> EmptyCities = new();
+
+    /// <summary>
+    /// Villes de la civilisation possédant un bâtiment de ce type, dans l'ordre de <see cref="Cities"/>.
+    ///
+    /// <para>Remplace les balayages « toutes les villes » des contrôleurs qui n'ont affaire qu'à un
+    /// seul type de bâtiment : la production des Fonderies, Forges d'Armes et d'Armures, Marchés,
+    /// Ports, Huttes d'Alchimie et Casernes fait chacune sa passe complète à <b>chaque</b> événement
+    /// d'horloge, alors qu'en fin de partie une poignée de villes seulement portent le bâtiment
+    /// concerné. Le profilage donnait ces six passes à ~12 % du budget d'image, pour ne rien faire la
+    /// plupart du temps.</para>
+    ///
+    /// <para><b>L'ordre doit rester celui de <see cref="Cities"/></b> : plusieurs de ces passes
+    /// consomment le PRNG (choix de la ressource d'un Port, doublement d'une Forge), donc le
+    /// déterminisme de la partie en dépend.</para>
+    ///
+    /// <para>Retourne volontairement la <see cref="List{T}"/> concrète : les appelants bouclent
+    /// dessus à chaque tick, et via <c>IReadOnlyList</c> l'indexeur devient un appel d'interface et
+    /// <c>foreach</c> boxe l'énumérateur — voir la note correspondante dans CLAUDE.md.</para>
+    /// </summary>
+    public List<City> GetCitiesWith(BuildingType type)
+    {
+        if (_citiesByBuildingType == null)
+        {
+            var index = new Dictionary<BuildingType, List<City>>();
+            for (int i = 0; i < _cities.Count; i++)
+            {
+                var buildings = _cities[i].Buildings;
+                for (int b = 0; b < buildings.Count; b++)
+                {
+                    var buildingType = buildings[b].Type;
+                    if (!index.TryGetValue(buildingType, out var list))
+                        index[buildingType] = list = new List<City>();
+                    // Une ville ne porte jamais deux bâtiments du même type, mais on ne s'appuie pas
+                    // dessus : un doublon ferait produire la ville deux fois.
+                    if (list.Count == 0 || !ReferenceEquals(list[^1], _cities[i]))
+                        list.Add(_cities[i]);
+                }
+            }
+            _citiesByBuildingType = index;
+        }
+
+        return _citiesByBuildingType.TryGetValue(type, out var cities) ? cities : EmptyCities;
+    }
 
 
     /// <summary>

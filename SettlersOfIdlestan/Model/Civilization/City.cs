@@ -87,17 +87,71 @@ public class City : IBuildingContext, IMilitaryVertex
     /// </summary>
     public int CurrentDefense { get; set; }
 
+    [NonSerialized]
+    private int _cachedMaxDefense;
+    [NonSerialized]
+    private bool _maxDefenseCacheValid;
+
     /// <summary>
     /// Défense maximale calculée depuis les bâtiments (Palissade=10, Caserne=5, …).
+    ///
+    /// <para>Caché pour la même raison que <see cref="MaxSoldiers"/> :
+    /// <c>MilitaryController.ResolveDefenseRegen</c> la lit pour chaque emplacement militaire de
+    /// chaque civilisation à chaque événement d'horloge, et le parcours des bâtiments — appels
+    /// virtuels compris — pesait à lui seul plusieurs pourcents du budget d'image en fin de
+    /// partie.</para>
     /// </summary>
     public int MaxDefense
     {
         get
         {
-            int total = 0;
-            for (int i = 0; i < _buildings.Count; i++) total += _buildings[i].GetDefenseBonus();
-            return total;
+            if (!_maxDefenseCacheValid)
+            {
+                int total = 0;
+                for (int i = 0; i < _buildings.Count; i++) total += _buildings[i].GetDefenseBonus();
+                _cachedMaxDefense = total;
+                _maxDefenseCacheValid = true;
+            }
+            return _cachedMaxDefense;
         }
+    }
+
+    [NonSerialized]
+    private double _cachedDefenseRegenBonus;
+    [NonSerialized]
+    private bool _defenseRegenBonusCacheValid;
+
+    /// <summary>
+    /// Bonus de vitesse de régénération de défense apporté par les bâtiments de la ville. Lu sur le
+    /// même chemin chaud que <see cref="MaxDefense"/>, et caché pour la même raison.
+    /// </summary>
+    public double DefenseRegenBonus
+    {
+        get
+        {
+            if (!_defenseRegenBonusCacheValid)
+            {
+                double total = 0;
+                for (int i = 0; i < _buildings.Count; i++) total += _buildings[i].GetDefenseRegenBonus();
+                _cachedDefenseRegenBonus = total;
+                _defenseRegenBonusCacheValid = true;
+            }
+            return _cachedDefenseRegenBonus;
+        }
+    }
+
+    /// <summary>
+    /// Invalide les caches dérivés de la défense. Appelé par <see cref="InvalidateLevelCache"/> <b>et</b>
+    /// par <see cref="InvalidateMaxSoldiersCache"/> : les deux invalidations manuelles existantes ne
+    /// couvrent pas les mêmes sites — le prestige améliore une Caserne en n'appelant que la seconde,
+    /// un combat qui rétrograde un bâtiment n'appelle que la première — alors que les bonus de défense
+    /// dépendent du niveau dans les deux cas. Les brancher aux deux garantit qu'aucun chemin de
+    /// changement de niveau ne laisse la défense périmée.
+    /// </summary>
+    private void InvalidateDefenseCaches()
+    {
+        _maxDefenseCacheValid = false;
+        _defenseRegenBonusCacheValid = false;
     }
 
     /// <summary>
@@ -139,6 +193,7 @@ public class City : IBuildingContext, IMilitaryVertex
     internal void InvalidateMaxSoldiersCache()
     {
         _maxSoldiersCacheValid = false;
+        InvalidateDefenseCaches();
     }
 
     /// <summary>
@@ -218,6 +273,7 @@ public class City : IBuildingContext, IMilitaryVertex
     {
         _cachedTownHall = null;
         _townHallCacheValid = false;
+        InvalidateDefenseCaches();
     }
 
     /// <summary>

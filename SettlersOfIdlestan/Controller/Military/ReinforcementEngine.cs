@@ -86,15 +86,28 @@ internal class ReinforcementEngine
             long interval = EffectiveReinforcementInterval(civ);
             int range = ReinforcementRange(civ);
 
-            // Lookup O(1) par position — évite FirstOrDefault O(n) pour chaque source
-            var vertexByPos = new Dictionary<Vertex, IMilitaryVertex>();
-            foreach (var v in civ.MilitaryVertices) vertexByPos[v.Position] = v;
+            // Lookup O(1) par position — évite FirstOrDefault O(n) pour chaque source. L'index est
+            // construit paresseusement, à la première source réellement prête à expédier : à 2 ticks
+            // par événement (une frame de jeu) le cooldown de 100 ticks n'est presque jamais échu, et
+            // le construire d'office par civilisation et par événement en faisait le premier poste
+            // d'allocation de toute la simulation. Le dictionnaire lui-même est réutilisé.
+            var vertexByPos = _vertexByPositionScratch;
+            bool indexBuilt = false;
 
-            foreach (var sourceVertex in civ.MilitaryVertices)
+            var vertices = civ.MilitaryVertices;
+            for (int i = 0; i < vertices.Count; i++)
             {
+                var sourceVertex = vertices[i];
                 if (currentTick - sourceVertex.LastReinforcementTick < interval) continue;
                 if (sourceVertex.Soldiers == 0) continue;
                 if (sourceVertex.FlowTarget == null) continue;
+
+                if (!indexBuilt)
+                {
+                    vertexByPos.Clear();
+                    for (int v = 0; v < vertices.Count; v++) vertexByPos[vertices[v].Position] = vertices[v];
+                    indexBuilt = true;
+                }
 
                 if (!vertexByPos.TryGetValue(sourceVertex.FlowTarget, out var targetVertex) || targetVertex == sourceVertex) continue;
 
@@ -137,6 +150,10 @@ internal class ReinforcementEngine
     // ces collections — jusqu'à plusieurs centaines d'entrées en fin de partie — à chaque appel.
     private readonly HashSet<Vertex> _enemyPositionsScratch = new();
     private readonly Dictionary<Vertex, IMilitaryVertex> _ownVertexByPositionScratch = new();
+
+    /// <summary>Index position → emplacement de <see cref="ResolveReinforcements"/> — distinct de
+    /// <see cref="_ownVertexByPositionScratch"/>, les deux méthodes pouvant être actives sur le même tick.</summary>
+    private readonly Dictionary<Vertex, IMilitaryVertex> _vertexByPositionScratch = new();
     private readonly HashSet<Vertex> _reachableScratch = new();
     private readonly Queue<Vertex> _reachableQueueScratch = new();
 

@@ -269,15 +269,9 @@ public class MilitaryController
     /// </summary>
     private double GetDefenseRegenSpeed(IMilitaryVertex vertex, double civRegenSpeed, double perDominionLevel)
     {
-        double buildingBonus = 0;
-        if (vertex is City city)
-        {
-            // Boucle indexée : City.Buildings est typée IReadOnlyList, dont Sum() boxe l'énumérateur
-            // et alloue une fermeture — ici à chaque emplacement et à chaque tick.
-            var buildings = city.Buildings;
-            for (int i = 0; i < buildings.Count; i++)
-                buildingBonus += buildings[i].GetDefenseRegenBonus();
-        }
+        // Caché sur la ville et invalidé par ses changements de bâtiments : le parcours était refait
+        // pour chaque emplacement à chaque événement d'horloge.
+        double buildingBonus = vertex is City city ? city.DefenseRegenBonus : 0;
 
         double dominionBonus = 0.0;
         if (perDominionLevel > 0)

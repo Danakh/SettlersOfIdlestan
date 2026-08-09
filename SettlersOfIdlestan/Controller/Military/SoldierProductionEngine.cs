@@ -44,7 +44,8 @@ internal class SoldierProductionEngine
             int freePerCity = (int)civ.ModifierAggregator.ApplyModifiers(ECategory.SOLDIER_FOOD_FREE_PER_CITY, "", 0.0);
             bool isPlayer = civ.Index == _state.PlayerCivilization.Index;
 
-            var cities = civ.Cities;
+            // Seules les villes ayant une Caserne, au lieu de toutes : voir Civilization.GetCitiesWith.
+            var cities = civ.GetCitiesWith(BuildingType.Barracks);
             for (int i = 0; i < cities.Count; i++)
             {
                 var city = cities[i];
@@ -111,7 +112,7 @@ internal class SoldierProductionEngine
             int freePerCity = (int)civ.ModifierAggregator.ApplyModifiers(ECategory.SOLDIER_FOOD_FREE_PER_CITY, "", 0.0);
             bool isPlayer = civ.Index == _state.PlayerCivilization.Index;
 
-            var cities = civ.Cities;
+            var cities = civ.GetCitiesWith(BuildingType.Arsenal);
             for (int i = 0; i < cities.Count; i++)
             {
                 var city = cities[i];

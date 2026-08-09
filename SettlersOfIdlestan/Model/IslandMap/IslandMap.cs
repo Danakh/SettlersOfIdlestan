@@ -87,13 +87,26 @@ public class IslandMap
     /// ni de l'eau ni du Vide, ou (vertex entouré uniquement d'eau et/ou de Vide, ex. balise
     /// maritime ou bord de carte proche de l'Abysse) si ses 3 hexagones sont tous visibles.
     /// </summary>
+    /// <remarks>
+    /// Boucles indexées et non <c>Any</c>/<c>All</c> : le premier lambda capturait <c>this</c> et le
+    /// second était une conversion de groupe de méthodes — deux délégués alloués à <b>chaque</b>
+    /// appel. Cette méthode est appelée en boucles imbriquées (découverte des civilisations, IA des
+    /// PNJ, visibilité des cibles d'attaque) sur toutes les villes de la carte à chaque événement
+    /// d'horloge : le profilage d'allocations la donnait comme premier poste du budget d'image.
+    /// </remarks>
     public bool IsVertexVisible(Vertex vertex)
     {
         if (!IsOnSameLayer(vertex)) return false;
+
         var hexes = vertex.GetHexes();
-        if (hexes.Any(h => GetTile(h) is { } tile && !tile.TerrainType.IsWater() && !tile.TerrainType.IsVoid()))
-            return true;
-        return hexes.All(HasTile);
+        bool allPresent = true;
+        for (int i = 0; i < hexes.Length; i++)
+        {
+            var tile = GetTile(hexes[i]);
+            if (tile == null) { allPresent = false; continue; }
+            if (!tile.TerrainType.IsWater() && !tile.TerrainType.IsVoid()) return true;
+        }
+        return allPresent;
     }
 
     /// <summary>

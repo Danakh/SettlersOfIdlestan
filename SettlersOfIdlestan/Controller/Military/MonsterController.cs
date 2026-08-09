@@ -195,11 +195,19 @@ public class MonsterFeatureController
         if (_state == null) return;
         if (_monsters.Any(m => m is Adventurer)) return;
 
-        foreach (var civ in _state.Civilizations)
+        var civilizations = _state.Civilizations;
+        for (int c = 0; c < civilizations.Count; c++)
         {
-            foreach (var city in civ.Cities)
+            var civ = civilizations[c];
+            var cities = civ.Cities;
+            for (int i = 0; i < cities.Count; i++)
             {
-                var guild = city.Buildings.OfType<AdventurersGuild>().FirstOrDefault(b => b.Level > 0);
+                var city = cities[i];
+                // FindBuilding (indexé par type) plutôt que OfType<T>().FirstOrDefault() : tant
+                // qu'aucun Aventurier n'est vivant, cette méthode parcourt toutes les villes de la
+                // carte à chaque événement d'horloge, et la chaîne LINQ y allouait un itérateur, un
+                // énumérateur boxé et une fermeture par ville.
+                var guild = city.FindBuilding<AdventurersGuild>(BuildingType.AdventurersGuild) is { Level: > 0 } g ? g : null;
                 if (guild == null) continue;
                 if (currentTick - guild.LastAdventurerDeathTick < AdventurersGuild.AdventurerRespawnCooldownTicks) continue;
 
@@ -524,7 +532,7 @@ public class MonsterFeatureController
             if (soldierDmg > 0)
             {
                 int saved = SteelArmorEngine.TrySaveSoldiers(civ, city, soldierDmg, _prng!,
-                    res => ConsumableConsumed?.Invoke(this, new ConsumableConsumedEventArgs(city.Position, res)));
+                    (v, res) => ConsumableConsumed?.Invoke(this, new ConsumableConsumedEventArgs(v.Position, res)));
                 city.Soldiers -= soldierDmg - saved;
                 damage -= soldierDmg;
                 didSomething = true;

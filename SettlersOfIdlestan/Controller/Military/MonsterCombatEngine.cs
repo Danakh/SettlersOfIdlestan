@@ -38,13 +38,18 @@ internal class MonsterCombatEngine
     {
         if (_state == null) return;
 
-        var deadMonsters = new List<MonsterFeature>();
-        foreach (var monster in _state.Features.OfType<MonsterFeature>())
+        // Liste allouée seulement si un monstre meurt réellement — le cas rare, alors que cette
+        // méthode tourne à chaque événement d'horloge.
+        List<MonsterFeature>? deadMonsters = null;
+        var features = _state.Features;
+        for (int i = 0; i < features.Count; i++)
         {
+            if (features[i] is not MonsterFeature monster) continue;
             if (AttackMonsterWithSoldiers(monster, currentTick, onSoldierAttackedMonster, onConsumableConsumed) && monster.Hp <= 0)
-                deadMonsters.Add(monster);
+                (deadMonsters ??= new List<MonsterFeature>()).Add(monster);
         }
 
+        if (deadMonsters == null) return;
         foreach (var m in deadMonsters)
         {
             _state.RemoveFeature(m);
@@ -59,31 +64,49 @@ internal class MonsterCombatEngine
         if (_state == null) return false;
         if (monster.AttacksOtherMonsters) return false; // monstres "amis" (ex. Aventurier) : jamais ciblés par les soldats
 
+        // Délégué construit une fois par appel, hors des boucles : il ne capture plus que le rappel
+        // reçu en paramètre, l'emplacement lui étant transmis par TrySaveSoldiers.
+        Action<IMilitaryVertex, Resource> onConsumed =
+            (v, res) => onConsumableConsumed(new ConsumableConsumedEventArgs(v.Position, res));
+
         bool didAttack = false;
-        foreach (var civ in _state.Civilizations)
+        var civilizations = _state.Civilizations;
+        for (int c = 0; c < civilizations.Count; c++)
         {
+            var civ = civilizations[c];
             if (monster.Hp <= 0) break;
+
+            // Une seule agrégation de modifiers par civilisation : cette boucle imbriquée est
+            // parcourue pour chaque monstre, chaque civilisation et chaque emplacement militaire —
+            // en fin de partie, des dizaines de milliers de tours par événement d'horloge.
+            long combatInterval = EffectiveCombatInterval(civ);
+
             // Grâce après déplacement : la cible ne peut pas être attaquée juste après s'être déplacée.
-            if (currentTick - monster.LastAttackedByMilitaryTick < EffectiveCombatInterval(civ)) continue;
-            foreach (var vertex in civ.MilitaryVertices)
+            if (currentTick - monster.LastAttackedByMilitaryTick < combatInterval) continue;
+
+            bool steelWeaponsUnlocked = civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_STEEL_WEAPONS);
+
+            var vertices = civ.MilitaryVertices;
+            for (int i = 0; i < vertices.Count; i++)
             {
+                var vertex = vertices[i];
                 if (monster.Hp <= 0) break;
                 if (vertex.Soldiers == 0) continue;
                 // Cooldown porté par l'emplacement : commun aux attaques de ville/flotte et de monstre, pour qu'un même
                 // emplacement ne puisse pas frapper deux cibles différentes trop vite — mais plusieurs peuvent attaquer en simultané.
-                if (currentTick - vertex.LastAttackTick < EffectiveCombatInterval(civ)) continue;
+                if (currentTick - vertex.LastAttackTick < combatInterval) continue;
 
-                var hexes = vertex.Position.GetHexes();
-                if (!hexes.Any(h => h.Equals(monster.Position))) continue;
+                // IsAdjacentTo compare les trois hexs sans passer par GetHexes().Any(h => ...), dont
+                // le lambda capturait le monstre et allouait donc une fermeture par emplacement.
+                if (!vertex.Position.IsAdjacentTo(monster.Position)) continue;
 
                 // Armes en Acier : consomme 1 ArmeAcier pour infliger 1 dégât supplémentaire
-                bool hasSteelWeapon = civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_STEEL_WEAPONS)
+                bool hasSteelWeapon = steelWeaponsUnlocked
                     && civ.GetResourceQuantity(Resource.SteelWeapon) >= 1;
                 if (hasSteelWeapon) civ.RemoveResource(Resource.SteelWeapon, 1);
 
                 // Armures d'Acier : le soldat peut survivre à l'assaut en consommant 1 Acier
-                if (SteelArmorEngine.TrySaveSoldiers(civ, vertex, 1, _prng!,
-                        res => onConsumableConsumed(new ConsumableConsumedEventArgs(vertex.Position, res))) == 0)
+                if (SteelArmorEngine.TrySaveSoldiers(civ, vertex, 1, _prng!, onConsumed) == 0)
                     vertex.Soldiers--;
                 int rawDamage = hasSteelWeapon ? 2 : 1;
                 monster.Hp -= MonsterFeature.ApplyArmorReduction(rawDamage, monster.Armor, _prng!);
@@ -143,11 +166,18 @@ internal class MonsterCombatEngine
     {
         if (_state == null) return;
 
-        var deadMonsters = new List<MonsterFeature>();
+        // Même motif que ResolveMonsterCombat : délégué unique hors des boucles, liste des morts
+        // allouée seulement s'il y en a.
+        Action<IMilitaryVertex, Resource> onConsumed =
+            (v, res) => onConsumableConsumed(new ConsumableConsumedEventArgs(v.Position, res));
+
+        List<MonsterFeature>? deadMonsters = null;
         foreach (var civ in _state.Civilizations)
         {
-            foreach (var vertex in civ.MilitaryVertices)
+            var vertices = civ.MilitaryVertices;
+            for (int i = 0; i < vertices.Count; i++)
             {
+                var vertex = vertices[i];
                 if (vertex.MonsterAttackTarget == null) continue;
                 if (vertex.Soldiers == 0) continue;
 
@@ -168,8 +198,7 @@ internal class MonsterCombatEngine
                     && civ.GetResourceQuantity(Resource.SteelWeapon) >= 1;
                 if (hasSteelWeapon) civ.RemoveResource(Resource.SteelWeapon, 1);
 
-                if (SteelArmorEngine.TrySaveSoldiers(civ, vertex, 1, _prng!,
-                        res => onConsumableConsumed(new ConsumableConsumedEventArgs(vertex.Position, res))) == 0)
+                if (SteelArmorEngine.TrySaveSoldiers(civ, vertex, 1, _prng!, onConsumed) == 0)
                     vertex.Soldiers--;
                 int rawDamage = hasSteelWeapon ? 2 : 1;
                 monster.Hp -= MonsterFeature.ApplyArmorReduction(rawDamage, monster.Armor, _prng!);
@@ -179,11 +208,12 @@ internal class MonsterCombatEngine
                 if (monster.Hp <= 0)
                 {
                     monster.KilledByCivilizationIndex = civ.Index;
-                    deadMonsters.Add(monster);
+                    (deadMonsters ??= new List<MonsterFeature>()).Add(monster);
                 }
             }
         }
 
+        if (deadMonsters == null) return;
         foreach (var m in deadMonsters.Distinct())
         {
             _state.RemoveFeature(m);

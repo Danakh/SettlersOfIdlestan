@@ -25,8 +25,15 @@ internal static class SteelArmorEngine
     /// <paramref name="onConsumableConsumed"/> est appelé pour chaque consommable réellement détruit
     /// (armure ou potion), afin de permettre l'affichage d'une particule côté rendu.
     /// </summary>
+    /// <param name="onConsumableConsumed">
+    /// Reçoit l'emplacement concerné en plus de la ressource, précisément pour que l'appelant n'ait
+    /// pas à le capturer. Un lambda qui capturait la variable de boucle forçait le compilateur à
+    /// allouer sa classe de fermeture <b>à chaque itération</b> — donc pour chaque emplacement
+    /// militaire, à chaque monstre et à chaque événement d'horloge, même quand aucun combat n'avait
+    /// lieu. C'était le premier poste d'allocation du budget d'image en fin de partie.
+    /// </param>
     internal static int TrySaveSoldiers(Civilization? civ, IMilitaryVertex vertex, int losses, GamePRNG prng,
-        Action<Resource>? onConsumableConsumed = null)
+        Action<IMilitaryVertex, Resource>? onConsumableConsumed = null)
     {
         if (civ == null || losses <= 0) return 0;
 
@@ -52,13 +59,13 @@ internal static class SteelArmorEngine
             if (roll < steelArmorChance)
             {
                 civ.RemoveResource(Resource.SteelArmor, 1);
-                onConsumableConsumed?.Invoke(Resource.SteelArmor);
+                onConsumableConsumed?.Invoke(vertex, Resource.SteelArmor);
                 saved++;
             }
             else if (roll < steelArmorChance + healingPotionChance)
             {
                 civ.RemoveResource(Resource.HealingPotion, 1);
-                onConsumableConsumed?.Invoke(Resource.HealingPotion);
+                onConsumableConsumed?.Invoke(vertex, Resource.HealingPotion);
                 saved++;
             }
         }

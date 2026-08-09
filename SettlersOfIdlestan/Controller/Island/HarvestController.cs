@@ -390,8 +390,13 @@ namespace SettlersOfIdlestan.Controller.Island
 
             foreach (var civ in _state.Civilizations)
             {
-                foreach (var city in civ.Cities)
+                // Seules les villes portant le bâtiment concerné, au lieu de toutes : voir
+                // Civilization.GetCitiesWith. L'ordre est celui de civ.Cities, ce dont dépend la
+                // consommation du PRNG ci-dessous.
+                var cities = civ.GetCitiesWith(BuildingType.Seaport);
+                for (int i = 0; i < cities.Count; i++)
                 {
+                    var city = cities[i];
                     var seaport = city.FindBuilding<Seaport>(BuildingType.Seaport);
                     if (seaport == null || seaport.Level < 3) continue;
 
@@ -420,8 +425,10 @@ namespace SettlersOfIdlestan.Controller.Island
 
             foreach (var civ in _state.Civilizations)
             {
-                foreach (var city in civ.Cities)
+                var cities = civ.GetCitiesWith(BuildingType.Market);
+                for (int i = 0; i < cities.Count; i++)
                 {
+                    var city = cities[i];
                     var market = city.FindBuilding<Market>(BuildingType.Market);
                     if (market == null || market.Level == 0) continue;
 
@@ -447,8 +454,10 @@ namespace SettlersOfIdlestan.Controller.Island
 
             foreach (var civ in _state.Civilizations)
             {
-                foreach (var city in civ.Cities)
+                var cities = civ.GetCitiesWith(BuildingType.Smelter);
+                for (int i = 0; i < cities.Count; i++)
                 {
+                    var city = cities[i];
                     var smelter = city.FindBuilding<Smelter>(BuildingType.Smelter);
                     if (smelter == null || smelter.Level < 1 || smelter.ActivationStatus != ActivationStatus.ACTIVE) continue;
 
@@ -482,7 +491,7 @@ namespace SettlersOfIdlestan.Controller.Island
                     civ.RemoveResource(Resource.Ore,  oreInput);
                     civ.RemoveResource(Resource.Wood, Smelter.WoodInputPerCycle);
                     int steelOutput = GetSmelterSteelOutput(civ);
-                    for (int i = 0; i < steelOutput; i++)
+                    for (int s = 0; s < steelOutput; s++)
                     {
                         TryAutoTradeOnOverflow(civ, city, Resource.Steel);
                         civ.AddResource(Resource.Steel, 1);
@@ -568,8 +577,10 @@ namespace SettlersOfIdlestan.Controller.Island
 
             foreach (var civ in _state.Civilizations)
             {
-                foreach (var city in civ.Cities)
+                var cities = civ.GetCitiesWith(BuildingType.WeaponSmith);
+                for (int i = 0; i < cities.Count; i++)
                 {
+                    var city = cities[i];
                     var smith = city.FindBuilding<WeaponSmith>(BuildingType.WeaponSmith);
                     if (smith == null || smith.Level < 1 || smith.ActivationStatus != ActivationStatus.ACTIVE) continue;
 
@@ -602,8 +613,10 @@ namespace SettlersOfIdlestan.Controller.Island
 
             foreach (var civ in _state.Civilizations)
             {
-                foreach (var city in civ.Cities)
+                var cities = civ.GetCitiesWith(BuildingType.ArmorSmith);
+                for (int i = 0; i < cities.Count; i++)
                 {
+                    var city = cities[i];
                     var smith = city.FindBuilding<ArmorSmith>(BuildingType.ArmorSmith);
                     if (smith == null || smith.Level < 1 || smith.ActivationStatus != ActivationStatus.ACTIVE) continue;
 
@@ -638,8 +651,10 @@ namespace SettlersOfIdlestan.Controller.Island
             {
                 if (!civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_HEALING_POTION)) continue;
 
-                foreach (var city in civ.Cities)
+                var cities = civ.GetCitiesWith(BuildingType.AlchimistHut);
+                for (int i = 0; i < cities.Count; i++)
                 {
+                    var city = cities[i];
                     var hut = city.FindBuilding<AlchimistHut>(BuildingType.AlchimistHut) is { Level: >= 1 } h1 ? h1 : null;
                     if (hut == null || hut.ActivationStatus != ActivationStatus.ACTIVE) continue;
 
@@ -682,8 +697,10 @@ namespace SettlersOfIdlestan.Controller.Island
 
             foreach (var civ in _state.Civilizations)
             {
-                foreach (var city in civ.Cities)
+                var cities = civ.GetCitiesWith(BuildingType.AlchimistHut);
+                for (int i = 0; i < cities.Count; i++)
                 {
+                    var city = cities[i];
                     var hut = city.FindBuilding<AlchimistHut>(BuildingType.AlchimistHut) is { } h2 && h2.Level >= h2.AutomaticHarvestUnlockLevel ? h2 : null;
                     if (hut == null) continue;
 
