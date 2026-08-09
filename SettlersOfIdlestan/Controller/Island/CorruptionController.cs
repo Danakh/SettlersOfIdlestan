@@ -93,8 +93,7 @@ public class CorruptionController
         {
             foreach (var city in civ.Cities)
             {
-                var temple = city.Buildings.OfType<Temple>()
-                    .FirstOrDefault(t => t.Level >= TempleMinDominionLevel && t.Level <= TempleMaxDominionLevel);
+                var temple = city.FindBuilding<Temple>(BuildingType.Temple) is { } t0 && t0.Level >= TempleMinDominionLevel && t0.Level <= TempleMaxDominionLevel ? t0 : null;
                 if (temple == null) continue;
                 if (currentTick - temple.LastDominionProductionTick < ProductionIntervalTicks) continue;
                 temple.LastDominionProductionTick = currentTick;
@@ -145,7 +144,7 @@ public class CorruptionController
         if (_state == null) return;
 
         var civ = _state.Civilizations.FirstOrDefault(c => c.Index == city.CivilizationIndex);
-        var temple = city.Buildings.OfType<Temple>().FirstOrDefault(t => t.Level >= 1);
+        var temple = city.FindBuilding<Temple>(BuildingType.Temple) is { Level: >= 1 } tp ? tp : null;
         if (civ == null || temple == null) return;
 
         foreach (var hex in city.Position.GetHexes().Where(IsValidHex))
@@ -233,7 +232,7 @@ public class CorruptionController
         if (chance <= 0) return false;
 
         bool nearTemple = _state.PlayerCivilization.Cities.Any(c =>
-            c.Buildings.OfType<Temple>().Any() && c.Position.GetHexes().Contains(hex));
+            c.FindBuilding(BuildingType.Temple) != null && c.Position.GetHexes().Contains(hex));
         if (!nearTemple) return false;
 
         return _prng!.Next(100) < (int)Math.Round(chance * 100);

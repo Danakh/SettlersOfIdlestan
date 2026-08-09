@@ -109,20 +109,42 @@ namespace SettlersOfIdlestan.Controller
             bool aggressive = false,
             bool includeResearch = true)
         {
+            // Ces prédicats sont réévalués à chaque passe de la stratégie (une par tick pour le joueur,
+            // une par tour de réflexion pour chaque NPC) et parcourent l'intégralité des features de la
+            // carte ou des villes de toutes les civilisations : écrits en boucles simples plutôt qu'en
+            // LINQ, ils évitent un itérateur, un délégué et un test de type par élément.
             var banditSpotted = new Func<bool>(() =>
-                auto.WorldState != null && auto.WorldState.Features.OfType<Bandit>().Any(b => b.Found));
+            {
+                var world = auto.WorldState;
+                if (world == null) return false;
+                foreach (var feature in world.Features)
+                    if (feature is Bandit { Found: true })
+                        return true;
+                return false;
+            });
 
             var hasVisibleThreats = new Func<bool>(() =>
             {
                 if (auto.WorldState == null) return false;
                 var visMaps = auto.WorldState.Visibility.GetForZ(IslandMap.SurfaceLayer);
                 if (!visMaps.TryGetValue(auto.Civilization.Index, out var vm)) return false;
-                return auto.WorldState.Civilizations.Any(c => c.IsNpc && c.Cities.Count > 0 &&
-                    c.Cities.Any(city => vm.IsVertexVisible(city.Position)));
+                foreach (var c in auto.WorldState.Civilizations)
+                {
+                    if (!c.IsNpc) continue;
+                    foreach (var city in c.Cities)
+                        if (vm.IsVertexVisible(city.Position))
+                            return true;
+                }
+                return false;
             });
 
             var hasOreProduction = new Func<bool>(() =>
-                auto.Civilization.Cities.Any(c => c.Buildings.Any(b => b.Type == BuildingType.Mine && b.Level > 0)));
+            {
+                foreach (var c in auto.Civilization.Cities)
+                    if (c.FindBuilding(BuildingType.Mine) is { Level: > 0 })
+                        return true;
+                return false;
+            });
 
             // Contrairement à hasVisibleThreats (simple visibilité), tient compte de la portée
             // d'attaque : un ennemi visible mais hors de portée ne compte pas comme une cible
@@ -146,7 +168,14 @@ namespace SettlersOfIdlestan.Controller
             // que hasVisibleThreats, qui ne regarde que les ennemis actuellement visibles et laisserait
             // passer un NPC existant mais hors champ de vision.
             var allNpcsEliminated = new Func<bool>(() =>
-                auto.WorldState != null && auto.WorldState.Civilizations.Where(c => c.IsNpc).All(c => c.Cities.Count == 0));
+            {
+                var world = auto.WorldState;
+                if (world == null) return false;
+                foreach (var c in world.Civilizations)
+                    if (c.IsNpc && c.Cities.Count > 0)
+                        return false;
+                return true;
+            });
 
             var objectives = new List<IAutoplayObjective>();
 

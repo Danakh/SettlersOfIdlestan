@@ -35,6 +35,18 @@ public class NpcGameController
 
     private readonly Dictionary<int, long> _nextStepTickByCivIndex = new();
 
+    /// <summary>
+    /// Autoplayer conservé d'un tour à l'autre par civ NPC. En recréer un à chaque tour repartait
+    /// systématiquement d'un cache froid — notamment celui des vertex prospectifs de
+    /// <see cref="CivilizationAutoplayer"/>, qui reparcourt toute la carte visible — et réallouait la
+    /// stratégie complète. Les cooldowns internes (clic, expansion) valent
+    /// <see cref="NpcStepIntervalTicks"/>, soit exactement l'intervalle entre deux tours : les
+    /// conserver ne bloque donc aucune action qui passait auparavant.
+    /// Invalidé quand la civ change d'instance (nouvelle île) ou que son agressivité évolue
+    /// (escalade vers Warlike dans <see cref="OnCityAttacked"/>), la stratégie en dépendant.
+    /// </summary>
+    private readonly Dictionary<int, (Civilization Civ, NpcAggressivityLevel Aggressivity, NpcCivilizationAutoplayer Autoplayer)> _autoplayerByCivIndex = new();
+
     public void Initialize(
         WorldState state,
         GameClock? clock,
@@ -51,6 +63,7 @@ public class NpcGameController
         _militaryController = militaryController;
         _mainController = mainController;
         _nextStepTickByCivIndex.Clear();
+        _autoplayerByCivIndex.Clear();
 
         if (_clock != null)
             _clock.Advanced += OnClockAdvanced;
@@ -91,11 +104,23 @@ public class NpcGameController
         bool hasEncounteredEnemy = aggressivity >= NpcAggressivityLevel.Expansionist
             && HasEncounteredEnemy(civ);
 
-        var autoplayer = new NpcCivilizationAutoplayer(
-            civ, _state.GetMapForZ(IslandMap.SurfaceLayer)!, _mainController, aggressivity, _militaryController,
-            expandCooldownTicks: NpcStepIntervalTicks);
+        var autoplayer = GetOrCreateAutoplayer(civ, aggressivity);
         UpdateNpcMilitaryFlows(civ, aggressivity, autoplayer.Inner);
         autoplayer.TryStepOnce(shouldExpand: !hasEncounteredEnemy);
+    }
+
+    /// <summary>Autoplayer de la civ, recréé uniquement si la civ ou son agressivité a changé (voir <see cref="_autoplayerByCivIndex"/>).</summary>
+    private NpcCivilizationAutoplayer GetOrCreateAutoplayer(Civilization civ, NpcAggressivityLevel aggressivity)
+    {
+        if (_autoplayerByCivIndex.TryGetValue(civ.Index, out var cached) &&
+            ReferenceEquals(cached.Civ, civ) && cached.Aggressivity == aggressivity)
+            return cached.Autoplayer;
+
+        var autoplayer = new NpcCivilizationAutoplayer(
+            civ, _state!.GetMapForZ(IslandMap.SurfaceLayer)!, _mainController!, aggressivity, _militaryController,
+            expandCooldownTicks: NpcStepIntervalTicks);
+        _autoplayerByCivIndex[civ.Index] = (civ, aggressivity, autoplayer);
+        return autoplayer;
     }
 
     /// <summary>

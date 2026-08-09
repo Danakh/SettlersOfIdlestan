@@ -47,6 +47,17 @@ namespace SettlersOfIdlestan.Controller
         private List<Vertex>? _prospectiveVerticesCache;
         private Func<Vertex, bool>? _expansionVertexFilter;
 
+        // Cache de HasUnexploredHexesWithinTwoRoads, invalidé par les mêmes critères que
+        // _prospectiveVerticesCache ci-dessus (identité de la carte de visibilité + nombre total de
+        // villes), plus le nombre de nos routes : la réponse ne change que si notre réseau s'étend ou
+        // si notre visibilité est recalculée. La recherche elle-même (FindUnexploredVertexNear +
+        // pathfinding d'approche pour chaque candidat) est un des appels les plus coûteux de
+        // l'autoplayer et ResourceCoverageObjective l'interroge à chaque passe de la stratégie.
+        private VisibleIslandMap? _unexploredCacheMap;
+        private int _unexploredCacheTotalCityCount = -1;
+        private int _unexploredCacheRoadCount = -1;
+        private bool _unexploredCacheValue;
+
         /// <summary>Simule le temps de réaction d'un joueur entre deux salves de clics de récolte manuelle.</summary>
         private readonly long _clickCooldownTicks;
         private long _nextClickAllowedTick = long.MinValue;
@@ -932,12 +943,16 @@ namespace SettlersOfIdlestan.Controller
             var map = _worldState.GetMapForZ(IslandMap.SurfaceLayer);
             if (map == null) return null;
 
-            var contestedHexes = new HashSet<HexCoord>(
-                _worldState.Features.OfType<ContestedTerritory>().Select(ct => ct.Position));
+            // Voir ResourceCoverageObjective.GetMissingTerrains : parcours direct, et pas de HashSet
+            // alloué tant qu'aucune feature n'est un territoire contesté (le cas courant).
+            HashSet<HexCoord>? contestedHexes = null;
+            foreach (var feature in _worldState.Features)
+                if (feature is ContestedTerritory ct)
+                    (contestedHexes ??= new HashSet<HexCoord>()).Add(ct.Position);
 
             return _cityBuilderController.GetBuildableVertices(_civ.Index)
                 .FirstOrDefault(v => v.Z == IslandMap.SurfaceLayer && v.GetHexes().Any(h =>
-                    !contestedHexes.Contains(h) &&
+                    (contestedHexes == null || !contestedHexes.Contains(h)) &&
                     map.GetTile(h)?.TerrainType == terrain));
         }
 
@@ -955,11 +970,26 @@ namespace SettlersOfIdlestan.Controller
             var visByLayer = _worldState.Visibility.GetForZ(z);
             if (!visByLayer.TryGetValue(_civ.Index, out var visibleMap)) return false;
 
-            var networkVertices = GetSurfaceNetworkVertices();
-            if (networkVertices.Count == 0) return false;
+            int totalCityCount = 0;
+            foreach (var c in _worldState.Civilizations) totalCityCount += c.Cities.Count;
+            if (ReferenceEquals(_unexploredCacheMap, visibleMap) &&
+                _unexploredCacheTotalCityCount == totalCityCount &&
+                _unexploredCacheRoadCount == _civ.Roads.Count)
+                return _unexploredCacheValue;
 
-            var visibleHexes = new HashSet<HexCoord>(visibleMap.Tiles.Keys);
-            return FindUnexploredVertexNear(networkVertices, visibleHexes, map) != null;
+            var networkVertices = GetSurfaceNetworkVertices();
+            bool result = false;
+            if (networkVertices.Count > 0)
+            {
+                var visibleHexes = new HashSet<HexCoord>(visibleMap.Tiles.Keys);
+                result = FindUnexploredVertexNear(networkVertices, visibleHexes, map) != null;
+            }
+
+            _unexploredCacheMap = visibleMap;
+            _unexploredCacheTotalCityCount = totalCityCount;
+            _unexploredCacheRoadCount = _civ.Roads.Count;
+            _unexploredCacheValue = result;
+            return result;
         }
 
         /// <summary>

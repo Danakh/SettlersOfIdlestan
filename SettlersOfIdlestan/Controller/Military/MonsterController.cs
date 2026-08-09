@@ -505,7 +505,7 @@ public class MonsterFeatureController
         var civ = _state!.Civilizations.FirstOrDefault(c => c.Index == city.CivilizationIndex);
         if (civ == null) return;
 
-        if (!monster.IgnoresPalisade && city.Buildings.OfType<Palisade>().Any(b => b.Level > 0))
+        if (!monster.IgnoresPalisade && city.FindBuilding(BuildingType.Palisade) is { Level: > 0 })
         {
             monster.LastAttackTargetVertex = null;
             monster.LastAttackResourcesString = null;

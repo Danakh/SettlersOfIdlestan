@@ -155,6 +155,30 @@ public class City : IBuildingContext, IMilitaryVertex
     }
 
     /// <summary>
+    /// Bâtiment de ce type dans la ville, ou null. Une ville ne contient jamais deux bâtiments du même
+    /// type (BuildingController.BuildBuilding améliore l'existant au lieu d'en
+    /// ajouter un second), donc ce parcours équivaut exactement à un
+    /// <c>Buildings.OfType&lt;T&gt;().FirstOrDefault()</c> — mais sans itérateur LINQ, sans délégué et
+    /// avec une simple comparaison d'enum au lieu d'un test de type. Les contrôleurs périodiques
+    /// (récolte, routes, recherche, militaire…) font cette recherche pour chaque ville à chaque tick :
+    /// c'est un des chemins les plus chauds du jeu.
+    /// </summary>
+    public Building? FindBuilding(BuildingType type)
+    {
+        var buildings = Buildings;
+        for (int i = 0; i < buildings.Count; i++)
+            if (buildings[i].Type == type)
+                return buildings[i];
+        return null;
+    }
+
+    /// <summary>
+    /// Variante typée de <see cref="FindBuilding(BuildingType)"/> — <paramref name="type"/> doit être le
+    /// <see cref="Building.Type"/> correspondant à <typeparamref name="T"/>.
+    /// </summary>
+    public T? FindBuilding<T>(BuildingType type) where T : Building => FindBuilding(type) as T;
+
+    /// <summary>
     /// Gets the textual name of the city level used for sprite selection.
     /// </summary>
     public string LevelName => Level switch

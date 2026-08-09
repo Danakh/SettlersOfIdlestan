@@ -249,6 +249,18 @@ public class Civilization
     /// de l'autoplay/des tests). Invalidé automatiquement via ModifierAggregator.Changed dès qu'un
     /// provider de modificateurs change (recherche, prestige, bâtiments uniques…).
     /// </summary>
+    /// <summary>
+    /// Variante sans allocation de <see cref="GetCachedMaxLevel"/> : le calcul est laissé à l'appelant,
+    /// qui n'a donc pas à allouer une closure à chaque appel — y compris quand le cache répond. Lu sur
+    /// un chemin très chaud (l'autoplayer teste le niveau max de chaque type de bâtiment de chaque
+    /// ville à chaque passe de stratégie).
+    /// </summary>
+    public bool TryGetCachedMaxLevel(BuildingType type, out int cached)
+        => _maxLevelCache.TryGetValue(type, out cached);
+
+    /// <summary>Mémorise le niveau max calculé par l'appelant de <see cref="TryGetCachedMaxLevel"/>.</summary>
+    public void SetCachedMaxLevel(BuildingType type, int value) => _maxLevelCache[type] = value;
+
     public int GetCachedMaxLevel(BuildingType type, Func<int> compute)
     {
         if (_maxLevelCache.TryGetValue(type, out int cached))

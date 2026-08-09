@@ -128,7 +128,7 @@ internal class MonsterCombatEngine
         bool hasSurveillance = civ != null && civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_RANGED_MONSTER_ATTACK);
         if (distance > MaxRangedAttackDistance || !hasSurveillance) return MonsterAttackAvailability.TooFar;
 
-        bool hasWatchtower = vertex is City city && city.Buildings.OfType<Watchtower>().Any(b => b.Level > 0);
+        bool hasWatchtower = vertex is City city && city.FindBuilding(BuildingType.Watchtower) is { Level: > 0 };
         return hasWatchtower ? MonsterAttackAvailability.Available : MonsterAttackAvailability.RequiresWatchtower;
     }
 

@@ -339,7 +339,7 @@ namespace SettlersOfIdlestan.Controller.Island
         {
             if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
 
-            var existing = city.Buildings.FirstOrDefault(b => b.Type == type);
+            var existing = city.FindBuilding(type);
             return GetBuildingOrBuildableEntry(city, type, existing, _state.GetMapFor(city.Position));
         }
 
@@ -349,12 +349,33 @@ namespace SettlersOfIdlestan.Controller.Island
             return GetBuildingOrBuildableEntry(city, bt, existing, map);
         }
 
+        /// <summary>
+        /// Instances de sondage, une par type, servant uniquement à répondre aux questions qui ne
+        /// dépendent que du type (unicité, prérequis, niveau max par défaut, disponibilité pour une
+        /// ville). Elles ne sont jamais rendues à l'appelant ni ajoutées à une ville : seule une
+        /// instance fraîche l'est. Sans elles, chaque test de disponibilité — l'autoplayer en fait des
+        /// centaines par passe de stratégie, la plupart concluant « indisponible » — allouait un
+        /// bâtiment complet pour le jeter aussitôt. À traiter comme immuable.
+        /// </summary>
+        private static readonly Dictionary<BuildingType, Building> _probesByType = new();
+
+        private static Building? GetProbe(BuildingType bt)
+        {
+            if (_probesByType.TryGetValue(bt, out var probe))
+                return probe;
+
+            probe = CreateBuilding(bt);
+            if (probe != null)
+                _probesByType[bt] = probe;
+            return probe;
+        }
+
         private Building? GetBuildingOrBuildableEntry(City city, BuildingType bt, Building? existing, IslandMap? map)
         {
             if (existing != null)
                 return existing.IsUnique ? null : existing;
 
-            var prototype = CreateBuilding(bt);
+            var prototype = GetProbe(bt);
             if (prototype == null || prototype.IsUnique)
                 return null;
 
@@ -374,7 +395,7 @@ namespace SettlersOfIdlestan.Controller.Island
                     ? prototype.IsBuildingAvailableForCity(map, city, civ)
                     : prototype.IsBuildingAvailableForCity(map, city);
                 if (available)
-                    return prototype;
+                    return CreateBuilding(bt); // instance neuve : l'appelant peut la conserver/muter
             }
 
             return null;
@@ -559,8 +580,13 @@ namespace SettlersOfIdlestan.Controller.Island
 
         public int GetMaxLevel(Building building, Civilization civ)
         {
-            return civ.GetCachedMaxLevel(building.Type, () =>
-                civ.ModifierAggregator.ApplyModifiers(ECategory.BUILDING_MAX_LEVEL, building.Type.ToString(), building.GetDefaultMaxLevel()));
+            if (civ.TryGetCachedMaxLevel(building.Type, out int cached))
+                return cached;
+
+            int value = civ.ModifierAggregator.ApplyModifiers(
+                ECategory.BUILDING_MAX_LEVEL, BuildingTypeNames.Of(building.Type), building.GetDefaultMaxLevel());
+            civ.SetCachedMaxLevel(building.Type, value);
+            return value;
         }
 
         /// <summary>

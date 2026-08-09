@@ -134,11 +134,10 @@ public class MilitaryController
         double perCycleRate = civ.UnitProductionSpeed * ticksPerSecond / SoldierProductionIntervalTicks;
 
         double rate = 0;
-        var barracks = city.Buildings.OfType<Barracks>()
-            .FirstOrDefault(b => b.ActivationStatus == ActivationStatus.ACTIVE && b.Level >= SoldierProductionEngine.SoldierProductionMinLevel);
+        var barracks = city.FindBuilding(BuildingType.Barracks) is { ActivationStatus: ActivationStatus.ACTIVE } b1 && b1.Level >= SoldierProductionEngine.SoldierProductionMinLevel ? b1 : null;
         if (barracks != null) rate += perCycleRate;
 
-        var arsenal = city.Buildings.OfType<Arsenal>().FirstOrDefault(a => a.Level >= 1);
+        var arsenal = city.FindBuilding<Arsenal>(BuildingType.Arsenal) is { Level: >= 1 } ars ? ars : null;
         if (arsenal != null && arsenal.ActivationStatus == ActivationStatus.ACTIVE
             && civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_ARSENAL_PRODUCTION))
             rate += perCycleRate * Arsenal.SoldiersProducedPerCycle;
@@ -172,8 +171,7 @@ public class MilitaryController
         {
             if (city.Soldiers + city.IncomingSoldiers.Count >= GetMaximumSoldierCapacity(city)) continue;
 
-            var barracks = city.Buildings.OfType<Barracks>()
-                .FirstOrDefault(b => b.Level >= SoldierProductionEngine.SoldierProductionMinLevel);
+            var barracks = city.FindBuilding(BuildingType.Barracks) is { } b2 && b2.Level >= SoldierProductionEngine.SoldierProductionMinLevel ? b2 : null;
             if (barracks == null) continue;
 
             bool restrictedToFreeSoldiers = civ.Index == _state!.PlayerCivilization.Index
@@ -195,7 +193,7 @@ public class MilitaryController
     {
         var civ = _state?.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex);
         if (civ == null) return false;
-        return civ.Cities.Any(c => c.Buildings.OfType<Barracks>().Any(b => b.Level >= SoldierProductionEngine.SoldierProductionMinLevel));
+        return civ.Cities.Any(c => c.FindBuilding(BuildingType.Barracks) is { } bar && bar.Level >= SoldierProductionEngine.SoldierProductionMinLevel);
     }
 
     /// <summary>Clé de source pour l'Acier consommé par la production de soldats (Arsenal), pour l'infobulle de ressource.</summary>
@@ -221,7 +219,7 @@ public class MilitaryController
         {
             if (city.Soldiers + city.IncomingSoldiers.Count >= GetMaximumSoldierCapacity(city)) continue;
 
-            var arsenal = city.Buildings.OfType<Arsenal>().FirstOrDefault(a => a.Level >= 1);
+            var arsenal = city.FindBuilding<Arsenal>(BuildingType.Arsenal) is { Level: >= 1 } ars ? ars : null;
             if (arsenal == null || arsenal.ActivationStatus != ActivationStatus.ACTIVE) continue;
 
             bool restrictedToFreeSoldiers = civ.Index == _state!.PlayerCivilization.Index
@@ -243,7 +241,7 @@ public class MilitaryController
     {
         var civ = _state?.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex);
         if (civ == null || !civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_ARSENAL_PRODUCTION)) return false;
-        return civ.Cities.Any(c => c.Buildings.OfType<Arsenal>().Any(a => a.Level >= 1 && a.ActivationStatus == ActivationStatus.ACTIVE));
+        return civ.Cities.Any(c => c.FindBuilding(BuildingType.Arsenal) is { Level: >= 1, ActivationStatus: ActivationStatus.ACTIVE });
     }
 
     /// <summary>Points de défense régénérés par seconde (0 si aucune défense max).</summary>
@@ -282,7 +280,7 @@ public class MilitaryController
 
             // Bastion Consacré : chaque Temple ajoute un bonus fixe selon son niveau (+1/3/6/10).
             if (vertex is City city && civ.ModifierAggregator.HasModifier(ECategory.TEMPLE_DEFENSE_BONUS))
-                score += city.Buildings.OfType<Temple>().Sum(t => Temple.GetDefenseBonusForLevel(t.Level));
+                score += (city.FindBuilding(BuildingType.Temple) is { } tpl ? Temple.GetDefenseBonusForLevel(tpl.Level) : 0);
         }
         return score;
     }

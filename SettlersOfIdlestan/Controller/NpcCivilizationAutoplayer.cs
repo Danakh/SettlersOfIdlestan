@@ -15,6 +15,14 @@ public class NpcCivilizationAutoplayer
     private readonly BuildingController _buildingController;
     private readonly NpcAggressivityLevel _aggressivity;
 
+    /// <summary>
+    /// Stratégie construite à la première étape puis réutilisée : <see cref="CivilizationAutoplayerPriorities.Unified"/>
+    /// ne dépend que de l'agressivité (fixe pour cette instance) et de l'autoplayer, et tous ses objectifs
+    /// relisent l'état du monde à chaque appel — la reconstruire à chaque tour ne changeait rien au
+    /// comportement mais réallouait la trentaine d'objectifs et de closures à chaque fois.
+    /// </summary>
+    private PriorityAutoplayStrategy? _strategy;
+
     /// <param name="expandCooldownTicks">
     /// Cooldown minimal entre deux tentatives d'expansion (0 = pas de cooldown). Laissé à 0 par défaut
     /// pour <see cref="Generator.NpcCivilizationPlacer"/>, qui boucle des centaines de fois sur
@@ -69,12 +77,12 @@ public class NpcCivilizationAutoplayer
         // PrestigeState/TechnologyTree dans le jeu, pas une par civ) — un NPC qui lancerait l'objectif
         // de recherche manipulerait la file/recherche active du joueur au lieu de la sienne (voir
         // ResearchController.Initialize appelé une fois avec CurrentMainState.PrestigeState).
-        var strategy = CivilizationAutoplayerPriorities.Unified(
+        _strategy ??= CivilizationAutoplayerPriorities.Unified(
             _inner, _buildingController,
             step2AtCities: 0,
             step3AtCities: step3,
             expansionTarget: target,
             includeResearch: false);
-        return strategy.TryStepOnce();
+        return _strategy.TryStepOnce();
     }
 }

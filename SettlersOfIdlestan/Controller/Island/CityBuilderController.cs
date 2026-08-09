@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json.Serialization;
@@ -110,7 +110,7 @@ namespace SettlersOfIdlestan.Controller.Island
             BuildersGuild? guild = null;
             foreach (var city in civ.Cities)
             {
-                guild = city.Buildings.OfType<BuildersGuild>().FirstOrDefault();
+                guild = city.FindBuilding<BuildersGuild>(BuildingType.BuildersGuild);
                 if (guild != null) break;
             }
 

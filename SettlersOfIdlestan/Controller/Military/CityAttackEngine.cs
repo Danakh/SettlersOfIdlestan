@@ -269,7 +269,7 @@ internal class CityAttackEngine
         if (targetVertex is not City targetCity)
             return true;
 
-        var townHall = targetCity.Buildings.OfType<TownHall>().FirstOrDefault();
+        var townHall = targetCity.FindBuilding<TownHall>(BuildingType.TownHall);
         if (townHall != null)
         {
             townHall.Level--;

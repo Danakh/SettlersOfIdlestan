@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using SettlersOfIdlestan.Model.IslandMap;
@@ -97,7 +97,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 BuildersGuild? guild = null;
                 foreach (var city in civ.Cities)
                 {
-                    guild = city.Buildings.OfType<BuildersGuild>().FirstOrDefault();
+                    guild = city.FindBuilding<BuildersGuild>(BuildingType.BuildersGuild);
                     if (guild != null) break;
                 }
 
@@ -699,7 +699,7 @@ namespace SettlersOfIdlestan.Controller.Island
         {
             foreach (var city in civ.Cities)
             {
-                var guild = city.Buildings.OfType<BuildersGuild>().FirstOrDefault();
+                var guild = city.FindBuilding<BuildersGuild>(BuildingType.BuildersGuild);
                 if (guild != null && guild.Level > 0)
                     return guild.RoadCostReduction;
             }

@@ -305,8 +305,13 @@ namespace SettlersOfIdlestan.Controller
             var map = ws.GetMapForZ(IslandMap.SurfaceLayer);
             if (map == null) return new List<TerrainType>();
 
-            var contestedHexes = new HashSet<HexCoord>(
-                ws.Features.OfType<ContestedTerritory>().Select(ct => ct.Position));
+            // Parcours direct plutôt qu'un OfType/Select LINQ : appelé à chaque passe de la stratégie
+            // sur la totalité des features de la carte, et le plus souvent aucune n'est contestée —
+            // auquel cas aucun HashSet n'est alloué du tout.
+            HashSet<HexCoord>? contestedHexes = null;
+            foreach (var feature in ws.Features)
+                if (feature is ContestedTerritory ct)
+                    (contestedHexes ??= new HashSet<HexCoord>()).Add(ct.Position);
 
             var covered = new HashSet<TerrainType>();
             foreach (var city in _autoplayer.Civilization.Cities)
@@ -314,15 +319,23 @@ namespace SettlersOfIdlestan.Controller
                 if (city.Position.Z != IslandMap.SurfaceLayer) continue;
                 foreach (var hex in city.Position.GetHexes())
                 {
-                    if (contestedHexes.Contains(hex)) continue;
+                    if (contestedHexes != null && contestedHexes.Contains(hex)) continue;
                     var terrain = map.GetTile(hex)?.TerrainType;
                     if (terrain.HasValue && ResourceTerrainSet.Contains(terrain.Value))
                         covered.Add(terrain.Value);
                 }
             }
 
-            return ResourceTerrains.Where(t => !covered.Contains(t)).ToList();
+            if (covered.Count >= ResourceTerrains.Length) return EmptyTerrains;
+
+            List<TerrainType>? missing = null;
+            foreach (var t in ResourceTerrains)
+                if (!covered.Contains(t))
+                    (missing ??= new List<TerrainType>()).Add(t);
+            return missing ?? EmptyTerrains;
         }
+
+        private static readonly List<TerrainType> EmptyTerrains = new();
     }
 
     /// <summary>
@@ -354,7 +367,7 @@ namespace SettlersOfIdlestan.Controller
             bool shouldBeActive = ShouldBarracksBeActive();
             return _autoplayer.Civilization.Cities.All(city =>
             {
-                var barracks = city.Buildings.OfType<Barracks>().FirstOrDefault();
+                var barracks = city.FindBuilding(BuildingType.Barracks);
                 if (barracks == null || barracks.Level == 0) return true;
                 return barracks.ActivationStatus == (shouldBeActive ? ActivationStatus.ACTIVE : ActivationStatus.INACTIVE);
             });
@@ -367,7 +380,7 @@ namespace SettlersOfIdlestan.Controller
             bool didSomething = false;
             foreach (var city in _autoplayer.Civilization.Cities)
             {
-                var barracks = city.Buildings.OfType<Barracks>().FirstOrDefault();
+                var barracks = city.FindBuilding(BuildingType.Barracks);
                 if (barracks == null || barracks.Level == 0) continue;
                 if (barracks.ActivationStatus == targetStatus) continue;
                 barracks.ActivationStatus = targetStatus;

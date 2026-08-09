@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using SettlersOfIdlestan.Model.Game;
@@ -175,7 +175,7 @@ namespace SettlersOfIdlestan.Controller.Island
                     }
 
                     long raw = building.GetAutomaticHarvestCooldown(AutomaticHarvestCooldownTicks);
-                    double speedMultiplier = civ.ModifierAggregator.ApplyModifiers(ECategory.HARVEST_SPEED, building.Type.ToString(), 1.0);
+                    double speedMultiplier = civ.ModifierAggregator.ApplyModifiers(ECategory.HARVEST_SPEED, BuildingTypeNames.Of(building.Type), 1.0);
                     double terrainSpeedMultiplier = building.GetAutomaticHarvestTerrainSpeedMultiplier(terrain);
                     long effective = Math.Max(1L, (long)(raw / speedMultiplier / terrainSpeedMultiplier));
                     effective = Math.Max(1L, (long)(effective * featureMultiplier));
@@ -206,12 +206,12 @@ namespace SettlersOfIdlestan.Controller.Island
                         rs[Resource.Gold] += goldAmount;
                     }
 
-                    var forge = city.Buildings.OfType<Forge>().FirstOrDefault();
+                    var forge = city.FindBuilding<Forge>(BuildingType.Forge);
                     int forgeChance = forge != null ? forge.DoubleProdChancePercent + civ.ForgeDoubleHarvestBonus * forge.Level : 0;
                     int forgeBonus = 0;
                     if (forge != null && forge.Level > 0)
                         forgeBonus = forgeChance / 100 + (_prng!.Next(100) < forgeChance % 100 ? 1 : 0);
-                    int harvestProductionChance = civ.GetHarvestProductionBonus(building.Type.ToString());
+                    int harvestProductionChance = civ.GetHarvestProductionBonus(BuildingTypeNames.Of(building.Type));
                     bool harvestDoubled = harvestProductionChance > 0 && _prng!.Next(100) < harvestProductionChance;
                     int multiplier = (1 + forgeBonus) * (harvestDoubled ? 2 : 1);
                     for (int i = 1; i < multiplier; i++)
@@ -281,7 +281,7 @@ namespace SettlersOfIdlestan.Controller.Island
             {
                 foreach (var city in civ.Cities)
                 {
-                    var seaport = city.Buildings.OfType<Seaport>().FirstOrDefault();
+                    var seaport = city.FindBuilding<Seaport>(BuildingType.Seaport);
                     if (seaport == null || seaport.Level < 3) continue;
 
                     if (seaport.LastGenerationTick == 0)
@@ -311,7 +311,7 @@ namespace SettlersOfIdlestan.Controller.Island
             {
                 foreach (var city in civ.Cities)
                 {
-                    var market = city.Buildings.OfType<Market>().FirstOrDefault();
+                    var market = city.FindBuilding<Market>(BuildingType.Market);
                     if (market == null || market.Level == 0) continue;
 
                     if (market.LastGoldGenerationTick == 0)
@@ -338,7 +338,7 @@ namespace SettlersOfIdlestan.Controller.Island
             {
                 foreach (var city in civ.Cities)
                 {
-                    var smelter = city.Buildings.OfType<Smelter>().FirstOrDefault();
+                    var smelter = city.FindBuilding<Smelter>(BuildingType.Smelter);
                     if (smelter == null || smelter.Level < 1 || smelter.ActivationStatus != ActivationStatus.ACTIVE) continue;
 
                     if (smelter.LastProductionTick == 0)
@@ -459,7 +459,7 @@ namespace SettlersOfIdlestan.Controller.Island
             {
                 foreach (var city in civ.Cities)
                 {
-                    var smith = city.Buildings.OfType<WeaponSmith>().FirstOrDefault();
+                    var smith = city.FindBuilding<WeaponSmith>(BuildingType.WeaponSmith);
                     if (smith == null || smith.Level < 1 || smith.ActivationStatus != ActivationStatus.ACTIVE) continue;
 
                     if (currentTick - smith.LastProductionTick < GetWeaponSmithInterval(smith.Level)) continue;
@@ -493,7 +493,7 @@ namespace SettlersOfIdlestan.Controller.Island
             {
                 foreach (var city in civ.Cities)
                 {
-                    var smith = city.Buildings.OfType<ArmorSmith>().FirstOrDefault();
+                    var smith = city.FindBuilding<ArmorSmith>(BuildingType.ArmorSmith);
                     if (smith == null || smith.Level < 1 || smith.ActivationStatus != ActivationStatus.ACTIVE) continue;
 
                     if (currentTick - smith.LastProductionTick < GetArmorSmithInterval(smith.Level)) continue;
@@ -529,7 +529,7 @@ namespace SettlersOfIdlestan.Controller.Island
 
                 foreach (var city in civ.Cities)
                 {
-                    var hut = city.Buildings.OfType<AlchimistHut>().FirstOrDefault(h => h.Level >= 1);
+                    var hut = city.FindBuilding<AlchimistHut>(BuildingType.AlchimistHut) is { Level: >= 1 } h1 ? h1 : null;
                     if (hut == null || hut.ActivationStatus != ActivationStatus.ACTIVE) continue;
 
                     long interval = GetAlchimistHutPotionInterval(hut.Level);
@@ -573,11 +573,11 @@ namespace SettlersOfIdlestan.Controller.Island
             {
                 foreach (var city in civ.Cities)
                 {
-                    var hut = city.Buildings.OfType<AlchimistHut>().FirstOrDefault(h => h.Level >= h.AutomaticHarvestUnlockLevel);
+                    var hut = city.FindBuilding<AlchimistHut>(BuildingType.AlchimistHut) is { } h2 && h2.Level >= h2.AutomaticHarvestUnlockLevel ? h2 : null;
                     if (hut == null) continue;
 
                     long raw = hut.GetAutomaticHarvestCooldown(AutomaticHarvestCooldownTicks);
-                    double speedMultiplier = civ.ModifierAggregator.ApplyModifiers(ECategory.HARVEST_SPEED, hut.Type.ToString(), 1.0);
+                    double speedMultiplier = civ.ModifierAggregator.ApplyModifiers(ECategory.HARVEST_SPEED, BuildingTypeNames.Of(hut.Type), 1.0);
                     long effective = Math.Max(1L, (long)(raw / speedMultiplier));
                     if (currentTick - hut.LastCrystalProductionTick < effective) continue;
 
@@ -690,7 +690,7 @@ namespace SettlersOfIdlestan.Controller.Island
                     var resource = building.AutomaticHarvestCapability(tile.TerrainType, civ);
                     if (!resource.HasValue) continue;
                     long raw = building.GetAutomaticHarvestCooldown(AutomaticHarvestCooldownTicks);
-                    double speedMultiplier = civ.ModifierAggregator.ApplyModifiers(ECategory.HARVEST_SPEED, building.Type.ToString(), 1.0);
+                    double speedMultiplier = civ.ModifierAggregator.ApplyModifiers(ECategory.HARVEST_SPEED, BuildingTypeNames.Of(building.Type), 1.0);
                     double terrainSpeedMultiplier = building.GetAutomaticHarvestTerrainSpeedMultiplier(tile.TerrainType);
                     long effective = Math.Max(1L, (long)(raw / speedMultiplier / terrainSpeedMultiplier));
                     effective = Math.Max(1L, (long)(effective * featureMultiplier));
@@ -713,7 +713,7 @@ namespace SettlersOfIdlestan.Controller.Island
 
             if (!civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_AUTO_MARKET_TRADE)) return false;
             if (isSellableIntermediate && !civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_INTERMEDIATE_TRADE)) return false;
-            return city.Buildings.OfType<Market>().Any(m => m.Level >= 4);
+            return city.FindBuilding(BuildingType.Market) is { Level: >= 4 };
         }
 
         /// <summary>
@@ -739,7 +739,7 @@ namespace SettlersOfIdlestan.Controller.Island
         {
             if (_tradeController == null) return;
             if (!civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_AUTO_BUY_TRADE)) return;
-            if (!city.Buildings.OfType<Market>().Any(m => m.Level >= 4)) return;
+            if (city.FindBuilding(BuildingType.Market) is not { Level: >= 4 }) return;
 
             _tradeController.TryAutoBuyOnGoldOverflow(civ.Index);
         }
@@ -777,14 +777,14 @@ namespace SettlersOfIdlestan.Controller.Island
                 }
 
                 long raw = building.GetAutomaticHarvestCooldown(AutomaticHarvestCooldownTicks);
-                double speedMultiplier = civ.ModifierAggregator.ApplyModifiers(ECategory.HARVEST_SPEED, building.Type.ToString(), 1.0);
+                double speedMultiplier = civ.ModifierAggregator.ApplyModifiers(ECategory.HARVEST_SPEED, BuildingTypeNames.Of(building.Type), 1.0);
                 double terrainSpeedMultiplier = building.GetAutomaticHarvestTerrainSpeedMultiplier(terrain);
                 long effective = Math.Max(1L, (long)(raw / speedMultiplier / terrainSpeedMultiplier));
                 effective = Math.Max(1L, (long)(effective * featureMultiplier));
 
-                var forge = city.Buildings.OfType<Forge>().FirstOrDefault();
+                var forge = city.FindBuilding<Forge>(BuildingType.Forge);
                 int forgeChance = forge != null && forge.Level > 0 ? forge.DoubleProdChancePercent + civ.ForgeDoubleHarvestBonus * forge.Level : 0;
-                int harvestProductionChance = civ.GetHarvestProductionBonus(building.Type.ToString());
+                int harvestProductionChance = civ.GetHarvestProductionBonus(BuildingTypeNames.Of(building.Type));
                 double expectedMultiplier = (1 + forgeChance / 100.0) * (1 + harvestProductionChance / 100.0);
                 double ratePerSecond = 100.0 / effective * expectedMultiplier;
 
@@ -798,7 +798,7 @@ namespace SettlersOfIdlestan.Controller.Island
 
             foreach (var city in civ.Cities)
             {
-                var seaport = city.Buildings.OfType<Seaport>().FirstOrDefault();
+                var seaport = city.FindBuilding<Seaport>(BuildingType.Seaport);
                 if (seaport != null && seaport.Level >= 3)
                 {
                     long effectiveCooldown = GetEffectiveSeaportGenerationCooldown(seaport);
@@ -807,7 +807,7 @@ namespace SettlersOfIdlestan.Controller.Island
                         AddProductionRate(result, basicResource, seaportRate / ResourceUtils.BasicResources.Count);
                 }
 
-                var market = city.Buildings.OfType<Market>().FirstOrDefault();
+                var market = city.FindBuilding<Market>(BuildingType.Market);
                 if (market != null && market.Level > 0)
                     AddProductionRate(result, Resource.Gold, 100.0 / MarketGoldGenerationCooldownTicks);
             }
@@ -901,14 +901,14 @@ namespace SettlersOfIdlestan.Controller.Island
                 }
 
                 long raw = building.GetAutomaticHarvestCooldown(AutomaticHarvestCooldownTicks);
-                double speedMultiplier = civ.ModifierAggregator.ApplyModifiers(ECategory.HARVEST_SPEED, building.Type.ToString(), 1.0);
+                double speedMultiplier = civ.ModifierAggregator.ApplyModifiers(ECategory.HARVEST_SPEED, BuildingTypeNames.Of(building.Type), 1.0);
                 double terrainSpeedMultiplier = building.GetAutomaticHarvestTerrainSpeedMultiplier(terrain);
                 long effective = Math.Max(1L, (long)(raw / speedMultiplier / terrainSpeedMultiplier));
                 effective = Math.Max(1L, (long)(effective * featureMultiplier));
 
-                var forge = city.Buildings.OfType<Forge>().FirstOrDefault();
+                var forge = city.FindBuilding<Forge>(BuildingType.Forge);
                 int forgeChance = forge != null && forge.Level > 0 ? forge.DoubleProdChancePercent + civ.ForgeDoubleHarvestBonus * forge.Level : 0;
-                int harvestProductionChance = civ.GetHarvestProductionBonus(building.Type.ToString());
+                int harvestProductionChance = civ.GetHarvestProductionBonus(BuildingTypeNames.Of(building.Type));
                 double expectedMultiplier = (1 + forgeChance / 100.0) * (1 + harvestProductionChance / 100.0);
                 double ratePerSecond = 100.0 / effective * expectedMultiplier;
 
@@ -923,7 +923,7 @@ namespace SettlersOfIdlestan.Controller.Island
 
             foreach (var city in civ.Cities)
             {
-                var seaport = city.Buildings.OfType<Seaport>().FirstOrDefault();
+                var seaport = city.FindBuilding<Seaport>(BuildingType.Seaport);
                 if (seaport != null && seaport.Level >= 3)
                 {
                     long effectiveCooldown = GetEffectiveSeaportGenerationCooldown(seaport);
@@ -933,26 +933,26 @@ namespace SettlersOfIdlestan.Controller.Island
                         AddSourceRate(result, basicResource, seaportKey, seaportRate / ResourceUtils.BasicResources.Count);
                 }
 
-                var market = city.Buildings.OfType<Market>().FirstOrDefault();
+                var market = city.FindBuilding<Market>(BuildingType.Market);
                 if (market != null && market.Level > 0)
                     AddSourceRate(result, Resource.Gold, BuildingSourceKey(BuildingType.Market), 100.0 / GetEffectiveMarketGoldGenerationCooldown(civ, market.Level));
 
-                var smelter = city.Buildings.OfType<Smelter>().FirstOrDefault();
+                var smelter = city.FindBuilding<Smelter>(BuildingType.Smelter);
                 if (smelter != null && smelter.Level >= 1 && smelter.ActivationStatus == ActivationStatus.ACTIVE)
                 {
                     double cyclesPerSecond = 100.0 / GetEffectiveSmelterCooldown(civ, smelter);
                     AddSourceRate(result, Resource.Steel, BuildingSourceKey(BuildingType.Smelter), GetSmelterSteelOutput(civ) * cyclesPerSecond);
                 }
 
-                var weaponSmith = city.Buildings.OfType<WeaponSmith>().FirstOrDefault();
+                var weaponSmith = city.FindBuilding<WeaponSmith>(BuildingType.WeaponSmith);
                 if (weaponSmith != null && weaponSmith.Level >= 1 && weaponSmith.ActivationStatus == ActivationStatus.ACTIVE)
                     AddSourceRate(result, Resource.SteelWeapon, BuildingSourceKey(BuildingType.WeaponSmith), 100.0 / GetWeaponSmithInterval(weaponSmith.Level));
 
-                var armorSmith = city.Buildings.OfType<ArmorSmith>().FirstOrDefault();
+                var armorSmith = city.FindBuilding<ArmorSmith>(BuildingType.ArmorSmith);
                 if (armorSmith != null && armorSmith.Level >= 1 && armorSmith.ActivationStatus == ActivationStatus.ACTIVE)
                     AddSourceRate(result, Resource.SteelArmor, BuildingSourceKey(BuildingType.ArmorSmith), 100.0 / GetArmorSmithInterval(armorSmith.Level));
 
-                var hut = city.Buildings.OfType<AlchimistHut>().FirstOrDefault(h => h.Level >= 1);
+                var hut = city.FindBuilding<AlchimistHut>(BuildingType.AlchimistHut) is { Level: >= 1 } h1 ? h1 : null;
                 if (hut != null && civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_HEALING_POTION) && hut.ActivationStatus == ActivationStatus.ACTIVE)
                     AddSourceRate(result, Resource.HealingPotion, BuildingSourceKey(BuildingType.AlchimistHut), 100.0 / GetAlchimistHutPotionInterval(hut.Level));
             }
@@ -1003,7 +1003,7 @@ namespace SettlersOfIdlestan.Controller.Island
 
             foreach (var city in civ.Cities)
             {
-                var smelter = city.Buildings.OfType<Smelter>().FirstOrDefault();
+                var smelter = city.FindBuilding<Smelter>(BuildingType.Smelter);
                 if (smelter != null && smelter.Level >= 1 && smelter.ActivationStatus == ActivationStatus.ACTIVE)
                 {
                     double cyclesPerSecond = 100.0 / GetEffectiveSmelterCooldown(civ, smelter);
@@ -1012,15 +1012,15 @@ namespace SettlersOfIdlestan.Controller.Island
                     AddSourceRate(result, Resource.Wood, smelterKey, Smelter.WoodInputPerCycle * cyclesPerSecond);
                 }
 
-                var weaponSmith = city.Buildings.OfType<WeaponSmith>().FirstOrDefault();
+                var weaponSmith = city.FindBuilding<WeaponSmith>(BuildingType.WeaponSmith);
                 if (weaponSmith != null && weaponSmith.Level >= 1 && weaponSmith.ActivationStatus == ActivationStatus.ACTIVE)
                     AddSourceRate(result, Resource.Steel, BuildingSourceKey(BuildingType.WeaponSmith), WeaponSmith.SteelInputPerWeapon * 100.0 / GetWeaponSmithInterval(weaponSmith.Level));
 
-                var armorSmith = city.Buildings.OfType<ArmorSmith>().FirstOrDefault();
+                var armorSmith = city.FindBuilding<ArmorSmith>(BuildingType.ArmorSmith);
                 if (armorSmith != null && armorSmith.Level >= 1 && armorSmith.ActivationStatus == ActivationStatus.ACTIVE)
                     AddSourceRate(result, Resource.Steel, BuildingSourceKey(BuildingType.ArmorSmith), ArmorSmith.SteelInputPerArmor * 100.0 / GetArmorSmithInterval(armorSmith.Level));
 
-                var hut = city.Buildings.OfType<AlchimistHut>().FirstOrDefault(h => h.Level >= 1);
+                var hut = city.FindBuilding<AlchimistHut>(BuildingType.AlchimistHut) is { Level: >= 1 } h1 ? h1 : null;
                 if (hut != null && civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_HEALING_POTION) && hut.ActivationStatus == ActivationStatus.ACTIVE)
                 {
                     double cyclesPerSecond = 100.0 / GetAlchimistHutPotionInterval(hut.Level);
@@ -1043,7 +1043,7 @@ namespace SettlersOfIdlestan.Controller.Island
             double total = 0.0;
             foreach (var city in civ.Cities)
             {
-                var hut = city.Buildings.OfType<AlchimistHut>().FirstOrDefault(h => h.Level >= h.AutomaticHarvestUnlockLevel);
+                var hut = city.FindBuilding<AlchimistHut>(BuildingType.AlchimistHut) is { } h2 && h2.Level >= h2.AutomaticHarvestUnlockLevel ? h2 : null;
                 if (hut == null) continue;
 
                 int circleCount = city.Position.GetHexes()
@@ -1052,7 +1052,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 if (circleCount <= 0) continue;
 
                 long raw = hut.GetAutomaticHarvestCooldown(AutomaticHarvestCooldownTicks);
-                double speedMultiplier = civ.ModifierAggregator.ApplyModifiers(ECategory.HARVEST_SPEED, hut.Type.ToString(), 1.0);
+                double speedMultiplier = civ.ModifierAggregator.ApplyModifiers(ECategory.HARVEST_SPEED, BuildingTypeNames.Of(hut.Type), 1.0);
                 long effective = Math.Max(1L, (long)(raw / speedMultiplier));
 
                 total += circleCount * FairyCircle.CrystalsPerCycle * (100.0 / effective);

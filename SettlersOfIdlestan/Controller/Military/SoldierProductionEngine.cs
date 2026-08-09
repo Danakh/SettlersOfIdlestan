@@ -102,7 +102,7 @@ internal class SoldierProductionEngine
                 long effectiveProductionInterval = (long)(MilitaryController.SoldierProductionIntervalTicks / civ.UnitProductionSpeed);
                 if (currentTick - city.LastArsenalProductionTick < effectiveProductionInterval) continue;
 
-                var arsenal = city.Buildings.OfType<Arsenal>().FirstOrDefault(a => a.Level >= 1);
+                var arsenal = city.FindBuilding<Arsenal>(BuildingType.Arsenal) is { Level: >= 1 } ars ? ars : null;
                 if (arsenal == null || arsenal.ActivationStatus != ActivationStatus.ACTIVE) continue;
 
                 bool restrictedToFreeSoldiers = civ.Index == _state.PlayerCivilization.Index

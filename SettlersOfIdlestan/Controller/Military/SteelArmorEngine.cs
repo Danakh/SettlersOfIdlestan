@@ -35,7 +35,7 @@ internal static class SteelArmorEngine
         if (!hasSteelArmor && !hasHealingPotion) return 0;
 
         // Une Flotte de Guerre n'a pas de bâtiments (voir WarFleet) — pas de bonus d'Arsenal pour elle.
-        int arsenalLevel = vertex is City city ? city.Buildings.OfType<Arsenal>().Sum(a => a.Level) : 0;
+        int arsenalLevel = vertex is City city ? (city.FindBuilding(BuildingType.Arsenal)?.Level ?? 0) : 0;
         int steelArmorSaveChancePercent = Arsenal.ArmorSaveBasePercent + Arsenal.ArmorSavePercentPerLevel * arsenalLevel;
 
         int saved = 0;
