@@ -21,18 +21,52 @@ public static class TutorialTaskDefinitions
         BuildingType.GlassWorks,
     };
 
+    /// <summary>
+    /// Boucles indexées plutôt que <c>Sum</c>/<c>Count</c> LINQ : ces prédicats sont réévalués tant
+    /// que leur tâche n'est pas complétée, à chaque récolte du joueur (voir
+    /// TaskRecordController.CheckTaskCompletions), et parcourent tous les bâtiments de toutes ses
+    /// villes — plusieurs milliers en fin de partie. La chaîne LINQ y allouait deux fermetures et ses
+    /// itérateurs à chaque appel.
+    /// </summary>
     private static int CountBuilding(WorldState? island, BuildingType type)
-        => island?.PlayerCivilization.Cities.Sum(c => c.Buildings.Count(b => b.Type == type)) ?? 0;
+    {
+        if (island == null) return 0;
+
+        int count = 0;
+        var cities = island.PlayerCivilization.Cities;
+        for (int i = 0; i < cities.Count; i++)
+        {
+            var buildings = cities[i].Buildings;
+            for (int b = 0; b < buildings.Count; b++)
+                if (buildings[b].Type == type) count++;
+        }
+        return count;
+    }
 
     private static int LiveMax(int recorded, int? live) => Math.Max(recorded, live ?? 0);
 
     private static int ComputePrestigePoints(WorldState? island)
-        => island?.PlayerCivilization.Cities.SelectMany(c => c.Buildings).Sum(b => b.Type switch
+    {
+        if (island == null) return 0;
+
+        int points = 0;
+        var cities = island.PlayerCivilization.Cities;
+        for (int i = 0; i < cities.Count; i++)
         {
-            BuildingType.Temple   => 1,
-            BuildingType.TownHall => b.Level > 2 ? 2 : 1,
-            _                     => 0,
-        }) ?? 0;
+            var buildings = cities[i].Buildings;
+            for (int b = 0; b < buildings.Count; b++)
+            {
+                var building = buildings[b];
+                points += building.Type switch
+                {
+                    BuildingType.Temple   => 1,
+                    BuildingType.TownHall => building.Level > 2 ? 2 : 1,
+                    _                     => 0,
+                };
+            }
+        }
+        return points;
+    }
 
     public static readonly IReadOnlyList<TutorialTask> All = new[]
     {

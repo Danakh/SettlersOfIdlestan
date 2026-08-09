@@ -37,17 +37,27 @@ namespace SettlersOfIdlestan.Controller
             _state = state ?? throw new ArgumentNullException(nameof(state));
         }
 
+        /// <summary>
+        /// Parcourt délibérément les villes plutôt que de lire un cache : <c>City.Buildings</c> est une
+        /// liste publique que plusieurs chemins mutent directement (bâtiments de départ accordés par
+        /// <see cref="Island.CityBuilderController"/> et par l'Ascension, tests), sans passer par
+        /// <see cref="Island.BuildingController.BuildBuilding"/>. Un cache entretenu à la
+        /// construction rendait donc « commerce indisponible » dans ces cas — ce qu'ont
+        /// immédiatement montré les tests. Le coût est maîtrisé à l'appel : la récolte automatique,
+        /// seule à appeler ceci en boucle, ne le fait qu'une fois par civilisation et par tick (voir
+        /// HarvestController.PerformAutomaticProductionHarvests).
+        /// </summary>
         public bool IsTradeAvailable(int civilizationIndex)
         {
             if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
 
-            var civ = _state.Civilizations.Find(c => c.Index == civilizationIndex);
+            var civ = _state.GetCivilization(civilizationIndex);
             if (civ == null) throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
 
-            foreach (var city in civ.Cities)
-                foreach (var b in city.Buildings)
-                    if (b.Type == BuildingType.Market)
-                        return true;
+            var cities = civ.Cities;
+            for (int i = 0; i < cities.Count; i++)
+                if (cities[i].FindBuilding(BuildingType.Market) != null)
+                    return true;
 
             return false;
         }
@@ -68,7 +78,7 @@ namespace SettlersOfIdlestan.Controller
         /// <summary>Vrai si la vente des ressources intermédiaires (Minerai, Verre, Acier) au marché est déverrouillée (recherche Comptoirs Avancés).</summary>
         public bool IsIntermediateTradeUnlocked(int civilizationIndex)
         {
-            var civ = _state?.Civilizations.Find(c => c.Index == civilizationIndex);
+            var civ = _state?.GetCivilization(civilizationIndex);
             return civ?.ModifierAggregator.HasModifier(ECategory.UNLOCK_INTERMEDIATE_TRADE) ?? false;
         }
 
@@ -77,7 +87,7 @@ namespace SettlersOfIdlestan.Controller
         {
             if (resource == Resource.Steel || resource == Resource.Glass || resource == Resource.Ore)
                 return quantity * (BuyRate(resource) / 5);
-            var civ = _state?.Civilizations.Find(c => c.Index == civilizationIndex);
+            var civ = _state?.GetCivilization(civilizationIndex);
             int bulkBonus = civ?.ModifierAggregator.ApplyModifiers(ECategory.TRADE_BULK_GOLD_BONUS, "", 0) ?? 0;
             return quantity + (quantity / 10) * bulkBonus;
         }
@@ -105,7 +115,7 @@ namespace SettlersOfIdlestan.Controller
                 && resource != Resource.Steel && resource != Resource.Ore && resource != Resource.Glass)
                 throw new ArgumentException("Only basic resources, ore, glass and steel can be sold.", nameof(resource));
 
-            var civ = _state.Civilizations.Find(c => c.Index == civilizationIndex)
+            var civ = _state.GetCivilization(civilizationIndex)
                       ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
 
             if (!IsTradeAvailable(civilizationIndex)) return false;
@@ -137,7 +147,7 @@ namespace SettlersOfIdlestan.Controller
             if (resource == Resource.Gold) return false;
             if (!IsTradeAvailable(civIndex)) return false;
 
-            var civ = _state.Civilizations.Find(c => c.Index == civIndex);
+            var civ = _state.GetCivilization(civIndex);
             if (civ == null) return false;
 
             return civ.GetResourceQuantity(Resource.Gold) >= BuyRate(resource) * quantity
@@ -149,7 +159,7 @@ namespace SettlersOfIdlestan.Controller
             if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
             if (!CanBuyResource(civIndex, resource, quantity)) return;
 
-            var civ = _state.Civilizations.Find(c => c.Index == civIndex)!;
+            var civ = _state.GetCivilization(civIndex)!;
             int cost = BuyRate(resource) * quantity;
             civ.RemoveResource(Resource.Gold, cost);
             civ.AddResource(resource, quantity);
@@ -164,7 +174,7 @@ namespace SettlersOfIdlestan.Controller
         /// </summary>
         public bool IsAutoBuyUnlocked(int civilizationIndex)
         {
-            var civ = _state?.Civilizations.Find(c => c.Index == civilizationIndex);
+            var civ = _state?.GetCivilization(civilizationIndex);
             return civ?.AutoBuyUnlockedCache ?? false;
         }
 
@@ -176,7 +186,7 @@ namespace SettlersOfIdlestan.Controller
         public bool TryAutoBuyOnGoldOverflow(int civilizationIndex, int incomingGold = 1)
         {
             if (_state == null || incomingGold <= 0) return false;
-            var civ = _state.Civilizations.Find(c => c.Index == civilizationIndex);
+            var civ = _state.GetCivilization(civilizationIndex);
             if (civ == null) return false;
 
             int maxGold = civ.GetResourceMaxQuantity(Resource.Gold);
@@ -191,7 +201,7 @@ namespace SettlersOfIdlestan.Controller
 
         public int GetMaxSeaportLevel(int civilizationIndex)
         {
-            var civ = _state?.Civilizations.Find(c => c.Index == civilizationIndex);
+            var civ = _state?.GetCivilization(civilizationIndex);
             if (civ == null) return 0;
             int max = 0;
             foreach (var city in civ.Cities)
@@ -204,7 +214,7 @@ namespace SettlersOfIdlestan.Controller
         /// <summary>Vrai si la recherche Marché Spécialisé est complétée pour la civilisation.</summary>
         public bool IsMarketSpecializationUnlocked(int civilizationIndex)
         {
-            var civ = _state?.Civilizations.Find(c => c.Index == civilizationIndex);
+            var civ = _state?.GetCivilization(civilizationIndex);
             return civ?.ModifierAggregator.HasModifier(ECategory.UNLOCK_MARKET_SPECIALIZATION) ?? false;
         }
 
@@ -233,7 +243,7 @@ namespace SettlersOfIdlestan.Controller
             if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
             if (requiredCosts == null) throw new ArgumentNullException(nameof(requiredCosts));
 
-            var civ = _state.Civilizations.Find(c => c.Index == civilizationIndex)
+            var civ = _state.GetCivilization(civilizationIndex)
                       ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
 
             if (!IsTradeAvailable(civilizationIndex)) return false;

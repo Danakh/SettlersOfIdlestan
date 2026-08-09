@@ -417,8 +417,13 @@ namespace SettlersOfIdlestan.Controller
         private void OnRoadBuiltExtendMap(object? sender, RoadAutoBuiltEventArgs e)
             => AutoExtendController.TryExtendMapAfterRoad(e.CivilizationIndex, e.RoadPosition);
 
+        /// <summary>
+        /// Seule la civilisation propriétaire du bâtiment voit son cache de production invalidé. Avec
+        /// une invalidation globale, chaque construction d'un PNJ — il y en a en permanence — faisait
+        /// reconstruire le cache des centaines de villes du joueur au tick suivant.
+        /// </summary>
         private void OnBuildingChangedInvalidateHarvestCache(object? sender, BuildingBuiltEventArgs e)
-            => HarvestController.InvalidateProductionCache();
+            => HarvestController.InvalidateProductionCache(e.City.CivilizationIndex);
 
         /// <summary>
         /// Effet de la Ziggourat (bâtiment racial des Humains, flag TEMPLE_INSTANT_DOMINION) :
@@ -454,7 +459,7 @@ namespace SettlersOfIdlestan.Controller
         private void OnCityBuiltInvalidateHarvestCache(object? sender, OutpostAutoBuiltEventArgs e)
         {
             FeatureController.RefreshContestedTerritories();
-            HarvestController.InvalidateProductionCache();
+            HarvestController.InvalidateProductionCache(e.CivilizationIndex);
             MobileCampController.DestroyCampsNear(e.Position, e.CivilizationIndex);
         }
 
@@ -481,7 +486,7 @@ namespace SettlersOfIdlestan.Controller
             FeatureController.RefreshContestedTerritories();
             DeepestMineController.OnCityDestroyed(e.CityVertex, e.CivilizationIndex);
             SurfaceBreachController.OnCityDestroyed(e.CityVertex, e.CivilizationIndex);
-            HarvestController.InvalidateProductionCache();
+            HarvestController.InvalidateProductionCache(e.CivilizationIndex);
 
             if (civ != null && civ.IsNpc && civ.Cities.Count == 0)
                 worldState?.EventLog.Add(GameEventType.CivilizationDestroyed, toast: true);

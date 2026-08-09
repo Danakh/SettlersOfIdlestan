@@ -123,6 +123,31 @@ Méthode qui a effectivement fonctionné, et à refaire dans cet ordre :
    par une boucle indexée ou un accès indexé.
 5. **Remesurer après chaque changement.** Plusieurs corrections parfaitement plausibles n'ont rien
    donné.
+6. **Connaître le bruit avant d'interpréter un écart.** Sur cette machine, deux exécutions identiques
+   du même binaire donnent des médianes allant de 5,58 à 6,15 ms : un écart inférieur à ~5 % ne veut
+   rien dire. Les allocations par événement, elles, sont stables à ~1 % près — c'est le signal à
+   suivre quand le temps hésite. En cas de doute, relancer la même mesure trois fois.
+
+## Descendre sous le niveau du contrôleur : dotnet-trace
+
+L'échantillonneur intégré donne les types, pas les sites d'appel. Pour ces derniers :
+
+```bash
+dotnet-trace collect --format speedscope -o alloc.nettrace --profile gc-verbose \
+  -- SOIBench/bin/Release/net10.0/SOIBench.exe --cities 400 --events 700 --rounds 1 --warmup 60
+```
+
+Le profil converti est de type **evented** (ouverture/fermeture de frames), pas `sampled` : un
+lecteur qui attend des `samples`/`weights` renvoie zéro. Reconstruire la pile au fil des événements
+et répartir le poids de chaque intervalle donne le poids inclusif par frame, ce qui suffit à
+désigner la méthode fautive. Le poids exclusif, lui, est inutilisable ici (tout retombe sur une
+pseudo-frame `CPU_TIME`).
+
+⚠️ La phase de génération de l'état (`EndGameStateFactory`) est tracée elle aussi et pèse ~15 % :
+ses frames (`FillBuildings`, `PlaceCities`, et le `BuildBuilding` qu'elles appellent) ne sont pas des
+coûts de simulation. Vérifier qu'une frame suspecte est bien sous `GameClock.SimulateAdvance` avant
+d'y toucher — c'est ce qui a évité d'« optimiser » `TaskRecordController.HandleBuildingBuilt`, qui
+paraissait peser 7 % mais n'était appelé que par la génération.
 
 ## ClockProfiler — le point fragile
 

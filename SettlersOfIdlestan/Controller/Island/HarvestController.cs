@@ -244,37 +244,74 @@ namespace SettlersOfIdlestan.Controller.Island
             }
         }
 
-        /// <summary>Invalide le cache de production (à appeler après construction/amélioration de bâtiment ou nouvelle ville).</summary>
+        /// <summary>
+        /// Invalide le cache de production de toutes les civilisations. À réserver aux changements
+        /// réellement globaux : préférer <see cref="InvalidateProductionCache(int)"/> dès que la
+        /// civilisation concernée est connue, sinon la moindre construction d'un PNJ fait rebâtir le
+        /// cache du joueur et ses centaines de villes.
+        /// </summary>
         public void InvalidateProductionCache() => _productionCache.Clear();
 
+        /// <summary>Invalide le cache de production de la seule civilisation donnée.</summary>
+        public void InvalidateProductionCache(int civilizationIndex) => _productionCache.Remove(civilizationIndex);
+
+        /// <summary>
+        /// Construit la liste (hexagone, ville, bâtiment) des productions automatiques d'une
+        /// civilisation.
+        ///
+        /// <para>Les villes voisines d'un hexagone sont trouvées via un index hexagone → villes
+        /// construit en une passe, et non par un <c>civ.Cities.Where(c =&gt; c.Position.IsAdjacentTo(hex))</c>
+        /// par hexagone : ce scan rendait la construction quadratique en nombre de villes (200 villes
+        /// = 600 hexagones × 200 tests d'adjacence), et le cache est invalidé à chaque bâtiment ou
+        /// ville posés — c'est-à-dire en permanence pendant l'autoplay des PNJ. Le profilage par
+        /// piles d'appels le donnait comme premier poste de la simulation, à ~11 %.</para>
+        ///
+        /// <para>L'ordre des entrées est celui de l'ancienne version — hexagones dans l'ordre de
+        /// première visite, puis villes dans l'ordre de <c>civ.Cities</c> — et doit le rester : la
+        /// récolte automatique consomme le PRNG en le parcourant (bonus d'or des mines, doublement de
+        /// la Forge), donc le déterminisme de la partie en dépend.</para>
+        /// </summary>
         private System.Collections.Generic.List<ProductionEntry> GetOrBuildProductionCache(int civIndex)
         {
             if (_productionCache.TryGetValue(civIndex, out var cached))
                 return cached;
 
             var entries = new System.Collections.Generic.List<ProductionEntry>();
-            if (_state != null)
+            var civ = _state?.GetCivilization(civIndex);
+            if (civ != null)
             {
-                var civ = _state.GetCivilization(civIndex);
-                if (civ != null)
+                var citiesByHex = new System.Collections.Generic.Dictionary<HexCoord, System.Collections.Generic.List<City>>();
+                var orderedHexes = new System.Collections.Generic.List<HexCoord>();
+
+                var cities = civ.Cities;
+                for (int i = 0; i < cities.Count; i++)
                 {
-                    var visitedHexes = new HashSet<HexCoord>();
-                    foreach (var city in civ.Cities)
+                    var hexes = cities[i].Position.GetHexes();
+                    for (int h = 0; h < hexes.Length; h++)
                     {
-                        foreach (var hex in city.Position.GetHexes())
+                        if (!citiesByHex.TryGetValue(hexes[h], out var adjacent))
                         {
-                            if (!visitedHexes.Add(hex)) continue;
-                            var tile = _state.GetMapFor(hex)?.GetTile(hex);
-                            if (tile == null) continue;
-                            foreach (var adjacentCity in civ.Cities.Where(c => c.Position.IsAdjacentTo(hex)))
-                                foreach (var building in adjacentCity.Buildings)
-                                {
-                                    var res = building.AutomaticHarvestCapability(tile.TerrainType, civ);
-                                    if (res.HasValue)
-                                        entries.Add(new ProductionEntry(hex, adjacentCity, building, res.Value, tile.TerrainType));
-                                }
+                            citiesByHex[hexes[h]] = adjacent = new System.Collections.Generic.List<City>();
+                            orderedHexes.Add(hexes[h]);
                         }
+                        adjacent.Add(cities[i]);
                     }
+                }
+
+                for (int i = 0; i < orderedHexes.Count; i++)
+                {
+                    var hex = orderedHexes[i];
+                    var tile = _state!.GetMapFor(hex)?.GetTile(hex);
+                    if (tile == null) continue;
+
+                    var adjacent = citiesByHex[hex];
+                    for (int c = 0; c < adjacent.Count; c++)
+                        foreach (var building in adjacent[c].Buildings)
+                        {
+                            var res = building.AutomaticHarvestCapability(tile.TerrainType, civ);
+                            if (res.HasValue)
+                                entries.Add(new ProductionEntry(hex, adjacent[c], building, res.Value, tile.TerrainType));
+                        }
                 }
             }
 

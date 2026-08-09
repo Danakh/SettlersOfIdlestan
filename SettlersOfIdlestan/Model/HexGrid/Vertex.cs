@@ -144,14 +144,40 @@ public class Vertex : IEquatable<Vertex>
     /// Retourne les trois sommets voisins (Ã  distance d'un edge).
     /// Chaque voisin est l'autre sommet de l'une des trois arÃªtes formÃ©es par les paires de hex de ce sommet.
     /// </summary>
+    /// <remarks>
+    /// Chaque voisin est construit directement à partir du troisième hexagone partagé, sans passer
+    /// par une <see cref="Edge"/> intermédiaire. L'ancienne formulation
+    /// (<c>Edge.Create(a, b).OtherVertex(this)</c>) allouait, par voisin, une arête, son tableau de
+    /// sommets et les <b>deux</b> sommets de l'arête — dont un jeté aussitôt. Cette méthode est le
+    /// pas élémentaire de tous les BFS sur sommets (rayons interdits autour des villes, portée de
+    /// Vol, recherche d'hexagones inexplorés) : le profilage par piles d'appels plaçait ces parcours
+    /// autour de 6 % de la simulation.
+    /// </remarks>
     public Vertex[] GetAdjacentVertices()
     {
         return
         [
-            Edge.Create(Hex1, Hex2).OtherVertex(this),
-            Edge.Create(Hex2, Hex3).OtherVertex(this),
-            Edge.Create(Hex1, Hex3).OtherVertex(this),
+            Create(Hex1, Hex2, OtherSharedNeighbor(Hex1, Hex2, Hex3)),
+            Create(Hex2, Hex3, OtherSharedNeighbor(Hex2, Hex3, Hex1)),
+            Create(Hex1, Hex3, OtherSharedNeighbor(Hex1, Hex3, Hex2)),
         ];
+    }
+
+    /// <summary>
+    /// Deux hexagones adjacents ont exactement deux voisins communs — les deux sommets de l'arête
+    /// qui les sépare. Retourne celui qui n'est pas <paramref name="exclude"/>. Parcourt les six
+    /// directions plutôt que <c>Neighbors()</c>, qui allouerait un tableau.
+    /// </summary>
+    private static HexCoord OtherSharedNeighbor(HexCoord a, HexCoord b, HexCoord exclude)
+    {
+        foreach (var direction in HexDirectionUtils.AllHexDirections)
+        {
+            var neighbor = a.Neighbor(direction);
+            if (neighbor.Equals(exclude)) continue;
+            if (neighbor.DistanceTo(b) == 1) return neighbor;
+        }
+
+        throw new InvalidOperationException($"Aucun voisin commun à {a} et {b} en dehors de {exclude}.");
     }
 
     /// <summary>

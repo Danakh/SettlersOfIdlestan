@@ -615,6 +615,7 @@ public class Civilization
 
     public void SetAutoBuyUnlockedCache(bool value) => AutoBuyUnlockedCache = value;
 
+
     /// <summary>
     /// Appelé uniquement par BuildingController après recalcul complet de la capacité de stockage.
     /// </summary>
